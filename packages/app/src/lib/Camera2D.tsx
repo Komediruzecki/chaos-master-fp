@@ -87,9 +87,10 @@ export function Camera2D(props: ParentProps<Camera2DProps>) {
   })
 
   const uniforms = createMemo(() => {
+    const size = canvasSize()
+    const { width, height } = size ?? { width: 800, height: 600 }
     const { position, zoom } = props
     const { x, y } = position
-    const { width, height } = canvasSize()
     const aspect = width / height
     const viewMatrix4 = mat4x4f()
     const fovy = 1 / zoom

@@ -135,7 +135,10 @@ function FlameColorHandle(props: {
     js: { worldToClip, clipToWorld },
   } = useCamera()
   const changeHistory = useChangeHistory()
-  const clip = createMemo(() => worldToClip(props.color))
+  const clip = createMemo(() => {
+    const result = worldToClip(props.color)
+    return result && typeof result === 'object' && 'x' in result ? result : vec2f(0.5, 0.5)
+  })
   const startDragging = createDragHandler((initEvent) => {
     changeHistory.startPreview('Flame color')
 
