@@ -167,12 +167,13 @@ function AffineHandle(props: {
 }) {
   const { theme } = useTheme()
   const { canvas, canvasSize } = useCanvas()
-  const {
-    js: { worldToClip, clipToWorld },
-  } = useCamera()
   const changeHistory = useChangeHistory()
 
-  const aspect = createMemo(() => canvasSize().width / canvasSize().height)
+  const size = canvasSize()
+  const aspect = createMemo(() => {
+    if (!size) return 16/9
+    return size.width / size.height
+  })
   const position = createMemo(() => vec2f(props.transform.c, props.transform.f))
   const clipPosition = createMemo(() => worldToClip(position()))
   const clipTransform = createMemo(() => {

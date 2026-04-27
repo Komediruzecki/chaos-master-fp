@@ -788,7 +788,13 @@ function App(props: AppProps) {
                   selectedPreset={qualityPreset()}
                   setQualityPreset={setQualityPreset}
                   fillPercentage={
-                    (accumulatedPointCount() / qualityPointCountLimit()()) * 100
+                    (() => {
+                      const limitFn = qualityPointCountLimit()
+                      if (!limitFn) return 0
+                      const limit = limitFn()
+                      if (limit === 0) return 0
+                      return Math.min(100, Math.max(0, (accumulatedPointCount() / limit) * 100))
+                    })()
                   }
                 />
               </Card>

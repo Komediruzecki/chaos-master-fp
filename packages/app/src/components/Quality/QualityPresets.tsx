@@ -33,7 +33,7 @@ export function QualityPresets(props: QualityPresetsProps) {
         {(presetName) => {
           const isSelected = () => presetName === props.selectedPreset
           const fillPercent = () =>
-            isSelected() ? Math.min(100, Math.max(0, props.fillPercentage)) : 0
+            Math.min(100, Math.max(0, props.fillPercentage ?? 0))
           return (
             <button
               onClick={() => {

@@ -74,7 +74,8 @@ export function Flam3(props: Flam3Props) {
   }
 
   const bucketProbabilityInv = () => {
-    const { height } = canvasSize()
+    const size = canvasSize()
+    const height = size?.height ?? 600
     const unitSquareArea = (height ** 2 * camera.zoom() ** 2) / 4
     return unitSquareArea
   }
