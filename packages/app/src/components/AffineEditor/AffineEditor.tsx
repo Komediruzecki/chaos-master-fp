@@ -175,14 +175,17 @@ function AffineHandle(props: {
     return size.width / size.height
   })
   const position = createMemo(() => vec2f(props.transform.c, props.transform.f))
-  const clipPosition = createMemo(() => worldToClip(position()))
+  const clipPosition = createMemo(() => {
+    const result = worldToClip(position())
+    return result && typeof result === 'object' && 'x' in result ? result : vec2f(0.5, 0.5)
+  })
   const clipTransform = createMemo(() => {
     // prettier-ignore
     const { a, b, c, d, e, f } = props.transform
-    const zero = worldToClip(vec2f(0, 0))
-    const x = sub(worldToClip(vec2f(a, d)), zero)
-    const y = sub(worldToClip(vec2f(b, e)), zero)
-    const t = worldToClip(vec2f(c, f))
+    const zero = worldToClip(vec2f(0, 0)) ?? vec2f(0.5, 0.5)
+    const x = sub(worldToClip(vec2f(a, d)) ?? zero, zero)
+    const y = sub(worldToClip(vec2f(b, e)) ?? zero, zero)
+    const t = worldToClip(vec2f(c, f)) ?? vec2f(0.5, 0.5)
     const s = aspect()
     return [x.x * s, y.x * s, x.y, y.y, t.x * s, t.y]
   })
