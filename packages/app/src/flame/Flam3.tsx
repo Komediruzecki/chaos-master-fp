@@ -132,6 +132,11 @@ export function Flam3(props: Flam3Props) {
       }
     | undefined = undefined
 
+  // Reactive signal so downstream effects know when buffers are ready.
+  // SolidJS cannot track a plain `let` variable, so the render-loop effect
+  // would fire once (seeing undefined) and never re-run.
+  const [outputTexturesReady, setOutputTexturesReady] = createSignal(false)
+
   // Initialize buffers at component mount - they persist until cleanup
   // Use fallback dimensions if canvasSize isn't available yet (ResizeObserver
   // hasn't fired). When it does fire, this effect re-runs with actual size.
@@ -151,6 +156,7 @@ export function Flam3(props: Flam3Props) {
     }
 
     outputTextures = newTex
+    setOutputTexturesReady(true)
     return newTex
   })
 
@@ -269,6 +275,9 @@ export function Flam3(props: Flam3Props) {
   }
 
   createEffect(() => {
+    // Subscribe to the signal so this effect re-runs when buffers are ready.
+    void outputTexturesReady()
+
     const tex = outputTextures
     if (!tex) {
       console.debug('[Flam3] outputTextures not ready yet')
@@ -325,6 +334,9 @@ export function Flam3(props: Flam3Props) {
 
     createAnimationFrame(
       (frameId: number) => {
+        // Create a new command encoder for each frame
+        const encoder = device.createCommandEncoder()
+
         console.debug('[Flam3] Animation frame start:', {
           frameId,
           batchIndex: _batchIndex(),
