@@ -133,13 +133,12 @@ export function Flam3(props: Flam3Props) {
     | undefined = undefined
 
   // Initialize buffers at component mount - they persist until cleanup
+  // Use fallback dimensions if canvasSize isn't available yet (ResizeObserver
+  // hasn't fired). When it does fire, this effect re-runs with actual size.
   createEffect(() => {
     const size = canvasSize()
-    const width = Math.floor(size?.width ?? 0)
-    const height = Math.floor(size?.height ?? 0)
-    if (width === 0 || height === 0) {
-      return undefined
-    }
+    const width = Math.floor(size?.width ?? 800)
+    const height = Math.floor(size?.height ?? 600)
 
     const newTex = {
       accumulationBuffer: root
