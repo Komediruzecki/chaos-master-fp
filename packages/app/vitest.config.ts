@@ -9,8 +9,18 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
-    include: ['src/**/*.test.ts'],
-    setupFiles: [],
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+    setupFiles: ['./src/vitest.setup.ts'],
+    environmentOptions: {
+      jsdom: {
+        resources: 'usable',
+      },
+    },
+    css: {
+      modules: {
+        localsConvention: 'camelCaseOnly',
+      },
+    },
   },
   resolve: {
     alias: {
