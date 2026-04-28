@@ -135,8 +135,8 @@ export function Flam3(props: Flam3Props) {
   // Initialize buffers at component mount - they persist until cleanup
   createEffect(() => {
     const size = canvasSize()
-    const width = size?.width ?? 0
-    const height = size?.height ?? 0
+    const width = Math.floor(size?.width ?? 0)
+    const height = Math.floor(size?.height ?? 0)
     if (width === 0 || height === 0) {
       return undefined
     }
