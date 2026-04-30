@@ -69,9 +69,7 @@ export function KeyframeEditor() {
   const track = createMemo(() => {
     const path = currentPath()
     const tracksData = tracks()
-    return tracksData[path as keyof typeof tracksData] as
-      | TimelineTrack
-      | undefined
+    return tracksData.find((t) => t.parameterPath === path)
   })
 
   // Find current value for selected path at current frame
@@ -156,13 +154,12 @@ export function KeyframeEditor() {
   // Add keyframe at current frame
   const handleAddKeyframe = () => {
     const value = keyframeValue()
-    if (track() === undefined) return
 
-    let keyValue: string | number = value
+    let keyValue: string | number | [number, number, number] | [number, number, number, number] = value
 
     if (isArrayValue()) {
       const parsed = parseArrayValue(value)
-      keyValue = parsed ? `[${parsed.join(', ')}]` : '[0, 0, 0]'
+      keyValue = parsed ?? [0, 0, 0]
     } else if (isNumberValue() || isVariationParam()) {
       keyValue = Number(value)
     }
@@ -202,7 +199,7 @@ export function KeyframeEditor() {
 
     if (isArrayValue()) {
       const parsed = parseArrayValue(String(currentKf.value))
-      keyValue = parsed ? `[${parsed.join(', ')}]` : '[0, 0, 0]'
+      keyValue = parsed ?? [0, 0, 0]
     } else if (isNumberValue()) {
       keyValue = Number(currentKf.value)
     }
@@ -227,7 +224,7 @@ export function KeyframeEditor() {
 
     if (isArrayValue()) {
       const parsed = parseArrayValue(keyframeValue())
-      keyValue = parsed ? `[${parsed.join(', ')}]` : '[0, 0, 0]'
+      keyValue = parsed ?? [0, 0, 0]
     } else if (isNumberValue()) {
       keyValue = Number(keyframeValue())
     }

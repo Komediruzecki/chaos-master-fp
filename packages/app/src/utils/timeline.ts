@@ -749,7 +749,8 @@ export function createTimelineState() {
     // Apply variation parameters
 
     // Iterate through all tracks and apply variation parameter animations
-    for (const trackPath of Object.keys(tracks())) {
+    for (const track of tracks()) {
+      const trackPath = track.parameterPath
       // Check if this is a variation parameter track (format: transformId.variationId.paramName)
       const parts = trackPath.split('.')
       if (parts.length !== 3) continue
@@ -757,28 +758,21 @@ export function createTimelineState() {
       const [transformId, variationId, paramName] = parts
 
       // Check if this parameter is defined for this variation type
-      const params = VariationParameterMaps[variationId] || []
-      if (!params.includes(paramName)) continue
+      const params = VariationParameterMaps[variationId!] || []
+      if (!params.includes(paramName!)) continue
 
       // Get the variation from the transform
-      const transform = flame.transforms[transformId]
+      const transform = flame.transforms[transformId!]
       if (!transform) continue
 
-      const variation = transform.variations[variationId] as {
-        params: Record<string, number> | undefined
-        type: string
-      }
+      const variation = (transform as { variations: Record<string, { params: Record<string, number> | undefined; type: string }> }).variations[variationId!]
 
       if (!variation || !variation.params) continue
-
-      // Check if there's a keyframe for this parameter at current frame
-      const track = tracks()[trackPath]
-      if (!track) continue
 
       const keyframe = track.keyframes.find((kf: KeyframeData) => kf.frame === frame)
 
       if (keyframe && typeof keyframe.value === 'number') {
-        variation.params[paramName] = keyframe.value
+        variation.params[paramName!] = keyframe.value
       }
     }
   }

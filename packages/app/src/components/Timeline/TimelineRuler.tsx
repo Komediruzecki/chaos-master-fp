@@ -8,27 +8,27 @@ export function TimelineRuler() {
   const config = createMemo(() => timeline.config())
   const tracks = createMemo(() => timeline.tracks())
 
-  const keyframeFrames = new Set<number>()
-  const currentTracks = tracks()
-  for (const track of Object.values(currentTracks)) {
-    for (const kf of track.keyframes) {
-      keyframeFrames.add(kf.frame)
+  const keyframeFramesArr = createMemo(() => {
+    const frames = new Set<number>()
+    for (const track of tracks()) {
+      for (const kf of track.keyframes) {
+        frames.add(kf.frame)
+      }
     }
-  }
+    return Array.from(frames).sort((a, b) => a - b)
+  })
 
   const frameWidth = 30 // pixels per frame
-  const totalWidth = config().endFrame * frameWidth
-
-  const keyframeFramesArr = Array.from(keyframeFrames).sort((a, b) => a - b)
+  const totalWidth = createMemo(() => config().endFrame * frameWidth)
 
   return (
     <div
       class={ui.ruler}
-      style={{ width: `${totalWidth}px` }}
+      style={{ width: `${totalWidth()}px` }}
       data-testid="timeline-ruler"
     >
       <div class={ui.markers}>
-        {keyframeFramesArr.map((frame) => (
+        {keyframeFramesArr().map((frame) => (
           <div
             data-key={frame}
             class={ui.keyframeMarker}
