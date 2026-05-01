@@ -3,7 +3,7 @@ import { vec2f } from 'typegpu/data'
 import { handleColor } from '@/components/FlameColorEditor/FlameColorEditor'
 import { useTheme } from '@/contexts/ThemeContext'
 import { recordEntries } from '@/utils/record'
-import { withKeyframeTarget } from './withKeyframeTarget'
+import { WithKeyframeTarget } from './withKeyframeTarget'
 import type { TransformFunction } from '@/flame/schema/flameSchema'
 
 type WrappedFlameColorEditorProps = {
@@ -22,7 +22,7 @@ export function WrappedFlameColorEditor(
       <For each={recordEntries(props.transforms)}>
         {([_tid, transform]) => (
           <div class="transformGridRow">
-            <withKeyframeTarget
+            <WithKeyframeTarget
               parameterPath="transform.color.x"
               class="variationButtonSvgColor"
             >
@@ -39,16 +39,16 @@ export function WrappedFlameColorEditor(
                   <circle class="variationButtonColorCircle" />
                 </g>
               </svg>
-            </withKeyframeTarget>
+            </WithKeyframeTarget>
 
-            <withKeyframeTarget
+            <WithKeyframeTarget
               parameterPath="transform.color.y"
               class="colorValueDisplay"
             >
               <span class="colorValueText">
                 RGB({transform.color.x.toFixed(3)}, {transform.color.y.toFixed(3)})
               </span>
-            </withKeyframeTarget>
+            </WithKeyframeTarget>
           </div>
         )}
       </For>
@@ -66,21 +66,21 @@ type WrappedFlameColorRowProps = {
 export function WrappedFlameColorRow(props: WrappedFlameColorRowProps) {
   return (
     <div class="transformGridRow">
-      <withKeyframeTarget parameterPath={`transform.${props.tid}.color.x`}>
+      <WithKeyframeTarget parameterPath={`transform.${props.tid}.color.x`}>
         <span class="colorValueDisplay">
           <span class="colorValueText">
             R: {props.transform.color.x.toFixed(3)}
           </span>
         </span>
-      </withKeyframeTarget>
+      </WithKeyframeTarget>
 
-      <withKeyframeTarget parameterPath={`transform.${props.tid}.color.y`}>
+      <WithKeyframeTarget parameterPath={`transform.${props.tid}.color.y`}>
         <span class="colorValueDisplay">
           <span class="colorValueText">
             G: {props.transform.color.y.toFixed(3)}
           </span>
         </span>
-      </withKeyframeTarget>
+      </WithKeyframeTarget>
     </div>
   )
 }

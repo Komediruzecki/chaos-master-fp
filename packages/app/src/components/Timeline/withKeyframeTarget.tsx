@@ -7,7 +7,7 @@ type KeyframeTargetWrapperProps = {
   class?: string
 }
 
-export function withKeyframeTarget(props: KeyframeTargetWrapperProps) {
+export function WithKeyframeTarget(props: KeyframeTargetWrapperProps) {
   const { setTargetedParameter } = useKeyframeTarget()
 
   return (
@@ -25,13 +25,4 @@ export function withKeyframeTarget(props: KeyframeTargetWrapperProps) {
       {props.children}
     </span>
   )
-}
-
-// Helper to wrap standard elements
-export function wrapForKeyframeTarget(
-  element: JSX.Element,
-  parameterPath: string,
-  className: string = '',
-) {
-  return <withKeyframeTarget parameterPath={parameterPath} class={className}>{element}</withKeyframeTarget>
 }

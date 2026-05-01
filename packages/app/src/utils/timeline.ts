@@ -56,6 +56,38 @@ export const VariationParameterMaps: Record<string, string[]> = {
 }
 
 /**
+ * All animatable parameters with metadata for the KeyframeEditor dropdown.
+ */
+export type TimelineParameterType = 'number' | 'string' | 'array'
+
+export interface TimelineParameter {
+  path: string
+  label: string
+  type: TimelineParameterType
+  group: string
+}
+
+export const TIMELINE_PARAMETERS: TimelineParameter[] = [
+  { path: 'exposure', label: 'Exposure', type: 'number', group: 'Render' },
+  { path: 'skipIters', label: 'Skip Iters', type: 'number', group: 'Render' },
+  { path: 'vibrancy', label: 'Vibrancy', type: 'number', group: 'Render' },
+  { path: 'drawMode', label: 'Draw Mode', type: 'string', group: 'Render' },
+  { path: 'palettePhase', label: 'Palette Phase', type: 'number', group: 'Palette' },
+  { path: 'paletteSpeed', label: 'Palette Speed', type: 'number', group: 'Palette' },
+  { path: 'backgroundColor', label: 'Background Color', type: 'array', group: 'Color' },
+  { path: 'edgeFadeColor', label: 'Edge Fade Color', type: 'array', group: 'Color' },
+  { path: 'camera.x', label: 'Camera X', type: 'number', group: 'Camera' },
+  { path: 'camera.y', label: 'Camera Y', type: 'number', group: 'Camera' },
+  { path: 'camera.zoom', label: 'Camera Zoom', type: 'number', group: 'Camera' },
+  { path: 'camera.rotation', label: 'Camera Rotation', type: 'number', group: 'Camera' },
+]
+
+/** Flat set of all variation parameter names (e.g. 'distortion', 'freqX', ...). */
+export const ALL_VARIATION_PARAM_NAMES = new Set(
+  Object.values(VariationParameterMaps).flat(),
+)
+
+/**
  * Resolve variation parameters for a given transform and variation type.
  * @param transforms - The transform record containing all variations
  * @param transformId - The ID of the transform
@@ -225,6 +257,16 @@ export function resolveKeyframeValue(
     return prev.value + (next.value - prev.value) * easedT
   }
 
+  // Interpolate array values (RGB/RGBA colors) with easing
+  if (Array.isArray(prev.value) && Array.isArray(next.value) &&
+      prev.value.length === next.value.length) {
+    const easingCurve = next.easing ?? 'linear'
+    const easedT = applyEasing(t, easingCurve)
+    return prev.value.map((v, i) =>
+      v + ((next.value as number[])[i]! - v) * easedT,
+    ) as [number, number, number] | [number, number, number, number]
+  }
+
   // For string interpolation (drawMode, colorInitMode, pointInitMode) or boolean
   if (typeof prev.value === 'string' || typeof prev.value === 'boolean') {
     return prev.value
@@ -388,23 +430,11 @@ export function createTimelineState() {
   }
 
   /**
-   * Remove all keyframes at a specific frame for a track
+   * Remove all keyframes at a specific frame for a track.
+   * Delegates to removeKeyframe.
    */
   function removeKeyframesAtFrame(parameterPath: string, frame: number): void {
-    setTracks((prev: TimelineTrack[]) =>
-      prev
-        .map((t: TimelineTrack) =>
-          t.parameterPath === parameterPath
-            ? {
-                ...t,
-                keyframes: t.keyframes.filter(
-                  (kf: KeyframeData) => kf.frame !== frame,
-                ),
-              }
-            : t,
-        )
-        .filter((t: TimelineTrack) => t.keyframes.length > 0),
-    )
+    removeKeyframe(parameterPath, frame)
   }
 
   /**
@@ -618,165 +648,6 @@ export function createTimelineState() {
     }
   }
 
-  /**
-   * Applies timeline values to a flame descriptor for the current frame.
-   * Updates the descriptor with camera position, zoom, exposure, and other animated parameters.
-   */
-  function applyToFlame(flame: FlameDescriptor): void {
-    const frame = currentFrame()
-
-    // Animate camera position
-    const xTrack = tracks().find(
-      (t: TimelineTrack) => t.parameterPath === 'camera.x',
-    )
-    if (xTrack) {
-      const value = resolveKeyframeValue(xTrack.keyframes, frame)
-      if (
-        value !== null &&
-        typeof value === 'number' &&
-        flame.renderSettings.camera?.position
-      ) {
-        flame.renderSettings.camera.position[0] = value
-      }
-    }
-
-    const yTrack = tracks().find(
-      (t: TimelineTrack) => t.parameterPath === 'camera.y',
-    )
-    if (yTrack) {
-      const value = resolveKeyframeValue(yTrack.keyframes, frame)
-      if (
-        value !== null &&
-        typeof value === 'number' &&
-        flame.renderSettings.camera?.position
-      ) {
-        flame.renderSettings.camera.position[1] = value
-      }
-    }
-
-    // Animate camera rotation
-    const rotationTrack = tracks().find(
-      (t: TimelineTrack) => t.parameterPath === 'camera.rotation',
-    )
-    if (rotationTrack) {
-      const value = resolveKeyframeValue(rotationTrack.keyframes, frame)
-      if (
-        value !== null &&
-        typeof value === 'number' &&
-        flame.renderSettings.camera
-      ) {
-        flame.renderSettings.camera.rotation = value
-      }
-    }
-
-    // Animate camera zoom
-    const zoomTrack = tracks().find(
-      (t: TimelineTrack) => t.parameterPath === 'camera.zoom',
-    )
-    if (zoomTrack) {
-      const value = resolveKeyframeValue(zoomTrack.keyframes, frame)
-      if (
-        value !== null &&
-        typeof value === 'number' &&
-        flame.renderSettings.camera
-      ) {
-        flame.renderSettings.camera.zoom = value
-      }
-    }
-
-    // Animate flame parameters
-    const exposureTrack = tracks().find(
-      (t: TimelineTrack) => t.parameterPath === 'exposure',
-    )
-    if (exposureTrack) {
-      const value = resolveKeyframeValue(exposureTrack.keyframes, frame)
-      if (value !== null && typeof value === 'number') {
-        flame.renderSettings.exposure = value
-      }
-    }
-
-    const skipItersTrack = tracks().find(
-      (t: TimelineTrack) => t.parameterPath === 'skipIters',
-    )
-    if (skipItersTrack) {
-      const value = resolveKeyframeValue(skipItersTrack.keyframes, frame)
-      if (value !== null && typeof value === 'number') {
-        flame.renderSettings.skipIters = value
-      }
-    }
-
-    const vibrancyTrack = tracks().find(
-      (t: TimelineTrack) => t.parameterPath === 'vibrancy',
-    )
-    if (vibrancyTrack) {
-      const value = resolveKeyframeValue(vibrancyTrack.keyframes, frame)
-      if (value !== null && typeof value === 'number') {
-        flame.renderSettings.vibrancy = value
-      }
-    }
-
-    const drawModeTrack = tracks().find(
-      (t: TimelineTrack) => t.parameterPath === 'drawMode',
-    )
-    if (drawModeTrack) {
-      const value = resolveKeyframeValue(drawModeTrack.keyframes, frame)
-      if (value !== null && typeof value === 'string') {
-        flame.renderSettings.drawMode = value as 'light' | 'paint'
-      }
-    }
-
-    // Animate palette parameters
-    const palettePhaseTrack = tracks().find(
-      (t: TimelineTrack) => t.parameterPath === 'palettePhase',
-    )
-    if (palettePhaseTrack) {
-      const value = resolveKeyframeValue(palettePhaseTrack.keyframes, frame)
-      if (value !== null && typeof value === 'number') {
-        flame.renderSettings.palettePhase = value
-      }
-    }
-
-    const paletteSpeedTrack = tracks().find(
-      (t: TimelineTrack) => t.parameterPath === 'paletteSpeed',
-    )
-    if (paletteSpeedTrack) {
-      const value = resolveKeyframeValue(paletteSpeedTrack.keyframes, frame)
-      if (value !== null && typeof value === 'number') {
-        flame.renderSettings.paletteSpeed = value
-      }
-    }
-
-    // Apply variation parameters
-
-    // Iterate through all tracks and apply variation parameter animations
-    for (const track of tracks()) {
-      const trackPath = track.parameterPath
-      // Check if this is a variation parameter track (format: transformId.variationId.paramName)
-      const parts = trackPath.split('.')
-      if (parts.length !== 3) continue
-
-      const [transformId, variationId, paramName] = parts
-
-      // Check if this parameter is defined for this variation type
-      const params = VariationParameterMaps[variationId!] || []
-      if (!params.includes(paramName!)) continue
-
-      // Get the variation from the transform
-      const transform = flame.transforms[transformId!]
-      if (!transform) continue
-
-      const variation = (transform as { variations: Record<string, { params: Record<string, number> | undefined; type: string }> }).variations[variationId!]
-
-      if (!variation || !variation.params) continue
-
-      const keyframe = track.keyframes.find((kf: KeyframeData) => kf.frame === frame)
-
-      if (keyframe && typeof keyframe.value === 'number') {
-        variation.params[paramName!] = keyframe.value
-      }
-    }
-  }
-
   const getFrame = (): number => currentFrame()
 
   return {
@@ -809,141 +680,7 @@ export function createTimelineState() {
     play,
     pause,
     togglePlay,
-    applyToFlame,
   }
-}
-
-/**
- * Exported version of addKeyframe for use in components
- */
-export function addKeyframeToTimeline(
-  timeline: TimelineState,
-  parameterPath: string,
-  frame: number,
-  value:
-    | number
-    | string
-    | [number, number, number]
-    | [number, number, number, number],
-  easing: EasingCurve = 'linear',
-) {
-  timeline.addKeyframe(parameterPath, frame, value, easing)
-}
-
-/**
- * Add a keyframe with overlap detection and automatic split
- * @param timeline - The timeline state
- * @param parameterPath - The parameter path to animate
- * @param frame - The frame to add the keyframe at
- * @param value - The value at that frame
- * @param easing - Optional easing curve
- * @returns true if keyframe was successfully added, false if update was performed instead
- */
-export function addKeyframeWithOverlapCheckToTimeline(
-  timeline: TimelineState,
-  parameterPath: string,
-  frame: number,
-  value:
-    | number
-    | string
-    | [number, number, number]
-    | [number, number, number, number],
-  easing: EasingCurve = 'linear',
-): boolean {
-  return timeline.addKeyframeWithOverlapCheck(
-    parameterPath,
-    frame,
-    value,
-    easing,
-  )
-}
-
-/**
- * Get all tracks with keyframes at a specific frame
- */
-export function getTracksWithFrameOverlapToTimeline(
-  timeline: TimelineState,
-  frame: number,
-): string[] {
-  return timeline.getTracksWithFrameOverlap(frame)
-}
-
-/**
- * Find the closest keyframe before or at a given frame
- */
-export function findClosestKeyframeBeforeFrameToTimeline(
-  timeline: TimelineState,
-  parameterPath: string,
-  frame: number,
-): KeyframeData | undefined {
-  return timeline.findClosestKeyframeBeforeFrame(parameterPath, frame)
-}
-
-/**
- * Split a keyframe at a specified frame position
- */
-export function splitKeyframeAtFrameToTimeline(
-  timeline: TimelineState,
-  parameterPath: string,
-  originalFrame: number,
-  splitFrame: number,
-): boolean {
-  return timeline.splitKeyframeAtFrame(parameterPath, originalFrame, splitFrame)
-}
-
-/**
- * Remove all keyframes at a specific frame for a track
- */
-export function removeKeyframesAtFrameToTimeline(
-  timeline: TimelineState,
-  parameterPath: string,
-  frame: number,
-): void {
-  timeline.removeKeyframesAtFrame(parameterPath, frame)
-}
-
-/**
- * Mirror keyframe value to the opposite side of the timeline
- * @param timeline - The timeline state
- * @param parameterPath - The parameter path to mirror
- * @param frame - The frame to mirror from
- * @returns The mirrored frame number, or null if not possible
- */
-export function mirrorKeyframeToOppositeToTimeline(
-  timeline: TimelineState,
-  parameterPath: string,
-  frame: number,
-): number | null {
-  const config = timeline.config()
-  const mirroredFrame = config.startFrame + (config.endFrame - frame)
-
-  // Check if mirrored frame is within valid range
-  if (mirroredFrame < config.startFrame || mirroredFrame > config.endFrame) {
-    return null
-  }
-
-  return mirroredFrame
-}
-
-/**
- * Apply mirrored value from one track to another
- * @param timeline - The timeline state
- * @param sourceParameterPath - The source track parameter path
- * @param targetParameterPath - The target track parameter path
- * @param frame - The frame to mirror from
- * @returns true if successful, false if source keyframe doesn't exist
- */
-export function applyMirroredValueFromTrackToTimeline(
-  timeline: TimelineState,
-  sourceParameterPath: string,
-  targetParameterPath: string,
-  frame: number,
-): boolean {
-  return timeline.applyMirroredValueFromTrack(
-    sourceParameterPath,
-    targetParameterPath,
-    frame,
-  )
 }
 
 export type TimelineState = ReturnType<typeof createTimelineState>

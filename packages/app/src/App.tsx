@@ -51,7 +51,7 @@ import { addFlameDataToPng } from './utils/flameInPng'
 import { compressJsonQueryParam, decodeJsonQueryParam } from './utils/jsonQueryParam'
 import { saveRecentFlame } from './utils/recentFlames'
 import { sum } from './utils/sum'
-import { addKeyframeToTimeline, createTimelineState } from './utils/timeline'
+import { createTimelineState } from './utils/timeline'
 import { useKeyboardShortcuts } from './utils/useKeyboardShortcuts'
 import { useLoadFlameFromFile } from './utils/useLoadFlameFromFile'
 import { dismissWelcome, hasWelcomeBeenDismissed } from './utils/welcomeDismissed'
@@ -287,20 +287,17 @@ function App(props: AppProps) {
       !(hasCameraY) ||
       !(hasCameraZoom)
     ) {
-      addKeyframeToTimeline(
-        t,
+      t.addKeyframe(
         'camera.x',
         currentFrame,
         flameDescriptor.renderSettings.camera.position[0],
       )
-      addKeyframeToTimeline(
-        t,
+      t.addKeyframe(
         'camera.y',
         currentFrame,
         flameDescriptor.renderSettings.camera.position[1],
       )
-      addKeyframeToTimeline(
-        t,
+      t.addKeyframe(
         'camera.zoom',
         currentFrame,
         flameDescriptor.renderSettings.camera.zoom,

@@ -2,7 +2,7 @@ import { createEffect, createMemo, createSignal } from 'solid-js'
 import { useKeyframeTarget } from '@/contexts/KeyframeTargetContext'
 import { useTimeline } from '@/contexts/TimelineContext'
 import { Cross, Redo } from '@/icons'
-import { addKeyframeToTimeline } from '@/utils/timeline'
+import { TIMELINE_PARAMETERS } from '@/utils/timeline'
 import ui from './KeyframeEditor.module.css'
 import type { EasingCurve } from '@/flame/schema/timeline'
 import type { KeyframeData, TimelineTrack } from '@/utils/timeline'
@@ -80,19 +80,14 @@ export function KeyframeEditor() {
 
   // Check if current path expects a number or string
   const isNumberValue = (): boolean => {
-    const path = currentPath()
-    return [
-      'exposure',
-      'skipIters',
-      'vibrancy',
-      'paletteSpeed',
-    ].includes(path)
+    const param = TIMELINE_PARAMETERS.find((p) => p.path === currentPath())
+    return param?.type === 'number'
   }
 
   // Check if current path expects an array value (like backgroundColor, edgeFadeColor)
   const isArrayValue = (): boolean => {
-    const path = currentPath()
-    return path === 'backgroundColor' || path === 'edgeFadeColor'
+    const param = TIMELINE_PARAMETERS.find((p) => p.path === currentPath())
+    return param?.type === 'array'
   }
 
   // Format array value for display/input
@@ -106,19 +101,10 @@ export function KeyframeEditor() {
     return String(value)
   }
 
-  // Check if current path expects a variation parameter
-  const isVariationParam = (): boolean => {
-    const path = currentPath()
-    return [
-      'waveX',
-      'waveY',
-      'intensity',
-      'periodicity',
-      'octaves',
-      'oscillationSpeed',
-      'rippleRadius',
-      'distortion',
-    ].includes(path)
+  // Check if current path expects a string value (drawMode, colorInitMode, etc.)
+  const isStringValue = (): boolean => {
+    const param = TIMELINE_PARAMETERS.find((p) => p.path === currentPath())
+    return param?.type === 'string'
   }
 
   // Parse array value from input string
@@ -160,12 +146,11 @@ export function KeyframeEditor() {
     if (isArrayValue()) {
       const parsed = parseArrayValue(value)
       keyValue = parsed ?? [0, 0, 0]
-    } else if (isNumberValue() || isVariationParam()) {
+    } else if (!isStringValue()) {
       keyValue = Number(value)
     }
 
-    addKeyframeToTimeline(
-      timeline,
+    timeline.addKeyframe(
       currentPath(),
       currentFrame(),
       keyValue,
@@ -204,8 +189,7 @@ export function KeyframeEditor() {
       keyValue = Number(currentKf.value)
     }
 
-    addKeyframeToTimeline(
-      timeline,
+    timeline.addKeyframe(
       currentPath(),
       nextFrame,
       keyValue,
@@ -229,8 +213,7 @@ export function KeyframeEditor() {
       keyValue = Number(keyframeValue())
     }
 
-    addKeyframeToTimeline(
-      timeline,
+    timeline.addKeyframe(
       currentPath(),
       nextFrame,
       keyValue,
@@ -271,12 +254,15 @@ export function KeyframeEditor() {
                 onChange={(e) => setSelectedPath(e.currentTarget.value)}
                 data-testid="parameter-select"
               >
-                <option value="exposure">Exposure</option>
-                <option value="skipIters">Skip Iters</option>
-                <option value="vibrancy">Vibrancy</option>
-                <option value="paletteSpeed">Palette Speed</option>
-                <option value="camera.zoom">Camera Zoom</option>
-                <option value="camera.rotation">Camera Rotation</option>
+                {Object.entries(
+                  Object.groupBy(TIMELINE_PARAMETERS, (p) => p.group),
+                ).map(([group, params]) => (
+                  <optgroup label={group}>
+                    {params!.map((p) => (
+                      <option value={p.path}>{p.label}</option>
+                    ))}
+                  </optgroup>
+                ))}
               </select>
             </div>
           </div>

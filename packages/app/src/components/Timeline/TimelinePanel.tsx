@@ -10,7 +10,7 @@ export function TimelinePanel() {
   const isPlaying = createMemo(() => timeline.isPlaying())
 
   const handlePlayPause = () => {
-    timeline.setIsPlaying(!isPlaying())
+    timeline.togglePlay()
   }
 
   const handleStepForward = () => {
@@ -40,6 +40,12 @@ export function TimelinePanel() {
 
   const handleLoopToggle = () => {
     timeline.setConfig({ ...config(), loop: !config().loop })
+  }
+
+  const handleTimeScaleChange = (newTimeScale: number) => {
+    if (Number.isNaN(newTimeScale)) return
+    const clamped = Math.max(1, Math.min(10, Math.round(newTimeScale)))
+    timeline.setConfig({ ...config(), timeScale: clamped })
   }
 
   return (
@@ -129,6 +135,20 @@ export function TimelinePanel() {
                 handleEndFrameChange(Number(e.currentTarget.value))
               }}
               data-testid="end-frame-input"
+            />
+          </label>
+          <label class={ui.labeledInput}>
+            <span>Speed</span>
+            <input
+              type="number"
+              class={ui.numberInput}
+              value={config().timeScale}
+              min={1}
+              max={10}
+              onBlur={(e) => {
+                handleTimeScaleChange(Number(e.currentTarget.value))
+              }}
+              data-testid="time-scale-input"
             />
           </label>
         </div>

@@ -1,5 +1,5 @@
 import { useKeyframeTarget } from '@/contexts/KeyframeTargetContext'
-import { withKeyframeTarget } from './withKeyframeTarget'
+import { WithKeyframeTarget } from './withKeyframeTarget'
 import type { TransformFunction } from '@/flame/schema/flameSchema'
 
 type WrappedAffineRowProps = {
@@ -37,11 +37,11 @@ export function WrappedAffineRow(props: WrappedAffineRowProps) {
         <span class="affineLabel">Pre-Affine:</span>
         <div class="affineParams">
           {preParams.map((p) => (
-            <withKeyframeTarget parameterPath={p.path}>
+            <WithKeyframeTarget parameterPath={p.path}>
               <span class="affineValue">
                 {p.label}: {props.transform.preAffine[p.path as keyof typeof props.transform.preAffine].toFixed(3)}
               </span>
-            </withKeyframeTarget>
+            </WithKeyframeTarget>
           ))}
         </div>
       </div>
@@ -50,11 +50,11 @@ export function WrappedAffineRow(props: WrappedAffineRowProps) {
         <span class="affineLabel">Post-Affine:</span>
         <div class="affineParams">
           {postParams.map((p) => (
-            <withKeyframeTarget parameterPath={p.path}>
+            <WithKeyframeTarget parameterPath={p.path}>
               <span class="affineValue">
                 {p.label}: {props.transform.postAffine[p.path as keyof typeof props.transform.postAffine].toFixed(3)}
               </span>
-            </withKeyframeTarget>
+            </WithKeyframeTarget>
           ))}
         </div>
       </div>

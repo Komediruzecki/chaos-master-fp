@@ -47,11 +47,10 @@
   display: flex;
   height: 100%;
   pointer-events: none;
-  padding-left: 80px;
-  /* Offset for transport controls */
+  padding-left: var(--timeline-transport-width, 80px);
 
   [data-theme='dark'] & {
-    padding-left: 70px;
+    padding-left: var(--timeline-transport-width, 70px);
   }
 }
 
@@ -77,10 +76,10 @@
   }
 
   .scale {
-    padding-left: 70px;
+    padding-left: var(--timeline-transport-width-mobile, 70px);
 
     [data-theme='dark'] & {
-      padding-left: 60px;
+      padding-left: var(--timeline-transport-width-mobile, 60px);
     }
   }
 
@@ -106,10 +105,10 @@
   }
 
   .scale {
-    padding-left: 60px;
+    padding-left: var(--timeline-transport-width-small, 60px);
 
     [data-theme='dark'] & {
-      padding-left: 55px;
+      padding-left: var(--timeline-transport-width-small, 55px);
     }
   }
 
