@@ -58,7 +58,7 @@ export function Flam3(props: Flam3Props) {
   // Apply timeline values to animatedFlame
   // Must use structuredClone to avoid mutating the original reactive store
   createEffect(() => {
-    const flame = structuredClone(props.flameDescriptor)
+    const flame = JSON.parse(JSON.stringify(props.flameDescriptor))
     if (timeline) {
       applyTimelineToFlame(timeline, flame)
     }
