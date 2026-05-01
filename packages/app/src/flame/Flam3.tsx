@@ -1,4 +1,4 @@
-import { createEffect, createMemo, createSignal, onCleanup } from 'solid-js'
+import { createEffect, createMemo, createSignal, onCleanup, untrack } from 'solid-js'
 import { arrayOf, vec2u, vec3f, vec4f } from 'typegpu/data'
 import { clamp } from 'typegpu/std'
 import { useTimeline } from '@/contexts/TimelineContext'
@@ -32,6 +32,7 @@ type Flam3Props = {
   pointCountPerBatch: number
   renderInterval: number
   adaptiveFilterEnabled: boolean
+  animationEnabled: boolean
   flameDescriptor: FlameDescriptor
   edgeFadeColor: v4f
   onExportImage?: ExportImageType
@@ -59,7 +60,7 @@ export function Flam3(props: Flam3Props) {
   // Must use structuredClone to avoid mutating the original reactive store
   createEffect(() => {
     const flame = JSON.parse(JSON.stringify(props.flameDescriptor))
-    if (timeline) {
+    if (timeline && props.animationEnabled) {
       applyTimelineToFlame(timeline, flame)
     }
     setAnimatedFlame(flame)
@@ -244,13 +245,23 @@ export function Flam3(props: Flam3Props) {
     'colorGradingMs',
   ])
 
-  // Debug logging for WebGPU initialization
-  console.debug('[Flam3] WebGPU initialization:', {
-    hasRoot: !!root,
-    hasDevice: !!device,
-    hasCamera: !!camera,
-    hasContext: !!context,
-    canvasSize: canvasSize(),
+  // Structural fingerprint memo: only changes when shader-affecting properties change.
+  // This prevents the IFS pipeline (and its WGSL shaders) from being recreated
+  // on every frame when only numeric uniform values change.
+  const transformStructure = createMemo(() => {
+    const flame = animatedFlame()
+    const keys = Object.keys(flame.transforms)
+    const structure = keys
+      .map((tid) => {
+        const tr = flame.transforms[tid]
+        const vTypes = Object.keys(tr.variations)
+          .map((vid) => tr.variations[vid]?.type)
+          .sort()
+        return `${tid}:${vTypes.join(',')}`
+      })
+      .sort()
+      .join('|')
+    return `${structure}::${flame.renderSettings.colorInitMode}::${flame.renderSettings.pointInitMode}::${flame.renderSettings.skipIters}`
   })
 
   /**
@@ -289,14 +300,14 @@ export function Flam3(props: Flam3Props) {
   createEffect(() => {
     // Subscribe to the signal so this effect re-runs when buffers are ready.
     void outputTexturesReady()
+    // Track structural changes only — numeric uniform values are updated
+    // via ifsPipeline.update() and don't require pipeline rebuild.
+    void transformStructure()
 
     const tex = outputTextures
     if (!tex) {
-      console.debug('[Flam3] outputTextures not ready yet')
       return undefined
     }
-
-    console.debug('[Flam3] outputTextures ready, initializing render loop')
 
     const { textureSize, accumulationBuffer, postprocessBuffer } = tex
 
@@ -311,13 +322,13 @@ export function Flam3(props: Flam3Props) {
     const ifsPipeline = createIFSPipeline(
       root,
       camera,
-      animatedFlame().renderSettings.skipIters,
+      untrack(animatedFlame).renderSettings.skipIters,
       pointRandomSeeds,
-      animatedFlame().transforms as never,
+      untrack(animatedFlame).transforms as never,
       textureSize,
       typedAccumulationBuffer,
-      animatedFlame().renderSettings.colorInitMode,
-      animatedFlame().renderSettings.pointInitMode,
+      untrack(animatedFlame).renderSettings.colorInitMode,
+      untrack(animatedFlame).renderSettings.pointInitMode,
     )
 
     createEffect(() => {
@@ -362,17 +373,9 @@ export function Flam3(props: Flam3Props) {
           _batchIndex() % OUTPUT_INTERVAL_BATCH_INDEX === 0 ||
           props.onExportImage !== undefined
 
-        console.debug('[Flam3] Animation frame start:', {
-          frameId,
-          batchIndex: _batchIndex(),
-          accumulatedPoints: _accumulatedPointCount(),
-          shouldRenderFinalImage,
-        })
-
         const pointCountPerBatch = props.pointCountPerBatch
         const colorGradingPipeline_ = colorGradingPipeline()
         if (colorGradingPipeline_ === undefined) {
-          console.debug('[Flam3] colorGradingPipeline not ready, skipping frame')
           return
         }
 
@@ -382,12 +385,6 @@ export function Flam3(props: Flam3Props) {
             ? estimateIterationCount(timings, shouldRenderFinalImage)
             : 1
           : 0
-
-        console.debug('[Flam3] Rendering frame', {
-          iterationCount,
-          shouldRenderFinalImage,
-          batchIndex: _batchIndex(),
-        })
 
         if (clearRequested()) {
           encoder.clearBuffer(accumulationBuffer.buffer)

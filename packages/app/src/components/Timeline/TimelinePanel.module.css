@@ -1,5 +1,4 @@
 .panel {
-  grid-area: timeline;
   background-color: var(--neutral-100);
   border-top: 1px solid var(--neutral-200);
   display: flex;

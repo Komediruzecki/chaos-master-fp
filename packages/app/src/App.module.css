@@ -2,10 +2,11 @@
   height: 100dvh;
   display: grid;
   grid-template-columns: auto 1fr;
-  grid-template-rows: 1fr auto;
+  grid-template-rows: 1fr auto auto;
   grid-template-areas:
     'sidebar viewport'
-    'sidebar viewport-controls';
+    'sidebar viewport-controls'
+    'sidebar timeline';
   overflow: hidden;
 
   /* Start a stacking context so canvas doesn't go behind body */
@@ -16,11 +17,6 @@
   grid-area: viewport;
   display: grid;
   grid-template-rows: 1fr auto;
-  overflow: hidden;
-}
-
-.viewport-content {
-  grid-row-end: timeline;
   overflow: hidden;
 }
 

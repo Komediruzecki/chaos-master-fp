@@ -21,9 +21,6 @@ import { PaletteSelector } from './components/PaletteSelector/PaletteSelector'
 import { getPresetFromQuality, QualityPresets, qualityPresets, } from './components/Quality/QualityPresets'
 import { createShareLinkModal } from './components/ShareLinkModal/ShareLinkModal'
 import { Slider } from './components/Sliders/Slider'
-import { KeyframeEditor } from './components/Timeline/KeyframeEditor'
-import { TimelinePanel } from './components/Timeline/TimelinePanel'
-import { TimelineRuler } from './components/Timeline/TimelineRuler'
 import { TimelineSection } from './components/Timeline/TimelineSection'
 import { createVariationSelector } from './components/VariationSelector/VariationSelector'
 import { ViewControls } from './components/ViewControls/ViewControls'
@@ -105,6 +102,7 @@ function App(props: AppProps) {
   const [pixelRatio, setPixelRatio] = createSignal(DEFAULT_RESOLUTION)
   const [onExportImage, setOnExportImage] = createSignal<ExportImageType>()
   const [adaptiveFilterEnabled, setAdaptiveFilterEnabled] = createSignal(true)
+  const [animationEnabled, setAnimationEnabled] = createSignal(true)
   const [showSidebar, setShowSidebar] = createSignal(true)
   const [showTimeline, setShowTimeline] = createSignal(false)
   const [selectedPaletteId, setSelectedPaletteId] =
@@ -330,6 +328,7 @@ function App(props: AppProps) {
                     quality={qualityPresets[qualityPreset()]}
                     pointCountPerBatch={DEFAULT_POINT_COUNT}
                     adaptiveFilterEnabled={adaptiveFilterEnabled()}
+                    animationEnabled={animationEnabled()}
                     flameDescriptor={flameDescriptor}
                     renderInterval={finalRenderInterval()}
                     onExportImage={onExportImage()}
@@ -357,8 +356,6 @@ function App(props: AppProps) {
             pixelRatio={pixelRatio()}
             setPixelRatio={setPixelRatio}
           />
-
-          <KeyframeEditor />
 
           <Button
             class={ui.timelineToggle}
@@ -797,6 +794,14 @@ function App(props: AppProps) {
               </Card>
               <Card>
                 <label class={ui.labeledInput}>
+                  <span>Enable Animation</span>
+                  <Checkbox
+                    checked={animationEnabled()}
+                    onChange={(checked) => setAnimationEnabled(checked)}
+                  />
+                  <span></span>
+                </label>
+                <label class={ui.labeledInput}>
                   <span>Adaptive filter</span>
                   <Checkbox
                     checked={adaptiveFilterEnabled()}
@@ -845,8 +850,6 @@ function App(props: AppProps) {
               </div>
             </div>
           </Show>
-          <TimelineRuler />
-          <TimelinePanel />
         </Dropzone>
       </TimelineContextProvider>
     </ChangeHistoryContextProvider>
