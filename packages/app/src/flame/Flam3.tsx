@@ -156,6 +156,15 @@ export function Flam3(props: Flam3Props) {
       textureSize: [width, height] as const,
     }
 
+    // Destroy old buffers after GPU work completes (on resize)
+    const oldTex = outputTextures
+    if (oldTex) {
+      device.queue.onSubmittedWorkDone().then(() => {
+        try { oldTex.accumulationBuffer.destroy() } catch (_e) {}
+        try { oldTex.postprocessBuffer.destroy() } catch (_e) {}
+      }).catch(() => {})
+    }
+
     outputTextures = newTex
     setOutputTexturesReady(true)
     return newTex
@@ -442,23 +451,9 @@ export function Flam3(props: Flam3Props) {
         timestampQuery.write(encoder)
         device.queue.submit([encoder.finish()])
 
-        // Mark buffers for cleanup after GPU work completes
-        // Use the same buffer instances that were created at component mount
-        device.queue
-          .onSubmittedWorkDone()
-          .then(() => {
-            const currentBuffers = { accumulationBuffer, postprocessBuffer }
-            const cleanupSet = buffersToCleanup()
-            setBuffersToCleanup(
-              new Set([
-                ...cleanupSet,
-                currentBuffers.accumulationBuffer,
-                currentBuffers.postprocessBuffer,
-              ]),
-            )
-            timestampQuery.read(frameId).catch(() => {})
-          })
-          .catch(() => {})
+        device.queue.onSubmittedWorkDone().then(() => {
+          timestampQuery.read(frameId).catch(() => {})
+        }).catch(() => {})
 
         props.onExportImage?.(canvas)
 
