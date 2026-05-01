@@ -340,13 +340,6 @@ export function Flam3(props: Flam3Props) {
         // Create a new command encoder for each frame
         const encoder = device.createCommandEncoder()
 
-        console.debug('[Flam3] Animation frame start:', {
-          frameId,
-          batchIndex: _batchIndex(),
-          accumulatedPoints: _accumulatedPointCount(),
-          shouldRenderFinalImage,
-        })
-
         /**
          * Rendering to screen is expensive because it involves
          * blurring and color grading. We only want to do this
@@ -359,6 +352,13 @@ export function Flam3(props: Flam3Props) {
           _batchIndex() < OUTPUT_EVERY_FRAME_BATCH_INDEX ||
           _batchIndex() % OUTPUT_INTERVAL_BATCH_INDEX === 0 ||
           props.onExportImage !== undefined
+
+        console.debug('[Flam3] Animation frame start:', {
+          frameId,
+          batchIndex: _batchIndex(),
+          accumulatedPoints: _accumulatedPointCount(),
+          shouldRenderFinalImage,
+        })
 
         const pointCountPerBatch = props.pointCountPerBatch
         const colorGradingPipeline_ = colorGradingPipeline()
