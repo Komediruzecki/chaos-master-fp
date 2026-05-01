@@ -134,10 +134,12 @@ export function Flam3(props: Flam3Props) {
       }
     | undefined = undefined
 
-  // Reactive signal so downstream effects know when buffers are ready.
+  // Reactive counter so downstream effects know when buffers change.
   // SolidJS cannot track a plain `let` variable, so the render-loop effect
   // would fire once (seeing undefined) and never re-run.
-  const [outputTexturesReady, setOutputTexturesReady] = createSignal(false)
+  // Uses a counter (not boolean) because setOutputTexturesReady(true) is a
+  // no-op when already true — the render loop must re-run on every resize.
+  const [outputTexturesReady, setOutputTexturesReady] = createSignal(0)
 
   // Initialize buffers at component mount - they persist until cleanup
   // Use fallback dimensions if canvasSize isn't available yet (ResizeObserver
@@ -167,7 +169,7 @@ export function Flam3(props: Flam3Props) {
     }
 
     outputTextures = newTex
-    setOutputTexturesReady(true)
+    setOutputTexturesReady((prev) => prev + 1)
     return newTex
   })
 

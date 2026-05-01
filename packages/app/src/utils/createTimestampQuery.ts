@@ -1,3 +1,4 @@
+import { onCleanup } from 'solid-js'
 import { convertNanoToMilliSeconds } from './convertSeconds'
 import { sum } from './sum'
 
@@ -30,10 +31,12 @@ export function createTimestampQuery<T extends string>(
   })
 
   // TODO: find out why there's a warning if we do this
-  // onCleanup(() => {
-  //   timestampBuffer.destroy()
-  //   timestampMappable.destroy()
-  // })
+  onCleanup(() => {
+    device.queue.onSubmittedWorkDone().then(() => {
+      timestampBuffer.destroy()
+      timestampMappable.destroy()
+    }).catch(() => {})
+  })
 
   function timestampWrites(frameId: number) {
     const locationIndex = (frameId % pairLocationCount) * timestampCount * 2
