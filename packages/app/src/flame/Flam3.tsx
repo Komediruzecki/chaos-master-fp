@@ -214,7 +214,7 @@ export function Flam3(props: Flam3Props) {
     const typedAccumulationBuffer = accumulationBuffer as TgpuBuffer<
       WgslArray<typeof Bucket>
     >
-    const _typedPostprocessBuffer = postprocessBuffer as TgpuBuffer<
+    const typedPostprocessBuffer = postprocessBuffer as TgpuBuffer<
       WgslArray<typeof Bucket>
     >
     return createBlurPipeline(
