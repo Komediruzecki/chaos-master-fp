@@ -3,7 +3,7 @@
   grid-template-areas: 'overlap';
   border-radius: var(--space-3);
   overflow: hidden;
-  min-height: 25vh;
+  min-height: 12rem;
 
   /* allow pointer events to act correctly on touch devices */
   touch-action: none;

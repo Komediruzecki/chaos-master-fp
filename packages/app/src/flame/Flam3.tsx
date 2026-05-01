@@ -56,8 +56,9 @@ export function Flam3(props: Flam3Props) {
     )
 
   // Apply timeline values to animatedFlame
+  // Must use structuredClone to avoid mutating the original reactive store
   createEffect(() => {
-    const flame = { ...props.flameDescriptor } as FlameDescriptor
+    const flame = structuredClone(props.flameDescriptor)
     if (timeline) {
       applyTimelineToFlame(timeline, flame)
     }
@@ -178,6 +179,7 @@ export function Flam3(props: Flam3Props) {
   })
 
   const colorGradingPipeline = createMemo(() => {
+    void outputTexturesReady() // re-run when buffers are created
     const o = outputTextures
     if (!o) {
       return undefined
@@ -203,6 +205,7 @@ export function Flam3(props: Flam3Props) {
   })
 
   const runBlur = createMemo(() => {
+    void outputTexturesReady() // re-run when buffers are created
     const o = outputTextures
     if (!o) {
       return undefined

@@ -189,7 +189,11 @@ export function createColorGradingPipeline(
       mul(count, uniforms.averagePointCountPerBucketInv),
       f32(0.1),
     )
-    const value = uniforms.exposure * pow(log(adjustedCount + 1), 0.4545)
+    const value = clamp(
+      uniforms.exposure * pow(log(adjustedCount + 1), 0.4545),
+      f32(0),
+      f32(2),
+    )
 
     const rgb = saturate(oklabToRgb(vec3f(drawMode(value), finalAb)))
     const alpha = saturate(value) * (1 - edgeFade)
