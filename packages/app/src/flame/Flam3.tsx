@@ -99,16 +99,6 @@ export function Flam3(props: Flam3Props) {
     .createBuffer(arrayOf(vec2u, props.pointCountPerBatch))
     .$usage('storage')
 
-  // Track buffers that need cleanup to avoid destroying while GPU still references them
-  const [buffersToCleanup, setBuffersToCleanup] = createSignal<Set<unknown>>(
-    new Set(),
-  )
-
-  onCleanup(() => {
-    // Mark for cleanup after GPU work completes
-    setBuffersToCleanup((current) => new Set([...current, pointRandomSeeds]))
-  })
-
   const colorGradingUniforms = root
     .createBuffer(ColorGradingUniforms, {
       averagePointCountPerBucketInv: 0,
@@ -119,12 +109,6 @@ export function Flam3(props: Flam3Props) {
       paletteEntryCount: 0,
     })
     .$usage('uniform')
-
-  onCleanup(() => {
-    // Mark for cleanup after GPU work completes
-    const current = buffersToCleanup()
-    setBuffersToCleanup(new Set([...current, colorGradingUniforms]))
-  })
 
   let outputTextures:
     | {
@@ -159,36 +143,16 @@ export function Flam3(props: Flam3Props) {
       textureSize: [width, height] as const,
     }
 
-    // Destroy old buffers after GPU work completes (on resize)
-    const oldTex = outputTextures
-    if (oldTex) {
-      device.queue.onSubmittedWorkDone().then(() => {
-        try { oldTex.accumulationBuffer.destroy() } catch (_e) {}
-        try { oldTex.postprocessBuffer.destroy() } catch (_e) {}
-      }).catch(() => {})
-    }
-
+    // Old buffers are NOT destroyed — they may still be referenced by in-flight
+    // GPU work from other pipelines (blur, color grading). Letting GC handle
+    // reclamation avoids "Buffer used while destroyed" errors.
     outputTextures = newTex
     setOutputTexturesReady((prev) => prev + 1)
     return newTex
   })
 
-  // Properly clean up buffers after GPU work completes
-  createEffect(() => {
-    const buffers = buffersToCleanup()
-    if (buffers.size === 0) return
-
-    void device.queue.onSubmittedWorkDone().then(() => {
-      buffers.forEach((buffer: unknown) => {
-        try {
-          ;(buffer as { destroy: () => void }).destroy()
-        } catch (_e) {
-          // Ignore cleanup errors
-        }
-      })
-      setBuffersToCleanup(new Set())
-    })
-  })
+  // Buffers are intentionally NOT destroyed on cleanup — they may still be
+  // referenced by in-flight GPU work. GC handles reclamation safely.
 
   const colorGradingPipeline = createMemo(() => {
     void outputTexturesReady() // re-run when buffers are created

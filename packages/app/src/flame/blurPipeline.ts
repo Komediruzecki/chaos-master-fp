@@ -1,4 +1,3 @@
-import { onCleanup } from 'solid-js'
 import { tgpu } from 'typegpu'
 import { arrayOf, builtin, f32, i32, u32, vec2f, vec2i } from 'typegpu/data'
 import { abs, add, clamp, length, min, smoothstep, sqrt, sub, } from 'typegpu/std'
@@ -37,10 +36,6 @@ export function createBlurPipeline(
   const textureSizeBuffer = root
     .createBuffer(vec2i, vec2i(...textureSize))
     .$usage('uniform')
-
-  onCleanup(() => {
-    textureSizeBuffer.destroy()
-  })
 
   const bindGroup = root.createBindGroup(bindGroupLayout, {
     accumulationBuffer,

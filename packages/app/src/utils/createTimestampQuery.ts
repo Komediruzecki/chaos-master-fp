@@ -1,4 +1,3 @@
-import { onCleanup } from 'solid-js'
 import { convertNanoToMilliSeconds } from './convertSeconds'
 import { sum } from './sum'
 
@@ -30,13 +29,9 @@ export function createTimestampQuery<T extends string>(
     usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
   })
 
-  // TODO: find out why there's a warning if we do this
-  onCleanup(() => {
-    device.queue.onSubmittedWorkDone().then(() => {
-      timestampBuffer.destroy()
-      timestampMappable.destroy()
-    }).catch(() => {})
-  })
+  // Timestamp buffers are intentionally NOT destroyed — they may still be
+  // referenced by in-flight GPU work when the component unmounts. Letting the
+  // GC reclaim them avoids "Buffer used while destroyed" errors.
 
   function timestampWrites(frameId: number) {
     const locationIndex = (frameId % pairLocationCount) * timestampCount * 2

@@ -1,5 +1,4 @@
 import { oklabToRgb } from '@typegpu/color'
-import { onCleanup } from 'solid-js'
 import { tgpu } from 'typegpu'
 import { arrayOf, builtin, f32, i32, struct, vec2f, vec2i, vec3f, vec4f, } from 'typegpu/data'
 import { abs, add, clamp, div, log, max, mix, mul, pow, saturate, smoothstep, sub, } from 'typegpu/std'
@@ -59,10 +58,6 @@ export function createColorGradingPipeline(
     .createBuffer(vec2i, vec2i(...textureSize))
     .$usage('uniform')
 
-  onCleanup(() => {
-    textureSizeBuffer.destroy()
-  })
-
   const entryCount = palette ? palette.entries.length : 1
 
   // Create palette buffer using tgpu (avoids texture binding origin "handle" issues)
@@ -79,10 +74,6 @@ export function createColorGradingPipeline(
     }))
     paletteBuffer.write(entries)
   }
-
-  onCleanup(() => {
-    paletteBuffer.destroy()
-  })
 
   const bindGroup = root.createBindGroup(bindGroupLayout, {
     uniforms,
