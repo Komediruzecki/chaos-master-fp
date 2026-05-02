@@ -265,10 +265,10 @@ export function Flam3(props: Flam3Props) {
 
   createEffect(() => {
     // Subscribe to the signal so this effect re-runs when buffers are ready.
-    void outputTexturesReady()
+    outputTexturesReady()
     // Track structural changes only — numeric uniform values are updated
     // via ifsPipeline.update() and don't require pipeline rebuild.
-    void transformStructure()
+    transformStructure()
 
     const tex = outputTextures
     if (!tex) {
@@ -300,7 +300,7 @@ export function Flam3(props: Flam3Props) {
     createEffect(() => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ifsPipeline.update(animatedFlame() as any)
-      camera.update()
+      untrack(camera.update)
     })
 
     createEffect(() => {
@@ -315,7 +315,7 @@ export function Flam3(props: Flam3Props) {
 
     createEffect(() => {
       const _ = colorGradingPipeline()
-      void props.palette // track palette changes
+      props.palette // track palette changes
     })
 
     const [forceDrawToScreen, setForceDrawToScreen] = createSignal(true)

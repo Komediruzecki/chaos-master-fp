@@ -106,6 +106,15 @@
   gap: var(--space-2);
 }
 
+.transform-grid-row {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr 0.5fr;
+  align-items: center;
+  justify-items: stretch;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+}
+
 .button-card.button-card {
   display: flex;
   padding: 0;
