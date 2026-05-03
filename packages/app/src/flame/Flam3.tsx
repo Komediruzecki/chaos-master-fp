@@ -266,9 +266,12 @@ export function Flam3(props: Flam3Props) {
   createEffect(() => {
     // Subscribe to the signal so this effect re-runs when buffers are ready.
     outputTexturesReady()
+
     // Track structural changes only — numeric uniform values are updated
     // via ifsPipeline.update() and don't require pipeline rebuild.
-    transformStructure()
+    const _ = transformStructure()
+
+    const flame = animatedFlame()
 
     const tex = outputTextures
     if (!tex) {
@@ -288,13 +291,13 @@ export function Flam3(props: Flam3Props) {
     const ifsPipeline = createIFSPipeline(
       root,
       camera,
-      untrack(animatedFlame).renderSettings.skipIters,
+      flame.renderSettings.skipIters,
       pointRandomSeeds,
-      untrack(animatedFlame).transforms as never,
+      flame.transforms as never,
       textureSize,
       typedAccumulationBuffer,
-      untrack(animatedFlame).renderSettings.colorInitMode,
-      untrack(animatedFlame).renderSettings.pointInitMode,
+      flame.renderSettings.colorInitMode,
+      flame.renderSettings.pointInitMode,
     )
 
     createEffect(() => {
