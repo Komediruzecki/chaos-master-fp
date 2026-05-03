@@ -4,6 +4,7 @@ import { Cross } from '@/icons'
 import { KeyframeEditor } from './KeyframeEditor'
 import { TimelinePanel } from './TimelinePanel'
 import { TimelineRuler } from './TimelineRuler'
+import { TimelineStatusBar } from './TimelineStatusBar'
 import ui from './TimelineSection.module.css'
 
 export interface TimelineSectionProps {
@@ -45,6 +46,8 @@ export function TimelineSection({ onEnterAnimation }: TimelineSectionProps) {
           <KeyframeEditor />
 
           <TimelineRuler />
+
+          <TimelineStatusBar />
 
           <TimelinePanel />
 
