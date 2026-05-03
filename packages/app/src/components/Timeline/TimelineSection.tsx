@@ -15,6 +15,7 @@ export function TimelineSection({ onEnterAnimation }: TimelineSectionProps) {
   const timeline = useTimeline()!
   const [collapsed, setCollapsed] = createSignal(false)
   const isPlaying = () => timeline.isPlaying()
+  const config = () => timeline.config()
 
   return (
     <div class={ui.section} data-testid="timeline-section">
