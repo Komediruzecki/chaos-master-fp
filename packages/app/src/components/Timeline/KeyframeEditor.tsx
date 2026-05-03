@@ -371,7 +371,15 @@ export function KeyframeEditor() {
             {hasKeyframeAtFrame() ? (
               <>
                 Keyframe at frame <span>{currentFrame()}</span>
-                {isAnimating() && <span class={ui.animating}>Active</span>}
+                {isAnimating() && (
+                  <>
+                    <span>Interpolated:</span>
+                    <span class={ui.interpolatedValue}>
+                      {keyframeValue()}
+                    </span>
+                    <span class={ui.animating}>Active</span>
+                  </>
+                )}
               </>
             ) : (
               'No keyframe'
