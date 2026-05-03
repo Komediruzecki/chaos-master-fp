@@ -131,3 +131,31 @@
   }
 
 }
+
+.frameRangeIndicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  color: var(--neutral-600);
+  padding: 0.5rem 0;
+
+  [data-theme='dark'] & {
+    color: var(--neutral-400);
+  }
+}
+
+.frameRangeStart,
+.frameRangeEnd {
+  font-weight: 600;
+  font-family: monospace;
+}
+
+.frameRangeSeparator {
+  margin: 0 0.5rem;
+  color: var(--neutral-500);
+}
+
+[data-theme='dark'] & .frameRangeSeparator {
+  color: var(--neutral-600);
+}
