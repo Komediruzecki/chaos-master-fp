@@ -31,6 +31,21 @@ export function TimelineRuler() {
     return labels
   })
 
+  // Generate time scale labels (1s, 2s, 3s based on FPS)
+  const timeLabels = createMemo(() => {
+    const labels: number[] = []
+    const fps = config().fps
+    const timeInterval = Math.max(1, Math.floor(fps / 4)) // Show one label every 0.25 seconds
+
+    for (let i = 0; i <= config().endFrame; i += timeInterval) {
+      const seconds = Math.floor(i / fps)
+      if (!labels.includes(seconds)) {
+        labels.push(seconds)
+      }
+    }
+    return labels
+  })
+
   return (
     <div
       class={ui.ruler}
@@ -60,6 +75,21 @@ export function TimelineRuler() {
             {frame}
           </span>
         ))}
+        {timeLabels().length > 0 && (
+          <div class={ui.timeScale} data-testid="time-scale">
+            {timeLabels().map((seconds) => (
+              <span
+                class={ui.timeScaleLabel}
+                style={{
+                  left: `${(seconds * config().fps / timeInterval) * frameWidth}px`,
+                }}
+                data-testid={`time-label-${seconds}`}
+              >
+                {seconds}s
+              </span>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

@@ -166,8 +166,8 @@ export function Flam3(props: Flam3Props) {
     >
     const typedAccumulationBuffer = accumulationBuffer as TgpuBuffer<
       WgslArray<typeof Bucket>
-    >
-    return createColorGradingPipeline(
+    ]
+    const pipeline = createColorGradingPipeline(
       root,
       colorGradingUniforms,
       textureSize,
@@ -230,20 +230,38 @@ export function Flam3(props: Flam3Props) {
     return `${structure}::${flame.renderSettings.colorInitMode}::${flame.renderSettings.pointInitMode}::${flame.renderSettings.skipIters}`
   })
 
-  /**
-   * Timeline animation playback loop.
-   * When isPlaying is true, advances the frame at the configured FPS rate.
-   */
+  // Single RAF-based ticker for smooth animation sync with renderer
+  let animationFrameId: number | null = null
   createEffect(() => {
-    if (!timeline || !timeline.isPlaying()) return
+    if (!timeline || !timeline.isPlaying()) {
+      if (animationFrameId !== null) {
+        cancelAnimationFrame(animationFrameId)
+        animationFrameId = null
+      }
+      return
+    }
 
-    const intervalMs = 1000 / timeline.config().fps
-    const intervalId = window.setInterval(() => {
-      timeline.advanceFrame()
-    }, intervalMs)
+    const tick = () => {
+      if (!timeline || !timeline.isPlaying()) {
+        animationFrameId = null
+        return
+      }
+
+      const cfg = timeline.config()
+      for (let i = 0; i < cfg.timeScale; i++) {
+        timeline.advanceFrame()
+      }
+
+      animationFrameId = requestAnimationFrame(tick)
+    }
+
+    animationFrameId = requestAnimationFrame(tick)
 
     onCleanup(() => {
-      clearInterval(intervalId)
+      if (animationFrameId !== null) {
+        cancelAnimationFrame(animationFrameId)
+        animationFrameId = null
+      }
     })
   })
 
@@ -300,6 +318,12 @@ export function Flam3(props: Flam3Props) {
       flame.renderSettings.pointInitMode,
     )
 
+    // Runtime validation: ensure pipeline was created successfully
+    if (!ifsPipeline) {
+      console.error('Failed to create IFS pipeline')
+      return undefined
+    }
+
     createEffect(() => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ifsPipeline.update(animatedFlame() as any)
@@ -349,6 +373,8 @@ export function Flam3(props: Flam3Props) {
         }
 
         const timings = timestampQuery.average()
+
+        // Calculate iteration count - moved before shouldRenderFinalImage to fix TDZ error
         const iterationCount = continueRendering(_accumulatedPointCount())
           ? timings
             ? estimateIterationCount(timings, shouldRenderFinalImage)

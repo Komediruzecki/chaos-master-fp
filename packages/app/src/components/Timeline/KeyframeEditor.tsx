@@ -125,6 +125,27 @@ export function KeyframeEditor() {
     return null
   }
 
+  // Get value type for a track at current frame
+  const getCurrentValueType = (): 'number' | 'string' | 'array' => {
+    const param = TIMELINE_PARAMETERS.find((p) => p.path === currentPath())
+    if (!param) return 'number'
+    return param.type
+  }
+
+  // Get current value type from keyframe
+  const getKeyframeValueType = (keyframe: KeyframeData): 'number' | 'string' | 'array' => {
+    if (keyframe.value === null || keyframe.value === undefined) {
+      return 'number'
+    }
+    if (Array.isArray(keyframe.value)) {
+      return 'array'
+    }
+    if (typeof keyframe.value === 'string') {
+      return 'string'
+    }
+    return 'number'
+  }
+
   // Update value when frame changes
   createEffect(() => {
     const value = currentValue()
@@ -176,17 +197,13 @@ export function KeyframeEditor() {
       return
 
     const nextFrame = currentFrame() + 1
-    let keyValue:
-      | string
-      | number
-      | [number, number, number]
-      | [number, number, number, number] = currentKf.value
 
-    if (isArrayValue()) {
-      const parsed = parseArrayValue(String(currentKf.value))
-      keyValue = parsed ?? [0, 0, 0]
-    } else if (isNumberValue()) {
-      keyValue = Number(currentKf.value)
+    // Preserve exact type of the original keyframe value
+    let keyValue = currentKf.value
+
+    // If it's an array and we need to format it as string for input
+    if (Array.isArray(keyValue) && getCurrentValueType() === 'string') {
+      keyValue = formatArrayValue(keyValue)
     }
 
     timeline.addKeyframe(
@@ -200,17 +217,15 @@ export function KeyframeEditor() {
   // Freeze keyframe (copy current value to next frame)
   const handleFreezeKeyframe = () => {
     const nextFrame = currentFrame() + 1
-    let keyValue:
-      | string
-      | number
-      | [number, number, number]
-      | [number, number, number, number] = keyframeValue()
+
+    // Use the exact type from keyframeValue input
+    let keyValue = keyframeValue()
 
     if (isArrayValue()) {
-      const parsed = parseArrayValue(keyframeValue())
+      const parsed = parseArrayValue(keyValue)
       keyValue = parsed ?? [0, 0, 0]
     } else if (isNumberValue()) {
-      keyValue = Number(keyframeValue())
+      keyValue = Number(keyValue)
     }
 
     timeline.addKeyframe(

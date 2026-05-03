@@ -68,6 +68,29 @@
   }
 }
 
+.timeScale {
+  display: flex;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 14px;
+  pointer-events: none;
+}
+
+.timeScaleLabel {
+  position: absolute;
+  top: 0;
+  font-size: 0.6rem;
+  color: var(--accent-color, #3b82f6);
+  font-weight: 500;
+  white-space: nowrap;
+
+  [data-theme='dark'] & {
+    color: var(--accent-color, #60a5fa);
+  }
+}
+
 /* Mobile responsive adjustments */
 @media (max-width: 768px) {
   .ruler {
