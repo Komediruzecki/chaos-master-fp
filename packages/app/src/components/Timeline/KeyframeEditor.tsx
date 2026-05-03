@@ -1,8 +1,9 @@
-import { createEffect, createMemo, createSignal } from 'solid-js'
+import { createEffect, createMemo, createSignal, Show } from 'solid-js'
 import { useKeyframeTarget } from '@/contexts/KeyframeTargetContext'
 import { useTimeline } from '@/contexts/TimelineContext'
 import { Cross, Redo } from '@/icons'
 import { TIMELINE_PARAMETERS } from '@/utils/timeline'
+import { KeyframeCurvePreview } from './KeyframeCurvePreview'
 import ui from './KeyframeEditor.module.css'
 import type { EasingCurve } from '@/flame/schema/timeline'
 import type { KeyframeData, TimelineTrack } from '@/utils/timeline'
@@ -376,6 +377,32 @@ export function KeyframeEditor() {
               'No keyframe'
             )}
           </div>
+
+          {/* Keyframe Curve Preview */}
+          <Show when={isAnimating() && isNumberValue()}>
+            <div class={ui.curvePreview}>
+              <div class={ui.curvePreviewHeader}>
+                <span class={ui.curvePreviewTitle}>Curve Preview</span>
+                <select
+                  value={interpolationMode()}
+                  onChange={(e) =>
+                    setInterpolationMode(e.currentTarget.value as EasingCurve)
+                  }
+                  class={ui.curvePreviewSelect}
+                >
+                  <option value="linear">Linear</option>
+                  <option value="easeIn">Ease In</option>
+                  <option value="easeOut">Ease Out</option>
+                  <option value="easeInOut">Ease In Out</option>
+                  <option value="bounce">Bounce</option>
+                  <option value="elastic">Elastic</option>
+                </select>
+              </div>
+              <KeyframeCurvePreview
+                parameterPath={currentPath()}
+              />
+            </div>
+          </Show>
         </>
       )}
     </div>
