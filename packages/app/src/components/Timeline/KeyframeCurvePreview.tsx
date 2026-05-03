@@ -1,4 +1,4 @@
-import { createMemo, createSignal } from 'solid-js'
+import { Show, createMemo, createSignal } from 'solid-js'
 import { useTimeline } from '@/contexts/TimelineContext'
 import { TIMELINE_PARAMETERS } from '@/utils/timeline'
 import { clamp } from '@/utils/easing'
@@ -61,7 +61,15 @@ interface EasingVisualizerProps {
 }
 
 function EasingVisualizer(props: EasingVisualizerProps) {
-  const { frameStart, frameEnd, frameCurrent, valueStart, valueEnd, easing, type } = props
+  const {
+    frameStart,
+    frameEnd,
+    frameCurrent,
+    valueStart,
+    valueEnd,
+    easing,
+    type,
+  } = props
 
   // Convert value range to 0-1 for visualization
   const rangeMin = Math.min(valueStart, valueEnd)
@@ -89,7 +97,10 @@ function EasingVisualizer(props: EasingVisualizerProps) {
         tEased = tCurrent * (2 - tCurrent)
         break
       case 'easeInOut':
-        tEased = tCurrent < 0.5 ? 2 * tCurrent * tCurrent : -1 + (4 - 2 * tCurrent) * tCurrent
+        tEased =
+          tCurrent < 0.5
+            ? 2 * tCurrent * tCurrent
+            : -1 + (4 - 2 * tCurrent) * tCurrent
         break
       case 'bounce':
         const duration = 1 / 3
@@ -105,7 +116,10 @@ function EasingVisualizer(props: EasingVisualizerProps) {
         if (tCurrent === 0 || tCurrent === 1) {
           tEased = tCurrent
         } else {
-          tEased = Math.pow(2, -10 * tCurrent) * Math.sin((tCurrent * 10 - 0.75) * c4) + 1
+          tEased =
+            Math.pow(2, -10 * tCurrent) *
+              Math.sin((tCurrent * 10 - 0.75) * c4) +
+            1
         }
         break
       default:
@@ -121,7 +135,14 @@ function EasingVisualizer(props: EasingVisualizerProps) {
     const stepT = clamp(step, tStart, tEnd)
 
     if (easing && easing !== 'linear') {
-      const point = generateCurvePoint(stepT, easing, tStart, tEnd, valueStart, valueEnd)
+      const point = generateCurvePoint(
+        stepT,
+        easing,
+        tStart,
+        tEnd,
+        valueStart,
+        valueEnd,
+      )
       curvePoints.push(point)
     } else {
       curvePoints.push({
@@ -138,7 +159,7 @@ function EasingVisualizer(props: EasingVisualizerProps) {
           points={curvePoints.map((p) => `${p.x * 100},${p.y * 40}`).join(' ')}
           fill="none"
           stroke="currentColor"
-          strokeWidth="1.5"
+          stroke-width="1.5"
           class={ui.curveLine}
         />
         <line
@@ -147,17 +168,26 @@ function EasingVisualizer(props: EasingVisualizerProps) {
           x2="100"
           y2="40"
           stroke="currentColor"
-          strokeWidth="0.5"
+          stroke-width="0.5"
           opacity="0.3"
         />
         <circle cx={tEased * 100} cy={40 - value} r="3" fill="currentColor" />
       </svg>
-      <span class={ui.easingValue}>{value.toFixed(type === 'array' ? 1 : 2)}</span>
+      <span class={ui.easingValue}>
+        {value.toFixed(type === 'array' ? 1 : 2)}
+      </span>
     </div>
   )
 }
 
-function generateCurvePoint(t: number, easing: string, tStart: number, tEnd: number, vStart: number, vEnd: number): { x: number; y: number } {
+function generateCurvePoint(
+  t: number,
+  easing: string,
+  tStart: number,
+  tEnd: number,
+  vStart: number,
+  vEnd: number,
+): { x: number; y: number } {
   const range = tEnd - tStart
   const rangeV = vEnd - vStart || 1
 
@@ -167,12 +197,15 @@ function generateCurvePoint(t: number, easing: string, tStart: number, tEnd: num
       tEased = ((t - tStart) / range) ** 2
       break
     case 'easeOut':
-      const normT = (t - tStart) / range
-      tEased = normT * (2 - normT)
+      const easeOutNormT = (t - tStart) / range
+      tEased = easeOutNormT * (2 - easeOutNormT)
       break
     case 'easeInOut':
-      const normT = (t - tStart) / range
-      tEased = normT < 0.5 ? 2 * normT * normT : -1 + (4 - 2 * normT) * normT
+      const easeInOutNormT = (t - tStart) / range
+      tEased =
+        easeInOutNormT < 0.5
+          ? 2 * easeInOutNormT * easeInOutNormT
+          : -1 + (4 - 2 * easeInOutNormT) * easeInOutNormT
       break
     case 'bounce':
       const bounceT = (t - tStart) / range
@@ -183,7 +216,10 @@ function generateCurvePoint(t: number, easing: string, tStart: number, tEnd: num
       if (t === 0 || t === tEnd) {
         tEased = 0
       } else {
-        tEased = Math.pow(2, -10 * ((t - tStart) / range)) * Math.sin(((t - tStart) / range) * 10 - 0.75) + 1
+        tEased =
+          Math.pow(2, -10 * ((t - tStart) / range)) *
+            Math.sin(((t - tStart) / range) * 10 - 0.75) +
+          1
       }
       break
     default:
@@ -226,7 +262,10 @@ export function KeyframeCurvePreview(props: CurvePreviewProps) {
   const curveHeight = 60
 
   return (
-    <div class={ui.previewContainer} classList={{ [props.className || '']: true }}>
+    <div
+      class={ui.previewContainer}
+      classList={{ [props.className || '']: true }}
+    >
       <div class={ui.header}>
         <span class={ui.parameterName}>{parameterPath()}</span>
         <span class={ui.frameIndicator}>Frame: {currentFrame()}</span>
@@ -234,20 +273,48 @@ export function KeyframeCurvePreview(props: CurvePreviewProps) {
 
       <Show when={sortedKeyframes().length >= 2 && isNumberValue()}>
         <div class={ui.curveContainer}>
-          <svg class={ui.curveSvg} viewBox="0 0 200 70" preserveAspectRatio="none">
+          <svg
+            class={ui.curveSvg}
+            viewBox="0 0 200 70"
+            preserveAspectRatio="none"
+          >
             {/* Grid lines */}
-            <line x1="0" y1="35" x2="200" y2="35" stroke="currentColor" strokeWidth="0.5" opacity="0.2" />
-            <line x1="100" y1="0" x2="100" y2="70" stroke="currentColor" strokeWidth="0.5" opacity="0.2" />
+            <line
+              x1="0"
+              y1="35"
+              x2="200"
+              y2="35"
+              stroke="currentColor"
+              stroke-width="0.5"
+              opacity="0.2"
+            />
+            <line
+              x1="100"
+              y1="0"
+              x2="100"
+              y2="70"
+              stroke="currentColor"
+              stroke-width="0.5"
+              opacity="0.2"
+            />
 
             {/* Keyframe markers */}
             {sortedKeyframes().map((kf, i) => {
-              const x = (kf.frame * frameWidth + frameWidth / 2) / 200 * 200
+              const x = ((kf.frame * frameWidth + frameWidth / 2) / 200) * 200
               const y = 35
+              const markerId = `keyframe-marker-${kf.frame}`
 
               return (
-                <g key={i}>
+                <g id={markerId}>
                   <circle cx={x} cy={y} r="3" fill="currentColor" />
-                  <text x={x} y="10" textAnchor="middle" fontSize="8" fill="currentColor" opacity="0.7">
+                  <text
+                    x={x}
+                    y="10"
+                    text-anchor="middle"
+                    font-size="8"
+                    fill="currentColor"
+                    opacity="0.7"
+                  >
                     {kf.frame}
                   </text>
                 </g>
@@ -258,21 +325,24 @@ export function KeyframeCurvePreview(props: CurvePreviewProps) {
             <polyline
               points={sortedKeyframes()
                 .map((kf, i) => {
-                  const x = (kf.frame * frameWidth + frameWidth / 2) / 200 * 200
+                  const x =
+                    ((kf.frame * frameWidth + frameWidth / 2) / 200) * 200
                   const y = 35
                   return `${x},${y}`
                 })
                 .join(' ')}
               fill="none"
               stroke="currentColor"
-              strokeWidth="1.5"
-              strokeOpacity="0.6"
+              stroke-width="1.5"
+              stroke-opacity="0.6"
             />
 
             {/* Current frame marker */}
             {sortedKeyframes().length >= 2 && currentFrame() !== undefined && (
               <circle
-                cx={(currentFrame() * frameWidth + frameWidth / 2) / 200 * 200}
+                cx={
+                  ((currentFrame() * frameWidth + frameWidth / 2) / 200) * 200
+                }
                 cy="35"
                 r="3"
                 fill="var(--accent-color)"
@@ -286,7 +356,7 @@ export function KeyframeCurvePreview(props: CurvePreviewProps) {
               const prev = sortedKeyframes()[i - 1]!
               return (
                 <div
-                  key={i}
+                  data-keyframe={i}
                   class={ui.valueCard}
                   style={{
                     left: `${Math.min(kf.frame * frameWidth, 190)}px`,
@@ -297,9 +367,7 @@ export function KeyframeCurvePreview(props: CurvePreviewProps) {
                     {prev.frame} → {kf.frame}
                   </span>
                   <div class={ui.valueTooltip}>
-                    <div class={ui.easingName}>
-                      {kf.easing || 'Linear'}
-                    </div>
+                    <div class={ui.easingName}>{kf.easing || 'Linear'}</div>
                     <div class={ui.valueRow}>
                       <span>Value: {kf.value}</span>
                     </div>

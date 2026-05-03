@@ -12,7 +12,9 @@ describe('KeyframeTargetContext Logic', () => {
     })
 
     it('should allow setting a parameter path', () => {
-      const [targetedParameter, setTargetedParameter] = createSignal<string | null>(null)
+      const [targetedParameter, setTargetedParameter] = createSignal<
+        string | null
+      >(null)
 
       setTargetedParameter('exposure')
       expect(targetedParameter()).toBe('exposure')
@@ -25,7 +27,9 @@ describe('KeyframeTargetContext Logic', () => {
     })
 
     it('should allow clearing the parameter', () => {
-      const [targetedParameter, setTargetedParameter] = createSignal<string | null>(null)
+      const [targetedParameter, setTargetedParameter] = createSignal<
+        string | null
+      >(null)
 
       setTargetedParameter('exposure')
       expect(targetedParameter()).toBe('exposure')
@@ -35,7 +39,9 @@ describe('KeyframeTargetContext Logic', () => {
     })
 
     it('should handle dot-notation parameter paths', () => {
-      const [targetedParameter, setTargetedParameter] = createSignal<string | null>(null)
+      const [targetedParameter, setTargetedParameter] = createSignal<
+        string | null
+      >(null)
 
       const paths = [
         'camera.zoom',
@@ -75,7 +81,9 @@ describe('KeyframeTargetContext Logic', () => {
       // Simulating what useKeyframeTarget does
       const useKeyframeTarget = (ctx: unknown) => {
         if (ctx === null) {
-          throw new Error('useKeyframeTarget must be used within KeyframeTargetProvider')
+          throw new Error(
+            'useKeyframeTarget must be used within KeyframeTargetProvider',
+          )
         }
         return ctx
       }
@@ -88,7 +96,9 @@ describe('KeyframeTargetContext Logic', () => {
 
   describe('Signal Reactivity', () => {
     it('should update when setTargetedParameter is called', () => {
-      const [targetedParameter, setTargetedParameter] = createSignal<string | null>(null)
+      const [targetedParameter, setTargetedParameter] = createSignal<
+        string | null
+      >(null)
 
       const updates: (string | null)[] = []
       const effect = () => {
@@ -112,7 +122,9 @@ describe('KeyframeTargetContext Logic', () => {
     })
 
     it('should not trigger effect when setting same value', () => {
-      const [targetedParameter, setTargetedParameter] = createSignal<string | null>('exposure')
+      const [targetedParameter, setTargetedParameter] = createSignal<
+        string | null
+      >('exposure')
 
       let effectCallCount = 0
       const effect = () => {

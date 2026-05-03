@@ -39,7 +39,10 @@ export function WrappedAffineRow(props: WrappedAffineRowProps) {
           {preParams.map((p) => (
             <WithKeyframeTarget parameterPath={p.path}>
               <span class="affineValue">
-                {p.label}: {props.transform.preAffine[p.path as keyof typeof props.transform.preAffine].toFixed(3)}
+                {p.label}:{' '}
+                {props.transform.preAffine[
+                  p.path as keyof typeof props.transform.preAffine
+                ].toFixed(3)}
               </span>
             </WithKeyframeTarget>
           ))}
@@ -52,7 +55,10 @@ export function WrappedAffineRow(props: WrappedAffineRowProps) {
           {postParams.map((p) => (
             <WithKeyframeTarget parameterPath={p.path}>
               <span class="affineValue">
-                {p.label}: {props.transform.postAffine[p.path as keyof typeof props.transform.postAffine].toFixed(3)}
+                {p.label}:{' '}
+                {props.transform.postAffine[
+                  p.path as keyof typeof props.transform.postAffine
+                ].toFixed(3)}
               </span>
             </WithKeyframeTarget>
           ))}

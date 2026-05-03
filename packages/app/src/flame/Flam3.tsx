@@ -1,4 +1,4 @@
-import { createEffect, createMemo, createSignal, onCleanup, untrack } from 'solid-js'
+import { createEffect, createMemo, createSignal, onCleanup, untrack, } from 'solid-js'
 import { arrayOf, vec2u, vec3f, vec4f } from 'typegpu/data'
 import { clamp } from 'typegpu/std'
 import { useTimeline } from '@/contexts/TimelineContext'
@@ -15,7 +15,7 @@ import { drawModeToImplFn } from './drawMode'
 import { createIFSPipeline } from './ifsPipeline'
 import { backgroundColorDefault, backgroundColorDefaultWhite, } from './schema/flameSchema'
 import { Bucket } from './types'
-import type { TgpuBuffer, WgslArray } from 'typegpu'
+import type { TgpuBuffer } from 'typegpu'
 import type { v4f } from 'typegpu/data'
 import type { Palette } from './colorMap'
 import type { FlameDescriptor } from './schema/flameSchema'
@@ -72,7 +72,11 @@ export function Flam3(props: Flam3Props) {
         ? vec3f(...backgroundColorDefault)
         : vec3f(...backgroundColorDefaultWhite)
     }
-    return vec3f(...props.flameDescriptor.renderSettings.backgroundColor)
+    return vec3f(
+      props.flameDescriptor.renderSettings.backgroundColor[0],
+      props.flameDescriptor.renderSettings.backgroundColor[1],
+      props.flameDescriptor.renderSettings.backgroundColor[2],
+    )
   }
 
   const bucketProbabilityInv = () => {
@@ -161,19 +165,11 @@ export function Flam3(props: Flam3Props) {
       return undefined
     }
     const { textureSize, postprocessBuffer, accumulationBuffer } = o
-    const typedPostprocessBuffer = postprocessBuffer as TgpuBuffer<
-      WgslArray<typeof Bucket>
-    >
-    const typedAccumulationBuffer = accumulationBuffer as TgpuBuffer<
-      WgslArray<typeof Bucket>
-    ]
     const pipeline = createColorGradingPipeline(
       root,
       colorGradingUniforms,
       textureSize,
-      props.adaptiveFilterEnabled
-        ? typedPostprocessBuffer
-        : typedAccumulationBuffer,
+      props.adaptiveFilterEnabled ? postprocessBuffer : accumulationBuffer,
       canvasFormat,
       drawModeToImplFn[props.flameDescriptor.renderSettings.drawMode],
       props.palette,
@@ -187,17 +183,11 @@ export function Flam3(props: Flam3Props) {
       return undefined
     }
     const { textureSize, accumulationBuffer, postprocessBuffer } = o
-    const typedAccumulationBuffer = accumulationBuffer as TgpuBuffer<
-      WgslArray<typeof Bucket>
-    >
-    const typedPostprocessBuffer = postprocessBuffer as TgpuBuffer<
-      WgslArray<typeof Bucket>
-    >
     return createBlurPipeline(
       root,
       textureSize,
-      typedAccumulationBuffer,
-      typedPostprocessBuffer,
+      accumulationBuffer,
+      postprocessBuffer,
     )
   })
 
@@ -443,9 +433,12 @@ export function Flam3(props: Flam3Props) {
         timestampQuery.write(encoder)
         device.queue.submit([encoder.finish()])
 
-        device.queue.onSubmittedWorkDone().then(() => {
-          timestampQuery.read(frameId).catch(() => {})
-        }).catch(() => {})
+        device.queue
+          .onSubmittedWorkDone()
+          .then(() => {
+            timestampQuery.read(frameId).catch(() => {})
+          })
+          .catch(() => {})
 
         props.onExportImage?.(canvas)
 

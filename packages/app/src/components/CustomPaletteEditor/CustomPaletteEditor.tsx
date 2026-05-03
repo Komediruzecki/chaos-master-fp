@@ -11,7 +11,7 @@
  * - Save / Cancel / Delete palette
  */
 
-import { createEffect, createMemo, createSignal, For, onCleanup, Show } from 'solid-js'
+import { createEffect, createMemo, createSignal, For, onCleanup, Show, } from 'solid-js'
 import { addCustomPalette, deleteCustomPalette, paletteEntry, updateCustomPalette, } from '@/flame/colorMap'
 import ui from './CustomPaletteEditor.module.css'
 import type { Palette, PaletteEntry } from '@/flame/colorMap'

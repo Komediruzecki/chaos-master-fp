@@ -388,12 +388,12 @@
     }
   }
 }
-  .interpolatedValue {
-    color: var(--accent-color);
-    font-family: monospace;
-    margin-left: 0.5rem;
+.interpolatedValue {
+  color: var(--accent-color);
+  font-family: monospace;
+  margin-left: 0.5rem;
 
-    [data-theme='dark'] & {
-      color: var(--accent-color);
-    }
+  [data-theme='dark'] & {
+    color: var(--accent-color);
   }
+}

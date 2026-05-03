@@ -1,5 +1,5 @@
 import { createSignal } from 'solid-js'
-import { afterEach,beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Test the DelayedShow component's behavior conceptually
 // The actual component uses createEffect, createSignal, Show, onCleanup from solid-js

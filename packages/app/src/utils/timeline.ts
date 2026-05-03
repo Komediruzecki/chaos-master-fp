@@ -1,11 +1,6 @@
 import { createSignal } from 'solid-js'
 import { applyEasing, clamp } from './easing'
 
-interface TimelineState {
-  tracks: () => TimelineTrack[]
-  getFrame: () => number
-}
-
 export type EasingCurve =
   | 'linear'
   | 'easeIn'
@@ -72,14 +67,44 @@ export const TIMELINE_PARAMETERS: TimelineParameter[] = [
   { path: 'skipIters', label: 'Skip Iters', type: 'number', group: 'Render' },
   { path: 'vibrancy', label: 'Vibrancy', type: 'number', group: 'Render' },
   { path: 'drawMode', label: 'Draw Mode', type: 'string', group: 'Render' },
-  { path: 'palettePhase', label: 'Palette Phase', type: 'number', group: 'Palette' },
-  { path: 'paletteSpeed', label: 'Palette Speed', type: 'number', group: 'Palette' },
-  { path: 'backgroundColor', label: 'Background Color', type: 'array', group: 'Color' },
-  { path: 'edgeFadeColor', label: 'Edge Fade Color', type: 'array', group: 'Color' },
+  {
+    path: 'palettePhase',
+    label: 'Palette Phase',
+    type: 'number',
+    group: 'Palette',
+  },
+  {
+    path: 'paletteSpeed',
+    label: 'Palette Speed',
+    type: 'number',
+    group: 'Palette',
+  },
+  {
+    path: 'backgroundColor',
+    label: 'Background Color',
+    type: 'array',
+    group: 'Color',
+  },
+  {
+    path: 'edgeFadeColor',
+    label: 'Edge Fade Color',
+    type: 'array',
+    group: 'Color',
+  },
   { path: 'camera.x', label: 'Camera X', type: 'number', group: 'Camera' },
   { path: 'camera.y', label: 'Camera Y', type: 'number', group: 'Camera' },
-  { path: 'camera.zoom', label: 'Camera Zoom', type: 'number', group: 'Camera' },
-  { path: 'camera.rotation', label: 'Camera Rotation', type: 'number', group: 'Camera' },
+  {
+    path: 'camera.zoom',
+    label: 'Camera Zoom',
+    type: 'number',
+    group: 'Camera',
+  },
+  {
+    path: 'camera.rotation',
+    label: 'Camera Rotation',
+    type: 'number',
+    group: 'Camera',
+  },
 ]
 
 /** Flat set of all variation parameter names (e.g. 'distortion', 'freqX', ...). */
@@ -102,6 +127,7 @@ export function resolveVariationParameter(
   variationId: string,
   paramPath: string,
   frame: number,
+  timelineTracks?: TimelineTrack[],
 ): number | null {
   const transform = transforms[transformId] as {
     variations: Record<string, unknown>
@@ -124,22 +150,16 @@ export function resolveVariationParameter(
   const paramName = paramPath.split('.').pop()
   if (!paramName || !params.includes(paramName)) return null
 
-  // Check if there's a keyframe track for this parameter
-  const timelineState = window.currentTimeline as TimelineState | undefined
-
-  if (!timelineState) return null
-
   const trackPath = `${transformId}.${variationId}.${paramName}`
-  // Use index for O(1) lookup if available
-  const tracks = timelineState.tracks()
-  const track = tracks[trackPath] as TimelineTrack | undefined || tracks.find(
-    (t: TimelineTrack) => t.parameterPath === trackPath,
-  )
+  const tracks = timelineTracks || []
+  const track = tracks.find((t: TimelineTrack) => t.parameterPath === trackPath)
 
   if (!track) return null
 
   // Find the keyframe at the current frame
-  const keyframe = track.keyframes.find((kf: KeyframeData) => kf.frame === frame)
+  const keyframe = track.keyframes.find(
+    (kf: KeyframeData) => kf.frame === frame,
+  )
   if (!keyframe) return null
 
   return keyframe.value as number
@@ -260,12 +280,15 @@ export function resolveKeyframeValue(
   }
 
   // Interpolate array values (RGB/RGBA colors) with easing
-  if (Array.isArray(prev.value) && Array.isArray(next.value) &&
-      prev.value.length === next.value.length) {
+  if (
+    Array.isArray(prev.value) &&
+    Array.isArray(next.value) &&
+    prev.value.length === next.value.length
+  ) {
     const easingCurve = next.easing ?? 'linear'
     const easedT = applyEasing(t, easingCurve)
-    return prev.value.map((v, i) =>
-      v + ((next.value as number[])[i]! - v) * easedT,
+    return prev.value.map(
+      (v, i) => v + ((next.value as number[])[i]! - v) * easedT,
     ) as [number, number, number] | [number, number, number, number]
   }
 
@@ -334,7 +357,14 @@ export function createTimelineState() {
         }
         return updateTrackIndices(prev)
       }
-      return updateTrackIndices([...prev, { parameterPath, keyframes: [{ frame, value, easing }], index: prev.length }])
+      return updateTrackIndices([
+        ...prev,
+        {
+          parameterPath,
+          keyframes: [{ frame, value, easing }],
+          index: prev.length,
+        },
+      ])
     })
   }
 
@@ -362,6 +392,7 @@ export function createTimelineState() {
     const trackList = tracks()
     for (let i = 0; i < trackList.length; i++) {
       const track = trackList[i]
+      if (!track) continue
       const hasKf = track.keyframes.some(
         (kf: KeyframeData) => kf.frame === frame,
       )
@@ -580,8 +611,9 @@ export function createTimelineState() {
    */
   function getTrackByPath(parameterPath: string): TimelineTrack | undefined {
     // Find track by path (fallback to find for now since indices might not be up to date)
-    return tracks().find((t: TimelineTrack): t is TimelineTrack =>
-      t.parameterPath === parameterPath,
+    return tracks().find(
+      (t: TimelineTrack): t is TimelineTrack =>
+        t.parameterPath === parameterPath,
     )
   }
 
@@ -703,10 +735,19 @@ export type TimelineState = ReturnType<typeof createTimelineState>
 function getTimelineValue(
   timeline: TimelineState,
   parameterPath: string,
-): number | string | [number, number, number] | [number, number, number, number] | null {
-  const track = getTrackByPath(parameterPath)
+):
+  | number
+  | string
+  | boolean
+  | [number, number, number]
+  | [number, number, number, number]
+  | null {
+  const tracks = timeline.tracks()
+  const track = tracks.find(
+    (t: TimelineTrack) => t.parameterPath === parameterPath,
+  )
   if (!track) return null
-  const value = resolveKeyframeValue(track.keyframes, timeline.currentFrame())
+  const value = resolveKeyframeValue(track.keyframes, timeline.getFrame())
   return value
 }
 
@@ -718,21 +759,33 @@ export function applyTimelineToFlame(
   timeline: TimelineState,
   flame: FlameDescriptor,
 ): void {
-  const frame = timeline.currentFrame()
+  const frame = timeline.getFrame()
 
   // Animate camera position (using helper function)
   const xValue = getTimelineValue(timeline, 'camera.x')
-  if (xValue !== null && typeof xValue === 'number' && flame.renderSettings.camera?.position) {
+  if (
+    xValue !== null &&
+    typeof xValue === 'number' &&
+    flame.renderSettings.camera?.position
+  ) {
     flame.renderSettings.camera.position[0] = xValue
   }
 
   const yValue = getTimelineValue(timeline, 'camera.y')
-  if (yValue !== null && typeof yValue === 'number' && flame.renderSettings.camera?.position) {
+  if (
+    yValue !== null &&
+    typeof yValue === 'number' &&
+    flame.renderSettings.camera?.position
+  ) {
     flame.renderSettings.camera.position[1] = yValue
   }
 
   const zoomValue = getTimelineValue(timeline, 'camera.zoom')
-  if (zoomValue !== null && typeof zoomValue === 'number' && flame.renderSettings.camera) {
+  if (
+    zoomValue !== null &&
+    typeof zoomValue === 'number' &&
+    flame.renderSettings.camera
+  ) {
     flame.renderSettings.camera.zoom = zoomValue
   }
 
@@ -785,8 +838,17 @@ export function applyTimelineToFlame(
 
   // Animate edgeFadeColor (array of 4 numbers)
   const edgeFadeColorValue = getTimelineValue(timeline, 'edgeFadeColor')
-  if (edgeFadeColorValue !== null && Array.isArray(edgeFadeColorValue) && edgeFadeColorValue.length === 4) {
-    const typed = edgeFadeColorValue as unknown as [number, number, number, number]
+  if (
+    edgeFadeColorValue !== null &&
+    Array.isArray(edgeFadeColorValue) &&
+    edgeFadeColorValue.length === 4
+  ) {
+    const typed = edgeFadeColorValue as unknown as [
+      number,
+      number,
+      number,
+      number,
+    ]
     ;(flame as unknown as Record<string, unknown>).edgeFadeColor = typed
   }
 }

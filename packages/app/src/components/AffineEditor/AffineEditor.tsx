@@ -171,7 +171,7 @@ function AffineHandle(props: {
 
   const size = canvasSize()
   const aspect = createMemo(() => {
-    if (!size) return 16/9
+    if (!size) return 16 / 9
     return size.width / size.height
   })
   const position = createMemo(() => vec2f(props.transform.c, props.transform.f))

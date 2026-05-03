@@ -17,7 +17,9 @@ export function TimelineStatusBar() {
   const selectedPath = () => targetedParameter() ?? 'exposure'
 
   const currentPath = () => selectedPath()
-  const currentValue = createMemo(() => timeline.resolveValueAtPath(currentPath(), currentFrame()))
+  const currentValue = createMemo(() =>
+    timeline.resolveValueAtPath(currentPath(), currentFrame()),
+  )
 
   const isNumberValue = createMemo(() => {
     const param = TIMELINE_PARAMETERS.find((p) => p.path === currentPath())
@@ -58,7 +60,10 @@ export function TimelineStatusBar() {
       <div class={ui.statusSection}>
         <span class={ui.statusLabel}>Status:</span>
         <span class={ui.statusValue}>
-          <span class={ui.statusText} classList={{ [ui.isPlaying]: isPlaying() }}>
+          <span
+            class={ui.statusText}
+            classList={{ [ui.isPlaying]: isPlaying() }}
+          >
             {isPlaying() ? 'Playing' : 'Paused'}
           </span>
         </span>
@@ -78,20 +83,26 @@ export function TimelineStatusBar() {
 
       <div class={ui.statusSection}>
         <span class={ui.statusLabel}>Parameter:</span>
-        <span class={ui.statusValue} title={currentPath()} style={{ maxWidth: '200px' }}>
+        <span
+          class={ui.statusValue}
+          title={currentPath()}
+          style={{ maxWidth: '200px' }}
+        >
           {currentPath()}
         </span>
       </div>
 
       <div class={ui.statusSection}>
         <span class={ui.statusLabel}>Value:</span>
-        <span class={ui.statusValue code}>{valueDisplay()}</span>
+        <span class={ui.statusValue} classList={{ code: true }}>
+          {valueDisplay()}
+        </span>
       </div>
 
       {sortedKeyframes().length >= 2 && isNumberValue() && (
         <div class={ui.statusSection}>
           <span class={ui.statusLabel}>Curve:</span>
-          <span class={ui.statusValue code}>
+          <span class={ui.statusValue} classList={{ code: true }}>
             {sortedKeyframes()[1]?.easing || 'Linear'}
           </span>
         </div>

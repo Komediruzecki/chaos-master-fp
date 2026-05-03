@@ -109,11 +109,13 @@ export class CPUFlameRenderer {
       shearY: number
     }
   }) {
-
     return {
-      fnImpl: function (point: { position: [number, number, number]; color: [number, number] }): {
-        position: [number, number, number];
-        color: [number, number];
+      fnImpl: function (point: {
+        position: [number, number, number]
+        color: [number, number]
+      }): {
+        position: [number, number, number]
+        color: [number, number]
       } {
         // Simplified CPU transform - in real implementation,
         // this would compute the same iterations as WGSL
@@ -137,15 +139,15 @@ export class CPUFlameRenderer {
 
         // Apply variations (simplified)
         point.position = [
-          newX + Math.sin((point.color[0]) * 10) * 0.1,
-          newY + Math.cos((point.color[1]) * 10) * 0.1,
+          newX + Math.sin(point.color[0] * 10) * 0.1,
+          newY + Math.cos(point.color[1] * 10) * 0.1,
           newZ,
         ]
 
         // Update color based on variations
         point.color = [
-          ((point.color[0]) + Math.random()) % 1,
-          ((point.color[1]) + Math.random()) % 1,
+          (point.color[0] + Math.random()) % 1,
+          (point.color[1] + Math.random()) % 1,
         ]
 
         return point

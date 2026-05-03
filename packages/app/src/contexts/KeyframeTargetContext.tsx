@@ -8,9 +8,8 @@ interface KeyframeTargetContextType {
   setTargetedParameter: (path: KeyframeParameterPath | null) => void
 }
 
-export const KeyframeTargetContext = createContext<KeyframeTargetContextType | null>(
-  null,
-)
+export const KeyframeTargetContext =
+  createContext<KeyframeTargetContextType | null>(null)
 
 export function KeyframeTargetProvider(props: ParentProps) {
   const [targetedParameter, setTargetedParameter] =
@@ -28,7 +27,9 @@ export function KeyframeTargetProvider(props: ParentProps) {
 export function useKeyframeTarget() {
   const context = useContext(KeyframeTargetContext)
   if (!context) {
-    throw new Error('useKeyframeTarget must be used within KeyframeTargetProvider')
+    throw new Error(
+      'useKeyframeTarget must be used within KeyframeTargetProvider',
+    )
   }
   return context
 }

@@ -13,15 +13,25 @@ describe('VariationParameterMaps', () => {
   })
 
   it('should have at least 20 variation type definitions', () => {
-    expect(Object.keys(VariationParameterMaps).length).toBeGreaterThanOrEqual(20)
+    expect(Object.keys(VariationParameterMaps).length).toBeGreaterThanOrEqual(
+      20,
+    )
   })
 
   it('should include pigtail variation parameters', () => {
-    expect(VariationParameterMaps.pigtail).toEqual(['xmultiplier', 'ymultiplier'])
+    expect(VariationParameterMaps.pigtail).toEqual([
+      'xmultiplier',
+      'ymultiplier',
+    ])
   })
 
   it('should include blob variation parameters', () => {
-    expect(VariationParameterMaps.blob).toEqual(['scale', 'phi', 'theta', 'psi'])
+    expect(VariationParameterMaps.blob).toEqual([
+      'scale',
+      'phi',
+      'theta',
+      'psi',
+    ])
   })
 
   it('should include fan2 variation parameters', () => {
@@ -31,19 +41,31 @@ describe('VariationParameterMaps', () => {
 
 describe('resolveVariationParameter', () => {
   it('should return null when timeline state is not available', () => {
-    const result = resolveVariationParameter({}, 'transform1', 'variation1', 'distortion', 0)
+    const result = resolveVariationParameter(
+      {},
+      'transform1',
+      'variation1',
+      'distortion',
+      0,
+    )
 
     expect(result).toBeNull()
   })
 
   it('should return null when transform does not exist', () => {
-    const result = resolveVariationParameter({}, 'nonexistent', 'variation1', 'distortion', 0)
+    const result = resolveVariationParameter(
+      {},
+      'nonexistent',
+      'variation1',
+      'distortion',
+      0,
+    )
 
     expect(result).toBeNull()
   })
 
   it('should return null when variation does not have params', () => {
-        const result = resolveVariationParameter(
+    const result = resolveVariationParameter(
       {
         transform1: {
           variations: {
@@ -64,7 +86,13 @@ describe('resolveVariationParameter', () => {
   })
 
   it('should return null when parameter is not in known variations', () => {
-        const result = resolveVariationParameter({}, 'transform1', 'variation1', 'unknownParam', 0)
+    const result = resolveVariationParameter(
+      {},
+      'transform1',
+      'variation1',
+      'unknownParam',
+      0,
+    )
 
     expect(result).toBeNull()
   })

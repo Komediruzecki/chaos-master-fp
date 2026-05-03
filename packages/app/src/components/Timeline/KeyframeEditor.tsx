@@ -134,7 +134,9 @@ export function KeyframeEditor() {
   }
 
   // Get current value type from keyframe
-  const getKeyframeValueType = (keyframe: KeyframeData): 'number' | 'string' | 'array' => {
+  const getKeyframeValueType = (
+    keyframe: KeyframeData,
+  ): 'number' | 'string' | 'array' => {
     if (keyframe.value === null || keyframe.value === undefined) {
       return 'number'
     }
@@ -163,7 +165,11 @@ export function KeyframeEditor() {
   const handleAddKeyframe = () => {
     const value = keyframeValue()
 
-    let keyValue: string | number | [number, number, number] | [number, number, number, number] = value
+    let keyValue:
+      | string
+      | number
+      | [number, number, number]
+      | [number, number, number, number] = value
 
     if (isArrayValue()) {
       const parsed = parseArrayValue(value)
@@ -207,12 +213,7 @@ export function KeyframeEditor() {
       keyValue = formatArrayValue(keyValue)
     }
 
-    timeline.addKeyframe(
-      currentPath(),
-      nextFrame,
-      keyValue,
-      currentKf.easing,
-    )
+    timeline.addKeyframe(currentPath(), nextFrame, keyValue, currentKf.easing)
   }
 
   // Freeze keyframe (copy current value to next frame)
@@ -374,9 +375,7 @@ export function KeyframeEditor() {
                 {isAnimating() && (
                   <>
                     <span>Interpolated:</span>
-                    <span class={ui.interpolatedValue}>
-                      {keyframeValue()}
-                    </span>
+                    <span class={ui.interpolatedValue}>{keyframeValue()}</span>
                     <span class={ui.animating}>Active</span>
                   </>
                 )}
@@ -406,9 +405,7 @@ export function KeyframeEditor() {
                   <option value="elastic">Elastic</option>
                 </select>
               </div>
-              <KeyframeCurvePreview
-                parameterPath={currentPath()}
-              />
+              <KeyframeCurvePreview parameterPath={currentPath()} />
             </div>
           </Show>
         </>

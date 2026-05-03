@@ -60,7 +60,8 @@ export function Slider(props: SliderProps) {
       class={ui.label}
       classList={{
         [props.class ?? '']: true,
-        [ui.targeted as string]: props.dataParameterPath && targetedPath() === props.dataParameterPath,
+        [ui.targeted as string]:
+          props.dataParameterPath && targetedPath() === props.dataParameterPath,
       }}
     >
       <Show when={label()}>

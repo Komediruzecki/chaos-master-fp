@@ -56,7 +56,8 @@ export function TimelineRuler() {
       <div class={ui.markers}>
         {keyframeFramesArr().map((frame) => {
           const tracksData = tracks()
-          const keyframesAtFrame: { parameterPath: string; value: string }[] = []
+          const keyframesAtFrame: { parameterPath: string; value: string }[] =
+            []
 
           for (const track of tracksData) {
             const kf = track.keyframes.find((kf) => kf.frame === frame)
@@ -78,7 +79,13 @@ export function TimelineRuler() {
               }}
               data-testid={`frame-marker-${frame}`}
               data-has-keyframes={hasKeyframes}
-              title={hasKeyframes ? keyframesAtFrame.map(kf => `${kf.parameterPath}: ${kf.value}`).join('\n') : undefined}
+              title={
+                hasKeyframes
+                  ? keyframesAtFrame
+                      .map((kf) => `${kf.parameterPath}: ${kf.value}`)
+                      .join('\n')
+                  : undefined
+              }
             />
           )
         })}
@@ -102,7 +109,7 @@ export function TimelineRuler() {
               <span
                 class={ui.timeScaleLabel}
                 style={{
-                  left: `${(seconds * config().fps / timeInterval) * frameWidth}px`,
+                  left: `${((seconds * config().fps) / timeInterval) * frameWidth}px`,
                 }}
                 data-testid={`time-label-${seconds}`}
               >

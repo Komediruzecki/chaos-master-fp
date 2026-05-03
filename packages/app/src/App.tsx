@@ -3,7 +3,7 @@ import { createStore } from 'solid-js/store'
 import { Dynamic } from 'solid-js/web'
 import { vec2f, vec3f, vec4f } from 'typegpu/data'
 import { clamp } from 'typegpu/std'
-import { KeyframeTargetProvider, useKeyframeTarget } from '@/contexts/KeyframeTargetContext'
+import { KeyframeTargetProvider, useKeyframeTarget, } from '@/contexts/KeyframeTargetContext'
 import { WheelZoomCamera2D } from '@/lib/WheelZoomCamera2D'
 import { recordEntries, recordKeys } from '@/utils/record'
 import ui from './App.module.css'
@@ -39,19 +39,19 @@ import { accumulatedPointCount, qualityPointCountLimit, setCurrentQuality, setQu
 import { MAX_CAMERA_ZOOM_VALUE, MIN_CAMERA_ZOOM_VALUE, } from './flame/schema/flameSchema'
 import { generateTransformId, generateVariationId, } from './flame/transformFunction'
 import { isParametricVariation, isVariationType } from './flame/variations'
-import { getNormalizedVariationName, getParamsEditor, getVariationDefault } from './flame/variations/utils'
+import { getNormalizedVariationName, getParamsEditor, getVariationDefault, } from './flame/variations/utils'
 import { Cross, Plus } from './icons'
 import { AutoCanvas } from './lib/AutoCanvas'
 import { Root } from './lib/Root'
 import { createStoreHistory } from './utils/createStoreHistory'
 import { addFlameDataToPng } from './utils/flameInPng'
-import { compressJsonQueryParam, decodeJsonQueryParam } from './utils/jsonQueryParam'
+import { compressJsonQueryParam, decodeJsonQueryParam, } from './utils/jsonQueryParam'
 import { saveRecentFlame } from './utils/recentFlames'
 import { sum } from './utils/sum'
 import { createTimelineState } from './utils/timeline'
 import { useKeyboardShortcuts } from './utils/useKeyboardShortcuts'
 import { useLoadFlameFromFile } from './utils/useLoadFlameFromFile'
-import { dismissWelcome, hasWelcomeBeenDismissed } from './utils/welcomeDismissed'
+import { dismissWelcome, hasWelcomeBeenDismissed, } from './utils/welcomeDismissed'
 import type { Setter } from 'solid-js'
 import type { v2f } from 'typegpu/data'
 import type { QualityPreset } from './components/Quality/QualityPresets'
@@ -59,7 +59,7 @@ import type { ColorInitMode } from './flame/colorInitMode'
 import type { ColorMap, Palette } from './flame/colorMap'
 import type { DrawMode } from './flame/drawMode'
 import type { PointInitMode } from './flame/pointInitMode'
-import type { FlameDescriptor, TransformFunction } from './flame/schema/flameSchema'
+import type { FlameDescriptor, TransformFunction, } from './flame/schema/flameSchema'
 
 const EDGE_FADE_COLOR = {
   light: vec4f(0.96, 0.96, 0.96, 1),
@@ -280,11 +280,7 @@ function App(props: AppProps) {
         track.parameterPath === 'camera.zoom',
     )
 
-    if (
-      !(hasCameraX) ||
-      !(hasCameraY) ||
-      !(hasCameraZoom)
-    ) {
+    if (!hasCameraX || !hasCameraY || !hasCameraZoom) {
       t.addKeyframe(
         'camera.x',
         currentFrame,
@@ -781,15 +777,16 @@ function App(props: AppProps) {
                 <QualityPresets
                   selectedPreset={qualityPreset()}
                   setQualityPreset={setQualityPreset}
-                  fillPercentage={
-                    (() => {
-                      const limitFn = qualityPointCountLimit()
-                      if (!limitFn) return 0
-                      const limit = limitFn()
-                      if (limit === 0) return 0
-                      return Math.min(100, Math.max(0, (accumulatedPointCount() / limit) * 100))
-                    })()
-                  }
+                  fillPercentage={(() => {
+                    const limitFn = qualityPointCountLimit()
+                    if (!limitFn) return 0
+                    const limit = limitFn()
+                    if (limit === 0) return 0
+                    return Math.min(
+                      100,
+                      Math.max(0, (accumulatedPointCount() / limit) * 100),
+                    )
+                  })()}
                 />
               </Card>
               <Card>
@@ -872,8 +869,11 @@ export function Wrappers() {
 
   const [dontShowAgain, setDontShowAgain] = createSignal(false)
   // Don't show welcome if there's a flame in the URL query, or while loading
-  const showWelcomeComputed = createMemo(() =>
-    !hasWelcomeBeenDismissed() && (flameFromQuery.state === 'ready' && flameFromQuery() !== undefined),
+  const showWelcomeComputed = createMemo(
+    () =>
+      !hasWelcomeBeenDismissed() &&
+      flameFromQuery.state === 'ready' &&
+      flameFromQuery() !== undefined,
   )
   const [showWelcome, setShowWelcome] = createSignal(showWelcomeComputed())
   const [selectedFlame, setSelectedFlame] = createSignal<

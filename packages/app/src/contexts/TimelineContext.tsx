@@ -10,7 +10,11 @@ export const TimelineContext = createContext<TimelineState | null>(null)
 export const TimelineContextProvider = TimelineContext.Provider
 
 export function useTimeline() {
-  return useContextSafe(TimelineContext, 'useTimeline', 'TimelineContextProvider')
+  return useContextSafe(
+    TimelineContext,
+    'useTimeline',
+    'TimelineContextProvider',
+  )
 }
 
 export function TimelineProvider(props: { children: JSX.Element }) {

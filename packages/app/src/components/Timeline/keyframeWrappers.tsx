@@ -12,9 +12,7 @@ type WrappedFlameColorEditorProps = {
   class?: string
 }
 
-export function WrappedFlameColorEditor(
-  props: WrappedFlameColorEditorProps,
-) {
+export function WrappedFlameColorEditor(props: WrappedFlameColorEditorProps) {
   const { theme } = useTheme()
 
   return (
@@ -46,7 +44,8 @@ export function WrappedFlameColorEditor(
               class="colorValueDisplay"
             >
               <span class="colorValueText">
-                RGB({transform.color.x.toFixed(3)}, {transform.color.y.toFixed(3)})
+                RGB({transform.color.x.toFixed(3)},{' '}
+                {transform.color.y.toFixed(3)})
               </span>
             </WithKeyframeTarget>
           </div>
