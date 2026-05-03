@@ -140,3 +140,22 @@
     line-height: 16px;
   }
 }
+
+.currentFrameIndicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  pointer-events: none;
+}
+
+.currentFrameLine {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: var(--accent-color);
+  pointer-events: none;
+  z-index: 10;
+}

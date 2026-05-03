@@ -91,6 +91,14 @@ export function TimelineRuler() {
           </div>
         )}
       </div>
+      <div class={ui.currentFrameIndicator}>
+        <div
+          class={ui.currentFrameLine}
+          style={{
+            left: `${Math.max(0, Math.min(1, currentFrame() / config().endFrame)) * totalWidth()}px`,
+          }}
+        />
+      </div>
     </div>
   )
 }
