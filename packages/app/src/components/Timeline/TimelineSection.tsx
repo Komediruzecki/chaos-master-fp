@@ -47,6 +47,13 @@ export function TimelineSection({ onEnterAnimation }: TimelineSectionProps) {
           <TimelineRuler />
 
           <TimelinePanel />
+
+          <div class={ui.frameRangeIndicator}>
+            <span>Frame Range: </span>
+            <span class={ui.frameRangeStart}>0</span>
+            <span class={ui.frameRangeSeparator}>—</span>
+            <span class={ui.frameRangeEnd}>{config().endFrame}</span>
+          </div>
         </div>
       </Show>
     </div>
