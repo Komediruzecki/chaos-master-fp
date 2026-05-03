@@ -1,6 +1,6 @@
 import { createMemo } from 'solid-js'
 import { useTimeline } from '@/contexts/TimelineContext'
-import { getAllTrackFrames } from '@/utils/timeline'
+import { getAllTrackFrames, resolveKeyframeValue } from '@/utils/timeline'
 import ui from './TimelineRuler.module.css'
 
 export function TimelineRuler() {
@@ -13,6 +13,7 @@ export function TimelineRuler() {
 
   const frameWidth = 30 // pixels per frame
   const totalWidth = createMemo(() => config().endFrame * frameWidth)
+  const currentFrame = createMemo(() => timeline.currentFrame())
 
   // Only render frame labels at intervals to reduce DOM nodes
   // Ensure ~60px between labels minimum
@@ -53,14 +54,34 @@ export function TimelineRuler() {
       data-testid="timeline-ruler"
     >
       <div class={ui.markers}>
-        {keyframeFramesArr().map((frame) => (
-          <div
-            data-key={frame}
-            class={ui.keyframeMarker}
-            style={{ left: `${frame * frameWidth}px` }}
-            data-testid={`frame-marker-${frame}`}
-          />
-        ))}
+        {keyframeFramesArr().map((frame) => {
+          const tracksData = tracks()
+          const keyframesAtFrame: { parameterPath: string; value: string }[] = []
+
+          for (const track of tracksData) {
+            const kf = track.keyframes.find((kf) => kf.frame === frame)
+            if (kf && typeof kf.value === 'number') {
+              keyframesAtFrame.push({
+                parameterPath: track.parameterPath,
+                value: kf.value.toFixed(2),
+              })
+            }
+          }
+
+          const hasKeyframes = keyframesAtFrame.length > 0
+
+          return (
+            <div
+              class={ui.keyframeMarker}
+              style={{
+                left: `${frame * frameWidth}px`,
+              }}
+              data-testid={`frame-marker-${frame}`}
+              data-has-keyframes={hasKeyframes}
+              title={hasKeyframes ? keyframesAtFrame.map(kf => `${kf.parameterPath}: ${kf.value}`).join('\n') : undefined}
+            />
+          )
+        })}
       </div>
       <div class={ui.scale}>
         {frameLabels().map((frame) => (

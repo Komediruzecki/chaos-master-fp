@@ -159,3 +159,50 @@
   pointer-events: none;
   z-index: 10;
 }
+
+/* Keyframe marker tooltip - use native title attribute or custom tooltip */
+.keyframeMarker {
+  width: 2px;
+  height: 100%;
+  background-color: var(--accent-color, #3b82f6);
+  border-left: 1px solid white;
+  opacity: 0.7;
+  cursor: pointer;
+  transition: opacity 0.2s, height 0.2s;
+
+  [data-theme='dark'] & {
+    background-color: var(--accent-color, #60a5fa);
+  }
+
+  &:hover {
+    opacity: 1;
+    height: 120%;
+  }
+}
+
+.keyframeMarker[rel="none"] {
+  opacity: 0.3;
+}
+
+/* Tooltip styling - native title attribute fallback */
+.keyframeMarker::after {
+  content: attr(data-has-keyframes);
+  display: none;
+}
+
+[data-theme='light'] .keyframeMarker:hover::before {
+  content: attr(title);
+  position: absolute;
+  top: 10px;
+  left: 100%;
+  transform: translateX(10px);
+  padding: 4px 8px;
+  background: var(--neutral-800);
+  color: var(--neutral-200);
+  border-radius: 4px;
+  font-size: 0.65rem;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
