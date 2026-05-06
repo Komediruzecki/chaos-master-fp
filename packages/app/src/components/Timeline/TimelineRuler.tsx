@@ -109,7 +109,7 @@ export function TimelineRuler() {
               <span
                 class={ui.timeScaleLabel}
                 style={{
-                  left: `${((seconds * config().fps) / timeInterval) * frameWidth}px`,
+                  left: `${((seconds * config().fps) / Math.max(1, Math.floor(config().fps / 4))) * frameWidth}px`,
                 }}
                 data-testid={`time-label-${seconds}`}
               >

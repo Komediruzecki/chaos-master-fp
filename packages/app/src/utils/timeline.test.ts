@@ -94,8 +94,8 @@ describe('Timeline Utilities', () => {
           .find((t) => t.parameterPath === 'exposure')
         expect(track).toBeDefined()
         expect(track?.keyframes).toHaveLength(2)
-        expect(track?.keyframes[0].frame).toBe(10)
-        expect(track?.keyframes[1].frame).toBe(30)
+        expect(track?.keyframes[0]!.frame).toBe(10)
+        expect(track?.keyframes[1]!.frame).toBe(30)
       })
 
       it('should filter out empty tracks', () => {
@@ -208,8 +208,8 @@ describe('Timeline Utilities', () => {
         expect(track?.keyframes).toHaveLength(2)
         // Keyframes are added: first at originalFrame (15), then at splitFrame (10)
         // So keyframes[0] is at frame 15, keyframes[1] is at frame 10
-        expect(track?.keyframes[0].frame).toBe(15)
-        expect(track?.keyframes[1].frame).toBe(10)
+        expect(track?.keyframes[0]!.frame).toBe(15)
+        expect(track?.keyframes[1]!.frame).toBe(10)
       })
 
       it('should return false if keyframe does not exist', () => {
@@ -306,8 +306,8 @@ describe('Timeline Utilities', () => {
           .tracks()
           .find((t) => t.parameterPath === 'vibrancy')
         expect(track?.keyframes).toHaveLength(1)
-        expect(track?.keyframes[0].frame).toBe(45)
-        expect(track?.keyframes[0].value).toBe(0.5)
+        expect(track?.keyframes[0]!.frame).toBe(45)
+        expect(track?.keyframes[0]!.value).toBe(0.5)
       })
 
       it('should return false if source keyframe does not exist', () => {
@@ -321,7 +321,8 @@ describe('Timeline Utilities', () => {
 
       it('should return false if source value is boolean', () => {
         // Boolean keyframes cannot be used for mirroring
-        timeline.addKeyframe('exposure', 45, true, 'linear')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        timeline.addKeyframe('exposure', 45, true as any, 'linear')
         const applied = timeline.applyMirroredValueFromTrack(
           'exposure',
           'vibrancy',

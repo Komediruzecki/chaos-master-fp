@@ -52,6 +52,10 @@ export function TimelineStatusBar() {
       return `"${val}"`
     }
 
+    if (typeof val === 'boolean') {
+      return val ? 'true' : 'false'
+    }
+
     return val.toFixed(isNumberValue() ? 2 : 4)
   })
 
@@ -62,7 +66,7 @@ export function TimelineStatusBar() {
         <span class={ui.statusValue}>
           <span
             class={ui.statusText}
-            classList={{ [ui.isPlaying]: isPlaying() }}
+            classList={{ [ui.isPlaying as string]: isPlaying() }}
           >
             {isPlaying() ? 'Playing' : 'Paused'}
           </span>
@@ -86,7 +90,7 @@ export function TimelineStatusBar() {
         <span
           class={ui.statusValue}
           title={currentPath()}
-          style={{ maxWidth: '200px' }}
+          style={{ 'max-width': '200px' }}
         >
           {currentPath()}
         </span>

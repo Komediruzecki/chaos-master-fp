@@ -4,6 +4,7 @@ import type { FlameDescriptor } from './schema/flameSchema'
 
 describe('CPU Flame Renderer', () => {
   const sampleFlame: FlameDescriptor = {
+    metadata: { author: '' },
     renderSettings: {
       exposure: 1,
       skipIters: 10,
@@ -15,6 +16,7 @@ describe('CPU Flame Renderer', () => {
       pointInitMode: 'pointInitUnitDisk',
       backgroundColor: undefined,
       edgeFadeColor: [0, 0, 0, 0.8],
+      camera: { zoom: 1, position: [0, 0] },
     },
     transforms: {
       0: {
@@ -33,14 +35,16 @@ describe('CPU Flame Renderer', () => {
         matrix: [0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5],
         color: { r: 0, g: 0, b: 0, mode: 'colorByDensity' },
       },
-    },
+    } as FlameDescriptor['transforms'],
   }
 
   describe('CPUFlameRenderer', () => {
     it('should initialize with flame descriptor', () => {
       const renderer = new CPUFlameRenderer(sampleFlame)
-      expect(renderer.transforms).toBeDefined()
-      expect(renderer.flameFunctions).toBeDefined()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((renderer as any).transforms).toBeDefined()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((renderer as any).flameFunctions).toBeDefined()
     })
 
     it('should render basic scene', () => {
@@ -64,7 +68,8 @@ describe('CPU Flame Renderer', () => {
     it('should create CPU transform functions', () => {
       const renderer = new CPUFlameRenderer(sampleFlame)
 
-      const transforms = Object.entries(renderer.flameFunctions)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const transforms = Object.entries((renderer as any).flameFunctions)
       expect(transforms.length).toBeGreaterThan(0)
     })
 
@@ -128,7 +133,8 @@ describe('CPU Flame Renderer', () => {
         transforms: {},
       }
 
-      const result = testCPURenderer(invalidFlame, {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = testCPURenderer(invalidFlame as any, {
         width: 10,
         height: 10,
         quality: 5,
@@ -156,7 +162,7 @@ describe('CPU Flame Renderer', () => {
 
       // Check that each bucket has count, colorA, colorB
       for (let i = 0; i < result.bucketsData.length; i++) {
-        const bucket = result.bucketsData[i]
+        const bucket = result.bucketsData[i]!
         expect(bucket.count).toBeGreaterThanOrEqual(0)
         expect(bucket.colorA).toBeGreaterThanOrEqual(0)
         expect(bucket.colorB).toBeGreaterThanOrEqual(0)
@@ -173,9 +179,9 @@ describe('CPU Flame Renderer', () => {
       // Flatten
       const flattened = new Float32Array(testBucketsData.length * 3)
       for (let i = 0; i < testBucketsData.length; i++) {
-        flattened[i * 3] = testBucketsData[i].count
-        flattened[i * 3 + 1] = testBucketsData[i].colorA
-        flattened[i * 3 + 2] = testBucketsData[i].colorB
+        flattened[i * 3] = testBucketsData[i]!.count
+        flattened[i * 3 + 1] = testBucketsData[i]!.colorA
+        flattened[i * 3 + 2] = testBucketsData[i]!.colorB
       }
 
       // Verify structure matches expected format

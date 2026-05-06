@@ -79,7 +79,7 @@ describe('DelayedShow Logic', () => {
       runEffect()
 
       // Simulate cleanup on unmount
-      cleanupFn?.()
+      ;(cleanupFn as (() => void) | null)?.()
       expect(clearTimeoutSpy).toHaveBeenCalledTimes(1)
 
       vi.advanceTimersByTime(100)
@@ -121,11 +121,10 @@ describe('DelayedShow Logic', () => {
 
     it('should allow fallback to be undefined', () => {
       const [show] = createSignal(false)
-      const _fallback = undefined
+      const getFallback = (): string | undefined => undefined
 
       // When fallback is undefined, Show component won't render fallback
-      const shouldRenderFallback = !show() && _fallback !== undefined
-      expect(shouldRenderFallback).toBe(false)
+      expect(!show() && getFallback() !== undefined).toBe(false)
     })
   })
 

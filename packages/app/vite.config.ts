@@ -6,7 +6,6 @@ import bundleAnalyzer from 'vite-bundle-analyzer'
 import solidPlugin from 'vite-plugin-solid'
 import solidSvg from 'vite-plugin-solid-svg'
 
-// @ts-expect-error TS doesn't know about `process`
 const ANALYZE_BUNDLE = Boolean(process.env.VITE_ANALYZE_BUNDLE)
 
 export default defineConfig({

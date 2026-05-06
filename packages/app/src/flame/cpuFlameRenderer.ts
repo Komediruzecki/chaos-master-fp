@@ -47,7 +47,8 @@ export class CPUFlameRenderer {
     Object.entries(flameDescriptor.transforms).forEach(([tid, transform]) => {
       // In real implementation, we'd compile and use the same WGSL functions
       // For testing, we'll create simple CPU equivalents
-      this.flameFunctions[tid] = this.createCPUDummyTransform(transform)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      this.flameFunctions[tid] = this.createCPUDummyTransform(transform as any)
     })
   }
 
@@ -73,9 +74,10 @@ export class CPUFlameRenderer {
           bucketsData[i] = { count: 0, colorA: 0, colorB: 0 }
         }
         // Simulate bucket accumulation
-        bucketsData[i].count += 1 * 1000 // BUCKET_FIXED_POINT_MULTIPLIER
-        bucketsData[i].colorA += 127 * 1000 // Simulated red channel
-        bucketsData[i].colorB += 127 * 1000 // Simulated green channel
+        const b = bucketsData[i]!
+        b.count += 1 * 1000 // BUCKET_FIXED_POINT_MULTIPLIER
+        b.colorA += 127 * 1000 // Simulated red channel
+        b.colorB += 127 * 1000 // Simulated green channel
       }
     }
 
@@ -121,21 +123,22 @@ export class CPUFlameRenderer {
         // this would compute the same iterations as WGSL
         const pos = point.position
 
+        const m = transform.matrix
         // Apply affine transforms (simplified)
         const newX =
-          pos[0] * (matrix[0]! || 1) +
-          pos[1] * (matrix[3]! || 0) +
-          (matrix[6]! || 0)
+          pos[0] * (m[0] || 1) +
+          pos[1] * (m[3] || 0) +
+          (m[6] || 0)
 
         const newY =
-          pos[0] * (matrix[1]! || 0) +
-          pos[1] * (matrix[4]! || 1) +
-          (matrix[7]! || 0)
+          pos[0] * (m[1] || 0) +
+          pos[1] * (m[4] || 1) +
+          (m[7] || 0)
 
         const newZ =
-          pos[0] * (matrix[2]! || 0) +
-          pos[1] * (matrix[5]! || 0) +
-          (matrix[8]! || 0)
+          pos[0] * (m[2] || 0) +
+          pos[1] * (m[5] || 0) +
+          (m[8] || 0)
 
         // Apply variations (simplified)
         point.position = [
@@ -163,7 +166,7 @@ export class CPUFlameRenderer {
 export function testCPURenderer(
   flameDescriptor: FlameDescriptor,
   options: RaytracingOptions,
-): { passed: boolean; error?: string } {
+): { passed: boolean; error?: string; gpuResults?: { bucketCount: number } } {
   try {
     const cpuRenderer = new CPUFlameRenderer(flameDescriptor)
 

@@ -135,7 +135,7 @@ test.describe('Console Error Detection', () => {
         // Click a random quality pill
         const pills = await page.locator('.quality-pills-container button').all()
         if (pills.length > 0) {
-          await pills[0].click()
+          await pills[0]!.click()
           await page.waitForTimeout(300)
         }
       }
@@ -168,7 +168,7 @@ test.describe('Console Error Detection', () => {
     // Try to interact with sliders
     const sliders = await page.locator('input[type="range"]').all()
     for (let i = 0; i < Math.min(sliders.length, 3); i++) {
-      await sliders[i].click()
+      await sliders[i]!.click()
       await page.mouse.move(0, 0)
       await page.mouse.wheel(0, 100)
       await page.waitForTimeout(100)

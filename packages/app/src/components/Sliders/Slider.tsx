@@ -59,10 +59,10 @@ export function Slider(props: SliderProps) {
     <label
       class={ui.label}
       classList={{
-        [props.class ?? '']: true,
         [ui.targeted as string]:
-          props.dataParameterPath && targetedPath() === props.dataParameterPath,
-      }}
+          props.dataParameterPath !== undefined && targetedPath() === props.dataParameterPath,
+        ...(props.class !== undefined && props.class !== '' ? { [props.class]: true } : {}),
+      } as Record<string, boolean | undefined>}
     >
       <Show when={label()}>
         <span>{label()}</span>
@@ -88,7 +88,7 @@ export function Slider(props: SliderProps) {
             props.onInput(ev.target.valueAsNumber)
           }}
           onDblClick={() => {
-            if (props.dataParameterPath) {
+            if (props.dataParameterPath !== undefined) {
               setTargetedParameter(props.dataParameterPath)
             }
           }}

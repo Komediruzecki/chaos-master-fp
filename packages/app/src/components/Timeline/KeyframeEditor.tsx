@@ -221,10 +221,10 @@ export function KeyframeEditor() {
     const nextFrame = currentFrame() + 1
 
     // Use the exact type from keyframeValue input
-    let keyValue = keyframeValue()
+    let keyValue: string | number | number[] = keyframeValue()
 
     if (isArrayValue()) {
-      const parsed = parseArrayValue(keyValue)
+      const parsed = parseArrayValue(keyValue as string)
       keyValue = parsed ?? [0, 0, 0]
     } else if (isNumberValue()) {
       keyValue = Number(keyValue)
@@ -233,7 +233,7 @@ export function KeyframeEditor() {
     timeline.addKeyframe(
       currentPath(),
       nextFrame,
-      keyValue,
+      keyValue as string | number | [number, number, number] | [number, number, number, number],
       interpolationMode(),
     )
   }

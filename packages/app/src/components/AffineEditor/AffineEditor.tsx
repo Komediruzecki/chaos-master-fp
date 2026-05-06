@@ -167,37 +167,23 @@ function AffineHandle(props: {
 }) {
   const { theme } = useTheme()
   const { canvas, canvasSize } = useCanvas()
+  const {
+    js: { worldToClip, clipToWorld },
+  } = useCamera()
   const changeHistory = useChangeHistory()
 
-  const size = canvasSize()
-  const aspect = createMemo(() => {
-    if (!size) return 16 / 9
-    return size.width / size.height
-  })
+  const aspect = createMemo(() => canvasSize().width / canvasSize().height)
   const position = createMemo(() => vec2f(props.transform.c, props.transform.f))
-  const clipPosition = createMemo(() => {
-    try {
-      const result = worldToClip(position())
-      if (result && typeof result === 'object' && 'x' in result) return result
-    } catch {
-      // worldToClip may throw if camera hasn't initialized
-    }
-    return vec2f(0.5, 0.5)
-  })
+  const clipPosition = createMemo(() => worldToClip(position()))
   const clipTransform = createMemo(() => {
-    try {
-      // prettier-ignore
-      const { a, b, c, d, e, f } = props.transform
-      const zero = worldToClip(vec2f(0, 0)) ?? vec2f(0.5, 0.5)
-      const x = sub(worldToClip(vec2f(a, d)) ?? zero, zero)
-      const y = sub(worldToClip(vec2f(b, e)) ?? zero, zero)
-      const t = worldToClip(vec2f(c, f)) ?? vec2f(0.5, 0.5)
-      const s = aspect()
-      return [x.x * s, y.x * s, x.y, y.y, t.x * s, t.y]
-    } catch {
-      // worldToClip may throw if camera hasn't initialized
-      return [0, 0, 0, 0, 0.5, 0.5]
-    }
+    // prettier-ignore
+    const { a, b, c, d, e, f } = props.transform
+    const zero = worldToClip(vec2f(0, 0))
+    const x = sub(worldToClip(vec2f(a, d)), zero)
+    const y = sub(worldToClip(vec2f(b, e)), zero)
+    const t = worldToClip(vec2f(c, f))
+    const s = aspect()
+    return [x.x * s, y.x * s, x.y, y.y, t.x * s, t.y]
   })
   const startDragging = createDragHandler((initEvent) => {
     changeHistory.startPreview('Affine Translation')

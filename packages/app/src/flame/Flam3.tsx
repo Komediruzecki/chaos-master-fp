@@ -15,7 +15,6 @@ import { drawModeToImplFn } from './drawMode'
 import { createIFSPipeline } from './ifsPipeline'
 import { backgroundColorDefault, backgroundColorDefaultWhite, } from './schema/flameSchema'
 import { Bucket } from './types'
-import type { TgpuBuffer } from 'typegpu'
 import type { v4f } from 'typegpu/data'
 import type { Palette } from './colorMap'
 import type { FlameDescriptor } from './schema/flameSchema'
@@ -32,7 +31,7 @@ type Flam3Props = {
   pointCountPerBatch: number
   renderInterval: number
   adaptiveFilterEnabled: boolean
-  animationEnabled: boolean
+  animationEnabled?: boolean
   flameDescriptor: FlameDescriptor
   edgeFadeColor: v4f
   onExportImage?: ExportImageType
@@ -165,11 +164,12 @@ export function Flam3(props: Flam3Props) {
       return undefined
     }
     const { textureSize, postprocessBuffer, accumulationBuffer } = o
-    const pipeline = createColorGradingPipeline(
+    return createColorGradingPipeline(
       root,
       colorGradingUniforms,
       textureSize,
-      props.adaptiveFilterEnabled ? postprocessBuffer : accumulationBuffer,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (props.adaptiveFilterEnabled ? postprocessBuffer : accumulationBuffer) as any,
       canvasFormat,
       drawModeToImplFn[props.flameDescriptor.renderSettings.drawMode],
       props.palette,
@@ -186,8 +186,10 @@ export function Flam3(props: Flam3Props) {
     return createBlurPipeline(
       root,
       textureSize,
-      accumulationBuffer,
-      postprocessBuffer,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      accumulationBuffer as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      postprocessBuffer as any,
     )
   })
 
@@ -209,7 +211,7 @@ export function Flam3(props: Flam3Props) {
     const keys = Object.keys(flame.transforms)
     const structure = keys
       .map((tid) => {
-        const tr = flame.transforms[tid]
+        const tr = flame.transforms[tid] as { variations: Record<string, { type?: string }> }
         const vTypes = Object.keys(tr.variations)
           .map((vid) => tr.variations[vid]?.type)
           .sort()
@@ -288,13 +290,8 @@ export function Flam3(props: Flam3Props) {
 
     const { textureSize, accumulationBuffer, postprocessBuffer } = tex
 
-    // Add type assertions to satisfy typegpu's strict buffer typing
-    const typedAccumulationBuffer = accumulationBuffer as TgpuBuffer<
-      WgslArray<typeof Bucket>
-    >
-    const _typedPostprocessBuffer = postprocessBuffer as TgpuBuffer<
-      WgslArray<typeof Bucket>
-    >
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const typedAccumulationBuffer = accumulationBuffer as any
 
     const ifsPipeline = createIFSPipeline(
       root,
