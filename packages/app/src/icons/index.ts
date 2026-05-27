@@ -10,6 +10,7 @@ import EyeOff from './eye-off.svg'
 import FolderOpen from './folder-open.svg'
 import GitHub from './github.svg'
 import GridIcon from './grid.svg'
+import Heart from './heart.svg'
 import HoverEyePreview from './hover-eye-preview.svg'
 import HoverPreview from './hover-preview.svg'
 import ListIcon from './list.svg'
@@ -43,6 +44,7 @@ export {
   FolderOpen,
   GitHub,
   GridIcon,
+  Heart,
   HoverEyePreview,
   HoverPreview,
   ListIcon,

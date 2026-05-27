@@ -1,6 +1,6 @@
 import { createResource, createSignal, For, Show, Suspense } from 'solid-js'
 import { IS_DEV } from '@/defaults'
-import { Changelog, GitHub, Terminal, TriangleAlert } from '@/icons'
+import { Changelog, GitHub, Heart, Terminal, TriangleAlert } from '@/icons'
 import { getWebgpuComponents } from '@/lib/WebgpuAdapter'
 import { formatBytes } from '@/utils/formatBytes'
 import { GIT_SHA, VERSION } from '@/version'
@@ -382,6 +382,26 @@ function HelpModal(props: HelpModalProps) {
         >
           Timeline Tour
         </button>
+      </div>
+
+      <h2 class={ui.sectionTitle}>Support</h2>
+      <div class={ui.supportLinks}>
+        <a
+          class={ui.iconLink}
+          href="https://ko-fi.com/chaosmatters"
+          target="_blank"
+          title="Support on Ko-fi"
+        >
+          <Heart />
+        </a>
+        <a
+          class={ui.iconLink}
+          href="https://github.com/sponsors/chaos-matters"
+          target="_blank"
+          title="Sponsor on GitHub"
+        >
+          <GitHub />
+        </a>
       </div>
 
       <div class={ui.gpuHeader}>
