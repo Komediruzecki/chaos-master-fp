@@ -182,6 +182,14 @@
   white-space: nowrap;
 }
 
+.label.compact .slider {
+  height: 16px;
+}
+
+.label.compact .slider::-webkit-slider-thumb {
+  margin-top: 1px;
+}
+
 .label.compact .labelRow {
   padding-right: 0;
 }

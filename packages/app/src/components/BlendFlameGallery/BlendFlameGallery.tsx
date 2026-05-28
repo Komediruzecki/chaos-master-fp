@@ -52,8 +52,10 @@ function Preview(props: { flameDescriptor: FlameDescriptor }) {
 }
 
 export function BlendFlameGallery(props: BlendFlameGalleryProps) {
-  const [showAllRecent, setShowAllRecent] = createSignal(false)
-  const [showAllExamples, setShowAllExamples] = createSignal(false)
+  const [visibleRecentCount, setVisibleRecentCount] =
+    createSignal(INITIAL_VISIBLE)
+  const [visibleExamplesCount, setVisibleExamplesCount] =
+    createSignal(INITIAL_VISIBLE)
 
   const allRecent = () => loadRecentFlames()
 
@@ -64,10 +66,8 @@ export function BlendFlameGallery(props: BlendFlameGalleryProps) {
       flame,
     }))
 
-  const visibleRecent = () =>
-    showAllRecent() ? allRecent() : allRecent().slice(0, INITIAL_VISIBLE)
-  const visibleExamples = () =>
-    showAllExamples() ? allExamples() : allExamples().slice(0, INITIAL_VISIBLE)
+  const showAllRecent = () => visibleRecentCount() >= allRecent().length
+  const showAllExamples = () => visibleExamplesCount() >= allExamples().length
 
   let clearTimer: ReturnType<typeof setTimeout> | undefined
 
@@ -113,40 +113,48 @@ export function BlendFlameGallery(props: BlendFlameGalleryProps) {
             fallback={<div class={ui.sectionEmpty}>No recent flames yet</div>}
           >
             <div class={ui.grid}>
-              <For each={visibleRecent()}>
+              <For each={allRecent()}>
                 {(recent, i) => (
-                  <button
-                    class={ui.thumbnail}
-                    title={`${recent.name} — ${formatRecentDate(recent.savedAt)}`}
-                    onClick={() => {
-                      clearTimeout(clearTimer)
-                      props.onSelect(deepClone(recent.flame))
-                      props.onPreviewName?.(null)
-                    }}
-                    onMouseEnter={() => {
-                      handleMouseEnter(recent.flame, recent.name)
-                    }}
-                    onMouseLeave={() => {
-                      handleMouseLeave()
-                    }}
-                  >
-                    <DelayedShow delayMs={i() * 30}>
-                      <Preview flameDescriptor={recent.flame} />
-                    </DelayedShow>
-                    <div class={ui.thumbnailBar}>
-                      <span class={ui.thumbnailName}>{recent.name}</span>
-                      <span class={ui.thumbnailMeta}>
-                        {recent.savedAt && formatRecentDate(recent.savedAt)}
-                      </span>
-                    </div>
-                  </button>
+                  <Show when={i() < visibleRecentCount()}>
+                    <button
+                      class={ui.thumbnail}
+                      title={`${recent.name} — ${formatRecentDate(recent.savedAt)}`}
+                      onClick={() => {
+                        clearTimeout(clearTimer)
+                        props.onSelect(deepClone(recent.flame))
+                        props.onPreviewName?.(null)
+                      }}
+                      onMouseEnter={() => {
+                        handleMouseEnter(recent.flame, recent.name)
+                      }}
+                      onMouseLeave={() => {
+                        handleMouseLeave()
+                      }}
+                    >
+                      <DelayedShow delayMs={i() * 30}>
+                        <Preview flameDescriptor={recent.flame} />
+                      </DelayedShow>
+                      <div class={ui.thumbnailBar}>
+                        <span class={ui.thumbnailName}>{recent.name}</span>
+                        <span class={ui.thumbnailMeta}>
+                          {recent.savedAt && formatRecentDate(recent.savedAt)}
+                        </span>
+                      </div>
+                    </button>
+                  </Show>
                 )}
               </For>
             </div>
             <Show when={allRecent().length > INITIAL_VISIBLE}>
               <button
                 class={ui.showMoreBtn}
-                onClick={() => setShowAllRecent((v) => !v)}
+                onClick={() =>
+                  setVisibleRecentCount((c) =>
+                    c >= allRecent().length
+                      ? INITIAL_VISIBLE
+                      : allRecent().length,
+                  )
+                }
               >
                 {showAllRecent()
                   ? 'Show less'
@@ -161,37 +169,45 @@ export function BlendFlameGallery(props: BlendFlameGalleryProps) {
             <span class={ui.sectionLabel}>Examples</span>
           </div>
           <div class={ui.grid}>
-            <For each={visibleExamples()}>
+            <For each={allExamples()}>
               {({ name, flame }, i) => (
-                <button
-                  class={ui.thumbnail}
-                  title={name}
-                  onClick={() => {
-                    clearTimeout(clearTimer)
-                    props.onSelect(deepClone(flame))
-                    props.onPreviewName?.(null)
-                  }}
-                  onMouseEnter={() => {
-                    handleMouseEnter(flame, name)
-                  }}
-                  onMouseLeave={() => {
-                    handleMouseLeave()
-                  }}
-                >
-                  <DelayedShow delayMs={i() * 30}>
-                    <Preview flameDescriptor={flame} />
-                  </DelayedShow>
-                  <div class={ui.thumbnailBar}>
-                    <span class={ui.thumbnailName}>{name}</span>
-                  </div>
-                </button>
+                <Show when={i() < visibleExamplesCount()}>
+                  <button
+                    class={ui.thumbnail}
+                    title={name}
+                    onClick={() => {
+                      clearTimeout(clearTimer)
+                      props.onSelect(deepClone(flame))
+                      props.onPreviewName?.(null)
+                    }}
+                    onMouseEnter={() => {
+                      handleMouseEnter(flame, name)
+                    }}
+                    onMouseLeave={() => {
+                      handleMouseLeave()
+                    }}
+                  >
+                    <DelayedShow delayMs={i() * 30}>
+                      <Preview flameDescriptor={flame} />
+                    </DelayedShow>
+                    <div class={ui.thumbnailBar}>
+                      <span class={ui.thumbnailName}>{name}</span>
+                    </div>
+                  </button>
+                </Show>
               )}
             </For>
           </div>
           <Show when={allExamples().length > INITIAL_VISIBLE}>
             <button
               class={ui.showMoreBtn}
-              onClick={() => setShowAllExamples((v) => !v)}
+              onClick={() =>
+                setVisibleExamplesCount((c) =>
+                  c >= allExamples().length
+                    ? INITIAL_VISIBLE
+                    : allExamples().length,
+                )
+              }
             >
               {showAllExamples()
                 ? 'Show less'
