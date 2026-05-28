@@ -607,7 +607,7 @@ export function MainWorkspace(props: AppProps) {
         ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     },
     executeCommand: (id, ...args) => {
-      console.log('[tourContext:executeCommand]', id, 'args:', ...args, 'fn:', !!runTourCommand.fn)
+      console.info('[tourContext:executeCommand]', id, 'args:', ...args, 'fn:', !!runTourCommand.fn)
       runTourCommand.fn?.(id, ...args)
     },
   }
