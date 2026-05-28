@@ -105,11 +105,25 @@ export type QuickVariationPickerProps = {
   onModeChange: (mode: QuickPickerMode) => void
 }
 
+const PREVIEW_CLEAR_DELAY = 120
+
 /* ---- Component ---- */
 
 export function QuickVariationPicker(props: QuickVariationPickerProps) {
   const [query, setQuery] = createSignal('')
   let inputRef: HTMLInputElement | undefined
+  let clearTimer: ReturnType<typeof setTimeout> | undefined
+
+  function handleMouseEnter(type: TransformVariationType) {
+    clearTimeout(clearTimer)
+    props.onHoverType?.(type)
+  }
+
+  function handleMouseLeave() {
+    clearTimer = setTimeout(() => {
+      props.onHoverClear?.()
+    }, PREVIEW_CLEAR_DELAY)
+  }
 
   const filtered = () => filterVariations(variationTypes, query())
 
@@ -148,6 +162,10 @@ export function QuickVariationPicker(props: QuickVariationPickerProps) {
     onCleanup(() => {
       window.removeEventListener('keydown', handleGlobalKeyDown)
     })
+  })
+
+  onCleanup(() => {
+    clearTimeout(clearTimer)
   })
 
   return (
@@ -251,8 +269,8 @@ export function QuickVariationPicker(props: QuickVariationPickerProps) {
                     class={ui.pill}
                     classList={{ [ui.pillActive!]: type === props.currentType }}
                     title={getNormalizedVariationName(type)}
-                    onMouseEnter={() => props.onHoverType?.(type)}
-                    onMouseLeave={() => props.onHoverClear?.()}
+                    onMouseEnter={() => handleMouseEnter(type)}
+                    onMouseLeave={() => handleMouseLeave()}
                     onTouchStart={onTouchStart}
                     onTouchEnd={onTouchEnd}
                     onTouchCancel={onTouchCancel}
@@ -261,6 +279,7 @@ export function QuickVariationPicker(props: QuickVariationPickerProps) {
                         didLongPress = false
                         return
                       }
+                      clearTimeout(clearTimer)
                       props.onHoverClear?.()
                       props.onSelect(type)
                       props.onClose()
@@ -294,9 +313,10 @@ export function QuickVariationPicker(props: QuickVariationPickerProps) {
                           [ui.galleryItemActive!]: type === props.currentType,
                         }}
                         title={getNormalizedVariationName(type)}
-                        onMouseEnter={() => props.onHoverType?.(type)}
-                        onMouseLeave={() => props.onHoverClear?.()}
+                        onMouseEnter={() => handleMouseEnter(type)}
+                        onMouseLeave={() => handleMouseLeave()}
                         onClick={() => {
+                          clearTimeout(clearTimer)
                           props.onHoverClear?.()
                           props.onSelect(type)
                           props.onClose()
