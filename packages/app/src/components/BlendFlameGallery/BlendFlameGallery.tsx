@@ -1,5 +1,4 @@
 import { createSignal, For, onCleanup, Show } from 'solid-js'
-import { Portal } from 'solid-js/web'
 import { vec2f, vec4f } from 'typegpu/data'
 import { STATIC_PREVIEW_POINT_COUNT, THUMBNAIL_PREVIEW_QUALITY } from '@/defaults'
 import { examples } from '@/flame/examples'
@@ -8,6 +7,7 @@ import { Cross } from '@/icons'
 import { AutoCanvas } from '@/lib/AutoCanvas'
 import { Camera2D } from '@/lib/Camera2D'
 import { Root } from '@/lib/Root'
+import { deepClone } from '@/utils/clone'
 import { formatRecentDate, loadRecentFlames } from '@/utils/recentFlames'
 import { recordEntries } from '@/utils/record'
 import { DelayedShow } from '../DelayedShow/DelayedShow'
@@ -72,115 +72,114 @@ export function BlendFlameGallery(props: BlendFlameGalleryProps) {
   }
 
   window.addEventListener('keydown', handleKey)
-  onCleanup(() => window.removeEventListener('keydown', handleKey))
+  onCleanup(() => {
+    window.removeEventListener('keydown', handleKey)
+  })
 
   return (
-    <Portal>
-      <div
-        class={ui.backdrop}
-        onClick={(e) => {
-          if (e.target === e.currentTarget) props.onClose()
-        }}
-      >
-        <div class={ui.card}>
-          <div class={ui.header}>
-            <span class={ui.title}>Pick Blend Flame</span>
-            <button
-              class={ui.closeBtn}
-              onClick={props.onClose}
-              title="Close (Esc)"
-            >
-              <Cross />
-            </button>
-          </div>
+    <div class={ui.container}>
+      <div class={ui.header}>
+        <span class={ui.title}>Pick Blend Flame</span>
+        <button
+          class={ui.closeBtn}
+          onClick={props.onClose}
+          title="Close (Esc)"
+        >
+          <Cross />
+        </button>
+      </div>
 
-          <div class={ui.body}>
-            <div>
-              <div class={ui.sectionHeader}>
-                <span class={ui.sectionLabel}>Recent Flames</span>
-              </div>
-              <Show
-                when={allRecent().length > 0}
-                fallback={
-                  <div class={ui.sectionEmpty}>No recent flames yet</div>
-                }
-              >
-                <div class={ui.grid}>
-                  <For each={visibleRecent()}>
-                    {(recent, i) => (
-                      <button
-                        class={ui.thumbnail}
-                        title={`${recent.name} — ${formatRecentDate(recent.savedAt)}`}
-                        onClick={() => props.onSelect(recent.flame)}
-                        onMouseEnter={() =>
-                          props.onPreviewBlend?.(recent.flame)
-                        }
-                        onMouseLeave={() => props.onPreviewBlend?.(null)}
-                      >
-                        <DelayedShow delayMs={i() * 30}>
-                          <Preview flameDescriptor={recent.flame} />
-                        </DelayedShow>
-                        <div class={ui.thumbnailBar}>
-                          <span class={ui.thumbnailName}>{recent.name}</span>
-                          <span class={ui.thumbnailMeta}>
-                            {recent.savedAt && formatRecentDate(recent.savedAt)}
-                          </span>
-                        </div>
-                      </button>
-                    )}
-                  </For>
-                </div>
-                <Show when={allRecent().length > INITIAL_VISIBLE}>
+      <div class={ui.body}>
+        <div>
+          <div class={ui.sectionHeader}>
+            <span class={ui.sectionLabel}>Recent Flames</span>
+          </div>
+          <Show
+            when={allRecent().length > 0}
+            fallback={
+              <div class={ui.sectionEmpty}>No recent flames yet</div>
+            }
+          >
+            <div class={ui.grid}>
+              <For each={visibleRecent()}>
+                {(recent, i) => (
                   <button
-                    class={ui.showMoreBtn}
-                    onClick={() => setShowAllRecent((v) => !v)}
+                    class={ui.thumbnail}
+                    title={`${recent.name} — ${formatRecentDate(recent.savedAt)}`}
+                    onClick={() => {
+                      const clone = deepClone(recent.flame)
+                      props.onSelect(clone)
+                      props.onClose()
+                    }}
+                    onMouseEnter={() => props.onPreviewBlend?.(recent.flame)}
+                    onMouseLeave={() => props.onPreviewBlend?.(null)}
                   >
-                    {showAllRecent()
-                      ? 'Show less'
-                      : `Show more (${allRecent().length - INITIAL_VISIBLE} more)`}
+                    <DelayedShow delayMs={i() * 30}>
+                      <Preview flameDescriptor={recent.flame} />
+                    </DelayedShow>
+                    <div class={ui.thumbnailBar}>
+                      <span class={ui.thumbnailName}>{recent.name}</span>
+                      <span class={ui.thumbnailMeta}>
+                        {recent.savedAt && formatRecentDate(recent.savedAt)}
+                      </span>
+                    </div>
                   </button>
-                </Show>
-              </Show>
+                )}
+              </For>
             </div>
+            <Show when={allRecent().length > INITIAL_VISIBLE}>
+              <button
+                class={ui.showMoreBtn}
+                onClick={() => setShowAllRecent((v) => !v)}
+              >
+                {showAllRecent()
+                  ? 'Show less'
+                  : `Show more (${allRecent().length - INITIAL_VISIBLE} more)`}
+              </button>
+            </Show>
+          </Show>
+        </div>
 
-            <div>
-              <div class={ui.sectionHeader}>
-                <span class={ui.sectionLabel}>Examples</span>
-              </div>
-              <div class={ui.grid}>
-                <For each={visibleExamples()}>
-                  {({ name, flame }, i) => (
-                    <button
-                      class={ui.thumbnail}
-                      title={name}
-                      onClick={() => props.onSelect(flame)}
-                      onMouseEnter={() => props.onPreviewBlend?.(flame)}
-                      onMouseLeave={() => props.onPreviewBlend?.(null)}
-                    >
-                      <DelayedShow delayMs={i() * 30}>
-                        <Preview flameDescriptor={flame} />
-                      </DelayedShow>
-                      <div class={ui.thumbnailBar}>
-                        <span class={ui.thumbnailName}>{name}</span>
-                      </div>
-                    </button>
-                  )}
-                </For>
-              </div>
-              <Show when={allExamples().length > INITIAL_VISIBLE}>
-                <button
-                  class={ui.showMoreBtn}
-                  onClick={() => setShowAllExamples((v) => !v)}
-                >
-                  {showAllExamples()
-                    ? 'Show less'
-                    : `Show more (${allExamples().length - INITIAL_VISIBLE} more)`}
-                </button>
-              </Show>
-            </div>
+        <div>
+          <div class={ui.sectionHeader}>
+            <span class={ui.sectionLabel}>Examples</span>
           </div>
+          <div class={ui.grid}>
+            <For each={visibleExamples()}>
+              {({ name, flame }, i) => (
+                <button
+                  class={ui.thumbnail}
+                  title={name}
+                  onClick={() => {
+                    const clone = deepClone(flame)
+                    props.onSelect(clone)
+                    props.onClose()
+                  }}
+                  onMouseEnter={() => props.onPreviewBlend?.(flame)}
+                  onMouseLeave={() => props.onPreviewBlend?.(null)}
+                >
+                  <DelayedShow delayMs={i() * 30}>
+                    <Preview flameDescriptor={flame} />
+                  </DelayedShow>
+                  <div class={ui.thumbnailBar}>
+                    <span class={ui.thumbnailName}>{name}</span>
+                  </div>
+                </button>
+              )}
+            </For>
+          </div>
+          <Show when={allExamples().length > INITIAL_VISIBLE}>
+            <button
+              class={ui.showMoreBtn}
+              onClick={() => setShowAllExamples((v) => !v)}
+            >
+              {showAllExamples()
+                ? 'Show less'
+                : `Show more (${allExamples().length - INITIAL_VISIBLE} more)`}
+            </button>
+          </Show>
         </div>
       </div>
-    </Portal>
+    </div>
   )
 }

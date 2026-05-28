@@ -1528,6 +1528,10 @@ export function MainWorkspace(props: AppProps) {
                 </div>
               </Show>
               <div class={ui.sidebarScroll} ref={sidebarScrollRef}>
+                <Show
+                  when={showBlendGallery()}
+                  fallback={
+                    <>
                 <Show when={quickPickState()} keyed>
                   {(state) => (
                     <QuickVariationPicker
@@ -2624,6 +2628,19 @@ export function MainWorkspace(props: AppProps) {
                     </Card>
                   </CollapsibleCard>
                 </Show>
+              </>}>
+                <BlendFlameGallery
+                  onSelect={(flame) => {
+                    setBlendFlame(deepClone(flame))
+                    setShowBlendGallery(false)
+                  }}
+                  onPreviewBlend={handlePreviewBlend}
+                  onClose={() => {
+                    handlePreviewBlend(null)
+                    setShowBlendGallery(false)
+                  }}
+                />
+              </Show>
               </div>
             </div>
           </Show>
@@ -2697,19 +2714,6 @@ export function MainWorkspace(props: AppProps) {
             qualityPointCountLimit={qualityPointCountLimit()}
           />
           <SpotlightTour tourContext={tourContext} />
-          <Show when={showBlendGallery()}>
-            <BlendFlameGallery
-              onSelect={(flame) => {
-                setBlendFlame(deepClone(flame))
-                setShowBlendGallery(false)
-              }}
-              onPreviewBlend={handlePreviewBlend}
-              onClose={() => {
-                handlePreviewBlend(null)
-                setShowBlendGallery(false)
-              }}
-            />
-          </Show>
           <SoftwareVersion
             showHelp={createShowHelp(
               quickPickerMode,

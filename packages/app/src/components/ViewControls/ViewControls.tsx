@@ -5,6 +5,7 @@ import { useKeyframeTarget } from '@/contexts/KeyframeTargetContext'
 import { Cross, Minus, Plus, Redo, Undo } from '@/icons'
 import { Button } from '../Button/Button'
 import { ButtonGroup } from '../Button/ButtonGroup'
+import { Slider } from '../Sliders/Slider'
 import { KeyframeDiamond } from '../Timeline/KeyframeDiamond'
 import ui from './ViewControls.module.css'
 import type { Setter } from 'solid-js'
@@ -138,22 +139,16 @@ export function ViewControls(props: ViewControlProps) {
             Blend
           </Button>
           <div class={ui.blendWeightWrap}>
-            <input
-              type="range"
-              class={ui.blendWeightSlider}
+            <Slider
+              value={props.blendWeight}
               min={0}
               max={1}
               step={0.01}
-              value={props.blendWeight}
-              onInput={(e) => {
-                props.onBlendWeightChange(e.target.valueAsNumber)
-              }}
-              title="Blend weight"
+              onInput={props.onBlendWeightChange}
+              formatValue={(v) => `${(v * 100).toFixed(0)}%`}
+              dataParameterPath="blendWeight"
+              trackFill
             />
-            <span class={ui.blendWeightValue}>
-              {(props.blendWeight * 100).toFixed(0)}%
-            </span>
-            <KeyframeDiamond parameterPath="blendWeight" />
           </div>
           <button
             class={ui.blendClearBtn}
