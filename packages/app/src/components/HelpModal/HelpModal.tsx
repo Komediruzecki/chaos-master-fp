@@ -173,9 +173,17 @@ function HelpModal(props: HelpModalProps) {
           <div class={ui.iconRow}>
             <a
               class={ui.iconLink}
-              href="https://github.com/chaos-matters/chaos-master"
+              href="https://ko-fi.com/chaosmatters"
               target="_blank"
-              title="GitHub"
+              title="Support on Ko-fi"
+            >
+              <Heart />
+            </a>
+            <a
+              class={ui.iconLink}
+              href="https://github.com/sponsors/chaos-matters"
+              target="_blank"
+              title="Sponsor on GitHub"
             >
               <GitHub />
             </a>
@@ -382,26 +390,6 @@ function HelpModal(props: HelpModalProps) {
         >
           Timeline Tour
         </button>
-      </div>
-
-      <h2 class={ui.sectionTitle}>Support</h2>
-      <div class={ui.supportLinks}>
-        <a
-          class={ui.iconLink}
-          href="https://ko-fi.com/chaosmatters"
-          target="_blank"
-          title="Support on Ko-fi"
-        >
-          <Heart />
-        </a>
-        <a
-          class={ui.iconLink}
-          href="https://github.com/sponsors/chaos-matters"
-          target="_blank"
-          title="Sponsor on GitHub"
-        >
-          <GitHub />
-        </a>
       </div>
 
       <div class={ui.gpuHeader}>
