@@ -1,6 +1,6 @@
 import { createSignal, For, onCleanup, Show } from 'solid-js'
 import { vec2f, vec4f } from 'typegpu/data'
-import { STATIC_PREVIEW_POINT_COUNT, THUMBNAIL_PREVIEW_QUALITY } from '@/defaults'
+import { STATIC_PREVIEW_POINT_COUNT, THUMBNAIL_PREVIEW_QUALITY, } from '@/defaults'
 import { examples } from '@/flame/examples'
 import { Flam3 } from '@/flame/Flam3'
 import { Cross } from '@/icons'
@@ -80,11 +80,7 @@ export function BlendFlameGallery(props: BlendFlameGalleryProps) {
     <div class={ui.container}>
       <div class={ui.header}>
         <span class={ui.title}>Pick Blend Flame</span>
-        <button
-          class={ui.closeBtn}
-          onClick={props.onClose}
-          title="Close (Esc)"
-        >
+        <button class={ui.closeBtn} onClick={props.onClose} title="Close (Esc)">
           <Cross />
         </button>
       </div>
@@ -96,9 +92,7 @@ export function BlendFlameGallery(props: BlendFlameGalleryProps) {
           </div>
           <Show
             when={allRecent().length > 0}
-            fallback={
-              <div class={ui.sectionEmpty}>No recent flames yet</div>
-            }
+            fallback={<div class={ui.sectionEmpty}>No recent flames yet</div>}
           >
             <div class={ui.grid}>
               <For each={visibleRecent()}>

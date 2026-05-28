@@ -1,5 +1,5 @@
 import { examples } from '@/flame/examples'
-import { generateTransformId, generateVariationId } from '@/flame/transformFunction'
+import { generateTransformId, generateVariationId, } from '@/flame/transformFunction'
 import { getVariationDefault } from '@/flame/variations/utils'
 import { deepClone } from '@/utils/clone'
 import { registerCommand } from '../registry'
@@ -33,9 +33,9 @@ registerCommand({
   description: 'Add a new transform with an optional variation type',
   shortcut: 'Shift+T',
   execute(ctx, variationType?: unknown) {
-    const type = (typeof variationType === 'string'
-      ? variationType
-      : 'linear') as TransformVariationType
+    const type = (
+      typeof variationType === 'string' ? variationType : 'linear'
+    ) as TransformVariationType
     ctx.setFlameDescriptor((draft) => {
       draft.transforms[generateTransformId()] = {
         probability: 1,
@@ -69,7 +69,12 @@ registerCommand({
   id: 'flame.setVariationWeight',
   label: 'Set Variation Weight',
   description: 'Set the weight of a variation on a specific transform',
-  execute(ctx, transformIndex?: unknown, variationIndex?: unknown, weight?: unknown) {
+  execute(
+    ctx,
+    transformIndex?: unknown,
+    variationIndex?: unknown,
+    weight?: unknown,
+  ) {
     const tidx = typeof transformIndex === 'number' ? transformIndex : 0
     const vidx = typeof variationIndex === 'number' ? variationIndex : 0
     const w = typeof weight === 'number' ? weight : 1
@@ -100,16 +105,18 @@ registerCommand({
   description: 'Add a variation type to a specific transform',
   execute(ctx, transformIndex?: unknown, variationType?: unknown) {
     const tidx = typeof transformIndex === 'number' ? transformIndex : 0
-    const type = (typeof variationType === 'string'
-      ? variationType
-      : 'linear') as TransformVariationType
+    const type = (
+      typeof variationType === 'string' ? variationType : 'linear'
+    ) as TransformVariationType
     ctx.setFlameDescriptor((draft) => {
       const key = getTransformKey(draft.transforms, tidx)
       if (key) {
         const transform = draft.transforms[key]
         if (transform) {
-          transform.variations[generateVariationId()] =
-            getVariationDefault(type, 1)
+          transform.variations[generateVariationId()] = getVariationDefault(
+            type,
+            1,
+          )
         }
       }
     })
