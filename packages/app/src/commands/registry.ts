@@ -24,5 +24,6 @@ export function executeCommand(
     console.warn(`Command "${id}" not found in registry`)
     return
   }
+  console.log('[cmd:execute]', id, 'args:', ...args)
   cmd.execute(ctx, ...args)
 }

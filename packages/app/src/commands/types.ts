@@ -1,11 +1,12 @@
 import type { Accessor, Setter } from 'solid-js'
 import type { v2f } from 'typegpu/data'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
+import type { HistorySetter } from '@/utils/createStoreHistory'
 import type { TimelineTrack } from '@/utils/timeline'
 
 export interface CommandContext {
   flameDescriptor: Accessor<FlameDescriptor>
-  setFlameDescriptor: Setter<FlameDescriptor>
+  setFlameDescriptor: HistorySetter<FlameDescriptor>
   blendFlame: Accessor<FlameDescriptor | undefined>
   setBlendFlame: Setter<FlameDescriptor | undefined>
   blendWeight: Accessor<number>

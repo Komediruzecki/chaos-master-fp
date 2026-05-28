@@ -21,10 +21,8 @@ registerCommand({
   shortcut: 'Shift+I',
   execute(ctx, iters?: unknown) {
     const value = typeof iters === 'number' ? iters : 1
-    ctx.setFlameDescriptor((prev) => {
-      const next = deepClone(prev)
-      next.renderSettings.skipIters = value
-      return next
+    ctx.setFlameDescriptor((draft) => {
+      draft.renderSettings.skipIters = value
     })
   },
 })
@@ -38,9 +36,8 @@ registerCommand({
     const type = (typeof variationType === 'string'
       ? variationType
       : 'linear') as TransformVariationType
-    ctx.setFlameDescriptor((prev) => {
-      const next = deepClone(prev)
-      next.transforms[generateTransformId()] = {
+    ctx.setFlameDescriptor((draft) => {
+      draft.transforms[generateTransformId()] = {
         probability: 1,
         colorSpeed: 0,
         color: { x: 0, y: 0 },
@@ -51,7 +48,6 @@ registerCommand({
           [generateVariationId()]: getVariationDefault(type, 1),
         },
       }
-      return next
     })
   },
 })
@@ -62,11 +58,9 @@ registerCommand({
   description: 'Remove a transform by index (0-based)',
   execute(ctx, index?: unknown) {
     const idx = typeof index === 'number' ? index : -1
-    ctx.setFlameDescriptor((prev) => {
-      const next = deepClone(prev)
-      const key = getTransformKey(next.transforms, idx)
-      if (key) delete next.transforms[key]
-      return next
+    ctx.setFlameDescriptor((draft) => {
+      const key = getTransformKey(draft.transforms, idx)
+      if (key) delete draft.transforms[key]
     })
   },
 })
@@ -79,11 +73,10 @@ registerCommand({
     const tidx = typeof transformIndex === 'number' ? transformIndex : 0
     const vidx = typeof variationIndex === 'number' ? variationIndex : 0
     const w = typeof weight === 'number' ? weight : 1
-    ctx.setFlameDescriptor((prev) => {
-      const next = deepClone(prev)
-      const key = getTransformKey(next.transforms, tidx)
+    ctx.setFlameDescriptor((draft) => {
+      const key = getTransformKey(draft.transforms, tidx)
       if (key) {
-        const transform = next.transforms[key]
+        const transform = draft.transforms[key]
         if (transform) {
           const vKeys = Object.keys(transform.variations) as VariationId[]
           if (vidx >= 0 && vidx < vKeys.length) {
@@ -97,7 +90,6 @@ registerCommand({
           }
         }
       }
-      return next
     })
   },
 })
@@ -111,17 +103,15 @@ registerCommand({
     const type = (typeof variationType === 'string'
       ? variationType
       : 'linear') as TransformVariationType
-    ctx.setFlameDescriptor((prev) => {
-      const next = deepClone(prev)
-      const key = getTransformKey(next.transforms, tidx)
+    ctx.setFlameDescriptor((draft) => {
+      const key = getTransformKey(draft.transforms, tidx)
       if (key) {
-        const transform = next.transforms[key]
+        const transform = draft.transforms[key]
         if (transform) {
           transform.variations[generateVariationId()] =
             getVariationDefault(type, 1)
         }
       }
-      return next
     })
   },
 })
@@ -133,16 +123,14 @@ registerCommand({
   execute(ctx, transformIndex?: unknown, speed?: unknown) {
     const tidx = typeof transformIndex === 'number' ? transformIndex : 0
     const s = typeof speed === 'number' ? speed : 0.5
-    ctx.setFlameDescriptor((prev) => {
-      const next = deepClone(prev)
-      const key = getTransformKey(next.transforms, tidx)
+    ctx.setFlameDescriptor((draft) => {
+      const key = getTransformKey(draft.transforms, tidx)
       if (key) {
-        const transform = next.transforms[key]
+        const transform = draft.transforms[key]
         if (transform) {
           transform.colorSpeed = s
         }
       }
-      return next
     })
   },
 })
@@ -155,7 +143,7 @@ registerCommand({
     const name = typeof presetName === 'string' ? presetName : 'initExample'
     const flame = examples[name as keyof typeof examples]
     if (flame) {
-      ctx.setFlameDescriptor(deepClone(flame))
+      ctx.setFlameDescriptor(() => deepClone(flame))
     }
   },
 })
