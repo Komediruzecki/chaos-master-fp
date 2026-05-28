@@ -342,6 +342,21 @@ export function MainWorkspace(props: AppProps) {
     setShowBlendGallery(true)
   }
 
+  // Hover preview: temporarily set blend flame at 40% weight
+  let prevBlendFlame: FlameDescriptor | undefined
+  let prevBlendWeight = 0
+  function handlePreviewBlend(flame: FlameDescriptor | null) {
+    if (flame) {
+      prevBlendFlame = blendFlame()
+      prevBlendWeight = blendWeight()
+      setBlendFlame(flame)
+      setBlendWeight(0.4)
+    } else {
+      setBlendFlame(prevBlendFlame)
+      setBlendWeight(prevBlendWeight)
+    }
+  }
+
   const { showVariationSelector, varSelectorModalIsOpen } =
     createVariationSelector(history)
 
@@ -779,6 +794,8 @@ export function MainWorkspace(props: AppProps) {
           ((fd.renderSettings.camera as Record<string, unknown> | undefined)
             ?.rotation as number | undefined) ?? 0
         )
+      case 'blendWeight':
+        return blendWeight()
       default:
         break
     }
@@ -870,6 +887,10 @@ export function MainWorkspace(props: AppProps) {
       | [number, number, number]
       | [number, number, number, number],
   ) {
+    if (path === 'blendWeight') {
+      setBlendWeight(value as number)
+      return
+    }
     setFlameDescriptor((draft) => {
       switch (path) {
         case 'exposure':
@@ -2682,7 +2703,11 @@ export function MainWorkspace(props: AppProps) {
                 setBlendFlame(deepClone(flame))
                 setShowBlendGallery(false)
               }}
-              onClose={() => setShowBlendGallery(false)}
+              onPreviewBlend={handlePreviewBlend}
+              onClose={() => {
+                handlePreviewBlend(null)
+                setShowBlendGallery(false)
+              }}
             />
           </Show>
           <SoftwareVersion
