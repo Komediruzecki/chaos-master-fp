@@ -1,15 +1,19 @@
+import '@/commands/builtins'
 import { createEffect, createMemo, createSignal, For, onMount, Show, } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { Dynamic } from 'solid-js/web'
 import { vec2f, vec3f, vec4f } from 'typegpu/data'
 import { clamp } from 'typegpu/std'
+import { executeCommand } from '@/commands/registry'
 import { useKeyframeTarget } from '@/contexts/KeyframeTargetContext'
 import { useToast } from '@/contexts/ToastContext'
 import { WheelZoomCamera2D } from '@/lib/WheelZoomCamera2D'
+import { useShortcutManager } from '@/shortcuts'
 import { createDragHandler } from '@/utils/createDragHandler'
 import { recordEntries, recordKeys } from '@/utils/record'
 import ui from './App.module.css'
 import { AffineEditor } from './components/AffineEditor/AffineEditor'
+import { BlendFlameGallery } from './components/BlendFlameGallery/BlendFlameGallery'
 import { Button } from './components/Button/Button'
 import { CollapsibleCard } from './components/CollapsibleCard/CollapsibleCard'
 import { ColorPicker } from './components/ColorPicker/ColorPicker'
@@ -21,7 +25,7 @@ import { createExportPngDialog } from './components/ExportPngDialog/ExportPngDia
 import { FlameColorEditor, handleColor, } from './components/FlameColorEditor/FlameColorEditor'
 import { FloatingActions } from './components/FloatingActions/FloatingActions'
 import { createShowHelp } from './components/HelpModal/HelpModal'
-import { CANCEL, createLoadFlame, LoadFlameModal, } from './components/LoadFlameModal/LoadFlameModal'
+import { createLoadFlame } from './components/LoadFlameModal/LoadFlameModal'
 import { createLogoFaviconGenerator } from './components/LogoFaviconGenerator/LogoFaviconGenerator'
 import { useRequestModal } from './components/Modal/ModalContext'
 import { PaletteSelector } from './components/PaletteSelector/PaletteSelector'
@@ -34,7 +38,6 @@ import { ScrubInput } from './components/Sliders/ScrubInput'
 import { Slider } from './components/Sliders/Slider'
 import { SoftwareVersion } from './components/SoftwareVersion/SoftwareVersion'
 import { SpotlightTour } from './components/SpotlightTour/SpotlightTour'
-import { BlendFlamePicker } from './components/Timeline/BlendFlamePicker'
 import { KeyframeDiamond } from './components/Timeline/KeyframeDiamond'
 import { TimelineSection } from './components/Timeline/TimelineSection'
 import { createVariationSelector } from './components/VariationSelector/VariationSelector'
@@ -71,7 +74,6 @@ import { useAppDragAndDrop } from './utils/useAppDragAndDrop'
 import { useKeyboardShortcuts } from './utils/useKeyboardShortcuts'
 import type { Setter } from 'solid-js'
 import type { v2f } from 'typegpu/data'
-import type { AnimationLoad } from './components/LoadFlameModal/LoadFlameModal'
 import type { QualityPreset } from './components/Quality/QualityPresets'
 import type { QuickPickerMode } from './components/QuickVariationPicker/QuickVariationPicker'
 import type { TourContext } from './components/SpotlightTour/tourTypes'
@@ -84,6 +86,7 @@ import type { TransformVariationType } from './flame/variations'
 import type { AnimationExportConfig } from './utils/animationExport'
 import type { SharePayload } from './utils/jsonQueryParam'
 import type { TimelineTrack } from './utils/timeline'
+import type { CommandContext } from '@/commands/types'
 
 const EDGE_FADE_COLOR = {
   light: vec4f(0.96, 0.96, 0.96, 0.7),
@@ -333,18 +336,10 @@ export function MainWorkspace(props: AppProps) {
     clearLoadedAnimation,
   } = createLoadFlame(history)
 
-  async function pickBlendFlame() {
-    const result = await _requestModal<
-      FlameDescriptor | AnimationLoad | typeof CANCEL
-    >({
-      content: ({ respond }) => <LoadFlameModal respond={respond} />,
-    })
-    if (result === CANCEL || !result) return
-    if (typeof result === 'object' && 'tracks' in result) {
-      setBlendFlame(deepClone(result.flame))
-    } else {
-      setBlendFlame(deepClone(result))
-    }
+  const [showBlendGallery, setShowBlendGallery] = createSignal(false)
+
+  function pickBlendFlame() {
+    setShowBlendGallery(true)
   }
 
   const { showVariationSelector, varSelectorModalIsOpen } =
@@ -564,6 +559,8 @@ export function MainWorkspace(props: AppProps) {
     history,
   )
 
+  const runTourCommand: { fn?: (id: string, ...args: unknown[]) => void } = {}
+
   const tourContext: TourContext = {
     setSidebarOpen: setShowSidebar,
     sidebarOpen: showSidebar,
@@ -594,6 +591,7 @@ export function MainWorkspace(props: AppProps) {
         .querySelector(selector)
         ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     },
+    executeCommand: (id, ...args) => runTourCommand.fn?.(id, ...args),
   }
 
   const readableIds = createMemo(() =>
@@ -1158,6 +1156,58 @@ export function MainWorkspace(props: AppProps) {
     },
   })
 
+  const timelineDuration = () => timeline.config().endFrame
+  const setTimelineDuration: Setter<number> = (value) => {
+    const newDuration =
+      typeof value === 'function' ? value(timeline.config().endFrame) : value
+    timeline.setConfig({ ...timeline.config(), endFrame: newDuration })
+    return newDuration
+  }
+
+  // Command context: bridges registered commands to app signals
+  const cmdContext: CommandContext = {
+    flameDescriptor: () => flameDescriptor,
+    setFlameDescriptor,
+    blendFlame,
+    setBlendFlame,
+    blendWeight,
+    setBlendWeight,
+    pixelRatio,
+    setPixelRatio,
+    zoom: effectiveZoom,
+    setZoom: setFlameZoom,
+    position: effectivePosition,
+    setPosition: setFlamePosition,
+    sidebar: {
+      open: showSidebar,
+      setOpen: setShowSidebar,
+    },
+    timeline: {
+      tracks: timeline.tracks,
+      setTracks: timeline.setTracks,
+      animationEnabled,
+      setAnimationEnabled,
+      duration: timelineDuration,
+      setDuration: setTimelineDuration,
+      currentFrame: timeline.currentFrame,
+      setCurrentFrame: timeline.setCurrentFrame,
+    },
+    camera: {
+      center: () => {
+        setFlameZoom(1)
+        setFlamePosition(vec2f(0, 0))
+      },
+    },
+    modal: {
+      open: (name: string) => {
+        if (name === 'exportPng') void showExportPngDialog()
+      },
+    },
+  }
+  useShortcutManager(cmdContext)
+
+  runTourCommand.fn = (id, ...args) => { executeCommand(id, cmdContext, ...args); }
+
   const startTimelineDrag = createDragHandler((initEvent) => {
     const handle = initEvent.currentTarget as HTMLElement
     const container = handle.parentElement
@@ -1280,6 +1330,11 @@ export function MainWorkspace(props: AppProps) {
                     pixelRatio={pixelRatio()}
                     setPixelRatio={setPixelRatio}
                     controlsDisabled={timeline.isPlaying()}
+                    blendFlame={blendFlame()}
+                    blendWeight={resolvedBlendWeight()}
+                    onPickBlendFlame={pickBlendFlame}
+                    onClearBlendFlame={() => { setBlendFlame(undefined); }}
+                    onBlendWeightChange={setBlendWeight}
                   />
                 </div>
                 <Show when={showTimeline()}>
@@ -1322,13 +1377,6 @@ export function MainWorkspace(props: AppProps) {
                       class={ui.timelineResizeHandle}
                       onPointerDown={startTimelineDrag}
                       title="Resize timeline"
-                    />
-                    <BlendFlamePicker
-                      blendFlame={blendFlame()}
-                      blendWeight={resolvedBlendWeight()}
-                      onPickBlendFlame={pickBlendFlame}
-                      onClearBlendFlame={() => { setBlendFlame(undefined); }}
-                      onBlendWeightChange={setBlendWeight}
                     />
                     <TimelineSection
                       formatTrackLabel={readableIds().formatTrackPath}
@@ -2625,6 +2673,15 @@ export function MainWorkspace(props: AppProps) {
             qualityPointCountLimit={qualityPointCountLimit()}
           />
           <SpotlightTour tourContext={tourContext} />
+          <Show when={showBlendGallery()}>
+            <BlendFlameGallery
+              onSelect={(flame) => {
+                setBlendFlame(deepClone(flame))
+                setShowBlendGallery(false)
+              }}
+              onClose={() => setShowBlendGallery(false)}
+            />
+          </Show>
           <SoftwareVersion
             showHelp={createShowHelp(
               quickPickerMode,

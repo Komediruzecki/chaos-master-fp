@@ -60,3 +60,61 @@
     color: var(--neutral-300);
   }
 }
+
+.blendControls {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0 0.5rem;
+  border-radius: 0.25rem;
+  flex-shrink: 0;
+}
+
+.blendWeightWrap {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0 0.25rem;
+  cursor: pointer;
+  border-radius: 0.25rem;
+  transition: background-color 0.15s ease;
+}
+
+.blendWeightWrap:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.blendWeightSlider {
+  width: 60px;
+  height: 4px;
+  accent-color: var(--blue-500);
+  cursor: pointer;
+}
+
+.blendWeightValue {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--neutral-500);
+  min-width: 28px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+
+.blendClearBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--neutral-500);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 3px;
+  line-height: 0;
+}
+
+.blendClearBtn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.15);
+}

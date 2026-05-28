@@ -10,6 +10,7 @@ export interface TourContext {
   openModal: (name: 'loadFlame' | 'exportPng' | 'shareLink' | 'help') => void
   closeCurrentModal: () => void
   scrollToTarget: (selector: string) => void
+  executeCommand: (id: string, ...args: unknown[]) => void
 }
 
 export interface TourStep {

@@ -2,13 +2,14 @@ import { For, Show } from 'solid-js'
 import { vec2f } from 'typegpu/data'
 import { useChangeHistory } from '@/contexts/ChangeHistoryContext'
 import { useKeyframeTarget } from '@/contexts/KeyframeTargetContext'
-import { Minus, Plus, Redo, Undo } from '@/icons'
+import { Cross, Minus, Plus, Redo, Undo } from '@/icons'
 import { Button } from '../Button/Button'
 import { ButtonGroup } from '../Button/ButtonGroup'
 import { KeyframeDiamond } from '../Timeline/KeyframeDiamond'
 import ui from './ViewControls.module.css'
 import type { Setter } from 'solid-js'
 import type { v2f } from 'typegpu/data'
+import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 
 type ViewControlProps = {
   pixelRatio: number
@@ -18,6 +19,11 @@ type ViewControlProps = {
   setPosition: Setter<v2f>
   setZoom: Setter<number>
   controlsDisabled?: boolean
+  blendFlame?: FlameDescriptor
+  blendWeight: number
+  onPickBlendFlame: () => void
+  onClearBlendFlame: () => void
+  onBlendWeightChange: (weight: number) => void
 }
 
 export function ViewControls(props: ViewControlProps) {
@@ -122,6 +128,47 @@ export function ViewControls(props: ViewControlProps) {
           <KeyframeDiamond parameterPath="camera.y" />
         </div>
       </ButtonGroup>
+      <Show when={props.blendFlame}>
+        <div class={ui.blendControls}>
+          <Button
+            active
+            onClick={props.onPickBlendFlame}
+            title="Change blend flame"
+          >
+            Blend
+          </Button>
+          <div class={ui.blendWeightWrap}>
+            <input
+              type="range"
+              class={ui.blendWeightSlider}
+              min={0}
+              max={1}
+              step={0.01}
+              value={props.blendWeight}
+              onInput={(e) => {
+                props.onBlendWeightChange(e.target.valueAsNumber)
+              }}
+              title="Blend weight"
+            />
+            <span class={ui.blendWeightValue}>
+              {(props.blendWeight * 100).toFixed(0)}%
+            </span>
+            <KeyframeDiamond parameterPath="blendWeight" />
+          </div>
+          <button
+            class={ui.blendClearBtn}
+            onClick={props.onClearBlendFlame}
+            title="Remove blend flame"
+          >
+            <Cross />
+          </button>
+        </div>
+      </Show>
+      <Show when={!props.blendFlame}>
+        <Button onClick={props.onPickBlendFlame} title="Pick blend flame">
+          Blend...
+        </Button>
+      </Show>
       <ButtonGroup>
         <Button
           disabled={!history.hasUndo()}

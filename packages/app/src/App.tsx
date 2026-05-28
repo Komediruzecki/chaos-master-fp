@@ -11,6 +11,7 @@ import { IS_DEV } from './defaults'
 import { Root } from './lib/Root'
 import { MainWorkspace } from './MainWorkspace'
 import { appTour } from './tours/appTour'
+import { flameCreationTour } from './tours/flameCreationTour'
 import { sidebarTour } from './tours/sidebarTour'
 import { timelineTour } from './tours/timelineTour'
 import { decodeSharePayload } from './utils/jsonQueryParam'
@@ -25,6 +26,8 @@ function getTour(id: string): TourGuide | undefined {
   switch (id) {
     case 'app':
       return appTour
+    case 'flame-creation':
+      return flameCreationTour
     case 'sidebar':
       return sidebarTour
     case 'timeline':

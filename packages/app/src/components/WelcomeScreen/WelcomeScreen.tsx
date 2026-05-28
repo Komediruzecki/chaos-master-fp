@@ -321,6 +321,15 @@ export function WelcomeScreen(props: WelcomeScreenProps) {
                 <div class={ui.tourButtons}>
                   <button
                     class={ui.tourBtn}
+                    onClick={() => props.onStartTour?.('flame-creation')}
+                  >
+                    <span class={ui.tourBtnTitle}>Flame Creation</span>
+                    <span class={ui.tourBtnSubtitle}>
+                      Build a fractal from scratch
+                    </span>
+                  </button>
+                  <button
+                    class={ui.tourBtn}
                     onClick={() => props.onStartTour?.('app')}
                   >
                     <span class={ui.tourBtnTitle}>App Tour</span>
