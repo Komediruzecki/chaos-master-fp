@@ -72,8 +72,9 @@
     border-radius: var(--round);
     content: '';
     height: 4px;
-    left: 0;
-    right: 0;
+    /* Inset by half thumb width (14px/2) so fill track aligns with thumb center */
+    left: 7px;
+    right: 7px;
     top: calc(50% - 2px);
     z-index: 0;
     background: linear-gradient(
@@ -184,6 +185,8 @@
 
 .label.compact .slider {
   height: 16px;
+  padding: 0;
+  width: 100%;
 }
 
 .label.compact .slider::-webkit-slider-thumb {
