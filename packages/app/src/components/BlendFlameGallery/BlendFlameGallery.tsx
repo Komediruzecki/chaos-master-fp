@@ -17,10 +17,12 @@ import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 type BlendFlameGalleryProps = {
   onSelect: (flame: FlameDescriptor) => void
   onPreviewBlend?: (flame: FlameDescriptor | null) => void
+  onPreviewName?: (name: string | null) => void
   onClose: () => void
 }
 
 const INITIAL_VISIBLE = 10
+const PREVIEW_CLEAR_DELAY = 120
 
 function Preview(props: { flameDescriptor: FlameDescriptor }) {
   return (
@@ -67,6 +69,21 @@ export function BlendFlameGallery(props: BlendFlameGalleryProps) {
   const visibleExamples = () =>
     showAllExamples() ? allExamples() : allExamples().slice(0, INITIAL_VISIBLE)
 
+  let clearTimer: ReturnType<typeof setTimeout> | undefined
+
+  function handleMouseEnter(flame: FlameDescriptor, name: string) {
+    clearTimeout(clearTimer)
+    props.onPreviewBlend?.(flame)
+    props.onPreviewName?.(name)
+  }
+
+  function handleMouseLeave() {
+    clearTimer = setTimeout(() => {
+      props.onPreviewBlend?.(null)
+      props.onPreviewName?.(null)
+    }, PREVIEW_CLEAR_DELAY)
+  }
+
   function handleKey(e: KeyboardEvent) {
     if (e.key === 'Escape') props.onClose()
   }
@@ -74,6 +91,7 @@ export function BlendFlameGallery(props: BlendFlameGalleryProps) {
   window.addEventListener('keydown', handleKey)
   onCleanup(() => {
     window.removeEventListener('keydown', handleKey)
+    clearTimeout(clearTimer)
   })
 
   return (
@@ -101,12 +119,16 @@ export function BlendFlameGallery(props: BlendFlameGalleryProps) {
                     class={ui.thumbnail}
                     title={`${recent.name} — ${formatRecentDate(recent.savedAt)}`}
                     onClick={() => {
-                      const clone = deepClone(recent.flame)
-                      props.onSelect(clone)
-                      props.onClose()
+                      clearTimeout(clearTimer)
+                      props.onSelect(deepClone(recent.flame))
+                      props.onPreviewName?.(null)
                     }}
-                    onMouseEnter={() => props.onPreviewBlend?.(recent.flame)}
-                    onMouseLeave={() => props.onPreviewBlend?.(null)}
+                    onMouseEnter={() => {
+                      handleMouseEnter(recent.flame, recent.name)
+                    }}
+                    onMouseLeave={() => {
+                      handleMouseLeave()
+                    }}
                   >
                     <DelayedShow delayMs={i() * 30}>
                       <Preview flameDescriptor={recent.flame} />
@@ -145,12 +167,16 @@ export function BlendFlameGallery(props: BlendFlameGalleryProps) {
                   class={ui.thumbnail}
                   title={name}
                   onClick={() => {
-                    const clone = deepClone(flame)
-                    props.onSelect(clone)
-                    props.onClose()
+                    clearTimeout(clearTimer)
+                    props.onSelect(deepClone(flame))
+                    props.onPreviewName?.(null)
                   }}
-                  onMouseEnter={() => props.onPreviewBlend?.(flame)}
-                  onMouseLeave={() => props.onPreviewBlend?.(null)}
+                  onMouseEnter={() => {
+                    handleMouseEnter(flame, name)
+                  }}
+                  onMouseLeave={() => {
+                    handleMouseLeave()
+                  }}
                 >
                   <DelayedShow delayMs={i() * 30}>
                     <Preview flameDescriptor={flame} />

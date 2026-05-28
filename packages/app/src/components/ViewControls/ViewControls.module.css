@@ -73,10 +73,6 @@
 .blendWeightWrap {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
-  width: 130px;
-  flex-shrink: 1;
-  min-width: 0;
 }
 
 .blendClearBtn {

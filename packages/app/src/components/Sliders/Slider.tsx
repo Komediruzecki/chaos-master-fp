@@ -17,6 +17,7 @@ type SliderProps = {
   max?: number
   step?: number
   trackFill?: boolean
+  variant?: 'default' | 'compact'
   onInput: (value: number) => void
   formatValue?: (value: number) => string
   /** Parameter path for Blender-style keyframe targeting */
@@ -74,6 +75,7 @@ export function Slider(props: SliderProps) {
         data-tour-target={props['data-tour-target']}
         classList={{
           [props.class ?? '']: true,
+          [ui.compact as string]: props.variant === 'compact',
           [ui.targeted as string]:
             props.dataParameterPath !== undefined &&
             highlightedPath() === props.dataParameterPath,

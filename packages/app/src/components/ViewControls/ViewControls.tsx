@@ -140,6 +140,7 @@ export function ViewControls(props: ViewControlProps) {
           </Button>
           <div class={ui.blendWeightWrap}>
             <Slider
+              variant="compact"
               value={props.blendWeight}
               min={0}
               max={1}
