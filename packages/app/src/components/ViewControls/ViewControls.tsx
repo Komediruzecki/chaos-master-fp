@@ -33,7 +33,7 @@ export function ViewControls(props: ViewControlProps) {
   const disabled = () => props.controlsDisabled ?? false
   return (
     <div class={ui.viewControls}>
-      <ButtonGroup>
+      <ButtonGroup data-tour-target="pixelRatio-buttons">
         <For each={[1, 2, 4]}>
           {(divider) => {
             const pixelRatio_ = 1 / divider
@@ -55,7 +55,7 @@ export function ViewControls(props: ViewControlProps) {
           }}
         </For>
       </ButtonGroup>
-      <ButtonGroup>
+      <ButtonGroup data-tour-target="zoom-controls">
         <div
           class={ui.viewControlWrapper}
           onClick={() => {
@@ -107,7 +107,7 @@ export function ViewControls(props: ViewControlProps) {
           </Button>
         </div>
       </ButtonGroup>
-      <ButtonGroup>
+      <ButtonGroup data-tour-target="camera-coordinates">
         <div
           class={ui.cameraCoord}
           onClick={() => {
@@ -129,7 +129,7 @@ export function ViewControls(props: ViewControlProps) {
           <KeyframeDiamond parameterPath="camera.y" />
         </div>
       </ButtonGroup>
-      <ButtonGroup>
+      <ButtonGroup data-tour-target="undoRedo-controls">
         <Button
           disabled={!history.hasUndo()}
           onClick={() => {
@@ -167,6 +167,7 @@ export function ViewControls(props: ViewControlProps) {
               formatValue={(v) => `${(v * 100).toFixed(0)}%`}
               dataParameterPath="blendWeight"
               trackFill
+              data-tour-target="blendWeight-slider"
             />
           </div>
           <button

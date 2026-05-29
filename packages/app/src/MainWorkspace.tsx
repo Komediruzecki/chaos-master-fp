@@ -584,6 +584,9 @@ export function MainWorkspace(props: AppProps) {
 
   const runTourCommand: { fn?: (id: string, ...args: unknown[]) => void } = {}
 
+  /** Active animateValue loops -- each entry snaps to its end value when called. */
+  const activeAnimations = new Set<() => void>()
+
   const tourContext: TourContext = {
     setSidebarOpen: setShowSidebar,
     sidebarOpen: showSidebar,
@@ -626,12 +629,15 @@ export function MainWorkspace(props: AppProps) {
       runTourCommand.fn?.(id, ...args)
     },
     animateValue: (start, end, durationMs, onUpdate) => {
+      let cancelled = false
       const startTime = window.performance.now()
 
       function loop(currentTime: number) {
+        if (cancelled) return
         const elapsed = currentTime - startTime
         if (elapsed >= durationMs) {
           onUpdate(end)
+          activeAnimations.delete(finish)
           return
         }
         // Smooth ease-out cubic
@@ -640,7 +646,25 @@ export function MainWorkspace(props: AppProps) {
         onUpdate(start + (end - start) * eased)
         requestAnimationFrame(loop)
       }
+
+      function finish() {
+        if (!cancelled) {
+          cancelled = true
+          onUpdate(end)
+        }
+        activeAnimations.delete(finish)
+      }
+
+      activeAnimations.add(finish)
       requestAnimationFrame(loop)
+      return finish
+    },
+    finishAllAnimations: () => {
+      // Snap every running animation to its end value
+      for (const finish of activeAnimations) {
+        finish()
+      }
+      activeAnimations.clear()
     },
   }
 
@@ -1809,6 +1833,7 @@ export function MainWorkspace(props: AppProps) {
                                       })
                                     }}
                                     dataParameterPath={`transform.${tid}.colorSpeed`}
+                                    data-tour-target="colorSpeed-slider"
                                   />
                                 </div>
                                 <For each={recordEntries(transform.variations)}>
@@ -2361,6 +2386,7 @@ export function MainWorkspace(props: AppProps) {
                                   }}
                                   formatValue={(value) => value.toFixed(2)}
                                   dataParameterPath="contrast"
+                                  data-tour-target="contrast-slider"
                                 />
                               </div>
                               <div
@@ -2411,6 +2437,7 @@ export function MainWorkspace(props: AppProps) {
                                   }}
                                   formatValue={(value) => value.toFixed(2)}
                                   dataParameterPath="highlightPower"
+                                  data-tour-target="highlightPower-slider"
                                 />
                               </div>
                               <div
@@ -2438,6 +2465,7 @@ export function MainWorkspace(props: AppProps) {
                                   }}
                                   formatValue={(value) => value.toFixed(2)}
                                   dataParameterPath="densityEstimationQuality"
+                                  data-tour-target="filterQuality-slider"
                                 />
                               </div>
                               <div
@@ -2463,6 +2491,7 @@ export function MainWorkspace(props: AppProps) {
                                   }}
                                   formatValue={(value) => value.toFixed(2)}
                                   dataParameterPath="estimatorCurve"
+                                  data-tour-target="estimatorCurve-slider"
                                 />
                               </div>
                             </div>
@@ -2476,7 +2505,10 @@ export function MainWorkspace(props: AppProps) {
                                   setTargetedParameter('drawMode')
                                 }}
                               >
-                                <label class={ui.labeledInput}>
+                                <label
+                                  class={ui.labeledInput}
+                                  data-tour-target="drawMode-select"
+                                >
                                   <span>
                                     <KeyframeDiamond parameterPath="drawMode" />
                                     Draw Mode
@@ -2518,7 +2550,10 @@ export function MainWorkspace(props: AppProps) {
                                   setTargetedParameter('colorInitMode')
                                 }}
                               >
-                                <label class={ui.labeledInput}>
+                                <label
+                                  class={ui.labeledInput}
+                                  data-tour-target="colorInitMode-select"
+                                >
                                   <span>
                                     <KeyframeDiamond parameterPath="colorInitMode" />
                                     Color Init Mode
@@ -2564,7 +2599,10 @@ export function MainWorkspace(props: AppProps) {
                                   setTargetedParameter('pointInitMode')
                                 }}
                               >
-                                <label class={ui.labeledInput}>
+                                <label
+                                  class={ui.labeledInput}
+                                  data-tour-target="pointInitMode-select"
+                                >
                                   <span>
                                     <KeyframeDiamond parameterPath="pointInitMode" />
                                     Point Init
@@ -2610,7 +2648,10 @@ export function MainWorkspace(props: AppProps) {
                                   setTargetedParameter('backgroundColor')
                                 }}
                               >
-                                <label class={ui.labeledInput}>
+                                <label
+                                  class={ui.labeledInput}
+                                  data-tour-target="backgroundColor-picker"
+                                >
                                   <span>
                                     <KeyframeDiamond parameterPath="backgroundColor" />
                                     Background Color
@@ -2699,6 +2740,7 @@ export function MainWorkspace(props: AppProps) {
                                     }}
                                     formatValue={(value) => value.toFixed(1)}
                                     dataParameterPath="paletteSpeed"
+                                    data-tour-target="paletteSpeed-slider"
                                   />
                                 </div>
                                 <div
@@ -2707,7 +2749,10 @@ export function MainWorkspace(props: AppProps) {
                                     setTargetedParameter('paletteMode')
                                   }}
                                 >
-                                  <label class={ui.labeledInput}>
+                                  <label
+                                    class={ui.labeledInput}
+                                    data-tour-target="paletteMode-select"
+                                  >
                                     <span>Palette Mode</span>
                                     <select
                                       class={ui.select}
@@ -2756,6 +2801,7 @@ export function MainWorkspace(props: AppProps) {
                                     }}
                                     formatValue={(value) => value.toFixed(2)}
                                     dataParameterPath="palettePhase"
+                                    data-tour-target="palettePhase-slider"
                                   />
                                 </div>
                               </div>

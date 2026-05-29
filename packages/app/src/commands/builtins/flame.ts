@@ -352,9 +352,7 @@ registerCommand({
             if (vKey) {
               const variation = transform.variations[vKey]
               if (variation && 'params' in variation) {
-                ;(
-                  variation.params as Record<string, number>
-                )[name] = value
+                ;(variation.params as Record<string, number>)[name] = value
               }
             }
           }

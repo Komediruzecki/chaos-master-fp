@@ -1,6 +1,6 @@
 import type { Accessor, Setter } from 'solid-js'
 
-export const DEFAULT_ANIMATION_DURATION_MS = 2000
+export const DEFAULT_ANIMATION_DURATION_MS = 1200
 
 export interface TourContext {
   setSidebarOpen: Setter<boolean>
@@ -18,7 +18,11 @@ export interface TourContext {
     end: number,
     durationMs: number,
     onUpdate: (value: number) => void,
-  ) => void
+  ) => () => void
+  /** Immediately finish all running animateValue loops, snapping each to its
+   *  end value. Called by SpotlightTour on step transitions so rapid
+   *  Next clicks leave the state consistent for the next step. */
+  finishAllAnimations: () => void
 }
 
 export interface TourStep {
@@ -30,10 +34,19 @@ export interface TourStep {
   /** When true, picks the last visible match instead of the first.
    *  Useful for highlighting the most recently created transform. */
   targetLast?: boolean
-  /** Called before the step is shown -- use to toggle modals, sidebar, etc. */
+  /** Called before the step is shown -- use to toggle modals, sidebar,
+   *  set initial values, and scroll to the target element. */
   beforeShow?: (ctx: TourContext) => void
   /** Called after the step is hidden */
   afterHide?: (ctx: TourContext) => void
+  /** Milliseconds to wait after the spotlight lands on the target before
+   *  calling `onAnimate`. Gives the user time to see what is highlighted.
+   *  Defaults to 0 (no extra delay). */
+  animationDelay?: number
+  /** Called after `animationDelay` has elapsed. Use this for slider
+   *  animations and other visual changes that should happen *after*
+   *  the spotlight has settled on the target element. */
+  onAnimate?: (ctx: TourContext) => void
 }
 
 export interface TourGuide {

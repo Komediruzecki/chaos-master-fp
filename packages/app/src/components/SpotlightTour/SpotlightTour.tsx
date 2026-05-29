@@ -247,10 +247,30 @@ export function SpotlightTour(props: SpotlightTourProps) {
 
   // Call beforeShow/afterHide hooks on step transitions and reposition spotlight
   let prevStep: { step: ReturnType<typeof step>; index: number } | null = null
+  /** Timer ID for a pending onAnimate callback -- cleared on step change. */
+  let pendingAnimateTimeout: ReturnType<typeof setTimeout> | null = null
+  /** The step whose onAnimate is pending -- used to fire it on early advance. */
+  let pendingAnimateStep: ReturnType<typeof step> | null = null
   createEffect(() => {
     const current = step()
     const currentIdx = stepIndex()
     const active = tour.isActive()
+
+    // If the previous step's onAnimate hasn't fired yet (user clicked Next
+    // during the grace period), fire it now so its target values are applied.
+    if (pendingAnimateTimeout !== null) {
+      clearTimeout(pendingAnimateTimeout)
+      pendingAnimateTimeout = null
+      if (pendingAnimateStep?.onAnimate) {
+        pendingAnimateStep.onAnimate(props.tourContext)
+      }
+      pendingAnimateStep = null
+    }
+
+    // Finish any running animations from the previous step, snapping their
+    // values to the target. This keeps state consistent when the user clicks
+    // Next rapidly through several steps.
+    props.tourContext.finishAllAnimations()
 
     if (prevStep && (currentIdx !== prevStep.index || !active)) {
       prevStep.step?.afterHide?.(props.tourContext)
@@ -270,6 +290,18 @@ export function SpotlightTour(props: SpotlightTourProps) {
           measureAndPosition()
           setTimeout(() => {
             measureAndPosition()
+            // Once the spotlight has settled, schedule the animation callback.
+            // The delay gives the user time to see what is highlighted before
+            // values start changing.
+            if (current.onAnimate) {
+              const delay = current.animationDelay ?? 0
+              pendingAnimateStep = current
+              pendingAnimateTimeout = setTimeout(() => {
+                pendingAnimateTimeout = null
+                pendingAnimateStep = null
+                current.onAnimate!(props.tourContext)
+              }, delay)
+            }
           }, 80)
         })
       })
@@ -309,9 +341,7 @@ export function SpotlightTour(props: SpotlightTourProps) {
 
           {/* Blurred backdrop with a hole punched out (4 divs to bypass Chrome mask bug) */}
           {(() => {
-            const blur = tour.activeTour()?.noBlur
-              ? undefined
-              : 'blur(2px)'
+            const blur = tour.activeTour()?.noBlur ? undefined : 'blur(2px)'
             const bg = tour.activeTour()?.noBlur
               ? 'rgba(0, 0, 0, 0.25)'
               : 'rgba(0, 0, 0, 0.4)'

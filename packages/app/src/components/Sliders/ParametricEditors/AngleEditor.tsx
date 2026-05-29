@@ -144,6 +144,12 @@ export function AngleEditor(props: AngleEditorProps) {
               scrollIntoViewAndFocusOnChange(value, el)
             }}
             class={ui.track}
+            data-tour-target={
+              props.dataParameterPath
+                ? `angle-${props.dataParameterPath.split('.').pop()}`
+                : undefined
+            }
+            data-parameter-path={props.dataParameterPath}
             onPointerDown={startRotating}
             tabIndex={0}
           >
