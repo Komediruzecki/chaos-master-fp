@@ -416,8 +416,8 @@ export function Flam3(props: Flam3Props) {
       const flame = animatedFlame()
        
       ifsPipeline.update(
-        flame as any,
-        props.blendFlame as any,
+        flame,
+        props.blendFlame,
         props.blendWeight,
       )
     })
