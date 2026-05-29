@@ -414,9 +414,9 @@ export function Flam3(props: Flam3Props) {
     // Update IFS pipeline uniforms when animatedFlame changes.
     createEffect(() => {
       const flame = animatedFlame()
-       
+
       ifsPipeline.update(
-        flame,
+        flame as FlameDescriptor,
         props.blendFlame,
         props.blendWeight,
       )
