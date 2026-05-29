@@ -625,6 +625,23 @@ export function MainWorkspace(props: AppProps) {
       )
       runTourCommand.fn?.(id, ...args)
     },
+    animateValue: (start, end, durationMs, onUpdate) => {
+      const startTime = window.performance.now()
+
+      function loop(currentTime: number) {
+        const elapsed = currentTime - startTime
+        if (elapsed >= durationMs) {
+          onUpdate(end)
+          return
+        }
+        // Smooth ease-out cubic
+        const t = Math.min(1, elapsed / durationMs)
+        const eased = 1 - Math.pow(1 - t, 3)
+        onUpdate(start + (end - start) * eased)
+        requestAnimationFrame(loop)
+      }
+      requestAnimationFrame(loop)
+    },
   }
 
   const readableIds = createMemo(() =>
@@ -2272,6 +2289,7 @@ export function MainWorkspace(props: AppProps) {
                                   }}
                                   formatValue={(value) => value.toString()}
                                   dataParameterPath="skipIters"
+                                  data-tour-target="skipIters-slider"
                                 />
                               </div>
                               <div
@@ -2297,6 +2315,7 @@ export function MainWorkspace(props: AppProps) {
                                     Number(value.toFixed(6)).toString()
                                   }
                                   dataParameterPath="exposure"
+                                  data-tour-target="exposure-slider"
                                 />
                               </div>
                               <div
@@ -2318,6 +2337,7 @@ export function MainWorkspace(props: AppProps) {
                                   }}
                                   formatValue={(value) => value.toFixed(2)}
                                   dataParameterPath="gamma"
+                                  data-tour-target="gamma-slider"
                                 />
                               </div>
                               <div
@@ -2365,6 +2385,7 @@ export function MainWorkspace(props: AppProps) {
                                   }}
                                   formatValue={(value) => value.toFixed(2)}
                                   dataParameterPath="vibrancy"
+                                  data-tour-target="vibrancy-slider"
                                 />
                               </div>
                               <div

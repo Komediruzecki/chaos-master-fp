@@ -34,9 +34,9 @@ function ShareLinkModal(props: ShareLinkModalProps) {
           ? { tracks: props.tracks, config: props.config }
           : undefined,
       )
-      
+
       let newUrl = `${window.location.origin}/?flame=${encoded}`
-      
+
       try {
         const res = await fetch('/api/shorten', {
           method: 'POST',
@@ -45,7 +45,7 @@ function ShareLinkModal(props: ShareLinkModalProps) {
           },
           body: JSON.stringify({ payload: encoded }),
         })
-        
+
         if (res.ok) {
           const json = await res.json()
           if (json.id) {

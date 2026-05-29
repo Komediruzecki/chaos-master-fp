@@ -39,7 +39,7 @@ registerCommand({
     ctx.setFlameDescriptor((draft) => {
       draft.transforms[generateTransformId()] = {
         probability: 1,
-        colorSpeed: 0,
+        colorSpeed: 0.4,
         color: { x: 0, y: 0 },
         visible: true,
         preAffine: { a: 1, b: 0, c: 0, d: 0, e: 1, f: 0 },
@@ -321,5 +321,45 @@ registerCommand({
   description: 'Reset flame to default starting state (initExample)',
   execute(ctx) {
     ctx.setFlameDescriptor(() => deepClone(examples.initExample))
+  },
+})
+
+registerCommand({
+  id: 'flame.setVariationParams',
+  label: 'Set Variation Params',
+  description:
+    'Set a parametric variation parameter by name on a specific transform/variation',
+  execute(
+    ctx,
+    transformIndex?: unknown,
+    variationIndex?: unknown,
+    paramName?: unknown,
+    paramValue?: unknown,
+  ) {
+    const tidx = typeof transformIndex === 'number' ? transformIndex : 0
+    const vidx = typeof variationIndex === 'number' ? variationIndex : 0
+    const name = typeof paramName === 'string' ? paramName : ''
+    const value = typeof paramValue === 'number' ? paramValue : 0
+    if (!name) return
+    ctx.setFlameDescriptor((draft) => {
+      const key = getTransformKey(draft.transforms, tidx)
+      if (key) {
+        const transform = draft.transforms[key]
+        if (transform) {
+          const vKeys = Object.keys(transform.variations) as VariationId[]
+          if (vidx >= 0 && vidx < vKeys.length) {
+            const vKey = vKeys[vidx]
+            if (vKey) {
+              const variation = transform.variations[vKey]
+              if (variation && 'params' in variation) {
+                ;(
+                  variation.params as Record<string, number>
+                )[name] = value
+              }
+            }
+          }
+        }
+      }
+    })
   },
 })

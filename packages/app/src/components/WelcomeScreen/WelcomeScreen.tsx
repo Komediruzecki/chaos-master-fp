@@ -321,6 +321,15 @@ export function WelcomeScreen(props: WelcomeScreenProps) {
                 <div class={ui.tourButtons}>
                   <button
                     class={ui.tourBtn}
+                    onClick={() => props.onStartTour?.('example1-creation')}
+                  >
+                    <span class={ui.tourBtnTitle}>Example 1 Creation</span>
+                    <span class={ui.tourBtnSubtitle}>
+                      Recreate the first example
+                    </span>
+                  </button>
+                  <button
+                    class={ui.tourBtn}
                     onClick={() => props.onStartTour?.('flame-creation')}
                   >
                     <span class={ui.tourBtnTitle}>Flame Creation</span>

@@ -61,6 +61,7 @@ export function Slider(props: SliderProps) {
           onInput={props.onInput}
           formatValue={props.formatValue}
           dataParameterPath={props.dataParameterPath}
+          data-tour-target={props['data-tour-target']}
         />
       }
     >

@@ -32,9 +32,20 @@ export function SpotlightTour(props: SpotlightTourProps) {
   const stepIndex = () => tour.currentStepIndex()
   const step = () => tour.currentStep()
 
-  function findTarget(selector: string): Element | null {
+  function findTarget(selector: string, last?: boolean): Element | null {
     try {
       const elements = document.querySelectorAll(selector)
+      if (last) {
+        // Walk in reverse to find the last visible match
+        for (let i = elements.length - 1; i >= 0; i--) {
+          const el = elements[i]!
+          const rect = el.getBoundingClientRect()
+          if (rect.width > 0 && rect.height > 0) {
+            return el
+          }
+        }
+        return null
+      }
       for (let i = 0; i < elements.length; i++) {
         const el = elements[i]!
         const rect = el.getBoundingClientRect()
@@ -56,7 +67,7 @@ export function SpotlightTour(props: SpotlightTourProps) {
       return
     }
 
-    const target = findTarget(s.target)
+    const target = findTarget(s.target, s.targetLast)
     if (!target) {
       setHoleRect({ x: 0, y: 0, width: 0, height: 0 })
       return
@@ -80,6 +91,11 @@ export function SpotlightTour(props: SpotlightTourProps) {
 
     if (isOffScreen) {
       target.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      // Retry after scroll animation completes so the spotlight
+      // actually lands on the now-visible element.
+      setTimeout(() => {
+        measureAndPosition()
+      }, 350)
       return
     }
 
@@ -292,66 +308,76 @@ export function SpotlightTour(props: SpotlightTourProps) {
           </svg>
 
           {/* Blurred backdrop with a hole punched out (4 divs to bypass Chrome mask bug) */}
-          <div style={{ 'pointer-events': 'none', 'z-index': 1 }}>
-            {/* Top */}
-            <div
-              style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                height: `${holeRect().y}px`,
-                background: 'rgba(0, 0, 0, 0.4)',
-                'backdrop-filter': 'blur(2px)',
-                '-webkit-backdrop-filter': 'blur(2px)',
-                transition: 'height 300ms ease',
-              }}
-            />
-            {/* Bottom */}
-            <div
-              style={{
-                position: 'fixed',
-                top: `${holeRect().y + holeRect().height}px`,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: 'rgba(0, 0, 0, 0.4)',
-                'backdrop-filter': 'blur(2px)',
-                '-webkit-backdrop-filter': 'blur(2px)',
-                transition: 'top 300ms ease',
-              }}
-            />
-            {/* Left */}
-            <div
-              style={{
-                position: 'fixed',
-                top: `${holeRect().y}px`,
-                left: 0,
-                width: `${holeRect().x}px`,
-                height: `${holeRect().height}px`,
-                background: 'rgba(0, 0, 0, 0.4)',
-                'backdrop-filter': 'blur(2px)',
-                '-webkit-backdrop-filter': 'blur(2px)',
-                transition:
-                  'top 300ms ease, width 300ms ease, height 300ms ease',
-              }}
-            />
-            {/* Right */}
-            <div
-              style={{
-                position: 'fixed',
-                top: `${holeRect().y}px`,
-                left: `${holeRect().x + holeRect().width}px`,
-                right: 0,
-                height: `${holeRect().height}px`,
-                background: 'rgba(0, 0, 0, 0.4)',
-                'backdrop-filter': 'blur(2px)',
-                '-webkit-backdrop-filter': 'blur(2px)',
-                transition:
-                  'top 300ms ease, left 300ms ease, height 300ms ease',
-              }}
-            />
-          </div>
+          {(() => {
+            const blur = tour.activeTour()?.noBlur
+              ? undefined
+              : 'blur(2px)'
+            const bg = tour.activeTour()?.noBlur
+              ? 'rgba(0, 0, 0, 0.25)'
+              : 'rgba(0, 0, 0, 0.4)'
+            return (
+              <div style={{ 'pointer-events': 'none', 'z-index': 1 }}>
+                {/* Top */}
+                <div
+                  style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: `${holeRect().y}px`,
+                    background: bg,
+                    'backdrop-filter': blur,
+                    '-webkit-backdrop-filter': blur,
+                    transition: 'height 300ms ease',
+                  }}
+                />
+                {/* Bottom */}
+                <div
+                  style={{
+                    position: 'fixed',
+                    top: `${holeRect().y + holeRect().height}px`,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: bg,
+                    'backdrop-filter': blur,
+                    '-webkit-backdrop-filter': blur,
+                    transition: 'top 300ms ease',
+                  }}
+                />
+                {/* Left */}
+                <div
+                  style={{
+                    position: 'fixed',
+                    top: `${holeRect().y}px`,
+                    left: 0,
+                    width: `${holeRect().x}px`,
+                    height: `${holeRect().height}px`,
+                    background: bg,
+                    'backdrop-filter': blur,
+                    '-webkit-backdrop-filter': blur,
+                    transition:
+                      'top 300ms ease, width 300ms ease, height 300ms ease',
+                  }}
+                />
+                {/* Right */}
+                <div
+                  style={{
+                    position: 'fixed',
+                    top: `${holeRect().y}px`,
+                    left: `${holeRect().x + holeRect().width}px`,
+                    right: 0,
+                    height: `${holeRect().height}px`,
+                    background: bg,
+                    'backdrop-filter': blur,
+                    '-webkit-backdrop-filter': blur,
+                    transition:
+                      'top 300ms ease, left 300ms ease, height 300ms ease',
+                  }}
+                />
+              </div>
+            )
+          })()}
 
           {/* Glow ring around the highlighted element */}
           <svg class={ui.backdropSvg} width="100%" height="100%">

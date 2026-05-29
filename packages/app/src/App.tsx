@@ -11,6 +11,7 @@ import { IS_DEV } from './defaults'
 import { Root } from './lib/Root'
 import { MainWorkspace } from './MainWorkspace'
 import { appTour } from './tours/appTour'
+import { example1CreationTour } from './tours/example1CreationTour'
 import { flameCreationTour } from './tours/flameCreationTour'
 import { sidebarTour } from './tours/sidebarTour'
 import { timelineTour } from './tours/timelineTour'
@@ -32,6 +33,8 @@ function getTour(id: string): TourGuide | undefined {
       return sidebarTour
     case 'timeline':
       return timelineTour
+    case 'example1-creation':
+      return example1CreationTour
     default:
       return undefined
   }

@@ -126,6 +126,7 @@ export function AngleEditor(props: AngleEditorProps) {
       >
         <label
           class={ui.label}
+          data-parameter-path={props.dataParameterPath}
           classList={{
             [ui.targeted as string]:
               props.dataParameterPath !== undefined &&

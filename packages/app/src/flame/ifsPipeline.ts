@@ -252,13 +252,13 @@ export function createIFSPipeline(
           flames[tid]!.fnImpl,
         ]),
       )
+      const keys = recordKeys(transforms)
       const FlameUniforms = struct(
-        Object.fromEntries(
-          recordKeys(transforms).map((tid) => [
-            `flame${tid}`,
-            flames[tid]!.Uniforms,
-          ]),
-        ),
+        keys.length > 0
+          ? Object.fromEntries(
+              keys.map((tid) => [`flame${tid}`, flames[tid]!.Uniforms]),
+            )
+          : { _dummy: f32 },
       )
 
       const bindGroupLayout = tgpu.bindGroupLayout({
@@ -433,7 +433,12 @@ export function createIFSPipeline(
           blendWeight: blendWeight ?? 0,
         })
       } else {
-        flameUniformsBuffer.write(extractFlameUniforms(flameDescriptor))
+        const uniforms = extractFlameUniforms(flameDescriptor)
+        if (Object.keys(uniforms).length === 0) {
+          flameUniformsBuffer.write({ _dummy: 0 })
+        } else {
+          flameUniformsBuffer.write(uniforms)
+        }
       }
       finalTransformBuffer.write(
         flameDescriptor.finalTransform ?? {

@@ -1,5 +1,7 @@
 import type { Accessor, Setter } from 'solid-js'
 
+export const DEFAULT_ANIMATION_DURATION_MS = 2000
+
 export interface TourContext {
   setSidebarOpen: Setter<boolean>
   sidebarOpen: Accessor<boolean>
@@ -11,6 +13,12 @@ export interface TourContext {
   closeCurrentModal: () => void
   scrollToTarget: (selector: string) => void
   executeCommand: (id: string, ...args: unknown[]) => void
+  animateValue: (
+    start: number,
+    end: number,
+    durationMs: number,
+    onUpdate: (value: number) => void,
+  ) => void
 }
 
 export interface TourStep {
@@ -19,7 +27,10 @@ export interface TourStep {
   title: string
   description: string
   position?: 'top' | 'bottom' | 'left' | 'right' | 'auto'
-  /** Called before the step is shown — use to toggle modals, sidebar, etc. */
+  /** When true, picks the last visible match instead of the first.
+   *  Useful for highlighting the most recently created transform. */
+  targetLast?: boolean
+  /** Called before the step is shown -- use to toggle modals, sidebar, etc. */
   beforeShow?: (ctx: TourContext) => void
   /** Called after the step is hidden */
   afterHide?: (ctx: TourContext) => void
@@ -32,4 +43,7 @@ export interface TourGuide {
   steps: TourStep[]
   nextTourId?: string
   nextTourLabel?: string
+  /** When true, the backdrop overlay uses a dark tint only (no blur).
+   *  Useful for creation tours where the user needs to see the canvas clearly. */
+  noBlur?: boolean
 }
