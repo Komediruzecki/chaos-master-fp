@@ -54,7 +54,25 @@ export function Wrappers() {
 
   const [flameFromQuery] = createResource(async () => {
     const urlParams = new URLSearchParams(window.location.search)
-    const flameDef = urlParams.get('flame')
+    const shortId = urlParams.get('s')
+    let flameDef = urlParams.get('flame')
+
+    if (shortId) {
+      try {
+        const res = await fetch(`/api/shorten/${shortId}`)
+        if (res.ok) {
+          const json = await res.json()
+          if (json.payload) {
+            flameDef = json.payload
+          }
+        } else {
+          console.error('Failed to fetch short URL payload', await res.text())
+        }
+      } catch (err) {
+        console.error('Error fetching short URL:', err)
+      }
+    }
+
     if (flameDef !== null) {
       try {
         const result = await decodeSharePayload(flameDef)
