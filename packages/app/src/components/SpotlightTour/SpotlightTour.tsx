@@ -366,7 +366,6 @@ export function SpotlightTour(props: SpotlightTourProps) {
       navigatingBack = false
     }
 
-
     prevStep = active ? { step: current, index: currentIdx } : null
   })
 

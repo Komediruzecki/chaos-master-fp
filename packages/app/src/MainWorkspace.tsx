@@ -200,6 +200,15 @@ export function MainWorkspace(props: AppProps) {
   // Hide timeline by default on mobile -- users can toggle it back on
   const [showTimeline, setShowTimeline] = createSignal(window.innerWidth >= 769)
   const [selectedPaletteId, setSelectedPaletteId] = createSignal<string>('')
+
+  // Auto-hide timeline when animation mode is turned off, and vice versa
+  createEffect(() => {
+    if (!animationEnabled() && showTimeline()) {
+      setShowTimeline(false)
+    } else if (!showTimeline() && animationEnabled()) {
+      setAnimationEnabled(false)
+    }
+  })
   const [selectedPalette, setSelectedPalette] = createSignal<
     Palette | undefined
   >(undefined)

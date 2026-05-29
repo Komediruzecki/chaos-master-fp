@@ -188,7 +188,13 @@ export const example2CreationTour: TourGuide = {
       animationDelay: GRACE_MS,
       onAnimate: (ctx) => {
         ctx.animateValue(3, 5, SLOW_MS, (val) => {
-          ctx.executeCommand('flame.setVariationParams', 0, 0, 'power', Math.round(val))
+          ctx.executeCommand(
+            'flame.setVariationParams',
+            0,
+            0,
+            'power',
+            Math.round(val),
+          )
         })
       },
     },
@@ -338,19 +344,60 @@ export const example2CreationTour: TourGuide = {
         'Finally, lets animate the juliaN variation weight over 90 frames. Watch how the spiral morphs as the weight interpolates from 100% down to 0% and back!',
       beforeShow: (ctx) => {
         ctx.setTimelineOpen(true)
-        
-        const snapshot = ctx.snapshotFlame() as any
+
+        type SnapshotType = {
+          transforms: Record<string, { variations: Record<string, unknown> }>
+        }
+        const snapshot = ctx.snapshotFlame() as SnapshotType
         const tid = Object.keys(snapshot.transforms)[0] as string
-        const vid = Object.keys(snapshot.transforms[tid]!.variations)[0] as string
+        const vid = Object.keys(
+          snapshot.transforms[tid]!.variations,
+        )[0] as string
         const paramPath = `${tid}.${vid}`
 
-        ctx.executeCommand('timeline.addKeyframe', paramPath, 1.0, 0, 'easeInOut')
-        ctx.executeCommand('timeline.addKeyframe', paramPath, 0.7, 20, 'easeInOut')
-        ctx.executeCommand('timeline.addKeyframe', paramPath, 0.35, 40, 'easeInOut')
-        ctx.executeCommand('timeline.addKeyframe', paramPath, 0.6, 60, 'easeInOut')
-        ctx.executeCommand('timeline.addKeyframe', paramPath, 0.9, 80, 'easeInOut')
-        ctx.executeCommand('timeline.addKeyframe', paramPath, 1.0, 90, 'easeInOut')
-        
+        ctx.executeCommand(
+          'timeline.addKeyframe',
+          paramPath,
+          1.0,
+          0,
+          'easeInOut',
+        )
+        ctx.executeCommand(
+          'timeline.addKeyframe',
+          paramPath,
+          0.7,
+          20,
+          'easeInOut',
+        )
+        ctx.executeCommand(
+          'timeline.addKeyframe',
+          paramPath,
+          0.35,
+          40,
+          'easeInOut',
+        )
+        ctx.executeCommand(
+          'timeline.addKeyframe',
+          paramPath,
+          0.6,
+          60,
+          'easeInOut',
+        )
+        ctx.executeCommand(
+          'timeline.addKeyframe',
+          paramPath,
+          0.9,
+          80,
+          'easeInOut',
+        )
+        ctx.executeCommand(
+          'timeline.addKeyframe',
+          paramPath,
+          1.0,
+          90,
+          'easeInOut',
+        )
+
         ctx.executeCommand('timeline.setDuration', 90)
         ctx.executeCommand('timeline.setFps', 15)
         ctx.executeCommand('timeline.setLoop', false)

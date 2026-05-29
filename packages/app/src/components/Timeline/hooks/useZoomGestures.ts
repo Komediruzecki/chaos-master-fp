@@ -1,5 +1,4 @@
 import { createEffect, createMemo, createSignal, onCleanup } from 'solid-js'
-import { useTimeline } from '@/contexts/TimelineContext'
 import { createPinchHandler } from '@/utils/createPinchHandler'
 import type { Accessor } from 'solid-js'
 
@@ -13,7 +12,6 @@ export function useZoomGestures(
   baseTrackHeight: number,
   trackNameWidth: number,
 ) {
-  const timeline = useTimeline()!
   const [containerHeight, setContainerHeight] = createSignal(200)
   const [zoomLevel, setZoomLevel] = createSignal(1)
 
@@ -113,7 +111,9 @@ export function useZoomGestures(
       }
     })
     ro.observe(ruler)
-    onCleanup(() => ro.disconnect())
+    onCleanup(() => {
+      ro.disconnect()
+    })
   })
 
   return { zoomLevel, setZoomLevel, frameWidth, trackHeight, autoFitZoom }
