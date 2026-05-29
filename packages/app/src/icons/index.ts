@@ -5,11 +5,13 @@ import CameraIcon from './camera.svg'
 import Changelog from './changelog.svg'
 import ChevronDown from './chevron-down.svg'
 import Cross from './cross.svg'
+import Discord from './discord.svg'
 import Eye from './eye.svg'
 import EyeOff from './eye-off.svg'
 import FolderOpen from './folder-open.svg'
 import GitHub from './github.svg'
 import GridIcon from './grid.svg'
+import Heart from './heart.svg'
 import HoverEyePreview from './hover-eye-preview.svg'
 import HoverPreview from './hover-preview.svg'
 import ListIcon from './list.svg'
@@ -38,11 +40,13 @@ export {
   Changelog,
   ChevronDown,
   Cross,
+  Discord,
   Eye,
   EyeOff,
   FolderOpen,
   GitHub,
   GridIcon,
+  Heart,
   HoverEyePreview,
   HoverPreview,
   ListIcon,
