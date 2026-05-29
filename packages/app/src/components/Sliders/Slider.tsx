@@ -73,7 +73,6 @@ export function Slider(props: SliderProps) {
     return (
       <label
         class={ui.label}
-        data-tour-target={props['data-tour-target']}
         classList={{
           [props.class ?? '']: true,
           [ui.compact as string]: props.variant === 'compact',
@@ -92,6 +91,7 @@ export function Slider(props: SliderProps) {
         </span>
         <div
           class={ui.sliderWrapper}
+          data-tour-target={props['data-tour-target']}
           style={{
             '--fill-percent': `${(props.trackFill ?? true) ? fillPercentage() : 0}%`,
           }}

@@ -251,17 +251,33 @@ export function SpotlightTour(props: SpotlightTourProps) {
   let pendingAnimateTimeout: ReturnType<typeof setTimeout> | null = null
   /** The step whose onAnimate is pending -- used to fire it on early advance. */
   let pendingAnimateStep: ReturnType<typeof step> | null = null
+  /** Flame descriptor snapshots captured before each step's beforeShow.
+   *  Key = step index, value = deep-cloned flame descriptor. */
+  const stepSnapshots = new Map<number, unknown>()
+  /** Tracks whether the last navigation was backward (Back button). */
+  let navigatingBack = false
+
+  /** Generation counter incremented on each step transition. The nested
+   *  rAF/setTimeout chain checks this before firing onAnimate -- if the
+   *  generation has changed, the closure is stale and should be skipped. */
+  let stepGeneration = 0
+
   createEffect(() => {
     const current = step()
     const currentIdx = stepIndex()
     const active = tour.isActive()
+
+    // Bump generation so any pending async chains from the prior step
+    // see a stale generation and bail out.
+    const gen = ++stepGeneration
 
     // If the previous step's onAnimate hasn't fired yet (user clicked Next
     // during the grace period), fire it now so its target values are applied.
     if (pendingAnimateTimeout !== null) {
       clearTimeout(pendingAnimateTimeout)
       pendingAnimateTimeout = null
-      if (pendingAnimateStep?.onAnimate) {
+      // Only fire pending animate when going forward (not when undoing)
+      if (!navigatingBack && pendingAnimateStep?.onAnimate) {
         pendingAnimateStep.onAnimate(props.tourContext)
       }
       pendingAnimateStep = null
@@ -278,6 +294,37 @@ export function SpotlightTour(props: SpotlightTourProps) {
 
     if (active && current) {
       if (currentIdx !== (prevStep?.index ?? -1)) {
+        if (navigatingBack) {
+          // Restore the snapshot that was taken *before* the step we're
+          // returning to, so the flame reverts to exactly what it was.
+          const snapshot = stepSnapshots.get(currentIdx)
+          if (snapshot) {
+            props.tourContext.restoreFlame(snapshot)
+          }
+          navigatingBack = false
+        } else {
+          const diff = currentIdx - (prevStep?.index ?? -1)
+          if (diff > 1) {
+            const prevIdx = prevStep?.index ?? -1
+            const activeTourObj = tour.activeTour()
+            if (activeTourObj) {
+              for (let i = prevIdx + 1; i < currentIdx; i++) {
+                const skippedStep = activeTourObj.steps[i]
+                if (skippedStep) {
+                  stepSnapshots.set(i, props.tourContext.snapshotFlame())
+                  skippedStep.beforeShow?.(props.tourContext)
+                  if (skippedStep.onAnimate) {
+                    skippedStep.onAnimate(props.tourContext)
+                    props.tourContext.finishAllAnimations()
+                  }
+                  skippedStep.afterHide?.(props.tourContext)
+                }
+              }
+            }
+          }
+          // Going forward: save a snapshot before this step modifies anything.
+          stepSnapshots.set(currentIdx, props.tourContext.snapshotFlame())
+        }
         current.beforeShow?.(props.tourContext)
       }
       // After beforeShow toggles panels, SolidJS renders new DOM elements
@@ -286,9 +333,12 @@ export function SpotlightTour(props: SpotlightTourProps) {
       // A third pass at 100ms catches the initial Show render where the card
       // ref might not be available during the first two frames.
       requestAnimationFrame(() => {
+        if (gen !== stepGeneration) return // stale -- step changed
         requestAnimationFrame(() => {
+          if (gen !== stepGeneration) return // stale -- step changed
           measureAndPosition()
           setTimeout(() => {
+            if (gen !== stepGeneration) return // stale -- step changed
             measureAndPosition()
             // Once the spotlight has settled, schedule the animation callback.
             // The delay gives the user time to see what is highlighted before
@@ -297,8 +347,11 @@ export function SpotlightTour(props: SpotlightTourProps) {
               const delay = current.animationDelay ?? 0
               pendingAnimateStep = current
               pendingAnimateTimeout = setTimeout(() => {
+                if (gen !== stepGeneration) return // stale -- step changed
                 pendingAnimateTimeout = null
                 pendingAnimateStep = null
+                // Finish any leftover animations before starting new ones.
+                props.tourContext.finishAllAnimations()
                 current.onAnimate!(props.tourContext)
               }, delay)
             }
@@ -306,6 +359,13 @@ export function SpotlightTour(props: SpotlightTourProps) {
         })
       })
     }
+
+    // Clear snapshots when tour ends
+    if (!active) {
+      stepSnapshots.clear()
+      navigatingBack = false
+    }
+
 
     prevStep = active ? { step: current, index: currentIdx } : null
   })
@@ -461,10 +521,19 @@ export function SpotlightTour(props: SpotlightTourProps) {
                 <div class={ui.dots}>
                   <For each={Array.from({ length: tour.totalSteps() })}>
                     {(_, i) => (
-                      <div
+                      <button
                         class={ui.dot}
                         classList={{
                           [ui.dotActive as string]: i() === stepIndex(),
+                          [ui.dotClickable as string]: true,
+                        }}
+                        onClick={() => {
+                          const target = i()
+                          if (target === stepIndex()) return
+                          if (target < stepIndex()) {
+                            navigatingBack = true
+                          }
+                          tour.goToStep(target)
                         }}
                       />
                     )}
@@ -485,6 +554,7 @@ export function SpotlightTour(props: SpotlightTourProps) {
                   <button
                     class={ui.prevBtn}
                     onClick={() => {
+                      navigatingBack = true
                       tour.goPrev()
                     }}
                   >

@@ -12,6 +12,7 @@ import { Root } from './lib/Root'
 import { MainWorkspace } from './MainWorkspace'
 import { appTour } from './tours/appTour'
 import { example1CreationTour } from './tours/example1CreationTour'
+import { example2CreationTour } from './tours/example2CreationTour'
 import { flameCreationTour } from './tours/flameCreationTour'
 import { sidebarTour } from './tours/sidebarTour'
 import { timelineTour } from './tours/timelineTour'
@@ -35,6 +36,8 @@ function getTour(id: string): TourGuide | undefined {
       return timelineTour
     case 'example1-creation':
       return example1CreationTour
+    case 'example2-creation':
+      return example2CreationTour
     default:
       return undefined
   }

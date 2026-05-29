@@ -23,6 +23,10 @@ export interface TourContext {
    *  end value. Called by SpotlightTour on step transitions so rapid
    *  Next clicks leave the state consistent for the next step. */
   finishAllAnimations: () => void
+  /** Capture a deep clone of the current flame descriptor. */
+  snapshotFlame: () => unknown
+  /** Restore the flame descriptor from a previously captured snapshot. */
+  restoreFlame: (snapshot: unknown) => void
 }
 
 export interface TourStep {

@@ -367,6 +367,15 @@ function HelpModal(props: HelpModalProps) {
         <button
           class={ui.tourBtn}
           onClick={() => {
+            window.location.hash = '#tour=example2-creation'
+            props.respond()
+          }}
+        >
+          Example 2 Creation
+        </button>
+        <button
+          class={ui.tourBtn}
+          onClick={() => {
             window.location.hash = '#tour=flame-creation'
             props.respond()
           }}

@@ -30,6 +30,9 @@ export interface CommandContext {
     setDuration: Setter<number>
     currentFrame: Accessor<number>
     setCurrentFrame: Setter<number>
+    play: () => void
+    setLoop: (loop: boolean) => void
+    setFps: (fps: number) => void
     addKeyframe: (
       path: string,
       frame: number,

@@ -125,6 +125,12 @@ export function QuickVariationPicker(props: QuickVariationPickerProps) {
     }, PREVIEW_CLEAR_DELAY)
   }
 
+  /** Immediate cancel when the pointer leaves the entire panel/container. */
+  function handleContainerLeave() {
+    clearTimeout(clearTimer)
+    props.onHoverClear?.()
+  }
+
   const filtered = () => filterVariations(variationTypes, query())
 
   onMount(() => {
@@ -169,7 +175,7 @@ export function QuickVariationPicker(props: QuickVariationPickerProps) {
   })
 
   return (
-    <div class={ui.panel}>
+    <div class={ui.panel} onMouseLeave={handleContainerLeave}>
       {/* Header */}
       <div class={ui.header}>
         <span class={ui.headerTitle}>Select Variation</span>

@@ -163,6 +163,20 @@
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.2);
   transition: background 200ms ease;
+  padding: 0;
+  border: none;
+}
+
+.dotClickable {
+  cursor: pointer;
+}
+
+.dotClickable:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+[data-theme='light'] .dotClickable:hover {
+  background: rgba(0, 0, 0, 0.3);
 }
 
 [data-theme='light'] .dot {

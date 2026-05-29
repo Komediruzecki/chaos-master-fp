@@ -666,6 +666,18 @@ export function MainWorkspace(props: AppProps) {
       }
       activeAnimations.clear()
     },
+    snapshotFlame: () => {
+      return deepClone(flameDescriptor)
+    },
+    restoreFlame: (snapshot: unknown) => {
+      // Use history.replace() which calls the raw setStore(reconcile(value))
+      // directly. We cannot use setFlameDescriptor(reconcile(...)) because
+      // setFlameDescriptor is a HistorySetter that wraps calls in
+      // produceWithPatches (structurajs draft proxy), and reconcile expects
+      // a SolidJS store proxy -- mixing the two causes "node.$ is not a
+      // function".
+      history.replace(snapshot as typeof flameDescriptor, 'tour:restore')
+    },
   }
 
   const readableIds = createMemo(() =>
@@ -1271,6 +1283,9 @@ export function MainWorkspace(props: AppProps) {
       setDuration: setTimelineDuration,
       currentFrame: timeline.currentFrame,
       setCurrentFrame: timeline.setCurrentFrame,
+      play: timeline.play,
+      setLoop: (loop) => timeline.setConfig({ ...timeline.config(), loop }),
+      setFps: (fps) => timeline.setConfig({ ...timeline.config(), fps }),
       addKeyframe: (path, frame, value, easing) => {
         timeline.addKeyframe(
           path,
@@ -2278,6 +2293,12 @@ export function MainWorkspace(props: AppProps) {
                           </button>
                           <button
                             class={ui.addFlameButton}
+                            disabled={symTransforms().length > 0}
+                            title={
+                              symTransforms().length > 0
+                                ? 'Symmetry already applied'
+                                : 'Add 3-fold rotational symmetry'
+                            }
                             onClick={() => {
                               applySymmetry(3, 'rotational')
                             }}

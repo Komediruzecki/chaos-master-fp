@@ -101,17 +101,19 @@ export function useZoomGestures(
     if (sl) sl.scrollLeft = 0
   }
 
-  // Auto-fit only on initial track appearance
-  let prevTrackPaths: Set<string> | undefined
+  // Auto-fit on first valid resize of the ruler
+  let hasAutoFit = false
   createEffect(() => {
-    const tracks = timeline.tracks()
-    const paths = new Set(tracks.map((t) => t.parameterPath))
-    if (!prevTrackPaths) {
-      prevTrackPaths = paths
-      if (paths.size > 0) autoFitZoom()
-      return
-    }
-    prevTrackPaths = paths
+    const ruler = seekRulerRef()
+    if (!ruler) return
+    const ro = new ResizeObserver(([entry]) => {
+      if (entry && entry.contentRect.width > 0 && !hasAutoFit) {
+        hasAutoFit = true
+        autoFitZoom()
+      }
+    })
+    ro.observe(ruler)
+    onCleanup(() => ro.disconnect())
   })
 
   return { zoomLevel, setZoomLevel, frameWidth, trackHeight, autoFitZoom }

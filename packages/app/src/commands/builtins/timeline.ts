@@ -26,6 +26,28 @@ registerCommand({
 })
 
 registerCommand({
+  id: 'timeline.setLoop',
+  label: 'Set Animation Loop',
+  description: 'Enable or disable timeline animation loop',
+  execute(ctx, loop?: unknown) {
+    if (typeof loop === 'boolean') {
+      ctx.timeline.setLoop(loop)
+    }
+  },
+})
+
+registerCommand({
+  id: 'timeline.setFps',
+  label: 'Set Animation FPS',
+  description: 'Set the frames per second for timeline playback',
+  execute(ctx, fps?: unknown) {
+    if (typeof fps === 'number' && fps > 0) {
+      ctx.timeline.setFps(fps)
+    }
+  },
+})
+
+registerCommand({
   id: 'timeline.setCurrentFrame',
   label: 'Set Current Frame',
   description: 'Jump to a specific frame in the timeline',
@@ -58,5 +80,14 @@ registerCommand({
     const f = typeof frame === 'number' ? frame : ctx.timeline.currentFrame()
     const e = typeof easing === 'string' ? easing : undefined
     ctx.timeline.addKeyframe(path, f, val, e)
+  },
+})
+
+registerCommand({
+  id: 'timeline.play',
+  label: 'Play Timeline',
+  description: 'Start timeline playback',
+  execute(ctx) {
+    ctx.timeline.play()
   },
 })
