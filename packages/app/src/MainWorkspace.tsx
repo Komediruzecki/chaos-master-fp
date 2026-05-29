@@ -20,6 +20,7 @@ import { ColorPicker } from './components/ColorPicker/ColorPicker'
 import { Card } from './components/ControlCard/ControlCard'
 import { DebugOverlay } from './components/DebugOverlay'
 import { DiceButton } from './components/DiceButton/DiceButton'
+import { createDiscordShareModal } from './components/DiscordShareModal/DiscordShareModal'
 import { Dropzone } from './components/Dropzone/Dropzone'
 import { createExportPngDialog } from './components/ExportPngDialog/ExportPngDialog'
 import { FlameColorEditor, handleColor, } from './components/FlameColorEditor/FlameColorEditor'
@@ -33,7 +34,6 @@ import { ProgressBar } from './components/ProgressBar/ProgressBar'
 import { getPresetFromQuality, qualityPresets, } from './components/Quality/QualityPresets'
 import { QuickVariationPicker } from './components/QuickVariationPicker/QuickVariationPicker'
 import { createShareLinkModal } from './components/ShareLinkModal/ShareLinkModal'
-import { createDiscordShareModal } from './components/DiscordShareModal/DiscordShareModal'
 import { AngleEditor } from './components/Sliders/ParametricEditors/AngleEditor'
 import { ScrubInput } from './components/Sliders/ScrubInput'
 import { Slider } from './components/Sliders/Slider'
@@ -65,10 +65,10 @@ import { Cross, Eye, EyeOff, Menu, Plus, Share } from './icons'
 import { AutoCanvas } from './lib/AutoCanvas'
 import { createAnimationExport } from './utils/animationExport'
 import { deepClone } from './utils/clone'
+import { createStoreHistory } from './utils/createStoreHistory'
 import { sendFlameToDiscord } from './utils/discordWebhook'
 import { addFlameDataToPng } from './utils/flameInPng'
 import { compressJsonQueryParam } from './utils/jsonQueryParam'
-import { createStoreHistory } from './utils/createStoreHistory'
 import { persistentSignal } from './utils/persistentSignal'
 import { buildReadableIds } from './utils/readableIds'
 import { saveRecentFlame } from './utils/recentFlames'
@@ -600,7 +600,13 @@ export function MainWorkspace(props: AppProps) {
       setOnExportImage(() => (canvas: HTMLCanvasElement) => {
         setOnExportImage(undefined)
         setPixelRatio(currentRatio)
-        canvas.toBlob((b) => resolve(b), 'image/png', 1)
+        canvas.toBlob(
+          (b) => {
+            resolve(b)
+          },
+          'image/png',
+          1,
+        )
       })
     })
 
