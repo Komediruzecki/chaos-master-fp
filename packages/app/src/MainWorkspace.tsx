@@ -25,6 +25,7 @@ import { Dropzone } from './components/Dropzone/Dropzone'
 import { createExportPngDialog } from './components/ExportPngDialog/ExportPngDialog'
 import { FlameColorEditor, handleColor, } from './components/FlameColorEditor/FlameColorEditor'
 import { FloatingActions } from './components/FloatingActions/FloatingActions'
+import { createShowBenchmark } from './components/BenchmarkModal/BenchmarkModal'
 import { createShowHelp } from './components/HelpModal/HelpModal'
 import { createLoadFlame } from './components/LoadFlameModal/LoadFlameModal'
 import { createLogoFaviconGenerator } from './components/LogoFaviconGenerator/LogoFaviconGenerator'
@@ -37,6 +38,7 @@ import { createShareLinkModal } from './components/ShareLinkModal/ShareLinkModal
 import { AngleEditor } from './components/Sliders/ParametricEditors/AngleEditor'
 import { ScrubInput } from './components/Sliders/ScrubInput'
 import { Slider } from './components/Sliders/Slider'
+import { BenchmarkButton } from './components/BenchmarkButton/BenchmarkButton'
 import { SoftwareVersion } from './components/SoftwareVersion/SoftwareVersion'
 import { SpotlightTour } from './components/SpotlightTour/SpotlightTour'
 import { KeyframeDiamond } from './components/Timeline/KeyframeDiamond'
@@ -3071,6 +3073,7 @@ export function MainWorkspace(props: AppProps) {
             qualityPointCountLimit={qualityPointCountLimit()}
           />
           <SpotlightTour tourContext={tourContext} />
+          <BenchmarkButton onClick={createShowBenchmark()} />
           <SoftwareVersion
             showHelp={createShowHelp(
               quickPickerMode,
