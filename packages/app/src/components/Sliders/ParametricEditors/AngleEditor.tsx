@@ -8,6 +8,7 @@ import { createDragHandler } from '@/utils/createDragHandler'
 import { scrollIntoViewAndFocusOnChange } from '@/utils/scrollIntoViewOnChange'
 import ui from './AngleEditor.module.css'
 import type { EditorProps } from './types'
+import { useKeyframeTarget } from '@/contexts/KeyframeTargetContext'
 
 type AngleEditorProps = EditorProps<number> & {
   /** 'full' (default): name + track + value label in a display:contents row.
@@ -32,6 +33,8 @@ function formatDegrees(degrees: number) {
 export function AngleEditor(props: AngleEditorProps) {
   const history = useChangeHistory()
   const timeline = useTimeline()
+  const { selectedKeyframePath, setTargetedParameter } = useKeyframeTarget()
+  const highlightedPath = () => selectedKeyframePath()
   const { isCompact } = useCompactMode()
   const value = createMemo(() => props.value)
   const mode = () => props.mode ?? 'full'
@@ -121,7 +124,14 @@ export function AngleEditor(props: AngleEditorProps) {
           </div>
         }
       >
-        <label class={ui.label}>
+        <label
+          classList={{
+            [ui.label]: true,
+            [ui.targeted as string]:
+              props.dataParameterPath !== undefined &&
+              highlightedPath() === props.dataParameterPath,
+          }}
+        >
           <span class={ui.name}>
             <Show when={props.dataParameterPath && timeline}>
               <KeyframeDiamond parameterPath={props.dataParameterPath!} />

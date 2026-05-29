@@ -129,6 +129,24 @@ export function ViewControls(props: ViewControlProps) {
           <KeyframeDiamond parameterPath="camera.y" />
         </div>
       </ButtonGroup>
+      <ButtonGroup>
+        <Button
+          disabled={!history.hasUndo()}
+          onClick={() => {
+            history.undo()
+          }}
+        >
+          <Undo />
+        </Button>
+        <Button
+          disabled={!history.hasRedo()}
+          onClick={() => {
+            history.redo()
+          }}
+        >
+          <Redo />
+        </Button>
+      </ButtonGroup>
       <Show when={props.blendFlame}>
         <div class={ui.blendControls}>
           <Button
@@ -165,24 +183,6 @@ export function ViewControls(props: ViewControlProps) {
           Blend...
         </Button>
       </Show>
-      <ButtonGroup>
-        <Button
-          disabled={!history.hasUndo()}
-          onClick={() => {
-            history.undo()
-          }}
-        >
-          <Undo />
-        </Button>
-        <Button
-          disabled={!history.hasRedo()}
-          onClick={() => {
-            history.redo()
-          }}
-        >
-          <Redo />
-        </Button>
-      </ButtonGroup>
     </div>
   )
 }
