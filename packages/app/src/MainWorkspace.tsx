@@ -85,7 +85,7 @@ import type { FlameDescriptor, TransformFunction, TransformId, VariationId, } fr
 import type { TransformVariationType } from './flame/variations'
 import type { AnimationExportConfig } from './utils/animationExport'
 import type { SharePayload } from './utils/jsonQueryParam'
-import type { TimelineTrack } from './utils/timeline'
+import type { EasingCurve, TimelineTrack } from './utils/timeline'
 import type { CommandContext } from '@/commands/types'
 
 const EDGE_FADE_COLOR = {
@@ -1230,6 +1230,14 @@ export function MainWorkspace(props: AppProps) {
       setDuration: setTimelineDuration,
       currentFrame: timeline.currentFrame,
       setCurrentFrame: timeline.setCurrentFrame,
+      addKeyframe: (path, frame, value, easing) => {
+        timeline.addKeyframe(
+          path,
+          frame,
+          value,
+          easing as EasingCurve | undefined,
+        )
+      },
     },
     camera: {
       center: () => {

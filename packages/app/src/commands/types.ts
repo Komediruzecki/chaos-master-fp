@@ -30,6 +30,16 @@ export interface CommandContext {
     setDuration: Setter<number>
     currentFrame: Accessor<number>
     setCurrentFrame: Setter<number>
+    addKeyframe: (
+      path: string,
+      frame: number,
+      value:
+        | number
+        | string
+        | [number, number, number]
+        | [number, number, number, number],
+      easing?: string,
+    ) => void
   }
   camera: {
     center: () => void

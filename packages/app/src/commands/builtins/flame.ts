@@ -164,3 +164,162 @@ registerCommand({
     ctx.setBlendWeight(w)
   },
 })
+
+registerCommand({
+  id: 'flame.setProbability',
+  label: 'Set Transform Probability',
+  description: 'Set the probability weight of a transform by index',
+  execute(ctx, transformIndex?: unknown, probability?: unknown) {
+    const tidx = typeof transformIndex === 'number' ? transformIndex : 0
+    const p = typeof probability === 'number' ? probability : 1
+    ctx.setFlameDescriptor((draft) => {
+      const key = getTransformKey(draft.transforms, tidx)
+      if (key) {
+        const t = draft.transforms[key]
+        if (t) t.probability = p
+      }
+    })
+  },
+})
+
+registerCommand({
+  id: 'flame.setAffine',
+  label: 'Set Affine Coefficient',
+  description: 'Set a pre/post affine coefficient on a transform',
+  execute(
+    ctx,
+    transformIndex?: unknown,
+    affineType?: unknown,
+    param?: unknown,
+    value?: unknown,
+  ) {
+    const tidx = typeof transformIndex === 'number' ? transformIndex : 0
+    const type =
+      typeof affineType === 'string' && affineType === 'post'
+        ? 'postAffine'
+        : 'preAffine'
+    const p = typeof param === 'string' ? param : 'a'
+    const v = typeof value === 'number' ? value : 1
+    ctx.setFlameDescriptor((draft) => {
+      const key = getTransformKey(draft.transforms, tidx)
+      if (key) {
+        const t = draft.transforms[key]
+        if (t && p in t[type]) {
+          ;(t[type] as Record<string, number>)[p] = v
+        }
+      }
+    })
+  },
+})
+
+registerCommand({
+  id: 'flame.setTransformColor',
+  label: 'Set Transform Color',
+  description: 'Set the color x/y coordinates of a transform',
+  execute(ctx, transformIndex?: unknown, x?: unknown, y?: unknown) {
+    const tidx = typeof transformIndex === 'number' ? transformIndex : 0
+    const cx = typeof x === 'number' ? x : 0
+    const cy = typeof y === 'number' ? y : 0
+    ctx.setFlameDescriptor((draft) => {
+      const key = getTransformKey(draft.transforms, tidx)
+      if (key) {
+        const t = draft.transforms[key]
+        if (t) t.color = { x: cx, y: cy }
+      }
+    })
+  },
+})
+
+registerCommand({
+  id: 'flame.setExposure',
+  label: 'Set Exposure',
+  description: 'Set the flame exposure value',
+  execute(ctx, value?: unknown) {
+    const v = typeof value === 'number' ? value : 0.25
+    ctx.setFlameDescriptor((draft) => {
+      draft.renderSettings.exposure = v
+    })
+  },
+})
+
+registerCommand({
+  id: 'flame.setVibrancy',
+  label: 'Set Vibrancy',
+  description: 'Set the flame vibrancy value',
+  execute(ctx, value?: unknown) {
+    const v = typeof value === 'number' ? value : 0.5
+    ctx.setFlameDescriptor((draft) => {
+      draft.renderSettings.vibrancy = v
+    })
+  },
+})
+
+registerCommand({
+  id: 'flame.setGamma',
+  label: 'Set Gamma',
+  description: 'Set the flame gamma value',
+  execute(ctx, value?: unknown) {
+    const v = typeof value === 'number' ? value : 2.2
+    ctx.setFlameDescriptor((draft) => {
+      draft.renderSettings.gamma = v
+    })
+  },
+})
+
+registerCommand({
+  id: 'flame.setContrast',
+  label: 'Set Contrast',
+  description: 'Set the flame contrast value',
+  execute(ctx, value?: unknown) {
+    const v = typeof value === 'number' ? value : 1
+    ctx.setFlameDescriptor((draft) => {
+      draft.renderSettings.contrast = v
+    })
+  },
+})
+
+registerCommand({
+  id: 'flame.setBackgroundColor',
+  label: 'Set Background Color',
+  description: 'Set the background color (RGB, values 0-1)',
+  execute(ctx, r?: unknown, g?: unknown, b?: unknown) {
+    const cr = typeof r === 'number' ? r : 0
+    const cg = typeof g === 'number' ? g : 0
+    const cb = typeof b === 'number' ? b : 0
+    ctx.setFlameDescriptor((draft) => {
+      draft.renderSettings.backgroundColor = [cr, cg, cb]
+    })
+  },
+})
+
+registerCommand({
+  id: 'flame.setDrawMode',
+  label: 'Set Draw Mode',
+  description: 'Set the render draw mode (light or paint)',
+  execute(ctx, mode?: unknown) {
+    const m = typeof mode === 'string' && mode === 'paint' ? 'paint' : 'light'
+    ctx.setFlameDescriptor((draft) => {
+      draft.renderSettings.drawMode = m
+    })
+  },
+})
+
+registerCommand({
+  id: 'flame.clearTransforms',
+  label: 'Clear Transforms',
+  description: 'Remove all transforms to start from a blank canvas',
+  execute(ctx) {
+    ctx.setFlameDescriptor((draft) => {
+      draft.transforms = {}
+    })
+  },
+})
+
+registerCommand({
+  id: 'flame.reset',
+  label: 'Reset Flame',
+  description: 'Reset flame to default starting state (initExample)',
+  execute(ctx) {
+    ctx.setFlameDescriptor(() => deepClone(examples.initExample))
+  },
+})
