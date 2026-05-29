@@ -345,6 +345,7 @@ export function MainWorkspace(props: AppProps) {
   // Hover preview: temporarily set blend flame at 40% weight
   let prevBlendFlame: FlameDescriptor | undefined
   let prevBlendWeight = 0
+
   function handlePreviewBlend(flame: FlameDescriptor | null) {
     if (flame) {
       prevBlendFlame = blendFlame()

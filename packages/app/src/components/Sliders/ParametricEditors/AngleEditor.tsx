@@ -3,12 +3,12 @@ import { ScrubInput } from '@/components/Sliders/ScrubInput'
 import { KeyframeDiamond } from '@/components/Timeline/KeyframeDiamond'
 import { useChangeHistory } from '@/contexts/ChangeHistoryContext'
 import { useCompactMode } from '@/contexts/CompactModeContext'
+import { useKeyframeTarget } from '@/contexts/KeyframeTargetContext'
 import { useTimeline } from '@/contexts/TimelineContext'
 import { createDragHandler } from '@/utils/createDragHandler'
 import { scrollIntoViewAndFocusOnChange } from '@/utils/scrollIntoViewOnChange'
 import ui from './AngleEditor.module.css'
 import type { EditorProps } from './types'
-import { useKeyframeTarget } from '@/contexts/KeyframeTargetContext'
 
 type AngleEditorProps = EditorProps<number> & {
   /** 'full' (default): name + track + value label in a display:contents row.
@@ -33,7 +33,7 @@ function formatDegrees(degrees: number) {
 export function AngleEditor(props: AngleEditorProps) {
   const history = useChangeHistory()
   const timeline = useTimeline()
-  const { selectedKeyframePath, setTargetedParameter } = useKeyframeTarget()
+  const { selectedKeyframePath } = useKeyframeTarget()
   const highlightedPath = () => selectedKeyframePath()
   const { isCompact } = useCompactMode()
   const value = createMemo(() => props.value)
@@ -125,8 +125,8 @@ export function AngleEditor(props: AngleEditorProps) {
         }
       >
         <label
+          class={ui.label}
           classList={{
-            [ui.label]: true,
             [ui.targeted as string]:
               props.dataParameterPath !== undefined &&
               highlightedPath() === props.dataParameterPath,

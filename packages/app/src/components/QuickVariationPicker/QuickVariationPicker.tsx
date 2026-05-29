@@ -269,8 +269,8 @@ export function QuickVariationPicker(props: QuickVariationPickerProps) {
                     class={ui.pill}
                     classList={{ [ui.pillActive!]: type === props.currentType }}
                     title={getNormalizedVariationName(type)}
-                    onMouseEnter={() => handleMouseEnter(type)}
-                    onMouseLeave={() => handleMouseLeave()}
+                    onMouseEnter={() => { handleMouseEnter(type); }}
+                    onMouseLeave={() => { handleMouseLeave(); }}
                     onTouchStart={onTouchStart}
                     onTouchEnd={onTouchEnd}
                     onTouchCancel={onTouchCancel}
@@ -313,8 +313,8 @@ export function QuickVariationPicker(props: QuickVariationPickerProps) {
                           [ui.galleryItemActive!]: type === props.currentType,
                         }}
                         title={getNormalizedVariationName(type)}
-                        onMouseEnter={() => handleMouseEnter(type)}
-                        onMouseLeave={() => handleMouseLeave()}
+                        onMouseEnter={() => { handleMouseEnter(type); }}
+                        onMouseLeave={() => { handleMouseLeave(); }}
                         onClick={() => {
                           clearTimeout(clearTimer)
                           props.onHoverClear?.()
