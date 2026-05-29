@@ -6,7 +6,7 @@ import { CompactModeProvider } from './contexts/CompactModeContext'
 import { KeyframeTargetProvider } from './contexts/KeyframeTargetContext'
 import { createSpotlightTourState, SpotlightTourContext, } from './contexts/SpotlightTourContext'
 import { ThemeContextProvider } from './contexts/ThemeContext'
-import { ToastProvider } from './contexts/ToastContext'
+import { ToastProvider, useToast } from './contexts/ToastContext'
 import { IS_DEV } from './defaults'
 import { Root } from './lib/Root'
 import { MainWorkspace } from './MainWorkspace'
@@ -42,6 +42,16 @@ function getTour(id: string): TourGuide | undefined {
 
 export type ExportImageType = (canvas: HTMLCanvasElement) => void
 
+function QueryErrorToast(props: { error: string | null }) {
+  const { showToast } = useToast()
+  createEffect(() => {
+    if (props.error) {
+      showToast(props.error)
+    }
+  })
+  return null
+}
+
 export function Wrappers() {
   const [showWelcome, setShowWelcome] = createSignal(!hasWelcomeBeenDismissed())
   const [dontShowAgain, setDontShowAgain] = persistentSignal(
@@ -54,6 +64,7 @@ export function Wrappers() {
   const [selectedWelcomeTracks, setSelectedWelcomeTracks] = createSignal<
     TimelineTrack[] | undefined
   >()
+  const [queryError, setQueryError] = createSignal<string | null>(null)
 
   const [flameFromQuery] = createResource(async () => {
     const urlParams = new URLSearchParams(window.location.search)
@@ -69,9 +80,11 @@ export function Wrappers() {
             flameDef = json.payload
           }
         } else {
+          setQueryError('The shared link could not be found or has expired.')
           console.error('Failed to fetch short URL payload', await res.text())
         }
       } catch (err) {
+        setQueryError('Failed to fetch the shared link. Network error.')
         console.error('Error fetching short URL:', err)
       }
     }
@@ -91,6 +104,7 @@ export function Wrappers() {
         }
         return result
       } catch (err) {
+        setQueryError('Failed to decode the shared fractal.')
         console.error('Failed to decode share payload:', err)
       }
     }
@@ -174,6 +188,7 @@ export function Wrappers() {
                 >
                   <Suspense>
                     <ToastProvider>
+                      <QueryErrorToast error={queryError()} />
                       <MainWorkspace
                         flameFromQuery={flameFromQuery()}
                         flameFromWelcome={selectedFlame}

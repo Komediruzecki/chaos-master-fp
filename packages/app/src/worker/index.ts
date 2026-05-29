@@ -41,7 +41,8 @@ export default {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
         })
-      } catch (_err) {
+      } catch (err) {
+        console.error('Error handling /api/shorten POST:', err)
         return new Response(JSON.stringify({ error: 'Bad request' }), {
           status: 400,
           headers: { 'Content-Type': 'application/json' },
@@ -72,7 +73,8 @@ export default {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
         })
-      } catch (_err) {
+      } catch (err) {
+        console.error('Error handling /api/shorten GET:', err)
         return new Response(JSON.stringify({ error: 'Server error' }), {
           status: 500,
           headers: { 'Content-Type': 'application/json' },
