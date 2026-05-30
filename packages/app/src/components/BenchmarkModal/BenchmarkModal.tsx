@@ -1,4 +1,4 @@
-import { createResource, createSignal, Show, Suspense } from 'solid-js'
+import { createMemo, createResource, createSignal, Show, Suspense, } from 'solid-js'
 import { vec2f, vec4f } from 'typegpu/data'
 import { DEFAULT_POINT_COUNT } from '@/defaults'
 import { examples } from '@/flame/examples'
@@ -13,6 +13,15 @@ import { useRequestModal } from '../Modal/ModalContext'
 import ui from './BenchmarkModal.module.css'
 
 const BENCHMARK_SECONDS = 10
+
+function getAchievementBadge(
+  bps: number,
+): { label: string; cssClass: string } | null {
+  if (bps >= 5) return { label: '5B+', cssClass: 'badgeUltra' }
+  if (bps >= 3) return { label: '3B+', cssClass: 'badgeElite' }
+  if (bps >= 1) return { label: '1B+', cssClass: 'badgePro' }
+  return null
+}
 
 async function getGPUDeviceInformation() {
   const { adapter } = await getWebgpuComponents({
@@ -63,6 +72,7 @@ function gatherBenchmarkLog(
   }
   // eslint-disable-next-line @typescript-eslint/no-deprecated
   lines.push(`Platform : ${n.platform}`)
+  lines.push(`MPS      : ${(bps * 1000).toFixed(1)}`)
   lines.push(`BPS      : ${bps.toFixed(3)}`)
 
   return lines.join('\n')
@@ -127,6 +137,9 @@ function BenchmarkModal(props: { respond: () => void }) {
     })
   }
 
+  const finalMps = createMemo(() => finalBps() * 1000)
+  const achievementBadge = createMemo(() => getAchievementBadge(finalBps()))
+
   const cameraZoom = createSignal(1)
   const cameraPosition = createSignal(vec2f(0, 0))
 
@@ -153,9 +166,10 @@ function BenchmarkModal(props: { respond: () => void }) {
       <Show when={state() === 'idle'}>
         <div class={ui.stateSection}>
           <p class={ui.descText}>
-            Run a standardized IFS fractal render for {BENCHMARK_SECONDS} seconds to
-            measure your GPU's performance in Billions of Points Per Second (BPS).
-            The result can be shared on Discord for leaderboard challenges.
+            Run a standardized IFS fractal render for {BENCHMARK_SECONDS}{' '}
+            seconds to measure your GPU's performance in Billions of Points Per
+            Second (BPS). The result can be shared on Discord for leaderboard
+            challenges.
           </p>
           <button class={ui.runBtn} onClick={handleStart}>
             <svg
@@ -185,7 +199,9 @@ function BenchmarkModal(props: { respond: () => void }) {
               />
             </div>
             <div class={ui.progressStats}>
-              <span class={ui.liveBps}>{liveBps().toFixed(3)} B/s</span>
+              <span class={ui.liveBps}>
+                {(liveBps() * 1000).toFixed(1)} M/s
+              </span>
               <span class={ui.progressPct}>{progress().toFixed(0)}%</span>
             </div>
           </div>
@@ -226,8 +242,28 @@ function BenchmarkModal(props: { respond: () => void }) {
       <Show when={state() === 'complete'}>
         <div class={ui.completeSection}>
           <div class={ui.resultCard}>
-            <div class={ui.bpsNumber}>{finalBps().toFixed(3)}</div>
-            <div class={ui.bpsLabel}>Billions of Points / Second</div>
+            <div class={ui.resultGrid}>
+              <div class={ui.resultRow}>
+                <div class={ui.resultNumber}>{finalMps().toFixed(1)}</div>
+                <div class={ui.resultLabel}>Millions of Points / Second</div>
+              </div>
+              <div class={ui.resultRow}>
+                <div class={ui.resultNumber}>
+                  {finalBps().toFixed(3)}
+                  <span class={ui.resultUnit}> B/s</span>
+                </div>
+                <Show when={achievementBadge()} keyed>
+                  {(badge) => (
+                    <span
+                      class={ui.achievementBadge}
+                      classList={{ [ui[badge.cssClass]!]: true }}
+                    >
+                      {badge.label}
+                    </span>
+                  )}
+                </Show>
+              </div>
+            </div>
           </div>
         </div>
       </Show>
@@ -305,12 +341,7 @@ function BenchmarkModal(props: { respond: () => void }) {
             classList={{ [ui.copyBtnCopied!]: copied() }}
             onClick={copyBenchmarkLog}
           >
-            <svg
-              viewBox="0 0 16 16"
-              fill="currentColor"
-              width="14"
-              height="14"
-            >
+            <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14">
               {copied() ? (
                 <path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0z" />
               ) : (

@@ -23,13 +23,34 @@ const HIGH_VRAM_BYTES = 6 * 1024 * 1024 * 1024
 const MID_VRAM_BYTES = 2 * 1024 * 1024 * 1024
 
 const ULTRA_KEYWORDS = [
-  '4090', '4080', '7900 xtx', '7900 xt', 'm4 ultra', 'm3 ultra',
-  'pro 32', 'pro w', 'a100', 'h100', 'rx 7900',
+  '4090',
+  '4080',
+  '7900 xtx',
+  '7900 xt',
+  'm4 ultra',
+  'm3 ultra',
+  'pro 32',
+  'pro w',
+  'a100',
+  'h100',
+  'rx 7900',
 ]
 const HIGH_KEYWORDS = [
-  '4070', '4060 ti', '4060', '7800 xt', '7700 xt', 'm4 pro', 'm3 pro',
-  'm2 pro', 'm1 pro', 'rtx 3080', 'rtx 3090', 'rx 6800', 'rx 6900',
-  'arc a770', 'arc a750',
+  '4070',
+  '4060 ti',
+  '4060',
+  '7800 xt',
+  '7700 xt',
+  'm4 pro',
+  'm3 pro',
+  'm2 pro',
+  'm1 pro',
+  'rtx 3080',
+  'rtx 3090',
+  'rx 6800',
+  'rx 6900',
+  'arc a770',
+  'arc a750',
 ]
 
 function getVramBytes(adapter: GPUAdapter): number {
@@ -55,10 +76,7 @@ function classifyByDescription(description: string): HardwareTier | null {
   return null
 }
 
-function classifyByVendorAndCores(
-  vendor: string,
-  cores: number,
-): HardwareTier {
+function classifyByVendorAndCores(vendor: string, cores: number): HardwareTier {
   const isDiscrete = vendor === 'nvidia' || vendor === 'amd'
   if (isDiscrete) return cores >= 4 ? 'mid' : 'low'
   // Integrated / mobile GPU

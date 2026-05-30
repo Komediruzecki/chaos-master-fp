@@ -1,4 +1,4 @@
-import { createResource, createSignal, For, onCleanup, Show, Suspense } from 'solid-js'
+import { createEffect, createResource, createSignal, For, onCleanup, Show, Suspense, } from 'solid-js'
 import { Portal } from 'solid-js/web'
 import { vec2f, vec4f } from 'typegpu/data'
 import { Checkbox } from '@/components/Checkbox/Checkbox'
@@ -222,6 +222,13 @@ export function WelcomeScreen(props: WelcomeScreenProps) {
     },
   )
 
+  createEffect(() => {
+    const detected = detectedTier()
+    if (detected && !props.hardwareTier) {
+      props.onHardwareTierChange?.(detected)
+    }
+  })
+
   const effectiveTier = () => props.hardwareTier ?? detectedTier()
 
   const visibleAnimated = () =>
@@ -425,8 +432,7 @@ export function WelcomeScreen(props: WelcomeScreenProps) {
                   <button
                     class={ui.hardwareTierPill}
                     classList={{
-                      [ui.hardwareTierPillActive!]:
-                        tier === effectiveTier(),
+                      [ui.hardwareTierPillActive!]: tier === effectiveTier(),
                     }}
                     onClick={() => props.onHardwareTierChange?.(tier)}
                   >
