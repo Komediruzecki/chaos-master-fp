@@ -200,6 +200,8 @@
   background: none;
   color: var(--item-text-color);
   touch-action: manipulation;
+  -webkit-touch-callout: none;
+  user-select: none;
   min-height: 44px;
 
   &:hover {

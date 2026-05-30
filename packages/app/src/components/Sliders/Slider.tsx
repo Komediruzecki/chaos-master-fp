@@ -80,6 +80,7 @@ export function Slider(props: SliderProps) {
             props.dataParameterPath !== undefined &&
             highlightedPath() === props.dataParameterPath,
         }}
+        onContextMenu={(e) => { e.preventDefault(); }}
       >
         <span class={ui.labelRow}>
           <Show when={props.dataParameterPath && timeline}>

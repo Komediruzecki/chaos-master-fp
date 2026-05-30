@@ -631,6 +631,9 @@ function ShowVariationSelector(props: VariationSelectorModalProps) {
                               onMouseLeave={() => {
                                 handleMouseLeave()
                               }}
+                              onContextMenu={(e) => {
+                                e.preventDefault()
+                              }}
                             >
                               <VariationPreview
                                 version={version()}
@@ -638,7 +641,6 @@ function ShowVariationSelector(props: VariationSelectorModalProps) {
                                 flame={variationExample}
                                 name={variation.type}
                               />
-
                               <div class={ui.itemTitle}>
                                 {getNormalizedVariationName(variation.type)}
                               </div>

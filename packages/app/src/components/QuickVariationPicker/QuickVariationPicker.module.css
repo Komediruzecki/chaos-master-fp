@@ -154,6 +154,7 @@
   align-content: flex-start;
   scrollbar-width: thin;
   scrollbar-color: var(--neutral-300) transparent;
+  -webkit-touch-callout: none;
 
   [data-theme='dark'] & {
     scrollbar-color: var(--neutral-700) transparent;
@@ -287,6 +288,8 @@
     box-shadow 0.13s,
     transform 0.1s;
   touch-action: manipulation;
+  -webkit-touch-callout: none;
+  user-select: none;
 
   &:hover {
     border-color: oklch(60% 0.08 240);
