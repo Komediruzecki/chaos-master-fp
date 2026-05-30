@@ -355,6 +355,13 @@
   border: 1px solid oklch(75% 0.02 260 / 0.3);
 }
 
+.badge-spark {
+  background: linear-gradient(135deg, oklch(65% 0.08 55), oklch(58% 0.1 45));
+  color: white;
+  box-shadow: 0 0 6px oklch(60% 0.08 50 / 0.25);
+  border: 1px solid oklch(75% 0.05 50 / 0.25);
+}
+
 /* ---- Device Info ---- */
 
 .device-header {

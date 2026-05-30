@@ -215,9 +215,9 @@ export function WelcomeScreen(props: WelcomeScreenProps) {
   const [showAllStatic, setShowAllStatic] = createSignal(false)
 
   const [detectedTier] = createResource(
-    () => props.hardwareTier,
-    async (tier) => {
-      if (tier) return tier
+    () => props.hardwareTier ?? '__detect__',
+    async (key) => {
+      if (key !== '__detect__') return key as HardwareTier
       return await detectHardwareTier()
     },
   )
