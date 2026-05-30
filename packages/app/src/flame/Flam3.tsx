@@ -89,6 +89,7 @@ type Flam3Props = {
   palette?: () => Palette | undefined
   outputAlpha?: boolean
   onAccumulatedPointCount?: (count: number) => void
+  disableQualityLimit?: boolean
   blendFlame?: FlameDescriptor
   blendWeight?: number
 }
@@ -281,6 +282,7 @@ export function Flam3(props: Flam3Props) {
   })
 
   const continueRendering = (accumulatedPointCount: number) => {
+    if (props.disableQualityLimit) return true
     return accumulatedPointCount <= qualityPointCountLimit()
   }
 

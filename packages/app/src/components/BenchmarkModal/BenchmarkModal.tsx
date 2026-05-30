@@ -205,6 +205,7 @@ function BenchmarkModal(props: { respond: () => void }) {
                   animationEnabled={false}
                   flameDescriptor={examples.benchmark}
                   renderInterval={0}
+                  disableQualityLimit={true}
                   edgeFadeColor={vec4f(0)}
                   palette={() => undefined}
                   outputAlpha={false}
