@@ -15,6 +15,7 @@ export function createAnimationFrame(
       return
     }
     let frameId: number
+    let disposed = false
     const framesPending = new Set<number>()
 
     function getDeltaTime(): number {
@@ -22,6 +23,7 @@ export function createAnimationFrame(
     }
 
     function run(time: number) {
+      if (disposed) return
       const framesNotPending = framesPending.size <= 2
       const passedEnoughTime = time - lastTime >= getDeltaTime()
       if (framesNotPending && (lastTime === 0 || passedEnoughTime)) {
@@ -34,12 +36,15 @@ export function createAnimationFrame(
             .catch(console.error)
         }
       }
-      frameId = requestAnimationFrame(run)
+      if (!disposed) {
+        frameId = requestAnimationFrame(run)
+      }
     }
 
     frameId = requestAnimationFrame(run)
 
     onCleanup(() => {
+      disposed = true
       cancelAnimationFrame(frameId)
     })
   })

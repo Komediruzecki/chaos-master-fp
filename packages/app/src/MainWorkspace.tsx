@@ -13,6 +13,8 @@ import { createDragHandler } from '@/utils/createDragHandler'
 import { recordEntries, recordKeys } from '@/utils/record'
 import ui from './App.module.css'
 import { AffineEditor } from './components/AffineEditor/AffineEditor'
+import { BenchmarkButton } from './components/BenchmarkButton/BenchmarkButton'
+import { createShowBenchmark } from './components/BenchmarkModal/BenchmarkModal'
 import { BlendFlameGallery } from './components/BlendFlameGallery/BlendFlameGallery'
 import { Button } from './components/Button/Button'
 import { CollapsibleCard } from './components/CollapsibleCard/CollapsibleCard'
@@ -25,7 +27,6 @@ import { Dropzone } from './components/Dropzone/Dropzone'
 import { createExportPngDialog } from './components/ExportPngDialog/ExportPngDialog'
 import { FlameColorEditor, handleColor, } from './components/FlameColorEditor/FlameColorEditor'
 import { FloatingActions } from './components/FloatingActions/FloatingActions'
-import { createShowBenchmark } from './components/BenchmarkModal/BenchmarkModal'
 import { createShowHelp } from './components/HelpModal/HelpModal'
 import { createLoadFlame } from './components/LoadFlameModal/LoadFlameModal'
 import { createLogoFaviconGenerator } from './components/LogoFaviconGenerator/LogoFaviconGenerator'
@@ -38,7 +39,6 @@ import { createShareLinkModal } from './components/ShareLinkModal/ShareLinkModal
 import { AngleEditor } from './components/Sliders/ParametricEditors/AngleEditor'
 import { ScrubInput } from './components/Sliders/ScrubInput'
 import { Slider } from './components/Sliders/Slider'
-import { BenchmarkButton } from './components/BenchmarkButton/BenchmarkButton'
 import { SoftwareVersion } from './components/SoftwareVersion/SoftwareVersion'
 import { SpotlightTour } from './components/SpotlightTour/SpotlightTour'
 import { KeyframeDiamond } from './components/Timeline/KeyframeDiamond'
@@ -70,6 +70,7 @@ import { deepClone } from './utils/clone'
 import { createStoreHistory } from './utils/createStoreHistory'
 import { sendFlameToDiscord } from './utils/discordWebhook'
 import { addFlameDataToPng } from './utils/flameInPng'
+import { hardwareTierToPreset } from './utils/hardwareTier'
 import { compressJsonQueryParam } from './utils/jsonQueryParam'
 import { persistentSignal } from './utils/persistentSignal'
 import { buildReadableIds } from './utils/readableIds'
@@ -88,6 +89,7 @@ import type { PointInitMode } from './flame/pointInitMode'
 import type { FlameDescriptor, TransformFunction, TransformId, VariationId, } from './flame/schema/flameSchema'
 import type { TransformVariationType } from './flame/variations'
 import type { AnimationExportConfig } from './utils/animationExport'
+import type { HardwareTier } from './utils/hardwareTier'
 import type { SharePayload } from './utils/jsonQueryParam'
 import type { EasingCurve, TimelineTrack } from './utils/timeline'
 import type { CommandContext } from '@/commands/types'
@@ -134,6 +136,7 @@ export type AppProps = {
   flameFromWelcome?: () => FlameDescriptor | undefined
   welcomeTracks?: () => TimelineTrack[] | undefined
   resetFlameFromWelcome?: () => void
+  hardwareTier?: HardwareTier | null
 }
 
 export function MainWorkspace(props: AppProps) {
@@ -152,7 +155,9 @@ export function MainWorkspace(props: AppProps) {
   })
 
   const [qualityPreset, setQualityPreset] = createSignal<QualityPreset>(
-    getPresetFromQuality(DEFAULT_QUALITY),
+    props.hardwareTier
+      ? hardwareTierToPreset(props.hardwareTier)
+      : getPresetFromQuality(DEFAULT_QUALITY),
   )
   const [pixelRatio, setPixelRatio] = createSignal(DEFAULT_RESOLUTION)
   const [onExportImage, setOnExportImage] = createSignal<ExportImageType>()

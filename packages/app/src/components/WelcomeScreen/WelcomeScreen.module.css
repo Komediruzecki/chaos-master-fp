@@ -440,6 +440,85 @@
   }
 }
 
+.hardwareTierSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.hardwareTierLabel {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.35);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.hardwareTierPills {
+  display: inline-flex;
+  gap: 0.25rem;
+  padding: 0.2rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+}
+
+.hardwareTierPill {
+  appearance: none;
+  font-family: inherit;
+  padding: 0.2rem 0.65rem;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 0.65rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  transition:
+    color 0.15s,
+    background 0.15s,
+    border-color 0.15s;
+}
+
+.hardwareTierPill:hover {
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.hardwareTierPillActive {
+  border-color: rgba(124, 58, 237, 0.4);
+  background: rgba(124, 58, 237, 0.15);
+  color: rgba(180, 140, 255, 0.85);
+}
+
+/* Light mode hardware tier */
+[data-theme='light'] .hardwareTierLabel {
+  color: rgba(0, 0, 0, 0.4);
+}
+
+[data-theme='light'] .hardwareTierPills {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme='light'] .hardwareTierPill {
+  color: rgba(0, 0, 0, 0.35);
+}
+
+[data-theme='light'] .hardwareTierPill:hover {
+  color: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme='light'] .hardwareTierPillActive {
+  border-color: rgba(124, 58, 237, 0.4);
+  background: rgba(124, 58, 237, 0.12);
+  color: rgba(109, 40, 217, 0.85);
+}
+
 /* Responsive */
 @media (max-width: 50rem) {
   .card {

@@ -1,4 +1,4 @@
-import { createSignal, For, onCleanup, Show } from 'solid-js'
+import { createResource, createSignal, For, onCleanup, Show, Suspense } from 'solid-js'
 import { Portal } from 'solid-js/web'
 import { vec2f, vec4f } from 'typegpu/data'
 import { Checkbox } from '@/components/Checkbox/Checkbox'
@@ -11,11 +11,13 @@ import { AutoCanvas } from '@/lib/AutoCanvas'
 import { Camera2D } from '@/lib/Camera2D'
 import { Root } from '@/lib/Root'
 import { deepClone } from '@/utils/clone'
+import { detectHardwareTier, hardwareTiers } from '@/utils/hardwareTier'
 import { formatRecentDate, loadRecentFlames } from '@/utils/recentFlames'
 import { applyTracksToFlame } from '@/utils/timeline'
 import { VERSION } from '@/version'
 import ui from './WelcomeScreen.module.css'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
+import type { HardwareTier } from '@/utils/hardwareTier'
 import type { TimelineTrack } from '@/utils/timeline'
 
 type WelcomeScreenProps = {
@@ -25,6 +27,8 @@ type WelcomeScreenProps = {
   onSelectFlame?: (flame: FlameDescriptor, tracks?: TimelineTrack[]) => void
   onStartTour?: (tourId: string) => void
   onShowAbout?: () => void
+  hardwareTier?: HardwareTier | null
+  onHardwareTierChange?: (tier: HardwareTier) => void
 }
 
 type GalleryItem = {
@@ -210,6 +214,16 @@ export function WelcomeScreen(props: WelcomeScreenProps) {
   const [showAllAnimated, setShowAllAnimated] = createSignal(false)
   const [showAllStatic, setShowAllStatic] = createSignal(false)
 
+  const [detectedTier] = createResource(
+    () => props.hardwareTier,
+    async (tier) => {
+      if (tier) return tier
+      return await detectHardwareTier()
+    },
+  )
+
+  const effectiveTier = () => props.hardwareTier ?? detectedTier()
+
   const visibleAnimated = () =>
     showAllAnimated() ? animExamples : animExamples.slice(0, INITIAL_VISIBLE)
   const visibleStatic = () =>
@@ -390,6 +404,36 @@ export function WelcomeScreen(props: WelcomeScreenProps) {
                 />
                 <span>Don't show on startup</span>
               </label>
+            </div>
+
+            <div class={ui.hardwareTierSection}>
+              <Suspense
+                fallback={
+                  <span class={ui.hardwareTierLabel}>
+                    Auto-detecting hardware...
+                  </span>
+                }
+              >
+                <Show when={effectiveTier()}>
+                  <span class={ui.hardwareTierLabel}>
+                    Hardware Tier: {effectiveTier()}
+                  </span>
+                </Show>
+              </Suspense>
+              <div class={ui.hardwareTierPills}>
+                {hardwareTiers.map((tier) => (
+                  <button
+                    class={ui.hardwareTierPill}
+                    classList={{
+                      [ui.hardwareTierPillActive!]:
+                        tier === effectiveTier(),
+                    }}
+                    onClick={() => props.onHardwareTierChange?.(tier)}
+                  >
+                    {tier}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div class={ui.techPills}>
