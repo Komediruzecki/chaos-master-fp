@@ -369,7 +369,7 @@ function BenchmarkModal(props: { respond: () => void }) {
     ctx.fillText(`${platform}  ·  ${new Date().toISOString().split('T')[0]}`, 28, H - 24)
 
     ctx.fillStyle = 'rgba(255,255,255,0.15)'
-    ctx.fillText('chaosmaster.app', W - 110, H - 24)
+    ctx.fillText('chaos-master.com', W - 110, H - 24)
 
     // Border
     ctx.strokeStyle = 'rgba(255,255,255,0.06)'
