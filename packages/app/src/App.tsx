@@ -22,6 +22,7 @@ import { recordKeys } from './utils/record'
 import { dismissWelcome, hasWelcomeBeenDismissed, } from './utils/welcomeDismissed'
 import type { TourGuide } from './components/SpotlightTour/tourTypes'
 import type { FlameDescriptor } from './flame/schema/flameSchema'
+import type { HardwareTier } from './utils/hardwareTier'
 import type { TimelineTrack } from './utils/timeline'
 
 function getTour(id: string): TourGuide | undefined {
@@ -69,6 +70,10 @@ export function Wrappers() {
   const [dontShowAgain, setDontShowAgain] = persistentSignal(
     'dontShowWelcome',
     false,
+  )
+  const [hardwareTier, setHardwareTier] = persistentSignal<HardwareTier | null>(
+    'hardwareTier',
+    null,
   )
   const [selectedFlame, setSelectedFlame] = createSignal<
     FlameDescriptor | undefined
@@ -205,6 +210,7 @@ export function Wrappers() {
                         flameFromQuery={flameFromQuery()}
                         flameFromWelcome={selectedFlame}
                         welcomeTracks={selectedWelcomeTracks}
+                        hardwareTier={hardwareTier()}
                         resetFlameFromWelcome={() => {
                           setSelectedFlame(undefined)
                           setSelectedWelcomeTracks(undefined)
@@ -240,6 +246,8 @@ export function Wrappers() {
                             pill?.click()
                           })
                         }}
+                        hardwareTier={hardwareTier()}
+                        onHardwareTierChange={setHardwareTier}
                       />
                     </Show>
                   </Suspense>

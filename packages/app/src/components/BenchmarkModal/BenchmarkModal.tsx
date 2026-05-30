@@ -79,6 +79,7 @@ function BenchmarkModal(props: { respond: () => void }) {
   const [finalBps, setFinalBps] = createSignal(0)
   const [copied, setCopied] = createSignal(false)
   let startTime = 0
+  let running = false
 
   function handleStart() {
     setAccumulatedPoints(0)
@@ -86,16 +87,20 @@ function BenchmarkModal(props: { respond: () => void }) {
     setProgress(0)
     setFinalBps(0)
     startTime = 0
+    running = true
     setState('running')
   }
 
   function handleCancel() {
+    running = false
     setState('idle')
     startTime = 0
     setAccumulatedPoints(0)
   }
 
   function handleAccumulatedPoints(count: number) {
+    if (!running) return
+
     if (count === 0) return
 
     if (startTime === 0) {
@@ -108,6 +113,7 @@ function BenchmarkModal(props: { respond: () => void }) {
     setProgress(Math.min((elapsed / BENCHMARK_SECONDS) * 100, 100))
 
     if (elapsed >= BENCHMARK_SECONDS) {
+      running = false
       setFinalBps(count / elapsed / 1e9)
       setState('complete')
     }
