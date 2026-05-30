@@ -326,26 +326,30 @@ function BenchmarkModal(props: { respond: () => void }) {
 
     // Results (right column)
     const rx = 360
-    let ry = 86
-
-    ctx.fillStyle = 'rgba(255,255,255,0.4)'
-    ctx.font = '10px Inter, system-ui, sans-serif'
-    ctx.fillText('MILLIONS / SECOND', rx, ry)
-    ry += 26
-
-    const mps = finalMps()
-    ctx.fillStyle = '#ffffff'
-    ctx.font = 'bold 40px Inter, system-ui, sans-serif'
-    ctx.fillText(mps.toFixed(1), rx, ry)
-    ry += 42
+    let ry = 82
 
     ctx.fillStyle = 'rgba(255,255,255,0.35)'
-    ctx.font = '14px Inter, system-ui, sans-serif'
-    ctx.fillText(`${finalBps().toFixed(3)} B/s`, rx, ry)
-    ry += 24
+    ctx.font = '10px Inter, system-ui, sans-serif'
+    ctx.fillText('MILLIONS / SECOND', rx, ry)
+    ry += 44
 
-    ctx.fillStyle = 'rgba(255,255,255,0.22)'
-    ctx.font = '11px Inter, system-ui, sans-serif'
+    const mps = finalMps()
+    const mpsGrad = ctx.createLinearGradient(rx, ry - 32, rx + 100, ry + 8)
+    mpsGrad.addColorStop(0, '#ff8a5e')
+    mpsGrad.addColorStop(0.5, '#ff6b35')
+    mpsGrad.addColorStop(1, '#e84428')
+    ctx.fillStyle = mpsGrad
+    ctx.font = 'bold 34px Inter, system-ui, sans-serif'
+    ctx.fillText(mps.toFixed(1), rx, ry)
+    ry += 36
+
+    ctx.fillStyle = 'rgba(255,255,255,0.3)'
+    ctx.font = '12px Inter, system-ui, sans-serif'
+    ctx.fillText(`${finalBps().toFixed(3)} B/s`, rx, ry)
+    ry += 22
+
+    ctx.fillStyle = 'rgba(255,255,255,0.2)'
+    ctx.font = '10px Inter, system-ui, sans-serif'
     const tp = totalPoints()
     const ptsCompact =
       tp >= 1e9
@@ -354,7 +358,7 @@ function BenchmarkModal(props: { respond: () => void }) {
           ? `${(tp / 1e6).toFixed(1)}M`
           : `${(tp / 1e3).toFixed(0)}K`
     ctx.fillText(`${ptsCompact} pts`, rx, ry)
-    ry += 24
+    ry += 22
 
     // Achievement badge
     const badge = achievementBadge()
