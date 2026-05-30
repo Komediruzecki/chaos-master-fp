@@ -494,6 +494,9 @@ export function QuickVariationPicker(props: QuickVariationPickerProps) {
                               onTouchStart={onTouchStart}
                               onTouchEnd={onTouchEnd}
                               onTouchCancel={onTouchCancel}
+                              onContextMenu={(e) => {
+                                e.preventDefault()
+                              }}
                               onClick={() => {
                                 if (didLongPress) {
                                   didLongPress = false
