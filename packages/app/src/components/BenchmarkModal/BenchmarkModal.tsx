@@ -346,7 +346,14 @@ function BenchmarkModal(props: { respond: () => void }) {
 
     ctx.fillStyle = 'rgba(255,255,255,0.22)'
     ctx.font = '11px Inter, system-ui, sans-serif'
-    ctx.fillText(`${totalPoints().toLocaleString()} pts`, rx, ry)
+    const tp = totalPoints()
+    const ptsCompact =
+      tp >= 1e9
+        ? `${(tp / 1e9).toFixed(2)}B`
+        : tp >= 1e6
+          ? `${(tp / 1e6).toFixed(1)}M`
+          : `${(tp / 1e3).toFixed(0)}K`
+    ctx.fillText(`${ptsCompact} pts`, rx, ry)
     ry += 24
 
     // Achievement badge
@@ -617,7 +624,10 @@ function BenchmarkModal(props: { respond: () => void }) {
               {imageCopied() ? (
                 <path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0z" />
               ) : (
-                <path d="M8 2.5a.5.5 0 0 0-1 0V5H4.5a.5.5 0 0 0 0 1H7v2.5a.5.5 0 0 0 1 0V6h2.5a.5.5 0 0 0 0-1H8V2.5zM2 4a1 1 0 0 1 1-1h.5a.5.5 0 0 1 0 1H3v9h9v-.5a.5.5 0 0 1 1 0v1a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4z" />
+                <>
+                  <path d="M1 2.5a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 .5.5v11a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5v-11zm1 8.8 2.8-2.8a.5.5 0 0 1 .7 0l2 2 2.8-2.3a.5.5 0 0 1 .6 0L14 11V3H2v8.3z" />
+                  <circle cx="4.5" cy="5.5" r="1.2" />
+                </>
               )}
             </svg>
             {imageCopied() ? 'Copied!' : 'Copy as Image'}
