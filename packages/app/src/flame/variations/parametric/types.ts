@@ -6,6 +6,7 @@ import { VariationInfo } from '../simple/types'
 import type { TgpuFn } from 'typegpu'
 import type { BaseData, Infer, v2f, Vec2f, WgslStruct } from 'typegpu/data'
 import type { BooleanSchema, OptionalSchema } from 'valibot'
+import type { VariationCategory } from '../simple/types'
 import type { EditorFor } from '@/components/Sliders/ParametricEditors/types'
 
 type ParametricVariationDescriptor<
@@ -28,6 +29,7 @@ type ParametricVariation<
   K extends string,
   T extends Record<string, BaseData>,
 > = {
+  category: VariationCategory
   DescriptorSchema: ParametricVariationDescriptor<K, T>
   paramStruct: WgslStruct<T>
   paramDefaults: Infer<WgslStruct<T>>
@@ -66,8 +68,10 @@ export function parametricVariation<
   paramDefaults: Infer<WgslStruct<T>>,
   editor: EditorFor<Infer<WgslStruct<T>>>,
   impl: (pos: v2f, varInfo: VariationInfo, params: Infer<WgslStruct<T>>) => v2f,
+  category: VariationCategory = 'general',
 ): ParametricVariation<K, T> {
   return {
+    category,
     DescriptorSchema: parametricVariationDescriptor(variationKey, paramStruct),
     paramStruct,
     paramDefaults,

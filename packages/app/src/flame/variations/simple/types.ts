@@ -12,7 +12,20 @@ export const VariationInfo = struct({
   affineCoefs: AffineParams,
 })
 
+export type VariationCategory =
+  | 'blur'
+  | 'post'
+  | 'pre'
+  | 'crop'
+  | 'symmetry'
+  | 'dc'
+  | 'glsl'
+  | 'cut'
+  | '3d'
+  | 'general'
+
 export type SimpleVariation<K extends string> = {
+  category: VariationCategory
   DescriptorSchema: v.ObjectSchema<
     {
       readonly type: v.LiteralSchema<K, undefined>
@@ -27,8 +40,10 @@ export type SimpleVariation<K extends string> = {
 export function simpleVariation<K extends string>(
   variationKey: K,
   impl: (pos: v2f, varInfo: VariationInfo) => v2f,
+  category: VariationCategory = 'general',
 ): SimpleVariation<K> {
   return {
+    category,
     DescriptorSchema: v.object({
       type: v.literal(variationKey),
       weight: v.number(),
