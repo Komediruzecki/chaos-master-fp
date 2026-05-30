@@ -1610,12 +1610,10 @@ export function MainWorkspace(props: AppProps) {
               </div>
             </div>
           </>
-          <Show when={IS_DEV}>
-            <DebugOverlay
-              animationEnabled={animationEnabled()}
-              flameDescriptor={flameDescriptor}
-            />
-          </Show>
+          <DebugOverlay
+            animationEnabled={animationEnabled()}
+            flameDescriptor={flameDescriptor}
+          />
 
           <Show when={showSidebar()}>
             <div

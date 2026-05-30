@@ -202,16 +202,14 @@ function HelpModal(props: HelpModalProps) {
             >
               <Changelog />
             </button>
-            <Show when={IS_DEV}>
-              <button
-                class={ui.iconBtn}
-                classList={{ [ui.consoleActive!]: showConsole() }}
-                onClick={() => setShowConsole((v) => !v)}
-                title="Console Logs"
-              >
-                <Terminal />
-              </button>
-            </Show>
+            <button
+              class={ui.iconBtn}
+              classList={{ [ui.consoleActive!]: showConsole() }}
+              onClick={() => setShowConsole((v) => !v)}
+              title="Console Logs"
+            >
+              <Terminal />
+            </button>
             <Show when={IS_DEV && props.onInjectCrash}>
               <button
                 class={ui.iconBtn}
@@ -500,7 +498,7 @@ function HelpModal(props: HelpModalProps) {
           </Show>
         </Suspense>
       </div>
-      <Show when={IS_DEV && showConsole()}>
+      <Show when={showConsole()}>
         <h2 class={ui.sectionTitle}>Console Logs</h2>
         <ConsoleLog />
       </Show>
