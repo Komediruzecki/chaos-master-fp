@@ -16,11 +16,11 @@ const BENCHMARK_SECONDS = 10
 
 function getAchievementBadge(
   bps: number,
-): { label: string; cssClass: string } | null {
+): { label: string; cssClass: string } {
   if (bps >= 5) return { label: '5B+', cssClass: 'badgeUltra' }
   if (bps >= 3) return { label: '3B+', cssClass: 'badgeElite' }
   if (bps >= 1) return { label: '1B+', cssClass: 'badgePro' }
-  return null
+  return { label: 'Spark', cssClass: 'badgeSpark' }
 }
 
 async function getGPUDeviceInformation() {
