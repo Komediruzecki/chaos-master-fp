@@ -80,6 +80,104 @@ function gatherBenchmarkLog(
 
 type BenchmarkState = 'idle' | 'running' | 'complete'
 
+function roundRect(
+  ctx: CanvasRenderingContext2D,
+  x: number, y: number, w: number, h: number, r: number,
+) {
+  ctx.beginPath()
+  ctx.moveTo(x + r, y)
+  ctx.lineTo(x + w - r, y)
+  ctx.arcTo(x + w, y, x + w, y + r, r)
+  ctx.lineTo(x + w, y + h - r)
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r)
+  ctx.lineTo(x + r, y + h)
+  ctx.arcTo(x, y + h, x, y + h - r, r)
+  ctx.lineTo(x, y + r)
+  ctx.arcTo(x, y, x + r, y, r)
+  ctx.closePath()
+}
+
+function drawPill(
+  ctx: CanvasRenderingContext2D,
+  x: number, y: number, text: string, color: 'green' | 'blue',
+) {
+  ctx.font = '11px Inter, system-ui, sans-serif'
+  const tw = ctx.measureText(text).width
+  const pw = tw + 16
+  const ph = 22
+
+  if (color === 'green') {
+    ctx.fillStyle = 'rgba(72,199,142,0.12)'
+    ctx.strokeStyle = 'rgba(72,199,142,0.25)'
+    ctx.fillStyle = 'rgba(72,199,142,0.12)'
+  } else {
+    ctx.fillStyle = 'rgba(72,156,255,0.12)'
+    ctx.strokeStyle = 'rgba(72,156,255,0.25)'
+    ctx.fillStyle = 'rgba(72,156,255,0.12)'
+  }
+  roundRect(ctx, x, y, pw, ph, 11)
+  ctx.fill()
+  ctx.stroke()
+
+  ctx.fillStyle = color === 'green' ? '#7fdfb8' : '#7fb8ff'
+  ctx.fillText(text, x + 8, y + 15)
+}
+
+function drawAchievementBadge(
+  ctx: CanvasRenderingContext2D,
+  x: number, y: number, label: string, cssClass: string,
+) {
+  ctx.font = 'bold 10px Inter, system-ui, sans-serif'
+  const tw = ctx.measureText(label).width
+  const pw = tw + 16
+  const ph = 22
+
+  let grad: CanvasGradient
+  switch (cssClass) {
+    case 'badgeUltra':
+      grad = ctx.createLinearGradient(x, y, x + pw, y + ph)
+      grad.addColorStop(0, '#c47fff')
+      grad.addColorStop(0.35, '#ff7eb6')
+      grad.addColorStop(0.65, '#f7c948')
+      grad.addColorStop(1, '#7fdfb8')
+      ctx.fillStyle = grad
+      ctx.shadowColor = 'rgba(196,127,255,0.4)'
+      ctx.shadowBlur = 8
+      break
+    case 'badgeElite':
+      grad = ctx.createLinearGradient(x, y, x + pw, y + ph)
+      grad.addColorStop(0, '#f7c948')
+      grad.addColorStop(1, '#d4a832')
+      ctx.fillStyle = grad
+      ctx.shadowColor = 'rgba(247,201,72,0.35)'
+      ctx.shadowBlur = 6
+      break
+    case 'badgePro':
+      grad = ctx.createLinearGradient(x, y, x + pw, y + ph)
+      grad.addColorStop(0, '#7fb8ff')
+      grad.addColorStop(1, '#5a8fd4')
+      ctx.fillStyle = grad
+      ctx.shadowColor = 'rgba(127,184,255,0.3)'
+      ctx.shadowBlur = 5
+      break
+    default: // badgeSpark
+      grad = ctx.createLinearGradient(x, y, x + pw, y + ph)
+      grad.addColorStop(0, '#e8995e')
+      grad.addColorStop(1, '#c47a3a')
+      ctx.fillStyle = grad
+      ctx.shadowColor = 'rgba(232,153,94,0.25)'
+      ctx.shadowBlur = 4
+      break
+  }
+  roundRect(ctx, x, y, pw, ph, 11)
+  ctx.fill()
+  ctx.shadowColor = 'transparent'
+  ctx.shadowBlur = 0
+
+  ctx.fillStyle = '#ffffff'
+  ctx.fillText(label, x + 8, y + 15)
+}
+
 function BenchmarkModal(props: { respond: () => void }) {
   const [gpuDeviceInfo] = createResource(getGPUDeviceInformation)
   const [state, setState] = createSignal<BenchmarkState>('idle')
@@ -88,6 +186,7 @@ function BenchmarkModal(props: { respond: () => void }) {
   const [progress, setProgress] = createSignal(0)
   const [finalBps, setFinalBps] = createSignal(0)
   const [copied, setCopied] = createSignal(false)
+  const [imageCopied, setImageCopied] = createSignal(false)
   let startTime = 0
   let running = false
 
@@ -135,6 +234,149 @@ function BenchmarkModal(props: { respond: () => void }) {
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
     })
+  }
+
+  function renderBenchmarkCard(): HTMLCanvasElement {
+    const W = 600
+    const H = 320
+    const canvas = document.createElement('canvas')
+    canvas.width = W
+    canvas.height = H
+    const ctx = canvas.getContext('2d')!
+
+    // Background
+    const bgGrad = ctx.createLinearGradient(0, 0, W, H)
+    bgGrad.addColorStop(0, '#0f0f1a')
+    bgGrad.addColorStop(1, '#1a1025')
+    ctx.fillStyle = bgGrad
+    roundRect(ctx, 0, 0, W, H, 16)
+    ctx.fill()
+
+    // Subtle grid
+    ctx.strokeStyle = 'rgba(255,255,255,0.02)'
+    ctx.lineWidth = 0.5
+    for (let x = 0; x < W; x += 30) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke()
+    }
+    for (let y = 0; y < H; y += 30) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke()
+    }
+
+    // Top accent line
+    const accentGrad = ctx.createLinearGradient(0, 0, W, 0)
+    accentGrad.addColorStop(0, '#ff6b35')
+    accentGrad.addColorStop(0.5, '#f7c948')
+    accentGrad.addColorStop(1, '#ff6b35')
+    ctx.fillStyle = accentGrad
+    roundRect(ctx, 20, 16, W - 40, 3, 2)
+    ctx.fill()
+
+    // Title
+    ctx.fillStyle = '#ffffff'
+    ctx.font = 'bold 22px Inter, system-ui, sans-serif'
+    ctx.fillText('Chaos Master Benchmark', 28, 54)
+
+    // Version pill
+    const versionText = `v${VERSION}${GIT_SHA ? ` (${GIT_SHA})` : ''}`
+    ctx.font = '11px Inter, system-ui, sans-serif'
+    const vw = ctx.measureText(versionText).width
+    ctx.fillStyle = 'rgba(255,255,255,0.08)'
+    roundRect(ctx, W - vw - 44, 36, vw + 16, 20, 10)
+    ctx.fill()
+    ctx.fillStyle = 'rgba(255,255,255,0.5)'
+    ctx.fillText(versionText, W - vw - 36, 50)
+
+    const info = gpuDeviceInfo()
+
+    // Device info
+    let y = 90
+    ctx.fillStyle = 'rgba(255,255,255,0.4)'
+    ctx.font = '10px Inter, system-ui, sans-serif'
+    ctx.fillText('DEVICE', 28, y)
+    y += 22
+
+    const devices: { label: string; value: string; color: 'green' | 'blue' }[] = []
+    if (info?.description) devices.push({ label: 'GPU', value: info.description, color: 'green' })
+    if (info?.vendor) devices.push({ label: 'Vendor', value: info.vendor, color: 'blue' })
+    if (info?.architecture) devices.push({ label: 'Arch', value: info.architecture, color: 'blue' })
+    if (info?.heaps) {
+      devices.push({ label: 'VRAM', value: info.heaps.map((s) => formatBytes(s)).join(' + '), color: 'green' })
+    }
+    for (const d of devices) {
+      drawPill(ctx, 28, y, d.value, d.color)
+      y += 28
+    }
+
+    // CPU/RAM
+    const sysParts: string[] = []
+    if (globalThis.navigator.hardwareConcurrency) {
+      sysParts.push(`${globalThis.navigator.hardwareConcurrency} CPU cores`)
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const deviceMemory = (globalThis.navigator as any).deviceMemory as number | undefined
+    if (deviceMemory !== undefined) {
+      sysParts.push(`~${deviceMemory} GB RAM`)
+    }
+    if (sysParts.length > 0) {
+      drawPill(ctx, 28, y, sysParts.join('  ·  '), 'green')
+      y += 28
+    }
+
+    // Results (right column)
+    const rx = 360
+    let ry = 86
+
+    ctx.fillStyle = 'rgba(255,255,255,0.4)'
+    ctx.font = '10px Inter, system-ui, sans-serif'
+    ctx.fillText('MILLIONS / SECOND', rx, ry)
+    ry += 26
+
+    const mps = finalMps()
+    ctx.fillStyle = '#ffffff'
+    ctx.font = 'bold 40px Inter, system-ui, sans-serif'
+    ctx.fillText(mps.toFixed(1), rx, ry)
+    ry += 42
+
+    ctx.fillStyle = 'rgba(255,255,255,0.35)'
+    ctx.font = '14px Inter, system-ui, sans-serif'
+    ctx.fillText(`${finalBps().toFixed(3)} B/s`, rx, ry)
+    ry += 28
+
+    // Achievement badge
+    const badge = achievementBadge()
+    drawAchievementBadge(ctx, rx, ry, badge.label, badge.cssClass)
+    ry += 36
+
+    // Footer
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    const platform = globalThis.navigator.platform || 'Unknown'
+    ctx.fillStyle = 'rgba(255,255,255,0.25)'
+    ctx.font = '10px Inter, system-ui, sans-serif'
+    ctx.fillText(`${platform}  ·  ${new Date().toISOString().split('T')[0]}`, 28, H - 24)
+
+    ctx.fillStyle = 'rgba(255,255,255,0.15)'
+    ctx.fillText('chaosmaster.app', W - 110, H - 24)
+
+    // Border
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)'
+    ctx.lineWidth = 1
+    roundRect(ctx, 0.5, 0.5, W - 1, H - 1, 16)
+    ctx.stroke()
+
+    return canvas
+  }
+
+  function copyBenchmarkImage() {
+    const canvas = renderBenchmarkCard()
+    canvas.toBlob((blob) => {
+      if (!blob) return
+      void globalThis.navigator.clipboard
+        .write([new ClipboardItem({ 'image/png': blob })])
+        .then(() => {
+          setImageCopied(true)
+          setTimeout(() => setImageCopied(false), 1500)
+        })
+    }, 'image/png')
   }
 
   const finalMps = createMemo(() => finalBps() * 1000)
@@ -349,6 +591,20 @@ function BenchmarkModal(props: { respond: () => void }) {
               )}
             </svg>
             {copied() ? 'Copied!' : 'Copy Benchmark Log'}
+          </button>
+          <button
+            class={ui.copyBtn}
+            classList={{ [ui.copyBtnCopied!]: imageCopied() }}
+            onClick={copyBenchmarkImage}
+          >
+            <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14">
+              {imageCopied() ? (
+                <path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0z" />
+              ) : (
+                <path d="M8 2.5a.5.5 0 0 0-1 0V5H4.5a.5.5 0 0 0 0 1H7v2.5a.5.5 0 0 0 1 0V6h2.5a.5.5 0 0 0 0-1H8V2.5zM2 4a1 1 0 0 1 1-1h.5a.5.5 0 0 1 0 1H3v9h9v-.5a.5.5 0 0 1 1 0v1a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4z" />
+              )}
+            </svg>
+            {imageCopied() ? 'Copied!' : 'Copy as Image'}
           </button>
         </div>
         <div class={ui.caveatSection}>
