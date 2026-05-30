@@ -8,10 +8,10 @@ import type { Infer } from 'typegpu/data'
 import type { EditorFor } from '@/components/Sliders/ParametricEditors/types'
 
 const ChaosCubesVarParams = struct({
-  mode: f32, // int
-  mode7_A: f32, // int
-  mode7_B: f32, // int
-  depth: f32, // max_iterations
+  mode: f32,
+  mode7_A: f32,
+  mode7_B: f32,
+  depth: f32,
   twistX: f32,
   twistY: f32,
   twistZ: f32,
@@ -22,8 +22,8 @@ const ChaosCubesVarParams = struct({
   rotX: f32,
   rotY: f32,
   rotZ: f32,
-  invert: f32, // bool 0/1
-  julia: f32, // bool 0/1
+  invert: f32,
+  julia: f32,
   sphereInvert: f32,
   sphereRadius: f32,
 })
@@ -74,7 +74,6 @@ const ChaosCubesVarParamsEditor: EditorFor<ChaosCubesVarParams> = (props) => (
       max={1}
       step={1}
     />
-    {/* Other params omitted for brevity but should be present */}
   </>
 )
 export const chaosCubesVar = parametricVariation(
@@ -86,29 +85,29 @@ export const chaosCubesVar = parametricVariation(
     'use gpu'
     let px = pos.x
     let py = pos.y
-    let pz = 0.0 // varInfo.z? usually 0 in 2D vars
-    const rX = P.rotX * 0.017453 // rad
+    let pz = 0.0
+    const rX = P.rotX * 0.017453
     const rY = P.rotY * 0.017453
     const rZ = P.rotZ * 0.017453
     if (P.rotX !== 0.0) {
-      const c = cos(rX),
-        s = sin(rX)
+      const c = cos(rX)
+      const s = sin(rX)
       const ny = py * c - pz * s
       const nz = py * s + pz * c
       py = ny
       pz = nz
     }
     if (P.rotY !== 0.0) {
-      const c = cos(rY),
-        s = sin(rY)
+      const c = cos(rY)
+      const s = sin(rY)
       const nx = px * c + pz * s
       const nz = -px * s + pz * c
       px = nx
       pz = nz
     }
     if (P.rotZ !== 0.0) {
-      const c = cos(rZ),
-        s = sin(rZ)
+      const c = cos(rZ)
+      const s = sin(rZ)
       const nx = px * c - py * s
       const ny = px * s + py * c
       px = nx
@@ -137,9 +136,9 @@ export const chaosCubesVar = parametricVariation(
         }
       } else {
         const vIdx = floor(random() * 5.0)
-        let vx = 0.0,
-          vy = 0.0,
-          vz = 0.0
+        let vx = 0.0
+        let vy = 0.0
+        let vz = 0.0
         const off = P.offset
         vx = select(
           0.0,
@@ -158,8 +157,8 @@ export const chaosCubesVar = parametricVariation(
       }
       if (P.twistX !== 0.0) {
         const ang = px * P.twistX
-        const c = cos(ang),
-          s = sin(ang)
+        const c = cos(ang)
+        const s = sin(ang)
         const ny = py * c - pz * s
         const nz = py * s + pz * c
         py = ny

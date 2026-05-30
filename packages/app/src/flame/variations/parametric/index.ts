@@ -71,11 +71,47 @@ import { sTwinVar } from './general/sTwinVar'
 import { swirl3Var } from './general/swirl3Var'
 import { tradeVar } from './general/tradeVar'
 import { tunnelVar } from './general/tunnelVar'
+import { postAxisSymmetryWf } from './post/postAxisSymmetryWf'
+import { postBWraps2 } from './post/postBWraps2'
+import { postCrop } from './post/postCrop'
+import { postCurl } from './post/postCurl'
+import { postMirrorWf } from './post/postMirrorWf'
+import { postPointSymmetryWf } from './post/postPointSymmetryWf'
+import { symBandG1 } from './post/symBandG1'
+import { symBandG2 } from './post/symBandG2'
+import { symBandG3 } from './post/symBandG3'
+import { symBandG4 } from './post/symBandG4'
+import { symBandG5 } from './post/symBandG5'
+import { symBandG6 } from './post/symBandG6'
+import { symBandG7 } from './post/symBandG7'
+import { symNetG1 } from './post/symNetG1'
+import { symNetG2 } from './post/symNetG2'
+import { symNetG3 } from './post/symNetG3'
+import { symNetG4 } from './post/symNetG4'
+import { symNetG5 } from './post/symNetG5'
+import { symNetG6 } from './post/symNetG6'
+import { symNetG7 } from './post/symNetG7'
+import { symNetG8 } from './post/symNetG8'
+import { symNetG9 } from './post/symNetG9'
+import { symNetG10 } from './post/symNetG10'
+import { symNetG11 } from './post/symNetG11'
+import { symNetG12 } from './post/symNetG12'
+import { symNetG13 } from './post/symNetG13'
+import { symNetG14 } from './post/symNetG14'
+import { symNetG15 } from './post/symNetG15'
+import { symNetG16 } from './post/symNetG16'
+import { symNetG17 } from './post/symNetG17'
 import { synthVar } from './synthVar'
 
 export const parametricVariations = {
   blurLinear,
   blurZoom,
+  postAxisSymmetryWf,
+  postBWraps2,
+  postCrop,
+  postCurl,
+  postMirrorWf,
+  postPointSymmetryWf,
   radialBlur,
   blob,
   cliffordVar,
@@ -111,6 +147,30 @@ export const parametricVariations = {
   spirographVar,
   squishVar,
   swirl3Var,
+  symBandG1,
+  symBandG2,
+  symBandG3,
+  symBandG4,
+  symBandG5,
+  symBandG6,
+  symBandG7,
+  symNetG1,
+  symNetG2,
+  symNetG3,
+  symNetG4,
+  symNetG5,
+  symNetG6,
+  symNetG7,
+  symNetG8,
+  symNetG9,
+  symNetG10,
+  symNetG11,
+  symNetG12,
+  symNetG13,
+  symNetG14,
+  symNetG15,
+  symNetG16,
+  symNetG17,
   tunnelVar,
   tradeVar,
   anamorphCylVar,
