@@ -1,5 +1,4 @@
 import { createResource, createSignal, For, Show, Suspense } from 'solid-js'
-import { IS_DEV } from '@/defaults'
 import { Changelog, Discord, GitHub, Heart, Terminal, TriangleAlert, } from '@/icons'
 import { getWebgpuComponents } from '@/lib/WebgpuAdapter'
 import { formatBytes } from '@/utils/formatBytes'
@@ -210,7 +209,7 @@ function HelpModal(props: HelpModalProps) {
             >
               <Terminal />
             </button>
-            <Show when={IS_DEV && props.onInjectCrash}>
+            <Show when={props.onInjectCrash}>
               <button
                 class={ui.iconBtn}
                 onClick={() => {
