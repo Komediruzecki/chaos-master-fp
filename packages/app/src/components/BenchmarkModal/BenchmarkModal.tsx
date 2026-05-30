@@ -20,7 +20,7 @@ function getAchievementBadge(
   if (bps >= 5) return { label: '5B+', cssClass: 'badgeUltra' }
   if (bps >= 3) return { label: '3B+', cssClass: 'badgeElite' }
   if (bps >= 1) return { label: '1B+', cssClass: 'badgePro' }
-  return { label: 'Spark', cssClass: 'badgeSpark' }
+  return { label: 'SPARK', cssClass: 'badgeSpark' }
 }
 
 async function getGPUDeviceInformation() {
@@ -43,6 +43,7 @@ async function getGPUDeviceInformation() {
 
 function gatherBenchmarkLog(
   bps: number,
+  totalPoints: number,
   gpuInfo?: Awaited<ReturnType<typeof getGPUDeviceInformation>>,
 ): string {
   const lines: string[] = []
@@ -74,6 +75,7 @@ function gatherBenchmarkLog(
   lines.push(`Platform : ${n.platform}`)
   lines.push(`MPS      : ${(bps * 1000).toFixed(1)}`)
   lines.push(`BPS      : ${bps.toFixed(3)}`)
+  lines.push(`Points   : ${totalPoints.toLocaleString()}`)
 
   return lines.join('\n')
 }
@@ -181,7 +183,7 @@ function drawAchievementBadge(
 function BenchmarkModal(props: { respond: () => void }) {
   const [gpuDeviceInfo] = createResource(getGPUDeviceInformation)
   const [state, setState] = createSignal<BenchmarkState>('idle')
-  const [_accumulatedPoints, setAccumulatedPoints] = createSignal(0)
+  const [totalPoints, setTotalPoints] = createSignal(0)
   const [liveBps, setLiveBps] = createSignal(0)
   const [progress, setProgress] = createSignal(0)
   const [finalBps, setFinalBps] = createSignal(0)
@@ -191,7 +193,7 @@ function BenchmarkModal(props: { respond: () => void }) {
   let running = false
 
   function handleStart() {
-    setAccumulatedPoints(0)
+    setTotalPoints(0)
     setLiveBps(0)
     setProgress(0)
     setFinalBps(0)
@@ -204,7 +206,7 @@ function BenchmarkModal(props: { respond: () => void }) {
     running = false
     setState('idle')
     startTime = 0
-    setAccumulatedPoints(0)
+    setTotalPoints(0)
   }
 
   function handleAccumulatedPoints(count: number) {
@@ -217,7 +219,7 @@ function BenchmarkModal(props: { respond: () => void }) {
     }
 
     const elapsed = (globalThis.performance.now() - startTime) / 1000
-    setAccumulatedPoints(count)
+    setTotalPoints(count)
     setLiveBps(count / elapsed / 1e9)
     setProgress(Math.min((elapsed / BENCHMARK_SECONDS) * 100, 100))
 
@@ -229,7 +231,7 @@ function BenchmarkModal(props: { respond: () => void }) {
   }
 
   function copyBenchmarkLog() {
-    const text = gatherBenchmarkLog(finalBps(), gpuDeviceInfo())
+    const text = gatherBenchmarkLog(finalBps(), totalPoints(), gpuDeviceInfo())
     void globalThis.navigator.clipboard.writeText(text).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
@@ -340,7 +342,12 @@ function BenchmarkModal(props: { respond: () => void }) {
     ctx.fillStyle = 'rgba(255,255,255,0.35)'
     ctx.font = '14px Inter, system-ui, sans-serif'
     ctx.fillText(`${finalBps().toFixed(3)} B/s`, rx, ry)
-    ry += 28
+    ry += 24
+
+    ctx.fillStyle = 'rgba(255,255,255,0.22)'
+    ctx.font = '11px Inter, system-ui, sans-serif'
+    ctx.fillText(`${totalPoints().toLocaleString()} pts`, rx, ry)
+    ry += 24
 
     // Achievement badge
     const badge = achievementBadge()
@@ -504,6 +511,15 @@ function BenchmarkModal(props: { respond: () => void }) {
                     </span>
                   )}
                 </Show>
+              </div>
+              <div class={ui.resultRow}>
+                <div class={ui.resultNumber}>
+                  {totalPoints().toLocaleString()}
+                  <span class={ui.resultUnit}> pts</span>
+                </div>
+                <div class={ui.resultLabel}>
+                  Total Points in {BENCHMARK_SECONDS}s
+                </div>
               </div>
             </div>
           </div>
