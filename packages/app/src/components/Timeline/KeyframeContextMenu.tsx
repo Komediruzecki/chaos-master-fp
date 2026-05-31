@@ -75,7 +75,9 @@ export function KeyframeContextMenu(props: KeyframeContextMenuProps) {
         onClick={(e) => {
           e.stopPropagation()
         }}
-        onContextMenu={(e) => { e.preventDefault(); }}
+        onContextMenu={(e) => {
+          e.preventDefault()
+        }}
       >
         <button
           class={ui.item}
