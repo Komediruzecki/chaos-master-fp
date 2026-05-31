@@ -259,7 +259,6 @@
 .lane {
   position: relative;
   flex: 1;
-  min-width: 100%;
   cursor: pointer;
 }
 
