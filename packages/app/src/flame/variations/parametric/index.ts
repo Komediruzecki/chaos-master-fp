@@ -12,6 +12,7 @@ import { pixelFlowVar } from './dc/pixelFlowVar'
 import { anamorphCylVar } from './general/anamorphCylVar'
 import { asteriaVar } from './general/asteriaVar'
 import { atan2SpiralsVar } from './general/atan2SpiralsVar'
+import { atanVar } from './general/atanVar'
 import { augerVar } from './general/augerVar'
 import { barycentroidVar } from './general/barycentroidVar'
 import { bent2Var } from './general/bent2Var'
@@ -257,6 +258,7 @@ export const parametricVariations = {
   whorlVar,
   anamorphCylVar,
   asteriaVar,
+  atanVar,
   atan2SpiralsVar,
   augerVar,
   barycentroidVar,

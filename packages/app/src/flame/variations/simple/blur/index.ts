@@ -1,5 +1,5 @@
 import { vec2f } from 'typegpu/data'
-import { abs, cos, sin } from 'typegpu/std'
+import { abs, cos, sin, sqrt } from 'typegpu/std'
 import { random } from '@/shaders/random'
 import { PI } from '../../../constants'
 import { simpleVariation } from '../types'
@@ -38,6 +38,17 @@ export const gaussianBlur = simpleVariation(
     const r = random() + random() + random() + random() - 2
     const theta = random() * 2 * PI.$
     return vec2f(cos(theta), sin(theta)).mul(r)
+  },
+  'blur',
+)
+
+export const circleBlur = simpleVariation(
+  'circleBlur',
+  (_pos, _varInfo) => {
+    'use gpu'
+    const rad = sqrt(random())
+    const a = random() * 2 * PI.$
+    return vec2f(cos(a), sin(a)).mul(rad)
   },
   'blur',
 )
