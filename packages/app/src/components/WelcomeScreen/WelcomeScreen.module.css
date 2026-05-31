@@ -481,11 +481,22 @@
     color 0.15s,
     background 0.15s,
     border-color 0.15s;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .hardwareTierPill:hover {
   color: rgba(255, 255, 255, 0.7);
   background: rgba(255, 255, 255, 0.06);
+}
+
+.hardwareTierPill:active {
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.hardwareTierPill:focus-visible {
+  outline: 2px solid rgba(124, 58, 237, 0.5);
+  outline-offset: 1px;
 }
 
 .hardwareTierPillActive {
@@ -511,6 +522,16 @@
 [data-theme='light'] .hardwareTierPill:hover {
   color: rgba(0, 0, 0, 0.7);
   background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme='light'] .hardwareTierPill:active {
+  color: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme='light'] .hardwareTierPill:focus-visible {
+  outline: 2px solid rgba(124, 58, 237, 0.5);
+  outline-offset: 1px;
 }
 
 [data-theme='light'] .hardwareTierPillActive {

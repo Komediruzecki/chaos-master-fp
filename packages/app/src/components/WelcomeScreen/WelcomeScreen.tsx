@@ -1,4 +1,4 @@
-import { createEffect, createResource, createSignal, For, onCleanup, Show, Suspense, } from 'solid-js'
+import { createEffect, createResource, createSignal, For, onCleanup, Show } from 'solid-js'
 import { Portal } from 'solid-js/web'
 import { vec2f, vec4f } from 'typegpu/data'
 import { Checkbox } from '@/components/Checkbox/Checkbox'
@@ -414,15 +414,9 @@ export function WelcomeScreen(props: WelcomeScreenProps) {
             </div>
 
             <div class={ui.hardwareTierSection}>
-              <Suspense
-                fallback={
-                  <span class={ui.hardwareTierLabel}>
-                    Auto-detecting hardware...
-                  </span>
-                }
-              >
-                <></>
-              </Suspense>
+              <span class={ui.hardwareTierLabel}>
+                Hardware Tier
+              </span>
               <div class={ui.hardwareTierPills}>
                 {hardwareTiers.map((tier) => (
                   <button

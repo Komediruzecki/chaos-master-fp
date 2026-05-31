@@ -258,7 +258,7 @@
 
 .lane {
   position: relative;
-  flex: 1;
+  flex: none;
   cursor: pointer;
 }
 
