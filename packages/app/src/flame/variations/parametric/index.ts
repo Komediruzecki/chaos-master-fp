@@ -17,6 +17,7 @@ import { augerVar } from './general/augerVar'
 import { barycentroidVar } from './general/barycentroidVar'
 import { bcollideVar } from './general/bcollideVar'
 import { bent2Var } from './general/bent2Var'
+import { bipolarVar } from './general/bipolarVar'
 import { blob } from './general/blob'
 import { blockYVar } from './general/blockYVar'
 import { bmodVar } from './general/bmodVar'
@@ -30,6 +31,7 @@ import { bwrandsVar } from './general/bwrandsVar'
 import { camouflageVar } from './general/camouflageVar'
 import { cardioidVar } from './general/cardioidVar'
 import { cell2Var } from './general/cell2Var'
+import { cellVar } from './general/cellVar'
 import { chaosCubesVar } from './general/chaosCubesVar'
 import { checksVar } from './general/checksVar'
 import { circus } from './general/circus'
@@ -267,6 +269,7 @@ export const parametricVariations = {
   barycentroidVar,
   bcollideVar,
   bent2Var,
+  bipolarVar,
   blockYVar,
   bmodVar,
   blurPixelizeVar,
@@ -280,6 +283,7 @@ export const parametricVariations = {
   bwrandsVar,
   camouflageVar,
   cardioidVar,
+  cellVar,
   cell2Var,
   chaosCubesVar,
   checksVar,
