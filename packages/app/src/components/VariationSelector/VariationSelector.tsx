@@ -322,6 +322,8 @@ function ShowVariationSelector(props: VariationSelectorModalProps) {
   const [selectedItemId, setSelectedItemId] = createSignal<string>()
   const [hoveredItemId, setHoveredItemId] = createSignal<string>()
   const [touchlessPreview, setTouchlessPreview] = createSignal<boolean>(true)
+  const [paramsCollapsed, setParamsCollapsed] = createSignal(false)
+  const [affineCollapsed, setAffineCollapsed] = createSignal(false)
 
   let hoverClearTimer: ReturnType<typeof setTimeout> | undefined
   const PREVIEW_CLEAR_DELAY = 120
@@ -672,34 +674,48 @@ function ShowVariationSelector(props: VariationSelectorModalProps) {
                       >
                         {(variation) => (
                           <>
-                            <h2>Variation Parameters</h2>
-                            <div class={ui.itemParams}>
-                              <Dynamic
-                                {...getParamsEditor(variation)}
-                                dataParameterPath={`${getTransformPreviewTid(variation.type)}.${getTransformPreviewVid(variation.type)}`}
-                                setValue={(value) => {
-                                  setVariationExamples(
-                                    (
-                                      draft: Record<string, FlameDescriptor>,
-                                    ) => {
-                                      const variationDraft =
-                                        draft[id]?.transforms[
-                                          getTransformPreviewTid(variation.type)
-                                        ]?.variations[
-                                          getTransformPreviewVid(variation.type)
-                                        ]
-                                      if (
-                                        variationDraft === undefined ||
-                                        !isParametricVariation(variationDraft)
-                                      ) {
-                                        throw new Error(`Unreachable code`)
-                                      }
-                                      variationDraft.params = value
-                                    },
-                                  )
-                                }}
-                              />
-                            </div>
+                            <h2
+                              class={ui.collapsibleHeader}
+                              onClick={() => setParamsCollapsed((v) => !v)}
+                            >
+                              <span class={ui.chevron}>
+                                {paramsCollapsed() ? '▶' : '▼'}
+                              </span>
+                              Variation Parameters
+                            </h2>
+                            <Show when={!paramsCollapsed()}>
+                              <div class={ui.itemParams}>
+                                <Dynamic
+                                  {...getParamsEditor(variation)}
+                                  dataParameterPath={`${getTransformPreviewTid(variation.type)}.${getTransformPreviewVid(variation.type)}`}
+                                  setValue={(value) => {
+                                    setVariationExamples(
+                                      (
+                                        draft: Record<string, FlameDescriptor>,
+                                      ) => {
+                                        const variationDraft =
+                                          draft[id]?.transforms[
+                                            getTransformPreviewTid(
+                                              variation.type,
+                                            )
+                                          ]?.variations[
+                                            getTransformPreviewVid(
+                                              variation.type,
+                                            )
+                                          ]
+                                        if (
+                                          variationDraft === undefined ||
+                                          !isParametricVariation(variationDraft)
+                                        ) {
+                                          throw new Error(`Unreachable code`)
+                                        }
+                                        variationDraft.params = value
+                                      },
+                                    )
+                                  }}
+                                />
+                              </div>
+                            </Show>
                           </>
                         )}
                       </Show>
@@ -710,18 +726,27 @@ function ShowVariationSelector(props: VariationSelectorModalProps) {
             }}
           </For>
           <Show when={selectedItemId()}>
-            <AffineEditor
-              class={ui.affineEditor}
-              transforms={{
-                [props.transformId]:
-                  previewFlame.transforms[props.transformId]!,
-              }}
-              setTransforms={(setFn) => {
-                setPreviewFlame((draft) => {
-                  setFn(draft.transforms)
-                })
-              }}
-            />
+            <h2
+              class={ui.collapsibleHeader}
+              onClick={() => setAffineCollapsed((v) => !v)}
+            >
+              <span class={ui.chevron}>{affineCollapsed() ? '▶' : '▼'}</span>
+              Affine Editor
+            </h2>
+            <Show when={!affineCollapsed()}>
+              <AffineEditor
+                class={ui.affineEditor}
+                transforms={{
+                  [props.transformId]:
+                    previewFlame.transforms[props.transformId]!,
+                }}
+                setTransforms={(setFn) => {
+                  setPreviewFlame((draft) => {
+                    setFn(draft.transforms)
+                  })
+                }}
+              />
+            </Show>
           </Show>
         </div>
         <div class={ui.flamePreview}>

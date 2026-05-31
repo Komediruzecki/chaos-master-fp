@@ -140,6 +140,27 @@
   gap: var(--space-4);
 }
 
+.collapsible-header {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  user-select: none;
+  margin: 0;
+  padding: var(--space-1) 0;
+
+  &:hover {
+    color: var(--neutral-500);
+  }
+}
+
+.chevron {
+  display: inline-block;
+  width: 1.2em;
+  font-family: monospace;
+  text-align: center;
+}
+
 .gallery {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
