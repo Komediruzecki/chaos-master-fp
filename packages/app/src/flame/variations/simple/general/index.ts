@@ -1,5 +1,5 @@
 import { f32, vec2f } from 'typegpu/data'
-import { abs, atan2, cos, cosh, dot, exp, length, log, pow, round, select, sin, sinh, sqrt, tan, } from 'typegpu/std'
+import { abs, atan2, cos, cosh, dot, exp, floor, length, log, pow, round, select, sin, sinh, sqrt, tan, } from 'typegpu/std'
 import { random, randomUnitDisk } from '@/shaders/random'
 import { EPS, PI } from '../../../constants'
 import { simpleVariation } from '../types'
@@ -588,4 +588,31 @@ export const erfVar = simpleVariation('erfVar', (pos, _varInfo) => {
     select(erfx, -erfx, pos.x < 0.0),
     select(erfy, -erfy, pos.y < 0.0),
   )
+})
+
+export const apollonyVar = simpleVariation('apollonyVar', (pos, _varInfo) => {
+  'use gpu'
+  const r = sqrt(3.0)
+  const denom = pow(1.0 + r - pos.x, 2.0) + pos.y * pos.y
+  const a0 = (3.0 * (1.0 + r - pos.x)) / denom - (1.0 + r) / (2.0 + r)
+  const b0 = (3.0 * pos.y) / denom
+  const f1x = a0 / (a0 * a0 + b0 * b0)
+  const f1y = -b0 / (a0 * a0 + b0 * b0)
+
+  const branch = floor(3.0 * random())
+
+  const is0 = abs(branch) < 0.5
+  const is1 = abs(branch - 1.0) < 0.5
+
+  const x = select(
+    select(-f1x / 2.0 + (f1y * r) / 2.0, -f1x / 2.0 - (f1y * r) / 2.0, is1),
+    a0,
+    is0,
+  )
+  const y = select(
+    select((-f1x * r) / 2.0 - f1y / 2.0, (f1x * r) / 2.0 - f1y / 2.0, is1),
+    b0,
+    is0,
+  )
+  return vec2f(x, y)
 })

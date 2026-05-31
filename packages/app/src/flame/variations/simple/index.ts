@@ -6,7 +6,7 @@ export * from './general/acosechVar'
 export * from './general/acoshVar'
 export * from './general/acothVar'
 export * from './general/apocarpetVar'
-export * from './general/apollonyVar'
+
 export * from './general/arcsech2Var'
 export * from './general/arcsinhVar'
 export * from './general/arctanhVar'

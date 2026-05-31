@@ -17,6 +17,7 @@ import { augerVar } from './general/augerVar'
 import { barycentroidVar } from './general/barycentroidVar'
 import { bcollideVar } from './general/bcollideVar'
 import { bent2Var } from './general/bent2Var'
+import { bipolar2Var } from './general/bipolar2Var'
 import { bipolarVar } from './general/bipolarVar'
 import { blob } from './general/blob'
 import { blockYVar } from './general/blockYVar'
@@ -25,6 +26,7 @@ import { boarders2Var } from './general/boarders2Var'
 import { boxfoldVar } from './general/boxfoldVar'
 import { bsplitVar } from './general/bsplitVar'
 import { bswirlVar } from './general/bswirlVar'
+import { bTransformVar } from './general/bTransformVar'
 import { bubble2Var } from './general/bubble2Var'
 import { bulgeVar } from './general/bulgeVar'
 import { butterflyFayVar } from './general/butterflyFayVar'
@@ -36,9 +38,14 @@ import { cell2Var } from './general/cell2Var'
 import { cellVar } from './general/cellVar'
 import { chaosCubesVar } from './general/chaosCubesVar'
 import { checksVar } from './general/checksVar'
+import { chunkVar } from './general/chunkVar'
+import { circleLinearVar } from './general/circleLinearVar'
+import { circleRandVar } from './general/circleRandVar'
 import { circlesplitVar } from './general/circlesplitVar'
 import { circlize2Var } from './general/circlize2Var'
 import { circlizeVar } from './general/circlizeVar'
+import { circular2Var } from './general/circular2Var'
+import { circularVar } from './general/circularVar'
 import { circus } from './general/circus'
 import { cliffordVar } from './general/cliffordVar'
 import { collideoscopeVar } from './general/collideoscopeVar'
@@ -51,6 +58,7 @@ import { cpowVar } from './general/cpowVar'
 import { crobVar } from './general/crobVar'
 import { csc2_bsVar } from './general/csc2_bsVar'
 import { csch2_bsVar } from './general/csch2_bsVar'
+import { cscSquaredVar } from './general/cscSquaredVar'
 import { csinVar } from './general/csinVar'
 import { curlVar } from './general/curl'
 import { curveVar } from './general/curveVar'
@@ -125,6 +133,7 @@ import { sattractorVar } from './general/sattractorVar'
 import { scry2Var } from './general/scry2'
 import { seaShellVar } from './general/seaShellVar'
 import { sierCarpetVar } from './general/sierCarpetVar'
+import { sigmoidVar } from './general/sigmoidVar'
 import { sinusGridVar } from './general/sinusGridVar'
 import { spirographVar } from './general/spirographVar'
 import { splitsVar } from './general/splitsVar'
@@ -252,6 +261,7 @@ export const parametricVariations = {
   sattractorVar,
   scry2Var,
   seaShellVar,
+  sigmoidVar,
   sierCarpetVar,
   starBlurVar,
   sinusGridVar,
@@ -299,6 +309,7 @@ export const parametricVariations = {
   barycentroidVar,
   bcollideVar,
   bent2Var,
+  bipolar2Var,
   bipolarVar,
   bsplitVar,
   bwraps7Var,
@@ -309,6 +320,7 @@ export const parametricVariations = {
   boarders2Var,
   boxfoldVar,
   bswirlVar,
+  bTransformVar,
   bubble2Var,
   bulgeVar,
   butterflyFayVar,
@@ -319,13 +331,19 @@ export const parametricVariations = {
   cell2Var,
   chaosCubesVar,
   checksVar,
+  chunkVar,
   circlesplitVar,
   circlize2Var,
   circlizeVar,
+  circleLinearVar,
+  circleRandVar,
+  circular2Var,
+  circularVar,
   collideoscopeVar,
   crobVar,
   csc2_bsVar,
   csch2_bsVar,
+  cscSquaredVar,
   csinVar,
   curveVar,
   cutApollonianVar,
