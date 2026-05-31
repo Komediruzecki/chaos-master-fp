@@ -23,5 +23,5 @@ export const radialBlur = parametricVariation(
     'use gpu'
     return vec2f(pos)
   },
-  'general',
+  'blur',
 )

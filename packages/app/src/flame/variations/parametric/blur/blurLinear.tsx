@@ -25,5 +25,5 @@ export const blurLinear = parametricVariation(
     'use gpu'
     return vec2f(pos)
   },
-  'general',
+  'blur',
 )
