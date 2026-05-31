@@ -1,5 +1,5 @@
 import { f32, vec2f } from 'typegpu/data'
-import { abs, atan2, cos, cosh, dot, exp, length, log, pow, select, sin, sinh, sqrt, tan, } from 'typegpu/std'
+import { abs, atan2, cos, cosh, dot, exp, length, log, pow, round, select, sin, sinh, sqrt, tan, } from 'typegpu/std'
 import { random, randomUnitDisk } from '@/shaders/random'
 import { EPS, PI } from '../../../constants'
 import { simpleVariation } from '../types'
@@ -448,3 +448,47 @@ export const pyramidVar = simpleVariation('pyramidVar', (pos, _varInfo) => {
 
   return vec2f(newX, newY)
 })
+
+export const gridoutVar = simpleVariation(
+  'gridoutVar',
+  (pos, _varInfo) => {
+    'use gpu'
+    const x = round(pos.x)
+    const y = round(pos.y)
+    let nx = pos.x
+    let ny = pos.y
+
+    if (y <= 0.0) {
+      if (x > 0.0) {
+        if (-y >= x) {
+          nx = pos.x + 1.0
+        } else {
+          ny = pos.y + 1.0
+        }
+      } else {
+        if (y <= x) {
+          nx = pos.x + 1.0
+        } else {
+          ny = pos.y - 1.0
+        }
+      }
+    } else {
+      if (x > 0.0) {
+        if (y >= x) {
+          nx = pos.x - 1.0
+        } else {
+          ny = pos.y + 1.0
+        }
+      } else {
+        if (y > -x) {
+          nx = pos.x - 1.0
+        } else {
+          ny = pos.y - 1.0
+        }
+      }
+    }
+
+    return vec2f(nx, ny)
+  },
+  'general',
+)

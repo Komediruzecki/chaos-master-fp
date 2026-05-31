@@ -24,11 +24,13 @@ import { bulgeVar } from './general/bulgeVar'
 import { butterflyFayVar } from './general/butterflyFayVar'
 import { bwrandsVar } from './general/bwrandsVar'
 import { camouflageVar } from './general/camouflageVar'
+import { cardioidVar } from './general/cardioidVar'
 import { cell2Var } from './general/cell2Var'
 import { chaosCubesVar } from './general/chaosCubesVar'
 import { checksVar } from './general/checksVar'
 import { circus } from './general/circus'
 import { cliffordVar } from './general/cliffordVar'
+import { collideoscopeVar } from './general/collideoscopeVar'
 import { cpow2Var } from './general/cpow2Var'
 import { cpowVar } from './general/cpowVar'
 import { crobVar } from './general/crobVar'
@@ -37,6 +39,7 @@ import { curlVar } from './general/curl'
 import { devilWarpVar } from './general/devilWarpVar'
 import { dragonVar } from './general/dragonVar'
 import { ejuliaVar } from './general/ejuliaVar'
+import { epispiralVar } from './general/epispiralVar'
 import { escherVar } from './general/escherVar'
 import { fan2 } from './general/fan2'
 import { fluxVar } from './general/fluxVar'
@@ -47,6 +50,8 @@ import { grid } from './general/grid'
 import { henonVar } from './general/henonVar'
 import { hexesVar } from './general/hexesVar'
 import { hilbertVar } from './general/hilbertVar'
+import { hole2Var } from './general/hole2Var'
+import { holeVar } from './general/holeVar'
 import { hopalongVar } from './general/hopalongVar'
 import { hyperbolicEllipseVar } from './general/hyperbolicEllipseVar'
 import { hypertile2Var } from './general/hypertile2Var'
@@ -100,12 +105,15 @@ import { squishVar } from './general/squishVar'
 import { stripfitVar } from './general/stripfitVar'
 import { sTwinVar } from './general/sTwinVar'
 import { sunflowerVar } from './general/sunflowerVar'
+import { superShapeVar } from './general/superShapeVar'
+import { svenssonVar } from './general/svenssonVar'
 import { swirl3Var } from './general/swirl3Var'
 import { tradeVar } from './general/tradeVar'
 import { treeVar } from './general/treeVar'
 import { truchet2Var } from './general/truchet2Var'
 import { tunnelVar } from './general/tunnelVar'
 import { vogelVar } from './general/vogelVar'
+import { waffleVar } from './general/waffleVar'
 import { whorlVar } from './general/whorlVar'
 import { woggleVar } from './general/woggleVar'
 import { yinYangVar } from './general/yinYangVar'
@@ -169,6 +177,8 @@ export const parametricVariations = {
   henonVar,
   hexesVar,
   hilbertVar,
+  hole2Var,
+  holeVar,
   hopalongVar,
   hyperbolicEllipseVar,
   hypertile2Var,
@@ -243,6 +253,7 @@ export const parametricVariations = {
   truchet2Var,
   tunnelVar,
   vogelVar,
+  waffleVar,
   whorlVar,
   anamorphCylVar,
   asteriaVar,
@@ -260,9 +271,11 @@ export const parametricVariations = {
   butterflyFayVar,
   bwrandsVar,
   camouflageVar,
+  cardioidVar,
   cell2Var,
   chaosCubesVar,
   checksVar,
+  collideoscopeVar,
   crobVar,
   csinVar,
   cutApollonianVar,
@@ -270,6 +283,7 @@ export const parametricVariations = {
   cutFractalVar,
   devilWarpVar,
   ejuliaVar,
+  epispiralVar,
   escherVar,
   juliaQVar,
   kaplanVar,
@@ -283,6 +297,8 @@ export const parametricVariations = {
   sTwinVar,
   stripfitVar,
   sunflowerVar,
+  superShapeVar,
+  svenssonVar,
   synthVar,
   woggleVar,
   yinYangVar,
