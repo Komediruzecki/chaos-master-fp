@@ -15,11 +15,14 @@ import { atan2SpiralsVar } from './general/atan2SpiralsVar'
 import { atanVar } from './general/atanVar'
 import { augerVar } from './general/augerVar'
 import { barycentroidVar } from './general/barycentroidVar'
+import { bcollideVar } from './general/bcollideVar'
 import { bent2Var } from './general/bent2Var'
 import { blob } from './general/blob'
 import { blockYVar } from './general/blockYVar'
+import { bmodVar } from './general/bmodVar'
 import { boarders2Var } from './general/boarders2Var'
 import { boxfoldVar } from './general/boxfoldVar'
+import { bswirlVar } from './general/bswirlVar'
 import { bubble2Var } from './general/bubble2Var'
 import { bulgeVar } from './general/bulgeVar'
 import { butterflyFayVar } from './general/butterflyFayVar'
@@ -262,12 +265,15 @@ export const parametricVariations = {
   atan2SpiralsVar,
   augerVar,
   barycentroidVar,
+  bcollideVar,
   bent2Var,
   blockYVar,
+  bmodVar,
   blurPixelizeVar,
   blurZoomVar,
   boarders2Var,
   boxfoldVar,
+  bswirlVar,
   bubble2Var,
   bulgeVar,
   butterflyFayVar,
