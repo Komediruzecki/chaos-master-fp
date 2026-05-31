@@ -14,9 +14,7 @@ import ui from './BenchmarkModal.module.css'
 
 const BENCHMARK_SECONDS = 10
 
-function getAchievementBadge(
-  bps: number,
-): { label: string; cssClass: string } {
+function getAchievementBadge(bps: number): { label: string; cssClass: string } {
   if (bps >= 5) return { label: '5B+', cssClass: 'badgeUltra' }
   if (bps >= 3) return { label: '3B+', cssClass: 'badgeElite' }
   if (bps >= 1) return { label: '1B+', cssClass: 'badgePro' }
@@ -84,7 +82,11 @@ type BenchmarkState = 'idle' | 'running' | 'complete'
 
 function roundRect(
   ctx: CanvasRenderingContext2D,
-  x: number, y: number, w: number, h: number, r: number,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
 ) {
   ctx.beginPath()
   ctx.moveTo(x + r, y)
@@ -101,7 +103,10 @@ function roundRect(
 
 function drawPill(
   ctx: CanvasRenderingContext2D,
-  x: number, y: number, text: string, color: 'green' | 'blue',
+  x: number,
+  y: number,
+  text: string,
+  color: 'green' | 'blue',
 ) {
   ctx.font = '11px Inter, system-ui, sans-serif'
   const tw = ctx.measureText(text).width
@@ -127,7 +132,10 @@ function drawPill(
 
 function drawAchievementBadge(
   ctx: CanvasRenderingContext2D,
-  x: number, y: number, label: string, cssClass: string,
+  x: number,
+  y: number,
+  label: string,
+  cssClass: string,
 ) {
   ctx.font = 'bold 10px Inter, system-ui, sans-serif'
   const tw = ctx.measureText(label).width
@@ -258,10 +266,16 @@ function BenchmarkModal(props: { respond: () => void }) {
     ctx.strokeStyle = 'rgba(255,255,255,0.02)'
     ctx.lineWidth = 0.5
     for (let x = 0; x < W; x += 30) {
-      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke()
+      ctx.beginPath()
+      ctx.moveTo(x, 0)
+      ctx.lineTo(x, H)
+      ctx.stroke()
     }
     for (let y = 0; y < H; y += 30) {
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke()
+      ctx.beginPath()
+      ctx.moveTo(0, y)
+      ctx.lineTo(W, y)
+      ctx.stroke()
     }
 
     // Top accent line
@@ -297,12 +311,20 @@ function BenchmarkModal(props: { respond: () => void }) {
     ctx.fillText('DEVICE', 28, y)
     y += 22
 
-    const devices: { label: string; value: string; color: 'green' | 'blue' }[] = []
-    if (info?.description) devices.push({ label: 'GPU', value: info.description, color: 'green' })
-    if (info?.vendor) devices.push({ label: 'Vendor', value: info.vendor, color: 'blue' })
-    if (info?.architecture) devices.push({ label: 'Arch', value: info.architecture, color: 'blue' })
+    const devices: { label: string; value: string; color: 'green' | 'blue' }[] =
+      []
+    if (info?.description)
+      devices.push({ label: 'GPU', value: info.description, color: 'green' })
+    if (info?.vendor)
+      devices.push({ label: 'Vendor', value: info.vendor, color: 'blue' })
+    if (info?.architecture)
+      devices.push({ label: 'Arch', value: info.architecture, color: 'blue' })
     if (info?.heaps) {
-      devices.push({ label: 'VRAM', value: info.heaps.map((s) => formatBytes(s)).join(' + '), color: 'green' })
+      devices.push({
+        label: 'VRAM',
+        value: info.heaps.map((s) => formatBytes(s)).join(' + '),
+        color: 'green',
+      })
     }
     for (const d of devices) {
       drawPill(ctx, 28, y, d.value, d.color)
@@ -315,7 +337,9 @@ function BenchmarkModal(props: { respond: () => void }) {
       sysParts.push(`${globalThis.navigator.hardwareConcurrency} CPU cores`)
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const deviceMemory = (globalThis.navigator as any).deviceMemory as number | undefined
+    const deviceMemory = (globalThis.navigator as any).deviceMemory as
+      | number
+      | undefined
     if (deviceMemory !== undefined) {
       sysParts.push(`~${deviceMemory} GB RAM`)
     }
@@ -370,7 +394,11 @@ function BenchmarkModal(props: { respond: () => void }) {
     const platform = globalThis.navigator.platform || 'Unknown'
     ctx.fillStyle = 'rgba(255,255,255,0.25)'
     ctx.font = '10px Inter, system-ui, sans-serif'
-    ctx.fillText(`${platform}  ·  ${new Date().toISOString().split('T')[0]}`, 28, H - 24)
+    ctx.fillText(
+      `${platform}  ·  ${new Date().toISOString().split('T')[0]}`,
+      28,
+      H - 24,
+    )
 
     ctx.fillStyle = 'rgba(255,255,255,0.15)'
     ctx.fillText('chaos-master.com', W - 110, H - 24)

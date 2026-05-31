@@ -210,6 +210,8 @@
 /* ── Track row ── */
 .trackRow {
   display: flex;
+  width: max-content;
+  min-width: 100%;
   border-bottom: 1px solid var(--neutral-100, #f3f4f6);
   align-items: stretch;
   transition: background 0.1s;

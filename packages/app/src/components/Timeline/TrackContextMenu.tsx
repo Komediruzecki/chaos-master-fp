@@ -50,7 +50,9 @@ export function TrackContextMenu(props: TrackContextMenuProps) {
         onClick={(e) => {
           e.stopPropagation()
         }}
-        onContextMenu={(e) => { e.preventDefault(); }}
+        onContextMenu={(e) => {
+          e.preventDefault()
+        }}
       >
         <button
           class={ui.item}

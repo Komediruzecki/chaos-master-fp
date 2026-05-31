@@ -331,7 +331,9 @@ function AffineHandle(props: {
         // because otherwise WheelZoomCamera2D steals the event
         // due to solidjs event delegation.
         on:pointerdown={startDragging}
-        onContextMenu={(e) => { e.preventDefault(); }}
+        onContextMenu={(e) => {
+          e.preventDefault()
+        }}
         style={{
           '--color': handleColor(theme(), props.color),
           '--handle-visual-r': `${0.3 * handleScale()}rem`,
@@ -441,7 +443,12 @@ export function AffineEditor(props: {
             position={[position, setPosition]}
           >
             <Grid isVisible={isVisible} />
-            <svg class={ui.svg} onContextMenu={(e) => { e.preventDefault(); }}>
+            <svg
+              class={ui.svg}
+              onContextMenu={(e) => {
+                e.preventDefault()
+              }}
+            >
               <defs>
                 <marker
                   id="arrow"
