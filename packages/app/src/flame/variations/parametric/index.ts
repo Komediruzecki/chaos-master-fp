@@ -79,6 +79,7 @@ import { exp2_bsVar } from './general/exp2_bsVar'
 import { fan2 } from './general/fan2'
 import { fdiscVar } from './general/fdiscVar'
 import { fibonacci2Var } from './general/fibonacci2Var'
+import { flowerVar } from './general/flowerVar'
 import { fluxVar } from './general/fluxVar'
 import { fourthVar } from './general/fourthVar'
 import { fresnelVar } from './general/fresnelVar'
@@ -218,6 +219,7 @@ export const parametricVariations = {
   fan2,
   fdiscVar,
   fibonacci2Var,
+  flowerVar,
   fluxVar,
   fourthVar,
   fresnelVar,
