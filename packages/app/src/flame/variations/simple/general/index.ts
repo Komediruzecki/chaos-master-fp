@@ -492,3 +492,100 @@ export const gridoutVar = simpleVariation(
   },
   'general',
 )
+
+export const fociVar = simpleVariation('fociVar', (pos, _varInfo) => {
+  'use gpu'
+  const expx = exp(pos.x) * 0.5
+  const expnx = 0.25 / expx
+  const denom = expx + expnx - cos(pos.y)
+  const tmp = select(1.0 / denom, 0.0, abs(denom) < EPS.$)
+  return vec2f((expx - expnx) * tmp, sin(pos.y) * tmp)
+})
+
+export const deltaAVar = simpleVariation('deltaAVar', (pos, _varInfo) => {
+  'use gpu'
+  const ratio =
+    sqrt(pos.y * pos.y + (pos.x + 1.0) * (pos.x + 1.0)) /
+    sqrt(pos.y * pos.y + (pos.x - 1.0) * (pos.x - 1.0))
+  const avga = (atan2(pos.y, pos.x - 1.0) - atan2(pos.y, pos.x + 1.0)) * 0.5
+  return vec2f(cos(avga), sin(avga)).mul(ratio)
+})
+
+export const flipyVar = simpleVariation('flipyVar', (pos, _varInfo) => {
+  'use gpu'
+  return vec2f(pos.x, select(-pos.y, pos.y, pos.x > 0.0))
+})
+
+export const flipcircleVar = simpleVariation(
+  'flipcircleVar',
+  (pos, varInfo) => {
+    'use gpu'
+    const r2 = pos.x * pos.x + pos.y * pos.y
+    const w2 = varInfo.weight * varInfo.weight
+    return vec2f(pos.x, select(-pos.y, pos.y, r2 > w2))
+  },
+)
+
+export const expVar = simpleVariation('expVar', (pos, _varInfo) => {
+  'use gpu'
+  const expe = exp(pos.x)
+  return vec2f(cos(pos.y), sin(pos.y)).mul(expe)
+})
+
+export const loonieVar = simpleVariation('loonieVar', (pos, varInfo) => {
+  'use gpu'
+  const r2 = dot(pos, pos)
+  const w2 = varInfo.weight * varInfo.weight
+  const factor = select(
+    varInfo.weight,
+    varInfo.weight * sqrt(w2 / r2 - 1.0),
+    r2 < w2 && r2 !== 0.0,
+  )
+  return pos.mul(factor)
+})
+
+export const gammaVar = simpleVariation('gammaVar', (pos, _varInfo) => {
+  'use gpu'
+  const x = sqrt(dot(pos, pos))
+  // Lanczos approximation for lgamma
+  const tmp = (x - 0.5) * log(x + 4.5) - (x + 4.5)
+  const ser =
+    1.0 +
+    76.18009173 / x -
+    86.50532033 / (x + 1.0) +
+    24.01409822 / (x + 2.0) -
+    1.231739516 / (x + 3.0) +
+    0.00120858003 / (x + 4.0) -
+    0.00000536382 / (x + 5.0)
+  const lgamma_x = tmp + log(ser * sqrt(2.0 * PI.$))
+  return vec2f(lgamma_x, atan2(pos.y, pos.x))
+})
+
+export const erfVar = simpleVariation('erfVar', (pos, _varInfo) => {
+  'use gpu'
+  // Abramowitz & Stegun erf approximation
+  const ax = abs(pos.x)
+  const t = 1.0 / (1.0 + 0.3275911 * ax)
+  const erfx =
+    1.0 -
+    (0.254829592 * t -
+      0.284496736 * t * t +
+      1.421413741 * t * t * t -
+      1.453152027 * t * t * t * t +
+      1.061405429 * t * t * t * t * t) *
+      exp(-ax * ax)
+  const ay = abs(pos.y)
+  const ty = 1.0 / (1.0 + 0.3275911 * ay)
+  const erfy =
+    1.0 -
+    (0.254829592 * ty -
+      0.284496736 * ty * ty +
+      1.421413741 * ty * ty * ty -
+      1.453152027 * ty * ty * ty * ty +
+      1.061405429 * ty * ty * ty * ty * ty) *
+      exp(-ay * ay)
+  return vec2f(
+    select(erfx, -erfx, pos.x < 0.0),
+    select(erfy, -erfy, pos.y < 0.0),
+  )
+})

@@ -23,11 +23,13 @@ import { blockYVar } from './general/blockYVar'
 import { bmodVar } from './general/bmodVar'
 import { boarders2Var } from './general/boarders2Var'
 import { boxfoldVar } from './general/boxfoldVar'
+import { bsplitVar } from './general/bsplitVar'
 import { bswirlVar } from './general/bswirlVar'
 import { bubble2Var } from './general/bubble2Var'
 import { bulgeVar } from './general/bulgeVar'
 import { butterflyFayVar } from './general/butterflyFayVar'
 import { bwrandsVar } from './general/bwrandsVar'
+import { bwraps7Var } from './general/bwraps7Var'
 import { camouflageVar } from './general/camouflageVar'
 import { cardioidVar } from './general/cardioidVar'
 import { cell2Var } from './general/cell2Var'
@@ -40,19 +42,36 @@ import { circlizeVar } from './general/circlizeVar'
 import { circus } from './general/circus'
 import { cliffordVar } from './general/cliffordVar'
 import { collideoscopeVar } from './general/collideoscopeVar'
+import { cos2_bsVar } from './general/cos2_bsVar'
+import { cosh2_bsVar } from './general/cosh2_bsVar'
+import { cot2_bsVar } from './general/cot2_bsVar'
+import { coth2_bsVar } from './general/coth2_bsVar'
 import { cpow2Var } from './general/cpow2Var'
 import { cpowVar } from './general/cpowVar'
 import { crobVar } from './general/crobVar'
+import { csc2_bsVar } from './general/csc2_bsVar'
+import { csch2_bsVar } from './general/csch2_bsVar'
 import { csinVar } from './general/csinVar'
 import { curlVar } from './general/curl'
+import { curveVar } from './general/curveVar'
 import { devilWarpVar } from './general/devilWarpVar'
+import { disc2Var } from './general/disc2Var'
 import { dragonVar } from './general/dragonVar'
+import { eclipseVar } from './general/eclipseVar'
 import { ejuliaVar } from './general/ejuliaVar'
+import { eModVar } from './general/eModVar'
+import { eMotionVar } from './general/eMotionVar'
 import { epispiralVar } from './general/epispiralVar'
+import { ePushVar } from './general/ePushVar'
 import { escherVar } from './general/escherVar'
+import { exp2_bsVar } from './general/exp2_bsVar'
 import { fan2 } from './general/fan2'
+import { fdiscVar } from './general/fdiscVar'
+import { fibonacci2Var } from './general/fibonacci2Var'
 import { fluxVar } from './general/fluxVar'
+import { fourthVar } from './general/fourthVar'
 import { fresnelVar } from './general/fresnelVar'
+import { funnelVar } from './general/funnelVar'
 import { gingerBreadVar } from './general/gingerBreadVar'
 import { gosperVar } from './general/gosperVar'
 import { grid } from './general/grid'
@@ -173,13 +192,21 @@ export const parametricVariations = {
   blob,
   cliffordVar,
   circus,
+  cos2_bsVar,
+  cosh2_bsVar,
+  cot2_bsVar,
+  coth2_bsVar,
   cpowVar,
   cpow2Var,
   curlVar,
   dragonVar,
   fan2,
+  fdiscVar,
+  fibonacci2Var,
   fluxVar,
+  fourthVar,
   fresnelVar,
+  funnelVar,
   gingerBreadVar,
   gosperVar,
   grid,
@@ -273,6 +300,8 @@ export const parametricVariations = {
   bcollideVar,
   bent2Var,
   bipolarVar,
+  bsplitVar,
+  bwraps7Var,
   blockYVar,
   bmodVar,
   blurPixelizeVar,
@@ -295,13 +324,22 @@ export const parametricVariations = {
   circlizeVar,
   collideoscopeVar,
   crobVar,
+  csc2_bsVar,
+  csch2_bsVar,
   csinVar,
+  curveVar,
   cutApollonianVar,
   cutCircleDesignVar,
   cutFractalVar,
   devilWarpVar,
+  disc2Var,
+  eclipseVar,
+  eModVar,
+  eMotionVar,
+  ePushVar,
   ejuliaVar,
   epispiralVar,
+  exp2_bsVar,
   escherVar,
   juliaQVar,
   kaplanVar,
