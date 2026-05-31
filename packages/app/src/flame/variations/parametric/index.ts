@@ -73,6 +73,7 @@ import { tradeVar } from './general/tradeVar'
 import { tunnelVar } from './general/tunnelVar'
 import { postAxisSymmetryWf } from './post/postAxisSymmetryWf'
 import { postBWraps2 } from './post/postBWraps2'
+import { postCircleCrop } from './post/postCircleCrop'
 import { postCrop } from './post/postCrop'
 import { postCurl } from './post/postCurl'
 import { postMirrorWf } from './post/postMirrorWf'
@@ -106,6 +107,7 @@ import { synthVar } from './synthVar'
 export const parametricVariations = {
   blurLinear,
   blurZoom,
+  postCircleCrop,
   postAxisSymmetryWf,
   postBWraps2,
   postCrop,
