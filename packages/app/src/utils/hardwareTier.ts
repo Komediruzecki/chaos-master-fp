@@ -23,12 +23,17 @@ const HIGH_VRAM_BYTES = 6 * 1024 * 1024 * 1024
 const MID_VRAM_BYTES = 2 * 1024 * 1024 * 1024
 
 const ULTRA_KEYWORDS = [
+  '5090',
+  '5080',
   '4090',
   '4080',
+  '9070 xt',
   '7900 xtx',
   '7900 xt',
   'm4 ultra',
+  'm4 max',
   'm3 ultra',
+  'm3 max',
   'pro 32',
   'pro w',
   'a100',
@@ -36,21 +41,28 @@ const ULTRA_KEYWORDS = [
   'rx 7900',
 ]
 const HIGH_KEYWORDS = [
+  '5070 ti',
+  '5070',
   '4070',
   '4060 ti',
   '4060',
+  '9070',
+  '9060 xt',
   '7800 xt',
   '7700 xt',
   'm4 pro',
   'm3 pro',
   'm2 pro',
+  'm2 max',
   'm1 pro',
+  'm1 max',
   'rtx 3080',
   'rtx 3090',
   'rx 6800',
   'rx 6900',
   'arc a770',
   'arc a750',
+  'b580',
 ]
 
 function getVramBytes(adapter: GPUAdapter): number {
