@@ -421,11 +421,7 @@ export function WelcomeScreen(props: WelcomeScreenProps) {
                   </span>
                 }
               >
-                <Show when={effectiveTier()}>
-                  <span class={ui.hardwareTierLabel}>
-                    Hardware Tier: {effectiveTier()}
-                  </span>
-                </Show>
+                <></>
               </Suspense>
               <div class={ui.hardwareTierPills}>
                 {hardwareTiers.map((tier) => (
