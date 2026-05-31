@@ -156,6 +156,8 @@ export function DopeSheetTrack(props: DopeSheetTrackProps) {
         <For each={keyframes()}>
           {(kf) => {
             const left = () => (kf.frame - props.startFrame) * props.frameWidth
+            const diamondSize = () =>
+              Math.max(14, Math.round(props.trackHeight * 0.7))
             return (
               <div
                 class={ui.keyframeDot}
@@ -167,7 +169,10 @@ export function DopeSheetTrack(props: DopeSheetTrackProps) {
                   [ui.atCurrentFrame as string]:
                     kf.frame === props.currentFrame,
                 }}
-                style={{ left: `${left()}px` }}
+                style={{
+                  left: `${left()}px`,
+                  '--dot-size': `${diamondSize()}px`,
+                }}
                 title={`Frame ${kf.frame}: ${String(kf.value)}`}
                 onPointerDown={(e) => {
                   handleDragStart(e, kf.frame)

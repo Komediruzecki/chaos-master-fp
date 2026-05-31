@@ -301,23 +301,23 @@
   top: 50%;
   transform: translate(-50%, -50%);
   cursor: pointer;
-  width: 14px;
-  height: 14px;
+  width: var(--dot-size, 14px);
+  height: var(--dot-size, 14px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 2;
-  /* Expand touch target to 36px while keeping visual size at 14px */
+  /* Expand touch target — at least 22px, scales with dot size */
   &::after {
     content: '';
     position: absolute;
-    inset: -11px;
+    inset: max(-11px, calc(var(--dot-size, 14px) * -0.6));
   }
 }
 
 .keyframeDot svg {
-  width: 9px;
-  height: 9px;
+  width: calc(var(--dot-size, 14px) * 0.64);
+  height: calc(var(--dot-size, 14px) * 0.64);
 }
 
 .keyframeDot svg path {
