@@ -33,20 +33,38 @@ import { cpowVar } from './general/cpowVar'
 import { crobVar } from './general/crobVar'
 import { csinVar } from './general/csinVar'
 import { curlVar } from './general/curl'
+import { devilWarpVar } from './general/devilWarpVar'
+import { dragonVar } from './general/dragonVar'
 import { ejuliaVar } from './general/ejuliaVar'
+import { escherVar } from './general/escherVar'
 import { fan2 } from './general/fan2'
+import { fresnelVar } from './general/fresnelVar'
+import { gingerBreadVar } from './general/gingerBreadVar'
+import { gosperVar } from './general/gosperVar'
 import { grid } from './general/grid'
+import { henonVar } from './general/henonVar'
 import { hexesVar } from './general/hexesVar'
+import { hilbertVar } from './general/hilbertVar'
+import { hopalongVar } from './general/hopalongVar'
+import { hyperbolicEllipseVar } from './general/hyperbolicEllipseVar'
+import { hypertile2Var } from './general/hypertile2Var'
+import { hypertileVar } from './general/hypertileVar'
 import { invCircle } from './general/invCircle'
 import { invCircle2 } from './general/invCircle2'
 import { invEllipse } from './general/invEllipse'
+import { inversionVar } from './general/inversionVar'
+import { joukowskiVar } from './general/joukowskiVar'
 import { juliaN } from './general/juliaN'
 import { juliaQVar } from './general/juliaQVar'
 import { juliaScope } from './general/juliaScope'
 import { kaplanVar } from './general/kaplanVar'
+import { kochVar } from './general/kochVar'
 import { linearTVar } from './general/linearTVar'
 import { lineVar } from './general/lineVar'
 import { lissajousVar } from './general/lissajousVar'
+import { loziVar } from './general/loziVar'
+import { maurerRoseVar } from './general/maurerRoseVar'
+import { mobiusVar } from './general/mobiusVar'
 import { murl2Var } from './general/murl2Var'
 import { ngonVar } from './general/ngon'
 import { nPolarVar } from './general/nPolarVar'
@@ -58,19 +76,32 @@ import { perlinNoiseVar } from './general/perlinNoise'
 import { perspective } from './general/perspective'
 import { pie } from './general/pie'
 import { popcorn2Var } from './general/popcorn2Var'
+import { projectiveVar } from './general/projectiveVar'
+import { pulseVar } from './general/pulseVar'
 import { q_odeVar } from './general/q_odeVar'
 import { rectanglesVar } from './general/rectangles'
 import { rings2 } from './general/rings2'
 import { rippleVar } from './general/rippleVar'
+import { roseVar } from './general/roseVar'
+import { rsquaresVar } from './general/rsquaresVar'
+import { sattractorVar } from './general/sattractorVar'
 import { scry2Var } from './general/scry2'
+import { seaShellVar } from './general/seaShellVar'
+import { sierCarpetVar } from './general/sierCarpetVar'
 import { sinusGridVar } from './general/sinusGridVar'
 import { spirographVar } from './general/spirographVar'
+import { squircularVar } from './general/squircularVar'
 import { squishVar } from './general/squishVar'
 import { stripfitVar } from './general/stripfitVar'
 import { sTwinVar } from './general/sTwinVar'
+import { sunflowerVar } from './general/sunflowerVar'
 import { swirl3Var } from './general/swirl3Var'
 import { tradeVar } from './general/tradeVar'
+import { treeVar } from './general/treeVar'
 import { tunnelVar } from './general/tunnelVar'
+import { vogelVar } from './general/vogelVar'
+import { woggleVar } from './general/woggleVar'
+import { yinYangVar } from './general/yinYangVar'
 import { postAxisSymmetryWf } from './post/postAxisSymmetryWf'
 import { postBWraps2 } from './post/postBWraps2'
 import { postCircleCrop } from './post/postCircleCrop'
@@ -121,33 +152,56 @@ export const parametricVariations = {
   cpowVar,
   cpow2Var,
   curlVar,
+  dragonVar,
   fan2,
+  fresnelVar,
+  gingerBreadVar,
+  gosperVar,
   grid,
+  henonVar,
   hexesVar,
+  hilbertVar,
+  hopalongVar,
+  hyperbolicEllipseVar,
+  hypertile2Var,
+  hypertileVar,
   invCircle,
   invCircle2,
   invEllipse,
+  inversionVar,
   juliaN,
   juliaScope,
+  joukowskiVar,
+  kochVar,
   lissajousVar,
   linearTVar,
   lineVar,
+  loziVar,
+  maurerRoseVar,
+  mobiusVar,
   ngonVar,
   pdjVar,
   perspective,
   pie,
   pixelFlowVar,
   popcorn2Var,
+  projectiveVar,
   perlinNoiseVar,
   radialBlurVar,
   rectanglesVar,
   rings2,
   rippleVar,
+  roseVar,
+  rsquaresVar,
+  sattractorVar,
   scry2Var,
+  seaShellVar,
+  sierCarpetVar,
   starBlurVar,
   sinusGridVar,
   spirographVar,
   squishVar,
+  squircularVar,
   swirl3Var,
   symBandG1,
   symBandG2,
@@ -173,8 +227,10 @@ export const parametricVariations = {
   symNetG15,
   symNetG16,
   symNetG17,
-  tunnelVar,
   tradeVar,
+  treeVar,
+  tunnelVar,
+  vogelVar,
   anamorphCylVar,
   asteriaVar,
   atan2SpiralsVar,
@@ -198,7 +254,9 @@ export const parametricVariations = {
   cutApollonianVar,
   cutCircleDesignVar,
   cutFractalVar,
+  devilWarpVar,
   ejuliaVar,
+  escherVar,
   juliaQVar,
   kaplanVar,
   murl2Var,
@@ -206,8 +264,12 @@ export const parametricVariations = {
   octagonVar,
   onion2Var,
   onionVar,
+  pulseVar,
   q_odeVar,
   sTwinVar,
   stripfitVar,
+  sunflowerVar,
   synthVar,
+  woggleVar,
+  yinYangVar,
 }
