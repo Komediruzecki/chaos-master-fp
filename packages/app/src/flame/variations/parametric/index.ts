@@ -34,6 +34,9 @@ import { cell2Var } from './general/cell2Var'
 import { cellVar } from './general/cellVar'
 import { chaosCubesVar } from './general/chaosCubesVar'
 import { checksVar } from './general/checksVar'
+import { circlesplitVar } from './general/circlesplitVar'
+import { circlize2Var } from './general/circlize2Var'
+import { circlizeVar } from './general/circlizeVar'
 import { circus } from './general/circus'
 import { cliffordVar } from './general/cliffordVar'
 import { collideoscopeVar } from './general/collideoscopeVar'
@@ -287,6 +290,9 @@ export const parametricVariations = {
   cell2Var,
   chaosCubesVar,
   checksVar,
+  circlesplitVar,
+  circlize2Var,
+  circlizeVar,
   collideoscopeVar,
   crobVar,
   csinVar,
