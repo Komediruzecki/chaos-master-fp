@@ -116,11 +116,9 @@ function drawPill(
   if (color === 'green') {
     ctx.fillStyle = 'rgba(72,199,142,0.12)'
     ctx.strokeStyle = 'rgba(72,199,142,0.25)'
-    ctx.fillStyle = 'rgba(72,199,142,0.12)'
   } else {
     ctx.fillStyle = 'rgba(72,156,255,0.12)'
     ctx.strokeStyle = 'rgba(72,156,255,0.25)'
-    ctx.fillStyle = 'rgba(72,156,255,0.12)'
   }
   roundRect(ctx, x, y, pw, ph, 11)
   ctx.fill()

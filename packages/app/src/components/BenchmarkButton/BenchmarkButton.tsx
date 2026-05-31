@@ -6,6 +6,9 @@ export function BenchmarkButton(props: { onClick: () => void }) {
     <button
       class={ui.benchmarkBtn}
       onClick={props.onClick}
+      onContextMenu={(e) => {
+        e.preventDefault()
+      }}
       title="Run Benchmark"
     >
       <Zap />
