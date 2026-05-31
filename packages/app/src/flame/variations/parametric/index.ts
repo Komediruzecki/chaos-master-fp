@@ -49,6 +49,9 @@ import { circularVar } from './general/circularVar'
 import { circus } from './general/circus'
 import { cliffordVar } from './general/cliffordVar'
 import { collideoscopeVar } from './general/collideoscopeVar'
+import { coneVar } from './general/coneVar'
+import { conicVar } from './general/conicVar'
+import { cornersVar } from './general/cornersVar'
 import { cos2_bsVar } from './general/cos2_bsVar'
 import { cosh2_bsVar } from './general/cosh2_bsVar'
 import { cot2_bsVar } from './general/cot2_bsVar'
@@ -201,6 +204,9 @@ export const parametricVariations = {
   blob,
   cliffordVar,
   circus,
+  coneVar,
+  conicVar,
+  cornersVar,
   cos2_bsVar,
   cosh2_bsVar,
   cot2_bsVar,
