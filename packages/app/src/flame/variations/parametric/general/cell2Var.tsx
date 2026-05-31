@@ -17,14 +17,14 @@ const Cell2VarParams = struct({
   space_xa: f32,
   space_yb: f32,
   space_xb: f32,
-  move_xa: f32,
+  shift_xa: f32,
   space_yc: f32,
-  move_ya: f32,
+  shift_ya: f32,
   space_xc: f32,
   space_yd: f32,
-  move_yb: f32,
+  shift_yb: f32,
   space_xd: f32,
-  move_xb: f32,
+  shift_xb: f32,
 })
 
 const Cell2VarParamsDefaults: Cell2VarParams = {
@@ -36,14 +36,14 @@ const Cell2VarParamsDefaults: Cell2VarParams = {
   space_xa: 2.0,
   space_yb: 2.0,
   space_xb: 2.0,
-  move_xa: 1.0,
+  shift_xa: 1.0,
   space_yc: 2.0,
-  move_ya: 1.0,
+  shift_ya: 1.0,
   space_xc: 2.0,
   space_yd: 2.0,
-  move_yb: 1.0,
+  shift_yb: 1.0,
   space_xd: 2.0,
-  move_xb: 1.0,
+  shift_xb: 1.0,
 }
 
 const Cell2VarParamsEditor: EditorFor<Cell2VarParams> = (props) => (
@@ -97,7 +97,7 @@ const Cell2VarParamsEditor: EditorFor<Cell2VarParams> = (props) => (
       step={0.01}
     />
     <RangeEditor
-      {...editorProps(props, 'move_xa', 'Move XA')}
+      {...editorProps(props, 'shift_xa', 'Shift XA')}
       min={0}
       max={5}
       step={0.01}
@@ -109,7 +109,7 @@ const Cell2VarParamsEditor: EditorFor<Cell2VarParams> = (props) => (
       step={0.01}
     />
     <RangeEditor
-      {...editorProps(props, 'move_ya', 'Move YA')}
+      {...editorProps(props, 'shift_ya', 'Shift YA')}
       min={0}
       max={5}
       step={0.01}
@@ -127,7 +127,7 @@ const Cell2VarParamsEditor: EditorFor<Cell2VarParams> = (props) => (
       step={0.01}
     />
     <RangeEditor
-      {...editorProps(props, 'move_yb', 'Move YB')}
+      {...editorProps(props, 'shift_yb', 'Shift YB')}
       min={0}
       max={5}
       step={0.01}
@@ -139,7 +139,7 @@ const Cell2VarParamsEditor: EditorFor<Cell2VarParams> = (props) => (
       step={0.01}
     />
     <RangeEditor
-      {...editorProps(props, 'move_xb', 'Move XB')}
+      {...editorProps(props, 'shift_xb', 'Shift XB')}
       min={0}
       max={5}
       step={0.01}
@@ -166,14 +166,14 @@ export const cell2Var = parametricVariation(
     const x1 = cx * P.space_xa
     const y1 = cy * P.space_ya
 
-    const x2 = -(P.space_xb * cx + P.move_xa)
+    const x2 = -(P.space_xb * cx + P.shift_xa)
     const y2 = cy * P.space_yb
 
     const x3 = cx * P.space_xc
-    const y3 = -(P.space_yc * cy + P.move_ya)
+    const y3 = -(P.space_yc * cy + P.shift_ya)
 
-    const x4 = -(P.space_xd * cx + P.move_xb)
-    const y4 = -(P.space_yd * cy + P.move_yb)
+    const x4 = -(P.space_xd * cx + P.shift_xb)
+    const y4 = -(P.space_yd * cy + P.shift_yb)
 
     const x_upper = select(x2, x1, x_pos)
     const y_upper = select(y2, y1, x_pos)
