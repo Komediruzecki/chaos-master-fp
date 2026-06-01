@@ -189,9 +189,16 @@ export function Flam3(props: Flam3Props) {
       .$usage('storage')
 
     onCleanup(() => {
-      accumulationBuffer.destroy()
-      postprocessBuffer.destroy()
-      filterParamsBuffer.destroy()
+      // Defer destruction until pending GPU work completes to avoid
+      // "buffer used in submit while destroyed" errors on resize/unmount.
+      void device.queue
+        .onSubmittedWorkDone()
+        .then(() => {
+          accumulationBuffer.destroy()
+          postprocessBuffer.destroy()
+          filterParamsBuffer.destroy()
+        })
+        .catch(() => {})
     })
 
     return {
