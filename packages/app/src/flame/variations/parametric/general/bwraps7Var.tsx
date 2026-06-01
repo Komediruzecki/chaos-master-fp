@@ -78,7 +78,7 @@ export const bwraps7Var = parametricVariation(
   (pos, _varInfo, P) => {
     'use gpu'
     if (abs(P.cellsize) < EPS.$) {
-      return pos
+      return vec2f(pos.x, pos.y)
     }
 
     // precalc: init values computed inline
@@ -100,7 +100,7 @@ export const bwraps7Var = parametricVariation(
     let Ly = pos.y - Cy
 
     if (Lx * Lx + Ly * Ly > r2) {
-      return pos
+      return vec2f(pos.x, pos.y)
     }
 
     Lx *= g2

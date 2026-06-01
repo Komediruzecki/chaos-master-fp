@@ -1,5 +1,5 @@
 import { vec2f } from 'typegpu/data'
-import { cos, cosh, sin, sinh } from 'typegpu/std'
+import { cos, cosh, select, sin, sinh } from 'typegpu/std'
 import { simpleVariation } from '../types'
 
 export const cschVar = simpleVariation(
@@ -14,7 +14,7 @@ export const cschVar = simpleVariation(
 
     const d = cosh(2.0 * pos.x) - cos(2.0 * pos.y)
 
-    const cschden = 2.0 / (d === 0.0 ? 1.0e-9 : d)
+    const cschden = 2.0 / select(d, 1.0e-9, d === 0.0)
 
     const valX = cschden * cschsinh * cschcos
     const valY = -(cschden * cschcosh * cschsin)

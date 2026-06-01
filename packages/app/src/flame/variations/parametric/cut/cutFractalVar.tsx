@@ -82,7 +82,7 @@ export const cutFractalVar = parametricVariation(
     const iter = i32(P.iters)
     for (let i = 0; i < iter; i++) {
       const d = dot(U, U)
-      const factor = 0.5 / (d === 0.0 ? 1.0e-9 : d)
+      const factor = 0.5 / select(d, 1.0e-9, d === 0.0)
       const absUx = abs(U.x)
       const absUy = abs(U.y)
       U = vec2f(absUx * factor + cx, absUy * factor + cy)

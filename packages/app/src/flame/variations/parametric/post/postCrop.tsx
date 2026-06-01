@@ -1,4 +1,5 @@
 import { f32, struct, vec2f } from 'typegpu/data'
+import { select } from 'typegpu/std'
 import { RangeEditor } from '@/components/Sliders/ParametricEditors/RangeEditor'
 import { editorProps } from '@/components/Sliders/ParametricEditors/types'
 import { random } from '@/shaders/random'
@@ -50,10 +51,10 @@ export const postCrop = parametricVariation(
   PostCropParamsEditor,
   (pos, _varInfo, P) => {
     'use gpu'
-    const xmin = f32(P.left < P.right ? P.left : P.right)
-    const xmax = f32(P.left > P.right ? P.left : P.right)
-    const ymin = f32(P.top < P.bottom ? P.top : P.bottom)
-    const ymax = f32(P.top > P.bottom ? P.top : P.bottom)
+    const xmin = f32(select(P.right, P.left, P.left < P.right))
+    const xmax = f32(select(P.right, P.left, P.left > P.right))
+    const ymin = f32(select(P.bottom, P.top, P.top < P.bottom))
+    const ymax = f32(select(P.bottom, P.top, P.top > P.bottom))
     const w = (xmax - xmin) * 0.5 * P.scatter_area
     const h = (ymax - ymin) * 0.5 * P.scatter_area
 

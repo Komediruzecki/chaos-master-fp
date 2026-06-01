@@ -1,5 +1,5 @@
 import { f32, struct, vec2f } from 'typegpu/data'
-import { abs, floor, fract } from 'typegpu/std'
+import { abs, floor, fract, select } from 'typegpu/std'
 import { RangeEditor } from '@/components/Sliders/ParametricEditors/RangeEditor'
 import { editorProps } from '@/components/Sliders/ParametricEditors/types'
 import { parametricVariation } from '../types'
@@ -41,8 +41,16 @@ export const hilbertVar = parametricVariation(
     const fy = fract(y * 2.0)
     const flipx = 1.0 - fx
     const flipy = 1.0 - fy
-    const nx = qx > 0.0 ? (qy > 0.0 ? fx : flipy) : qy > 0.0 ? fy : flipx
-    const ny = qx > 0.0 ? (qy > 0.0 ? fy : fx) : qy > 0.0 ? flipx : flipy
+    const nx = select(
+      select(flipx, fy, qy > 0.0),
+      select(flipy, fx, qy > 0.0),
+      qx > 0.0,
+    )
+    const ny = select(
+      select(flipy, flipx, qy > 0.0),
+      select(fx, fy, qy > 0.0),
+      qx > 0.0,
+    )
     return vec2f(nx * 2.0 - 1.0, ny * 2.0 - 1.0)
   },
   'general',

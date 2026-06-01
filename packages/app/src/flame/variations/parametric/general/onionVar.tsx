@@ -44,13 +44,14 @@ export const onionVar = parametricVariation(
     const y0 = pos.y - P.centre_y
     const d0 = x0 * x0 + y0 * y0
     const dr = sqrt(d0)
+    const safe_dr = select(dr, 1.0e-9, dr === 0.0)
     const x1_a = x0
     const y1_a = y0
-    const term = (2.0 * r0 - dr) / (dr === 0.0 ? 1.0e-9 : dr)
+    const term = (2.0 * r0 - dr) / safe_dr
     const x1_b = x0 * term
     const y1_b = y0 * term
-    const x1_c = (x0 * (2.0 * r0 + dr)) / (dr === 0.0 ? 1.0e-9 : dr) // Inferred
-    const y1_c = (y0 * (2.0 * r0 + dr)) / (dr === 0.0 ? 1.0e-9 : dr)
+    const x1_c = (x0 * (2.0 * r0 + dr)) / safe_dr
+    const y1_c = (y0 * (2.0 * r0 + dr)) / safe_dr
     const cond1 = d0 <= r0 * r0
     const cond2 = 2.0 * r0 - dr > r0 * 0.70710678
     const newX = select(select(x1_c, x1_b, cond2), x1_a, cond1) + P.centre_x

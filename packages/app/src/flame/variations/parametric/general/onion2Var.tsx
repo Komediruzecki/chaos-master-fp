@@ -59,10 +59,8 @@ export const onion2Var = parametricVariation(
     const cos_t = cos(t)
     let r_1 = cos_t
     let z_1 = 0.0
-    const term =
-      exp(cos_meet - r_1) / (tan_meet === 0.0 ? 1.0e-9 : tan_meet) +
-      sin_meet -
-      1.0 / (tan_meet === 0.0 ? 1.0e-9 : tan_meet)
+    const safe_tan = select(tan_meet, 1.0e-9, tan_meet === 0.0)
+    const term = exp(cos_meet - r_1) / safe_tan + sin_meet - 1.0 / safe_tan
     z_1 = term
     const isCropped = z_1 > P.top_crop && P.top_crop > 0.0
     z_1 = select(z_1, P.top_crop, isCropped)
@@ -73,7 +71,7 @@ export const onion2Var = parametricVariation(
     const cond = t > P.meeting_pt
     let r = select(r_2, r_1, cond)
     r *= P.circle_a * varInfo.weight
-    const len = r_pre === 0.0 ? 1.0e-9 : r_pre
+    const len = select(r_pre, 1.0e-9, r_pre === 0.0)
     const newX = r * (pos.x / len)
     const newY = r * (pos.y / len)
     return vec2f(newX, newY)

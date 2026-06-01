@@ -1,5 +1,5 @@
 import { f32, struct, vec2f } from 'typegpu/data'
-import { abs, atan2, cos, pow, sin, sqrt, tan } from 'typegpu/std'
+import { abs, atan2, cos, pow, select, sin, sqrt, tan } from 'typegpu/std'
 import { RangeEditor } from '@/components/Sliders/ParametricEditors/RangeEditor'
 import { editorProps } from '@/components/Sliders/ParametricEditors/types'
 import { PI } from '@/flame/constants'
@@ -79,7 +79,7 @@ export const hole2Var = parametricVariation(
     const theta = atan2(pos.y, pos.x) * P.d
     const delta = pow(theta / PI.$ + 1.0, P.a) * P.c
 
-    let r1
+    let r1 = 0.0
     if (P.shape < 1.0) {
       r1 = sqrt(rhosq) + delta
     } else if (P.shape < 2.0) {
@@ -106,7 +106,7 @@ export const hole2Var = parametricVariation(
       )
     }
 
-    const factor = P.inside > 0.5 ? 1.0 / r1 : r1
+    const factor = select(r1, 1.0 / r1, P.inside > 0.5)
     return vec2f(factor * cos(theta), factor * sin(theta))
   },
   'general',

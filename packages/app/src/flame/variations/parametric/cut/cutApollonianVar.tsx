@@ -1,5 +1,5 @@
 import { f32, i32, struct, vec2f } from 'typegpu/data'
-import { dot, floor, select } from 'typegpu/std'
+import { abs, dot, floor, select } from 'typegpu/std'
 import { RangeEditor } from '@/components/Sliders/ParametricEditors/RangeEditor'
 import { editorProps } from '@/components/Sliders/ParametricEditors/types'
 import { random } from '@/shaders/random'
@@ -74,7 +74,7 @@ export const cutApollonianVar = parametricVariation(
       py *= k
       scale *= k
     }
-    const col = (0.25 * (py < 0.0 ? -py : py)) / scale
+    const col = (0.25 * abs(py)) / scale
     let keep = false
     if (P.invert < 0.5) {
       keep = col <= 0.001 // Threshold for "zero"

@@ -40,8 +40,8 @@ export const cellVar = parametricVariation(
     const dx = pos.x - cx * P.size
     const dy = pos.y - cy * P.size
 
-    let nx
-    let ny
+    let nx = 0.0
+    let ny = 0.0
 
     if (cy >= 0.0) {
       if (cx >= 0.0) {

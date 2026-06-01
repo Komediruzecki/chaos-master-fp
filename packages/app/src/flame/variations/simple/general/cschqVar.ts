@@ -1,5 +1,5 @@
 import { vec2f } from 'typegpu/data'
-import { cos, cosh, sin, sinh, sqrt } from 'typegpu/std'
+import { cos, cosh, select, sin, sinh, sqrt } from 'typegpu/std'
 import { simpleVariation } from '../types'
 
 export const cschqVar = simpleVariation(
@@ -15,9 +15,9 @@ export const cschqVar = simpleVariation(
     const ch = cosh(pos.x)
 
     const denom = pos.x * pos.x + pos.y * pos.y + z * z
-    const ni = varInfo.weight / (denom === 0.0 ? 1.0e-9 : denom)
+    const ni = varInfo.weight / select(denom, 1.0e-9, denom === 0.0)
 
-    const C = (ni * ch * s) / (abs_v === 0.0 ? 1.0e-9 : abs_v)
+    const C = (ni * ch * s) / select(abs_v, 1.0e-9, abs_v === 0.0)
 
     const newX = sh * c * ni
     const newY = -(C * pos.y)

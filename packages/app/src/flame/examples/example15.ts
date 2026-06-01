@@ -27,11 +27,11 @@ export const example15 = defineExample({
           type: 'pixelFlowVar',
           weight: 1,
           params: {
-            angle: 90.0,
-            len: 0.1,
-            width: 200.0,
+            scale_x: 1.0,
+            scale_y: 1.0,
+            speed_x: 0.0,
+            speed_y: 0.0,
             seed: 42.0,
-            enableDirectColor: 0.0,
           },
         },
         [vid('c3a4d5e6_b7f8_9012_3456_789012abcdef')]: {

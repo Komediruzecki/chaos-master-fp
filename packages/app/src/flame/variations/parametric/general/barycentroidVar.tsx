@@ -1,4 +1,5 @@
 import { f32, struct, vec2f } from 'typegpu/data'
+import { select } from 'typegpu/std'
 import { RangeEditor } from '@/components/Sliders/ParametricEditors/RangeEditor'
 import { editorProps } from '@/components/Sliders/ParametricEditors/types'
 import { parametricVariation } from '../types'
@@ -61,7 +62,7 @@ export const barycentroidVar = parametricVariation(
     const dot11 = P.c * P.c + P.d * P.d
     const dot12 = P.c * pos.x + P.d * pos.y
     const denom = dot00 * dot11 - dot01 * dot01
-    const invDenom = 1.0 / (denom === 0.0 ? 1.0e-10 : denom)
+    const invDenom = 1.0 / select(denom, 1.0e-10, denom === 0.0)
     const u = (dot11 * dot02 - dot01 * dot12) * invDenom
     const v = (dot00 * dot12 - dot01 * dot02) * invDenom
     const newX = varInfo.weight * u

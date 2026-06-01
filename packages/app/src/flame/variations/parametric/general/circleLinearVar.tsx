@@ -1,4 +1,4 @@
-import { f32, i32, struct, vec2f } from 'typegpu/data'
+import { f32, i32, struct, u32, vec2f } from 'typegpu/data'
 import { floor, select, sqrt } from 'typegpu/std'
 import { RangeEditor } from '@/components/Sliders/ParametricEditors/RangeEditor'
 import { editorProps } from '@/components/Sliders/ParametricEditors/types'
@@ -86,7 +86,7 @@ export const circleLinearVar = parametricVariation(
 
     // Inline discretNoise2
     const n1 = i32(M + 10.0) + i32(N + 3.0) * 57
-    const n1x = (n1 << 13) ^ n1
+    const n1x = (n1 << u32(13)) ^ n1
     const V =
       (0.3 +
         0.7 *
@@ -95,7 +95,7 @@ export const circleLinearVar = parametricVariation(
       P.sc
 
     const n2 = i32(M + P.seed) + i32(N) * 57
-    const n2x = (n2 << 13) ^ n2
+    const n2x = (n2 << u32(13)) ^ n2
     const Z1 =
       f32((n2x * (n2x * n2x * 15731 + 789221) + 1376312589) & 0x7fffffff) * AM
 
@@ -105,7 +105,11 @@ export const circleLinearVar = parametricVariation(
     }
 
     const reverseCond = P.reverse > 0.0
-    const z1Cond = reverseCond ? Z1 < P.dens1 * P.dens2 : Z1 > P.dens1 * P.dens2
+    const z1Cond = select(
+      Z1 > P.dens1 * P.dens2,
+      Z1 < P.dens1 * P.dens2,
+      reverseCond,
+    )
     const Z = (V / U) * (1.0 - P.k) + P.k
     X = select(Z * X, P.k * X, z1Cond)
     Y = select(Z * Y, P.k * Y, z1Cond)

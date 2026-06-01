@@ -80,7 +80,7 @@ export const fourthVar = parametricVariation(
         const factor = sqrt((w * w) / r2 - 1.0)
         return vec2f(factor * pos.x, factor * pos.y)
       }
-      return pos
+      return vec2f(pos.x, pos.y)
     }
     // kuadran III: susan
     if (pos.x < 0.0 && pos.y > 0.0) {
@@ -95,7 +95,7 @@ export const fourthVar = parametricVariation(
       return vec2f(sr * xs + P.x / w, sr * ys - P.y / w)
     }
     // kuadran II: Linear
-    return pos
+    return vec2f(pos.x, pos.y)
   },
   'general',
 )

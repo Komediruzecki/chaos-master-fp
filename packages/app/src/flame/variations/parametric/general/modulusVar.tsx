@@ -44,22 +44,18 @@ export const modulusVar = parametricVariation(
     const xr = 2.0 * P.x
     const yr = 2.0 * P.y
 
-    let nx
+    let nx = pos.x
     if (pos.x > xr) {
       nx = -P.x + ((pos.x + P.x) % xr)
     } else if (pos.x < -xr) {
       nx = P.x - ((P.x - pos.x) % xr)
-    } else {
-      nx = pos.x
     }
 
-    let ny
+    let ny = pos.y
     if (pos.y > yr) {
       ny = -P.y + ((pos.y + P.y) % yr)
     } else if (pos.y < -yr) {
       ny = P.y - ((P.y - pos.y) % yr)
-    } else {
-      ny = pos.y
     }
 
     return vec2f(nx, ny)

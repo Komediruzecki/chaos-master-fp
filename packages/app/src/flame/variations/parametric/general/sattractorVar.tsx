@@ -43,8 +43,8 @@ export const sattractorVar = parametricVariation(
     const a = cos((2.0 * PI.$ * l) / P.m)
     const b = sin((2.0 * PI.$ * l) / P.m)
 
-    let nx
-    let ny
+    let nx = 0.0
+    let ny = 0.0
 
     if (random() < 0.5) {
       nx = x / 2.0 + a

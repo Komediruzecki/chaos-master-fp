@@ -1,5 +1,5 @@
 import { vec2f } from 'typegpu/data'
-import { abs, cos, sin, sqrt } from 'typegpu/std'
+import { abs, cos, select, sin, sqrt } from 'typegpu/std'
 import { random } from '@/shaders/random'
 import { PI } from '../../../constants'
 import { simpleVariation } from '../types'
@@ -18,10 +18,10 @@ export const blurCircle = simpleVariation(
     let perimeter = absX
     if (absX >= absY) {
       side = absX
-      perimeter = randX >= absY ? absX + randY : 5 * absX - randY
+      perimeter = select(5 * absX - randY, absX + randY, randX >= absY)
     } else {
       side = absY
-      perimeter = randY >= absX ? 3 * absY - randX : 7 * absY + randX
+      perimeter = select(7 * absY + randX, 3 * absY - randX, randY >= absX)
     }
 
     const r = weight * side

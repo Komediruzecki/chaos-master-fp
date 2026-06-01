@@ -33,7 +33,7 @@ export const ejuliaVar = parametricVariation(
     let x = pos.x
     let r2 = pos.x * pos.x + pos.y * pos.y
     const negPower = P.power < 0.0
-    const invR2 = 1.0 / (r2 === 0.0 ? 1.0e-9 : r2)
+    const invR2 = 1.0 / select(r2, 1.0e-9, r2 === 0.0)
     x = select(x, x * invR2, negPower)
     r2 = select(r2, invR2, negPower)
     const tmp = r2 + 1.0
@@ -45,7 +45,7 @@ export const ejuliaVar = parametricVariation(
     t = select(t, 1.0, t > 1.0)
     t = select(t, -1.0, t < -1.0)
     const nu = acos(t)
-    const p = (P.power < 0.0 ? -P.power : P.power) * 0.5
+    const p = select(P.power, -P.power, P.power < 0.0) * 0.5
     const mu_p = mu * p
     const nu_p = nu * p
     const sinhmu = sinh(mu_p)

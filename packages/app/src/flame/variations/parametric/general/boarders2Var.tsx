@@ -1,5 +1,5 @@
 import { f32, struct, vec2f } from 'typegpu/data'
-import { abs, round } from 'typegpu/std'
+import { abs, round, select } from 'typegpu/std'
 import { RangeEditor } from '@/components/Sliders/ParametricEditors/RangeEditor'
 import { editorProps } from '@/components/Sliders/ParametricEditors/types'
 import { random } from '@/shaders/random'
@@ -82,26 +82,26 @@ export const boarders2Var = parametricVariation(
           dy =
             offsetY * P.c +
             roundY +
-            (cl * offsetY) / (offsetX === 0.0 ? 1e-9 : offsetX)
+            (cl * offsetY) / select(offsetX, 1e-9, offsetX === 0.0)
         } else {
           dx = offsetX * P.c + roundX - cl
           dy =
             offsetY * P.c +
             roundY -
-            (cl * offsetY) / (offsetX === 0.0 ? 1e-9 : offsetX)
+            (cl * offsetY) / select(offsetX, 1e-9, offsetX === 0.0)
         }
       } else {
         if (offsetY >= 0.0) {
           dx =
             offsetX * P.c +
             roundX +
-            (ct * offsetX) / (offsetY === 0.0 ? 1e-9 : offsetY)
+            (ct * offsetX) / select(offsetY, 1e-9, offsetY === 0.0)
           dy = offsetY * P.c + roundY + ct
         } else {
           dx =
             offsetX * P.c +
             roundX -
-            (ct * offsetX) / (offsetY === 0.0 ? 1e-9 : offsetY)
+            (ct * offsetX) / select(offsetY, 1e-9, offsetY === 0.0)
           dy = offsetY * P.c + roundY - ct // Should use cb?
         }
       }

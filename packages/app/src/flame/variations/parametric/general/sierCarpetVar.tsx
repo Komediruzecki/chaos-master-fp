@@ -1,5 +1,5 @@
 import { f32, struct, vec2f } from 'typegpu/data'
-import { floor, fract } from 'typegpu/std'
+import { floor, fract, select } from 'typegpu/std'
 import { RangeEditor } from '@/components/Sliders/ParametricEditors/RangeEditor'
 import { editorProps } from '@/components/Sliders/ParametricEditors/types'
 import { parametricVariation } from '../types'
@@ -40,8 +40,8 @@ export const sierCarpetVar = parametricVariation(
     const skip = cx === 1.0 && cy === 1.0
     const fx = fract(x * 3.0)
     const fy = fract(y * 3.0)
-    const nx = skip ? fx * 0.333 + 0.333 : fx
-    const ny = skip ? fy * 0.333 + 0.333 : fy
+    const nx = select(fx, fx * 0.333 + 0.333, skip)
+    const ny = select(fy, fy * 0.333 + 0.333, skip)
     return vec2f(nx * 2.0 - 1.0, ny * 2.0 - 1.0)
   },
   'general',

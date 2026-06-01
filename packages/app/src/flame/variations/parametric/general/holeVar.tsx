@@ -45,7 +45,7 @@ export const holeVar = parametricVariation(
     'use gpu'
     const alpha = atan2(pos.y, pos.x)
     const delta = pow(alpha / PI.$ + 1.0, P.a)
-    let r
+    let r = 0.0
     if (P.inside > 0.5) {
       r = delta / (pos.x * pos.x + pos.y * pos.y + delta)
     } else {

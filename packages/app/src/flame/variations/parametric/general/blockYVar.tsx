@@ -1,5 +1,5 @@
 import { f32, struct, vec2f } from 'typegpu/data'
-import { cos, sqrt } from 'typegpu/std'
+import { cos, select, sqrt } from 'typegpu/std'
 import { RangeEditor } from '@/components/Sliders/ParametricEditors/RangeEditor'
 import { editorProps } from '@/components/Sliders/ParametricEditors/types'
 import { PI } from '@/flame/constants'
@@ -49,7 +49,7 @@ export const blockYVar = parametricVariation(
     'use gpu'
     const v = varInfo.weight / (PI.$ * 0.5)
     const T = (cos(pos.x) + cos(pos.y)) / P.mp + 1.0
-    const r = v / (T === 0.0 ? 1.0e-10 : T)
+    const r = v / select(T, 1.0e-10, T === 0.0)
     const tmp = pos.y * pos.y + pos.x * pos.x + 1.0
     const x2 = 2.0 * pos.x
     const y2 = 2.0 * pos.y
