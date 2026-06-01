@@ -401,3 +401,56 @@
 [data-theme='dark'] .dotActive {
   background: var(--blue-400);
 }
+
+/* ---- Responsive ---- */
+
+@media (max-width: 500px) {
+  .root {
+    min-height: 320px;
+    max-height: 92vh;
+  }
+
+  .header {
+    padding-bottom: var(--space-2);
+  }
+
+  .title {
+    font-size: 1rem;
+  }
+
+  .content {
+    padding: var(--space-2) 0;
+  }
+
+  .pageTitle {
+    font-size: 0.875rem;
+    margin-bottom: var(--space-2);
+  }
+
+  .markdownBody {
+    font-size: 0.8125rem;
+  }
+
+  .markdownBody h1 {
+    font-size: 1.1rem;
+  }
+  .markdownBody h2 {
+    font-size: 1rem;
+  }
+  .markdownBody h3 {
+    font-size: 0.9375rem;
+  }
+
+  .markdownBody code {
+    font-size: 0.75rem;
+  }
+
+  .markdownBody pre code {
+    font-size: 0.75rem;
+  }
+
+  .navButton {
+    font-size: 0.75rem;
+    padding: var(--space-1) var(--space-2);
+  }
+}

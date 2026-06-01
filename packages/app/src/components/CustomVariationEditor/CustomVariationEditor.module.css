@@ -487,3 +487,100 @@
   width: 92vw;
   max-height: 88vh;
 }
+
+/* ---- Responsive ---- */
+
+@media (max-width: 768px) {
+  .main {
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .sidebar {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1);
+    width: 100%;
+    padding-right: 0;
+    padding-bottom: var(--space-2);
+    border-right: none;
+    border-bottom: 1px solid var(--neutral-200);
+    overflow-x: auto;
+    flex-shrink: 0;
+  }
+
+  [data-theme='dark'] .sidebar {
+    border-color: var(--neutral-700);
+  }
+
+  .sidebarHeader {
+    width: 100%;
+  }
+
+  .sidebarTitle {
+    flex: 1;
+  }
+
+  .variationItem {
+    font-size: 0.75rem;
+    padding: var(--space-1);
+    white-space: nowrap;
+  }
+
+  .variationName {
+    flex: 0 1 auto;
+  }
+
+  .emptySidebar {
+    width: 100%;
+  }
+
+  .examplesSection {
+    display: none;
+  }
+
+  .previewPanel {
+    width: 100%;
+    min-width: 0;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .previewLabel {
+    flex-shrink: 0;
+  }
+
+  .previewCanvas {
+    width: 120px;
+  }
+
+  .previewPlaceholder {
+    width: 120px;
+    aspect-ratio: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .editorPanel {
+    min-height: 180px;
+  }
+
+  .editorWrapper {
+    min-height: 150px;
+  }
+
+  .previewCanvas {
+    width: 80px;
+  }
+
+  .previewPlaceholder {
+    width: 80px;
+  }
+
+  .bottomBar {
+    flex-wrap: wrap;
+    gap: var(--space-1);
+  }
+}
