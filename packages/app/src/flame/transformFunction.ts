@@ -95,7 +95,7 @@ export function createFlameWgsl({
     ...Object.fromEntries(
       Object.values(validVariations).map((v) => [
         v.type,
-        transformVariations[v.type].fn,
+        (transformVariations as Record<string, { fn: unknown }>)[v.type]!.fn,
       ]),
     ),
     VariationInfo,

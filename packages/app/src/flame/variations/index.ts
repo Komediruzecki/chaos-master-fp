@@ -7,25 +7,32 @@ const rawVariations = [
   ...Object.values(parametricVariations),
 ]
 
-export const TransformVariationDescriptor = v.variant(
-  'type',
-  rawVariations.map((variation) => variation.DescriptorSchema),
-)
+const CustomVariationFallbackSchema = v.object({
+  type: v.string(),
+  weight: v.number(),
+  visible: v.optional(v.boolean(), true),
+})
+
+export const TransformVariationDescriptor = v.variant('type', [
+  ...rawVariations.map((variation) => variation.DescriptorSchema),
+  CustomVariationFallbackSchema,
+])
 
 export type TransformVariationDescriptor = v.InferOutput<
   typeof TransformVariationDescriptor
 >
 
-export type TransformVariationType = TransformVariationDescriptor['type']
+export type TransformVariationType =
+  | TransformVariationDescriptor['type']
+  | (string & {})
 
 export const transformVariations = Object.fromEntries(
   rawVariations.map((v) => [v.DescriptorSchema.entries.type.literal, v]),
 ) as unknown as Record<TransformVariationType, (typeof rawVariations)[number]>
 
-export const variationTypes = rawVariations.map(
-  (v) => v.DescriptorSchema.entries.type.literal,
-)
-
+export const variationTypes = [
+  ...rawVariations.map((v) => v.DescriptorSchema.entries.type.literal),
+] as string[]
 const parametricVariationTypes = Object.values(parametricVariations).map(
   (o) => o.DescriptorSchema.entries.type.literal,
 )
@@ -53,7 +60,6 @@ export function isVariationType(
   maybeType: any,
 ): maybeType is TransformVariationType {
   return (
-    typeof maybeType === 'string' &&
-    (variationTypes as string[]).includes(maybeType)
+    typeof maybeType === 'string' && variationTypes.includes(maybeType)
   )
 }

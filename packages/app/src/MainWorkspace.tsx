@@ -20,6 +20,7 @@ import { Button } from './components/Button/Button'
 import { CollapsibleCard } from './components/CollapsibleCard/CollapsibleCard'
 import { ColorPicker } from './components/ColorPicker/ColorPicker'
 import { Card } from './components/ControlCard/ControlCard'
+import { createShowCustomVariationEditor } from './components/CustomVariationEditor/CustomVariationEditor'
 import { DebugOverlay } from './components/DebugOverlay'
 import { DiceButton } from './components/DiceButton/DiceButton'
 import { createDiscordShareModal } from './components/DiscordShareModal/DiscordShareModal'
@@ -61,9 +62,10 @@ import { accumulatedPointCount, animationExportCancel, animationExportProgress, 
 import { MAX_CAMERA_ZOOM_VALUE, MIN_CAMERA_ZOOM_VALUE, } from './flame/schema/flameSchema'
 import { generateTransformId, generateVariationId, } from './flame/transformFunction'
 import { isParametricVariation, isParametricVariationType, isVariationType, transformVariations, } from './flame/variations'
+import { loadCustomVariations } from './flame/variations/custom'
 import { getNormalizedVariationName, getParamsEditor, getVariationDefault, } from './flame/variations/utils'
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { Cross, Eye, EyeOff, Menu, Plus, Share } from './icons'
+import { Cross, Eye, EyeOff, Menu, Plus, Share, Terminal } from './icons'
 import { AutoCanvas } from './lib/AutoCanvas'
 import { createAnimationExport } from './utils/animationExport'
 import { deepClone } from './utils/clone'
@@ -395,6 +397,15 @@ export function MainWorkspace(props: AppProps) {
   const { showVariationSelector, varSelectorModalIsOpen } =
     createVariationSelector(history, props.hardwareTier)
 
+  const { showCustomVariationEditor, customVariationEditorIsOpen } =
+    createShowCustomVariationEditor()
+
+  const isAnyModalOpen = () =>
+    loadModalIsOpen() ||
+    varSelectorModalIsOpen() ||
+    exportModalIsOpen() ||
+    customVariationEditorIsOpen()
+
   // Quick variation picker state
   const [quickPickerMode, setQuickPickerMode] =
     persistentSignal<QuickPickerMode>('quick-picker-mode', 'list')
@@ -428,7 +439,7 @@ export function MainWorkspace(props: AppProps) {
   })
 
   const finalRenderInterval = () =>
-    loadModalIsOpen() || varSelectorModalIsOpen() || exportModalIsOpen()
+    isAnyModalOpen()
       ? Infinity
       : onExportImage()
         ? 0
@@ -488,6 +499,7 @@ export function MainWorkspace(props: AppProps) {
   }
 
   onMount(() => {
+    loadCustomVariations()
     if (IS_DEV) {
       console.info('[share:app] onMount', {
         hasQueryFlame: !!props.flameFromQuery?.flame,
@@ -1031,9 +1043,9 @@ export function MainWorkspace(props: AppProps) {
         ) {
           // Params not initialized yet — fall back to defaults
           const vType = variation.type as TransformVariationType
-          const vDef = transformVariations[vType] as {
-            paramDefaults: Record<string, number>
-          }
+          const vDef = (transformVariations as Record<string, unknown>)[
+            vType
+          ] as { paramDefaults: Record<string, number> } | undefined
           if (vDef && paramName in vDef.paramDefaults) {
             const d = vDef.paramDefaults[paramName]
             if (d !== undefined) return d
@@ -1871,6 +1883,21 @@ export function MainWorkspace(props: AppProps) {
                             onSelect={handlePaletteSelect}
                             onUnselect={handlePaletteUnselect}
                           />
+                        </CollapsibleCard>
+                        <CollapsibleCard
+                          title="Custom Vars"
+                          defaultOpen={false}
+                        >
+                          <button
+                            class={ui.customVarsButton}
+                            onClick={() => {
+                              void showCustomVariationEditor()
+                            }}
+                            title="Open custom variation editor"
+                          >
+                            <Terminal />
+                            <span>Custom Variations</span>
+                          </button>
                         </CollapsibleCard>
                         <For
                           each={recordEntries(

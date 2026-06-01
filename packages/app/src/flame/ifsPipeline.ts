@@ -11,6 +11,7 @@ import { colorInitModeToImplFn } from './colorInitMode'
 import { pointInitModeToImplFn } from './pointInitMode'
 import { createFlameWgsl, extractFlameUniforms } from './transformFunction'
 import { AtomicBucket, BUCKET_FIXED_POINT_MULTIPLIER, Point } from './types'
+import { getCacheVersion } from './variations/custom'
 import type { StorageFlag, TgpuBuffer, TgpuRoot } from 'typegpu'
 import type { Vec2u, WgslArray } from 'typegpu/data'
 import type { ColorInitMode } from './colorInitMode'
@@ -47,6 +48,7 @@ export function createIFSPipeline(
   const isBlending = blendTransforms !== undefined
   const sig = JSON.stringify({
     insideShaderCount,
+    customVariationsVersion: getCacheVersion(),
     colorInitType,
     pointInitType,
     transforms: recordEntries(transforms).map(([_, tr]) => ({
