@@ -839,7 +839,10 @@ function ShowVariationSelector(props: VariationSelectorModalProps) {
               >
                 Apply
                 <Show when={selectedItemId() !== undefined}>
-                  <span> {selectedItemId()} variation</span>
+                  <span>
+                    {' '}
+                    {getNormalizedVariationName(selectedItemId()!)} variation
+                  </span>
                 </Show>
               </Button>
             </ButtonGroup>

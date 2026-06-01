@@ -1456,6 +1456,12 @@
   font-size: 0.8125rem;
   font-family: inherit;
 
+  & svg {
+    width: 0.9375rem;
+    height: 0.9375rem;
+    flex-shrink: 0;
+  }
+
   &:hover {
     background: var(--neutral-100);
     color: var(--neutral-900);

@@ -1,4 +1,4 @@
-import { createMemo, createSignal, For, onCleanup, Show, untrack, } from 'solid-js'
+import { createEffect, createMemo, createSignal, For, onCleanup, Show, untrack, } from 'solid-js'
 import { vec2f, vec4f } from 'typegpu/data'
 import { defineExample } from '@/flame/examples/util'
 import { Flam3 } from '@/flame/Flam3'
@@ -413,6 +413,22 @@ function ShowCustomVariationEditor(props: {
     }
   }
 
+  // Auto-compile debounce: recompile 1.5s after last code change
+  let compileTimer: ReturnType<typeof setTimeout> | undefined
+  createEffect(() => {
+    const body = code()
+    // track the signal
+    void body
+    clearTimeout(compileTimer)
+    compileTimer = setTimeout(() => {
+      handleCompile()
+    }, 1500)
+  })
+
+  onCleanup(() => {
+    clearTimeout(compileTimer)
+  })
+
   function handleSave(): SaveResult {
     const body = code()
     const variationName = name()
@@ -694,7 +710,7 @@ function ShowCustomVariationEditor(props: {
               }}
               onClick={handleCompile}
             >
-              Compile &amp; Test
+              Compile &amp; Preview
             </button>
 
             <button
