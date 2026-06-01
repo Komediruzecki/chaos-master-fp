@@ -438,3 +438,52 @@
 [data-theme='dark'] .errorList {
   color: var(--red-400);
 }
+
+/* ---- Help button ---- */
+
+.helpButton {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--neutral-300);
+  background: transparent;
+  color: var(--neutral-500);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
+}
+
+.helpButton:hover {
+  background: var(--neutral-100);
+  color: var(--neutral-800);
+  border-color: var(--neutral-400);
+}
+
+[data-theme='dark'] .helpButton {
+  border-color: var(--neutral-600);
+  color: var(--neutral-400);
+}
+
+[data-theme='dark'] .helpButton:hover {
+  background: var(--neutral-800);
+  color: var(--neutral-200);
+  border-color: var(--neutral-500);
+}
+
+/* ---- Tutorial modal ---- */
+
+.tutorialModal {
+  max-width: 760px;
+  width: 92vw;
+  max-height: 88vh;
+}

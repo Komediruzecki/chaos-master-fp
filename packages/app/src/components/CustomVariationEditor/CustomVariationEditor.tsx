@@ -8,11 +8,14 @@ import { Cross, Plus, Sparkle, Terminal } from '@/icons'
 import { AutoCanvas } from '@/lib/AutoCanvas'
 import { Root } from '@/lib/Root'
 import { WheelZoomCamera2D } from '@/lib/WheelZoomCamera2D'
+import { mathModeTutorial } from '@/tutorials/mathModeTutorial'
 import { MathEditor } from '../MathEditor/MathEditor'
 import { useRequestModal } from '../Modal/ModalContext'
 import { ModalTitleBar } from '../Modal/ModalTitleBar'
+import { TutorialModal } from '../TutorialModal/TutorialModal'
 import { WgslEditor } from '../WgslEditor'
 import ui from './CustomVariationEditor.module.css'
+import type { TutorialPage } from '../TutorialModal/TutorialModal'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 import type { CustomVariationDef } from '@/flame/variations/custom'
 
@@ -22,7 +25,7 @@ type RespondType = typeof CANCEL | { def: CustomVariationDef }
 const PREVIEW_VARIATION_ID = generateVariationId()
 const PREVIEW_TRANSFORM_ID = generateTransformId('custom_preview')
 
-const EXAMPLE_VARIATIONS = [
+const WGSL_EXAMPLES = [
   {
     name: 'Polar Ripple',
     wgsl: `  let r = length(pos);
@@ -39,6 +42,33 @@ const EXAMPLE_VARIATIONS = [
   let newTheta = theta * 0.5 + omega;
   let negR = -r;
   return vec2f(negR * cos(newTheta), negR * sin(newTheta));`,
+  },
+]
+
+const MATH_EXAMPLES = [
+  {
+    name: 'Polar Distance',
+    math: String.raw`r = \sqrt{x^2 + y^2}`,
+  },
+  {
+    name: 'Angle',
+    math: String.raw`\theta = \arctan2(p_y, p_x)`,
+  },
+  {
+    name: 'Ripple',
+    math: String.raw`r = r + \sin(r \cdot 8) \cdot w`,
+  },
+  {
+    name: 'Spiral',
+    math: String.raw`\theta = \theta + r \cdot 0.5`,
+  },
+  {
+    name: 'Power Curve',
+    math: String.raw`r = r^w`,
+  },
+  {
+    name: 'Wave',
+    math: String.raw`p_x = p_x + \sin(p_y \cdot 5) \cdot w`,
   },
 ]
 
@@ -84,6 +114,7 @@ type SaveResult =
 function ShowCustomVariationEditor(props: {
   respond: (value: RespondType) => void
 }) {
+  const requestModal = useRequestModal()
   const [activeId, setActiveId] = createSignal<string | undefined>()
   const [code, setCode] = createSignal('')
   const [name, setName] = createSignal('Untitled')
@@ -155,6 +186,18 @@ function ShowCustomVariationEditor(props: {
     setActiveId(undefined)
     setName(exName)
     setCode(wgsl)
+    setPreview({ status: 'idle' })
+    setPreviewKey((k) => k + 1)
+    setSavedDef(undefined)
+  }
+
+  function loadMathExample(exName: string, math: string) {
+    const p = untrack(preview)
+    if (p.status === 'compiled') p.unregister()
+    setActiveId(undefined)
+    setEditorMode('math')
+    setName(exName)
+    setMathText(math)
     setPreview({ status: 'idle' })
     setPreviewKey((k) => k + 1)
     setSavedDef(undefined)
@@ -266,6 +309,22 @@ function ShowCustomVariationEditor(props: {
     }
   }
 
+  function showTutorialModal(tutorial: {
+    title: string
+    pages: TutorialPage[]
+  }) {
+    void requestModal({
+      class: ui.tutorialModal,
+      content: ({ respond }) => (
+        <TutorialModal
+          title={tutorial.title}
+          pages={tutorial.pages}
+          respond={respond}
+        />
+      ),
+    })
+  }
+
   onCleanup(() => {
     const p = untrack(preview)
     if (p.status === 'compiled') p.unregister()
@@ -359,19 +418,38 @@ function ShowCustomVariationEditor(props: {
 
           <div class={ui.examplesSection}>
             <div class={ui.examplesTitle}>Examples</div>
-            <For each={EXAMPLE_VARIATIONS}>
-              {(ex) => (
-                <button
-                  class={ui.exampleButton}
-                  onClick={() => {
-                    loadExample(ex.name, ex.wgsl)
-                  }}
-                  title={`Load ${ex.name} example`}
-                >
-                  {ex.name}
-                </button>
-              )}
-            </For>
+            <Show
+              when={editorMode() === 'wgsl'}
+              fallback={
+                <For each={MATH_EXAMPLES}>
+                  {(ex) => (
+                    <button
+                      class={ui.exampleButton}
+                      onClick={() => {
+                        loadMathExample(ex.name, ex.math)
+                      }}
+                      title={`Load ${ex.name} example`}
+                    >
+                      {ex.name}
+                    </button>
+                  )}
+                </For>
+              }
+            >
+              <For each={WGSL_EXAMPLES}>
+                {(ex) => (
+                  <button
+                    class={ui.exampleButton}
+                    onClick={() => {
+                      loadExample(ex.name, ex.wgsl)
+                    }}
+                    title={`Load ${ex.name} example`}
+                  >
+                    {ex.name}
+                  </button>
+                )}
+              </For>
+            </Show>
           </div>
         </aside>
 
@@ -399,6 +477,16 @@ function ShowCustomVariationEditor(props: {
               onClick={() => setEditorMode('math')}
             >
               Math
+            </button>
+            <div style={{ flex: 1 }} />
+            <button
+              class={ui.helpButton}
+              onClick={() => {
+                showTutorialModal(mathModeTutorial)
+              }}
+              title="Math mode tutorial"
+            >
+              ?
             </button>
           </div>
 

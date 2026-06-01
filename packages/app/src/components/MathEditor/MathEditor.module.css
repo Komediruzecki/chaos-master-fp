@@ -6,34 +6,16 @@
   min-height: 0;
 }
 
-.inputPanel {
+.editorWrapper {
   flex: 1;
-  min-height: 0;
-}
-
-.mathInput {
-  width: 100%;
-  height: 100%;
   min-height: 120px;
-  padding: var(--space-2);
   border: 1px solid var(--neutral-300);
   border-radius: var(--space-2);
-  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
-  font-size: 0.8125rem;
-  line-height: 1.6;
-  resize: none;
-  background: var(--bg-color);
-  color: var(--text-color);
-  box-sizing: border-box;
-  outline: none;
-  tab-size: 2;
+  overflow: hidden;
+  background: #1a1b26;
 }
 
-.mathInput:focus {
-  border-color: var(--blue-500);
-}
-
-[data-theme='dark'] .mathInput {
+[data-theme='dark'] .editorWrapper {
   border-color: var(--neutral-600);
 }
 

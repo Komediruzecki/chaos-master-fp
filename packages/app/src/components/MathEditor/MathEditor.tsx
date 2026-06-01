@@ -1,5 +1,9 @@
-import { createSignal, onCleanup, onMount, Show } from 'solid-js'
+import { defaultKeymap, history, historyKeymap, indentWithTab, } from '@codemirror/commands'
+import { EditorState } from '@codemirror/state'
+import { EditorView, keymap, lineNumbers } from '@codemirror/view'
+import { createEffect, createSignal, onCleanup, onMount, Show } from 'solid-js'
 import { mathToWgsl } from '@/utils/mathToWgsl'
+import { wgslTheme } from '../WgslEditor/theme'
 import ui from './MathEditor.module.css'
 
 interface MathEditorProps {
@@ -57,10 +61,14 @@ export function MathEditor(props: MathEditorProps) {
   const [loading, setLoading] = createSignal(false)
   const [error, setError] = createSignal<string | null>(null)
   const [renderedSvg, setRenderedSvg] = createSignal('')
+  let editorRef: HTMLDivElement | undefined
   let previewRef: HTMLDivElement | undefined
+  let view: EditorView | undefined
   let renderTimer: ReturnType<typeof setTimeout> | undefined
+  let suppressOnChange = false
 
   onMount(() => {
+    // Initialize MathJax
     setLoading(true)
     ensureMathJax()
       .then(() => {
@@ -73,6 +81,60 @@ export function MathEditor(props: MathEditorProps) {
           `Math renderer unavailable: ${e instanceof Error ? e.message : String(e)}`,
         )
       })
+
+    // Create CodeMirror editor
+    if (!editorRef) return
+
+    const extensions = [
+      lineNumbers(),
+      history(),
+      EditorState.tabSize.of(2),
+      EditorView.lineWrapping,
+      keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
+      wgslTheme,
+      EditorView.updateListener.of((update) => {
+        if (update.docChanged && !suppressOnChange) {
+          const newText = update.state.doc.toString()
+          if (newText !== props.mathText) {
+            handleInput(newText)
+          }
+        }
+      }),
+    ]
+
+    const state = EditorState.create({
+      doc: props.mathText,
+      extensions,
+    })
+
+    view = new EditorView({
+      state,
+      parent: editorRef,
+    })
+  })
+
+  // External mathText changes (loadMathExample, etc.)
+  createEffect(() => {
+    const externalText = props.mathText
+    const v = view
+    if (!v) return
+
+    const currentDoc = v.state.doc.toString()
+    if (externalText !== currentDoc) {
+      suppressOnChange = true
+      v.dispatch({
+        changes: {
+          from: 0,
+          to: currentDoc.length,
+          insert: externalText,
+        },
+        selection: {
+          anchor: Math.min(v.state.selection.main.anchor, externalText.length),
+          head: Math.min(v.state.selection.main.head, externalText.length),
+        },
+      })
+      suppressOnChange = false
+    }
   })
 
   function scheduleRender(math: string) {
@@ -93,10 +155,8 @@ export function MathEditor(props: MathEditorProps) {
       return
     }
     try {
-      // Wrap in display math environment for proper rendering
       const displayMath = `\\displaystyle{${math}}`
       const svg = mj.tex2svg(displayMath)
-      // Extract SVG string from the DOM node
       const svgEl = svg.querySelector('svg')
       if (svgEl) {
         setRenderedSvg(svgEl.outerHTML)
@@ -111,7 +171,6 @@ export function MathEditor(props: MathEditorProps) {
     props.onChange(value)
     scheduleRender(value)
 
-    // Translate math to WGSL
     const result = mathToWgsl(value)
     if (result.errors.length > 0) {
       setError(result.errors.join('; '))
@@ -125,21 +184,13 @@ export function MathEditor(props: MathEditorProps) {
 
   onCleanup(() => {
     clearTimeout(renderTimer)
+    view?.destroy()
+    view = undefined
   })
 
   return (
     <div class={ui.root}>
-      <div class={ui.inputPanel}>
-        <textarea
-          class={ui.mathInput}
-          value={props.mathText}
-          onInput={(e) => {
-            handleInput(e.currentTarget.value)
-          }}
-          placeholder={`Enter math notation (LaTeX-like)...\n\nExamples:\nr = \\sqrt{x^2 + y^2}\n\\theta = \\arctan2(p_y, p_x)\nr = r + \\sin(r \\cdot 8) \\cdot w\n\\frac{a}{b}`}
-          spellcheck={false}
-        />
-      </div>
+      <div class={ui.editorWrapper} ref={editorRef} />
       <div class={ui.previewPanel}>
         <div class={ui.previewLabel}>Rendered</div>
         <div class={ui.previewContent}>
