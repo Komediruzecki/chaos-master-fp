@@ -134,6 +134,7 @@ export function MathEditor(props: MathEditorProps) {
         },
       })
       suppressOnChange = false
+      handleInput(externalText)
     }
   })
 
