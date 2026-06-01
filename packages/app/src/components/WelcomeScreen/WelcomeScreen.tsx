@@ -251,81 +251,90 @@ export function WelcomeScreen(props: WelcomeScreenProps) {
       >
         <div class={ui.card}>
           <div class={ui.gallerySection}>
-            <div class={ui.galleryHeader}>
-              <span class={ui.galleryTitle}>Recent</span>
-            </div>
             <Show
-              when={recentItems.length > 0}
+              when={!detectedTier.loading}
               fallback={
-                <div class={ui.galleryEmpty}>
-                  <span>No recent flames yet</span>
+                <div class={ui.galleryLoading}>
+                  <span>Detecting hardware capabilities...</span>
                 </div>
               }
             >
+              <div class={ui.galleryHeader}>
+                <span class={ui.galleryTitle}>Recent</span>
+              </div>
+              <Show
+                when={recentItems.length > 0}
+                fallback={
+                  <div class={ui.galleryEmpty}>
+                    <span>No recent flames yet</span>
+                  </div>
+                }
+              >
+                <div class={ui.galleryGrid}>
+                  <For each={recentItems}>
+                    {(item) => (
+                      <FlameThumbnail
+                        flame={item.flame}
+                        name={item.name}
+                        tracks={item.tracks}
+                        savedAt={item.savedAt}
+                        onClickWithTracks={handleSelect}
+                      />
+                    )}
+                  </For>
+                </div>
+              </Show>
+
+              <div class={ui.galleryHeader} style={{ 'margin-top': '1.25rem' }}>
+                <span class={ui.galleryTitle}>Animated Examples</span>
+              </div>
               <div class={ui.galleryGrid}>
-                <For each={recentItems}>
+                <For each={visibleAnimated()}>
                   {(item) => (
                     <FlameThumbnail
                       flame={item.flame}
                       name={item.name}
                       tracks={item.tracks}
-                      savedAt={item.savedAt}
                       onClickWithTracks={handleSelect}
                     />
                   )}
                 </For>
               </div>
-            </Show>
+              <Show when={animExamples.length > INITIAL_VISIBLE}>
+                <button
+                  class={ui.showMoreBtn}
+                  onClick={() => setShowAllAnimated((v) => !v)}
+                >
+                  {showAllAnimated()
+                    ? 'Show less'
+                    : `Show more (${animExamples.length - INITIAL_VISIBLE} more)`}
+                </button>
+              </Show>
 
-            <div class={ui.galleryHeader} style={{ 'margin-top': '1.25rem' }}>
-              <span class={ui.galleryTitle}>Animated Examples</span>
-            </div>
-            <div class={ui.galleryGrid}>
-              <For each={visibleAnimated()}>
-                {(item) => (
-                  <FlameThumbnail
-                    flame={item.flame}
-                    name={item.name}
-                    tracks={item.tracks}
-                    onClickWithTracks={handleSelect}
-                  />
-                )}
-              </For>
-            </div>
-            <Show when={animExamples.length > INITIAL_VISIBLE}>
-              <button
-                class={ui.showMoreBtn}
-                onClick={() => setShowAllAnimated((v) => !v)}
-              >
-                {showAllAnimated()
-                  ? 'Show less'
-                  : `Show more (${animExamples.length - INITIAL_VISIBLE} more)`}
-              </button>
-            </Show>
-
-            <div class={ui.galleryHeader} style={{ 'margin-top': '1.25rem' }}>
-              <span class={ui.galleryTitle}>Examples</span>
-            </div>
-            <div class={ui.galleryGrid}>
-              <For each={visibleStatic()}>
-                {(item) => (
-                  <FlameThumbnail
-                    flame={item.flame}
-                    name={item.name}
-                    onClick={handleSelect}
-                  />
-                )}
-              </For>
-            </div>
-            <Show when={staticExamples.length > INITIAL_VISIBLE}>
-              <button
-                class={ui.showMoreBtn}
-                onClick={() => setShowAllStatic((v) => !v)}
-              >
-                {showAllStatic()
-                  ? 'Show less'
-                  : `Show more (${staticExamples.length - INITIAL_VISIBLE} more)`}
-              </button>
+              <div class={ui.galleryHeader} style={{ 'margin-top': '1.25rem' }}>
+                <span class={ui.galleryTitle}>Examples</span>
+              </div>
+              <div class={ui.galleryGrid}>
+                <For each={visibleStatic()}>
+                  {(item) => (
+                    <FlameThumbnail
+                      flame={item.flame}
+                      name={item.name}
+                      onClick={handleSelect}
+                    />
+                  )}
+                </For>
+              </div>
+              <Show when={staticExamples.length > INITIAL_VISIBLE}>
+                <button
+                  class={ui.showMoreBtn}
+                  onClick={() => setShowAllStatic((v) => !v)}
+                >
+                  {showAllStatic()
+                    ? 'Show less'
+                    : `Show more (${staticExamples.length - INITIAL_VISIBLE} more)`}
+                </button>
+              </Show>
             </Show>
           </div>
 

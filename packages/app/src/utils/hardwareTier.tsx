@@ -92,7 +92,7 @@ export async function detectHardwareTier(): Promise<HardwareTier> {
               zoom={benchmarkFlame.renderSettings.camera.zoom}
             >
               <Flam3
-                quality={0.999}
+                quality={0.9}
                 pointCountPerBatch={DEFAULT_POINT_COUNT}
                 adaptiveFilterEnabled={false}
                 animationEnabled={false}

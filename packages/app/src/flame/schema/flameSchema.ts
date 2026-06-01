@@ -180,6 +180,12 @@ export function validateFlame(data: unknown): FlameDescriptor {
   return result.output
 }
 
+export function tryValidateFlame(data: unknown): FlameDescriptor | undefined {
+  const result = v.safeParse(FlameDescriptor, data)
+  if (!result.success) return undefined
+  return result.output
+}
+
 export function condenseFlameDescriptor(
   descriptor: FlameDescriptor,
 ): FlameDescriptor {
