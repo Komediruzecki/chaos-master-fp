@@ -16,6 +16,22 @@ interface Pattern {
   description?: string
 }
 
+// Local variables pre-declared from math shorthand.
+// These are NOT replaced in the user's code — they remain as local var names.
+const MATH_LOCAL_VARS: Record<string, string> = {
+  r: 'length(pos)',
+  theta: 'atan2(pos.y, pos.x)',
+  p_x: 'pos.x',
+  p_y: 'pos.y',
+  x: 'pos.x',
+  y: 'pos.y',
+}
+
+// Read-only shorthand: always replaced with the computed value
+const MATH_READONLY_VARS: Record<string, string> = {
+  w: 'varInfo.weight',
+}
+
 const PATTERNS: Pattern[] = [
   // Fractions: \frac{a}{b} → (a) / (b)
   {
@@ -110,20 +126,6 @@ const PATTERNS: Pattern[] = [
   { regex: /\\mod\(/g, replace: 'mod(' },
   // Constants
   { regex: /\\pi\b/g, replace: '3.14159265' },
-  // Special variables
-  { regex: /\\theta\b/g, replace: 'atan2(pos.y, pos.x)' },
-  { regex: /\bp_x\b/g, replace: 'pos.x' },
-  { regex: /\bp_y\b/g, replace: 'pos.y' },
-  {
-    regex: /\br\b(?!\w)/g,
-    replace: 'length(pos)',
-    description: 'r → length(pos) — radial distance',
-  },
-  {
-    regex: /\bw\b(?!\w)/g,
-    replace: 'varInfo.weight',
-    description: 'w → varInfo.weight',
-  },
   // Operators
   { regex: /\\cdot\b/g, replace: '*' },
   { regex: /\\times\b/g, replace: '*' },
@@ -141,7 +143,6 @@ const PATTERNS: Pattern[] = [
     },
     description: 'x^n → x * x * ... (n times)',
   },
-  // Subscripts in variable names: p_x → p_x (already handled by p_x→pos.x, general case: just keep)
 ]
 
 /**
@@ -154,9 +155,21 @@ export function mathToWgsl(input: string): TranslationResult {
     return { wgsl: '', errors }
   }
 
-  // Process each line as a separate assignment/expression
   const lines = input.split('\n')
   const wgslLines: string[] = []
+  const declaredVars = new Set<string>()
+
+  // Detect which local variables are referenced anywhere in the input
+  for (const name of Object.keys(MATH_LOCAL_VARS)) {
+    // \b p_x won't work for underscored names, use word-boundary or _ boundary
+    const re = name.includes('_')
+      ? new RegExp(`(?:^|(?<=\\W))${name}(?=\\W|$)`)
+      : new RegExp(`\\b${name}\\b`)
+    if (re.test(input)) {
+      wgslLines.push(`  var ${name} = ${MATH_LOCAL_VARS[name]};`)
+      declaredVars.add(name)
+    }
+  }
 
   for (let i = 0; i < lines.length; i++) {
     const raw = lines[i]
@@ -168,7 +181,7 @@ export function mathToWgsl(input: string): TranslationResult {
       continue
     }
 
-    // Apply pattern replacements sequentially
+    // Apply function/operator patterns
     for (const pattern of PATTERNS) {
       try {
         line = line.replace(pattern.regex, pattern.replace as string)
@@ -179,26 +192,30 @@ export function mathToWgsl(input: string): TranslationResult {
       }
     }
 
-    // Convert to WGSL variable declaration or assignment
-    // If it looks like an assignment (contains =), prefix with "let"
-    if (line.includes('=')) {
-      const eqIdx = line.indexOf('=')
-      const lhs = line.slice(0, eqIdx).trim()
-      const rhs = line.slice(eqIdx + 1).trim()
-      // If lhs is a simple variable name without let/var, add "let"
-      if (/^[a-zA-Z_]\w*$/.test(lhs)) {
-        line = `let ${lhs} = ${rhs};`
-      } else if (lhs.startsWith('let ') || lhs.startsWith('var ')) {
-        line = `${lhs} = ${rhs};`
-      } else {
-        line = `${line};`
-      }
-    } else {
-      // Simple expression — assume it's a return
-      line = `return ${line};`
+    // Replace read-only shorthand (w → varInfo.weight)
+    for (const [name, wgsl] of Object.entries(MATH_READONLY_VARS)) {
+      const re = new RegExp(`\\b${name}\\b`, 'g')
+      line = line.replace(re, wgsl)
     }
 
-    wgslLines.push(`  ${line}`)
+    // Parse assignment: "lhs = rhs"
+    const assignMatch = line.match(/^([a-zA-Z_]\w*)\s*=\s*(.+)$/)
+    if (assignMatch) {
+      const lhs = assignMatch[1]!
+      const rhs = assignMatch[2]!
+
+      if (declaredVars.has(lhs)) {
+        // Reassignment — already declared (either pre-declared or earlier line)
+        wgslLines.push(`  ${lhs} = ${rhs};`)
+      } else {
+        // First assignment — use 'var'
+        declaredVars.add(lhs)
+        wgslLines.push(`  var ${lhs} = ${rhs};`)
+      }
+    } else {
+      // Expression — treat as return value
+      wgslLines.push(`  return ${line};`)
+    }
   }
 
   return { wgsl: wgslLines.join('\n'), errors }
