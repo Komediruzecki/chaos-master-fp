@@ -8,218 +8,16 @@ import { Cross, Plus, Sparkle, Terminal } from '@/icons'
 import { AutoCanvas } from '@/lib/AutoCanvas'
 import { Root } from '@/lib/Root'
 import { WheelZoomCamera2D } from '@/lib/WheelZoomCamera2D'
+import { MathEditor } from '../MathEditor/MathEditor'
 import { useRequestModal } from '../Modal/ModalContext'
 import { ModalTitleBar } from '../Modal/ModalTitleBar'
+import { WgslEditor } from '../WgslEditor'
 import ui from './CustomVariationEditor.module.css'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 import type { CustomVariationDef } from '@/flame/variations/custom'
 
 const CANCEL = 'cancel' as const
 type RespondType = typeof CANCEL | { def: CustomVariationDef }
-
-// ---- WGSL syntax highlighting ----
-
-const WGSL_KEYWORDS = new Set([
-  'let',
-  'var',
-  'return',
-  'if',
-  'else',
-  'for',
-  'while',
-  'fn',
-  'struct',
-  'select',
-  'switch',
-  'case',
-  'default',
-  'break',
-  'continue',
-  'const',
-  'discard',
-  'loop',
-  'continuing',
-])
-
-const WGSL_TYPES = new Set([
-  'vec2f',
-  'vec3f',
-  'vec4f',
-  'vec2i',
-  'vec3i',
-  'vec4i',
-  'vec2u',
-  'vec3u',
-  'vec4u',
-  'f32',
-  'i32',
-  'u32',
-  'bool',
-  'mat2x2f',
-  'mat2x3f',
-  'mat2x4f',
-  'mat3x2f',
-  'mat3x3f',
-  'mat3x4f',
-  'mat4x2f',
-  'mat4x3f',
-  'mat4x4f',
-  'array',
-  'ptr',
-  'texture_1d',
-  'texture_2d',
-  'texture_3d',
-  'texture_cube',
-  'sampler',
-  'Sampler',
-  'atomic',
-])
-
-const BUILTINS = new Set([
-  'abs',
-  'acos',
-  'acosh',
-  'asin',
-  'asinh',
-  'atan',
-  'atanh',
-  'atan2',
-  'ceil',
-  'clamp',
-  'cos',
-  'cosh',
-  'cross',
-  'degrees',
-  'determinant',
-  'distance',
-  'dot',
-  'exp',
-  'exp2',
-  'faceForward',
-  'floor',
-  'fma',
-  'fract',
-  'frexp',
-  'inverseSqrt',
-  'ldexp',
-  'length',
-  'log',
-  'log2',
-  'max',
-  'min',
-  'mix',
-  'modf',
-  'normalize',
-  'pow',
-  'quantizeToF16',
-  'radians',
-  'reflect',
-  'refract',
-  'round',
-  'sign',
-  'sin',
-  'sinh',
-  'saturate',
-  'smoothstep',
-  'sqrt',
-  'step',
-  'tan',
-  'tanh',
-  'transpose',
-  'trunc',
-  'dpdx',
-  'dpdy',
-  'fwidth',
-  'pack4x8snorm',
-  'pack4x8unorm',
-  'pack2x16snorm',
-  'pack2x16unorm',
-  'pack2x16float',
-  'unpack4x8snorm',
-  'unpack4x8unorm',
-  'unpack2x16snorm',
-  'unpack2x16unorm',
-  'unpack2x16float',
-  'all',
-  'any',
-  'countLeadingZeros',
-  'countOneBits',
-  'countTrailingZeros',
-  'extractBits',
-  'firstLeadingBit',
-  'firstTrailingBit',
-  'insertBits',
-  'reverseBits',
-  'mod',
-  'floorMod',
-])
-
-function tokenizeWgsl(code: string): string {
-  const lines = code.split('\n')
-  return lines
-    .map((line, i) => {
-      let highlighted = ''
-      let col = 0
-      while (col < line.length) {
-        // Comments
-        if (line[col] === '/' && line[col + 1] === '/') {
-          highlighted += `<span class="comment">${esc(line.slice(col))}</span>`
-          break
-        }
-        // Strings
-        if (line[col] === '"') {
-          const end = line.indexOf('"', col + 1)
-          if (end !== -1) {
-            highlighted += `<span class="string">${esc(
-              line.slice(col, end + 1),
-            )}</span>`
-            col = end + 1
-            continue
-          }
-        }
-        // Numbers
-        const numMatch = line
-          .slice(col)
-          .match(/^(\d+\.?\d*(?:[eE][+-]?\d+)?[fiu]?|0x[\da-fA-F]+[u]?)/)
-        if (numMatch && numMatch[1] !== undefined) {
-          highlighted += `<span class="number">${numMatch[1]}</span>`
-          col += numMatch[1].length
-          continue
-        }
-        // Identifiers
-        const identMatch = line.slice(col).match(/^([a-zA-Z_]\w*)/)
-        if (identMatch && identMatch[1] !== undefined) {
-          const word = identMatch[1]
-          if (WGSL_KEYWORDS.has(word)) {
-            highlighted += `<span class="keyword">${word}</span>`
-          } else if (WGSL_TYPES.has(word)) {
-            highlighted += `<span class="type">${word}</span>`
-          } else if (BUILTINS.has(word)) {
-            highlighted += `<span class="builtin">${word}</span>`
-          } else {
-            highlighted += esc(word)
-          }
-          col += word.length
-          continue
-        }
-        // Operators / punctuation
-        const char = line[col]
-        if (char !== undefined) {
-          highlighted += esc(char)
-        }
-        col++
-      }
-      return `<span class="ln">${i + 1}</span>${highlighted || ' '}\n`
-    })
-    .join('')
-}
-
-function esc(s: string): string {
-  return s
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-}
 
 const PREVIEW_VARIATION_ID = generateVariationId()
 const PREVIEW_TRANSFORM_ID = generateTransformId('custom_preview')
@@ -296,9 +94,8 @@ function ShowCustomVariationEditor(props: {
   const [previewKey, setPreviewKey] = createSignal(0)
   const [savedDef, setSavedDef] = createSignal<CustomVariationDef | undefined>()
 
-  let textareaRef: HTMLTextAreaElement | undefined
-  let highlightRef: HTMLPreElement | undefined
-  let lineNumbersRef: HTMLDivElement | undefined
+  const [editorMode, setEditorMode] = createSignal<'wgsl' | 'math'>('wgsl')
+  const [mathText, setMathText] = createSignal('')
 
   const activeVariation = createMemo(() => {
     const id = activeId()
@@ -469,65 +266,9 @@ function ShowCustomVariationEditor(props: {
     }
   }
 
-  // Scroll sync: textarea ↔ highlight ↔ line numbers
-  function syncScroll() {
-    if (!textareaRef || !highlightRef || !lineNumbersRef) return
-    highlightRef.scrollTop = textareaRef.scrollTop
-    highlightRef.scrollLeft = textareaRef.scrollLeft
-    lineNumbersRef.scrollTop = textareaRef.scrollTop
-  }
-
-  function handleKeyDown(e: KeyboardEvent) {
-    if (e.key === 'Tab') {
-      e.preventDefault()
-      const ta = textareaRef
-      if (!ta) return
-      const start = ta.selectionStart
-      const end = ta.selectionEnd
-      const before = code().slice(0, start)
-      const after = code().slice(end)
-      const spaces = '  '
-      setCode(before + spaces + after)
-      // Restore cursor after spaces
-      requestAnimationFrame(() => {
-        ta.selectionStart = ta.selectionEnd = start + 2
-      })
-      return
-    }
-
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      const ta = textareaRef
-      if (!ta) return
-      const start = ta.selectionStart
-      const lines = code().slice(0, start).split('\n')
-      const currentLine = lines[lines.length - 1] ?? ''
-      const indent = currentLine.match(/^(\s*)/)?.[1] ?? ''
-      // Auto-indent: add 2 spaces after {
-      const extra = currentLine.trimEnd().endsWith('{') ? '  ' : ''
-      const insertion = `\n${indent}${extra}`
-      const after = code().slice(ta.selectionEnd)
-      setCode(code().slice(0, start) + insertion + after)
-      requestAnimationFrame(() => {
-        ta.selectionStart = ta.selectionEnd = start + insertion.length
-      })
-      return
-    }
-  }
-
   onCleanup(() => {
     const p = untrack(preview)
     if (p.status === 'compiled') p.unregister()
-  })
-
-  const highlighted = createMemo(() => {
-    const c = code()
-    if (!c) return '<span class="ln">1</span> '
-    return tokenizeWgsl(c)
-  })
-
-  const lineCount = createMemo(() => {
-    return code().split('\n').length
   })
 
   const statusText = createMemo(() => {
@@ -644,32 +385,41 @@ function ShowCustomVariationEditor(props: {
             placeholder="Variation name"
           />
 
-          <div class={ui.editorWrapper}>
-            <div class={ui.lineNumbers} ref={lineNumbersRef}>
-              <For each={Array.from({ length: lineCount() })}>
-                {(_, i) => <div>{i() + 1}</div>}
-              </For>
-            </div>
-            <pre
-              class={ui.highlightLayer}
-              ref={highlightRef}
-              aria-hidden="true"
-              innerHTML={highlighted()}
-            />
-            <textarea
-              ref={textareaRef}
-              class={ui.textarea}
-              value={code()}
-              onInput={(e) => setCode(e.currentTarget.value)}
-              onScroll={syncScroll}
-              onKeyDown={handleKeyDown}
-              spellcheck={false}
-              autocomplete="off"
-              autocorrect="off"
-              autocapitalize="off"
-              placeholder={`// Write your variation function body here.\n// The function signature is:\n//   (pos: vec2f, varInfo: VariationInfo) -> vec2f\n//\n// Available: all WGSL math builtins (sin, cos, length, normalize, etc.)\n//\n// Example:\n//   let r = length(pos);\n//   let theta = atan2(pos.y, pos.x);\n//   return vec2f(r * cos(theta + varInfo.weight), r * sin(theta + varInfo.weight));`}
-            />
+          <div class={ui.tabBar}>
+            <button
+              class={ui.tab}
+              classList={{ [ui.tabActive as string]: editorMode() === 'wgsl' }}
+              onClick={() => setEditorMode('wgsl')}
+            >
+              WGSL
+            </button>
+            <button
+              class={ui.tab}
+              classList={{ [ui.tabActive as string]: editorMode() === 'math' }}
+              onClick={() => setEditorMode('math')}
+            >
+              Math
+            </button>
           </div>
+
+          <Show
+            when={editorMode() === 'wgsl'}
+            fallback={
+              <MathEditor
+                mathText={mathText()}
+                onChange={setMathText}
+                onWgslChange={setCode}
+              />
+            }
+          >
+            <div class={ui.editorWrapper}>
+              <WgslEditor
+                code={code()}
+                onChange={setCode}
+                placeholder={`// Write your variation function body here.\n// The function signature is:\n//   (pos: vec2f, varInfo: VariationInfo) -> vec2f\n//\n// Available: all WGSL math builtins (sin, cos, length, normalize, etc.)\n//\n// Example:\n//   let r = length(pos);\n//   let theta = atan2(pos.y, pos.x);\n//   return vec2f(r * cos(theta + varInfo.weight), r * sin(theta + varInfo.weight));`}
+              />
+            </div>
+          </Show>
 
           {/* --- Bottom bar --- */}
           <div class={ui.bottomBar}>

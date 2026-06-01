@@ -275,67 +275,57 @@
   border-color: var(--neutral-600);
 }
 
-.editorWrapper:focus-within {
-  border-color: var(--blue-500);
+/* ---- Editor tabs ---- */
+
+.tabBar {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--neutral-300);
+  flex-shrink: 0;
 }
 
-.codeBackground {
-  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
-  font-size: 0.8125rem;
-  line-height: 1.6;
-  tab-size: 2;
-  position: absolute;
-  inset: 0;
-  box-sizing: border-box;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  overflow: auto;
-  margin: 0;
+[data-theme='dark'] .tabBar {
+  border-color: var(--neutral-600);
+}
+
+.tab {
+  padding: var(--space-1) var(--space-3);
   border: none;
-  resize: none;
-  outline: none;
-  padding: var(--space-2);
-  padding-left: calc(var(--space-2) + 3ch);
-}
-
-.textarea {
-  composes: codeBackground;
-  color: transparent;
-  caret-color: #c0caf5;
   background: transparent;
-  z-index: 2;
-  -webkit-text-fill-color: transparent;
+  color: var(--neutral-500);
+  font-size: 0.75rem;
+  font-family: inherit;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
 }
 
-.textarea::selection {
-  background: rgba(86, 148, 243, 0.3);
+.tab:hover {
+  color: var(--neutral-700);
 }
 
-.highlightLayer {
-  composes: codeBackground;
-  color: #a9b1d6;
-  z-index: 1;
-  pointer-events: none;
-  user-select: none;
+[data-theme='dark'] .tab:hover {
+  color: var(--neutral-300);
 }
 
-.lineNumbers {
-  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
-  font-size: 0.8125rem;
-  line-height: 1.6;
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3ch;
-  padding: var(--space-2) var(--space-1);
-  text-align: right;
-  color: #3b4261;
-  background: #16161e;
-  z-index: 3;
-  pointer-events: none;
-  user-select: none;
-  overflow: hidden;
+.tabActive {
+  color: var(--blue-600);
+  border-bottom-color: var(--blue-500);
+}
+
+.tabActive:hover {
+  color: var(--blue-600);
+}
+
+[data-theme='dark'] .tabActive {
+  color: var(--blue-400);
+  border-bottom-color: var(--blue-400);
+}
+
+[data-theme='dark'] .tabActive:hover {
+  color: var(--blue-400);
 }
 
 /* ---- Preview panel ---- */
