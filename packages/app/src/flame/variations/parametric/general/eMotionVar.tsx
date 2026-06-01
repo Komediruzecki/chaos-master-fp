@@ -8,21 +8,21 @@ import type { Infer } from 'typegpu/data'
 import type { EditorFor } from '@/components/Sliders/ParametricEditors/types'
 
 const EMotionVarParams = struct({
-  move: f32,
+  offset: f32,
   rotate: f32,
 })
 
 type EMotionVarParams = Infer<typeof EMotionVarParams>
 
 const EMotionVarParamsDefaults: EMotionVarParams = {
-  move: 0.0,
+  offset: 0.0,
   rotate: 0.0,
 }
 
 const EMotionVarParamsEditor: EditorFor<EMotionVarParams> = (props) => (
   <>
     <RangeEditor
-      {...editorProps(props, 'move', 'Move', props.dataParameterPath)}
+      {...editorProps(props, 'offset', 'Offset', props.dataParameterPath)}
       min={-5.0}
       max={5.0}
       step={0.01}
@@ -55,7 +55,7 @@ export const eMotionVar = parametricVariation(
     nu = select(nu, -nu, pos.y < 0.0)
 
     nu += P.rotate * PI.$
-    mu += select(-P.move * PI.$, P.move * PI.$, nu > 0.0)
+    mu += select(-P.offset * PI.$, P.offset * PI.$, nu > 0.0)
 
     if (mu <= 0.0) {
       mu = -mu

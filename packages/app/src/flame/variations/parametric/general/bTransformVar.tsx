@@ -11,7 +11,7 @@ import type { EditorFor } from '@/components/Sliders/ParametricEditors/types'
 const BTransformVarParams = struct({
   rotate: f32,
   power: f32,
-  move: f32,
+  offset: f32,
   split: f32,
 })
 
@@ -20,7 +20,7 @@ type BTransformVarParams = Infer<typeof BTransformVarParams>
 const BTransformVarParamsDefaults: BTransformVarParams = {
   rotate: 0.0,
   power: 1.0,
-  move: 0.0,
+  offset: 0.0,
   split: 0.0,
 }
 
@@ -39,7 +39,7 @@ const BTransformVarParamsEditor: EditorFor<BTransformVarParams> = (props) => (
       step={1.0}
     />
     <RangeEditor
-      {...editorProps(props, 'move', 'Move', props.dataParameterPath)}
+      {...editorProps(props, 'offset', 'Offset', props.dataParameterPath)}
       min={-5.0}
       max={5.0}
       step={0.01}
@@ -65,7 +65,7 @@ export const bTransformVar = parametricVariation(
         (log((pos.x + 1.0) * (pos.x + 1.0) + pos.y * pos.y) -
           log((pos.x - 1.0) * (pos.x - 1.0) + pos.y * pos.y))) /
         P.power +
-      P.move
+      P.offset
     let sigma =
       PI.$ - atan2(pos.y, pos.x + 1.0) - atan2(pos.y, 1.0 - pos.x) + P.rotate
     sigma =
