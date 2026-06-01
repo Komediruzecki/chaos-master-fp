@@ -70,6 +70,7 @@ import { disc2Var } from './general/disc2Var'
 import { dragonVar } from './general/dragonVar'
 import { eclipseVar } from './general/eclipseVar'
 import { ejuliaVar } from './general/ejuliaVar'
+import { ellipticVar } from './general/ellipticVar'
 import { eModVar } from './general/eModVar'
 import { eMotionVar } from './general/eMotionVar'
 import { epispiralVar } from './general/epispiralVar'
@@ -104,6 +105,7 @@ import { joukowskiVar } from './general/joukowskiVar'
 import { juliaN } from './general/juliaN'
 import { juliaQVar } from './general/juliaQVar'
 import { juliaScope } from './general/juliaScope'
+import { kaleidoscopeVar } from './general/kaleidoscopeVar'
 import { kaplanVar } from './general/kaplanVar'
 import { kochVar } from './general/kochVar'
 import { lazySusanVar } from './general/lazySusanVar'
@@ -111,6 +113,7 @@ import { linearTVar } from './general/linearTVar'
 import { lineVar } from './general/lineVar'
 import { lissajousVar } from './general/lissajousVar'
 import { loziVar } from './general/loziVar'
+import { maskVar } from './general/maskVar'
 import { maurerRoseVar } from './general/maurerRoseVar'
 import { mobiusVar } from './general/mobiusVar'
 import { modulusVar } from './general/modulusVar'
@@ -120,6 +123,8 @@ import { nPolarVar } from './general/nPolarVar'
 import { octagonVar } from './general/octagonVar'
 import { onion2Var } from './general/onion2Var'
 import { onionVar } from './general/onionVar'
+import { oscilloscopeVar } from './general/oscilloscopeVar'
+import { parabolaVar } from './general/parabolaVar'
 import { pdjVar } from './general/pdj'
 import { perlinNoiseVar } from './general/perlinNoise'
 import { perspective } from './general/perspective'
@@ -149,12 +154,14 @@ import { sunflowerVar } from './general/sunflowerVar'
 import { superShapeVar } from './general/superShapeVar'
 import { svenssonVar } from './general/svenssonVar'
 import { swirl3Var } from './general/swirl3Var'
+import { targetVar } from './general/targetVar'
 import { tradeVar } from './general/tradeVar'
 import { treeVar } from './general/treeVar'
 import { truchet2Var } from './general/truchet2Var'
 import { tunnelVar } from './general/tunnelVar'
 import { vogelVar } from './general/vogelVar'
 import { waffleVar } from './general/waffleVar'
+import { wedgeVar } from './general/wedgeVar'
 import { whorlVar } from './general/whorlVar'
 import { woggleVar } from './general/woggleVar'
 import { yinYangVar } from './general/yinYangVar'
@@ -243,12 +250,14 @@ export const parametricVariations = {
   juliaN,
   juliaScope,
   joukowskiVar,
+  kaleidoscopeVar,
   kochVar,
   lazySusanVar,
   lissajousVar,
   linearTVar,
   lineVar,
   loziVar,
+  maskVar,
   maurerRoseVar,
   mobiusVar,
   modulusVar,
@@ -308,6 +317,7 @@ export const parametricVariations = {
   tunnelVar,
   vogelVar,
   waffleVar,
+  wedgeVar,
   whorlVar,
   anamorphCylVar,
   asteriaVar,
@@ -364,6 +374,7 @@ export const parametricVariations = {
   eMotionVar,
   ePushVar,
   ejuliaVar,
+  ellipticVar,
   epispiralVar,
   exp2_bsVar,
   escherVar,
@@ -374,12 +385,15 @@ export const parametricVariations = {
   octagonVar,
   onion2Var,
   onionVar,
+  oscilloscopeVar,
+  parabolaVar,
   pulseVar,
   q_odeVar,
   sTwinVar,
   stripfitVar,
   sunflowerVar,
   superShapeVar,
+  targetVar,
   svenssonVar,
   synthVar,
   woggleVar,
