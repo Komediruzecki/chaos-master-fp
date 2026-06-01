@@ -1,5 +1,5 @@
 import { f32, vec2f } from 'typegpu/data'
-import { abs, atan2, cos, cosh, dot, exp, floor, length, log, pow, round, select, sin, sinh, sqrt, tan, } from 'typegpu/std'
+import { abs, atan2, clamp, cos, cosh, dot, exp, floor, length, log, pow, round, select, sin, sinh, sqrt, tan, } from 'typegpu/std'
 import { random, randomUnitDisk } from '@/shaders/random'
 import { EPS, PI } from '../../../constants'
 import { simpleVariation } from '../types'
@@ -16,7 +16,9 @@ export const waves = simpleVariation('waves', (pos, varInfo) => {
 export const popcorn = simpleVariation('popcorn', (pos, varInfo) => {
   'use gpu'
   const T = varInfo.affineCoefs
-  const delta = vec2f(T.c * sin(tan(3 * pos.y)), T.f * sin(tan(3 * pos.x)))
+  const tx = clamp(tan(3 * pos.x), -1e8, 1e8)
+  const ty = clamp(tan(3 * pos.y), -1e8, 1e8)
+  const delta = vec2f(T.c * sin(ty), T.f * sin(tx))
   return pos.add(delta)
 })
 
@@ -33,7 +35,7 @@ export const rings = simpleVariation('rings', (pos, varInfo) => {
 export const fan = simpleVariation('fan', (pos, varInfo) => {
   'use gpu'
   const T = varInfo.affineCoefs
-  const t = PI.$ * T.c * T.c
+  const t = PI.$ * T.c * T.c + EPS.$
   const r = length(pos)
   const theta = atan2(pos.y, pos.x)
 
@@ -69,7 +71,7 @@ export const sinusoidal = simpleVariation('sinusoidal', (pos, _varInfo) => {
 
 export const spherical = simpleVariation('spherical', (pos, _varInfo) => {
   'use gpu'
-  const r2 = dot(pos, pos)
+  const r2 = dot(pos, pos) + EPS.$
   return pos.div(r2)
 })
 

@@ -1,6 +1,7 @@
 import { vec2f } from 'typegpu/data'
 import { abs, round, select } from 'typegpu/std'
 import { random } from '@/shaders/random'
+import { EPS } from '../../../constants'
 import { simpleVariation } from '../types'
 
 export const boardersVar = simpleVariation('boardersVar', (pos, _varInfo) => {
@@ -19,15 +20,15 @@ export const boardersVar = simpleVariation('boardersVar', (pos, _varInfo) => {
   const ry = offsetY * 0.5 + roundY
 
   const xxp_x = offsetX * 0.5 + roundX + 0.25
-  const xxp_y = offsetY * 0.5 + roundY + (0.25 * offsetY) / offsetX
+  const xxp_y = offsetY * 0.5 + roundY + (0.25 * offsetY) / (offsetX + EPS.$)
 
   const xxn_x = offsetX * 0.5 + roundX - 0.25
-  const xxn_y = offsetY * 0.5 + roundY - (0.25 * offsetY) / offsetX
+  const xxn_y = offsetY * 0.5 + roundY - (0.25 * offsetY) / (offsetX + EPS.$)
 
-  const yyp_x = offsetX * 0.5 + roundX + (offsetX / offsetY) * 0.25
+  const yyp_x = offsetX * 0.5 + roundX + (offsetX / (offsetY + EPS.$)) * 0.25
   const yyp_y = offsetY * 0.5 + roundY + 0.25
 
-  const yyn_x = offsetX * 0.5 + roundX - (offsetX / offsetY) * 0.25
+  const yyn_x = offsetX * 0.5 + roundX - (offsetX / (offsetY + EPS.$)) * 0.25
   const yyn_y = offsetY * 0.5 + roundY - 0.25
 
   const xdom_x = select(xxn_x, xxp_x, isXpos)

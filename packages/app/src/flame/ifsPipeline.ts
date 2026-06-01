@@ -215,7 +215,11 @@ export function createIFSPipeline(
           jittered.x < 0 ||
           jittered.y < 0 ||
           jittered.x > outputTextureDimensionF.x ||
-          jittered.y > outputTextureDimensionF.y
+          jittered.y > outputTextureDimensionF.y ||
+          // eslint-disable-next-line eqeqeq -- NaN check in WGSL
+          jittered.x != jittered.x ||
+          // eslint-disable-next-line eqeqeq -- NaN check in WGSL
+          jittered.y != jittered.y
         )
           return
         const screenI = vec2i(jittered)
@@ -347,7 +351,11 @@ export function createIFSPipeline(
           jittered.x < 0 ||
           jittered.y < 0 ||
           jittered.x > outputTextureDimensionF.x ||
-          jittered.y > outputTextureDimensionF.y
+          jittered.y > outputTextureDimensionF.y ||
+          // eslint-disable-next-line eqeqeq -- NaN check in WGSL
+          jittered.x != jittered.x ||
+          // eslint-disable-next-line eqeqeq -- NaN check in WGSL
+          jittered.y != jittered.y
         )
           return
         const screenI = vec2i(jittered)
