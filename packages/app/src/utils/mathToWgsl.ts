@@ -158,16 +158,29 @@ export function mathToWgsl(input: string): TranslationResult {
   const lines = input.split('\n')
   const wgslLines: string[] = []
   const declaredVars = new Set<string>()
+  const varNameMap = new Map<string, string>() // base name → current WGSL name
+  const varCounters = new Map<string, number>() // base name → next shadow counter
+
+  function rewriteVarRefs(expr: string): string {
+    let result = expr
+    for (const [base, current] of varNameMap) {
+      if (base === current) continue
+      const re = new RegExp(`\\b${base}\\b`, 'g')
+      result = result.replace(re, current)
+    }
+    return result
+  }
 
   // Detect which local variables are referenced anywhere in the input
   for (const name of Object.keys(MATH_LOCAL_VARS)) {
-    // \b p_x won't work for underscored names, use word-boundary or _ boundary
     const re = name.includes('_')
       ? new RegExp(`(?:^|(?<=\\W))${name}(?=\\W|$)`)
       : new RegExp(`\\b${name}\\b`)
     if (re.test(input)) {
-      wgslLines.push(`  var ${name} = ${MATH_LOCAL_VARS[name]};`)
+      wgslLines.push(`  let ${name} = ${MATH_LOCAL_VARS[name]};`)
       declaredVars.add(name)
+      varNameMap.set(name, name)
+      varCounters.set(name, 0)
     }
   }
 
@@ -192,6 +205,9 @@ export function mathToWgsl(input: string): TranslationResult {
       }
     }
 
+    // Strip backslash from remaining LaTeX commands (e.g. \theta → theta)
+    line = line.replace(/\\([a-zA-Z]+)/g, '$1')
+
     // Replace read-only shorthand (w → varInfo.weight)
     for (const [name, wgsl] of Object.entries(MATH_READONLY_VARS)) {
       const re = new RegExp(`\\b${name}\\b`, 'g')
@@ -202,19 +218,26 @@ export function mathToWgsl(input: string): TranslationResult {
     const assignMatch = line.match(/^([a-zA-Z_]\w*)\s*=\s*(.+)$/)
     if (assignMatch) {
       const lhs = assignMatch[1]!
-      const rhs = assignMatch[2]!
+      const rhs = rewriteVarRefs(assignMatch[2]!)
 
       if (declaredVars.has(lhs)) {
-        // Reassignment — already declared (either pre-declared or earlier line)
-        wgslLines.push(`  ${lhs} = ${rhs};`)
+        // Reassignment — shadow with numbered let binding
+        const c = (varCounters.get(lhs) ?? 0) + 1
+        varCounters.set(lhs, c)
+        const newName = `${lhs}_${c}`
+        varNameMap.set(lhs, newName)
+        declaredVars.add(newName)
+        wgslLines.push(`  let ${newName} = ${rhs};`)
       } else {
-        // First assignment — use 'var'
+        // First assignment — use let
         declaredVars.add(lhs)
-        wgslLines.push(`  var ${lhs} = ${rhs};`)
+        varNameMap.set(lhs, lhs)
+        varCounters.set(lhs, 0)
+        wgslLines.push(`  let ${lhs} = ${rhs};`)
       }
     } else {
       // Expression — treat as return value
-      wgslLines.push(`  return ${line};`)
+      wgslLines.push(`  return ${rewriteVarRefs(line)};`)
     }
   }
 

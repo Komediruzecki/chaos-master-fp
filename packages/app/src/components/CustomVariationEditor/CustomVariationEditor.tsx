@@ -64,7 +64,7 @@ const MATH_EXAMPLES = [
   },
   {
     name: 'Power Curve',
-    math: String.raw`r = r^w`,
+    math: String.raw`r = r \cdot w`,
   },
   {
     name: 'Wave',
