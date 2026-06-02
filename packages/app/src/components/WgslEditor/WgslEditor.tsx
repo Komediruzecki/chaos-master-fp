@@ -1,16 +1,25 @@
+import { autocompletion } from '@codemirror/autocomplete'
 import { defaultKeymap, history, historyKeymap, indentWithTab, } from '@codemirror/commands'
 import { bracketMatching, indentOnInput } from '@codemirror/language'
+import { lintGutter, setDiagnostics } from '@codemirror/lint'
+import { highlightSelectionMatches } from '@codemirror/search'
 import { EditorState } from '@codemirror/state'
 import { EditorView, keymap, lineNumbers, placeholder } from '@codemirror/view'
 import { createEffect, onCleanup, onMount } from 'solid-js'
+import { wgslCompletions } from './autocomplete'
+import { rainbowBracketPlugin } from './rainbowBrackets'
 import { WGSL_SYNTAX_HIGHLIGHTING, wgslTheme } from './theme'
 import { wgsl } from './wgslStreamParser'
+import type { Diagnostic } from '@codemirror/lint'
+import type { Accessor } from 'solid-js'
 
 interface WgslEditorProps {
   code: string
   onChange: (code: string) => void
   readOnly?: boolean
   placeholder?: string
+  diagnostics?: Accessor<readonly Diagnostic[]>
+  onCtrlEnter?: () => void
 }
 
 export function WgslEditor(props: WgslEditorProps) {
@@ -24,9 +33,13 @@ export function WgslEditor(props: WgslEditorProps) {
     const extensions = [
       wgsl(),
       lineNumbers(),
+      lintGutter(),
       bracketMatching(),
+      rainbowBracketPlugin,
       indentOnInput(),
       history(),
+      highlightSelectionMatches(),
+      autocompletion({ override: [wgslCompletions] }),
       EditorState.tabSize.of(2),
       EditorView.lineWrapping,
       keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
@@ -41,6 +54,26 @@ export function WgslEditor(props: WgslEditorProps) {
 
     if (props.placeholder) {
       extensions.push(placeholder(props.placeholder))
+    }
+
+    if (props.onCtrlEnter) {
+      const ctrlEnter = keymap.of([
+        {
+          key: 'Ctrl-Enter',
+          run: () => {
+            props.onCtrlEnter?.()
+            return true
+          },
+        },
+        {
+          key: 'Cmd-Enter',
+          run: () => {
+            props.onCtrlEnter?.()
+            return true
+          },
+        },
+      ])
+      extensions.push(ctrlEnter)
     }
 
     const updateListener = EditorView.updateListener.of((update) => {
@@ -88,6 +121,14 @@ export function WgslEditor(props: WgslEditorProps) {
       })
       suppressOnChange = false
     }
+  })
+
+  // Inline error diagnostics
+  createEffect(() => {
+    const v = view
+    if (!v) return
+    const diags = props.diagnostics?.()
+    v.dispatch(setDiagnostics(v.state, diags ? [...diags] : []))
   })
 
   onCleanup(() => {

@@ -1,8 +1,10 @@
 import { defaultKeymap, history, historyKeymap, indentWithTab, } from '@codemirror/commands'
+import { highlightSelectionMatches } from '@codemirror/search'
 import { EditorState } from '@codemirror/state'
 import { EditorView, keymap, lineNumbers } from '@codemirror/view'
 import { createEffect, createSignal, onCleanup, onMount, Show } from 'solid-js'
 import { mathToWgsl } from '@/utils/mathToWgsl'
+import { rainbowBracketPlugin } from '../WgslEditor/rainbowBrackets'
 import { wgslTheme } from '../WgslEditor/theme'
 import ui from './MathEditor.module.css'
 
@@ -10,6 +12,7 @@ interface MathEditorProps {
   mathText: string
   onChange: (math: string) => void
   onWgslChange: (wgsl: string) => void
+  onCtrlEnter?: () => void
 }
 
 interface MathJaxInstance {
@@ -61,6 +64,8 @@ export function MathEditor(props: MathEditorProps) {
   const [loading, setLoading] = createSignal(false)
   const [error, setError] = createSignal<string | null>(null)
   const [renderedSvg, setRenderedSvg] = createSignal('')
+  const [generatedWgsl, setGeneratedWgsl] = createSignal('')
+  const [showWgsl, setShowWgsl] = createSignal(false)
   let editorRef: HTMLDivElement | undefined
   let previewRef: HTMLDivElement | undefined
   let view: EditorView | undefined
@@ -88,9 +93,31 @@ export function MathEditor(props: MathEditorProps) {
     const extensions = [
       lineNumbers(),
       history(),
+      highlightSelectionMatches(),
+      rainbowBracketPlugin,
       EditorState.tabSize.of(2),
       EditorView.lineWrapping,
       keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
+      ...(props.onCtrlEnter
+        ? [
+            keymap.of([
+              {
+                key: 'Ctrl-Enter',
+                run: () => {
+                  props.onCtrlEnter?.()
+                  return true
+                },
+              },
+              {
+                key: 'Cmd-Enter',
+                run: () => {
+                  props.onCtrlEnter?.()
+                  return true
+                },
+              },
+            ]),
+          ]
+        : []),
       wgslTheme,
       EditorView.updateListener.of((update) => {
         if (update.docChanged && !suppressOnChange) {
@@ -180,6 +207,9 @@ export function MathEditor(props: MathEditorProps) {
     }
     if (result.wgsl) {
       props.onWgslChange(result.wgsl)
+      setGeneratedWgsl(result.wgsl)
+    } else {
+      setGeneratedWgsl('')
     }
   }
 
@@ -213,6 +243,21 @@ export function MathEditor(props: MathEditorProps) {
           </Show>
         </div>
       </div>
+
+      <button
+        class={ui.wgslToggle}
+        classList={{ [ui.wgslToggleActive as string]: showWgsl() }}
+        onClick={() => setShowWgsl((v) => !v)}
+      >
+        {showWgsl() ? '▼' : '▶'} Generated WGSL
+      </button>
+
+      <Show when={showWgsl() && generatedWgsl()}>
+        <pre class={ui.wgslOutput}>{generatedWgsl()}</pre>
+      </Show>
+      <Show when={showWgsl() && !generatedWgsl()}>
+        <div class={ui.wgslEmpty}>Enter math to see generated WGSL</div>
+      </Show>
     </div>
   )
 }

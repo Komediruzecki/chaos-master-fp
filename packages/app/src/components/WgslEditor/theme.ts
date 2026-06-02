@@ -61,6 +61,10 @@ export const wgslTheme = EditorView.theme(
     '.cm-nonmatchingBracket': {
       backgroundColor: 'rgba(255, 100, 100, 0.2)',
     },
+    '.cm-selectionMatch': {
+      backgroundColor: 'rgba(86, 148, 243, 0.15)',
+      outline: '1px solid rgba(86, 148, 243, 0.3)',
+    },
     '.cm-tooltip': {
       backgroundColor: '#1f2335',
       border: '1px solid #3b4261',

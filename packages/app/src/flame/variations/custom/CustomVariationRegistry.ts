@@ -2,6 +2,7 @@ import * as v from '@/valibot'
 import { transformVariations, variationTypes } from '../index'
 import { compileCustomVariationCode } from './runtimeCompiler'
 import type { TgpuFn } from 'typegpu'
+import type { CompileError } from './runtimeCompiler'
 import type { CustomVariationDef } from './types'
 
 const STORAGE_KEY = 'chaos-master-custom-variations'
@@ -100,7 +101,7 @@ function unregister(id: string): boolean {
 
 export type RegisterResult =
   | { success: true; def: CustomVariationDef }
-  | { success: false; errors: string[] }
+  | { success: false; errors: CompileError[] }
 
 export function createCustomVariation(
   name: string,
@@ -126,7 +127,7 @@ export function createCustomVariation(
 
 export type UpdateResult =
   | { success: true; def: CustomVariationDef }
-  | { success: false; errors: string[] }
+  | { success: false; errors: CompileError[] }
 
 export function updateCustomVariation(
   id: string,
@@ -135,7 +136,10 @@ export function updateCustomVariation(
 ): UpdateResult {
   const record = customVariationRecords[id]
   if (!record) {
-    return { success: false, errors: ['Custom variation not found'] }
+    return {
+      success: false,
+      errors: [{ message: 'Custom variation not found' }],
+    }
   }
 
   const compileResult = compileCustomVariationCode(wgslBody)
@@ -157,7 +161,10 @@ export function updateCustomVariation(
 export function duplicateCustomVariation(id: string): RegisterResult {
   const record = customVariationRecords[id]
   if (!record) {
-    return { success: false, errors: ['Custom variation not found'] }
+    return {
+      success: false,
+      errors: [{ message: 'Custom variation not found' }],
+    }
   }
   const newId = generateId()
   const now = Date.now()
@@ -184,7 +191,7 @@ export function deleteCustomVariation(id: string): boolean {
 export function previewCustomVariation(
   wgslBody: string,
 ):
-  | { valid: false; errors: string[] }
+  | { valid: false; errors: CompileError[] }
   | { valid: true; id: string; unregister: () => void } {
   const compileResult = compileCustomVariationCode(wgslBody)
   if (!compileResult.valid) {
@@ -229,7 +236,7 @@ export function loadCustomVariations(): void {
       if (!compileResult.valid) {
         console.warn(
           `[CustomVariationRegistry] Failed to compile "${def.name}" (${def.id}):`,
-          compileResult.errors.join(', '),
+          compileResult.errors.map((e) => e.message).join(', '),
         )
         continue
       }

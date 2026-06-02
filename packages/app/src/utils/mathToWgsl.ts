@@ -27,6 +27,32 @@ const MATH_LOCAL_VARS: Record<string, string> = {
   y: 'pos.y',
 }
 
+const GREEK_MAP: Record<string, string> = {
+  α: 'alpha',
+  β: 'beta',
+  γ: 'gamma',
+  δ: 'delta',
+  ε: 'epsilon',
+  ζ: 'zeta',
+  η: 'eta',
+  θ: 'theta',
+  ι: 'iota',
+  κ: 'kappa',
+  λ: 'lambda',
+  μ: 'mu',
+  ν: 'nu',
+  ξ: 'xi',
+  π: 'pi',
+  ρ: 'rho',
+  σ: 'sigma',
+  τ: 'tau',
+  υ: 'upsilon',
+  φ: 'phi',
+  χ: 'chi',
+  ψ: 'psi',
+  ω: 'omega',
+}
+
 // Read-only shorthand: always replaced with the computed value
 const MATH_READONLY_VARS: Record<string, string> = {
   w: 'varInfo.weight',
@@ -82,7 +108,7 @@ const PATTERNS: Pattern[] = [
   // Other math functions
   { regex: /\\ln\s*\{([^}]+)\}/g, replace: (_m, x) => `log(${x})` },
   { regex: /\\ln\(/g, replace: 'log(' },
-  { regex: /\\log\s*\{([^}]+)\}/g, replace: (_m, x) => `log2(${x})` },
+  { regex: /\\log\s*\{([^}]+)\}/g, replace: (_m, x) => `log(${x})` },
   { regex: /\\exp\s*\{([^}]+)\}/g, replace: (_m, x) => `exp(${x})` },
   { regex: /\\exp\(/g, replace: 'exp(' },
   { regex: /\\floor\s*\{([^}]+)\}/g, replace: (_m, x) => `floor(${x})` },
@@ -143,6 +169,12 @@ const PATTERNS: Pattern[] = [
     },
     description: 'x^n → x * x * ... (n times)',
   },
+  // Power: x^y → pow(x, y) for variable/non-integer exponents (catches what remains)
+  {
+    regex: /(\w+|\))\^(\w+|\([^)]+\))/g,
+    replace: (_m, base, exp) => `pow(${base}, ${exp})`,
+    description: 'x^y → pow(x, y)',
+  },
 ]
 
 /**
@@ -155,7 +187,40 @@ export function mathToWgsl(input: string): TranslationResult {
     return { wgsl: '', errors }
   }
 
-  const lines = input.split('\n')
+  // Preprocess: replace Greek Unicode characters with ASCII names
+  let processed = input
+  for (const [greek, ascii] of Object.entries(GREEK_MAP)) {
+    processed = processed.replace(new RegExp(greek, 'g'), ascii)
+  }
+
+  // Preprocess: \begin{cases}...\end{cases} → select()
+  processed = processed.replace(
+    /\\begin\{cases\}\s*([\s\S]*?)\\end\{cases\}/g,
+    (_m: string, body: string) => {
+      const cases = body
+        .split('\\\\')
+        .map((s: string) => s.trim())
+        .filter((s: string) => s.length > 0)
+        .map((line: string) => {
+          const parts = line.split('&').map((s) => s.trim())
+          return { value: parts[0] ?? '', condition: parts[1] ?? '' }
+        })
+
+      if (cases.length === 0) return '0.0'
+      if (cases.length === 1) return cases[0]!.value
+
+      // Build nested select chain from last to first
+      // select(false_val, true_val, cond)
+      // For [a & c1, b & c2, c & c3]: select(select(c, b, c2), a, c1)
+      let result = cases[cases.length - 1]!.value
+      for (let i = cases.length - 2; i >= 0; i--) {
+        result = `select(${result}, ${cases[i]!.value}, ${cases[i]!.condition})`
+      }
+      return result
+    },
+  )
+
+  const lines = processed.split('\n')
   const wgslLines: string[] = []
   const declaredVars = new Set<string>()
   const varNameMap = new Map<string, string>() // base name → current WGSL name

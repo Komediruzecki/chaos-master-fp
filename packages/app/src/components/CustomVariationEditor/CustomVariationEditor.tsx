@@ -15,9 +15,11 @@ import { ModalTitleBar } from '../Modal/ModalTitleBar'
 import { TutorialModal } from '../TutorialModal/TutorialModal'
 import { WgslEditor } from '../WgslEditor'
 import ui from './CustomVariationEditor.module.css'
+import type { Diagnostic } from '@codemirror/lint'
 import type { TutorialPage } from '../TutorialModal/TutorialModal'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 import type { CustomVariationDef } from '@/flame/variations/custom'
+import type { CompileError } from '@/flame/variations/custom/runtimeCompiler'
 
 const CANCEL = 'cancel' as const
 type RespondType = typeof CANCEL | { def: CustomVariationDef }
@@ -42,6 +44,43 @@ const WGSL_EXAMPLES = [
   let newTheta = theta * 0.5 + omega;
   let negR = -r;
   return vec2f(negR * cos(newTheta), negR * sin(newTheta));`,
+  },
+  {
+    name: 'Swirl',
+    wgsl: `  let r = length(pos);
+  let theta = atan2(pos.y, pos.x) + r * 0.3 * varInfo.weight;
+  return vec2f(r * cos(theta), r * sin(theta));`,
+  },
+  {
+    name: 'Fisheye',
+    wgsl: `  let r = length(pos);
+  let newR = r * r;
+  return pos * (newR / max(r, 0.001)) * varInfo.weight + pos * (1.0 - varInfo.weight);`,
+  },
+  {
+    name: 'Waves',
+    wgsl: `  return vec2f(pos.x + sin(pos.y * 5.0) * varInfo.weight * 0.1, pos.y + sin(pos.x * 5.0) * varInfo.weight * 0.1);`,
+  },
+  {
+    name: 'Handkerchief',
+    wgsl: `  let theta = atan2(pos.y, pos.x);
+  let r = length(pos);
+  return vec2f(sin(theta + r) * r, cos(theta - r) * r);`,
+  },
+  {
+    name: 'Power',
+    wgsl: `  let r = length(pos);
+  let theta = atan2(pos.y, pos.x);
+  let newR = pow(r, sin(theta * 2.0) * 0.5 + 1.0) * varInfo.weight + r * (1.0 - varInfo.weight);
+  return vec2f(newR * cos(theta), newR * sin(theta));`,
+  },
+  {
+    name: 'Bubble',
+    wgsl: `  let r = length(pos);
+  let theta = atan2(pos.y, pos.x);
+  let r2 = 4.0 * (r - 0.5);
+  let newR = (1.0 - varInfo.weight) * r + varInfo.weight * (r / max(0.25 + r2 * r2, 0.001));
+  return vec2f(newR * cos(theta), newR * sin(theta));`,
   },
 ]
 
@@ -104,12 +143,12 @@ function makePreviewFlame(variationType: string): FlameDescriptor {
 type PreviewState =
   | { status: 'idle' }
   | { status: 'compiling' }
-  | { status: 'error'; errors: string[] }
+  | { status: 'error'; errors: CompileError[] }
   | { status: 'compiled'; id: string; unregister: () => void }
 
 type SaveResult =
   | { success: true; def: CustomVariationDef }
-  | { success: false; errors: string[] }
+  | { success: false; errors: CompileError[] }
 
 function ShowCustomVariationEditor(props: {
   respond: (value: RespondType) => void
@@ -143,6 +182,30 @@ function ShowCustomVariationEditor(props: {
   const canSave = createMemo(() => {
     const p = preview()
     return p.status === 'compiled' && isDirty()
+  })
+
+  const diagnostics = createMemo((): Diagnostic[] => {
+    const p = preview()
+    if (p.status !== 'error') return []
+    return p.errors.map((e) => {
+      const line = e.line ?? 0
+      // Find line start position in the document
+      const doc = code()
+      let pos = 0
+      for (let i = 0; i < line; i++) {
+        const nl = doc.indexOf('\n', pos)
+        if (nl === -1) break
+        pos = nl + 1
+      }
+      const lineEnd = doc.indexOf('\n', pos)
+      const to = lineEnd === -1 ? doc.length : lineEnd
+      return {
+        from: pos,
+        to,
+        severity: 'error' as const,
+        message: e.message,
+      }
+    })
   })
 
   const previewVariationType = createMemo(() => {
@@ -253,7 +316,12 @@ function ShowCustomVariationEditor(props: {
     }
   }
 
-  // Auto-compile debounce: recompile 1.5s after last code change
+  function handleCompileNow() {
+    clearTimeout(compileTimer)
+    handleCompile()
+  }
+
+  // Auto-compile debounce: recompile 600ms after last code change
   let compileTimer: ReturnType<typeof setTimeout> | undefined
   createEffect(() => {
     const body = code()
@@ -262,7 +330,7 @@ function ShowCustomVariationEditor(props: {
     clearTimeout(compileTimer)
     compileTimer = setTimeout(() => {
       handleCompile()
-    }, 1500)
+    }, 600)
   })
 
   onCleanup(() => {
@@ -300,6 +368,17 @@ function ShowCustomVariationEditor(props: {
     }
 
     return result
+  }
+
+  function handleExport() {
+    const body = code()
+    const blob = new Blob([body], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${name().replace(/\s+/g, '_')}.wgsl`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   function handleUse() {
@@ -497,6 +576,7 @@ function ShowCustomVariationEditor(props: {
                 mathText={mathText()}
                 onChange={setMathText}
                 onWgslChange={setCode}
+                onCtrlEnter={handleCompileNow}
               />
             }
           >
@@ -504,6 +584,8 @@ function ShowCustomVariationEditor(props: {
               <WgslEditor
                 code={code()}
                 onChange={setCode}
+                diagnostics={diagnostics}
+                onCtrlEnter={handleCompileNow}
                 placeholder={`// Write your variation function body here.\n// The function signature is:\n//   (pos: vec2f, varInfo: VariationInfo) -> vec2f\n//\n// Available: all WGSL math builtins (sin, cos, length, normalize, etc.)\n//\n// Example:\n//   let r = length(pos);\n//   let theta = atan2(pos.y, pos.x);\n//   return vec2f(r * cos(theta + varInfo.weight), r * sin(theta + varInfo.weight));`}
               />
             </div>
@@ -527,12 +609,12 @@ function ShowCustomVariationEditor(props: {
             <Show
               when={
                 preview().status === 'error' &&
-                (preview() as { status: 'error'; errors: string[] })
+                (preview() as { status: 'error'; errors: CompileError[] })
               }
             >
               {(p) => (
                 <div class={ui.errorList}>
-                  <For each={p().errors}>{(e) => <div>{e}</div>}</For>
+                  <For each={p().errors}>{(e) => <div>{e.message}</div>}</For>
                 </div>
               )}
             </Show>
@@ -549,6 +631,19 @@ function ShowCustomVariationEditor(props: {
               onClick={handleCompile}
             >
               Compile &amp; Preview
+            </button>
+
+            <button
+              class={ui.newButton}
+              style={{
+                width: 'auto',
+                padding: '0 var(--space-2)',
+                'font-size': '0.75rem',
+              }}
+              onClick={handleExport}
+              title="Export as .wgsl file"
+            >
+              Export
             </button>
 
             <button

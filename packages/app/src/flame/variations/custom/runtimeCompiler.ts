@@ -24,16 +24,29 @@ const BANNED_NAMES = new Set([
   'textureStore',
 ])
 
+export type CompileError = {
+  message: string
+  line?: number // 0-indexed editor line, or undefined if unknown
+}
+
 export type CompileResult =
   | { valid: true; fn: TgpuFn; externalNames: string[] }
-  | { valid: false; errors: string[] }
+  | { valid: false; errors: CompileError[] }
 
-function formatAcornError(err: unknown): string {
+function formatAcornError(err: unknown): { message: string; line?: number } {
   if (err instanceof SyntaxError) {
-    const msg = err.message.replace(/\(\d+:\d+\)$/, '')
-    return msg.trim()
+    const match = err.message.match(/\((\d+):(\d+)\)$/)
+    if (match) {
+      const acornLine = parseInt(match[1]!, 10)
+      // Acorn line 1 = wrapper function, line 2+ = user code
+      const editorLine = acornLine - 2
+      const msg = err.message.replace(/\(\d+:\d+\)$/, '').trim()
+      return { message: msg, line: editorLine >= 0 ? editorLine : undefined }
+    }
+    const msg = err.message.replace(/\(\d+:\d+\)$/, '').trim()
+    return { message: msg }
   }
-  return err instanceof Error ? err.message : String(err)
+  return { message: err instanceof Error ? err.message : String(err) }
 }
 
 export function compileCustomVariationCode(wgslBody: string): CompileResult {
@@ -46,7 +59,16 @@ export function compileCustomVariationCode(wgslBody: string): CompileResult {
       sourceType: 'module',
     })
   } catch (err) {
-    return { valid: false, errors: [`Parse error: ${formatAcornError(err)}`] }
+    const acornErr = formatAcornError(err)
+    return {
+      valid: false,
+      errors: [
+        {
+          message: `Parse error: ${acornErr.message}`,
+          line: acornErr.line,
+        },
+      ],
+    }
   }
 
   let irResult
@@ -56,7 +78,9 @@ export function compileCustomVariationCode(wgslBody: string): CompileResult {
     return {
       valid: false,
       errors: [
-        `Transpile error: ${err instanceof Error ? err.message : String(err)}`,
+        {
+          message: `Transpile error: ${err instanceof Error ? err.message : String(err)}`,
+        },
       ],
     }
   }
@@ -68,7 +92,9 @@ export function compileCustomVariationCode(wgslBody: string): CompileResult {
     return {
       valid: false,
       errors: [
-        `Banned features used: ${banned.join(', ')}. Storage, atomic, and texture operations are not allowed in custom variations.`,
+        {
+          message: `Banned features used: ${banned.join(', ')}. Storage, atomic, and texture operations are not allowed in custom variations.`,
+        },
       ],
     }
   }
@@ -80,7 +106,9 @@ export function compileCustomVariationCode(wgslBody: string): CompileResult {
     return {
       valid: false,
       errors: [
-        `Unknown identifiers: ${missingBuiltins.join(', ')}. Only built-in math functions (sin, cos, length, etc.), vec2f, f32, and constants (PI, EPS) are available.`,
+        {
+          message: `Unknown identifiers: ${missingBuiltins.join(', ')}. Only built-in math functions (sin, cos, length, etc.), vec2f, f32, and constants (PI, EPS) are available.`,
+        },
       ],
     }
   }
@@ -101,7 +129,9 @@ export function compileCustomVariationCode(wgslBody: string): CompileResult {
     return {
       valid: false,
       errors: [
-        `TypeGPU error: ${err instanceof Error ? err.message : String(err)}`,
+        {
+          message: `TypeGPU error: ${err instanceof Error ? err.message : String(err)}`,
+        },
       ],
     }
   }
