@@ -27,7 +27,7 @@ import type { FlameDescriptor } from './schema/flameSchema'
 import type { ExportImageType } from '@/App'
 import type { FlameDescriptor as TimelineFlameDescriptor } from '@/utils/timeline'
 
-const { sqrt, floor } = Math
+const { sqrt } = Math
 const { performance } = globalThis
 
 const OUTPUT_EVERY_FRAME_BATCH_INDEX = 20

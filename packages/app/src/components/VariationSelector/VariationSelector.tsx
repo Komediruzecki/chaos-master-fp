@@ -587,86 +587,88 @@ function ShowVariationSelector(props: VariationSelectorModalProps) {
             </button>
           </Show>
         </div>
-        <Show when={activeCategories().length > 1}>
-          <div class={ui.categoryFilterRow}>
-            <button
-              class={ui.categoryPill}
-              classList={{
-                [ui.categoryPillActive as string]: categoryFilter() === null,
-              }}
-              onClick={() => setCategoryFilter(null)}
-            >
-              All
-            </button>
-            <For each={activeCategories()}>
-              {(cat) => (
-                <button
-                  class={ui.categoryPill}
-                  classList={{
-                    [ui.categoryPillActive as string]:
-                      categoryFilter() === cat,
-                  }}
-                  onClick={() =>
-                    setCategoryFilter(categoryFilter() === cat ? null : cat)
-                  }
-                >
-                  {CATEGORY_LABELS[cat]}
-                </button>
-              )}
-            </For>
-          </div>
-        </Show>
-        <section class={ui.gallery} onMouseLeave={handleContainerLeave}>
-          <ComputeGate capacity={COMPUTE_GATE_CAPACITY}>
-            <For each={groupedEntries()}>
-              {({ label, entries }) => (
-                <>
-                  <div class={ui.sectionHeader}>{label}</div>
-                  <For each={entries}>
-                    {([id, variationExample]) => {
-                      const variation =
-                        getVarFromPreviewFlame(variationExample)
-                      const isSelected = () => selectedItemId() === id
-                      return (
-                        variation && (
-                          <button
-                            class={ui.item}
-                            classList={{
-                              [ui.selected as string]: isSelected(),
-                            }}
-                            onClick={() => {
-                              toggleSelectedItem(id)
-                            }}
-                            onMouseEnter={() => {
-                              handleMouseEnter(id)
-                            }}
-                            onMouseLeave={() => {
-                              handleMouseLeave()
-                            }}
-                            onContextMenu={(e) => {
-                              e.preventDefault()
-                            }}
-                          >
-                            <VariationPreview
-                              version={version()}
-                              isSelected={isSelected()}
-                              flame={variationExample}
-                              name={variation.type}
-                              hardwareTier={props.hardwareTier}
-                            />
-                            <div class={ui.itemTitle}>
-                              {getNormalizedVariationName(variation.type)}
-                            </div>
-                          </button>
-                        )
-                      )
+        <div class={ui.dummyHeader} />
+        <div class={ui.variationSelectorSidebar}>
+          <Show when={activeCategories().length > 1}>
+            <div class={ui.categoryFilterRow}>
+              <button
+                class={ui.categoryPill}
+                classList={{
+                  [ui.categoryPillActive as string]: categoryFilter() === null,
+                }}
+                onClick={() => setCategoryFilter(null)}
+              >
+                All
+              </button>
+              <For each={activeCategories()}>
+                {(cat) => (
+                  <button
+                    class={ui.categoryPill}
+                    classList={{
+                      [ui.categoryPillActive as string]:
+                        categoryFilter() === cat,
                     }}
-                  </For>
-                </>
-              )}
-            </For>
-          </ComputeGate>
-        </section>
+                    onClick={() =>
+                      setCategoryFilter(categoryFilter() === cat ? null : cat)
+                    }
+                  >
+                    {CATEGORY_LABELS[cat]}
+                  </button>
+                )}
+              </For>
+            </div>
+          </Show>
+          <section class={ui.gallery} onMouseLeave={handleContainerLeave}>
+            <ComputeGate capacity={COMPUTE_GATE_CAPACITY}>
+              <For each={groupedEntries()}>
+                {({ label, entries }) => (
+                  <>
+                    <div class={ui.sectionHeader}>{label}</div>
+                    <For each={entries}>
+                      {([id, variationExample]) => {
+                        const variation =
+                          getVarFromPreviewFlame(variationExample)
+                        const isSelected = () => selectedItemId() === id
+                        return (
+                          variation && (
+                            <button
+                              class={ui.item}
+                              classList={{
+                                [ui.selected as string]: isSelected(),
+                              }}
+                              onClick={() => {
+                                toggleSelectedItem(id)
+                              }}
+                              onMouseEnter={() => {
+                                handleMouseEnter(id)
+                              }}
+                              onMouseLeave={() => {
+                                handleMouseLeave()
+                              }}
+                              onContextMenu={(e) => {
+                                e.preventDefault()
+                              }}
+                            >
+                              <VariationPreview
+                                version={version()}
+                                isSelected={isSelected()}
+                                flame={variationExample}
+                                name={variation.type}
+                                hardwareTier={props.hardwareTier}
+                              />
+                              <div class={ui.itemTitle}>
+                                {getNormalizedVariationName(variation.type)}
+                              </div>
+                            </button>
+                          )
+                        )
+                      }}
+                    </For>
+                  </>
+                )}
+              </For>
+            </ComputeGate>
+          </section>
           <Show when={searchBarVisible() && !searchQuery()}>
             <div class={ui.speedSearchBar}>
               <span class={ui.speedSearchLabel}>Search:</span>
