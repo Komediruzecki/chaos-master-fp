@@ -4,6 +4,15 @@
   max-height: 88vh;
 }
 
+@media (max-width: 600px) {
+  .editorModal {
+    max-width: 100vw;
+    width: 100vw;
+    max-height: 100dvh;
+    border-radius: 0;
+  }
+}
+
 .root {
   display: flex;
   flex-direction: column;
@@ -347,6 +356,43 @@
   color: var(--neutral-400);
 }
 
+.previewToggle {
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
+  border: 1px solid var(--neutral-300);
+  background: transparent;
+  color: var(--neutral-500);
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.previewToggle:hover {
+  background: var(--neutral-100);
+  color: var(--neutral-800);
+}
+
+[data-theme='dark'] .previewToggle {
+  border-color: var(--neutral-600);
+  color: var(--neutral-400);
+}
+
+[data-theme='dark'] .previewToggle:hover {
+  background: var(--neutral-800);
+  color: var(--neutral-200);
+}
+
+.previewPanelCollapsed .previewCanvas,
+.previewPanelCollapsed .previewPlaceholder {
+  display: none;
+}
+
 .previewCanvas {
   width: 100%;
   aspect-ratio: 1;
@@ -562,25 +608,79 @@
   }
 }
 
-@media (max-width: 480px) {
+/* Phone portrait and landscape: go fullscreen, hide preview by default, compact everything */
+@media (max-width: 600px) {
+  .root {
+    gap: var(--space-1);
+  }
+
+  .main {
+    gap: var(--space-1);
+  }
+
+  .sidebar {
+    padding-bottom: var(--space-1);
+    gap: 2px;
+  }
+
+  .variationItem {
+    font-size: 0.6875rem;
+    padding: 2px var(--space-1);
+  }
+
+  .sidebarHeader {
+    width: auto;
+    flex: 0 0 auto;
+    gap: var(--space-1);
+  }
+
+  .sidebarTitle {
+    display: none;
+  }
+
+  .previewPanel {
+    flex-shrink: 0;
+  }
+
   .editorPanel {
-    min-height: 180px;
+    min-height: 0;
+    flex: 1 1 auto;
+    gap: var(--space-1);
   }
 
   .editorWrapper {
-    min-height: 150px;
+    min-height: 0;
+    flex: 1 1 0;
   }
 
+  .nameInput {
+    font-size: 0.75rem;
+    padding: 2px var(--space-1);
+  }
+
+  .tab {
+    font-size: 0.6875rem;
+    padding: 2px var(--space-2);
+  }
+
+  .bottomBar {
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+
+  .bottomBar button {
+    font-size: 0.6875rem !important;
+    padding: 2px 6px !important;
+    height: 24px;
+  }
+}
+
+@media (max-width: 480px) {
   .previewCanvas {
     width: 80px;
   }
 
   .previewPlaceholder {
     width: 80px;
-  }
-
-  .bottomBar {
-    flex-wrap: wrap;
-    gap: var(--space-1);
   }
 }

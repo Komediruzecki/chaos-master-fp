@@ -166,6 +166,7 @@ function ShowCustomVariationEditor(props: {
 
   const [editorMode, setEditorMode] = createSignal<'wgsl' | 'math'>('wgsl')
   const [mathText, setMathText] = createSignal('')
+  const [showPreview, setShowPreview] = createSignal(true)
 
   const activeVariation = createMemo(() => {
     const id = activeId()
@@ -680,36 +681,48 @@ function ShowCustomVariationEditor(props: {
         </div>
 
         {/* --- Preview --- */}
-        <div class={ui.previewPanel}>
+        <div
+          class={ui.previewPanel}
+          classList={{ [ui.previewPanelCollapsed as string]: !showPreview() }}
+        >
           <span class={ui.previewLabel}>Preview</span>
-          <Show
-            when={preview().status === 'compiled'}
-            fallback={
-              <div class={ui.previewPlaceholder}>
-                {preview().status === 'compiling'
-                  ? 'Compiling...'
-                  : 'Compile to see preview'}
-              </div>
-            }
+          <button
+            class={ui.previewToggle}
+            onClick={() => setShowPreview((v) => !v)}
+            title={showPreview() ? 'Hide preview' : 'Show preview'}
           >
-            <div class={ui.previewCanvas}>
-              <AutoCanvas pixelRatio={1}>
-                <WheelZoomCamera2D
-                  zoom={[() => 1, () => {}]}
-                  position={[() => vec2f(), () => undefined]}
-                >
-                  <Flam3
-                    animationEnabled={false}
-                    quality={0.99}
-                    pointCountPerBatch={50000}
-                    adaptiveFilterEnabled={false}
-                    flameDescriptor={previewFlame()}
-                    renderInterval={1}
-                    edgeFadeColor={vec4f(0)}
-                  />
-                </WheelZoomCamera2D>
-              </AutoCanvas>
-            </div>
+            {showPreview() ? '×' : '+'}
+          </button>
+          <Show when={showPreview()}>
+            <Show
+              when={preview().status === 'compiled'}
+              fallback={
+                <div class={ui.previewPlaceholder}>
+                  {preview().status === 'compiling'
+                    ? 'Compiling...'
+                    : 'Compile to see preview'}
+                </div>
+              }
+            >
+              <div class={ui.previewCanvas}>
+                <AutoCanvas pixelRatio={1}>
+                  <WheelZoomCamera2D
+                    zoom={[() => 1, () => {}]}
+                    position={[() => vec2f(), () => undefined]}
+                  >
+                    <Flam3
+                      animationEnabled={false}
+                      quality={0.99}
+                      pointCountPerBatch={50000}
+                      adaptiveFilterEnabled={false}
+                      flameDescriptor={previewFlame()}
+                      renderInterval={1}
+                      edgeFadeColor={vec4f(0)}
+                    />
+                  </WheelZoomCamera2D>
+                </AutoCanvas>
+              </div>
+            </Show>
           </Show>
         </div>
       </div>
