@@ -74,8 +74,8 @@ export const floraVar = parametricVariation(
     const fillRandom = random()
     const r = select(1.0, random(), P.filled > 0.0 && P.filled > fillRandom)
 
-    let lx = 0.0
-    let ly = 0.0
+    let lx = pos.x
+    let ly = pos.y
     const sm = P.shapeMod
     const PI2 = PI.$ / 2.0
 

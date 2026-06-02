@@ -1,5 +1,5 @@
 import { f32, struct, vec2f } from 'typegpu/data'
-import { abs, cos, exp, sin } from 'typegpu/std'
+import { abs, cos, exp, select, sin } from 'typegpu/std'
 import { RangeEditor } from '@/components/Sliders/ParametricEditors/RangeEditor'
 import { editorProps } from '@/components/Sliders/ParametricEditors/types'
 import { EPS, PI } from '@/flame/constants'
@@ -91,14 +91,11 @@ export const oscilloscope2Var = parametricVariation(
     const tpf2 = 2.0 * PI.$ * P.frequencyy
     const pt = P.perturbation * sin(tpf2 * pos.y)
     const noDamping = abs(P.damping) <= EPS.$
-    let t: number
-    if (noDamping) {
-      t = P.amplitude * cos(tpf * pos.x + pt) + P.separation
-    } else {
-      t =
-        P.amplitude * exp(-abs(pos.x) * P.damping) * cos(tpf * pos.x + pt) +
-        P.separation
-    }
+    const tDamped =
+      P.amplitude * exp(-abs(pos.x) * P.damping) * cos(tpf * pos.x + pt) +
+      P.separation
+    const tSimple = P.amplitude * cos(tpf * pos.x + pt) + P.separation
+    const t = select(tDamped, tSimple, noDamping)
     if (abs(pos.y) <= t) {
       return vec2f(-pos.x, -pos.y)
     }

@@ -5,6 +5,12 @@ import { blurZoomVar } from './blur/blurZoomVar'
 import { radialBlurVar } from './blur/radialBlur'
 import { radialBlur } from './blur/radialBlurSimple'
 import { starBlurVar } from './blur/starBlur'
+import { cropBoxVar } from './crop/cropBoxVar'
+import { cropCrossVar } from './crop/cropCrossVar'
+import { cropPolygonVar } from './crop/cropPolygonVar'
+import { cropRhombusVar } from './crop/cropRhombusVar'
+import { cropStarsVar } from './crop/cropStarsVar'
+import { cropTriangleVar } from './crop/cropTriangleVar'
 import { cutApollonianVar } from './cut/cutApollonianVar'
 import { cutCircleDesignVar } from './cut/cutCircleDesignVar'
 import { cutFractalVar } from './cut/cutFractalVar'
@@ -204,6 +210,7 @@ import { postBWraps2 } from './post/postBWraps2'
 import { postCircleCrop } from './post/postCircleCrop'
 import { postCrop } from './post/postCrop'
 import { postCurl } from './post/postCurl'
+import { postHeatVar } from './post/postHeatVar'
 import { postMirrorWf } from './post/postMirrorWf'
 import { postPointSymmetryWf } from './post/postPointSymmetryWf'
 import { symBandG1 } from './post/symBandG1'
@@ -231,6 +238,7 @@ import { symNetG15 } from './post/symNetG15'
 import { symNetG16 } from './post/symNetG16'
 import { symNetG17 } from './post/symNetG17'
 import { preCurlVar } from './pre/preCurlVar'
+import { preGaussianVar } from './pre/preGaussianVar'
 import { synthVar } from './synthVar'
 
 export const parametricVariations = {
@@ -238,10 +246,12 @@ export const parametricVariations = {
   blurZoom,
   postCircleCrop,
   preCurlVar,
+  preGaussianVar,
   postAxisSymmetryWf,
   postBWraps2,
   postCrop,
   postCurl,
+  postHeatVar,
   postMirrorWf,
   postPointSymmetryWf,
   radialBlur,
@@ -419,6 +429,12 @@ export const parametricVariations = {
   circular2Var,
   circularVar,
   collideoscopeVar,
+  cropBoxVar,
+  cropCrossVar,
+  cropPolygonVar,
+  cropRhombusVar,
+  cropStarsVar,
+  cropTriangleVar,
   crobVar,
   csc2_bsVar,
   csch2_bsVar,

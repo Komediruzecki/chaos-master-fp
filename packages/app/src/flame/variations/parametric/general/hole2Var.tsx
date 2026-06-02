@@ -79,7 +79,7 @@ export const hole2Var = parametricVariation(
     const theta = atan2(pos.y, pos.x) * P.d
     const delta = pow(theta / PI.$ + 1.0, P.a) * P.c
 
-    let r1 = 0.0
+    let r1 = pos.x
     if (P.shape < 1.0) {
       r1 = sqrt(rhosq) + delta
     } else if (P.shape < 2.0) {

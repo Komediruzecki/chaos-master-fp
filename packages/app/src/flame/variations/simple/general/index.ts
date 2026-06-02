@@ -491,9 +491,10 @@ export const gridoutVar = simpleVariation(
 export const fociVar = simpleVariation('fociVar', (pos, _varInfo) => {
   'use gpu'
   const expx = exp(pos.x) * 0.5
-  const expnx = 0.25 / expx
+  const expnx = 0.25 / (expx + EPS.$)
   const denom = expx + expnx - cos(pos.y)
-  const tmp = select(1.0 / denom, 0.0, abs(denom) < EPS.$)
+  const safe = select(denom, EPS.$, abs(denom) < EPS.$)
+  const tmp = 1.0 / safe
   return vec2f((expx - expnx) * tmp, sin(pos.y) * tmp)
 })
 

@@ -1,5 +1,5 @@
 import { f32, struct, vec2f } from 'typegpu/data'
-import { sqrt } from 'typegpu/std'
+import { select, sqrt } from 'typegpu/std'
 import { RangeEditor } from '@/components/Sliders/ParametricEditors/RangeEditor'
 import { editorProps } from '@/components/Sliders/ParametricEditors/types'
 import { parametricVariation } from '../types'
@@ -60,18 +60,16 @@ export const separationVar = parametricVariation(
     'use gpu'
     const sx2 = P.xSep * P.xSep
     const sy2 = P.ySep * P.ySep
-    let nx: number
-    let ny: number
-    if (pos.x > 0.0) {
-      nx = sqrt(pos.x * pos.x + sx2) - pos.x * P.xInside
-    } else {
-      nx = -(sqrt(pos.x * pos.x + sx2) + pos.x * P.xInside)
-    }
-    if (pos.y > 0.0) {
-      ny = sqrt(pos.y * pos.y + sy2) - pos.y * P.yInside
-    } else {
-      ny = -(sqrt(pos.y * pos.y + sy2) + pos.y * P.yInside)
-    }
+    const nx = select(
+      -(sqrt(pos.x * pos.x + sx2) + pos.x * P.xInside),
+      sqrt(pos.x * pos.x + sx2) - pos.x * P.xInside,
+      pos.x > 0.0,
+    )
+    const ny = select(
+      -(sqrt(pos.y * pos.y + sy2) + pos.y * P.yInside),
+      sqrt(pos.y * pos.y + sy2) - pos.y * P.yInside,
+      pos.y > 0.0,
+    )
     return vec2f(nx, ny)
   },
   'general',

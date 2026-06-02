@@ -1,5 +1,5 @@
 import { f32, struct, vec2f } from 'typegpu/data'
-import { acos, cos, exp, log, sin } from 'typegpu/std'
+import { acos, cos, exp, log, select, sin } from 'typegpu/std'
 import { RangeEditor } from '@/components/Sliders/ParametricEditors/RangeEditor'
 import { editorProps } from '@/components/Sliders/ParametricEditors/types'
 import { PI } from '@/flame/constants'
@@ -37,12 +37,10 @@ export const sineBlurVar = parametricVariation(
   (pos, _varInfo, P) => {
     'use gpu'
     const ang = random() * PI.$ * 2.0
-    let r: number
-    if (P.power === 1.0) {
-      r = acos(random() * 2.0 - 1.0) / PI.$
-    } else {
-      r = exp(log(random()) * P.power) / PI.$
-    }
+    const isOne = P.power === 1.0
+    const rOne = acos(random() * 2.0 - 1.0) / PI.$
+    const rOther = exp(log(random()) * P.power) / PI.$
+    const r = select(rOther, rOne, isOne)
     return vec2f(pos.x + r * cos(ang), pos.y + r * sin(ang))
   },
   'general',
