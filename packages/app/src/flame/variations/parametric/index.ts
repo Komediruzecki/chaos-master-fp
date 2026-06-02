@@ -80,6 +80,7 @@ import { exp2_bsVar } from './general/exp2_bsVar'
 import { fan2 } from './general/fan2'
 import { fdiscVar } from './general/fdiscVar'
 import { fibonacci2Var } from './general/fibonacci2Var'
+import { floraVar } from './general/floraVar'
 import { flowerVar } from './general/flowerVar'
 import { fluxVar } from './general/fluxVar'
 import { fourthVar } from './general/fourthVar'
@@ -88,6 +89,7 @@ import { funnelVar } from './general/funnelVar'
 import { gingerBreadVar } from './general/gingerBreadVar'
 import { gosperVar } from './general/gosperVar'
 import { grid } from './general/grid'
+import { harmonographVar } from './general/harmonographVar'
 import { henonVar } from './general/henonVar'
 import { hexesVar } from './general/hexesVar'
 import { hilbertVar } from './general/hilbertVar'
@@ -97,6 +99,7 @@ import { hopalongVar } from './general/hopalongVar'
 import { hyperbolicEllipseVar } from './general/hyperbolicEllipseVar'
 import { hypertile2Var } from './general/hypertile2Var'
 import { hypertileVar } from './general/hypertileVar'
+import { iconAttractorVar } from './general/iconAttractorVar'
 import { invCircle } from './general/invCircle'
 import { invCircle2 } from './general/invCircle2'
 import { invEllipse } from './general/invEllipse'
@@ -113,6 +116,7 @@ import { linearTVar } from './general/linearTVar'
 import { lineVar } from './general/lineVar'
 import { lissajousVar } from './general/lissajousVar'
 import { loziVar } from './general/loziVar'
+import { macMillanVar } from './general/macMillanVar'
 import { maskVar } from './general/maskVar'
 import { maurerRoseVar } from './general/maurerRoseVar'
 import { mobiusVar } from './general/mobiusVar'
@@ -128,6 +132,7 @@ import { parabolaVar } from './general/parabolaVar'
 import { pdjVar } from './general/pdj'
 import { perlinNoiseVar } from './general/perlinNoise'
 import { perspective } from './general/perspective'
+import { phoenixJuliaVar } from './general/phoenixJuliaVar'
 import { pie } from './general/pie'
 import { popcorn2Var } from './general/popcorn2Var'
 import { projectiveVar } from './general/projectiveVar'
@@ -141,6 +146,7 @@ import { rsquaresVar } from './general/rsquaresVar'
 import { sattractorVar } from './general/sattractorVar'
 import { scry2Var } from './general/scry2'
 import { seaShellVar } from './general/seaShellVar'
+import { shiftVar } from './general/shiftVar'
 import { sierCarpetVar } from './general/sierCarpetVar'
 import { sigmoidVar } from './general/sigmoidVar'
 import { sinusGridVar } from './general/sinusGridVar'
@@ -148,6 +154,7 @@ import { spirographVar } from './general/spirographVar'
 import { splitsVar } from './general/splitsVar'
 import { squircularVar } from './general/squircularVar'
 import { squishVar } from './general/squishVar'
+import { stripesVar } from './general/stripesVar'
 import { stripfitVar } from './general/stripfitVar'
 import { sTwinVar } from './general/sTwinVar'
 import { sunflowerVar } from './general/sunflowerVar'
@@ -226,6 +233,7 @@ export const parametricVariations = {
   fan2,
   fdiscVar,
   fibonacci2Var,
+  floraVar,
   flowerVar,
   fluxVar,
   fourthVar,
@@ -234,6 +242,7 @@ export const parametricVariations = {
   gingerBreadVar,
   gosperVar,
   grid,
+  harmonographVar,
   henonVar,
   hexesVar,
   hilbertVar,
@@ -243,6 +252,7 @@ export const parametricVariations = {
   hyperbolicEllipseVar,
   hypertile2Var,
   hypertileVar,
+  iconAttractorVar,
   invCircle,
   invCircle2,
   invEllipse,
@@ -257,6 +267,7 @@ export const parametricVariations = {
   linearTVar,
   lineVar,
   loziVar,
+  macMillanVar,
   maskVar,
   maurerRoseVar,
   mobiusVar,
@@ -264,6 +275,7 @@ export const parametricVariations = {
   ngonVar,
   pdjVar,
   perspective,
+  phoenixJuliaVar,
   pie,
   pixelFlowVar,
   popcorn2Var,
@@ -279,6 +291,7 @@ export const parametricVariations = {
   scry2Var,
   seaShellVar,
   sigmoidVar,
+  shiftVar,
   sierCarpetVar,
   starBlurVar,
   sinusGridVar,
@@ -391,6 +404,7 @@ export const parametricVariations = {
   q_odeVar,
   sTwinVar,
   stripfitVar,
+  stripesVar,
   sunflowerVar,
   superShapeVar,
   targetVar,
