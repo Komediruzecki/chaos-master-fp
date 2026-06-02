@@ -166,7 +166,9 @@ function ShowCustomVariationEditor(props: {
 
   const [editorMode, setEditorMode] = createSignal<'wgsl' | 'math'>('wgsl')
   const [mathText, setMathText] = createSignal('')
-  const [showPreview, setShowPreview] = createSignal(true)
+  const [showPreview, setShowPreview] = createSignal(
+    !window.matchMedia('(max-height: 500px)').matches,
+  )
 
   const activeVariation = createMemo(() => {
     const id = activeId()
