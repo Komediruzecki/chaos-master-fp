@@ -41,7 +41,7 @@ export const stripesVar = parametricVariation(
   StripesEditor,
   (pos, _varInfo, P) => {
     'use gpu'
-    const roundx = floor(pos.x + 0.5)
+    const roundx = f32(floor(pos.x + 0.5))
     const offsetx = pos.x - roundx
     return vec2f(
       offsetx * (1.0 - P.space) + roundx,

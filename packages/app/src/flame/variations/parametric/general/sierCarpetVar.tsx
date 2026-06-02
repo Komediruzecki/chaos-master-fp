@@ -35,8 +35,8 @@ export const sierCarpetVar = parametricVariation(
     'use gpu'
     const x = (pos.x + 1.0) * 0.5
     const y = (pos.y + 1.0) * 0.5
-    const cx = floor(x * 3.0)
-    const cy = floor(y * 3.0)
+    const cx = f32(floor(x * 3.0))
+    const cy = f32(floor(y * 3.0))
     const skip = cx === 1.0 && cy === 1.0
     const fx = fract(x * 3.0)
     const fy = fract(y * 3.0)

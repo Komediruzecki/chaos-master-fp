@@ -1,4 +1,4 @@
-import { vec2f } from 'typegpu/data'
+import { f32, vec2f } from 'typegpu/data'
 import { abs, cos, floor, select, sin } from 'typegpu/std'
 import { simpleVariation } from '../types'
 
@@ -6,7 +6,7 @@ export const collatzVar = simpleVariation(
   'collatzVar',
   (pos, varInfo) => {
     'use gpu'
-    let n = floor(abs(pos.x) * 100.0 + abs(pos.y) * 100.0) + 1.0
+    let n = f32(floor(abs(pos.x) * 100.0 + abs(pos.y) * 100.0)) + 1.0
     let steps = pos.x - pos.x
     for (let i = 0; i < 64; i++) {
       const isEven = n % 2.0 < 0.5

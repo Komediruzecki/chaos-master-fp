@@ -78,7 +78,7 @@ export const waves4Var = parametricVariation(
     const x0 = pos.x
     const y0 = pos.y
 
-    let ax = floor((y0 * P.freqx) / (2.0 * PI.$))
+    let ax = f32(floor((y0 * P.freqx) / (2.0 * PI.$)))
     ax =
       sin(ax * 12.9898 + ax * 78.233 + 1.0 + y0 * 0.001 * P.yfact) * 43758.5453
     ax = ax - floor(ax)

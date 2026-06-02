@@ -806,7 +806,7 @@ export const synthVar = parametricVariation(
       const mu = P.power * P.power + EPS.$
       // Java: radius += -2.0 * mu * (int) ((radius + mu) / (2.0 * mu)) + radius * (1.0 - mu);
       // (int) is floor.
-      const term = floor((radius + mu) / (2.0 * mu))
+      const term = f32(floor((radius + mu) / (2.0 * mu)))
       radius = radius + -2.0 * mu * term + radius * (1.0 - mu)
       const pair = synthsincos(theta, P)
       s = pair.x

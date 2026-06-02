@@ -60,11 +60,11 @@ export const starBlurVar = parametricVariation(
     const isEven = angleInt % 2.0 < 1.0
 
     if (isEven) {
-      const div2 = floor(angleInt / 2.0)
+      const div2 = f32(floor(angleInt / 2.0))
       angle =
         ((2.0 * PI.$) / P.power) * div2 + asin((sin(starblur_alpha) * x) / z)
     } else {
-      const div2 = floor(angleInt / 2.0)
+      const div2 = f32(floor(angleInt / 2.0))
       angle =
         ((2.0 * PI.$) / P.power) * div2 - asin((sin(starblur_alpha) * x) / z)
     }

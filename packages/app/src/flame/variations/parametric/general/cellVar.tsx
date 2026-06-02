@@ -35,8 +35,8 @@ export const cellVar = parametricVariation(
   (pos, _varInfo, P) => {
     'use gpu'
     const inv = 1.0 / P.size
-    const cx = floor(pos.x * inv)
-    const cy = floor(pos.y * inv)
+    const cx = f32(floor(pos.x * inv))
+    const cy = f32(floor(pos.y * inv))
     const dx = pos.x - cx * P.size
     const dy = pos.y - cy * P.size
 

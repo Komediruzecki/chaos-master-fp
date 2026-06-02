@@ -43,11 +43,11 @@ export const lazySensenVar = parametricVariation(
   (pos, _varInfo, P) => {
     'use gpu'
     const cellX = floor(pos.x * P.scale_x)
-    const parityX = cellX - 2.0 * floor(cellX * 0.5)
+    const parityX = cellX - 2.0 * f32(floor(cellX * 0.5))
     const flipX = select(1.0 - parityX, parityX, cellX >= 0.0)
 
     const cellY = floor(pos.y * P.scale_y)
-    const parityY = cellY - 2.0 * floor(cellY * 0.5)
+    const parityY = cellY - 2.0 * f32(floor(cellY * 0.5))
     const flipY = select(1.0 - parityY, parityY, cellY >= 0.0)
 
     return vec2f(

@@ -71,8 +71,8 @@ export const circleRandVar = parametricVariation(
     'use gpu'
     const X = P.x * (1.0 - 2.0 * random())
     const Y = P.y * (1.0 - 2.0 * random())
-    const M = floor((0.5 * X) / P.sc)
-    const N = floor((0.5 * Y) / P.sc)
+    const M = f32(floor((0.5 * X) / P.sc))
+    const N = f32(floor((0.5 * Y) / P.sc))
     const rX = X - (M * 2.0 + 1.0) * P.sc
     const rY = Y - (N * 2.0 + 1.0) * P.sc
     const U = sqrt(rX * rX + rY * rY)

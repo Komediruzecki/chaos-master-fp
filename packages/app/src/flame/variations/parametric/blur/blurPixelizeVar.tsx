@@ -42,8 +42,8 @@ export const blurPixelizeVar = parametricVariation(
   (pos, varInfo, P) => {
     'use gpu'
     const inv_size = 1.0 / P.size
-    const x0 = floor(pos.x * inv_size)
-    const y0 = floor(pos.y * inv_size)
+    const x0 = f32(floor(pos.x * inv_size))
+    const y0 = f32(floor(pos.y * inv_size))
     const cx = x0 * P.size + P.size * 0.5
     const cy = y0 * P.size + P.size * 0.5
     const dx = pos.x - cx

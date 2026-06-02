@@ -61,7 +61,7 @@ export const wedgeVar = parametricVariation(
     'use gpu'
     const r = sqrt(pos.x * pos.x + pos.y * pos.y)
     const a = atan2(pos.y, pos.x) + P.swirl * r
-    const c = floor(((P.count * a + PI.$) * 0.5) / PI.$)
+    const c = f32(floor(((P.count * a + PI.$) * 0.5) / PI.$))
     const compFac = 1.0 - (P.angle * P.count * 0.5) / PI.$
     const a2 = a * compFac + c * P.angle
     return vec2f((r + P.hole) * cos(a2), (r + P.hole) * sin(a2))

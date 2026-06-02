@@ -69,7 +69,7 @@ export const wedgeJuliaVar = parametricVariation(
     const r = pow(r2, cn)
     const t_rnd = floor(rN * random())
     let a = (atan2(pos.y, pos.x) + 2.0 * PI.$ * t_rnd) / pwrSafe
-    const c = floor((P.count * a + PI.$) * invPI * 0.5)
+    const c = f32(floor((P.count * a + PI.$) * invPI * 0.5))
     a = a * cf + c * P.angle
     return vec2f(r * cos(a), r * sin(a))
   },

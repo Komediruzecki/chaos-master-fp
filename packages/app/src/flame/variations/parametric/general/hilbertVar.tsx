@@ -35,8 +35,8 @@ export const hilbertVar = parametricVariation(
     'use gpu'
     const x = abs(pos.x) * 0.5 + 0.25
     const y = abs(pos.y) * 0.5 + 0.25
-    const qx = floor(x * 2.0)
-    const qy = floor(y * 2.0)
+    const qx = f32(floor(x * 2.0))
+    const qy = f32(floor(y * 2.0))
     const fx = fract(x * 2.0)
     const fy = fract(y * 2.0)
     const flipx = 1.0 - fx

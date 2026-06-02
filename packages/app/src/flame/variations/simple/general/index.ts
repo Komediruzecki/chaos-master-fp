@@ -595,7 +595,7 @@ export const apollonyVar = simpleVariation('apollonyVar', (pos, _varInfo) => {
   const f1x = a0 / (a0 * a0 + b0 * b0)
   const f1y = -b0 / (a0 * a0 + b0 * b0)
 
-  const branch = floor(3.0 * random())
+  const branch = f32(floor(3.0 * random()))
 
   const is0 = abs(branch) < 0.5
   const is1 = abs(branch - 1.0) < 0.5

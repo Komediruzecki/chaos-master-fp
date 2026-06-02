@@ -78,8 +78,8 @@ export const circleLinearVar = parametricVariation(
   CircleLinearVarParamsEditor,
   (pos, _varInfo, P) => {
     'use gpu'
-    const M = floor((0.5 * pos.x) / P.sc)
-    const N = floor((0.5 * pos.y) / P.sc)
+    const M = f32(floor((0.5 * pos.x) / P.sc))
+    const N = f32(floor((0.5 * pos.y) / P.sc))
     let X = pos.x - (M * 2.0 + 1.0) * P.sc
     let Y = pos.y - (N * 2.0 + 1.0) * P.sc
     const U = sqrt(X * X + Y * Y)

@@ -36,7 +36,7 @@ export const whirligigVar = parametricVariation(
     const ccos = cos(pos.x)
     const csinh = sinh(pos.y)
     const ccosh = cosh(pos.y)
-    const m = floor(P.mode + 0.5)
+    const m = f32(floor(P.mode + 0.5))
     const signBits = m % 4.0
 
     const xNum = select(csin, ccos, m < 4.0 || m >= 12.0)

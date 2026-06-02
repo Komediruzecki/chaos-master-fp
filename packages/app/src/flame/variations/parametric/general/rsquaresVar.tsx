@@ -43,9 +43,9 @@ export const rsquaresVar = parametricVariation(
     'use gpu'
     const x = abs(pos.x)
     const y = abs(pos.y)
-    const quadrant = floor(x * 2.0) + floor(y * 2.0) * 2.0
-    const fx = x * 2.0 - floor(x * 2.0) - 0.5
-    const fy = y * 2.0 - floor(y * 2.0) - 0.5
+    const quadrant = f32(floor(x * 2.0)) + f32(floor(y * 2.0)) * 2.0
+    const fx = x * 2.0 - f32(floor(x * 2.0)) - 0.5
+    const fy = y * 2.0 - f32(floor(y * 2.0)) - 0.5
     const nx = fx / P.scale + quadrant * 0.1
     const ny = fy / P.scale
     return vec2f(nx, ny)
