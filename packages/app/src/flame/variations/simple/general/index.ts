@@ -233,13 +233,6 @@ export const blurVar = simpleVariation(
   'blur',
 )
 
-export const archVar = simpleVariation('archVar', (_pos, varInfo) => {
-  'use gpu'
-  const weight = varInfo.weight
-  const angle = random() * PI.$ * weight
-  return vec2f(sin(angle), (sin(angle) * sin(angle)) / cos(angle))
-})
-
 export const tangentVar = simpleVariation('tangentVar', (pos, _varInfo) => {
   'use gpu'
   return vec2f(sin(pos.x) / cos(pos.y), tan(pos.y))
