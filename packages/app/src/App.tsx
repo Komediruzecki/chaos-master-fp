@@ -196,28 +196,28 @@ export function Wrappers() {
       <SpotlightTourContext.Provider value={spotlightState}>
         <ThemeContextProvider>
           <KeyframeTargetProvider>
-            <Modal>
-              <ErrorBoundary fallback={errorHandler}>
-                <Root
-                  adapterOptions={{
-                    powerPreference: 'high-performance',
-                  }}
-                >
-                  <Suspense>
-                    <ToastProvider>
+            <ToastProvider>
+              <Modal>
+                <ErrorBoundary fallback={errorHandler}>
+                  <Root
+                    adapterOptions={{
+                      powerPreference: 'high-performance',
+                    }}
+                  >
+                    <Suspense>
                       <QueryErrorToast error={queryError()} />
                       <MainWorkspace
                         flameFromQuery={flameFromQuery()}
                         flameFromWelcome={selectedFlame}
                         welcomeTracks={selectedWelcomeTracks}
                         hardwareTier={hardwareTier()}
+                        onHardwareTierChange={setHardwareTier}
                         resetFlameFromWelcome={() => {
                           setSelectedFlame(undefined)
                           setSelectedWelcomeTracks(undefined)
                         }}
                       />
-                    </ToastProvider>
-                    {/* WelcomeScreen overlay on top */}
+                    </Suspense>
                     <Show when={showWelcome()}>
                       <WelcomeScreen
                         showDontShowAgain={dontShowAgain()}
@@ -250,10 +250,10 @@ export function Wrappers() {
                         onHardwareTierChange={setHardwareTier}
                       />
                     </Show>
-                  </Suspense>
-                </Root>
-              </ErrorBoundary>
-            </Modal>
+                  </Root>
+                </ErrorBoundary>
+              </Modal>
+            </ToastProvider>
           </KeyframeTargetProvider>
         </ThemeContextProvider>
       </SpotlightTourContext.Provider>

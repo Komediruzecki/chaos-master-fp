@@ -19,17 +19,18 @@
   flex-direction: column;
   max-height: 80vh;
   min-height: 0;
+  width: calc(90vw - 2 * var(--space-4));
 }
 
 .variation-preview {
   display: grid;
   flex: 1;
   grid-template-columns: 1fr 2fr;
-  grid-template-rows: 1fr auto;
+  grid-template-rows: auto 1fr auto;
   grid-template-areas:
+    'search dummy'
     'variations flame'
     'variation-options flame';
-  width: 90vw;
   gap: var(--space-3);
   overflow: hidden;
   min-height: 0;
@@ -40,15 +41,19 @@
 }
 
 .variation-selector-sidebar {
+  grid-area: variations;
   display: flex;
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
+}
 
-  grid-area: variations;
+.dummy-header {
+  grid-area: dummy;
 }
 
 .search-bar {
+  grid-area: search;
   display: flex;
   align-items: center;
   gap: 0.35rem;
@@ -301,8 +306,8 @@
 
 /* ── Responsive ── */
 @media (max-width: 1200px) {
-  .variation-preview {
-    width: 95vw;
+  .variation-selector-wrapper {
+    width: calc(95vw - 2 * var(--space-4));
   }
 
   .gallery {
@@ -313,12 +318,20 @@
 @media (max-width: 768px) {
   .variation-preview {
     grid-template-columns: 1fr;
+    grid-template-rows: auto auto 1fr auto;
     grid-template-areas:
+      'search'
+      'dummy'
       'variations'
       'variation-options'
       'flame';
-    width: 100vw;
     gap: 0.1rem;
+  }
+  .dummy-header {
+    display: none;
+  }
+  .variation-selector-wrapper {
+    width: 100vw;
   }
 
   .gallery {

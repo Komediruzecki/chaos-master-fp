@@ -393,19 +393,32 @@ export function Flam3(props: Flam3Props) {
     })
   })
 
-  function estimateIterationCount(
-    timings: NonNullable<ReturnType<typeof timestampQuery.average>>,
+  const estimateIterationCount = (
+    timings: {
+      ifsMs: number
+      adaptiveFilterMs: number
+      colorGradingMs: number
+    },
     shouldRenderFinalImage: boolean,
-  ) {
+  ) => {
     const { ifsMs, adaptiveFilterMs, colorGradingMs } = timings
-    if (ifsMs <= 0) {
-      return 1
-    }
-    const frameBudgetMs = 14
+    const safeIfsMs = Math.max(ifsMs, 0.001)
+
+    // For benchmarks, we want 100% GPU saturation without triggering a TDR crash or completely freezing the UI.
+    // 50ms gives ~20 FPS, which keeps the browser alive while maximizing throughput.
+    const frameBudgetMs = props.disableQualityLimit
+      ? 50
+      : shouldRenderFinalImage
+        ? 14
+        : 33
+
     const paintTimeMs =
       Number(shouldRenderFinalImage) *
       (colorGradingMs + Number(props.adaptiveFilterEnabled) * adaptiveFilterMs)
-    return clamp(floor((frameBudgetMs - paintTimeMs) / ifsMs), 1, 100)
+
+    // Use Math.round instead of floor to prevent the dead-zone where budget/ifsMs < 2
+    // would permanently trap the scaler at 1 iteration.
+    return clamp(Math.round((frameBudgetMs - paintTimeMs) / safeIfsMs), 1, 1000)
   }
 
   // Main render loop — follows the main branch pattern with plain `let` variables

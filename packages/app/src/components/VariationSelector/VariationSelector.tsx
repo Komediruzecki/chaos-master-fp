@@ -23,6 +23,7 @@ import { Root } from '@/lib/Root'
 import { WheelZoomCamera2D } from '@/lib/WheelZoomCamera2D'
 import { deepClone } from '@/utils/clone'
 import { createStoreHistory } from '@/utils/createStoreHistory'
+import { hardwareTierToQuality } from '@/utils/hardwareTier'
 import { recordEntries, recordKeys } from '@/utils/record'
 import { useIntersectionObserver } from '@/utils/useIntersectionObserver'
 import { useKeyboardShortcuts } from '@/utils/useKeyboardShortcuts'
@@ -45,6 +46,7 @@ import type { TransformVariationDescriptor } from '@/flame/variations'
 import type { VariationCategory } from '@/flame/variations/categories'
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { ChangeHistory, HistorySetter } from '@/utils/createStoreHistory'
+import type { HardwareTier } from '@/utils/hardwareTier'
 
 const CANCEL = 'cancel'
 
@@ -52,6 +54,7 @@ export function PreviewFinalFlame(props: {
   flame: FlameDescriptor
   setFlamePosition: Setter<v2f>
   setFlameZoom: Setter<number>
+  hardwareTier?: HardwareTier | null
 }) {
   return (
     <AutoCanvas class={ui.canvas} pixelRatio={1}>
@@ -67,7 +70,11 @@ export function PreviewFinalFlame(props: {
       >
         <Flam3
           animationEnabled={false}
-          quality={0.99}
+          quality={
+            props.hardwareTier
+              ? hardwareTierToQuality[props.hardwareTier]
+              : 0.99
+          }
           pointCountPerBatch={DEFAULT_VARIATION_PREVIEW_POINT_COUNT}
           adaptiveFilterEnabled={true}
           flameDescriptor={props.flame}
@@ -84,6 +91,7 @@ export function VariationPreview(props: {
   isSelected: boolean
   flame: FlameDescriptor
   name: string
+  hardwareTier?: HardwareTier | null
 }) {
   const [container, setContainer] = createSignal<HTMLElement>()
   const [quality, setQuality] = createSignal<() => number>()
@@ -203,7 +211,11 @@ export function VariationPreview(props: {
           >
             <Flam3
               animationEnabled={false}
-              quality={0.99}
+              quality={
+                props.hardwareTier
+                  ? hardwareTierToQuality[props.hardwareTier]
+                  : 0.99
+              }
               pointCountPerBatch={5e4}
               adaptiveFilterEnabled={false}
               flameDescriptor={props.flame}
@@ -230,6 +242,7 @@ type VariationSelectorModalProps = {
   transformId: TransformId
   variationId: VariationId
   respond: (value: RespondType) => void
+  hardwareTier?: HardwareTier | null
 }
 export const variationPreviewFlames: (
   p: PointInitMode,
@@ -541,119 +554,119 @@ function ShowVariationSelector(props: VariationSelectorModalProps) {
         <span class={ui.undoMessage}>You can undo this operation.</span>
       </ModalTitleBar>
       <section class={ui.variationPreview}>
-        <div class={ui.variationSelectorSidebar}>
-          <div class={ui.searchBar}>
-            <input
-              ref={searchInputRef}
-              class={ui.searchInput}
-              type="text"
-              placeholder="Search variations..."
-              value={searchQuery()}
-              onInput={(e) => setSearchQuery(e.currentTarget.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') {
-                  setSearchQuery('')
+        <div class={ui.searchBar}>
+          <input
+            ref={searchInputRef}
+            class={ui.searchInput}
+            type="text"
+            placeholder="Search variations..."
+            value={searchQuery()}
+            onInput={(e) => setSearchQuery(e.currentTarget.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                setSearchQuery('')
+                e.stopPropagation()
+              } else if (e.key === 'Enter') {
+                if (applySelection()) {
+                  e.preventDefault()
                   e.stopPropagation()
-                } else if (e.key === 'Enter') {
-                  if (applySelection()) {
-                    e.preventDefault()
-                    e.stopPropagation()
-                  }
                 }
+              }
+            }}
+          />
+          <Show when={searchQuery()}>
+            <button
+              class={ui.searchClear}
+              onClick={() => {
+                setSearchQuery('')
+                searchInputRef?.focus()
               }}
-            />
-            <Show when={searchQuery()}>
-              <button
-                class={ui.searchClear}
-                onClick={() => {
-                  setSearchQuery('')
-                  searchInputRef?.focus()
-                }}
-                title="Clear search"
-              >
-                &times;
-              </button>
-            </Show>
-          </div>
-          <Show when={activeCategories().length > 1}>
-            <div class={ui.categoryFilterRow}>
-              <button
-                class={ui.categoryPill}
-                classList={{
-                  [ui.categoryPillActive as string]: categoryFilter() === null,
-                }}
-                onClick={() => setCategoryFilter(null)}
-              >
-                All
-              </button>
-              <For each={activeCategories()}>
-                {(cat) => (
-                  <button
-                    class={ui.categoryPill}
-                    classList={{
-                      [ui.categoryPillActive as string]:
-                        categoryFilter() === cat,
-                    }}
-                    onClick={() =>
-                      setCategoryFilter(categoryFilter() === cat ? null : cat)
-                    }
-                  >
-                    {CATEGORY_LABELS[cat]}
-                  </button>
-                )}
-              </For>
-            </div>
+              title="Clear search"
+            >
+              &times;
+            </button>
           </Show>
-          <section class={ui.gallery} onMouseLeave={handleContainerLeave}>
-            <ComputeGate capacity={COMPUTE_GATE_CAPACITY}>
-              <For each={groupedEntries()}>
-                {({ label, entries }) => (
-                  <>
-                    <div class={ui.sectionHeader}>{label}</div>
-                    <For each={entries}>
-                      {([id, variationExample]) => {
-                        const variation =
-                          getVarFromPreviewFlame(variationExample)
-                        const isSelected = () => selectedItemId() === id
-                        return (
-                          variation && (
-                            <button
-                              class={ui.item}
-                              classList={{
-                                [ui.selected as string]: isSelected(),
-                              }}
-                              onClick={() => {
-                                toggleSelectedItem(id)
-                              }}
-                              onMouseEnter={() => {
-                                handleMouseEnter(id)
-                              }}
-                              onMouseLeave={() => {
-                                handleMouseLeave()
-                              }}
-                              onContextMenu={(e) => {
-                                e.preventDefault()
-                              }}
-                            >
-                              <VariationPreview
-                                version={version()}
-                                isSelected={isSelected()}
-                                flame={variationExample}
-                                name={variation.type}
-                              />
-                              <div class={ui.itemTitle}>
-                                {getNormalizedVariationName(variation.type)}
-                              </div>
-                            </button>
-                          )
+        </div>
+        <Show when={activeCategories().length > 1}>
+          <div class={ui.categoryFilterRow}>
+            <button
+              class={ui.categoryPill}
+              classList={{
+                [ui.categoryPillActive as string]: categoryFilter() === null,
+              }}
+              onClick={() => setCategoryFilter(null)}
+            >
+              All
+            </button>
+            <For each={activeCategories()}>
+              {(cat) => (
+                <button
+                  class={ui.categoryPill}
+                  classList={{
+                    [ui.categoryPillActive as string]:
+                      categoryFilter() === cat,
+                  }}
+                  onClick={() =>
+                    setCategoryFilter(categoryFilter() === cat ? null : cat)
+                  }
+                >
+                  {CATEGORY_LABELS[cat]}
+                </button>
+              )}
+            </For>
+          </div>
+        </Show>
+        <section class={ui.gallery} onMouseLeave={handleContainerLeave}>
+          <ComputeGate capacity={COMPUTE_GATE_CAPACITY}>
+            <For each={groupedEntries()}>
+              {({ label, entries }) => (
+                <>
+                  <div class={ui.sectionHeader}>{label}</div>
+                  <For each={entries}>
+                    {([id, variationExample]) => {
+                      const variation =
+                        getVarFromPreviewFlame(variationExample)
+                      const isSelected = () => selectedItemId() === id
+                      return (
+                        variation && (
+                          <button
+                            class={ui.item}
+                            classList={{
+                              [ui.selected as string]: isSelected(),
+                            }}
+                            onClick={() => {
+                              toggleSelectedItem(id)
+                            }}
+                            onMouseEnter={() => {
+                              handleMouseEnter(id)
+                            }}
+                            onMouseLeave={() => {
+                              handleMouseLeave()
+                            }}
+                            onContextMenu={(e) => {
+                              e.preventDefault()
+                            }}
+                          >
+                            <VariationPreview
+                              version={version()}
+                              isSelected={isSelected()}
+                              flame={variationExample}
+                              name={variation.type}
+                              hardwareTier={props.hardwareTier}
+                            />
+                            <div class={ui.itemTitle}>
+                              {getNormalizedVariationName(variation.type)}
+                            </div>
+                          </button>
                         )
-                      }}
-                    </For>
-                  </>
-                )}
-              </For>
-            </ComputeGate>
-          </section>
+                      )
+                    }}
+                  </For>
+                </>
+              )}
+            </For>
+          </ComputeGate>
+        </section>
           <Show when={searchBarVisible() && !searchQuery()}>
             <div class={ui.speedSearchBar}>
               <span class={ui.speedSearchLabel}>Search:</span>
@@ -757,6 +770,7 @@ function ShowVariationSelector(props: VariationSelectorModalProps) {
               flame={previewFlame}
               setFlamePosition={setFlamePosition}
               setFlameZoom={setFlameZoom}
+              hardwareTier={props.hardwareTier}
             />
           </div>
           <div class={ui.flamePreviewControls}>
@@ -829,6 +843,7 @@ function ShowVariationSelector(props: VariationSelectorModalProps) {
 
 export function createVariationSelector(
   history: ChangeHistory<FlameDescriptor>,
+  hardwareTier?: HardwareTier | null,
 ) {
   const requestModal = useRequestModal()
   const [varSelectorModalIsOpen, setVarSelectorModalIsOpen] =
@@ -854,6 +869,7 @@ export function createVariationSelector(
                   transformId={tid}
                   variationId={vid}
                   respond={respond}
+                  hardwareTier={hardwareTier}
                 />
               </KeyframeTargetProvider>
             </ChangeHistoryContextProvider>

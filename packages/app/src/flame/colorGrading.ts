@@ -273,13 +273,17 @@ export function createColorGradingPipeline(
     // Apply vibrancy as a true Saturation multiplier on the OkLab chroma
     finalAb = mul(finalAb, max(uniforms.vibrancy, f32(0)))
 
-    const logDensity = log(add(adjustedCount, f32(1)))
-    const tonemapped = mul(
-      mul(uniforms.exposure, uniforms.contrast),
-      logDensity,
-    )
+    // Apply exposure BEFORE log (linear scaling of light)
+    const exposedCount = mul(adjustedCount, max(uniforms.exposure, f32(0)))
+    const logDensity = log(add(exposedCount, f32(1)))
+
+    // Apply contrast AFTER log (power curve on linear density, linear scaling on log density)
+    const tonemapped = mul(logDensity, max(uniforms.contrast, f32(0)))
+
+    // Remove saturate() before pow to allow highlights to exceed 1.0,
+    // which enables the highlightPower roll-off to actually work.
     const value = clamp(
-      pow(saturate(tonemapped), div(f32(1), uniforms.gamma)),
+      pow(max(tonemapped, f32(0)), div(f32(1), uniforms.gamma)),
       f32(0),
       f32(2),
     )

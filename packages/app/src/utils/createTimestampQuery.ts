@@ -34,7 +34,7 @@ export function createTimestampQuery<T extends string>(
           // Assign total time divided by iterations to the first timestamp (ifsMs)
           timings[timestampNames[0] as T] = Math.max(
             durationMs / Math.max(item.div, 1),
-            0.1,
+            0.001,
           )
         }
       },

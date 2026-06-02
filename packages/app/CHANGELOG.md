@@ -13,11 +13,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Animation Exposure**: Scaled up default exposure levels by +1.5 across all timeline animation examples for a brighter default experience.
 - Removed verbose timeline rendering logs to reduce console clutter.
 - **Export Progress UI**: The progress bar now displays an explicit "Encoding Video..." status and prevents cancellation during the critical muxing finalization phase.
+- **Color Grading Math**: Decoupled exposure and contrast. Exposure now correctly acts as a linear multiplier on bucket density before the logarithmic scale, while Contrast applies a power curve to the log-density. 
+- **Hardware Tier Benchmark**: Fixed a bug where Chromium would aggressively throttle the benchmark's `requestAnimationFrame` to 1 FPS because the off-screen canvas was `opacity: 0` and 1x1 pixels. The container is now `10x10` pixels with `opacity: 0.01` to ensure high-end GPUs can run at maximum frame rates.
+- **Dynamic Iteration Scaler**: Changed the timing fallback clamp from `0.1ms` to `0.001ms`. High-refresh-rate monitors without native WebGPU timestamp support will no longer artificially bottleneck the compute workload. Fixed a severe mathematical dead-zone in the scaler where `Math.floor()` would permanently trap the iterations at `1` if the browser's fixed overhead was greater than the target budget (by switching to `Math.round()`).
+- **Benchmark Stability**: The benchmark frame budget is now bounded to 50ms (~20 FPS) instead of aggressively freezing the browser. This gracefully achieves 100% GPU saturation without triggering Timeout Detection and Recovery (TDR) crashes on weak tablet GPUs.
 
 ### Fixed
 
 - **WebGPU Memory Limits**: Animation export at 4x upscale no longer crashes due to `Out of Memory` errors. The WebGPU adapter now explicitly requests the hardware's maximum supported buffer sizes (e.g., 2GB) rather than defaulting to the baseline 256MB.
 - **Encoder Fail-Fast**: Fixed a bug where asynchronous video encoder failures (such as Firefox refusing massive 8K resolutions) were swallowed silently, causing the app to needlessly process all frames before crashing at the end. The pipeline now halts immediately on encoder failure.
+- **Highlight Roll-off**: Fixed a bug where `highlightPower` did nothing because the tone-mapped value was prematurely saturated before gamma correction. Highlights can now naturally exceed `1.0` and be gracefully desaturated.
+- **VRAM Lifecycle Race Condition**: Fixed a bug where `Flam3.tsx` unmounting would trigger buffer destruction while a GPU command was still in flight, causing VRAM accumulation/leaks and console errors.
+- **Blend Flame Clear Button**: Fixed the CSS for the 'clear blend flame' (x) button to be properly visible in the UI.
 
 ## [0.8.7] - 2026-05-29
 

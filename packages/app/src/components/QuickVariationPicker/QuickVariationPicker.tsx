@@ -9,6 +9,7 @@ import { VariationPreview, variationPreviewFlames, } from '../VariationSelector/
 import ui from './QuickVariationPicker.module.css'
 import type { TransformVariationType } from '@/flame/variations'
 import type { VariationCategory } from '@/flame/variations/categories'
+import type { HardwareTier } from '@/utils/hardwareTier'
 
 /* ---- Icons ---- */
 
@@ -119,6 +120,7 @@ export type QuickVariationPickerProps = {
   mode: QuickPickerMode
   onModeChange: (mode: QuickPickerMode) => void
   onOpenFullSelector?: () => void
+  hardwareTier?: HardwareTier | null
 }
 
 const PREVIEW_CLEAR_DELAY = 120
@@ -517,6 +519,7 @@ export function QuickVariationPicker(props: QuickVariationPickerProps) {
                                         isSelected={type === props.currentType}
                                         name={type}
                                         flame={f}
+                                        hardwareTier={props.hardwareTier}
                                       />
                                     </div>
                                   </DelayedShow>
