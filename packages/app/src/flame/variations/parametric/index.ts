@@ -39,6 +39,7 @@ import { butterflyFayVar } from './general/butterflyFayVar'
 import { bwrandsVar } from './general/bwrandsVar'
 import { bwraps7Var } from './general/bwraps7Var'
 import { camouflageVar } from './general/camouflageVar'
+import { cannabisCurveVar } from './general/cannabisCurveVar'
 import { cardioidVar } from './general/cardioidVar'
 import { cell2Var } from './general/cell2Var'
 import { cellVar } from './general/cellVar'
@@ -417,6 +418,7 @@ export const parametricVariations = {
   butterflyFayVar,
   bwrandsVar,
   camouflageVar,
+  cannabisCurveVar,
   cardioidVar,
   cellVar,
   cell2Var,
