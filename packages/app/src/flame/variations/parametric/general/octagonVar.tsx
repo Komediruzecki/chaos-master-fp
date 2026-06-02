@@ -1,4 +1,4 @@
-import { f32, i32, struct, vec2f } from 'typegpu/data'
+import { f32, struct, vec2f } from 'typegpu/data'
 import { length, select, sqrt } from 'typegpu/std'
 import { RangeEditor } from '@/components/Sliders/ParametricEditors/RangeEditor'
 import { editorProps } from '@/components/Sliders/ParametricEditors/types'
@@ -32,21 +32,21 @@ export const octagonVar = parametricVariation(
     'use gpu'
     const r = length(pos)
     const t = sqrt(r * r + 1.0)
-    const s = i32(P.splits)
+    const s = P.splits
     let m = 0.0
     const w = varInfo.weight
     const w_half = w * 0.5
-    if (s === 0) {
+    if (s === 0.0) {
       m = select(1.0 + 1.0 / r, 1.0 + 1.0 / t, t <= w_half)
-    } else if (s === 1) {
+    } else if (s === 1.0) {
       m = select(1.0 - 1.0 / r, 1.0 - 1.0 / t, t <= w_half)
-    } else if (s === 2) {
+    } else if (s === 2.0) {
       m = select(1.0 / r - 1.0, 1.0 / t - 1.0, t <= w_half)
-    } else if (s === 3) {
+    } else if (s === 3.0) {
       m = select(-1.0 / r - 1.0, -1.0 / t - 1.0, t <= w_half)
-    } else if (s === 4) {
+    } else if (s === 4.0) {
       m = select(1.0 / r, 1.0 / t, t <= w_half)
-    } else if (s === 5) {
+    } else if (s === 5.0) {
       m = select(1.0 / r, 1.0 / t, t <= w_half)
     } else {
       m = select(1.0 + 1.0 / r, 1.0 + 1.0 / t, t <= w_half)

@@ -1,5 +1,5 @@
 import { f32, struct, vec2f } from 'typegpu/data'
-import { cos, sin } from 'typegpu/std'
+import { cos, select, sin } from 'typegpu/std'
 import { RangeEditor } from '@/components/Sliders/ParametricEditors/RangeEditor'
 import { editorProps } from '@/components/Sliders/ParametricEditors/types'
 import { parametricVariation } from '../types'
@@ -49,7 +49,7 @@ export const xheartVar = parametricVariation(
     const sina = sin(P.angle)
     const x = cosa * bx * pos.x - sina * by * pos.y
     const y = sina * bx * pos.x + cosa * by * pos.y
-    return vec2f(x, x > 0.0 ? y : -y)
+    return vec2f(x, select(-y, y, x > 0.0))
   },
   'general',
 )

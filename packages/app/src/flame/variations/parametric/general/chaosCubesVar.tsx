@@ -119,10 +119,10 @@ export const chaosCubesVar = parametricVariation(
     const max_iter = i32(P.depth)
     for (let i = 0; i < max_iter; i++) {
       let cmode = i32(P.mode)
-      if (cmode === 7) {
+      if (cmode === i32(7)) {
         cmode = select(i32(P.mode7_B), i32(P.mode7_A), random() < 0.5)
       }
-      if (cmode < 6) {
+      if (cmode < i32(6)) {
         const rx = floor(random() * 3.0) - 1.0
         const ry = floor(random() * 3.0) - 1.0
         const rz = floor(random() * 3.0) - 1.0

@@ -1,5 +1,5 @@
 import { f32, struct, vec2f } from 'typegpu/data'
-import { cos } from 'typegpu/std'
+import { cos, select } from 'typegpu/std'
 import { RangeEditor } from '@/components/Sliders/ParametricEditors/RangeEditor'
 import { editorProps } from '@/components/Sliders/ParametricEditors/types'
 import { PI } from '../../../constants'
@@ -43,8 +43,8 @@ export const splitVar = parametricVariation(
   SplitVarParamsEditor,
   (pos, _varInfo, P) => {
     'use gpu'
-    const xVal = cos(pos.x * P.xSize * PI.$) >= 0.0 ? pos.x : -pos.x
-    const yVal = cos(pos.y * P.ySize * PI.$) >= 0.0 ? pos.y : -pos.y
+    const xVal = select(-pos.x, pos.x, cos(pos.x * P.xSize * PI.$) >= 0.0)
+    const yVal = select(-pos.y, pos.y, cos(pos.y * P.ySize * PI.$) >= 0.0)
     return vec2f(xVal, yVal)
   },
   'general',

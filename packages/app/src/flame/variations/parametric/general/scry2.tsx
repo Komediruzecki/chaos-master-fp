@@ -72,7 +72,7 @@ export const scry2Var = parametricVariation(
     const circle = sqrt(xrt * xrt + yrt * yrt)
 
     let i = 0
-    for (i = 0; i < sides - 1; i++) {
+    for (i = 0; i < sides - i32(1); i++) {
       const swp = xrt * cosa - yrt * sina
       yrt = xrt * sina + yrt * cosa
       xrt = swp

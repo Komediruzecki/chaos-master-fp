@@ -1,5 +1,5 @@
 import { f32, struct, vec2f } from 'typegpu/data'
-import { floor, sin } from 'typegpu/std'
+import { floor, select, sin } from 'typegpu/std'
 import { RangeEditor } from '@/components/Sliders/ParametricEditors/RangeEditor'
 import { editorProps } from '@/components/Sliders/ParametricEditors/types'
 import { PI } from '@/flame/constants'
@@ -83,7 +83,7 @@ export const waves4Var = parametricVariation(
       sin(ax * 12.9898 + ax * 78.233 + 1.0 + y0 * 0.001 * P.yfact) * 43758.5453
     ax = ax - floor(ax)
     if (P.cont > 0.5) {
-      ax = ax > 0.5 ? 1.0 : 0.0
+      ax = select(0.0, 1.0, ax > 0.5)
     }
 
     return vec2f(

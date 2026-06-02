@@ -1,5 +1,5 @@
 import { f32, struct, vec2f } from 'typegpu/data'
-import { abs, atan2, cos, exp, pow, sin } from 'typegpu/std'
+import { abs, atan2, cos, exp, pow, select, sin } from 'typegpu/std'
 import { RangeEditor } from '@/components/Sliders/ParametricEditors/RangeEditor'
 import { editorProps } from '@/components/Sliders/ParametricEditors/types'
 import { random } from '@/shaders/random'
@@ -71,7 +71,8 @@ export const floraVar = parametricVariation(
     const oy = pos.y
     let t = atan2(oy, ox)
 
-    const r = P.filled > 0.0 && P.filled > random() ? random() : 1.0
+    const fillRandom = random()
+    const r = select(1.0, random(), P.filled > 0.0 && P.filled > fillRandom)
 
     let lx = 0.0
     let ly = 0.0
@@ -147,8 +148,11 @@ export const floraVar = parametricVariation(
       ly = -sr * cos(t)
     } else if (P.leafType < 11.0) {
       t = t + PI2
-      const ar_ =
-        sin(t) > 0.0 ? sin(t) * (1.0 + (0.05 + sm * 0.3) * cos(30.0 * t)) : 0.0
+      const ar_ = select(
+        0.0,
+        sin(t) * (1.0 + (0.05 + sm * 0.3) * cos(30.0 * t)),
+        sin(t) > 0.0,
+      )
       lx = ar_ * cos(t) * 0.6
       ly = ar_ * sin(t)
     } else if (P.leafType < 12.0) {

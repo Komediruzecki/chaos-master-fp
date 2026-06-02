@@ -78,12 +78,12 @@ export const circleRandVar = parametricVariation(
     const U = sqrt(rX * rX + rY * rY)
 
     const n1 = i32(M + P.seed) + i32(N) * 57
-    const n1x = (n1 << u32(13)) ^ n1
+    const n1x = i32(u32(n1) << u32(13)) ^ n1
     const z1 =
       f32((n1x * (n1x * n1x * 15731 + 789221) + 1376312589) & 0x7fffffff) * AM
 
     const n2 = i32(M + 10.0) + i32(N + 3.0) * 57
-    const n2x = (n2 << u32(13)) ^ n2
+    const n2x = i32(u32(n2) << u32(13)) ^ n2
     const V =
       (0.3 +
         0.7 *

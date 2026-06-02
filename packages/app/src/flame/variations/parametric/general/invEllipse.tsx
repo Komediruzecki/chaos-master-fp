@@ -1,4 +1,4 @@
-import { f32, i32, struct, vec2f } from 'typegpu/data'
+import { f32, struct, vec2f } from 'typegpu/data'
 import { CheckboxEditor } from '@/components/Sliders/ParametricEditors/CheckboxEditor'
 import { RangeEditor } from '@/components/Sliders/ParametricEditors/RangeEditor'
 import { editorProps } from '@/components/Sliders/ParametricEditors/types'
@@ -12,7 +12,7 @@ const InvEllipseParams = struct({
   b: f32,
   h: f32,
   k: f32,
-  restricted: i32,
+  restricted: f32,
 })
 
 const InvEllipseParamsDefaults: InvEllipseParams = {
@@ -20,7 +20,7 @@ const InvEllipseParamsDefaults: InvEllipseParams = {
   b: 0.5,
   h: 0,
   k: 0,
-  restricted: 1,
+  restricted: 1.0,
 }
 
 const InvEllipseParamsEditor: EditorFor<InvEllipseParams> = (props) => (
@@ -76,7 +76,7 @@ export const invEllipse = parametricVariation(
     const denom = dx2 / a2 + dy2 / b2
 
     // restricted/unrestricted elipse handling
-    if (P.restricted === 1) {
+    if (P.restricted > 0.0) {
       if (denom < 1) {
         return vec2f(pos)
       }

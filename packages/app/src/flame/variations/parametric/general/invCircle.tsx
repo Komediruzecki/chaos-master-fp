@@ -1,4 +1,4 @@
-import { f32, i32, struct, vec2f } from 'typegpu/data'
+import { f32, struct, vec2f } from 'typegpu/data'
 import { select } from 'typegpu/std'
 import { CheckboxEditor } from '@/components/Sliders/ParametricEditors/CheckboxEditor'
 import { RangeEditor } from '@/components/Sliders/ParametricEditors/RangeEditor'
@@ -12,14 +12,14 @@ const InvCircleParams = struct({
   radius: f32,
   a: f32,
   b: f32,
-  restricted: i32,
+  restricted: f32,
 })
 
 const InvCircleParamsDefaults: InvCircleParams = {
   radius: 1,
   a: 0,
   b: 0,
-  restricted: 1,
+  restricted: 1.0,
 }
 
 const InvCircleParamsEditor: EditorFor<InvCircleParams> = (props) => {
@@ -77,7 +77,7 @@ export const invCircle = parametricVariation(
     // the IFS chaos game will still converge given the following is satisfied:
     //   the starting random point was not inside all defined circles, the circles can
     //   touch and overlap as usual
-    return select(newPos, pos, P.restricted === 1 && d2 < r2)
+    return select(newPos, pos, P.restricted > 0.0 && d2 < r2)
   },
   'general',
 )
