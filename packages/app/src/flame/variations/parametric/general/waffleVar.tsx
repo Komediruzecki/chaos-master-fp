@@ -78,22 +78,22 @@ export const waffleVar = parametricVariation(
 
     let aa = pos.x
     let rr = pos.y
-    const sw = floor(random() * 5.0)
+    const sw = f32(floor(random() * 5.0))
 
     if (sw < 1.0) {
-      aa = (floor(random() * s) + random() * xt) / s
-      rr = (floor(random() * s) + random() * yt) / s
+      aa = (f32(floor(random() * s)) + random() * xt) / s
+      rr = (f32(floor(random() * s)) + random() * yt) / s
     } else if (sw < 2.0) {
-      aa = (floor(random() * s) + random()) / s
-      rr = (floor(random() * s) + yt) / s
+      aa = (f32(floor(random() * s)) + random()) / s
+      rr = (f32(floor(random() * s)) + yt) / s
     } else if (sw < 3.0) {
-      aa = (floor(random() * s) + xt) / s
-      rr = (floor(random() * s) + random()) / s
+      aa = (f32(floor(random() * s)) + xt) / s
+      rr = (f32(floor(random() * s)) + random()) / s
     } else if (sw < 4.0) {
       aa = random()
-      rr = (floor(random() * s) + yt + random() * (1.0 - yt)) / s
+      rr = (f32(floor(random() * s)) + yt + random() * (1.0 - yt)) / s
     } else {
-      aa = (floor(random() * s) + xt + random() * (1.0 - xt)) / s
+      aa = (f32(floor(random() * s)) + xt + random() * (1.0 - xt)) / s
       rr = random()
     }
 

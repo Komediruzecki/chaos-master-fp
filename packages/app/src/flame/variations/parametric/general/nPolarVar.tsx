@@ -48,7 +48,7 @@ export const nPolarVar = parametricVariation(
       pos.y,
       isOdd,
     )
-    const randStep = floor(random() * 65536.0) % absn
+    const randStep = f32(floor(random() * 65536.0)) % absn
     const angle = (atan2(valY, valX) + 2.0 * PI.$ * randStep) / nnz
     const cn = 1.0 / (2.0 * nnz)
     const d2 = valX * valX + valY * valY

@@ -83,7 +83,7 @@ export const powBlockVar = parametricVariation(
     const r2 = pow(pos.x * pos.x + pos.y * pos.y, power)
     const ran =
       (theta * deneps +
-        P.root * 2.0 * PI.$ * floor(random() * P.denominator) * deneps) *
+        P.root * 2.0 * PI.$ * f32(floor(random() * P.denominator)) * deneps) *
       P.numerator
     return vec2f(r2 * cos(ran), r2 * sin(ran))
   },

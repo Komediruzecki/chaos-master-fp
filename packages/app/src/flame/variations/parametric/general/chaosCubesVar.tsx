@@ -123,9 +123,9 @@ export const chaosCubesVar = parametricVariation(
         cmode = select(i32(P.mode7_B), i32(P.mode7_A), random() < 0.5)
       }
       if (cmode < i32(6)) {
-        const rx = floor(random() * 3.0) - 1.0
-        const ry = floor(random() * 3.0) - 1.0
-        const rz = floor(random() * 3.0) - 1.0
+        const rx = f32(floor(random() * 3.0)) - 1.0
+        const ry = f32(floor(random() * 3.0)) - 1.0
+        const rz = f32(floor(random() * 3.0)) - 1.0
         px = px * P.scaleX - rx * P.offset * (1.0 - P.scaleX)
         py = py * P.scaleY - ry * P.offset * (1.0 - P.scaleY)
         pz = pz * P.scaleZ - rz * P.offset * (1.0 - P.scaleZ)
@@ -135,7 +135,7 @@ export const chaosCubesVar = parametricVariation(
           pz += cz
         }
       } else {
-        const vIdx = floor(random() * 5.0)
+        const vIdx = f32(floor(random() * 5.0))
         let vx = pos.x - pos.x
         let vy = pos.y - pos.y
         let vz = pos.x - pos.x

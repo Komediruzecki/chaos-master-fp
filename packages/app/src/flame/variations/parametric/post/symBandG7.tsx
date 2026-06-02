@@ -32,7 +32,7 @@ export const symBandG7 = parametricVariation(
     'use gpu'
     const hx = P.stepx * 0.5
     const hy = P.stepy * 0.5
-    const band = floor(random() * 4.0)
+    const band = f32(floor(random() * 4.0))
     if (band < 1.0) {
       return vec2f(pos.x - hx - 2.0, pos.y - hy - 0.5)
     }

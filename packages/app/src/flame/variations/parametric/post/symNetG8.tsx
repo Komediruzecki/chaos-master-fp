@@ -40,7 +40,7 @@ export const symNetG8 = parametricVariation(
     const sy = P.sepy * 0.5
     const kx = P.skewx * 0.5
     const ky = P.skewy * 0.5
-    const band = floor(random() * 8.0)
+    const band = f32(floor(random() * 8.0))
     if (band < 2.0) {
       if (band < 1.0) {
         return vec2f(pos.x - 1.0 - sx - kx, -pos.y - sy - ky)

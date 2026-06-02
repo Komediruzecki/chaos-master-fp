@@ -69,7 +69,8 @@ export const bTransformVar = parametricVariation(
     let sigma =
       PI.$ - atan2(pos.y, pos.x + 1.0) - atan2(pos.y, 1.0 - pos.x) + P.rotate
     sigma =
-      sigma / P.power + ((2.0 * PI.$) / P.power) * floor(random() * P.power)
+      sigma / P.power +
+      ((2.0 * PI.$) / P.power) * f32(floor(random() * P.power))
 
     tau = select(tau - P.split, tau + P.split, pos.x >= 0.0)
 

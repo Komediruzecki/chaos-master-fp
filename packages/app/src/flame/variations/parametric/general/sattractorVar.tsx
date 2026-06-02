@@ -39,7 +39,7 @@ export const sattractorVar = parametricVariation(
     const x = pos.x
     const y = pos.y
 
-    const l = floor(random() * P.m) + 1.0
+    const l = f32(floor(random() * P.m)) + 1.0
     const a = cos((2.0 * PI.$ * l) / P.m)
     const b = sin((2.0 * PI.$ * l) / P.m)
 

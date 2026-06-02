@@ -40,7 +40,7 @@ export const symNetG4 = parametricVariation(
     const sy = P.sepy * 0.5
     const hx = P.stepx * 0.5
     const hy = P.stepy * 0.5
-    const band = floor(random() * 4.0)
+    const band = f32(floor(random() * 4.0))
     if (band < 1.0) {
       return vec2f(pos.x - sx - 2.0 - hx, pos.y + sy - 1.5 - hy)
     }

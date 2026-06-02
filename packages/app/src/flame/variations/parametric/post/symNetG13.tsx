@@ -38,7 +38,7 @@ export const symNetG13 = parametricVariation(
     const py = pos.y + sp
     const hx = P.stepx * 0.5
     const hy = P.stepy * 0.5
-    const band = floor(random() * 6.0)
+    const band = f32(floor(random() * 6.0))
     if (band < 3.0) {
       if (band < 1.0) {
         return vec2f(px - hx, -py - hy)

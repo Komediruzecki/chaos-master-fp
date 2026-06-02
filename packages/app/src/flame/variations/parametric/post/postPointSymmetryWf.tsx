@@ -51,7 +51,7 @@ export const postPointSymmetryWf = parametricVariation(
     'use gpu'
     const dx = (pos.x - P.centre_x) * varInfo.weight
     const dy = (pos.y - P.centre_y) * varInfo.weight
-    const idx = floor(random() * P.order)
+    const idx = f32(floor(random() * P.order))
     const angle = (idx * 2.0 * PI.$) / P.order
     const c = cos(angle)
     const s = sin(angle)

@@ -32,7 +32,7 @@ export const symNetG9 = parametricVariation(
     'use gpu'
     const sx = P.sepx * 0.5
     const sy = P.sepy * 0.5
-    const band = floor(random() * 4.0)
+    const band = f32(floor(random() * 4.0))
     if (band < 1.0) {
       return vec2f(pos.x + sx, -pos.y - sy)
     }

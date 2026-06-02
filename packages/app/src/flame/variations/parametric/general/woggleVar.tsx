@@ -40,7 +40,7 @@ export const woggleVar = parametricVariation(
     const y = pos.y
 
     const invN = 1.0 / P.m
-    const f = floor(random() * P.m)
+    const f = f32(floor(random() * P.m))
     const t = f * invN
     const a = t * 2.0 * PI.$
     const c = cos(a)
