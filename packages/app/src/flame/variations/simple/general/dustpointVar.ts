@@ -11,8 +11,8 @@ export const dustpointVar = simpleVariation(
     const p = select(-1.0, 1.0, random() < 0.5)
     const r = sqrt(pos.x * pos.x + pos.y * pos.y) + EPS.$
     const w = random()
-    let x: number
-    let y: number
+    let x = 0.0
+    let y = 0.0
     if (w < 0.5) {
       x = pos.x / r - 1.0
       y = (p * pos.y) / r

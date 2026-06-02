@@ -1,5 +1,5 @@
-import { vec2f } from 'typegpu/data'
-import { atan2, log, sqrt } from 'typegpu/std'
+import { f32, vec2f } from 'typegpu/data'
+import { atan2, log, select, sqrt } from 'typegpu/std'
 import { simpleVariation } from '../types'
 
 export const arcsech2Var = simpleVariation(
@@ -27,17 +27,10 @@ export const arcsech2Var = simpleVariation(
     const log_re = log(r_final)
     const log_im = atan2(res_im, res_re)
 
-    const w = varInfo.weight
-    let outX = 0.0
-    let outY = log_im * w
-
-    if (log_im < 0.0) {
-      outX = log_re * w
-      outY += 1.0 * w
-    } else {
-      outX = -log_re * w
-      outY -= 1.0 * w
-    }
+    const w = f32(varInfo.weight)
+    const cond = log_im < 0.0
+    const outX = select(-log_re * w, log_re * w, cond)
+    const outY = select((log_im - 1.0) * w, (log_im + 1.0) * w, cond)
 
     return vec2f(outX, outY)
   },

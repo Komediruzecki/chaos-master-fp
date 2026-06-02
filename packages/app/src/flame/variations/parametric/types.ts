@@ -76,6 +76,8 @@ export function parametricVariation<
     paramStruct,
     paramDefaults,
     editor,
-    fn: tgpu.fn([vec2f, VariationInfo, paramStruct], vec2f)(impl),
+    fn: tgpu
+      .fn([vec2f, VariationInfo, paramStruct], vec2f)(impl)
+      .$name(variationKey),
   }
 }

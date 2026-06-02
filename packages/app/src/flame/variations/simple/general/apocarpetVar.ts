@@ -8,8 +8,8 @@ export const apocarpetVar = simpleVariation(
   (pos, varInfo) => {
     'use gpu'
 
-    let x = 0.0
-    let y = 0.0
+    let x = pos.x
+    let y = pos.y
     const r = 1.0 / (1.0 + sqrt(2.0))
     const denom = pos.x * pos.x + pos.y * pos.y + 1.0e-10
     const weight = floor(6.0 * random())

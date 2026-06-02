@@ -49,6 +49,6 @@ export function simpleVariation<K extends string>(
       weight: v.number(),
       visible: v.optional(v.boolean(), true),
     }),
-    fn: tgpu.fn([vec2f, VariationInfo], vec2f)(impl),
+    fn: tgpu.fn([vec2f, VariationInfo], vec2f)(impl).$name(variationKey),
   }
 }
