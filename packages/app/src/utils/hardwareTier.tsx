@@ -73,7 +73,7 @@ export async function detectHardwareTier(): Promise<HardwareTier> {
   return new Promise((resolve) => {
     const container = document.createElement('div')
     container.style.cssText =
-      'position:absolute;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none;'
+      'position:absolute;width:10px;height:10px;overflow:hidden;opacity:0.01;pointer-events:none;z-index:-1;'
     document.body.appendChild(container)
 
     let totalPoints = 0
@@ -105,10 +105,14 @@ export async function detectHardwareTier(): Promise<HardwareTier> {
                 onAccumulatedPointCount={(count: number) => {
                   if (!running) return
                   if (count === 0) return
-                  if (startTime === 0) startTime = globalThis.performance.now()
+                  if (startTime === 0) {
+                    startTime = globalThis.performance.now()
+                  }
                   totalPoints = count
                   const elapsed =
                     (globalThis.performance.now() - startTime) / 1000
+
+                  // Simple throttle for logging every ~1 second
                   if (elapsed >= DETECTION_SECONDS) {
                     running = false
                     const bps = totalPoints / elapsed / 1e9

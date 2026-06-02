@@ -1,7 +1,9 @@
 import { createResource, createSignal, For, Show, Suspense } from 'solid-js'
+import { useToast } from '@/contexts/ToastContext'
 import { Changelog, Discord, GitHub, Heart, Terminal, TriangleAlert, } from '@/icons'
 import { getWebgpuComponents } from '@/lib/WebgpuAdapter'
 import { formatBytes } from '@/utils/formatBytes'
+import { detectHardwareTier, hardwareTiers } from '@/utils/hardwareTier'
 import { GIT_SHA, VERSION } from '@/version'
 import { createShowChangelog } from '../AboutPanel/Changelog'
 import { ConsoleLog } from '../ConsoleLog/ConsoleLog'
@@ -9,6 +11,7 @@ import { useRequestModal } from '../Modal/ModalContext'
 import ui from './HelpModal.module.css'
 import type { QuickPickerMode } from '../QuickVariationPicker/QuickVariationPicker'
 import type { Theme } from '@/contexts/ThemeContext'
+import type { HardwareTier } from '@/utils/hardwareTier'
 
 export type SidebarLayoutMode = 'compact' | 'wide'
 
@@ -146,6 +149,8 @@ type HelpModalProps = {
   theme: () => Theme
   onThemeChange: (theme: Theme) => void
   onInjectCrash?: () => void
+  hardwareTier: () => HardwareTier | null
+  onHardwareTierChange?: (tier: HardwareTier) => void
 }
 
 function HelpModal(props: HelpModalProps) {
@@ -153,6 +158,23 @@ function HelpModal(props: HelpModalProps) {
   const showChangelog = createShowChangelog()
   const [showConsole, setShowConsole] = createSignal(true)
   const [copied, setCopied] = createSignal(false)
+  const { showToast } = useToast()
+  const [detectingTier, setDetectingTier] = createSignal(false)
+
+  async function detectTierAgain() {
+    if (!props.onHardwareTierChange) return
+    setDetectingTier(true)
+    try {
+      const tier = await detectHardwareTier()
+      props.onHardwareTierChange(tier)
+      showToast(`Hardware detected as: ${tier}`)
+    } catch (err) {
+      console.error(err)
+      showToast('Failed to detect hardware tier')
+    } finally {
+      setDetectingTier(false)
+    }
+  }
 
   function copyDeviceInfo() {
     const text = gatherFullDeviceInfo(gpuDeviceInfo())
@@ -349,6 +371,33 @@ function HelpModal(props: HelpModalProps) {
         </div>
       </div>
 
+      <div class={ui.pickerModeRow}>
+        <span class={ui.pickerModeLabel}>Hardware Tier</span>
+        <div class={ui.pickerModeBtns}>
+          <For each={hardwareTiers}>
+            {(tier) => (
+              <button
+                class={ui.pickerModeBtn}
+                classList={{
+                  [ui.pickerModeBtnActive!]: props.hardwareTier() === tier,
+                }}
+                onClick={() => props.onHardwareTierChange?.(tier)}
+                style={{ 'text-transform': 'capitalize' }}
+              >
+                {tier}
+              </button>
+            )}
+          </For>
+          <button
+            class={ui.pickerModeBtn}
+            onClick={detectTierAgain}
+            disabled={detectingTier()}
+          >
+            {detectingTier() ? 'Detecting...' : 'Detect Again'}
+          </button>
+        </div>
+      </div>
+
       <h2 class={ui.sectionTitle}>Keyboard Shortcuts</h2>
       <div class={ui.shortcutsGrid}>
         <For each={shortcuts}>
@@ -515,6 +564,8 @@ export function createShowHelp(
   theme: () => Theme,
   onThemeChange: (theme: Theme) => void,
   onInjectCrash?: () => void,
+  hardwareTier?: () => HardwareTier | null,
+  onHardwareTierChange?: (tier: HardwareTier) => void,
 ) {
   const requestModal = useRequestModal()
 
@@ -533,6 +584,8 @@ export function createShowHelp(
           theme={theme}
           onThemeChange={onThemeChange}
           onInjectCrash={onInjectCrash}
+          hardwareTier={hardwareTier ?? (() => null)}
+          onHardwareTierChange={onHardwareTierChange}
         />
       ),
     })

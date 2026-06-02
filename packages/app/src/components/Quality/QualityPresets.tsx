@@ -36,7 +36,7 @@ type QualityPresetsProps = {
 
 export function getPresetFromQuality(
   q: number,
-  fallback: QualityPreset = 'high',
+  fallback: QualityPreset = 'mid',
 ): QualityPreset {
   const entries = Object.entries(qualityPresets) as [QualityPreset, number][]
   return entries.find(([, v]) => v === q)?.[0] ?? fallback

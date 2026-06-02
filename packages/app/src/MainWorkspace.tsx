@@ -137,6 +137,7 @@ export type AppProps = {
   welcomeTracks?: () => TimelineTrack[] | undefined
   resetFlameFromWelcome?: () => void
   hardwareTier?: HardwareTier | null
+  onHardwareTierChange?: (tier: HardwareTier) => void
 }
 
 export function MainWorkspace(props: AppProps) {
@@ -159,6 +160,13 @@ export function MainWorkspace(props: AppProps) {
       ? hardwareTierToPreset(props.hardwareTier)
       : getPresetFromQuality(DEFAULT_QUALITY),
   )
+
+  createEffect(() => {
+    if (props.hardwareTier) {
+      setQualityPreset(hardwareTierToPreset(props.hardwareTier))
+    }
+  })
+
   const [pixelRatio, setPixelRatio] = createSignal(DEFAULT_RESOLUTION)
   const [onExportImage, setOnExportImage] = createSignal<ExportImageType>()
 
@@ -385,7 +393,7 @@ export function MainWorkspace(props: AppProps) {
   )
 
   const { showVariationSelector, varSelectorModalIsOpen } =
-    createVariationSelector(history)
+    createVariationSelector(history, props.hardwareTier)
 
   // Quick variation picker state
   const [quickPickerMode, setQuickPickerMode] =
@@ -1737,6 +1745,7 @@ export function MainWorkspace(props: AppProps) {
                                 state.vid
                               ]?.type ?? state.type
                             }
+                            hardwareTier={props.hardwareTier}
                             onSelect={(newType) => {
                               setFlameDescriptor((draft) => {
                                 const existingVar =
@@ -3088,6 +3097,8 @@ export function MainWorkspace(props: AppProps) {
               theme,
               setTheme,
               IS_DEV ? () => setDevCrashTest(true) : undefined,
+              () => props.hardwareTier ?? null,
+              props.onHardwareTierChange,
             )}
           />
           <Show when={devCrashTest()}>
