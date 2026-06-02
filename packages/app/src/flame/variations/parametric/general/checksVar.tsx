@@ -38,7 +38,7 @@ export const checksVar = parametricVariation(
     const cs = 1.0 / (P.size + 1.0e-6)
     const ncx = P.x * -1.0
     const ncy = P.y * -1.0
-    const isXY = floor(round(pos.x * cs)) + floor(round(pos.y * cs))
+    const isXY = f32(floor(round(pos.x * cs))) + f32(floor(round(pos.y * cs)))
     const rnx = P.rnd * random()
     const rny = P.rnd * random()
     const isEven = isXY % 2.0 === 0.0

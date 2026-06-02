@@ -45,7 +45,7 @@ export const fan2 = parametricVariation(
     const p1 = PI.$ * P.x * P.x
     const p2 = P.y
     const theta = atan2(pos.y, pos.x)
-    const t = theta + p2 - p1 * trunc((2 * theta * p2) / p1)
+    const t = theta + p2 - p1 * f32(trunc((2.0 * theta * p2) / p1))
     const r = length(pos)
 
     const p1half = p1 / 2

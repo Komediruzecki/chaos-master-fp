@@ -55,7 +55,7 @@ export const pie = parametricVariation(
     const r1 = random()
     const r2 = random()
     const r3 = random()
-    const t1 = trunc(r1 * p1 + 0.5)
+    const t1 = f32(trunc(r1 * p1 + 0.5))
     const t2 = p2 + ((t1 + r2 * p3) * 2 * PI.$) / p1
     return vec2f(cos(t2), sin(t2)).mul(r3)
   },

@@ -37,7 +37,7 @@ export const rings2 = parametricVariation(
     const r = length(pos)
     const theta = atan2(pos.y, pos.x)
     const twop = 2 * p
-    const t = r - twop * trunc((r + p) / twop) + r * (1 - p)
+    const t = r - twop * f32(trunc((r + p) / twop)) + r * (1 - p)
     return vec2f(sin(theta), cos(theta)).mul(t)
   },
   'general',
