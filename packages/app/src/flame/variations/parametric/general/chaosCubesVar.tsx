@@ -85,7 +85,7 @@ export const chaosCubesVar = parametricVariation(
     'use gpu'
     let px = pos.x
     let py = pos.y
-    let pz = 0.0
+    let pz = pos.x - pos.x
     const rX = P.rotX * 0.017453
     const rY = P.rotY * 0.017453
     const rZ = P.rotZ * 0.017453
@@ -136,9 +136,9 @@ export const chaosCubesVar = parametricVariation(
         }
       } else {
         const vIdx = floor(random() * 5.0)
-        let vx = 0.0
-        let vy = 0.0
-        let vz = 0.0
+        let vx = pos.x - pos.x
+        let vy = pos.y - pos.y
+        let vz = pos.x - pos.x
         const off = P.offset
         vx = select(
           0.0,

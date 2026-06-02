@@ -14,10 +14,9 @@ export const minkVar = simpleVariation(
       const qy = floor(y)
       let fx = x - qx
       let fy = y - qy
-      const q = abs(qx) % 2.0
-      const swap = select(0.0, 1.0, q > 1.0)
-      fx = select(fx, 1.0 - fx, swap > 0.5)
-      fy = select(fy, 1.0 - fy, swap > 0.5)
+      const shouldSwap = abs(qx) % 2.0 > 1.0
+      fx = select(fx, 1.0 - fx, shouldSwap)
+      fy = select(fy, 1.0 - fy, shouldSwap)
       x = fx * 2.0
       y = fy * 2.0
     }

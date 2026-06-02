@@ -33,7 +33,7 @@ export const octagonVar = parametricVariation(
     const r = length(pos)
     const t = sqrt(r * r + 1.0)
     const s = P.splits
-    let m = 0.0
+    let m = pos.x
     const w = varInfo.weight
     const w_half = w * 0.5
     if (s === 0.0) {

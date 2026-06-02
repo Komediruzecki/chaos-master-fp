@@ -88,13 +88,13 @@ export const crobVar = parametricVariation(
     const rig_b = select(real_r, real_r - margin, isBlur)
     const outside =
       pos.x < lef_b || pos.x > rig_b || pos.y < top_b || pos.y > bot_b
-    let dx = 0.0
-    let dy = 0.0
+    let dx = pos.x
+    let dy = pos.y
     if (outside && isBlur) {
       const secTmp = random()
       const isTopBot = secTmp < setProb
-      let tx = 0.0
-      let ty = 0.0
+      let tx = pos.x
+      let ty = pos.y
       if (isTopBot) {
         ty = real_t + random() * yInt_2
         tx = real_r - pow(random(), P.directBlur) * P.ratioBlur * minInt_2

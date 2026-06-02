@@ -116,7 +116,7 @@ export const truchet2Var = parametricVariation(
     const x = fract(pos.x)
     const y = fract(pos.y)
 
-    let tiletype = 0.0
+    let tiletype = pos.x
     if (P.seed === 0.0) {
       tiletype = 0.0
     } else if (P.seed === 1.0) {
@@ -130,8 +130,8 @@ export const truchet2Var = parametricVariation(
       tiletype = randint % 2.0
     }
 
-    let r0 = 0.0
-    let r1 = 0.0
+    let r0 = pos.x
+    let r1 = pos.y
     if (tiletype < 1.0) {
       r0 = pow(pow(abs(x), n) + pow(abs(y), n), onen)
       r1 = pow(pow(abs(x - 1.0), n) + pow(abs(y - 1.0), n), onen)

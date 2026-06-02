@@ -45,7 +45,7 @@ export const whorlVar = parametricVariation(
     const w = varInfo.weight
     const r = sqrt(pos.x * pos.x + pos.y * pos.y)
 
-    let a = 0.0
+    let a = pos.x
     if (r < w) {
       a = atan2(pos.y, pos.x) + P.inside / (w - r)
     } else {

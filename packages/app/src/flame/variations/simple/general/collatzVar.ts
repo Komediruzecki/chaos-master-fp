@@ -7,7 +7,7 @@ export const collatzVar = simpleVariation(
   (pos, varInfo) => {
     'use gpu'
     let n = floor(abs(pos.x) * 100.0 + abs(pos.y) * 100.0) + 1.0
-    let steps = 0.0
+    let steps = pos.x - pos.x
     for (let i = 0; i < 64; i++) {
       const isEven = n % 2.0 < 0.5
       n = select(3.0 * n + 1.0, n / 2.0, isEven)

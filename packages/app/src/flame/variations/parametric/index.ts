@@ -102,6 +102,7 @@ import { gingerBreadVar } from './general/gingerBreadVar'
 import { gosperVar } from './general/gosperVar'
 import { grid } from './general/grid'
 import { gridout2Var } from './general/gridout2Var'
+import { gumowskiMiraVar } from './general/gumowskiMiraVar'
 import { harmonographVar } from './general/harmonographVar'
 import { henonVar } from './general/henonVar'
 import { hexesVar } from './general/hexesVar'
@@ -283,6 +284,7 @@ export const parametricVariations = {
   gosperVar,
   grid,
   gridout2Var,
+  gumowskiMiraVar,
   harmonographVar,
   henonVar,
   hexesVar,

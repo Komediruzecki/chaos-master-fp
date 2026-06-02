@@ -50,8 +50,8 @@ export const asteriaVar = parametricVariation(
     } else {
       in1 = !cond1
     }
-    let dx = 0.0
-    let dy = 0.0
+    let dx = pos.x
+    let dy = pos.y
     if (in1) {
       dx = x0
       dy = y0

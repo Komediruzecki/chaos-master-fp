@@ -57,8 +57,8 @@ export const cutApollonianVar = parametricVariation(
   CutApollonianVarParamsEditor,
   (pos, varInfo, P) => {
     'use gpu'
-    let x = 0.0
-    let y = 0.0
+    let x = pos.x
+    let y = pos.y
     const useInput = P.mode < 0.5
     x = select(random() - 0.5, pos.x, useInput)
     y = select(random() - 0.5, pos.y, useInput)

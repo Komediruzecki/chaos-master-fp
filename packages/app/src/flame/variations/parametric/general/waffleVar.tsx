@@ -76,8 +76,8 @@ export const waffleVar = parametricVariation(
     const vr = cos(P.rotation)
     const vs = sin(P.rotation)
 
-    let aa = 0.0
-    let rr = 0.0
+    let aa = pos.x
+    let rr = pos.y
     const sw = floor(random() * 5.0)
 
     if (sw < 1.0) {

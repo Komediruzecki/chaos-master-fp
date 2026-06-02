@@ -37,8 +37,8 @@ export const circlize2Var = parametricVariation(
     'use gpu'
     const absx = abs(pos.x)
     const absy = abs(pos.y)
-    let side = 0.0
-    let perimeter = 0.0
+    let side = pos.x
+    let perimeter = pos.y
 
     if (absx >= absy) {
       if (pos.x >= absy) {

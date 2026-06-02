@@ -81,7 +81,7 @@ export const floraVar = parametricVariation(
 
     if (P.leafType < 1.0) {
       t = t + PI2
-      let gr = 0.0
+      let gr = pos.x - pos.x
       if (sin(t) > 0.0) {
         gr = 1.0 - sm * 0.8 * pow(cos(t), 50.0)
         gr = gr * (1.0 + 0.05 * cos(8.0 * t))

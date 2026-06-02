@@ -50,7 +50,7 @@ export const collideoscopeVar = parametricVariation(
     const piKn = PI.$ / numf
     const kaKn = (PI.$ * P.a) / (2.0 * numf)
 
-    let a = 0.0
+    let a = pos.x
     const a0 = atan2(pos.y, pos.x)
     if (a0 >= 0.0) {
       const alt = i32(a0 * knPi)
