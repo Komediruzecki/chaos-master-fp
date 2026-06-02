@@ -78,7 +78,10 @@ import { eModVar } from './general/eModVar'
 import { eMotionVar } from './general/eMotionVar'
 import { epispiralVar } from './general/epispiralVar'
 import { ePushVar } from './general/ePushVar'
+import { eRotateVar } from './general/eRotateVar'
+import { eScaleVar } from './general/eScaleVar'
 import { escherVar } from './general/escherVar'
+import { eSwirlVar } from './general/eSwirlVar'
 import { exp2_bsVar } from './general/exp2_bsVar'
 import { fan2 } from './general/fan2'
 import { fdiscVar } from './general/fdiscVar'
@@ -92,6 +95,7 @@ import { funnelVar } from './general/funnelVar'
 import { gingerBreadVar } from './general/gingerBreadVar'
 import { gosperVar } from './general/gosperVar'
 import { grid } from './general/grid'
+import { gridout2Var } from './general/gridout2Var'
 import { harmonographVar } from './general/harmonographVar'
 import { henonVar } from './general/henonVar'
 import { hexesVar } from './general/hexesVar'
@@ -114,11 +118,13 @@ import { juliaScope } from './general/juliaScope'
 import { kaleidoscopeVar } from './general/kaleidoscopeVar'
 import { kaplanVar } from './general/kaplanVar'
 import { kochVar } from './general/kochVar'
+import { lazySensenVar } from './general/lazySensenVar'
 import { lazySusanVar } from './general/lazySusanVar'
 import { linearTVar } from './general/linearTVar'
 import { lineVar } from './general/lineVar'
 import { lissajousVar } from './general/lissajousVar'
 import { logApoVar } from './general/logApoVar'
+import { logTile2Var } from './general/logTile2Var'
 import { loziVar } from './general/loziVar'
 import { macMillanVar } from './general/macMillanVar'
 import { maskVar } from './general/maskVar'
@@ -145,6 +151,7 @@ import { powBlockVar } from './general/powBlockVar'
 import { projectiveVar } from './general/projectiveVar'
 import { pulseVar } from './general/pulseVar'
 import { q_odeVar } from './general/q_odeVar'
+import { rational3Var } from './general/rational3Var'
 import { rectanglesVar } from './general/rectangles'
 import { rings2 } from './general/rings2'
 import { rippleVar } from './general/rippleVar'
@@ -159,7 +166,9 @@ import { shredradVar } from './general/shredradVar'
 import { sierCarpetVar } from './general/sierCarpetVar'
 import { sigmoidVar } from './general/sigmoidVar'
 import { sineBlurVar } from './general/sineBlurVar'
+import { sintrangeVar } from './general/sintrangeVar'
 import { sinusGridVar } from './general/sinusGridVar'
+import { sphericalNVar } from './general/sphericalNVar'
 import { spirographVar } from './general/spirographVar'
 import { splitsVar } from './general/splitsVar'
 import { splitVar } from './general/splitVar'
@@ -184,6 +193,7 @@ import { wallPaperVar } from './general/wallPaperVar'
 import { waves2Var } from './general/waves2Var'
 import { waves3Var } from './general/waves3Var'
 import { waves4Var } from './general/waves4Var'
+import { wedgeJuliaVar } from './general/wedgeJuliaVar'
 import { wedgeVar } from './general/wedgeVar'
 import { whorlVar } from './general/whorlVar'
 import { woggleVar } from './general/woggleVar'
@@ -262,6 +272,7 @@ export const parametricVariations = {
   gingerBreadVar,
   gosperVar,
   grid,
+  gridout2Var,
   harmonographVar,
   henonVar,
   hexesVar,
@@ -282,11 +293,13 @@ export const parametricVariations = {
   joukowskiVar,
   kaleidoscopeVar,
   kochVar,
+  lazySensenVar,
   lazySusanVar,
   lissajousVar,
   linearTVar,
   lineVar,
   logApoVar,
+  logTile2Var,
   loziVar,
   macMillanVar,
   maskVar,
@@ -309,17 +322,20 @@ export const parametricVariations = {
   rippleVar,
   roseVar,
   rsquaresVar,
+  rational3Var,
   sattractorVar,
   scry2Var,
   seaShellVar,
   separationVar,
   sigmoidVar,
+  sintrangeVar,
   sineBlurVar,
   shiftVar,
   shredradVar,
   sierCarpetVar,
   starBlurVar,
   sinusGridVar,
+  sphericalNVar,
   spirographVar,
   splitVar,
   splitsVar,
@@ -361,6 +377,7 @@ export const parametricVariations = {
   waves2Var,
   waves3Var,
   waves4Var,
+  wedgeJuliaVar,
   wedgeVar,
   whorlVar,
   anamorphCylVar,
@@ -422,8 +439,11 @@ export const parametricVariations = {
   ellipticVar,
   elliptic2Var,
   epispiralVar,
-  exp2_bsVar,
+  eRotateVar,
+  eScaleVar,
+  eSwirlVar,
   escherVar,
+  exp2_bsVar,
   juliaQVar,
   kaplanVar,
   murl2Var,
