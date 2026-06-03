@@ -51,6 +51,10 @@ export function renderMarkdown(text: string): string {
     },
   )
 
+  // String.raw in tutorial content produces \` (escaped backtick) which
+  // markdown treats as a literal backtick instead of a code-span delimiter.
+  processed = processed.replace(/\\`/g, '`')
+
   let html = marked.parse(processed, { async: false })
 
   // Restore math blocks (before admonitions, since admonitions may contain math)

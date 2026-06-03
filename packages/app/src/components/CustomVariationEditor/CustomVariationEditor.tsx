@@ -1,4 +1,4 @@
-import { createEffect, createMemo, createSignal, For, onCleanup, Show, untrack, } from 'solid-js'
+import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show, untrack, } from 'solid-js'
 import { vec2f, vec4f } from 'typegpu/data'
 import { defineExample } from '@/flame/examples/util'
 import { Flam3 } from '@/flame/Flam3'
@@ -152,6 +152,7 @@ type SaveResult =
 
 function ShowCustomVariationEditor(props: {
   respond: (value: RespondType) => void
+  existingDef?: CustomVariationDef
 }) {
   const requestModal = useRequestModal()
   const [activeId, setActiveId] = createSignal<string | undefined>()
@@ -223,6 +224,10 @@ function ShowCustomVariationEditor(props: {
     void previewKey()
     const id = previewVariationType()
     return makePreviewFlame(id)
+  })
+
+  onMount(() => {
+    if (props.existingDef) loadVariation(props.existingDef)
   })
 
   function loadVariation(def: CustomVariationDef) {
@@ -731,13 +736,16 @@ export function createShowCustomVariationEditor() {
   const requestModal = useRequestModal()
   const [isOpen, setIsOpen] = createSignal(false)
 
-  async function showCustomVariationEditor(_existingDef?: CustomVariationDef) {
+  async function showCustomVariationEditor(existingDef?: CustomVariationDef) {
     setIsOpen(true)
     const result = await requestModal<RespondType>({
       class: ui.editorModal,
       content: ({ respond }) => (
         <Root adapterOptions={{ powerPreference: 'high-performance' }}>
-          <ShowCustomVariationEditor respond={respond} />
+          <ShowCustomVariationEditor
+            respond={respond}
+            existingDef={existingDef}
+          />
         </Root>
       ),
     })

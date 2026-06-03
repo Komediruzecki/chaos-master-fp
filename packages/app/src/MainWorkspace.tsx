@@ -62,10 +62,10 @@ import { accumulatedPointCount, animationExportCancel, animationExportProgress, 
 import { MAX_CAMERA_ZOOM_VALUE, MIN_CAMERA_ZOOM_VALUE, } from './flame/schema/flameSchema'
 import { generateTransformId, generateVariationId, } from './flame/transformFunction'
 import { isParametricVariation, isParametricVariationType, isVariationType, transformVariations, } from './flame/variations'
-import { loadCustomVariations } from './flame/variations/custom'
+import { deleteCustomVariation, duplicateCustomVariation, getCustomVariations, loadCustomVariations, } from './flame/variations/custom'
 import { getNormalizedVariationName, getParamsEditor, getVariationDefault, } from './flame/variations/utils'
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { Cross, Eye, EyeOff, Menu, Plus, Share, Terminal } from './icons'
+import { BoxArrowRight, Cross, Eye, EyeOff, Menu, Plus, Share, Terminal, } from './icons'
 import { AutoCanvas } from './lib/AutoCanvas'
 import { createAnimationExport } from './utils/animationExport'
 import { deepClone } from './utils/clone'
@@ -90,6 +90,7 @@ import type { ColorMap, Palette } from './flame/colorMap'
 import type { PointInitMode } from './flame/pointInitMode'
 import type { FlameDescriptor, TransformFunction, TransformId, VariationId, } from './flame/schema/flameSchema'
 import type { TransformVariationType } from './flame/variations'
+import type { CustomVariationDef } from './flame/variations/custom/types'
 import type { AnimationExportConfig } from './utils/animationExport'
 import type { HardwareTier } from './utils/hardwareTier'
 import type { SharePayload } from './utils/jsonQueryParam'
@@ -417,10 +418,39 @@ export function MainWorkspace(props: AppProps) {
   const [quickPickState, setQuickPickState] = createSignal<QuickPickState>(null)
   const [hoveredVariationType, setHoveredVariationType] =
     createSignal<TransformVariationType | null>(null)
+  const [hoveredCustomVarDef, setHoveredCustomVarDef] =
+    createSignal<CustomVariationDef | null>(null)
+
+  // Trigger for refreshing the custom variations list (incremented on delete/duplicate/modal close)
+  const [customVarsVersion, setCustomVarsVersion] = createSignal(0)
+  const customVariationsList = createMemo(() => {
+    void customVarsVersion()
+    return getCustomVariations()
+  })
 
   // Compute a temporary flame with the hovered variation swapped in.
   // Falls back to the real flameDescriptor when nothing is hovered.
   const effectiveFlame = createMemo<FlameDescriptor>(() => {
+    // Custom variation hover — add a new transform on top
+    const hoveredCV = hoveredCustomVarDef()
+    if (hoveredCV) {
+      try {
+        const clone: FlameDescriptor = deepClone(flameDescriptor)
+        const transform = newDefaultTransform()
+        transform.variations = {
+          [generateVariationId()]: {
+            type: hoveredCV.id,
+            weight: 1,
+            visible: true,
+          },
+        }
+        clone.transforms[generateTransformId()] = transform
+        return clone
+      } catch {
+        return flameDescriptor as unknown as FlameDescriptor
+      }
+    }
+
     const hovered = hoveredVariationType()
     const state = quickPickState()
     if (!hovered || !state) return flameDescriptor
@@ -1535,6 +1565,13 @@ export function MainWorkspace(props: AppProps) {
                   </div>
                 )}
               </Show>
+              <Show when={hoveredCustomVarDef()} keyed>
+                {(cv) => (
+                  <div class={ui.hoverPreviewBadge}>
+                    Previewing custom: {cv.name}
+                  </div>
+                )}
+              </Show>
               <Show when={hoveredBlendName()} keyed>
                 {(name) => (
                   <div class={ui.hoverPreviewBadge}>Blending with {name}</div>
@@ -1885,34 +1922,110 @@ export function MainWorkspace(props: AppProps) {
                           />
                         </CollapsibleCard>
                         <CollapsibleCard
-                          title="Custom Vars"
+                          title="Custom Variations"
                           defaultOpen={false}
                         >
+                          <For
+                            each={customVariationsList()}
+                            fallback={
+                              <div class={ui.customVarEmpty}>
+                                No custom variations yet
+                              </div>
+                            }
+                          >
+                            {(def) => (
+                              <div
+                                class={ui.customVarItem}
+                                onMouseEnter={() => setHoveredCustomVarDef(def)}
+                                onMouseLeave={() =>
+                                  setHoveredCustomVarDef(null)
+                                }
+                              >
+                                <span class={ui.customVarItemName}>
+                                  {def.name}
+                                </span>
+                                <div class={ui.customVarItemActions}>
+                                  <button
+                                    class={ui.customVarItemBtn}
+                                    classList={{
+                                      [ui.customVarItemBtnPrimary as string]: true,
+                                    }}
+                                    title="Add to flame"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setHoveredCustomVarDef(null)
+                                      setFlameDescriptor((draft) => {
+                                        const transform = deepClone(
+                                          newDefaultTransform(),
+                                        )
+                                        transform.variations = {
+                                          [generateVariationId()]: {
+                                            type: def.id,
+                                            weight: 1,
+                                            visible: true,
+                                          },
+                                        }
+                                        draft.transforms[
+                                          generateTransformId()
+                                        ] = transform
+                                      })
+                                    }}
+                                  >
+                                    <BoxArrowRight />
+                                  </button>
+                                  <button
+                                    class={ui.customVarItemBtn}
+                                    title="Edit"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      void showCustomVariationEditor(def).then(
+                                        () => {
+                                          setCustomVarsVersion((v) => v + 1)
+                                        },
+                                      )
+                                    }}
+                                  >
+                                    ✎
+                                  </button>
+                                  <button
+                                    class={ui.customVarItemBtn}
+                                    title="Duplicate"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      duplicateCustomVariation(def.id)
+                                      setCustomVarsVersion((v) => v + 1)
+                                    }}
+                                  >
+                                    ⧉
+                                  </button>
+                                  <button
+                                    class={ui.customVarItemBtn}
+                                    classList={{
+                                      [ui.customVarItemBtnDanger as string]: true,
+                                    }}
+                                    title="Delete"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      deleteCustomVariation(def.id)
+                                      setCustomVarsVersion((v) => v + 1)
+                                    }}
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </For>
                           <button
                             class={ui.customVarsButton}
                             onClick={async () => {
-                              const def = await showCustomVariationEditor()
-                              if (def) {
-                                setFlameDescriptor((draft) => {
-                                  const transform = deepClone(
-                                    newDefaultTransform(),
-                                  )
-                                  transform.variations = {
-                                    [generateVariationId()]: {
-                                      type: def.id,
-                                      weight: 1,
-                                      visible: true,
-                                    },
-                                  }
-                                  draft.transforms[generateTransformId()] =
-                                    transform
-                                })
-                              }
+                              await showCustomVariationEditor()
+                              setCustomVarsVersion((v) => v + 1)
                             }}
-                            title="Open custom variation editor"
+                            title="Create a new custom variation"
                           >
-                            <Terminal />
-                            <span>Custom Variations</span>
+                            <Plus />
+                            <span>Create Variation</span>
                           </button>
                         </CollapsibleCard>
                         <For

@@ -230,7 +230,8 @@ export function loadCustomVariations(): void {
     const store = JSON.parse(raw) as Record<string, unknown>
     if (!store?.variations) return
     for (const def of Object.values(store.variations) as CustomVariationDef[]) {
-      if (!def.id || !def.wgsl || !def.name) continue
+      if (!def.id || !def.wgsl || !def.name || typeof def.name !== 'string')
+        continue
       if (!def.id.startsWith(CUSTOM_TYPE_PREFIX)) continue
       const compileResult = compileCustomVariationCode(def.wgsl)
       if (!compileResult.valid) {
