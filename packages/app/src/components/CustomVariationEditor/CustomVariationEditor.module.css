@@ -239,6 +239,17 @@
   color: var(--blue-300);
 }
 
+.exampleButtonActive {
+  background: var(--blue-50);
+  color: var(--blue-700);
+  font-weight: 600;
+}
+
+[data-theme='dark'] .exampleButtonActive {
+  background: var(--blue-900);
+  color: var(--blue-300);
+}
+
 /* ---- Editor panel ---- */
 
 .editorPanel {

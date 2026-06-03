@@ -155,6 +155,9 @@ function ShowCustomVariationEditor(props: {
 }) {
   const requestModal = useRequestModal()
   const [activeId, setActiveId] = createSignal<string | undefined>()
+  const [activeExampleName, setActiveExampleName] = createSignal<
+    string | undefined
+  >()
   const [code, setCode] = createSignal('')
   const [name, setName] = createSignal('Untitled')
   const [variations, setVariations] = createSignal<CustomVariationDef[]>(
@@ -228,6 +231,7 @@ function ShowCustomVariationEditor(props: {
     const p = untrack(preview)
     if (p.status === 'compiled') p.unregister()
     setActiveId(def.id)
+    setActiveExampleName(undefined)
     setName(def.name)
     setCode(def.wgsl)
     setPreview({ status: 'idle' })
@@ -239,6 +243,7 @@ function ShowCustomVariationEditor(props: {
     const p = untrack(preview)
     if (p.status === 'compiled') p.unregister()
     setActiveId(undefined)
+    setActiveExampleName(undefined)
     setName('Untitled')
     setCode('')
     setPreview({ status: 'idle' })
@@ -250,6 +255,7 @@ function ShowCustomVariationEditor(props: {
     const p = untrack(preview)
     if (p.status === 'compiled') p.unregister()
     setActiveId(undefined)
+    setActiveExampleName(exName)
     setName(exName)
     setCode(wgsl)
     setPreview({ status: 'idle' })
@@ -261,6 +267,7 @@ function ShowCustomVariationEditor(props: {
     const p = untrack(preview)
     if (p.status === 'compiled') p.unregister()
     setActiveId(undefined)
+    setActiveExampleName(exName)
     setEditorMode('math')
     setName(exName)
     setMathText(math)
@@ -507,6 +514,10 @@ function ShowCustomVariationEditor(props: {
                   {(ex) => (
                     <button
                       class={ui.exampleButton}
+                      classList={{
+                        [ui.exampleButtonActive as string]:
+                          activeExampleName() === ex.name,
+                      }}
                       onClick={() => {
                         loadMathExample(ex.name, ex.math)
                       }}
@@ -522,6 +533,10 @@ function ShowCustomVariationEditor(props: {
                 {(ex) => (
                   <button
                     class={ui.exampleButton}
+                    classList={{
+                      [ui.exampleButtonActive as string]:
+                        activeExampleName() === ex.name,
+                    }}
                     onClick={() => {
                       loadExample(ex.name, ex.wgsl)
                     }}
