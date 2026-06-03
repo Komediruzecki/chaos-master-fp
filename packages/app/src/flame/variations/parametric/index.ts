@@ -113,6 +113,7 @@ import { hole2Var } from './general/hole2Var'
 import { holeVar } from './general/holeVar'
 import { hopalongVar } from './general/hopalongVar'
 import { hyperbolicEllipseVar } from './general/hyperbolicEllipseVar'
+import { hypershiftVar } from './general/hypershiftVar'
 import { hypertile2Var } from './general/hypertile2Var'
 import { hypertileVar } from './general/hypertileVar'
 import { iconAttractorVar } from './general/iconAttractorVar'
@@ -159,6 +160,7 @@ import { pie } from './general/pie'
 import { plusRecipVar } from './general/plusRecipVar'
 import { popcorn2Var } from './general/popcorn2Var'
 import { powBlockVar } from './general/powBlockVar'
+import { pressureWaveVar } from './general/pressureWaveVar'
 import { projectiveVar } from './general/projectiveVar'
 import { pulseVar } from './general/pulseVar'
 import { q_odeVar } from './general/q_odeVar'
@@ -198,6 +200,7 @@ import { superShapeVar } from './general/superShapeVar'
 import { svenssonVar } from './general/svenssonVar'
 import { swirl3Var } from './general/swirl3Var'
 import { targetVar } from './general/targetVar'
+import { taurusVar } from './general/taurusVar'
 import { tradeVar } from './general/tradeVar'
 import { treeVar } from './general/treeVar'
 import { truchet2Var } from './general/truchet2Var'
@@ -304,6 +307,7 @@ export const parametricVariations = {
   hopalongVar,
   hyperbolicEllipseVar,
   hypertile2Var,
+  hypershiftVar,
   hypertileVar,
   iconAttractorVar,
   invCircle,
@@ -338,6 +342,7 @@ export const parametricVariations = {
   pixelFlowVar,
   popcorn2Var,
   powBlockVar,
+  pressureWaveVar,
   projectiveVar,
   perlinNoiseVar,
   radialBlurVar,
@@ -499,6 +504,7 @@ export const parametricVariations = {
   sunflowerVar,
   superShapeVar,
   targetVar,
+  taurusVar,
   svenssonVar,
   synthVar,
   woggleVar,
