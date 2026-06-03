@@ -203,6 +203,7 @@ import { waves2Var } from './general/waves2Var'
 import { waves3Var } from './general/waves3Var'
 import { waves4Var } from './general/waves4Var'
 import { wedgeJuliaVar } from './general/wedgeJuliaVar'
+import { wedgeSphVar } from './general/wedgeSphVar'
 import { wedgeVar } from './general/wedgeVar'
 import { whorlVar } from './general/whorlVar'
 import { woggleVar } from './general/woggleVar'
@@ -393,6 +394,7 @@ export const parametricVariations = {
   waves3Var,
   waves4Var,
   wedgeJuliaVar,
+  wedgeSphVar,
   wedgeVar,
   whorlVar,
   anamorphCylVar,
