@@ -107,6 +107,7 @@ import { gumowskiMiraVar } from './general/gumowskiMiraVar'
 import { harmonographVar } from './general/harmonographVar'
 import { henonVar } from './general/henonVar'
 import { hexesVar } from './general/hexesVar'
+import { hexModulusVar } from './general/hexModulusVar'
 import { hilbertVar } from './general/hilbertVar'
 import { hole2Var } from './general/hole2Var'
 import { holeVar } from './general/holeVar'
@@ -155,6 +156,7 @@ import { perlinNoiseVar } from './general/perlinNoise'
 import { perspective } from './general/perspective'
 import { phoenixJuliaVar } from './general/phoenixJuliaVar'
 import { pie } from './general/pie'
+import { plusRecipVar } from './general/plusRecipVar'
 import { popcorn2Var } from './general/popcorn2Var'
 import { powBlockVar } from './general/powBlockVar'
 import { projectiveVar } from './general/projectiveVar'
@@ -171,6 +173,7 @@ import { scry2Var } from './general/scry2'
 import { seaShellVar } from './general/seaShellVar'
 import { separationVar } from './general/separationVar'
 import { shiftVar } from './general/shiftVar'
+import { shredlinVar } from './general/shredlinVar'
 import { shredradVar } from './general/shredradVar'
 import { sierCarpetVar } from './general/sierCarpetVar'
 import { sigmoidVar } from './general/sigmoidVar'
@@ -179,6 +182,9 @@ import { sintrangeVar } from './general/sintrangeVar'
 import { sinusGridVar } from './general/sinusGridVar'
 import { sphericalNVar } from './general/sphericalNVar'
 import { spirographVar } from './general/spirographVar'
+import { spligonVar } from './general/spligonVar'
+import { splipticBSVar } from './general/splipticBSVar'
+import { splitBrdrVar } from './general/splitBrdrVar'
 import { splitsVar } from './general/splitsVar'
 import { splitVar } from './general/splitVar'
 import { squircularVar } from './general/squircularVar'
@@ -291,6 +297,7 @@ export const parametricVariations = {
   harmonographVar,
   henonVar,
   hexesVar,
+  hexModulusVar,
   hilbertVar,
   hole2Var,
   holeVar,
@@ -327,6 +334,7 @@ export const parametricVariations = {
   perspective,
   phoenixJuliaVar,
   pie,
+  plusRecipVar,
   pixelFlowVar,
   popcorn2Var,
   powBlockVar,
@@ -348,12 +356,16 @@ export const parametricVariations = {
   sineBlurVar,
   shiftVar,
   shredradVar,
+  shredlinVar,
   sierCarpetVar,
   starBlurVar,
   sinusGridVar,
   sphericalNVar,
   spirographVar,
   splitVar,
+  splitBrdrVar,
+  spligonVar,
+  splipticBSVar,
   splitsVar,
   squirrelVar,
   squishVar,
