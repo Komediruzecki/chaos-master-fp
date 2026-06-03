@@ -134,6 +134,7 @@ import { juliaScope } from './general/juliaScope'
 import { kaleidoscopeVar } from './general/kaleidoscopeVar'
 import { kaplanVar } from './general/kaplanVar'
 import { kochVar } from './general/kochVar'
+import { layeredSpiralVar } from './general/layeredSpiralVar'
 import { lazySensenVar } from './general/lazySensenVar'
 import { lazySusanVar } from './general/lazySusanVar'
 import { linearTVar } from './general/linearTVar'
@@ -158,6 +159,7 @@ import { onion2Var } from './general/onion2Var'
 import { onionVar } from './general/onionVar'
 import { oscilloscope2Var } from './general/oscilloscope2Var'
 import { oscilloscopeVar } from './general/oscilloscopeVar'
+import { ovoidVar } from './general/ovoidVar'
 import { parabolaVar } from './general/parabolaVar'
 import { pdjVar } from './general/pdj'
 import { perlinNoiseVar } from './general/perlinNoise'
@@ -210,6 +212,7 @@ import { svenssonVar } from './general/svenssonVar'
 import { swirl3Var } from './general/swirl3Var'
 import { targetVar } from './general/targetVar'
 import { taurusVar } from './general/taurusVar'
+import { tileHlpVar } from './general/tileHlpVar'
 import { tradeVar } from './general/tradeVar'
 import { treeVar } from './general/treeVar'
 import { triangleVar } from './general/triangleVar'
@@ -336,6 +339,7 @@ export const parametricVariations = {
   kaleidoscopeVar,
   kochVar,
   lazySensenVar,
+  layeredSpiralVar,
   lazySusanVar,
   lissajousVar,
   linearTVar,
@@ -515,6 +519,7 @@ export const parametricVariations = {
   onionVar,
   oscilloscopeVar,
   oscilloscope2Var,
+  ovoidVar,
   parabolaVar,
   pulseVar,
   q_odeVar,
@@ -525,6 +530,7 @@ export const parametricVariations = {
   superShapeVar,
   targetVar,
   taurusVar,
+  tileHlpVar,
   svenssonVar,
   synthVar,
   woggleVar,

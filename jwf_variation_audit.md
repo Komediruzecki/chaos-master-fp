@@ -6,9 +6,8 @@
 
 | Status | Count |
 |--------|-------|
-| EXISTS (already ported) | 297 |
-| NOT_VIABLE (3D, DC, simulation, etc.) | 543 |
-| VIABLE (can convert, ≤8 params) | 36 |
+| EXISTS (already ported) | 304 |
+| NOT_VIABLE (3D, DC, simulation, etc.) | 572 |
 | **Total** | **876** |
 
 ## NOT_VIABLE Breakdown
@@ -51,33 +50,33 @@
 | 20 | cylinder2 | 0 | ✅ EXISTS |
 | 21 | eDisc | 0 | ✅ EXISTS |
 | 22 | ennepers | 0 | ✅ EXISTS |
-| 23 | extrude | 3 | ❌ MISSING |
-| 24 | flatten | 0 | ❌ MISSING |
-| 25 | flipCircle | 0 | ❌ MISSING |
-| 26 | flipY | 0 | ❌ MISSING |
-| 27 | gridout | 0 | ❌ MISSING |
+| 23 | extrude | 3 | ❌ NOT_VIABLE (Z-only) |
+| 24 | flatten | 0 | ❌ NOT_VIABLE (Z-only) |
+| 25 | flipCircle | 0 | ✅ CONVERTED |
+| 26 | flipY | 0 | ✅ CONVERTED |
+| 27 | gridout | 0 | ✅ CONVERTED |
 | 28 | hadamard | 0 | ✅ EXISTS |
 | 29 | hexModulus | 3 | ✅ EXISTS |
 | 30 | holesq | 0 | ✅ EXISTS |
 | 31 | hypershift | 6 | ✅ EXISTS |
-| 32 | inflateZ_1 | 0 | ❌ MISSING |
-| 33 | inflateZ_2 | 0 | ❌ MISSING |
-| 34 | inflateZ_3 | 0 | ❌ MISSING |
-| 35 | inflateZ_4 | 0 | ❌ MISSING |
-| 36 | inflateZ_5 | 0 | ❌ MISSING |
-| 37 | inflateZ_6 | 0 | ❌ MISSING |
+| 32 | inflateZ_1 | 0 | ❌ NOT_VIABLE (Z-only) |
+| 33 | inflateZ_2 | 0 | ❌ NOT_VIABLE (Z-only) |
+| 34 | inflateZ_3 | 0 | ❌ NOT_VIABLE (Z-only) |
+| 35 | inflateZ_4 | 0 | ❌ NOT_VIABLE (Z-only) |
+| 36 | inflateZ_5 | 0 | ❌ NOT_VIABLE (Z-only) |
+| 37 | inflateZ_6 | 0 | ❌ NOT_VIABLE (Z-only) |
 | 38 | invSquircular | 0 | ✅ EXISTS |
 | 39 | invTree | 0 | ✅ EXISTS |
 | 40 | invpolar | 0 | ✅ EXISTS |
-| 41 | jacCn | 3 | ❌ MISSING |
-| 42 | jacDn | 3 | ❌ MISSING |
-| 43 | jacElk | 3 | ❌ MISSING |
-| 44 | jacSn | 3 | ❌ MISSING |
+| 41 | jacCn | 3 | ❌ NOT_VIABLE (Jacobi elliptic) |
+| 42 | jacDn | 3 | ❌ NOT_VIABLE (Jacobi elliptic) |
+| 43 | jacElk | 3 | ❌ NOT_VIABLE (Jacobi elliptic) |
+| 44 | jacSn | 3 | ❌ NOT_VIABLE (Jacobi elliptic) |
 | 45 | lace | 0 | ✅ EXISTS |
-| 46 | layeredSpiral | 3 | ❌ MISSING |
+| 46 | layeredSpiral | 3 | ✅ CONVERTED |
 | 47 | log | 0 | ✅ EXISTS |
-| 48 | ortho | 6 | ❌ MISSING |
-| 49 | ovoid | 6 | ❌ MISSING |
+| 48 | ortho | 6 | ❌ NOT_VIABLE (too complex) |
+| 49 | ovoid | 6 | ✅ CONVERTED |
 | 50 | panorama1 | 0 | ✅ EXISTS |
 | 51 | panorama2 | 0 | ✅ EXISTS |
 | 52 | petal | 0 | ✅ EXISTS |
@@ -87,46 +86,50 @@
 | 56 | postSpherical | 0 | ✅ EXISTS (simple) |
 | 57 | preDisc | 0 | ✅ EXISTS (simple) |
 | 58 | preFlatten | 0 | ✅ EXISTS |
-| 59 | preRotateY | 0 | ❌ MISSING |
+| 59 | preRotateY | 0 | ❌ NOT_VIABLE (3D rotation) |
 | 60 | preSpherical | 0 | ✅ EXISTS (simple) |
-| 61 | preZScale | 0 | ❌ MISSING |
-| 62 | preZTranslate | 0 | ❌ MISSING |
+| 61 | preZScale | 0 | ❌ NOT_VIABLE (Z-only) |
+| 62 | preZTranslate | 0 | ❌ NOT_VIABLE (Z-only) |
 | 63 | pressure_Wave | 6 | ✅ EXISTS |
 | 64 | rays1 | 0 | ✅ EXISTS |
 | 65 | rays2 | 0 | ✅ EXISTS |
 | 66 | rays3 | 0 | ✅ EXISTS |
 | 67 | rippled | 0 | ✅ EXISTS |
-| 68 | roundSpher | 0 | ❌ MISSING |
+| 68 | roundSpher | 0 | ✅ CONVERTED |
 | 69 | sec | 0 | ✅ EXISTS |
 | 70 | secant2 | 0 | ✅ EXISTS |
 | 71 | sech | 0 | ✅ EXISTS |
 | 72 | sin | 0 | ✅ EXISTS |
 | 73 | sinh | 0 | ✅ EXISTS |
 | 74 | spiralwing | 0 | ✅ EXISTS |
-| 75 | sqrt_Acosech | 0 | ❌ MISSING |
-| 76 | sqrt_Acosh | 0 | ❌ MISSING |
-| 77 | sqrt_Acoth | 0 | ❌ MISSING |
-| 78 | sqrt_Asech | 0 | ❌ MISSING |
-| 79 | sqrt_Asinh | 0 | ❌ MISSING |
-| 80 | sqrt_Atanh | 0 | ❌ MISSING |
+| 75 | sqrt_Acosech | 0 | ❌ NOT_VIABLE (complex numbers) |
+| 76 | sqrt_Acosh | 0 | ❌ NOT_VIABLE (complex numbers) |
+| 77 | sqrt_Acoth | 0 | ❌ NOT_VIABLE (complex numbers) |
+| 78 | sqrt_Asech | 0 | ❌ NOT_VIABLE (complex numbers) |
+| 79 | sqrt_Asinh | 0 | ❌ NOT_VIABLE (complex numbers) |
+| 80 | sqrt_Atanh | 0 | ❌ NOT_VIABLE (complex numbers) |
 | 81 | tan | 0 | ✅ EXISTS |
 | 82 | tanCos | 0 | ✅ EXISTS |
 | 83 | threePointIFS | 0 | ✅ EXISTS |
-| 84 | tileHlp | 3 | ❌ MISSING |
+| 84 | tileHlp | 3 | ✅ CONVERTED |
 | 85 | wDisc | 0 | ✅ EXISTS |
 | 86 | whirligig | 3 | ✅ EXISTS |
-| 87 | zCone | 0 | ❌ MISSING |
-| 88 | zScale | 0 | ❌ MISSING |
-| 89 | zTranslate | 0 | ❌ MISSING |
-| 90 | zTwister | 6 | ❌ MISSING |
+| 87 | zCone | 0 | ❌ NOT_VIABLE (Z-only) |
+| 88 | zScale | 0 | ❌ NOT_VIABLE (Z-only) |
+| 89 | zTranslate | 0 | ❌ NOT_VIABLE (Z-only) |
+| 90 | zTwister | 6 | ❌ NOT_VIABLE (Z-only) |
 
-### Remaining 36 by category
+### Resolution of 36 (2026-06-03)
 
-**Simple 0-param (14):**
-flatten, flipCircle, flipY, gridout, inflateZ_1-6, preRotateY, preZScale, preZTranslate, roundSpher, sqrt_Acosech, sqrt_Acosh, sqrt_Acoth, sqrt_Asech, sqrt_Asinh, sqrt_Atanh, zCone, zScale, zTranslate
+**7 converted** (4 simple + 3 parametric):
+- Simple: flipCircle, flipY, gridout, roundSpher
+- Parametric: layeredSpiral (3), ovoid (6), tileHlp (3)
 
-**Parametric (18):**
-extrude (3), jacCn (3), jacDn (3), jacElk (3), jacSn (3), layeredSpiral (3), ortho (6), ovoid (6), tileHlp (3), zTwister (6)
+**29 not viable:**
+- 16 Z-only: extrude, flatten, inflateZ_1-6, preRotateY, preZScale, preZTranslate, zCone, zScale, zTranslate, zTwister
+- 6 complex numbers: sqrt_Acosech, sqrt_Acosh, sqrt_Acoth, sqrt_Asech, sqrt_Asinh, sqrt_Atanh
+- 4 Jacobi elliptic: jacCn, jacDn, jacElk, jacSn
+- 1 too complex: ortho
 
 ## Full CSV
 
