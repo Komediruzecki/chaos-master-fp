@@ -468,6 +468,32 @@ const previewFlames: Partial<Record<TransformVariationType, FlameDescriptor>> =
         }
       }),
     ),
+    plusRecipVar: unfreeze(
+      produce(getDefaultFlameByVarType('plusRecipVar'), (draft) => {
+        draft.renderSettings.exposure = 0.5
+        draft.renderSettings.camera.zoom = 0.5
+        draft.transforms[getTransformPreviewTid('plusRecipVar')]!.variations[
+          getTransformPreviewVid('plusRecipVar')
+        ] = {
+          type: 'plusRecipVar',
+          weight: 0.25,
+          visible: true,
+          params: { ar: 1.0, ai: 0.5 },
+        }
+      }),
+    ),
+    pulseVar: unfreeze(
+      produce(getDefaultFlameByVarType('pulseVar'), (draft) => {
+        draft.transforms[getTransformPreviewTid('pulseVar')]!.variations[
+          getTransformPreviewVid('pulseVar')
+        ] = {
+          type: 'pulseVar',
+          weight: 0.06,
+          visible: true,
+          params: { freqx: 2.0, freqy: 2.0, scalex: 1.0, scaley: 1.0 },
+        }
+      }),
+    ),
   }
 export function getVariationPreviewFlame(
   type: TransformVariationType,

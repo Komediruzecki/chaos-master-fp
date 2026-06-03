@@ -16,18 +16,23 @@ const KaplanVarParams = struct({
 type KaplanVarParams = Infer<typeof KaplanVarParams>
 const KaplanVarParamsDefaults: KaplanVarParams = {
   seed: 1000.0,
-  n: 10.0,
-  time: 1.0,
+  n: 800.0,
+  time: 10.0,
   invert: 0.0,
 }
 const KaplanVarParamsEditor: EditorFor<KaplanVarParams> = (props) => (
   <>
-    <RangeEditor {...editorProps(props, 'n', 'N')} min={1} max={50} step={1} />
+    <RangeEditor
+      {...editorProps(props, 'n', 'N')}
+      min={50}
+      max={1500}
+      step={1}
+    />
     <RangeEditor
       {...editorProps(props, 'time', 'Time')}
       min={0}
-      max={10}
-      step={0.01}
+      max={20}
+      step={0.1}
     />
     <RangeEditor
       {...editorProps(props, 'invert', 'Invert')}
@@ -42,13 +47,14 @@ export const kaplanVar = parametricVariation(
   KaplanVarParams,
   KaplanVarParamsDefaults,
   KaplanVarParamsEditor,
-  (pos, varInfo, P) => {
+  (pos, _varInfo, P) => {
     'use gpu'
     const rx = floor(P.n * random())
     const ry = floor(P.n * random())
-    const zoom = floor(P.time)
-    const xv = zoom * (rx - f32(floor(P.n / 2.0)))
-    const yv = zoom * (ry - f32(floor(P.n / 2.0)))
+    const zoom = f32(floor(P.time))
+    const halfN = f32(floor(P.n / 2.0))
+    const xv = zoom * (rx - halfN)
+    const yv = zoom * (ry - halfN)
     const r0 = atan2(xv, yv)
     const c = cos(r0)
     const s = sin(r0)
@@ -61,15 +67,15 @@ export const kaplanVar = parametricVariation(
     const p16 = 65536.0
     const r = mantissa - f32(floor(mantissa * p16 + 0.5)) / p16
     const color = sign(r)
-    let keep = false
+    let visible = false
     if (P.invert < 0.5) {
-      keep = color > 0.0
+      visible = color > 0.0
     } else {
-      keep = color <= 0.0
+      visible = color <= 0.0
     }
-    const newX = select(0.0, pos.x, keep)
-    const newY = select(0.0, pos.y, keep)
-    return vec2f(varInfo.weight * newX, varInfo.weight * newY)
+    const outX = select(0.0, rx / P.n - 0.5, visible)
+    const outY = select(0.0, ry / P.n - 0.5, visible)
+    return vec2f(outX, outY)
   },
   'general',
 )
