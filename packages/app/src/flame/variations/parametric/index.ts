@@ -120,6 +120,7 @@ import { hypershiftVar } from './general/hypershiftVar'
 import { hypertile2Var } from './general/hypertile2Var'
 import { hypertileVar } from './general/hypertileVar'
 import { iconAttractorVar } from './general/iconAttractorVar'
+import { intersectionVar } from './general/intersectionVar'
 import { invCircle } from './general/invCircle'
 import { invCircle2 } from './general/invCircle2'
 import { invEllipse } from './general/invEllipse'
@@ -211,6 +212,7 @@ import { targetVar } from './general/targetVar'
 import { taurusVar } from './general/taurusVar'
 import { tradeVar } from './general/tradeVar'
 import { treeVar } from './general/treeVar'
+import { triangleVar } from './general/triangleVar'
 import { truchet2Var } from './general/truchet2Var'
 import { tunnelVar } from './general/tunnelVar'
 import { vogelVar } from './general/vogelVar'
@@ -320,6 +322,7 @@ export const parametricVariations = {
   hypertile2Var,
   hypershiftVar,
   hypertileVar,
+  intersectionVar,
   iconAttractorVar,
   invCircle,
   invCircle2,
@@ -418,6 +421,7 @@ export const parametricVariations = {
   symNetG17,
   tradeVar,
   treeVar,
+  triangleVar,
   truchet2Var,
   tunnelVar,
   vogelVar,
