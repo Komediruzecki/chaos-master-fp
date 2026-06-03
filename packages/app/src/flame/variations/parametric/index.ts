@@ -125,7 +125,9 @@ import { invCircle2 } from './general/invCircle2'
 import { invEllipse } from './general/invEllipse'
 import { inversionVar } from './general/inversionVar'
 import { joukowskiVar } from './general/joukowskiVar'
+import { juliaCVar } from './general/juliaCVar'
 import { juliaN } from './general/juliaN'
+import { juliaOutsideVar } from './general/juliaOutsideVar'
 import { juliaQVar } from './general/juliaQVar'
 import { juliaScope } from './general/juliaScope'
 import { kaleidoscopeVar } from './general/kaleidoscopeVar'
@@ -138,6 +140,7 @@ import { lineVar } from './general/lineVar'
 import { lissajousVar } from './general/lissajousVar'
 import { logApoVar } from './general/logApoVar'
 import { logTile2Var } from './general/logTile2Var'
+import { loonie2Var } from './general/loonie2Var'
 import { loqVar } from './general/loqVar'
 import { loziVar } from './general/loziVar'
 import { macMillanVar } from './general/macMillanVar'
@@ -165,6 +168,7 @@ import { popcorn2Var } from './general/popcorn2Var'
 import { powBlockVar } from './general/powBlockVar'
 import { pressureWaveVar } from './general/pressureWaveVar'
 import { projectiveVar } from './general/projectiveVar'
+import { pTransformVar } from './general/pTransformVar'
 import { pulseVar } from './general/pulseVar'
 import { q_odeVar } from './general/q_odeVar'
 import { rational3Var } from './general/rational3Var'
@@ -320,7 +324,9 @@ export const parametricVariations = {
   invCircle2,
   invEllipse,
   inversionVar,
+  juliaCVar,
   juliaN,
+  juliaOutsideVar,
   juliaScope,
   joukowskiVar,
   kaleidoscopeVar,
@@ -332,6 +338,7 @@ export const parametricVariations = {
   lineVar,
   logApoVar,
   logTile2Var,
+  loonie2Var,
   loqVar,
   loziVar,
   macMillanVar,
@@ -350,6 +357,7 @@ export const parametricVariations = {
   powBlockVar,
   pressureWaveVar,
   projectiveVar,
+  pTransformVar,
   perlinNoiseVar,
   radialBlurVar,
   rectanglesVar,
