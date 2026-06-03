@@ -419,15 +419,17 @@
 }
 
 [data-theme='dark'] .dot {
-  background: var(--neutral-600);
+  background: var(--neutral-500);
 }
 
 .dotActive {
   background: var(--blue-500);
+  box-shadow: 0 0 0 2px var(--blue-500);
 }
 
 [data-theme='dark'] .dotActive {
   background: var(--blue-400);
+  box-shadow: 0 0 0 3px var(--blue-400);
 }
 
 /* ---- Responsive ---- */

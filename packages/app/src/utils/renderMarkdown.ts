@@ -74,7 +74,8 @@ export function renderMarkdown(text: string): string {
 
   // Restore admonitions with styled divs
   for (let i = 0; i < admonitions.length; i++) {
-    const { type, content } = admonitions[i]!
+    const { type, content: rawContent } = admonitions[i]!
+    const content = rawContent.replace(/\\`/g, '`')
     const renderedContent = marked.parse(content, { async: false })
     const label = ADMONITION_LABELS[type]
     html = html.replace(

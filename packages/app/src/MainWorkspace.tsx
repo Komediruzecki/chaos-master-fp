@@ -530,6 +530,7 @@ export function MainWorkspace(props: AppProps) {
 
   onMount(() => {
     loadCustomVariations()
+    setCustomVarsVersion((v) => v + 1)
     if (IS_DEV) {
       console.info('[share:app] onMount', {
         hasQueryFlame: !!props.flameFromQuery?.flame,
