@@ -182,6 +182,7 @@ import { scry2Var } from './general/scry2'
 import { seaShellVar } from './general/seaShellVar'
 import { separationVar } from './general/separationVar'
 import { shiftVar } from './general/shiftVar'
+import { shreddedVar } from './general/shreddedVar'
 import { shredlinVar } from './general/shredlinVar'
 import { shredradVar } from './general/shredradVar'
 import { sierCarpetVar } from './general/sierCarpetVar'
@@ -376,6 +377,7 @@ export const parametricVariations = {
   shiftVar,
   shredradVar,
   shredlinVar,
+  shreddedVar,
   sierCarpetVar,
   starBlurVar,
   sinusGridVar,
