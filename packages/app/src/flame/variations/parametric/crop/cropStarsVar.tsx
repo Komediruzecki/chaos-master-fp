@@ -1,5 +1,5 @@
 import { f32, struct, vec2f } from 'typegpu/data'
-import { atan2, floor, sqrt } from 'typegpu/std'
+import { atan2, floor, select, sqrt } from 'typegpu/std'
 import { RangeEditor } from '@/components/Sliders/ParametricEditors/RangeEditor'
 import { editorProps } from '@/components/Sliders/ParametricEditors/types'
 import { PI } from '@/flame/constants'
@@ -43,7 +43,7 @@ export const cropStarsVar = parametricVariation(
     const angle = atan2(pos.y, pos.x)
     const sector = angle / ((2.0 * PI.$) / n)
     const frac = sector - floor(sector)
-    const phase = frac < 0.5 ? frac * 2.0 : (1.0 - frac) * 2.0
+    const phase = select((1.0 - frac) * 2.0, frac * 2.0, frac < 0.5)
     const starR = P.inner + (P.outer - P.inner) * phase
     if (r > starR) {
       return vec2f(0.0, 0.0)

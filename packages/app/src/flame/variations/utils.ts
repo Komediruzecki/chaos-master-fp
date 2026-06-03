@@ -482,6 +482,17 @@ const previewFlames: Partial<Record<TransformVariationType, FlameDescriptor>> =
         }
       }),
     ),
+    arctanhVar: unfreeze(
+      produce(getDefaultFlameByVarType('arctanhVar'), (draft) => {
+        draft.transforms[getTransformPreviewTid('arctanhVar')]!.variations[
+          getTransformPreviewVid('arctanhVar')
+        ] = {
+          type: 'arctanhVar',
+          weight: 0.2,
+          visible: true,
+        }
+      }),
+    ),
     pulseVar: unfreeze(
       produce(getDefaultFlameByVarType('pulseVar'), (draft) => {
         draft.transforms[getTransformPreviewTid('pulseVar')]!.variations[
