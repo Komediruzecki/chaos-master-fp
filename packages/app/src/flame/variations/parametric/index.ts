@@ -133,6 +133,7 @@ import { lineVar } from './general/lineVar'
 import { lissajousVar } from './general/lissajousVar'
 import { logApoVar } from './general/logApoVar'
 import { logTile2Var } from './general/logTile2Var'
+import { loqVar } from './general/loqVar'
 import { loziVar } from './general/loziVar'
 import { macMillanVar } from './general/macMillanVar'
 import { maskVar } from './general/maskVar'
@@ -313,6 +314,7 @@ export const parametricVariations = {
   lineVar,
   logApoVar,
   logTile2Var,
+  loqVar,
   loziVar,
   macMillanVar,
   maskVar,

@@ -2,22 +2,23 @@
 
 ## Current State
 
-**Total variations:** 176 files across 6 categories (108 parametric general, 68 others)
+**Total variations: 395** (245 parametric + 94 simple standalone + 56 inline core)
 
 ### By Category
 
-| Category | Parametric | Simple | Total |
-|----------|-----------|--------|-------|
-| `general` | 108 | 66 (48 inline + 18 standalone) | 174 |
-| `blur` | 7 | 0 | 7 |
-| `cut` | 3 | 0 | 3 |
-| `dc` | 1 | 0 | 1 |
-| `post` | 32 | 2 | 34 |
-| `pre` | 0 | 2 | 2 |
-| `synth` | 1 | 0 | 1 |
-| **Total** | **152** | **70** | **222** |
+| Category | Parametric | Simple (standalone) | Simple (inline) | Combined |
+|----------|-----------|--------------------|-----------------|----------|
+| `blur` | 7 | 1 | — | 8 |
+| `crop` | 6 | — | — | 6 |
+| `cut` | 3 | — | — | 3 |
+| `dc` | 1 | — | — | 1 |
+| `general` | 193 | 81 | 56 | 330 |
+| `post` | 32 | 5 | — | 37 |
+| `pre` | 2 | 7 | — | 9 |
+| `synth` | 1 | — | — | 1 |
+| **Total** | **245** | **94** | **56** | **395** |
 
-> Note: 48 simple variations are defined inline in `simple/general/index.ts` (the core engine variations). 18 standalone `.ts` files add more. Total simple = 66.
+> **56 core engine variations** are defined inline in `simple/general/index.ts`. These are the classic flam3-compatible variations (waves, popcorn, rings, fan, linear, julia, bent, etc.). **94 standalone simple** `.ts` files add JWildfire-derived variations. **245 parametric** `.tsx` files provide GPU-rendered variations with editable parameters.
 
 ### Core Engine Variations (inline in `simple/general/index.ts`)
 
