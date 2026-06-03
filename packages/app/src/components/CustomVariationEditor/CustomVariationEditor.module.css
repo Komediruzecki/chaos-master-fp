@@ -1,8 +1,7 @@
 .editorModal {
   max-width: 900px;
   width: 92vw;
-  height: 84vh;
-  max-height: 84vh;
+  max-height: 72vh;
 }
 
 @media (max-width: 600px) {
