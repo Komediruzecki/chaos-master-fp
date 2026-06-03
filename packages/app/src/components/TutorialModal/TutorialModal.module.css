@@ -129,15 +129,18 @@
 .markdownBody code {
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-size: 0.8125rem;
-  background: var(--neutral-100);
-  padding: 1px 5px;
-  border-radius: 3px;
+  padding: 0.1em 0.38em;
+  border-radius: 4px;
+  background: var(--red-50);
   color: var(--red-700);
+  border: 1px solid var(--red-200);
+  white-space: nowrap;
 }
 
 [data-theme='dark'] .markdownBody code {
-  background: var(--neutral-800);
+  background: color-mix(in srgb, var(--red-500, #ef4444) 15%, #111);
   color: var(--red-300);
+  border-color: color-mix(in srgb, var(--red-500, #ef4444) 25%, transparent);
 }
 
 .markdownBody pre {
