@@ -131,16 +131,20 @@
   font-size: 0.8125rem;
   padding: 0.1em 0.38em;
   border-radius: 4px;
-  background: var(--red-50);
-  color: var(--red-700);
-  border: 1px solid var(--red-200);
+  background: var(--neutral-100);
+  color: var(--neutral-800);
+  border: 1px solid var(--neutral-300);
   white-space: nowrap;
 }
 
 [data-theme='dark'] .markdownBody code {
-  background: color-mix(in srgb, var(--red-500, #ef4444) 15%, #111);
-  color: var(--red-300);
-  border-color: color-mix(in srgb, var(--red-500, #ef4444) 25%, transparent);
+  background: color-mix(in srgb, var(--neutral-600, #525252) 30%, #111);
+  color: var(--neutral-200);
+  border-color: color-mix(
+    in srgb,
+    var(--neutral-500, #737373) 35%,
+    transparent
+  );
 }
 
 .markdownBody pre {

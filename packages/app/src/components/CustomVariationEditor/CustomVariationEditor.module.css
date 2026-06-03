@@ -226,38 +226,43 @@
   border: none;
   border-radius: var(--space-1);
   background: transparent;
-  color: var(--blue-600);
+  color: var(--neutral-600);
   font-size: 0.75rem;
   font-family: inherit;
   cursor: pointer;
+  position: relative;
   transition:
     background 0.13s,
-    color 0.13s;
+    color 0.13s,
+    border-color 0.13s;
 }
 
 .exampleButton:hover {
-  background: var(--blue-50);
-  color: var(--blue-700);
+  background: var(--neutral-100);
+  color: var(--neutral-800);
 }
 
 [data-theme='dark'] .exampleButton {
-  color: var(--blue-400);
+  color: var(--neutral-400);
 }
 
 [data-theme='dark'] .exampleButton:hover {
-  background: var(--blue-900);
-  color: var(--blue-300);
+  background: var(--neutral-800);
+  color: var(--neutral-200);
 }
 
 .exampleButtonActive {
   background: var(--blue-50);
   color: var(--blue-700);
   font-weight: 600;
+  border-left: 3px solid var(--blue-500);
+  padding-left: calc(var(--space-2) - 3px);
 }
 
 [data-theme='dark'] .exampleButtonActive {
-  background: var(--blue-900);
+  background: color-mix(in srgb, var(--blue-500, #3b82f6) 18%, #111);
   color: var(--blue-300);
+  border-left-color: var(--blue-400);
 }
 
 /* ---- Editor panel ---- */
