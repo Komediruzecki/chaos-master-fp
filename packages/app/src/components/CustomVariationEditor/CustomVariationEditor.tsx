@@ -4,7 +4,7 @@ import { defineExample } from '@/flame/examples/util'
 import { Flam3 } from '@/flame/Flam3'
 import { generateTransformId, generateVariationId, } from '@/flame/transformFunction'
 import { createCustomVariation, deleteCustomVariation, duplicateCustomVariation, getCustomVariations, previewCustomVariation, updateCustomVariation, } from '@/flame/variations/custom'
-import { Cross, Plus, Sparkle, Terminal } from '@/icons'
+import { BoxArrowRight, Cross, Plus, Sparkle, Terminal } from '@/icons'
 import { AutoCanvas } from '@/lib/AutoCanvas'
 import { Root } from '@/lib/Root'
 import { WheelZoomCamera2D } from '@/lib/WheelZoomCamera2D'
@@ -165,7 +165,6 @@ function ShowCustomVariationEditor(props: {
   )
   const [preview, setPreview] = createSignal<PreviewState>({ status: 'idle' })
   const [previewKey, setPreviewKey] = createSignal(0)
-  const [savedDef, setSavedDef] = createSignal<CustomVariationDef | undefined>()
 
   const [editorMode, setEditorMode] = createSignal<'wgsl' | 'math'>('wgsl')
   const [mathText, setMathText] = createSignal('')
@@ -236,7 +235,6 @@ function ShowCustomVariationEditor(props: {
     setCode(def.wgsl)
     setPreview({ status: 'idle' })
     setPreviewKey((k) => k + 1)
-    setSavedDef(def)
   }
 
   function createNew() {
@@ -248,7 +246,6 @@ function ShowCustomVariationEditor(props: {
     setCode('')
     setPreview({ status: 'idle' })
     setPreviewKey((k) => k + 1)
-    setSavedDef(undefined)
   }
 
   function loadExample(exName: string, wgsl: string) {
@@ -260,7 +257,6 @@ function ShowCustomVariationEditor(props: {
     setCode(wgsl)
     setPreview({ status: 'idle' })
     setPreviewKey((k) => k + 1)
-    setSavedDef(undefined)
   }
 
   function loadMathExample(exName: string, math: string) {
@@ -273,7 +269,6 @@ function ShowCustomVariationEditor(props: {
     setMathText(math)
     setPreview({ status: 'idle' })
     setPreviewKey((k) => k + 1)
-    setSavedDef(undefined)
   }
 
   function handleDelete(id: string) {
@@ -287,7 +282,6 @@ function ShowCustomVariationEditor(props: {
       setName('Untitled')
       setPreview({ status: 'idle' })
       setPreviewKey((k) => k + 1)
-      setSavedDef(undefined)
     }
   }
 
@@ -362,7 +356,7 @@ function ShowCustomVariationEditor(props: {
     if (result.success) {
       setVariations(getCustomVariations())
       setActiveId(result.def.id)
-      setSavedDef(result.def)
+
       // Re-establish preview with the real ID
       const p = untrack(preview)
       if (p.status === 'compiled') p.unregister()
@@ -380,22 +374,18 @@ function ShowCustomVariationEditor(props: {
     return result
   }
 
-  function handleExport() {
-    const body = code()
-    const blob = new Blob([body], { type: 'text/plain' })
+  function handleExportItem(def: CustomVariationDef) {
+    const blob = new Blob([def.wgsl], { type: 'text/plain' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `${name().replace(/\s+/g, '_')}.wgsl`
+    a.download = `${def.name.replace(/\s+/g, '_')}.wgsl`
     a.click()
     URL.revokeObjectURL(url)
   }
 
-  function handleUse() {
-    const def = savedDef()
-    if (def) {
-      props.respond({ def })
-    }
+  function handleUseItem(def: CustomVariationDef) {
+    props.respond({ def })
   }
 
   function showTutorialModal(tutorial: {
@@ -479,6 +469,26 @@ function ShowCustomVariationEditor(props: {
                   <Sparkle width="0.75rem" />
                   <span class={ui.variationName}>{v.name}</span>
                   <span class={ui.variationActions}>
+                    <button
+                      class={ui.iconButton}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleExportItem(v)
+                      }}
+                      title="Export as .wgsl file"
+                    >
+                      <BoxArrowRight width="0.625rem" />
+                    </button>
+                    <button
+                      class={`${ui.iconButton} ${ui.iconButtonPrimary}`}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleUseItem(v)
+                      }}
+                      title="Add to flame"
+                    >
+                      <Sparkle width="0.625rem" />
+                    </button>
                     <button
                       class={ui.iconButton}
                       onClick={(e) => {
@@ -657,19 +667,6 @@ function ShowCustomVariationEditor(props: {
                 width: 'auto',
                 padding: '0 var(--space-2)',
                 'font-size': '0.75rem',
-              }}
-              onClick={handleExport}
-              title="Export as .wgsl file"
-            >
-              Export
-            </button>
-
-            <button
-              class={ui.newButton}
-              style={{
-                width: 'auto',
-                padding: '0 var(--space-2)',
-                'font-size': '0.75rem',
                 opacity: canSave() ? 1 : 0.5,
               }}
               disabled={!canSave()}
@@ -677,23 +674,6 @@ function ShowCustomVariationEditor(props: {
             >
               Save
             </button>
-
-            <Show when={savedDef()}>
-              <button
-                class={ui.newButton}
-                style={{
-                  width: 'auto',
-                  padding: '0 var(--space-2)',
-                  'font-size': '0.75rem',
-                  background: 'var(--blue-500)',
-                  color: '#fff',
-                  border: 'none',
-                }}
-                onClick={handleUse}
-              >
-                Use in Current Transform
-              </button>
-            </Show>
           </div>
         </div>
 
