@@ -1551,13 +1551,16 @@
   gap: var(--space-2);
   width: 100%;
   padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--neutral-200);
+  border: 1px solid transparent;
   border-radius: var(--space-1);
   background: transparent;
   color: var(--neutral-700);
   cursor: pointer;
   font-size: 0.8125rem;
   font-family: inherit;
+  transition:
+    background 0.15s,
+    color 0.15s;
 
   & svg {
     width: 0.9375rem;
@@ -1571,7 +1574,6 @@
   }
 
   [data-theme='dark'] & {
-    border-color: var(--neutral-700);
     color: var(--neutral-400);
 
     &:hover {

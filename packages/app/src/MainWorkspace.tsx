@@ -1980,7 +1980,24 @@ export function MainWorkspace(props: AppProps) {
                                     onClick={(e) => {
                                       e.stopPropagation()
                                       void showCustomVariationEditor(def).then(
-                                        () => {
+                                        (addedDef) => {
+                                          if (addedDef) {
+                                            setFlameDescriptor((draft) => {
+                                              const t = deepClone(
+                                                newDefaultTransform(),
+                                              )
+                                              t.variations = {
+                                                [generateVariationId()]: {
+                                                  type: addedDef.id,
+                                                  weight: 1,
+                                                  visible: true,
+                                                },
+                                              }
+                                              draft.transforms[
+                                                generateTransformId()
+                                              ] = t
+                                            })
+                                          }
                                           setCustomVarsVersion((v) => v + 1)
                                         },
                                       )
@@ -2020,7 +2037,20 @@ export function MainWorkspace(props: AppProps) {
                           <button
                             class={ui.customVarsButton}
                             onClick={async () => {
-                              await showCustomVariationEditor()
+                              const addedDef = await showCustomVariationEditor()
+                              if (addedDef) {
+                                setFlameDescriptor((draft) => {
+                                  const t = deepClone(newDefaultTransform())
+                                  t.variations = {
+                                    [generateVariationId()]: {
+                                      type: addedDef.id,
+                                      weight: 1,
+                                      visible: true,
+                                    },
+                                  }
+                                  draft.transforms[generateTransformId()] = t
+                                })
+                              }
                               setCustomVarsVersion((v) => v + 1)
                             }}
                             title="Create a new custom variation"
