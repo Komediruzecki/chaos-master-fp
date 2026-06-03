@@ -1,14 +1,14 @@
 # JWildfire Variation Audit
 
-**Date**: 2026-06-02
+**Date**: 2026-06-03 (updated)
 
 **Total JWF concrete variations**: 876
 
 | Status | Count |
 |--------|-------|
-| EXISTS (already ported) | 243 |
+| EXISTS (already ported) | 297 |
 | NOT_VIABLE (3D, DC, simulation, etc.) | 543 |
-| VIABLE (can convert, ≤8 params) | 90 |
+| VIABLE (can convert, ≤8 params) | 36 |
 | **Total** | **876** |
 
 ## NOT_VIABLE Breakdown
@@ -23,102 +23,110 @@
 | DC/Color | 72 |
 | BLUR | 9 |
 
-## VIABLE Variations (≤8 params)
+## VIABLE Variations — Status (2026-06-03)
 
-**Total viable**: 90
+**54 of 90 implemented** | **36 remaining**
 
-| # | Variation | Params | JWF File |
-|---|-----------|--------|----------|
-| 1 | acosech | 0 | AcosechFunc.java |
-| 2 | acosh | 0 | AcoshFunc.java |
-| 3 | acoth | 0 | AcothFunc.java |
-| 4 | apocarpet | 0 | ApocarpetFunc.java |
-| 5 | arch | 0 | ArchFunc.java |
-| 6 | arcsech2 | 0 | Arcsech2Func.java |
-| 7 | arcsinh | 0 | ArcsinhFunc.java |
-| 8 | arctanh | 0 | ArctanhFunc.java |
-| 9 | bMod | 6 | BModFunc.java |
-| 10 | bSplit | 6 | BSplitFunc.java |
-| 11 | bSwirl | 6 | BSwirlFunc.java |
-| 12 | bilinear | 0 | BilinearFunc.java |
-| 13 | cSin | 3 | CSinFunc.java |
-| 14 | cos | 0 | CosFunc.java |
-| 15 | cosh | 0 | CoshFunc.java |
-| 16 | cot | 0 | CotFunc.java |
-| 17 | coth | 0 | CothFunc.java |
-| 18 | csc | 0 | CscFunc.java |
-| 19 | csch | 0 | CschFunc.java |
-| 20 | cylinder2 | 0 | Cylinder2Func.java |
-| 21 | eDisc | 0 | EDiscFunc.java |
-| 22 | ennepers | 0 | EnnepersFunc.java |
-| 23 | extrude | 3 | ExtrudeFunc.java |
-| 24 | flatten | 0 | FlattenFunc.java |
-| 25 | flipCircle | 0 | FlipCircleFunc.java |
-| 26 | flipY | 0 | FlipYFunc.java |
-| 27 | gridout | 0 | GridoutFunc.java |
-| 28 | hadamard | 0 | HadamardFunc.java |
-| 29 | hexModulus | 3 | HexModulusFunc.java |
-| 30 | holesq | 0 | HolesqFunc.java |
-| 31 | hypershift | 6 | HypershiftFunc.java |
-| 32 | inflateZ_1 | 0 | InflateZ_1Func.java |
-| 33 | inflateZ_2 | 0 | InflateZ_2Func.java |
-| 34 | inflateZ_3 | 0 | InflateZ_3Func.java |
-| 35 | inflateZ_4 | 0 | InflateZ_4Func.java |
-| 36 | inflateZ_5 | 0 | InflateZ_5Func.java |
-| 37 | inflateZ_6 | 0 | InflateZ_6Func.java |
-| 38 | invSquircular | 0 | InvSquircularFunc.java |
-| 39 | invTree | 0 | InvTreeFunc.java |
-| 40 | invpolar | 0 | InvpolarFunc.java |
-| 41 | jacCn | 3 | JacCnFunc.java |
-| 42 | jacDn | 3 | JacDnFunc.java |
-| 43 | jacElk | 3 | JacElkFunc.java |
-| 44 | jacSn | 3 | JacSnFunc.java |
-| 45 | lace | 0 | LaceFunc.java |
-| 46 | layeredSpiral | 3 | LayeredSpiralFunc.java |
-| 47 | log | 0 | LogFunc.java |
-| 48 | ortho | 6 | OrthoFunc.java |
-| 49 | ovoid | 6 | OvoidFunc.java |
-| 50 | panorama1 | 0 | Panorama1Func.java |
-| 51 | panorama2 | 0 | Panorama2Func.java |
-| 52 | petal | 0 | PetalFunc.java |
-| 53 | plusRecip | 6 | PlusRecipFunc.java |
-| 54 | polar2 | 0 | Polar2Func.java |
-| 55 | postFlatten | 0 | PostFlattenFunc.java |
-| 56 | postSpherical | 0 | PostSphericalFunc.java |
-| 57 | preDisc | 0 | PreDiscFunc.java |
-| 58 | preFlatten | 0 | PreFlattenFunc.java |
-| 59 | preRotateY | 0 | PreRotateYFunc.java |
-| 60 | preSpherical | 0 | PreSphericalFunc.java |
-| 61 | preZScale | 0 | PreZScaleFunc.java |
-| 62 | preZTranslate | 0 | PreZTranslateFunc.java |
-| 63 | pressure_Wave | 6 | Pressure_WaveFunc.java |
-| 64 | rays1 | 0 | Rays1Func.java |
-| 65 | rays2 | 0 | Rays2Func.java |
-| 66 | rays3 | 0 | Rays3Func.java |
-| 67 | rippled | 0 | RippledFunc.java |
-| 68 | roundSpher | 0 | RoundSpherFunc.java |
-| 69 | sec | 0 | SecFunc.java |
-| 70 | secant2 | 0 | Secant2Func.java |
-| 71 | sech | 0 | SechFunc.java |
-| 72 | sin | 0 | SinFunc.java |
-| 73 | sinh | 0 | SinhFunc.java |
-| 74 | spiralwing | 0 | SpiralwingFunc.java |
-| 75 | sqrt_Acosech | 0 | Sqrt_AcosechFunc.java |
-| 76 | sqrt_Acosh | 0 | Sqrt_AcoshFunc.java |
-| 77 | sqrt_Acoth | 0 | Sqrt_AcothFunc.java |
-| 78 | sqrt_Asech | 0 | Sqrt_AsechFunc.java |
-| 79 | sqrt_Asinh | 0 | Sqrt_AsinhFunc.java |
-| 80 | sqrt_Atanh | 0 | Sqrt_AtanhFunc.java |
-| 81 | tan | 0 | TanFunc.java |
-| 82 | tanCos | 0 | TanCosFunc.java |
-| 83 | threePointIFS | 0 | ThreePointIFSFunc.java |
-| 84 | tileHlp | 3 | TileHlpFunc.java |
-| 85 | wDisc | 0 | WDiscFunc.java |
-| 86 | whirligig | 3 | WhirligigFunc.java |
-| 87 | zCone | 0 | ZConeFunc.java |
-| 88 | zScale | 0 | ZScaleFunc.java |
-| 89 | zTranslate | 0 | ZTranslateFunc.java |
-| 90 | zTwister | 6 | ZTwisterFunc.java |
+| # | Variation | Params | Status |
+|---|-----------|--------|--------|
+| 1 | acosech | 0 | ✅ EXISTS |
+| 2 | acosh | 0 | ✅ EXISTS |
+| 3 | acoth | 0 | ✅ EXISTS |
+| 4 | apocarpet | 0 | ✅ EXISTS |
+| 5 | arch | 0 | ✅ EXISTS |
+| 6 | arcsech2 | 0 | ✅ EXISTS |
+| 7 | arcsinh | 0 | ✅ EXISTS |
+| 8 | arctanh | 0 | ✅ EXISTS |
+| 9 | bMod | 6 | ✅ EXISTS |
+| 10 | bSplit | 6 | ✅ EXISTS |
+| 11 | bSwirl | 6 | ✅ EXISTS |
+| 12 | bilinear | 0 | ✅ EXISTS |
+| 13 | cSin | 3 | ✅ EXISTS |
+| 14 | cos | 0 | ✅ EXISTS |
+| 15 | cosh | 0 | ✅ EXISTS |
+| 16 | cot | 0 | ✅ EXISTS |
+| 17 | coth | 0 | ✅ EXISTS |
+| 18 | csc | 0 | ✅ EXISTS |
+| 19 | csch | 0 | ✅ EXISTS |
+| 20 | cylinder2 | 0 | ✅ EXISTS |
+| 21 | eDisc | 0 | ✅ EXISTS |
+| 22 | ennepers | 0 | ✅ EXISTS |
+| 23 | extrude | 3 | ❌ MISSING |
+| 24 | flatten | 0 | ❌ MISSING |
+| 25 | flipCircle | 0 | ❌ MISSING |
+| 26 | flipY | 0 | ❌ MISSING |
+| 27 | gridout | 0 | ❌ MISSING |
+| 28 | hadamard | 0 | ✅ EXISTS |
+| 29 | hexModulus | 3 | ✅ EXISTS |
+| 30 | holesq | 0 | ✅ EXISTS |
+| 31 | hypershift | 6 | ✅ EXISTS |
+| 32 | inflateZ_1 | 0 | ❌ MISSING |
+| 33 | inflateZ_2 | 0 | ❌ MISSING |
+| 34 | inflateZ_3 | 0 | ❌ MISSING |
+| 35 | inflateZ_4 | 0 | ❌ MISSING |
+| 36 | inflateZ_5 | 0 | ❌ MISSING |
+| 37 | inflateZ_6 | 0 | ❌ MISSING |
+| 38 | invSquircular | 0 | ✅ EXISTS |
+| 39 | invTree | 0 | ✅ EXISTS |
+| 40 | invpolar | 0 | ✅ EXISTS |
+| 41 | jacCn | 3 | ❌ MISSING |
+| 42 | jacDn | 3 | ❌ MISSING |
+| 43 | jacElk | 3 | ❌ MISSING |
+| 44 | jacSn | 3 | ❌ MISSING |
+| 45 | lace | 0 | ✅ EXISTS |
+| 46 | layeredSpiral | 3 | ❌ MISSING |
+| 47 | log | 0 | ✅ EXISTS |
+| 48 | ortho | 6 | ❌ MISSING |
+| 49 | ovoid | 6 | ❌ MISSING |
+| 50 | panorama1 | 0 | ✅ EXISTS |
+| 51 | panorama2 | 0 | ✅ EXISTS |
+| 52 | petal | 0 | ✅ EXISTS |
+| 53 | plusRecip | 6 | ✅ EXISTS |
+| 54 | polar2 | 0 | ✅ EXISTS |
+| 55 | postFlatten | 0 | ✅ EXISTS |
+| 56 | postSpherical | 0 | ✅ EXISTS (simple) |
+| 57 | preDisc | 0 | ✅ EXISTS (simple) |
+| 58 | preFlatten | 0 | ✅ EXISTS |
+| 59 | preRotateY | 0 | ❌ MISSING |
+| 60 | preSpherical | 0 | ✅ EXISTS (simple) |
+| 61 | preZScale | 0 | ❌ MISSING |
+| 62 | preZTranslate | 0 | ❌ MISSING |
+| 63 | pressure_Wave | 6 | ✅ EXISTS |
+| 64 | rays1 | 0 | ✅ EXISTS |
+| 65 | rays2 | 0 | ✅ EXISTS |
+| 66 | rays3 | 0 | ✅ EXISTS |
+| 67 | rippled | 0 | ✅ EXISTS |
+| 68 | roundSpher | 0 | ❌ MISSING |
+| 69 | sec | 0 | ✅ EXISTS |
+| 70 | secant2 | 0 | ✅ EXISTS |
+| 71 | sech | 0 | ✅ EXISTS |
+| 72 | sin | 0 | ✅ EXISTS |
+| 73 | sinh | 0 | ✅ EXISTS |
+| 74 | spiralwing | 0 | ✅ EXISTS |
+| 75 | sqrt_Acosech | 0 | ❌ MISSING |
+| 76 | sqrt_Acosh | 0 | ❌ MISSING |
+| 77 | sqrt_Acoth | 0 | ❌ MISSING |
+| 78 | sqrt_Asech | 0 | ❌ MISSING |
+| 79 | sqrt_Asinh | 0 | ❌ MISSING |
+| 80 | sqrt_Atanh | 0 | ❌ MISSING |
+| 81 | tan | 0 | ✅ EXISTS |
+| 82 | tanCos | 0 | ✅ EXISTS |
+| 83 | threePointIFS | 0 | ✅ EXISTS |
+| 84 | tileHlp | 3 | ❌ MISSING |
+| 85 | wDisc | 0 | ✅ EXISTS |
+| 86 | whirligig | 3 | ✅ EXISTS |
+| 87 | zCone | 0 | ❌ MISSING |
+| 88 | zScale | 0 | ❌ MISSING |
+| 89 | zTranslate | 0 | ❌ MISSING |
+| 90 | zTwister | 6 | ❌ MISSING |
+
+### Remaining 36 by category
+
+**Simple 0-param (14):**
+flatten, flipCircle, flipY, gridout, inflateZ_1-6, preRotateY, preZScale, preZTranslate, roundSpher, sqrt_Acosech, sqrt_Acosh, sqrt_Acoth, sqrt_Asech, sqrt_Asinh, sqrt_Atanh, zCone, zScale, zTranslate
+
+**Parametric (18):**
+extrude (3), jacCn (3), jacDn (3), jacElk (3), jacSn (3), layeredSpiral (3), ortho (6), ovoid (6), tileHlp (3), zTwister (6)
 
 ## Full CSV
 

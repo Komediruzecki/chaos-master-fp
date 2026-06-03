@@ -194,6 +194,8 @@
   overflow: hidden;
   padding-bottom: 56.25%; /* 16:9 aspect ratio trick */
   max-height: 180px;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 160px;
   border: 2px solid var(--item-border-color);
   border-radius: 0.5rem;
   cursor: pointer;
