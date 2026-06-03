@@ -517,6 +517,19 @@ const previewFlames: Partial<Record<TransformVariationType, FlameDescriptor>> =
         }
       }),
     ),
+    svenssonVar: unfreeze(
+      produce(getDefaultFlameByVarType('svenssonVar'), (draft) => {
+        draft.renderSettings.camera.zoom = 0.7
+        draft.transforms[getTransformPreviewTid('svenssonVar')]!.variations[
+          getTransformPreviewVid('svenssonVar')
+        ] = {
+          type: 'svenssonVar',
+          weight: 0.5,
+          visible: true,
+          params: { a: 1.4, b: 1.56, c: 1.4, d: -6.56 },
+        }
+      }),
+    ),
   }
 export function getVariationPreviewFlame(
   type: TransformVariationType,
