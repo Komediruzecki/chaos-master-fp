@@ -493,6 +493,18 @@ const previewFlames: Partial<Record<TransformVariationType, FlameDescriptor>> =
         }
       }),
     ),
+    logTile2Var: unfreeze(
+      produce(getDefaultFlameByVarType('logTile2Var'), (draft) => {
+        draft.transforms[getTransformPreviewTid('logTile2Var')]!.variations[
+          getTransformPreviewVid('logTile2Var')
+        ] = {
+          type: 'logTile2Var',
+          weight: 0.2,
+          visible: true,
+          params: { spreadx: 2.0, spready: 2.0 },
+        }
+      }),
+    ),
     pulseVar: unfreeze(
       produce(getDefaultFlameByVarType('pulseVar'), (draft) => {
         draft.transforms[getTransformPreviewTid('pulseVar')]!.variations[
