@@ -1941,6 +1941,30 @@ export function MainWorkspace(props: AppProps) {
                                 onMouseLeave={() =>
                                   setHoveredCustomVarDef(null)
                                 }
+                                onClick={() => {
+                                  void showCustomVariationEditor(def).then(
+                                    (addedDef) => {
+                                      if (addedDef) {
+                                        setFlameDescriptor((draft) => {
+                                          const t = deepClone(
+                                            newDefaultTransform(),
+                                          )
+                                          t.variations = {
+                                            [generateVariationId()]: {
+                                              type: addedDef.id,
+                                              weight: 1,
+                                              visible: true,
+                                            },
+                                          }
+                                          draft.transforms[
+                                            generateTransformId()
+                                          ] = t
+                                        })
+                                      }
+                                      setCustomVarsVersion((v) => v + 1)
+                                    },
+                                  )
+                                }}
                               >
                                 <span class={ui.customVarItemName}>
                                   {def.name}
@@ -1973,37 +1997,6 @@ export function MainWorkspace(props: AppProps) {
                                     }}
                                   >
                                     <BoxArrowRight />
-                                  </button>
-                                  <button
-                                    class={ui.customVarItemBtn}
-                                    title="Edit"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      void showCustomVariationEditor(def).then(
-                                        (addedDef) => {
-                                          if (addedDef) {
-                                            setFlameDescriptor((draft) => {
-                                              const t = deepClone(
-                                                newDefaultTransform(),
-                                              )
-                                              t.variations = {
-                                                [generateVariationId()]: {
-                                                  type: addedDef.id,
-                                                  weight: 1,
-                                                  visible: true,
-                                                },
-                                              }
-                                              draft.transforms[
-                                                generateTransformId()
-                                              ] = t
-                                            })
-                                          }
-                                          setCustomVarsVersion((v) => v + 1)
-                                        },
-                                      )
-                                    }}
-                                  >
-                                    ✎
                                   </button>
                                   <button
                                     class={ui.customVarItemBtn}
