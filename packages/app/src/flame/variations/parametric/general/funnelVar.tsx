@@ -2,7 +2,7 @@ import { f32, struct, vec2f } from 'typegpu/data'
 import { cos, tanh } from 'typegpu/std'
 import { RangeEditor } from '@/components/Sliders/ParametricEditors/RangeEditor'
 import { editorProps } from '@/components/Sliders/ParametricEditors/types'
-import { EPS, PI } from '../../../constants'
+import { PI } from '../../../constants'
 import { parametricVariation } from '../types'
 import type { Infer } from 'typegpu/data'
 import type { EditorFor } from '@/components/Sliders/ParametricEditors/types'
@@ -33,12 +33,13 @@ export const funnelVar = parametricVariation(
   FunnelVarParams,
   FunnelVarParamsDefaults,
   FunnelVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
+    const w = varInfo.weight
     const add = P.effect * PI.$
     return vec2f(
-      (tanh(pos.x) + EPS.$) * (1.0 / cos(pos.x) + add),
-      (tanh(pos.y) + EPS.$) * (1.0 / cos(pos.y) + add),
+      pos.x + w * tanh(pos.x) * (1.0 / cos(pos.x) + add),
+      pos.y + w * tanh(pos.y) * (1.0 / cos(pos.y) + add),
     )
   },
   'general',

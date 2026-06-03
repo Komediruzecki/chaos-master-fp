@@ -458,11 +458,19 @@ const previewFlames: Partial<Record<TransformVariationType, FlameDescriptor>> =
     checksVar: unfreeze(
       produce(getDefaultFlameByVarType('checksVar'), (draft) => {
         draft.renderSettings.exposure = 0.7
+        draft.transforms[getTransformPreviewTid('checksVar')]!.preAffine = {
+          c: 0.0,
+          f: 0.0,
+          a: 0.5,
+          b: 0.5,
+          d: -0.5,
+          e: 0.5,
+        }
         draft.transforms[getTransformPreviewTid('checksVar')]!.variations[
           getTransformPreviewVid('checksVar')
         ] = {
           type: 'checksVar',
-          weight: 0.76,
+          weight: 0.17,
           visible: true,
           params: { x: 3.0, y: 3.0, size: 1.0, rnd: 0.5 },
         }
@@ -547,6 +555,52 @@ const previewFlames: Partial<Record<TransformVariationType, FlameDescriptor>> =
           weight: 1.0,
           visible: true,
           params: { c: 0.1, power: 3.0 },
+        }
+      }),
+    ),
+    juliaOutsideVar: unfreeze(
+      produce(getDefaultFlameByVarType('juliaOutsideVar'), (draft) => {
+        draft.renderSettings.exposure = 0.8
+        draft.renderSettings.camera.zoom = 0.4
+      }),
+    ),
+    funnelVar: unfreeze(
+      produce(getDefaultFlameByVarType('funnelVar'), (draft) => {
+        draft.renderSettings.exposure = 1.0
+        draft.transforms[getTransformPreviewTid('funnelVar')]!.variations[
+          getTransformPreviewVid('funnelVar')
+        ] = {
+          type: 'funnelVar',
+          weight: 0.05,
+          visible: true,
+          params: { effect: 8.0 },
+        }
+      }),
+    ),
+    splipticBSVar: unfreeze(
+      produce(getDefaultFlameByVarType('splipticBSVar'), (draft) => {
+        draft.renderSettings.exposure = 0.8
+        draft.renderSettings.camera.zoom = 0.5
+        draft.transforms[getTransformPreviewTid('splipticBSVar')]!.variations[
+          getTransformPreviewVid('splipticBSVar')
+        ] = {
+          type: 'splipticBSVar',
+          weight: 0.5,
+          visible: true,
+          params: { x: 0.05, y: 0.05 },
+        }
+      }),
+    ),
+    rays1Var: unfreeze(
+      produce(getDefaultFlameByVarType('rays1Var'), (draft) => {
+        draft.renderSettings.exposure = 0.5
+        draft.renderSettings.camera.zoom = 0.5
+        draft.transforms[getTransformPreviewTid('rays1Var')]!.variations[
+          getTransformPreviewVid('rays1Var')
+        ] = {
+          type: 'rays1Var',
+          weight: 0.5,
+          visible: true,
         }
       }),
     ),

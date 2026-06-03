@@ -42,26 +42,27 @@ export const splipticBSVar = parametricVariation(
   SplipticBSVarParams,
   SplipticBSVarParamsDefaults,
   SplipticBSVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
 
-    const paramX = P.x
-    const paramY = P.y
-    const tmp = paramY * paramY + paramX * paramX + 1.0
-    const x2 = 2.0 * paramX
+    const tmp = pos.y * pos.y + pos.x * pos.x + 1.0
+    const x2 = 2.0 * pos.x
     const xmax = 0.5 * (sqrt(tmp + x2) + sqrt(tmp - x2))
-    const a = paramX / xmax
+    const a = pos.x / xmax
     const b = sqrt(max(1.0 - a * a, 0.0))
     const scale = 2.0 / PI.$
 
     const termX = atan2(a, b) * scale
-    const outX = select(termX - paramX, termX + paramX, pos.x >= 0.0)
+    const xContrib = select(termX - P.x, termX + P.x, pos.x >= 0.0)
 
     const termY =
-      log(max(xmax + sqrt(max(xmax - 1.0, 0.0)), EPS.$)) * scale + paramY
-    const outY = select(termY, -termY, random() < 0.5)
+      log(max(xmax + sqrt(max(xmax - 1.0, 0.0)), EPS.$)) * scale + P.y
+    const yContrib = select(termY, -termY, random() < 0.5)
 
-    return vec2f(outX, outY)
+    return vec2f(
+      pos.x + varInfo.weight * xContrib,
+      pos.y + varInfo.weight * yContrib,
+    )
   },
   'general',
 )

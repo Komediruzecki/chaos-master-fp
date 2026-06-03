@@ -1,5 +1,5 @@
 import { f32, struct, vec2f } from 'typegpu/data'
-import { floor, round, select } from 'typegpu/std'
+import { round, select } from 'typegpu/std'
 import { RangeEditor } from '@/components/Sliders/ParametricEditors/RangeEditor'
 import { editorProps } from '@/components/Sliders/ParametricEditors/types'
 import { random } from '@/shaders/random'
@@ -38,15 +38,16 @@ export const checksVar = parametricVariation(
     const cs = 1.0 / (P.size + 1.0e-6)
     const ncx = P.x * -1.0
     const ncy = P.y * -1.0
-    const isXY = f32(floor(round(pos.x * cs))) + f32(floor(round(pos.y * cs)))
+    const isXY = f32(round(pos.x * cs)) + f32(round(pos.y * cs))
     const rnx = P.rnd * random()
     const rny = P.rnd * random()
     const isEven = isXY % 2.0 === 0.0
     const dx = select(P.x, ncx + rnx, isEven)
     const dy = select(P.y + rny, ncy, isEven)
-    const newX = varInfo.weight * (pos.x + dx)
-    const newY = varInfo.weight * (pos.y + dy)
-    return vec2f(newX, newY)
+    return vec2f(
+      pos.x + varInfo.weight * (pos.x + dx),
+      pos.y + varInfo.weight * (pos.y + dy),
+    )
   },
   'general',
 )

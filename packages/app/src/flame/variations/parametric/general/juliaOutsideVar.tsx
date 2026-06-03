@@ -55,7 +55,7 @@ export const juliaOutsideVar = parametricVariation(
   JuliaOutsideVarParams,
   JuliaOutsideVarParamsDefaults,
   JuliaOutsideVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
 
     const mode02 = P.mode < 0.5 || P.mode > 1.5 // mode 0 or 2
@@ -131,7 +131,7 @@ export const juliaOutsideVar = parametricVariation(
     const outRe = select(finalRe, sign * finalRe, mode01)
     const outIm = select(finalIm, sign * finalIm, mode01)
 
-    return vec2f(outRe, outIm)
+    return vec2f(pos.x + varInfo.weight * outRe, pos.y + varInfo.weight * outIm)
   },
   'general',
 )
