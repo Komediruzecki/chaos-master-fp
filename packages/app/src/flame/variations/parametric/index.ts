@@ -100,6 +100,9 @@ import { fourthVar } from './general/fourthVar'
 import { fresnelVar } from './general/fresnelVar'
 import { funnelVar } from './general/funnelVar'
 import { gingerBreadVar } from './general/gingerBreadVar'
+import { glynnSim1Var } from './general/glynnSim1Var'
+import { glynnSim2Var } from './general/glynnSim2Var'
+import { glynnSim3Var } from './general/glynnSim3Var'
 import { gosperVar } from './general/gosperVar'
 import { grid } from './general/grid'
 import { gridout2Var } from './general/gridout2Var'
@@ -293,6 +296,9 @@ export const parametricVariations = {
   fresnelVar,
   funnelVar,
   gingerBreadVar,
+  glynnSim1Var,
+  glynnSim2Var,
+  glynnSim3Var,
   gosperVar,
   grid,
   gridout2Var,
