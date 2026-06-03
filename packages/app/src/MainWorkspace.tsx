@@ -1890,8 +1890,24 @@ export function MainWorkspace(props: AppProps) {
                         >
                           <button
                             class={ui.customVarsButton}
-                            onClick={() => {
-                              void showCustomVariationEditor()
+                            onClick={async () => {
+                              const def = await showCustomVariationEditor()
+                              if (def) {
+                                setFlameDescriptor((draft) => {
+                                  const transform = deepClone(
+                                    newDefaultTransform(),
+                                  )
+                                  transform.variations = {
+                                    [generateVariationId()]: {
+                                      type: def.id,
+                                      weight: 1,
+                                      visible: true,
+                                    },
+                                  }
+                                  draft.transforms[generateTransformId()] =
+                                    transform
+                                })
+                              }
                             }}
                             title="Open custom variation editor"
                           >
