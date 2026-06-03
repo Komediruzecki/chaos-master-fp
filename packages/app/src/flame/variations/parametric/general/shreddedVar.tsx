@@ -15,7 +15,7 @@ const ShreddedVarParams = struct({
   y1: f32,
   y2: f32,
   y3: f32,
-  type: f32,
+  shredType: f32,
   blur: f32,
   xBlur: f32,
   yBlur: f32,
@@ -30,7 +30,7 @@ const ShreddedVarParamsDefaults: ShreddedVarParams = {
   y1: 1.0,
   y2: 3.0,
   y3: 1.0,
-  type: 0.0,
+  shredType: 0.0,
   blur: 0.0,
   xBlur: 0.1,
   yBlur: 0.1,
@@ -75,7 +75,7 @@ const ShreddedVarParamsEditor: EditorFor<ShreddedVarParams> = (props) => (
       step={0.01}
     />
     <RangeEditor
-      {...editorProps(props, 'type', 'Type', props.dataParameterPath)}
+      {...editorProps(props, 'shredType', 'Type', props.dataParameterPath)}
       min={0.0}
       max={2.0}
       step={1.0}
@@ -109,8 +109,8 @@ export const shreddedVar = parametricVariation(
   (pos, _varInfo, P) => {
     'use gpu'
 
-    const isType0 = abs(P.type) < 0.5
-    const isType1 = abs(P.type - 1.0) < 0.5
+    const isType0 = abs(P.shredType) < 0.5
+    const isType1 = abs(P.shredType - 1.0) < 0.5
     const isType2 = !isType0 && !isType1
     const hasBlur = abs(P.blur) > 0.5
 

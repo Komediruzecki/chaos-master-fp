@@ -9,31 +9,43 @@ import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { dirname, extname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-// Complete list of WGSL reserved words (from the WGSL spec)
+// Full TypeGPU bannedTokens + builtins from typegpu/nameRegistry.js
+// Keep in sync with: node_modules/typegpu/nameRegistry.js
 const WGSL_RESERVED = new Set([
-  // Type keywords
-  'array', 'atomic', 'bool', 'f32', 'f64', 'i32', 'u32',
-  'mat2x2', 'mat2x3', 'mat2x4',
-  'mat3x2', 'mat3x3', 'mat3x4',
+  // bannedTokens
+  'alias', 'break', 'case', 'const', 'const_assert', 'continue',
+  'continuing', 'default', 'diagnostic', 'discard', 'else', 'enable',
+  'false', 'fn', 'for', 'if', 'let', 'loop', 'override', 'requires',
+  'return', 'struct', 'switch', 'true', 'var', 'while',
+  'NULL', 'Self', 'abstract', 'active', 'alignas', 'alignof', 'as', 'asm',
+  'asm_fragment', 'async', 'attribute', 'auto', 'await', 'become', 'cast',
+  'catch', 'class', 'co_await', 'co_return', 'co_yield', 'coherent',
+  'column_major', 'common', 'compile', 'compile_fragment', 'concept',
+  'const_cast', 'consteval', 'constexpr', 'constinit', 'crate', 'debugger',
+  'decltype', 'delete', 'demote', 'demote_to_helper', 'do', 'dynamic_cast',
+  'enum', 'explicit', 'export', 'extends', 'extern', 'external',
+  'fallthrough', 'filter', 'final', 'finally', 'friend', 'from', 'fxgroup',
+  'get', 'goto', 'groupshared', 'highp', 'impl', 'implements', 'import',
+  'inline', 'instanceof', 'interface', 'layout', 'lowp', 'macro',
+  'macro_rules', 'match', 'mediump', 'meta', 'mod', 'module', 'move',
+  'mut', 'mutable', 'namespace', 'new', 'nil', 'noexcept', 'noinline',
+  'nointerpolation', 'non_coherent', 'noncoherent', 'noperspective',
+  'null', 'nullptr', 'of', 'operator', 'package', 'packoffset',
+  'partition', 'pass', 'patch', 'pixelfragment', 'precise', 'precision',
+  'premerge', 'priv', 'protected', 'pub', 'public', 'readonly', 'ref',
+  'regardless', 'register', 'reinterpret_cast', 'require', 'resource',
+  'restrict', 'self', 'set', 'shared', 'sizeof', 'smooth', 'snorm',
+  'static', 'static_assert', 'static_cast', 'std', 'subroutine', 'super',
+  'target', 'template', 'this', 'thread_local', 'throw', 'trait', 'try',
+  'type', 'typedef', 'typeid', 'typename', 'typeof', 'union', 'unless',
+  'unorm', 'unsafe', 'unsized', 'use', 'using', 'varying', 'virtual',
+  'volatile', 'wgsl', 'where', 'with', 'writeonly', 'yield',
+  'sampler', 'uniform', 'storage',
+  // builtins
+  'array', 'bool', 'f16', 'f32', 'i32', 'u32',
+  'mat2x2', 'mat2x3', 'mat2x4', 'mat3x2', 'mat3x3', 'mat3x4',
   'mat4x2', 'mat4x3', 'mat4x4',
-  'ptr', 'sampler', 'sampler_comparison', 'struct',
-  'texture_1d', 'texture_2d', 'texture_2d_array', 'texture_3d',
-  'texture_cube', 'texture_cube_array',
-  'texture_depth_2d', 'texture_depth_2d_array',
-  'texture_depth_cube', 'texture_depth_cube_array',
-  'texture_multisampled_2d',
-  'texture_storage_1d', 'texture_storage_2d', 'texture_storage_2d_array',
-  'texture_storage_3d',
   'vec2', 'vec3', 'vec4',
-  // Values
-  'true', 'false',
-  // Statement keywords
-  'abstract', 'active', 'align', 'attribute', 'break', 'case', 'compute',
-  'const', 'const_assert', 'continue', 'continuing', 'default',
-  'diagnostic', 'discard', 'else', 'enable', 'export', 'f16',
-  'fallthrough', 'fn', 'for', 'if', 'import', 'let', 'loop', 'move',
-  'override', 'private', 'read', 'readonly', 'requires', 'return',
-  'storage', 'switch', 'var', 'while', 'workgroup', 'write',
 ])
 
 interface StructIssue {
