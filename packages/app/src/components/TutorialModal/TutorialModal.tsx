@@ -1,5 +1,6 @@
-import { createSignal, For, onCleanup, Show } from 'solid-js'
+import { createEffect, createSignal, For, onCleanup, Show } from 'solid-js'
 import { Cross, SkipBack, SkipForward } from '@/icons'
+import { ensureMathJax, renderTexToSvg } from '@/utils/mathjax'
 import { renderMarkdown } from '@/utils/renderMarkdown'
 import ui from './TutorialModal.module.css'
 
@@ -16,6 +17,7 @@ interface TutorialModalProps {
 
 export function TutorialModal(props: TutorialModalProps) {
   const [currentPage, setCurrentPage] = createSignal(0)
+  const [renderedContent, setRenderedContent] = createSignal('')
   const totalPages = () => props.pages.length
   const isFirstPage = () => currentPage() === 0
   const isLastPage = () => currentPage() >= totalPages() - 1
@@ -37,6 +39,34 @@ export function TutorialModal(props: TutorialModalProps) {
       goNext()
     }
   }
+
+  // Render markdown + MathJAX for current page
+  createEffect(() => {
+    const pageIdx = currentPage()
+    const page = props.pages[pageIdx]
+    if (!page) return
+
+    const rawHtml = renderMarkdown(page.content)
+    setRenderedContent(rawHtml)
+
+    ensureMathJax()
+      .then(() => {
+        if (currentPage() !== pageIdx) return
+        const html = rawHtml
+          .replace(
+            /<div class="math-block" data-tex="([^"]*)">[^<]*<\/div>/g,
+            (_m: string, tex: string) =>
+              `<div class="math-block">${renderTexToSvg(tex) ?? tex}</div>`,
+          )
+          .replace(
+            /<span class="math-inline" data-tex="([^"]*)">[^<]*<\/span>/g,
+            (_m: string, tex: string) =>
+              `<span class="math-inline">${renderTexToSvg(tex, false) ?? tex}</span>`,
+          )
+        if (currentPage() === pageIdx) setRenderedContent(html)
+      })
+      .catch(() => {})
+  })
 
   onCleanup(() => {
     // no-op cleanup
@@ -66,10 +96,7 @@ export function TutorialModal(props: TutorialModalProps) {
           {(page) => (
             <>
               <h2 class={ui.pageTitle}>{page.title}</h2>
-              <div
-                class={ui.markdownBody}
-                innerHTML={renderMarkdown(page.content)}
-              />
+              <div class={ui.markdownBody} innerHTML={renderedContent()} />
             </>
           )}
         </Show>

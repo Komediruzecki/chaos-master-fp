@@ -19,11 +19,27 @@ function sanitize(html: string): string {
 }
 
 export function renderMarkdown(text: string): string {
+  const mathBlocks: string[] = []
+  const mathInlines: string[] = []
   const admonitions: Array<{ type: AdmonitionType; content: string }> = []
   let placeholderIndex = 0
 
+  // Extract $$...$$ display math blocks first
+  let processed = text.replace(/\$\$([\s\S]+?)\$\$/g, (_full, tex: string) => {
+    const idx = mathBlocks.length
+    mathBlocks.push(tex.trim())
+    return `<!-- MATH_BLOCK_${idx} -->`
+  })
+
+  // Extract \(...\) inline math blocks
+  processed = processed.replace(/\\\(([^)]+?)\\\)/g, (_full, tex: string) => {
+    const idx = mathInlines.length
+    mathInlines.push(tex.trim())
+    return `<!-- MATH_INLINE_${idx} -->`
+  })
+
   // Extract admonition blocks and replace with placeholders
-  const processed = text.replace(
+  processed = processed.replace(
     ADMONITION_RE,
     (_full, type: string, content: string) => {
       const idx = placeholderIndex++
@@ -37,6 +53,21 @@ export function renderMarkdown(text: string): string {
 
   let html = marked.parse(processed, { async: false })
 
+  // Restore math blocks (before admonitions, since admonitions may contain math)
+  for (let i = 0; i < mathBlocks.length; i++) {
+    html = html.replace(
+      `<!-- MATH_BLOCK_${i} -->`,
+      `<div class="math-block" data-tex="${escapeAttr(mathBlocks[i]!)}">${escapeHtml(mathBlocks[i]!)}</div>`,
+    )
+  }
+
+  for (let i = 0; i < mathInlines.length; i++) {
+    html = html.replace(
+      `<!-- MATH_INLINE_${i} -->`,
+      `<span class="math-inline" data-tex="${escapeAttr(mathInlines[i]!)}">${escapeHtml(mathInlines[i]!)}</span>`,
+    )
+  }
+
   // Restore admonitions with styled divs
   for (let i = 0; i < admonitions.length; i++) {
     const { type, content } = admonitions[i]!
@@ -49,4 +80,16 @@ export function renderMarkdown(text: string): string {
   }
 
   return sanitize(html)
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+function escapeAttr(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
 }

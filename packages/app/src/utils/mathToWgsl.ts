@@ -306,6 +306,50 @@ export function mathToWgsl(input: string): TranslationResult {
     }
   }
 
+  // If no line generated a return statement, emit implicit return.
+  const hasReturn = wgslLines.some((l) => l.trimStart().startsWith('return '))
+  if (!hasReturn && wgslLines.length > 0) {
+    // Determine which base variables were reassigned
+    const modified = new Set<string>()
+    for (const [base, current] of varNameMap) {
+      if (base !== current) modified.add(base)
+    }
+
+    // Ensure needed vars are declared for the return expression
+    if (modified.has('r') || modified.has('theta')) {
+      if (!varNameMap.has('r')) {
+        wgslLines.push('  let r = length(pos);')
+        varNameMap.set('r', 'r')
+      }
+      if (!varNameMap.has('theta')) {
+        wgslLines.push('  let theta = atan2(pos.y, pos.x);')
+        varNameMap.set('theta', 'theta')
+      }
+      wgslLines.push(
+        `  return vec2f(${rewriteVarRefs('r')} * cos(${rewriteVarRefs('theta')}), ${rewriteVarRefs('r')} * sin(${rewriteVarRefs('theta')}));`,
+      )
+    } else if (
+      modified.has('p_x') ||
+      modified.has('p_y') ||
+      modified.has('x') ||
+      modified.has('y')
+    ) {
+      if (!varNameMap.has('p_x')) {
+        wgslLines.push('  let p_x = pos.x;')
+        varNameMap.set('p_x', 'p_x')
+      }
+      if (!varNameMap.has('p_y')) {
+        wgslLines.push('  let p_y = pos.y;')
+        varNameMap.set('p_y', 'p_y')
+      }
+      wgslLines.push(
+        `  return vec2f(${rewriteVarRefs('p_x')}, ${rewriteVarRefs('p_y')});`,
+      )
+    } else {
+      wgslLines.push('  return vec2f(pos.x, pos.y);')
+    }
+  }
+
   return { wgsl: wgslLines.join('\n'), errors }
 }
 

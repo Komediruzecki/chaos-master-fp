@@ -1,16 +1,16 @@
 .editorModal {
   max-width: 900px;
   width: 92vw;
-  height: 88vh;
-  max-height: 88vh;
+  height: 84vh;
+  max-height: 84vh;
 }
 
 @media (max-width: 600px) {
   .editorModal {
     max-width: 100vw;
     width: 100vw;
-    height: 100dvh;
-    max-height: 100dvh;
+    height: 94dvh;
+    max-height: 94dvh;
     border-radius: 0;
   }
 }
@@ -692,8 +692,8 @@
   .editorModal {
     max-width: 100vw;
     width: 100vw;
-    height: 100dvh;
-    max-height: 100dvh;
+    height: 90dvh;
+    max-height: 90dvh;
     border-radius: 0;
   }
 

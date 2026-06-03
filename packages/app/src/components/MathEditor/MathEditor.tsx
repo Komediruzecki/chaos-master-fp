@@ -3,6 +3,7 @@ import { highlightSelectionMatches } from '@codemirror/search'
 import { EditorState } from '@codemirror/state'
 import { EditorView, keymap, lineNumbers } from '@codemirror/view'
 import { createEffect, createSignal, onCleanup, onMount, Show } from 'solid-js'
+import { ensureMathJax, getMathJax } from '@/utils/mathjax'
 import { mathToWgsl } from '@/utils/mathToWgsl'
 import { rainbowBracketPlugin } from '../WgslEditor/rainbowBrackets'
 import { wgslTheme } from '../WgslEditor/theme'
@@ -13,51 +14,6 @@ interface MathEditorProps {
   onChange: (math: string) => void
   onWgslChange: (wgsl: string) => void
   onCtrlEnter?: () => void
-}
-
-interface MathJaxInstance {
-  tex2svg: (tex: string) => Document
-  startup?: {
-    document?: unknown
-    defaultReady?: () => void
-    promise?: Promise<void>
-    ready?: () => void
-  }
-  loader?: { load: (ids: string[]) => void }
-  config?: { loader?: { load?: string[] } }
-}
-
-function getMathJax(): MathJaxInstance | undefined {
-  return (window as { MathJax?: MathJaxInstance }).MathJax
-}
-
-let mathjaxReady: Promise<void> | null = null
-
-function ensureMathJax(): Promise<void> {
-  if (mathjaxReady) return mathjaxReady
-  mathjaxReady = import('mathjax/tex-svg.js').then(() => {
-    const mj = getMathJax()
-    if (!mj) throw new Error('MathJax failed to initialize')
-    if (!mj.startup?.document) {
-      // MathJax 4: needs startup initialization
-      return new Promise<void>((resolve) => {
-        mj.startup = {
-          ...mj.startup,
-          ready() {
-            mj.startup?.defaultReady?.()
-            mj.startup?.promise
-              ?.then(() => {
-                resolve()
-              })
-              .catch(() => {})
-          },
-        }
-        if (mj.loader) mj.loader.load(mj.config?.loader?.load ?? [])
-        else resolve() // Already initialized
-      })
-    }
-  })
-  return mathjaxReady
 }
 
 export function MathEditor(props: MathEditorProps) {
@@ -183,11 +139,9 @@ export function MathEditor(props: MathEditorProps) {
       return
     }
     try {
-      const displayMath = `\\displaystyle{${math}}`
-      const svg = mj.tex2svg(displayMath)
-      const svgEl = svg.querySelector('svg')
-      if (svgEl) {
-        setRenderedSvg(svgEl.outerHTML)
+      const svg = mj.tex2svg(`\\displaystyle{${math}}`).querySelector('svg')
+      if (svg) {
+        setRenderedSvg(svg.outerHTML)
         setError(null)
       }
     } catch (e: unknown) {

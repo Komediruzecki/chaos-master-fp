@@ -184,6 +184,27 @@
   border-color: var(--neutral-600);
 }
 
+.markdownBody :global(.math-block) {
+  display: block;
+  text-align: center;
+  margin: var(--space-3) 0;
+  overflow-x: auto;
+}
+
+.markdownBody :global(.math-block) :global(svg) {
+  max-width: 100%;
+  height: auto;
+}
+
+.markdownBody :global(.math-inline) {
+  display: inline;
+}
+
+.markdownBody :global(.math-inline) :global(svg) {
+  vertical-align: middle;
+  max-height: 1.2em;
+}
+
 .markdownBody hr {
   border: none;
   border-top: 1px solid var(--neutral-200);
