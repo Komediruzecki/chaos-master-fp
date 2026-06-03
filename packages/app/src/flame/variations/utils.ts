@@ -530,6 +530,26 @@ const previewFlames: Partial<Record<TransformVariationType, FlameDescriptor>> =
         }
       }),
     ),
+    taurusVar: unfreeze(
+      produce(getDefaultFlameByVarType('taurusVar'), (draft) => {
+        draft.renderSettings.exposure = 0.8
+        draft.renderSettings.camera.zoom = 0.5
+      }),
+    ),
+    murl2Var: unfreeze(
+      produce(getDefaultFlameByVarType('murl2Var'), (draft) => {
+        draft.renderSettings.exposure = 0.6
+        draft.renderSettings.camera.zoom = 0.5
+        draft.transforms[getTransformPreviewTid('murl2Var')]!.variations[
+          getTransformPreviewVid('murl2Var')
+        ] = {
+          type: 'murl2Var',
+          weight: 1.0,
+          visible: true,
+          params: { c: 0.1, power: 3.0 },
+        }
+      }),
+    ),
   }
 export function getVariationPreviewFlame(
   type: TransformVariationType,

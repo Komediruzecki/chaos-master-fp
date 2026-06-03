@@ -1,5 +1,5 @@
 import { f32, i32, struct, u32, vec2f } from 'typegpu/data'
-import { floor, select, sqrt } from 'typegpu/std'
+import { floor, sqrt } from 'typegpu/std'
 import { RangeEditor } from '@/components/Sliders/ParametricEditors/RangeEditor'
 import { editorProps } from '@/components/Sliders/ParametricEditors/types'
 import { random } from '@/shaders/random'
@@ -56,7 +56,7 @@ const CircleRandVarParamsEditor: EditorFor<CircleRandVarParams> = (props) => (
     <RangeEditor
       {...editorProps(props, 'seed', 'Seed', props.dataParameterPath)}
       min={0.0}
-      max={100.0}
+      max={1000000.0}
       step={1.0}
     />
   </>
@@ -69,33 +69,40 @@ export const circleRandVar = parametricVariation(
   CircleRandVarParamsEditor,
   (pos, _varInfo, P) => {
     'use gpu'
-    const X = P.x * (1.0 - 2.0 * random())
-    const Y = P.y * (1.0 - 2.0 * random())
-    const M = f32(floor((0.5 * X) / P.sc))
-    const N = f32(floor((0.5 * Y) / P.sc))
-    const rX = X - (M * 2.0 + 1.0) * P.sc
-    const rY = Y - (N * 2.0 + 1.0) * P.sc
-    const U = sqrt(rX * rX + rY * rY)
+    let outX = 0.0
+    let outY = 0.0
+    let hit = false
+    for (let iter = 0; iter < 100 && !hit; iter++) {
+      let X = P.x * (1.0 - 2.0 * random())
+      let Y = P.y * (1.0 - 2.0 * random())
+      const M = i32(floor((0.5 * X) / P.sc))
+      const N = i32(floor((0.5 * Y) / P.sc))
+      X = X - f32(M * 2 + 1) * P.sc
+      Y = Y - f32(N * 2 + 1) * P.sc
+      const U = sqrt(X * X + Y * Y)
 
-    const n1 = i32(M + P.seed) + i32(N) * 57
-    const n1x = i32(u32(n1) << u32(13)) ^ n1
-    const z1 =
-      f32((n1x * (n1x * n1x * 15731 + 789221) + 1376312589) & 0x7fffffff) * AM
+      const n1 = M + i32(P.seed) + N * 57
+      const n1x = i32(u32(n1) << u32(13)) ^ n1
+      const z1 =
+        f32((n1x * (n1x * n1x * 15731 + 789221) + 1376312589) & 0x7fffffff) * AM
 
-    const n2 = i32(M + 10.0) + i32(N + 3.0) * 57
-    const n2x = i32(u32(n2) << u32(13)) ^ n2
-    const V =
-      (0.3 +
-        0.7 *
-          f32((n2x * (n2x * n2x * 15731 + 789221) + 1376312589) & 0x7fffffff) *
-          AM) *
-      P.sc
+      const n2 = M + 10 + (N + 3) * 57
+      const n2x = i32(u32(n2) << u32(13)) ^ n2
+      const V =
+        (0.3 +
+          0.7 *
+            f32(
+              (n2x * (n2x * n2x * 15731 + 789221) + 1376312589) & 0x7fffffff,
+            ) *
+            AM) *
+        P.sc
 
-    const hit = z1 <= P.dens && U <= V
-    const outX = select(X, rX + (M * 2.0 + 1.0) * P.sc, hit)
-    const outY = select(Y, rY + (N * 2.0 + 1.0) * P.sc, hit)
+      hit = z1 <= P.dens && U <= V
+      outX = X + f32(M * 2 + 1) * P.sc
+      outY = Y + f32(N * 2 + 1) * P.sc
+    }
 
-    return vec2f(outX, outY)
+    return vec2f(pos.x + outX, pos.y + outY)
   },
   'general',
 )

@@ -12,8 +12,8 @@ const Bubble2VarParams = struct({
 })
 type Bubble2VarParams = Infer<typeof Bubble2VarParams>
 const Bubble2VarParamsDefaults: Bubble2VarParams = {
-  x: 0.0,
-  y: 0.0,
+  x: 1.0,
+  y: 1.0,
   z: 0.0,
 }
 const Bubble2VarParamsEditor: EditorFor<Bubble2VarParams> = (props) => (
@@ -45,12 +45,9 @@ export const bubble2Var = parametricVariation(
   Bubble2VarParamsEditor,
   (pos, varInfo, P) => {
     'use gpu'
-    const posZ = 0.0
-    const T = (pos.x * pos.x + pos.y * pos.y + posZ * posZ) * 0.25 + 1.0
+    const T = (pos.x * pos.x + pos.y * pos.y) * 0.25 + 1.0
     const r = varInfo.weight / T
-    const newX = pos.x * r * P.x
-    const newY = pos.y * r * P.y
-    return vec2f(newX, newY)
+    return vec2f(pos.x + pos.x * r * P.x, pos.y + pos.y * r * P.y)
   },
   'general',
 )
