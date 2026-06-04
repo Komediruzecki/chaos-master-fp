@@ -10,14 +10,9 @@ export default defineConfig({
   plugins: [solidPlugin()],
   test: {
     globals: true,
-    environment: 'jsdom',
+    environment: 'happy-dom',
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
     setupFiles: ['./src/vitest.setup.ts'],
-    environmentOptions: {
-      jsdom: {
-        resources: 'usable',
-      },
-    },
     css: {
       modules: {
         classNameStrategy: 'non-scoped',
