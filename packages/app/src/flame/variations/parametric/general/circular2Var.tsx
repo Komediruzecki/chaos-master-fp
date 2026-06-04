@@ -58,7 +58,7 @@ export const circular2Var = parametricVariation(
   Circular2VarParams,
   Circular2VarParamsDefaults,
   Circular2VarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const c_a = (P.angle * PI.$) / 180.0
     let aux = sin(pos.x * P.xx + pos.y * P.yy + P.seed) * 43758.5453
@@ -66,7 +66,7 @@ export const circular2Var = parametricVariation(
     const rnd = (2.0 * (random() + aux) - 2.0) * c_a
     const rad = sqrt(pos.x * pos.x + pos.y * pos.y)
     const ang = atan2(pos.y, pos.x)
-    return vec2f(cos(ang + rnd) * rad, sin(ang + rnd) * rad)
+    return vec2f(cos(ang + rnd) * rad, sin(ang + rnd) * rad).mul(varInfo.weight)
   },
   'general',
 )

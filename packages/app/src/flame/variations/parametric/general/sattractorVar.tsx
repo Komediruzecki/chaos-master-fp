@@ -34,7 +34,7 @@ export const sattractorVar = parametricVariation(
   SattractorVarParams,
   SattractorVarParamsDefaults,
   SattractorVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const x = pos.x
     const y = pos.y
@@ -54,7 +54,7 @@ export const sattractorVar = parametricVariation(
       ny = y * a - x * b + x * x * a
     }
 
-    return vec2f(pos.x + nx * 0.5, pos.y + ny * 0.5)
+    return vec2f(pos.x + nx * 0.5, pos.y + ny * 0.5).mul(varInfo.weight)
   },
   'general',
 )

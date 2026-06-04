@@ -74,7 +74,7 @@ export const superShapeVar = parametricVariation(
   SuperShapeVarParams,
   SuperShapeVarParamsDefaults,
   SuperShapeVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const pm4 = P.m / 4.0
     const pneg1n1 = -1.0 / P.n1
@@ -86,7 +86,7 @@ export const superShapeVar = parametricVariation(
     const rBase = myrnd * random() + (1.0 - myrnd) * pr - P.holes
     const rShape = pow(t1 + t2, pneg1n1)
     const factor = (rBase * rShape) / pr
-    return vec2f(factor * pos.x, factor * pos.y)
+    return vec2f(factor * pos.x, factor * pos.y).mul(varInfo.weight)
   },
   'general',
 )

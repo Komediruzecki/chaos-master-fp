@@ -31,7 +31,7 @@ export const sierCarpetVar = parametricVariation(
   SierCarpetVarParams,
   SierCarpetVarParamsDefaults,
   SierCarpetVarParamsEditor,
-  (pos, _varInfo, _P) => {
+  (pos, varInfo, _P) => {
     'use gpu'
     const x = (pos.x + 1.0) * 0.5
     const y = (pos.y + 1.0) * 0.5
@@ -42,7 +42,7 @@ export const sierCarpetVar = parametricVariation(
     const fy = fract(y * 3.0)
     const nx = select(fx, fx * 0.333 + 0.333, skip)
     const ny = select(fy, fy * 0.333 + 0.333, skip)
-    return vec2f(nx * 2.0 - 1.0, ny * 2.0 - 1.0)
+    return vec2f(nx * 2.0 - 1.0, ny * 2.0 - 1.0).mul(varInfo.weight)
   },
   'general',
 )

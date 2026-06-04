@@ -31,14 +31,14 @@ export const dragonVar = parametricVariation(
   DragonVarParams,
   DragonVarParamsDefaults,
   DragonVarParamsEditor,
-  (pos, _varInfo, _P) => {
+  (pos, varInfo, _P) => {
     'use gpu'
     const x = pos.x
     const y = pos.y
     const choice = x > 0.0
     const nx = select((x + y) * 0.5 + 1.0, (x - y) * 0.5, choice)
     const ny = select((y - x) * 0.5, (x + y) * 0.5, choice)
-    return vec2f(nx, ny)
+    return vec2f(nx, ny).mul(varInfo.weight)
   },
   'general',
 )

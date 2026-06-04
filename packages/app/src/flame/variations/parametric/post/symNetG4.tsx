@@ -34,7 +34,7 @@ export const symNetG4 = parametricVariation(
   SymNetG4Params,
   SymNetG4ParamsDefaults,
   SymNetG4ParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const sx = P.sepx * 0.5
     const sy = P.sepy * 0.5
@@ -42,15 +42,19 @@ export const symNetG4 = parametricVariation(
     const hy = P.stepy * 0.5
     const band = f32(floor(random() * 4.0))
     if (band < 1.0) {
-      return vec2f(pos.x - sx - 2.0 - hx, pos.y + sy - 1.5 - hy)
+      return vec2f(pos.x - sx - 2.0 - hx, pos.y + sy - 1.5 - hy).mul(
+        varInfo.weight,
+      )
     }
     if (band < 2.0) {
-      return vec2f(-pos.x + sx - hx, -pos.y - sy - 0.5 - hy)
+      return vec2f(-pos.x + sx - hx, -pos.y - sy - 0.5 - hy).mul(varInfo.weight)
     }
     if (band < 3.0) {
-      return vec2f(pos.x - sx + hx, -pos.y - sy + 0.5 + hy)
+      return vec2f(pos.x - sx + hx, -pos.y - sy + 0.5 + hy).mul(varInfo.weight)
     }
-    return vec2f(-pos.x + sx + 2.0 + hx, pos.y + sy - 0.5 + hy)
+    return vec2f(-pos.x + sx + 2.0 + hx, pos.y + sy - 0.5 + hy).mul(
+      varInfo.weight,
+    )
   },
   'symmetry',
 )

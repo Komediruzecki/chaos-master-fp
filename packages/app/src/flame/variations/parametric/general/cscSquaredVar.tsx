@@ -81,11 +81,11 @@ export const cscSquaredVar = parametricVariation(
   CscSquaredVarParams,
   CscSquaredVarParamsDefaults,
   CscSquaredVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const csc = P.csc_div / cos(pos.x / P.cos_div) / tan(pos.x / P.tan_div)
     const fx = pow(csc * csc + PI.$ * P.pi_mult, P.csc_pow) + P.csc_add
-    return vec2f(pos.x * fx, pos.y * fx * P.scale_y)
+    return vec2f(pos.x * fx, pos.y * fx * P.scale_y).mul(varInfo.weight)
   },
   'general',
 )

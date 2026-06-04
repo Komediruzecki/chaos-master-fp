@@ -34,13 +34,13 @@ export const hyperbolicEllipseVar = parametricVariation(
   HyperbolicEllipseVarParams,
   HyperbolicEllipseVarParamsDefaults,
   HyperbolicEllipseVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const ex = exp(pos.x)
     const emx = exp(-pos.x)
     const xt = (ex - emx) * 0.5 * cos(P.a * pos.y)
     const yt = (ex + emx) * 0.5 * sin(P.a * pos.y)
-    return vec2f(xt, yt)
+    return vec2f(xt, yt).mul(varInfo.weight)
   },
   'general',
 )

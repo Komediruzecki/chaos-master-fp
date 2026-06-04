@@ -33,7 +33,7 @@ export const squishVar = parametricVariation(
   SquishVarParams,
   SquishVarParamsDefaults,
   SquishVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
 
     const x = abs(pos.x)
@@ -83,7 +83,7 @@ export const squishVar = parametricVariation(
       newY = -(8.0 * s - p)
     }
 
-    return vec2f(newX, newY)
+    return vec2f(newX, newY).mul(varInfo.weight)
   },
   'general',
 )

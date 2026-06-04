@@ -42,7 +42,7 @@ export const cropBoxVar = parametricVariation(
   CropBoxParams,
   CropBoxParamsDefaults,
   CropBoxParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const l = f32(select(P.left, P.right, P.left < P.right))
     const r = f32(select(P.left, P.right, P.left > P.right))
@@ -52,7 +52,7 @@ export const cropBoxVar = parametricVariation(
     const outside = pos.x < l || pos.x > r || pos.y < t || pos.y > b
     if (outside) {
       if (P.zero > 0.5) {
-        return vec2f(0.0, 0.0)
+        return vec2f(0.0, 0.0).mul(varInfo.weight)
       }
       const w = (r - l) * 0.5
       const h = (b - t) * 0.5
@@ -62,9 +62,9 @@ export const cropBoxVar = parametricVariation(
       if (x > r) x = r - random() * w
       if (y < t) y = t + random() * h
       if (y > b) y = b - random() * h
-      return vec2f(x, y)
+      return vec2f(x, y).mul(varInfo.weight)
     }
-    return vec2f(pos.x, pos.y)
+    return vec2f(pos.x, pos.y).mul(varInfo.weight)
   },
   'crop',
 )

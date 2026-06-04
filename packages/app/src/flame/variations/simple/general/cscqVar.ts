@@ -4,7 +4,7 @@ import { simpleVariation } from '../types'
 
 export const cscqVar = simpleVariation(
   'cscqVar',
-  (pos, _varInfo) => {
+  (pos, varInfo) => {
     'use gpu'
 
     const z = 0.0
@@ -21,7 +21,7 @@ export const cscqVar = simpleVariation(
     const newX = s * ch * ni
     const newY = -C * pos.y
 
-    return vec2f(newX, newY)
+    return vec2f(newX, newY).mul(varInfo.weight)
   },
   'general',
 )

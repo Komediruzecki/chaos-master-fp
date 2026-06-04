@@ -30,14 +30,14 @@ export const roseVar = parametricVariation(
   RoseVarParams,
   RoseVarParamsDefaults,
   RoseVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const k = P.n / P.d
     const theta = pos.x * PI.$
     const r = cos(k * theta)
     const nx = r * cos(theta)
     const ny = r * sin(theta)
-    return vec2f(nx, ny)
+    return vec2f(nx, ny).mul(varInfo.weight)
   },
   'general',
 )

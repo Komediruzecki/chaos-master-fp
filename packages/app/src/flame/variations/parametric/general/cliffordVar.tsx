@@ -55,7 +55,7 @@ export const cliffordVar = parametricVariation(
   CliffordVarParams,
   CliffordVarParamsDefaults,
   CliffordVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const x = pos.x
     const y = pos.y
@@ -63,7 +63,7 @@ export const cliffordVar = parametricVariation(
     const nx = sin(P.a * y) + P.c * cos(P.a * x)
     const ny = sin(P.b * x) + P.d * cos(P.b * y)
 
-    return vec2f(nx, ny)
+    return vec2f(nx, ny).mul(varInfo.weight)
   },
   'general',
 )

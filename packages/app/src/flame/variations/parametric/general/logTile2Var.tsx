@@ -41,14 +41,14 @@ export const logTile2Var = parametricVariation(
   LogTile2VarParams,
   LogTile2VarParamsDefaults,
   LogTile2VarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const spreadx = select(-P.spreadx, P.spreadx, random() < 0.5)
     const spready = select(-P.spready, P.spready, random() < 0.5)
     return vec2f(
       pos.x + spreadx * round(log(random())),
       pos.y + spready * round(log(random())),
-    )
+    ).mul(varInfo.weight)
   },
   'general',
 )

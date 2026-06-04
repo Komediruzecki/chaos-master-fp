@@ -5,11 +5,11 @@ import { simpleVariation } from '../types'
 
 export const rippledVar = simpleVariation(
   'rippledVar',
-  (pos, _varInfo) => {
+  (pos, varInfo) => {
     'use gpu'
     const d = pos.x * pos.x + pos.y * pos.y
     const safeD = d + EPS.$
-    return vec2f(tanh(safeD) * pos.x, cos(safeD) * pos.y)
+    return vec2f(tanh(safeD) * pos.x, cos(safeD) * pos.y).mul(varInfo.weight)
   },
   'general',
 )

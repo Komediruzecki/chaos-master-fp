@@ -43,7 +43,7 @@ export const collideoscopeVar = parametricVariation(
   CollideoscopeVarParams,
   CollideoscopeVarParamsDefaults,
   CollideoscopeVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const numf = f32(P.num)
     const knPi = 1.0 / (numf * PI.$)
@@ -69,7 +69,7 @@ export const collideoscopeVar = parametricVariation(
     }
 
     const r = sqrt(pos.x * pos.x + pos.y * pos.y)
-    return vec2f(r * cos(a), r * sin(a))
+    return vec2f(r * cos(a), r * sin(a)).mul(varInfo.weight)
   },
   'general',
 )

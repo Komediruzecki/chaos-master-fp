@@ -41,7 +41,7 @@ export const disc2Var = parametricVariation(
   Disc2VarParams,
   Disc2VarParamsDefaults,
   Disc2VarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     let sinadd = sin(P.twist)
     let cosadd = cos(P.twist) - 1.0
@@ -55,7 +55,9 @@ export const disc2Var = parametricVariation(
     const t = P.rot * PI.$ * (pos.x + pos.y)
     const theta = atan2(pos.y, pos.x)
     const factor = theta / PI.$
-    return vec2f((sin(t) + cosadd) * factor, (cos(t) + sinadd) * factor)
+    return vec2f((sin(t) + cosadd) * factor, (cos(t) + sinadd) * factor).mul(
+      varInfo.weight,
+    )
   },
   'general',
 )

@@ -46,13 +46,15 @@ export const inversionVar = parametricVariation(
   InversionVarParams,
   InversionVarParamsDefaults,
   InversionVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const dx = pos.x - P.centerX
     const dy = pos.y - P.centerY
     const r2 = dx * dx + dy * dy + 0.000001
     const scale = (P.radius * P.radius) / r2
-    return vec2f(P.centerX + dx * scale, P.centerY + dy * scale)
+    return vec2f(P.centerX + dx * scale, P.centerY + dy * scale).mul(
+      varInfo.weight,
+    )
   },
   'general',
 )

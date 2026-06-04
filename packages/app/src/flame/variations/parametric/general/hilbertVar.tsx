@@ -31,7 +31,7 @@ export const hilbertVar = parametricVariation(
   HilbertVarParams,
   HilbertVarParamsDefaults,
   HilbertVarParamsEditor,
-  (pos, _varInfo, _P) => {
+  (pos, varInfo, _P) => {
     'use gpu'
     const x = abs(pos.x) * 0.5 + 0.25
     const y = abs(pos.y) * 0.5 + 0.25
@@ -51,7 +51,7 @@ export const hilbertVar = parametricVariation(
       select(fx, fy, qy > 0.0),
       qx > 0.0,
     )
-    return vec2f(nx * 2.0 - 1.0, ny * 2.0 - 1.0)
+    return vec2f(nx * 2.0 - 1.0, ny * 2.0 - 1.0).mul(varInfo.weight)
   },
   'general',
 )

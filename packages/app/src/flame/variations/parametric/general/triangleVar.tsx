@@ -73,7 +73,7 @@ export const triangleVar = parametricVariation(
   TriangleVarParams,
   TriangleVarParamsDefaults,
   TriangleVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const sqrtR1 = sqrt(random())
     const r2 = random()
@@ -82,7 +82,7 @@ export const triangleVar = parametricVariation(
     const c = r2 * sqrtR1
     const dx = a * P.x1 + b * P.x2 + c * P.x3
     const dy = a * P.y1 + b * P.y2 + c * P.y3
-    return vec2f(dx, dy)
+    return vec2f(dx, dy).mul(varInfo.weight)
   },
   'general',
 )

@@ -40,7 +40,7 @@ export const xheartVar = parametricVariation(
   XHeartVarParams,
   XHeartVarParamsDefaults,
   XHeartVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const r2 = pos.x * pos.x + pos.y * pos.y + 4.0
     const bx = 4.0 / r2
@@ -49,7 +49,7 @@ export const xheartVar = parametricVariation(
     const sina = sin(P.angle)
     const x = cosa * bx * pos.x - sina * by * pos.y
     const y = sina * bx * pos.x + cosa * by * pos.y
-    return vec2f(x, select(-y, y, x > 0.0))
+    return vec2f(x, select(-y, y, x > 0.0)).mul(varInfo.weight)
   },
   'general',
 )

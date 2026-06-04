@@ -5,7 +5,7 @@ import { simpleVariation } from '../types'
 
 export const threePointIFSVar = simpleVariation(
   'threePointIFSVar',
-  (pos, _varInfo) => {
+  (pos, varInfo) => {
     'use gpu'
     const r = random()
     // Branch probabilities: 1/3, 4/9, 2/9
@@ -22,7 +22,7 @@ export const threePointIFSVar = simpleVariation(
       -pos.x / 2.0 + 0.5,
       r < 1.0 / 3.0,
     )
-    return vec2f(x, y)
+    return vec2f(x, y).mul(varInfo.weight)
   },
   'general',
 )

@@ -58,7 +58,7 @@ export const bTransformVar = parametricVariation(
   BTransformVarParams,
   BTransformVarParamsDefaults,
   BTransformVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     let tau =
       (0.5 *
@@ -80,7 +80,7 @@ export const bTransformVar = parametricVariation(
     const coss = cos(sigma)
     const temp = cosht - coss
 
-    return vec2f(sinht / temp, sinsVal / temp)
+    return vec2f(sinht / temp, sinsVal / temp).mul(varInfo.weight)
   },
   'general',
 )

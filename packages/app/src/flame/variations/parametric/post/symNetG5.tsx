@@ -31,20 +31,28 @@ export const symNetG5 = parametricVariation(
   SymNetG5Params,
   SymNetG5ParamsDefaults,
   SymNetG5ParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const band = f32(floor(random() * 4.0))
     const hx = P.stepx * 0.5
     if (band < 1.0) {
-      return vec2f(pos.x - P.sepx - 2.0 - hx, pos.y + P.sepy - 0.5)
+      return vec2f(pos.x - P.sepx - 2.0 - hx, pos.y + P.sepy - 0.5).mul(
+        varInfo.weight,
+      )
     }
     if (band < 2.0) {
-      return vec2f(-pos.x + P.sepx - hx, -pos.y - P.sepy - 0.5)
+      return vec2f(-pos.x + P.sepx - hx, -pos.y - P.sepy - 0.5).mul(
+        varInfo.weight,
+      )
     }
     if (band < 3.0) {
-      return vec2f(pos.x - P.sepx + hx, -pos.y - P.sepy - 0.5)
+      return vec2f(pos.x - P.sepx + hx, -pos.y - P.sepy - 0.5).mul(
+        varInfo.weight,
+      )
     }
-    return vec2f(-pos.x + P.sepx + 2.0 + hx, pos.y + P.sepy - 0.5)
+    return vec2f(-pos.x + P.sepx + 2.0 + hx, pos.y + P.sepy - 0.5).mul(
+      varInfo.weight,
+    )
   },
   'symmetry',
 )

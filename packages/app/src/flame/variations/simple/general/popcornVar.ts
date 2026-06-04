@@ -10,7 +10,7 @@ export const popcornVar = simpleVariation(
     const tx = clamp(tan(3.0 * pos.x), -1e8, 1e8)
     const ty = clamp(tan(3.0 * pos.y), -1e8, 1e8)
     const delta = vec2f(T.c * sin(ty), T.f * sin(tx))
-    return pos.add(delta)
+    return pos.add(delta).mul(varInfo.weight)
   },
   'general',
 )

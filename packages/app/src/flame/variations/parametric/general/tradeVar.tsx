@@ -56,7 +56,7 @@ export const tradeVar = parametricVariation(
   TradeVarParams,
   TradeVarParamsDefaults,
   TradeVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const _c1 = P.r1 + P.d1
     const _c2 = P.r2 + P.d2
@@ -91,7 +91,7 @@ export const tradeVar = parametricVariation(
       }
     }
 
-    return vec2f(newX, newY)
+    return vec2f(newX, newY).mul(varInfo.weight)
   },
   'general',
 )

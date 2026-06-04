@@ -5,10 +5,12 @@ import { simpleVariation } from '../types'
 
 export const invpolarVar = simpleVariation(
   'invpolarVar',
-  (pos, _varInfo) => {
+  (pos, varInfo) => {
     'use gpu'
     const ny = 1.0 + pos.y
-    return vec2f(ny * sin(pos.x * PI.$), ny * cos(pos.x * PI.$))
+    return vec2f(ny * sin(pos.x * PI.$), ny * cos(pos.x * PI.$)).mul(
+      varInfo.weight,
+    )
   },
   'general',
 )

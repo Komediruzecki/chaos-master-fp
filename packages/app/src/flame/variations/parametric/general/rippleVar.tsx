@@ -94,7 +94,7 @@ export const rippleVar = parametricVariation(
   RippleVarParams,
   RippleVarParamsDefaults,
   RippleVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
 
     // Init Logic
@@ -137,7 +137,7 @@ export const rippleVar = parametricVariation(
     // lerp
     const newPos = mix(uv1, uv2, _p)
 
-    return vec2f(newPos.mul(_is))
+    return vec2f(newPos.mul(_is)).mul(varInfo.weight)
   },
   'general',
 )

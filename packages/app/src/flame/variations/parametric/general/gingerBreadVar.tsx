@@ -31,11 +31,11 @@ export const gingerBreadVar = parametricVariation(
   GingerBreadVarParams,
   GingerBreadVarParamsDefaults,
   GingerBreadVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const nx = 1.0 - pos.y + abs(pos.x)
     const ny = pos.x
-    return vec2f(P.scale * nx, P.scale * ny)
+    return vec2f(P.scale * nx, P.scale * ny).mul(varInfo.weight)
   },
   'general',
 )

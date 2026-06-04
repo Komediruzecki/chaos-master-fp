@@ -603,7 +603,7 @@ export const synthVar = parametricVariation(
   SynthVarParams,
   SynthVarParamsDefaults,
   SynthVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const mode = floor(P.mode)
     let Vx = f32(pos.x)
@@ -844,6 +844,6 @@ export const synthVar = parametricVariation(
       newX = radius * s
       newY = radius * c
     }
-    return vec2f(newX, newY)
+    return vec2f(newX, newY).mul(varInfo.weight)
   },
 )

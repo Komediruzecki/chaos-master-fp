@@ -98,7 +98,7 @@ export const spirographVar = parametricVariation(
   SpirographVarParams,
   SpirographVarParamsDefaults,
   SpirographVarParamsEditor,
-  (_pos, _varInfo, P) => {
+  (_pos, varInfo, P) => {
     'use gpu'
 
     const t = (P.tmax - P.tmin) * random() + P.tmin
@@ -110,7 +110,7 @@ export const spirographVar = parametricVariation(
     const newX = x1 + P.d * cos(t) + y
     const newY = y1 + P.d * sin(t) + y
 
-    return vec2f(newX, newY)
+    return vec2f(newX, newY).mul(varInfo.weight)
   },
   'general',
 )

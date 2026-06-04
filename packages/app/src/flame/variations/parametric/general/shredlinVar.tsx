@@ -66,7 +66,7 @@ export const shredlinVar = parametricVariation(
   ShredlinVarParams,
   ShredlinVarParamsDefaults,
   ShredlinVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
 
     const xpos = select(0.0, 1.0, pos.x < 0.0)
@@ -84,7 +84,7 @@ export const shredlinVar = parametricVariation(
         (0.5 - ypos) * (1.0 - P.ywidth)) *
       P.ydistance
 
-    return vec2f(newX, newY)
+    return vec2f(newX, newY).mul(varInfo.weight)
   },
   'general',
 )

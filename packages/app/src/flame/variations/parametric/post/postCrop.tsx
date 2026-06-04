@@ -49,7 +49,7 @@ export const postCrop = parametricVariation(
   PostCropParams,
   PostCropParamsDefaults,
   PostCropParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const xmin = f32(select(P.right, P.left, P.left < P.right))
     const xmax = f32(select(P.right, P.left, P.left > P.right))
@@ -66,7 +66,7 @@ export const postCrop = parametricVariation(
 
     if (outsideX || outsideY) {
       if (P.zero > 0.5) {
-        return vec2f(0.0, 0.0)
+        return vec2f(0.0, 0.0).mul(varInfo.weight)
       }
       if (x < xmin) {
         x = xmin + random() * w
@@ -82,7 +82,7 @@ export const postCrop = parametricVariation(
       }
     }
 
-    return vec2f(x, y)
+    return vec2f(x, y).mul(varInfo.weight)
   },
   'post',
 )

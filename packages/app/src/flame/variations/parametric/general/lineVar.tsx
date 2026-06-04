@@ -42,7 +42,7 @@ export const lineVar = parametricVariation(
   LineVarParams,
   LineVarParamsDefaults,
   LineVarParamsEditor,
-  (_pos, _varInfo, P) => {
+  (_pos, varInfo, P) => {
     'use gpu'
 
     const uv = vec3f(
@@ -53,7 +53,7 @@ export const lineVar = parametricVariation(
 
     const r = length(uv)
     const rand = random()
-    return vec2f((uv.x / r) * rand, (uv.y / r) * rand)
+    return vec2f((uv.x / r) * rand, (uv.y / r) * rand).mul(varInfo.weight)
   },
   'general',
 )

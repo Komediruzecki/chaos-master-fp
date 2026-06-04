@@ -31,7 +31,7 @@ export const loqVar = parametricVariation(
   LoqParams,
   LoqParamsDefaults,
   LoqParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
 
     const z = 0.0
@@ -42,7 +42,7 @@ export const loqVar = parametricVariation(
     const newX = log(pos.x * pos.x + abs_v * abs_v) * denom
     const newY = C * pos.y
 
-    return vec2f(newX, newY)
+    return vec2f(newX, newY).mul(varInfo.weight)
   },
   'general',
 )

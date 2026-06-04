@@ -38,7 +38,7 @@ export const cropCrossVar = parametricVariation(
   CropCrossParams,
   CropCrossParamsDefaults,
   CropCrossParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const ca = cos(P.angle)
     const sa = sin(P.angle)
@@ -49,9 +49,9 @@ export const cropCrossVar = parametricVariation(
     const inH = abs(x) < hl && abs(y) < hw
     const inV = abs(y) < hl && abs(x) < hw
     if (!inH && !inV) {
-      return vec2f(0.0, 0.0)
+      return vec2f(0.0, 0.0).mul(varInfo.weight)
     }
-    return vec2f(pos.x, pos.y)
+    return vec2f(pos.x, pos.y).mul(varInfo.weight)
   },
   'crop',
 )

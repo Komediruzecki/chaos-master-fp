@@ -65,7 +65,7 @@ export const postMirrorWf = parametricVariation(
   PostMirrorWfParams,
   PostMirrorWfParamsDefaults,
   PostMirrorWfParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     let x = pos.x
     let y = pos.y
@@ -79,7 +79,7 @@ export const postMirrorWf = parametricVariation(
       y = P.yscale * (-pos.y - P.yshift)
     }
 
-    return vec2f(x, y)
+    return vec2f(x, y).mul(varInfo.weight)
   },
   'post',
 )

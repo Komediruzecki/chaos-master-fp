@@ -65,7 +65,7 @@ export const invEllipse = parametricVariation(
   InvEllipseParams,
   InvEllipseParamsDefaults,
   InvEllipseParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const dx = pos.x - P.h
     const dy = pos.y - P.k
@@ -78,12 +78,12 @@ export const invEllipse = parametricVariation(
     // restricted/unrestricted elipse handling
     if (P.restricted > 0.0) {
       if (denom < 1) {
-        return vec2f(pos)
+        return vec2f(pos).mul(varInfo.weight)
       }
     }
     const u = P.h + dx / denom
     const v = P.k + dy / denom
-    return vec2f(u, v)
+    return vec2f(u, v).mul(varInfo.weight)
   },
   'general',
 )

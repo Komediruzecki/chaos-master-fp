@@ -41,10 +41,12 @@ export const squirrelVar = parametricVariation(
   SquirrelVarParams,
   SquirrelVarParamsDefaults,
   SquirrelVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const u = (P.a + EPS.$) * pos.x * pos.x + (P.b + EPS.$) * pos.y * pos.y
-    return vec2f(cos(sqrt(u)) * tan(pos.x), sin(sqrt(u)) * tan(pos.y))
+    return vec2f(cos(sqrt(u)) * tan(pos.x), sin(sqrt(u)) * tan(pos.y)).mul(
+      varInfo.weight,
+    )
   },
   'general',
 )

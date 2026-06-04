@@ -39,7 +39,7 @@ export const hypershiftVar = parametricVariation(
   HypershiftVarParams,
   HypershiftVarParamsDefaults,
   HypershiftVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
 
     const scale = 1.0 - P.shift * P.shift
@@ -48,7 +48,7 @@ export const hypershiftVar = parametricVariation(
     const y = rad * pos.y
     const rad2 = scale / (x * x + y * y + 1e-10)
 
-    return vec2f(rad2 * x + P.shift, rad2 * y * P.stretch)
+    return vec2f(rad2 * x + P.shift, rad2 * y * P.stretch).mul(varInfo.weight)
   },
   'general',
 )

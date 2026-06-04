@@ -73,7 +73,7 @@ export const devilWarpVar = parametricVariation(
   DevilWarpVarParams,
   DevilWarpVarParamsDefaults,
   DevilWarpVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const x = pos.x
     const y = pos.y
@@ -89,7 +89,7 @@ export const devilWarpVar = parametricVariation(
 
     const effect = P.effect * rr
 
-    return vec2f(pos.x + x * effect, pos.y + y * effect)
+    return vec2f(pos.x + x * effect, pos.y + y * effect).mul(varInfo.weight)
   },
   'general',
 )

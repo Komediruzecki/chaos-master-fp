@@ -91,21 +91,21 @@ export const truchet2Var = parametricVariation(
   Truchet2VarParams,
   Truchet2VarParamsDefaults,
   Truchet2VarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const xp = abs(pos.x / P.scale - floor(pos.x / P.scale) - 0.5) * 2.0
     let width = P.width1 * (1.0 - xp) + xp * P.width2
     width = min(width, 1.0)
 
     if (width <= 0.0) {
-      return vec2f(pos.x, pos.y)
+      return vec2f(pos.x, pos.y).mul(varInfo.weight)
     }
 
     let n = P.exponent1 * (1.0 - xp) + xp * P.exponent2
     n = min(n, 2.0)
 
     if (n <= 0.0) {
-      return vec2f(pos.x, pos.y)
+      return vec2f(pos.x, pos.y).mul(varInfo.weight)
     }
 
     const onen = 1.0 / (P.exponent1 * (1.0 - xp) + xp * P.exponent2)
@@ -146,15 +146,15 @@ export const truchet2Var = parametricVariation(
 
     if (P.inverse === 0.0) {
       if (r00 < 1.0 || r11 < 1.0) {
-        return vec2f(x + floor(pos.x), y + floor(pos.y))
+        return vec2f(x + floor(pos.x), y + floor(pos.y)).mul(varInfo.weight)
       }
-      return vec2f(100.0, 100.0)
+      return vec2f(100.0, 100.0).mul(varInfo.weight)
     }
 
     if (r00 > 1.0 && r11 > 1.0) {
-      return vec2f(x + floor(pos.x), y + floor(pos.y))
+      return vec2f(x + floor(pos.x), y + floor(pos.y)).mul(varInfo.weight)
     }
-    return vec2f(10000.0, 10000.0)
+    return vec2f(10000.0, 10000.0).mul(varInfo.weight)
   },
   'general',
 )

@@ -39,14 +39,16 @@ export const preCurlVar = parametricVariation(
   PreCurlVarParams,
   PreCurlVarParamsDefaults,
   PreCurlVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const x = pos.x
     const y = pos.y
     const re = 1.0 + P.c1 * x + P.c2 * (x * x - y * y)
     const im = P.c1 * y + 2.0 * P.c2 * x * y
     const r = 1.0 / (re * re + im * im)
-    return vec2f((x * re + y * im) * r, (y * re - x * im) * r)
+    return vec2f((x * re + y * im) * r, (y * re - x * im) * r).mul(
+      varInfo.weight,
+    )
   },
   'pre',
 )

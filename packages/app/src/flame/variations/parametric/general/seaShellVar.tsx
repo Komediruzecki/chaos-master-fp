@@ -40,13 +40,13 @@ export const seaShellVar = parametricVariation(
   SeaShellVarParams,
   SeaShellVarParamsDefaults,
   SeaShellVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const t = (pos.x + 1.0) * P.turns * PI.$
     const r = exp(P.tightness * t)
     const nx = r * cos(t)
     const ny = r * sin(t) * 0.6
-    return vec2f(nx, ny)
+    return vec2f(nx, ny).mul(varInfo.weight)
   },
   'general',
 )

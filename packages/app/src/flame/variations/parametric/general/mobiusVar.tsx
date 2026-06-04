@@ -54,7 +54,7 @@ export const mobiusVar = parametricVariation(
   MobiusVarParams,
   MobiusVarParamsDefaults,
   MobiusVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const x = pos.x
     const y = pos.y
@@ -65,7 +65,7 @@ export const mobiusVar = parametricVariation(
     const denom = denomRe * denomRe + denomIm * denomIm + 0.0001
     const nx = (re * denomRe + im * denomIm) / denom
     const ny = (im * denomRe - re * denomIm) / denom
-    return vec2f(nx, ny)
+    return vec2f(nx, ny).mul(varInfo.weight)
   },
   'general',
 )

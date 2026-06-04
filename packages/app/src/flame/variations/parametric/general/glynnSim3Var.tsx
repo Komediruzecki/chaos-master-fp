@@ -58,7 +58,7 @@ export const glynnSim3Var = parametricVariation(
   GlynnSim3VarParams,
   GlynnSim3VarParamsDefaults,
   GlynnSim3VarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
 
     const rad1 = P.radius + P.thickness
@@ -85,7 +85,7 @@ export const glynnSim3Var = parametricVariation(
       ),
       vec2f(cx, cy),
       r < rad1,
-    )
+    ).mul(varInfo.weight)
   },
   'general',
 )

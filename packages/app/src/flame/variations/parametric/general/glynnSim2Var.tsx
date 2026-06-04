@@ -74,7 +74,7 @@ export const glynnSim2Var = parametricVariation(
   GlynnSim2VarParams,
   GlynnSim2VarParamsDefaults,
   GlynnSim2VarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
 
     const phi10 = (P.phi1 * PI.$) / 180.0
@@ -104,7 +104,7 @@ export const glynnSim2Var = parametricVariation(
       ),
       vec2f(cx, cy),
       r < P.radius,
-    )
+    ).mul(varInfo.weight)
   },
   'general',
 )

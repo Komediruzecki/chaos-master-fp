@@ -41,7 +41,7 @@ export const sigmoidVar = parametricVariation(
   SigmoidVarParams,
   SigmoidVarParamsDefaults,
   SigmoidVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     let ax = 1.0
     let sx = P.shiftx
@@ -71,7 +71,7 @@ export const sigmoidVar = parametricVariation(
 
     const c0 = ax / (1.0 + exp(sx * pos.x))
     const c1 = ay / (1.0 + exp(sy * pos.y))
-    return vec2f(2.0 * (c0 - 0.5), 2.0 * (c1 - 0.5))
+    return vec2f(2.0 * (c0 - 0.5), 2.0 * (c1 - 0.5)).mul(varInfo.weight)
   },
   'general',
 )

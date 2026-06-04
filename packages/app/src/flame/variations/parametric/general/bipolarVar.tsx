@@ -33,7 +33,7 @@ export const bipolarVar = parametricVariation(
   BipolarVarParams,
   BipolarVarParamsDefaults,
   BipolarVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const x2y2 = pos.x * pos.x + pos.y * pos.y
     const t = x2y2 + 1.0
@@ -52,11 +52,13 @@ export const bipolarVar = parametricVariation(
     const g = t - x2
 
     if (g === 0.0 || f / g <= 0.0) {
-      return vec2f(0.0)
+      return vec2f(0.0).mul(varInfo.weight)
     }
 
     const twoOverPi = 2.0 / PI.$
-    return vec2f(0.25 * twoOverPi * log(f / g), twoOverPi * y)
+    return vec2f(0.25 * twoOverPi * log(f / g), twoOverPi * y).mul(
+      varInfo.weight,
+    )
   },
   'general',
 )

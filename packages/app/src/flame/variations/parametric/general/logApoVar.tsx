@@ -32,11 +32,11 @@ export const logApoVar = parametricVariation(
   LogApoVarParams,
   LogApoVarParamsDefaults,
   LogApoVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const denom = 0.5 / log(P.base)
     const r2 = pos.x * pos.x + pos.y * pos.y
-    return vec2f(log(r2) * denom, atan2(pos.y, pos.x))
+    return vec2f(log(r2) * denom, atan2(pos.y, pos.x)).mul(varInfo.weight)
   },
   'general',
 )

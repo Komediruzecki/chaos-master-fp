@@ -31,14 +31,14 @@ export const rings2 = parametricVariation(
   Rings2Params,
   Rings2ParamsDefaults,
   Rings2ParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const p = P.val
     const r = length(pos)
     const theta = atan2(pos.y, pos.x)
     const twop = 2 * p
     const t = r - twop * f32(trunc((r + p) / twop)) + r * (1 - p)
-    return vec2f(sin(theta), cos(theta)).mul(t)
+    return vec2f(sin(theta), cos(theta)).mul(t).mul(varInfo.weight)
   },
   'general',
 )

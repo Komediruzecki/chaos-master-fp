@@ -4,7 +4,7 @@ import { random } from '@/shaders/random'
 import { EPS } from '../../../constants'
 import { simpleVariation } from '../types'
 
-export const boardersVar = simpleVariation('boardersVar', (pos, _varInfo) => {
+export const boardersVar = simpleVariation('boardersVar', (pos, varInfo) => {
   'use gpu'
   const roundX = round(pos.x)
   const roundY = round(pos.y)
@@ -40,5 +40,8 @@ export const boardersVar = simpleVariation('boardersVar', (pos, _varInfo) => {
   const nonrand_x = select(ydom_x, xdom_x, isXdom)
   const nonrand_y = select(ydom_y, xdom_y, isXdom)
 
-  return vec2f(select(nonrand_x, rx, isRandom), select(nonrand_y, ry, isRandom))
+  return vec2f(
+    select(nonrand_x, rx, isRandom),
+    select(nonrand_y, ry, isRandom),
+  ).mul(varInfo.weight)
 })

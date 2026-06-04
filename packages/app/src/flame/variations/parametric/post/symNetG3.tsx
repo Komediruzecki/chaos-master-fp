@@ -30,13 +30,13 @@ export const symNetG3 = parametricVariation(
   SymNetG3Params,
   SymNetG3ParamsDefaults,
   SymNetG3ParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const s = P.step * 0.5
     if (random() < 0.5) {
-      return vec2f(pos.x - P.sepx - s, pos.y - P.sepy - s)
+      return vec2f(pos.x - P.sepx - s, pos.y - P.sepy - s).mul(varInfo.weight)
     }
-    return vec2f(-pos.x + P.sepx + s, -pos.y + P.sepy + s)
+    return vec2f(-pos.x + P.sepx + s, -pos.y + P.sepy + s).mul(varInfo.weight)
   },
   'symmetry',
 )

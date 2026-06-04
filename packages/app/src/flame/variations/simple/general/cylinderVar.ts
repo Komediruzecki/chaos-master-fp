@@ -4,9 +4,9 @@ import { simpleVariation } from '../types'
 
 export const cylinderVar = simpleVariation(
   'cylinderVar',
-  (pos, _varInfo) => {
+  (pos, varInfo) => {
     'use gpu'
-    return vec2f(sin(pos.x), pos.y)
+    return vec2f(sin(pos.x), pos.y).mul(varInfo.weight)
   },
   'general',
 )

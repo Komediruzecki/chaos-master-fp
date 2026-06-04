@@ -4,11 +4,13 @@ import { simpleVariation } from '../types'
 
 export const heartVar = simpleVariation(
   'heartVar',
-  (pos, _varInfo) => {
+  (pos, varInfo) => {
     'use gpu'
     const r = length(pos)
     const theta = atan2(pos.y, pos.x)
-    return vec2f(sin(theta * r), -cos(theta * r)).mul(r)
+    return vec2f(sin(theta * r), -cos(theta * r))
+      .mul(r)
+      .mul(varInfo.weight)
   },
   'general',
 )

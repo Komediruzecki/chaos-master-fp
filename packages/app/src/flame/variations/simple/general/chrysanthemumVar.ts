@@ -6,7 +6,7 @@ import { simpleVariation } from '../types'
 
 export const chrysanthemumVar = simpleVariation(
   'chrysanthemumVar',
-  (_pos, _varInfo) => {
+  (_pos, varInfo) => {
     'use gpu'
     const u = 21.0 * PI.$ * random()
     const p4 = sin((17.0 * u) / 3.0)
@@ -15,7 +15,7 @@ export const chrysanthemumVar = simpleVariation(
     const p8Pow8 = p8 * p8 * p8 * p8 * p8 * p8 * p8 * p8
     const r =
       0.1 * (5.0 * (1.0 + sin((11.0 * u) / 5.0)) - 4.0 * p4Pow4 * p8Pow8)
-    return vec2f(r * cos(u), r * sin(u))
+    return vec2f(r * cos(u), r * sin(u)).mul(varInfo.weight)
   },
   'general',
 )

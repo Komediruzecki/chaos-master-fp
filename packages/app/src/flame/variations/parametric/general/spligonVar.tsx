@@ -49,7 +49,7 @@ export const spligonVar = parametricVariation(
   SpligonVarParams,
   SpligonVarParamsDefaults,
   SpligonVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
 
     const a = atan2(pos.y, pos.x)
@@ -59,7 +59,7 @@ export const spligonVar = parametricVariation(
     const dx = sin(t)
     const dy = cos(t)
 
-    return vec2f(pos.x + dy * P.r, pos.y + dx * P.r)
+    return vec2f(pos.x + dy * P.r, pos.y + dx * P.r).mul(varInfo.weight)
   },
   'general',
 )

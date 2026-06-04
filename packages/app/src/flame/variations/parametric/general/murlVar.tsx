@@ -40,7 +40,7 @@ export const murlVar = parametricVariation(
   MurlVarParams,
   MurlVarParamsDefaults,
   MurlVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const n = P.power
     const cUse = P.c / select(n - 1.0, 1.0, n === 1.0)
@@ -53,7 +53,10 @@ export const murlVar = parametricVariation(
     const re = r * cosa + 1.0
     const im = r * sina
     const rl = vp / (re * re + im * im)
-    return vec2f(rl * (pos.x * re + pos.y * im), rl * (pos.y * re - pos.x * im))
+    return vec2f(
+      rl * (pos.x * re + pos.y * im),
+      rl * (pos.y * re - pos.x * im),
+    ).mul(varInfo.weight)
   },
   'general',
 )

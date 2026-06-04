@@ -6,13 +6,13 @@ import { simpleVariation } from '../types'
 
 export const juliaVar = simpleVariation(
   'juliaVar',
-  (pos, _varInfo) => {
+  (pos, varInfo) => {
     'use gpu'
     const r = length(pos)
     const theta = atan2(pos.y, pos.x)
     const omega = f32(select(0.0, PI.$, random() > 0.5))
     const angle = theta / 2.0 + omega
-    return vec2f(cos(angle), sin(angle)).mul(sqrt(r))
+    return vec2f(cos(angle), sin(angle)).mul(sqrt(r)).mul(varInfo.weight)
   },
   'general',
 )

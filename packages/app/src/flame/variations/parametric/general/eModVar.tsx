@@ -40,7 +40,7 @@ export const eModVar = parametricVariation(
   EModVarParams,
   EModVarParamsDefaults,
   EModVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const tmp = pos.y * pos.y + pos.x * pos.x + 1.0
     const tmp2 = 2.0 * pos.x
@@ -63,7 +63,7 @@ export const eModVar = parametricVariation(
       )
     }
 
-    return vec2f(cosh(mu) * cos(nu), sinh(mu) * sin(nu))
+    return vec2f(cosh(mu) * cos(nu), sinh(mu) * sin(nu)).mul(varInfo.weight)
   },
   'general',
 )

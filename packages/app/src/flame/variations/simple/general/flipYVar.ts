@@ -3,10 +3,10 @@ import { simpleVariation } from '../types'
 
 export const flipYVar = simpleVariation(
   'flipYVar',
-  (pos, _varInfo) => {
+  (pos, varInfo) => {
     'use gpu'
     const sign = pos.x > 0.0 ? -1.0 : 1.0
-    return vec2f(pos.x, sign * pos.y)
+    return vec2f(pos.x, sign * pos.y).mul(varInfo.weight)
   },
   'general',
 )

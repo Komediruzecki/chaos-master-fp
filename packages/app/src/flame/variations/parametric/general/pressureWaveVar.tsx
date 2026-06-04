@@ -43,7 +43,7 @@ export const pressureWaveVar = parametricVariation(
   PressureWaveVarParams,
   PressureWaveVarParamsDefaults,
   PressureWaveVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
 
     const pwx = select(P.xFreq * 2.0 * PI.$, 1.0, abs(P.xFreq) < EPS.$)
@@ -55,7 +55,7 @@ export const pressureWaveVar = parametricVariation(
     return vec2f(
       pos.x + ipwx * sin(pwx * pos.x),
       pos.y + ipwy * sin(pwy * pos.y),
-    )
+    ).mul(varInfo.weight)
   },
   'general',
 )

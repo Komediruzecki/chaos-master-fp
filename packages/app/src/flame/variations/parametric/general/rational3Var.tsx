@@ -87,7 +87,7 @@ export const rational3Var = parametricVariation(
   Rational3VarParams,
   Rational3VarParamsDefaults,
   Rational3VarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const xsqr = pos.x * pos.x
     const ysqr = pos.y * pos.y
@@ -106,7 +106,9 @@ export const rational3Var = parametricVariation(
 
     const r3den = 1.0 / (br * br + bi * bi)
 
-    return vec2f((tr * br + ti * bi) * r3den, (ti * br - tr * bi) * r3den)
+    return vec2f((tr * br + ti * bi) * r3den, (ti * br - tr * bi) * r3den).mul(
+      varInfo.weight,
+    )
   },
   'general',
 )

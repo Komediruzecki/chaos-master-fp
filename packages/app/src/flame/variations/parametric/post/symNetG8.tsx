@@ -34,7 +34,7 @@ export const symNetG8 = parametricVariation(
   SymNetG8Params,
   SymNetG8ParamsDefaults,
   SymNetG8ParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const sx = P.sepx * 0.5
     const sy = P.sepy * 0.5
@@ -43,26 +43,32 @@ export const symNetG8 = parametricVariation(
     const band = f32(floor(random() * 8.0))
     if (band < 2.0) {
       if (band < 1.0) {
-        return vec2f(pos.x - 1.0 - sx - kx, -pos.y - sy - ky)
+        return vec2f(pos.x - 1.0 - sx - kx, -pos.y - sy - ky).mul(
+          varInfo.weight,
+        )
       }
-      return vec2f(-pos.x + 1.0 + sx - kx, pos.y + sy - ky)
+      return vec2f(-pos.x + 1.0 + sx - kx, pos.y + sy - ky).mul(varInfo.weight)
     }
     if (band < 4.0) {
       if (band < 3.0) {
-        return vec2f(-pos.x + 1.0 + sx - kx, -pos.y - sy - ky)
+        return vec2f(-pos.x + 1.0 + sx - kx, -pos.y - sy - ky).mul(
+          varInfo.weight,
+        )
       }
-      return vec2f(pos.x - 1.0 - sx - kx, pos.y + sy - ky)
+      return vec2f(pos.x - 1.0 - sx - kx, pos.y + sy - ky).mul(varInfo.weight)
     }
     if (band < 6.0) {
       if (band < 5.0) {
-        return vec2f(pos.x - 1.0 - sx + kx, -pos.y - sy + ky)
+        return vec2f(pos.x - 1.0 - sx + kx, -pos.y - sy + ky).mul(
+          varInfo.weight,
+        )
       }
-      return vec2f(-pos.x + 1.0 + sx + kx, pos.y + sy + ky)
+      return vec2f(-pos.x + 1.0 + sx + kx, pos.y + sy + ky).mul(varInfo.weight)
     }
     if (band < 7.0) {
-      return vec2f(-pos.x + 1.0 + sx + kx, -pos.y - sy + ky)
+      return vec2f(-pos.x + 1.0 + sx + kx, -pos.y - sy + ky).mul(varInfo.weight)
     }
-    return vec2f(pos.x - 1.0 - sx + kx, pos.y + sy + ky)
+    return vec2f(pos.x - 1.0 - sx + kx, pos.y + sy + ky).mul(varInfo.weight)
   },
   'symmetry',
 )

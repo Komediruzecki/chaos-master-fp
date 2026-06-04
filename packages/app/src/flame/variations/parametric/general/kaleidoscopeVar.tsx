@@ -67,7 +67,7 @@ export const kaleidoscopeVar = parametricVariation(
   KaleidoscopeVarParams,
   KaleidoscopeVarParamsDefaults,
   KaleidoscopeVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const angle = PI.$ / 4.0
     const w = P.rotate
@@ -80,7 +80,7 @@ export const kaleidoscopeVar = parametricVariation(
     const ybase = w * pos.y * cos(angle) + pos.x * sin(angle)
     const yOut = select(ybase - q - e, ybase + q + e + t, pos.y > 0.0)
 
-    return vec2f(xOut, yOut)
+    return vec2f(xOut, yOut).mul(varInfo.weight)
   },
   'general',
 )

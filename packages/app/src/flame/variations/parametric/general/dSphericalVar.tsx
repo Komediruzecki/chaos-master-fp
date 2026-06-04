@@ -31,13 +31,13 @@ export const dSphericalVar = parametricVariation(
   DSphericalVarParams,
   DSphericalVarParamsDefaults,
   DSphericalVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     if (random() < P.weight) {
       const r2 = pos.x * pos.x + pos.y * pos.y + EPS.$
-      return vec2f(pos.x / r2, pos.y / r2)
+      return vec2f(pos.x / r2, pos.y / r2).mul(varInfo.weight)
     }
-    return vec2f(pos.x, pos.y)
+    return vec2f(pos.x, pos.y).mul(varInfo.weight)
   },
   'general',
 )

@@ -42,7 +42,7 @@ export const starBlurVar = parametricVariation(
   StarBlurVarParams,
   StarBlurVarParamsDefaults,
   StarBlurVarParamsEditor,
-  (_pos, _varInfo, P) => {
+  (_pos, varInfo, P) => {
     'use gpu'
     let starblur_alpha = PI.$ / P.power
     const starblur_length = sqrt(
@@ -78,7 +78,7 @@ export const starBlurVar = parametricVariation(
     const newX = z * c
     const newY = z * s
 
-    return vec2f(newX, newY)
+    return vec2f(newX, newY).mul(varInfo.weight)
   },
   'blur',
 )

@@ -32,7 +32,7 @@ export const cellVar = parametricVariation(
   CellVarParams,
   CellVarParamsDefaults,
   CellVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const inv = 1.0 / P.size
     const cx = f32(floor(pos.x * inv))
@@ -61,7 +61,7 @@ export const cellVar = parametricVariation(
       }
     }
 
-    return vec2f(dx + nx * P.size, -(dy + ny * P.size))
+    return vec2f(dx + nx * P.size, -(dy + ny * P.size)).mul(varInfo.weight)
   },
   'general',
 )

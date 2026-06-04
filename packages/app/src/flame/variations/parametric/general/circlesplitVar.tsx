@@ -40,15 +40,15 @@ export const circlesplitVar = parametricVariation(
   CirclesplitVarParams,
   CirclesplitVarParamsDefaults,
   CirclesplitVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const r = sqrt(pos.x * pos.x + pos.y * pos.y)
     if (r < P.radius - P.split) {
-      return vec2f(pos.x, pos.y)
+      return vec2f(pos.x, pos.y).mul(varInfo.weight)
     }
     const a = atan2(pos.y, pos.x)
     const len = r + P.split
-    return vec2f(cos(a) * len, sin(a) * len)
+    return vec2f(cos(a) * len, sin(a) * len).mul(varInfo.weight)
   },
   'general',
 )

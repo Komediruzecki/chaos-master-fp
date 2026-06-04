@@ -41,7 +41,7 @@ export const juliaScope = parametricVariation(
   JuliaScopeParams,
   JuliaScopeParamsDefaults,
   JuliaScopeParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const p1 = P.power
     const p2 = P.dist
@@ -51,7 +51,7 @@ export const juliaScope = parametricVariation(
     const lambda = f32(select(-1.0, 1.0, random() > 0.5))
     const t = (lambda * phi + 2 * PI.$ * p3) / p1
     const factor = pow(r, p2 / p1)
-    return vec2f(cos(t), sin(t)).mul(factor)
+    return vec2f(cos(t), sin(t)).mul(factor).mul(varInfo.weight)
   },
   'general',
 )

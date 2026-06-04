@@ -57,7 +57,7 @@ export const sinusGridVar = parametricVariation(
   SinusGridVarParams,
   SinusGridVarParamsDefaults,
   SinusGridVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
 
     let _fx = P.freqx * (2.0 * PI.$)
@@ -72,7 +72,7 @@ export const sinusGridVar = parametricVariation(
     const tx = pos.x + P.ampx * (sx - pos.x)
     const ty = pos.y + P.ampy * (sy - pos.y)
 
-    return vec2f(tx, ty)
+    return vec2f(tx, ty).mul(varInfo.weight)
   },
   'general',
 )

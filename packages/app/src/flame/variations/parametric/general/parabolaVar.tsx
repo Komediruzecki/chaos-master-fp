@@ -41,12 +41,14 @@ export const parabolaVar = parametricVariation(
   ParabolaVarParams,
   ParabolaVarParamsDefaults,
   ParabolaVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const r = sqrt(pos.x * pos.x + pos.y * pos.y)
     const sr = sin(r)
     const cr = cos(r)
-    return vec2f(P.height * sr * sr * random(), P.width * cr * random())
+    return vec2f(P.height * sr * sr * random(), P.width * cr * random()).mul(
+      varInfo.weight,
+    )
   },
   'general',
 )

@@ -4,10 +4,10 @@ import { simpleVariation } from '../types'
 
 export const sphericalVar = simpleVariation(
   'sphericalVar',
-  (pos, _varInfo) => {
+  (pos, varInfo) => {
     'use gpu'
     const r2 = dot(pos, pos) + EPS.$
-    return pos.div(r2)
+    return pos.div(r2).mul(varInfo.weight)
   },
   'general',
 )

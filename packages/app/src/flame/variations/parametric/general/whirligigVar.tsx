@@ -30,7 +30,7 @@ export const whirligigVar = parametricVariation(
   WhirligigVarParams,
   WhirligigVarParamsDefaults,
   WhirligigVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const csin = sin(pos.x)
     const ccos = cos(pos.x)
@@ -46,7 +46,7 @@ export const whirligigVar = parametricVariation(
     const sx = select(-1.0, 1.0, m % 2.0 < 0.5)
     const sy = select(-1.0, 1.0, signBits > 0.5 && signBits < 2.5)
 
-    return vec2f((sx * xNum) / xDen, (sy * yNum) / yDen)
+    return vec2f((sx * xNum) / xDen, (sy * yNum) / yDen).mul(varInfo.weight)
   },
   'general',
 )

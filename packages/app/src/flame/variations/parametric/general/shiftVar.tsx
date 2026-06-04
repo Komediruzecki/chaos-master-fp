@@ -48,7 +48,7 @@ export const shiftVar = parametricVariation(
   ShiftParams,
   ShiftDefaults,
   ShiftEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const a = (P.angle * PI.$) / 180.0
     const cs = cos(a)
@@ -56,7 +56,7 @@ export const shiftVar = parametricVariation(
     return vec2f(
       pos.x + cs * P.shift_x - sn * P.shift_y,
       pos.y - cs * P.shift_y - sn * P.shift_x,
-    )
+    ).mul(varInfo.weight)
   },
   'general',
 )

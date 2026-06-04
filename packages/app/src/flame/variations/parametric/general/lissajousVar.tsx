@@ -82,14 +82,14 @@ export const lissajousVar = parametricVariation(
   LissajousVarParams,
   LissajousVarParamsDefaults,
   LissajousVarParamsEditor,
-  (_pos, _varInfo, P) => {
+  (_pos, varInfo, P) => {
     'use gpu'
 
     const t = (P.tmax - P.tmin) * random() + P.tmin
     const y = random() - 0.5
     const newPos = vec2f(sin(P.a * t + P.d), sin(P.b * t))
     const k = P.c * t + P.e * y
-    return vec2f(newPos.add(k))
+    return vec2f(newPos.add(k)).mul(varInfo.weight)
   },
   'general',
 )

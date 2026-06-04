@@ -36,7 +36,7 @@ export const cropStarsVar = parametricVariation(
   CropStarsParams,
   CropStarsParamsDefaults,
   CropStarsParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const r = sqrt(pos.x * pos.x + pos.y * pos.y)
     const n = f32(floor(P.points))
@@ -46,9 +46,9 @@ export const cropStarsVar = parametricVariation(
     const phase = select((1.0 - frac) * 2.0, frac * 2.0, frac < 0.5)
     const starR = P.inner + (P.outer - P.inner) * phase
     if (r > starR) {
-      return vec2f(0.0, 0.0)
+      return vec2f(0.0, 0.0).mul(varInfo.weight)
     }
-    return vec2f(pos.x, pos.y)
+    return vec2f(pos.x, pos.y).mul(varInfo.weight)
   },
   'crop',
 )

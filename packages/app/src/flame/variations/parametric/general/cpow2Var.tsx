@@ -58,7 +58,7 @@ export const cpow2Var = parametricVariation(
   CPow2VarParams,
   CPow2VarParamsDefaults,
   CPow2VarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const ang = (2.0 * PI.$) / P.divisor
     const c = (P.r * cos((PI.$ / 2.0) * P.a)) / P.divisor
@@ -80,7 +80,7 @@ export const cpow2Var = parametricVariation(
     const lnr2 = log(r2)
     const r = exp(half_c * lnr2 - d * a)
     const th = c * a + half_d * lnr2 + ang * floor(P.divisor * random())
-    return vec2f(r * cos(th), r * sin(th))
+    return vec2f(r * cos(th), r * sin(th)).mul(varInfo.weight)
   },
   'general',
 )

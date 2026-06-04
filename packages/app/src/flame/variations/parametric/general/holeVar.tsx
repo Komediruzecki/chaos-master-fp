@@ -41,7 +41,7 @@ export const holeVar = parametricVariation(
   HoleVarParams,
   HoleVarParamsDefaults,
   HoleVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const alpha = atan2(pos.y, pos.x)
     const delta = pow(alpha / PI.$ + 1.0, P.a)
@@ -51,7 +51,7 @@ export const holeVar = parametricVariation(
     } else {
       r = sqrt(pos.x * pos.x + pos.y * pos.y + delta)
     }
-    return vec2f(r * cos(alpha), r * sin(alpha))
+    return vec2f(r * cos(alpha), r * sin(alpha)).mul(varInfo.weight)
   },
   'general',
 )

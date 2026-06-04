@@ -86,14 +86,14 @@ export const projectiveVar = parametricVariation(
   ProjectiveVarParams,
   ProjectiveVarParamsDefaults,
   ProjectiveVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const x = pos.x
     const y = pos.y
     const denom = P.g * x + P.h * y + 1.0
     const nx = (P.a * x + P.b * y + P.c) / denom
     const ny = (P.d * x + P.e * y + P.f) / denom
-    return vec2f(nx, ny)
+    return vec2f(nx, ny).mul(varInfo.weight)
   },
   'general',
 )

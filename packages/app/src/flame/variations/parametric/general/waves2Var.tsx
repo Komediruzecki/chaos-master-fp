@@ -56,12 +56,12 @@ export const waves2Var = parametricVariation(
   Waves2VarParams,
   Waves2VarParamsDefaults,
   Waves2VarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     return vec2f(
       pos.x + P.scaleX * sin(pos.y * P.freqX),
       pos.y + P.scaleY * sin(pos.x * P.freqY),
-    )
+    ).mul(varInfo.weight)
   },
   'general',
 )

@@ -67,7 +67,7 @@ export const waffleVar = parametricVariation(
   WaffleVarParams,
   WaffleVarParamsDefaults,
   WaffleVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const s = P.slices
     const xt = P.xthickness
@@ -97,7 +97,7 @@ export const waffleVar = parametricVariation(
       rr = random()
     }
 
-    return vec2f(vr * aa + vs * rr, -vs * aa + vr * rr)
+    return vec2f(vr * aa + vs * rr, -vs * aa + vr * rr).mul(varInfo.weight)
   },
   'general',
 )

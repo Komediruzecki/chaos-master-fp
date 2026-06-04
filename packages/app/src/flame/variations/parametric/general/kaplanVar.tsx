@@ -47,7 +47,7 @@ export const kaplanVar = parametricVariation(
   KaplanVarParams,
   KaplanVarParamsDefaults,
   KaplanVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const rx = floor(P.n * random())
     const ry = floor(P.n * random())
@@ -75,7 +75,7 @@ export const kaplanVar = parametricVariation(
     }
     const outX = select(0.0, rx / P.n - 0.5, visible)
     const outY = select(0.0, ry / P.n - 0.5, visible)
-    return vec2f(outX, outY)
+    return vec2f(outX, outY).mul(varInfo.weight)
   },
   'general',
 )

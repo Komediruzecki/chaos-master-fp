@@ -33,7 +33,7 @@ export const circlizeVar = parametricVariation(
   CirclizeVarParams,
   CirclizeVarParamsDefaults,
   CirclizeVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const absx = abs(pos.x)
     const absy = abs(pos.y)
@@ -61,7 +61,7 @@ export const circlizeVar = parametricVariation(
     const cosa = cos(a)
     const sina = sin(a)
 
-    return vec2f(r * cosa, r * sina)
+    return vec2f(r * cosa, r * sina).mul(varInfo.weight)
   },
   'general',
 )

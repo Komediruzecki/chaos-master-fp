@@ -44,7 +44,7 @@ export const fibonacci2Var = parametricVariation(
   Fibonacci2VarParams,
   Fibonacci2VarParamsDefaults,
   Fibonacci2VarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const a = pos.y * FNATLOG
     const snum1 = sin(a)
@@ -59,7 +59,7 @@ export const fibonacci2Var = parametricVariation(
     return vec2f(
       (eradius1 * cnum1 - eradius2 * cnum2) / SQRT5,
       (eradius1 * snum1 - eradius2 * snum2) / SQRT5,
-    )
+    ).mul(varInfo.weight)
   },
   'general',
 )

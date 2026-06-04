@@ -33,7 +33,7 @@ export const kochVar = parametricVariation(
   KochVarParams,
   KochVarParamsDefaults,
   KochVarParamsEditor,
-  (pos, _varInfo, _P) => {
+  (pos, varInfo, _P) => {
     'use gpu'
     const x = pos.x
     const y = pos.y
@@ -43,19 +43,23 @@ export const kochVar = parametricVariation(
     const seg = fract((x * 0.5 + y * 0.3 + 2.0) * 4.0)
 
     if (seg < 0.25) {
-      return vec2f(nx, ny)
+      return vec2f(nx, ny).mul(varInfo.weight)
     }
     if (seg < 0.5) {
       const s60 = 0.8660254037844386
       const c60 = 0.5
-      return vec2f(c60 * nx - s60 * ny + sc, s60 * nx + c60 * ny)
+      return vec2f(c60 * nx - s60 * ny + sc, s60 * nx + c60 * ny).mul(
+        varInfo.weight,
+      )
     }
     if (seg < 0.75) {
       const s60 = 0.8660254037844386
       const c60 = 0.5
-      return vec2f(c60 * nx + s60 * ny + 0.5, -s60 * nx + c60 * ny + S3)
+      return vec2f(c60 * nx + s60 * ny + 0.5, -s60 * nx + c60 * ny + S3).mul(
+        varInfo.weight,
+      )
     }
-    return vec2f(nx + 2.0 * sc, ny)
+    return vec2f(nx + 2.0 * sc, ny).mul(varInfo.weight)
   },
   'general',
 )

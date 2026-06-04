@@ -48,12 +48,12 @@ export const popcorn2Var = parametricVariation(
   Popcorn2VarParams,
   Popcorn2VarParamsDefaults,
   Popcorn2VarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const newX = pos.x + P.x * sin(tan(pos.y * P.c))
     const newY = pos.y + P.y * sin(tan(pos.x * P.c))
 
-    return vec2f(newX, newY)
+    return vec2f(newX, newY).mul(varInfo.weight)
   },
   'general',
 )

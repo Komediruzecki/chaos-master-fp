@@ -4,10 +4,12 @@ import { simpleVariation } from '../types'
 
 export const horseshoeVar = simpleVariation(
   'horseshoeVar',
-  (pos, _varInfo) => {
+  (pos, varInfo) => {
     'use gpu'
     const r = length(pos)
-    return vec2f((pos.x - pos.y) * (pos.x + pos.y), 2.0 * pos.x * pos.y).div(r)
+    return vec2f((pos.x - pos.y) * (pos.x + pos.y), 2.0 * pos.x * pos.y)
+      .div(r)
+      .mul(varInfo.weight)
   },
   'general',
 )

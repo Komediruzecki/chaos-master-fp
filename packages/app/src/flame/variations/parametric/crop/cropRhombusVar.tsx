@@ -38,7 +38,7 @@ export const cropRhombusVar = parametricVariation(
   CropRhombusParams,
   CropRhombusParamsDefaults,
   CropRhombusParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const ca = cos(P.angle)
     const sa = sin(P.angle)
@@ -48,9 +48,9 @@ export const cropRhombusVar = parametricVariation(
     const hh = P.height * 0.5
     const d = abs(rx) / hw + abs(ry) / hh
     if (d > 1.0) {
-      return vec2f(0.0, 0.0)
+      return vec2f(0.0, 0.0).mul(varInfo.weight)
     }
-    return vec2f(pos.x, pos.y)
+    return vec2f(pos.x, pos.y).mul(varInfo.weight)
   },
   'crop',
 )

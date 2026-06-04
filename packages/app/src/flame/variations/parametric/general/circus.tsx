@@ -31,7 +31,7 @@ export const circus = parametricVariation(
   CircusParams,
   CircusParamsDefaults,
   CircusParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     let r = length(pos)
     const theta = atan2(pos.y, pos.x)
@@ -40,7 +40,7 @@ export const circus = parametricVariation(
 
     const scale1 = 1.0 / P.scale
     r = r * select(scale1, P.scale, r <= 1.0)
-    return vec2f(r * c, r * s)
+    return vec2f(r * c, r * s).mul(varInfo.weight)
   },
   'general',
 )

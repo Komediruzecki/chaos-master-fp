@@ -67,7 +67,7 @@ export const circleRandVar = parametricVariation(
   CircleRandVarParams,
   CircleRandVarParamsDefaults,
   CircleRandVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     let outX = 0.0
     let outY = 0.0
@@ -102,7 +102,7 @@ export const circleRandVar = parametricVariation(
       outY = Y + f32(N * 2 + 1) * P.sc
     }
 
-    return vec2f(pos.x + outX, pos.y + outY)
+    return vec2f(pos.x + outX, pos.y + outY).mul(varInfo.weight)
   },
   'general',
 )

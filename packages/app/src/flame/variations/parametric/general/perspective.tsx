@@ -37,12 +37,14 @@ export const perspective = parametricVariation(
   PerspectiveParams,
   PerspectiveParamsDefaults,
   PerspectiveParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const p1 = P.angle
     const p2 = P.dist
     const factor = p2 / (p2 - pos.y * sin(p1))
-    return vec2f(pos.x, pos.y * cos(p1)).mul(factor)
+    return vec2f(pos.x, pos.y * cos(p1))
+      .mul(factor)
+      .mul(varInfo.weight)
   },
   'general',
 )

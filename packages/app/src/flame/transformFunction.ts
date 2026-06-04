@@ -79,7 +79,7 @@ export function createFlameWgsl({
       ${recordEntries(validVariations)
         .map(
           ([vid, { type }]) => /* wgsl */ `
-            p += uniforms.variation${vid}.weight * ${variationInvocation(type, vid)};`,
+            p += ${variationInvocation(type, vid)};`,
         )
         .join('\n')}
       p = transformAffine(uniforms.postAffine, p);

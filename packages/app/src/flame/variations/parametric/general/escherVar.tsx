@@ -33,7 +33,7 @@ export const escherVar = parametricVariation(
   EscherVarParams,
   EscherVarParamsDefaults,
   EscherVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const x = pos.x
     const y = pos.y
@@ -41,7 +41,7 @@ export const escherVar = parametricVariation(
     const lnr = 0.5 * log(x * x + y * y + 0.000001)
     const n = sin(P.beta * PI.$) * a
     const m = cos(P.beta * PI.$) * lnr
-    return vec2f(cos(n) * exp(m), sin(n) * exp(m))
+    return vec2f(cos(n) * exp(m), sin(n) * exp(m)).mul(varInfo.weight)
   },
   'general',
 )

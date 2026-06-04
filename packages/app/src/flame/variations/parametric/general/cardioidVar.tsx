@@ -32,11 +32,11 @@ export const cardioidVar = parametricVariation(
   CardioidVarParams,
   CardioidVarParamsDefaults,
   CardioidVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const a = atan2(pos.y, pos.x)
     const r = sqrt(pos.x * pos.x + pos.y * pos.y + sin(a * P.a) + 1.0)
-    return vec2f(r * cos(a), r * sin(a))
+    return vec2f(r * cos(a), r * sin(a)).mul(varInfo.weight)
   },
   'general',
 )

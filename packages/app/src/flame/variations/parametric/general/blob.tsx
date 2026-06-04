@@ -45,7 +45,7 @@ export const blob = parametricVariation(
   BlobParams,
   BlobParamsDefaults,
   BlobParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const p1 = P.high
     const p2 = P.low
@@ -55,7 +55,7 @@ export const blob = parametricVariation(
     const sinWavesTheta = sin(p3 * theta)
     const sinFactor = (p1 - p2) / 2
     const blobFact = r * (p2 + sinFactor * (sinWavesTheta + 1))
-    return vec2f(cos(theta), sin(theta)).mul(blobFact)
+    return vec2f(cos(theta), sin(theta)).mul(blobFact).mul(varInfo.weight)
   },
   'general',
 )

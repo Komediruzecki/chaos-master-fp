@@ -5,11 +5,11 @@ import { simpleVariation } from '../types'
 
 export const exponentialVar = simpleVariation(
   'exponentialVar',
-  (pos, _varInfo) => {
+  (pos, varInfo) => {
     'use gpu'
     const d = exp(pos.x - 1.0)
     const r = PI.$ * pos.y
-    return vec2f(d * cos(r), d * sin(r))
+    return vec2f(d * cos(r), d * sin(r)).mul(varInfo.weight)
   },
   'general',
 )

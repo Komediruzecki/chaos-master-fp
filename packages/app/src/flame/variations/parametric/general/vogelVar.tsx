@@ -42,13 +42,13 @@ export const vogelVar = parametricVariation(
   VogelVarParams,
   VogelVarParamsDefaults,
   VogelVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const dist = sqrt(pos.x * pos.x + pos.y * pos.y)
     const i = f32(floor(P.n * dist * 0.5))
     const theta = i * GOLDEN_ANGLE
     const r = P.scale * sqrt(i)
-    return vec2f(r * cos(theta), r * sin(theta))
+    return vec2f(r * cos(theta), r * sin(theta)).mul(varInfo.weight)
   },
   'general',
 )

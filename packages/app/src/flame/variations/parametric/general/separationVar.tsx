@@ -56,7 +56,7 @@ export const separationVar = parametricVariation(
   SeparationVarParams,
   SeparationVarParamsDefaults,
   SeparationVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const sx2 = P.xSep * P.xSep
     const sy2 = P.ySep * P.ySep
@@ -70,7 +70,7 @@ export const separationVar = parametricVariation(
       sqrt(pos.y * pos.y + sy2) - pos.y * P.yInside,
       pos.y > 0.0,
     )
-    return vec2f(nx, ny)
+    return vec2f(nx, ny).mul(varInfo.weight)
   },
   'general',
 )

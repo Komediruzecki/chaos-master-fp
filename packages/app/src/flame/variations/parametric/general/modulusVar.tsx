@@ -39,7 +39,7 @@ export const modulusVar = parametricVariation(
   ModulusVarParams,
   ModulusVarParamsDefaults,
   ModulusVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const xr = 2.0 * P.x
     const yr = 2.0 * P.y
@@ -58,7 +58,7 @@ export const modulusVar = parametricVariation(
       ny = P.y - ((P.y - pos.y) % yr)
     }
 
-    return vec2f(nx, ny)
+    return vec2f(nx, ny).mul(varInfo.weight)
   },
   'general',
 )

@@ -55,7 +55,7 @@ export const pdjVar = parametricVariation(
   PdjParams,
   PdjParamsDefaults,
   PdjParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const p1 = P.a
     const p2 = P.b
@@ -64,7 +64,7 @@ export const pdjVar = parametricVariation(
     return vec2f(
       sin(p1 * pos.y) - cos(p2 * pos.x),
       sin(p3 * pos.x) - cos(p4 * pos.y),
-    )
+    ).mul(varInfo.weight)
   },
   'general',
 )

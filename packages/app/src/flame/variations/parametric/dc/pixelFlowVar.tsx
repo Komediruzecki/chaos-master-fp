@@ -76,7 +76,7 @@ export const pixelFlowVar = parametricVariation(
   PixelFlowVarParams,
   PixelFlowVarParamsDefaults,
   PixelFlowVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const scaled_x = pos.x * P.scale_x
     const scaled_y = pos.y * P.scale_y
@@ -95,7 +95,7 @@ export const pixelFlowVar = parametricVariation(
     return vec2f(
       (fx + clamp(flow_x, 0.0, 1.0)) / P.scale_x,
       (fy + clamp(flow_y, 0.0, 1.0)) / P.scale_y,
-    )
+    ).mul(varInfo.weight)
   },
   'dc',
 )

@@ -45,7 +45,7 @@ export const ellipticVar = parametricVariation(
   EllipticVarParams,
   EllipticVarParamsDefaults,
   EllipticVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const x2 = 2.0 * pos.x
     const sq = pos.y * pos.y + pos.x * pos.x
@@ -60,7 +60,7 @@ export const ellipticVar = parametricVariation(
       return vec2f(
         M2PI * asin(clamp(a, -1.0, 1.0)),
         sign * M2PI * log(xmaxm1 + ssx + 1.0),
-      )
+      ).mul(varInfo.weight)
     }
 
     const tmp = sq + 1.0
@@ -78,7 +78,7 @@ export const ellipticVar = parametricVariation(
       sign *
         M2PI *
         log(xmax + select(0.0, sqrt(xmax - 1.0), xmax - 1.0 >= EPS.$)),
-    )
+    ).mul(varInfo.weight)
   },
   'general',
 )

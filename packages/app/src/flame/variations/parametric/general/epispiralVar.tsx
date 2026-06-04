@@ -50,12 +50,12 @@ export const epispiralVar = parametricVariation(
   EpispiralVarParams,
   EpispiralVarParamsDefaults,
   EpispiralVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const theta = atan2(pos.y, pos.x)
     const d = cos(P.n * theta)
     if (d === 0.0) {
-      return vec2f(0.0, 0.0)
+      return vec2f(0.0, 0.0).mul(varInfo.weight)
     }
     let t = -P.holes
     if (abs(P.thickness) > EPS.$) {
@@ -63,7 +63,7 @@ export const epispiralVar = parametricVariation(
     } else {
       t += 1.0 / d
     }
-    return vec2f(t * cos(theta), t * sin(theta))
+    return vec2f(t * cos(theta), t * sin(theta)).mul(varInfo.weight)
   },
   'general',
 )

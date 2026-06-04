@@ -5,11 +5,11 @@ import { simpleVariation } from '../types'
 
 export const polarVar = simpleVariation(
   'polarVar',
-  (pos, _varInfo) => {
+  (pos, varInfo) => {
     'use gpu'
     const r = length(pos)
     const theta = atan2(pos.y, pos.x)
-    return vec2f(theta / PI.$, r - 1.0)
+    return vec2f(theta / PI.$, r - 1.0).mul(varInfo.weight)
   },
   'general',
 )

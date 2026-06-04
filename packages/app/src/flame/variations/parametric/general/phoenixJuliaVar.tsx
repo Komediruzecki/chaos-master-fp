@@ -57,7 +57,7 @@ export const phoenixJuliaVar = parametricVariation(
   PhoenixJuliaParams,
   PhoenixJuliaDefaults,
   PhoenixJuliaEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const preX = pos.x * (P.x_distort + 1.0)
     const preY = pos.y * (P.y_distort + 1.0)
@@ -66,7 +66,7 @@ export const phoenixJuliaVar = parametricVariation(
     const cN = P.dist / P.power / 2.0
     const a = atan2(preY, preX) * invN + random() * inv2PI_N
     const r = pow(pos.x * pos.x + pos.y * pos.y, cN)
-    return vec2f(r * cos(a), r * sin(a))
+    return vec2f(r * cos(a), r * sin(a)).mul(varInfo.weight)
   },
   'general',
 )

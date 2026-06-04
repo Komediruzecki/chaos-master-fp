@@ -30,7 +30,7 @@ export const hypertileVar = parametricVariation(
   HypertileVarParams,
   HypertileVarParamsDefaults,
   HypertileVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const x = pos.x
     const y = pos.y
@@ -41,7 +41,7 @@ export const hypertileVar = parametricVariation(
     const sector = (2.0 * PI.$) / P.q
     const nx = r * cos(a * sector)
     const ny = r * sin(a * sector)
-    return vec2f(nx / (1.0 + r), ny / (1.0 + r))
+    return vec2f(nx / (1.0 + r), ny / (1.0 + r)).mul(varInfo.weight)
   },
   'general',
 )

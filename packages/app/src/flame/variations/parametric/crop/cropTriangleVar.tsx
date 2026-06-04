@@ -31,7 +31,7 @@ export const cropTriangleVar = parametricVariation(
   CropTriangleParams,
   CropTriangleParamsDefaults,
   CropTriangleParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const ca = cos(P.angle)
     const sa = sin(P.angle)
@@ -45,9 +45,9 @@ export const cropTriangleVar = parametricVariation(
       (x * 2.0) / s + y / h < 1.0 &&
       (-x * 2.0) / s + y / h < 1.0
     if (!inside) {
-      return vec2f(0.0, 0.0)
+      return vec2f(0.0, 0.0).mul(varInfo.weight)
     }
-    return vec2f(pos.x, pos.y)
+    return vec2f(pos.x, pos.y).mul(varInfo.weight)
   },
   'crop',
 )

@@ -5,7 +5,7 @@ import { simpleVariation } from '../types'
 
 export const rays3Var = simpleVariation(
   'rays3Var',
-  (pos, _varInfo) => {
+  (pos, varInfo) => {
     'use gpu'
     const t = dot(pos, pos) + EPS.$
     const t2 = t * t
@@ -15,7 +15,7 @@ export const rays3Var = simpleVariation(
     return vec2f(
       (factor * cos(t)) / (pos.x + EPS.$),
       (factor * tan(t)) / (pos.y + EPS.$),
-    )
+    ).mul(varInfo.weight)
   },
   'general',
 )

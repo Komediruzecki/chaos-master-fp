@@ -4,10 +4,10 @@ import { simpleVariation } from '../types'
 
 export const preSpherical = simpleVariation(
   'preSpherical',
-  (pos, _varInfo) => {
+  (pos, varInfo) => {
     'use gpu'
     const r = 1.0 / (dot(pos, pos) + EPS.$)
-    return pos.mul(r)
+    return pos.mul(r).mul(varInfo.weight)
   },
   'pre',
 )

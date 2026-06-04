@@ -57,7 +57,7 @@ export const wedgeSphVar = parametricVariation(
   WedgeSphVarParams,
   WedgeSphVarParamsDefaults,
   WedgeSphVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
 
     const r = 1.0 / (sqrt(pos.x * pos.x + pos.y * pos.y) + EPS.$)
@@ -67,7 +67,7 @@ export const wedgeSphVar = parametricVariation(
     const a2 = a * compFac + c * P.angle
     const rf = r + P.hole
 
-    return vec2f(rf * cos(a2), rf * sin(a2))
+    return vec2f(rf * cos(a2), rf * sin(a2)).mul(varInfo.weight)
   },
   'general',
 )

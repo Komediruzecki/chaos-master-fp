@@ -49,7 +49,7 @@ export const gumowskiMiraVar = parametricVariation(
   GumowskiMiraVarParams,
   GumowskiMiraVarParamsDefaults,
   GumowskiMiraVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const x2 = pos.x * pos.x
     const mira_x = P.m * pos.x + (2.0 * (1.0 - P.m) * x2) / (1.0 + x2)
@@ -57,7 +57,7 @@ export const gumowskiMiraVar = parametricVariation(
     const xn2 = xn * xn
     const mira_xn = P.m * xn + (2.0 * (1.0 - P.m) * xn2) / (1.0 + xn2)
     const yn = -pos.x + mira_xn
-    return vec2f(xn, yn)
+    return vec2f(xn, yn).mul(varInfo.weight)
   },
   'general',
 )

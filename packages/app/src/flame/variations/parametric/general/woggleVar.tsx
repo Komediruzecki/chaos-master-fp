@@ -34,7 +34,7 @@ export const woggleVar = parametricVariation(
   WoggleVarParams,
   WoggleVarParamsDefaults,
   WoggleVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const x = pos.x
     const y = pos.y
@@ -46,7 +46,10 @@ export const woggleVar = parametricVariation(
     const c = cos(a)
     const s = sin(a)
 
-    return vec2f(invN * (c * x - s * y) + invN, invN * (s * x + c * y) + invN)
+    return vec2f(
+      invN * (c * x - s * y) + invN,
+      invN * (s * x + c * y) + invN,
+    ).mul(varInfo.weight)
   },
   'general',
 )

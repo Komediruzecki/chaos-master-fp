@@ -4,12 +4,14 @@ import { simpleVariation } from '../types'
 
 export const swirlVar = simpleVariation(
   'swirlVar',
-  (pos, _varInfo) => {
+  (pos, varInfo) => {
     'use gpu'
     const r2 = dot(pos, pos)
     const s2 = sin(r2)
     const c2 = cos(r2)
-    return vec2f(pos.x * s2 - pos.y * c2, pos.x * c2 + pos.y * s2)
+    return vec2f(pos.x * s2 - pos.y * c2, pos.x * c2 + pos.y * s2).mul(
+      varInfo.weight,
+    )
   },
   'general',
 )

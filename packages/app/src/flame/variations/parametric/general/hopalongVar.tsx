@@ -47,11 +47,11 @@ export const hopalongVar = parametricVariation(
   HopalongVarParams,
   HopalongVarParamsDefaults,
   HopalongVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const nx = pos.y - sign(pos.x) * sqrt(abs(P.b * pos.x - P.c))
     const ny = P.a - pos.x
-    return vec2f(nx, ny)
+    return vec2f(nx, ny).mul(varInfo.weight)
   },
   'general',
 )

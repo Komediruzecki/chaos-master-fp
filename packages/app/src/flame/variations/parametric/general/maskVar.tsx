@@ -65,17 +65,17 @@ export const maskVar = parametricVariation(
   MaskVarParams,
   MaskVarParamsDefaults,
   MaskVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const sumsq = pos.x * pos.x + pos.y * pos.y
     if (abs(sumsq) < EPS.$) {
-      return vec2f(0.0, 0.0)
+      return vec2f(0.0, 0.0).mul(varInfo.weight)
     }
     const xfactor = P.xscale * pos.x + P.xshift
     const yfactor = P.yscale * pos.y + P.yshift
     const s = sin(xfactor)
     const factor = (1.0 / sumsq) * s * (cosh(yfactor) + P.ushift) * (s * s)
-    return vec2f(factor * s, factor * cos(xfactor))
+    return vec2f(factor * s, factor * cos(xfactor)).mul(varInfo.weight)
   },
   'general',
 )

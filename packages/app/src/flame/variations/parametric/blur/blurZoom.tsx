@@ -23,9 +23,9 @@ export const blurZoom = parametricVariation(
   BlurZoomParams,
   BlurZoomParamsDefaults,
   BlurZoomParamsEditor,
-  (pos, _varInfo, _P) => {
+  (pos, varInfo, _P) => {
     'use gpu'
-    return vec2f(pos)
+    return vec2f(pos).mul(varInfo.weight)
   },
   'blur',
 )

@@ -60,7 +60,7 @@ export const invCircle = parametricVariation(
   InvCircleParams,
   InvCircleParamsDefaults,
   InvCircleParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const dx = pos.x - P.a
     const dy = pos.y - P.b
@@ -77,7 +77,9 @@ export const invCircle = parametricVariation(
     // the IFS chaos game will still converge given the following is satisfied:
     //   the starting random point was not inside all defined circles, the circles can
     //   touch and overlap as usual
-    return select(newPos, pos, P.restricted > 0.0 && d2 < r2)
+    return select(newPos, pos, P.restricted > 0.0 && d2 < r2).mul(
+      varInfo.weight,
+    )
   },
   'general',
 )

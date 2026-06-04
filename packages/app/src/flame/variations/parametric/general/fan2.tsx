@@ -40,7 +40,7 @@ export const fan2 = parametricVariation(
   Fan2Params,
   Fan2ParamsDefaults,
   Fan2ParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const p1 = PI.$ * P.x * P.x
     const p2 = P.y
@@ -52,7 +52,7 @@ export const fan2 = parametricVariation(
     const trueAngle = theta - p1half
     const falseAngle = theta + p1half
     const angle = select(falseAngle, trueAngle, t > p1half)
-    return vec2f(sin(angle), cos(angle)).mul(r)
+    return vec2f(sin(angle), cos(angle)).mul(r).mul(varInfo.weight)
   },
   'general',
 )

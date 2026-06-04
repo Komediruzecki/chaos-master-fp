@@ -32,14 +32,14 @@ export const swirl3Var = parametricVariation(
   Swirl3VarParams,
   Swirl3VarParamsDefaults,
   Swirl3VarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const rad = length(pos)
     const ang = atan2(pos.y, pos.x) + log(rad) * P.shift
     const s = sin(ang)
     const c = cos(ang)
 
-    return vec2f(rad * c, rad * s)
+    return vec2f(rad * c, rad * s).mul(varInfo.weight)
   },
   'general',
 )

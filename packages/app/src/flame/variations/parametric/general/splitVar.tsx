@@ -41,11 +41,11 @@ export const splitVar = parametricVariation(
   SplitVarParams,
   SplitVarParamsDefaults,
   SplitVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const xVal = select(-pos.x, pos.x, cos(pos.x * P.xSize * PI.$) >= 0.0)
     const yVal = select(-pos.y, pos.y, cos(pos.y * P.ySize * PI.$) >= 0.0)
-    return vec2f(xVal, yVal)
+    return vec2f(xVal, yVal).mul(varInfo.weight)
   },
   'general',
 )

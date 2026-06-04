@@ -30,13 +30,13 @@ export const sintrangeVar = parametricVariation(
   SintrangeVarParams,
   SintrangeVarParamsDefaults,
   SintrangeVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const v = (pos.x * pos.x + pos.y * pos.y) * P.w
     return vec2f(
       sin(pos.x) * (pos.x * pos.x + P.w - v),
       sin(pos.y) * (pos.y * pos.y + P.w - v),
-    )
+    ).mul(varInfo.weight)
   },
   'general',
 )

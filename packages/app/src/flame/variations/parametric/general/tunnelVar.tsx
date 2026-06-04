@@ -40,7 +40,7 @@ export const tunnelVar = parametricVariation(
   TunnelVarParams,
   TunnelVarParamsDefaults,
   TunnelVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const uv = pos.add(vec2f(0.5))
 
@@ -59,7 +59,7 @@ export const tunnelVar = parametricVariation(
     const deform_y_fixed = (MAX_DISTORTION - distortion) * deformVal
     const shiftY = P.Sy * deform_y_fixed * dist.y
 
-    return vec2f(shiftX, shiftY)
+    return vec2f(shiftX, shiftY).mul(varInfo.weight)
   },
   'general',
 )

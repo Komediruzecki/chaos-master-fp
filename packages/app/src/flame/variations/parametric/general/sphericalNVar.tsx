@@ -42,14 +42,14 @@ export const sphericalNVar = parametricVariation(
   SphericalNVarParams,
   SphericalNVarParamsDefaults,
   SphericalNVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const r = pow(sqrt(pos.x * pos.x + pos.y * pos.y), P.dist)
     const n = floor(P.power * random())
     const pwrSafe = max(floor(P.power), 1.0)
     const alpha = atan2(pos.y, pos.x) + (n * 2.0 * PI.$) / pwrSafe
     const rSafe = select(r, 1.0, r <= EPS.$)
-    return vec2f(cos(alpha) / rSafe, sin(alpha) / rSafe)
+    return vec2f(cos(alpha) / rSafe, sin(alpha) / rSafe).mul(varInfo.weight)
   },
   'general',
 )

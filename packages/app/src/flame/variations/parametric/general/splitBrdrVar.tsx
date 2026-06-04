@@ -58,7 +58,7 @@ export const splitBrdrVar = parametricVariation(
   SplitBrdrVarParams,
   SplitBrdrVarParamsDefaults,
   SplitBrdrVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
 
     // Bubble warp
@@ -113,7 +113,7 @@ export const splitBrdrVar = parametricVariation(
     outX = outX + pos.x * P.px
     outY = outY + pos.y * P.py
 
-    return vec2f(outX, outY)
+    return vec2f(outX, outY).mul(varInfo.weight)
   },
   'general',
 )

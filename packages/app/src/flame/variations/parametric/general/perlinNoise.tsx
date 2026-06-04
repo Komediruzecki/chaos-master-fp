@@ -48,7 +48,7 @@ export const perlinNoiseVar = parametricVariation(
   PerlinNoiseVarParams,
   PerlinNoiseVarParamsDefaults,
   PerlinNoiseVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     let total = f32(0)
     let maxValue = f32(0)
@@ -66,7 +66,9 @@ export const perlinNoiseVar = parametricVariation(
       amplitude *= persistence
     }
 
-    return vec2f(pos).add(total / maxValue)
+    return vec2f(pos)
+      .add(total / maxValue)
+      .mul(varInfo.weight)
   },
   'general',
 )

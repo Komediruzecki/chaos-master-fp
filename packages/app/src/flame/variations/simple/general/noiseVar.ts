@@ -6,11 +6,13 @@ import { simpleVariation } from '../types'
 
 export const noiseVar = simpleVariation(
   'noiseVar',
-  (pos, _varInfo) => {
+  (pos, varInfo) => {
     'use gpu'
     const rand = random()
     const angle = 2.0 * PI.$ * random()
-    return vec2f(pos.x * cos(angle), pos.y * sin(angle)).mul(rand)
+    return vec2f(pos.x * cos(angle), pos.y * sin(angle))
+      .mul(rand)
+      .mul(varInfo.weight)
   },
   'general',
 )

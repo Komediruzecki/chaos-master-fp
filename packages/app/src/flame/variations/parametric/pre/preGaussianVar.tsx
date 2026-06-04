@@ -24,14 +24,14 @@ export const preGaussianVar = parametricVariation(
   PreGaussianParams,
   PreGaussianParamsDefaults,
   PreGaussianParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const s = P.sigma
     const r2 = pos.x * pos.x + pos.y * pos.y
     const e = exp(-r2 / (2.0 * s * s))
     const x = pos.x * e
     const y = pos.y * e
-    return vec2f(x, y)
+    return vec2f(x, y).mul(varInfo.weight)
   },
   'pre',
 )

@@ -52,7 +52,7 @@ export const grid = parametricVariation(
   GridParams,
   GridParamsDefaults,
   GridParamsEditor,
-  (_pos, _varInfo, P) => {
+  (_pos, varInfo, P) => {
     'use gpu'
     const D = P.jitterNearIntersectionsDistance
     const divs = select(P.divisions, 1, random() > 0.8)
@@ -68,7 +68,7 @@ export const grid = parametricVariation(
       vec2f(rounded.x, jittered.y),
       vec2f(jittered.x, rounded.y),
       random() > 0.5,
-    )
+    ).mul(varInfo.weight)
   },
   'general',
 )

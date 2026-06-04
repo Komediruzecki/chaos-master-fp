@@ -5,13 +5,13 @@ import { simpleVariation } from '../types'
 
 export const spiralwingVar = simpleVariation(
   'spiralwingVar',
-  (pos, _varInfo) => {
+  (pos, varInfo) => {
     'use gpu'
     const c1 = pos.x * pos.x
     const c2 = pos.y * pos.y
     const d = 1.0 / (c1 + c2 + EPS.$)
     const s = sin(c2)
-    return vec2f(d * cos(c1) * s, d * sin(c1) * s)
+    return vec2f(d * cos(c1) * s, d * sin(c1) * s).mul(varInfo.weight)
   },
   'general',
 )

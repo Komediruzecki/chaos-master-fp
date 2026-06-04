@@ -5,7 +5,7 @@ import { simpleVariation } from '../types'
 
 export const invtreeVar = simpleVariation(
   'invtreeVar',
-  (pos, _varInfo) => {
+  (pos, varInfo) => {
     'use gpu'
     const r = random()
     const x = select(
@@ -18,7 +18,7 @@ export const invtreeVar = simpleVariation(
       pos.y / 2.0,
       r < 0.333,
     )
-    return vec2f(x, y)
+    return vec2f(x, y).mul(varInfo.weight)
   },
   'general',
 )

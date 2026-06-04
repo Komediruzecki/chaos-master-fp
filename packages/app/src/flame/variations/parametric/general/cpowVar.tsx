@@ -49,7 +49,7 @@ export const cpowVar = parametricVariation(
   CPowVarParams,
   CPowVarParamsDefaults,
   CPowVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const a = atan2(pos.y, pos.x)
     const sumSq = dot(pos, pos)
@@ -62,7 +62,7 @@ export const cpowVar = parametricVariation(
     const m = exp(vc * lnr - vd * a)
     const sa = sin(angle)
     const ca = cos(angle)
-    return vec2f(m * ca, m * sa)
+    return vec2f(m * ca, m * sa).mul(varInfo.weight)
   },
   'general',
 )

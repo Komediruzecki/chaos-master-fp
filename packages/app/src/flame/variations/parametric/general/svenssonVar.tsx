@@ -56,11 +56,11 @@ export const svenssonVar = parametricVariation(
   SvenssonVarParams,
   SvenssonVarParamsDefaults,
   SvenssonVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const x = P.d * sin(P.a * pos.x) - sin(P.b * pos.y)
     const y = P.c * cos(P.a * pos.x) + cos(P.b * pos.y)
-    return vec2f(x, y)
+    return vec2f(x, y).mul(varInfo.weight)
   },
   'general',
 )

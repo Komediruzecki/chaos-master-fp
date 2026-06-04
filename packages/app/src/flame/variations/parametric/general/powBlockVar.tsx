@@ -71,7 +71,7 @@ export const powBlockVar = parametricVariation(
   PowBlockVarParams,
   PowBlockVarParamsDefaults,
   PowBlockVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const cdSafe = select(abs(P.correctd), EPS.$, abs(P.correctd) <= EPS.$)
     const denSafe = select(P.denominator, EPS.$, abs(P.denominator) <= EPS.$)
@@ -85,7 +85,7 @@ export const powBlockVar = parametricVariation(
       (theta * deneps +
         P.root * 2.0 * PI.$ * f32(floor(random() * P.denominator)) * deneps) *
       P.numerator
-    return vec2f(r2 * cos(ran), r2 * sin(ran))
+    return vec2f(r2 * cos(ran), r2 * sin(ran)).mul(varInfo.weight)
   },
   'general',
 )

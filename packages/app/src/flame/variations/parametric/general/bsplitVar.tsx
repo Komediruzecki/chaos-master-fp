@@ -40,10 +40,13 @@ export const bsplitVar = parametricVariation(
   BSplitVarParams,
   BSplitVarParamsDefaults,
   BSplitVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const denom = tan(pos.x + P.x)
-    return vec2f(cos(pos.y + P.y) / denom, (-pos.y + P.y) / sin(pos.x + P.x))
+    return vec2f(
+      cos(pos.y + P.y) / denom,
+      (-pos.y + P.y) / sin(pos.x + P.x),
+    ).mul(varInfo.weight)
   },
   'general',
 )

@@ -14,7 +14,7 @@ export const fanVar = simpleVariation(
     const thalf = t / 2.0
     const modCond = (theta + T.f) % t
     const angle = select(theta + thalf, theta - thalf, modCond > thalf)
-    return vec2f(cos(angle), sin(angle)).mul(r)
+    return vec2f(cos(angle), sin(angle)).mul(r).mul(varInfo.weight)
   },
   'general',
 )

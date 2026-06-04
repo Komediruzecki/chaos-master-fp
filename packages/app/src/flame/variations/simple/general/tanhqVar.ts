@@ -4,7 +4,7 @@ import { simpleVariation } from '../types'
 
 export const tanhqVar = simpleVariation(
   'tanhqVar',
-  (pos, _varInfo) => {
+  (pos, varInfo) => {
     'use gpu'
 
     const z = 0.0
@@ -28,7 +28,7 @@ export const tanhqVar = simpleVariation(
     const newX = (stcv * ctcv + C * B * sysz) * ni
     const newY = (-stcv * B + C * ctcv) * pos.y * ni
 
-    return vec2f(newX, newY)
+    return vec2f(newX, newY).mul(varInfo.weight)
   },
   'general',
 )

@@ -30,7 +30,7 @@ export const hypertile2Var = parametricVariation(
   Hypertile2VarParams,
   Hypertile2VarParamsDefaults,
   Hypertile2VarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const x = pos.x
     const y = pos.y
@@ -39,7 +39,7 @@ export const hypertile2Var = parametricVariation(
     const pa = (2.0 * PI.$) / P.p
     const nr = r / (r + 1.0)
     const nt = theta + pa * sin(P.q * theta)
-    return vec2f(nr * cos(nt), nr * sin(nt))
+    return vec2f(nr * cos(nt), nr * sin(nt)).mul(varInfo.weight)
   },
   'general',
 )

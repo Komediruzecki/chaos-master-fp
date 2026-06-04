@@ -4,7 +4,7 @@ import { simpleVariation } from '../types'
 
 export const gridoutVar = simpleVariation(
   'gridoutVar',
-  (pos, _varInfo) => {
+  (pos, varInfo) => {
     'use gpu'
     const x = round(pos.x)
     const y = round(pos.y)
@@ -50,7 +50,7 @@ export const gridoutVar = simpleVariation(
       }
     }
 
-    return vec2f(outX, outY)
+    return vec2f(outX, outY).mul(varInfo.weight)
   },
   'general',
 )

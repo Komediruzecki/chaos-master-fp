@@ -3,9 +3,9 @@ import { simpleVariation } from '../types'
 
 export const linearVar = simpleVariation(
   'linearVar',
-  (pos, _varInfo) => {
+  (pos, varInfo) => {
     'use gpu'
-    return vec2f(pos)
+    return vec2f(pos).mul(varInfo.weight)
   },
   'general',
 )

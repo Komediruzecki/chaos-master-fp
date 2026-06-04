@@ -48,7 +48,7 @@ export const postBWraps2 = parametricVariation(
   PostBWraps2Params,
   PostBWraps2ParamsDefaults,
   PostBWraps2ParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const space2 = P.space * P.space
     const radius = (0.5 * P.cellsize) / (1.0 + space2)
@@ -80,10 +80,10 @@ export const postBWraps2 = parametricVariation(
       const c = cos(theta)
       const nx = cx + c * lx + s * ly
       const ny = cy - s * lx + c * ly
-      return vec2f(nx, ny)
+      return vec2f(nx, ny).mul(varInfo.weight)
     }
 
-    return vec2f(pos.x, pos.y)
+    return vec2f(pos.x, pos.y).mul(varInfo.weight)
   },
   'post',
 )

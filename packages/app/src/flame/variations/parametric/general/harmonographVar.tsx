@@ -169,7 +169,7 @@ export const harmonographVar = parametricVariation(
   HarmonographVarParams,
   HarmonographVarParamsDefaults,
   HarmonographVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const t = random() * P.time
     const x =
@@ -178,7 +178,7 @@ export const harmonographVar = parametricVariation(
     const y =
       P.a3 * sin(t * P.f3 + degToRad(P.p3)) * exp(-P.d3 * t) +
       P.a4 * sin(t * P.f4 + degToRad(P.p4)) * exp(-P.d4 * t)
-    return vec2f(pos.x + x * 0.005, pos.y + y * 0.005)
+    return vec2f(pos.x + x * 0.005, pos.y + y * 0.005).mul(varInfo.weight)
   },
   'general',
 )

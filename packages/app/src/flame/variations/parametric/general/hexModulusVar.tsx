@@ -32,7 +32,7 @@ export const hexModulusVar = parametricVariation(
   HexModulusVarParams,
   HexModulusVarParamsDefaults,
   HexModulusVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
 
     const hsize = sqrt(3.0) / 2.0 / P.size
@@ -54,7 +54,7 @@ export const hexModulusVar = parametricVariation(
     const FX_h = sqrt(3.0) * rx_c + (sqrt(3.0) / 2.0) * rz_c
     const FY_h = 1.5 * rz_c
 
-    return vec2f(X - FX_h, Y - FY_h)
+    return vec2f(X - FX_h, Y - FY_h).mul(varInfo.weight)
   },
   'general',
 )

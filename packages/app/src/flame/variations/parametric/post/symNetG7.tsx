@@ -27,12 +27,16 @@ export const symNetG7 = parametricVariation(
   SymNetG7Params,
   SymNetG7ParamsDefaults,
   SymNetG7ParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     if (random() < 0.5) {
-      return vec2f(pos.x - P.sepx * 0.5, pos.y + P.sepy * 0.5)
+      return vec2f(pos.x - P.sepx * 0.5, pos.y + P.sepy * 0.5).mul(
+        varInfo.weight,
+      )
     }
-    return vec2f(pos.x + P.sepx * 0.5, -pos.y - P.sepy * 0.5)
+    return vec2f(pos.x + P.sepx * 0.5, -pos.y - P.sepy * 0.5).mul(
+      varInfo.weight,
+    )
   },
   'symmetry',
 )

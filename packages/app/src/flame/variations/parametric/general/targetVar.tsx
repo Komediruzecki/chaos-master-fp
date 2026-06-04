@@ -49,7 +49,7 @@ export const targetVar = parametricVariation(
   TargetVarParams,
   TargetVarParamsDefaults,
   TargetVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const a = atan2(pos.y, pos.x)
     const r = sqrt(pos.x * pos.x + pos.y * pos.y)
@@ -61,7 +61,7 @@ export const targetVar = parametricVariation(
     t = abs(t % P.size)
     const addAngle = select(P.odd, P.even, t < halfSize)
     const angle = a + addAngle
-    return vec2f(r * cos(angle), r * sin(angle))
+    return vec2f(r * cos(angle), r * sin(angle)).mul(varInfo.weight)
   },
   'general',
 )

@@ -39,7 +39,7 @@ export const rsquaresVar = parametricVariation(
   RSquaresVarParams,
   RSquaresVarParamsDefaults,
   RSquaresVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const x = abs(pos.x)
     const y = abs(pos.y)
@@ -48,7 +48,7 @@ export const rsquaresVar = parametricVariation(
     const fy = y * 2.0 - f32(floor(y * 2.0)) - 0.5
     const nx = fx / P.scale + quadrant * 0.1
     const ny = fy / P.scale
-    return vec2f(nx, ny)
+    return vec2f(nx, ny).mul(varInfo.weight)
   },
   'general',
 )

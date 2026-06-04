@@ -31,7 +31,7 @@ export const symNetG16 = parametricVariation(
   SymNetG16Params,
   SymNetG16ParamsDefaults,
   SymNetG16ParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const sp = sqrt(P.radius * P.radius * 0.5)
     const px = pos.x + sp
@@ -44,21 +44,30 @@ export const symNetG16 = parametricVariation(
     const ty = sign * hy
     const pattern = select(band, band - 6.0, band >= 6.0)
     if (pattern < 1.0) {
-      return vec2f(px + tx, py + ty)
+      return vec2f(px + tx, py + ty).mul(varInfo.weight)
     }
     if (pattern < 2.0) {
-      return vec2f(0.5 * px - 0.866 * py + tx, 0.866 * px + 0.5 * py + ty)
+      return vec2f(0.5 * px - 0.866 * py + tx, 0.866 * px + 0.5 * py + ty).mul(
+        varInfo.weight,
+      )
     }
     if (pattern < 3.0) {
-      return vec2f(-0.5 * px - 0.866 * py + tx, 0.866 * px - 0.5 * py + ty)
+      return vec2f(-0.5 * px - 0.866 * py + tx, 0.866 * px - 0.5 * py + ty).mul(
+        varInfo.weight,
+      )
     }
     if (pattern < 4.0) {
-      return vec2f(-px + tx, -py + ty)
+      return vec2f(-px + tx, -py + ty).mul(varInfo.weight)
     }
     if (pattern < 5.0) {
-      return vec2f(-0.5 * px + 0.866 * py + tx, -0.866 * px - 0.5 * py + ty)
+      return vec2f(
+        -0.5 * px + 0.866 * py + tx,
+        -0.866 * px - 0.5 * py + ty,
+      ).mul(varInfo.weight)
     }
-    return vec2f(0.5 * px + 0.866 * py + tx, -0.866 * px + 0.5 * py + ty)
+    return vec2f(0.5 * px + 0.866 * py + tx, -0.866 * px + 0.5 * py + ty).mul(
+      varInfo.weight,
+    )
   },
   'symmetry',
 )

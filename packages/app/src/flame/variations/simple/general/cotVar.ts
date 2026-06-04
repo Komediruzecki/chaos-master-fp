@@ -5,7 +5,7 @@ import { simpleVariation } from '../types'
 
 export const cotVar = simpleVariation(
   'cotVar',
-  (pos, _varInfo) => {
+  (pos, varInfo) => {
     'use gpu'
     const cotsin = sin(2.0 * pos.x)
     const cotcos = cos(2.0 * pos.x)
@@ -14,7 +14,7 @@ export const cotVar = simpleVariation(
     const denom = cotcosh - cotcos
     const safeDenom = select(denom, EPS.$, abs(denom) < EPS.$)
     const cotden = 1.0 / safeDenom
-    return vec2f(cotden * cotsin, -cotden * cotsinh)
+    return vec2f(cotden * cotsin, -cotden * cotsinh).mul(varInfo.weight)
   },
   'general',
 )

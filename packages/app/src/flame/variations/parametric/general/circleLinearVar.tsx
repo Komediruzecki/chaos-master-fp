@@ -76,7 +76,7 @@ export const circleLinearVar = parametricVariation(
   CircleLinearVarParams,
   CircleLinearVarParamsDefaults,
   CircleLinearVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const M = f32(floor((0.5 * pos.x) / P.sc))
     const N = f32(floor((0.5 * pos.y) / P.sc))
@@ -101,7 +101,9 @@ export const circleLinearVar = parametricVariation(
 
     const hit = Z1 < P.dens1 && U < V
     if (!hit) {
-      return vec2f(X + (M * 2.0 + 1.0) * P.sc, Y + (N * 2.0 + 1.0) * P.sc)
+      return vec2f(X + (M * 2.0 + 1.0) * P.sc, Y + (N * 2.0 + 1.0) * P.sc).mul(
+        varInfo.weight,
+      )
     }
 
     const reverseCond = P.reverse > 0.0
@@ -114,7 +116,9 @@ export const circleLinearVar = parametricVariation(
     X = select(Z * X, P.k * X, z1Cond)
     Y = select(Z * Y, P.k * Y, z1Cond)
 
-    return vec2f(X + (M * 2.0 + 1.0) * P.sc, Y + (N * 2.0 + 1.0) * P.sc)
+    return vec2f(X + (M * 2.0 + 1.0) * P.sc, Y + (N * 2.0 + 1.0) * P.sc).mul(
+      varInfo.weight,
+    )
   },
   'general',
 )

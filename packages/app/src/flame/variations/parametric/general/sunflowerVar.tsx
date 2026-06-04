@@ -41,12 +41,12 @@ export const sunflowerVar = parametricVariation(
   SunflowerVarParams,
   SunflowerVarParamsDefaults,
   SunflowerVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const idx = P.n * (sqrt(pos.x * pos.x + pos.y * pos.y) + 1.0) * 0.5
     const theta = idx * GOLDEN_ANGLE
     const r = P.scale * sqrt(idx / P.n)
-    return vec2f(r * cos(theta), r * sin(theta))
+    return vec2f(r * cos(theta), r * sin(theta)).mul(varInfo.weight)
   },
   'general',
 )

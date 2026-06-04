@@ -4,7 +4,7 @@ import { simpleVariation } from '../types'
 
 export const petalVar = simpleVariation(
   'petalVar',
-  (pos, _varInfo) => {
+  (pos, varInfo) => {
     'use gpu'
     const cx = cos(pos.x)
     const cy = cos(pos.y)
@@ -12,7 +12,7 @@ export const petalVar = simpleVariation(
     const cxy = cx * cy
     const bx = cxy * cxy * cxy
     const by = sxy * sxy * sxy
-    return vec2f(cx * bx, cx * by)
+    return vec2f(cx * bx, cx * by).mul(varInfo.weight)
   },
   'general',
 )

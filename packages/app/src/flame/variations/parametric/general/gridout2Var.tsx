@@ -56,7 +56,7 @@ export const gridout2Var = parametricVariation(
   Gridout2VarParams,
   Gridout2VarParamsDefaults,
   Gridout2VarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const x = round(pos.x) * P.c
     const y = round(pos.y) * P.d
@@ -64,29 +64,29 @@ export const gridout2Var = parametricVariation(
     if (y <= 0.0) {
       if (x > 0.0) {
         if (-y >= x) {
-          return vec2f(pos.x + P.a, pos.y)
+          return vec2f(pos.x + P.a, pos.y).mul(varInfo.weight)
         } else {
-          return vec2f(pos.x, pos.y + P.b)
+          return vec2f(pos.x, pos.y + P.b).mul(varInfo.weight)
         }
       } else {
         if (y <= x) {
-          return vec2f(pos.x + P.a, pos.y)
+          return vec2f(pos.x + P.a, pos.y).mul(varInfo.weight)
         } else {
-          return vec2f(pos.x, pos.y - P.b)
+          return vec2f(pos.x, pos.y - P.b).mul(varInfo.weight)
         }
       }
     } else {
       if (x > 0.0) {
         if (y >= x) {
-          return vec2f(pos.x - P.a, pos.y)
+          return vec2f(pos.x - P.a, pos.y).mul(varInfo.weight)
         } else {
-          return vec2f(pos.x, pos.y + P.b)
+          return vec2f(pos.x, pos.y + P.b).mul(varInfo.weight)
         }
       } else {
         if (y > -x) {
-          return vec2f(pos.x - P.a, pos.y)
+          return vec2f(pos.x - P.a, pos.y).mul(varInfo.weight)
         } else {
-          return vec2f(pos.x, pos.y - P.b)
+          return vec2f(pos.x, pos.y - P.b).mul(varInfo.weight)
         }
       }
     }

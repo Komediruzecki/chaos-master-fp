@@ -31,14 +31,14 @@ export const squircularVar = parametricVariation(
   SquircularVarParams,
   SquircularVarParamsDefaults,
   SquircularVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const x = pos.x
     const y = pos.y
     const r = sqrt(x * x + y * y + 0.000001)
     const theta = (x + y) / r
     const nr = r / sqrt(1.0 + (r * r) / (P.n * P.n + 0.01))
-    return vec2f(nr * theta, nr * (1.0 - theta * theta))
+    return vec2f(nr * theta, nr * (1.0 - theta * theta)).mul(varInfo.weight)
   },
   'general',
 )

@@ -34,14 +34,14 @@ export const sineBlurVar = parametricVariation(
   SineBlurVarParams,
   SineBlurVarParamsDefaults,
   SineBlurVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const ang = random() * PI.$ * 2.0
     const isOne = P.power === 1.0
     const rOne = acos(random() * 2.0 - 1.0) / PI.$
     const rOther = exp(log(random()) * P.power) / PI.$
     const r = select(rOther, rOne, isOne)
-    return vec2f(pos.x + r * cos(ang), pos.y + r * sin(ang))
+    return vec2f(pos.x + r * cos(ang), pos.y + r * sin(ang)).mul(varInfo.weight)
   },
   'general',
 )

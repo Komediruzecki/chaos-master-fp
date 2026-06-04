@@ -39,7 +39,7 @@ export const symNetG12 = parametricVariation(
   SymNetG12Params,
   SymNetG12ParamsDefaults,
   SymNetG12ParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const sx = P.spacex
     const sy = P.spacey
@@ -48,26 +48,26 @@ export const symNetG12 = parametricVariation(
     const band = f32(floor(random() * 8.0))
     if (band < 2.0) {
       if (band < 1.0) {
-        return vec2f(px + sx, py + sy)
+        return vec2f(px + sx, py + sy).mul(varInfo.weight)
       }
-      return vec2f(-px - sx, -py - sy)
+      return vec2f(-px - sx, -py - sy).mul(varInfo.weight)
     }
     if (band < 4.0) {
       if (band < 3.0) {
-        return vec2f(py + sx, -px - sy)
+        return vec2f(py + sx, -px - sy).mul(varInfo.weight)
       }
-      return vec2f(-py - sx, px + sy)
+      return vec2f(-py - sx, px + sy).mul(varInfo.weight)
     }
     if (band < 6.0) {
       if (band < 5.0) {
-        return vec2f(-px - sx, py + sy)
+        return vec2f(-px - sx, py + sy).mul(varInfo.weight)
       }
-      return vec2f(-py - sx, -px - sy)
+      return vec2f(-py - sx, -px - sy).mul(varInfo.weight)
     }
     if (band < 7.0) {
-      return vec2f(py + sx, px + sy)
+      return vec2f(py + sx, px + sy).mul(varInfo.weight)
     }
-    return vec2f(px + sx, -py - sy)
+    return vec2f(px + sx, -py - sy).mul(varInfo.weight)
   },
   'symmetry',
 )

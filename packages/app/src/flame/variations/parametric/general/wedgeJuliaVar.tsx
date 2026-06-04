@@ -58,7 +58,7 @@ export const wedgeJuliaVar = parametricVariation(
   WedgeJuliaVarParams,
   WedgeJuliaVarParamsDefaults,
   WedgeJuliaVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const invPI = 1.0 / PI.$
     const cf = 1.0 - P.angle * P.count * invPI * 0.5
@@ -71,7 +71,7 @@ export const wedgeJuliaVar = parametricVariation(
     let a = (atan2(pos.y, pos.x) + 2.0 * PI.$ * t_rnd) / pwrSafe
     const c = f32(floor((P.count * a + PI.$) * invPI * 0.5))
     a = a * cf + c * P.angle
-    return vec2f(r * cos(a), r * sin(a))
+    return vec2f(r * cos(a), r * sin(a)).mul(varInfo.weight)
   },
   'general',
 )

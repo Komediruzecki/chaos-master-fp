@@ -65,7 +65,7 @@ export const floraVar = parametricVariation(
   FloraParams,
   FloraDefaults,
   FloraEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const ox = pos.x
     const oy = pos.y
@@ -253,7 +253,7 @@ export const floraVar = parametricVariation(
     lx = lx + P.distort * sin(oy * 5.0)
     ly = ly + P.distort * cos(ox * 5.0)
 
-    return vec2f(r * lx * P.scale, r * ly * P.scale)
+    return vec2f(r * lx * P.scale, r * ly * P.scale).mul(varInfo.weight)
   },
   'general',
 )

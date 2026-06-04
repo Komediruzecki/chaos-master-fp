@@ -56,12 +56,12 @@ export const pulseVar = parametricVariation(
   PulseVarParams,
   PulseVarParamsDefaults,
   PulseVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     return vec2f(
       pos.x + pos.x + P.scalex * sin(pos.x * P.freqx),
       pos.y + pos.y + P.scaley * sin(pos.y * P.freqy),
-    )
+    ).mul(varInfo.weight)
   },
   'general',
 )

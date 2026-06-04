@@ -5,7 +5,7 @@ import { simpleVariation } from '../types'
 
 export const cscVar = simpleVariation(
   'cscVar',
-  (pos, _varInfo) => {
+  (pos, varInfo) => {
     'use gpu'
     const d = cosh(2.0 * pos.y) - cos(2.0 * pos.x)
     const safeD = select(d, EPS.$, abs(d) < EPS.$)
@@ -13,7 +13,7 @@ export const cscVar = simpleVariation(
     return vec2f(
       cscden * sin(pos.x) * cosh(pos.y),
       -cscden * cos(pos.x) * sinh(pos.y),
-    )
+    ).mul(varInfo.weight)
   },
   'general',
 )

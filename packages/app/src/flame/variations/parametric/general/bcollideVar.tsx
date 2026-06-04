@@ -41,7 +41,7 @@ export const bcollideVar = parametricVariation(
   BCollideVarParams,
   BCollideVarParamsDefaults,
   BCollideVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const xp1 = pos.x + 1.0
     const xm1 = pos.x - 1.0
@@ -67,10 +67,10 @@ export const bcollideVar = parametricVariation(
     const temp = cosht - coss
 
     if (temp === 0.0) {
-      return vec2f(0.0)
+      return vec2f(0.0).mul(varInfo.weight)
     }
 
-    return vec2f(sinht / temp, sins / temp)
+    return vec2f(sinht / temp, sins / temp).mul(varInfo.weight)
   },
   'general',
 )

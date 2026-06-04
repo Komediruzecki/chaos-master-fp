@@ -56,13 +56,13 @@ export const cosh2_bsVar = parametricVariation(
   Cosh2BSVarParams,
   Cosh2BSVarParamsDefaults,
   Cosh2BSVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const coshsin = sin(pos.y * P.y1)
     const coshcos = cos(pos.y * P.y2)
     const coshsinh = sinh(pos.x * P.x1)
     const coshcosh = cosh(pos.x * P.x2)
-    return vec2f(coshcosh * coshcos, coshsinh * coshsin)
+    return vec2f(coshcosh * coshcos, coshsinh * coshsin).mul(varInfo.weight)
   },
   'general',
 )

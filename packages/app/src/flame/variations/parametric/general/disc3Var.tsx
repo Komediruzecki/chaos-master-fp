@@ -89,14 +89,14 @@ export const disc3Var = parametricVariation(
   Disc3VarParams,
   Disc3VarParamsDefaults,
   Disc3VarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const rPI =
       PI.$ * sqrt(pos.x * P.d * pos.x * P.e + pos.y * P.f * pos.y * P.g)
     const sinr = sin(rPI) * P.a
     const cosr = cos(rPI) * P.b
     const r = (atan2(pos.y, pos.x) / PI.$) * P.c
-    return vec2f(sinr * P.h * r, cosr * P.h * r)
+    return vec2f(sinr * P.h * r, cosr * P.h * r).mul(varInfo.weight)
   },
   'general',
 )

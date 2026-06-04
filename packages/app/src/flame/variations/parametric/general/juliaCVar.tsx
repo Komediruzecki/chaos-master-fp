@@ -50,7 +50,7 @@ export const juliaCVar = parametricVariation(
   JuliaCVarParams,
   JuliaCVarParamsDefaults,
   JuliaCVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
 
     const reInv = 1.0 / max(abs(P.re), EPS.$)
@@ -69,7 +69,7 @@ export const juliaCVar = parametricVariation(
     const c = cos(a)
     const mod2 = exp(lnmod * reInv - arg * imScaled)
 
-    return vec2f(mod2 * c, mod2 * s)
+    return vec2f(mod2 * c, mod2 * s).mul(varInfo.weight)
   },
   'general',
 )

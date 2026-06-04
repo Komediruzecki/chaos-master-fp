@@ -39,7 +39,7 @@ export const bent2Var = parametricVariation(
   Bent2VarParams,
   Bent2VarParamsDefaults,
   Bent2VarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     let nx = pos.x
     let ny = pos.y
@@ -49,7 +49,7 @@ export const bent2Var = parametricVariation(
     if (ny < 0.0) {
       ny = ny * P.factorY
     }
-    return vec2f(nx, ny)
+    return vec2f(nx, ny).mul(varInfo.weight)
   },
   'general',
 )

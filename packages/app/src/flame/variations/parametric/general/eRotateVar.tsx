@@ -31,7 +31,7 @@ export const eRotateVar = parametricVariation(
   ERotateVarParams,
   ERotateVarParamsDefaults,
   ERotateVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const tmp = pos.y * pos.y + pos.x * pos.x + 1.0
     const tmp2 = 2.0 * pos.x
@@ -46,7 +46,7 @@ export const eRotateVar = parametricVariation(
     return vec2f(
       xmax * cos(nu),
       sqrt(max(xmax - 1.0, 0.0)) * sqrt(max(xmax + 1.0, 0.0)) * sin(nu),
-    )
+    ).mul(varInfo.weight)
   },
   'general',
 )

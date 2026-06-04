@@ -41,7 +41,7 @@ export const shredradVar = parametricVariation(
   ShredradVarParams,
   ShredradVarParamsDefaults,
   ShredradVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const nSafe = select(P.n, EPS.$, P.n <= EPS.$)
     const sa = (2.0 * PI.$) / nSafe
@@ -51,7 +51,7 @@ export const shredradVar = parametricVariation(
     const xang = (ang + 3.0 * PI.$ + sa / 2.0) / sa
     const fxang = floor(xang)
     const zang = (xang - fxang) * sw * sa + fxang * sa - PI.$ - (sa / 2.0) * sw
-    return vec2f(rad * cos(zang), rad * sin(zang))
+    return vec2f(rad * cos(zang), rad * sin(zang)).mul(varInfo.weight)
   },
   'general',
 )

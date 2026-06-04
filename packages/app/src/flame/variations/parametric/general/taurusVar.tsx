@@ -56,7 +56,7 @@ export const taurusVar = parametricVariation(
   TaurusVarParams,
   TaurusVarParamsDefaults,
   TaurusVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
 
     const sx = sin(pos.x)
@@ -64,7 +64,7 @@ export const taurusVar = parametricVariation(
     const sy = sin(pos.y)
     const ir = P.inv * P.r + (1.0 - P.inv) * P.r * cos(P.n * pos.x)
 
-    return vec2f(cx * (ir + sy), sx * (ir + sy))
+    return vec2f(cx * (ir + sy), sx * (ir + sy)).mul(varInfo.weight)
   },
   'general',
 )

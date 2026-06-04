@@ -39,11 +39,11 @@ export const loziVar = parametricVariation(
   LoziVarParams,
   LoziVarParamsDefaults,
   LoziVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const nx = 1.0 - P.a * abs(pos.x) + pos.y
     const ny = P.b * pos.x
-    return vec2f(nx, ny)
+    return vec2f(nx, ny).mul(varInfo.weight)
   },
   'general',
 )

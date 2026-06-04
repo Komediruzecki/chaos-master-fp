@@ -118,7 +118,7 @@ export const intersectionVar = parametricVariation(
   IntersectionVarParams,
   IntersectionVarParamsDefaults,
   IntersectionVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
 
     const xr1 = P.xmod2 * P.xmod1
@@ -155,7 +155,7 @@ export const intersectionVar = parametricVariation(
     const xFinal = select(xOut, xOutY, coinFlip)
     const yFinal = select(yOutX, yOut, coinFlip)
 
-    return vec2f(xFinal, yFinal)
+    return vec2f(xFinal, yFinal).mul(varInfo.weight)
   },
   'general',
 )

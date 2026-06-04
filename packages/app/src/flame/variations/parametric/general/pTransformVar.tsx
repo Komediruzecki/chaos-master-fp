@@ -65,7 +65,7 @@ export const pTransformVar = parametricVariation(
   PTransformVarParams,
   PTransformVarParamsDefaults,
   PTransformVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
 
     const r = sqrt(pos.x * pos.x + pos.y * pos.y)
@@ -84,7 +84,7 @@ export const pTransformVar = parametricVariation(
     return vec2f(
       rhoFinal * cos(theta + P.rotate),
       rhoFinal * sin(theta + P.rotate),
-    )
+    ).mul(varInfo.weight)
   },
   'general',
 )

@@ -30,7 +30,7 @@ export const joukowskiVar = parametricVariation(
   JoukowskiVarParams,
   JoukowskiVarParamsDefaults,
   JoukowskiVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const x = pos.x + P.thickness
     const y = pos.y
@@ -38,7 +38,7 @@ export const joukowskiVar = parametricVariation(
     const a2 = P.thickness * P.thickness
     const nx = x * (1.0 + a2 / r2)
     const ny = y * (1.0 - a2 / r2)
-    return vec2f(nx * 0.5, ny * 0.5)
+    return vec2f(nx * 0.5, ny * 0.5).mul(varInfo.weight)
   },
   'general',
 )

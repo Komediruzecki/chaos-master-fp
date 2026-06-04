@@ -4,9 +4,11 @@ import { simpleVariation } from '../types'
 
 export const sinhVar = simpleVariation(
   'sinhVar',
-  (pos, _varInfo) => {
+  (pos, varInfo) => {
     'use gpu'
-    return vec2f(sinh(pos.x) * cos(pos.y), cosh(pos.x) * sin(pos.y))
+    return vec2f(sinh(pos.x) * cos(pos.y), cosh(pos.x) * sin(pos.y)).mul(
+      varInfo.weight,
+    )
   },
   'general',
 )

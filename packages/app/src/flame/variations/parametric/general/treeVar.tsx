@@ -47,7 +47,7 @@ export const treeVar = parametricVariation(
   TreeVarParams,
   TreeVarParamsDefaults,
   TreeVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const x = abs(pos.x)
     const y = pos.y
@@ -58,7 +58,7 @@ export const treeVar = parametricVariation(
     const c = cos(rotate)
     const nx = P.scale * (c * x + s * y)
     const ny = P.scale * (-s * x + c * y) + 0.3
-    return vec2f(nx + fract(x * 37.0) * 0.02, ny)
+    return vec2f(nx + fract(x * 37.0) * 0.02, ny).mul(varInfo.weight)
   },
   'general',
 )

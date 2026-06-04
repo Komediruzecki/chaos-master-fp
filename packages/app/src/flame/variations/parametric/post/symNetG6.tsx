@@ -31,22 +31,22 @@ export const symNetG6 = parametricVariation(
   SymNetG6Params,
   SymNetG6ParamsDefaults,
   SymNetG6ParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const hx = P.stepx * 0.5
     const hy = P.stepy * 0.5
     const sy2 = P.sepy * 0.5
     const band = f32(floor(random() * 4.0))
     if (band < 1.0) {
-      return vec2f(pos.x - hx, pos.y - hy + sy2)
+      return vec2f(pos.x - hx, pos.y - hy + sy2).mul(varInfo.weight)
     }
     if (band < 2.0) {
-      return vec2f(pos.x - hx, pos.y - hy - sy2)
+      return vec2f(pos.x - hx, pos.y - hy - sy2).mul(varInfo.weight)
     }
     if (band < 3.0) {
-      return vec2f(pos.x + hx, pos.y + hy + sy2)
+      return vec2f(pos.x + hx, pos.y + hy + sy2).mul(varInfo.weight)
     }
-    return vec2f(pos.x + hx, pos.y + hy - sy2)
+    return vec2f(pos.x + hx, pos.y + hy - sy2).mul(varInfo.weight)
   },
   'symmetry',
 )

@@ -102,12 +102,12 @@ export const hexesVar = parametricVariation(
   HexesVarParams,
   HexesVarParamsDefaults,
   HexesVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
 
     const s = P.cellsize
     if (s === 0.0) {
-      return vec2f(0.0, 0.0)
+      return vec2f(0.0, 0.0).mul(varInfo.weight)
     }
 
     const a_hex = f32(1.0 / 3.0)
@@ -208,7 +208,7 @@ export const hexesVar = parametricVariation(
     Vx += P_points[0].x
     Vy += P_points[0].y
 
-    return vec2f(Vx, Vy)
+    return vec2f(Vx, Vy).mul(varInfo.weight)
   },
   'general',
 )

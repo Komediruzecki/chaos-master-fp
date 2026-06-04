@@ -6,7 +6,7 @@ import { simpleVariation } from '../types'
 
 export const glynniaVar = simpleVariation(
   'glynniaVar',
-  (pos, _varInfo) => {
+  (pos, varInfo) => {
     'use gpu'
     const r = sqrt(pos.x * pos.x + pos.y * pos.y)
     const big = r >= 1.0
@@ -31,7 +31,7 @@ export const glynniaVar = simpleVariation(
     const xBranch = select(b2x, b1x, side1)
     const newX = select(-xBranch, xBranch, big)
 
-    return vec2f(newX, newY)
+    return vec2f(newX, newY).mul(varInfo.weight)
   },
   'general',
 )

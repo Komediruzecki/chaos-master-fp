@@ -32,11 +32,11 @@ export const fresnelVar = parametricVariation(
   FresnelVarParams,
   FresnelVarParamsDefaults,
   FresnelVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const t = (pos.x + pos.y) * P.scale
     const t2 = t * t * PI.$ * 0.5
-    return vec2f(cos(t2), sin(t2))
+    return vec2f(cos(t2), sin(t2)).mul(varInfo.weight)
   },
   'general',
 )

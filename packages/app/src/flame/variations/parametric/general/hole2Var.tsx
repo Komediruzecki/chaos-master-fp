@@ -73,7 +73,7 @@ export const hole2Var = parametricVariation(
   Hole2VarParams,
   Hole2VarParamsDefaults,
   Hole2VarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const rhosq = pos.x * pos.x + pos.y * pos.y
     const theta = atan2(pos.y, pos.x) * P.d
@@ -107,7 +107,7 @@ export const hole2Var = parametricVariation(
     }
 
     const factor = select(r1, 1.0 / r1, P.inside > 0.5)
-    return vec2f(factor * cos(theta), factor * sin(theta))
+    return vec2f(factor * cos(theta), factor * sin(theta)).mul(varInfo.weight)
   },
   'general',
 )

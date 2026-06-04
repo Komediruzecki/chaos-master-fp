@@ -12,7 +12,7 @@ export const ringsVar = simpleVariation(
     const r = sqrt(pos.x * pos.x + pos.y * pos.y + EPS.$)
     const theta = atan2(pos.y, pos.x)
     const factor = ((r + c2) % (2.0 * c2)) - c2 + r * (1.0 - c2)
-    return vec2f(cos(theta), sin(theta)).mul(factor)
+    return vec2f(cos(theta), sin(theta)).mul(factor).mul(varInfo.weight)
   },
   'general',
 )

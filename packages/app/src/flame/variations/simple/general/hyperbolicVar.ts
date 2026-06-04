@@ -4,11 +4,11 @@ import { simpleVariation } from '../types'
 
 export const hyperbolicVar = simpleVariation(
   'hyperbolicVar',
-  (pos, _varInfo) => {
+  (pos, varInfo) => {
     'use gpu'
     const r = length(pos)
     const theta = atan2(pos.y, pos.x)
-    return vec2f(sin(theta) / r, r * cos(theta))
+    return vec2f(sin(theta) / r, r * cos(theta)).mul(varInfo.weight)
   },
   'general',
 )

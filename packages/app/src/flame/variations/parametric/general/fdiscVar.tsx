@@ -89,7 +89,7 @@ export const fdiscVar = parametricVariation(
   FDiscVarParams,
   FDiscVarParamsDefaults,
   FDiscVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const afactor = (2.0 * PI.$) / (length(pos) + P.ashift)
     const r = (atan2(pos.y, pos.x) / PI.$ + P.rshift) * 0.5
@@ -106,7 +106,7 @@ export const fdiscVar = parametricVariation(
         P.term2 * pos.y * pry +
         P.term3 * pos.y * r +
         P.term4 * pos.y,
-    )
+    ).mul(varInfo.weight)
   },
   'general',
 )

@@ -56,7 +56,7 @@ export const ngonVar = parametricVariation(
   NgonParams,
   NgonParamsDefaults,
   NgonParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const p1 = P.power
     const p2 = (2 * PI.$) / P.sides
@@ -69,7 +69,7 @@ export const ngonVar = parametricVariation(
     const kNum = p3 * (1 / cos(t4) - 1) + p4
     const kDen = pow(r, p1)
     const k = kNum / kDen
-    return pos.mul(k)
+    return pos.mul(k).mul(varInfo.weight)
   },
   'general',
 )

@@ -27,12 +27,18 @@ export const symBandG3 = parametricVariation(
   SymBandG3Params,
   SymBandG3ParamsDefaults,
   SymBandG3ParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     if (random() < 0.5) {
-      return vec2f(pos.x - P.stepx * 0.5 - 1.0, pos.y - P.stepy * 0.5 - 0.5)
+      return vec2f(
+        pos.x - P.stepx * 0.5 - 1.0,
+        pos.y - P.stepy * 0.5 - 0.5,
+      ).mul(varInfo.weight)
     }
-    return vec2f(-pos.x + P.stepx * 0.5 + 1.0, -pos.y + P.stepy * 0.5 + 0.5)
+    return vec2f(
+      -pos.x + P.stepx * 0.5 + 1.0,
+      -pos.y + P.stepy * 0.5 + 0.5,
+    ).mul(varInfo.weight)
   },
   'symmetry',
 )

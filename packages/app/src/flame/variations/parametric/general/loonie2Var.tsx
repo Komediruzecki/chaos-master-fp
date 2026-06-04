@@ -49,7 +49,7 @@ export const loonie2Var = parametricVariation(
   Loonie2VarParams,
   Loonie2VarParamsDefaults,
   Loonie2VarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
 
     const sqrvvar = 1.0
@@ -92,7 +92,7 @@ export const loonie2Var = parametricVariation(
       r2Final > 0.0 && r2Final < sqrvvar,
     )
 
-    return vec2f(resultR * pos.x, resultR * pos.y)
+    return vec2f(resultR * pos.x, resultR * pos.y).mul(varInfo.weight)
   },
   'general',
 )

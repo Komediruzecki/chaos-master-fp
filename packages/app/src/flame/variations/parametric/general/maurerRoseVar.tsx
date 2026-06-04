@@ -30,14 +30,14 @@ export const maurerRoseVar = parametricVariation(
   MaurerRoseVarParams,
   MaurerRoseVarParamsDefaults,
   MaurerRoseVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const t = pos.x * P.d * PI.$
     const r = sin(P.n * t)
     const theta = t
     const nx = r * cos(theta)
     const ny = r * sin(theta)
-    return vec2f(nx, ny)
+    return vec2f(nx, ny).mul(varInfo.weight)
   },
   'general',
 )

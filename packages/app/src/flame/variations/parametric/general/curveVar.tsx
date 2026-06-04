@@ -57,14 +57,14 @@ export const curveVar = parametricVariation(
   CurveVarParams,
   CurveVarParamsDefaults,
   CurveVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const xlen2 = max(P.xlength * P.xlength, EPS.$)
     const ylen2 = max(P.ylength * P.ylength, EPS.$)
     return vec2f(
       pos.x + P.xamp * exp((-pos.y * pos.y) / xlen2),
       pos.y + P.yamp * exp((-pos.x * pos.x) / ylen2),
-    )
+    ).mul(varInfo.weight)
   },
   'general',
 )

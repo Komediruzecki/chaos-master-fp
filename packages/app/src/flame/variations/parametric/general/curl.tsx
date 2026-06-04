@@ -38,7 +38,7 @@ export const curlVar = parametricVariation(
   CurlParams,
   CurlParamsDefaults,
   CurlParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const p1 = P.c1
     const p2 = P.c2
@@ -47,7 +47,9 @@ export const curlVar = parametricVariation(
     const t2 = p1 * pos.y + 2 * p2 * pos.x * pos.y
     const tSqSum = t1 * t1 + t2 * t2
     const factor = 1 / tSqSum
-    return vec2f(pos.x * t1 + pos.y * t2, pos.y * t1 - pos.x * t2).mul(factor)
+    return vec2f(pos.x * t1 + pos.y * t2, pos.y * t1 - pos.x * t2)
+      .mul(factor)
+      .mul(varInfo.weight)
   },
   'general',
 )

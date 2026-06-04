@@ -71,7 +71,7 @@ export const splitsVar = parametricVariation(
   SplitsVarParams,
   SplitsVarParamsDefaults,
   SplitsVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     let nx = pos.x
     let ny = pos.y
@@ -92,7 +92,7 @@ export const splitsVar = parametricVariation(
       nx = nx - P.dshear
     }
 
-    return vec2f(nx, ny)
+    return vec2f(nx, ny).mul(varInfo.weight)
   },
   'general',
 )

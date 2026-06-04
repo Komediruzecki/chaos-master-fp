@@ -36,7 +36,7 @@ export const cannabisCurveVar = parametricVariation(
   CannabisCurveVarParams,
   CannabisCurveVarParamsDefaults,
   CannabisCurveVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     let a = atan2(pos.y, pos.x)
     let r =
@@ -48,7 +48,7 @@ export const cannabisCurveVar = parametricVariation(
       r *= random()
     }
     a += PI.$ * 0.5
-    return vec2f(sin(a) * r, cos(a) * r)
+    return vec2f(sin(a) * r, cos(a) * r).mul(varInfo.weight)
   },
   'general',
 )

@@ -28,12 +28,12 @@ export const postHeatVar = parametricVariation(
   PostHeatParams,
   PostHeatParamsDefaults,
   PostHeatParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const n = sin(pos.x * P.scale) * sin(pos.y * P.scale) * P.amount
     const x = pos.x + (random() - 0.5) * n
     const y = pos.y + (random() - 0.5) * n
-    return vec2f(x, y)
+    return vec2f(x, y).mul(varInfo.weight)
   },
   'post',
 )

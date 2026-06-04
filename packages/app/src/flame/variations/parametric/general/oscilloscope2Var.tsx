@@ -85,7 +85,7 @@ export const oscilloscope2Var = parametricVariation(
   Oscilloscope2VarParams,
   Oscilloscope2VarParamsDefaults,
   Oscilloscope2VarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const tpf = 2.0 * PI.$ * P.frequencyx
     const tpf2 = 2.0 * PI.$ * P.frequencyy
@@ -97,9 +97,9 @@ export const oscilloscope2Var = parametricVariation(
     const tSimple = P.amplitude * cos(tpf * pos.x + pt) + P.separation
     const t = select(tDamped, tSimple, noDamping)
     if (abs(pos.y) <= t) {
-      return vec2f(-pos.x, -pos.y)
+      return vec2f(-pos.x, -pos.y).mul(varInfo.weight)
     }
-    return vec2f(pos.x, pos.y)
+    return vec2f(pos.x, pos.y).mul(varInfo.weight)
   },
   'general',
 )

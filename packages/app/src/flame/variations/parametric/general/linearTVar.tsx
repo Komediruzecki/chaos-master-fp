@@ -40,7 +40,7 @@ export const linearTVar = parametricVariation(
   LinearTVarParams,
   LinearTVarParamsDefaults,
   LinearTVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
 
     // Java sgn: arg > 0 ? 1 : -1. GPU code: x < 0 ? -1 : 1.
@@ -51,7 +51,7 @@ export const linearTVar = parametricVariation(
     const newX = sign(pos.x) * pow(abs(pos.x), P.powX)
     const newY = sign(pos.y) * pow(abs(pos.y), P.powY)
 
-    return vec2f(newX, newY)
+    return vec2f(newX, newY).mul(varInfo.weight)
   },
   'general',
 )

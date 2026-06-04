@@ -49,15 +49,15 @@ export const wallPaperVar = parametricVariation(
   WallPaperVarParams,
   WallPaperVarParamsDefaults,
   WallPaperVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     if (random() < 0.5) {
       return vec2f(
         pos.y - sign(pos.x) * sqrt(abs(P.b * pos.x - P.c_)),
         P.a - pos.x,
-      )
+      ).mul(varInfo.weight)
     }
-    return vec2f(pos.x, pos.y)
+    return vec2f(pos.x, pos.y).mul(varInfo.weight)
   },
   'general',
 )

@@ -41,7 +41,7 @@ export const plusRecipVar = parametricVariation(
   PlusRecipVarParams,
   PlusRecipVarParamsDefaults,
   PlusRecipVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
 
     const zRe = pos.x
@@ -96,7 +96,7 @@ export const plusRecipVar = parametricVariation(
     kRe = select(kRe, -kRe, negK)
     kIm = select(kIm, -kIm, negK)
 
-    return vec2f(kRe, kIm)
+    return vec2f(kRe, kIm).mul(varInfo.weight)
   },
   'general',
 )

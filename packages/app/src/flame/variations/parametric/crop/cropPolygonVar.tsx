@@ -44,7 +44,7 @@ export const cropPolygonVar = parametricVariation(
   CropPolygonParams,
   CropPolygonParamsDefaults,
   CropPolygonParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const r = sqrt(pos.x * pos.x + pos.y * pos.y)
     const n = f32(floor(P.sides))
@@ -54,9 +54,9 @@ export const cropPolygonVar = parametricVariation(
     const angleInSector = (frac * 2.0 * PI.$) / n - PI.$ / n
     const polyR = (P.radius * cos(PI.$ / n)) / cos(angleInSector)
     if (r > polyR) {
-      return vec2f(0.0, 0.0)
+      return vec2f(0.0, 0.0).mul(varInfo.weight)
     }
-    return vec2f(pos.x, pos.y)
+    return vec2f(pos.x, pos.y).mul(varInfo.weight)
   },
   'crop',
 )

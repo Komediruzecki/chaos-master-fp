@@ -80,7 +80,7 @@ export const chunkVar = parametricVariation(
   ChunkVarParams,
   ChunkVarParamsDefaults,
   ChunkVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const r =
       P.a * pos.x * pos.x +
@@ -92,7 +92,7 @@ export const chunkVar = parametricVariation(
     const mode0 = r <= 0.0
     const mode1 = r > 0.0
     const passThrough = select(mode0, mode1, P.mode > 0.5)
-    return select(vec2f(0.0, 0.0), pos, passThrough)
+    return select(vec2f(0.0, 0.0), pos, passThrough).mul(varInfo.weight)
   },
   'general',
 )

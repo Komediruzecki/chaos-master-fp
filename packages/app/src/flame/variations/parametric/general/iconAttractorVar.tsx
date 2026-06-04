@@ -70,7 +70,7 @@ export const iconAttractorVar = parametricVariation(
   IconAttractorParams,
   IconAttractorDefaults,
   IconAttractorEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const zzbar = pos.x * pos.x + pos.y * pos.y
     let p = P.a * zzbar + P.l
@@ -86,7 +86,7 @@ export const iconAttractorVar = parametricVariation(
     p = p + P.b * zn
     const x = p * pos.x + P.g * zreal - P.o * pos.y
     const y = p * pos.y - P.g * zimag + P.o * pos.x
-    return vec2f(x, y)
+    return vec2f(x, y).mul(varInfo.weight)
   },
   'general',
 )

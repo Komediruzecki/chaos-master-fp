@@ -48,12 +48,12 @@ export const exp2_bsVar = parametricVariation(
   Exp2BSVarParams,
   Exp2BSVarParamsDefaults,
   Exp2BSVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const expe = exp(pos.x * P.x1)
     const expsin = sin(pos.y * P.y1)
     const expcos = cos(pos.y * P.y2)
-    return vec2f(expe * expcos, expe * expsin)
+    return vec2f(expe * expcos, expe * expsin).mul(varInfo.weight)
   },
   'general',
 )

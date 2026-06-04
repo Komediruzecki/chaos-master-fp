@@ -4,7 +4,7 @@ import { simpleVariation } from '../types'
 
 export const cosqVar = simpleVariation(
   'cosqVar',
-  (pos, _varInfo) => {
+  (pos, varInfo) => {
     'use gpu'
 
     const z = 0.0
@@ -19,7 +19,7 @@ export const cosqVar = simpleVariation(
     const newX = c * ch
     const newY = C * pos.y
 
-    return vec2f(newX, newY)
+    return vec2f(newX, newY).mul(varInfo.weight)
   },
   'general',
 )

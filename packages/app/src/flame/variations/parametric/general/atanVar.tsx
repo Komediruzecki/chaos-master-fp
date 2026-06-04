@@ -41,16 +41,19 @@ export const atanVar = parametricVariation(
   AtanVarParams,
   AtanVarParamsDefaults,
   AtanVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const norm = 2.0 / PI.$
 
     if (P.mode < 0.5) {
-      return vec2f(pos.x, norm * atan(P.stretch * pos.y))
+      return vec2f(pos.x, norm * atan(P.stretch * pos.y)).mul(varInfo.weight)
     } else if (P.mode < 1.5) {
-      return vec2f(norm * atan(P.stretch * pos.x), pos.y)
+      return vec2f(norm * atan(P.stretch * pos.x), pos.y).mul(varInfo.weight)
     }
-    return vec2f(norm * atan(P.stretch * pos.x), norm * atan(P.stretch * pos.y))
+    return vec2f(
+      norm * atan(P.stretch * pos.x),
+      norm * atan(P.stretch * pos.y),
+    ).mul(varInfo.weight)
   },
   'general',
 )

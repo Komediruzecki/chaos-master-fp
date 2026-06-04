@@ -5,10 +5,12 @@ import { simpleVariation } from '../types'
 
 export const cosineVar = simpleVariation(
   'cosineVar',
-  (pos, _varInfo) => {
+  (pos, varInfo) => {
     'use gpu'
     const r = pos.x * PI.$
-    return vec2f(cos(r) * cosh(pos.y), -sin(r) * sinh(pos.y))
+    return vec2f(cos(r) * cosh(pos.y), -sin(r) * sinh(pos.y)).mul(
+      varInfo.weight,
+    )
   },
   'general',
 )

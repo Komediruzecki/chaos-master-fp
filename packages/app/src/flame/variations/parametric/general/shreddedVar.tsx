@@ -106,7 +106,7 @@ export const shreddedVar = parametricVariation(
   ShreddedVarParams,
   ShreddedVarParamsDefaults,
   ShreddedVarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
 
     const isType0 = abs(P.shredType) < 0.5
@@ -146,7 +146,7 @@ export const shreddedVar = parametricVariation(
     const xOut = xBase + select(xBlur, xBlur2, isType0)
     const yOut = yBase + select(yBlur, yBlur2, isType0)
 
-    return vec2f(xOut, yOut)
+    return vec2f(xOut, yOut).mul(varInfo.weight)
   },
   'general',
 )

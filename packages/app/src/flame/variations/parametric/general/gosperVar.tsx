@@ -33,7 +33,7 @@ export const gosperVar = parametricVariation(
   GosperVarParams,
   GosperVarParamsDefaults,
   GosperVarParamsEditor,
-  (pos, _varInfo, _P) => {
+  (pos, varInfo, _P) => {
     'use gpu'
     const x = pos.x
     const y = pos.y
@@ -43,37 +43,37 @@ export const gosperVar = parametricVariation(
       return vec2f(
         x * 0.5 - y * 0.2886751345948129,
         x * 0.2886751345948129 + y * 0.5,
-      )
+      ).mul(varInfo.weight)
     }
     if (seg < 2.0 * S7) {
       return vec2f(
         x * 0.5 + y * 0.2886751345948129,
         -x * 0.2886751345948129 + y * 0.5,
-      )
+      ).mul(varInfo.weight)
     }
     if (seg < 3.0 * S7) {
       const nx = 0.5 * x - 0.2886751345948129 * y + 0.5
       const ny = 0.2886751345948129 * x + 0.5 * y
-      return vec2f(nx, ny)
+      return vec2f(nx, ny).mul(varInfo.weight)
     }
     if (seg < 4.0 * S7) {
       const nx = 0.5 * x + 0.2886751345948129 * y + 0.5
       const ny = -0.2886751345948129 * x + 0.5 * y
-      return vec2f(nx, ny)
+      return vec2f(nx, ny).mul(varInfo.weight)
     }
     if (seg < 5.0 * S7) {
       const nx = 0.5 * x - 0.2886751345948129 * y + 0.25
       const ny = 0.2886751345948129 * x + 0.5 * y + 0.144337567297406
-      return vec2f(nx, ny)
+      return vec2f(nx, ny).mul(varInfo.weight)
     }
     if (seg < 6.0 * S7) {
       const nx = 0.5 * x + 0.2886751345948129 * y + 0.25
       const ny = -0.2886751345948129 * x + 0.5 * y + 0.144337567297406
-      return vec2f(nx, ny)
+      return vec2f(nx, ny).mul(varInfo.weight)
     }
     const nx = 0.5 * x
     const ny = 0.5 * y + 0.5773502691896258
-    return vec2f(nx, ny)
+    return vec2f(nx, ny).mul(varInfo.weight)
   },
   'general',
 )

@@ -47,7 +47,7 @@ export const pie = parametricVariation(
   PieParams,
   PieParamsDefaults,
   PieParamsEditor,
-  (_pos, _varInfo, P) => {
+  (_pos, varInfo, P) => {
     'use gpu'
     const p1 = P.slices
     const p2 = P.rotation
@@ -57,7 +57,7 @@ export const pie = parametricVariation(
     const r3 = random()
     const t1 = f32(trunc(r1 * p1 + 0.5))
     const t2 = p2 + ((t1 + r2 * p3) * 2 * PI.$) / p1
-    return vec2f(cos(t2), sin(t2)).mul(r3)
+    return vec2f(cos(t2), sin(t2)).mul(r3).mul(varInfo.weight)
   },
   'general',
 )

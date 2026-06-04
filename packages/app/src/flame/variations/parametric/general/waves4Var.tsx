@@ -73,7 +73,7 @@ export const waves4Var = parametricVariation(
   Waves4VarParams,
   Waves4VarParamsDefaults,
   Waves4VarParamsEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const x0 = pos.x
     const y0 = pos.y
@@ -89,7 +89,7 @@ export const waves4Var = parametricVariation(
     return vec2f(
       x0 + sin(y0 * P.freqx) * ax * ax * P.scalex,
       y0 + sin(x0 * P.freqy) * P.scaley,
-    )
+    ).mul(varInfo.weight)
   },
   'general',
 )

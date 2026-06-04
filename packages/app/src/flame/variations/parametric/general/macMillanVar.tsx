@@ -38,13 +38,13 @@ export const macMillanVar = parametricVariation(
   MacMillanParams,
   MacMillanDefaults,
   MacMillanEditor,
-  (pos, _varInfo, P) => {
+  (pos, varInfo, P) => {
     'use gpu'
     const x = pos.y
     const y = -pos.x + 2.0 * P.a * (pos.y / (1.0 + pos.y * pos.y)) + P.b * pos.y
     const xn = y
     const yn = -x + 2.0 * P.a * (y / (1.0 + y * y)) + P.b * y
-    return vec2f(xn, yn)
+    return vec2f(xn, yn).mul(varInfo.weight)
   },
   'general',
 )
