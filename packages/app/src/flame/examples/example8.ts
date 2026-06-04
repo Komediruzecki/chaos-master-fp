@@ -29,7 +29,7 @@ export const example8 = defineExample({
           params: { shift: 7.5 },
         },
         [vid('c1d2e3f4_a5b6_7890_1234_567890abcdef')]: {
-          type: 'linear',
+          type: 'linearVar',
           weight: 0.3,
         },
       },
@@ -42,15 +42,15 @@ export const example8 = defineExample({
       color: { x: -0.2, y: 0.15 },
       variations: {
         [vid('e1f2a3b4_c5d6_7890_3456_7890abcdef12')]: {
-          type: 'horseshoe',
+          type: 'horseshoeVar',
           weight: 0.7,
         },
         [vid('f1a2b3c4_d5e6_7890_4567_890abcdef123')]: {
-          type: 'spherical',
+          type: 'sphericalVar',
           weight: 0.3,
         },
         [vid('a1a2b3c4_d5e6_7890_5678_90abcdef1234')]: {
-          type: 'linear',
+          type: 'linearVar',
           weight: 0.4,
         },
       },

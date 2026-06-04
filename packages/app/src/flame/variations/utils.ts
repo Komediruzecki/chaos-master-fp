@@ -97,8 +97,8 @@ export function getDefaultFlameByVarType(
 const previewFlames: Partial<Record<TransformVariationType, FlameDescriptor>> =
   {
     horseshoe: unfreeze(
-      produce(getDefaultFlameByVarType('horseshoe'), (draft) => {
-        draft.transforms[getTransformPreviewTid('horseshoe')]!.preAffine = {
+      produce(getDefaultFlameByVarType('horseshoeVar'), (draft) => {
+        draft.transforms[getTransformPreviewTid('horseshoeVar')]!.preAffine = {
           c: 0.4489954195606869,
           f: -0.4301584776979597,
           a: -0.6331653685349898,
@@ -121,13 +121,13 @@ const previewFlames: Partial<Record<TransformVariationType, FlameDescriptor>> =
       }),
     ),
     cylinder: unfreeze(
-      produce(getDefaultFlameByVarType('cylinder'), (draft) => {
+      produce(getDefaultFlameByVarType('cylinderVar'), (draft) => {
         draft.renderSettings.exposure = 0.666
         draft.renderSettings.camera = {
           zoom: 0.3493516243061941,
           position: [0.20715316352406743, -0.16595190682220834],
         }
-        draft.transforms[getTransformPreviewTid('cylinder')]!.preAffine = {
+        draft.transforms[getTransformPreviewTid('cylinderVar')]!.preAffine = {
           c: -0.013468013468013407,
           f: 0,
           a: 2.6554162592699293,
@@ -138,8 +138,8 @@ const previewFlames: Partial<Record<TransformVariationType, FlameDescriptor>> =
       }),
     ),
     diamond: unfreeze(
-      produce(getDefaultFlameByVarType('diamond'), (draft) => {
-        draft.transforms[getTransformPreviewTid('diamond')]!.preAffine = {
+      produce(getDefaultFlameByVarType('diamondVar'), (draft) => {
+        draft.transforms[getTransformPreviewTid('diamondVar')]!.preAffine = {
           c: 0,
           f: 0,
           a: 0.5752348183753919,
@@ -150,8 +150,8 @@ const previewFlames: Partial<Record<TransformVariationType, FlameDescriptor>> =
       }),
     ),
     fan: unfreeze(
-      produce(getDefaultFlameByVarType('fan'), (draft) => {
-        draft.transforms[getTransformPreviewTid('fan')]!.preAffine = {
+      produce(getDefaultFlameByVarType('fanVar'), (draft) => {
+        draft.transforms[getTransformPreviewTid('fanVar')]!.preAffine = {
           c: 0.3030303030303029,
           f: 0.35151515151515156,
           a: 0.6931111689557807,
@@ -162,8 +162,8 @@ const previewFlames: Partial<Record<TransformVariationType, FlameDescriptor>> =
       }),
     ),
     waves: unfreeze(
-      produce(getDefaultFlameByVarType('waves'), (draft) => {
-        draft.transforms[getTransformPreviewTid('waves')]!.preAffine = {
+      produce(getDefaultFlameByVarType('wavesVar'), (draft) => {
+        draft.transforms[getTransformPreviewTid('wavesVar')]!.preAffine = {
           c: -0.3636010248255146,
           f: -0.22892481667991876,
           a: 1.2052888138611,
@@ -199,8 +199,8 @@ const previewFlames: Partial<Record<TransformVariationType, FlameDescriptor>> =
       }),
     ),
     popcorn: unfreeze(
-      produce(getDefaultFlameByVarType('popcorn'), (draft) => {
-        draft.transforms[getTransformPreviewTid('popcorn')]!.preAffine = {
+      produce(getDefaultFlameByVarType('popcornVar'), (draft) => {
+        draft.transforms[getTransformPreviewTid('popcornVar')]!.preAffine = {
           a: 1,
           b: 0,
           c: -0.28224055579678675,
@@ -211,8 +211,8 @@ const previewFlames: Partial<Record<TransformVariationType, FlameDescriptor>> =
       }),
     ),
     rings: unfreeze(
-      produce(getDefaultFlameByVarType('rings'), (draft) => {
-        draft.transforms[getTransformPreviewTid('rings')]!.preAffine = {
+      produce(getDefaultFlameByVarType('ringsVar'), (draft) => {
+        draft.transforms[getTransformPreviewTid('ringsVar')]!.preAffine = {
           c: 0.24772547468354453,
           f: 0.00009889240506325003,
           a: 1.0043677286151427,
@@ -368,7 +368,11 @@ const previewFlames: Partial<Record<TransformVariationType, FlameDescriptor>> =
               seed: 46472,
             },
           },
-          [generateVariationId()]: { type: 'linear', weight: 1, visible: true },
+          [generateVariationId()]: {
+            type: 'linearVar',
+            weight: 1,
+            visible: true,
+          },
         }
       }),
     ),

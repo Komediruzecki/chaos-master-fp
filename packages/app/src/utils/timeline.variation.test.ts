@@ -70,7 +70,7 @@ describe('resolveVariationParameter', () => {
         transform1: {
           variations: {
             variation1: {
-              type: 'linear',
+              type: 'linearVar',
               weight: 1,
             },
           },

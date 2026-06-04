@@ -34,7 +34,7 @@ export const example20 = defineExample({
           params: { Sx: 120, Sy: 40 },
         },
         [vid('c3d4e5f6_a7b8_020c_9012_cdef12345678')]: {
-          type: 'swirl',
+          type: 'swirlVar',
           weight: 0.15,
         },
       },
@@ -79,7 +79,7 @@ export const example20 = defineExample({
           weight: 0.8,
         },
         [vid('c9d0e1f2_a3b4_020i_5678_34567890abcd')]: {
-          type: 'hyperbolic',
+          type: 'hyperbolicVar',
           weight: 0.35,
         },
       },

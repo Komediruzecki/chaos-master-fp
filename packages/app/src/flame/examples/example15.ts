@@ -35,7 +35,7 @@ export const example15 = defineExample({
           },
         },
         [vid('c3a4d5e6_b7f8_9012_3456_789012abcdef')]: {
-          type: 'swirl',
+          type: 'swirlVar',
           weight: 0.25,
         },
       },

@@ -1,56 +1,10 @@
 import { f32, vec2f } from 'typegpu/data'
-import { abs, atan2, clamp, cos, cosh, dot, exp, floor, length, log, pow, select, sin, sinh, sqrt, tan, } from 'typegpu/std'
+import { abs, atan2, cos, cosh, dot, exp, floor, length, log, pow, select, sin, sinh, sqrt, tan, } from 'typegpu/std'
 import { random, randomUnitDisk } from '@/shaders/random'
 import { EPS, PI } from '../../../constants'
 import { simpleVariation } from '../types'
 
-export const waves = simpleVariation('waves', (pos, varInfo) => {
-  'use gpu'
-  const T = varInfo.affineCoefs
-  const xSinArg = pos.y / (T.c * T.c)
-  const ySinArg = pos.x / (T.f * T.f)
-  const delta = vec2f(T.b * sin(xSinArg), T.e * sin(ySinArg))
-  return pos.add(delta).mul(varInfo.weight)
-})
-
-export const popcorn = simpleVariation('popcorn', (pos, varInfo) => {
-  'use gpu'
-  const T = varInfo.affineCoefs
-  const tx = clamp(tan(3 * pos.x), -1e8, 1e8)
-  const ty = clamp(tan(3 * pos.y), -1e8, 1e8)
-  const delta = vec2f(T.c * sin(ty), T.f * sin(tx))
-  return pos.add(delta).mul(varInfo.weight)
-})
-
-export const rings = simpleVariation('rings', (pos, varInfo) => {
-  'use gpu'
-  const T = varInfo.affineCoefs
-  const c2 = T.c * T.c
-  const r = length(pos)
-  const theta = atan2(pos.y, pos.x)
-  const factor = ((r + c2) % (2 * c2)) - c2 + r * (1 - c2)
-  return vec2f(cos(theta), sin(theta)).mul(factor).mul(varInfo.weight)
-})
-
-export const fan = simpleVariation('fan', (pos, varInfo) => {
-  'use gpu'
-  const T = varInfo.affineCoefs
-  const t = PI.$ * T.c * T.c + EPS.$
-  const r = length(pos)
-  const theta = atan2(pos.y, pos.x)
-
-  const thalf = t / 2
-  const trueAngle = theta - thalf
-  const falseAngle = theta + thalf
-  const modCond = (theta + T.f) % t
-  const angle = select(falseAngle, trueAngle, modCond > thalf)
-  return vec2f(cos(angle), sin(angle)).mul(r).mul(varInfo.weight)
-})
-
-export const linear = simpleVariation('linear', (pos, varInfo) => {
-  'use gpu'
-  return vec2f(pos).mul(varInfo.weight)
-})
+// ── Unique inline variations (no separate file) ──
 
 export const randomDisk = simpleVariation('randomDisk', (_pos, varInfo) => {
   'use gpu'
@@ -69,88 +23,6 @@ export const sinusoidal = simpleVariation('sinusoidal', (pos, varInfo) => {
   return vec2f(sin(pos.x), sin(pos.y)).mul(varInfo.weight)
 })
 
-export const spherical = simpleVariation('spherical', (pos, varInfo) => {
-  'use gpu'
-  const r2 = dot(pos, pos) + EPS.$
-  return pos.div(r2).mul(varInfo.weight)
-})
-
-export const swirl = simpleVariation('swirl', (pos, varInfo) => {
-  'use gpu'
-  const r2 = dot(pos, pos)
-  const s2 = sin(r2)
-  const c2 = cos(r2)
-  return vec2f(pos.x * s2 - pos.y * c2, pos.x * c2 + pos.y * s2).mul(
-    varInfo.weight,
-  )
-})
-
-export const horseshoe = simpleVariation('horseshoe', (pos, varInfo) => {
-  'use gpu'
-  const r = length(pos)
-  return vec2f((pos.x - pos.y) * (pos.x + pos.y), 2 * pos.x * pos.y)
-    .div(r)
-    .mul(varInfo.weight)
-})
-
-export const polar = simpleVariation('polar', (pos, varInfo) => {
-  'use gpu'
-  const r = length(pos)
-  const theta = atan2(pos.y, pos.x)
-  return vec2f(theta / PI.$, r - 1).mul(varInfo.weight)
-})
-
-export const handkerchief = simpleVariation('handkerchief', (pos, varInfo) => {
-  'use gpu'
-  const r = length(pos)
-  const theta = atan2(pos.y, pos.x)
-  return vec2f(sin(theta + r), cos(theta - r))
-    .mul(r)
-    .mul(varInfo.weight)
-})
-
-export const heart = simpleVariation('heart', (pos, varInfo) => {
-  'use gpu'
-  const r = length(pos)
-  const theta = atan2(pos.y, pos.x)
-  return vec2f(sin(theta * r), -cos(theta * r))
-    .mul(r)
-    .mul(varInfo.weight)
-})
-
-export const disc = simpleVariation('disc', (pos, varInfo) => {
-  'use gpu'
-  const r = length(pos)
-  const theta = atan2(pos.y, pos.x)
-  const thOverPi = theta / PI.$
-  return vec2f(sin(PI.$ * r), cos(PI.$ * r))
-    .mul(thOverPi)
-    .mul(varInfo.weight)
-})
-
-export const spiral = simpleVariation('spiral', (pos, varInfo) => {
-  'use gpu'
-  const r = length(pos)
-  const theta = atan2(pos.y, pos.x)
-  return vec2f(cos(theta) + sin(r), sin(theta) - cos(r))
-    .div(r)
-    .mul(varInfo.weight)
-})
-
-export const hyperbolic = simpleVariation('hyperbolic', (pos, varInfo) => {
-  'use gpu'
-  const r = length(pos)
-  const theta = atan2(pos.y, pos.x)
-  return vec2f(sin(theta) / r, r * cos(theta)).mul(varInfo.weight)
-})
-
-export const diamond = simpleVariation('diamond', (pos, varInfo) => {
-  'use gpu'
-  const r = length(pos)
-  const theta = atan2(pos.y, pos.x)
-  return vec2f(sin(theta) * cos(r), cos(theta) * sin(r)).mul(varInfo.weight)
-})
-
 export const exVar = simpleVariation('exVar', (pos, varInfo) => {
   'use gpu'
   const r = length(pos)
@@ -161,82 +33,6 @@ export const exVar = simpleVariation('exVar', (pos, varInfo) => {
   const p13 = p1 * p1 * p1
   return vec2f(p03 + p13, p03 - p13)
     .mul(r)
-    .mul(varInfo.weight)
-})
-
-export const julia = simpleVariation('julia', (pos, varInfo) => {
-  'use gpu'
-  const sqrtr = sqrt(length(pos))
-  const theta = atan2(pos.y, pos.x)
-  const omega = f32(select(0, PI.$, random() > 0.5))
-  const angle = theta / 2.0 + omega
-  return vec2f(cos(angle), sin(angle)).mul(sqrtr).mul(varInfo.weight)
-})
-
-export const bent = simpleVariation('bent', (pos, varInfo) => {
-  'use gpu'
-  const fx = select(pos.x, 2.0 * pos.x, pos.x < 0)
-  const fy = select(pos.y, pos.y / 2.0, pos.y < 0)
-  return vec2f(fx, fy).mul(varInfo.weight)
-})
-
-export const fisheye = simpleVariation('fisheye', (pos, varInfo) => {
-  'use gpu'
-  const r = length(pos)
-  const factor = 2 / (r + 1)
-  return pos.yx.mul(factor).mul(varInfo.weight)
-})
-
-export const eyefish = simpleVariation('eyefish', (pos, varInfo) => {
-  'use gpu'
-  const r = length(pos)
-  const factor = 2 / (r + 1)
-  return pos.mul(factor).mul(varInfo.weight)
-})
-
-export const exponential = simpleVariation('exponential', (pos, varInfo) => {
-  'use gpu'
-  const factor = exp(pos.x - 1)
-  const piY = PI.$ * pos.y
-  return vec2f(cos(piY), sin(piY)).mul(factor).mul(varInfo.weight)
-})
-
-export const power = simpleVariation('power', (pos, varInfo) => {
-  'use gpu'
-  const r = length(pos)
-  const theta = atan2(pos.y, pos.x)
-  const sinTheta = sin(theta)
-  const factor = pow(r, sinTheta)
-  return vec2f(cos(theta), sinTheta).mul(factor).mul(varInfo.weight)
-})
-
-export const cosine = simpleVariation('cosine', (pos, varInfo) => {
-  'use gpu'
-  const piX = PI.$ * pos.x
-  return vec2f(cos(piX) * cosh(pos.y), -sin(piX) * sinh(pos.y)).mul(
-    varInfo.weight,
-  )
-})
-
-export const bubble = simpleVariation('bubble', (pos, varInfo) => {
-  'use gpu'
-  const r = length(pos)
-  const r2 = r * r
-  const factor = 4 / (r2 + 4)
-  return vec2f(pos.x, pos.y).mul(factor).mul(varInfo.weight)
-})
-
-export const cylinder = simpleVariation('cylinder', (pos, varInfo) => {
-  'use gpu'
-  return vec2f(sin(pos.x), pos.y).mul(varInfo.weight)
-})
-
-export const noise = simpleVariation('noise', (pos, varInfo) => {
-  'use gpu'
-  const rand = random()
-  const angle = 2 * PI.$ * random()
-  return vec2f(pos.x * cos(angle), pos.y * sin(angle))
-    .mul(rand)
     .mul(varInfo.weight)
 })
 
@@ -331,9 +127,6 @@ export const butterflyVar = simpleVariation('butterflyVar', (pos, varInfo) => {
 
 export const unpolarVar = simpleVariation('unpolarVar', (pos, varInfo) => {
   'use gpu'
-  // TODO: consider moving weight calculation inside variations, as they differ in some cases,
-  // not all need weight calculation
-  // const vvar_2 = (varInfo.weight * 0.5) / PI.$
   const vvar_2 = 0.5 / PI.$
 
   const r = exp(pos.y)
@@ -389,13 +182,10 @@ export const sinusoidalVar = simpleVariation(
 export const scryVar = simpleVariation('scryVar', (pos, varInfo) => {
   'use gpu'
   const t = dot(pos, pos)
-  // Java: d = (sqrt(t) * (t + 1.0 / pAmount));
-  // Note: We protect against division by zero if weight is 0
   const weight = select(varInfo.weight, EPS.$, varInfo.weight === 0.0)
   const d = sqrt(t) * (t + 1.0 / weight)
 
   if (d === 0.0) {
-    // Java returns without modifying pVarTP (effectively adding 0)
     return vec2f(0.0, 0.0)
   }
 
@@ -428,8 +218,7 @@ export const tanhVar = simpleVariation('tanhVar', (pos, varInfo) => {
 
 export const twoFaceVar = simpleVariation('twoFaceVar', (pos, varInfo) => {
   'use gpu'
-  // TODO: refactor when weight calculation becomes per variation
-  let factor = f32(1.0) // This represents 'r' normalized by weight
+  let factor = f32(1.0)
   if (pos.x > 0.0) {
     const denom = pos.x * pos.x + pos.y * pos.y
     factor /= denom
@@ -474,21 +263,6 @@ export const deltaAVar = simpleVariation('deltaAVar', (pos, varInfo) => {
   return vec2f(cos(avga), sin(avga)).mul(ratio).mul(varInfo.weight)
 })
 
-export const flipyVar = simpleVariation('flipyVar', (pos, varInfo) => {
-  'use gpu'
-  return vec2f(pos.x, select(-pos.y, pos.y, pos.x > 0.0)).mul(varInfo.weight)
-})
-
-export const flipcircleVar = simpleVariation(
-  'flipcircleVar',
-  (pos, varInfo) => {
-    'use gpu'
-    const r2 = pos.x * pos.x + pos.y * pos.y
-    const w2 = varInfo.weight * varInfo.weight
-    return vec2f(pos.x, select(-pos.y, pos.y, r2 > w2))
-  },
-)
-
 export const expVar = simpleVariation('expVar', (pos, varInfo) => {
   'use gpu'
   const expe = exp(pos.x)
@@ -510,7 +284,6 @@ export const loonieVar = simpleVariation('loonieVar', (pos, varInfo) => {
 export const gammaVar = simpleVariation('gammaVar', (pos, varInfo) => {
   'use gpu'
   const x = sqrt(dot(pos, pos))
-  // Lanczos approximation for lgamma
   const tmp = (x - 0.5) * log(x + 4.5) - (x + 4.5)
   const ser =
     1.0 +
@@ -526,7 +299,6 @@ export const gammaVar = simpleVariation('gammaVar', (pos, varInfo) => {
 
 export const erfVar = simpleVariation('erfVar', (pos, varInfo) => {
   'use gpu'
-  // Abramowitz & Stegun erf approximation
   const ax = abs(pos.x)
   const t = 1.0 / (1.0 + 0.3275911 * ax)
   const erfx =
@@ -579,3 +351,4 @@ export const apollonyVar = simpleVariation('apollonyVar', (pos, varInfo) => {
   )
   return vec2f(x, y).mul(varInfo.weight)
 })
+// Short-name aliases are in ../simple/index.ts via named re-exports

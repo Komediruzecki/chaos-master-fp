@@ -13,7 +13,6 @@ export * from './general/arcsinhVar'
 export * from './general/arctanhVar'
 export * from './general/bilinearVar'
 export * from './general/boardersVar'
-export * from './general/bubbleVar'
 export * from './general/chrysanthemumVar'
 export * from './general/collatzVar'
 export * from './general/cothqVar'
@@ -68,33 +67,7 @@ export * from './general/threePointIFSVar'
 export * from './general/tornadoVar'
 export * from './general/wdiscVar'
 export * from './general/cylinderApoVar'
-export * from './general/bentVar'
-export * from './general/cosineVar'
-export * from './general/cylinderVar'
-export * from './general/diamondVar'
-export * from './general/discVar'
 export * from './general/dustpointVar'
-export * from './general/exponentialVar'
-export * from './general/eyefishVar'
-export * from './general/fanVar'
-export * from './general/flipCircleVar'
-export * from './general/flipYVar'
-export * from './general/fisheyeVar'
-export * from './general/handkerchiefVar'
-export * from './general/heartVar'
-export * from './general/horseshoeVar'
-export * from './general/hyperbolicVar'
-export * from './general/juliaVar'
-export * from './general/linearVar'
-export * from './general/noiseVar'
-export * from './general/polarVar'
-export * from './general/popcornVar'
-export * from './general/powerVar'
-export * from './general/ringsVar'
-export * from './general/sphericalVar'
-export * from './general/spiralVar'
-export * from './general/swirlVar'
-export * from './general/wavesVar'
 export * from './general/rays1Var'
 export * from './general/rays2Var'
 export * from './general/rays3Var'
@@ -106,3 +79,140 @@ export * from './pre/preGaussianVar'
 export * from './post/postRotateVar'
 export * from './pre/preRotateVar'
 export * from './pre/preSpinZ'
+
+// ── Separate-file variations with short-name backward compat ──
+
+import { wavesVar } from './general/wavesVar'
+
+export { wavesVar }
+export const waves = wavesVar
+
+import { popcornVar } from './general/popcornVar'
+
+export { popcornVar }
+export const popcorn = popcornVar
+
+import { ringsVar } from './general/ringsVar'
+
+export { ringsVar }
+export const rings = ringsVar
+
+import { fanVar } from './general/fanVar'
+
+export { fanVar }
+export const fan = fanVar
+
+import { linearVar } from './general/linearVar'
+
+export { linearVar }
+export const linear = linearVar
+
+import { sphericalVar } from './general/sphericalVar'
+
+export { sphericalVar }
+export const spherical = sphericalVar
+
+import { swirlVar } from './general/swirlVar'
+
+export { swirlVar }
+export const swirl = swirlVar
+
+import { horseshoeVar } from './general/horseshoeVar'
+
+export { horseshoeVar }
+export const horseshoe = horseshoeVar
+
+import { polarVar } from './general/polarVar'
+
+export { polarVar }
+export const polar = polarVar
+
+import { handkerchiefVar } from './general/handkerchiefVar'
+
+export { handkerchiefVar }
+export const handkerchief = handkerchiefVar
+
+import { heartVar } from './general/heartVar'
+
+export { heartVar }
+export const heart = heartVar
+
+import { discVar } from './general/discVar'
+
+export { discVar }
+export const disc = discVar
+
+import { spiralVar } from './general/spiralVar'
+
+export { spiralVar }
+export const spiral = spiralVar
+
+import { hyperbolicVar } from './general/hyperbolicVar'
+
+export { hyperbolicVar }
+export const hyperbolic = hyperbolicVar
+
+import { diamondVar } from './general/diamondVar'
+
+export { diamondVar }
+export const diamond = diamondVar
+
+import { juliaVar } from './general/juliaVar'
+
+export { juliaVar }
+export const julia = juliaVar
+
+import { bentVar } from './general/bentVar'
+
+export { bentVar }
+export const bent = bentVar
+
+import { fisheyeVar } from './general/fisheyeVar'
+
+export { fisheyeVar }
+export const fisheye = fisheyeVar
+
+import { eyefishVar } from './general/eyefishVar'
+
+export { eyefishVar }
+export const eyefish = eyefishVar
+
+import { exponentialVar } from './general/exponentialVar'
+
+export { exponentialVar }
+export const exponential = exponentialVar
+
+import { powerVar } from './general/powerVar'
+
+export { powerVar }
+export const power = powerVar
+
+import { cosineVar } from './general/cosineVar'
+
+export { cosineVar }
+export const cosine = cosineVar
+
+import { bubbleVar } from './general/bubbleVar'
+
+export { bubbleVar }
+export const bubble = bubbleVar
+
+import { cylinderVar } from './general/cylinderVar'
+
+export { cylinderVar }
+export const cylinder = cylinderVar
+
+import { noiseVar } from './general/noiseVar'
+
+export { noiseVar }
+export const noise = noiseVar
+
+import { flipYVar } from './general/flipYVar'
+
+export { flipYVar }
+export const flipyVar = flipYVar
+
+import { flipCircleVar } from './general/flipCircleVar'
+
+export { flipCircleVar }
+export const flipcircleVar = flipCircleVar

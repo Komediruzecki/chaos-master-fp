@@ -64,7 +64,7 @@ export const example13 = defineExample({
           weight: 0.8,
         },
         [vid('c9d0e1f2_a3b4_5678_9012_345678abcdef')]: {
-          type: 'linear',
+          type: 'linearVar',
           weight: 0.2,
         },
       },

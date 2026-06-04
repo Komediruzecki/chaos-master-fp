@@ -29,11 +29,11 @@ export const example22 = defineExample({
           weight: 1,
         },
         [vid('c3d4e5f6_a7b8_9012_cdef_43210987654')]: {
-          type: 'diamond',
+          type: 'diamondVar',
           weight: 0.4,
         },
         [vid('d4e5f6a7_b8c9_0123_defa_32109876543')]: {
-          type: 'linear',
+          type: 'linearVar',
           weight: 0.2,
         },
       },
@@ -46,11 +46,11 @@ export const example22 = defineExample({
       color: { x: 0.1, y: 0.35 },
       variations: {
         [vid('f6a7b8c9_d0e1_2345_fabc_10987654321')]: {
-          type: 'heart',
+          type: 'heartVar',
           weight: 1,
         },
         [vid('a7b8c9d0_e1f2_3456_abcd_09876543210')]: {
-          type: 'fan',
+          type: 'fanVar',
           weight: 0.35,
         },
         [vid('b8c9d0e1_f2a3_4567_bcde_98765432109')]: {

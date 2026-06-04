@@ -23,7 +23,7 @@ export const example1 = defineExample({
       color: { x: 0.1, y: 0.25 },
       variations: {
         [vid('44890d73_369c_4ed1_a1f5_1d7adf71a8ff')]: {
-          type: 'linear',
+          type: 'linearVar',
           weight: 1,
         },
       },
@@ -35,15 +35,15 @@ export const example1 = defineExample({
       color: { x: -0.3, y: 0.1 },
       variations: {
         [vid('3c38f125_0e23_4b5a_9ee8_f67be2bf5df9')]: {
-          type: 'linear',
+          type: 'linearVar',
           weight: 0.4,
         },
         [vid('07e2f213_93f5_4198_b41e_7c833cad08bb')]: {
-          type: 'swirl',
+          type: 'swirlVar',
           weight: 0.5,
         },
         [vid('08c5a1d5_f86f_4f1e_973c_6cd4dc8065bb')]: {
-          type: 'popcorn',
+          type: 'popcornVar',
           weight: 0.1,
         },
       },
