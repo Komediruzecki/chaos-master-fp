@@ -8,8 +8,8 @@ export const invsquircularVar = simpleVariation(
   (pos, varInfo) => {
     'use gpu'
     const w = select(varInfo.weight, EPS.$, varInfo.weight === 0.0)
-    const u = pos.x
-    const v = pos.y
+    const u = pos.x + EPS.$
+    const v = pos.y + EPS.$
     const r = u * u + v * v
     // r * (w^2 * r - 4*u^2*v^2) / w
     const inner = (r * (w * w * r - 4.0 * u * u * v * v)) / w

@@ -72,7 +72,7 @@ export const example22 = defineExample({
           params: { sides: 5, star: 0.3, circle: 0.1 },
         },
         [vid('e1f2a3b4_c5d6_7890_efab_65432109876')]: {
-          type: 'sinusoidal',
+          type: 'sinusoidalVar',
           weight: 0.3,
         },
       },

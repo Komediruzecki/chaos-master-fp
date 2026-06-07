@@ -36,7 +36,7 @@ export const example29 = defineExample({
           weight: 0.85,
         },
         [vid('c3d4e5f6_a7b8_029c_9012_cdef12345678')]: {
-          type: 'sinusoidal',
+          type: 'sinusoidalVar',
           weight: 0.3,
         },
       },

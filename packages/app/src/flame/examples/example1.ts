@@ -72,7 +72,7 @@ export const example1 = defineExample({
       color: { x: 1, y: 0 },
       variations: {
         [vid('86071f73_0259_46dd_b421_56025ce57ff2')]: {
-          type: 'sinusoidal',
+          type: 'sinusoidalVar',
           weight: 1,
         },
       },

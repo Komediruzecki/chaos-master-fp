@@ -32,7 +32,7 @@ export const example28 = defineExample({
       colorSpeed: 0.35,
       variations: {
         [vid('b2c3d4e5_f6a7_028b_8901_bcdef1234567')]: {
-          type: 'sinusoidal',
+          type: 'sinusoidalVar',
           weight: 1,
         },
         [vid('c3d4e5f6_a7b8_028c_9012_cdef12345678')]: {

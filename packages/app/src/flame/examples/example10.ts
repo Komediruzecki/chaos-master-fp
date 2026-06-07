@@ -77,7 +77,7 @@ export const example10 = defineExample({
           params: { power: 3, dist: 2.5 },
         },
         [vid('f4a5b6c7_d8e9_0123_9012_cdef04567890')]: {
-          type: 'sinusoidal',
+          type: 'sinusoidalVar',
           weight: 0.2,
         },
       },

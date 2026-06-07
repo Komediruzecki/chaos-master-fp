@@ -338,7 +338,7 @@ export const example1CreationTour: TourGuide = {
       description:
         'Sinusoidal bends the structure into soft sine waves, adding an organic ripple to the entire flame.',
       beforeShow: (ctx) => {
-        ctx.executeCommand('flame.addTransform', 'sinusoidal')
+        ctx.executeCommand('flame.addTransform', 'sinusoidalVar')
         ctx.executeCommand('flame.setColorSpeed', 3, 0.4)
         ctx.scrollToTarget('[data-tour-target="probability"]')
       },

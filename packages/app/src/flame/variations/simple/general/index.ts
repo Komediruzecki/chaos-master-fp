@@ -18,11 +18,6 @@ export const gaussian = simpleVariation('gaussian', (_pos, varInfo) => {
   return vec2f(cos(theta), sin(theta)).mul(r).mul(varInfo.weight)
 })
 
-export const sinusoidal = simpleVariation('sinusoidal', (pos, varInfo) => {
-  'use gpu'
-  return vec2f(sin(pos.x), sin(pos.y)).mul(varInfo.weight)
-})
-
 export const exVar = simpleVariation('exVar', (pos, varInfo) => {
   'use gpu'
   const r = length(pos)
@@ -49,7 +44,8 @@ export const blurVar = simpleVariation(
 
 export const tangentVar = simpleVariation('tangentVar', (pos, varInfo) => {
   'use gpu'
-  return vec2f(sin(pos.x) / cos(pos.y), tan(pos.y)).mul(varInfo.weight)
+  const safeCosY = cos(pos.y) + EPS.$
+  return vec2f(sin(pos.x) / safeCosY, tan(pos.y)).mul(varInfo.weight)
 })
 
 export const squareVar = simpleVariation('squareVar', (_pos, varInfo) => {
@@ -65,7 +61,7 @@ export const raysVar = simpleVariation('raysVar', (pos, varInfo) => {
   const rand = random()
   const r = length(pos)
   const angle = rand * PI.$ * weight
-  const fact = (weight * tan(angle)) / (r * r)
+  const fact = (weight * tan(angle)) / (r * r + EPS.$)
   return vec2f(cos(pos.x), sin(pos.y)).mul(fact)
 })
 
@@ -83,7 +79,8 @@ export const secantVar = simpleVariation('secantVar', (pos, varInfo) => {
   const weight = varInfo.weight
   const r = length(pos)
   const angle = weight * r
-  return vec2f(pos.x, 1 / (weight * cos(angle)))
+  const denom = weight * cos(angle) + EPS.$
+  return vec2f(pos.x, 1 / denom)
 })
 
 export const twintrianVar = simpleVariation('twintrianVar', (pos, varInfo) => {
@@ -99,7 +96,7 @@ export const twintrianVar = simpleVariation('twintrianVar', (pos, varInfo) => {
 export const crossVar = simpleVariation('crossVar', (pos, varInfo) => {
   'use gpu'
   const squareDiff = pos.x * pos.x - pos.y * pos.y
-  const fact = sqrt(1 / (squareDiff * squareDiff))
+  const fact = sqrt(1 / (squareDiff * squareDiff + EPS.$))
   return vec2f(pos.x, pos.y).mul(fact).mul(varInfo.weight)
 })
 
@@ -283,7 +280,7 @@ export const loonieVar = simpleVariation('loonieVar', (pos, varInfo) => {
 
 export const gammaVar = simpleVariation('gammaVar', (pos, varInfo) => {
   'use gpu'
-  const x = sqrt(dot(pos, pos))
+  const x = sqrt(dot(pos, pos)) + EPS.$
   const tmp = (x - 0.5) * log(x + 4.5) - (x + 4.5)
   const ser =
     1.0 +
