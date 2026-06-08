@@ -152,7 +152,7 @@ type HelpModalProps = {
 function HelpModal(props: HelpModalProps) {
   const [gpuDeviceInfo] = createResource(getGPUDeviceInformation)
   const showChangelog = createShowChangelog()
-  const [showConsole, setShowConsole] = createSignal(false)
+  const [showConsole, setShowConsole] = createSignal(true)
   const [copied, setCopied] = createSignal(false)
 
   function copyDeviceInfo() {

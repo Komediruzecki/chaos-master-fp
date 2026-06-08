@@ -1959,14 +1959,6 @@ export function MainWorkspace(props: AppProps) {
                                             variation.type,
                                           )}
                                           onClick={() => {
-                                            console.info(
-                                              '[variationButton] onClick — opening QuickVariationPicker',
-                                              {
-                                                tid,
-                                                vid,
-                                                type: variation.type,
-                                              },
-                                            )
                                             // Auto-open sidebar on mobile so the picker is visible
                                             if (isMobile() && sidebarHidden()) {
                                               setSidebarHidden(false)
@@ -1979,14 +1971,6 @@ export function MainWorkspace(props: AppProps) {
                                           }}
                                           onContextMenu={(e) => {
                                             e.preventDefault()
-                                            console.info(
-                                              '[variationButton] onContextMenu — opening full VariationSelector',
-                                              {
-                                                tid,
-                                                vid,
-                                                type: variation.type,
-                                              },
-                                            )
                                             showVariationSelector(
                                               deepClone(variation),
                                               deepClone(flameDescriptor),
