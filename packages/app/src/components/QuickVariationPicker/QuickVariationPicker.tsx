@@ -43,6 +43,19 @@ function GridIcon() {
   )
 }
 
+function ExpandIcon() {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.6"
+    >
+      <path d="M3 10v3h3M13 6V3h-3M10 3h3v3M6 13H3v-3" />
+    </svg>
+  )
+}
+
 function CloseIcon() {
   return (
     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
@@ -105,6 +118,7 @@ export type QuickVariationPickerProps = {
   onHoverClear?: () => void
   mode: QuickPickerMode
   onModeChange: (mode: QuickPickerMode) => void
+  onOpenFullSelector?: () => void
 }
 
 const PREVIEW_CLEAR_DELAY = 120
@@ -234,6 +248,17 @@ export function QuickVariationPicker(props: QuickVariationPickerProps) {
         >
           <GridIcon />
         </button>
+        <Show when={props.onOpenFullSelector}>
+          <button
+            class={ui.headerBtn}
+            title="Open full browser (with previews and params)"
+            onClick={() => {
+              props.onOpenFullSelector?.()
+            }}
+          >
+            <ExpandIcon />
+          </button>
+        </Show>
         <button
           class={ui.headerBtn}
           title="Close (Esc)"
@@ -424,6 +449,34 @@ export function QuickVariationPicker(props: QuickVariationPickerProps) {
                         {(type) => {
                           const flame = () => previewFlames[type]
                           const i = globalIndex++
+                          let longPressTimer:
+                            | ReturnType<typeof setTimeout>
+                            | undefined
+                          let didLongPress = false
+
+                          function onTouchStart(_e: TouchEvent) {
+                            didLongPress = false
+                            longPressTimer = setTimeout(() => {
+                              didLongPress = true
+                              handleMouseEnter(type)
+                            }, 300)
+                          }
+
+                          function onTouchEnd(e: TouchEvent) {
+                            clearTimeout(longPressTimer)
+                            if (didLongPress) {
+                              e.preventDefault()
+                              props.onHoverClear?.()
+                            }
+                          }
+
+                          function onTouchCancel() {
+                            clearTimeout(longPressTimer)
+                            if (didLongPress) {
+                              props.onHoverClear?.()
+                            }
+                          }
+
                           return (
                             <button
                               class={ui.galleryItem}
@@ -438,7 +491,14 @@ export function QuickVariationPicker(props: QuickVariationPickerProps) {
                               onMouseLeave={() => {
                                 handleMouseLeave()
                               }}
+                              onTouchStart={onTouchStart}
+                              onTouchEnd={onTouchEnd}
+                              onTouchCancel={onTouchCancel}
                               onClick={() => {
+                                if (didLongPress) {
+                                  didLongPress = false
+                                  return
+                                }
                                 clearTimeout(clearTimer)
                                 props.onHoverClear?.()
                                 props.onSelect(type)

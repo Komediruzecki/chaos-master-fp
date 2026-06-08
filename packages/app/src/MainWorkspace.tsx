@@ -1719,6 +1719,47 @@ export function MainWorkspace(props: AppProps) {
                             onHoverClear={() => setHoveredVariationType(null)}
                             mode={quickPickerMode()}
                             onModeChange={setQuickPickerMode}
+                            onOpenFullSelector={() => {
+                              console.info(
+                                '[QuickVariationPicker] onOpenFullSelector — opening full VariationSelector',
+                                { tid: state.tid, vid: state.vid },
+                              )
+                              const currentVar =
+                                flameDescriptor.transforms[state.tid]
+                                  ?.variations[state.vid]
+                              if (!currentVar) return
+                              // Close quick picker first so modal stacking works
+                              setQuickPickState(null)
+                              queueMicrotask(() => {
+                                showVariationSelector(
+                                  deepClone(currentVar),
+                                  deepClone(flameDescriptor),
+                                  state.tid,
+                                  state.vid,
+                                )
+                                  .then((newValue) => {
+                                    if (
+                                      newValue === undefined ||
+                                      !isVariationType(newValue.variation.type)
+                                    ) {
+                                      return
+                                    }
+                                    setFlameDescriptor((draft) => {
+                                      draft.transforms[state.tid]!.preAffine =
+                                        newValue.transform.preAffine
+                                      draft.transforms[state.tid]!.variations[
+                                        state.vid
+                                      ] = newValue.variation
+                                    })
+                                  })
+                                  .catch((err: unknown) => {
+                                    console.warn(
+                                      'Cannot load this variation, reason: ',
+                                      err,
+                                    )
+                                  })
+                              })
+                            }}
                           />
                         )}
                       </Show>
@@ -1918,6 +1959,18 @@ export function MainWorkspace(props: AppProps) {
                                             variation.type,
                                           )}
                                           onClick={() => {
+                                            console.info(
+                                              '[variationButton] onClick — opening QuickVariationPicker',
+                                              {
+                                                tid,
+                                                vid,
+                                                type: variation.type,
+                                              },
+                                            )
+                                            // Auto-open sidebar on mobile so the picker is visible
+                                            if (isMobile() && sidebarHidden()) {
+                                              setSidebarHidden(false)
+                                            }
                                             setQuickPickState({
                                               tid,
                                               vid,
@@ -1926,6 +1979,14 @@ export function MainWorkspace(props: AppProps) {
                                           }}
                                           onContextMenu={(e) => {
                                             e.preventDefault()
+                                            console.info(
+                                              '[variationButton] onContextMenu — opening full VariationSelector',
+                                              {
+                                                tid,
+                                                vid,
+                                                type: variation.type,
+                                              },
+                                            )
                                             showVariationSelector(
                                               deepClone(variation),
                                               deepClone(flameDescriptor),
