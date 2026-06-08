@@ -1453,6 +1453,9 @@
   cursor: default;
   font-size: 0.8125rem;
   border: 1px solid transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
   transition:
     background 0.15s,
     border-color 0.15s;

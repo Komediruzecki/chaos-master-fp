@@ -1937,6 +1937,9 @@ export function MainWorkspace(props: AppProps) {
                             {(def) => (
                               <div
                                 class={ui.customVarItem}
+                                onContextMenu={(e) => {
+                                  e.preventDefault()
+                                }}
                                 onMouseEnter={() => setHoveredCustomVarDef(def)}
                                 onMouseLeave={() =>
                                   setHoveredCustomVarDef(null)
