@@ -244,7 +244,7 @@ function RecentFlameItem(props: {
   const displayFlame = (): FlameDescriptor => {
     if (!hovered() || !hasTracks()) return props.recent.flame
     const clone = deepClone(props.recent.flame)
-    applyTracksToFlame(props.recent.tracks!, clone, animFrame())
+    applyTracksToFlame(props.recent.tracks, clone, animFrame())
     return clone
   }
 
@@ -360,7 +360,7 @@ function RecentFlameItem(props: {
         }}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
-            props.onDelete(e as unknown as MouseEvent, props.recent.id)
+            props.onDelete(e as unknown, props.recent.id)
           }
         }}
         title="Delete"
@@ -437,8 +437,8 @@ export function LoadFlameModal(props: LoadFlameModalProps) {
       }
     } catch (err) {
       console.warn(err)
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      showAlert(`No valid flame found in '${file.name}'.`)
+
+      void showAlert(`No valid flame found in '${file.name}'.`)
     }
   }
 
@@ -488,9 +488,8 @@ export function LoadFlameModal(props: LoadFlameModalProps) {
                     props.respond(flame)
                   }
                 }}
-                onDelete={(e, id) => {
-                  // eslint-disable-next-line @typescript-eslint/no-floating-promises
-                  handleDeleteRecent(e, id)
+                onDelete={async (e, id) => {
+                  await handleDeleteRecent(e, id)
                 }}
               />
             )}

@@ -7,7 +7,7 @@ import { defineExample, tid, vid } from './util'
  */
 export const example9 = defineExample({
   renderSettings: {
-    exposure: -1.25,
+    exposure: 0.25,
     skipIters: 20,
     drawMode: 'light',
     camera: {
@@ -33,7 +33,7 @@ export const example9 = defineExample({
           },
         },
         [vid('a2b3c4d5_e6f7_8901_4567_890abcdef234')]: {
-          type: 'linear',
+          type: 'linearVar',
           weight: 0.5,
         },
       },
@@ -51,11 +51,11 @@ export const example9 = defineExample({
           params: { x: 0.7, y: 0.5 },
         },
         [vid('d2e3f4a5_b6c7_8901_7890_abcdef234567')]: {
-          type: 'popcorn',
+          type: 'popcornVar',
           weight: 0.2,
         },
         [vid('e2f3a4b5_c6d7_8901_8901_bcdef2345678')]: {
-          type: 'linear',
+          type: 'linearVar',
           weight: 0.3,
         },
       },
@@ -73,7 +73,7 @@ export const example9 = defineExample({
           params: { power: 4, dist: 3 },
         },
         [vid('b3c4d5e6_f7a8_9012_4567_890abcdef012')]: {
-          type: 'eyefish',
+          type: 'eyefishVar',
           weight: 0.15,
         },
       },

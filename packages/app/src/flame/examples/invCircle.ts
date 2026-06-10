@@ -46,7 +46,7 @@ export const invCircleEx1 = defineExample({
 export const invCircleEx2 = defineExample({
   metadata: { author: 'unknown' },
   renderSettings: {
-    exposure: -0.641,
+    exposure: 0.859,
     skipIters: 21,
     drawMode: 'light',
     colorInitMode: 'colorInitPosition',

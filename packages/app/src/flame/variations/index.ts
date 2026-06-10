@@ -44,7 +44,11 @@ export function isParametricVariation(
 }
 
 export function isVariationType(
-  maybeType: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  maybeType: any,
 ): maybeType is TransformVariationType {
-  return (variationTypes as string[]).includes(maybeType)
+  return (
+    typeof maybeType === 'string' &&
+    (variationTypes as string[]).includes(maybeType)
+  )
 }

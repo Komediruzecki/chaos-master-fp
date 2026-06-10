@@ -140,6 +140,27 @@
   gap: var(--space-4);
 }
 
+.collapsible-header {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  user-select: none;
+  margin: 0;
+  padding: var(--space-1) 0;
+
+  &:hover {
+    color: var(--neutral-500);
+  }
+}
+
+.chevron {
+  display: inline-block;
+  width: 1.2em;
+  font-family: monospace;
+  text-align: center;
+}
+
 .gallery {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
@@ -437,5 +458,98 @@
     &:focus-within {
       color: white;
     }
+  }
+}
+
+/* ---- Category filter row ---- */
+
+.category-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0.25rem 0.4rem;
+  border-bottom: 1px solid var(--neutral-200);
+  flex-shrink: 0;
+
+  [data-theme='dark'] & {
+    border-bottom-color: var(--neutral-800);
+  }
+}
+
+.category-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.45rem;
+  border-radius: 12px;
+  border: 1px solid var(--neutral-250);
+  background: var(--neutral-100);
+  color: var(--neutral-600);
+  font-size: 0.62rem;
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background 0.13s,
+    color 0.13s,
+    border-color 0.13s;
+  white-space: nowrap;
+  user-select: none;
+
+  &:hover {
+    background: var(--neutral-200);
+    color: var(--neutral-800);
+  }
+
+  [data-theme='dark'] & {
+    background: var(--neutral-850);
+    border-color: var(--neutral-700);
+    color: var(--neutral-400);
+
+    &:hover {
+      background: var(--neutral-750);
+      color: var(--neutral-200);
+    }
+  }
+}
+
+.category-pill-active {
+  background: oklch(40% 0.06 240);
+  color: oklch(96% 0.01 240);
+  border-color: transparent;
+
+  &:hover {
+    background: oklch(36% 0.06 240);
+    color: oklch(96% 0.01 240);
+  }
+
+  [data-theme='dark'] & {
+    background: oklch(55% 0.08 240);
+    color: oklch(10% 0.01 240);
+
+    &:hover {
+      background: oklch(60% 0.08 240);
+      color: oklch(10% 0.01 240);
+    }
+  }
+}
+
+/* ---- Section headers ---- */
+
+.section-header {
+  grid-column: 1 / -1;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--neutral-400);
+  padding: 0.5rem 0.2rem 0.15rem;
+  margin-top: 0.3rem;
+
+  &:first-child {
+    margin-top: 0;
+  }
+
+  [data-theme='dark'] & {
+    color: var(--neutral-500);
   }
 }

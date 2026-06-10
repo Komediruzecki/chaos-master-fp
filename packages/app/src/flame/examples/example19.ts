@@ -71,7 +71,7 @@ export const example19 = defineExample({
           params: { powX: 0.8, powY: 1.3 },
         },
         [vid('c9d0e1f2_a3b4_019i_5678_34567890abcd')]: {
-          type: 'spherical',
+          type: 'sphericalVar',
           weight: 0.3,
         },
       },

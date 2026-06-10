@@ -75,11 +75,11 @@ export function createFlameWgsl({
   const fnImpl = tgpu.fn([Point, Uniforms], Point) /* wgsl */ `
     (point: Point, uniforms: Uniforms) -> Point {
       let pre = transformAffine(uniforms.preAffine, point.position);
-      var p = vec2f(0);
+      var p = vec2f(0.0);
       ${recordEntries(validVariations)
         .map(
           ([vid, { type }]) => /* wgsl */ `
-            p += uniforms.variation${vid}.weight * ${variationInvocation(type, vid)};`,
+            p += ${variationInvocation(type, vid)};`,
         )
         .join('\n')}
       p = transformAffine(uniforms.postAffine, p);

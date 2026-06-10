@@ -77,13 +77,13 @@ export function createIFSPipeline(
       const flamesA = Object.fromEntries(
         tidsA.map((tid) => {
           globId += tid
-          return [tid, createFlameWgsl(transforms[tid]!)]
+          return [tid, createFlameWgsl(transforms[tid])]
         }),
       )
       const flamesB = Object.fromEntries(
         tidsB.map((tid) => {
           globId += tid
-          return [tid, createFlameWgsl(blendTransforms[tid]!)]
+          return [tid, createFlameWgsl(blendTransforms[tid])]
         }),
       )
 
@@ -215,7 +215,11 @@ export function createIFSPipeline(
           jittered.x < 0 ||
           jittered.y < 0 ||
           jittered.x > outputTextureDimensionF.x ||
-          jittered.y > outputTextureDimensionF.y
+          jittered.y > outputTextureDimensionF.y ||
+          // eslint-disable-next-line eqeqeq -- NaN check in WGSL
+          jittered.x != jittered.x ||
+          // eslint-disable-next-line eqeqeq -- NaN check in WGSL
+          jittered.y != jittered.y
         )
           return
         const screenI = vec2i(jittered)
@@ -347,7 +351,11 @@ export function createIFSPipeline(
           jittered.x < 0 ||
           jittered.y < 0 ||
           jittered.x > outputTextureDimensionF.x ||
-          jittered.y > outputTextureDimensionF.y
+          jittered.y > outputTextureDimensionF.y ||
+          // eslint-disable-next-line eqeqeq -- NaN check in WGSL
+          jittered.x != jittered.x ||
+          // eslint-disable-next-line eqeqeq -- NaN check in WGSL
+          jittered.y != jittered.y
         )
           return
         const screenI = vec2i(jittered)

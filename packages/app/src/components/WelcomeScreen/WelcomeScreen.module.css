@@ -356,7 +356,8 @@
 .techPill {
   display: inline-flex;
   align-items: center;
-  padding: 0.2rem 0.55rem;
+  justify-content: center;
+  padding: 0.25rem 0.55rem 0.15rem;
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.04);
@@ -365,6 +366,7 @@
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  line-height: normal;
 }
 
 .techPillCyan {
@@ -395,7 +397,7 @@
   background: rgba(255, 100, 150, 0.08);
   color: rgba(255, 150, 180, 0.55);
   transition: all 0.2s ease;
-  line-height: 1;
+  line-height: normal;
   text-decoration: none;
 
   & > svg {
@@ -422,7 +424,7 @@
   background: rgba(255, 255, 255, 0.05);
   color: rgba(255, 255, 255, 0.4);
   transition: all 0.2s ease;
-  line-height: 1;
+  line-height: normal;
 
   & > svg {
     width: 0.85rem;

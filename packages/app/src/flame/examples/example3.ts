@@ -41,7 +41,7 @@ export const example3 = defineExample({
       postAffine: { a: 1, b: 0, c: 0, d: 0, e: 1, f: 0 },
       variations: {
         [vid('095913d7_51cf_4912_9eb5_0392e0884060')]: {
-          type: 'eyefish',
+          type: 'eyefishVar',
           weight: 1,
         },
       },
@@ -60,7 +60,7 @@ export const example3 = defineExample({
       postAffine: { a: 1, b: 0, c: 0, d: 0, e: 1, f: 0 },
       variations: {
         [vid('163d876f_8482_4a0b_8e83_e8404fc51930')]: {
-          type: 'linear',
+          type: 'linearVar',
           weight: 1,
         },
       },

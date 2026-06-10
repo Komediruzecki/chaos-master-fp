@@ -53,8 +53,8 @@ const shortcuts: ShortcutDescriptor[] = [
 const { navigator: nav } = globalThis
 
 function isMac() {
-  // eslint-disable-next-line @typescript-eslint/no-deprecated
-  return nav.platform.indexOf('Mac') !== -1
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (nav as any).platform.indexOf('Mac') !== -1
 }
 
 const ctrlKey = isMac() ? '\u2318 ' : 'Ctrl + '
@@ -99,8 +99,8 @@ function gatherFullDeviceInfo(
 
   lines.push(`App Version : ${VERSION}${GIT_SHA ? ` (${GIT_SHA})` : ''}`)
   lines.push(`User Agent  : ${n.userAgent}`)
-  // eslint-disable-next-line @typescript-eslint/no-deprecated
-  lines.push(`Platform    : ${n.platform}`)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  lines.push(`Platform    : ${(n as any).platform}`)
   lines.push(`Language    : ${n.language}`)
 
   lines.push(
@@ -152,7 +152,7 @@ type HelpModalProps = {
 function HelpModal(props: HelpModalProps) {
   const [gpuDeviceInfo] = createResource(getGPUDeviceInformation)
   const showChangelog = createShowChangelog()
-  const [showConsole, setShowConsole] = createSignal(false)
+  const [showConsole, setShowConsole] = createSignal(true)
   const [copied, setCopied] = createSignal(false)
 
   function copyDeviceInfo() {

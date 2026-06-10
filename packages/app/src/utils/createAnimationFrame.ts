@@ -5,10 +5,15 @@ export function createAnimationFrame(
   fn: (frameId: number) => void,
   minDeltaTime: number | Accessor<number> = 0,
   hold?: () => Promise<void>,
+  /** While true, the rAF loop is torn down (another driver owns the ticks). */
+  paused?: Accessor<boolean>,
 ) {
   let lastTime = 0
 
   createEffect(() => {
+    if (paused?.()) {
+      return
+    }
     let frameId: number
     const framesPending = new Set<number>()
 

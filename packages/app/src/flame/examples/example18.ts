@@ -65,11 +65,11 @@ export const example18 = defineExample({
       color: { x: 0, y: -0.35 },
       variations: {
         [vid('b8c9d0e1_f2a3_018h_4567_234567890abc')]: {
-          type: 'horseshoe',
+          type: 'horseshoeVar',
           weight: 0.85,
         },
         [vid('c9d0e1f2_a3b4_018i_5678_34567890abcd')]: {
-          type: 'swirl',
+          type: 'swirlVar',
           weight: 0.2,
         },
       },
