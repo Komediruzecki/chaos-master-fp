@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.8] - 2026-06-10
+
+### Changed
+
+- **Variation Refactor**: Refactored variation categories to better organize and manage flame parametric variations.
+- **Animation Exposure**: Scaled up default exposure levels by +1.5 across all timeline animation examples for a brighter default experience.
+- Removed verbose timeline rendering logs to reduce console clutter.
+- **Export Progress UI**: The progress bar now displays an explicit "Encoding Video..." status and prevents cancellation during the critical muxing finalization phase.
+
+### Fixed
+
+- **WebGPU Memory Limits**: Animation export at 4x upscale no longer crashes due to `Out of Memory` errors. The WebGPU adapter now explicitly requests the hardware's maximum supported buffer sizes (e.g., 2GB) rather than defaulting to the baseline 256MB.
+- **Encoder Fail-Fast**: Fixed a bug where asynchronous video encoder failures (such as Firefox refusing massive 8K resolutions) were swallowed silently, causing the app to needlessly process all frames before crashing at the end. The pipeline now halts immediately on encoder failure.
+
 ## [0.8.7] - 2026-05-29
 
 ### Added
