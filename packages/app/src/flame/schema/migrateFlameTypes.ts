@@ -40,6 +40,11 @@ const VARIATION_TYPE_MIGRATIONS: Record<string, string> = {
   // Casing fixes
   flipyVar: 'flipYVar',
   flipcircleVar: 'flipCircleVar',
+
+  // Later additions
+  pie: 'pieVar',
+  gaussian: 'gaussianVar',
+  juliaN: 'juliaNVar',
 }
 
 /**

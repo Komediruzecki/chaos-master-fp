@@ -42,8 +42,8 @@ const PieParamsEditor: EditorFor<PieParams> = (props) => (
   </>
 )
 
-export const pie = parametricVariation(
-  'pie',
+export const pieVar = parametricVariation(
+  'pieVar',
   PieParams,
   PieParamsDefaults,
   PieParamsEditor,

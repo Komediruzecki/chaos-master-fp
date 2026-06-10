@@ -11,7 +11,7 @@ export const randomDisk = simpleVariation('randomDisk', (_pos, varInfo) => {
   return randomUnitDisk().mul(varInfo.weight)
 })
 
-export const gaussian = simpleVariation('gaussian', (_pos, varInfo) => {
+export const gaussianVar = simpleVariation('gaussianVar', (_pos, varInfo) => {
   'use gpu'
   const r = random() + random() + random() + random() - 2.0
   const theta = random() * 2.0 * PI.$

@@ -36,8 +36,8 @@ const JuliaNParamsEditor: EditorFor<JuliaNParams> = (props) => (
   </>
 )
 
-export const juliaN = parametricVariation(
-  'juliaN',
+export const juliaNVar = parametricVariation(
+  'juliaNVar',
   JuliaNParams,
   JuliaNParamsDefaults,
   JuliaNParamsEditor,

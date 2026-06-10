@@ -127,7 +127,7 @@ import { invEllipse } from './general/invEllipse'
 import { inversionVar } from './general/inversionVar'
 import { joukowskiVar } from './general/joukowskiVar'
 import { juliaCVar } from './general/juliaCVar'
-import { juliaN } from './general/juliaN'
+import { juliaNVar } from './general/juliaNVar'
 import { juliaOutsideVar } from './general/juliaOutsideVar'
 import { juliaQVar } from './general/juliaQVar'
 import { juliaScope } from './general/juliaScope'
@@ -165,7 +165,7 @@ import { pdjVar } from './general/pdj'
 import { perlinNoiseVar } from './general/perlinNoise'
 import { perspective } from './general/perspective'
 import { phoenixJuliaVar } from './general/phoenixJuliaVar'
-import { pie } from './general/pie'
+import { pieVar } from './general/pieVar'
 import { plusRecipVar } from './general/plusRecipVar'
 import { popcorn2Var } from './general/popcorn2Var'
 import { powBlockVar } from './general/powBlockVar'
@@ -332,7 +332,7 @@ export const parametricVariations = {
   invEllipse,
   inversionVar,
   juliaCVar,
-  juliaN,
+  juliaNVar,
   juliaOutsideVar,
   juliaScope,
   joukowskiVar,
@@ -358,7 +358,7 @@ export const parametricVariations = {
   pdjVar,
   perspective,
   phoenixJuliaVar,
-  pie,
+  pieVar,
   plusRecipVar,
   pixelFlowVar,
   popcorn2Var,
