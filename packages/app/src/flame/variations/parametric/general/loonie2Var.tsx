@@ -52,7 +52,7 @@ export const loonie2Var = parametricVariation(
   (pos, varInfo, P) => {
     'use gpu'
 
-    const sqrvvar = 1.0
+    const sqrvvar = f32(1.0)
 
     const a = (2.0 * PI.$) / P.sides
     const sina = sin(a)
@@ -72,7 +72,7 @@ export const loonie2Var = parametricVariation(
 
     let r2 = xrt * coss + abs(yrt) * sins
 
-    for (let i = 0; i < P.sides - 1; i++) {
+    for (let i = 0.0; i < P.sides - 1.0; i += 1.0) {
       const swp = xrt * cosa - yrt * sina
       yrt = xrt * sina + yrt * cosa
       xrt = swp

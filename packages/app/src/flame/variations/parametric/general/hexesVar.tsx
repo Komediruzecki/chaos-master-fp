@@ -145,8 +145,8 @@ export const hexesVar = parametricVariation(
 
     // re-center Hx, Hy based on closest
     // map linear index back to di, dj
-    const q_di = closestIdx / 3 - 1
-    const q_dj = (closestIdx % 3) - 1
+    const q_di = i32(closestIdx / 3 - 1)
+    const q_dj = i32((closestIdx % 3) - 1)
 
     Hx += q_di
     Hy += q_dj

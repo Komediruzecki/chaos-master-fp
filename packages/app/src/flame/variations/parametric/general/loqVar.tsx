@@ -34,7 +34,7 @@ export const loqVar = parametricVariation(
   (pos, varInfo, P) => {
     'use gpu'
 
-    const z = 0.0
+    const z = f32(0.0)
     const abs_v = sqrt(pos.y * pos.y + z * z)
     const denom = 0.5 / log(P.base)
     const C = atan2(abs_v, pos.x) / select(abs_v, 1.0e-9, abs_v === 0.0)

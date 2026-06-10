@@ -76,7 +76,7 @@ export const iconAttractorVar = parametricVariation(
     let p = P.a * zzbar + P.l
     let zreal = pos.x
     let zimag = pos.y
-    for (let i = 1; i <= P.degree - 2.0; i++) {
+    for (let i = 1.0; i <= P.degree - 2.0; i += 1.0) {
       const za = zreal * pos.x - zimag * pos.y
       const zb = zimag * pos.x + zreal * pos.y
       zreal = za
