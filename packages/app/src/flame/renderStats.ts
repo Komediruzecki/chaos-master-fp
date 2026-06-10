@@ -86,6 +86,7 @@ export type AnimationExportProgress = {
   totalFramesComplete: number
   currentTimelineFrame: number
   startedAt: number
+  status?: 'rendering' | 'encoding'
 }
 
 export const [animationExportProgress, setAnimationExportProgress] =

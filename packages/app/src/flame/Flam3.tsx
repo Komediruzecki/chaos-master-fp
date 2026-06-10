@@ -331,7 +331,7 @@ export function Flam3(props: Flam3Props) {
   // Clone flame descriptor and apply timeline keyframes.
   // Explicitly read renderSettings and transforms sub-properties so SolidJS
   // tracks them reliably. JSON.stringify on a store proxy may miss deep paths.
-  let cloneRunCount = 0
+  // tracks them reliably. JSON.stringify on a store proxy may miss deep paths.
   createEffect(() => {
     const rs = props.flameDescriptor.renderSettings
     const _rs = {
@@ -354,35 +354,10 @@ export function Flam3(props: Flam3Props) {
     const enabled = props.animationEnabled
     const hasTracks = timeline ? timeline.tracks().length : 0
     // Read currentFrame in the reactive scope so scrubbing triggers re-run.
-    const frame = timeline?.currentFrame() ?? 0
+    const _frame = timeline?.currentFrame() ?? 0
     const isActive = timeline?.isPlaying() || timeline?.isScrubbing()
     if (timeline && enabled && hasTracks > 0 && isActive) {
       applyTimelineToFlame(timeline, flame)
-      cloneRunCount++
-      if (cloneRunCount <= 3 || cloneRunCount % 90 === 0) {
-        if (DEBUG_MODE) {
-          console.info(
-            `[flam3-clone] run #${cloneRunCount}`,
-            `frame=${frame}`,
-            `tracks=${hasTracks}`,
-            `enabled=${enabled}`,
-            `exposure=${_rs.exposure}`,
-          )
-        }
-      }
-    } else {
-      cloneRunCount++
-      if (cloneRunCount <= 3) {
-        if (DEBUG_MODE) {
-          console.info(
-            `[flam3-clone] run #${cloneRunCount}`,
-            '(no timeline apply)',
-            `enabled=${enabled}`,
-            `hasTracks=${hasTracks}`,
-            `exposure=${_rs.exposure}`,
-          )
-        }
-      }
     }
     setAnimatedFlame(flame)
   })
@@ -393,21 +368,11 @@ export function Flam3(props: Flam3Props) {
    */
   createEffect(() => {
     if (!timeline || !timeline.isPlaying()) {
-      if (DEBUG_MODE) {
-        console.info('[flam3-playback] stopped (isPlaying=false)')
-      }
       return
     }
 
     const cfg = timeline.config()
     const intervalMs = 1000 / cfg.fps
-    if (DEBUG_MODE) {
-      console.info(
-        `[flam3-playback] starting interval: fps=${cfg.fps} intervalMs=${
-          intervalMs
-        } tracks=${timeline.tracks().length}`,
-      )
-    }
     const intervalId = window.setInterval(() => {
       for (let i = 0; i < cfg.timeScale; i++) {
         timeline.advanceFrame()

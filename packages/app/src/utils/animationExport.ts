@@ -111,6 +111,7 @@ export function createAnimationExport(
           totalFramesComplete: frameIndex,
           currentTimelineFrame: frame,
           startedAt,
+          status: 'rendering',
         })
       }
 
@@ -253,13 +254,11 @@ export function createAnimationExport(
             `[AnimationExport ${logTime()}] finalizing: ${frameIndex} frames in ${((performance.now() - startedAt) / 1000).toFixed(1)}s total`,
           )
         }
-        setAnimationExportCancel(undefined)
-        setAnimationExportRunning(false)
-        setAnimationExportProgress(undefined)
-        setForceAnimationExportNow(false)
-        setOnExportImage(undefined)
-        setExportQuality(undefined)
-        restoreFlameState()
+
+        // Notify UI that we are now encoding
+        setAnimationExportProgress((prev) =>
+          prev ? { ...prev, status: 'encoding' } : prev,
+        )
 
         try {
           const result = await encoder.finalize()
@@ -278,6 +277,14 @@ export function createAnimationExport(
           }
         } catch (e: unknown) {
           reject(e instanceof Error ? e : new Error(String(e)))
+        } finally {
+          setAnimationExportCancel(undefined)
+          setAnimationExportRunning(false)
+          setAnimationExportProgress(undefined)
+          setForceAnimationExportNow(false)
+          setOnExportImage(undefined)
+          setExportQuality(undefined)
+          restoreFlameState()
         }
       }
 

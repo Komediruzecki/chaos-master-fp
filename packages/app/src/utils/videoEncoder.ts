@@ -131,6 +131,7 @@ function createWebCodecsPipeline(
 
   let encoder: VideoEncoder | undefined
   let cancelled = false
+  let asyncError: Error | undefined
   let configured = false
   let framesEncoded = 0
 
@@ -167,6 +168,7 @@ function createWebCodecsPipeline(
       error: (e) => {
         console.error('VideoEncoder error:', e)
         cancelled = true
+        asyncError = e instanceof Error ? e : new Error(String(e))
         try {
           encoder?.close()
         } catch {
@@ -201,7 +203,7 @@ function createWebCodecsPipeline(
     ) {
       await new Promise<void>((resolve) => {
         // Poll fallback in case 'dequeue' is not supported by the browser.
-        const timer = setTimeout(resolve, 50)
+        const timer = setTimeout(() => resolve(), 50)
         encoder?.addEventListener(
           'dequeue',
           () => {
@@ -215,10 +217,16 @@ function createWebCodecsPipeline(
   }
 
   const encode = async (frame: VideoFrame, frameIndex: number) => {
-    if (cancelled) return
+    if (cancelled) {
+      if (asyncError) throw asyncError
+      return
+    }
     initEncoder()
     await waitForQueueDrain()
-    if (cancelled) return
+    if (cancelled) {
+      if (asyncError) throw asyncError
+      return
+    }
     const keyFrame = frameIndex === 0 || frameIndex % keyFrameInterval === 0
     try {
       encoder!.encode(frame, { keyFrame })
@@ -235,6 +243,9 @@ function createWebCodecsPipeline(
   }
 
   const finalize = async (): Promise<EncodeResult> => {
+    if (asyncError) {
+      throw asyncError
+    }
     if (cancelled && framesEncoded === 0) {
       throw new Error('VideoEncoder failed before encoding any frames')
     }
@@ -349,9 +360,13 @@ function createMediaRecorderFallback(
     bitmap.close()
   }
 
-  const finalize = async (): Promise<EncodeResult> => {
+  const finalize = (): Promise<EncodeResult> => {
     if (cancelled)
-      return { blob: new Blob(), mimeType: 'video/webm', usedFallback: true }
+      return Promise.resolve({
+        blob: new Blob(),
+        mimeType: 'video/webm',
+        usedFallback: true,
+      })
     if (recorder.state === 'recording') {
       recorder.stop()
     }

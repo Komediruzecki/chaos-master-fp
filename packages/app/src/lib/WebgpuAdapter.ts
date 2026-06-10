@@ -82,6 +82,14 @@ export async function initializeWebgpuDevice(
       ...(deviceFeatures?.requiredFeatures ?? []),
       ...optionalFeatures,
     ],
+    requiredLimits: {
+      ...(deviceFeatures?.requiredLimits ?? {}),
+      maxBufferSize: gpuAdapter.limits.maxBufferSize,
+      maxStorageBufferBindingSize:
+        gpuAdapter.limits.maxStorageBufferBindingSize,
+      maxComputeWorkgroupStorageSize:
+        gpuAdapter.limits.maxComputeWorkgroupStorageSize,
+    },
   })
 
   // requestDevice will never return null, but if a valid device request can't be
