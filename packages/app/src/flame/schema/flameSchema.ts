@@ -7,6 +7,7 @@ import { ColorInitMode } from '../colorInitMode'
 import { DrawMode } from '../drawMode'
 import { PointInitMode } from '../pointInitMode'
 import { TransformVariationDescriptor } from '../variations'
+import { migrateFlameVariationTypes } from './migrateFlameTypes'
 
 // default values and schema fallbacks
 export const backgroundColorDefault: [number, number, number] = [0, 0, 0]
@@ -167,6 +168,7 @@ export const FlameDescriptor = v.object({
 })
 
 export function validateFlame(data: unknown): FlameDescriptor {
+  migrateFlameVariationTypes(data)
   const result = v.safeParse(FlameDescriptor, data)
   if (!result.success) {
     const flatErrors = v.flatten<typeof FlameDescriptor>(result.issues)

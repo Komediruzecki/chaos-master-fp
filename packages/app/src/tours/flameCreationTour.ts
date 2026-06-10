@@ -60,7 +60,7 @@ export const flameCreationTour: TourGuide = {
       beforeShow: (ctx) => {
         ctx.setSidebarOpen(true)
         ctx.executeCommand('flame.clearTransforms')
-        ctx.executeCommand('flame.addTransform', 'linear')
+        ctx.executeCommand('flame.addTransform', 'linearVar')
         ctx.executeCommand('flame.setSkipIters', 1)
         ctx.executeCommand('flame.setExposure', 0.25)
         ctx.executeCommand('flame.setVibrancy', 0.5)

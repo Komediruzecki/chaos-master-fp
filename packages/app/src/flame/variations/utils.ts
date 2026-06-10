@@ -9,7 +9,7 @@ import type { EditorFor } from '@/components/Sliders/ParametricEditors/types'
 export function getNormalizedVariationName(
   type: TransformVariationType,
 ): string {
-  return type.replaceAll(/var/gi, '')
+  return type.replace(/Var$/, '')
 }
 
 export function getVariationDefault(
@@ -96,7 +96,7 @@ export function getDefaultFlameByVarType(
 
 const previewFlames: Partial<Record<TransformVariationType, FlameDescriptor>> =
   {
-    horseshoe: unfreeze(
+    horseshoeVar: unfreeze(
       produce(getDefaultFlameByVarType('horseshoeVar'), (draft) => {
         draft.transforms[getTransformPreviewTid('horseshoeVar')]!.preAffine = {
           c: 0.4489954195606869,
@@ -120,7 +120,7 @@ const previewFlames: Partial<Record<TransformVariationType, FlameDescriptor>> =
         }
       }),
     ),
-    cylinder: unfreeze(
+    cylinderVar: unfreeze(
       produce(getDefaultFlameByVarType('cylinderVar'), (draft) => {
         draft.renderSettings.exposure = 0.666
         draft.renderSettings.camera = {
@@ -137,7 +137,7 @@ const previewFlames: Partial<Record<TransformVariationType, FlameDescriptor>> =
         }
       }),
     ),
-    diamond: unfreeze(
+    diamondVar: unfreeze(
       produce(getDefaultFlameByVarType('diamondVar'), (draft) => {
         draft.transforms[getTransformPreviewTid('diamondVar')]!.preAffine = {
           c: 0,
@@ -149,7 +149,7 @@ const previewFlames: Partial<Record<TransformVariationType, FlameDescriptor>> =
         }
       }),
     ),
-    fan: unfreeze(
+    fanVar: unfreeze(
       produce(getDefaultFlameByVarType('fanVar'), (draft) => {
         draft.transforms[getTransformPreviewTid('fanVar')]!.preAffine = {
           c: 0.3030303030303029,
@@ -161,7 +161,7 @@ const previewFlames: Partial<Record<TransformVariationType, FlameDescriptor>> =
         }
       }),
     ),
-    waves: unfreeze(
+    wavesVar: unfreeze(
       produce(getDefaultFlameByVarType('wavesVar'), (draft) => {
         draft.transforms[getTransformPreviewTid('wavesVar')]!.preAffine = {
           c: -0.3636010248255146,
@@ -198,7 +198,7 @@ const previewFlames: Partial<Record<TransformVariationType, FlameDescriptor>> =
         }
       }),
     ),
-    popcorn: unfreeze(
+    popcornVar: unfreeze(
       produce(getDefaultFlameByVarType('popcornVar'), (draft) => {
         draft.transforms[getTransformPreviewTid('popcornVar')]!.preAffine = {
           a: 1,
@@ -210,7 +210,7 @@ const previewFlames: Partial<Record<TransformVariationType, FlameDescriptor>> =
         }
       }),
     ),
-    rings: unfreeze(
+    ringsVar: unfreeze(
       produce(getDefaultFlameByVarType('ringsVar'), (draft) => {
         draft.transforms[getTransformPreviewTid('ringsVar')]!.preAffine = {
           c: 0.24772547468354453,

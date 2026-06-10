@@ -34,7 +34,7 @@ registerCommand({
   shortcut: 'Shift+T',
   execute(ctx, variationType?: unknown) {
     const type = (
-      typeof variationType === 'string' ? variationType : 'linear'
+      typeof variationType === 'string' ? variationType : 'linearVar'
     ) as TransformVariationType
     ctx.setFlameDescriptor((draft) => {
       draft.transforms[generateTransformId()] = {
@@ -106,7 +106,7 @@ registerCommand({
   execute(ctx, transformIndex?: unknown, variationType?: unknown) {
     const tidx = typeof transformIndex === 'number' ? transformIndex : 0
     const type = (
-      typeof variationType === 'string' ? variationType : 'linear'
+      typeof variationType === 'string' ? variationType : 'linearVar'
     ) as TransformVariationType
     ctx.setFlameDescriptor((draft) => {
       const key = getTransformKey(draft.transforms, tidx)

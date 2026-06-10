@@ -113,7 +113,7 @@ function newDefaultTransform(): TransformFunction {
     postAffine: { a: 1, b: 0, c: 0, d: 0, e: 1, f: 0 },
     visible: true,
     variations: {
-      [generateVariationId()]: getVariationDefault('linear', 1.0),
+      [generateVariationId()]: getVariationDefault('linearVar', 1.0),
     },
   }
 }
@@ -311,7 +311,7 @@ export function MainWorkspace(props: AppProps) {
           preAffine: { a: cos, b: -sin, c: 0, d: sin, e: cos, f: 0 },
           postAffine: { a: 1, b: 0, c: 0, d: 0, e: 1, f: 0 },
           variations: {
-            [generateVariationId()]: getVariationDefault('linear', 1),
+            [generateVariationId()]: getVariationDefault('linearVar', 1),
           },
         }
       }
@@ -325,7 +325,7 @@ export function MainWorkspace(props: AppProps) {
           preAffine: { a: -1, b: 0, c: 0, d: 0, e: 1, f: 0 },
           postAffine: { a: 1, b: 0, c: 0, d: 0, e: 1, f: 0 },
           variations: {
-            [generateVariationId()]: getVariationDefault('linear', 1),
+            [generateVariationId()]: getVariationDefault('linearVar', 1),
           },
         }
       }
@@ -2185,7 +2185,7 @@ export function MainWorkspace(props: AppProps) {
                                       draft.transforms[tid]!.variations[
                                         generateVariationId()
                                       ] = deepClone(
-                                        getVariationDefault('linear', 1),
+                                        getVariationDefault('linearVar', 1),
                                       )
                                     })
                                   }}
