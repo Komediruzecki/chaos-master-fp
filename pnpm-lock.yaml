@@ -8,6 +8,7 @@ overrides:
   less: link:./.pnpm-noop
   sass: link:./.pnpm-noop
   stylus: link:./.pnpm-noop
+  tinyest: 0.3.1
 
 importers:
 
@@ -2325,8 +2326,8 @@ packages:
     resolution: {integrity: sha512-fo1oDSWVm901/2oZPZe6TsDjNPDhz/RArGSOLxon58NhkdxtD5GYovFj+gF1qrIDlxMpTxU/mPtYZNhFP2oJZw==}
     engines: {node: '>=12.20.0'}
 
-  tinyest@0.3.2:
-    resolution: {integrity: sha512-1wqSt97RLezWzeogLSVXHr+E3jpYO8jxyaK2AIdJeGoZZTCubwNxQ9IqU5gbQpJVcxlbPugPAsII+m9/gqpPSA==}
+  tinyest@0.3.1:
+    resolution: {integrity: sha512-SJNnjbvTEo5VmIjsMYpUFL34b9RyaI382r1v7gyVXZpd4VnjIZKMrGk1mphXM4zkhrs3hZfO1Xwv63DoZX50yw==}
     engines: {node: '>=12.20.0'}
 
   tinyexec@1.2.4:
@@ -4623,9 +4624,9 @@ snapshots:
 
   tinyest-for-wgsl@0.3.3:
     dependencies:
-      tinyest: 0.3.2
+      tinyest: 0.3.1
 
-  tinyest@0.3.2: {}
+  tinyest@0.3.1: {}
 
   tinyexec@1.2.4: {}
 
@@ -4676,7 +4677,7 @@ snapshots:
 
   typegpu@0.10.2:
     dependencies:
-      tinyest: 0.3.2
+      tinyest: 0.3.1
       tsover-runtime: 0.0.5
       typed-binary: 4.3.3
 
@@ -4734,7 +4735,7 @@ snapshots:
       magic-string-ast: 1.0.3
       pathe: 2.0.3
       picomatch: 4.0.4
-      tinyest: 0.3.2
+      tinyest: 0.3.1
       tinyest-for-wgsl: 0.3.3
       typegpu: 0.10.2
       unplugin: 2.3.11
