@@ -784,7 +784,7 @@ export function MainWorkspace(props: AppProps) {
       // produceWithPatches (structurajs draft proxy), and reconcile expects
       // a SolidJS store proxy -- mixing the two causes "node.$ is not a
       // function".
-      history.replace(snapshot, 'tour:restore')
+      history.replace(snapshot as FlameDescriptor, 'tour:restore')
     },
   }
 
@@ -2230,7 +2230,17 @@ export function MainWorkspace(props: AppProps) {
                                                       `Unreachable code`,
                                                     )
                                                   }
-                                                  variationDraft.params = value
+                                                  ;(
+                                                    variationDraft as {
+                                                      params: Record<
+                                                        string,
+                                                        number
+                                                      >
+                                                    }
+                                                  ).params = value as Record<
+                                                    string,
+                                                    number
+                                                  >
                                                 })
                                               }}
                                             />

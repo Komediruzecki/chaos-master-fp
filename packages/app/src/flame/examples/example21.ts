@@ -75,7 +75,7 @@ export const example21 = defineExample({
           weight: 0.5,
         },
         [vid('e1f2a3b4_c5d6_7890_efab_32109876543')]: {
-          type: 'rings2',
+          type: 'rings2Var',
           weight: 0.3,
           params: { val: 5 },
         },
@@ -89,7 +89,7 @@ export const example21 = defineExample({
       color: { x: 0, y: -0.35 },
       variations: {
         [vid('a3b4c5d6_e7f8_9012_abcd_10987654321')]: {
-          type: 'juliaN',
+          type: 'juliaNVar',
           weight: 1,
           params: { power: 5, dist: 3.5 },
         },

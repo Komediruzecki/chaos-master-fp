@@ -99,8 +99,10 @@ export function FramePreviewGallery(props: Props) {
     const clone: FlameDescriptor = JSON.parse(
       JSON.stringify(props.flameDescriptor),
     )
+
     applyTimelineToFlameAtFrame(
-      { tracks: () => props.tracks, config: () => props.config },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      { tracks: () => props.tracks, config: () => props.config } as any,
       clone,
       frame,
     )

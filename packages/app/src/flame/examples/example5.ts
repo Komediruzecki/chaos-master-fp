@@ -82,7 +82,7 @@ export const example5 = defineExample({
       postAffine: { a: 1, b: 0, c: 0, d: 0, e: 1, f: 0 },
       variations: {
         [vid('a52476d5_bca8_4f54_8a1c_d1856f5e8cdb')]: {
-          type: 'juliaN',
+          type: 'juliaNVar',
           params: { power: 8, dist: 6.82 },
           weight: 0.706,
         },

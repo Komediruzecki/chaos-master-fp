@@ -57,9 +57,17 @@ export function parametricVariationDescriptor<
     type: v.literal(variationType),
     weight: v.number(),
     visible: v.optional(v.boolean(), true),
-    params: paramDefaults
-      ? v.optional(ParamSchema, () => paramDefaults)
-      : ParamSchema,
+    params: (paramDefaults
+      ? v.optional(
+          ParamSchema,
+          () =>
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            paramDefaults as any,
+        )
+      : ParamSchema) as unknown as v.ObjectSchema<
+      Record<keyof T, v.NumberSchema<undefined>>,
+      undefined
+    >,
   })
 }
 

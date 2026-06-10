@@ -51,7 +51,7 @@ export const example10 = defineExample({
       color: { x: -0.2, y: -0.05 },
       variations: {
         [vid('a4b5c6d7_e8f9_0123_4567_890abcdef045')]: {
-          type: 'gaussian',
+          type: 'gaussianVar',
           weight: 1,
         },
         [vid('b4c5d6e7_f8a9_0123_5678_90abcdef0456')]: {
@@ -72,7 +72,7 @@ export const example10 = defineExample({
       color: { x: 0.05, y: -0.25 },
       variations: {
         [vid('e4f5a6b7_c8d9_0123_8901_bcdef0456789')]: {
-          type: 'juliaScope',
+          type: 'juliaScopeVar',
           weight: 1,
           params: { power: 3, dist: 2.5 },
         },

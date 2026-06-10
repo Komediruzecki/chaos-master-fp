@@ -24,7 +24,7 @@ export const example9 = defineExample({
       color: { x: 0.1, y: 0.25 },
       variations: {
         [vid('f2a3b4c5_d6e7_8901_3456_7890abcdef23')]: {
-          type: 'grid',
+          type: 'gridVar',
           weight: 1,
           params: {
             divisions: 8,
@@ -46,7 +46,7 @@ export const example9 = defineExample({
       color: { x: -0.15, y: 0.05 },
       variations: {
         [vid('c2d3e4f5_a6b7_8901_6789_0abcdef23456')]: {
-          type: 'fan2',
+          type: 'fan2Var',
           weight: 0.8,
           params: { x: 0.7, y: 0.5 },
         },
@@ -68,7 +68,7 @@ export const example9 = defineExample({
       color: { x: 0, y: -0.35 },
       variations: {
         [vid('a3b4c5d6_e7f8_9012_3456_7890abcdef01')]: {
-          type: 'juliaN',
+          type: 'juliaNVar',
           weight: 1,
           params: { power: 4, dist: 3 },
         },

@@ -27,7 +27,7 @@ export const example23 = defineExample({
       color: { x: 0.35, y: 0.1 },
       variations: {
         [vid('b2c3d4e5_f6a7_018b_8901_bcdef1234567')]: {
-          type: 'fan2',
+          type: 'fan2Var',
           weight: 1,
           params: { x: 0.7, y: 0.75 },
         },
@@ -46,7 +46,7 @@ export const example23 = defineExample({
       color: { x: -0.1, y: -0.2 },
       variations: {
         [vid('e5f6a7b8_c9d0_018e_1234_ef1234567890')]: {
-          type: 'juliaScope',
+          type: 'juliaScopeVar',
           weight: 1,
           params: { power: 4, dist: 3 },
         },

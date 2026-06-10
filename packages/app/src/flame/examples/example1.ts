@@ -60,7 +60,7 @@ export const example1 = defineExample({
           params: { rotation: 0, slices: 5, thickness: 0.5 },
         },
         [vid('04326f54_0068_4f7d_97fa_7329e5a7b5fd')]: {
-          type: 'gaussian',
+          type: 'gaussianVar',
           weight: 0.05,
         },
       },

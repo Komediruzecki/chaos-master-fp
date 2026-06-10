@@ -60,7 +60,7 @@ export const example13 = defineExample({
       color: { x: 0, y: -0.3 },
       variations: {
         [vid('b8c9d0e1_f2a3_4567_8901_234567abcdef')]: {
-          type: 'gaussian',
+          type: 'gaussianVar',
           weight: 0.8,
         },
         [vid('c9d0e1f2_a3b4_5678_9012_345678abcdef')]: {

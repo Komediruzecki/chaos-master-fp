@@ -21,7 +21,7 @@ export const example3 = defineExample({
       color: { x: 0, y: 0 },
       variations: {
         [vid('37cc2da4_eedb_491b_88f4_144b2152336c')]: {
-          type: 'juliaN',
+          type: 'juliaNVar',
           params: { power: 1, dist: 2 },
           weight: 1,
         },
