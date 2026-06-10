@@ -1,5 +1,5 @@
 import { vec2f } from 'typegpu/data'
-import { abs, cos, floor, select, sin, sqrt } from 'typegpu/std'
+import { abs, cos, select, sin, sqrt } from 'typegpu/std'
 import { random } from '@/shaders/random'
 import { PI } from '../../../constants'
 import { simpleVariation } from '../types'
@@ -25,7 +25,7 @@ export const blurCircle = simpleVariation(
     }
 
     const r = weight * side
-    const theta = (PI.$ / 4.0) * floor(4.0 * random()) - PI.$ / 4.0
+    const theta = (PI.$ / 4.0) * (perimeter / side) - PI.$ / 4.0
     return vec2f(r * cos(theta), r * sin(theta))
   },
   'blur',
