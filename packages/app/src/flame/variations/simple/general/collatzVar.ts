@@ -11,7 +11,7 @@ export const collatzVar = simpleVariation(
     for (let i = 0; i < 64; i++) {
       const isEven = n % 2.0 < 0.5
       n = select(3.0 * n + 1.0, n / 2.0, isEven)
-      steps += select(0.0, 1.0, n > 1.0)
+      steps += f32(select(0.0, 1.0, n > 1.0))
     }
     const t = steps / 64.0
     const a = t * 6.283185307

@@ -66,13 +66,13 @@ export const cpow2Var = parametricVariation(
     const half_c = c / 2.0
     const half_d = d / 2.0
     const inv_range = 0.5 / P.range
-    const full_range = 2 * PI.$ * P.range
+    const full_range = 2.0 * PI.$ * P.range
     let a = atan2(pos.y, pos.x)
     let n = i32(floor(P.range * random()))
-    if (a < 0) {
+    if (a < 0.0) {
       n++
     }
-    a += 2 * PI.$ * f32(n)
+    a += 2.0 * PI.$ * f32(n)
     if (cos(a * inv_range) < random() * 2.0 - 1.0) {
       a -= full_range
     }

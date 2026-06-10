@@ -54,7 +54,7 @@ export const starBlurVar = parametricVariation(
     let angle = trunc(f)
     f = f - angle
     const x = f * starblur_length
-    let z = sqrt(1 + x * x - 2 * x * cos(starblur_alpha))
+    let z = sqrt(1.0 + x * x - 2.0 * x * cos(starblur_alpha))
 
     const angleInt = angle
     const isEven = angleInt % 2.0 < 1.0

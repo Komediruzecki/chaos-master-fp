@@ -43,10 +43,10 @@ export const curlVar = parametricVariation(
     const p1 = P.c1
     const p2 = P.c2
     const squareDiff = pos.x * pos.x - pos.y * pos.y
-    const t1 = 1 + p1 * pos.x + p2 * squareDiff
-    const t2 = p1 * pos.y + 2 * p2 * pos.x * pos.y
+    const t1 = 1.0 + p1 * pos.x + p2 * squareDiff
+    const t2 = p1 * pos.y + 2.0 * p2 * pos.x * pos.y
     const tSqSum = t1 * t1 + t2 * t2
-    const factor = 1 / tSqSum
+    const factor = 1.0 / tSqSum
     return vec2f(pos.x * t1 + pos.y * t2, pos.y * t1 - pos.x * t2)
       .mul(factor)
       .mul(varInfo.weight)

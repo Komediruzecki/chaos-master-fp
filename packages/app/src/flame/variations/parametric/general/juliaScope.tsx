@@ -49,7 +49,7 @@ export const juliaScope = parametricVariation(
     const r = length(pos)
     const phi = atan2(pos.y, pos.x)
     const lambda = f32(select(-1.0, 1.0, random() > 0.5))
-    const t = (lambda * phi + 2 * PI.$ * p3) / p1
+    const t = (lambda * phi + 2.0 * PI.$ * p3) / p1
     const factor = pow(r, p2 / p1)
     return vec2f(cos(t), sin(t)).mul(factor).mul(varInfo.weight)
   },

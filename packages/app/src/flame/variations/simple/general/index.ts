@@ -13,8 +13,8 @@ export const randomDisk = simpleVariation('randomDisk', (_pos, varInfo) => {
 
 export const gaussian = simpleVariation('gaussian', (_pos, varInfo) => {
   'use gpu'
-  const r = random() + random() + random() + random() - 2
-  const theta = random() * 2 * PI.$
+  const r = random() + random() + random() + random() - 2.0
+  const theta = random() * 2.0 * PI.$
   return vec2f(cos(theta), sin(theta)).mul(r).mul(varInfo.weight)
 })
 
@@ -36,7 +36,7 @@ export const blurVar = simpleVariation(
   (_pos, varInfo) => {
     'use gpu'
     const rand = random()
-    const angle = 2 * PI.$ * random()
+    const angle = 2.0 * PI.$ * random()
     return vec2f(cos(angle), sin(angle)).mul(rand).mul(varInfo.weight)
   },
   'blur',
@@ -68,9 +68,8 @@ export const raysVar = simpleVariation('raysVar', (pos, varInfo) => {
 export const bladeVar = simpleVariation('bladeVar', (pos, varInfo) => {
   'use gpu'
   const weight = varInfo.weight
-  const rand = random()
   const r = length(pos)
-  const angle = rand * r * weight
+  const angle = random() * r * weight
   return vec2f(cos(angle) + sin(angle), cos(angle) - sin(angle)).mul(pos.x)
 })
 
@@ -80,7 +79,7 @@ export const secantVar = simpleVariation('secantVar', (pos, varInfo) => {
   const r = length(pos)
   const angle = weight * r
   const denom = weight * cos(angle) + EPS.$
-  return vec2f(pos.x, 1 / denom)
+  return vec2f(pos.x, 1.0 / denom)
 })
 
 export const twintrianVar = simpleVariation('twintrianVar', (pos, varInfo) => {
@@ -89,14 +88,14 @@ export const twintrianVar = simpleVariation('twintrianVar', (pos, varInfo) => {
   const r = length(pos)
   const angle = random() * r * weight
   const sinAngle = sin(angle)
-  const t = log(sinAngle * sinAngle) / log(10) + cos(angle)
+  const t = log(sinAngle * sinAngle) / log(10.0) + cos(angle)
   return vec2f(t, t - PI.$ * sinAngle).mul(pos.x)
 })
 
 export const crossVar = simpleVariation('crossVar', (pos, varInfo) => {
   'use gpu'
   const squareDiff = pos.x * pos.x - pos.y * pos.y
-  const fact = sqrt(1 / (squareDiff * squareDiff + EPS.$))
+  const fact = sqrt(1.0 / (squareDiff * squareDiff + EPS.$))
   return vec2f(pos.x, pos.y).mul(fact).mul(varInfo.weight)
 })
 

@@ -10,8 +10,8 @@ export const preBlur = simpleVariation(
     'use gpu'
     const r =
       varInfo.weight *
-      (random() + random() + random() + random() + random() + random() - 3)
-    const theta = random() * 2 * PI.$
+      (random() + random() + random() + random() + random() + random() - 3.0)
+    const theta = random() * 2.0 * PI.$
     return vec2f(r * cos(theta), r * sin(theta))
   },
   'pre',

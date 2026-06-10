@@ -1,5 +1,5 @@
 import { f32, struct, vec2f } from 'typegpu/data'
-import { ceil, cos, floor } from 'typegpu/std'
+import { ceil, cos, floor, select } from 'typegpu/std'
 import { RangeEditor } from '@/components/Sliders/ParametricEditors/RangeEditor'
 import { editorProps } from '@/components/Sliders/ParametricEditors/types'
 import { PI } from '@/flame/constants'
@@ -44,7 +44,7 @@ export const tileHlpVar = parametricVariation(
     aux = cos(aux * PI.$)
     let aux2 = 0.0
     if (aux < random() * 2.0 - 1.0) {
-      aux2 = x > 0.0 ? -width2 : width2
+      aux2 = select(width2, -width2, x > 0.0)
     }
     return vec2f(
       pos.x + varInfo.weight * pos.x + aux2,

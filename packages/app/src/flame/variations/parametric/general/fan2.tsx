@@ -48,7 +48,7 @@ export const fan2 = parametricVariation(
     const t = theta + p2 - p1 * f32(trunc((2.0 * theta * p2) / p1))
     const r = length(pos)
 
-    const p1half = p1 / 2
+    const p1half = p1 / 2.0
     const trueAngle = theta - p1half
     const falseAngle = theta + p1half
     const angle = select(falseAngle, trueAngle, t > p1half)

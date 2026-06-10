@@ -59,14 +59,14 @@ export const ngonVar = parametricVariation(
   (pos, varInfo, P) => {
     'use gpu'
     const p1 = P.power
-    const p2 = (2 * PI.$) / P.sides
+    const p2 = (2.0 * PI.$) / P.sides
     const p3 = P.corners
     const p4 = P.circle
     const phi = atan2(pos.y, pos.x)
     const r = length(pos)
     const t3 = phi - p2 * floor(phi / p2)
-    const t4 = select(t3 - p2, t3, t3 > p2 / 2)
-    const kNum = p3 * (1 / cos(t4) - 1) + p4
+    const t4 = select(t3 - p2, t3, t3 > p2 / 2.0)
+    const kNum = p3 * (1.0 / cos(t4) - 1.0) + p4
     const kDen = pow(r, p1)
     const k = kNum / kDen
     return pos.mul(k).mul(varInfo.weight)

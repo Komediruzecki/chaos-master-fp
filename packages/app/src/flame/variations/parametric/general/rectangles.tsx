@@ -43,8 +43,8 @@ export const rectanglesVar = parametricVariation(
     'use gpu'
     const p1 = P.x
     const p2 = P.y
-    const p1Fact = 2 * floor(pos.x / p1) + 1
-    const p2Fact = 2 * floor(pos.y / p2) + 1
+    const p1Fact = 2.0 * floor(pos.x / p1) + 1.0
+    const p2Fact = 2.0 * floor(pos.y / p2) + 1.0
     return vec2f(p1Fact * p1 - pos.x, p2Fact * p2 - pos.y).mul(varInfo.weight)
   },
   'general',

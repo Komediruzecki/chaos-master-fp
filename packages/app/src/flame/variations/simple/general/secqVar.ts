@@ -1,4 +1,4 @@
-import { vec2f } from 'typegpu/data'
+import { f32, vec2f } from 'typegpu/data'
 import { cos, cosh, select, sin, sinh, sqrt } from 'typegpu/std'
 import { simpleVariation } from '../types'
 
@@ -7,7 +7,7 @@ export const secqVar = simpleVariation(
   (pos, varInfo) => {
     'use gpu'
 
-    const z = 0.0
+    const z = f32(0.0)
     const abs_v = sqrt(pos.y * pos.y + z * z)
     const s = sin(-pos.x)
     const c = cos(-pos.x)
