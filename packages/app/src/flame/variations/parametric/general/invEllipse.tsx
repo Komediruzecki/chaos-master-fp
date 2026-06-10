@@ -61,7 +61,7 @@ const InvEllipseParamsEditor: EditorFor<InvEllipseParams> = (props) => (
 )
 
 export const invEllipse = parametricVariation(
-  'invEllipse',
+  'invEllipseVar',
   InvEllipseParams,
   InvEllipseParamsDefaults,
   InvEllipseParamsEditor,

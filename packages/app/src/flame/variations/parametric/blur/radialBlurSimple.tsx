@@ -15,7 +15,7 @@ const RadialBlurParamsDefaults: RadialBlurParams = {
 const RadialBlurParamsEditor: EditorFor<RadialBlurParams> = (_props) => <></>
 
 export const radialBlur = parametricVariation(
-  'radialBlur',
+  'radialBlurVar',
   RadialBlurParams,
   RadialBlurParamsDefaults,
   RadialBlurParamsEditor,

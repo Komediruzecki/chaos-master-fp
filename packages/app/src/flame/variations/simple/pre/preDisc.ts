@@ -3,7 +3,7 @@ import { atan2, cos, sin, sqrt } from 'typegpu/std'
 import { simpleVariation } from '../types'
 
 export const preDisc = simpleVariation(
-  'preDisc',
+  'preDiscVar',
   (pos, varInfo) => {
     'use gpu'
     const at = atan2(pos.y, pos.x)

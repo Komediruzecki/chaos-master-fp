@@ -43,7 +43,7 @@ const PostPointSymmetryWfParamsEditor: EditorFor<PostPointSymmetryWfParams> = (
 )
 
 export const postPointSymmetryWf = parametricVariation(
-  'postPointSymmetryWf',
+  'postPointSymmetryWfVar',
   PostPointSymmetryWfParams,
   PostPointSymmetryWfParamsDefaults,
   PostPointSymmetryWfParamsEditor,

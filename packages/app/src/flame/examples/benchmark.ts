@@ -29,11 +29,11 @@ export const benchmark = defineExample({
       colorSpeed: 0.25,
       variations: {
         [vid('b1000000_0000_0000_0000_000000000001')]: {
-          type: 'sinusoidal',
+          type: 'sinusoidalVar',
           weight: 1,
         },
         [vid('b2000000_0000_0000_0000_000000000001')]: {
-          type: 'spherical',
+          type: 'sphericalVar',
           weight: 0.4,
         },
       },
@@ -46,11 +46,11 @@ export const benchmark = defineExample({
       colorSpeed: 0.3,
       variations: {
         [vid('b1000000_0000_0000_0000_000000000002')]: {
-          type: 'swirl',
+          type: 'swirlVar',
           weight: 0.8,
         },
         [vid('b2000000_0000_0000_0000_000000000002')]: {
-          type: 'julia',
+          type: 'juliaVar',
           weight: 0.6,
         },
       },
@@ -63,15 +63,15 @@ export const benchmark = defineExample({
       colorSpeed: 0.2,
       variations: {
         [vid('b1000000_0000_0000_0000_000000000003')]: {
-          type: 'polar',
+          type: 'polarVar',
           weight: 0.7,
         },
         [vid('b2000000_0000_0000_0000_000000000003')]: {
-          type: 'linear',
+          type: 'linearVar',
           weight: 0.5,
         },
         [vid('b3000000_0000_0000_0000_000000000003')]: {
-          type: 'sinusoidal',
+          type: 'sinusoidalVar',
           weight: 0.3,
         },
       },
@@ -84,11 +84,11 @@ export const benchmark = defineExample({
       colorSpeed: 0.35,
       variations: {
         [vid('b1000000_0000_0000_0000_000000000004')]: {
-          type: 'hyperbolic',
+          type: 'hyperbolicVar',
           weight: 0.6,
         },
         [vid('b2000000_0000_0000_0000_000000000004')]: {
-          type: 'spherical',
+          type: 'sphericalVar',
           weight: 0.5,
         },
       },
@@ -101,16 +101,16 @@ export const benchmark = defineExample({
       colorSpeed: 0.28,
       variations: {
         [vid('b1000000_0000_0000_0000_000000000005')]: {
-          type: 'juliaScope',
+          type: 'juliaScopeVar',
           weight: 0.5,
           params: { power: 2, dist: 1 },
         },
         [vid('b2000000_0000_0000_0000_000000000005')]: {
-          type: 'swirl',
+          type: 'swirlVar',
           weight: 0.4,
         },
         [vid('b3000000_0000_0000_0000_000000000005')]: {
-          type: 'linear',
+          type: 'linearVar',
           weight: 0.3,
         },
       },
@@ -123,11 +123,11 @@ export const benchmark = defineExample({
       colorSpeed: 0.22,
       variations: {
         [vid('b1000000_0000_0000_0000_000000000006')]: {
-          type: 'waves',
+          type: 'wavesVar',
           weight: 0.7,
         },
         [vid('b2000000_0000_0000_0000_000000000006')]: {
-          type: 'spherical',
+          type: 'sphericalVar',
           weight: 0.45,
         },
       },

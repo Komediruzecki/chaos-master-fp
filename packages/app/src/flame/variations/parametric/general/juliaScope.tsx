@@ -37,7 +37,7 @@ const JuliaScopeParamsEditor: EditorFor<JuliaScopeParams> = (props) => (
 )
 
 export const juliaScope = parametricVariation(
-  'juliaScope',
+  'juliaScopeVar',
   JuliaScopeParams,
   JuliaScopeParamsDefaults,
   JuliaScopeParamsEditor,

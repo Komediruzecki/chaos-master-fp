@@ -45,7 +45,7 @@ const PostCropParamsEditor: EditorFor<PostCropParams> = (props) => (
 )
 
 export const postCrop = parametricVariation(
-  'postCrop',
+  'postCropVar',
   PostCropParams,
   PostCropParamsDefaults,
   PostCropParamsEditor,

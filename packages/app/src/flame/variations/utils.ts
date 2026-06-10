@@ -234,10 +234,10 @@ const previewFlames: Partial<Record<TransformVariationType, FlameDescriptor>> =
         }
       }),
     ),
-    rings2: unfreeze(
-      produce(getDefaultFlameByVarType('rings2'), (draft) => {
+    rings2Var: unfreeze(
+      produce(getDefaultFlameByVarType('rings2Var'), (draft) => {
         draft.renderSettings.exposure = 0.552
-        draft.transforms[getTransformPreviewTid('rings2')]!.preAffine = {
+        draft.transforms[getTransformPreviewTid('rings2Var')]!.preAffine = {
           c: 0.05976331360946743,
           f: -0.1600838264299801,
           a: 1.6440360757046795,
@@ -245,10 +245,10 @@ const previewFlames: Partial<Record<TransformVariationType, FlameDescriptor>> =
           d: 1.7823436569258906,
           e: -0.5000425830694895,
         }
-        draft.transforms[getTransformPreviewTid('rings2')]!.variations[
-          getTransformPreviewVid('rings2')
+        draft.transforms[getTransformPreviewTid('rings2Var')]!.variations[
+          getTransformPreviewVid('rings2Var')
         ] = {
-          type: 'rings2',
+          type: 'rings2Var',
           weight: 1.0,
           visible: true,
           params: {
@@ -274,9 +274,9 @@ const previewFlames: Partial<Record<TransformVariationType, FlameDescriptor>> =
         }
       }),
     ),
-    circus: unfreeze(
-      produce(getDefaultFlameByVarType('circus'), (draft) => {
-        draft.transforms[getTransformPreviewTid('circus')]!.preAffine = {
+    circusVar: unfreeze(
+      produce(getDefaultFlameByVarType('circusVar'), (draft) => {
+        draft.transforms[getTransformPreviewTid('circusVar')]!.preAffine = {
           a: 1.5067596708863726,
           b: -0.11207495085714227,
           c: 0.003943048417568207,

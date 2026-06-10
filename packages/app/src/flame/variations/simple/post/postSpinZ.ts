@@ -3,7 +3,7 @@ import { cos, sin } from 'typegpu/std'
 import { simpleVariation } from '../types'
 
 export const postSpinZ = simpleVariation(
-  'postSpinZ',
+  'postSpinZVar',
   (pos, varInfo) => {
     'use gpu'
     const angle = varInfo.weight * 1.57079632679

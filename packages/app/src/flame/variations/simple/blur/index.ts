@@ -5,7 +5,7 @@ import { PI } from '../../../constants'
 import { simpleVariation } from '../types'
 
 export const blurCircle = simpleVariation(
-  'blurCircle',
+  'blurCircleVar',
   (_pos, varInfo) => {
     'use gpu'
     const weight = varInfo.weight
@@ -32,7 +32,7 @@ export const blurCircle = simpleVariation(
 )
 
 export const gaussianBlur = simpleVariation(
-  'gaussianBlur',
+  'gaussianBlurVar',
   (_pos, _varInfo) => {
     'use gpu'
     const r = random() + random() + random() + random() - 2.0
@@ -43,7 +43,7 @@ export const gaussianBlur = simpleVariation(
 )
 
 export const circleBlur = simpleVariation(
-  'circleBlur',
+  'circleBlurVar',
   (_pos, _varInfo) => {
     'use gpu'
     const rad = sqrt(random())

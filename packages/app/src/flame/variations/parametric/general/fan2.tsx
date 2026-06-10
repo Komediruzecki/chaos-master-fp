@@ -36,7 +36,7 @@ const Fan2ParamsEditor: EditorFor<Fan2Params> = (props) => (
 )
 
 export const fan2 = parametricVariation(
-  'fan2',
+  'fan2Var',
   Fan2Params,
   Fan2ParamsDefaults,
   Fan2ParamsEditor,

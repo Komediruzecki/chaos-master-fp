@@ -27,7 +27,7 @@ const SymNetG16ParamsEditor: EditorFor<SymNetG16Params> = (props) => (
 )
 
 export const symNetG16 = parametricVariation(
-  'symNetG16',
+  'symNetG16Var',
   SymNetG16Params,
   SymNetG16ParamsDefaults,
   SymNetG16ParamsEditor,

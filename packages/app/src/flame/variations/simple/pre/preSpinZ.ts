@@ -4,7 +4,7 @@ import { PI } from '../../../constants'
 import { simpleVariation } from '../types'
 
 export const preSpinZ = simpleVariation(
-  'preSpinZ',
+  'preSpinZVar',
   (pos, varInfo) => {
     'use gpu'
     const a = (varInfo.weight * PI.$) / 2.0

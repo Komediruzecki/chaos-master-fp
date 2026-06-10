@@ -33,7 +33,7 @@ const PerspectiveParamsEditor: EditorFor<PerspectiveParams> = (props) => (
 )
 
 export const perspective = parametricVariation(
-  'perspective',
+  'perspectiveVar',
   PerspectiveParams,
   PerspectiveParamsDefaults,
   PerspectiveParamsEditor,

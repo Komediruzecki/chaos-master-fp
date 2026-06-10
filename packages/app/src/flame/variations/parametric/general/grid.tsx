@@ -48,7 +48,7 @@ const GridParamsEditor: EditorFor<GridParams> = (props) => (
 )
 
 export const grid = parametricVariation(
-  'grid',
+  'gridVar',
   GridParams,
   GridParamsDefaults,
   GridParamsEditor,

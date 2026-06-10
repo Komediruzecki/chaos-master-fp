@@ -44,7 +44,7 @@ const PostBWraps2ParamsEditor: EditorFor<PostBWraps2Params> = (props) => (
 )
 
 export const postBWraps2 = parametricVariation(
-  'postBWraps2',
+  'postBWraps2Var',
   PostBWraps2Params,
   PostBWraps2ParamsDefaults,
   PostBWraps2ParamsEditor,

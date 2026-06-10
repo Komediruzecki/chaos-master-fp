@@ -3,7 +3,7 @@ import { EPS } from '../../../constants'
 import { simpleVariation } from '../types'
 
 export const preSpherical = simpleVariation(
-  'preSpherical',
+  'preSphericalVar',
   (pos, varInfo) => {
     'use gpu'
     const r = 1.0 / (dot(pos, pos) + EPS.$)
