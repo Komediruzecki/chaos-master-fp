@@ -60,7 +60,8 @@
     "overrides": {
       "less": "link:./.pnpm-noop",
       "sass": "link:./.pnpm-noop",
-      "stylus": "link:./.pnpm-noop"
+      "stylus": "link:./.pnpm-noop",
+      "tinyest": "0.3.1"
     }
   }
 }
