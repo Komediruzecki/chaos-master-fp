@@ -82,6 +82,7 @@ import type { QualityPreset } from './components/Quality/QualityPresets'
 import type { QuickPickerMode } from './components/QuickVariationPicker/QuickVariationPicker'
 import type { TourContext } from './components/SpotlightTour/tourTypes'
 import type { ColorMap, Palette } from './flame/colorMap'
+import type { PointInitMode } from './flame/pointInitMode'
 import type { FlameDescriptor, TransformFunction, TransformId, VariationId, } from './flame/schema/flameSchema'
 import type { TransformVariationType } from './flame/variations'
 import type { AnimationExportConfig } from './utils/animationExport'
@@ -396,7 +397,7 @@ export function MainWorkspace(props: AppProps) {
   const effectiveFlame = createMemo<FlameDescriptor>(() => {
     const hovered = hoveredVariationType()
     const state = quickPickState()
-    if (!hovered || !state) return flameDescriptor as unknown as FlameDescriptor
+    if (!hovered || !state) return flameDescriptor
     try {
       const clone: FlameDescriptor = deepClone(flameDescriptor)
       const existingVar = clone.transforms[state.tid]?.variations[state.vid]
@@ -407,7 +408,7 @@ export function MainWorkspace(props: AppProps) {
       }
       return clone
     } catch {
-      return flameDescriptor as unknown as FlameDescriptor
+      return flameDescriptor
     }
   })
 
@@ -1082,7 +1083,7 @@ export function MainWorkspace(props: AppProps) {
             | 'colorInitPosition'
           break
         case 'pointInitMode':
-          draft.renderSettings.pointInitMode = value
+          draft.renderSettings.pointInitMode = value as PointInitMode
           break
         case 'densityEstimationQuality':
           draft.renderSettings.densityEstimationQuality = value as number
@@ -1136,7 +1137,7 @@ export function MainWorkspace(props: AppProps) {
         case 'camera.rotation':
           ;(draft.renderSettings.camera as
             | Record<string, unknown>
-            | undefined)!.rotation = value as number
+            | undefined)!.rotation = value
           break
         default: {
           const parts = path.split('.')
@@ -2691,7 +2692,8 @@ export function MainWorkspace(props: AppProps) {
                                       const mode = ev.currentTarget.value
                                       const update = () => {
                                         setFlameDescriptor((draft) => {
-                                          draft.renderSettings.drawMode = mode
+                                          draft.renderSettings.drawMode =
+                                            mode as 'light' | 'paint'
                                         })
                                       }
                                       if ('startViewTransition' in document) {
@@ -2737,7 +2739,9 @@ export function MainWorkspace(props: AppProps) {
                                       const update = () => {
                                         setFlameDescriptor((draft) => {
                                           draft.renderSettings.colorInitMode =
-                                            mode
+                                            mode as
+                                              | 'colorInitZero'
+                                              | 'colorInitPosition'
                                         })
                                       }
                                       if ('startViewTransition' in document) {
@@ -2785,7 +2789,7 @@ export function MainWorkspace(props: AppProps) {
                                       const update = () => {
                                         setFlameDescriptor((draft) => {
                                           draft.renderSettings.pointInitMode =
-                                            mode
+                                            mode as PointInitMode
                                         })
                                       }
                                       if ('startViewTransition' in document) {

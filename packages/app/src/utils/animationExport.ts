@@ -153,8 +153,8 @@ export function createAnimationExport(
           // Apply render settings
           draft.renderSettings = flameClone.renderSettings
           // Apply transforms
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          draft.transforms = flameClone.transforms as any
+
+          draft.transforms = flameClone.transforms
           draft.edgeFadeColor = flameClone.edgeFadeColor
         })
 

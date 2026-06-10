@@ -2,7 +2,7 @@ import { produce, unfreeze } from 'structurajs'
 import { defineExample } from '../examples/util'
 import { generateTransformId, generateVariationId } from '../transformFunction'
 import { isParametricVariationType, transformVariations } from '.'
-import type { FlameDescriptor, TransformId, VariationId, } from '../schema/flameSchema'
+import type { FlameDescriptor } from '../schema/flameSchema'
 import type { ParametricVariationDescriptor, TransformVariationDescriptor, TransformVariationType, } from '.'
 import type { EditorFor } from '@/components/Sliders/ParametricEditors/types'
 
@@ -17,14 +17,14 @@ export function getVariationDefault(
   weight: number,
 ): TransformVariationDescriptor {
   if (!isParametricVariationType(type)) {
-    return { type, weight, visible: true } as TransformVariationDescriptor
+    return { type, weight, visible: true }
   }
   return {
     type,
     params: { ...transformVariations[type].paramDefaults },
     weight,
     visible: true,
-  } as TransformVariationDescriptor
+  }
 }
 
 export function getParamsEditor<T extends ParametricVariationDescriptor>(
@@ -40,10 +40,6 @@ export function getParamsEditor<T extends ParametricVariationDescriptor>(
   }
 }
 
-type FlameIds = {
-  tid: TransformId
-  vid: VariationId
-}
 const transformPreviewIds = Object.keys(transformVariations).reduce(
   (acc, type) => {
     acc[type as TransformVariationType] = {
@@ -55,7 +51,7 @@ const transformPreviewIds = Object.keys(transformVariations).reduce(
     }
     return acc
   },
-  {} as Record<TransformVariationType, FlameIds>,
+  {},
 )
 export function getTransformPreviewTid(type: TransformVariationType) {
   return transformPreviewIds[type].tid
@@ -107,7 +103,7 @@ const previewFlames: Partial<Record<TransformVariationType, FlameDescriptor>> =
           e: -0.4865003428489606,
         }
       }),
-    ) as FlameDescriptor,
+    ),
     crossVar: unfreeze(
       produce(getDefaultFlameByVarType('crossVar'), (draft) => {
         draft.transforms[getTransformPreviewTid('crossVar')]!.preAffine = {

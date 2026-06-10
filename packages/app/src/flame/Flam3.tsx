@@ -417,12 +417,12 @@ export function Flam3(props: Flam3Props) {
       camera,
       Math.floor(flame.renderSettings.skipIters),
       pointRandomSeeds,
-      flame.transforms as never,
+      flame.transforms,
       textureSize,
       typedAccumulationBuffer,
       flame.renderSettings.colorInitMode,
       flame.renderSettings.pointInitMode,
-      props.blendFlame?.transforms as never,
+      props.blendFlame?.transforms,
     )
 
     let batchIndex = 0

@@ -360,7 +360,7 @@ function RecentFlameItem(props: {
         }}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
-            props.onDelete(e as unknown as MouseEvent, props.recent.id)
+            props.onDelete(e as unknown, props.recent.id)
           }
         }}
         title="Delete"

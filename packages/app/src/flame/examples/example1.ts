@@ -55,7 +55,7 @@ export const example1 = defineExample({
       color: { x: 0, y: -0.3 },
       variations: {
         [vid('0dd9067e_a5ff_49e6_9a33_08e818a22d51')]: {
-          type: 'pie',
+          type: 'pieVar',
           weight: 0.95,
           params: { rotation: 0, slices: 5, thickness: 0.5 },
         },

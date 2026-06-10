@@ -100,8 +100,8 @@ export function FramePreviewGallery(props: Props) {
       JSON.stringify(props.flameDescriptor),
     )
     applyTimelineToFlameAtFrame(
-      { tracks: () => props.tracks, config: () => props.config } as never,
-      clone as never,
+      { tracks: () => props.tracks, config: () => props.config },
+      clone,
       frame,
     )
     return clone
