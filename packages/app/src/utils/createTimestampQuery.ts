@@ -110,7 +110,7 @@ export function createTimestampQuery<T extends string>(
         const begin = times[locationIndex + i * 2]!
         const end = times[locationIndex + i * 2 + 1]!
         // BigInt subtraction → Number conversion for milliseconds
-        const nanos = (end as bigint) - (begin as bigint)
+        const nanos = end - begin
         return [name, convertNanoToMilliSeconds(Number(nanos))]
       }),
     ) as Record<T, number>

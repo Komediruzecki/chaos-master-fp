@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
 export default defineConfig({
-  plugins: [solidPlugin()],
+  plugins: [solidPlugin({ hot: false })],
   test: {
     globals: true,
     environment: 'happy-dom',

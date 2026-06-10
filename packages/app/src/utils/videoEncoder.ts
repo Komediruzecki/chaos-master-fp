@@ -203,7 +203,9 @@ function createWebCodecsPipeline(
     ) {
       await new Promise<void>((resolve) => {
         // Poll fallback in case 'dequeue' is not supported by the browser.
-        const timer = setTimeout(() => resolve(), 50)
+        const timer = setTimeout(() => {
+          resolve()
+        }, 50)
         encoder?.addEventListener(
           'dequeue',
           () => {
