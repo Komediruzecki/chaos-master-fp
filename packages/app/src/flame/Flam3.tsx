@@ -6,6 +6,8 @@ import { DEBUG_MODE, DEBUG_VRAM } from '@/defaults'
 import { accumulatedPointCount, animationExportRunning, exportQuality, setAccumulatedPointCountGlobal, setRenderTimings, } from '@/flame/renderStats'
 import { deepClone } from '@/utils/clone'
 import { createTimestampQuery } from '@/utils/createTimestampQuery'
+import { formatPointCount } from '@/utils/formatPointCount'
+import { logTime } from '@/utils/logTime'
 import { recordEntries } from '@/utils/record'
 import { applyTimelineToFlame } from '@/utils/timeline'
 import { useCamera } from '../lib/CameraContext'
@@ -38,14 +40,30 @@ const OUTPUT_INTERVAL_BATCH_INDEX = 10
 // ultra-quality exports. The export loop submits one bounded chunk at a time
 // and awaits queue.onSubmittedWorkDone(), so the GPU queue stays shallow and
 // the chunk wall time is an accurate measure of its GPU cost.
-const EXPORT_TARGET_CHUNK_MS = 12
+// Chunk sizing: in visible Chrome tabs, onSubmittedWorkDone resolution is
+// aligned to the compositor, giving every await a fixed latency floor of one
+// vsync period (~16.7ms at 60Hz, ~33ms at 30Hz) regardless of chunk size.
+// The controller therefore targets a tick time well above that floor and
+// never divides it per-iteration: grow fast while clearly latency-bound,
+// creep upward inside the band, shrink proportionally only when the chunk
+// itself overshoots. Hidden tabs / Firefox have no floor and settle near the
+// target.
+const EXPORT_TARGET_TICK_MS = 32
+const EXPORT_TICK_GROW_BELOW_MS = 24
+const EXPORT_TICK_SHRINK_ABOVE_MS = 48
 const EXPORT_INITIAL_ITERATIONS = 2
-const EXPORT_MAX_ITERATIONS = 256
+const EXPORT_MAX_ITERATIONS = 512
 const EXPORT_IDLE_DELAY_MS = 8
 const EXPORT_PRESENT_INTERVAL_MS = 250
-
-const sleep = (ms: number) =>
-  new Promise<void>((resolve) => setTimeout(resolve, ms))
+// Telemetry: periodic throughput line + slow-tick events, timestamped so
+// stalls can be correlated with tab switches / window occlusion.
+const EXPORT_LOG_INTERVAL_MS = 2000
+const EXPORT_SLOW_TICK_MS = 300
+// During export, the global point counter (quality pills, speed readout)
+// updates at this interval instead of every tick — per-tick signal writes fan
+// out to UI subscribers and that main-thread work competes with the export
+// while the tab is visible.
+const EXPORT_COUNT_SIGNAL_INTERVAL_MS = 100
 
 type RenderTickResult = {
   iterations: number
@@ -453,6 +471,16 @@ export function Flam3(props: Flam3Props) {
     // and the wall-clock time of the last canvas present.
     let exportIterationCount = EXPORT_INITIAL_ITERATIONS
     let lastPresentMs = 0
+    let lastCountSignalMs = 0
+    // Wakes the export driver when reactive work arrives (next frame's
+    // descriptor, forced redraw). Keeps the idle wait event-driven: timers are
+    // clamped to 1Hz by Chrome in hidden or occluded windows, signals are not.
+    let notifyExportWork: (() => void) | undefined
+
+    function requestRedraw() {
+      rafLoop.redraw()
+      notifyExportWork?.()
+    }
 
     // Update IFS pipeline uniforms when animatedFlame changes.
     createEffect(() => {
@@ -487,24 +515,27 @@ export function Flam3(props: Flam3Props) {
       resetAccumulation()
     })
 
-    // Reset accumulation on animation frame change during playback or scrubbing.
-    // Without this, IFS points from different frames accumulate together.
+    // Reset accumulation on animation frame change during playback or
+    // scrubbing. Without this, IFS points from different frames accumulate
+    // together. Deliberately NOT during export: the export drives flame state
+    // itself, and a playhead-follow UI moving currentFrame mid-frame would
+    // throw away accumulation work.
     createEffect(() => {
       if (!timeline) return
       timeline.currentFrame()
-      if (
-        timeline.isPlaying() ||
-        timeline.isScrubbing() ||
-        animationExportRunning()
-      ) {
+      if (timeline.isPlaying() || timeline.isScrubbing()) {
         resetAccumulation()
       }
     })
 
-    // Reset accumulation on camera pan/zoom.
+    // Reset accumulation on camera pan/zoom — also during export: camera
+    // keyframes change the projection of accumulated points, so every export
+    // frame with camera motion must re-accumulate. Frames where the camera
+    // (and transforms) are unchanged still skip the reset and reuse the
+    // existing accumulation, which is correct for grading-only changes.
     createEffect(() => {
       camera.update()
-      if (!animationExportRunning()) resetAccumulation()
+      resetAccumulation()
     })
 
     function resetAccumulation() {
@@ -518,7 +549,7 @@ export function Flam3(props: Flam3Props) {
         setAccumulatedPointCountGlobal(0)
       }
       clearRequested = true
-      rafLoop.redraw()
+      requestRedraw()
     }
 
     // Update color grading uniforms.
@@ -537,7 +568,7 @@ export function Flam3(props: Flam3Props) {
         outputAlpha: props.outputAlpha ? 1 : 0,
         paletteMode: animatedFlame().renderSettings.paletteMode ?? 0,
       })
-      rafLoop.redraw()
+      requestRedraw()
       forceDrawToScreen = true
     })
 
@@ -545,7 +576,7 @@ export function Flam3(props: Flam3Props) {
     createEffect(() => {
       const _ = colorGradingPipeline()
       void props.palette?.()
-      rafLoop.redraw()
+      requestRedraw()
       forceDrawToScreen = true
     })
 
@@ -659,7 +690,16 @@ export function Flam3(props: Flam3Props) {
       }
 
       if (!props.onAccumulatedPointCount) {
-        setAccumulatedPointCountGlobal(accumulatedPointCount_)
+        // Ready ticks always write so the capture gate sees a fresh count.
+        const nowMs = performance.now()
+        if (
+          !exportMode ||
+          isExportReady ||
+          nowMs - lastCountSignalMs >= EXPORT_COUNT_SIGNAL_INTERVAL_MS
+        ) {
+          lastCountSignalMs = nowMs
+          setAccumulatedPointCountGlobal(accumulatedPointCount_)
+        }
       }
       props.onAccumulatedPointCount?.(accumulatedPointCount_)
 
@@ -802,10 +842,32 @@ export function Flam3(props: Flam3Props) {
       let disposed = false
       onCleanup(() => {
         disposed = true
+        notifyExportWork = undefined
       })
 
       exportIterationCount = EXPORT_INITIAL_ITERATIONS
       let exportFrameId = 0
+
+      // Telemetry — timestamped so stalls can be correlated with tab
+      // switches, window moves and occlusion. Chrome fires visibilitychange
+      // (-> hidden) also when the window is fully covered by another window.
+      let windowStartMs = performance.now()
+      let windowPoints = 0
+      let windowTickMs = 0
+      let windowTicks = 0
+      let idleSinceMs: number | undefined
+
+      if (DEBUG_MODE) {
+        const onVisibilityChange = () => {
+          console.info(
+            `[ExportDriver ${logTime()}] document became ${document.visibilityState}`,
+          )
+        }
+        document.addEventListener('visibilitychange', onVisibilityChange)
+        onCleanup(() => {
+          document.removeEventListener('visibilitychange', onVisibilityChange)
+        })
+      }
 
       const loop = async () => {
         // Leave the effect's tracking scope before the first tick so signal
@@ -818,8 +880,25 @@ export function Flam3(props: Flam3Props) {
 
           if (!tick.hadWork) {
             // Waiting for a capture or the next frame's descriptor.
-            await sleep(EXPORT_IDLE_DELAY_MS)
+            // Event-driven wake (requestRedraw) with a timer backstop; the
+            // timer alone could be clamped to 1Hz in hidden/occluded windows.
+            idleSinceMs ??= startMs
+            await new Promise<void>((resolve) => {
+              notifyExportWork = resolve
+              setTimeout(resolve, EXPORT_IDLE_DELAY_MS)
+            })
+            notifyExportWork = undefined
             continue
+          }
+
+          if (idleSinceMs !== undefined) {
+            const idleMs = startMs - idleSinceMs
+            if (DEBUG_MODE && idleMs > 1000) {
+              console.info(
+                `[ExportDriver ${logTime()}] resumed work after ${(idleMs / 1000).toFixed(1)}s idle`,
+              )
+            }
+            idleSinceMs = undefined
           }
 
           try {
@@ -829,20 +908,59 @@ export function Flam3(props: Flam3Props) {
             break
           }
 
+          const tickMs = performance.now() - startMs
+          windowPoints += tick.iterations * props.pointCountPerBatch
+          windowTickMs += tickMs
+          windowTicks += 1
+
+          if (DEBUG_MODE && tickMs > EXPORT_SLOW_TICK_MS) {
+            console.info(
+              `[ExportDriver ${logTime()}] slow tick: ${tickMs.toFixed(0)}ms for a ${tick.iterations}-iteration chunk${tick.presented ? ' (presented)' : ''}`,
+            )
+          }
+
+          const nowMs = performance.now()
+          if (nowMs - windowStartMs >= EXPORT_LOG_INTERVAL_MS) {
+            if (DEBUG_MODE) {
+              const seconds = (nowMs - windowStartMs) / 1000
+              const avgTickMs = windowTickMs / Math.max(windowTicks, 1)
+              console.info(
+                `[ExportDriver ${logTime()}] ${formatPointCount(windowPoints / seconds)} pts/s | ${windowTicks} ticks, avg ${avgTickMs.toFixed(1)}ms | chunk=${exportIterationCount} iters`,
+              )
+            }
+            windowStartMs = nowMs
+            windowPoints = 0
+            windowTickMs = 0
+            windowTicks = 0
+          }
+
           if (tick.iterations > 0 && !tick.presented) {
-            // Size the next chunk toward the GPU-time budget, growing at most
-            // 2x per step. Presentation ticks are skipped: their wall time
-            // includes the filter/grading passes and would undershoot.
-            const chunkMs = Math.max(performance.now() - startMs, 0.5)
-            const perIterationMs = chunkMs / tick.iterations
-            exportIterationCount = Math.max(
-              1,
-              Math.min(
-                Math.floor(EXPORT_TARGET_CHUNK_MS / perIterationMs),
+            // Dual-rate controller (presentation ticks are skipped: their
+            // wall time includes the filter/grading passes and would skew it).
+            if (tickMs < EXPORT_TICK_GROW_BELOW_MS) {
+              // Clearly latency-bound — the fixed await floor dominates, so
+              // more iterations are effectively free. Double.
+              exportIterationCount = Math.min(
                 exportIterationCount * 2,
                 EXPORT_MAX_ITERATIONS,
-              ),
-            )
+              )
+            } else if (tickMs <= EXPORT_TICK_SHRINK_ABOVE_MS) {
+              // Inside the band (e.g. sitting exactly on a vsync floor that
+              // is >= the grow threshold) — creep upward to find the point
+              // where GPU time, not latency, sets the pace.
+              exportIterationCount = Math.min(
+                Math.ceil(exportIterationCount * 1.25),
+                EXPORT_MAX_ITERATIONS,
+              )
+            } else {
+              // The chunk itself overshot the budget — shrink proportionally.
+              exportIterationCount = Math.max(
+                Math.ceil(
+                  exportIterationCount * (EXPORT_TARGET_TICK_MS / tickMs),
+                ),
+                1,
+              )
+            }
           }
         }
       }
@@ -856,7 +974,7 @@ export function Flam3(props: Flam3Props) {
     createEffect(() => {
       const q = props.quality
       void q
-      rafLoop.redraw()
+      requestRedraw()
     })
   })
   return null

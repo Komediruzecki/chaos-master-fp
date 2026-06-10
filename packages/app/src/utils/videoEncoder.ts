@@ -75,6 +75,34 @@ function getDefaultBitrate(width: number, height: number, fps: number): number {
   )
 }
 
+/** Presentation timestamp on the fixed output frame grid, in microseconds. */
+function frameGridUs(frameIndex: number, fps: number): number {
+  return Math.round((frameIndex * 1e6) / fps)
+}
+
+/**
+ * Encoders emit chunks in decode order; with B-frames (e.g. Firefox's H.264
+ * encoder at High profile) presentation timestamps arrive out of order, while
+ * MP4 requires monotonically increasing decode timestamps. We assign DTS from
+ * the decode-order index on the frame grid, and shift every PTS by the minimal
+ * uniform delay that keeps all composition offsets (PTS - DTS) non-negative —
+ * mp4-muxer writes a version-0 (unsigned) ctts box, so negative offsets would
+ * corrupt the file for strict players.
+ *
+ * For streams without B-frames the delay is 0 and every offset is 0 (no ctts
+ * box at all). Exported for tests.
+ */
+export function computeReorderDelayUs(
+  ptsInDecodeOrder: number[],
+  fps: number,
+): number {
+  let delayUs = 0
+  for (let d = 0; d < ptsInDecodeOrder.length; d++) {
+    delayUs = Math.max(delayUs, frameGridUs(d, fps) - ptsInDecodeOrder[d]!)
+  }
+  return delayUs
+}
+
 let webCodecsSupported: boolean | undefined
 
 function isWebCodecsSupported(): boolean {
@@ -106,6 +134,17 @@ function createWebCodecsPipeline(
   let configured = false
   let framesEncoded = 0
 
+  // Encoded chunks are buffered (in decode order) and muxed in finalize(),
+  // once the stream's B-frame reorder delay is known. See
+  // computeReorderDelayUs for why this is required.
+  type PendingChunk = {
+    data: Uint8Array
+    type: EncodedVideoChunkType
+    ptsUs: number
+    meta: EncodedVideoChunkMetadata | undefined
+  }
+  const pendingChunks: PendingChunk[] = []
+
   const bitrate =
     config.bitrate ?? getDefaultBitrate(config.width, config.height, config.fps)
   // Keyframe every ~2 seconds of output video.
@@ -116,7 +155,14 @@ function createWebCodecsPipeline(
     encoder = new VideoEncoder({
       output: (chunk, meta) => {
         if (cancelled) return
-        muxer.addVideoChunk(chunk, meta)
+        const data = new Uint8Array(chunk.byteLength)
+        chunk.copyTo(data)
+        pendingChunks.push({
+          data,
+          type: chunk.type,
+          ptsUs: chunk.timestamp,
+          meta,
+        })
       },
       error: (e) => {
         console.error('VideoEncoder error:', e)
@@ -196,6 +242,29 @@ function createWebCodecsPipeline(
       if (!cancelled && encoder) {
         await encoder.flush()
       }
+
+      // Mux all buffered chunks: DTS from decode order on the frame grid,
+      // PTS uniformly delayed so composition offsets are never negative.
+      const frameDurationUs = Math.round(1e6 / config.fps)
+      const reorderDelayUs = computeReorderDelayUs(
+        pendingChunks.map((c) => c.ptsUs),
+        config.fps,
+      )
+      for (let d = 0; d < pendingChunks.length; d++) {
+        const chunk = pendingChunks[d]!
+        const dtsUs = frameGridUs(d, config.fps)
+        const ptsUs = chunk.ptsUs + reorderDelayUs
+        muxer.addVideoChunkRaw(
+          chunk.data,
+          chunk.type,
+          ptsUs,
+          frameDurationUs,
+          chunk.meta,
+          ptsUs - dtsUs,
+        )
+      }
+      pendingChunks.length = 0
+
       muxer.finalize()
       return {
         blob: new Blob([target.buffer], { type: 'video/mp4' }),
@@ -211,6 +280,7 @@ function createWebCodecsPipeline(
 
   const cancel = () => {
     cancelled = true
+    pendingChunks.length = 0
     try {
       encoder?.close()
     } catch {

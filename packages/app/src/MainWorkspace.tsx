@@ -55,7 +55,7 @@ import { example1 } from './flame/examples/example1'
 import { Flam3 } from './flame/Flam3'
 import { pointInitModeToImplFn } from './flame/pointInitMode'
 import { random01, randomizeAllColors, randomizeVariationParams, } from './flame/randomize'
-import { accumulatedPointCount, animationExportCancel, animationExportProgress, animationExportRunning, exportProgress, exportQuality, qualityPointCountLimit, setCurrentQuality, setForceAnimationExportNow, setForceExportNow, setQualityPointCountLimit, } from './flame/renderStats'
+import { accumulatedPointCount, animationExportCancel, animationExportProgress, animationExportRunning, cameraDuringExportEnabled, exportProgress, exportQuality, qualityPointCountLimit, setCurrentQuality, setForceAnimationExportNow, setForceExportNow, setQualityPointCountLimit, } from './flame/renderStats'
 import { MAX_CAMERA_ZOOM_VALUE, MIN_CAMERA_ZOOM_VALUE, } from './flame/schema/flameSchema'
 import { generateTransformId, generateVariationId, } from './flame/transformFunction'
 import { isParametricVariation, isParametricVariationType, isVariationType, transformVariations, } from './flame/variations'
@@ -1471,7 +1471,14 @@ export function MainWorkspace(props: AppProps) {
                 <WheelZoomCamera2D
                   zoom={[effectiveZoom, setFlameZoom]}
                   position={[effectivePosition, setFlamePosition]}
-                  interactive={() => !timeline.isPlaying()}
+                  interactive={() =>
+                    // Camera input during an export resets the in-progress
+                    // frame and bakes the user's camera into the exported
+                    // video — locked unless the user opted in via the
+                    // "camera control during render" toggle.
+                    !timeline.isPlaying() &&
+                    (!animationExportRunning() || cameraDuringExportEnabled())
+                  }
                 >
                   <Flam3
                     quality={exportQuality() ?? qualityPresets[qualityPreset()]}

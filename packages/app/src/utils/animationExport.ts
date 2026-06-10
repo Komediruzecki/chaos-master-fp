@@ -1,5 +1,8 @@
+import { DEBUG_MODE } from '@/defaults'
 import { accumulatedPointCount, forceAnimationExportNow, qualityPointCountLimit, setAnimationExportCancel, setAnimationExportProgress, setAnimationExportRunning, setExportQuality, setForceAnimationExportNow, } from '@/flame/renderStats'
 import { createMetadataPayload, injectMetadataIntoMp4 } from './flameInMp4'
+import { formatPointCount } from './formatPointCount'
+import { logTime } from './logTime'
 import { applyTimelineToFlameAtFrame } from './timeline'
 import { createVideoEncoder } from './videoEncoder'
 import type { FlameDescriptor, TimelineState } from './timeline'
@@ -78,10 +81,17 @@ export function createAnimationExport(
       fps: config.fps,
     })
 
+    if (DEBUG_MODE) {
+      console.info(
+        `[AnimationExport ${logTime()}] start: ${totalRenders} frames @ ${config.fps}fps, quality ${config.quality}, ${resizeWidth}x${resizeHeight}, codec ${encoder.codec}${encoder.usedFallback ? ' (MediaRecorder fallback)' : ''}`,
+      )
+    }
+
     return new Promise<Blob>((resolve, reject) => {
       let frameIndex = 0
       const startedAt = performance.now()
       let lastProgressUpdateMs = 0
+      let frameAccumStartMs = performance.now()
 
       function updateProgress(currentPointCount: number, targetPoints: number) {
         // The export driver ticks every few milliseconds — throttle the store
@@ -149,6 +159,7 @@ export function createAnimationExport(
 
         setExportQuality(config.quality)
 
+        frameAccumStartMs = performance.now()
         let capturing = false
 
         type ExportInfo = { finalImageReady: boolean }
@@ -205,9 +216,15 @@ export function createAnimationExport(
                 // closes the bitmap when done.
                 await encoder.encodeFrame(bitmap, frameIndex)
                 const encodeTime = performance.now() - encodeStartTime
-                console.info(
-                  `[AnimationExport] Frame ${frameIndex + 1}/${totalRenders}: captured in ${captureTime.toFixed(1)}ms, encoded in ${encodeTime.toFixed(1)}ms`,
-                )
+                if (DEBUG_MODE) {
+                  const accumSec = Math.max(
+                    (captureStartTime - frameAccumStartMs) / 1000,
+                    0.001,
+                  )
+                  console.info(
+                    `[AnimationExport ${logTime()}] Frame ${frameIndex + 1}/${totalRenders}: ${formatPointCount(current)} pts in ${accumSec.toFixed(2)}s (${formatPointCount(current / accumSec)} pts/s), captured ${captureTime.toFixed(1)}ms, encoded ${encodeTime.toFixed(1)}ms`,
+                  )
+                }
 
                 frameIndex++
                 capturing = false
@@ -231,6 +248,11 @@ export function createAnimationExport(
       }
 
       async function finishExport() {
+        if (DEBUG_MODE) {
+          console.info(
+            `[AnimationExport ${logTime()}] finalizing: ${frameIndex} frames in ${((performance.now() - startedAt) / 1000).toFixed(1)}s total`,
+          )
+        }
         setAnimationExportCancel(undefined)
         setAnimationExportRunning(false)
         setAnimationExportProgress(undefined)
