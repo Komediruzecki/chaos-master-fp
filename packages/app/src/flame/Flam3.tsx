@@ -3,7 +3,7 @@ import { arrayOf, vec2u, vec3f, vec4f } from 'typegpu/data'
 import { clamp } from 'typegpu/std'
 import { useTimeline } from '@/contexts/TimelineContext'
 import { DEBUG_MODE, DEBUG_VRAM } from '@/defaults'
-import { accumulatedPointCount, animationExportRunning, setAccumulatedPointCountGlobal, setRenderTimings, } from '@/flame/renderStats'
+import { accumulatedPointCount, animationExportRunning, exportQuality, setAccumulatedPointCountGlobal, setRenderTimings, } from '@/flame/renderStats'
 import { deepClone } from '@/utils/clone'
 import { createTimestampQuery } from '@/utils/createTimestampQuery'
 import { recordEntries } from '@/utils/record'
@@ -26,9 +26,32 @@ import type { ExportImageType } from '@/App'
 import type { FlameDescriptor as TimelineFlameDescriptor } from '@/utils/timeline'
 
 const { sqrt, floor } = Math
+const { performance } = globalThis
 
 const OUTPUT_EVERY_FRAME_BATCH_INDEX = 20
 const OUTPUT_INTERVAL_BATCH_INDEX = 10
+
+// Export driver tuning. During exports the render loop is driven by a
+// self-scheduling async loop instead of requestAnimationFrame: rAF cadence is
+// owned by the browser compositor, which Chrome collapses under sustained GPU
+// queue pressure (and stops entirely in background tabs) — that stalled long
+// ultra-quality exports. The export loop submits one bounded chunk at a time
+// and awaits queue.onSubmittedWorkDone(), so the GPU queue stays shallow and
+// the chunk wall time is an accurate measure of its GPU cost.
+const EXPORT_TARGET_CHUNK_MS = 12
+const EXPORT_INITIAL_ITERATIONS = 2
+const EXPORT_MAX_ITERATIONS = 256
+const EXPORT_IDLE_DELAY_MS = 8
+const EXPORT_PRESENT_INTERVAL_MS = 250
+
+const sleep = (ms: number) =>
+  new Promise<void>((resolve) => setTimeout(resolve, ms))
+
+type RenderTickResult = {
+  iterations: number
+  presented: boolean
+  hadWork: boolean
+}
 
 type Flam3Props = {
   quality: number
@@ -39,6 +62,10 @@ type Flam3Props = {
   flameDescriptor: FlameDescriptor
   edgeFadeColor: v4f
   onExportImage?: ExportImageType
+  /** Marks the main workspace renderer: exports (animation/still) switch its
+   *  render loop from rAF to the async export driver. Preview instances must
+   *  not set this. */
+  isExportRenderer?: boolean
   setCurrentQuality?: (fn: () => number) => void
   setQualityPointCountLimit?: (fn: () => number) => void
   palette?: () => Palette | undefined
@@ -239,6 +266,15 @@ export function Flam3(props: Flam3Props) {
     return accumulatedPointCount <= qualityPointCountLimit()
   }
 
+  // True while an export (animation or still) should drive this renderer via
+  // the async export loop instead of requestAnimationFrame. Only the main
+  // workspace renderer opts in via isExportRenderer.
+  const exportDriverActive = createMemo(
+    () =>
+      (props.isExportRenderer ?? false) &&
+      (animationExportRunning() || exportQuality() !== undefined),
+  )
+
   const timestampQuery = createTimestampQuery(device, [
     'ifsMs',
     'adaptiveFilterMs',
@@ -411,6 +447,12 @@ export function Flam3(props: Flam3Props) {
     let lastExportRenderedPointCount = -1
     let forceDrawToScreen = false
     let clearRequested = true
+    // Interactive estimator state: last iteration count, used to cap growth.
+    let lastInteractiveIterationCount = 1
+    // Export driver state: chunk size adapted from measured chunk wall time,
+    // and the wall-clock time of the last canvas present.
+    let exportIterationCount = EXPORT_INITIAL_ITERATIONS
+    let lastPresentMs = 0
 
     // Update IFS pipeline uniforms when animatedFlame changes.
     createEffect(() => {
@@ -507,184 +549,305 @@ export function Flam3(props: Flam3Props) {
       forceDrawToScreen = true
     })
 
-    const rafLoop = createAnimationFrame(
-      (frameId) => {
-        const currentExportCb = props.onExportImage
+    // One render tick: submit a bounded amount of IFS work and, when due, the
+    // final-image passes. Shared by the interactive rAF driver and the async
+    // export driver. Returns what was submitted so the export driver can pace
+    // and size the next chunk.
+    function renderTick(frameId: number): RenderTickResult {
+      const currentExportCb = props.onExportImage
+      const exportMode = exportDriverActive()
 
-        const isExportReady =
-          currentExportCb !== undefined &&
-          !continueRendering(accumulatedPointCount_)
+      const pointCountPerBatch = props.pointCountPerBatch
+      const colorGradingPipeline_ = colorGradingPipeline()
+      if (colorGradingPipeline_ === undefined) {
+        return { iterations: 0, presented: false, hadWork: false }
+      }
 
-        const shouldRenderFinalImage =
-          forceDrawToScreen ||
-          (!isExportReady && (
-            batchIndex < OUTPUT_EVERY_FRAME_BATCH_INDEX ||
-            batchIndex % OUTPUT_INTERVAL_BATCH_INDEX === 0
-          )) ||
-          (isExportReady && accumulatedPointCount_ !== lastExportRenderedPointCount)
+      const timings = timestampQuery.average()
 
-        const pointCountPerBatch = props.pointCountPerBatch
-        const colorGradingPipeline_ = colorGradingPipeline()
-        if (colorGradingPipeline_ === undefined) {
-          return
+      // Periodic preview cadence: batch-indexed when vsync paced (interactive),
+      // wall-clock during exports (the export loop tick rate varies with chunk
+      // size, so batch counting would present far too often).
+      const periodicPresentDue = exportMode
+        ? performance.now() - lastPresentMs >= EXPORT_PRESENT_INTERVAL_MS
+        : batchIndex < OUTPUT_EVERY_FRAME_BATCH_INDEX ||
+          batchIndex % OUTPUT_INTERVAL_BATCH_INDEX === 0
+
+      let iterationCount = 0
+      if (continueRendering(accumulatedPointCount_)) {
+        if (exportMode) {
+          iterationCount = exportIterationCount
+        } else if (timings) {
+          // Cap growth at 1.5x per tick: without GPU timestamps the ifsMs
+          // fallback measures submit→completion wall latency, which on an
+          // empty queue under-reports the true cost and would otherwise slam
+          // the iteration count straight to the maximum, saturating the GPU
+          // queue (Chrome reacts by collapsing the rAF cadence).
+          const estimated = estimateIterationCount(
+            timings,
+            forceDrawToScreen || periodicPresentDue,
+          )
+          iterationCount = Math.min(
+            estimated,
+            Math.max(4, Math.ceil(lastInteractiveIterationCount * 1.5)),
+          )
+          lastInteractiveIterationCount = iterationCount
+        } else {
+          iterationCount = 1
         }
+      }
 
-        const encoder = device.createCommandEncoder()
+      const accumulatedAfter =
+        accumulatedPointCount_ + pointCountPerBatch * iterationCount
 
-        if (clearRequested) {
-          clearRequested = false
-          encoder.clearBuffer(accumulationBuffer.buffer)
+      // Export readiness is decided with the post-accumulation count so the
+      // final color-graded render and the capture happen in the same
+      // submission — the captured canvas can never lag the accumulation.
+      const isExportReady =
+        currentExportCb !== undefined && !continueRendering(accumulatedAfter)
+
+      const shouldRenderFinalImage =
+        forceDrawToScreen ||
+        (isExportReady
+          ? accumulatedAfter !== lastExportRenderedPointCount
+          : periodicPresentDue)
+
+      const hadWork =
+        clearRequested || iterationCount > 0 || shouldRenderFinalImage
+
+      if (!hadWork) {
+        // Nothing to submit — still report state so export capture, progress
+        // and cancellation keep flowing while the export driver idles.
+        currentExportCb?.(canvas, {
+          finalImageReady:
+            isExportReady &&
+            lastExportRenderedPointCount === accumulatedPointCount_,
+        })
+        return { iterations: 0, presented: false, hadWork: false }
+      }
+
+      const encoder = device.createCommandEncoder()
+
+      if (clearRequested) {
+        clearRequested = false
+        encoder.clearBuffer(accumulationBuffer.buffer)
+      }
+
+      if (timings) {
+        setRenderTimings({
+          ...timings,
+          adaptiveFilterMs: props.adaptiveFilterEnabled
+            ? timings.adaptiveFilterMs
+            : 0,
+        })
+      }
+
+      const timestampWrites = timestampQuery.timestampWrites(frameId)
+
+      {
+        const passDesc: GPUComputePassDescriptor = timestampWrites.ifsMs
+          ? { timestampWrites: timestampWrites.ifsMs }
+          : {}
+
+        const pass = encoder.beginComputePass(passDesc)
+        for (let i = 0; i < iterationCount; i++) {
+          ifsPipeline.run(pass, pointCountPerBatch)
         }
+        pass.end()
 
-        const timings = timestampQuery.average()
-        const iterationCount = continueRendering(accumulatedPointCount_)
-          ? timings
-            ? estimateIterationCount(timings, shouldRenderFinalImage)
-            : 1
-          : 0
+        accumulatedPointCount_ = accumulatedAfter
+      }
 
-        if (timings) {
-          setRenderTimings({
-            ...timings,
-            adaptiveFilterMs: props.adaptiveFilterEnabled
-              ? timings.adaptiveFilterMs
-              : 0,
-          })
+      if (!props.onAccumulatedPointCount) {
+        setAccumulatedPointCountGlobal(accumulatedPointCount_)
+      }
+      props.onAccumulatedPointCount?.(accumulatedPointCount_)
+
+      if (shouldRenderFinalImage) {
+        if (isExportReady) {
+          lastExportRenderedPointCount = accumulatedPointCount_
         }
-
-        const timestampWrites = timestampQuery.timestampWrites(frameId)
+        lastPresentMs = performance.now()
+        const skipItersFactor =
+          1 + animatedFlame().renderSettings.skipIters * 0.05
+        colorGradingUniforms.writePartial({
+          averagePointCountPerBucketInv:
+            (bucketProbabilityInv() / accumulatedPointCount_) * skipItersFactor,
+        })
+        if (props.adaptiveFilterEnabled) {
+          const passDesc: GPUComputePassDescriptor =
+            timestampWrites.adaptiveFilterMs
+              ? { timestampWrites: timestampWrites.adaptiveFilterMs }
+              : {}
+          const pass = encoder.beginComputePass(passDesc)
+          runAdaptiveFilter()?.run(pass)
+          pass.end()
+        }
 
         {
-          const passDesc: GPUComputePassDescriptor = timestampWrites.ifsMs
-            ? { timestampWrites: timestampWrites.ifsMs }
-            : {}
-
-          const pass = encoder.beginComputePass(passDesc)
-          for (let i = 0; i < iterationCount; i++) {
-            ifsPipeline.run(pass, pointCountPerBatch)
+          const passDesc: GPURenderPassDescriptor = {
+            ...(timestampWrites.colorGradingMs
+              ? { timestampWrites: timestampWrites.colorGradingMs }
+              : {}),
+            colorAttachments: [
+              {
+                loadOp: 'clear',
+                storeOp: 'store',
+                view: context.getCurrentTexture().createView(),
+              },
+            ],
           }
+          const pass = encoder.beginRenderPass(passDesc)
+          colorGradingPipeline_.run(pass)
           pass.end()
-
-          accumulatedPointCount_ += pointCountPerBatch * iterationCount
         }
+      }
 
-        if (!props.onAccumulatedPointCount) {
-          setAccumulatedPointCountGlobal(accumulatedPointCount_)
-        }
-        props.onAccumulatedPointCount?.(accumulatedPointCount_)
+      timestampQuery.write(encoder, Math.max(iterationCount, 1))
+      device.queue.submit([encoder.finish()])
 
-        if (shouldRenderFinalImage) {
-          if (isExportReady) {
-            lastExportRenderedPointCount = accumulatedPointCount_
-          }
-          const skipItersFactor =
-            1 + animatedFlame().renderSettings.skipIters * 0.05
-          colorGradingUniforms.writePartial({
-            averagePointCountPerBucketInv:
-              (bucketProbabilityInv() / accumulatedPointCount_) *
-              skipItersFactor,
-          })
-          if (props.adaptiveFilterEnabled) {
-            const passDesc: GPUComputePassDescriptor =
-              timestampWrites.adaptiveFilterMs
-                ? { timestampWrites: timestampWrites.adaptiveFilterMs }
-                : {}
-            const pass = encoder.beginComputePass(passDesc)
-            runAdaptiveFilter()?.run(pass)
-            pass.end()
-          }
+      if (
+        (DEBUG_MODE || DEBUG_VRAM) &&
+        batchIndex > 0 &&
+        batchIndex % 10 === 0
+      ) {
+        const rs = animatedFlame().renderSettings
+        const paletteSpeed = rs.paletteSpeed ?? 0.5
+        const palettePhase = rs.palettePhase ?? 0
+        const paletteMode = rs.paletteMode ?? 0
+        const vibrancy = rs.vibrancy
+        const skipItersFactor = 1 + rs.skipIters * 0.05
+        const avgInv =
+          (bucketProbabilityInv() / accumulatedPointCount_) * skipItersFactor
 
-          {
-            const passDesc: GPURenderPassDescriptor = {
-              ...(timestampWrites.colorGradingMs
-                ? { timestampWrites: timestampWrites.colorGradingMs }
-                : {}),
-              colorAttachments: [
-                {
-                  loadOp: 'clear',
-                  storeOp: 'store',
-                  view: context.getCurrentTexture().createView(),
-                },
-              ],
-            }
-            const pass = encoder.beginRenderPass(passDesc)
-            colorGradingPipeline_.run(pass)
-            pass.end()
-          }
-        }
+        console.info(
+          `[ColorGrading Debug] Frame ${batchIndex} | Mode: ${paletteMode} | Speed: ${paletteSpeed.toFixed(2)} | Phase: ${palettePhase.toFixed(2)} | Vibrancy: ${vibrancy.toFixed(2)} | AvgInv: ${avgInv.toExponential(2)}`,
+        )
 
-        timestampQuery.write(encoder, iterationCount)
-        device.queue.submit([encoder.finish()])
+        const paletteScale = 0.02 + paletteSpeed * 0.298
+        console.info(` -> paletteScale = ${paletteScale.toFixed(4)}`)
 
-        if (
-          (DEBUG_MODE || DEBUG_VRAM) &&
-          batchIndex > 0 &&
-          batchIndex % 10 === 0
-        ) {
-          const rs = animatedFlame().renderSettings
-          const paletteSpeed = rs.paletteSpeed ?? 0.5
-          const palettePhase = rs.palettePhase ?? 0
-          const paletteMode = rs.paletteMode ?? 0
-          const vibrancy = rs.vibrancy
-          const skipItersFactor = 1 + rs.skipIters * 0.05
-          const avgInv =
-            (bucketProbabilityInv() / accumulatedPointCount_) * skipItersFactor
-
-          console.info(
-            `[ColorGrading Debug] Frame ${batchIndex} | Mode: ${paletteMode} | Speed: ${paletteSpeed.toFixed(2)} | Phase: ${palettePhase.toFixed(2)} | Vibrancy: ${vibrancy.toFixed(2)} | AvgInv: ${avgInv.toExponential(2)}`,
+        const mockCounts = [100, 10000, 1000000] // raw counts for low, med, high density
+        for (const count of mockCounts) {
+          const adjustedCount = count * avgInv * 0.1
+          const logDensity = Math.min(
+            Math.max(Math.log(adjustedCount + 1), 0),
+            10,
           )
 
-          const paletteScale = 0.02 + paletteSpeed * 0.298
-          console.info(` -> paletteScale = ${paletteScale.toFixed(4)}`)
-
-          const mockCounts = [100, 10000, 1000000] // raw counts for low, med, high density
-          for (const count of mockCounts) {
-            const adjustedCount = count * avgInv * 0.1
-            const logDensity = Math.min(
-              Math.max(Math.log(adjustedCount + 1), 0),
-              10,
+          if (paletteMode === 0) {
+            const logDensityNorm =
+              (logDensity * paletteScale + palettePhase) % 1.0
+            const normPositive =
+              logDensityNorm < 0 ? logDensityNorm + 1.0 : logDensityNorm
+            console.info(
+              `    count=${count} (adj=${adjustedCount.toFixed(4)}) -> logDens=${logDensity.toFixed(4)} -> paletteIdxNorm=${normPositive.toFixed(4)}`,
             )
-
-            if (paletteMode === 0) {
-              const logDensityNorm =
-                (logDensity * paletteScale + palettePhase) % 1.0
-              const normPositive =
-                logDensityNorm < 0 ? logDensityNorm + 1.0 : logDensityNorm
-              console.info(
-                `    count=${count} (adj=${adjustedCount.toFixed(4)}) -> logDens=${logDensity.toFixed(4)} -> paletteIdxNorm=${normPositive.toFixed(4)}`,
-              )
-            } else {
-              const logDensityNorm = (logDensity * paletteScale) % 1.0
-              const normPositive =
-                logDensityNorm < 0 ? logDensityNorm + 1.0 : logDensityNorm
-              const hueAngle = palettePhase * Math.PI * 2
-              const cosH = Math.cos(hueAngle)
-              const sinH = Math.sin(hueAngle)
-              console.info(
-                `    count=${count} (adj=${adjustedCount.toFixed(4)}) -> logDens=${logDensity.toFixed(4)} -> baseIdxNorm=${normPositive.toFixed(4)}, rotAng=${hueAngle.toFixed(2)} (cos=${cosH.toFixed(2)}, sin=${sinH.toFixed(2)})`,
-              )
-            }
+          } else {
+            const logDensityNorm = (logDensity * paletteScale) % 1.0
+            const normPositive =
+              logDensityNorm < 0 ? logDensityNorm + 1.0 : logDensityNorm
+            const hueAngle = palettePhase * Math.PI * 2
+            const cosH = Math.cos(hueAngle)
+            const sinH = Math.sin(hueAngle)
+            console.info(
+              `    count=${count} (adj=${adjustedCount.toFixed(4)}) -> logDens=${logDensity.toFixed(4)} -> baseIdxNorm=${normPositive.toFixed(4)}, rotAng=${hueAngle.toFixed(2)} (cos=${cosH.toFixed(2)}, sin=${sinH.toFixed(2)})`,
+            )
           }
         }
+      }
 
-        if (currentExportCb) {
-          currentExportCb(canvas)
-        }
+      if (currentExportCb) {
+        currentExportCb(canvas, {
+          finalImageReady:
+            isExportReady &&
+            lastExportRenderedPointCount === accumulatedPointCount_,
+        })
+      }
 
-        device.queue
-          .onSubmittedWorkDone()
-          .then(() => timestampQuery.read(frameId))
-          .catch(() => {})
+      device.queue
+        .onSubmittedWorkDone()
+        .then(() => timestampQuery.read(frameId))
+        .catch(() => {})
 
-        batchIndex += 1
-        forceDrawToScreen = false
+      batchIndex += 1
+      forceDrawToScreen = false
+      return {
+        iterations: iterationCount,
+        presented: shouldRenderFinalImage,
+        hadWork: true,
+      }
+    }
+
+    const rafLoop = createAnimationFrame(
+      (frameId) => {
+        renderTick(frameId)
       },
       () =>
         continueRendering(accumulatedPointCount_)
           ? props.renderInterval
           : Infinity,
       () => device.queue.onSubmittedWorkDone(),
+      exportDriverActive,
     )
+
+    // Export driver: replaces the rAF loop while an export runs. The loop
+    // awaits each submission, so at most one chunk is in flight — the browser
+    // compositor never sees a deep GPU queue (no rAF collapse in Chrome), the
+    // export keeps running in background tabs, and chunk wall time is a valid
+    // measurement to size the next chunk with.
+    createEffect(() => {
+      if (!exportDriverActive()) return
+
+      let disposed = false
+      onCleanup(() => {
+        disposed = true
+      })
+
+      exportIterationCount = EXPORT_INITIAL_ITERATIONS
+      let exportFrameId = 0
+
+      const loop = async () => {
+        // Leave the effect's tracking scope before the first tick so signal
+        // reads inside renderTick don't become dependencies of this effect.
+        await Promise.resolve()
+
+        while (!disposed) {
+          const startMs = performance.now()
+          const tick = renderTick(exportFrameId++)
+
+          if (!tick.hadWork) {
+            // Waiting for a capture or the next frame's descriptor.
+            await sleep(EXPORT_IDLE_DELAY_MS)
+            continue
+          }
+
+          try {
+            await device.queue.onSubmittedWorkDone()
+          } catch {
+            // Device lost — stop driving; the app-level handler takes over.
+            break
+          }
+
+          if (tick.iterations > 0 && !tick.presented) {
+            // Size the next chunk toward the GPU-time budget, growing at most
+            // 2x per step. Presentation ticks are skipped: their wall time
+            // includes the filter/grading passes and would undershoot.
+            const chunkMs = Math.max(performance.now() - startMs, 0.5)
+            const perIterationMs = chunkMs / tick.iterations
+            exportIterationCount = Math.max(
+              1,
+              Math.min(
+                Math.floor(EXPORT_TARGET_CHUNK_MS / perIterationMs),
+                exportIterationCount * 2,
+                EXPORT_MAX_ITERATIONS,
+              ),
+            )
+          }
+        }
+      }
+      void loop()
+    })
 
     // When quality changes (up or down), force a redraw so the interval function
     // re-evaluates continueRendering() with the updated point limit. Without this,

@@ -14,7 +14,24 @@ export type EncodeResult = {
   usedFallback: boolean
 }
 
-function getAvcCodecString(width: number, height: number): string {
+type AvcProfile = 'high' | 'main' | 'baseline'
+
+// Preference order: High enables CABAC/B-frames/8x8 transforms (best quality
+// per bit — fractal frames are noise-like and need it), Main is the middle
+// ground, Constrained Baseline is the lowest common denominator.
+const AVC_PROFILE_ORDER: AvcProfile[] = ['high', 'main', 'baseline']
+
+const AVC_PROFILE_PREFIX: Record<AvcProfile, string> = {
+  high: '6400',
+  main: '4D40',
+  baseline: '42E0',
+}
+
+function getAvcCodecString(
+  width: number,
+  height: number,
+  profile: AvcProfile = 'high',
+): string {
   // Macroblock-aligned coded area determines the required AVC level.
   // Each macroblock is 16x16, so coded dimensions are ceil(w/16)*16.
   const codedWidth = Math.ceil(width / 16) * 16
@@ -27,21 +44,35 @@ function getAvcCodecString(width: number, height: number): string {
   //   4.2:  8,704 MBs = 2,228,224 px
   //   5.0: 22,080 MBs = 5,652,480 px
   //   5.1: 36,864 MBs = 9,437,184 px
-  if (codedArea <= 921600) return 'avc1.42E01f' // Level 3.1
-  if (codedArea <= 2097152) return 'avc1.42E028' // Level 4.0
-  if (codedArea <= 2228224) return 'avc1.42E02A' // Level 4.2
-  if (codedArea <= 5652480) return 'avc1.42E032' // Level 5.0
-  return 'avc1.42E033' // Level 5.1 (max 9,437,184 px)
+  let level = '33' // Level 5.1 (max 9,437,184 px)
+  if (codedArea <= 921600)
+    level = '1f' // Level 3.1
+  else if (codedArea <= 2097152)
+    level = '28' // Level 4.0
+  else if (codedArea <= 2228224)
+    level = '2A' // Level 4.2
+  else if (codedArea <= 5652480) level = '32' // Level 5.0
+  return `avc1.${AVC_PROFILE_PREFIX[profile]}${level}`
 }
 
 function getCodecString(
   codec: VideoEncoderConfig['codec'],
   width: number,
   height: number,
+  avcProfile: AvcProfile = 'high',
 ): string {
-  if (codec === 'avc') return getAvcCodecString(width, height)
+  if (codec === 'avc') return getAvcCodecString(width, height, avcProfile)
   if (codec === 'hevc') return 'hvc1.1.6.L93.B0'
   return 'vp09.00.10.08'
+}
+
+/** Offline-export default bitrate: ~0.12 bits per pixel per frame, clamped to
+ *  a sane range. A flat 8 Mbps default starves high-resolution exports. */
+function getDefaultBitrate(width: number, height: number, fps: number): number {
+  return Math.min(
+    Math.max(8_000_000, Math.round(width * height * fps * 0.12)),
+    60_000_000,
+  )
 }
 
 let webCodecsSupported: boolean | undefined
@@ -54,8 +85,11 @@ function isWebCodecsSupported(): boolean {
   return webCodecsSupported
 }
 
-function createWebCodecsPipeline(config: VideoEncoderConfig): {
-  encode: (frame: VideoFrame, frameIndex: number) => void
+function createWebCodecsPipeline(
+  config: VideoEncoderConfig,
+  codecString: string,
+): {
+  encode: (frame: VideoFrame, frameIndex: number) => Promise<void>
   finalize: () => Promise<EncodeResult>
   cancel: () => void
 } {
@@ -71,6 +105,11 @@ function createWebCodecsPipeline(config: VideoEncoderConfig): {
   let cancelled = false
   let configured = false
   let framesEncoded = 0
+
+  const bitrate =
+    config.bitrate ?? getDefaultBitrate(config.width, config.height, config.fps)
+  // Keyframe every ~2 seconds of output video.
+  const keyFrameInterval = Math.max(1, Math.round(config.fps * 2))
 
   const initEncoder = () => {
     if (configured) return
@@ -90,21 +129,51 @@ function createWebCodecsPipeline(config: VideoEncoderConfig): {
       },
     })
     encoder.configure({
-      codec: getCodecString(config.codec, config.width, config.height),
+      codec: codecString,
       width: config.width,
       height: config.height,
-      bitrate: config.bitrate ?? 8_000_000,
+      bitrate,
       framerate: config.fps,
-      latencyMode: 'realtime',
-      avc: { format: 'avc' },
+      // No latencyMode here on purpose: the default ('quality') is right for
+      // offline export — 'realtime' trades quality for latency we don't need.
+      ...(codecString.startsWith('avc1')
+        ? { avc: { format: 'avc' as const } }
+        : {}),
     })
     configured = true
   }
 
-  const encode = (frame: VideoFrame, frameIndex: number) => {
+  // Bound the encoder queue so fast frame production (low-quality exports can
+  // finish a frame in a few ticks) cannot balloon memory with queued frames.
+  const MAX_ENCODE_QUEUE = 4
+
+  const waitForQueueDrain = async () => {
+    while (
+      !cancelled &&
+      encoder !== undefined &&
+      encoder.encodeQueueSize > MAX_ENCODE_QUEUE
+    ) {
+      await new Promise<void>((resolve) => {
+        // Poll fallback in case 'dequeue' is not supported by the browser.
+        const timer = setTimeout(resolve, 50)
+        encoder?.addEventListener(
+          'dequeue',
+          () => {
+            clearTimeout(timer)
+            resolve()
+          },
+          { once: true },
+        )
+      })
+    }
+  }
+
+  const encode = async (frame: VideoFrame, frameIndex: number) => {
     if (cancelled) return
     initEncoder()
-    const keyFrame = frameIndex === 0 || frameIndex % 30 === 0
+    await waitForQueueDrain()
+    if (cancelled) return
+    const keyFrame = frameIndex === 0 || frameIndex % keyFrameInterval === 0
     try {
       encoder!.encode(frame, { keyFrame })
       framesEncoded++
@@ -228,64 +297,107 @@ function createMediaRecorderFallback(
 }
 
 export async function createVideoEncoder(config: VideoEncoderConfig): Promise<{
-  encodeFrame: (bitmap: ImageBitmap, frameIndex: number) => void
+  encodeFrame: (bitmap: ImageBitmap, frameIndex: number) => Promise<void>
   finalize: () => Promise<EncodeResult>
   cancel: () => void
   usedFallback: boolean
   codec: VideoEncoderConfig['codec']
 }> {
   if (isWebCodecsSupported()) {
-    // Verify the preferred codec is actually supported for encoding.
-    let codec = config.codec
-    const supported = await VideoEncoder.isConfigSupported({
-      codec: getCodecString(codec, config.width, config.height),
-      width: config.width,
-      height: config.height,
-      bitrate: config.bitrate ?? 8_000_000,
-      framerate: config.fps,
-    })
-    if (!(supported.supported ?? false)) {
-      // Fall back to next supported codec.
-      const fallbackOrder: VideoEncoderConfig['codec'][] = [
-        'avc',
-        'vp9',
-        'hevc',
-      ]
-      let found: VideoEncoderConfig['codec'] | null = null
-      for (const fb of fallbackOrder) {
-        if (fb === codec) continue
-        const fbSupported = await VideoEncoder.isConfigSupported({
-          codec: getCodecString(fb, config.width, config.height),
+    const bitrate =
+      config.bitrate ??
+      getDefaultBitrate(config.width, config.height, config.fps)
+
+    const probe = async (codecString: string): Promise<boolean> => {
+      try {
+        const support = await VideoEncoder.isConfigSupported({
+          codec: codecString,
           width: config.width,
           height: config.height,
-          bitrate: config.bitrate ?? 8_000_000,
+          bitrate,
           framerate: config.fps,
+          ...(codecString.startsWith('avc1')
+            ? { avc: { format: 'avc' as const } }
+            : {}),
         })
-        if (fbSupported.supported ?? false) {
-          found = fb
-          break
-        }
+        return support.supported ?? false
+      } catch {
+        return false
       }
-      if (found) {
-        console.warn(
-          `[videoEncoder] ${codec} not supported, falling back to ${found}`,
-        )
-        codec = found
-      }
-      // If no codec is supported, let the WebCodecs pipeline fail naturally.
     }
 
-    const pipeline = createWebCodecsPipeline({ ...config, codec })
+    // Candidate list: the requested codec first (for avc trying High → Main →
+    // Baseline profiles in turn), then the remaining codecs. First candidate
+    // the encoder reports as supported wins.
+    const codecOrder: VideoEncoderConfig['codec'][] = [
+      config.codec,
+      ...(['avc', 'vp9', 'hevc'] as const).filter((c) => c !== config.codec),
+    ]
+    const candidates: {
+      codec: VideoEncoderConfig['codec']
+      codecString: string
+    }[] = []
+    for (const codec of codecOrder) {
+      if (codec === 'avc') {
+        for (const profile of AVC_PROFILE_ORDER) {
+          candidates.push({
+            codec,
+            codecString: getAvcCodecString(
+              config.width,
+              config.height,
+              profile,
+            ),
+          })
+        }
+      } else {
+        candidates.push({
+          codec,
+          codecString: getCodecString(codec, config.width, config.height),
+        })
+      }
+    }
+
+    let selected = candidates[0]!
+    let probeSucceeded = false
+    for (const candidate of candidates) {
+      if (await probe(candidate.codecString)) {
+        selected = candidate
+        probeSucceeded = true
+        break
+      }
+    }
+    if (!probeSucceeded) {
+      // No probed config reported support — keep the preferred candidate and
+      // let the WebCodecs pipeline fail naturally with a useful error.
+      console.warn(
+        `[videoEncoder] no codec config reported support, trying ${selected.codecString} anyway`,
+      )
+    } else if (selected.codec !== config.codec) {
+      console.warn(
+        `[videoEncoder] ${config.codec} not supported, falling back to ${selected.codec} (${selected.codecString})`,
+      )
+    }
+
+    const pipeline = createWebCodecsPipeline(
+      { ...config, codec: selected.codec, bitrate },
+      selected.codecString,
+    )
 
     return {
       usedFallback: false,
-      codec,
-      encodeFrame: (bitmap, frameIndex) => {
+      codec: selected.codec,
+      encodeFrame: async (bitmap, frameIndex) => {
         const duration = Math.round(1e6 / config.fps)
         const timestamp = Math.round((frameIndex * 1e6) / config.fps)
         const frame = new VideoFrame(bitmap, { timestamp, duration })
-        pipeline.encode(frame, frameIndex)
-        frame.close()
+        try {
+          // Applies encoder backpressure: resolves once the encode queue has
+          // room, keeping memory bounded when frames are produced quickly.
+          await pipeline.encode(frame, frameIndex)
+        } finally {
+          frame.close()
+          bitmap.close()
+        }
       },
       finalize: pipeline.finalize,
       cancel: pipeline.cancel,
@@ -303,6 +415,7 @@ export async function createVideoEncoder(config: VideoEncoderConfig): Promise<{
     codec: config.codec,
     encodeFrame: (bitmap, _frameIndex) => {
       fallback.encode(bitmap)
+      return Promise.resolve()
     },
     finalize: fallback.finalize,
     cancel: fallback.cancel,

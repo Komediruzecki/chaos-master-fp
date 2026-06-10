@@ -32,7 +32,10 @@ export function createTimestampQuery<T extends string>(
         if (item !== undefined) {
           const durationMs = globalThis.performance.now() - item.time
           // Assign total time divided by iterations to the first timestamp (ifsMs)
-          timings[timestampNames[0] as T] = Math.max(durationMs / item.div, 0.1)
+          timings[timestampNames[0] as T] = Math.max(
+            durationMs / Math.max(item.div, 1),
+            0.1,
+          )
         }
       },
       average: () => timings,

@@ -779,7 +779,8 @@ export function createExportPngDialog(
       setPixelRatio(res)
 
       // Export callback waits for quality to be reached
-      setOnExportImage(() => (canvas: HTMLCanvasElement) => {
+      type ExportInfo = { finalImageReady: boolean }
+      setOnExportImage(() => (canvas: HTMLCanvasElement, info?: ExportInfo) => {
         const limitFn = qualityPointCountLimit()
         const limit = limitFn()
         const current = accumulatedPointCount()
@@ -791,8 +792,13 @@ export function createExportPngDialog(
           pointsPerSec: prev?.pointsPerSec ?? 0,
         }))
 
-        // Not yet reached quality — keep rendering unless force-stopped
-        if (current < limit && !forceExportNow()) return
+        // Not yet reached quality (or the final color-graded image is not on
+        // the canvas yet) — keep rendering unless force-stopped
+        if (
+          (current < limit || info?.finalImageReady !== true) &&
+          !forceExportNow()
+        )
+          return
 
         // Quality reached or force-exported
         setForceExportNow(false)

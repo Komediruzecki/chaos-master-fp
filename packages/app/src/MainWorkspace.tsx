@@ -118,7 +118,16 @@ function newDefaultTransform(): TransformFunction {
   }
 }
 
-export type ExportImageType = (canvas: HTMLCanvasElement) => void
+export type ExportImageInfo = {
+  /** True when the canvas holds a final color-graded image at the requested
+   *  quality limit, i.e. it is safe to capture the canvas for an export. */
+  finalImageReady: boolean
+}
+
+export type ExportImageType = (
+  canvas: HTMLCanvasElement,
+  info?: ExportImageInfo,
+) => void
 
 export type AppProps = {
   flameFromQuery?: SharePayload
@@ -534,7 +543,24 @@ export function MainWorkspace(props: AppProps) {
 
   const { showDiscordShareModal } = createDiscordShareModal()
 
-  function startAnimationExport(
+  /** Waits until the canvas backing-store size stops changing (the resize is
+   *  reactive and may be debounced) so export dimensions read a settled size. */
+  async function waitForStableCanvasSize(
+    canvas: HTMLCanvasElement,
+    timeoutMs = 2000,
+  ) {
+    const startMs = Date.now()
+    let lastWidth = -1
+    let lastHeight = -1
+    while (Date.now() - startMs < timeoutMs) {
+      await new Promise<void>((resolve) => setTimeout(resolve, 60))
+      if (canvas.width === lastWidth && canvas.height === lastHeight) return
+      lastWidth = canvas.width
+      lastHeight = canvas.height
+    }
+  }
+
+  async function startAnimationExport(
     config: AnimationExportConfig,
     _placeholderCanvas: HTMLCanvasElement,
   ) {
@@ -544,8 +570,20 @@ export function MainWorkspace(props: AppProps) {
       return
     }
 
+    // True high-resolution export: scale the canvas backing store for the
+    // duration of the export so every frame is rendered at the target
+    // resolution, instead of bitmap-upscaling the 1x canvas (which only
+    // interpolated pixels and produced soft output).
+    const baseRatio = pixelRatio()
+    const scaledExport = config.resolution !== 1
+    if (scaledExport) {
+      setPixelRatio(baseRatio * config.resolution)
+      await waitForStableCanvasSize(canvas)
+    }
+
+    // resolution: 1 — the canvas itself already renders at export resolution.
     const { promise } = createAnimationExport(
-      config,
+      { ...config, resolution: 1 },
       canvas,
       timeline,
       flameDescriptor,
@@ -568,6 +606,9 @@ export function MainWorkspace(props: AppProps) {
       .catch((err) => {
         console.error('Animation export failed:', err)
         showToast('Animation export failed')
+      })
+      .finally(() => {
+        if (scaledExport) setPixelRatio(baseRatio)
       })
   }
 
@@ -1435,6 +1476,7 @@ export function MainWorkspace(props: AppProps) {
                   <Flam3
                     quality={exportQuality() ?? qualityPresets[qualityPreset()]}
                     pointCountPerBatch={DEFAULT_POINT_COUNT}
+                    isExportRenderer
                     adaptiveFilterEnabled={adaptiveFilterEnabled()}
                     animationEnabled={animationEnabled()}
                     flameDescriptor={effectiveFlame()}

@@ -38,7 +38,12 @@ export function createAnimationExport(
   baseFlame: FlameDescriptor,
   setFlameDescriptor: (setter: (draft: FlameDescriptor) => void) => void,
   setOnExportImage: (
-    cb: ((canvas: HTMLCanvasElement) => void) | undefined,
+    cb:
+      | ((
+          canvas: HTMLCanvasElement,
+          info?: { finalImageReady: boolean },
+        ) => void)
+      | undefined,
   ) => void,
 ): { cancel: () => void; promise: Promise<Blob> } {
   let cancelled = false
@@ -76,8 +81,17 @@ export function createAnimationExport(
     return new Promise<Blob>((resolve, reject) => {
       let frameIndex = 0
       const startedAt = performance.now()
+      let lastProgressUpdateMs = 0
 
       function updateProgress(currentPointCount: number, targetPoints: number) {
+        // The export driver ticks every few milliseconds — throttle the store
+        // updates so UI re-renders don't compete with the export itself.
+        // Frame transitions (currentPointCount === 0) always pass through.
+        const now = performance.now()
+        if (currentPointCount !== 0 && now - lastProgressUpdateMs < 100) {
+          return
+        }
+        lastProgressUpdateMs = now
         const frame = config.frameStart + (frameIndex % totalFrames)
         setAnimationExportProgress({
           currentFrame: frameIndex,
@@ -137,64 +151,74 @@ export function createAnimationExport(
 
         let capturing = false
 
-        setOnExportImage(() => (exportCanvas: HTMLCanvasElement) => {
-          if (capturing) return
+        type ExportInfo = { finalImageReady: boolean }
+        setOnExportImage(
+          () => (exportCanvas: HTMLCanvasElement, info?: ExportInfo) => {
+            if (capturing) return
 
-          if (cancelled) {
-            cleanup()
-            resolve(new Blob())
-            return
-          }
+            if (cancelled) {
+              cleanup()
+              resolve(new Blob())
+              return
+            }
 
-          const limitFn = qualityPointCountLimit()
-          const limit = limitFn()
-          const current = accumulatedPointCount()
+            const limitFn = qualityPointCountLimit()
+            const limit = limitFn()
+            const current = accumulatedPointCount()
 
-          updateProgress(current, limit)
+            updateProgress(current, limit)
 
-          if (current < limit) return
+            if (current < limit) return
 
-          // Quality reached for this frame — capture canvas before clearing
-          // export state so Flam3 doesn't overwrite the canvas first.
-          capturing = true
+            // Wait until the final color-graded image is actually on the canvas
+            // (the renderer draws it in the same submission that crosses the
+            // limit and reports it here) — never capture a stale preview.
+            if (info?.finalImageReady !== true) return
 
-          console.info(`[AnimationExport] Frame ${frameIndex + 1}: Limit reached. Capturing bitmap...`)
-          const captureStartTime = performance.now()
+            // Quality reached for this frame — capture canvas before clearing
+            // export state so Flam3 doesn't overwrite the canvas first.
+            capturing = true
 
-          // eslint-disable-next-line no-restricted-globals
-          createImageBitmap(exportCanvas, {
-            resizeWidth,
-            resizeHeight,
-            resizeQuality: 'high',
-          })
-            .then((bitmap) => {
-              const captureTime = performance.now() - captureStartTime
-              console.info(`[AnimationExport] Frame ${frameIndex + 1}: Bitmap captured in ${captureTime.toFixed(2)}ms. Encoding...`)
-              // Only clear export state after the bitmap is captured
-              setOnExportImage(undefined)
-              setExportQuality(undefined)
+            const captureStartTime = performance.now()
 
-              if (cancelled) {
-                bitmap.close()
-                cleanup()
-                resolve(new Blob())
-                return
-              }
-              
-              const encodeStartTime = performance.now()
-              encoder.encodeFrame(bitmap, frameIndex)
-              const encodeTime = performance.now() - encodeStartTime
-              console.info(`[AnimationExport] Frame ${frameIndex + 1}: Frame encoded in ${encodeTime.toFixed(2)}ms. Processing next...`)
-              
-              frameIndex++
-              capturing = false
-              processNextFrame()
+            // eslint-disable-next-line no-restricted-globals
+            createImageBitmap(exportCanvas, {
+              resizeWidth,
+              resizeHeight,
+              resizeQuality: 'high',
             })
-            .catch((err: unknown) => {
-              capturing = false
-              reject(err instanceof Error ? err : new Error(String(err)))
-            })
-        })
+              .then(async (bitmap) => {
+                const captureTime = performance.now() - captureStartTime
+                // Only clear export state after the bitmap is captured
+                setOnExportImage(undefined)
+                setExportQuality(undefined)
+
+                if (cancelled) {
+                  bitmap.close()
+                  cleanup()
+                  resolve(new Blob())
+                  return
+                }
+
+                const encodeStartTime = performance.now()
+                // encodeFrame applies encoder backpressure (bounded queue) and
+                // closes the bitmap when done.
+                await encoder.encodeFrame(bitmap, frameIndex)
+                const encodeTime = performance.now() - encodeStartTime
+                console.info(
+                  `[AnimationExport] Frame ${frameIndex + 1}/${totalRenders}: captured in ${captureTime.toFixed(1)}ms, encoded in ${encodeTime.toFixed(1)}ms`,
+                )
+
+                frameIndex++
+                capturing = false
+                processNextFrame()
+              })
+              .catch((err: unknown) => {
+                capturing = false
+                reject(err instanceof Error ? err : new Error(String(err)))
+              })
+          },
+        )
       }
 
       function restoreFlameState() {
