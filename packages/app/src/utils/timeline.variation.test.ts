@@ -146,7 +146,6 @@ describe('resolveVariationParameter', () => {
         },
       ],
     }
-    // @ts-expect-error - Setting window property for test
     window.currentTimeline = mockTimeline
 
     const result = resolveVariationParameter(
@@ -183,7 +182,6 @@ describe('resolveVariationParameter', () => {
         },
       ],
     }
-    // @ts-expect-error - Setting window property for test
     window.currentTimeline = mockTimeline
 
     const result = resolveVariationParameter(
@@ -227,7 +225,6 @@ describe('resolveVariationParameter', () => {
         },
       ],
     }
-    // @ts-expect-error - Setting window property for test
     window.currentTimeline = mockTimeline
 
     const resultX = resolveVariationParameter(

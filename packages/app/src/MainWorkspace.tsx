@@ -1364,7 +1364,8 @@ export function MainWorkspace(props: AppProps) {
   }
   useShortcutManager(cmdContext)
 
-  runTourCommand.fn = (id, ...args) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  runTourCommand.fn = (id, ...args: any[]) => {
     executeCommand(id, cmdContext, ...args)
   }
 

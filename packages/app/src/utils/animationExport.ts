@@ -158,6 +158,9 @@ export function createAnimationExport(
           // export state so Flam3 doesn't overwrite the canvas first.
           capturing = true
 
+          console.info(`[AnimationExport] Frame ${frameIndex + 1}: Limit reached. Capturing bitmap...`)
+          const captureStartTime = performance.now()
+
           // eslint-disable-next-line no-restricted-globals
           createImageBitmap(exportCanvas, {
             resizeWidth,
@@ -165,6 +168,8 @@ export function createAnimationExport(
             resizeQuality: 'high',
           })
             .then((bitmap) => {
+              const captureTime = performance.now() - captureStartTime
+              console.info(`[AnimationExport] Frame ${frameIndex + 1}: Bitmap captured in ${captureTime.toFixed(2)}ms. Encoding...`)
               // Only clear export state after the bitmap is captured
               setOnExportImage(undefined)
               setExportQuality(undefined)
@@ -175,7 +180,12 @@ export function createAnimationExport(
                 resolve(new Blob())
                 return
               }
+              
+              const encodeStartTime = performance.now()
               encoder.encodeFrame(bitmap, frameIndex)
+              const encodeTime = performance.now() - encodeStartTime
+              console.info(`[AnimationExport] Frame ${frameIndex + 1}: Frame encoded in ${encodeTime.toFixed(2)}ms. Processing next...`)
+              
               frameIndex++
               capturing = false
               processNextFrame()

@@ -56,7 +56,7 @@ async function fetchChangelog(): Promise<ChangelogEntry[]> {
     }
   }
 
-  return entries
+  return Promise.resolve(entries)
 }
 
 /**

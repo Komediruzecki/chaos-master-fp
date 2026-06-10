@@ -408,6 +408,7 @@ export function Flam3(props: Flam3Props) {
 
     let batchIndex = 0
     let accumulatedPointCount_ = 0
+    let lastExportRenderedPointCount = -1
     let forceDrawToScreen = false
     let clearRequested = true
 
@@ -447,14 +448,15 @@ export function Flam3(props: Flam3Props) {
     // Reset accumulation on animation frame change during playback or scrubbing.
     // Without this, IFS points from different frames accumulate together.
     createEffect(() => {
-      if (
-        !timeline ||
-        (!timeline.isPlaying() && !timeline.isScrubbing()) ||
-        animationExportRunning()
-      )
-        return
+      if (!timeline) return
       timeline.currentFrame()
-      resetAccumulation()
+      if (
+        timeline.isPlaying() ||
+        timeline.isScrubbing() ||
+        animationExportRunning()
+      ) {
+        resetAccumulation()
+      }
     })
 
     // Reset accumulation on camera pan/zoom.
@@ -466,6 +468,7 @@ export function Flam3(props: Flam3Props) {
     function resetAccumulation() {
       batchIndex = 0
       accumulatedPointCount_ = 0
+      lastExportRenderedPointCount = -1
       // Only update the global counter from the main renderer, not preview instances.
       // Preview Flam3 instances provide onAccumulatedPointCount and must not clobber
       // the global signal (which drives the progress bar and quality pills).
@@ -508,11 +511,17 @@ export function Flam3(props: Flam3Props) {
       (frameId) => {
         const currentExportCb = props.onExportImage
 
+        const isExportReady =
+          currentExportCb !== undefined &&
+          !continueRendering(accumulatedPointCount_)
+
         const shouldRenderFinalImage =
           forceDrawToScreen ||
-          batchIndex < OUTPUT_EVERY_FRAME_BATCH_INDEX ||
-          batchIndex % OUTPUT_INTERVAL_BATCH_INDEX === 0 ||
-          currentExportCb !== undefined
+          (!isExportReady && (
+            batchIndex < OUTPUT_EVERY_FRAME_BATCH_INDEX ||
+            batchIndex % OUTPUT_INTERVAL_BATCH_INDEX === 0
+          )) ||
+          (isExportReady && accumulatedPointCount_ !== lastExportRenderedPointCount)
 
         const pointCountPerBatch = props.pointCountPerBatch
         const colorGradingPipeline_ = colorGradingPipeline()
@@ -565,6 +574,9 @@ export function Flam3(props: Flam3Props) {
         props.onAccumulatedPointCount?.(accumulatedPointCount_)
 
         if (shouldRenderFinalImage) {
+          if (isExportReady) {
+            lastExportRenderedPointCount = accumulatedPointCount_
+          }
           const skipItersFactor =
             1 + animatedFlame().renderSettings.skipIters * 0.05
           colorGradingUniforms.writePartial({

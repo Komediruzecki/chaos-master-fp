@@ -27,11 +27,11 @@ function getAvcCodecString(width: number, height: number): string {
   //   4.2:  8,704 MBs = 2,228,224 px
   //   5.0: 22,080 MBs = 5,652,480 px
   //   5.1: 36,864 MBs = 9,437,184 px
-  if (codedArea <= 921600) return 'avc1.64001f' // Level 3.1
-  if (codedArea <= 2097152) return 'avc1.640028' // Level 4.0
-  if (codedArea <= 2228224) return 'avc1.64002A' // Level 4.2
-  if (codedArea <= 5652480) return 'avc1.640032' // Level 5.0
-  return 'avc1.640033' // Level 5.1 (max 9,437,184 px)
+  if (codedArea <= 921600) return 'avc1.42E01f' // Level 3.1
+  if (codedArea <= 2097152) return 'avc1.42E028' // Level 4.0
+  if (codedArea <= 2228224) return 'avc1.42E02A' // Level 4.2
+  if (codedArea <= 5652480) return 'avc1.42E032' // Level 5.0
+  return 'avc1.42E033' // Level 5.1 (max 9,437,184 px)
 }
 
 function getCodecString(
@@ -95,6 +95,8 @@ function createWebCodecsPipeline(config: VideoEncoderConfig): {
       height: config.height,
       bitrate: config.bitrate ?? 8_000_000,
       framerate: config.fps,
+      latencyMode: 'realtime',
+      avc: { format: 'avc' },
     })
     configured = true
   }
@@ -279,8 +281,8 @@ export async function createVideoEncoder(config: VideoEncoderConfig): Promise<{
       usedFallback: false,
       codec,
       encodeFrame: (bitmap, frameIndex) => {
-        const duration = 1e6 / config.fps
-        const timestamp = frameIndex * duration
+        const duration = Math.round(1e6 / config.fps)
+        const timestamp = Math.round((frameIndex * 1e6) / config.fps)
         const frame = new VideoFrame(bitmap, { timestamp, duration })
         pipeline.encode(frame, frameIndex)
         frame.close()

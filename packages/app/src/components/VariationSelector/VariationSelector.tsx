@@ -763,7 +763,7 @@ function ShowVariationSelector(props: VariationSelectorModalProps) {
                 class={ui.select}
                 value={previewPointInitMode()}
                 onChange={(ev) => {
-                  const mode = ev.currentTarget.value as PointInitMode
+                  const mode = ev.currentTarget.value
                   setPreviewPointInitMode(mode)
                   setVariationExamples((draft) => {
                     for (const id in draft) {

@@ -29,10 +29,12 @@ import type { TransformVariationType } from '@/flame/variations'
 import type { ChangeHistory } from '@/utils/createStoreHistory'
 
 function randomRange(min: number, max: number) {
+   
   return Math.random() * (max - min) + min
 }
 
 function randomInt(min: number, max: number) {
+   
   return Math.floor(Math.random() * (max - min + 1)) + min
 }
 
@@ -54,11 +56,11 @@ interface HistoryEntry {
 const MAX_HISTORY = 50
 const HISTORY_THUMBNAIL_SIZE = 256
 
-async function captureThumbnail(size: number): Promise<string | null> {
+function captureThumbnail(size: number): Promise<string | null> {
   const canvas = document.querySelector<HTMLCanvasElement>(
     `.${ui.previewCanvas} canvas`,
   )
-  if (canvas === null) return null
+  if (canvas === null) return Promise.resolve(null)
   return new Promise((resolve) => {
     canvas.toBlob((blob) => {
       if (blob === null) {
@@ -239,8 +241,10 @@ function LogoDialog(props: LogoDialogProps) {
     resizeStartH = props.canvasHeight
 
     function onPointerMove(ev: PointerEvent) {
-      const dx = ev.clientX - resizeStartX
-      const dy = ev.clientY - resizeStartY
+      const clientX: number = ev.clientX
+      const clientY: number = ev.clientY
+      const dx: number = clientX - resizeStartX
+      const dy: number = clientY - resizeStartY
       if (props.aspectRatioLocked) {
         const delta = Math.max(dx, dy)
         const newSize = clampSize(resizeStartW + delta)

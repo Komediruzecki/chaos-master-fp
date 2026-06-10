@@ -127,9 +127,9 @@ export function QualityPresets(props: QualityPresetsProps) {
             [ui.inlinePointsRow as string]: props.inlinePoints,
           }}
         >
-          {formatPointCount(props.currentPoints!)}
+          {formatPointCount(props.currentPoints)}
           <span class={ui.pointsSep}>/</span>
-          {formatPointCount(props.targetPoints!)}
+          {formatPointCount(props.targetPoints)}
         </div>
       </Show>
     </div>
