@@ -52,7 +52,7 @@ function gatherDeviceMetadata(): MetadataEntry[] {
 
   // Browser / OS
   entries.push({ label: 'User Agent', value: navigator.userAgent })
-   
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   entries.push({ label: 'Platform', value: (navigator as any).platform })
   entries.push({ label: 'Language', value: navigator.language })

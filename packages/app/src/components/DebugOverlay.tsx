@@ -45,7 +45,6 @@ export function DebugOverlay(props: DebugOverlayProps) {
       const clientY: number = ev.clientY
       const dy: number = clientY - startY
       setPanelTop(
-         
         Math.max(60, Math.min(window.innerHeight - 60, startTop + dy)),
       )
     }

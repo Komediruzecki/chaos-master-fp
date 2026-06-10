@@ -116,7 +116,11 @@ export async function initializeWebgpuDevice(
             'Trying to get WebGPU device again, if this fails, reload application to try again',
           )
         // Brief backoff to let the GPU process recover before requesting a new device.
-        await new Promise((resolve) => setTimeout(resolve, 500))
+        await new Promise((resolve) =>
+          setTimeout(() => {
+            resolve(undefined)
+          }, 500),
+        )
         await initializeWebgpuDevice(adapterPreferences, deviceFeatures)
       } else {
         deviceLossRetryCount = 0

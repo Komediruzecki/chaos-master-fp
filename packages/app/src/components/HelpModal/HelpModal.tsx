@@ -1,4 +1,3 @@
- 
 import { createResource, createSignal, For, Show, Suspense } from 'solid-js'
 import { IS_DEV } from '@/defaults'
 import { Changelog, Discord, GitHub, Heart, Terminal, TriangleAlert, } from '@/icons'

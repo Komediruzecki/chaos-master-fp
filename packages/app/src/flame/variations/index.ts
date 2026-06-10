@@ -47,5 +47,8 @@ export function isVariationType(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   maybeType: any,
 ): maybeType is TransformVariationType {
-  return typeof maybeType === 'string' && (variationTypes as string[]).includes(maybeType)
+  return (
+    typeof maybeType === 'string' &&
+    (variationTypes as string[]).includes(maybeType)
+  )
 }

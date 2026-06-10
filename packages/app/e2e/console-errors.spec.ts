@@ -13,7 +13,7 @@ test.describe('Console Error Detection', () => {
     const errors: string[] = []
 
     // Capture all console errors
-    page.on('console', (msg) => {
+    page.on('console', (msg: unknown) => {
       if (msg.type() === 'error') {
         errors.push(msg.text())
       }
@@ -29,7 +29,7 @@ test.describe('Console Error Detection', () => {
 
     // Capture errors
     const pageErrors: string[] = []
-    page.on('pageerror', (error) => {
+    page.on('pageerror', (error: unknown) => {
       pageErrors.push(error.message)
     })
 
@@ -52,7 +52,7 @@ test.describe('Console Error Detection', () => {
   test('should render canvas without errors', async ({ page }) => {
     const errors: string[] = []
 
-    page.on('console', (msg) => {
+    page.on('console', (msg: unknown) => {
       if (msg.type() === 'error') {
         errors.push(msg.text())
       }
@@ -67,7 +67,7 @@ test.describe('Console Error Detection', () => {
     await page.waitForTimeout(2000)
 
     const pageErrors: string[] = []
-    page.on('pageerror', (error) => {
+    page.on('pageerror', (error: unknown) => {
       pageErrors.push(error.message)
     })
 
@@ -80,7 +80,7 @@ test.describe('Console Error Detection', () => {
   test('should handle rapid interactions without errors', async ({ page }) => {
     const errors: string[] = []
 
-    page.on('console', (msg) => {
+    page.on('console', (msg: unknown) => {
       if (msg.type() === 'error') {
         errors.push(msg.text())
       }
@@ -104,7 +104,7 @@ test.describe('Console Error Detection', () => {
     await page.waitForTimeout(500)
 
     const pageErrors: string[] = []
-    page.on('pageerror', (error) => {
+    page.on('pageerror', (error: unknown) => {
       pageErrors.push(error.message)
     })
 
@@ -119,7 +119,7 @@ test.describe('Console Error Detection', () => {
   }) => {
     const errors: string[] = []
 
-    page.on('console', (msg) => {
+    page.on('console', (msg: unknown) => {
       if (msg.type() === 'error') {
         errors.push(msg.text())
       }
@@ -149,7 +149,7 @@ test.describe('Console Error Detection', () => {
     }
 
     const pageErrors: string[] = []
-    page.on('pageerror', (error) => {
+    page.on('pageerror', (error: unknown) => {
       pageErrors.push(error.message)
     })
 
@@ -162,7 +162,7 @@ test.describe('Console Error Detection', () => {
   test('should handle slider interactions without errors', async ({ page }) => {
     const errors: string[] = []
 
-    page.on('console', (msg) => {
+    page.on('console', (msg: unknown) => {
       if (msg.type() === 'error') {
         errors.push(msg.text())
       }
@@ -182,7 +182,7 @@ test.describe('Console Error Detection', () => {
     }
 
     const pageErrors: string[] = []
-    page.on('pageerror', (error) => {
+    page.on('pageerror', (error: unknown) => {
       pageErrors.push(error.message)
     })
 
@@ -197,7 +197,7 @@ test.describe('Console Error Detection', () => {
   }) => {
     const errors: string[] = []
 
-    page.on('console', (msg) => {
+    page.on('console', (msg: unknown) => {
       if (msg.type() === 'error') {
         errors.push(msg.text())
       }
@@ -217,7 +217,7 @@ test.describe('Console Error Detection', () => {
     }
 
     const pageErrors: string[] = []
-    page.on('pageerror', (error) => {
+    page.on('pageerror', (error: unknown) => {
       pageErrors.push(error.message)
     })
 
@@ -232,7 +232,7 @@ test.describe('Console Error Detection', () => {
   }) => {
     const errors: string[] = []
 
-    page.on('console', (msg) => {
+    page.on('console', (msg: unknown) => {
       if (msg.type() === 'error') {
         errors.push(msg.text())
       }
@@ -251,7 +251,7 @@ test.describe('Console Error Detection', () => {
     }
 
     const pageErrors: string[] = []
-    page.on('pageerror', (error) => {
+    page.on('pageerror', (error: unknown) => {
       pageErrors.push(error.message)
     })
 

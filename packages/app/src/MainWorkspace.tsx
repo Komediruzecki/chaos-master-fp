@@ -81,10 +81,7 @@ import type { v2f } from 'typegpu/data'
 import type { QualityPreset } from './components/Quality/QualityPresets'
 import type { QuickPickerMode } from './components/QuickVariationPicker/QuickVariationPicker'
 import type { TourContext } from './components/SpotlightTour/tourTypes'
-import type { ColorInitMode } from './flame/colorInitMode'
 import type { ColorMap, Palette } from './flame/colorMap'
-import type { DrawMode } from './flame/drawMode'
-import type { PointInitMode } from './flame/pointInitMode'
 import type { FlameDescriptor, TransformFunction, TransformId, VariationId, } from './flame/schema/flameSchema'
 import type { TransformVariationType } from './flame/variations'
 import type { AnimationExportConfig } from './utils/animationExport'
@@ -553,7 +550,11 @@ export function MainWorkspace(props: AppProps) {
     let lastWidth = -1
     let lastHeight = -1
     while (Date.now() - startMs < timeoutMs) {
-      await new Promise<void>((resolve) => setTimeout(resolve, 60))
+      await new Promise<void>((resolve) =>
+        setTimeout(() => {
+          resolve()
+        }, 60),
+      )
       if (canvas.width === lastWidth && canvas.height === lastHeight) return
       lastWidth = canvas.width
       lastHeight = canvas.height
@@ -602,8 +603,8 @@ export function MainWorkspace(props: AppProps) {
         URL.revokeObjectURL(url)
         showToast('Animation exported')
       })
-      // eslint-disable-next-line @typescript-eslint/use-unknown-in-catch-callback-variable
-      .catch((err) => {
+
+      .catch((err: unknown) => {
         console.error('Animation export failed:', err)
         showToast('Animation export failed')
       })
@@ -692,16 +693,13 @@ export function MainWorkspace(props: AppProps) {
       if (timeline.isPlaying()) timeline.pause()
       switch (name) {
         case 'loadFlame':
-          // eslint-disable-next-line @typescript-eslint/no-floating-promises
-          showLoadFlameModal()
+          void showLoadFlameModal()
           break
         case 'exportPng':
-          // eslint-disable-next-line @typescript-eslint/no-floating-promises
-          showExportPngDialog()
+          void showExportPngDialog()
           break
         case 'shareLink':
-          // eslint-disable-next-line @typescript-eslint/no-floating-promises
-          showShareLinkModal()
+          void showShareLinkModal()
           break
       }
     },
@@ -770,7 +768,7 @@ export function MainWorkspace(props: AppProps) {
       // produceWithPatches (structurajs draft proxy), and reconcile expects
       // a SolidJS store proxy -- mixing the two causes "node.$ is not a
       // function".
-      history.replace(snapshot as typeof flameDescriptor, 'tour:restore')
+      history.replace(snapshot, 'tour:restore')
     },
   }
 
@@ -1084,7 +1082,7 @@ export function MainWorkspace(props: AppProps) {
             | 'colorInitPosition'
           break
         case 'pointInitMode':
-          draft.renderSettings.pointInitMode = value as PointInitMode
+          draft.renderSettings.pointInitMode = value
           break
         case 'densityEstimationQuality':
           draft.renderSettings.densityEstimationQuality = value as number
@@ -2690,8 +2688,7 @@ export function MainWorkspace(props: AppProps) {
                                       flameDescriptor.renderSettings.drawMode
                                     }
                                     onChange={(ev) => {
-                                      const mode = ev.currentTarget
-                                        .value as DrawMode
+                                      const mode = ev.currentTarget.value
                                       const update = () => {
                                         setFlameDescriptor((draft) => {
                                           draft.renderSettings.drawMode = mode
@@ -2736,8 +2733,7 @@ export function MainWorkspace(props: AppProps) {
                                         .colorInitMode
                                     }
                                     onChange={(ev) => {
-                                      const mode = ev.currentTarget
-                                        .value as ColorInitMode
+                                      const mode = ev.currentTarget.value
                                       const update = () => {
                                         setFlameDescriptor((draft) => {
                                           draft.renderSettings.colorInitMode =
@@ -2785,8 +2781,7 @@ export function MainWorkspace(props: AppProps) {
                                         .pointInitMode
                                     }
                                     onChange={(ev) => {
-                                      const mode = ev.currentTarget
-                                        .value as PointInitMode
+                                      const mode = ev.currentTarget.value
                                       const update = () => {
                                         setFlameDescriptor((draft) => {
                                           draft.renderSettings.pointInitMode =
@@ -3009,8 +3004,8 @@ export function MainWorkspace(props: AppProps) {
             initialTop={floatingTop()}
             onLoadFlame={() => {
               if (timeline.isPlaying()) timeline.pause()
-              // eslint-disable-next-line @typescript-eslint/no-floating-promises
-              showLoadFlameModal()
+
+              void showLoadFlameModal()
             }}
             onSaveForLater={() => {
               const tracks = timeline.tracks()
@@ -3023,14 +3018,14 @@ export function MainWorkspace(props: AppProps) {
             }}
             onRender={() => {
               if (timeline.isPlaying()) timeline.pause()
-              // eslint-disable-next-line @typescript-eslint/no-floating-promises
-              showExportPngDialog()
+
+              void showExportPngDialog()
             }}
             onQuickExport={quickExport}
             onShareLink={() => {
               if (timeline.isPlaying()) timeline.pause()
-              // eslint-disable-next-line @typescript-eslint/no-floating-promises
-              showShareLinkModal()
+
+              void showShareLinkModal()
             }}
             onShareDiscord={shareToDiscord}
             onLogoFavicon={showLogoFaviconGenerator}

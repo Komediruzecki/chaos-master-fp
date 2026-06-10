@@ -106,14 +106,13 @@ export function createTimestampQuery<T extends string>(
     await timestampMappable.mapAsync(GPUMapMode.READ)
     const times = new BigInt64Array(timestampMappable.getMappedRange())
     const results = Object.fromEntries(
-      timestampNames.map((name, i) => [
-        name,
-        convertNanoToMilliSeconds(
-          Number(
-            times[locationIndex + i * 2 + 1]! - times[locationIndex + i * 2]!,
-          ),
-        ),
-      ]),
+      timestampNames.map((name, i) => {
+        const begin = times[locationIndex + i * 2]!
+        const end = times[locationIndex + i * 2 + 1]!
+        // BigInt subtraction → Number conversion for milliseconds
+        const nanos = (end as bigint) - (begin as bigint)
+        return [name, convertNanoToMilliSeconds(Number(nanos))]
+      }),
     ) as Record<T, number>
     timestampMappable.unmap()
     latest.push(results)

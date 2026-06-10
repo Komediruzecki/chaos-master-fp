@@ -437,7 +437,7 @@ export function LoadFlameModal(props: LoadFlameModalProps) {
       }
     } catch (err) {
       console.warn(err)
-       
+
       void showAlert(`No valid flame found in '${file.name}'.`)
     }
   }
