@@ -24,7 +24,7 @@ export const transformVariations = Object.fromEntries(
 
 export const variationTypes = rawVariations.map(
   (v) => v.DescriptorSchema.entries.type.literal,
-) as TransformVariationType[]
+)
 
 const parametricVariationTypes = Object.values(parametricVariations).map(
   (o) => o.DescriptorSchema.entries.type.literal,
