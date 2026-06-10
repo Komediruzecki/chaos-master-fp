@@ -61,7 +61,7 @@ const PostMirrorWfParamsEditor: EditorFor<PostMirrorWfParams> = (props) => (
 )
 
 export const postMirrorWf = parametricVariation(
-  'postMirrorWf',
+  'postMirrorWfVar',
   PostMirrorWfParams,
   PostMirrorWfParamsDefaults,
   PostMirrorWfParamsEditor,

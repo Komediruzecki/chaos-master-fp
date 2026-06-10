@@ -30,7 +30,7 @@ const SymNetG4ParamsEditor: EditorFor<SymNetG4Params> = (props) => (
 )
 
 export const symNetG4 = parametricVariation(
-  'symNetG4',
+  'symNetG4Var',
   SymNetG4Params,
   SymNetG4ParamsDefaults,
   SymNetG4ParamsEditor,

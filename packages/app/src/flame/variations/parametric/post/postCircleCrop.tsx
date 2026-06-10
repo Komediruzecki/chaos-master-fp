@@ -60,7 +60,7 @@ const PostCircleCropParamsEditor: EditorFor<PostCircleCropParams> = (props) => (
 )
 
 export const postCircleCrop = parametricVariation(
-  'postCircleCrop',
+  'postCircleCropVar',
   PostCircleCropParams,
   PostCircleCropParamsDefaults,
   PostCircleCropParamsEditor,

@@ -27,7 +27,7 @@ const Rings2ParamsEditor: EditorFor<Rings2Params> = (props) => (
 )
 
 export const rings2 = parametricVariation(
-  'rings2',
+  'rings2Var',
   Rings2Params,
   Rings2ParamsDefaults,
   Rings2ParamsEditor,

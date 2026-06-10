@@ -56,7 +56,7 @@ const InvCircleParamsEditor: EditorFor<InvCircleParams> = (props) => {
 }
 
 export const invCircle = parametricVariation(
-  'invCircle',
+  'invCircleVar',
   InvCircleParams,
   InvCircleParamsDefaults,
   InvCircleParamsEditor,

@@ -19,7 +19,7 @@ const BlurZoomParamsDefaults: BlurZoomParams = {
 const BlurZoomParamsEditor: EditorFor<BlurZoomParams> = (_props) => <></>
 
 export const blurZoom = parametricVariation(
-  'blurZoom',
+  'blurZoomVar',
   BlurZoomParams,
   BlurZoomParamsDefaults,
   BlurZoomParamsEditor,

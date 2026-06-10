@@ -27,7 +27,7 @@ const CircusParamsEditor: EditorFor<CircusParams> = (props) => (
 )
 
 export const circus = parametricVariation(
-  'circus',
+  'circusVar',
   CircusParams,
   CircusParamsDefaults,
   CircusParamsEditor,

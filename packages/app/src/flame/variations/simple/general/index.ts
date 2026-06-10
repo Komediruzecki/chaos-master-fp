@@ -6,7 +6,7 @@ import { simpleVariation } from '../types'
 
 // ── Unique inline variations (no separate file) ──
 
-export const randomDisk = simpleVariation('randomDisk', (_pos, varInfo) => {
+export const randomDisk = simpleVariation('randomDiskVar', (_pos, varInfo) => {
   'use gpu'
   return randomUnitDisk().mul(varInfo.weight)
 })

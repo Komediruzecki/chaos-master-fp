@@ -41,7 +41,7 @@ const BlobParamsEditor: EditorFor<BlobParams> = (props) => (
 )
 
 export const blob = parametricVariation(
-  'blob',
+  'blobVar',
   BlobParams,
   BlobParamsDefaults,
   BlobParamsEditor,

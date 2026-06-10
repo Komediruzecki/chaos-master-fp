@@ -17,7 +17,7 @@ const BlurLinearParamsDefaults: BlurLinearParams = {
 const BlurLinearParamsEditor: EditorFor<BlurLinearParams> = (_props) => <></>
 
 export const blurLinear = parametricVariation(
-  'blurLinear',
+  'blurLinearVar',
   BlurLinearParams,
   BlurLinearParamsDefaults,
   BlurLinearParamsEditor,

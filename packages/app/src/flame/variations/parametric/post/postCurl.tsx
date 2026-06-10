@@ -22,7 +22,7 @@ const PostCurlParamsEditor: EditorFor<PostCurlParams> = (props) => (
 )
 
 export const postCurl = parametricVariation(
-  'postCurl',
+  'postCurlVar',
   PostCurlParams,
   PostCurlParamsDefaults,
   PostCurlParamsEditor,

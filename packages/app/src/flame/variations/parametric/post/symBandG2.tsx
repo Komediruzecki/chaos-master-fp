@@ -23,7 +23,7 @@ const SymBandG2ParamsEditor: EditorFor<SymBandG2Params> = (props) => (
 )
 
 export const symBandG2 = parametricVariation(
-  'symBandG2',
+  'symBandG2Var',
   SymBandG2Params,
   SymBandG2ParamsDefaults,
   SymBandG2ParamsEditor,

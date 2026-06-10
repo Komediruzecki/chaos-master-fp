@@ -49,13 +49,17 @@ export function parametricVariationDescriptor<
 >(
   variationType: K,
   paramStruct: WgslStruct<T>,
+  paramDefaults?: Infer<WgslStruct<T>>,
 ): ParametricVariationDescriptor<K, T> {
   const ParamSchema = structToSchema(paramStruct)
+  // We use type assertion here to bypass strict return type while still emitting the correct type signature
   return v.object({
     type: v.literal(variationType),
     weight: v.number(),
     visible: v.optional(v.boolean(), true),
-    params: ParamSchema,
+    params: paramDefaults
+      ? v.optional(ParamSchema, () => paramDefaults)
+      : ParamSchema,
   })
 }
 
@@ -72,7 +76,11 @@ export function parametricVariation<
 ): ParametricVariation<K, T> {
   return {
     category,
-    DescriptorSchema: parametricVariationDescriptor(variationKey, paramStruct),
+    DescriptorSchema: parametricVariationDescriptor(
+      variationKey,
+      paramStruct,
+      paramDefaults,
+    ),
     paramStruct,
     paramDefaults,
     editor,

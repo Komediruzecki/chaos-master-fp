@@ -49,7 +49,7 @@ const PostAxisSymmetryWfParamsEditor: EditorFor<PostAxisSymmetryWfParams> = (
 )
 
 export const postAxisSymmetryWf = parametricVariation(
-  'postAxisSymmetryWf',
+  'postAxisSymmetryWfVar',
   PostAxisSymmetryWfParams,
   PostAxisSymmetryWfParamsDefaults,
   PostAxisSymmetryWfParamsEditor,

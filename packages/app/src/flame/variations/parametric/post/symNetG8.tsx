@@ -30,7 +30,7 @@ const SymNetG8ParamsEditor: EditorFor<SymNetG8Params> = (props) => (
 )
 
 export const symNetG8 = parametricVariation(
-  'symNetG8',
+  'symNetG8Var',
   SymNetG8Params,
   SymNetG8ParamsDefaults,
   SymNetG8ParamsEditor,

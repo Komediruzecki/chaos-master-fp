@@ -5,7 +5,7 @@ import { PI } from '../../../constants'
 import { simpleVariation } from '../types'
 
 export const preBlur = simpleVariation(
-  'preBlur',
+  'preBlurVar',
   (_pos, varInfo) => {
     'use gpu'
     const r =

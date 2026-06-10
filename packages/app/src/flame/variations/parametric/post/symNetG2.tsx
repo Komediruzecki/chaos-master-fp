@@ -23,7 +23,7 @@ const SymNetG2ParamsEditor: EditorFor<SymNetG2Params> = (props) => (
 )
 
 export const symNetG2 = parametricVariation(
-  'symNetG2',
+  'symNetG2Var',
   SymNetG2Params,
   SymNetG2ParamsDefaults,
   SymNetG2ParamsEditor,

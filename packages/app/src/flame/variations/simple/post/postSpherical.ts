@@ -2,7 +2,7 @@ import { vec2f } from 'typegpu/data'
 import { simpleVariation } from '../types'
 
 export const postSpherical = simpleVariation(
-  'postSpherical',
+  'postSphericalVar',
   (pos, varInfo) => {
     'use gpu'
     const r = varInfo.weight / (pos.x * pos.x + pos.y * pos.y + 1e-6)

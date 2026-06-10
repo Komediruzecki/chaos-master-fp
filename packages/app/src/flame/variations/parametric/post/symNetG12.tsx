@@ -35,7 +35,7 @@ const SymNetG12ParamsEditor: EditorFor<SymNetG12Params> = (props) => (
 )
 
 export const symNetG12 = parametricVariation(
-  'symNetG12',
+  'symNetG12Var',
   SymNetG12Params,
   SymNetG12ParamsDefaults,
   SymNetG12ParamsEditor,
