@@ -24,7 +24,7 @@ export const example16 = defineExample({
       color: { x: 0.2, y: 0.1 },
       variations: {
         [vid('b2c3d4e5_f6a7_0123_8901_bcdef1234567')]: {
-          type: 'blob',
+          type: 'blobVar',
           weight: 1,
           params: { high: 2, low: 1, waves: 1 },
         },
@@ -65,7 +65,7 @@ export const example16 = defineExample({
       color: { x: 0, y: -0.3 },
       variations: {
         [vid('c9d0e1f2_a3b4_0123_5678_34567890abcd')]: {
-          type: 'juliaScope',
+          type: 'juliaScopeVar',
           weight: 1,
           params: { power: 3.5, dist: 2.8 },
         },

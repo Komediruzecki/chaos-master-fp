@@ -3,7 +3,7 @@ import { defineExample } from '../examples/util'
 import { generateTransformId, generateVariationId } from '../transformFunction'
 import { isParametricVariationType, transformVariations } from '.'
 import type { FlameDescriptor } from '../schema/flameSchema'
-import type { ParametricVariationDescriptor, TransformVariationDescriptor, TransformVariationType, } from '.'
+import type { TransformVariationDescriptor, TransformVariationType } from '.'
 import type { EditorFor } from '@/components/Sliders/ParametricEditors/types'
 
 export function getNormalizedVariationName(
@@ -17,47 +17,52 @@ export function getVariationDefault(
   weight: number,
 ): TransformVariationDescriptor {
   if (!isParametricVariationType(type)) {
-    return { type, weight, visible: true }
+    return { type, weight, visible: true } as TransformVariationDescriptor
   }
+  const variation = transformVariations[type] as Extract<
+    (typeof transformVariations)[TransformVariationType],
+    { paramDefaults: unknown }
+  >
   return {
     type,
-    params: { ...transformVariations[type].paramDefaults },
+    params: { ...variation.paramDefaults },
     weight,
     visible: true,
-  }
+  } as TransformVariationDescriptor
 }
 
-export function getParamsEditor<T extends ParametricVariationDescriptor>(
+export function getParamsEditor<T extends { type: string; params?: unknown }>(
   variation: T,
 ): { component: EditorFor<T['params']>; value: T['params'] } {
+  const v = transformVariations[variation.type] as Extract<
+    (typeof transformVariations)[TransformVariationType],
+    { editor: unknown }
+  >
   return {
-    component: transformVariations[variation.type].editor as EditorFor<
-      T['params']
-    >,
+    component: v.editor as unknown as EditorFor<T['params']>,
     get value() {
-      return variation.params
+      return variation.params as T['params']
     },
   }
 }
 
-const transformPreviewIds = Object.keys(transformVariations).reduce(
-  (acc, type) => {
-    acc[type as TransformVariationType] = {
-      // helps with debugging, the transform ID is marked with variation type for preview
-      // so the flame is easily identifiable, consider moving this to Flame name, which can
-      // prefix all shader transforms/flames
-      tid: generateTransformId(type),
-      vid: generateVariationId(),
-    }
-    return acc
-  },
-  {},
-)
+const transformPreviewIds = Object.keys(transformVariations).reduce<
+  Record<string, { tid: string; vid: string }>
+>((acc, type) => {
+  acc[type] = {
+    // helps with debugging, the transform ID is marked with variation type for preview
+    // so the flame is easily identifiable, consider moving this to Flame name, which can
+    // prefix all shader transforms/flames
+    tid: generateTransformId(type),
+    vid: generateVariationId(),
+  }
+  return acc
+}, {})
 export function getTransformPreviewTid(type: TransformVariationType) {
-  return transformPreviewIds[type].tid
+  return transformPreviewIds[type]!.tid
 }
 export function getTransformPreviewVid(type: TransformVariationType) {
-  return transformPreviewIds[type].vid
+  return transformPreviewIds[type]!.vid
 }
 
 export function getDefaultFlameByVarType(

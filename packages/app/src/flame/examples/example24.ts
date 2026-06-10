@@ -47,12 +47,12 @@ export const example24 = defineExample({
       color: { x: -0.15, y: -0.1 },
       variations: {
         [vid('e5f6a7b8_c9d0_019e_1234_ef1234567890')]: {
-          type: 'rings2',
+          type: 'rings2Var',
           weight: 1,
           params: { val: 5.5 },
         },
         [vid('f6a7b8c9_d0e1_019f_2345_01234567890a')]: {
-          type: 'perspective',
+          type: 'perspectiveVar',
           weight: 0.35,
           params: { angle: 0.6, dist: 1.2 },
         },

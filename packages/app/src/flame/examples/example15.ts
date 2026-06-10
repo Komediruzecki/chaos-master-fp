@@ -72,7 +72,7 @@ export const example15 = defineExample({
           params: { powX: 1.2, powY: 0.9 },
         },
         [vid('c9a0b1d2_e3f4_5678_9012_345678abcdef')]: {
-          type: 'gaussian',
+          type: 'gaussianVar',
           weight: 0.3,
         },
       },

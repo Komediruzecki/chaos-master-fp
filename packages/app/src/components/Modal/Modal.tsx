@@ -69,7 +69,7 @@ export function Modal(props: ParentProps<ModalProps>) {
     const { resolve, promise } = Promise.withResolvers<T>()
     const instance: ModalInstance<unknown> = {
       config,
-      resolve,
+      resolve: resolve as (value: unknown) => void,
     }
     setModalInstances((prev) => [...prev, instance])
     return promise
@@ -81,7 +81,7 @@ export function Modal(props: ParentProps<ModalProps>) {
       <Portal
         mount={props.mount}
         ref={(el) => {
-          ;(el as HTMLElement).classList.add(ui.root)
+          ;(el as HTMLElement).classList.add(ui.root!)
         }}
       >
         <For each={modalInstances()}>

@@ -77,13 +77,13 @@ export function createIFSPipeline(
       const flamesA = Object.fromEntries(
         tidsA.map((tid) => {
           globId += tid
-          return [tid, createFlameWgsl(transforms[tid])]
+          return [tid, createFlameWgsl(transforms[tid]!)]
         }),
       )
       const flamesB = Object.fromEntries(
         tidsB.map((tid) => {
           globId += tid
-          return [tid, createFlameWgsl(blendTransforms[tid])]
+          return [tid, createFlameWgsl(blendTransforms[tid]!)]
         }),
       )
 

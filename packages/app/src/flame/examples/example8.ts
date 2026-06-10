@@ -63,7 +63,7 @@ export const example8 = defineExample({
       color: { x: 0, y: -0.3 },
       variations: {
         [vid('c1c2d3e4_f5a6_7890_7890_abcdef123456')]: {
-          type: 'juliaScope',
+          type: 'juliaScopeVar',
           weight: 1,
           params: { power: 2.5, dist: 2 },
         },

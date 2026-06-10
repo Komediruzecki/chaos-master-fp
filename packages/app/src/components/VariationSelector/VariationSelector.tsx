@@ -726,7 +726,14 @@ function ShowVariationSelector(props: VariationSelectorModalProps) {
                                         ) {
                                           throw new Error(`Unreachable code`)
                                         }
-                                        variationDraft.params = value
+                                        ;(
+                                          variationDraft as {
+                                            params: Record<string, number>
+                                          }
+                                        ).params = value as Record<
+                                          string,
+                                          number
+                                        >
                                       },
                                     )
                                   }}

@@ -244,7 +244,7 @@ function RecentFlameItem(props: {
   const displayFlame = (): FlameDescriptor => {
     if (!hovered() || !hasTracks()) return props.recent.flame
     const clone = deepClone(props.recent.flame)
-    applyTracksToFlame(props.recent.tracks, clone, animFrame())
+    applyTracksToFlame(props.recent.tracks!, clone, animFrame())
     return clone
   }
 
@@ -360,7 +360,7 @@ function RecentFlameItem(props: {
         }}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
-            props.onDelete(e as unknown, props.recent.id)
+            props.onDelete(e as unknown as MouseEvent, props.recent.id)
           }
         }}
         title="Delete"

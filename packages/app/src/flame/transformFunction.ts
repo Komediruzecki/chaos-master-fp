@@ -23,9 +23,13 @@ const VariantUniformsBase = struct({
 
 function variationUniforms(variationType: TransformVariationType) {
   if (isParametricVariationType(variationType)) {
+    const v = transformVariations[variationType] as Extract<
+      (typeof transformVariations)[TransformVariationType],
+      { paramStruct: unknown }
+    >
     return struct({
       ...VariantUniformsBase.propTypes,
-      params: transformVariations[variationType].paramStruct,
+      params: v.paramStruct,
     }).$name(`VariationUniforms_${variationType}`)
   }
   return VariantUniformsBase
@@ -175,8 +179,11 @@ export function extractFlameUniforms({
                   const variationType = type as TransformVariationType
                   const isParametric = isParametricVariationType(variationType)
                   if (isParametric) {
-                    const defaults = transformVariations[variationType]
-                      .paramDefaults as Record<string, number>
+                    const v = transformVariations[variationType] as Extract<
+                      (typeof transformVariations)[TransformVariationType],
+                      { paramDefaults: unknown }
+                    >
+                    const defaults = v.paramDefaults as Record<string, number>
                     const safe: Record<string, number> = { ...defaults }
                     if (rest.params) {
                       for (const key of Object.keys(defaults)) {
