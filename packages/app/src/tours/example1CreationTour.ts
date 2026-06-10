@@ -205,7 +205,7 @@ export const example1CreationTour: TourGuide = {
       description:
         'The Pie variation splits the plane into angular slices, like a pizza. Combined with the swirl, this creates the characteristic star shape.',
       beforeShow: (ctx) => {
-        ctx.executeCommand('flame.addTransform', 'pieVar')
+        ctx.executeCommand('flame.addTransform', 'pie')
         ctx.executeCommand('flame.setColorSpeed', 2, 0.4)
         ctx.scrollToTarget('[data-tour-target="probability"]')
       },
@@ -269,7 +269,7 @@ export const example1CreationTour: TourGuide = {
       description:
         'A tiny Gaussian blur at 5% softens the hard edges of the pie slices, making transitions between arms look more natural.',
       beforeShow: (ctx) => {
-        ctx.executeCommand('flame.addVariation', 2, 'gaussianVar')
+        ctx.executeCommand('flame.addVariation', 2, 'gaussian')
         ctx.executeCommand('flame.setVariationWeight', 2, 1, 0.05)
         ctx.scrollToTarget('[data-tour-target="variation-type"]')
       },
