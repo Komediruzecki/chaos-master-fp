@@ -1,376 +1,376 @@
-# Plan: Server-Side IFS Rendering (Premium Feature)
+# Plan: Server-Side IFS Rendering (Premium Feature) — Variant 2
 
 ## Context
 
-chaos-master is a WebGPU-based IFS fractal flame editor. Currently all rendering happens client-side on the user's GPU via WebGPU compute shaders. We want to add **server-side rendering** as a **premium feature** — allowing users to submit flame descriptors and receive rendered images without requiring WebGPU-capable hardware, enabling ultra-high-quality renders, headless/API access, and batch/animation rendering.
+chaos-master is a WebGPU-based IFS fractal flame editor using the `typegpu` library for GPU compute shaders. Currently all rendering happens client-side on the user's GPU. We want to add **server-side rendering** as a **premium feature** — using **Deno's native WebGPU runtime** to run the exact same shaders server-side on GPU hardware, without any CPU fallback or WASM compromise.
 
-The mercurypitch `feat/database-implementation` branch provides a reference architecture: dual-adapter DB (IndexedDB local + Cloudflare D1 server), zero-dependency auth (anonymous + Google OAuth + email/password with JWT), and a worker-based REST API. We'll adapt this pattern.
+The mercurypitch `feat/database-implementation` branch provides a reference architecture for the Cloudflare side: dual-adapter DB (IndexedDB local + Cloudflare D1 server), zero-dependency auth (anonymous + Google OAuth + email/password with JWT), and a worker-based REST API.
 
-## Target Branch
-
-Branch from `main` on chaos-master-fp. Create `feat/server-rendering-premium`.
+**Deno 2.8+** supports `navigator.gpu` natively via its `wgpu` Rust backend, with headless off-screen rendering through `OffscreenCanvas.getContext('webgpu')`. This means our WGSL shaders and WebGPU pipeline can run identically on a GPU-equipped server.
 
 ---
 
 ## Architecture Overview
 
 ```
-                    Client (Browser)                          Cloudflare
-                   ┌─────────────────┐                    ┌──────────────────┐
-                   │  Flam3.tsx       │                    │  render-worker   │
-                   │  (WebGPU IFS)    │                    │                  │
-                   │                  │                    │  POST /render    │
-                   │  Auth UI         │──Bearer JWT───────▶│  GET  /render/:id│
-                   │  HybridAdapter   │                    │                  │
-                   │  ├─ DexieAdapter │                    │  CPU Renderer    │
-                   │  └─ ServerAdapter│────CRUD───────────▶│  (pure TS impl)  │
-                   │                  │                    │                  │
-                   └─────────────────┘                    │  D1 Database     │
-                                                          │  ┌──────────────┐│
-                   ┌─────────────────┐                    │  │ users        ││
-                   │  db-worker      │                    │  │ subscriptions││
-                   │  (auth + CRUD)  │                    │  │ render_jobs  ││
-                   │  D1 binding     │                    │  │ feature_flags││
-                   └─────────────────┘                    │  └──────────────┘│
-                                                          └──────────────────┘
+   Client (Browser)                Cloudflare Edge              GPU Server (any provider)
+  ┌──────────────────┐          ┌─────────────────────┐        ┌────────────────────────┐
+  │ Flam3.tsx          │          │ db-worker (CF Worker) │        │ render-worker (Deno)    │
+  │ (WebGPU IFS)       │          │                       │        │                         │
+  │                    │          │ POST /api/auth/*      │        │ POST /api/render        │
+  │ Auth UI            │──JWT────▶│ GET/POST /api/:entity │        │ GET  /api/render/:id    │
+  │                    │          │                       │        │ GET  /api/render/:id.png│
+  │ HybridAdapter      │──CRUD───▶│ Stripe webhooks       │        │                         │
+  │ ├─ DexieAdapter    │          │ Stripe checkout        │        │ WebGPU IFS Pipeline     │
+  │ └─ ServerAdapter   │          │                       │        │ (same WGSL as client)  │
+  │                    │          │ D1 Database ────────────▶ D1   │                         │
+  │                    │          │ ┌─────────────────────┐│  HTTP  │ PNG Encode → R2         │
+  │                    │──render──▶│ │ users               ││  API   │                         │
+  │                    │          │ │ subscriptions       ││◀───────│ Environment:            │
+  └──────────────────┘          │ │ renderJobs          ││        │ DENO_WEBGPU_BACKEND=    │
+                                │ │ featureFlags        ││        │   vulkan                │
+                                │ │ stripeCustomers     ││        │ DENO_WEBGPU_ADAPTER_NAME│
+                                │ └─────────────────────┘│        │   (optional)            │
+                                └─────────────────────┘        └────────────────────────┘
 ```
 
-Two new workers (or one combined):
-1. **db-worker**: Auth + user CRUD + subscription management (D1)
-2. **render-worker**: Render job submission, CPU IFS rendering, result storage (D1 + KV/R2 for images)
+**Two workers, separate responsibilities:**
+
+| Worker | Runtime | Where | Responsibility |
+|--------|---------|-------|----------------|
+| db-worker | Cloudflare Worker | CF Edge | Auth, user CRUD, subscriptions, Stripe, D1 |
+| render-worker | Deno | GPU server | WebGPU rendering, PNG output, R2 storage |
+
+**D1 is the shared state layer.** Both workers read/write `renderJobs`. db-worker owns `users` and `subscriptions`. Feature flags in D1 control gating.
 
 ---
 
-## Phase 1: Modularize the Renderer
+## Phase 1 — Renderer Modularization
 
-### Problem
+**Goal**: Extract the WebGPU pipeline into a shared `renderer-core` package that both the browser client and the Deno render-worker can import.
 
-The IFS pipeline is currently a monolith inside `packages/app/src/flame/`. The CPU renderer (`cpuFlameRenderer.ts`) is a stub — it doesn't actually run flame iterations. All variation functions are written in WGSL (`tgpu.fn`), making them GPU-only.
+Currently the pipeline is a monolith inside `packages/app/src/flame/`. The key insight: **Deno implements the standard WebGPU API** (`navigator.gpu`, off-screen `GPUCanvasContext`). The same `typegpu`-based pipeline can run on both runtimes with minimal adaptation. We don't port variations or write a CPU renderer.
 
-### Step 1.1: Create `packages/renderer-core/` — Pure Math, No GPU
+### Tasks
 
-Extract all pure-computation modules into a shared package usable by both the client WebGPU pipeline and the new server CPU renderer.
+1. **Scaffold `packages/renderer-core/`**
+   - `package.json`, `tsconfig.json`, export map
+   - Dependencies: `typegpu`, `valibot` (pure schema), color math utils
+   - This package is runtime-agnostic — no DOM, no `document`, no browser-specific APIs
 
-**Files to extract (pure, no typegpu/WGSL deps):**
-- `flame/schema/flameSchema.ts` → `packages/renderer-core/src/schema.ts` (Valibot-based FlameDescriptor validation)
-- `flame/colors.ts` → `packages/renderer-core/src/colors.ts` (OkLab math, RGB conversion)
-- `flame/colorMap.ts` → `packages/renderer-core/src/colorMap.ts` (palette entries)
-- `flame/flam3PaletteParser.ts` → `packages/renderer-core/src/paletteParser.ts`
-- `flame/randomize.ts` → `packages/renderer-core/src/randomize.ts`
+2. **Extract FlameDescriptor schema**
+   - Move `flame/schema/flameSchema.ts` → `renderer-core/src/schema.ts`
+   - Re-export from old location for backward compat
+   - Pure Valibot — no GPU deps, clean extraction
 
-**New pure modules to create in this package:**
-- `src/types.ts` — Plain-TS equivalents of `Point`, `Bucket`, `BucketData` (no typegpu atoms)
-- `src/affine.ts` — Pure TS `transformAffine(params, point)` (replaces `affineTranform.ts` GPU function)
-- `src/camera.ts` — Pure TS `camera2DWorldToClip` (ported from `@/lib/Camera2D`)
-- `src/rng.ts` — Seedable deterministic PRNG (JS port of the WGSL hash RNG from `@/shaders/random`)
-- `src/variations/` — All ~150 variation functions ported to pure TS
+3. **Extract color/palette modules**
+   - `flame/colors.ts` → `renderer-core/src/colors.ts`
+   - `flame/colorMap.ts` → `renderer-core/src/colorMap.ts`
+   - `flame/flam3PaletteParser.ts` → `renderer-core/src/paletteParser.ts`
+   - These are pure math (OkLab↔RGB conversion, palette interpolation)
 
-### Step 1.2: Port Variations to TypeScript
+4. **Extract WGSL generation functions**
+   - `flame/transformFunction.ts` (creates WGSL per transform) → `renderer-core/src/wgsl/`
+   - `flame/affineTransform.ts` (WGSL affine math) → `renderer-core/src/wgsl/`
+   - `shaders/random.ts` (seedable WGSL PRNG) → `renderer-core/src/wgsl/`
+   - These generate WGSL strings — pure string construction, no GPU API calls
 
-Each variation is currently a `tgpu.fn([vec2f, VariationInfo], vec2f)` (WGSL math). The math is identical — `sin`, `cos`, `atan2`, `sqrt`, `exp`, etc. A variation port is straightforward:
+5. **Extract point/color init mode implementations**
+   - `flame/pointInitMode.ts` → `renderer-core/src/pointInit.ts`
+   - `flame/colorInitMode.ts` → `renderer-core/src/colorInit.ts`
+   - WGSL function bodies as strings
 
-```typescript
-// Current WGSL form (from variations/simple/general/juliaVar.tsx or similar):
-// fn juliaVar(p: vec2f, info: VariationInfo) -> vec2f { ... }
+6. **Extract WebGPU pipeline creation (`ifsPipeline.ts`)**
+   - Move core `createIFSPipeline()` to `renderer-core/src/pipeline.ts`
+   - Parameterize runtime-specific concerns (device acquisition, buffer creation)
+   - Expose `PipelineFactory` class that works with any `GPUDevice`
+   - This is the largest extraction — ~465 lines of pipeline orchestration
 
-// New pure TS form:
-export function juliaVar(p: [number, number], info: VariationInfo): [number, number] {
-  const r = info.weight * Math.sqrt(Math.sqrt(p[0] * p[0] + p[1] * p[1]))
-  const theta = Math.atan2(p[1], p[0]) / 2 + (info.params?.omega ?? 0) * Math.PI
-  return [r * Math.cos(theta), r * Math.sin(theta)]
-}
-```
+7. **Extract density estimation, blur, color grading stages**
+   - `flame/Flame3.tsx` stages → separate pipeline modules in renderer-core
+   - `densityEstimation.ts`, `adaptiveBlur.ts`, `colorGrading.ts`
+   - Each exports a function that takes `GPUDevice` + buffers and enqueues compute passes
 
-**Inventory:**
-- `variations/simple/general/` — ~40 variations (linear, sinusoidal, spherical, swirl, etc.)
-- `variations/simple/pre/` — ~5 variations
-- `variations/simple/post/` — ~10 variations
-- `variations/parametric/general/` — ~40 parametric variations
-- `variations/parametric/pre/` — ~5
-- `variations/parametric/post/` — ~30
-- `variations/parametric/crop/`, `cut/`, `blur/`, `dc/` — ~30 more
+8. **Extract renderer types (runtime-agnostic subset)**
+   - Pure TS equivalents of `Point`, `BucketData` (not the `typegpu` struct variants)
+   - `renderer-core/src/types.ts`
+   - Keep `typegpu` struct definitions in shared location
 
-~150 total. Each is ~10-40 lines of math. Estimated: 2-3K lines of pure math.
+9. **Update client imports**
+   - Point `packages/app/src/flame/` imports to `renderer-core`
+   - Verify `pnpm check` passes, GPU rendering still works in browser
+   - Smoke test: render a flame in the editor
 
-### Step 1.3: Real CPU Renderer in `packages/renderer-cpu/`
-
-Build a production CPU renderer that mirrors the WebGPU pipeline exactly:
-
-```
-Point init → skipIters warm-up → IFS iteration (random transform selection,
-preAffine→variations→postAffine) → camera project → jitter → bucket accumulation
-→ density estimation → adaptive blur → color grading → PNG output
-```
-
-**Key design decisions:**
-- **Multi-threaded**: Use `Worker` threads for point iteration. Split point batch across N workers. Each worker writes to its own accumulation buffer. Merge buffers after each batch.
-- **Deterministic**: Fixed random seed per render (stored in render_job record) for reproducible results.
-- **Streaming output**: Support intermediate results (e.g., every 10K points, emit a progress event).
-- **Configurable quality**: Same quality slider → point count mapping as the GPU pipeline.
-
-**Tradeoff: Deno vs Cloudflare Workers for execution**
-
-| Aspect | Cloudflare Workers | Deno (container/VPS) |
-|--------|-------------------|---------------------|
-| CPU time limit | 30s (free), 15min (paid) | Unlimited |
-| Memory | 128MB (free) | Configurable |
-| WebCrypto | Yes (for RNG seeding) | Yes |
-| Multithreading | No (single-threaded) | Yes (Worker threads) |
-| Integration | Same CF infra (D1, KV, R2) | Separate deployment |
-| Cold start | ~5ms | Varies |
-| Cost | Free tier generous | Server cost |
-
-**Recommendation**: Start with Cloudflare Workers for simplicity (share D1, same deploy pipeline). For renders exceeding Worker limits, offer a queued job system that runs on Cloudflare Containers (like mercurypitch's UVR setup) or a Deno VPS. The CPU renderer package is runtime-agnostic — it can run on either.
+10. **Validate Deno compatibility**
+    - Create a smoke test script: `deno run --allow-env packages/renderer-core/__tests__/deno-smoke.ts`
+    - Import schema, colors, WGSL generators — verify no browser-only APIs are called
+    - Validate that `typegpu` imports resolve in Deno (npm specifiers or node_modules)
 
 ---
 
-## Phase 2: Database & Auth Infrastructure
+## Phase 2 — Cloudflare db-worker (Auth, Users, Stripe)
 
-### Step 2.1: Create `workers/db-worker/`
+**Goal**: Cloudflare Worker handling authentication, user profiles, subscription management, Stripe checkout/webhooks, and a CRUD API for cloud entities. Follows mercurypitch's `workers/db-worker/` pattern exactly.
 
-Following mercurypitch's pattern:
-- `workers/db-worker/schema.sql` — D1 DDL
-- `workers/db-worker/src/index.ts` — CRUD REST API
-- `workers/db-worker/src/auth.ts` — Auth handlers (anonymous, Google OAuth, email/pw)
-- `workers/db-worker/src/tables.ts` — Per-table access control
-- `workers/db-worker/wrangler.jsonc` — Worker config with D1 binding
+### Tasks
 
-### Step 2.2: Database Schema (D1)
+1. **Scaffold `workers/db-worker/`**
+   - `wrangler.jsonc` with D1 binding, routes, env vars
+   - `package.json` with wrangler dev script
+   - Directory: `src/index.ts`, `src/auth.ts`, `src/tables.ts`, `schema.sql`
 
-```sql
--- Users table (auth-only, not exposed via CRUD API)
-CREATE TABLE users (
-  id TEXT PRIMARY KEY,
-  createdAt TEXT NOT NULL,
-  updatedAt TEXT NOT NULL,
-  authProvider TEXT NOT NULL DEFAULT 'anonymous',
-  providerId TEXT,
-  email TEXT UNIQUE,
-  passwordHash TEXT,
-  emailVerified INTEGER NOT NULL DEFAULT 0,
-  displayName TEXT NOT NULL DEFAULT 'Explorer',
-  avatarUrl TEXT
-);
+2. **Create D1 schema**
+   - `users` — id, authProvider, providerId, email (UNIQUE), passwordHash, emailVerified, displayName, avatarUrl
+   - `subscriptions` — userId, tier (free/premium/pro), status, periodStart/End, rendersThisMonth, renderLimitMonthly, stripeCustomerId, stripeSubscriptionId
+   - `renderJobs` — userId, status, flameJson, optionsJson, progress, resultUrl, error, renderTimeMs, seed
+   - `featureFlags` — key, value
+   - `stripeEvents` — idempotency log for webhook events
 
--- Subscription tiers
-CREATE TABLE subscriptions (
-  id TEXT PRIMARY KEY,
-  createdAt TEXT NOT NULL,
-  updatedAt TEXT NOT NULL,
-  userId TEXT NOT NULL UNIQUE,
-  tier TEXT NOT NULL DEFAULT 'free',  -- 'free' | 'premium' | 'pro'
-  status TEXT NOT NULL DEFAULT 'active',
-  currentPeriodStart TEXT NOT NULL,
-  currentPeriodEnd TEXT NOT NULL,
-  rendersThisMonth INTEGER NOT NULL DEFAULT 0,
-  renderLimitMonthly INTEGER NOT NULL DEFAULT 5,  -- free tier: 5/month
-  stripeCustomerId TEXT,
-  stripeSubscriptionId TEXT
-);
+3. **Implement auth handlers** (copy mercurypitch pattern)
+   - `POST /api/auth/anonymous` — deviceId → JWT
+   - `POST /api/auth/register` — email + password → PBKDF2 hash → JWT
+   - `POST /api/auth/login` — verify password → JWT
+   - `POST /api/auth/google` — verify Google ID token → JWT
+   - `GET /api/auth/me` — return current user from JWT
+   - JWT via WebCrypto HMAC-SHA256, 30-day TTL
+   - Upgrade path: anonymous → registered preserves userId
 
--- Render jobs
-CREATE TABLE render_jobs (
-  id TEXT PRIMARY KEY,
-  createdAt TEXT NOT NULL,
-  updatedAt TEXT NOT NULL,
-  userId TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'queued',
-  flameJson TEXT NOT NULL,          -- full FlameDescriptor
-  optionsJson TEXT NOT NULL,        -- { width, height, quality }
-  progress REAL NOT NULL DEFAULT 0,
-  resultUrl TEXT,                   -- R2 or KV URL of rendered PNG
-  error TEXT,
-  renderTimeMs INTEGER,
-  seed TEXT NOT NULL                -- deterministic seed
-);
+4. **Implement CRUD API**
+   - `GET/POST /api/:entity`, `GET/PATCH/DELETE /api/:entity/:id`, `GET /api/:entity/count`
+   - Per-table access control (`src/tables.ts`)
+   - Cloud entities: userProfiles, subscriptions, renderJobs, featureFlags
 
--- Feature flags (server-side gating)
-CREATE TABLE feature_flags (
-  id TEXT PRIMARY KEY,
-  key TEXT NOT NULL UNIQUE,
-  value INTEGER NOT NULL
-);
-```
+5. **Implement Stripe integration**
+   - `POST /api/stripe/checkout` — create Stripe Checkout session for premium/pro
+   - `POST /api/stripe/webhook` — handle `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`
+   - Sync subscription state to D1 `subscriptions` table
+   - Idempotency via `stripeEvents` table
+   - `GET /api/stripe/portal` — customer billing portal redirect
 
-### Step 2.3: Auth Implementation
-
-Copy mercurypitch's zero-dependency auth approach:
-
-- **Anonymous**: `POST /api/auth/anonymous` with `deviceId` → JWT
-- **Google OAuth**: `POST /api/auth/google` with ID token → verify against Google → JWT
-- **Email/Password**: `POST /api/auth/register` + `POST /api/auth/login` with PBKDF2 hashing
-- **JWT**: HS256 via WebCrypto, 30-day TTL, `{ sub: userId, provider: string, iat, exp }`
-- **Upgrade path**: Anonymous users upgrade same row when registering (preserves data)
-
-### Step 2.4: Frontend DB Adapter Layer
-
-Create `packages/app/src/db/` following mercurypitch's adapter pattern:
-
-```
-src/db/
-  types.ts          # DbEntity, Repository<T>, DatabaseAdapter, QueryOptions
-  entities.ts       # UserProfile, Subscription, RenderJob, FeatureFlag
-  index.ts          # createDatabase(), getDb() singleton, adapter routing
-  adapters/
-    dexie-adapter.ts   # IndexedDB local storage
-    server-adapter.ts  # HTTP → db-worker REST API
-    hybrid-adapter.ts  # Route cloud entities to server, rest to local
-  services/
-    user-service.ts    # getAuthHeaders(), userId persistence
-    auth-service.ts    # ensureAuth(), login/register/logout
-    render-service.ts  # submitRender(), getRenderStatus(), getRenderResult()
-```
-
-**Cloud entities** (stored in D1 via ServerAdapter):
-- `userProfiles`, `subscriptions`, `renderJobs`, `featureFlags`
-
-**Local entities** (stored in IndexedDB via DexieAdapter):
-- Flame descriptor drafts, editor preferences, timeline state, palette presets
+6. **Deploy db-worker to Cloudflare**
+   - `wrangler d1 create chaos-master-db`
+   - `wrangler d1 execute chaos-master-db --file=schema.sql`
+   - `wrangler deploy` (dev/staging first)
+   - Verify auth flow end-to-end (anonymous → register → login)
 
 ---
 
-## Phase 3: Render Worker & API
+## Phase 3 — Deno render-worker (GPU Rendering)
 
-### Step 3.1: Create `workers/render-worker/`
+**Goal**: A Deno HTTP server running on GPU hardware that accepts render requests, runs the WebGPU IFS pipeline (same WGSL as client), and returns rendered PNGs.
 
-```typescript
-// POST /api/render — Submit a render job
-// Body: { flameJson: string, options: { width, height, quality } }
-// Auth: Bearer token (free: 5/month, premium: unlimited)
-// Returns: { jobId: string, status: 'queued' }
+### Tasks
 
-// GET /api/render/:id — Check job status
-// Returns: { jobId, status, progress, resultUrl?, error? }
+1. **Scaffold `workers/render-worker/`**
+   - `deno.json` with imports map (renderer-core, typegpu, PNG encoder)
+   - `src/main.ts` — HTTP server entrypoint
+   - `src/pipeline.ts` — GPU pipeline bootstrap
+   - `src/render.ts` — render orchestration
+   - `.env.example` — D1_API_TOKEN, R2_*, DENO_WEBGPU_* vars
 
-// GET /api/render/:id/result — Download rendered PNG
-// Returns: image/png binary
-```
+2. **Implement WebGPU pipeline bootstrap for Deno**
+   - Use `navigator.gpu.requestAdapter()` (Deno native)
+   - Off-screen rendering via `OffscreenCanvas.getContext('webgpu')` or direct texture
+   - Select adapter via `DENO_WEBGPU_BACKEND` env var (vulkan/metal/dx12)
+   - Create GPU device with appropriate limits
+   - Validate pipeline creation with a known flame descriptor
 
-**Rate limiting by tier:**
-| Tier | Monthly renders | Max resolution | Max quality |
-|------|----------------|---------------|-------------|
-| Free | 5 | 1920×1080 | 100K points |
-| Premium | 50 | 3840×2160 | 500K points |
-| Pro | 200 | 7680×4320 | 2M points |
+3. **Implement POST /api/render**
+   - Accept `{ flameJson, options: { width, height, quality } }`
+   - Validate against FlameDescriptor schema
+   - Create renderJobs row in D1 (status: queued)
+   - Run WebGPU pipeline headless:
+     a. Parse FlameDescriptor → WGSL generation via renderer-core
+     b. Create compute pipelines (IFS iteration, density, blur, grading)
+     c. Allocate GPU buffers (accumulation, output)
+     d. Dispatch compute passes
+     e. Read back RGBA pixel buffer from GPU
+     f. Encode PNG (pure TS PNG encoder)
+   - Upload PNG to R2 (via S3-compatible API)
+   - Update renderJobs row (status: completed, resultUrl)
+   - Update subscription.renderCount
 
-### Step 3.2: Rendering Pipeline in Worker
+4. **Implement GET /api/render/:id**
+   - Query renderJobs from D1
+   - Return `{ jobId, status, progress, resultUrl?, error? }`
 
-```
-1. Receive POST /api/render with FlameDescriptor + options
-2. Validate tier limits (check subscriptions table)
-3. Create render_jobs row (status: queued)
-4. Generate deterministic seed from job ID
-5. Run CPU renderer (packages/renderer-cpu):
-   a. Parse FlameDescriptor
-   b. Create variation function registry
-   c. Initialize accumulation buffer
-   d. For each batch:
-      - Generate random points
-      - Run IFS iterations (skipIters + quality-driven count)
-      - Accumulate to buckets
-      - Update progress in D1
-   e. Run density estimation
-   f. Run adaptive blur
-   g. Run color grading → RGBA pixel buffer
-6. Encode PNG (use WebCrypto-friendly PNG encoder or pure TS)
-7. Store result in R2 (or KV for small renders)
-8. Update render_jobs row (status: completed, resultUrl)
-```
+5. **Implement GET /api/render/:id.png**
+   - Redirect to R2 signed URL or proxy the PNG
 
-**For long renders** (exceeding Worker 30s limit):
-- Use Cloudflare Queues: The worker enqueues a render request, a consumer worker picks it up and processes it. Or use a Cloudflare Container for CPU-heavy work (like mercurypitch's UVR setup).
-- Alternatively: Start with the 15-minute paid Worker tier (bundled with Workers Paid plan).
+6. **Implement health check and GPU diagnostics**
+   - `GET /api/health` — GPU adapter info, memory, queue status
+   - Useful for monitoring and auto-scaling decisions
 
----
+7. **Rate limiting and tier enforcement**
+   - Validate subscription tier before rendering
+   - Enforce max resolution and point count per tier
+   - Reject if monthly limit exceeded
+   - Read subscription state from D1 on each request
 
-## Phase 4: Frontend Integration
+8. **Error handling and retry**
+   - GPU OOM → mark job as failed, clear error message
+   - Timeout → configurable max render time
+   - Retry logic for transient D1/R2 failures
 
-### Step 4.1: Auth UI Components
+9. **Deploy render-worker to GPU server**
+   - Provision GPU instance (see GPU hosting options below)
+   - Install Deno 2.8+
+   - Set env vars: D1_API_TOKEN, D1_DATABASE_ID, CF_ACCOUNT_ID, R2_*, JWT_SECRET, DENO_WEBGPU_BACKEND
+   - `deno run --allow-net --allow-env --allow-ffi src/main.ts`
+   - Systemd unit or Docker container for production
+   - TLS termination via Caddy/Nginx
 
-- `AccountSection.tsx` — Login/register modal, Google Sign-In button, tier display
-- `AuthContext.tsx` — SolidJS context providing `authState` (anonymous | authenticated), `user()`, `subscription()`
+### GPU Server Hosting Options
 
-### Step 4.2: Render Submission UI
+| Provider | GPU | VRAM | ~$/hr | Notes |
+|----------|-----|------|-------|-------|
+| Lambda Labs | A10 | 24GB | $0.60 | Good availability, fast setup |
+| Lambda Labs | A100 | 40GB | $1.10 | Higher perf, for Pro tier |
+| RunPod | RTX 4090 | 24GB | $0.44 | Community cloud, spot available |
+| RunPod | A6000 | 48GB | $0.76 | Large memory for 8K renders |
+| Hetzner GPU | Tesla T4 | 16GB | ~$0.20 | Cheapest, limited availability |
+| vast.ai | RTX 3090 | 24GB | ~$0.15 | Consumer GPUs, lowest cost |
+| Self-hosted | Any NVIDIA/AMD | any | $0 | Full control, own hardware |
 
-- Add "Render on Server" button to `ExportPngDialog.tsx` or as a new `ServerRenderDialog.tsx`
-- Shows tier limits: "5 free renders this month, 3 remaining"
-- Quality selector (resolution + quality slider)
-- Progress indicator (polling GET /api/render/:id)
-- Download button when complete
-- Upsell: "Upgrade to Premium for higher quality and unlimited renders"
-
-### Step 4.3: Feature Gating
-
-- Read `feature_flags` from server at app init
-- Show premium features with lock icon + upgrade CTA
-- Local feature: always available (WebGPU rendering)
-- Server rendering: gated behind `subscriptions.tier !== 'free'` with monthly limits for free tier
-
----
-
-## Phase 5: Pricing & Subscription
-
-### Recommendations
-
-| Tier | Price | Renders/mo | Max Res | Key differentiator |
-|------|-------|-----------|---------|-------------------|
-| Free | $0 | 5 | 1920×1080 | Try it out |
-| Premium | $8/mo | 50 | 4K | Hobbyist artists |
-| Pro | $20/mo | 200 | 8K | Professional use |
-
-**Implementation**: Stripe Checkout integration in the worker, webhook handler for subscription events (`customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`).
-
-**MVP shortcut**: Start with just the free tier + manual premium assignment (update the DB row directly). Add Stripe later.
+**Recommendation**: Start with Lambda Labs A10 ($0.60/hr) for development. For production, use on-demand and consider RunPod spot instances for cost savings (~70% cheaper). Scale horizontally — multiple render-worker instances behind a load balancer.
 
 ---
 
-## Tradeoffs & Alternatives
+## Phase 4 — Frontend Integration
 
-### 1. CPU Renderer vs WASM Renderer
-- **CPU (chosen)**: Port variations to TypeScript. ~150 functions, ~3K lines. Pros: debuggable, no build toolchain, works in any JS runtime. Cons: slower than WASM.
-- **WASM**: Compile renderer from Rust/C++. Pros: faster (2-5x). Cons: build complexity, debugging difficulty, larger artifact size.
-- **Verdict**: Start with CPU. If performance is insufficient, WASM is an optimization, not a rewrite.
+**Goal**: Add auth UI, server render submission, and the dual-adapter DB layer to the SolidJS app.
 
-### 2. Single Worker vs Separate Workers
-- **Single worker**: db-worker handles auth + CRUD + rendering. Pros: simpler deployment. Cons: rendering ties up auth/CRUD.
-- **Separate workers (chosen)**: db-worker for auth/CRUD, render-worker for rendering. Pros: independent scaling, rendering doesn't block auth. Cons: two deployments.
+### Tasks
 
-### 3. Cloudflare Containers vs Pure Workers for Rendering
-- **Workers**: 15-min paid limit, 128MB memory, single-threaded. Works for renders up to ~4K resolution at moderate quality.
-- **Containers**: Docker-based, up to 15GB memory, multi-threaded, no timeout. Needed for 8K+ or animation renders.
-- **Verdict**: Start with Workers for MVP. Add Container support for Pro tier later.
+1. **Create frontend DB layer (`packages/app/src/db/`)**
+   - Copy mercurypitch adapter pattern: `types.ts`, `entities.ts`, `index.ts`
+   - `adapters/dexie-adapter.ts` — IndexedDB for local entities
+   - `adapters/server-adapter.ts` — HTTP → db-worker REST API
+   - `adapters/hybrid-adapter.ts` — Route cloud entities to ServerAdapter, rest to DexieAdapter
+   - `services/auth-service.ts` — ensureAuth(), login(), register(), logout()
+   - `services/render-service.ts` — submitRender(), getRenderStatus(), getRenderResult()
 
-### 4. Palette Handling
-- Palettes are currently GPU-side (`@typegpu/color` OkLab conversion in color grading shader).
-- Need to port `oklabToRgb` and palette interpolation to pure TS → goes in `renderer-core`.
+2. **Wire up auth context**
+   - `AuthContext.tsx` — SolidJS reactive context
+   - `authState()` signal: 'loading' | 'anonymous' | 'authenticated'
+   - `user()`, `subscription()` derived signals
+   - Auto-call `ensureAuth()` at app init (anonymous JWT)
 
-### 5. Animation Support
-- Server-side animation rendering (exporting video frames) is a natural extension.
-- Each frame is an independent render job. Could add batch submission endpoint.
-- Out of scope for initial implementation but the architecture supports it.
+3. **Build auth UI**
+   - `AccountSection.tsx` — login/register modal
+   - Google Sign-In button (load Google Identity Services script)
+   - Email/password form
+   - Tier badge display ("Free", "Premium", "Pro")
+   - Upgrade CTA for free users
+
+4. **Build server render dialog**
+   - `ServerRenderDialog.tsx`
+   - Resolution picker (1080p, 4K, 8K — gated by tier)
+   - Quality slider with point count preview
+   - "Render on Server" button with remaining renders counter
+   - Progress bar (polling GET /api/render/:id every 2s)
+   - Download button when complete
+   - Upgrade upsell card for free tier users
+
+5. **Feature gating**
+   - Fetch `featureFlags` from server at init
+   - Premium features get lock icon + CTA
+   - Local WebGPU rendering: always free
+   - Server rendering: gated behind subscription tier + monthly limits
+
+6. **Integration testing**
+   - End-to-end: submit render from UI, poll, download PNG
+   - Auth flow: anonymous → open app → register → login → logout
+   - Tier enforcement: free user hits limit → rejection shown in UI
 
 ---
 
-## Implementation Order
+## Phase 5 — Pricing, Launch & CI/CD
 
-1. **Branch**: `feat/server-rendering-premium` from `main`
-2. **Package scaffolding**: Create `packages/renderer-core/` and `packages/renderer-cpu/` with `package.json`, `tsconfig.json`
-3. **Extract pure modules**: Move `schema`, `colors`, `colorMap`, `paletteParser`, `randomize` to `renderer-core`
-4. **Port variations**: Implement all ~150 variations in pure TypeScript
-5. **Implement CPU renderer**: IFS iteration, bucket accumulation, density estimation, blur, color grading
-6. **Create db-worker**: Auth (anonymous + Google + email/pw), CRUD API, D1 schema
-7. **Create render-worker**: Job submission, CPU rendering, result storage in R2
-8. **Frontend DB layer**: Adapter pattern, auth context, user/subscription state
-9. **Frontend UI**: Auth modal, server render dialog, tier display, upselling
-10. **CI/CD**: Worker deployment workflows, D1 migration automation
-11. **Stripe integration**: (can be post-MVP)
+**Goal**: Finalize pricing, deploy everything, add CI/CD automation.
+
+### Tasks
+
+1. **Finalize Stripe product setup**
+   - Create Premium ($8/mo) and Pro ($20/mo) products in Stripe dashboard
+   - Configure checkout success/cancel URLs
+   - Set up webhook endpoint in Stripe dashboard → db-worker URL
+
+2. **CI/CD for db-worker**
+   - GitHub Actions: `wrangler deploy` on push to `main`
+   - D1 migration automation
+   - Staging environment on `dev.chaos-master.com`
+
+3. **CI/CD for render-worker**
+   - GitHub Actions: build, run smoke tests against test GPU
+   - Deploy to GPU server(s) via SSH or container registry
+   - Health check after deploy
+
+4. **Monitoring & alerting**
+   - Render job queue depth, success rate, avg render time
+   - GPU utilization dashboard
+   - Stripe revenue metrics
+   - Alert on GPU OOM or server down
+
+5. **Documentation**
+   - API docs for render endpoints
+   - Self-hosting guide for render-worker
+   - Tier comparison table in UI
 
 ---
 
-## Verification
+## Pricing Summary
 
-1. **Unit tests**: Each variation function produces identical output to its WGSL counterpart (within float epsilon). Test harness: feed same seed + inputs, compare outputs.
-2. **Integration test**: Render a known flame descriptor via CPU renderer, compare bucket data to WebGPU pipeline result (within tolerance).
-3. **End-to-end**: Submit a render via the UI, verify the returned PNG matches the client-side WebGPU render at the same parameters.
-4. **Auth flow**: Anonymous → register → login → Google OAuth → token refresh → logout.
-5. **Tier gating**: Free user submits 6th render → rejected. Premium user submits → accepted.
+| Tier | Price | Renders/mo | Max Resolution | Max Point Count | Key Differentiator |
+|------|-------|-----------|---------------|-----------------|-------------------|
+| Free | $0 | 5 | 1920×1080 | 100K | Try server rendering |
+| Premium | $8/mo | 50 | 3840×2160 | 500K | Hobbyist artists |
+| Pro | $20/mo | 200 | 7680×4320 | 2M | Professional work |
+
+---
+
+## Key Design Decisions
+
+### 1. Deno + WebGPU vs CPU Renderer (CHOSEN: Deno + WebGPU)
+- **Deno + WebGPU**: Same WGSL shaders, no porting, identical visual output to client. Requires GPU server (~$0.20–$0.60/hr). Pros: zero math porting risk, pixel-identical to client, fast (GPU-accelerated). Cons: GPU server cost, server management.
+- **CPU Renderer (rejected)**: Port ~150 variations to TS. Pros: runs on cheap CPU servers, Cloudflare Workers-compatible. Cons: 2-3K lines of ported math to verify against WGSL originals, inherent visual differences from float precision.
+
+### 2. Shared D1 vs Separate Databases
+- **Shared D1 (chosen)**: Both workers access same D1. Pros: single source of truth, no sync needed. Cons: render-worker needs CF API access.
+- **Separate DBs**: render-worker has its own DB. Pros: independence. Cons: sync complexity, stale subscription data.
+
+### 3. Client → render-worker Direct vs via db-worker Proxy
+- **Direct (chosen)**: Client calls render-worker directly for `/api/render/*`. db-worker for everything else. Pros: no extra hop, render-worker can be on different infrastructure. Cons: two API domains to configure.
+- **Proxy**: Client only talks to db-worker. Pros: single API surface. Cons: db-worker becomes bottleneck, large PNG responses tie up CF Worker.
+
+### 4. `typegpu` on Deno
+- `typegpu` generates WGSL strings and creates WebGPU pipeline layouts. Since Deno implements the full WebGPU API spec, `typegpu` should work. If there are browser-specific assumptions (e.g., `HTMLCanvasElement`), we can stun or patch them. The `OffscreenCanvas` API in Deno maps to `GPUCanvasContext`.
+- **Fallback**: Extract pure WGSL generation from typegpu and use raw WebGPU calls. Higher effort but guaranteed to work.
+
+### 5. GPU Server Scaling
+- Single instance: one render at a time. Queue depth = 0-1 in practice.
+- Multiple instances: load balance across N GPU servers. D1 handles job coordination.
+- Future: Cloudflare Queues for job distribution to render workers.
+
+---
+
+## Implementation Order Summary
+
+| Phase | What | Where | Effort |
+|-------|------|-------|--------|
+| 1 | Renderer modularization | `packages/renderer-core/` | Large (refactor, validate) |
+| 2 | db-worker | `workers/db-worker/` | Medium (copy mercurypitch) |
+| 3 | render-worker | `workers/render-worker/` | Large (new Deno code) |
+| 4 | Frontend integration | `packages/app/src/` | Medium (SolidJS UI) |
+| 5 | Pricing, CI/CD, launch | Config + infra | Medium |
+
+---
+
+## Verification Plan
+
+1. **Renderer modularization**: `pnpm check` passes, flame renders identically in browser after refactor
+2. **Deno WebGPU smoke test**: Create GPU device on Deno, run a single IFS iteration, read back pixels
+3. **Auth flow**: Anonymous → register → login → Google OAuth → token refresh → logout
+4. **Render parity**: Same flame descriptor rendered on server (Deno GPU) vs client (browser GPU) — visual comparison, bucket data within tolerance
+5. **Stripe**: Checkout → payment → webhook received → subscription updated in D1 → tier upgrade reflected in UI
+6. **Tier gating**: Free user renders 5 → 6th rejected. Premium renders 50 → 51st rejected.
