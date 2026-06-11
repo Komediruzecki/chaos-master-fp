@@ -141,6 +141,28 @@ importers:
         specifier: ^4.92.0
         version: 4.94.0
 
+  packages/renderer-core:
+    dependencies:
+      '@typegpu/noise':
+        specifier: 0.10.0
+        version: 0.10.0(typegpu@0.10.2)
+      typegpu:
+        specifier: 0.10.2
+        version: 0.10.2
+      valibot:
+        specifier: 1.2.0
+        version: 1.2.0(typescript@5.9.3)
+    devDependencies:
+      '@webgpu/types':
+        specifier: ^0.1.69
+        version: 0.1.69
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      unplugin-typegpu:
+        specifier: ^0.10.0
+        version: 0.10.0(typegpu@0.10.2)
+
 packages:
 
   '@acemir/cssom@0.9.31':
