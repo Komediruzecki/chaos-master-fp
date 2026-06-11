@@ -551,8 +551,8 @@
 /* ---- Tutorial modal ---- */
 
 .tutorialModal {
-  max-width: 760px;
-  width: 92vw;
+  max-width: fit-content;
+  width: auto;
   max-height: 88vh;
 }
 

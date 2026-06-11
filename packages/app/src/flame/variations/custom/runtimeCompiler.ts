@@ -3,8 +3,9 @@ import { transpileFn } from 'tinyest-for-wgsl'
 import { tgpu } from 'typegpu'
 import { vec2f } from 'typegpu/data'
 import { VariationInfo } from '../simple/types'
-import { BUILTIN_EXTERNALS } from './wgslBuiltins'
+import { BUILTIN_EXTERNALS, BUILTIN_ARITY } from './wgslBuiltins'
 import type { TgpuFn } from 'typegpu'
+
 
 const BANNED_NAMES = new Set([
   'storageBarrier',
@@ -57,6 +58,7 @@ export function compileCustomVariationCode(wgslBody: string): CompileResult {
     rootNode = parse(source, {
       ecmaVersion: 'latest',
       sourceType: 'module',
+      locations: true,
     })
   } catch (err) {
     const acornErr = formatAcornError(err)
@@ -112,6 +114,73 @@ export function compileCustomVariationCode(wgslBody: string): CompileResult {
       ],
     }
   }
+
+  const arityErrors: CompileError[] = []
+
+  function walk(node: any) {
+    if (!node || typeof node !== 'object') {
+      return
+    }
+
+    if (node.type === 'CallExpression' && node.callee.type === 'Identifier') {
+      const name = node.callee.name
+      if (name in BUILTIN_ARITY) {
+        const expected = BUILTIN_ARITY[name]!
+        const actualCount = node.arguments.length
+
+        let isValid = false
+        if (Array.isArray(expected)) {
+          isValid = expected.includes(actualCount)
+        } else {
+          isValid = actualCount === expected
+        }
+
+        if (!isValid) {
+          let expectedStr = ''
+          if (Array.isArray(expected)) {
+            if (expected.length === 2) {
+              expectedStr = `${expected[0]} or ${expected[1]}`
+            } else if (expected.length > 2) {
+              expectedStr = `${expected.slice(0, -1).join(', ')}, or ${expected[expected.length - 1]}`
+            } else {
+              expectedStr = expected.join(', ')
+            }
+          } else {
+            expectedStr = String(expected)
+          }
+
+          arityErrors.push({
+            message: `Function '${name}' expects ${expectedStr} arguments, but got ${actualCount}.`,
+            line: node.loc ? node.loc.start.line - 2 : undefined,
+          })
+        }
+      }
+    }
+
+    for (const key of Object.keys(node)) {
+      if (key === 'loc') {
+        continue
+      }
+      const child = node[key]
+      if (Array.isArray(child)) {
+        for (const item of child) {
+          walk(item)
+        }
+      } else if (child && typeof child === 'object') {
+        walk(child)
+      }
+    }
+  }
+
+  walk(rootNode)
+
+  if (arityErrors.length > 0) {
+    return {
+      valid: false,
+      errors: arityErrors,
+    }
+  }
+
 
   const dummyFn = () => {}
   const meta = (globalThis as Record<string, unknown>).__TYPEGPU_META__ as {

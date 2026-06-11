@@ -28,14 +28,14 @@ export function renderMarkdown(text: string): string {
   let processed = text.replace(/\$\$([\s\S]+?)\$\$/g, (_full, tex: string) => {
     const idx = mathBlocks.length
     mathBlocks.push(tex.trim())
-    return `<!-- MATH_BLOCK_${idx} -->`
+    return `<mathblock id="${idx}"></mathblock>`
   })
 
   // Extract \(...\) inline math blocks
   processed = processed.replace(/\\\(([^)]+?)\\\)/g, (_full, tex: string) => {
     const idx = mathInlines.length
     mathInlines.push(tex.trim())
-    return `<!-- MATH_INLINE_${idx} -->`
+    return `<mathinline id="${idx}"></mathinline>`
   })
 
   // Extract admonition blocks and replace with placeholders
@@ -47,7 +47,7 @@ export function renderMarkdown(text: string): string {
         type: type as AdmonitionType,
         content: content.trim(),
       })
-      return `\n<!-- ADMONITION_${idx} -->\n`
+      return `\n<admonition id="${idx}"></admonition>\n`
     },
   )
 
@@ -60,14 +60,14 @@ export function renderMarkdown(text: string): string {
   // Restore math blocks (before admonitions, since admonitions may contain math)
   for (let i = 0; i < mathBlocks.length; i++) {
     html = html.replace(
-      `<!-- MATH_BLOCK_${i} -->`,
+      `<mathblock id="${i}"></mathblock>`,
       `<div class="math-block" data-tex="${escapeAttr(mathBlocks[i]!)}">${escapeHtml(mathBlocks[i]!)}</div>`,
     )
   }
 
   for (let i = 0; i < mathInlines.length; i++) {
     html = html.replace(
-      `<!-- MATH_INLINE_${i} -->`,
+      `<mathinline id="${i}"></mathinline>`,
       `<span class="math-inline" data-tex="${escapeAttr(mathInlines[i]!)}">${escapeHtml(mathInlines[i]!)}</span>`,
     )
   }
@@ -79,7 +79,7 @@ export function renderMarkdown(text: string): string {
     const renderedContent = marked.parse(content) as string
     const label = ADMONITION_LABELS[type]
     html = html.replace(
-      `<!-- ADMONITION_${i} -->`,
+      `<admonition id="${i}"></admonition>`,
       `<div class="admonition admonition${type.charAt(0).toUpperCase() + type.slice(1)}"><div class="admonitionHeader">${label}</div><div class="admonitionContent">${renderedContent}</div></div>`,
     )
   }

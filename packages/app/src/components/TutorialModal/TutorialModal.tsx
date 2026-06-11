@@ -17,10 +17,14 @@ interface TutorialModalProps {
 
 export function TutorialModal(props: TutorialModalProps) {
   const [currentPage, setCurrentPage] = createSignal(0)
-  const [renderedContent, setRenderedContent] = createSignal('')
+  const [mathJaxLoaded, setMathJaxLoaded] = createSignal(false)
   const totalPages = () => props.pages.length
   const isFirstPage = () => currentPage() === 0
   const isLastPage = () => currentPage() >= totalPages() - 1
+
+  createEffect(() => {
+    ensureMathJax().then(() => setMathJaxLoaded(true)).catch(() => {})
+  })
 
   function goNext() {
     if (!isLastPage()) setCurrentPage((p) => p + 1)
@@ -41,32 +45,29 @@ export function TutorialModal(props: TutorialModalProps) {
   }
 
   // Render markdown + MathJAX for current page
-  createEffect(() => {
+  const renderedContent = () => {
     const pageIdx = currentPage()
     const page = props.pages[pageIdx]
-    if (!page) return
+    if (!page) return ''
 
     const rawHtml = renderMarkdown(page.content)
-    setRenderedContent(rawHtml)
-
-    ensureMathJax()
-      .then(() => {
-        if (currentPage() !== pageIdx) return
-        const html = rawHtml
-          .replace(
-            /<div class="math-block" data-tex="([^"]*)">[^<]*<\/div>/g,
-            (_m: string, tex: string) =>
-              `<div class="math-block">${renderTexToSvg(tex) ?? tex}</div>`,
-          )
-          .replace(
-            /<span class="math-inline" data-tex="([^"]*)">[^<]*<\/span>/g,
-            (_m: string, tex: string) =>
-              `<span class="math-inline">${renderTexToSvg(tex, false) ?? tex}</span>`,
-          )
-        if (currentPage() === pageIdx) setRenderedContent(html)
-      })
-      .catch(() => {})
-  })
+    
+    if (mathJaxLoaded()) {
+      return rawHtml
+        .replace(
+          /<div class="math-block" data-tex="([^"]*)">[^<]*<\/div>/g,
+          (_m: string, tex: string) =>
+            `<div class="math-block">${renderTexToSvg(tex) ?? tex}</div>`,
+        )
+        .replace(
+          /<span class="math-inline" data-tex="([^"]*)">[^<]*<\/span>/g,
+          (_m: string, tex: string) =>
+            `<span class="math-inline">${renderTexToSvg(tex, false) ?? tex}</span>`,
+        )
+    }
+    
+    return rawHtml
+  }
 
   return (
     <div class={ui.root} onKeyDown={onKeyDown}>
@@ -112,9 +113,11 @@ export function TutorialModal(props: TutorialModalProps) {
         <div class={ui.pageIndicator}>
           <For each={Array.from({ length: totalPages() })}>
             {(_, i) => (
-              <span
+              <button
                 class={ui.dot}
                 classList={{ [ui.dotActive as string]: i() === currentPage() }}
+                onClick={() => setCurrentPage(i())}
+                title={`Go to page ${i() + 1}`}
               />
             )}
           </For>

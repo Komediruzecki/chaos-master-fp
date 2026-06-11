@@ -1,10 +1,10 @@
 .root {
   display: flex;
   flex-direction: column;
-  width: 720px;
+  width: 640px;
   max-width: 90vw;
+  height: 540px;
   max-height: 85vh;
-  min-height: 480px;
 }
 
 .header {
@@ -415,21 +415,42 @@
   height: 8px;
   border-radius: 50%;
   background: var(--neutral-300);
-  transition: background 0.2s;
+  transition:
+    background 0.2s,
+    transform 0.15s;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  outline: none;
 }
 
 [data-theme='dark'] .dot {
   background: var(--neutral-500);
 }
 
-.dotActive {
-  background: var(--blue-500);
-  box-shadow: 0 0 0 2px var(--blue-500);
+.dot:hover {
+  background: var(--neutral-400);
+  transform: scale(1.25);
 }
 
-[data-theme='dark'] .dotActive {
+[data-theme='dark'] .dot:hover {
+  background: var(--neutral-400);
+}
+
+.dotActive,
+.dotActive:hover {
+  background: var(--blue-500);
+  box-shadow: 0 0 0 2px var(--blue-500);
+  transform: none;
+  cursor: default;
+}
+
+[data-theme='dark'] .dotActive,
+[data-theme='dark'] .dotActive:hover {
   background: var(--blue-400);
   box-shadow: 0 0 0 3px var(--blue-400);
+  transform: none;
+  cursor: default;
 }
 
 /* ---- Responsive ---- */

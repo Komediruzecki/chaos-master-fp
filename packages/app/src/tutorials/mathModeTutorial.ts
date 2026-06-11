@@ -108,7 +108,7 @@ $$r = \ln(r + 1)$$`,
 | \`\smoothstep(e0, e1, x)\` | Smooth Hermite interpolation |
 | \`\mod(a, b)\` | Floating-point modulo |
 | \`\sign(x)\` | Sign of x (-1, 0, or 1) |
-| \`|x|\` or \`\lvert x \rvert\` | Absolute value |
+| \`\|x\|\` or \`\lvert x \rvert\` | Absolute value |
 | \`\frac{a}{b}\` | Division |
 | \`a \cdot b\` | Multiplication |
 | \`a \times b\` | Multiplication (alternative) |

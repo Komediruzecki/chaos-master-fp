@@ -22,10 +22,11 @@ export function MathEditor(props: MathEditorProps) {
   const [renderedSvg, setRenderedSvg] = createSignal('')
   const [generatedWgsl, setGeneratedWgsl] = createSignal('')
   const [showWgsl, setShowWgsl] = createSignal(false)
+  const [mathJaxLoaded, setMathJaxLoaded] = createSignal(false)
+  const [debouncedMath, setDebouncedMath] = createSignal(props.mathText)
   let editorRef: HTMLDivElement | undefined
   let previewRef: HTMLDivElement | undefined
   let view: EditorView | undefined
-  let renderTimer: ReturnType<typeof setTimeout> | undefined
   let suppressOnChange = false
 
   onMount(() => {
@@ -34,7 +35,7 @@ export function MathEditor(props: MathEditorProps) {
     ensureMathJax()
       .then(() => {
         setLoading(false)
-        scheduleRender(props.mathText)
+        setMathJaxLoaded(true)
       })
       .catch((e: unknown) => {
         setLoading(false)
@@ -121,12 +122,20 @@ export function MathEditor(props: MathEditorProps) {
     }
   })
 
-  function scheduleRender(math: string) {
-    clearTimeout(renderTimer)
-    renderTimer = setTimeout(() => {
-      renderMath(math)
+  // Debounce mathText changes
+  createEffect(() => {
+    const text = props.mathText
+    const timer = setTimeout(() => {
+      setDebouncedMath(text)
     }, 600)
-  }
+    onCleanup(() => clearTimeout(timer))
+  })
+
+  // Reactive math rendering
+  createEffect(() => {
+    if (!mathJaxLoaded()) return
+    renderMath(debouncedMath())
+  })
 
   function renderMath(math: string) {
     if (!math.trim()) {
@@ -151,7 +160,6 @@ export function MathEditor(props: MathEditorProps) {
 
   function handleInput(value: string) {
     props.onChange(value)
-    scheduleRender(value)
 
     const result = mathToWgsl(value)
     if (result.errors.length > 0) {
@@ -168,7 +176,6 @@ export function MathEditor(props: MathEditorProps) {
   }
 
   onCleanup(() => {
-    clearTimeout(renderTimer)
     view?.destroy()
     view = undefined
   })
