@@ -176,7 +176,7 @@ export function extractFlameUniforms({
                   const typed: Record<string, unknown> = {
                     weight: isVarVisible ? (rest.weight ?? 1) : 0,
                   }
-                  const variationType = type as TransformVariationType
+                  const variationType = type
                   const isParametric = isParametricVariationType(variationType)
                   if (isParametric) {
                     const v = transformVariations[variationType] as Extract<

@@ -17,7 +17,7 @@ export function getVariationDefault(
   weight: number,
 ): TransformVariationDescriptor {
   if (!isParametricVariationType(type)) {
-    return { type, weight, visible: true } as TransformVariationDescriptor
+    return { type, weight, visible: true }
   }
   const variation = transformVariations[type] as Extract<
     (typeof transformVariations)[TransformVariationType],
@@ -28,7 +28,7 @@ export function getVariationDefault(
     params: { ...variation.paramDefaults },
     weight,
     visible: true,
-  } as TransformVariationDescriptor
+  }
 }
 
 export function getParamsEditor<T extends { type: string; params?: unknown }>(

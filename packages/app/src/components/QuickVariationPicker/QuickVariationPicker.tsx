@@ -160,7 +160,7 @@ export function QuickVariationPicker(props: QuickVariationPickerProps) {
     const groups = new Map<VariationCategory, TransformVariationType[]>()
 
     for (const type of items) {
-      const cat = transformVariations[type].category
+      const cat = transformVariations[type]!.category
       if (selectedCategory && cat !== selectedCategory) continue
       if (!groups.has(cat)) groups.set(cat, [])
       groups.get(cat)!.push(type)
@@ -178,7 +178,7 @@ export function QuickVariationPicker(props: QuickVariationPickerProps) {
   const activeCategories = () => {
     const cats = new Set<VariationCategory>()
     for (const type of filtered()) {
-      cats.add(transformVariations[type].category)
+      cats.add(transformVariations[type]!.category)
     }
     // Sort by CATEGORIES order
     return CATEGORIES.filter((c) => cats.has(c))

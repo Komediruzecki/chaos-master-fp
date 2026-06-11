@@ -447,7 +447,7 @@ export function MainWorkspace(props: AppProps) {
         clone.transforms[generateTransformId()] = transform
         return clone
       } catch {
-        return flameDescriptor as unknown as FlameDescriptor
+        return flameDescriptor
       }
     }
 
@@ -1069,11 +1069,9 @@ export function MainWorkspace(props: AppProps) {
         if (variation.params) {
           const val = variation.params[paramName]
           if (val !== undefined) return val
-        } else if (
-          isParametricVariationType(variation.type as TransformVariationType)
-        ) {
+        } else if (isParametricVariationType(variation.type)) {
           // Params not initialized yet — fall back to defaults
-          const vType = variation.type as TransformVariationType
+          const vType = variation.type
           const vDef = (transformVariations as Record<string, unknown>)[
             vType
           ] as { paramDefaults: Record<string, number> } | undefined

@@ -21,6 +21,9 @@
     "deploy:prod": "pnpm --filter chaos-master deploy:prod"
   },
   "devDependencies": {
+    "@codemirror/autocomplete": "^6.20.3",
+    "@codemirror/lint": "^6.9.7",
+    "@codemirror/search": "^6.7.0",
     "@eslint/js": "^9.39.4",
     "@playwright/test": "^1.59.1",
     "@types/wicg-file-system-access": "^2023.10.7",
