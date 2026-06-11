@@ -98,4 +98,3 @@ export const BUILTIN_ARITY: Record<string, number | number[]> = {
   tanh: 1,
   trunc: 1,
 }
-

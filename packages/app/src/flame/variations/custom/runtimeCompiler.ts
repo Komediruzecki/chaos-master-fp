@@ -3,9 +3,8 @@ import { transpileFn } from 'tinyest-for-wgsl'
 import { tgpu } from 'typegpu'
 import { vec2f } from 'typegpu/data'
 import { VariationInfo } from '../simple/types'
-import { BUILTIN_ARITY,BUILTIN_EXTERNALS } from './wgslBuiltins'
+import { BUILTIN_ARITY, BUILTIN_EXTERNALS } from './wgslBuiltins'
 import type { TgpuFn } from 'typegpu'
-
 
 const BANNED_NAMES = new Set([
   'storageBarrier',
@@ -125,7 +124,11 @@ export function compileCustomVariationCode(wgslBody: string): CompileResult {
     const n = node as Record<string, unknown>
     if (n.type === 'CallExpression') {
       const callee = n.callee as Record<string, unknown> | undefined
-      if (callee && callee.type === 'Identifier' && typeof callee.name === 'string') {
+      if (
+        callee &&
+        callee.type === 'Identifier' &&
+        typeof callee.name === 'string'
+      ) {
         const name = callee.name
         if (name in BUILTIN_ARITY) {
           const expected = BUILTIN_ARITY[name]!
@@ -155,7 +158,8 @@ export function compileCustomVariationCode(wgslBody: string): CompileResult {
 
             const loc = n.loc as Record<string, unknown> | undefined
             const start = loc?.start as Record<string, unknown> | undefined
-            const line = typeof start?.line === 'number' ? start.line : undefined
+            const line =
+              typeof start?.line === 'number' ? start.line : undefined
 
             arityErrors.push({
               message: `Function '${name}' expects ${expectedStr} arguments, but got ${actualCount}.`,
@@ -189,7 +193,6 @@ export function compileCustomVariationCode(wgslBody: string): CompileResult {
       errors: arityErrors,
     }
   }
-
 
   const dummyFn = () => {}
   const meta = (globalThis as Record<string, unknown>).__TYPEGPU_META__ as {

@@ -23,7 +23,9 @@ export function TutorialModal(props: TutorialModalProps) {
   const isLastPage = () => currentPage() >= totalPages() - 1
 
   createEffect(() => {
-    ensureMathJax().then(() => setMathJaxLoaded(true)).catch(() => {})
+    ensureMathJax()
+      .then(() => setMathJaxLoaded(true))
+      .catch(() => {})
   })
 
   function goNext() {
@@ -51,7 +53,7 @@ export function TutorialModal(props: TutorialModalProps) {
     if (!page) return ''
 
     const rawHtml = renderMarkdown(page.content)
-    
+
     if (mathJaxLoaded()) {
       return rawHtml
         .replace(
@@ -65,7 +67,7 @@ export function TutorialModal(props: TutorialModalProps) {
             `<span class="math-inline">${renderTexToSvg(tex, false) ?? tex}</span>`,
         )
     }
-    
+
     return rawHtml
   }
 

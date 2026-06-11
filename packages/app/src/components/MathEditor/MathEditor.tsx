@@ -128,7 +128,9 @@ export function MathEditor(props: MathEditorProps) {
     const timer = setTimeout(() => {
       setDebouncedMath(text)
     }, 600)
-    onCleanup(() => { clearTimeout(timer); })
+    onCleanup(() => {
+      clearTimeout(timer)
+    })
   })
 
   // Reactive math rendering

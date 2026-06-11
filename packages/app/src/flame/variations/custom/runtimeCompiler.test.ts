@@ -7,7 +7,9 @@ describe('compileCustomVariationCode - Arity Validation', () => {
     const result = compileCustomVariationCode(code)
     expect(result.valid).toBe(false)
     if (!result.valid) {
-      expect(result.errors[0]?.message).toContain("Function 'pow' expects 2 arguments, but got 1")
+      expect(result.errors[0]?.message).toContain(
+        "Function 'pow' expects 2 arguments, but got 1",
+      )
       expect(result.errors[0]?.line).toBe(0)
     }
   })
@@ -17,7 +19,9 @@ describe('compileCustomVariationCode - Arity Validation', () => {
     const result = compileCustomVariationCode(code)
     expect(result.valid).toBe(false)
     if (!result.valid) {
-      expect(result.errors[0]?.message).toContain("Function 'pow' expects 2 arguments, but got 3")
+      expect(result.errors[0]?.message).toContain(
+        "Function 'pow' expects 2 arguments, but got 3",
+      )
     }
   })
 
@@ -27,8 +31,8 @@ describe('compileCustomVariationCode - Arity Validation', () => {
     // It might still fail on TypeGPU compilation in test environment if WebGPU is mock-only,
     // but it should not have our arity validation error.
     if (!result.valid) {
-      const messages = result.errors.map(e => e.message)
-      const hasArityError = messages.some(m => m.includes('expects'))
+      const messages = result.errors.map((e) => e.message)
+      const hasArityError = messages.some((m) => m.includes('expects'))
       expect(hasArityError).toBe(false)
     }
   })
@@ -43,8 +47,8 @@ describe('compileCustomVariationCode - Arity Validation', () => {
     for (const code of cases) {
       const result = compileCustomVariationCode(code)
       if (!result.valid) {
-        const messages = result.errors.map(e => e.message)
-        const hasArityError = messages.some(m => m.includes('expects'))
+        const messages = result.errors.map((e) => e.message)
+        const hasArityError = messages.some((m) => m.includes('expects'))
         expect(hasArityError).toBe(false)
       }
     }
@@ -55,7 +59,9 @@ describe('compileCustomVariationCode - Arity Validation', () => {
     const result = compileCustomVariationCode(code)
     expect(result.valid).toBe(false)
     if (!result.valid) {
-      expect(result.errors[0]?.message).toContain("Function 'vec2f' expects 0, 1, or 2 arguments, but got 3")
+      expect(result.errors[0]?.message).toContain(
+        "Function 'vec2f' expects 0, 1, or 2 arguments, but got 3",
+      )
     }
   })
 
@@ -64,7 +70,9 @@ describe('compileCustomVariationCode - Arity Validation', () => {
     const result = compileCustomVariationCode(code)
     expect(result.valid).toBe(false)
     if (!result.valid) {
-      expect(result.errors[0]?.message).toContain("Function 'clamp' expects 3 arguments, but got 2")
+      expect(result.errors[0]?.message).toContain(
+        "Function 'clamp' expects 3 arguments, but got 2",
+      )
     }
   })
 })
