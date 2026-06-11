@@ -415,11 +415,6 @@
   color: var(--neutral-200);
 }
 
-.previewPanelCollapsed .previewCanvas,
-.previewPanelCollapsed .previewPlaceholder {
-  display: none;
-}
-
 .previewCanvas {
   width: 100%;
   aspect-ratio: 1;

@@ -1,4 +1,4 @@
-import { vec2f } from 'typegpu/data'
+import { f32, vec2f } from 'typegpu/data'
 import { select, sqrt } from 'typegpu/std'
 import { random } from '@/shaders/random'
 import { EPS } from '../../../constants'
@@ -8,7 +8,7 @@ export const dustpointVar = simpleVariation(
   'dustpointVar',
   (pos, varInfo) => {
     'use gpu'
-    const p = select(-1.0, 1.0, random() < 0.5)
+    const p = select(f32(-1.0), f32(1.0), random() < 0.5)
     const r = sqrt(pos.x * pos.x + pos.y * pos.y) + EPS.$
     const w = random()
     let x = pos.x

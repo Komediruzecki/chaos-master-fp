@@ -69,8 +69,8 @@ export const circleRandVar = parametricVariation(
   CircleRandVarParamsEditor,
   (pos, varInfo, P) => {
     'use gpu'
-    let outX = 0.0
-    let outY = 0.0
+    let outX = f32(0.0)
+    let outY = f32(0.0)
     let hit = false
     for (let iter = 0; iter < 100 && !hit; iter++) {
       let X = P.x * (1.0 - 2.0 * random())

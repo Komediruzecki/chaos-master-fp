@@ -472,7 +472,7 @@ function synth_sub_calc(
 
   if (t === WAVE_SIN) x = sin(y * 2.0 * PI.$)
   else if (t === WAVE_COS) x = cos(y * 2.0 * PI.$)
-  else if (t === WAVE_SQUARE) x = f32(select(-1.0, 1.0, y > 0.5))
+  else if (t === WAVE_SQUARE) x = f32(select(f32(-1.0), f32(1.0), y > 0.5))
   else if (t === WAVE_SAW) x = 1.0 - 2.0 * y
   else if (t === WAVE_TRIANGLE)
     x = f32(select(2.0 * y - 1.0, 3.0 - 4.0 * y, y > 0.5))

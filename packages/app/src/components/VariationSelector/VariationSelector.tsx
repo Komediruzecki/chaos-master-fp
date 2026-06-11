@@ -9,7 +9,7 @@ import { CompactModeProvider } from '@/contexts/CompactModeContext'
 import { ComputeGate, useComputeGate } from '@/contexts/ComputeGateContext'
 import { KeyframeTargetProvider } from '@/contexts/KeyframeTargetContext'
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { COMPUTE_GATE_CAPACITY, DEFAULT_VARIATION_PREVIEW_POINT_COUNT, DEFAULT_VARIATION_PREVIEW_RENDER_INTERVAL_MS, DEFAULT_VARIATION_SHOW_DELAY_MS, } from '@/defaults'
+import { COMPUTE_GATE_CAPACITY, DEFAULT_VARIATION_PREVIEW_POINT_COUNT, DEFAULT_VARIATION_PREVIEW_QUALITY, DEFAULT_VARIATION_PREVIEW_RENDER_INTERVAL_MS, DEFAULT_VARIATION_SHOW_DELAY_MS, } from '@/defaults'
 import { Flam3 } from '@/flame/Flam3'
 import { pointInitModeToImplFn } from '@/flame/pointInitMode'
 import { MAX_CAMERA_ZOOM_VALUE, MIN_CAMERA_ZOOM_VALUE, } from '@/flame/schema/flameSchema'
@@ -56,6 +56,11 @@ export function PreviewFinalFlame(props: {
   setFlameZoom: Setter<number>
   hardwareTier?: HardwareTier | null
 }) {
+  const targetQuality = () =>
+    props.hardwareTier
+      ? hardwareTierToQuality[props.hardwareTier]
+      : DEFAULT_VARIATION_PREVIEW_QUALITY
+
   return (
     <AutoCanvas class={ui.canvas} pixelRatio={1}>
       <WheelZoomCamera2D
@@ -70,11 +75,7 @@ export function PreviewFinalFlame(props: {
       >
         <Flam3
           animationEnabled={false}
-          quality={
-            props.hardwareTier
-              ? hardwareTierToQuality[props.hardwareTier]
-              : 0.99
-          }
+          quality={targetQuality()}
           pointCountPerBatch={DEFAULT_VARIATION_PREVIEW_POINT_COUNT}
           adaptiveFilterEnabled={true}
           flameDescriptor={props.flame}
@@ -97,6 +98,11 @@ export function VariationPreview(props: {
   const [quality, setQuality] = createSignal<() => number>()
   const intersection = useIntersectionObserver(container)
   const isVisible = createMemo(() => intersection()?.isIntersecting)
+  const previewQuality = createMemo(() =>
+    props.hardwareTier
+      ? hardwareTierToQuality[props.hardwareTier]
+      : DEFAULT_VARIATION_PREVIEW_QUALITY,
+  )
   const renderStatus = createMemo<RenderStatus | undefined>(() => {
     const quality_ = quality()?.()
     if (quality_ === undefined) {
@@ -120,6 +126,8 @@ export function VariationPreview(props: {
       isSelected: props.isSelected,
     }
   })
+  const previewRenderInterval = createMemo(() => (allowed() ? 1 : Infinity))
+
   const [exportImage, setExportImage] = createSignal<ExportImageType>()
   const [image, setImage] = createSignal<string | undefined>()
 
@@ -211,15 +219,11 @@ export function VariationPreview(props: {
           >
             <Flam3
               animationEnabled={false}
-              quality={
-                props.hardwareTier
-                  ? hardwareTierToQuality[props.hardwareTier]
-                  : 0.99
-              }
+              quality={previewQuality()}
               pointCountPerBatch={5e4}
               adaptiveFilterEnabled={false}
               flameDescriptor={props.flame}
-              renderInterval={allowed() ? 1 : Infinity}
+              renderInterval={previewRenderInterval()}
               onExportImage={exportImage()}
               edgeFadeColor={vec4f(0)}
               setCurrentQuality={(fn) => setQuality(() => fn)}
@@ -730,10 +734,7 @@ function ShowVariationSelector(props: VariationSelectorModalProps) {
                                           variationDraft as {
                                             params: Record<string, number>
                                           }
-                                        ).params = value as Record<
-                                          string,
-                                          number
-                                        >
+                                        ).params = value
                                       },
                                     )
                                   }}

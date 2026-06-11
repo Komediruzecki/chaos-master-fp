@@ -43,25 +43,25 @@ export const sigmoidVar = parametricVariation(
   SigmoidVarParamsEditor,
   (pos, varInfo, P) => {
     'use gpu'
-    let ax = 1.0
+    let ax = f32(1.0)
     let sx = P.shiftx
     if (sx < 1.0 && sx > -1.0) {
       if (sx === 0.0) {
         sx = EPS.$
         ax = 1.0
       } else {
-        ax = select(-1.0, 1.0, sx > 0.0)
+        ax = select(f32(-1.0), f32(1.0), sx > 0.0)
         sx = 1.0 / sx
       }
     }
-    let ay = 1.0
+    let ay = f32(1.0)
     let sy = P.shifty
     if (sy < 1.0 && sy > -1.0) {
       if (sy === 0.0) {
         sy = EPS.$
         ay = 1.0
       } else {
-        ay = select(-1.0, 1.0, sy > 0.0)
+        ay = select(f32(-1.0), f32(1.0), sy > 0.0)
         sy = 1.0 / sy
       }
     }

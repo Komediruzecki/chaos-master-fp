@@ -59,10 +59,22 @@ const transformPreviewIds = Object.keys(transformVariations).reduce<
   return acc
 }, {})
 export function getTransformPreviewTid(type: TransformVariationType) {
-  return transformPreviewIds[type]!.tid
+  if (!transformPreviewIds[type]) {
+    transformPreviewIds[type] = {
+      tid: generateTransformId(type),
+      vid: generateVariationId(),
+    }
+  }
+  return transformPreviewIds[type].tid
 }
 export function getTransformPreviewVid(type: TransformVariationType) {
-  return transformPreviewIds[type]!.vid
+  if (!transformPreviewIds[type]) {
+    transformPreviewIds[type] = {
+      tid: generateTransformId(type),
+      vid: generateVariationId(),
+    }
+  }
+  return transformPreviewIds[type].vid
 }
 
 export function getDefaultFlameByVarType(
@@ -264,8 +276,8 @@ const previewFlames: Partial<Record<TransformVariationType, FlameDescriptor>> =
     ),
     secantVar: unfreeze(
       produce(getDefaultFlameByVarType('secantVar'), (draft) => {
-        draft.renderSettings.exposure = 0.945
-        draft.renderSettings.camera.zoom = 0.4232988892907777
+        draft.renderSettings.exposure = 2.0
+        draft.renderSettings.camera.zoom = 1.0
         draft.renderSettings.camera.position = [
           0.22031681118067803, 0.18394228752956718,
         ]
@@ -384,7 +396,7 @@ const previewFlames: Partial<Record<TransformVariationType, FlameDescriptor>> =
         draft.renderSettings.exposure = 0.8
         draft.transforms[tid]!.variations[vid] = {
           type: 'acosechVar',
-          weight: 0.3,
+          weight: 0.09,
           visible: true,
         }
       }),
@@ -396,7 +408,7 @@ const previewFlames: Partial<Record<TransformVariationType, FlameDescriptor>> =
         draft.renderSettings.exposure = 0.8
         draft.transforms[tid]!.variations[vid] = {
           type: 'acoshVar',
-          weight: 0.3,
+          weight: 0.09,
           visible: true,
         }
       }),
@@ -408,7 +420,7 @@ const previewFlames: Partial<Record<TransformVariationType, FlameDescriptor>> =
         draft.renderSettings.exposure = 0.8
         draft.transforms[tid]!.variations[vid] = {
           type: 'acothVar',
-          weight: 0.3,
+          weight: 0.09,
           visible: true,
         }
       }),
@@ -420,7 +432,7 @@ const previewFlames: Partial<Record<TransformVariationType, FlameDescriptor>> =
         draft.renderSettings.exposure = 0.8
         draft.transforms[tid]!.variations[vid] = {
           type: 'arcsinhVar',
-          weight: 0.35,
+          weight: 0.12,
           visible: true,
         }
       }),
@@ -501,7 +513,7 @@ const previewFlames: Partial<Record<TransformVariationType, FlameDescriptor>> =
           getTransformPreviewVid('arctanhVar')
         ] = {
           type: 'arctanhVar',
-          weight: 0.2,
+          weight: 0.04,
           visible: true,
         }
       }),
@@ -545,8 +557,19 @@ const previewFlames: Partial<Record<TransformVariationType, FlameDescriptor>> =
     ),
     taurusVar: unfreeze(
       produce(getDefaultFlameByVarType('taurusVar'), (draft) => {
-        draft.renderSettings.exposure = 0.8
-        draft.renderSettings.camera.zoom = 0.5
+        draft.renderSettings.exposure = 0.36
+        draft.renderSettings.contrast = 8.76
+        draft.renderSettings.camera.zoom = 0.143
+        draft.renderSettings.camera.position = [-0.177, 0.195]
+
+        const tid = getTransformPreviewTid('taurusVar')
+        const vid = getTransformPreviewVid('taurusVar')
+        draft.transforms[tid]!.variations[vid] = {
+          type: 'taurusVar',
+          weight: 1.0,
+          visible: true,
+          params: { r: 1.9, n: 5, inv: -0.65, sor: -0.7 },
+        }
       }),
     ),
     murl2Var: unfreeze(
@@ -598,14 +621,49 @@ const previewFlames: Partial<Record<TransformVariationType, FlameDescriptor>> =
     ),
     rays1Var: unfreeze(
       produce(getDefaultFlameByVarType('rays1Var'), (draft) => {
-        draft.renderSettings.exposure = 0.5
-        draft.renderSettings.camera.zoom = 0.5
+        draft.renderSettings.exposure = 1.5
+        draft.renderSettings.camera.zoom = 0.196
+        draft.renderSettings.camera.position = [-0.373, 0.149]
         draft.transforms[getTransformPreviewTid('rays1Var')]!.variations[
           getTransformPreviewVid('rays1Var')
         ] = {
           type: 'rays1Var',
           weight: 0.5,
           visible: true,
+        }
+      }),
+    ),
+    sTwinVar: unfreeze(
+      produce(getDefaultFlameByVarType('sTwinVar'), (draft) => {
+        draft.renderSettings.exposure = 2.2
+        draft.renderSettings.camera.zoom = 0.4
+      }),
+    ),
+    blockYVar: unfreeze(
+      produce(getDefaultFlameByVarType('blockYVar'), (draft) => {
+        draft.renderSettings.exposure = 2.2
+        draft.renderSettings.camera.zoom = 0.4
+      }),
+    ),
+    coneVar: unfreeze(
+      produce(getDefaultFlameByVarType('coneVar'), (draft) => {
+        const tid = getTransformPreviewTid('coneVar')
+        const vid = getTransformPreviewVid('coneVar')
+        draft.transforms[tid]!.variations[vid] = {
+          type: 'coneVar',
+          weight: 1.0,
+          visible: true,
+          params: {
+            radius1: 0.5,
+            radius2: 1.0,
+            size1: 0.5,
+            size2: 1.1,
+            ywave: 2.16,
+            xwave: 1.0,
+            height: 1.0,
+            warp: 1.0,
+            weight: 2.0,
+          },
         }
       }),
     ),

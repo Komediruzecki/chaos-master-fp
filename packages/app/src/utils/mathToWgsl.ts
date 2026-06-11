@@ -160,7 +160,7 @@ const PATTERNS: Pattern[] = [
   { regex: /\\neq\b/g, replace: '!=' },
   // Power: x^2 → x * x (simple integer exponents only)
   {
-    regex: /(\w+|\))\^(\d+)/g,
+    regex: /(\w+|\))\^\{?(\d+)\}?/g,
     replace: (_m, base, expStr) => {
       const exp = parseInt(expStr, 10)
       if (exp === 0) return '1.0'
@@ -168,6 +168,12 @@ const PATTERNS: Pattern[] = [
       return Array(exp).fill(`(${base})`).join(' * ')
     },
     description: 'x^n → x * x * ... (n times)',
+  },
+  // Power: x^{y} → pow(x, y) for variable/non-integer exponents
+  {
+    regex: /(\w+|\))\^\{([^}]+)\}/g,
+    replace: (_m, base, exp) => `pow(${base}, ${exp})`,
+    description: 'x^{y} → pow(x, y)',
   },
   // Power: x^y → pow(x, y) for variable/non-integer exponents (catches what remains)
   {
@@ -262,7 +268,13 @@ export function mathToWgsl(input: string): TranslationResult {
     // Apply function/operator patterns
     for (const pattern of PATTERNS) {
       try {
-        line = line.replace(pattern.regex, pattern.replace as string)
+        let prev = ''
+        let iterations = 0
+        while (prev !== line && iterations < 10) {
+          prev = line
+          line = line.replace(pattern.regex, pattern.replace as string)
+          iterations++
+        }
       } catch {
         errors.push(
           `Line ${i + 1}: failed to apply pattern "${pattern.description ?? pattern.regex.source}"`,
@@ -334,16 +346,19 @@ export function mathToWgsl(input: string): TranslationResult {
       modified.has('x') ||
       modified.has('y')
     ) {
-      if (!varNameMap.has('p_x')) {
-        wgslLines.push('  let p_x = pos.x;')
-        varNameMap.set('p_x', 'p_x')
+      const retX = modified.has('x') && !modified.has('p_x') ? 'x' : 'p_x'
+      const retY = modified.has('y') && !modified.has('p_y') ? 'y' : 'p_y'
+
+      if (!varNameMap.has(retX)) {
+        wgslLines.push(`  let ${retX} = pos.x;`)
+        varNameMap.set(retX, retX)
       }
-      if (!varNameMap.has('p_y')) {
-        wgslLines.push('  let p_y = pos.y;')
-        varNameMap.set('p_y', 'p_y')
+      if (!varNameMap.has(retY)) {
+        wgslLines.push(`  let ${retY} = pos.y;`)
+        varNameMap.set(retY, retY)
       }
       wgslLines.push(
-        `  return vec2f(${rewriteVarRefs('p_x')}, ${rewriteVarRefs('p_y')});`,
+        `  return vec2f(${rewriteVarRefs(retX)}, ${rewriteVarRefs(retY)});`,
       )
     } else {
       wgslLines.push('  return vec2f(pos.x, pos.y);')

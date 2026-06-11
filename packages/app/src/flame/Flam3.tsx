@@ -117,12 +117,16 @@ export function Flam3(props: Flam3Props) {
     return vec3f(...bg)
   }
 
-  const bucketProbabilityInv = () => {
+  // Memo, not a plain function: renderTick reads this from the rAF callback,
+  // which has no reactive owner. Solid wraps conditional JSX props in lazily-created memos,
+  // so a first camera.zoom() read from rAF would create those computations owner-less.
+  // Creating the memo here makes all camera reads happen under this owner.
+  const bucketProbabilityInv = createMemo(() => {
     const size = canvasSize()
     const height = size.height
     const unitSquareArea = (height ** 2 * camera.zoom() ** 2) / 4
     return unitSquareArea
-  }
+  })
 
   /** u32-safe point cap: prevents per-bucket atomic overflow at high quality */
   const safeQualityCap = () => {

@@ -58,7 +58,7 @@ export const onion2Var = parametricVariation(
     const sin_meet = sin(P.meeting_pt)
     const cos_t = cos(t)
     let r_1 = cos_t
-    let z_1 = 0.0
+    let z_1 = f32(0.0)
     const safe_tan = select(tan_meet, 1.0e-9, tan_meet === 0.0)
     const term = exp(cos_meet - r_1) / safe_tan + sin_meet - 1.0 / safe_tan
     z_1 = term

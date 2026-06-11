@@ -1,4 +1,4 @@
-import { createEffect, createSignal, For, onCleanup, Show } from 'solid-js'
+import { createEffect, createSignal, For, Show } from 'solid-js'
 import { Cross, SkipBack, SkipForward } from '@/icons'
 import { ensureMathJax, renderTexToSvg } from '@/utils/mathjax'
 import { renderMarkdown } from '@/utils/renderMarkdown'
@@ -66,10 +66,6 @@ export function TutorialModal(props: TutorialModalProps) {
         if (currentPage() === pageIdx) setRenderedContent(html)
       })
       .catch(() => {})
-  })
-
-  onCleanup(() => {
-    // no-op cleanup
   })
 
   return (

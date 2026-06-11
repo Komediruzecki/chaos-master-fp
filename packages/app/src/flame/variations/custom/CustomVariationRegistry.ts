@@ -21,7 +21,7 @@ const customVariationRecords: Record<
   {
     def: CustomVariationDef
     DescriptorSchema: ReturnType<typeof makeDescriptorSchema>
-    fn: TgpuFn
+    fn?: TgpuFn
   }
 > = {}
 
@@ -66,6 +66,7 @@ function addToGlobal(def: CustomVariationDef, fn: TgpuFn) {
   ;(transformVariations as Record<string, unknown>)[def.id] = {
     DescriptorSchema: schema,
     fn,
+    category: 'custom',
   }
   if (!variationTypes.includes(def.id)) {
     variationTypes.push(def.id)
@@ -78,15 +79,19 @@ function removeFromGlobal(id: string) {
   if (idx !== -1) variationTypes.splice(idx, 1)
 }
 
-function register(def: CustomVariationDef, fn: TgpuFn) {
+function register(def: CustomVariationDef, fn?: TgpuFn, skipPersist = false) {
   customVariationRecords[def.id] = {
     def,
     DescriptorSchema: makeDescriptorSchema(def.id),
     fn,
   }
-  addToGlobal(def, fn)
+  if (fn) {
+    addToGlobal(def, fn)
+  }
   cacheVersion++
-  persist()
+  if (!skipPersist) {
+    persist()
+  }
 }
 
 function unregister(id: string): boolean {
@@ -206,6 +211,7 @@ export function previewCustomVariation(
   ;(transformVariations as Record<string, unknown>)[id] = {
     DescriptorSchema: schema,
     fn: compileResult.fn,
+    category: 'custom',
   }
   if (!variationTypes.includes(id)) {
     variationTypes.push(id)
@@ -239,10 +245,12 @@ export function loadCustomVariations(): void {
           `[CustomVariationRegistry] Failed to compile "${def.name}" (${def.id}):`,
           compileResult.errors.map((e) => e.message).join(', '),
         )
-        continue
+        register(def, undefined, true)
+      } else {
+        register(def, compileResult.fn, true)
       }
-      register(def, compileResult.fn)
     }
+    persist() // Save once after loading all
   } catch (err) {
     console.warn(
       '[CustomVariationRegistry] Failed to load custom variations:',

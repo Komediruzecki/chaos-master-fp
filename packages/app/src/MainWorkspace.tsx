@@ -143,6 +143,30 @@ export type AppProps = {
   onHardwareTierChange?: (tier: HardwareTier) => void
 }
 
+export function extractFlameVariationTypes(
+  descriptor: FlameDescriptor,
+): TransformVariationType[] {
+  const result: TransformVariationType[] = []
+  for (const transform of Object.values(descriptor.transforms)) {
+    for (const variation of Object.values(transform.variations)) {
+      result.push(variation.type)
+    }
+  }
+  return result
+}
+
+function addTransformWithVariation(draft: FlameDescriptor, type: string) {
+  const t = deepClone(newDefaultTransform())
+  t.variations = {
+    [generateVariationId()]: {
+      type,
+      weight: 1,
+      visible: true,
+    },
+  }
+  draft.transforms[generateTransformId()] = t
+}
+
 export function MainWorkspace(props: AppProps) {
   const { theme, setTheme } = useTheme()
   const { targetedParameter, setTargetedParameter } = useKeyframeTarget()
@@ -1794,6 +1818,9 @@ export function MainWorkspace(props: AppProps) {
                               ]?.type ?? state.type
                             }
                             hardwareTier={props.hardwareTier}
+                            pointInitMode={
+                              flameDescriptor.renderSettings.pointInitMode
+                            }
                             onSelect={(newType) => {
                               setFlameDescriptor((draft) => {
                                 const existingVar =
@@ -1947,19 +1974,10 @@ export function MainWorkspace(props: AppProps) {
                                     (addedDef) => {
                                       if (addedDef) {
                                         setFlameDescriptor((draft) => {
-                                          const t = deepClone(
-                                            newDefaultTransform(),
+                                          addTransformWithVariation(
+                                            draft,
+                                            addedDef.id,
                                           )
-                                          t.variations = {
-                                            [generateVariationId()]: {
-                                              type: addedDef.id,
-                                              weight: 1,
-                                              visible: true,
-                                            },
-                                          }
-                                          draft.transforms[
-                                            generateTransformId()
-                                          ] = t
                                         })
                                       }
                                       setCustomVarsVersion((v) => v + 1)
@@ -1981,19 +1999,7 @@ export function MainWorkspace(props: AppProps) {
                                       e.stopPropagation()
                                       setHoveredCustomVarDef(null)
                                       setFlameDescriptor((draft) => {
-                                        const transform = deepClone(
-                                          newDefaultTransform(),
-                                        )
-                                        transform.variations = {
-                                          [generateVariationId()]: {
-                                            type: def.id,
-                                            weight: 1,
-                                            visible: true,
-                                          },
-                                        }
-                                        draft.transforms[
-                                          generateTransformId()
-                                        ] = transform
+                                        addTransformWithVariation(draft, def.id)
                                       })
                                     }}
                                   >
@@ -2034,15 +2040,7 @@ export function MainWorkspace(props: AppProps) {
                               const addedDef = await showCustomVariationEditor()
                               if (addedDef) {
                                 setFlameDescriptor((draft) => {
-                                  const t = deepClone(newDefaultTransform())
-                                  t.variations = {
-                                    [generateVariationId()]: {
-                                      type: addedDef.id,
-                                      weight: 1,
-                                      visible: true,
-                                    },
-                                  }
-                                  draft.transforms[generateTransformId()] = t
+                                  addTransformWithVariation(draft, addedDef.id)
                                 })
                               }
                               setCustomVarsVersion((v) => v + 1)
@@ -2418,10 +2416,7 @@ export function MainWorkspace(props: AppProps) {
                                                         number
                                                       >
                                                     }
-                                                  ).params = value as Record<
-                                                    string,
-                                                    number
-                                                  >
+                                                  ).params = value
                                                 })
                                               }}
                                             />

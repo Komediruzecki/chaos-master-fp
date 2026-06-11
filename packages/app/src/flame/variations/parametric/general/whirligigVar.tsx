@@ -43,8 +43,8 @@ export const whirligigVar = parametricVariation(
     const xDen = select(csinh, ccosh, m < 8.0)
     const yNum = select(ccos, csin, m < 4.0 || m >= 12.0)
     const yDen = select(ccosh, csinh, m < 8.0)
-    const sx = select(-1.0, 1.0, m % 2.0 < 0.5)
-    const sy = select(-1.0, 1.0, signBits > 0.5 && signBits < 2.5)
+    const sx = select(f32(-1.0), f32(1.0), m % 2.0 < 0.5)
+    const sy = select(f32(-1.0), f32(1.0), signBits > 0.5 && signBits < 2.5)
 
     return vec2f((sx * xNum) / xDen, (sy * yNum) / yDen).mul(varInfo.weight)
   },

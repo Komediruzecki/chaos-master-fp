@@ -80,14 +80,14 @@ export const bwrandsVar = parametricVariation(
     const Lx1 = Lx / _g1
     const Ly1 = Ly / _g1
     let r1 = Lx1 * Lx1 + Ly1 * Ly1
-    let Vv2_1 = 0.0
+    let Vv2_1 = f32(0.0)
     const cond1 = r1 < _r2
     const term1 = sqrt(r1)
     const flwr = term1 / (0.5 * Ssz)
     const Vv2_1_sub =
       (0.5 * Ssz + (term1 - 0.5 * Ssz) * (1.0 - flwr)) / (term1 + 1.0e-6)
-    Vv2_1 = select(1.0, Vv2_1_sub, cond1)
-    r1 = select(1.0, (Vv2_1 * r1) / _r2, cond1) // if not cond1, r=1.0 ?
+    Vv2_1 = select(f32(1.0), Vv2_1_sub, cond1)
+    r1 = select(f32(1.0), (Vv2_1 * r1) / _r2, cond1) // if not cond1, r=1.0 ?
     const r1_final = select(r1 / _r2, (Vv2_1 * r1) / _r2, cond1)
     const Lx2 = Lx * _g2
     const Ly2 = Ly * _g2

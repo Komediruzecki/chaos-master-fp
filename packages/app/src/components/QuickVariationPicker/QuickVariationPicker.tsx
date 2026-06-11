@@ -7,6 +7,7 @@ import { getNormalizedVariationName } from '@/flame/variations/utils'
 import { DelayedShow } from '../DelayedShow/DelayedShow'
 import { VariationPreview, variationPreviewFlames, } from '../VariationSelector/VariationSelector'
 import ui from './QuickVariationPicker.module.css'
+import type { PointInitMode } from '@/flame/pointInitMode'
 import type { TransformVariationType } from '@/flame/variations'
 import type { VariationCategory } from '@/flame/variations/categories'
 import type { HardwareTier } from '@/utils/hardwareTier'
@@ -121,6 +122,7 @@ export type QuickVariationPickerProps = {
   onModeChange: (mode: QuickPickerMode) => void
   onOpenFullSelector?: () => void
   hardwareTier?: HardwareTier | null
+  pointInitMode?: PointInitMode
 }
 
 const PREVIEW_CLEAR_DELAY = 120
@@ -438,7 +440,7 @@ export function QuickVariationPicker(props: QuickVariationPickerProps) {
         <div class={ui.galleryList}>
           {(() => {
             const previewFlames = variationPreviewFlames(
-              'pointInitGaussianDisk',
+              props.pointInitMode ?? 'pointInitGaussianDisk',
             )
             let globalIndex = 0
             return (

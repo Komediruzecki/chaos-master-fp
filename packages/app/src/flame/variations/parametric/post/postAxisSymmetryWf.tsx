@@ -60,7 +60,7 @@ export const postAxisSymmetryWf = parametricVariation(
     const halfDist = varInfo.weight / 2.0
 
     const branch = random() < 0.5
-    const sign = select(-1.0, 1.0, branch)
+    const sign = select(f32(-1.0), f32(1.0), branch)
 
     let nx = pos.x
     let ny = pos.y

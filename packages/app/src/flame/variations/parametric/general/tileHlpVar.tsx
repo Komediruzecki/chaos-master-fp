@@ -35,14 +35,14 @@ export const tileHlpVar = parametricVariation(
     'use gpu'
     const width2 = P.width * varInfo.weight
     const x = pos.x / P.width
-    let aux = 0.0
+    let aux = f32(0.0)
     if (x > 0.0) {
       aux = x - floor(x)
     } else {
       aux = x + ceil(x)
     }
     aux = cos(aux * PI.$)
-    let aux2 = 0.0
+    let aux2 = f32(0.0)
     if (aux < random() * 2.0 - 1.0) {
       aux2 = select(width2, -width2, x > 0.0)
     }

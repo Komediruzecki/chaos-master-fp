@@ -9,6 +9,7 @@ export const CATEGORIES = [
   'glsl',
   'cut',
   '3d',
+  'custom',
 ] as const
 
 export type VariationCategory = (typeof CATEGORIES)[number]
@@ -24,6 +25,7 @@ export const CATEGORY_LABELS: Record<VariationCategory, string> = {
   glsl: 'GLSL Shaders',
   cut: 'Cut',
   '3d': '3D',
+  custom: 'Custom',
 }
 
 export const CATEGORY_ORDER: Record<VariationCategory, number> = {
@@ -37,6 +39,7 @@ export const CATEGORY_ORDER: Record<VariationCategory, number> = {
   glsl: 7,
   cut: 8,
   '3d': 9,
+  custom: 10,
 }
 
 export function sortByCategory(

@@ -123,15 +123,16 @@ export const elliptic2Var = parametricVariation(
     const xmax = P.c * (sqrt(tmp + x2) + sqrt(tmp - x2))
     const xmaxSafe = select(xmax, EPS.$, xmax <= EPS.$)
     const a = (pos.x / xmaxSafe) * P.a2
-    const bArg = select(P.d - a * a, 0.0, P.d - a * a < 0.0)
+    const bArg = select(P.d - a * a, f32(0.0), P.d - a * a < f32(0.0))
     const b = sqrt(bArg) * P.b2
-    const w = select(varInfo.weight, 1.0, abs(varInfo.weight) <= EPS.$)
+    const w = select(varInfo.weight, f32(1.0), abs(varInfo.weight) <= EPS.$)
     const nx = v * atan2(a, b) + ps / w
     const rnd = random()
     const xSub = select(P.f, P.g, rnd < P.e)
     const logArg =
-      xmaxSafe + sqrt(select(xmaxSafe - xSub, 0.0, xmaxSafe - xSub < 0.0))
-    const ySign = select(-1.0, 1.0, rnd < P.e)
+      xmaxSafe +
+      sqrt(select(xmaxSafe - xSub, f32(0.0), xmaxSafe - xSub < f32(0.0)))
+    const ySign = select(f32(-1.0), f32(1.0), rnd < P.e)
     const logArgSafe = select(logArg, EPS.$, logArg <= EPS.$)
     const ny = ySign * v * log(logArgSafe)
     return vec2f(nx, ny)

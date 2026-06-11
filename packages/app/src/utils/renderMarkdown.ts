@@ -55,7 +55,7 @@ export function renderMarkdown(text: string): string {
   // markdown treats as a literal backtick instead of a code-span delimiter.
   processed = processed.replace(/\\`/g, '`')
 
-  let html = marked.parse(processed, { async: false })
+  let html = marked.parse(processed) as string
 
   // Restore math blocks (before admonitions, since admonitions may contain math)
   for (let i = 0; i < mathBlocks.length; i++) {
@@ -76,7 +76,7 @@ export function renderMarkdown(text: string): string {
   for (let i = 0; i < admonitions.length; i++) {
     const { type, content: rawContent } = admonitions[i]!
     const content = rawContent.replace(/\\`/g, '`')
-    const renderedContent = marked.parse(content, { async: false })
+    const renderedContent = marked.parse(content) as string
     const label = ADMONITION_LABELS[type]
     html = html.replace(
       `<!-- ADMONITION_${i} -->`,

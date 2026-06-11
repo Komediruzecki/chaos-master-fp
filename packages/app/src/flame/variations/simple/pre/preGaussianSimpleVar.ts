@@ -4,8 +4,8 @@ import { random } from '@/shaders/random'
 import { PI } from '../../../constants'
 import { simpleVariation } from '../types'
 
-export const preGaussianVar = simpleVariation(
-  'preGaussianVar',
+export const preGaussianSimpleVar = simpleVariation(
+  'preGaussianSimpleVar',
   (_pos, varInfo) => {
     'use gpu'
     const u1 = random()

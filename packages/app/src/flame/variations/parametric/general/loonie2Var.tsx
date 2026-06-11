@@ -72,7 +72,7 @@ export const loonie2Var = parametricVariation(
 
     let r2 = xrt * coss + abs(yrt) * sins
 
-    for (let i = 0.0; i < P.sides - 1.0; i += 1.0) {
+    for (let i = f32(0.0); i < P.sides - 1.0; i += 1.0) {
       const swp = xrt * cosa - yrt * sina
       yrt = xrt * sina + yrt * cosa
       xrt = swp

@@ -47,7 +47,7 @@ export const disc2Var = parametricVariation(
     let cosadd = cos(P.twist) - 1.0
     const twistAbs = abs(P.twist)
     if (twistAbs > 2.0 * PI.$) {
-      const sign = select(-1.0, 1.0, P.twist >= 0.0)
+      const sign = select(f32(-1.0), f32(1.0), P.twist >= 0.0)
       const k = 1.0 + P.twist - sign * 2.0 * PI.$
       sinadd *= k
       cosadd *= k

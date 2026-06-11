@@ -83,7 +83,7 @@ export const waves4Var = parametricVariation(
       sin(ax * 12.9898 + ax * 78.233 + 1.0 + y0 * 0.001 * P.yfact) * 43758.5453
     ax = ax - floor(ax)
     if (P.cont > 0.5) {
-      ax = select(0.0, 1.0, ax > 0.5)
+      ax = select(f32(0.0), f32(1.0), ax > 0.5)
     }
 
     return vec2f(

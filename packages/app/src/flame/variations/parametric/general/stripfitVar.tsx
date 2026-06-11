@@ -47,7 +47,7 @@ export const stripfitVar = parametricVariation(
     const dy2 = w * (1.0 + fity2)
     const dx2 = (y - fity2 - 1.0) * dxp
     const dy3 = w * y
-    const dx3 = 0.0
+    const dx3 = f32(0.0)
     const dX_final = select(dx3, select(dx2, dx1, y_gt_1), y_gt_1 || y_lt_n1)
     const dY_final = select(dy3, select(dy2, dy1, y_gt_1), y_gt_1 || y_lt_n1)
     return vec2f(resX + dX_final, dY_final)

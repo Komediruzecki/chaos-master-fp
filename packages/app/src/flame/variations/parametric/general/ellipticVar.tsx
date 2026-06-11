@@ -56,7 +56,7 @@ export const ellipticVar = parametricVariation(
         0.5 * (ellipticSqrt1pm1(sq + x2) + ellipticSqrt1pm1(sq - x2))
       const ssx = select(0.0, sqrt(xmaxm1), xmaxm1 >= 0.0)
       const a = pos.x / (1.0 + xmaxm1)
-      const sign = select(-1.0, 1.0, pos.y > 0.0)
+      const sign = select(f32(-1.0), f32(1.0), pos.y > 0.0)
       return vec2f(
         M2PI * asin(clamp(a, -1.0, 1.0)),
         sign * M2PI * log(xmaxm1 + ssx + 1.0),
@@ -67,9 +67,9 @@ export const ellipticVar = parametricVariation(
     const xmax = 0.5 * (sqrt(tmp + x2) + sqrt(tmp - x2))
     const a = pos.x / xmax
     const b = select(0.0, sqrt(1.0 - a * a), 1.0 - a * a >= EPS.$)
-    const ySign = select(-1.0, 1.0, pos.y > 0.0)
+    const ySign = select(f32(-1.0), f32(1.0), pos.y > 0.0)
     const sign = select(
-      select(-1.0, 1.0, random() < 0.5),
+      select(f32(-1.0), f32(1.0), random() < 0.5),
       ySign,
       mode < 0.5 || mode > 1.5,
     )

@@ -1,5 +1,7 @@
 import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show, untrack, } from 'solid-js'
 import { vec2f, vec4f } from 'typegpu/data'
+import { useToast } from '@/contexts/ToastContext'
+import { DEFAULT_VARIATION_PREVIEW_POINT_COUNT, DEFAULT_VARIATION_PREVIEW_QUALITY, } from '@/defaults'
 import { defineExample } from '@/flame/examples/util'
 import { Flam3 } from '@/flame/Flam3'
 import { generateTransformId, generateVariationId, } from '@/flame/transformFunction'
@@ -154,6 +156,7 @@ function ShowCustomVariationEditor(props: {
   respond: (value: RespondType) => void
   existingDef?: CustomVariationDef
 }) {
+  const { showToast } = useToast()
   const requestModal = useRequestModal()
   const [activeId, setActiveId] = createSignal<string | undefined>()
   const [activeExampleName, setActiveExampleName] = createSignal<
@@ -277,7 +280,10 @@ function ShowCustomVariationEditor(props: {
   }
 
   function handleDelete(id: string) {
-    deleteCustomVariation(id)
+    if (!deleteCustomVariation(id)) {
+      showToast('Failed to delete custom variation (not found or system error)')
+      return
+    }
     setVariations(getCustomVariations())
     if (activeId() === id) {
       const p = untrack(preview)
@@ -295,13 +301,18 @@ function ShowCustomVariationEditor(props: {
     if (result.success) {
       setVariations(getCustomVariations())
       loadVariation(result.def)
+    } else {
+      showToast(
+        `Failed to duplicate: ${result.errors?.[0]?.message ?? 'Unknown error'}`,
+      )
     }
   }
 
   function handleCompile() {
     const body = code()
+    const p = untrack(preview)
+
     if (!body.trim()) {
-      const p = untrack(preview)
       if (p.status === 'compiled') p.unregister()
       setPreview({ status: 'idle' })
       return
@@ -310,7 +321,6 @@ function ShowCustomVariationEditor(props: {
     setPreview({ status: 'compiling' })
 
     const result = previewCustomVariation(body)
-    const p = untrack(preview)
     if (p.status === 'compiled') p.unregister()
 
     if (result.valid) {
@@ -326,24 +336,18 @@ function ShowCustomVariationEditor(props: {
   }
 
   function handleCompileNow() {
-    clearTimeout(compileTimer)
     handleCompile()
   }
 
   // Auto-compile debounce: recompile 600ms after last code change
-  let compileTimer: ReturnType<typeof setTimeout> | undefined
   createEffect(() => {
-    const body = code()
-    // track the signal
-    void body
-    clearTimeout(compileTimer)
-    compileTimer = setTimeout(() => {
+    code() // Track dependency
+    const timer = setTimeout(() => {
       handleCompile()
     }, 600)
-  })
-
-  onCleanup(() => {
-    clearTimeout(compileTimer)
+    onCleanup(() => {
+      clearTimeout(timer)
+    })
   })
 
   function handleSave(): SaveResult {
@@ -714,8 +718,8 @@ function ShowCustomVariationEditor(props: {
                   >
                     <Flam3
                       animationEnabled={false}
-                      quality={0.99}
-                      pointCountPerBatch={50000}
+                      quality={DEFAULT_VARIATION_PREVIEW_QUALITY}
+                      pointCountPerBatch={DEFAULT_VARIATION_PREVIEW_POINT_COUNT}
                       adaptiveFilterEnabled={false}
                       flameDescriptor={previewFlame()}
                       renderInterval={1}

@@ -127,7 +127,7 @@ export const juliaOutsideVar = parametricVariation(
     const finalIm = (z4Im * P.reDiv - z4Re * P.imDiv) / denom3
 
     // --- Random sign flip for mode01 ---
-    const sign = select(-1.0, 1.0, random() < 0.5)
+    const sign = select(f32(-1.0), f32(1.0), random() < 0.5)
     const outRe = select(finalRe, sign * finalRe, mode01)
     const outIm = select(finalIm, sign * finalIm, mode01)
 

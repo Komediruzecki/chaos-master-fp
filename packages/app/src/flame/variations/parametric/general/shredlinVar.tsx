@@ -69,8 +69,8 @@ export const shredlinVar = parametricVariation(
   (pos, varInfo, P) => {
     'use gpu'
 
-    const xpos = select(0.0, 1.0, pos.x < 0.0)
-    const ypos = select(0.0, 1.0, pos.y < 0.0)
+    const xpos = select(f32(0.0), f32(1.0), pos.x < 0.0)
+    const ypos = select(f32(0.0), f32(1.0), pos.y < 0.0)
     const xrng = pos.x / P.xdistance
     const yrng = pos.y / P.ydistance
     const newX =

@@ -3,8 +3,8 @@ import { cos, sin } from 'typegpu/std'
 import { simpleVariation } from '../types'
 
 // Heat distortion: wave displacement creates heat haze effect
-export const postHeatVar = simpleVariation(
-  'postHeatVar',
+export const postHeatHazeVar = simpleVariation(
+  'postHeatHazeVar',
   (pos, varInfo) => {
     'use gpu'
     const wave = sin(pos.x * 5.0) * cos(pos.y * 3.0) * 0.1

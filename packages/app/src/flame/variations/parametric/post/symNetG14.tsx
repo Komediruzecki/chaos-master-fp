@@ -39,7 +39,7 @@ export const symNetG14 = parametricVariation(
     const hx = P.stepx * 0.5
     const hy = P.stepy * 0.5
     const band = f32(floor(random() * 12.0))
-    const sign = select(1.0, -1.0, band < 6.0)
+    const sign = select(f32(1.0), f32(-1.0), band < 6.0)
     const tx = sign * hx
     const ty = sign * hy
     const pattern = select(band, band - 6.0, band >= 6.0)

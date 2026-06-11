@@ -1,13 +1,18 @@
 import { f32, vec2f } from 'typegpu/data'
-import { abs, atan, atan2, ceil, clamp, cos, cosh, cross, degrees, distance, dot, exp, exp2, floor, fract, inverseSqrt, length, log, log2, max, min, mix, normalize, pow, radians, round, select, sign, sin, sinh, smoothstep, sqrt, step, tan, tanh, trunc, } from 'typegpu/std'
+import { abs, acos, acosh, asin, asinh, atan, atan2, atanh, ceil, clamp, cos, cosh, cross, degrees, distance, dot, exp, exp2, floor, fract, inverseSqrt, length, log, log2, max, min, mix, mod, normalize, pow, radians, round, select, sign, sin, sinh, smoothstep, sqrt, step, tan, tanh, trunc, } from 'typegpu/std'
 import { EPS, EPS_TINY, PI } from '../../constants'
 
 export const BUILTIN_EXTERNALS: Record<string, unknown> = {
   f32,
   vec2f,
   abs,
+  acos,
+  acosh,
+  asin,
+  asinh,
   atan,
   atan2,
+  atanh,
   ceil,
   clamp,
   cos,
@@ -27,6 +32,7 @@ export const BUILTIN_EXTERNALS: Record<string, unknown> = {
   max,
   min,
   mix,
+  mod,
   normalize,
   pow,
   radians,

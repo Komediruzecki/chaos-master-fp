@@ -61,7 +61,7 @@ export const taurusVar = parametricVariation(
 
     const sx = sin(pos.x)
     const cx = cos(pos.x)
-    const sy = sin(pos.y)
+    const sy = sin(pos.y * P.sor)
     const ir = P.inv * P.r + (1.0 - P.inv) * P.r * cos(P.n * pos.x)
 
     return vec2f(cx * (ir + sy), sx * (ir + sy)).mul(varInfo.weight)
