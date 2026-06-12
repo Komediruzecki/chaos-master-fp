@@ -1,0 +1,32 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "chaos-master-db",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-05-17",
+  "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "chaos-master-db",
+      "database_id": "",
+      "migrations_dir": "migrations",
+    },
+  ],
+  "vars": {
+    "JWT_SECRET": "chaos-master-jwt-secret-change-in-production",
+  },
+  "env": {
+    "prod": {
+      "name": "chaos-master-db",
+      "routes": [
+        {
+          "pattern": "api.chaos-master.com",
+          "custom_domain": true,
+        },
+      ],
+    },
+    "dev": {
+      "name": "chaos-master-db-dev",
+    },
+  },
+}
