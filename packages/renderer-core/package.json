@@ -9,6 +9,13 @@
     ".": "./src/index.ts",
     "./*": "./src/*"
   },
+  "typesVersions": {
+    "*": {
+      "*": [
+        "./src/*"
+      ]
+    }
+  },
   "dependencies": {
     "@typegpu/noise": "0.10.0",
     "typegpu": "0.10.2",
