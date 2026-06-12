@@ -82,17 +82,33 @@ export async function getServerRenderResult(
   return new Uint8Array(await res.arrayBuffer())
 }
 
+export interface PollOptions {
+  intervalMs?: number
+  timeoutMs?: number
+  signal?: AbortSignal
+}
+
 /**
  * Poll a render job until completion, calling onProgress with each status update.
  * Returns the final PNG bytes.
+ *
+ * Throws AbortError if the AbortSignal fires, or a generic Error on timeout.
  */
 export async function pollUntilComplete(
   serverUrl: string,
   jobId: string,
   onProgress: (job: ServerRenderJob) => void,
-  intervalMs = 500,
+  opts: PollOptions = {},
 ): Promise<Uint8Array> {
+  const { intervalMs = 500, timeoutMs = 300_000, signal } = opts
+  const started = Date.now()
+
   while (true) {
+    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
+    if (Date.now() - started > timeoutMs) {
+      throw new Error('Render timed out')
+    }
+
     const job = await getServerRenderStatus(serverUrl, jobId)
     onProgress(job)
 
@@ -104,6 +120,16 @@ export async function pollUntilComplete(
       throw new Error(job.error ?? 'Render failed')
     }
 
-    await new Promise((resolve) => setTimeout(resolve, intervalMs))
+    await new Promise<void>((resolve, reject) => {
+      const t = setTimeout(resolve, intervalMs)
+      signal?.addEventListener(
+        'abort',
+        () => {
+          clearTimeout(t)
+          reject(new DOMException('Aborted', 'AbortError'))
+        },
+        { once: true },
+      )
+    })
   }
 }

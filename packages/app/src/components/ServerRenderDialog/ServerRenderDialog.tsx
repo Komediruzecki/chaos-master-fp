@@ -43,7 +43,17 @@ export function createServerRenderDialog(
       }
     }
 
+    let abortController = new AbortController()
+
+    function cancelRender() {
+      abortController.abort()
+      abortController = new AbortController()
+    }
+
     async function handleSubmit() {
+      cancelRender()
+      const signal = abortController.signal
+
       setPhase('submitting')
       setErrorMessage('')
       setProgress(0)
@@ -64,6 +74,8 @@ export function createServerRenderDialog(
           quality: qual,
         })
 
+        if (signal.aborted) return
+
         setPhase('rendering')
 
         const png = await pollUntilComplete(
@@ -73,6 +85,7 @@ export function createServerRenderDialog(
             setProgress(job.progress)
             if (job.renderTimeMs) setRenderTimeMs(job.renderTimeMs)
           },
+          { signal, timeoutMs: 600_000 },
         )
 
         const resultBlob = new Blob([png as BlobPart], { type: 'image/png' })
@@ -81,6 +94,7 @@ export function createServerRenderDialog(
         setPhase('done')
         setProgress(1)
       } catch (e) {
+        if (signal.aborted && phase() === 'rendering') return
         setPhase('error')
         setErrorMessage(e instanceof Error ? e.message : String(e))
       }
@@ -106,6 +120,7 @@ export function createServerRenderDialog(
         <>
           <ModalTitleBar
             onClose={() => {
+              cancelRender()
               respond()
             }}
           >
@@ -203,6 +218,7 @@ export function createServerRenderDialog(
             </Show>
             <Button
               onClick={() => {
+                cancelRender()
                 respond()
               }}
             >

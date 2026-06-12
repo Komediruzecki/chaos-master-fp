@@ -111,6 +111,22 @@ async function handleSubmitRender(req: Request): Promise<Response> {
     return error('Missing options.width and options.height')
   }
 
+  const MAX_WIDTH = 7680
+  const MAX_HEIGHT = 4320
+  if (
+    options.width < 16 || options.width > MAX_WIDTH ||
+    options.height < 16 || options.height > MAX_HEIGHT
+  ) {
+    return error(
+      `Resolution must be 16×16 to ${MAX_WIDTH}×${MAX_HEIGHT} pixels`,
+    )
+  }
+
+  const quality = options.quality ?? 0.3
+  if (quality < 0.01 || quality > 1) {
+    return error('Quality must be between 0.01 and 1')
+  }
+
   // Validate flame JSON parses
   try {
     JSON.parse(flameJson)
@@ -127,7 +143,7 @@ async function handleSubmitRender(req: Request): Promise<Response> {
     options: {
       width: options.width,
       height: options.height,
-      quality: options.quality ?? 0.3,
+      quality,
     },
     createdAt: Date.now(),
   }
