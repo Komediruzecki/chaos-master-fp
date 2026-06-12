@@ -1,0 +1,52 @@
+name: Deploy Render Worker
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'workers/render-worker/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy Render Worker
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: '2.8.3'
+
+      - name: Type-check render worker
+        working-directory: workers/render-worker
+        run: deno check src/server.ts
+
+      - name: Build Docker image
+        working-directory: workers/render-worker
+        run: docker build -t chaos-master-render-worker .
+
+      # Deploy to VPS via SSH (requires SSH_HOST, SSH_USER, SSH_KEY secrets)
+      - name: Deploy to VPS
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd /opt/chaos-master-render-worker || git clone https://github.com/${{ github.repository }}.git /opt/chaos-master-render-worker
+            cd /opt/chaos-master-render-worker
+            git pull origin main
+            cd workers/render-worker
+            docker build -t chaos-master-render-worker .
+            docker stop chaos-master-render-worker || true
+            docker rm chaos-master-render-worker || true
+            docker run -d --name chaos-master-render-worker \
+              --restart unless-stopped \
+              -p 8787:8787 \
+              chaos-master-render-worker
