@@ -13,7 +13,8 @@ import { renderFlame } from './render.ts'
 import { hashString } from './rng.ts'
 import { tonemapAndColorGrade } from './tonemap.ts'
 
-// ---- job store ----
+// In-memory job store — MVP only; jobs are lost on restart.
+// TODO: persist to SQLite or D1 for production use.
 
 interface RenderJob {
   id: string

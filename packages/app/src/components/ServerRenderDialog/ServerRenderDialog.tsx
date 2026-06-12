@@ -141,9 +141,7 @@ export function createServerRenderDialog(
                   Deno render-worker endpoint. Defaults to localhost.
                 </span>
               </label>
-            </Show>
 
-            <Show when={phase() === 'config' || phase() === 'error'}>
               <div class={ui.fieldRow}>
                 <label class={ui.field}>
                   <span>Resolution</span>

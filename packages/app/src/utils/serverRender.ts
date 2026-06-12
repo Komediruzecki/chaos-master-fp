@@ -21,11 +21,6 @@ export interface ServerRenderJob {
   renderTimeMs?: number
 }
 
-export interface ServerRenderError {
-  error: string
-  status: number
-}
-
 export async function submitServerRender(
   serverUrl: string,
   flameJson: string,
