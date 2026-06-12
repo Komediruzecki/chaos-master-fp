@@ -3,8 +3,8 @@
  * Each takes [x, y], params object, and returns [x, y].
  */
 
+import type { Xoroshiro64 } from './rng.ts'
 import type { AffineCoefs, VariationParams } from './types.ts'
-import { Xoroshiro64 } from './rng.ts'
 
 const { PI, sin, cos, atan2, sqrt, exp, log, pow, abs, tan, cosh, sinh } = Math
 
@@ -16,14 +16,6 @@ function dot(a: [number, number], b: [number, number]): number {
 
 function len(v: [number, number]): number {
   return sqrt(v[0] * v[0] + v[1] * v[1])
-}
-
-function mul(v: [number, number], s: number): [number, number] {
-  return [v[0] * s, v[1] * s]
-}
-
-function div(v: [number, number], s: number): [number, number] {
-  return [v[0] / s, v[1] / s]
 }
 
 const EPS = 1e-10
@@ -712,10 +704,10 @@ export function applyTransform(
   rng: Xoroshiro64,
 ): [number, number] {
   // Pre-affine
-  let p = transformAffine(pos, preAffine)
+  const p = transformAffine(pos, preAffine)
 
   // Apply weighted variations
-  let result: [number, number] = [0, 0]
+  const result: [number, number] = [0, 0]
   for (const v of variations) {
     const fn = SIMPLE_VARIATIONS[v.name]
     if (!fn) continue

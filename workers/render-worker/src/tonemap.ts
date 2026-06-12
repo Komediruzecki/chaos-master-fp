@@ -5,16 +5,10 @@
 
 import { BUCKET_FIXED_POINT_MULTIPLIER_INV } from './types.ts'
 
-const { PI, sin, cos, sqrt, exp, log, pow, abs, max, min, floor, ceil, round } =
+const { PI, sin, cos, exp, log, pow, max, min, floor, ceil, round } =
   Math
 
 // ---- OkLab ↔ sRGB conversions ----
-
-interface OkLab {
-  L: number
-  a: number
-  b: number
-}
 
 interface RGB {
   r: number
@@ -128,9 +122,7 @@ interface TonemapParams {
   outputAlpha: number
 }
 
-function defaultTonemapParams(
-  hasPalette: boolean,
-): TonemapParams {
+function defaultTonemapParams(): TonemapParams {
   return {
     exposure: 1.2,
     contrast: 1.5,
@@ -162,7 +154,7 @@ export function tonemapAndColorGrade(
 ): Uint8Array {
   const stride = 4
   const pixels = new Uint8Array(width * height * 4)
-  const params = defaultTonemapParams(!!palette)
+  const params = defaultTonemapParams()
 
   if (brightness !== undefined) params.brightness = brightness
   if (gamma !== undefined) params.gamma = gamma
@@ -240,14 +232,14 @@ export function tonemapAndColorGrade(
 
       // Log-density tonemapping
       const logDensity = log(adjustedCount * params.exposure + 1)
-      let toneValue = max(0, min(1, logDensity * params.contrast))
+      const toneValue = max(0, min(1, logDensity * params.contrast))
 
       // Palette color lookup
       let finalA = colorA
       let finalB = colorB
 
       if (hasPalette) {
-        const entries = paletteEntries!
+        const entries = paletteEntries
         const normVal = adjustedCount / max(avgCount, 1)
         const logNorm = log(normVal * params.exposure + 1) * params.contrast
 
@@ -303,7 +295,6 @@ export function tonemapAndColorGrade(
       if (toneValue > 0.9) {
         const factor = ((toneValue - 0.9) / 0.1) * params.highlightPower
         const lum = 0.2126 * rgb.r + 0.7152 * rgb.g + 0.0722 * rgb.b
-        const desat = (1 - factor) + factor
         rgb.r = rgb.r * (1 - factor) + lum * factor
         rgb.g = rgb.g * (1 - factor) + lum * factor
         rgb.b = rgb.b * (1 - factor) + lum * factor

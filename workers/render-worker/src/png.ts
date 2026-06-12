@@ -58,8 +58,8 @@ async function deflate(data: Uint8Array): Promise<Uint8Array> {
   const writer = cs.writable.getWriter()
   const reader = cs.readable.getReader()
 
-  writer.write(data.buffer as ArrayBuffer)
-  writer.close()
+  void writer.write(data.buffer as ArrayBuffer)
+  void writer.close()
 
   const chunks: Uint8Array[] = []
   let totalLen = 0

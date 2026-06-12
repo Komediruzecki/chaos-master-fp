@@ -23,6 +23,7 @@ import { ColorPicker } from '../ColorPicker/ColorPicker'
 import { useRequestModal } from '../Modal/ModalContext'
 import { ModalTitleBar } from '../Modal/ModalTitleBar'
 import { defaultPills, getNearestPresetKey, QualityPresets, qualityPresets, } from '../Quality/QualityPresets'
+import { createServerRenderDialog } from '../ServerRenderDialog/ServerRenderDialog'
 import ui from './ExportPngDialog.module.css'
 import { FramePreviewGallery } from './FramePreviewGallery'
 import type { Setter } from 'solid-js'
@@ -72,6 +73,7 @@ type RenderDialogProps = {
   onCondenseHiddenChange: (v: boolean) => void
   onCancel: () => void
   onExport: () => void
+  onServerRender?: () => void
   exportTab: 'image' | 'animation'
   onExportTabChange: (tab: 'image' | 'animation') => void
   animationQuality: number
@@ -574,6 +576,9 @@ function RenderDialog(props: RenderDialogProps) {
       <footer class={ui.footer}>
         <Button onClick={props.onCancel}>Cancel</Button>
         <Show when={props.exportTab === 'image'}>
+          <Show when={props.onServerRender}>
+            <Button onClick={props.onServerRender}>Server Render</Button>
+          </Show>
           <Button onClick={props.onExport}>Export Image</Button>
         </Show>
         <Show when={props.exportTab === 'animation'}>
@@ -604,6 +609,8 @@ export function createExportPngDialog(
 ) {
   const requestModal = useRequestModal()
   const [exportModalIsOpen, setExportModalIsOpen] = createSignal(false)
+
+  const serverRender = createServerRenderDialog(() => flameDescriptor)
 
   function quickExport() {
     const timeline = getTimeline()
@@ -903,6 +910,10 @@ export function createExportPngDialog(
           onExport={() => {
             handleExport()
             respond()
+          }}
+          onServerRender={() => {
+            respond()
+            void serverRender.show()
           }}
           exportTab={exportTab()}
           onExportTabChange={setExportTab}

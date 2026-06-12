@@ -3,12 +3,12 @@
  * Mirrors the WebGPU pipeline: point init → skip-iters → IFS loop → accumulate → tonemap.
  */
 
-import type { AffineCoefs, Bucket, Transform, VariationParams } from './types.ts'
+import { hashString,Xoroshiro64 } from './rng.ts'
 import { BUCKET_FIXED_POINT_MULTIPLIER } from './types.ts'
-import { Xoroshiro64, hashString } from './rng.ts'
-import { applyTransform, transformAffine } from './variations.ts'
+import { applyTransform } from './variations.ts'
+import type { AffineCoefs, VariationParams } from './types.ts'
 
-const { PI, sin, cos, sqrt, log, atan2, floor } = Math
+const { PI, sin, cos, sqrt, log, floor } = Math
 
 // ---- flame descriptor input types ----
 
@@ -112,7 +112,8 @@ const POINT_INIT_MODES: Record<string, PointInitFn> = {
     return [radius * cos(theta), radius * sin(theta)]
   },
   pointInitHalton: (rng) => {
-    let i = rng.nextU32()
+    const i = rng.nextU32()
+
     function halton(idx: number, base: number): number {
       let f = 1.0
       let r = 0.0
@@ -163,7 +164,7 @@ export function renderFlame(
 
   // Normalize transform weights to probabilities
   const totalWeight = flame.transforms.reduce((s, t) => s + t.weight, 0) || 1
-  const transforms = flame.transforms.map((t, i) => ({
+  const transforms = flame.transforms.map((t, _i) => ({
     ...t,
     probability: t.weight / totalWeight,
     cumulativeProb: 0,
@@ -214,9 +215,9 @@ export function renderFlame(
       const py = floor(screen[1])
       if (px >= 0 && px < width && py >= 0 && py < height) {
         const idx = (py * width + px) * stride
-        buckets[idx] += BUCKET_FIXED_POINT_MULTIPLIER
-        buckets[idx + 1] += color[0] * BUCKET_FIXED_POINT_MULTIPLIER
-        buckets[idx + 2] += color[1] * BUCKET_FIXED_POINT_MULTIPLIER
+        buckets[idx] = buckets[idx]! + BUCKET_FIXED_POINT_MULTIPLIER
+        buckets[idx + 1] = buckets[idx + 1]! + color[0] * BUCKET_FIXED_POINT_MULTIPLIER
+        buckets[idx + 2] = buckets[idx + 2]! + color[1] * BUCKET_FIXED_POINT_MULTIPLIER
       }
     }
 

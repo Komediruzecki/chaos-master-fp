@@ -10,8 +10,8 @@
 
 import { encodePNG } from './png.ts'
 import { renderFlame } from './render.ts'
-import { tonemapAndColorGrade } from './tonemap.ts'
 import { hashString } from './rng.ts'
+import { tonemapAndColorGrade } from './tonemap.ts'
 
 // ---- job store ----
 
@@ -118,15 +118,15 @@ async function handleSubmitRender(req: Request): Promise<Response> {
     return error('Invalid flameJson: must be valid JSON')
   }
 
-  const jobId = crypto.randomUUID()
+  const jobId = globalThis.crypto.randomUUID()
   const job: RenderJob = {
     id: jobId,
     status: 'queued',
     progress: 0,
     flameJson,
     options: {
-      width: options.width!,
-      height: options.height!,
+      width: options.width,
+      height: options.height,
       quality: options.quality ?? 0.3,
     },
     createdAt: Date.now(),
@@ -135,12 +135,12 @@ async function handleSubmitRender(req: Request): Promise<Response> {
   jobs.set(jobId, job)
 
   // Execute asynchronously (don't await)
-  executeJob(job)
+  void executeJob(job)
 
   return json({ jobId, status: 'queued' }, 201)
 }
 
-async function handleGetJobStatus(_req: Request, jobId: string): Promise<Response> {
+function handleGetJobStatus(_req: Request, jobId: string): Response {
   const job = jobs.get(jobId)
   if (!job) return error('Job not found', 404)
 
@@ -153,7 +153,7 @@ async function handleGetJobStatus(_req: Request, jobId: string): Promise<Respons
   })
 }
 
-async function handleGetJobResult(_req: Request, jobId: string): Promise<Response> {
+function handleGetJobResult(_req: Request, jobId: string): Response {
   const job = jobs.get(jobId)
   if (!job) return error('Job not found', 404)
   if (job.status === 'queued' || job.status === 'running') {
@@ -215,5 +215,5 @@ async function handleRequest(req: Request): Promise<Response> {
 // ---- start server ----
 
 const port = parseInt(Deno.env.get('PORT') ?? '8787')
-console.log(`render-worker listening on http://localhost:${port}`)
+console.info(`render-worker listening on http://localhost:${port}`)
 Deno.serve({ port }, handleRequest)
