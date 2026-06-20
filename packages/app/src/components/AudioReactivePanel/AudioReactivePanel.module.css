@@ -1,0 +1,311 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-card, rgba(255, 255, 255, 0.08));
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text, #e0e0e0);
+}
+
+.closeBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: none;
+  color: var(--color-text-muted, #888);
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.closeBtn:hover {
+  background: var(--color-card-hover, rgba(255, 255, 255, 0.08));
+  color: var(--color-text, #e0e0e0);
+}
+
+.body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* --- Drop zone --- */
+.dropZone {
+  border: 2px dashed var(--color-card, rgba(255, 255, 255, 0.12));
+  border-radius: 10px;
+  padding: 28px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+
+.dropZone:hover,
+.dropZoneActive {
+  border-color: var(--color-accent, #7c6ff7);
+  background: rgba(124, 111, 247, 0.06);
+}
+
+.dropIcon {
+  font-size: 24px;
+  margin-bottom: 8px;
+  opacity: 0.5;
+}
+
+.dropLabel {
+  font-size: 13px;
+  color: var(--color-text-muted, #888);
+}
+
+.dropFormats {
+  font-size: 11px;
+  color: var(--color-text-muted, #666);
+  margin-top: 4px;
+}
+
+/* --- Audio loaded state --- */
+.audioInfo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--color-card, rgba(255, 255, 255, 0.05));
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.audioFileName {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text, #e0e0e0);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.audioDuration {
+  font-size: 12px;
+  color: var(--color-text-muted, #888);
+  flex-shrink: 0;
+}
+
+.clearAudioBtn {
+  font-size: 11px;
+  padding: 4px 10px;
+  border: 1px solid var(--color-card, rgba(255, 255, 255, 0.12));
+  border-radius: 5px;
+  background: none;
+  color: var(--color-text-muted, #888);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.clearAudioBtn:hover {
+  background: rgba(255, 80, 80, 0.12);
+  border-color: rgba(255, 80, 80, 0.3);
+  color: #ff5a5a;
+}
+
+/* --- Waveform viz --- */
+.waveformWrap {
+  flex-shrink: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--color-card, rgba(255, 255, 255, 0.04));
+}
+
+.waveform {
+  display: block;
+  width: 100%;
+  height: 80px;
+}
+
+/* --- Section label --- */
+.sectionLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted, #888);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 6px;
+}
+
+/* --- Preset buttons --- */
+.presetRow {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.presetBtn {
+  font-size: 12px;
+  padding: 5px 12px;
+  border: 1px solid var(--color-card, rgba(255, 255, 255, 0.12));
+  border-radius: 6px;
+  background: none;
+  color: var(--color-text-muted, #aaa);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.presetBtn:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--color-text, #e0e0e0);
+}
+
+.presetBtnActive {
+  border-color: var(--color-accent, #7c6ff7);
+  background: rgba(124, 111, 247, 0.12);
+  color: var(--color-accent, #b5a9ff);
+}
+
+/* --- Mappings list --- */
+.mappingsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mappingRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mappingSelect {
+  font-size: 12px;
+  padding: 4px 8px;
+  border: 1px solid var(--color-card, rgba(255, 255, 255, 0.12));
+  border-radius: 5px;
+  background: var(--color-bg, #1a1a2e);
+  color: var(--color-text, #d0d0d0);
+  cursor: pointer;
+  flex: 1;
+  min-width: 0;
+}
+
+.mappingSelect:focus {
+  outline: none;
+  border-color: var(--color-accent, #7c6ff7);
+}
+
+.arrow {
+  font-size: 11px;
+  color: var(--color-text-muted, #666);
+  flex-shrink: 0;
+}
+
+.sensitivityLabel {
+  font-size: 10px;
+  color: var(--color-text-muted, #888);
+  min-width: 36px;
+  text-align: center;
+}
+
+.sensitivitySlider {
+  width: 60px;
+  flex-shrink: 0;
+  accent-color: var(--color-accent, #7c6ff7);
+}
+
+.removeMappingBtn {
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: none;
+  color: var(--color-text-muted, #666);
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.removeMappingBtn:hover {
+  background: rgba(255, 80, 80, 0.12);
+  color: #ff5a5a;
+}
+
+.addMappingBtn {
+  font-size: 12px;
+  padding: 6px 0;
+  border: none;
+  background: none;
+  color: var(--color-accent, #7c6ff7);
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.addMappingBtn:hover {
+  text-decoration: underline;
+}
+
+/* --- Bottom bar --- */
+.bottomBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-top: 1px solid var(--color-card, rgba(255, 255, 255, 0.08));
+  flex-shrink: 0;
+}
+
+.enableToggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--color-text, #e0e0e0);
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggleSwitch {
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s;
+  background: rgba(255, 255, 255, 0.15);
+  flex-shrink: 0;
+}
+
+.toggleSwitchOn {
+  background: var(--color-accent, #7c6ff7);
+}
+
+.toggleKnob {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  transition: transform 0.2s;
+}
+
+.toggleSwitchOn .toggleKnob {
+  transform: translateX(16px);
+}

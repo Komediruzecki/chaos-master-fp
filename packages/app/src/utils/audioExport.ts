@@ -197,28 +197,25 @@ function createAudioVideoPipeline(
     if (audioEncodeDone) return
     initAudioEncoder()
 
-    // Construct AudioData from AudioBuffer — planar format matches getChannelData layout.
-    // Two branches keep format and data types correlated for TypeScript.
-    const audioData =
-      audioBuffer.numberOfChannels === 1
-        ? new AudioData({
-            format: 'f32',
-            sampleRate: audioBuffer.sampleRate,
-            numberOfFrames: audioBuffer.length,
-            numberOfChannels: 1,
-            timestamp: 0,
-            data: audioBuffer.getChannelData(0),
-          })
-        : new AudioData({
-            format: 'f32-planar',
-            sampleRate: audioBuffer.sampleRate,
-            numberOfFrames: audioBuffer.length,
-            numberOfChannels: audioBuffer.numberOfChannels,
-            timestamp: 0,
-            data: Array.from({ length: audioBuffer.numberOfChannels }, (_, i) =>
+    // Construct AudioData from AudioBuffer.
+    // TS discriminated union on AudioDataInit format is hard to satisfy through a
+    // conditional — the branches unify instead of narrowing. Build with assertion.
+    const audioDataInit = {
+      format: ((audioBuffer.numberOfChannels === 1
+        ? 'f32'
+        : 'f32-planar') as AudioDataInit['format']),
+      sampleRate: audioBuffer.sampleRate,
+      numberOfFrames: audioBuffer.length,
+      numberOfChannels: audioBuffer.numberOfChannels,
+      timestamp: 0,
+      data:
+        audioBuffer.numberOfChannels === 1
+          ? audioBuffer.getChannelData(0)
+          : Array.from({ length: audioBuffer.numberOfChannels }, (_, i) =>
               audioBuffer.getChannelData(i),
             ),
-          })
+    }
+    const audioData = new AudioData(audioDataInit as AudioDataInit)
 
     audioEncoder!.encode(audioData)
     audioData.close()
