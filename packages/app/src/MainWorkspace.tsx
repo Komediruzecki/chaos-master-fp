@@ -1165,12 +1165,12 @@ export function MainWorkspace(props: AppProps) {
     return lo + normalizedValue * mapping.sensitivity * (hi - lo)
   }
 
-  function applyAudioMappings(frameIndex: number) {
-    const buffer = audioBuffer()
-    if (!buffer) return
+  function applyAudioMappings(
+    frameIndex: number,
+    analyzer: ReturnType<typeof createAudioAnalyzer>,
+  ) {
     const mappings = audioMapping().mappings
     if (mappings.length === 0) return
-    const analyzer = createAudioAnalyzer(buffer, 30)
     const frameData = analyzer.getFrameData(frameIndex % analyzer.totalFrames)
     setFlameDescriptor((draft) => {
       const rs: Record<string, unknown> = draft.renderSettings ?? {}
@@ -1197,8 +1197,9 @@ export function MainWorkspace(props: AppProps) {
     const buffer = audioBuffer()
     if (!enabled || !buffer) return
     let frame = 0
+    const analyzer = createAudioAnalyzer(buffer, 30)
     const interval = setInterval(() => {
-      applyAudioMappings(frame++)
+      applyAudioMappings(frame++, analyzer)
     }, 1000 / 30)
     onCleanup(() => {
       clearInterval(interval)
