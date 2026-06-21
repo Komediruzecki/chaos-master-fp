@@ -358,14 +358,25 @@ export async function createLiveAnalyzer(
   let lastBeatAt = -minGapFrames
   let frameCount = 0
 
+  // Pre-allocated FFT buffers reused every frame to avoid GC pressure at 30fps.
+  const fftReal = new Float64Array(fftSize)
+  const fftImag = new Float64Array(fftSize)
+  const fftMags = new Float32Array(fftSize / 2)
+  const timeData = new Float32Array(fftSize)
+
   const getFrameData = (): FrameData & { isBeat: boolean } => {
-    const timeData = new Float32Array(analyser.fftSize)
     analyser.getFloatTimeDomainData(timeData)
 
-    const { bands, centroid, flatness } = fftMagnitudeSpectrum(
-      timeData,
-      sampleRate,
-    )
+    // Inline FFT reusing pre-allocated buffers (same algorithm as fftMagnitudeSpectrum).
+    for (let i = 0; i < fftSize; i++) fftReal[i] = timeData[i] ?? 0
+    fftImag.fill(0)
+    fft(fftReal, fftImag)
+    for (let k = 0; k < fftSize / 2; k++) {
+      fftMags[k] =
+        Math.sqrt(fftReal[k]! * fftReal[k]! + fftImag[k]! * fftImag[k]!) /
+        fftSize
+    }
+    const { bands, centroid, flatness } = getFftBands(fftMags, sampleRate)
     const rms = computeRms(timeData)
 
     const frame: FrameData = { bands, rms, centroid, flatness }

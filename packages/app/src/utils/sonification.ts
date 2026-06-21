@@ -102,6 +102,8 @@ function createVoice(ctx: AudioContext, destination: AudioNode): Voice {
 function releaseVoice(voice: Voice, _ctx: AudioContext): void {
   voice.gain.gain.linearRampToValueAtTime(0, _ctx.currentTime + 0.15)
   voice.active = false
+  // Oscillator runs at gain 0 — negligible CPU. Stopping would be terminal
+  // and prevent re-trigger. The engine disposes all voices on cleanup.
 }
 
 function triggerVoice(
@@ -389,7 +391,9 @@ function createAmbientEngine(ctx: AudioContext, config: SonificationConfig) {
   }
 
   function setReverbMix(_mix: number): void {
-    /* Ambient model drives reverb from zoom; manual override is additive */
+    /* Ambient engine reads reverbMix from the shared config object directly
+		   in update(), where it acts as an upper bound for zoom-driven reverb.
+		   No per-call action needed — the slider works via config.reverbMix. */
   }
 
   function dispose(): void {

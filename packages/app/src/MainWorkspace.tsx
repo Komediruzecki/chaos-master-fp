@@ -96,7 +96,9 @@ import {
   applyAudioMappingsToFlame,
   createAudioAnalyzer,
 } from './utils/audioAnalysis'
-import type { AudioMappingEntry } from './utils/audioAnalysis'
+import type { AudioMappingEntry, LiveAudioAnalyzer } from './utils/audioAnalysis'
+import { useAudioReactive } from './utils/useAudioReactive'
+import { useSonification } from './utils/useSonification'
 import { downloadBlob } from './utils/blob'
 import { deepClone } from './utils/clone'
 import { createStoreHistory } from './utils/createStoreHistory'
@@ -110,7 +112,7 @@ import { addRandomizerHistoryEntry, clearRandomizerHistory, loadRandomizerHistor
 import { buildReadableIds } from './utils/readableIds'
 import { getOldestRecentFlame, saveRecentFlame, upsertRecentFlame, } from './utils/recentFlames'
 import { createShareLink, deriveOgMeta, uploadOgPreview, } from './utils/shareLink'
-import { createSonificationEngine } from './utils/sonification'
+import type { SonificationConfig } from './utils/sonification'
 import { sum } from './utils/sum'
 import { createTimelineState, resolveKeyframeValue } from './utils/timeline'
 import { sortedTransformEntries } from './utils/transformOrder'
@@ -137,7 +139,6 @@ import type { ExportDimensions } from './utils/exportDimensions'
 import type { HardwareTier } from './utils/hardwareTier'
 import type { SharePayload } from './utils/jsonQueryParam'
 import type { RandomizerHistoryEntry } from './utils/randomizerHistoryDB'
-import type { SonificationConfig } from './utils/sonification'
 import type { EasingCurve, TimelineTrack } from './utils/timeline'
 import type { CommandContext } from '@/commands/types'
 
@@ -637,6 +638,10 @@ export function MainWorkspace(props: AppProps) {
       },
     ],
   })
+  const [audioSource, setAudioSource] = createSignal<'file' | 'mic'>('file')
+  const [liveAnalyzer, setLiveAnalyzer] = createSignal<
+    LiveAudioAnalyzer | undefined
+  >(undefined)
 
   // Sonification state
   const [showSonificationPanel, setShowSonificationPanel] = createSignal(false)
@@ -1157,102 +1162,19 @@ export function MainWorkspace(props: AppProps) {
   // Ctrl+Z/Ctrl+Y and the toolbar buttons all route through this.
   const undoRouter = createUndoRouter(history, timeline)
 
-  // --- Audio-reactive helpers ---
-
-  function applyAudioMappings(
-    frameIndex: number,
-    analyzer: ReturnType<typeof createAudioAnalyzer>,
-  ) {
-    const mappings = audioMapping().mappings
-    if (mappings.length === 0) return
-    const frameData = analyzer.getFrameData(frameIndex % analyzer.totalFrames)
-    setFlameDescriptor((draft) => {
-      applyAudioMappingsToFlame(draft, frameData, mappings)
-    })
-  }
-
   // Audio-reactive loop: plays audio through AudioContext, drives
-  // renderSettings at 30fps synced to playback time. Skips redundant
-  // setFlameDescriptor calls when the frame index hasn't changed.
-  createEffect(() => {
-    const enabled = audioEnabled()
-    const buffer = audioBuffer()
-    if (!enabled || !buffer) return
+  // renderSettings at 30fps synced to playback time.
+  useAudioReactive(
+    audioEnabled,
+    audioBuffer,
+    audioMapping,
+    setFlameDescriptor,
+    liveAnalyzer,
+    audioSource,
+  )
 
-    const analyzer = createAudioAnalyzer(buffer, 30)
-
-    let audioCtx: AudioContext | undefined
-    let source: AudioBufferSourceNode | undefined
-
-    try {
-      audioCtx = new AudioContext()
-      source = audioCtx.createBufferSource()
-      source.buffer = buffer
-      source.loop = true
-      source.connect(audioCtx.destination)
-      source.start()
-    } catch {
-      // Autoplay blocked or other error — run blind frame counter without audio.
-      void audioCtx?.close()
-      audioCtx = undefined
-    }
-
-    let lastFrame = -1
-    const tickMs = 1000 / 30
-
-    const interval = setInterval(() => {
-      const frame = audioCtx
-        ? Math.floor(audioCtx.currentTime * 30) % analyzer.totalFrames
-        : lastFrame + 1
-      if (frame !== lastFrame) {
-        applyAudioMappings(frame, analyzer)
-        lastFrame = frame
-      }
-    }, tickMs)
-
-    onCleanup(() => {
-      clearInterval(interval)
-      try {
-        source?.stop()
-      } catch {
-        // May already be stopped.
-      }
-      source?.disconnect()
-      void audioCtx?.close()
-    })
-  })
-
-  // Sonification loop: creates a Web Audio engine that reads flame
-  // descriptor properties and synthesizes audio in real-time.
-  createEffect(() => {
-    const enabled = sonificationEnabled()
-    if (!enabled) return
-
-    const cfg = untrack(sonificationConfig)
-    const engine = createSonificationEngine(cfg)
-
-    let interval = setInterval(() => {
-      engine.update(flameDescriptor)
-    }, 1000 / cfg.updateRate)
-
-    let lastUpdateRate = cfg.updateRate
-    createEffect(() => {
-      const newCfg = sonificationConfig()
-      if (newCfg.updateRate !== lastUpdateRate) {
-        clearInterval(interval)
-        interval = setInterval(() => {
-          engine.update(flameDescriptor)
-        }, 1000 / newCfg.updateRate)
-        lastUpdateRate = newCfg.updateRate
-      }
-      engine.setConfig(newCfg)
-    })
-
-    onCleanup(() => {
-      clearInterval(interval)
-      engine.dispose()
-    })
-  })
+  // Sonification loop: synthesizes audio in real-time from flame structure.
+  useSonification(sonificationEnabled, sonificationConfig, flameDescriptor)
 
   /**
    * Capture the current flame as a downscaled PNG for OG link previews.
@@ -5233,6 +5155,10 @@ export function MainWorkspace(props: AppProps) {
                           onMappingChange={setAudioMapping}
                           audioEnabled={audioEnabled}
                           onEnabledChange={setAudioEnabled}
+                          audioSource={audioSource}
+                          onSourceChange={setAudioSource}
+                          liveAnalyzer={liveAnalyzer}
+                          onLiveAnalyzerChange={setLiveAnalyzer}
                         />
                       </Show>
                     }
