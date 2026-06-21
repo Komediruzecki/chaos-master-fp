@@ -1,8 +1,8 @@
 import { createEffect, onCleanup, untrack } from 'solid-js'
-import type { Accessor } from 'solid-js'
-import type { FlameDescriptor } from '@/flame/schema/flameSchema'
-import type { SonificationConfig } from './sonification'
 import { createSonificationEngine } from './sonification'
+import type { Accessor } from 'solid-js'
+import type { SonificationConfig } from './sonification'
+import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 
 /**
  * Sonification effect hook: creates a Web Audio engine that reads flame

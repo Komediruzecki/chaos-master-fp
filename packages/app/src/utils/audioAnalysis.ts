@@ -16,6 +16,7 @@ export type FrameData = {
   rms: number
   centroid: number
   flatness: number
+  onsetStrength: number
 }
 
 export type AudioAnalyzer = {
@@ -217,6 +218,55 @@ function computeBeats(
   return beats
 }
 
+// --- Onset detection ---
+// Onset strength = positive delta of RMS × centroid, normalized against a
+// rolling median. Produces a 0-1 value per frame; values > 0 indicate an
+// onset transient (drum hit, plosive, sharp attack). The caller applies an
+// exponential decay envelope (50-100ms half-life) to smooth the visual effect.
+
+function computeOnsetStrengths(
+  totalFrames: number,
+  getData: (i: number) => { rms: number; centroid: number },
+): Float32Array {
+  const strengths = new Float32Array(totalFrames)
+  if (totalFrames < 3) return strengths
+
+  // Compute frame-to-frame energy deltas
+  const deltas: number[] = []
+  for (let i = 1; i < totalFrames; i++) {
+    const prev = getData(i - 1)
+    const curr = getData(i)
+    const prevEnergy = prev.rms * Math.max(1, prev.centroid)
+    const currEnergy = curr.rms * Math.max(1, curr.centroid)
+    deltas.push(Math.max(0, currEnergy - prevEnergy))
+  }
+
+  // Rolling median over a window of ~0.5s worth of frames
+  const windowSize = Math.max(3, Math.min(15, Math.floor(deltas.length / 2)))
+  const thresholdFactor = 2.5
+
+  for (let i = 1; i < totalFrames; i++) {
+    const delta = deltas[i - 1]!
+
+    // Compute rolling median of nearby deltas (exclude current)
+    const windowStart = Math.max(0, i - 1 - windowSize)
+    const windowEnd = Math.min(deltas.length - 1, i - 1 + windowSize)
+    const window: number[] = []
+    for (let j = windowStart; j <= windowEnd; j++) {
+      if (j !== i - 1) window.push(deltas[j]!)
+    }
+    window.sort((a, b) => a - b)
+    const median =
+      window.length > 0 ? window[Math.floor(window.length / 2)]! : 0
+
+    if (delta > median * thresholdFactor && median > 1e-8) {
+      strengths[i] = Math.min(1, delta / (median * thresholdFactor * 2))
+    }
+  }
+
+  return strengths
+}
+
 // --- Public API ---
 
 export function createAudioAnalyzer(
@@ -267,7 +317,7 @@ export function createAudioAnalyzer(
     )
     const rms = computeRms(slice)
 
-    frame = { bands, rms, centroid, flatness }
+    frame = { bands, rms, centroid, flatness, onsetStrength: 0 }
     frameCache.set(i, frame)
     onProgress?.(i + 1, totalFrames)
     return frame
@@ -279,6 +329,13 @@ export function createAudioAnalyzer(
   }
 
   const beatFrames = computeBeats(totalFrames, getOrComputeFrame)
+
+  // Compute onset strengths and patch into frame cache
+  const onsetStrengths = computeOnsetStrengths(totalFrames, getOrComputeFrame)
+  for (let i = 0; i < totalFrames; i++) {
+    const frame = frameCache.get(i)
+    if (frame) frame.onsetStrength = onsetStrengths[i] ?? 0
+  }
 
   return {
     getFrameData(frameIndex: number) {
@@ -358,6 +415,11 @@ export async function createLiveAnalyzer(
   let lastBeatAt = -minGapFrames
   let frameCount = 0
 
+  // Onset detection state — tracks recent energy deltas for rolling median.
+  const onsetDeltaHistory: number[] = []
+  const onsetWindowSize = 15
+  let prevOnsetEnergy = 0
+
   // Pre-allocated FFT buffers reused every frame to avoid GC pressure at 30fps.
   const fftReal = new Float64Array(fftSize)
   const fftImag = new Float64Array(fftSize)
@@ -379,7 +441,24 @@ export async function createLiveAnalyzer(
     const { bands, centroid, flatness } = getFftBands(fftMags, sampleRate)
     const rms = computeRms(timeData)
 
-    const frame: FrameData = { bands, rms, centroid, flatness }
+    // Onset strength from frame-to-frame energy delta
+    const energy = rms * Math.max(1, centroid)
+    const delta = Math.max(0, energy - prevOnsetEnergy)
+    prevOnsetEnergy = energy
+
+    onsetDeltaHistory.push(delta)
+    if (onsetDeltaHistory.length > onsetWindowSize) onsetDeltaHistory.shift()
+
+    let onsetStrength = 0
+    if (onsetDeltaHistory.length >= 3) {
+      const sorted = [...onsetDeltaHistory].sort((a, b) => a - b)
+      const median = sorted[Math.floor(sorted.length / 2)]!
+      if (delta > median * 2.5 && median > 1e-8) {
+        onsetStrength = Math.min(1, delta / (median * 5))
+      }
+    }
+
+    const frame: FrameData = { bands, rms, centroid, flatness, onsetStrength }
 
     history.push(frame)
     if (history.length > maxHistory) history.shift()
@@ -397,7 +476,7 @@ export async function createLiveAnalyzer(
     getFrameData,
     sampleRate,
     dispose() {
-      stream.getTracks().forEach((t) => t.stop())
+      stream.getTracks().forEach((t) => { t.stop(); })
       source.disconnect()
       analyser.disconnect()
       void audioCtx.close()
@@ -421,6 +500,7 @@ export type AudioMappingEntry = {
     | 'centroid'
     | 'flatness'
     | 'beat'
+    | 'onset'
   flameParam:
     | 'vibrancy'
     | 'exposure'
@@ -442,6 +522,7 @@ function getAudioFeatureNormalized(
   feature: AudioMappingEntry['audioFeature'],
 ): number {
   if (feature === 'beat') return frameData.isBeat ? 1 : 0
+  if (feature === 'onset') return frameData.onsetStrength
   if (feature === 'rms') return Math.min(1, frameData.rms)
   if (feature === 'centroid') return Math.min(1, frameData.centroid / 20000)
   if (feature === 'flatness') return frameData.flatness

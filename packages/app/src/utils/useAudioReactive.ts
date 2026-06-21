@@ -1,8 +1,9 @@
 import { createEffect, onCleanup } from 'solid-js'
+import { applyAudioMappingsToFlame, createAudioAnalyzer  } from './audioAnalysis'
 import type { Accessor } from 'solid-js'
+import type {LiveAudioAnalyzer} from './audioAnalysis';
 import type { AudioMapping } from '@/components/AudioReactivePanel/AudioReactivePanel'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
-import { applyAudioMappingsToFlame, createAudioAnalyzer, type LiveAudioAnalyzer, } from './audioAnalysis'
 
 type SetFlameDescriptor = (fn: (draft: FlameDescriptor) => void) => void
 

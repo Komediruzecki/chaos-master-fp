@@ -112,13 +112,14 @@ import { addRandomizerHistoryEntry, clearRandomizerHistory, loadRandomizerHistor
 import { buildReadableIds } from './utils/readableIds'
 import { getOldestRecentFlame, saveRecentFlame, upsertRecentFlame, } from './utils/recentFlames'
 import { createShareLink, deriveOgMeta, uploadOgPreview, } from './utils/shareLink'
-import type { SonificationConfig } from './utils/sonification'
 import { sum } from './utils/sum'
 import { createTimelineState, resolveKeyframeValue } from './utils/timeline'
 import { sortedTransformEntries } from './utils/transformOrder'
 import { createUndoRouter } from './utils/undoRouting'
 import { useAppDragAndDrop } from './utils/useAppDragAndDrop'
+import { useAudioReactive } from './utils/useAudioReactive'
 import { useKeyboardShortcuts } from './utils/useKeyboardShortcuts'
+import { useSonification } from './utils/useSonification'
 import type { Setter } from 'solid-js'
 import type { v2f } from 'typegpu/data'
 import type { Vec3 } from 'wgpu-matrix'
@@ -135,10 +136,12 @@ import type { TransformVariationType } from './flame/variations'
 import type { CustomVariationDef } from './flame/variations/custom/types'
 import type { TransformVariationType3D } from './flame/variations3D'
 import type { AnimationExportConfig } from './utils/animationExport'
+import type { LiveAudioAnalyzer } from './utils/audioAnalysis'
 import type { ExportDimensions } from './utils/exportDimensions'
 import type { HardwareTier } from './utils/hardwareTier'
 import type { SharePayload } from './utils/jsonQueryParam'
 import type { RandomizerHistoryEntry } from './utils/randomizerHistoryDB'
+import type { SonificationConfig } from './utils/sonification'
 import type { EasingCurve, TimelineTrack } from './utils/timeline'
 import type { CommandContext } from '@/commands/types'
 
@@ -639,9 +642,8 @@ export function MainWorkspace(props: AppProps) {
     ],
   })
   const [audioSource, setAudioSource] = createSignal<'file' | 'mic'>('file')
-  const [liveAnalyzer, setLiveAnalyzer] = createSignal<
-    LiveAudioAnalyzer | undefined
-  >(undefined)
+  const [liveAnalyzer, setLiveAnalyzer] =
+    createSignal<LiveAudioAnalyzer | undefined>(undefined)
 
   // Sonification state
   const [showSonificationPanel, setShowSonificationPanel] = createSignal(false)
