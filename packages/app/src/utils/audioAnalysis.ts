@@ -25,6 +25,12 @@ export type AudioAnalyzer = {
   sampleRate: number
 }
 
+export type LiveAudioAnalyzer = {
+  getFrameData(): FrameData & { isBeat: boolean }
+  sampleRate: number
+  dispose(): void
+}
+
 // --- Radix-2 FFT (iterative, in-place) ---
 
 function reverseBits(n: number, bits: number): number {
@@ -297,6 +303,95 @@ export function detectBeats(frames: FrameData[]): Set<number> {
     const fd = frames[i]!
     return { bands: fd.bands, rms: fd.rms }
   })
+}
+
+// --- Live microphone analyzer ---
+
+function detectBeatFromHistory(
+  history: FrameData[],
+  minGapFrames: number,
+): boolean {
+  if (history.length < 4) return false
+  const fluxes: number[] = []
+  for (let i = 1; i < history.length; i++) {
+    const prev = history[i - 1]!
+    const curr = history[i]!
+    let diff = 0
+    for (let b = 0; b < BAND_COUNT; b++) {
+      const d = (curr.bands[b] ?? 0) - (prev.bands[b] ?? 0)
+      if (d > 0) diff += d
+    }
+    fluxes.push(diff)
+  }
+  const mean = fluxes.reduce((a, b) => a + b, 0) / fluxes.length
+  const variance =
+    fluxes.reduce((a, b) => a + (b - mean) ** 2, 0) / fluxes.length
+  const threshold = mean + 1.5 * Math.sqrt(variance)
+  const latest = fluxes[fluxes.length - 1]!
+  const previous = fluxes.length > 1 ? fluxes[fluxes.length - 2]! : 0
+  return latest > threshold && latest > previous
+}
+
+/** Creates a real-time audio analyzer from the microphone. Uses Web Audio
+ *  AnalyserNode for FFT data, producing FrameData compatible with the
+ *  file-based analyzer so the same applyAudioMappingsToFlame works unchanged. */
+export async function createLiveAnalyzer(
+  targetFps: number = 30,
+): Promise<LiveAudioAnalyzer> {
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+  const audioCtx = new AudioContext()
+  const sampleRate = audioCtx.sampleRate
+
+  const source = audioCtx.createMediaStreamSource(stream)
+  const analyser = audioCtx.createAnalyser()
+
+  const samplesPerFrame = Math.floor(sampleRate / targetFps)
+  const fftSize = Math.max(256, nextPowerOfTwo(samplesPerFrame))
+  analyser.fftSize = fftSize
+  analyser.smoothingTimeConstant = 0.3
+
+  source.connect(analyser)
+
+  const history: FrameData[] = []
+  const maxHistory = Math.ceil(targetFps * 2)
+  const minGapFrames = Math.max(1, Math.floor(0.1 * targetFps))
+  let lastBeatAt = -minGapFrames
+  let frameCount = 0
+
+  const getFrameData = (): FrameData & { isBeat: boolean } => {
+    const timeData = new Float32Array(analyser.fftSize)
+    analyser.getFloatTimeDomainData(timeData)
+
+    const { bands, centroid, flatness } = fftMagnitudeSpectrum(
+      timeData,
+      sampleRate,
+    )
+    const rms = computeRms(timeData)
+
+    const frame: FrameData = { bands, rms, centroid, flatness }
+
+    history.push(frame)
+    if (history.length > maxHistory) history.shift()
+
+    const isBeatCurrent =
+      frameCount - lastBeatAt >= minGapFrames &&
+      detectBeatFromHistory(history, minGapFrames)
+    if (isBeatCurrent) lastBeatAt = frameCount
+
+    frameCount++
+    return { ...frame, isBeat: isBeatCurrent }
+  }
+
+  return {
+    getFrameData,
+    sampleRate,
+    dispose() {
+      stream.getTracks().forEach((t) => t.stop())
+      source.disconnect()
+      analyser.disconnect()
+      void audioCtx.close()
+    },
+  }
 }
 
 // --- Audio→Flame mapping (shared between live preview and export) ---
