@@ -607,7 +607,7 @@ export function MainWorkspace(props: AppProps) {
   // onSelect handler.
   const [blendIntent, setBlendIntent] = createSignal<'blend' | 'morph'>('blend')
 
-  // Audio-reactive panel state (IS_DEV-gated feature)
+  // Audio-reactive panel state
   const [showAudioPanel, setShowAudioPanel] = createSignal(false)
   const [audioBuffer, setAudioBuffer] = createSignal<AudioBuffer | undefined>(
     undefined,
@@ -5163,31 +5163,30 @@ export function MainWorkspace(props: AppProps) {
                     }
                   >
                     <BlendFlameGallery
-                    heading={
-                      blendIntent() === 'morph'
-                        ? 'Pick End Flame'
-                        : 'Pick Blend Flame'
-                    }
-                    onSelect={(flame) => {
-                      // The pick supersedes any hover preview — don't let the
-                      // preview restore stomp the selection afterwards.
-                      prevBlendFlame = undefined
-                      blendPreviewActive = false
-                      if (blendIntent() === 'morph') {
-                        setupMorph(flame)
-                      } else {
-                        setBlendFlame(flame)
+                      heading={
+                        blendIntent() === 'morph'
+                          ? 'Pick End Flame'
+                          : 'Pick Blend Flame'
                       }
-                      setShowBlendGallery(false)
-                    }}
-                    onPreviewBlend={handlePreviewBlend}
-                    onPreviewName={(name) => setHoveredBlendName(name)}
-                    onClose={() => {
-                      handlePreviewBlend(null)
-                      setHoveredBlendName(null)
-                      setShowBlendGallery(false)
-                    }}
-                  />
+                      onSelect={(flame) => {
+                        // The pick supersedes any hover preview — don't let the
+                        // preview restore stomp the selection afterwards.
+                        prevBlendFlame = undefined
+                        blendPreviewActive = false
+                        if (blendIntent() === 'morph') {
+                          setupMorph(flame)
+                        } else {
+                          setBlendFlame(flame)
+                        setShowBlendGallery(false)
+                      }}
+                      onPreviewBlend={handlePreviewBlend}
+                      onPreviewName={(name) => setHoveredBlendName(name)}
+                      onClose={() => {
+                        handlePreviewBlend(null)
+                        setHoveredBlendName(null)
+                        setShowBlendGallery(false)
+                      }}
+                    />
                   </Show>
                 </Show>
               </div>
