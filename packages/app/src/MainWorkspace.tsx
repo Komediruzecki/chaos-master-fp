@@ -91,7 +91,11 @@ import { BoxArrowRight, Cross, Eye, EyeOff, Menu, Plus, Share, Shuffle, Terminal
 import { AutoCanvas } from './lib/AutoCanvas'
 import { createAnimationExport } from './utils/animationExport'
 import { autosaveIntervalMin, autosaveRecents, saveReminderDismissed, setAutosaveRecents, setSaveReminderDismissed, } from './utils/autosaveSettings'
-import { createAudioAnalyzer } from './utils/audioAnalysis'
+import {
+  applyAudioMappingsToFlame,
+  createAudioAnalyzer,
+} from './utils/audioAnalysis'
+import type { AudioMappingEntry } from './utils/audioAnalysis'
 import { downloadBlob } from './utils/blob'
 import { deepClone } from './utils/clone'
 import { createStoreHistory } from './utils/createStoreHistory'
@@ -1132,39 +1136,6 @@ export function MainWorkspace(props: AppProps) {
 
   // --- Audio-reactive helpers ---
 
-  function getAudioFeatureNormalized(
-    frameData: ReturnType<
-      ReturnType<typeof createAudioAnalyzer>['getFrameData']
-    >,
-    feature: AudioMapping['mappings'][number]['audioFeature'],
-  ): number {
-    if (feature === 'beat') return frameData.isBeat ? 1 : 0
-    if (feature === 'rms') return Math.min(1, frameData.rms)
-    if (feature === 'centroid') return Math.min(1, frameData.centroid / 20000)
-    if (feature === 'flatness') return frameData.flatness
-    const bandMap: Record<string, number> = {
-      subBass: 0,
-      bass: 1,
-      lowMid: 2,
-      mid: 3,
-      hiMid: 4,
-      presence: 5,
-      brilliance: 6,
-      fullSpectrum: 7,
-    }
-    const idx = bandMap[feature]
-    if (idx !== undefined) return Math.min(1, frameData.bands[idx]!)
-    return 0
-  }
-
-  function applyAudioToFlameParam(
-    normalizedValue: number,
-    mapping: AudioMapping['mappings'][number],
-  ): number {
-    const [lo, hi] = mapping.range
-    return lo + normalizedValue * mapping.sensitivity * (hi - lo)
-  }
-
   function applyAudioMappings(
     frameIndex: number,
     analyzer: ReturnType<typeof createAudioAnalyzer>,
@@ -1173,21 +1144,11 @@ export function MainWorkspace(props: AppProps) {
     if (mappings.length === 0) return
     const frameData = analyzer.getFrameData(frameIndex % analyzer.totalFrames)
     setFlameDescriptor((draft) => {
-      const rs: Record<string, unknown> = draft.renderSettings ?? {}
-      const camera: Record<string, unknown> =
-        (rs.camera as Record<string, unknown>) ?? {}
-      for (const mapping of mappings) {
-        const raw = getAudioFeatureNormalized(frameData, mapping.audioFeature)
-        const clamped = Math.max(0, Math.min(1, raw))
-        const val = applyAudioToFlameParam(clamped, mapping)
-        if (mapping.flameParam === 'zoom') {
-          camera.zoom = val
-        } else {
-          ;(rs as Record<string, number>)[mapping.flameParam] = val
-        }
-      }
-      rs.camera = camera
-      draft.renderSettings = rs as FlameDescriptor['renderSettings']
+      applyAudioMappingsToFlame(
+        draft as { renderSettings?: Record<string, unknown> },
+        frameData,
+        mappings as AudioMappingEntry[],
+      )
     })
   }
 
@@ -1407,6 +1368,7 @@ export function MainWorkspace(props: AppProps) {
       () => blendFlame(),
       () => resolvedBlendWeight(),
       () => audioBuffer(),
+      () => audioMapping().mappings,
     )
 
   async function shareToDiscord() {

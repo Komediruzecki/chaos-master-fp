@@ -1,12 +1,14 @@
 import { DEBUG_MODE } from '@/defaults'
 import { accumulatedPointCount, forceAnimationExportNow, qualityPointCountLimit, setAnimationExportCancel, setAnimationExportProgress, setAnimationExportRunning, setExportQuality, setForceAnimationExportNow, } from '@/flame/renderStats'
 import { createAudioVideoEncoder } from './audioExport'
+import { applyAudioMappingsToFlame, createAudioAnalyzer } from './audioAnalysis'
 import { deepClone } from './clone'
 import { createMetadataPayload, injectMetadataIntoMp4 } from './flameInMp4'
 import { formatPointCount } from './formatPointCount'
 import { logTime } from './logTime'
 import { applyTimelineToFlameAtFrame } from './timeline'
 import { createVideoEncoder } from './videoEncoder'
+import type { AudioMappingEntry } from './audioAnalysis'
 import type { FlameDescriptor, TimelineState } from './timeline'
 import type { VideoEncoderConfig } from './videoEncoder'
 
@@ -26,6 +28,8 @@ export type AnimationExportConfig = {
   embedMetadata: boolean
   /** When set, produce an MP4 with a synced AAC audio track (WebCodecs AudioEncoder). */
   audioBuffer?: AudioBuffer
+  /** Audio-reactive mappings applied per frame (requires audioBuffer). */
+  audioMapping?: AudioMappingEntry[]
 }
 
 function estimatePointCount(
@@ -103,6 +107,11 @@ export function createAnimationExport(
       )
     }
 
+    const audioAnalyzer =
+      config.audioBuffer && config.audioMapping?.length
+        ? createAudioAnalyzer(config.audioBuffer, config.fps)
+        : undefined
+
     return new Promise<Blob>((resolve, reject) => {
       let frameIndex = 0
       const startedAt = performance.now()
@@ -166,6 +175,17 @@ export function createAnimationExport(
         // Clone flame and apply timeline for this frame
         const flameClone = deepClone(baseFlame)
         applyTimelineToFlameAtFrame(timeline, flameClone, frame)
+
+        // Apply audio-reactive mappings if configured
+        if (audioAnalyzer && config.audioMapping) {
+          const audioFrame = frameIndex % audioAnalyzer.totalFrames
+          const frameData = audioAnalyzer.getFrameData(audioFrame)
+          applyAudioMappingsToFlame(
+            flameClone as unknown as { renderSettings?: Record<string, unknown> },
+            frameData,
+            config.audioMapping,
+          )
+        }
 
         // Set flame descriptor to the per-frame clone so Flam3 picks it up
         setFlameDescriptor((draft) => {

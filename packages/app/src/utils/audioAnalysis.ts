@@ -106,7 +106,7 @@ function getFftBands(
     for (let b = 0; b < BAND_COUNT; b++) {
       const [low, high] = BAND_RANGES[b]!
       if (freq >= low && freq < high) {
-        bands[b] += mag
+        bands[b] = (bands[b] ?? 0) + mag
         bandBinCounts[b]!++
       }
     }
@@ -297,4 +297,90 @@ export function detectBeats(frames: FrameData[]): Set<number> {
     const fd = frames[i]!
     return { bands: fd.bands, rms: fd.rms }
   })
+}
+
+// --- Audio→Flame mapping (shared between live preview and export) ---
+
+export type AudioMappingEntry = {
+  audioFeature:
+    | 'subBass'
+    | 'bass'
+    | 'lowMid'
+    | 'mid'
+    | 'hiMid'
+    | 'presence'
+    | 'brilliance'
+    | 'fullSpectrum'
+    | 'rms'
+    | 'centroid'
+    | 'flatness'
+    | 'beat'
+  flameParam:
+    | 'vibrancy'
+    | 'exposure'
+    | 'palettePhase'
+    | 'paletteSpeed'
+    | 'contrast'
+    | 'gamma'
+    | 'highlightPower'
+    | 'lightPower'
+    | 'depthColorPower'
+    | 'zoom'
+    | 'skipIters'
+  sensitivity: number
+  range: [number, number]
+}
+
+function getAudioFeatureNormalized(
+  frameData: FrameData & { isBeat: boolean },
+  feature: AudioMappingEntry['audioFeature'],
+): number {
+  if (feature === 'beat') return frameData.isBeat ? 1 : 0
+  if (feature === 'rms') return Math.min(1, frameData.rms)
+  if (feature === 'centroid') return Math.min(1, frameData.centroid / 20000)
+  if (feature === 'flatness') return frameData.flatness
+  const bandMap: Record<string, number> = {
+    subBass: 0,
+    bass: 1,
+    lowMid: 2,
+    mid: 3,
+    hiMid: 4,
+    presence: 5,
+    brilliance: 6,
+    fullSpectrum: 7,
+  }
+  const idx = bandMap[feature]
+  if (idx !== undefined) return Math.min(1, frameData.bands[idx]!)
+  return 0
+}
+
+function mappingToVal(
+  normalizedValue: number,
+  mapping: AudioMappingEntry,
+): number {
+  const [lo, hi] = mapping.range
+  return lo + normalizedValue * mapping.sensitivity * (hi - lo)
+}
+
+/** Mutates `flame.renderSettings` in place from audio analysis data. */
+export function applyAudioMappingsToFlame(
+  flame: { renderSettings?: Record<string, unknown> },
+  frameData: FrameData & { isBeat: boolean },
+  mappings: AudioMappingEntry[],
+): void {
+  if (mappings.length === 0) return
+  const rs = (flame.renderSettings ?? {}) as Record<string, unknown>
+  const camera = (rs.camera as Record<string, unknown> | undefined) ?? {}
+  for (const mapping of mappings) {
+    const raw = getAudioFeatureNormalized(frameData, mapping.audioFeature)
+    const clamped = Math.max(0, Math.min(1, raw))
+    const val = mappingToVal(clamped, mapping)
+    if (mapping.flameParam === 'zoom') {
+      ;(camera as Record<string, number>).zoom = val
+    } else {
+      ;(rs as Record<string, number>)[mapping.flameParam] = val
+    }
+  }
+  ;(rs as Record<string, unknown>).camera = camera
+  flame.renderSettings = rs
 }

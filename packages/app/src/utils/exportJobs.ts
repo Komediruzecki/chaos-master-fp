@@ -1,4 +1,5 @@
 import { createStore, produce } from 'solid-js/store'
+import type { AudioMappingEntry } from './audioAnalysis'
 import type { TimelineConfig, TimelineTrack } from './timeline'
 import type { VideoEncoderConfig } from './videoEncoder'
 import type { Palette } from '@/flame/colorMap'
@@ -62,6 +63,7 @@ export type AnimationJobSpec = {
   tracks: TimelineTrack[]
   config: TimelineConfig
   audioBuffer?: AudioBuffer
+  audioMapping?: AudioMappingEntry[]
 }
 
 export type ExportJobStatus = 'queued' | 'rendering' | 'done' | 'error'

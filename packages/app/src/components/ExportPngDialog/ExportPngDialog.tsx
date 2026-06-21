@@ -34,6 +34,7 @@ import type { Vec3 } from 'wgpu-matrix'
 import type { ExportImageType } from '@/App'
 import type { Palette } from '@/flame/colorMap'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
+import type { AudioMappingEntry } from '@/utils/audioAnalysis'
 import type { AnimationExportConfig } from '@/utils/animationExport'
 import type { ExportAspectKey } from '@/utils/exportDimensions'
 import type { AnimationJobSpec, ImageJobSpec } from '@/utils/exportJobs'
@@ -917,6 +918,7 @@ export function createExportPngDialog(
   getBlendFlame?: () => FlameDescriptor | undefined,
   getBlendWeight?: () => number,
   getAudioBuffer?: () => AudioBuffer | undefined,
+  getAudioMapping?: () => AudioMappingEntry[],
 ) {
   const requestModal = useRequestModal()
   const [exportModalIsOpen, setExportModalIsOpen] = createSignal(false)
@@ -1140,6 +1142,7 @@ export function createExportPngDialog(
           tracks: timeline?.tracks() ?? [],
           config: timeline?.config() ?? defaultTimelineConfig(),
           audioBuffer: getAudioBuffer?.(),
+          audioMapping: getAudioMapping?.(),
         })
         return
       }
@@ -1160,6 +1163,7 @@ export function createExportPngDialog(
         codec: codec(),
         embedMetadata: embedMetadata(),
         audioBuffer: audioBuf,
+        audioMapping: getAudioMapping?.(),
       }
       // The canvas will be obtained from the Flam3 component in App.tsx
       // For now, we pass config and the factory calls startAnimationExport
