@@ -64,6 +64,10 @@ type AudioReactivePanelProps = {
   onSourceChange: (source: 'file' | 'mic') => void
   onLiveAnalyzerChange: (analyzer: LiveAudioAnalyzer | undefined) => void
   liveAnalyzer: (() => LiveAudioAnalyzer | undefined) | LiveAudioAnalyzer | undefined
+  playbackPaused: () => boolean
+  onPausedChange: (paused: boolean) => void
+  playbackTime: () => number
+  onSeek: (seconds: number) => void
 }
 
 // --- Feature / param labels ---
@@ -288,6 +292,7 @@ function drawWaveform(
   audioBuffer: AudioBuffer,
   beats: Set<number>,
   totalFrames: number,
+  playheadX?: number,
 ): void {
   const ctx = canvas.getContext('2d')!
   const { width, height } = canvas
@@ -332,6 +337,16 @@ function drawWaveform(
       ctx.stroke()
     }
   }
+
+  // Playhead line
+  if (playheadX !== undefined && playheadX >= 0 && playheadX <= width) {
+    ctx.beginPath()
+    ctx.moveTo(playheadX, 0)
+    ctx.lineTo(playheadX, height)
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)'
+    ctx.lineWidth = 2
+    ctx.stroke()
+  }
 }
 
 // --- Component ---
@@ -349,10 +364,39 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
   let waveformCanvas!: HTMLCanvasElement
   let fileInput!: HTMLInputElement
 
+  const [scrubbing, setScrubbing] = createSignal(false)
+
   const audioBuffer = () => resolve(props.audioBuffer)
   const audioMapping = () => resolve(props.audioMapping)
   const audioSource = () => resolve(props.audioSource)
   const liveAnalyzer = () => resolve(props.liveAnalyzer)
+  const playbackPaused = () => resolve(props.playbackPaused)
+  const playbackTime = () => resolve(props.playbackTime)
+
+  function formatTime(seconds: number): string {
+    const s = Math.max(0, Math.floor(seconds))
+    const mins = Math.floor(s / 60)
+    const secs = s % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
+  function seekFromEvent(e: MouseEvent) {
+    const rect = waveformCanvas.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const percent = Math.max(0, Math.min(1, x / rect.width))
+    const duration = audioBuffer()?.duration ?? 0
+    props.onSeek(percent * duration)
+  }
+
+  function handleWaveformClick(e: MouseEvent) {
+    seekFromEvent(e)
+  }
+
+  function handleScrubStart(e: MouseEvent) {
+    setScrubbing(true)
+    seekFromEvent(e)
+    e.preventDefault()
+  }
 
   // Draw waveform when buffer changes
   createEffect(() => {
@@ -371,9 +415,31 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
           setAnalyzeProgress(Math.round((current / total) * 100))
         },
       )
-      drawWaveform(canvas, buffer, beatFrames, totalFrames)
+      cachedBeatFrames = beatFrames
+      cachedTotalFrames = totalFrames
+      drawWaveform(canvas, buffer, beatFrames, totalFrames, 0)
       setAnalyzing(false)
     }, 30)
+  })
+
+  // Cache beat analysis for playhead redraws
+  let cachedBeatFrames: Set<number> = new Set()
+  let cachedTotalFrames = 0
+
+  // Scrubbing: window-level mousemove/mouseup while dragging
+  let scrubMoveHandler: ((e: MouseEvent) => void) | undefined
+  let scrubUpHandler: (() => void) | undefined
+
+  createEffect(() => {
+    if (!scrubbing()) return
+    scrubMoveHandler = (e: MouseEvent) => seekFromEvent(e)
+    scrubUpHandler = () => setScrubbing(false)
+    window.addEventListener('mousemove', scrubMoveHandler)
+    window.addEventListener('mouseup', scrubUpHandler)
+    onCleanup(() => {
+      if (scrubMoveHandler) window.removeEventListener('mousemove', scrubMoveHandler)
+      if (scrubUpHandler) window.removeEventListener('mouseup', scrubUpHandler)
+    })
   })
 
   function handleFile(file: File) {
@@ -579,6 +645,24 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
                 </button>
               </div>
 
+              {/* Playback controls */}
+              <div class={ui.playbackRow}>
+                <button
+                  class={ui.playPauseBtn}
+                  onClick={() => {
+                    props.onPausedChange(!playbackPaused())
+                  }}
+                  title={playbackPaused() ? 'Play' : 'Pause'}
+                >
+                  {playbackPaused() ? '▶' : '⏸'}
+                </button>
+                <span class={ui.timeText}>
+                  {formatTime(playbackTime())}
+                  {' / '}
+                  {formatTime(audioBuffer()!.duration)}
+                </span>
+              </div>
+
               {/* Waveform */}
               <div class={ui.waveformWrap}>
                 <Show when={analyzing()}>
@@ -596,9 +680,22 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
                 <canvas
                   ref={waveformCanvas}
                   class={
-                    ui.waveform + (analyzing() ? ` ${ui.waveformHidden}` : '')
+                    ui.waveform +
+                    (analyzing() ? ` ${ui.waveformHidden}` : '') +
+                    (analyzing() ? '' : ` ${ui.waveformInteractive}`)
                   }
+                  onClick={handleWaveformClick}
+                  onMouseDown={handleScrubStart}
                 />
+                {/* Playhead overlay line */}
+                <Show when={!analyzing()}>
+                  <div
+                    class={ui.playhead}
+                    style={{
+                      left: `${((playbackTime() / (audioBuffer()!.duration || 1)) * 100).toFixed(2)}%`,
+                    }}
+                  />
+                </Show>
               </div>
             </>
           }

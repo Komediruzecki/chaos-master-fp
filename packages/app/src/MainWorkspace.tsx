@@ -644,6 +644,9 @@ export function MainWorkspace(props: AppProps) {
   const [audioSource, setAudioSource] = createSignal<'file' | 'mic'>('file')
   const [liveAnalyzer, setLiveAnalyzer] =
     createSignal<LiveAudioAnalyzer | undefined>(undefined)
+  const [playbackPaused, setPlaybackPaused] = createSignal(false)
+  const [seekTarget, setSeekTarget] = createSignal<number | null>(null)
+  const [playbackTime, setPlaybackTime] = createSignal(0)
 
   // Sonification state
   const [showSonificationPanel, setShowSonificationPanel] = createSignal(false)
@@ -1173,6 +1176,9 @@ export function MainWorkspace(props: AppProps) {
     setFlameDescriptor,
     liveAnalyzer,
     audioSource,
+    playbackPaused,
+    seekTarget,
+    setPlaybackTime,
   )
 
   // Sonification loop: synthesizes audio in real-time from flame structure.
@@ -5152,6 +5158,9 @@ export function MainWorkspace(props: AppProps) {
                           onAudioChange={(buf) => {
                             setAudioBuffer(buf)
                             if (!buf) setAudioEnabled(false)
+                            setPlaybackPaused(false)
+                            setPlaybackTime(0)
+                            setSeekTarget(null)
                           }}
                           audioMapping={audioMapping}
                           onMappingChange={setAudioMapping}
@@ -5161,6 +5170,10 @@ export function MainWorkspace(props: AppProps) {
                           onSourceChange={setAudioSource}
                           liveAnalyzer={liveAnalyzer}
                           onLiveAnalyzerChange={setLiveAnalyzer}
+                          playbackPaused={playbackPaused}
+                          onPausedChange={setPlaybackPaused}
+                          playbackTime={playbackTime}
+                          onSeek={setSeekTarget}
                         />
                       </Show>
                     }

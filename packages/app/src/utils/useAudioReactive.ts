@@ -1,7 +1,7 @@
 import { createEffect, onCleanup } from 'solid-js'
-import { applyAudioMappingsToFlame, createAudioAnalyzer  } from './audioAnalysis'
+import { applyAudioMappingsToFlame, createAudioAnalyzer } from './audioAnalysis'
 import type { Accessor } from 'solid-js'
-import type {LiveAudioAnalyzer} from './audioAnalysis';
+import type { LiveAudioAnalyzer } from './audioAnalysis'
 import type { AudioMapping } from '@/components/AudioReactivePanel/AudioReactivePanel'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 
@@ -15,7 +15,10 @@ type SetFlameDescriptor = (fn: (draft: FlameDescriptor) => void) => void
  * - File mode: when `audioBuffer` is set, decodes and plays the file.
  * - Mic mode: when `liveAnalyzer` is set, reads frames from the mic.
  *
- * Extracted from MainWorkspace to keep the component manageable.
+ * Playback control:
+ * - `playbackPaused`: suspend/resume AudioContext (keeps it alive)
+ * - `seekTarget`: time in seconds to jump to (null = no pending seek)
+ * - `onPlaybackTime`: callback for current playback position display
  */
 export function useAudioReactive(
   audioEnabled: Accessor<boolean>,
@@ -24,65 +27,135 @@ export function useAudioReactive(
   setFlameDescriptor: SetFlameDescriptor,
   liveAnalyzer: Accessor<LiveAudioAnalyzer | undefined>,
   audioSource: Accessor<'file' | 'mic'>,
+  playbackPaused: Accessor<boolean>,
+  seekTarget: Accessor<number | null>,
+  onPlaybackTime: (seconds: number) => void,
 ): void {
+  // --- Closure-scope mutable state (persists across effect re-runs) ---
+  let audioCtx: AudioContext | undefined
+  let sourceNode: AudioBufferSourceNode | undefined
+  let analyzer: ReturnType<typeof createAudioAnalyzer> | undefined
+  let interval: ReturnType<typeof setInterval> | undefined
+  let sourceStartTime = 0
+  let seekBaseOffset = 0
+  let lastSeekTarget: number | null = null
+  let paused = false
+
+  // ---- helpers ----
+
+  function stopSource() {
+    if (!sourceNode) return
+    try {
+      sourceNode.stop()
+    } catch {
+      /* already stopped */
+    }
+    sourceNode.disconnect()
+    sourceNode = undefined
+  }
+
+  function createSource(buffer: AudioBuffer, offset: number) {
+    if (!audioCtx) return false
+    stopSource()
+    sourceNode = audioCtx.createBufferSource()
+    sourceNode.buffer = buffer
+    sourceNode.loop = true
+    sourceNode.connect(audioCtx.destination)
+    sourceNode.start(0, offset)
+    sourceStartTime = audioCtx.currentTime
+    seekBaseOffset = offset
+    return true
+  }
+
+  function fullCleanup() {
+    if (interval !== undefined) {
+      clearInterval(interval)
+      interval = undefined
+    }
+    stopSource()
+    void audioCtx?.close()
+    audioCtx = undefined
+    analyzer = undefined
+  }
+
+  // ---- main setup/teardown effect ----
+
   createEffect(() => {
     const enabled = audioEnabled()
-    if (!enabled) return
+    if (!enabled) {
+      fullCleanup()
+      return
+    }
 
     const source = audioSource()
     const buffer = audioBuffer()
     const mic = liveAnalyzer()
-    if (source === 'file' && !buffer) return
-    if (source === 'mic' && !mic) return
 
-    // --- File mode ---
-    if (source === 'file' && buffer) {
-      const analyzer = createAudioAnalyzer(buffer, 30)
+    if (source === 'file') {
+      if (!buffer) return
 
-      let audioCtx: AudioContext | undefined
-      let sourceNode: AudioBufferSourceNode | undefined
+      // Build analyzer once per buffer
+      analyzer = createAudioAnalyzer(buffer, 30)
 
+      // Create AudioContext
       try {
         audioCtx = new AudioContext()
-        sourceNode = audioCtx.createBufferSource()
-        sourceNode.buffer = buffer
-        sourceNode.loop = true
-        sourceNode.connect(audioCtx.destination)
-        sourceNode.start()
       } catch {
-        // Autoplay blocked — run blind frame counter without audio.
-        void audioCtx?.close()
         audioCtx = undefined
       }
 
-      let lastFrame = -1
-      const tickMs = 1000 / 30
+      if (audioCtx) {
+        const offset = seekBaseOffset
+        createSource(buffer, offset)
+        if (paused) {
+          audioCtx.suspend()
+        }
+      }
 
-      const interval = setInterval(() => {
+      // Interval: apply mappings at 30fps
+      const tickMs = 1000 / 30
+      interval = setInterval(() => {
+        // Check for seek
+        const st = seekTarget()
+        if (st !== null && st !== lastSeekTarget && audioCtx && buffer && analyzer) {
+          lastSeekTarget = st
+          createSource(buffer, st)
+          if (paused) {
+            audioCtx.suspend()
+          }
+        }
+
         const mappings = audioMapping().mappings
-        const frame = audioCtx
-          ? Math.floor(audioCtx.currentTime * 30) % analyzer.totalFrames
-          : lastFrame + 1
-        if (frame !== lastFrame && mappings.length > 0) {
-          const frameData = analyzer.getFrameData(frame % analyzer.totalFrames)
+        if (!audioCtx || !analyzer) {
+          // No audio context (autoplay blocked) — just tick a blind counter
+          onPlaybackTime(seekBaseOffset)
+          return
+        }
+
+        const currentTime = audioCtx.currentTime - sourceStartTime + seekBaseOffset
+        const duration = buffer?.duration ?? 0
+        const displayTime = duration > 0 ? currentTime % duration : currentTime
+        onPlaybackTime(displayTime)
+
+        if (paused) return
+
+        const frame = Math.floor(currentTime * 30)
+        const wrapped = analyzer.totalFrames > 0 ? ((frame % analyzer.totalFrames) + analyzer.totalFrames) % analyzer.totalFrames : frame
+
+        if (mappings.length > 0) {
+          const frameData = analyzer.getFrameData(wrapped % analyzer.totalFrames)
           setFlameDescriptor((draft) => {
             applyAudioMappingsToFlame(draft, frameData, mappings)
           })
-          lastFrame = frame
-        } else if (frame !== lastFrame) {
-          lastFrame = frame
         }
       }, tickMs)
 
       onCleanup(() => {
-        clearInterval(interval)
-        try {
-          sourceNode?.stop()
-        } catch {
-          /* already stopped */
-        }
-        sourceNode?.disconnect()
-        void audioCtx?.close()
+        fullCleanup()
+        // Reset for next setup
+        seekBaseOffset = 0
+        sourceStartTime = 0
+        lastSeekTarget = null
       })
       return
     }
@@ -90,7 +163,7 @@ export function useAudioReactive(
     // --- Mic mode ---
     if (source === 'mic' && mic) {
       const tickMs = 1000 / 30
-      const interval = setInterval(() => {
+      interval = setInterval(() => {
         const mappings = audioMapping().mappings
         if (mappings.length === 0) return
         const frameData = mic.getFrameData()
@@ -100,8 +173,25 @@ export function useAudioReactive(
       }, tickMs)
 
       onCleanup(() => {
-        clearInterval(interval)
+        clearInterval(interval!)
+        interval = undefined
       })
+    }
+  })
+
+  // ---- pause/resume effect ----
+
+  createEffect(() => {
+    const shouldPause = playbackPaused()
+    paused = shouldPause
+    if (!audioCtx) return
+
+    if (shouldPause) {
+      audioCtx.suspend()
+    } else {
+      audioCtx.resume()
+      // Adjust sourceStartTime so time calculation doesn't jump
+      sourceStartTime = audioCtx.currentTime - seekBaseOffset
     }
   })
 }
