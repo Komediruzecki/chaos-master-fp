@@ -3207,7 +3207,6 @@ export function MainWorkspace(props: AppProps) {
                     setFlySpeed={flySpeed[1]}
                     onAudioReactive={() => setShowAudioPanel(true)}
                     onSonification={() => setShowSonificationPanel(true)}
-                    isDev={IS_DEV}
                   />
                 </div>
                 <Show when={showTimeline()}>

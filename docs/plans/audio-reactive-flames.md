@@ -93,7 +93,6 @@ Contains:
 - Per-param dropdown: audio feature → flame param
 - Sensitivity sliders per mapping
 - "Enable Live Preview" toggle → sets `audioEnabled` signal
-- Gated with `<Show when={IS_DEV}>` (dev-only until stable)
 
 ### 4. `packages/app/src/components/AudioReactivePanel/AudioReactivePanel.module.css`
 
@@ -108,12 +107,11 @@ Contains:
   `analyzer.getFrameData(currentFrame)` and apply mapped params via
   `setFlameDescriptor` (matching the existing draft mutation pattern)
 - Wire "Audio..." button into ViewControls props
-- Gate panel with `<Show when={IS_DEV && audioPanel.isOpen()}>` in sidebar
 
 ### 6. `ViewControls.tsx`
 
 - Add `onAudioReactive?: () => void` prop
-- Add "Audio..." button (next to Blend/Morph, gated with `IS_DEV`)
+- Add "Audio..." button (next to Blend/Morph)
 
 ### 7. `animationExport.ts`
 
@@ -156,5 +154,4 @@ via setFlameDescriptor draft. Flam3 picks up the change on next tick naturally.
 3. Select "Pulse" preset, enable preview → flame pulses with bass
 4. Play audio in real-time → fractal dances to music
 5. Animation export → MP4 downloads with synced audio track
-6. `IS_DEV` gate: feature hidden in production builds
-7. No regressions: Blend/Morph still works, normal export still works
+6. No regressions: Blend/Morph still works, normal export still works
