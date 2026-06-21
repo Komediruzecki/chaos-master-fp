@@ -6,6 +6,7 @@ import { AutoCanvas } from '@/lib/AutoCanvas'
 import { Root } from '@/lib/Root'
 import { WheelZoomCamera2D } from '@/lib/WheelZoomCamera2D'
 import { WheelZoomCamera3D } from '@/lib/WheelZoomCamera3D'
+import { createAudioVideoEncoder } from '@/utils/audioExport'
 import { deepClone } from '@/utils/clone'
 import { dismissJob, jobExists, setAnimationJobPoints, setAnimationJobProgress, setJobError, setJobResult, } from '@/utils/exportJobs'
 import { createMetadataPayload, injectMetadataIntoMp4, } from '@/utils/flameInMp4'
@@ -109,12 +110,23 @@ export function OffscreenAnimationRender(props: { job: AnimationJob }) {
 
   void (async () => {
     try {
-      encoder = await createVideoEncoder({
-        codec: job.codec,
-        width: resizeWidth,
-        height: resizeHeight,
-        fps: job.fps,
-      })
+      encoder = job.audioBuffer
+        ? await createAudioVideoEncoder(
+            {
+              codec: job.codec,
+              width: resizeWidth,
+              height: resizeHeight,
+              fps: job.fps,
+            },
+            job.audioBuffer,
+            job.fps,
+          )
+        : await createVideoEncoder({
+            codec: job.codec,
+            width: resizeWidth,
+            height: resizeHeight,
+            fps: job.fps,
+          })
       if (disposed) encoder.cancel()
     } catch (err) {
       setJobError(job.id, err instanceof Error ? err.message : String(err))

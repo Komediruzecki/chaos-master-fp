@@ -1,5 +1,6 @@
 import { DEBUG_MODE } from '@/defaults'
 import { accumulatedPointCount, forceAnimationExportNow, qualityPointCountLimit, setAnimationExportCancel, setAnimationExportProgress, setAnimationExportRunning, setExportQuality, setForceAnimationExportNow, } from '@/flame/renderStats'
+import { createAudioVideoEncoder } from './audioExport'
 import { deepClone } from './clone'
 import { createMetadataPayload, injectMetadataIntoMp4 } from './flameInMp4'
 import { formatPointCount } from './formatPointCount'
@@ -23,6 +24,8 @@ export type AnimationExportConfig = {
   playCount: number
   codec: VideoEncoderConfig['codec']
   embedMetadata: boolean
+  /** When set, produce an MP4 with a synced AAC audio track (WebCodecs AudioEncoder). */
+  audioBuffer?: AudioBuffer
 }
 
 function estimatePointCount(
@@ -76,16 +79,27 @@ export function createAnimationExport(
   )
 
   const promise = (async () => {
-    const encoder = await createVideoEncoder({
-      codec: config.codec,
-      width: resizeWidth,
-      height: resizeHeight,
-      fps: config.fps,
-    })
+    const encoder = config.audioBuffer
+      ? await createAudioVideoEncoder(
+          {
+            codec: config.codec,
+            width: resizeWidth,
+            height: resizeHeight,
+            fps: config.fps,
+          },
+          config.audioBuffer,
+          config.fps,
+        )
+      : await createVideoEncoder({
+          codec: config.codec,
+          width: resizeWidth,
+          height: resizeHeight,
+          fps: config.fps,
+        })
 
     if (DEBUG_MODE) {
       console.info(
-        `[AnimationExport ${logTime()}] start: ${totalRenders} frames @ ${config.fps}fps, quality ${config.quality}, ${resizeWidth}x${resizeHeight}, codec ${encoder.codec}${encoder.usedFallback ? ' (MediaRecorder fallback)' : ''}`,
+        `[AnimationExport ${logTime()}] start: ${totalRenders} frames @ ${config.fps}fps, quality ${config.quality}, ${resizeWidth}x${resizeHeight}, codec ${encoder.codec}${encoder.usedFallback ? ' (fallback)' : ''}${config.audioBuffer ? ', +audio' : ''}`,
       )
     }
 

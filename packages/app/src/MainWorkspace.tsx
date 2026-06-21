@@ -1174,7 +1174,8 @@ export function MainWorkspace(props: AppProps) {
     const frameData = analyzer.getFrameData(frameIndex % analyzer.totalFrames)
     setFlameDescriptor((draft) => {
       const rs: Record<string, unknown> = draft.renderSettings ?? {}
-      const camera: Record<string, unknown> = rs.camera ?? {}
+      const camera: Record<string, unknown> =
+        (rs.camera as Record<string, unknown>) ?? {}
       for (const mapping of mappings) {
         const raw = getAudioFeatureNormalized(frameData, mapping.audioFeature)
         const clamped = Math.max(0, Math.min(1, raw))
@@ -1404,6 +1405,7 @@ export function MainWorkspace(props: AppProps) {
       startAnimationExport,
       () => blendFlame(),
       () => resolvedBlendWeight(),
+      () => audioBuffer(),
     )
 
   async function shareToDiscord() {

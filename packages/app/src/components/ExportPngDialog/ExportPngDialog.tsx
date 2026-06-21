@@ -916,6 +916,7 @@ export function createExportPngDialog(
   ) => void,
   getBlendFlame?: () => FlameDescriptor | undefined,
   getBlendWeight?: () => number,
+  getAudioBuffer?: () => AudioBuffer | undefined,
 ) {
   const requestModal = useRequestModal()
   const [exportModalIsOpen, setExportModalIsOpen] = createSignal(false)
@@ -1138,6 +1139,7 @@ export function createExportPngDialog(
           blendWeight: getBlendWeight?.() ?? 0,
           tracks: timeline?.tracks() ?? [],
           config: timeline?.config() ?? defaultTimelineConfig(),
+          audioBuffer: getAudioBuffer?.(),
         })
         return
       }
@@ -1146,6 +1148,7 @@ export function createExportPngDialog(
       if (!startAnimationExport) return
       // Apply the opt-in before the export locks canvas interaction.
       setCameraDuringExportEnabled(cameraDuringExport())
+      const audioBuf = getAudioBuffer?.()
       const exportConfig: AnimationExportConfig = {
         quality: animationQuality(),
         width: dimensions.width,
@@ -1156,6 +1159,7 @@ export function createExportPngDialog(
         playCount: playCount(),
         codec: codec(),
         embedMetadata: embedMetadata(),
+        audioBuffer: audioBuf,
       }
       // The canvas will be obtained from the Flam3 component in App.tsx
       // For now, we pass config and the factory calls startAnimationExport

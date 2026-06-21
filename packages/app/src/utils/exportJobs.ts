@@ -61,6 +61,7 @@ export type AnimationJobSpec = {
   blendWeight: number
   tracks: TimelineTrack[]
   config: TimelineConfig
+  audioBuffer?: AudioBuffer
 }
 
 export type ExportJobStatus = 'queued' | 'rendering' | 'done' | 'error'
