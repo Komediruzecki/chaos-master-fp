@@ -2,7 +2,6 @@ import { createEffect, createMemo, createSignal, For, onCleanup, Show, untrack, 
 import { Cross } from '@/icons'
 import { createAudioAnalyzer, decodeAudioFile } from '@/utils/audioAnalysis'
 import ui from './AudioReactivePanel.module.css'
-import type { FrameData } from '@/utils/audioAnalysis'
 
 // --- Types ---
 
@@ -92,23 +91,78 @@ const FLAME_PARAM_LABELS: Record<FlameParam, string> = {
 
 const PRESET_MAPPINGS: Record<AudioPreset, ParamMapping[]> = {
   pulse: [
-    { audioFeature: 'bass', flameParam: 'vibrancy', sensitivity: 1, range: [0.3, 1.5] },
-    { audioFeature: 'beat', flameParam: 'palettePhase', sensitivity: 1, range: [0, 3.14] },
+    {
+      audioFeature: 'bass',
+      flameParam: 'vibrancy',
+      sensitivity: 1,
+      range: [0.3, 1.5],
+    },
+    {
+      audioFeature: 'beat',
+      flameParam: 'palettePhase',
+      sensitivity: 1,
+      range: [0, 3.14],
+    },
   ],
   groove: [
-    { audioFeature: 'mid', flameParam: 'zoom', sensitivity: 1, range: [0.85, 1.15] },
-    { audioFeature: 'bass', flameParam: 'vibrancy', sensitivity: 1, range: [0.5, 1.5] },
-    { audioFeature: 'centroid', flameParam: 'palettePhase', sensitivity: 1, range: [0, 3.14] },
+    {
+      audioFeature: 'mid',
+      flameParam: 'zoom',
+      sensitivity: 1,
+      range: [0.85, 1.15],
+    },
+    {
+      audioFeature: 'bass',
+      flameParam: 'vibrancy',
+      sensitivity: 1,
+      range: [0.5, 1.5],
+    },
+    {
+      audioFeature: 'centroid',
+      flameParam: 'palettePhase',
+      sensitivity: 1,
+      range: [0, 3.14],
+    },
   ],
   ambient: [
-    { audioFeature: 'rms', flameParam: 'exposure', sensitivity: 1, range: [0.8, 1.2] },
-    { audioFeature: 'hiMid', flameParam: 'paletteSpeed', sensitivity: 1, range: [0.5, 2] },
-    { audioFeature: 'centroid', flameParam: 'gamma', sensitivity: 1, range: [0.6, 1.4] },
+    {
+      audioFeature: 'rms',
+      flameParam: 'exposure',
+      sensitivity: 1,
+      range: [0.8, 1.2],
+    },
+    {
+      audioFeature: 'hiMid',
+      flameParam: 'paletteSpeed',
+      sensitivity: 1,
+      range: [0.5, 2],
+    },
+    {
+      audioFeature: 'centroid',
+      flameParam: 'gamma',
+      sensitivity: 1,
+      range: [0.6, 1.4],
+    },
   ],
   chaos: [
-    { audioFeature: 'flatness', flameParam: 'contrast', sensitivity: 1, range: [0.5, 2] },
-    { audioFeature: 'fullSpectrum', flameParam: 'skipIters', sensitivity: 1, range: [0.8, 1.2] },
-    { audioFeature: 'beat', flameParam: 'highlightPower', sensitivity: 1, range: [0, 3] },
+    {
+      audioFeature: 'flatness',
+      flameParam: 'contrast',
+      sensitivity: 1,
+      range: [0.5, 2],
+    },
+    {
+      audioFeature: 'fullSpectrum',
+      flameParam: 'skipIters',
+      sensitivity: 1,
+      range: [0.8, 1.2],
+    },
+    {
+      audioFeature: 'beat',
+      flameParam: 'highlightPower',
+      sensitivity: 1,
+      range: [0, 3],
+    },
   ],
   custom: [],
 }
@@ -122,23 +176,39 @@ const PRESET_LABELS: Record<AudioPreset, string> = {
 }
 
 const ALL_FEATURES: AudioFeature[] = [
-  'subBass', 'bass', 'lowMid', 'mid', 'hiMid',
-  'presence', 'brilliance', 'fullSpectrum',
-  'rms', 'centroid', 'flatness', 'beat',
+  'subBass',
+  'bass',
+  'lowMid',
+  'mid',
+  'hiMid',
+  'presence',
+  'brilliance',
+  'fullSpectrum',
+  'rms',
+  'centroid',
+  'flatness',
+  'beat',
 ]
 
 const ALL_PARAMS: FlameParam[] = [
-  'vibrancy', 'exposure', 'palettePhase', 'paletteSpeed',
-  'contrast', 'gamma', 'highlightPower', 'lightPower',
-  'depthColorPower', 'zoom', 'skipIters',
+  'vibrancy',
+  'exposure',
+  'palettePhase',
+  'paletteSpeed',
+  'contrast',
+  'gamma',
+  'highlightPower',
+  'lightPower',
+  'depthColorPower',
+  'zoom',
+  'skipIters',
 ]
 
-const SUPPORTED_AUDIO = '.mp3,.wav,.ogg,.flac,audio/mpeg,audio/wav,audio/ogg,audio/flac'
+const SUPPORTED_AUDIO =
+  '.mp3,.wav,.ogg,.flac,audio/mpeg,audio/wav,audio/ogg,audio/flac'
 
 function resolve<T>(v: (() => T) | T): T {
-  return typeof v === 'function'
-    ? (v as () => T)()
-    : v
+  return typeof v === 'function' ? (v as () => T)() : v
 }
 
 // --- Waveform helpers ---
@@ -159,9 +229,10 @@ function mixToMono(buffer: AudioBuffer): Float32Array {
   return mono
 }
 
-function computeBeatFrames(
-  audioBuffer: AudioBuffer,
-): { beatFrames: Set<number>; totalFrames: number } {
+function computeBeatFrames(audioBuffer: AudioBuffer): {
+  beatFrames: Set<number>
+  totalFrames: number
+} {
   const analyzer = createAudioAnalyzer(audioBuffer, 30)
   const beats = new Set<number>()
   for (let i = 0; i < analyzer.totalFrames; i++) {
@@ -310,7 +381,12 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
       preset: 'custom',
       mappings: [
         ...current.mappings,
-        { audioFeature: 'bass', flameParam: 'vibrancy', sensitivity: 1, range: [0.5, 1.5] },
+        {
+          audioFeature: 'bass',
+          flameParam: 'vibrancy',
+          sensitivity: 1,
+          range: [0.5, 1.5],
+        },
       ],
     })
   }
@@ -344,11 +420,13 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
               <div class={ui.audioInfo}>
                 <span class={ui.audioFileName}>{fileName()}</span>
                 <span class={ui.audioDuration}>
-                  {(audioBuffer()!.duration).toFixed(1)}s
+                  {audioBuffer()!.duration.toFixed(1)}s
                 </span>
                 <button
                   class={ui.clearAudioBtn}
-                  onClick={() => props.onAudioChange(undefined)}
+                  onClick={() => {
+                    props.onAudioChange(undefined)
+                  }}
                 >
                   Clear
                 </button>
@@ -377,7 +455,9 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
         >
           <div
             class={ui.dropZone + (dragOver() ? ` ${ui.dropZoneActive}` : '')}
-            onClick={() => fileInput.click()}
+            onClick={() => {
+              fileInput.click()
+            }}
             onDragOver={(e) => {
               e.preventDefault()
               setDragOver(true)
@@ -420,7 +500,9 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
                       ? ` ${ui.presetBtnActive}`
                       : '')
                   }
-                  onClick={() => applyPreset(preset)}
+                  onClick={() => {
+                    applyPreset(preset)
+                  }}
                 >
                   {PRESET_LABELS[preset]}
                 </button>
@@ -439,11 +521,11 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
                   <select
                     class={ui.mappingSelect}
                     value={mapping.audioFeature}
-                    onChange={(e) =>
+                    onChange={(e) => {
                       updateMapping(index(), {
                         audioFeature: e.currentTarget.value as AudioFeature,
                       })
-                    }
+                    }}
                   >
                     <For each={ALL_FEATURES}>
                       {(f) => (
@@ -455,11 +537,11 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
                   <select
                     class={ui.mappingSelect}
                     value={mapping.flameParam}
-                    onChange={(e) =>
+                    onChange={(e) => {
                       updateMapping(index(), {
                         flameParam: e.currentTarget.value as FlameParam,
                       })
-                    }
+                    }}
                   >
                     <For each={ALL_PARAMS}>
                       {(p) => (
@@ -477,15 +559,17 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
                     max="2"
                     step="0.1"
                     value={mapping.sensitivity}
-                    onInput={(e) =>
+                    onInput={(e) => {
                       updateMapping(index(), {
                         sensitivity: parseFloat(e.currentTarget.value),
                       })
-                    }
+                    }}
                   />
                   <button
                     class={ui.removeMappingBtn}
-                    onClick={() => removeMapping(index())}
+                    onClick={() => {
+                      removeMapping(index())
+                    }}
                     title="Remove mapping"
                   >
                     ×
@@ -508,7 +592,9 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
               ui.toggleSwitch +
               (props.audioEnabled() ? ` ${ui.toggleSwitchOn}` : '')
             }
-            onClick={() => props.onEnabledChange(!props.audioEnabled())}
+            onClick={() => {
+              props.onEnabledChange(!props.audioEnabled())
+            }}
             aria-label="Toggle audio reactive preview"
           >
             <span class={ui.toggleKnob} />

@@ -3,6 +3,7 @@ import { vec2f } from 'typegpu/data'
 import { useChangeHistory } from '@/contexts/ChangeHistoryContext'
 import { useKeyframeTarget } from '@/contexts/KeyframeTargetContext'
 import { useTimeline } from '@/contexts/TimelineContext'
+import { IS_DEV } from '@/defaults'
 import { Cross, Minus, Plus, Redo, Undo } from '@/icons'
 import { Button } from '../Button/Button'
 import { ButtonGroup } from '../Button/ButtonGroup'
@@ -49,6 +50,7 @@ type ViewControlProps = {
   onRedo?: () => void
   canUndo?: () => boolean
   canRedo?: () => boolean
+  onAudioReactive?: () => void
 }
 
 export function ViewControls(props: ViewControlProps) {
@@ -297,6 +299,14 @@ export function ViewControls(props: ViewControlProps) {
         >
           Morph...
         </Button>
+        <Show when={IS_DEV}>
+          <Button
+            onClick={props.onAudioReactive}
+            title="Make the flame dance to music (audio-reactive)"
+          >
+            Audio...
+          </Button>
+        </Show>
       </Show>
       {/* Always-visible status badge: flame name + dimension + animation/frame. */}
       <div class={ui.flameBadge}>

@@ -1,6 +1,6 @@
 import { ArrayBufferTarget, Muxer } from 'mp4-muxer'
-import type { EncodeResult, VideoEncoderConfig } from './videoEncoder'
 import { createVideoEncoder } from './videoEncoder'
+import type { EncodeResult, VideoEncoderConfig } from './videoEncoder'
 
 // Duplicated helpers from videoEncoder.ts — keeps A/V logic in separate files
 type AvcProfile = 'high' | 'main' | 'baseline'
@@ -201,9 +201,9 @@ function createAudioVideoPipeline(
     // TS discriminated union on AudioDataInit format is hard to satisfy through a
     // conditional — the branches unify instead of narrowing. Build with assertion.
     const audioDataInit = {
-      format: ((audioBuffer.numberOfChannels === 1
+      format: (audioBuffer.numberOfChannels === 1
         ? 'f32'
-        : 'f32-planar') as AudioDataInit['format']),
+        : 'f32-planar') as AudioDataInit['format'],
       sampleRate: audioBuffer.sampleRate,
       numberOfFrames: audioBuffer.length,
       numberOfChannels: audioBuffer.numberOfChannels,

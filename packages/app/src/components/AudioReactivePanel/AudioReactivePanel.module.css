@@ -54,7 +54,9 @@
   padding: 28px 16px;
   text-align: center;
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
   flex-shrink: 0;
 }
 
@@ -164,7 +166,10 @@
   background: none;
   color: var(--color-text-muted, #aaa);
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    color 0.15s;
 }
 
 .presetBtn:hover {

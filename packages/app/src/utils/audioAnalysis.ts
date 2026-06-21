@@ -130,9 +130,7 @@ export function createAudioAnalyzer(
   // Cache per-frame FFT data
   const frameCache = new Map<number, FrameData>()
 
-  function getFrameData(
-    frameIndex: number,
-  ): FrameData & { isBeat: boolean } {
+  function getFrameData(frameIndex: number): FrameData & { isBeat: boolean } {
     const clampedIndex = Math.max(0, Math.min(frameIndex, totalFrames - 1))
 
     let frame = frameCache.get(clampedIndex)
@@ -190,7 +188,6 @@ function fftMagnitudeSpectrum(
   // Falls back to a simple DFT for basic magnitude spectrum if needed
   const fftSize = data.length
   const real = new Float32Array(fftSize)
-  const imag = new Float32Array(fftSize)
   real.set(data)
 
   // Simple DFT (not FFT — fine for analysis, not real-time)
@@ -240,8 +237,7 @@ function computeBeats(
 
   // Adaptive threshold: mean + 1.5 * stddev
   const mean = flux.reduce((a, b) => a + b, 0) / flux.length
-  const variance =
-    flux.reduce((a, b) => a + (b - mean) ** 2, 0) / flux.length
+  const variance = flux.reduce((a, b) => a + (b - mean) ** 2, 0) / flux.length
   const threshold = mean + 1.5 * Math.sqrt(variance)
 
   // Detect onsets with ~100ms minimum gap

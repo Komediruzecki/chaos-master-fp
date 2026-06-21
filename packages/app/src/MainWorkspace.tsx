@@ -14,6 +14,8 @@ import { createDragHandler } from '@/utils/createDragHandler'
 import { recordEntries, recordKeys } from '@/utils/record'
 import ui from './App.module.css'
 import { AffineEditor } from './components/AffineEditor/AffineEditor'
+import { AudioReactivePanel } from './components/AudioReactivePanel/AudioReactivePanel'
+import { BenchmarkButton } from './components/BenchmarkButton/BenchmarkButton'
 import { createShowBenchmark } from './components/BenchmarkModal/BenchmarkModal'
 import { BlendFlameGallery } from './components/BlendFlameGallery/BlendFlameGallery'
 import { Button } from './components/Button/Button'
@@ -89,6 +91,7 @@ import { BoxArrowRight, Cross, Eye, EyeOff, Menu, Plus, Share, Shuffle, Terminal
 import { AutoCanvas } from './lib/AutoCanvas'
 import { createAnimationExport } from './utils/animationExport'
 import { autosaveIntervalMin, autosaveRecents, saveReminderDismissed, setAutosaveRecents, setSaveReminderDismissed, } from './utils/autosaveSettings'
+import { createAudioAnalyzer } from './utils/audioAnalysis'
 import { downloadBlob } from './utils/blob'
 import { deepClone } from './utils/clone'
 import { createStoreHistory } from './utils/createStoreHistory'
@@ -111,6 +114,7 @@ import { useKeyboardShortcuts } from './utils/useKeyboardShortcuts'
 import type { Setter } from 'solid-js'
 import type { v2f } from 'typegpu/data'
 import type { Vec3 } from 'wgpu-matrix'
+import type { AudioMapping } from './components/AudioReactivePanel/AudioReactivePanel'
 import type { QualityPreset } from './components/Quality/QualityPresets'
 import type { QuickPickerMode } from './components/QuickVariationPicker/QuickVariationPicker'
 import type { TourContext } from './components/SpotlightTour/tourTypes'
@@ -602,6 +606,30 @@ export function MainWorkspace(props: AppProps) {
   // set up a morph animation (animated blendWeight). Branches the gallery's
   // onSelect handler.
   const [blendIntent, setBlendIntent] = createSignal<'blend' | 'morph'>('blend')
+
+  // Audio-reactive panel state (IS_DEV-gated feature)
+  const [showAudioPanel, setShowAudioPanel] = createSignal(false)
+  const [audioBuffer, setAudioBuffer] = createSignal<AudioBuffer | undefined>(
+    undefined,
+  )
+  const [audioEnabled, setAudioEnabled] = createSignal(false)
+  const [audioMapping, setAudioMapping] = createSignal<AudioMapping>({
+    preset: 'pulse',
+    mappings: [
+      {
+        audioFeature: 'bass',
+        flameParam: 'vibrancy',
+        sensitivity: 1,
+        range: [0.3, 1.5],
+      },
+      {
+        audioFeature: 'beat',
+        flameParam: 'palettePhase',
+        sensitivity: 1,
+        range: [0, 3.14],
+      },
+    ],
+  })
 
   function pickBlendFlame() {
     setBlendIntent('blend')
@@ -1101,6 +1129,80 @@ export function MainWorkspace(props: AppProps) {
   // One chronological undo across flame history + timeline snapshots —
   // Ctrl+Z/Ctrl+Y and the toolbar buttons all route through this.
   const undoRouter = createUndoRouter(history, timeline)
+
+  // --- Audio-reactive helpers ---
+
+  function getAudioFeatureNormalized(
+    frameData: ReturnType<
+      ReturnType<typeof createAudioAnalyzer>['getFrameData']
+    >,
+    feature: AudioMapping['mappings'][number]['audioFeature'],
+  ): number {
+    if (feature === 'beat') return frameData.isBeat ? 1 : 0
+    if (feature === 'rms') return Math.min(1, frameData.rms)
+    if (feature === 'centroid') return Math.min(1, frameData.centroid / 20000)
+    if (feature === 'flatness') return frameData.flatness
+    const bandMap: Record<string, number> = {
+      subBass: 0,
+      bass: 1,
+      lowMid: 2,
+      mid: 3,
+      hiMid: 4,
+      presence: 5,
+      brilliance: 6,
+      fullSpectrum: 7,
+    }
+    const idx = bandMap[feature]
+    if (idx !== undefined) return Math.min(1, frameData.bands[idx]!)
+    return 0
+  }
+
+  function applyAudioToFlameParam(
+    normalizedValue: number,
+    mapping: AudioMapping['mappings'][number],
+  ): number {
+    const [lo, hi] = mapping.range
+    return lo + normalizedValue * mapping.sensitivity * (hi - lo)
+  }
+
+  function applyAudioMappings(frameIndex: number) {
+    const buffer = audioBuffer()
+    if (!buffer) return
+    const mappings = audioMapping().mappings
+    if (mappings.length === 0) return
+    const analyzer = createAudioAnalyzer(buffer, 30)
+    const frameData = analyzer.getFrameData(frameIndex % analyzer.totalFrames)
+    setFlameDescriptor((draft) => {
+      const rs: Record<string, unknown> = draft.renderSettings ?? {}
+      const camera: Record<string, unknown> = rs.camera ?? {}
+      for (const mapping of mappings) {
+        const raw = getAudioFeatureNormalized(frameData, mapping.audioFeature)
+        const clamped = Math.max(0, Math.min(1, raw))
+        const val = applyAudioToFlameParam(clamped, mapping)
+        if (mapping.flameParam === 'zoom') {
+          camera.zoom = val
+        } else {
+          ;(rs as Record<string, number>)[mapping.flameParam] = val
+        }
+      }
+      rs.camera = camera
+      draft.renderSettings = rs as FlameDescriptor['renderSettings']
+    })
+  }
+
+  // Audio-reactive loop: drives renderSettings at 30fps from audio analysis.
+  createEffect(() => {
+    const enabled = audioEnabled()
+    const buffer = audioBuffer()
+    if (!enabled || !buffer) return
+    let frame = 0
+    const interval = setInterval(() => {
+      applyAudioMappings(frame++)
+    }, 1000 / 30)
+    onCleanup(() => {
+      clearInterval(interval)
+    })
+  })
 
   /**
    * Capture the current flame as a downscaled PNG for OG link previews.
@@ -3069,6 +3171,7 @@ export function MainWorkspace(props: AppProps) {
                     flyMode={flyMode()}
                     flySpeed={flySpeed[0]()}
                     setFlySpeed={flySpeed[1]}
+                    onAudioReactive={() => setShowAudioPanel(true)}
                   />
                 </div>
                 <Show when={showTimeline()}>
@@ -5064,6 +5167,20 @@ export function MainWorkspace(props: AppProps) {
                       setHoveredBlendName(null)
                       setShowBlendGallery(false)
                     }}
+                  />
+                </Show>
+                <Show when={IS_DEV && showAudioPanel()}>
+                  <AudioReactivePanel
+                    onClose={() => setShowAudioPanel(false)}
+                    audioBuffer={audioBuffer}
+                    onAudioChange={(buf) => {
+                      setAudioBuffer(buf)
+                      if (!buf) setAudioEnabled(false)
+                    }}
+                    audioMapping={audioMapping}
+                    onMappingChange={setAudioMapping}
+                    audioEnabled={audioEnabled}
+                    onEnabledChange={setAudioEnabled}
                   />
                 </Show>
               </div>
