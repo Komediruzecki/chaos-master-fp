@@ -131,7 +131,7 @@ function createOrchestralEngine(ctx: AudioContext, config: SonificationConfig) {
   masterGain.gain.value = config.volume
   masterGain.connect(ctx.destination)
 
-  const reverb = createReverb(ctx, config.reverbMix)
+  const reverb = createReverb(ctx)
   const dryGain = ctx.createGain()
   const wetGain = ctx.createGain()
   dryGain.gain.value = 1 - config.reverbMix
@@ -282,7 +282,7 @@ function createAmbientEngine(ctx: AudioContext, config: SonificationConfig) {
   masterGain.gain.value = config.volume * 0.5
   masterGain.connect(ctx.destination)
 
-  const reverb = createReverb(ctx, config.reverbMix)
+  const reverb = createReverb(ctx)
   const dryGain = ctx.createGain()
   const wetGain = ctx.createGain()
   dryGain.gain.value = 1 - config.reverbMix
@@ -427,7 +427,7 @@ type PercVoice = {
 }
 
 function createNoiseBuffer(ctx: AudioContext): AudioBuffer {
-  const length = ctx.sampleRate * 0.3 // 300ms max
+  const length = ctx.sampleRate * 0.3 // 300ms covers max duration (kick: 200ms)
   const buffer = ctx.createBuffer(1, length, ctx.sampleRate)
   const data = buffer.getChannelData(0)
   for (let i = 0; i < length; i++) {
@@ -486,7 +486,7 @@ function createPercussiveEngine(ctx: AudioContext, config: SonificationConfig) {
   masterGain.gain.value = config.volume
   masterGain.connect(ctx.destination)
 
-  const reverb = createReverb(ctx, config.reverbMix)
+  const reverb = createReverb(ctx)
   const dryGain = ctx.createGain()
   const wetGain = ctx.createGain()
   dryGain.gain.value = 1 - config.reverbMix
@@ -560,17 +560,11 @@ function createPercussiveEngine(ctx: AudioContext, config: SonificationConfig) {
       // Trigger: create noise burst through the filter
       const src = ctx.createBufferSource()
       src.buffer = noiseBuffer
-      const env = ctx.createGain()
-      env.gain.setValueAtTime(0, now)
 
       const duration =
         voice.type === 'hihat' ? 0.05 : voice.type === 'kick' ? 0.2 : 0.12
-      env.gain.linearRampToValueAtTime(velocity * 0.6, now + 0.005)
-      env.gain.exponentialRampToValueAtTime(0.001, now + duration)
 
       src.connect(voice.filter)
-      // The filter is already connected to gain→panner→destination
-      // Override the gain for this trigger
       voice.gain.gain.cancelScheduledValues(now)
       voice.gain.gain.setValueAtTime(velocity * 0.6, now)
       voice.gain.gain.exponentialRampToValueAtTime(0.001, now + duration)
@@ -578,11 +572,8 @@ function createPercussiveEngine(ctx: AudioContext, config: SonificationConfig) {
       src.start(now)
       src.stop(now + duration)
 
-      // Cleanup
       src.onended = () => {
         src.disconnect()
-        // env was created per trigger, disconnect it too
-        env.disconnect()
       }
     }
   }
@@ -614,10 +605,10 @@ function createPercussiveEngine(ctx: AudioContext, config: SonificationConfig) {
 
 // --- Simple convolution reverb (generated impulse response) ---
 
-function createReverb(
-  ctx: AudioContext,
-  _mix: number,
-): { input: GainNode; output: ConvolverNode } {
+function createReverb(ctx: AudioContext): {
+  input: GainNode
+  output: ConvolverNode
+} {
   const input = ctx.createGain()
   const convolver = ctx.createConvolver()
   const output = convolver

@@ -1,52 +1,6 @@
 import { ArrayBufferTarget, Muxer } from 'mp4-muxer'
-import { createVideoEncoder } from './videoEncoder'
+import { AVC_PROFILE_ORDER, computeReorderDelayUs, createVideoEncoder, frameGridUs, getAvcCodecString, getDefaultBitrate, } from './videoEncoder'
 import type { EncodeResult, VideoEncoderConfig } from './videoEncoder'
-
-// Duplicated helpers from videoEncoder.ts — keeps A/V logic in separate files
-type AvcProfile = 'high' | 'main' | 'baseline'
-
-const AVC_PROFILE_ORDER: AvcProfile[] = ['high', 'main', 'baseline']
-
-const AVC_PROFILE_PREFIX: Record<AvcProfile, string> = {
-  high: '6400',
-  main: '4D40',
-  baseline: '42E0',
-}
-
-function getAvcCodecString(
-  width: number,
-  height: number,
-  profile: AvcProfile = 'high',
-): string {
-  const codedWidth = Math.ceil(width / 16) * 16
-  const codedHeight = Math.ceil(height / 16) * 16
-  const codedArea = codedWidth * codedHeight
-  let level = '33'
-  if (codedArea <= 921600) level = '1f'
-  else if (codedArea <= 2097152) level = '28'
-  else if (codedArea <= 2228224) level = '2A'
-  else if (codedArea <= 5652480) level = '32'
-  return `avc1.${AVC_PROFILE_PREFIX[profile]}${level}`
-}
-
-function getDefaultBitrate(width: number, height: number, fps: number): number {
-  return Math.min(
-    Math.max(8_000_000, Math.round(width * height * fps * 0.12)),
-    60_000_000,
-  )
-}
-
-function frameGridUs(frameIndex: number, fps: number): number {
-  return Math.round((frameIndex * 1e6) / fps)
-}
-
-function computeReorderDelay(ptsInDecodeOrder: number[], fps: number): number {
-  let delayUs = 0
-  for (let d = 0; d < ptsInDecodeOrder.length; d++) {
-    delayUs = Math.max(delayUs, frameGridUs(d, fps) - ptsInDecodeOrder[d]!)
-  }
-  return delayUs
-}
 
 // --- Audio encoding ---
 
@@ -295,7 +249,7 @@ function createAudioVideoPipeline(
 
       // Add video chunks with PTS/DTS reorder delay (same logic as videoEncoder.ts)
       const frameDurationUs = Math.round(1e6 / fps)
-      const reorderDelayUs = computeReorderDelay(
+      const reorderDelayUs = computeReorderDelayUs(
         pendingVideoChunks.map((c) => c.ptsUs),
         fps,
       )

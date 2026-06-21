@@ -656,11 +656,15 @@ export function MainWorkspace(props: AppProps) {
 
   function pickBlendFlame() {
     setBlendIntent('blend')
+    setShowAudioPanel(false)
+    setShowSonificationPanel(false)
     setShowBlendGallery(true)
   }
 
   function pickMorphFlame() {
     setBlendIntent('morph')
+    setShowAudioPanel(false)
+    setShowSonificationPanel(false)
     setShowBlendGallery(true)
   }
 
@@ -1224,11 +1228,25 @@ export function MainWorkspace(props: AppProps) {
     const enabled = sonificationEnabled()
     if (!enabled) return
 
-    const engine = createSonificationEngine(sonificationConfig())
+    const cfg = untrack(sonificationConfig)
+    const engine = createSonificationEngine(cfg)
 
-    const interval = setInterval(() => {
+    let interval = setInterval(() => {
       engine.update(flameDescriptor)
-    }, 1000 / sonificationConfig().updateRate)
+    }, 1000 / cfg.updateRate)
+
+    let lastUpdateRate = cfg.updateRate
+    createEffect(() => {
+      const newCfg = sonificationConfig()
+      if (newCfg.updateRate !== lastUpdateRate) {
+        clearInterval(interval)
+        interval = setInterval(() => {
+          engine.update(flameDescriptor)
+        }, 1000 / newCfg.updateRate)
+        lastUpdateRate = newCfg.updateRate
+      }
+      engine.setConfig(newCfg)
+    })
 
     onCleanup(() => {
       clearInterval(interval)
@@ -3205,8 +3223,16 @@ export function MainWorkspace(props: AppProps) {
                     flyMode={flyMode()}
                     flySpeed={flySpeed[0]()}
                     setFlySpeed={flySpeed[1]}
-                    onAudioReactive={() => setShowAudioPanel(true)}
-                    onSonification={() => setShowSonificationPanel(true)}
+                    onAudioReactive={() => {
+                      setShowBlendGallery(false)
+                      setShowSonificationPanel(false)
+                      setShowAudioPanel(true)
+                    }}
+                    onSonification={() => {
+                      setShowBlendGallery(false)
+                      setShowAudioPanel(false)
+                      setShowSonificationPanel(true)
+                    }}
                   />
                 </div>
                 <Show when={showTimeline()}>
