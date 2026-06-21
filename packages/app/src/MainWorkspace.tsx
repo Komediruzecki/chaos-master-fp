@@ -1152,18 +1152,54 @@ export function MainWorkspace(props: AppProps) {
     })
   }
 
-  // Audio-reactive loop: drives renderSettings at 30fps from audio analysis.
+  // Audio-reactive loop: plays audio through AudioContext, drives
+  // renderSettings at 30fps synced to playback time. Skips redundant
+  // setFlameDescriptor calls when the frame index hasn't changed.
   createEffect(() => {
     const enabled = audioEnabled()
     const buffer = audioBuffer()
     if (!enabled || !buffer) return
-    let frame = 0
+
     const analyzer = createAudioAnalyzer(buffer, 30)
+
+    let audioCtx: AudioContext | undefined
+    let source: AudioBufferSourceNode | undefined
+
+    try {
+      audioCtx = new AudioContext()
+      source = audioCtx.createBufferSource()
+      source.buffer = buffer
+      source.loop = true
+      source.connect(audioCtx.destination)
+      source.start()
+    } catch {
+      // Autoplay blocked or other error — run blind frame counter without audio.
+      audioCtx?.close()
+      audioCtx = undefined
+    }
+
+    let lastFrame = -1
+    const tickMs = 1000 / 30
+
     const interval = setInterval(() => {
-      applyAudioMappings(frame++, analyzer)
-    }, 1000 / 30)
+      const frame = audioCtx
+        ? Math.floor(audioCtx.currentTime * 30) % analyzer.totalFrames
+        : lastFrame + 1
+      if (frame !== lastFrame) {
+        applyAudioMappings(frame, analyzer)
+        lastFrame = frame
+      }
+    }, tickMs)
+
     onCleanup(() => {
       clearInterval(interval)
+      try {
+        source?.stop()
+      } catch {
+        // May already be stopped.
+      }
+      source?.disconnect()
+      void audioCtx?.close()
     })
   })
 
