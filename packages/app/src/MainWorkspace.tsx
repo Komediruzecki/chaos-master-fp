@@ -56,6 +56,7 @@ import { AngleEditor } from './components/Sliders/ParametricEditors/AngleEditor'
 import { ScrubInput } from './components/Sliders/ScrubInput'
 import { Slider } from './components/Sliders/Slider'
 import { SoftwareVersion } from './components/SoftwareVersion/SoftwareVersion'
+import { SonificationPanel } from './components/SonificationPanel/SonificationPanel'
 import { SpotlightTour } from './components/SpotlightTour/SpotlightTour'
 import { KeyframeDiamond } from './components/Timeline/KeyframeDiamond'
 import { smartRandomAnimation } from './components/Timeline/presets'
@@ -109,6 +110,7 @@ import { addRandomizerHistoryEntry, clearRandomizerHistory, loadRandomizerHistor
 import { buildReadableIds } from './utils/readableIds'
 import { getOldestRecentFlame, saveRecentFlame, upsertRecentFlame, } from './utils/recentFlames'
 import { createShareLink, deriveOgMeta, uploadOgPreview, } from './utils/shareLink'
+import { createSonificationEngine } from './utils/sonification'
 import { sum } from './utils/sum'
 import { createTimelineState, resolveKeyframeValue } from './utils/timeline'
 import { sortedTransformEntries } from './utils/transformOrder'
@@ -135,6 +137,7 @@ import type { ExportDimensions } from './utils/exportDimensions'
 import type { HardwareTier } from './utils/hardwareTier'
 import type { SharePayload } from './utils/jsonQueryParam'
 import type { RandomizerHistoryEntry } from './utils/randomizerHistoryDB'
+import type { SonificationConfig } from './utils/sonification'
 import type { EasingCurve, TimelineTrack } from './utils/timeline'
 import type { CommandContext } from '@/commands/types'
 
@@ -634,6 +637,22 @@ export function MainWorkspace(props: AppProps) {
       },
     ],
   })
+
+  // Sonification state
+  const [showSonificationPanel, setShowSonificationPanel] = createSignal(false)
+  const [sonificationEnabled, setSonificationEnabled] = createSignal(false)
+  const [sonificationConfig, setSonificationConfig] =
+    createSignal<SonificationConfig>({
+      model: 'orchestral',
+      volume: 0.3,
+      updateRate: 20,
+      scale: 'pentatonicMajor',
+      voiceCount: 8,
+      harmonicDensity: 1.0,
+      triggerRate: 4,
+      spatialSpread: 0.7,
+      reverbMix: 0.3,
+    })
 
   function pickBlendFlame() {
     setBlendIntent('blend')
@@ -1144,11 +1163,7 @@ export function MainWorkspace(props: AppProps) {
     if (mappings.length === 0) return
     const frameData = analyzer.getFrameData(frameIndex % analyzer.totalFrames)
     setFlameDescriptor((draft) => {
-      applyAudioMappingsToFlame(
-        draft as { renderSettings?: Record<string, unknown> },
-        frameData,
-        mappings as AudioMappingEntry[],
-      )
+      applyAudioMappingsToFlame(draft, frameData, mappings)
     })
   }
 
@@ -1174,7 +1189,7 @@ export function MainWorkspace(props: AppProps) {
       source.start()
     } catch {
       // Autoplay blocked or other error — run blind frame counter without audio.
-      audioCtx?.close()
+      void audioCtx?.close()
       audioCtx = undefined
     }
 
@@ -1200,6 +1215,24 @@ export function MainWorkspace(props: AppProps) {
       }
       source?.disconnect()
       void audioCtx?.close()
+    })
+  })
+
+  // Sonification loop: creates a Web Audio engine that reads flame
+  // descriptor properties and synthesizes audio in real-time.
+  createEffect(() => {
+    const enabled = sonificationEnabled()
+    if (!enabled) return
+
+    const engine = createSonificationEngine(sonificationConfig())
+
+    const interval = setInterval(() => {
+      engine.update(flameDescriptor)
+    }, 1000 / sonificationConfig().updateRate)
+
+    onCleanup(() => {
+      clearInterval(interval)
+      engine.dispose()
     })
   })
 
@@ -3173,6 +3206,8 @@ export function MainWorkspace(props: AppProps) {
                     flySpeed={flySpeed[0]()}
                     setFlySpeed={flySpeed[1]}
                     onAudioReactive={() => setShowAudioPanel(true)}
+                    onSonification={() => setShowSonificationPanel(true)}
+                    isDev={IS_DEV}
                   />
                 </div>
                 <Show when={showTimeline()}>
@@ -3318,7 +3353,11 @@ export function MainWorkspace(props: AppProps) {
               </Show>
               <div class={ui.sidebarScroll} ref={sidebarScrollRef}>
                 <Show
-                  when={showBlendGallery() || showAudioPanel()}
+                  when={
+                    showBlendGallery() ||
+                    showAudioPanel() ||
+                    showSonificationPanel()
+                  }
                   fallback={
                     <>
                       <Show when={quickPickState()} keyed>
@@ -5146,18 +5185,31 @@ export function MainWorkspace(props: AppProps) {
                   <Show
                     when={showBlendGallery()}
                     fallback={
-                      <AudioReactivePanel
-                        onClose={() => setShowAudioPanel(false)}
-                        audioBuffer={audioBuffer}
-                        onAudioChange={(buf) => {
-                          setAudioBuffer(buf)
-                          if (!buf) setAudioEnabled(false)
-                        }}
-                        audioMapping={audioMapping}
-                        onMappingChange={setAudioMapping}
-                        audioEnabled={audioEnabled}
-                        onEnabledChange={setAudioEnabled}
-                      />
+                      <Show
+                        when={showAudioPanel()}
+                        fallback={
+                          <SonificationPanel
+                            onClose={() => setShowSonificationPanel(false)}
+                            enabled={sonificationEnabled}
+                            onEnabledChange={setSonificationEnabled}
+                            config={sonificationConfig}
+                            onConfigChange={setSonificationConfig}
+                          />
+                        }
+                      >
+                        <AudioReactivePanel
+                          onClose={() => setShowAudioPanel(false)}
+                          audioBuffer={audioBuffer}
+                          onAudioChange={(buf) => {
+                            setAudioBuffer(buf)
+                            if (!buf) setAudioEnabled(false)
+                          }}
+                          audioMapping={audioMapping}
+                          onMappingChange={setAudioMapping}
+                          audioEnabled={audioEnabled}
+                          onEnabledChange={setAudioEnabled}
+                        />
+                      </Show>
                     }
                   >
                     <BlendFlameGallery

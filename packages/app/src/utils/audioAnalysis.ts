@@ -369,7 +369,7 @@ export function applyAudioMappingsToFlame(
   mappings: AudioMappingEntry[],
 ): void {
   if (mappings.length === 0) return
-  const rs = (flame.renderSettings ?? {}) as Record<string, unknown>
+  const rs = flame.renderSettings ?? {}
   const camera = (rs.camera as Record<string, unknown> | undefined) ?? {}
   for (const mapping of mappings) {
     const raw = getAudioFeatureNormalized(frameData, mapping.audioFeature)
@@ -381,6 +381,6 @@ export function applyAudioMappingsToFlame(
       ;(rs as Record<string, number>)[mapping.flameParam] = val
     }
   }
-  ;(rs as Record<string, unknown>).camera = camera
+  rs.camera = camera
   flame.renderSettings = rs
 }

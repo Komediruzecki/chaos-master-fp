@@ -6,8 +6,8 @@ import { AutoCanvas } from '@/lib/AutoCanvas'
 import { Root } from '@/lib/Root'
 import { WheelZoomCamera2D } from '@/lib/WheelZoomCamera2D'
 import { WheelZoomCamera3D } from '@/lib/WheelZoomCamera3D'
+import { applyAudioMappingsToFlame, createAudioAnalyzer, } from '@/utils/audioAnalysis'
 import { createAudioVideoEncoder } from '@/utils/audioExport'
-import { applyAudioMappingsToFlame, createAudioAnalyzer } from '@/utils/audioAnalysis'
 import { deepClone } from '@/utils/clone'
 import { dismissJob, jobExists, setAnimationJobPoints, setAnimationJobProgress, setJobError, setJobResult, } from '@/utils/exportJobs'
 import { createMetadataPayload, injectMetadataIntoMp4, } from '@/utils/flameInMp4'
@@ -57,11 +57,7 @@ export function OffscreenAnimationRender(props: { job: AnimationJob }) {
     if (audioAnalyzer && job.audioMapping) {
       const audioFrame = frame % audioAnalyzer.totalFrames
       const frameData = audioAnalyzer.getFrameData(audioFrame)
-      applyAudioMappingsToFlame(
-        clone as unknown as { renderSettings?: Record<string, unknown> },
-        frameData,
-        job.audioMapping,
-      )
+      applyAudioMappingsToFlame(clone, frameData, job.audioMapping)
     }
     return clone
   }

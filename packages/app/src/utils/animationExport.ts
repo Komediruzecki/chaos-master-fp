@@ -1,7 +1,7 @@
 import { DEBUG_MODE } from '@/defaults'
 import { accumulatedPointCount, forceAnimationExportNow, qualityPointCountLimit, setAnimationExportCancel, setAnimationExportProgress, setAnimationExportRunning, setExportQuality, setForceAnimationExportNow, } from '@/flame/renderStats'
-import { createAudioVideoEncoder } from './audioExport'
 import { applyAudioMappingsToFlame, createAudioAnalyzer } from './audioAnalysis'
+import { createAudioVideoEncoder } from './audioExport'
 import { deepClone } from './clone'
 import { createMetadataPayload, injectMetadataIntoMp4 } from './flameInMp4'
 import { formatPointCount } from './formatPointCount'
@@ -180,11 +180,7 @@ export function createAnimationExport(
         if (audioAnalyzer && config.audioMapping) {
           const audioFrame = frameIndex % audioAnalyzer.totalFrames
           const frameData = audioAnalyzer.getFrameData(audioFrame)
-          applyAudioMappingsToFlame(
-            flameClone as unknown as { renderSettings?: Record<string, unknown> },
-            frameData,
-            config.audioMapping,
-          )
+          applyAudioMappingsToFlame(flameClone, frameData, config.audioMapping)
         }
 
         // Set flame descriptor to the per-frame clone so Flam3 picks it up

@@ -50,6 +50,8 @@ type ViewControlProps = {
   canUndo?: () => boolean
   canRedo?: () => boolean
   onAudioReactive?: () => void
+  onSonification?: () => void
+  isDev?: boolean
 }
 
 export function ViewControls(props: ViewControlProps) {
@@ -304,6 +306,14 @@ export function ViewControls(props: ViewControlProps) {
         >
           Audio...
         </Button>
+        <Show when={props.isDev}>
+          <Button
+            onClick={props.onSonification}
+            title="Hear the fractal — flame structure generates real-time audio"
+          >
+            Sonification...
+          </Button>
+        </Show>
       </Show>
       {/* Always-visible status badge: flame name + dimension + animation/frame. */}
       <div class={ui.flameBadge}>
