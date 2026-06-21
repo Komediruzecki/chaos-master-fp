@@ -3319,7 +3319,7 @@ export function MainWorkspace(props: AppProps) {
               </Show>
               <div class={ui.sidebarScroll} ref={sidebarScrollRef}>
                 <Show
-                  when={showBlendGallery()}
+                  when={showBlendGallery() || showAudioPanel()}
                   fallback={
                     <>
                       <Show when={quickPickState()} keyed>
@@ -5144,7 +5144,24 @@ export function MainWorkspace(props: AppProps) {
                     </>
                   }
                 >
-                  <BlendFlameGallery
+                  <Show
+                    when={showBlendGallery()}
+                    fallback={
+                      <AudioReactivePanel
+                        onClose={() => setShowAudioPanel(false)}
+                        audioBuffer={audioBuffer}
+                        onAudioChange={(buf) => {
+                          setAudioBuffer(buf)
+                          if (!buf) setAudioEnabled(false)
+                        }}
+                        audioMapping={audioMapping}
+                        onMappingChange={setAudioMapping}
+                        audioEnabled={audioEnabled}
+                        onEnabledChange={setAudioEnabled}
+                      />
+                    }
+                  >
+                    <BlendFlameGallery
                     heading={
                       blendIntent() === 'morph'
                         ? 'Pick End Flame'
@@ -5170,20 +5187,7 @@ export function MainWorkspace(props: AppProps) {
                       setShowBlendGallery(false)
                     }}
                   />
-                </Show>
-                <Show when={IS_DEV && showAudioPanel()}>
-                  <AudioReactivePanel
-                    onClose={() => setShowAudioPanel(false)}
-                    audioBuffer={audioBuffer}
-                    onAudioChange={(buf) => {
-                      setAudioBuffer(buf)
-                      if (!buf) setAudioEnabled(false)
-                    }}
-                    audioMapping={audioMapping}
-                    onMappingChange={setAudioMapping}
-                    audioEnabled={audioEnabled}
-                    onEnabledChange={setAudioEnabled}
-                  />
+                  </Show>
                 </Show>
               </div>
             </div>
