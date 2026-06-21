@@ -25,14 +25,80 @@ export type AudioAnalyzer = {
   sampleRate: number
 }
 
+// --- Radix-2 FFT (iterative, in-place) ---
+
+function reverseBits(n: number, bits: number): number {
+  let r = 0
+  for (let i = 0; i < bits; i++) {
+    r = (r << 1) | (n & 1)
+    n >>= 1
+  }
+  return r
+}
+
+function fft(real: Float64Array, imag: Float64Array): void {
+  const N = real.length
+  const bits = Math.log2(N)
+  if ((bits | 0) !== bits) return // N must be power of 2
+
+  // Bit-reversal permutation
+  for (let i = 0; i < N; i++) {
+    const j = reverseBits(i, bits)
+    if (j > i) {
+      ;[real[i], real[j]] = [real[j]!, real[i]!]
+      ;[imag[i], imag[j]] = [imag[j]!, imag[i]!]
+    }
+  }
+
+  // Cooley-Tukey
+  for (let size = 2; size <= N; size <<= 1) {
+    const half = size >> 1
+    const angle = (-2 * Math.PI) / size
+    for (let block = 0; block < N; block += size) {
+      for (let k = 0; k < half; k++) {
+        const cos = Math.cos(angle * k)
+        const sin = Math.sin(angle * k)
+        const ri = block + k
+        const rj = block + k + half
+        const tr = real[rj]! * cos - imag[rj]! * sin
+        const ti = real[rj]! * sin + imag[rj]! * cos
+        real[rj] = real[ri]! - tr
+        imag[rj] = imag[ri]! - ti
+        real[ri] = real[ri]! + tr
+        imag[ri] = imag[ri]! + ti
+      }
+    }
+  }
+}
+
+function fftMagnitudeSpectrum(
+  data: Float32Array,
+  _sampleRate: number,
+): { bands: number[]; centroid: number; flatness: number } {
+  const N = data.length
+  const real = new Float64Array(N)
+  for (let i = 0; i < N; i++) real[i] = data[i] ?? 0
+  const imag = new Float64Array(N)
+
+  fft(real, imag)
+
+  const halfSize = N / 2
+  const mags = new Float32Array(halfSize)
+  for (let k = 0; k < halfSize; k++) {
+    mags[k] = Math.sqrt(real[k]! * real[k]! + imag[k]! * imag[k]!) / N
+  }
+
+  return getFftBands(mags, _sampleRate)
+}
+
 function getFftBands(
   fftData: Float32Array,
   sampleRate: number,
 ): { bands: number[]; centroid: number; flatness: number } {
   const binCount = fftData.length
   const nyquist = sampleRate / 2
-  const bands = new Array(BAND_COUNT).fill(0)
-  const bandBinCounts = new Array(BAND_COUNT).fill(0)
+  const bands = new Array(BAND_COUNT).fill(0) as number[]
+  const bandBinCounts = new Array(BAND_COUNT).fill(0) as number[]
 
   for (let i = 0; i < binCount; i++) {
     const freq = (i / binCount) * nyquist
@@ -52,7 +118,6 @@ function getFftBands(
     }
   }
 
-  // Spectral centroid
   let weightedSum = 0
   let totalMag = 0
   for (let i = 0; i < binCount; i++) {
@@ -63,7 +128,6 @@ function getFftBands(
   }
   const centroid = totalMag > 0 ? weightedSum / totalMag : 0
 
-  // Spectral flatness (geometric mean / arithmetic mean)
   let logSum = 0
   let linSum = 0
   let nonZeroCount = 0
@@ -101,9 +165,58 @@ export async function decodeAudioFile(file: File): Promise<AudioBuffer> {
   }
 }
 
+// --- Beat detection ---
+
+function computeBeats(
+  totalFrames: number,
+  getData: (i: number) => { bands: number[]; rms: number },
+): Set<number> {
+  const beats = new Set<number>()
+  if (totalFrames < 2) return beats
+
+  const flux: number[] = []
+  for (let i = 0; i < totalFrames; i++) {
+    const data = getData(i)
+    if (i === 0) {
+      flux.push(0)
+    } else {
+      const prev = getData(i - 1)
+      let diff = 0
+      for (let b = 0; b < BAND_COUNT; b++) {
+        const d = (data.bands[b] ?? 0) - (prev.bands[b] ?? 0)
+        if (d > 0) diff += d
+      }
+      flux.push(diff)
+    }
+  }
+
+  const mean = flux.reduce((a, b) => a + b, 0) / flux.length
+  const variance = flux.reduce((a, b) => a + (b - mean) ** 2, 0) / flux.length
+  const threshold = mean + 1.5 * Math.sqrt(variance)
+
+  const minGapFrames = Math.max(1, Math.floor(0.1 * 30))
+  let lastBeatFrame = -minGapFrames
+
+  for (let i = 1; i < flux.length; i++) {
+    if (
+      flux[i]! > threshold &&
+      flux[i]! > flux[i - 1]! &&
+      i - lastBeatFrame >= minGapFrames
+    ) {
+      beats.add(i)
+      lastBeatFrame = i
+    }
+  }
+
+  return beats
+}
+
+// --- Public API ---
+
 export function createAudioAnalyzer(
   audioBuffer: AudioBuffer,
   targetFps: number,
+  onProgress?: (current: number, total: number) => void,
 ): AudioAnalyzer {
   const { sampleRate, length, duration, numberOfChannels } = audioBuffer
 
@@ -127,46 +240,45 @@ export function createAudioAnalyzer(
   const totalFrames = Math.floor(length / samplesPerFrame)
   const fftSize = Math.max(256, nextPowerOfTwo(samplesPerFrame))
 
-  // Cache per-frame FFT data
+  onProgress?.(0, totalFrames)
+
+  // Analyze every frame up front — with a proper FFT this is ~1s for a 3min song.
   const frameCache = new Map<number, FrameData>()
 
-  function getFrameData(frameIndex: number): FrameData & { isBeat: boolean } {
-    const clampedIndex = Math.max(0, Math.min(frameIndex, totalFrames - 1))
+  function getOrComputeFrame(i: number): FrameData {
+    let frame = frameCache.get(i)
+    if (frame) return frame
 
-    let frame = frameCache.get(clampedIndex)
-    if (!frame) {
-      const start = clampedIndex * samplesPerFrame
-      const end = Math.min(start + samplesPerFrame, length)
-      const slice = monoData.slice(start, end)
+    const start = i * samplesPerFrame
+    const end = Math.min(start + samplesPerFrame, length)
+    const slice = monoData.slice(start, end)
+    const padded = new Float32Array(fftSize)
+    padded.set(slice)
 
-      // Zero-pad to fftSize
-      const padded = new Float32Array(fftSize)
-      padded.set(slice)
+    const { bands, centroid, flatness } = fftMagnitudeSpectrum(
+      padded,
+      sampleRate,
+    )
+    const rms = computeRms(slice)
 
-      // Simple DFT magnitude spectrum (no OfflineAudioContext needed for basic analysis)
-      const { bands, centroid, flatness } = fftMagnitudeSpectrum(
-        padded,
-        sampleRate,
-      )
-      const rms = computeRms(slice)
-
-      frame = { bands, rms, centroid, flatness }
-      frameCache.set(clampedIndex, frame)
-    }
-
-    return { ...frame, isBeat: false }
+    frame = { bands, rms, centroid, flatness }
+    frameCache.set(i, frame)
+    onProgress?.(i + 1, totalFrames)
+    return frame
   }
 
-  // Compute beats after all frames are analyzed
-  const beatFrames = computeBeats(totalFrames, (i) => {
-    const fd = getFrameData(i)
-    return { bands: fd.bands, rms: fd.rms }
-  })
+  // Pre-compute all frames
+  for (let i = 0; i < totalFrames; i++) {
+    getOrComputeFrame(i)
+  }
+
+  const beatFrames = computeBeats(totalFrames, getOrComputeFrame)
 
   return {
     getFrameData(frameIndex: number) {
-      const data = getFrameData(frameIndex)
-      return { ...data, isBeat: beatFrames.has(frameIndex) }
+      const clampedIndex = Math.max(0, Math.min(frameIndex, totalFrames - 1))
+      const data = getOrComputeFrame(clampedIndex)
+      return { ...data, isBeat: beatFrames.has(clampedIndex) }
     },
     totalFrames,
     duration,
@@ -178,84 +290,6 @@ function nextPowerOfTwo(n: number): number {
   let p = 1
   while (p < n) p <<= 1
   return p
-}
-
-function fftMagnitudeSpectrum(
-  data: Float32Array,
-  sampleRate: number,
-): { bands: number[]; centroid: number; flatness: number } {
-  // Use an OfflineAudioContext for accurate FFT analysis
-  // Falls back to a simple DFT for basic magnitude spectrum if needed
-  const fftSize = data.length
-  const real = new Float32Array(fftSize)
-  real.set(data)
-
-  // Simple DFT (not FFT — fine for analysis, not real-time)
-  const halfSize = fftSize / 2
-  const mags = new Float32Array(halfSize)
-
-  // Only compute magnitudes for production use
-  for (let k = 0; k < halfSize; k++) {
-    let re = 0
-    let im = 0
-    const angleStep = (-2 * Math.PI * k) / fftSize
-    for (let n = 0; n < fftSize; n++) {
-      const angle = angleStep * n
-      const val = real[n] ?? 0
-      re += val * Math.cos(angle)
-      im += val * Math.sin(angle)
-    }
-    mags[k] = Math.sqrt(re * re + im * im) / fftSize
-  }
-
-  return getFftBands(mags, sampleRate)
-}
-
-function computeBeats(
-  totalFrames: number,
-  getData: (i: number) => { bands: number[]; rms: number },
-): Set<number> {
-  const beats = new Set<number>()
-  if (totalFrames < 2) return beats
-
-  // Compute spectral flux (change in magnitude between consecutive frames)
-  const flux: number[] = []
-  for (let i = 0; i < totalFrames; i++) {
-    const data = getData(i)
-    if (i === 0) {
-      flux.push(0)
-    } else {
-      const prev = getData(i - 1)
-      let diff = 0
-      for (let b = 0; b < BAND_COUNT; b++) {
-        const d = (data.bands[b] ?? 0) - (prev.bands[b] ?? 0)
-        if (d > 0) diff += d
-      }
-      flux.push(diff)
-    }
-  }
-
-  // Adaptive threshold: mean + 1.5 * stddev
-  const mean = flux.reduce((a, b) => a + b, 0) / flux.length
-  const variance = flux.reduce((a, b) => a + (b - mean) ** 2, 0) / flux.length
-  const threshold = mean + 1.5 * Math.sqrt(variance)
-
-  // Detect onsets with ~100ms minimum gap
-  const minGapFrames = Math.max(1, Math.floor(0.1 * 30)) // ~3 frames at 30fps
-  let lastBeatFrame = -minGapFrames
-
-  for (let i = 1; i < flux.length; i++) {
-    if (
-      flux[i]! > threshold &&
-      flux[i]! > flux[i - 1]! &&
-      i - lastBeatFrame >= minGapFrames
-    ) {
-      beats.add(i)
-      lastBeatFrame = i
-    }
-  }
-
-  return beats
 }
 
 export function detectBeats(frames: FrameData[]): Set<number> {

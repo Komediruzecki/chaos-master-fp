@@ -229,11 +229,14 @@ function mixToMono(buffer: AudioBuffer): Float32Array {
   return mono
 }
 
-function computeBeatFrames(audioBuffer: AudioBuffer): {
+function computeBeatFrames(
+  audioBuffer: AudioBuffer,
+  onProgress?: (current: number, total: number) => void,
+): {
   beatFrames: Set<number>
   totalFrames: number
 } {
-  const analyzer = createAudioAnalyzer(audioBuffer, 30)
+  const analyzer = createAudioAnalyzer(audioBuffer, 30, onProgress)
   const beats = new Set<number>()
   for (let i = 0; i < analyzer.totalFrames; i++) {
     if (analyzer.getFrameData(i).isBeat) beats.add(i)
@@ -298,6 +301,8 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
   const [dragOver, setDragOver] = createSignal(false)
   const [loading, setLoading] = createSignal(false)
   const [error, setError] = createSignal<string | null>(null)
+  const [analyzing, setAnalyzing] = createSignal(false)
+  const [analyzeProgress, setAnalyzeProgress] = createSignal(0)
 
   let waveformCanvas!: HTMLCanvasElement
   let fileInput!: HTMLInputElement
@@ -312,11 +317,19 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
     const canvas = waveformCanvas
     if (!canvas) return
 
-    // Wait for layout
-    requestAnimationFrame(() => {
-      const { beatFrames, totalFrames } = computeBeatFrames(buffer)
+    setAnalyzing(true)
+    setAnalyzeProgress(0)
+    // Yield so the UI paints "Analyzing audio..." before we block on FFT.
+    setTimeout(() => {
+      const { beatFrames, totalFrames } = computeBeatFrames(
+        buffer,
+        (current, total) => {
+          setAnalyzeProgress(Math.round((current / total) * 100))
+        },
+      )
       drawWaveform(canvas, buffer, beatFrames, totalFrames)
-    })
+      setAnalyzing(false)
+    }, 30)
   })
 
   function handleFile(file: File) {
@@ -434,20 +447,42 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
 
               {/* Waveform */}
               <div class={ui.waveformWrap}>
+                <Show when={analyzing()}>
+                  <div class={ui.analyzeOverlay}>
+                    <span class={ui.analyzeLabel}>Analyzing audio...</span>
+                    <div class={ui.progressTrack}>
+                      <div
+                        class={ui.progressFill}
+                        style={{ width: `${analyzeProgress()}%` }}
+                      />
+                    </div>
+                    <span class={ui.analyzePercent}>{analyzeProgress()}%</span>
+                  </div>
+                </Show>
                 <canvas
                   ref={(el) => {
                     waveformCanvas = el
-                    // Re-draw after canvas is in DOM
                     const buffer = untrack(audioBuffer)
                     if (buffer) {
-                      requestAnimationFrame(() => {
-                        const { beatFrames, totalFrames } =
-                          computeBeatFrames(buffer)
+                      setAnalyzing(true)
+                      setAnalyzeProgress(0)
+                      setTimeout(() => {
+                        const { beatFrames, totalFrames } = computeBeatFrames(
+                          buffer,
+                          (current, total) => {
+                            setAnalyzeProgress(
+                              Math.round((current / total) * 100),
+                            )
+                          },
+                        )
                         drawWaveform(el, buffer, beatFrames, totalFrames)
-                      })
+                        setAnalyzing(false)
+                      }, 30)
                     }
                   }}
-                  class={ui.waveform}
+                  class={
+                    ui.waveform + (analyzing() ? ` ${ui.waveformHidden}` : '')
+                  }
                 />
               </div>
             </>
