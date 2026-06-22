@@ -3,10 +3,10 @@ import { tgpu } from 'typegpu'
 import { WebgpuNotSupported } from '@/components/ErrorHandling/ErrorHandling'
 import { getWebgpuComponents } from '@/lib/WebgpuAdapter'
 import { vramLog } from '@/utils/vramLog'
+import { createShowDocumentation } from '../components/DocumentationModal/DocumentationModal'
 import { RootContextProvider } from './RootContext'
 import type { ParentProps } from 'solid-js'
 import type { TgpuRoot } from 'typegpu'
-import { createShowDocumentation } from '../components/DocumentationModal/DocumentationModal'
 
 type RootProps = {
   adapterOptions?: GPURequestAdapterOptions

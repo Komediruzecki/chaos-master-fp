@@ -1,10 +1,9 @@
 import { createSignal } from 'solid-js'
-import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { allTransformVariations, variationTypes } from '@/flame/variations'
 import { VARIATION_DOCS } from '@/flame/variations/documentation'
-import { variationTypes } from '@/flame/variations'
-import { variationTypes3D } from '@/flame/variations3D'
 import { getNormalizedVariationName } from '@/flame/variations/utils'
-import { allTransformVariations } from '@/flame/variations'
+import { variationTypes3D } from '@/flame/variations3D'
 import type { VariationDoc } from '@/flame/variations/documentation'
 
 // ---------------------------------------------------------------------------
@@ -28,12 +27,12 @@ vi.mock('@/components/VariationSelector/VariationSelector', () => ({
   VariationPreview: () => null,
 }))
 
-vi.mock('@/flame/variations/utils', async (importOriginal) => {
-  const orig = await importOriginal<typeof import('@/flame/variations/utils')>()
+vi.mock('@/flame/variations/utils', async () => {
+  const orig = await vi.importActual('@/flame/variations/utils')
   return {
-    ...orig,
-    getVariationPreviewFlame: vi.fn(() => ({}) as any),
-    getVariationPreviewFlame3D: vi.fn(() => ({}) as any),
+    ...(orig as Record<string, unknown>),
+    getVariationPreviewFlame: vi.fn(() => ({})),
+    getVariationPreviewFlame3D: vi.fn(() => ({})),
   }
 })
 
@@ -210,7 +209,7 @@ describe('DocumentationModal – Dimension Toggle', () => {
   })
 
   it('switching dimension should reset selectedVar to first of that list', () => {
-    const [dimension, setDimension] = createSignal<2 | 3>(2)
+    const [, setDimension] = createSignal<2 | 3>(2)
     const [selectedVar, setSelectedVar] = createSignal<string>('linearVar')
 
     // Switch to 3D – reset to first 3D var
@@ -250,7 +249,10 @@ describe('DocumentationModal – Variation Selection', () => {
     // Replicate the auto-generation logic from the component
     const isParametric =
       undocumented in allTransformVariations &&
-      'paramDefaults' in ((allTransformVariations as any)[undocumented] || {})
+      'paramDefaults' in
+        (((allTransformVariations as Record<string, unknown>)[
+          undocumented
+        ] as Record<string, unknown>) || {})
     const autoDoc: VariationDoc = {
       name: getNormalizedVariationName(undocumented),
       description: `The ${getNormalizedVariationName(undocumented)} fractal transformation.`,
@@ -258,7 +260,9 @@ describe('DocumentationModal – Variation Selection', () => {
       params: isParametric
         ? Object.keys(
             (
-              (allTransformVariations as any)[undocumented] as {
+              (allTransformVariations as Record<string, unknown>)[
+                undocumented
+              ] as {
                 paramDefaults: Record<string, number>
               }
             )?.paramDefaults || {},
@@ -292,7 +296,12 @@ describe('DocumentationModal – Variation Selection', () => {
 
 describe('DocumentationModal – Code Snippets', () => {
   function getCodeSnippet(vKey: string): string {
-    const variationObj = (allTransformVariations as Record<string, any>)[vKey]
+    const variationObj = (
+      allTransformVariations as Record<
+        string,
+        { fn?: { toString: () => string }; category?: string }
+      >
+    )[vKey]
     if (!variationObj) return '// Implementation code unavailable.'
 
     const fnStr = variationObj.fn ? String(variationObj.fn) : ''
@@ -335,20 +344,20 @@ describe('DocumentationModal – Code Snippets', () => {
 
 describe('DocumentationModal – getNormalizedVariationName', () => {
   it('should strip trailing "Var"', () => {
-    expect(getNormalizedVariationName('linearVar' as any)).toBe('linear')
+    expect(getNormalizedVariationName('linearVar')).toBe('linear')
   })
 
   it('should strip trailing "3D"', () => {
-    expect(getNormalizedVariationName('linear3D' as any)).toBe('linear')
+    expect(getNormalizedVariationName('linear3D')).toBe('linear')
   })
 
   it('should strip trailing underscores', () => {
-    expect(getNormalizedVariationName('test__' as any)).toBe('test')
+    expect(getNormalizedVariationName('test__')).toBe('test')
   })
 
   it('should handle names without suffixes', () => {
     // A name that doesn't end in Var, 3D, or _
-    expect(getNormalizedVariationName('butterfly' as any)).toBe('butterfly')
+    expect(getNormalizedVariationName('butterfly')).toBe('butterfly')
   })
 })
 

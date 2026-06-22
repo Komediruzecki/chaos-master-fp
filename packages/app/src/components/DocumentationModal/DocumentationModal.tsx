@@ -1,19 +1,17 @@
-import { createEffect, createMemo, createSignal, For, onMount, Show, } from 'solid-js'
-import { ensureMathJax, renderTexToSvg } from '@/utils/mathjax'
-import { VARIATION_DOCS } from '@/flame/variations/documentation'
-import { variationTypes } from '@/flame/variations'
-import { variationTypes3D } from '@/flame/variations3D'
-import { VariationPreview } from '@/components/VariationSelector/VariationSelector'
-import { getNormalizedVariationName, getVariationPreviewFlame, getVariationPreviewFlame3D, } from '@/flame/variations/utils'
-import { allTransformVariations } from '@/flame/variations'
+import { createMemo, createSignal, For, onMount, Show } from 'solid-js'
 import { useRequestModal } from '@/components/Modal/ModalContext'
-import { useTheme } from '@/contexts/ThemeContext'
+import { VariationPreview } from '@/components/VariationSelector/VariationSelector'
 import { ComputeGate } from '@/contexts/ComputeGateContext'
+import { useTheme } from '@/contexts/ThemeContext'
 import { COMPUTE_GATE_CAPACITY } from '@/defaults'
+import { allTransformVariations, variationTypes } from '@/flame/variations'
+import { VARIATION_DOCS } from '@/flame/variations/documentation'
+import { getNormalizedVariationName, getVariationPreviewFlame, getVariationPreviewFlame3D, } from '@/flame/variations/utils'
+import { variationTypes3D } from '@/flame/variations3D'
 import { Root } from '@/lib/Root'
+import { ensureMathJax, renderTexToSvg } from '@/utils/mathjax'
 import ui from './DocumentationModal.module.css'
 import type { VariationDoc } from '@/flame/variations/documentation'
-import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 
 type DocTab = 'variations' | 'ifs' | 'api'
 type CodeSubTab = 'math' | 'code'
@@ -55,7 +53,7 @@ export function DocumentationModal(props: DocumentationModalProps) {
       .then(() => {
         setMathJaxLoaded(true)
       })
-      .catch((err) => {
+      .catch((err: unknown) => {
         setMathJaxError(err instanceof Error ? err.message : String(err))
       })
   })
@@ -138,8 +136,10 @@ export function DocumentationModal(props: DocumentationModalProps) {
   // Get preview flame descriptor
   const getFlameForVar = (name: string) => {
     return dimension() === 3
-      ? getVariationPreviewFlame3D(name as any)
-      : getVariationPreviewFlame(name as any)
+      ? getVariationPreviewFlame3D(
+          name as Parameters<typeof getVariationPreviewFlame3D>[0],
+        )
+      : getVariationPreviewFlame(name)
   }
 
   // Math Rendering helper

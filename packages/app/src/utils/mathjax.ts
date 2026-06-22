@@ -26,7 +26,7 @@ export function ensureMathJax(): Promise<void> {
     }
 
     if (!getMathJax()) {
-      ;(window as any).MathJax = {
+      ;(window as { MathJax?: unknown }).MathJax = {
         startup: { typeset: false },
       }
     }
@@ -38,7 +38,9 @@ export function ensureMathJax(): Promise<void> {
       if (!getMathJax()) reject(new Error('MathJax failed to initialize'))
       else initMj(resolve)
     }
-    script.onerror = () => reject(new Error('Failed to load MathJax script'))
+    script.onerror = () => {
+      reject(new Error('Failed to load MathJax script'))
+    }
     document.head.appendChild(script)
 
     function initMj(done: () => void) {
