@@ -1,8 +1,14 @@
-import { expect,test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 test.describe('Timeline System', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/')
+    await page.waitForTimeout(1000)
+    const webgpuError = page.locator('text=WebGPU').first()
+    const webgpuShown = await webgpuError
+      .isVisible({ timeout: 500 })
+      .catch(() => false)
+    test.skip(webgpuShown, 'WebGPU is unsupported in this environment')
   })
 
   test('should render timeline panel', async ({ page }) => {
@@ -83,9 +89,13 @@ test.describe('Timeline System', () => {
     await page.waitForTimeout(500)
   })
 
-  test('should render correctly with initial timeline state', async ({ page }) => {
+  test('should render correctly with initial timeline state', async ({
+    page,
+  }) => {
     // Check that timeline components are in the DOM
-    await page.waitForSelector('[data-testid="timeline-panel"]', { timeout: 5000 })
+    await page.waitForSelector('[data-testid="timeline-panel"]', {
+      timeout: 5000,
+    })
 
     // Check for keyframe editor
     await expect(page.locator('[data-testid="keyframe-editor"]')).toBeVisible()

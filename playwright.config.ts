@@ -10,7 +10,7 @@ export default defineConfig({
   workers: isCI ? 1 : undefined,
   reporter: 'html',
   use: {
-    baseURL: 'https://localhost:3000',
+    baseURL: process.env.BASE_URL ?? 'https://localhost:3000',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     ignoreHTTPSErrors: true,
@@ -20,8 +20,10 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
+        channel: 'chrome',
         launchOptions: {
           args: [
+            '--enable-unsafe-webgpu',
             '--enable-unsafe-swiftshader',
             '--use-gl=angle',
             '--use-angle=swiftshader-webgl',

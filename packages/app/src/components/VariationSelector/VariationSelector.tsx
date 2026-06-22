@@ -1,4 +1,4 @@
-import { createEffect, createMemo, createSignal, For, onCleanup, Show, untrack, } from 'solid-js'
+import { createEffect, createMemo, createSignal, For, onCleanup, Show, untrack, useContext, } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { Dynamic } from 'solid-js/web'
 import { produce, unfreeze } from 'structurajs'
@@ -24,6 +24,7 @@ import { AutoCanvas } from '@/lib/AutoCanvas'
 import { Camera2D } from '@/lib/Camera2D'
 import { Default3DPreviewCamera } from '@/lib/Camera3D'
 import { Root } from '@/lib/Root'
+import { RootContext } from '@/lib/RootContext'
 import { WheelZoomCamera2D } from '@/lib/WheelZoomCamera2D'
 import { WheelZoomCamera3D } from '@/lib/WheelZoomCamera3D'
 import { deepClone } from '@/utils/clone'
@@ -160,6 +161,7 @@ export function VariationPreview(props: {
   /** Backing-store render size (default 256×144). Larger = crisper previews. */
   resolution?: { width: number; height: number }
 }) {
+  const rootCtx = useContext(RootContext)
   const is3D = () => (props.flame.renderSettings.dimensions ?? 2) === 3
   const targetQuality = () =>
     props.hardwareTier ? hardwareTierToQuality[props.hardwareTier] : 0.99
@@ -268,7 +270,9 @@ export function VariationPreview(props: {
     >
       <Show
         when={
-          image() === undefined && (allowed() || everAllowed() || everVisible())
+          rootCtx &&
+          image() === undefined &&
+          (allowed() || everAllowed() || everVisible())
         }
       >
         <AutoCanvas

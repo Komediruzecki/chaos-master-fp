@@ -1,11 +1,18 @@
-/* About pill — bottom-right floating button */
+/* Container for floating buttons at bottom-right */
 
-.about-pill {
+.version-container {
   position: fixed;
   right: 0.5rem;
   bottom: 0.5rem;
   z-index: 9999;
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
 
+/* Shared pill style */
+.about-pill,
+.docs-pill {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;

@@ -18,27 +18,47 @@ let mathjaxReady: Promise<void> | null = null
 
 export function ensureMathJax(): Promise<void> {
   if (mathjaxReady) return mathjaxReady
-  mathjaxReady = import('mathjax/tex-svg.js').then(() => {
-    const mj = getMathJax()
-    if (!mj) throw new Error('MathJax failed to initialize')
-    if (!mj.startup?.document) {
-      return new Promise<void>((resolve) => {
+
+  mathjaxReady = new Promise<void>((resolve, reject) => {
+    if (getMathJax()) {
+      initMj(resolve)
+      return
+    }
+
+    if (!getMathJax()) {
+      ;(window as any).MathJax = {
+        startup: { typeset: false },
+      }
+    }
+
+    const script = document.createElement('script')
+    script.src = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js'
+    script.async = true
+    script.onload = () => {
+      if (!getMathJax()) reject(new Error('MathJax failed to initialize'))
+      else initMj(resolve)
+    }
+    script.onerror = () => reject(new Error('Failed to load MathJax script'))
+    document.head.appendChild(script)
+
+    function initMj(done: () => void) {
+      const mj = getMathJax()!
+      if (!mj.startup?.document) {
         mj.startup = {
           ...mj.startup,
           ready() {
             mj.startup?.defaultReady?.()
-            mj.startup?.promise
-              ?.then(() => {
-                resolve()
-              })
-              .catch(() => {})
+            mj.startup?.promise?.then(done).catch(() => {})
           },
         }
         if (mj.loader) mj.loader.load(mj.config?.loader?.load ?? [])
-        else resolve()
-      })
+        else done()
+      } else {
+        done()
+      }
     }
   })
+
   return mathjaxReady
 }
 

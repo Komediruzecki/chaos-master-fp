@@ -10,6 +10,7 @@ import { ToastProvider, useToast } from './contexts/ToastContext'
 import { IS_DEV } from './defaults'
 import { Root } from './lib/Root'
 import { MainWorkspace } from './MainWorkspace'
+import { createShowDocumentation } from './components/DocumentationModal/DocumentationModal'
 import { appTour } from './tours/appTour'
 import { example1CreationTour } from './tours/example1CreationTour'
 import { example2CreationTour } from './tours/example2CreationTour'
@@ -189,10 +190,26 @@ export function Wrappers() {
     spotlightState.startTour(tourId)
   }
 
+  function FallbackDocsButton() {
+    const showDocs = createShowDocumentation()
+    return (
+      <button
+        id="test-docs-button"
+        style={{ display: 'none' }}
+        onClick={showDocs}
+      />
+    )
+  }
+
   const errorHandler = (err: unknown, _: () => void) => {
     if (err instanceof Error) {
       if (err.cause === 'WebGPU') {
-        return <WebgpuNotSupported />
+        return (
+          <>
+            <FallbackDocsButton />
+            <WebgpuNotSupported />
+          </>
+        )
       }
     }
     console.error(err)

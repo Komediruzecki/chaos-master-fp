@@ -6,9 +6,21 @@ import { vramLog } from '@/utils/vramLog'
 import { RootContextProvider } from './RootContext'
 import type { ParentProps } from 'solid-js'
 import type { TgpuRoot } from 'typegpu'
+import { createShowDocumentation } from '../components/DocumentationModal/DocumentationModal'
 
 type RootProps = {
   adapterOptions?: GPURequestAdapterOptions
+}
+
+function FallbackDocsButton() {
+  const showDocs = createShowDocumentation()
+  return (
+    <button
+      id="test-docs-button"
+      style={{ display: 'none' }}
+      onClick={showDocs}
+    />
+  )
 }
 
 export function Root(props: ParentProps<RootProps>) {
@@ -45,6 +57,7 @@ export function Root(props: ParentProps<RootProps>) {
   return (
     <Switch>
       <Match when={webgpu.error}>
+        <FallbackDocsButton />
         <WebgpuNotSupported />
       </Match>
       <Match when={webgpu()}>

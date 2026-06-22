@@ -36,6 +36,7 @@ import { handleColor } from './components/FlameColorEditor/FlameColorEditor'
 import { FlameRandomizerCard } from './components/FlameRandomizerCard/FlameRandomizerCard'
 import { FloatingActions } from './components/FloatingActions/FloatingActions'
 import { createShowHelp } from './components/HelpModal/HelpModal'
+import { createShowDocumentation } from './components/DocumentationModal/DocumentationModal'
 import { ConfirmOverwriteRecentModal } from './components/LoadFlameModal/ConfirmOverwriteRecentModal'
 import { createLoadFlame } from './components/LoadFlameModal/LoadFlameModal'
 import { createLogoFaviconGenerator } from './components/LogoFaviconGenerator/LogoFaviconGenerator'
@@ -4840,6 +4841,7 @@ export function MainWorkspace(props: AppProps) {
               () => props.hardwareTier ?? null,
               props.onHardwareTierChange,
             )}
+            showDocs={createShowDocumentation()}
           />
           <Show when={devCrashTest()}>
             {(() => {
