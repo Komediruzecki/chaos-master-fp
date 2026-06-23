@@ -1,3 +1,4 @@
+// eslint-disable-next-line import-x/no-named-as-default -- dompurify's default export is the API instance
 import DOMPurify from 'dompurify'
 
 /**

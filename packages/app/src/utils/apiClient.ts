@@ -7,9 +7,9 @@
  * (stub `ShareApi`). `postJson` returns `null` on a non-OK response, a network
  * error, or a timeout; callers decide what that means for them.
  */
-async function postJson<TReq, TRes>(
+async function postJson<TRes>(
   path: string,
-  body: TReq,
+  body: unknown,
   timeoutMs = 20_000,
 ): Promise<TRes | null> {
   const controller = new AbortController()
@@ -38,17 +38,17 @@ async function postJson<TReq, TRes>(
 /** The Worker share endpoints, typed. Each returns `null` on failure. */
 export const ShareApi = {
   shorten: (payload: string) =>
-    postJson<{ payload: string }, { id?: string }>('/api/shorten', { payload }),
+    postJson<{ id?: string }>('/api/shorten', { payload }),
 
   uploadOg: (
     key: string,
     body: { image: string; title: string; description: string },
-  ) => postJson<typeof body, { ok?: boolean }>(`/api/og/${key}`, body),
+  ) => postJson<{ ok?: boolean }>(`/api/og/${key}`, body),
 
   shareDiscord: (body: {
     image: string
     title?: string
     author: string
     token: string
-  }) => postJson<typeof body, { ok?: boolean }>('/api/share-discord', body),
+  }) => postJson<{ ok?: boolean }>('/api/share-discord', body),
 } as const
