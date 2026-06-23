@@ -57,7 +57,7 @@ export function ensureMathJax(): Promise<void> {
       .then(() => {
         if (!getMathJax()) reject(new Error('MathJax failed to initialize'))
       })
-      .catch((err) => {
+      .catch((err: unknown) => {
         reject(
           new Error(
             `Failed to load MathJax script: ${err instanceof Error ? err.message : String(err)}`,
