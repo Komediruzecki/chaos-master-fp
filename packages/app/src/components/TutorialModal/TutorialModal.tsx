@@ -2,6 +2,7 @@ import { createEffect, createSignal, For, Show } from 'solid-js'
 import { Cross, SkipBack, SkipForward } from '@/icons'
 import { ensureMathJax, renderTexToSvg } from '@/utils/mathjax'
 import { renderMarkdown } from '@/utils/renderMarkdown'
+import { sanitizeRichHtml } from '@/utils/sanitizeHtml'
 import ui from './TutorialModal.module.css'
 
 export interface TutorialPage {
@@ -95,7 +96,10 @@ export function TutorialModal(props: TutorialModalProps) {
           {(page) => (
             <>
               <h2 class={ui.pageTitle}>{page.title}</h2>
-              <div class={ui.markdownBody} innerHTML={renderedContent()} />
+              <div
+                class={ui.markdownBody}
+                innerHTML={sanitizeRichHtml(renderedContent())}
+              />
             </>
           )}
         </Show>
