@@ -73,14 +73,23 @@ export function TutorialModal(props: TutorialModalProps) {
   }
 
   return (
-    <div class={ui.root} onKeyDown={onKeyDown}>
+    <div
+      class={ui.root}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="tutorial-title"
+      onKeyDown={onKeyDown}
+    >
       <div class={ui.header}>
-        <h1 class={ui.title}>{props.title}</h1>
+        <h1 id="tutorial-title" class={ui.title}>
+          {props.title}
+        </h1>
         <button
           class={ui.closeBtn}
           onClick={() => {
             props.respond()
           }}
+          aria-label="Close"
           title="Close"
         >
           <Cross width="0.875rem" />
