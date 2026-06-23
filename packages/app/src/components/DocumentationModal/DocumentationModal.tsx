@@ -72,6 +72,18 @@ export function DocumentationModal(props: DocumentationModalProps) {
     )
   })
 
+  const [visibleCount, setVisibleCount] = createSignal(20)
+
+  // Reset visible count when variations change (e.g. by search or 2D/3D toggle)
+  createEffect(() => {
+    filteredVariations()
+    setVisibleCount(20)
+  })
+
+  const visibleVariations = createMemo(() => {
+    return filteredVariations().slice(0, visibleCount())
+  })
+
   // Selected variation documentation
   const currentDoc = createMemo<VariationDoc>(() => {
     const vKey = selectedVar()
@@ -225,10 +237,15 @@ export function DocumentationModal(props: DocumentationModalProps) {
                 </div>
               </div>
 
-              <div class={ui.listScroll}>
+              <div class={ui.listScroll} onScroll={(e) => {
+                const target = e.currentTarget;
+                if (target.scrollHeight - target.scrollTop <= target.clientHeight + 100) {
+                  setVisibleCount(c => Math.min(c + 20, filteredVariations().length))
+                }
+              }}>
                 <Root adapterOptions={{ powerPreference: 'high-performance' }}>
                   <ComputeGate capacity={COMPUTE_GATE_CAPACITY}>
-                    <For each={filteredVariations()}>
+                    <For each={visibleVariations()}>
                       {(vKey) => (
                         <button
                           class={ui.itemRow}
