@@ -582,9 +582,11 @@ const baseHandler = {
 
 // Headers applied to every response (API, OG image, redirect, static assets).
 // The CSP ships Report-Only: it observes and surfaces violations in devtools
-// without enforcing, so it cannot break WebGPU shader compilation, MathJax, or
-// the Turnstile widget. Flip to an enforcing `Content-Security-Policy` only
-// after verifying there are no violations in a browser.
+// without enforcing. NOTE before enforcing: TypeGPU reconstructs shader
+// functions at runtime via `new Function`, so an enforced policy additionally
+// needs `'unsafe-eval'` in script-src — a real weakening — or WebGPU rendering
+// breaks. Flip to `Content-Security-Policy` only after weighing that tradeoff
+// and confirming no other violations remain.
 const SECURITY_HEADERS: Readonly<Record<string, string>> = {
   'X-Content-Type-Options': 'nosniff',
   'Referrer-Policy': 'strict-origin-when-cross-origin',
@@ -594,7 +596,8 @@ const SECURITY_HEADERS: Readonly<Record<string, string>> = {
     "default-src 'self'",
     "img-src 'self' data: blob:",
     "script-src 'self' 'wasm-unsafe-eval' https://challenges.cloudflare.com",
-    "style-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com",
     "connect-src 'self' https://challenges.cloudflare.com",
     'frame-src https://challenges.cloudflare.com',
     "worker-src 'self' blob:",
