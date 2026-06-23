@@ -167,16 +167,16 @@ describe('worker /api/shorten — S-2 payload cap', () => {
 })
 
 describe('worker — S-3 security headers', () => {
-  it('sets nosniff and a report-only CSP on responses', async () => {
+  it('sets nosniff and an enforced CSP (with unsafe-eval for TypeGPU) on responses', async () => {
     const res = await worker.fetch(
       post('https://x.test/api/shorten', { payload: 'abc' }),
       makeEnv(),
       ctx,
     )
     expect(res.headers.get('X-Content-Type-Options')).toBe('nosniff')
-    expect(res.headers.get('Content-Security-Policy-Report-Only')).toContain(
-      "default-src 'self'",
-    )
+    const csp = res.headers.get('Content-Security-Policy') ?? ''
+    expect(csp).toContain("default-src 'self'")
+    expect(csp).toContain("'unsafe-eval'")
   })
 })
 
