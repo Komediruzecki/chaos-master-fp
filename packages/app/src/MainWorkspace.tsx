@@ -810,7 +810,7 @@ export function MainWorkspace(props: AppProps) {
     read: (c: FlameDescriptor['renderSettings']['camera3D']) => number,
     write: (draft: FlameDescriptor, next: number) => void,
   ): Setter<number> {
-    return ((value) => {
+    return (value) => {
       timeline.setPreviewHeld(false)
       setFlameDescriptor((draft) => {
         const prev = read(draft.renderSettings.camera3D)
@@ -822,7 +822,7 @@ export function MainWorkspace(props: AppProps) {
         )
       })
       return read(flameDescriptor.renderSettings.camera3D)
-    })
+    }
   }
   const setFlameTheta = makeCamera3DSetter(
     (c) => c.theta,
@@ -846,21 +846,28 @@ export function MainWorkspace(props: AppProps) {
   // slider visibly tracks it. exposure = base + strength*log(radius/refRadius),
   // neutral at the radius where the toggle was enabled. The exposure read is
   // untracked so manual edits between zooms aren't immediately reverted.
-  createEffect(() => {
+  // The target is a pure derivation of the camera/auto-exposure settings, so it
+  // lives in a memo; the effect's only job is to write it back (reading the
+  // current exposure untracked so it never re-subscribes to its own output).
+  const autoExposureTarget = createMemo<number | null>(() => {
     const rs = flameDescriptor.renderSettings
-    if (!rs.autoExposure3D || (rs.dimensions ?? 2) !== 3) return
+    if (!rs.autoExposure3D || (rs.dimensions ?? 2) !== 3) return null
     const radius = rs.camera3D?.radius ?? 0
     const ref = rs.autoExposure3DRefRadius
-    if (radius <= 0 || ref <= 0) return
-    const target =
+    if (radius <= 0 || ref <= 0) return null
+    return (
       rs.autoExposure3DBase + rs.autoExposure3DStrength * Math.log(radius / ref)
-    untrack(() => {
-      if (Math.abs(target - flameDescriptor.renderSettings.exposure) > 1e-4) {
-        setFlameDescriptor((draft) => {
-          draft.renderSettings.exposure = target
-        })
-      }
-    })
+    )
+  })
+  createEffect(() => {
+    const target = autoExposureTarget()
+    if (target === null) return
+    const current = untrack(() => flameDescriptor.renderSettings.exposure)
+    if (Math.abs(target - current) > 1e-4) {
+      setFlameDescriptor((draft) => {
+        draft.renderSettings.exposure = target
+      })
+    }
   })
   const setFlameTarget3D = (value: Vec3 | ((prev: Vec3) => Vec3)) => {
     setFlameDescriptor((draft) => {
