@@ -305,11 +305,26 @@ export default {
     // ogKey(payload) — so both ?s= and ?flame= links can resolve it.
     if (pathname.startsWith('/api/og/') && request.method === 'POST') {
       const key = pathname.split('/').pop()
-      if (!key) return json({ error: 'Missing key' }, 400)
+      // The key is a content hash — exactly 32 lowercase hex chars (see
+      // `ogKey`). Validate the shape so a malformed/abusive key never reaches
+      // R2 or KV.
+      if (!key || !/^[0-9a-f]{32}$/.test(key)) {
+        return json({ error: 'Invalid key' }, 400)
+      }
       if (Number(request.headers.get('content-length') ?? 0) > MAX_OG_UPLOAD) {
         return json({ error: 'Image too large' }, 413)
       }
       try {
+        // First-writer-wins. The key is a public, client-recomputable hash of
+        // the share payload, so the first honest upload is by definition the
+        // correct image for that key. Freezing it closes the cache-poisoning
+        // vector — otherwise anyone could recompute a shared flame's key and
+        // overwrite its social-preview image/title/description. Honest
+        // re-uploads of the same content are simply idempotent.
+        const existing = await env.OG_IMAGES.head(key)
+        if (existing) {
+          return json({ ok: true, deduped: true })
+        }
         const body = (await request.json()) as {
           image?: string
           title?: string
@@ -320,6 +335,11 @@ export default {
         }
         if (body.image.length > MAX_OG_UPLOAD) {
           return json({ error: 'Image too large' }, 413)
+        }
+        // Reject non-PNG uploads up front (every PNG's base64 starts with the
+        // encoded 8-byte signature) — the same guard the Discord path uses.
+        if (!body.image.startsWith('iVBORw0KGgo')) {
+          return json({ error: 'Not a PNG image' }, 415)
         }
         const ogBytes = base64ToBytes(body.image)
         await env.OG_IMAGES.put(key, ogBytes, {
