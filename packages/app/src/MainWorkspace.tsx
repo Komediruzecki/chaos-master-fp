@@ -2537,8 +2537,28 @@ export function MainWorkspace(props: AppProps) {
                   <Menu />
                 </button>
               </Show>
+              {/* Text alternative for the WebGPU canvas (WCAG 1.1.1): a name
+                  via aria-label plus a live, screen-reader-only description of
+                  the current flame (a pixel-accurate alt is impossible for
+                  generative art, so describe its structure instead). */}
+              <p id="flame-canvas-desc" class="sr-only" aria-live="polite">
+                {(() => {
+                  const name = flameDescriptor.metadata?.name?.trim()
+                  const count = Object.keys(
+                    flameDescriptor.transforms ?? {},
+                  ).length
+                  const label =
+                    name && name.toLowerCase() !== 'unknown'
+                      ? name
+                      : 'Untitled flame'
+                  return `${label}: ${count} transform${count === 1 ? '' : 's'}.`
+                })()}
+              </p>
               <AutoCanvas
                 class={ui.canvas}
+                role="img"
+                ariaLabel="Fractal flame preview"
+                ariaDescribedby="flame-canvas-desc"
                 pixelRatio={canvasPixelRatio()}
                 fixedResolution={exportDimensions()}
               >
