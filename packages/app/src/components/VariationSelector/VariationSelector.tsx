@@ -440,31 +440,8 @@ function ShowVariationSelector(props: VariationSelectorModalProps) {
   const [categoryFilter, setCategoryFilter] =
     createSignal<VariationCategory | null>(null)
 
-  const [visibleCount, setVisibleCount] = createSignal(20)
-
-  createEffect(() => {
-    searchQuery()
-    dims()
-    categoryFilter()
-    setVisibleCount(20)
-  })
-
-  const visibleVariationEntries = createMemo(() => {
-    const all = filteredVariationEntries()
-    const selectedCategory = categoryFilter()
-    if (!selectedCategory) {
-      return all.slice(0, visibleCount())
-    }
-    // Filter by category first, then slice
-    return all.filter(([, flame]) => {
-      const variation = getVarFromPreviewFlame(flame)
-      if (!variation) return false
-      return categoryOf(dims(), variation.type) === selectedCategory
-    }).slice(0, visibleCount())
-  })
-
   const groupedEntries = () => {
-    const items = visibleVariationEntries()
+    const items = filteredVariationEntries()
     const selectedCategory = categoryFilter()
     const groups = new Map<VariationCategory, [string, FlameDescriptor][]>()
 
@@ -887,16 +864,7 @@ function ShowVariationSelector(props: VariationSelectorModalProps) {
               </For>
             </div>
           </Show>
-          <section
-            class={ui.gallery}
-            onMouseLeave={handleContainerLeave}
-            onScroll={(e) => {
-              const target = e.currentTarget;
-              if (target.scrollHeight - target.scrollTop <= target.clientHeight + 200) {
-                setVisibleCount(c => c + 20)
-              }
-            }}
-          >
+          <section class={ui.gallery} onMouseLeave={handleContainerLeave}>
             <ComputeGate capacity={COMPUTE_GATE_CAPACITY}>
               <For each={groupedEntries()}>
                 {({ label, entries }) => (
