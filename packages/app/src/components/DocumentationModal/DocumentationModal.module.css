@@ -1,4 +1,11 @@
 /* Documentation Modal container styles */
+.doc-modal-dialog {
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  max-width: none !important;
+  max-height: none !important;
+}
 
 .doc-modal {
   display: flex;

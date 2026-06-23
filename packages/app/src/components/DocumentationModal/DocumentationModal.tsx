@@ -1,4 +1,5 @@
-import { createMemo, createSignal, createEffect, For, onMount, Show } from 'solid-js'
+import { createEffect, createMemo, createSignal, For, onMount, Show, } from 'solid-js'
+import { tgpu } from 'typegpu'
 import { useRequestModal } from '@/components/Modal/ModalContext'
 import { VariationPreview } from '@/components/VariationSelector/VariationSelector'
 import { ComputeGate } from '@/contexts/ComputeGateContext'
@@ -124,22 +125,17 @@ export function DocumentationModal(props: DocumentationModalProps) {
       allTransformVariations[vKey as keyof typeof allTransformVariations]
     if (!variationObj) return '// Implementation code unavailable.'
 
-    // Try to get actual implementation code string
-    const fnStr = variationObj.fn ? String(variationObj.fn) : ''
-
-    // Curated stylized TS code mappings for prominent variations
-    if (vKey === 'linearVar') {
-      return `// 2D Linear Variation\nexport const linearVar = simpleVariation(\n  'linearVar',\n  (pos, varInfo) => {\n    'use gpu'\n    return vec2f(pos).mul(varInfo.weight);\n  }\n);`
-    } else if (vKey === 'swirlVar') {
-      return `// 2D Swirl Variation\nexport const swirlVar = simpleVariation(\n  'swirlVar',\n  (pos, varInfo) => {\n    'use gpu'\n    let r2 = pos.x * pos.x + pos.y * pos.y;\n    let r = sqrt(r2);\n    let theta = atan2(pos.y, pos.x) + varInfo.weight * r;\n    return vec2f(r * cos(theta), r * sin(theta));\n  }\n);`
-    } else if (vKey === 'sphericalVar') {
-      return `// 2D Spherical Variation\nexport const sphericalVar = simpleVariation(\n  'sphericalVar',\n  (pos, varInfo) => {\n    'use gpu'\n    let r2 = pos.x * pos.x + pos.y * pos.y;\n    return pos.mul(varInfo.weight / max(r2, 1e-4));\n  }\n);`
-    } else if (vKey === 'atanVar') {
-      return `// 2D Arctangent (Parametric) Variation\nconst AtanVarParams = struct({ mode: f32, stretch: f32 });\n\nexport const atanVar = parametricVariation(\n  'atanVar',\n  AtanVarParams,\n  AtanVarParamsDefaults,\n  AtanVarParamsEditor,\n  (pos, varInfo, P) => {\n    'use gpu'\n    let norm = 2.0 / PI;\n    if (P.mode < 0.5) {\n      return vec2f(pos.x, norm * atan(P.stretch * pos.y)).mul(varInfo.weight);\n    } else if (P.mode < 1.5) {\n      return vec2f(norm * atan(P.stretch * pos.x), pos.y).mul(varInfo.weight);\n    }\n    return vec2f(\n      norm * atan(P.stretch * pos.x),\n      norm * atan(P.stretch * pos.y)\n    ).mul(varInfo.weight);\n  }\n);`
+    let fnStr = ''
+    if (variationObj.fn) {
+      try {
+        fnStr = tgpu.resolve([variationObj.fn]).wgsl
+      } catch (err) {
+        fnStr = String(variationObj.fn)
+      }
     }
 
-    if (fnStr) {
-      return `// Compiled TypeGPU function\n// Name: ${getNormalizedVariationName(vKey)}\n\n${fnStr.substring(0, 400)}${fnStr.length > 400 ? '\n// ... [truncated]' : ''}`
+    if (fnStr && fnStr !== `fn:${  vKey}` && !fnStr.startsWith('fn:')) {
+      return `// Compiled TypeGPU function\n// Name: ${getNormalizedVariationName(vKey)}\n\n${fnStr.substring(0, 800)}${fnStr.length > 800 ? '\n// ... [truncated]' : ''}`
     }
 
     return `// Code representation for: ${getNormalizedVariationName(vKey)}\n// Category: ${variationObj.category || 'general'}`
@@ -237,12 +233,20 @@ export function DocumentationModal(props: DocumentationModalProps) {
                 </div>
               </div>
 
-              <div class={ui.listScroll} onScroll={(e) => {
-                const target = e.currentTarget;
-                if (target.scrollHeight - target.scrollTop <= target.clientHeight + 100) {
-                  setVisibleCount(c => Math.min(c + 20, filteredVariations().length))
-                }
-              }}>
+              <div
+                class={ui.listScroll}
+                onScroll={(e) => {
+                  const target = e.currentTarget
+                  if (
+                    target.scrollHeight - target.scrollTop <=
+                    target.clientHeight + 100
+                  ) {
+                    setVisibleCount((c) =>
+                      Math.min(c + 20, filteredVariations().length),
+                    )
+                  }
+                }}
+              >
                 <Root adapterOptions={{ powerPreference: 'high-performance' }}>
                   <ComputeGate capacity={COMPUTE_GATE_CAPACITY}>
                     <For each={visibleVariations()}>
@@ -509,7 +513,7 @@ export function createShowDocumentation() {
 
   async function showDocumentation() {
     await requestModal({
-      class: ui.docModal,
+      class: ui.docModalDialog,
       content: ({ respond }) => <DocumentationModal respond={respond} />,
     })
   }
