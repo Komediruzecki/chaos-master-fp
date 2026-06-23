@@ -1,7 +1,10 @@
+import { tgpu } from 'typegpu'
 import { IS_DEV, TRACK_PERFORMANCE } from '@/defaults'
+import type { TgpuRoot } from 'typegpu'
 
 let gpuDevice: GPUDevice | null = null
 let gpuAdapter: GPUAdapter | null = null
+let tgpuRoot: TgpuRoot | null = null
 
 const { navigator } = globalThis
 
@@ -113,6 +116,7 @@ export async function initializeWebgpuDevice(
       console.warn(`WebGPU device was lost: ${info.message}.`)
 
       gpuAdapter = null
+      tgpuRoot = null
 
       if (
         info.reason !== 'destroyed' &&
@@ -152,5 +156,10 @@ export async function getWebgpuComponents(
 
   assertIfWebgpuAdapterUnavailable(gpuAdapter)
   assertIfWebgpuDeviceUnavailable(gpuDevice)
-  return { adapter: gpuAdapter, device: gpuDevice }
+
+  if (tgpuRoot === null) {
+    tgpuRoot = tgpu.initFromDevice({ device: gpuDevice })
+  }
+
+  return { adapter: gpuAdapter, device: gpuDevice, root: tgpuRoot }
 }

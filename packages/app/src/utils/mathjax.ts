@@ -20,15 +20,37 @@ export function ensureMathJax(): Promise<void> {
   if (mathjaxReady) return mathjaxReady
 
   mathjaxReady = new Promise<void>((resolve, reject) => {
-    if (getMathJax()) {
-      initMj(resolve)
+    const existing = getMathJax()
+    if (existing) {
+      if (existing.startup?.document) {
+        resolve()
+      } else {
+        if (existing.startup?.promise) {
+          existing.startup.promise.then(resolve).catch(() => {
+            resolve()
+          })
+        } else {
+          resolve()
+        }
+      }
       return
     }
 
-    if (!getMathJax()) {
-      ;(window as { MathJax?: unknown }).MathJax = {
-        startup: { typeset: false },
-      }
+    ;(window as { MathJax?: unknown }).MathJax = {
+      startup: {
+        typeset: false,
+        ready() {
+          const mj = getMathJax()!
+          mj.startup?.defaultReady?.()
+          if (mj.startup?.promise) {
+            mj.startup.promise.then(resolve).catch(() => {
+              resolve()
+            })
+          } else {
+            resolve()
+          }
+        },
+      },
     }
 
     const script = document.createElement('script')
@@ -36,29 +58,11 @@ export function ensureMathJax(): Promise<void> {
     script.async = true
     script.onload = () => {
       if (!getMathJax()) reject(new Error('MathJax failed to initialize'))
-      else initMj(resolve)
     }
     script.onerror = () => {
       reject(new Error('Failed to load MathJax script'))
     }
     document.head.appendChild(script)
-
-    function initMj(done: () => void) {
-      const mj = getMathJax()!
-      if (!mj.startup?.document) {
-        mj.startup = {
-          ...mj.startup,
-          ready() {
-            mj.startup?.defaultReady?.()
-            mj.startup?.promise?.then(done).catch(() => {})
-          },
-        }
-        if (mj.loader) mj.loader.load(mj.config?.loader?.load ?? [])
-        else done()
-      } else {
-        done()
-      }
-    }
   })
 
   return mathjaxReady
