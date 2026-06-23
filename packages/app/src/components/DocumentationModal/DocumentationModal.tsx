@@ -128,13 +128,13 @@ export function DocumentationModal(props: DocumentationModalProps) {
     let fnStr = ''
     if (variationObj.fn) {
       try {
-        fnStr = tgpu.resolve([variationObj.fn]).wgsl
-      } catch (err) {
+        fnStr = tgpu.resolve([variationObj.fn])
+      } catch (_err) {
         fnStr = String(variationObj.fn)
       }
     }
 
-    if (fnStr && fnStr !== `fn:${  vKey}` && !fnStr.startsWith('fn:')) {
+    if (fnStr && fnStr !== `fn:${vKey}` && !fnStr.startsWith('fn:')) {
       return `// Compiled TypeGPU function\n// Name: ${getNormalizedVariationName(vKey)}\n\n${fnStr.substring(0, 800)}${fnStr.length > 800 ? '\n// ... [truncated]' : ''}`
     }
 
