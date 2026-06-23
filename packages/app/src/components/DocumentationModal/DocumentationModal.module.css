@@ -5,6 +5,8 @@
   background: transparent !important;
   max-width: none !important;
   max-height: none !important;
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .doc-modal {
