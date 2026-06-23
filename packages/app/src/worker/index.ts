@@ -250,7 +250,7 @@ async function injectMeta(
   })
 }
 
-export default {
+const baseHandler = {
   async fetch(request: Request, env: Env, _ctx: unknown): Promise<Response> {
     const url = new URL(request.url)
     const { pathname } = url
@@ -577,5 +577,47 @@ export default {
 
     // Everything else → static assets (the frontend)
     return env.ASSETS.fetch(request)
+  },
+}
+
+// Headers applied to every response (API, OG image, redirect, static assets).
+// The CSP ships Report-Only: it observes and surfaces violations in devtools
+// without enforcing, so it cannot break WebGPU shader compilation, MathJax, or
+// the Turnstile widget. Flip to an enforcing `Content-Security-Policy` only
+// after verifying there are no violations in a browser.
+const SECURITY_HEADERS: Readonly<Record<string, string>> = {
+  'X-Content-Type-Options': 'nosniff',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'X-Frame-Options': 'DENY',
+  'Cross-Origin-Opener-Policy': 'same-origin',
+  'Content-Security-Policy-Report-Only': [
+    "default-src 'self'",
+    "img-src 'self' data: blob:",
+    "script-src 'self' 'wasm-unsafe-eval' https://challenges.cloudflare.com",
+    "style-src 'self' 'unsafe-inline'",
+    "connect-src 'self' https://challenges.cloudflare.com",
+    'frame-src https://challenges.cloudflare.com',
+    "worker-src 'self' blob:",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+  ].join('; '),
+}
+
+/** Return a copy of `res` with the security headers applied. */
+function withSecurityHeaders(res: Response): Response {
+  const headers = new Headers(res.headers)
+  for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
+    headers.set(name, value)
+  }
+  return new Response(res.body, {
+    status: res.status,
+    statusText: res.statusText,
+    headers,
+  })
+}
+
+export default {
+  async fetch(request: Request, env: Env, ctx: unknown): Promise<Response> {
+    return withSecurityHeaders(await baseHandler.fetch(request, env, ctx))
   },
 }
