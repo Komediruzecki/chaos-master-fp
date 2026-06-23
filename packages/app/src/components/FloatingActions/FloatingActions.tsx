@@ -195,6 +195,7 @@ export function FloatingActions(props: Props) {
             <button
               class={ui.button}
               onClick={props.onLoadFlame}
+              aria-label="Load Flame"
               title="Load Flame"
               data-tour-target="load-flame"
             >
@@ -203,6 +204,7 @@ export function FloatingActions(props: Props) {
             <button
               class={ui.button}
               onClick={props.onSaveForLater}
+              aria-label="Save for Later"
               title="Save for Later"
               data-tour-target="save-for-later"
             >
@@ -212,6 +214,7 @@ export function FloatingActions(props: Props) {
             <button
               class={ui.button}
               onClick={props.onRender}
+              aria-label="Render image or animation"
               title="Render image or animation"
               data-tour-target="export-png"
             >
@@ -220,6 +223,7 @@ export function FloatingActions(props: Props) {
             <button
               class={ui.button}
               onClick={props.onQuickExport}
+              aria-label="Quick Export"
               title="Quick Export"
               data-tour-target="quick-export"
             >
@@ -229,6 +233,7 @@ export function FloatingActions(props: Props) {
             <button
               class={ui.button}
               onClick={props.onShareLink}
+              aria-label="Share Link"
               title="Share Link"
               data-tour-target="share-link"
             >
@@ -237,6 +242,7 @@ export function FloatingActions(props: Props) {
             <button
               class={ui.button}
               onClick={props.onShareDiscord}
+              aria-label="Share to Discord"
               title="Share to Discord"
               data-tour-target="share-discord"
             >
@@ -246,6 +252,11 @@ export function FloatingActions(props: Props) {
               class={ui.button}
               onClick={props.onLogoFavicon}
               disabled={props.dimensions() === 3}
+              aria-label={
+                props.dimensions() === 3
+                  ? 'Logo/Favicon (available only in 2D)'
+                  : 'Logo/Favicon'
+              }
               title={
                 props.dimensions() === 3
                   ? 'Logo/Favicon (available only in 2D)'
@@ -259,6 +270,7 @@ export function FloatingActions(props: Props) {
               <button
                 class={ui.button}
                 onClick={props.onRandomizeColors}
+                aria-label="Randomize Colors"
                 title="Randomize Colors"
                 data-tour-target="randomize-colors"
               >
