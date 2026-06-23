@@ -12,6 +12,7 @@ export default defineConfig(
       '**/*.css.d.ts',
       '**/coverage',
       '**/dist',
+      '**/.astro', // Astro generated cache (packages/landing)
       '**/node_modules',
       '**/.pnpm-store', // present in CI
       '**/.wrangler',

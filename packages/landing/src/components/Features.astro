@@ -1,0 +1,78 @@
+---
+const features = [
+  {
+    title: 'WebGPU Rendering',
+    body: 'Real-time IFS fractal evaluation on the GPU — explore millions of iterations interactively, no waiting on a render queue.',
+  },
+  {
+    title: 'Affine Editor',
+    body: 'Manipulate transformations directly on the canvas. See how each affine tweak reshapes the flame the instant you move it.',
+  },
+  {
+    title: 'Metadata-rich Exports',
+    body: 'Export PNGs with the full flame state embedded, so any image can be reopened and remixed — sharing is just a file.',
+  },
+  {
+    title: 'Theme Support',
+    body: 'Adaptive dark and light interfaces that stay out of the way of the art you are making.',
+  },
+]
+---
+
+<section id="features">
+  <div class="container">
+    <h2>Built for fast, hands-on exploration</h2>
+    <p class="section-lede">
+      Everything renders live in your browser — modern web standards, no native
+      app, no plugins.
+    </p>
+    <div class="grid">
+      {
+        features.map((f) => (
+          <article class="card">
+            <h3>{f.title}</h3>
+            <p>{f.body}</p>
+          </article>
+        ))
+      }
+    </div>
+  </div>
+
+  <style>
+    h2 {
+      font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+      font-weight: 800;
+    }
+    .section-lede {
+      color: var(--fg-muted);
+      font-size: 1.1rem;
+      max-width: 52ch;
+      margin: 16px 0 48px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+    .card {
+      background: var(--bg-soft);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+    }
+    .card h3 {
+      font-size: 1.25rem;
+      margin-bottom: 10px;
+    }
+    .card p {
+      color: var(--fg-muted);
+      line-height: 1.6;
+      margin: 0;
+    }
+    @media (max-width: 720px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</section>

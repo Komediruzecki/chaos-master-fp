@@ -1,0 +1,80 @@
+---
+import '../styles/global.css'
+
+interface Props {
+  title?: string
+  description?: string
+}
+
+const {
+  title = 'Chaos Master — WebGPU IFS Flame Generator',
+  description = 'High-performance, real-time IFS fractal flame generation in the browser, powered by WebGPU. For artists and explorers.',
+} = Astro.props
+
+const appUrl = 'https://chaos-master.com'
+const canonical = new URL(Astro.url.pathname, Astro.site).href
+const ogImage = new URL('/hero-flame.jpg', Astro.site).href
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#7928ca" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="canonical" href={canonical} />
+
+    <title>{title}</title>
+    <meta name="description" content={description} />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:url" content={canonical} />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+  </head>
+  <body>
+    <slot />
+    <footer>
+      <div class="container footer-inner">
+        <span>© {new Date().getFullYear()} Chaos Matters · AGPL-3.0</span>
+        <nav class="footer-nav">
+          <a href={appUrl}>Launch app</a>
+          <a href="https://github.com/chaos-matters/chaos-master">GitHub</a>
+          <a href="https://ko-fi.com/chaosmatters">Support</a>
+        </nav>
+      </div>
+    </footer>
+
+    <style>
+      footer {
+        border-top: 1px solid var(--border);
+        padding-block: 32px;
+        color: var(--fg-muted);
+        font-size: 0.9rem;
+      }
+      .footer-inner {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .footer-nav {
+        display: flex;
+        gap: 20px;
+      }
+      .footer-nav a:hover {
+        color: var(--fg);
+      }
+    </style>
+  </body>
+</html>
