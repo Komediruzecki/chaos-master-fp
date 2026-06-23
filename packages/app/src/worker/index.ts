@@ -23,6 +23,9 @@ export interface Env {
 }
 
 const SHORTEN_TTL = 60 * 24 * 60 * 60 // 60 days in seconds
+// Upper bound on a shortener payload (an encoded flame + optional timeline).
+// Bounds per-write KV storage and cost; a real payload is well under this.
+const MAX_SHORTEN_PAYLOAD = 256 * 1024 // 256 KB
 // Upper bound on an OG upload (JSON body). Legit previews are ~1–1.5 MB; this
 // caps abuse so R2 storage — and cost — stays bounded.
 const MAX_OG_UPLOAD = 4 * 1024 * 1024 // ~4 MB
@@ -270,9 +273,15 @@ export default {
     // ── Create a short link ────────────────────────────────────────────────
     if (pathname === '/api/shorten' && request.method === 'POST') {
       try {
-        const { payload } = (await request.json()) as { payload: string }
-        if (!payload || typeof payload !== 'string') {
+        const { payload } = (await request.json()) as { payload?: unknown }
+        if (typeof payload !== 'string' || payload.length === 0) {
           return json({ error: 'Invalid payload' }, 400)
+        }
+        // Bound the stored value (the other write endpoints already cap their
+        // uploads; the shortener was the one that didn't). Checking the parsed
+        // string length, not the spoofable content-length header.
+        if (payload.length > MAX_SHORTEN_PAYLOAD) {
+          return json({ error: 'Payload too large' }, 413)
         }
         const shortId = generateShortId()
         await env.KV_SHORTENER.put(shortId, payload, {
@@ -430,6 +439,12 @@ export default {
 
       // Per-IP daily cap via KV (counts attempts, so a broken webhook can't be
       // used to hammer the endpoint). Fail-open on KV hiccups.
+      //
+      // Best-effort by design: KV has no atomic increment, so this get-then-put
+      // races under concurrency and the cap can be modestly overshot. That is
+      // acceptable here — the native per-IP DISCORD_RL limiter (1/min) is the
+      // hard bound; this cap only smooths long-tail daily volume. Promote to a
+      // Durable Object if an exact cap is ever required.
       try {
         const day = new Date().toISOString().slice(0, 10)
         const capKey = `dshare:${ip}:${day}`
