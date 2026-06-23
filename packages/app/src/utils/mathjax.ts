@@ -53,16 +53,17 @@ export function ensureMathJax(): Promise<void> {
       },
     }
 
-    const script = document.createElement('script')
-    script.src = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js'
-    script.async = true
-    script.onload = () => {
-      if (!getMathJax()) reject(new Error('MathJax failed to initialize'))
-    }
-    script.onerror = () => {
-      reject(new Error('Failed to load MathJax script'))
-    }
-    document.head.appendChild(script)
+    import('mathjax/tex-svg.js')
+      .then(() => {
+        if (!getMathJax()) reject(new Error('MathJax failed to initialize'))
+      })
+      .catch((err) => {
+        reject(
+          new Error(
+            `Failed to load MathJax script: ${err instanceof Error ? err.message : String(err)}`,
+          ),
+        )
+      })
   })
 
   return mathjaxReady
