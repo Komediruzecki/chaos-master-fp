@@ -581,21 +581,23 @@ const baseHandler = {
 }
 
 // Headers applied to every response (API, OG image, redirect, static assets).
-// The CSP ships Report-Only: it observes and surfaces violations in devtools
-// without enforcing. NOTE before enforcing: TypeGPU reconstructs shader
-// functions at runtime via `new Function`, so an enforced policy additionally
-// needs `'unsafe-eval'` in script-src — a real weakening — or WebGPU rendering
-// breaks. Flip to `Content-Security-Policy` only after weighing that tradeoff
-// and confirming no other violations remain.
+// CSP is ENFORCED. `'unsafe-eval'` is required: TypeGPU rebuilds shader
+// functions at runtime via `new Function`, so WebGPU rendering breaks without
+// it (it also covers WebAssembly compilation). `'unsafe-inline'` in style-src
+// covers inline / CSS-in-JS styles. This is deliberately not a "strict" CSP,
+// but it still blocks inline <script> / event-handler injection (no
+// 'unsafe-inline' in script-src), cross-origin scripts / frames / connections,
+// clickjacking (frame-ancestors), and <base> injection.
 const SECURITY_HEADERS: Readonly<Record<string, string>> = {
   'X-Content-Type-Options': 'nosniff',
   'Referrer-Policy': 'strict-origin-when-cross-origin',
   'X-Frame-Options': 'DENY',
   'Cross-Origin-Opener-Policy': 'same-origin',
-  'Content-Security-Policy-Report-Only': [
+  'Content-Security-Policy': [
     "default-src 'self'",
     "img-src 'self' data: blob:",
-    "script-src 'self' 'wasm-unsafe-eval' https://challenges.cloudflare.com",
+    // 'unsafe-eval' is mandatory — TypeGPU uses new Function for shader codegen.
+    "script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval' https://challenges.cloudflare.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "connect-src 'self' https://challenges.cloudflare.com",
