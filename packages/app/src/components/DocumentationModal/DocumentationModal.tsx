@@ -135,7 +135,7 @@ export function DocumentationModal(props: DocumentationModalProps) {
     }
 
     if (fnStr && fnStr !== `fn:${vKey}` && !fnStr.startsWith('fn:')) {
-      return `// Compiled TypeGPU function\n// Name: ${getNormalizedVariationName(vKey)}\n\n${fnStr.substring(0, 800)}${fnStr.length > 800 ? '\n// ... [truncated]' : ''}`
+      return `// Compiled TypeGPU function\n// Name: ${getNormalizedVariationName(vKey)}\n\n${fnStr}`
     }
 
     return `// Code representation for: ${getNormalizedVariationName(vKey)}\n// Category: ${variationObj.category || 'general'}`
