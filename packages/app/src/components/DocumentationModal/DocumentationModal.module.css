@@ -283,6 +283,7 @@
   overflow: hidden;
   background: #000;
   flex-shrink: 0;
+  position: relative;
 }
 
 .item-name {
