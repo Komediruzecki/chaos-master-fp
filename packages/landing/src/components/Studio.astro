@@ -112,7 +112,15 @@ import StudioDemo from './StudioDemo.tsx'
     letter-spacing: 0.12em;
     text-transform: uppercase;
   }
-  #studio .reset {
+  #studio .ph-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  #studio .ph-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
     font-family: var(--mono);
     font-size: 0.66rem;
     letter-spacing: 0.08em;
@@ -125,9 +133,26 @@ import StudioDemo from './StudioDemo.tsx'
     cursor: pointer;
     transition: 0.15s;
   }
-  #studio .reset:hover {
+  #studio .ph-btn:hover {
     color: #fff;
     border-color: var(--blue-500);
+  }
+  #studio .ph-btn svg {
+    width: 10px;
+    height: 10px;
+    display: block;
+  }
+  /* animate button while a run is playing — accent + the icon becomes a stop */
+  #studio .animate.running {
+    color: var(--blue-300);
+    border-color: var(--blue-500);
+    background: rgba(37, 99, 235, 0.16);
+  }
+  /* panel is read-only while animating; dim the draggable values */
+  #studio .panel.animating .scrub {
+    cursor: default;
+    color: var(--neutral-400);
+    border-bottom-color: transparent;
   }
   #studio .xform {
     border: 1px solid rgba(255, 255, 255, 0.1);

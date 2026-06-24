@@ -1,4 +1,4 @@
-import { createSignal, For, onCleanup, onMount } from 'solid-js'
+import { createSignal, For, onCleanup, onMount, Show } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { example45 } from '@/flame/examples/example45'
 import { posterFor, prettyVariation } from '../lib/flame'
@@ -18,12 +18,82 @@ const SWATCHES = ['#06d6c8', '#d4e157', '#ff5e7e', '#60a5fa', '#a3e635']
 const ZOOM_MIN = 0.6
 const ZOOM_MAX = 3
 
+type Affine = Record<(typeof AFFINE_KEYS)[number], number>
+const TWO_PI = Math.PI * 2
+
+/**
+ * Compose a 2×2 similarity M = [[m00,m01],[m10,m11]] (+ translation delta) onto
+ * an affine's OUTPUT side — same convention as the app's smartMutateAffine2D:
+ * x' = a·x + b·y + c, y' = d·x + e·y + f, so the linear part is [[a,b],[d,e]]
+ * and the translation is (c,f). Keeps linear part and translation consistent.
+ */
+function composeAffine(
+  m: Affine,
+  m00: number,
+  m01: number,
+  m10: number,
+  m11: number,
+  dx = 0,
+  dy = 0,
+): Affine {
+  return {
+    a: m00 * m.a + m01 * m.d,
+    b: m00 * m.b + m01 * m.e,
+    c: m00 * m.c + m01 * m.f + dx,
+    d: m10 * m.a + m11 * m.d,
+    e: m10 * m.b + m11 * m.e,
+    f: m10 * m.c + m11 * m.f + dy,
+  }
+}
+
+/**
+ * Canned affine morphs for the "animate" button. Each maps (base affine,
+ * progress t∈[0,1], transform index i) to the current affine. Every morph
+ * vanishes to the identity at BOTH t=0 and t=1 (the sin envelopes are zero
+ * there), so a run resolves cleanly back to the flame it started from — no
+ * cumulative drift across repeated plays.
+ */
+const MORPHS: ReadonlyArray<(m: Affine, t: number, i: number) => Affine> = [
+  // rotate the whole map there-and-back
+  (m, t) => {
+    const th = Math.sin(t * Math.PI) * 0.9
+    const c = Math.cos(th)
+    const s = Math.sin(th)
+    return composeAffine(m, c, -s, s, c)
+  },
+  // breathe — isotropic scale pulse
+  (m, t) => {
+    const s = 1 + Math.sin(t * Math.PI) * 0.3
+    return composeAffine(m, s, 0, 0, s)
+  },
+  // sway — a full rotate + anisotropic squash wobble
+  (m, t) => {
+    const w = Math.sin(t * TWO_PI)
+    const th = w * 0.3
+    const c = Math.cos(th)
+    const s = Math.sin(th)
+    const sx = 1 + w * 0.22
+    const sy = 1 - w * 0.22
+    return composeAffine(m, c * sx, -s * sy, s * sx, c * sy)
+  },
+  // twist — per-transform phase under a shared envelope (cascading curl)
+  (m, t, i) => {
+    const env = Math.sin(t * Math.PI)
+    const th = env * Math.cos(i * 1.3 + t * 3) * 0.7
+    const c = Math.cos(th)
+    const s = Math.sin(th)
+    const sc = 1 + env * 0.12
+    return composeAffine(m, c * sc, -s * sc, s * sc, c * sc)
+  },
+]
+
 export default function StudioDemo() {
   const [flame, setFlame] = createStore<typeof example45>(
     structuredClone(example45),
   )
   const baseZoom = example45.renderSettings.camera.zoom
   const [zoom, setZoom] = createSignal(baseZoom)
+  const [animating, setAnimating] = createSignal(false)
   const cameraPosition = createFlameParallax({
     selector: '.studio-viewport',
     base: example45.renderSettings.camera.position,
@@ -58,7 +128,73 @@ export default function StudioDemo() {
   let endScrub: (() => void) | undefined
   onCleanup(() => endScrub?.())
 
+  // --- canned animation (the "animate" button) ----------------------------
+  // Drives the same store path the panel scrubs, so the flame morphs live (and
+  // the panel numbers animate with it). rAF recomputes every frame from the base
+  // snapshot, so there's no float drift; runs always resolve back to the base.
+  let animRaf = 0
+  let animBase: Record<string, Affine> | undefined
+
+  const snapshotAffines = (): Record<string, Affine> => {
+    const snap: Record<string, Affine> = {}
+    for (const tid of tids) {
+      snap[tid] = { ...((flame.transforms as never)[tid].preAffine as Affine) }
+    }
+    return snap
+  }
+  const applyAffines = (map: Record<string, Affine>) => {
+    for (const tid of tids) {
+      setFlame(
+        'transforms',
+        tid as never,
+        'preAffine' as never,
+        map[tid] as never,
+      )
+    }
+  }
+  const cancelAnim = () => {
+    if (animRaf) cancelAnimationFrame(animRaf)
+    animRaf = 0
+  }
+
+  function toggleAnimate() {
+    if (animating()) {
+      // stop early → snap back to the base it started from
+      cancelAnim()
+      if (animBase) applyAffines(animBase)
+      animBase = undefined
+      setAnimating(false)
+      return
+    }
+    const base = snapshotAffines()
+    animBase = base
+    const morph = MORPHS[Math.floor(Math.random() * MORPHS.length)]
+    const duration = 2600 + Math.random() * 1100
+    const start = globalThis.performance.now()
+    setAnimating(true)
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration)
+      const frame: Record<string, Affine> = {}
+      tids.forEach((tid, i) => {
+        frame[tid] = morph(base[tid], t, i)
+      })
+      applyAffines(frame)
+      if (t < 1) {
+        animRaf = requestAnimationFrame(tick)
+      } else {
+        applyAffines(base) // settle exactly on the base
+        animRaf = 0
+        animBase = undefined
+        setAnimating(false)
+      }
+    }
+    animRaf = requestAnimationFrame(tick)
+  }
+
+  onCleanup(cancelAnim)
+
   function startScrub(e: PointerEvent, tid: string, key: string) {
+    if (animating()) return // panel is read-only while an animation plays
     e.preventDefault()
     const startX = e.clientX
     const startV = (flame.transforms as never)[tid].preAffine[key] as number
@@ -85,6 +221,9 @@ export default function StudioDemo() {
   }
 
   function reset() {
+    cancelAnim()
+    animBase = undefined
+    setAnimating(false)
     const fresh = structuredClone(example45)
     for (const tid of tids) {
       setFlame(
@@ -126,12 +265,41 @@ export default function StudioDemo() {
         </div>
       </div>
 
-      <div class="panel">
+      <div class="panel" classList={{ animating: animating() }}>
         <div class="ph">
           <span>transforms</span>
-          <button class="reset" type="button" onClick={reset}>
-            reset
-          </button>
+          <div class="ph-actions">
+            <button
+              class="ph-btn animate"
+              classList={{ running: animating() }}
+              type="button"
+              onClick={toggleAnimate}
+            >
+              <Show
+                when={animating()}
+                fallback={
+                  <svg viewBox="0 0 16 16" aria-hidden="true">
+                    <path d="M5 3.5v9l7-4.5z" fill="currentColor" />
+                  </svg>
+                }
+              >
+                <svg viewBox="0 0 16 16" aria-hidden="true">
+                  <rect
+                    x="4"
+                    y="4"
+                    width="8"
+                    height="8"
+                    rx="1.5"
+                    fill="currentColor"
+                  />
+                </svg>
+              </Show>
+              {animating() ? 'stop' : 'animate'}
+            </button>
+            <button class="ph-btn reset" type="button" onClick={reset}>
+              reset
+            </button>
+          </div>
         </div>
         <For each={tids}>
           {(tid, i) => (
