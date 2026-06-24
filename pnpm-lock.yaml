@@ -244,6 +244,9 @@ importers:
       unplugin-typegpu:
         specifier: ^0.10.0
         version: 0.10.2(typegpu@0.10.2)
+      wrangler:
+        specifier: ^4.103.0
+        version: 4.103.0
 
 packages:
 
