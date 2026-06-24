@@ -99,6 +99,43 @@ const remoteLog =
     <slot />
     <Footer />
 
+    <button id="to-top" class="to-top" type="button" aria-label="Scroll to top">
+      <svg
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M12 19V5M5 12l7-7 7 7"></path>
+      </svg>
+    </button>
+
+    <script>
+      // Phone-only "scroll to top": reveal once past the first viewport, smooth
+      // (or instant under reduced-motion) scroll home on tap. CSS hides it above
+      // the phone breakpoint, so the listener is cheap and harmless on desktop.
+      const toTop = document.getElementById('to-top')
+      if (toTop) {
+        const onScroll = () => {
+          toTop.classList.toggle(
+            'visible',
+            window.scrollY > window.innerHeight * 0.6,
+          )
+        }
+        window.addEventListener('scroll', onScroll, { passive: true })
+        onScroll()
+        toTop.addEventListener('click', () => {
+          const reduce = window.matchMedia(
+            '(prefers-reduced-motion: reduce)',
+          ).matches
+          window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' })
+        })
+      }
+    </script>
+
     <script>
       // Reveal each section as it scrolls into view (one-shot).
       const obs = new IntersectionObserver(
