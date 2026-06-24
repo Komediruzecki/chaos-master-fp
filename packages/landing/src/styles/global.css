@@ -158,16 +158,6 @@ h2 {
   padding: 8px 16px;
 }
 
-/* Flame visual slot — Phase 1 shows a poster/placeholder; later phases mount a
-   live <canvas> GPU island in here. */
-.flame-slot {
-  position: relative;
-  display: block;
-  width: 100%;
-  height: 100%;
-  background: #000;
-}
-
 /* Canvas produced by the app's AutoCanvas inside a live GPU island. Rendered by
    Solid (outside Astro's scoped styles), so it lives here in global. */
 .hero-gpu-canvas {
