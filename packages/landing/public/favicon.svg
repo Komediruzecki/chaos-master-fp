@@ -1,20 +1,27 @@
-<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
   <defs>
-    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#ff0080;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#7928ca;stop-opacity:1" />
+    <linearGradient id="cmArm" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#06d6c8" />
+      <stop offset="42%" stop-color="#a3e635" />
+      <stop offset="74%" stop-color="#ffae34" />
+      <stop offset="100%" stop-color="#ff5e7e" />
     </linearGradient>
-    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-      <feMerge>
-        <feMergeNode in="coloredBlur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>
+    <radialGradient id="cmCore" cx="50%" cy="50%" r="55%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="55%" stop-color="#7be0e8" />
+      <stop offset="100%" stop-color="#7be0e8" stop-opacity="0" />
+    </radialGradient>
   </defs>
-  <circle cx="32" cy="32" r="30" fill="url(#gradient)" filter="url(#glow)"/>
-  <path d="M32 12 L42 28 L32 34 L22 28 Z" fill="white" opacity="0.9"/>
-  <path d="M12 32 L28 42 L34 32 L28 22 Z" fill="white" opacity="0.7"/>
-  <path d="M52 32 L36 42 L30 32 L36 22 Z" fill="white" opacity="0.7"/>
-  <circle cx="32" cy="32" r="6" fill="white" opacity="0.3"/>
+  <rect width="64" height="64" rx="15" fill="#0a0a12" />
+  <g transform="translate(32 32)">
+    <!-- three self-similar curling flame tongues (IFS: 3 transforms, 120deg
+         rotational symmetry) -->
+    <g fill="url(#cmArm)">
+      <path d="M0 0 C 7 -11 22 -10 23 3 C 23.6 11 14 17 8 12.5 C 4.2 9.6 8 5 3.5 2.4 Z" />
+      <path d="M0 0 C 7 -11 22 -10 23 3 C 23.6 11 14 17 8 12.5 C 4.2 9.6 8 5 3.5 2.4 Z" transform="rotate(120)" />
+      <path d="M0 0 C 7 -11 22 -10 23 3 C 23.6 11 14 17 8 12.5 C 4.2 9.6 8 5 3.5 2.4 Z" transform="rotate(240)" />
+    </g>
+    <circle r="9" fill="url(#cmCore)" />
+    <circle r="3" fill="#fff" />
+  </g>
 </svg>
