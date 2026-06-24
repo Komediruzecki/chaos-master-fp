@@ -55,6 +55,32 @@ const PLATES: Plate[] = [
   },
 ]
 
+// Cursor-following 3D tilt for the gallery plates (mouse only; skipped under
+// prefers-reduced-motion). Applied as an inline transform that supersedes the
+// CSS :hover lift while pointing, cleared on leave so CSS eases it back.
+const TILT_DEG = 7
+const prefersReducedMotion = () =>
+  typeof globalThis.matchMedia === 'function' &&
+  globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+function tiltPlate(e: PointerEvent) {
+  if (e.pointerType !== 'mouse' || prefersReducedMotion()) return
+  const el = e.currentTarget as HTMLElement
+  const r = el.getBoundingClientRect()
+  const px = (e.clientX - r.left) / r.width - 0.5
+  const py = (e.clientY - r.top) / r.height - 0.5
+  el.style.transition = 'transform 0.1s ease-out'
+  el.style.transform =
+    `perspective(900px) rotateX(${(-py * TILT_DEG).toFixed(2)}deg) ` +
+    `rotateY(${(px * TILT_DEG).toFixed(2)}deg) translateY(-6px) scale(1.02)`
+}
+
+function untiltPlate(e: PointerEvent) {
+  const el = e.currentTarget as HTMLElement
+  el.style.transition = '' // fall back to the CSS transform transition (0.3s)
+  el.style.transform = ''
+}
+
 function PlatePreview(props: { plate: Plate }) {
   const [container, setContainer] = createSignal<HTMLElement>()
   const intersection = useIntersectionObserver(container)
@@ -75,8 +101,12 @@ function PlatePreview(props: { plate: Plate }) {
     <div
       class={`plate ${props.plate.cls}`}
       ref={setContainer}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onPointerEnter={() => setHovered(true)}
+      onPointerMove={tiltPlate}
+      onPointerLeave={(e) => {
+        setHovered(false)
+        untiltPlate(e)
+      }}
     >
       <PosterFlame
         flame={props.plate.flame}

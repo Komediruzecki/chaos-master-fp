@@ -189,6 +189,7 @@ h2 {
     #000 72%
   );
   aspect-ratio: 1;
+  will-change: transform;
   transition:
     transform 0.3s ease,
     box-shadow 0.3s ease,
