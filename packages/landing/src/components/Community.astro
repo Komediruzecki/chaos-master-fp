@@ -1,0 +1,90 @@
+---
+import CommunityFlame from './CommunityFlame.tsx'
+const repoUrl = 'https://github.com/chaos-matters/chaos-master'
+// TODO: confirm the real Discord invite + Ko-fi (placeholders from the handoff).
+const discordUrl = 'https://discord.gg/chaosmatters'
+const supportUrl = 'https://ko-fi.com/chaosmatters'
+---
+
+<section class="wrap">
+  <div class="community">
+    <div>
+      <p class="kicker">Explorers welcome</p>
+      <h2>Share what the chaos gives you.</h2>
+      <p class="sec-lede">
+        Trade flames, palettes and discoveries with a community of generative
+        artists. Open source, free forever, AGPL-3.0.
+      </p>
+      <div class="chips">
+        <a class="chip" href={discordUrl}>Join the Discord</a>
+        <a class="chip" href={repoUrl}>Star on GitHub</a>
+        <a class="chip" href={supportUrl}>Support on Ko-fi</a>
+      </div>
+    </div>
+    <div class="art">
+      <CommunityFlame client:only="solid-js" />
+    </div>
+  </div>
+</section>
+
+<style>
+  .community {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 40px;
+    align-items: center;
+    padding: clamp(36px, 5vw, 64px);
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background:
+      radial-gradient(
+        120% 140% at 0% 0%,
+        rgba(37, 99, 235, 0.14),
+        transparent 55%
+      ),
+      var(--neutral-950);
+  }
+  .chips {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 26px;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    padding: 11px 18px;
+    border-radius: var(--round);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    font-size: 0.92rem;
+    color: var(--neutral-200);
+    transition: 0.15s;
+  }
+  .chip:hover {
+    border-color: var(--blue-500);
+    color: #fff;
+    transform: translateY(-2px);
+  }
+  .art {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: #000;
+  }
+  .art :global(astro-island) {
+    position: absolute;
+    inset: 0;
+    display: block;
+  }
+  @media (max-width: 860px) {
+    .community {
+      grid-template-columns: 1fr;
+    }
+    .art {
+      order: -1;
+    }
+  }
+</style>

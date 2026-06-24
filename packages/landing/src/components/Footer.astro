@@ -1,0 +1,44 @@
+---
+const appUrl = 'https://chaos-master.com'
+const repoUrl = 'https://github.com/chaos-matters/chaos-master'
+// TODO: replace with the real Discord invite + Ko-fi once confirmed (placeholders
+// carried over from the design handoff).
+const discordUrl = 'https://discord.gg/chaosmatters'
+const supportUrl = 'https://ko-fi.com/chaosmatters'
+const year = new Date().getFullYear()
+---
+
+<footer>
+  <div class="wrap foot-in">
+    <span>© {year} Chaos Matters · AGPL-3.0</span>
+    <nav class="foot-nav">
+      <a href={appUrl}>Launch app</a>
+      <a href={repoUrl}>GitHub</a>
+      <a href={discordUrl}>Discord</a>
+      <a href={supportUrl}>Support</a>
+    </nav>
+  </div>
+</footer>
+
+<style>
+  footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-block: 34px;
+    color: var(--neutral-500);
+    font-size: 0.88rem;
+  }
+  .foot-in {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .foot-nav {
+    display: flex;
+    gap: 22px;
+  }
+  .foot-nav a:hover {
+    color: var(--neutral-200);
+  }
+</style>

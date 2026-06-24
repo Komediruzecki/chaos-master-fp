@@ -1,12 +1,18 @@
 ---
-import CallToAction from '../components/CallToAction.astro'
-import Features from '../components/Features.astro'
-import Hero from '../components/Hero.astro'
 import Base from '../layouts/Base.astro'
+import Hero from '../components/Hero.astro'
+import Features from '../components/Features.astro'
+import Gallery from '../components/Gallery.astro'
+import Community from '../components/Community.astro'
+import FinalCta from '../components/FinalCta.astro'
 ---
 
 <Base>
   <Hero />
-  <Features />
-  <CallToAction />
+  <main>
+    <Features />
+    <Gallery />
+    <Community />
+    <FinalCta />
+  </main>
 </Base>

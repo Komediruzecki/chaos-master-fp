@@ -1,78 +1,90 @@
 ---
 const features = [
   {
-    title: 'WebGPU Rendering',
-    body: 'Real-time IFS fractal evaluation on the GPU — explore millions of iterations interactively, no waiting on a render queue.',
+    idx: '01',
+    title: 'WebGPU rendering',
+    body: 'Real-time IFS fractal evaluation on the GPU. Explore millions of iterations interactively — the flame redraws the instant you touch it.',
   },
   {
-    title: 'Affine Editor',
-    body: 'Manipulate transformations directly on the canvas. See how each affine tweak reshapes the flame the instant you move it.',
+    idx: '02',
+    title: 'Affine editor',
+    body: 'Manipulate transformations directly on the canvas. See exactly how each affine tweak reshapes the flame as you move it.',
   },
   {
-    title: 'Metadata-rich Exports',
-    body: 'Export PNGs with the full flame state embedded, so any image can be reopened and remixed — sharing is just a file.',
+    idx: '03',
+    title: 'Metadata-rich exports',
+    body: 'Export PNGs with the full flame state embedded. Any image can be reopened and remixed — sharing is just a file.',
   },
   {
-    title: 'Theme Support',
-    body: 'Adaptive dark and light interfaces that stay out of the way of the art you are making.',
+    idx: '04',
+    title: 'Adaptive theming',
+    body: "Dark and light interfaces that stay out of the way of the art you're making. The work is the focus, always.",
   },
 ]
 ---
 
-<section id="features">
-  <div class="container">
-    <h2>Built for fast, hands-on exploration</h2>
-    <p class="section-lede">
-      Everything renders live in your browser — modern web standards, no native
-      app, no plugins.
-    </p>
-    <div class="grid">
-      {
-        features.map((f) => (
-          <article class="card">
-            <h3>{f.title}</h3>
-            <p>{f.body}</p>
-          </article>
-        ))
-      }
-    </div>
+<section id="features" class="wrap">
+  <p class="kicker">Built for hands-on exploration</p>
+  <h2>A studio that keeps up<br />with your imagination.</h2>
+  <p class="sec-lede">
+    Everything renders live in the browser on modern web standards — no native
+    app, no plugins, no waiting.
+  </p>
+  <div class="feat-grid">
+    {
+      features.map((f) => (
+        <article class="feat">
+          <div class="idx">{f.idx}</div>
+          <h3>{f.title}</h3>
+          <p>{f.body}</p>
+        </article>
+      ))
+    }
   </div>
-
-  <style>
-    h2 {
-      font-size: clamp(1.8rem, 3.5vw, 2.6rem);
-      font-weight: 800;
-    }
-    .section-lede {
-      color: var(--fg-muted);
-      font-size: 1.1rem;
-      max-width: 52ch;
-      margin: 16px 0 48px;
-    }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 20px;
-    }
-    .card {
-      background: var(--bg-soft);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 28px;
-    }
-    .card h3 {
-      font-size: 1.25rem;
-      margin-bottom: 10px;
-    }
-    .card p {
-      color: var(--fg-muted);
-      line-height: 1.6;
-      margin: 0;
-    }
-    @media (max-width: 720px) {
-      .grid {
-        grid-template-columns: 1fr;
-      }
-    }
-  </style>
 </section>
+
+<style>
+  .feat-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+    margin-top: 56px;
+  }
+  .feat {
+    padding: 30px;
+    border-radius: 16px;
+    background: var(--neutral-950);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    position: relative;
+    overflow: hidden;
+    transition:
+      border-color 0.2s,
+      transform 0.2s;
+  }
+  .feat:hover {
+    border-color: rgba(96, 165, 250, 0.35);
+    transform: translateY(-3px);
+  }
+  .feat .idx {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    color: var(--blue-400);
+    letter-spacing: 0.1em;
+  }
+  .feat h3 {
+    font-size: 1.22rem;
+    margin: 14px 0 10px;
+    font-weight: 700;
+  }
+  .feat p {
+    color: var(--neutral-400);
+    line-height: 1.6;
+    margin: 0;
+    font-size: 0.98rem;
+  }
+  @media (max-width: 860px) {
+    .feat-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

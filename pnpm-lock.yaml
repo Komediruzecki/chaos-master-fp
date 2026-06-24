@@ -204,9 +204,46 @@ importers:
 
   packages/landing:
     dependencies:
+      '@astrojs/solid-js':
+        specifier: ^5.1.0
+        version: 5.1.3(@types/node@25.9.2)(solid-js@1.9.11)
+      '@typegpu/color':
+        specifier: 0.10.0
+        version: 0.10.0(typegpu@0.10.2)
+      '@typegpu/noise':
+        specifier: 0.10.0
+        version: 0.10.0(typegpu@0.10.2)
+      '@typegpu/sdf':
+        specifier: 0.10.0
+        version: 0.10.0(typegpu@0.10.2)
       astro:
         specifier: ^5.6.1
         version: 5.18.2(@types/node@25.9.2)(rollup@4.61.1)(typescript@5.9.3)
+      solid-js:
+        specifier: 1.9.11
+        version: 1.9.11
+      structurajs:
+        specifier: 0.12.6
+        version: 0.12.6
+      tinyest-for-wgsl:
+        specifier: ^0.3.3
+        version: 0.3.3
+      typegpu:
+        specifier: 0.10.2
+        version: 0.10.2
+      valibot:
+        specifier: 1.2.0
+        version: 1.2.0(typescript@5.9.3)
+      wgpu-matrix:
+        specifier: 3.4.2
+        version: 3.4.2
+    devDependencies:
+      '@webgpu/types':
+        specifier: ^0.1.69
+        version: 0.1.70
+      unplugin-typegpu:
+        specifier: ^0.10.0
+        version: 0.10.2(typegpu@0.10.2)
 
 packages:
 
@@ -239,6 +276,16 @@ packages:
   '@astrojs/prism@3.3.0':
     resolution: {integrity: sha512-q8VwfU/fDZNoDOf+r7jUnMC2//H2l0TuQ6FkGJL8vD8nw/q5KiL3DS1KKBI3QhI9UQhpJ5dc7AtqfbXWuOgLCQ==}
     engines: {node: 18.20.8 || ^20.3.0 || >=22.0.0}
+
+  '@astrojs/solid-js@5.1.3':
+    resolution: {integrity: sha512-KxfYt4y1d7BuSw6EsN1EaPoGYsIES7bEI6AtTbncuabRUUMZs+mOWOeOdmgnwVLj+jbNbhBjUZsqr77eUviZdw==}
+    engines: {node: 18.20.8 || ^20.3.0 || >=22.0.0}
+    peerDependencies:
+      solid-devtools: ^0.30.1
+      solid-js: ^1.8.5
+    peerDependenciesMeta:
+      solid-devtools:
+        optional: true
 
   '@astrojs/telemetry@3.3.0':
     resolution: {integrity: sha512-UFBgfeldP06qu6khs/yY+q1cDAaArM2/7AEIqQ9Cuvf7B1hNLq0xDrZkct+QoIGyjq56y8IaE2I3CTvG99mlhQ==}
@@ -3520,6 +3567,26 @@ snapshots:
     dependencies:
       prismjs: 1.30.0
 
+  '@astrojs/solid-js@5.1.3(@types/node@25.9.2)(solid-js@1.9.11)':
+    dependencies:
+      solid-js: 1.9.11
+      vite: 6.4.3(@types/node@25.9.2)
+      vite-plugin-solid: 2.11.12(solid-js@1.9.11)(vite@6.4.3(@types/node@25.9.2))
+    transitivePeerDependencies:
+      - '@testing-library/jest-dom'
+      - '@types/node'
+      - jiti
+      - less
+      - lightningcss
+      - sass
+      - sass-embedded
+      - stylus
+      - sugarss
+      - supports-color
+      - terser
+      - tsx
+      - yaml
+
   '@astrojs/telemetry@3.3.0':
     dependencies:
       ci-info: 4.4.0
@@ -6699,6 +6766,19 @@ snapshots:
       solid-js: 1.9.11
       svgo: 3.3.3
       vite: 7.3.5(@types/node@25.9.2)
+
+  vite-plugin-solid@2.11.12(solid-js@1.9.11)(vite@6.4.3(@types/node@25.9.2)):
+    dependencies:
+      '@babel/core': 7.29.7
+      '@types/babel__core': 7.20.5
+      babel-preset-solid: 1.9.12(@babel/core@7.29.7)(solid-js@1.9.11)
+      merge-anything: 5.1.7
+      solid-js: 1.9.11
+      solid-refresh: 0.6.3(solid-js@1.9.11)
+      vite: 6.4.3(@types/node@25.9.2)
+      vitefu: 1.1.3(vite@6.4.3(@types/node@25.9.2))
+    transitivePeerDependencies:
+      - supports-color
 
   vite-plugin-solid@2.11.12(solid-js@1.9.11)(vite@7.3.5(@types/node@25.9.2)):
     dependencies:
