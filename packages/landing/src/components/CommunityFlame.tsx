@@ -2,9 +2,10 @@ import { example36 } from '@/flame/examples/example36'
 import FlameStage from './FlameStage'
 
 /**
- * Single live flame for the community section's art panel. A 2D example
- * (example36 — a soft magenta nebula); the landing has no 3D camera controls, so
- * we keep this panel 2D rather than render an uncontrollable 3D angle.
+ * Live, drag-to-orbit 3D flame for the community art panel (example36 — a glowing
+ * 3D bloom). Reuses the app's WheelZoomCamera3D via FlameView's interactive3D:
+ * drag to orbit, scroll to zoom. (Swap in the "earth flame" 3D example here once
+ * it's authored.)
  */
 export default function CommunityFlame() {
   return (
@@ -13,6 +14,7 @@ export default function CommunityFlame() {
       quality={0.9}
       pointCountPerBatch={160}
       canvasClass="plate-canvas"
+      interactive3D
     />
   )
 }
