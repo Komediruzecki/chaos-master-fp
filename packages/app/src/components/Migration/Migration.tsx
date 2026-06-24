@@ -359,28 +359,54 @@ function Migration(props: MigrationFlameModalProps) {
 
     if (trimmed.startsWith('{')) {
       setInputLabel('JSON')
-      const errors: string[] = []
+      let parsed: unknown
       try {
-        const parsed = JSON.parse(trimmed)
-        const result = validateFlameWithErrors(parsed, (err) =>
-          errors.push(err),
-        )
-        if (errors.length > 0) {
-          setValidationErrors(errors)
-          showLintErrors(errors)
-        } else {
-          setValidationErrors([])
-          clearLint()
-        }
-        if (result) setInputFlameVersion(result.version ?? '?.?')
-        return result
+        parsed = JSON.parse(trimmed)
       } catch (err) {
         const errStr = stringifyError(err)
-        errors.unshift(errStr)
-        setValidationErrors(errors)
-        showLintErrors(errors)
+        setValidationErrors([errStr])
+        showLintErrors([errStr])
         return undefined
       }
+
+      // A flame descriptor may be bare ({ transforms, ... }) or wrapped in a
+      // share payload ({ flame, animation }) — the same shape embedded in a
+      // shared PNG. Try the most-likely candidate first, then fall back, and
+      // accept the first that validates.
+      const obj = parsed as Record<string, unknown> | null
+      const wrapped =
+        obj !== null &&
+        typeof obj === 'object' &&
+        typeof obj.flame === 'object' &&
+        obj.flame !== null
+      const candidates: unknown[] =
+        wrapped && !('transforms' in (obj ?? {}))
+          ? [(obj as { flame: unknown }).flame, parsed]
+          : wrapped
+            ? [parsed, (obj as { flame: unknown }).flame]
+            : [parsed]
+
+      let lastErrors: string[] = []
+      for (const candidate of candidates) {
+        const errors: string[] = []
+        const result = validateFlameWithErrors(candidate, (err) =>
+          errors.push(err),
+        )
+        if (result && errors.length === 0) {
+          setValidationErrors([])
+          clearLint()
+          setInputFlameVersion(result.version ?? '?.?')
+          return result
+        }
+        lastErrors = errors
+      }
+      setValidationErrors(
+        lastErrors.length > 0
+          ? lastErrors
+          : ['Could not read a flame descriptor from this JSON.'],
+      )
+      showLintErrors(lastErrors)
+      return undefined
     }
 
     setInputLabel('Unknown')
@@ -469,28 +495,34 @@ function Migration(props: MigrationFlameModalProps) {
     if (!file) return
     try {
       const name = file.name.toLowerCase()
+      const isPng = file.type.startsWith('image/png') || name.endsWith('.png')
 
-      if (name.endsWith('.flame') || name.endsWith('.xml')) {
-        const text = await file.text()
-        setEditorText(text)
-        setInputLabel('XML')
-        validateInput()
-      } else if (file.type.startsWith('image/png')) {
+      if (isPng) {
+        // PNG carries the flame in a zTXt chunk as { flame, animation? }.
+        // Drop into the editor as the bare flame descriptor (the editor + the
+        // migration output are about the FlameDescriptor, not the animation).
         const arrBuf = new Uint8Array(await file.arrayBuffer())
-        const extractedData = await extractFlameFromPng(arrBuf).catch(
+        const extracted = await extractFlameFromPng(arrBuf).catch(
           () => undefined,
         )
-        if (extractedData) {
-          setEditorText(getPrettyJson(JSON.stringify(extractedData)))
+        if (extracted?.flame) {
+          setEditorText(getPrettyJson(JSON.stringify(extracted.flame)))
           setInputLabel('JSON')
           validateInput()
+        } else {
+          const msg = `'${file.name}' has no embedded flame data.`
+          setValidationErrors([msg])
+          showLintErrors([msg])
         }
-      } else {
-        const text = await file.text()
-        setEditorText(getPrettyJson(text))
-        setInputLabel('JSON')
-        validateInput()
+        return
       }
+
+      // .flame / .xml / .json / any text: drop the raw content in and let
+      // detectAndParse recognise the format (flame XML vs JSON, bare vs wrapped)
+      // and validate. JSON is pretty-printed; XML is left as-is.
+      const text = await file.text()
+      setEditorText(text.trim().startsWith('{') ? getPrettyJson(text) : text)
+      validateInput()
     } catch (err) {
       console.warn(err)
     }
