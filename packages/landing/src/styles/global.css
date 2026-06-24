@@ -215,6 +215,13 @@ h2 {
   display: block;
 }
 
+/* Interactive 3D canvases (community cards + Explore modal): claim touch gestures
+   so one-finger drag orbits and two-finger pinch zooms, instead of the page
+   scrolling/zooming. Mouse wheel still zooms on desktop. */
+.flame-orbit {
+  touch-action: none;
+}
+
 /* Static poster behind a live flame (gallery plates + community cards). Rendered
    in the DOM BEFORE the canvas, so the live canvas paints on top once ready; the
    poster shows whenever the live render can't run (no WebGPU / GPU failure /

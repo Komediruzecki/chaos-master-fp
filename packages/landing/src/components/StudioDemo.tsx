@@ -1,6 +1,7 @@
 import { createSignal, For, onCleanup, onMount, Show } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { example45 } from '@/flame/examples/example45'
+import { createDragHandler } from '@/utils/createDragHandler'
 import { posterFor, prettyVariation } from '../lib/flame'
 import PosterFlame from './PosterFlame'
 import { createFlameParallax } from './useFlameParallax'
@@ -122,11 +123,33 @@ export default function StudioDemo() {
     })
   })
 
-  // Active scrub teardown, so a drag in progress is cleaned up if the island
-  // unmounts mid-drag (otherwise the window listeners leak and fire setFlame on a
-  // disposed store).
-  let endScrub: (() => void) | undefined
-  onCleanup(() => endScrub?.())
+  // Scrub a value via the app's robust drag handler (setPointerCapture +
+  // document-level pointer listeners + multi-touch aware + auto-cleanup on
+  // unmount), so dragging a number works the same on mouse, pen and touch. The
+  // handler only passes the event, so the target value is stashed on pointerdown.
+  let scrubTarget: { tid: string; key: string } | undefined
+  const startScrub = createDragHandler((initEvent) => {
+    if (animating() || !scrubTarget) return undefined
+    const { tid, key } = scrubTarget
+    const startX = initEvent.clientX
+    const startV = (flame.transforms as never)[tid].preAffine[key] as number
+    document.body.style.cursor = 'ew-resize'
+    return {
+      onPointerMove(ev) {
+        const next = +(startV + (ev.clientX - startX) * 0.004).toFixed(3)
+        setFlame(
+          'transforms',
+          tid as never,
+          'preAffine' as never,
+          key as never,
+          next as never,
+        )
+      },
+      onDone() {
+        document.body.style.cursor = ''
+      },
+    }
+  })
 
   // --- canned animation (the "animate" button) ----------------------------
   // Drives the same store path the panel scrubs, so the flame morphs live (and
@@ -192,49 +215,6 @@ export default function StudioDemo() {
   }
 
   onCleanup(cancelAnim)
-
-  function startScrub(e: PointerEvent, tid: string, key: string) {
-    if (animating()) return // panel is read-only while an animation plays
-    e.preventDefault()
-    const el = e.currentTarget as HTMLElement
-    const { pointerId } = e
-    // Capture the pointer on the value itself, so the drag keeps receiving moves
-    // even when the finger leaves the element AND the browser can't reclaim the
-    // gesture as a page scroll mid-drag. Without this, Android fires a
-    // `pointercancel` the moment it decides you're panning and the scrub freezes
-    // (iOS happened to tolerate the window-listener approach; Android doesn't).
-    // Pairs with `touch-action: none` on .scrub.
-    el.setPointerCapture(pointerId)
-    const startX = e.clientX
-    const startV = (flame.transforms as never)[tid].preAffine[key] as number
-    const onMove = (ev: PointerEvent) => {
-      if (ev.pointerId !== pointerId) return
-      const next = +(startV + (ev.clientX - startX) * 0.004).toFixed(3)
-      setFlame(
-        'transforms',
-        tid as never,
-        'preAffine' as never,
-        key as never,
-        next as never,
-      )
-    }
-    const onUp = (ev: PointerEvent) => {
-      if (ev.pointerId !== pointerId) return
-      el.removeEventListener('pointermove', onMove)
-      el.removeEventListener('pointerup', onUp)
-      el.removeEventListener('pointercancel', onUp)
-      if (el.hasPointerCapture(pointerId)) el.releasePointerCapture(pointerId)
-      document.body.style.cursor = ''
-      endScrub = undefined
-    }
-    endScrub = () => {
-      onUp(e)
-    }
-    document.body.style.cursor = 'ew-resize'
-    el.addEventListener('pointermove', onMove)
-    el.addEventListener('pointerup', onUp)
-    el.addEventListener('pointercancel', onUp)
-  }
 
   function reset() {
     cancelAnim()
@@ -341,7 +321,8 @@ export default function StudioDemo() {
                       <b
                         class="scrub"
                         onPointerDown={(e) => {
-                          startScrub(e, tid, k)
+                          scrubTarget = { tid, key: k }
+                          startScrub(e)
                         }}
                       >
                         {(
