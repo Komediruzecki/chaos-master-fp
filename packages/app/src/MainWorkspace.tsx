@@ -39,6 +39,7 @@ import { createShowHelp } from './components/HelpModal/HelpModal'
 import { ConfirmOverwriteRecentModal } from './components/LoadFlameModal/ConfirmOverwriteRecentModal'
 import { createLoadFlame } from './components/LoadFlameModal/LoadFlameModal'
 import { createLogoFaviconGenerator } from './components/LogoFaviconGenerator/LogoFaviconGenerator'
+import { createMigrationModal } from './components/Migration/Migration'
 import { useRequestModal } from './components/Modal/ModalContext'
 import { OrientationGizmo } from './components/OrientationGizmo/OrientationGizmo'
 import { PaletteSelector } from './components/PaletteSelector/PaletteSelector'
@@ -1080,6 +1081,8 @@ export function MainWorkspace(props: AppProps) {
   )
 
   const { showDiscordShareModal } = createDiscordShareModal()
+
+  const { showMigrationModal } = createMigrationModal(history)
 
   /** Waits until the canvas backing-store size stops changing (the resize is
    *  reactive and may be debounced) so export dimensions read a settled size. */
@@ -3831,6 +3834,18 @@ export function MainWorkspace(props: AppProps) {
                           </CollapsibleCard>
                         </Show>
                         <Card class={ui.buttonCard}>
+                          <button
+                            class={ui.addFlameButton}
+                            onClick={() => {
+                              void showMigrationModal(
+                                structuredClone(
+                                  JSON.parse(JSON.stringify(flameDescriptor)),
+                                ),
+                              )
+                            }}
+                          >
+                            Migration
+                          </button>
                           <button
                             class={ui.addFlameButton}
                             onClick={() => {
