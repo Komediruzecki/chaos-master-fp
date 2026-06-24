@@ -21,12 +21,15 @@ type Plate = {
   name: keyof typeof LANDING_FLAMES
   cls: string
   title: string
+  /** Interactive 3D plate: hover-spin (desktop) / tap-to-spin (touch) +
+   *  drag-orbit + pinch-zoom, like the community cards. */
+  spin?: boolean
 }
 
 const PLATES: Plate[] = [
   { name: 'example1', cls: 'wide span8', title: 'First Light' },
   { name: 'example29', cls: 'tall span4', title: 'Aurora Drift' },
-  { name: 'example33', cls: 'span4', title: 'Ember Lattice' },
+  { name: 'example33', cls: 'span4', title: 'Ember Lattice', spin: true },
   { name: 'example40', cls: 'span4', title: 'Tidal Bloom' },
   { name: 'example45', cls: 'span4', title: 'Spectrum Swirl' },
 ]
@@ -79,10 +82,10 @@ function PlatePreview(props: { plate: Plate }) {
       class={`plate ${props.plate.cls}`}
       ref={setContainer}
       onPointerEnter={() => setHovered(true)}
-      onPointerMove={tiltPlate}
+      onPointerMove={props.plate.spin ? undefined : tiltPlate}
       onPointerLeave={(e) => {
         setHovered(false)
-        untiltPlate(e)
+        if (!props.plate.spin) untiltPlate(e)
       }}
       onContextMenu={(e) => {
         e.preventDefault()
@@ -96,6 +99,10 @@ function PlatePreview(props: { plate: Plate }) {
         quality={hovered() ? 0.97 : 0.9}
         pointCountPerBatch={196}
         canvasClass="plate-canvas"
+        interactive3D={props.plate.spin}
+        autoSpin={props.plate.spin}
+        alphaMode={props.plate.spin ? 'premultiplied' : undefined}
+        outputAlpha={props.plate.spin}
       />
       <div class="meta">
         <div>

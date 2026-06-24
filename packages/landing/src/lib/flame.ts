@@ -164,13 +164,28 @@ export function applyFlameRecipe(
 }
 
 /**
+ * Landing render of First Light (example1) — shifted left + zoomed slightly out
+ * so the flame fills the wide gallery plate instead of leaving empty space on the
+ * left. Camera-only override; the shared app example is untouched.
+ */
+export const EXAMPLE1_LANDING: FlameDescriptor = overrideFlame(example1, {
+  renderSettings: {
+    camera: {
+      zoom: 0.8548384768000001,
+      position: [0.575874924659729, 0.013209767639636993],
+      rotation: 0,
+    },
+  },
+})
+
+/**
  * Single source of truth for every flame that appears live on the landing, keyed
  * by poster name. Gallery plates + community cards reference these by name; the
  * `poster-capture` page renders each one to `public/posters/<name>.jpg` so the
  * static fallback always matches the live flame exactly.
  */
 export const LANDING_FLAMES = {
-  example1,
+  example1: EXAMPLE1_LANDING,
   example29,
   example33: SHELLS_LANDING,
   example40: NAUTILUS_LANDING,
