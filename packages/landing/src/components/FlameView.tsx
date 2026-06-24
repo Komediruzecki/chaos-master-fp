@@ -128,14 +128,27 @@ export default function FlameView(props: FlameViewProps) {
 
   // Orbit signals (used only by the interactive 3D path), seeded from the flame.
   const c3 = props.flame.renderSettings.camera3D
+  const baseRadius = c3?.radius ?? 5
   const spherical = createSpherical(
     c3?.theta ?? 0,
     c3?.phi ?? Math.PI / 2,
-    c3?.radius ?? 5,
+    baseRadius,
     (c3?.target ?? [0, 0, 0]) as never,
     c3?.fov ?? 60,
     c3?.roll ?? 0,
   )
+  // The raw camera lets you zoom out to radius 100 (the flame shrinks to a
+  // speck); clamp the orbit radius to keep it framed.
+  const RAD_MIN = baseRadius * 0.5
+  const RAD_MAX = baseRadius * 1.6
+  const clampedRadius: Signal<number> = [
+    spherical.radius[0],
+    ((v: number | ((p: number) => number)) =>
+      spherical.radius[1]((prev) => {
+        const next = typeof v === 'function' ? v(prev) : v
+        return Math.max(RAD_MIN, Math.min(RAD_MAX, next))
+      })) as Signal<number>[1],
+  ]
 
   // Flam3 hands us a live-quality getter; poll it and fire onReady once the
   // flame is actually accumulating (used to cross-fade the hero poster out).
@@ -196,7 +209,7 @@ export default function FlameView(props: FlameViewProps) {
           <WheelZoomCamera3D
             theta={spherical.theta}
             phi={spherical.phi}
-            radius={spherical.radius}
+            radius={clampedRadius}
             target={spherical.target}
             fov={spherical.fov}
             roll={spherical.roll}

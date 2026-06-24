@@ -1,4 +1,4 @@
-import { createEffect, createMemo, createSignal, For, Show } from 'solid-js'
+import { createMemo, createSignal, For, Show } from 'solid-js'
 import { ComputeGate, useComputeGate } from '@/contexts/ComputeGateContext'
 import { example1 } from '@/flame/examples/example1'
 import { example29 } from '@/flame/examples/example29'
@@ -38,14 +38,10 @@ function PlatePreview(props: { plate: Plate }) {
     isSelected: false,
   }))
 
-  // Latch: gate the *first* reveal (lazy + ComputeGate priority), but once a
-  // plate has rendered keep it mounted so scrolling back doesn't re-accumulate.
-  const [seen, setSeen] = createSignal(false)
-  createEffect(() => {
-    if (allowed() || isVisible()) setSeen(true)
-  })
-
-  // Hover intensifies: accumulate to a higher quality target while hovered.
+  // Render only while visible (or gate-allowed) and UNMOUNT when scrolled away,
+  // so the number of concurrent live GPU flames stays bounded to a viewport —
+  // weak WebGPU impls (Firefox/Linux/AMD) OOM with many at once. Re-accumulates
+  // on re-entry, but the adaptive filter makes that quick.
   const [hovered, setHovered] = createSignal(false)
 
   return (
@@ -55,7 +51,7 @@ function PlatePreview(props: { plate: Plate }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <Show when={seen()}>
+      <Show when={allowed() || isVisible()}>
         <Root adapterOptions={{ powerPreference: 'high-performance' }}>
           <FlameView
             flame={props.plate.flame}
