@@ -24,12 +24,17 @@ export type FlameViewProps = {
   /** Reactive override for the 2D camera position — drives mouse parallax /
    *  idle drift on the hero. Falls back to the flame's own camera. */
   cameraPosition?: () => v2f
+  /** Reactive override for the 2D camera zoom — drives scroll-to-zoom. Falls
+   *  back to the flame's own zoom. */
+  cameraZoom?: () => number
 }
 
 export default function FlameView(props: FlameViewProps) {
   const cameraPosition = () =>
     props.cameraPosition?.() ??
     vec2f(...props.flame.renderSettings.camera.position)
+  const cameraZoom = () =>
+    props.cameraZoom?.() ?? props.flame.renderSettings.camera.zoom
   // Flam3 hands us a live-quality getter; poll it and fire onReady once the
   // flame is actually accumulating (used to cross-fade the hero poster out).
   const [quality, setQuality] = createSignal<(() => number) | undefined>()
@@ -71,10 +76,7 @@ export default function FlameView(props: FlameViewProps) {
       <Show
         when={(props.flame.renderSettings.dimensions ?? 2) === 3}
         fallback={
-          <Camera2D
-            position={cameraPosition()}
-            zoom={props.flame.renderSettings.camera.zoom}
-          >
+          <Camera2D position={cameraPosition()} zoom={cameraZoom()}>
             {flame()}
           </Camera2D>
         }
