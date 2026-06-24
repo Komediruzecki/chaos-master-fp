@@ -98,9 +98,8 @@ export default function StudioDemo() {
         <Root adapterOptions={{ powerPreference: 'high-performance' }}>
           <FlameView
             flame={flame}
-            quality={0.85}
-            pointCountPerBatch={160}
-            adaptiveFilterEnabled={false}
+            quality={0.97}
+            pointCountPerBatch={256}
             canvasClass="plate-canvas"
             cameraPosition={cameraPosition}
             cameraZoom={zoom}

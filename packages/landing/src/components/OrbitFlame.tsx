@@ -10,17 +10,28 @@ import type { FlameDescriptor } from '@/flame/schema/flameSchema'
  */
 const FLAMES: Record<string, FlameDescriptor> = {
   earth: example46,
-  rose: example44,
+  // Landing render of the rose at high density-estimation quality. The shared app
+  // example uses 0.6, which converges slowly / blurs during movement; bump it
+  // here (landing-only) so it's crisp immediately like the earth.
+  rose: {
+    ...example44,
+    renderSettings: {
+      ...example44.renderSettings,
+      densityEstimationQuality: 1,
+      estimatorCurve: 0.85,
+    },
+  },
 }
 
 export default function OrbitFlame(props: { which: 'earth' | 'rose' }) {
   return (
     <FlameStage
       flame={FLAMES[props.which]}
-      quality={0.9}
-      pointCountPerBatch={160}
+      quality={0.995}
+      pointCountPerBatch={256}
       canvasClass="plate-canvas"
       interactive3D
+      autoSpin
       alphaMode="premultiplied"
       outputAlpha
     />

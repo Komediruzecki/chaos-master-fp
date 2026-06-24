@@ -1,12 +1,78 @@
-import { createEffect, createSignal, onCleanup, Show } from 'solid-js'
+import { createEffect, createSignal, onCleanup, onMount, Show } from 'solid-js'
 import { vec2f, vec4f } from 'typegpu/data'
 import { Flam3 } from '@/flame/Flam3'
 import { AutoCanvas } from '@/lib/AutoCanvas'
 import { Camera2D } from '@/lib/Camera2D'
 import { Default3DPreviewCamera } from '@/lib/Camera3D'
+import { useCanvas } from '@/lib/CanvasContext'
 import { createSpherical, WheelZoomCamera3D } from '@/lib/WheelZoomCamera3D'
+import type { Signal } from 'solid-js'
 import type { v2f } from 'typegpu/data'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
+
+/**
+ * Idle auto-spin for a 3D flame: while the cursor is over the canvas and NOT
+ * dragging, slowly orbit (after a short delay) by advancing the camera theta.
+ * Pauses during drag and resumes shortly after release. Rendered inside the
+ * camera so it can read the canvas element from context.
+ */
+function AutoSpin3D(props: {
+  theta: Signal<number>
+  speed?: number
+  delayMs?: number
+}) {
+  const { canvas } = useCanvas()
+  onMount(() => {
+    const speed = props.speed ?? 0.3 // rad/s (~20s per revolution)
+    const delay = props.delayMs ?? 500
+    // globalThis.performance.now(): the app's blessed monotonic clock (the bare
+    // `performance` global is eslint-restricted).
+    const nowMs = () => globalThis.performance.now()
+    let hovering = false
+    let dragging = false
+    let resumeAt = 0
+    const markResume = () => {
+      resumeAt = nowMs() + delay
+    }
+    const onEnter = () => {
+      hovering = true
+      markResume()
+    }
+    const onLeave = () => {
+      hovering = false
+    }
+    const onDown = () => {
+      dragging = true
+    }
+    const onUp = () => {
+      dragging = false
+      markResume()
+    }
+    canvas.addEventListener('pointerenter', onEnter)
+    canvas.addEventListener('pointerleave', onLeave)
+    canvas.addEventListener('pointerdown', onDown)
+    window.addEventListener('pointerup', onUp)
+    let raf = 0
+    let last = nowMs()
+    const tick = (now: number) => {
+      const dt = Math.min(0.05, (now - last) / 1000)
+      last = now
+      if (hovering && !dragging && now >= resumeAt) {
+        props.theta[1]((t) => t + speed * dt)
+      }
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    onCleanup(() => {
+      canvas.removeEventListener('pointerenter', onEnter)
+      canvas.removeEventListener('pointerleave', onLeave)
+      canvas.removeEventListener('pointerdown', onDown)
+      window.removeEventListener('pointerup', onUp)
+      cancelAnimationFrame(raf)
+    })
+  })
+  return null
+}
 
 /**
  * Inner live-flame view — the app's AutoCanvas + camera + Flam3, WITHOUT a Root.
@@ -37,6 +103,8 @@ export type FlameViewProps = {
   /** Output premultiplied alpha from the flame (dark regions become
    *  transparent). Pair with alphaMode='premultiplied'. */
   outputAlpha?: boolean
+  /** For interactive3D: idle auto-orbit on hover (pauses while dragging). */
+  autoSpin?: boolean
 }
 
 export default function FlameView(props: FlameViewProps) {
@@ -121,6 +189,9 @@ export default function FlameView(props: FlameViewProps) {
             fov={spherical.fov}
             roll={spherical.roll}
           >
+            <Show when={props.autoSpin}>
+              <AutoSpin3D theta={spherical.theta} />
+            </Show>
             {flame()}
           </WheelZoomCamera3D>
         </Show>
