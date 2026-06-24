@@ -7,6 +7,7 @@ import { example40 } from '@/flame/examples/example40'
 import { example45 } from '@/flame/examples/example45'
 import { Root } from '@/lib/Root'
 import { useIntersectionObserver } from '@/utils/useIntersectionObserver'
+import { variationSummary } from '../lib/flame'
 import FlameView from './FlameView'
 import OpenInApp from './OpenInApp'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
@@ -26,21 +27,6 @@ const PLATES: Plate[] = [
   { flame: example40, cls: 'span4', title: 'Tidal Bloom' },
   { flame: example45, cls: 'span4', title: 'Spectrum Swirl' },
 ]
-
-// Distinct variation types behind a flame, e.g. "SWIRL · SINUSOIDAL · SPHERICAL"
-// — fulfils the design's "hover to read the variations behind each one".
-function variationSummary(flame: FlameDescriptor): string {
-  const types = new Set<string>()
-  for (const t of Object.values(flame.transforms)) {
-    for (const v of Object.values(t.variations)) {
-      types.add(v.type.replace(/Var$/, '').replace(/3D$/, ' 3D'))
-    }
-  }
-  return [...types]
-    .slice(0, 4)
-    .map((t) => t.toUpperCase())
-    .join(' · ')
-}
 
 function PlatePreview(props: { plate: Plate }) {
   const [container, setContainer] = createSignal<HTMLElement>()

@@ -23,6 +23,30 @@ export function createFlameParallax(opts: {
     let cx = 0
     let cy = 0
 
+    let raf = 0
+    let running = false
+    const tick = () => {
+      cx += (tx - cx) * 0.06
+      cy += (ty - cy) * 0.06
+      const nx = opts.base[0] + cx * amount
+      const ny = opts.base[1] - cy * amount
+      const cur = pos()
+      const moved = Math.abs(nx - cur.x) > 5e-4 || Math.abs(ny - cur.y) > 5e-4
+      if (moved) setPos(vec2f(nx, ny))
+      // Keep going while still easing toward the target; otherwise stop the loop
+      // so an idle cursor doesn't spin rAF forever (restarts on next pointermove).
+      if (moved || Math.abs(tx - cx) > 1e-3 || Math.abs(ty - cy) > 1e-3) {
+        raf = requestAnimationFrame(tick)
+      } else {
+        running = false
+      }
+    }
+    const ensureRunning = () => {
+      if (running) return
+      running = true
+      raf = requestAnimationFrame(tick)
+    }
+
     const onMove = (e: PointerEvent) => {
       const r = el?.getBoundingClientRect()
       if (!r) return
@@ -31,22 +55,9 @@ export function createFlameParallax(opts: {
       if (nx < -1.2 || nx > 1.2 || ny < -1.2 || ny > 1.2) return
       tx = nx
       ty = ny
+      ensureRunning()
     }
     window.addEventListener('pointermove', onMove)
-
-    let raf = 0
-    const tick = () => {
-      cx += (tx - cx) * 0.06
-      cy += (ty - cy) * 0.06
-      const nx = opts.base[0] + cx * amount
-      const ny = opts.base[1] - cy * amount
-      const cur = pos()
-      if (Math.abs(nx - cur.x) > 5e-4 || Math.abs(ny - cur.y) > 5e-4) {
-        setPos(vec2f(nx, ny))
-      }
-      raf = requestAnimationFrame(tick)
-    }
-    raf = requestAnimationFrame(tick)
 
     onCleanup(() => {
       window.removeEventListener('pointermove', onMove)
