@@ -22,6 +22,10 @@ const ogImage = new URL('/hero-flame.jpg', Astro.site).href
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Mark JS available so reveal-on-scroll only hides content when it can be
+         animated back in (no-JS shows everything). Inline + synchronous so it
+         runs before first paint. -->
+    <script is:inline>document.documentElement.classList.add('js')</script>
     <meta name="theme-color" content="#000000" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="canonical" href={canonical} />
@@ -53,5 +57,23 @@ const ogImage = new URL('/hero-flame.jpg', Astro.site).href
     <Nav />
     <slot />
     <Footer />
+
+    <script>
+      // Reveal each section as it scrolls into view (one-shot).
+      const obs = new IntersectionObserver(
+        (entries, io) => {
+          for (const e of entries) {
+            if (e.isIntersecting) {
+              e.target.classList.add('is-revealed')
+              io.unobserve(e.target)
+            }
+          }
+        },
+        { rootMargin: '0px 0px -12% 0px', threshold: 0.08 },
+      )
+      document
+        .querySelectorAll('main > section')
+        .forEach((s) => obs.observe(s))
+    </script>
   </body>
 </html>

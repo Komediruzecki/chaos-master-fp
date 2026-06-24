@@ -58,13 +58,21 @@ function PlatePreview(props: { plate: Plate }) {
     if (allowed() || isVisible()) setSeen(true)
   })
 
+  // Hover intensifies: accumulate to a higher quality target while hovered.
+  const [hovered, setHovered] = createSignal(false)
+
   return (
-    <div class={`plate ${props.plate.cls}`} ref={setContainer}>
+    <div
+      class={`plate ${props.plate.cls}`}
+      ref={setContainer}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
       <Show when={seen()}>
         <Root adapterOptions={{ powerPreference: 'high-performance' }}>
           <FlameView
             flame={props.plate.flame}
-            quality={0.9}
+            quality={hovered() ? 0.97 : 0.88}
             pointCountPerBatch={128}
             adaptiveFilterEnabled={false}
             canvasClass="plate-canvas"
