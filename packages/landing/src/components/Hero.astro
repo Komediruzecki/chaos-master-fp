@@ -39,6 +39,32 @@ const repoUrl = 'https://github.com/chaos-matters/chaos-master'
   <div class="scroll-hint"><span>Scroll</span><span class="line"></span></div>
 </header>
 
+<script>
+  // Hero reacts to scroll: parallax the flame layer (live canvas OR poster — both
+  // live in .hero-canvas) slower than the page, with a subtle zoom + fade as it
+  // leaves, for depth. Pure transform, so it never resizes the canvas. rAF-
+  // throttled; disabled under prefers-reduced-motion.
+  const hero = document.querySelector<HTMLElement>('.hero')
+  const layer = document.querySelector<HTMLElement>('.hero-canvas')
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  if (hero && layer && !reduce) {
+    let raf = 0
+    const update = () => {
+      raf = 0
+      const h = hero.offsetHeight || 1
+      const y = Math.min(Math.max(window.scrollY, 0), h)
+      const p = y / h
+      layer.style.transform = `translate3d(0, ${(y * 0.3).toFixed(1)}px, 0) scale(${(1 + p * 0.08).toFixed(3)})`
+      layer.style.opacity = (1 - p * 0.4).toFixed(3)
+    }
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(update)
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    update()
+  }
+</script>
+
 <style>
   .hero {
     position: relative;
