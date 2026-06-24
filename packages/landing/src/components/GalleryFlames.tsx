@@ -1,7 +1,7 @@
 import { createMemo, createSignal, For } from 'solid-js'
 import { ComputeGate, useComputeGate } from '@/contexts/ComputeGateContext'
 import { useIntersectionObserver } from '@/utils/useIntersectionObserver'
-import { LANDING_FLAMES, posterFor, variationSummary } from '../lib/flame'
+import { LANDING_FLAMES, posterFor, PREVIEW_QUALITY, PREVIEW_QUALITY_IDLE, variationSummary, } from '../lib/flame'
 import OpenInApp from './OpenInApp'
 import PosterFlame from './PosterFlame'
 
@@ -96,8 +96,7 @@ function PlatePreview(props: { plate: Plate }) {
         poster={posterFor(props.plate.name)}
         posterClass="plate-canvas"
         inView={() => allowed() || isVisible()}
-        quality={hovered() ? 0.97 : 0.9}
-        pointCountPerBatch={196}
+        quality={hovered() ? PREVIEW_QUALITY : PREVIEW_QUALITY_IDLE}
         canvasClass="plate-canvas"
         interactive3D={props.plate.spin}
         autoSpin={props.plate.spin}
