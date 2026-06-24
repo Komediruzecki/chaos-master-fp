@@ -1,15 +1,9 @@
 import { createMemo, createSignal, For } from 'solid-js'
 import { ComputeGate, useComputeGate } from '@/contexts/ComputeGateContext'
-import { example1 } from '@/flame/examples/example1'
-import { example29 } from '@/flame/examples/example29'
-import { example33 } from '@/flame/examples/example33'
-import { example40 } from '@/flame/examples/example40'
-import { example45 } from '@/flame/examples/example45'
 import { useIntersectionObserver } from '@/utils/useIntersectionObserver'
-import { posterFor, variationSummary } from '../lib/flame'
+import { LANDING_FLAMES, posterFor, variationSummary } from '../lib/flame'
 import OpenInApp from './OpenInApp'
 import PosterFlame from './PosterFlame'
-import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 
 /**
  * Gallery grid as a single Solid island so every live preview shares one
@@ -18,41 +12,23 @@ import type { FlameDescriptor } from '@/flame/schema/flameSchema'
  * converges (and whenever WebGPU is unavailable / has failed); the live flame
  * mounts only once scrolled into view and unmounts when scrolled away, so
  * concurrent GPU contexts stay bounded.
+ *
+ * Flames are pulled from LANDING_FLAMES by name (the single source of truth), so
+ * any landing-only overrides (e.g. NAUTILUS_LANDING) render here AND match the
+ * captured poster of the same name.
  */
 type Plate = {
-  flame: FlameDescriptor
-  /** Poster name under public/posters/ (see LANDING_FLAMES in lib/flame). */
-  poster: string
+  name: keyof typeof LANDING_FLAMES
   cls: string
   title: string
 }
 
 const PLATES: Plate[] = [
-  {
-    flame: example1,
-    poster: 'example1',
-    cls: 'wide span8',
-    title: 'First Light',
-  },
-  {
-    flame: example29,
-    poster: 'example29',
-    cls: 'tall span4',
-    title: 'Aurora Drift',
-  },
-  {
-    flame: example33,
-    poster: 'example33',
-    cls: 'span4',
-    title: 'Ember Lattice',
-  },
-  { flame: example40, poster: 'example40', cls: 'span4', title: 'Tidal Bloom' },
-  {
-    flame: example45,
-    poster: 'example45',
-    cls: 'span4',
-    title: 'Spectrum Swirl',
-  },
+  { name: 'example1', cls: 'wide span8', title: 'First Light' },
+  { name: 'example29', cls: 'tall span4', title: 'Aurora Drift' },
+  { name: 'example33', cls: 'span4', title: 'Ember Lattice' },
+  { name: 'example40', cls: 'span4', title: 'Tidal Bloom' },
+  { name: 'example45', cls: 'span4', title: 'Spectrum Swirl' },
 ]
 
 // Cursor-following 3D tilt for the gallery plates (mouse only; skipped under
@@ -82,6 +58,7 @@ function untiltPlate(e: PointerEvent) {
 }
 
 function PlatePreview(props: { plate: Plate }) {
+  const flame = () => LANDING_FLAMES[props.plate.name]
   const [container, setContainer] = createSignal<HTMLElement>()
   const intersection = useIntersectionObserver(container)
   const isVisible = createMemo(() => intersection()?.isIntersecting ?? false)
@@ -109,8 +86,8 @@ function PlatePreview(props: { plate: Plate }) {
       }}
     >
       <PosterFlame
-        flame={props.plate.flame}
-        poster={posterFor(props.plate.poster)}
+        flame={flame()}
+        poster={posterFor(props.plate.name)}
         posterClass="plate-canvas"
         inView={() => allowed() || isVisible()}
         quality={hovered() ? 0.97 : 0.9}
@@ -119,13 +96,11 @@ function PlatePreview(props: { plate: Plate }) {
       />
       <div class="meta">
         <div>
-          <div class="t">
-            {props.plate.flame.metadata?.name ?? props.plate.title}
-          </div>
-          <div class="v">{variationSummary(props.plate.flame)}</div>
+          <div class="t">{flame().metadata?.name ?? props.plate.title}</div>
+          <div class="v">{variationSummary(flame())}</div>
         </div>
       </div>
-      <OpenInApp flame={props.plate.flame} />
+      <OpenInApp flame={flame()} />
     </div>
   )
 }
