@@ -166,6 +166,17 @@ h2 {
   padding: 8px 16px;
 }
 
+/* Launch/external-link glyph inside a CTA button (replaces the old "→"). The
+   button is inline-flex with a gap, so the icon sits after the label. */
+.btn-ico {
+  display: inline-flex;
+}
+.btn-ico svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
 /* Canvas produced by the app's AutoCanvas inside a live GPU island. Rendered by
    Solid (outside Astro's scoped styles), so it lives here in global. */
 .hero-gpu-canvas {

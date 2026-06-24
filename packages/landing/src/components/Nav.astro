@@ -1,4 +1,6 @@
 ---
+import { LAUNCH_ICON } from '../icons'
+
 const appUrl = 'https://chaos-master.com'
 const repoUrl = 'https://github.com/chaos-matters/chaos-master'
 ---
@@ -37,7 +39,9 @@ const repoUrl = 'https://github.com/chaos-matters/chaos-master'
       <a class="hide" href="#features">Features</a>
       <a class="hide" href="#gallery">Gallery</a>
       <a class="hide" href={repoUrl}>GitHub</a>
-      <a class="pill btn btn-primary" href={appUrl}>Launch app →</a>
+      <a class="pill btn btn-primary" href={appUrl}
+        >Launch app<span class="btn-ico" set:html={LAUNCH_ICON} /></a
+      >
     </div>
   </div>
 </nav>

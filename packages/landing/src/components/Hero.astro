@@ -1,5 +1,6 @@
 ---
 import HeroFlame from './HeroFlame.tsx'
+import { LAUNCH_ICON } from '../icons'
 
 const appUrl = 'https://chaos-master.com'
 const repoUrl = 'https://github.com/chaos-matters/chaos-master'
@@ -27,7 +28,9 @@ const repoUrl = 'https://github.com/chaos-matters/chaos-master'
       No install, no render queue.
     </p>
     <div class="hero-cta">
-      <a class="btn btn-primary" href={appUrl}>Launch Chaos Master →</a>
+      <a class="btn btn-primary" href={appUrl}
+        >Launch Chaos Master<span class="btn-ico" set:html={LAUNCH_ICON} /></a
+      >
       <a class="btn btn-ghost" href={repoUrl}>View on GitHub</a>
     </div>
     <ul class="hero-badges">
