@@ -1,31 +1,58 @@
-import { createMemo, createSignal, For, Show } from 'solid-js'
+import { createMemo, createSignal, For } from 'solid-js'
 import { ComputeGate, useComputeGate } from '@/contexts/ComputeGateContext'
 import { example1 } from '@/flame/examples/example1'
 import { example29 } from '@/flame/examples/example29'
 import { example33 } from '@/flame/examples/example33'
 import { example40 } from '@/flame/examples/example40'
 import { example45 } from '@/flame/examples/example45'
-import { Root } from '@/lib/Root'
 import { useIntersectionObserver } from '@/utils/useIntersectionObserver'
-import { variationSummary } from '../lib/flame'
-import FlameView from './FlameView'
+import { posterFor, variationSummary } from '../lib/flame'
 import OpenInApp from './OpenInApp'
+import PosterFlame from './PosterFlame'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 
 /**
  * Gallery grid as a single Solid island so every live preview shares one
  * <ComputeGate> (mirrors the editor's LoadFlameModal). Each plate renders the
- * app's real Flam3 on its own Root, mounted only once scrolled into view; flames
- * converge to a quality target then idle, so several coexist comfortably.
+ * app's real Flam3 via PosterFlame — a static poster shows until the live flame
+ * converges (and whenever WebGPU is unavailable / has failed); the live flame
+ * mounts only once scrolled into view and unmounts when scrolled away, so
+ * concurrent GPU contexts stay bounded.
  */
-type Plate = { flame: FlameDescriptor; cls: string; title: string }
+type Plate = {
+  flame: FlameDescriptor
+  /** Poster name under public/posters/ (see LANDING_FLAMES in lib/flame). */
+  poster: string
+  cls: string
+  title: string
+}
 
 const PLATES: Plate[] = [
-  { flame: example29, cls: 'wide span8', title: 'Aurora Drift' },
-  { flame: example1, cls: 'tall span4', title: 'First Light' },
-  { flame: example33, cls: 'span4', title: 'Ember Lattice' },
-  { flame: example40, cls: 'span4', title: 'Tidal Bloom' },
-  { flame: example45, cls: 'span4', title: 'Spectrum Swirl' },
+  {
+    flame: example29,
+    poster: 'example29',
+    cls: 'wide span8',
+    title: 'Aurora Drift',
+  },
+  {
+    flame: example1,
+    poster: 'example1',
+    cls: 'tall span4',
+    title: 'First Light',
+  },
+  {
+    flame: example33,
+    poster: 'example33',
+    cls: 'span4',
+    title: 'Ember Lattice',
+  },
+  { flame: example40, poster: 'example40', cls: 'span4', title: 'Tidal Bloom' },
+  {
+    flame: example45,
+    poster: 'example45',
+    cls: 'span4',
+    title: 'Spectrum Swirl',
+  },
 ]
 
 function PlatePreview(props: { plate: Plate }) {
@@ -40,8 +67,8 @@ function PlatePreview(props: { plate: Plate }) {
 
   // Render only while visible (or gate-allowed) and UNMOUNT when scrolled away,
   // so the number of concurrent live GPU flames stays bounded to a viewport —
-  // weak WebGPU impls (Firefox/Linux/AMD) OOM with many at once. Re-accumulates
-  // on re-entry, but the adaptive filter makes that quick.
+  // weak WebGPU impls (Firefox/Linux/AMD) OOM with many at once. The poster
+  // bridges the re-accumulation on re-entry (no blank flash).
   const [hovered, setHovered] = createSignal(false)
 
   return (
@@ -51,16 +78,15 @@ function PlatePreview(props: { plate: Plate }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <Show when={allowed() || isVisible()}>
-        <Root adapterOptions={{ powerPreference: 'high-performance' }}>
-          <FlameView
-            flame={props.plate.flame}
-            quality={hovered() ? 0.97 : 0.9}
-            pointCountPerBatch={196}
-            canvasClass="plate-canvas"
-          />
-        </Root>
-      </Show>
+      <PosterFlame
+        flame={props.plate.flame}
+        poster={posterFor(props.plate.poster)}
+        posterClass="plate-canvas"
+        inView={() => allowed() || isVisible()}
+        quality={hovered() ? 0.97 : 0.9}
+        pointCountPerBatch={196}
+        canvasClass="plate-canvas"
+      />
       <div class="meta">
         <div>
           <div class="t">

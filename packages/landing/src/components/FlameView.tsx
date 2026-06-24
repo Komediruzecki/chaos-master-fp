@@ -117,6 +117,12 @@ export type FlameViewProps = {
   outputAlpha?: boolean
   /** For interactive3D: idle auto-orbit on hover (pauses while dragging). */
   autoSpin?: boolean
+  /** Fixed canvas resolution (bypasses element-size autosizing). Used by the
+   *  poster-capture page to render at a high fixed size. */
+  fixedResolution?: { width: number; height: number }
+  /** Receives Flam3's live-quality getter — lets the poster-capture page wait
+   *  for full convergence before screenshotting. */
+  onQualityGetter?: (get: () => number) => void
 }
 
 export default function FlameView(props: FlameViewProps) {
@@ -180,7 +186,10 @@ export default function FlameView(props: FlameViewProps) {
       renderInterval={1}
       edgeFadeColor={vec4f(0)}
       outputAlpha={props.outputAlpha}
-      setCurrentQuality={(get) => setQuality(() => get)}
+      setCurrentQuality={(get) => {
+        setQuality(() => get)
+        props.onQualityGetter?.(get)
+      }}
     />
   )
 
@@ -189,6 +198,7 @@ export default function FlameView(props: FlameViewProps) {
       class={props.canvasClass ?? 'flame-gpu-canvas'}
       pixelRatio={props.pixelRatio ?? 1}
       alphaMode={props.alphaMode}
+      fixedResolution={props.fixedResolution}
     >
       <Show
         when={(props.flame.renderSettings.dimensions ?? 2) === 3}

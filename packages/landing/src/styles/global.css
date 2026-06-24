@@ -214,6 +214,30 @@ h2 {
   display: block;
 }
 
+/* Static poster behind a live flame (gallery plates + community cards). Rendered
+   in the DOM BEFORE the canvas, so the live canvas paints on top once ready; the
+   poster shows whenever the live render can't run (no WebGPU / GPU failure /
+   off-screen / not yet converged). PosterFlame toggles `.is-hidden` to fade it. */
+.flame-poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+  transition: opacity 0.8s ease;
+}
+.flame-poster.is-hidden {
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .flame-poster {
+    transition: none;
+  }
+}
+
 /* "Open in Chaos Master" button — rendered inside the flame islands (gallery
    plates + community cards), revealed on hover of the card/plate. */
 .open-in-app {
