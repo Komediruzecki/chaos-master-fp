@@ -466,8 +466,40 @@ h2 {
   font-size: 0.72rem;
   color: var(--neutral-400);
 }
-.ev-close {
+.ev-actions {
   flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ev-play {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 13px;
+  border-radius: var(--round);
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--neutral-200);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  cursor: pointer;
+  transition: 0.15s;
+}
+.ev-play svg {
+  width: 13px;
+  height: 13px;
+}
+.ev-play:hover {
+  color: #fff;
+  border-color: var(--blue-500);
+}
+.ev-play.playing {
+  color: var(--blue-300);
+  border-color: var(--blue-500);
+  background: rgba(37, 99, 235, 0.16);
+}
+.ev-close {
   display: inline-flex;
   width: 34px;
   height: 34px;
