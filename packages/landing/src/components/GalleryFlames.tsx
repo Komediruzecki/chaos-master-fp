@@ -84,6 +84,9 @@ function PlatePreview(props: { plate: Plate }) {
         setHovered(false)
         untiltPlate(e)
       }}
+      onContextMenu={(e) => {
+        e.preventDefault()
+      }}
     >
       <PosterFlame
         flame={flame()}

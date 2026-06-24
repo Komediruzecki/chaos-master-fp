@@ -196,9 +196,19 @@ export default function StudioDemo() {
   function startScrub(e: PointerEvent, tid: string, key: string) {
     if (animating()) return // panel is read-only while an animation plays
     e.preventDefault()
+    const el = e.currentTarget as HTMLElement
+    const { pointerId } = e
+    // Capture the pointer on the value itself, so the drag keeps receiving moves
+    // even when the finger leaves the element AND the browser can't reclaim the
+    // gesture as a page scroll mid-drag. Without this, Android fires a
+    // `pointercancel` the moment it decides you're panning and the scrub freezes
+    // (iOS happened to tolerate the window-listener approach; Android doesn't).
+    // Pairs with `touch-action: none` on .scrub.
+    el.setPointerCapture(pointerId)
     const startX = e.clientX
     const startV = (flame.transforms as never)[tid].preAffine[key] as number
     const onMove = (ev: PointerEvent) => {
+      if (ev.pointerId !== pointerId) return
       const next = +(startV + (ev.clientX - startX) * 0.004).toFixed(3)
       setFlame(
         'transforms',
@@ -208,16 +218,22 @@ export default function StudioDemo() {
         next as never,
       )
     }
-    const onUp = () => {
-      window.removeEventListener('pointermove', onMove)
-      window.removeEventListener('pointerup', onUp)
+    const onUp = (ev: PointerEvent) => {
+      if (ev.pointerId !== pointerId) return
+      el.removeEventListener('pointermove', onMove)
+      el.removeEventListener('pointerup', onUp)
+      el.removeEventListener('pointercancel', onUp)
+      if (el.hasPointerCapture(pointerId)) el.releasePointerCapture(pointerId)
       document.body.style.cursor = ''
       endScrub = undefined
     }
-    endScrub = onUp
+    endScrub = () => {
+      onUp(e)
+    }
     document.body.style.cursor = 'ew-resize'
-    window.addEventListener('pointermove', onMove)
-    window.addEventListener('pointerup', onUp)
+    el.addEventListener('pointermove', onMove)
+    el.addEventListener('pointerup', onUp)
+    el.addEventListener('pointercancel', onUp)
   }
 
   function reset() {

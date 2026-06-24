@@ -29,7 +29,13 @@ export default function OrbitFlame(props: { which: 'earth' | 'rose' }) {
   const [explore, setExplore] = createSignal(false)
 
   return (
-    <div class="orbit-mount" ref={setContainer}>
+    <div
+      class="orbit-mount"
+      ref={setContainer}
+      onContextMenu={(e) => {
+        e.preventDefault()
+      }}
+    >
       <PosterFlame
         flame={flame}
         poster={posterFor(props.which)}

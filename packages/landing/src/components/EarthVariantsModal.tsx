@@ -206,7 +206,9 @@ export default function EarthVariantsModal(props: {
                       />
                     </svg>
                   </Show>
-                  {playing() ? 'Pause' : 'Auto-play'}
+                  <span class="ev-play-label">
+                    {playing() ? 'Pause' : 'Auto-play'}
+                  </span>
                 </button>
                 <button
                   class="ev-close"
@@ -226,7 +228,12 @@ export default function EarthVariantsModal(props: {
               </div>
             </div>
 
-            <div class="ev-stage">
+            <div
+              class="ev-stage"
+              onContextMenu={(e) => {
+                e.preventDefault()
+              }}
+            >
               <PosterFlame
                 flame={flame}
                 poster={selected().poster}
