@@ -56,21 +56,51 @@ function AutoSpin3D(props: {
       running = false
       cancelAnimationFrame(raf)
     }
-    const onEnter = () => {
+    // Touch has no hover, so a quick still tap toggles a persistent spin
+    // instead; a drag is an orbit (handled by WheelZoomCamera3D) and a pinch is
+    // a zoom, so we only treat a short, motionless release as a tap.
+    let touchSpin = false
+    let downX = 0
+    let downY = 0
+    let downAt = 0
+    let downTouch = false
+    // Desktop: hover spins (mouse only — touch pointerenter/leave are ignored).
+    const onEnter = (e: PointerEvent) => {
+      if (e.pointerType !== 'mouse') return
       resumeAt = nowMs() + delay
       start()
     }
-    const onLeave = () => {
+    const onLeave = (e: PointerEvent) => {
+      if (e.pointerType !== 'mouse') return
       if (!props.always) stop()
     }
-    const onDown = () => {
-      dragging = true
+    const onDown = (e: PointerEvent) => {
+      dragging = true // pause spin while a tap/drag/pinch is in progress
+      downX = e.clientX
+      downY = e.clientY
+      downAt = nowMs()
+      downTouch = e.pointerType === 'touch'
     }
-    // pointerup OR pointercancel (touch / OS interrupt) ends the drag, so spin
-    // resumes — otherwise an interrupted drag would freeze it forever.
-    const onUp = () => {
+    // pointerup OR pointercancel (touch / OS interrupt) ends the drag.
+    const onUp = (e: PointerEvent) => {
       dragging = false
+      const tap =
+        downTouch &&
+        nowMs() - downAt < 300 &&
+        Math.hypot(e.clientX - downX, e.clientY - downY) < 8
+      if (tap && !props.always) {
+        touchSpin = !touchSpin // tap toggles the spin on touch
+        if (touchSpin) {
+          resumeAt = nowMs()
+          start()
+        } else {
+          stop()
+        }
+        return
+      }
+      // a drag (orbit) ended — resume spinning if it was on (hover handles mouse).
       resumeAt = nowMs() + delay
+      if (props.always || touchSpin) start()
     }
     canvas.addEventListener('pointerenter', onEnter)
     canvas.addEventListener('pointerleave', onLeave)
@@ -200,9 +230,16 @@ export default function FlameView(props: FlameViewProps) {
     />
   )
 
+  // `flame-orbit` sets touch-action:none so one-finger drag orbits and two-finger
+  // pinch zooms on touch (WheelZoomCamera3D's handlers) instead of the page
+  // scrolling/zooming. Only for interactive 3D — leave 2D / non-interactive
+  // canvases (hero, gallery plates) scrollable.
+  const canvasClass = () =>
+    `${props.canvasClass ?? 'flame-gpu-canvas'}${props.interactive3D ? ' flame-orbit' : ''}`
+
   return (
     <AutoCanvas
-      class={props.canvasClass ?? 'flame-gpu-canvas'}
+      class={canvasClass()}
       pixelRatio={props.pixelRatio ?? 1}
       alphaMode={props.alphaMode}
       fixedResolution={props.fixedResolution}

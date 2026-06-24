@@ -246,7 +246,9 @@ export default function EarthVariantsModal(props: {
                 alphaMode="premultiplied"
                 outputAlpha
               />
-              <span class="ev-stage-hint">drag to orbit · scroll to zoom</span>
+              <span class="ev-stage-hint">
+                drag to orbit · scroll / pinch to zoom
+              </span>
               <OpenInApp flame={selected().flame} />
             </div>
 
