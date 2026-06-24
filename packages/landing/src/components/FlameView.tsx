@@ -4,6 +4,7 @@ import { Flam3 } from '@/flame/Flam3'
 import { AutoCanvas } from '@/lib/AutoCanvas'
 import { Camera2D } from '@/lib/Camera2D'
 import { Default3DPreviewCamera } from '@/lib/Camera3D'
+import type { v2f } from 'typegpu/data'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 
 /**
@@ -20,9 +21,15 @@ export type FlameViewProps = {
   pixelRatio?: number
   canvasClass?: string
   onReady?: () => void
+  /** Reactive override for the 2D camera position — drives mouse parallax /
+   *  idle drift on the hero. Falls back to the flame's own camera. */
+  cameraPosition?: () => v2f
 }
 
 export default function FlameView(props: FlameViewProps) {
+  const cameraPosition = () =>
+    props.cameraPosition?.() ??
+    vec2f(...props.flame.renderSettings.camera.position)
   // Flam3 hands us a live-quality getter; poll it and fire onReady once the
   // flame is actually accumulating (used to cross-fade the hero poster out).
   const [quality, setQuality] = createSignal<(() => number) | undefined>()
@@ -65,7 +72,7 @@ export default function FlameView(props: FlameViewProps) {
         when={(props.flame.renderSettings.dimensions ?? 2) === 3}
         fallback={
           <Camera2D
-            position={vec2f(...props.flame.renderSettings.camera.position)}
+            position={cameraPosition()}
             zoom={props.flame.renderSettings.camera.zoom}
           >
             {flame()}
