@@ -4,6 +4,46 @@ import { fileURLToPath } from 'node:url'
 import typegpu from 'unplugin-typegpu/vite'
 import { qrcode } from 'vite-plugin-qrcode'
 
+// Dev-only: receive console logs POSTed by devices (phones/tablets that have no
+// usable console) and print them in THIS terminal. Pairs with the client-side
+// console interceptor in Base.astro, gated by PUBLIC_REMOTE_LOG. Serve-only, so
+// it never ships to production.
+function remoteLogPlugin() {
+  const colors = {
+    error: '\x1b[31m',
+    warn: '\x1b[33m',
+    info: '\x1b[36m',
+    log: '\x1b[90m',
+  }
+  return {
+    name: 'landing-remote-log',
+    apply: 'serve',
+    configureServer(server) {
+      server.middlewares.use('/__client-log', (req, res, next) => {
+        if (req.method !== 'POST') return next()
+        let body = ''
+        req.on('data', (chunk) => {
+          body += chunk
+        })
+        req.on('end', () => {
+          try {
+            const { level, args } = JSON.parse(body)
+            const color = colors[level] ?? ''
+            console.log(
+              `${color}[device:${level}]\x1b[0m`,
+              ...(Array.isArray(args) ? args : [args]),
+            )
+          } catch {
+            // ignore malformed payloads
+          }
+          res.statusCode = 204
+          res.end()
+        })
+      })
+    },
+  }
+}
+
 // The live GPU flame islands import the real renderer out of `packages/app`
 // (Root / AutoCanvas / Camera2D / Flam3). Those modules use the app's own `@/`
 // alias and are transformed at build time by `unplugin-typegpu` + the Solid
@@ -30,7 +70,7 @@ export default defineConfig({
   },
   integrations: [solid()],
   vite: {
-    plugins: [typegpu({}), qrcode()],
+    plugins: [typegpu({}), qrcode(), remoteLogPlugin()],
     resolve: {
       // Array form so the specific stub entries win over the general `@` prefix
       // (first match wins). `@` only matches `@/…`, never `@typegpu/*` etc.
