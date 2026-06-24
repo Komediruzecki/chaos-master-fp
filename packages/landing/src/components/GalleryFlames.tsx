@@ -29,16 +29,16 @@ type Plate = {
 
 const PLATES: Plate[] = [
   {
-    flame: example29,
-    poster: 'example29',
-    cls: 'wide span8',
-    title: 'Aurora Drift',
-  },
-  {
     flame: example1,
     poster: 'example1',
-    cls: 'tall span4',
+    cls: 'wide span8',
     title: 'First Light',
+  },
+  {
+    flame: example29,
+    poster: 'example29',
+    cls: 'tall span4',
+    title: 'Aurora Drift',
   },
   {
     flame: example33,
