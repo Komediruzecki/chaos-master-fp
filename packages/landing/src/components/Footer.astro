@@ -1,9 +1,12 @@
 ---
 const appUrl = 'https://chaos-master.com'
 const repoUrl = 'https://github.com/chaos-matters/chaos-master'
-// TODO: replace with the real Discord invite + Ko-fi once confirmed (placeholders
-// carried over from the design handoff).
-const discordUrl = 'https://discord.gg/chaosmatters'
+// Discord: hit the app worker's /discord redirect (302 → DISCORD_INVITE_URL
+// secret, rotatable via `wrangler secret put`) instead of baking the raw invite
+// into the static bundle — same architecture the app uses. The landing is
+// static-only, so we point at the app domain that owns the worker.
+const discordUrl = `${appUrl}/discord`
+// TODO: confirm the real Ko-fi handle.
 const supportUrl = 'https://ko-fi.com/chaosmatters'
 const year = new Date().getFullYear()
 ---

@@ -1,8 +1,11 @@
 ---
 import CommunityFlame from './CommunityFlame.tsx'
+const appUrl = 'https://chaos-master.com'
 const repoUrl = 'https://github.com/chaos-matters/chaos-master'
-// TODO: confirm the real Discord invite + Ko-fi (placeholders from the handoff).
-const discordUrl = 'https://discord.gg/chaosmatters'
+// Discord via the app worker's /discord redirect (invite stays a rotatable
+// worker secret, never in the static bundle) — same architecture as the app.
+const discordUrl = `${appUrl}/discord`
+// TODO: confirm the real Ko-fi handle.
 const supportUrl = 'https://ko-fi.com/chaosmatters'
 ---
 
