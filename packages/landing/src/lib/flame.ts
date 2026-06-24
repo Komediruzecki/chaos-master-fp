@@ -1,3 +1,4 @@
+import { produce } from 'structurajs'
 import { example1 } from '@/flame/examples/example1'
 import { example29 } from '@/flame/examples/example29'
 import { example33 } from '@/flame/examples/example33'
@@ -11,19 +12,120 @@ import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 export const APP_URL = 'https://chaos-master.com'
 
 /**
+ * A landing-only override layered on top of an app example WITHOUT forking it —
+ * supply only the props that differ (render settings, a final transform, metadata)
+ * and {@link overrideFlame} merges them onto a clone of the original. Keeps the
+ * shared `packages/app` example spec untouched while letting the landing tune
+ * exposure / camera / etc. per surface.
+ */
+export type FlameOverride = {
+  renderSettings?: Partial<FlameDescriptor['renderSettings']>
+  finalTransform?: FlameDescriptor['finalTransform']
+  metadata?: Partial<NonNullable<FlameDescriptor['metadata']>>
+}
+
+/** Merge an {@link FlameOverride} onto `base`, returning a new flame. Uses the
+ *  app's immutable-edit idiom (`produce` from structurajs — works on the frozen
+ *  example specs; no `unfreeze` needed since the landing only reads the result).
+ *  `renderSettings` merges shallowly except `camera`/`camera3D`, which deep-merge
+ *  so you can override a single field (e.g. just `camera3D.radius`). */
+export function overrideFlame(
+  base: FlameDescriptor,
+  o: FlameOverride,
+): FlameDescriptor {
+  return produce(base, (draft) => {
+    if (o.renderSettings) {
+      const { camera, camera3D, ...rest } = o.renderSettings
+      Object.assign(draft.renderSettings, rest)
+      if (camera) Object.assign(draft.renderSettings.camera, camera)
+      if (camera3D) Object.assign(draft.renderSettings.camera3D, camera3D)
+    }
+    if (o.finalTransform !== undefined) draft.finalTransform = o.finalTransform
+    if (o.metadata) Object.assign(draft.metadata, o.metadata)
+  })
+}
+
+/**
  * Landing render of the Enchanted Rose (example44) at high density-estimation
  * quality. The shared app example uses 0.6, which converges slowly / blurs during
  * movement; bump it here (landing-only) so it's crisp immediately like the earth.
- * Exported so the community card AND its poster render the exact same flame.
  */
-export const ROSE_LANDING: FlameDescriptor = {
-  ...example44,
+export const ROSE_LANDING: FlameDescriptor = overrideFlame(example44, {
+  renderSettings: { densityEstimationQuality: 1, estimatorCurve: 0.85 },
+})
+
+/**
+ * Landing render of the Nautilus Shell (example40) — user-tuned exposure /
+ * grade / camera framing + a final transform, layered on the app example.
+ */
+export const NAUTILUS_LANDING: FlameDescriptor = overrideFlame(example40, {
   renderSettings: {
-    ...example44.renderSettings,
+    exposure: -4.333,
+    skipIters: 30,
+    plotsPerChain: 16,
+    autoExposure3D: false,
+    autoExposure3DStrength: 1,
+    autoExposure3DRefRadius: 1.2940127090119309,
+    autoExposure3DBase: -2.832,
+    vibrancy: 0.9,
+    contrast: 2.65,
+    gamma: 4.38,
+    depthColorPower: 0.3,
+    lightPower: 0.09,
     densityEstimationQuality: 1,
-    estimatorCurve: 0.85,
+    estimatorCurve: 0.1,
+    camera: { zoom: 1, position: [0, 0], rotation: 0 },
+    camera3D: {
+      theta: 2.460917968749997,
+      phi: 1.4938085937500014,
+      radius: 0.8691350274605435,
+      target: [0, 0, 0],
+      fov: 55,
+      roll: 0,
+    },
   },
-}
+  finalTransform: {
+    a: 1,
+    b: 0,
+    c: 0,
+    d: -0.3656628131866455,
+    e: 0,
+    f: 1,
+    g: 0,
+    h: 0.05329771339893341,
+    i: 0,
+    j: 0,
+    k: 1,
+    l: 0,
+  },
+})
+
+/**
+ * Landing render of 3D Shells (example33) — user-tuned exposure / lighting +
+ * a camera3D framing (the app example defines no camera3D), layered on top.
+ */
+export const SHELLS_LANDING: FlameDescriptor = overrideFlame(example33, {
+  renderSettings: {
+    exposure: -3.392,
+    plotsPerChain: 16,
+    autoExposure3D: false,
+    autoExposure3DStrength: 1,
+    autoExposure3DRefRadius: 5,
+    autoExposure3DBase: 0,
+    depthColorPower: 0,
+    lightDirection: [-0.5, 0.5, -1],
+    lightPower: 0,
+    camera: { zoom: 1, position: [0, 0], rotation: 0 },
+    camera3D: {
+      theta: 2.6914843750000004,
+      phi: 1.3482572642948953,
+      radius: 4.928000000000001,
+      target: [0, 0, 0],
+      fov: 60,
+      roll: 0,
+    },
+  },
+})
 
 /** Static-poster path for a named landing flame (see `public/posters/`). */
 export function posterFor(name: string): string {
@@ -70,8 +172,8 @@ export function applyFlameRecipe(
 export const LANDING_FLAMES = {
   example1,
   example29,
-  example33,
-  example40,
+  example33: SHELLS_LANDING,
+  example40: NAUTILUS_LANDING,
   example45,
   rose: ROSE_LANDING,
   earth: example46,
