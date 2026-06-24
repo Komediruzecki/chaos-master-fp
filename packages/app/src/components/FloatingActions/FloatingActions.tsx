@@ -30,6 +30,10 @@ type Props = {
   setDimensions: (v: number) => void
   flyMode: () => boolean
   setFlyMode: (v: boolean) => void
+  // Sidebar show/hide (mirrors the 'F' shortcut) — so it's controllable without
+  // a keyboard.
+  sidebarOpen: () => boolean
+  onToggleSidebar: () => void
   isPlaying: () => boolean
   togglePlay: () => void
   // Quality presets
@@ -589,6 +593,33 @@ export function FloatingActions(props: Props) {
                   fill="currentColor"
                   stroke="none"
                 />
+              </svg>
+            </button>
+
+            <div class={ui.toggleSeparator} />
+
+            {/* Show / Hide Sidebar (mirrors the 'F' shortcut) */}
+            <button
+              class={ui.toggle}
+              classList={{ [ui.toggleActive as string]: props.sidebarOpen() }}
+              onClick={props.onToggleSidebar}
+              title={
+                props.sidebarOpen() ? 'Hide sidebar (F)' : 'Show sidebar (F)'
+              }
+            >
+              {/* Sidebar panel icon — a panel with a left rail. */}
+              <svg
+                viewBox="0 0 16 16"
+                width="13"
+                height="13"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.3"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="2" y="2.5" width="12" height="11" rx="1.5" />
+                <line x1="6.2" y1="2.5" x2="6.2" y2="13.5" />
               </svg>
             </button>
           </div>

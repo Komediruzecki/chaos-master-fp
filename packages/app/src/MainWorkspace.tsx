@@ -4800,6 +4800,17 @@ export function MainWorkspace(props: AppProps) {
                 )
               }
             }}
+            sidebarOpen={showSidebar}
+            onToggleSidebar={() => {
+              // Same as the 'F' shortcut, so it works without a keyboard.
+              if ('startViewTransition' in document) {
+                document.startViewTransition(() => {
+                  setShowSidebar((p) => !p)
+                })
+              } else {
+                setShowSidebar((p) => !p)
+              }
+            }}
           />
           <SpotlightTour tourContext={tourContext} />
           <BenchmarkButton
