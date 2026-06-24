@@ -240,6 +240,13 @@ h2 {
 .flame-poster.is-hidden {
   opacity: 0;
 }
+/* Converged → frozen: the live canvas unmounts and this poster (the same image)
+   takes over. Snap to fully visible with no fade so there's no flash as the
+   canvas disappears. */
+.flame-poster.is-frozen {
+  opacity: 1;
+  transition: none;
+}
 @media (prefers-reduced-motion: reduce) {
   .flame-poster {
     transition: none;
