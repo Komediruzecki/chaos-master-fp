@@ -1,5 +1,5 @@
 import { createEffect, createMemo, createSignal, Show, splitProps, } from 'solid-js'
-import { webgpuLive } from '../lib/webgpuHealth'
+import { markLiveRender, webgpuLive } from '../lib/webgpuHealth'
 import FlameStage from './FlameStage'
 import type { FlameViewProps } from './FlameView'
 
@@ -55,6 +55,7 @@ export default function PosterFlame(props: PosterFlameProps) {
         <FlameStage
           {...viewProps}
           onReady={() => {
+            markLiveRender()
             setReady(true)
             local.onReady?.()
           }}

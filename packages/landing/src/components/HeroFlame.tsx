@@ -1,6 +1,6 @@
 import { createEffect, createSignal, Show } from 'solid-js'
 import { example45 } from '@/flame/examples/example45'
-import { webgpuLive } from '../lib/webgpuHealth'
+import { markLiveRender, webgpuLive } from '../lib/webgpuHealth'
 import FlameStage from './FlameStage'
 import { createFlameParallax } from './useFlameParallax'
 
@@ -36,7 +36,10 @@ export default function HeroFlame() {
         pointCountPerBatch={256}
         canvasClass="hero-gpu-canvas"
         cameraPosition={cameraPosition}
-        onReady={() => setReady(true)}
+        onReady={() => {
+          markLiveRender()
+          setReady(true)
+        }}
       />
     </Show>
   )

@@ -37,6 +37,30 @@ export function reportGpuFailure(reason: string): void {
   setHealthy(false)
 }
 
+let renderLogged = false
+/** One-time diagnostic: confirms a live flame is actually accumulating (so the
+ *  static images you see ARE the real renderer, not posters). */
+export function markLiveRender(): void {
+  if (renderLogged) return
+  renderLogged = true
+  console.info(
+    '[landing][diag] live WebGPU render confirmed — a flame is accumulating',
+  )
+}
+
+// One-time support diagnostic on the client, so device testing can tell whether
+// posters are showing because WebGPU is simply unavailable (no errors in that
+// case — it's a silent, graceful fallback).
+if (typeof globalThis.navigator !== 'undefined') {
+  console.info(
+    `[landing][diag] WebGPU navigator.gpu = ${webgpuSupported()}${
+      webgpuSupported()
+        ? ' (supported — live flames should render)'
+        : ' (NOT available → static posters only; on iOS enable Settings → Safari → Advanced → Feature Flags → WebGPU, or update to iOS 18+)'
+    }`,
+  )
+}
+
 const watched = new WeakSet<GPUDevice>()
 /**
  * Attach failure listeners to a device once (it's a cached singleton shared
