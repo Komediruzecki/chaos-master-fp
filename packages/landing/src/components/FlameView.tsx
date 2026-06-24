@@ -64,6 +64,7 @@ function AutoSpin3D(props: {
     let downY = 0
     let downAt = 0
     let downTouch = false
+    let downOnCanvas = false
     // Desktop: hover spins (mouse only — touch pointerenter/leave are ignored).
     const onEnter = (e: PointerEvent) => {
       if (e.pointerType !== 'mouse') return
@@ -74,15 +75,23 @@ function AutoSpin3D(props: {
       if (e.pointerType !== 'mouse') return
       if (!props.always) stop()
     }
+    // Capture phase: record BEFORE WheelZoomCamera3D's drag handler runs (it
+    // stopImmediatePropagation's pointerdown/up, which would otherwise swallow
+    // these listeners and break the tap-to-toggle).
     const onDown = (e: PointerEvent) => {
       dragging = true // pause spin while a tap/drag/pinch is in progress
       downX = e.clientX
       downY = e.clientY
       downAt = nowMs()
       downTouch = e.pointerType === 'touch'
+      downOnCanvas = true
     }
-    // pointerup OR pointercancel (touch / OS interrupt) ends the drag.
+    // pointerup OR pointercancel (touch / OS interrupt) ends the drag. Listens on
+    // window in capture phase so it runs before the camera handler's document
+    // pointerup (which stops propagation); the flag filters unrelated pointerups.
     const onUp = (e: PointerEvent) => {
+      if (!downOnCanvas) return
+      downOnCanvas = false
       dragging = false
       const tap =
         downTouch &&
@@ -104,16 +113,16 @@ function AutoSpin3D(props: {
     }
     canvas.addEventListener('pointerenter', onEnter)
     canvas.addEventListener('pointerleave', onLeave)
-    canvas.addEventListener('pointerdown', onDown)
-    canvas.addEventListener('pointercancel', onUp)
-    window.addEventListener('pointerup', onUp)
+    canvas.addEventListener('pointerdown', onDown, true)
+    canvas.addEventListener('pointercancel', onUp, true)
+    window.addEventListener('pointerup', onUp, true)
     if (props.always) start() // spin from mount, independent of hover
     onCleanup(() => {
       canvas.removeEventListener('pointerenter', onEnter)
       canvas.removeEventListener('pointerleave', onLeave)
-      canvas.removeEventListener('pointerdown', onDown)
-      canvas.removeEventListener('pointercancel', onUp)
-      window.removeEventListener('pointerup', onUp)
+      canvas.removeEventListener('pointerdown', onDown, true)
+      canvas.removeEventListener('pointercancel', onUp, true)
+      window.removeEventListener('pointerup', onUp, true)
       cancelAnimationFrame(raf)
     })
   })
