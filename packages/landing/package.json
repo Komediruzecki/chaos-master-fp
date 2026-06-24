@@ -29,6 +29,7 @@
   },
   "devDependencies": {
     "@webgpu/types": "^0.1.69",
-    "unplugin-typegpu": "^0.10.0"
+    "unplugin-typegpu": "^0.10.0",
+    "wrangler": "^4.103.0"
   }
 }
