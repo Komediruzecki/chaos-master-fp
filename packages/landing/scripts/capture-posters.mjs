@@ -66,7 +66,13 @@ const browser = await chromium.launch({
   headless: false,
   args: ['--enable-unsafe-webgpu', '--enable-features=Vulkan'],
 })
-const page = await browser.newPage({ viewport: { width: SIZE, height: SIZE } })
+// ignoreHTTPSErrors: the dev server runs over HTTPS (basic-ssl) with a
+// self-signed cert; without this Playwright refuses to load the capture page.
+const context = await browser.newContext({
+  viewport: { width: SIZE, height: SIZE },
+  ignoreHTTPSErrors: true,
+})
+const page = await context.newPage()
 page.on('console', (m) => {
   const t = m.text()
   if (t.includes('error') || t.includes('Error') || t.includes('WebGPU')) {
