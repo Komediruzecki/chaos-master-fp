@@ -3,10 +3,14 @@ import { createSignal } from 'solid-js'
 /**
  * Page-wide "is WebGPU healthy?" signal, shared across every Solid island (they
  * all import this one module instance from the bundle, so the signal is global
- * to the page). Live flames read `webgpuLive()`; on the first GPU failure
- * (out-of-memory uncapturederror, device loss) the whole page latches to its
- * static posters instead of leaving blank/black canvases — the "live by default,
- * poster on failure" behaviour.
+ * to the page). Live flames read `webgpuLive()`; only a genuine **device loss**
+ * (the GPU device is actually gone, so every flame is dead anyway) latches the
+ * whole page to its static posters — the "live by default, poster on failure"
+ * behaviour.
+ *
+ * NB: a single `uncapturederror` does NOT trigger the fallback. It's far too
+ * broad a signal — one transient/recoverable error from one flame (common on
+ * mobile GPUs under load) would otherwise freeze EVERY flame on the page.
  */
 const [healthy, setHealthy] = createSignal(true)
 
@@ -35,15 +39,20 @@ export function reportGpuFailure(reason: string): void {
 
 const watched = new WeakSet<GPUDevice>()
 /**
- * Attach failure listeners to a device once. The device is a cached singleton
- * shared across all Roots, so this no-ops after the first call. An OOM surfaces
- * as an `uncapturederror`; a driver/GPU reset surfaces via `device.lost`.
+ * Attach failure listeners to a device once (it's a cached singleton shared
+ * across all Roots, so this no-ops after the first call). Uncaptured errors are
+ * only LOGGED — they must not kill live rendering for the whole page. The poster
+ * fallback fires solely on a real device loss (driver reset / fatal OOM), where
+ * all GPU work is dead regardless.
  */
 export function watchDevice(device: GPUDevice): void {
   if (watched.has(device)) return
   watched.add(device)
   device.addEventListener('uncapturederror', (e) => {
-    reportGpuFailure((e as GPUUncapturedErrorEvent).error.message)
+    console.warn(
+      '[landing] WebGPU uncaptured error (rendering continues):',
+      (e as GPUUncapturedErrorEvent).error.message,
+    )
   })
   device.lost
     .then((info) => {
