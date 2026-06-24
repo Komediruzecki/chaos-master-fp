@@ -1,4 +1,4 @@
-import { example36 } from '@/flame/examples/example36'
+import { example46 } from '@/flame/examples/example46'
 import FlameStage from './FlameStage'
 
 /**
@@ -10,7 +10,7 @@ import FlameStage from './FlameStage'
 export default function CommunityFlame() {
   return (
     <FlameStage
-      flame={example36}
+      flame={example46}
       quality={0.9}
       pointCountPerBatch={160}
       canvasClass="plate-canvas"
