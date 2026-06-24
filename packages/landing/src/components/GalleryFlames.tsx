@@ -96,7 +96,16 @@ function PlatePreview(props: { plate: Plate }) {
         poster={posterFor(props.plate.name)}
         posterClass="plate-canvas"
         inView={() => allowed() || isVisible()}
-        quality={hovered() ? PREVIEW_QUALITY : PREVIEW_QUALITY_IDLE}
+        quality={
+          props.plate.spin
+            ? hovered()
+              ? PREVIEW_QUALITY
+              : PREVIEW_QUALITY_IDLE
+            : PREVIEW_QUALITY
+        }
+        // Still plates: once converged, drop the live canvas and keep the poster
+        // (same image, zero ongoing GPU). The spinnable plate stays live.
+        freezeWhenConverged={!props.plate.spin}
         canvasClass="plate-canvas"
         interactive3D={props.plate.spin}
         autoSpin={props.plate.spin}

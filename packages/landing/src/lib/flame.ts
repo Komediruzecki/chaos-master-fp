@@ -146,9 +146,6 @@ export const PREVIEW_QUALITY_IDLE = 0.97
 export const POINT_BUDGET_MOBILE = 1e5
 /** Per-flame point budget for the desktop / high tier (the app's value). */
 export const POINT_BUDGET_DESKTOP = 1e6
-/** A touch device whose smaller screen dimension is below this (px) counts as the
- *  mobile (low) tier. */
-const MOBILE_SCREEN_MAX_PX = 820
 
 let cachedBudget: number | undefined
 /**
@@ -165,14 +162,11 @@ let cachedBudget: number | undefined
  */
 export function devicePointBudget(): number {
   if (cachedBudget !== undefined) return cachedBudget
-  const nav = globalThis.navigator
-  const touch = (nav?.maxTouchPoints ?? 0) > 0
-  const minDim = Math.min(
-    globalThis.screen?.width ?? 9999,
-    globalThis.screen?.height ?? 9999,
-  )
-  const mobile = touch && minDim < MOBILE_SCREEN_MAX_PX
-  cachedBudget = mobile ? POINT_BUDGET_MOBILE : POINT_BUDGET_DESKTOP
+  // Tier on TOUCH, not screen size: a big tablet reports a desktop-sized screen
+  // but has a mobile-class GPU, so ANY touch device gets the mobile budget; only a
+  // no-touch device gets the desktop budget.
+  const touch = (globalThis.navigator?.maxTouchPoints ?? 0) > 0
+  cachedBudget = touch ? POINT_BUDGET_MOBILE : POINT_BUDGET_DESKTOP
   return cachedBudget
 }
 

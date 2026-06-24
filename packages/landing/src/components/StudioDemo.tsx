@@ -1,4 +1,4 @@
-import { createSignal, For, onCleanup, Show } from 'solid-js'
+import { createSignal, For, onCleanup, onMount, Show } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { example45 } from '@/flame/examples/example45'
 import { createDragHandler } from '@/utils/createDragHandler'
@@ -90,6 +90,25 @@ export default function StudioDemo() {
     structuredClone(example45),
   )
   const [animating, setAnimating] = createSignal(false)
+
+  // Don't run the live viewport while the Studio is scrolled out of view (the
+  // poster shows instead); it's interactive, so no freeze — just gate.
+  const [inView, setInView] = createSignal(true)
+  let viewportRef: HTMLDivElement | undefined
+  onMount(() => {
+    const el = viewportRef
+    if (!el) return
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) setInView(e.isIntersecting)
+      },
+      { rootMargin: '200px' },
+    )
+    io.observe(el)
+    onCleanup(() => {
+      io.disconnect()
+    })
+  })
 
   const tids = Object.keys(example45.transforms)
   const total = tids.reduce(
@@ -216,11 +235,12 @@ export default function StudioDemo() {
 
   return (
     <div class="studio-stage">
-      <div class="studio-viewport">
+      <div class="studio-viewport" ref={viewportRef}>
         <PosterFlame
           flame={flame}
           poster={posterFor('example45')}
           posterClass="plate-canvas"
+          inView={inView}
           quality={PREVIEW_QUALITY}
           canvasClass="plate-canvas"
           interactive2D

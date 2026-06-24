@@ -1,4 +1,4 @@
-import { createEffect, createSignal, Show } from 'solid-js'
+import { createEffect, createSignal, onCleanup, onMount, Show } from 'solid-js'
 import { example45 } from '@/flame/examples/example45'
 import { PREVIEW_QUALITY } from '../lib/flame'
 import { markLiveRender, webgpuLive } from '../lib/webgpuHealth'
@@ -22,15 +22,33 @@ export default function HeroFlame() {
   })
 
   const [ready, setReady] = createSignal(false)
+  // Don't render the hero flame while it's scrolled out of view (the static
+  // hero-flame.jpg poster behind it shows instead).
+  const [inView, setInView] = createSignal(true)
+  onMount(() => {
+    const hero = document.querySelector('.hero')
+    if (!hero) return
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) setInView(e.isIntersecting)
+      },
+      { rootMargin: '200px' },
+    )
+    io.observe(hero)
+    onCleanup(() => {
+      io.disconnect()
+    })
+  })
+
   // Only hide the poster while the live flame is actually running AND converged;
-  // a GPU failure flips webgpuLive() false → poster fades back in.
+  // a GPU failure / scroll-away flips this false → poster shows.
   createEffect(() => {
-    const show = webgpuLive() && ready()
+    const show = webgpuLive() && inView() && ready()
     document.querySelector('.hero')?.classList.toggle('is-gpu-ready', show)
   })
 
   return (
-    <Show when={webgpuLive()}>
+    <Show when={webgpuLive() && inView()}>
       <FlameStage
         flame={example45}
         quality={PREVIEW_QUALITY}
