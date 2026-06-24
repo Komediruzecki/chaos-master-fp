@@ -2,6 +2,7 @@ import solid from '@astrojs/solid-js'
 import { defineConfig } from 'astro/config'
 import { fileURLToPath } from 'node:url'
 import typegpu from 'unplugin-typegpu/vite'
+import { qrcode } from 'vite-plugin-qrcode'
 
 // The live GPU flame islands import the real renderer out of `packages/app`
 // (Root / AutoCanvas / Camera2D / Flam3). Those modules use the app's own `@/`
@@ -21,9 +22,15 @@ export default defineConfig({
   build: {
     format: 'directory',
   },
+  // Expose the dev server on the LAN so phones/tablets can reach it; the qrcode
+  // Vite plugin then prints a scannable QR of the Network URL on `pnpm start`
+  // (same setup as the chaos-master app).
+  server: {
+    host: true,
+  },
   integrations: [solid()],
   vite: {
-    plugins: [typegpu({})],
+    plugins: [typegpu({}), qrcode()],
     resolve: {
       // Array form so the specific stub entries win over the general `@` prefix
       // (first match wins). `@` only matches `@/…`, never `@typegpu/*` etc.
