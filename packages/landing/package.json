@@ -30,6 +30,7 @@
   "devDependencies": {
     "@webgpu/types": "^0.1.69",
     "unplugin-typegpu": "^0.10.0",
+    "vite-plugin-qrcode": "^0.4.1",
     "wrangler": "^4.103.0"
   }
 }
