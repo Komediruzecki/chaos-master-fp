@@ -134,6 +134,14 @@ export default function StudioDemo() {
     const startX = initEvent.clientX
     const startV = (flame.transforms as never)[tid].preAffine[key] as number
     document.body.style.cursor = 'ew-resize'
+    // Android reclaims the touch as a page scroll and fires pointercancel
+    // mid-drag (freezing the scrub) — `touch-action: none` alone isn't reliable
+    // on a small inline target. preventDefault every touchmove for the duration
+    // of the drag so the gesture stays ours. Removed in onDone.
+    const blockScroll = (e: TouchEvent) => {
+      e.preventDefault()
+    }
+    document.addEventListener('touchmove', blockScroll, { passive: false })
     return {
       onPointerMove(ev) {
         const next = +(startV + (ev.clientX - startX) * 0.004).toFixed(3)
@@ -146,6 +154,7 @@ export default function StudioDemo() {
         )
       },
       onDone() {
+        document.removeEventListener('touchmove', blockScroll)
         document.body.style.cursor = ''
       },
     }

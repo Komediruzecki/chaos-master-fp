@@ -48,8 +48,8 @@ const remoteLog =
             function send(level, args) {
               try {
                 var payload = JSON.stringify({ level: level, args: [].map.call(args, ser) });
-                if (navigator.sendBeacon) navigator.sendBeacon(ENDPOINT, payload);
-                else fetch(ENDPOINT, { method: 'POST', body: payload, keepalive: true });
+                var ok = navigator.sendBeacon && navigator.sendBeacon(ENDPOINT, payload);
+                if (!ok) fetch(ENDPOINT, { method: 'POST', body: payload, keepalive: true }).catch(function () {});
               } catch (e) {}
             }
             ['log', 'info', 'warn', 'error'].forEach(function (lvl) {
