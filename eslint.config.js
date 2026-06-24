@@ -305,4 +305,20 @@ export default defineConfig(
       ],
     },
   },
+  {
+    // Node dev/build scripts (e.g. the Playwright poster-capture tool). Allow the
+    // Node globals plus the browser globals referenced inside page.evaluate /
+    // waitForFunction callbacks, and unrestricted console output.
+    files: ['packages/*/scripts/**/*.mjs'],
+    languageOptions: {
+      globals: {
+        process: 'readonly',
+        console: 'readonly',
+        window: 'readonly',
+      },
+    },
+    rules: {
+      'no-console': 'off',
+    },
+  },
 )

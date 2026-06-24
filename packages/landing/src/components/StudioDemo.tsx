@@ -1,9 +1,8 @@
 import { createSignal, For, onCleanup, onMount } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { example45 } from '@/flame/examples/example45'
-import { Root } from '@/lib/Root'
-import { prettyVariation } from '../lib/flame'
-import FlameView from './FlameView'
+import { posterFor, prettyVariation } from '../lib/flame'
+import PosterFlame from './PosterFlame'
 import { createFlameParallax } from './useFlameParallax'
 
 /**
@@ -101,16 +100,16 @@ export default function StudioDemo() {
   return (
     <div class="studio-stage">
       <div class="studio-viewport" ref={viewport}>
-        <Root adapterOptions={{ powerPreference: 'high-performance' }}>
-          <FlameView
-            flame={flame}
-            quality={0.97}
-            pointCountPerBatch={256}
-            canvasClass="plate-canvas"
-            cameraPosition={cameraPosition}
-            cameraZoom={zoom}
-          />
-        </Root>
+        <PosterFlame
+          flame={flame}
+          poster={posterFor('example45')}
+          posterClass="plate-canvas"
+          quality={0.97}
+          pointCountPerBatch={256}
+          canvasClass="plate-canvas"
+          cameraPosition={cameraPosition}
+          cameraZoom={zoom}
+        />
         <span class="corner c1" />
         <span class="corner c2" />
         <span class="corner c3" />
