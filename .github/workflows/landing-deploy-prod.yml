@@ -29,7 +29,9 @@ jobs:
           cache: 'pnpm'
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Build + deploy (prod)
+      - name: Build landing (static assets → dist/)
+        run: pnpm --filter @chaos-master/landing run build
+      - name: Deploy (prod)
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
