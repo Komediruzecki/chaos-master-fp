@@ -599,9 +599,32 @@ h2 {
   .ev-thumbs {
     grid-template-columns: repeat(3, 1fr);
   }
+  /* Collapse Auto-play to an icon-only button so it always fits the top-right. */
+  .ev-play-label {
+    display: none;
+  }
+  .ev-play {
+    padding: 8px;
+  }
+  .ev-title {
+    font-size: 1.15rem;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .ev-backdrop {
     animation: none;
   }
+}
+
+/* Touch: stop long-press from selecting / opening the OS context menu over the
+   flame previews (gallery plates, community cards, modal stage + thumbnails) —
+   a long-press there should do nothing, not pop "save image". Paired with
+   onContextMenu preventDefault on the same containers. */
+.plate,
+.orbit-card,
+.ev-stage,
+.ev-thumb {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
