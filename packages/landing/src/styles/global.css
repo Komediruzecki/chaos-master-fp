@@ -132,14 +132,22 @@ h2 {
     box-shadow 0.15s ease;
 }
 
+/* Primary CTA: a frosted blue-tinted glass rather than a solid vivid-blue block,
+   so it reads as the accent action without the harsh contrast — the art stays the
+   loudest thing on the page. The blue tint + border keep it distinct from the
+   neutral ghost button. */
 .btn-primary {
-  background: var(--blue-600);
   color: #fff;
-  box-shadow: 0 8px 30px rgba(37, 99, 235, 0.35);
+  background: rgba(59, 130, 246, 0.16);
+  border-color: rgba(96, 165, 250, 0.42);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.3);
 }
 
 .btn-primary:hover {
-  background: var(--blue-500);
+  background: rgba(59, 130, 246, 0.26);
+  border-color: rgba(96, 165, 250, 0.7);
   transform: translateY(-2px);
 }
 

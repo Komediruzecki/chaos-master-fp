@@ -20,7 +20,6 @@ const repoUrl = 'https://github.com/chaos-matters/chaos-master'
     <HeroFlame client:only="solid-js" />
   </div>
   <div class="hero-content">
-    <p class="eyebrow">WebGPU · Real-time · In your browser</p>
     <h1>Paint with<br /><em>infinite chaos.</em></h1>
     <p class="lede">
       Chaos Master is a GPU-accelerated IFS flame fractal generator for artists
@@ -31,6 +30,11 @@ const repoUrl = 'https://github.com/chaos-matters/chaos-master'
       <a class="btn btn-primary" href={appUrl}>Launch Chaos Master →</a>
       <a class="btn btn-ghost" href={repoUrl}>View on GitHub</a>
     </div>
+    <ul class="hero-badges">
+      <li>WebGPU</li>
+      <li>Real-time</li>
+      <li>In your browser</li>
+    </ul>
     <p class="note">
       Move your cursor over the flame. Requires a WebGPU browser — Chrome / Edge
       113+, Safari 17+.
@@ -121,12 +125,41 @@ const repoUrl = 'https://github.com/chaos-matters/chaos-master'
   .hero-content a {
     pointer-events: auto;
   }
-  .eyebrow {
+  /* Feature badges, moved below the CTA: real pills with a translucent, blurred
+     backing so they stay legible over a bright flame (the old single eyebrow line
+     above the headline washed out on big screens). */
+  .hero-badges {
+    list-style: none;
+    margin: 30px 0 0;
+    padding: 0;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .hero-badges li {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 15px;
+    font-size: 0.7rem;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
-    letter-spacing: 0.26em;
-    font-size: 0.72rem;
-    color: var(--neutral-400);
-    margin: 0 0 22px;
+    color: var(--neutral-200);
+    background: rgba(10, 10, 12, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--round);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  /* A single small blue accent dot — the lone bit of brand color on the chrome. */
+  .hero-badges li::before {
+    content: '';
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--blue-400);
+    box-shadow: 0 0 8px var(--blue-400);
   }
   .hero h1 {
     font-size: clamp(2.6rem, 7vw, 5.6rem);
