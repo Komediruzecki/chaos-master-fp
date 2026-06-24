@@ -182,6 +182,12 @@ import StudioDemo from './StudioDemo.tsx'
     margin-top: 9px;
     font-size: 0.72rem;
     color: var(--neutral-400);
+    /* Touch: a scrub is a drag, not text — stop the affine-coef letters and
+       their values from selecting / popping the iOS callout (copy / "look up")
+       on tap or long-press. */
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
   }
   #studio .matrix b {
     color: #fff;
