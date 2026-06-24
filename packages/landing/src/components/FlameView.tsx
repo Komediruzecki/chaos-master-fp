@@ -31,6 +31,12 @@ export type FlameViewProps = {
   /** For 3D flames: drag-to-orbit + scroll-zoom (reuses the app's
    *  WheelZoomCamera3D) instead of a fixed preview angle. */
   interactive3D?: boolean
+  /** Canvas alpha mode. 'premultiplied' makes the dark flame regions
+   *  transparent so a layer behind (e.g. a starfield) shows through. */
+  alphaMode?: GPUCanvasAlphaMode
+  /** Output premultiplied alpha from the flame (dark regions become
+   *  transparent). Pair with alphaMode='premultiplied'. */
+  outputAlpha?: boolean
 }
 
 export default function FlameView(props: FlameViewProps) {
@@ -80,6 +86,7 @@ export default function FlameView(props: FlameViewProps) {
       flameDescriptor={props.flame}
       renderInterval={1}
       edgeFadeColor={vec4f(0)}
+      outputAlpha={props.outputAlpha}
       setCurrentQuality={(get) => setQuality(() => get)}
     />
   )
@@ -88,6 +95,7 @@ export default function FlameView(props: FlameViewProps) {
     <AutoCanvas
       class={props.canvasClass ?? 'flame-gpu-canvas'}
       pixelRatio={props.pixelRatio ?? 1}
+      alphaMode={props.alphaMode}
     >
       <Show
         when={(props.flame.renderSettings.dimensions ?? 2) === 3}
