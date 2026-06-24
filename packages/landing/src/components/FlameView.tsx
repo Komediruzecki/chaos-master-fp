@@ -5,6 +5,7 @@ import { AutoCanvas } from '@/lib/AutoCanvas'
 import { Camera2D } from '@/lib/Camera2D'
 import { Default3DPreviewCamera } from '@/lib/Camera3D'
 import { useCanvas } from '@/lib/CanvasContext'
+import { createPosition, createZoom, WheelZoomCamera2D, } from '@/lib/WheelZoomCamera2D'
 import { createSpherical, WheelZoomCamera3D } from '@/lib/WheelZoomCamera3D'
 import type { Signal } from 'solid-js'
 import type { v2f } from 'typegpu/data'
@@ -173,6 +174,9 @@ export type FlameViewProps = {
   /** For 3D flames: drag-to-orbit + scroll-zoom (reuses the app's
    *  WheelZoomCamera3D) instead of a fixed preview angle. */
   interactive3D?: boolean
+  /** For 2D flames: drag-to-pan (capped) + scroll/pinch zoom (reuses the app's
+   *  WheelZoomCamera2D). Overrides cameraPosition/cameraZoom. */
+  interactive2D?: boolean
   /** Canvas alpha mode. 'premultiplied' makes the dark flame regions
    *  transparent so a layer behind (e.g. a starfield) shows through. */
   alphaMode?: GPUCanvasAlphaMode
@@ -223,6 +227,26 @@ export default function FlameView(props: FlameViewProps) {
       })) as Signal<number>[1],
   ]
 
+  // Pan/zoom signals (used only by the interactive 2D path), seeded from the
+  // flame's 2D camera. Zoom is clamped by createZoom; the pan is clamped to a box
+  // around the start so you can't fling the flame off into empty space.
+  const cam2 = props.flame.renderSettings.camera
+  const base2D = vec2f(cam2.position[0], cam2.position[1])
+  const zoom2D = createZoom(cam2.zoom, [cam2.zoom * 0.4, cam2.zoom * 3])
+  const rawPos2D = createPosition(base2D)
+  const PAN_CAP = 1.6 // world units from the start centre
+  const pos2D: Signal<v2f> = [
+    rawPos2D[0],
+    ((v: v2f | ((p: v2f) => v2f)) =>
+      rawPos2D[1]((prev) => {
+        const next = typeof v === 'function' ? v(prev) : v
+        return vec2f(
+          Math.max(base2D.x - PAN_CAP, Math.min(base2D.x + PAN_CAP, next.x)),
+          Math.max(base2D.y - PAN_CAP, Math.min(base2D.y + PAN_CAP, next.y)),
+        )
+      })) as Signal<v2f>[1],
+  ]
+
   // Flam3 hands us a live-quality getter; poll it and fire onReady once the
   // flame is actually accumulating (used to cross-fade the hero poster out).
   const [quality, setQuality] = createSignal<(() => number) | undefined>()
@@ -260,12 +284,14 @@ export default function FlameView(props: FlameViewProps) {
     />
   )
 
-  // `flame-orbit` sets touch-action:none so one-finger drag orbits and two-finger
-  // pinch zooms on touch (WheelZoomCamera3D's handlers) instead of the page
-  // scrolling/zooming. Only for interactive 3D — leave 2D / non-interactive
-  // canvases (hero, gallery plates) scrollable.
+  // `flame-orbit` sets touch-action:none so one-finger drag pans/orbits and
+  // two-finger pinch zooms on touch (the WheelZoomCamera handlers) instead of the
+  // page scrolling/zooming. Only for interactive canvases — leave non-interactive
+  // ones (hero, gallery plates) scrollable.
   const canvasClass = () =>
-    `${props.canvasClass ?? 'flame-gpu-canvas'}${props.interactive3D ? ' flame-orbit' : ''}`
+    `${props.canvasClass ?? 'flame-gpu-canvas'}${
+      props.interactive3D || props.interactive2D ? ' flame-orbit' : ''
+    }`
 
   return (
     <AutoCanvas
@@ -277,9 +303,19 @@ export default function FlameView(props: FlameViewProps) {
       <Show
         when={(props.flame.renderSettings.dimensions ?? 2) === 3}
         fallback={
-          <Camera2D position={cameraPosition()} zoom={cameraZoom()}>
-            {flame()}
-          </Camera2D>
+          <Show
+            when={props.interactive2D}
+            fallback={
+              <Camera2D position={cameraPosition()} zoom={cameraZoom()}>
+                {flame()}
+              </Camera2D>
+            }
+          >
+            <WheelZoomCamera2D zoom={zoom2D} position={pos2D}>
+              <TouchPinchGuard />
+              {flame()}
+            </WheelZoomCamera2D>
+          </Show>
         }
       >
         <Show
