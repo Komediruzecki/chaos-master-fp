@@ -8,39 +8,18 @@ const discordUrl = `${appUrl}/discord`
 // Ko-fi support page — a public link, no worker/secret needed.
 const supportUrl = 'https://ko-fi.com/chaosmatters'
 
-// Deterministic starfields (seeded LCG, not Math.random — stable across builds)
-// rendered behind the transparent flame canvases: the 3D flames float in space.
-function makeStars(seed: number, count = 90) {
-  let s = seed
-  const rand = () => {
-    s = (s * 1103515245 + 12345) & 0x7fffffff
-    return s / 0x7fffffff
-  }
-  return Array.from({ length: count }, () => {
-    const cx = +(rand() * 100).toFixed(2)
-    const cy = +(rand() * 100).toFixed(2)
-    const bias = rand()
-    return {
-      cx,
-      cy,
-      r: +(0.12 + bias * bias * 0.7).toFixed(2),
-      o: +(0.22 + rand() * 0.6).toFixed(2),
-    }
-  })
-}
-
+// Stars are rendered inside the flame now (the starfield3D variation) so they
+// orbit with the camera — no CSS star layer needed.
 const cards = [
   {
     which: 'rose' as const,
     title: 'Enchanted Rose',
     tag: '3D · disc · julia · spiral',
-    stars: makeStars(73_101),
   },
   {
     which: 'earth' as const,
     title: 'Earth Flame',
-    tag: '3D · bubble · swirl · glow',
-    stars: makeStars(20_260_624),
+    tag: '3D · sphere · turbulence · stars',
   },
 ]
 ---
@@ -63,16 +42,6 @@ const cards = [
     {
       cards.map((card) => (
         <article class="orbit-card">
-          <svg
-            class="starfield"
-            viewBox="0 0 100 100"
-            preserveAspectRatio="xMidYMid slice"
-            aria-hidden="true"
-          >
-            {card.stars.map((s) => (
-              <circle cx={s.cx} cy={s.cy} r={s.r} opacity={s.o} />
-            ))}
-          </svg>
           <OrbitFlame which={card.which} client:only="solid-js" />
           <div class="card-meta">
             <span class="card-title">{card.title}</span>
@@ -129,23 +98,18 @@ const cards = [
   .orbit-card:hover {
     border-color: rgba(96, 165, 250, 0.35);
   }
-  .starfield {
+  /* deep-space tint behind the (premultiplied/transparent) flame canvas */
+  .orbit-card::before {
+    content: '';
     position: absolute;
     inset: 0;
-    width: 100%;
-    height: 100%;
     z-index: 0;
     background: radial-gradient(
       120% 120% at 50% 38%,
-      rgba(18, 22, 56, 0.55),
+      rgba(16, 18, 44, 0.6),
       #000 72%
     );
   }
-  .starfield circle {
-    fill: #fff;
-  }
-  /* canvas above the starfield; premultiplied alpha lets its dark regions show
-     the stars, so the flame floats in space. */
   .orbit-card :global(astro-island) {
     position: absolute;
     inset: 0;
