@@ -210,7 +210,7 @@ export const EXAMPLE1_LANDING: FlameDescriptor = overrideFlame(example1, {
   renderSettings: {
     camera: {
       zoom: 0.72,
-      position: [0.575874924659729, 0.013209767639636993],
+      position: [0.5652259588241577, 0.16019338369369507],
       rotation: 0,
     },
   },
