@@ -1,10 +1,9 @@
-import { createSignal, For, onCleanup, onMount, Show } from 'solid-js'
+import { createSignal, For, onCleanup, Show } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { example45 } from '@/flame/examples/example45'
 import { createDragHandler } from '@/utils/createDragHandler'
 import { posterFor, prettyVariation } from '../lib/flame'
 import PosterFlame from './PosterFlame'
-import { createFlameParallax } from './useFlameParallax'
 
 /**
  * Interactive "Studio" demo — the live flame viewport and the TRANSFORMS panel
@@ -16,8 +15,6 @@ import { createFlameParallax } from './useFlameParallax'
  */
 const AFFINE_KEYS = ['a', 'b', 'c', 'd', 'e', 'f'] as const
 const SWATCHES = ['#06d6c8', '#d4e157', '#ff5e7e', '#60a5fa', '#a3e635']
-const ZOOM_MIN = 0.6
-const ZOOM_MAX = 3
 
 type Affine = Record<(typeof AFFINE_KEYS)[number], number>
 const TWO_PI = Math.PI * 2
@@ -92,36 +89,13 @@ export default function StudioDemo() {
   const [flame, setFlame] = createStore<typeof example45>(
     structuredClone(example45),
   )
-  const baseZoom = example45.renderSettings.camera.zoom
-  const [zoom, setZoom] = createSignal(baseZoom)
   const [animating, setAnimating] = createSignal(false)
-  const cameraPosition = createFlameParallax({
-    selector: '.studio-viewport',
-    base: example45.renderSettings.camera.position,
-    amount: 0.12,
-  })
 
   const tids = Object.keys(example45.transforms)
   const total = tids.reduce(
     (s, tid) => s + (example45.transforms as never)[tid].probability,
     0,
   )
-
-  let viewport: HTMLDivElement | undefined
-  onMount(() => {
-    const el = viewport
-    if (!el) return
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault()
-      setZoom((z) =>
-        Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z * (1 - e.deltaY * 0.0012))),
-      )
-    }
-    el.addEventListener('wheel', onWheel, { passive: false })
-    onCleanup(() => {
-      el.removeEventListener('wheel', onWheel)
-    })
-  })
 
   // Scrub a value via the app's robust drag handler (setPointerCapture +
   // document-level pointer listeners + multi-touch aware + auto-cleanup on
@@ -238,12 +212,11 @@ export default function StudioDemo() {
         (fresh.transforms as never)[tid].preAffine,
       )
     }
-    setZoom(baseZoom)
   }
 
   return (
     <div class="studio-stage">
-      <div class="studio-viewport" ref={viewport}>
+      <div class="studio-viewport">
         <PosterFlame
           flame={flame}
           poster={posterFor('example45')}
@@ -251,8 +224,7 @@ export default function StudioDemo() {
           quality={0.97}
           pointCountPerBatch={256}
           canvasClass="plate-canvas"
-          cameraPosition={cameraPosition}
-          cameraZoom={zoom}
+          interactive2D
         />
         <span class="corner c1" />
         <span class="corner c2" />
@@ -264,8 +236,8 @@ export default function StudioDemo() {
             <span>spectrum swirl</span>
           </div>
           <div class="row">
-            <span>zoom {zoom().toFixed(2)}×</span>
-            <span>scroll to zoom · drag values</span>
+            <span>drag to pan · pinch / scroll to zoom</span>
+            <span>drag values</span>
           </div>
         </div>
       </div>
