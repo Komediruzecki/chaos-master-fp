@@ -202,14 +202,14 @@ export function applyFlameRecipe(
 }
 
 /**
- * Landing render of First Light (example1) — shifted left + zoomed slightly out
- * so the flame fills the wide gallery plate instead of leaving empty space on the
- * left. Camera-only override; the shared app example is untouched.
+ * Landing render of First Light (example1) — shifted left + zoomed out so the
+ * flame fills the wide gallery plate (no empty space on the left) and its top
+ * isn't clipped. Camera-only override; the shared app example is untouched.
  */
 export const EXAMPLE1_LANDING: FlameDescriptor = overrideFlame(example1, {
   renderSettings: {
     camera: {
-      zoom: 0.8548384768000001,
+      zoom: 0.72,
       position: [0.575874924659729, 0.013209767639636993],
       rotation: 0,
     },
