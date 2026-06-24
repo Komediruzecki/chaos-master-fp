@@ -72,9 +72,8 @@ function PlatePreview(props: { plate: Plate }) {
         <Root adapterOptions={{ powerPreference: 'high-performance' }}>
           <FlameView
             flame={props.plate.flame}
-            quality={hovered() ? 0.97 : 0.88}
-            pointCountPerBatch={128}
-            adaptiveFilterEnabled={false}
+            quality={hovered() ? 0.97 : 0.9}
+            pointCountPerBatch={196}
             canvasClass="plate-canvas"
           />
         </Root>

@@ -43,14 +43,16 @@ export const example46 = defineExample({
     colorInitMode: 'colorInitZero',
     pointInitMode: 'pointInitUnitBall',
     vibrancy: 1.0,
-    contrast: 2.2,
+    contrast: 2.6,
     gamma: 3.0,
     depthColorPower: 0.4,
     lightDirection: [-0.5, 0.4, -0.8],
     lightPower: 0.25,
     highlightPower: 1.0,
-    densityEstimationQuality: 0.6,
-    estimatorCurve: 0.3,
+    // High-quality density estimation (was 0.6 — below the 0.8 default, which
+    // over-blurred). Matches the sharper examples (≈ example33).
+    densityEstimationQuality: 1.0,
+    estimatorCurve: 0.85,
     camera: { zoom: 1, position: [0, 0] },
     camera3D: {
       theta: 0.6,
