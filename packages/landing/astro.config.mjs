@@ -1,4 +1,5 @@
 import solid from '@astrojs/solid-js'
+import basicSsl from '@vitejs/plugin-basic-ssl'
 import { defineConfig } from 'astro/config'
 import { fileURLToPath } from 'node:url'
 import typegpu from 'unplugin-typegpu/vite'
@@ -70,7 +71,12 @@ export default defineConfig({
   },
   integrations: [solid()],
   vite: {
-    plugins: [typegpu({}), qrcode(), remoteLogPlugin()],
+    // basicSsl serves the dev server over HTTPS. WebGPU is a secure-context API:
+    // `localhost` is trusted, but a phone hitting the dev server at
+    // http://192.168.x.x is NOT a secure context, so navigator.gpu is hidden and
+    // every flame falls back to its poster. HTTPS (self-signed — accept the cert
+    // warning once on the device) fixes it. Same approach as the chaos-master app.
+    plugins: [basicSsl(), typegpu({}), qrcode(), remoteLogPlugin()],
     resolve: {
       // Array form so the specific stub entries win over the general `@` prefix
       // (first match wins). `@` only matches `@/…`, never `@typegpu/*` etc.
