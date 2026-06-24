@@ -1,4 +1,4 @@
-import { createEffect, createSignal, onCleanup, onMount, Show } from 'solid-js'
+import { createEffect, createMemo, createSignal, onCleanup, onMount, Show, } from 'solid-js'
 import { vec2f, vec4f } from 'typegpu/data'
 import { Flam3 } from '@/flame/Flam3'
 import { AutoCanvas } from '@/lib/AutoCanvas'
@@ -217,6 +217,23 @@ export default function FlameView(props: FlameViewProps) {
   const cameraZoom = () =>
     props.cameraZoom?.() ?? props.flame.renderSettings.camera.zoom
 
+  // Hoist every conditional (`?? `) prop that feeds Flam3 / AutoCanvas into a
+  // createMemo owned by this component, and pass the *called* value below. A
+  // conditional written directly in a JSX prop compiles to a lazily-created
+  // memo instantiated on first read — and Flam3's requestAnimationFrame loop is
+  // the first reader (an ownerless context), so Solid warns the memo "will
+  // never be disposed". The memos here live in FlameView's owner and are
+  // disposed with it; the prop getters are then plain calls.
+  // See memory: solid-conditional-prop-memo-leak.
+  const qualityMemo = createMemo(() => props.quality ?? 0.6)
+  const pointCountMemo = createMemo(
+    () => props.pointCountPerBatch ?? devicePointBudget(),
+  )
+  const adaptiveFilterMemo = createMemo(
+    () => props.adaptiveFilterEnabled ?? true,
+  )
+  const pixelRatioMemo = createMemo(() => props.pixelRatio ?? 1)
+
   // Orbit signals (used only by the interactive 3D path), seeded from the flame.
   const c3 = props.flame.renderSettings.camera3D
   const baseRadius = c3?.radius ?? 5
@@ -292,9 +309,9 @@ export default function FlameView(props: FlameViewProps) {
   const flame = () => (
     <Flam3
       animationEnabled={false}
-      quality={props.quality ?? 0.6}
-      pointCountPerBatch={props.pointCountPerBatch ?? devicePointBudget()}
-      adaptiveFilterEnabled={props.adaptiveFilterEnabled ?? true}
+      quality={qualityMemo()}
+      pointCountPerBatch={pointCountMemo()}
+      adaptiveFilterEnabled={adaptiveFilterMemo()}
       flameDescriptor={props.flame}
       renderInterval={1}
       edgeFadeColor={vec4f(0)}
@@ -318,7 +335,7 @@ export default function FlameView(props: FlameViewProps) {
   return (
     <AutoCanvas
       class={canvasClass()}
-      pixelRatio={props.pixelRatio ?? 1}
+      pixelRatio={pixelRatioMemo()}
       alphaMode={props.alphaMode}
       fixedResolution={props.fixedResolution}
     >

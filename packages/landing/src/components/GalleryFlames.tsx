@@ -77,6 +77,22 @@ function PlatePreview(props: { plate: Plate }) {
   // bridges the re-accumulation on re-entry (no blank flash).
   const [hovered, setHovered] = createSignal(false)
 
+  // Hoist conditional flame props into memos owned by this component. Passed
+  // straight as a JSX prop, a ternary compiles to a lazily-created memo that
+  // Flam3's rAF loop reads first (ownerless) → Solid's "computations created
+  // outside a createRoot … will never be disposed" leak warning.
+  // See memory: solid-conditional-prop-memo-leak.
+  const quality = createMemo(() =>
+    props.plate.spin
+      ? hovered()
+        ? PREVIEW_QUALITY
+        : PREVIEW_QUALITY_IDLE
+      : PREVIEW_QUALITY,
+  )
+  const alphaMode = createMemo<GPUCanvasAlphaMode | undefined>(() =>
+    props.plate.spin ? 'premultiplied' : undefined,
+  )
+
   return (
     <div
       class={`plate ${props.plate.cls}`}
@@ -96,20 +112,14 @@ function PlatePreview(props: { plate: Plate }) {
         poster={posterFor(props.plate.name)}
         posterClass="plate-canvas"
         inView={() => allowed() || isVisible()}
-        quality={
-          props.plate.spin
-            ? hovered()
-              ? PREVIEW_QUALITY
-              : PREVIEW_QUALITY_IDLE
-            : PREVIEW_QUALITY
-        }
+        quality={quality()}
         // Still plates: once converged, drop the live canvas and keep the poster
         // (same image, zero ongoing GPU). The spinnable plate stays live.
         freezeWhenConverged={!props.plate.spin}
         canvasClass="plate-canvas"
         interactive3D={props.plate.spin}
         autoSpin={props.plate.spin}
-        alphaMode={props.plate.spin ? 'premultiplied' : undefined}
+        alphaMode={alphaMode()}
         outputAlpha={props.plate.spin}
       />
       <div class="meta">
