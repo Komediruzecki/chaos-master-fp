@@ -2,7 +2,7 @@ import { createSignal, For, onCleanup, Show } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { example45 } from '@/flame/examples/example45'
 import { createDragHandler } from '@/utils/createDragHandler'
-import { posterFor, prettyVariation } from '../lib/flame'
+import { posterFor, prettyVariation, PREVIEW_QUALITY } from '../lib/flame'
 import PosterFlame from './PosterFlame'
 
 /**
@@ -221,8 +221,7 @@ export default function StudioDemo() {
           flame={flame}
           poster={posterFor('example45')}
           posterClass="plate-canvas"
-          quality={0.97}
-          pointCountPerBatch={256}
+          quality={PREVIEW_QUALITY}
           canvasClass="plate-canvas"
           interactive2D
         />

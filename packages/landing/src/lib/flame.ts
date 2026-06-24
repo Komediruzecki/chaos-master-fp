@@ -132,6 +132,50 @@ export function posterFor(name: string): string {
   return `/posters/${name}.jpg`
 }
 
+// ── Landing render config — tune here, no magic numbers at the call sites ─────
+
+/** Quality target (0..1) for the prominent / interactive flames: hero, studio,
+ *  community cards, Explore modal, and a hovered gallery plate. Higher = crisper
+ *  converged image, but more points needed to get there. */
+export const PREVIEW_QUALITY = 0.99
+/** Quality for idle (not-hovered) gallery thumbnails — a touch lower to ease GPU
+ *  load when you're not looking at them. */
+export const PREVIEW_QUALITY_IDLE = 0.97
+
+/** Per-flame point budget ({@link devicePointBudget}) for the mobile / low tier. */
+export const POINT_BUDGET_MOBILE = 1e5
+/** Per-flame point budget for the desktop / high tier (the app's value). */
+export const POINT_BUDGET_DESKTOP = 1e6
+/** A touch device whose smaller screen dimension is below this (px) counts as the
+ *  mobile (low) tier. */
+const MOBILE_SCREEN_MAX_PX = 820
+
+let cachedBudget: number | undefined
+/**
+ * Per-flame chaos-game point budget (`pointCountPerBatch`) by a coarse device
+ * tier. This is the dominant knob for motion smoothness: it's the number of
+ * parallel chains in one GPU dispatch, so a bigger value saturates the GPU in one
+ * shot (smooth) instead of many tiny dispatches whose per-dispatch overhead
+ * starves Firefox / mobile (grainy). It also sizes per-flame point-state buffers
+ * (~32 bytes × budget), so it trades VRAM against smoothness.
+ *
+ * Interim heuristic until the offscreen HW-tier benchmark lands (see assets/local
+ * backlog) — that will let high-end machines push higher (e.g. 1e7) for a single
+ * live flame.
+ */
+export function devicePointBudget(): number {
+  if (cachedBudget !== undefined) return cachedBudget
+  const nav = globalThis.navigator
+  const touch = (nav?.maxTouchPoints ?? 0) > 0
+  const minDim = Math.min(
+    globalThis.screen?.width ?? 9999,
+    globalThis.screen?.height ?? 9999,
+  )
+  const mobile = touch && minDim < MOBILE_SCREEN_MAX_PX
+  cachedBudget = mobile ? POINT_BUDGET_MOBILE : POINT_BUDGET_DESKTOP
+  return cachedBudget
+}
+
 /** A small override applied on top of a base flame: per-transform color (OkLab
  *  a/b) and/or probability (by transform index), and a renderSettings merge.
  *  Used to derive showcase variants (e.g. Earth Flame palettes) and to preview

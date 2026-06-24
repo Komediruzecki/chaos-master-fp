@@ -2,6 +2,7 @@ import { createEffect, createSignal, For, onCleanup, onMount, Show, } from 'soli
 import { createStore } from 'solid-js/store'
 import { Portal } from 'solid-js/web'
 import { EARTH_VARIANTS } from '../lib/earthVariants'
+import { PREVIEW_QUALITY } from '../lib/flame'
 import OpenInApp from './OpenInApp'
 import PosterFlame from './PosterFlame'
 import type { EarthVariant } from '../lib/earthVariants'
@@ -238,8 +239,7 @@ export default function EarthVariantsModal(props: {
                 flame={flame}
                 poster={selected().poster}
                 posterClass="plate-canvas"
-                quality={0.99}
-                pointCountPerBatch={256}
+                quality={PREVIEW_QUALITY}
                 canvasClass="plate-canvas"
                 interactive3D
                 autoSpinAlways

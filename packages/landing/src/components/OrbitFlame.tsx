@@ -1,7 +1,7 @@
 import { createSignal, Show } from 'solid-js'
 import { example46 } from '@/flame/examples/example46'
 import { useIntersectionObserver } from '@/utils/useIntersectionObserver'
-import { posterFor, ROSE_LANDING } from '../lib/flame'
+import { posterFor, PREVIEW_QUALITY, ROSE_LANDING } from '../lib/flame'
 import EarthVariantsModal from './EarthVariantsModal'
 import OpenInApp from './OpenInApp'
 import PosterFlame from './PosterFlame'
@@ -41,8 +41,7 @@ export default function OrbitFlame(props: { which: 'earth' | 'rose' }) {
         poster={posterFor(props.which)}
         posterClass="plate-canvas"
         inView={visible}
-        quality={0.99}
-        pointCountPerBatch={256}
+        quality={PREVIEW_QUALITY}
         canvasClass="plate-canvas"
         interactive3D
         autoSpin

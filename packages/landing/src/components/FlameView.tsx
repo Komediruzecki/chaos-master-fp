@@ -7,9 +7,23 @@ import { Default3DPreviewCamera } from '@/lib/Camera3D'
 import { useCanvas } from '@/lib/CanvasContext'
 import { createPosition, createZoom, WheelZoomCamera2D, } from '@/lib/WheelZoomCamera2D'
 import { createSpherical, WheelZoomCamera3D } from '@/lib/WheelZoomCamera3D'
+import { devicePointBudget } from '../lib/flame'
 import type { Signal } from 'solid-js'
 import type { v2f } from 'typegpu/data'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
+
+// ── Camera-interaction tuning (named so they're easy to find / change) ────────
+const SPIN_SPEED_RAD_S = 0.3 // auto-spin rate (~20s per revolution)
+const SPIN_RESUME_DELAY_MS = 500 // pause before (re)starting hover / post-drag spin
+const TAP_MAX_DURATION_MS = 300 // a touch shorter (and still) than this = a tap
+const TAP_MAX_MOVE_PX = 8 // ...and moving less than this
+// 3D orbit radius clamp, as factors of the flame's start radius.
+const ORBIT_RADIUS_MIN_FACTOR = 0.5
+const ORBIT_RADIUS_MAX_FACTOR = 1.6
+// 2D zoom clamp (factors of the flame's start zoom) + pan cap (world units).
+const ZOOM_MIN_FACTOR = 0.4
+const ZOOM_MAX_FACTOR = 3
+const PAN_CAP_WORLD = 1.6
 
 /**
  * Idle auto-spin for a 3D flame: while the cursor is over the canvas and NOT
@@ -27,8 +41,8 @@ function AutoSpin3D(props: {
 }) {
   const { canvas } = useCanvas()
   onMount(() => {
-    const speed = props.speed ?? 0.3 // rad/s (~20s per revolution)
-    const delay = props.delayMs ?? 500
+    const speed = props.speed ?? SPIN_SPEED_RAD_S
+    const delay = props.delayMs ?? SPIN_RESUME_DELAY_MS
     // globalThis.performance.now(): the app's blessed monotonic clock (the bare
     // `performance` global is eslint-restricted).
     const nowMs = () => globalThis.performance.now()
@@ -96,8 +110,8 @@ function AutoSpin3D(props: {
       dragging = false
       const tap =
         downTouch &&
-        nowMs() - downAt < 300 &&
-        Math.hypot(e.clientX - downX, e.clientY - downY) < 8
+        nowMs() - downAt < TAP_MAX_DURATION_MS &&
+        Math.hypot(e.clientX - downX, e.clientY - downY) < TAP_MAX_MOVE_PX
       if (tap && !props.always) {
         touchSpin = !touchSpin // tap toggles the spin on touch
         if (touchSpin) {
@@ -216,8 +230,8 @@ export default function FlameView(props: FlameViewProps) {
   )
   // The raw camera lets you zoom out to radius 100 (the flame shrinks to a
   // speck); clamp the orbit radius to keep it framed.
-  const RAD_MIN = baseRadius * 0.5
-  const RAD_MAX = baseRadius * 1.6
+  const RAD_MIN = baseRadius * ORBIT_RADIUS_MIN_FACTOR
+  const RAD_MAX = baseRadius * ORBIT_RADIUS_MAX_FACTOR
   const clampedRadius: Signal<number> = [
     spherical.radius[0],
     ((v: number | ((p: number) => number)) =>
@@ -232,17 +246,25 @@ export default function FlameView(props: FlameViewProps) {
   // around the start so you can't fling the flame off into empty space.
   const cam2 = props.flame.renderSettings.camera
   const base2D = vec2f(cam2.position[0], cam2.position[1])
-  const zoom2D = createZoom(cam2.zoom, [cam2.zoom * 0.4, cam2.zoom * 3])
+  const zoom2D = createZoom(cam2.zoom, [
+    cam2.zoom * ZOOM_MIN_FACTOR,
+    cam2.zoom * ZOOM_MAX_FACTOR,
+  ])
   const rawPos2D = createPosition(base2D)
-  const PAN_CAP = 1.6 // world units from the start centre
   const pos2D: Signal<v2f> = [
     rawPos2D[0],
     ((v: v2f | ((p: v2f) => v2f)) =>
       rawPos2D[1]((prev) => {
         const next = typeof v === 'function' ? v(prev) : v
         return vec2f(
-          Math.max(base2D.x - PAN_CAP, Math.min(base2D.x + PAN_CAP, next.x)),
-          Math.max(base2D.y - PAN_CAP, Math.min(base2D.y + PAN_CAP, next.y)),
+          Math.max(
+            base2D.x - PAN_CAP_WORLD,
+            Math.min(base2D.x + PAN_CAP_WORLD, next.x),
+          ),
+          Math.max(
+            base2D.y - PAN_CAP_WORLD,
+            Math.min(base2D.y + PAN_CAP_WORLD, next.y),
+          ),
         )
       })) as Signal<v2f>[1],
   ]
@@ -271,7 +293,7 @@ export default function FlameView(props: FlameViewProps) {
     <Flam3
       animationEnabled={false}
       quality={props.quality ?? 0.6}
-      pointCountPerBatch={props.pointCountPerBatch ?? 256}
+      pointCountPerBatch={props.pointCountPerBatch ?? devicePointBudget()}
       adaptiveFilterEnabled={props.adaptiveFilterEnabled ?? true}
       flameDescriptor={props.flame}
       renderInterval={1}
