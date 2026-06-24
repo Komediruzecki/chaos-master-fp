@@ -121,6 +121,27 @@ function AutoSpin3D(props: {
 }
 
 /**
+ * Stops the browser from page-pinch-zooming when two fingers land on an
+ * interactive 3D canvas. `touch-action: none` covers Android, but iOS Safari
+ * ignores it for pinch — so we preventDefault multi-touch moves here. The gesture
+ * then drives WheelZoomCamera3D's pinch (flame zoom) instead of magnifying the
+ * page. Renders nothing.
+ */
+function TouchPinchGuard() {
+  const { canvas } = useCanvas()
+  onMount(() => {
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length >= 2) e.preventDefault()
+    }
+    canvas.addEventListener('touchmove', onTouchMove, { passive: false })
+    onCleanup(() => {
+      canvas.removeEventListener('touchmove', onTouchMove)
+    })
+  })
+  return null
+}
+
+/**
  * Inner live-flame view — the app's AutoCanvas + camera + Flam3, WITHOUT a Root.
  * Shared by the hero (FlameStage wraps it in a Root) and the gallery (each gated
  * preview wraps it in a Root under a shared ComputeGate). Handles 2D and 3D
@@ -274,6 +295,7 @@ export default function FlameView(props: FlameViewProps) {
                 always={props.autoSpinAlways}
               />
             </Show>
+            <TouchPinchGuard />
             {flame()}
           </WheelZoomCamera3D>
         </Show>
