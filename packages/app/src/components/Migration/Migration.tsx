@@ -6,12 +6,11 @@ import { createSignal, For, onCleanup, onMount, Show } from 'solid-js'
 import { unwrap } from 'solid-js/store'
 import { vec2f, vec4f } from 'typegpu/data'
 import { VariationMultiSelect } from '@/components/VariationMultiSelect/VariationMultiSelect'
-import { DEFAULT_QUALITY } from '@/defaults'
+import { DEFAULT_QUALITY, IS_DEV } from '@/defaults'
 import { Flam3 } from '@/flame/Flam3'
 import { FLAM3_SAMPLES } from '@/flame/flam3Samples'
-import { isFlameXmlContent, parseFlameXmlWithReport, registerImportedFlamePalette, } from '@/flame/flameXml'
+import { isFlameXmlContent, parseFlameXmlWithReport, registerImportedFlamePalette, resolveVariationType, } from '@/flame/flameXml'
 import { latestSchemaVersion, validateFlameWithErrors, } from '@/flame/schema/flameSchema'
-import { categoryOf } from '@/flame/variationRegistry'
 import { variationTypes } from '@/flame/variations'
 import { getTransformsForEachVariation, getTransformWithAllVariations, } from '@/flame/variations/utils'
 import { Copy } from '@/icons'
@@ -32,18 +31,71 @@ import type { ChangeHistory } from '@/utils/createStoreHistory'
 
 const CANCEL = 'cancel'
 
-// Variations selected by default for the "Show … Variations" generators —
-// General + Blur only (mirrors the sidebar randomizer's default). The other
-// categories (post/pre/crop/cut/dc/symmetry/…) are operators that don't make
-// sense as standalone preview shapes, and including everything overflows the
-// GPU buffers.
+// The ~49 variations catalogued in the original Fractal Flame paper (Draves &
+// Reckase, variations 0-48) — a focused, recognizable default for the
+// "Show … Variations" generators. The previous default (all ~150 General+Blur
+// types) was too many to be useful; the user can still widen the selection.
+const FLAM3_PAPER_VARIATIONS = [
+  'linear',
+  'sinusoidal',
+  'spherical',
+  'swirl',
+  'horseshoe',
+  'polar',
+  'handkerchief',
+  'heart',
+  'disc',
+  'spiral',
+  'hyperbolic',
+  'diamond',
+  'ex',
+  'julia',
+  'bent',
+  'waves',
+  'fisheye',
+  'popcorn',
+  'exponential',
+  'power',
+  'cosine',
+  'rings',
+  'fan',
+  'blob',
+  'pdj',
+  'fan2',
+  'rings2',
+  'eyefish',
+  'bubble',
+  'cylinder',
+  'perspective',
+  'noise',
+  'julian',
+  'juliascope',
+  'blur',
+  'gaussian_blur',
+  'radial_blur',
+  'pie',
+  'ngon',
+  'curl',
+  'rectangles',
+  'arch',
+  'tangent',
+  'square',
+  'rays',
+  'blade',
+  'secant2',
+  'twintrian',
+  'cross',
+]
+
 function defaultScopedVariations(): Set<TransformVariationType> {
-  return new Set(
-    variationTypes.filter((type) => {
-      const category = categoryOf(2, type)
-      return category === 'general' || category === 'blur'
-    }),
-  )
+  const set = new Set<TransformVariationType>()
+  for (const name of FLAM3_PAPER_VARIATIONS) {
+    const type = resolveVariationType(name)
+    if (type !== undefined && variationTypes.includes(type)) {
+      set.add(type)
+    }
+  }
+  return set
 }
 
 // ── Live Preview ──────────────────────────────────────────────────────────
@@ -617,24 +669,35 @@ function Migration(props: MigrationFlameModalProps) {
       <section class={ui.actions}>
         <Button onClick={validateInput}>Validate</Button>
         <Button onClick={handleMigrate}>Migrate</Button>
-        <For each={FLAM3_SAMPLES}>
-          {(sample) => (
-            <Button
-              title={sample.description}
-              onClick={() => {
-                loadSample(sample.xml)
-              }}
-            >
-              {sample.name}
-            </Button>
-          )}
-        </For>
-        <Button onClick={handleCreateVariationsExampleSet}>
-          Show All Variations
-        </Button>
         <Button onClick={handleCreateTransformsExampleSet}>
           Show Per-Variation Transforms
         </Button>
+        {/* "Show All Variations" builds one flame from every selected variation
+            — handy for debugging but overwhelming for normal use, so dev-only. */}
+        <Show when={IS_DEV}>
+          <Button onClick={handleCreateVariationsExampleSet}>
+            Show All Variations
+          </Button>
+        </Show>
+      </section>
+      <section class={ui.samples}>
+        <span class={ui.samplesLabel}>Sample .flame files</span>
+        <div class={ui.samplePills}>
+          <For each={FLAM3_SAMPLES}>
+            {(sample) => (
+              <button
+                type="button"
+                class={ui.samplePill}
+                title={sample.description}
+                onClick={() => {
+                  loadSample(sample.xml)
+                }}
+              >
+                {sample.name}
+              </button>
+            )}
+          </For>
+        </div>
       </section>
     </>
   )
