@@ -12,26 +12,29 @@ const repoUrl = 'https://github.com/chaos-matters/chaos-master'
         <defs>
           <linearGradient id="navArm" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stop-color="#06d6c8" />
-            <stop offset="42%" stop-color="#a3e635" />
-            <stop offset="74%" stop-color="#ffae34" />
+            <stop offset="40%" stop-color="#a3e635" />
+            <stop offset="72%" stop-color="#ffae34" />
             <stop offset="100%" stop-color="#ff5e7e" />
           </linearGradient>
-          <radialGradient id="navCore" cx="50%" cy="50%" r="55%">
+          <radialGradient id="navCore" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stop-color="#fff" />
             <stop offset="55%" stop-color="#7be0e8" />
             <stop offset="100%" stop-color="#7be0e8" stop-opacity="0" />
           </radialGradient>
         </defs>
         <rect width="64" height="64" rx="15" fill="#0a0a12" />
-        <g transform="translate(32 32)" fill="url(#navArm)">
-          <path d="M0 0 C 7 -11 22 -10 23 3 C 23.6 11 14 17 8 12.5 C 4.2 9.6 8 5 3.5 2.4 Z" />
-          <path d="M0 0 C 7 -11 22 -10 23 3 C 23.6 11 14 17 8 12.5 C 4.2 9.6 8 5 3.5 2.4 Z" transform="rotate(120)" />
-          <path d="M0 0 C 7 -11 22 -10 23 3 C 23.6 11 14 17 8 12.5 C 4.2 9.6 8 5 3.5 2.4 Z" transform="rotate(240)" />
+        <g
+          transform="rotate(-20 32 32)"
+          fill="none"
+          stroke="url(#navArm)"
+          stroke-width="6.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M32 32 C 24 19, 9 19, 9 32 C 9 45, 24 45, 32 32 C 40 19, 55 19, 55 32 C 55 45, 40 45, 32 32 Z" />
         </g>
-        <g transform="translate(32 32)">
-          <circle r="9" fill="url(#navCore)" />
-          <circle r="3" fill="#fff" />
-        </g>
+        <circle cx="32" cy="32" r="7.5" fill="url(#navCore)" />
+        <circle cx="32" cy="32" r="2.4" fill="#fff" />
       </svg>
       Chaos Master
     </a>
