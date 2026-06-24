@@ -1,33 +1,56 @@
+/* Chaos Master landing — design tokens lifted verbatim from packages/app design
+   system (designSystem/colors.css): monochrome oklch neutral ramp + a single blue
+   accent, Inter. Color comes from the art, not the chrome. */
 :root {
-  --bg: #0b0b12;
-  --bg-soft: #14141f;
-  --fg: #f5f5fa;
-  --fg-muted: #a8a8bd;
-  --brand-from: #ff0080;
-  --brand-to: #7928ca;
-  --border: rgba(255, 255, 255, 0.08);
-  --radius: 14px;
-  --maxw: 1080px;
-  font-family:
-    'Inter',
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    Roboto,
-    sans-serif;
+  /* neutrals (oklch grayscale) */
+  --neutral-50: oklch(98.5% 0 0);
+  --neutral-100: oklch(97% 0 0);
+  --neutral-200: oklch(92.2% 0 0);
+  --neutral-300: oklch(87% 0 0);
+  --neutral-400: oklch(70.8% 0 0);
+  --neutral-500: oklch(55.6% 0 0);
+  --neutral-600: oklch(43.9% 0 0);
+  --neutral-700: oklch(37.1% 0 0);
+  --neutral-800: oklch(26.9% 0 0);
+  --neutral-900: oklch(20.5% 0 0);
+  --neutral-950: oklch(14.5% 0 0);
+
+  /* blue accent ramp */
+  --blue-300: #93c5fd;
+  --blue-400: #60a5fa;
+  --blue-500: #3b82f6;
+  --blue-600: #2563eb;
+  --blue-700: #1d4ed8;
+
+  /* spacing (0.25rem base) */
+  --spacing: 0.25rem;
+  --space-1: var(--spacing);
+  --space-2: calc(var(--spacing) * 2);
+  --space-3: calc(var(--spacing) * 3);
+  --space-4: calc(var(--spacing) * 4);
+  --space-6: calc(var(--spacing) * 6);
+  --space-8: calc(var(--spacing) * 8);
+  --round: 100vh;
+
+  --font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, monospace;
 }
 
 * {
   box-sizing: border-box;
 }
 
-html,
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
-  padding: 0;
-  background: var(--bg);
-  color: var(--fg);
-  scroll-behavior: smooth;
+  background: #000;
+  color: var(--neutral-100);
+  font-family: var(--font);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
 }
 
 a {
@@ -35,56 +58,201 @@ a {
   text-decoration: none;
 }
 
-.container {
-  width: 100%;
-  max-width: var(--maxw);
+::selection {
+  background: var(--blue-600);
+  color: #fff;
+}
+
+/* ---- shared layout / typography ---- */
+.wrap {
+  max-width: 1240px;
   margin-inline: auto;
-  padding-inline: 24px;
-}
-
-.brand-gradient {
-  background: linear-gradient(120deg, var(--brand-from), var(--brand-to));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 22px;
-  border-radius: 999px;
-  font-weight: 600;
-  font-size: 1rem;
-  border: 1px solid var(--border);
-  transition:
-    transform 0.15s ease,
-    box-shadow 0.15s ease,
-    background 0.15s ease;
-}
-
-.btn:hover {
-  transform: translateY(-2px);
-}
-
-.btn-primary {
-  background: linear-gradient(120deg, var(--brand-from), var(--brand-to));
-  border-color: transparent;
-  box-shadow: 0 8px 30px rgba(121, 40, 202, 0.35);
-}
-
-.btn-ghost {
-  background: var(--bg-soft);
+  padding-inline: 28px;
 }
 
 section {
-  padding-block: 96px;
+  position: relative;
+  padding-block: clamp(80px, 11vw, 150px);
 }
 
 h1,
 h2,
 h3 {
-  line-height: 1.1;
   margin: 0;
+}
+
+h2 {
+  font-size: clamp(1.9rem, 4vw, 3rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.06;
+}
+
+.kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.74rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--blue-400);
+  margin: 0 0 18px;
+}
+
+.kicker::before {
+  content: '';
+  width: 26px;
+  height: 1px;
+  background: var(--blue-500);
+}
+
+.sec-lede {
+  color: var(--neutral-400);
+  font-size: 1.12rem;
+  line-height: 1.6;
+  max-width: 56ch;
+  margin: 18px 0 0;
+}
+
+/* ---- buttons (shared across nav, hero, CTAs) ---- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 12px 22px;
+  border-radius: var(--round);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.btn-primary {
+  background: var(--blue-600);
+  color: #fff;
+  box-shadow: 0 8px 30px rgba(37, 99, 235, 0.35);
+}
+
+.btn-primary:hover {
+  background: var(--blue-500);
+  transform: translateY(-2px);
+}
+
+.btn-ghost {
+  border-color: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.btn-ghost:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-2px);
+}
+
+.pill {
+  padding: 8px 16px;
+}
+
+/* Flame visual slot — Phase 1 shows a poster/placeholder; later phases mount a
+   live <canvas> GPU island in here. */
+.flame-slot {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #000;
+}
+
+/* Canvas produced by the app's AutoCanvas inside a live GPU island. Rendered by
+   Solid (outside Astro's scoped styles), so it lives here in global. */
+.hero-gpu-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ---- gallery grid ----
+   The gallery grid is a Solid island (one shared ComputeGate gates every live
+   preview), so its styles are global rather than Astro-scoped. */
+.gallery {
+  margin-top: 52px;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 16px;
+}
+.plate {
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #000;
+  aspect-ratio: 1;
+}
+.plate.wide {
+  aspect-ratio: 16/10;
+}
+.plate.tall {
+  aspect-ratio: 3/4;
+}
+.plate-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.plate .meta {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 16px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.78));
+  opacity: 0;
+  transform: translateY(8px);
+  transition: 0.25s;
+  pointer-events: none;
+}
+.plate:hover .meta {
+  opacity: 1;
+  transform: none;
+}
+.plate .meta .t {
+  font-weight: 600;
+  font-size: 0.98rem;
+}
+.plate .meta .v {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--neutral-400);
+  letter-spacing: 0.04em;
+  margin-top: 4px;
+}
+.span6 {
+  grid-column: span 6;
+}
+.span4 {
+  grid-column: span 4;
+}
+.span8 {
+  grid-column: span 8;
+}
+@media (max-width: 860px) {
+  .gallery {
+    grid-template-columns: repeat(6, 1fr);
+  }
+  .span6,
+  .span4,
+  .span8 {
+    grid-column: span 6;
+  }
 }
