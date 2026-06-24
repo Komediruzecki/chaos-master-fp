@@ -28,45 +28,57 @@ function AutoSpin3D(props: {
     // globalThis.performance.now(): the app's blessed monotonic clock (the bare
     // `performance` global is eslint-restricted).
     const nowMs = () => globalThis.performance.now()
-    let hovering = false
     let dragging = false
     let resumeAt = 0
-    const markResume = () => {
-      resumeAt = nowMs() + delay
-    }
-    const onEnter = () => {
-      hovering = true
-      markResume()
-    }
-    const onLeave = () => {
-      hovering = false
-    }
-    const onDown = () => {
-      dragging = true
-    }
-    const onUp = () => {
-      dragging = false
-      markResume()
-    }
-    canvas.addEventListener('pointerenter', onEnter)
-    canvas.addEventListener('pointerleave', onLeave)
-    canvas.addEventListener('pointerdown', onDown)
-    window.addEventListener('pointerup', onUp)
     let raf = 0
-    let last = nowMs()
+    let last = 0
+    let running = false
     const tick = (now: number) => {
       const dt = Math.min(0.05, (now - last) / 1000)
       last = now
-      if (hovering && !dragging && now >= resumeAt) {
+      if (!dragging && now >= resumeAt) {
         props.theta[1]((t) => t + speed * dt)
       }
       raf = requestAnimationFrame(tick)
     }
-    raf = requestAnimationFrame(tick)
+    // Only animate while the cursor is over the card — no idle rAF when not
+    // hovering / off-screen.
+    const start = () => {
+      if (running) return
+      running = true
+      last = nowMs()
+      raf = requestAnimationFrame(tick)
+    }
+    const stop = () => {
+      running = false
+      cancelAnimationFrame(raf)
+    }
+    const onEnter = () => {
+      resumeAt = nowMs() + delay
+      start()
+    }
+    const onLeave = () => {
+      stop()
+    }
+    const onDown = () => {
+      dragging = true
+    }
+    // pointerup OR pointercancel (touch / OS interrupt) ends the drag, so spin
+    // resumes — otherwise an interrupted drag would freeze it forever.
+    const onUp = () => {
+      dragging = false
+      resumeAt = nowMs() + delay
+    }
+    canvas.addEventListener('pointerenter', onEnter)
+    canvas.addEventListener('pointerleave', onLeave)
+    canvas.addEventListener('pointerdown', onDown)
+    canvas.addEventListener('pointercancel', onUp)
+    window.addEventListener('pointerup', onUp)
     onCleanup(() => {
       canvas.removeEventListener('pointerenter', onEnter)
       canvas.removeEventListener('pointerleave', onLeave)
       canvas.removeEventListener('pointerdown', onDown)
+      canvas.removeEventListener('pointercancel', onUp)
       window.removeEventListener('pointerup', onUp)
       cancelAnimationFrame(raf)
     })

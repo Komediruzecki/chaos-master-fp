@@ -182,7 +182,12 @@ h2 {
   border-radius: 14px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  background: #000;
+  /* deep-space tint — also the graceful empty state if WebGPU is unavailable */
+  background: radial-gradient(
+    120% 120% at 50% 35%,
+    rgba(22, 26, 52, 0.45),
+    #000 72%
+  );
   aspect-ratio: 1;
   transition:
     transform 0.3s ease,

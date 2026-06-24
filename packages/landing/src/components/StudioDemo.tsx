@@ -2,6 +2,7 @@ import { createSignal, For, onCleanup, onMount } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { example45 } from '@/flame/examples/example45'
 import { Root } from '@/lib/Root'
+import { prettyVariation } from '../lib/flame'
 import FlameView from './FlameView'
 import { createFlameParallax } from './useFlameParallax'
 
@@ -17,9 +18,6 @@ const AFFINE_KEYS = ['a', 'b', 'c', 'd', 'e', 'f'] as const
 const SWATCHES = ['#06d6c8', '#d4e157', '#ff5e7e', '#60a5fa', '#a3e635']
 const ZOOM_MIN = 0.6
 const ZOOM_MAX = 3
-
-const prettyVar = (t: string) =>
-  t.replace(/Var$/, '').replace(/3D$/, '3D').toUpperCase()
 
 export default function StudioDemo() {
   const [flame, setFlame] = createStore<typeof example45>(
@@ -55,6 +53,12 @@ export default function StudioDemo() {
     })
   })
 
+  // Active scrub teardown, so a drag in progress is cleaned up if the island
+  // unmounts mid-drag (otherwise the window listeners leak and fire setFlame on a
+  // disposed store).
+  let endScrub: (() => void) | undefined
+  onCleanup(() => endScrub?.())
+
   function startScrub(e: PointerEvent, tid: string, key: string) {
     e.preventDefault()
     const startX = e.clientX
@@ -73,7 +77,9 @@ export default function StudioDemo() {
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
       document.body.style.cursor = ''
+      endScrub = undefined
     }
+    endScrub = onUp
     document.body.style.cursor = 'ew-resize'
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
@@ -173,7 +179,7 @@ export default function StudioDemo() {
                 >
                   {(v: never) => (
                     <span class="vtag">
-                      {prettyVar((v as { type: string }).type)}{' '}
+                      {prettyVariation((v as { type: string }).type)}{' '}
                       {(v as { weight: number }).weight}
                     </span>
                   )}

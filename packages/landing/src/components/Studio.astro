@@ -33,7 +33,12 @@ import StudioDemo from './StudioDemo.tsx'
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px;
     overflow: hidden;
-    background: #000;
+    /* deep-space tint — also the graceful empty state without WebGPU */
+    background: radial-gradient(
+      120% 120% at 50% 40%,
+      rgba(20, 24, 50, 0.45),
+      #000 74%
+    );
     min-height: 440px;
   }
   #studio .studio-viewport astro-island {
