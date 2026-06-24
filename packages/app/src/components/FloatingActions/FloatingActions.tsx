@@ -419,6 +419,32 @@ export function FloatingActions(props: Props) {
               </svg>
             </button>
 
+            {/* Show / Hide Sidebar (mirrors the 'F' shortcut) — grouped with the
+                other show/hide toggles. */}
+            <button
+              class={ui.toggle}
+              classList={{ [ui.toggleActive as string]: props.sidebarOpen() }}
+              onClick={props.onToggleSidebar}
+              title={
+                props.sidebarOpen() ? 'Hide sidebar (F)' : 'Show sidebar (F)'
+              }
+            >
+              {/* Sidebar panel icon — a panel with a left rail. */}
+              <svg
+                viewBox="0 0 16 16"
+                width="13"
+                height="13"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.3"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="2" y="2.5" width="12" height="11" rx="1.5" />
+                <line x1="6.2" y1="2.5" x2="6.2" y2="13.5" />
+              </svg>
+            </button>
+
             <div class={ui.toggleSeparator} />
 
             {/* Mitchell-Netravali Stochastic Filter (2D + 3D) */}
@@ -593,33 +619,6 @@ export function FloatingActions(props: Props) {
                   fill="currentColor"
                   stroke="none"
                 />
-              </svg>
-            </button>
-
-            <div class={ui.toggleSeparator} />
-
-            {/* Show / Hide Sidebar (mirrors the 'F' shortcut) */}
-            <button
-              class={ui.toggle}
-              classList={{ [ui.toggleActive as string]: props.sidebarOpen() }}
-              onClick={props.onToggleSidebar}
-              title={
-                props.sidebarOpen() ? 'Hide sidebar (F)' : 'Show sidebar (F)'
-              }
-            >
-              {/* Sidebar panel icon — a panel with a left rail. */}
-              <svg
-                viewBox="0 0 16 16"
-                width="13"
-                height="13"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.3"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <rect x="2" y="2.5" width="12" height="11" rx="1.5" />
-                <line x1="6.2" y1="2.5" x2="6.2" y2="13.5" />
               </svg>
             </button>
           </div>
