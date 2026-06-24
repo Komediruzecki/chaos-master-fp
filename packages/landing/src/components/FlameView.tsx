@@ -20,6 +20,9 @@ function AutoSpin3D(props: {
   theta: Signal<number>
   speed?: number
   delayMs?: number
+  /** Spin continuously (not just while hovering) — for the gallery modal's
+   *  showcase view. Still pauses during drag. */
+  always?: boolean
 }) {
   const { canvas } = useCanvas()
   onMount(() => {
@@ -58,7 +61,7 @@ function AutoSpin3D(props: {
       start()
     }
     const onLeave = () => {
-      stop()
+      if (!props.always) stop()
     }
     const onDown = () => {
       dragging = true
@@ -74,6 +77,7 @@ function AutoSpin3D(props: {
     canvas.addEventListener('pointerdown', onDown)
     canvas.addEventListener('pointercancel', onUp)
     window.addEventListener('pointerup', onUp)
+    if (props.always) start() // spin from mount, independent of hover
     onCleanup(() => {
       canvas.removeEventListener('pointerenter', onEnter)
       canvas.removeEventListener('pointerleave', onLeave)
@@ -117,6 +121,9 @@ export type FlameViewProps = {
   outputAlpha?: boolean
   /** For interactive3D: idle auto-orbit on hover (pauses while dragging). */
   autoSpin?: boolean
+  /** For interactive3D: spin continuously from mount, not just on hover (the
+   *  gallery modal's showcase view). Pauses during drag. */
+  autoSpinAlways?: boolean
   /** Fixed canvas resolution (bypasses element-size autosizing). Used by the
    *  poster-capture page to render at a high fixed size. */
   fixedResolution?: { width: number; height: number }
@@ -224,8 +231,11 @@ export default function FlameView(props: FlameViewProps) {
             fov={spherical.fov}
             roll={spherical.roll}
           >
-            <Show when={props.autoSpin}>
-              <AutoSpin3D theta={spherical.theta} />
+            <Show when={props.autoSpin || props.autoSpinAlways}>
+              <AutoSpin3D
+                theta={spherical.theta}
+                always={props.autoSpinAlways}
+              />
             </Show>
             {flame()}
           </WheelZoomCamera3D>
