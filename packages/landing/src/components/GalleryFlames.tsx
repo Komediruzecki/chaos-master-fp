@@ -8,6 +8,7 @@ import { example45 } from '@/flame/examples/example45'
 import { Root } from '@/lib/Root'
 import { useIntersectionObserver } from '@/utils/useIntersectionObserver'
 import FlameView from './FlameView'
+import OpenInApp from './OpenInApp'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 
 /**
@@ -86,6 +87,7 @@ function PlatePreview(props: { plate: Plate }) {
           <div class="v">{variationSummary(props.plate.flame)}</div>
         </div>
       </div>
+      <OpenInApp flame={props.plate.flame} />
     </div>
   )
 }

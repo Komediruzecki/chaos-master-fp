@@ -218,6 +218,48 @@ h2 {
   height: 100%;
   display: block;
 }
+
+/* "Open in Chaos Master" button — rendered inside the flame islands (gallery
+   plates + community cards), revealed on hover of the card/plate. */
+.open-in-app {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  color: #fff;
+  background: rgba(37, 99, 235, 0.85);
+  border: 1px solid rgba(147, 197, 253, 0.55);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 6px 18px -6px rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  transform: translateY(-4px) scale(0.92);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease,
+    background 0.15s ease;
+  pointer-events: none;
+}
+.open-in-app svg {
+  width: 16px;
+  height: 16px;
+}
+.plate:hover .open-in-app,
+.orbit-card:hover .open-in-app,
+.open-in-app:focus-visible {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+.open-in-app:hover {
+  background: var(--blue-500);
+  transform: translateY(-1px);
+}
 .plate .meta {
   position: absolute;
   inset: auto 0 0 0;

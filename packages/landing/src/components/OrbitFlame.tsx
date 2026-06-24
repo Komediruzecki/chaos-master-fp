@@ -1,6 +1,7 @@
 import { example44 } from '@/flame/examples/example44'
 import { example46 } from '@/flame/examples/example46'
 import FlameStage from './FlameStage'
+import OpenInApp from './OpenInApp'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 
 /**
@@ -25,15 +26,18 @@ const FLAMES: Record<string, FlameDescriptor> = {
 
 export default function OrbitFlame(props: { which: 'earth' | 'rose' }) {
   return (
-    <FlameStage
-      flame={FLAMES[props.which]}
-      quality={0.995}
-      pointCountPerBatch={256}
-      canvasClass="plate-canvas"
-      interactive3D
-      autoSpin
-      alphaMode="premultiplied"
-      outputAlpha
-    />
+    <>
+      <FlameStage
+        flame={FLAMES[props.which]}
+        quality={0.995}
+        pointCountPerBatch={256}
+        canvasClass="plate-canvas"
+        interactive3D
+        autoSpin
+        alphaMode="premultiplied"
+        outputAlpha
+      />
+      <OpenInApp flame={FLAMES[props.which]} />
+    </>
   )
 }
