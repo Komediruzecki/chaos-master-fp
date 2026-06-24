@@ -47,7 +47,11 @@ const cards = [
             <span class="card-title">{card.title}</span>
             <span class="card-tag">{card.tag}</span>
           </div>
-          <span class="art-hint">drag to orbit · scroll to zoom</span>
+          {
+            card.which !== 'earth' && (
+              <span class="art-hint">drag to orbit · scroll to zoom</span>
+            )
+          }
         </article>
       ))
     }

@@ -68,7 +68,8 @@ export const example46 = defineExample({
       probability: 0.4,
       preAffine: identity3D,
       postAffine: identity3D,
-      color: { x: -0.15, y: -0.32 },
+      // Earth v2 "Sunrise": deeper ocean blue under the warm bloom.
+      color: { x: -0.25, y: -0.52 },
       variations: {
         [vid('ea11b0d1_5c0a_47e1_9a31_0b6e2f10c011')]: {
           type: 'sphere3D',
@@ -98,7 +99,8 @@ export const example46 = defineExample({
         l: 0,
       },
       postAffine: identity3D,
-      color: { x: -0.4, y: 0.22 },
+      // Earth v2: slightly richer green continents.
+      color: { x: -0.45, y: 0.26 },
       variations: {
         [vid('ea22c1e2_6d1b_48f2_8b42_1c7f3021d021')]: {
           type: 'swirl3D',
@@ -115,7 +117,8 @@ export const example46 = defineExample({
       probability: 0.2,
       preAffine: scale(1.05),
       postAffine: identity3D,
-      color: { x: 0.4, y: 0.42 },
+      // Earth v2: hotter orange atmospheric bloom (sunrise rim).
+      color: { x: 0.55, y: 0.45 },
       variations: {
         [vid('ea33d2f3_7e2c_49a3_7c53_2d804132e031')]: {
           type: 'curl3D',

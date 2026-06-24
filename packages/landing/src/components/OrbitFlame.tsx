@@ -1,7 +1,8 @@
-import { createSignal } from 'solid-js'
+import { createSignal, Show } from 'solid-js'
 import { example46 } from '@/flame/examples/example46'
 import { useIntersectionObserver } from '@/utils/useIntersectionObserver'
 import { posterFor, ROSE_LANDING } from '../lib/flame'
+import EarthVariantsModal from './EarthVariantsModal'
 import OpenInApp from './OpenInApp'
 import PosterFlame from './PosterFlame'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
@@ -25,6 +26,7 @@ export default function OrbitFlame(props: { which: 'earth' | 'rose' }) {
   const [container, setContainer] = createSignal<HTMLElement>()
   const intersection = useIntersectionObserver(container)
   const visible = () => intersection()?.isIntersecting ?? false
+  const [explore, setExplore] = createSignal(false)
 
   return (
     <div class="orbit-mount" ref={setContainer}>
@@ -42,6 +44,53 @@ export default function OrbitFlame(props: { which: 'earth' | 'rose' }) {
         outputAlpha
       />
       <OpenInApp flame={flame} />
+      <Show when={props.which === 'earth'}>
+        <button
+          class="explore-btn"
+          type="button"
+          onClick={() => setExplore(true)}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect
+              x="3"
+              y="3"
+              width="7"
+              height="7"
+              rx="1.6"
+              fill="currentColor"
+            />
+            <rect
+              x="14"
+              y="3"
+              width="7"
+              height="7"
+              rx="1.6"
+              fill="currentColor"
+            />
+            <rect
+              x="3"
+              y="14"
+              width="7"
+              height="7"
+              rx="1.6"
+              fill="currentColor"
+            />
+            <rect
+              x="14"
+              y="14"
+              width="7"
+              height="7"
+              rx="1.6"
+              fill="currentColor"
+            />
+          </svg>
+          Explore Earth Flame
+        </button>
+        <EarthVariantsModal
+          open={explore()}
+          onClose={() => setExplore(false)}
+        />
+      </Show>
     </div>
   )
 }

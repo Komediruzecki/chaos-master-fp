@@ -30,6 +30,37 @@ export function posterFor(name: string): string {
   return `/posters/${name}.jpg`
 }
 
+/** A small override applied on top of a base flame: per-transform color (OkLab
+ *  a/b) and/or probability (by transform index), and a renderSettings merge.
+ *  Used to derive showcase variants (e.g. Earth Flame palettes) and to preview
+ *  tuning candidates without forking the base example. */
+export type FlameRecipe = {
+  transforms?: Array<{ color?: [number, number]; probability?: number }>
+  render?: Partial<FlameDescriptor['renderSettings']>
+}
+
+/** Clone `base` and apply a {@link FlameRecipe}. Transform overrides are indexed
+ *  by position; out-of-range entries are ignored. */
+export function applyFlameRecipe(
+  base: FlameDescriptor,
+  recipe: FlameRecipe,
+): FlameDescriptor {
+  const clone = structuredClone(base)
+  if (recipe.render) {
+    clone.renderSettings = { ...clone.renderSettings, ...recipe.render }
+  }
+  if (recipe.transforms) {
+    const keys = Object.keys(clone.transforms)
+    recipe.transforms.forEach((ov, i) => {
+      const t = clone.transforms[keys[i]]
+      if (!t) return
+      if (ov.color) t.color = { x: ov.color[0], y: ov.color[1] }
+      if (ov.probability !== undefined) t.probability = ov.probability
+    })
+  }
+  return clone
+}
+
 /**
  * Single source of truth for every flame that appears live on the landing, keyed
  * by poster name. Gallery plates + community cards reference these by name; the

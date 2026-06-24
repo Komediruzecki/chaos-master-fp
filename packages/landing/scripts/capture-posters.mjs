@@ -2,16 +2,19 @@
  * Generate static flame posters for the landing's poster fallback.
  *
  * Renders each flame from the REAL Flam3 renderer (via the dev-only
- * /poster-capture page) and screenshots the converged canvas to
- * public/posters/<name>.jpg. Headless has no WebGPU on this box, so it drives a
- * HEADED Chromium (see [[webgpu-verify-headed-playwright]]).
+ * /poster-capture page) and screenshots the converged canvas to a poster JPG.
+ * Headless has no WebGPU on this box, so it drives a HEADED Chromium
+ * (see [[webgpu-verify-headed-playwright]]).
  *
  * Run:
- *   pnpm --filter @chaos-master/landing dev        # in one terminal
- *   node packages/landing/scripts/capture-posters.mjs [baseURL]
+ *   pnpm --filter @chaos-master/landing dev          # in one terminal
+ *   node packages/landing/scripts/capture-posters.mjs [baseURL] [id1,id2,...]
  *
- * baseURL defaults to http://localhost:4321 (astro dev). The flame names must
- * match the keys of LANDING_FLAMES in src/lib/flame.ts.
+ * baseURL defaults to http://localhost:4321 (astro dev). An optional
+ * comma-separated id list renders only those jobs (e.g. `... '' earth,ocean`).
+ * Job ids: the LANDING_FLAMES keys (-> posters/<id>.jpg) and the EARTH_VARIANTS
+ * ids (-> posters/earth-variants/<id>.jpg). Keep these lists in sync with
+ * src/lib/flame.ts and src/lib/earthVariants.ts.
  */
 import { mkdirSync } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -24,8 +27,10 @@ const { chromium } = require('playwright')
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const OUT_DIR = resolve(__dirname, '../public/posters')
 const BASE = process.argv[2] ?? 'http://localhost:4321'
+const FILTER = process.argv[3] ? process.argv[3].split(',') : null
 const SIZE = 1280
 const QUALITY_TARGET = 0.97
+
 const NAMES = [
   'example1',
   'example29',
@@ -35,8 +40,27 @@ const NAMES = [
   'rose',
   'earth',
 ]
+const EARTH_VARIANTS = [
+  'sunrise',
+  'ocean',
+  'trueearth',
+  'verdant',
+  'nebula',
+  'vivid',
+]
+
+const JOBS = [
+  ...NAMES.map((id) => ({ id, query: `name=${id}`, out: `${id}.jpg` })),
+  ...EARTH_VARIANTS.map((id) => ({
+    id,
+    query: `variant=${id}`,
+    out: `earth-variants/${id}.jpg`,
+  })),
+]
+const jobs = FILTER ? JOBS.filter((j) => FILTER.includes(j.id)) : JOBS
 
 mkdirSync(OUT_DIR, { recursive: true })
+mkdirSync(resolve(OUT_DIR, 'earth-variants'), { recursive: true })
 
 const browser = await chromium.launch({
   headless: false,
@@ -51,9 +75,9 @@ page.on('console', (m) => {
 })
 
 let failures = 0
-for (const name of NAMES) {
-  const url = `${BASE}/poster-capture?name=${name}&size=${SIZE}`
-  process.stdout.write(`capturing ${name} ... `)
+for (const job of jobs) {
+  const url = `${BASE}/poster-capture?${job.query}&size=${SIZE}`
+  process.stdout.write(`capturing ${job.id} ... `)
   try {
     await page.goto(url, { waitUntil: 'load', timeout: 30000 })
     await page.waitForSelector('canvas', { timeout: 30000 })
@@ -62,8 +86,7 @@ for (const name of NAMES) {
     await page.addStyleTag({
       content: 'astro-dev-toolbar{display:none!important}',
     })
-    // Wait for the flame to actually converge (quality getter exposed by the
-    // capture island), not just the first frame.
+    // Wait for the flame to actually converge, not just the first frame.
     await page.waitForFunction(
       (target) => {
         const w = /** @type {any} */ (window)
@@ -76,13 +99,12 @@ for (const name of NAMES) {
       QUALITY_TARGET,
       { timeout: 60000, polling: 250 },
     )
-    // Small settle so the last accumulation/postprocess frame is presented.
-    await page.waitForTimeout(600)
-    const out = resolve(OUT_DIR, `${name}.jpg`)
+    await page.waitForTimeout(600) // settle the last postprocess frame
+    const out = resolve(OUT_DIR, job.out)
     await page
       .locator('canvas')
       .screenshot({ path: out, type: 'jpeg', quality: 92 })
-    console.log(`ok -> ${out}`)
+    console.log(`ok -> ${job.out}`)
   } catch (err) {
     failures += 1
     console.log(`FAILED: ${err.message}`)

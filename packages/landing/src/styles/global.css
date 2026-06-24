@@ -271,6 +271,7 @@ h2 {
 }
 .plate:hover .open-in-app,
 .orbit-card:hover .open-in-app,
+.ev-stage:hover .open-in-app,
 .open-in-app:focus-visible {
   opacity: 1;
   transform: none;
@@ -374,5 +375,201 @@ h2 {
   }
   .js #features.is-revealed .feat:nth-child(6) {
     transition-delay: 0.35s;
+  }
+}
+
+/* ---- "Explore Earth Flame" CTA (on the earth community card) ---- */
+.explore-btn {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: var(--round);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(13, 16, 38, 0.72);
+  border: 1px solid rgba(147, 197, 253, 0.4);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 24px -10px rgba(0, 0, 0, 0.7);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+.explore-btn svg {
+  width: 15px;
+  height: 15px;
+}
+.explore-btn:hover {
+  background: var(--blue-600);
+  border-color: var(--blue-400);
+  transform: translateX(-50%) translateY(-2px);
+}
+
+/* ---- Earth Flame variants gallery modal (Portal'd to <body>) ---- */
+.ev-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(4, 6, 16, 0.78);
+  backdrop-filter: blur(10px);
+  animation: ev-fade 0.2s ease;
+}
+@keyframes ev-fade {
+  from {
+    opacity: 0;
+  }
+}
+.ev-modal {
+  width: min(680px, 100%);
+  max-height: calc(100svh - 48px);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(180deg, #0c0f1d, #070810);
+  box-shadow: 0 40px 120px -30px rgba(0, 0, 0, 0.85);
+}
+.ev-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.ev-kicker {
+  margin: 0;
+  font-size: 0.68rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--neutral-400);
+}
+.ev-title {
+  margin: 4px 0 2px;
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+.ev-tag {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--neutral-400);
+}
+.ev-close {
+  flex: none;
+  display: inline-flex;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--neutral-300);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  cursor: pointer;
+  transition: 0.15s;
+}
+.ev-close svg {
+  width: 18px;
+  height: 18px;
+}
+.ev-close:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+}
+.ev-stage {
+  position: relative;
+  aspect-ratio: 16 / 11;
+  width: 100%;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: radial-gradient(
+    120% 120% at 50% 38%,
+    rgba(16, 18, 44, 0.7),
+    #000 72%
+  );
+}
+.ev-stage-hint {
+  position: absolute;
+  left: 14px;
+  bottom: 12px;
+  z-index: 2;
+  pointer-events: none;
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.04em;
+  color: var(--neutral-400);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.85);
+}
+.ev-thumbs {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+}
+.ev-thumb {
+  position: relative;
+  display: block;
+  padding: 0;
+  border-radius: 9px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #000;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+.ev-thumb img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+.ev-thumb span {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 8px 4px 4px;
+  font-size: 0.58rem;
+  font-weight: 600;
+  text-align: center;
+  color: #fff;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.82));
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.ev-thumb:hover {
+  transform: translateY(-2px);
+  border-color: rgba(147, 197, 253, 0.5);
+}
+.ev-thumb:hover span {
+  opacity: 1;
+}
+.ev-thumb.active {
+  border-color: var(--blue-400);
+  box-shadow: 0 0 0 1px var(--blue-500);
+}
+.ev-thumb.active span {
+  opacity: 1;
+}
+@media (max-width: 560px) {
+  .ev-thumbs {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ev-backdrop {
+    animation: none;
   }
 }
