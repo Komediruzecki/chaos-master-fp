@@ -3842,18 +3842,6 @@ export function MainWorkspace(props: AppProps) {
                           <button
                             class={ui.addFlameButton}
                             onClick={() => {
-                              void showMigrationModal(
-                                structuredClone(
-                                  JSON.parse(JSON.stringify(flameDescriptor)),
-                                ),
-                              )
-                            }}
-                          >
-                            Migration
-                          </button>
-                          <button
-                            class={ui.addFlameButton}
-                            onClick={() => {
                               setFlameDescriptor((draft) => {
                                 draft.transforms[generateTransformId()] =
                                   deepClone(newDefaultTransform())
@@ -3876,6 +3864,18 @@ export function MainWorkspace(props: AppProps) {
                             }}
                           >
                             Add symmetry
+                          </button>
+                          <button
+                            class={ui.addFlameButton}
+                            onClick={() => {
+                              void showMigrationModal(
+                                structuredClone(
+                                  JSON.parse(JSON.stringify(flameDescriptor)),
+                                ),
+                              )
+                            }}
+                          >
+                            Migration
                           </button>
                         </Card>
                         <CollapsibleCard title="Render">
