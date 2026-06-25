@@ -15,6 +15,7 @@ developer history lives in `dev.changelog.md`.
 - The **Load Flame** dialog now scrolls as one piece — the upload / drop zone is no longer pinned, so the gallery gets more room on phones and tablets.
 - Slimmer keyboard-focus outline, tinted to match the app instead of the old chunky purple ring.
 - Reordered the transform buttons to **New transform → Add symmetry → Migration**.
+- The floating bottom-right controls (Benchmark, Docs, version / About) now sit together on one tidy row.
 
 ### Fixed
 

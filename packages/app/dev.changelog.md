@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **LoadFlameModal**: the subtitle, upload/drop zone, dimension filter and gallery now live inside a single scroll container (`.scrollBody`, renamed from `.galleryScroll`), so the whole modal body scrolls as one unit instead of pinning the upload zone at the top. This frees vertical space for the gallery on small / mobile / tablet viewports. The modal title bar (with the close button) stays fixed.
 - **Focus ring** (`styles/index.css`, global `:focus-visible`): introduced a `--focus-ring-color` token (`#6366f1` light / `#818cf8` dark — the app's indigo accent) to replace the hard-coded violet `#7c3aed`, and slimmed the ring from `2px` outline / `2px` offset to `1.5px` / `1px`. Still keyboard-focus only and `!important`, so the WCAG 2.4.7 behavior is preserved.
 - **Sidebar add-flame buttons** reordered to `New transform → Add symmetry → Migration` (was `Migration → New transform → Add symmetry`), in `MainWorkspace.tsx`.
+- **Bottom-right floating controls** consolidated into one row: the standalone fixed-position `BenchmarkButton` now renders inside `SoftwareVersion`'s `.versionContainer` (ordered Benchmark → Docs → version/About) instead of floating separately at `bottom: 2.75rem`. Dropped its own `position: fixed` and tuned its size to match the Docs / About pill height.
 
 ### Fixed
 
