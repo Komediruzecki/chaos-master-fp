@@ -46,27 +46,29 @@ function composeAffine(
 
 /**
  * Canned affine morphs for the "animate" button. Each maps (base affine,
- * progress t∈[0,1], transform index i) to the current affine. Every morph
- * vanishes to the identity at BOTH t=0 and t=1 (the sin envelopes are zero
- * there), so a run resolves cleanly back to the flame it started from — no
- * cumulative drift across repeated plays.
+ * progress t∈[0,1], transform index i, direction dir∈{-1,+1}) to the current
+ * affine. Every morph vanishes to the identity at BOTH t=0 and t=1 (the sin
+ * envelopes are zero there), so a run resolves cleanly back to the flame it
+ * started from — no cumulative drift across repeated plays. `dir` flips the
+ * sign each run so even a repeated preset reads differently.
  */
-const MORPHS: ReadonlyArray<(m: Affine, t: number, i: number) => Affine> = [
+type Morph = (m: Affine, t: number, i: number, dir: number) => Affine
+const MORPHS: ReadonlyArray<Morph> = [
   // rotate the whole map there-and-back
-  (m, t) => {
-    const th = Math.sin(t * Math.PI) * 0.9
+  (m, t, _i, dir) => {
+    const th = Math.sin(t * Math.PI) * 0.9 * dir
     const c = Math.cos(th)
     const s = Math.sin(th)
     return composeAffine(m, c, -s, s, c)
   },
-  // breathe — isotropic scale pulse
-  (m, t) => {
-    const s = 1 + Math.sin(t * Math.PI) * 0.3
+  // breathe — isotropic scale pulse (dir → grow-out vs squeeze-in first)
+  (m, t, _i, dir) => {
+    const s = 1 + Math.sin(t * Math.PI) * 0.3 * dir
     return composeAffine(m, s, 0, 0, s)
   },
   // sway — a full rotate + anisotropic squash wobble
-  (m, t) => {
-    const w = Math.sin(t * TWO_PI)
+  (m, t, _i, dir) => {
+    const w = Math.sin(t * TWO_PI) * dir
     const th = w * 0.3
     const c = Math.cos(th)
     const s = Math.sin(th)
@@ -75,13 +77,32 @@ const MORPHS: ReadonlyArray<(m: Affine, t: number, i: number) => Affine> = [
     return composeAffine(m, c * sx, -s * sy, s * sx, c * sy)
   },
   // twist — per-transform phase under a shared envelope (cascading curl)
-  (m, t, i) => {
+  (m, t, i, dir) => {
     const env = Math.sin(t * Math.PI)
-    const th = env * Math.cos(i * 1.3 + t * 3) * 0.7
+    const th = env * Math.cos(i * 1.3 + t * 3) * 0.7 * dir
     const c = Math.cos(th)
     const s = Math.sin(th)
     const sc = 1 + env * 0.12
     return composeAffine(m, c * sc, -s * sc, s * sc, c * sc)
+  },
+  // shear — a skew pulse along x then settle (clearly non-rotational)
+  (m, t, _i, dir) => {
+    const k = Math.sin(t * Math.PI) * 0.6 * dir
+    return composeAffine(m, 1, k, 0, 1)
+  },
+  // orbit — translate the whole map around a small circle and back to start
+  (m, t, _i, dir) => {
+    const env = Math.sin(t * Math.PI)
+    const ang = t * TWO_PI * dir
+    return composeAffine(
+      m,
+      1,
+      0,
+      0,
+      1,
+      Math.cos(ang) * env * 0.3 - env * 0.3,
+      Math.sin(ang) * env * 0.3,
+    )
   },
 ]
 
@@ -159,6 +180,9 @@ export default function StudioDemo() {
   // snapshot, so there's no float drift; runs always resolve back to the base.
   let animRaf = 0
   let animBase: Record<string, Affine> | undefined
+  // Remember the last preset so two clicks in a row never replay the same one
+  // (plain Math.random repeats ~1/N of the time, which read as "it's stuck").
+  let lastMorphIdx = -1
 
   const snapshotAffines = (): Record<string, Affine> => {
     const snap: Record<string, Affine> = {}
@@ -193,7 +217,15 @@ export default function StudioDemo() {
     }
     const base = snapshotAffines()
     animBase = base
-    const morph = MORPHS[Math.floor(Math.random() * MORPHS.length)]
+    // Pick a preset that differs from the previous run, and flip its direction
+    // at random — so repeated clicks visibly cycle through the canned moves.
+    let idx = Math.floor(Math.random() * MORPHS.length)
+    if (idx === lastMorphIdx && MORPHS.length > 1) {
+      idx = (idx + 1) % MORPHS.length
+    }
+    lastMorphIdx = idx
+    const morph = MORPHS[idx]
+    const dir = Math.random() < 0.5 ? -1 : 1
     const duration = 2600 + Math.random() * 1100
     const start = globalThis.performance.now()
     setAnimating(true)
@@ -201,7 +233,7 @@ export default function StudioDemo() {
       const t = Math.min(1, (now - start) / duration)
       const frame: Record<string, Affine> = {}
       tids.forEach((tid, i) => {
-        frame[tid] = morph(base[tid], t, i)
+        frame[tid] = morph(base[tid], t, i, dir)
       })
       applyAffines(frame)
       if (t < 1) {
