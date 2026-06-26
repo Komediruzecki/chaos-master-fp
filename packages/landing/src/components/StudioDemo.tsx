@@ -1,8 +1,9 @@
-import { createSignal, For, onCleanup, onMount, Show } from 'solid-js'
+import { createMemo, createResource, createSignal, For, onCleanup, onMount, Show, } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { example45 } from '@/flame/examples/example45'
 import { createDragHandler } from '@/utils/createDragHandler'
-import { posterFor, prettyVariation, PREVIEW_QUALITY } from '../lib/flame'
+import { encodeSharePayload } from '@/utils/jsonQueryParam'
+import { APP_URL, posterFor, prettyVariation, PREVIEW_QUALITY, } from '../lib/flame'
 import PosterFlame from './PosterFlame'
 
 /**
@@ -132,6 +133,33 @@ export default function StudioDemo() {
   })
 
   const tids = Object.keys(example45.transforms)
+  // Probabilities are stored raw; the renderer normalises by their live sum
+  // (transformFunction.ts), so the panel shows the same normalised share — they
+  // always add up to 1.00, and scrubbing one transform reweights the others
+  // instead of letting a value read as >1.
+  const probTotal = createMemo(
+    () =>
+      tids.reduce(
+        (s, tid) =>
+          s + ((flame.transforms as never)[tid].probability as number),
+        0,
+      ) || 1,
+  )
+
+  // "Open in app": encode the live (scrubbed) flame into the app's self-contained
+  // ?flame= share link so a flame you tweak here opens straight in Chaos Master.
+  // Re-encoded only when the flame settles (bumpFlame), not every rAF frame.
+  // Mirrors OpenInApp.tsx, driven by this component's live store.
+  const [flameRev, setFlameRev] = createSignal(1)
+  const bumpFlame = () => setFlameRev((n) => n + 1)
+  const [appShareUrl] = createResource(flameRev, async () => {
+    try {
+      const encoded = await encodeSharePayload(flame)
+      return `${APP_URL}/?flame=${encoded}`
+    } catch {
+      return APP_URL
+    }
+  })
 
   // Any number in the panel — an affine coef, a transform probability, or a
   // variation weight — is scrubbed through the same path: a spec says how to
@@ -176,6 +204,7 @@ export default function StudioDemo() {
       onDone() {
         document.removeEventListener('touchmove', blockScroll)
         document.body.style.cursor = ''
+        bumpFlame() // refresh the "open in app" link with the settled values
       },
     }
   })
@@ -288,6 +317,7 @@ export default function StudioDemo() {
         )
       }
     }
+    bumpFlame() // back to the base flame → refresh the "open in app" link
   }
 
   return (
@@ -326,13 +356,32 @@ export default function StudioDemo() {
               class="ph-btn animate"
               classList={{ running: animating() }}
               type="button"
+              title={
+                animating() ? 'Stop' : 'Play a random animation each click'
+              }
               onClick={toggleAnimate}
             >
               <Show
                 when={animating()}
                 fallback={
+                  // A die — each click rolls a different canned move, so the
+                  // icon signals the animation is random, not a single loop.
                   <svg viewBox="0 0 16 16" aria-hidden="true">
-                    <path d="M5 3.5v9l7-4.5z" fill="currentColor" />
+                    <rect
+                      x="2.5"
+                      y="2.5"
+                      width="11"
+                      height="11"
+                      rx="2.5"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.3"
+                    />
+                    <circle cx="5.5" cy="5.5" r="1.05" fill="currentColor" />
+                    <circle cx="10.5" cy="5.5" r="1.05" fill="currentColor" />
+                    <circle cx="8" cy="8" r="1.05" fill="currentColor" />
+                    <circle cx="5.5" cy="10.5" r="1.05" fill="currentColor" />
+                    <circle cx="10.5" cy="10.5" r="1.05" fill="currentColor" />
                   </svg>
                 }
               >
@@ -352,6 +401,28 @@ export default function StudioDemo() {
             <button class="ph-btn reset" type="button" onClick={reset}>
               reset
             </button>
+            <a
+              class="ph-btn open"
+              href={appShareUrl() ?? APP_URL}
+              target="_blank"
+              rel="noopener"
+              title="Open this flame in Chaos Master"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M15 3h6v6" />
+                <path d="M10 14 21 3" />
+                <path d="M21 13.5V18a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3h4.5" />
+              </svg>
+              open
+            </a>
           </div>
         </div>
         <For each={tids}>
@@ -381,11 +452,12 @@ export default function StudioDemo() {
                       step: 0.003,
                       decimals: 2,
                       min: 0.01,
-                      max: 2,
+                      max: 1,
                     })}
                   >
                     {(
-                      (flame.transforms as never)[tid].probability as number
+                      ((flame.transforms as never)[tid].probability as number) /
+                      probTotal()
                     ).toFixed(2)}
                   </span>
                 </span>
