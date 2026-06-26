@@ -4,6 +4,7 @@ import { example45 } from '@/flame/examples/example45'
 import { createDragHandler } from '@/utils/createDragHandler'
 import { encodeSharePayload } from '@/utils/jsonQueryParam'
 import { APP_URL, posterFor, prettyVariation, PREVIEW_QUALITY, } from '../lib/flame'
+import { webgpuLive } from '../lib/webgpuHealth'
 import PosterFlame from './PosterFlame'
 
 /**
@@ -338,7 +339,7 @@ export default function StudioDemo() {
         <span class="corner c4" />
         <div class="hud">
           <div class="row">
-            <span>VIEWPORT · live</span>
+            <span>VIEWPORT · {webgpuLive() ? 'live' : 'static'}</span>
             <span>spectrum swirl</span>
           </div>
           <div class="row">
