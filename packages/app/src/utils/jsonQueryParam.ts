@@ -249,6 +249,28 @@ export async function decodeSharePayload(param: string): Promise<{
   )
 }
 
+/**
+ * Decode a single shared custom variation from a `?cv=` link. Returns the raw
+ * definition only — it is NOT trusted here. The caller must re-validate it
+ * through the allowlist compiler (importSharedVariations) before use.
+ */
+export async function decodeVariationShare(
+  param: string,
+): Promise<CustomVariationDef> {
+  const decompressed = await decompressJsonQueryRaw(decodeBase64(param))
+  const raw = JSON.parse(new TextDecoder().decode(decompressed))
+  if (
+    raw &&
+    typeof raw === 'object' &&
+    'variation' in raw &&
+    raw.variation &&
+    typeof raw.variation === 'object'
+  ) {
+    return raw.variation as CustomVariationDef
+  }
+  throw new Error('Invalid shared variation payload')
+}
+
 async function decompressJsonQueryRaw(
   compressedBytes: Uint8Array<ArrayBuffer>,
 ): Promise<Uint8Array> {

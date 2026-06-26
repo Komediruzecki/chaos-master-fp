@@ -1,9 +1,23 @@
 import { ShareApi } from './apiClient'
 import { blobToBase64 } from './blob'
-import { encodeSharePayload } from './jsonQueryParam'
+import { encodeJsonQueryParam, encodeSharePayload } from './jsonQueryParam'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 import type { CustomVariationDef } from '@/flame/variations/custom'
 import type { TimelineConfig, TimelineTrack } from '@/utils/timeline'
+
+/**
+ * Encode a single custom variation into a self-contained `?cv=` link. The
+ * recipient re-validates the code through the allowlist compiler on load (see
+ * decodeVariationShare + importSharedVariations) and is shown a preview before
+ * saving — the payload is never trusted as-is. Inline only (no shortener): a
+ * variation's WGSL is small, so the link stays short and never expires.
+ */
+export async function encodeVariationShareUrl(
+  def: CustomVariationDef,
+): Promise<string> {
+  const encoded = await encodeJsonQueryParam({ variation: def })
+  return `${globalThis.location.origin}/?cv=${encoded}`
+}
 
 /**
  * Shared share-link logic, used by both the Share Link modal and the Discord

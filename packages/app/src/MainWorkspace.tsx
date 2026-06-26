@@ -48,6 +48,7 @@ import { ProgressBar } from './components/ProgressBar/ProgressBar'
 import { getPresetFromQuality, qualityPresets, } from './components/Quality/QualityPresets'
 import { QuickVariationPicker } from './components/QuickVariationPicker/QuickVariationPicker'
 import { createShareLinkModal } from './components/ShareLinkModal/ShareLinkModal'
+import { createShareVariationLinkModal, createShareVariationLoadModal, } from './components/ShareVariationModal/ShareVariationModal'
 import { AngleEditor } from './components/Sliders/ParametricEditors/AngleEditor'
 import { ScrubInput } from './components/Sliders/ScrubInput'
 import { Slider } from './components/Sliders/Slider'
@@ -193,6 +194,15 @@ export type AppProps = {
   flameFromQuery?: SharePayload & {
     importedCustomVariations?: CustomVariationDef[]
     alreadyOwnedCustomVariations?: CustomVariationDef[]
+  }
+  /**
+   * A single custom variation shared via a `?cv=` link, already re-validated and
+   * transiently registered by App.tsx. `alreadyOwned` is true when the code
+   * matches one already in the user's library. Runtime-only (never serialized).
+   */
+  sharedVariationFromQuery?: {
+    def: CustomVariationDef
+    alreadyOwned: boolean
   }
   flameFromWelcome?: () => FlameDescriptor | undefined
   welcomeTracks?: () => TimelineTrack[] | undefined
@@ -1099,6 +1109,10 @@ export function MainWorkspace(props: AppProps) {
 
   const { showImportVariationsModal } = createImportVariationsModal()
 
+  const { showShareVariationLinkModal } = createShareVariationLinkModal()
+
+  const { showShareVariationLoadModal } = createShareVariationLoadModal()
+
   const { showMigrationModal } = createMigrationModal(history)
 
   /** Waits until the canvas backing-store size stops changing (the resize is
@@ -1842,6 +1856,23 @@ export function MainWorkspace(props: AppProps) {
         `${alreadyOwned.length} custom variation${alreadyOwned.length === 1 ? '' : 's'} from this flame ${alreadyOwned.length === 1 ? 'is' : 'are'} already in your library`,
       )
     }
+  })
+
+  // A single custom variation arrived via a `?cv=` link: preview it and offer to
+  // save (fires once when the resource resolves).
+  let sharedVariationApplied = false
+  createEffect(() => {
+    const sv = props.sharedVariationFromQuery
+    if (!sv || sharedVariationApplied) return
+    sharedVariationApplied = true
+    void (async () => {
+      const save = await showShareVariationLoadModal(sv.def, sv.alreadyOwned)
+      if (save && !sv.alreadyOwned) {
+        persistSharedVariations([sv.def.id])
+        setCustomVarsVersion((v) => v + 1)
+        showToast(`Saved "${sv.def.name}" to your library`)
+      }
+    })()
   })
 
   function getFlameValue(
@@ -3144,6 +3175,17 @@ export function MainWorkspace(props: AppProps) {
                                       }}
                                     >
                                       <BoxArrowRight />
+                                    </button>
+                                    <button
+                                      class={ui.customVarItemBtn}
+                                      title="Share variation link"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        setHoveredCustomVarDef(null)
+                                        void showShareVariationLinkModal(def)
+                                      }}
+                                    >
+                                      <Share />
                                     </button>
                                     <button
                                       class={ui.customVarItemBtn}

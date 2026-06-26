@@ -18,7 +18,7 @@ import { flameCreationTour } from './tours/flameCreationTour'
 import { sidebarTour } from './tours/sidebarTour'
 import { timelineTour } from './tours/timelineTour'
 import { isBenchmarkAuto, isBenchmarkRequested } from './utils/benchmarkRequest'
-import { decodeSharePayload } from './utils/jsonQueryParam'
+import { decodeSharePayload, decodeVariationShare, } from './utils/jsonQueryParam'
 import { persistentSignal } from './utils/persistentSignal'
 import { recordKeys } from './utils/record'
 import { dismissWelcome, hasWelcomeBeenDismissed, } from './utils/welcomeDismissed'
@@ -164,12 +164,39 @@ export function Wrappers() {
     return undefined
   })
 
+  // A single custom variation shared via `?cv=`. Decoded, re-validated through
+  // the allowlist compiler, and transiently registered so MainWorkspace can
+  // preview it and offer to save. Untrusted: importSharedVariations never trusts
+  // the payload's claims.
+  const [sharedVariationFromQuery] = createResource(async () => {
+    const cv = new URLSearchParams(window.location.search).get('cv')
+    if (cv === null) return undefined
+    try {
+      const def = await decodeVariationShare(cv)
+      loadCustomVariations()
+      const result = importSharedVariations([def])
+      if (result.alreadyOwned.length > 0) {
+        return { def: result.alreadyOwned[0]!, alreadyOwned: true }
+      }
+      if (result.imported.length > 0) {
+        return { def: result.imported[0]!, alreadyOwned: false }
+      }
+      setQueryError('The shared variation could not be loaded.')
+      console.warn('Rejected shared variation:', result.rejected)
+      return undefined
+    } catch (err) {
+      setQueryError('Failed to decode the shared variation.')
+      console.error('Failed to decode shared variation:', err)
+      return undefined
+    }
+  })
+
   const spotlightState = createSpotlightTourState(getTour)
 
-  // Auto-dismiss welcome screen when a query flame is present in the URL
+  // Auto-dismiss welcome screen when a query flame or shared variation is present
   createEffect(() => {
     const fq = flameFromQuery()
-    if (fq?.flame) {
+    if (fq?.flame || sharedVariationFromQuery()) {
       setShowWelcome(false)
     }
   })
@@ -244,6 +271,7 @@ export function Wrappers() {
                       <QueryErrorToast error={queryError()} />
                       <MainWorkspace
                         flameFromQuery={flameFromQuery()}
+                        sharedVariationFromQuery={sharedVariationFromQuery()}
                         flameFromWelcome={selectedFlame}
                         welcomeTracks={selectedWelcomeTracks}
                         autoOpenBenchmark={benchmarkRequested}

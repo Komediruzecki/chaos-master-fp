@@ -24,3 +24,4 @@ export {
   compileCustomVariationCode,
   MAX_CUSTOM_WGSL_LENGTH,
 } from './runtimeCompiler'
+export { makeCustomVariationPreviewFlame } from './previewFlame'
