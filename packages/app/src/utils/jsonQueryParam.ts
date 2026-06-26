@@ -3,6 +3,7 @@ import { decodeBase64, encodeBase64 } from './base64'
 import { recordKeys } from './record'
 import { sum } from './sum'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
+import type { CustomVariationDef } from '@/flame/variations/custom'
 import type { TimelineConfig, TimelineTrack } from '@/utils/timeline'
 
 const format: CompressionFormat = 'deflate'
@@ -128,15 +129,25 @@ export interface SharePayload {
     tracks: TimelineTrack[]
     config: TimelineConfig
   }
+  /**
+   * Full definitions of any custom (user-authored WGSL/math) variations the
+   * flame references, so the recipient can render them. Untrusted: every entry
+   * is re-validated through the allowlist compiler on load — never trusted as-is.
+   */
+  customVariations?: CustomVariationDef[]
 }
 
 export async function encodeSharePayload(
   flame: FlameDescriptor,
   animation?: { tracks: TimelineTrack[]; config: TimelineConfig },
+  customVariations?: CustomVariationDef[],
 ): Promise<string> {
   const payload: SharePayload = { flame }
   if (animation && animation.tracks.length > 0) {
     payload.animation = animation
+  }
+  if (customVariations && customVariations.length > 0) {
+    payload.customVariations = customVariations
   }
   const transformKeys = recordKeys(flame.transforms ?? {})
   const firstColor = transformKeys[0]
@@ -159,9 +170,11 @@ export async function encodeSharePayload(
   return encodeJsonQueryParam(payload)
 }
 
-export async function decodeSharePayload(
-  param: string,
-): Promise<{ flame: FlameDescriptor; animation?: SharePayload['animation'] }> {
+export async function decodeSharePayload(param: string): Promise<{
+  flame: FlameDescriptor
+  animation?: SharePayload['animation']
+  customVariations?: CustomVariationDef[]
+}> {
   shareLog('[share:decode] starting decode, param length:', param.length)
   const rawBytes = decodeBase64(param)
   shareLog(
@@ -226,6 +239,9 @@ export async function decodeSharePayload(
     return {
       flame: validated,
       animation: raw.animation ?? undefined,
+      customVariations: Array.isArray(raw.customVariations)
+        ? (raw.customVariations as CustomVariationDef[])
+        : undefined,
     }
   }
   throw new Error(

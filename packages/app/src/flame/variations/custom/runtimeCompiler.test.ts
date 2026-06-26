@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { compileCustomVariationCode } from './runtimeCompiler'
+import { compileCustomVariationCode, MAX_CUSTOM_WGSL_LENGTH, } from './runtimeCompiler'
 
 describe('compileCustomVariationCode - Arity Validation', () => {
   it('detects insufficient arguments for pow', () => {
@@ -98,5 +98,14 @@ describe('compileCustomVariationCode - allowlist rejections (S-6)', () => {
     expect(compileCustomVariationCode('return toString(pos);').valid).toBe(
       false,
     )
+  })
+
+  it('rejects code exceeding the length cap', () => {
+    const tooLong = `return pos; ${'/* pad */'.repeat(MAX_CUSTOM_WGSL_LENGTH)}`
+    const result = compileCustomVariationCode(tooLong)
+    expect(result.valid).toBe(false)
+    if (!result.valid) {
+      expect(result.errors[0]?.message).toContain('too long')
+    }
   })
 })

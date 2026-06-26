@@ -8,6 +8,7 @@ import { createSpotlightTourState, SpotlightTourContext, } from './contexts/Spot
 import { ThemeContextProvider } from './contexts/ThemeContext'
 import { ToastProvider, useToast } from './contexts/ToastContext'
 import { IS_DEV } from './defaults'
+import { importSharedVariations, loadCustomVariations, remapFlameCustomVariations, } from './flame/variations/custom'
 import { Root } from './lib/Root'
 import { MainWorkspace } from './MainWorkspace'
 import { appTour } from './tours/appTour'
@@ -125,7 +126,33 @@ export function Wrappers() {
               : 0,
             hasAnimation: !!result?.animation,
             animTrackCount: result?.animation?.tracks?.length ?? 0,
+            customVariationCount: result?.customVariations?.length ?? 0,
           })
+        }
+        // Re-validate and register any custom variations embedded in the link.
+        // Untrusted input: importSharedVariations recompiles each through the
+        // allowlist compiler and registers them transiently (not saved) — the
+        // recipient is asked to save them via the consent prompt downstream.
+        if (result.customVariations && result.customVariations.length > 0) {
+          // Load the saved library first so collision detection sees it.
+          loadCustomVariations()
+          const imported = importSharedVariations(result.customVariations)
+          const flame = remapFlameCustomVariations(result.flame, imported.remap)
+          if (imported.rejected.length > 0) {
+            const n = imported.rejected.length
+            setQueryError(
+              `${n} custom variation${n === 1 ? '' : 's'} in this link could not be loaded and ${n === 1 ? 'was' : 'were'} skipped.`,
+            )
+            console.warn(
+              'Rejected shared custom variations:',
+              imported.rejected,
+            )
+          }
+          return {
+            ...result,
+            flame,
+            importedCustomVariations: imported.imported,
+          }
         }
         return result
       } catch (err) {

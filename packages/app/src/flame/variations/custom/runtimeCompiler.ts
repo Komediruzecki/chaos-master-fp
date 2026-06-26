@@ -6,6 +6,14 @@ import { VariationInfo } from '../simple/types'
 import { BUILTIN_ARITY, BUILTIN_EXTERNALS } from './wgslBuiltins'
 import type { TgpuFn } from 'typegpu'
 
+/**
+ * Hard cap on custom-variation source length. Bounds parse/compile cost for
+ * untrusted code (e.g. a variation arriving inside a shared link) and keeps the
+ * share payload small. Generous for any hand-written variation; 16 KB of WGSL
+ * is far more than a single `(pos, varInfo) => vec2f` function needs.
+ */
+export const MAX_CUSTOM_WGSL_LENGTH = 16384
+
 const BANNED_NAMES = new Set([
   'storageBarrier',
   'textureBarrier',
@@ -50,6 +58,17 @@ function formatAcornError(err: unknown): { message: string; line?: number } {
 }
 
 export function compileCustomVariationCode(wgslBody: string): CompileResult {
+  if (wgslBody.length > MAX_CUSTOM_WGSL_LENGTH) {
+    return {
+      valid: false,
+      errors: [
+        {
+          message: `Code is too long (${wgslBody.length} characters). The maximum is ${MAX_CUSTOM_WGSL_LENGTH}.`,
+        },
+      ],
+    }
+  }
+
   const source = `(pos, varInfo) => {\n${wgslBody}\n}`
 
   let rootNode

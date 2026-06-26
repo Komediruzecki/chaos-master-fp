@@ -36,6 +36,7 @@ import { handleColor } from './components/FlameColorEditor/FlameColorEditor'
 import { FlameRandomizerCard } from './components/FlameRandomizerCard/FlameRandomizerCard'
 import { FloatingActions } from './components/FloatingActions/FloatingActions'
 import { createShowHelp } from './components/HelpModal/HelpModal'
+import { createImportVariationsModal } from './components/ImportVariationsModal/ImportVariationsModal'
 import { ConfirmOverwriteRecentModal } from './components/LoadFlameModal/ConfirmOverwriteRecentModal'
 import { createLoadFlame } from './components/LoadFlameModal/LoadFlameModal'
 import { createLogoFaviconGenerator } from './components/LogoFaviconGenerator/LogoFaviconGenerator'
@@ -78,7 +79,7 @@ import { MAX_CAMERA_ZOOM_VALUE, MIN_CAMERA_ZOOM_VALUE, } from './flame/schema/fl
 import { generateTransformId, generateVariationId, } from './flame/transformFunction'
 import { defaultLinearType } from './flame/variationRegistry'
 import { allTransformVariations, isAnyParametricVariationType, isVariationType, } from './flame/variations'
-import { deleteCustomVariation, duplicateCustomVariation, getCustomVariations, loadCustomVariations, } from './flame/variations/custom'
+import { deleteCustomVariation, duplicateCustomVariation, getCustomVariations, loadCustomVariations, persistSharedVariations, } from './flame/variations/custom'
 import { getNormalizedVariationName, getParamsEditor, getVariationDefault, } from './flame/variations/utils'
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { BoxArrowRight, Cross, Eye, EyeOff, Menu, Plus, Share, Shuffle, Terminal, } from './icons'
@@ -182,7 +183,15 @@ export type ExportImageType = (
 ) => void
 
 export type AppProps = {
-  flameFromQuery?: SharePayload
+  /**
+   * Decoded shared payload. `importedCustomVariations` is runtime-only (set by
+   * the share-load path in App.tsx, never serialized): the custom variations
+   * that were re-validated and registered transiently, offered to the recipient
+   * to save via the consent prompt.
+   */
+  flameFromQuery?: SharePayload & {
+    importedCustomVariations?: CustomVariationDef[]
+  }
   flameFromWelcome?: () => FlameDescriptor | undefined
   welcomeTracks?: () => TimelineTrack[] | undefined
   resetFlameFromWelcome?: () => void
@@ -1086,6 +1095,8 @@ export function MainWorkspace(props: AppProps) {
 
   const { showDiscordShareModal } = createDiscordShareModal()
 
+  const { showImportVariationsModal } = createImportVariationsModal()
+
   const { showMigrationModal } = createMigrationModal(history)
 
   /** Waits until the canvas backing-store size stops changing (the resize is
@@ -1802,6 +1813,23 @@ export function MainWorkspace(props: AppProps) {
       })
       timeline.goToFrame(0)
       timeline.play()
+    }
+
+    // Offer to save any custom variations the link brought in. They are already
+    // registered (transiently) so the flame renders; this only asks whether to
+    // persist them into the recipient's library.
+    const imported = data.importedCustomVariations
+    if (imported && imported.length > 0) {
+      void (async () => {
+        const save = await showImportVariationsModal(imported)
+        if (save) {
+          persistSharedVariations(imported.map((def) => def.id))
+          setCustomVarsVersion((v) => v + 1)
+          showToast(
+            `Saved ${imported.length} custom variation${imported.length === 1 ? '' : 's'} to your library`,
+          )
+        }
+      })()
     }
   })
 

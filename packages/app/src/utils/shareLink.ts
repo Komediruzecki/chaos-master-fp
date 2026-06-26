@@ -2,6 +2,7 @@ import { ShareApi } from './apiClient'
 import { blobToBase64 } from './blob'
 import { encodeSharePayload } from './jsonQueryParam'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
+import type { CustomVariationDef } from '@/flame/variations/custom'
 import type { TimelineConfig, TimelineTrack } from '@/utils/timeline'
 
 /**
@@ -34,8 +35,13 @@ export interface ShareLink {
 export async function encodeShareUrl(opts: {
   flame: FlameDescriptor
   animation?: ShareAnimation
+  customVariations?: CustomVariationDef[]
 }): Promise<{ encoded: string; longUrl: string }> {
-  const encoded = await encodeSharePayload(opts.flame, opts.animation)
+  const encoded = await encodeSharePayload(
+    opts.flame,
+    opts.animation,
+    opts.customVariations,
+  )
   return { encoded, longUrl: `${globalThis.location.origin}/?flame=${encoded}` }
 }
 
@@ -56,6 +62,7 @@ export async function shortenShareUrl(encoded: string): Promise<string> {
 export async function createShareLink(opts: {
   flame: FlameDescriptor
   animation?: ShareAnimation
+  customVariations?: CustomVariationDef[]
 }): Promise<ShareLink> {
   const { encoded, longUrl } = await encodeShareUrl(opts)
   const shortUrl = await shortenShareUrl(encoded)

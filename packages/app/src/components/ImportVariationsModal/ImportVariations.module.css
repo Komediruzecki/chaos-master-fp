@@ -1,0 +1,42 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 28rem;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 0 var(--space-2);
+}
+
+.note {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--text-muted, #999);
+}
+
+.list {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  max-height: 12rem;
+  overflow-y: auto;
+}
+
+.item {
+  font-size: 0.85rem;
+  color: var(--text-color, #eee);
+  word-break: break-word;
+}
+
+.footer {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: end;
+}
