@@ -73,8 +73,12 @@ export function Wrappers() {
   // `?benchmark=auto` additionally starts the run on load.
   const benchmarkRequested = isBenchmarkRequested(window.location.search)
   const benchmarkAuto = isBenchmarkAuto(window.location.search)
+  // Local/dev escape hatch (e.g. driving the app with Playwright): skip the
+  // welcome screen — and with it the on-startup hardware-tier detection, which
+  // lives inside WelcomeScreen. Off in production builds (env unset → false).
+  const skipWelcome = import.meta.env.VITE_SKIP_WELCOME === 'true'
   const [showWelcome, setShowWelcome] = createSignal(
-    !hasWelcomeBeenDismissed() && !benchmarkRequested,
+    !hasWelcomeBeenDismissed() && !benchmarkRequested && !skipWelcome,
   )
   const [dontShowAgain, setDontShowAgain] = persistentSignal(
     'dontShowWelcome',
@@ -276,7 +280,11 @@ export function Wrappers() {
                         welcomeTracks={selectedWelcomeTracks}
                         autoOpenBenchmark={benchmarkRequested}
                         autoStartBenchmark={benchmarkAuto}
-                        hardwareTier={hardwareTier()}
+                        hardwareTier={
+                          // When the welcome screen is skipped, detection never
+                          // runs — fall back to a sane tier so quality is set.
+                          hardwareTier() ?? (skipWelcome ? 'high' : null)
+                        }
                         onHardwareTierChange={setHardwareTier}
                         resetFlameFromWelcome={() => {
                           setSelectedFlame(undefined)
