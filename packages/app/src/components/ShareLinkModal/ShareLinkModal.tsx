@@ -1,4 +1,5 @@
 import { createEffect, createMemo, createSignal, onCleanup, Show, } from 'solid-js'
+import { useToast } from '@/contexts/ToastContext'
 import { exportFlameXml } from '@/flame/flameXml'
 import { collectFlameCustomVariations } from '@/flame/variations/custom'
 import { deriveOgMeta, encodeShareUrl, shortenShareUrl, uploadOgPreview, } from '@/utils/shareLink'
@@ -29,6 +30,7 @@ type ShareLinkModalProps = {
 }
 
 function ShareLinkModal(props: ShareLinkModalProps) {
+  const { showToast } = useToast()
   const [includeAnimation, setIncludeAnimation] = createSignal(
     props.hasAnimation,
   )
@@ -215,6 +217,14 @@ function ShareLinkModal(props: ShareLinkModalProps) {
                   props.flameDescriptor.metadata?.name,
                 ),
               )
+              // Custom variations can't be represented in .flame — let the user
+              // know they were left out of the export.
+              const n = customVariations().length
+              if (n > 0) {
+                showToast(
+                  `${n} custom variation${n === 1 ? '' : 's'} omitted from the flam3 XML — no Apophysis/flam3 equivalent.`,
+                )
+              }
             }}
           >
             Copy flam3 XML
