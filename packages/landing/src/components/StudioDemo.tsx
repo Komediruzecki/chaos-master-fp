@@ -132,21 +132,31 @@ export default function StudioDemo() {
   })
 
   const tids = Object.keys(example45.transforms)
-  const total = tids.reduce(
-    (s, tid) => s + (example45.transforms as never)[tid].probability,
-    0,
-  )
 
+  // Any number in the panel — an affine coef, a transform probability, or a
+  // variation weight — is scrubbed through the same path: a spec says how to
+  // read/write the live value, how fast a pixel moves it, how to round it, and
+  // its clamp. (Probability/weight are renderer uniforms just like the affine —
+  // see transformFunction.ts — so scrubbing any of them is a cheap live update,
+  // no pipeline recompile.)
+  type ScrubSpec = {
+    get: () => number
+    set: (v: number) => void
+    step: number
+    decimals: number
+    min?: number
+    max?: number
+  }
   // Scrub a value via the app's robust drag handler (setPointerCapture +
   // document-level pointer listeners + multi-touch aware + auto-cleanup on
   // unmount), so dragging a number works the same on mouse, pen and touch. The
-  // handler only passes the event, so the target value is stashed on pointerdown.
-  let scrubTarget: { tid: string; key: string } | undefined
+  // handler only passes the event, so the target spec is stashed on pointerdown.
+  let scrubTarget: ScrubSpec | undefined
   const startScrub = createDragHandler((initEvent) => {
     if (animating() || !scrubTarget) return undefined
-    const { tid, key } = scrubTarget
+    const spec = scrubTarget
     const startX = initEvent.clientX
-    const startV = (flame.transforms as never)[tid].preAffine[key] as number
+    const startV = spec.get()
     document.body.style.cursor = 'ew-resize'
     // Android reclaims the touch as a page scroll and fires pointercancel
     // mid-drag (freezing the scrub) — `touch-action: none` alone isn't reliable
@@ -158,14 +168,10 @@ export default function StudioDemo() {
     document.addEventListener('touchmove', blockScroll, { passive: false })
     return {
       onPointerMove(ev) {
-        const next = +(startV + (ev.clientX - startX) * 0.004).toFixed(3)
-        setFlame(
-          'transforms',
-          tid as never,
-          'preAffine' as never,
-          key as never,
-          next as never,
-        )
+        let next = startV + (ev.clientX - startX) * spec.step
+        if (spec.min !== undefined) next = Math.max(spec.min, next)
+        if (spec.max !== undefined) next = Math.min(spec.max, next)
+        spec.set(+next.toFixed(spec.decimals))
       },
       onDone() {
         document.removeEventListener('touchmove', blockScroll)
@@ -173,6 +179,11 @@ export default function StudioDemo() {
       },
     }
   })
+  // Stash the spec, then hand the pointerdown to the drag handler.
+  const beginScrub = (spec: ScrubSpec) => (e: PointerEvent) => {
+    scrubTarget = spec
+    startScrub(e)
+  }
 
   // --- canned animation (the "animate" button) ----------------------------
   // Drives the same store path the panel scrubs, so the flame morphs live (and
@@ -340,9 +351,29 @@ export default function StudioDemo() {
                 F{i()}
                 <span class="prob">
                   p{' '}
-                  {(
-                    (flame.transforms as never)[tid].probability / total
-                  ).toFixed(2)}
+                  <span
+                    class="scrub"
+                    onPointerDown={beginScrub({
+                      get: () =>
+                        (flame.transforms as never)[tid].probability as number,
+                      set: (v) => {
+                        setFlame(
+                          'transforms',
+                          tid as never,
+                          'probability' as never,
+                          v as never,
+                        )
+                      },
+                      step: 0.003,
+                      decimals: 2,
+                      min: 0.01,
+                      max: 2,
+                    })}
+                  >
+                    {(
+                      (flame.transforms as never)[tid].probability as number
+                    ).toFixed(2)}
+                  </span>
                 </span>
               </div>
               <div class="matrix">
@@ -352,10 +383,23 @@ export default function StudioDemo() {
                       {k}{' '}
                       <b
                         class="scrub"
-                        onPointerDown={(e) => {
-                          scrubTarget = { tid, key: k }
-                          startScrub(e)
-                        }}
+                        onPointerDown={beginScrub({
+                          get: () =>
+                            (flame.transforms as never)[tid].preAffine[
+                              k
+                            ] as number,
+                          set: (v) => {
+                            setFlame(
+                              'transforms',
+                              tid as never,
+                              'preAffine' as never,
+                              k as never,
+                              v as never,
+                            )
+                          },
+                          step: 0.004,
+                          decimals: 3,
+                        })}
                       >
                         {(
                           (flame.transforms as never)[tid].preAffine[
@@ -369,14 +413,43 @@ export default function StudioDemo() {
               </div>
               <div class="vbar">
                 <For
-                  each={Object.values(
-                    (flame.transforms as never)[tid].variations,
+                  each={Object.entries(
+                    (flame.transforms as never)[tid].variations as Record<
+                      string,
+                      { type: string; weight: number }
+                    >,
                   )}
                 >
-                  {(v: never) => (
+                  {([vid, v]) => (
                     <span class="vtag">
-                      {prettyVariation((v as { type: string }).type)}{' '}
-                      {(v as { weight: number }).weight}
+                      {prettyVariation(v.type)}{' '}
+                      <span
+                        class="scrub"
+                        onPointerDown={beginScrub({
+                          get: () =>
+                            (flame.transforms as never)[tid].variations[vid]
+                              .weight as number,
+                          set: (w) => {
+                            setFlame(
+                              'transforms',
+                              tid as never,
+                              'variations' as never,
+                              vid as never,
+                              'weight' as never,
+                              w as never,
+                            )
+                          },
+                          step: 0.004,
+                          decimals: 2,
+                          min: 0,
+                          max: 2,
+                        })}
+                      >
+                        {(
+                          (flame.transforms as never)[tid].variations[vid]
+                            .weight as number
+                        ).toFixed(2)}
+                      </span>
                     </span>
                   )}
                 </For>
