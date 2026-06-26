@@ -80,7 +80,7 @@ import { MAX_CAMERA_ZOOM_VALUE, MIN_CAMERA_ZOOM_VALUE, } from './flame/schema/fl
 import { generateTransformId, generateVariationId, } from './flame/transformFunction'
 import { defaultLinearType } from './flame/variationRegistry'
 import { allTransformVariations, isAnyParametricVariationType, isVariationType, } from './flame/variations'
-import { deleteCustomVariation, duplicateCustomVariation, getCustomVariations, loadCustomVariations, persistSharedVariations, } from './flame/variations/custom'
+import { deleteCustomVariation, duplicateCustomVariation, getCustomVariations, isCustomVariationRegistered, loadCustomVariations, persistSharedVariations, } from './flame/variations/custom'
 import { getNormalizedVariationName, getParamsEditor, getVariationDefault, } from './flame/variations/utils'
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { BoxArrowRight, Cross, Eye, EyeOff, Menu, Plus, Share, Shuffle, Terminal, } from './icons'
@@ -638,6 +638,16 @@ export function MainWorkspace(props: AppProps) {
     void customVarsVersion()
     return getCustomVariations()
   })
+
+  // Status of a variation type for the per-transform list badge: 'none' for
+  // built-ins, 'available' for a live custom variation, 'unavailable' for one a
+  // flame still references after it was deleted from the library (or never
+  // imported). Reads customVarsVersion so the badge re-evaluates on delete/import.
+  function customStatus(type: string): 'none' | 'available' | 'unavailable' {
+    if (!type.startsWith('custom_')) return 'none'
+    void customVarsVersion()
+    return isCustomVariationRegistered(type) ? 'available' : 'unavailable'
+  }
 
   // Close the quick variation picker when its target transform/variation no
   // longer exists in the current flame — i.e. the flame was switched or toggled
@@ -3469,9 +3479,14 @@ export function MainWorkspace(props: AppProps) {
                                           class={ui.variationButton}
                                           data-tour-target="variation-type"
                                           value={variation.type}
-                                          title={getNormalizedVariationName(
-                                            variation.type,
-                                          )}
+                                          title={
+                                            customStatus(variation.type) ===
+                                            'unavailable'
+                                              ? `${getNormalizedVariationName(variation.type)} — custom variation unavailable (deleted from your library)`
+                                              : getNormalizedVariationName(
+                                                  variation.type,
+                                                )
+                                          }
                                           onClick={() => {
                                             // Auto-open sidebar on mobile so the picker is visible
                                             if (isMobile() && sidebarHidden()) {
@@ -3542,6 +3557,26 @@ export function MainWorkspace(props: AppProps) {
                                               )}
                                             </span>
                                           </div>
+                                          {/* Custom variation marker: accent dot
+                                              when live, red when the flame still
+                                              references one deleted from the
+                                              library. */}
+                                          <Show
+                                            when={
+                                              customStatus(variation.type) !==
+                                              'none'
+                                            }
+                                          >
+                                            <span
+                                              class={ui.customBadge}
+                                              classList={{
+                                                [ui.customBadgeUnavailable as string]:
+                                                  customStatus(
+                                                    variation.type,
+                                                  ) === 'unavailable',
+                                              }}
+                                            />
+                                          </Show>
                                         </button>
                                         <div
                                           class={ui.sliderGridWrapper}

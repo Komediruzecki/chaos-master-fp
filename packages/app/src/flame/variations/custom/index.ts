@@ -14,6 +14,7 @@ export {
   persistSharedVariations,
   remapFlameCustomVariations,
   generateCustomVariationId,
+  isCustomVariationRegistered,
 } from './CustomVariationRegistry'
 export type {
   RegisterResult,

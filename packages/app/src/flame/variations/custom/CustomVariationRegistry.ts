@@ -62,6 +62,19 @@ export function getCustomVariations(): CustomVariationDef[] {
   return Object.values(customVariationRecords).map((r) => r.def)
 }
 
+/**
+ * Whether a custom variation id is currently live in the global registry with a
+ * compiled fn — i.e. it actually renders. False once it's been deleted from the
+ * library (or never imported), so a flame still referencing it can be flagged as
+ * unavailable in the UI.
+ */
+export function isCustomVariationRegistered(id: string): boolean {
+  const rec = (
+    transformVariations as Record<string, { fn?: unknown } | undefined>
+  )[id]
+  return !!rec?.fn
+}
+
 export function getCacheVersion(): number {
   return cacheVersion
 }
