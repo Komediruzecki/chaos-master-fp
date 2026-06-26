@@ -320,10 +320,31 @@ export function collectFlameCustomVariations(
 export type SharedImportResult = {
   /** Newly registered (transient) variations to offer the recipient to save. */
   imported: CustomVariationDef[]
+  /**
+   * Shared variations whose code is identical to one already in the recipient's
+   * saved library (matched by WGSL, regardless of id). Not imported — the flame
+   * is pointed at the existing copy instead, so the user's version is never
+   * duplicated or overwritten. Surfaced so the modal can say "already in your
+   * library". Holds the existing (saved) defs.
+   */
+  alreadyOwned: CustomVariationDef[]
   /** Old id -> new id for variations re-keyed to avoid clobbering an existing one. */
   remap: Record<string, string>
   /** Variations that failed re-validation and were skipped. */
   rejected: { name: string; errors: CompileError[] }[]
+}
+
+/** A saved or transient variation whose code matches `wgsl`, if any. */
+function findByWgsl(
+  wgsl: string,
+): { id: string; def: CustomVariationDef; saved: boolean } | undefined {
+  for (const [id, record] of Object.entries(customVariationRecords)) {
+    if (record.def.wgsl === wgsl) return { id, def: record.def, saved: true }
+  }
+  for (const [id, record] of Object.entries(transientSharedRecords)) {
+    if (record.def.wgsl === wgsl) return { id, def: record.def, saved: false }
+  }
+  return undefined
 }
 
 function isValidSharedDefShape(def: unknown): def is CustomVariationDef {
@@ -357,6 +378,7 @@ export function importSharedVariations(
   defs: readonly unknown[],
 ): SharedImportResult {
   const imported: CustomVariationDef[] = []
+  const alreadyOwned: CustomVariationDef[] = []
   const remap: Record<string, string> = {}
   const rejected: { name: string; errors: CompileError[] }[] = []
 
@@ -377,22 +399,32 @@ export function importSharedVariations(
       continue
     }
 
-    const existing = lookupDef(incoming.id)
-    // Already present with identical code — nothing to import, it renders as-is.
-    if (existing && existing.wgsl === incoming.wgsl) {
-      continue
-    }
-
     const compileResult = compileCustomVariationCode(incoming.wgsl)
     if (!compileResult.valid) {
       rejected.push({ name: incoming.name, errors: compileResult.errors })
       continue
     }
 
+    // Identical code already present (saved or imported this session), matched by
+    // WGSL regardless of id: don't duplicate. Point the flame at the existing
+    // copy and, if it's saved, report it as already-owned. Never overwrite.
+    const match = findByWgsl(incoming.wgsl)
+    if (match) {
+      if (match.id !== incoming.id) {
+        remap[incoming.id] = match.id
+      }
+      if (match.saved && !alreadyOwned.some((d) => d.id === match.id)) {
+        alreadyOwned.push(match.def)
+      }
+      continue
+    }
+
     const now = Date.now()
-    // Re-key on id collision so we never clobber the recipient's version.
-    const id = existing ? generateId() : incoming.id
-    if (existing) {
+    // Re-key on id collision (same id, different code) so we never clobber the
+    // recipient's version.
+    const idTaken = lookupDef(incoming.id) !== undefined
+    const id = idTaken ? generateId() : incoming.id
+    if (idTaken) {
       remap[incoming.id] = id
     }
     const def: CustomVariationDef = {
@@ -406,7 +438,7 @@ export function importSharedVariations(
     imported.push(def)
   }
 
-  return { imported, remap, rejected }
+  return { imported, alreadyOwned, remap, rejected }
 }
 
 /**

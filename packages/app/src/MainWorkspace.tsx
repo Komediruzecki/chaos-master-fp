@@ -184,13 +184,15 @@ export type ExportImageType = (
 
 export type AppProps = {
   /**
-   * Decoded shared payload. `importedCustomVariations` is runtime-only (set by
-   * the share-load path in App.tsx, never serialized): the custom variations
-   * that were re-validated and registered transiently, offered to the recipient
-   * to save via the consent prompt.
+   * Decoded shared payload. `importedCustomVariations` /
+   * `alreadyOwnedCustomVariations` are runtime-only (set by the share-load path
+   * in App.tsx, never serialized): respectively the custom variations
+   * re-validated and registered transiently (offered to save via the consent
+   * prompt), and the ones whose code already matches the user's saved library.
    */
   flameFromQuery?: SharePayload & {
     importedCustomVariations?: CustomVariationDef[]
+    alreadyOwnedCustomVariations?: CustomVariationDef[]
   }
   flameFromWelcome?: () => FlameDescriptor | undefined
   welcomeTracks?: () => TimelineTrack[] | undefined
@@ -1816,20 +1818,29 @@ export function MainWorkspace(props: AppProps) {
     }
 
     // Offer to save any custom variations the link brought in. They are already
-    // registered (transiently) so the flame renders; this only asks whether to
-    // persist them into the recipient's library.
-    const imported = data.importedCustomVariations
-    if (imported && imported.length > 0) {
+    // registered (transiently) so the flame renders; this only asks which to
+    // persist into the recipient's library. Variations whose code the user
+    // already has are surfaced as "already in your library" (not re-saved).
+    const imported = data.importedCustomVariations ?? []
+    const alreadyOwned = data.alreadyOwnedCustomVariations ?? []
+    if (imported.length > 0) {
       void (async () => {
-        const save = await showImportVariationsModal(imported)
-        if (save) {
-          persistSharedVariations(imported.map((def) => def.id))
+        const selectedIds = await showImportVariationsModal(
+          imported,
+          alreadyOwned,
+        )
+        if (selectedIds && selectedIds.length > 0) {
+          persistSharedVariations(selectedIds)
           setCustomVarsVersion((v) => v + 1)
           showToast(
-            `Saved ${imported.length} custom variation${imported.length === 1 ? '' : 's'} to your library`,
+            `Saved ${selectedIds.length} custom variation${selectedIds.length === 1 ? '' : 's'} to your library`,
           )
         }
       })()
+    } else if (alreadyOwned.length > 0) {
+      showToast(
+        `${alreadyOwned.length} custom variation${alreadyOwned.length === 1 ? '' : 's'} from this flame ${alreadyOwned.length === 1 ? 'is' : 'are'} already in your library`,
+      )
     }
   })
 

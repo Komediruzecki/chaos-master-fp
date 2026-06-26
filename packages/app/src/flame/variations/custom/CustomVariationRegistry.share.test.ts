@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { collectFlameCustomVariations, importSharedVariations, persistSharedVariations, remapFlameCustomVariations, } from './CustomVariationRegistry'
+import { collectFlameCustomVariations, createCustomVariation, importSharedVariations, persistSharedVariations, remapFlameCustomVariations, } from './CustomVariationRegistry'
 import { MAX_CUSTOM_WGSL_LENGTH } from './runtimeCompiler'
 import type { CustomVariationDef } from './types'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
@@ -15,7 +15,15 @@ function flameWith(types: string[]): FlameDescriptor {
   } as unknown as FlameDescriptor
 }
 
-function sharedDef(id: string, wgsl = 'return pos;'): CustomVariationDef {
+// Unique, compilable body per call so content-matching across the registry's
+// shared module state doesn't make tests interfere.
+let wgslCounter = 0
+
+function uniqueWgsl(): string {
+  return `return pos + vec2f(${wgslCounter++}.0, 0.0);`
+}
+
+function sharedDef(id: string, wgsl = uniqueWgsl()): CustomVariationDef {
   return { id, name: `Shared ${id}`, wgsl, createdAt: 0, updatedAt: 0 }
 }
 
@@ -69,9 +77,9 @@ describe('shared custom variations', () => {
 
   it('re-keys on id collision with different code and reports a remap', () => {
     const id = 'custom_share_collide'
-    importSharedVariations([sharedDef(id, 'return pos;')])
+    importSharedVariations([sharedDef(id)])
 
-    const result = importSharedVariations([sharedDef(id, 'return pos * 2.0;')])
+    const result = importSharedVariations([sharedDef(id)])
     expect(result.imported).toHaveLength(1)
     const newId = result.remap[id]
     expect(newId).toBeDefined()
@@ -81,11 +89,29 @@ describe('shared custom variations', () => {
 
   it('is a no-op when the same id and code are re-imported', () => {
     const id = 'custom_share_same'
-    importSharedVariations([sharedDef(id, 'return pos;')])
-    const result = importSharedVariations([sharedDef(id, 'return pos;')])
+    const code = uniqueWgsl()
+    importSharedVariations([sharedDef(id, code)])
+    const result = importSharedVariations([sharedDef(id, code)])
     expect(result.imported).toHaveLength(0)
+    expect(result.alreadyOwned).toHaveLength(0)
     expect(result.rejected).toHaveLength(0)
     expect(result.remap).toEqual({})
+  })
+
+  it('detects a saved variation with identical code as already-owned and remaps to it', () => {
+    const code = uniqueWgsl()
+    const created = createCustomVariation('My Saved Variation', code)
+    expect(created.success).toBe(true)
+    if (!created.success) throw new Error('setup: createCustomVariation failed')
+    const savedId = created.def.id
+
+    const result = importSharedVariations([
+      sharedDef('custom_incoming_dup', code),
+    ])
+    expect(result.imported).toHaveLength(0)
+    expect(result.alreadyOwned.map((d) => d.id)).toContain(savedId)
+    // Flame's reference is pointed at the existing copy; nothing overwritten.
+    expect(result.remap['custom_incoming_dup']).toBe(savedId)
   })
 
   it('remapFlameCustomVariations rewrites references and is pure', () => {

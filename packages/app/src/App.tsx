@@ -152,6 +152,7 @@ export function Wrappers() {
             ...result,
             flame,
             importedCustomVariations: imported.imported,
+            alreadyOwnedCustomVariations: imported.alreadyOwned,
           }
         }
         return result
