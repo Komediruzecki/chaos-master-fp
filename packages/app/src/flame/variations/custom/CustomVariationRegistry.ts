@@ -17,6 +17,11 @@ function generateId(): string {
     .replaceAll('-', '_')}`
 }
 
+/** Mint a fresh `custom_<uuid>` id — e.g. to share an unsaved variation. */
+export function generateCustomVariationId(): string {
+  return generateId()
+}
+
 const customVariationRecords: Record<
   string,
   {

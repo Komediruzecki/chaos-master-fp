@@ -152,12 +152,14 @@ function ShareVariationLoadModal(props: {
         </Show>
       </div>
       <footer class={ui.footer}>
+        {/* With nothing to save (already owned), the dismiss button is the only
+            action — label it "Close" rather than "Not now". */}
         <Button
           onClick={() => {
             props.respond(false)
           }}
         >
-          Not now
+          {props.alreadyOwned ? 'Close' : 'Not now'}
         </Button>
         <Show when={!props.alreadyOwned}>
           <Button

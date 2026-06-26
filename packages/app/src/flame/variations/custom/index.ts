@@ -13,6 +13,7 @@ export {
   importSharedVariations,
   persistSharedVariations,
   remapFlameCustomVariations,
+  generateCustomVariationId,
 } from './CustomVariationRegistry'
 export type {
   RegisterResult,

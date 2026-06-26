@@ -531,10 +531,15 @@
     border-color 0.15s;
 }
 
-.helpButton:hover {
+.helpButton:hover:not(:disabled) {
   background: var(--neutral-100);
   color: var(--neutral-800);
   border-color: var(--neutral-400);
+}
+
+.helpButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 [data-theme='dark'] .helpButton {
@@ -542,7 +547,7 @@
   color: var(--neutral-400);
 }
 
-[data-theme='dark'] .helpButton:hover {
+[data-theme='dark'] .helpButton:hover:not(:disabled) {
   background: var(--neutral-800);
   color: var(--neutral-200);
   border-color: var(--neutral-500);

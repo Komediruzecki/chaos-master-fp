@@ -3,8 +3,8 @@ import { vec2f, vec4f } from 'typegpu/data'
 import { useToast } from '@/contexts/ToastContext'
 import { DEFAULT_VARIATION_PREVIEW_POINT_COUNT, DEFAULT_VARIATION_PREVIEW_QUALITY, } from '@/defaults'
 import { Flam3 } from '@/flame/Flam3'
-import { createCustomVariation, deleteCustomVariation, duplicateCustomVariation, getCustomVariations, makeCustomVariationPreviewFlame, previewCustomVariation, updateCustomVariation, } from '@/flame/variations/custom'
-import { BoxArrowRight, Cross, Plus, Sparkle, Terminal } from '@/icons'
+import { createCustomVariation, deleteCustomVariation, duplicateCustomVariation, generateCustomVariationId, getCustomVariations, makeCustomVariationPreviewFlame, previewCustomVariation, updateCustomVariation, } from '@/flame/variations/custom'
+import { BoxArrowRight, Cross, Plus, Share, Sparkle, Terminal } from '@/icons'
 import { AutoCanvas } from '@/lib/AutoCanvas'
 import { Root } from '@/lib/Root'
 import { WheelZoomCamera2D } from '@/lib/WheelZoomCamera2D'
@@ -12,6 +12,7 @@ import { mathModeTutorial } from '@/tutorials/mathModeTutorial'
 import { MathEditor } from '../MathEditor/MathEditor'
 import { useRequestModal } from '../Modal/ModalContext'
 import { ModalTitleBar } from '../Modal/ModalTitleBar'
+import { createShareVariationLinkModal } from '../ShareVariationModal/ShareVariationModal'
 import { TutorialModal } from '../TutorialModal/TutorialModal'
 import { WgslEditor } from '../WgslEditor'
 import ui from './CustomVariationEditor.module.css'
@@ -123,6 +124,7 @@ function ShowCustomVariationEditor(props: {
 }) {
   const { showToast } = useToast()
   const requestModal = useRequestModal()
+  const { showShareVariationLinkModal } = createShareVariationLinkModal()
   const [activeId, setActiveId] = createSignal<string | undefined>()
   const [activeExampleName, setActiveExampleName] = createSignal<
     string | undefined
@@ -157,6 +159,22 @@ function ShowCustomVariationEditor(props: {
     const p = preview()
     return p.status === 'compiled' && isDirty()
   })
+
+  // Sharable as soon as it compiles (even if unsaved/unchanged). Reuses the same
+  // `?cv=` link modal as the sidebar's per-variation Share action.
+  const canShare = () => preview().status === 'compiled'
+
+  function shareCurrentVariation() {
+    if (!canShare()) return
+    const now = Date.now()
+    void showShareVariationLinkModal({
+      id: activeId() ?? generateCustomVariationId(),
+      name: name().trim() || 'Untitled',
+      wgsl: code(),
+      createdAt: now,
+      updatedAt: now,
+    })
+  }
 
   const diagnostics = createMemo((): Diagnostic[] => {
     const p = preview()
@@ -560,6 +578,18 @@ function ShowCustomVariationEditor(props: {
               Math
             </button>
             <div style={{ flex: 1 }} />
+            <button
+              class={ui.helpButton}
+              disabled={!canShare()}
+              onClick={shareCurrentVariation}
+              title={
+                canShare()
+                  ? 'Share this variation as a link'
+                  : 'Compile the variation first to share it'
+              }
+            >
+              <Share width="0.8rem" />
+            </button>
             <button
               class={ui.helpButton}
               onClick={() => {
