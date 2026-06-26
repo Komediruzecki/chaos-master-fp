@@ -3575,6 +3575,12 @@ export function MainWorkspace(props: AppProps) {
                                                     variation.type,
                                                   ) === 'unavailable',
                                               }}
+                                              title={
+                                                customStatus(variation.type) ===
+                                                'unavailable'
+                                                  ? 'Custom variation — unavailable (deleted from your library)'
+                                                  : `Custom Variation ${getNormalizedVariationName(variation.type)}`
+                                              }
                                             />
                                           </Show>
                                         </button>

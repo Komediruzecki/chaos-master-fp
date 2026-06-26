@@ -320,6 +320,14 @@
   flex-shrink: 0;
 }
 
+/* The Share + "?" action buttons — kept apart so they never touch, while the
+   WGSL/Math tabs stay joined. */
+.tabBarActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 [data-theme='dark'] .tabBar {
   border-color: var(--neutral-600);
 }

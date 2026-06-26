@@ -578,27 +578,29 @@ function ShowCustomVariationEditor(props: {
               Math
             </button>
             <div style={{ flex: 1 }} />
-            <button
-              class={ui.helpButton}
-              disabled={!canShare()}
-              onClick={shareCurrentVariation}
-              title={
-                canShare()
-                  ? 'Share this variation as a link'
-                  : 'Compile the variation first to share it'
-              }
-            >
-              <Share width="0.8rem" />
-            </button>
-            <button
-              class={ui.helpButton}
-              onClick={() => {
-                showTutorialModal(mathModeTutorial)
-              }}
-              title="Math mode tutorial"
-            >
-              ?
-            </button>
+            <div class={ui.tabBarActions}>
+              <button
+                class={ui.helpButton}
+                disabled={!canShare()}
+                onClick={shareCurrentVariation}
+                title={
+                  canShare()
+                    ? 'Share this variation as a link'
+                    : 'Compile the variation first to share it'
+                }
+              >
+                <Share width="0.8rem" />
+              </button>
+              <button
+                class={ui.helpButton}
+                onClick={() => {
+                  showTutorialModal(mathModeTutorial)
+                }}
+                title="Math mode tutorial"
+              >
+                ?
+              </button>
+            </div>
           </div>
 
           <Show

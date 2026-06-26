@@ -916,7 +916,8 @@
   border-radius: 50%;
   background: oklch(68% 0.17 155);
   box-shadow: 0 0 0 1px oklch(100% 0 0 / 0.45);
-  pointer-events: none;
+  /* Receive hover so the dot shows its own "Custom Variation <name>" tooltip. */
+  pointer-events: auto;
   z-index: 1;
 }
 
