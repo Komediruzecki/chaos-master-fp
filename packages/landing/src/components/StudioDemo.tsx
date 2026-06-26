@@ -267,12 +267,26 @@ export default function StudioDemo() {
     setAnimating(false)
     const fresh = structuredClone(example45)
     for (const tid of tids) {
+      const ft = (fresh.transforms as never)[tid]
+      // Restore everything the panel can scrub: affine coefs, probability, and
+      // each variation weight — not just the affine.
+      setFlame('transforms', tid as never, 'preAffine' as never, ft.preAffine)
       setFlame(
         'transforms',
         tid as never,
-        'preAffine' as never,
-        (fresh.transforms as never)[tid].preAffine,
+        'probability' as never,
+        ft.probability,
       )
+      for (const vid of Object.keys(ft.variations)) {
+        setFlame(
+          'transforms',
+          tid as never,
+          'variations' as never,
+          vid as never,
+          'weight' as never,
+          (ft.variations as never)[vid].weight,
+        )
+      }
     }
   }
 
