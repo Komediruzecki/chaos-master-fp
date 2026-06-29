@@ -186,7 +186,13 @@
   font-size: 12px;
   color: var(--color-text-muted, #888);
   font-variant-numeric: tabular-nums;
-  font-family: var(--font-mono, 'SF Mono', 'Cascadia Code', 'Consolas', monospace);
+  font-family: var(
+    --font-mono,
+    'SF Mono',
+    'Cascadia Code',
+    'Consolas',
+    monospace
+  );
 }
 
 /* --- Playhead --- */

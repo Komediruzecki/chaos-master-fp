@@ -1,12 +1,8 @@
 import { createEffect, createMemo, createSignal, For, onCleanup, Show, } from 'solid-js'
 import { Cross } from '@/icons'
-import {
-  createAudioAnalyzer,
-  createLiveAnalyzer,
-  decodeAudioFile
-} from '@/utils/audioAnalysis'
+import { createLiveAnalyzer, decodeAudioFile } from '@/utils/audioAnalysis'
 import ui from './AudioReactivePanel.module.css'
-import type {LiveAudioAnalyzer} from '@/utils/audioAnalysis';
+import type { AudioAnalyzer, LiveAudioAnalyzer } from '@/utils/audioAnalysis'
 
 // --- Types ---
 
@@ -43,6 +39,10 @@ export type ParamMapping = {
   flameParam: FlameParam
   sensitivity: number
   range: [number, number]
+  /** Attack time in ms — how fast the value rises (0 = instant). */
+  attackMs?: number
+  /** Release time in ms — how fast the value falls (0 = instant). */
+  releaseMs?: number
 }
 
 export type AudioMapping = {
@@ -50,7 +50,13 @@ export type AudioMapping = {
   mappings: ParamMapping[]
 }
 
-export type AudioPreset = 'pulse' | 'groove' | 'ambient' | 'chaos' | 'warmth' | 'custom'
+export type AudioPreset =
+  | 'pulse'
+  | 'groove'
+  | 'ambient'
+  | 'chaos'
+  | 'warmth'
+  | 'custom'
 
 type AudioReactivePanelProps = {
   onClose: () => void
@@ -63,11 +69,15 @@ type AudioReactivePanelProps = {
   audioSource: (() => 'file' | 'mic') | 'file' | 'mic'
   onSourceChange: (source: 'file' | 'mic') => void
   onLiveAnalyzerChange: (analyzer: LiveAudioAnalyzer | undefined) => void
-  liveAnalyzer: (() => LiveAudioAnalyzer | undefined) | LiveAudioAnalyzer | undefined
+  liveAnalyzer:
+    | (() => LiveAudioAnalyzer | undefined)
+    | LiveAudioAnalyzer
+    | undefined
   playbackPaused: () => boolean
   onPausedChange: (paused: boolean) => void
   playbackTime: () => number
   onSeek: (seconds: number) => void
+  fileAnalyzer: (() => AudioAnalyzer | undefined) | AudioAnalyzer | undefined
 }
 
 // --- Feature / param labels ---
@@ -273,16 +283,13 @@ function mixToMono(buffer: AudioBuffer): Float32Array {
 }
 
 function computeBeatFrames(
-  audioBuffer: AudioBuffer,
+  analyzer: AudioAnalyzer,
   onProgress?: (current: number, total: number) => void,
-): {
-  beatFrames: Set<number>
-  totalFrames: number
-} {
-  const analyzer = createAudioAnalyzer(audioBuffer, 30, onProgress)
+): { beatFrames: Set<number>; totalFrames: number } {
   const beats = new Set<number>()
   for (let i = 0; i < analyzer.totalFrames; i++) {
     if (analyzer.getFrameData(i).isBeat) beats.add(i)
+    onProgress?.(i, analyzer.totalFrames)
   }
   return { beatFrames: beats, totalFrames: analyzer.totalFrames }
 }
@@ -355,8 +362,7 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
   const [dragOver, setDragOver] = createSignal(false)
   const [loading, setLoading] = createSignal(false)
   const [error, setError] = createSignal<string | null>(null)
-  const [analyzing, setAnalyzing] = createSignal(false)
-  const [analyzeProgress, setAnalyzeProgress] = createSignal(0)
+  const [beatProgress, setBeatProgress] = createSignal(0)
   const [audioFileName, setAudioFileName] = createSignal<string | null>(null)
   const [micError, setMicError] = createSignal<string | null>(null)
   const [micConnecting, setMicConnecting] = createSignal(false)
@@ -366,12 +372,19 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
 
   const [scrubbing, setScrubbing] = createSignal(false)
 
+  // Derived: true while the shared analyzer is being built (FFT pass)
+  const isAnalyzing = createMemo(() => {
+    const buf = audioBuffer()
+    return buf != null && fileAnalyzer() == null
+  })
+
   const audioBuffer = () => resolve(props.audioBuffer)
   const audioMapping = () => resolve(props.audioMapping)
   const audioSource = () => resolve(props.audioSource)
   const liveAnalyzer = () => resolve(props.liveAnalyzer)
   const playbackPaused = () => resolve(props.playbackPaused)
   const playbackTime = () => resolve(props.playbackTime)
+  const fileAnalyzer = () => resolve(props.fileAnalyzer)
 
   function formatTime(seconds: number): string {
     const s = Math.max(0, Math.floor(seconds))
@@ -398,27 +411,26 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
     e.preventDefault()
   }
 
-  // Draw waveform when buffer changes
+  // Draw waveform when shared analyzer is ready
   createEffect(() => {
     const buffer = audioBuffer()
-    if (!buffer) return
+    const analyzer = fileAnalyzer()
     const canvas = waveformCanvas
-    if (!canvas) return
+    if (!buffer || !analyzer || !canvas) return
 
-    setAnalyzing(true)
-    setAnalyzeProgress(0)
-    // Yield so the UI paints "Analyzing audio..." before we block on FFT.
+    setBeatProgress(0)
+    // Yield so UI paints the progress state before scanning beat frames
     setTimeout(() => {
       const { beatFrames, totalFrames } = computeBeatFrames(
-        buffer,
+        analyzer,
         (current, total) => {
-          setAnalyzeProgress(Math.round((current / total) * 100))
+          setBeatProgress(Math.round((current / total) * 100))
         },
       )
       cachedBeatFrames = beatFrames
       cachedTotalFrames = totalFrames
       drawWaveform(canvas, buffer, beatFrames, totalFrames, 0)
-      setAnalyzing(false)
+      setBeatProgress(0)
     }, 30)
   })
 
@@ -437,7 +449,8 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
     window.addEventListener('mousemove', scrubMoveHandler)
     window.addEventListener('mouseup', scrubUpHandler)
     onCleanup(() => {
-      if (scrubMoveHandler) window.removeEventListener('mousemove', scrubMoveHandler)
+      if (scrubMoveHandler)
+        window.removeEventListener('mousemove', scrubMoveHandler)
       if (scrubUpHandler) window.removeEventListener('mouseup', scrubUpHandler)
     })
   })
@@ -591,7 +604,13 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
             Mic
           </button>
         </div>
-        <button class={ui.closeBtn} onClick={() => { handleKey({ key: 'Escape' } as KeyboardEvent); }} title="Close (Esc)">
+        <button
+          class={ui.closeBtn}
+          onClick={() => {
+            handleKey({ key: 'Escape' } as KeyboardEvent)
+          }}
+          title="Close (Esc)"
+        >
           <Cross />
         </button>
       </div>
@@ -605,7 +624,7 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
               fallback={
                 <Show when={micConnecting()}>
                   <div class={ui.micStatus}>
-                    <span class={`${ui.micDot  } ${  ui.micDotPulse}`} />
+                    <span class={`${ui.micDot} ${ui.micDotPulse}`} />
                     Requesting microphone access...
                   </div>
                 </Show>
@@ -627,112 +646,120 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
           <Show
             when={!audioBuffer()}
             fallback={
-            <>
-              {/* Audio loaded state */}
-              <div class={ui.audioInfo}>
-                <span class={ui.audioFileName}>{fileName()}</span>
-                <span class={ui.audioDuration}>
-                  {audioBuffer()!.duration.toFixed(1)}s
-                </span>
-                <button
-                  class={ui.clearAudioBtn}
-                  onClick={() => {
-                    props.onAudioChange(undefined)
-                    setAudioFileName(null)
-                  }}
-                >
-                  Clear
-                </button>
-              </div>
-
-              {/* Playback controls */}
-              <div class={ui.playbackRow}>
-                <button
-                  class={ui.playPauseBtn}
-                  onClick={() => {
-                    props.onPausedChange(!playbackPaused())
-                  }}
-                  title={playbackPaused() ? 'Play' : 'Pause'}
-                >
-                  {playbackPaused() ? '▶' : '⏸'}
-                </button>
-                <span class={ui.timeText}>
-                  {formatTime(playbackTime())}
-                  {' / '}
-                  {formatTime(audioBuffer()!.duration)}
-                </span>
-              </div>
-
-              {/* Waveform */}
-              <div class={ui.waveformWrap}>
-                <Show when={analyzing()}>
-                  <div class={ui.analyzeOverlay}>
-                    <span class={ui.analyzeLabel}>Analyzing audio...</span>
-                    <div class={ui.progressTrack}>
-                      <div
-                        class={ui.progressFill}
-                        style={{ width: `${analyzeProgress()}%` }}
-                      />
-                    </div>
-                    <span class={ui.analyzePercent}>{analyzeProgress()}%</span>
-                  </div>
-                </Show>
-                <canvas
-                  ref={waveformCanvas}
-                  class={
-                    ui.waveform +
-                    (analyzing() ? ` ${ui.waveformHidden}` : '') +
-                    (analyzing() ? '' : ` ${ui.waveformInteractive}`)
-                  }
-                  onClick={handleWaveformClick}
-                  onMouseDown={handleScrubStart}
-                />
-                {/* Playhead overlay line */}
-                <Show when={!analyzing()}>
-                  <div
-                    class={ui.playhead}
-                    style={{
-                      left: `${((playbackTime() / (audioBuffer()!.duration || 1)) * 100).toFixed(2)}%`,
+              <>
+                {/* Audio loaded state */}
+                <div class={ui.audioInfo}>
+                  <span class={ui.audioFileName}>{fileName()}</span>
+                  <span class={ui.audioDuration}>
+                    {audioBuffer()!.duration.toFixed(1)}s
+                  </span>
+                  <button
+                    class={ui.clearAudioBtn}
+                    onClick={() => {
+                      props.onAudioChange(undefined)
+                      setAudioFileName(null)
                     }}
+                  >
+                    Clear
+                  </button>
+                </div>
+
+                {/* Playback controls */}
+                <div class={ui.playbackRow}>
+                  <button
+                    class={ui.playPauseBtn}
+                    onClick={() => {
+                      props.onPausedChange(!playbackPaused())
+                    }}
+                    title={playbackPaused() ? 'Play' : 'Pause'}
+                  >
+                    {playbackPaused() ? '▶' : '⏸'}
+                  </button>
+                  <span class={ui.timeText}>
+                    {formatTime(playbackTime())}
+                    {' / '}
+                    {formatTime(audioBuffer()!.duration)}
+                  </span>
+                </div>
+
+                {/* Waveform */}
+                <div class={ui.waveformWrap}>
+                  <Show when={isAnalyzing() || beatProgress() > 0}>
+                    <div class={ui.analyzeOverlay}>
+                      <span class={ui.analyzeLabel}>
+                        {isAnalyzing()
+                          ? 'Analyzing audio...'
+                          : 'Scanning beats...'}
+                      </span>
+                      <div class={ui.progressTrack}>
+                        <div
+                          class={ui.progressFill}
+                          style={{ width: `${beatProgress()}%` }}
+                        />
+                      </div>
+                      <Show when={beatProgress() > 0}>
+                        <span class={ui.analyzePercent}>{beatProgress()}%</span>
+                      </Show>
+                    </div>
+                  </Show>
+                  <canvas
+                    ref={waveformCanvas}
+                    class={
+                      ui.waveform +
+                      (isAnalyzing() ? ` ${ui.waveformHidden}` : '') +
+                      (isAnalyzing() ? '' : ` ${ui.waveformInteractive}`)
+                    }
+                    onClick={handleWaveformClick}
+                    onMouseDown={handleScrubStart}
                   />
-                </Show>
-              </div>
-            </>
-          }
-        >
-          <div
-            class={ui.dropZone + (dragOver() ? ` ${ui.dropZoneActive}` : '')}
-            onClick={() => {
-              fileInput.click()
-            }}
-            onDragOver={(e) => {
-              e.preventDefault()
-              setDragOver(true)
-            }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={handleDrop}
+                  {/* Playhead overlay line */}
+                  <Show when={!isAnalyzing()}>
+                    <div
+                      class={ui.playhead}
+                      style={{
+                        left: `${((playbackTime() / (audioBuffer()!.duration || 1)) * 100).toFixed(2)}%`,
+                      }}
+                    />
+                  </Show>
+                </div>
+              </>
+            }
           >
-            <div class={ui.dropIcon}>🎵</div>
-            <div class={ui.dropLabel}>
-              {loading() ? 'Loading...' : 'Drop audio file or click to browse'}
-            </div>
-            <div class={ui.dropFormats}>MP3, WAV, OGG, FLAC</div>
-            <Show when={error()}>
-              <div style="color: #ff5a5a; font-size: 12px; margin-top: 8px;">
-                {error()!}
+            <div
+              class={ui.dropZone + (dragOver() ? ` ${ui.dropZoneActive}` : '')}
+              onClick={() => {
+                fileInput.click()
+              }}
+              onDragOver={(e) => {
+                e.preventDefault()
+                setDragOver(true)
+              }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={handleDrop}
+            >
+              <div class={ui.dropIcon}>🎵</div>
+              <div class={ui.dropLabel}>
+                {loading()
+                  ? 'Loading...'
+                  : 'Drop audio file or click to browse'}
               </div>
-            </Show>
-          </div>
-          <input
-            ref={(el) => {
-              fileInput = el
-            }}
-            type="file"
-            accept={SUPPORTED_AUDIO}
-            style="display:none"
-            onChange={handleFileInput}
-          />
-        </Show>
+              <div class={ui.dropFormats}>MP3, WAV, OGG, FLAC</div>
+              <Show when={error()}>
+                <div style="color: #ff5a5a; font-size: 12px; margin-top: 8px;">
+                  {error()!}
+                </div>
+              </Show>
+            </div>
+            <input
+              ref={(el) => {
+                fileInput = el
+              }}
+              type="file"
+              accept={SUPPORTED_AUDIO}
+              style="display:none"
+              onChange={handleFileInput}
+            />
+          </Show>
         </Show>
 
         {/* Presets */}

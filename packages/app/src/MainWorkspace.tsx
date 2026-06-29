@@ -136,7 +136,8 @@ import type { TransformVariationType } from './flame/variations'
 import type { CustomVariationDef } from './flame/variations/custom/types'
 import type { TransformVariationType3D } from './flame/variations3D'
 import type { AnimationExportConfig } from './utils/animationExport'
-import type { LiveAudioAnalyzer } from './utils/audioAnalysis'
+import type { AudioAnalyzer, LiveAudioAnalyzer } from './utils/audioAnalysis'
+import { createAudioAnalyzer } from './utils/audioAnalysis'
 import type { ExportDimensions } from './utils/exportDimensions'
 import type { HardwareTier } from './utils/hardwareTier'
 import type { SharePayload } from './utils/jsonQueryParam'
@@ -642,11 +643,15 @@ export function MainWorkspace(props: AppProps) {
     ],
   })
   const [audioSource, setAudioSource] = createSignal<'file' | 'mic'>('file')
-  const [liveAnalyzer, setLiveAnalyzer] =
-    createSignal<LiveAudioAnalyzer | undefined>(undefined)
+  const [liveAnalyzer, setLiveAnalyzer] = createSignal<
+    LiveAudioAnalyzer | undefined
+  >(undefined)
   const [playbackPaused, setPlaybackPaused] = createSignal(false)
   const [seekTarget, setSeekTarget] = createSignal<number | null>(null)
   const [playbackTime, setPlaybackTime] = createSignal(0)
+  const [fileAnalyzer, setFileAnalyzer] = createSignal<
+    AudioAnalyzer | undefined
+  >(undefined)
 
   // Sonification state
   const [showSonificationPanel, setShowSonificationPanel] = createSignal(false)
@@ -1179,6 +1184,7 @@ export function MainWorkspace(props: AppProps) {
     playbackPaused,
     seekTarget,
     setPlaybackTime,
+    fileAnalyzer,
   )
 
   // Sonification loop: synthesizes audio in real-time from flame structure.
@@ -5157,7 +5163,15 @@ export function MainWorkspace(props: AppProps) {
                           audioBuffer={audioBuffer}
                           onAudioChange={(buf) => {
                             setAudioBuffer(buf)
-                            if (!buf) setAudioEnabled(false)
+                            setFileAnalyzer(undefined)
+                            if (!buf) {
+                              setAudioEnabled(false)
+                            } else {
+                              // Build shared analyzer in a microtask so the UI updates first
+                              setTimeout(() => {
+                                setFileAnalyzer(createAudioAnalyzer(buf, 30))
+                              }, 30)
+                            }
                             setPlaybackPaused(false)
                             setPlaybackTime(0)
                             setSeekTarget(null)
@@ -5174,6 +5188,7 @@ export function MainWorkspace(props: AppProps) {
                           onPausedChange={setPlaybackPaused}
                           playbackTime={playbackTime}
                           onSeek={setSeekTarget}
+                          fileAnalyzer={fileAnalyzer}
                         />
                       </Show>
                     }

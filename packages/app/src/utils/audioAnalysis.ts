@@ -476,7 +476,9 @@ export async function createLiveAnalyzer(
     getFrameData,
     sampleRate,
     dispose() {
-      stream.getTracks().forEach((t) => { t.stop(); })
+      stream.getTracks().forEach((t) => {
+        t.stop()
+      })
       source.disconnect()
       analyser.disconnect()
       void audioCtx.close()
@@ -515,6 +517,8 @@ export type AudioMappingEntry = {
     | 'skipIters'
   sensitivity: number
   range: [number, number]
+  attackMs?: number
+  releaseMs?: number
 }
 
 function getAudioFeatureNormalized(
@@ -549,25 +553,93 @@ function mappingToVal(
   return lo + normalizedValue * mapping.sensitivity * (hi - lo)
 }
 
-/** Mutates `flame.renderSettings` in place from audio analysis data. */
+/** Per-mapping smoothing + dirty-check state, keyed by `flameParam`. */
+export type MappingSmoothingState = Map<
+  string,
+  { smoothed: number; lastApplied: number }
+>
+
+const DIRTY_THRESHOLD = 0.005 // 0.5% change threshold
+
+/**
+ * Mutates `flame.renderSettings` in place from audio analysis data.
+ *
+ * Supports attack/release envelope smoothing via optional `attackMs` /
+ * `releaseMs` on each mapping entry, and skips redundant renders when
+ * no mapped value has changed beyond a tiny threshold.
+ *
+ * @param smoothingState - persistent per-param state (smoothed value, last applied).
+ *   Created once by the caller and reused across frames.
+ * @param deltaTime - seconds since the previous frame (default 1/30).
+ */
 export function applyAudioMappingsToFlame(
   flame: { renderSettings?: Record<string, unknown> },
   frameData: FrameData & { isBeat: boolean },
   mappings: AudioMappingEntry[],
+  smoothingState?: MappingSmoothingState,
+  deltaTime?: number,
 ): void {
   if (mappings.length === 0) return
+  const dt = deltaTime ?? 1 / 30
   const rs = flame.renderSettings ?? {}
   const camera = (rs.camera as Record<string, unknown> | undefined) ?? {}
+  let anyChanged = false
+
   for (const mapping of mappings) {
     const raw = getAudioFeatureNormalized(frameData, mapping.audioFeature)
     const clamped = Math.max(0, Math.min(1, raw))
-    const val = mappingToVal(clamped, mapping)
+
+    // Apply attack/release envelope smoothing
+    let smoothed = clamped
+    const attackMs = mapping.attackMs
+    const releaseMs = mapping.releaseMs
+    if ((attackMs ?? 0) > 0 || (releaseMs ?? 0) > 0) {
+      const state = smoothingState?.get(mapping.flameParam)
+      const prev = state?.smoothed ?? clamped
+      const rising = clamped > prev
+      const tc =
+        (rising ? (attackMs ?? releaseMs ?? 0) : (releaseMs ?? attackMs ?? 0)) /
+        1000
+      if (tc > 0) {
+        const coeff = dt / (tc + dt)
+        smoothed = prev + coeff * (clamped - prev)
+      }
+    }
+
+    // Dirty-check: skip if value hasn't changed meaningfully
+    const prevApplied = smoothingState?.get(mapping.flameParam)?.lastApplied
+    if (
+      prevApplied !== undefined &&
+      Math.abs(smoothed - prevApplied) < DIRTY_THRESHOLD
+    ) {
+      // Still update state so smoothing continues tracking even when throttled
+      if (smoothingState) {
+        smoothingState.set(mapping.flameParam, {
+          smoothed,
+          lastApplied: prevApplied,
+        })
+      }
+      continue
+    }
+
+    anyChanged = true
+    const val = mappingToVal(smoothed, mapping)
+
+    if (smoothingState) {
+      smoothingState.set(mapping.flameParam, {
+        smoothed,
+        lastApplied: smoothed,
+      })
+    }
+
     if (mapping.flameParam === 'zoom') {
       ;(camera as Record<string, number>).zoom = val
     } else {
       ;(rs as Record<string, number>)[mapping.flameParam] = val
     }
   }
+
+  if (!anyChanged) return
   rs.camera = camera
   flame.renderSettings = rs
 }
