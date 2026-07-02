@@ -71,6 +71,35 @@ export function saveRecentFlame(
   return true
 }
 
+/**
+ * Insert-or-update a recent entry by id and move it to the front. Used by
+ * autosave so one editing session keeps updating a single entry instead of
+ * flooding the list; drops the oldest entry when the list is full.
+ */
+export function upsertRecentFlame(
+  id: string,
+  flame: FlameDescriptor,
+  name?: string,
+  tracks?: TimelineTrack[],
+): void {
+  const recent = loadRecentFlames()
+  const existing = recent.find((item) => item.id === id)
+  const entry: RecentFlame = {
+    id,
+    name: name || flame.metadata?.name || existing?.name || 'Autosave',
+    flame: deepClone(flame),
+    savedAt: Date.now(),
+  }
+  if (tracks && tracks.length > 0) {
+    entry.tracks = deepClone(tracks)
+  }
+  const updated = [entry, ...recent.filter((item) => item.id !== id)].slice(
+    0,
+    MAX_RECENT_FLAMES,
+  )
+  safeSetItem(STORAGE_KEY, JSON.stringify(updated))
+}
+
 export function getOldestRecentFlame(): RecentFlame | undefined {
   const recent = loadRecentFlames()
   if (recent.length === 0) return undefined

@@ -1,12 +1,14 @@
 import { sdRoundedBox2d } from '@typegpu/sdf'
-import { createEffect, createMemo, createSignal, For, Show } from 'solid-js'
+import { createEffect, createMemo, createSignal, For, onCleanup, Show, } from 'solid-js'
 import { tgpu } from 'typegpu'
 import { builtin, vec2f, vec3f, vec4f } from 'typegpu/data'
 import { abs, add, dot, dpdx, fract, length, max, mix, mul, saturate, sub, } from 'typegpu/std'
 import { DiceButton } from '@/components/DiceButton/DiceButton'
 import { ScrubInput } from '@/components/Sliders/ScrubInput'
+import { TrackChangesDiamond } from '@/components/Timeline/TrackChangesDiamond'
 import { useChangeHistory } from '@/contexts/ChangeHistoryContext'
 import { useTheme } from '@/contexts/ThemeContext'
+import { useTimeline } from '@/contexts/TimelineContext'
 import { randomizeAffineCoef } from '@/flame/randomize'
 import { ArrowRightToBox, BoxArrowRight, GridIcon, ListIcon, Sparkle, } from '@/icons'
 import { AutoCanvas } from '@/lib/AutoCanvas'
@@ -17,6 +19,7 @@ import { createPosition, createZoom, WheelZoomCamera2D, } from '@/lib/WheelZoomC
 import { createAnimationFrame } from '@/utils/createAnimationFrame'
 import { createDragHandler } from '@/utils/createDragHandler'
 import { eventToClip } from '@/utils/eventToClip'
+import { keyframeOnChange } from '@/utils/keyframeOnChange'
 import { recordEntries } from '@/utils/record'
 import { scrollIntoViewAndFocusOnChange } from '@/utils/scrollIntoViewOnChange'
 import { useIntersectionObserver } from '@/utils/useIntersectionObserver'
@@ -182,6 +185,13 @@ function Grid(props: { isVisible: () => boolean }) {
   return null
 }
 
+/** The selected transform's centre grab circle + drag starter, registered so
+ *  overlapping handle clicks can be redirected to it (see AffineEditor). */
+type SelectedHandleReg = {
+  el: SVGElement
+  startDrag: (e: PointerEvent) => void
+}
+
 function AffineHandle(props: {
   transform: AffineParams
   color: v2f
@@ -192,6 +202,12 @@ function AffineHandle(props: {
   hidden?: boolean
   onSelect?: () => void
   onDeselect?: () => void
+  registerSelectedHandle?: (reg: SelectedHandleReg) => void
+  unregisterSelectedHandle?: (reg: SelectedHandleReg) => void
+  stealToSelected?: (e: PointerEvent) => boolean
+  /** Timeline path prefix (e.g. `transform.{tid}.preAffine`); when set and the
+   *  track-changes diamond is on, finished drags keyframe the touched coefs. */
+  keyframePathBase?: string
 }) {
   const { theme } = useTheme()
   const {
@@ -200,6 +216,29 @@ function AffineHandle(props: {
   } = useCamera()
   const { canvas, canvasSize } = useCanvas()
   const changeHistory = useChangeHistory()
+  const timeline = useTimeline()
+
+  // Track-changes: after a drag gesture ends, keyframe the coefs it touches at
+  // the current frame. Debounced so a burst of successive gestures (e.g. a
+  // nudge-nudge-nudge translate) lands as one write per coef; the values are
+  // resolved from the store at flush time, i.e. after the last gesture.
+  const pendingCoefs = new Set<string>()
+  let keyframeTimer: ReturnType<typeof setTimeout> | undefined
+  const scheduleGestureKeyframes = (coefs: readonly string[]) => {
+    const base = props.keyframePathBase
+    if (!base || !timeline || !keyframeOnChange()) return
+    for (const coef of coefs) pendingCoefs.add(coef)
+    clearTimeout(keyframeTimer)
+    keyframeTimer = setTimeout(() => {
+      for (const coef of pendingCoefs) {
+        timeline.addKeyframeAtCurrentFrame(`${base}.${coef}`)
+      }
+      pendingCoefs.clear()
+    }, 300)
+  }
+  onCleanup(() => {
+    clearTimeout(keyframeTimer)
+  })
 
   const handleScale = () => Math.max(1, Math.sqrt(zoom()))
 
@@ -255,6 +294,7 @@ function AffineHandle(props: {
       },
       onDone() {
         changeHistory.commit()
+        scheduleGestureKeyframes(['c', 'f'])
       },
     }
   })
@@ -301,6 +341,7 @@ function AffineHandle(props: {
         onPointerMove,
         onDone() {
           changeHistory.commit()
+          scheduleGestureKeyframes(['a', 'b', 'd', 'e'])
         },
       }
     })
@@ -442,6 +483,7 @@ function AffineHandle(props: {
       },
       onDone() {
         changeHistory.commit()
+        scheduleGestureKeyframes(['d', 'h'])
       },
     }
   })
@@ -506,9 +548,35 @@ function AffineHandle(props: {
         onPointerMove,
         onDone() {
           changeHistory.commit()
+          scheduleGestureKeyframes(
+            axis === 'X'
+              ? ['a', 'e', 'i']
+              : axis === 'Y'
+                ? ['b', 'f', 'j']
+                : ['c', 'g', 'k'],
+          )
         },
       }
     })
+
+  // While selected (and visible), expose the centre grab circle + drag starter
+  // so overlapping handle clicks can be redirected to this transform.
+  let grabEl2D: SVGCircleElement | undefined
+  let grabEl3D: SVGCircleElement | undefined
+  createEffect(() => {
+    if (!props.selected || props.hidden) return
+    const el = props.is3D ? grabEl3D : grabEl2D
+    if (!el) return
+    const reg: SelectedHandleReg = {
+      el,
+      startDrag: (e) => {
+        if (props.is3D) startDragging3D(e)
+        else startDragging(e)
+      },
+    }
+    props.registerSelectedHandle?.(reg)
+    onCleanup(() => props.unregisterSelectedHandle?.(reg))
+  })
 
   return (
     <Show when={!props.hidden}>
@@ -563,6 +631,10 @@ function AffineHandle(props: {
               on:pointerdown={(e) => {
                 // Right-click is reserved for deselect (handled in contextmenu).
                 if (e.button === 2) return
+                // Stacked handles hit-test by DOM order; if the selected
+                // transform's handle is also under the pointer, drag it
+                // instead of hopping the selection to this one.
+                if (!props.selected && props.stealToSelected?.(e)) return
                 props.onSelect?.()
                 startDragging(e)
               }}
@@ -578,7 +650,12 @@ function AffineHandle(props: {
               }}
             >
               <circle class={ui.handleCircle} cx={p(x())} cy={p(y())} />
-              <circle class={ui.handleCircleGrabArea} cx={p(x())} cy={p(y())} />
+              <circle
+                ref={grabEl2D}
+                class={ui.handleCircleGrabArea}
+                cx={p(x())}
+                cy={p(y())}
+              />
             </g>
           </>
         }
@@ -722,6 +799,8 @@ function AffineHandle(props: {
             on:pointerdown={(e) => {
               // Right-click is reserved for deselect (handled in contextmenu).
               if (e.button === 2) return
+              // Same overlap redirect as the 2D centre handle.
+              if (!props.selected && props.stealToSelected?.(e)) return
               props.onSelect?.()
               startDragging3D(e)
             }}
@@ -742,6 +821,7 @@ function AffineHandle(props: {
               cy={`${projC().y}%`}
             />
             <circle
+              ref={grabEl3D}
               class={ui.handleCircleGrabArea}
               cx={`${projC().x}%`}
               cy={`${projC().y}%`}
@@ -765,7 +845,11 @@ export function AffineEditor(props: {
   is3D?: boolean
   selectedTransformId?: () => string | null
   setSelectedTransformId?: (tid: string | null) => void
+  /** Enables the track-changes diamond + drag keyframing. Only for editors
+   *  bound to the real flame (not preview copies like the variation modal). */
+  enableChangeTracking?: boolean
 }) {
+  const timeline = useTimeline()
   const [div, setDiv] = createSignal<HTMLDivElement>()
   const [zoom, setZoom] = createZoom(0.9, [0.5, 20])
   const [position, setPosition] = createPosition(vec2f())
@@ -777,6 +861,27 @@ export function AffineEditor(props: {
 
   const scrollTrigger = () => {
     Object.values(props.transforms).forEach((tr) => tr.preAffine)
+  }
+
+  // Overlapping handles resolve by DOM order, so a click on several stacked
+  // centre circles always lands on the last-rendered transform. Track the
+  // selected transform's grab circle; when a click on another handle also
+  // covers it, redirect the drag there instead of switching the selection.
+  let selectedHandle: SelectedHandleReg | null = null
+  const registerSelectedHandle = (reg: SelectedHandleReg) => {
+    selectedHandle = reg
+  }
+  const unregisterSelectedHandle = (reg: SelectedHandleReg) => {
+    if (selectedHandle === reg) selectedHandle = null
+  }
+  const stealToSelected = (e: PointerEvent) => {
+    const reg = selectedHandle
+    if (!reg || !reg.el.isConnected) return false
+    if (!document.elementsFromPoint(e.clientX, e.clientY).includes(reg.el)) {
+      return false
+    }
+    reg.startDrag(e)
+    return true
   }
 
   return (
@@ -843,6 +948,15 @@ export function AffineEditor(props: {
         </Show>
       </div>
 
+      <Show
+        when={
+          props.enableChangeTracking &&
+          timeline?.animationEnabled() &&
+          tab() === 'grid'
+        }
+      >
+        <TrackChangesDiamond compact class={ui.canvasDiamond} />
+      </Show>
       <Show when={tab() === 'grid'}>
         <AutoCanvas class={ui.canvas} pixelRatio={1}>
           <WheelZoomCamera2D
@@ -896,6 +1010,14 @@ export function AffineEditor(props: {
                       onSelect={() => props.setSelectedTransformId?.(tid)}
                       onDeselect={() => props.setSelectedTransformId?.(null)}
                       hidden={!(transform.visible ?? true)}
+                      registerSelectedHandle={registerSelectedHandle}
+                      unregisterSelectedHandle={unregisterSelectedHandle}
+                      stealToSelected={stealToSelected}
+                      keyframePathBase={
+                        props.enableChangeTracking
+                          ? `transform.${tid}.${affineMode() as 'preAffine' | 'postAffine'}`
+                          : undefined
+                      }
                     />
                   )}
                 </For>

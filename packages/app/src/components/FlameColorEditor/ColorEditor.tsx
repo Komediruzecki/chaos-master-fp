@@ -19,6 +19,8 @@ export function ColorEditor(props: {
   setTransforms: HistorySetter<TransformRecord>
   selectedTransformId?: () => string | null
   setSelectedTransformId?: (tid: string | null) => void
+  /** Enables the track-changes diamond + drag keyframing (real flame only). */
+  enableChangeTracking?: boolean
 }) {
   const [view, setView] = createSignal<ColorView>('grid')
 
@@ -60,6 +62,7 @@ export function ColorEditor(props: {
           setTransforms={props.setTransforms}
           selectedTransformId={props.selectedTransformId}
           setSelectedTransformId={props.setSelectedTransformId}
+          enableChangeTracking={props.enableChangeTracking}
         />
       </Show>
     </div>

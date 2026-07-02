@@ -6,6 +6,7 @@ import { useCompactMode } from '@/contexts/CompactModeContext'
 import { useKeyframeTarget } from '@/contexts/KeyframeTargetContext'
 import { useTimeline } from '@/contexts/TimelineContext'
 import { createDragHandler } from '@/utils/createDragHandler'
+import { keyframeOnChange } from '@/utils/keyframeOnChange'
 import { scrollIntoViewAndFocusOnChange } from '@/utils/scrollIntoViewOnChange'
 import ui from './AngleEditor.module.css'
 import { useParamMetaCapture } from './paramMetaCapture'
@@ -107,12 +108,14 @@ export function AngleEditor(props: AngleEditorProps) {
           newAngle += 2 * Math.PI
         }
         props.setValue(newAngle)
-        // Auto-keyframe: only for already-animated params when auto mode is on
+        // Auto mode re-records already-animated params; the track-changes
+        // diamond records any change (first keyframe too).
         if (
           timeline &&
           props.dataParameterPath &&
-          timeline.autoKeyframe() &&
-          timeline.hasAnyKeyframes(props.dataParameterPath)
+          ((timeline.autoKeyframe() &&
+            timeline.hasAnyKeyframes(props.dataParameterPath)) ||
+            keyframeOnChange())
         ) {
           timeline.addKeyframeAtCurrentFrame(props.dataParameterPath)
         }

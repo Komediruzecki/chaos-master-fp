@@ -4,11 +4,11 @@ import { DiceButton } from '@/components/DiceButton/DiceButton'
 import { handleColor } from '@/components/FlameColorEditor/FlameColorEditor'
 import { ResetButton } from '@/components/ResetButton/ResetButton'
 import { ScrubInput } from '@/components/Sliders/ScrubInput'
-import { KeyframeOnRandomizeToggle } from '@/components/Timeline/KeyframeOnRandomizeToggle'
+import { TrackChangesDiamond } from '@/components/Timeline/TrackChangesDiamond'
 import { useTheme } from '@/contexts/ThemeContext'
 import { useTimeline } from '@/contexts/TimelineContext'
 import { randomizeAffineCoef } from '@/flame/randomize'
-import { keyframeRandomizedParams } from '@/utils/randomizeKeyframes'
+import { keyframeChangedParams } from '@/utils/keyframeOnChange'
 import { buildReadableIds } from '@/utils/readableIds'
 import { recordEntries } from '@/utils/record'
 import { sortedTransformEntries } from '@/utils/transformOrder'
@@ -51,7 +51,7 @@ export function AffineListEditor(props: AffineListEditorProps) {
   return (
     <div class={ui.container}>
       <Show when={timeline?.animationEnabled()}>
-        <KeyframeOnRandomizeToggle />
+        <TrackChangesDiamond />
       </Show>
       <For each={sortedTransformEntries(recordEntries(props.transforms))}>
         {([tid, transform]) => {
@@ -109,7 +109,7 @@ export function AffineListEditor(props: AffineListEditorProps) {
                         )
                       }
                     })
-                    keyframeRandomizedParams(
+                    keyframeChangedParams(
                       timeline,
                       activeCoefs().map(
                         (key) => `transform.${tid}.${props.affineMode}.${key}`,
