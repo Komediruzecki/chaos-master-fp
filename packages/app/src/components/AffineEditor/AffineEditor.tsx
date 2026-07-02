@@ -1,5 +1,5 @@
 import { sdRoundedBox2d } from '@typegpu/sdf'
-import { createEffect, createMemo, createSignal, For, onCleanup, Show, } from 'solid-js'
+import { createEffect, createMemo, createSignal, For, Show } from 'solid-js'
 import { tgpu } from 'typegpu'
 import { builtin, vec2f, vec3f, vec4f } from 'typegpu/data'
 import { abs, add, dot, dpdx, fract, length, max, mix, mul, saturate, sub, } from 'typegpu/std'
@@ -19,7 +19,7 @@ import { createPosition, createZoom, WheelZoomCamera2D, } from '@/lib/WheelZoomC
 import { createAnimationFrame } from '@/utils/createAnimationFrame'
 import { createDragHandler } from '@/utils/createDragHandler'
 import { eventToClip } from '@/utils/eventToClip'
-import { keyframeOnChange } from '@/utils/keyframeOnChange'
+import { createGestureKeyframer } from '@/utils/keyframeOnChange'
 import { scrollIntoViewAndFocusOnChange } from '@/utils/scrollIntoViewOnChange'
 import { createSelectedLastEntries } from '@/utils/selectedLastEntries'
 import { useIntersectionObserver } from '@/utils/useIntersectionObserver'
@@ -198,6 +198,11 @@ function AffineHandle(props: {
   /** Timeline path prefix (e.g. `transform.{tid}.preAffine`); when set and the
    *  track-changes diamond is on, finished drags keyframe the touched coefs. */
   keyframePathBase?: string
+  /** Which layer to render: the scale/rotate 'box' or the 'center' dot.
+   *  AffineEditor renders each transform twice so ALL boxes paint below ALL
+   *  centre dots — one transform's edges can then never cover another's
+   *  centre. Omitted (final transform) renders both. */
+  part?: 'box' | 'center'
 }) {
   const { theme } = useTheme()
   const {
@@ -208,27 +213,15 @@ function AffineHandle(props: {
   const changeHistory = useChangeHistory()
   const timeline = useTimeline()
 
-  // Track-changes: after a drag gesture ends, keyframe the coefs it touches at
-  // the current frame. Debounced so a burst of successive gestures (e.g. a
-  // nudge-nudge-nudge translate) lands as one write per coef; the values are
-  // resolved from the store at flush time, i.e. after the last gesture.
-  const pendingCoefs = new Set<string>()
-  let keyframeTimer: ReturnType<typeof setTimeout> | undefined
+  // Track-changes: after a drag gesture ends, keyframe the coefs it touches
+  // at the current frame (debounced; full paths captured per gesture so a
+  // pre/post mode switch between gestures can't mislabel earlier coefs).
+  const keyframeGesture = createGestureKeyframer(timeline)
   const scheduleGestureKeyframes = (coefs: readonly string[]) => {
     const base = props.keyframePathBase
-    if (!base || !timeline || !keyframeOnChange()) return
-    for (const coef of coefs) pendingCoefs.add(coef)
-    clearTimeout(keyframeTimer)
-    keyframeTimer = setTimeout(() => {
-      for (const coef of pendingCoefs) {
-        timeline.addKeyframeAtCurrentFrame(`${base}.${coef}`)
-      }
-      pendingCoefs.clear()
-    }, 300)
+    if (!base) return
+    keyframeGesture(coefs.map((coef) => `${base}.${coef}`))
   }
-  onCleanup(() => {
-    clearTimeout(keyframeTimer)
-  })
 
   const handleScale = () => Math.max(1, Math.sqrt(zoom()))
 
@@ -555,43 +548,220 @@ function AffineHandle(props: {
         when={props.is3D}
         fallback={
           <>
-            <svg viewBox={`-${aspect()} -1 ${2 * aspect()} 2`}>
+            <Show when={props.part !== 'center'}>
+              <svg viewBox={`-${aspect()} -1 ${2 * aspect()} 2`}>
+                <g
+                  class={ui.handleBox}
+                  classList={{ [ui.dimmed as string]: props.dimmed }}
+                  transform={`scale(1, -1) matrix(${clipTransform()})`}
+                >
+                  <path d={corners} />
+                  <path
+                    class={ui.handleBoxGrabArea}
+                    d={corners}
+                    on:pointerdown={scaleBoth}
+                  />
+                  <path d="M 0,0 V 1" marker-end="url(#arrow)" />
+                  <path
+                    class={ui.handleBoxGrabArea}
+                    d="M 0,0 V 1"
+                    on:pointerdown={scaleY}
+                  />
+                  <path d="M 0,0 L 1,0" marker-end="url(#arrow)" />
+                  <path
+                    class={ui.handleBoxGrabArea}
+                    d="M 0,0 L 1,0"
+                    on:pointerdown={scaleX}
+                  />
+                  <path class={ui.dashed} d="M 0,0 V -1 M 0,0 L -1,0" />
+                  <path
+                    class={ui.handleBoxGrabArea}
+                    d="M 0,0 V -1"
+                    on:pointerdown={scaleNegY}
+                  />
+                  <path
+                    class={ui.handleBoxGrabArea}
+                    d="M 0,0 L -1,0"
+                    on:pointerdown={scaleNegX}
+                  />
+                </g>
+              </svg>
+            </Show>
+            <Show when={props.part !== 'box'}>
               <g
-                class={ui.handleBox}
-                classList={{ [ui.dimmed as string]: props.dimmed }}
-                transform={`scale(1, -1) matrix(${clipTransform()})`}
+                class={ui.handle}
+                classList={{
+                  [ui.selected as string]: props.selected,
+                  [ui.dimmed as string]: props.dimmed,
+                  [ui.hidden as string]: props.hidden,
+                }}
+                on:pointerdown={(e) => {
+                  // Right-click is reserved for deselect (handled in contextmenu).
+                  if (e.button === 2) return
+                  props.onSelect?.()
+                  startDragging(e)
+                }}
+                onContextMenu={(e) => {
+                  e.preventDefault()
+                  props.onDeselect?.()
+                }}
+                style={{
+                  '--color': handleColor(theme(), props.color),
+                  '--handle-visual-r': `${0.3 * handleScale()}rem`,
+                  '--handle-visual-hover-r': `${0.4 * handleScale()}rem`,
+                  '--handle-grab-r': `${0.6 * handleScale()}rem`,
+                }}
               >
-                <path d={corners} />
-                <path
-                  class={ui.handleBoxGrabArea}
-                  d={corners}
-                  on:pointerdown={scaleBoth}
-                />
-                <path d="M 0,0 V 1" marker-end="url(#arrow)" />
-                <path
-                  class={ui.handleBoxGrabArea}
-                  d="M 0,0 V 1"
-                  on:pointerdown={scaleY}
-                />
-                <path d="M 0,0 L 1,0" marker-end="url(#arrow)" />
-                <path
-                  class={ui.handleBoxGrabArea}
-                  d="M 0,0 L 1,0"
-                  on:pointerdown={scaleX}
-                />
-                <path class={ui.dashed} d="M 0,0 V -1 M 0,0 L -1,0" />
-                <path
-                  class={ui.handleBoxGrabArea}
-                  d="M 0,0 V -1"
-                  on:pointerdown={scaleNegY}
-                />
-                <path
-                  class={ui.handleBoxGrabArea}
-                  d="M 0,0 L -1,0"
-                  on:pointerdown={scaleNegX}
+                <circle class={ui.handleCircle} cx={p(x())} cy={p(y())} />
+                <circle
+                  class={ui.handleCircleGrabArea}
+                  cx={p(x())}
+                  cy={p(y())}
                 />
               </g>
-            </svg>
+            </Show>
+          </>
+        }
+      >
+        <Show when={props.part !== 'center'}>
+          <g
+            class={ui.box3d}
+            classList={{ [ui.dimmed as string]: props.dimmed }}
+          >
+            {/* Negative local guides (dashed lines) */}
+            <line
+              x1={`${projC().x}%`}
+              y1={`${projC().y}%`}
+              x2={`${projNegLocalX().x}%`}
+              y2={`${projNegLocalX().y}%`}
+              stroke="#ff4d4d"
+              stroke-width="1.5"
+              stroke-dasharray="3 3"
+              opacity="0.5"
+            />
+            <line
+              x1={`${projC().x}%`}
+              y1={`${projC().y}%`}
+              x2={`${projNegLocalY().x}%`}
+              y2={`${projNegLocalY().y}%`}
+              stroke="#2ecc71"
+              stroke-width="1.5"
+              stroke-dasharray="3 3"
+              opacity="0.5"
+            />
+            <line
+              x1={`${projC().x}%`}
+              y1={`${projC().y}%`}
+              x2={`${projNegLocalZ().x}%`}
+              y2={`${projNegLocalZ().y}%`}
+              stroke="#3498db"
+              stroke-width="1.5"
+              stroke-dasharray="3 3"
+              opacity="0.5"
+            />
+
+            {/* Local axis lines */}
+            <line
+              x1={`${projC().x}%`}
+              y1={`${projC().y}%`}
+              x2={`${projLocalX().x}%`}
+              y2={`${projLocalX().y}%`}
+              stroke="#ff4d4d"
+              stroke-width="1.5"
+            />
+            <line
+              x1={`${projC().x}%`}
+              y1={`${projC().y}%`}
+              x2={`${projLocalY().x}%`}
+              y2={`${projLocalY().y}%`}
+              stroke="#2ecc71"
+              stroke-width="1.5"
+            />
+            <line
+              x1={`${projC().x}%`}
+              y1={`${projC().y}%`}
+              x2={`${projLocalZ().x}%`}
+              y2={`${projLocalZ().y}%`}
+              stroke="#3498db"
+              stroke-width="1.5"
+            />
+
+            {/* Local X scale/rotate end-handles */}
+            <circle
+              cx={`${projLocalX().x}%`}
+              cy={`${projLocalX().y}%`}
+              r={`${0.2 * handleScale()}rem`}
+              fill="#ff4d4d"
+              stroke="white"
+              stroke-width="1.5"
+              style={{ cursor: 'nesw-resize' }}
+              on:pointerdown={startScalingRotating3D('X', 1)}
+            />
+            <circle
+              cx={`${projNegLocalX().x}%`}
+              cy={`${projNegLocalX().y}%`}
+              r={`${0.15 * handleScale()}rem`}
+              fill="#ff4d4d"
+              stroke="white"
+              stroke-width="1"
+              opacity="0.8"
+              style={{ cursor: 'nesw-resize' }}
+              on:pointerdown={startScalingRotating3D('X', -1)}
+            />
+
+            {/* Local Y scale/rotate end-handles */}
+            <circle
+              cx={`${projLocalY().x}%`}
+              cy={`${projLocalY().y}%`}
+              r={`${0.2 * handleScale()}rem`}
+              fill="#2ecc71"
+              stroke="white"
+              stroke-width="1.5"
+              style={{ cursor: 'nesw-resize' }}
+              on:pointerdown={startScalingRotating3D('Y', 1)}
+            />
+            <circle
+              cx={`${projNegLocalY().x}%`}
+              cy={`${projNegLocalY().y}%`}
+              r={`${0.15 * handleScale()}rem`}
+              fill="#2ecc71"
+              stroke="white"
+              stroke-width="1"
+              opacity="0.8"
+              style={{ cursor: 'nesw-resize' }}
+              on:pointerdown={startScalingRotating3D('Y', -1)}
+            />
+
+            {/* Local Z scale/rotate end-handles */}
+            <circle
+              cx={`${projLocalZ().x}%`}
+              cy={`${projLocalZ().y}%`}
+              r={`${0.2 * handleScale()}rem`}
+              fill="#3498db"
+              stroke="white"
+              stroke-width="1.5"
+              style={{ cursor: 'nesw-resize' }}
+              on:pointerdown={startScalingRotating3D('Z', 1)}
+            />
+            <circle
+              cx={`${projNegLocalZ().x}%`}
+              cy={`${projNegLocalZ().y}%`}
+              r={`${0.15 * handleScale()}rem`}
+              fill="#3498db"
+              stroke="white"
+              stroke-width="1"
+              opacity="0.8"
+              style={{ cursor: 'nesw-resize' }}
+              on:pointerdown={startScalingRotating3D('Z', -1)}
+            />
+          </g>
+        </Show>
+        <Show when={props.part !== 'box'}>
+          <g
+            class={ui.box3d}
+            classList={{ [ui.dimmed as string]: props.dimmed }}
+          >
+            {/* Center free-translation handle */}
             <g
               class={ui.handle}
               classList={{
@@ -603,7 +773,7 @@ function AffineHandle(props: {
                 // Right-click is reserved for deselect (handled in contextmenu).
                 if (e.button === 2) return
                 props.onSelect?.()
-                startDragging(e)
+                startDragging3D(e)
               }}
               onContextMenu={(e) => {
                 e.preventDefault()
@@ -611,182 +781,24 @@ function AffineHandle(props: {
               }}
               style={{
                 '--color': handleColor(theme(), props.color),
-                '--handle-visual-r': `${0.3 * handleScale()}rem`,
-                '--handle-visual-hover-r': `${0.4 * handleScale()}rem`,
-                '--handle-grab-r': `${0.6 * handleScale()}rem`,
+                '--handle-visual-r': `${0.35 * handleScale()}rem`,
+                '--handle-visual-hover-r': `${0.45 * handleScale()}rem`,
+                '--handle-grab-r': `${0.65 * handleScale()}rem`,
               }}
             >
-              <circle class={ui.handleCircle} cx={p(x())} cy={p(y())} />
-              <circle class={ui.handleCircleGrabArea} cx={p(x())} cy={p(y())} />
+              <circle
+                class={ui.handleCircle}
+                cx={`${projC().x}%`}
+                cy={`${projC().y}%`}
+              />
+              <circle
+                class={ui.handleCircleGrabArea}
+                cx={`${projC().x}%`}
+                cy={`${projC().y}%`}
+              />
             </g>
-          </>
-        }
-      >
-        <g class={ui.box3d} classList={{ [ui.dimmed as string]: props.dimmed }}>
-          {/* Negative local guides (dashed lines) */}
-          <line
-            x1={`${projC().x}%`}
-            y1={`${projC().y}%`}
-            x2={`${projNegLocalX().x}%`}
-            y2={`${projNegLocalX().y}%`}
-            stroke="#ff4d4d"
-            stroke-width="1.5"
-            stroke-dasharray="3 3"
-            opacity="0.5"
-          />
-          <line
-            x1={`${projC().x}%`}
-            y1={`${projC().y}%`}
-            x2={`${projNegLocalY().x}%`}
-            y2={`${projNegLocalY().y}%`}
-            stroke="#2ecc71"
-            stroke-width="1.5"
-            stroke-dasharray="3 3"
-            opacity="0.5"
-          />
-          <line
-            x1={`${projC().x}%`}
-            y1={`${projC().y}%`}
-            x2={`${projNegLocalZ().x}%`}
-            y2={`${projNegLocalZ().y}%`}
-            stroke="#3498db"
-            stroke-width="1.5"
-            stroke-dasharray="3 3"
-            opacity="0.5"
-          />
-
-          {/* Local axis lines */}
-          <line
-            x1={`${projC().x}%`}
-            y1={`${projC().y}%`}
-            x2={`${projLocalX().x}%`}
-            y2={`${projLocalX().y}%`}
-            stroke="#ff4d4d"
-            stroke-width="1.5"
-          />
-          <line
-            x1={`${projC().x}%`}
-            y1={`${projC().y}%`}
-            x2={`${projLocalY().x}%`}
-            y2={`${projLocalY().y}%`}
-            stroke="#2ecc71"
-            stroke-width="1.5"
-          />
-          <line
-            x1={`${projC().x}%`}
-            y1={`${projC().y}%`}
-            x2={`${projLocalZ().x}%`}
-            y2={`${projLocalZ().y}%`}
-            stroke="#3498db"
-            stroke-width="1.5"
-          />
-
-          {/* Local X scale/rotate end-handles */}
-          <circle
-            cx={`${projLocalX().x}%`}
-            cy={`${projLocalX().y}%`}
-            r={`${0.2 * handleScale()}rem`}
-            fill="#ff4d4d"
-            stroke="white"
-            stroke-width="1.5"
-            style={{ cursor: 'nesw-resize' }}
-            on:pointerdown={startScalingRotating3D('X', 1)}
-          />
-          <circle
-            cx={`${projNegLocalX().x}%`}
-            cy={`${projNegLocalX().y}%`}
-            r={`${0.15 * handleScale()}rem`}
-            fill="#ff4d4d"
-            stroke="white"
-            stroke-width="1"
-            opacity="0.8"
-            style={{ cursor: 'nesw-resize' }}
-            on:pointerdown={startScalingRotating3D('X', -1)}
-          />
-
-          {/* Local Y scale/rotate end-handles */}
-          <circle
-            cx={`${projLocalY().x}%`}
-            cy={`${projLocalY().y}%`}
-            r={`${0.2 * handleScale()}rem`}
-            fill="#2ecc71"
-            stroke="white"
-            stroke-width="1.5"
-            style={{ cursor: 'nesw-resize' }}
-            on:pointerdown={startScalingRotating3D('Y', 1)}
-          />
-          <circle
-            cx={`${projNegLocalY().x}%`}
-            cy={`${projNegLocalY().y}%`}
-            r={`${0.15 * handleScale()}rem`}
-            fill="#2ecc71"
-            stroke="white"
-            stroke-width="1"
-            opacity="0.8"
-            style={{ cursor: 'nesw-resize' }}
-            on:pointerdown={startScalingRotating3D('Y', -1)}
-          />
-
-          {/* Local Z scale/rotate end-handles */}
-          <circle
-            cx={`${projLocalZ().x}%`}
-            cy={`${projLocalZ().y}%`}
-            r={`${0.2 * handleScale()}rem`}
-            fill="#3498db"
-            stroke="white"
-            stroke-width="1.5"
-            style={{ cursor: 'nesw-resize' }}
-            on:pointerdown={startScalingRotating3D('Z', 1)}
-          />
-          <circle
-            cx={`${projNegLocalZ().x}%`}
-            cy={`${projNegLocalZ().y}%`}
-            r={`${0.15 * handleScale()}rem`}
-            fill="#3498db"
-            stroke="white"
-            stroke-width="1"
-            opacity="0.8"
-            style={{ cursor: 'nesw-resize' }}
-            on:pointerdown={startScalingRotating3D('Z', -1)}
-          />
-
-          {/* Center free-translation handle */}
-          <g
-            class={ui.handle}
-            classList={{
-              [ui.selected as string]: props.selected,
-              [ui.dimmed as string]: props.dimmed,
-              [ui.hidden as string]: props.hidden,
-            }}
-            on:pointerdown={(e) => {
-              // Right-click is reserved for deselect (handled in contextmenu).
-              if (e.button === 2) return
-              props.onSelect?.()
-              startDragging3D(e)
-            }}
-            onContextMenu={(e) => {
-              e.preventDefault()
-              props.onDeselect?.()
-            }}
-            style={{
-              '--color': handleColor(theme(), props.color),
-              '--handle-visual-r': `${0.35 * handleScale()}rem`,
-              '--handle-visual-hover-r': `${0.45 * handleScale()}rem`,
-              '--handle-grab-r': `${0.65 * handleScale()}rem`,
-            }}
-          >
-            <circle
-              class={ui.handleCircle}
-              cx={`${projC().x}%`}
-              cy={`${projC().y}%`}
-            />
-            <circle
-              class={ui.handleCircleGrabArea}
-              cx={`${projC().x}%`}
-              cy={`${projC().y}%`}
-            />
           </g>
-        </g>
+        </Show>
       </Show>
     </Show>
   )
@@ -828,6 +840,35 @@ export function AffineEditor(props: {
   const orderedTransformEntries = createSelectedLastEntries(
     () => props.transforms,
     () => props.selectedTransformId?.(),
+  )
+
+  const renderHandle = (
+    [tid, transform]: ReturnType<typeof orderedTransformEntries>[number],
+    part: 'box' | 'center',
+  ) => (
+    <AffineHandle
+      part={part}
+      transform={transform[affineMode() as 'preAffine' | 'postAffine']}
+      color={vec2f(transform.color.x, transform.color.y)}
+      setTransform={(affine) => {
+        props.setTransforms((draft) => {
+          draft[tid]![affineMode() as 'preAffine' | 'postAffine'] = affine
+        })
+      }}
+      is3D={props.is3D}
+      selected={props.selectedTransformId?.() === tid}
+      dimmed={
+        !!props.selectedTransformId?.() && props.selectedTransformId?.() !== tid
+      }
+      onSelect={() => props.setSelectedTransformId?.(tid)}
+      onDeselect={() => props.setSelectedTransformId?.(null)}
+      hidden={!(transform.visible ?? true)}
+      keyframePathBase={
+        props.enableChangeTracking
+          ? `transform.${tid}.${affineMode() as 'preAffine' | 'postAffine'}`
+          : undefined
+      }
+    />
   )
 
   return (
@@ -933,36 +974,14 @@ export function AffineEditor(props: {
                 </marker>
               </defs>
               <Show when={affineMode() !== 'final'}>
+                {/* Two passes: every scale/rotate box below every centre dot,
+                    so one transform's edges can never cover another's centre;
+                    within each layer the selected transform paints last. */}
                 <For each={orderedTransformEntries()}>
-                  {([tid, transform]) => (
-                    <AffineHandle
-                      transform={
-                        transform[affineMode() as 'preAffine' | 'postAffine']
-                      }
-                      color={vec2f(transform.color.x, transform.color.y)}
-                      setTransform={(affine) => {
-                        props.setTransforms((draft) => {
-                          draft[tid]![
-                            affineMode() as 'preAffine' | 'postAffine'
-                          ] = affine
-                        })
-                      }}
-                      is3D={props.is3D}
-                      selected={props.selectedTransformId?.() === tid}
-                      dimmed={
-                        !!props.selectedTransformId?.() &&
-                        props.selectedTransformId?.() !== tid
-                      }
-                      onSelect={() => props.setSelectedTransformId?.(tid)}
-                      onDeselect={() => props.setSelectedTransformId?.(null)}
-                      hidden={!(transform.visible ?? true)}
-                      keyframePathBase={
-                        props.enableChangeTracking
-                          ? `transform.${tid}.${affineMode() as 'preAffine' | 'postAffine'}`
-                          : undefined
-                      }
-                    />
-                  )}
+                  {(entry) => renderHandle(entry, 'box')}
+                </For>
+                <For each={orderedTransformEntries()}>
+                  {(entry) => renderHandle(entry, 'center')}
                 </For>
               </Show>
               <Show when={affineMode() === 'final' && props.finalTransform}>
@@ -988,6 +1007,7 @@ export function AffineEditor(props: {
           is3D={props.is3D}
           selectedTransformId={props.selectedTransformId}
           setSelectedTransformId={props.setSelectedTransformId}
+          enableChangeTracking={props.enableChangeTracking}
         />
       </Show>
       <Show

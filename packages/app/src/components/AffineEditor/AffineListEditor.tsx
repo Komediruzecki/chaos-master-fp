@@ -23,6 +23,10 @@ export type AffineListEditorProps = {
   is3D?: boolean
   selectedTransformId?: () => string | null
   setSelectedTransformId?: (tid: string | null) => void
+  /** Gate for the track-changes diamond + dice keyframing. Only editors bound
+   *  to the real flame pass true — the variation modal edits a PREVIEW flame
+   *  whose paths would resolve against the real one and write junk tracks. */
+  enableChangeTracking?: boolean
 }
 
 const COEFS_2D = ['a', 'b', 'c', 'd', 'e', 'f'] as const
@@ -50,7 +54,7 @@ export function AffineListEditor(props: AffineListEditorProps) {
 
   return (
     <div class={ui.container}>
-      <Show when={timeline?.animationEnabled()}>
+      <Show when={props.enableChangeTracking && timeline?.animationEnabled()}>
         <TrackChangesDiamond />
       </Show>
       <For each={sortedTransformEntries(recordEntries(props.transforms))}>
@@ -109,12 +113,15 @@ export function AffineListEditor(props: AffineListEditorProps) {
                         )
                       }
                     })
-                    keyframeChangedParams(
-                      timeline,
-                      activeCoefs().map(
-                        (key) => `transform.${tid}.${props.affineMode}.${key}`,
-                      ),
-                    )
+                    if (props.enableChangeTracking) {
+                      keyframeChangedParams(
+                        timeline,
+                        activeCoefs().map(
+                          (key) =>
+                            `transform.${tid}.${props.affineMode}.${key}`,
+                        ),
+                      )
+                    }
                   }}
                 />
                 <ResetButton

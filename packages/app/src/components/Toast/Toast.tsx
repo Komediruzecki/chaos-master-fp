@@ -22,8 +22,10 @@ export function Toast() {
                       type="button"
                       class={ui.toastBtn}
                       onClick={() => {
-                        action.onClick()
+                        // Dismiss first so an action that shows its own toast
+                        // isn't immediately clobbered by this dismissal.
                         dismissToast()
+                        action.onClick()
                       }}
                     >
                       {action.label}

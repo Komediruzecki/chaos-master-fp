@@ -1,6 +1,6 @@
 import { oklabToRgb } from '@typegpu/color'
 import { sdRoundedBox2d } from '@typegpu/sdf'
-import { createEffect, createMemo, createSignal, For, onCleanup, Show, } from 'solid-js'
+import { createEffect, createMemo, createSignal, For, Show } from 'solid-js'
 import { tgpu } from 'typegpu'
 import { builtin, vec2f, vec3f, vec4f } from 'typegpu/data'
 import { abs, add, atan2, fwidth, length, max, min, mul, saturate, sin, smoothstep, sub, } from 'typegpu/std'
@@ -17,7 +17,7 @@ import { createPosition, createZoom, WheelZoomCamera2D, } from '@/lib/WheelZoomC
 import { createAnimationFrame } from '@/utils/createAnimationFrame'
 import { createDragHandler } from '@/utils/createDragHandler'
 import { eventToClip } from '@/utils/eventToClip'
-import { keyframeOnChange } from '@/utils/keyframeOnChange'
+import { createGestureKeyframer } from '@/utils/keyframeOnChange'
 import { scrollIntoViewAndFocusOnChange } from '@/utils/scrollIntoViewOnChange'
 import { createSelectedLastEntries } from '@/utils/selectedLastEntries'
 import { useIntersectionObserver } from '@/utils/useIntersectionObserver'
@@ -164,19 +164,11 @@ function FlameColorHandle(props: {
 
   // Track-changes: keyframe the colour after a finished drag (debounced so
   // successive nudges land as one write, values read at flush time).
-  let keyframeTimer: ReturnType<typeof setTimeout> | undefined
+  const keyframeGesture = createGestureKeyframer(timeline)
   const scheduleColorKeyframes = () => {
     const base = props.keyframePathBase
-    if (!base || !timeline || !keyframeOnChange()) return
-    clearTimeout(keyframeTimer)
-    keyframeTimer = setTimeout(() => {
-      timeline.addKeyframeAtCurrentFrame(`${base}.x`)
-      timeline.addKeyframeAtCurrentFrame(`${base}.y`)
-    }, 300)
+    if (base) keyframeGesture([`${base}.x`, `${base}.y`])
   }
-  onCleanup(() => {
-    clearTimeout(keyframeTimer)
-  })
   const clip = createMemo(() => {
     // worldToClip can throw or return NaN before the camera/canvas is
     // initialized — which happens for a frame or two when toggling between the

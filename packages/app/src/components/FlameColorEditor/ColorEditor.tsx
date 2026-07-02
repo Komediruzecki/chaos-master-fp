@@ -53,6 +53,7 @@ export function ColorEditor(props: {
               setTransforms={props.setTransforms}
               selectedTransformId={props.selectedTransformId}
               setSelectedTransformId={props.setSelectedTransformId}
+              enableChangeTracking={props.enableChangeTracking}
             />
           </div>
         }

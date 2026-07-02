@@ -1,3 +1,4 @@
+import { onCleanup } from 'solid-js'
 import { persistentSignal } from './persistentSignal'
 import type { TimelineState } from './timeline'
 
@@ -21,8 +22,59 @@ export function keyframeChangedParams(
   timeline: TimelineState | null | undefined,
   paths: readonly string[],
 ) {
-  if (!timeline || !keyframeOnChange()) return
+  // animationEnabled gate: the diamond is only visible (= toggleable) while
+  // the animation UI is on; without it a persisted ON state would keep
+  // recording ghost keyframes after the user leaves animation mode.
+  if (!timeline?.animationEnabled() || !keyframeOnChange()) return
   for (const path of paths) {
     timeline.addKeyframeAtCurrentFrame(path)
+  }
+}
+
+/** Per-edit keyframe hook shared by the scrub/slider/angle inputs: Auto mode
+ *  re-records already-animated params; the track-changes diamond records any
+ *  change, creating the first keyframe too. Call AFTER applying the value. */
+export function keyframeEditedParam(
+  timeline: TimelineState | null | undefined,
+  path: string | undefined,
+) {
+  // Both modes only record while the animation UI is on — their toggles
+  // (Auto button, track-changes diamond) are invisible without it, and a
+  // persisted ON state must not keep recording ghost keyframes.
+  if (!timeline?.animationEnabled() || !path) return
+  if (
+    (timeline.autoKeyframe() && timeline.hasAnyKeyframes(path)) ||
+    keyframeOnChange()
+  ) {
+    timeline.addKeyframeAtCurrentFrame(path)
+  }
+}
+
+/** Debounced track-changes writer for drag gestures: collects full parameter
+ *  paths as gestures finish and keyframes them at the current frame in one
+ *  flush. The debounce coalesces nudge bursts (values are resolved at flush
+ *  time, i.e. after the last gesture); pending paths flush — not drop — if
+ *  the owning component unmounts mid-wait. Create inside a component. */
+export function createGestureKeyframer(
+  timeline: TimelineState | null | undefined,
+  delayMs = 300,
+) {
+  const pending = new Set<string>()
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const flush = () => {
+    clearTimeout(timer)
+    if (!timeline) return
+    for (const path of pending) {
+      timeline.addKeyframeAtCurrentFrame(path)
+    }
+    pending.clear()
+  }
+  onCleanup(flush)
+  return (paths: readonly string[]) => {
+    // Same animationEnabled gate as keyframeChangedParams.
+    if (!timeline?.animationEnabled() || !keyframeOnChange()) return
+    for (const path of paths) pending.add(path)
+    clearTimeout(timer)
+    timer = setTimeout(flush, delayMs)
   }
 }

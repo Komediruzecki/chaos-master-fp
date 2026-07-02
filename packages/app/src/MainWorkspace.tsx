@@ -434,6 +434,7 @@ export function MainWorkspace(props: AppProps) {
   createEffect(() => {
     const newFlame = props.flameFromWelcome?.()
     if (newFlame !== undefined) {
+      flushDirtyToRecents()
       history.replace(deepClone(newFlame))
       // Load animation tracks if the welcome selection includes them
       const tracks = props.welcomeTracks?.()
@@ -1021,11 +1022,7 @@ export function MainWorkspace(props: AppProps) {
     }
   })
 
-  const onDrop = useAppDragAndDrop(
-    history,
-    setLoadedAnimation,
-    clearLoadedAnimation,
-  )
+  const onDrop = useAppDragAndDrop(history, setLoadedAnimation)
 
   const timeline = createTimelineState()
 
@@ -1484,12 +1481,17 @@ export function MainWorkspace(props: AppProps) {
     }
   }
 
-  // Timeline "Animate" button: reveal the sidebar (may be closed or auto-hidden
-  // on mobile), open the Flame Randomizer card with its Animation Settings
-  // section expanded, and scroll the card into view.
+  // Timeline "Animate" button: reveal the sidebar (may be closed, auto-hidden
+  // on mobile, or covered by the blend gallery / quick variation picker), open
+  // the Flame Randomizer card with its Animation Settings section expanded,
+  // and scroll the card into view. Overlay dismissal must happen BEFORE the
+  // epoch bump: mounting the card swallows the current epoch as its initial
+  // value, so a bump-then-mount order would lose the expansion.
   const openAnimationGenerator = () => {
     setShowSidebar(true)
     setSidebarHidden(false)
+    setShowBlendGallery(false)
+    setQuickPickState(null)
     setRandomizerOpen(true)
     setRandomizerAnimEpoch((e) => e + 1)
     setTimeout(() => {
@@ -1541,7 +1543,11 @@ export function MainWorkspace(props: AppProps) {
 
   const handleLoadHistory = (entry: RandomizerHistoryEntry) => {
     setSelectedHistoryTimestamp(entry.timestamp)
+    // Loading a history entry is a fresh starting point: keep unsaved work
+    // recoverable and don't autosave the untouched loaded flame.
+    flushDirtyToRecents()
     history.replace(deepClone(entry.flame), 'Load History Flame')
+    markLoadedBaseline()
   }
 
   const handleRandomizeAnimation = (
@@ -1840,7 +1846,11 @@ export function MainWorkspace(props: AppProps) {
   // Baseline JSON of the last loaded/saved state; the flame is "dirty" when
   // the current state differs. Loads reset the baseline (and the editing
   // clock), so untouched examples are never autosaved; any edit diverges.
-  const autosaveSessionId = `autosave-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
+  // Every fresh starting point also rotates the autosave id, so a new
+  // load/flame can never clobber the previous flame's autosave entry.
+  const newAutosaveId = () =>
+    `autosave-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
+  let autosaveSessionId = newAutosaveId()
   const autosaveSnapshot = () =>
     JSON.stringify({ flame: flameDescriptor, tracks: timeline.tracks() })
   let autosaveBaseline = autosaveSnapshot()
@@ -1856,24 +1866,37 @@ export function MainWorkspace(props: AppProps) {
   const markLoadedBaseline = () => {
     autosaveBaseline = autosaveSnapshot()
     editingSince = null
+    autosaveSessionId = newAutosaveId()
   }
 
   const autosaveNow = () => {
-    upsertRecentFlame(
+    const saved = upsertRecentFlame(
       autosaveSessionId,
       flameDescriptor,
       undefined,
       timeline.tracks(),
     )
+    // A failed write (quota, private mode) must not mark the flame clean —
+    // the pagehide fallback would then skip it and the work would vanish.
+    if (!saved) return
     lastAutosaveAt = Date.now()
     markSavedBaseline()
   }
 
-  // Reload/close with unsaved changes: persist silently — no prompt, the work
-  // just shows up in Recent flames. bfcache freezes are skipped (nothing is
-  // lost there). Independent of the periodic-autosave setting.
-  const saveOnPagehide = (e: PageTransitionEvent) => {
-    if (!e.persisted && isFlameDirty()) autosaveNow()
+  // Flush outgoing dirty work before the flame gets replaced (load, New
+  // Flame, 2D/3D switch): the replace resets the baseline, after which the
+  // pagehide safety net no longer sees the old state as dirty.
+  const flushDirtyToRecents = () => {
+    if (isFlameDirty()) autosaveNow()
+  }
+
+  // Reload/close/freeze with unsaved changes: persist silently — no prompt,
+  // the work just shows up in Recent flames. Also saves on bfcache freezes
+  // (`persisted`): frozen pages are routinely evicted without another
+  // pagehide, and the upsert is idempotent when the page is restored.
+  // Independent of the periodic-autosave setting.
+  const saveOnPagehide = () => {
+    flushDirtyToRecents()
   }
   window.addEventListener('pagehide', saveOnPagehide)
   onCleanup(() => {
@@ -1894,7 +1917,7 @@ export function MainWorkspace(props: AppProps) {
           label: 'Yes',
           onClick: () => {
             setAutosaveRecents('on')
-            autosaveNow()
+            flushDirtyToRecents()
           },
         },
         { label: 'No', onClick: () => setAutosaveRecents('off') },
@@ -4945,12 +4968,10 @@ export function MainWorkspace(props: AppProps) {
             onNewFlame={() => {
               if (timeline.isPlaying()) timeline.pause()
               // Undo restores the flame, but keyframe tracks aren't part of
-              // change history — stash flame + animation in Recents so a
-              // reset can't silently destroy an authored animation.
-              const tracks = timeline.tracks()
-              if (tracks.length > 0) {
-                saveRecentFlame(flameDescriptor, undefined, tracks, false)
-              }
+              // change history — flush unsaved work (flame + animation) to
+              // Recents so a reset can't silently destroy anything. Unlike
+              // saveRecentFlame, the upsert never declines on a full list.
+              flushDirtyToRecents()
               const is3D =
                 (flameDescriptor.renderSettings.dimensions ?? 2) === 3
               const flame = deepClone(is3D ? initExample3D : initExample)
@@ -4960,7 +4981,9 @@ export function MainWorkspace(props: AppProps) {
             }}
             onLoadFlame={() => {
               if (timeline.isPlaying()) timeline.pause()
-
+              // Loading replaces the flame and resets dirty tracking — flush
+              // unsaved work first so it stays recoverable from Recents.
+              flushDirtyToRecents()
               void showLoadFlameModal()
             }}
             onSaveForLater={async () => {
@@ -5055,6 +5078,9 @@ export function MainWorkspace(props: AppProps) {
             setDimensions={(v) => {
               const current = flameDescriptor.renderSettings.dimensions ?? 2
               if (v === current) return
+              // The stash below is in-memory only — flush unsaved work to
+              // Recents first so switch-then-close can't lose it.
+              flushDirtyToRecents()
               // Stash the active flame AND its animation tracks under the
               // current dimension; restore the target dimension's own pair so
               // 2D and 3D each keep independent animations.

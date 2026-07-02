@@ -79,8 +79,8 @@
   border-color: var(--accent-color, #6366f1);
   color: var(--accent-color, #6366f1);
 
+  /* The gem's gradient fill is set inline (per-instance gradient id). */
   & .gem {
-    fill: url(#tc-diamond-fill);
     stroke: #4338ca;
   }
 

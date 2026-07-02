@@ -32,6 +32,8 @@ export function ColorListEditor(props: {
   setTransforms: HistorySetter<TransformRecord>
   selectedTransformId?: () => string | null
   setSelectedTransformId?: (tid: string | null) => void
+  /** Gate for the track-changes diamond + dice keyframing (real flame only). */
+  enableChangeTracking?: boolean
 }) {
   const { theme } = useTheme()
   const timeline = useTimeline()
@@ -39,7 +41,7 @@ export function ColorListEditor(props: {
 
   return (
     <div class={ui.container}>
-      <Show when={timeline?.animationEnabled()}>
+      <Show when={props.enableChangeTracking && timeline?.animationEnabled()}>
         <TrackChangesDiamond />
       </Show>
       <For each={sortedTransformEntries(recordEntries(props.transforms))}>
@@ -93,10 +95,12 @@ export function ColorListEditor(props: {
                         y: randomRange(-0.4, 0.4),
                       }
                     })
-                    keyframeChangedParams(timeline, [
-                      `transform.${tid}.color.x`,
-                      `transform.${tid}.color.y`,
-                    ])
+                    if (props.enableChangeTracking) {
+                      keyframeChangedParams(timeline, [
+                        `transform.${tid}.color.x`,
+                        `transform.${tid}.color.y`,
+                      ])
+                    }
                   }}
                 />
                 <ResetButton
