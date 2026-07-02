@@ -372,12 +372,6 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
 
   const [scrubbing, setScrubbing] = createSignal(false)
 
-  // Derived: true while the shared analyzer is being built (FFT pass)
-  const isAnalyzing = createMemo(() => {
-    const buf = audioBuffer()
-    return buf != null && fileAnalyzer() == null
-  })
-
   const audioBuffer = () => resolve(props.audioBuffer)
   const audioMapping = () => resolve(props.audioMapping)
   const audioSource = () => resolve(props.audioSource)
@@ -385,6 +379,12 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
   const playbackPaused = () => resolve(props.playbackPaused)
   const playbackTime = () => resolve(props.playbackTime)
   const fileAnalyzer = () => resolve(props.fileAnalyzer)
+
+  // Derived: true while the shared analyzer is being built (FFT pass)
+  const isAnalyzing = createMemo(() => {
+    const buf = audioBuffer()
+    return buf != null && fileAnalyzer() == null
+  })
 
   function formatTime(seconds: number): string {
     const s = Math.max(0, Math.floor(seconds))
