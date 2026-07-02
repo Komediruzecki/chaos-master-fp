@@ -18,8 +18,8 @@ import { createAnimationFrame } from '@/utils/createAnimationFrame'
 import { createDragHandler } from '@/utils/createDragHandler'
 import { eventToClip } from '@/utils/eventToClip'
 import { keyframeOnChange } from '@/utils/keyframeOnChange'
-import { recordEntries } from '@/utils/record'
 import { scrollIntoViewAndFocusOnChange } from '@/utils/scrollIntoViewOnChange'
+import { createSelectedLastEntries } from '@/utils/selectedLastEntries'
 import { useIntersectionObserver } from '@/utils/useIntersectionObserver'
 import ui from './FlameColorEditor.module.css'
 import type { v2f } from 'typegpu/data'
@@ -291,6 +291,13 @@ export function FlameColorEditor(props: {
     Object.values(props.transforms).forEach((tr) => tr.color)
   }
 
+  // Selected transform last: paints on top of stacked colour handles and
+  // receives the click (see createSelectedLastEntries).
+  const orderedColorEntries = createSelectedLastEntries(
+    () => props.transforms,
+    () => props.selectedTransformId?.(),
+  )
+
   return (
     <div
       ref={(el) => {
@@ -315,7 +322,7 @@ export function FlameColorEditor(props: {
               e.preventDefault()
             }}
           >
-            <For each={recordEntries(props.transforms)}>
+            <For each={orderedColorEntries()}>
               {([tid, transform]) => (
                 <FlameColorHandle
                   color={vec2f(transform.color.x, transform.color.y)}

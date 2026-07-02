@@ -20,8 +20,8 @@ import { createAnimationFrame } from '@/utils/createAnimationFrame'
 import { createDragHandler } from '@/utils/createDragHandler'
 import { eventToClip } from '@/utils/eventToClip'
 import { keyframeOnChange } from '@/utils/keyframeOnChange'
-import { recordEntries } from '@/utils/record'
 import { scrollIntoViewAndFocusOnChange } from '@/utils/scrollIntoViewOnChange'
+import { createSelectedLastEntries } from '@/utils/selectedLastEntries'
 import { useIntersectionObserver } from '@/utils/useIntersectionObserver'
 import { handleColor } from '../FlameColorEditor/FlameColorEditor'
 import ui from './AffineEditor.module.css'
@@ -185,13 +185,6 @@ function Grid(props: { isVisible: () => boolean }) {
   return null
 }
 
-/** The selected transform's centre grab circle + drag starter, registered so
- *  overlapping handle clicks can be redirected to it (see AffineEditor). */
-type SelectedHandleReg = {
-  el: SVGElement
-  startDrag: (e: PointerEvent) => void
-}
-
 function AffineHandle(props: {
   transform: AffineParams
   color: v2f
@@ -202,9 +195,6 @@ function AffineHandle(props: {
   hidden?: boolean
   onSelect?: () => void
   onDeselect?: () => void
-  registerSelectedHandle?: (reg: SelectedHandleReg) => void
-  unregisterSelectedHandle?: (reg: SelectedHandleReg) => void
-  stealToSelected?: (e: PointerEvent) => boolean
   /** Timeline path prefix (e.g. `transform.{tid}.preAffine`); when set and the
    *  track-changes diamond is on, finished drags keyframe the touched coefs. */
   keyframePathBase?: string
@@ -559,25 +549,6 @@ function AffineHandle(props: {
       }
     })
 
-  // While selected (and visible), expose the centre grab circle + drag starter
-  // so overlapping handle clicks can be redirected to this transform.
-  let grabEl2D: SVGCircleElement | undefined
-  let grabEl3D: SVGCircleElement | undefined
-  createEffect(() => {
-    if (!props.selected || props.hidden) return
-    const el = props.is3D ? grabEl3D : grabEl2D
-    if (!el) return
-    const reg: SelectedHandleReg = {
-      el,
-      startDrag: (e) => {
-        if (props.is3D) startDragging3D(e)
-        else startDragging(e)
-      },
-    }
-    props.registerSelectedHandle?.(reg)
-    onCleanup(() => props.unregisterSelectedHandle?.(reg))
-  })
-
   return (
     <Show when={!props.hidden}>
       <Show
@@ -631,10 +602,6 @@ function AffineHandle(props: {
               on:pointerdown={(e) => {
                 // Right-click is reserved for deselect (handled in contextmenu).
                 if (e.button === 2) return
-                // Stacked handles hit-test by DOM order; if the selected
-                // transform's handle is also under the pointer, drag it
-                // instead of hopping the selection to this one.
-                if (!props.selected && props.stealToSelected?.(e)) return
                 props.onSelect?.()
                 startDragging(e)
               }}
@@ -650,12 +617,7 @@ function AffineHandle(props: {
               }}
             >
               <circle class={ui.handleCircle} cx={p(x())} cy={p(y())} />
-              <circle
-                ref={grabEl2D}
-                class={ui.handleCircleGrabArea}
-                cx={p(x())}
-                cy={p(y())}
-              />
+              <circle class={ui.handleCircleGrabArea} cx={p(x())} cy={p(y())} />
             </g>
           </>
         }
@@ -799,8 +761,6 @@ function AffineHandle(props: {
             on:pointerdown={(e) => {
               // Right-click is reserved for deselect (handled in contextmenu).
               if (e.button === 2) return
-              // Same overlap redirect as the 2D centre handle.
-              if (!props.selected && props.stealToSelected?.(e)) return
               props.onSelect?.()
               startDragging3D(e)
             }}
@@ -821,7 +781,6 @@ function AffineHandle(props: {
               cy={`${projC().y}%`}
             />
             <circle
-              ref={grabEl3D}
               class={ui.handleCircleGrabArea}
               cx={`${projC().x}%`}
               cy={`${projC().y}%`}
@@ -863,26 +822,13 @@ export function AffineEditor(props: {
     Object.values(props.transforms).forEach((tr) => tr.preAffine)
   }
 
-  // Overlapping handles resolve by DOM order, so a click on several stacked
-  // centre circles always lands on the last-rendered transform. Track the
-  // selected transform's grab circle; when a click on another handle also
-  // covers it, redirect the drag there instead of switching the selection.
-  let selectedHandle: SelectedHandleReg | null = null
-  const registerSelectedHandle = (reg: SelectedHandleReg) => {
-    selectedHandle = reg
-  }
-  const unregisterSelectedHandle = (reg: SelectedHandleReg) => {
-    if (selectedHandle === reg) selectedHandle = null
-  }
-  const stealToSelected = (e: PointerEvent) => {
-    const reg = selectedHandle
-    if (!reg || !reg.el.isConnected) return false
-    if (!document.elementsFromPoint(e.clientX, e.clientY).includes(reg.el)) {
-      return false
-    }
-    reg.startDrag(e)
-    return true
-  }
+  // Selected transform last: paints on top of stacked handles and receives
+  // the click; stable tuple identity keeps select-and-drag gestures alive
+  // (see createSelectedLastEntries).
+  const orderedTransformEntries = createSelectedLastEntries(
+    () => props.transforms,
+    () => props.selectedTransformId?.(),
+  )
 
   return (
     <div
@@ -987,7 +933,7 @@ export function AffineEditor(props: {
                 </marker>
               </defs>
               <Show when={affineMode() !== 'final'}>
-                <For each={recordEntries(props.transforms)}>
+                <For each={orderedTransformEntries()}>
                   {([tid, transform]) => (
                     <AffineHandle
                       transform={
@@ -1010,9 +956,6 @@ export function AffineEditor(props: {
                       onSelect={() => props.setSelectedTransformId?.(tid)}
                       onDeselect={() => props.setSelectedTransformId?.(null)}
                       hidden={!(transform.visible ?? true)}
-                      registerSelectedHandle={registerSelectedHandle}
-                      unregisterSelectedHandle={unregisterSelectedHandle}
-                      stealToSelected={stealToSelected}
                       keyframePathBase={
                         props.enableChangeTracking
                           ? `transform.${tid}.${affineMode() as 'preAffine' | 'postAffine'}`
