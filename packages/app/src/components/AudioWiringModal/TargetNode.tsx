@@ -70,7 +70,7 @@ export function buildTargetGroups(
             param,
           },
           label: `${tx.label} / ${matrix} / ${param}`,
-          paramLabel: `${matrix}.${param}`,
+          paramLabel: `${matrix === 'preAffine' ? 'Pre' : 'Post'}.${param}`,
         })
       }
     }
@@ -98,7 +98,7 @@ export function buildTargetGroups(
           variationType: v.type,
         },
         label: `${tx.label} / ${v.type} weight`,
-        paramLabel: `${v.type}`,
+        paramLabel: v.type,
       })
     }
 
@@ -112,18 +112,21 @@ export function buildTargetGroups(
   return groups
 }
 
-export function TargetNode(props: {
+/** Full-width target cell used for properties and variations. */
+export function TargetCell(props: {
   node: TargetNodeData
   isConnecting: boolean
   isTargetOfSelectedWire: boolean
   connectedSourceLabel?: string
   onCompleteConnection: (target: FlameTarget) => void
 }) {
+  const key = flameTargetKey(props.node.target)
+
   return (
     <div
-      class={styles.targetRow}
+      class={styles.targetCell}
       classList={{
-        [styles.targetRowConnected as string]: !!props.connectedSourceLabel,
+        [styles.targetCellConnected as string]: !!props.connectedSourceLabel,
       }}
     >
       <div
@@ -135,7 +138,7 @@ export function TargetNode(props: {
         role="button"
         tabIndex={0}
         aria-label={`Connect to ${props.node.label}`}
-        data-target-port={flameTargetKey(props.node.target)}
+        data-target-port={key}
         onClick={() => props.onCompleteConnection(props.node.target)}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
@@ -157,6 +160,44 @@ export function TargetNode(props: {
         <span class={styles.targetSourceBadge}>
           {props.connectedSourceLabel}
         </span>
+      )}
+    </div>
+  )
+}
+
+/** Compact cell for affine coefficients (used in the affine sub-grid). */
+export function AffineCell(props: {
+  label: string
+  target: FlameTarget
+  isConnecting: boolean
+  isTargetOfSelectedWire: boolean
+  connectedSourceLabel?: string
+  onCompleteConnection: (target: FlameTarget) => void
+}) {
+  const key = flameTargetKey(props.target)
+
+  return (
+    <div
+      class={styles.affineCell}
+      classList={{
+        [styles.affineCellConnected as string]: !!props.connectedSourceLabel,
+      }}
+    >
+      <div
+        class={styles.affineCellPort}
+        classList={{
+          [styles.targetPortConnecting as string]: props.isConnecting,
+          [styles.targetPortActive as string]: props.isTargetOfSelectedWire,
+        }}
+        role="button"
+        tabIndex={0}
+        aria-label={`Connect to ${props.label}`}
+        data-target-port={key}
+        onClick={() => props.onCompleteConnection(props.target)}
+      />
+      <span class={styles.affineCellLabel}>{props.label}</span>
+      {props.connectedSourceLabel && (
+        <span class={styles.affineCellBadge}>{props.connectedSourceLabel}</span>
       )}
     </div>
   )

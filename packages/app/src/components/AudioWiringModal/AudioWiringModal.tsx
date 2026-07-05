@@ -2,7 +2,7 @@ import { createMemo, createSignal, onCleanup, onMount, Show } from 'solid-js'
 import type { AudioFeature, AudioMappingEntry, FlameTarget, TransformInfo, } from '../../utils/audioAnalysis'
 import { flameTargetKey } from '../../utils/audioAnalysis'
 import { SourceNode, AUDIO_SOURCE_GROUPS, type SourceNodeData, } from './SourceNode'
-import { TargetNode, buildTargetGroups } from './TargetNode'
+import { TargetCell, AffineCell, buildTargetGroups } from './TargetNode'
 import { WireOverlay, type WireConnection } from './WireOverlay'
 import styles from './AudioWiringModal.module.css'
 
@@ -308,7 +308,177 @@ export function AudioWiringModal(props: {
     return ''
   })
 
+  // --- Helpers ---
+
+  function getSourceLabel(feature: AudioFeature): string {
+    return SOURCE_BY_FEATURE.get(feature)?.label ?? feature
+  }
+
   // --- Render ---
+
+  function renderTargetGroup(
+    group: {
+      label: string
+      kind: string
+      targets: { target: FlameTarget; label: string; paramLabel: string }[]
+    },
+    selEntry: AudioMappingEntry | null,
+    selTgtKey: string | null,
+    connectingFromFeature: AudioFeature | null,
+    dragFromFeature: AudioFeature | null,
+    connByTarget: Map<string, { sourceFeature: AudioFeature }>,
+    onComplete: (target: FlameTarget) => void,
+  ) {
+    if (group.kind === 'render' || group.kind === 'finalAffine') {
+      // Simple grid: one TargetCell per target
+      return group.targets.map((node) => {
+        const key = flameTargetKey(node.target)
+        const conn = connByTarget.get(key)
+        const connectedSourceLabel = conn
+          ? getSourceLabel(conn.sourceFeature)
+          : undefined
+        const isConnecting = !!connectingFromFeature || !!dragFromFeature
+        const isTargetOfSelected = selTgtKey === key
+
+        return (
+          <TargetCell
+            node={node}
+            isConnecting={isConnecting}
+            isTargetOfSelectedWire={isTargetOfSelected}
+            connectedSourceLabel={connectedSourceLabel}
+            onCompleteConnection={onComplete}
+          />
+        )
+      })
+    }
+
+    // Transform group: split into affine sub-grid, properties, and variations
+    const preAffine: {
+      target: FlameTarget
+      label: string
+      paramLabel: string
+    }[] = []
+    const postAffine: {
+      target: FlameTarget
+      label: string
+      paramLabel: string
+    }[] = []
+    const properties: {
+      target: FlameTarget
+      label: string
+      paramLabel: string
+    }[] = []
+    const variations: {
+      target: FlameTarget
+      label: string
+      paramLabel: string
+    }[] = []
+
+    for (const node of group.targets) {
+      const t = node.target
+      if (t.kind === 'transformAffine') {
+        if (t.matrix === 'preAffine') preAffine.push(node)
+        else postAffine.push(node)
+      } else if (t.kind === 'transformProperty') {
+        properties.push(node)
+      } else if (t.kind === 'variationWeight') {
+        variations.push(node)
+      }
+    }
+
+    const isConnectingGlobal = !!connectingFromFeature || !!dragFromFeature
+
+    function renderAffineCell(
+      node: { target: FlameTarget; label: string; paramLabel: string },
+      matrixLabel: string,
+    ) {
+      const key = flameTargetKey(node.target)
+      const conn = connByTarget.get(key)
+      const connectedSourceLabel = conn
+        ? getSourceLabel(conn.sourceFeature)
+        : undefined
+      const isTargetOfSelected = selTgtKey === key
+
+      return (
+        <AffineCell
+          label={`${matrixLabel}.${node.paramLabel}`}
+          target={node.target}
+          isConnecting={isConnectingGlobal}
+          isTargetOfSelectedWire={isTargetOfSelected}
+          connectedSourceLabel={connectedSourceLabel}
+          onCompleteConnection={onComplete}
+        />
+      )
+    }
+
+    return (
+      <>
+        {/* Affine coefficients in a compact sub-grid */}
+        {preAffine.length > 0 || postAffine.length > 0 ? (
+          <div class={styles.affineBlock}>
+            {preAffine.length > 0 && (
+              <div class={styles.subSectionLabel}>Pre-Affine</div>
+            )}
+            {preAffine.map((node) => renderAffineCell(node, 'Pre'))}
+            {postAffine.length > 0 && (
+              <div class={styles.subSectionLabel}>Post-Affine</div>
+            )}
+            {postAffine.map((node) => renderAffineCell(node, 'Post'))}
+          </div>
+        ) : null}
+
+        {/* Properties */}
+        {properties.length > 0 && (
+          <>
+            <div class={styles.subSectionLabel}>Properties</div>
+            {properties.map((node) => {
+              const key = flameTargetKey(node.target)
+              const conn = connByTarget.get(key)
+              const connectedSourceLabel = conn
+                ? getSourceLabel(conn.sourceFeature)
+                : undefined
+              const isTargetOfSelected = selTgtKey === key
+
+              return (
+                <TargetCell
+                  node={node}
+                  isConnecting={isConnectingGlobal}
+                  isTargetOfSelectedWire={isTargetOfSelected}
+                  connectedSourceLabel={connectedSourceLabel}
+                  onCompleteConnection={onComplete}
+                />
+              )
+            })}
+          </>
+        )}
+
+        {/* Variations */}
+        {variations.length > 0 && (
+          <>
+            <div class={styles.subSectionLabel}>Variations</div>
+            {variations.map((node) => {
+              const key = flameTargetKey(node.target)
+              const conn = connByTarget.get(key)
+              const connectedSourceLabel = conn
+                ? getSourceLabel(conn.sourceFeature)
+                : undefined
+              const isTargetOfSelected = selTgtKey === key
+
+              return (
+                <TargetCell
+                  node={node}
+                  isConnecting={isConnectingGlobal}
+                  isTargetOfSelectedWire={isTargetOfSelected}
+                  connectedSourceLabel={connectedSourceLabel}
+                  onCompleteConnection={onComplete}
+                />
+              )
+            })}
+          </>
+        )}
+      </>
+    )
+  }
 
   return (
     <div class={styles.overlay} onClick={handleOverlayClick}>
@@ -408,26 +578,15 @@ export function AudioWiringModal(props: {
                 </div>
                 <Show when={isOpen}>
                   <div class={styles.targetGroupContent}>
-                    {group.targets.map((node) => {
-                      const key = flameTargetKey(node.target)
-                      const conn = connectionByTarget().get(key)
-                      const isTarget = selTgtKey === key
-                      return (
-                        <TargetNode
-                          node={node}
-                          isConnecting={
-                            connectingFrom() !== null || dragFrom() !== null
-                          }
-                          isTargetOfSelectedWire={!!isTarget}
-                          connectedSourceLabel={
-                            conn
-                              ? SOURCE_BY_FEATURE.get(conn.sourceFeature)?.label
-                              : undefined
-                          }
-                          onCompleteConnection={completeConnection}
-                        />
-                      )
-                    })}
+                    {renderTargetGroup(
+                      group,
+                      selEntry,
+                      selTgtKey,
+                      connectingFrom(),
+                      dragFrom(),
+                      connectionByTarget(),
+                      completeConnection,
+                    )}
                   </div>
                 </Show>
               </div>

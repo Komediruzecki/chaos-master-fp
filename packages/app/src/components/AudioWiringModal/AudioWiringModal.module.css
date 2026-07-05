@@ -296,31 +296,36 @@
 }
 
 .targetGroupContent {
-  padding: 4px 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 1px;
+  padding: 4px 6px;
 }
 
-/* ===== Target node row ===== */
+/* ===== Target cell (grid item) ===== */
 
-.targetRow {
+.targetCell {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
+  gap: 4px;
+  padding: 3px 6px;
+  border-radius: 4px;
   transition: background 0.15s;
+  min-width: 0;
   position: relative;
 }
 
-.targetRow:hover {
+.targetCell:hover {
   background: rgba(255, 255, 255, 0.03);
 }
 
-.targetRowConnected {
-  background: rgba(124, 111, 247, 0.06);
+.targetCellConnected {
+  background: rgba(124, 111, 247, 0.08);
 }
 
 .targetPort {
-  width: 12px;
-  height: 12px;
+  width: 11px;
+  height: 11px;
   border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.2);
   background: rgba(255, 255, 255, 0.05);
@@ -349,15 +354,15 @@
 }
 
 .targetArrow {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--color-text-muted, #555);
   flex-shrink: 0;
-  width: 14px;
+  width: 12px;
   text-align: center;
 }
 
 .targetName {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--color-text-muted, #aaa);
   flex: 1;
   min-width: 0;
@@ -371,14 +376,104 @@
 }
 
 .targetSourceBadge {
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 1px 5px;
+  border-radius: 3px;
   background: rgba(124, 111, 247, 0.15);
   color: var(--color-accent, #b5a9ff);
   white-space: nowrap;
   flex-shrink: 0;
+  max-width: 40px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ===== Sub-section labels within transform groups ===== */
+
+.subSectionLabel {
+  grid-column: 1 / -1;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted, #555);
+  padding: 6px 6px 2px;
+  margin-top: 2px;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.subSectionLabel:first-child {
+  border-top: none;
+  margin-top: 0;
+}
+
+/* ===== Compact affine block ===== */
+
+.affineBlock {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(75px, 1fr));
+  gap: 1px;
+  margin: 2px 0 4px;
+  padding: 0 2px;
+}
+
+.affineCell {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  transition: background 0.15s;
+  min-width: 0;
+}
+
+.affineCell:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.affineCellConnected {
+  background: rgba(124, 111, 247, 0.08);
+}
+
+.affineCellLabel {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-muted, #777);
+  flex-shrink: 0;
+  min-width: 12px;
+}
+
+.affineCellPort {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.affineCellPort:hover {
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.affineCellBadge {
+  font-size: 7px;
+  font-weight: 600;
+  padding: 1px 4px;
+  border-radius: 2px;
+  background: rgba(124, 111, 247, 0.15);
+  color: var(--color-accent, #b5a9ff);
+  white-space: nowrap;
+  flex-shrink: 0;
+  max-width: 32px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ===== SVG wire overlay ===== */
