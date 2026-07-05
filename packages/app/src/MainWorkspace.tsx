@@ -92,11 +92,8 @@ import { BoxArrowRight, Cross, Eye, EyeOff, Menu, Plus, Share, Shuffle, Terminal
 import { AutoCanvas } from './lib/AutoCanvas'
 import { createAnimationExport } from './utils/animationExport'
 import { autosaveIntervalMin, autosaveRecents, saveReminderDismissed, setAutosaveRecents, setSaveReminderDismissed, } from './utils/autosaveSettings'
-import {
-  applyAudioMappingsToFlame,
-  createAudioAnalyzer,
-} from './utils/audioAnalysis'
-import type { AudioMappingEntry, LiveAudioAnalyzer } from './utils/audioAnalysis'
+import { applyAudioMappingsToFlame, createAudioAnalyzer, } from './utils/audioAnalysis'
+import type { AudioMappingEntry, LiveAudioAnalyzer, } from './utils/audioAnalysis'
 import { useAudioReactive } from './utils/useAudioReactive'
 import { useSonification } from './utils/useSonification'
 import { downloadBlob } from './utils/blob'
@@ -117,9 +114,7 @@ import { createTimelineState, resolveKeyframeValue } from './utils/timeline'
 import { sortedTransformEntries } from './utils/transformOrder'
 import { createUndoRouter } from './utils/undoRouting'
 import { useAppDragAndDrop } from './utils/useAppDragAndDrop'
-import { useAudioReactive } from './utils/useAudioReactive'
 import { useKeyboardShortcuts } from './utils/useKeyboardShortcuts'
-import { useSonification } from './utils/useSonification'
 import type { Setter } from 'solid-js'
 import type { v2f } from 'typegpu/data'
 import type { Vec3 } from 'wgpu-matrix'
@@ -136,8 +131,7 @@ import type { TransformVariationType } from './flame/variations'
 import type { CustomVariationDef } from './flame/variations/custom/types'
 import type { TransformVariationType3D } from './flame/variations3D'
 import type { AnimationExportConfig } from './utils/animationExport'
-import type { AudioAnalyzer, LiveAudioAnalyzer } from './utils/audioAnalysis'
-import { createAudioAnalyzer } from './utils/audioAnalysis'
+import type { AudioAnalyzer } from './utils/audioAnalysis'
 import type { ExportDimensions } from './utils/exportDimensions'
 import type { HardwareTier } from './utils/hardwareTier'
 import type { SharePayload } from './utils/jsonQueryParam'
@@ -5228,6 +5222,7 @@ export function MainWorkspace(props: AppProps) {
                           setupMorph(flame)
                         } else {
                           setBlendFlame(flame)
+                        }
                         setShowBlendGallery(false)
                       }}
                       onPreviewBlend={handlePreviewBlend}
