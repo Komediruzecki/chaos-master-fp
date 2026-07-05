@@ -1,42 +1,17 @@
 import { createEffect, createMemo, createSignal, For, onCleanup, Show, } from 'solid-js'
 import { Cross } from '@/icons'
-import { createLiveAnalyzer, decodeAudioFile } from '@/utils/audioAnalysis'
+import { createLiveAnalyzer, decodeAudioFile, flameTargetKey, } from '@/utils/audioAnalysis'
 import ui from './AudioReactivePanel.module.css'
-import type { AudioAnalyzer, LiveAudioAnalyzer } from '@/utils/audioAnalysis'
+import type { AffineKey, AudioAnalyzer, AudioFeature, FlameTarget, LiveAudioAnalyzer, RenderSettingKey, TransformInfo, TransformPropertyKey, } from '@/utils/audioAnalysis'
+
+// Re-export for consumers (MainWorkspace etc.)
+export type { AudioFeature, FlameTarget, TransformInfo }
 
 // --- Types ---
 
-export type AudioFeature =
-  | 'subBass'
-  | 'bass'
-  | 'lowMid'
-  | 'mid'
-  | 'hiMid'
-  | 'presence'
-  | 'brilliance'
-  | 'fullSpectrum'
-  | 'rms'
-  | 'centroid'
-  | 'flatness'
-  | 'beat'
-  | 'onset'
-
-export type FlameParam =
-  | 'vibrancy'
-  | 'exposure'
-  | 'palettePhase'
-  | 'paletteSpeed'
-  | 'contrast'
-  | 'gamma'
-  | 'highlightPower'
-  | 'lightPower'
-  | 'depthColorPower'
-  | 'zoom'
-  | 'skipIters'
-
 export type ParamMapping = {
   audioFeature: AudioFeature
-  flameParam: FlameParam
+  target: FlameTarget
   sensitivity: number
   range: [number, number]
   /** Attack time in ms — how fast the value rises (0 = instant). */
@@ -78,6 +53,8 @@ type AudioReactivePanelProps = {
   playbackTime: () => number
   onSeek: (seconds: number) => void
   fileAnalyzer: (() => AudioAnalyzer | undefined) | AudioAnalyzer | undefined
+  /** Available transforms (id+label) for per-transform target selectors. */
+  transforms: TransformInfo[]
 }
 
 // --- Feature / param labels ---
@@ -98,7 +75,7 @@ const AUDIO_FEATURE_LABELS: Record<AudioFeature, string> = {
   onset: 'Onset',
 }
 
-const FLAME_PARAM_LABELS: Record<FlameParam, string> = {
+const RENDER_SETTING_LABELS: Record<RenderSettingKey, string> = {
   vibrancy: 'Vibrancy',
   exposure: 'Exposure',
   palettePhase: 'Palette Phase',
@@ -112,19 +89,35 @@ const FLAME_PARAM_LABELS: Record<FlameParam, string> = {
   skipIters: 'Skip Iters',
 }
 
+const AFFINE_KEY_LABELS: Record<AffineKey, string> = {
+  a: 'a',
+  b: 'b',
+  c: 'c',
+  d: 'd',
+  e: 'e',
+  f: 'f',
+}
+
+const TRANSFORM_PROP_LABELS: Record<TransformPropertyKey, string> = {
+  probability: 'Probability',
+  colorX: 'Color X',
+  colorY: 'Color Y',
+  colorSpeed: 'Color Speed',
+}
+
 // --- Presets ---
 
 const PRESET_MAPPINGS: Record<AudioPreset, ParamMapping[]> = {
   pulse: [
     {
       audioFeature: 'bass',
-      flameParam: 'vibrancy',
+      target: { kind: 'renderSetting', param: 'vibrancy' },
       sensitivity: 1,
       range: [0.3, 1.5],
     },
     {
       audioFeature: 'beat',
-      flameParam: 'palettePhase',
+      target: { kind: 'renderSetting', param: 'palettePhase' },
       sensitivity: 1,
       range: [0, 3.14],
     },
@@ -132,19 +125,19 @@ const PRESET_MAPPINGS: Record<AudioPreset, ParamMapping[]> = {
   groove: [
     {
       audioFeature: 'mid',
-      flameParam: 'zoom',
+      target: { kind: 'renderSetting', param: 'zoom' },
       sensitivity: 1,
       range: [0.85, 1.15],
     },
     {
       audioFeature: 'bass',
-      flameParam: 'vibrancy',
+      target: { kind: 'renderSetting', param: 'vibrancy' },
       sensitivity: 1,
       range: [0.5, 1.5],
     },
     {
       audioFeature: 'centroid',
-      flameParam: 'palettePhase',
+      target: { kind: 'renderSetting', param: 'palettePhase' },
       sensitivity: 1,
       range: [0, 3.14],
     },
@@ -152,19 +145,19 @@ const PRESET_MAPPINGS: Record<AudioPreset, ParamMapping[]> = {
   ambient: [
     {
       audioFeature: 'rms',
-      flameParam: 'exposure',
+      target: { kind: 'renderSetting', param: 'exposure' },
       sensitivity: 1,
       range: [0.8, 1.2],
     },
     {
       audioFeature: 'hiMid',
-      flameParam: 'paletteSpeed',
+      target: { kind: 'renderSetting', param: 'paletteSpeed' },
       sensitivity: 1,
       range: [0.5, 2],
     },
     {
       audioFeature: 'centroid',
-      flameParam: 'gamma',
+      target: { kind: 'renderSetting', param: 'gamma' },
       sensitivity: 1,
       range: [0.6, 1.4],
     },
@@ -172,25 +165,25 @@ const PRESET_MAPPINGS: Record<AudioPreset, ParamMapping[]> = {
   chaos: [
     {
       audioFeature: 'flatness',
-      flameParam: 'contrast',
+      target: { kind: 'renderSetting', param: 'contrast' },
       sensitivity: 1,
       range: [0.5, 2],
     },
     {
       audioFeature: 'fullSpectrum',
-      flameParam: 'skipIters',
+      target: { kind: 'renderSetting', param: 'skipIters' },
       sensitivity: 1,
       range: [0.8, 1.2],
     },
     {
       audioFeature: 'beat',
-      flameParam: 'highlightPower',
+      target: { kind: 'renderSetting', param: 'highlightPower' },
       sensitivity: 1,
       range: [0, 3],
     },
     {
       audioFeature: 'onset',
-      flameParam: 'contrast',
+      target: { kind: 'renderSetting', param: 'contrast' },
       sensitivity: 1,
       range: [0.8, 1.6],
     },
@@ -198,19 +191,19 @@ const PRESET_MAPPINGS: Record<AudioPreset, ParamMapping[]> = {
   warmth: [
     {
       audioFeature: 'centroid',
-      flameParam: 'palettePhase',
+      target: { kind: 'renderSetting', param: 'palettePhase' },
       sensitivity: 1,
       range: [0, 3.14],
     },
     {
       audioFeature: 'bass',
-      flameParam: 'vibrancy',
+      target: { kind: 'renderSetting', param: 'vibrancy' },
       sensitivity: 1,
       range: [0.4, 1.6],
     },
     {
       audioFeature: 'brilliance',
-      flameParam: 'contrast',
+      target: { kind: 'renderSetting', param: 'contrast' },
       sensitivity: 1,
       range: [0.7, 1.3],
     },
@@ -243,7 +236,7 @@ const ALL_FEATURES: AudioFeature[] = [
   'onset',
 ]
 
-const ALL_PARAMS: FlameParam[] = [
+const ALL_RENDER_PARAMS: RenderSettingKey[] = [
   'vibrancy',
   'exposure',
   'palettePhase',
@@ -256,6 +249,63 @@ const ALL_PARAMS: FlameParam[] = [
   'zoom',
   'skipIters',
 ]
+
+const ALL_AFFINE_KEYS: AffineKey[] = ['a', 'b', 'c', 'd', 'e', 'f']
+
+const ALL_TRANSFORM_PROPS: TransformPropertyKey[] = [
+  'probability',
+  'colorX',
+  'colorY',
+  'colorSpeed',
+]
+
+type TargetCategory = FlameTarget['kind']
+const TARGET_CATEGORIES: TargetCategory[] = [
+  'renderSetting',
+  'transformAffine',
+  'transformProperty',
+  'variationWeight',
+  'finalAffine',
+]
+const TARGET_CATEGORY_LABELS: Record<TargetCategory, string> = {
+  renderSetting: 'Render',
+  transformAffine: 'Affine',
+  transformProperty: 'Prop',
+  variationWeight: 'Var Wt',
+  finalAffine: 'Final',
+}
+
+/** Build a default target for a given category. */
+function defaultTarget(
+  category: TargetCategory,
+  transformIdx?: number,
+): FlameTarget {
+  switch (category) {
+    case 'renderSetting':
+      return { kind: 'renderSetting', param: 'vibrancy' }
+    case 'transformAffine':
+      return {
+        kind: 'transformAffine',
+        transformIdx: transformIdx ?? 0,
+        matrix: 'postAffine',
+        param: 'a',
+      }
+    case 'transformProperty':
+      return {
+        kind: 'transformProperty',
+        transformIdx: transformIdx ?? 0,
+        property: 'probability',
+      }
+    case 'variationWeight':
+      return {
+        kind: 'variationWeight',
+        transformIdx: transformIdx ?? 0,
+        variationType: '',
+      }
+    case 'finalAffine':
+      return { kind: 'finalAffine', param: 'a' }
+  }
+}
 
 const SUPPORTED_AUDIO =
   '.mp3,.wav,.ogg,.flac,audio/mpeg,audio/wav,audio/ogg,audio/flac'
@@ -559,7 +609,7 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
         ...current.mappings,
         {
           audioFeature: 'bass',
-          flameParam: 'vibrancy',
+          target: { kind: 'renderSetting', param: 'vibrancy' },
           sensitivity: 1,
           range: [0.5, 1.5],
         },
@@ -809,20 +859,147 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
                     </For>
                   </select>
                   <span class={ui.arrow}>→</span>
+                  {/* Target category */}
                   <select
                     class={ui.mappingSelect}
-                    value={mapping.flameParam}
+                    value={mapping.target.kind}
                     onChange={(e) => {
+                      const cat = e.currentTarget.value as TargetCategory
                       updateMapping(index(), {
-                        flameParam: e.currentTarget.value as FlameParam,
+                        target: defaultTarget(
+                          cat,
+                          mapping.target.kind === 'renderSetting' ||
+                            mapping.target.kind === 'finalAffine'
+                            ? 0
+                            : 'transformIdx' in mapping.target
+                              ? mapping.target.transformIdx
+                              : 0,
+                        ),
                       })
                     }}
                   >
-                    <For each={ALL_PARAMS}>
-                      {(p) => (
-                        <option value={p}>{FLAME_PARAM_LABELS[p]}</option>
+                    <For each={TARGET_CATEGORIES}>
+                      {(c) => (
+                        <option value={c}>{TARGET_CATEGORY_LABELS[c]}</option>
                       )}
                     </For>
+                  </select>
+                  {/* Transform selector (for transform-scoped targets) */}
+                  {props.transforms.length > 0 &&
+                    mapping.target.kind !== 'renderSetting' &&
+                    mapping.target.kind !== 'finalAffine' && (
+                      <select
+                        class={ui.mappingSelect}
+                        value={
+                          'transformIdx' in mapping.target
+                            ? mapping.target.transformIdx
+                            : 0
+                        }
+                        onChange={(e) => {
+                          const ti = parseInt(e.currentTarget.value)
+                          updateMapping(index(), {
+                            target: {
+                              ...mapping.target,
+                              transformIdx: ti,
+                            } as FlameTarget,
+                          })
+                        }}
+                      >
+                        <For each={props.transforms}>
+                          {(t) => <option value={t.index}>{t.label}</option>}
+                        </For>
+                      </select>
+                    )}
+                  {/* Affine matrix selector (pre/post) */}
+                  {mapping.target.kind === 'transformAffine' && (
+                    <select
+                      class={ui.mappingSelect}
+                      value={mapping.target.matrix}
+                      onChange={(e) => {
+                        updateMapping(index(), {
+                          target: {
+                            ...mapping.target,
+                            matrix: e.currentTarget.value as
+                              | 'preAffine'
+                              | 'postAffine',
+                          } as FlameTarget,
+                        })
+                      }}
+                    >
+                      <option value="preAffine">Pre</option>
+                      <option value="postAffine">Post</option>
+                    </select>
+                  )}
+                  {/* Param dropdown — context-sensitive */}
+                  <select
+                    class={ui.mappingSelect}
+                    value={
+                      mapping.target.kind === 'renderSetting'
+                        ? mapping.target.param
+                        : mapping.target.kind === 'transformAffine' ||
+                            mapping.target.kind === 'finalAffine'
+                          ? mapping.target.param
+                          : mapping.target.kind === 'transformProperty'
+                            ? mapping.target.property
+                            : mapping.target.kind === 'variationWeight'
+                              ? mapping.target.variationType
+                              : ''
+                    }
+                    onChange={(e) => {
+                      const val = e.currentTarget.value
+                      const t = mapping.target
+                      if (t.kind === 'renderSetting') {
+                        updateMapping(index(), {
+                          target: { ...t, param: val as RenderSettingKey },
+                        })
+                      } else if (
+                        t.kind === 'transformAffine' ||
+                        t.kind === 'finalAffine'
+                      ) {
+                        updateMapping(index(), {
+                          target: { ...t, param: val as AffineKey },
+                        })
+                      } else if (t.kind === 'transformProperty') {
+                        updateMapping(index(), {
+                          target: {
+                            ...t,
+                            property: val as TransformPropertyKey,
+                          },
+                        })
+                      } else if (t.kind === 'variationWeight') {
+                        updateMapping(index(), {
+                          target: { ...t, variationType: val },
+                        })
+                      }
+                    }}
+                  >
+                    {mapping.target.kind === 'renderSetting' && (
+                      <For each={ALL_RENDER_PARAMS}>
+                        {(p) => (
+                          <option value={p}>{RENDER_SETTING_LABELS[p]}</option>
+                        )}
+                      </For>
+                    )}
+                    {(mapping.target.kind === 'transformAffine' ||
+                      mapping.target.kind === 'finalAffine') && (
+                      <For each={ALL_AFFINE_KEYS}>
+                        {(k) => (
+                          <option value={k}>{AFFINE_KEY_LABELS[k]}</option>
+                        )}
+                      </For>
+                    )}
+                    {mapping.target.kind === 'transformProperty' && (
+                      <For each={ALL_TRANSFORM_PROPS}>
+                        {(p) => (
+                          <option value={p}>{TRANSFORM_PROP_LABELS[p]}</option>
+                        )}
+                      </For>
+                    )}
+                    {mapping.target.kind === 'variationWeight' && (
+                      <option value={mapping.target.variationType}>
+                        {mapping.target.variationType || '(pick var)'}
+                      </option>
+                    )}
                   </select>
                   <span class={ui.sensitivityLabel}>
                     {mapping.sensitivity.toFixed(1)}x

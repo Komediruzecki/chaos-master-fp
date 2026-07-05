@@ -488,42 +488,101 @@ export async function createLiveAnalyzer(
 
 // --- Audio→Flame mapping (shared between live preview and export) ---
 
+export type AudioFeature =
+  | 'subBass'
+  | 'bass'
+  | 'lowMid'
+  | 'mid'
+  | 'hiMid'
+  | 'presence'
+  | 'brilliance'
+  | 'fullSpectrum'
+  | 'rms'
+  | 'centroid'
+  | 'flatness'
+  | 'beat'
+  | 'onset'
+
+export type RenderSettingKey =
+  | 'vibrancy'
+  | 'exposure'
+  | 'palettePhase'
+  | 'paletteSpeed'
+  | 'contrast'
+  | 'gamma'
+  | 'highlightPower'
+  | 'lightPower'
+  | 'depthColorPower'
+  | 'zoom'
+  | 'skipIters'
+
+export type AffineKey = 'a' | 'b' | 'c' | 'd' | 'e' | 'f'
+
+export type TransformPropertyKey =
+  | 'probability'
+  | 'colorX'
+  | 'colorY'
+  | 'colorSpeed'
+
+/** Encodes the exact target path in a FlameDescriptor to drive from audio. */
+export type FlameTarget =
+  | { kind: 'renderSetting'; param: RenderSettingKey }
+  | {
+      kind: 'transformAffine'
+      transformIdx: number
+      matrix: 'preAffine' | 'postAffine'
+      param: AffineKey
+    }
+  | {
+      kind: 'transformProperty'
+      transformIdx: number
+      property: TransformPropertyKey
+    }
+  | {
+      kind: 'variationWeight'
+      transformIdx: number
+      variationType: string
+    }
+  | { kind: 'finalAffine'; param: AffineKey }
+
+/** Stable string key for dirty-check state (keyed by target identity). */
+export function flameTargetKey(target: FlameTarget): string {
+  switch (target.kind) {
+    case 'renderSetting':
+      return `render.${target.param}`
+    case 'transformAffine':
+      return `tx.${target.transformIdx}.${target.matrix}.${target.param}`
+    case 'transformProperty':
+      return `tx.${target.transformIdx}.prop.${target.property}`
+    case 'variationWeight':
+      return `tx.${target.transformIdx}.var.${target.variationType}.weight`
+    case 'finalAffine':
+      return `final.${target.param}`
+  }
+}
+
 export type AudioMappingEntry = {
-  audioFeature:
-    | 'subBass'
-    | 'bass'
-    | 'lowMid'
-    | 'mid'
-    | 'hiMid'
-    | 'presence'
-    | 'brilliance'
-    | 'fullSpectrum'
-    | 'rms'
-    | 'centroid'
-    | 'flatness'
-    | 'beat'
-    | 'onset'
-  flameParam:
-    | 'vibrancy'
-    | 'exposure'
-    | 'palettePhase'
-    | 'paletteSpeed'
-    | 'contrast'
-    | 'gamma'
-    | 'highlightPower'
-    | 'lightPower'
-    | 'depthColorPower'
-    | 'zoom'
-    | 'skipIters'
+  audioFeature: AudioFeature
+  target: FlameTarget
   sensitivity: number
   range: [number, number]
   attackMs?: number
   releaseMs?: number
 }
 
+/**
+ * Lightweight transform info passed from MainWorkspace so the panel can
+ * show per-transform dropdowns without carrying the full flame descriptor.
+ */
+export type TransformInfo = {
+  id: string
+  index: number
+  label: string
+}
+
 function getAudioFeatureNormalized(
   frameData: FrameData & { isBeat: boolean },
-  feature: AudioMappingEntry['audioFeature'],
+  feature: AudioFeature,
 ): number {
   if (feature === 'beat') return frameData.isBeat ? 1 : 0
   if (feature === 'onset') return frameData.onsetStrength
@@ -553,7 +612,7 @@ function mappingToVal(
   return lo + normalizedValue * mapping.sensitivity * (hi - lo)
 }
 
-/** Per-mapping smoothing + dirty-check state, keyed by `flameParam`. */
+/** Per-mapping smoothing + dirty-check state, keyed by target identity. */
 export type MappingSmoothingState = Map<
   string,
   { smoothed: number; lastApplied: number }
@@ -562,18 +621,21 @@ export type MappingSmoothingState = Map<
 const DIRTY_THRESHOLD = 0.005 // 0.5% change threshold
 
 /**
- * Mutates `flame.renderSettings` in place from audio analysis data.
+ * Mutates a FlameDescriptor draft in place from audio analysis data.
+ *
+ * Targets can be render settings, transform affine coefficients, transform
+ * scalar properties, variation weights, or final-transform affine params.
  *
  * Supports attack/release envelope smoothing via optional `attackMs` /
  * `releaseMs` on each mapping entry, and skips redundant renders when
  * no mapped value has changed beyond a tiny threshold.
  *
- * @param smoothingState - persistent per-param state (smoothed value, last applied).
- *   Created once by the caller and reused across frames.
+ * @param flame   - Full FlameDescriptor draft (from setFlameDescriptor producer).
+ * @param smoothingState - persistent per-target state (smoothed value, last applied).
  * @param deltaTime - seconds since the previous frame (default 1/30).
  */
 export function applyAudioMappingsToFlame(
-  flame: { renderSettings?: Record<string, unknown> },
+  flame: Record<string, unknown>,
   frameData: FrameData & { isBeat: boolean },
   mappings: AudioMappingEntry[],
   smoothingState?: MappingSmoothingState,
@@ -581,20 +643,24 @@ export function applyAudioMappingsToFlame(
 ): void {
   if (mappings.length === 0) return
   const dt = deltaTime ?? 1 / 30
-  const rs = flame.renderSettings ?? {}
-  const camera = (rs.camera as Record<string, unknown> | undefined) ?? {}
+
+  // Lazily resolved sub-objects
+  let rs: Record<string, unknown> | undefined
+  let camera: Record<string, unknown> | undefined
+  let txArr: Record<string, unknown>[] | undefined
   let anyChanged = false
 
   for (const mapping of mappings) {
     const raw = getAudioFeatureNormalized(frameData, mapping.audioFeature)
     const clamped = Math.max(0, Math.min(1, raw))
+    const targetKey = flameTargetKey(mapping.target)
 
     // Apply attack/release envelope smoothing
     let smoothed = clamped
     const attackMs = mapping.attackMs
     const releaseMs = mapping.releaseMs
     if ((attackMs ?? 0) > 0 || (releaseMs ?? 0) > 0) {
-      const state = smoothingState?.get(mapping.flameParam)
+      const state = smoothingState?.get(targetKey)
       const prev = state?.smoothed ?? clamped
       const rising = clamped > prev
       const tc =
@@ -607,17 +673,13 @@ export function applyAudioMappingsToFlame(
     }
 
     // Dirty-check: skip if value hasn't changed meaningfully
-    const prevApplied = smoothingState?.get(mapping.flameParam)?.lastApplied
+    const prevApplied = smoothingState?.get(targetKey)?.lastApplied
     if (
       prevApplied !== undefined &&
       Math.abs(smoothed - prevApplied) < DIRTY_THRESHOLD
     ) {
-      // Still update state so smoothing continues tracking even when throttled
       if (smoothingState) {
-        smoothingState.set(mapping.flameParam, {
-          smoothed,
-          lastApplied: prevApplied,
-        })
+        smoothingState.set(targetKey, { smoothed, lastApplied: prevApplied })
       }
       continue
     }
@@ -626,20 +688,74 @@ export function applyAudioMappingsToFlame(
     const val = mappingToVal(smoothed, mapping)
 
     if (smoothingState) {
-      smoothingState.set(mapping.flameParam, {
-        smoothed,
-        lastApplied: smoothed,
-      })
+      smoothingState.set(targetKey, { smoothed, lastApplied: smoothed })
     }
 
-    if (mapping.flameParam === 'zoom') {
-      ;(camera as Record<string, number>).zoom = val
-    } else {
-      ;(rs as Record<string, number>)[mapping.flameParam] = val
+    // --- Resolve target and write ---
+    const tgt = mapping.target
+
+    if (tgt.kind === 'renderSetting') {
+      // Render settings
+      rs ??= (flame.renderSettings as Record<string, unknown>) ?? {}
+      if (tgt.param === 'zoom') {
+        camera ??= (rs.camera as Record<string, unknown>) ?? {}
+        ;(camera as Record<string, number>).zoom = val
+      } else {
+        ;(rs as Record<string, number>)[tgt.param] = val
+      }
+    } else if (tgt.kind === 'transformAffine') {
+      // Transform affine matrix param
+      txArr ??= Object.values(
+        (flame.transforms as Record<string, Record<string, unknown>>) ?? {},
+      )
+      const tx = txArr[tgt.transformIdx]
+      if (!tx) continue
+      const mat = (tx[tgt.matrix] as Record<string, number> | undefined) ?? {}
+      mat[tgt.param] = val
+      tx[tgt.matrix] = mat
+    } else if (tgt.kind === 'transformProperty') {
+      // Transform scalar property
+      txArr ??= Object.values(
+        (flame.transforms as Record<string, Record<string, unknown>>) ?? {},
+      )
+      const tx = txArr[tgt.transformIdx]
+      if (!tx) continue
+      if (tgt.property === 'colorX') {
+        const color = (tx.color as Record<string, number>) ?? { x: 0, y: 0 }
+        color.x = val
+        tx.color = color
+      } else if (tgt.property === 'colorY') {
+        const color = (tx.color as Record<string, number>) ?? { x: 0, y: 0 }
+        color.y = val
+        tx.color = color
+      } else {
+        ;(tx as Record<string, number>)[tgt.property] = val
+      }
+    } else if (tgt.kind === 'variationWeight') {
+      // Variation weight
+      txArr ??= Object.values(
+        (flame.transforms as Record<string, Record<string, unknown>>) ?? {},
+      )
+      const tx = txArr[tgt.transformIdx]
+      if (!tx) continue
+      const vars =
+        (tx.variations as Record<string, Record<string, unknown>>) ?? {}
+      const v = vars[tgt.variationType]
+      if (v) {
+        ;(v as Record<string, number>).weight = val
+      }
+    } else if (tgt.kind === 'finalAffine') {
+      // Final transform affine param
+      const fin =
+        (flame.finalTransform as Record<string, number> | undefined) ?? {}
+      fin[tgt.param] = val
+      flame.finalTransform = fin
     }
   }
 
   if (!anyChanged) return
-  rs.camera = camera
-  flame.renderSettings = rs
+  if (rs) {
+    if (camera) rs.camera = camera
+    flame.renderSettings = rs
+  }
 }

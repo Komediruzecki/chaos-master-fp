@@ -630,13 +630,13 @@ export function MainWorkspace(props: AppProps) {
     mappings: [
       {
         audioFeature: 'bass',
-        flameParam: 'vibrancy',
+        target: { kind: 'renderSetting', param: 'vibrancy' },
         sensitivity: 1,
         range: [0.3, 1.5],
       },
       {
         audioFeature: 'beat',
-        flameParam: 'palettePhase',
+        target: { kind: 'renderSetting', param: 'palettePhase' },
         sensitivity: 1,
         range: [0, 3.14],
       },
@@ -652,6 +652,17 @@ export function MainWorkspace(props: AppProps) {
   const [fileAnalyzer, setFileAnalyzer] = createSignal<
     AudioAnalyzer | undefined
   >(undefined)
+
+  // Derive transform list for audio mapping target selectors
+  const transformInfos = createMemo(() => {
+    const txs = flameDescriptor.transforms
+    const entries = Object.keys(txs)
+    return entries.map((id, i) => ({
+      id,
+      index: i,
+      label: `Tx ${i}: ${id.split('_')[0]?.slice(0, 12) ?? id.slice(0, 12)}`,
+    }))
+  })
 
   // Sonification state
   const [showSonificationPanel, setShowSonificationPanel] = createSignal(false)
@@ -5189,6 +5200,7 @@ export function MainWorkspace(props: AppProps) {
                           playbackTime={playbackTime}
                           onSeek={setSeekTarget}
                           fileAnalyzer={fileAnalyzer}
+                          transforms={transformInfos()}
                         />
                       </Show>
                     }
