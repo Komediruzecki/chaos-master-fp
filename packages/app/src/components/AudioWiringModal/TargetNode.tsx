@@ -119,6 +119,7 @@ export function TargetCell(props: {
   isTargetOfSelectedWire: boolean
   connectedSourceLabel?: string
   onCompleteConnection: (target: FlameTarget) => void
+  onDragStart: (target: FlameTarget) => void
 }) {
   const key = flameTargetKey(props.node.target)
 
@@ -139,6 +140,10 @@ export function TargetCell(props: {
         tabIndex={0}
         aria-label={`Connect to ${props.node.label}`}
         data-target-port={key}
+        onMouseDown={(e) => {
+          e.preventDefault()
+          props.onDragStart(props.node.target)
+        }}
         onClick={() => props.onCompleteConnection(props.node.target)}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
@@ -173,6 +178,7 @@ export function AffineCell(props: {
   isTargetOfSelectedWire: boolean
   connectedSourceLabel?: string
   onCompleteConnection: (target: FlameTarget) => void
+  onDragStart: (target: FlameTarget) => void
 }) {
   const key = flameTargetKey(props.target)
 
@@ -193,6 +199,10 @@ export function AffineCell(props: {
         tabIndex={0}
         aria-label={`Connect to ${props.label}`}
         data-target-port={key}
+        onMouseDown={(e) => {
+          e.preventDefault()
+          props.onDragStart(props.target)
+        }}
         onClick={() => props.onCompleteConnection(props.target)}
       />
       <span class={styles.affineCellLabel}>{props.label}</span>

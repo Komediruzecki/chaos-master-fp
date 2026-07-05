@@ -70,6 +70,9 @@ export function AudioWiringModal(props: {
 
   // --- Drag state ---
   const [dragFrom, setDragFrom] = createSignal<AudioFeature | null>(null)
+  const [dragFromTarget, setDragFromTarget] = createSignal<FlameTarget | null>(
+    null,
+  )
   const [dragPos, setDragPos] = createSignal<{ x: number; y: number } | null>(
     null,
   )
@@ -176,24 +179,38 @@ export function AudioWiringModal(props: {
     props.onMappingsChange(next)
   }
 
+  function handleDeleteWire(wireIdToDelete: string) {
+    const next = props.mappings.filter(
+      (m) => wireId(entryToWire(m)) !== wireIdToDelete,
+    )
+    props.onMappingsChange(next)
+    setSelectedWire(null)
+  }
+
   function deleteSelectedEntry() {
     const id = selectedWire()
     if (!id) return
-    const next = props.mappings.filter((m) => wireId(entryToWire(m)) !== id)
-    props.onMappingsChange(next)
-    setSelectedWire(null)
+    handleDeleteWire(id)
   }
 
   // --- Drag handlers ---
 
   function handleDragStart(feature: AudioFeature) {
     setDragFrom(feature)
+    setDragFromTarget(null)
+    setConnectingFrom(null)
+    setSelectedWire(null)
+  }
+
+  function handleTargetDragStart(target: FlameTarget) {
+    setDragFromTarget(target)
+    setDragFrom(null)
     setConnectingFrom(null)
     setSelectedWire(null)
   }
 
   function handleMouseMove(e: MouseEvent) {
-    if (!dragFrom() || !containerRef()) return
+    if ((!dragFrom() && !dragFromTarget()) || !containerRef()) return
     const rect = containerRef()!.getBoundingClientRect()
     setDragPos({
       x: e.clientX - rect.left,
@@ -203,9 +220,10 @@ export function AudioWiringModal(props: {
 
   function handleMouseUp(e: MouseEvent) {
     const source = dragFrom()
-    if (!source) return
+    const target = dragFromTarget()
 
-    // Find target port under the mouse
+    if (!source && !target) return
+
     // We need to temporarily disable pointer-events on SVG wires
     const svg = containerRef()?.querySelector('svg') as SVGSVGElement | null
     if (svg) svg.style.pointerEvents = 'none'
@@ -216,20 +234,36 @@ export function AudioWiringModal(props: {
     ) as HTMLElement | null
     if (svg) svg.style.pointerEvents = ''
 
-    const targetPortEl = elUnder?.closest(
-      '[data-target-port]',
-    ) as HTMLElement | null
-    const targetKey = targetPortEl?.getAttribute('data-target-port')
+    if (source) {
+      // Source → Target drop: find target port under cursor
+      const targetPortEl = elUnder?.closest(
+        '[data-target-port]',
+      ) as HTMLElement | null
+      const targetKey = targetPortEl?.getAttribute('data-target-port')
 
-    if (targetKey) {
-      const target = targetByKey().get(targetKey)
-      if (target) {
-        doConnect(source, target)
+      if (targetKey) {
+        const resolvedTarget = targetByKey().get(targetKey)
+        if (resolvedTarget) {
+          doConnect(source, resolvedTarget)
+        }
+      }
+    } else if (target) {
+      // Target → Source drop: find source port under cursor
+      const sourcePortEl = elUnder?.closest(
+        '[data-source-port]',
+      ) as HTMLElement | null
+      const sourceFeature = sourcePortEl?.getAttribute(
+        'data-source-port',
+      ) as AudioFeature | null
+
+      if (sourceFeature) {
+        doConnect(sourceFeature, target)
       }
     }
 
     // Reset drag state
     setDragFrom(null)
+    setDragFromTarget(null)
     setDragPos(null)
   }
 
@@ -248,6 +282,9 @@ export function AudioWiringModal(props: {
     if (e.key === 'Escape') {
       if (dragFrom()) {
         setDragFrom(null)
+        setDragPos(null)
+      } else if (dragFromTarget()) {
+        setDragFromTarget(null)
         setDragPos(null)
       } else if (connectingFrom()) {
         setConnectingFrom(null)
@@ -328,6 +365,7 @@ export function AudioWiringModal(props: {
     dragFromFeature: AudioFeature | null,
     connByTarget: Map<string, { sourceFeature: AudioFeature }>,
     onComplete: (target: FlameTarget) => void,
+    onTargetDragStart: (target: FlameTarget) => void,
   ) {
     if (group.kind === 'render' || group.kind === 'finalAffine') {
       // Simple grid: one TargetCell per target
@@ -347,6 +385,7 @@ export function AudioWiringModal(props: {
             isTargetOfSelectedWire={isTargetOfSelected}
             connectedSourceLabel={connectedSourceLabel}
             onCompleteConnection={onComplete}
+            onDragStart={onTargetDragStart}
           />
         )
       })
@@ -407,6 +446,7 @@ export function AudioWiringModal(props: {
           isTargetOfSelectedWire={isTargetOfSelected}
           connectedSourceLabel={connectedSourceLabel}
           onCompleteConnection={onComplete}
+          onDragStart={onTargetDragStart}
         />
       )
     }
@@ -446,6 +486,7 @@ export function AudioWiringModal(props: {
                   isTargetOfSelectedWire={isTargetOfSelected}
                   connectedSourceLabel={connectedSourceLabel}
                   onCompleteConnection={onComplete}
+                  onDragStart={onTargetDragStart}
                 />
               )
             })}
@@ -471,6 +512,7 @@ export function AudioWiringModal(props: {
                   isTargetOfSelectedWire={isTargetOfSelected}
                   connectedSourceLabel={connectedSourceLabel}
                   onCompleteConnection={onComplete}
+                  onDragStart={onTargetDragStart}
                 />
               )
             })}
@@ -523,6 +565,7 @@ export function AudioWiringModal(props: {
               {group.sources.map((source) => {
                 const isConnecting = connectingFrom() === source.feature
                 const isDragging = dragFrom() === source.feature
+                const isTargetDrag = dragFromTarget() !== null
                 const sourceConns =
                   connectionBySource().get(source.feature) ?? []
                 const isSourceOfSelected =
@@ -532,7 +575,7 @@ export function AudioWiringModal(props: {
                   <SourceNode
                     source={source}
                     level={0.3}
-                    isConnecting={isConnecting || isDragging}
+                    isConnecting={isConnecting || isDragging || isTargetDrag}
                     isSourceOfSelectedWire={isSourceOfSelected}
                     onStartConnection={startConnection}
                     onDragStart={handleDragStart}
@@ -586,6 +629,7 @@ export function AudioWiringModal(props: {
                       dragFrom(),
                       connectionByTarget(),
                       completeConnection,
+                      handleTargetDragStart,
                     )}
                   </div>
                 </Show>
@@ -599,6 +643,7 @@ export function AudioWiringModal(props: {
           selectedWire={selectedWire()}
           connectingFrom={connectingFrom()}
           dragFrom={dragFrom()}
+          dragFromTarget={dragFromTarget()}
           dragPos={dragPos()}
           containerRef={containerRef()}
           sources={ALL_SOURCES}
@@ -606,6 +651,7 @@ export function AudioWiringModal(props: {
             setSelectedWire(id)
             setConnectingFrom(null)
           }}
+          onDeleteWire={handleDeleteWire}
         />
 
         <Show when={connectingFrom()}>
@@ -621,6 +667,17 @@ export function AudioWiringModal(props: {
             {SOURCE_BY_FEATURE.get(dragFrom()!)?.label ?? ''} →
           </div>
         </Show>
+
+        <Show when={dragFromTarget()}>
+          <div class={styles.connectingBanner}>
+            ← Release on a source to connect to{' '}
+            {(() => {
+              const t = dragFromTarget()!
+              const key = flameTargetKey(t)
+              return key
+            })()}
+          </div>
+        </Show>
       </div>
 
       {/* Bottom parameter panel */}
@@ -634,8 +691,8 @@ export function AudioWiringModal(props: {
           when={selectedEntry()}
           fallback={
             <span class={styles.paramsPanelHint}>
-              Click a wire or connect a source to a target to edit mapping
-              parameters
+              Drag ports to wire, click a wire to edit, click again to
+              disconnect
             </span>
           }
         >

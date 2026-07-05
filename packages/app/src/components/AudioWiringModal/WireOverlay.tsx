@@ -65,11 +65,14 @@ export function WireOverlay(props: {
   connectingFrom: AudioFeature | null
   /** Drag wire: source port is being dragged from */
   dragFrom: AudioFeature | null
+  /** Drag wire: target port is being dragged from (reverse direction) */
+  dragFromTarget: FlameTarget | null
   /** Drag wire: current mouse position relative to container */
   dragPos: { x: number; y: number } | null
   containerRef: HTMLElement | null
   sources: SourceNodeData[]
   onSelectWire: (id: string | null) => void
+  onDeleteWire: (id: string) => void
 }) {
   const wirePaths = createMemo(() => {
     if (!props.containerRef) return []
@@ -103,14 +106,35 @@ export function WireOverlay(props: {
 
   /** Preview wire from drag mode (follows mouse cursor) */
   const dragPreviewWire = createMemo(() => {
-    if (!props.containerRef || !props.dragFrom || !props.dragPos) return null
-    const srcPos = getPortCenter(props.containerRef!, props.dragFrom)
-    if (!srcPos) return null
-    const color = getSourceColor(props.dragFrom, props.sources)
-    const { x: tx, y: ty } = props.dragPos
-    const dx = Math.max(60, Math.abs(tx - srcPos.x) * 0.5)
-    const d = `M ${srcPos.x} ${srcPos.y} C ${srcPos.x + dx} ${srcPos.y}, ${tx - dx} ${ty}, ${tx} ${ty}`
-    return { d, color }
+    if (!props.containerRef || !props.dragPos) return null
+    // Source → cursor drag
+    if (props.dragFrom) {
+      const srcPos = getPortCenter(props.containerRef!, props.dragFrom)
+      if (!srcPos) return null
+      const color = getSourceColor(props.dragFrom, props.sources)
+      const { x: tx, y: ty } = props.dragPos
+      const dx = Math.max(60, Math.abs(tx - srcPos.x) * 0.5)
+      return {
+        d: `M ${srcPos.x} ${srcPos.y} C ${srcPos.x + dx} ${srcPos.y}, ${tx - dx} ${ty}, ${tx} ${ty}`,
+        color,
+      }
+    }
+    // Target → cursor drag
+    if (props.dragFromTarget) {
+      const tgtPos = getTargetPortCenter(
+        props.containerRef!,
+        props.dragFromTarget,
+      )
+      if (!tgtPos) return null
+      const color = '#f59e0b' // amber for target-initiated drags
+      const { x: tx, y: ty } = props.dragPos
+      const dx = Math.max(60, Math.abs(tx - tgtPos.x) * 0.5)
+      return {
+        d: `M ${tgtPos.x} ${tgtPos.y} C ${tgtPos.x - dx} ${tgtPos.y}, ${tx + dx} ${ty}, ${tx} ${ty}`,
+        color,
+      }
+    }
+    return null
   })
 
   // Poll for port position updates on animation frame (scroll / resize)
@@ -139,7 +163,11 @@ export function WireOverlay(props: {
               data-wire-id={wp.id}
               onClick={(e) => {
                 e.stopPropagation()
-                props.onSelectWire(wp.id)
+                if (wp.selected) {
+                  props.onDeleteWire(wp.id)
+                } else {
+                  props.onSelectWire(wp.id)
+                }
               }}
             />
           ),

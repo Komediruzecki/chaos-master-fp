@@ -505,6 +505,13 @@
   filter: drop-shadow(0 0 4px currentColor);
 }
 
+.wirePathSelected:hover {
+  stroke: #ef4444;
+  stroke-width: 4;
+  filter: drop-shadow(0 0 6px #ef4444);
+  cursor: pointer;
+}
+
 .wirePreview {
   fill: none;
   stroke: rgba(124, 111, 247, 0.5);
