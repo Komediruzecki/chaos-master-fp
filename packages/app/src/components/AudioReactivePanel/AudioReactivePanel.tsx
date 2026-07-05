@@ -1,6 +1,7 @@
 import { createEffect, createMemo, createSignal, For, onCleanup, Show, } from 'solid-js'
 import { Cross } from '@/icons'
 import { createLiveAnalyzer, decodeAudioFile, flameTargetKey, } from '@/utils/audioAnalysis'
+import { AudioWiringModal } from '../AudioWiringModal/AudioWiringModal'
 import ui from './AudioReactivePanel.module.css'
 import type { AffineKey, AudioAnalyzer, AudioFeature, FlameTarget, LiveAudioAnalyzer, RenderSettingKey, TransformInfo, TransformPropertyKey, } from '@/utils/audioAnalysis'
 
@@ -455,6 +456,7 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
   const [audioFileName, setAudioFileName] = createSignal<string | null>(null)
   const [micError, setMicError] = createSignal<string | null>(null)
   const [micConnecting, setMicConnecting] = createSignal(false)
+  const [showWiringModal, setShowWiringModal] = createSignal(false)
 
   let waveformCanvas!: HTMLCanvasElement
   let fileInput!: HTMLInputElement
@@ -1077,9 +1079,17 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
               )}
             </For>
           </div>
-          <button class={ui.addMappingBtn} onClick={addMapping}>
-            + Add mapping
-          </button>
+          <div class={ui.mappingActions}>
+            <button class={ui.addMappingBtn} onClick={addMapping}>
+              + Add mapping
+            </button>
+            <button
+              class={ui.wiringBtn}
+              onClick={() => setShowWiringModal(true)}
+            >
+              ⚡ Edit Wiring
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1101,6 +1111,22 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
           Live Preview
         </label>
       </div>
+
+      {/* Wiring modal overlay */}
+      <Show when={showWiringModal()}>
+        <AudioWiringModal
+          mappings={audioMapping().mappings}
+          transforms={props.transforms}
+          presets={PRESET_MAPPINGS}
+          onMappingsChange={(mappings) => {
+            props.onMappingChange({
+              preset: 'custom',
+              mappings,
+            })
+          }}
+          onClose={() => setShowWiringModal(false)}
+        />
+      </Show>
     </div>
   )
 }

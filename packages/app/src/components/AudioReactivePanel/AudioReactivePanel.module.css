@@ -574,3 +574,31 @@
   flex: 1;
   text-align: center;
 }
+
+/* --- Mapping actions row --- */
+
+.mappingActions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.wiringBtn {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border: 1px solid var(--color-accent, #7c6ff7);
+  border-radius: 6px;
+  background: rgba(124, 111, 247, 0.1);
+  color: var(--color-accent, #b5a9ff);
+  cursor: pointer;
+  font-family: inherit;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.wiringBtn:hover {
+  background: rgba(124, 111, 247, 0.2);
+  color: #fff;
+}
