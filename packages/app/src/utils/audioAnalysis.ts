@@ -578,6 +578,8 @@ export type TransformInfo = {
   id: string
   index: number
   label: string
+  /** Available variation IDs and types for this transform (for pill picker). */
+  variations: { id: string; type: string }[]
 }
 
 function getAudioFeatureNormalized(

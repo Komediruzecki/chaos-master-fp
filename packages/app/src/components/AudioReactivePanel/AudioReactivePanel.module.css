@@ -499,3 +499,78 @@
   background: rgba(255, 80, 80, 0.08);
   border-radius: 6px;
 }
+
+/* --- Variation weight pill picker --- */
+
+.variationPillsRow {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--color-card, rgba(255, 255, 255, 0.12));
+  border-radius: 5px;
+  overflow: hidden;
+  background: var(--color-bg, #1a1a2e);
+
+  [data-theme='dark'] & {
+    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+  }
+}
+
+.variationPill {
+  flex: 1;
+  text-align: center;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 4px 6px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted, #888);
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  &:not(:last-child) {
+    border-right: 1px solid var(--color-card, rgba(255, 255, 255, 0.12));
+
+    [data-theme='dark'] & {
+      border-right-color: rgba(255, 255, 255, 0.06);
+    }
+  }
+
+  &:hover {
+    background: var(--color-card-hover, rgba(255, 255, 255, 0.08));
+    color: var(--color-text, #d0d0d0);
+
+    [data-theme='dark'] & {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--color-text, #e0e0e0);
+    }
+  }
+}
+
+.variationPillActive {
+  background: var(--color-accent, #7c6ff7) !important;
+  color: #fff !important;
+  font-weight: 600;
+
+  [data-theme='dark'] & {
+    background: var(--color-accent, #7c6ff7) !important;
+    color: #fff !important;
+  }
+}
+
+.noVariations {
+  font-size: 10px;
+  color: var(--color-text-muted, #666);
+  padding: 4px 8px;
+  font-style: italic;
+  flex: 1;
+  text-align: center;
+}

@@ -656,12 +656,20 @@ export function MainWorkspace(props: AppProps) {
   // Derive transform list for audio mapping target selectors
   const transformInfos = createMemo(() => {
     const txs = flameDescriptor.transforms
-    const entries = Object.keys(txs)
-    return entries.map((id, i) => ({
-      id,
-      index: i,
-      label: `Tx ${i}: ${id.split('_')[0]?.slice(0, 12) ?? id.slice(0, 12)}`,
-    }))
+    return Object.entries(txs).map(([id, tx], i) => {
+      const variations = Object.entries(tx.variations ?? {}).map(
+        ([vid, v]) => ({
+          id: vid,
+          type: (v as { type: string }).type,
+        }),
+      )
+      return {
+        id,
+        index: i,
+        label: `Tx ${i}: ${id.split('_')[0]?.slice(0, 12) ?? id.slice(0, 12)}`,
+        variations,
+      }
+    })
   })
 
   // Sonification state

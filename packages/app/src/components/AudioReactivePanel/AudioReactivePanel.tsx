@@ -314,6 +314,45 @@ function resolve<T>(v: (() => T) | T): T {
   return typeof v === 'function' ? (v as () => T)() : v
 }
 
+// --- Variation weight pill picker ---
+
+function VariationWeightPills(props: {
+  mapping: ParamMapping
+  transforms: TransformInfo[]
+  onSelect: (variationType: string) => void
+}) {
+  const txIdx =
+    props.mapping.target.kind === 'variationWeight'
+      ? props.mapping.target.transformIdx
+      : 0
+  const info = props.transforms.find((t) => t.index === txIdx)
+  const vars = info?.variations ?? []
+
+  return (
+    <div class={ui.variationPillsRow}>
+      {vars.length === 0 ? (
+        <span class={ui.noVariations}>No variations</span>
+      ) : (
+        vars.map((v) => (
+          <button
+            type="button"
+            class={ui.variationPill}
+            classList={{
+              [ui.variationPillActive as string]:
+                props.mapping.target.kind === 'variationWeight' &&
+                props.mapping.target.variationType === v.type,
+            }}
+            title={v.type}
+            onClick={() => props.onSelect(v.type)}
+          >
+            {v.type}
+          </button>
+        ))
+      )}
+    </div>
+  )
+}
+
 // --- Waveform helpers ---
 
 function mixToMono(buffer: AudioBuffer): Float32Array {
@@ -930,77 +969,85 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
                       <option value="postAffine">Post</option>
                     </select>
                   )}
-                  {/* Param dropdown — context-sensitive */}
-                  <select
-                    class={ui.mappingSelect}
-                    value={
-                      mapping.target.kind === 'renderSetting'
-                        ? mapping.target.param
-                        : mapping.target.kind === 'transformAffine' ||
-                            mapping.target.kind === 'finalAffine'
-                          ? mapping.target.param
-                          : mapping.target.kind === 'transformProperty'
-                            ? mapping.target.property
-                            : mapping.target.kind === 'variationWeight'
-                              ? mapping.target.variationType
-                              : ''
-                    }
-                    onChange={(e) => {
-                      const val = e.currentTarget.value
-                      const t = mapping.target
-                      if (t.kind === 'renderSetting') {
-                        updateMapping(index(), {
-                          target: { ...t, param: val as RenderSettingKey },
-                        })
-                      } else if (
-                        t.kind === 'transformAffine' ||
-                        t.kind === 'finalAffine'
-                      ) {
-                        updateMapping(index(), {
-                          target: { ...t, param: val as AffineKey },
-                        })
-                      } else if (t.kind === 'transformProperty') {
+                  {/* Param picker: dropdown for most targets, pills for variation weight */}
+                  {mapping.target.kind === 'variationWeight' ? (
+                    <VariationWeightPills
+                      mapping={mapping}
+                      transforms={props.transforms}
+                      onSelect={(variationType) => {
                         updateMapping(index(), {
                           target: {
-                            ...t,
-                            property: val as TransformPropertyKey,
-                          },
+                            ...mapping.target,
+                            variationType,
+                          } as FlameTarget,
                         })
-                      } else if (t.kind === 'variationWeight') {
-                        updateMapping(index(), {
-                          target: { ...t, variationType: val },
-                        })
+                      }}
+                    />
+                  ) : (
+                    <select
+                      class={ui.mappingSelect}
+                      value={
+                        mapping.target.kind === 'renderSetting'
+                          ? mapping.target.param
+                          : mapping.target.kind === 'transformAffine' ||
+                              mapping.target.kind === 'finalAffine'
+                            ? mapping.target.param
+                            : mapping.target.kind === 'transformProperty'
+                              ? mapping.target.property
+                              : ''
                       }
-                    }}
-                  >
-                    {mapping.target.kind === 'renderSetting' && (
-                      <For each={ALL_RENDER_PARAMS}>
-                        {(p) => (
-                          <option value={p}>{RENDER_SETTING_LABELS[p]}</option>
-                        )}
-                      </For>
-                    )}
-                    {(mapping.target.kind === 'transformAffine' ||
-                      mapping.target.kind === 'finalAffine') && (
-                      <For each={ALL_AFFINE_KEYS}>
-                        {(k) => (
-                          <option value={k}>{AFFINE_KEY_LABELS[k]}</option>
-                        )}
-                      </For>
-                    )}
-                    {mapping.target.kind === 'transformProperty' && (
-                      <For each={ALL_TRANSFORM_PROPS}>
-                        {(p) => (
-                          <option value={p}>{TRANSFORM_PROP_LABELS[p]}</option>
-                        )}
-                      </For>
-                    )}
-                    {mapping.target.kind === 'variationWeight' && (
-                      <option value={mapping.target.variationType}>
-                        {mapping.target.variationType || '(pick var)'}
-                      </option>
-                    )}
-                  </select>
+                      onChange={(e) => {
+                        const val = e.currentTarget.value
+                        const t = mapping.target
+                        if (t.kind === 'renderSetting') {
+                          updateMapping(index(), {
+                            target: { ...t, param: val as RenderSettingKey },
+                          })
+                        } else if (
+                          t.kind === 'transformAffine' ||
+                          t.kind === 'finalAffine'
+                        ) {
+                          updateMapping(index(), {
+                            target: { ...t, param: val as AffineKey },
+                          })
+                        } else if (t.kind === 'transformProperty') {
+                          updateMapping(index(), {
+                            target: {
+                              ...t,
+                              property: val as TransformPropertyKey,
+                            },
+                          })
+                        }
+                      }}
+                    >
+                      {mapping.target.kind === 'renderSetting' && (
+                        <For each={ALL_RENDER_PARAMS}>
+                          {(p) => (
+                            <option value={p}>
+                              {RENDER_SETTING_LABELS[p]}
+                            </option>
+                          )}
+                        </For>
+                      )}
+                      {(mapping.target.kind === 'transformAffine' ||
+                        mapping.target.kind === 'finalAffine') && (
+                        <For each={ALL_AFFINE_KEYS}>
+                          {(k) => (
+                            <option value={k}>{AFFINE_KEY_LABELS[k]}</option>
+                          )}
+                        </For>
+                      )}
+                      {mapping.target.kind === 'transformProperty' && (
+                        <For each={ALL_TRANSFORM_PROPS}>
+                          {(p) => (
+                            <option value={p}>
+                              {TRANSFORM_PROP_LABELS[p]}
+                            </option>
+                          )}
+                        </For>
+                      )}
+                    </select>
+                  )}
                   <span class={ui.sensitivityLabel}>
                     {mapping.sensitivity.toFixed(1)}x
                   </span>
