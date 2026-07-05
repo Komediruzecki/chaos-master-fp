@@ -1,17 +1,15 @@
-import { createMemo, createSignal, For, onCleanup, onMount, Show, } from 'solid-js'
+import { createMemo, createSignal, onCleanup, onMount, Show } from 'solid-js'
 import type { AudioFeature, AudioMappingEntry, FlameTarget, TransformInfo, } from '../../utils/audioAnalysis'
 import { flameTargetKey } from '../../utils/audioAnalysis'
 import { SourceNode, AUDIO_SOURCE_GROUPS, type SourceNodeData, } from './SourceNode'
-import { TargetNode, buildTargetGroups, type TargetGroupData, type TargetNodeData, } from './TargetNode'
+import { TargetNode, buildTargetGroups } from './TargetNode'
 import { WireOverlay, type WireConnection } from './WireOverlay'
 import styles from './AudioWiringModal.module.css'
 
-/** Flattened list of all source nodes from groups. */
 const ALL_SOURCES: SourceNodeData[] = AUDIO_SOURCE_GROUPS.flatMap(
   (g) => g.sources,
 )
 
-/** Maps feature name → SourceNodeData for quick lookup. */
 const SOURCE_BY_FEATURE = new Map<AudioFeature, SourceNodeData>(
   ALL_SOURCES.map((s) => [s.feature, s]),
 )
@@ -70,25 +68,13 @@ export function AudioWiringModal(props: {
   )
   const [containerRef, setContainerRef] = createSignal<HTMLElement | null>(null)
 
+  // --- Drag state ---
+  const [dragFrom, setDragFrom] = createSignal<AudioFeature | null>(null)
+  const [dragPos, setDragPos] = createSignal<{ x: number; y: number } | null>(
+    null,
+  )
+
   const presets = () => props.presets ?? DEFAULT_PRESETS
-  const activePreset = createMemo(() => {
-    // Detect which preset matches the current mappings
-    for (const [name, entries] of Object.entries(presets())) {
-      if (entries.length === props.mappings.length) {
-        const currentKeys = new Set(
-          props.mappings.map((m) => flameTargetKey(m.target)),
-        )
-        const presetKeys = new Set(entries.map((e) => flameTargetKey(e.target)))
-        if (
-          currentKeys.size === presetKeys.size &&
-          [...currentKeys].every((k) => presetKeys.has(k))
-        ) {
-          return name
-        }
-      }
-    }
-    return ''
-  })
 
   const targetGroups = createMemo(() => buildTargetGroups(props.transforms))
 
@@ -112,6 +98,17 @@ export function AudioWiringModal(props: {
     return map
   })
 
+  // --- Building a lookup from target key → FlameTarget for drag completion ---
+  const targetByKey = createMemo(() => {
+    const map = new Map<string, FlameTarget>()
+    for (const g of targetGroups()) {
+      for (const t of g.targets) {
+        map.set(flameTargetKey(t.target), t.target)
+      }
+    }
+    return map
+  })
+
   // Selected mapping entry for the bottom parameter panel
   const selectedEntry = createMemo((): AudioMappingEntry | null => {
     const id = selectedWire()
@@ -119,7 +116,8 @@ export function AudioWiringModal(props: {
     return props.mappings.find((m) => wireId(entryToWire(m)) === id) ?? null
   })
 
-  // Handler: start connection from source port
+  // --- Connection handlers ---
+
   function startConnection(feature: AudioFeature) {
     if (connectingFrom() === feature) {
       setConnectingFrom(null)
@@ -129,22 +127,22 @@ export function AudioWiringModal(props: {
     }
   }
 
-  // Handler: complete connection on target port
   function completeConnection(target: FlameTarget) {
     const source = connectingFrom()
     if (!source) return
 
-    // Prevent duplicate connections
+    doConnect(source, target)
+    setConnectingFrom(null)
+  }
+
+  function doConnect(source: AudioFeature, target: FlameTarget) {
     const tgtKey = flameTargetKey(target)
     const existingWire = connectionByTarget().get(tgtKey)
     if (existingWire && existingWire.sourceFeature === source) {
-      // Already connected - select the existing wire
       setSelectedWire(wireId(existingWire))
-      setConnectingFrom(null)
       return
     }
 
-    // If this target already has a connection from a different source, replace it
     let next = [...props.mappings]
     if (existingWire) {
       next = next.filter((m) => flameTargetKey(m.target) !== tgtKey)
@@ -164,10 +162,8 @@ export function AudioWiringModal(props: {
     next.push(newEntry)
     props.onMappingsChange(next)
     setSelectedWire(wireId({ sourceFeature: source, target }))
-    setConnectingFrom(null)
   }
 
-  // Handler: update selected entry
   function updateSelectedEntry(updates: Partial<AudioMappingEntry>) {
     const id = selectedWire()
     if (!id) return
@@ -180,7 +176,6 @@ export function AudioWiringModal(props: {
     props.onMappingsChange(next)
   }
 
-  // Handler: delete selected entry
   function deleteSelectedEntry() {
     const id = selectedWire()
     if (!id) return
@@ -189,7 +184,57 @@ export function AudioWiringModal(props: {
     setSelectedWire(null)
   }
 
-  // Click on overlay background cancels connection / deselects wire
+  // --- Drag handlers ---
+
+  function handleDragStart(feature: AudioFeature) {
+    setDragFrom(feature)
+    setConnectingFrom(null)
+    setSelectedWire(null)
+  }
+
+  function handleMouseMove(e: MouseEvent) {
+    if (!dragFrom() || !containerRef()) return
+    const rect = containerRef()!.getBoundingClientRect()
+    setDragPos({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    })
+  }
+
+  function handleMouseUp(e: MouseEvent) {
+    const source = dragFrom()
+    if (!source) return
+
+    // Find target port under the mouse
+    // We need to temporarily disable pointer-events on SVG wires
+    const svg = containerRef()?.querySelector('svg') as SVGSVGElement | null
+    if (svg) svg.style.pointerEvents = 'none'
+
+    const elUnder = document.elementFromPoint(
+      e.clientX,
+      e.clientY,
+    ) as HTMLElement | null
+    if (svg) svg.style.pointerEvents = ''
+
+    const targetPortEl = elUnder?.closest(
+      '[data-target-port]',
+    ) as HTMLElement | null
+    const targetKey = targetPortEl?.getAttribute('data-target-port')
+
+    if (targetKey) {
+      const target = targetByKey().get(targetKey)
+      if (target) {
+        doConnect(source, target)
+      }
+    }
+
+    // Reset drag state
+    setDragFrom(null)
+    setDragPos(null)
+  }
+
+  // --- Click on overlay background ---
+
   function handleOverlayClick(e: MouseEvent) {
     if (e.target === e.currentTarget) {
       setConnectingFrom(null)
@@ -197,22 +242,27 @@ export function AudioWiringModal(props: {
     }
   }
 
-  // Keyboard: Escape cancels
+  // --- Keyboard ---
+
   function handleKeyDown(e: KeyboardEvent) {
     if (e.key === 'Escape') {
-      if (connectingFrom()) {
+      if (dragFrom()) {
+        setDragFrom(null)
+        setDragPos(null)
+      } else if (connectingFrom()) {
         setConnectingFrom(null)
       } else if (selectedWire()) {
         setSelectedWire(null)
       }
     }
     if (e.key === 'Delete' || e.key === 'Backspace') {
-      // Don't delete if user is editing an input
       const tag = (e.target as HTMLElement).tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
       deleteSelectedEntry()
     }
   }
+
+  // --- Collapsible groups ---
 
   function toggleGroup(kind: string) {
     const next = new Set(expandedGroups())
@@ -224,112 +274,41 @@ export function AudioWiringModal(props: {
     setExpandedGroups(next)
   }
 
+  // --- Lifecycle ---
+
   onMount(() => {
     document.addEventListener('keydown', handleKeyDown)
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
   })
 
   onCleanup(() => {
     document.removeEventListener('keydown', handleKeyDown)
+    document.removeEventListener('mousemove', handleMouseMove)
+    document.removeEventListener('mouseup', handleMouseUp)
   })
 
-  // --- Render helpers ---
+  // --- Active preset detection ---
 
-  function renderSourceColumn() {
-    return (
-      <div class={styles.sourcesColumn}>
-        <div class={styles.columnLabel}>Audio Sources</div>
-        {AUDIO_SOURCE_GROUPS.map((group) => (
-          <div class={styles.sourceGroup}>
-            <div class={styles.sourceGroupLabel}>{group.label}</div>
-            {group.sources.map((source) => {
-              const isConnecting = connectingFrom() === source.feature
-              const sourceConns = connectionBySource().get(source.feature) ?? []
-              const isSourceOfSelected =
-                selectedWire() !== null &&
-                sourceConns.some((c) => wireId(c) === selectedWire())
-              return (
-                <SourceNode
-                  source={source}
-                  level={0.3} // placeholder - real levels come from analyzer
-                  isConnecting={isConnecting}
-                  isSourceOfSelectedWire={isSourceOfSelected}
-                  onStartConnection={startConnection}
-                />
-              )
-            })}
-          </div>
-        ))}
-      </div>
-    )
-  }
+  const activePreset = createMemo(() => {
+    for (const [name, entries] of Object.entries(presets())) {
+      if (entries.length === props.mappings.length) {
+        const currentKeys = new Set(
+          props.mappings.map((m) => flameTargetKey(m.target)),
+        )
+        const presetKeys = new Set(entries.map((e) => flameTargetKey(e.target)))
+        if (
+          currentKeys.size === presetKeys.size &&
+          [...currentKeys].every((k) => presetKeys.has(k))
+        ) {
+          return name
+        }
+      }
+    }
+    return ''
+  })
 
-  function renderTargetColumn() {
-    const selEntry = selectedEntry()
-    const selTgtKey = selEntry ? flameTargetKey(selEntry.target) : null
-
-    return (
-      <div class={styles.targetsColumn}>
-        <div class={styles.columnLabel}>Flame Parameters</div>
-        <For each={targetGroups()}>
-          {(group) => {
-            const isOpen = expandedGroups().has(group.kind)
-            return (
-              <div class={styles.targetGroup}>
-                <div
-                  class={styles.targetGroupHeader}
-                  onClick={() => toggleGroup(group.kind)}
-                >
-                  <span
-                    class={styles.targetGroupArrow}
-                    classList={{
-                      [styles.targetGroupArrowOpen as string]: isOpen,
-                    }}
-                  >
-                    ▶
-                  </span>
-                  <span class={styles.targetGroupTitle}>
-                    {group.label}
-                    <Show
-                      when={group.targets.some((t) =>
-                        connectionByTarget().has(flameTargetKey(t.target)),
-                      )}
-                    >
-                      {' ·'}
-                    </Show>
-                  </span>
-                </div>
-                <Show when={isOpen}>
-                  <div class={styles.targetGroupContent}>
-                    <For each={group.targets}>
-                      {(node) => {
-                        const key = flameTargetKey(node.target)
-                        const conn = connectionByTarget().get(key)
-                        const isTarget = selTgtKey === key
-                        return (
-                          <TargetNode
-                            node={node}
-                            isConnecting={connectingFrom() !== null}
-                            isTargetOfSelectedWire={!!isTarget}
-                            connectedSourceLabel={
-                              conn
-                                ? SOURCE_BY_FEATURE.get(conn.sourceFeature)
-                                    ?.label
-                                : undefined
-                            }
-                            onCompleteConnection={completeConnection}
-                          />
-                        )
-                      }}
-                    </For>
-                  </div>
-                </Show>
-              </div>
-            )
-          }}
-        </For>
-      </div>
-    )
-  }
+  // --- Render ---
 
   return (
     <div class={styles.overlay} onClick={handleOverlayClick}>
@@ -365,12 +344,103 @@ export function AudioWiringModal(props: {
 
       {/* Main canvas */}
       <div class={styles.main} ref={setContainerRef}>
-        {renderSourceColumn()}
-        {renderTargetColumn()}
+        {/* Sources column */}
+        <div class={styles.sourcesColumn}>
+          <div class={styles.columnLabel}>Audio Sources</div>
+          {AUDIO_SOURCE_GROUPS.map((group) => (
+            <div class={styles.sourceGroup}>
+              <div class={styles.sourceGroupLabel}>{group.label}</div>
+              {group.sources.map((source) => {
+                const isConnecting = connectingFrom() === source.feature
+                const isDragging = dragFrom() === source.feature
+                const sourceConns =
+                  connectionBySource().get(source.feature) ?? []
+                const isSourceOfSelected =
+                  selectedWire() !== null &&
+                  sourceConns.some((c) => wireId(c) === selectedWire())
+                return (
+                  <SourceNode
+                    source={source}
+                    level={0.3}
+                    isConnecting={isConnecting || isDragging}
+                    isSourceOfSelectedWire={isSourceOfSelected}
+                    onStartConnection={startConnection}
+                    onDragStart={handleDragStart}
+                  />
+                )
+              })}
+            </div>
+          ))}
+        </div>
+
+        {/* Targets column — using .map() instead of <For> so expandedGroups() reactivity works */}
+        <div class={styles.targetsColumn}>
+          <div class={styles.columnLabel}>Flame Parameters</div>
+          {targetGroups().map((group) => {
+            const isOpen = expandedGroups().has(group.kind)
+            const selEntry = selectedEntry()
+            const selTgtKey = selEntry ? flameTargetKey(selEntry.target) : null
+
+            return (
+              <div class={styles.targetGroup}>
+                <div
+                  class={styles.targetGroupHeader}
+                  onClick={() => toggleGroup(group.kind)}
+                >
+                  <span
+                    class={styles.targetGroupArrow}
+                    classList={{
+                      [styles.targetGroupArrowOpen as string]: isOpen,
+                    }}
+                  >
+                    ▶
+                  </span>
+                  <span class={styles.targetGroupTitle}>
+                    {group.label}
+                    <Show
+                      when={group.targets.some((t) =>
+                        connectionByTarget().has(flameTargetKey(t.target)),
+                      )}
+                    >
+                      {' ·'}
+                    </Show>
+                  </span>
+                </div>
+                <Show when={isOpen}>
+                  <div class={styles.targetGroupContent}>
+                    {group.targets.map((node) => {
+                      const key = flameTargetKey(node.target)
+                      const conn = connectionByTarget().get(key)
+                      const isTarget = selTgtKey === key
+                      return (
+                        <TargetNode
+                          node={node}
+                          isConnecting={
+                            connectingFrom() !== null || dragFrom() !== null
+                          }
+                          isTargetOfSelectedWire={!!isTarget}
+                          connectedSourceLabel={
+                            conn
+                              ? SOURCE_BY_FEATURE.get(conn.sourceFeature)?.label
+                              : undefined
+                          }
+                          onCompleteConnection={completeConnection}
+                        />
+                      )
+                    })}
+                  </div>
+                </Show>
+              </div>
+            )
+          })}
+        </div>
+
         <WireOverlay
           connections={connections()}
           selectedWire={selectedWire()}
           connectingFrom={connectingFrom()}
+          dragFrom={dragFrom()}
+          dragPos={dragPos()}
           containerRef={containerRef()}
           sources={ALL_SOURCES}
           onSelectWire={(id) => {
@@ -378,10 +448,18 @@ export function AudioWiringModal(props: {
             setConnectingFrom(null)
           }}
         />
+
         <Show when={connectingFrom()}>
           <div class={styles.connectingBanner}>
             Click a target parameter to connect{' '}
             {SOURCE_BY_FEATURE.get(connectingFrom()!)?.label ?? ''} →
+          </div>
+        </Show>
+
+        <Show when={dragFrom()}>
+          <div class={styles.connectingBanner}>
+            Release on a target to connect{' '}
+            {SOURCE_BY_FEATURE.get(dragFrom()!)?.label ?? ''} →
           </div>
         </Show>
       </div>
@@ -407,14 +485,13 @@ export function AudioWiringModal(props: {
               SOURCE_BY_FEATURE.get(entry().audioFeature)?.label ??
               entry().audioFeature
             const targetKey = flameTargetKey(entry().target)
-            const targetLabel = targetKey
 
             return (
               <>
                 <div class={styles.paramsTitle}>
                   <span class={styles.paramsTitleSource}>{sourceLabel}</span>
                   <span class={styles.paramsTitleArrow}>→</span>
-                  <span class={styles.paramsTitleTarget}>{targetLabel}</span>
+                  <span class={styles.paramsTitleTarget}>{targetKey}</span>
                 </div>
                 <div class={styles.paramsFields}>
                   {/* Sensitivity */}
@@ -438,7 +515,7 @@ export function AudioWiringModal(props: {
                     </span>
                   </div>
 
-                  {/* Range min */}
+                  {/* Range */}
                   <div class={styles.paramsField}>
                     <span class={styles.paramsLabel}>Range</span>
                     <div class={styles.paramsRangeInputs}>
@@ -516,7 +593,7 @@ export function AudioWiringModal(props: {
                     </span>
                   </div>
 
-                  {/* Delete button */}
+                  {/* Delete */}
                   <button
                     type="button"
                     class={styles.paramsDeleteBtn}

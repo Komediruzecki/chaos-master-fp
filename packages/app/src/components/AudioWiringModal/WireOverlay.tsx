@@ -1,5 +1,5 @@
 import { createMemo, onCleanup } from 'solid-js'
-import type { AudioFeature, AudioMappingEntry, FlameTarget, } from '../../utils/audioAnalysis'
+import type { AudioFeature, FlameTarget } from '../../utils/audioAnalysis'
 import { flameTargetKey } from '../../utils/audioAnalysis'
 import type { SourceNodeData } from './SourceNode'
 import styles from './AudioWiringModal.module.css'
@@ -14,13 +14,11 @@ function wireId(conn: WireConnection): string {
 }
 
 /**
- * Resolves port element positions relative to the overlay container.
- * Ports are identified by data-source-port and data-target-port attributes.
+ * Resolves source port center relative to the overlay container.
  */
 function getPortCenter(
   container: HTMLElement,
   sourceFeature: AudioFeature,
-  sourceColorMap: Map<AudioFeature, string>,
 ): { x: number; y: number } | null {
   const el = container.querySelector(
     `[data-source-port="${sourceFeature}"]`,
@@ -34,6 +32,9 @@ function getPortCenter(
   }
 }
 
+/**
+ * Resolves target port center relative to the overlay container.
+ */
 function getTargetPortCenter(
   container: HTMLElement,
   target: FlameTarget,
@@ -51,9 +52,6 @@ function getTargetPortCenter(
   }
 }
 
-/**
- * Returns the group label for a source feature.
- */
 function getSourceColor(
   source: AudioFeature,
   sources: SourceNodeData[],
@@ -61,68 +59,63 @@ function getSourceColor(
   return sources.find((s) => s.feature === source)?.color ?? '#888'
 }
 
-function getSourceLabel(
-  source: AudioFeature,
-  sources: SourceNodeData[],
-): string {
-  return sources.find((s) => s.feature === source)?.label ?? source
-}
-
 export function WireOverlay(props: {
   connections: WireConnection[]
   selectedWire: string | null
   connectingFrom: AudioFeature | null
+  /** Drag wire: source port is being dragged from */
+  dragFrom: AudioFeature | null
+  /** Drag wire: current mouse position relative to container */
+  dragPos: { x: number; y: number } | null
   containerRef: HTMLElement | null
   sources: SourceNodeData[]
   onSelectWire: (id: string | null) => void
 }) {
-  // Build a set for quick lookup
-  const connectionSet = createMemo(() => {
-    const set = new Set<string>()
-    for (const c of props.connections) set.add(wireId(c))
-    return set
-  })
-
   const wirePaths = createMemo(() => {
     if (!props.containerRef) return []
     return props.connections.map((conn) => {
-      const srcPos = getPortCenter(
-        props.containerRef!,
-        conn.sourceFeature,
-        new Map(),
-      )
+      const srcPos = getPortCenter(props.containerRef!, conn.sourceFeature)
       const tgtPos = getTargetPortCenter(props.containerRef!, conn.target)
       if (!srcPos || !tgtPos) return null
       const color = getSourceColor(conn.sourceFeature, props.sources)
       const id = wireId(conn)
       const selected = id === props.selectedWire
-      const dx = Math.abs(tgtPos.x - srcPos.x) * 0.5
+      const dx = Math.max(60, Math.abs(tgtPos.x - srcPos.x) * 0.5)
       const d = `M ${srcPos.x} ${srcPos.y} C ${srcPos.x + dx} ${srcPos.y}, ${tgtPos.x - dx} ${tgtPos.y}, ${tgtPos.x} ${tgtPos.y}`
       return { id, d, color, selected }
     })
   })
 
-  const previewWire = createMemo(() => {
+  /** Preview wire from click-to-connect mode (shows from source going right) */
+  const clickPreviewWire = createMemo(() => {
     if (!props.containerRef || !props.connectingFrom) return null
-    const srcPos = getPortCenter(
-      props.containerRef!,
-      props.connectingFrom,
-      new Map(),
-    )
+    const srcPos = getPortCenter(props.containerRef!, props.connectingFrom)
     if (!srcPos) return null
     const color = getSourceColor(props.connectingFrom, props.sources)
-    // Preview goes slightly right from source (no target pos until clicked)
     const dx = 80
+    const tx = srcPos.x + dx * 2
+    const ty = srcPos.y - 30
     return {
-      d: `M ${srcPos.x} ${srcPos.y} C ${srcPos.x + dx} ${srcPos.y}, ${srcPos.x + dx * 2} ${srcPos.y - 30}, ${srcPos.x + dx * 2} ${srcPos.y - 30}`,
+      d: `M ${srcPos.x} ${srcPos.y} C ${srcPos.x + dx} ${srcPos.y}, ${tx} ${ty}, ${tx} ${ty}`,
       color,
     }
   })
 
-  // Poll for port position updates on animation frame
+  /** Preview wire from drag mode (follows mouse cursor) */
+  const dragPreviewWire = createMemo(() => {
+    if (!props.containerRef || !props.dragFrom || !props.dragPos) return null
+    const srcPos = getPortCenter(props.containerRef!, props.dragFrom)
+    if (!srcPos) return null
+    const color = getSourceColor(props.dragFrom, props.sources)
+    const { x: tx, y: ty } = props.dragPos
+    const dx = Math.max(60, Math.abs(tx - srcPos.x) * 0.5)
+    const d = `M ${srcPos.x} ${srcPos.y} C ${srcPos.x + dx} ${srcPos.y}, ${tx - dx} ${ty}, ${tx} ${ty}`
+    return { d, color }
+  })
+
+  // Poll for port position updates on animation frame (scroll / resize)
   let rafId: number | undefined
   const tick = () => {
-    // Re-read positions - trigger reactivity by touching containerRef
     void props.containerRef
     rafId = requestAnimationFrame(tick)
   }
@@ -133,7 +126,6 @@ export function WireOverlay(props: {
 
   return (
     <svg class={styles.wireSvg}>
-      {/* Existing connections */}
       {wirePaths().map(
         (wp) =>
           wp && (
@@ -152,12 +144,20 @@ export function WireOverlay(props: {
             />
           ),
       )}
-      {/* Preview wire while connecting */}
-      {previewWire() && (
+      {/* Preview from click-to-connect */}
+      {clickPreviewWire() && (
         <path
-          d={previewWire()!.d}
+          d={clickPreviewWire()!.d}
           class={styles.wirePreview}
-          style={{ stroke: previewWire()!.color }}
+          style={{ stroke: clickPreviewWire()!.color }}
+        />
+      )}
+      {/* Preview from drag */}
+      {dragPreviewWire() && (
+        <path
+          d={dragPreviewWire()!.d}
+          class={styles.wirePreview}
+          style={{ stroke: dragPreviewWire()!.color }}
         />
       )}
     </svg>

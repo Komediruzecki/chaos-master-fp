@@ -98,6 +98,7 @@ export function SourceNode(props: {
   isConnecting: boolean
   isSourceOfSelectedWire: boolean
   onStartConnection: (feature: AudioFeature) => void
+  onDragStart: (feature: AudioFeature) => void
 }) {
   return (
     <div
@@ -130,6 +131,10 @@ export function SourceNode(props: {
         tabIndex={0}
         aria-label={`Connect ${props.source.label}`}
         data-source-port={props.source.feature}
+        onMouseDown={(e) => {
+          e.preventDefault()
+          props.onDragStart(props.source.feature)
+        }}
         onClick={() => props.onStartConnection(props.source.feature)}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
