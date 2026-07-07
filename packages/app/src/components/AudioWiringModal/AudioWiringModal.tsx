@@ -4,6 +4,7 @@ import { flameTargetKey } from '../../utils/audioAnalysis'
 import { AUDIO_SOURCE_GROUPS, type SourceNodeData } from './SourceNode'
 import { SourceColumn } from './SourceColumn'
 import { TargetCell, AffineCell, buildTargetGroups, type TargetGroupData, } from './TargetNode'
+import { TargetGroupCard } from './TargetGroupCard'
 import { WireOverlay, wireId, type WireConnection } from './WireOverlay'
 import { ParamsPanel } from './ParamsPanel'
 import { HeaderBar } from './HeaderBar'
@@ -1207,84 +1208,38 @@ export function AudioWiringModal(props: {
               0,
             )
 
+            const txIdx = group.kind.startsWith('tx-')
+              ? parseInt(group.kind.slice(3), 10)
+              : -1
+
             return (
-              <div class={styles.targetGroup}>
-                <div
-                  class={styles.targetGroupHeader}
-                  onClick={() => toggleGroup(group.kind)}
-                >
-                  <span
-                    class={styles.targetGroupArrow}
-                    classList={{
-                      [styles.targetGroupArrowOpen as string]: isOpen,
-                    }}
-                  >
-                    ▶
-                  </span>
-                  <span class={styles.targetGroupTitle}>
-                    {group.label}
-                    {groupConnCount > 0 && (
-                      <span class={styles.groupConnCount}>{groupConnCount}</span>
-                    )}
-                  </span>
-                  {group.kind.startsWith('tx-') && (
-                    <>
-                      <button
-                        type="button"
-                        class={styles.copyBtn}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          copyWiring(parseInt(group.kind.slice(3), 10))
-                        }}
-                        title="Copy wiring from this transform"
-                      >
-                        Copy
-                      </button>
-                      <Show when={copiedWiring() !== null && copiedWiring()!.length > 0}>
-                        <button
-                          type="button"
-                          class={styles.pasteBtn}
-                          classList={{
-                            [styles.pasteBtnConfirm as string]:
-                              pendingPaste()?.transformIdx ===
-                              parseInt(group.kind.slice(3), 10),
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            pasteWiring(parseInt(group.kind.slice(3), 10))
-                          }}
-                          title={
-                            pendingPaste()?.transformIdx ===
-                            parseInt(group.kind.slice(3), 10)
-                              ? 'Click again to overwrite existing connections'
-                              : 'Paste wiring to this transform'
-                          }
-                        >
-                          {pendingPaste()?.transformIdx ===
-                          parseInt(group.kind.slice(3), 10)
-                            ? 'Confirm Paste'
-                            : 'Paste'}
-                        </button>
-                      </Show>
-                    </>
-                  )}
-                </div>
-                <Show when={isOpen}>
-                  <div class={styles.targetGroupContent}>
-                    {renderTargetGroup(
-                      group,
-                      selTgtKey,
-                      connectingFrom(),
-                      dragFrom(),
-                      hoveredDropKey(),
-                      highlightedTargetKey(),
-                      connectionByTarget(),
-                      completeConnection,
-                      handleTargetDragStart,
-                    )}
-                  </div>
-                </Show>
-              </div>
+              <TargetGroupCard
+                group={group}
+                isOpen={isOpen}
+                groupConnCount={groupConnCount}
+                hasCopiedData={
+                  copiedWiring() !== null && copiedWiring()!.length > 0
+                }
+                pendingPasteTransformIdx={pendingPaste()?.transformIdx ?? null}
+                confirmPasteMode={
+                  pendingPaste()?.transformIdx === txIdx
+                }
+                onToggle={() => toggleGroup(group.kind)}
+                onCopy={() => copyWiring(txIdx)}
+                onPaste={() => pasteWiring(txIdx)}
+              >
+                {renderTargetGroup(
+                  group,
+                  selTgtKey,
+                  connectingFrom(),
+                  dragFrom(),
+                  hoveredDropKey(),
+                  highlightedTargetKey(),
+                  connectionByTarget(),
+                  completeConnection,
+                  handleTargetDragStart,
+                )}
+              </TargetGroupCard>
             )
           })}
         </div>
