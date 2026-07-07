@@ -470,6 +470,29 @@
   border-color: rgba(16, 185, 129, 0.3);
 }
 
+.pasteBtnConfirm {
+  border-color: rgba(245, 158, 11, 0.5);
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+  animation: pastePulse 1s ease-in-out infinite;
+}
+
+.pasteBtnConfirm:hover {
+  background: rgba(245, 158, 11, 0.22);
+  border-color: rgba(245, 158, 11, 0.7);
+  color: #fbbf24;
+}
+
+@keyframes pastePulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0);
+  }
+}
+
 .targetGroupContent {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));

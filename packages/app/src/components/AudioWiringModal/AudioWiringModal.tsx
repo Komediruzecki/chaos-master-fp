@@ -483,6 +483,8 @@ export function AudioWiringModal(props: {
     createSignal<AudioMappingEntry[] | null>(null)
   const [copiedWiring, setCopiedWiring] =
     createSignal<{ audioFeature: AudioFeature; target: FlameTarget }[] | null>(null)
+  const [pendingPaste, setPendingPaste] =
+    createSignal<{ transformIdx: number } | null>(null)
   const [containerRef, setContainerRef] = createSignal<HTMLElement | null>(null)
 
   // ── Drag state ──
@@ -784,6 +786,7 @@ export function AudioWiringModal(props: {
     if (e.target === e.currentTarget) {
       setConnectingFrom(null)
       setSelectedWire(null)
+      setPendingPaste(null)
     }
   }
 
@@ -791,7 +794,9 @@ export function AudioWiringModal(props: {
 
   function handleKeyDown(e: KeyboardEvent) {
     if (e.key === 'Escape') {
-      if (dragFrom()) {
+      if (pendingPaste()) {
+        setPendingPaste(null)
+      } else if (dragFrom()) {
         setDragFrom(null)
         setDragPos(null)
         setDragStartPos(null)
@@ -849,6 +854,24 @@ export function AudioWiringModal(props: {
   function pasteWiring(transformIdx: number) {
     const wiring = copiedWiring()
     if (!wiring || wiring.length === 0) return
+
+    // Check if target transform already has connections → require confirmation
+    const hasExisting = props.mappings.some(
+      (m) =>
+        m.target.kind !== 'renderSetting' &&
+        m.target.kind !== 'finalAffine' &&
+        (m.target as { transformIdx?: number }).transformIdx === transformIdx,
+    )
+
+    if (hasExisting) {
+      const pending = pendingPaste()
+      if (pending?.transformIdx !== transformIdx) {
+        setPendingPaste({ transformIdx })
+        return
+      }
+      setPendingPaste(null)
+    }
+
     saveForUndo()
     for (const entry of wiring) {
       const newTarget = { ...entry.target, transformIdx } as FlameTarget
@@ -1188,13 +1211,26 @@ export function AudioWiringModal(props: {
                         <button
                           type="button"
                           class={styles.pasteBtn}
+                          classList={{
+                            [styles.pasteBtnConfirm as string]:
+                              pendingPaste()?.transformIdx ===
+                              parseInt(group.kind.slice(3), 10),
+                          }}
                           onClick={(e) => {
                             e.stopPropagation()
                             pasteWiring(parseInt(group.kind.slice(3), 10))
                           }}
-                          title="Paste wiring to this transform"
+                          title={
+                            pendingPaste()?.transformIdx ===
+                            parseInt(group.kind.slice(3), 10)
+                              ? 'Click again to overwrite existing connections'
+                              : 'Paste wiring to this transform'
+                          }
                         >
-                          Paste
+                          {pendingPaste()?.transformIdx ===
+                          parseInt(group.kind.slice(3), 10)
+                            ? 'Confirm Paste'
+                            : 'Paste'}
                         </button>
                       </Show>
                     </>
