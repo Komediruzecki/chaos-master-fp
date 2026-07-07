@@ -260,6 +260,13 @@
   animation: portPulse 0.8s ease-in-out infinite;
 }
 
+.portDropTarget {
+  border-color: var(--color-accent, #7c6ff7);
+  background: rgba(124, 111, 247, 0.25);
+  transform: scale(1.25);
+  box-shadow: 0 0 8px rgba(124, 111, 247, 0.5);
+}
+
 @keyframes portPulse {
   0%,
   100% {
@@ -387,6 +394,12 @@
   animation: portPulse 0.8s ease-in-out infinite;
 }
 
+.targetPortDropTarget {
+  border-color: var(--color-accent, #7c6ff7);
+  transform: scale(1.25);
+  box-shadow: 0 0 8px rgba(124, 111, 247, 0.5);
+}
+
 .targetArrow {
   font-size: 10px;
   color: var(--color-text-muted, #555);
@@ -512,6 +525,12 @@
   border-color: var(--color-accent, #7c6ff7);
   background: var(--color-accent, #7c6ff7);
   animation: portPulse 0.8s ease-in-out infinite;
+}
+
+.affineCellPortDropTarget {
+  border-color: var(--color-accent, #7c6ff7);
+  transform: scale(1.25);
+  box-shadow: 0 0 8px rgba(124, 111, 247, 0.5);
 }
 
 .affineCellBadge {

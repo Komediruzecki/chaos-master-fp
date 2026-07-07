@@ -129,6 +129,7 @@ export function AudioWiringModal(props: {
     x: number
     y: number
   } | null>(null)
+  const [hoveredDropKey, setHoveredDropKey] = createSignal<string | null>(null)
 
   const presets = () => props.presets ?? DEFAULT_PRESETS
 
@@ -287,6 +288,21 @@ export function AudioWiringModal(props: {
       x: e.clientX - rect.left,
       y: e.clientY - rect.top,
     })
+
+    // Detect port under cursor for drop target highlighting
+    const elUnder = document.elementFromPoint(
+      e.clientX,
+      e.clientY,
+    ) as HTMLElement | null
+    if (dragFrom()) {
+      // Source → Target: look for target port
+      const targetPort = elUnder?.closest('[data-target-port]') as HTMLElement | null
+      setHoveredDropKey(targetPort?.getAttribute('data-target-port') ?? null)
+    } else if (dragFromTarget()) {
+      // Target → Source: look for source port
+      const sourcePort = elUnder?.closest('[data-source-port]') as HTMLElement | null
+      setHoveredDropKey(sourcePort?.getAttribute('data-source-port') ?? null)
+    }
   }
 
   function handleMouseUp(e: MouseEvent) {
@@ -353,6 +369,7 @@ export function AudioWiringModal(props: {
     setDragFromTarget(null)
     setDragPos(null)
     setDragStartPos(null)
+    setHoveredDropKey(null)
   }
 
   // ── Click on overlay background ──
@@ -372,10 +389,12 @@ export function AudioWiringModal(props: {
         setDragFrom(null)
         setDragPos(null)
         setDragStartPos(null)
+        setHoveredDropKey(null)
       } else if (dragFromTarget()) {
         setDragFromTarget(null)
         setDragPos(null)
         setDragStartPos(null)
+        setHoveredDropKey(null)
       } else if (connectingFrom()) {
         setConnectingFrom(null)
       } else if (selectedWire()) {
@@ -443,6 +462,7 @@ export function AudioWiringModal(props: {
     selTgtKey: string | null,
     connectingFromFeature: AudioFeature | null,
     dragFromFeature: AudioFeature | null,
+    hoveredDropKey: string | null,
     connByTarget: Map<string, { sourceFeature: AudioFeature }>,
     onComplete: (target: FlameTarget) => void,
     onTargetDragStart: (target: FlameTarget, e: MouseEvent) => void,
@@ -459,6 +479,7 @@ export function AudioWiringModal(props: {
         ? getSourceLabel(conn.sourceFeature)
         : undefined
       const isTargetOfSelected = selTgtKey === key
+      const isDropTarget = !!dragFromFeature && hoveredDropKey === key
 
       return (
         <AffineCell
@@ -466,6 +487,7 @@ export function AudioWiringModal(props: {
           target={node.target}
           isConnecting={isConnectingGlobal}
           isTargetOfSelectedWire={isTargetOfSelected}
+          isDropTarget={isDropTarget}
           connectedSourceLabel={connectedSourceLabel}
           onCompleteConnection={onComplete}
           onDragStart={onTargetDragStart}
@@ -484,12 +506,14 @@ export function AudioWiringModal(props: {
         ? getSourceLabel(conn.sourceFeature)
         : undefined
       const isTargetOfSelected = selTgtKey === key
+      const isDropTarget = !!dragFromFeature && hoveredDropKey === key
 
       return (
         <TargetCell
           node={node}
           isConnecting={isConnectingGlobal}
           isTargetOfSelectedWire={isTargetOfSelected}
+          isDropTarget={isDropTarget}
           connectedSourceLabel={connectedSourceLabel}
           onCompleteConnection={onComplete}
           onDragStart={onTargetDragStart}
@@ -564,6 +588,9 @@ export function AudioWiringModal(props: {
                 const isSourceOfSelected =
                   selectedWire() !== null &&
                   sourceConns.some((c) => wireId(c) === selectedWire())
+                const isDropTarget =
+                  dragFromTarget() !== null &&
+                  hoveredDropKey() === source.feature
                 return (
                   <SourceNode
                     source={source}
@@ -571,6 +598,7 @@ export function AudioWiringModal(props: {
                     connectionCount={sourceConns.length}
                     isConnecting={isConnecting || isDragging || isTargetDrag}
                     isSourceOfSelectedWire={isSourceOfSelected}
+                    isDropTarget={isDropTarget}
                     onStartConnection={startConnection}
                     onDragStart={handleDragStart}
                   />
@@ -622,6 +650,7 @@ export function AudioWiringModal(props: {
                       selTgtKey,
                       connectingFrom(),
                       dragFrom(),
+                      hoveredDropKey(),
                       connectionByTarget(),
                       completeConnection,
                       handleTargetDragStart,

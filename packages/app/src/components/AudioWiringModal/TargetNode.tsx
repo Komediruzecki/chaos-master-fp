@@ -180,6 +180,7 @@ export function TargetCell(props: {
   node: TargetNodeData
   isConnecting: boolean
   isTargetOfSelectedWire: boolean
+  isDropTarget: boolean
   connectedSourceLabel?: string
   onCompleteConnection: (target: FlameTarget) => void
   onDragStart: (target: FlameTarget, e: MouseEvent) => void
@@ -198,6 +199,7 @@ export function TargetCell(props: {
         classList={{
           [styles.targetPortConnecting as string]: props.isConnecting,
           [styles.targetPortActive as string]: props.isTargetOfSelectedWire,
+          [styles.targetPortDropTarget as string]: props.isDropTarget,
         }}
         role="button"
         tabIndex={0}
@@ -239,6 +241,7 @@ export function AffineCell(props: {
   target: FlameTarget
   isConnecting: boolean
   isTargetOfSelectedWire: boolean
+  isDropTarget: boolean
   connectedSourceLabel?: string
   onCompleteConnection: (target: FlameTarget) => void
   onDragStart: (target: FlameTarget, e: MouseEvent) => void
@@ -257,6 +260,7 @@ export function AffineCell(props: {
         classList={{
           [styles.affineCellPortConnecting as string]: props.isConnecting,
           [styles.affineCellPortActive as string]: props.isTargetOfSelectedWire,
+          [styles.affineCellPortDropTarget as string]: props.isDropTarget,
         }}
         role="button"
         tabIndex={0}
