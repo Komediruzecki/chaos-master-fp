@@ -421,6 +421,25 @@
   letter-spacing: 0.08em;
   color: var(--color-text-muted, #888);
   flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.groupConnCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 16px;
+  padding: 0 5px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(124, 111, 247, 0.15);
+  color: var(--color-accent, #b5a9ff);
+  line-height: 1;
+  letter-spacing: 0;
 }
 
 .copyBtn,

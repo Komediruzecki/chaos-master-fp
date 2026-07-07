@@ -1142,6 +1142,15 @@ export function AudioWiringModal(props: {
             const selEntry = selectedEntry()
             const selTgtKey = selEntry ? flameTargetKey(selEntry.target) : null
 
+            const groupConnCount = group.subGroups.reduce(
+              (sum, sg) =>
+                sum +
+                sg.targets.filter((t) =>
+                  connectionByTarget().has(flameTargetKey(t.target)),
+                ).length,
+              0,
+            )
+
             return (
               <div class={styles.targetGroup}>
                 <div
@@ -1158,15 +1167,9 @@ export function AudioWiringModal(props: {
                   </span>
                   <span class={styles.targetGroupTitle}>
                     {group.label}
-                    <Show
-                      when={group.subGroups.some((sg) =>
-                        sg.targets.some((t) =>
-                          connectionByTarget().has(flameTargetKey(t.target)),
-                        ),
-                      )}
-                    >
-                      {' ·'}
-                    </Show>
+                    {groupConnCount > 0 && (
+                      <span class={styles.groupConnCount}>{groupConnCount}</span>
+                    )}
                   </span>
                   {group.kind.startsWith('tx-') && (
                     <>
