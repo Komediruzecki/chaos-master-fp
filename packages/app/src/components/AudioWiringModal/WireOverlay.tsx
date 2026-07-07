@@ -1,7 +1,6 @@
-import { createMemo, onCleanup } from 'solid-js'
+import { createMemo, createSignal, onCleanup, onMount } from 'solid-js'
 import type { AudioFeature, FlameTarget } from '../../utils/audioAnalysis'
 import { flameTargetKey } from '../../utils/audioAnalysis'
-import type { SourceNodeData } from './SourceNode'
 import styles from './AudioWiringModal.module.css'
 
 export type WireConnection = {
@@ -9,7 +8,7 @@ export type WireConnection = {
   target: FlameTarget
 }
 
-function wireId(conn: WireConnection): string {
+export function wireId(conn: WireConnection): string {
   return `${conn.sourceFeature}->${flameTargetKey(conn.target)}`
 }
 
@@ -52,13 +51,6 @@ function getTargetPortCenter(
   }
 }
 
-function getSourceColor(
-  source: AudioFeature,
-  sources: SourceNodeData[],
-): string {
-  return sources.find((s) => s.feature === source)?.color ?? '#888'
-}
-
 export function WireOverlay(props: {
   connections: WireConnection[]
   selectedWire: string | null
@@ -70,17 +62,56 @@ export function WireOverlay(props: {
   /** Drag wire: current mouse position relative to container */
   dragPos: { x: number; y: number } | null
   containerRef: HTMLElement | null
-  sources: SourceNodeData[]
+  sourceColorMap: Map<AudioFeature, string>
   onSelectWire: (id: string | null) => void
   onDeleteWire: (id: string) => void
 }) {
+  // Layout version — bumped on resize/scroll/drag so memos recalculate
+  const [layoutVersion, setLayoutVersion] = createSignal(0)
+
+  onMount(() => {
+    const container = props.containerRef
+    if (!container) return
+
+    // ResizeObserver: fires when container size changes
+    const ro = new ResizeObserver(() => setLayoutVersion((v) => v + 1))
+    ro.observe(container)
+
+    // Scroll listener on both scrollable columns
+    const onScroll = () => setLayoutVersion((v) => v + 1)
+    const targetsCol = container.querySelector('[class*="targetsColumn"]')
+    const sourcesCol = container.querySelector('[class*="sourcesColumn"]')
+    if (targetsCol) {
+      targetsCol.addEventListener('scroll', onScroll, { passive: true })
+    }
+    if (sourcesCol) {
+      sourcesCol.addEventListener('scroll', onScroll, { passive: true })
+    }
+
+    // RAF only bumps layoutVersion when actively dragging (dragPos changes)
+    let rafId: number
+    const tick = () => {
+      if (props.dragPos) setLayoutVersion((v) => v + 1)
+      rafId = requestAnimationFrame(tick)
+    }
+    rafId = requestAnimationFrame(tick)
+
+    onCleanup(() => {
+      ro.disconnect()
+      if (targetsCol) targetsCol.removeEventListener('scroll', onScroll)
+      if (sourcesCol) sourcesCol.removeEventListener('scroll', onScroll)
+      cancelAnimationFrame(rafId)
+    })
+  })
+
   const wirePaths = createMemo(() => {
+    void layoutVersion()
     if (!props.containerRef) return []
     return props.connections.map((conn) => {
       const srcPos = getPortCenter(props.containerRef!, conn.sourceFeature)
       const tgtPos = getTargetPortCenter(props.containerRef!, conn.target)
       if (!srcPos || !tgtPos) return null
-      const color = getSourceColor(conn.sourceFeature, props.sources)
+      const color = props.sourceColorMap.get(conn.sourceFeature) ?? '#888'
       const id = wireId(conn)
       const selected = id === props.selectedWire
       const dx = Math.max(60, Math.abs(tgtPos.x - srcPos.x) * 0.5)
@@ -89,29 +120,32 @@ export function WireOverlay(props: {
     })
   })
 
-  /** Preview wire from click-to-connect mode (shows from source going right) */
+  /** Preview wire from click-to-connect mode (follows cursor when available). */
   const clickPreviewWire = createMemo(() => {
+    void layoutVersion()
     if (!props.containerRef || !props.connectingFrom) return null
     const srcPos = getPortCenter(props.containerRef!, props.connectingFrom)
     if (!srcPos) return null
-    const color = getSourceColor(props.connectingFrom, props.sources)
-    const dx = 80
-    const tx = srcPos.x + dx * 2
-    const ty = srcPos.y - 30
+    const color = props.sourceColorMap.get(props.connectingFrom) ?? '#888'
+    // Follow mouse position if available, otherwise extend to the right
+    const tx = props.dragPos?.x ?? srcPos.x + 160
+    const ty = props.dragPos?.y ?? srcPos.y - 30
+    const dx = Math.max(60, Math.abs(tx - srcPos.x) * 0.5)
     return {
-      d: `M ${srcPos.x} ${srcPos.y} C ${srcPos.x + dx} ${srcPos.y}, ${tx} ${ty}, ${tx} ${ty}`,
+      d: `M ${srcPos.x} ${srcPos.y} C ${srcPos.x + dx} ${srcPos.y}, ${tx - dx} ${ty}, ${tx} ${ty}`,
       color,
     }
   })
 
-  /** Preview wire from drag mode (follows mouse cursor) */
+  /** Preview wire from drag mode (follows mouse cursor). */
   const dragPreviewWire = createMemo(() => {
+    void layoutVersion()
     if (!props.containerRef || !props.dragPos) return null
     // Source → cursor drag
     if (props.dragFrom) {
       const srcPos = getPortCenter(props.containerRef!, props.dragFrom)
       if (!srcPos) return null
-      const color = getSourceColor(props.dragFrom, props.sources)
+      const color = props.sourceColorMap.get(props.dragFrom) ?? '#888'
       const { x: tx, y: ty } = props.dragPos
       const dx = Math.max(60, Math.abs(tx - srcPos.x) * 0.5)
       return {
@@ -137,17 +171,6 @@ export function WireOverlay(props: {
     return null
   })
 
-  // Poll for port position updates on animation frame (scroll / resize)
-  let rafId: number | undefined
-  const tick = () => {
-    void props.containerRef
-    rafId = requestAnimationFrame(tick)
-  }
-  rafId = requestAnimationFrame(tick)
-  onCleanup(() => {
-    if (rafId !== undefined) cancelAnimationFrame(rafId)
-  })
-
   return (
     <svg class={styles.wireSvg}>
       {wirePaths().map(
@@ -168,6 +191,11 @@ export function WireOverlay(props: {
                 } else {
                   props.onSelectWire(wp.id)
                 }
+              }}
+              onContextMenu={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                props.onDeleteWire(wp.id)
               }}
             />
           ),

@@ -2,9 +2,11 @@ import { createMemo, createSignal, onCleanup, onMount, Show } from 'solid-js'
 import type { AudioFeature, AudioMappingEntry, FlameTarget, TransformInfo, } from '../../utils/audioAnalysis'
 import { flameTargetKey } from '../../utils/audioAnalysis'
 import { SourceNode, AUDIO_SOURCE_GROUPS, type SourceNodeData, } from './SourceNode'
-import { TargetCell, AffineCell, buildTargetGroups } from './TargetNode'
-import { WireOverlay, type WireConnection } from './WireOverlay'
+import { TargetCell, AffineCell, buildTargetGroups, type TargetGroupData, } from './TargetNode'
+import { WireOverlay, wireId, type WireConnection } from './WireOverlay'
 import styles from './AudioWiringModal.module.css'
+
+// ── Module-level constants ──
 
 const ALL_SOURCES: SourceNodeData[] = AUDIO_SOURCE_GROUPS.flatMap(
   (g) => g.sources,
@@ -13,6 +15,19 @@ const ALL_SOURCES: SourceNodeData[] = AUDIO_SOURCE_GROUPS.flatMap(
 const SOURCE_BY_FEATURE = new Map<AudioFeature, SourceNodeData>(
   ALL_SOURCES.map((s) => [s.feature, s]),
 )
+
+const SOURCE_COLOR_MAP = new Map<AudioFeature, string>(
+  ALL_SOURCES.map((s) => [s.feature, s.color]),
+)
+
+/** Default values for new mapping entries. */
+const NEW_ENTRY_DEFAULTS = {
+  sensitivity: 0.3,
+  range: [0, 1] as [number, number],
+  zoomRange: [0.5, 1.5] as [number, number],
+  attackMs: 40,
+  releaseMs: 150,
+}
 
 const DEFAULT_PRESETS: Record<string, AudioMappingEntry[]> = {
   clear: [],
@@ -44,13 +59,47 @@ const DEFAULT_PRESETS: Record<string, AudioMappingEntry[]> = {
   ],
 }
 
+const MIN_DRAG_DISTANCE = 3
+
+// ── Helpers ──
+
 function entryToWire(m: AudioMappingEntry): WireConnection {
   return { sourceFeature: m.audioFeature, target: m.target }
 }
 
-function wireId(conn: WireConnection): string {
-  return `${conn.sourceFeature}->${flameTargetKey(conn.target)}`
+/** Stable string key for sorting/comparing preset entries. */
+function entryStableKey(m: AudioMappingEntry): string {
+  return wireId(entryToWire(m))
 }
+
+/** Compare two mapping arrays for equality (order-independent). */
+function mappingsEqual(
+  a: AudioMappingEntry[],
+  b: AudioMappingEntry[],
+): boolean {
+  if (a.length !== b.length) return false
+  const aSorted = [...a].sort((x, y) =>
+    entryStableKey(x).localeCompare(entryStableKey(y)),
+  )
+  const bSorted = [...b].sort((x, y) =>
+    entryStableKey(x).localeCompare(entryStableKey(y)),
+  )
+  return aSorted.every((entry, i) => {
+    const b = bSorted[i]!
+    return (
+      entryStableKey(entry) === entryStableKey(b) &&
+      entry.sensitivity === b.sensitivity &&
+      entry.range[0] === b.range[0] &&
+      entry.range[1] === b.range[1] &&
+      (entry.attackMs ?? NEW_ENTRY_DEFAULTS.attackMs) ===
+        (b.attackMs ?? NEW_ENTRY_DEFAULTS.attackMs) &&
+      (entry.releaseMs ?? NEW_ENTRY_DEFAULTS.releaseMs) ===
+        (b.releaseMs ?? NEW_ENTRY_DEFAULTS.releaseMs)
+    )
+  })
+}
+
+// ── Component ──
 
 export function AudioWiringModal(props: {
   mappings: AudioMappingEntry[]
@@ -68,7 +117,7 @@ export function AudioWiringModal(props: {
   )
   const [containerRef, setContainerRef] = createSignal<HTMLElement | null>(null)
 
-  // --- Drag state ---
+  // ── Drag state ──
   const [dragFrom, setDragFrom] = createSignal<AudioFeature | null>(null)
   const [dragFromTarget, setDragFromTarget] = createSignal<FlameTarget | null>(
     null,
@@ -76,6 +125,10 @@ export function AudioWiringModal(props: {
   const [dragPos, setDragPos] = createSignal<{ x: number; y: number } | null>(
     null,
   )
+  const [dragStartPos, setDragStartPos] = createSignal<{
+    x: number
+    y: number
+  } | null>(null)
 
   const presets = () => props.presets ?? DEFAULT_PRESETS
 
@@ -101,12 +154,27 @@ export function AudioWiringModal(props: {
     return map
   })
 
-  // --- Building a lookup from target key → FlameTarget for drag completion ---
+  // ── Target lookup maps ──
   const targetByKey = createMemo(() => {
     const map = new Map<string, FlameTarget>()
     for (const g of targetGroups()) {
-      for (const t of g.targets) {
-        map.set(flameTargetKey(t.target), t.target)
+      for (const sg of g.subGroups) {
+        for (const t of sg.targets) {
+          map.set(flameTargetKey(t.target), t.target)
+        }
+      }
+    }
+    return map
+  })
+
+  /** Human-readable label for each target key (used in banner text). */
+  const targetLabelByKey = createMemo(() => {
+    const map = new Map<string, string>()
+    for (const g of targetGroups()) {
+      for (const sg of g.subGroups) {
+        for (const t of sg.targets) {
+          map.set(flameTargetKey(t.target), t.label)
+        }
       }
     }
     return map
@@ -119,7 +187,7 @@ export function AudioWiringModal(props: {
     return props.mappings.find((m) => wireId(entryToWire(m)) === id) ?? null
   })
 
-  // --- Connection handlers ---
+  // ── Connection handlers ──
 
   function startConnection(feature: AudioFeature) {
     if (connectingFrom() === feature) {
@@ -151,16 +219,17 @@ export function AudioWiringModal(props: {
       next = next.filter((m) => flameTargetKey(m.target) !== tgtKey)
     }
 
+    const isZoom = target.kind === 'renderSetting' && target.param === 'zoom'
+
     const newEntry: AudioMappingEntry = {
       audioFeature: source,
       target,
-      sensitivity: 0.3,
-      range:
-        target.kind === 'renderSetting' && target.param === 'zoom'
-          ? [0.5, 1.5]
-          : [0, 1],
-      attackMs: 40,
-      releaseMs: 150,
+      sensitivity: NEW_ENTRY_DEFAULTS.sensitivity,
+      range: isZoom
+        ? [...NEW_ENTRY_DEFAULTS.zoomRange]
+        : [...NEW_ENTRY_DEFAULTS.range],
+      attackMs: NEW_ENTRY_DEFAULTS.attackMs,
+      releaseMs: NEW_ENTRY_DEFAULTS.releaseMs,
     }
     next.push(newEntry)
     props.onMappingsChange(next)
@@ -193,20 +262,22 @@ export function AudioWiringModal(props: {
     handleDeleteWire(id)
   }
 
-  // --- Drag handlers ---
+  // ── Drag handlers ──
 
-  function handleDragStart(feature: AudioFeature) {
+  function handleDragStart(feature: AudioFeature, e: MouseEvent) {
     setDragFrom(feature)
     setDragFromTarget(null)
     setConnectingFrom(null)
     setSelectedWire(null)
+    setDragStartPos({ x: e.clientX, y: e.clientY })
   }
 
-  function handleTargetDragStart(target: FlameTarget) {
+  function handleTargetDragStart(target: FlameTarget, e: MouseEvent) {
     setDragFromTarget(target)
     setDragFrom(null)
     setConnectingFrom(null)
     setSelectedWire(null)
+    setDragStartPos({ x: e.clientX, y: e.clientY })
   }
 
   function handleMouseMove(e: MouseEvent) {
@@ -221,10 +292,26 @@ export function AudioWiringModal(props: {
   function handleMouseUp(e: MouseEvent) {
     const source = dragFrom()
     const target = dragFromTarget()
+    const startPos = dragStartPos()
 
     if (!source && !target) return
 
-    // We need to temporarily disable pointer-events on SVG wires
+    // Check minimum drag distance
+    if (startPos) {
+      const dx = e.clientX - startPos.x
+      const dy = e.clientY - startPos.y
+      const dist = Math.sqrt(dx * dx + dy * dy)
+      if (dist < MIN_DRAG_DISTANCE) {
+        // Too short — treat as a click, don't complete connection
+        setDragFrom(null)
+        setDragFromTarget(null)
+        setDragPos(null)
+        setDragStartPos(null)
+        return
+      }
+    }
+
+    // Temporarily disable pointer-events on SVG wires for elementFromPoint
     const svg = containerRef()?.querySelector('svg') as SVGSVGElement | null
     if (svg) svg.style.pointerEvents = 'none'
 
@@ -265,9 +352,10 @@ export function AudioWiringModal(props: {
     setDragFrom(null)
     setDragFromTarget(null)
     setDragPos(null)
+    setDragStartPos(null)
   }
 
-  // --- Click on overlay background ---
+  // ── Click on overlay background ──
 
   function handleOverlayClick(e: MouseEvent) {
     if (e.target === e.currentTarget) {
@@ -276,16 +364,18 @@ export function AudioWiringModal(props: {
     }
   }
 
-  // --- Keyboard ---
+  // ── Keyboard ──
 
   function handleKeyDown(e: KeyboardEvent) {
     if (e.key === 'Escape') {
       if (dragFrom()) {
         setDragFrom(null)
         setDragPos(null)
+        setDragStartPos(null)
       } else if (dragFromTarget()) {
         setDragFromTarget(null)
         setDragPos(null)
+        setDragStartPos(null)
       } else if (connectingFrom()) {
         setConnectingFrom(null)
       } else if (selectedWire()) {
@@ -299,7 +389,7 @@ export function AudioWiringModal(props: {
     }
   }
 
-  // --- Collapsible groups ---
+  // ── Collapsible groups ──
 
   function toggleGroup(kind: string) {
     const next = new Set(expandedGroups())
@@ -311,7 +401,7 @@ export function AudioWiringModal(props: {
     setExpandedGroups(next)
   }
 
-  // --- Lifecycle ---
+  // ── Lifecycle ──
 
   onMount(() => {
     document.addEventListener('keydown', handleKeyDown)
@@ -325,106 +415,38 @@ export function AudioWiringModal(props: {
     document.removeEventListener('mouseup', handleMouseUp)
   })
 
-  // --- Active preset detection ---
+  // ── Active preset detection (full comparison) ──
 
   const activePreset = createMemo(() => {
     for (const [name, entries] of Object.entries(presets())) {
-      if (entries.length === props.mappings.length) {
-        const currentKeys = new Set(
-          props.mappings.map((m) => flameTargetKey(m.target)),
-        )
-        const presetKeys = new Set(entries.map((e) => flameTargetKey(e.target)))
-        if (
-          currentKeys.size === presetKeys.size &&
-          [...currentKeys].every((k) => presetKeys.has(k))
-        ) {
-          return name
-        }
-      }
+      if (mappingsEqual(props.mappings, entries)) return name
     }
     return ''
   })
 
-  // --- Helpers ---
+  // ── Helpers ──
 
   function getSourceLabel(feature: AudioFeature): string {
     return SOURCE_BY_FEATURE.get(feature)?.label ?? feature
   }
 
-  // --- Render ---
+  function getTargetLabel(target: FlameTarget): string {
+    return (
+      targetLabelByKey().get(flameTargetKey(target)) ?? flameTargetKey(target)
+    )
+  }
+
+  // ── Render ──
 
   function renderTargetGroup(
-    group: {
-      label: string
-      kind: string
-      targets: { target: FlameTarget; label: string; paramLabel: string }[]
-    },
-    selEntry: AudioMappingEntry | null,
+    group: TargetGroupData,
     selTgtKey: string | null,
     connectingFromFeature: AudioFeature | null,
     dragFromFeature: AudioFeature | null,
     connByTarget: Map<string, { sourceFeature: AudioFeature }>,
     onComplete: (target: FlameTarget) => void,
-    onTargetDragStart: (target: FlameTarget) => void,
+    onTargetDragStart: (target: FlameTarget, e: MouseEvent) => void,
   ) {
-    if (group.kind === 'render' || group.kind === 'finalAffine') {
-      // Simple grid: one TargetCell per target
-      return group.targets.map((node) => {
-        const key = flameTargetKey(node.target)
-        const conn = connByTarget.get(key)
-        const connectedSourceLabel = conn
-          ? getSourceLabel(conn.sourceFeature)
-          : undefined
-        const isConnecting = !!connectingFromFeature || !!dragFromFeature
-        const isTargetOfSelected = selTgtKey === key
-
-        return (
-          <TargetCell
-            node={node}
-            isConnecting={isConnecting}
-            isTargetOfSelectedWire={isTargetOfSelected}
-            connectedSourceLabel={connectedSourceLabel}
-            onCompleteConnection={onComplete}
-            onDragStart={onTargetDragStart}
-          />
-        )
-      })
-    }
-
-    // Transform group: split into affine sub-grid, properties, and variations
-    const preAffine: {
-      target: FlameTarget
-      label: string
-      paramLabel: string
-    }[] = []
-    const postAffine: {
-      target: FlameTarget
-      label: string
-      paramLabel: string
-    }[] = []
-    const properties: {
-      target: FlameTarget
-      label: string
-      paramLabel: string
-    }[] = []
-    const variations: {
-      target: FlameTarget
-      label: string
-      paramLabel: string
-    }[] = []
-
-    for (const node of group.targets) {
-      const t = node.target
-      if (t.kind === 'transformAffine') {
-        if (t.matrix === 'preAffine') preAffine.push(node)
-        else postAffine.push(node)
-      } else if (t.kind === 'transformProperty') {
-        properties.push(node)
-      } else if (t.kind === 'variationWeight') {
-        variations.push(node)
-      }
-    }
-
     const isConnectingGlobal = !!connectingFromFeature || !!dragFromFeature
 
     function renderAffineCell(
@@ -451,75 +473,46 @@ export function AudioWiringModal(props: {
       )
     }
 
-    return (
-      <>
-        {/* Affine coefficients in a compact sub-grid */}
-        {preAffine.length > 0 || postAffine.length > 0 ? (
+    function renderTargetCell(node: {
+      target: FlameTarget
+      label: string
+      paramLabel: string
+    }) {
+      const key = flameTargetKey(node.target)
+      const conn = connByTarget.get(key)
+      const connectedSourceLabel = conn
+        ? getSourceLabel(conn.sourceFeature)
+        : undefined
+      const isTargetOfSelected = selTgtKey === key
+
+      return (
+        <TargetCell
+          node={node}
+          isConnecting={isConnectingGlobal}
+          isTargetOfSelectedWire={isTargetOfSelected}
+          connectedSourceLabel={connectedSourceLabel}
+          onCompleteConnection={onComplete}
+          onDragStart={onTargetDragStart}
+        />
+      )
+    }
+
+    return group.subGroups.map((sg) => {
+      if (sg.compact) {
+        return (
           <div class={styles.affineBlock}>
-            {preAffine.length > 0 && (
-              <div class={styles.subSectionLabel}>Pre-Affine</div>
-            )}
-            {preAffine.map((node) => renderAffineCell(node, 'Pre'))}
-            {postAffine.length > 0 && (
-              <div class={styles.subSectionLabel}>Post-Affine</div>
-            )}
-            {postAffine.map((node) => renderAffineCell(node, 'Post'))}
+            {sg.label && <div class={styles.subSectionLabel}>{sg.label}</div>}
+            {sg.targets.map((node) => renderAffineCell(node, sg.label))}
           </div>
-        ) : null}
-
-        {/* Properties */}
-        {properties.length > 0 && (
-          <>
-            <div class={styles.subSectionLabel}>Properties</div>
-            {properties.map((node) => {
-              const key = flameTargetKey(node.target)
-              const conn = connByTarget.get(key)
-              const connectedSourceLabel = conn
-                ? getSourceLabel(conn.sourceFeature)
-                : undefined
-              const isTargetOfSelected = selTgtKey === key
-
-              return (
-                <TargetCell
-                  node={node}
-                  isConnecting={isConnectingGlobal}
-                  isTargetOfSelectedWire={isTargetOfSelected}
-                  connectedSourceLabel={connectedSourceLabel}
-                  onCompleteConnection={onComplete}
-                  onDragStart={onTargetDragStart}
-                />
-              )
-            })}
-          </>
-        )}
-
-        {/* Variations */}
-        {variations.length > 0 && (
-          <>
-            <div class={styles.subSectionLabel}>Variations</div>
-            {variations.map((node) => {
-              const key = flameTargetKey(node.target)
-              const conn = connByTarget.get(key)
-              const connectedSourceLabel = conn
-                ? getSourceLabel(conn.sourceFeature)
-                : undefined
-              const isTargetOfSelected = selTgtKey === key
-
-              return (
-                <TargetCell
-                  node={node}
-                  isConnecting={isConnectingGlobal}
-                  isTargetOfSelectedWire={isTargetOfSelected}
-                  connectedSourceLabel={connectedSourceLabel}
-                  onCompleteConnection={onComplete}
-                  onDragStart={onTargetDragStart}
-                />
-              )
-            })}
-          </>
-        )}
-      </>
-    )
+        )
+      }
+      return (
+        <>
+          {sg.label && <div class={styles.subSectionLabel}>{sg.label}</div>}
+          {sg.targets.map(renderTargetCell)}
+        </>
+      )
+    })
   }
 
   return (
@@ -586,7 +579,7 @@ export function AudioWiringModal(props: {
           ))}
         </div>
 
-        {/* Targets column — using .map() instead of <For> so expandedGroups() reactivity works */}
+        {/* Targets column — using .map() for expandedGroups() reactivity */}
         <div class={styles.targetsColumn}>
           <div class={styles.columnLabel}>Flame Parameters</div>
           {targetGroups().map((group) => {
@@ -611,8 +604,10 @@ export function AudioWiringModal(props: {
                   <span class={styles.targetGroupTitle}>
                     {group.label}
                     <Show
-                      when={group.targets.some((t) =>
-                        connectionByTarget().has(flameTargetKey(t.target)),
+                      when={group.subGroups.some((sg) =>
+                        sg.targets.some((t) =>
+                          connectionByTarget().has(flameTargetKey(t.target)),
+                        ),
                       )}
                     >
                       {' ·'}
@@ -623,7 +618,6 @@ export function AudioWiringModal(props: {
                   <div class={styles.targetGroupContent}>
                     {renderTargetGroup(
                       group,
-                      selEntry,
                       selTgtKey,
                       connectingFrom(),
                       dragFrom(),
@@ -646,7 +640,7 @@ export function AudioWiringModal(props: {
           dragFromTarget={dragFromTarget()}
           dragPos={dragPos()}
           containerRef={containerRef()}
-          sources={ALL_SOURCES}
+          sourceColorMap={SOURCE_COLOR_MAP}
           onSelectWire={(id) => {
             setSelectedWire(id)
             setConnectingFrom(null)
@@ -671,11 +665,7 @@ export function AudioWiringModal(props: {
         <Show when={dragFromTarget()}>
           <div class={styles.connectingBanner}>
             ← Release on a source to connect to{' '}
-            {(() => {
-              const t = dragFromTarget()!
-              const key = flameTargetKey(t)
-              return key
-            })()}
+            {getTargetLabel(dragFromTarget()!)}
           </div>
         </Show>
       </div>
@@ -691,8 +681,8 @@ export function AudioWiringModal(props: {
           when={selectedEntry()}
           fallback={
             <span class={styles.paramsPanelHint}>
-              Drag ports to wire, click a wire to edit, click again to
-              disconnect
+              Drag ports to wire · Click wire to select · Click again or press
+              Del to disconnect · Right-click wire to delete
             </span>
           }
         >
@@ -776,7 +766,7 @@ export function AudioWiringModal(props: {
                       min={0}
                       max={500}
                       step={1}
-                      value={entry().attackMs ?? 40}
+                      value={entry().attackMs ?? NEW_ENTRY_DEFAULTS.attackMs}
                       onInput={(e) => {
                         updateSelectedEntry({
                           attackMs: parseInt(e.currentTarget.value, 10),
@@ -784,7 +774,7 @@ export function AudioWiringModal(props: {
                       }}
                     />
                     <span class={styles.paramsValue}>
-                      {entry().attackMs ?? 40}ms
+                      {entry().attackMs ?? NEW_ENTRY_DEFAULTS.attackMs}ms
                     </span>
                   </div>
 
@@ -797,7 +787,7 @@ export function AudioWiringModal(props: {
                       min={0}
                       max={1000}
                       step={1}
-                      value={entry().releaseMs ?? 150}
+                      value={entry().releaseMs ?? NEW_ENTRY_DEFAULTS.releaseMs}
                       onInput={(e) => {
                         updateSelectedEntry({
                           releaseMs: parseInt(e.currentTarget.value, 10),
@@ -805,7 +795,7 @@ export function AudioWiringModal(props: {
                       }}
                     />
                     <span class={styles.paramsValue}>
-                      {entry().releaseMs ?? 150}ms
+                      {entry().releaseMs ?? NEW_ENTRY_DEFAULTS.releaseMs}ms
                     </span>
                   </div>
 

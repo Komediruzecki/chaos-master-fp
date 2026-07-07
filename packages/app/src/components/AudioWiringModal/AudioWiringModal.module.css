@@ -205,12 +205,16 @@
   border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.25);
   background: rgba(255, 255, 255, 0.05);
-  cursor: pointer;
+  cursor: grab;
   flex-shrink: 0;
   transition:
     border-color 0.15s,
     background 0.15s,
     transform 0.15s;
+}
+
+.port:active {
+  cursor: grabbing;
 }
 
 .port:hover {
@@ -298,7 +302,7 @@
 .targetGroupContent {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-  gap: 1px;
+  gap: 3px;
   padding: 4px 6px;
 }
 
@@ -329,12 +333,16 @@
   border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.2);
   background: rgba(255, 255, 255, 0.05);
-  cursor: pointer;
+  cursor: grab;
   flex-shrink: 0;
   transition:
     border-color 0.15s,
     background 0.15s,
     transform 0.15s;
+}
+
+.targetPort:active {
+  cursor: grabbing;
 }
 
 .targetPort:hover {
@@ -414,7 +422,7 @@
   grid-column: 1 / -1;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(75px, 1fr));
-  gap: 1px;
+  gap: 3px;
   margin: 2px 0 4px;
   padding: 0 2px;
 }
@@ -443,6 +451,9 @@
   color: var(--color-text-muted, #777);
   flex-shrink: 0;
   min-width: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .affineCellPort {
@@ -451,15 +462,30 @@
   border-radius: 50%;
   border: 1.5px solid rgba(255, 255, 255, 0.2);
   background: rgba(255, 255, 255, 0.05);
-  cursor: pointer;
+  cursor: grab;
   flex-shrink: 0;
   transition:
     border-color 0.15s,
     background 0.15s;
 }
 
+.affineCellPort:active {
+  cursor: grabbing;
+}
+
 .affineCellPort:hover {
   border-color: rgba(255, 255, 255, 0.5);
+}
+
+.affineCellPortActive {
+  border-color: var(--color-accent, #7c6ff7);
+  background: var(--color-accent, #7c6ff7);
+}
+
+.affineCellPortConnecting {
+  border-color: var(--color-accent, #7c6ff7);
+  background: var(--color-accent, #7c6ff7);
+  animation: portPulse 0.8s ease-in-out infinite;
 }
 
 .affineCellBadge {
@@ -698,4 +724,56 @@
   color: var(--color-text-muted, #666);
   max-width: 320px;
   line-height: 1.5;
+}
+
+/* ===== Responsive: stack vertically on narrow screens ===== */
+
+@media (max-width: 800px) {
+  .main {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
+  .sourcesColumn {
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+    overflow-y: visible;
+    padding: 10px 12px;
+  }
+
+  .columnLabel {
+    width: 100%;
+    margin-bottom: 0;
+  }
+
+  .sourceGroup {
+    margin-bottom: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .sourceGroupLabel {
+    width: 100%;
+    margin-bottom: 2px;
+  }
+
+  .sourceCard {
+    margin-bottom: 0;
+  }
+
+  .targetsColumn {
+    padding: 12px;
+  }
+
+  .targetGroupContent {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  }
+
+  .affineBlock {
+    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+  }
 }
