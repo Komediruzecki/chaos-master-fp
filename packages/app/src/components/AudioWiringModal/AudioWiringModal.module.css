@@ -289,6 +289,31 @@
   gap: 12px;
 }
 
+.expandRow {
+  display: flex;
+  gap: 6px;
+}
+
+.expandBtn {
+  padding: 3px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-text-muted, #888);
+  font-size: 11px;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
+}
+
+.expandBtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text, #d0d0d0);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
 /* ===== Target group section ===== */
 
 .targetGroup {

@@ -420,6 +420,14 @@ export function AudioWiringModal(props: {
     setExpandedGroups(next)
   }
 
+  function expandAll() {
+    setExpandedGroups(new Set(targetGroups().map((g) => g.kind)))
+  }
+
+  function collapseAll() {
+    setExpandedGroups(new Set<string>())
+  }
+
   // ── Lifecycle ──
 
   onMount(() => {
@@ -611,6 +619,22 @@ export function AudioWiringModal(props: {
         {/* Targets column — using .map() for expandedGroups() reactivity */}
         <div class={styles.targetsColumn}>
           <div class={styles.columnLabel}>Flame Parameters</div>
+          <div class={styles.expandRow}>
+            <button
+              type="button"
+              class={styles.expandBtn}
+              onClick={expandAll}
+            >
+              Expand All
+            </button>
+            <button
+              type="button"
+              class={styles.expandBtn}
+              onClick={collapseAll}
+            >
+              Collapse All
+            </button>
+          </div>
           {targetGroups().map((group) => {
             const isOpen = expandedGroups().has(group.kind)
             const selEntry = selectedEntry()
