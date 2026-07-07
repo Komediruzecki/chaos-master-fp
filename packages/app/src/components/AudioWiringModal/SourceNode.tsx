@@ -95,6 +95,7 @@ export const AUDIO_SOURCE_GROUPS: {
 export function SourceNode(props: {
   source: SourceNodeData
   level: number
+  connectionCount: number
   isConnecting: boolean
   isSourceOfSelectedWire: boolean
   onStartConnection: (feature: AudioFeature) => void
@@ -121,28 +122,38 @@ export function SourceNode(props: {
           }}
         />
       </div>
-      <div
-        class={styles.port}
-        classList={{
-          [styles.portConnecting as string]: props.isConnecting,
-          [styles.portActive as string]: props.isSourceOfSelectedWire,
-        }}
-        role="button"
-        tabIndex={0}
-        aria-label={`Connect ${props.source.label}`}
-        data-source-port={props.source.feature}
-        onMouseDown={(e) => {
-          e.preventDefault()
-          props.onDragStart(props.source.feature, e)
-        }}
-        onClick={() => props.onStartConnection(props.source.feature)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
+      <div class={styles.portWrapper}>
+        <div
+          class={styles.port}
+          classList={{
+            [styles.portConnecting as string]: props.isConnecting,
+            [styles.portActive as string]: props.isSourceOfSelectedWire,
+          }}
+          role="button"
+          tabIndex={0}
+          aria-label={`Connect ${props.source.label}`}
+          data-source-port={props.source.feature}
+          onMouseDown={(e) => {
             e.preventDefault()
-            props.onStartConnection(props.source.feature)
-          }
-        }}
-      />
+            props.onDragStart(props.source.feature, e)
+          }}
+          onClick={() => props.onStartConnection(props.source.feature)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              props.onStartConnection(props.source.feature)
+            }
+          }}
+        />
+        {props.connectionCount > 0 && (
+          <span
+            class={styles.sourceBadge}
+            style={{ background: props.source.color }}
+          >
+            {props.connectionCount}
+          </span>
+        )}
+      </div>
     </div>
   )
 }

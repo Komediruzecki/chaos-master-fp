@@ -568,6 +568,7 @@ export function AudioWiringModal(props: {
                   <SourceNode
                     source={source}
                     level={0.3}
+                    connectionCount={sourceConns.length}
                     isConnecting={isConnecting || isDragging || isTargetDrag}
                     isSourceOfSelectedWire={isSourceOfSelected}
                     onStartConnection={startConnection}
