@@ -116,6 +116,8 @@ export function AudioWiringModal(props: {
     new Set(['render', 'finalAffine']),
   )
   const [searchQuery, setSearchQuery] = createSignal('')
+  const [previousMappings, setPreviousMappings] =
+    createSignal<AudioMappingEntry[] | null>(null)
   const [containerRef, setContainerRef] = createSignal<HTMLElement | null>(null)
 
   // ── Drag state ──
@@ -239,6 +241,7 @@ export function AudioWiringModal(props: {
 
     let next = [...props.mappings]
     if (existingWire) {
+      saveForUndo()
       next = next.filter((m) => flameTargetKey(m.target) !== tgtKey)
     }
 
@@ -271,7 +274,23 @@ export function AudioWiringModal(props: {
     props.onMappingsChange(next)
   }
 
+  function saveForUndo() {
+    if (previousMappings() === null) {
+      setPreviousMappings(props.mappings)
+    }
+  }
+
+  function undo() {
+    const prev = previousMappings()
+    if (prev) {
+      props.onMappingsChange(prev)
+      setPreviousMappings(null)
+      setSelectedWire(null)
+    }
+  }
+
   function handleDeleteWire(wireIdToDelete: string) {
+    saveForUndo()
     const next = props.mappings.filter(
       (m) => wireId(entryToWire(m)) !== wireIdToDelete,
     )
@@ -585,6 +604,7 @@ export function AudioWiringModal(props: {
               onClick={() => {
                 const entries = presets()[name]
                 if (entries) {
+                  saveForUndo()
                   props.onMappingsChange(entries)
                   setSelectedWire(null)
                   setConnectingFrom(null)
@@ -595,6 +615,11 @@ export function AudioWiringModal(props: {
             </button>
           ))}
         </div>
+        <Show when={previousMappings() !== null}>
+          <button type="button" class={styles.undoBtn} onClick={undo}>
+            Undo
+          </button>
+        </Show>
         <div class={styles.headerSpacer} />
         <button type="button" class={styles.closeBtn} onClick={props.onClose}>
           ✕

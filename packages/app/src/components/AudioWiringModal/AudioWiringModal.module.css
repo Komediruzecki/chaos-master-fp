@@ -73,6 +73,25 @@
   flex: 1;
 }
 
+.undoBtn {
+  font-size: 12px;
+  font-family: inherit;
+  padding: 5px 14px;
+  border: 1px solid #f59e0b;
+  border-radius: 6px;
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+  margin-right: 8px;
+}
+
+.undoBtn:hover {
+  background: rgba(245, 158, 11, 0.2);
+}
+
 .closeBtn {
   width: 32px;
   height: 32px;
