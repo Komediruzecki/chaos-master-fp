@@ -146,7 +146,8 @@ export function WireOverlay(props: {
       const selected = id === props.selectedWire
       const dx = Math.max(60, Math.abs(tgtPos.x - srcPos.x) * 0.5)
       const d = `M ${srcPos.x} ${srcPos.y} C ${srcPos.x + dx} ${srcPos.y}, ${tgtPos.x - dx} ${tgtPos.y}, ${tgtPos.x} ${tgtPos.y}`
-      return { id, d, color, selected }
+      const tooltip = `${conn.sourceFeature} → ${flameTargetKey(conn.target)}`
+      return { id, d, color, selected, tooltip }
     })
   })
 
@@ -207,28 +208,31 @@ export function WireOverlay(props: {
       {wirePaths().map(
         (wp) =>
           wp && (
-            <path
-              d={wp.d}
-              class={styles.wirePath}
-              classList={{
-                [styles.wirePathSelected as string]: wp.selected,
-              }}
-              style={{ stroke: wp.color, color: wp.color }}
-              data-wire-id={wp.id}
-              onClick={(e) => {
-                e.stopPropagation()
-                if (wp.selected) {
+            <g>
+              <title>{wp.tooltip}</title>
+              <path
+                d={wp.d}
+                class={styles.wirePath}
+                classList={{
+                  [styles.wirePathSelected as string]: wp.selected,
+                }}
+                style={{ stroke: wp.color, color: wp.color }}
+                data-wire-id={wp.id}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (wp.selected) {
+                    props.onDeleteWire(wp.id)
+                  } else {
+                    props.onSelectWire(wp.id)
+                  }
+                }}
+                onContextMenu={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
                   props.onDeleteWire(wp.id)
-                } else {
-                  props.onSelectWire(wp.id)
-                }
-              }}
-              onContextMenu={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                props.onDeleteWire(wp.id)
-              }}
-            />
+                }}
+              />
+            </g>
           ),
       )}
       {/* Preview from click-to-connect */}
