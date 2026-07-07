@@ -293,6 +293,11 @@
   transform: scale(1.15);
 }
 
+.port:focus-visible {
+  outline: 2px solid var(--color-accent, #7c6ff7);
+  outline-offset: 3px;
+}
+
 .portActive {
   border-color: var(--color-accent, #7c6ff7);
   background: var(--color-accent, #7c6ff7);
@@ -567,6 +572,11 @@
   transform: scale(1.2);
 }
 
+.targetPort:focus-visible {
+  outline: 2px solid var(--color-accent, #7c6ff7);
+  outline-offset: 3px;
+}
+
 .targetPortActive {
   border-color: var(--color-accent, #7c6ff7);
   background: var(--color-accent, #7c6ff7);
@@ -704,6 +714,11 @@
 
 .affineCellPort:hover {
   border-color: rgba(255, 255, 255, 0.5);
+}
+
+.affineCellPort:focus-visible {
+  outline: 2px solid var(--color-accent, #7c6ff7);
+  outline-offset: 3px;
 }
 
 .affineCellPortActive {

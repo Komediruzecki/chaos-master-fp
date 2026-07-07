@@ -4,6 +4,7 @@ import { flameTargetKey } from '../../utils/audioAnalysis'
 import { SourceNode, AUDIO_SOURCE_GROUPS, type SourceNodeData, } from './SourceNode'
 import { TargetCell, AffineCell, buildTargetGroups, type TargetGroupData, } from './TargetNode'
 import { WireOverlay, wireId, type WireConnection } from './WireOverlay'
+import { ParamsPanel } from './ParamsPanel'
 import styles from './AudioWiringModal.module.css'
 
 // ── Module-level constants ──
@@ -989,6 +990,78 @@ export function AudioWiringModal(props: {
 
   // ── Render ──
 
+  function renderAffineCell(
+    node: { target: FlameTarget; label: string; paramLabel: string },
+    matrixLabel: string,
+    isConnectingGlobal: boolean,
+    connByTarget: Map<string, { sourceFeature: AudioFeature }>,
+    selTgtKey: string | null,
+    dragFromFeature: AudioFeature | null,
+    hoveredDropKey: string | null,
+    highlightedTgtKey: string | null,
+    onComplete: (target: FlameTarget) => void,
+    onTargetDragStart: (target: FlameTarget, e: MouseEvent) => void,
+  ) {
+    const key = flameTargetKey(node.target)
+    const conn = connByTarget.get(key)
+    const connectedSourceLabel = conn
+      ? getSourceLabel(conn.sourceFeature)
+      : undefined
+    const isTargetOfSelected = selTgtKey === key
+    const isDropTarget = !!dragFromFeature && hoveredDropKey === key
+
+    return (
+      <AffineCell
+        label={`${matrixLabel}.${node.paramLabel}`}
+        target={node.target}
+        isConnecting={isConnectingGlobal}
+        isTargetOfSelectedWire={isTargetOfSelected}
+        isDropTarget={isDropTarget}
+        isHighlighted={highlightedTgtKey === key}
+        connectedSourceLabel={connectedSourceLabel}
+        onCompleteConnection={onComplete}
+        onDragStart={onTargetDragStart}
+      />
+    )
+  }
+
+  function renderTargetCell(
+    node: {
+      target: FlameTarget
+      label: string
+      paramLabel: string
+    },
+    isConnectingGlobal: boolean,
+    connByTarget: Map<string, { sourceFeature: AudioFeature }>,
+    selTgtKey: string | null,
+    dragFromFeature: AudioFeature | null,
+    hoveredDropKey: string | null,
+    highlightedTgtKey: string | null,
+    onComplete: (target: FlameTarget) => void,
+    onTargetDragStart: (target: FlameTarget, e: MouseEvent) => void,
+  ) {
+    const key = flameTargetKey(node.target)
+    const conn = connByTarget.get(key)
+    const connectedSourceLabel = conn
+      ? getSourceLabel(conn.sourceFeature)
+      : undefined
+    const isTargetOfSelected = selTgtKey === key
+    const isDropTarget = !!dragFromFeature && hoveredDropKey === key
+
+    return (
+      <TargetCell
+        node={node}
+        isConnecting={isConnectingGlobal}
+        isTargetOfSelectedWire={isTargetOfSelected}
+        isDropTarget={isDropTarget}
+        isHighlighted={highlightedTgtKey === key}
+        connectedSourceLabel={connectedSourceLabel}
+        onCompleteConnection={onComplete}
+        onDragStart={onTargetDragStart}
+      />
+    )
+  }
+
   function renderTargetGroup(
     group: TargetGroupData,
     selTgtKey: string | null,
@@ -1002,73 +1075,44 @@ export function AudioWiringModal(props: {
   ) {
     const isConnectingGlobal = !!connectingFromFeature || !!dragFromFeature
 
-    function renderAffineCell(
-      node: { target: FlameTarget; label: string; paramLabel: string },
-      matrixLabel: string,
-    ) {
-      const key = flameTargetKey(node.target)
-      const conn = connByTarget.get(key)
-      const connectedSourceLabel = conn
-        ? getSourceLabel(conn.sourceFeature)
-        : undefined
-      const isTargetOfSelected = selTgtKey === key
-      const isDropTarget = !!dragFromFeature && hoveredDropKey === key
-
-      return (
-        <AffineCell
-          label={`${matrixLabel}.${node.paramLabel}`}
-          target={node.target}
-          isConnecting={isConnectingGlobal}
-          isTargetOfSelectedWire={isTargetOfSelected}
-          isDropTarget={isDropTarget}
-          isHighlighted={highlightedTgtKey === key}
-          connectedSourceLabel={connectedSourceLabel}
-          onCompleteConnection={onComplete}
-          onDragStart={onTargetDragStart}
-        />
-      )
-    }
-
-    function renderTargetCell(node: {
-      target: FlameTarget
-      label: string
-      paramLabel: string
-    }) {
-      const key = flameTargetKey(node.target)
-      const conn = connByTarget.get(key)
-      const connectedSourceLabel = conn
-        ? getSourceLabel(conn.sourceFeature)
-        : undefined
-      const isTargetOfSelected = selTgtKey === key
-      const isDropTarget = !!dragFromFeature && hoveredDropKey === key
-
-      return (
-        <TargetCell
-          node={node}
-          isConnecting={isConnectingGlobal}
-          isTargetOfSelectedWire={isTargetOfSelected}
-          isDropTarget={isDropTarget}
-          isHighlighted={highlightedTgtKey === key}
-          connectedSourceLabel={connectedSourceLabel}
-          onCompleteConnection={onComplete}
-          onDragStart={onTargetDragStart}
-        />
-      )
-    }
-
     return group.subGroups.map((sg) => {
       if (sg.compact) {
         return (
           <div class={styles.affineBlock}>
             {sg.label && <div class={styles.subSectionLabel}>{sg.label}</div>}
-            {sg.targets.map((node) => renderAffineCell(node, sg.label))}
+            {sg.targets.map((node) =>
+              renderAffineCell(
+                node,
+                sg.label,
+                isConnectingGlobal,
+                connByTarget,
+                selTgtKey,
+                dragFromFeature,
+                hoveredDropKey,
+                highlightedTgtKey,
+                onComplete,
+                onTargetDragStart,
+              ),
+            )}
           </div>
         )
       }
       return (
         <>
           {sg.label && <div class={styles.subSectionLabel}>{sg.label}</div>}
-          {sg.targets.map(renderTargetCell)}
+          {sg.targets.map((node) =>
+            renderTargetCell(
+              node,
+              isConnectingGlobal,
+              connByTarget,
+              selTgtKey,
+              dragFromFeature,
+              hoveredDropKey,
+              highlightedTgtKey,
+              onComplete,
+              onTargetDragStart,
+            ),
+          )}
         </>
       )
     })
@@ -1339,149 +1383,12 @@ export function AudioWiringModal(props: {
         </Show>
       </div>
 
-      {/* Bottom parameter panel */}
-      <div
-        class={styles.paramsPanel}
-        classList={{
-          [styles.paramsPanelEmpty as string]: !selectedEntry(),
-        }}
-      >
-        <Show
-          when={selectedEntry()}
-          fallback={
-            <span class={styles.paramsPanelHint}>
-              Drag ports to wire · Click wire to select · Click again or press
-              Del to disconnect · Right-click wire to delete
-            </span>
-          }
-        >
-          {(entry) => {
-            const sourceLabel =
-              SOURCE_BY_FEATURE.get(entry().audioFeature)?.label ??
-              entry().audioFeature
-            const targetKey = flameTargetKey(entry().target)
-
-            return (
-              <>
-                <div class={styles.paramsTitle}>
-                  <span class={styles.paramsTitleSource}>{sourceLabel}</span>
-                  <span class={styles.paramsTitleArrow}>→</span>
-                  <span class={styles.paramsTitleTarget}>{targetKey}</span>
-                </div>
-                <div class={styles.paramsFields}>
-                  {/* Sensitivity */}
-                  <div class={styles.paramsField}>
-                    <span class={styles.paramsLabel}>Sensitivity</span>
-                    <input
-                      type="range"
-                      class={styles.paramsSlider}
-                      min={0}
-                      max={2}
-                      step={0.01}
-                      value={entry().sensitivity}
-                      onInput={(e) => {
-                        updateSelectedEntry({
-                          sensitivity: parseFloat(e.currentTarget.value),
-                        })
-                      }}
-                    />
-                    <span class={styles.paramsValue}>
-                      {entry().sensitivity.toFixed(2)}
-                    </span>
-                  </div>
-
-                  {/* Range */}
-                  <div class={styles.paramsField}>
-                    <span class={styles.paramsLabel}>Range</span>
-                    <div class={styles.paramsRangeInputs}>
-                      <input
-                        type="number"
-                        class={styles.paramsRangeInput}
-                        step={0.01}
-                        value={entry().range[0]}
-                        onChange={(e) => {
-                          updateSelectedEntry({
-                            range: [
-                              parseFloat(e.currentTarget.value),
-                              entry().range[1],
-                            ],
-                          })
-                        }}
-                      />
-                      <span class={styles.paramsRangeDash}>–</span>
-                      <input
-                        type="number"
-                        class={styles.paramsRangeInput}
-                        step={0.01}
-                        value={entry().range[1]}
-                        onChange={(e) => {
-                          updateSelectedEntry({
-                            range: [
-                              entry().range[0],
-                              parseFloat(e.currentTarget.value),
-                            ],
-                          })
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Attack */}
-                  <div class={styles.paramsField}>
-                    <span class={styles.paramsLabel}>Attack</span>
-                    <input
-                      type="range"
-                      class={styles.paramsSlider}
-                      min={0}
-                      max={500}
-                      step={1}
-                      value={entry().attackMs ?? NEW_ENTRY_DEFAULTS.attackMs}
-                      onInput={(e) => {
-                        updateSelectedEntry({
-                          attackMs: parseInt(e.currentTarget.value, 10),
-                        })
-                      }}
-                    />
-                    <span class={styles.paramsValue}>
-                      {entry().attackMs ?? NEW_ENTRY_DEFAULTS.attackMs}ms
-                    </span>
-                  </div>
-
-                  {/* Release */}
-                  <div class={styles.paramsField}>
-                    <span class={styles.paramsLabel}>Release</span>
-                    <input
-                      type="range"
-                      class={styles.paramsSlider}
-                      min={0}
-                      max={1000}
-                      step={1}
-                      value={entry().releaseMs ?? NEW_ENTRY_DEFAULTS.releaseMs}
-                      onInput={(e) => {
-                        updateSelectedEntry({
-                          releaseMs: parseInt(e.currentTarget.value, 10),
-                        })
-                      }}
-                    />
-                    <span class={styles.paramsValue}>
-                      {entry().releaseMs ?? NEW_ENTRY_DEFAULTS.releaseMs}ms
-                    </span>
-                  </div>
-
-                  {/* Delete */}
-                  <button
-                    type="button"
-                    class={styles.paramsDeleteBtn}
-                    onClick={deleteSelectedEntry}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </>
-            )
-          }}
-        </Show>
-      </div>
+      <ParamsPanel
+        entry={selectedEntry()}
+        sourceByFeature={SOURCE_BY_FEATURE}
+        onUpdate={updateSelectedEntry}
+        onDelete={deleteSelectedEntry}
+      />
     </div>
   )
 }
