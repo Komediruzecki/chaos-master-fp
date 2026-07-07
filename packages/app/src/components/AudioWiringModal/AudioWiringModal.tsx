@@ -349,6 +349,78 @@ const DEFAULT_PRESETS: Record<string, AudioMappingEntry[]> = {
   ],
 }
 
+/** Sensible target pools per audio feature for smart randomization. */
+const RANDOMIZE_TARGET_POOLS: Record<AudioFeature, FlameTarget[]> = {
+  subBass: [
+    { kind: 'renderSetting', param: 'gamma' },
+    { kind: 'renderSetting', param: 'vibrancy' },
+    { kind: 'renderSetting', param: 'exposure' },
+    { kind: 'renderSetting', param: 'contrast' },
+  ],
+  bass: [
+    { kind: 'renderSetting', param: 'vibrancy' },
+    { kind: 'renderSetting', param: 'exposure' },
+    { kind: 'renderSetting', param: 'gamma' },
+    { kind: 'renderSetting', param: 'contrast' },
+  ],
+  lowMid: [
+    { kind: 'renderSetting', param: 'exposure' },
+    { kind: 'renderSetting', param: 'contrast' },
+    { kind: 'renderSetting', param: 'vibrancy' },
+  ],
+  mid: [
+    { kind: 'renderSetting', param: 'contrast' },
+    { kind: 'renderSetting', param: 'palettePhase' },
+    { kind: 'renderSetting', param: 'exposure' },
+    { kind: 'renderSetting', param: 'vibrancy' },
+  ],
+  hiMid: [
+    { kind: 'renderSetting', param: 'palettePhase' },
+    { kind: 'renderSetting', param: 'paletteSpeed' },
+    { kind: 'renderSetting', param: 'highlightPower' },
+  ],
+  presence: [
+    { kind: 'renderSetting', param: 'highlightPower' },
+    { kind: 'renderSetting', param: 'lightPower' },
+    { kind: 'renderSetting', param: 'palettePhase' },
+  ],
+  brilliance: [
+    { kind: 'renderSetting', param: 'lightPower' },
+    { kind: 'renderSetting', param: 'depthColorPower' },
+    { kind: 'renderSetting', param: 'gamma' },
+  ],
+  fullSpectrum: [
+    { kind: 'renderSetting', param: 'depthColorPower' },
+    { kind: 'renderSetting', param: 'vibrancy' },
+    { kind: 'renderSetting', param: 'exposure' },
+  ],
+  rms: [
+    { kind: 'renderSetting', param: 'vibrancy' },
+    { kind: 'renderSetting', param: 'zoom' },
+    { kind: 'renderSetting', param: 'exposure' },
+  ],
+  centroid: [
+    { kind: 'renderSetting', param: 'palettePhase' },
+    { kind: 'renderSetting', param: 'paletteSpeed' },
+  ],
+  flatness: [
+    { kind: 'renderSetting', param: 'contrast' },
+    { kind: 'renderSetting', param: 'gamma' },
+    { kind: 'renderSetting', param: 'exposure' },
+  ],
+  beat: [
+    { kind: 'renderSetting', param: 'zoom' },
+    { kind: 'renderSetting', param: 'skipIters' },
+    { kind: 'renderSetting', param: 'highlightPower' },
+    { kind: 'renderSetting', param: 'contrast' },
+  ],
+  onset: [
+    { kind: 'renderSetting', param: 'contrast' },
+    { kind: 'renderSetting', param: 'zoom' },
+    { kind: 'renderSetting', param: 'gamma' },
+  ],
+}
+
 const MIN_DRAG_DISTANCE = 3
 
 // ── Helpers ──
@@ -784,6 +856,57 @@ export function AudioWiringModal(props: {
     }
   }
 
+  function randomizeWiring() {
+    saveForUndo()
+    const sources = ALL_SOURCES.map((s) => s.feature)
+    // Pick 5-9 random sources
+    const count = 5 + Math.floor(Math.random() * 5)
+    const shuffled = [...sources].sort(() => Math.random() - 0.5)
+    const selected = shuffled.slice(0, count)
+
+    const entries: AudioMappingEntry[] = []
+    for (const source of selected) {
+      const pool = [...(RANDOMIZE_TARGET_POOLS[source] ?? [])]
+
+      // Add a few transform targets when transforms exist
+      if (props.transforms.length > 0) {
+        const txIdx = Math.floor(Math.random() * props.transforms.length)
+        pool.push(
+          { kind: 'transformAffine' as const, transformIdx: txIdx, matrix: 'preAffine', param: 'a' },
+          { kind: 'transformAffine' as const, transformIdx: txIdx, matrix: 'preAffine', param: 'd' },
+          { kind: 'transformProperty' as const, transformIdx: txIdx, property: 'probability' },
+        )
+        if (props.transforms[txIdx]!.variations.length > 0) {
+          const v = props.transforms[txIdx]!.variations[
+            Math.floor(Math.random() * props.transforms[txIdx]!.variations.length)
+          ]!
+          pool.push({ kind: 'variationWeight' as const, transformIdx: txIdx, variationType: v.type })
+        }
+      }
+
+      // Pick 1-2 targets from the pool
+      const tgtCount = 1 + Math.floor(Math.random() * 2)
+      const tgtShuffled = [...pool].sort(() => Math.random() - 0.5)
+      for (let i = 0; i < Math.min(tgtCount, tgtShuffled.length); i++) {
+        const target = tgtShuffled[i]!
+        const isZoom = target.kind === 'renderSetting' && target.param === 'zoom'
+        entries.push({
+          audioFeature: source,
+          target,
+          sensitivity: Math.round((0.2 + Math.random() * 0.5) * 100) / 100,
+          range: isZoom
+            ? [0.95 + Math.random() * 0.1, 1.15 + Math.random() * 0.2]
+            : [0.3 + Math.random() * 0.4, 1.3 + Math.random() * 0.9],
+          attackMs: 5 + Math.floor(Math.random() * 60),
+          releaseMs: 100 + Math.floor(Math.random() * 250),
+        })
+      }
+    }
+    props.onMappingsChange(entries)
+    setSelectedWire(null)
+    setConnectingFrom(null)
+  }
+
   // ── Lifecycle ──
 
   onMount(() => {
@@ -939,6 +1062,9 @@ export function AudioWiringModal(props: {
             Undo
           </button>
         </Show>
+        <button type="button" class={styles.randomBtn} onClick={randomizeWiring}>
+          Randomize
+        </button>
         <div class={styles.headerSpacer} />
         <button type="button" class={styles.closeBtn} onClick={props.onClose}>
           ✕
