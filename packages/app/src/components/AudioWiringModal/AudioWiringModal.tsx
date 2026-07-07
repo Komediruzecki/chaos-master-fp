@@ -484,8 +484,9 @@ export function AudioWiringModal(props: {
     new Set(['render', 'finalAffine']),
   )
   const [searchQuery, setSearchQuery] = createSignal('')
-  const [previousMappings, setPreviousMappings] =
-    createSignal<AudioMappingEntry[] | null>(null)
+  const [undoStack, setUndoStack] = createSignal<AudioMappingEntry[][]>([])
+  const [redoStack, setRedoStack] = createSignal<AudioMappingEntry[][]>([])
+  const MAX_UNDO = 50
   const [copiedWiring, setCopiedWiring] =
     createSignal<{ audioFeature: AudioFeature; target: FlameTarget }[] | null>(null)
   const [pendingPaste, setPendingPaste] =
@@ -669,18 +670,33 @@ export function AudioWiringModal(props: {
   }
 
   function saveForUndo() {
-    if (previousMappings() === null) {
-      setPreviousMappings(props.mappings)
-    }
+    setUndoStack((stack) => {
+      if (stack.length >= MAX_UNDO) {
+        stack = stack.slice(1)
+      }
+      return [...stack, props.mappings]
+    })
+    setRedoStack([])
   }
 
   function undo() {
-    const prev = previousMappings()
-    if (prev) {
-      props.onMappingsChange(prev)
-      setPreviousMappings(null)
-      setSelectedWire(null)
-    }
+    const stack = undoStack()
+    if (stack.length === 0) return
+    const prev = stack[stack.length - 1]!
+    setUndoStack(stack.slice(0, -1))
+    setRedoStack((rs) => [...rs, props.mappings])
+    props.onMappingsChange(prev)
+    setSelectedWire(null)
+  }
+
+  function redo() {
+    const stack = redoStack()
+    if (stack.length === 0) return
+    const next = stack[stack.length - 1]!
+    setRedoStack(stack.slice(0, -1))
+    setUndoStack((us) => [...us, props.mappings])
+    props.onMappingsChange(next)
+    setSelectedWire(null)
   }
 
   function handleDeleteWire(wireIdToDelete: string) {
@@ -837,7 +853,27 @@ export function AudioWiringModal(props: {
         setConnectingFrom(null)
       } else if (selectedWire()) {
         setSelectedWire(null)
+      } else {
+        props.onClose()
       }
+    }
+    if ((e.key === 'z' || e.key === 'Z') && (e.ctrlKey || e.metaKey)) {
+      const tag = (e.target as HTMLElement).tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+      e.preventDefault()
+      if (e.shiftKey) {
+        redo()
+      } else {
+        undo()
+      }
+      return
+    }
+    if (e.key === 'y' && (e.ctrlKey || e.metaKey)) {
+      const tag = (e.target as HTMLElement).tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+      e.preventDefault()
+      redo()
+      return
     }
     if (e.key === 'Delete' || e.key === 'Backspace') {
       const tag = (e.target as HTMLElement).tagName
@@ -903,6 +939,29 @@ export function AudioWiringModal(props: {
     for (const entry of wiring) {
       const newTarget = { ...entry.target, transformIdx } as FlameTarget
       doConnect(entry.audioFeature, newTarget)
+    }
+  }
+
+  function exportJSON() {
+    const json = JSON.stringify(props.mappings, null, 2)
+    navigator.clipboard.writeText(json).catch(() => {
+      // Fallback: show in a prompt
+      prompt('Copy this JSON:', json)
+    })
+  }
+
+  function importJSON() {
+    const text = prompt('Paste wiring JSON:')
+    if (!text) return
+    try {
+      const parsed = JSON.parse(text)
+      if (!Array.isArray(parsed)) throw new Error('Expected an array')
+      saveForUndo()
+      props.onMappingsChange(parsed as AudioMappingEntry[])
+      setSelectedWire(null)
+      setConnectingFrom(null)
+    } catch {
+      alert('Invalid wiring JSON. Expected an array of mapping entries.')
     }
   }
 
@@ -1127,7 +1186,8 @@ export function AudioWiringModal(props: {
       <HeaderBar
         presets={presets()}
         activePreset={activePreset()}
-        canUndo={previousMappings() !== null}
+        canUndo={undoStack().length > 0}
+        canRedo={redoStack().length > 0}
         totalConnections={props.mappings.length}
         onSelectPreset={(name) => {
           const entries = presets()[name]
@@ -1139,7 +1199,10 @@ export function AudioWiringModal(props: {
           }
         }}
         onUndo={undo}
+        onRedo={redo}
         onRandomize={randomizeWiring}
+        onExportJSON={exportJSON}
+        onImportJSON={importJSON}
         onClose={props.onClose}
       />
 

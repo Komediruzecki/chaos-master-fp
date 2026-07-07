@@ -6,10 +6,14 @@ export function HeaderBar(props: {
   presets: Record<string, AudioMappingEntry[]>
   activePreset: string | null
   canUndo: boolean
+  canRedo: boolean
   totalConnections: number
   onSelectPreset: (name: string) => void
   onUndo: () => void
+  onRedo: () => void
   onRandomize: () => void
+  onExportJSON: () => void
+  onImportJSON: () => void
   onClose: () => void
 }) {
   function formatPresetName(name: string): string {
@@ -53,11 +57,32 @@ export function HeaderBar(props: {
       </div>
       <Show when={props.canUndo}>
         <button type="button" class={styles.undoBtn} onClick={props.onUndo}>
-          Undo
+          ↩
+        </button>
+      </Show>
+      <Show when={props.canRedo}>
+        <button type="button" class={styles.undoBtn} onClick={props.onRedo}>
+          ↪
         </button>
       </Show>
       <button type="button" class={styles.randomBtn} onClick={props.onRandomize}>
         Randomize
+      </button>
+      <button
+        type="button"
+        class={styles.undoBtn}
+        onClick={props.onExportJSON}
+        title="Copy wiring to clipboard as JSON"
+      >
+        📋
+      </button>
+      <button
+        type="button"
+        class={styles.undoBtn}
+        onClick={props.onImportJSON}
+        title="Paste wiring JSON from clipboard"
+      >
+        📥
       </button>
       <div class={styles.headerSpacer} />
       <button type="button" class={styles.closeBtn} onClick={props.onClose}>
