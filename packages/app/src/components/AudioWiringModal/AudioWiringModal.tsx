@@ -118,6 +118,8 @@ export function AudioWiringModal(props: {
   const [searchQuery, setSearchQuery] = createSignal('')
   const [previousMappings, setPreviousMappings] =
     createSignal<AudioMappingEntry[] | null>(null)
+  const [copiedWiring, setCopiedWiring] =
+    createSignal<{ audioFeature: AudioFeature; target: FlameTarget }[] | null>(null)
   const [containerRef, setContainerRef] = createSignal<HTMLElement | null>(null)
 
   // ── Drag state ──
@@ -469,6 +471,28 @@ export function AudioWiringModal(props: {
     setExpandedGroups(new Set<string>())
   }
 
+  function copyWiring(transformIdx: number) {
+    const entries = props.mappings.filter((m) => {
+      const tgt = m.target
+      return (
+        (tgt.kind === 'transformAffine' && tgt.transformIdx === transformIdx) ||
+        (tgt.kind === 'transformProperty' && tgt.transformIdx === transformIdx) ||
+        (tgt.kind === 'variationWeight' && tgt.transformIdx === transformIdx)
+      )
+    })
+    setCopiedWiring(entries.map((e) => ({ audioFeature: e.audioFeature, target: e.target })))
+  }
+
+  function pasteWiring(transformIdx: number) {
+    const wiring = copiedWiring()
+    if (!wiring || wiring.length === 0) return
+    saveForUndo()
+    for (const entry of wiring) {
+      const newTarget = { ...entry.target, transformIdx } as FlameTarget
+      doConnect(entry.audioFeature, newTarget)
+    }
+  }
+
   // ── Lifecycle ──
 
   onMount(() => {
@@ -721,6 +745,34 @@ export function AudioWiringModal(props: {
                       {' ·'}
                     </Show>
                   </span>
+                  {group.kind.startsWith('tx-') && (
+                    <>
+                      <button
+                        type="button"
+                        class={styles.copyBtn}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          copyWiring(parseInt(group.kind.slice(3), 10))
+                        }}
+                        title="Copy wiring from this transform"
+                      >
+                        Copy
+                      </button>
+                      <Show when={copiedWiring() !== null && copiedWiring()!.length > 0}>
+                        <button
+                          type="button"
+                          class={styles.pasteBtn}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            pasteWiring(parseInt(group.kind.slice(3), 10))
+                          }}
+                          title="Paste wiring to this transform"
+                        >
+                          Paste
+                        </button>
+                      </Show>
+                    </>
+                  )}
                 </div>
                 <Show when={isOpen}>
                   <div class={styles.targetGroupContent}>
