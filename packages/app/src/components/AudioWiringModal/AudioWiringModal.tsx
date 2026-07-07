@@ -1,7 +1,8 @@
 import { createMemo, createSignal, onCleanup, onMount, Show } from 'solid-js'
 import type { AudioFeature, AudioMappingEntry, FlameTarget, TransformInfo, } from '../../utils/audioAnalysis'
 import { flameTargetKey } from '../../utils/audioAnalysis'
-import { SourceNode, AUDIO_SOURCE_GROUPS, type SourceNodeData, } from './SourceNode'
+import { AUDIO_SOURCE_GROUPS, type SourceNodeData } from './SourceNode'
+import { SourceColumn } from './SourceColumn'
 import { TargetCell, AffineCell, buildTargetGroups, type TargetGroupData, } from './TargetNode'
 import { WireOverlay, wireId, type WireConnection } from './WireOverlay'
 import { ParamsPanel } from './ParamsPanel'
@@ -1142,43 +1143,18 @@ export function AudioWiringModal(props: {
 
       {/* Main canvas */}
       <div class={styles.main} ref={setContainerRef}>
-        {/* Sources column */}
-        <div class={styles.sourcesColumn}>
-          <div class={styles.columnLabel}>Audio Sources</div>
-          {AUDIO_SOURCE_GROUPS.map((group) => (
-            <div class={styles.sourceGroup}>
-              <div class={styles.sourceGroupLabel}>{group.label}</div>
-              {group.sources.map((source) => {
-                const isConnecting = connectingFrom() === source.feature
-                const isDragging = dragFrom() === source.feature
-                const isTargetDrag = dragFromTarget() !== null
-                const sourceConns =
-                  connectionBySource().get(source.feature) ?? []
-                const isSourceOfSelected =
-                  selectedWire() !== null &&
-                  sourceConns.some((c) => wireId(c) === selectedWire())
-                const isDropTarget =
-                  dragFromTarget() !== null &&
-                  hoveredDropKey() === source.feature
-                return (
-                  <SourceNode
-                    source={source}
-                    level={
-                      props.featureLevels?.[source.feature] ?? 0.3
-                    }
-                    connectionCount={sourceConns.length}
-                    isConnecting={isConnecting || isDragging || isTargetDrag}
-                    isSourceOfSelectedWire={isSourceOfSelected}
-                    isDropTarget={isDropTarget}
-                    isHighlighted={highlightedSource() === source.feature}
-                    onStartConnection={startConnection}
-                    onDragStart={handleDragStart}
-                  />
-                )
-              })}
-            </div>
-          ))}
-        </div>
+        <SourceColumn
+          featureLevels={props.featureLevels}
+          connectingFrom={connectingFrom()}
+          dragFrom={dragFrom()}
+          dragFromTarget={dragFromTarget()}
+          connectionBySource={connectionBySource()}
+          selectedWire={selectedWire()}
+          hoveredDropKey={hoveredDropKey()}
+          highlightedSource={highlightedSource()}
+          onStartConnection={startConnection}
+          onDragStart={handleDragStart}
+        />
 
         {/* Targets column — using .map() for expandedGroups() reactivity */}
         <div class={styles.targetsColumn}>
