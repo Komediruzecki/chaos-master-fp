@@ -5,6 +5,7 @@ import { SourceNode, AUDIO_SOURCE_GROUPS, type SourceNodeData, } from './SourceN
 import { TargetCell, AffineCell, buildTargetGroups, type TargetGroupData, } from './TargetNode'
 import { WireOverlay, wireId, type WireConnection } from './WireOverlay'
 import { ParamsPanel } from './ParamsPanel'
+import { HeaderBar } from './HeaderBar'
 import styles from './AudioWiringModal.module.css'
 
 // ── Module-level constants ──
@@ -1120,48 +1121,24 @@ export function AudioWiringModal(props: {
 
   return (
     <div class={styles.overlay} onClick={handleOverlayClick}>
-      {/* Header */}
-      <div class={styles.header}>
-        <span class={styles.headerTitle}>Audio Wiring</span>
-        <div class={styles.presetRow}>
-          {Object.keys(presets()).map((name) => (
-            <button
-              type="button"
-              class={styles.presetBtn}
-              classList={{
-                [styles.presetBtnActive as string]: activePreset() === name,
-              }}
-              onClick={() => {
-                const entries = presets()[name]
-                if (entries) {
-                  saveForUndo()
-                  props.onMappingsChange(entries)
-                  setSelectedWire(null)
-                  setConnectingFrom(null)
-                }
-              }}
-            >
-              {name === 'clear'
-                ? 'Clear'
-                : name
-                    .replace(/-/g, ' ')
-                    .replace(/\b\w/g, (c) => c.toUpperCase())}
-            </button>
-          ))}
-        </div>
-        <Show when={previousMappings() !== null}>
-          <button type="button" class={styles.undoBtn} onClick={undo}>
-            Undo
-          </button>
-        </Show>
-        <button type="button" class={styles.randomBtn} onClick={randomizeWiring}>
-          Randomize
-        </button>
-        <div class={styles.headerSpacer} />
-        <button type="button" class={styles.closeBtn} onClick={props.onClose}>
-          ✕
-        </button>
-      </div>
+      <HeaderBar
+        presets={presets()}
+        activePreset={activePreset()}
+        canUndo={previousMappings() !== null}
+        totalConnections={props.mappings.length}
+        onSelectPreset={(name) => {
+          const entries = presets()[name]
+          if (entries) {
+            saveForUndo()
+            props.onMappingsChange(entries)
+            setSelectedWire(null)
+            setConnectingFrom(null)
+          }
+        }}
+        onUndo={undo}
+        onRandomize={randomizeWiring}
+        onClose={props.onClose}
+      />
 
       {/* Main canvas */}
       <div class={styles.main} ref={setContainerRef}>
