@@ -12,23 +12,46 @@ export function wireId(conn: WireConnection): string {
   return `${conn.sourceFeature}->${flameTargetKey(conn.target)}`
 }
 
+// ── Port position cache ──
+
+type CachedPos = { x: number; y: number }
+type CacheEntry = { pos: CachedPos; version: number }
+const portCache = new Map<string, CacheEntry>()
+
+function getCached(key: string, version: number): CachedPos | undefined {
+  const entry = portCache.get(key)
+  if (entry && entry.version === version) return entry.pos
+  return undefined
+}
+
+function setCache(key: string, pos: CachedPos, version: number): void {
+  portCache.set(key, { pos, version })
+}
+
 /**
  * Resolves source port center relative to the overlay container.
  */
 function getPortCenter(
   container: HTMLElement,
   sourceFeature: AudioFeature,
+  version: number,
 ): { x: number; y: number } | null {
+  const cacheKey = `source:${sourceFeature}`
+  const cached = getCached(cacheKey, version)
+  if (cached) return cached
+
   const el = container.querySelector(
     `[data-source-port="${sourceFeature}"]`,
   ) as HTMLElement | null
   if (!el) return null
   const rect = el.getBoundingClientRect()
   const containerRect = container.getBoundingClientRect()
-  return {
+  const pos = {
     x: rect.right - containerRect.left,
     y: rect.top + rect.height / 2 - containerRect.top,
   }
+  setCache(cacheKey, pos, version)
+  return pos
 }
 
 /**
@@ -37,18 +60,25 @@ function getPortCenter(
 function getTargetPortCenter(
   container: HTMLElement,
   target: FlameTarget,
+  version: number,
 ): { x: number; y: number } | null {
   const key = flameTargetKey(target)
+  const cacheKey = `target:${key}`
+  const cached = getCached(cacheKey, version)
+  if (cached) return cached
+
   const el = container.querySelector(
     `[data-target-port="${key}"]`,
   ) as HTMLElement | null
   if (!el) return null
   const rect = el.getBoundingClientRect()
   const containerRect = container.getBoundingClientRect()
-  return {
+  const pos = {
     x: rect.left - containerRect.left,
     y: rect.top + rect.height / 2 - containerRect.top,
   }
+  setCache(cacheKey, pos, version)
+  return pos
 }
 
 export function WireOverlay(props: {
@@ -105,11 +135,11 @@ export function WireOverlay(props: {
   })
 
   const wirePaths = createMemo(() => {
-    void layoutVersion()
+    const version = layoutVersion()
     if (!props.containerRef) return []
     return props.connections.map((conn) => {
-      const srcPos = getPortCenter(props.containerRef!, conn.sourceFeature)
-      const tgtPos = getTargetPortCenter(props.containerRef!, conn.target)
+      const srcPos = getPortCenter(props.containerRef!, conn.sourceFeature, version)
+      const tgtPos = getTargetPortCenter(props.containerRef!, conn.target, version)
       if (!srcPos || !tgtPos) return null
       const color = props.sourceColorMap.get(conn.sourceFeature) ?? '#888'
       const id = wireId(conn)
@@ -122,9 +152,9 @@ export function WireOverlay(props: {
 
   /** Preview wire from click-to-connect mode (follows cursor when available). */
   const clickPreviewWire = createMemo(() => {
-    void layoutVersion()
+    const version = layoutVersion()
     if (!props.containerRef || !props.connectingFrom) return null
-    const srcPos = getPortCenter(props.containerRef!, props.connectingFrom)
+    const srcPos = getPortCenter(props.containerRef!, props.connectingFrom, version)
     if (!srcPos) return null
     const color = props.sourceColorMap.get(props.connectingFrom) ?? '#888'
     // Follow mouse position if available, otherwise extend to the right
@@ -139,11 +169,11 @@ export function WireOverlay(props: {
 
   /** Preview wire from drag mode (follows mouse cursor). */
   const dragPreviewWire = createMemo(() => {
-    void layoutVersion()
+    const version = layoutVersion()
     if (!props.containerRef || !props.dragPos) return null
     // Source → cursor drag
     if (props.dragFrom) {
-      const srcPos = getPortCenter(props.containerRef!, props.dragFrom)
+      const srcPos = getPortCenter(props.containerRef!, props.dragFrom, version)
       if (!srcPos) return null
       const color = props.sourceColorMap.get(props.dragFrom) ?? '#888'
       const { x: tx, y: ty } = props.dragPos
@@ -158,6 +188,7 @@ export function WireOverlay(props: {
       const tgtPos = getTargetPortCenter(
         props.containerRef!,
         props.dragFromTarget,
+        version,
       )
       if (!tgtPos) return null
       const color = '#f59e0b' // amber for target-initiated drags
