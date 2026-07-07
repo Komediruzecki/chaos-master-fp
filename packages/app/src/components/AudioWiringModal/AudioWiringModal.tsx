@@ -8,6 +8,7 @@ import { TargetGroupCard } from './TargetGroupCard'
 import { WireOverlay, wireId, type WireConnection } from './WireOverlay'
 import { ParamsPanel } from './ParamsPanel'
 import { HeaderBar } from './HeaderBar'
+import { ConnectingBanner } from './ConnectingBanner'
 import styles from './AudioWiringModal.module.css'
 
 // ── Module-level constants ──
@@ -1261,34 +1262,22 @@ export function AudioWiringModal(props: {
           onHoverWire={setHoveredWireId}
         />
 
-        <Show when={connectingFrom()}>
-          <div class={styles.connectingBanner}>
-            Click a target parameter to connect{' '}
-            {SOURCE_BY_FEATURE.get(connectingFrom()!)?.label ?? ''} →
-          </div>
-        </Show>
-
-        <Show when={dragFrom()}>
-          <div class={styles.connectingBanner}>
-            Release on a target to connect{' '}
-            {SOURCE_BY_FEATURE.get(dragFrom()!)?.label ?? ''} →
-          </div>
-        </Show>
-
-        <Show when={dragFromTarget()}>
-          <div class={styles.connectingBanner}>
-            ← Release on a source to connect to{' '}
-            {getTargetLabel(dragFromTarget()!)}
-          </div>
-        </Show>
-
-        <Show when={replaceToast()}>
-          {(toast) => (
-            <div class={styles.replaceToast}>
-              Replaced {toast().sourceLabel} → {toast().targetKey}
-            </div>
-          )}
-        </Show>
+        <ConnectingBanner
+          connectingSourceLabel={
+            connectingFrom()
+              ? (SOURCE_BY_FEATURE.get(connectingFrom()!)?.label ?? null)
+              : null
+          }
+          draggingSourceLabel={
+            dragFrom()
+              ? (SOURCE_BY_FEATURE.get(dragFrom()!)?.label ?? null)
+              : null
+          }
+          draggingTargetLabel={
+            dragFromTarget() ? getTargetLabel(dragFromTarget()!) : null
+          }
+          toast={replaceToast()}
+        />
       </div>
 
       <ParamsPanel
