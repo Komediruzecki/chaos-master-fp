@@ -1,6 +1,6 @@
 import { createEffect, createMemo, createSignal, For, onCleanup, Show, } from 'solid-js'
 import { Cross } from '@/icons'
-import { createLiveAnalyzer, decodeAudioFile, flameTargetKey, } from '@/utils/audioAnalysis'
+import { createLiveAnalyzer, decodeAudioFile, flameTargetKey, getAudioFeatureNormalized, } from '@/utils/audioAnalysis'
 import { AudioWiringModal } from '../AudioWiringModal/AudioWiringModal'
 import ui from './AudioReactivePanel.module.css'
 import type { AffineKey, AudioAnalyzer, AudioFeature, FlameTarget, LiveAudioAnalyzer, RenderSettingKey, TransformInfo, TransformPropertyKey, } from '@/utils/audioAnalysis'
@@ -457,6 +457,8 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
   const [micError, setMicError] = createSignal<string | null>(null)
   const [micConnecting, setMicConnecting] = createSignal(false)
   const [showWiringModal, setShowWiringModal] = createSignal(false)
+  const [liveFeatureLevels, setLiveFeatureLevels] =
+    createSignal<Record<string, number>>({})
 
   let waveformCanvas!: HTMLCanvasElement
   let fileInput!: HTMLInputElement
@@ -544,6 +546,30 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
         window.removeEventListener('mousemove', scrubMoveHandler)
       if (scrubUpHandler) window.removeEventListener('mouseup', scrubUpHandler)
     })
+  })
+
+  // Poll live analyzer for wiring modal meters
+  createEffect(() => {
+    const isOpen = showWiringModal()
+    const analyzer = liveAnalyzer()
+    if (!isOpen || !analyzer) {
+      if (!isOpen) setLiveFeatureLevels({})
+      return
+    }
+    const interval = setInterval(() => {
+      const frame = analyzer.getFrameData()
+      const features: AudioFeature[] = [
+        'subBass', 'bass', 'lowMid', 'mid', 'hiMid',
+        'presence', 'brilliance', 'fullSpectrum',
+        'rms', 'centroid', 'flatness', 'beat', 'onset',
+      ]
+      const levels: Record<string, number> = {}
+      for (const f of features) {
+        levels[f] = getAudioFeatureNormalized(frame, f)
+      }
+      setLiveFeatureLevels(levels)
+    }, 50)
+    onCleanup(() => clearInterval(interval))
   })
 
   function handleFile(file: File) {
@@ -1118,6 +1144,7 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
           mappings={audioMapping().mappings}
           transforms={props.transforms}
           presets={PRESET_MAPPINGS}
+          featureLevels={liveFeatureLevels()}
           onMappingsChange={(mappings) => {
             props.onMappingChange({
               preset: 'custom',

@@ -106,6 +106,7 @@ export function AudioWiringModal(props: {
   transforms: TransformInfo[]
   onMappingsChange: (mappings: AudioMappingEntry[]) => void
   presets?: Record<string, AudioMappingEntry[]>
+  featureLevels?: Record<string, number>
   onClose: () => void
 }) {
   const [connectingFrom, setConnectingFrom] = createSignal<AudioFeature | null>(
@@ -673,7 +674,9 @@ export function AudioWiringModal(props: {
                 return (
                   <SourceNode
                     source={source}
-                    level={0.3}
+                    level={
+                      props.featureLevels?.[source.feature] ?? 0.3
+                    }
                     connectionCount={sourceConns.length}
                     isConnecting={isConnecting || isDragging || isTargetDrag}
                     isSourceOfSelectedWire={isSourceOfSelected}

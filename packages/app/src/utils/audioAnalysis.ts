@@ -582,7 +582,7 @@ export type TransformInfo = {
   variations: { id: string; type: string }[]
 }
 
-function getAudioFeatureNormalized(
+export function getAudioFeatureNormalized(
   frameData: FrameData & { isBeat: boolean },
   feature: AudioFeature,
 ): number {
