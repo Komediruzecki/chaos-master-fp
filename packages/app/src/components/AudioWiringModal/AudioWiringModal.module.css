@@ -311,6 +311,17 @@
   box-shadow: 0 0 8px rgba(124, 111, 247, 0.5);
 }
 
+.portHighlighted {
+  border-color: var(--color-accent, #7c6ff7);
+  background: rgba(124, 111, 247, 0.3);
+  box-shadow: 0 0 6px rgba(124, 111, 247, 0.4);
+}
+
+.sourceCardHighlighted {
+  border-color: rgba(124, 111, 247, 0.3);
+  background: rgba(124, 111, 247, 0.08);
+}
+
 @keyframes portPulse {
   0%,
   100% {
@@ -561,6 +572,12 @@
   box-shadow: 0 0 8px rgba(124, 111, 247, 0.5);
 }
 
+.targetPortHighlighted {
+  border-color: var(--color-accent, #7c6ff7);
+  background: rgba(124, 111, 247, 0.3);
+  box-shadow: 0 0 6px rgba(124, 111, 247, 0.4);
+}
+
 .targetArrow {
   font-size: 10px;
   color: var(--color-text-muted, #555);
@@ -692,6 +709,12 @@
   border-color: var(--color-accent, #7c6ff7);
   transform: scale(1.25);
   box-shadow: 0 0 8px rgba(124, 111, 247, 0.5);
+}
+
+.affineCellPortHighlighted {
+  border-color: var(--color-accent, #7c6ff7);
+  background: rgba(124, 111, 247, 0.3);
+  box-shadow: 0 0 6px rgba(124, 111, 247, 0.4);
 }
 
 .affineCellBadge {

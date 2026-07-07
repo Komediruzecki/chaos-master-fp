@@ -485,6 +485,7 @@ export function AudioWiringModal(props: {
     createSignal<{ audioFeature: AudioFeature; target: FlameTarget }[] | null>(null)
   const [pendingPaste, setPendingPaste] =
     createSignal<{ transformIdx: number } | null>(null)
+  const [hoveredWireId, setHoveredWireId] = createSignal<string | null>(null)
   const [containerRef, setContainerRef] = createSignal<HTMLElement | null>(null)
 
   // ── Drag state ──
@@ -570,6 +571,21 @@ export function AudioWiringModal(props: {
       }
     }
     return map
+  })
+
+  // Highlighted wire — tracking which ports to glow on hover
+  const highlightedSource = createMemo((): AudioFeature | null => {
+    const id = hoveredWireId()
+    if (!id) return null
+    const conn = connections().find((c) => wireId(c) === id)
+    return conn?.sourceFeature ?? null
+  })
+
+  const highlightedTargetKey = createMemo((): string | null => {
+    const id = hoveredWireId()
+    if (!id) return null
+    const conn = connections().find((c) => wireId(c) === id)
+    return conn ? flameTargetKey(conn.target) : null
   })
 
   // Selected mapping entry for the bottom parameter panel
@@ -973,6 +989,7 @@ export function AudioWiringModal(props: {
     connectingFromFeature: AudioFeature | null,
     dragFromFeature: AudioFeature | null,
     hoveredDropKey: string | null,
+    highlightedTgtKey: string | null,
     connByTarget: Map<string, { sourceFeature: AudioFeature }>,
     onComplete: (target: FlameTarget) => void,
     onTargetDragStart: (target: FlameTarget, e: MouseEvent) => void,
@@ -998,6 +1015,7 @@ export function AudioWiringModal(props: {
           isConnecting={isConnectingGlobal}
           isTargetOfSelectedWire={isTargetOfSelected}
           isDropTarget={isDropTarget}
+          isHighlighted={highlightedTgtKey === key}
           connectedSourceLabel={connectedSourceLabel}
           onCompleteConnection={onComplete}
           onDragStart={onTargetDragStart}
@@ -1024,6 +1042,7 @@ export function AudioWiringModal(props: {
           isConnecting={isConnectingGlobal}
           isTargetOfSelectedWire={isTargetOfSelected}
           isDropTarget={isDropTarget}
+          isHighlighted={highlightedTgtKey === key}
           connectedSourceLabel={connectedSourceLabel}
           onCompleteConnection={onComplete}
           onDragStart={onTargetDragStart}
@@ -1124,6 +1143,7 @@ export function AudioWiringModal(props: {
                     isConnecting={isConnecting || isDragging || isTargetDrag}
                     isSourceOfSelectedWire={isSourceOfSelected}
                     isDropTarget={isDropTarget}
+                    isHighlighted={highlightedSource() === source.feature}
                     onStartConnection={startConnection}
                     onDragStart={handleDragStart}
                   />
@@ -1244,6 +1264,7 @@ export function AudioWiringModal(props: {
                       connectingFrom(),
                       dragFrom(),
                       hoveredDropKey(),
+                      highlightedTargetKey(),
                       connectionByTarget(),
                       completeConnection,
                       handleTargetDragStart,
@@ -1269,6 +1290,7 @@ export function AudioWiringModal(props: {
             setConnectingFrom(null)
           }}
           onDeleteWire={handleDeleteWire}
+          onHoverWire={setHoveredWireId}
         />
 
         <Show when={connectingFrom()}>

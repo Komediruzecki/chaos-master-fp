@@ -99,6 +99,7 @@ export function SourceNode(props: {
   isConnecting: boolean
   isSourceOfSelectedWire: boolean
   isDropTarget: boolean
+  isHighlighted: boolean
   onStartConnection: (feature: AudioFeature) => void
   onDragStart: (feature: AudioFeature, e: MouseEvent) => void
 }) {
@@ -107,6 +108,7 @@ export function SourceNode(props: {
       class={styles.sourceCard}
       classList={{
         [styles.sourceCardActive as string]: props.isSourceOfSelectedWire,
+        [styles.sourceCardHighlighted as string]: props.isHighlighted,
       }}
     >
       <div
@@ -130,6 +132,7 @@ export function SourceNode(props: {
             [styles.portConnecting as string]: props.isConnecting,
             [styles.portActive as string]: props.isSourceOfSelectedWire,
             [styles.portDropTarget as string]: props.isDropTarget,
+            [styles.portHighlighted as string]: props.isHighlighted,
           }}
           role="button"
           tabIndex={0}

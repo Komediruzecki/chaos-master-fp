@@ -95,6 +95,7 @@ export function WireOverlay(props: {
   sourceColorMap: Map<AudioFeature, string>
   onSelectWire: (id: string | null) => void
   onDeleteWire: (id: string) => void
+  onHoverWire?: (id: string | null) => void
 }) {
   // Layout version — bumped on resize/scroll/drag so memos recalculate
   const [layoutVersion, setLayoutVersion] = createSignal(0)
@@ -208,7 +209,10 @@ export function WireOverlay(props: {
       {wirePaths().map(
         (wp) =>
           wp && (
-            <g>
+            <g
+              onMouseEnter={() => props.onHoverWire?.(wp.id)}
+              onMouseLeave={() => props.onHoverWire?.(null)}
+            >
               <title>{wp.tooltip}</title>
               <path
                 d={wp.d}
