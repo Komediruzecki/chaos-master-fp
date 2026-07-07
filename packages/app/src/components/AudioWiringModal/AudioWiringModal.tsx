@@ -486,6 +486,8 @@ export function AudioWiringModal(props: {
   const [pendingPaste, setPendingPaste] =
     createSignal<{ transformIdx: number } | null>(null)
   const [hoveredWireId, setHoveredWireId] = createSignal<string | null>(null)
+  const [replaceToast, setReplaceToast] =
+    createSignal<{ sourceLabel: string; targetKey: string } | null>(null)
   const [containerRef, setContainerRef] = createSignal<HTMLElement | null>(null)
 
   // ── Drag state ──
@@ -625,7 +627,11 @@ export function AudioWiringModal(props: {
     let next = [...props.mappings]
     if (existingWire) {
       saveForUndo()
+      const oldLabel = getSourceLabel(existingWire.sourceFeature)
       next = next.filter((m) => flameTargetKey(m.target) !== tgtKey)
+      // Show replacement toast
+      setReplaceToast({ sourceLabel: oldLabel, targetKey: tgtKey })
+      setTimeout(() => setReplaceToast(null), 2500)
     }
 
     const isZoom = target.kind === 'renderSetting' && target.param === 'zoom'
@@ -1179,6 +1185,16 @@ export function AudioWiringModal(props: {
               Collapse All
             </button>
           </div>
+          <Show when={filteredGroups().length === 0}>
+            <div class={styles.emptyState}>
+              <span class={styles.emptyStateIcon}>🔊</span>
+              <span class={styles.emptyStateText}>
+                {targetGroups().length === 0
+                  ? 'No flame parameters available. Load a fractal to start wiring audio sources to render targets.'
+                  : 'No targets match your search.'}
+              </span>
+            </div>
+          </Show>
           {filteredGroups().map((group) => {
             const isOpen =
               searchQuery() !== '' || expandedGroups().has(group.kind)
@@ -1312,6 +1328,14 @@ export function AudioWiringModal(props: {
             ← Release on a source to connect to{' '}
             {getTargetLabel(dragFromTarget()!)}
           </div>
+        </Show>
+
+        <Show when={replaceToast()}>
+          {(toast) => (
+            <div class={styles.replaceToast}>
+              Replaced {toast().sourceLabel} → {toast().targetKey}
+            </div>
+          )}
         </Show>
       </div>
 
