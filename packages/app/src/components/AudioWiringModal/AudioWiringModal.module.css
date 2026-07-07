@@ -520,6 +520,14 @@
   pointer-events: stroke;
   cursor: pointer;
   transition: stroke-width 0.15s;
+  stroke-dasharray: 10 6;
+  animation: wireFlow 1.5s linear infinite;
+}
+
+@keyframes wireFlow {
+  to {
+    stroke-dashoffset: -32;
+  }
 }
 
 .wirePath:hover {
@@ -528,6 +536,8 @@
 
 .wirePathSelected {
   stroke-width: 3;
+  stroke-dasharray: none;
+  animation: none;
   filter: drop-shadow(0 0 4px currentColor);
 }
 
@@ -543,6 +553,7 @@
   stroke: rgba(124, 111, 247, 0.5);
   stroke-width: 2;
   stroke-dasharray: 6 4;
+  animation: none;
   pointer-events: none;
 }
 
