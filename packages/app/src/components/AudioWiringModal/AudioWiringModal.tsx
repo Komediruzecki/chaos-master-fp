@@ -115,6 +115,7 @@ export function AudioWiringModal(props: {
   const [expandedGroups, setExpandedGroups] = createSignal<Set<string>>(
     new Set(['render', 'finalAffine']),
   )
+  const [searchQuery, setSearchQuery] = createSignal('')
   const [containerRef, setContainerRef] = createSignal<HTMLElement | null>(null)
 
   // ── Drag state ──
@@ -134,6 +135,27 @@ export function AudioWiringModal(props: {
   const presets = () => props.presets ?? DEFAULT_PRESETS
 
   const targetGroups = createMemo(() => buildTargetGroups(props.transforms))
+
+  const filteredGroups = createMemo(() => {
+    const q = searchQuery().toLowerCase().trim()
+    const groups = targetGroups()
+    if (!q) return groups
+    return groups
+      .map((group) => {
+        const matchedSubGroups = group.subGroups
+          .map((sg) => ({
+            ...sg,
+            targets: sg.targets.filter(
+              (t) =>
+                t.paramLabel.toLowerCase().includes(q) ||
+                t.label.toLowerCase().includes(q),
+            ),
+          }))
+          .filter((sg) => sg.targets.length > 0)
+        return { ...group, subGroups: matchedSubGroups }
+      })
+      .filter((g) => g.subGroups.length > 0)
+  })
 
   // Wire connections derived from mappings
   const connections = createMemo(() => props.mappings.map(entryToWire))
@@ -619,6 +641,13 @@ export function AudioWiringModal(props: {
         {/* Targets column — using .map() for expandedGroups() reactivity */}
         <div class={styles.targetsColumn}>
           <div class={styles.columnLabel}>Flame Parameters</div>
+          <input
+            type="text"
+            class={styles.searchInput}
+            placeholder="Filter targets..."
+            value={searchQuery()}
+            onInput={(e) => setSearchQuery(e.currentTarget.value)}
+          />
           <div class={styles.expandRow}>
             <button
               type="button"
@@ -635,8 +664,9 @@ export function AudioWiringModal(props: {
               Collapse All
             </button>
           </div>
-          {targetGroups().map((group) => {
-            const isOpen = expandedGroups().has(group.kind)
+          {filteredGroups().map((group) => {
+            const isOpen =
+              searchQuery() !== '' || expandedGroups().has(group.kind)
             const selEntry = selectedEntry()
             const selTgtKey = selEntry ? flameTargetKey(selEntry.target) : null
 

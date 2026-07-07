@@ -289,6 +289,27 @@
   gap: 12px;
 }
 
+.searchInput {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-text, #d0d0d0);
+  font-size: 12px;
+  outline: none;
+  margin-bottom: 2px;
+}
+
+.searchInput::placeholder {
+  color: var(--color-text-muted, #666);
+}
+
+.searchInput:focus {
+  border-color: rgba(124, 111, 247, 0.4);
+  background: rgba(255, 255, 255, 0.06);
+}
+
 .expandRow {
   display: flex;
   gap: 6px;
