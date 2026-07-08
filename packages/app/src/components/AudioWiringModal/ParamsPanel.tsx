@@ -24,8 +24,8 @@ export function ParamsPanel(props: {
         when={props.entry}
         fallback={
           <span class={styles.paramsPanelHint}>
-            Drag ports to wire · Click wire to select · Click again or press
-            Del to disconnect · Right-click wire to delete
+            Drag ports to wire · Click wire to select · Click again or press Del
+            to disconnect · Right-click wire to delete
           </span>
         }
       >

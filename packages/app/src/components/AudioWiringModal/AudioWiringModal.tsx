@@ -487,13 +487,17 @@ export function AudioWiringModal(props: {
   const [undoStack, setUndoStack] = createSignal<AudioMappingEntry[][]>([])
   const [redoStack, setRedoStack] = createSignal<AudioMappingEntry[][]>([])
   const MAX_UNDO = 50
-  const [copiedWiring, setCopiedWiring] =
-    createSignal<{ audioFeature: AudioFeature; target: FlameTarget }[] | null>(null)
-  const [pendingPaste, setPendingPaste] =
-    createSignal<{ transformIdx: number } | null>(null)
+  const [copiedWiring, setCopiedWiring] = createSignal<
+    { audioFeature: AudioFeature; target: FlameTarget }[] | null
+  >(null)
+  const [pendingPaste, setPendingPaste] = createSignal<{
+    transformIdx: number
+  } | null>(null)
   const [hoveredWireId, setHoveredWireId] = createSignal<string | null>(null)
-  const [replaceToast, setReplaceToast] =
-    createSignal<{ sourceLabel: string; targetKey: string } | null>(null)
+  const [replaceToast, setReplaceToast] = createSignal<{
+    sourceLabel: string
+    targetKey: string
+  } | null>(null)
   const [containerRef, setContainerRef] = createSignal<HTMLElement | null>(null)
 
   // ── Drag state ──
@@ -630,9 +634,9 @@ export function AudioWiringModal(props: {
       return
     }
 
+    saveForUndo()
     let next = [...props.mappings]
     if (existingWire) {
-      saveForUndo()
       const oldLabel = getSourceLabel(existingWire.sourceFeature)
       next = next.filter((m) => flameTargetKey(m.target) !== tgtKey)
       // Show replacement toast
@@ -747,11 +751,15 @@ export function AudioWiringModal(props: {
     ) as HTMLElement | null
     if (dragFrom()) {
       // Source → Target: look for target port
-      const targetPort = elUnder?.closest('[data-target-port]') as HTMLElement | null
+      const targetPort = elUnder?.closest(
+        '[data-target-port]',
+      ) as HTMLElement | null
       setHoveredDropKey(targetPort?.getAttribute('data-target-port') ?? null)
     } else if (dragFromTarget()) {
       // Target → Source: look for source port
-      const sourcePort = elUnder?.closest('[data-source-port]') as HTMLElement | null
+      const sourcePort = elUnder?.closest(
+        '[data-source-port]',
+      ) as HTMLElement | null
       setHoveredDropKey(sourcePort?.getAttribute('data-source-port') ?? null)
     }
   }
@@ -907,11 +915,14 @@ export function AudioWiringModal(props: {
       const tgt = m.target
       return (
         (tgt.kind === 'transformAffine' && tgt.transformIdx === transformIdx) ||
-        (tgt.kind === 'transformProperty' && tgt.transformIdx === transformIdx) ||
+        (tgt.kind === 'transformProperty' &&
+          tgt.transformIdx === transformIdx) ||
         (tgt.kind === 'variationWeight' && tgt.transformIdx === transformIdx)
       )
     })
-    setCopiedWiring(entries.map((e) => ({ audioFeature: e.audioFeature, target: e.target })))
+    setCopiedWiring(
+      entries.map((e) => ({ audioFeature: e.audioFeature, target: e.target })),
+    )
   }
 
   function pasteWiring(transformIdx: number) {
@@ -935,7 +946,6 @@ export function AudioWiringModal(props: {
       setPendingPaste(null)
     }
 
-    saveForUndo()
     for (const entry of wiring) {
       const newTarget = { ...entry.target, transformIdx } as FlameTarget
       doConnect(entry.audioFeature, newTarget)
@@ -981,15 +991,36 @@ export function AudioWiringModal(props: {
       if (props.transforms.length > 0) {
         const txIdx = Math.floor(Math.random() * props.transforms.length)
         pool.push(
-          { kind: 'transformAffine' as const, transformIdx: txIdx, matrix: 'preAffine', param: 'a' },
-          { kind: 'transformAffine' as const, transformIdx: txIdx, matrix: 'preAffine', param: 'd' },
-          { kind: 'transformProperty' as const, transformIdx: txIdx, property: 'probability' },
+          {
+            kind: 'transformAffine' as const,
+            transformIdx: txIdx,
+            matrix: 'preAffine',
+            param: 'a',
+          },
+          {
+            kind: 'transformAffine' as const,
+            transformIdx: txIdx,
+            matrix: 'preAffine',
+            param: 'd',
+          },
+          {
+            kind: 'transformProperty' as const,
+            transformIdx: txIdx,
+            property: 'probability',
+          },
         )
         if (props.transforms[txIdx]!.variations.length > 0) {
-          const v = props.transforms[txIdx]!.variations[
-            Math.floor(Math.random() * props.transforms[txIdx]!.variations.length)
-          ]!
-          pool.push({ kind: 'variationWeight' as const, transformIdx: txIdx, variationType: v.type })
+          const v =
+            props.transforms[txIdx]!.variations[
+              Math.floor(
+                Math.random() * props.transforms[txIdx]!.variations.length,
+              )
+            ]!
+          pool.push({
+            kind: 'variationWeight' as const,
+            transformIdx: txIdx,
+            variationType: v.type,
+          })
         }
       }
 
@@ -998,7 +1029,8 @@ export function AudioWiringModal(props: {
       const tgtShuffled = [...pool].sort(() => Math.random() - 0.5)
       for (let i = 0; i < Math.min(tgtCount, tgtShuffled.length); i++) {
         const target = tgtShuffled[i]!
-        const isZoom = target.kind === 'renderSetting' && target.param === 'zoom'
+        const isZoom =
+          target.kind === 'renderSetting' && target.param === 'zoom'
         entries.push({
           audioFeature: source,
           target,
@@ -1232,11 +1264,7 @@ export function AudioWiringModal(props: {
             onInput={(e) => setSearchQuery(e.currentTarget.value)}
           />
           <div class={styles.expandRow}>
-            <button
-              type="button"
-              class={styles.expandBtn}
-              onClick={expandAll}
-            >
+            <button type="button" class={styles.expandBtn} onClick={expandAll}>
               Expand All
             </button>
             <button
@@ -1249,7 +1277,6 @@ export function AudioWiringModal(props: {
           </div>
           <Show when={filteredGroups().length === 0}>
             <div class={styles.emptyState}>
-              <span class={styles.emptyStateIcon}>🔊</span>
               <span class={styles.emptyStateText}>
                 {targetGroups().length === 0
                   ? 'No flame parameters available. Load a fractal to start wiring audio sources to render targets.'
@@ -1285,9 +1312,7 @@ export function AudioWiringModal(props: {
                   copiedWiring() !== null && copiedWiring()!.length > 0
                 }
                 pendingPasteTransformIdx={pendingPaste()?.transformIdx ?? null}
-                confirmPasteMode={
-                  pendingPaste()?.transformIdx === txIdx
-                }
+                confirmPasteMode={pendingPaste()?.transformIdx === txIdx}
                 onToggle={() => toggleGroup(group.kind)}
                 onCopy={() => copyWiring(txIdx)}
                 onPaste={() => pasteWiring(txIdx)}

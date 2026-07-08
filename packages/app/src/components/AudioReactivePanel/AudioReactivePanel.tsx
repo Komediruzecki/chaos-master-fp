@@ -457,8 +457,9 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
   const [micError, setMicError] = createSignal<string | null>(null)
   const [micConnecting, setMicConnecting] = createSignal(false)
   const [showWiringModal, setShowWiringModal] = createSignal(false)
-  const [liveFeatureLevels, setLiveFeatureLevels] =
-    createSignal<Record<string, number>>({})
+  const [liveFeatureLevels, setLiveFeatureLevels] = createSignal<
+    Record<string, number>
+  >({})
 
   let waveformCanvas!: HTMLCanvasElement
   let fileInput!: HTMLInputElement
@@ -559,9 +560,19 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
     const interval = setInterval(() => {
       const frame = analyzer.getFrameData()
       const features: AudioFeature[] = [
-        'subBass', 'bass', 'lowMid', 'mid', 'hiMid',
-        'presence', 'brilliance', 'fullSpectrum',
-        'rms', 'centroid', 'flatness', 'beat', 'onset',
+        'subBass',
+        'bass',
+        'lowMid',
+        'mid',
+        'hiMid',
+        'presence',
+        'brilliance',
+        'fullSpectrum',
+        'rms',
+        'centroid',
+        'flatness',
+        'beat',
+        'onset',
       ]
       const levels: Record<string, number> = {}
       for (const f of features) {
@@ -854,7 +865,7 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
               onDragLeave={() => setDragOver(false)}
               onDrop={handleDrop}
             >
-              <div class={ui.dropIcon}>🎵</div>
+              <div class={ui.dropIcon} />
               <div class={ui.dropLabel}>
                 {loading()
                   ? 'Loading...'
@@ -1113,7 +1124,7 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
               class={ui.wiringBtn}
               onClick={() => setShowWiringModal(true)}
             >
-              ⚡ Edit Wiring
+              Edit Wiring
             </button>
           </div>
         </div>

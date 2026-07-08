@@ -71,6 +71,9 @@
   margin-bottom: 8px;
   opacity: 0.5;
 }
+.dropIcon::before {
+  content: '\266A'; /* musical note */
+}
 
 .dropLabel {
   font-size: 13px;

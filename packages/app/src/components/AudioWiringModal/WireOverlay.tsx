@@ -139,8 +139,16 @@ export function WireOverlay(props: {
     const version = layoutVersion()
     if (!props.containerRef) return []
     return props.connections.map((conn) => {
-      const srcPos = getPortCenter(props.containerRef!, conn.sourceFeature, version)
-      const tgtPos = getTargetPortCenter(props.containerRef!, conn.target, version)
+      const srcPos = getPortCenter(
+        props.containerRef!,
+        conn.sourceFeature,
+        version,
+      )
+      const tgtPos = getTargetPortCenter(
+        props.containerRef!,
+        conn.target,
+        version,
+      )
       if (!srcPos || !tgtPos) return null
       const color = props.sourceColorMap.get(conn.sourceFeature) ?? '#888'
       const id = wireId(conn)
@@ -156,7 +164,11 @@ export function WireOverlay(props: {
   const clickPreviewWire = createMemo(() => {
     const version = layoutVersion()
     if (!props.containerRef || !props.connectingFrom) return null
-    const srcPos = getPortCenter(props.containerRef!, props.connectingFrom, version)
+    const srcPos = getPortCenter(
+      props.containerRef!,
+      props.connectingFrom,
+      version,
+    )
     if (!srcPos) return null
     const color = props.sourceColorMap.get(props.connectingFrom) ?? '#888'
     // Follow mouse position if available, otherwise extend to the right

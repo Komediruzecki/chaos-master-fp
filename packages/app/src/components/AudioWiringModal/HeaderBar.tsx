@@ -65,7 +65,11 @@ export function HeaderBar(props: {
           ↪
         </button>
       </Show>
-      <button type="button" class={styles.randomBtn} onClick={props.onRandomize}>
+      <button
+        type="button"
+        class={styles.randomBtn}
+        onClick={props.onRandomize}
+      >
         Randomize
       </button>
       <button
@@ -74,7 +78,7 @@ export function HeaderBar(props: {
         onClick={props.onExportJSON}
         title="Copy wiring to clipboard as JSON"
       >
-        📋
+        Export
       </button>
       <button
         type="button"
@@ -82,11 +86,11 @@ export function HeaderBar(props: {
         onClick={props.onImportJSON}
         title="Paste wiring JSON from clipboard"
       >
-        📥
+        Import
       </button>
       <div class={styles.headerSpacer} />
       <button type="button" class={styles.closeBtn} onClick={props.onClose}>
-        ✕
+        ×
       </button>
     </div>
   )
