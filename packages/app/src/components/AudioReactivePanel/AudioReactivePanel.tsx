@@ -108,7 +108,7 @@ const TRANSFORM_PROP_LABELS: Record<TransformPropertyKey, string> = {
 
 // --- Presets ---
 
-const PRESET_MAPPINGS: Record<AudioPreset, ParamMapping[]> = {
+export const PRESET_MAPPINGS: Record<AudioPreset, ParamMapping[]> = {
   pulse: [
     {
       audioFeature: 'bass',
@@ -277,7 +277,7 @@ const TARGET_CATEGORY_LABELS: Record<TargetCategory, string> = {
 }
 
 /** Build a default target for a given category. */
-function defaultTarget(
+export function defaultTarget(
   category: TargetCategory,
   transformIdx?: number,
 ): FlameTarget {
