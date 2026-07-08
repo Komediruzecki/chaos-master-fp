@@ -845,6 +845,7 @@ export function AudioWiringModal(props: {
 
   function handleKeyDown(e: KeyboardEvent) {
     if (e.key === 'Escape') {
+      e.stopPropagation()
       if (pendingPaste()) {
         setPendingPaste(null)
       } else if (dragFrom()) {
