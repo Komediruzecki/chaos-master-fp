@@ -1,4 +1,4 @@
-import { createEffect, createMemo, createSignal, For, onCleanup, Show, } from 'solid-js'
+import { Accessor, createEffect, createMemo, createSignal, For, onCleanup, Show, } from 'solid-js'
 import { Cross } from '@/icons'
 import { createLiveAnalyzer, decodeAudioFile, flameTargetKey, getAudioFeatureNormalized, } from '@/utils/audioAnalysis'
 import { AudioWiringModal } from '../AudioWiringModal/AudioWiringModal'
@@ -36,24 +36,21 @@ export type AudioPreset =
 
 type AudioReactivePanelProps = {
   onClose: () => void
-  audioBuffer: (() => AudioBuffer | undefined) | AudioBuffer | undefined
+  audioBuffer: Accessor<AudioBuffer | undefined>
   onAudioChange: (buffer: AudioBuffer | undefined) => void
-  audioMapping: (() => AudioMapping) | AudioMapping
+  audioMapping: Accessor<AudioMapping>
   onMappingChange: (mapping: AudioMapping) => void
-  audioEnabled: () => boolean
+  audioEnabled: Accessor<boolean>
   onEnabledChange: (enabled: boolean) => void
-  audioSource: (() => 'file' | 'mic') | 'file' | 'mic'
+  audioSource: Accessor<'file' | 'mic'>
   onSourceChange: (source: 'file' | 'mic') => void
   onLiveAnalyzerChange: (analyzer: LiveAudioAnalyzer | undefined) => void
-  liveAnalyzer:
-    | (() => LiveAudioAnalyzer | undefined)
-    | LiveAudioAnalyzer
-    | undefined
-  playbackPaused: () => boolean
+  liveAnalyzer: Accessor<LiveAudioAnalyzer | undefined>
+  playbackPaused: Accessor<boolean>
   onPausedChange: (paused: boolean) => void
-  playbackTime: () => number
+  playbackTime: Accessor<number>
   onSeek: (seconds: number) => void
-  fileAnalyzer: (() => AudioAnalyzer | undefined) | AudioAnalyzer | undefined
+  fileAnalyzer: Accessor<AudioAnalyzer | undefined>
   /** Available transforms (id+label) for per-transform target selectors. */
   transforms: TransformInfo[]
 }
@@ -311,10 +308,6 @@ function defaultTarget(
 const SUPPORTED_AUDIO =
   '.mp3,.wav,.ogg,.flac,audio/mpeg,audio/wav,audio/ogg,audio/flac'
 
-function resolve<T>(v: (() => T) | T): T {
-  return typeof v === 'function' ? (v as () => T)() : v
-}
-
 // --- Variation weight pill picker ---
 
 function VariationWeightPills(props: {
@@ -344,6 +337,7 @@ function VariationWeightPills(props: {
                 props.mapping.target.variationType === v.type,
             }}
             title={v.type}
+            aria-label={v.type}
             onClick={() => props.onSelect(v.type)}
           >
             {v.type}
@@ -466,18 +460,10 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
 
   const [scrubbing, setScrubbing] = createSignal(false)
 
-  const audioBuffer = () => resolve(props.audioBuffer)
-  const audioMapping = () => resolve(props.audioMapping)
-  const audioSource = () => resolve(props.audioSource)
-  const liveAnalyzer = () => resolve(props.liveAnalyzer)
-  const playbackPaused = () => resolve(props.playbackPaused)
-  const playbackTime = () => resolve(props.playbackTime)
-  const fileAnalyzer = () => resolve(props.fileAnalyzer)
-
   // Derived: true while the shared analyzer is being built (FFT pass)
   const isAnalyzing = createMemo(() => {
-    const buf = audioBuffer()
-    return buf != null && fileAnalyzer() == null
+    const buf = props.audioBuffer()
+    return buf != null && props.fileAnalyzer() == null
   })
 
   function formatTime(seconds: number): string {
@@ -491,7 +477,7 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
     const rect = waveformCanvas.getBoundingClientRect()
     const x = e.clientX - rect.left
     const percent = Math.max(0, Math.min(1, x / rect.width))
-    const duration = audioBuffer()?.duration ?? 0
+    const duration = props.audioBuffer()?.duration ?? 0
     props.onSeek(percent * duration)
   }
 
@@ -507,8 +493,8 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
 
   // Draw waveform when shared analyzer is ready
   createEffect(() => {
-    const buffer = audioBuffer()
-    const analyzer = fileAnalyzer()
+    const buffer = props.audioBuffer()
+    const analyzer = props.fileAnalyzer()
     const canvas = waveformCanvas
     if (!buffer || !analyzer || !canvas) return
 
@@ -552,7 +538,7 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
   // Poll live analyzer for wiring modal meters
   createEffect(() => {
     const isOpen = showWiringModal()
-    const analyzer = liveAnalyzer()
+    const analyzer = props.liveAnalyzer()
     if (!isOpen || !analyzer) {
       if (!isOpen) setLiveFeatureLevels({})
       return
@@ -636,7 +622,7 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
   }
 
   function disableMic() {
-    const a = liveAnalyzer()
+    const a = props.liveAnalyzer()
     if (a) {
       a.dispose()
       props.onLiveAnalyzerChange(undefined)
@@ -647,7 +633,7 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
   function handleKey(e: KeyboardEvent) {
     if (e.key === 'Escape') {
       // Clean up mic if active when closing
-      const a = liveAnalyzer()
+      const a = props.liveAnalyzer()
       if (a) {
         a.dispose()
         props.onLiveAnalyzerChange(undefined)
@@ -664,7 +650,7 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
   }
 
   function updateMapping(index: number, updates: Partial<ParamMapping>) {
-    const current = audioMapping()
+    const current = props.audioMapping()
     const next = current.mappings.map((m, i) =>
       i === index ? { ...m, ...updates } : m,
     )
@@ -674,13 +660,13 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
   }
 
   function removeMapping(index: number) {
-    const current = audioMapping()
+    const current = props.audioMapping()
     const next = current.mappings.filter((_, i) => i !== index)
     props.onMappingChange({ preset: 'custom', mappings: next })
   }
 
   function addMapping() {
-    const current = audioMapping()
+    const current = props.audioMapping()
     props.onMappingChange({
       preset: 'custom',
       mappings: [
@@ -712,22 +698,24 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
           <button
             class={
               ui.sourceBtn +
-              (audioSource() === 'file' ? ` ${ui.sourceBtnActive}` : '')
+              (props.audioSource() === 'file' ? ` ${ui.sourceBtnActive}` : '')
             }
             onClick={() => {
               disableMic()
             }}
+            aria-label="Switch to file audio source"
           >
             File
           </button>
           <button
             class={
               ui.sourceBtn +
-              (audioSource() === 'mic' ? ` ${ui.sourceBtnActive}` : '')
+              (props.audioSource() === 'mic' ? ` ${ui.sourceBtnActive}` : '')
             }
             onClick={() => {
-              if (audioSource() !== 'mic') enableMic()
+              if (props.audioSource() !== 'mic') enableMic()
             }}
+            aria-label="Switch to microphone audio source"
           >
             Mic
           </button>
@@ -738,6 +726,7 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
             handleKey({ key: 'Escape' } as KeyboardEvent)
           }}
           title="Close (Esc)"
+          aria-label="Close audio reactive panel"
         >
           <Cross />
         </button>
@@ -745,10 +734,10 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
 
       <div class={ui.body}>
         {/* Mic mode */}
-        <Show when={audioSource() === 'mic'}>
+        <Show when={props.audioSource() === 'mic'}>
           <div class={ui.micSection}>
             <Show
-              when={!micConnecting() && !micError() && liveAnalyzer()}
+              when={!micConnecting() && !micError() && props.liveAnalyzer()}
               fallback={
                 <Show when={micConnecting()}>
                   <div class={ui.micStatus}>
@@ -770,16 +759,16 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
         </Show>
 
         {/* File mode: drop zone or waveform */}
-        <Show when={audioSource() === 'file'}>
+        <Show when={props.audioSource() === 'file'}>
           <Show
-            when={!audioBuffer()}
+            when={!props.audioBuffer()}
             fallback={
               <>
                 {/* Audio loaded state */}
                 <div class={ui.audioInfo}>
                   <span class={ui.audioFileName}>{fileName()}</span>
                   <span class={ui.audioDuration}>
-                    {audioBuffer()!.duration.toFixed(1)}s
+                    {props.audioBuffer()!.duration.toFixed(1)}s
                   </span>
                   <button
                     class={ui.clearAudioBtn}
@@ -787,6 +776,7 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
                       props.onAudioChange(undefined)
                       setAudioFileName(null)
                     }}
+                    aria-label="Clear audio file"
                   >
                     Clear
                   </button>
@@ -797,16 +787,17 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
                   <button
                     class={ui.playPauseBtn}
                     onClick={() => {
-                      props.onPausedChange(!playbackPaused())
+                      props.onPausedChange(!props.playbackPaused())
                     }}
-                    title={playbackPaused() ? 'Play' : 'Pause'}
+                    title={props.playbackPaused() ? 'Play' : 'Pause'}
+                    aria-label={props.playbackPaused() ? 'Play audio' : 'Pause audio'}
                   >
-                    {playbackPaused() ? '▶' : '⏸'}
+                    {props.playbackPaused() ? '▶' : '⏸'}
                   </button>
                   <span class={ui.timeText}>
-                    {formatTime(playbackTime())}
+                    {formatTime(props.playbackTime())}
                     {' / '}
-                    {formatTime(audioBuffer()!.duration)}
+                    {formatTime(props.audioBuffer()!.duration)}
                   </span>
                 </div>
 
@@ -845,7 +836,7 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
                     <div
                       class={ui.playhead}
                       style={{
-                        left: `${((playbackTime() / (audioBuffer()!.duration || 1)) * 100).toFixed(2)}%`,
+                        left: `${((props.playbackTime() / (props.audioBuffer()!.duration || 1)) * 100).toFixed(2)}%`,
                       }}
                     />
                   </Show>
@@ -886,6 +877,7 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
               accept={SUPPORTED_AUDIO}
               style="display:none"
               onChange={handleFileInput}
+              aria-label="Upload audio file"
             />
           </Show>
         </Show>
@@ -893,19 +885,22 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
         {/* Presets */}
         <div>
           <div class={ui.sectionLabel}>Preset</div>
-          <div class={ui.presetRow}>
+          <div class={ui.presetRow} role="radiogroup" aria-label="Audio reactive presets">
             <For each={Object.keys(PRESET_LABELS) as AudioPreset[]}>
               {(preset) => (
                 <button
                   class={
                     ui.presetBtn +
-                    (audioMapping().preset === preset
+                    (props.audioMapping().preset === preset
                       ? ` ${ui.presetBtnActive}`
                       : '')
                   }
                   onClick={() => {
                     applyPreset(preset)
                   }}
+                  aria-label={`${PRESET_LABELS[preset]} preset`}
+                  role="radio"
+                  aria-checked={props.audioMapping().preset === preset}
                 >
                   {PRESET_LABELS[preset]}
                 </button>
@@ -917,10 +912,10 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
         {/* Mappings */}
         <div>
           <div class={ui.sectionLabel}>Mappings</div>
-          <div class={ui.mappingsList}>
-            <For each={audioMapping().mappings}>
+          <div class={ui.mappingsList} role="list">
+            <For each={props.audioMapping().mappings}>
               {(mapping, index) => (
-                <div class={ui.mappingRow}>
+                <div class={ui.mappingRow} role="listitem">
                   {/* Top row: routing — source -> target category chain */}
                   <div class={ui.mappingTopRow}>
                     <select
@@ -931,6 +926,7 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
                           audioFeature: e.currentTarget.value as AudioFeature,
                         })
                       }}
+                      aria-label="Audio feature source"
                     >
                       <For each={ALL_FEATURES}>
                         {(f) => (
@@ -956,6 +952,7 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
                           ),
                         })
                       }}
+                      aria-label="Target category"
                     >
                       <For each={TARGET_CATEGORIES}>
                         {(c) => (
@@ -982,6 +979,7 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
                               } as FlameTarget,
                             })
                           }}
+                          aria-label="Transform"
                         >
                           <For each={props.transforms}>
                             {(t) => <option value={t.index}>{t.label}</option>}
@@ -1002,6 +1000,7 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
                             } as FlameTarget,
                           })
                         }}
+                        aria-label="Affine matrix"
                       >
                         <option value="preAffine">Pre</option>
                         <option value="postAffine">Post</option>
@@ -1013,6 +1012,7 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
                         removeMapping(index())
                       }}
                       title="Remove mapping"
+                      aria-label="Remove mapping"
                     >
                       ×
                     </button>
@@ -1069,6 +1069,7 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
                             })
                           }
                         }}
+                        aria-label="Target parameter"
                       >
                         {mapping.target.kind === 'renderSetting' && (
                           <For each={ALL_RENDER_PARAMS}>
@@ -1113,6 +1114,7 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
                           sensitivity: parseFloat(e.currentTarget.value),
                         })
                       }}
+                      aria-label="Sensitivity"
                     />
                   </div>
                 </div>
@@ -1120,12 +1122,13 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
             </For>
           </div>
           <div class={ui.mappingActions}>
-            <button class={ui.addMappingBtn} onClick={addMapping}>
+            <button class={ui.addMappingBtn} onClick={addMapping} aria-label="Add audio mapping">
               + Add mapping
             </button>
             <button
               class={ui.wiringBtn}
               onClick={() => setShowWiringModal(true)}
+              aria-label="Open wiring editor"
             >
               Edit Wiring
             </button>
@@ -1155,7 +1158,7 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
       {/* Wiring modal overlay */}
       <Show when={showWiringModal()}>
         <AudioWiringModal
-          mappings={audioMapping().mappings}
+          mappings={props.audioMapping().mappings}
           transforms={props.transforms}
           presets={PRESET_MAPPINGS}
           featureLevels={liveFeatureLevels()}
