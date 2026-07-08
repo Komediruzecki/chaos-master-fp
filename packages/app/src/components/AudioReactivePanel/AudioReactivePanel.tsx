@@ -1,5 +1,5 @@
 import { createEffect, createMemo, createSignal, For, onCleanup, Show, } from 'solid-js'
-import { Cross } from '@/icons'
+import { Cross, MusicNote } from '@/icons'
 import { createLiveAnalyzer, decodeAudioFile, flameTargetKey, getAudioFeatureNormalized, } from '@/utils/audioAnalysis'
 import { AudioWiringModal } from '../AudioWiringModal/AudioWiringModal'
 import ui from './AudioReactivePanel.module.css'
@@ -865,7 +865,9 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
               onDragLeave={() => setDragOver(false)}
               onDrop={handleDrop}
             >
-              <div class={ui.dropIcon} />
+              <div class={ui.dropIcon}>
+                <MusicNote />
+              </div>
               <div class={ui.dropLabel}>
                 {loading()
                   ? 'Loading...'

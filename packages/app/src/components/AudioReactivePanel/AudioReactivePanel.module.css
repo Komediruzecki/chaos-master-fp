@@ -67,12 +67,16 @@
 }
 
 .dropIcon {
-  font-size: 24px;
+  display: flex;
+  justify-content: center;
   margin-bottom: 8px;
+  color: var(--color-text, #e0e0e0);
   opacity: 0.5;
 }
-.dropIcon::before {
-  content: '\266A'; /* musical note */
+
+.dropIcon svg {
+  width: 24px;
+  height: 24px;
 }
 
 .dropLabel {
