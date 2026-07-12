@@ -329,6 +329,16 @@ export function createIFSPipeline3D(
 
   const { FlameUniforms, bindGroupLayout, ifsCompute } = cached
 
+  // Capture a template of the expected uniform structure so update() can
+  // defensively fill missing entries with zero-probability defaults when a
+  // flame descriptor has fewer transforms than the pipeline was built for
+  // (avoids "Cannot read properties of undefined (reading 'probability')"
+  // in TypeGPU's compiled writer).
+  const _templateUniforms = extractFlameUniforms3D({
+    transforms,
+  }) as Record<string, unknown>
+  const _uniformKeys = Object.keys(_templateUniforms)
+
   const flameUniformsBuffer = root.createBuffer(FlameUniforms).$usage('storage')
   const outputTextureDimensionBuffer = root
     .createBuffer(vec2i, vec2i(...outputTextureDimension))
@@ -411,11 +421,19 @@ export function createIFSPipeline3D(
     },
     update: (flameDescriptor: FlameDescriptor) => {
       const uniforms = extractFlameUniforms3D(flameDescriptor)
-      if (Object.keys(uniforms).length === 0) {
-        flameUniformsBuffer.write({ _dummy: 0 })
-      } else {
-        flameUniformsBuffer.write(uniforms)
+      // Defensively merge with template so the compiled writer never
+      // encounters a missing field when transform counts differ.
+      const safe: Record<string, unknown> = {}
+      for (const key of _uniformKeys) {
+        safe[key] =
+          key in uniforms
+            ? uniforms[key]
+            : {
+                ...(_templateUniforms[key] as Record<string, unknown>),
+                probability: 0,
+              }
       }
+      flameUniformsBuffer.write(safe)
       const ft = flameDescriptor.finalTransform as
         | Record<string, number | undefined>
         | undefined
