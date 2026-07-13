@@ -1,4 +1,4 @@
-import { createSignal } from 'solid-js'
+import { createRoot, createSignal } from 'solid-js'
 import * as db from './ancestryDb'
 import type { FlameDescriptor } from './schema/flameSchema'
 
@@ -45,10 +45,12 @@ export interface AncestryNode {
 
 type NodeMap = Record<string, AncestryNode>
 
-const [nodesSignal, setNodesSignal] = createSignal<NodeMap>({})
-
-/** True once the initial IndexedDB load has completed. */
-const [loaded, setLoaded] = createSignal(false)
+const { nodesSignal, setNodesSignal, loaded, setLoaded } = createRoot(() => {
+  const [nodesSignal, setNodesSignal] = createSignal<NodeMap>({})
+  /** True once the initial IndexedDB load has completed. */
+  const [loaded, setLoaded] = createSignal(false)
+  return { nodesSignal, setNodesSignal, loaded, setLoaded }
+})
 
 // ── Debounced IndexedDB writes ───────────────────────────────────────────────
 

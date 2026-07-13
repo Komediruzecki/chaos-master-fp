@@ -290,9 +290,9 @@ function Cell(props: {
       try {
         return parseFlameXml(e.xml)
       } catch {
-        // Return a minimal fallback on parse failure
+        // Return a minimal valid fallback on parse failure
         return {
-          version: '1.0',
+          version: '1.0' as const,
           metadata: { author: 'unknown', name: e.name, description: '' },
           renderSettings: {
             exposure: 1,
@@ -301,10 +301,7 @@ function Cell(props: {
             camera: { zoom: 1, position: [0, 0] },
           },
           transforms: {},
-          paletteHue: 0,
-          paletteSaturation: 0.5,
-          paletteLightness: 0.5,
-        } as unknown as FlameDescriptor
+        }
       }
     }
     return deepClone(e.descriptor!)
