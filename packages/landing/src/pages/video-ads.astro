@@ -1,0 +1,968 @@
+---
+import Base from '../layouts/Base.astro'
+import { LAUNCH_ICON } from '../icons'
+
+const appUrl = 'https://chaos-master.com'
+const repoUrl = 'https://github.com/chaos-matters/chaos-master'
+
+// Filled play glyph for the click-to-play overlays (the stroke icons elsewhere
+// are hollow; a solid triangle reads better over a bright flame frame).
+const PLAY_ICON =
+  '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.14v13.72a1 1 0 0 0 1.53.85l10.79-6.86a1 1 0 0 0 0-1.7L9.53 4.29A1 1 0 0 0 8 5.14z"/></svg>'
+
+// The flagship reel — the big centred spot below the hero. Drop the real cut at
+// public/videos/<src> and swap the poster for a matching frame.
+const featured = {
+  src: '/videos/chaos-master-reel.mp4',
+  poster: '/posters/example1.jpg',
+  kicker: '30-second brand reel',
+  title: 'Infinite bloom',
+  blurb:
+    'One seed, a million iterations, redrawn live on the GPU. The full brand cut — built to open a campaign or headline the channel.',
+  duration: '0:30',
+}
+
+// The ad set. Mixed aspect ratios on purpose — each is a real placement
+// (landscape pre-roll, vertical short, square feed). Edit this list to run the
+// whole board from one place; posters double as the not-yet-loaded fallback.
+const ads = [
+  {
+    format: 'landscape',
+    src: '/videos/preroll-15.mp4',
+    poster: '/posters/example33.jpg',
+    title: 'Paint with chaos',
+    platform: 'YouTube · pre-roll',
+    duration: '0:15',
+  },
+  {
+    format: 'vertical',
+    src: '/videos/short-endless.mp4',
+    poster: '/posters/rose.jpg',
+    title: 'Endless mutations',
+    platform: 'Shorts · Reels · TikTok',
+    duration: '0:08',
+  },
+  {
+    format: 'square',
+    src: '/videos/feed-noise-to-art.mp4',
+    poster: '/posters/example29.jpg',
+    title: 'From noise to art',
+    platform: 'Instagram · Facebook feed',
+    duration: '0:06',
+  },
+  {
+    format: 'vertical',
+    src: '/videos/short-earth.mp4',
+    poster: '/posters/earth.jpg',
+    title: 'Earth, reimagined',
+    platform: 'Shorts · Reels · TikTok',
+    duration: '0:10',
+  },
+  {
+    format: 'landscape',
+    src: '/videos/preroll-browser.mp4',
+    poster: '/posters/example45.jpg',
+    title: 'Live in your browser',
+    platform: 'YouTube · bumper',
+    duration: '0:06',
+  },
+  {
+    format: 'square',
+    src: '/videos/feed-remix.mp4',
+    poster: '/posters/example40.jpg',
+    title: 'Any image, remixable',
+    platform: 'Instagram · Facebook feed',
+    duration: '0:12',
+  },
+]
+
+// Why the flame kills on video — the DISCOVER-style card row. Stroke icons,
+// 24×24, currentColor, no emojis (per the project's icon rule).
+const perks = [
+  {
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>`,
+    title: 'Rendered live',
+    body: 'Every frame is real-time GPU output — no stock, no render farm. The motion is the math, captured as it happens.',
+  },
+  {
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="9" height="12" rx="1.5"/><rect x="14" y="8.5" width="7.5" height="7" rx="1.5"/></svg>`,
+    title: 'Every placement',
+    body: '16:9 for pre-roll, 9:16 for the feed, 1:1 for the grid. One flame, recut to fit wherever the ad has to land.',
+  },
+  {
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>`,
+    title: 'Loop-ready',
+    body: 'Seamless morphs that loop forever — made for autoplay, muted feeds and the endless scroll that never quite ends.',
+  },
+  {
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M8 8l4-4 4 4"/><path d="M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg>`,
+    title: 'Poster-grade export',
+    body: "WebCodecs MP4 straight from the browser — H.264 that plays everywhere, ready to upload the second it's done.",
+  },
+]
+
+// Delivery specs — handy when a brief or a media buyer asks "what sizes?".
+const formats = [
+  {
+    label: 'Landscape',
+    ratio: '16 : 9',
+    dim: '1920 × 1080',
+    use: 'YouTube, site embeds, display',
+  },
+  {
+    label: 'Vertical',
+    ratio: '9 : 16',
+    dim: '1080 × 1920',
+    use: 'Shorts, Reels, TikTok, Stories',
+  },
+  {
+    label: 'Square',
+    ratio: '1 : 1',
+    dim: '1080 × 1080',
+    use: 'Feed posts, carousels',
+  },
+]
+
+const title = 'Chaos Master — Video ads & promo reels'
+const description =
+  'The Chaos Master video board: promo reels and ad creatives of GPU fractal flames in motion, ready for YouTube, Shorts, Reels, TikTok and feed.'
+---
+
+<Base title={title} description={description}>
+  {/* Immersive flame hero. A static full-bleed render (hero-flame.jpg, the same
+      image the homepage hero uses) — so it looks identical for every visitor,
+      WebGPU or not, with no live-renderer error state. The motion on this page
+      is the videos below; the hero just needs to be striking. */}
+  <header class="hero" id="top">
+    <div class="hero-bg">
+      <img
+        class="hero-poster"
+        src="/hero-flame.jpg"
+        alt=""
+        aria-hidden="true"
+        loading="eager"
+      />
+    </div>
+
+    <div class="hero-content">
+      <p class="hero-kicker">Promo reels &amp; ad creative</p>
+      <h1>Ads that move<br /><em>like chaos.</em></h1>
+      <p class="hero-lede">
+        A living board of video ads — GPU flame fractals animating in real time,
+        recut for every placement. Press play, then make your own in the
+        browser.
+      </p>
+      <div class="hero-cta">
+        <a class="btn btn-glow" href={appUrl}
+          >Launch Chaos Master<span class="btn-ico" set:html={LAUNCH_ICON} /></a
+        >
+        <a class="btn btn-ghost" href="#reel">Watch the reel</a>
+      </div>
+      <ul class="hero-badges">
+        <li>Rendered live</li>
+        <li>WebCodecs MP4</li>
+        <li>Every format</li>
+      </ul>
+    </div>
+
+    <a class="scroll-hint" href="#reel" aria-label="Scroll to the reel">
+      <span>The reel</span><span class="line"></span>
+    </a>
+  </header>
+
+  <main>
+    <section id="reel" class="wrap reel-sec">
+      <figure class="feature">
+        <div class="v-frame v-landscape">
+          <video
+            class="v-media"
+            poster={featured.poster}
+            preload="none"
+            playsinline
+            loop
+          >
+            <source src={featured.src} type="video/mp4" />
+          </video>
+          <button
+            class="v-play"
+            type="button"
+            aria-label={`Play the ${featured.title} reel`}
+          >
+            <span class="v-play-ring" set:html={PLAY_ICON} />
+          </button>
+          <span class="v-dur">{featured.duration}</span>
+        </div>
+        <figcaption class="feature-cap">
+          <span class="feature-kicker">{featured.kicker}</span>
+          <span class="feature-title">{featured.title}</span>
+          <span class="feature-blurb">{featured.blurb}</span>
+        </figcaption>
+      </figure>
+    </section>
+
+    <section id="ads" class="wrap">
+      <p class="kicker">The ad set</p>
+      <h2>One flame, every<br />placement.</h2>
+      <p class="sec-lede">
+        The same chaos, cut to fit. Landscape for pre-roll, vertical for the
+        feed's fast scroll, square for the grid — each a drop-in slot you swap
+        for your own MP4.
+      </p>
+
+      <div class="v-grid">
+        {
+          ads.map((ad) => (
+            <figure class="v-card" data-format={ad.format}>
+              <div class:list={['v-frame', `v-${ad.format}`]}>
+                <video
+                  class="v-media"
+                  poster={ad.poster}
+                  preload="none"
+                  playsinline
+                  loop
+                >
+                  <source src={ad.src} type="video/mp4" />
+                </video>
+                <button
+                  class="v-play"
+                  type="button"
+                  aria-label={`Play ${ad.title}`}
+                >
+                  <span class="v-play-ring" set:html={PLAY_ICON} />
+                </button>
+                <span class="v-dur">{ad.duration}</span>
+                <span class="v-format-tag">{ad.format}</span>
+              </div>
+              <figcaption class="v-cap">
+                <span class="v-title">{ad.title}</span>
+                <span class="v-plat">{ad.platform}</span>
+              </figcaption>
+            </figure>
+          ))
+        }
+      </div>
+    </section>
+
+    <section id="why" class="wrap">
+      <p class="kicker">Built to stop the scroll</p>
+      <h2>Made for motion,<br />made for the feed.</h2>
+      <p class="sec-lede">
+        Fractal flames were born to move — and they come straight out of the app
+        ready to ship, in every shape the platforms ask for.
+      </p>
+
+      <div class="perk-grid">
+        {
+          perks.map((p, i) => (
+            <article class="perk">
+              <div class="perk-top">
+                <span class="perk-icon" set:html={p.icon} />
+                <span class="perk-idx">{String(i + 1).padStart(2, '0')}</span>
+              </div>
+              <h3>{p.title}</h3>
+              <p>{p.body}</p>
+            </article>
+          ))
+        }
+      </div>
+    </section>
+
+    <section id="formats" class="wrap">
+      <p class="kicker">Delivery specs</p>
+      <h2>Exported at<br />poster grade.</h2>
+      <p class="sec-lede">
+        Every cut comes straight out of Chaos Master's WebCodecs MP4 export — no
+        render farm, no re-encode. Hand these three to a media buyer and you're
+        covered end to end.
+      </p>
+
+      <div class="fmt-grid">
+        {
+          formats.map((f) => (
+            <article class="fmt">
+              <div class:list={['fmt-shape', `fmt-${f.label.toLowerCase()}`]}>
+                <span>{f.ratio}</span>
+              </div>
+              <div class="fmt-meta">
+                <span class="fmt-name">{f.label}</span>
+                <span class="fmt-dim">{f.dim}</span>
+                <span class="fmt-use">{f.use}</span>
+              </div>
+            </article>
+          ))
+        }
+      </div>
+    </section>
+
+    <section class="wrap final">
+      <h2>Your turn to direct the chaos.</h2>
+      <p class="final-sub">
+        Free, open source, and running entirely in your browser. Animate a
+        flame, export the MP4, ship the ad.
+      </p>
+      <div class="final-cta">
+        <a class="btn btn-glow" href={appUrl}
+          >Launch Chaos Master<span class="btn-ico" set:html={LAUNCH_ICON} /></a
+        >
+        <a class="btn btn-ghost" href={repoUrl}>View on GitHub</a>
+      </div>
+    </section>
+  </main>
+</Base>
+
+<script>
+  // Hero parallax — nudge the flame layer slower than the page as it scrolls
+  // away, with a subtle zoom + fade for depth. Pure transform (never resizes the
+  // canvas). rAF-throttled; disabled under prefers-reduced-motion. Mirrors the
+  // homepage hero.
+  {
+    const hero = document.querySelector<HTMLElement>('.hero')
+    const layer = document.querySelector<HTMLElement>('.hero-bg')
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (hero && layer && !reduce) {
+      let raf = 0
+      const update = () => {
+        raf = 0
+        const h = hero.offsetHeight || 1
+        const y = Math.min(Math.max(window.scrollY, 0), h)
+        const p = y / h
+        layer.style.transform = `translate3d(0, ${(y * 0.3).toFixed(1)}px, 0) scale(${(1 + p * 0.08).toFixed(3)})`
+        layer.style.opacity = (1 - p * 0.5).toFixed(3)
+      }
+      window.addEventListener(
+        'scroll',
+        () => {
+          if (!raf) raf = requestAnimationFrame(update)
+        },
+        { passive: true },
+      )
+      update()
+    }
+  }
+
+  // Click-to-play for every video card (featured + grid). The poster shows first
+  // (preload="none" keeps the page light); the overlay button is the accessible
+  // control. On first play we hand over to native controls for scrubbing, and
+  // keep the overlay in sync with play/pause so a paused clip can be resumed.
+  const frames = document.querySelectorAll<HTMLElement>('.v-frame')
+  for (const frame of frames) {
+    const video = frame.querySelector<HTMLVideoElement>('video')
+    const play = frame.querySelector<HTMLButtonElement>('.v-play')
+    if (!video || !play) continue
+
+    const start = () => {
+      video.controls = true
+      frame.classList.add('is-playing')
+      // A missing source (placeholder slot) rejects — swallow it so the console
+      // stays clean; the poster simply remains visible.
+      void video.play().catch(() => {
+        video.controls = false
+        frame.classList.remove('is-playing')
+      })
+    }
+
+    play.addEventListener('click', start)
+    video.addEventListener('play', () => frame.classList.add('is-playing'))
+    video.addEventListener('pause', () => frame.classList.remove('is-playing'))
+  }
+</script>
+
+<style>
+  /* ---- immersive hero ---- */
+  .hero {
+    position: relative;
+    min-height: 92svh;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+  }
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    will-change: transform, opacity;
+  }
+  .hero-poster {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  /* Legibility + blend: a soft radial darkens just behind the centred copy while
+     the flame stays vivid toward the edges, and a bottom fade lands the hero on
+     solid black so the next section flows seamlessly. */
+  .hero::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(
+        72% 58% at 50% 44%,
+        rgba(0, 0, 0, 0.64),
+        rgba(0, 0, 0, 0.2) 56%,
+        rgba(0, 0, 0, 0) 82%
+      ),
+      linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0.34) 0%,
+        rgba(0, 0, 0, 0.1) 28%,
+        rgba(0, 0, 0, 0.36) 74%,
+        #000 100%
+      );
+  }
+  .hero-content {
+    position: relative;
+    z-index: 3;
+    text-align: center;
+    padding: 128px 28px 96px;
+    pointer-events: none;
+  }
+  .hero-content a {
+    pointer-events: auto;
+  }
+  .hero-kicker {
+    display: inline-block;
+    margin: 0 0 20px;
+    font-size: 0.72rem;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--neutral-200);
+    padding: 7px 15px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: var(--round);
+    background: rgba(10, 10, 12, 0.42);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .hero h1 {
+    font-size: clamp(2.6rem, 7vw, 5.4rem);
+    font-weight: 800;
+    line-height: 1.02;
+    letter-spacing: -0.02em;
+    margin: 0;
+    text-shadow: 0 4px 60px rgba(0, 0, 0, 0.6);
+  }
+  .hero h1 em {
+    font-style: normal;
+    background: linear-gradient(
+      110deg,
+      #7be0e8,
+      #a3e635 40%,
+      #ffae34 65%,
+      #ff5e7e
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .hero-lede {
+    max-width: 54ch;
+    margin: 24px auto 0;
+    color: var(--neutral-300);
+    font-size: clamp(1.02rem, 1.6vw, 1.2rem);
+    line-height: 1.6;
+  }
+  .hero-cta {
+    display: flex;
+    gap: 14px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 34px;
+  }
+  .hero-badges {
+    list-style: none;
+    margin: 30px 0 0;
+    padding: 0;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .hero-badges li {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 15px;
+    font-size: 0.7rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--neutral-200);
+    background: rgba(10, 10, 12, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--round);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .hero-badges li::before {
+    content: '';
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--blue-400);
+    box-shadow: 0 0 8px var(--blue-400);
+  }
+
+  /* Primary CTA with a flame-teal glow — echoes the reference's mint button
+     while staying inside the app's palette (teal is the flame gradient's start).
+     A cousin of the shared .btn-primary, kept page-local so the rest of the
+     site's blue chrome is untouched. */
+  .btn-glow {
+    color: #eafffb;
+    background: rgba(123, 224, 232, 0.16);
+    border-color: rgba(123, 224, 232, 0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow:
+      0 0 0 1px rgba(123, 224, 232, 0.12),
+      0 8px 30px -6px rgba(123, 224, 232, 0.4);
+  }
+  .btn-glow:hover {
+    background: rgba(123, 224, 232, 0.26);
+    border-color: rgba(163, 230, 53, 0.75);
+    transform: translateY(-2px);
+    box-shadow:
+      0 0 0 1px rgba(163, 230, 53, 0.25),
+      0 12px 40px -6px rgba(123, 224, 232, 0.55);
+  }
+
+  .scroll-hint {
+    position: absolute;
+    bottom: 26px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 4;
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--neutral-400);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .scroll-hint:hover {
+    color: var(--neutral-100);
+  }
+  .scroll-hint .line {
+    width: 1px;
+    height: 34px;
+    background: linear-gradient(var(--neutral-400), transparent);
+    animation: drop 1.8s ease-in-out infinite;
+  }
+  @keyframes drop {
+    0%,
+    100% {
+      opacity: 0.3;
+      transform: scaleY(0.6);
+    }
+    50% {
+      opacity: 1;
+      transform: scaleY(1);
+    }
+  }
+
+  /* ---- shared video frame ---- */
+  .v-frame {
+    position: relative;
+    width: 100%;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: radial-gradient(
+      120% 120% at 50% 35%,
+      rgba(22, 26, 52, 0.5),
+      #000 72%
+    );
+    box-shadow: 0 30px 80px -40px rgba(0, 0, 0, 0.9);
+  }
+  .v-landscape {
+    aspect-ratio: 16 / 9;
+  }
+  .v-vertical {
+    aspect-ratio: 9 / 16;
+  }
+  .v-square {
+    aspect-ratio: 1 / 1;
+  }
+  .v-media {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    background: #000;
+  }
+  .v-play {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.05),
+      rgba(0, 0, 0, 0.28)
+    );
+    color: #fff;
+    cursor: pointer;
+    transition:
+      opacity 0.25s ease,
+      background 0.25s ease;
+  }
+  .v-play:hover {
+    background: linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.02),
+      rgba(0, 0, 0, 0.16)
+    );
+  }
+  .v-play-ring {
+    display: grid;
+    place-items: center;
+    width: 62px;
+    height: 62px;
+    border-radius: 50%;
+    background: rgba(37, 99, 235, 0.82);
+    border: 1px solid rgba(147, 197, 253, 0.6);
+    box-shadow: 0 10px 30px -8px rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    transition:
+      transform 0.2s ease,
+      background 0.2s ease;
+  }
+  .v-play:hover .v-play-ring {
+    transform: scale(1.06);
+    background: var(--blue-500);
+  }
+  .v-play-ring :global(svg) {
+    width: 24px;
+    height: 24px;
+    margin-left: 3px; /* optically centre the triangle */
+  }
+  .is-playing .v-play {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .v-dur,
+  .v-format-tag {
+    position: absolute;
+    z-index: 3;
+    font-family: var(--mono);
+    font-size: 0.64rem;
+    letter-spacing: 0.06em;
+    padding: 4px 8px;
+    border-radius: 7px;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: var(--neutral-200);
+    backdrop-filter: blur(4px);
+    transition: opacity 0.25s ease;
+  }
+  .v-dur {
+    right: 10px;
+    bottom: 10px;
+  }
+  .v-format-tag {
+    left: 10px;
+    top: 10px;
+    text-transform: uppercase;
+    color: var(--blue-300);
+    border-color: rgba(96, 165, 250, 0.35);
+  }
+  .is-playing .v-dur,
+  .is-playing .v-format-tag {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* ---- featured reel ---- */
+  .reel-sec {
+    padding-top: clamp(64px, 9vw, 120px);
+  }
+  .feature {
+    margin: 0;
+    display: grid;
+    gap: 22px;
+    max-width: 940px;
+    margin-inline: auto;
+  }
+  .feature .v-frame {
+    box-shadow:
+      0 40px 120px -40px rgba(37, 99, 235, 0.35),
+      0 30px 80px -40px rgba(0, 0, 0, 0.9);
+  }
+  .feature .v-play-ring {
+    width: 78px;
+    height: 78px;
+  }
+  .feature .v-play-ring :global(svg) {
+    width: 30px;
+    height: 30px;
+  }
+  .feature-cap {
+    display: grid;
+    gap: 6px;
+    text-align: center;
+  }
+  .feature-kicker {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--blue-400);
+  }
+  .feature-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+  .feature-blurb {
+    color: var(--neutral-400);
+    font-size: 1rem;
+    line-height: 1.6;
+    max-width: 56ch;
+    margin-inline: auto;
+  }
+
+  /* ---- ad grid ---- */
+  .v-grid {
+    margin-top: 52px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 22px;
+    align-items: start;
+  }
+  .v-card {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  /* Landscape cards earn two columns so their 16:9 stays generous. */
+  .v-card[data-format='landscape'] {
+    grid-column: span 2;
+  }
+  .v-card .v-frame {
+    transition:
+      transform 0.25s ease,
+      border-color 0.25s ease,
+      box-shadow 0.25s ease;
+  }
+  .v-card:hover .v-frame {
+    transform: translateY(-4px);
+    border-color: rgba(96, 165, 250, 0.35);
+    box-shadow: 0 34px 90px -40px rgba(0, 0, 0, 0.95);
+  }
+  .v-cap {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding-inline: 2px;
+  }
+  .v-title {
+    font-weight: 600;
+    font-size: 1rem;
+  }
+  .v-plat {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.03em;
+    color: var(--neutral-500);
+    text-align: right;
+  }
+
+  /* ---- perks / why cards ---- */
+  .perk-grid {
+    margin-top: 52px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+  }
+  .perk {
+    padding: 26px;
+    border-radius: 16px;
+    background: var(--neutral-950);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    transition:
+      border-color 0.2s ease,
+      transform 0.2s ease;
+  }
+  .perk:hover {
+    border-color: rgba(96, 165, 250, 0.35);
+    transform: translateY(-3px);
+  }
+  .perk-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .perk-icon {
+    display: inline-flex;
+    width: 42px;
+    height: 42px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 11px;
+    color: var(--blue-400);
+    background: rgba(96, 165, 250, 0.1);
+    border: 1px solid rgba(96, 165, 250, 0.22);
+  }
+  .perk-icon :global(svg) {
+    width: 22px;
+    height: 22px;
+  }
+  .perk-idx {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    color: var(--neutral-600);
+    letter-spacing: 0.1em;
+  }
+  .perk h3 {
+    font-size: 1.14rem;
+    margin: 18px 0 10px;
+    font-weight: 700;
+  }
+  .perk p {
+    color: var(--neutral-400);
+    line-height: 1.6;
+    margin: 0;
+    font-size: 0.94rem;
+  }
+
+  /* ---- formats / specs ---- */
+  .fmt-grid {
+    margin-top: 52px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+  }
+  .fmt {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 22px;
+    border-radius: 16px;
+    background: var(--neutral-950);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    transition:
+      border-color 0.2s ease,
+      transform 0.2s ease;
+  }
+  .fmt:hover {
+    border-color: rgba(96, 165, 250, 0.35);
+    transform: translateY(-3px);
+  }
+  /* Proportion swatch — the actual aspect ratio, drawn to scale. */
+  .fmt-shape {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    color: var(--blue-300);
+    font-family: var(--mono);
+    font-size: 0.6rem;
+  }
+  .fmt-shape span {
+    display: grid;
+    place-items: center;
+    border-radius: 6px;
+    border: 1.5px solid rgba(96, 165, 250, 0.5);
+    background: rgba(96, 165, 250, 0.08);
+  }
+  .fmt-landscape span {
+    width: 60px;
+    height: 34px;
+  }
+  .fmt-vertical span {
+    width: 34px;
+    height: 60px;
+    font-size: 0.52rem;
+  }
+  .fmt-square span {
+    width: 48px;
+    height: 48px;
+  }
+  .fmt-meta {
+    display: grid;
+    gap: 3px;
+  }
+  .fmt-name {
+    font-weight: 700;
+    font-size: 1.05rem;
+  }
+  .fmt-dim {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    color: var(--neutral-300);
+  }
+  .fmt-use {
+    font-size: 0.82rem;
+    color: var(--neutral-500);
+  }
+
+  /* ---- final CTA ---- */
+  .final {
+    text-align: center;
+  }
+  .final h2 {
+    font-size: clamp(2rem, 4.5vw, 3.2rem);
+  }
+  .final-sub {
+    color: var(--neutral-400);
+    font-size: 1.1rem;
+    line-height: 1.6;
+    max-width: 52ch;
+    margin: 16px auto 32px;
+  }
+  .final-cta {
+    display: flex;
+    gap: 14px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  /* ---- responsive ---- */
+  @media (max-width: 980px) {
+    .perk-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  @media (max-width: 620px) {
+    .v-grid {
+      grid-template-columns: 1fr;
+    }
+    .v-card[data-format='landscape'] {
+      grid-column: span 1;
+    }
+    .perk-grid,
+    .fmt-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero-poster {
+      transition: none;
+    }
+    .scroll-hint .line {
+      animation: none;
+    }
+    .v-card:hover .v-frame,
+    .perk:hover,
+    .fmt:hover,
+    .btn-glow:hover,
+    .v-play:hover .v-play-ring {
+      transform: none;
+    }
+  }
+</style>
