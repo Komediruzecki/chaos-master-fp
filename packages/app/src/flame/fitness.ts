@@ -27,15 +27,22 @@ export const FITNESS_WEIGHTS = {
 
 // ── OkLab helpers ────────────────────────────────────────────────────────────
 
-/** Linear sRGB → OkLab (simplified — accurate enough for relative distances) */
+/** sRGB → linear → OkLab (simplified — accurate enough for relative distances) */
 function srgbToOklab(
   r: number,
   g: number,
   b: number,
 ): [number, number, number] {
-  const l = 0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b
-  const m = 0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b
-  const s = 0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b
+  // sRGB gamma expansion: gamma-encoded → linear
+  const linearize = (c: number) =>
+    c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+  const rl = linearize(r)
+  const gl = linearize(g)
+  const bl = linearize(b)
+
+  const l = 0.4122214708 * rl + 0.5363325363 * gl + 0.0514459929 * bl
+  const m = 0.2119034982 * rl + 0.6806995451 * gl + 0.1073969566 * bl
+  const s = 0.0883024619 * rl + 0.2817188376 * gl + 0.6299787005 * bl
 
   const l_ = Math.cbrt(l)
   const m_ = Math.cbrt(m)

@@ -58,7 +58,9 @@ export function randomizeVariationParams(
   const sigmaScale = 0.05 + strength * 0.95
   for (const key of Object.keys(defaults)) {
     const d = defaults[key]!
-    result[key] = randomPerturbation(d, Math.abs(d) * 0.5 * sigmaScale)
+    // When param default is 0, use 0.5 * sigmaScale as sigma so zero-default
+    // params (e.g. augerVar.sym) still get perturbed.
+    result[key] = randomPerturbation(d, (Math.abs(d) || 1) * 0.5 * sigmaScale)
   }
   return result
 }

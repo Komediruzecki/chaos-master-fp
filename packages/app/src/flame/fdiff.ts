@@ -261,7 +261,10 @@ export function diffFlames(
     Object.keys(b.transforms).length,
   )
   let transformSim = 0
-  if (totalTransforms > 0 && tDiff.matched.length > 0) {
+  if (totalTransforms === 0) {
+    // Both flames have zero transforms — they are identically empty
+    transformSim = 1
+  } else if (tDiff.matched.length > 0) {
     const avgMatchSim =
       tDiff.matched.reduce((s, m) => s + m.similarity, 0) / tDiff.matched.length
     // Penalise unmatched: each unmatched transform counts as zero similarity

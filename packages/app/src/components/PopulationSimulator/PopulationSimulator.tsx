@@ -337,20 +337,22 @@ export function PopulationSimulator(props: {
       }
     }
 
-    // Apply light mutation for diversity
-    const mutated = children.map((c) =>
-      mutateFlame(
-        c,
-        {
-          strength: mutationStrength() * 0.5,
-          minTransforms: 1,
-          maxTransforms: 6,
-          minVariations: 1,
-          maxVariations: 3,
-          allowedVariations: [],
-        },
-        mutationOptions,
-      ),
+    // Apply light mutation for diversity (skip elite clones)
+    const mutated = children.map((c, i) =>
+      i < elite.length
+        ? c
+        : mutateFlame(
+            c,
+            {
+              strength: mutationStrength() * 0.5,
+              minTransforms: 1,
+              maxTransforms: 6,
+              minVariations: 1,
+              maxVariations: 3,
+              allowedVariations: [],
+            },
+            mutationOptions,
+          ),
     )
 
     return mutated
