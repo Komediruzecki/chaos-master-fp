@@ -4,6 +4,7 @@ import { ComputeGate } from '@/contexts/ComputeGateContext'
 import { COMPUTE_GATE_CAPACITY } from '@/defaults'
 import { FLAME_GALLERY } from '@/flame/flameGalleryData'
 import { parseFlameXml } from '@/flame/flameXml'
+import { renderSettingsDefault } from '@/flame/schema/flameSchema'
 import { deepClone } from '@/utils/clone'
 import { persistentSignal } from '@/utils/persistentSignal'
 import ui from './FlameGallery.module.css'
@@ -294,12 +295,7 @@ function Cell(props: {
         return {
           version: '1.0' as const,
           metadata: { author: 'unknown', name: e.name, description: '' },
-          renderSettings: {
-            exposure: 1,
-            skipIters: 20,
-            drawMode: 'light' as const,
-            camera: { zoom: 1, position: [0, 0] },
-          },
+          renderSettings: { ...renderSettingsDefault, exposure: 1 },
           transforms: {},
         }
       }
