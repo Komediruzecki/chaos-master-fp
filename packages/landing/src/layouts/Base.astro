@@ -15,7 +15,9 @@ const {
 } = Astro.props
 
 const canonical = new URL(Astro.url.pathname, Astro.site).href
-const ogImage = new URL('/hero-flame.jpg', Astro.site).href
+// Landscape 1200x630 social card (1.91:1) — renders correctly in link previews,
+// unlike the square hero-flame.jpg it replaced.
+const ogImage = new URL('/og-cover.jpg', Astro.site).href
 
 // Dev log piping: when PUBLIC_REMOTE_LOG=true (set in .env.local), mirror the
 // device's console + uncaught errors to the dev-server terminal via /__client-log
@@ -84,9 +86,16 @@ const remoteLog =
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Chaos Master" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="A multicolored IFS fractal flame rendered in real time by Chaos Master"
+    />
     <meta property="og:url" content={canonical} />
 
     <!-- Twitter -->

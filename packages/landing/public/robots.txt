@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://about.chaos-master.com/sitemap.xml
