@@ -37,10 +37,10 @@ const MAX_DISCORD_UPLOAD = 12 * 1024 * 1024 // ~12 MB request (~9 MB image)
 const DISCORD_DAILY_CAP = 15
 const TURNSTILE_VERIFY_URL =
   'https://challenges.cloudflare.com/turnstile/v0/siteverify'
-const SITE_NAME = 'Chaos Master'
-const DEFAULT_TITLE = 'Fractal Flame — Chaos Master'
+const SITE_NAME = 'Lumen Apeiron'
+const DEFAULT_TITLE = 'Fractal Flame — Lumen Apeiron'
 const DEFAULT_DESCRIPTION =
-  'Explore and create fractal flames with Chaos Master.'
+  'Explore and create fractal flames with Lumen Apeiron.'
 // Fallback social-card image, served from static assets (public/og-cover.jpg).
 // Used for the site's default card and for any shared flame that has no uploaded
 // preview image, so every link still renders a rich summary_large_image card.
