@@ -1,10 +1,10 @@
-import { createMemo, createSignal, For, Show } from 'solid-js'
+import { createMemo, createSignal, For, onCleanup, Show } from 'solid-js'
 import { DelayedShow } from '@/components/DelayedShow/DelayedShow'
 import { ModalTitleBar } from '@/components/Modal/ModalTitleBar'
 import { VariationPreview } from '@/components/VariationSelector/VariationSelector'
 import { ComputeGate } from '@/contexts/ComputeGateContext'
 import { COMPUTE_GATE_CAPACITY } from '@/defaults'
-import { recordBreed } from '@/flame/ancestry'
+import { ensureNode } from '@/flame/ancestry'
 import { breedFlames } from '@/flame/breedFlame'
 import { scoreFlame } from '@/flame/fitness'
 import { generateRandomFlame, mutateFlame } from '@/flame/randomize'
@@ -148,8 +148,9 @@ function selectRoulette(
       }
     }
     if (parents.length <= i) {
-      // fallback in case of floating point issues
-      parents.push(deepClone(shifted[shifted.length - 1]!.flame))
+      // Fallback in case of floating point issues — `scored` is sorted
+      // descending, so index 0 is the best individual, not the worst.
+      parents.push(deepClone(shifted[0]!.flame))
     }
   }
   return parents
@@ -213,6 +214,16 @@ export function PopulationSimulator(props: {
   let stopRequested = false
   let pauseRequested = false
   let timerInterval: ReturnType<typeof setInterval> | null = null
+  // Population already bred for the next generation when a pause lands between
+  // generations — resume() picks it up so the bred children aren't discarded.
+  let pendingPopulation: FlameDescriptor[] | null = null
+
+  // Unmount safety: closing the modal mid-run (e.g. "Use This Flame" while
+  // paused) must halt the loop and the elapsed-time interval.
+  onCleanup(() => {
+    stopRequested = true
+    stopTimer()
+  })
 
   // ── Mutation options (light, just for population diversity) ────────────
 
@@ -327,10 +338,19 @@ export function PopulationSimulator(props: {
       mutationStrength: mutationStrength(),
     }
 
+    // Note: simulator breeds are deliberately NOT recorded into the ancestry
+    // store — a run produces thousands of throwaway flames that would flood
+    // IndexedDB and drown the Ancestry Tree. Applied results are registered
+    // via ensureNode() in applyFlame() instead.
     while (children.length < popSize) {
       const [a, b] = pickTwoRandom(parentPool)
       const offspring = breedFlames(a, b, breedCfg)
-      recordBreed(a, b, offspring)
+      if (offspring.length === 0) {
+        // Degenerate parents — carry one through unchanged so the loop
+        // always makes progress.
+        children.push(deepClone(a))
+        continue
+      }
       for (const child of offspring) {
         if (children.length >= popSize) break
         children.push(child)
@@ -358,24 +378,24 @@ export function PopulationSimulator(props: {
     return mutated
   }
 
-  async function run() {
-    if (simState() === 'running') return
-    stopRequested = false
-    pauseRequested = false
-    setSimState('running')
-    setGenResults([])
-    setBestEver(null)
-    setElapsed(0)
-    startTimer()
-
-    let population = initPopulation()
+  /** Shared generation loop for run() and resume(). */
+  async function runLoop(
+    startGen: number,
+    initialPopulation: FlameDescriptor[],
+    results: GenerationResult[],
+  ) {
+    let population = initialPopulation
     const totalGens = generations()
-    const results: GenerationResult[] = []
 
-    for (let gen = 0; gen < totalGens; gen++) {
+    for (let gen = startGen; gen < totalGens; gen++) {
       // Check for stop/pause
       if (stopRequested) break
       if (pauseRequested) {
+        // `population` is the already-bred next generation — stash it so
+        // resume() continues with it instead of re-breeding from the last
+        // scored generation (which would silently discard these children).
+        pendingPopulation = population
+        stopTimer()
         setSimState('paused')
         return // caller re-enters via resume()
       }
@@ -398,6 +418,20 @@ export function PopulationSimulator(props: {
     setSimState('complete')
   }
 
+  async function run() {
+    if (simState() === 'running') return
+    stopRequested = false
+    pauseRequested = false
+    pendingPopulation = null
+    setSimState('running')
+    setGenResults([])
+    setBestEver(null)
+    setElapsed(0)
+    startTimer()
+
+    await runLoop(0, initPopulation(), [])
+  }
+
   function start() {
     setVisibleGenCount(INITIAL_VISIBLE)
     setVisibleFullPopCount(INITIAL_VISIBLE)
@@ -412,35 +446,14 @@ export function PopulationSimulator(props: {
     if (simState() !== 'paused') return
     pauseRequested = false
     setSimState('running')
-    // Continue from where we left off
-    void continueRun()
-  }
-
-  async function continueRun() {
+    startTimer()
+    // Continue from where we left off, preferring the generation that was
+    // already bred when the pause landed.
     const results = [...genResults()]
-    let population = livePopulation().map((s) => s.flame)
-    const totalGens = generations()
-
-    for (let gen = results.length; gen < totalGens; gen++) {
-      if (stopRequested) break
-      if (pauseRequested) {
-        setSimState('paused')
-        return
-      }
-
-      const result = runGeneration(population, gen)
-      results.push(result)
-      setGenResults([...results])
-
-      await new Promise((r) => setTimeout(r, 0))
-
-      if (gen < totalGens - 1) {
-        population = breedNextGeneration(result.population)
-      }
-    }
-
-    stopTimer()
-    setSimState('complete')
+    const population =
+      pendingPopulation ?? livePopulation().map((s) => deepClone(s.flame))
+    pendingPopulation = null
+    void runLoop(results.length, population, results)
   }
 
   function stop() {
@@ -455,6 +468,10 @@ export function PopulationSimulator(props: {
   }
 
   function applyFlame(flame: FlameDescriptor) {
+    // Register the kept flame as an ancestry root (simulator breeds aren't
+    // recorded — see breedNextGeneration) so it participates in future
+    // lineage once the user breeds with it.
+    ensureNode(flame)
     props.onApply(deepClone(flame))
     props.respond()
   }

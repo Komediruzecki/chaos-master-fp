@@ -244,8 +244,13 @@
 
 .smartInfoIcon {
   flex-shrink: 0;
-  font-size: 0.8rem;
-  line-height: 1.2;
+  display: inline-flex;
+  align-items: center;
+}
+
+.smartInfoIcon svg {
+  width: 0.95rem;
+  height: 0.95rem;
 }
 
 .smartInfoLabel {

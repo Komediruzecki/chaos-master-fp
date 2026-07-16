@@ -746,6 +746,10 @@ export function createIFSPipeline(
                 }
         }
         flameUniformsBuffer.write(safe)
+      } else if (_uniformKeys.length === 0) {
+        // Pipeline was built with zero transforms — the struct is the
+        // `{ _dummy }` placeholder, so write its field explicitly.
+        flameUniformsBuffer.write({ _dummy: 0 })
       } else {
         const uniforms = extractFlameUniforms(flameDescriptor)
         const safe: Record<string, unknown> = {}

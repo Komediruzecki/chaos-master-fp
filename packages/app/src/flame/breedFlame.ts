@@ -150,13 +150,7 @@ function uniformCrossover(
   let aCount = 0
   let bCount = 0
 
-  for (const idx of indices) {
-    if (selected.length >= count) break
-    const label = sourceLabel[idx]!
-    // Favor balance: if one parent is underrepresented, prefer it
-    if (aCount > bCount + 1 && label === 'a') continue
-    if (bCount > aCount + 1 && label === 'b') continue
-
+  const take = (idx: number) => {
     const cloned = deepClone(pool[idx]!)
     // Re-ID all variations for uniqueness
     const newVars: Record<string, LooseVariation> = {}
@@ -165,9 +159,33 @@ function uniformCrossover(
     }
     cloned.variations = newVars
 
-    if (label === 'a') aCount++
+    if (sourceLabel[idx] === 'a') aCount++
     else bCount++
     selected.push(cloned)
+  }
+
+  const skipped: number[] = []
+  for (const idx of indices) {
+    if (selected.length >= count) break
+    const label = sourceLabel[idx]!
+    // Favor balance: if one parent is underrepresented, prefer it
+    if (aCount > bCount + 1 && label === 'a') {
+      skipped.push(idx)
+      continue
+    }
+    if (bCount > aCount + 1 && label === 'b') {
+      skipped.push(idx)
+      continue
+    }
+    take(idx)
+  }
+
+  // With skewed parents (e.g. 10 vs 1 transforms) the balance rule can block
+  // every remaining candidate and leave the child short of `count` — fill the
+  // open slots from the skipped candidates.
+  for (const idx of skipped) {
+    if (selected.length >= count) break
+    take(idx)
   }
 
   return selected

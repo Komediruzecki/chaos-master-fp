@@ -4,6 +4,7 @@ import { ModalTitleBar } from '@/components/Modal/ModalTitleBar'
 import { recordBreed } from '@/flame/ancestry'
 import { analyzeSmartBreedMatch, breedFlames } from '@/flame/breedFlame'
 import { mutateFlame } from '@/flame/randomize'
+import { Sparkle } from '@/icons'
 import { Root } from '@/lib/Root'
 import ui from './BreedGallery.module.css'
 import type { CrossoverMode, SmartBreedMatchInfo } from '@/flame/breedFlame'
@@ -258,7 +259,9 @@ export function BreedGallery(props: {
         <Show when={smartMatchInfo()}>
           {(info) => (
             <div class={ui.smartInfo}>
-              <span class={ui.smartInfoIcon}>🧬</span>
+              <span class={ui.smartInfoIcon}>
+                <Sparkle />
+              </span>
               <span class={ui.smartInfoLabel}>
                 {info().matchedTypes.length > 0 ? (
                   <>

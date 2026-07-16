@@ -88,11 +88,7 @@ export function EvolutionChamber(props: {
       generation: 0,
       parents: [deepClone(props.parentA), deepClone(props.parentB)],
       parentNames: [props.parentInfo.nameA, props.parentInfo.nameB],
-      children: breedFlames(props.parentA, props.parentB, {
-        count: count(),
-        crossoverMode: crossoverMode(),
-        mutationStrength: mutationStrength(),
-      }),
+      children: doBreed(props.parentA, props.parentB),
       crossoverMode: crossoverMode(),
       mutationStrength: mutationStrength(),
     }
@@ -241,14 +237,12 @@ export function EvolutionChamber(props: {
 
   // ── Change count/mode/mutation → re-breed current gen ──────────────────
 
+  // Signals update synchronously, so doBreed (which reads them) sees the new
+  // value right after the setter — each change re-breeds and records once.
   function changeCount(n: number) {
     setCount(n)
     const gen = currentGen()
-    const children = breedFlames(gen.parents[0], gen.parents[1], {
-      count: n,
-      crossoverMode: crossoverMode(),
-      mutationStrength: mutationStrength(),
-    })
+    const children = doBreed(gen.parents[0], gen.parents[1])
     setGenerations((prev) => {
       const next = [...prev]
       next[currentGenIdx()] = { ...gen, children }
@@ -261,11 +255,7 @@ export function EvolutionChamber(props: {
   function changeMode(mode: CrossoverMode) {
     setCrossoverMode(mode)
     const gen = currentGen()
-    const children = breedFlames(gen.parents[0], gen.parents[1], {
-      count: count(),
-      crossoverMode: mode,
-      mutationStrength: mutationStrength(),
-    })
+    const children = doBreed(gen.parents[0], gen.parents[1])
     setGenerations((prev) => {
       const next = [...prev]
       next[currentGenIdx()] = { ...gen, children, crossoverMode: mode }
@@ -278,11 +268,7 @@ export function EvolutionChamber(props: {
   function changeMutation(s: number) {
     setMutationStrength(s)
     const gen = currentGen()
-    const children = breedFlames(gen.parents[0], gen.parents[1], {
-      count: count(),
-      crossoverMode: crossoverMode(),
-      mutationStrength: s,
-    })
+    const children = doBreed(gen.parents[0], gen.parents[1])
     setGenerations((prev) => {
       const next = [...prev]
       next[currentGenIdx()] = { ...gen, children, mutationStrength: s }

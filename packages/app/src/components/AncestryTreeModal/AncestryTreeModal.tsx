@@ -1,10 +1,11 @@
-import { createEffect, createMemo, createSignal, For, Show } from 'solid-js'
+import { createEffect, createMemo, createSignal, For, on, Show } from 'solid-js'
 import { ModalTitleBar } from '@/components/Modal/ModalTitleBar'
 import { VariationPreview } from '@/components/VariationSelector/VariationSelector'
 import { ComputeGate } from '@/contexts/ComputeGateContext'
 import { COMPUTE_GATE_CAPACITY } from '@/defaults'
 import { contentHash, ensureNode, getLineageTree } from '@/flame/ancestry'
 import { diffFlames } from '@/flame/fdiff'
+import { Lineage } from '@/icons'
 import ui from './AncestryTreeModal.module.css'
 import type { AncestryNode, LineageLayer } from '@/flame/ancestry'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
@@ -44,15 +45,22 @@ export function AncestryTreeModal(props: {
 
   // Auto-register the current workspace flame so it always has at least a
   // root node in the ancestry store, even if it was loaded from gallery or
-  // imported rather than bred.
-  createEffect(() => {
-    const hash = contentHash(props.flame)
-    ensureNode(props.flame)
-    if (hash !== focalHash()) {
-      setFocalHash(hash)
-      setVersion((v) => v + 1)
-    }
-  })
+  // imported rather than bred. `on` keeps the effect keyed to the workspace
+  // flame only — a plain createEffect would also track focalHash and snap the
+  // tree back to the workspace flame right after every node click.
+  createEffect(
+    on(
+      () => props.flame,
+      (flame) => {
+        const hash = contentHash(flame)
+        ensureNode(flame)
+        if (hash !== focalHash()) {
+          setFocalHash(hash)
+          setVersion((v) => v + 1)
+        }
+      },
+    ),
+  )
 
   const layers = createMemo<LineageLayer[]>(() => {
     // Version signal triggers recompute when focal changes
@@ -127,7 +135,9 @@ export function AncestryTreeModal(props: {
           when={layers().length > 0}
           fallback={
             <div class={ui.emptyState}>
-              <span class={ui.emptyIcon}>🌳</span>
+              <span class={ui.emptyIcon}>
+                <Lineage />
+              </span>
               <span class={ui.emptyMessage}>
                 No ancestry recorded for this flame yet.
               </span>
@@ -197,7 +207,7 @@ export function AncestryTreeModal(props: {
                   </Show>
                   <div class={ui.layer}>
                     <span class={ui.layerLabel}>
-                      {layer.isFocal ? '⚡ Current' : `Gen ${layer.generation}`}
+                      {layer.isFocal ? 'Current' : `Gen ${layer.generation}`}
                     </span>
                     <div class={ui.layerNodes}>
                       <For each={layer.nodes}>

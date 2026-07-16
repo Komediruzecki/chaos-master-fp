@@ -420,20 +420,26 @@ export function createIFSPipeline3D(
         )
     },
     update: (flameDescriptor: FlameDescriptor) => {
-      const uniforms = extractFlameUniforms3D(flameDescriptor)
-      // Defensively merge with template so the compiled writer never
-      // encounters a missing field when transform counts differ.
-      const safe: Record<string, unknown> = {}
-      for (const key of _uniformKeys) {
-        safe[key] =
-          key in uniforms
-            ? uniforms[key]
-            : {
-                ...(_templateUniforms[key] as Record<string, unknown>),
-                probability: 0,
-              }
+      if (_uniformKeys.length === 0) {
+        // Pipeline was built with zero transforms — the struct is the
+        // `{ _dummy }` placeholder, so write its field explicitly.
+        flameUniformsBuffer.write({ _dummy: 0 })
+      } else {
+        const uniforms = extractFlameUniforms3D(flameDescriptor)
+        // Defensively merge with template so the compiled writer never
+        // encounters a missing field when transform counts differ.
+        const safe: Record<string, unknown> = {}
+        for (const key of _uniformKeys) {
+          safe[key] =
+            key in uniforms
+              ? uniforms[key]
+              : {
+                  ...(_templateUniforms[key] as Record<string, unknown>),
+                  probability: 0,
+                }
+        }
+        flameUniformsBuffer.write(safe)
       }
-      flameUniformsBuffer.write(safe)
       const ft = flameDescriptor.finalTransform as
         | Record<string, number | undefined>
         | undefined

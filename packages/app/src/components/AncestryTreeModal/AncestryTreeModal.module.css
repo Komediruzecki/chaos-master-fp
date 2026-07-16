@@ -161,8 +161,12 @@
 }
 
 .emptyIcon {
-  font-size: 2rem;
   opacity: 0.6;
+}
+
+.emptyIcon svg {
+  width: 2.25rem;
+  height: 2.25rem;
 }
 
 .emptyMessage {

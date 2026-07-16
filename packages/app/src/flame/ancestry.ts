@@ -1,4 +1,5 @@
 import { createRoot, createSignal } from 'solid-js'
+import { deepClone } from '@/utils/clone'
 import * as db from './ancestryDb'
 import type { FlameDescriptor } from './schema/flameSchema'
 
@@ -125,7 +126,10 @@ export function recordBreed(
   const now = Date.now()
   let changed = false
 
-  // Lazy-create parent entries if missing (random / imported flames)
+  // Lazy-create parent entries if missing (random / imported flames).
+  // Snapshot via deepClone: callers may pass the live workspace store, and a
+  // stored reference would keep mutating with every edit (and IndexedDB would
+  // persist whatever it happens to look like at flush time).
   for (const [hash, flame] of [
     [hashA, parentA],
     [hashB, parentB],
@@ -138,7 +142,7 @@ export function recordBreed(
         parentB: null,
         generation: 0,
         createdAt: now,
-        flame,
+        flame: deepClone(flame),
       }
       dirtyNodes.set(hash, nodes[hash])
       changed = true
@@ -183,6 +187,7 @@ export function recordBreed(
 export function ensureNode(flame: FlameDescriptor): void {
   const hash = contentHash(flame)
   if (nodesSignal()[hash]) return
+  // deepClone for the same live-store snapshot reason as recordBreed.
   const node: AncestryNode = {
     hash,
     name: flame.metadata?.name || 'Unnamed',
@@ -190,7 +195,7 @@ export function ensureNode(flame: FlameDescriptor): void {
     parentB: null,
     generation: 0,
     createdAt: Date.now(),
-    flame,
+    flame: deepClone(flame),
   }
   setNodesSignal({ ...nodesSignal(), [hash]: node })
   dirtyNodes.set(hash, node)
