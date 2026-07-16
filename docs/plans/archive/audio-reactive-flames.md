@@ -76,6 +76,7 @@ PCM → AAC/MP4A chunks. Must interleave audio chunks with video frames in final
 ### 3. `packages/app/src/components/AudioReactivePanel/AudioReactivePanel.tsx`
 
 Factory pattern matching `BlendFlameGallery`:
+
 ```ts
 createAudioReactivePanel(config): {
   show: () => void
@@ -87,6 +88,7 @@ createAudioReactivePanel(config): {
 ```
 
 Contains:
+
 - File drop zone (.mp3/.wav/.ogg/.flac)
 - Waveform viz `<canvas>` with beat markers
 - Mapping preset selector: "Pulse", "Groove", "Ambient", "Chaos", "Custom"
@@ -131,12 +133,12 @@ Contains:
 
 ## Parameter Mapping Presets
 
-| Preset | Audio → Flame mapping |
-|--------|----------------------|
-| **Pulse** | Bass → vibrancy (0.3–1.5x), kick beats → palettePhase jolt |
-| **Groove** | Mid → camera.zoom (±15%), bass → vibrancy, centroid → palettePhase |
-| **Ambient** | RMS → exposure (0.8–1.2x), hi-mid → paletteSpeed, centroid → gamma |
-| **Chaos** | Flatness → contrast, all bands → randomize skipIters, beats → highlightPower spike |
+| Preset      | Audio → Flame mapping                                                              |
+| ----------- | ---------------------------------------------------------------------------------- |
+| **Pulse**   | Bass → vibrancy (0.3–1.5x), kick beats → palettePhase jolt                         |
+| **Groove**  | Mid → camera.zoom (±15%), bass → vibrancy, centroid → palettePhase                 |
+| **Ambient** | RMS → exposure (0.8–1.2x), hi-mid → paletteSpeed, centroid → gamma                 |
+| **Chaos**   | Flatness → contrast, all bands → randomize skipIters, beats → highlightPower spike |
 
 ## Real-Time Preview Loop
 

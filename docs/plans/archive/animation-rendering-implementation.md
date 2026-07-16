@@ -27,7 +27,11 @@ export type VideoEncoderConfig = {
 
 export function createVideoEncoder(config: VideoEncoderConfig): {
   encodeFrame: (bitmap: ImageBitmap, frameIndex: number) => void
-  finalize: () => Promise<{ blob: Blob; mimeType: string; usedFallback: boolean }>
+  finalize: () => Promise<{
+    blob: Blob
+    mimeType: string
+    usedFallback: boolean
+  }>
   cancel: () => void
   usedFallback: boolean
 }
@@ -73,6 +77,7 @@ export const [animationExportRunning, setAnimationExportRunning] =
 **Step 2.3**: Gate accumulation resets in `packages/app/src/flame/Flam3.tsx`
 
 Three `resetAccumulation()` calls need guarding with `if (!animationExportRunning())`:
+
 - Camera-reset effect (~line 307): gate only the reset, camera.update() still runs
 - Frame-change effect (~line 301): early return when `animationExportRunning()`
 - Parameter fingerprint effect (~line 293): gate only the reset
@@ -81,23 +86,32 @@ Three `resetAccumulation()` calls need guarding with `if (!animationExportRunnin
 
 ```ts
 export type AnimationExportConfig = {
-  quality: number; resolution: number; fps: number
-  frameStart: number; frameEnd: number; playCount: number
-  codec: 'avc' | 'hevc' | 'vp9'; embedMetadata: boolean
+  quality: number
+  resolution: number
+  fps: number
+  frameStart: number
+  frameEnd: number
+  playCount: number
+  codec: 'avc' | 'hevc' | 'vp9'
+  embedMetadata: boolean
 }
 
 export function createAnimationExport(
   config: AnimationExportConfig,
   canvas: HTMLCanvasElement,
-  baseWidth: number, baseHeight: number,
+  baseWidth: number,
+  baseHeight: number,
   timeline: TimelineState,
   baseFlame: FlameDescriptor,
-  setExportQuality, setAnimationExportProgress, setAnimationExportRunning,
-  onExportImage: { set, get },
+  setExportQuality,
+  setAnimationExportProgress,
+  setAnimationExportRunning,
+  onExportImage: { set; get },
 ): { cancel: () => void; promise: Promise<void> }
 ```
 
 Per-frame loop:
+
 1. Clone flame → `structuredClone(baseFlame)` → `applyTimelineToFlameAtFrame(timeline, clone, frame)`
 2. Set `exportQuality(config.quality)` → Flam3 renders to quality
 3. Wait for `accumulatedPointCount >= qualityPointCountLimit()()` via polling in `onExportImage` callback (same pattern as `handleExport`)
@@ -151,8 +165,13 @@ Add `startAnimationExport: (config: AnimationExportConfig) => void` parameter.
 **Step 5.1**: Create `packages/app/src/utils/flameInMp4.ts`
 
 Mirrors `flameInPng.ts` pattern for MP4 container:
+
 ```ts
-export function createMetadataPayload(flame, tracks, config): Promise<Uint8Array>
+export function createMetadataPayload(
+  flame,
+  tracks,
+  config,
+): Promise<Uint8Array>
 // Compresses { flame, animation: { tracks, config } } → Uint8Array
 ```
 
@@ -168,19 +187,19 @@ Inject as custom `flm3` atom in `udta` box under `moov`. If mp4-muxer doesn't su
 
 ## Files Changed
 
-| File | Change |
-|------|--------|
-| `packages/app/package.json` | Add `mp4-muxer` dependency |
-| `packages/app/src/utils/videoEncoder.ts` | **Create** — WebCodecs + MediaRecorder |
-| `packages/app/src/utils/timeline.ts` | Add `applyTimelineToFlameAtFrame` + extract helper |
-| `packages/app/src/flame/renderStats.ts` | Add `AnimationExportProgress`, signals |
-| `packages/app/src/flame/Flam3.tsx` | Gate 3 accumulation resets |
-| `packages/app/src/utils/animationExport.ts` | **Create** — per-frame orchestrator |
-| `packages/app/src/components/ExportPngDialog/ExportPngDialog.tsx` | Tabs, animation tab controls, factory params |
-| `packages/app/src/components/ExportPngDialog/ExportPngDialog.module.css` | Tab styles |
-| `packages/app/src/components/ProgressBar/ProgressBar.tsx` | Dual-mode display |
-| `packages/app/src/utils/flameInMp4.ts` | **Create** — MP4 metadata embedding |
-| `packages/app/src/App.tsx` | Wire animation export, canvas info, cancel |
+| File                                                                     | Change                                             |
+| ------------------------------------------------------------------------ | -------------------------------------------------- |
+| `packages/app/package.json`                                              | Add `mp4-muxer` dependency                         |
+| `packages/app/src/utils/videoEncoder.ts`                                 | **Create** — WebCodecs + MediaRecorder             |
+| `packages/app/src/utils/timeline.ts`                                     | Add `applyTimelineToFlameAtFrame` + extract helper |
+| `packages/app/src/flame/renderStats.ts`                                  | Add `AnimationExportProgress`, signals             |
+| `packages/app/src/flame/Flam3.tsx`                                       | Gate 3 accumulation resets                         |
+| `packages/app/src/utils/animationExport.ts`                              | **Create** — per-frame orchestrator                |
+| `packages/app/src/components/ExportPngDialog/ExportPngDialog.tsx`        | Tabs, animation tab controls, factory params       |
+| `packages/app/src/components/ExportPngDialog/ExportPngDialog.module.css` | Tab styles                                         |
+| `packages/app/src/components/ProgressBar/ProgressBar.tsx`                | Dual-mode display                                  |
+| `packages/app/src/utils/flameInMp4.ts`                                   | **Create** — MP4 metadata embedding                |
+| `packages/app/src/App.tsx`                                               | Wire animation export, canvas info, cancel         |
 
 ## Verification
 

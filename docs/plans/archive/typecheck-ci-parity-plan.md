@@ -16,7 +16,7 @@ strictness is now tractable.
 
 - `packages/app/tsconfig.json` had **no `exclude`** and `allowJs: true`. The
   default file glob therefore pulled in the built bundles
-  `dist/assets/index-*.js` (~2.8 MB) + `tex-svg-*.js` (~1.8 MB) of *minified* JS.
+  `dist/assets/index-*.js` (~2.8 MB) + `tex-svg-*.js` (~1.8 MB) of _minified_ JS.
 - ~4.6 MB of minified JS pushes the program over an internal TypeScript checker
   complexity threshold. Past it, tsc **silently widens** deep generic
   instantiations — all of valibot's `InferOutput` — to `any`. No error, no
@@ -89,8 +89,8 @@ needed.
 - **Pre-push hook** — `.githooks/pre-push` runs `typecheck + lint + fmt`,
   auto-installed via root `package.json` `"prepare"` (`core.hooksPath`).
 - **Reverted** the explicit `RenderSettings`/`CameraObj`/`Camera3DObj` interfaces
-  + runtime parity test back to idiomatic `InferOutput` — they were a workaround
-  for the now-root-caused problem.
+  - runtime parity test back to idiomatic `InferOutput` — they were a workaround
+    for the now-root-caused problem.
 
 ## Follow-ups
 
@@ -123,10 +123,10 @@ needed.
     per-variation unions can't express) with a single boundary cast on the
     `'all'` rebuild.
   - **Lesson (kept for the next strict step):** tightening `any`→real-type
-    cascades into *latent* bugs, not just annotations — e.g. the old
+    cascades into _latent_ bugs, not just annotations — e.g. the old
     `mutateVariations:'all'` path rebuilt variations via a local type that
-    dropped `visible`. Budget the no-unsafe-* re-enable as a bug-fixing effort.
-  - **no-unsafe-* rules — measured, kept OFF (decision).** Re-enabling the five
+    dropped `visible`. Budget the no-unsafe-\* re-enable as a bug-fixing effort.
+  - **no-unsafe-\* rules — measured, kept OFF (decision).** Re-enabling the five
     `@typescript-eslint/no-unsafe-*` rules now reports **~214** errors. These are
     NOT a valibot regression (noImplicitAny is on and clean); they're genuine
     `any` boundaries: dynamic keyframe-path member access (MainWorkspace),
@@ -135,7 +135,7 @@ needed.
     test mocks. Fixing them would mostly add casts or targeted disables, so the
     rules stay off (see the eslint.config.js comment). The rules predate this
     work (turned off 2025-03 / 2025-05) for the same reason; the earlier scare
-    number (~1900/2354) was the *noImplicitAny* axis under poisoned valibot,
+    number (~1900/2354) was the _noImplicitAny_ axis under poisoned valibot,
     which is now resolved — these 214 are a separate, real axis.
   - **Still worth doing later:** drop the per-line `no-explicit-any` disables
     once the remaining `as any` are gone — the browser-API ones are already

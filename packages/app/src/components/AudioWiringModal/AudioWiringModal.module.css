@@ -3,7 +3,9 @@
 .overlay {
   position: fixed;
   inset: 0;
-  z-index: 200;
+  /* Above the floating actions widget (z 200) — the wiring editor is a
+     full-screen takeover and nothing from the workspace may sit on top. */
+  z-index: 240;
   display: flex;
   flex-direction: column;
   background: rgba(0, 0, 0, 0.92);

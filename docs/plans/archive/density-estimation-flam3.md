@@ -15,12 +15,12 @@ Scott Draves' flam3 paper (Section C: "High resolution and density estimation") 
 
 ### What we currently have
 
-| Aspect | flam3 | Ours |
-|--------|-------|------|
-| Filter timing | During/post accumulation | Post-process only |
-| Kernel | Variable-width per-pixel | Fixed 5x5 spatial blur |
-| Radius formula | `K / sqrt(density)` | `sqrt(count)` weight blend |
-| Density source | Spatial histogram | Bucket count (same pixel) |
+| Aspect         | flam3                    | Ours                       |
+| -------------- | ------------------------ | -------------------------- |
+| Filter timing  | During/post accumulation | Post-process only          |
+| Kernel         | Variable-width per-pixel | Fixed 5x5 spatial blur     |
+| Radius formula | `K / sqrt(density)`      | `sqrt(count)` weight blend |
+| Density source | Spatial histogram        | Bucket count (same pixel)  |
 
 Our `blurPipeline.ts` does a fixed-neighborhood average weighted by count similarity. It approximates the flam3 result but isn't theoretically equivalent — it can't widen the kernel enough for very sparse regions without also blurring boundaries.
 
@@ -82,6 +82,7 @@ Optimization: use a summed-area table approach if performance is an issue, or pr
 **File**: `packages/app/src/App.tsx`
 
 Add a quality slider for the density estimation (filter kernel quality):
+
 - Lower values = wider blurs = smoother but softer
 - Higher values = tighter blurs = sharper but noisier
 - Default: balanced middle ground
@@ -118,13 +119,13 @@ colorGradingPipeline (render)
 
 ## Files to modify
 
-| File | Change |
-|------|--------|
+| File                                                  | Change                                                      |
+| ----------------------------------------------------- | ----------------------------------------------------------- |
 | `packages/app/src/flame/densityEstimationPipeline.ts` | **NEW** — Compute shader to estimate per-pixel filter sigma |
-| `packages/app/src/flame/adaptiveBlurPipeline.ts` | **NEW** — Two-pass separable Gaussian with variable sigma |
-| `packages/app/src/flame/types.ts` | Add `FilterParams` struct (sigma: f32) |
-| `packages/app/src/flame/Flam3.tsx` | Wire new pipelines, replace `runBlur()` |
-| `packages/app/src/App.tsx` | Add density estimation quality slider to sidebar |
+| `packages/app/src/flame/adaptiveBlurPipeline.ts`      | **NEW** — Two-pass separable Gaussian with variable sigma   |
+| `packages/app/src/flame/types.ts`                     | Add `FilterParams` struct (sigma: f32)                      |
+| `packages/app/src/flame/Flam3.tsx`                    | Wire new pipelines, replace `runBlur()`                     |
+| `packages/app/src/App.tsx`                            | Add density estimation quality slider to sidebar            |
 
 ## Verification
 

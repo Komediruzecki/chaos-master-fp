@@ -12,10 +12,10 @@ Investigation into how a `TransformVariation` could end up without a `type` fiel
 
 Two distinct types exist:
 
-| Type | Location | Purpose |
-|------|----------|---------|
-| Schema `FlameDescriptor` | `flameSchema.ts:158` | valibot-validated, input/output boundary |
-| Timeline `FlameDescriptor` | `timeline.ts:199` | Plain interface, `transforms: Record<string, unknown>` |
+| Type                       | Location             | Purpose                                                |
+| -------------------------- | -------------------- | ------------------------------------------------------ |
+| Schema `FlameDescriptor`   | `flameSchema.ts:158` | valibot-validated, input/output boundary               |
+| Timeline `FlameDescriptor` | `timeline.ts:199`    | Plain interface, `transforms: Record<string, unknown>` |
 
 The timeline type uses `unknown` for transforms — individual variation objects are completely untyped at that layer.
 

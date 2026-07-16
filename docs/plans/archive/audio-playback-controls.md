@@ -1,7 +1,9 @@
 # Audio Playback Controls Plan
 
 ## Problem
+
 The user uploads an audio file and clicks "Live Preview" — the song plays on loop with no way to pause, stop, or seek to a different section. The waveform is purely visual. The user wants to:
+
 1. Pause/resume playback
 2. See the current playhead position on the waveform
 3. Click or drag on the waveform to seek/jump to that section
@@ -11,6 +13,7 @@ The user uploads an audio file and clicks "Live Preview" — the song plays on l
 `useAudioReactive` currently creates an `AudioContext` + `AudioBufferSourceNode` inside a single `createEffect` whose `onCleanup` destroys everything. For pause/seek support, the `AudioContext` must persist across pause/resume cycles.
 
 ### Key design decisions
+
 - **`AudioContext.suspend()` / `resume()`** for pause (keeps the context alive, no re-creation needed)
 - **New `AudioBufferSourceNode`** for seek (can't seek a running source — stop it, create a new one from the target offset)
 - **Closure-scope variables** for `audioCtx`, `sourceNode`, `analyzer` (lifted out of `createEffect`)
@@ -35,7 +38,9 @@ Pass them to `AudioReactivePanel` and `useAudioReactive`.
 ## Step 2: Modify `useAudioReactive.ts`
 
 ### Signature change
+
 Add 3 params:
+
 ```ts
 playbackPaused: Accessor<boolean>,
 seekTarget: Accessor<number | null>,
@@ -43,6 +48,7 @@ onPlaybackTime: (seconds: number) => void,
 ```
 
 ### Internal refactor
+
 - Lift `audioCtx`, `sourceNode`, `analyzer` to closure scope (outside `createEffect`)
 - Track: `let seekBaseOffset = 0`, `let sourceStartTime = 0`
 - The `createEffect` still reacts to `audioEnabled`, `audioBuffer` changes
@@ -53,8 +59,9 @@ onPlaybackTime: (seconds: number) => void,
   - If non-null: stop current source → create new one at `seekTarget` seconds → reset `seekBaseOffset`
 
 ### Current time calculation
+
 ```ts
-const currentTime = (audioCtx.currentTime - sourceStartTime) + seekBaseOffset
+const currentTime = audioCtx.currentTime - sourceStartTime + seekBaseOffset
 ```
 
 ---
@@ -62,6 +69,7 @@ const currentTime = (audioCtx.currentTime - sourceStartTime) + seekBaseOffset
 ## Step 3: Modify `AudioReactivePanel`
 
 ### New props
+
 ```ts
 playbackPaused: Accessor<boolean>
 onPausedChange: (p: boolean) => void

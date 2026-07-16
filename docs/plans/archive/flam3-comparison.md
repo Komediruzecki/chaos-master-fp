@@ -20,26 +20,28 @@ git log flam3/master --oneline                # commit history
 Symmetry is **purely structural** -- it adds transforms to the genome. There is no special "symmetry mode" in the renderer. The `int symmetry` field on the genome is just bookkeeping metadata.
 
 **Positive N (Rotational):**
+
 - Adds N-1 rotation transforms, each rotating by `2*PI*k/N`
 - `linear` variation only, weight = sum of all other weights
 - `color_speed = 0` (critical -- prevents color washing)
 
 **Negative N (Dihedral = rotation + reflection):**
+
 - `-1` = mirror only (reflection across x-axis: `a=-1, e=1`)
 - `-N` (N>1) = full dihedral group: N-1 rotations plus a reflection transform
 
 ### Our implementation status
 
-| Aspect | flam3 | Ours | Status |
-|--------|-------|------|--------|
-| N-1 rotation transforms | Yes | Yes | Done |
-| `colorSpeed: 0` | Yes | Yes | Done |
-| `linear` variation | Yes | Yes | Done |
-| Dihedral (reflection) | Negative N | Toggle | Done |
-| Weight = sum(others) | Yes | Yes | Done |
-| `symmetry` metadata field | Yes | No | Low priority |
-| `animate` field | Yes | No | Low priority |
-| Collapsible UI group | N/A | Yes | Done |
+| Aspect                    | flam3      | Ours   | Status       |
+| ------------------------- | ---------- | ------ | ------------ |
+| N-1 rotation transforms   | Yes        | Yes    | Done         |
+| `colorSpeed: 0`           | Yes        | Yes    | Done         |
+| `linear` variation        | Yes        | Yes    | Done         |
+| Dihedral (reflection)     | Negative N | Toggle | Done         |
+| Weight = sum(others)      | Yes        | Yes    | Done         |
+| `symmetry` metadata field | Yes        | No     | Low priority |
+| `animate` field           | Yes        | No     | Low priority |
+| Collapsible UI group      | N/A        | Yes    | Done         |
 
 ---
 
@@ -63,15 +65,15 @@ Key parameters: `estimator` (max radius), `estimator_minimum` (min radius), `est
 
 ### Comparison
 
-| Aspect | flam3 | Ours | Verdict |
-|--------|-------|------|---------|
-| Core formula | `K * pow(density, -curve)` | Same | Identical |
-| Kernel | Gaussian (non-separable) | Gaussian (separable) | Ours is better perf |
-| Density source | Raw pixel count | 3x3 averaged count | Ours is smoother |
-| Estimator curve | Configurable | Configurable (0.1-1.0) | Done |
-| Min/Max radius | Per-flame params | Hardcoded [0.5, 12] | Future work |
-| Color space | RGBA float | OkLab + count (fixed-point) | Different but valid |
-| Supersampling | Yes | No | Future work |
+| Aspect          | flam3                      | Ours                        | Verdict             |
+| --------------- | -------------------------- | --------------------------- | ------------------- |
+| Core formula    | `K * pow(density, -curve)` | Same                        | Identical           |
+| Kernel          | Gaussian (non-separable)   | Gaussian (separable)        | Ours is better perf |
+| Density source  | Raw pixel count            | 3x3 averaged count          | Ours is smoother    |
+| Estimator curve | Configurable               | Configurable (0.1-1.0)      | Done                |
+| Min/Max radius  | Per-flame params           | Hardcoded [0.5, 12]         | Future work         |
+| Color space     | RGBA float                 | OkLab + count (fixed-point) | Different but valid |
+| Supersampling   | Yes                        | No                          | Future work         |
 
 **Verdict:** Our density estimation is architecturally faithful to flam3. The core formula is identical. Our separable Gaussian and 3x3 density smoothing are genuine improvements.
 

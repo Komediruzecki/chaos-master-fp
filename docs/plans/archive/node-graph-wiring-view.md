@@ -55,10 +55,10 @@ and edits mappings identically regardless of view.
 
 ### New Files
 
-| File | Purpose |
-|------|---------|
-| `NodeGraphView.tsx` | Canvas container with pan/zoom, manages node layout, renders `<GraphNode>` + SVG wires |
-| `NodeGraphView.module.css` | Canvas, node card, port styles |
+| File                       | Purpose                                                                                |
+| -------------------------- | -------------------------------------------------------------------------------------- |
+| `NodeGraphView.tsx`        | Canvas container with pan/zoom, manages node layout, renders `<GraphNode>` + SVG wires |
+| `NodeGraphView.module.css` | Canvas, node card, port styles                                                         |
 
 #### NodeGraphView.tsx — Component API
 
@@ -67,15 +67,21 @@ function NodeGraphView(props: {
   // Connection state (same as existing modal)
   mappings: Accessor<AudioMappingEntry[]>
   liveAnalyzer: Accessor<LiveAudioAnalyzer | undefined>
-  connectionByTarget: Accessor<Map<string, { source: AudioFeature; entry: AudioMappingEntry }>>
+  connectionByTarget: Accessor<
+    Map<string, { source: AudioFeature; entry: AudioMappingEntry }>
+  >
   connectionBySource: Accessor<Map<AudioFeature, FlameTarget[]>>
   connectingFrom: Accessor<AudioFeature | undefined>
-  selectedWire: Accessor<{ source: AudioFeature; targetKey: string } | undefined>
+  selectedWire: Accessor<
+    { source: AudioFeature; targetKey: string } | undefined
+  >
 
   // Actions (same as existing modal)
   onStartConnection: (feature: AudioFeature) => void
   onCompleteConnection: (target: FlameTarget) => void
-  onSelectWire: (wire: { source: AudioFeature; targetKey: string } | undefined) => void
+  onSelectWire: (
+    wire: { source: AudioFeature; targetKey: string } | undefined,
+  ) => void
   onDeleteWire: (source: AudioFeature, targetKey: string) => void
 })
 ```
@@ -107,6 +113,7 @@ All nodes and the SVG wire layer are children of `.canvasWorld`, so they inherit
 the pan/zoom transform automatically.
 
 **Why CSS transform over SVG viewBox?**
+
 - HTML nodes (div cards with text, color swatches, level meters) are easier to
   style and animate than foreignObject
 - CSS transforms are GPU-accelerated
@@ -118,6 +125,7 @@ the pan/zoom transform automatically.
 Each node is a draggable card component with:
 
 **Source nodes** (audio features):
+
 ```
 ┌──────────────────────┐
 │ 🟣 Sub Bass    ████ │──○  ← output port (right side)
@@ -126,6 +134,7 @@ Each node is a draggable card component with:
 ```
 
 **Target nodes** (render params, grouped):
+
 ```
     ○──│  Gamma          │
        │  ▪ color swatch │  ← shows live color/value from audio
@@ -134,6 +143,7 @@ Each node is a draggable card component with:
 ```
 
 Nodes are positioned absolutely within `.canvasWorld`. Initial layout:
+
 - Source nodes: stacked vertically on the left (x ≈ 40, y spaced by 120px)
 - Target nodes: arranged in a column/grid on the right (x ≈ 500, y spaced per group)
 
@@ -169,12 +179,14 @@ function toCanvasCoords(clientX: number, clientY: number, canvasRect: DOMRect) {
 ```
 
 **Browser zoom handling** (Ctrl+/-): This is handled automatically because:
+
 - `getBoundingClientRect()` returns CSS pixels — already accounts for
   `devicePixelRatio`
 - The canvas world transform uses CSS pixels throughout
 - No `devicePixelRatio` math needed in wire rendering
 
 **Wire interactions**:
+
 - Hover: highlight wire (wider, brighter)
 - Click: select wire → shows in ParamsPanel
 - Delete key: remove selected wire
@@ -186,6 +198,7 @@ The critical feature: when an audio wire maps to a color parameter, the target
 node renders a live visual preview.
 
 **Color-related parameters** (the ones we show swatches for):
+
 - `vibrancy` → saturation
 - `exposure` → brightness
 - `gamma` → midtone shift
@@ -197,6 +210,7 @@ node renders a live visual preview.
 **Implementation**: `createEffect` polls `liveAnalyzer().getFrameData()` at
 requestAnimationFrame rate (only when live playback or mic is active).
 For each connected target:
+
 1. Resolve the target's current mapping entry
 2. Call `getAudioFeatureNormalized(frameData, entry.audioFeature)` → 0-1 value
 3. For color params, map the normalized value to a CSS color:
@@ -256,18 +270,26 @@ drop targets by checking `elementFromPoint`.
   /* colored per source/target type */
 }
 .graphNodePort {
-  width: 12px; height: 12px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  border: 2px solid rgba(255,255,255,0.3);
+  border: 2px solid rgba(255, 255, 255, 0.3);
   cursor: crosshair;
   /* positioned absolutely on the edge */
 }
-.graphNodePortRight { right: -6px; top: 50%; }
-.graphNodePortLeft { left: -6px; top: 50%; }
+.graphNodePortRight {
+  right: -6px;
+  top: 50%;
+}
+.graphNodePortLeft {
+  left: -6px;
+  top: 50%;
+}
 .graphNodeColorSwatch {
-  width: 24px; height: 14px;
+  width: 24px;
+  height: 14px;
   border-radius: 3px;
-  border: 1px solid rgba(255,255,255,0.15);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   /* background-color set dynamically from live value */
 }
 ```
@@ -291,6 +313,7 @@ Source nodes are individual (one per audio feature: 13 nodes).
 
 Browser zoom (Ctrl+/-) changes `window.devicePixelRatio` in most browsers.
 Key invariants:
+
 1. `getBoundingClientRect()` always returns CSS pixels — these are
    **independent of devicePixelRatio**.
 2. Mouse events (`clientX`, `clientY`) are also in CSS pixels.
@@ -347,6 +370,7 @@ The one edge case: if we used a `<canvas>` element for rendering, we'd need
 ## Implementation Order
 
 ### Phase 1: Canvas + Draggable Nodes (no wires)
+
 1. Create `NodeGraphView.tsx` + `NodeGraphView.module.css`
 2. Implement canvas with pan (drag background) + zoom (wheel)
 3. Create `GraphNode` component (header + body + ports)
@@ -354,6 +378,7 @@ The one edge case: if we used a `<canvas>` element for rendering, we'd need
 5. Implement node dragging (mousedown on header → update position signal)
 
 ### Phase 2: Wires + Connection
+
 6. Add SVG overlay for bezier wires
 7. Implement port position tracking (refs → canvas coords)
 8. Render existing connections as bezier paths
@@ -361,6 +386,7 @@ The one edge case: if we used a `<canvas>` element for rendering, we'd need
 10. Wire selection (click → ParamsPanel), wire deletion (Delete key)
 
 ### Phase 3: Live Preview
+
 11. Add rAF polling loop for live analyzer data
 12. Compute per-target normalized values
 13. Render color swatches for color-params
@@ -368,6 +394,7 @@ The one edge case: if we used a `<canvas>` element for rendering, we'd need
 15. Handle "no live data" fallback state
 
 ### Phase 4: Toggle + Polish
+
 16. Add segmented toggle button to HeaderBar
 17. Wire `<Show>` to switch between views
 18. Add "F" key to frame-all
@@ -377,12 +404,12 @@ The one edge case: if we used a `<canvas>` element for rendering, we'd need
 
 ### Files Changed
 
-| File | Change |
-|------|--------|
-| `AudioWiringModal.tsx` | +15 lines: add `viewMode` signal, toggle in header, `<Show>` wrapper, pass shared props to `NodeGraphView` |
-| `AudioWiringModal.module.css` | +40 lines: toggle button styles, `.nodeGraphContainer` |
-| `NodeGraphView.tsx` | ~300 lines (NEW): canvas, pan/zoom, node layout, wire SVG, drag-to-connect |
-| `NodeGraphView.module.css` | ~200 lines (NEW): node cards, ports, color swatches, wire styles |
+| File                          | Change                                                                                                     |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `AudioWiringModal.tsx`        | +15 lines: add `viewMode` signal, toggle in header, `<Show>` wrapper, pass shared props to `NodeGraphView` |
+| `AudioWiringModal.module.css` | +40 lines: toggle button styles, `.nodeGraphContainer`                                                     |
+| `NodeGraphView.tsx`           | ~300 lines (NEW): canvas, pan/zoom, node layout, wire SVG, drag-to-connect                                 |
+| `NodeGraphView.module.css`    | ~200 lines (NEW): node cards, ports, color swatches, wire styles                                           |
 
 ### Key Types
 
@@ -397,13 +424,13 @@ interface SourceGraphNode {
   kind: 'source'
   feature: AudioFeature
   label: string
-  color: string        // from AUDIO_SOURCE_GROUPS
+  color: string // from AUDIO_SOURCE_GROUPS
 }
 
 interface TargetGraphNode {
   kind: 'target'
-  groupLabel: string   // e.g. "Render Settings", "Transform 1"
-  targets: TargetNodeData[]  // from buildTargetGroups
+  groupLabel: string // e.g. "Render Settings", "Transform 1"
+  targets: TargetNodeData[] // from buildTargetGroups
 }
 
 type GraphNodeData = SourceGraphNode | TargetGraphNode
@@ -413,13 +440,13 @@ type GraphNodeData = SourceGraphNode | TargetGraphNode
 
 ## Risk Analysis
 
-| Risk | Mitigation |
-|------|------------|
+| Risk                                             | Mitigation                                                             |
+| ------------------------------------------------ | ---------------------------------------------------------------------- |
 | rAF polling at 30fps for live preview could jank | Throttle to 30fps; skip computation when no color params are connected |
-| Many transforms = many nodes = visual clutter | Group nodes by transform; default to compact layout |
-| Canvas coordinate math bugs | Extract `toCanvasCoords`/`toScreenCoords` helpers; unit test |
-| Wire rendering jank during pan/zoom | Use `will-change: transform` on canvas world; debounce wire recalc |
-| Feature parity between views | Both views share the same connection state signals — can't diverge |
+| Many transforms = many nodes = visual clutter    | Group nodes by transform; default to compact layout                    |
+| Canvas coordinate math bugs                      | Extract `toCanvasCoords`/`toScreenCoords` helpers; unit test           |
+| Wire rendering jank during pan/zoom              | Use `will-change: transform` on canvas world; debounce wire recalc     |
+| Feature parity between views                     | Both views share the same connection state signals — can't diverge     |
 
 ---
 

@@ -11,6 +11,7 @@ Symmetry in fractal flames follows the original flam3 specification by Scott Dra
 ### 1. Rotational symmetry (positive N)
 
 For N-fold symmetry, N-1 rotation transforms are added:
+
 - Each rotates by `2*PI*k/N` (k = 1..N-1)
 - `linear` variation only (weight 1)
 - `colorSpeed = 0` (prevents color washing)
@@ -19,6 +20,7 @@ For N-fold symmetry, N-1 rotation transforms are added:
 ### 2. Dihedral symmetry (negative N / mirror)
 
 Adds all rotational transforms PLUS a reflection transform:
+
 - Reflection matrix: `a=-1, b=0, d=0, e=1` (mirror across x-axis)
 - Same `colorSpeed=0` and probability weighting
 
@@ -31,6 +33,7 @@ Adds all rotational transforms PLUS a reflection transform:
 ### 4. UI: Collapsible symmetry group
 
 Symmetry transforms are grouped under a single collapsible card:
+
 - Hidden from the main transform list (no clutter)
 - "Symmetry (N)" card, collapsed by default
 - Each row shows label (S1, S2...), rotation angle or "Reflection"
@@ -43,22 +46,22 @@ Symmetry transforms are labeled `S1, S2, S3...` (separate numbering from regular
 
 ## Key files
 
-| File | Change |
-|------|--------|
-| `packages/app/src/MainWorkspace.tsx` | Symmetry modal, handler, group card |
-| `packages/app/src/utils/readableIds.ts` | S1/S2 labeling for symmetry transforms |
-| `packages/app/src/flame/transformFunction.ts` | `generateTransformId('sym')` prefix |
+| File                                          | Change                                 |
+| --------------------------------------------- | -------------------------------------- |
+| `packages/app/src/MainWorkspace.tsx`          | Symmetry modal, handler, group card    |
+| `packages/app/src/utils/readableIds.ts`       | S1/S2 labeling for symmetry transforms |
+| `packages/app/src/flame/transformFunction.ts` | `generateTransformId('sym')` prefix    |
 
 ## flam3 comparison
 
-| Aspect | flam3 | Ours | Status |
-|--------|-------|------|--------|
-| N-1 rotation transforms | Yes | Yes | Done |
-| `colorSpeed: 0` | Yes | Yes | Done |
-| Dihedral (reflection) | Yes (negative N) | Yes (toggle) | Done |
-| Weight = sum(others) | Yes | Yes | Done |
-| `symmetry` metadata field | Yes | No (low priority) | Skipped |
-| `animate` field | Yes | No (low priority) | Skipped |
+| Aspect                    | flam3            | Ours              | Status  |
+| ------------------------- | ---------------- | ----------------- | ------- |
+| N-1 rotation transforms   | Yes              | Yes               | Done    |
+| `colorSpeed: 0`           | Yes              | Yes               | Done    |
+| Dihedral (reflection)     | Yes (negative N) | Yes (toggle)      | Done    |
+| Weight = sum(others)      | Yes              | Yes               | Done    |
+| `symmetry` metadata field | Yes              | No (low priority) | Skipped |
+| `animate` field           | Yes              | No (low priority) | Skipped |
 
 ## Future improvements
 

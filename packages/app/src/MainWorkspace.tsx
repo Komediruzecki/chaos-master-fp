@@ -5490,7 +5490,6 @@ export function MainWorkspace(props: AppProps) {
                             if (blendIntent() === 'morph') {
                               setupMorph(flame)
                             } else if (blendIntent() === 'breed') {
-                              setShowBlendGallery(false)
                               void _requestModal({
                                 content: ({ respond }) => (
                                   <BreedGallery
@@ -5521,7 +5520,6 @@ export function MainWorkspace(props: AppProps) {
                                 ),
                               })
                             } else if (blendIntent() === 'evolve') {
-                              setShowBlendGallery(false)
                               void _requestModal({
                                 content: ({ respond }) => (
                                   <EvolutionChamber
@@ -5552,11 +5550,11 @@ export function MainWorkspace(props: AppProps) {
                                 ),
                               })
                             } else if (blendIntent() === 'diff') {
-                              setShowBlendGallery(false)
                               openDiffView(flameDescriptor, flame)
                             } else {
                               setBlendFlame(deepClone(flame))
                             }
+                            // Single close for every intent branch above.
                             setShowBlendGallery(false)
                           }}
                           onPreviewBlend={handlePreviewBlend}

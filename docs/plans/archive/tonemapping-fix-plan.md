@@ -3,6 +3,7 @@
 ## Problem
 
 Our current color grading shader (`colorGrading.ts`) produces images with:
+
 - Weak depth/contrast at high skip iterations
 - Palette coloring (vibrancy) has minimal visible effect
 - Exposure doesn't map linearly to flam3's brightness
@@ -26,6 +27,7 @@ ls = filter_coef * (k1 * log(1.0 + c[3] * k2)) / c[3]
 ```
 
 Where:
+
 - `k1 = (contrast * brightness * PREFILTER_WHITE * 268.0 * batch_filter) / 256`
 - `k2 = (oversample² * nbatches) / (contrast * area * WHITE_LEVEL * sample_density * sumfilt)`
 - `PREFILTER_WHITE = 255`
@@ -39,9 +41,11 @@ This is additive — buckets from multiple sub-batches are summed into an `abuck
 
 For each output pixel, sum counts over a `ss×ss` neighborhood (oversample kernel).
 The summed count `f_select` is mapped through a curve:
+
 ```
 f_select_int = DE_THRESH + floor(pow(f_select - DE_THRESH, estimator_curve))
 ```
+
 This index selects a filter kernel with specific width and coefficients.
 
 The filter convolves the tone-mapped buckets from Step 2 using the selected kernel's
@@ -64,6 +68,7 @@ For each channel:
 ```
 
 **flam3_calc_alpha** (palettes.c:274):
+
 ```
 if density < linrange:
   frac = density / linrange
@@ -74,9 +79,10 @@ else:
 
 **flam3_calc_newrgb** (palettes.c:292):
 If any channel exceeds 255 after `ls` scaling:
+
 - Reduce `ls` to bring the brightest channel to exactly 255
 - Reduce saturation in HSV space by `pow(newls/ls, highlight_power)`
-This prevents hue shift in saturated pixels.
+  This prevents hue shift in saturated pixels.
 
 ### Step 5: Spatial Filter (rect.c:1137-1160)
 
@@ -86,6 +92,7 @@ image pixels.
 ## Our Current Pipeline (colorGrading.ts)
 
 Single-pass fragment shader:
+
 1. Read `tex = accumulationBuffer[xy]`
 2. `count = tex.count * FIXED_POINT_MULTIPLIER_INV`
 3. `texColorAb = (color.a, color.b) / count` — averaged color
@@ -99,18 +106,18 @@ Single-pass fragment shader:
 
 ## Key Differences
 
-| Aspect | flam3 | Ours | Impact |
-|--------|-------|------|--------|
-| Tone curve | `k1 * log(1 + count*k2) / count` | `pow(log(count_norm + 1), 0.4545)` | Different shape |
-| k2 normalization | Accounts for quality, area, oversample | `avgPointCountPerBucketInv * 0.1` | Wrong scaling |
-| Gamma | Adjustable (from `gamma` param) | Hardcoded `0.4545` (γ=2.2) | No user control |
-| Highlight protection | HSV saturation reduction | None | Clipped brights |
-| DE filter | Full multi-pass kernel | None | Softness missing |
-| Vibrancy channels | Blends R, G, B independently | Blends only a,b (OKLab chroma) | Incorrect blending |
-| Brightness value | Separate from color chroma | OKLab `L` channel | OKLab correct but different |
-| Spatial filter | Convolution after tonemapping | None | Jagged edges |
-| skipIters effect | Reduces effective sample_density (k2 normalizes) | Only affects IFS loop | Loss of contrast at high skip |
-| Batch accumulation | Temporal + batch filters | Single batch | No temporal smoothing |
+| Aspect               | flam3                                            | Ours                               | Impact                        |
+| -------------------- | ------------------------------------------------ | ---------------------------------- | ----------------------------- |
+| Tone curve           | `k1 * log(1 + count*k2) / count`                 | `pow(log(count_norm + 1), 0.4545)` | Different shape               |
+| k2 normalization     | Accounts for quality, area, oversample           | `avgPointCountPerBucketInv * 0.1`  | Wrong scaling                 |
+| Gamma                | Adjustable (from `gamma` param)                  | Hardcoded `0.4545` (γ=2.2)         | No user control               |
+| Highlight protection | HSV saturation reduction                         | None                               | Clipped brights               |
+| DE filter            | Full multi-pass kernel                           | None                               | Softness missing              |
+| Vibrancy channels    | Blends R, G, B independently                     | Blends only a,b (OKLab chroma)     | Incorrect blending            |
+| Brightness value     | Separate from color chroma                       | OKLab `L` channel                  | OKLab correct but different   |
+| Spatial filter       | Convolution after tonemapping                    | None                               | Jagged edges                  |
+| skipIters effect     | Reduces effective sample_density (k2 normalizes) | Only affects IFS loop              | Loss of contrast at high skip |
+| Batch accumulation   | Temporal + batch filters                         | Single batch                       | No temporal smoothing         |
 
 ## Fix Plan
 
@@ -214,12 +221,12 @@ would smooth jagged edges. This should be toggleable (Performance vs Quality).
 
 ## Implementation Order
 
-| # | Phase | Effort Estimate |
-|---|-------|-----------------|
-| 1 | Add contrast/highlight_power to schema | Small |
-| 2 | Rewrite k1/k2 normalization | Medium |
-| 3 | Rewrite fragment shader tonemapping | Large |
-| 4 | Add highlight power protection | Medium |
-| 5 | skipIters sample-density feedback | Small |
-| 6 | Wire palette speed/phase | Medium |
-| 7 | Spatial filter (optional) | Medium |
+| #   | Phase                                  | Effort Estimate |
+| --- | -------------------------------------- | --------------- |
+| 1   | Add contrast/highlight_power to schema | Small           |
+| 2   | Rewrite k1/k2 normalization            | Medium          |
+| 3   | Rewrite fragment shader tonemapping    | Large           |
+| 4   | Add highlight power protection         | Medium          |
+| 5   | skipIters sample-density feedback      | Small           |
+| 6   | Wire palette speed/phase               | Medium          |
+| 7   | Spatial filter (optional)              | Medium          |

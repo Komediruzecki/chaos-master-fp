@@ -3,6 +3,7 @@
 **Status:** Planning (no implementation yet)
 **Date:** 2026-06-13
 **Branches involved:**
+
 - `feat/og-meta-tags-image` — original OG work (rebased onto `upstream/main`, 3 commits, preserved locally)
 - `feat/server-side-gpu-renderer` — Deno render-worker (real WGSL pipeline, server-side)
 - `feat/og-meta-tags-render-worker` — **this branch** (cut from the server-side renderer, where we replan + cherry-pick)
@@ -32,7 +33,9 @@ feature, in which case OG previews can piggyback on it for pixel-accuracy.
 ## Background — what already exists
 
 ### a) `feat/og-meta-tags-image` (the original OG work)
+
 A standalone Cloudflare Worker (`packages/worker/`, name `chaos-master-og`) that:
+
 - `/og/?flame=` → renders a 600×315 PNG with a from-scratch **Canvas2D chaos-game** (`renderFlameToPng.ts`)
 - `/?flame=` → injects `og:*` / `twitter:*` tags
 - assumes **app-on-Vercel + separate OG worker on its own domain**
@@ -40,9 +43,11 @@ A standalone Cloudflare Worker (`packages/worker/`, name `chaos-master-og`) that
 It was written ~2026-03-14 and never deployed/merged. Since then the architecture changed.
 
 ### b) The app today (`upstream/main` ≈ `origin/main`)
+
 The whole site is served by **one Cloudflare Worker**: `packages/app/src/worker/index.ts`
 (`wrangler.jsonc`, name `chaos-master`, prod `chaos-master.com`, dev `dev.chaos-master.com`).
 It already has:
+
 - **KV-backed URL shortening** — `POST /api/shorten` + `GET /api/shorten/:id`, binding `KV_SHORTENER`.
 - Static SPA served via `env.ASSETS.fetch` (assets dir `dist`).
 - Share format is a **wrapper**: `encodeSharePayload(flame, animation?)` → `{ flame, animation? }`,
@@ -50,10 +55,12 @@ It already has:
   `/api/shorten`); raw `?flame=` URLs are the long-form fallback.
 
 ### c) `feat/server-side-gpu-renderer` (the Deno render-worker)
+
 Lives in `workers/render-worker/` (Deno, **not** `packages/`). It:
+
 - Reuses the **exact app WGSL pipeline** (`ifsPipeline`, `densityEstimationPipeline`,
   `adaptiveBlur`, `colorGrading`, OkLab palettes) under Deno native WebGPU → **pixel-accurate**.
-- "CPU fallback" = **software Vulkan (Mesa lavapipe)**, *not* pure JS — still needs Deno + Dawn in a
+- "CPU fallback" = **software Vulkan (Mesa lavapipe)**, _not_ pure JS — still needs Deno + Dawn in a
   container (`VK_ICD_FILENAMES=lvp_icd`).
 - Deploys as a **Docker container on a host** (GPU via `run-nvidia.sh`/`run-amd.sh`, or software
   Vulkan). **Not serverless / not free.**
@@ -67,7 +74,7 @@ Lives in `workers/render-worker/` (Deno, **not** `packages/`). It:
 1. **Cloudflare Workers have NO Canvas / OffscreenCanvas.** workerd has no DOM/canvas. The original
    `renderFlameToPng.ts` uses `new OffscreenCanvas(...)`, `ctx.createImageData`, `convertToBlob` —
    **these throw on Cloudflare.** Any in-Worker rendering must build the pixel buffer in plain JS and
-   **encode the PNG manually** (pure-JS encoder, ideally *stored*/uncompressed deflate blocks to stay
+   **encode the PNG manually** (pure-JS encoder, ideally _stored_/uncompressed deflate blocks to stay
    cheap) or use a WASM lib (`@cf-wasm/photon`, `resvg`) — extra bundle weight + CPU.
 
 2. **Free Worker CPU = 10 ms / request** (100k req/day). A real flame needs millions of samples for
@@ -94,6 +101,7 @@ Lives in `workers/render-worker/` (Deno, **not** `packages/`). It:
 ## Options for producing the preview image
 
 ### Option A — Cloudflare Worker CPU render (self-contained, "free CPU we have")
+
 Port the chaos-game accumulation into the app worker, **drop the canvas dependency**, and encode the
 PNG by hand (stored/uncompressed zlib blocks + CRC32 — cheap). Decode via the app's real
 `decodeSharePayload`.
@@ -104,6 +112,7 @@ PNG by hand (stored/uncompressed zlib blocks + CRC32 — cheap). Decode via the 
   ignores camera/zoom); not pixel-accurate to the app.
 
 ### Option B — Proxy the Deno render-worker (pixel-accurate)
+
 App worker injects meta tags; `og:image` is served by (or proxied from) the render-worker, which
 renders with the **real pipeline**.
 
@@ -113,6 +122,7 @@ renders with the **real pipeline**.
   mandatory; couples the OG PR to the large server-side-renderer work.
 
 ### Option C — Client-render + store (recommended primary)
+
 The app **already GPU-renders the flame in the browser**. At share time, read back the canvas,
 downscale to ~1200×630, and upload the PNG alongside the short link; the worker serves it for
 `og:image`.
@@ -127,6 +137,7 @@ downscale to ~1200×630, and upload the PNG alongside the short link; the worker
   the share flow. (KV write cap on free is 1k/day → use **R2** for the image, not KV.)
 
 ### Option D — Cloudflare Browser Rendering / screenshot service
+
 Headless-Chrome screenshot of the app. ➖ Paid (Browser Rendering is a paid binding), heavyweight,
 slow. **Dismissed.**
 
@@ -134,17 +145,17 @@ slow. **Dismissed.**
 
 ## Tradeoff summary
 
-| Criterion | A: Worker CPU | B: render-worker | C: client-render + R2 |
-|---|---|---|---|
-| Cost | Free | Host (not free) | Free (R2 free tier) |
-| Quality | Approximate | Pixel-accurate | Pixel-accurate (real GPU) |
-| Server CPU | High (10 ms cap) | On the host | ~Zero |
-| Infra added | None | Always-on container | R2 bucket |
-| Canvas-in-worker problem | Yes (manual PNG enc.) | N/A | N/A |
-| Covers raw `?flame=` URLs | Yes | Yes | No (needs share flow → fallback card) |
-| Crawler latency | Low (cached) | Risky (async, secs) | Low (static R2) |
-| Maintains 2nd renderer | Yes | No | No |
-| Couples to big server PR | No | Yes | No |
+| Criterion                 | A: Worker CPU         | B: render-worker    | C: client-render + R2                 |
+| ------------------------- | --------------------- | ------------------- | ------------------------------------- |
+| Cost                      | Free                  | Host (not free)     | Free (R2 free tier)                   |
+| Quality                   | Approximate           | Pixel-accurate      | Pixel-accurate (real GPU)             |
+| Server CPU                | High (10 ms cap)      | On the host         | ~Zero                                 |
+| Infra added               | None                  | Always-on container | R2 bucket                             |
+| Canvas-in-worker problem  | Yes (manual PNG enc.) | N/A                 | N/A                                   |
+| Covers raw `?flame=` URLs | Yes                   | Yes                 | No (needs share flow → fallback card) |
+| Crawler latency           | Low (cached)          | Risky (async, secs) | Low (static R2)                       |
+| Maintains 2nd renderer    | Yes                   | No                  | No                                    |
+| Couples to big server PR  | No                    | Yes                 | No                                    |
 
 ---
 
@@ -163,6 +174,7 @@ slow. **Dismissed.**
 ## Implementation plan (recommended: meta injection + Option C)
 
 ### Part 1 — Meta-tag injection (app worker)
+
 1. In `packages/app/src/worker/index.ts`, before the `env.ASSETS.fetch` fallback, intercept
    `GET /` and `/index.html` when `?flame=` or `?s=` is present.
 2. Resolve the payload: `?s=<id>` → `KV_SHORTENER.get(id)`; `?flame=` → use directly.
@@ -173,6 +185,7 @@ slow. **Dismissed.**
 5. Absolute URLs only; sensible caching headers.
 
 ### Part 2 — Image (Option C)
+
 6. Add an **R2 bucket** binding (e.g. `OG_IMAGES`) to `wrangler.jsonc` (all envs).
 7. In `ShareLinkModal` (or the share util), read back the rendered flame canvas → downscale to
    1200×630 → PNG `Blob`.
@@ -199,7 +212,7 @@ slow. **Dismissed.**
 ## Upstream PR strategy
 
 - Meta injection + Option C is **small and self-contained** → target a **focused PR off
-  `upstream/main`**, *not* riding on the large `feat/server-side-gpu-renderer` branch (auth/Stripe/
+  `upstream/main`**, _not_ riding on the large `feat/server-side-gpu-renderer` branch (auth/Stripe/
   db-worker/render-worker would bloat the diff).
 - ⚠️ **Branch-base note:** this branch (`feat/og-meta-tags-render-worker`) is cut from the server-side
   renderer, which only makes sense for **Option B**. If we go with **C/A (recommended)**, re-base the
@@ -218,14 +231,14 @@ back from the worker/R2.
 
 **Use R2, not KV, for the image:**
 
-| | R2 (recommended) | KV |
-|---|---|---|
-| Free storage | 10 GB-month | 1 GB |
-| Free writes | 1M Class A ops/mo (~33k/day) | **1,000/day** (the binding cap) |
-| Free reads | 10M Class B ops/mo | 100k/day |
-| Egress | **Free** (serving `og:image` costs nothing) | Free |
-| Native expiry | Lifecycle rule (auto-delete after N days) | Per-key `expirationTtl` |
-| Binary blobs | First-class | Value ≤ 25 MB; works but not ideal |
+|               | R2 (recommended)                            | KV                                 |
+| ------------- | ------------------------------------------- | ---------------------------------- |
+| Free storage  | 10 GB-month                                 | 1 GB                               |
+| Free writes   | 1M Class A ops/mo (~33k/day)                | **1,000/day** (the binding cap)    |
+| Free reads    | 10M Class B ops/mo                          | 100k/day                           |
+| Egress        | **Free** (serving `og:image` costs nothing) | Free                               |
+| Native expiry | Lifecycle rule (auto-delete after N days)   | Per-key `expirationTtl`            |
+| Binary blobs  | First-class                                 | Value ≤ 25 MB; works but not ideal |
 
 **Cost at this scale ≈ $0.** A low-res PNG is ~30–100 KB. Even 10,000 stored images ≈ 0.3–1 GB →
 inside R2's 10 GB free tier; egress is free, so serving previews to crawlers is free; 1 write/share is

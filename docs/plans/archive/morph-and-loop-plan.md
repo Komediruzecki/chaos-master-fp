@@ -38,6 +38,7 @@ Blend). Click → the existing `BlendFlameGallery` opens (re-used) with the head
 "Pick End Flame". Picking a flame sets up the morph and shows the timeline.
 
 **`setupMorph(endFlame)` (MainWorkspace):**
+
 1. `setBlendFlame(deepClone(endFlame))` — current flame is A, picked flame is B.
 2. Rebuild the `blendWeight` track: clear it, then
    - keyframe `1` @ `startFrame` (`easeInOut`)
@@ -63,13 +64,13 @@ the animation schema, so it survives save/share/reload).
 
 Two modes (`LoopMode`):
 
-- **Seamless** — *there-and-back*. Given the last keyframe across all tracks
+- **Seamless** — _there-and-back_. Given the last keyframe across all tracks
   (`userEnd`), in the trailing window `(userEnd, endFrame]` each track ramps
   (eased) from its held last value back to its value at `startFrame`, so
   `value(endFrame) === value(startFrame)`. Enabling extends `endFrame` to
   `userEnd + span` (full forward span) so B→A takes the **same time** as A→B.
 
-- **Cycle** — *per-property cyclic wrap*. The timeline `[startFrame, endFrame]`
+- **Cycle** — _per-property cyclic wrap_. The timeline `[startFrame, endFrame]`
   is one period `P`. Inside a track's own keyframe span it resolves normally;
   outside it (before its first keyframe `k0` or after its last `kn`) it
   interpolates across the wrap `kn → k0 + P`. The wrap duration for a property is
@@ -110,7 +111,7 @@ for free.
 
 The reference (`foss/chaos`) lerps affine coefficients of a fixed transform set.
 That only works when both flames share transform count / variation types. Our
-flames don't, and the dissolve via the existing blend shader morphs *any* pair
+flames don't, and the dissolve via the existing blend shader morphs _any_ pair
 of flames robustly while reusing battle-tested GPU code. The trade-off is a
 cross-dissolve look rather than geometric interpolation — a deliberate choice to
 match the existing **Blend** feature the user asked to mirror.

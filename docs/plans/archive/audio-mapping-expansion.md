@@ -36,23 +36,22 @@ type FlameTarget =
   | { kind: 'renderSetting'; param: RenderSettingKey }
 
   // Transform-level: affine coefficients
-  | { kind: 'transformAffine'
+  | {
+      kind: 'transformAffine'
       transformIdx: number
       matrix: 'preAffine' | 'postAffine'
       param: AffineKey
     }
 
   // Transform-level: scalar properties
-  | { kind: 'transformProperty'
+  | {
+      kind: 'transformProperty'
       transformIdx: number
       property: 'probability' | 'colorX' | 'colorY' | 'colorSpeed'
     }
 
   // Variation weight (per-transform, per-variation)
-  | { kind: 'variationWeight'
-      transformIdx: number
-      variationType: string
-    }
+  | { kind: 'variationWeight'; transformIdx: number; variationType: string }
 
   // Final transform affine
   | { kind: 'finalAffine'; param: AffineKey }
@@ -132,14 +131,14 @@ Supplied by `MainWorkspace` which reads `flameDescriptor.transforms` keys.
 
 ## Scope & order
 
-| Step | Description | Files touched | Risk |
-|------|-------------|---------------|------|
-| 1 | Types: `FlameTarget`, update `AudioMappingEntry` | `audioAnalysis.ts`, `AudioReactivePanel.tsx` | Medium (type changes cascade) |
-| 2 | Target resolution in `applyAudioMappingsToFlame` | `audioAnalysis.ts` | Medium (core logic) |
-| 3 | UI: category + transform + matrix selectors | `AudioReactivePanel.tsx` + CSS | Low (additive) |
-| 4 | Wire `transforms` prop from MainWorkspace | `MainWorkspace.tsx` | Low |
-| 5 | Update presets to new format | `AudioReactivePanel.tsx` | Low |
-| 6 | `pnpm check` + fix | — | Low |
+| Step | Description                                      | Files touched                                | Risk                          |
+| ---- | ------------------------------------------------ | -------------------------------------------- | ----------------------------- |
+| 1    | Types: `FlameTarget`, update `AudioMappingEntry` | `audioAnalysis.ts`, `AudioReactivePanel.tsx` | Medium (type changes cascade) |
+| 2    | Target resolution in `applyAudioMappingsToFlame` | `audioAnalysis.ts`                           | Medium (core logic)           |
+| 3    | UI: category + transform + matrix selectors      | `AudioReactivePanel.tsx` + CSS               | Low (additive)                |
+| 4    | Wire `transforms` prop from MainWorkspace        | `MainWorkspace.tsx`                          | Low                           |
+| 5    | Update presets to new format                     | `AudioReactivePanel.tsx`                     | Low                           |
+| 6    | `pnpm check` + fix                               | —                                            | Low                           |
 
 ## Out of scope (future)
 

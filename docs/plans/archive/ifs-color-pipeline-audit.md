@@ -22,9 +22,10 @@ To answer the core question: **Is the palette sidebar options doing anything, an
 Yes, the palette sidebar options are fully wired up and functional. However, they govern completely different parts of the render pipeline compared to `transform color speed`.
 
 ### Transform `colorSpeed` (IFS Phase)
+
 - **Scope**: Local (Per-Transform)
 - **Phase**: Iteration / Accumulation
-- **Mechanism**: In Iterated Function Systems (IFS), every transform has an assigned color coordinate. When a point lands on a specific transform during the chaos game, its internal color value shifts towards that transform's color. 
+- **Mechanism**: In Iterated Function Systems (IFS), every transform has an assigned color coordinate. When a point lands on a specific transform during the chaos game, its internal color value shifts towards that transform's color.
 - **Code Reference**: In `src/flame/transformFunction.ts`, the WGSL shader interpolates the color on each iteration:
   ```wgsl
   let color = mix(point.color, uniforms.color, uniforms.colorSpeed);
@@ -32,6 +33,7 @@ Yes, the palette sidebar options are fully wired up and functional. However, the
 - **Effect**: A higher `colorSpeed` means the point's color will jump more aggressively toward the transform's base color. A lower speed causes the point to retain the color history of previous transforms for longer.
 
 ### Palette Sidebar Options (Color Grading Phase)
+
 - **Scope**: Global
 - **Phase**: Render / Post-Processing
 - **Mechanism**: These options dictate how the accumulated mathematical density is translated into visual color. They operate inside `src/flame/colorGrading.ts`.
@@ -47,6 +49,7 @@ Yes, the palette sidebar options are fully wired up and functional. However, the
 ## 3. The Two-Stage Pipeline
 
 ### Stage 1: The IFS Compute Pipeline (`src/flame/transformFunction.ts`)
+
 The WebGPU compute shader is dynamically generated in `createFlameWgsl` based on the active variations and transforms.
 
 1. **Uniform Extraction**: `extractFlameUniforms` packages `color` and `colorSpeed` into the uniform buffer `FlameUniformsBase`.
@@ -55,6 +58,7 @@ The WebGPU compute shader is dynamically generated in `createFlameWgsl` based on
 4. **Bucket Accumulation**: These coordinates are eventually rasterized into a histogram (accumulation buffer), incrementing both density count and color components.
 
 ### Stage 2: The Color Grading Pipeline (`src/flame/colorGrading.ts`)
+
 The Color Grading pipeline reads the accumulation buffer and outputs the final frame. The Uniforms (`ColorGradingUniforms`) are correctly synced with the main application state (`flameDescriptor.renderSettings`).
 
 1. **Density Calculation**: The buffer count is adjusted relative to iterations. The density is computed logarithmically: `log(adjustedCount + 1)`.

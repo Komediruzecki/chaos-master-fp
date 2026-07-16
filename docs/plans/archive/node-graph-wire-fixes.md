@@ -3,10 +3,12 @@
 ## 1. Fix Wire Binding Points (DOM-query approach)
 
 ### Problem
+
 `NodeGraphView.tsx` `wireDefs` memo computes port positions mathematically from node
 positions + hardcoded offsets (`SOURCE_PORT_X_OFF`, `SOURCE_PORT_Y_OFF`,
 `TARGET_HEADER_H`, etc). These constants don't match actual rendered DOM positions
 because:
+
 - Source node height is content-driven (no fixed height), so `SOURCE_PORT_Y_OFF=28`
   doesn't match the actual `top: 50%` port position.
 - Target node header height varies from the constant.
@@ -17,6 +19,7 @@ The **list view** (`WireOverlay.tsx`) already does this correctly — it queries
 `[data-source-port]` / `[data-target-port]` elements via `getBoundingClientRect()`.
 
 ### Fix
+
 Mirror the WireOverlay approach in NodeGraphView:
 
 1. **Add `layoutVersion` signal** — bumped whenever node positions, zoom, pan, or
@@ -24,9 +27,12 @@ Mirror the WireOverlay approach in NodeGraphView:
 
 2. **Port position resolver helpers** — query `[data-graph-port]` elements relative
    to `worldRef`:
+
    ```ts
    function getPortCenterWorld(worldEl: HTMLElement, portId: string) {
-     const el = worldEl.querySelector(`[data-graph-port="${portId}"]`) as HTMLElement | null
+     const el = worldEl.querySelector(
+       `[data-graph-port="${portId}"]`,
+     ) as HTMLElement | null
      if (!el) return null
      const worldRect = worldEl.getBoundingClientRect()
      const rect = el.getBoundingClientRect()
@@ -54,7 +60,9 @@ Mirror the WireOverlay approach in NodeGraphView:
 
 ```tsx
 // Signal for cached port positions (world-relative)
-const [portPositions, setPortPositions] = createSignal<Map<string, {x:number,y:number}>>(new Map())
+const [portPositions, setPortPositions] = createSignal<
+  Map<string, { x: number; y: number }>
+>(new Map())
 
 // Effect: after layout changes, query DOM for all port positions
 createEffect(() => {
@@ -68,7 +76,7 @@ createEffect(() => {
   // Wait for DOM paint
   requestAnimationFrame(() => {
     if (!worldRef) return
-    const next = new Map<string, {x: number, y: number}>()
+    const next = new Map<string, { x: number; y: number }>()
     const ports = worldRef.querySelectorAll('[data-graph-port]')
     const worldRect = worldRef.getBoundingClientRect()
     for (const el of ports) {
@@ -100,11 +108,13 @@ node height, scrolling, or zoom level.
 ## 2. Collapsible Sub-Groups in Transform Nodes
 
 ### Problem
+
 Transform nodes have many sub-groups (Pre-Affine 6, Post-Affine 6, Properties 4,
 Variations N). Each port row is 20px. With many variations, a node can easily
 exceed the 320px max-height and scroll. Users can't easily see all connections.
 
 ### Fix
+
 Add collapse toggles to each sub-group divider in target nodes:
 
 1. **Collapse state** — `createSignal<Set<string>>()` tracking collapsed sub-group
@@ -142,10 +152,12 @@ Add collapse toggles to each sub-group divider in target nodes:
 ## 3. Persist View Mode in localStorage
 
 ### Problem
+
 The `viewMode` signal always defaults to `'list'`. Users who prefer the graph view
 must toggle every time they open the modal.
 
 ### Fix
+
 In `AudioWiringModal.tsx`:
 
 ```tsx
@@ -155,7 +167,9 @@ function loadViewMode(): 'list' | 'graph' {
   try {
     const v = localStorage.getItem(STORAGE_KEY)
     if (v === 'list' || v === 'graph') return v
-  } catch { /* private mode / blocked */ }
+  } catch {
+    /* private mode / blocked */
+  }
   return 'list'
 }
 
@@ -165,7 +179,9 @@ const [viewMode, setViewMode] = createSignal<'list' | 'graph'>(loadViewMode())
 // Wrap setViewMode to persist:
 function setViewModePersisted(mode: 'list' | 'graph') {
   setViewMode(mode)
-  try { localStorage.setItem(STORAGE_KEY, mode) } catch {}
+  try {
+    localStorage.setItem(STORAGE_KEY, mode)
+  } catch {}
 }
 ```
 
@@ -174,11 +190,13 @@ The toggle buttons call `setViewModePersisted` instead of `setViewMode`.
 ---
 
 ## Files Changed
+
 - `packages/app/src/components/AudioWiringModal/NodeGraphView.tsx` — wire positions + collapsible sub-groups
 - `packages/app/src/components/AudioWiringModal/NodeGraphView.module.css` — collapse styles
 - `packages/app/src/components/AudioWiringModal/AudioWiringModal.tsx` — localStorage persistence
 
 ## Risk
+
 - DOM queries for wire positions add one frame of latency after node drag. This is
   standard in node editors (Blender, Houdini, etc.) and imperceptible at 60fps.
 - Collapsed port rows with `display:none` still have `getBoundingClientRect()` return

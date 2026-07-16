@@ -16,14 +16,14 @@ Currently the app can export single PNG frames with metadata embedding. This pla
 
 ### Why WebCodecs (not MediaRecorder)
 
-| Concern | MediaRecorder | WebCodecs |
-|---------|--------------|-----------|
-| Codec control | Browser-chosen, no config | H.264/H.265/AV1 explicit |
-| Quality control | Bitrate only | CRF, bitrate, profile, level |
-| Frame timing | Real-time capture only | Arbitrary frame pacing |
-| Metadata embedding | None | Custom boxes via mp4-muxer |
-| Browser support | All browsers | Chrome, Edge, Opera (covers 75%+ users) |
-| Fallback | — | MediaRecorder as graceful degradation |
+| Concern            | MediaRecorder             | WebCodecs                               |
+| ------------------ | ------------------------- | --------------------------------------- |
+| Codec control      | Browser-chosen, no config | H.264/H.265/AV1 explicit                |
+| Quality control    | Bitrate only              | CRF, bitrate, profile, level            |
+| Frame timing       | Real-time capture only    | Arbitrary frame pacing                  |
+| Metadata embedding | None                      | Custom boxes via mp4-muxer              |
+| Browser support    | All browsers              | Chrome, Edge, Opera (covers 75%+ users) |
+| Fallback           | —                         | MediaRecorder as graceful degradation   |
 
 **Choice**: WebCodecs with `mp4-muxer` (https://github.com/Vanilagy/mp4-muxer) as primary path. MediaRecorder fallback for browsers without WebCodecs.
 
@@ -89,6 +89,7 @@ No other new dependencies. WebCodecs is a browser API (no polyfill needed).
 ### Option A: Off-screen separate Flam3 per frame (preferred)
 
 Create a hidden off-screen `<canvas>` with its own Flam3 instance. For each frame:
+
 1. Build the frame-specific flame descriptor
 2. Set it as the Flam3's descriptor prop
 3. Render until quality limit reached (monitoring accumulatedPointCount)
@@ -101,6 +102,7 @@ Create a hidden off-screen `<canvas>` with its own Flam3 instance. For each fram
 ### Option B: Reuse main canvas (current image export pattern)
 
 Override the main Flam3 like image export does with `exportQuality`. For each frame:
+
 1. Pause the animation playback timeline
 2. Set `flameDescriptor` to the frame-specific descriptor
 3. Let Flam3 render to quality
@@ -117,6 +119,7 @@ Start with Option B to validate the pipeline quickly. The progress bar overlay a
 ## Tabbed UI Design
 
 ### Image tab (existing, minor additions)
+
 - Resolution (1x/2x/4x)
 - Quality presets + slider
 - Exposure slider
@@ -128,6 +131,7 @@ Start with Option B to validate the pipeline quickly. The progress bar overlay a
 - **Export** button → triggers current `handleExport()`
 
 ### Animation tab (new)
+
 - **Quality** — same slider/range as image tab (0.5–0.999). Default 0.9 for animations (faster than 0.99 for stills since each frame compounds the cost)
 - **Resolution** — 1x/2x/4x select. Default 1x.
 - **Frame range** — start/end frame inputs, auto-populated from timeline config. "Use timeline range" checkbox.
@@ -138,6 +142,7 @@ Start with Option B to validate the pipeline quickly. The progress bar overlay a
 - **Render Animation** button → closes dialog, starts animation export with progress bar.
 
 ### Footer buttons
+
 - **Cancel** — closes dialog
 - **Export Image** — current image export (visible on both tabs)
 - **Render Animation** — animation export (visible on animation tab only)
@@ -160,18 +165,19 @@ Rendering Animation...   (frame 45 / 90)
 export type AnimationExportProgress = {
   currentFrame: number
   totalFrames: number
-  currentPointCount: number   // points in current frame
+  currentPointCount: number // points in current frame
   targetPointsPerFrame: number // quality limit for this frame
-  totalFramesComplete: number  // cumulative completed frames
-  startedAt: number            // performance.now() when started
+  totalFramesComplete: number // cumulative completed frames
+  startedAt: number // performance.now() when started
 }
-export const [animationExportProgress, setAnimationExportProgress] = 
+export const [animationExportProgress, setAnimationExportProgress] =
   createSignal<AnimationExportProgress | undefined>(undefined)
 ```
 
 ### ProgressBar changes
 
 Add animation mode detection: when `animationExportProgress` is set, show frame progress instead of point progress. Use a two-level bar:
+
 - Primary bar: frame completion (frames done / total frames)
 - Secondary smaller bar or text: current frame's point accumulation
 
@@ -211,6 +217,7 @@ const buffer = muxer.target.buffer
 ### Loading from video
 
 Add a "Load from Video" option (future task, not in scope of this plan):
+
 - Parse the `flm3` atom from the MP4
 - Decompress the JSON payload
 - Load flame + animation into the app
@@ -285,35 +292,35 @@ Support dual progress display (image point accumulation vs animation frame progr
 
 ## Technical Risks
 
-| Risk | Mitigation |
-|------|-----------|
-| WebCodecs not available in Firefox/Safari | Feature detect; fallback to MediaRecorder with lower quality |
-| GPU memory pressure from second Flam3 context | Start with reusable main-canvas approach (Option B) |
-| Large MP4 files for long animations | CRF/bitrate control; user-configurable quality per frame |
-| Browser tab throttling during background export | Keep tab focused; warn user if tab loses focus |
-| mp4-muxer buffer growth for long animations | Stream to file via File System Access API for >1000 frames |
+| Risk                                            | Mitigation                                                   |
+| ----------------------------------------------- | ------------------------------------------------------------ |
+| WebCodecs not available in Firefox/Safari       | Feature detect; fallback to MediaRecorder with lower quality |
+| GPU memory pressure from second Flam3 context   | Start with reusable main-canvas approach (Option B)          |
+| Large MP4 files for long animations             | CRF/bitrate control; user-configurable quality per frame     |
+| Browser tab throttling during background export | Keep tab focused; warn user if tab loses focus               |
+| mp4-muxer buffer growth for long animations     | Stream to file via File System Access API for >1000 frames   |
 
 ## Browser Compatibility
 
-| Browser | WebCodecs | MediaRecorder | Notes |
-|---------|-----------|---------------|-------|
-| Chrome 94+ | Yes | Yes | Primary target |
-| Edge 94+ | Yes | Yes | Same as Chrome (Chromium) |
-| Opera 80+ | Yes | Yes | Same as Chrome |
-| Firefox | No | Yes (VP8/VP9 only) | MediaRecorder fallback |
-| Safari 16.4+ | No | Yes (H.264) | MediaRecorder fallback |
-| Mobile Chrome | Yes | Yes | Works on Android |
-| Mobile Safari | No | Yes (H.264) | Works on iOS |
+| Browser       | WebCodecs | MediaRecorder      | Notes                     |
+| ------------- | --------- | ------------------ | ------------------------- |
+| Chrome 94+    | Yes       | Yes                | Primary target            |
+| Edge 94+      | Yes       | Yes                | Same as Chrome (Chromium) |
+| Opera 80+     | Yes       | Yes                | Same as Chrome            |
+| Firefox       | No        | Yes (VP8/VP9 only) | MediaRecorder fallback    |
+| Safari 16.4+  | No        | Yes (H.264)        | MediaRecorder fallback    |
+| Mobile Chrome | Yes       | Yes                | Works on Android          |
+| Mobile Safari | No        | Yes (H.264)        | Works on iOS              |
 
 ~75-80% of users get WebCodecs path; remainder get MediaRecorder fallback.
 
 ## File Size Estimates
 
-| Animation | Frames | Resolution | Quality | Est. Size (H.264) |
-|-----------|--------|------------|---------|-------------------|
-| 3 sec, 30fps | 90 | 1x (800px) | 0.9 | ~2-4 MB |
-| 3 sec, 30fps | 90 | 2x (1600px) | 0.9 | ~8-15 MB |
-| 10 sec, 30fps | 300 | 1x | 0.9 | ~6-12 MB |
-| 10 sec, 30fps | 300 | 2x | 0.95 | ~20-40 MB |
+| Animation     | Frames | Resolution  | Quality | Est. Size (H.264) |
+| ------------- | ------ | ----------- | ------- | ----------------- |
+| 3 sec, 30fps  | 90     | 1x (800px)  | 0.9     | ~2-4 MB           |
+| 3 sec, 30fps  | 90     | 2x (1600px) | 0.9     | ~8-15 MB          |
+| 10 sec, 30fps | 300    | 1x          | 0.9     | ~6-12 MB          |
+| 10 sec, 30fps | 300    | 2x          | 0.95    | ~20-40 MB         |
 
 CRF target: 23 (good quality) for H.264. Metadata payload: ~5-20KB per file.

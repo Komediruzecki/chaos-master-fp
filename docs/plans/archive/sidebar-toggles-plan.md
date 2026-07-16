@@ -26,14 +26,14 @@ sidebar
 
 Sections that should each get a collapse toggle:
 
-| Section | Header Text | Default State |
-|---------|------------|---------------|
-| AffineEditor | "Affine" | Expanded |
-| Color + Palette (FlameColorEditor + PaletteSelector) | "Color & Palette" | Expanded |
-| Each transform | "{readableId} Transform" | Expanded |
-| Render settings | "Render Settings" | Expanded |
-| Display/Toggles | "Display" | Expanded |
-| Action buttons | "Actions" | Expanded |
+| Section                                              | Header Text              | Default State |
+| ---------------------------------------------------- | ------------------------ | ------------- |
+| AffineEditor                                         | "Affine"                 | Expanded      |
+| Color + Palette (FlameColorEditor + PaletteSelector) | "Color & Palette"        | Expanded      |
+| Each transform                                       | "{readableId} Transform" | Expanded      |
+| Render settings                                      | "Render Settings"        | Expanded      |
+| Display/Toggles                                      | "Display"                | Expanded      |
+| Action buttons                                       | "Actions"                | Expanded      |
 
 ## Design
 
@@ -42,24 +42,24 @@ Sections that should each get a collapse toggle:
 Wrap existing `<Card>` content in a new component that adds a collapsible header:
 
 ```tsx
-function CollapsibleCard(props: ParentProps<{
-  title: string
-  defaultOpen?: boolean
-  class?: string
-}>) {
+function CollapsibleCard(
+  props: ParentProps<{
+    title: string
+    defaultOpen?: boolean
+    class?: string
+  }>,
+) {
   const [isOpen, setIsOpen] = createSignal(props.defaultOpen ?? true)
   return (
     <Card class={props.class}>
-      <button class={ui.collapseHeader} onClick={() => setIsOpen(p => !p)}>
+      <button class={ui.collapseHeader} onClick={() => setIsOpen((p) => !p)}>
         <span class={ui.collapseTitle}>{props.title}</span>
         <svg class={ui.chevron} classList={{ [ui.chevronOpen]: isOpen() }}>
           {/* chevron-down SVG */}
         </svg>
       </button>
       <Show when={isOpen()}>
-        <div class={ui.collapseContent}>
-          {props.children}
-        </div>
+        <div class={ui.collapseContent}>{props.children}</div>
       </Show>
     </Card>
   )
@@ -171,6 +171,7 @@ Simple component — ~30 lines. Takes `title`, `defaultOpen`, `children`.
 **File**: `packages/app/src/App.tsx`
 
 Wrap each logical section in a `<CollapsibleCard>`:
+
 - `AffineEditor` → `<CollapsibleCard title="Affine">`
 - `FlameColorEditor` + `PaletteSelector` → `<CollapsibleCard title="Color & Palette">`
 - Each `transformGrid` → `<CollapsibleCard title={readableIds().transformLabel[tid]}>`
@@ -183,6 +184,7 @@ Wrap each logical section in a `<CollapsibleCard>`:
 **File**: `packages/app/src/App.module.css`
 
 Minor adjustments:
+
 - Reduce gap between CollapsibleCards in sidebar
 - Ensure consistent padding within collapsed sections
 
@@ -198,9 +200,9 @@ Minor adjustments:
 
 ## Effort Estimate
 
-| Phase | Effort |
-|-------|--------|
-| 1. Chevron icon | Tiny |
-| 2. CollapsibleCard component | Small |
-| 3. Restructure sidebar | Medium |
-| 4. Style adjustments | Small |
+| Phase                        | Effort |
+| ---------------------------- | ------ |
+| 1. Chevron icon              | Tiny   |
+| 2. CollapsibleCard component | Small  |
+| 3. Restructure sidebar       | Medium |
+| 4. Style adjustments         | Small  |

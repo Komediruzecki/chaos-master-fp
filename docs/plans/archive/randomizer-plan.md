@@ -25,6 +25,7 @@ static void change_colors(flam3_genome *g, int change_palette) {
 ```
 
 Key design choices from flam3:
+
 - Colors are randomized uniformly in [0,1]
 - At least one transform gets color=0 (anchor point), one gets color=1
 - This ensures the color gradient spans the full palette range
@@ -42,6 +43,7 @@ using a seeded or crypto-random source.
 #### 1. Per-Transform Dice (next to transform color circle)
 
 Randomizes the entire transform:
+
 - `transform.color` — random value in [0, 1] for x, y independently
 - Optionally: affine coefficients (a-f for pre/post) with small perturbation
 - Optionally: variation weights
@@ -49,6 +51,7 @@ Randomizes the entire transform:
 #### 2. Per-Variation Dice (next to variation weight slider)
 
 Randomizes the variation:
+
 - `variation.weight` — random in [0, 1]
 - For parametric variations: randomize each param within its valid range
 - Optionally: swap to a random variation type
@@ -56,6 +59,7 @@ Randomizes the variation:
 #### 3. Per-Affine Coef Dice (next to each affine coef in AffineEditor)
 
 Randomizes a single affine coefficient:
+
 - Small perturbation (e.g., Gaussian with σ=0.2 around current value)
 - Or completely random within a reasonable range (e.g., [-2, 2])
 - Individual dice per coef (a, b, c, d, e, f) in pre/post affine
@@ -63,6 +67,7 @@ Randomizes a single affine coefficient:
 #### 4. Global Randomize (in action buttons bar or top of sidebar)
 
 Randomizes all colors at once (like flam3's `change_colors`):
+
 - Guarantees at least one transform at color=0 and one at color=1
 - Randomizes all transform colors uniformly
 
@@ -79,13 +84,18 @@ function randomRange(min: number, max: number): number {
   return min + Math.random() * (max - min)
 }
 
-function randomPerturbation(current: number, sigma: number, clampRange?: [number, number]): number {
+function randomPerturbation(
+  current: number,
+  sigma: number,
+  clampRange?: [number, number],
+): number {
   // Box-Muller or simple approximation
   const u = Math.random()
   const v = Math.random()
   const gaussian = Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v)
   const result = current + gaussian * sigma
-  if (clampRange) return Math.max(clampRange[0], Math.min(clampRange[1], result))
+  if (clampRange)
+    return Math.max(clampRange[0], Math.min(clampRange[1], result))
   return result
 }
 ```
@@ -112,6 +122,7 @@ interface DiceButtonProps {
 ### Randomization Strategies Per Mode
 
 **Transform mode:**
+
 ```ts
 {
   color: { x: random01(), y: random01() },
@@ -120,6 +131,7 @@ interface DiceButtonProps {
 ```
 
 **Variation mode:**
+
 ```ts
 {
   weight: random01(),
@@ -129,6 +141,7 @@ interface DiceButtonProps {
 ```
 
 **Affine coef mode:**
+
 ```ts
 {
   [affineType]: { ...current, [coefKey]: randomPerturbation(current, 0.3, [-3, 3]) },
@@ -136,6 +149,7 @@ interface DiceButtonProps {
 ```
 
 **Global colors mode (flam3-style):**
+
 ```ts
 function randomizeAllColors(transforms: TransformRecord): TransformRecord {
   // 1. Assign random colors to all transforms
@@ -175,6 +189,7 @@ arrow paths.
 **File**: `packages/app/src/flame/randomize.ts` (new)
 
 Export:
+
 - `random01()` — uniform [0,1]
 - `randomPerturbation(current, sigma, range?)` — Gaussian perturbation
 - `randomizeTransformColor()` — random color in [0,1]²
@@ -194,6 +209,7 @@ Tiny — ~20 lines.
 **File**: `packages/app/src/App.tsx`
 
 Add dice buttons at these locations:
+
 1. **Transform header**: Next to the color circle and delete button
    - Randomizes that transform's color
 2. **Variation row**: Next to the Cross delete button
@@ -221,10 +237,10 @@ Add dice buttons at these locations:
 
 ## Effort Estimate
 
-| Phase | Effort |
-|-------|--------|
-| 1. Shuffle icon | Tiny |
-| 2. Randomization utils | Small |
-| 3. DiceButton component | Tiny |
-| 4. Wire into sidebar | Medium |
-| 5. Variation type randomization | Small |
+| Phase                           | Effort |
+| ------------------------------- | ------ |
+| 1. Shuffle icon                 | Tiny   |
+| 2. Randomization utils          | Small  |
+| 3. DiceButton component         | Tiny   |
+| 4. Wire into sidebar            | Medium |
+| 5. Variation type randomization | Small  |

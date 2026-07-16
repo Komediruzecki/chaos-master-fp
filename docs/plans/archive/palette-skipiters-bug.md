@@ -63,6 +63,7 @@ const idx = i32(paletteEntryCount * logDensityNorm)
 ```
 
 Problems:
+
 - `logDensity` is clamped to [0, 10], but at high skipIters with concentrated
   points, most non-attractor buckets have `count < 1` → logDensity < 0.69
 - The `paletteScale` at default (0.5 → 0.169) maps logDensity range [0, 0.69]
@@ -92,6 +93,7 @@ k2 = (oversample² * nbatches) /
 ```
 
 Key differences:
+
 1. **k2 scales by sample_density** — higher density → smaller k2 → log argument
    stays in a consistent range regardless of point concentration
 2. **Division by count** (`/ c[3]`) — the tonemapped value is per-count, not
@@ -106,11 +108,11 @@ Key differences:
 The full fix is described in `docs/tonemapping-fix-plan.md`. The specific phases
 that address this bug:
 
-| Phase | What It Fixes |
-|-------|---------------|
-| Phase 2 (k1/k2 normalization) | `averagePointCountPerBucketInv` replaced with flam3's k2 formula that includes quality and area |
-| Phase 3 (fragment shader rewrite) | Tone curve becomes `k1*log(1+count*k2)/count` instead of `exposure*pow(log(...), 0.4545)` |
-| Phase 5 (skipIters feedback) | Scale effective sample_density by skipIters to maintain consistent brightness |
+| Phase                             | What It Fixes                                                                                   |
+| --------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Phase 2 (k1/k2 normalization)     | `averagePointCountPerBucketInv` replaced with flam3's k2 formula that includes quality and area |
+| Phase 3 (fragment shader rewrite) | Tone curve becomes `k1*log(1+count*k2)/count` instead of `exposure*pow(log(...), 0.4545)`       |
+| Phase 5 (skipIters feedback)      | Scale effective sample_density by skipIters to maintain consistent brightness                   |
 
 ### Quick Mitigation (Without Full Tonemapping Rewrite)
 
@@ -127,9 +129,11 @@ This ensures the palette always spans the full density range.
 
 **Option C: Wider default paletteScale**
 Change the default mapping to:
+
 ```wgsl
 const paletteScale = 0.05 + paletteSpeed * 0.5
 ```
+
 This gives a 4× wider range at default, making paletteSpeed changes more visible.
 
 Option C is the simplest and has zero performance cost. It's a one-line change in

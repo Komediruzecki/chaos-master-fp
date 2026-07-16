@@ -23,9 +23,10 @@ The Blender-style timeline (dope sheet, keyframe diamonds, auto-keyframe, I-key 
 **Root cause**: When a keyframe exists at a frame, `existingKf.value = value` mutates the object rather than replacing it. The outer array `[...prev]` is a new reference, but the inner keyframe object is the SAME reference. The `selectedKeyframeData` memo calls `timeline.getKeyframeAtFrame()` which returns this same object. Since the object identity didn't change, SolidJS memo tracking may not re-evaluate for nested property reads.
 
 **Fix**: In `addKeyframeImpl`, replace the keyframe object instead of mutating it:
+
 ```typescript
 existingTrack.keyframes = existingTrack.keyframes.map((kf) =>
-  kf.frame === frame ? { frame, value, easing: easing ?? kf.easing } : kf
+  kf.frame === frame ? { frame, value, easing: easing ?? kf.easing } : kf,
 )
 ```
 
@@ -38,6 +39,7 @@ existingTrack.keyframes = existingTrack.keyframes.map((kf) =>
 ### Bug 4: Animation tracks corrupted when clicking diamonds during playback
 
 **Root cause**: When animation is playing and user clicks a dope sheet diamond, `handleDragStart` fires on `onPointerDown`, which initiates pointer capture. Combined with Bug 1 and Bug 2, this can cause the timeline to enter inconsistent state where:
+
 - A click registers as both a selection AND a drag start
 - `moveKeyframe` calls `pushUndo()` + `removeKeyframeImpl` + `addKeyframeImpl`, causing two sequential `setTracks` calls
 - During playback, `currentFrame` is advancing every frame while these mutations occur
@@ -73,6 +75,7 @@ interface SharePayload {
 ### Step 3: Modify `encodeJsonQueryParam` / Create New Wrapper
 
 Add `encodeSharePayload(flame, timeline?)` and `decodeSharePayload(param)` functions:
+
 - `encodeSharePayload` — wraps flame + optional animation, compresses, encodes
 - `decodeSharePayload` — decodes, decompresses, validates, returns `{ flame, animation? }`
 - Only includes animation key if tracks array is non-empty (at least one keyframe exists)
@@ -87,7 +90,7 @@ Add `encodeSharePayload(flame, timeline?)` and `decodeSharePayload(param)` funct
 
 ### Step 5: Modify URL Loading in App.tsx
 
-- `decodeSharePayload` returns `{ flame, animation? }` 
+- `decodeSharePayload` returns `{ flame, animation? }`
 - When animation data is present, load it the same way `loadedAnimation` does: `timeline.setTracks()`, `timeline.setAnimationEnabled(true)`, `timeline.goToFrame(0)`, `timeline.play()` with `loop: false`
 - Play once and stop (don't loop shared animations)
 
@@ -98,6 +101,7 @@ Add `encodeSharePayload(flame, timeline?)` and `decodeSharePayload(param)` funct
 `components/ExportPngDialog/ExportPngDialog.tsx` + CSS module
 
 **Settings:**
+
 - **Resolution**: `1x`, `2x`, `4x` (renders at `canvas.width * scale`, `canvas.height * scale`)
 - **Quality**: `0.5` to `1.0` slider (passed to `canvas.toBlob` as second arg)
 - **Embed flame data**: checkbox (default on) — whether to embed flame JSON in PNG zTXt chunk
@@ -128,19 +132,19 @@ Add `encodeSharePayload(flame, timeline?)` and `decodeSharePayload(param)` funct
 
 ## Files to Modify
 
-| File | Changes |
-|------|---------|
-| `components/Timeline/DopeSheetTrack.tsx` | Bug 1: reset `didDrag` in handleUp. Bug 3: remove `addKeyframeAtCurrentFrame` from lane click. Bug 4: disable drag during playback. |
-| `utils/timeline.ts` | Bug 2: replace-instead-of-mutate in `addKeyframeImpl`. Phase 5: pause at end when `loop === false`. |
-| `flame/schema/timeline.ts` | Add missing `value` field to Keyframe schema |
-| `utils/jsonQueryParam.ts` | Add `encodeSharePayload` / `decodeSharePayload` |
-| `components/ShareLinkModal/ShareLinkModal.tsx` | Add "Include Animation" toggle, frame info display |
-| `App.tsx` | Wire share payload to include timeline; modify URL loading to handle animation data; wire ExportPngDialog |
-| `components/Timeline/DopeSheet.tsx` | Auto-fit on new tracks (Phase 4) |
+| File                                           | Changes                                                                                                                             |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `components/Timeline/DopeSheetTrack.tsx`       | Bug 1: reset `didDrag` in handleUp. Bug 3: remove `addKeyframeAtCurrentFrame` from lane click. Bug 4: disable drag during playback. |
+| `utils/timeline.ts`                            | Bug 2: replace-instead-of-mutate in `addKeyframeImpl`. Phase 5: pause at end when `loop === false`.                                 |
+| `flame/schema/timeline.ts`                     | Add missing `value` field to Keyframe schema                                                                                        |
+| `utils/jsonQueryParam.ts`                      | Add `encodeSharePayload` / `decodeSharePayload`                                                                                     |
+| `components/ShareLinkModal/ShareLinkModal.tsx` | Add "Include Animation" toggle, frame info display                                                                                  |
+| `App.tsx`                                      | Wire share payload to include timeline; modify URL loading to handle animation data; wire ExportPngDialog                           |
+| `components/Timeline/DopeSheet.tsx`            | Auto-fit on new tracks (Phase 4)                                                                                                    |
 
 ## Files to Create
 
-| File | Purpose |
-|------|---------|
-| `components/ExportPngDialog/ExportPngDialog.tsx` | Export settings dialog |
-| `components/ExportPngDialog/ExportPngDialog.module.css` | Dialog styles |
+| File                                                    | Purpose                |
+| ------------------------------------------------------- | ---------------------- |
+| `components/ExportPngDialog/ExportPngDialog.tsx`        | Export settings dialog |
+| `components/ExportPngDialog/ExportPngDialog.module.css` | Dialog styles          |

@@ -30,6 +30,7 @@ group** at a time, which is the correct mathematical model for IFS fractal symme
 
 All symmetry transforms use IDs prefixed with `_sym__` (e.g., `_sym__abc123`). This
 prefix is used to:
+
 - Identify symmetry transforms vs. user-defined transforms
 - Detect the current symmetry group from the flame state
 - Clean up symmetry transforms when the symmetry type or fold count changes
@@ -49,6 +50,7 @@ prefix is used to:
 ### UI Panel
 
 The symmetry panel in the sidebar provides:
+
 - **Type dropdown**: Rotational or Dihedral
 - **Folds scrub input**: Controls the N in the symmetry group
 - **Gallery grid**: 2-column grid of compact sym items, each showing:
