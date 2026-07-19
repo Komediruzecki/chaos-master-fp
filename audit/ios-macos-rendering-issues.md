@@ -1,8 +1,15 @@
 # iOS/macOS Rendering Audit Report
 
-**Branch**: `audit/ios-macos-rendering-issues`  
-**Date**: 2026-06-20  
+**Branch**: `fix/ios-macos-rendering`  
+**Date**: 2026-07-19  
 **Scope**: Flame render pipeline from load through presentation on iOS Safari / macOS WebGPU
+
+> **Note on this document.** The findings below are the original investigation.
+> Two recommendations were revised during implementation — the `framesPending`
+> count valve cannot fire (the render gate caps the set at 3, so a `> 10`
+> threshold is unreachable), and a rejecting hold is only one of two failure
+> modes. See **[Resolution — What Shipped](#resolution--what-shipped)** at the
+> bottom for the fixes that actually landed.
 
 ---
 
@@ -110,18 +117,7 @@ const holdWithTimeout = () => {
 }
 ```
 
-2. **Cap `framesPending` eviction** — if size exceeds a hard limit (e.g., 10), clear all entries and log a warning:
-
-```ts
-if (framesPending.size > 10) {
-  console.warn(
-    '[createAnimationFrame] framesPending overflow, clearing',
-    framesPending.size,
-  )
-  framesPending.clear()
-  lastTime = 0 // force next frame
-}
-```
+2. ~~**Cap `framesPending` eviction** — if size exceeds a hard limit (e.g., 10), clear all entries~~ **(rejected — does not work).** The render gate is `framesPending.size <= 2`, and `framesPending.add()` only runs inside that gate, so the set can never exceed **3**. A `> 10` threshold is dead code, and the stall this was meant to catch happens at exactly 3 (see Finding 1's own analysis). Lowering the threshold to `> 2` is also wrong: it would evict frames that are legitimately in flight, defeating the GPU back-pressure the hold provides (the Chrome "rAF collapse" guard). The correct mechanism is the **per-hold timeout in recommendation 1** — it releases only the individual stuck slot, and it handles a hold that _hangs_ (never settles), which a rejection-only fix does not.
 
 3. **Consider rendering ONE frame while modal is closing** — a strategic `requestAnimationFrame` + `redraw()` after `setLoadModalIsOpen(false)` would guarantee a visible frame immediately.
 
@@ -165,7 +161,9 @@ hold().then(
 )
 ```
 
-Use `.then(onFulfilled, onRejected)` instead of `.then().catch()` so `framesPending` is always cleaned up, even on rejection. This is a one-line fix.
+Use `.then(onFulfilled, onRejected)` instead of `.then().catch()` so `framesPending` is always cleaned up, even on rejection.
+
+**Caveat:** if the rejection is _persistent_ (Safari rejects every frame), keeping the loop alive turns a one-time "3 errors then stall" into per-frame console spam — the very "console errors" symptom being fixed. The rejection/timeout log must therefore be **throttled** (first occurrence + every Nth), not logged unconditionally.
 
 ---
 
@@ -297,15 +295,36 @@ function requestRedraw() {
 
 ---
 
-## Summary of Recommended Fixes (Priority Order)
+## Resolution — What Shipped
 
-| #   | Fix                                                                                                                                        | Impact                        | Effort        |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------- | ------------- |
-| 1   | **Fix hold promise rejection leak** — use `.then(onFulfilled, onRejected)` instead of `.then().catch()` in `createAnimationFrame.ts:34-36` | Console errors + render stall | 1 line        |
-| 2   | **Add framesPending safety valve** — clear stuck entries after a timeout or count threshold                                                | Render stall recovery         | ~10 lines     |
-| 3   | **Guard `rafLoop?.redraw()`** in `requestRedraw` — prevent silent TypeError if rafLoop is unassigned                                       | Defensive                     | 1 line        |
-| 4   | **Log diagnostic warnings** when renderTick bails silently (colorGradingPipeline undefined, gpuReady false)                                | Debuggability                 | ~5 lines      |
-| 5   | **Consider immediate frame after modal close** — call `requestRedraw()` explicitly after `setLoadModalIsOpen(false)`                       | Perceived responsiveness      | 1 line        |
-| 6   | **Double-buffer / fade accumulation reset** to reduce flicker                                                                              | Flicker reduction             | Design change |
+The interactive render loop can stall on iOS Safari two ways, and the fix has to
+cover **both**:
 
-Fix #1 is the single most likely root cause — it would explain ALL three reported symptoms (console errors, no render until interaction, and the touch/drag "fix" working via pipeline rebuild clearing the stuck state).
+- **The hold rejects** — handled by cleaning up `framesPending` in an
+  `onRejected` handler.
+- **The hold hangs** (never resolves _or_ rejects, plausible on an idle WebKit
+  GPU queue) — a rejection-only fix does nothing here, and the count valve can't
+  fire. This is the mechanism that best explains "blank until I touch the
+  camera": a camera nudge submits fresh GPU work, which lets the stuck
+  `onSubmittedWorkDone` promises finally settle and drains the set.
+
+Shipped in `createAnimationFrame.ts` and `Flam3.tsx`:
+
+| #   | Fix                                                                                                                                                  | Status                         |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| 1   | **Cleanup on reject** — `.then(onFulfilled, onRejected)`; the entry is deleted whether the hold resolves or rejects                                  | Shipped                        |
+| 2   | **Per-hold timeout** (`HOLD_TIMEOUT_MS = 2000`) — releases the individual stuck slot if the hold neither resolves nor rejects; recovers a hung queue | Shipped (replaces count valve) |
+| 3   | **Throttled stall log** — first occurrence + every 60th, so a persistent fault can't spam the console                                                | Shipped                        |
+| 4   | **`rafLoop?.redraw()` guard** in `requestRedraw`                                                                                                     | Shipped                        |
+| 5   | **`renderTick` bail diagnostics** (gpuReady=false, colorGradingPipeline undefined), gated behind `DEBUG_MODE`                                        | Shipped (DEBUG_MODE-gated)     |
+| 6   | **Force redraw on the Infinity → finite `renderInterval` transition** (modal close), not on every finite change                                      | Shipped (transition-gated)     |
+| —   | **Flicker double-buffer / fade on accumulation reset**                                                                                               | Deferred (design change)       |
+
+Unit coverage: `createAnimationFrame.test.ts` pins the reject-cleanup, the
+hung-hold timeout recovery, and the log throttle.
+
+**Confidence.** The rejecting-hold path is spec-plausible but was not reproduced
+on-device; the diagnostics (Fix #5) exist to confirm which path fires. Verify on
+the actual iOS device before considering the symptom closed: a `hold rejected`
+log points at the reject path, a silent recovery ~2 s after a stall points at the
+timeout (hung) path.

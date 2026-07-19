@@ -844,8 +844,9 @@ export function Flam3(props: Flam3Props) {
         consecutiveGpuNotReadyBails++
         consecutivePipelineUndefinedBails = 0
         if (
-          consecutiveGpuNotReadyBails === 1 ||
-          consecutiveGpuNotReadyBails % 60 === 0
+          DEBUG_MODE &&
+          (consecutiveGpuNotReadyBails === 1 ||
+            consecutiveGpuNotReadyBails % 60 === 0)
         ) {
           console.warn(
             `[Flam3] renderTick bailing: gpuReady=false (${consecutiveGpuNotReadyBails} consecutive frames)`,
@@ -863,8 +864,9 @@ export function Flam3(props: Flam3Props) {
       if (colorGradingPipeline_ === undefined) {
         consecutivePipelineUndefinedBails++
         if (
-          consecutivePipelineUndefinedBails === 1 ||
-          consecutivePipelineUndefinedBails % 60 === 0
+          DEBUG_MODE &&
+          (consecutivePipelineUndefinedBails === 1 ||
+            consecutivePipelineUndefinedBails % 60 === 0)
         ) {
           const size = canvasSize()
           console.warn(
@@ -1143,9 +1145,19 @@ export function Flam3(props: Flam3Props) {
     // finite rate, force an immediate redraw so the first frame appears without
     // waiting for the next rAF delta-time check. On iOS Safari this also helps
     // recover from any transient GPU-queue stall during the modal transition.
+    // Gate on the Infinity -> finite transition only: every flame load already
+    // redraws via resetAccumulation(), so redrawing on every finite interval
+    // change (e.g. entering/leaving export at interval 0) would be redundant.
+    // Seed with untrack() so this outer (pipeline-building) scope does not
+    // subscribe to renderInterval — only the inner effect below should.
+    let renderIntervalWasFinite = untrack(() =>
+      Number.isFinite(props.renderInterval),
+    )
     createEffect(() => {
-      const interval = props.renderInterval
-      if (Number.isFinite(interval)) {
+      const finite = Number.isFinite(props.renderInterval)
+      const resumedFromStall = finite && !renderIntervalWasFinite
+      renderIntervalWasFinite = finite
+      if (resumedFromStall) {
         requestRedraw()
       }
     })
