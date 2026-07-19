@@ -690,6 +690,29 @@ export function Flam3(props: Flam3Props) {
       notifyExportWork?.()
     }
 
+    // Re-blit the current color-graded accumulation to the canvas without doing
+    // any IFS work. Used by the present pump to keep iOS WebKit's swapchain warm
+    // between the throttled IFS presents (see the pump loop below).
+    function presentToCanvas() {
+      const cg = colorGradingPipeline()
+      if (cg === undefined) return
+      const encoder = device.createCommandEncoder()
+      const pass = encoder.beginRenderPass({
+        colorAttachments: [
+          {
+            loadOp: 'clear',
+            storeOp: 'store',
+            view: context
+              .getCurrentTexture()
+              .createView({ label: 'flam3PumpView' }),
+          },
+        ],
+      })
+      cg.run(pass)
+      pass.end()
+      device.queue.submit([encoder.finish()])
+    }
+
     // Update IFS pipeline uniforms when animatedFlame changes.
     createEffect(() => {
       const flame = animatedFlame()
@@ -1139,6 +1162,35 @@ export function Flam3(props: Flam3Props) {
       // disposes every preview's loop on the spot (no more requestAnimationFrame,
       // no more onSubmittedWorkDone holds against a dead queue).
       () => exportDriverActive() || !gpuReady(),
+    )
+
+    // Present pump (iOS WebKit): a WebGPU canvas that isn't drawn every frame
+    // shows stale swapchain buffers. The interactive loop above only presents
+    // when an IFS batch completes — on a slow GPU that can be 100-200ms apart
+    // during a load, long enough for WebKit to flash the previous flame between
+    // presents. Re-present the current image every frame while the flame is
+    // still accumulating so no gap is ever visible. Only the main visible canvas
+    // needs this; previews/gallery tiles are excluded to avoid per-tile cost,
+    // and it never runs during an export (that driver owns the canvas).
+    createAnimationFrame(
+      () => {
+        if (!gpuReady() || exportDriverActive()) return
+        // Skip the pre-first-present window (no accumulation yet — avoid a black
+        // flash) and stop once quality is reached (swapchain already warm).
+        if (
+          accumulatedPointCount_ <= 0 ||
+          !continueRendering(accumulatedPointCount_)
+        ) {
+          return
+        }
+        presentToCanvas()
+      },
+      0,
+      undefined,
+      () =>
+        exportDriverActive() ||
+        !gpuReady() ||
+        !(props.isExportRenderer ?? false),
     )
 
     // When the render interval drops from Infinity (modal closed) back to a
