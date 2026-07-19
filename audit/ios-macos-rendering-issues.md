@@ -310,21 +310,26 @@ cover **both**:
 
 Shipped in `createAnimationFrame.ts` and `Flam3.tsx`:
 
-| #   | Fix                                                                                                                                                  | Status                         |
-| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| 1   | **Cleanup on reject** — `.then(onFulfilled, onRejected)`; the entry is deleted whether the hold resolves or rejects                                  | Shipped                        |
-| 2   | **Per-hold timeout** (`HOLD_TIMEOUT_MS = 2000`) — releases the individual stuck slot if the hold neither resolves nor rejects; recovers a hung queue | Shipped (replaces count valve) |
-| 3   | **Throttled stall log** — first occurrence + every 60th, so a persistent fault can't spam the console                                                | Shipped                        |
-| 4   | **`rafLoop?.redraw()` guard** in `requestRedraw`                                                                                                     | Shipped                        |
-| 5   | **`renderTick` bail diagnostics** (gpuReady=false, colorGradingPipeline undefined), gated behind `DEBUG_MODE`                                        | Shipped (DEBUG_MODE-gated)     |
-| 6   | **Force redraw on the Infinity → finite `renderInterval` transition** (modal close), not on every finite change                                      | Shipped (transition-gated)     |
-| —   | **Flicker double-buffer / fade on accumulation reset**                                                                                               | Deferred (design change)       |
+| #   | Fix                                                                                                                                                                                                                                                                                                 | Status                         |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| 1   | **Cleanup on reject** — `.then(onFulfilled, onRejected)`; the entry is deleted whether the hold resolves or rejects                                                                                                                                                                                 | Shipped                        |
+| 2   | **Per-hold timeout** (`HOLD_TIMEOUT_MS = 2000`) — releases the individual stuck slot if the hold neither resolves nor rejects; recovers a hung queue                                                                                                                                                | Shipped (replaces count valve) |
+| 3   | **Throttled stall log** — first occurrence + every 60th, so a persistent fault can't spam the console                                                                                                                                                                                               | Shipped                        |
+| 4   | **`rafLoop?.redraw()` guard** in `requestRedraw`                                                                                                                                                                                                                                                    | Shipped                        |
+| 5   | **`renderTick` bail diagnostics** (gpuReady=false, colorGradingPipeline undefined), gated behind `DEBUG_MODE`                                                                                                                                                                                       | Shipped (DEBUG_MODE-gated)     |
+| 6   | **Force redraw on the Infinity → finite `renderInterval` transition** (modal close), not on every finite change                                                                                                                                                                                     | Shipped (transition-gated)     |
+| 7   | **Skip identical-size `ResizeObserver` updates** (`useElementSize.ts`) — a modal open/close reflows iOS layout without changing the canvas box; committing a fresh same-size object still reallocated every WebGPU buffer and reset accumulation (Finding 3's real root, not the point-cloud reset) | Shipped                        |
+| 8   | **Present pump** (`Flam3.tsx`) — re-blit the current image every frame while accumulating so iOS WebKit's swapchain never shows a stale buffer between the 100–229ms-apart IFS presents on load                                                                                                     | Shipped                        |
+| —   | **Flicker double-buffer / fade on accumulation reset**                                                                                                                                                                                                                                              | Not needed (7 + 8 resolved it) |
 
 Unit coverage: `createAnimationFrame.test.ts` pins the reject-cleanup, the
 hung-hold timeout recovery, and the log throttle.
 
-**Confidence.** The rejecting-hold path is spec-plausible but was not reproduced
-on-device; the diagnostics (Fix #5) exist to confirm which path fires. Verify on
-the actual iOS device before considering the symptom closed: a `hold rejected`
-log points at the reject path, a silent recovery ~2 s after a stall points at the
+**Confidence.** Verified on-device (iPhone 13 Pro, iOS 26.x). On-screen render
+logging confirmed the load stall, the spurious same-size pipeline rebuilds, and
+the sparse (100–229ms-apart) presents behind the stale-swapchain flip; after the
+fixes the stall is gone, the load renders immediately and flicker-free, and modal
+open/close no longer flickers. The original stall root was the hung/rejecting
+hold — a `hold rejected` log points at the reject path, a silent recovery ~2 s
+after a stall points at the
 timeout (hung) path.
