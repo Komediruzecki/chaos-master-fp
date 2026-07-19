@@ -1,0 +1,311 @@
+# iOS/macOS Rendering Audit Report
+
+**Branch**: `audit/ios-macos-rendering-issues`  
+**Date**: 2026-06-20  
+**Scope**: Flame render pipeline from load through presentation on iOS Safari / macOS WebGPU
+
+---
+
+## Reported Symptoms
+
+1. **Console errors** (unspecified) on iOS/macOS
+2. **"Load flame" doesn't render immediately** — flame only appears after touch/drag on the camera
+3. **Flickering** during interaction
+
+---
+
+## Finding 1: `renderInterval = Infinity` While Any Modal Is Open
+
+**File**: `packages/app/src/MainWorkspace.tsx:967-972`
+**Severity**: High (root cause of "doesn't load until touch/drag")
+
+```ts
+const finalRenderInterval = () =>
+  isAnyModalOpen() ? Infinity : onExportImage() ? 0 : DEFAULT_RENDER_INTERVAL_MS
+```
+
+When `LoadFlameModal` opens, all rendering stops. The rAF loop keeps polling `requestAnimationFrame` but `getDeltaTime()` returns `Infinity`, so `passedEnoughTime = time - lastTime >= Infinity` is always `false`. No frames are rendered while the user browses flames.
+
+### What happens after a flame is loaded:
+
+In `LoadFlameModal.tsx:1133-1187`, `showLoadFlameModal()` follows this sequence:
+
+```
+1. setLoadModalIsOpen(true)        // renderInterval = Infinity
+2. await requestModal(...)         // user browses, NO rendering
+3. setLoadModalIsOpen(false)       // renderInterval = 1ms
+4. batch {
+     history.replace(flame)        // parameterFingerprint changes
+     setLoadedAnimation(...)
+   }
+5. Solid effects flush:
+   - Flam3 outer effect re-runs (new pipeline + new rAF loop)
+   - Inner effects: resetAccumulation() → requestRedraw() → lastTime = 0
+6. Next rAF callback: lastTime === 0 → renders
+```
+
+Step 3 and 4 happen synchronously in the same task. By the time the outer effect re-runs (step 5), `props.renderInterval` is already `DEFAULT_RENDER_INTERVAL_MS` (1ms). So the NEW rAF loop starts rendering at 1ms intervals immediately — **on paper this should work**.
+
+### The iOS-specific failure mechanism
+
+On iOS Safari, there is a critical nuance: `createAnimationFrame` uses a `hold` promise to throttle the GPU queue:
+
+```ts
+// Flam3.tsx:1096-1110
+const rafLoop = createAnimationFrame(
+  (frameId) => {
+    renderTick(frameId)
+  },
+  () =>
+    continueRendering(accumulatedPointCount_) ? props.renderInterval : Infinity,
+  () => device.queue.onSubmittedWorkDone(), // ← HOLD
+  () => exportDriverActive() || !gpuReady(),
+)
+```
+
+In `createAnimationFrame.ts:25-41`:
+
+```ts
+function run(time: number) {
+  if (disposed) return
+  const framesNotPending = framesPending.size <= 2
+  const passedEnoughTime = time - lastTime >= getDeltaTime()
+  if (framesNotPending && (lastTime === 0 || passedEnoughTime)) {
+    lastTime = time
+    fn(frameId) // renderTick
+    if (hold) {
+      framesPending.add(time)
+      hold()
+        .then(() => framesPending.delete(time))
+        .catch(console.error) // ← LOGS TO CONSOLE ON REJECTION
+    }
+  }
+  if (!disposed) {
+    frameId = requestAnimationFrame(run)
+  }
+}
+```
+
+**If `device.queue.onSubmittedWorkDone()` rejects on iOS Safari** (which can happen during device transitions, queue stalls, or after the GPU was idle), then:
+
+1. `console.error` fires → **console errors reported by user**
+2. `framesPending.delete(time)` never runs → `framesPending` grows
+3. After 3 frames: `framesPending.size > 2` → `framesNotPending = false` → **rAF loop blocks permanently**
+4. No more frames render
+
+**Why camera touch/drag "fixes" it**: Camera interaction triggers `resetAccumulation()` → `requestRedraw()` → `rafLoop.redraw()` → `lastTime = 0`. But **this does NOT clear `framesPending`**. If `framesPending` is already stuck at 3 entries, `framesNotPending` stays `false`, and `lastTime = 0` doesn't help — the `framesNotPending` check comes first.
+
+**However**, if the device recovery from an `onSubmittedWorkDone` rejection involves recreating the pipeline (e.g., `gpuReady()` flickering from `ready` back to `ready` via a device re-init), the outer effect would re-run, creating a fresh rAF loop with an empty `framesPending`. The camera drag might trigger device recovery indirectly.
+
+### Recommendation
+
+1. **Add a safety timeout to the hold promise** so a stuck promise doesn't permanently block rendering:
+
+```ts
+// createAnimationFrame.ts - framed pending with timeout
+const holdWithTimeout = () => {
+  const holdP = hold()
+  const timeoutP = new Promise<void>((resolve) => setTimeout(resolve, 5000))
+  return Promise.race([holdP, timeoutP])
+}
+```
+
+2. **Cap `framesPending` eviction** — if size exceeds a hard limit (e.g., 10), clear all entries and log a warning:
+
+```ts
+if (framesPending.size > 10) {
+  console.warn(
+    '[createAnimationFrame] framesPending overflow, clearing',
+    framesPending.size,
+  )
+  framesPending.clear()
+  lastTime = 0 // force next frame
+}
+```
+
+3. **Consider rendering ONE frame while modal is closing** — a strategic `requestAnimationFrame` + `redraw()` after `setLoadModalIsOpen(false)` would guarantee a visible frame immediately.
+
+---
+
+## Finding 2: `onSubmittedWorkDone()` Promise Rejection on iOS Safari
+
+**File**: `packages/app/src/utils/createAnimationFrame.ts:34-36`
+**Severity**: High (console errors + potential permanent render stall)
+
+```ts
+hold()
+  .then(() => framesPending.delete(time))
+  .catch(console.error)
+```
+
+The WebGPU spec states that `device.queue.onSubmittedWorkDone()` returns a Promise that rejects if the device is lost. On iOS Safari (WebKit WebGPU implementation), this Promise may also reject under conditions that Chrome handles gracefully:
+
+- **Idle GPU queue**: If no work was submitted since the last `onSubmittedWorkDone()` call, Safari may reject.
+- **Tab visibility transitions**: When the tab goes to background and returns (modal overlay on mobile is treated as partial visibility loss).
+- **Memory pressure**: iOS is aggressive about GPU memory reclamation.
+
+When this Promise rejects, two things happen:
+
+1. **Console spam**: `console.error` logs the rejection for every frame → matches user's "console errors"
+2. **framesPending leak**: `.then()` never cleans up → see Finding 1 for downstream impact
+
+### Recommendation
+
+```ts
+// Wrap hold to never reject
+hold().then(
+  () => framesPending.delete(time),
+  (err) => {
+    console.warn(
+      '[createAnimationFrame] hold rejected, cleaning up anyway',
+      err,
+    )
+    framesPending.delete(time)
+  },
+)
+```
+
+Use `.then(onFulfilled, onRejected)` instead of `.then().catch()` so `framesPending` is always cleaned up, even on rejection. This is a one-line fix.
+
+---
+
+## Finding 3: Flicker From `clearRequested` on Every Camera Interaction
+
+**File**: `packages/app/src/flame/Flam3.tsx:784-806`
+**Severity**: Medium (flicker is design-level, not a bug per se)
+
+```ts
+function resetAccumulation() {
+  batchIndex = 0
+  accumulatedPointCount_ = 0
+  lastExportRenderedPointCount = -1
+  if (props.isExportRenderer ?? false) {
+    setAccumulatedPointCountGlobal(0)
+  }
+  clearRequested = true // ← forces GPU buffer clear next renderTick
+  resetPointStatePending = true
+  dispatchesSincePersistReseed = 0
+  requestRedraw()
+}
+```
+
+The camera effect (line 763-766):
+
+```ts
+createEffect(() => {
+  camera?.update()
+  camera3D?.update()
+  if (!animationExportRunning()) resetAccumulation()
+})
+```
+
+Every camera pan/pinch/zoom calls `resetAccumulation()`, which sets `clearRequested = true`. The next `renderTick` performs `encoder.clearBuffer()` on the accumulation texture, erasing all accumulated IFS points. The subsequent dispatch starts from zero → visible flicker as the image vanishes and re-accumulates.
+
+On iOS, this flicker is more pronounced because:
+
+- iOS GPU has lower throughput → accumulation takes more frames to reach visible density
+- The clear-before-first-dispatch gap is longer on iOS
+
+### Recommendation
+
+This is inherent to the point-cloud accumulation approach — when the camera moves, old points are invalid. Mitigations:
+
+1. **Double-buffer accumulation**: Keep the previous accumulation texture and blend it with the new one during the first N frames after reset
+2. **Temporal anti-flicker**: Instead of immediate `clearBuffer`, fade the old accumulation over 2-3 frames
+3. **Reduce camera update frequency**: Debounce camera effect-triggered resets during rapid drag/pinch (only reset after interaction settles)
+
+---
+
+## Finding 4: Canvas Size Race With 150ms ResizeObserver Debounce
+
+**File**: `packages/app/src/utils/useElementSize.ts:82` (all resize events debounced by `CANVAS_RESIZE_DEBOUNCE_MS = 150ms`)
+**Severity**: Low-Medium (transient issue on first load, less likely during flame load)
+
+```ts
+// renderTick bails early if canvas size is {0,0}
+const colorGradingPipeline_ = colorGradingPipeline()
+if (colorGradingPipeline_ === undefined) {
+  return { iterations: 0, presented: false, hadWork: false }
+}
+```
+
+`colorGradingPipeline()` returns `undefined` when `outputTextures()` is `undefined`, which happens when `activeSize()` returns `{width: 0, height: 0}`. The `activeSize()` comes from the ResizeObserver on the canvas element.
+
+During modal transitions on iOS Safari:
+
+- The canvas container may briefly report 0 dimensions if the modal overlay causes layout shift
+- The 150ms debounce means even a transient 1-frame layout change causes 150ms of zero-size rendering
+- All `renderTick` calls silently return with no work → flame appears "stuck"
+
+### Recommendation
+
+1. **Reduce debounce to 50ms** on iOS (or remove the debounce for the first size observation)
+2. **Log a warning** when `renderTick` bails due to `colorGradingPipeline() === undefined` for more than N consecutive frames — this makes the failure visible
+
+---
+
+## Finding 5: iOS Safari-Specific WebGPU Issues
+
+### 5a: `getContext('webgpu')` Timing
+
+**File**: `packages/app/src/lib/AutoCanvas.tsx:187` (deferred canvas signal via `createEffect`)
+
+The existing code defers canvas signal assignment to an effect to work around iOS Safari's `getContext('webgpu')` returning `null` before DOM mount. This is correct and already in place.
+
+### 5b: No `timestamp-query` Feature on Safari
+
+**File**: `packages/app/src/lib/WebgpuAdapter.ts:227` (conditional feature request)
+
+The code already conditionally requests `timestamp-query` only when `TRACK_PERFORMANCE && adapter.features.has('timestamp-query')`. On Safari, this falls back to CPU timing. This is correct.
+
+However, the CPU timing fallback (`estimateIterationCount` in `renderTick`) may under-report on iOS, causing `iterationCount` to grow too aggressively → GPU queue saturation → Chrome "rAF collapse" equivalent on Safari.
+
+---
+
+## Finding 6: Race Between `rafLoop` Creation and `requestRedraw`
+
+**File**: `packages/app/src/flame/Flam3.tsx:688-691, 1096-1110`
+**Severity**: Low (should work due to SolidJS effect ordering, but fragile)
+
+```ts
+function requestRedraw() {
+  rafLoop.redraw() // ← rafLoop is const, declared later at line 1096
+  notifyExportWork?.()
+}
+```
+
+`requestRedraw` is defined (line 688) before `rafLoop` is assigned (line 1096). This works via closure capture — `rafLoop` is dereferenced at call time, when it has been assigned. However:
+
+1. The inner effect at line 740-742 calls `resetAccumulation()` → `requestRedraw()` → `rafLoop.redraw()`
+2. This inner effect is queued and flushes AFTER the outer effect body completes (including `rafLoop = createAnimationFrame(...)` at line 1096)
+3. So `rafLoop` should always be assigned when the inner effect fires
+
+**BUT**: If the `createAnimationFrame` call itself fails (e.g., throws an exception), `rafLoop` would remain `undefined`, and `requestRedraw` would throw `TypeError: Cannot read properties of undefined (reading 'redraw')`.
+
+This is unlikely but possible if, for example, `device.queue.onSubmittedWorkDone()` throws synchronously on iOS Safari (instead of returning a rejecting Promise).
+
+### Recommendation
+
+Add a defensive guard:
+
+```ts
+function requestRedraw() {
+  rafLoop?.redraw()
+  notifyExportWork?.()
+}
+```
+
+---
+
+## Summary of Recommended Fixes (Priority Order)
+
+| #   | Fix                                                                                                                                        | Impact                        | Effort        |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------- | ------------- |
+| 1   | **Fix hold promise rejection leak** — use `.then(onFulfilled, onRejected)` instead of `.then().catch()` in `createAnimationFrame.ts:34-36` | Console errors + render stall | 1 line        |
+| 2   | **Add framesPending safety valve** — clear stuck entries after a timeout or count threshold                                                | Render stall recovery         | ~10 lines     |
+| 3   | **Guard `rafLoop?.redraw()`** in `requestRedraw` — prevent silent TypeError if rafLoop is unassigned                                       | Defensive                     | 1 line        |
+| 4   | **Log diagnostic warnings** when renderTick bails silently (colorGradingPipeline undefined, gpuReady false)                                | Debuggability                 | ~5 lines      |
+| 5   | **Consider immediate frame after modal close** — call `requestRedraw()` explicitly after `setLoadModalIsOpen(false)`                       | Perceived responsiveness      | 1 line        |
+| 6   | **Double-buffer / fade accumulation reset** to reduce flicker                                                                              | Flicker reduction             | Design change |
+
+Fix #1 is the single most likely root cause — it would explain ALL three reported symptoms (console errors, no render until interaction, and the touch/drag "fix" working via pipeline rebuild clearing the stuck state).

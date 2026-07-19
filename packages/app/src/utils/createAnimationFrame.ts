@@ -31,9 +31,25 @@ export function createAnimationFrame(
         fn(frameId)
         if (hold) {
           framesPending.add(time)
-          hold()
-            .then(() => framesPending.delete(time))
-            .catch(console.error)
+          hold().then(
+            () => framesPending.delete(time),
+            (err: unknown) => {
+              console.error('[createAnimationFrame] hold rejected:', err)
+              framesPending.delete(time)
+            },
+          )
+        }
+        // Safety valve: if hold promises never resolve (e.g. iOS Safari
+        // onSubmittedWorkDone rejections), prevent the rAF loop from
+        // permanently stalling when framesPending fills up.
+        if (framesPending.size > 10) {
+          console.warn(
+            '[createAnimationFrame] framesPending overflow (',
+            framesPending.size,
+            '), clearing to prevent render stall',
+          )
+          framesPending.clear()
+          lastTime = 0
         }
       }
       if (!disposed) {

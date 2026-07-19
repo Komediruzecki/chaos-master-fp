@@ -686,7 +686,7 @@ export function Flam3(props: Flam3Props) {
     let notifyExportWork: (() => void) | undefined
 
     function requestRedraw() {
-      rafLoop.redraw()
+      rafLoop?.redraw()
       notifyExportWork?.()
     }
 
@@ -828,6 +828,12 @@ export function Flam3(props: Flam3Props) {
     // final-image passes. Shared by the interactive rAF driver and the async
     // export driver. Returns what was submitted so the export driver can pace
     // and size the next chunk.
+
+    // Diagnostic counters: track consecutive silent bails to surface render
+    // stalls in logs (e.g. iOS Safari canvas-sizing or GPU-init races).
+    let consecutiveGpuNotReadyBails = 0
+    let consecutivePipelineUndefinedBails = 0
+
     function renderTick(frameId: number): RenderTickResult {
       // Halt immediately when the device is gone. Without this, a device loss
       // with many live previews (e.g. the VariationSelector gallery) lets every
@@ -835,8 +841,19 @@ export function Flam3(props: Flam3Props) {
       // "Buffer is invalid" errors that jams the main thread before the reactive
       // poster swap can flush. Mirrors the colorGradingPipeline bail below.
       if (!gpuReady()) {
+        consecutiveGpuNotReadyBails++
+        consecutivePipelineUndefinedBails = 0
+        if (
+          consecutiveGpuNotReadyBails === 1 ||
+          consecutiveGpuNotReadyBails % 60 === 0
+        ) {
+          console.warn(
+            `[Flam3] renderTick bailing: gpuReady=false (${consecutiveGpuNotReadyBails} consecutive frames)`,
+          )
+        }
         return { iterations: 0, presented: false, hadWork: false }
       }
+      consecutiveGpuNotReadyBails = 0
 
       const currentExportCb = props.onExportImage
       const exportMode = exportDriverActive()
@@ -844,8 +861,21 @@ export function Flam3(props: Flam3Props) {
       const pointCountPerBatch = props.pointCountPerBatch
       const colorGradingPipeline_ = colorGradingPipeline()
       if (colorGradingPipeline_ === undefined) {
+        consecutivePipelineUndefinedBails++
+        if (
+          consecutivePipelineUndefinedBails === 1 ||
+          consecutivePipelineUndefinedBails % 60 === 0
+        ) {
+          const size = canvasSize()
+          console.warn(
+            `[Flam3] renderTick bailing: colorGradingPipeline undefined ` +
+              `(canvasSize: ${size.width}x${size.height}, ` +
+              `${consecutivePipelineUndefinedBails} consecutive frames)`,
+          )
+        }
         return { iterations: 0, presented: false, hadWork: false }
       }
+      consecutivePipelineUndefinedBails = 0
 
       const timings = timestampQuery.average()
 
@@ -1108,6 +1138,17 @@ export function Flam3(props: Flam3Props) {
       // no more onSubmittedWorkDone holds against a dead queue).
       () => exportDriverActive() || !gpuReady(),
     )
+
+    // When the render interval drops from Infinity (modal closed) back to a
+    // finite rate, force an immediate redraw so the first frame appears without
+    // waiting for the next rAF delta-time check. On iOS Safari this also helps
+    // recover from any transient GPU-queue stall during the modal transition.
+    createEffect(() => {
+      const interval = props.renderInterval
+      if (Number.isFinite(interval)) {
+        requestRedraw()
+      }
+    })
 
     // Export driver: replaces the rAF loop while an export runs. The loop
     // awaits each submission, so at most one chunk is in flight — the browser
