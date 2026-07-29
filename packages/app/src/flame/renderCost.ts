@@ -86,27 +86,49 @@ export function qualityPointLimit(
   return Math.min(rawLimit, safeQualityCap(target.width, target.height))
 }
 
+/** Which server renderer runs the job — see the worker's RenderEngine. */
+export type CostEngine = 'deno' | 'chrome'
+
 /**
  * Server render seconds, calibrated on the RunPod RTX 4090 endpoint
- * (tools/cost-matrix.ts, 2026-07-28: 12 cells 720p-1440p plus 4K):
+ * (tools/cost-matrix.ts, 2026-07-29: 32 cells, both engines, 720p-4K x
+ * low/mid/high/ultra):
  *
- *   fixed ~1.3s (Deno boot + shader compile) + ~0.12s per megapixel
- *   (allocation, clear, readback, PNG encode) + points / 1.9e9 (throughput)
+ *   fixed + ~0.12s per megapixel (allocation, clear, readback, PNG encode)
+ *   + points / 1.9e9 (throughput)
  *
- * Predicted 4K ultra at 26.9s against 26.4s measured.
+ * Throughput and the per-megapixel term are the SAME for both engines —
+ * measured 1.79-2.00e9 points/s across every cell either could complete. Only
+ * the fixed term differs, and only because Chrome starts a browser per job.
+ *
+ * That equality is not a given: the headless renderer originally ran Flam3's
+ * interactive rAF loop and sustained only ~0.45e9 points/s. Switching it to the
+ * export driver closed the gap. If a future measurement shows Chrome's
+ * throughput drifting again, suspect the loop, not the GPU.
+ *
+ * Predictions against measurement: deno 1080p ultra 7.7s vs 7.8s; chrome 4K
+ * ultra 28.4s vs 27.7s; chrome 4K high 4.0s vs 4.3s.
  */
-export const RENDER_FIXED_SECONDS = 1.3
+export const RENDER_FIXED_SECONDS: Record<CostEngine, number> = {
+  // Deno boot + shader compile.
+  deno: 1.3,
+  // Node start + Chromium launch + page load, on top of the same work. This is
+  // the whole reason to prefer deno wherever it can allocate: it is a flat
+  // ~1.5s tax on every job, worst in relative terms on cheap renders.
+  chrome: 2.8,
+}
 export const RENDER_SECONDS_PER_MEGAPIXEL = 0.12
 export const RENDER_POINTS_PER_SECOND = 1.9e9
 
 export function estimateRenderSeconds(
   target: RenderTarget,
   camera: Camera2DLike | Camera3DLike,
+  engine: CostEngine = 'deno',
 ): number {
   const megapixels = (target.width * target.height) / 1e6
   const points = qualityPointLimit(target, camera)
   return (
-    RENDER_FIXED_SECONDS +
+    RENDER_FIXED_SECONDS[engine] +
     RENDER_SECONDS_PER_MEGAPIXEL * megapixels +
     points / RENDER_POINTS_PER_SECOND
   )
@@ -123,10 +145,13 @@ export const SECONDS_PER_CREDIT = 5
 export function creditsForRender(
   target: RenderTarget,
   camera: Camera2DLike | Camera3DLike,
+  engine: CostEngine = 'deno',
 ): number {
   return Math.max(
     1,
-    Math.ceil(estimateRenderSeconds(target, camera) / SECONDS_PER_CREDIT),
+    Math.ceil(
+      estimateRenderSeconds(target, camera, engine) / SECONDS_PER_CREDIT,
+    ),
   )
 }
 
@@ -135,16 +160,18 @@ export function creditsForAnimation(
   target: RenderTarget,
   camera: Camera2DLike | Camera3DLike,
   frameCount: number,
+  engine: CostEngine = 'deno',
 ): number {
-  return creditsForRender(target, camera) * Math.max(1, frameCount)
+  return creditsForRender(target, camera, engine) * Math.max(1, frameCount)
 }
 
 export function estimateAnimationSeconds(
   target: RenderTarget,
   camera: Camera2DLike | Camera3DLike,
   frameCount: number,
+  engine: CostEngine = 'deno',
 ): number {
-  return estimateRenderSeconds(target, camera) * Math.max(1, frameCount)
+  return estimateRenderSeconds(target, camera, engine) * Math.max(1, frameCount)
 }
 
 /**

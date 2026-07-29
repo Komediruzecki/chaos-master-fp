@@ -96,12 +96,16 @@ export function createServerRenderDialog(
       const height = Math.round(width * 0.5625)
       const target = { width, height, quality: quality() }
       const camera = cameraFromFlame(getFlameDescriptor())
+      // Same engine the submit will use, so the quote matches the charge —
+      // chrome carries ~1.5s more fixed cost, which can tip a cheap render
+      // into the next credit.
+      const eng = engine()
       return {
         width,
         height,
         points: qualityPointLimit(target, camera),
-        seconds: estimateRenderSeconds(target, camera),
-        credits: creditsForRender(target, camera),
+        seconds: estimateRenderSeconds(target, camera, eng),
+        credits: creditsForRender(target, camera, eng),
         zoom: 'zoom' in camera ? camera.zoom : undefined,
       }
     })

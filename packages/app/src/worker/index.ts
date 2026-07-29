@@ -761,6 +761,7 @@ function renderCostCredits(flameJson: string, opts: RenderOptions): number {
     return creditsForRender(
       { width: opts.width, height: opts.height, quality: opts.quality },
       cameraFromFlame(flame),
+      opts.engine ?? 'deno',
     )
   } catch {
     return 1

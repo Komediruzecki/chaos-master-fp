@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { bucketProbabilityInv, cameraFromFlame, creditsForAnimation, creditsForRender, estimateRenderSeconds, qualityPointLimit, safeQualityCap, } from './renderCost'
+import type { CostEngine } from './renderCost'
 
 const HD = { width: 1920, height: 1080, quality: 0.95 }
 
@@ -57,26 +58,98 @@ describe('qualityPointLimit', () => {
 })
 
 describe('estimateRenderSeconds', () => {
-  // Calibration cells measured on the RunPod RTX 4090 endpoint.
+  // Calibration cells measured on the RunPod RTX 4090 endpoint
+  // (tools/cost-matrix.ts, 2026-07-29, 32 cells across both engines).
   const cases: [
     string,
     { width: number; height: number; quality: number },
+    CostEngine,
     number,
   ][] = [
-    ['1280x720 high', { width: 1280, height: 720, quality: 0.95 }, 1.4],
-    ['1920x1080 high', { width: 1920, height: 1080, quality: 0.95 }, 1.6],
-    ['2560x1440 high', { width: 2560, height: 1440, quality: 0.95 }, 1.9],
-    ['1920x1080 ultra', { width: 1920, height: 1080, quality: 0.995 }, 8.0],
-    ['2560x1440 ultra', { width: 2560, height: 1440, quality: 0.995 }, 12.1],
-    ['3840x2160 ultra', { width: 3840, height: 2160, quality: 0.995 }, 26.4],
+    [
+      '1280x720 high',
+      { width: 1280, height: 720, quality: 0.95 },
+      'deno',
+      1.36,
+    ],
+    [
+      '1920x1080 high',
+      { width: 1920, height: 1080, quality: 0.95 },
+      'deno',
+      1.43,
+    ],
+    [
+      '2560x1440 high',
+      { width: 2560, height: 1440, quality: 0.95 },
+      'deno',
+      1.71,
+    ],
+    [
+      '1920x1080 ultra',
+      { width: 1920, height: 1080, quality: 0.995 },
+      'deno',
+      7.76,
+    ],
+    [
+      '2560x1440 ultra',
+      { width: 2560, height: 1440, quality: 0.995 },
+      'deno',
+      12.8,
+    ],
+    // 4K is chrome-only: deno cannot allocate its 132.7MB accumulation buffer.
+    [
+      '1280x720 high',
+      { width: 1280, height: 720, quality: 0.95 },
+      'chrome',
+      2.83,
+    ],
+    [
+      '1920x1080 ultra',
+      { width: 1920, height: 1080, quality: 0.995 },
+      'chrome',
+      8.93,
+    ],
+    [
+      '2560x1440 ultra',
+      { width: 2560, height: 1440, quality: 0.995 },
+      'chrome',
+      13.2,
+    ],
+    [
+      '3840x2160 high',
+      { width: 3840, height: 2160, quality: 0.95 },
+      'chrome',
+      4.33,
+    ],
+    [
+      '3840x2160 ultra',
+      { width: 3840, height: 2160, quality: 0.995 },
+      'chrome',
+      27.7,
+    ],
   ]
 
-  for (const [label, target, measured] of cases) {
-    it(`predicts ${label} within 25% of the measured ${measured}s`, () => {
-      const predicted = estimateRenderSeconds(target, { zoom: 1 })
+  for (const [label, target, engine, measured] of cases) {
+    it(`predicts ${engine} ${label} within 25% of the measured ${measured}s`, () => {
+      const predicted = estimateRenderSeconds(target, { zoom: 1 }, engine)
       expect(Math.abs(predicted - measured) / measured).toBeLessThan(0.25)
     })
   }
+
+  it('charges chrome more than deno for the same job', () => {
+    // The entire per-engine difference is fixed overhead — chrome starts a
+    // browser per job. Throughput measured identical (1.79-2.00e9 points/s on
+    // every cell either engine could complete).
+    const deno = estimateRenderSeconds(HD, { zoom: 1 }, 'deno')
+    const chrome = estimateRenderSeconds(HD, { zoom: 1 }, 'chrome')
+    expect(chrome - deno).toBeCloseTo(1.5, 5)
+  })
+
+  it('defaults to deno when no engine is given', () => {
+    expect(estimateRenderSeconds(HD, { zoom: 1 })).toBe(
+      estimateRenderSeconds(HD, { zoom: 1 }, 'deno'),
+    )
+  })
 
   it('grows with zoom because the point budget does', () => {
     const flat = estimateRenderSeconds(HD, { zoom: 1 })
