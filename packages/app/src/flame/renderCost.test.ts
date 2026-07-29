@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { bucketProbabilityInv, cameraFromFlame, creditsForAnimation, creditsForRender, estimateRenderSeconds, qualityPointLimit, safeQualityCap, } from './renderCost'
-import type { CostEngine } from './renderCost'
+import type { RenderEngine } from './renderCost'
 
 const HD = { width: 1920, height: 1080, quality: 0.95 }
 
@@ -63,7 +63,7 @@ describe('estimateRenderSeconds', () => {
   const cases: [
     string,
     { width: number; height: number; quality: number },
-    CostEngine,
+    RenderEngine,
     number,
   ][] = [
     [

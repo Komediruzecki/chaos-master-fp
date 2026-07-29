@@ -76,7 +76,13 @@ export function createServerRenderDialog(
 
     const tier = () => auth.subscription().tier
     const maxResFor = (e: ServerRenderEngine) =>
-      IS_DEV ? 7680 : (TIER_MAX_RES[e][tier()] ?? 1920)
+      IS_DEV
+        ? // Dev ignores the TIER cap but not the ENGINE's: picking 4K on deno
+          // would just earn a 400 from the pixel-ceiling check on submit.
+          e === 'chrome'
+          ? 7680
+          : 3008
+        : (TIER_MAX_RES[e][tier()] ?? 1920)
     const maxRes = () => maxResFor(engine())
     const resolutionOptions = () =>
       RESOLUTION_OPTIONS.filter((o) => o.value <= maxRes())

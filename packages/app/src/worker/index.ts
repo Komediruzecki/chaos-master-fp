@@ -11,6 +11,7 @@ import { handleMetaInject, handleOgGet, handleOgPost } from './routes/og'
 import { handleShortenGet, handleShortenPost } from './routes/shorten'
 import { cancelRunpodJob, fetchRunpodStatus, runpodConfigured, RunpodJobExpiredError, submitRunpodJob, } from './runpod'
 import { errMsg, json } from './utils'
+import type { RenderEngine } from '../flame/renderCost'
 import type { DbRenderJob } from './db'
 import type { RunpodJobStatus } from './runpod'
 import type { Env } from './types'
@@ -570,17 +571,6 @@ async function handleGoogleCallback(
 }
 
 // ── Render handlers ──────────────────────────────────────────────
-
-/**
- * Which server renderer runs the job.
- *
- * 'deno'   the Deno CLI renderer — the original path. Its WebGPU refuses
- *          single buffer allocations above ~100MB, capping it near 5.1Mpx.
- * 'chrome' the app's own bundle inside headless Chrome (Dawn), which has no
- *          such ceiling and reaches 8K. See
- *          docs/plans/headless-chrome-renderer-plan.md.
- */
-type RenderEngine = 'deno' | 'chrome'
 
 const RENDER_ENGINES: readonly RenderEngine[] = ['deno', 'chrome']
 

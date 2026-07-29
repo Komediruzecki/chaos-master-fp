@@ -86,8 +86,20 @@ export function qualityPointLimit(
   return Math.min(rawLimit, safeQualityCap(target.width, target.height))
 }
 
-/** Which server renderer runs the job — see the worker's RenderEngine. */
-export type CostEngine = 'deno' | 'chrome'
+/**
+ * Which server renderer runs the job.
+ *
+ * 'deno'   the Deno CLI renderer. Its WebGPU refuses single buffer allocations
+ *          above ~100MB, capping it near 5.1Mpx.
+ * 'chrome' the app's own bundle in headless Chrome (Dawn), which has no such
+ *          ceiling and reaches 8K, at ~1.5s more fixed cost per job.
+ *
+ * Declared HERE, in the pure module the client, the Worker and the render
+ * dialog all already import, so there is exactly one definition. Three
+ * structurally-identical copies used to exist; TypeScript's structural typing
+ * hid that, right up until one of them gained a third engine.
+ */
+export type RenderEngine = 'deno' | 'chrome'
 
 /**
  * Server render seconds, calibrated on the RunPod RTX 4090 endpoint
@@ -109,7 +121,7 @@ export type CostEngine = 'deno' | 'chrome'
  * Predictions against measurement: deno 1080p ultra 7.7s vs 7.8s; chrome 4K
  * ultra 28.4s vs 27.7s; chrome 4K high 4.0s vs 4.3s.
  */
-export const RENDER_FIXED_SECONDS: Record<CostEngine, number> = {
+export const RENDER_FIXED_SECONDS: Record<RenderEngine, number> = {
   // Deno boot + shader compile.
   deno: 1.3,
   // Node start + Chromium launch + page load, on top of the same work. This is
@@ -123,7 +135,7 @@ export const RENDER_POINTS_PER_SECOND = 1.9e9
 export function estimateRenderSeconds(
   target: RenderTarget,
   camera: Camera2DLike | Camera3DLike,
-  engine: CostEngine = 'deno',
+  engine: RenderEngine = 'deno',
 ): number {
   const megapixels = (target.width * target.height) / 1e6
   const points = qualityPointLimit(target, camera)
@@ -145,7 +157,7 @@ export const SECONDS_PER_CREDIT = 5
 export function creditsForRender(
   target: RenderTarget,
   camera: Camera2DLike | Camera3DLike,
-  engine: CostEngine = 'deno',
+  engine: RenderEngine = 'deno',
 ): number {
   return Math.max(
     1,
@@ -160,7 +172,7 @@ export function creditsForAnimation(
   target: RenderTarget,
   camera: Camera2DLike | Camera3DLike,
   frameCount: number,
-  engine: CostEngine = 'deno',
+  engine: RenderEngine = 'deno',
 ): number {
   return creditsForRender(target, camera, engine) * Math.max(1, frameCount)
 }
@@ -169,7 +181,7 @@ export function estimateAnimationSeconds(
   target: RenderTarget,
   camera: Camera2DLike | Camera3DLike,
   frameCount: number,
-  engine: CostEngine = 'deno',
+  engine: RenderEngine = 'deno',
 ): number {
   return estimateRenderSeconds(target, camera, engine) * Math.max(1, frameCount)
 }

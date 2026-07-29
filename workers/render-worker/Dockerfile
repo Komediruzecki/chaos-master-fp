@@ -1,4 +1,7 @@
-FROM denoland/deno:2.9.4
+# Selects the app-bundle stage below, so it has to be declared before any FROM.
+ARG CHROME_ENGINE=false
+
+FROM denoland/deno:2.9.4 AS base
 
 # Vulkan/Mesa libraries required for Deno WebGPU (Dawn/WGPU backend), plus
 # python3 for the RunPod serverless handler shim.
@@ -50,12 +53,31 @@ RUN deno eval 'const imports = JSON.parse(Deno.readTextFileSync("deno.json")).im
     && deno cache /tmp/warm.ts \
     && rm /tmp/warm.ts
 
+# ── The app bundle, conditionally ────────────────────────────────
+# Only the chrome engine renders from the built app, so only a CHROME_ENGINE
+# build should require `pnpm --filter chaos-master build` to have run. COPY
+# cannot be made conditional on a build arg — but a FROM can, so these two
+# stages differ only in whether they carry the bundle and the arg picks one.
+# Without this, every `docker build` (including the CI job, which has no reason
+# to build the app) fails on a missing packages/app/dist.
+FROM base AS appdist-false
+RUN mkdir -p /appdist
+
+FROM base AS appdist-true
+COPY packages/app/dist/ /appdist/
+
+FROM appdist-${CHROME_ENGINE} AS appdist
+
 # ── Chrome render engine (optional) ──────────────────────────────
 # Build with --build-arg CHROME_ENGINE=true to include headless Chrome and the
 # built app bundle, which together serve engine:'chrome' jobs (4K/8K — see
 # docs/plans/headless-chrome-renderer-plan.md). Off by default: it adds Node,
-# Chromium and ~500MB, and a Deno-only endpoint has no use for any of it.
-ARG CHROME_ENGINE=false
+# Chromium and ~1.5GB, and a Deno-only endpoint has no use for any of it.
+FROM base
+
+# Re-declared: a global ARG is visible to FROM lines only, so a stage that wants
+# to read the value needs its own declaration.
+ARG CHROME_ENGINE
 ARG PLAYWRIGHT_VERSION=1.59.1
 ENV CHROME_RENDER_ENABLED=${CHROME_ENGINE}
 # Browsers land at a fixed path rather than root's HOME cache, so the runtime
@@ -82,13 +104,11 @@ COPY workers/render-worker/handler.py .
 COPY packages/app/src/ /packages/app/src/
 COPY packages/core/src/ /packages/core/src/
 
-# The built app bundle the Chrome engine renders with. `pnpm --filter
-# chaos-master build` is therefore a prerequisite of the image build. Copied
-# unconditionally (26MB, sourcemaps included so a Chrome-side stack trace is
-# readable) because COPY cannot be made conditional on a build arg — the heavy
-# part, Chromium, is what the arg actually gates. Baking the bundle in couples
-# the image to an app version, so tag Chrome-enabled images with it.
-COPY packages/app/dist/ /packages/app/dist/
+# The built app bundle the Chrome engine renders with — empty on a Deno-only
+# build (see the appdist stages above). 26MB with sourcemaps, so a Chrome-side
+# stack trace stays readable. Baking it in couples the image to an app version,
+# so tag Chrome-enabled images with it.
+COPY --from=appdist /appdist/ /packages/app/dist/
 
 # Cache the full module graph (also proves all imports resolve at build time,
 # instead of on the first billable cold start).

@@ -4,14 +4,12 @@
  */
 
 import { getAuthHeaders } from './auth-service'
+// Imported AND re-exported: a bare `export type {X as Y} from '...'` re-exports
+// without binding Y locally, so ServerRenderOptions below could not see it.
+import type { RenderEngine as ServerRenderEngine } from '@/flame/renderCost'
 
-/**
- * Which server renderer runs the job. 'deno' is the original path and caps near
- * 5.1 megapixels (its WebGPU refuses single allocations above ~100MB); 'chrome'
- * runs the app's own bundle in headless Chrome and reaches 8K. The server
- * rejects 'chrome' unless the deployment's endpoint ships it.
- */
-export type ServerRenderEngine = 'deno' | 'chrome'
+/** Exposed under the name the UI uses; defined once, in the cost model. */
+export type { ServerRenderEngine }
 
 export interface ServerRenderOptions {
   width: number

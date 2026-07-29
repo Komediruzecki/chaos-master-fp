@@ -57,6 +57,15 @@ const ENGINES = (Deno.env.get('MATRIX_ENGINES') ?? 'deno')
   .split(',')
   .map((e) => e.trim())
   .filter((e) => e === 'deno' || e === 'chrome')
+if (ENGINES.length === 0) {
+  // Otherwise the sweep runs zero cells and prints an empty table, which reads
+  // as "everything failed" rather than "you typo'd the engine name".
+  console.error(
+    `MATRIX_ENGINES matched no known engine (got ` +
+      `'${Deno.env.get('MATRIX_ENGINES')}'); valid values are deno, chrome`,
+  )
+  Deno.exit(1)
+}
 
 const HEADERS = {
   Authorization: `Bearer ${API_KEY}`,

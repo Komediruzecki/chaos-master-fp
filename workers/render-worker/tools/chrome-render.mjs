@@ -28,8 +28,13 @@ import { chromium } from 'playwright'
 const args = Object.fromEntries(
   process.argv.slice(2).reduce((acc, cur, i, arr) => {
     if (cur.startsWith('--')) {
+      // A flag with no value after it — the next token is another flag, or
+      // there is no next token — is a boolean. Without the undefined case a
+      // TRAILING boolean flag silently parsed as undefined, so the documented
+      // `... --quality 0.95 --headed` never actually ran headed.
       const next = arr[i + 1]
-      acc.push([cur.slice(2), next?.startsWith('--') ? 'true' : next])
+      const bare = next === undefined || next.startsWith('--')
+      acc.push([cur.slice(2), bare ? 'true' : next])
     }
     return acc
   }, []),
@@ -103,21 +108,32 @@ const flame = JSON.parse(await readFile(resolve(FLAME), 'utf8'))
 // WebGPU in headless Chrome on Linux; without them requestAdapter() returns
 // null. The backgrounding flags stop Chrome throttling an offscreen tab, which
 // would otherwise stall the present pump behind the render loop.
-const browser = await chromium.launch({
-  headless: !HEADED,
-  args: [
-    '--enable-unsafe-webgpu',
-    '--enable-features=Vulkan',
-    '--use-angle=vulkan',
-    '--no-sandbox',
-    '--disable-gpu-sandbox',
-    '--disable-backgrounding-occluded-windows',
-    '--disable-renderer-backgrounding',
-    // Containers default /dev/shm to 64MB, which a large canvas overruns —
-    // Chrome then dies mid-render with a bare "Target closed".
-    '--disable-dev-shm-usage',
-  ],
-})
+// Launched outside the try/finally below, so a launch failure (missing browser
+// download, no shared libs) would otherwise surface as a bare unhandled
+// rejection with the static server still listening and the watchdog still armed.
+let browser
+try {
+  browser = await chromium.launch({
+    headless: !HEADED,
+    args: [
+      '--enable-unsafe-webgpu',
+      '--enable-features=Vulkan',
+      '--use-angle=vulkan',
+      '--no-sandbox',
+      '--disable-gpu-sandbox',
+      '--disable-backgrounding-occluded-windows',
+      '--disable-renderer-backgrounding',
+      // Containers default /dev/shm to 64MB, which a large canvas overruns —
+      // Chrome then dies mid-render with a bare "Target closed".
+      '--disable-dev-shm-usage',
+    ],
+  })
+} catch (err) {
+  console.error(`[chrome-render] FAILED to launch chrome: ${err.message}`)
+  server.close()
+  clearTimeout(watchdog)
+  process.exit(1)
+}
 
 const started = Date.now()
 let exitCode = 0
