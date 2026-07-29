@@ -10,6 +10,7 @@
  *   RUNPOD_GPU_USD_PER_HR   dollar rate for the $ column (default 0.69, 4090 community rate)
  *   MATRIX_RESOLUTIONS      comma list of widths, 16:9 heights derived (default 1280,1920,2560,3840)
  *   MATRIX_PRESETS          comma list of low,mid,high,ultra (default all)
+ *   MATRIX_ENGINES          comma list of deno,chrome (default deno)
  *   MATRIX_TIMEOUT_SECS     per-job wait (default 360)
  *
  * Jobs run SEQUENTIALLY (deliberate: workersMax may be 1 and queueing would
@@ -48,6 +49,14 @@ const PRESET_KEYS = (Deno.env.get('MATRIX_PRESETS') ?? 'low,mid,high,ultra')
   .split(',')
   .map((p) => p.trim())
   .filter((p) => p in PRESETS)
+// A CHROME_ENGINE=true image serves both renderers, so one endpoint can be
+// swept for both and the comparison is on identical hardware. Deno cells above
+// ~5.1Mpx are EXPECTED to fail on allocation — that failure is a result, not a
+// run-ending error, so it is recorded in the table like any other cell.
+const ENGINES = (Deno.env.get('MATRIX_ENGINES') ?? 'deno')
+  .split(',')
+  .map((e) => e.trim())
+  .filter((e) => e === 'deno' || e === 'chrome')
 
 const HEADERS = {
   Authorization: `Bearer ${API_KEY}`,
@@ -125,6 +134,7 @@ function estimatePoints(width: number, height: number, q: number): number {
 }
 
 interface CellResult {
+  engine: string
   preset: string
   q: number
   width: number
@@ -134,6 +144,9 @@ interface CellResult {
   execMs: number | null
   usd: number | null
   status: string
+  /** Engine the handler REPORTS having used. Compared against the requested
+   *  one: a mismatch would silently corrupt the comparison. */
+  ranAs?: string
   error?: string
 }
 
@@ -144,10 +157,12 @@ async function runJob(
   width: number,
   height: number,
   q: number,
+  engine: string,
 ): Promise<{
   status: string
   delayMs: number | null
   execMs: number | null
+  ranAs?: string
   error?: string
 }> {
   const submit = await fetchRetry(`${BASE}/run`, {
@@ -161,6 +176,7 @@ async function runJob(
         height,
         quality: q,
         seed: 'cost-matrix',
+        engine,
       },
     }),
   })
@@ -184,7 +200,7 @@ async function runJob(
       error?: string
       delayTime?: number
       executionTime?: number
-      output?: { error?: string }
+      output?: { error?: string; engine?: string }
     }
     const s = data.status ?? 'UNKNOWN'
     if (
@@ -197,6 +213,7 @@ async function runJob(
         status: s,
         delayMs: data.delayTime ?? null,
         execMs: data.executionTime ?? null,
+        ranAs: data.output?.engine,
         error: data.output?.error ?? data.error,
       }
     }
@@ -209,56 +226,69 @@ async function runJob(
 }
 
 console.error(
-  `Endpoint ${ENDPOINT} | $${USD_PER_HR}/hr | ${RESOLUTIONS.join('/')} x ${PRESET_KEYS.join('/')}`,
+  `Endpoint ${ENDPOINT} | $${USD_PER_HR}/hr | ${ENGINES.join('/')} x ${RESOLUTIONS.join('/')} x ${PRESET_KEYS.join('/')}`,
 )
 await preflight()
 console.error('Warm-up render (excluded from results)...')
-const warm = await runJob('warmup', 1280, 720, 0.75)
+const warm = await runJob('warmup', 1280, 720, 0.75, ENGINES[0]!)
 console.error(
   `  warm-up: ${warm.status} exec=${warm.execMs ?? '-'}ms delay=${warm.delayMs ?? '-'}ms\n`,
 )
 
 const results: CellResult[] = []
-for (const width of RESOLUTIONS) {
-  const height = Math.round((width * 9) / 16)
-  for (const preset of PRESET_KEYS) {
-    const q = PRESETS[preset]!
-    const points = estimatePoints(width, height, q)
-    console.error(
-      `running ${width}x${height} ${preset} (q=${q}, ~${(points / 1e6).toFixed(1)}M pts)...`,
-    )
-    const r = await runJob(`${width}-${preset}`, width, height, q).catch(
-      (err: unknown): Awaited<ReturnType<typeof runJob>> => ({
-        status: 'CLIENT_ERROR',
-        delayMs: null,
-        execMs: null,
-        error: err instanceof Error ? err.message : String(err),
-      }),
-    )
-    const usd = r.execMs != null ? (USD_PER_HR * r.execMs) / 3_600_000 : null
-    results.push({ preset, q, width, height, points, ...r, usd })
-    console.error(
-      `  -> ${r.status} exec=${r.execMs ?? '-'}ms delay=${r.delayMs ?? '-'}ms${r.error ? ` error=${r.error}` : ''}`,
-    )
+for (const engine of ENGINES) {
+  for (const width of RESOLUTIONS) {
+    const height = Math.round((width * 9) / 16)
+    for (const preset of PRESET_KEYS) {
+      const q = PRESETS[preset]!
+      const points = estimatePoints(width, height, q)
+      console.error(
+        `running ${engine} ${width}x${height} ${preset} (q=${q}, ~${(points / 1e6).toFixed(1)}M pts)...`,
+      )
+      const r = await runJob(
+        `${engine}-${width}-${preset}`,
+        width,
+        height,
+        q,
+        engine,
+      ).catch(
+        (err: unknown): Awaited<ReturnType<typeof runJob>> => ({
+          status: 'CLIENT_ERROR',
+          delayMs: null,
+          execMs: null,
+          error: err instanceof Error ? err.message : String(err),
+        }),
+      )
+      const usd = r.execMs != null ? (USD_PER_HR * r.execMs) / 3_600_000 : null
+      results.push({ engine, preset, q, width, height, points, ...r, usd })
+      const mismatch =
+        r.ranAs && r.ranAs !== engine ? ` MISMATCH ran-as=${r.ranAs}` : ''
+      console.error(
+        `  -> ${r.status} exec=${r.execMs ?? '-'}ms delay=${r.delayMs ?? '-'}ms${mismatch}${r.error ? ` error=${r.error}` : ''}`,
+      )
+    }
   }
 }
 
 console.log(
-  '\n| Resolution | Preset | q | Est. points | Exec s | Delay s | $ / render |',
+  '\n| Engine | Resolution | Preset | q | Est. points | Exec s | Delay s | $ / render |',
 )
-console.log('|---|---|---|---|---|---|---|')
+console.log('|---|---|---|---|---|---|---|---|')
 for (const r of results) {
   console.log(
-    `| ${r.width}x${r.height} | ${r.preset} | ${r.q} | ${(r.points / 1e6).toFixed(1)}M | ` +
+    `| ${r.engine}${r.ranAs && r.ranAs !== r.engine ? ` (ran as ${r.ranAs}!)` : ''} | ` +
+      `${r.width}x${r.height} | ${r.preset} | ${r.q} | ${(r.points / 1e6).toFixed(1)}M | ` +
       `${r.execMs != null ? (r.execMs / 1000).toFixed(1) : r.status} | ` +
       `${r.delayMs != null ? (r.delayMs / 1000).toFixed(1) : '-'} | ` +
       `${r.usd != null ? '$' + r.usd.toFixed(4) : '-'} |`,
   )
 }
 
-console.log('\ncsv:resolution,preset,q,points,execMs,delayMs,usd,status')
+console.log(
+  '\ncsv:engine,ranAs,resolution,preset,q,points,execMs,delayMs,usd,status',
+)
 for (const r of results) {
   console.log(
-    `csv:${r.width}x${r.height},${r.preset},${r.q},${Math.round(r.points)},${r.execMs ?? ''},${r.delayMs ?? ''},${r.usd?.toFixed(6) ?? ''},${r.status}`,
+    `csv:${r.engine},${r.ranAs ?? ''},${r.width}x${r.height},${r.preset},${r.q},${Math.round(r.points)},${r.execMs ?? ''},${r.delayMs ?? ''},${r.usd?.toFixed(6) ?? ''},${r.status}`,
   )
 }
