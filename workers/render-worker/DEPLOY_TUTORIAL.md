@@ -230,8 +230,23 @@ GPU description). If those fields are missing, an older image is still serving.
 
 Serverless invoke (`api.runpod.ai/v2/...`) and management
 (`rest.runpod.io/v1/...`) are separate permissions. A management-scoped key
-(e.g. the one used for the RunPod MCP) returns **403** on `/run` and
-`/status`. `tools/cost-matrix.ts` preflights `/health` and says so explicitly.
+(e.g. the one used for the RunPod MCP) returns **403** on `/run`, `/status`
+**and `/health`**. `tools/cost-matrix.ts` preflights `/health` and names this
+failure explicitly rather than reporting a wall of identical cell errors.
+
+#### Running the cost matrix
+
+Credentials come from Proton Pass, so no key is ever written to disk or to a
+shell history. From `workers/render-worker`:
+
+```bash
+pass-cli run --env-file ~/.dotfiles/personal/irchiinnuss/secrets/chaos-master-runpod.env.tmpl -- deno run --allow-net --allow-env --allow-read --sloppy-imports tools/cost-matrix.ts
+```
+
+Set `MATRIX_ENGINES=deno,chrome` to sweep both renderers. Against a
+`CHROME_ENGINE=true` image one endpoint serves both, so the comparison runs on
+identical hardware. Deno cells above ~5.1 Mpx are expected to fail on
+allocation; they are recorded as results rather than aborting the run.
 
 ### Self-hosted GPU Pod (fallback path)
 
