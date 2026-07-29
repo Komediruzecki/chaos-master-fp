@@ -50,10 +50,41 @@ RUN deno eval 'const imports = JSON.parse(Deno.readTextFileSync("deno.json")).im
     && deno cache /tmp/warm.ts \
     && rm /tmp/warm.ts
 
+# ── Chrome render engine (optional) ──────────────────────────────
+# Build with --build-arg CHROME_ENGINE=true to include headless Chrome and the
+# built app bundle, which together serve engine:'chrome' jobs (4K/8K — see
+# docs/plans/headless-chrome-renderer-plan.md). Off by default: it adds Node,
+# Chromium and ~500MB, and a Deno-only endpoint has no use for any of it.
+ARG CHROME_ENGINE=false
+ARG PLAYWRIGHT_VERSION=1.59.1
+ENV CHROME_RENDER_ENABLED=${CHROME_ENGINE}
+# The driver is a plain node script in /workers/render-worker, so it cannot see
+# a globally installed playwright without this. Browsers go to a fixed path
+# rather than root's HOME cache, so the runtime user cannot miss them.
+ENV NODE_PATH=/usr/lib/node_modules
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright-browsers
+
+RUN if [ "$CHROME_ENGINE" = "true" ]; then \
+      apt-get update && apt-get install -y --no-install-recommends \
+        nodejs npm ca-certificates fonts-liberation \
+      && npm install -g playwright@${PLAYWRIGHT_VERSION} \
+      && npx --yes playwright@${PLAYWRIGHT_VERSION} install --with-deps chromium \
+      && rm -rf /var/lib/apt/lists/*; \
+    fi
+
 COPY workers/render-worker/src/ ./src/
+COPY workers/render-worker/tools/ ./tools/
 COPY workers/render-worker/handler.py .
 COPY packages/app/src/ /packages/app/src/
 COPY packages/core/src/ /packages/core/src/
+
+# The built app bundle the Chrome engine renders with. `pnpm --filter
+# chaos-master build` is therefore a prerequisite of the image build. Copied
+# unconditionally (26MB, sourcemaps included so a Chrome-side stack trace is
+# readable) because COPY cannot be made conditional on a build arg — the heavy
+# part, Chromium, is what the arg actually gates. Baking the bundle in couples
+# the image to an app version, so tag Chrome-enabled images with it.
+COPY packages/app/dist/ /packages/app/dist/
 
 # Cache the full module graph (also proves all imports resolve at build time,
 # instead of on the first billable cold start).

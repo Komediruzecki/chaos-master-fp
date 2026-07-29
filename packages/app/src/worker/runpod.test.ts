@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { decideJobTransition } from './index'
+import { decideJobTransition, MAX_RENDER_PIXELS, resolveRenderEngine, } from './index'
 import { cancelRunpodJob, fetchRunpodStatus, mapRunpodStatus, runpodConfigured, RunpodJobExpiredError, submitRunpodJob, } from './runpod'
 import type { RunpodConfig } from './runpod'
 
@@ -295,5 +295,61 @@ describe('decideJobTransition', () => {
       mapRunpodStatus({ status: 'FAILED', error: 'again' }),
     )
     expect(t.shouldRefund).toBe(false)
+  })
+})
+
+// ── render engine selection ─────────────────────────────────────
+
+describe('resolveRenderEngine', () => {
+  it('defaults to deno when the client asks for nothing', () => {
+    expect(resolveRenderEngine(undefined, false)).toEqual({ engine: 'deno' })
+  })
+
+  it('serves chrome only where the endpoint ships it', () => {
+    expect(resolveRenderEngine('chrome', true)).toEqual({ engine: 'chrome' })
+    const denied = resolveRenderEngine('chrome', false)
+    expect('error' in denied && denied.error).toMatch(/not enabled/)
+  })
+
+  it('rejects an unknown engine instead of falling back', () => {
+    // A silent fallback would attribute the render to the wrong engine, which
+    // is exactly what the option exists to distinguish.
+    const res = resolveRenderEngine('webgpu-native', true)
+    expect('error' in res && res.error).toMatch(/Unknown render engine/)
+  })
+
+  it('never lets chrome availability upgrade a deno request', () => {
+    expect(resolveRenderEngine('deno', true)).toEqual({ engine: 'deno' })
+  })
+})
+
+describe('MAX_RENDER_PIXELS', () => {
+  it('caps deno below 4K and lets chrome reach 8K', () => {
+    // 4K is 8.29Mpx: deno cannot allocate its 132.7MB accumulation buffer.
+    expect(3840 * 2160).toBeGreaterThan(MAX_RENDER_PIXELS.deno)
+    expect(7680 * 4320).toBeLessThanOrEqual(MAX_RENDER_PIXELS.chrome)
+  })
+
+  it('still allows 1080p on deno', () => {
+    expect(1920 * 1080).toBeLessThanOrEqual(MAX_RENDER_PIXELS.deno)
+  })
+})
+
+describe('mapRunpodStatus engine attribution', () => {
+  it('reports the engine the handler actually used on success', () => {
+    const s = mapRunpodStatus({
+      status: 'COMPLETED',
+      output: { imageKey: 'renders/j.png', engine: 'chrome' },
+    })
+    expect(s.engine).toBe('chrome')
+  })
+
+  it('reports the engine on failure too — a failure needs attribution most', () => {
+    const s = mapRunpodStatus({
+      status: 'COMPLETED',
+      output: { error: 'stage=render: no output produced', engine: 'chrome' },
+    })
+    expect(s.phase).toBe('failed')
+    expect(s.engine).toBe('chrome')
   })
 })

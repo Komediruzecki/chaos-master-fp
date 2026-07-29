@@ -37,6 +37,10 @@ export interface RenderJobInput {
   height: number
   quality: number
   seed: string
+  /** Which server renderer the handler should run: the Deno CLI, or the app's
+   *  own bundle in headless Chrome. Chrome has no per-allocation buffer
+   *  ceiling, so it is the only path that reaches 4K/8K. */
+  engine?: 'deno' | 'chrome'
 }
 
 export type RunpodJobPhase = 'queued' | 'running' | 'completed' | 'failed'
@@ -54,6 +58,10 @@ export interface RunpodJobStatus {
   workerId?: string
   delayMs?: number
   executionMs?: number
+  /** Engine the handler ACTUALLY used, as reported back by it. Compared
+   *  against the requested engine so a mis-served job is visible rather than
+   *  quietly attributed to the wrong renderer. */
+  engine?: string
   /** Trimmed raw payload — persisted so failures are diagnosable from D1. */
   rawPayload: string
 }
@@ -136,6 +144,7 @@ interface RunpodStatusPayload {
     imageKey?: string
     error?: string
     timings?: Record<string, number>
+    engine?: string
   }
   workerId?: string
   delayTime?: number
@@ -152,6 +161,9 @@ export function mapRunpodStatus(data: RunpodStatusPayload): RunpodJobStatus {
     workerId: data.workerId,
     delayMs: data.delayTime,
     executionMs: data.executionTime,
+    // Present on both success and failure outputs — a failed job still needs to
+    // say which renderer produced the failure.
+    engine: output?.engine,
     rawPayload: JSON.stringify(data).slice(0, RAW_SNAPSHOT_MAX_CHARS),
   }
 

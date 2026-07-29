@@ -5,11 +5,20 @@
 
 import { getAuthHeaders } from './auth-service'
 
+/**
+ * Which server renderer runs the job. 'deno' is the original path and caps near
+ * 5.1 megapixels (its WebGPU refuses single allocations above ~100MB); 'chrome'
+ * runs the app's own bundle in headless Chrome and reaches 8K. The server
+ * rejects 'chrome' unless the deployment's endpoint ships it.
+ */
+export type ServerRenderEngine = 'deno' | 'chrome'
+
 export interface ServerRenderOptions {
   width: number
   height: number
   quality: number
   backend?: 'gpu' | 'cpu'
+  engine?: ServerRenderEngine
 }
 
 export interface ServerRenderJob {

@@ -1,19 +1,31 @@
 """RunPod serverless handler for chaos-master GPU renders.
 
-Thin Python shim around the Deno renderer CLI (src/cli.ts): one job = one
-subprocess render + one R2 upload. Mirrors the mercurypitch handler contract:
+Thin Python shim around two renderers: one job = one subprocess render + one R2
+upload. Mirrors the mercurypitch handler contract:
 
-  input:  { flameJson, width, height, quality, seed }
-  output: { imageKey, timings, cost } on success
-          { error }                    on failure (the RunPod job still ends
-                                        COMPLETED; the submitting worker treats
-                                        output.error as failed and refunds)
+  input:  { flameJson, width, height, quality, seed, engine }
+  output: { imageKey, engine, timings, cost } on success
+          { error, engine }                   on failure (the RunPod job still
+                                        ends COMPLETED; the submitting worker
+                                        treats output.error as failed and
+                                        refunds)
+
+`engine` picks the renderer:
+  'deno'   the Deno CLI (src/cli.ts). Its WebGPU refuses single allocations
+           above ~100MB, so it caps near 5.1Mpx.
+  'chrome' the app's own bundle in headless Chrome (tools/chrome-render.mjs),
+           which has no such ceiling and reaches 8K.
+The engine that actually ran is echoed in EVERY output, success or failure, so
+a job can always be attributed to the renderer that produced it.
 
 R2 upload uses the S3 API (boto3). Required endpoint env:
   S3_BUCKET, S3_ENDPOINT_URL, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY
 Optional: S3_REGION (default auto), S3_KEY_PREFIX (default "renders"),
-  RENDER_MAX_PIXELS (default 7680*4320), RENDER_TIMEOUT_SECS (default 280),
-  RUNPOD_GPU_USD_PER_HR (cost accounting only).
+  RENDER_MAX_PIXELS_DENO (default 5.1e6), RENDER_MAX_PIXELS_CHROME
+  (default 7680*4320), RENDER_TIMEOUT_SECS (default 280),
+  CHROME_RENDER_ENABLED ("true" when the image ships Chrome + the app bundle),
+  APP_DIST_DIR (default /packages/app/dist), RUNPOD_GPU_USD_PER_HR
+  (cost accounting only).
 """
 
 import json
@@ -26,10 +38,17 @@ import boto3
 import runpod
 
 # Deno WebGPU refuses single allocations above ~100MB; the accumulation
-# buffer is 16 bytes/pixel, so ~5.1Mpx is the practical ceiling.
-MAX_PIXELS = int(os.environ.get("RENDER_MAX_PIXELS", "5100000"))
+# buffer is 16 bytes/pixel, so ~5.1Mpx is the practical ceiling. Chrome (Dawn)
+# has no equivalent limit, so its cap is a queue-time decision, not a device one.
+MAX_PIXELS = {
+    "deno": int(os.environ.get("RENDER_MAX_PIXELS_DENO",
+                               os.environ.get("RENDER_MAX_PIXELS", "5100000"))),
+    "chrome": int(os.environ.get("RENDER_MAX_PIXELS_CHROME", str(7680 * 4320))),
+}
 RENDER_TIMEOUT_SECS = int(os.environ.get("RENDER_TIMEOUT_SECS", "280"))
 KEY_PREFIX = os.environ.get("S3_KEY_PREFIX", "renders").strip("/")
+CHROME_ENABLED = os.environ.get("CHROME_RENDER_ENABLED", "").lower() == "true"
+APP_DIST_DIR = os.environ.get("APP_DIST_DIR", "/packages/app/dist")
 
 _s3 = None
 
@@ -109,6 +128,71 @@ class RenderFailure(RuntimeError):
         super().__init__(message)
         self.backend = backend
         self.adapter = adapter
+
+
+def render_png_chrome(flame_json: str, width: int, height: int, quality: float):
+    """Render via headless Chrome (Dawn) using the app's own built bundle.
+
+    Same (png_bytes, backend, adapter) contract as render_png. There is no CPU
+    retry: Chrome's software fallback (SwiftShader) is far too slow to be worth
+    holding a worker for, and the driver already refuses to run without a real
+    adapter — a job that gets here without a GPU should fail, loudly.
+    """
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".json", delete=False
+    ) as flame_file:
+        flame_file.write(flame_json)
+        flame_path = flame_file.name
+    out_path = flame_path.replace(".json", ".png")
+
+    try:
+        proc = subprocess.run(
+            [
+                "node",
+                "tools/chrome-render.mjs",
+                "--flame", flame_path,
+                "--out", out_path,
+                "--width", str(width),
+                "--height", str(height),
+                "--quality", str(quality),
+                "--timeout", str(RENDER_TIMEOUT_SECS),
+                "--dist", APP_DIST_DIR,
+            ],
+            cwd=os.path.dirname(os.path.abspath(__file__)),
+            capture_output=True,
+            text=True,
+            timeout=RENDER_TIMEOUT_SECS + 60,
+        )
+        # The driver prints the adapter it acquired as a JSON line; keep it so a
+        # 'chrome' render is as attributable as a Deno one.
+        adapter = None
+        for line in (proc.stderr or "").splitlines():
+            marker = "[chrome-render] gpu: "
+            if line.startswith(marker):
+                try:
+                    adapter = json.loads(line[len(marker):])
+                except ValueError:
+                    adapter = {"raw": line[len(marker):][:200]}
+        if os.path.exists(out_path) and os.path.getsize(out_path) > 0:
+            with open(out_path, "rb") as f:
+                return f.read(), "gpu", adapter
+        tail = (proc.stderr or "").strip().splitlines()[-5:]
+        last_error = " | ".join(tail) or f"exit {proc.returncode}"
+        if any(m in last_error.lower() for m in MEMORY_ERROR_MARKERS):
+            last_error += (
+                f" [vram used,free,total MiB: {gpu_memory()}] [host {host_memory()}]"
+            )
+        raise RenderFailure(
+            f"stage=render: no output produced: {last_error}",
+            backend="gpu",
+            adapter=adapter,
+        )
+    finally:
+        for p in (flame_path, out_path):
+            try:
+                os.unlink(p)
+            except OSError:
+                pass
 
 
 def render_png(flame_json: str, width: int, height: int, quality: float):
@@ -212,13 +296,28 @@ def handler(job):
     except ValueError:
         return {"error": "flameJson is not valid JSON"}
 
+    engine = str(inp.get("engine") or "deno")
+    if engine not in ("deno", "chrome"):
+        return {"error": f"unknown engine '{engine}'", "engine": engine}
+    # Never silently downgrade: a chrome job served by Deno would fail at any
+    # resolution Deno cannot allocate, and would blame the wrong renderer.
+    if engine == "chrome" and not CHROME_ENABLED:
+        return {
+            "error": "stage=dispatch: this image does not ship the chrome engine",
+            "engine": engine,
+        }
+
     width = int(inp.get("width") or 1920)
     height = int(inp.get("height") or 1080)
     quality = float(inp.get("quality") or 0.5)
-    if width < 16 or height < 16 or width * height > MAX_PIXELS:
-        return {"error": f"resolution out of bounds (max {MAX_PIXELS} pixels)"}
+    max_pixels = MAX_PIXELS[engine]
+    if width < 16 or height < 16 or width * height > max_pixels:
+        return {
+            "error": f"resolution out of bounds (max {max_pixels} pixels for {engine})",
+            "engine": engine,
+        }
     if not (0.01 <= quality <= 1):
-        return {"error": "quality must be within 0.01..1"}
+        return {"error": "quality must be within 0.01..1", "engine": engine}
 
     # The R2 key is derived from the submitting worker's job id so its
     # status/result routes can find the object without a round trip.
@@ -226,10 +325,11 @@ def handler(job):
     image_key = f"{KEY_PREFIX}/{job_id}.png"
 
     try:
-        png, backend, adapter = render_png(flame_json, width, height, quality)
+        render = render_png_chrome if engine == "chrome" else render_png
+        png, backend, adapter = render(flame_json, width, height, quality)
         render_done = time.time()
         print(
-            f"[handler] job={job_id} rendered {len(png)} bytes in "
+            f"[handler] job={job_id} engine={engine} rendered {len(png)} bytes in "
             f"{render_done - started:.1f}s on {backend} ({(adapter or {}).get('description', 'unknown adapter')})"
         )
 
@@ -253,6 +353,8 @@ def handler(job):
         billed_secs = uploaded - started
         return {
             "imageKey": image_key,
+            # Which renderer produced this image.
+            "engine": engine,
             # Which device actually rendered this job. 'cpu' means the GPU
             # attempt failed and llvmpipe took over — visibly slower, and a
             # signal that something is wrong with the endpoint.
@@ -270,16 +372,20 @@ def handler(job):
             },
         }
     except subprocess.TimeoutExpired:
-        return {"error": f"render timed out after {RENDER_TIMEOUT_SECS}s"}
+        return {
+            "error": f"render timed out after {RENDER_TIMEOUT_SECS}s",
+            "engine": engine,
+        }
     except RenderFailure as exc:
-        print(f"[handler] job={job_id} FAILED on {exc.backend}: {exc}")
+        print(f"[handler] job={job_id} engine={engine} FAILED on {exc.backend}: {exc}")
         return {
             "error": str(exc),
+            "engine": engine,
             "backend": exc.backend,
             "adapter": exc.adapter,
         }
     except Exception as exc:  # noqa: BLE001 — everything maps to output.error
-        return {"error": str(exc)}
+        return {"error": str(exc), "engine": engine}
 
 
 if __name__ == "__main__":

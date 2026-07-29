@@ -15,7 +15,7 @@
  *   node workers/render-worker/tools/chrome-render.mjs \
  *     --flame path/to/flame.json --out out.png \
  *     [--width 3840] [--height 2160] [--quality 0.95] \
- *     [--timeout 180] [--serve-port 4180] [--headed]
+ *     [--timeout 180] [--serve-port 4180] [--dist path/to/dist] [--headed]
  *
  * Exit codes: 0 render written, 1 render failed, 2 watchdog timeout.
  */
@@ -42,7 +42,9 @@ const HEIGHT = Number(args.height ?? 720)
 const QUALITY = Number(args.quality ?? 0.9)
 const PORT = Number(args['serve-port'] ?? 4180)
 const HEADED = args.headed === 'true'
-const DIST = resolve(process.cwd(), 'packages/app/dist')
+// The built app to serve. Defaults to the repo layout; the container passes
+// --dist explicitly because its cwd is the worker directory, not the repo root.
+const DIST = resolve(args.dist ?? join(process.cwd(), 'packages/app/dist'))
 // Seconds on the CLI, milliseconds internally. Deliberately modest by default:
 // an unconverged render should surface as a failure fast, not hold the GPU.
 const TIMEOUT_MS = Number(args.timeout ?? 180) * 1000

@@ -145,16 +145,42 @@ docker run --rm -it -e RENDER_WORKER_FORCE_CPU=true -p 8787:8787 chaos-render-wo
 ### RunPod Serverless (primary production path)
 
 The image's default CMD runs `handler.py` (`runpod.serverless.start`): each
-queue job invokes the Deno CLI once, uploads the PNG to R2 via the S3 API,
-and returns `{ imageKey, timings, cost }` (or `{ error }` — the submitting
-Cloudflare Worker treats that as failed and refunds the credit).
+queue job invokes a renderer once, uploads the PNG to R2 via the S3 API, and
+returns `{ imageKey, engine, timings, cost }` (or `{ error, engine }` — the
+submitting Cloudflare Worker treats that as failed and refunds the credit).
+
+The job's `engine` input selects the renderer: `deno` (the CLI, capped near
+5.1 Mpx by its WebGPU's ~100 MB per-allocation ceiling) or `chrome` (the app's
+own bundle in headless Chrome, which reaches 8K). See
+`docs/plans/headless-chrome-renderer-plan.md`.
 
 1. Build and push a **pinned tag** to GHCR (never `latest` — bumping the tag
-   on the endpoint IS the release):
+   on the endpoint IS the release). The app bundle is copied into the image, so
+   build it first:
+
+   ```bash
+   pnpm --filter chaos-master build
+   ```
+
+   Deno-only image:
+
    ```bash
    docker build -f workers/render-worker/Dockerfile -t ghcr.io/komediruzecki/chaos-render-worker:0.1.0 .
+   ```
+
+   With the Chrome engine (adds Node + Chromium, ~500 MB, and enables 4K/8K):
+
+   ```bash
+   docker build -f workers/render-worker/Dockerfile --build-arg CHROME_ENGINE=true -t ghcr.io/komediruzecki/chaos-render-worker:0.2.0-chrome .
+   ```
+
+   ```bash
    docker push ghcr.io/komediruzecki/chaos-render-worker:0.1.0
    ```
+
+   A Chrome-enabled image embeds a specific app build, so tag it with the app
+   version — the renderer and the bundle ship together.
+
 2. RunPod → Serverless → New Endpoint, from that image. Recommended settings
    (mirrors the proven mercurypitch endpoint):
    - Queue endpoint, **Min/Active workers 0** (scale-to-zero), Max ~3
@@ -169,11 +195,17 @@ Cloudflare Worker treats that as failed and refunds the credit).
    | `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | — | R2 API token pair |
    | `S3_REGION` | `auto` | R2 uses `auto` |
    | `S3_KEY_PREFIX` | `renders` | Must match the app worker's key scheme |
-   | `RENDER_MAX_PIXELS` | `33177600` (8K) | Cheap pre-render rejection cap |
+   | `RENDER_MAX_PIXELS_DENO` | `5100000` | Cheap pre-render cap for the Deno engine |
+   | `RENDER_MAX_PIXELS_CHROME` | `33177600` (8K) | Same, for the Chrome engine |
    | `RENDER_TIMEOUT_SECS` | `280` | Below the endpoint execution timeout |
+   | `CHROME_RENDER_ENABLED` | `true` | Only on a `CHROME_ENGINE=true` image; baked in by the build arg |
    | `RUNPOD_GPU_USD_PER_HR` | `0` | Cost accounting in job output |
 4. Cloudflare Worker secrets: `RUNPOD_API_KEY` + `RUNPOD_ENDPOINT_ID`
-   (`wrangler secret put ... --env staging`).
+   (`wrangler secret put ... --env staging`). To offer the Chrome engine, also
+   set the `RUNPOD_CHROME_ENGINE: "true"` var in `wrangler.jsonc` for that env —
+   it both shows the renderer picker in the UI and permits `engine: 'chrome'`
+   submits. Leave it `"false"` against a Deno-only endpoint: a Chrome request
+   is then rejected rather than silently rendered (and mis-attributed) by Deno.
 
 #### Rolling out a new image (IMPORTANT)
 
@@ -191,8 +223,8 @@ curl -s -X PATCH https://rest.runpod.io/v1/endpoints/<ENDPOINT_ID> \
 ```
 
 Verify the rollout from the job output, not the console: every successful job
-returns `backend` ("gpu"/"cpu") and `adapter` (the GPU description). If those
-fields are missing, an older image is still serving.
+returns `engine` ("deno"/"chrome"), `backend` ("gpu"/"cpu") and `adapter` (the
+GPU description). If those fields are missing, an older image is still serving.
 
 #### API key scopes
 

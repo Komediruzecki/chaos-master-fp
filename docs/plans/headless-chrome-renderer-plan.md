@@ -92,26 +92,46 @@ node workers/render-worker/tools/chrome-render.mjs --flame flame.json --out out.
   The driver instead compares accumulated points against
   `setQualityPointCountLimit` — the same test the render loop stops on.
 
+## Engine selection (built)
+
+`POST /api/renders` accepts `engine: 'deno' | 'chrome'`, defaulting to `deno`.
+
+The rule throughout is **never silently downgrade**. A `chrome` request against
+a deployment or image that cannot serve it is rejected, not quietly rendered by
+Deno — a mis-attributed render would defeat the entire point of offering the
+choice, and would fail anyway at any resolution Deno cannot allocate. So:
+
+- The submit route rejects `chrome` unless `RUNPOD_CHROME_ENGINE=true`
+  (`resolveRenderEngine`), and rejects unknown engines outright.
+- `/api/feature-flags` reports `chromeRenderEngine`, so the dialog only offers
+  the picker where it works instead of surfacing a 400 after the fact.
+- The handler refuses `chrome` unless `CHROME_RENDER_ENABLED=true`.
+- Every handler output — success **and** failure — carries the engine that
+  actually ran, surfaced through `mapRunpodStatus`.
+
+Pixel ceilings are per engine (`MAX_RENDER_PIXELS`): 5.1 MP for Deno because of
+the allocation limit, 33 MP for Chrome, which is a queue-occupancy decision
+rather than a device one. Tier caps follow (`TIER_MAX_RES`), so pro reaches 8K
+on Chrome and stays at 3008px on Deno.
+
+Credits are unchanged: the cost model prices worker occupancy, which is
+engine-independent. `estimateRenderSeconds` is still calibrated on Deno/RTX
+4090 numbers and will want per-engine constants once there are enough Chrome
+samples — Chrome looks considerably faster, so it currently over-charges.
+
+`--build-arg CHROME_ENGINE=true` builds an image with Node, Chromium and the
+app bundle; without it the image is Deno-only and ~500 MB lighter.
+
 ## Remaining work
 
-1. **Engine selection through the API.** `POST /api/renders` takes
-   `engine: 'deno' | 'chrome'` (default `deno` until Chrome is proven on
-   RunPod), persisted on the job row and echoed in status so a result can be
-   attributed. The cost model is engine-independent — credits stay priced on
-   worker occupancy — but `estimateRenderSeconds` will want separate constants
-   once there are enough Chrome samples.
-2. **Chrome in the RunPod image.** Add Chrome + its Vulkan stack to
-   `workers/render-worker/Dockerfile` and a handler branch that shells out to
-   the driver. The image currently carries Deno + the NVIDIA ICD; Chrome needs
-   the same ICD plus `--no-sandbox`/`--disable-gpu-sandbox` (already passed).
-   The built `packages/app/dist` has to be baked in, which couples the image to
-   an app version — worth tagging the image with the app version.
-3. **Cold start.** The driver launches a browser per render; on serverless that
+1. **Prove it on RunPod.** Everything above is validated locally on AMD. The
+   NVIDIA path (the endpoint's ICD, Chrome under the container's Vulkan) is
+   unverified.
+2. **Cold start.** The driver launches a browser per render; on serverless that
    lands on top of container start. A persistent browser reused across jobs in
    one worker is the obvious fix, and needs a page-per-job isolation story.
-4. **Resolution caps.** `MAX_RENDER_PIXELS` (5.1 MP) exists because of the Deno
-   ceiling. Chrome does 33 MP. The cap becomes a pricing/queue decision rather
-   than a technical one.
-5. **Decide the Deno path's future.** If Chrome holds up on RunPod, the Deno
+3. **Per-engine cost constants**, once Chrome has enough samples on the real
+   endpoint to calibrate against.
+4. **Decide the Deno path's future.** If Chrome holds up on RunPod, the Deno
    renderer, `wgslExtractor.ts`, and the whole `src/stubs/` tree can go —
    several thousand lines whose only job is re-creating the browser bundle.

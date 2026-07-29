@@ -3,28 +3,40 @@ import { Button } from '@/components/Button/Button'
 import { useRequestModal } from '@/components/Modal/ModalContext'
 import { ModalTitleBar } from '@/components/Modal/ModalTitleBar'
 import { useAuth } from '@/contexts/AuthContext'
-import { pollUntilComplete, submitRender } from '@/db/services/render-service'
+import { fetchFeatureFlags, pollUntilComplete, submitRender, } from '@/db/services/render-service'
 import { IS_DEV } from '@/defaults'
 import { cameraFromFlame, creditsForRender, estimateRenderSeconds, qualityPointLimit, } from '@/flame/renderCost'
 import { formatPointCount } from '@/utils/formatPointCount'
 import ui from './ServerRenderDialog.module.css'
-import type { ServerRenderJob } from '@/db/services/render-service'
+import type { ServerRenderEngine, ServerRenderJob, } from '@/db/services/render-service'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 
-// Server buffer ceiling: the render worker allocates 16 bytes/pixel and
-// Deno's WebGPU rejects a single allocation above ~100MB, so widths beyond
-// ~3008px (16:9) cannot be rendered server-side yet regardless of tier.
-const TIER_MAX_RES: Record<string, number> = {
-  free: 1920,
-  premium: 2560,
-  pro: 3008,
+// Per-engine tier ceilings. The deno numbers are a device limit, not a product
+// one: the render worker allocates 16 bytes/pixel and Deno's WebGPU rejects a
+// single allocation above ~100MB, so ~3008px (16:9) is as far as it goes at any
+// tier. Chrome has no such ceiling, so its numbers are the actual tier policy.
+const TIER_MAX_RES: Record<ServerRenderEngine, Record<string, number>> = {
+  deno: { free: 1920, premium: 2560, pro: 3008 },
+  chrome: { free: 1920, premium: 3840, pro: 7680 },
 }
 
 const RESOLUTION_OPTIONS = [
   { label: '1280px (HD)', value: 1280 },
   { label: '1920px (Full HD)', value: 1920 },
   { label: '2560px (1440p)', value: 2560 },
-  { label: '3008px (max)', value: 3008 },
+  { label: '3008px (deno max)', value: 3008 },
+  { label: '3840px (4K)', value: 3840 },
+  { label: '7680px (8K)', value: 7680 },
+]
+
+/** The two server renderers. See docs/plans/headless-chrome-renderer-plan.md. */
+const ENGINE_OPTIONS: {
+  value: ServerRenderEngine
+  label: string
+  hint: string
+}[] = [
+  { value: 'deno', label: 'Deno', hint: 'up to 3008px' },
+  { value: 'chrome', label: 'Chrome', hint: 'up to 8K' },
 ]
 
 /** Server quality presets — the SAME values as the in-app quality pills, so
@@ -51,14 +63,31 @@ export function createServerRenderDialog(
 
     type RenderPhase = 'config' | 'submitting' | 'rendering' | 'done' | 'error'
 
-    const tier = () => auth.subscription().tier
-    const maxRes = () => (IS_DEV ? 7680 : (TIER_MAX_RES[tier()] ?? 1920))
-    const resolutionOptions = () =>
-      RESOLUTION_OPTIONS.filter((o) => o.value <= maxRes())
-
     const [resolution, setResolution] = createSignal(1920)
     const [quality, setQuality] = createSignal(0.95)
     const [backend, setBackend] = createSignal<'gpu' | 'cpu'>('gpu')
+    const [engine, setEngine] = createSignal<ServerRenderEngine>('deno')
+    // Chrome is only offered where the render endpoint's image ships it;
+    // otherwise picking it would just earn a 400 from the submit route.
+    const [chromeAvailable, setChromeAvailable] = createSignal(false)
+    void fetchFeatureFlags().then((flags) => {
+      setChromeAvailable(Boolean(flags.chromeRenderEngine))
+    })
+
+    const tier = () => auth.subscription().tier
+    const maxResFor = (e: ServerRenderEngine) =>
+      IS_DEV ? 7680 : (TIER_MAX_RES[e][tier()] ?? 1920)
+    const maxRes = () => maxResFor(engine())
+    const resolutionOptions = () =>
+      RESOLUTION_OPTIONS.filter((o) => o.value <= maxRes())
+
+    // Switching to a lower-ceilinged engine must not leave an unsubmittable
+    // resolution selected. Clamped in the setter rather than an effect: this
+    // dialog body runs from an event handler, outside any Solid owner.
+    const selectEngine = (next: ServerRenderEngine) => {
+      setEngine(next)
+      if (resolution() > maxResFor(next)) setResolution(maxResFor(next))
+    }
 
     // Live estimate from the shared cost model — same numbers the server
     // charges, including the camera zoom of the flame being rendered.
@@ -131,6 +160,7 @@ export function createServerRenderDialog(
           height,
           quality: qual,
           backend: backend(),
+          engine: engine(),
         })
 
         // The submit just debited a credit — reflect it without a reload.
@@ -279,8 +309,29 @@ export function createServerRenderDialog(
                     </Show>
                   </span>
                 </div>
+                <Show when={chromeAvailable()}>
+                  <div class={ui.field}>
+                    <span>Renderer</span>
+                    <div class={ui.presetRow}>
+                      <For each={ENGINE_OPTIONS}>
+                        {(option) => (
+                          <button
+                            type="button"
+                            class={`${ui.presetPill} ${engine() === option.value ? ui.presetPillActive : ''}`}
+                            onClick={() => {
+                              selectEngine(option.value)
+                            }}
+                            title={`${option.label} — ${option.hint}`}
+                          >
+                            {option.label}
+                          </button>
+                        )}
+                      </For>
+                    </div>
+                  </div>
+                </Show>
                 <label class={ui.field}>
-                  <span>Engine</span>
+                  <span>Device</span>
                   <select
                     class={ui.select}
                     value={backend()}

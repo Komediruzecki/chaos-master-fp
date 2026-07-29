@@ -28,6 +28,11 @@ export interface Env {
   RUNPOD_API_KEY?: string
   RUNPOD_ENDPOINT_ID?: string
   RUNPOD_BASE_URL?: string
+  // 'true' when the endpoint's image ships headless Chrome, which is what makes
+  // engine:'chrome' (and therefore 4K/8K) servable. Set per deployment so a
+  // Chrome request against a Deno-only endpoint fails loudly instead of being
+  // silently rendered — and mis-attributed — by Deno.
+  RUNPOD_CHROME_ENGINE?: string
   // Self-hosted pod fallback: base URL + shared bearer token.
   RENDER_WORKER_URL?: string
   RENDER_WORKER_TOKEN?: string

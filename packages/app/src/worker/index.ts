@@ -571,11 +571,25 @@ async function handleGoogleCallback(
 
 // ── Render handlers ──────────────────────────────────────────────
 
+/**
+ * Which server renderer runs the job.
+ *
+ * 'deno'   the Deno CLI renderer — the original path. Its WebGPU refuses
+ *          single buffer allocations above ~100MB, capping it near 5.1Mpx.
+ * 'chrome' the app's own bundle inside headless Chrome (Dawn), which has no
+ *          such ceiling and reaches 8K. See
+ *          docs/plans/headless-chrome-renderer-plan.md.
+ */
+type RenderEngine = 'deno' | 'chrome'
+
+const RENDER_ENGINES: readonly RenderEngine[] = ['deno', 'chrome']
+
 interface RenderOptions {
   width: number
   height: number
   quality: number
   backend?: 'gpu' | 'cpu'
+  engine?: RenderEngine
 }
 
 const DEFAULT_RENDER_OPTIONS: RenderOptions = {
@@ -583,6 +597,47 @@ const DEFAULT_RENDER_OPTIONS: RenderOptions = {
   height: 1080,
   quality: 0.5,
   backend: 'gpu',
+  engine: 'deno',
+}
+
+/**
+ * Per-engine pixel ceiling. Deno's is a hard technical limit (16 bytes/pixel of
+ * accumulation buffer against a ~100MB per-allocation cap, measured on the RTX
+ * 4090 endpoint: 81MB ok, 132.7MB fails with 24GB free). Chrome's is a
+ * queue-occupancy decision, not a device one — 8K renders fine.
+ */
+export const MAX_RENDER_PIXELS: Record<RenderEngine, number> = {
+  deno: 5_100_000,
+  chrome: 33_177_600, // 7680x4320
+}
+
+/**
+ * Resolve the requested engine, or explain why it cannot run.
+ *
+ * A request for an engine the endpoint cannot serve is REJECTED rather than
+ * quietly downgraded: silently rendering a 'chrome' job on Deno would attribute
+ * that path's timings and failures to the wrong engine, which defeats the point
+ * of having the choice.
+ */
+export function resolveRenderEngine(
+  requested: string | undefined,
+  chromeAvailable: boolean,
+): { engine: RenderEngine } | { error: string } {
+  const engine = (requested ?? 'deno') as RenderEngine
+  if (!RENDER_ENGINES.includes(engine)) {
+    return { error: `Unknown render engine '${requested}'` }
+  }
+  if (engine === 'chrome' && !chromeAvailable) {
+    return {
+      error: 'The chrome render engine is not enabled on this deployment',
+    }
+  }
+  return { engine }
+}
+
+/** The render endpoint only serves Chrome jobs when its image ships Chrome. */
+function chromeEngineAvailable(env: Env): boolean {
+  return env.RUNPOD_CHROME_ENGINE === 'true'
 }
 
 async function handleSubmitRender(
@@ -597,14 +652,16 @@ async function handleSubmitRender(
   if (!flameJson) {
     return json({ error: 'flameJson is required' }, 400)
   }
-  const opts = options || DEFAULT_RENDER_OPTIONS
+  const requested = options || DEFAULT_RENDER_OPTIONS
 
-  // Server buffer ceiling: the render worker allocates 16 bytes/pixel for the
-  // accumulation buffer and Deno's WebGPU refuses a single allocation above
-  // ~100MB (measured on the RTX 4090 endpoint: 81MB ok, 132.7MB fails, with
-  // 24GB of VRAM free). Reject beyond that up front rather than charging for
-  // a render that cannot succeed.
-  const MAX_RENDER_PIXELS = 5_100_000
+  const resolved = resolveRenderEngine(
+    requested.engine,
+    chromeEngineAvailable(env),
+  )
+  if ('error' in resolved) {
+    return json({ error: resolved.error }, 400)
+  }
+  const opts: RenderOptions = { ...requested, engine: resolved.engine }
 
   // Cheap validation BEFORE anything billable is touched.
   if (
@@ -617,11 +674,13 @@ async function handleSubmitRender(
   ) {
     return json({ error: 'Invalid render options' }, 400)
   }
-  if (opts.width * opts.height > MAX_RENDER_PIXELS) {
+  const maxPixels = MAX_RENDER_PIXELS[resolved.engine]
+  if (opts.width * opts.height > maxPixels) {
     return json(
       {
         error:
-          'Resolution too large for server rendering (max ~5.1 megapixels, e.g. 3008x1692)',
+          `Resolution too large for the ${resolved.engine} render engine ` +
+          `(max ~${(maxPixels / 1e6).toFixed(1)} megapixels)`,
       },
       400,
     )
@@ -783,6 +842,7 @@ async function createAndSubmitRender(
         height: opts.height,
         quality: opts.quality,
         seed,
+        engine: opts.engine ?? 'deno',
       })
       job.runpodJobId = runpodJobId
       job.status = 'running'
@@ -1885,6 +1945,11 @@ export const baseHandler = {
         )
         map[camelKey] = f.value === 1
       }
+      // Deployment capability, not a D1 flag: whether the render endpoint's
+      // image ships headless Chrome. The client uses it to offer (or hide) the
+      // chrome engine instead of letting users pick an option that 400s.
+      map.chrome_render_engine = chromeEngineAvailable(env)
+      map.chromeRenderEngine = map.chrome_render_engine
       return new Response(JSON.stringify(map), {
         status: 200,
         headers: { ...cors, 'Content-Type': 'application/json' },
