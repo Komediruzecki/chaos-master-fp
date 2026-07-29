@@ -113,5 +113,13 @@ export default defineConfig({
   build: {
     target: 'esnext',
     sourcemap: true,
+    rollupOptions: {
+      input: {
+        // The app itself, plus the headless render surface driven by the
+        // server-side Chrome renderer (workers/render-worker/tools).
+        main: fileURLToPath(new URL('index.html', import.meta.url)),
+        headless: fileURLToPath(new URL('headless.html', import.meta.url)),
+      },
+    },
   },
 })
