@@ -95,6 +95,12 @@ export function HeadlessRender() {
                   animationEnabled={false}
                   quality={j().quality}
                   pointCountPerBatch={4096}
+                  // Drive the async export loop instead of the rAF loop. The
+                  // rAF path is paced for interactivity — 60 ticks/s of small
+                  // chunks — which measured ~0.45B points/s against the Deno
+                  // renderer's ~1.9B on the same GPU. This is a headless
+                  // export, so throughput is the only thing that matters.
+                  exportDriver
                   adaptiveFilterEnabled
                   flameDescriptor={j().flame}
                   renderInterval={1}
