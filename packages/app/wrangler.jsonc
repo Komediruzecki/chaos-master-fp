@@ -202,10 +202,11 @@
       "vars": {
         "ENVIRONMENT": "staging",
         "TURNSTILE_ALLOWED_HOSTNAMES": "staging.lumenapeiron.com",
-        // Flip to "true" once the RunPod endpoint runs a CHROME_ENGINE=true
-        // image. Until then the chrome renderer is hidden in the UI and its
-        // submits are rejected, rather than silently served by Deno.
-        "RUNPOD_CHROME_ENGINE": "false",
+        // The staging endpoint (4l7hb69v3wchcn) runs a CHROME_ENGINE=true
+        // image, so the chrome renderer is offered here. Set "false" against a
+        // Deno-only endpoint: chrome submits are then rejected rather than
+        // silently served by Deno.
+        "RUNPOD_CHROME_ENGINE": "true",
       },
       "routes": [
         {
