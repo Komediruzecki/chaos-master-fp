@@ -113,6 +113,9 @@ const browser = await chromium.launch({
     '--disable-gpu-sandbox',
     '--disable-backgrounding-occluded-windows',
     '--disable-renderer-backgrounding',
+    // Containers default /dev/shm to 64MB, which a large canvas overruns —
+    // Chrome then dies mid-render with a bare "Target closed".
+    '--disable-dev-shm-usage',
   ],
 })
 

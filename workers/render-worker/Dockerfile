@@ -58,16 +58,20 @@ RUN deno eval 'const imports = JSON.parse(Deno.readTextFileSync("deno.json")).im
 ARG CHROME_ENGINE=false
 ARG PLAYWRIGHT_VERSION=1.59.1
 ENV CHROME_RENDER_ENABLED=${CHROME_ENGINE}
-# The driver is a plain node script in /workers/render-worker, so it cannot see
-# a globally installed playwright without this. Browsers go to a fixed path
-# rather than root's HOME cache, so the runtime user cannot miss them.
-ENV NODE_PATH=/usr/lib/node_modules
+# Browsers land at a fixed path rather than root's HOME cache, so the runtime
+# user cannot miss them.
 ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright-browsers
 
+# playwright is installed into tools/ — NOT globally. The driver is an ESM
+# module (.mjs) and ESM resolution does NOT consult NODE_PATH (that is
+# CommonJS-only); it only walks node_modules upward from the importing file. A
+# global install would resolve at build time and fail at render time. tools/ is
+# also invisible to Deno, so this node_modules cannot confuse `deno cache`.
 RUN if [ "$CHROME_ENGINE" = "true" ]; then \
       apt-get update && apt-get install -y --no-install-recommends \
         nodejs npm ca-certificates fonts-liberation \
-      && npm install -g playwright@${PLAYWRIGHT_VERSION} \
+      && npm install --prefix /workers/render-worker/tools \
+           playwright@${PLAYWRIGHT_VERSION} \
       && npx --yes playwright@${PLAYWRIGHT_VERSION} install --with-deps chromium \
       && rm -rf /var/lib/apt/lists/*; \
     fi
