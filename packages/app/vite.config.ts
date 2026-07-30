@@ -82,7 +82,8 @@ export default defineConfig({
   },
   server: {
     host: true,
-    port: 5173,
+    port: 3000,
+    strictPort: true,
     // Pre-transform the heaviest eagerly-imported modules during server boot so
     // the first page load isn't stuck transforming the ~400-module variation
     // catalogue on the critical path (the dev-only white screen). Doesn't reduce

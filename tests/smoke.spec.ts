@@ -54,6 +54,48 @@ test.describe('CI smoke', () => {
     expect(childCount).toBeGreaterThan(5)
   })
 
+  test('boots the isolated benchmark entry from a direct URL', async ({
+    page,
+  }) => {
+    await page.goto('/benchmarks', { waitUntil: 'domcontentloaded' })
+
+    await expect(page.getByTestId('benchmarks-page')).toBeVisible({
+      timeout: 12_000,
+    })
+  })
+
+  test('centers benchmark header action labels', async ({ page }) => {
+    for (const viewport of [
+      { width: 1440, height: 900 },
+      { width: 390, height: 844 },
+    ]) {
+      await page.setViewportSize(viewport)
+      await page.goto('/benchmarks', { waitUntil: 'domcontentloaded' })
+      await expect(page.getByTestId('benchmarks-page')).toBeVisible({
+        timeout: 12_000,
+      })
+
+      for (const label of ['Run classic score', 'Back to editor']) {
+        const centerOffset = await page
+          .getByLabel(label, { exact: true })
+          .evaluate((control) => {
+            const controlBox = control.getBoundingClientRect()
+            const visibleLabel = [...control.querySelectorAll('span')].find(
+              (span) => globalThis.getComputedStyle(span).display !== 'none',
+            )
+            if (!visibleLabel) return Number.POSITIVE_INFINITY
+            const labelBox = visibleLabel.getBoundingClientRect()
+            return (
+              labelBox.top +
+              labelBox.height / 2 -
+              (controlBox.top + controlBox.height / 2)
+            )
+          })
+        expect(Math.abs(centerOffset)).toBeLessThanOrEqual(1)
+      }
+    }
+  })
+
   test('boots without a non-WebGPU fatal error', async ({
     page,
     consoleErrors,
