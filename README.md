@@ -49,3 +49,7 @@ pnpm build
 - **Affine Editor**: Interactive transformation manipulation.
 - **Metadata-rich Exports**: PNGs with embedded flame state for easy sharing.
 - **Theme Support**: Adaptive dark/light interfaces.
+
+## Living documentation
+
+This repository includes a small, local-first documentation coherence check for developers and coding agents. Run `pnpm docs:context` before a change to see which documentation belongs to each code area, then run `pnpm docs:check --strict` afterward to flag mapped source changes whose documentation needs review. See the [pilot plan](docs/plans/living-documentation-system.md) for the design, workshop agenda, and improvement path.

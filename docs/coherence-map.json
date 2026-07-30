@@ -1,0 +1,49 @@
+{
+  "$schema": "./coherence-map.schema.json",
+  "areas": [
+    {
+      "id": "rendering-pipeline",
+      "description": "WebGPU flame rendering, shaders, and device resilience",
+      "sources": [
+        "packages/app/src/flame/",
+        "packages/app/src/components/FlameRenderer",
+        "packages/app/src/components/FlameView"
+      ],
+      "docs": [
+        "docs/audit/webgpu-firefox-crash-summary.md",
+        "docs/testing/webgpu-resilience-test-plan.md"
+      ],
+      "questions": [
+        "Did the rendering lifecycle or fallback behavior change?",
+        "Do browser-specific limitations need to be updated?"
+      ]
+    },
+    {
+      "id": "animation",
+      "description": "Timeline, animation paths, and playback behavior",
+      "sources": [
+        "packages/app/src/animation/",
+        "packages/app/src/components/Timeline",
+        "packages/app/src/stores/animation"
+      ],
+      "docs": ["docs/animation-plan.md"],
+      "questions": [
+        "Did a serialised animation field or path change?",
+        "Does the user workflow described by the plan still match the UI?"
+      ]
+    },
+    {
+      "id": "public-and-operator-guidance",
+      "description": "Commands, package boundaries, and contributor workflows",
+      "sources": [
+        "package.json",
+        "packages/app/package.json",
+        ".github/workflows/"
+      ],
+      "docs": ["README.md", "packages/app/TESTING.md"],
+      "questions": [
+        "Were commands, prerequisites, deployment behavior, or supported environments changed?"
+      ]
+    }
+  ]
+}
