@@ -1,4 +1,4 @@
-import { expect, test } from './helpers'
+import { dismissWelcomeIfPresent, expect, test } from './helpers'
 
 /**
  * CI-stable smoke suite.
@@ -59,6 +59,21 @@ test.describe('CI smoke', () => {
   }) => {
     await page.goto('/benchmarks', { waitUntil: 'domcontentloaded' })
 
+    await expect(page.getByTestId('benchmarks-page')).toBeVisible({
+      timeout: 12_000,
+    })
+  })
+
+  test('opens the benchmark lab from the editor controls', async ({ page }) => {
+    await page.goto('/', { waitUntil: 'domcontentloaded' })
+    await dismissWelcomeIfPresent(page, 12_000)
+
+    const labLink = page.getByRole('link', { name: 'Open Benchmark Lab' })
+    await expect(labLink).toBeVisible({ timeout: 12_000 })
+    await expect(labLink).toHaveAttribute('href', '/benchmarks')
+
+    await labLink.click()
+    await expect(page).toHaveURL(/\/benchmarks$/)
     await expect(page.getByTestId('benchmarks-page')).toBeVisible({
       timeout: 12_000,
     })

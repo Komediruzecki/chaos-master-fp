@@ -15,6 +15,7 @@ import { deepClone } from '@/utils/clone'
 import { useElementIsScrolling } from '@/utils/isScrolling'
 import { createSharedIntersectionObserver } from '@/utils/useIntersectionObserver'
 import { GIT_SHA, VERSION } from '@/version'
+import { BENCHMARK_DIAL, BENCHMARK_DIAL_EMBER_ARC, BENCHMARK_DIAL_EMBER_NODES, drawBenchmarkDialGeometry, } from './benchmarkDialGeometry'
 import { BenchmarkRunnerHost } from './BenchmarkRunnerHost'
 import ui from './BenchmarksPage.module.css'
 import { ChaosDial } from './ChaosDial'
@@ -327,26 +328,18 @@ function drawShareCard(run: CompletedLabRun): void {
   context.fillStyle = glow
   context.fillRect(0, 0, 620, 630)
 
-  context.strokeStyle = 'rgba(255,255,255,.1)'
-  context.lineWidth = 2
-  for (const radius of [82, 132, 190]) {
-    context.beginPath()
-    context.arc(280, 315, radius, 0, Math.PI * 2)
-    context.stroke()
-  }
-  context.strokeStyle = 'rgba(255,116,72,.68)'
-  context.setLineDash([4, 10])
-  context.beginPath()
-  context.arc(280, 315, 162, -Math.PI / 2, Math.PI * 1.35)
-  context.stroke()
-  context.setLineDash([])
+  drawBenchmarkDialGeometry(context, {
+    centerX: 280,
+    centerY: 315,
+    scale: 190 / BENCHMARK_DIAL.outerRadius,
+  })
 
   context.fillStyle = '#f3f4f6'
   context.textAlign = 'center'
-  context.font = '600 58px Inter, system-ui, sans-serif'
+  context.font = '650 54px Inter, system-ui, sans-serif'
   context.fillText(coreValue, 280, 310)
   context.fillStyle = '#929aa7'
-  context.font = '500 15px Inter, system-ui, sans-serif'
+  context.font = '560 13px Inter, system-ui, sans-serif'
   context.fillText(coreLabel, 280, 345)
 
   context.textAlign = 'left'
@@ -2348,12 +2341,53 @@ export function BenchmarksPage() {
                         <div class={ui.attractorCore}>
                           <svg
                             class={ui.coreSvg}
-                            viewBox="0 0 220 220"
+                            viewBox={`0 0 ${BENCHMARK_DIAL.size} ${BENCHMARK_DIAL.size}`}
                             aria-hidden="true"
                           >
-                            <circle cx="110" cy="110" r="103" />
-                            <circle cx="110" cy="110" r="82" />
-                            <circle cx="110" cy="110" r="58" />
+                            <circle
+                              class={ui.dialOuterRing}
+                              cx={BENCHMARK_DIAL.center}
+                              cy={BENCHMARK_DIAL.center}
+                              r={BENCHMARK_DIAL.outerRadius}
+                            />
+                            <For each={BENCHMARK_DIAL.orbits}>
+                              {(orbit) => (
+                                <ellipse
+                                  class={`${ui.dialOrbit} ${
+                                    orbit.tone === 'ember'
+                                      ? ui.dialOrbitEmber
+                                      : ui.dialOrbitCyan
+                                  }`}
+                                  cx={BENCHMARK_DIAL.center}
+                                  cy={BENCHMARK_DIAL.center}
+                                  rx={orbit.rx}
+                                  ry={orbit.ry}
+                                  transform={`rotate(${orbit.rotation} ${BENCHMARK_DIAL.center} ${BENCHMARK_DIAL.center})`}
+                                  style={{ opacity: orbit.opacity }}
+                                />
+                              )}
+                            </For>
+                            <path
+                              class={ui.dialEmberArc}
+                              d={BENCHMARK_DIAL_EMBER_ARC}
+                            />
+                            <For each={BENCHMARK_DIAL_EMBER_NODES}>
+                              {(node) => (
+                                <circle
+                                  class={ui.dialEmberNode}
+                                  cx={node.x}
+                                  cy={node.y}
+                                  r={node.radius}
+                                  style={{ opacity: node.opacity }}
+                                />
+                              )}
+                            </For>
+                            <circle
+                              class={ui.dialInnerRing}
+                              cx={BENCHMARK_DIAL.center}
+                              cy={BENCHMARK_DIAL.center}
+                              r={BENCHMARK_DIAL.innerRadius}
+                            />
                           </svg>
                           <div class={ui.coreValue}>
                             <strong>
