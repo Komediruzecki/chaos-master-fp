@@ -6,6 +6,8 @@
   overflow: hidden;
   border-top: 1px solid var(--neutral-200);
   background: var(--neutral-50);
+  opacity: var(--dopesheet-opacity, 1);
+  transition: opacity 0.15s ease;
 
   [data-theme='dark'] & {
     border-top-color: var(--neutral-800);
@@ -557,8 +559,6 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  opacity: var(--dopesheet-opacity, 1);
-  transition: opacity 0.15s ease;
 }
 
 /* ── Alpha (transparency) slider ── */
