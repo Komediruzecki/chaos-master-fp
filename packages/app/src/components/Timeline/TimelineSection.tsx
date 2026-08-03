@@ -2,13 +2,13 @@ import { createMemo, createSignal, Show } from 'solid-js'
 import { useTimeline } from '@/contexts/TimelineContext'
 import { Cross } from '@/icons'
 import { persistentSignal } from '@/utils/persistentSignal'
-import type { Accessor } from 'solid-js'
-import type { AudioAnalyzer } from '@/utils/audioAnalysis'
 import { AnimationControls, AnimationGenerator } from './AnimationGenerator'
 import { DopeSheet } from './DopeSheet'
 import ui from './TimelineSection.module.css'
+import type { Accessor } from 'solid-js'
 import type { DopeSheetViewApi } from './DopeSheet'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
+import type { AudioAnalyzer } from '@/utils/audioAnalysis'
 
 export interface TimelineSectionProps {
   formatTrackLabel?: (path: string) => string

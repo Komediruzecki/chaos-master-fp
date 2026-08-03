@@ -99,7 +99,7 @@ import { getNormalizedVariationName, getParamsEditor, getVariationDefault, } fro
 import { BoxArrowRight, Cross, Eye, EyeOff, Menu, Plus, Share, Shuffle, Terminal, } from './icons'
 import { AutoCanvas } from './lib/AutoCanvas'
 import { createAnimationExport } from './utils/animationExport'
-import { createAudioAnalyzer } from './utils/audioAnalysis'
+import { createAudioAnalyzer, getAudioFeatureNormalized, } from './utils/audioAnalysis'
 import { autosaveIntervalMin, autosaveRecents, saveReminderDismissed, setAutosaveRecents, setSaveReminderDismissed, } from './utils/autosaveSettings'
 import { downloadBlob } from './utils/blob'
 import { deepClone } from './utils/clone'
@@ -138,7 +138,6 @@ import type { TransformVariationType } from './flame/variations'
 import type { CustomVariationDef } from './flame/variations/custom/types'
 import type { TransformVariationType3D } from './flame/variations3D'
 import type { AnimationExportConfig } from './utils/animationExport'
-import { getAudioFeatureNormalized } from './utils/audioAnalysis'
 import type { AudioAnalyzer, LiveAudioAnalyzer } from './utils/audioAnalysis'
 
 /** Full frame data returned by audio analyzers (includes isBeat). */

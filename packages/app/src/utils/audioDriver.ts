@@ -1,5 +1,5 @@
-import type { AudioFeature, FrameData } from './audioAnalysis'
 import { clamp } from './easing'
+import type { AudioFeature } from './audioAnalysis'
 
 // ── Types (mirrored in flame/schema/timeline.ts — kept in sync) ──────────
 
