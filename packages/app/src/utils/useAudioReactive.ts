@@ -2,6 +2,9 @@ import { createEffect, onCleanup } from 'solid-js'
 import { applyAudioMappingsToFlame } from './audioAnalysis'
 import type { Accessor } from 'solid-js'
 import type { AudioAnalyzer, LiveAudioAnalyzer, MappingSmoothingState, } from './audioAnalysis'
+
+/** Full frame data shape returned by analyzers (includes isBeat). */
+type AnalyzerFrameData = ReturnType<AudioAnalyzer['getFrameData']>
 import type { AudioMapping } from '@/components/AudioReactivePanel/AudioReactivePanel'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 
@@ -22,6 +25,10 @@ type SetFlameDescriptor = (fn: (draft: FlameDescriptor) => void) => void
  *
  * Shared analyzer:
  * - `fileAnalyzer`: pre-built analyzer shared with waveform panel
+ *
+ * Audio driver integration:
+ * - `onFrameData`: optional callback fired each tick with current FrameData,
+ *   so the timeline resolver can look up per-track audio driver features.
  */
 export function useAudioReactive(
   audioEnabled: Accessor<boolean>,
@@ -34,6 +41,7 @@ export function useAudioReactive(
   seekTarget: Accessor<number | null>,
   onPlaybackTime: (seconds: number) => void,
   fileAnalyzer: Accessor<AudioAnalyzer | undefined>,
+  onFrameData?: (frameData: AnalyzerFrameData) => void,
 ): void {
   // --- Closure-scope mutable state (persists across effect re-runs) ---
   let audioCtx: AudioContext | undefined
@@ -173,14 +181,16 @@ export function useAudioReactive(
               analyzer.totalFrames
             : frame
 
+        // Compute frame data outside the mappings block so per-track
+        // audio drivers can use it regardless of global mappings.
+        const frameData = analyzer.getFrameData(wrapped % analyzer.totalFrames)
+        onFrameData?.(frameData)
+
         if (mappings.length > 0) {
           const now = globalThis.performance.now()
           const dt =
             lastTickTime !== undefined ? (now - lastTickTime) / 1000 : 1 / 30
           lastTickTime = now
-          const frameData = analyzer.getFrameData(
-            wrapped % analyzer.totalFrames,
-          )
           setFlameDescriptor((draft) => {
             applyAudioMappingsToFlame(
               draft,
@@ -214,12 +224,14 @@ export function useAudioReactive(
       const tickMs = 1000 / 30
       interval = setInterval(() => {
         const mappings = audioMapping().mappings
+        const frameData = mic.getFrameData()
+        onFrameData?.(frameData)
+
         if (mappings.length === 0) return
         const now = globalThis.performance.now()
         const dt =
           lastTickTime !== undefined ? (now - lastTickTime) / 1000 : 1 / 30
         lastTickTime = now
-        const frameData = mic.getFrameData()
         setFlameDescriptor((draft) => {
           applyAudioMappingsToFlame(
             draft,

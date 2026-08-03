@@ -2,6 +2,8 @@ import { createEffect, createMemo, createSignal, For, onCleanup, Show, } from 's
 import { useKeyframeTarget } from '@/contexts/KeyframeTargetContext'
 import { useTimeline } from '@/contexts/TimelineContext'
 import { TIMELINE_PARAMETERS } from '@/utils/timeline'
+import type { AudioAnalyzer } from '@/utils/audioAnalysis'
+import type { Accessor } from 'solid-js'
 import { CurveEditor } from './CurveEditor/CurveEditor'
 import ui from './DopeSheet.module.css'
 import { useScrollSync } from './hooks/useScrollSync'
@@ -9,6 +11,7 @@ import { useSeekScrubber } from './hooks/useSeekScrubber'
 import { useTrackNameWidth } from './hooks/useTrackNameWidth'
 import { useZoomGestures } from './hooks/useZoomGestures'
 import { KeyframeContextMenu } from './KeyframeContextMenu'
+import { SpectrogramStrip } from './SpectrogramStrip'
 import { TrackContextMenu } from './TrackContextMenu'
 
 /**
@@ -52,6 +55,8 @@ export interface DopeSheetProps {
   showCurve?: boolean
   /** Called on mount with the zoom API consumed by the header's View group. */
   registerViewApi?: (api: DopeSheetViewApi | undefined) => void
+  /** Pre-computed audio analyzer for spectrogram rendering. */
+  fileAnalyzer?: Accessor<AudioAnalyzer | undefined>
 }
 
 export function DopeSheet(props: DopeSheetProps) {
@@ -74,6 +79,7 @@ export function DopeSheet(props: DopeSheetProps) {
   let tracksScrollRef!: HTMLDivElement
   let seekRulerRef!: HTMLDivElement
   let seekLaneRef!: HTMLDivElement | undefined
+  let spectroLaneRef!: HTMLDivElement | undefined
 
   const trackNameWidth = useTrackNameWidth()
 
@@ -307,12 +313,28 @@ export function DopeSheet(props: DopeSheetProps) {
         </div>
       </div>
 
+      {/* ── Spectrogram strip ── */}
+      <Show when={props.fileAnalyzer && props.fileAnalyzer()}>
+        <SpectrogramStrip
+          fileAnalyzer={props.fileAnalyzer!}
+          frameWidth={frameWidth}
+          scrollLeft={scrollLeft}
+          trackNameWidth={trackNameWidth}
+          startFrame={timeline.config().startFrame}
+          endFrame={timeline.config().endFrame}
+          laneRef={(el) => (spectroLaneRef = el)}
+        />
+      </Show>
+
       {/* ── Tracks ── */}
       <DopeSheetGrid
         tracksScrollRef={(el) => (tracksScrollRef = el)}
         onScroll={(e) => {
           if (seekLaneRef) {
             seekLaneRef.scrollLeft = e.currentTarget.scrollLeft
+          }
+          if (spectroLaneRef) {
+            spectroLaneRef.scrollLeft = e.currentTarget.scrollLeft
           }
           setScrollLeft(e.currentTarget.scrollLeft)
         }}

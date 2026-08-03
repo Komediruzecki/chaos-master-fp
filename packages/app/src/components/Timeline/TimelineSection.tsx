@@ -2,6 +2,8 @@ import { createMemo, createSignal, Show } from 'solid-js'
 import { useTimeline } from '@/contexts/TimelineContext'
 import { Cross } from '@/icons'
 import { persistentSignal } from '@/utils/persistentSignal'
+import type { Accessor } from 'solid-js'
+import type { AudioAnalyzer } from '@/utils/audioAnalysis'
 import { AnimationControls, AnimationGenerator } from './AnimationGenerator'
 import { DopeSheet } from './DopeSheet'
 import ui from './TimelineSection.module.css'
@@ -13,6 +15,8 @@ export interface TimelineSectionProps {
   flameDescriptor?: FlameDescriptor
   /** Reveals the sidebar's animation generator (Flame Randomizer card). */
   onOpenAnimationGenerator?: () => void
+  /** Pre-computed audio analyzer, passed to DopeSheet for the spectrogram strip. */
+  fileAnalyzer?: Accessor<AudioAnalyzer | undefined>
 }
 
 import { TimelineSettings } from './TimelineSettings'
@@ -191,6 +195,7 @@ export function TimelineSection(props: TimelineSectionProps) {
             seekOnSelect={seekOnSelect()}
             showCurve={showCurve()}
             registerViewApi={setViewApi}
+            fileAnalyzer={props.fileAnalyzer}
           />
         </div>
       </Show>

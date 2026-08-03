@@ -138,7 +138,11 @@ import type { TransformVariationType } from './flame/variations'
 import type { CustomVariationDef } from './flame/variations/custom/types'
 import type { TransformVariationType3D } from './flame/variations3D'
 import type { AnimationExportConfig } from './utils/animationExport'
+import { getAudioFeatureNormalized } from './utils/audioAnalysis'
 import type { AudioAnalyzer, LiveAudioAnalyzer } from './utils/audioAnalysis'
+
+/** Full frame data returned by audio analyzers (includes isBeat). */
+type AnalyzerFrameData = ReturnType<AudioAnalyzer['getFrameData']>
 import type { ExportDimensions } from './utils/exportDimensions'
 import type { HardwareTier } from './utils/hardwareTier'
 import type { SharePayload } from './utils/jsonQueryParam'
@@ -717,6 +721,9 @@ export function MainWorkspace(props: AppProps) {
   const [fileAnalyzer, setFileAnalyzer] = createSignal<
     AudioAnalyzer | undefined
   >(undefined)
+  /** Latest FrameData from the audio engine, shared with per-track audio drivers. */
+  const [latestFrameData, setLatestFrameData] =
+    createSignal<AnalyzerFrameData | null>(null)
   /**
    * How far the post-decode analysis pass has got, 0-1, or null when idle.
    *
@@ -1508,6 +1515,13 @@ export function MainWorkspace(props: AppProps) {
   const onDrop = useAppDragAndDrop(history, setLoadedAnimation)
 
   const timeline = createTimelineState()
+  // Wire per-track audio drivers: the resolver will look up audio feature
+  // values via this getter whenever a track has an `audioDriver` config.
+  timeline.setAudioFeatureNormGetter((feature) => {
+    const fd = latestFrameData()
+    return fd ? getAudioFeatureNormalized(fd, feature) : 0
+  })
+
   // One chronological undo across flame history + timeline snapshots —
   // Ctrl+Z/Ctrl+Y and the toolbar buttons all route through this.
   const undoRouter = createUndoRouter(history, timeline)
@@ -1525,6 +1539,7 @@ export function MainWorkspace(props: AppProps) {
     seekTarget,
     setPlaybackTime,
     fileAnalyzer,
+    (fd) => setLatestFrameData(fd),
   )
 
   // Sonification loop: synthesizes audio in real-time from flame structure.
@@ -3746,6 +3761,7 @@ export function MainWorkspace(props: AppProps) {
                       formatTrackLabel={readableIds().formatTrackPath}
                       flameDescriptor={flameDescriptor}
                       onOpenAnimationGenerator={openAnimationGenerator}
+                      fileAnalyzer={fileAnalyzer}
                     />
                   </div>
                 </Show>
