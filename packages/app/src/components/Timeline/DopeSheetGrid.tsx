@@ -7,7 +7,12 @@ interface DopeSheetGridProps {
   onScroll: (
     e: Event & { currentTarget: HTMLDivElement; target: Element },
   ) => void
-  activeTracks: Array<{ path: string; label: string; isOrphaned: boolean }>
+  activeTracks: Array<{
+    path: string
+    label: string
+    isOrphaned: boolean
+    hasAudioDriver: boolean
+  }>
   frameWidth: number
   trackHeight: number
   startFrame: number
@@ -46,6 +51,7 @@ export function DopeSheetGrid(props: DopeSheetGridProps) {
             {(track) => (
               <DopeSheetTrack
                 isOrphaned={track.isOrphaned}
+                hasAudioDriver={track.hasAudioDriver}
                 parameterPath={track.path}
                 label={track.label}
                 trackNameWidth={props.trackNameWidth}

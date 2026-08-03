@@ -953,7 +953,7 @@ export function createTimelineState() {
           : [...track.keyframes, { frame, value, easing, interp }]
         return [
           ...prev.slice(0, ti),
-          { parameterPath, keyframes: newKeyframes },
+          { ...track, keyframes: newKeyframes },
           ...prev.slice(ti + 1),
         ]
       }
@@ -1400,6 +1400,29 @@ export function createTimelineState() {
     )
   }
 
+  /**
+   * Set (or clear) the audio driver for a track. Passing `null` removes the
+   * driver. Pushes an undo entry so the operation is reversible.
+   */
+  function setTrackAudioDriver(
+    parameterPath: string,
+    driver: AudioDriver | null,
+  ) {
+    const track = tracks().find((t) => t.parameterPath === parameterPath)
+    if (!track) return
+    // No-op if the driver hasn't changed.
+    const current = track.audioDriver ?? null
+    if (JSON.stringify(current) === JSON.stringify(driver)) return
+    pushUndo()
+    setTracks((prev) =>
+      prev.map((t) =>
+        t.parameterPath === parameterPath
+          ? { ...t, audioDriver: driver ?? undefined }
+          : t,
+      ),
+    )
+  }
+
   function setValueResolver(
     fn: (
       path: string,
@@ -1648,6 +1671,7 @@ export function createTimelineState() {
     resolveValueAtPath,
     hasAnyKeyframes,
     removeAllKeyframesForPath,
+    setTrackAudioDriver,
     setValueResolver,
     setValueWriter,
     getResolvedValue,

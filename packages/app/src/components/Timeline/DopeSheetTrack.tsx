@@ -1,6 +1,6 @@
-import { For } from 'solid-js'
+import { For, Show } from 'solid-js'
 import { useTimeline } from '@/contexts/TimelineContext'
-import { TriangleAlert } from '@/icons'
+import { MusicNote, TriangleAlert } from '@/icons'
 import ui from './DopeSheet.module.css'
 import type { KeyframeData } from '@/utils/timeline'
 
@@ -24,6 +24,8 @@ type DopeSheetTrackProps = {
   onContextMenu: (e: MouseEvent, path: string, frame: number) => void
   onTrackContextMenu?: (e: MouseEvent, path: string) => void
   isOrphaned?: boolean
+  /** Whether the track has an audio driver assigned. */
+  hasAudioDriver?: boolean
 }
 
 export function DopeSheetTrack(props: DopeSheetTrackProps) {
@@ -147,6 +149,20 @@ export function DopeSheetTrack(props: DopeSheetTrackProps) {
           props.onSelectTrack(props.parameterPath)
         }}
       >
+        <Show when={props.hasAudioDriver}>
+          <span
+            title="Audio driver active — right-click track to edit"
+            style={{
+              'margin-right': '4px',
+              'flex-shrink': 0,
+              display: 'flex',
+              'align-items': 'center',
+              color: 'var(--accent-color, #3b82f6)',
+            }}
+          >
+            <MusicNote style={{ width: '12px', height: '12px' }} />
+          </span>
+        </Show>
         {props.isOrphaned && (
           <span
             title="Tracking target is missing. Please check if the target still exists in the flame, or remove these keyframes."

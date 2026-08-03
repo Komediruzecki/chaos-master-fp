@@ -1,0 +1,213 @@
+.popover {
+  position: fixed;
+  z-index: 1001;
+  min-width: 220px;
+  max-width: 280px;
+  background: var(--neutral-100);
+  border: 1px solid var(--neutral-300);
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+  padding: 10px 12px;
+  font-size: 12px;
+  -webkit-touch-callout: none;
+  user-select: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  [data-theme='dark'] & {
+    background: var(--neutral-800);
+    border-color: var(--neutral-700);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+  }
+}
+
+.header {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--neutral-800);
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--neutral-200);
+
+  [data-theme='dark'] & {
+    color: var(--neutral-100);
+    border-bottom-color: var(--neutral-700);
+  }
+}
+
+/* ── Fields ─────────────────────────────────────────────────────────── */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--neutral-600);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+
+  [data-theme='dark'] & {
+    color: var(--neutral-400);
+  }
+}
+
+/* ── Select ─────────────────────────────────────────────────────────── */
+
+.select {
+  width: 100%;
+  padding: 4px 6px;
+  border: 1px solid var(--neutral-300);
+  border-radius: 4px;
+  background: var(--neutral-50);
+  color: var(--neutral-800);
+  font-size: 12px;
+
+  [data-theme='dark'] & {
+    background: var(--neutral-900);
+    border-color: var(--neutral-600);
+    color: var(--neutral-200);
+  }
+}
+
+/* ── Mode radio row ─────────────────────────────────────────────────── */
+
+.modeRow {
+  display: flex;
+  gap: 8px;
+}
+
+.modeOption {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--neutral-700);
+
+  [data-theme='dark'] & {
+    color: var(--neutral-300);
+  }
+
+  & input[type='radio'] {
+    margin: 0;
+    accent-color: var(--accent-color, #3b82f6);
+  }
+}
+
+/* ── Slider ─────────────────────────────────────────────────────────── */
+
+.slider {
+  width: 100%;
+  height: 4px;
+  margin: 0;
+  accent-color: var(--accent-color, #3b82f6);
+}
+
+/* ── Range row ──────────────────────────────────────────────────────── */
+
+.rangeRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.numberInput {
+  width: 70px;
+  padding: 3px 6px;
+  border: 1px solid var(--neutral-300);
+  border-radius: 4px;
+  background: var(--neutral-50);
+  color: var(--neutral-800);
+  font-size: 12px;
+  text-align: center;
+
+  [data-theme='dark'] & {
+    background: var(--neutral-900);
+    border-color: var(--neutral-600);
+    color: var(--neutral-200);
+  }
+}
+
+.rangeSep {
+  color: var(--neutral-500);
+  font-size: 12px;
+
+  [data-theme='dark'] & {
+    color: var(--neutral-400);
+  }
+}
+
+/* ── Envelope row ───────────────────────────────────────────────────── */
+
+.envRow {
+  display: flex;
+  gap: 10px;
+
+  & > .field {
+    flex: 1;
+  }
+}
+
+/* ── Actions ────────────────────────────────────────────────────────── */
+
+.actions {
+  display: flex;
+  gap: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--neutral-200);
+
+  [data-theme='dark'] & {
+    border-top-color: var(--neutral-700);
+  }
+}
+
+.btnApply,
+.btnRemove,
+.btnCancel {
+  padding: 5px 12px;
+  border: none;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s;
+
+  &:hover {
+    opacity: 0.85;
+  }
+}
+
+.btnApply {
+  background: var(--accent-color, #3b82f6);
+  color: #fff;
+  flex: 1;
+}
+
+.btnRemove {
+  background: transparent;
+  color: #e53e3e;
+  border: 1px solid #e53e3e;
+
+  [data-theme='dark'] & {
+    color: #fc8181;
+    border-color: #fc8181;
+  }
+}
+
+.btnCancel {
+  background: transparent;
+  color: var(--neutral-600);
+  border: 1px solid var(--neutral-300);
+
+  [data-theme='dark'] & {
+    color: var(--neutral-400);
+    border-color: var(--neutral-600);
+  }
+}

@@ -13,6 +13,8 @@ import { useZoomGestures } from './hooks/useZoomGestures'
 import { KeyframeContextMenu } from './KeyframeContextMenu'
 import { SpectrogramStrip } from './SpectrogramStrip'
 import { TrackContextMenu } from './TrackContextMenu'
+import { AudioDriverPopover } from './AudioDriverPopover'
+import type { AudioDriver } from '@/utils/audioDriver'
 
 /**
  * Roots of every built-in animatable parameter path (e.g. `camera`, `camera3D`,
@@ -156,6 +158,27 @@ export function DopeSheet(props: DopeSheetProps) {
     path: string
   } | null>(null)
 
+  const [audioDriverPopover, setAudioDriverPopover] = createSignal<{
+    x: number
+    y: number
+    path: string
+  } | null>(null)
+
+  function getTrackAudioDriver(path: string): AudioDriver | undefined {
+    const track = timeline.tracks().find((t) => t.parameterPath === path)
+    return track?.audioDriver
+  }
+
+  function handleAudioDriverSave(path: string, driver: AudioDriver) {
+    timeline.setTrackAudioDriver(path, driver)
+    setAudioDriverPopover(null)
+  }
+
+  function handleAudioDriverRemove(path: string) {
+    timeline.setTrackAudioDriver(path, null)
+    setAudioDriverPopover(null)
+  }
+
   const { handleSeekPointerDown } = useSeekScrubber(frameWidth)
 
   function handleContextMenu(e: MouseEvent, path: string, frame: number) {
@@ -223,6 +246,7 @@ export function DopeSheet(props: DopeSheetProps) {
           path: t.parameterPath,
           label: fmt ? fmt(t.parameterPath) : pathLabel(t.parameterPath),
           isOrphaned,
+          hasAudioDriver: t.audioDriver !== undefined,
         }
       })
       .sort((a, b) => a.label.localeCompare(b.label))
@@ -389,9 +413,31 @@ export function DopeSheet(props: DopeSheetProps) {
                   .map((t) => t.path)
                 timeline.removeTracks(orphanedPaths)
               }}
+              onAudioDriver={() => {
+                setAudioDriverPopover({
+                  x: cm().x,
+                  y: cm().y,
+                  path: cm().path,
+                })
+              }}
+              hasAudioDriver={getTrackAudioDriver(cm().path) !== undefined}
             />
           )
         }}
+      </Show>
+
+      {/* ── Audio driver popover ── */}
+      <Show when={audioDriverPopover()}>
+        {(ap) => (
+          <AudioDriverPopover
+            x={ap().x}
+            y={ap().y}
+            driver={getTrackAudioDriver(ap().path)}
+            onSave={(driver) => handleAudioDriverSave(ap().path, driver)}
+            onRemove={() => handleAudioDriverRemove(ap().path)}
+            onClose={() => setAudioDriverPopover(null)}
+          />
+        )}
       </Show>
     </div>
   )
