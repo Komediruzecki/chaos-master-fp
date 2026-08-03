@@ -2,8 +2,7 @@ import { createEffect, createMemo, createSignal, For, onCleanup, Show, } from 's
 import { useKeyframeTarget } from '@/contexts/KeyframeTargetContext'
 import { useTimeline } from '@/contexts/TimelineContext'
 import { TIMELINE_PARAMETERS } from '@/utils/timeline'
-import type { AudioAnalyzer } from '@/utils/audioAnalysis'
-import type { Accessor } from 'solid-js'
+import { AudioDriverPopover } from './AudioDriverPopover'
 import { CurveEditor } from './CurveEditor/CurveEditor'
 import ui from './DopeSheet.module.css'
 import { useScrollSync } from './hooks/useScrollSync'
@@ -13,7 +12,8 @@ import { useZoomGestures } from './hooks/useZoomGestures'
 import { KeyframeContextMenu } from './KeyframeContextMenu'
 import { SpectrogramStrip } from './SpectrogramStrip'
 import { TrackContextMenu } from './TrackContextMenu'
-import { AudioDriverPopover } from './AudioDriverPopover'
+import type { Accessor } from 'solid-js'
+import type { AudioAnalyzer } from '@/utils/audioAnalysis'
 import type { AudioDriver } from '@/utils/audioDriver'
 
 /**
@@ -433,8 +433,12 @@ export function DopeSheet(props: DopeSheetProps) {
             x={ap().x}
             y={ap().y}
             driver={getTrackAudioDriver(ap().path)}
-            onSave={(driver) => handleAudioDriverSave(ap().path, driver)}
-            onRemove={() => handleAudioDriverRemove(ap().path)}
+            onSave={(driver) => {
+              handleAudioDriverSave(ap().path, driver)
+            }}
+            onRemove={() => {
+              handleAudioDriverRemove(ap().path)
+            }}
             onClose={() => setAudioDriverPopover(null)}
           />
         )}

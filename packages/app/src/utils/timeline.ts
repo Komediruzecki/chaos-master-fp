@@ -1,9 +1,10 @@
 import { createSignal } from 'solid-js'
-import type { AudioDriver } from './audioDriver'
 import { applyAudioDriver } from './audioDriver'
 import { applyEasing, catmullRom, clamp } from './easing'
 import { persistentSignal } from './persistentSignal'
 import { clearAllRedos, nextUndoSeq, registerRedoClearer } from './undoJournal'
+import type { AudioFeature } from './audioAnalysis'
+import type { AudioDriver } from './audioDriver'
 
 interface WindowTimelineState {
   tracks: () => TimelineTrack[]
@@ -729,9 +730,7 @@ export function createTimelineState() {
   /** Optional callback that returns a normalised (0–1) audio feature value for
    *  the current frame. Set by MainWorkspace when audio is loaded so per-track
    *  audio drivers can modulate resolved keyframe values. */
-  let getAudioFeatureNormFn:
-    | ((feature: import('./audioAnalysis').AudioFeature) => number)
-    | null = null
+  let getAudioFeatureNormFn: ((feature: AudioFeature) => number) | null = null
 
   // Undo/redo stacks for timeline operations. Capped: auto-keyframe and the
   // track-changes diamond can push one snapshot per pointer-move during a
@@ -1681,7 +1680,7 @@ export function createTimelineState() {
      * resolved keyframe values automatically. Call with `null` to clear.
      */
     setAudioFeatureNormGetter: (
-      fn: ((feature: import('./audioAnalysis').AudioFeature) => number) | null,
+      fn: ((feature: AudioFeature) => number) | null,
     ) => {
       getAudioFeatureNormFn = fn
     },

@@ -1,7 +1,7 @@
 import { createEffect, createMemo } from 'solid-js'
+import ui from './SpectrogramStrip.module.css'
 import type { Accessor } from 'solid-js'
 import type { AudioAnalyzer } from '@/utils/audioAnalysis'
-import ui from './SpectrogramStrip.module.css'
 
 // ── Heatmap LUT (256 entries, dark → blue → cyan → green → yellow → red) ──
 
@@ -105,13 +105,15 @@ export function SpectrogramStrip(props: SpectrogramStripProps) {
       const fStart = Math.max(0, Math.floor(absX / fw))
       const fEnd = Math.min(tf, Math.ceil((absX + 1) / fw))
 
-      // Max energy per band across all frames mapping to this column
+      // Max energy per band across all frames mapping to this column.
+      // Raw FFT magnitudes are typically 0-0.1, so we clamp to [0,1]
+      // and apply sqrt to pull out quiet detail without blowing out loud bands.
       const maxEnergies = new Float32Array(BAND_COUNT)
       for (let f = fStart; f < fEnd; f++) {
         try {
           const fd = analyzer.getFrameData(f)
           for (let b = 0; b < BAND_COUNT; b++) {
-            const v = fd.bands[b] ?? 0
+            const v = Math.min(1, fd.bands[b] ?? 0)
             if (v > maxEnergies[b]!) maxEnergies[b] = v
           }
         } catch {
@@ -119,14 +121,17 @@ export function SpectrogramStrip(props: SpectrogramStripProps) {
         }
       }
 
-      // Fill column
+      // Fill column — band 0 (sub-bass) at bottom, band 7 (full-spectrum) at top
       for (let b = 0; b < BAND_COUNT; b++) {
-        const energy = maxEnergies[b]!
-        const lutIdx = Math.min(255, Math.max(0, Math.floor(energy * 255)))
+        const raw = maxEnergies[b]!
+        const lutIdx = Math.min(
+          255,
+          Math.max(0, Math.floor(Math.sqrt(raw) * 255)),
+        )
         const col = HEAT_LUT[lutIdx]!
-        const yFrom = Math.floor(b * bandH)
-        const yTo = Math.floor((b + 1) * bandH)
-        // Batch fill via fillRect per band per column
+        const yBand = BAND_COUNT - 1 - b
+        const yFrom = Math.floor(yBand * bandH)
+        const yTo = Math.floor((yBand + 1) * bandH)
         ctx.fillStyle = `rgb(${col[0]},${col[1]},${col[2]})`
         ctx.fillRect(px, yFrom, 1, yTo - yFrom)
       }

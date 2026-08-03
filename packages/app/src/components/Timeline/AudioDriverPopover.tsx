@@ -1,8 +1,8 @@
 import { createEffect, createSignal, onCleanup, Show } from 'solid-js'
 import { Portal } from 'solid-js/web'
-import type { AudioDriver } from '@/utils/audioDriver'
-import type { AudioFeature } from '@/utils/audioAnalysis'
 import ui from './AudioDriverPopover.module.css'
+import type { AudioFeature } from '@/utils/audioAnalysis'
+import type { AudioDriver } from '@/utils/audioDriver'
 
 // ── Constants ────────────────────────────────────────────────────────────
 
@@ -96,6 +96,7 @@ export function AudioDriverPopover(props: AudioDriverPopoverProps) {
     function handleKey(e: KeyboardEvent) {
       if (e.key === 'Escape') close()
     }
+
     function handleClick() {
       close()
     }
@@ -117,8 +118,12 @@ export function AudioDriverPopover(props: AudioDriverPopoverProps) {
           left: `${props.x}px`,
           top: `${props.y}px`,
         }}
-        onClick={(e) => e.stopPropagation()}
-        onContextMenu={(e) => e.preventDefault()}
+        onClick={(e) => {
+          e.stopPropagation()
+        }}
+        onContextMenu={(e) => {
+          e.preventDefault()
+        }}
       >
         <div class={ui.header}>
           {editing() ? 'Edit Audio Driver' : 'Add Audio Driver'}
