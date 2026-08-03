@@ -13,7 +13,7 @@ import { KeyframeContextMenu } from './KeyframeContextMenu'
 import { SpectrogramStrip } from './SpectrogramStrip'
 import { TrackContextMenu } from './TrackContextMenu'
 import type { Accessor } from 'solid-js'
-import type { AudioAnalyzer } from '@/utils/audioAnalysis'
+import type { AudioAnalyzer, FrameData } from '@/utils/audioAnalysis'
 import type { AudioDriver } from '@/utils/audioDriver'
 
 /**
@@ -59,6 +59,10 @@ export interface DopeSheetProps {
   registerViewApi?: (api: DopeSheetViewApi | undefined) => void
   /** Pre-computed audio analyzer for spectrogram rendering. */
   fileAnalyzer?: Accessor<AudioAnalyzer | undefined>
+  /** Ring buffer of recent FFT frames for live mic spectrogram. */
+  liveRingBuffer?: Accessor<(FrameData & { isBeat: boolean })[]>
+  /** Current audio source — when 'mic', spectrogram renders from ring buffer. */
+  audioSource?: Accessor<'file' | 'mic'>
 }
 
 export function DopeSheet(props: DopeSheetProps) {
@@ -338,7 +342,12 @@ export function DopeSheet(props: DopeSheetProps) {
       </div>
 
       {/* ── Spectrogram strip ── */}
-      <Show when={props.fileAnalyzer && props.fileAnalyzer()}>
+      <Show
+        when={
+          (props.fileAnalyzer && props.fileAnalyzer()) ||
+          (props.liveRingBuffer && props.liveRingBuffer().length > 0)
+        }
+      >
         <SpectrogramStrip
           fileAnalyzer={props.fileAnalyzer!}
           frameWidth={frameWidth}
@@ -347,6 +356,8 @@ export function DopeSheet(props: DopeSheetProps) {
           startFrame={timeline.config().startFrame}
           endFrame={timeline.config().endFrame}
           laneRef={(el) => (spectroLaneRef = el)}
+          liveRingBuffer={props.liveRingBuffer}
+          audioSource={props.audioSource}
         />
       </Show>
 
@@ -433,6 +444,7 @@ export function DopeSheet(props: DopeSheetProps) {
             x={ap().x}
             y={ap().y}
             driver={getTrackAudioDriver(ap().path)}
+            audioSource={props.audioSource?.()}
             onSave={(driver) => {
               handleAudioDriverSave(ap().path, driver)
             }}

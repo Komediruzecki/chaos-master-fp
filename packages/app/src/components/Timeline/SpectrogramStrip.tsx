@@ -1,7 +1,7 @@
-import { createEffect, createMemo } from 'solid-js'
+import { createEffect, createMemo, Show } from 'solid-js'
 import ui from './SpectrogramStrip.module.css'
 import type { Accessor } from 'solid-js'
-import type { AudioAnalyzer } from '@/utils/audioAnalysis'
+import type { AudioAnalyzer, FrameData } from '@/utils/audioAnalysis'
 
 // ── Heatmap LUT (256 entries, dark → blue → cyan → green → yellow → red) ──
 
@@ -45,6 +45,10 @@ export interface SpectrogramStripProps {
   endFrame: number
   /** Ref callback exposed so DopeSheet can sync horizontal scroll. */
   laneRef?: (el: HTMLDivElement) => void
+  /** Ring buffer of recent FFT frames for live mic mode (newest at tail). */
+  liveRingBuffer?: Accessor<(FrameData & { isBeat: boolean })[]>
+  /** Current audio source — when 'mic', renders from ring buffer. */
+  audioSource?: Accessor<'file' | 'mic'>
 }
 
 export function SpectrogramStrip(props: SpectrogramStripProps) {
@@ -59,19 +63,131 @@ export function SpectrogramStrip(props: SpectrogramStripProps) {
     return (props.endFrame - props.startFrame) * props.frameWidth()
   })
 
+  /** Shared: render one column of band energies to the canvas. */
+  function renderColumn(
+    ctx: CanvasRenderingContext2D,
+    px: number,
+    energies: Float32Array,
+    bandH: number,
+  ) {
+    for (let b = 0; b < BAND_COUNT; b++) {
+      const raw = energies[b]!
+      const lutIdx = Math.min(
+        255,
+        Math.max(0, Math.floor(Math.sqrt(raw) * 255)),
+      )
+      const col = HEAT_LUT[lutIdx]!
+      // Band 0 (sub-bass) at bottom, band 7 (full-spectrum) at top
+      const yBand = BAND_COUNT - 1 - b
+      const yFrom = Math.floor(yBand * bandH)
+      const yTo = Math.floor((yBand + 1) * bandH)
+      ctx.fillStyle = `rgb(${col[0]},${col[1]},${col[2]})`
+      ctx.fillRect(px, yFrom, 1, yTo - yFrom)
+    }
+  }
+
+  /** Draw live ring buffer — newest frame at right edge, no scrolling. */
+  function drawRingBuffer(
+    ctx: CanvasRenderingContext2D,
+    cw: number,
+    ch: number,
+    bandH: number,
+    ringBuf: readonly (FrameData & { isBeat: boolean })[],
+  ) {
+    if (ringBuf.length === 0) return
+
+    // Map buffer frames to pixel columns. If buffer has fewer frames than
+    // pixels, each frame takes >1 column. If more, down-sample with max().
+    const step = ringBuf.length / cw
+
+    for (let px = 0; px < cw; px++) {
+      const fStart = Math.floor(px * step)
+      const fEnd = Math.floor((px + 1) * step)
+      const maxEnergies = new Float32Array(BAND_COUNT)
+
+      for (let fi = fStart; fi < Math.max(fStart + 1, fEnd); fi++) {
+        const fd = ringBuf[Math.min(fi, ringBuf.length - 1)]
+        if (!fd) continue
+        for (let b = 0; b < BAND_COUNT; b++) {
+          const v = Math.min(1, fd.bands[b] ?? 0)
+          if (v > maxEnergies[b]!) maxEnergies[b] = v
+        }
+      }
+
+      renderColumn(ctx, px, maxEnergies, bandH)
+    }
+
+    // Beat ticks at top + bottom
+    for (let i = 0; i < ringBuf.length; i++) {
+      const fd = ringBuf[i]
+      if (!fd?.isBeat) continue
+      const bx = Math.round(((i + 0.5) / ringBuf.length) * cw)
+      if (bx < 0 || bx >= cw) continue
+      ctx.fillStyle = 'rgba(255,255,255,0.45)'
+      ctx.fillRect(bx, 0, 1, 2)
+      ctx.fillRect(bx, ch - 2, 1, 2)
+    }
+  }
+
+  /** Draw file analyzer — scroll-aware from the dope sheet viewport. */
+  function drawFileAnalyzer(
+    ctx: CanvasRenderingContext2D,
+    cw: number,
+    ch: number,
+    bandH: number,
+    analyzer: AudioAnalyzer,
+    fw: number,
+    sl: number,
+    tf: number,
+  ) {
+    // Visible frame range in global coordinates
+    const frameFrom = Math.max(0, Math.floor(sl / fw))
+    const frameTo = Math.min(tf, Math.ceil((sl + cw) / fw))
+
+    if (frameFrom >= frameTo) return
+
+    for (let px = 0; px < cw; px++) {
+      const absX = sl + px
+      const fStart = Math.max(0, Math.floor(absX / fw))
+      const fEnd = Math.min(tf, Math.ceil((absX + 1) / fw))
+
+      const maxEnergies = new Float32Array(BAND_COUNT)
+      for (let f = fStart; f < fEnd; f++) {
+        try {
+          const fd = analyzer.getFrameData(f)
+          for (let b = 0; b < BAND_COUNT; b++) {
+            const v = Math.min(1, fd.bands[b] ?? 0)
+            if (v > maxEnergies[b]!) maxEnergies[b] = v
+          }
+        } catch {
+          /* frame out of range — skip */
+        }
+      }
+
+      renderColumn(ctx, px, maxEnergies, bandH)
+    }
+
+    // Beat marker ticks at top + bottom
+    for (let f = frameFrom; f < frameTo; f++) {
+      try {
+        const fd = analyzer.getFrameData(f)
+        if (!fd.isBeat) continue
+        const bx = Math.round(f * fw - sl)
+        if (bx < 0 || bx >= cw) continue
+        ctx.fillStyle = 'rgba(255,255,255,0.45)'
+        ctx.fillRect(bx, 0, 1, 2)
+        ctx.fillRect(bx, ch - 2, 1, 2)
+      } catch {
+        /* skip */
+      }
+    }
+  }
+
   function draw() {
     const canvas = canvasRef
     if (!canvas) return
-    const analyzer = props.fileAnalyzer()
-    if (!analyzer) return
-
-    const fw = props.frameWidth()
-    const sl = props.scrollLeft()
-    const tf = props.endFrame - props.startFrame
 
     const rect = canvas.getBoundingClientRect()
-    // Use parent's visible width, not the canvas logical width
-    // (canvas is wider than viewport, we only render the visible portion)
     const parent = canvas.parentElement
     const cw = parent
       ? parent.clientWidth
@@ -92,65 +208,27 @@ export function SpectrogramStrip(props: SpectrogramStripProps) {
     ctx.fillRect(0, 0, cw, ch)
 
     const bandH = ch / BAND_COUNT
+    const source = props.audioSource?.()
 
-    // Visible frame range in global coordinates
-    const frameFrom = Math.max(0, Math.floor(sl / fw))
-    const frameTo = Math.min(tf, Math.ceil((sl + cw) / fw))
-
-    if (frameFrom >= frameTo) return
-
-    // Render visible columns
-    for (let px = 0; px < cw; px++) {
-      const absX = sl + px
-      const fStart = Math.max(0, Math.floor(absX / fw))
-      const fEnd = Math.min(tf, Math.ceil((absX + 1) / fw))
-
-      // Max energy per band across all frames mapping to this column.
-      // Raw FFT magnitudes are typically 0-0.1, so we clamp to [0,1]
-      // and apply sqrt to pull out quiet detail without blowing out loud bands.
-      const maxEnergies = new Float32Array(BAND_COUNT)
-      for (let f = fStart; f < fEnd; f++) {
-        try {
-          const fd = analyzer.getFrameData(f)
-          for (let b = 0; b < BAND_COUNT; b++) {
-            const v = Math.min(1, fd.bands[b] ?? 0)
-            if (v > maxEnergies[b]!) maxEnergies[b] = v
-          }
-        } catch {
-          /* frame out of range — skip */
-        }
+    // ── Ring buffer mode (live mic) ──
+    // Must return early even when the buffer is empty — otherwise we'd
+    // fall through and render stale file-analyzer data in mic mode.
+    if (source === 'mic') {
+      const ringBuf = props.liveRingBuffer?.()
+      if (ringBuf && ringBuf.length > 0) {
+        drawRingBuffer(ctx, cw, ch, bandH, ringBuf)
       }
-
-      // Fill column — band 0 (sub-bass) at bottom, band 7 (full-spectrum) at top
-      for (let b = 0; b < BAND_COUNT; b++) {
-        const raw = maxEnergies[b]!
-        const lutIdx = Math.min(
-          255,
-          Math.max(0, Math.floor(Math.sqrt(raw) * 255)),
-        )
-        const col = HEAT_LUT[lutIdx]!
-        const yBand = BAND_COUNT - 1 - b
-        const yFrom = Math.floor(yBand * bandH)
-        const yTo = Math.floor((yBand + 1) * bandH)
-        ctx.fillStyle = `rgb(${col[0]},${col[1]},${col[2]})`
-        ctx.fillRect(px, yFrom, 1, yTo - yFrom)
-      }
+      return
     }
 
-    // Beat marker ticks at top + bottom
-    for (let f = frameFrom; f < frameTo; f++) {
-      try {
-        const fd = analyzer.getFrameData(f)
-        if (!fd.isBeat) continue
-        const bx = Math.round(f * fw - sl)
-        if (bx < 0 || bx >= cw) continue
-        ctx.fillStyle = 'rgba(255,255,255,0.45)'
-        ctx.fillRect(bx, 0, 1, 2)
-        ctx.fillRect(bx, ch - 2, 1, 2)
-      } catch {
-        /* skip */
-      }
-    }
+    // ── File analyzer mode ──
+    const analyzer = props.fileAnalyzer()
+    if (!analyzer) return
+
+    const fw = props.frameWidth()
+    const sl = props.scrollLeft()
+    const tf = props.endFrame - props.startFrame
+    drawFileAnalyzer(ctx, cw, ch, bandH, analyzer, fw, sl, tf)
   }
 
   createEffect(() => {
@@ -158,8 +236,12 @@ export function SpectrogramStrip(props: SpectrogramStripProps) {
     void props.scrollLeft()
     void props.frameWidth()
     void totalFrames()
+    void props.liveRingBuffer?.()
+    void props.audioSource?.()
     draw()
   })
+
+  const isMicSource = createMemo(() => props.audioSource?.() === 'mic')
 
   return (
     <div class={ui.strip}>
@@ -172,12 +254,18 @@ export function SpectrogramStrip(props: SpectrogramStripProps) {
         }}
         class={ui.lane}
       >
+        <Show when={isMicSource()}>
+          <div class={ui.liveBadge}>Live (Mic)</div>
+        </Show>
         <canvas
           ref={canvasRef}
           class={ui.heatCanvas}
-          // The canvas logical width covers the full timeline so it can be
-          // scrolled naturally alongside the dope sheet tracks.
-          style={{ width: `${canvasPixelWidth()}px`, height: '64px' }}
+          // In file mode, the canvas logical width covers the full timeline.
+          // In live mode, we just fill the visible area.
+          style={{
+            width: isMicSource() ? '100%' : `${canvasPixelWidth()}px`,
+            height: '64px',
+          }}
         />
       </div>
     </div>

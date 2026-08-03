@@ -8,6 +8,23 @@
   border-bottom: 1px solid #1a1a1a;
 }
 
+.liveBadge {
+  position: absolute;
+  left: 8px;
+  top: 4px;
+  z-index: 2;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #ff6b6b;
+  background: rgb(255 107 107 / 0.12);
+  border: 1px solid rgb(255 107 107 / 0.3);
+  pointer-events: none;
+}
+
 .spacer {
   flex-shrink: 0;
   /* width set inline from trackNameWidth */

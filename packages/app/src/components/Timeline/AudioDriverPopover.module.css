@@ -35,6 +35,21 @@
   }
 }
 
+.liveBadge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #ff6b6b;
+  background: rgb(255 107 107 / 0.12);
+  border: 1px solid rgb(255 107 107 / 0.3);
+  vertical-align: middle;
+}
+
 /* ── Fields ─────────────────────────────────────────────────────────── */
 
 .field {

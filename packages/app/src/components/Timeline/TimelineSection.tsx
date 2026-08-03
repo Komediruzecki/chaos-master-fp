@@ -8,7 +8,7 @@ import ui from './TimelineSection.module.css'
 import type { Accessor } from 'solid-js'
 import type { DopeSheetViewApi } from './DopeSheet'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
-import type { AudioAnalyzer } from '@/utils/audioAnalysis'
+import type { AudioAnalyzer, FrameData } from '@/utils/audioAnalysis'
 
 export interface TimelineSectionProps {
   formatTrackLabel?: (path: string) => string
@@ -17,6 +17,10 @@ export interface TimelineSectionProps {
   onOpenAnimationGenerator?: () => void
   /** Pre-computed audio analyzer, passed to DopeSheet for the spectrogram strip. */
   fileAnalyzer?: Accessor<AudioAnalyzer | undefined>
+  /** Ring buffer of recent FFT frames for live mic spectrogram. */
+  liveRingBuffer?: Accessor<(FrameData & { isBeat: boolean })[]>
+  /** Current audio source — when 'mic', spectrogram renders from ring buffer. */
+  audioSource?: Accessor<'file' | 'mic'>
 }
 
 import { TimelineSettings } from './TimelineSettings'
@@ -196,6 +200,8 @@ export function TimelineSection(props: TimelineSectionProps) {
             showCurve={showCurve()}
             registerViewApi={setViewApi}
             fileAnalyzer={props.fileAnalyzer}
+            liveRingBuffer={props.liveRingBuffer}
+            audioSource={props.audioSource}
           />
         </div>
       </Show>

@@ -57,6 +57,8 @@ type AudioDriverPopoverProps = {
   onSave: (driver: AudioDriver) => void
   onRemove: () => void
   onClose: () => void
+  /** Current audio source — when 'mic', shows a live indicator. */
+  audioSource?: 'file' | 'mic'
 }
 
 export function AudioDriverPopover(props: AudioDriverPopoverProps) {
@@ -70,6 +72,33 @@ export function AudioDriverPopover(props: AudioDriverPopoverProps) {
   const [releaseMs, setReleaseMs] = createSignal(initial().releaseMs ?? 200)
 
   const editing = () => props.driver !== undefined
+
+  // ── Viewport-aware flip ───────────────────────────────────────────────
+
+  let popoverRef!: HTMLDivElement
+  const [popoverY, setPopoverY] = createSignal(props.y)
+  const [ready, setReady] = createSignal(false)
+
+  createEffect(() => {
+    // Re-run when anchor moves
+    void props.x
+    const anchorY = props.y
+    setPopoverY(anchorY)
+    setReady(false)
+
+    // Measure after paint and flip upward if the popover would overflow
+    // the bottom of the viewport.
+    requestAnimationFrame(() => {
+      const el = popoverRef
+      if (!el) return
+      const rect = el.getBoundingClientRect()
+      const overflow = rect.bottom - window.innerHeight + 8
+      if (overflow > 0) {
+        setPopoverY(Math.max(8, anchorY - rect.height))
+      }
+      setReady(true)
+    })
+  })
 
   function close() {
     props.onClose()
@@ -114,9 +143,11 @@ export function AudioDriverPopover(props: AudioDriverPopoverProps) {
     <Portal>
       <div
         class={ui.popover}
+        ref={popoverRef}
         style={{
           left: `${props.x}px`,
-          top: `${props.y}px`,
+          top: `${popoverY()}px`,
+          visibility: ready() ? 'visible' : 'hidden',
         }}
         onClick={(e) => {
           e.stopPropagation()
@@ -127,6 +158,9 @@ export function AudioDriverPopover(props: AudioDriverPopoverProps) {
       >
         <div class={ui.header}>
           {editing() ? 'Edit Audio Driver' : 'Add Audio Driver'}
+          <Show when={props.audioSource === 'mic'}>
+            <span class={ui.liveBadge}>Live (Mic)</span>
+          </Show>
         </div>
 
         {/* Feature */}

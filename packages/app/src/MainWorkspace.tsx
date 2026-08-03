@@ -138,7 +138,7 @@ import type { TransformVariationType } from './flame/variations'
 import type { CustomVariationDef } from './flame/variations/custom/types'
 import type { TransformVariationType3D } from './flame/variations3D'
 import type { AnimationExportConfig } from './utils/animationExport'
-import type { AudioAnalyzer, LiveAudioAnalyzer } from './utils/audioAnalysis'
+import type { AudioAnalyzer, FrameData, LiveAudioAnalyzer, } from './utils/audioAnalysis'
 
 /** Full frame data returned by audio analyzers (includes isBeat). */
 type AnalyzerFrameData = ReturnType<AudioAnalyzer['getFrameData']>
@@ -723,6 +723,10 @@ export function MainWorkspace(props: AppProps) {
   /** Latest FrameData from the audio engine, shared with per-track audio drivers. */
   const [latestFrameData, setLatestFrameData] =
     createSignal<AnalyzerFrameData | null>(null)
+  /** Ring buffer of recent FFT frames for live spectrogram (~10 s at 30 fps). */
+  const [liveSpectrogramBuffer, setLiveSpectrogramBuffer] = createSignal<
+    (FrameData & { isBeat: boolean })[]
+  >([])
   /**
    * How far the post-decode analysis pass has got, 0-1, or null when idle.
    *
@@ -741,6 +745,10 @@ export function MainWorkspace(props: AppProps) {
     setPlaybackPaused(false)
     setPlaybackTime(0)
     setSeekTarget(null)
+    // Clear live spectrogram buffer when switching away from mic
+    if (_src !== 'mic') {
+      setLiveSpectrogramBuffer([])
+    }
   })
 
   // Derive transform list for audio mapping target selectors
@@ -1538,7 +1546,16 @@ export function MainWorkspace(props: AppProps) {
     seekTarget,
     setPlaybackTime,
     fileAnalyzer,
-    (fd) => setLatestFrameData(fd),
+    (fd) => {
+      setLatestFrameData(fd)
+      // Feed the live spectrogram ring buffer when mic is active.
+      if (audioSource() === 'mic') {
+        setLiveSpectrogramBuffer((prev) => {
+          const next = [...prev, fd]
+          return next.length > 300 ? next.slice(next.length - 300) : next
+        })
+      }
+    },
   )
 
   // Sonification loop: synthesizes audio in real-time from flame structure.
@@ -3761,6 +3778,8 @@ export function MainWorkspace(props: AppProps) {
                       flameDescriptor={flameDescriptor}
                       onOpenAnimationGenerator={openAnimationGenerator}
                       fileAnalyzer={fileAnalyzer}
+                      liveRingBuffer={liveSpectrogramBuffer}
+                      audioSource={audioSource}
                     />
                   </div>
                 </Show>
