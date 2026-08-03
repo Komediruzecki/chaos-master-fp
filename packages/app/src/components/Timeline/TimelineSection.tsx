@@ -46,10 +46,17 @@ export function TimelineSection(props: TimelineSectionProps) {
     false,
   )
 
+  // Dope sheet transparency slider — persisted, defaults to fully opaque.
+  const [dopeSheetOpacity, setDopeSheetOpacity] = persistentSignal(
+    'dopesheet-opacity',
+    1,
+  )
+
   return (
     <div
       class={ui.section}
       classList={{ [ui.collapsed as string]: collapsed() }}
+      style={{ '--dopesheet-opacity': String(dopeSheetOpacity()) }}
       data-testid="timeline-section"
       data-tour-target="timeline-section"
     >
@@ -127,6 +134,21 @@ export function TimelineSection(props: TimelineSectionProps) {
             >
               Curve
             </button>
+            <span class={ui.headerGroupLabel}>Alpha</span>
+            <input
+              type="range"
+              class={ui.alphaSlider}
+              min="0.1"
+              max="1"
+              step="0.05"
+              value={dopeSheetOpacity()}
+              onInput={(e) =>
+                setDopeSheetOpacity(parseFloat(e.currentTarget.value))
+              }
+              onDblClick={() => setDopeSheetOpacity(1)}
+              title="Dope sheet transparency"
+              aria-label="Dope sheet transparency"
+            />
           </div>
         </Show>
 
