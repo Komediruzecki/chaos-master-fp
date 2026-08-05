@@ -6,6 +6,7 @@
   "scripts": {
     "build": "vite build",
     "build:dev": "vite build --mode development",
+    "capture:readme": "node scripts/capture-readme-screenshots.mjs",
     "serve": "vite preview",
     "prod": "vite build && vite preview",
     "e2e:serve": "VITE_GA_ID= vite build && vite preview --port 4173 --strictPort",
