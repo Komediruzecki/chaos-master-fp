@@ -79,6 +79,28 @@ test.describe('CI smoke', () => {
     })
   })
 
+  test('leaves the Home gallery for the editor with Escape', async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('chaos-master-welcome-dismissed', 'true')
+    })
+    await page.route('**/api/gallery', async (route) => {
+      await route.fulfill({ json: [] })
+    })
+    await page.goto('/#home', { waitUntil: 'domcontentloaded' })
+
+    const backToEditor = page.getByRole('button', {
+      name: 'Back to the editor',
+    })
+    await expect(backToEditor).toBeVisible({ timeout: 12_000 })
+
+    await page.keyboard.press('Escape')
+
+    await expect(backToEditor).toBeHidden()
+    await expect.poll(() => page.evaluate(() => window.location.hash)).toBe('')
+  })
+
   test('centers benchmark header action labels', async ({ page }) => {
     for (const viewport of [
       { width: 1440, height: 900 },

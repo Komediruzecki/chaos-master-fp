@@ -14,6 +14,8 @@ each release; the full developer history lives in `dev.changelog.md`.
 
 ### Changed
 
+- **Home has a keyboard exit.** Press Escape anywhere in the Home gallery to
+  return to the editor; an open dialog still closes first.
 - **Gallery previews stay lightweight while scrolling.** Tiles wait for the
   gallery itself to settle, keep a static snapshot, and release their live GPU
   canvas; animated tiles only return to a live render while hovered.
