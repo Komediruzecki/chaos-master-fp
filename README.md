@@ -28,6 +28,7 @@ For generative artists, motion designers, creative coders, and curious explorers
 ## What you can make
 
 - **Live 2D and 3D flames** — shape transforms, variations, symmetry, palettes, color, and cameras around a real-time WebGPU render.
+- **Fractal foundations** — open exact Sierpiński, Koch, Barnsley, Heighway, Cantor, and Menger constructions as editable flame descriptors.
 - **Generative discoveries** — explore a curated live Home, then randomize, mutate, blend, and morph any flame into your own.
 - **Evolving families** — breed flames, run populations, compare structural differences, and trace ancestry.
 - **Animation and motion** — keyframe render, camera, transform, variation, and color controls across a timeline, dope sheet, curves, loops, and video exports.
