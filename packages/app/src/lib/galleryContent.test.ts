@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bySection, needsPosterFrame, posterUrl, sequenceFlames, } from './galleryContent'
+import { byCollection, bySection, galleryCredit, galleryExternalUrl, needsPosterFrame, posterUrl, sequenceFlames, } from './galleryContent'
 import type { GalleryItem, GalleryListItem } from './galleryContent'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 
@@ -114,5 +114,48 @@ describe('bySection', () => {
     expect(grouped.gallery.map((i) => i.slug)).toEqual(['a', 'c'])
     expect(grouped.motion.map((i) => i.slug)).toEqual(['b'])
     expect(grouped.hero).toEqual([])
+  })
+})
+
+describe('gallery collections and credit', () => {
+  it('preserves row order and falls back without dropping older content', () => {
+    const grouped = byCollection([
+      row({ slug: 'classic-koch-curve' }),
+      row({ slug: 'native', collection: 'original' }),
+      row({ slug: 'remix', collection: 'remix' }),
+      row({ slug: 'future', collection: 'future' as 'original' }),
+    ])
+    expect(grouped.foundation.map((item) => item.slug)).toEqual([
+      'classic-koch-curve',
+    ])
+    expect(grouped.original.map((item) => item.slug)).toEqual([
+      'native',
+      'future',
+    ])
+    expect(grouped.remix.map((item) => item.slug)).toEqual(['remix'])
+  })
+
+  it('prefers explicit attribution and never displays an unknown author', () => {
+    expect(galleryCredit(row({ attribution: 'Work by Ada · CC BY 4.0' }))).toBe(
+      'Work by Ada · CC BY 4.0',
+    )
+    expect(galleryCredit(row({ author: 'unknown' }))).toBeUndefined()
+    expect(
+      galleryCredit(
+        row({
+          slug: 'classic-fern',
+          collection: 'foundation',
+          author: 'Lumen Apeiron',
+        }),
+      ),
+    ).toContain('encoded by Lumen Apeiron')
+  })
+
+  it('allows only http(s) source and license links', () => {
+    expect(galleryExternalUrl('https://example.test/work')).toBe(
+      'https://example.test/work',
+    )
+    expect(galleryExternalUrl('javascript:alert(1)')).toBeUndefined()
+    expect(galleryExternalUrl('not a URL')).toBeUndefined()
   })
 })
