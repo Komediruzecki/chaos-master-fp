@@ -110,8 +110,12 @@ contractive affine IFS presets. Keep the product labels mathematically honest.
 
 ## Next executable slice
 
+The eight canonical Fractal Classics are now implemented as exact, editable
+descriptors. The next slice turns those foundations into a launch collection:
+
 1. Add provenance fields and publication validation to the gallery pipeline.
-2. Implement and test the exact 2D classic preset generator.
-3. Curate the Home hero and first six gallery plates.
+2. Curate clearly labelled **Flame Remix** companions for the exact classics.
+3. Stage the Home hero and first six classic gallery plates, then capture their
+   posters before publication.
 4. Re-run `pnpm capture:readme`, replace launch stills, and perform the final
    release gate.

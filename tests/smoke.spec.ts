@@ -95,6 +95,40 @@ test.describe('CI smoke', () => {
     })
     await expect(backToEditor).toBeVisible({ timeout: 12_000 })
 
+    // A nearer native dialog gets Escape first. Home's capture boundary must
+    // shield the still-mounted editor without cancelling the browser's dialog
+    // default action.
+    await page.evaluate(() => {
+      document.body.dataset.hiddenEscapeCount = '0'
+      document.addEventListener(
+        'keydown',
+        (event) => {
+          if (event.key === 'Escape') {
+            document.body.dataset.hiddenEscapeCount = '1'
+          }
+        },
+        { once: true },
+      )
+
+      const dialog = document.createElement('dialog')
+      dialog.dataset.homeEscapeProbe = 'true'
+      dialog.addEventListener('cancel', (event) => {
+        event.preventDefault()
+        dialog.close()
+        dialog.remove()
+      })
+      document.body.append(dialog)
+      dialog.showModal()
+    })
+
+    await page.keyboard.press('Escape')
+
+    await expect(page.locator('dialog[data-home-escape-probe]')).toHaveCount(0)
+    await expect(backToEditor).toBeVisible()
+    await expect
+      .poll(() => page.evaluate(() => document.body.dataset.hiddenEscapeCount))
+      .toBe('0')
+
     await page.keyboard.press('Escape')
 
     await expect(backToEditor).toBeHidden()

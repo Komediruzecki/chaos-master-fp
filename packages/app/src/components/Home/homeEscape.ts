@@ -10,11 +10,15 @@ export function installHomeEscapeBoundary(
   eventRoot: Document = document,
 ): () => void {
   const onKeyDown = (event: KeyboardEvent) => {
-    if (
-      event.key !== 'Escape' ||
-      event.defaultPrevented ||
-      eventRoot.querySelector('dialog[open]') !== null
-    ) {
+    if (event.key !== 'Escape' || event.defaultPrevented) {
+      return
+    }
+
+    if (eventRoot.querySelector('dialog[open]') !== null) {
+      // Keep the still-mounted editor from seeing the key, but deliberately do
+      // not preventDefault: the browser must remain free to fire the native
+      // dialog `cancel` event and close/resolve the nearer layer.
+      event.stopImmediatePropagation()
       return
     }
 

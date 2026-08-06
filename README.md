@@ -47,7 +47,7 @@ Every piece on Home can become a live WebGPU render and opens directly in the ed
 
 ## Run it locally
 
-Requires Node.js 22+, pnpm 10+, and a WebGPU-capable browser.
+Requires Node.js 22.12+, pnpm 10+, and a WebGPU-capable browser.
 
 ```bash
 pnpm install

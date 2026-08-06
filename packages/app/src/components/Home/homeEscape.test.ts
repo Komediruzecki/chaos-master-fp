@@ -33,16 +33,21 @@ describe('installHomeEscapeBoundary', () => {
     remove()
   })
 
-  it('leaves Escape to an open dialog before exiting Home', () => {
+  it('reserves Escape for an open dialog and shields the hidden workspace', () => {
     const { doc, target } = testDocument()
     const dialog = doc.body.appendChild(doc.createElement('dialog'))
     dialog.setAttribute('open', '')
+    const hiddenWorkspaceHandler = vi.fn()
     const onExit = vi.fn()
+    doc.addEventListener('keydown', hiddenWorkspaceHandler)
     const remove = installHomeEscapeBoundary(onExit, doc)
 
     const modalEscape = keydown('Escape')
     target.dispatchEvent(modalEscape)
     expect(onExit).not.toHaveBeenCalled()
+    expect(hiddenWorkspaceHandler).not.toHaveBeenCalled()
+    // stopPropagation shields the editor; leaving default uncancelled preserves
+    // the browser's native <dialog> cancel/close behavior.
     expect(modalEscape.defaultPrevented).toBe(false)
 
     dialog.remove()

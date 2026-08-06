@@ -42,6 +42,32 @@ export const CANCEL = 'cancel'
 
 export type AnimationLoad = { flame: FlameDescriptor; tracks: TimelineTrack[] }
 
+/** Keep one malformed stored/generated flame from taking down the whole modal. */
+function StaticVariationPreview(props: {
+  flame: FlameDescriptor
+  name: string
+  isSelected: boolean
+  isVisible: boolean
+  scrolling: boolean
+  paused?: boolean
+}) {
+  return (
+    <ErrorBoundary
+      fallback={() => <div class={ui.previewError}>Failed to render</div>}
+    >
+      <VariationPreview
+        version={1}
+        isSelected={props.isSelected}
+        flame={props.flame}
+        name={props.name}
+        isVisible={props.isVisible}
+        scrolling={props.scrolling}
+        paused={props.paused}
+      />
+    </ErrorBoundary>
+  )
+}
+
 function FlamePreviewInner(props: {
   flame: FlameDescriptor
   hovered: boolean
@@ -153,8 +179,7 @@ function AnimatedPreview(props: {
       }}
       ref={setContainer}
     >
-      <VariationPreview
-        version={1}
+      <StaticVariationPreview
         isSelected={hovered()}
         flame={baseFlame}
         name={props.anim.name}
@@ -289,8 +314,7 @@ function RecentFlameItem(props: {
       }}
       ref={setContainer}
     >
-      <VariationPreview
-        version={1}
+      <StaticVariationPreview
         isSelected={hovered()}
         flame={props.recent.flame}
         name={props.recent.name}
@@ -495,8 +519,7 @@ function ExampleItem(props: {
         props.onSelect(props.example)
       }}
     >
-      <VariationPreview
-        version={1}
+      <StaticVariationPreview
         isSelected={false}
         flame={props.example}
         name={props.example.metadata?.name || props.exampleId}
