@@ -2,7 +2,7 @@ import { createEffect, createMemo, createResource, createSignal, For, onCleanup,
 import { ComputeGate } from '@/contexts/ComputeGateContext'
 import { COMPUTE_GATE_CAPACITY } from '@/defaults'
 import { setActiveTab } from '@/lib/activeTab'
-import { byCollection, bySection, fetchGallery, fetchGalleryItem, GALLERY_COLLECTIONS, galleryCredit, galleryExternalUrl, needsPosterFrame, posterUrl, } from '@/lib/galleryContent'
+import { byCollection, bySection, fetchGallery, fetchGalleryItem, GALLERY_COLLECTIONS, galleryCredit, galleryExternalUrl, galleryResourceItems, needsPosterFrame, posterUrl, } from '@/lib/galleryContent'
 import { createSharedIntersectionObserver } from '@/utils/useIntersectionObserver'
 import { installHomeEscapeBoundary } from './homeEscape'
 import { HomeFlame } from './HomeFlame'
@@ -446,7 +446,11 @@ export function HomeTab(props: HomeTabProps) {
   // Wrapped rather than passed directly: createResource hands the fetcher its
   // source value, which would arrive as the section filter.
   const [content] = createResource(() => fetchGallery())
-  const sections = createMemo(() => bySection(content() ?? []))
+  // A rejected Solid resource rethrows when its accessor is read. Check the
+  // error first so the explicit unavailable state below remains in control.
+  const sections = createMemo(() =>
+    bySection(galleryResourceItems(content, content.error)),
+  )
   const collections = createMemo(() => byCollection(sections().gallery))
 
   // ONE observer for every plate on the page, rooted on Home's scroll container.

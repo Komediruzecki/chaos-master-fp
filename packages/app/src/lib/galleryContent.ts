@@ -181,6 +181,18 @@ export async function fetchGalleryItem(slug: string): Promise<GalleryItem> {
   return (await res.json()) as GalleryItem
 }
 
+/**
+ * Read a Solid resource only while it is usable. A rejected resource accessor
+ * rethrows its error when called; testing the error first lets Home render its
+ * local unavailable state instead of escalating to the app error boundary.
+ */
+export function galleryResourceItems(
+  read: () => GalleryListItem[] | undefined,
+  error: unknown,
+): GalleryListItem[] {
+  return error === undefined ? (read() ?? []) : []
+}
+
 /** Group a flat list into its sections, preserving the API's ordering. */
 export function bySection(
   items: GalleryListItem[],

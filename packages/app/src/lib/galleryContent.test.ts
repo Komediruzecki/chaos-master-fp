@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { byCollection, bySection, galleryCredit, galleryExternalUrl, needsPosterFrame, posterUrl, sequenceFlames, } from './galleryContent'
+import { describe, expect, it, vi } from 'vitest'
+import { byCollection, bySection, galleryCredit, galleryExternalUrl, galleryResourceItems, needsPosterFrame, posterUrl, sequenceFlames, } from './galleryContent'
 import type { GalleryItem, GalleryListItem } from './galleryContent'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 
@@ -114,6 +114,25 @@ describe('bySection', () => {
     expect(grouped.gallery.map((i) => i.slug)).toEqual(['a', 'c'])
     expect(grouped.motion.map((i) => i.slug)).toEqual(['b'])
     expect(grouped.hero).toEqual([])
+  })
+})
+
+describe('galleryResourceItems', () => {
+  it('does not read a failed resource accessor', () => {
+    const read = vi.fn(() => {
+      throw new Error('Gallery unavailable (404)')
+    })
+
+    expect(galleryResourceItems(read, new Error('404'))).toEqual([])
+    expect(read).not.toHaveBeenCalled()
+  })
+
+  it('returns a successful resource value without cloning it', () => {
+    const items = [row()]
+    const read = vi.fn(() => items)
+
+    expect(galleryResourceItems(read, undefined)).toBe(items)
+    expect(read).toHaveBeenCalledOnce()
   })
 })
 
