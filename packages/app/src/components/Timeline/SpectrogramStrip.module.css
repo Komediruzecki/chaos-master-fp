@@ -1,0 +1,50 @@
+.strip {
+  position: relative;
+  height: 64px;
+  flex-shrink: 0;
+  display: flex;
+  /* matches the dope sheet dark background */
+  background: #0d0d0d;
+  border-bottom: 1px solid #1a1a1a;
+}
+
+.liveBadge {
+  position: absolute;
+  left: 8px;
+  top: 4px;
+  z-index: 2;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #ff6b6b;
+  background: rgb(255 107 107 / 0.12);
+  border: 1px solid rgb(255 107 107 / 0.3);
+  pointer-events: none;
+}
+
+.spacer {
+  flex-shrink: 0;
+  /* width set inline from trackNameWidth */
+  pointer-events: none;
+}
+
+.lane {
+  position: relative;
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+  /* JS-synced from tracksScroll, hide native scrollbar */
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.heatCanvas {
+  display: block;
+  height: 64px;
+  image-rendering: pixelated;
+}

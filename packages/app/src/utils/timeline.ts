@@ -1,7 +1,10 @@
 import { createSignal } from 'solid-js'
+import { applyAudioDriver } from './audioDriver'
 import { applyEasing, catmullRom, clamp } from './easing'
 import { persistentSignal } from './persistentSignal'
 import { clearAllRedos, nextUndoSeq, registerRedoClearer } from './undoJournal'
+import type { AudioFeature } from './audioAnalysis'
+import type { AudioDriver } from './audioDriver'
 
 interface WindowTimelineState {
   tracks: () => TimelineTrack[]
@@ -305,6 +308,7 @@ export type KeyframeData = {
 export type TimelineTrack = {
   parameterPath: string
   keyframes: KeyframeData[]
+  audioDriver?: AudioDriver
 }
 
 /**
@@ -413,13 +417,18 @@ function lerpKfValues(
 /**
  * Resolve a track's value at `frame`, optionally synthesizing a loop. With
  * `opts === null` it is exactly `resolveKeyframeValue`. See {@link LoopMode}.
+ *
+ * `driver` and `featureNorm` are forwarded to `resolveKeyframeValue` for
+ * audio-reactive per-track modulation (Phase 1 of audio-reactive channels).
  */
 export function resolveLoopValue(
   keyframes: KeyframeData[],
   frame: number,
   opts: LoopOptions | null,
+  driver?: AudioDriver,
+  featureNorm?: number,
 ): ResolvedValue {
-  const natural = resolveKeyframeValue(keyframes, frame)
+  const natural = resolveKeyframeValue(keyframes, frame, driver, featureNorm)
   if (opts === null) return natural
   return opts.mode === 'seamless'
     ? resolveSeamless(keyframes, frame, natural, opts)
@@ -490,11 +499,17 @@ function resolveCycle(
 
 /**
  * Resolves the value at a given frame for a set of keyframes.
- * Returns the interpolated value or the nearest keyframe value.
+ *
+ * When `driver` and `featureNorm` are provided and the resolved value is a
+ * number, the driver modulates it as a post-step (IFSRenderer AudioChannelDriver
+ * architecture). Callers that don't need audio drivers can omit both params —
+ * existing behaviour is byte-identical.
  */
 export function resolveKeyframeValue(
   keyframes: KeyframeData[],
   frame: number,
+  driver?: AudioDriver,
+  featureNorm?: number,
 ):
   | number
   | string
@@ -510,11 +525,15 @@ export function resolveKeyframeValue(
 
   // Before first keyframe
   const firstKf = sorted[0]!
-  if (frame <= firstKf.frame) return firstKf.value
+  if (frame <= firstKf.frame) {
+    return applyDriverIfNumber(firstKf.value, driver, featureNorm)
+  }
 
   // After last keyframe
   const lastKf = sorted[sorted.length - 1]!
-  if (frame >= lastKf.frame) return lastKf.value
+  if (frame >= lastKf.frame) {
+    return applyDriverIfNumber(lastKf.value, driver, featureNorm)
+  }
 
   // Find surrounding keyframes (track the index so spline can reach neighbours).
   let prevIdx = 0
@@ -528,7 +547,9 @@ export function resolveKeyframeValue(
   const next = sorted[prevIdx + 1]!
 
   const frameRange = next.frame - prev.frame
-  if (frameRange === 0) return prev.value
+  if (frameRange === 0) {
+    return applyDriverIfNumber(prev.value, driver, featureNorm)
+  }
 
   const rawT = (frame - prev.frame) / frameRange
   const t = clamp(rawT, 0, 1)
@@ -540,15 +561,18 @@ export function resolveKeyframeValue(
 
   // Numbers: constant (hold) / spline (Catmull-Rom) / linear (lerp).
   if (typeof prev.value === 'number' && typeof next.value === 'number') {
-    if (interp === 'constant') return prev.value
-    if (interp === 'spline') {
+    let resolved: number
+    if (interp === 'constant') resolved = prev.value
+    else if (interp === 'spline') {
       const before = sorted[prevIdx - 1]?.value
       const after = sorted[prevIdx + 2]?.value
       const p0 = typeof before === 'number' ? before : prev.value
       const p3 = typeof after === 'number' ? after : next.value
-      return catmullRom(p0, prev.value, next.value, p3, easedT)
+      resolved = catmullRom(p0, prev.value, next.value, p3, easedT)
+    } else {
+      resolved = prev.value + (next.value - prev.value) * easedT
     }
-    return prev.value + (next.value - prev.value) * easedT
+    return applyDriverIfNumber(resolved, driver, featureNorm)
   }
 
   // Array values (RGB/RGBA colors): same modes, component-wise.
@@ -585,6 +609,30 @@ export function resolveKeyframeValue(
     return prev.value
   }
   return next.value
+}
+
+/** Apply audio driver to a resolved value if it's a number and a driver is active. */
+function applyDriverIfNumber(
+  value:
+    | number
+    | string
+    | boolean
+    | [number, number, number]
+    | [number, number, number, number]
+    | null,
+  driver: AudioDriver | undefined,
+  featureNorm: number | undefined,
+):
+  | number
+  | string
+  | boolean
+  | [number, number, number]
+  | null
+  | [number, number, number, number] {
+  if (driver && featureNorm !== undefined && typeof value === 'number') {
+    return applyAudioDriver(value, driver, featureNorm)
+  }
+  return value
 }
 
 /**
@@ -678,6 +726,11 @@ export function createTimelineState() {
           | [number, number, number, number],
       ) => void)
     | null = null
+
+  /** Optional callback that returns a normalised (0–1) audio feature value for
+   *  the current frame. Set by MainWorkspace when audio is loaded so per-track
+   *  audio drivers can modulate resolved keyframe values. */
+  let getAudioFeatureNormFn: ((feature: AudioFeature) => number) | null = null
 
   // Undo/redo stacks for timeline operations. Capped: auto-keyframe and the
   // track-changes diamond can push one snapshot per pointer-move during a
@@ -790,7 +843,12 @@ export function createTimelineState() {
       ) {
         continue
       }
-      const value = resolveKeyframeValue(track.keyframes, frame)
+      const driver = track.audioDriver
+      const fn =
+        driver && getAudioFeatureNormFn
+          ? getAudioFeatureNormFn(driver.feature)
+          : undefined
+      const value = resolveKeyframeValue(track.keyframes, frame, driver, fn)
       if (value !== null && typeof value !== 'boolean') {
         valueWriterFn(track.parameterPath, value)
       }
@@ -894,7 +952,7 @@ export function createTimelineState() {
           : [...track.keyframes, { frame, value, easing, interp }]
         return [
           ...prev.slice(0, ti),
-          { parameterPath, keyframes: newKeyframes },
+          { ...track, keyframes: newKeyframes },
           ...prev.slice(ti + 1),
         ]
       }
@@ -1243,10 +1301,17 @@ export function createTimelineState() {
         t.parameterPath === parameterPath,
     )
     if (!track) return null
+    const driver = track.audioDriver
+    const fn =
+      driver && getAudioFeatureNormFn
+        ? getAudioFeatureNormFn(driver.feature)
+        : undefined
     return resolveLoopValue(
       track.keyframes,
       frame,
       loopOptsFromConfig(config(), tracks()),
+      driver,
+      fn,
     )
   }
 
@@ -1331,6 +1396,29 @@ export function createTimelineState() {
     pushUndo()
     setTracks((prev: TimelineTrack[]) =>
       prev.filter((t: TimelineTrack) => t.parameterPath !== parameterPath),
+    )
+  }
+
+  /**
+   * Set (or clear) the audio driver for a track. Passing `null` removes the
+   * driver. Pushes an undo entry so the operation is reversible.
+   */
+  function setTrackAudioDriver(
+    parameterPath: string,
+    driver: AudioDriver | null,
+  ) {
+    const track = tracks().find((t) => t.parameterPath === parameterPath)
+    if (!track) return
+    // No-op if the driver hasn't changed.
+    const current = track.audioDriver ?? null
+    if (JSON.stringify(current) === JSON.stringify(driver)) return
+    pushUndo()
+    setTracks((prev) =>
+      prev.map((t) =>
+        t.parameterPath === parameterPath
+          ? { ...t, audioDriver: driver ?? undefined }
+          : t,
+      ),
     )
   }
 
@@ -1582,9 +1670,20 @@ export function createTimelineState() {
     resolveValueAtPath,
     hasAnyKeyframes,
     removeAllKeyframesForPath,
+    setTrackAudioDriver,
     setValueResolver,
     setValueWriter,
     getResolvedValue,
+    /**
+     * Set a callback that returns a normalised (0–1) audio feature value for
+     * the current playback frame. When set, per-track audio drivers modulate
+     * resolved keyframe values automatically. Call with `null` to clear.
+     */
+    setAudioFeatureNormGetter: (
+      fn: ((feature: AudioFeature) => number) | null,
+    ) => {
+      getAudioFeatureNormFn = fn
+    },
     addKeyframeAtCurrentFrame,
     addKeyframesAtCurrentFrame,
     toggleKeyframeAtCurrentFrame,

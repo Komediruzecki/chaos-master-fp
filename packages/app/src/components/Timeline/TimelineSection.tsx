@@ -5,14 +5,22 @@ import { persistentSignal } from '@/utils/persistentSignal'
 import { AnimationControls, AnimationGenerator } from './AnimationGenerator'
 import { DopeSheet } from './DopeSheet'
 import ui from './TimelineSection.module.css'
+import type { Accessor } from 'solid-js'
 import type { DopeSheetViewApi } from './DopeSheet'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
+import type { AudioAnalyzer, FrameData } from '@/utils/audioAnalysis'
 
 export interface TimelineSectionProps {
   formatTrackLabel?: (path: string) => string
   flameDescriptor?: FlameDescriptor
   /** Reveals the sidebar's animation generator (Flame Randomizer card). */
   onOpenAnimationGenerator?: () => void
+  /** Pre-computed audio analyzer, passed to DopeSheet for the spectrogram strip. */
+  fileAnalyzer?: Accessor<AudioAnalyzer | undefined>
+  /** Ring buffer of recent FFT frames for live mic spectrogram. */
+  liveRingBuffer?: Accessor<(FrameData & { isBeat: boolean })[]>
+  /** Current audio source — when 'mic', spectrogram renders from ring buffer. */
+  audioSource?: Accessor<'file' | 'mic'>
 }
 
 import { TimelineSettings } from './TimelineSettings'
@@ -38,10 +46,17 @@ export function TimelineSection(props: TimelineSectionProps) {
     false,
   )
 
+  // Dope sheet transparency slider — persisted, defaults to fully opaque.
+  const [dopeSheetOpacity, setDopeSheetOpacity] = persistentSignal(
+    'dopesheet-opacity',
+    1,
+  )
+
   return (
     <div
       class={ui.section}
       classList={{ [ui.collapsed as string]: collapsed() }}
+      style={{ '--dopesheet-opacity': String(dopeSheetOpacity()) }}
       data-testid="timeline-section"
       data-tour-target="timeline-section"
     >
@@ -119,6 +134,21 @@ export function TimelineSection(props: TimelineSectionProps) {
             >
               Curve
             </button>
+            <span class={ui.headerGroupLabel}>Alpha</span>
+            <input
+              type="range"
+              class={ui.alphaSlider}
+              min="0.1"
+              max="1"
+              step="0.05"
+              value={dopeSheetOpacity()}
+              onInput={(e) =>
+                setDopeSheetOpacity(parseFloat(e.currentTarget.value))
+              }
+              onDblClick={() => setDopeSheetOpacity(1)}
+              title="Dope sheet transparency"
+              aria-label="Dope sheet transparency"
+            />
           </div>
         </Show>
 
@@ -191,6 +221,9 @@ export function TimelineSection(props: TimelineSectionProps) {
             seekOnSelect={seekOnSelect()}
             showCurve={showCurve()}
             registerViewApi={setViewApi}
+            fileAnalyzer={props.fileAnalyzer}
+            liveRingBuffer={props.liveRingBuffer}
+            audioSource={props.audioSource}
           />
         </div>
       </Show>

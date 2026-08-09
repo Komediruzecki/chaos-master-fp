@@ -30,6 +30,35 @@ export const KeyframeInterpolation = v.picklist([
 ])
 export type KeyframeInterpolation = v.InferOutput<typeof KeyframeInterpolation>
 
+// ── Audio driver (per-track, optional) ─────────────────────────────────
+
+export const AudioFeatureSchema = v.picklist([
+  'subBass',
+  'bass',
+  'lowMid',
+  'mid',
+  'hiMid',
+  'presence',
+  'brilliance',
+  'fullSpectrum',
+  'rms',
+  'centroid',
+  'flatness',
+  'beat',
+  'onset',
+])
+export type AudioFeatureSchema = v.InferOutput<typeof AudioFeatureSchema>
+
+export const AudioDriver = v.object({
+  feature: AudioFeatureSchema,
+  mode: v.picklist(['multiply', 'add', 'replace']),
+  sensitivity: v.pipe(v.number(), v.minValue(0), v.maxValue(10)),
+  range: v.tuple([v.number(), v.number()]),
+  attackMs: v.optional(v.number(), 0),
+  releaseMs: v.optional(v.number(), 0),
+})
+export type AudioDriver = v.InferOutput<typeof AudioDriver>
+
 export const Keyframe = v.object({
   frame: v.number(),
   value: KeyframeValue,
@@ -41,6 +70,7 @@ export type Keyframe = v.InferOutput<typeof Keyframe>
 export const TimelineTrack = v.object({
   parameterPath: v.string(),
   keyframes: v.array(Keyframe),
+  audioDriver: v.optional(AudioDriver),
 })
 export type TimelineTrack = v.InferOutput<typeof TimelineTrack>
 

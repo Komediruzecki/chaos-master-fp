@@ -10,6 +10,10 @@ type TrackContextMenuProps = {
   isOrphaned: boolean
   onClose: () => void
   onClearAllInvalid: () => void
+  /** Open the audio driver popover for this track. */
+  onAudioDriver: () => void
+  /** Whether the track already has an audio driver assigned. */
+  hasAudioDriver: boolean
 }
 
 export function TrackContextMenu(props: TrackContextMenuProps) {
@@ -64,6 +68,17 @@ export function TrackContextMenu(props: TrackContextMenuProps) {
         >
           Clear all keyframes on this track
         </button>
+        <hr class={ui.separator} />
+        <button
+          class={ui.item}
+          onClick={() => {
+            props.onAudioDriver()
+            close()
+          }}
+        >
+          {props.hasAudioDriver ? 'Edit Audio Driver…' : 'Audio Driver…'}
+        </button>
+        <hr class={ui.separator} />
         <button
           class={ui.item}
           onClick={() => {

@@ -2,6 +2,7 @@ import { createEffect, createMemo, createSignal, For, onCleanup, Show, } from 's
 import { useKeyframeTarget } from '@/contexts/KeyframeTargetContext'
 import { useTimeline } from '@/contexts/TimelineContext'
 import { TIMELINE_PARAMETERS } from '@/utils/timeline'
+import { AudioDriverPopover } from './AudioDriverPopover'
 import { CurveEditor } from './CurveEditor/CurveEditor'
 import ui from './DopeSheet.module.css'
 import { useScrollSync } from './hooks/useScrollSync'
@@ -9,7 +10,11 @@ import { useSeekScrubber } from './hooks/useSeekScrubber'
 import { useTrackNameWidth } from './hooks/useTrackNameWidth'
 import { useZoomGestures } from './hooks/useZoomGestures'
 import { KeyframeContextMenu } from './KeyframeContextMenu'
+import { SpectrogramStrip } from './SpectrogramStrip'
 import { TrackContextMenu } from './TrackContextMenu'
+import type { Accessor } from 'solid-js'
+import type { AudioAnalyzer, FrameData } from '@/utils/audioAnalysis'
+import type { AudioDriver } from '@/utils/audioDriver'
 
 /**
  * Roots of every built-in animatable parameter path (e.g. `camera`, `camera3D`,
@@ -52,6 +57,12 @@ export interface DopeSheetProps {
   showCurve?: boolean
   /** Called on mount with the zoom API consumed by the header's View group. */
   registerViewApi?: (api: DopeSheetViewApi | undefined) => void
+  /** Pre-computed audio analyzer for spectrogram rendering. */
+  fileAnalyzer?: Accessor<AudioAnalyzer | undefined>
+  /** Ring buffer of recent FFT frames for live mic spectrogram. */
+  liveRingBuffer?: Accessor<(FrameData & { isBeat: boolean })[]>
+  /** Current audio source — when 'mic', spectrogram renders from ring buffer. */
+  audioSource?: Accessor<'file' | 'mic'>
 }
 
 export function DopeSheet(props: DopeSheetProps) {
@@ -74,6 +85,7 @@ export function DopeSheet(props: DopeSheetProps) {
   let tracksScrollRef!: HTMLDivElement
   let seekRulerRef!: HTMLDivElement
   let seekLaneRef!: HTMLDivElement | undefined
+  let spectroLaneRef!: HTMLDivElement | undefined
 
   const trackNameWidth = useTrackNameWidth()
 
@@ -150,6 +162,27 @@ export function DopeSheet(props: DopeSheetProps) {
     path: string
   } | null>(null)
 
+  const [audioDriverPopover, setAudioDriverPopover] = createSignal<{
+    x: number
+    y: number
+    path: string
+  } | null>(null)
+
+  function getTrackAudioDriver(path: string): AudioDriver | undefined {
+    const track = timeline.tracks().find((t) => t.parameterPath === path)
+    return track?.audioDriver
+  }
+
+  function handleAudioDriverSave(path: string, driver: AudioDriver) {
+    timeline.setTrackAudioDriver(path, driver)
+    setAudioDriverPopover(null)
+  }
+
+  function handleAudioDriverRemove(path: string) {
+    timeline.setTrackAudioDriver(path, null)
+    setAudioDriverPopover(null)
+  }
+
   const { handleSeekPointerDown } = useSeekScrubber(frameWidth)
 
   function handleContextMenu(e: MouseEvent, path: string, frame: number) {
@@ -217,6 +250,7 @@ export function DopeSheet(props: DopeSheetProps) {
           path: t.parameterPath,
           label: fmt ? fmt(t.parameterPath) : pathLabel(t.parameterPath),
           isOrphaned,
+          hasAudioDriver: t.audioDriver !== undefined,
         }
       })
       .sort((a, b) => a.label.localeCompare(b.label))
@@ -307,12 +341,35 @@ export function DopeSheet(props: DopeSheetProps) {
         </div>
       </div>
 
+      {/* ── Spectrogram strip ── */}
+      <Show
+        when={
+          (props.fileAnalyzer && props.fileAnalyzer()) ||
+          (props.liveRingBuffer && props.liveRingBuffer().length > 0)
+        }
+      >
+        <SpectrogramStrip
+          fileAnalyzer={props.fileAnalyzer!}
+          frameWidth={frameWidth}
+          scrollLeft={scrollLeft}
+          trackNameWidth={trackNameWidth}
+          startFrame={timeline.config().startFrame}
+          endFrame={timeline.config().endFrame}
+          laneRef={(el) => (spectroLaneRef = el)}
+          liveRingBuffer={props.liveRingBuffer}
+          audioSource={props.audioSource}
+        />
+      </Show>
+
       {/* ── Tracks ── */}
       <DopeSheetGrid
         tracksScrollRef={(el) => (tracksScrollRef = el)}
         onScroll={(e) => {
           if (seekLaneRef) {
             seekLaneRef.scrollLeft = e.currentTarget.scrollLeft
+          }
+          if (spectroLaneRef) {
+            spectroLaneRef.scrollLeft = e.currentTarget.scrollLeft
           }
           setScrollLeft(e.currentTarget.scrollLeft)
         }}
@@ -367,9 +424,36 @@ export function DopeSheet(props: DopeSheetProps) {
                   .map((t) => t.path)
                 timeline.removeTracks(orphanedPaths)
               }}
+              onAudioDriver={() => {
+                setAudioDriverPopover({
+                  x: cm().x,
+                  y: cm().y,
+                  path: cm().path,
+                })
+              }}
+              hasAudioDriver={getTrackAudioDriver(cm().path) !== undefined}
             />
           )
         }}
+      </Show>
+
+      {/* ── Audio driver popover ── */}
+      <Show when={audioDriverPopover()}>
+        {(ap) => (
+          <AudioDriverPopover
+            x={ap().x}
+            y={ap().y}
+            driver={getTrackAudioDriver(ap().path)}
+            audioSource={props.audioSource?.()}
+            onSave={(driver) => {
+              handleAudioDriverSave(ap().path, driver)
+            }}
+            onRemove={() => {
+              handleAudioDriverRemove(ap().path)
+            }}
+            onClose={() => setAudioDriverPopover(null)}
+          />
+        )}
       </Show>
     </div>
   )
