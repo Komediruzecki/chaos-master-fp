@@ -50,6 +50,9 @@ import { initExample3D } from './initExample3D'
 import { invCircleEx1, invCircleEx2 } from './invCircle'
 import { invCircle2Ex1 } from './invCircle2'
 import { linear1 } from './linear1'
+import { marketing1 } from './marketing1'
+import { marketing2 } from './marketing2'
+import { marketing3 } from './marketing3'
 import type { FlameDescriptor } from '../schema/flameSchema'
 
 export const examples = {
@@ -106,5 +109,8 @@ export const examples = {
   invCircleEx1,
   invCircleEx2,
   invCircle2Ex1,
+  marketing1,
+  marketing2,
+  marketing3,
 } satisfies Record<string, FlameDescriptor>
 export type ExampleID = keyof typeof examples
