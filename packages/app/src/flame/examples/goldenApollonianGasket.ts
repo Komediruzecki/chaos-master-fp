@@ -1,14 +1,15 @@
 import type { FlameDescriptor } from '../schema/flameSchema'
 
-export const marketing2 = {
+export const goldenApollonianGasket = {
   version: '1.0',
   metadata: {
-    author: 'flam3',
+    author: 'Lumen Apeiron',
     name: 'Golden Apollonian Gasket',
-    description: 'Imported from .flame file',
+    description:
+      'Three spherical inversions fold into a luminous Apollonian study.',
   },
   renderSettings: {
-    exposure: 4.5,
+    exposure: 3,
     skipIters: 0,
     plotsPerChain: 16,
     autoExposure3D: false,

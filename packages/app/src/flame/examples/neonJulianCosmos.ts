@@ -1,14 +1,14 @@
 import type { FlameDescriptor } from '../schema/flameSchema'
 
-export const marketing3 = {
+export const neonJulianCosmos = {
   version: '1.0',
   metadata: {
-    author: 'flam3',
-    name: 'Cybernetic Swirl',
-    description: 'Imported from .flame file',
+    author: 'Lumen Apeiron',
+    name: 'Neon Julian Cosmos',
+    description: 'A fivefold Julia bloom orbiting a layered spherical core.',
   },
   renderSettings: {
-    exposure: 4.2110323830864065,
+    exposure: 3.2,
     skipIters: 0,
     plotsPerChain: 16,
     autoExposure3D: false,
@@ -33,7 +33,7 @@ export const marketing3 = {
     paletteSpeed: 0.5,
     backgroundColor: [0, 0, 0],
     camera: {
-      zoom: 0.2604166666666667,
+      zoom: 0.4166666666666667,
       position: [0, 0],
       rotation: 0,
     },
@@ -47,13 +47,13 @@ export const marketing3 = {
     },
   },
   transforms: {
-    _flam3__bc47e9a6_7337_403c_a714_721dee9e5a44: {
-      probability: 0.5,
+    _flam3__637624e6_5598_4d40_b4d9_9cc0aeb0809f: {
+      probability: 0.3333333333333333,
       preAffine: {
         a: 0.8,
-        b: 0.6,
+        b: 0.4,
         c: 0,
-        d: -0.6,
+        d: -0.4,
         e: 0.8,
         f: 0,
       },
@@ -66,33 +66,32 @@ export const marketing3 = {
         f: 0,
       },
       color: {
-        x: -0.20208165535398004,
-        y: -0.05938449308618122,
+        x: 0,
+        y: 0,
       },
       colorSpeed: 0.4,
       visible: true,
       variations: {
         _flam3_0: {
-          type: 'swirlVar',
+          type: 'juliaNVar',
           weight: 1,
           visible: true,
-        },
-        _flam3_1: {
-          type: 'linearVar',
-          weight: 0.5,
-          visible: true,
+          params: {
+            power: 5,
+            dist: 1,
+          },
         },
       },
     },
-    _flam3__e28ccf43_f267_4b40_83d3_23516e9a2b09: {
-      probability: 0.5,
+    _flam3__31b22599_bf33_4183_8896_cb6ce734d3d5: {
+      probability: 0.3333333333333333,
       preAffine: {
-        a: 0.5,
+        a: 0.6,
         b: 0,
-        c: 0.2,
+        c: 0.3,
         d: 0,
-        e: 0.5,
-        f: -0.2,
+        e: 0.6,
+        f: -0.3,
       },
       postAffine: {
         a: 1,
@@ -103,23 +102,73 @@ export const marketing3 = {
         f: 0,
       },
       color: {
-        x: -0.3995432138159405,
-        y: -0.12106762826413542,
+        x: 0.3519678235207002,
+        y: -0.8200610411070448,
       },
       colorSpeed: 0.4,
       visible: true,
       variations: {
         _flam3_0: {
-          type: 'eyefishVar',
-          weight: 0.5,
+          type: 'linearVar',
+          weight: 0.2,
           visible: true,
         },
         _flam3_1: {
-          type: 'linearVar',
-          weight: 0.5,
+          type: 'sphericalVar',
+          weight: 0.6,
+          visible: true,
+        },
+        _flam3_2: {
+          type: 'swirlVar',
+          weight: 0.2,
           visible: true,
         },
       },
     },
+    _flam3__41dbbf61_dd06_4a2d_81dc_1f6c3b152ca8: {
+      probability: 0.3333333333333333,
+      preAffine: {
+        a: 0.5,
+        b: 0.1,
+        c: -0.5,
+        d: -0.1,
+        e: 0.5,
+        f: 0.5,
+      },
+      postAffine: {
+        a: 1,
+        b: 0,
+        c: 0,
+        d: 0,
+        e: 1,
+        f: 0,
+      },
+      color: {
+        x: -0.007027314971642107,
+        y: -0.040362970458594605,
+      },
+      colorSpeed: 0.4,
+      visible: true,
+      variations: {
+        _flam3_0: {
+          type: 'linearVar',
+          weight: 0.1,
+          visible: true,
+        },
+        _flam3_1: {
+          type: 'horseshoeVar',
+          weight: 0.9,
+          visible: true,
+        },
+      },
+    },
+  },
+  finalTransform: {
+    a: 1,
+    b: 0,
+    c: 0,
+    d: 0,
+    e: 1,
+    f: 0,
   },
 } as FlameDescriptor
