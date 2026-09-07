@@ -7,6 +7,7 @@ import { executeCommand, executeReplayCommand, preflightReplayCommand, } from '@
 import { useKeyframeTarget } from '@/contexts/KeyframeTargetContext'
 import { useToast } from '@/contexts/ToastContext'
 import { scoreFlame as evaluateFlameFitness } from '@/flame/fitness'
+import { calculateGroundedStats } from '@/flame/stats'
 import { setActiveTab, workspaceIsVisible } from '@/lib/activeTab'
 import { SHOWCASE_CONSENT_VERSION } from '@/lib/communityShowcase'
 import { trackAppInit } from '@/lib/telemetry'
@@ -142,7 +143,7 @@ import type { SharePayload } from './utils/jsonQueryParam'
 import type { RandomizerHistoryEntry } from './utils/randomizerHistoryDB'
 import type { SonificationConfig } from './utils/sonification'
 import type { EasingCurve, KeyframeInterpolation, TimelineTrack, } from './utils/timeline'
-import type { CommandContext, DirectorState } from '@/commands/types'
+import type { ArenaFighterStats, CommandContext, DirectorState, } from '@/commands/types'
 import type { CommunityShowcaseRequest } from '@/lib/communityShowcase'
 
 export type { ExportImageInfo, ExportImageType } from '@/flame/exportImageType'
@@ -386,30 +387,17 @@ export function MainWorkspace(props: AppProps) {
   }
 
   const [showArena, setShowArena] = createSignal(false)
-  const [arenaP1Stats, setArenaP1Stats] = createSignal<{
-    name?: string
-    type?: string
-    powerLevel?: number
-    flame?: FlameDescriptor
-    metrics?: {
-      complexity?: number
-      chaosLevel?: number
-      symmetryScore?: number
-      energyIntensity?: number
-    }
-  } | null>(null)
-  const [arenaP2Stats, setArenaP2Stats] = createSignal<{
-    name?: string
-    type?: string
-    powerLevel?: number
-    flame?: FlameDescriptor
-    metrics?: {
-      complexity?: number
-      chaosLevel?: number
-      symmetryScore?: number
-      energyIntensity?: number
-    }
-  } | null>(null)
+  const [arenaP1Stats, setArenaP1Stats] =
+    createSignal<ArenaFighterStats | null>(null)
+  const [arenaP2Stats, setArenaP2Stats] =
+    createSignal<ArenaFighterStats | null>(null)
+  const [arenaCommentary, setArenaCommentary] = createSignal<string | null>(
+    null,
+  )
+  const [arenaEventBanner, setArenaEventBanner] = createSignal<string | null>(
+    null,
+  )
+  const [arenaStance, setArenaStance] = createSignal<string>('balanced')
 
   let isDirectorModalOpen = false
 
@@ -505,18 +493,24 @@ export function MainWorkspace(props: AppProps) {
       )
       const p1Stats = calculateFlameStats(current)
       const p2Stats = calculateFlameStats(opponent)
+      const p1Grounded = calculateGroundedStats(current)
+      const p2Grounded = calculateGroundedStats(opponent)
       setArenaP1Stats({
         name: current.metadata?.name || 'Cyan Guardian',
         type: p1Stats.type,
-        powerLevel: p1Stats.powerLevel,
+        school: p1Grounded.school,
+        powerLevel: p1Grounded.powerLevel,
         flame: current,
+        groundedStats: p1Grounded,
         metrics: p1Stats.metrics,
       })
       setArenaP2Stats({
         name: 'Crimson Nemesis',
         type: p2Stats.type,
-        powerLevel: p2Stats.powerLevel,
+        school: p2Grounded.school,
+        powerLevel: p2Grounded.powerLevel,
         flame: opponent,
+        groundedStats: p2Grounded,
         metrics: p2Stats.metrics,
       })
     }
@@ -3632,6 +3626,12 @@ export function MainWorkspace(props: AppProps) {
           )
         }
       },
+      commentary: arenaCommentary,
+      setCommentary: setArenaCommentary,
+      eventBanner: arenaEventBanner,
+      setEventBanner: setArenaEventBanner,
+      stance: arenaStance,
+      setStance: setArenaStance,
     },
     timeline: {
       tracks: timeline.tracks,

@@ -1,9 +1,10 @@
-import { createSignal, For, onCleanup, onMount, Show } from 'solid-js'
+import { createMemo, createSignal, For, onCleanup, onMount, Show, } from 'solid-js'
 import { VariationPreview } from '@/components/VariationSelector/VariationSelector'
 import { useChangeHistory } from '@/contexts/ChangeHistoryContext'
 import { ComputeGate } from '@/contexts/ComputeGateContext'
 import { useTimeline } from '@/contexts/TimelineContext'
 import { COMPUTE_GATE_CAPACITY } from '@/defaults'
+import { calculateGroundedStats, getSchoolMultiplier } from '@/flame/stats'
 import { Cross, Zap } from '@/icons'
 import { DEFAULT_SEAT } from '@/seats/seatId'
 import { deepClone } from '@/utils/clone'
@@ -13,8 +14,9 @@ import { ARENA_ARCHETYPES, generateArchetypeOpponent, TACTICAL_STANCES, } from '
 import { simulateClash } from '@/webmcp/tools/simulateClash'
 import ui from './ArenaOverlay.module.css'
 import type { Component } from 'solid-js'
-import type { CommandContext } from '@/commands/types'
+import type { ArenaFighterStats, CommandContext } from '@/commands/types'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
+import type { FlameSchool, GroundedFlameStats } from '@/flame/stats'
 import type { HardwareTier } from '@/utils/hardwareTier'
 import type { TimelineTrack } from '@/utils/timeline'
 import type { ArchetypeId, OpponentArchetype, TacticalStance, } from '@/webmcp/tools/arenaArchetypes'
@@ -29,6 +31,387 @@ export interface ArenaOverlayProps {
 }
 
 const PREVIEW_RES = { width: 380, height: 214 }
+
+export const SCHOOL_COLORS: Record<
+  FlameSchool,
+  { bg: string; text: string; border: string }
+> = {
+  Order: {
+    bg: 'rgba(56, 189, 248, 0.15)',
+    text: '#38bdf8',
+    border: 'rgba(56, 189, 248, 0.4)',
+  },
+  Crystal: {
+    bg: 'rgba(52, 211, 153, 0.15)',
+    text: '#34d399',
+    border: 'rgba(52, 211, 153, 0.4)',
+  },
+  Void: {
+    bg: 'rgba(192, 132, 252, 0.15)',
+    text: '#c084fc',
+    border: 'rgba(192, 132, 252, 0.4)',
+  },
+  Vortex: {
+    bg: 'rgba(248, 113, 113, 0.15)',
+    text: '#f87171',
+    border: 'rgba(248, 113, 113, 0.4)',
+  },
+  Tide: {
+    bg: 'rgba(45, 212, 191, 0.15)',
+    text: '#2dd4bf',
+    border: 'rgba(45, 212, 191, 0.4)',
+  },
+  Arcane: {
+    bg: 'rgba(251, 191, 36, 0.15)',
+    text: '#fbbf24',
+    border: 'rgba(251, 191, 36, 0.4)',
+  },
+}
+
+function drawRoundedRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+) {
+  if (typeof ctx.roundRect === 'function') {
+    ctx.beginPath()
+    ctx.roundRect(x, y, w, h, r)
+  } else {
+    ctx.beginPath()
+    ctx.moveTo(x + r, y)
+    ctx.lineTo(x + w - r, y)
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r)
+    ctx.lineTo(x + w, y + h - r)
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h)
+    ctx.lineTo(x + r, y + h)
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r)
+    ctx.lineTo(x, y + r)
+    ctx.quadraticCurveTo(x, y, x + r, y)
+    ctx.closePath()
+  }
+}
+
+function getVictorImage(isWinner1: boolean): Promise<HTMLImageElement | null> {
+  const cardSelector = isWinner1 ? `.${ui.p1Card}` : `.${ui.p2Card}`
+  const card = document.querySelector<HTMLElement>(cardSelector)
+  if (!card) return Promise.resolve(null)
+
+  const canvas = card.querySelector<HTMLCanvasElement>('canvas')
+  if (canvas) {
+    return new Promise((resolve) => {
+      try {
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            resolve(null)
+            return
+          }
+          const img = new Image()
+          const url = URL.createObjectURL(blob)
+          img.onload = () => {
+            URL.revokeObjectURL(url)
+            resolve(img)
+          }
+          img.onerror = () => {
+            URL.revokeObjectURL(url)
+            resolve(null)
+          }
+          img.src = url
+        }, 'image/png')
+      } catch {
+        resolve(null)
+      }
+    })
+  }
+
+  const previewDiv = card.querySelector<HTMLElement>('[data-preview-state]')
+  if (previewDiv) {
+    const bg =
+      previewDiv.style.getPropertyValue('--background') ||
+      previewDiv.style.backgroundImage
+    const match = bg.match(/url\(['"]?(.*?)['"]?\)/)
+    if (match && match[1]) {
+      return new Promise((resolve) => {
+        const img = new Image()
+        img.onload = () => {
+          resolve(img)
+        }
+        img.onerror = () => {
+          resolve(null)
+        }
+        img.src = match[1]!
+      })
+    }
+  }
+
+  return Promise.resolve(null)
+}
+
+function drawChampionCard(
+  canvas: HTMLCanvasElement,
+  options: {
+    victor: ArenaFighterStats
+    rival: ArenaFighterStats | null
+    grounded: GroundedFlameStats
+    winStreak: number
+    stance: string
+    thumbnailImg?: HTMLImageElement | null
+  },
+) {
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+
+  const W = 540
+  const H = 780
+  const schoolColor = SCHOOL_COLORS[options.grounded.school]?.text || '#38bdf8'
+
+  // Background gradient
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, H)
+  bgGrad.addColorStop(0, '#0a0e1a')
+  bgGrad.addColorStop(0.35, '#0f172a')
+  bgGrad.addColorStop(0.7, '#1e1b4b')
+  bgGrad.addColorStop(1, '#030712')
+  ctx.fillStyle = bgGrad
+  drawRoundedRect(ctx, 0, 0, W, H, 24)
+  ctx.fill()
+
+  // Outer border
+  ctx.lineWidth = 3
+  ctx.strokeStyle = schoolColor
+  drawRoundedRect(ctx, 4, 4, W - 8, H - 8, 20)
+  ctx.stroke()
+
+  ctx.lineWidth = 1
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)'
+  drawRoundedRect(ctx, 10, 10, W - 20, H - 20, 16)
+  ctx.stroke()
+
+  // Top header
+  ctx.font = 'bold 12px monospace'
+  ctx.fillStyle = '#94a3b8'
+  ctx.fillText('CHAOS MASTER • ARENA CHAMPION', 24, 34)
+
+  // Win streak pill
+  const streakText = `STREAK: ${options.winStreak} ${options.winStreak === 1 ? 'WIN' : 'WINS'}`
+  ctx.font = 'bold 11px system-ui, sans-serif'
+  const streakW = ctx.measureText(streakText).width + 16
+  ctx.fillStyle = 'rgba(245, 158, 11, 0.2)'
+  ctx.strokeStyle = '#f59e0b'
+  ctx.lineWidth = 1
+  drawRoundedRect(ctx, W - 24 - streakW, 20, streakW, 20, 10)
+  ctx.fill()
+  ctx.stroke()
+  ctx.fillStyle = '#fbbf24'
+  ctx.fillText(streakText, W - 24 - streakW + 8, 34)
+
+  // Artwork Container
+  const artX = 24
+  const artY = 48
+  const artW = W - 48
+  const artH = 290
+
+  ctx.fillStyle = '#020617'
+  drawRoundedRect(ctx, artX, artY, artW, artH, 14)
+  ctx.fill()
+
+  // Draw victor preview image if available
+  if (options.thumbnailImg && options.thumbnailImg.naturalWidth > 0) {
+    ctx.save()
+    drawRoundedRect(ctx, artX, artY, artW, artH, 14)
+    ctx.clip()
+    const img = options.thumbnailImg
+    const aspect = img.naturalWidth / img.naturalHeight
+    const targetAspect = artW / artH
+    let dw = artW
+    let dh = artH
+    let dx = artX
+    let dy = artY
+    if (aspect > targetAspect) {
+      dw = artH * aspect
+      dx = artX + (artW - dw) / 2
+    } else {
+      dh = artW / aspect
+      dy = artY + (artH - dh) / 2
+    }
+    ctx.drawImage(img, dx, dy, dw, dh)
+    ctx.restore()
+  } else {
+    ctx.save()
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)'
+    ctx.lineWidth = 1
+    for (let i = 0; i < artW; i += 20) {
+      ctx.beginPath()
+      ctx.moveTo(artX + i, artY)
+      ctx.lineTo(artX + i, artY + artH)
+      ctx.stroke()
+    }
+    ctx.restore()
+  }
+
+  // Artwork frame
+  ctx.lineWidth = 1.5
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)'
+  drawRoundedRect(ctx, artX, artY, artW, artH, 14)
+  ctx.stroke()
+
+  // School badge overlay
+  const schoolBadgeText = `SCHOOL: ${options.grounded.school.toUpperCase()}`
+  ctx.font = 'bold 11px system-ui, sans-serif'
+  const badgeW = ctx.measureText(schoolBadgeText).width + 16
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.85)'
+  ctx.strokeStyle = schoolColor
+  ctx.lineWidth = 1.5
+  drawRoundedRect(ctx, artX + 12, artY + 12, badgeW, 24, 6)
+  ctx.fill()
+  ctx.stroke()
+  ctx.fillStyle = schoolColor
+  ctx.fillText(schoolBadgeText, artX + 20, artY + 28)
+
+  // Victor name & class
+  const nameY = 372
+  ctx.font = 'bold 24px system-ui, sans-serif'
+  ctx.fillStyle = '#ffffff'
+  const victorName = options.victor.name || 'Unknown Champion'
+  ctx.fillText(victorName, 24, nameY)
+
+  ctx.font = '13px system-ui, sans-serif'
+  ctx.fillStyle = '#94a3b8'
+  ctx.fillText(
+    `Class: ${options.victor.type || 'Fractal Guardian'}`,
+    24,
+    nameY + 22,
+  )
+
+  // Power level badge
+  const pwrText = `PWR ${options.grounded.powerLevel}`
+  ctx.font = 'bold 14px monospace'
+  const pwrW = ctx.measureText(pwrText).width + 18
+  ctx.fillStyle = 'rgba(34, 211, 238, 0.15)'
+  ctx.strokeStyle = '#22d3ee'
+  ctx.lineWidth = 1.5
+  drawRoundedRect(ctx, W - 24 - pwrW, nameY - 20, pwrW, 28, 8)
+  ctx.fill()
+  ctx.stroke()
+  ctx.fillStyle = '#38bdf8'
+  ctx.fillText(pwrText, W - 24 - pwrW + 9, nameY)
+
+  // Combat stats (HP, ATK, DEF, CRIT)
+  const combatY = 432
+  const cStats = [
+    { label: 'HP', val: options.grounded.hp, color: '#4ade80' },
+    { label: 'ATK', val: options.grounded.atk, color: '#f87171' },
+    { label: 'DEF', val: options.grounded.def, color: '#60a5fa' },
+    {
+      label: 'CRIT',
+      val: `${Math.round(options.grounded.critChance * 100)}%`,
+      color: '#fbbf24',
+    },
+  ]
+  const colW = (W - 48) / 4
+  cStats.forEach((st, idx) => {
+    const cx = 24 + idx * colW
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.04)'
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)'
+    ctx.lineWidth = 1
+    drawRoundedRect(ctx, cx, combatY, colW - 6, 44, 8)
+    ctx.fill()
+    ctx.stroke()
+
+    ctx.font = 'bold 10px system-ui, sans-serif'
+    ctx.fillStyle = '#64748b'
+    ctx.fillText(st.label, cx + 10, combatY + 16)
+
+    ctx.font = 'bold 15px monospace'
+    ctx.fillStyle = st.color
+    ctx.fillText(String(st.val), cx + 10, combatY + 35)
+  })
+
+  // Grounded mathematical properties
+  const statsStartY = 496
+  ctx.font = 'bold 10px monospace'
+  ctx.fillStyle = '#64748b'
+  ctx.fillText('GROUNDED MATHEMATICAL PROPERTIES', 24, statsStartY)
+
+  const gMetrics = [
+    {
+      label: 'Moran Dimension (D)',
+      val: options.grounded.dimension.toFixed(3),
+      pct: (options.grounded.dimension / 3.0) * 100,
+      color: '#38bdf8',
+    },
+    {
+      label: 'IFS Contractivity / Stability',
+      val: `${Math.round(options.grounded.stability * 100)}%`,
+      pct: options.grounded.stability * 100,
+      color: '#34d399',
+    },
+    {
+      label: 'Weight Shannon Entropy',
+      val: options.grounded.entropy.toFixed(3),
+      pct: (options.grounded.entropy / 2.5) * 100,
+      color: '#c084fc',
+    },
+    {
+      label: 'Nonlinear Energy Ratio',
+      val: `${Math.round(options.grounded.nonlinearity * 100)}%`,
+      pct: options.grounded.nonlinearity * 100,
+      color: '#f472b6',
+    },
+    {
+      label: 'Rotational Symmetry Order',
+      val: `C${options.grounded.symmetryOrder}`,
+      pct: (options.grounded.symmetryOrder / 8) * 100,
+      color: '#facc15',
+    },
+  ]
+
+  gMetrics.forEach((m, idx) => {
+    const rowY = statsStartY + 14 + idx * 36
+    ctx.font = '11px system-ui, sans-serif'
+    ctx.fillStyle = '#cbd5e1'
+    ctx.fillText(m.label, 24, rowY + 12)
+
+    ctx.font = 'bold 12px monospace'
+    ctx.fillStyle = '#f8fafc'
+    const valStr = m.val
+    const valW = ctx.measureText(valStr).width
+    ctx.fillText(valStr, W - 24 - valW, rowY + 12)
+
+    // Bar track
+    const barY = rowY + 18
+    const barW = W - 48
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.08)'
+    drawRoundedRect(ctx, 24, barY, barW, 6, 3)
+    ctx.fill()
+
+    // Bar fill
+    const fillW = Math.max(4, Math.min(barW, (barW * m.pct) / 100))
+    ctx.fillStyle = m.color
+    drawRoundedRect(ctx, 24, barY, fillW, 6, 3)
+    ctx.fill()
+  })
+
+  // Tactical Stance & Footer
+  const footerY = 720
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.04)'
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)'
+  ctx.lineWidth = 1
+  drawRoundedRect(ctx, 24, footerY, W - 48, 38, 8)
+  ctx.fill()
+  ctx.stroke()
+
+  ctx.font = 'bold 11px system-ui, sans-serif'
+  ctx.fillStyle = '#94a3b8'
+  ctx.fillText(`Stance: ${options.stance.toUpperCase()}`, 36, footerY + 23)
+
+  ctx.font = '10px monospace'
+  ctx.fillStyle = '#475569'
+  const brand = 'chaos-master.art • webmcp agent clash'
+  const brandW = ctx.measureText(brand).width
+  ctx.fillText(brand, W - 36 - brandW, footerY + 23)
+}
 
 function ensureCamera(flame?: FlameDescriptor): FlameDescriptor | null {
   if (!flame || !flame.transforms) return null
@@ -50,17 +433,110 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
   const [gameState, setGameState] = createSignal<
     'idle' | 'clashing' | 'results'
   >('idle')
-  const [commentary, setCommentary] = createSignal<string | null>(
+  const [localCommentary, setLocalCommentary] = createSignal<string | null>(
     'Prepare for 3D territorial combat. Choose a tactical stance and initiate the clash!',
   )
   const [winner, setWinner] = createSignal<1 | 2 | null>(null)
   const [rounds, setRounds] = createSignal<ClashRoundOutcome[]>([])
   const [activeRoundIndex, setActiveRoundIndex] = createSignal<number>(0)
-  const [eventBanner, setEventBanner] = createSignal<string | null>(null)
+  const [localEventBanner, setLocalEventBanner] = createSignal<string | null>(
+    null,
+  )
   const [winStreak, setWinStreak] = createSignal<number>(0)
-  const [stance, setStance] = createSignal<TacticalStance>('balanced')
+  const [localStance, setLocalStance] = createSignal<TacticalStance>('balanced')
   const [opponentArchetype, setOpponentArchetype] =
     createSignal<OpponentArchetype>(ARENA_ARCHETYPES.chaos_lord)
+  const [battleLog, setBattleLog] = createSignal<string[]>([])
+  const [showBattleLog, setShowBattleLog] = createSignal<boolean>(false)
+  const [exportingCard, setExportingCard] = createSignal<boolean>(false)
+
+  const commentary = () => props.arena.commentary?.() || localCommentary()
+  const setCommentary = (val: string | null) => {
+    setLocalCommentary(val)
+    props.arena.setCommentary?.(val)
+  }
+
+  const eventBanner = () => props.arena.eventBanner?.() ?? localEventBanner()
+  const setEventBanner = (val: string | null) => {
+    setLocalEventBanner(val)
+    props.arena.setEventBanner?.(val)
+  }
+
+  const stance = () =>
+    (props.arena.stance?.() as TacticalStance) || localStance()
+  const setStance = (val: TacticalStance) => {
+    setLocalStance(val)
+    props.arena.setStance?.(val)
+  }
+
+  const p1Grounded = createMemo<GroundedFlameStats | null>(() => {
+    const p1 = props.arena.player1Stats()
+    if (!p1?.flame) return null
+    return p1.groundedStats ?? calculateGroundedStats(p1.flame)
+  })
+
+  const p2Grounded = createMemo<GroundedFlameStats | null>(() => {
+    const p2 = props.arena.player2Stats()
+    if (!p2?.flame) return null
+    return p2.groundedStats ?? calculateGroundedStats(p2.flame)
+  })
+
+  const p1Advantage = createMemo(() => {
+    const s1 = p1Grounded()?.school
+    const s2 = p2Grounded()?.school
+    if (!s1 || !s2) return 1.0
+    return getSchoolMultiplier(s1, s2)
+  })
+
+  const p2Advantage = createMemo(() => {
+    const s1 = p1Grounded()?.school
+    const s2 = p2Grounded()?.school
+    if (!s1 || !s2) return 1.0
+    return getSchoolMultiplier(s2, s1)
+  })
+
+  const handleExportCard = async () => {
+    const win = winner()
+    if (!win) return
+    setExportingCard(true)
+    try {
+      const p1 = props.arena.player1Stats()
+      const p2 = props.arena.player2Stats()
+      const victor = win === 1 ? p1 : p2
+      const rival = win === 1 ? p2 : p1
+      const victorGrounded = win === 1 ? p1Grounded() : p2Grounded()
+      if (!victor || !victorGrounded) return
+
+      const img = await getVictorImage(win === 1)
+      const offscreen = document.createElement('canvas')
+      offscreen.width = 540
+      offscreen.height = 780
+      drawChampionCard(offscreen, {
+        victor,
+        rival,
+        grounded: victorGrounded,
+        winStreak: winStreak(),
+        stance: stance(),
+        thumbnailImg: img,
+      })
+
+      const dataUrl = offscreen.toDataURL('image/png')
+      const a = document.createElement('a')
+      const safeName = (victor.name || 'champion')
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]+/g, '-')
+      a.download = `champion-${safeName}.png`
+      a.href = dataUrl
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      setCommentary(`Exported Champion Card for ${victor.name ?? 'Champion'}!`)
+    } catch {
+      // Non-fatal export error
+    } finally {
+      setExportingCard(false)
+    }
+  }
 
   let activeInterval: ReturnType<typeof setInterval> | null = null
   let initialFlame: FlameDescriptor | null = null
@@ -125,6 +601,7 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
     setGameState('idle')
     setWinner(null)
     setRounds([])
+    setBattleLog([])
     setEventBanner(null)
     setCommentary(
       'A new challenger enters the arena! Inspect their traits and prepare for battle.',
@@ -137,8 +614,10 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
       props.arena.setPlayer2Stats({
         name: newOpponent.name,
         type: newOpponent.className,
+        school: newOpponent.school,
         powerLevel: newOpponent.powerLevel,
         flame: newOpponent.flame,
+        groundedStats: newOpponent.groundedStats,
         metrics: newOpponent.metrics,
       })
     }
@@ -262,6 +741,9 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
 
     setWinner(finalWin)
     setGameState('results')
+    if (simRes.battleLog) {
+      setBattleLog(simRes.battleLog)
+    }
 
     if (finalWin === 1) {
       const nextStreak = winStreak() + 1
@@ -489,8 +971,29 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
 
                     <div class={ui.fighterHeader}>
                       <div>
-                        <div class={`${ui.fighterName} ${ui.p1Name}`}>
-                          {p1().name ?? 'Player 1'}
+                        <div class={ui.fighterTitleRow}>
+                          <div class={`${ui.fighterName} ${ui.p1Name}`}>
+                            {p1().name ?? 'Player 1'}
+                          </div>
+                          <Show when={p1Grounded()?.school}>
+                            {(sch) => (
+                              <span
+                                class={ui.schoolBadge}
+                                style={{
+                                  'background-color': SCHOOL_COLORS[sch()].bg,
+                                  color: SCHOOL_COLORS[sch()].text,
+                                  'border-color': SCHOOL_COLORS[sch()].border,
+                                }}
+                              >
+                                {sch()}
+                              </span>
+                            )}
+                          </Show>
+                          <Show when={p1Advantage() > 1.0}>
+                            <span class={ui.advantageBadge}>
+                              +{Math.round((p1Advantage() - 1) * 100)}%
+                            </span>
+                          </Show>
                         </div>
                         <div class={ui.fighterClass}>
                           Class: {p1().type || 'Fractal Guardian'}
@@ -558,6 +1061,49 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
                       />
                     </div>
 
+                    <Show when={p1Grounded()}>
+                      {(g) => (
+                        <div class={ui.groundedMetrics}>
+                          <div
+                            class={ui.groundedMetricItem}
+                            title="Moran similarity dimension"
+                          >
+                            <span class={ui.groundedMetricKey}>Dim</span>
+                            <span class={ui.groundedMetricVal}>
+                              {g().dimension.toFixed(2)}
+                            </span>
+                          </div>
+                          <div
+                            class={ui.groundedMetricItem}
+                            title="Spectral stability / contractivity"
+                          >
+                            <span class={ui.groundedMetricKey}>Stab</span>
+                            <span class={ui.groundedMetricVal}>
+                              {Math.round(g().stability * 100)}%
+                            </span>
+                          </div>
+                          <div
+                            class={ui.groundedMetricItem}
+                            title="Shannon entropy of transform weights"
+                          >
+                            <span class={ui.groundedMetricKey}>Ent</span>
+                            <span class={ui.groundedMetricVal}>
+                              {g().entropy.toFixed(2)}
+                            </span>
+                          </div>
+                          <div
+                            class={ui.groundedMetricItem}
+                            title="Rotational symmetry order"
+                          >
+                            <span class={ui.groundedMetricKey}>Sym</span>
+                            <span class={ui.groundedMetricVal}>
+                              C{g().symmetryOrder}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </Show>
+
                     {/* Tactical Stance Selector */}
                     <div class={ui.stanceContainer}>
                       <div class={ui.stanceTitle}>Tactical Stance</div>
@@ -569,7 +1115,9 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
                               classList={{
                                 [ui.stanceBtnActive!]: stance() === s.id,
                               }}
-                              onClick={() => setStance(s.id)}
+                              onClick={() => {
+                                setStance(s.id)
+                              }}
                               disabled={gameState() === 'clashing'}
                               title={s.description}
                             >
@@ -639,6 +1187,18 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
                     >
                       Load Victor to Canvas
                     </button>
+                    <button
+                      class={ui.exportCardBtn}
+                      onClick={handleExportCard}
+                      disabled={exportingCard()}
+                      title="Export collectible 540x780 Champion Card as PNG"
+                    >
+                      <span>
+                        {exportingCard()
+                          ? 'Exporting...'
+                          : 'Export Champion Card'}
+                      </span>
+                    </button>
                   </Show>
                 </div>
                 <div class={ui.keyboardHints}>
@@ -687,8 +1247,29 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
 
                   <div class={ui.fighterHeader}>
                     <div>
-                      <div class={`${ui.fighterName} ${ui.p2Name}`}>
-                        {p2().name ?? 'Player 2'}
+                      <div class={ui.fighterTitleRow}>
+                        <div class={`${ui.fighterName} ${ui.p2Name}`}>
+                          {p2().name ?? 'Player 2'}
+                        </div>
+                        <Show when={p2Grounded()?.school}>
+                          {(sch) => (
+                            <span
+                              class={ui.schoolBadge}
+                              style={{
+                                'background-color': SCHOOL_COLORS[sch()].bg,
+                                color: SCHOOL_COLORS[sch()].text,
+                                'border-color': SCHOOL_COLORS[sch()].border,
+                              }}
+                            >
+                              {sch()}
+                            </span>
+                          )}
+                        </Show>
+                        <Show when={p2Advantage() > 1.0}>
+                          <span class={ui.advantageBadge}>
+                            +{Math.round((p2Advantage() - 1) * 100)}%
+                          </span>
+                        </Show>
                       </div>
                       <div class={ui.fighterClass}>
                         Archetype: {p2().type || opponentArchetype().className}
@@ -740,6 +1321,49 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
                     />
                   </div>
 
+                  <Show when={p2Grounded()}>
+                    {(g) => (
+                      <div class={ui.groundedMetrics}>
+                        <div
+                          class={ui.groundedMetricItem}
+                          title="Moran similarity dimension"
+                        >
+                          <span class={ui.groundedMetricKey}>Dim</span>
+                          <span class={ui.groundedMetricVal}>
+                            {g().dimension.toFixed(2)}
+                          </span>
+                        </div>
+                        <div
+                          class={ui.groundedMetricItem}
+                          title="Spectral stability / contractivity"
+                        >
+                          <span class={ui.groundedMetricKey}>Stab</span>
+                          <span class={ui.groundedMetricVal}>
+                            {Math.round(g().stability * 100)}%
+                          </span>
+                        </div>
+                        <div
+                          class={ui.groundedMetricItem}
+                          title="Shannon entropy of transform weights"
+                        >
+                          <span class={ui.groundedMetricKey}>Ent</span>
+                          <span class={ui.groundedMetricVal}>
+                            {g().entropy.toFixed(2)}
+                          </span>
+                        </div>
+                        <div
+                          class={ui.groundedMetricItem}
+                          title="Rotational symmetry order"
+                        >
+                          <span class={ui.groundedMetricKey}>Sym</span>
+                          <span class={ui.groundedMetricVal}>
+                            C{g().symmetryOrder}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </Show>
+
                   {/* Opponent Lore & Actions */}
                   <div class={ui.opponentLoreBox}>
                     {opponentArchetype().lore}
@@ -761,6 +1385,30 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
               )}
             </Show>
           </div>
+
+          {/* Tactical Battle Log */}
+          <Show when={gameState() === 'results' && battleLog().length > 0}>
+            <div class={ui.battleLogSection}>
+              <div
+                class={ui.battleLogHeader}
+                onClick={() => setShowBattleLog(!showBattleLog())}
+              >
+                <span class={ui.battleLogTitle}>
+                  Tactical Battle Log ({battleLog().length} events)
+                </span>
+                <span class={ui.battleLogToggle}>
+                  {showBattleLog() ? '[Hide]' : '[Show]'}
+                </span>
+              </div>
+              <Show when={showBattleLog()}>
+                <div class={ui.battleLogList}>
+                  <For each={battleLog()}>
+                    {(logItem) => <div class={ui.battleLogItem}>{logItem}</div>}
+                  </For>
+                </div>
+              </Show>
+            </div>
+          </Show>
 
           {/* Commentary Box */}
           <Show when={commentary()}>
