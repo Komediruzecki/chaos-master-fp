@@ -1,5 +1,5 @@
 import { createEffect, For, onCleanup, Show } from 'solid-js'
-import { CameraIcon, Cross, Film, Lineage, MusicNote, Robot, SidebarPanel, Swords, } from '@/icons'
+import { CameraIcon, Cross, Film, GridIcon, Lineage, MusicNote, Robot, SidebarPanel, Swords, } from '@/icons'
 import ui from './TouchSurface.module.css'
 
 export interface AdvancedToolsDrawerProps {
@@ -14,6 +14,7 @@ export interface AdvancedToolsDrawerProps {
   onExportPng?: () => void
   onShare?: () => void
   onSwitchToDesktop?: () => void
+  onPickGallery?: () => void
 }
 
 export function AdvancedToolsDrawer(props: AdvancedToolsDrawerProps) {
@@ -31,6 +32,21 @@ export function AdvancedToolsDrawer(props: AdvancedToolsDrawerProps) {
   })
 
   const tools = () => [
+    ...(props.onPickGallery
+      ? [
+          {
+            id: 'flame-gallery',
+            title: 'Browse Flame Gallery',
+            subtitle: 'Search presets, curated catalog & community flames',
+            icon: GridIcon,
+            highlight: true,
+            action: () => {
+              props.onPickGallery?.()
+              props.onClose()
+            },
+          },
+        ]
+      : []),
     ...(props.onSwitchToDesktop
       ? [
           {

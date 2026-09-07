@@ -1,6 +1,6 @@
 import { createRoot } from 'solid-js'
 import { describe, expect, it } from 'vitest'
-import { createWorkspaceLayoutStore, isWideLayout, WIDE_LAYOUT_MIN_WIDTH, } from './workspaceLayoutStore'
+import { createWorkspaceLayoutStore, isTouchLayout, isWideLayout, WIDE_LAYOUT_MIN_WIDTH, } from './workspaceLayoutStore'
 
 describe('workspaceLayoutStore', () => {
   it('respects wide layout parameter on initialization', () => {
@@ -55,19 +55,28 @@ describe('workspaceLayoutStore', () => {
       const store = createWorkspaceLayoutStore()
       expect(typeof store.isPhone()).toBe('boolean')
       expect(typeof store.isTablet()).toBe('boolean')
+      expect(typeof store.isTouchLayout()).toBe('boolean')
+      expect(typeof isTouchLayout()).toBe('boolean')
       store.setIsPhone(true)
       expect(store.isPhone()).toBe(true)
+      expect(store.isTouchLayout()).toBe(true)
+      expect(isTouchLayout()).toBe(true)
       store.setIsTablet(true)
       expect(store.isTablet()).toBe(true)
+      expect(store.isTouchLayout()).toBe(true)
 
       // Test manual touch preference override
       store.setTouchLayoutPreference('desktop')
       expect(store.isPhone()).toBe(false)
       expect(store.isTablet()).toBe(false)
+      expect(store.isTouchLayout()).toBe(false)
+      expect(isTouchLayout()).toBe(false)
 
       store.setTouchLayoutPreference('touch')
       store.setIsPhone(false)
       expect(store.isTablet()).toBe(true)
+      expect(store.isTouchLayout()).toBe(true)
+      expect(isTouchLayout()).toBe(true)
 
       store.setTouchLayoutPreference('auto')
       dispose()

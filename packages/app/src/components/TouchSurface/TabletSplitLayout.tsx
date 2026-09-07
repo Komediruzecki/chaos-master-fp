@@ -18,6 +18,7 @@ export function TabletSplitLayout(props: TabletSplitLayoutProps) {
         canUndo={props.canUndo}
         canRedo={props.canRedo}
         onSnapshot={props.onSnapshot}
+        onPickGallery={props.onPickGallery}
       />
     </div>
   )

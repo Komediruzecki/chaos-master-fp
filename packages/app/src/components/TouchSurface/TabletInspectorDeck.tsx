@@ -1,5 +1,5 @@
 import { executeCommand } from '@/commands/registry'
-import { CameraIcon, Redo, Undo } from '@/icons'
+import { CameraIcon, GridIcon, Redo, Undo } from '@/icons'
 import { TouchControlSurface } from './TouchControlSurface'
 import ui from './TouchSurface.module.css'
 import type { Accessor } from 'solid-js'
@@ -17,6 +17,7 @@ export interface TabletInspectorDeckProps {
   canUndo?: Accessor<boolean>
   canRedo?: Accessor<boolean>
   onSnapshot?: () => void
+  onPickGallery?: () => void
 }
 
 export function TabletInspectorDeck(props: TabletInspectorDeckProps) {
@@ -27,9 +28,25 @@ export function TabletInspectorDeck(props: TabletInspectorDeckProps) {
   return (
     <aside class={ui.tabletInspectorPane} aria-label="Tablet Touch Inspector">
       <div class={ui.tabletDeckHeader}>
-        <h2 class={ui.tabletDeckTitle}>
-          {props.flame().metadata?.name || 'Chaos Master Studio'}
-        </h2>
+        <button
+          type="button"
+          class={ui.tabletFlamePickBtn}
+          onClick={() => {
+            props.onPickGallery?.()
+          }}
+          title="Browse & load flame from gallery"
+          aria-label="Browse & load flame from gallery"
+        >
+          <GridIcon class={ui.tabletFlamePickIcon} />
+          <div class={ui.tabletFlameMeta}>
+            <span class={ui.tabletDeckTitle}>
+              {props.flame().metadata?.name || 'Chaos Master'}
+            </span>
+            <span class={ui.tabletDeckSub}>Browse Gallery</span>
+          </div>
+          <span class={ui.tabletFlameBadge}>Choose</span>
+        </button>
+
         <div class={ui.hudActions}>
           <button
             type="button"
@@ -84,6 +101,7 @@ export function TabletInspectorDeck(props: TabletInspectorDeckProps) {
         canUndo={props.canUndo}
         canRedo={props.canRedo}
         onSnapshot={props.onSnapshot}
+        onPickGallery={props.onPickGallery}
       />
     </aside>
   )

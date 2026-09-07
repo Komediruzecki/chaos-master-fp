@@ -46,6 +46,7 @@ export interface WorkspaceModalsHostProps {
   touchLayoutPreference?: () => TouchLayoutPreference
   setTouchLayoutPreference?: (pref: TouchLayoutPreference) => void
   isTouchLayout?: () => boolean
+  onPickGallery?: () => void
 }
 
 export function WorkspaceModalsHost(props: WorkspaceModalsHostProps) {
@@ -59,6 +60,7 @@ export function WorkspaceModalsHost(props: WorkspaceModalsHostProps) {
         touchLayoutPreference={props.touchLayoutPreference}
         setTouchLayoutPreference={props.setTouchLayoutPreference}
         isTouchLayout={props.isTouchLayout}
+        onPickGallery={props.onPickGallery}
       />
       <Show when={props.devCrashTest()}>
         {(() => {

@@ -14,6 +14,7 @@ describe('TouchSurface Components', () => {
       const onMutate = vi.fn()
       const onRandomize = vi.fn()
       const onSnapshot = vi.fn()
+      const onPickGallery = vi.fn()
 
       render(() => (
         <TouchHUD
@@ -22,15 +23,17 @@ describe('TouchSurface Components', () => {
           onMutate={onMutate}
           onRandomize={onRandomize}
           onSnapshot={onSnapshot}
+          onPickGallery={onPickGallery}
         />
       ))
 
       expect(screen.getByRole('banner')).toBeTruthy()
-      expect(
-        screen.getByTitle(
-          ctx.flameDescriptor().metadata?.name || 'Chaos Master',
-        ),
-      ).toBeTruthy()
+      const titleBtn = screen.getByTitle(
+        ctx.flameDescriptor().metadata?.name || 'Chaos Master',
+      )
+      expect(titleBtn).toBeTruthy()
+      titleBtn.click()
+      expect(onPickGallery).toHaveBeenCalled()
 
       const mutateBtn = screen.getByTitle('Mutate')
       mutateBtn.click()
@@ -53,6 +56,7 @@ describe('TouchSurface Components', () => {
       const onFlameClash = vi.fn()
       const onBreed = vi.fn()
       const onSwitchToDesktop = vi.fn()
+      const onPickGallery = vi.fn()
 
       render(() => (
         <AdvancedToolsDrawer
@@ -62,18 +66,23 @@ describe('TouchSurface Components', () => {
           onFlameClash={onFlameClash}
           onBreed={onBreed}
           onSwitchToDesktop={onSwitchToDesktop}
+          onPickGallery={onPickGallery}
         />
       ))
 
       expect(screen.getByRole('dialog')).toBeTruthy()
+      expect(screen.getByText('Browse Flame Gallery')).toBeTruthy()
       expect(screen.getByText('Switch to Desktop Layout')).toBeTruthy()
       expect(screen.getByText('Art Director Mode')).toBeTruthy()
       expect(screen.getByText('Flame Clash Arena')).toBeTruthy()
       expect(screen.getByText('Breeding & Genetics')).toBeTruthy()
 
+      screen.getByText('Browse Flame Gallery').click()
+      expect(onPickGallery).toHaveBeenCalled()
+      expect(onClose).toHaveBeenCalled()
+
       screen.getByText('Switch to Desktop Layout').click()
       expect(onSwitchToDesktop).toHaveBeenCalled()
-      expect(onClose).toHaveBeenCalled()
 
       screen.getByText('Art Director Mode').click()
       expect(onArtDirector).toHaveBeenCalled()
@@ -178,14 +187,25 @@ describe('TouchSurface Components', () => {
   describe('TabletInspectorDeck', () => {
     it('renders header and embedded control surface', () => {
       const ctx = createMockCommandContext()
+      const onPickGallery = vi.fn()
 
       render(() => (
-        <TabletInspectorDeck ctx={ctx} flame={ctx.flameDescriptor} />
+        <TabletInspectorDeck
+          ctx={ctx}
+          flame={ctx.flameDescriptor}
+          onPickGallery={onPickGallery}
+        />
       ))
 
       expect(
         screen.getByRole('complementary', { name: 'Tablet Touch Inspector' }),
       ).toBeTruthy()
+      expect(screen.getByText('Browse Gallery')).toBeTruthy()
+      const pickBtn = screen.getByRole('button', {
+        name: 'Browse & load flame from gallery',
+      })
+      pickBtn.click()
+      expect(onPickGallery).toHaveBeenCalled()
       expect(screen.getByRole('button', { name: 'T1' })).toBeTruthy()
     })
   })
