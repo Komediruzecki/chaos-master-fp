@@ -1,4 +1,4 @@
-import { createMemo, createSignal, For, onCleanup, onMount, Show, } from 'solid-js'
+import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show, } from 'solid-js'
 import { VariationPreview } from '@/components/VariationSelector/VariationSelector'
 import { useChangeHistory } from '@/contexts/ChangeHistoryContext'
 import { ComputeGate } from '@/contexts/ComputeGateContext'
@@ -421,6 +421,12 @@ function ensureCamera(flame?: FlameDescriptor): FlameDescriptor | null {
     renderSettings: {
       ...rs,
       camera: rs.camera ?? { zoom: 1, position: [0, 0], rotation: 0 },
+      camera3D: rs.camera3D ?? {
+        position: [0, 0, -5],
+        target: [0, 0, 0],
+        up: [0, 1, 0],
+        fov: 45,
+      },
     },
   }
 }
@@ -449,6 +455,27 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
   const [battleLog, setBattleLog] = createSignal<string[]>([])
   const [showBattleLog, setShowBattleLog] = createSignal<boolean>(false)
   const [exportingCard, setExportingCard] = createSignal<boolean>(false)
+
+  // Reactive version counters & memos for fighter preview invalidation
+  const [p1Version, setP1Version] = createSignal<number>(0)
+  const [p2Version, setP2Version] = createSignal<number>(0)
+
+  createEffect(() => {
+    const f1 = props.arena.player1Stats()?.flame
+    if (f1) setP1Version((v) => v + 1)
+  })
+
+  createEffect(() => {
+    const f2 = props.arena.player2Stats()?.flame
+    if (f2) setP2Version((v) => v + 1)
+  })
+
+  const p1PreviewFlame = createMemo(() =>
+    ensureCamera(props.arena.player1Stats()?.flame),
+  )
+  const p2PreviewFlame = createMemo(() =>
+    ensureCamera(props.arena.player2Stats()?.flame),
+  )
 
   // Kinetic impact VFX signals for spectator mode
   const [isShaking, setIsShaking] = createSignal<boolean>(false)
@@ -503,6 +530,20 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
     return getSchoolMultiplier(s2, s1)
   })
 
+  const victorStats = createMemo(() => {
+    const win = winner()
+    if (win === 1) return props.arena.player1Stats()
+    if (win === 2) return props.arena.player2Stats()
+    return props.arena.player1Stats()
+  })
+
+  const victorGrounded = createMemo(() => {
+    const win = winner()
+    if (win === 1) return p1Grounded()
+    if (win === 2) return p2Grounded()
+    return p1Grounded()
+  })
+
   const handleExportCard = async () => {
     const win = winner()
     if (!win) return
@@ -552,7 +593,8 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
   let initialDuration: number | null = null
   let initialAnimationEnabled: boolean | null = null
   let wasClashStaged = false
-  let cachedSimResult: SimulateClashResult | null = null
+  const [cachedSimResult, setCachedSimResult] =
+    createSignal<SimulateClashResult | null>(null)
 
   // Pinned to the player throughout: the target follows a duel to the rival
   // seat, and restoring through it would write the agent's flame into the
@@ -610,6 +652,7 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
     setWinner(null)
     setRounds([])
     setBattleLog([])
+    setCachedSimResult(null)
     setEventBanner(null)
     setCommentary(
       'A new challenger enters the arena! Inspect their traits and prepare for battle.',
@@ -629,6 +672,7 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
         metrics: newOpponent.metrics,
       })
     }
+    setP2Version((v) => v + 1)
   }
 
   onMount(() => {
@@ -700,7 +744,7 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
       return
     }
 
-    cachedSimResult = simRes
+    setCachedSimResult(simRes)
     setRounds(simRes.rounds)
     setActiveRoundIndex(0)
 
@@ -811,8 +855,8 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
 
   // Fast forward directly to results
   const handleSkipClash = () => {
-    if (gameState() !== 'clashing' || !cachedSimResult) return
-    const simRes = cachedSimResult
+    const simRes = cachedSimResult()
+    if (gameState() !== 'clashing' || !simRes) return
     setActiveRoundIndex(simRes.rounds.length - 1)
     finishSimulation(simRes)
   }
@@ -870,10 +914,14 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
 
   return (
     <ComputeGate capacity={COMPUTE_GATE_CAPACITY}>
-      <div class={ui.modal} data-testid="flame-clash-arena-modal">
-        {/* Header */}
-        <div class={ui.header}>
-          <div class={ui.titleGroup}>
+      <div
+        class={ui.modal}
+        classList={{ [ui.isClashing!]: gameState() === 'clashing' }}
+        data-testid="flame-clash-arena-modal"
+      >
+        {/* Top Bar HUD Strip */}
+        <div class={ui.topBarStrip}>
+          <div class={ui.topBarLeft}>
             <div class={ui.pulseDot} />
             <h2 class={ui.title}>Flame Clash Arena 3D</h2>
             <Show when={winStreak() > 0}>
@@ -886,7 +934,84 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
             </Show>
           </div>
 
-          <div class={ui.headerActions}>
+          <div class={ui.topBarCenter}>
+            <div class={ui.topRoundRow}>
+              <span class={ui.topRoundPill}>
+                {gameState() === 'clashing'
+                  ? `ROUND ${rounds()[activeRoundIndex()]?.round ?? activeRoundIndex() + 1} / 3`
+                  : gameState() === 'results'
+                    ? winner() === 1
+                      ? 'VICTORY: PLAYER 1'
+                      : winner() === 2
+                        ? 'VICTORY: OPPONENT'
+                        : 'MATCH DRAW'
+                    : 'READY TO CLASH'}
+              </span>
+              <div class={ui.territoryMiniTrack}>
+                <div
+                  class={ui.territoryMiniA}
+                  style={{
+                    width: `${Math.round(
+                      (rounds()[activeRoundIndex()]?.ownershipA ?? 0.5) * 100,
+                    )}%`,
+                  }}
+                  title={`P1 Territory: ${Math.round(
+                    (rounds()[activeRoundIndex()]?.ownershipA ?? 0.5) * 100,
+                  )}%`}
+                />
+                <div
+                  class={ui.territoryMiniContested}
+                  style={{
+                    width: `${Math.round(
+                      (rounds()[activeRoundIndex()]?.contested ?? 0) * 100,
+                    )}%`,
+                  }}
+                  title="Contested"
+                />
+                <div
+                  class={ui.territoryMiniB}
+                  style={{
+                    width: `${Math.round(
+                      (rounds()[activeRoundIndex()]?.ownershipB ?? 0.5) * 100,
+                    )}%`,
+                  }}
+                  title={`P2 Territory: ${Math.round(
+                    (rounds()[activeRoundIndex()]?.ownershipB ?? 0.5) * 100,
+                  )}%`}
+                />
+              </div>
+            </div>
+
+            <div class={ui.topCommentaryBox}>
+              {commentary() ??
+                'Choose a tactical stance and initiate the clash!'}
+              <Show when={eventBanner()}>
+                {(evt) => <span class={ui.eventBanner}>{evt()}</span>}
+              </Show>
+            </div>
+          </div>
+
+          <div class={ui.topBarRight}>
+            <div class={ui.topStanceGroup}>
+              <For each={Object.values(TACTICAL_STANCES)}>
+                {(s) => (
+                  <button
+                    class={ui.topStanceChip}
+                    classList={{
+                      [ui.topStanceChipActive!]: stance() === s.id,
+                    }}
+                    onClick={() => {
+                      setStance(s.id)
+                    }}
+                    disabled={gameState() === 'clashing'}
+                    title={`${s.name}: ${s.description}`}
+                  >
+                    {s.name}
+                  </button>
+                )}
+              </For>
+            </div>
+
             <Show when={rounds().length > 0 && gameState() === 'results'}>
               <button
                 class={ui.replayBtn}
@@ -895,7 +1020,7 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
                 }}
                 title="Replay Battle"
               >
-                Replay Clash
+                Replay
               </button>
             </Show>
             <button
@@ -909,477 +1034,35 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
           </div>
         </div>
 
-        {/* Body */}
+        {/* Body / Battlefield Area */}
         <div class={ui.body}>
-          {/* 3-Round Territory Bar */}
-          <Show when={rounds().length > 0}>
-            <div class={ui.roundsBar}>
-              <For each={rounds()}>
-                {(r, idx) => {
-                  const isCur = () => activeRoundIndex() === idx()
-                  return (
-                    <div
-                      class={ui.roundBadge}
-                      classList={{
-                        [ui.roundBadgeActive!]: isCur(),
-                        [ui.roundBadgeP1!]: r.winner === 'A',
-                        [ui.roundBadgeP2!]: r.winner === 'B',
-                      }}
-                    >
-                      R{r.round}:{' '}
-                      {r.winner === 'A'
-                        ? 'P1'
-                        : r.winner === 'B'
-                          ? 'P2'
-                          : 'DRAW'}
-                    </div>
+          <div class={ui.battlefield}>
+            {/* Player 1 (Left / Cyan) */}
+            <Show when={props.arena.player1Stats()}>
+              {(p1) => {
+                const curStance = () => TACTICAL_STANCES[stance()]
+                const effPower = () =>
+                  Math.round(
+                    (p1().powerLevel || 0) *
+                      ((curStance().effects.energyMultiplier +
+                        curStance().effects.symmetryMultiplier +
+                        curStance().effects.chaosMultiplier) /
+                        3),
                   )
-                }}
-              </For>
-            </div>
 
-            {/* Active Round Territory Meter */}
-            <Show when={rounds()[activeRoundIndex()]}>
-              {(cur) => (
-                <div class={ui.territoryBar}>
+                return (
                   <div
-                    class={ui.territoryA}
-                    style={{ width: `${Math.round(cur().ownershipA * 100)}%` }}
-                    title={`P1 Territory: ${Math.round(cur().ownershipA * 100)}%`}
-                  />
-                  <div
-                    class={ui.territoryContested}
-                    style={{ width: `${Math.round(cur().contested * 100)}%` }}
-                    title={`Contested: ${Math.round(cur().contested * 100)}%`}
-                  />
-                  <div
-                    class={ui.territoryB}
-                    style={{ width: `${Math.round(cur().ownershipB * 100)}%` }}
-                    title={`P2 Territory: ${Math.round(cur().ownershipB * 100)}%`}
-                  />
-                </div>
-              )}
-            </Show>
-          </Show>
-
-          {/* Active Clash Spectator HUD */}
-          <Show when={gameState() === 'clashing'}>
-            <div class={ui.spectatorHud}>
-              <div class={ui.spectatorTopBar}>
-                {/* Fighter 1 Bar */}
-                <div class={ui.spectatorFighterLeft}>
-                  <div class={ui.spectatorFighterHeader}>
-                    <span class={`${ui.fighterName} ${ui.p1Name}`}>
-                      {props.arena.player1Stats()?.name ?? 'Player 1'}
-                    </span>
-                    <Show when={p1Grounded()?.school}>
-                      {(sch) => (
-                        <span
-                          class={ui.schoolBadge}
-                          style={{
-                            'background-color': SCHOOL_COLORS[sch()].bg,
-                            color: SCHOOL_COLORS[sch()].text,
-                            'border-color': SCHOOL_COLORS[sch()].border,
-                          }}
-                        >
-                          {sch()}
-                        </span>
-                      )}
-                    </Show>
-                  </div>
-                  <div class={ui.spectatorHealthTrack}>
-                    <div
-                      class={ui.spectatorHealthFillLeft}
-                      style={{
-                        width: `${Math.round((rounds()[activeRoundIndex()]?.ownershipA ?? 0.5) * 100)}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* Center Clash Badge */}
-                <div class={ui.spectatorCenterBadge}>
-                  <span class={ui.spectatorRoundTag}>
-                    ROUND{' '}
-                    {rounds()[activeRoundIndex()]?.round ??
-                      activeRoundIndex() + 1}
-                  </span>
-                  <Show when={rounds()[activeRoundIndex()]?.event}>
-                    {(ev) => <span class={ui.spectatorEventTag}>{ev()}</span>}
-                  </Show>
-                </div>
-
-                {/* Fighter 2 Bar */}
-                <div class={ui.spectatorFighterRight}>
-                  <div class={ui.spectatorFighterHeader}>
-                    <Show when={p2Grounded()?.school}>
-                      {(sch) => (
-                        <span
-                          class={ui.schoolBadge}
-                          style={{
-                            'background-color': SCHOOL_COLORS[sch()].bg,
-                            color: SCHOOL_COLORS[sch()].text,
-                            'border-color': SCHOOL_COLORS[sch()].border,
-                          }}
-                        >
-                          {sch()}
-                        </span>
-                      )}
-                    </Show>
-                    <span class={`${ui.fighterName} ${ui.p2Name}`}>
-                      {props.arena.player2Stats()?.name ?? 'Player 2'}
-                    </span>
-                  </div>
-                  <div class={ui.spectatorHealthTrack}>
-                    <div
-                      class={ui.spectatorHealthFillRight}
-                      style={{
-                        width: `${Math.round((rounds()[activeRoundIndex()]?.ownershipB ?? 0.5) * 100)}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Clear Center Stage with VFX */}
-              <div
-                class={ui.spectatorStage}
-                classList={{ [ui.shakeEffect!]: isShaking() }}
-              >
-                <Show when={shockwaveActive()}>
-                  <div class={ui.shockwaveRing} />
-                </Show>
-                <Show when={combatFloater()}>
-                  {(floater) => (
-                    <div
-                      class={ui.combatFloater}
-                      style={{ color: floater().color }}
-                    >
-                      {floater().text}
-                    </div>
-                  )}
-                </Show>
-              </div>
-
-              {/* Spectator Bottom Controls */}
-              <div class={ui.spectatorControls}>
-                <button
-                  class={ui.skipBtn}
-                  onClick={handleSkipClash}
-                  title="Skip to Battle Results"
-                >
-                  Skip to Results
-                </button>
-              </div>
-            </div>
-          </Show>
-
-          {/* Battlefield */}
-          <Show when={gameState() !== 'clashing'}>
-            <div class={ui.battlefield}>
-              {/* Player 1 (Left / Cyan) */}
-              <Show when={props.arena.player1Stats()}>
-                {(p1) => {
-                  const curStance = () => TACTICAL_STANCES[stance()]
-                  const effPower = () =>
-                    Math.round(
-                      (p1().powerLevel || 0) *
-                        ((curStance().effects.energyMultiplier +
-                          curStance().effects.symmetryMultiplier +
-                          curStance().effects.chaosMultiplier) /
-                          3),
-                    )
-
-                  return (
-                    <div
-                      class={`${ui.fighterCard} ${ui.p1Card}`}
-                      classList={{ [ui.p1CardWinner!]: winner() === 1 }}
-                    >
-                      <div class={ui.fighterPreview}>
-                        <Show
-                          when={ensureCamera(p1().flame)}
-                          fallback={
-                            <div class={ui.fighterPreviewInner}>
-                              <span class={ui.fighterLabel}>
-                                {p1().name ?? 'Player 1'}
-                              </span>
-                            </div>
-                          }
-                        >
-                          {(f) => (
-                            <div class={ui.previewLayer}>
-                              <VariationPreview
-                                version={0}
-                                isSelected={winner() === 1}
-                                flame={f()}
-                                name={p1().name ?? 'Player 1'}
-                                resolution={PREVIEW_RES}
-                                hardwareTier={props.hardwareTier}
-                                snapshotOnly
-                              />
-                            </div>
-                          )}
-                        </Show>
-
-                        <Show when={winner() === 1}>
-                          <div class={ui.victorBadge}>VICTOR</div>
-                        </Show>
-                      </div>
-
-                      <div class={ui.fighterHeader}>
-                        <div>
-                          <div class={ui.fighterTitleRow}>
-                            <div class={`${ui.fighterName} ${ui.p1Name}`}>
-                              {p1().name ?? 'Player 1'}
-                            </div>
-                            <Show when={p1Grounded()?.school}>
-                              {(sch) => (
-                                <span
-                                  class={ui.schoolBadge}
-                                  style={{
-                                    'background-color': SCHOOL_COLORS[sch()].bg,
-                                    color: SCHOOL_COLORS[sch()].text,
-                                    'border-color': SCHOOL_COLORS[sch()].border,
-                                  }}
-                                >
-                                  {sch()}
-                                </span>
-                              )}
-                            </Show>
-                            <Show when={p1Advantage() > 1.0}>
-                              <span class={ui.advantageBadge}>
-                                +{Math.round((p1Advantage() - 1) * 100)}%
-                              </span>
-                            </Show>
-                          </div>
-                          <div class={ui.fighterClass}>
-                            Class: {p1().type || 'Fractal Guardian'}
-                          </div>
-                        </div>
-                        <Show when={p1().flame}>
-                          <button
-                            class={ui.loadBtn}
-                            onClick={() => {
-                              loadFighter(1)
-                            }}
-                            title="Load this flame into main workspace"
-                          >
-                            Load
-                          </button>
-                        </Show>
-                      </div>
-
-                      <div class={ui.statList}>
-                        <StatRow
-                          label="Power"
-                          value={effPower()}
-                          max={2000}
-                          color="#22d3ee"
-                        />
-                        <StatRow
-                          label="Complexity"
-                          value={
-                            (p1().metrics?.complexity || 0) *
-                            10 *
-                            curStance().effects.complexityMultiplier
-                          }
-                          max={100}
-                          color="#60a5fa"
-                        />
-                        <StatRow
-                          label="Chaos"
-                          value={
-                            (p1().metrics?.chaosLevel || 0) *
-                            10 *
-                            curStance().effects.chaosMultiplier
-                          }
-                          max={100}
-                          color="#c084fc"
-                        />
-                        <StatRow
-                          label="Symmetry"
-                          value={
-                            (p1().metrics?.symmetryScore || 0) *
-                            10 *
-                            curStance().effects.symmetryMultiplier
-                          }
-                          max={100}
-                          color="#818cf8"
-                        />
-                        <StatRow
-                          label="Energy"
-                          value={
-                            (p1().metrics?.energyIntensity || 0) *
-                            10 *
-                            curStance().effects.energyMultiplier
-                          }
-                          max={100}
-                          color="#2dd4bf"
-                        />
-                      </div>
-
-                      <Show when={p1Grounded()}>
-                        {(g) => (
-                          <div class={ui.groundedMetrics}>
-                            <div
-                              class={ui.groundedMetricItem}
-                              title="Moran similarity dimension"
-                            >
-                              <span class={ui.groundedMetricKey}>Dim</span>
-                              <span class={ui.groundedMetricVal}>
-                                {g().dimension.toFixed(2)}
-                              </span>
-                            </div>
-                            <div
-                              class={ui.groundedMetricItem}
-                              title="Spectral stability / contractivity"
-                            >
-                              <span class={ui.groundedMetricKey}>Stab</span>
-                              <span class={ui.groundedMetricVal}>
-                                {Math.round(g().stability * 100)}%
-                              </span>
-                            </div>
-                            <div
-                              class={ui.groundedMetricItem}
-                              title="Shannon entropy of transform weights"
-                            >
-                              <span class={ui.groundedMetricKey}>Ent</span>
-                              <span class={ui.groundedMetricVal}>
-                                {g().entropy.toFixed(2)}
-                              </span>
-                            </div>
-                            <div
-                              class={ui.groundedMetricItem}
-                              title="Rotational symmetry order"
-                            >
-                              <span class={ui.groundedMetricKey}>Sym</span>
-                              <span class={ui.groundedMetricVal}>
-                                C{g().symmetryOrder}
-                              </span>
-                            </div>
-                          </div>
-                        )}
-                      </Show>
-
-                      {/* Tactical Stance Selector */}
-                      <div class={ui.stanceContainer}>
-                        <div class={ui.stanceTitle}>Tactical Stance</div>
-                        <div class={ui.stanceGrid}>
-                          <For each={Object.values(TACTICAL_STANCES)}>
-                            {(s) => (
-                              <button
-                                class={ui.stanceBtn}
-                                classList={{
-                                  [ui.stanceBtnActive!]: stance() === s.id,
-                                }}
-                                onClick={() => {
-                                  setStance(s.id)
-                                }}
-                                disabled={gameState() === 'clashing'}
-                                title={s.description}
-                              >
-                                <span class={ui.stanceName}>{s.name}</span>
-                                <span class={ui.stanceTagline}>
-                                  {s.tagline}
-                                </span>
-                              </button>
-                            )}
-                          </For>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                }}
-              </Show>
-
-              {/* VS Center Graphic & Clash Button */}
-              <div class={ui.vsCenter}>
-                <div class={ui.vsText}>VS</div>
-
-                <Show when={gameState() === 'idle'}>
-                  <button
-                    class={ui.clashBtn}
-                    onClick={handleClash}
-                    title="Engage battle (Space)"
-                  >
-                    <Zap width="1.2rem" height="1.2rem" />
-                    <span>CLASH</span>
-                    <Zap width="1.2rem" height="1.2rem" />
-                  </button>
-                  <div class={ui.keyboardHints}>Press [Space] to Clash</div>
-                </Show>
-
-                <Show when={gameState() === 'clashing'}>
-                  <button class={ui.clashBtn} disabled>
-                    <Zap width="1.2rem" height="1.2rem" />
-                    <span>CLASHING...</span>
-                    <Zap width="1.2rem" height="1.2rem" />
-                  </button>
-                  <button
-                    class={ui.skipBtn}
-                    onClick={handleSkipClash}
-                    title="Skip animation to results"
-                  >
-                    Skip to Results
-                  </button>
-                </Show>
-
-                <Show when={gameState() === 'results'}>
-                  <div class={ui.resultsActions}>
-                    <button
-                      class={ui.nextChallengerBtn}
-                      onClick={() => {
-                        handleRerollOpponent()
-                      }}
-                      title="Face next procedural opponent (R)"
-                    >
-                      <span>Next Challenger</span>
-                      <Zap width="1rem" height="1rem" />
-                    </button>
-                    <Show when={winner() !== null}>
-                      <button
-                        class={ui.loadVictorBtn}
-                        onClick={() => {
-                          loadFighter(winner()!)
-                        }}
-                        title="Load victorious flame to workspace"
-                      >
-                        Load Victor to Canvas
-                      </button>
-                      <button
-                        class={ui.exportCardBtn}
-                        onClick={handleExportCard}
-                        disabled={exportingCard()}
-                        title="Export collectible 540x780 Champion Card as PNG"
-                      >
-                        <span>
-                          {exportingCard()
-                            ? 'Exporting...'
-                            : 'Export Champion Card'}
-                        </span>
-                      </button>
-                    </Show>
-                  </div>
-                  <div class={ui.keyboardHints}>
-                    Press [R] for Next Challenger
-                  </div>
-                </Show>
-              </div>
-
-              {/* Player 2 (Right / Orange/Red) */}
-              <Show when={props.arena.player2Stats()}>
-                {(p2) => (
-                  <div
-                    class={`${ui.fighterCard} ${ui.p2Card}`}
-                    classList={{ [ui.p2CardWinner!]: winner() === 2 }}
+                    class={`${ui.fighterCard} ${ui.p1Card}`}
+                    classList={{ [ui.p1CardWinner!]: winner() === 1 }}
                   >
                     <div class={ui.fighterPreview}>
                       <Show
-                        when={ensureCamera(p2().flame)}
+                        when={p1PreviewFlame()}
+                        keyed
                         fallback={
                           <div class={ui.fighterPreviewInner}>
                             <span class={ui.fighterLabel}>
-                              {p2().name ?? 'Player 2'}
+                              {p1().name ?? 'Player 1'}
                             </span>
                           </div>
                         }
@@ -1387,10 +1070,10 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
                         {(f) => (
                           <div class={ui.previewLayer}>
                             <VariationPreview
-                              version={0}
-                              isSelected={winner() === 2}
-                              flame={f()}
-                              name={p2().name ?? 'Player 2'}
+                              version={p1Version()}
+                              isSelected={winner() === 1}
+                              flame={f}
+                              name={p1().name ?? 'Player 1'}
                               resolution={PREVIEW_RES}
                               hardwareTier={props.hardwareTier}
                               snapshotOnly
@@ -1399,7 +1082,7 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
                         )}
                       </Show>
 
-                      <Show when={winner() === 2}>
+                      <Show when={winner() === 1}>
                         <div class={ui.victorBadge}>VICTOR</div>
                       </Show>
                     </div>
@@ -1407,10 +1090,10 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
                     <div class={ui.fighterHeader}>
                       <div>
                         <div class={ui.fighterTitleRow}>
-                          <div class={`${ui.fighterName} ${ui.p2Name}`}>
-                            {p2().name ?? 'Player 2'}
+                          <div class={`${ui.fighterName} ${ui.p1Name}`}>
+                            {p1().name ?? 'Player 1'}
                           </div>
-                          <Show when={p2Grounded()?.school}>
+                          <Show when={p1Grounded()?.school}>
                             {(sch) => (
                               <span
                                 class={ui.schoolBadge}
@@ -1424,22 +1107,21 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
                               </span>
                             )}
                           </Show>
-                          <Show when={p2Advantage() > 1.0}>
+                          <Show when={p1Advantage() > 1.0}>
                             <span class={ui.advantageBadge}>
-                              +{Math.round((p2Advantage() - 1) * 100)}%
+                              +{Math.round((p1Advantage() - 1) * 100)}%
                             </span>
                           </Show>
                         </div>
                         <div class={ui.fighterClass}>
-                          Archetype:{' '}
-                          {p2().type || opponentArchetype().className}
+                          Class: {p1().type || 'Fractal Guardian'}
                         </div>
                       </div>
-                      <Show when={p2().flame}>
+                      <Show when={p1().flame}>
                         <button
                           class={ui.loadBtn}
                           onClick={() => {
-                            loadFighter(2)
+                            loadFighter(1)
                           }}
                           title="Load this flame into main workspace"
                         >
@@ -1451,37 +1133,53 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
                     <div class={ui.statList}>
                       <StatRow
                         label="Power"
-                        value={p2().powerLevel || 0}
+                        value={effPower()}
                         max={2000}
-                        color="#fb923c"
+                        color="#22d3ee"
                       />
                       <StatRow
                         label="Complexity"
-                        value={(p2().metrics?.complexity || 0) * 10}
+                        value={
+                          (p1().metrics?.complexity || 0) *
+                          10 *
+                          curStance().effects.complexityMultiplier
+                        }
                         max={100}
-                        color="#f87171"
+                        color="#60a5fa"
                       />
                       <StatRow
                         label="Chaos"
-                        value={(p2().metrics?.chaosLevel || 0) * 10}
+                        value={
+                          (p1().metrics?.chaosLevel || 0) *
+                          10 *
+                          curStance().effects.chaosMultiplier
+                        }
                         max={100}
-                        color="#f472b6"
+                        color="#c084fc"
                       />
                       <StatRow
                         label="Symmetry"
-                        value={(p2().metrics?.symmetryScore || 0) * 10}
+                        value={
+                          (p1().metrics?.symmetryScore || 0) *
+                          10 *
+                          curStance().effects.symmetryMultiplier
+                        }
                         max={100}
-                        color="#facc15"
+                        color="#818cf8"
                       />
                       <StatRow
                         label="Energy"
-                        value={(p2().metrics?.energyIntensity || 0) * 10}
+                        value={
+                          (p1().metrics?.energyIntensity || 0) *
+                          10 *
+                          curStance().effects.energyMultiplier
+                        }
                         max={100}
-                        color="#fbbf24"
+                        color="#2dd4bf"
                       />
                     </div>
 
-                    <Show when={p2Grounded()}>
+                    <Show when={p1Grounded()}>
                       {(g) => (
                         <div class={ui.groundedMetrics}>
                           <div
@@ -1524,28 +1222,470 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
                       )}
                     </Show>
 
-                    {/* Opponent Lore & Actions */}
-                    <div class={ui.opponentLoreBox}>
-                      {opponentArchetype().lore}
+                    {/* Tactical Stance Selector */}
+                    <div class={ui.stanceContainer}>
+                      <div class={ui.stanceTitle}>Tactical Stance</div>
+                      <div class={ui.stanceGrid}>
+                        <For each={Object.values(TACTICAL_STANCES)}>
+                          {(s) => (
+                            <button
+                              class={ui.stanceBtn}
+                              classList={{
+                                [ui.stanceBtnActive!]: stance() === s.id,
+                              }}
+                              onClick={() => {
+                                setStance(s.id)
+                              }}
+                              disabled={gameState() === 'clashing'}
+                              title={s.description}
+                            >
+                              <span class={ui.stanceName}>{s.name}</span>
+                              <span class={ui.stanceTagline}>{s.tagline}</span>
+                            </button>
+                          )}
+                        </For>
+                      </div>
+                    </div>
+                  </div>
+                )
+              }}
+            </Show>
+
+            {/* Center Column: Idle, Clashing & Immediate Winner Trophy Card */}
+            <div class={ui.centerColumn}>
+              <Show when={gameState() === 'idle'}>
+                <div class={ui.vsCenter}>
+                  <div class={ui.vsText}>VS</div>
+                  <button
+                    class={ui.clashBtn}
+                    onClick={handleClash}
+                    title="Engage battle (Space)"
+                  >
+                    <Zap width="1.2rem" height="1.2rem" />
+                    <span>CLASH</span>
+                    <Zap width="1.2rem" height="1.2rem" />
+                  </button>
+                  <div class={ui.keyboardHints}>Press [Space] to Clash</div>
+                </div>
+              </Show>
+
+              <Show when={gameState() === 'clashing'}>
+                <div class={ui.clashActiveArea}>
+                  <div
+                    class={ui.clashStage}
+                    classList={{ [ui.shakeEffect!]: isShaking() }}
+                  >
+                    <Show when={shockwaveActive()}>
+                      <div class={ui.shockwaveRing} />
+                    </Show>
+                    <Show when={combatFloater()}>
+                      {(floater) => (
+                        <div
+                          class={ui.combatFloater}
+                          style={{ color: floater().color }}
+                        >
+                          {floater().text}
+                        </div>
+                      )}
+                    </Show>
+                  </div>
+                  <div class={ui.clashBottomBar}>
+                    <button
+                      class={ui.skipBtn}
+                      onClick={handleSkipClash}
+                      title="Skip animation to results"
+                    >
+                      Skip to Results
+                    </button>
+                  </div>
+                </div>
+              </Show>
+
+              <Show when={gameState() === 'results'}>
+                <div class={ui.centerWinnerContainer}>
+                  <div class={ui.winnerTrophyCard}>
+                    <div class={ui.winnerTrophyHeader}>
+                      <span class={ui.winnerTrophyTitle}>
+                        Chaos Master • Arena Champion
+                      </span>
+                      <Show when={winStreak() > 0}>
+                        <div
+                          class={ui.streakBadge}
+                          title="Current Arena Win Streak"
+                        >
+                          <span class={ui.streakFire}>★</span>
+                          <span>
+                            Streak: {winStreak()}{' '}
+                            {winStreak() === 1 ? 'Win' : 'Wins'}
+                          </span>
+                        </div>
+                      </Show>
                     </div>
 
-                    <div class={ui.cardFooterActions}>
+                    <div class={ui.winnerArtContainer}>
+                      <Show
+                        when={
+                          winner() === 2 ? p2PreviewFlame() : p1PreviewFlame()
+                        }
+                        keyed
+                        fallback={
+                          <div class={ui.fighterPreviewInner}>
+                            <span class={ui.fighterLabel}>
+                              {victorStats()?.name ?? 'Champion'}
+                            </span>
+                          </div>
+                        }
+                      >
+                        {(f) => (
+                          <div class={ui.previewLayer}>
+                            <VariationPreview
+                              version={
+                                winner() === 2 ? p2Version() : p1Version()
+                              }
+                              isSelected={true}
+                              flame={f}
+                              name={victorStats()?.name ?? 'Champion'}
+                              resolution={PREVIEW_RES}
+                              hardwareTier={props.hardwareTier}
+                              snapshotOnly
+                            />
+                          </div>
+                        )}
+                      </Show>
+                      <div class={ui.winnerCrownBadge}>
+                        {winner() !== null ? 'VICTOR' : 'DRAW'}
+                      </div>
+                      <Show when={victorGrounded()?.school}>
+                        {(sch) => (
+                          <span
+                            class={`${ui.schoolBadge} ${ui.winnerSchoolBadgeOverlay}`}
+                            style={{
+                              'background-color': SCHOOL_COLORS[sch()].bg,
+                              color: SCHOOL_COLORS[sch()].text,
+                              'border-color': SCHOOL_COLORS[sch()].border,
+                            }}
+                          >
+                            {sch()}
+                          </span>
+                        )}
+                      </Show>
+                    </div>
+
+                    <div class={ui.winnerInfoRow}>
+                      <div>
+                        <div
+                          class={ui.winnerBigName}
+                          style={{
+                            color:
+                              winner() === 1
+                                ? '#22d3ee'
+                                : winner() === 2
+                                  ? '#fb923c'
+                                  : '#fbbf24',
+                          }}
+                        >
+                          {victorStats()?.name ?? 'Arena Champion'}
+                        </div>
+                        <div class={ui.fighterClass}>
+                          Class: {victorStats()?.type ?? 'Fractal Guardian'}
+                        </div>
+                      </div>
+                      <div class={ui.winnerPowerBadge}>
+                        PWR{' '}
+                        {victorGrounded()?.powerLevel ??
+                          victorStats()?.powerLevel ??
+                          1000}
+                      </div>
+                    </div>
+
+                    <Show when={cachedSimResult()}>
+                      {(sim) => (
+                        <div class={ui.winnerScoreBanner}>
+                          <span>Territory Dominance</span>
+                          <span class={ui.winnerFinalScore}>
+                            {sim().finalScore.A} - {sim().finalScore.B}
+                          </span>
+                        </div>
+                      )}
+                    </Show>
+
+                    <Show when={victorGrounded()}>
+                      {(g) => (
+                        <div class={ui.groundedMetrics}>
+                          <div
+                            class={ui.groundedMetricItem}
+                            title="Moran similarity dimension"
+                          >
+                            <span class={ui.groundedMetricKey}>Dim</span>
+                            <span class={ui.groundedMetricVal}>
+                              {g().dimension.toFixed(2)}
+                            </span>
+                          </div>
+                          <div
+                            class={ui.groundedMetricItem}
+                            title="Spectral stability / contractivity"
+                          >
+                            <span class={ui.groundedMetricKey}>Stab</span>
+                            <span class={ui.groundedMetricVal}>
+                              {Math.round(g().stability * 100)}%
+                            </span>
+                          </div>
+                          <div
+                            class={ui.groundedMetricItem}
+                            title="Shannon entropy of transform weights"
+                          >
+                            <span class={ui.groundedMetricKey}>Ent</span>
+                            <span class={ui.groundedMetricVal}>
+                              {g().entropy.toFixed(2)}
+                            </span>
+                          </div>
+                          <div
+                            class={ui.groundedMetricItem}
+                            title="Rotational symmetry order"
+                          >
+                            <span class={ui.groundedMetricKey}>Sym</span>
+                            <span class={ui.groundedMetricVal}>
+                              C{g().symmetryOrder}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </Show>
+
+                    <div class={ui.centerActionsBar}>
                       <button
-                        class={ui.rerollBtn}
+                        class={ui.centerNextBtn}
                         onClick={() => {
                           handleRerollOpponent()
                         }}
-                        disabled={gameState() === 'clashing'}
-                        title="Generate new opponent archetype (R)"
+                        title="Face next procedural opponent (R)"
                       >
-                        <span>Reroll Opponent</span>
+                        <Zap width="1.1rem" height="1.1rem" />
+                        <span>Next Challenger</span>
+                        <Zap width="1.1rem" height="1.1rem" />
                       </button>
+                      <div class={ui.centerSubActions}>
+                        <button
+                          class={ui.centerReplayBtn}
+                          onClick={() => {
+                            runSimulation()
+                          }}
+                          title="Replay Clash (Space)"
+                        >
+                          Replay Clash
+                        </button>
+                        <Show when={winner() !== null}>
+                          <button
+                            class={ui.centerLoadBtn}
+                            onClick={() => {
+                              loadFighter(winner()!)
+                            }}
+                            title="Load Victor to Canvas"
+                          >
+                            Load Victor
+                          </button>
+                        </Show>
+                      </div>
+                      <button
+                        class={ui.centerExportBtn}
+                        onClick={handleExportCard}
+                        disabled={exportingCard()}
+                        title="Export collectible Champion Card as PNG"
+                      >
+                        <span>
+                          {exportingCard()
+                            ? 'Exporting...'
+                            : 'Download Card (PNG)'}
+                        </span>
+                      </button>
+                      <div class={ui.keyboardHints}>
+                        [Space] Replay • [R] Next Challenger • [Esc] Exit
+                      </div>
                     </div>
                   </div>
-                )}
+                </div>
               </Show>
             </div>
-          </Show>
+
+            {/* Player 2 (Right / Orange/Red) */}
+            <Show when={props.arena.player2Stats()}>
+              {(p2) => (
+                <div
+                  class={`${ui.fighterCard} ${ui.p2Card}`}
+                  classList={{ [ui.p2CardWinner!]: winner() === 2 }}
+                >
+                  <div class={ui.fighterPreview}>
+                    <Show
+                      when={p2PreviewFlame()}
+                      keyed
+                      fallback={
+                        <div class={ui.fighterPreviewInner}>
+                          <span class={ui.fighterLabel}>
+                            {p2().name ?? 'Player 2'}
+                          </span>
+                        </div>
+                      }
+                    >
+                      {(f) => (
+                        <div class={ui.previewLayer}>
+                          <VariationPreview
+                            version={p2Version()}
+                            isSelected={winner() === 2}
+                            flame={f}
+                            name={p2().name ?? 'Player 2'}
+                            resolution={PREVIEW_RES}
+                            hardwareTier={props.hardwareTier}
+                            snapshotOnly
+                          />
+                        </div>
+                      )}
+                    </Show>
+
+                    <Show when={winner() === 2}>
+                      <div class={ui.victorBadge}>VICTOR</div>
+                    </Show>
+                  </div>
+
+                  <div class={ui.fighterHeader}>
+                    <div>
+                      <div class={ui.fighterTitleRow}>
+                        <div class={`${ui.fighterName} ${ui.p2Name}`}>
+                          {p2().name ?? 'Player 2'}
+                        </div>
+                        <Show when={p2Grounded()?.school}>
+                          {(sch) => (
+                            <span
+                              class={ui.schoolBadge}
+                              style={{
+                                'background-color': SCHOOL_COLORS[sch()].bg,
+                                color: SCHOOL_COLORS[sch()].text,
+                                'border-color': SCHOOL_COLORS[sch()].border,
+                              }}
+                            >
+                              {sch()}
+                            </span>
+                          )}
+                        </Show>
+                        <Show when={p2Advantage() > 1.0}>
+                          <span class={ui.advantageBadge}>
+                            +{Math.round((p2Advantage() - 1) * 100)}%
+                          </span>
+                        </Show>
+                      </div>
+                      <div class={ui.fighterClass}>
+                        Archetype: {p2().type || opponentArchetype().className}
+                      </div>
+                    </div>
+                    <Show when={p2().flame}>
+                      <button
+                        class={ui.loadBtn}
+                        onClick={() => {
+                          loadFighter(2)
+                        }}
+                        title="Load this flame into main workspace"
+                      >
+                        Load
+                      </button>
+                    </Show>
+                  </div>
+
+                  <div class={ui.statList}>
+                    <StatRow
+                      label="Power"
+                      value={p2().powerLevel || 0}
+                      max={2000}
+                      color="#fb923c"
+                    />
+                    <StatRow
+                      label="Complexity"
+                      value={(p2().metrics?.complexity || 0) * 10}
+                      max={100}
+                      color="#f87171"
+                    />
+                    <StatRow
+                      label="Chaos"
+                      value={(p2().metrics?.chaosLevel || 0) * 10}
+                      max={100}
+                      color="#f472b6"
+                    />
+                    <StatRow
+                      label="Symmetry"
+                      value={(p2().metrics?.symmetryScore || 0) * 10}
+                      max={100}
+                      color="#facc15"
+                    />
+                    <StatRow
+                      label="Energy"
+                      value={(p2().metrics?.energyIntensity || 0) * 10}
+                      max={100}
+                      color="#fbbf24"
+                    />
+                  </div>
+
+                  <Show when={p2Grounded()}>
+                    {(g) => (
+                      <div class={ui.groundedMetrics}>
+                        <div
+                          class={ui.groundedMetricItem}
+                          title="Moran similarity dimension"
+                        >
+                          <span class={ui.groundedMetricKey}>Dim</span>
+                          <span class={ui.groundedMetricVal}>
+                            {g().dimension.toFixed(2)}
+                          </span>
+                        </div>
+                        <div
+                          class={ui.groundedMetricItem}
+                          title="Spectral stability / contractivity"
+                        >
+                          <span class={ui.groundedMetricKey}>Stab</span>
+                          <span class={ui.groundedMetricVal}>
+                            {Math.round(g().stability * 100)}%
+                          </span>
+                        </div>
+                        <div
+                          class={ui.groundedMetricItem}
+                          title="Shannon entropy of transform weights"
+                        >
+                          <span class={ui.groundedMetricKey}>Ent</span>
+                          <span class={ui.groundedMetricVal}>
+                            {g().entropy.toFixed(2)}
+                          </span>
+                        </div>
+                        <div
+                          class={ui.groundedMetricItem}
+                          title="Rotational symmetry order"
+                        >
+                          <span class={ui.groundedMetricKey}>Sym</span>
+                          <span class={ui.groundedMetricVal}>
+                            C{g().symmetryOrder}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </Show>
+
+                  {/* Opponent Lore & Actions */}
+                  <div class={ui.opponentLoreBox}>
+                    {opponentArchetype().lore}
+                  </div>
+
+                  <div class={ui.cardFooterActions}>
+                    <button
+                      class={ui.rerollBtn}
+                      onClick={() => {
+                        handleRerollOpponent()
+                      }}
+                      disabled={gameState() === 'clashing'}
+                      title="Generate new opponent archetype (R)"
+                    >
+                      <span>Reroll Opponent</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </Show>
+          </div>
 
           {/* Tactical Battle Log */}
           <Show when={gameState() === 'results' && battleLog().length > 0}>
@@ -1569,18 +1709,6 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
                 </div>
               </Show>
             </div>
-          </Show>
-
-          {/* Commentary Box */}
-          <Show when={commentary()}>
-            {(msg) => (
-              <div class={ui.commentaryBox}>
-                {msg()}
-                <Show when={eventBanner()}>
-                  {(evt) => <span class={ui.eventBanner}>{evt()}</span>}
-                </Show>
-              </div>
-            )}
           </Show>
         </div>
       </div>
