@@ -1,5 +1,134 @@
-/* Floating menu and version pill anchored bottom-left */
+/* Desktop pills anchored bottom-right */
+.desktopContainer {
+  position: fixed;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  z-index: 9999;
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
 
+/* Shared pill style for the desktop buttons. */
+.aboutPill,
+.docsPill,
+.benchmarkLabPill,
+.arcadePill,
+.layoutPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.6rem 0.3rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  appearance: none;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.pillIcon {
+  width: 1rem;
+  height: 1rem;
+  opacity: 0.6;
+  flex-shrink: 0;
+  transition: opacity 0.2s ease;
+}
+
+.aboutPill:hover,
+.docsPill:hover,
+.benchmarkLabPill:hover,
+.arcadePill:hover,
+.layoutPill:hover {
+  border-color: rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 0.9);
+  color: rgba(0, 0, 0, 0.6);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.aboutPill:hover .pillIcon,
+.docsPill:hover .pillIcon,
+.benchmarkLabPill:hover .pillIcon,
+.arcadePill:hover .pillIcon,
+.layoutPill:hover .pillIcon {
+  opacity: 0.8;
+}
+
+.aboutPill:active,
+.docsPill:active,
+.benchmarkLabPill:active,
+.arcadePill:active,
+.layoutPill:active {
+  transform: translateY(0);
+}
+
+.aboutPill:focus-visible,
+.docsPill:focus-visible,
+.benchmarkLabPill:focus-visible,
+.arcadePill:focus-visible,
+.layoutPill:focus-visible {
+  outline: 2px solid var(--neutral-500);
+  outline-offset: 2px;
+}
+
+[data-theme='dark'] .aboutPill,
+[data-theme='dark'] .docsPill,
+[data-theme='dark'] .benchmarkLabPill,
+[data-theme='dark'] .arcadePill,
+[data-theme='dark'] .layoutPill {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  color: rgba(255, 255, 255, 0.45);
+}
+
+[data-theme='dark'] .aboutPill:hover,
+[data-theme='dark'] .docsPill:hover,
+[data-theme='dark'] .benchmarkLabPill:hover,
+[data-theme='dark'] .arcadePill:hover,
+[data-theme='dark'] .layoutPill:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.7);
+  color: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.benchmarkLabPill:hover {
+  color: oklch(54% 0.18 35);
+}
+
+[data-theme='dark'] .benchmarkLabPill:hover {
+  color: oklch(76% 0.13 35);
+}
+
+.arcadePill:hover {
+  color: oklch(54% 0.18 300);
+}
+
+[data-theme='dark'] .arcadePill:hover {
+  color: oklch(78% 0.13 300);
+}
+
+.layoutPill:hover {
+  color: #38bdf8;
+}
+
+[data-theme='dark'] .layoutPill:hover {
+  color: #38bdf8;
+}
+
+/* Floating touch menu and version badge anchored bottom-left (tablet/mobile only) */
+.touchContainer,
 .versionContainer {
   position: fixed;
   left: max(12px, env(safe-area-inset-left));
@@ -170,16 +299,6 @@
   height: 1px;
   margin: 4px 6px;
   background: rgba(255, 255, 255, 0.08);
-}
-
-/* Preserved classes for backward-compatibility with tests / queries */
-.aboutPill {
-}
-.docsPill {
-}
-.benchmarkLabPill {
-}
-.arcadePill {
 }
 
 @keyframes popoverSlideUp {

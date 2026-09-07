@@ -139,7 +139,8 @@ export function Flam3(props: Flam3Props) {
   // Creating the memo here makes all camera reads happen under this owner.
   const bucketProbabilityInv = createMemo(() => {
     const size = canvasSize()
-    const height = size.height
+    const height =
+      Number.isFinite(size.height) && size.height > 0 ? size.height : 512
     const dimensions = animatedFlame().renderSettings.dimensions ?? 2
     if (dimensions === 3 && camera3D) {
       // 3D equivalent of the 2D zoom-based area calculation.
@@ -162,16 +163,23 @@ export function Flam3(props: Flam3Props) {
       const fovRad = (camera3D.fov() * Math.PI) / 180
       const tanHalfFov = Math.tan(fovRad / 2) || 1
       const scale = height / (2 * radius * tanHalfFov)
-      return scale * scale
+      return Math.max(1, scale * scale)
     }
-    const unitSquareArea = (height ** 2 * camera!.zoom() ** 2) / 4
-    return unitSquareArea
+    const rawZoom = camera?.zoom()
+    const safeZoom =
+      Number.isFinite(rawZoom) && (rawZoom ?? 0) > 0 ? rawZoom! : 1
+    const unitSquareArea = (height ** 2 * safeZoom ** 2) / 4
+    return Math.max(1, unitSquareArea)
   })
 
   /** u32-safe point cap: prevents per-bucket atomic overflow at high quality */
   const safeQualityCap = () => {
     const size = canvasSize()
-    const totalBuckets = size.width * size.height
+    const width =
+      Number.isFinite(size.width) && size.width > 0 ? size.width : 512
+    const height =
+      Number.isFinite(size.height) && size.height > 0 ? size.height : 512
+    const totalBuckets = width * height
     const MAX_U32 = 0xffffffff
     const maxPointsPerBucket = Math.floor(
       MAX_U32 / BUCKET_FIXED_POINT_MULTIPLIER,
@@ -182,9 +190,14 @@ export function Flam3(props: Flam3Props) {
   }
 
   const qualityPointCountLimit = () => {
-    const q = props.quality
-    const rawLimit = bucketProbabilityInv() / (q ** 2 - 2 * q + 1)
-    return Math.min(rawLimit, safeQualityCap())
+    const q = Number.isFinite(props.quality) ? props.quality : 0.85
+    const inv = bucketProbabilityInv()
+    const safeInv = Number.isFinite(inv) && inv > 0 ? inv : 10000
+    const denom = Math.max(1e-9, q ** 2 - 2 * q + 1)
+    const rawLimit = safeInv / denom
+    const cap = safeQualityCap()
+    const safeCap = Number.isFinite(cap) && cap > 0 ? cap : 10000000
+    return Math.max(100, Math.min(rawLimit, safeCap))
   }
 
   const [instanceAccumulatedPointCount, setInstanceAccumulatedPointCount] =
