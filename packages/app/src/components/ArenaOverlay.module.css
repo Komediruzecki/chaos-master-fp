@@ -624,3 +624,151 @@
   text-align: center;
   margin-top: 4px;
 }
+
+.fighterTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.schoolBadge {
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  border: 1px solid currentColor;
+  display: inline-flex;
+  align-items: center;
+}
+
+.advantageBadge {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #34d399;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(52, 211, 153, 0.15);
+  border: 1px solid rgba(52, 211, 153, 0.3);
+}
+
+.groundedMetrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-top: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.groundedMetricItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.groundedMetricKey {
+  font-size: 0.56rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.groundedMetricVal {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #f1f5f9;
+}
+
+.exportCardBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 14px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: 8px;
+  border: 1px solid rgba(192, 132, 252, 0.5);
+  background: linear-gradient(
+    135deg,
+    rgba(192, 132, 252, 0.2),
+    rgba(99, 102, 241, 0.2)
+  );
+  color: #e9d5ff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.exportCardBtn:hover:not(:disabled) {
+  background: linear-gradient(
+    135deg,
+    rgba(192, 132, 252, 0.35),
+    rgba(99, 102, 241, 0.35)
+  );
+  border-color: #c084fc;
+  color: #ffffff;
+  box-shadow: 0 0 15px rgba(192, 132, 252, 0.4);
+}
+
+.battleLogSection {
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.battleLogHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.04);
+  user-select: none;
+}
+
+.battleLogHeader:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.battleLogTitle {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.battleLogToggle {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #38bdf8;
+}
+
+.battleLogList {
+  max-height: 160px;
+  overflow-y: auto;
+  padding: 8px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.battleLogItem {
+  font-family: monospace;
+  font-size: 0.7rem;
+  color: #cbd5e1;
+  line-height: 1.4;
+  padding: 2px 0;
+}

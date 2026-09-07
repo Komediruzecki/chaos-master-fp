@@ -11,6 +11,8 @@ import { arcadeEndCinema, arcadeGetAnimatablePaths, arcadeSetKeyframes, arcadeSt
 import { directorGetFeedback, directorGetTasteProfile, directorPropose, openArtDirector, } from './arcadeDirector'
 import { arcadeDuelReady, arcadeEndDuel, arcadeStartDuel } from './arcadeDuel'
 import { arcadeEndLesson, arcadeNarrate, arcadeStartLesson, arcadeStatus, } from './arcadeTeach'
+import { arenaCommentate } from './arenaCommentate'
+import { arenaGetStats } from './arenaGetStats'
 import { breedFlamesTool } from './breedFlames'
 import { createClashFlame } from './createClashFlame'
 import { createCustomVariationTool } from './createCustomVariation'
@@ -77,6 +79,8 @@ export {
   arcadeGetAudioCatalog,
   arcadeSetAudioMapping,
   arcadeEndBeats,
+  arenaGetStats,
+  arenaCommentate,
 }
 
 /** All Tier 1 tools, in registration order. */
@@ -92,6 +96,7 @@ export const allTools: readonly WebMcpTool[] = [
   arcadeGetAudioCatalog,
   directorGetFeedback,
   directorGetTasteProfile,
+  arenaGetStats,
   diffFlamesTool,
   createShareLink,
   scoreFlame,
@@ -119,6 +124,7 @@ export const allTools: readonly WebMcpTool[] = [
   loadShareLink,
   createClashFlame,
   openArena,
+  arenaCommentate,
   directorPropose,
   openArtDirector,
   breedFlamesTool,
