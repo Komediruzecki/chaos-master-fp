@@ -1,8 +1,9 @@
 import '@/commands/builtins'
-import { cleanup, render, screen } from '@solidjs/testing-library'
+import { cleanup, fireEvent, render, screen } from '@solidjs/testing-library'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createMockCommandContext } from '@/webmcp/testUtils'
 import { AdvancedToolsDrawer, MobileBottomSurface, TabletInspectorDeck, TabletSplitLayout, TouchControlSurface, TouchHUD, } from './index'
+import type { TransformId, VariationId } from '@/flame/schema/flameSchema'
 
 describe('TouchSurface Components', () => {
   afterEach(cleanup)
@@ -72,6 +73,14 @@ describe('TouchSurface Components', () => {
       expect(onClose).toHaveBeenCalled()
     })
 
+    it('closes on Escape key press when open', () => {
+      const onClose = vi.fn()
+      render(() => <AdvancedToolsDrawer open={true} onClose={onClose} />)
+
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+      expect(onClose).toHaveBeenCalled()
+    })
+
     it('does not render when open is false', () => {
       render(() => <AdvancedToolsDrawer open={false} onClose={() => {}} />)
 
@@ -110,6 +119,26 @@ describe('TouchSurface Components', () => {
       // Switch to Colour tab
       colourTab.click()
       expect(screen.getByText(/Color Coordinate/i)).toBeTruthy()
+    })
+
+    it('dispatches flame.setVariationWeight when variation slider changes', () => {
+      const ctx = createMockCommandContext()
+
+      render(() => (
+        <TouchControlSurface
+          ctx={ctx}
+          flame={ctx.flameDescriptor}
+          mode="bottom-sheet"
+        />
+      ))
+
+      const slider = screen.getByLabelText(/linear weight/i)
+      expect(slider).toBeTruthy()
+
+      fireEvent.input(slider, { target: { value: '0.85' } })
+      expect(ctx.setFlameDescriptor).toHaveBeenCalled()
+      const t1 = ctx.flameDescriptor().transforms['t1' as TransformId]
+      expect(t1?.variations['v1' as VariationId]?.weight).toBe(0.85)
     })
   })
 

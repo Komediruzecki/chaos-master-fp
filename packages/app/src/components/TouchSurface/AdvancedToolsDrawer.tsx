@@ -1,4 +1,4 @@
-import { For, Show } from 'solid-js'
+import { createEffect, For, onCleanup, Show } from 'solid-js'
 import { CameraIcon, Cross, Film, Lineage, MusicNote, Robot, Swords, } from '@/icons'
 import ui from './TouchSurface.module.css'
 
@@ -16,6 +16,19 @@ export interface AdvancedToolsDrawerProps {
 }
 
 export function AdvancedToolsDrawer(props: AdvancedToolsDrawerProps) {
+  createEffect(() => {
+    if (!props.open || typeof window === 'undefined') return
+    const handleKeyDown = (ev: KeyboardEvent) => {
+      if (ev.key === 'Escape') {
+        props.onClose()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    onCleanup(() => {
+      window.removeEventListener('keydown', handleKeyDown)
+    })
+  })
+
   const tools = [
     {
       id: 'art-director',
