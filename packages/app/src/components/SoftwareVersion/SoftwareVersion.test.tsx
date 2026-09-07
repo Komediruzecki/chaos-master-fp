@@ -5,7 +5,7 @@ import { SoftwareVersion } from './SoftwareVersion'
 describe('SoftwareVersion component', () => {
   afterEach(cleanup)
 
-  it('renders collapsed trigger and expands upward menu on click', () => {
+  it('renders visible pills on desktop layout', () => {
     const showHelp = vi.fn()
     const showDocs = vi.fn()
     const showBenchmark = vi.fn()
@@ -22,34 +22,42 @@ describe('SoftwareVersion component', () => {
       />
     ))
 
-    const trigger = screen.getByRole('button', { name: /chaos master menu/i })
-    expect(trigger).toBeTruthy()
-    expect(screen.queryByRole('menu')).toBeNull()
+    const labLink = screen.getByRole('link', { name: 'Open Benchmark Lab' })
+    expect(labLink).toBeTruthy()
+    expect(labLink.getAttribute('href')).toBe('/benchmarks')
 
-    // Open menu
-    fireEvent.click(trigger)
-    expect(screen.getByRole('menu')).toBeTruthy()
-    expect(screen.getByText('Switch to Touch Studio')).toBeTruthy()
-    expect(screen.getByText('Lumen Arcade')).toBeTruthy()
-    expect(screen.getByText('Benchmark Lab')).toBeTruthy()
-    expect(screen.getByText('Quick GPU Benchmark')).toBeTruthy()
-    expect(screen.getByText('Documentation')).toBeTruthy()
-    expect(screen.getByText('About Chaos Master')).toBeTruthy()
+    const arcadeLink = screen.getByRole('link', { name: 'Open Lumen Arcade' })
+    expect(arcadeLink).toBeTruthy()
 
-    // Test switch to touch layout
-    screen.getByText('Switch to Touch Studio').click()
+    const docsBtn = screen.getByRole('button', { name: /docs/i })
+    expect(docsBtn).toBeTruthy()
+    fireEvent.click(docsBtn)
+    expect(showDocs).toHaveBeenCalled()
+
+    const aboutBtn = screen.getByRole('button', { name: /about/i })
+    expect(aboutBtn).toBeTruthy()
+    fireEvent.click(aboutBtn)
+    expect(showHelp).toHaveBeenCalled()
+
+    const touchBtn = screen.getByRole('button', {
+      name: 'Switch to Touch Studio',
+    })
+    expect(touchBtn).toBeTruthy()
+    fireEvent.click(touchBtn)
     expect(setPref).toHaveBeenCalledWith('touch')
-    expect(screen.queryByRole('menu')).toBeNull()
   })
 
-  it('switches to desktop layout when in touch mode', () => {
+  it('renders collapsed trigger and expands upward menu on click in touch layout', () => {
+    const showHelp = vi.fn()
+    const showDocs = vi.fn()
+    const showBenchmark = vi.fn()
     const setPref = vi.fn()
 
     render(() => (
       <SoftwareVersion
-        showHelp={vi.fn()}
-        showDocs={vi.fn()}
-        showBenchmark={vi.fn()}
+        showHelp={showHelp}
+        showDocs={showDocs}
+        showBenchmark={showBenchmark}
         touchLayoutPreference={() => 'touch'}
         setTouchLayoutPreference={setPref}
         isTouchLayout={() => true}
@@ -57,14 +65,26 @@ describe('SoftwareVersion component', () => {
     ))
 
     const trigger = screen.getByRole('button', { name: /chaos master menu/i })
-    fireEvent.click(trigger)
-    expect(screen.getByText('Switch to Desktop Layout')).toBeTruthy()
+    expect(trigger).toBeTruthy()
+    expect(screen.queryByRole('menu')).toBeNull()
 
+    // Open menu
+    fireEvent.click(trigger)
+    expect(screen.getByRole('menu')).toBeTruthy()
+    expect(screen.getByText('Switch to Desktop Layout')).toBeTruthy()
+    expect(screen.getByText('Lumen Arcade')).toBeTruthy()
+    expect(screen.getByText('Benchmark Lab')).toBeTruthy()
+    expect(screen.getByText('Quick GPU Benchmark')).toBeTruthy()
+    expect(screen.getByText('Documentation')).toBeTruthy()
+    expect(screen.getByText('About Chaos Master')).toBeTruthy()
+
+    // Test switch to desktop layout
     screen.getByText('Switch to Desktop Layout').click()
     expect(setPref).toHaveBeenCalledWith('desktop')
+    expect(screen.queryByRole('menu')).toBeNull()
   })
 
-  it('triggers quick benchmark, docs, and help from menu', () => {
+  it('triggers quick benchmark, docs, and help from touch menu', () => {
     const showHelp = vi.fn()
     const showDocs = vi.fn()
     const showBenchmark = vi.fn()
@@ -74,6 +94,7 @@ describe('SoftwareVersion component', () => {
         showHelp={showHelp}
         showDocs={showDocs}
         showBenchmark={showBenchmark}
+        isTouchLayout={() => true}
       />
     ))
 
@@ -96,12 +117,13 @@ describe('SoftwareVersion component', () => {
     expect(showHelp).toHaveBeenCalled()
   })
 
-  it('closes menu on Escape key', () => {
+  it('closes touch menu on Escape key', () => {
     render(() => (
       <SoftwareVersion
         showHelp={vi.fn()}
         showDocs={vi.fn()}
         showBenchmark={vi.fn()}
+        isTouchLayout={() => true}
       />
     ))
 

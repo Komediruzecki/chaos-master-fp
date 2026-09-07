@@ -3,6 +3,7 @@ import { Book, ChevronDown, GridIcon, Info, Menu, SidebarPanel, Star, Zap, } fro
 import { setActiveTab } from '@/lib/activeTab'
 import { BENCHMARKS_PATH } from '@/routing/appPath'
 import { VERSION } from '@/version'
+import { BenchmarkButton } from '../BenchmarkButton/BenchmarkButton'
 import { DebugPanel } from '../Debug/DebugPanel'
 import ui from './SoftwareVersion.module.css'
 import type { TouchLayoutPreference } from '@/stores/workspaceLayoutStore'
@@ -18,6 +19,7 @@ export interface SoftwareVersionProps {
 
 export function SoftwareVersion(props: SoftwareVersionProps) {
   const [open, setOpen] = createSignal(false)
+  const isTouch = () => props.isTouchLayout?.() ?? false
 
   createEffect(() => {
     if (!open() || typeof window === 'undefined') return
@@ -35,150 +37,204 @@ export function SoftwareVersion(props: SoftwareVersionProps) {
   return (
     <div>
       <DebugPanel />
-      <div class={ui.versionContainer}>
-        <Show when={open()}>
-          <div
-            class={ui.popoverBackdrop}
-            onClick={() => setOpen(false)}
-            aria-hidden="true"
-          />
-          <div
-            class={ui.menuPopover}
-            role="menu"
-            aria-label="Chaos Master menu"
-          >
-            <Show
-              when={
-                props.touchLayoutPreference && props.setTouchLayoutPreference
-              }
-            >
-              <button
-                type="button"
-                role="menuitem"
-                class={`${ui.menuItem} ${ui.menuItemHighlight}`}
-                onClick={() => {
-                  const isTouch = props.isTouchLayout?.()
-                  props.setTouchLayoutPreference!(isTouch ? 'desktop' : 'touch')
-                  setOpen(false)
-                }}
-              >
-                <SidebarPanel class={ui.menuIcon} />
-                <div class={ui.menuMeta}>
-                  <span class={ui.menuLabel}>
-                    {props.isTouchLayout?.()
-                      ? 'Switch to Desktop Layout'
-                      : 'Switch to Touch Studio'}
-                  </span>
-                  <span class={ui.menuSub}>
-                    {props.isTouchLayout?.()
-                      ? 'Sidebar, dock & inspector'
-                      : 'Split tablet & mobile controls'}
-                  </span>
-                </div>
-              </button>
-              <div class={ui.menuDivider} />
-            </Show>
-
+      <Show
+        when={isTouch()}
+        fallback={
+          <div class={ui.desktopContainer}>
+            <BenchmarkButton onClick={props.showBenchmark} />
             <a
-              class={`${ui.menuItem} ${ui.arcadePill}`}
+              class={ui.benchmarkLabPill}
+              href={BENCHMARKS_PATH}
+              aria-label="Open Benchmark Lab"
+              title="Open Benchmark Lab"
+            >
+              <GridIcon class={ui.pillIcon} />
+              Lab
+            </a>
+            <a
+              class={ui.arcadePill}
               href="#arcade"
-              role="menuitem"
               aria-label="Open Lumen Arcade"
+              title="Open Lumen Arcade"
               onClick={(ev) => {
                 ev.preventDefault()
                 setActiveTab('arcade')
-                setOpen(false)
               }}
             >
-              <Star class={ui.menuIcon} />
-              <div class={ui.menuMeta}>
-                <span class={ui.menuLabel}>Lumen Arcade</span>
-                <span class={ui.menuSub}>Interactive lessons & duels</span>
-              </div>
+              <Star class={ui.pillIcon} />
+              Arcade
             </a>
-
-            <a
-              class={`${ui.menuItem} ${ui.benchmarkLabPill}`}
-              href={BENCHMARKS_PATH}
-              role="menuitem"
-              aria-label="Open Benchmark Lab"
-              onClick={() => setOpen(false)}
-            >
-              <GridIcon class={ui.menuIcon} />
-              <div class={ui.menuMeta}>
-                <span class={ui.menuLabel}>Benchmark Lab</span>
-                <span class={ui.menuSub}>Fractal performance lab</span>
-              </div>
-            </a>
-
             <button
               type="button"
-              class={ui.menuItem}
-              role="menuitem"
-              onClick={() => {
-                setOpen(false)
-                props.showBenchmark()
-              }}
+              class={ui.docsPill}
+              onClick={props.showDocs}
+              title="Documentation"
             >
-              <Zap class={ui.menuIcon} />
-              <div class={ui.menuMeta}>
-                <span class={ui.menuLabel}>Quick GPU Benchmark</span>
-                <span class={ui.menuSub}>Run hardware speed test</span>
-              </div>
+              <Book class={ui.pillIcon} />
+              Docs
             </button>
-
             <button
               type="button"
-              class={`${ui.menuItem} ${ui.docsPill}`}
-              role="menuitem"
-              onClick={() => {
-                setOpen(false)
-                props.showDocs()
-              }}
+              class={ui.aboutPill}
+              onClick={props.showHelp}
+              aria-label={`About Chaos Master v${VERSION}`}
+              title={`About Chaos Master v${VERSION}`}
             >
-              <Book class={ui.menuIcon} />
-              <div class={ui.menuMeta}>
-                <span class={ui.menuLabel}>Documentation</span>
-                <span class={ui.menuSub}>User guide & references</span>
-              </div>
+              <Info class={ui.pillIcon} />v{VERSION}
             </button>
-
-            <button
-              type="button"
-              class={`${ui.menuItem} ${ui.aboutPill}`}
-              role="menuitem"
-              onClick={() => {
-                setOpen(false)
-                props.showHelp()
-              }}
-            >
-              <Info class={ui.menuIcon} />
-              <div class={ui.menuMeta}>
-                <span class={ui.menuLabel}>About Chaos Master</span>
-                <span class={ui.menuSub}>v{VERSION}</span>
-              </div>
-            </button>
+            <Show when={props.setTouchLayoutPreference}>
+              <button
+                type="button"
+                class={ui.layoutPill}
+                onClick={() => {
+                  props.setTouchLayoutPreference?.('touch')
+                }}
+                title="Switch to Touch Studio"
+                aria-label="Switch to Touch Studio"
+              >
+                <SidebarPanel class={ui.pillIcon} />
+                Touch
+              </button>
+            </Show>
           </div>
-        </Show>
+        }
+      >
+        <div class={ui.touchContainer}>
+          <Show when={open()}>
+            <div
+              class={ui.popoverBackdrop}
+              onClick={() => setOpen(false)}
+              aria-hidden="true"
+            />
+            <div
+              class={ui.menuPopover}
+              role="menu"
+              aria-label="Chaos Master menu"
+            >
+              <Show
+                when={
+                  props.touchLayoutPreference && props.setTouchLayoutPreference
+                }
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  class={`${ui.menuItem} ${ui.menuItemHighlight}`}
+                  onClick={() => {
+                    props.setTouchLayoutPreference!('desktop')
+                    setOpen(false)
+                  }}
+                >
+                  <SidebarPanel class={ui.menuIcon} />
+                  <div class={ui.menuMeta}>
+                    <span class={ui.menuLabel}>Switch to Desktop Layout</span>
+                    <span class={ui.menuSub}>Sidebar, dock & inspector</span>
+                  </div>
+                </button>
+                <div class={ui.menuDivider} />
+              </Show>
 
-        <button
-          type="button"
-          class={ui.menuTrigger}
-          classList={{ [ui.menuTriggerActive as string]: open() }}
-          onClick={() => setOpen(!open())}
-          aria-expanded={open()}
-          aria-haspopup="menu"
-          aria-label="Chaos Master menu and version"
-          title="Chaos Master menu & version"
-        >
-          <Menu class={ui.triggerIcon} />
-          <span class={ui.triggerLabel}>v{VERSION}</span>
-          <ChevronDown
-            class={ui.triggerChevron}
-            classList={{ [ui.triggerChevronOpen as string]: open() }}
-          />
-        </button>
-      </div>
+              <a
+                class={`${ui.menuItem} ${ui.arcadePill}`}
+                href="#arcade"
+                role="menuitem"
+                aria-label="Open Lumen Arcade"
+                onClick={(ev) => {
+                  ev.preventDefault()
+                  setActiveTab('arcade')
+                  setOpen(false)
+                }}
+              >
+                <Star class={ui.menuIcon} />
+                <div class={ui.menuMeta}>
+                  <span class={ui.menuLabel}>Lumen Arcade</span>
+                  <span class={ui.menuSub}>Interactive lessons & duels</span>
+                </div>
+              </a>
+
+              <a
+                class={`${ui.menuItem} ${ui.benchmarkLabPill}`}
+                href={BENCHMARKS_PATH}
+                role="menuitem"
+                aria-label="Open Benchmark Lab"
+                onClick={() => setOpen(false)}
+              >
+                <GridIcon class={ui.menuIcon} />
+                <div class={ui.menuMeta}>
+                  <span class={ui.menuLabel}>Benchmark Lab</span>
+                  <span class={ui.menuSub}>Fractal performance lab</span>
+                </div>
+              </a>
+
+              <button
+                type="button"
+                class={ui.menuItem}
+                role="menuitem"
+                onClick={() => {
+                  setOpen(false)
+                  props.showBenchmark()
+                }}
+              >
+                <Zap class={ui.menuIcon} />
+                <div class={ui.menuMeta}>
+                  <span class={ui.menuLabel}>Quick GPU Benchmark</span>
+                  <span class={ui.menuSub}>Run hardware speed test</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                class={`${ui.menuItem} ${ui.docsPill}`}
+                role="menuitem"
+                onClick={() => {
+                  setOpen(false)
+                  props.showDocs()
+                }}
+              >
+                <Book class={ui.menuIcon} />
+                <div class={ui.menuMeta}>
+                  <span class={ui.menuLabel}>Documentation</span>
+                  <span class={ui.menuSub}>User guide & references</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                class={`${ui.menuItem} ${ui.aboutPill}`}
+                role="menuitem"
+                onClick={() => {
+                  setOpen(false)
+                  props.showHelp()
+                }}
+              >
+                <Info class={ui.menuIcon} />
+                <div class={ui.menuMeta}>
+                  <span class={ui.menuLabel}>About Chaos Master</span>
+                  <span class={ui.menuSub}>v{VERSION}</span>
+                </div>
+              </button>
+            </div>
+          </Show>
+
+          <button
+            type="button"
+            class={ui.menuTrigger}
+            classList={{ [ui.menuTriggerActive as string]: open() }}
+            onClick={() => setOpen(!open())}
+            aria-expanded={open()}
+            aria-haspopup="menu"
+            aria-label="Chaos Master menu and version"
+            title="Chaos Master menu & version"
+          >
+            <Menu class={ui.triggerIcon} />
+            <span class={ui.triggerLabel}>v{VERSION}</span>
+            <ChevronDown
+              class={ui.triggerChevron}
+              classList={{ [ui.triggerChevronOpen as string]: open() }}
+            />
+          </button>
+        </div>
+      </Show>
     </div>
   )
 }
