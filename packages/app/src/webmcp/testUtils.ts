@@ -118,6 +118,10 @@ export function createMockCommandContext(): CommandContext {
       setEventBanner: vi.fn(),
       stance: () => 'balanced',
       setStance: vi.fn(),
+      startClash: vi
+        .fn()
+        .mockResolvedValue({ winner: 'A', finalScore: { A: 2, B: 1 } }),
+      gameState: () => 'idle',
     },
     camera: {
       center: vi.fn(),

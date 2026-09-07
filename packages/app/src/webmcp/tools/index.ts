@@ -13,6 +13,7 @@ import { arcadeDuelReady, arcadeEndDuel, arcadeStartDuel } from './arcadeDuel'
 import { arcadeEndLesson, arcadeNarrate, arcadeStartLesson, arcadeStatus, } from './arcadeTeach'
 import { arenaCommentate } from './arenaCommentate'
 import { arenaGetStats } from './arenaGetStats'
+import { arenaStartClash } from './arenaStartClash'
 import { breedFlamesTool } from './breedFlames'
 import { createClashFlame } from './createClashFlame'
 import { createCustomVariationTool } from './createCustomVariation'
@@ -81,6 +82,7 @@ export {
   arcadeEndBeats,
   arenaGetStats,
   arenaCommentate,
+  arenaStartClash,
 }
 
 /** All Tier 1 tools, in registration order. */
@@ -124,6 +126,7 @@ export const allTools: readonly WebMcpTool[] = [
   loadShareLink,
   createClashFlame,
   openArena,
+  arenaStartClash,
   arenaCommentate,
   directorPropose,
   openArtDirector,

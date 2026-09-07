@@ -3576,6 +3576,33 @@ export function MainWorkspace(props: AppProps) {
     }
   }
 
+  const initialStartClash = async (opts?: {
+    stance?: string
+    rounds?: number
+  }) => {
+    if (!showArena()) {
+      openFlameClashUI()
+    }
+    if (opts?.stance) {
+      setArenaStance(opts.stance)
+    }
+    return new Promise((resolve) => {
+      const start = Date.now()
+      const poll = setInterval(() => {
+        if (
+          cmdContext.arena?.startClash &&
+          cmdContext.arena.startClash !== initialStartClash
+        ) {
+          clearInterval(poll)
+          resolve(cmdContext.arena.startClash(opts))
+        } else if (Date.now() - start > 4000) {
+          clearInterval(poll)
+          resolve({ error: 'Arena clash startup timed out.' })
+        }
+      }, 50)
+    })
+  }
+
   // Command context: bridges registered commands to app signals
   const cmdContext: CommandContext = {
     seatId: 'player',
@@ -3632,6 +3659,7 @@ export function MainWorkspace(props: AppProps) {
       setEventBanner: setArenaEventBanner,
       stance: arenaStance,
       setStance: setArenaStance,
+      startClash: initialStartClash,
     },
     timeline: {
       tracks: timeline.tracks,

@@ -207,6 +207,7 @@ describe('arena', () => {
     expect(card).toContain('arena_get_stats')
     expect(card).toContain('arena_commentate')
     expect(card).toContain('simulate_clash')
+    expect(card).toContain('arena_start_clash')
     expect(card).toContain(WEBMCP_FALLBACK_NOTE)
   })
 })
