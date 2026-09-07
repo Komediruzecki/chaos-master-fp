@@ -241,6 +241,7 @@ export function MainWorkspace(props: AppProps) {
     setIsPhone,
     isTablet,
     setIsTablet,
+    isTouchLayout,
     sidebarHidden,
     setSidebarHidden,
     showSidebar,
@@ -4624,6 +4625,7 @@ export function MainWorkspace(props: AppProps) {
                 executeCommand('export.png', cmdContext)
               }}
               onOpenDrawer={() => setTouchDrawerOpen(true)}
+              onPickGallery={pickGalleryFlame}
             />
             <MobileBottomSurface
               ctx={cmdContext}
@@ -4646,6 +4648,7 @@ export function MainWorkspace(props: AppProps) {
                 executeCommand('export.png', cmdContext)
               }}
               onOpenDrawer={() => setTouchDrawerOpen(true)}
+              onPickGallery={pickGalleryFlame}
             />
           </Show>
 
@@ -4672,6 +4675,7 @@ export function MainWorkspace(props: AppProps) {
                 executeCommand('export.png', cmdContext)
               }}
               onOpenDrawer={() => setTouchDrawerOpen(true)}
+              onPickGallery={pickGalleryFlame}
             />
           </Show>
 
@@ -4679,6 +4683,7 @@ export function MainWorkspace(props: AppProps) {
           <AdvancedToolsDrawer
             open={touchDrawerOpen()}
             onClose={() => setTouchDrawerOpen(false)}
+            onPickGallery={pickGalleryFlame}
             onSwitchToDesktop={() => {
               setTouchLayoutPreference('desktop')
               showToast(
@@ -4689,7 +4694,7 @@ export function MainWorkspace(props: AppProps) {
             onArtDirector={openArtDirectorUI}
             onFlameClash={openFlameClashUI}
             onBreed={() => {
-              if (isPhone() || isTablet()) {
+              if (isTouchLayout()) {
                 setTouchLayoutPreference('desktop')
                 showToast(
                   'Switched to Desktop Layout for Breeding & Genetics',
@@ -4699,7 +4704,7 @@ export function MainWorkspace(props: AppProps) {
               pickBreedFlame()
             }}
             onAudio={() => {
-              if (isPhone() || isTablet()) {
+              if (isTouchLayout()) {
                 setTouchLayoutPreference('desktop')
                 showToast('Switched to Desktop Layout for Audio Reactive', 3500)
               }
@@ -4708,7 +4713,7 @@ export function MainWorkspace(props: AppProps) {
               setShowAudioPanel(true)
             }}
             onSonification={() => {
-              if (isPhone() || isTablet()) {
+              if (isTouchLayout()) {
                 setTouchLayoutPreference('desktop')
                 showToast('Switched to Desktop Layout for Sonification', 3500)
               }
@@ -4717,7 +4722,7 @@ export function MainWorkspace(props: AppProps) {
               setShowSonificationPanel(true)
             }}
             onTimelineToggle={() => {
-              if (isPhone() || isTablet()) {
+              if (isTouchLayout()) {
                 setTouchLayoutPreference('desktop')
                 showToast('Switched to Desktop Layout for Timeline', 3500)
               }
@@ -5310,7 +5315,8 @@ export function MainWorkspace(props: AppProps) {
             devCrashTest={devCrashTest}
             touchLayoutPreference={touchLayoutPreference}
             setTouchLayoutPreference={setTouchLayoutPreference}
-            isTouchLayout={() => isPhone() || isTablet()}
+            isTouchLayout={isTouchLayout}
+            onPickGallery={pickGalleryFlame}
             duelShowing={duelShowing}
             playerFlame={effectiveFlame}
             playerZoom={[effectiveZoom, setFlameZoom]}

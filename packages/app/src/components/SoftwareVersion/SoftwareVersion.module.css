@@ -311,3 +311,43 @@
     transform: translateY(0);
   }
 }
+
+.touchRailBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.railGalleryBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  color: #f8fafc;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  transition: all 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+  touch-action: manipulation;
+}
+
+.railGalleryBtn:hover,
+.railGalleryBtn:active {
+  background: rgba(30, 41, 59, 0.95);
+  border-color: rgba(59, 130, 246, 0.5);
+  transform: translateY(-1px);
+}
+
+.railGalleryIcon {
+  width: 16px;
+  height: 16px;
+  color: #38bdf8;
+  flex-shrink: 0;
+}

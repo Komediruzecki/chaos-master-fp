@@ -1,6 +1,6 @@
 import { Show } from 'solid-js'
 import { executeCommand } from '@/commands/registry'
-import { CameraIcon, Redo, Shuffle, SidebarPanel, Sparkle, Undo } from '@/icons'
+import { CameraIcon, GridIcon, Redo, Shuffle, SidebarPanel, Sparkle, Undo, } from '@/icons'
 import ui from './TouchSurface.module.css'
 import type { Accessor } from 'solid-js'
 import type { CommandContext } from '@/commands/types'
@@ -17,6 +17,7 @@ export interface TouchHUDProps {
   onMutate?: () => void
   onSnapshot?: () => void
   onOpenDrawer?: () => void
+  onPickGallery?: () => void
 }
 
 export function TouchHUD(props: TouchHUDProps) {
@@ -26,12 +27,20 @@ export function TouchHUD(props: TouchHUDProps) {
 
   return (
     <header class={ui.topHud} role="banner" aria-label="Touch Navigation HUD">
-      <div
-        class={ui.hudTitle}
+      <button
+        type="button"
+        class={ui.hudTitleBtn}
+        onClick={() => {
+          props.onPickGallery?.()
+        }}
         title={props.flame().metadata?.name || 'Chaos Master'}
+        aria-label="Browse & load flames from gallery"
       >
-        {props.flame().metadata?.name || 'Chaos Master'}
-      </div>
+        <GridIcon class={ui.hudTitleIcon} />
+        <span class={ui.hudTitleText}>
+          {props.flame().metadata?.name || 'Chaos Master'}
+        </span>
+      </button>
 
       <div class={ui.hudActions} role="toolbar" aria-label="Quick Actions">
         <button

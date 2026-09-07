@@ -2,6 +2,7 @@ import { createEffect, createSignal, onCleanup, Show } from 'solid-js'
 import { Book, ChevronDown, GridIcon, Info, Menu, SidebarPanel, Star, Zap, } from '@/icons'
 import { setActiveTab } from '@/lib/activeTab'
 import { BENCHMARKS_PATH } from '@/routing/appPath'
+import { isTouchLayout as globalIsTouchLayout, setTouchLayoutPreference as globalSetTouchLayoutPref, } from '@/stores/workspaceLayoutStore'
 import { VERSION } from '@/version'
 import { BenchmarkButton } from '../BenchmarkButton/BenchmarkButton'
 import { DebugPanel } from '../Debug/DebugPanel'
@@ -15,11 +16,20 @@ export interface SoftwareVersionProps {
   touchLayoutPreference?: () => TouchLayoutPreference
   setTouchLayoutPreference?: (pref: TouchLayoutPreference) => void
   isTouchLayout?: () => boolean
+  onPickGallery?: () => void
 }
 
 export function SoftwareVersion(props: SoftwareVersionProps) {
   const [open, setOpen] = createSignal(false)
-  const isTouch = () => props.isTouchLayout?.() ?? false
+  const isTouch = () =>
+    props.isTouchLayout ? props.isTouchLayout() : globalIsTouchLayout()
+  const setTouchPref = (pref: TouchLayoutPreference) => {
+    if (props.setTouchLayoutPreference) {
+      props.setTouchLayoutPreference(pref)
+    } else {
+      globalSetTouchLayoutPref(pref)
+    }
+  }
 
   createEffect(() => {
     if (!open() || typeof window === 'undefined') return
@@ -82,20 +92,18 @@ export function SoftwareVersion(props: SoftwareVersionProps) {
             >
               <Info class={ui.pillIcon} />v{VERSION}
             </button>
-            <Show when={props.setTouchLayoutPreference}>
-              <button
-                type="button"
-                class={ui.layoutPill}
-                onClick={() => {
-                  props.setTouchLayoutPreference?.('touch')
-                }}
-                title="Switch to Touch Studio"
-                aria-label="Switch to Touch Studio"
-              >
-                <SidebarPanel class={ui.pillIcon} />
-                Touch
-              </button>
-            </Show>
+            <button
+              type="button"
+              class={ui.layoutPill}
+              onClick={() => {
+                setTouchPref('touch')
+              }}
+              title="Switch to Touch Studio"
+              aria-label="Switch to Touch Studio"
+            >
+              <SidebarPanel class={ui.pillIcon} />
+              Touch
+            </button>
           </div>
         }
       >
@@ -111,28 +119,41 @@ export function SoftwareVersion(props: SoftwareVersionProps) {
               role="menu"
               aria-label="Chaos Master menu"
             >
-              <Show
-                when={
-                  props.touchLayoutPreference && props.setTouchLayoutPreference
-                }
+              <button
+                type="button"
+                role="menuitem"
+                class={`${ui.menuItem} ${ui.menuItemHighlight}`}
+                onClick={() => {
+                  setTouchPref('desktop')
+                  setOpen(false)
+                }}
               >
+                <SidebarPanel class={ui.menuIcon} />
+                <div class={ui.menuMeta}>
+                  <span class={ui.menuLabel}>Switch to Desktop Layout</span>
+                  <span class={ui.menuSub}>Sidebar, dock & inspector</span>
+                </div>
+              </button>
+              <Show when={props.onPickGallery}>
                 <button
                   type="button"
                   role="menuitem"
                   class={`${ui.menuItem} ${ui.menuItemHighlight}`}
                   onClick={() => {
-                    props.setTouchLayoutPreference!('desktop')
+                    props.onPickGallery?.()
                     setOpen(false)
                   }}
                 >
-                  <SidebarPanel class={ui.menuIcon} />
+                  <GridIcon class={ui.menuIcon} />
                   <div class={ui.menuMeta}>
-                    <span class={ui.menuLabel}>Switch to Desktop Layout</span>
-                    <span class={ui.menuSub}>Sidebar, dock & inspector</span>
+                    <span class={ui.menuLabel}>Browse Flame Gallery</span>
+                    <span class={ui.menuSub}>
+                      Search & load presets or community
+                    </span>
                   </div>
                 </button>
-                <div class={ui.menuDivider} />
               </Show>
+              <div class={ui.menuDivider} />
 
               <a
                 class={`${ui.menuItem} ${ui.arcadePill}`}
@@ -216,23 +237,38 @@ export function SoftwareVersion(props: SoftwareVersionProps) {
             </div>
           </Show>
 
-          <button
-            type="button"
-            class={ui.menuTrigger}
-            classList={{ [ui.menuTriggerActive as string]: open() }}
-            onClick={() => setOpen(!open())}
-            aria-expanded={open()}
-            aria-haspopup="menu"
-            aria-label="Chaos Master menu and version"
-            title="Chaos Master menu & version"
-          >
-            <Menu class={ui.triggerIcon} />
-            <span class={ui.triggerLabel}>v{VERSION}</span>
-            <ChevronDown
-              class={ui.triggerChevron}
-              classList={{ [ui.triggerChevronOpen as string]: open() }}
-            />
-          </button>
+          <div class={ui.touchRailBar}>
+            <button
+              type="button"
+              class={ui.menuTrigger}
+              classList={{ [ui.menuTriggerActive as string]: open() }}
+              onClick={() => setOpen(!open())}
+              aria-expanded={open()}
+              aria-haspopup="menu"
+              aria-label="Chaos Master menu and version"
+              title="Chaos Master menu & version"
+            >
+              <Menu class={ui.triggerIcon} />
+              <span class={ui.triggerLabel}>v{VERSION}</span>
+              <ChevronDown
+                class={ui.triggerChevron}
+                classList={{ [ui.triggerChevronOpen as string]: open() }}
+              />
+            </button>
+
+            <Show when={props.onPickGallery}>
+              <button
+                type="button"
+                class={ui.railGalleryBtn}
+                onClick={() => props.onPickGallery?.()}
+                title="Browse and load flames"
+                aria-label="Browse and load flames"
+              >
+                <GridIcon class={ui.railGalleryIcon} />
+                <span>Flames</span>
+              </button>
+            </Show>
+          </div>
         </div>
       </Show>
     </div>

@@ -18,6 +18,7 @@ export interface TouchControlSurfaceProps {
   canUndo?: Accessor<boolean>
   canRedo?: Accessor<boolean>
   onSnapshot?: () => void
+  onPickGallery?: () => void
 }
 
 export interface MobileBottomSurfaceProps {
@@ -31,6 +32,7 @@ export interface MobileBottomSurfaceProps {
   canUndo?: Accessor<boolean>
   canRedo?: Accessor<boolean>
   onSnapshot?: () => void
+  onPickGallery?: () => void
 }
 
 export interface TabletSplitLayoutProps {
@@ -45,6 +47,7 @@ export interface TabletSplitLayoutProps {
   canUndo?: Accessor<boolean>
   canRedo?: Accessor<boolean>
   onSnapshot?: () => void
+  onPickGallery?: () => void
 }
 
 export interface AdvancedDrawerItem {

@@ -1258,6 +1258,15 @@
   transition: top 0.18s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+.toast-region-touch {
+  right: auto;
+  left: max(0.75rem, env(safe-area-inset-left));
+  align-items: flex-start;
+  top: calc(
+    max(0.75rem, env(safe-area-inset-top)) + var(--toast-stack-offset, 0px)
+  );
+}
+
 .toast {
   display: flex;
   align-items: center;
@@ -1282,6 +1291,10 @@
     color: oklch(26% 0.05 240);
     box-shadow: 0 4px 16px oklch(50% 0.04 240 / 0.18);
   }
+}
+
+.toast-touch {
+  animation-name: toast-in-left;
 }
 
 /* Toast with buttons: interactive. Hiding is the store's job (sticky toasts
@@ -1332,11 +1345,13 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .toast {
+  .toast,
+  .toast-touch {
     animation: none;
   }
 
-  .toast-region {
+  .toast-region,
+  .toast-region-touch {
     transition: none;
   }
 }
@@ -1573,6 +1588,17 @@
   from {
     opacity: 0;
     transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes toast-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
   }
   to {
     opacity: 1;

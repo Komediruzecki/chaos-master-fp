@@ -34,6 +34,42 @@
   user-select: none;
 }
 
+.hudTitleBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: #f1f5f9;
+  cursor: pointer;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  max-width: 150px;
+  transition: all 0.15s ease;
+  touch-action: manipulation;
+}
+
+.hudTitleBtn:hover,
+.hudTitleBtn:active {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.hudTitleIcon {
+  width: 14px;
+  height: 14px;
+  color: #38bdf8;
+  flex-shrink: 0;
+}
+
+.hudTitleText {
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .hudActions {
   display: flex;
   align-items: center;
@@ -189,6 +225,66 @@
   font-weight: 600;
   color: #f8fafc;
   margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tabletFlamePickBtn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 6px 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+  min-width: 0;
+  max-width: calc(100% - 130px);
+  touch-action: manipulation;
+}
+
+.tabletFlamePickBtn:hover,
+.tabletFlamePickBtn:active {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(59, 130, 246, 0.5);
+  transform: translateY(-1px);
+}
+
+.tabletFlamePickIcon {
+  width: 18px;
+  height: 18px;
+  color: #38bdf8;
+  flex-shrink: 0;
+}
+
+.tabletFlameMeta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.tabletDeckSub {
+  font-size: 0.68rem;
+  color: #94a3b8;
+  line-height: 1.2;
+}
+
+.tabletFlameBadge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 /* Touch Control Surface Shared Elements */
