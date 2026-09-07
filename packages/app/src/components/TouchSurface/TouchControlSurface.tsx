@@ -14,7 +14,7 @@ import type { TouchControlSurfaceProps, TouchTab } from './types'
 import type { AffineControls } from '@/arcade/affineControls'
 import type { AffineParams } from '@/flame/affineTranform'
 import type { Palette } from '@/flame/colorMap'
-import type { TransformId } from '@/flame/schema/flameSchema'
+import type { TransformId, VariationId } from '@/flame/schema/flameSchema'
 import type { Dims } from '@/flame/variationRegistry'
 
 /** Helper to compute palette average hue for 14 spread swatches */
@@ -209,49 +209,56 @@ export function TouchControlSurface(props: TouchControlSurfaceProps) {
               <Show when={activeTab() === 'variations'}>
                 <div class={ui.variationsContainer}>
                   <div class={ui.activeVariationsList}>
-                    <For each={Object.entries(t().variations)}>
-                      {([vid, variation]) => (
-                        <div class={ui.activeVarRow}>
-                          <span class={ui.varName}>
-                            {readableType(variation.type)}
-                          </span>
-                          <input
-                            type="range"
-                            class={ui.varWeightSlider}
-                            min={-1}
-                            max={2}
-                            step={0.02}
-                            value={variation.weight}
-                            aria-label={`${readableType(variation.type)} weight`}
-                            onInput={(ev) => {
-                              dispatch(
-                                'flame.setVariationWeight',
-                                currentTransformId(),
-                                vid,
-                                Number(ev.currentTarget.value),
-                              )
-                            }}
-                          />
-                          <span class={ui.varWeightVal}>
-                            {variation.weight.toFixed(2)}
-                          </span>
-                          <button
-                            type="button"
-                            class={ui.iconBtnSmall}
-                            title={`Remove ${readableType(variation.type)}`}
-                            aria-label={`Remove ${readableType(variation.type)}`}
-                            onClick={() => {
-                              dispatch(
-                                'flame.deleteVariation',
-                                currentTransformId(),
-                                vid,
-                              )
-                            }}
-                          >
-                            <Minus class={ui.hudButtonIcon} />
-                          </button>
-                        </div>
-                      )}
+                    <For each={Object.keys(t().variations) as VariationId[]}>
+                      {(vid) => {
+                        const variation = () => t().variations[vid]
+                        return (
+                          <Show when={variation()}>
+                            {(v) => (
+                              <div class={ui.activeVarRow}>
+                                <span class={ui.varName}>
+                                  {readableType(v().type)}
+                                </span>
+                                <input
+                                  type="range"
+                                  class={ui.varWeightSlider}
+                                  min={-1}
+                                  max={2}
+                                  step={0.02}
+                                  value={v().weight}
+                                  aria-label={`${readableType(v().type)} weight`}
+                                  onInput={(ev) => {
+                                    dispatch(
+                                      'flame.setVariationWeight',
+                                      currentTransformId(),
+                                      vid,
+                                      Number(ev.currentTarget.value),
+                                    )
+                                  }}
+                                />
+                                <span class={ui.varWeightVal}>
+                                  {v().weight.toFixed(2)}
+                                </span>
+                                <button
+                                  type="button"
+                                  class={ui.iconBtnSmall}
+                                  title={`Remove ${readableType(v().type)}`}
+                                  aria-label={`Remove ${readableType(v().type)}`}
+                                  onClick={() => {
+                                    dispatch(
+                                      'flame.deleteVariation',
+                                      currentTransformId(),
+                                      vid,
+                                    )
+                                  }}
+                                >
+                                  <Minus class={ui.hudButtonIcon} />
+                                </button>
+                              </div>
+                            )}
+                          </Show>
+                        )
+                      }}
                     </For>
                   </div>
 
@@ -444,7 +451,7 @@ export function TouchControlSurface(props: TouchControlSurfaceProps) {
                           'flame.setTransformColor',
                           currentTransformId(),
                           Number(ev.currentTarget.value),
-                          0,
+                          t().color?.y ?? 0,
                         )
                       }}
                     />

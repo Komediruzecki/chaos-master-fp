@@ -574,7 +574,9 @@ export function MainWorkspace(props: AppProps) {
   let randomizerCardRef: HTMLDivElement | undefined
   createEffect(() => {
     const mq = window.matchMedia('(max-width: 768px)')
-    const mqPhone = window.matchMedia(`(max-width: ${PHONE_MAX_WIDTH - 1}px)`)
+    const mqPhone = window.matchMedia(
+      `(max-width: ${PHONE_MAX_WIDTH - 0.02}px)`,
+    )
     const mqTablet = window.matchMedia(
       `(min-width: ${PHONE_MAX_WIDTH}px) and (max-width: ${TABLET_MAX_WIDTH}px)`,
     )
@@ -603,11 +605,11 @@ export function MainWorkspace(props: AppProps) {
     mq.addEventListener('change', handler)
     mqPhone.addEventListener('change', phoneHandler)
     mqTablet.addEventListener('change', tabletHandler)
-    return () => {
+    onCleanup(() => {
       mq.removeEventListener('change', handler)
       mqPhone.removeEventListener('change', phoneHandler)
       mqTablet.removeEventListener('change', tabletHandler)
-    }
+    })
   })
   // The session currently open for replay (M4), if any. Lives here rather than
   // in the dock because dropping a .steps.json opens one too.
@@ -4622,28 +4624,6 @@ export function MainWorkspace(props: AppProps) {
 
           {/* Tablet Split Touch Interface */}
           <Show when={isTablet()}>
-            <TouchHUD
-              ctx={cmdContext}
-              flame={effectiveFlame}
-              canUndo={undoRouter.canUndo}
-              canRedo={undoRouter.canRedo}
-              onRandomize={() => {
-                executeCommand('flame.randomize', cmdContext)
-              }}
-              onMutate={() => {
-                executeCommand('flame.mutate', cmdContext)
-              }}
-              onUndo={() => {
-                executeCommand('history.undo', cmdContext)
-              }}
-              onRedo={() => {
-                executeCommand('history.redo', cmdContext)
-              }}
-              onSnapshot={() => {
-                executeCommand('export.png', cmdContext)
-              }}
-              onOpenDrawer={() => setTouchDrawerOpen(true)}
-            />
             <TabletInspectorDeck
               ctx={cmdContext}
               flame={effectiveFlame}
