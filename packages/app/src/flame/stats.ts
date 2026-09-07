@@ -93,6 +93,22 @@ export function getSchoolMultiplier(
   return 1.0
 }
 
+export const COMBAT_COEFFICIENTS = {
+  BASE_HP_MULTIPLIER: 100,
+  BASE_DEFENSE_MULTIPLIER: 50,
+  MAX_SYMMETRY_BOOST: 2.5,
+  SYMMETRY_STEP: 0.25,
+  CRIT_CHANCE_FACTOR: 0.4,
+  ATK_GEOMETRIC_WEIGHT: 0.6,
+  ATK_BEAUTY_WEIGHT: 0.4,
+  POWER_WEIGHTS: {
+    HP: 3,
+    ATK: 8,
+    DEF: 6,
+    BEAUTY: 4,
+  },
+} as const
+
 const LINEAR_VARIATIONS = new Set([
   'linearVar',
   'linearTVar',
@@ -428,14 +444,30 @@ export function calculateGroundedStats(
   const school = classifySchool(flame)
 
   // RPG Attributes
-  const hp = Math.round(100 * (1 + stability))
-  const atk = Math.round(
-    0.6 * (dimension * 10 + nonlinearity * 10) + 0.4 * beauty,
+  const hp = Math.round(
+    COMBAT_COEFFICIENTS.BASE_HP_MULTIPLIER * (1 + stability),
   )
-  const symMultiplier = Math.min(2.5, 1 + (symmetryOrder - 1) * 0.25)
-  const def = Math.round(stability * symMultiplier * 50)
-  const critChance = Number((entropy * 0.4).toFixed(2))
-  const powerLevel = Math.round(hp * 3 + atk * 8 + def * 6 + beauty * 4)
+  const atk = Math.round(
+    COMBAT_COEFFICIENTS.ATK_GEOMETRIC_WEIGHT *
+      (dimension * 10 + nonlinearity * 10) +
+      COMBAT_COEFFICIENTS.ATK_BEAUTY_WEIGHT * beauty,
+  )
+  const symMultiplier = Math.min(
+    COMBAT_COEFFICIENTS.MAX_SYMMETRY_BOOST,
+    1 + (symmetryOrder - 1) * COMBAT_COEFFICIENTS.SYMMETRY_STEP,
+  )
+  const def = Math.round(
+    stability * symMultiplier * COMBAT_COEFFICIENTS.BASE_DEFENSE_MULTIPLIER,
+  )
+  const critChance = Number(
+    (entropy * COMBAT_COEFFICIENTS.CRIT_CHANCE_FACTOR).toFixed(2),
+  )
+  const powerLevel = Math.round(
+    hp * COMBAT_COEFFICIENTS.POWER_WEIGHTS.HP +
+      atk * COMBAT_COEFFICIENTS.POWER_WEIGHTS.ATK +
+      def * COMBAT_COEFFICIENTS.POWER_WEIGHTS.DEF +
+      beauty * COMBAT_COEFFICIENTS.POWER_WEIGHTS.BEAUTY,
+  )
 
   return {
     dimension,
@@ -466,6 +498,7 @@ export function resolveClashCombat(options: {
   stanceB?: TacticalStance
   rounds?: number
   seed?: number
+  territoryWinner?: 'A' | 'B' | 'draw'
 }): ClashCombatResult {
   const {
     nameA,
@@ -476,6 +509,7 @@ export function resolveClashCombat(options: {
     stanceB = 'balanced',
     rounds = 3,
     seed = 4242,
+    territoryWinner,
   } = options
 
   const statsA = calculateGroundedStats(flameA)
@@ -572,9 +606,11 @@ export function resolveClashCombat(options: {
     })
   }
 
-  // Determine overall winner
+  // Determine overall winner (honoring territoryWinner if provided)
   let winner: 'A' | 'B' | 'draw'
-  if (curHpA > curHpB) winner = 'A'
+  if (territoryWinner) {
+    winner = territoryWinner
+  } else if (curHpA > curHpB) winner = 'A'
   else if (curHpB > curHpA) winner = 'B'
   else if (winsA > winsB) winner = 'A'
   else if (winsB > winsA) winner = 'B'

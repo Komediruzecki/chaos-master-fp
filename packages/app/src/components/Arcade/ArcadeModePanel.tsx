@@ -6,12 +6,14 @@ import { ARENA_ARCHETYPES_LIST, ARENA_STANCES, arenaPromptCard, BEATS_PRESETS, b
 import { variationTypesFor } from '@/flame/variationRegistry'
 import { Copy, Cross, Swords } from '@/icons'
 import { getWebMcpContext } from '@/webmcp/contextBridge'
+import { generateArchetypeOpponent } from '@/webmcp/tools/arenaArchetypes'
 import ui from './ArcadeHub.module.css'
 import type { DuelStartFrom } from '@/arcade/duelActions'
 import type { TopicId } from '@/arcade/topics'
 import type { TacticalStance } from '@/flame/stats'
 import type { Dims } from '@/flame/variationRegistry'
 import type { ArcadeMode } from '@/lib/activeTab'
+import type { ArchetypeId } from '@/webmcp/tools/arenaArchetypes'
 
 /**
  * Whether the hub offers a duel with nobody in the other seat.
@@ -471,6 +473,22 @@ export function ArcadeModePanel(props: {
               if (ctx?.arena) {
                 if (ctx.arena.setStance) {
                   ctx.arena.setStance(selectedStance())
+                }
+                const currentFlame = ctx.flameDescriptor?.()
+                if (currentFlame && ctx.arena.setPlayer2Stats) {
+                  const opp = generateArchetypeOpponent(
+                    currentFlame,
+                    selectedArchetype().id as ArchetypeId,
+                  )
+                  ctx.arena.setPlayer2Stats({
+                    name: opp.name,
+                    type: opp.className,
+                    school: opp.school,
+                    powerLevel: opp.powerLevel,
+                    flame: opp.flame,
+                    groundedStats: opp.groundedStats,
+                    metrics: opp.metrics,
+                  })
                 }
                 ctx.arena.setOpen(true)
               }

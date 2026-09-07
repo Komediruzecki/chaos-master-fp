@@ -96,13 +96,13 @@ describe('arena WebMCP tools', () => {
       expect(res).toHaveProperty('error')
     })
 
-    it('opens arena and initiates animated clash in UI', async () => {
+    it('opens arena and initiates animated clash in UI with mapped archetype stats', async () => {
       const ctx = createMockCommandContext()
       setWebMcpContext(ctx)
 
       const res = await run(arenaStartClash, {
         stance: 'resonance',
-        opponentArchetype: 'crystal_golem',
+        opponentArchetype: 'symmetry_monolith',
         rounds: 3,
       })
 
@@ -111,6 +111,35 @@ describe('arena WebMCP tools', () => {
       expect(ctx.arena?.setStance).toHaveBeenCalledWith('resonance')
       expect(ctx.arena?.setOpen).toHaveBeenCalledWith(true)
       expect(ctx.arena?.startClash).toHaveBeenCalled()
+      expect(ctx.arena?.setPlayer2Stats).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'Aethelgard Monolith',
+          type: 'Symmetry Monolith',
+        }),
+      )
+    })
+
+    it('successfully handles all registered ARCHETYPE_IDS', async () => {
+      const archetypes = [
+        'chaos_lord',
+        'symmetry_monolith',
+        'spiral_leviathan',
+        'quantum_siren',
+        'solar_seraph',
+        'void_stalker',
+      ]
+
+      for (const arch of archetypes) {
+        const ctx = createMockCommandContext()
+        setWebMcpContext(ctx)
+
+        const res = await run(arenaStartClash, {
+          opponentArchetype: arch,
+        })
+        expect(res).not.toHaveProperty('error')
+        expect(res.success).toBe(true)
+        expect(ctx.arena?.setPlayer2Stats).toHaveBeenCalled()
+      }
     })
   })
 })

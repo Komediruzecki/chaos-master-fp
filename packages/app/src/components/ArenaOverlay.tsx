@@ -10,7 +10,7 @@ import { DEFAULT_SEAT } from '@/seats/seatId'
 import { deepClone } from '@/utils/clone'
 import { getWebMcpContext } from '@/webmcp/contextBridge'
 import { animateClash } from '@/webmcp/tools/animateClash'
-import { ARENA_ARCHETYPES, generateArchetypeOpponent, TACTICAL_STANCES, } from '@/webmcp/tools/arenaArchetypes'
+import { ARENA_ARCHETYPES, calculateEffectivePower, generateArchetypeOpponent, TACTICAL_STANCES, } from '@/webmcp/tools/arenaArchetypes'
 import { simulateClash } from '@/webmcp/tools/simulateClash'
 import ui from './ArenaOverlay.module.css'
 import type { Component } from 'solid-js'
@@ -96,42 +96,24 @@ function drawRoundedRect(
 
 function getVictorImage(isWinner1: boolean): Promise<HTMLImageElement | null> {
   const cardSelector = isWinner1 ? `.${ui.p1Card}` : `.${ui.p2Card}`
-  const card = document.querySelector<HTMLElement>(cardSelector)
-  if (!card) return Promise.resolve(null)
+  const targetCard = document.querySelector<HTMLElement>(cardSelector)
+  const winnerContainer = document.querySelector<HTMLElement>(
+    `.${ui.winnerArtContainer}`,
+  )
+  const candidateContainers = [winnerContainer, targetCard].filter(
+    Boolean,
+  ) as HTMLElement[]
 
-  const canvas = card.querySelector<HTMLCanvasElement>('canvas')
-  if (canvas) {
-    return new Promise((resolve) => {
-      try {
-        canvas.toBlob((blob) => {
-          if (!blob) {
-            resolve(null)
-            return
-          }
-          const img = new Image()
-          const url = URL.createObjectURL(blob)
-          img.onload = () => {
-            URL.revokeObjectURL(url)
-            resolve(img)
-          }
-          img.onerror = () => {
-            URL.revokeObjectURL(url)
-            resolve(null)
-          }
-          img.src = url
-        }, 'image/png')
-      } catch {
-        resolve(null)
-      }
-    })
-  }
+  if (candidateContainers.length === 0) return Promise.resolve(null)
 
-  const previewDiv = card.querySelector<HTMLElement>('[data-preview-state]')
-  if (previewDiv) {
+  // 1. Try converged snapshot background URL first (most reliable)
+  for (const container of candidateContainers) {
+    const previewDiv =
+      container.querySelector<HTMLElement>('[data-preview-state]') || container
     const bg =
       previewDiv.style.getPropertyValue('--background') ||
       previewDiv.style.backgroundImage
-    const match = bg.match(/url\(['"]?(.*?)['"]?\)/)
+    const match = bg ? bg.match(/url\(['"]?(.*?)['"]?\)/) : null
     if (match && match[1]) {
       return new Promise((resolve) => {
         const img = new Image()
@@ -142,6 +124,36 @@ function getVictorImage(isWinner1: boolean): Promise<HTMLImageElement | null> {
           resolve(null)
         }
         img.src = match[1]!
+      })
+    }
+  }
+
+  // 2. Fall back to canvas toBlob if snapshot not available yet
+  for (const container of candidateContainers) {
+    const canvas = container.querySelector<HTMLCanvasElement>('canvas')
+    if (canvas) {
+      return new Promise((resolve) => {
+        try {
+          canvas.toBlob((blob) => {
+            if (!blob) {
+              resolve(null)
+              return
+            }
+            const img = new Image()
+            const url = URL.createObjectURL(blob)
+            img.onload = () => {
+              URL.revokeObjectURL(url)
+              resolve(img)
+            }
+            img.onerror = () => {
+              URL.revokeObjectURL(url)
+              resolve(null)
+            }
+            img.src = url
+          }, 'image/png')
+        } catch {
+          resolve(null)
+        }
       })
     }
   }
@@ -588,6 +600,7 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
   }
 
   let activeInterval: ReturnType<typeof setInterval> | null = null
+  let activeTimeouts: ReturnType<typeof setTimeout>[] = []
   let initialFlame: FlameDescriptor | null = null
   let initialTracks: TimelineTrack[] | null = null
   let initialDuration: number | null = null
@@ -595,6 +608,29 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
   let wasClashStaged = false
   const [cachedSimResult, setCachedSimResult] =
     createSignal<SimulateClashResult | null>(null)
+
+  const registerTimeout = (
+    fn: () => void,
+    ms: number,
+  ): ReturnType<typeof setTimeout> => {
+    const id = setTimeout(() => {
+      activeTimeouts = activeTimeouts.filter((t) => t !== id)
+      fn()
+    }, ms)
+    activeTimeouts.push(id)
+    return id
+  }
+
+  const clearAllTimers = () => {
+    if (activeInterval !== null) {
+      clearInterval(activeInterval)
+      activeInterval = null
+    }
+    for (const id of activeTimeouts) {
+      clearTimeout(id)
+    }
+    activeTimeouts = []
+  }
 
   // Pinned to the player throughout: the target follows a duel to the rival
   // seat, and restoring through it would write the agent's flame into the
@@ -633,20 +669,13 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
     }
   }
 
-  const clearActiveInterval = () => {
-    if (activeInterval !== null) {
-      clearInterval(activeInterval)
-      activeInterval = null
-    }
-  }
-
   // Reroll opponent to a fresh procedural archetype
   const handleRerollOpponent = (specificArchetype?: ArchetypeId) => {
     const p1 = props.arena.player1Stats()
     const base = p1?.flame ?? initialFlame
     if (!base) return
 
-    clearActiveInterval()
+    clearAllTimers()
     restoreWorkspace()
     setGameState('idle')
     setWinner(null)
@@ -672,7 +701,6 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
         metrics: newOpponent.metrics,
       })
     }
-    setP2Version((v) => v + 1)
   }
 
   onMount(() => {
@@ -697,12 +725,12 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
   })
 
   onCleanup(() => {
-    clearActiveInterval()
+    clearAllTimers()
     restoreWorkspace()
   })
 
   const handleClose = () => {
-    clearActiveInterval()
+    clearAllTimers()
     restoreWorkspace()
     props.arena.setOpen(false)
     props.onClose?.()
@@ -715,7 +743,7 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
     const p2 = props.arena.player2Stats()
     if (!p1 || !p2 || !p1.flame || !p2.flame) return
 
-    clearActiveInterval()
+    clearAllTimers()
     captureWorkspace()
 
     setGameState('clashing')
@@ -787,12 +815,12 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
         )
 
         // Trigger visual impact flash, screen shake, and floating text at mid-round collision
-        setTimeout(() => {
+        registerTimeout(() => {
           if (gameState() !== 'clashing') return
           setIsShaking(true)
-          setTimeout(() => setIsShaking(false), 300)
+          registerTimeout(() => setIsShaking(false), 300)
           setShockwaveActive(true)
-          setTimeout(() => setShockwaveActive(false), 600)
+          registerTimeout(() => setShockwaveActive(false), 600)
           const isWinnerP1 = r.winner === 'A'
           const floaterText = r.event
             ? `CRITICAL [${r.event}]!`
@@ -807,7 +835,7 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
               ? '#fb923c'
               : '#fbbf24'
           setCombatFloater({ text: floaterText, color: floaterColor })
-          setTimeout(() => setCombatFloater(null), 850)
+          registerTimeout(() => setCombatFloater(null), 850)
         }, 350)
 
         currentIdx++
@@ -819,7 +847,7 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
   }
 
   const finishSimulation = (simRes: SimulateClashResult) => {
-    clearActiveInterval()
+    clearAllTimers()
     if (timeline) {
       timeline.pause()
     }
@@ -866,7 +894,7 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
   }
 
   const loadFighter = (player: 1 | 2) => {
-    clearActiveInterval()
+    clearAllTimers()
     wasClashStaged = false
     if (props.arena.selectFighter) {
       props.arena.selectFighter(player)
@@ -1040,15 +1068,10 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
             {/* Player 1 (Left / Cyan) */}
             <Show when={props.arena.player1Stats()}>
               {(p1) => {
-                const curStance = () => TACTICAL_STANCES[stance()]
+                const curStance = () =>
+                  TACTICAL_STANCES[stance()] ?? TACTICAL_STANCES.balanced
                 const effPower = () =>
-                  Math.round(
-                    (p1().powerLevel || 0) *
-                      ((curStance().effects.energyMultiplier +
-                        curStance().effects.symmetryMultiplier +
-                        curStance().effects.chaosMultiplier) /
-                        3),
-                  )
+                  calculateEffectivePower(p1().powerLevel || 0, stance())
 
                 return (
                   <div
@@ -1058,7 +1081,6 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
                     <div class={ui.fighterPreview}>
                       <Show
                         when={p1PreviewFlame()}
-                        keyed
                         fallback={
                           <div class={ui.fighterPreviewInner}>
                             <span class={ui.fighterLabel}>
@@ -1072,7 +1094,7 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
                             <VariationPreview
                               version={p1Version()}
                               isSelected={winner() === 1}
-                              flame={f}
+                              flame={f()}
                               name={p1().name ?? 'Player 1'}
                               resolution={PREVIEW_RES}
                               hardwareTier={props.hardwareTier}
@@ -1327,7 +1349,6 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
                         when={
                           winner() === 2 ? p2PreviewFlame() : p1PreviewFlame()
                         }
-                        keyed
                         fallback={
                           <div class={ui.fighterPreviewInner}>
                             <span class={ui.fighterLabel}>
@@ -1343,7 +1364,7 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
                                 winner() === 2 ? p2Version() : p1Version()
                               }
                               isSelected={true}
-                              flame={f}
+                              flame={f()}
                               name={victorStats()?.name ?? 'Champion'}
                               resolution={PREVIEW_RES}
                               hardwareTier={props.hardwareTier}
@@ -1517,7 +1538,6 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
                   <div class={ui.fighterPreview}>
                     <Show
                       when={p2PreviewFlame()}
-                      keyed
                       fallback={
                         <div class={ui.fighterPreviewInner}>
                           <span class={ui.fighterLabel}>
@@ -1531,7 +1551,7 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
                           <VariationPreview
                             version={p2Version()}
                             isSelected={winner() === 2}
-                            flame={f}
+                            flame={f()}
                             name={p2().name ?? 'Player 2'}
                             resolution={PREVIEW_RES}
                             hardwareTier={props.hardwareTier}
