@@ -4,6 +4,7 @@ import { clearWebMcpContext, setWebMcpContext } from '@/webmcp/contextBridge'
 import { createMockCommandContext, createTestFlame } from '@/webmcp/testUtils'
 import { arenaCommentate } from './arenaCommentate'
 import { arenaGetStats } from './arenaGetStats'
+import { arenaStartClash } from './arenaStartClash'
 import { simulateClash } from './simulateClash'
 import type { WebMcpTool } from '@/webmcp/types'
 
@@ -86,6 +87,30 @@ describe('arena WebMCP tools', () => {
       expect(res.battleLog).toBeDefined()
       expect(Array.isArray(res.battleLog)).toBe(true)
       expect((res.battleLog as string[]).length).toBeGreaterThan(3)
+    })
+  })
+
+  describe('arena_start_clash', () => {
+    it('refuses without workspace context', async () => {
+      const res = await run(arenaStartClash)
+      expect(res).toHaveProperty('error')
+    })
+
+    it('opens arena and initiates animated clash in UI', async () => {
+      const ctx = createMockCommandContext()
+      setWebMcpContext(ctx)
+
+      const res = await run(arenaStartClash, {
+        stance: 'resonance',
+        opponentArchetype: 'crystal_golem',
+        rounds: 3,
+      })
+
+      expect(res).not.toHaveProperty('error')
+      expect(res.success).toBe(true)
+      expect(ctx.arena?.setStance).toHaveBeenCalledWith('resonance')
+      expect(ctx.arena?.setOpen).toHaveBeenCalledWith(true)
+      expect(ctx.arena?.startClash).toHaveBeenCalled()
     })
   })
 })

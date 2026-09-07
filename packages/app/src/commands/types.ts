@@ -115,6 +115,11 @@ export interface CommandContext {
     setEventBanner?: (event: string | null) => void
     stance?: Accessor<string>
     setStance?: (stance: string) => void
+    startClash?: (options?: {
+      stance?: string
+      rounds?: number
+    }) => Promise<unknown>
+    gameState?: Accessor<'idle' | 'clashing' | 'results'>
   }
   timeline: {
     tracks: Accessor<TimelineTrack[]>

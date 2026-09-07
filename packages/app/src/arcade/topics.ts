@@ -454,7 +454,7 @@ export function arenaPromptCard(
     strategyGoal?.trim() ||
     `Evaluate our flame with arena_get_stats to identify our school strengths, stability, and crit potential. Formulate a battle plan against ${opponentName} in ${stanceName} stance.`
 
-  return `Coach and battle with me in the Flame Clash Arena in Lumen Apeiron. Check our stats with arena_get_stats to determine our school affinities and attributes against ${opponentName} (stance: ${stanceName}). Execute combat strategy: ${goalText}. Use simulate_clash or open_arena to battle, and arena_commentate to narrate turns, track remaining HP, and celebrate victory!
+  return `Coach and battle with me in the Flame Clash Arena in Lumen Apeiron. Check our stats with arena_get_stats to determine our school affinities and attributes against ${opponentName} (stance: ${stanceName}). Execute combat strategy: ${goalText}. Launch and animate the visual combat in the UI using arena_start_clash (or simulate_clash), watch the fighters clash in the arena spectator HUD, and use arena_commentate to narrate turns, track remaining HP, and celebrate victory!
 
 ${WEBMCP_FALLBACK_NOTE}`
 }
