@@ -1,6 +1,6 @@
 import { resolveClashCombat } from '@/flame/stats'
 import { deepClone } from '@/utils/clone'
-import { TACTICAL_STANCES } from '@/webmcp/tools/arenaArchetypes'
+import { calculateEffectivePower, TACTICAL_STANCES, } from '@/webmcp/tools/arenaArchetypes'
 import { createClashFlame } from '@/webmcp/tools/createClashFlame'
 import { scoreClashRound } from '@/webmcp/tools/scoreClashRound'
 import { calculateFlameStats } from '@/webmcp/tools/scoreFlame'
@@ -125,13 +125,7 @@ export const simulateClash: WebMcpTool = {
 
     const statsA = {
       ...baseStatsA,
-      powerLevel: Math.round(
-        baseStatsA.powerLevel *
-          ((stanceInfoA.effects.energyMultiplier +
-            stanceInfoA.effects.symmetryMultiplier +
-            stanceInfoA.effects.chaosMultiplier) /
-            3),
-      ),
+      powerLevel: calculateEffectivePower(baseStatsA.powerLevel, stanceA),
       metrics: {
         complexity:
           baseStatsA.metrics.complexity *
@@ -149,13 +143,7 @@ export const simulateClash: WebMcpTool = {
 
     const statsB = {
       ...baseStatsB,
-      powerLevel: Math.round(
-        baseStatsB.powerLevel *
-          ((stanceInfoB.effects.energyMultiplier +
-            stanceInfoB.effects.symmetryMultiplier +
-            stanceInfoB.effects.chaosMultiplier) /
-            3),
-      ),
+      powerLevel: calculateEffectivePower(baseStatsB.powerLevel, stanceB),
       metrics: {
         complexity:
           baseStatsB.metrics.complexity *
@@ -287,6 +275,7 @@ export const simulateClash: WebMcpTool = {
       stanceB,
       rounds,
       seed,
+      territoryWinner: overallWinner,
     })
 
     return {

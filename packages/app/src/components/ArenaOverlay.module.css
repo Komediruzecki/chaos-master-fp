@@ -244,7 +244,7 @@
   display: grid;
   grid-template-columns: 320px 1fr 320px;
   gap: 20px;
-  align-items: center;
+  align-items: start;
   min-height: 0;
   pointer-events: none;
 }
@@ -261,9 +261,17 @@
   -webkit-backdrop-filter: blur(20px);
   border: 1.5px solid rgba(255, 255, 255, 0.14);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease,
+    filter 0.3s ease;
   max-height: calc(100vh - 110px);
   overflow-y: auto;
+  box-sizing: border-box;
+  width: 320px;
+  flex-shrink: 0;
 }
 
 .p1Card {
@@ -304,15 +312,28 @@
   box-shadow: 0 14px 40px rgba(0, 0, 0, 0.85);
 }
 
+@keyframes previewShimmer {
+  0% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0.4;
+  }
+}
+
 .fighterPreview {
   position: relative;
   width: 100%;
-  padding-bottom: 56.25%;
-  min-height: 100px;
+  aspect-ratio: 16 / 9;
+  height: 164px;
   border-radius: 10px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.06);
-  background: #000000;
+  background: #070b14;
+  flex-shrink: 0;
 }
 
 .previewLayer {
@@ -326,6 +347,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  background: radial-gradient(
+    circle at center,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(0, 0, 0, 0.8) 100%
+  );
+  animation: previewShimmer 2s ease-in-out infinite;
 }
 
 .fighterLabel {
@@ -360,6 +387,10 @@
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 130px;
 }
 
 .p1Name {
@@ -376,6 +407,11 @@
   color: #737373;
   text-transform: uppercase;
   letter-spacing: 0.06em;
+  line-height: 1.2;
+  height: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .loadBtn {
@@ -679,6 +715,12 @@
   background: rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.05);
   margin-top: 4px;
+  min-height: 52px;
+  max-height: 52px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .cardFooterActions {
@@ -798,7 +840,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  min-height: 28px;
 }
 
 .schoolBadge {
@@ -1239,12 +1282,12 @@
 .winnerArtContainer {
   position: relative;
   width: 100%;
-  padding-bottom: 56.25%;
-  min-height: 140px;
+  aspect-ratio: 16 / 9;
   border-radius: 10px;
   overflow: hidden;
-  background: #000000;
+  background: #070b14;
   border: 1.5px solid rgba(255, 255, 255, 0.15);
+  flex-shrink: 0;
 }
 
 .winnerCrownBadge {
@@ -1407,4 +1450,39 @@
   border-color: #c084fc;
   color: #ffffff;
   box-shadow: 0 0 16px rgba(192, 132, 252, 0.4);
+}
+
+@media (max-width: 1024px) {
+  .battlefield {
+    grid-template-columns: 280px 1fr 280px;
+    gap: 12px;
+  }
+  .fighterCard {
+    width: 280px;
+    padding: 10px;
+  }
+  .fighterPreview {
+    height: 146px;
+  }
+  .topBarStrip {
+    padding: 8px 14px;
+  }
+  .topStanceChip {
+    padding: 3px 6px;
+    font-size: 0.62rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .battlefield {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .fighterCard {
+    width: 100%;
+    max-height: none;
+  }
+  .centerColumn {
+    order: -1;
+  }
 }

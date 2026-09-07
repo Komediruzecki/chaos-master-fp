@@ -80,6 +80,25 @@ export const TACTICAL_STANCES: Record<TacticalStance, TacticalStanceInfo> = {
   },
 }
 
+/**
+ * Calculate stance-adjusted effective power level.
+ * Falls back to balanced stance if an unknown or undefined stance is provided.
+ */
+export function calculateEffectivePower(
+  basePower: number,
+  stance?: string | null,
+): number {
+  const stanceInfo =
+    (stance && TACTICAL_STANCES[stance as TacticalStance]) ||
+    TACTICAL_STANCES.balanced
+  const multiplier =
+    (stanceInfo.effects.energyMultiplier +
+      stanceInfo.effects.symmetryMultiplier +
+      stanceInfo.effects.chaosMultiplier) /
+    3
+  return Math.round((basePower || 0) * multiplier)
+}
+
 export type ArchetypeId =
   | 'symmetry_monolith'
   | 'chaos_lord'

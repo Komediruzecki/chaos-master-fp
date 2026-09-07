@@ -20,12 +20,11 @@ export const arenaStartClash: WebMcpTool = {
         type: 'string',
         enum: [
           'chaos_lord',
-          'order_sentinel',
-          'void_reaver',
-          'crystal_golem',
-          'vortex_djinn',
-          'tide_caller',
-          'arcane_scholar',
+          'symmetry_monolith',
+          'spiral_leviathan',
+          'quantum_siren',
+          'solar_seraph',
+          'void_stalker',
         ],
         description:
           'Optional challenger archetype to face in the arena. Default is chaos_lord.',
@@ -66,7 +65,15 @@ export const arenaStartClash: WebMcpTool = {
     // Set archetype opponent if specified
     if (raw.opponentArchetype && ARENA_ARCHETYPES[raw.opponentArchetype]) {
       const opp = generateArchetypeOpponent(currentFlame, raw.opponentArchetype)
-      arena.setPlayer2Stats(opp)
+      arena.setPlayer2Stats({
+        name: opp.name,
+        type: opp.className,
+        school: opp.school,
+        powerLevel: opp.powerLevel,
+        flame: opp.flame,
+        groundedStats: opp.groundedStats,
+        metrics: opp.metrics,
+      })
     }
 
     // Ensure arena overlay is opened

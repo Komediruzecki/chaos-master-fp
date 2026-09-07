@@ -86,9 +86,20 @@ describe('ArcadeModePanel duel setup', () => {
     expect(promptCard.textContent).toContain('simulate_clash')
     expect(promptCard.textContent).toContain('Chaos Lord')
 
-    // Clicking launch button opens arena modal
+    // Select Solar Seraph archetype
+    const seraphChip = screen.getByRole('button', { name: /Solar Seraph/i })
+    seraphChip.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    expect(promptCard.textContent).toContain('Solar Seraph')
+
+    // Clicking launch button opens arena modal and assigns P2 archetype stats
     const launchBtn = screen.getByText(/Launch Clash Arena/i)
     launchBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
     expect(ctx.arena?.setOpen).toHaveBeenCalledWith(true)
+    expect(ctx.arena?.setPlayer2Stats).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'Sol Invictus',
+        type: 'Solar Seraph',
+      }),
+    )
   })
 })
