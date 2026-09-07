@@ -31,7 +31,7 @@ import { createLazyDiscordShareModal, createLazyImportVariationsModal, createLaz
 import { WorkspaceSidebar } from './components/WorkspaceSidebar'
 import { useWorkspaceAutosave, useWorkspaceCamera, useWorkspaceCommands, useWorkspacePalette, useWorkspaceShortcuts, } from './hooks'
 import { createWorkspaceExportStore, createWorkspaceLayoutStore, createWorkspaceSelectionStore, isWideLayout, } from './stores'
-import { PHONE_MAX_WIDTH, TABLET_MAX_WIDTH, } from './stores/workspaceLayoutStore'
+import { isTouchDevice, PHONE_MAX_WIDTH, TABLET_MAX_WIDTH, } from './stores/workspaceLayoutStore'
 
 const AncestryTreeModal = lazy(() =>
   import('./components/AncestryTreeModal/AncestryTreeModal').then((m) => ({
@@ -233,6 +233,8 @@ export function MainWorkspace(props: AppProps) {
   const exportStore = createWorkspaceExportStore(props.hardwareTier)
 
   const {
+    touchLayoutPreference,
+    setTouchLayoutPreference,
     isMobile,
     setIsMobile,
     isPhone,
@@ -1597,6 +1599,31 @@ export function MainWorkspace(props: AppProps) {
     )
     if (props.autoOpenBenchmark) {
       void showBenchmark({ autoStart: props.autoStartBenchmark })
+    }
+    if (
+      isTouchDevice() &&
+      touchLayoutPreference() === 'auto' &&
+      !isPhone() &&
+      !isTablet()
+    ) {
+      showToast(
+        'Touch device detected: switch to Touch Studio layout?',
+        'sticky',
+        [
+          {
+            label: 'Switch to Touch',
+            onClick: () => {
+              setTouchLayoutPreference('touch')
+            },
+          },
+          {
+            label: 'Keep Desktop',
+            onClick: () => {
+              setTouchLayoutPreference('desktop')
+            },
+          },
+        ],
+      )
     }
     if (IS_DEV) {
       console.info('[share:app] onMount', {
@@ -4652,20 +4679,48 @@ export function MainWorkspace(props: AppProps) {
           <AdvancedToolsDrawer
             open={touchDrawerOpen()}
             onClose={() => setTouchDrawerOpen(false)}
+            onSwitchToDesktop={() => {
+              setTouchLayoutPreference('desktop')
+              showToast(
+                'Switched to Desktop Layout. Switch back anytime from the menu.',
+                4000,
+              )
+            }}
             onArtDirector={openArtDirectorUI}
             onFlameClash={openFlameClashUI}
-            onBreed={pickBreedFlame}
+            onBreed={() => {
+              if (isPhone() || isTablet()) {
+                setTouchLayoutPreference('desktop')
+                showToast(
+                  'Switched to Desktop Layout for Breeding & Genetics',
+                  3500,
+                )
+              }
+              pickBreedFlame()
+            }}
             onAudio={() => {
+              if (isPhone() || isTablet()) {
+                setTouchLayoutPreference('desktop')
+                showToast('Switched to Desktop Layout for Audio Reactive', 3500)
+              }
               setShowBlendGallery(false)
               closeSonificationPanelAsAuthoredAction()
               setShowAudioPanel(true)
             }}
             onSonification={() => {
+              if (isPhone() || isTablet()) {
+                setTouchLayoutPreference('desktop')
+                showToast('Switched to Desktop Layout for Sonification', 3500)
+              }
               setShowBlendGallery(false)
               setShowAudioPanel(false)
               setShowSonificationPanel(true)
             }}
             onTimelineToggle={() => {
+              if (isPhone() || isTablet()) {
+                setTouchLayoutPreference('desktop')
+                showToast('Switched to Desktop Layout for Timeline', 3500)
+              }
               const current = showTimeline()
               executeCommand('view.setShowTimeline', cmdContext, !current)
             }}
@@ -5253,6 +5308,9 @@ export function MainWorkspace(props: AppProps) {
               props.onHardwareTierChange,
             )}
             devCrashTest={devCrashTest}
+            touchLayoutPreference={touchLayoutPreference}
+            setTouchLayoutPreference={setTouchLayoutPreference}
+            isTouchLayout={() => isPhone() || isTablet()}
             duelShowing={duelShowing}
             playerFlame={effectiveFlame}
             playerZoom={[effectiveZoom, setFlameZoom]}

@@ -59,6 +59,17 @@ describe('workspaceLayoutStore', () => {
       expect(store.isPhone()).toBe(true)
       store.setIsTablet(true)
       expect(store.isTablet()).toBe(true)
+
+      // Test manual touch preference override
+      store.setTouchLayoutPreference('desktop')
+      expect(store.isPhone()).toBe(false)
+      expect(store.isTablet()).toBe(false)
+
+      store.setTouchLayoutPreference('touch')
+      store.setIsPhone(false)
+      expect(store.isTablet()).toBe(true)
+
+      store.setTouchLayoutPreference('auto')
       dispose()
     })
   })

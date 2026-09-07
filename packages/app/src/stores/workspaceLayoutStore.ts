@@ -24,7 +24,25 @@ export function isTabletLayout(): boolean {
   )
 }
 
+export type TouchLayoutPreference = 'auto' | 'touch' | 'desktop'
+
+export function isTouchDevice(): boolean {
+  if (typeof window === 'undefined') return false
+  const nav = window.navigator as
+    | (Navigator & { msMaxTouchPoints?: number })
+    | undefined
+  return (
+    'ontouchstart' in window ||
+    (typeof nav !== 'undefined' &&
+      ((nav.maxTouchPoints ?? 0) > 0 || (nav.msMaxTouchPoints ?? 0) > 0)) ||
+    (typeof window.matchMedia === 'function' &&
+      window.matchMedia('(pointer: coarse)').matches)
+  )
+}
+
 export interface WorkspaceLayoutStore {
+  touchLayoutPreference: Accessor<TouchLayoutPreference>
+  setTouchLayoutPreference: (pref: TouchLayoutPreference) => void
   isMobile: Accessor<boolean>
   setIsMobile: Setter<boolean>
   isPhone: Accessor<boolean>
@@ -79,15 +97,29 @@ export function createWorkspaceLayoutStore(
       ? window.innerWidth < WIDE_LAYOUT_MIN_WIDTH
       : false,
   )
-  const [isPhone, setIsPhone] = createSignal(
+  const [touchLayoutPreference, setTouchLayoutPreference] =
+    persistentSignal<TouchLayoutPreference>('chaos-touch-layout-pref', 'auto')
+  const [rawIsPhone, setIsPhone] = createSignal(
     typeof window !== 'undefined' ? window.innerWidth < PHONE_MAX_WIDTH : false,
   )
-  const [isTablet, setIsTablet] = createSignal(
+  const [rawIsTablet, setIsTablet] = createSignal(
     typeof window !== 'undefined'
       ? window.innerWidth >= PHONE_MAX_WIDTH &&
           window.innerWidth <= TABLET_MAX_WIDTH
       : false,
   )
+
+  const isPhone = createMemo(() => {
+    if (touchLayoutPreference() === 'desktop') return false
+    if (touchLayoutPreference() === 'touch') return rawIsPhone()
+    return rawIsPhone()
+  })
+
+  const isTablet = createMemo(() => {
+    if (touchLayoutPreference() === 'desktop') return false
+    if (touchLayoutPreference() === 'touch') return !rawIsPhone()
+    return rawIsTablet()
+  })
   const [sidebarHidden, setSidebarHidden] = createSignal(!wide)
   const [showSidebar, setShowSidebar] = createSignal(true)
   const [sidebarLayoutMode, setSidebarLayoutMode] = persistentSignal<
@@ -123,6 +155,8 @@ export function createWorkspaceLayoutStore(
   const floatingTop = createMemo(() => 8)
 
   return {
+    touchLayoutPreference,
+    setTouchLayoutPreference,
     isMobile,
     setIsMobile,
     isPhone,

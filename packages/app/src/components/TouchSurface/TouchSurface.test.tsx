@@ -52,6 +52,7 @@ describe('TouchSurface Components', () => {
       const onArtDirector = vi.fn()
       const onFlameClash = vi.fn()
       const onBreed = vi.fn()
+      const onSwitchToDesktop = vi.fn()
 
       render(() => (
         <AdvancedToolsDrawer
@@ -60,17 +61,22 @@ describe('TouchSurface Components', () => {
           onArtDirector={onArtDirector}
           onFlameClash={onFlameClash}
           onBreed={onBreed}
+          onSwitchToDesktop={onSwitchToDesktop}
         />
       ))
 
       expect(screen.getByRole('dialog')).toBeTruthy()
+      expect(screen.getByText('Switch to Desktop Layout')).toBeTruthy()
       expect(screen.getByText('Art Director Mode')).toBeTruthy()
       expect(screen.getByText('Flame Clash Arena')).toBeTruthy()
       expect(screen.getByText('Breeding & Genetics')).toBeTruthy()
 
+      screen.getByText('Switch to Desktop Layout').click()
+      expect(onSwitchToDesktop).toHaveBeenCalled()
+      expect(onClose).toHaveBeenCalled()
+
       screen.getByText('Art Director Mode').click()
       expect(onArtDirector).toHaveBeenCalled()
-      expect(onClose).toHaveBeenCalled()
     })
 
     it('closes on Escape key press when open', () => {
