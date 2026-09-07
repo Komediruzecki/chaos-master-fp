@@ -49,4 +49,17 @@ describe('workspaceLayoutStore', () => {
     expect(typeof isWideLayout()).toBe('boolean')
     expect(WIDE_LAYOUT_MIN_WIDTH).toBe(769)
   })
+
+  it('provides phone and tablet layout signals and constants', () => {
+    createRoot((dispose) => {
+      const store = createWorkspaceLayoutStore()
+      expect(typeof store.isPhone()).toBe('boolean')
+      expect(typeof store.isTablet()).toBe('boolean')
+      store.setIsPhone(true)
+      expect(store.isPhone()).toBe(true)
+      store.setIsTablet(true)
+      expect(store.isTablet()).toBe(true)
+      dispose()
+    })
+  })
 })

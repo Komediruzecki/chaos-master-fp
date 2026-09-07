@@ -12,6 +12,18 @@
   isolation: isolate;
 }
 
+.phoneLayout {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+  grid-template-areas: 'viewport';
+}
+
+.tabletLayout {
+  grid-template-columns: 1fr auto;
+  grid-template-rows: 1fr;
+  grid-template-areas: 'viewport inspector';
+}
+
 .canvas-container {
   grid-area: viewport;
   grid-row-end: viewport-controls;

@@ -3,15 +3,34 @@ import { persistentSignal } from '@/utils/persistentSignal'
 import type { Accessor, Setter } from 'solid-js'
 
 export const WIDE_LAYOUT_MIN_WIDTH = 769
+export const PHONE_MAX_WIDTH = 680
+export const TABLET_MAX_WIDTH = 1024
 
 export function isWideLayout(): boolean {
   if (typeof window === 'undefined') return true
   return window.innerWidth >= WIDE_LAYOUT_MIN_WIDTH
 }
 
+export function isPhoneLayout(): boolean {
+  if (typeof window === 'undefined') return false
+  return window.innerWidth < PHONE_MAX_WIDTH
+}
+
+export function isTabletLayout(): boolean {
+  if (typeof window === 'undefined') return false
+  return (
+    window.innerWidth >= PHONE_MAX_WIDTH &&
+    window.innerWidth <= TABLET_MAX_WIDTH
+  )
+}
+
 export interface WorkspaceLayoutStore {
   isMobile: Accessor<boolean>
   setIsMobile: Setter<boolean>
+  isPhone: Accessor<boolean>
+  setIsPhone: Setter<boolean>
+  isTablet: Accessor<boolean>
+  setIsTablet: Setter<boolean>
 
   sidebarHidden: Accessor<boolean>
   setSidebarHidden: Setter<boolean>
@@ -60,6 +79,15 @@ export function createWorkspaceLayoutStore(
       ? window.innerWidth < WIDE_LAYOUT_MIN_WIDTH
       : false,
   )
+  const [isPhone, setIsPhone] = createSignal(
+    typeof window !== 'undefined' ? window.innerWidth < PHONE_MAX_WIDTH : false,
+  )
+  const [isTablet, setIsTablet] = createSignal(
+    typeof window !== 'undefined'
+      ? window.innerWidth >= PHONE_MAX_WIDTH &&
+          window.innerWidth <= TABLET_MAX_WIDTH
+      : false,
+  )
   const [sidebarHidden, setSidebarHidden] = createSignal(!wide)
   const [showSidebar, setShowSidebar] = createSignal(true)
   const [sidebarLayoutMode, setSidebarLayoutMode] = persistentSignal<
@@ -97,6 +125,10 @@ export function createWorkspaceLayoutStore(
   return {
     isMobile,
     setIsMobile,
+    isPhone,
+    setIsPhone,
+    isTablet,
+    setIsTablet,
     sidebarHidden,
     setSidebarHidden,
     showSidebar,
