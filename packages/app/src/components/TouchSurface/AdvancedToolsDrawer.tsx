@@ -1,5 +1,5 @@
 import { createEffect, For, onCleanup, Show } from 'solid-js'
-import { CameraIcon, Cross, Film, Lineage, MusicNote, Robot, Swords, } from '@/icons'
+import { CameraIcon, Cross, Film, Lineage, MusicNote, Robot, SidebarPanel, Swords, } from '@/icons'
 import ui from './TouchSurface.module.css'
 
 export interface AdvancedToolsDrawerProps {
@@ -13,6 +13,7 @@ export interface AdvancedToolsDrawerProps {
   onTimelineToggle?: () => void
   onExportPng?: () => void
   onShare?: () => void
+  onSwitchToDesktop?: () => void
 }
 
 export function AdvancedToolsDrawer(props: AdvancedToolsDrawerProps) {
@@ -29,7 +30,22 @@ export function AdvancedToolsDrawer(props: AdvancedToolsDrawerProps) {
     })
   })
 
-  const tools = [
+  const tools = () => [
+    ...(props.onSwitchToDesktop
+      ? [
+          {
+            id: 'switch-desktop',
+            title: 'Switch to Desktop Layout',
+            subtitle: 'Open full desktop sidebar, bottom dock & inspector',
+            icon: SidebarPanel,
+            highlight: true,
+            action: () => {
+              props.onSwitchToDesktop?.()
+              props.onClose()
+            },
+          },
+        ]
+      : []),
     {
       id: 'art-director',
       title: 'Art Director Mode',
@@ -118,9 +134,16 @@ export function AdvancedToolsDrawer(props: AdvancedToolsDrawerProps) {
         </header>
 
         <div class={ui.drawerBody}>
-          <For each={tools}>
+          <For each={tools()}>
             {(t) => (
-              <button type="button" class={ui.drawerCard} onClick={t.action}>
+              <button
+                type="button"
+                class={ui.drawerCard}
+                classList={{
+                  [ui.drawerCardHighlight as string]: Boolean(t.highlight),
+                }}
+                onClick={t.action}
+              >
                 <t.icon class={ui.drawerCardIcon} />
                 <div class={ui.drawerCardMeta}>
                   <div class={ui.drawerCardTitle}>{t.title}</div>
