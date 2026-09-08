@@ -1,5 +1,5 @@
 import { createEffect, createSignal, onCleanup, Show } from 'solid-js'
-import { Book, ChevronDown, GridIcon, Info, Menu, SidebarPanel, Star, Zap, } from '@/icons'
+import { Book, GridIcon, Info, Menu, SidebarPanel, Star, Zap } from '@/icons'
 import { setActiveTab } from '@/lib/activeTab'
 import { BENCHMARKS_PATH } from '@/routing/appPath'
 import { isTouchLayout as globalIsTouchLayout, setTouchLayoutPreference as globalSetTouchLayoutPref, } from '@/stores/workspaceLayoutStore'
@@ -237,38 +237,18 @@ export function SoftwareVersion(props: SoftwareVersionProps) {
             </div>
           </Show>
 
-          <div class={ui.touchRailBar}>
-            <button
-              type="button"
-              class={ui.menuTrigger}
-              classList={{ [ui.menuTriggerActive as string]: open() }}
-              onClick={() => setOpen(!open())}
-              aria-expanded={open()}
-              aria-haspopup="menu"
-              aria-label="Chaos Master menu and version"
-              title="Chaos Master menu & version"
-            >
-              <Menu class={ui.triggerIcon} />
-              <span class={ui.triggerLabel}>v{VERSION}</span>
-              <ChevronDown
-                class={ui.triggerChevron}
-                classList={{ [ui.triggerChevronOpen as string]: open() }}
-              />
-            </button>
-
-            <Show when={props.onPickGallery}>
-              <button
-                type="button"
-                class={ui.railGalleryBtn}
-                onClick={() => props.onPickGallery?.()}
-                title="Browse and load flames"
-                aria-label="Browse and load flames"
-              >
-                <GridIcon class={ui.railGalleryIcon} />
-                <span>Flames</span>
-              </button>
-            </Show>
-          </div>
+          <button
+            type="button"
+            class={ui.menuTrigger}
+            classList={{ [ui.menuTriggerActive as string]: open() }}
+            onClick={() => setOpen(!open())}
+            aria-expanded={open()}
+            aria-haspopup="menu"
+            aria-label="Chaos Master menu"
+            title="Chaos Master menu"
+          >
+            <Menu class={ui.triggerIcon} />
+          </button>
         </div>
       </Show>
     </div>

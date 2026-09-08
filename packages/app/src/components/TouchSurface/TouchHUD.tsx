@@ -1,6 +1,6 @@
-import { Show } from 'solid-js'
+import { createSignal, Show } from 'solid-js'
 import { executeCommand } from '@/commands/registry'
-import { CameraIcon, GridIcon, Redo, Shuffle, SidebarPanel, Sparkle, Undo, } from '@/icons'
+import { CameraIcon, Download, Home, Redo, Shuffle, SidebarPanel, Sparkle, Undo, } from '@/icons'
 import ui from './TouchSurface.module.css'
 import type { Accessor } from 'solid-js'
 import type { CommandContext } from '@/commands/types'
@@ -13,6 +13,8 @@ export interface TouchHUDProps {
   canRedo?: Accessor<boolean>
   onUndo?: () => void
   onRedo?: () => void
+  onFlashExport?: () => void
+  onOpenExportModal?: () => void
   onRandomize?: () => void
   onMutate?: () => void
   onSnapshot?: () => void
@@ -20,29 +22,89 @@ export interface TouchHUDProps {
   onPickGallery?: () => void
 }
 
+function MoreDotsIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      class={ui.hudButtonIcon}
+      fill="currentColor"
+      stroke="none"
+    >
+      <circle cx="5" cy="12" r="2" />
+      <circle cx="12" cy="12" r="2" />
+      <circle cx="19" cy="12" r="2" />
+    </svg>
+  )
+}
+
 export function TouchHUD(props: TouchHUDProps) {
+  const [showTitleTooltip, setShowTitleTooltip] = createSignal(false)
+  const [moreMenuOpen, setMoreMenuOpen] = createSignal(false)
+
   const dispatch = (id: string, ...args: unknown[]) => {
     executeCommand(id, props.ctx, ...args)
   }
 
+  const flameName = () => props.flame().metadata?.name?.trim() || 'Chaos Master'
+
+  const handleFlashExport = () => {
+    if (props.onFlashExport) props.onFlashExport()
+    else if (props.onSnapshot) props.onSnapshot()
+    else dispatch('flame.quickExport')
+  }
+
+  const handleOpenExportModal = () => {
+    if (props.onOpenExportModal) props.onOpenExportModal()
+    else dispatch('export.png')
+  }
+
   return (
     <header class={ui.topHud} role="banner" aria-label="Touch Navigation HUD">
+      {/* 1. Home / Gallery button */}
       <button
         type="button"
-        class={ui.hudTitleBtn}
+        class={ui.hudHomeBtn}
         onClick={() => {
           props.onPickGallery?.()
         }}
-        title={props.flame().metadata?.name || 'Chaos Master'}
+        title="Browse & load flames from gallery"
         aria-label="Browse & load flames from gallery"
       >
-        <GridIcon class={ui.hudTitleIcon} />
-        <span class={ui.hudTitleText}>
-          {props.flame().metadata?.name || 'Chaos Master'}
-        </span>
+        <Home class={ui.hudButtonIcon} />
       </button>
 
-      <div class={ui.hudActions} role="toolbar" aria-label="Quick Actions">
+      {/* 2. Truncated Title with tap tooltip */}
+      <div class={ui.hudTitleWrapper}>
+        <button
+          type="button"
+          class={ui.hudTitleBtn}
+          onClick={() => {
+            setShowTitleTooltip((prev) => !prev)
+          }}
+          title={flameName()}
+          aria-label={`Flame title: ${flameName()}`}
+        >
+          <span class={ui.hudTitleText}>{flameName()}</span>
+        </button>
+
+        <Show when={showTitleTooltip()}>
+          <div
+            class={ui.popoverBackdrop}
+            onClick={() => setShowTitleTooltip(false)}
+          />
+          <div class={ui.titleTooltip} role="tooltip">
+            <strong>{flameName()}</strong>
+            <Show when={props.flame().metadata?.description}>
+              <div style={{ 'margin-top': '4px', opacity: '0.8' }}>
+                {props.flame().metadata?.description}
+              </div>
+            </Show>
+          </div>
+        </Show>
+      </div>
+
+      {/* 3. Controls Rail */}
+      <div class={ui.controlsRail} role="toolbar" aria-label="Controls">
         <button
           type="button"
           class={ui.hudButton}
@@ -74,53 +136,94 @@ export function TouchHUD(props: TouchHUDProps) {
         <button
           type="button"
           class={ui.hudButton}
-          title="Mutate"
-          aria-label="Mutate"
-          onClick={() => {
-            if (props.onMutate) props.onMutate()
-            else dispatch('flame.mutate')
-          }}
-        >
-          <Sparkle class={ui.hudButtonIcon} />
-        </button>
-
-        <button
-          type="button"
-          class={ui.hudButton}
-          title="Randomize"
-          aria-label="Randomize"
-          onClick={() => {
-            if (props.onRandomize) props.onRandomize()
-            else dispatch('flame.randomize')
-          }}
-        >
-          <Shuffle class={ui.hudButtonIcon} />
-        </button>
-
-        <button
-          type="button"
-          class={ui.hudButton}
           title="Snapshot PNG"
           aria-label="Snapshot PNG"
-          onClick={() => {
-            if (props.onSnapshot) props.onSnapshot()
-            else dispatch('export.png')
-          }}
+          onClick={handleFlashExport}
         >
           <CameraIcon class={ui.hudButtonIcon} />
         </button>
 
-        <Show when={props.onOpenDrawer}>
+        {/* 4. More (...) Menu */}
+        <div class={ui.moreMenuWrapper}>
           <button
             type="button"
             class={ui.hudButton}
-            title="More Tools"
-            aria-label="More Tools"
-            onClick={props.onOpenDrawer}
+            title="More Options"
+            aria-label="More Options"
+            aria-expanded={moreMenuOpen()}
+            onClick={() => setMoreMenuOpen((o) => !o)}
           >
-            <SidebarPanel class={ui.hudButtonIcon} />
+            <MoreDotsIcon />
           </button>
-        </Show>
+
+          <Show when={moreMenuOpen()}>
+            <div
+              class={ui.popoverBackdrop}
+              onClick={() => setMoreMenuOpen(false)}
+            />
+            <div
+              class={ui.moreMenuPopover}
+              role="menu"
+              aria-label="More Options Menu"
+            >
+              <button
+                type="button"
+                role="menuitem"
+                class={ui.moreMenuItem}
+                onClick={() => {
+                  setMoreMenuOpen(false)
+                  if (props.onMutate) props.onMutate()
+                  else dispatch('flame.mutate')
+                }}
+              >
+                <Sparkle class={ui.moreMenuIcon} />
+                <span>Mutate Flame</span>
+              </button>
+
+              <button
+                type="button"
+                role="menuitem"
+                class={ui.moreMenuItem}
+                onClick={() => {
+                  setMoreMenuOpen(false)
+                  if (props.onRandomize) props.onRandomize()
+                  else dispatch('flame.randomize')
+                }}
+              >
+                <Shuffle class={ui.moreMenuIcon} />
+                <span>Randomize Flame</span>
+              </button>
+
+              <button
+                type="button"
+                role="menuitem"
+                class={ui.moreMenuItem}
+                onClick={() => {
+                  setMoreMenuOpen(false)
+                  handleOpenExportModal()
+                }}
+              >
+                <Download class={ui.moreMenuIcon} />
+                <span>Full Export (Options & Animation)…</span>
+              </button>
+
+              <Show when={props.onOpenDrawer}>
+                <button
+                  type="button"
+                  role="menuitem"
+                  class={ui.moreMenuItem}
+                  onClick={() => {
+                    setMoreMenuOpen(false)
+                    props.onOpenDrawer?.()
+                  }}
+                >
+                  <SidebarPanel class={ui.moreMenuIcon} />
+                  <span>Advanced Tools</span>
+                </button>
+              </Show>
+            </div>
+          </Show>
+        </div>
       </div>
     </header>
   )

@@ -1,14 +1,18 @@
-import { createMemo, createSignal, For, Show } from 'solid-js'
+import { createEffect, createMemo, createSignal, For, Show } from 'solid-js'
 import { AFFINE_CONTROLS, composeAffine, decomposeAffine, } from '@/arcade/affineControls'
 import { SAMPLE_VARIATION_TYPES, SAMPLE_VARIATION_TYPES_3D, } from '@/arcade/commandHints'
 import { executeCommand } from '@/commands/registry'
 import { AffineGrid, resetAffine } from '@/components/Duel/AffineGrid'
 import { ScrubField } from '@/components/Duel/ScrubField'
+import { ComputeGate } from '@/contexts/ComputeGateContext'
+import { COMPUTE_GATE_CAPACITY } from '@/defaults'
 import { defaultPalettes, paletteToGradientCSS } from '@/flame/palettes'
 import { variationTypesFor } from '@/flame/variationRegistry'
 import { filterVariations } from '@/flame/variations/search'
 import { getNormalizedVariationName } from '@/flame/variations/utils'
 import { ColourWedge, Cross, Minus, Plus, Reset, ShapeTriangle, Shuffle, SidebarPanel, Sparkle, VariationSpiral, } from '@/icons'
+import { createSharedIntersectionObserver } from '@/utils/useIntersectionObserver'
+import { VariationPreview, variationPreviewFlames, } from '../VariationSelector/VariationSelector'
 import ui from './TouchSurface.module.css'
 import type { TouchControlSurfaceProps, TouchTab } from './types'
 import type { AffineControls } from '@/arcade/affineControls'
@@ -61,7 +65,15 @@ function readableType(type: string): string {
 }
 
 export function TouchControlSurface(props: TouchControlSurfaceProps) {
-  const [activeTab, setActiveTab] = createSignal<TouchTab>('variations')
+  const [activeTab, setActiveTab] = createSignal<TouchTab>(
+    props.initialTab ?? 'variations',
+  )
+  createEffect(() => {
+    if (props.initialTab) {
+      setActiveTab(props.initialTab)
+    }
+  })
+
   const [selectedTransformId, setSelectedTransformId] =
     createSignal<TransformId>()
   const [addingVar, setAddingVar] = createSignal(false)
@@ -69,6 +81,15 @@ export function TouchControlSurface(props: TouchControlSurfaceProps) {
 
   const dims = createMemo(
     (): Dims => ((props.flame().renderSettings.dimensions ?? 2) === 3 ? 3 : 2),
+  )
+
+  const [galleryListEl, setGalleryListEl] = createSignal<HTMLDivElement>()
+  const trackTileVisibility = createSharedIntersectionObserver(galleryListEl, {
+    rootMargin: '200px',
+  })
+
+  const previewFlames = createMemo(() =>
+    variationPreviewFlames('pointInitGaussianDisk', dims()),
   )
 
   const transformIds = createMemo(
@@ -98,14 +119,19 @@ export function TouchControlSurface(props: TouchControlSurfaceProps) {
       .slice(0, 8)
   }
 
-  const quickPicks = createMemo(() => {
+  const isVariationActive = (type: string) => {
     const current = currentTransform()
-    const present = new Set(
-      current ? Object.values(current.variations).map((v) => v.type) : [],
+    return Boolean(
+      current && Object.values(current.variations).some((v) => v.type === type),
     )
+  }
+
+  const galleryVariationTypes = createMemo(() => {
     const samples =
       dims() === 3 ? SAMPLE_VARIATION_TYPES_3D : SAMPLE_VARIATION_TYPES
-    return samples.filter((s) => !present.has(s))
+    const all = variationTypesFor(dims()) as readonly string[]
+    const rest = all.filter((t) => !samples.includes(t as never))
+    return [...samples, ...rest].slice(0, 36)
   })
 
   const searchMatches = createMemo(() => {
@@ -262,28 +288,77 @@ export function TouchControlSurface(props: TouchControlSurfaceProps) {
                     </For>
                   </div>
 
-                  <div class={ui.quickPicksHeader}>Quick Add Variation</div>
-                  <div class={ui.quickPicksStrip}>
-                    <For each={quickPicks()}>
-                      {(varType) => (
-                        <button
-                          type="button"
-                          class={ui.quickPickCard}
-                          onClick={() => {
-                            dispatch(
-                              'flame.addVariation',
-                              currentTransformId(),
-                              varType,
+                  {/* Visual Variation Gallery Strip */}
+                  <div class={ui.variationGalleryContainer}>
+                    <div class={ui.variationGalleryHeader}>
+                      <span class={ui.variationGalleryTitle}>
+                        Variation Gallery
+                      </span>
+                      <button
+                        type="button"
+                        class={ui.searchToggleBtn}
+                        onClick={() => setAddingVar((v) => !v)}
+                      >
+                        {addingVar() ? 'Close Search' : 'Search All…'}
+                      </button>
+                    </div>
+
+                    <div
+                      class={ui.variationsCarousel}
+                      ref={setGalleryListEl}
+                      role="region"
+                      aria-label="Variation Previews"
+                    >
+                      <ComputeGate capacity={COMPUTE_GATE_CAPACITY}>
+                        <For each={galleryVariationTypes()}>
+                          {(varType) => {
+                            const flame = () => previewFlames()[varType]
+                            const [tileEl, setTileEl] =
+                              createSignal<HTMLElement>()
+                            const nearViewport = trackTileVisibility(tileEl)
+                            const active = () => isVariationActive(varType)
+
+                            return (
+                              <button
+                                ref={setTileEl}
+                                type="button"
+                                class={ui.variationTile}
+                                classList={{
+                                  [ui.variationTileSelected!]: active(),
+                                }}
+                                title={getNormalizedVariationName(varType)}
+                                aria-label={`${readableType(varType)}${active() ? ' (active)' : ''}`}
+                                onClick={() => {
+                                  if (!active()) {
+                                    dispatch(
+                                      'flame.addVariation',
+                                      currentTransformId(),
+                                      varType,
+                                    )
+                                  }
+                                }}
+                              >
+                                <Show when={nearViewport() && flame()} keyed>
+                                  {(f) => (
+                                    <div class={ui.variationTileCanvas}>
+                                      <VariationPreview
+                                        version={1}
+                                        isSelected={active()}
+                                        name={varType}
+                                        flame={f}
+                                      />
+                                    </div>
+                                  )}
+                                </Show>
+                                <span class={ui.variationTileName}>
+                                  {readableType(varType)}
+                                </span>
+                              </button>
                             )
                           }}
-                        >
-                          <Plus class={ui.hudButtonIcon} />
-                          <span class={ui.quickPickName}>
-                            {readableType(varType)}
-                          </span>
-                        </button>
-                      )}
-                    </For>
+                        </For>
+                      </ComputeGate>
+                    </div>
                   </div>
 
                   <Show when={addingVar()}>

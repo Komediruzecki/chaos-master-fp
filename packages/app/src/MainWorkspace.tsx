@@ -4621,9 +4621,11 @@ export function MainWorkspace(props: AppProps) {
               onRedo={() => {
                 executeCommand('history.redo', cmdContext)
               }}
-              onSnapshot={() => {
+              onFlashExport={quickExport}
+              onOpenExportModal={() => {
                 executeCommand('export.png', cmdContext)
               }}
+              onSnapshot={quickExport}
               onOpenDrawer={() => setTouchDrawerOpen(true)}
               onPickGallery={pickGalleryFlame}
             />
@@ -4644,9 +4646,7 @@ export function MainWorkspace(props: AppProps) {
               onRedo={() => {
                 executeCommand('history.redo', cmdContext)
               }}
-              onSnapshot={() => {
-                executeCommand('export.png', cmdContext)
-              }}
+              onSnapshot={quickExport}
               onOpenDrawer={() => setTouchDrawerOpen(true)}
               onPickGallery={pickGalleryFlame}
             />
@@ -4671,9 +4671,7 @@ export function MainWorkspace(props: AppProps) {
               onRedo={() => {
                 executeCommand('history.redo', cmdContext)
               }}
-              onSnapshot={() => {
-                executeCommand('export.png', cmdContext)
-              }}
+              onSnapshot={quickExport}
               onOpenDrawer={() => setTouchDrawerOpen(true)}
               onPickGallery={pickGalleryFlame}
             />

@@ -149,6 +149,10 @@ function OffscreenRender(props: { job: ImageJob }) {
       width: job.dimensions.width,
       height: job.dimensions.height,
     })
+    const downloadLink = window.document.createElement('a')
+    downloadLink.href = url
+    downloadLink.download = `${job.name?.trim() || 'flame'}.png`
+    downloadLink.click()
   }
 
   const handleExport: ExportImageType = (canvas, info) => {
@@ -165,9 +169,16 @@ function OffscreenRender(props: { job: ImageJob }) {
     if (!props.job.forceExport && info?.finalImageReady !== true) return
     captured = true
     setJobFinalizing(job.id)
-    void finalize(canvas).catch((err: unknown) => {
-      setJobError(job.id, err instanceof Error ? err.message : String(err))
-    })
+    void (async () => {
+      try {
+        if (info?.fence) {
+          await info.fence
+        }
+        await finalize(canvas)
+      } catch (err: unknown) {
+        setJobError(job.id, err instanceof Error ? err.message : String(err))
+      }
+    })()
   }
 
   return (

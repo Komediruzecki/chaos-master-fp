@@ -28,24 +28,40 @@ describe('TouchSurface Components', () => {
       ))
 
       expect(screen.getByRole('banner')).toBeTruthy()
+
+      // Home button opens gallery
+      const homeBtn = screen.getByTitle('Browse & load flames from gallery')
+      expect(homeBtn).toBeTruthy()
+      homeBtn.click()
+      expect(onPickGallery).toHaveBeenCalled()
+
+      // Title button toggles tooltip
       const titleBtn = screen.getByTitle(
         ctx.flameDescriptor().metadata?.name || 'Chaos Master',
       )
       expect(titleBtn).toBeTruthy()
       titleBtn.click()
-      expect(onPickGallery).toHaveBeenCalled()
+      expect(screen.getByRole('tooltip')).toBeTruthy()
 
-      const mutateBtn = screen.getByTitle('Mutate')
-      mutateBtn.click()
-      expect(onMutate).toHaveBeenCalled()
-
-      const randBtn = screen.getByTitle('Randomize')
-      randBtn.click()
-      expect(onRandomize).toHaveBeenCalled()
-
+      // Snapshot button
       const snapBtn = screen.getByTitle('Snapshot PNG')
       snapBtn.click()
       expect(onSnapshot).toHaveBeenCalled()
+
+      // More menu opens popover with Mutate and Randomize
+      const moreBtn = screen.getByTitle('More Options')
+      expect(moreBtn).toBeTruthy()
+      moreBtn.click()
+
+      const mutateBtn = screen.getByText('Mutate Flame')
+      mutateBtn.click()
+      expect(onMutate).toHaveBeenCalled()
+
+      // Open menu again for Randomize
+      moreBtn.click()
+      const randBtn = screen.getByText('Randomize Flame')
+      randBtn.click()
+      expect(onRandomize).toHaveBeenCalled()
     })
   })
 
