@@ -1,20 +1,27 @@
-import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show, } from 'solid-js'
+import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show, useContext, } from 'solid-js'
+import { CANCEL, LoadFlameModal, } from '@/components/LoadFlameModal/LoadFlameModal'
+import { ModalContext } from '@/components/Modal/ModalContext'
 import { VariationPreview } from '@/components/VariationSelector/VariationSelector'
 import { useChangeHistory } from '@/contexts/ChangeHistoryContext'
 import { ComputeGate } from '@/contexts/ComputeGateContext'
 import { useTimeline } from '@/contexts/TimelineContext'
 import { COMPUTE_GATE_CAPACITY } from '@/defaults'
 import { calculateGroundedStats, getSchoolMultiplier } from '@/flame/stats'
+import { applySymmetryToFlame } from '@/flame/symmetry'
 import { Cross, Zap } from '@/icons'
+import { Root } from '@/lib/Root'
 import { DEFAULT_SEAT } from '@/seats/seatId'
 import { deepClone } from '@/utils/clone'
 import { getWebMcpContext } from '@/webmcp/contextBridge'
 import { animateClash } from '@/webmcp/tools/animateClash'
 import { ARENA_ARCHETYPES, calculateEffectivePower, generateArchetypeOpponent, TACTICAL_STANCES, } from '@/webmcp/tools/arenaArchetypes'
+import { calculateFlameStats } from '@/webmcp/tools/scoreFlame'
 import { simulateClash } from '@/webmcp/tools/simulateClash'
 import ui from './ArenaOverlay.module.css'
+import loadModalUi from './LoadFlameModal/LoadFlameModal.module.css'
 import type { Component } from 'solid-js'
 import type { ArenaFighterStats, CommandContext } from '@/commands/types'
+import type { AnimationLoad } from '@/components/LoadFlameModal/LoadFlameModal'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 import type { FlameSchool, GroundedFlameStats } from '@/flame/stats'
 import type { HardwareTier } from '@/utils/hardwareTier'
@@ -703,6 +710,125 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
     }
   }
 
+  const requestModal = useContext(ModalContext)
+
+  // Open existing Flame Gallery modal and load chosen flame into fighter slot
+  const openGalleryForFighter = async (player: 1 | 2) => {
+    if (gameState() === 'clashing' || !requestModal) return
+    const result = await requestModal<
+      FlameDescriptor | AnimationLoad | typeof CANCEL
+    >({
+      class: loadModalUi.loadFlameModal,
+      content: ({ respond }) => (
+        <Root adapterOptions={{ powerPreference: 'high-performance' }}>
+          <LoadFlameModal
+            respond={respond}
+            currentDimensions={3}
+            mode="gallery"
+          />
+        </Root>
+      ),
+    })
+    if (!result || result === CANCEL) return
+    const chosenFlame: FlameDescriptor =
+      'flame' in result ? result.flame : result
+    const cloned = deepClone(chosenFlame)
+    const fStats = calculateFlameStats(cloned)
+    const gStats = calculateGroundedStats(cloned)
+    const newFighterStats: ArenaFighterStats = {
+      name: cloned.metadata?.name || (player === 1 ? 'Player 1' : 'Player 2'),
+      type: fStats.type,
+      school: gStats.school,
+      powerLevel: gStats.powerLevel,
+      flame: cloned,
+      groundedStats: gStats,
+      metrics: fStats.metrics,
+    }
+    if (player === 1) {
+      props.arena.setPlayer1Stats?.(newFighterStats)
+      setP1Version((v) => v + 1)
+    } else {
+      props.arena.setPlayer2Stats?.(newFighterStats)
+      setP2Version((v) => v + 1)
+    }
+    setWinner(null)
+    setRounds([])
+    setBattleLog([])
+    setCachedSimResult(null)
+    setGameState('idle')
+    setCommentary(
+      `${player === 1 ? 'Player 1' : 'Player 2'} loaded ${newFighterStats.name} from gallery.`,
+    )
+  }
+
+  // Sync active flame from the main IFS workspace into Player 1
+  const handleSyncActiveFlame = () => {
+    if (gameState() === 'clashing') return
+    const current = getWebMcpContext()?.flameDescriptor?.()
+    if (!current) return
+    const cloned = deepClone(current)
+    const fStats = calculateFlameStats(cloned)
+    const gStats = calculateGroundedStats(cloned)
+    const newFighterStats: ArenaFighterStats = {
+      name: cloned.metadata?.name || 'Active Flame',
+      type: fStats.type,
+      school: gStats.school,
+      powerLevel: gStats.powerLevel,
+      flame: cloned,
+      groundedStats: gStats,
+      metrics: fStats.metrics,
+    }
+    props.arena.setPlayer1Stats?.(newFighterStats)
+    setP1Version((v) => v + 1)
+    setWinner(null)
+    setRounds([])
+    setBattleLog([])
+    setCachedSimResult(null)
+    setGameState('idle')
+    setCommentary(
+      `Synced active editor flame "${newFighterStats.name}" to Player 1.`,
+    )
+  }
+
+  // Apply rotational symmetry order (C1 to C8) to fighter
+  const handleApplySymmetry = (player: 1 | 2, folds: number) => {
+    if (gameState() === 'clashing') return
+    const currentStats =
+      player === 1 ? props.arena.player1Stats() : props.arena.player2Stats()
+    if (!currentStats?.flame) return
+    const updatedFlame = applySymmetryToFlame(
+      currentStats.flame,
+      folds,
+      'rotational',
+    )
+    const fStats = calculateFlameStats(updatedFlame)
+    const gStats = calculateGroundedStats(updatedFlame)
+    const updatedFighter: ArenaFighterStats = {
+      ...currentStats,
+      flame: updatedFlame,
+      powerLevel: gStats.powerLevel,
+      groundedStats: gStats,
+      metrics: fStats.metrics,
+    }
+    if (player === 1) {
+      props.arena.setPlayer1Stats?.(updatedFighter)
+      setP1Version((v) => v + 1)
+    } else {
+      props.arena.setPlayer2Stats?.(updatedFighter)
+      setP2Version((v) => v + 1)
+    }
+    setWinner(null)
+    setRounds([])
+    setBattleLog([])
+    setCachedSimResult(null)
+    setGameState('idle')
+    setCommentary(
+      folds > 1
+        ? `Applied C${folds} rotational symmetry to ${player === 1 ? 'Player 1' : 'Player 2'}.`
+        : `Reset symmetry to C1 for ${player === 1 ? 'Player 1' : 'Player 2'}.`,
+    )
+  }
+
   onMount(() => {
     // Register programmatic clash runner and gameState
     props.arena.gameState = gameState
@@ -1020,26 +1146,6 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
           </div>
 
           <div class={ui.topBarRight}>
-            <div class={ui.topStanceGroup}>
-              <For each={Object.values(TACTICAL_STANCES)}>
-                {(s) => (
-                  <button
-                    class={ui.topStanceChip}
-                    classList={{
-                      [ui.topStanceChipActive!]: stance() === s.id,
-                    }}
-                    onClick={() => {
-                      setStance(s.id)
-                    }}
-                    disabled={gameState() === 'clashing'}
-                    title={`${s.name}: ${s.description}`}
-                  >
-                    {s.name}
-                  </button>
-                )}
-              </For>
-            </div>
-
             <Show when={rounds().length > 0 && gameState() === 'results'}>
               <button
                 class={ui.replayBtn}
@@ -1203,44 +1309,77 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
 
                     <Show when={p1Grounded()}>
                       {(g) => (
-                        <div class={ui.groundedMetrics}>
-                          <div
-                            class={ui.groundedMetricItem}
-                            title="Moran similarity dimension"
-                          >
-                            <span class={ui.groundedMetricKey}>Dim</span>
-                            <span class={ui.groundedMetricVal}>
-                              {g().dimension.toFixed(2)}
-                            </span>
+                        <>
+                          <div class={ui.groundedMetrics}>
+                            <div
+                              class={ui.groundedMetricItem}
+                              title="Moran similarity dimension"
+                            >
+                              <span class={ui.groundedMetricKey}>Dim</span>
+                              <span class={ui.groundedMetricVal}>
+                                {g().dimension.toFixed(2)}
+                              </span>
+                            </div>
+                            <div
+                              class={ui.groundedMetricItem}
+                              title="Spectral stability / contractivity"
+                            >
+                              <span class={ui.groundedMetricKey}>Stab</span>
+                              <span class={ui.groundedMetricVal}>
+                                {Math.round(g().stability * 100)}%
+                              </span>
+                            </div>
+                            <div
+                              class={ui.groundedMetricItem}
+                              title="Shannon entropy of transform weights"
+                            >
+                              <span class={ui.groundedMetricKey}>Ent</span>
+                              <span class={ui.groundedMetricVal}>
+                                {g().entropy.toFixed(2)}
+                              </span>
+                            </div>
+                            <div
+                              class={ui.groundedMetricItem}
+                              title="Rotational symmetry order"
+                            >
+                              <span class={ui.groundedMetricKey}>Sym</span>
+                              <span class={ui.groundedMetricVal}>
+                                C{g().symmetryOrder}
+                              </span>
+                            </div>
                           </div>
-                          <div
-                            class={ui.groundedMetricItem}
-                            title="Spectral stability / contractivity"
-                          >
-                            <span class={ui.groundedMetricKey}>Stab</span>
-                            <span class={ui.groundedMetricVal}>
-                              {Math.round(g().stability * 100)}%
-                            </span>
+
+                          <div class={ui.symmetryRow}>
+                            <div class={ui.symmetryHeader}>
+                              <span class={ui.symmetryLabel}>Symmetry</span>
+                              <span class={ui.symmetryBadge}>
+                                C{g().symmetryOrder}
+                              </span>
+                            </div>
+                            <div class={ui.symmetryPills}>
+                              <For each={[1, 2, 3, 4, 5, 6, 8]}>
+                                {(order) => (
+                                  <button
+                                    type="button"
+                                    class={ui.symmetryPill}
+                                    classList={{
+                                      [ui.symmetryPillActive!]:
+                                        g().symmetryOrder === order,
+                                    }}
+                                    onClick={() => {
+                                      handleApplySymmetry(1, order)
+                                    }}
+                                    disabled={gameState() === 'clashing'}
+                                    aria-label={`Set ${order}-fold rotational symmetry`}
+                                    title={`Set ${order}-fold rotational symmetry`}
+                                  >
+                                    C{order}
+                                  </button>
+                                )}
+                              </For>
+                            </div>
                           </div>
-                          <div
-                            class={ui.groundedMetricItem}
-                            title="Shannon entropy of transform weights"
-                          >
-                            <span class={ui.groundedMetricKey}>Ent</span>
-                            <span class={ui.groundedMetricVal}>
-                              {g().entropy.toFixed(2)}
-                            </span>
-                          </div>
-                          <div
-                            class={ui.groundedMetricItem}
-                            title="Rotational symmetry order"
-                          >
-                            <span class={ui.groundedMetricKey}>Sym</span>
-                            <span class={ui.groundedMetricVal}>
-                              C{g().symmetryOrder}
-                            </span>
-                          </div>
-                        </div>
+                        </>
                       )}
                     </Show>
 
@@ -1267,6 +1406,30 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
                           )}
                         </For>
                       </div>
+                    </div>
+
+                    <div class={ui.cardFooterActions}>
+                      <button
+                        type="button"
+                        class={ui.syncBtn}
+                        onClick={handleSyncActiveFlame}
+                        disabled={gameState() === 'clashing'}
+                        title="Sync active flame from editor into Player 1"
+                        aria-label="Sync active flame"
+                      >
+                        Sync Active
+                      </button>
+                      <button
+                        type="button"
+                        class={ui.galleryBtn}
+                        onClick={() => {
+                          void openGalleryForFighter(1)
+                        }}
+                        disabled={gameState() === 'clashing'}
+                        title="Pick flame for Player 1 from gallery"
+                      >
+                        From Gallery
+                      </button>
                     </div>
                   </div>
                 )
@@ -1644,44 +1807,77 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
 
                   <Show when={p2Grounded()}>
                     {(g) => (
-                      <div class={ui.groundedMetrics}>
-                        <div
-                          class={ui.groundedMetricItem}
-                          title="Moran similarity dimension"
-                        >
-                          <span class={ui.groundedMetricKey}>Dim</span>
-                          <span class={ui.groundedMetricVal}>
-                            {g().dimension.toFixed(2)}
-                          </span>
+                      <>
+                        <div class={ui.groundedMetrics}>
+                          <div
+                            class={ui.groundedMetricItem}
+                            title="Moran similarity dimension"
+                          >
+                            <span class={ui.groundedMetricKey}>Dim</span>
+                            <span class={ui.groundedMetricVal}>
+                              {g().dimension.toFixed(2)}
+                            </span>
+                          </div>
+                          <div
+                            class={ui.groundedMetricItem}
+                            title="Spectral stability / contractivity"
+                          >
+                            <span class={ui.groundedMetricKey}>Stab</span>
+                            <span class={ui.groundedMetricVal}>
+                              {Math.round(g().stability * 100)}%
+                            </span>
+                          </div>
+                          <div
+                            class={ui.groundedMetricItem}
+                            title="Shannon entropy of transform weights"
+                          >
+                            <span class={ui.groundedMetricKey}>Ent</span>
+                            <span class={ui.groundedMetricVal}>
+                              {g().entropy.toFixed(2)}
+                            </span>
+                          </div>
+                          <div
+                            class={ui.groundedMetricItem}
+                            title="Rotational symmetry order"
+                          >
+                            <span class={ui.groundedMetricKey}>Sym</span>
+                            <span class={ui.groundedMetricVal}>
+                              C{g().symmetryOrder}
+                            </span>
+                          </div>
                         </div>
-                        <div
-                          class={ui.groundedMetricItem}
-                          title="Spectral stability / contractivity"
-                        >
-                          <span class={ui.groundedMetricKey}>Stab</span>
-                          <span class={ui.groundedMetricVal}>
-                            {Math.round(g().stability * 100)}%
-                          </span>
+
+                        <div class={ui.symmetryRow}>
+                          <div class={ui.symmetryHeader}>
+                            <span class={ui.symmetryLabel}>Symmetry</span>
+                            <span class={ui.symmetryBadge}>
+                              C{g().symmetryOrder}
+                            </span>
+                          </div>
+                          <div class={ui.symmetryPills}>
+                            <For each={[1, 2, 3, 4, 5, 6, 8]}>
+                              {(order) => (
+                                <button
+                                  type="button"
+                                  class={ui.symmetryPill}
+                                  classList={{
+                                    [ui.symmetryPillActive!]:
+                                      g().symmetryOrder === order,
+                                  }}
+                                  onClick={() => {
+                                    handleApplySymmetry(2, order)
+                                  }}
+                                  disabled={gameState() === 'clashing'}
+                                  aria-label={`Set ${order}-fold rotational symmetry`}
+                                  title={`Set ${order}-fold rotational symmetry`}
+                                >
+                                  C{order}
+                                </button>
+                              )}
+                            </For>
+                          </div>
                         </div>
-                        <div
-                          class={ui.groundedMetricItem}
-                          title="Shannon entropy of transform weights"
-                        >
-                          <span class={ui.groundedMetricKey}>Ent</span>
-                          <span class={ui.groundedMetricVal}>
-                            {g().entropy.toFixed(2)}
-                          </span>
-                        </div>
-                        <div
-                          class={ui.groundedMetricItem}
-                          title="Rotational symmetry order"
-                        >
-                          <span class={ui.groundedMetricKey}>Sym</span>
-                          <span class={ui.groundedMetricVal}>
-                            C{g().symmetryOrder}
-                          </span>
-                        </div>
-                      </div>
+                      </>
                     )}
                   </Show>
 
@@ -1692,6 +1888,7 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
 
                   <div class={ui.cardFooterActions}>
                     <button
+                      type="button"
                       class={ui.rerollBtn}
                       onClick={() => {
                         handleRerollOpponent()
@@ -1700,6 +1897,17 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
                       title="Generate new opponent archetype (R)"
                     >
                       <span>Reroll Opponent</span>
+                    </button>
+                    <button
+                      type="button"
+                      class={ui.galleryBtn}
+                      onClick={() => {
+                        void openGalleryForFighter(2)
+                      }}
+                      disabled={gameState() === 'clashing'}
+                      title="Pick flame for Player 2 from gallery"
+                    >
+                      <span>From Gallery</span>
                     </button>
                   </div>
                 </div>
