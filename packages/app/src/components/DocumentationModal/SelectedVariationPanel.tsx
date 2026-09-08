@@ -68,9 +68,9 @@ export function SelectedVariationPanel(props: {
               <code>{props.type}</code>
               <Show
                 when={copiedId()}
-                fallback={<Copy width="11" height="11" class={ui.copyIcon} />}
+                fallback={<Copy width="13" height="13" class={ui.copyIcon} />}
               >
-                <Check width="11" height="11" class={ui.checkIcon} />
+                <Check width="13" height="13" class={ui.checkIcon} />
               </Show>
             </button>
             <Show when={category()}>

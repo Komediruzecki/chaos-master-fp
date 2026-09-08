@@ -7,7 +7,6 @@ import { hasDoc } from '@/flame/variations/docs'
 import { getNormalizedVariationName } from '@/flame/variations/utils'
 import { Info } from '@/icons'
 import { Root } from '@/lib/Root'
-import { hardwareTiers } from '@/utils/hardwareTier'
 import { DelayedShow } from '../DelayedShow/DelayedShow'
 import { VariationPreview, variationPreviewFlames, } from '../VariationSelector/VariationSelector'
 import ui from './DocumentationModal.module.css'
@@ -36,19 +35,16 @@ function fuzzyScore(needle: string, haystack: string): number {
   return ni === n.length ? Math.max(1, score) : -1
 }
 
-// The gallery renders the entire catalogue as live previews. On a high/ultra
-// GPU each cell would otherwise run to ~0.99 quality (VariationPreview derives
-// its target from the hardware tier) — far more than a thumbnail needs. Cap the
-// tier so previews stay cheap and recognisable; a lower real tier is kept.
-const PREVIEW_TIER_CAP: HardwareTier = 'mid'
-// Backing-store size per cell (cells are ~84–120px). 16:11 matches .galleryCanvas.
-const PREVIEW_RESOLUTION = { width: 160, height: 110 }
-
-function capPreviewTier(tier: HardwareTier | null): HardwareTier {
-  if (!tier) return PREVIEW_TIER_CAP
-  const cap = hardwareTiers.indexOf(PREVIEW_TIER_CAP)
-  const current = hardwareTiers.indexOf(tier)
-  return current > cap ? PREVIEW_TIER_CAP : tier
+// Resolution per cell scaled by hardware tier so high/ultra tiers render
+// smooth, continuous-density previews instead of sparse dots. 16:11 matches .galleryCanvas.
+const PREVIEW_RESOLUTION_BY_TIER: Record<
+  HardwareTier,
+  { width: number; height: number }
+> = {
+  low: { width: 192, height: 132 },
+  mid: { width: 256, height: 176 },
+  high: { width: 320, height: 220 },
+  ultra: { width: 384, height: 264 },
 }
 
 export function VariationDocsTab(props: {
@@ -129,7 +125,12 @@ export function VariationDocsTab(props: {
     variationPreviewFlames('pointInitGaussianDisk', dims()),
   )
 
-  const previewTier = createMemo(() => capPreviewTier(props.hardwareTier()))
+  const previewTier = createMemo<HardwareTier>(
+    () => props.hardwareTier() ?? 'high',
+  )
+  const previewResolution = createMemo(
+    () => PREVIEW_RESOLUTION_BY_TIER[previewTier()],
+  )
 
   return (
     <div class={ui.docsLayout}>
@@ -265,7 +266,7 @@ export function VariationDocsTab(props: {
                                           name={type}
                                           flame={f}
                                           hardwareTier={previewTier()}
-                                          resolution={PREVIEW_RESOLUTION}
+                                          resolution={previewResolution()}
                                         />
                                       </div>
                                     </DelayedShow>
