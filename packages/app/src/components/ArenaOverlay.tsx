@@ -1178,6 +1178,12 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
                   TACTICAL_STANCES[stance()] ?? TACTICAL_STANCES.balanced
                 const effPower = () =>
                   calculateEffectivePower(p1().powerLevel || 0, stance())
+                const p1SymmetryScore = () => {
+                  const mSym = p1().metrics?.symmetryScore ?? 0
+                  const gOrder = p1Grounded()?.symmetryOrder ?? 1
+                  const gSym = gOrder >= 2 ? 2.5 + (gOrder - 2) * 1.25 : 0
+                  return Math.max(mSym, gSym)
+                }
 
                 return (
                   <div
@@ -1288,7 +1294,7 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
                       <StatRow
                         label="Symmetry"
                         value={
-                          (p1().metrics?.symmetryScore || 0) *
+                          p1SymmetryScore() *
                           10 *
                           curStance().effects.symmetryMultiplier
                         }
@@ -1357,7 +1363,7 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
                               </span>
                             </div>
                             <div class={ui.symmetryPills}>
-                              <For each={[1, 2, 3, 4, 5, 6, 8]}>
+                              <For each={[1, 2, 3, 4, 5, 6, 7, 8]}>
                                 {(order) => (
                                   <button
                                     type="button"
@@ -1367,11 +1373,21 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
                                         g().symmetryOrder === order,
                                     }}
                                     onClick={() => {
-                                      handleApplySymmetry(1, order)
+                                      const targetOrder =
+                                        g().symmetryOrder === order ? 1 : order
+                                      handleApplySymmetry(1, targetOrder)
                                     }}
                                     disabled={gameState() === 'clashing'}
-                                    aria-label={`Set ${order}-fold rotational symmetry`}
-                                    title={`Set ${order}-fold rotational symmetry`}
+                                    aria-label={
+                                      order === 1
+                                        ? 'Reset symmetry to C1'
+                                        : `Set ${order}-fold rotational symmetry`
+                                    }
+                                    title={
+                                      order === 1
+                                        ? 'Reset symmetry to C1'
+                                        : `Set ${order}-fold rotational symmetry`
+                                    }
                                   >
                                     C{order}
                                   </button>
@@ -1693,225 +1709,245 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
 
             {/* Player 2 (Right / Orange/Red) */}
             <Show when={props.arena.player2Stats()}>
-              {(p2) => (
-                <div
-                  class={`${ui.fighterCard} ${ui.p2Card}`}
-                  classList={{ [ui.p2CardWinner!]: winner() === 2 }}
-                >
-                  <div class={ui.fighterPreview}>
-                    <Show
-                      when={p2PreviewFlame()}
-                      fallback={
-                        <div class={ui.fighterPreviewInner}>
-                          <span class={ui.fighterLabel}>
+              {(p2) => {
+                const p2SymmetryScore = () => {
+                  const mSym = p2().metrics?.symmetryScore ?? 0
+                  const gOrder = p2Grounded()?.symmetryOrder ?? 1
+                  const gSym = gOrder >= 2 ? 2.5 + (gOrder - 2) * 1.25 : 0
+                  return Math.max(mSym, gSym)
+                }
+
+                return (
+                  <div
+                    class={`${ui.fighterCard} ${ui.p2Card}`}
+                    classList={{ [ui.p2CardWinner!]: winner() === 2 }}
+                  >
+                    <div class={ui.fighterPreview}>
+                      <Show
+                        when={p2PreviewFlame()}
+                        fallback={
+                          <div class={ui.fighterPreviewInner}>
+                            <span class={ui.fighterLabel}>
+                              {p2().name ?? 'Player 2'}
+                            </span>
+                          </div>
+                        }
+                      >
+                        {(f) => (
+                          <div class={ui.previewLayer}>
+                            <VariationPreview
+                              version={p2Version()}
+                              isSelected={winner() === 2}
+                              flame={f()}
+                              name={p2().name ?? 'Player 2'}
+                              resolution={PREVIEW_RES}
+                              hardwareTier={props.hardwareTier}
+                              snapshotOnly
+                            />
+                          </div>
+                        )}
+                      </Show>
+
+                      <Show when={winner() === 2}>
+                        <div class={ui.victorBadge}>VICTOR</div>
+                      </Show>
+                    </div>
+
+                    <div class={ui.fighterHeader}>
+                      <div>
+                        <div class={ui.fighterTitleRow}>
+                          <div class={`${ui.fighterName} ${ui.p2Name}`}>
                             {p2().name ?? 'Player 2'}
-                          </span>
+                          </div>
+                          <Show when={p2Grounded()?.school}>
+                            {(sch) => (
+                              <span
+                                class={ui.schoolBadge}
+                                style={{
+                                  'background-color': SCHOOL_COLORS[sch()].bg,
+                                  color: SCHOOL_COLORS[sch()].text,
+                                  'border-color': SCHOOL_COLORS[sch()].border,
+                                }}
+                              >
+                                {sch()}
+                              </span>
+                            )}
+                          </Show>
+                          <Show when={p2Advantage() > 1.0}>
+                            <span class={ui.advantageBadge}>
+                              +{Math.round((p2Advantage() - 1) * 100)}%
+                            </span>
+                          </Show>
                         </div>
-                      }
-                    >
-                      {(f) => (
-                        <div class={ui.previewLayer}>
-                          <VariationPreview
-                            version={p2Version()}
-                            isSelected={winner() === 2}
-                            flame={f()}
-                            name={p2().name ?? 'Player 2'}
-                            resolution={PREVIEW_RES}
-                            hardwareTier={props.hardwareTier}
-                            snapshotOnly
-                          />
+                        <div class={ui.fighterClass}>
+                          Archetype:{' '}
+                          {p2().type || opponentArchetype().className}
                         </div>
+                      </div>
+                      <Show when={p2().flame}>
+                        <button
+                          class={ui.loadBtn}
+                          onClick={() => {
+                            loadFighter(2)
+                          }}
+                          title="Load this flame into main workspace"
+                        >
+                          Load
+                        </button>
+                      </Show>
+                    </div>
+
+                    <div class={ui.statList}>
+                      <StatRow
+                        label="Power"
+                        value={p2().powerLevel || 0}
+                        max={2000}
+                        color="#fb923c"
+                      />
+                      <StatRow
+                        label="Complexity"
+                        value={(p2().metrics?.complexity || 0) * 10}
+                        max={100}
+                        color="#f87171"
+                      />
+                      <StatRow
+                        label="Chaos"
+                        value={(p2().metrics?.chaosLevel || 0) * 10}
+                        max={100}
+                        color="#f472b6"
+                      />
+                      <StatRow
+                        label="Symmetry"
+                        value={p2SymmetryScore() * 10}
+                        max={100}
+                        color="#facc15"
+                      />
+                      <StatRow
+                        label="Energy"
+                        value={(p2().metrics?.energyIntensity || 0) * 10}
+                        max={100}
+                        color="#fbbf24"
+                      />
+                    </div>
+
+                    <Show when={p2Grounded()}>
+                      {(g) => (
+                        <>
+                          <div class={ui.groundedMetrics}>
+                            <div
+                              class={ui.groundedMetricItem}
+                              title="Moran similarity dimension"
+                            >
+                              <span class={ui.groundedMetricKey}>Dim</span>
+                              <span class={ui.groundedMetricVal}>
+                                {g().dimension.toFixed(2)}
+                              </span>
+                            </div>
+                            <div
+                              class={ui.groundedMetricItem}
+                              title="Spectral stability / contractivity"
+                            >
+                              <span class={ui.groundedMetricKey}>Stab</span>
+                              <span class={ui.groundedMetricVal}>
+                                {Math.round(g().stability * 100)}%
+                              </span>
+                            </div>
+                            <div
+                              class={ui.groundedMetricItem}
+                              title="Shannon entropy of transform weights"
+                            >
+                              <span class={ui.groundedMetricKey}>Ent</span>
+                              <span class={ui.groundedMetricVal}>
+                                {g().entropy.toFixed(2)}
+                              </span>
+                            </div>
+                            <div
+                              class={ui.groundedMetricItem}
+                              title="Rotational symmetry order"
+                            >
+                              <span class={ui.groundedMetricKey}>Sym</span>
+                              <span class={ui.groundedMetricVal}>
+                                C{g().symmetryOrder}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div class={ui.symmetryRow}>
+                            <div class={ui.symmetryHeader}>
+                              <span class={ui.symmetryLabel}>Symmetry</span>
+                              <span class={ui.symmetryBadge}>
+                                C{g().symmetryOrder}
+                              </span>
+                            </div>
+                            <div class={ui.symmetryPills}>
+                              <For each={[1, 2, 3, 4, 5, 6, 7, 8]}>
+                                {(order) => (
+                                  <button
+                                    type="button"
+                                    class={ui.symmetryPill}
+                                    classList={{
+                                      [ui.symmetryPillActive!]:
+                                        g().symmetryOrder === order,
+                                    }}
+                                    onClick={() => {
+                                      const targetOrder =
+                                        g().symmetryOrder === order ? 1 : order
+                                      handleApplySymmetry(2, targetOrder)
+                                    }}
+                                    disabled={gameState() === 'clashing'}
+                                    aria-label={
+                                      order === 1
+                                        ? 'Reset symmetry to C1'
+                                        : `Set ${order}-fold rotational symmetry`
+                                    }
+                                    title={
+                                      order === 1
+                                        ? 'Reset symmetry to C1'
+                                        : `Set ${order}-fold rotational symmetry`
+                                    }
+                                  >
+                                    C{order}
+                                  </button>
+                                )}
+                              </For>
+                            </div>
+                          </div>
+                        </>
                       )}
                     </Show>
 
-                    <Show when={winner() === 2}>
-                      <div class={ui.victorBadge}>VICTOR</div>
-                    </Show>
-                  </div>
-
-                  <div class={ui.fighterHeader}>
-                    <div>
-                      <div class={ui.fighterTitleRow}>
-                        <div class={`${ui.fighterName} ${ui.p2Name}`}>
-                          {p2().name ?? 'Player 2'}
-                        </div>
-                        <Show when={p2Grounded()?.school}>
-                          {(sch) => (
-                            <span
-                              class={ui.schoolBadge}
-                              style={{
-                                'background-color': SCHOOL_COLORS[sch()].bg,
-                                color: SCHOOL_COLORS[sch()].text,
-                                'border-color': SCHOOL_COLORS[sch()].border,
-                              }}
-                            >
-                              {sch()}
-                            </span>
-                          )}
-                        </Show>
-                        <Show when={p2Advantage() > 1.0}>
-                          <span class={ui.advantageBadge}>
-                            +{Math.round((p2Advantage() - 1) * 100)}%
-                          </span>
-                        </Show>
-                      </div>
-                      <div class={ui.fighterClass}>
-                        Archetype: {p2().type || opponentArchetype().className}
-                      </div>
+                    {/* Opponent Lore & Actions */}
+                    <div class={ui.opponentLoreBox}>
+                      {opponentArchetype().lore}
                     </div>
-                    <Show when={p2().flame}>
+
+                    <div class={ui.cardFooterActions}>
                       <button
-                        class={ui.loadBtn}
+                        type="button"
+                        class={ui.rerollBtn}
                         onClick={() => {
-                          loadFighter(2)
+                          handleRerollOpponent()
                         }}
-                        title="Load this flame into main workspace"
+                        disabled={gameState() === 'clashing'}
+                        title="Generate new opponent archetype (R)"
                       >
-                        Load
+                        <span>Reroll Opponent</span>
                       </button>
-                    </Show>
+                      <button
+                        type="button"
+                        class={ui.galleryBtn}
+                        onClick={() => {
+                          void openGalleryForFighter(2)
+                        }}
+                        disabled={gameState() === 'clashing'}
+                        title="Pick flame for Player 2 from gallery"
+                      >
+                        <span>From Gallery</span>
+                      </button>
+                    </div>
                   </div>
-
-                  <div class={ui.statList}>
-                    <StatRow
-                      label="Power"
-                      value={p2().powerLevel || 0}
-                      max={2000}
-                      color="#fb923c"
-                    />
-                    <StatRow
-                      label="Complexity"
-                      value={(p2().metrics?.complexity || 0) * 10}
-                      max={100}
-                      color="#f87171"
-                    />
-                    <StatRow
-                      label="Chaos"
-                      value={(p2().metrics?.chaosLevel || 0) * 10}
-                      max={100}
-                      color="#f472b6"
-                    />
-                    <StatRow
-                      label="Symmetry"
-                      value={(p2().metrics?.symmetryScore || 0) * 10}
-                      max={100}
-                      color="#facc15"
-                    />
-                    <StatRow
-                      label="Energy"
-                      value={(p2().metrics?.energyIntensity || 0) * 10}
-                      max={100}
-                      color="#fbbf24"
-                    />
-                  </div>
-
-                  <Show when={p2Grounded()}>
-                    {(g) => (
-                      <>
-                        <div class={ui.groundedMetrics}>
-                          <div
-                            class={ui.groundedMetricItem}
-                            title="Moran similarity dimension"
-                          >
-                            <span class={ui.groundedMetricKey}>Dim</span>
-                            <span class={ui.groundedMetricVal}>
-                              {g().dimension.toFixed(2)}
-                            </span>
-                          </div>
-                          <div
-                            class={ui.groundedMetricItem}
-                            title="Spectral stability / contractivity"
-                          >
-                            <span class={ui.groundedMetricKey}>Stab</span>
-                            <span class={ui.groundedMetricVal}>
-                              {Math.round(g().stability * 100)}%
-                            </span>
-                          </div>
-                          <div
-                            class={ui.groundedMetricItem}
-                            title="Shannon entropy of transform weights"
-                          >
-                            <span class={ui.groundedMetricKey}>Ent</span>
-                            <span class={ui.groundedMetricVal}>
-                              {g().entropy.toFixed(2)}
-                            </span>
-                          </div>
-                          <div
-                            class={ui.groundedMetricItem}
-                            title="Rotational symmetry order"
-                          >
-                            <span class={ui.groundedMetricKey}>Sym</span>
-                            <span class={ui.groundedMetricVal}>
-                              C{g().symmetryOrder}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div class={ui.symmetryRow}>
-                          <div class={ui.symmetryHeader}>
-                            <span class={ui.symmetryLabel}>Symmetry</span>
-                            <span class={ui.symmetryBadge}>
-                              C{g().symmetryOrder}
-                            </span>
-                          </div>
-                          <div class={ui.symmetryPills}>
-                            <For each={[1, 2, 3, 4, 5, 6, 8]}>
-                              {(order) => (
-                                <button
-                                  type="button"
-                                  class={ui.symmetryPill}
-                                  classList={{
-                                    [ui.symmetryPillActive!]:
-                                      g().symmetryOrder === order,
-                                  }}
-                                  onClick={() => {
-                                    handleApplySymmetry(2, order)
-                                  }}
-                                  disabled={gameState() === 'clashing'}
-                                  aria-label={`Set ${order}-fold rotational symmetry`}
-                                  title={`Set ${order}-fold rotational symmetry`}
-                                >
-                                  C{order}
-                                </button>
-                              )}
-                            </For>
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </Show>
-
-                  {/* Opponent Lore & Actions */}
-                  <div class={ui.opponentLoreBox}>
-                    {opponentArchetype().lore}
-                  </div>
-
-                  <div class={ui.cardFooterActions}>
-                    <button
-                      type="button"
-                      class={ui.rerollBtn}
-                      onClick={() => {
-                        handleRerollOpponent()
-                      }}
-                      disabled={gameState() === 'clashing'}
-                      title="Generate new opponent archetype (R)"
-                    >
-                      <span>Reroll Opponent</span>
-                    </button>
-                    <button
-                      type="button"
-                      class={ui.galleryBtn}
-                      onClick={() => {
-                        void openGalleryForFighter(2)
-                      }}
-                      disabled={gameState() === 'clashing'}
-                      title="Pick flame for Player 2 from gallery"
-                    >
-                      <span>From Gallery</span>
-                    </button>
-                  </div>
-                </div>
-              )}
+                )
+              }}
             </Show>
           </div>
 

@@ -134,4 +134,59 @@ describe('createHorizontalScrollDrag', () => {
     expect(div.scrollLeft).toBe(0)
     expect(div.classList.contains('isDragging')).toBe(false)
   })
+
+  it('bypasses wheel scrolling and drag when event occurs over interactive input', () => {
+    const [el, setEl] = createSignal<HTMLDivElement>()
+    const div = document.createElement('div')
+    div.scrollLeft = 0
+
+    const input = document.createElement('input')
+    input.type = 'text'
+    div.appendChild(input)
+
+    const scrubLabel = document.createElement('label')
+    scrubLabel.setAttribute('data-step', '1')
+    div.appendChild(scrubLabel)
+
+    setEl(div)
+    createHorizontalScrollDrag(el, { draggingClass: 'isDragging' })
+
+    // Wheel event targeted on input should not modify scrollLeft or preventDefault
+    const inputWheel = new WheelEvent('wheel', {
+      deltaY: 100,
+      cancelable: true,
+      bubbles: true,
+    })
+    input.dispatchEvent(inputWheel)
+    expect(div.scrollLeft).toBe(0)
+    expect(inputWheel.defaultPrevented).toBe(false)
+
+    // Wheel event targeted on scrubLabel should also not modify scrollLeft
+    const scrubWheel = new WheelEvent('wheel', {
+      deltaY: 100,
+      cancelable: true,
+      bubbles: true,
+    })
+    scrubLabel.dispatchEvent(scrubWheel)
+    expect(div.scrollLeft).toBe(0)
+    expect(scrubWheel.defaultPrevented).toBe(false)
+
+    // Pointer down on input should not initiate dragging
+    input.dispatchEvent(
+      new PointerEvent('pointerdown', {
+        pointerType: 'mouse',
+        button: 0,
+        clientX: 100,
+        bubbles: true,
+      }),
+    )
+    div.dispatchEvent(
+      new PointerEvent('pointermove', {
+        pointerType: 'mouse',
+        clientX: 50,
+      }),
+    )
+    expect(div.scrollLeft).toBe(0)
+    expect(div.classList.contains('isDragging')).toBe(false)
+  })
 })
