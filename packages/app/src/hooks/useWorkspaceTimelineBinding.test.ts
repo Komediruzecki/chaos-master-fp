@@ -3,6 +3,7 @@ import { example1 } from '@/flame/examples/example1'
 import { deepClone } from '@/utils/clone'
 import { useWorkspaceTimelineBinding } from './useWorkspaceTimelineBinding'
 import type { TimelineAccess } from './useWorkspaceTimelineBinding'
+import type { TransformId, VariationId } from '@/flame/schema/flameSchema'
 
 describe('useWorkspaceTimelineBinding', () => {
   function createMockTimeline(): TimelineAccess {
@@ -84,5 +85,66 @@ describe('useWorkspaceTimelineBinding', () => {
 
     expect(timeline.setValueResolver).toHaveBeenCalled()
     expect(timeline.setValueWriter).toHaveBeenCalled()
+  })
+
+  it('reads and writes transform probability, color, and affine settings', () => {
+    const flame = deepClone(example1)
+    const firstTid = Object.keys(flame.transforms)[0] as TransformId
+    const timeline = createMockTimeline()
+
+    const history = {
+      setSilently: (updater: (draft: typeof flame) => void) => {
+        updater(flame)
+      },
+    }
+
+    const { getFlameValue, setFlameValue } = useWorkspaceTimelineBinding({
+      flameDescriptor: flame,
+      history,
+      timeline,
+      blendWeight: () => 0,
+    })
+
+    // Read initial values
+    expect(getFlameValue(`transform.${firstTid}.probability`)).toBe(0.4)
+    expect(getFlameValue(`transform.${firstTid}.color.x`)).toBe(0.1)
+    expect(getFlameValue(`transform.${firstTid}.preAffine.a`)).toBe(0.8)
+
+    // Write new values
+    setFlameValue(`transform.${firstTid}.probability`, 0.9)
+    setFlameValue(`transform.${firstTid}.color.x`, 0.75)
+    setFlameValue(`transform.${firstTid}.preAffine.a`, 0.25)
+
+    expect(getFlameValue(`transform.${firstTid}.probability`)).toBe(0.9)
+    expect(getFlameValue(`transform.${firstTid}.color.x`)).toBe(0.75)
+    expect(getFlameValue(`transform.${firstTid}.preAffine.a`)).toBe(0.25)
+  })
+
+  it('reads and writes variation weights and parameters', () => {
+    const flame = deepClone(example1)
+    const firstTid = Object.keys(flame.transforms)[0] as TransformId
+    const firstVid = Object.keys(
+      flame.transforms[firstTid]!.variations,
+    )[0] as VariationId
+    const timeline = createMockTimeline()
+
+    const history = {
+      setSilently: (updater: (draft: typeof flame) => void) => {
+        updater(flame)
+      },
+    }
+
+    const { getFlameValue, setFlameValue } = useWorkspaceTimelineBinding({
+      flameDescriptor: flame,
+      history,
+      timeline,
+      blendWeight: () => 0,
+    })
+
+    // Variation weight
+    expect(getFlameValue(`${firstTid}.${firstVid}`)).toBe(1)
+    setFlameValue(`${firstTid}.${firstVid}`, 0.42)
+    expect(getFlameValue(`${firstTid}.${firstVid}`)).toBe(0.42)
+    expect(flame.transforms[firstTid]!.variations[firstVid]!.weight).toBe(0.42)
   })
 })
