@@ -5,6 +5,7 @@ import { categoryOf, defaultLinearType, variationTypesFor, } from '@/flame/varia
 import { CATEGORIES, CATEGORY_LABELS, sortByCategory, } from '@/flame/variations/categories'
 import { hasDoc } from '@/flame/variations/docs'
 import { getNormalizedVariationName } from '@/flame/variations/utils'
+import { Info } from '@/icons'
 import { Root } from '@/lib/Root'
 import { hardwareTiers } from '@/utils/hardwareTier'
 import { DelayedShow } from '../DelayedShow/DelayedShow'
@@ -134,15 +135,31 @@ export function VariationDocsTab(props: {
     <div class={ui.docsLayout}>
       <div class={ui.galleryPane}>
         <div class={ui.searchRow}>
-          <input
-            class={ui.searchInput}
-            type="search"
-            placeholder="Search variations…"
-            value={query()}
-            onInput={(e) => setQuery(e.currentTarget.value)}
-            autocomplete="off"
-            spellcheck={false}
-          />
+          <div class={ui.searchWrap}>
+            <svg
+              class={ui.searchIcon}
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              class={ui.searchInput}
+              type="search"
+              placeholder="Search variations…"
+              value={query()}
+              onInput={(e) => setQuery(e.currentTarget.value)}
+              autocomplete="off"
+              spellcheck={false}
+            />
+          </div>
           <div class={ui.dimsToggle}>
             <button
               class={ui.dimBtn}
@@ -198,14 +215,32 @@ export function VariationDocsTab(props: {
             <Show
               when={filtered().length > 0}
               fallback={
-                <div class={ui.muted}>No variations match “{query()}”.</div>
+                <div class={ui.emptyNoticeCard}>
+                  <div class={ui.emptyNoticeIcon}>
+                    <Info width="16" height="16" />
+                  </div>
+                  <div class={ui.emptyNoticeContent}>
+                    <div class={ui.emptyNoticeTitle}>
+                      No Matching Variations
+                    </div>
+                    <div class={ui.emptyNoticeText}>
+                      No variations match &ldquo;{query()}&rdquo;.
+                    </div>
+                  </div>
+                </div>
               }
             >
               <ComputeGate capacity={COMPUTE_GATE_CAPACITY}>
                 <For each={grouped()}>
                   {(group) => (
                     <>
-                      <div class={ui.sectionHeader}>{group.label}</div>
+                      <div class={ui.sectionHeader}>
+                        <span class={ui.sectionLabel}>{group.label}</span>
+                        <span class={ui.sectionCount}>
+                          {group.types.length}
+                        </span>
+                        <span class={ui.sectionLine} />
+                      </div>
                       <div class={ui.galleryGrid}>
                         <For each={group.types}>
                           {(type) => {
@@ -237,7 +272,10 @@ export function VariationDocsTab(props: {
                                   )}
                                 </Show>
                                 <Show when={hasDoc(type)}>
-                                  <span class={ui.docDot} title="Documented" />
+                                  <span
+                                    class={ui.docDot}
+                                    title="Documented formula"
+                                  />
                                 </Show>
                                 <span class={ui.galleryItemName}>
                                   {getNormalizedVariationName(type)}
