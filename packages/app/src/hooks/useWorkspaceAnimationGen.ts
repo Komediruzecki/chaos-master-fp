@@ -99,7 +99,7 @@ const PRESET_APPLIERS: Record<
         timeline,
         bounds,
         `transform.${tid}.color.x`,
-        t.color.x,
+        t.color?.x ?? 0,
         0.1,
         0.3,
       )
@@ -107,7 +107,7 @@ const PRESET_APPLIERS: Record<
         timeline,
         bounds,
         `transform.${tid}.color.y`,
-        t.color.y,
+        t.color?.y ?? 0,
         0.1,
         0.3,
       )

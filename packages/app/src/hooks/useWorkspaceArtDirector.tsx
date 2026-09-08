@@ -16,7 +16,7 @@ export interface UseWorkspaceArtDirectorParams {
     label?: string,
   ) => void
   showToast: (message: string) => void
-  hardwareTier?: HardwareTier | null
+  hardwareTier?: (() => HardwareTier | null | undefined) | HardwareTier | null
 }
 
 export function useWorkspaceArtDirector(params: UseWorkspaceArtDirectorParams) {
@@ -104,7 +104,9 @@ export function useWorkspaceArtDirector(params: UseWorkspaceArtDirectorParams) {
               setState: setDirectorState,
               selectCandidate,
             }}
-            hardwareTier={hardwareTier}
+            hardwareTier={
+              typeof hardwareTier === 'function' ? hardwareTier() : hardwareTier
+            }
             respond={() => {
               isDirectorModalOpen = false
               setDirectorOpen(false)

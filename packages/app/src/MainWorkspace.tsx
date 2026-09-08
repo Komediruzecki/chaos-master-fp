@@ -503,7 +503,7 @@ export function MainWorkspace(props: AppProps) {
     flameDescriptor,
     setFlameDescriptor,
     showToast,
-    hardwareTier: props.hardwareTier,
+    hardwareTier: () => props.hardwareTier,
   })
 
   const {
