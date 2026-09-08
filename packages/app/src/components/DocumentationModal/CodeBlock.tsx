@@ -30,12 +30,12 @@ export function CodeBlock(props: { code: string; language?: string }) {
               when={copied()}
               fallback={
                 <>
-                  <Copy width="12" height="12" class={ui.copyIcon} />
+                  <Copy width="13" height="13" class={ui.copyIcon} />
                   <span>Copy</span>
                 </>
               }
             >
-              <Check width="12" height="12" class={ui.checkIcon} />
+              <Check width="13" height="13" class={ui.checkIcon} />
               <span>Copied</span>
             </Show>
           </button>
