@@ -114,6 +114,13 @@ describe('ArenaOverlay Component', () => {
       k.startsWith('_sym__'),
     )
     expect(p1SymKeys.length).toBeGreaterThanOrEqual(1)
+    expect(p1()?.metrics?.symmetryScore).toBe(5.0)
+    expect(p1()?.groundedStats?.symmetryOrder).toBe(4)
+
+    // Click C4 again on Player 1 to toggle off/reset to C1
+    fireEvent.click(c4Buttons[0]!)
+    expect(p1()?.groundedStats?.symmetryOrder).toBe(1)
+    expect(p1()?.metrics?.symmetryScore).toBe(0)
 
     // Click C4 on Player 2
     fireEvent.click(c4Buttons[1]!)
@@ -121,6 +128,8 @@ describe('ArenaOverlay Component', () => {
       k.startsWith('_sym__'),
     )
     expect(p2SymKeys.length).toBeGreaterThanOrEqual(1)
+    expect(p2()?.metrics?.symmetryScore).toBe(5.0)
+    expect(p2()?.groundedStats?.symmetryOrder).toBe(4)
   })
 
   it('renders Sync Active and From Gallery action buttons', () => {

@@ -21,8 +21,22 @@ export function createHorizontalScrollDrag(
     const el = elementRef()
     if (!el) return
 
+    const isOverInteractiveInput = (target: EventTarget | null): boolean => {
+      if (!target || !(target instanceof HTMLElement)) return false
+      return Boolean(
+        target.tagName === 'INPUT' ||
+        target.tagName === 'SELECT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable ||
+        target.closest(
+          'input, select, textarea, [contenteditable="true"], [data-step], [data-prevent-horizontal-scroll]',
+        ),
+      )
+    }
+
     // 1. Mouse wheel handler: translate vertical deltaY into horizontal scrollLeft
     const handleWheel = (e: WheelEvent) => {
+      if (isOverInteractiveInput(e.target)) return
       const delta =
         Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY
       if (delta !== 0) {
@@ -43,6 +57,8 @@ export function createHorizontalScrollDrag(
       if (e.pointerType === 'touch') return
       // Only drag on primary (left) mouse button
       if (e.button !== 0) return
+      // Do not drag if mouse down started on an interactive input
+      if (isOverInteractiveInput(e.target)) return
 
       isDown = true
       hasDragged = false
