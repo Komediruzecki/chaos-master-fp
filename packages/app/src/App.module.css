@@ -691,13 +691,18 @@
   }
 
   [data-theme='dark'] & {
-    border-color: var(--neutral-700);
-    color: var(--neutral-400);
+    border-color: var(--neutral-600);
+    color: #f1f5f9;
+
+    & > svg {
+      color: #f1f5f9;
+      stroke: currentColor;
+    }
 
     &:hover {
-      color: var(--neutral-200);
-      background: rgba(255, 255, 255, 0.05);
-      border-color: var(--neutral-600);
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.08);
+      border-color: var(--neutral-500);
     }
   }
 }
@@ -1775,11 +1780,16 @@
   }
 
   [data-theme='dark'] & {
-    color: var(--neutral-400);
+    color: #f1f5f9;
+
+    & svg {
+      color: #f1f5f9;
+      stroke: currentColor;
+    }
 
     &:hover {
       background: var(--neutral-800);
-      color: var(--neutral-200);
+      color: #ffffff;
     }
   }
 }

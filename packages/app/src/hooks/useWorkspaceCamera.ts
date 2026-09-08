@@ -45,7 +45,7 @@ export function useWorkspaceCamera(params: UseWorkspaceCameraParams) {
     const safeX = Number.isFinite(next.x) ? next.x : curX
     const safeY = Number.isFinite(next.y) ? next.y : curY
     setRenderSetting('camera.position', [safeX, safeY])
-    return [safeX, safeY]
+    return vec2f(safeX, safeY)
   }
 
   function makeCamera3DSetter(

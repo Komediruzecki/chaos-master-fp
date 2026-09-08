@@ -10,6 +10,7 @@ export interface TouchControlSurfaceProps {
   ctx: CommandContext
   flame: Accessor<FlameDescriptor>
   mode: TouchSurfaceMode
+  initialTab?: TouchTab
   onOpenDrawer?: () => void
   onRandomize?: () => void
   onMutate?: () => void
@@ -24,6 +25,7 @@ export interface TouchControlSurfaceProps {
 export interface MobileBottomSurfaceProps {
   ctx: CommandContext
   flame: Accessor<FlameDescriptor>
+  initialTab?: TouchTab
   onOpenDrawer?: () => void
   onRandomize?: () => void
   onMutate?: () => void

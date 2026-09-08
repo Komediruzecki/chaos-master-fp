@@ -1,21 +1,29 @@
 import { createSignal, Show } from 'solid-js'
-import { ColourWedge, ShapeTriangle, Shuffle, VariationSpiral } from '@/icons'
+import { ColourWedge, ShapeTriangle, VariationSpiral } from '@/icons'
 import { TouchControlSurface } from './TouchControlSurface'
 import ui from './TouchSurface.module.css'
-import type { MobileBottomSurfaceProps } from './types'
+import type { MobileBottomSurfaceProps, TouchTab } from './types'
 
 export function MobileBottomSurface(props: MobileBottomSurfaceProps) {
   const [expanded, setExpanded] = createSignal(false)
+  const [activeTab, setActiveTab] = createSignal<TouchTab>('variations')
+
+  const openTab = (tab: TouchTab) => {
+    setActiveTab(tab)
+    setExpanded(true)
+  }
 
   return (
     <div class={ui.bottomSheet} role="region" aria-label="Mobile Controls">
-      {/* 1. Collapsed Pill State */}
+      {/* 1. Collapsed Pill State - single clean row */}
       <Show when={!expanded()}>
         <div class={ui.collapsedPillBar}>
           <button
             type="button"
             class={ui.tabChip}
-            onClick={() => setExpanded(true)}
+            onClick={() => {
+              openTab('variations')
+            }}
             aria-label="Open Variations"
           >
             <VariationSpiral class={ui.tabIcon} />
@@ -24,7 +32,9 @@ export function MobileBottomSurface(props: MobileBottomSurfaceProps) {
           <button
             type="button"
             class={ui.tabChip}
-            onClick={() => setExpanded(true)}
+            onClick={() => {
+              openTab('shape')
+            }}
             aria-label="Open Shape Controls"
           >
             <ShapeTriangle class={ui.tabIcon} />
@@ -33,22 +43,13 @@ export function MobileBottomSurface(props: MobileBottomSurfaceProps) {
           <button
             type="button"
             class={ui.tabChip}
-            onClick={() => setExpanded(true)}
+            onClick={() => {
+              openTab('colour')
+            }}
             aria-label="Open Colour Controls"
           >
             <ColourWedge class={ui.tabIcon} />
             Colour
-          </button>
-          <button
-            type="button"
-            class={ui.iconBtnSmall}
-            title="Quick Randomize"
-            aria-label="Quick Randomize"
-            onClick={() => {
-              if (props.onRandomize) props.onRandomize()
-            }}
-          >
-            <Shuffle class={ui.hudButtonIcon} />
           </button>
         </div>
       </Show>
@@ -68,6 +69,7 @@ export function MobileBottomSurface(props: MobileBottomSurfaceProps) {
             ctx={props.ctx}
             flame={props.flame}
             mode="bottom-sheet"
+            initialTab={activeTab()}
             onOpenDrawer={props.onOpenDrawer}
             onRandomize={props.onRandomize}
             onMutate={props.onMutate}

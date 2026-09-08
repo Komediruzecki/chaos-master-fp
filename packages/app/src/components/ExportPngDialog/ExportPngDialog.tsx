@@ -116,11 +116,12 @@ function RenderDialog(props: RenderDialogProps) {
     () => 0,
   )
 
-  const cameraPos = () =>
-    vec2f(
-      props.previewDescriptor.renderSettings.camera.position[0],
-      props.previewDescriptor.renderSettings.camera.position[1],
-    )
+  const cameraPos = () => {
+    const cam = props.previewDescriptor.renderSettings.camera
+    const x = Number.isFinite(cam?.position?.[0]) ? cam.position[0] : 0
+    const y = Number.isFinite(cam?.position?.[1]) ? cam.position[1] : 0
+    return vec2f(x, y)
+  }
 
   const is3D = () =>
     (props.previewDescriptor.renderSettings.dimensions ?? 2) === 3

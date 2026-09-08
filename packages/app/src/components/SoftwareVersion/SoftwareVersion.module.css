@@ -127,12 +127,12 @@
   color: #38bdf8;
 }
 
-/* Floating touch menu and version badge anchored bottom-left (tablet/mobile only) */
+/* Floating touch menu anchored top-left (tablet/mobile only) */
 .touchContainer,
 .versionContainer {
   position: fixed;
-  left: max(12px, env(safe-area-inset-left));
-  bottom: max(12px, env(safe-area-inset-bottom));
+  left: max(8px, env(safe-area-inset-left));
+  top: max(8px, env(safe-area-inset-top));
   z-index: 50;
   display: flex;
   flex-direction: column;
@@ -140,22 +140,20 @@
   font-family: inherit;
 }
 
-/* Collapsed Trigger Button (single sleek glassmorphism badge) */
+/* Collapsed Trigger Button (sleek circular hamburger button) */
 .menuTrigger {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  height: 32px;
-  padding: 0 10px;
-  border-radius: 9999px;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(14, 18, 30, 0.88);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   color: #cbd5e1;
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
   cursor: pointer;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
   transition: all 0.18s ease;
@@ -166,39 +164,25 @@
 .menuTrigger:hover {
   background: rgba(22, 28, 48, 0.95);
   border-color: rgba(56, 189, 248, 0.45);
-  color: #f8fafc;
-  transform: translateY(-1px);
+  color: #38bdf8;
+  transform: scale(1.04);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
 }
 
 .menuTriggerActive {
   background: rgba(22, 28, 48, 0.98);
   border-color: #38bdf8;
-  color: #ffffff;
+  color: #38bdf8;
   box-shadow: 0 0 14px rgba(56, 189, 248, 0.35);
 }
 
 .triggerIcon {
-  width: 14px;
-  height: 14px;
-  color: #38bdf8;
+  width: 16px;
+  height: 16px;
+  color: inherit;
+  stroke: currentColor;
+  fill: none;
   flex-shrink: 0;
-}
-
-.triggerLabel {
-  letter-spacing: 0.02em;
-}
-
-.triggerChevron {
-  width: 12px;
-  height: 12px;
-  opacity: 0.7;
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  transform: rotate(180deg);
-}
-
-.triggerChevronOpen {
-  transform: rotate(0deg);
 }
 
 /* Invisible backdrop to dismiss popover when clicking outside */
@@ -209,13 +193,15 @@
   background: transparent;
 }
 
-/* Upward expanding popover menu */
+/* Downward expanding popover menu */
 .menuPopover {
   position: absolute;
-  bottom: calc(100% + 8px);
+  top: calc(100% + 8px);
   left: 0;
+  bottom: auto;
   z-index: 52;
-  width: 240px;
+  width: 250px;
+  max-width: calc(100vw - 20px);
   padding: 6px;
   border-radius: 12px;
   background: #0d121f;
@@ -225,7 +211,18 @@
   flex-direction: column;
   gap: 2px;
   contain: paint layout;
-  animation: popoverSlideUp 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: popoverSlideDown 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes popoverSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .menuItem {
@@ -299,55 +296,4 @@
   height: 1px;
   margin: 4px 6px;
   background: rgba(255, 255, 255, 0.08);
-}
-
-@keyframes popoverSlideUp {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.touchRailBar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.railGalleryBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 38px;
-  padding: 0 14px;
-  border-radius: 9999px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(15, 23, 42, 0.88);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  color: #f8fafc;
-  font-size: 0.82rem;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-  transition: all 0.18s cubic-bezier(0.22, 1, 0.36, 1);
-  touch-action: manipulation;
-}
-
-.railGalleryBtn:hover,
-.railGalleryBtn:active {
-  background: rgba(30, 41, 59, 0.95);
-  border-color: rgba(59, 130, 246, 0.5);
-  transform: translateY(-1px);
-}
-
-.railGalleryIcon {
-  width: 16px;
-  height: 16px;
-  color: #38bdf8;
-  flex-shrink: 0;
 }

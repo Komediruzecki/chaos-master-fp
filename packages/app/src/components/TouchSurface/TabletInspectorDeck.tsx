@@ -77,11 +77,11 @@ export function TabletInspectorDeck(props: TabletInspectorDeckProps) {
           <button
             type="button"
             class={ui.hudButton}
-            title="Snapshot PNG"
-            aria-label="Snapshot PNG"
+            title="Flash Export (Instant PNG)"
+            aria-label="Flash Export (Instant PNG)"
             onClick={() => {
               if (props.onSnapshot) props.onSnapshot()
-              else dispatch('export.png')
+              else dispatch('flame.quickExport')
             }}
           >
             <CameraIcon class={ui.hudButtonIcon} />

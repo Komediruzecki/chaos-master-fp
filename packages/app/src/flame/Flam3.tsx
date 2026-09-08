@@ -995,8 +995,10 @@ export function Flam3(props: Flam3Props) {
       lastPresentMs = performance.now()
       const skipItersFactor =
         1 + animatedFlame().renderSettings.skipIters * 0.05
+      const pts = Math.max(1, accumulatedPointCount_)
+      const rawInv = (bucketProbabilityInv() / pts) * skipItersFactor
       currentAveragePointCountPerBucketInv =
-        (bucketProbabilityInv() / accumulatedPointCount_) * skipItersFactor
+        Number.isFinite(rawInv) && rawInv > 0 ? rawInv : 0
       writeColorGradingUniforms()
       if (props.adaptiveFilterEnabled && !props.stochasticFilterEnabled) {
         const passDesc: GPUComputePassDescriptor =
@@ -1095,7 +1097,10 @@ export function Flam3(props: Flam3Props) {
           `[Flam3 ${logTime()}] !hadWork emit finalImageReady=TRUE at ${accumulatedPointCount_} pts (no new IFS work this tick) — capture gate may grab a STALE frame`,
         )
       }
-      currentExportCb?.(canvas, { finalImageReady })
+      currentExportCb?.(canvas, {
+        finalImageReady,
+        fence: latestQueueFence,
+      })
       return { iterations: 0, presented: false, hadWork: false }
     }
 
@@ -1162,6 +1167,7 @@ export function Flam3(props: Flam3Props) {
           finalImageReady:
             status.isExportReady &&
             lastExportRenderedPointCount === accumulatedPointCount_,
+          fence: latestQueueFence,
         })
       }
 
