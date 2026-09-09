@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { formatSummarizedMetadata, formatSummarizedRenderSettings, formatSummarizedTransforms, formatTransformSummary, } from './getFlame'
 import { resolveTransformDetail } from './getFlameDetail'
+import { mutateFlame } from './mutateFlame'
 import { openArena } from './openArena'
+import { randomizeFlame } from './randomizeFlame'
+import { scoreClashRound } from './scoreClashRound'
 import type { TransformFunction } from '@/flame/schema/flameSchema'
 
 describe('getFlame modular subroutines', () => {
@@ -125,5 +128,63 @@ describe('openArena tool execution contract', () => {
   it('returns error when workspace context or arena is not available', () => {
     const res = openArena.execute({}, {}) as { error: string }
     expect(res.error).toBeDefined()
+  })
+})
+
+describe('mutateFlame and randomizeFlame tool execution contract', () => {
+  it('returns error when workspace context is not ready for mutateFlame', () => {
+    const res = mutateFlame.execute({}, {}) as { error: string }
+    expect(res.error).toContain('Workspace not ready')
+  })
+
+  it('returns error when workspace context is not ready for randomizeFlame', () => {
+    const res = randomizeFlame.execute({}, {}) as { error: string }
+    expect(res.error).toContain('Workspace not ready')
+  })
+})
+
+describe('scoreClashRound tool execution contract', () => {
+  it('handles missing clashFlame gracefully', () => {
+    const res = scoreClashRound.execute({}, {}) as { error: string }
+    expect(res.error).toBe('Invalid or missing clashFlame descriptor.')
+  })
+
+  it('scores territory round for a valid clash flame', () => {
+    const clashFlame = {
+      version: '1',
+      transforms: {
+        p1_t1_0: {
+          probability: 1,
+          visible: true,
+          color: { x: 0.2, y: 1 },
+          colorSpeed: 0.5,
+          preAffine: { a: 1, b: 0, c: 0, d: -1, e: 1, f: 0 },
+          postAffine: { a: 1, b: 0, c: 0, d: 0, e: 1, f: 0 },
+          variations: { sphericalVar: { type: 'sphericalVar', weight: 1 } },
+        },
+        p2_t1_0: {
+          probability: 1,
+          visible: true,
+          color: { x: 0.8, y: 1 },
+          colorSpeed: 0.5,
+          preAffine: { a: 1, b: 0, c: 0, d: 1, e: 1, f: 0 },
+          postAffine: { a: 1, b: 0, c: 0, d: 0, e: 1, f: 0 },
+          variations: { polarVar: { type: 'polarVar', weight: 1 } },
+        },
+      },
+    }
+
+    const res = scoreClashRound.execute({ clashFlame, seed: 100 }, {}) as {
+      ownershipA: number
+      ownershipB: number
+      contested: number
+      verdict: 'A' | 'B' | 'draw'
+    }
+
+    expect(res.ownershipA).toBeGreaterThanOrEqual(0)
+    expect(res.ownershipB).toBeGreaterThanOrEqual(0)
+    expect(res.contested).toBeGreaterThanOrEqual(0)
+    expect(['A', 'B', 'draw']).toContain(res.verdict)
+    expect(res.ownershipA + res.ownershipB + res.contested).toBeCloseTo(1, 2)
   })
 })
