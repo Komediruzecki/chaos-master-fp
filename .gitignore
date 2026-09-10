@@ -24,3 +24,5 @@ playwright-report
 
 # Local security-audit scanner output (semgrep/gitleaks/nuclei/eslint telemetry)
 .audit_telemetry/
+coverage-audit/
+webgpu-verify-out/

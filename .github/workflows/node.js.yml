@@ -48,6 +48,12 @@ jobs:
     - name: 🧪 Run tests
       run: pnpm test
 
+    - name: Check the generated agent index is current
+      run: pnpm docs:index:check
+
+    - name: Coverage and code-metrics ratchet
+      run: pnpm test:coverage && pnpm metrics:check
+
     - name: 🛠️ Build project
       run: pnpm --filter chaos-master run build
 

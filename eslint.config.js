@@ -13,7 +13,11 @@ export default defineConfig(
       '.pnpm-noop',
       '**/*.css.d.ts',
       '**/coverage',
+      '**/coverage-audit',
       '**/dist',
+      // Tool config, not source. It is CommonJS and outside every tsconfig
+      // project, so the type-aware parser cannot resolve it.
+      '.dependency-cruiser.cjs',
       '**/.astro', // Astro generated cache (packages/landing)
       '**/node_modules',
       '**/.pnpm-store', // present in CI
@@ -360,16 +364,28 @@ export default defineConfig(
     // Node dev/build scripts (e.g. the Playwright poster-capture tool). Allow the
     // Node globals plus the browser globals referenced inside page.evaluate /
     // waitForFunction callbacks, and unrestricted console output.
-    files: ['packages/*/scripts/**/*.mjs', 'packages/*/astro.config.mjs'],
+    files: [
+      'packages/*/scripts/**/*.mjs',
+      'packages/*/astro.config.mjs',
+      'scripts/**/*.mjs',
+    ],
     languageOptions: {
       globals: {
         process: 'readonly',
         console: 'readonly',
         window: 'readonly',
+        // Referenced inside page.evaluate / addInitScript callbacks, which are
+        // serialised and run in the browser, not in this Node process.
+        document: 'readonly',
+        navigator: 'readonly',
+        localStorage: 'readonly',
       },
     },
     rules: {
       'no-console': 'off',
+      // Same reason as the browser globals above: these appear only inside
+      // callbacks that execute in the page.
+      'no-restricted-globals': 'off',
     },
   },
 )
