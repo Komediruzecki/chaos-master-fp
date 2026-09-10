@@ -1,5 +1,6 @@
 import type { Accessor, Setter } from 'solid-js'
 import type { v2f } from 'typegpu/data'
+import type { BundledTrack } from '@/arcade/bundledTracks'
 import type { AudioMapping, AudioWiringSnapshot, } from '@/flame/schema/audioWiring'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 import type { TimelineSnapshot } from '@/flame/schema/timeline'
@@ -200,6 +201,12 @@ export interface CommandContext {
     setMapping: (mapping: AudioMapping) => void
     setEnabled: (enabled: boolean) => void
     setSource: (source: 'file' | 'mic') => void
+    /**
+     * Fetch, decode and adopt a bundled track as the file source, exactly as
+     * loading a file in the audio panel does. Optional because replay and
+     * export contexts have no audio resources to load into.
+     */
+    loadBundledTrack?: (track: BundledTrack) => Promise<void>
   }
   /**
    * Reproducible Sonification-panel state. AudioContext/device lifetime and

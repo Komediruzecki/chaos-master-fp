@@ -10,7 +10,6 @@ import { SonificationPanel } from '@/components/SonificationPanel/SonificationPa
 import { isVariationType } from '@/flame/variations'
 import { getVariationDefault } from '@/flame/variations/utils'
 import { snapshotOrigin } from '@/recorder/snapshotOrigin'
-import { createAudioAnalyzer } from '@/utils/audioAnalysis'
 import { deepClone } from '@/utils/clone'
 import { AffineEditorSection } from './AffineEditorSection'
 import { ColorAndPaletteSection } from './ColorAndPaletteSection'
@@ -88,14 +87,10 @@ export interface WorkspaceSidebarProps {
   breakRecordingCoalescing: () => void
 
   audioBuffer: Accessor<AudioBuffer | undefined>
-  setAudioBuffer: (buf: AudioBuffer | undefined) => void
-  setAudioTrackName: (name: string | undefined) => void
-  setFileAnalyzer: (analyzer: AudioAnalyzer | undefined) => void
+  /** Adopt a decoded file as the audio source, or clear it with undefined. */
+  onAudioChange: (buf: AudioBuffer | undefined, fileName?: string) => void
   analysisProgress: Accessor<number | null>
-  setAnalysisProgress: (progress: number | null) => void
-  setAudioEnabled: (enabled: boolean) => void
   setPlaybackPaused: (paused: boolean) => void
-  setPlaybackTime: (time: number) => void
   setSeekTarget: (target: number | null) => void
   audioMapping: Accessor<AudioMapping>
   audioEnabled: Accessor<boolean>
@@ -430,43 +425,7 @@ export function WorkspaceSidebar(props: WorkspaceSidebarProps) {
                           props.setShowAudioPanel(false)
                         }}
                         audioBuffer={props.audioBuffer}
-                        onAudioChange={(buf, fileName) => {
-                          props.history.takeOverOwnedPreview?.()
-                          props.setAudioBuffer(buf)
-                          props.setAudioTrackName(fileName)
-                          props.setFileAnalyzer(undefined)
-                          props.setAnalysisProgress(null)
-                          if (!buf) {
-                            props.setAudioEnabled(false)
-                          } else {
-                            props.setAnalysisProgress(0)
-                            setTimeout(async () => {
-                              let lastPercent = -1
-                              const analyzer = await createAudioAnalyzer(
-                                buf,
-                                30,
-                                (current, total) => {
-                                  if (total <= 0) return
-                                  const percent = Math.floor(
-                                    (current / total) * 100,
-                                  )
-                                  if (percent === lastPercent) return
-                                  lastPercent = percent
-                                  props.setAnalysisProgress(percent / 100)
-                                },
-                              )
-                              props.setFileAnalyzer(analyzer)
-                              props.setAnalysisProgress(null)
-                            }, 30)
-                          }
-                          props.setPlaybackPaused(false)
-                          props.setPlaybackTime(0)
-                          props.setSeekTarget(null)
-                          props.transformsSectionProps.executeCommand(
-                            'audio.applySnapshot',
-                            props.transformsSectionProps.cmdContext,
-                          )
-                        }}
+                        onAudioChange={props.onAudioChange}
                         audioMapping={props.audioMapping}
                         onMappingChange={(mapping) => {
                           props.transformsSectionProps.executeCommand(
