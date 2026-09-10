@@ -1,6 +1,6 @@
 # Bug hunt — Lumen Apeiron (Chaos Master)
 
-Audit date: 2026-09-10. Range: `v0.9.11` (`5dbde563`) .. `main` (`a5c2f26f`)
+Audit date: 2026-09-10. Range: `v0.9.11` (`5dbde563`) .. `a5c2f26f`
 — 39 commits delivered as 11 squash-merged fork PRs, #73 to #83.
 
 Six independent hunts ran in parallel, each with a different lens: workspace
@@ -14,31 +14,37 @@ exporter needed fixing twice.
 Every finding below cites a file and a line and was found by reading code, not
 by pattern-matching a linter.
 
+> This file is generated from the audit findings and is listed in
+> `.prettierignore`. Its body is quoted evidence — code, log lines, shell
+> fragments — and prettier rewrites the `*` and `_` in that text as markdown
+> emphasis, silently corrupting it.
+
 ## How to read the status column
 
-| Status        | Meaning                                                                                                     |
-| ------------- | ----------------------------------------------------------------------------------------------------------- |
-| **CONFIRMED** | A second agent independently read the code and could not refute it. Treat as fact.                          |
-| **REFUTED**   | The finder was wrong. Kept below so nobody re-reports it.                                                   |
-| reported      | Found and evidenced, but rated low severity and therefore never put through refutation. A lead, not a fact. |
+| Status | Meaning |
+| --- | --- |
+| **CONFIRMED** | A second agent independently read the code and could not refute it. Treat as fact. |
+| **REFUTED** | The finder was wrong. Kept below so nobody re-reports it. |
+| reported | Found and evidenced, but rated low severity and therefore never put through refutation. A lead, not a fact. |
 
 Severity is the **verifier's** corrected rating, which is frequently lower than
 the finder's — 21 of the confirmed findings were downgraded to low on review.
 
 ## Totals
 
-|                   |  Count |
-| ----------------- | -----: |
-| Findings raised   |     58 |
-| **Confirmed**     | **32** |
-| — of which high   |      4 |
-| — of which medium |      7 |
-| — of which low    |     21 |
-| Refuted           |      5 |
-| Low, not verified |     21 |
+| | Count |
+| --- | ---: |
+| Findings raised | 58 |
+| **Confirmed** | **32** |
+| — of which high | 4 |
+| — of which medium | 7 |
+| — of which low | 21 |
+| Refuted | 5 |
+| Low, not verified | 21 |
 
 Fixes for the high and medium findings are planned task-by-task in
 [../superpowers/plans/2026-09-10-audit-remediation-stage1-defects.md](../superpowers/plans/2026-09-10-audit-remediation-stage1-defects.md).
+
 
 ---
 
@@ -51,7 +57,6 @@ Fixes for the high and medium findings are planned task-by-task in
 **Evidence.** BEFORE (MainWorkspace.tsx at 88070311^, lines 3057-3369): getFlameValue was a switch. The 'if timeline.isDrivingView() && hasKeyframeAtFrame(...) -> resolveKeyframeValue' short-circuit was written out longhand inside exactly seven cases: camera.x, camera.y, camera.zoom, camera3D.theta, camera3D.phi, camera3D.radius, camera3D.fov. 'camera.rotation' deliberately did NOT have it, and every transform/variation path fell through the switch's `default:` straight to the live flame store.
 
 AFTER (useWorkspaceTimelineBinding.ts:87-96):
-
 ```
 function getFlameCameraSetting(rs, path, timeline) {
   const kf = getTimelineCameraKeyframeValue(timeline, path)   // <- runs for ANY path
@@ -60,16 +65,13 @@ function getFlameCameraSetting(rs, path, timeline) {
   return getter ? getter(rs) : undefined
 }
 ```
-
 and getFlameValue (line 380-390) calls it for every path that is not in RENDER_GETTERS, BEFORE getFlameTransformSetting / getFlameVariationSetting:
-
 ```
 const cameraVal = getFlameCameraSetting(fd.renderSettings, path, timeline)
 if (cameraVal !== undefined) return cameraVal
 const parts = path.split('.')
 const transformVal = getFlameTransformSetting(fd.transforms, parts)
 ```
-
 getTimelineCameraKeyframeValue (line 35-45) does `timeline.hasKeyframeAtFrame(path, ...)`, and utils/timeline.ts hasKeyframeAtFrame is path-generic (`tracks().find(t => t.parameterPath === parameterPath)`). So a transform, affine or va
 
 **How it fails.** Animation enabled; a track exists for `transform.t1.probability` with a keyframe at frame 30. User scrubs the playhead to frame 30 (previewHeld -> isDrivingView() true; utils/timeline.ts:703). Sidebar sliders remain live (WorkspaceSidebar only locks on isPlaying()). User drags the probability slider from 0.4 to 0.9 — the store now holds 0.9. keyframeEditedParam fires addKeyframesAtCurrentFrame(['transform.t1.probability']); the resolver sees isDrivingView() && hasKeyframeAtFrame -> returns the OLD keyframe value 0.4 and rewrites the keyframe as 0.4. The edit is silently discarded and the canvas snaps back. Same for transform.t1.preAffine.a, transform.t1.color.x, and variation weights `t1.v1`. Before the refactor the resolver returned the live 0.9.
@@ -98,7 +100,7 @@ getTimelineCameraKeyframeValue (line 35-45) does `timeline.hasKeyframeAtFrame(pa
 
 `packages/app/src/webmcp/tools/arcadeBeats.ts:333` — **high** · behaviour-change · introduced by #75 (60361cd5 feat(arcade): implement beats mode, bundled audio tracks, and webmcp...) · lens: Arcade modes
 
-**Evidence.** arcadeBeats.ts:332-349 builds `newSnapshot = { mapping, enabled: true, source: currentSnapshot.source ?? 'file', trackName: currentSnapshot.trackName ?? 'Ember Drift' }` and dispatches `executeCommand('audio.applySnapshot', ctx, newSnapshot)`. That command (packages/app/src/commands/builtins/audio.ts:74) computes `const mayEnable = snapshot.enabled && audio.canEnable(snapshot)`, then unconditionally calls `audio.setEnabled(false)` before re-enabling only when mayEnable. The live `canEnable` is `canEnableReplayAudio` (packages/app/src/recorder/replay.ts:44-49), which returns true for a file source only when `resources.hasFileBuffer && audio.trackName === resources.currentTrackName`. MainWorkspace.tsx:2971-2976 supplies `hasFileBuffer: audioBuffer() !== undefined` and `currentTrackName: audioTrackName()`. The ONLY writer of those two signals is the manual file picker in WorkspaceSidebar.tsx:435-436 (`props.setAudioBuffer(buf); props.setAudioTrackName(fileName)`). Nothing loads a bundled track: `fetchBundledTrackBuffer` (arcade/bundledTracks.ts:42) has zero callers in src (grep over packages/\*/src returns only its own definition), and the CommandContext audio facade (commands/types.ts:188-200) has no load/track member at all. So with no user-loaded file, hasFileBuffer is false, currentTrackName is undefined, mayEnable is false, and the mapping lands with audio disabled — undoing t
+**Evidence.** arcadeBeats.ts:332-349 builds `newSnapshot = { mapping, enabled: true, source: currentSnapshot.source ?? 'file', trackName: currentSnapshot.trackName ?? 'Ember Drift' }` and dispatches `executeCommand('audio.applySnapshot', ctx, newSnapshot)`. That command (packages/app/src/commands/builtins/audio.ts:74) computes `const mayEnable = snapshot.enabled && audio.canEnable(snapshot)`, then unconditionally calls `audio.setEnabled(false)` before re-enabling only when mayEnable. The live `canEnable` is `canEnableReplayAudio` (packages/app/src/recorder/replay.ts:44-49), which returns true for a file source only when `resources.hasFileBuffer && audio.trackName === resources.currentTrackName`. MainWorkspace.tsx:2971-2976 supplies `hasFileBuffer: audioBuffer() !== undefined` and `currentTrackName: audioTrackName()`. The ONLY writer of those two signals is the manual file picker in WorkspaceSidebar.tsx:435-436 (`props.setAudioBuffer(buf); props.setAudioTrackName(fileName)`). Nothing loads a bundled track: `fetchBundledTrackBuffer` (arcade/bundledTracks.ts:42) has zero callers in src (grep over packages/*/src returns only its own definition), and the CommandContext audio facade (commands/types.ts:188-200) has no load/track member at all. So with no user-loaded file, hasFileBuffer is false, currentTrackName is undefined, mayEnable is false, and the mapping lands with audio disabled — undoing t
 
 **How it fails.** User opens the Arcade hub, picks Beats mode, chooses the "Cyber Pulse" chip, pastes the prompt into an agent. The agent calls arcade_start_beats, arcade_get_audio_catalog, then arcade_set_audio_mapping with a valid mappings array. The tool returns `{ok: true, appliedCount: N}` and the session is saved by arcade_end_beats — but audioEnabled is false and no audio buffer exists, so the flame never reacts to anything. The picked track only ever reaches beatsPromptCard(selectedTrack().name, ...) as prompt text (components/Arcade/ArcadeModePanel.tsx:159).
 
@@ -126,6 +128,7 @@ getTimelineCameraKeyframeValue (line 35-45) does `timeline.hasKeyframeAtFrame(pa
 **Repro.** Unit: drive the pinch handler with two touches at identical coordinates and assert camera3D.radius stays finite. Manual: on the Android tablet, open a 3D flame, two-finger tap the canvas, then export a PNG.
 
 **Suggested fix.** Give WheelZoomCamera3D the same guards as WheelZoomCamera2D, or better, hoist the guard into createPinchHandler so no consumer can forget it. Separately, stop NaN passing the schema as a number.
+
 
 ---
 
@@ -159,13 +162,11 @@ getTimelineCameraKeyframeValue (line 35-45) does `timeline.hasKeyframeAtFrame(pa
 AFTER: MainWorkspace.tsx:2411-2412 calls `useWorkspaceAnimationGen({ timeline, ... })` — the raw timeline — and hooks/useWorkspaceAnimationGen.ts:217-219 and 241-243 pass it straight into `runTimelineSnapshotMutation(timeline, snapshotOrigin('timeline.random'|'timeline.smart'), ...)`. `grep -n recorderTimeline MainWorkspace.tsx` now returns 1140, 1150, 3084, 3102, 3262, 3557, 3980 — the two animation handlers are gone from that list.
 
 recorder/timelineActions.ts:28-34:
-
 ```
 const recorderAware = timeline as Partial<RecorderAwareTimeline>
 const run = recorderAware[RECORDER_SNAPSHOT_MUTATION]
 return run === undefined ? timeline.runWithSingleUndo(mutate) : run(origin, mutate)
 ```
-
 Only the facade built by createRecorderAwareTimeline carries that symbol (timelineActions.ts:143). The raw timeline does not, so the call silently degrades to runWithSingleUndo and skips recordSnapshotMutation's `invalidateLastFinishedSession()` + `recordSyntheticAction('timeline.loadTimeline', [after, origin], label)` (timelineActions.ts:99-107), and the withRecordingSuppressed wrap
 
 **How it fails.** Start a session recording, click Randomize Animation (or Smart Animation) in the Flame Randomizer card, stop the recording, then replay it. The preset appliers use Math.random() (useWorkspaceAnimationGen.ts:35, 76, 87, 142), so the generated tracks are non-deterministic; the value-pinned `timeline.loadTimeline` synthetic action that used to capture them is never recorded. Replay reproduces a different animation (or none). The stale-session invalidation is also skipped, so a session finished before the click is not marked stale.
@@ -187,12 +188,10 @@ After 5d35f893 that JSX is in components/WorkspaceSidebar/WorkspaceSidebar.tsx, 
 MainWorkspace.tsx still declares `let sidebarRef` (line 387) and `let sidebarScrollRef` (line 388). `grep -n 'sidebarScrollRef\|sidebarRef' MainWorkspace.tsx` returns only 387, 388, 2110, 2114, 2115, 3250 — every one a read, no assignment. Both are therefore permanently `undefined`.
 
 Consequently MainWorkspace.tsx:2109-2119:
-
 ```
 const anchorSidebarToRandomizer = (): (() => void) => {
   if (!sidebarScrollRef || !randomizerCardRef) return () => {}
 ```
-
 always takes the early return. randomizerCardRef IS still wired (MainWorkspace.tsx:3768-3770 -> RandomizerSection.tsx:41 `<div ref={props.randomizerCardRef}>`), so the guard fails purely on the orphaned scroll ref. The anchor is invoked from handleGenerateFlame (line 2326) and handleMutateFlame (line 2340). The layout store's `sidebarEl` signal that replaced it (stores/workspaceLayoutStore.ts:152, 19
 
 **How it fails.** Open the Flame Randomizer card, scroll so the Generate button is under the cursor, click Generate on a flame whose transform count differs from the current one. The sidebar reflows (affine rows + transform cards) and the Generate button jumps under the cursor — exactly what the comment at MainWorkspace.tsx:2105-2108 says the anchor prevents. Repeated clicks now land on whatever control slid into that position.
@@ -211,7 +210,7 @@ always takes the early return. randomizerCardRef IS still wired (MainWorkspace.t
 
 **How it fails.** Open any PR against the repo. CI deploys the full production build to https://chaos-master-preview.<subdomain>.workers.dev and posts that URL in a comment on a public GitHub PR page, which is itself crawled. A crawler follows the link, requests /robots.txt, is told `Allow: /`, and is handed `Sitemap: https://lumenapeiron.com/sitemap.xml` — production's complete URL list, served from a duplicate origin. No `X-Robots-Tag` is sent because `isReviewHost` returned false. This is precisely the failure the PR describes for dev.lumenapeiron.com ("worse than passive: it is a duplicate origin with a map attached"), left in place on the only one of the three hosts whose URL is publicly linked.
 
-**Verification.** Every structural claim checks out. packages/app/src/worker/middleware/reviewHost.ts:14-18 is exact equality against the single constant 'dev.lumenapeiron.com'; packages/app/src/worker/index.ts:112-114 short-circuits everything else to the plain withSecurityHeaders path, so no X-Robots-Tag and no substitute robots.txt. packages/app/wrangler.jsonc:149-186 declares env.preview with name 'chaos-master-preview' and no routes block (prod has lumenapeiron.com at :42, dev has dev.lumenapeiron.com), so it publishes on workers.dev. .github/workflows/deploy.yml:146-155 deploys --env preview on pull_request and :158+ posts .github/workflows/pr-deployment-table.md, whose only rows are a markdown link to PREVIEW_URL. packages/app/public/robots.txt is 'User-agent: _ / Allow: / / Sitemap: https://lumenapeiron.com/sitemap.xml' with no meta robots anywhere in index.html, and assets.run_worker_first ['/_','!/assets/\*'] (wrangler.jsonc:30) means the worker does see /robots.txt and falls through to env.ASSETS.fetch. The sibling landing package solved exactly this with an env flag (packages/landing/src/pages/robots.txt.ts:16 PUBLIC_REVIEW_DEPLOY + the noindex meta in Base.astro), and wrangler.jsonc:153
+**Verification.** Every structural claim checks out. packages/app/src/worker/middleware/reviewHost.ts:14-18 is exact equality against the single constant 'dev.lumenapeiron.com'; packages/app/src/worker/index.ts:112-114 short-circuits everything else to the plain withSecurityHeaders path, so no X-Robots-Tag and no substitute robots.txt. packages/app/wrangler.jsonc:149-186 declares env.preview with name 'chaos-master-preview' and no routes block (prod has lumenapeiron.com at :42, dev has dev.lumenapeiron.com), so it publishes on workers.dev. .github/workflows/deploy.yml:146-155 deploys --env preview on pull_request and :158+ posts .github/workflows/pr-deployment-table.md, whose only rows are a markdown link to PREVIEW_URL. packages/app/public/robots.txt is 'User-agent: * / Allow: / / Sitemap: https://lumenapeiron.com/sitemap.xml' with no meta robots anywhere in index.html, and assets.run_worker_first ['/*','!/assets/*'] (wrangler.jsonc:30) means the worker does see /robots.txt and falls through to env.ASSETS.fetch. The sibling landing package solved exactly this with an env flag (packages/landing/src/pages/robots.txt.ts:16 PUBLIC_REVIEW_DEPLOY + the noindex meta in Base.astro), and wrangler.jsonc:153 
 
 **Repro.** Open a PR against chaos-matters/chaos-master with CLOUDFLARE_API_TOKEN present. The Build & Deploy App job runs `deploy --env preview` and comments the chaos-master-preview.<subdomain>.workers.dev link on the public PR page. `curl -sI https://chaos-master-preview.<subdomain>.workers.dev/` shows no X-Robots-Tag header; `curl -s .../robots.txt` returns the production file verbatim including the lumenapeiron.com sitemap line. The same two curls against dev.lumenapeiron.com return `X-Robots-Tag: noindex, nofollow` and `Disallow: /`.
 
@@ -221,11 +220,11 @@ always takes the early return. randomizerCardRef IS still wired (MainWorkspace.t
 
 `packages/app/src/arcade/tasteStore.ts:164` — **medium** · correctness · introduced by #74 (e4c5afc4 feat(arcade): implement evolutionary art director mode and webmcp tools) · lens: Arcade modes
 
-**Evidence.** recordCandidateFeedback builds `const id = `cand-${feedback.generation}-${feedback.candidateIndex}``(tasteStore.ts:164) and then`const existingIndex = ratings.findIndex(r => r.id === id)`overwrites in place (166,173-177).`generation`comes from the tool caller: directorPropose reads`generation`from the agent's input and stores`generation: generation || 1`(webmcp/tools/arcadeDirector.ts:130), and DirectorOverlay passes`generation: s.generation`into recordCandidateFeedback (components/DirectorOverlay.tsx:82,127). Every fresh Director session starts its agent at generation 1, so`cand-1-0`..`cand-1-N`from a session yesterday are silently replaced by today's. There is no session id, no timestamp component, and no seed/flame hash in the key — only`timestamp` is stored as a field (170), never used for identity. MAX_RATINGS_HISTORY = 100 (55) is therefore never the binding limit; the distinct-key count is.
+**Evidence.** recordCandidateFeedback builds `const id = `cand-${feedback.generation}-${feedback.candidateIndex}`` (tasteStore.ts:164) and then `const existingIndex = ratings.findIndex(r => r.id === id)` overwrites in place (166,173-177). `generation` comes from the tool caller: directorPropose reads `generation` from the agent's input and stores `generation: generation || 1` (webmcp/tools/arcadeDirector.ts:130), and DirectorOverlay passes `generation: s.generation` into recordCandidateFeedback (components/DirectorOverlay.tsx:82,127). Every fresh Director session starts its agent at generation 1, so `cand-1-0` .. `cand-1-N` from a session yesterday are silently replaced by today's. There is no session id, no timestamp component, and no seed/flame hash in the key — only `timestamp` is stored as a field (170), never used for identity. MAX_RATINGS_HISTORY = 100 (55) is therefore never the binding limit; the distinct-key count is.
 
 **How it fails.** A user rates 6 candidates across generations 1-3 on Monday (18 records). On Tuesday a new Director session starts at generation 1 and they rate 6 more. director_get_taste_profile then reports totalRatings = 18, not 36, and Monday's generation-1 and generation-2 preferences have been destroyed — the tool's own description promises a profile 'derived across sessions'.
 
-**Verification.** Read and confirmed. `tasteStore.ts:164` builds `const id = `cand-${feedback.generation}-${feedback.candidateIndex}``; `:166`finds by that id and`:173-177`overwrites in place.`RatedCandidate`(29-39) carries`timestamp` but it is only ever written (`:170`) and read for nothing — `deriveTasteProfile` (186-296) never touches it. There is no session id, no seed, no content hash.
+**Verification.** Read and confirmed. `tasteStore.ts:164` builds `const id = `cand-${feedback.generation}-${feedback.candidateIndex}``; `:166` finds by that id and `:173-177` overwrites in place. `RatedCandidate` (29-39) carries `timestamp` but it is only ever written (`:170`) and read for nothing — `deriveTasteProfile` (186-296) never touches it. There is no session id, no seed, no content hash.
 
 The generation value really does restart: `arcadeDirector.ts:114-132` takes `generation` straight from the agent's input and stores `generation: generation || 1`, and every Director prompt card starts an agent at generation 1. `DirectorOverlay.tsx:81-89` (`toggleReaction`) and `:122-131` (`toggleTag`) both pass `generation: s.generation, candidateIndex: index`, so Tuesday's `cand-1-0` overwrites Monday's.
 
@@ -257,7 +256,7 @@ I checked the two things that could have refuted it and both fail. (a) The contr
 
 `packages/core/src/math/easing.ts:7` — **medium** · duplication · introduced by #73 (5747de32) · lens: Benchmark lab, command registry, @chaos-master/core extracti
 
-**Evidence.** The extraction used two different strategies. Schema/affine/diff modules were correctly converted to thin shims - packages/app/src/flame/fdiff.ts is 6 lines of `export { diffFlames, ... } from '@chaos-master/core'`, affineTranform.ts is 5 lines, migrateFlameTypes.ts is 1 line. But five utility modules were COPIED. Verified with md5sum + difflib (not `diff`, which this shell rewrites): packages/app/src/utils/record.ts and packages/core/src/utils/record.ts have the same md5 (2026b7c1...); app/src/utils/easing.ts vs core/src/math/easing.ts differ only in the import path of `EasingCurve` - lerp/applyEasing/bounce/elastic/clamp/catmullRom are character-identical; app/src/utils/schemaUtil.ts vs core/src/utils/schemaUtil.ts differ only in import paths; core/src/xml/flam3PaletteParser.ts is a 62-line SUBSET copy of the app's 282-line packages/app/src/flame/flam3PaletteParser.ts (PREFILTER_WHITE, flam3CalcAlpha, rgbToOklab duplicated verbatim). Reachability: nothing anywhere imports applyEasing/catmullRom/rgbToOklab/flam3CalcAlpha/structToSchema from '@chaos-master/core' (grep across packages), so core's easing.ts, xml/flam3PaletteParser.ts and utils/schemaUtil.ts are dead weight behind `export *` in core/src/index.ts, while record.ts and clone.ts are live in BOTH copies (73 app files import '@/utils/clone', and core/src/schema/flameSchema.ts:4 imports its own '../utils/clone'), so the
+**Evidence.** The extraction used two different strategies. Schema/affine/diff modules were correctly converted to thin shims - packages/app/src/flame/fdiff.ts is 6 lines of `export { diffFlames, ... } from '@chaos-master/core'`, affineTranform.ts is 5 lines, migrateFlameTypes.ts is 1 line. But five utility modules were COPIED. Verified with md5sum + difflib (not `diff`, which this shell rewrites): packages/app/src/utils/record.ts and packages/core/src/utils/record.ts have the same md5 (2026b7c1...); app/src/utils/easing.ts vs core/src/math/easing.ts differ only in the import path of `EasingCurve` - lerp/applyEasing/bounce/elastic/clamp/catmullRom are character-identical; app/src/utils/schemaUtil.ts vs core/src/utils/schemaUtil.ts differ only in import paths; core/src/xml/flam3PaletteParser.ts is a 62-line SUBSET copy of the app's 282-line packages/app/src/flame/flam3PaletteParser.ts (PREFILTER_WHITE, flam3CalcAlpha, rgbToOklab duplicated verbatim). Reachability: nothing anywhere imports applyEasing/catmullRom/rgbToOklab/flam3CalcAlpha/structToSchema from '@chaos-master/core' (grep across packages), so core's easing.ts, xml/flam3PaletteParser.ts and utils/schemaUtil.ts are dead weight behind `export *` in core/src/index.ts, while record.ts and clone.ts are live in BOTH copies (73 app files import '@/utils/clone', and core/src/schema/flameSchema.ts:4 imports its own '../utils/clone'), so the 
 
 **How it fails.** A bug fix to the Catmull-Rom tangent or to flam3CalcAlpha's gamma handling is applied to whichever copy the developer greps to first. Timeline keyframe interpolation (packages/app/src/utils/timeline.ts:3 imports from './easing') and .flame palette import (packages/app/src/flame/palettes.ts:10 imports from './flam3PaletteParser') keep the old behaviour, while anything routed through @chaos-master/core gets the new one - and because the core copies are currently unreferenced, a fix landed there is silently a no-op.
 
@@ -271,6 +270,7 @@ REFUTED sub-claim: 'clone.ts ... live in BOTH copies ... so the app bundle carri
 
 **Suggested fix.** Delete core/src/math/easing.ts, core/src/utils/schemaUtil.ts and core/src/xml/flam3PaletteParser.ts (or move the app's callers onto them and make the app files shims, the way fdiff.ts/affineTranform.ts were done). For clone.ts and record.ts, keep one implementation in core and turn the app's files into `export * from '@chaos-master/core'` shims.
 
+
 ---
 
 ## Confirmed — low
@@ -279,7 +279,7 @@ REFUTED sub-claim: 'clone.ts ... live in BOTH copies ... so the app bundle carri
 
 `packages/app/src/utils/audioAnalysis.ts:837` — **low** · behaviour-change · introduced by #82 · lens: Timeline engine and audio analysis modulation
 
-**Evidence.** PR #82 added a fallback that did not exist before. Before (9901fc5c^, `applyAudioMappingsToFlame`): `const v = vars[tgt.variationType]`. After (audioAnalysis.ts:837-841): `const v = vars[tgt.variationType] ?? Object.values(vars).find((candidate) => candidate.type === tgt.variationType)`. `variations` is a `v.record(VariationId, BaseVariationDescriptor)` (packages/core/src/schema/flameSchema.ts:392) keyed by UUID, e.g. `variations: { '44890d73_...': { type: 'cliffordVar', weight: 1 } }` (packages/app/src/flame/examples/cliffordCsch2.ts:32), so the direct lookup never matched and the `find` is what now does the work. But the target model still identifies a variation only by `.type`: `TargetNode.tsx:122` emits one target per variation with `variationType: v.type`, `audioWiringPresets.ts:178` emits one per `t.variations.slice(0, 2)` with no type dedupe, and `flameTargetKey` (audioAnalysis.ts:559) returns `tx.${transformIdx}.var.${variationType}.weight`. `flame.addVariation` (packages/app/src/commands/builtins/flame/variationCommands.ts:86) rejects only a duplicate variation _id_, never a duplicate type, so a transform holding two `linearVar` entries is legal and reachable.
+**Evidence.** PR #82 added a fallback that did not exist before. Before (9901fc5c^, `applyAudioMappingsToFlame`): `const v = vars[tgt.variationType]`. After (audioAnalysis.ts:837-841): `const v = vars[tgt.variationType] ?? Object.values(vars).find((candidate) => candidate.type === tgt.variationType)`. `variations` is a `v.record(VariationId, BaseVariationDescriptor)` (packages/core/src/schema/flameSchema.ts:392) keyed by UUID, e.g. `variations: { '44890d73_...': { type: 'cliffordVar', weight: 1 } }` (packages/app/src/flame/examples/cliffordCsch2.ts:32), so the direct lookup never matched and the `find` is what now does the work. But the target model still identifies a variation only by `.type`: `TargetNode.tsx:122` emits one target per variation with `variationType: v.type`, `audioWiringPresets.ts:178` emits one per `t.variations.slice(0, 2)` with no type dedupe, and `flameTargetKey` (audioAnalysis.ts:559) returns `tx.${transformIdx}.var.${variationType}.weight`. `flame.addVariation` (packages/app/src/commands/builtins/flame/variationCommands.ts:86) rejects only a duplicate variation *id*, never a duplicate type, so a transform holding two `linearVar` entries is legal and reachable.
 
 **How it fails.** Transform 0 holds two variations of the same type: `{ v0: {type:'linearVar', weight:1}, v1: {type:'linearVar', weight:0.3} }`. Open the wiring modal: TargetNode lists two identically-labelled 'T0 / linearVar weight' rows. Wire the first to `bass` and the second to `presence`. On every tick `Object.values(vars).find(c => c.type === 'linearVar')` returns `v0` for both mappings, so `v1.weight` never moves, and `flameTargetKey` returns the same string `tx.0.var.linearVar.weight` for both, so the two mappings share one `{smoothed, lastApplied}` entry: the presence mapping reads the bass mapping's `smoothed` as its envelope `prev`, and its dirty check compares against the bass mapping's `lastApplied`, so it is usually skipped entirely (`checkTargetDirty` returns false, audioAnalysis.ts:729). Net effect: one of the two wires is silently inert and the other's envelope is corrupted by cross-talk.
 
@@ -316,7 +316,6 @@ REFUTED sub-claim: 'clone.ts ... live in BOTH copies ... so the app bundle carri
 `packages/app/src/components/WorkspaceModalsHost/lazyModals.ts:26` — **low** · error-handling · introduced by #73 (5d35f893) · lens: MainWorkspace decomposition and workspace hooks
 
 **Evidence.** Every factory in lazyModals.ts follows the same shape, e.g. createLazyShowBenchmark (lines 25-33):
-
 ```
 if (!instancePromise) {
   instancePromise = import('@/components/BenchmarkModal/BenchmarkModal').then(
@@ -325,7 +324,6 @@ if (!instancePromise) {
 }
 const fn = await instancePromise
 ```
-
 There is no `.catch` and no reset of `instancePromise` on failure, so once the dynamic import rejects the memoised rejected promise is returned for the rest of the page's life. The same pattern repeats in createLazyShowDocumentation (44-52), createLazyShowHelp (70-92), createLazyShowCustomVariationEditor (105-117) and the remaining factories in the file.
 
 The call sites all fire-and-forget: MainWorkspace.tsx:4093 `void showBenchmark()`, 4096 `void showDocumentation()`, 4099 `void showHelp()`, 2443 and 3937 `void showShareLinkModal()`, 1436 `void showBenchmark({ autoStart: props.autoStartBenchmark })`. `grep -n 'catch' MainWorkspace.tsx` shows none of these are wrapped.
@@ -343,13 +341,11 @@ Before Phase 1.1 these modals were statically imported into the main bundle, so 
 `packages/app/src/stores/workspaceLayoutStore.ts:114` — **low** · reactivity · introduced by #79 (1468bbf5), on the store introduced by 06ae45bd · lens: MainWorkspace decomposition and workspace hooks
 
 **Evidence.** Lines 114-126 sit at module top level, not inside createWorkspaceLayoutStore (which starts at line 135):
-
 ```
 export const isPhone = createMemo(() => { ... })
 export const isTablet = createMemo(() => { ... })
 export const isTouchLayout = createMemo(() => isPhone() || isTablet())
 ```
-
 The module is pulled in eagerly via the `./stores` barrel (stores/index.ts line 2) which MainWorkspace imports at line 246 usage (`createWorkspaceLayoutStore`), so all three run during ES-module evaluation, when getOwner() is null. That is precisely the condition Solid's dev build reports as "computations created outside a createRoot or render will never be disposed" — the warning this repo has repeatedly chased (memory note solid-conditional-prop-memo-leak). They subscribe permanently to touchLayoutPreference/rawIsPhone/rawIsTablet with no disposal path.
 
 The surrounding module-level side effects have the same problem in the non-reactive direction: lines 105-112 register `mqPhone.addEventListener('change', ...)` and `mqTablet.addEventListener('change', ...)` with no removal, and MainWorkspace.tsx:390-427 registers a second, identical pair of phone/tablet matchMedia listeners writing the same setRawIsPhone/setRawIsTablet signals (that one does have onCleanup). Two independent listener sets now drive the same state.
@@ -366,7 +362,7 @@ Also note the memo body at 116-117 is dead: `if (touchLayoutPreference() === 'to
 
 `packages/app/src/stores/workspaceLayoutStore.ts:114` — **low** · reactivity · introduced by #77 · lens: Mobile and tablet responsive UI, documentation panel redesig
 
-**Evidence.** Lines 114, 120 and 126 are `export const isPhone = createMemo(...)`, `export const isTablet = createMemo(...)` and `export const isTouchLayout = createMemo(() => isPhone() || isTablet())`, all at module top level with no enclosing `createRoot`. `grep -rn '^export const .* = createMemo\|^const .* = createMemo' packages/app/src` returns exactly these three lines and nothing else — every other memo in the app is inside a component or a factory. solid-js 1.9.11's dev build warns unconditionally in `createComputation`: node_modules/.pnpm/solid-js@1.9.11/node_modules/solid-js/dist/dev.js:789 reads `if (Owner === null) console.warn("computations created outside a `createRoot`or`render` will never be disposed")`. The module is imported at boot by MainWorkspace.tsx:253, Toast.tsx:1 and ExportJobTracker.tsx:2, so the warnings fire on every page load. Lines 105-112 add two `matchMedia` change listeners at the same scope, also never removed. Compounding this, `createWorkspaceLayoutStore()` (line 135) returns these module globals as fields (lines 183-187) beside genuinely per-instance signals, so the factory's return type gives no hint that three of its members are process-wide singletons.
+**Evidence.** Lines 114, 120 and 126 are `export const isPhone = createMemo(...)`, `export const isTablet = createMemo(...)` and `export const isTouchLayout = createMemo(() => isPhone() || isTablet())`, all at module top level with no enclosing `createRoot`. `grep -rn '^export const .* = createMemo\|^const .* = createMemo' packages/app/src` returns exactly these three lines and nothing else — every other memo in the app is inside a component or a factory. solid-js 1.9.11's dev build warns unconditionally in `createComputation`: node_modules/.pnpm/solid-js@1.9.11/node_modules/solid-js/dist/dev.js:789 reads `if (Owner === null) console.warn("computations created outside a `createRoot` or `render` will never be disposed")`. The module is imported at boot by MainWorkspace.tsx:253, Toast.tsx:1 and ExportJobTracker.tsx:2, so the warnings fire on every page load. Lines 105-112 add two `matchMedia` change listeners at the same scope, also never removed. Compounding this, `createWorkspaceLayoutStore()` (line 135) returns these module globals as fields (lines 183-187) beside genuinely per-instance signals, so the factory's return type gives no hint that three of its members are process-wide singletons.
 
 **How it fails.** Boot the app in dev and the console carries three `computations created outside a createRoot or render will never be disposed` warnings before any user interaction — the exact diagnostic the project's own notes flag as the signature of an ownership bug, now emitted by healthy code, which trains readers to ignore it when a real leak appears. The smoke gate does not catch it: tests/smoke.spec.ts:195-204 filters `consoleErrors` only. Functionally, any test or harness that calls `createWorkspaceLayoutStore()` twice gets two stores that silently share phone/tablet state, and a `createRoot(dispose => ...)` in workspaceLayoutStore.test.ts:7 disposes nothing of these three because they were created at import time, outside the root.
 
@@ -510,7 +506,7 @@ Also note the memo body at 116-117 is dead: `if (touchLayoutPreference() === 'to
 
 `packages/app/src/worker/routes/discord.ts:15` — **low** · refactor-quality · introduced by #73 (77551b95, f2b78e42) · lens: Benchmark lab, command registry, @chaos-master/core extracti
 
-**Evidence.** The move itself is faithful - a multiset line-diff of the old 1,288-line worker/index.ts against index.ts+utils.ts+types.ts+routes/_+middleware/_ at 77551b95 shows the only new lines are function signatures and dispatch calls, and the only removed lines are declarations that gained `export`. That last part is the problem: helpers that were deliberately private are now public with zero consumers. Old `function sanitizeDiscordText` (worker*old.ts:292) -> `export function sanitizeDiscordText` (routes/discord.ts:15); `function buildDiscordContent` (old:303) -> export (discord.ts:26); `async function stageCommunityShowcase` (old:411) -> export (discord.ts:80); `function parseSequence` (old:196) -> export (routes/gallery.ts:85); `async function injectMeta` (old:618) -> export (routes/og.ts:78); `const baseHandler` (old:653) -> `export const baseHandler` (index.ts:13). A repo-wide scan for references outside the defining file found 24 such exports unused: 6 in discord.ts, 9 in gallery.ts (incl. the GALLERY*_*COLUMNS / LEGACY*_ / MISSING\_\* SQL fragments and withGalleryColumnsFallback), 3 in og.ts, 4 in securityHeaders.ts, REVIEW_HOST, and baseHandler. gallery.ts exports 15 symbols of which only 6 are consumed. The same pattern is in the command registry: commands/builtins/flame/helpers.ts:40 MAX_PALETTE_ENTRIES, :319 MAX_SYMMETRY_FOLDS and SymmetryControlOrigin are exported (and re-exp
+**Evidence.** The move itself is faithful - a multiset line-diff of the old 1,288-line worker/index.ts against index.ts+utils.ts+types.ts+routes/*+middleware/* at 77551b95 shows the only new lines are function signatures and dispatch calls, and the only removed lines are declarations that gained `export`. That last part is the problem: helpers that were deliberately private are now public with zero consumers. Old `function sanitizeDiscordText` (worker_old.ts:292) -> `export function sanitizeDiscordText` (routes/discord.ts:15); `function buildDiscordContent` (old:303) -> export (discord.ts:26); `async function stageCommunityShowcase` (old:411) -> export (discord.ts:80); `function parseSequence` (old:196) -> export (routes/gallery.ts:85); `async function injectMeta` (old:618) -> export (routes/og.ts:78); `const baseHandler` (old:653) -> `export const baseHandler` (index.ts:13). A repo-wide scan for references outside the defining file found 24 such exports unused: 6 in discord.ts, 9 in gallery.ts (incl. the GALLERY_*_COLUMNS / LEGACY_* / MISSING_* SQL fragments and withGalleryColumnsFallback), 3 in og.ts, 4 in securityHeaders.ts, REVIEW_HOST, and baseHandler. gallery.ts exports 15 symbols of which only 6 are consumed. The same pattern is in the command registry: commands/builtins/flame/helpers.ts:40 MAX_PALETTE_ENTRIES, :319 MAX_SYMMETRY_FOLDS and SymmetryControlOrigin are exported (and re-exp
 
 **How it fails.** The SQL column-list constants and withGalleryColumnsFallback are now part of the module's public surface, so a future edit cannot rely on 'only this file uses it' and the D1 fallback query strings can be reused from a route that has different column expectations. More immediately, no unused-export tooling can distinguish these from real API, so genuinely dead code (e.g. og.ts's resolveOgCard/buildMetaTags if handleMetaInject is ever rewritten) will never be reported.
 
@@ -540,7 +536,7 @@ Also note the memo body at 116-117 is dead: `if (touchLayoutPreference() === 'to
 
 **Repro.** `git show a5c2f26f^:packages/app/src/pages/Benchmarks/BenchmarksPage.tsx | wc -l` → 2868; `wc -l packages/app/src/pages/Benchmarks/BenchmarksPage.tsx` → 2800. `grep -rn 'BenchmarkRunSection\|CompletedRunCard' packages/app/src | grep -v BenchmarksPage.tsx` returns nothing — no external importer, and nothing to unit-test against.
 
-**Suggested fix.** Move the five components into packages/app/src/pages/Benchmarks/components/\*.tsx (they take plain readonly props and have no closure over page state - BenchmarkHeader, BenchmarkHero, BenchmarkHistoryList and BenchmarkRunSection move verbatim; CompletedRunCard needs only formatRate/formatCount/formatSignedPercent/correctnessLabel/BENCHMARK_DIAL imported alongside).
+**Suggested fix.** Move the five components into packages/app/src/pages/Benchmarks/components/*.tsx (they take plain readonly props and have no closure over page state - BenchmarkHeader, BenchmarkHero, BenchmarkHistoryList and BenchmarkRunSection move verbatim; CompletedRunCard needs only formatRate/formatCount/formatSignedPercent/correctnessLabel/BENCHMARK_DIAL imported alongside).
 
 ### benchmarkRunnerUtils.ts - the extracted sample-record and schedule logic - has no tests, though the commit claims comprehensive coverage
 
@@ -553,6 +549,7 @@ Also note the memo body at 116-117 is dead: `if (touchLayoutPreference() === 'to
 **Repro.** Swap lines 144-145 of packages/app/src/pages/Benchmarks/benchmarkRunnerUtils.ts and run a benchmark: buildBenchmarkResult returns `status: 'invalid'` with a `metric-mismatch` issue on every sample, because validation.ts:560 computes |throughput - completedWork/(elapsedMs/1000)| / derived > 0.005. The result is visibly rejected in the lab UI, not silently published. `ls packages/app/src/pages/Benchmarks/*.test.ts` confirms the missing file.
 
 **Suggested fix.** Add benchmarkRunnerUtils.test.ts: a table test over validateBenchmarkRunPreconditions' five branches, an assertion that createBenchmarkScheduleForRuntimes picks createBalancedComparisonSchedule at exactly length 2 and passes warmupPairs/measuredPairs through unswapped, and a round-trip asserting createBenchmarkSampleRecord copies entry.sequence/phase/pairIndex/orderInPair/blockOrder and points->completedWork / pointsPerSecond->throughput.
+
 
 ---
 
@@ -570,7 +567,7 @@ AudioWiringModal.tsx:526 is `const presets = () => props.presets ?? DEFAULT_PRES
 
 `packages/app/src/components/DocumentationModal/VariationDocsTab.tsx:128` — raised as medium, **refuted**.
 
-**Why it is not a defect.** The diff is quoted accurately (I read `git show 220f836f -- .../VariationDocsTab.tsx`: PREVIEW_TIER_CAP='mid', PREVIEW_RESOLUTION 160x110 and capPreviewTier were removed; VariationDocsTab.tsx:40-48 and :128-133 replaced them), but the failure scenario is materially wrong and the framing does not survive the surrounding code. (a) 'each of ~148 live previews allocates a 384x264 WebGPU canvas' is false. VariationSelector.tsx:258-263 gates mounting on `allowed() || settledVisible() || renderStatus()==='done'`, and settledVisible (:203) requires the tile to be on-screen and not mid-scroll; off-screen tiles never allocate anything. Concurrency on top of that is COMPUTE_GATE_CAPACITY = 2 (defaults.ts:131-133) with computeGatePriority returning 0 for not-visible or done (ComputeGateContext.tsx:11-15). VariationSelector.tsx:265-299 snapshots to a static poster and unmounts the canvas. The file's
+**Why it is not a defect.** The diff is quoted accurately (I read `git show 220f836f -- .../VariationDocsTab.tsx`: PREVIEW_TIER_CAP='mid', PREVIEW_RESOLUTION 160x110 and capPreviewTier were removed; VariationDocsTab.tsx:40-48 and :128-133 replaced them), but the failure scenario is materially wrong and the framing does not survive the surrounding code. (a) 'each of ~148 live previews allocates a 384x264 WebGPU canvas' is false. VariationSelector.tsx:258-263 gates mounting on `allowed() || settledVisible() || renderStatus()==='done'`, and settledVisible (:203) requires the tile to be on-screen and not mid-scroll; off-screen tiles never allocate anything. Concurrency on top of that is COMPUTE_GATE_CAPACITY = 2 (defaults.ts:131-133) with computeGatePriority returning 0 for not-visible or done (ComputeGateContext.tsx:11-15). VariationSelector.tsx:265-299 snapshots to a static poster and unmounts the canvas. The file's 
 
 ### ArenaOverlay registers arena.startClash/gameState on mount and never unregisters them, so a re-opened arena runs the disposed instance and leaves the staged clash in the user's document
 
@@ -591,7 +588,6 @@ False: the assertion that `arena.setOpen(true)` in `arenaStartClash.ts:80-82` "c
 What is true: createExportRenderDriver.ts:14-43 races the fence against a 2000 ms setTimeout (renderDriverTypes.ts:11) and resolves on timeout; v0.9.11 Flam3.tsx:1376-1381 did `try { await latestQueueFence } catch { break }`; the gpuReady check is at createExportRenderDriver.ts:210-212, before the await at :214; the docblock at :136-137 still claims 'at most one chunk is in flight'.
 
 What is refuted:
-
 1. 'Swallows rejection and continues instead of breaking' is not a defect. The rationale is written at :27-31 and it is correct: the createEffect at :150 reads `options.gpuReady()` inside its tracking scope, so a genuine device loss re-runs the effect, fires onCleanup at :153-156 (disposed = true) and ends the loop. Independently, Flam3's valid
 
 ### Core imports the whole valibot namespace, bypassing the app's deliberately curated @/valibot re-export
@@ -603,6 +599,7 @@ What is refuted:
 Core is a separate published package with its own `valibot: 1.2.0` dependency. It cannot import `@/valibot` — that is a Vite path alias for packages/app/src, and honouring it would make core depend on the app, inverting the exact layering the extraction existed to establish. The finder's suggested fix concedes this by proposing the barrel move into core, which is a refactor preference, not a bug report.
 
 The stated harm does not exist either. Both packages pin valibot 1.2.0 and `readlink -f packages/app/node_modules/valibot packages/core/node_modules/val
+
 
 ---
 
@@ -631,6 +628,7 @@ Rated low by the finder and so never put through refutation. Check before acting
 - `packages/app/src/flame/renderDrivers/renderDrivers.test.ts:77` — The extracted export loop has zero test coverage; the driver test never enables the driver _(test-gap, #78 (38130d81) / e5a60c52)_
 - `packages/app/src/flame/renderDrivers/createInteractiveRenderDriver.ts:53` — The WebKit present pump's five-clause gate lost the comment explaining why each clause exists, including the counter-intuitive isExportRenderer term _(refactor-quality, #78 (commit 38130d81))_
 - `packages/app/src/pages/Benchmarks/BenchmarksPage.tsx:614` — CompletedRunCard captures props.run into a local at component setup _(reactivity, #83 (a5c2f26f))_
+
 
 ---
 
@@ -664,4 +662,5 @@ Rated low by the finder and so never put through refutation. Check before acting
 
 **Skeptical re-review of PRs #73/#83 — @chaos-master/core extr.** Five things in this area the finder should have caught.
 
-1. **The worker decomposition dropped 74% of its comments, and the finder's method could not see it.** They assert "the only new lines are function signatures and dispatch calls, and the only removed lines are declarations that gained `export`." That is false. I counted comment lines in `v0.9.11:packages/app/src/worker/index.ts` against the whole post-split tree (index.ts + types.ts + utils.ts + routes/_ + middleware/_, excluding tests): 261 comment lines before, 140 after, 193 distinct comment lines lost. Two of the losses are cross-file invariants that now exist nowhere: `packages/app/src/worker/types.ts:36` `GALLERY_SECTIONS` lost "Mirrors the CHECK constraint in migrations/0001_gallery_content.sql — keep the two in step", and `packages/app/src/worker/routes/gallery.ts:5` `MISSING_TABLE` lost the paragraph explaining that the same regex lives in `scripts/gallery-targets.mjs` and is what decides whether the deploy tooling offers to run migrations. In a repo whose comments carry this much operational knowledge, that is a bigge
+1. **The worker decomposition dropped 74% of its comments, and the finder's method could not see it.** They assert "the only new lines are function signatures and dispatch calls, and the only removed lines are declarations that gained `export`." That is false. I counted comment lines in `v0.9.11:packages/app/src/worker/index.ts` against the whole post-split tree (index.ts + types.ts + utils.ts + routes/* + middleware/*, excluding tests): 261 comment lines before, 140 after, 193 distinct comment lines lost. Two of the losses are cross-file invariants that now exist nowhere: `packages/app/src/worker/types.ts:36` `GALLERY_SECTIONS` lost "Mirrors the CHECK constraint in migrations/0001_gallery_content.sql — keep the two in step", and `packages/app/src/worker/routes/gallery.ts:5` `MISSING_TABLE` lost the paragraph explaining that the same regex lives in `scripts/gallery-targets.mjs` and is what decides whether the deploy tooling offers to run migrations. In a repo whose comments carry this much operational knowledge, that is a bigge
+
