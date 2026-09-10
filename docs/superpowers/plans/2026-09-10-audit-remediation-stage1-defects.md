@@ -212,9 +212,9 @@ prevDistance is consumer-held state."
 
 ---
 
-## Task 2: Stop NaN from being persisted as a valid number
+## Task 2: Reject non-finite camera values in the schema
 
-`packages/core/src/schema/flameSchema.ts:264` declares `radius: v.optional(v.number(), ...)`. valibot's `v.number()` **accepts `NaN`**, because `typeof NaN === 'number'`. So a corrupted camera passes `validateFlame` and is written into autosave, share links and session recordings. Task 1 stops the corruption at the source; this stops it becoming durable if anything else ever produces one.
+`packages/core/src/schema/flameSchema.ts:264` declares `radius: v.optional(v.number(), ...)`. Measured against valibot 1.2.0, `v.number()` **rejects `NaN` but accepts `Infinity` and `-Infinity`**. So a `NaN` camera fails validation (the saved flame will not reload), while an infinite one validates cleanly and is written into autosave, share links and session recordings. Task 1 stops the corruption at the source; this makes the schema reject both non-finite forms, so nothing else can make one durable either.
 
 **Files:**
 
@@ -234,14 +234,16 @@ import * as v from 'valibot'
 import { finiteNumber } from './flameSchema'
 
 describe('finiteNumber', () => {
-  it('rejects NaN, which plain v.number() accepts', () => {
-    expect(v.safeParse(v.number(), NaN).success).toBe(true) // documents the trap
-    expect(v.safeParse(finiteNumber, NaN).success).toBe(false)
+  it('documents the gap: plain v.number() rejects NaN but accepts Infinity', () => {
+    expect(v.safeParse(v.number(), NaN).success).toBe(false)
+    expect(v.safeParse(v.number(), Infinity).success).toBe(true)
+    expect(v.safeParse(v.number(), -Infinity).success).toBe(true)
   })
 
-  it('rejects Infinity and -Infinity', () => {
+  it('rejects Infinity, -Infinity and NaN', () => {
     expect(v.safeParse(finiteNumber, Infinity).success).toBe(false)
     expect(v.safeParse(finiteNumber, -Infinity).success).toBe(false)
+    expect(v.safeParse(finiteNumber, NaN).success).toBe(false)
   })
 
   it('accepts ordinary finite numbers including zero and negatives', () => {
@@ -263,10 +265,9 @@ In `packages/core/src/schema/flameSchema.ts`:
 
 ```ts
 /**
- * `v.number()` accepts NaN and Infinity, because both are `typeof 'number'`.
- * A NaN camera value produced by a degenerate touch gesture would otherwise
- * validate cleanly and be persisted into autosave, share links and session
- * recordings, where it renders blank and is very hard to trace back.
+ * `v.number()` rejects NaN but accepts Infinity and -Infinity. A camera value
+ * made infinite by a degenerate touch gesture would otherwise validate cleanly
+ * and be persisted into autosave, share links and session recordings.
  */
 export const finiteNumber = v.pipe(v.number(), v.finite())
 ```
@@ -289,12 +290,12 @@ Expected: PASS. If a fixture fails here, it contains a non-finite camera value a
 
 ```bash
 git add packages/core/src/schema/flameSchema.ts packages/core/src/schema/flameSchema.finite.test.ts
-git commit -m "fix(schema): reject non-finite camera values instead of persisting them
+git commit -m "fix(schema): reject infinite camera values instead of persisting them
 
-valibot's v.number() accepts NaN and Infinity. A camera poisoned by a degenerate
-touch gesture therefore passed validateFlame and was written into autosave, share
-links and session recordings, where it renders blank with no trace of where it
-came from. Camera fields now use a finite-checked number."
+valibot's v.number() rejects NaN but accepts Infinity and -Infinity. An infinite
+camera value therefore passed validateFlame and was written into autosave, share
+links and session recordings. Camera fields now use a finite-checked number,
+which rejects both."
 ```
 
 ---

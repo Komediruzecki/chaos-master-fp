@@ -52,15 +52,20 @@ two touch deltas with no zero guard. `WheelZoomCamera2D` was hardened against
 that by `0d239a45`; `WheelZoomCamera3D` never was, and divides by it directly.
 Two coincident touches — what a fast two-finger tap reports — give `NaN` or
 `Infinity`, and `Math.min`/`Math.max` **propagate NaN**, so the orbit clamp does
-not rescue the value. valibot's `v.number()` accepts `NaN`, so the poisoned
-camera is then persisted into autosave, share links and session recordings.
+not rescue the value. The two halves then fail differently. `0/0` gives a
+`NaN` radius, which breaks the live render and, once `JSON.stringify` turns it
+into `null`, makes the saved flame fail to reload. `d/0` gives `Infinity`, the
+radius collapses to `MIN_ORBIT_RADIUS`, and that finite value validates cleanly
+and is persisted into autosave, share links and session recordings. (valibot
+1.2.0's `v.number()` rejects `NaN` but accepts `±Infinity` — measured, not
+assumed; an earlier draft of this audit had it backwards.)
 
 The export failure was patched downstream twice — once in `ExportJobHost`, once
 in `Flam3` — leaving the corruption itself in place.
 
 **Fix.** Guard centrally in `createPinchHandler` so no consumer can forget, give
-`WheelZoomCamera3D` the same explicit checks as its 2D twin, and stop `NaN`
-passing the schema as a number.
+`WheelZoomCamera3D` the same explicit checks as its 2D twin, and make the camera
+schema fields reject `±Infinity` as well as `NaN`.
 
 **Acceptance.** A unit test driving two coincident touches and asserting the
 radius stays finite, plus the manual tablet protocol in the plan — run against
