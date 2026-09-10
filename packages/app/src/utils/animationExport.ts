@@ -1,5 +1,6 @@
 import { DEBUG_MODE } from '@/defaults'
 import { accumulatedPointCount, forceAnimationExportNow, qualityPointCountLimit, setAnimationExportCancel, setAnimationExportProgress, setAnimationExportRunning, setExportQuality, setForceAnimationExportNow, } from '@/flame/renderStats'
+import { DEFAULT_SHUTTER_ANGLE, subFrameLimit, subFrameOffsets, } from '@/utils/motionBlur'
 import { applyAudioMappingsToFlame, createAudioAnalyzer } from './audioAnalysis'
 import { createAudioVideoEncoder } from './audioExport'
 import { deepClone } from './clone'
@@ -173,17 +174,15 @@ export function createAnimationExport(
         }
 
         const frame = config.frameStart + (frameIndex % totalFrames)
-        const motionBlurSamples = Math.max(1, config.motionBlurSamples ?? 1)
-        const shutterAngle = config.shutterAngle ?? 180
-        const shutterDuration = shutterAngle / 360
+        const subOffsets = subFrameOffsets(
+          config.motionBlurSamples ?? 1,
+          config.shutterAngle ?? DEFAULT_SHUTTER_ANGLE,
+        )
+        const motionBlurSamples = subOffsets.length
         let subFrameIndex = 0
 
         function applySubFrame(subIdx: number) {
-          const subOffset =
-            motionBlurSamples > 1
-              ? (subIdx / motionBlurSamples) * shutterDuration
-              : 0
-          const subFrame = frame + subOffset
+          const subFrame = frame + (subOffsets[subIdx] ?? 0)
 
           // Advance the playhead so anything resolved from currentFrame tracks this subFrame.
           timeline.setCurrentFrame(subFrame)
@@ -243,8 +242,10 @@ export function createAnimationExport(
               motionBlurSamples > 1 &&
               subFrameIndex < motionBlurSamples - 1
             ) {
-              const subLimit = Math.round(
-                ((subFrameIndex + 1) / motionBlurSamples) * limit,
+              const subLimit = subFrameLimit(
+                subFrameIndex,
+                motionBlurSamples,
+                limit,
               )
               if (current >= subLimit) {
                 subFrameIndex++
