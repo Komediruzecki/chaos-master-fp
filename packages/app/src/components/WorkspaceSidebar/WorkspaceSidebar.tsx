@@ -2,7 +2,6 @@ import { lazy, Show, Suspense } from 'solid-js'
 import ui from '@/App.module.css'
 import { AudioReactivePanel } from '@/components/AudioReactivePanel/AudioReactivePanel'
 import { BlendFlameGallery } from '@/components/BlendFlameGallery/BlendFlameGallery'
-import { DiffViewContent } from '@/components/DiffViewModal/DiffViewModal'
 import diffUi from '@/components/DiffViewModal/DiffViewModal.module.css'
 import { ExportActions } from '@/components/ExportJobs/ExportActions'
 import { QuickVariationPicker } from '@/components/QuickVariationPicker/QuickVariationPicker'
@@ -38,6 +37,14 @@ import type { SnapshotOrigin } from '@/recorder/snapshotOrigin'
 import type { AudioAnalyzer, LiveAudioAnalyzer } from '@/utils/audioAnalysis'
 import type { HardwareTier } from '@/utils/hardwareTier'
 import type { SonificationConfig } from '@/utils/sonification'
+
+// Lazy, like MainWorkspace's DiffViewModal: a static import of this module from
+// here pinned it into the eager bundle and defeated that lazy boundary.
+const DiffViewContent = lazy(() =>
+  import('@/components/DiffViewModal/DiffViewModal').then((m) => ({
+    default: m.DiffViewContent,
+  })),
+)
 
 const BreedGallery = lazy(() =>
   import('@/components/BreedGallery/BreedGallery').then((m) => ({
@@ -623,7 +630,9 @@ export function WorkspaceSidebar(props: WorkspaceSidebarProps) {
                   </button>
                 </div>
                 <div class={diffUi.panelScroll}>
-                  <DiffViewContent flameA={dv.flameA} flameB={dv.flameB} />
+                  <Suspense>
+                    <DiffViewContent flameA={dv.flameA} flameB={dv.flameB} />
+                  </Suspense>
                 </div>
               </div>
             )}
