@@ -12,6 +12,23 @@ are not a ranking signal.
 Each item states its acceptance criterion. An item is not done until that is
 demonstrably true.
 
+## Executable plans
+
+Each stage has a task-by-task plan with the actual test code, the actual fix,
+and acceptance criteria — written for someone with no context for this codebase.
+
+| Stage                          | Plan                                                                                                                  | Prerequisite                                   |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| 1 — confirmed defects          | [stage1-defects](../superpowers/plans/2026-09-10-audit-remediation-stage1-defects.md)                                 | none                                           |
+| — motion blur (split out)      | [offscreen-export-motion-blur](../superpowers/plans/2026-09-11-offscreen-export-motion-blur.md)                       | none; ships as its own PR                      |
+| 2 — characterization net       | [stage2-characterization-net](../superpowers/plans/2026-09-11-audit-remediation-stage2-characterization-net.md)       | none — **do this before any further refactor** |
+| 3 — measurable test quality    | [stage3-test-harness](../superpowers/plans/2026-09-11-audit-remediation-stage3-test-harness.md)                       | none                                           |
+| 4 and 5 — contract and hygiene | [stages4-5-contract-and-hygiene](../superpowers/plans/2026-09-11-audit-remediation-stages4-5-contract-and-hygiene.md) | Stage 2                                        |
+
+Stages 1, 2 and 3 are independent of one another and can run in parallel.
+Stage 4 must not start before Stage 2 exists: every task in it moves code that
+nothing currently pins, which is the mistake this audit documents.
+
 ---
 
 ## Stage 1 — Confirmed defects that reach the user

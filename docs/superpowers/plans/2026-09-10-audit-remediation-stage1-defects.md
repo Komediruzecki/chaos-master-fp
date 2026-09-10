@@ -790,20 +790,16 @@ returned ok, the session saved, and nothing was ever audio-reactive."
 
 ---
 
-## Task 11: Decide what motion blur means on the offscreen path
+## Task 11: Motion blur on the offscreen export path — MOVED
 
-`packages/app/src/components/ExportPngDialog/ExportPngDialog.tsx:1267` — the offscreen path ignores the sub-sampling setting entirely, so output is byte-identical to blur-off while the UI says otherwise.
+Decided and moved out, so it cannot block this stage.
 
-**This task needs a decision before code.** The offscreen path predates this audit range: it was added in v0.9.6 (#105) so the workspace stays usable during a render, per its own tooltip. It is not a mobile workaround. So the choice is genuinely open:
+The choice was between implementing sub-frame accumulation on the offscreen path
+and disabling the control there. **Sub-frame accumulation it is**, and it ships
+as its own PR:
+[2026-09-11-offscreen-export-motion-blur.md](2026-09-11-offscreen-export-motion-blur.md).
 
-- **(a) Implement sub-frame accumulation in the offscreen driver.** Correct, and more work.
-- **(b) Disable the Motion Blur control while "Render in background" is checked, with a one-line explanation in the UI.** Honest and cheap.
-
-**Ask the user which before starting.** Silently ignoring a setting the UI offers is the only unacceptable option.
-
-- [ ] **Step 1: Get the decision.**
-- [ ] **Step 2: Write the failing test** — for (a), that an offscreen job with sub-sampling produces output differing from blur-off; for (b), that the control is disabled and reports why when `animationOffscreen()` is true.
-- [ ] **Step 3-5: Red, green, commit.**
+Nothing in this stage depends on it. Skip straight to Task 12.
 
 ---
 
