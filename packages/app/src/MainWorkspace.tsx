@@ -2407,17 +2407,6 @@ export function MainWorkspace(props: AppProps) {
     markLoadedBaseline()
   }
 
-  const { handleRandomizeAnimation, handleSmartAnimation } =
-    useWorkspaceAnimationGen({
-      timeline,
-      flameDescriptor,
-      getCmdContext: () => cmdContext,
-      setAnimationEnabled,
-      setIsRandomizingAnimation: (val) => {
-        isRandomizingAnimation = val
-      },
-    })
-
   const runTourCommand: { fn?: (id: string, ...args: unknown[]) => void } = {}
 
   /** Active animateValue loops -- each entry snaps to its end value when called. */
@@ -3090,6 +3079,20 @@ export function MainWorkspace(props: AppProps) {
       history.takeOverOwnedPreview()
     },
   )
+  // After recorderTimeline, not before: the pre-extraction code recorded both
+  // presets through it, and handing the hook the raw timeline instead silently
+  // dropped Randomize and Smart Animation from session recordings.
+  const { handleRandomizeAnimation, handleSmartAnimation } =
+    useWorkspaceAnimationGen({
+      timeline,
+      recorderTimeline,
+      flameDescriptor,
+      getCmdContext: () => cmdContext,
+      setAnimationEnabled,
+      setIsRandomizingAnimation: (val) => {
+        isRandomizingAnimation = val
+      },
+    })
   useWorkspaceShortcuts({
     getCmdContext: () => cmdContext,
     sidebarDiffView,
