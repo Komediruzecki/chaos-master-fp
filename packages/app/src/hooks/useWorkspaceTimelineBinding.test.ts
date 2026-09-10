@@ -147,4 +147,19 @@ describe('useWorkspaceTimelineBinding', () => {
     expect(getFlameValue(`${firstTid}.${firstVid}`)).toBe(0.42)
     expect(flame.transforms[firstTid]!.variations[firstVid]!.weight).toBe(0.42)
   })
+
+  it('falls back to a level orbit (phi = pi/2) for a flame without a 3D camera', () => {
+    // phi = 0 would put the camera at the pole looking straight down; the
+    // fallback has to be the equator. An audit mutation set it to 0 and every
+    // test in this file stayed green.
+    const flame = deepClone(example1)
+    delete (flame.renderSettings as { camera3D?: unknown }).camera3D
+    const { getFlameValue } = useWorkspaceTimelineBinding({
+      flameDescriptor: flame,
+      history: { setSilently: () => {} },
+      timeline: createMockTimeline(),
+      blendWeight: () => 0,
+    })
+    expect(getFlameValue('camera3D.phi')).toBe(Math.PI / 2)
+  })
 })
