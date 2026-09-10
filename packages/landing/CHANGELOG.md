@@ -6,6 +6,13 @@ Versioned independently from the app. Tag a release as `vA.B.C-web` (e.g.
 
 This file is internal (not surfaced anywhere on the site).
 
+## [0.2.1] — 2026-09-10
+
+### Security
+
+- **astro** bumped `^5.18.2` → `^7.2.8` and `@astrojs/solid-js` bumped `^5.1.0` → `^7.0.2` to resolve GHSA-26w7-cxv4-gfx2 (RCE via libheif in AVIF image optimization).
+- Aligned workspace Vite dependency to `^8.3.0` matching Astro 7 runtime requirements.
+
 ## [0.2.0] — 2026-09-04
 
 ### Lumen Arcade
