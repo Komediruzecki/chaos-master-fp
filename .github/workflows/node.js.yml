@@ -51,6 +51,11 @@ jobs:
     - name: 🛠️ Build project
       run: pnpm --filter chaos-master run build
 
+    # The landing site has no tests, which is defensible for a marketing page.
+    # Not building it is not: nothing else in CI compiles it.
+    - name: Build landing
+      run: pnpm --filter @chaos-master/landing run build
+
     - name: 🎭 Install Playwright browsers
       run: pnpm exec playwright install --with-deps chromium
 
