@@ -7,38 +7,38 @@ Six independent hunts ran in parallel, each with a different lens: workspace
 decomposition, arcade and WebMCP, recorder and render driver, timeline and
 audio, benchmarks and core, mobile and docs. Each lens's high and medium
 findings were then handed to a second agent prompted to **refute** them by
-reading the code, defaulting to refuted when unconvinced.
+reading the code, defaulting to refuted when unconvinced. One further finding
+(`cam3d-pinch-nan`) came from a follow-up investigation into why the tablet
+exporter needed fixing twice.
 
 Every finding below cites a file and a line and was found by reading code, not
 by pattern-matching a linter.
 
 ## How to read the status column
 
-| Status        | Meaning                                                                                                                   |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| **CONFIRMED** | A second agent independently read the code and could not refute it. Treat as fact.                                        |
-| **REFUTED**   | The finder was wrong. Kept below so nobody re-reports it.                                                                 |
-| reported      | Found and evidenced, but rated low severity by the finder and therefore never put through refutation. A lead, not a fact. |
+| Status        | Meaning                                                                                                     |
+| ------------- | ----------------------------------------------------------------------------------------------------------- |
+| **CONFIRMED** | A second agent independently read the code and could not refute it. Treat as fact.                          |
+| **REFUTED**   | The finder was wrong. Kept below so nobody re-reports it.                                                   |
+| reported      | Found and evidenced, but rated low severity and therefore never put through refutation. A lead, not a fact. |
 
 Severity is the **verifier's** corrected rating, which is frequently lower than
-the finder's — 21 of the 31 confirmed findings were downgraded to low on
-review.
+the finder's — 21 of the confirmed findings were downgraded to low on review.
 
 ## Totals
 
-|                                    |  Count |
-| ---------------------------------- | -----: |
-| Findings raised                    |     57 |
-| Put through adversarial refutation |     36 |
-| **Confirmed**                      | **31** |
-| — of which high                    |      3 |
-| — of which medium                  |      7 |
-| — of which low                     |     21 |
-| Refuted                            |      5 |
-| Low, not verified                  |     21 |
+|                   |  Count |
+| ----------------- | -----: |
+| Findings raised   |     58 |
+| **Confirmed**     | **32** |
+| — of which high   |      4 |
+| — of which medium |      7 |
+| — of which low    |     21 |
+| Refuted           |      5 |
+| Low, not verified |     21 |
 
-The full machine-readable set, including every finder's evidence and every
-verifier's reasoning, is in the audit artefacts alongside this document.
+Fixes for the high and medium findings are planned task-by-task in
+[../superpowers/plans/2026-09-10-audit-remediation-stage1-defects.md](../superpowers/plans/2026-09-10-audit-remediation-stage1-defects.md).
 
 ---
 
@@ -112,6 +112,20 @@ getTimelineCameraKeyframeValue (line 35-45) does `timeline.hasKeyframeAtFrame(pa
 **Repro.** Fresh session, no audio ever loaded. Open the Arcade hub -> Beats -> pick any track chip -> paste the prompt. Agent calls arcade_start_beats (returns activeTrack: 'Ember Drift'), arcade_get_audio_catalog, arcade_set_audio_mapping with valid mappings. Tool returns {ok: true, appliedCount: N}. Then read the workspace: audioEnabled() is false and audioBuffer() is undefined, so no modulation ever runs. Instrument: breakpoint on commands/builtins/audio.ts:74 and observe mayEnable === false. In a unit test the mock hides it — replace webmcp/testUtils.ts:157 with `canEnable: vi.fn((s) => s.source === 'file' && s.trackName === 'Ember Drift' && hasBuffer)` where hasBuffer is false, and arcadeBeats.test.ts's mapping test still reports ok.
 
 **Suggested fix.** Add a track-loading seam to the audio facade (e.g. `audio.loadTrack(track: BundledTrack)`) that fetches via fetchBundledTrackBuffer, decodes it, and sets audioBuffer + audioTrackName; call it from arcade_start_beats with the resolved activeTrack before setEnabled(true), and set `newSnapshot.trackName` to that same name so canEnable's identity check passes. Until then, arcade_set_audio_mapping should detect `!audio.canEnable(newSnapshot)` and return an explicit error telling the agent to ask the user to load audio, rather than reporting ok while silently disabling. Also drop `canEnable: () => true` from testUtils in favour of a mock that models hasFileBuffer.
+
+### 3D pinch-zoom produces a NaN camera radius: WheelZoomCamera3D never got the guards its 2D twin received
+
+`packages/app/src/lib/WheelZoomCamera3D.tsx:355` — **high** · correctness · introduced by #77 (0d239a45 hardened 2D and the export boundary, not 3D) · lens: Mobile and tablet responsive UI
+
+**Evidence.** WheelZoomCamera2D.tsx:173-200 guards initEvent.distance, grabPosition, event.distance, prevDistance and the computed pinchRatio -- all added by commit 0d239a45, whose message reads "Sanitize camera zoom and position against NaN/infinite values from touch gestures". WheelZoomCamera3D.tsx:348-360 has none of them: `let prevDistance = initEvent.distance` is unguarded and `const ratio = event.distance / prevDistance` is used directly. createPinchHandler.ts:18 computes distance as hypot() of the two touch deltas with no zero guard, so two coincident touches give 0. Verified numerically: ratio NaN gives Math.max(MIN, Math.min(MAX, r/NaN)) === NaN, because Math.min and Math.max propagate NaN, so the clamp does not rescue it; ratio Infinity collapses radius to MIN_ORBIT_RADIUS. `git log -S "Number.isFinite" -- packages/app/src/lib/WheelZoomCamera3D.tsx` returns nothing: the 3D pinch has never been hardened. flameSchema.ts:264 declares radius as v.optional(v.number(), ...), and valibot v.number() accepts NaN, so the corrupted value passes validation and is persisted.
+
+**How it fails.** On a touch device, pinch a 3D flame such that the two touch points momentarily coincide, or the platform reports both at the same coordinate for one frame -- a fast two-finger tap does this. prevDistance becomes 0, ratio becomes NaN or Infinity, and camera3D.radius becomes NaN or slams to MIN_ORBIT_RADIUS. Because valibot accepts NaN as a number, the poisoned camera is persisted into autosave, share links and session recordings, and any later PNG or video export of that flame renders blank or fails. This is the upstream cause that commit 0d239a45 patched downstream in ExportJobHost, and that Flam3.tsx patches again at render time.
+
+**Verification.** Root cause located by following the defensive-guard trail across three layers. Numerically proven that Math.min and Math.max propagate NaN; git history confirms 0d239a45 hardened 2D and the export boundary while leaving 3D untouched.
+
+**Repro.** Unit: drive the pinch handler with two touches at identical coordinates and assert camera3D.radius stays finite. Manual: on the Android tablet, open a 3D flame, two-finger tap the canvas, then export a PNG.
+
+**Suggested fix.** Give WheelZoomCamera3D the same guards as WheelZoomCamera2D, or better, hoist the guard into createPinchHandler so no consumer can forget it. Separately, stop NaN passing the schema as a number.
 
 ---
 
@@ -197,7 +211,7 @@ always takes the early return. randomizerCardRef IS still wired (MainWorkspace.t
 
 **How it fails.** Open any PR against the repo. CI deploys the full production build to https://chaos-master-preview.<subdomain>.workers.dev and posts that URL in a comment on a public GitHub PR page, which is itself crawled. A crawler follows the link, requests /robots.txt, is told `Allow: /`, and is handed `Sitemap: https://lumenapeiron.com/sitemap.xml` — production's complete URL list, served from a duplicate origin. No `X-Robots-Tag` is sent because `isReviewHost` returned false. This is precisely the failure the PR describes for dev.lumenapeiron.com ("worse than passive: it is a duplicate origin with a map attached"), left in place on the only one of the three hosts whose URL is publicly linked.
 
-**Verification.** Every structural claim checks out. packages/app/src/worker/middleware/reviewHost.ts:14-18 is exact equality against the single constant 'dev.lumenapeiron.com'; packages/app/src/worker/index.ts:112-114 short-circuits everything else to the plain withSecurityHeaders path, so no X-Robots-Tag and no substitute robots.txt. packages/app/wrangler.jsonc:149-186 declares env.preview with name 'chaos-master-preview' and no routes block (prod has lumenapeiron.com at :42, dev has dev.lumenapeiron.com), so it publishes on workers.dev. .github/workflows/deploy.yml:146-155 deploys --env preview on pull*request and :158+ posts .github/workflows/pr-deployment-table.md, whose only rows are a markdown link to PREVIEW_URL. packages/app/public/robots.txt is 'User-agent: * / Allow: / / Sitemap: https://lumenapeiron.com/sitemap.xml' with no meta robots anywhere in index.html, and assets.run*worker_first ['/*','!/assets/\*'] (wrangler.jsonc:30) means the worker does see /robots.txt and falls through to env.ASSETS.fetch. The sibling landing package solved exactly this with an env flag (packages/landing/src/pages/robots.txt.ts:16 PUBLIC_REVIEW_DEPLOY + the noindex meta in Base.astro), and wrangler.jsonc:153
+**Verification.** Every structural claim checks out. packages/app/src/worker/middleware/reviewHost.ts:14-18 is exact equality against the single constant 'dev.lumenapeiron.com'; packages/app/src/worker/index.ts:112-114 short-circuits everything else to the plain withSecurityHeaders path, so no X-Robots-Tag and no substitute robots.txt. packages/app/wrangler.jsonc:149-186 declares env.preview with name 'chaos-master-preview' and no routes block (prod has lumenapeiron.com at :42, dev has dev.lumenapeiron.com), so it publishes on workers.dev. .github/workflows/deploy.yml:146-155 deploys --env preview on pull_request and :158+ posts .github/workflows/pr-deployment-table.md, whose only rows are a markdown link to PREVIEW_URL. packages/app/public/robots.txt is 'User-agent: _ / Allow: / / Sitemap: https://lumenapeiron.com/sitemap.xml' with no meta robots anywhere in index.html, and assets.run_worker_first ['/_','!/assets/\*'] (wrangler.jsonc:30) means the worker does see /robots.txt and falls through to env.ASSETS.fetch. The sibling landing package solved exactly this with an env flag (packages/landing/src/pages/robots.txt.ts:16 PUBLIC_REVIEW_DEPLOY + the noindex meta in Base.astro), and wrangler.jsonc:153
 
 **Repro.** Open a PR against chaos-matters/chaos-master with CLOUDFLARE_API_TOKEN present. The Build & Deploy App job runs `deploy --env preview` and comments the chaos-master-preview.<subdomain>.workers.dev link on the public PR page. `curl -sI https://chaos-master-preview.<subdomain>.workers.dev/` shows no X-Robots-Tag header; `curl -s .../robots.txt` returns the production file verbatim including the lumenapeiron.com sitemap line. The same two curls against dev.lumenapeiron.com return `X-Robots-Tag: noindex, nofollow` and `Disallow: /`.
 
@@ -594,7 +608,7 @@ The stated harm does not exist either. Both packages pin valibot 1.2.0 and `read
 
 ## Reported, low severity, not independently verified
 
-These were rated low by the finder and so never went through refutation. Check before acting.
+Rated low by the finder and so never put through refutation. Check before acting.
 
 - `packages/app/src/utils/timeline.ts:1913` — applyTransformField dropped the parts.length guards the original path dispatch had, so over-long transform paths now write where they used to be ignored _(behaviour-change, #80)_
 - `packages/core/src/schema/timeline.ts:259` — Two TimelineConfig defaults with different shapes are aliased to the same identifier in the same codebase _(duplication, #73)_
