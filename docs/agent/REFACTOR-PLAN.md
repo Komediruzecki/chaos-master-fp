@@ -19,6 +19,36 @@ demonstrably true.
 These are verified, reproducible, and every one of them passes the full CI gate
 today.
 
+**Task-by-task implementation steps for this whole stage:**
+[../superpowers/plans/2026-09-10-audit-remediation-stage1-defects.md](../superpowers/plans/2026-09-10-audit-remediation-stage1-defects.md).
+It carries the exact code, the failing test for each fix, and the manual
+tablet-verification protocol to run with the user.
+
+### 1.0 Degenerate pinch gestures write NaN into the camera — HIGH
+
+`packages/app/src/utils/createPinchHandler.ts:18`, consumed unguarded at
+`packages/app/src/lib/WheelZoomCamera3D.tsx:355`
+
+This is the root cause behind two commits in this range titled "fix tablet
+exporter". `createPinchHandler` computes the pinch distance as `hypot()` of the
+two touch deltas with no zero guard. `WheelZoomCamera2D` was hardened against
+that by `0d239a45`; `WheelZoomCamera3D` never was, and divides by it directly.
+Two coincident touches — what a fast two-finger tap reports — give `NaN` or
+`Infinity`, and `Math.min`/`Math.max` **propagate NaN**, so the orbit clamp does
+not rescue the value. valibot's `v.number()` accepts `NaN`, so the poisoned
+camera is then persisted into autosave, share links and session recordings.
+
+The export failure was patched downstream twice — once in `ExportJobHost`, once
+in `Flam3` — leaving the corruption itself in place.
+
+**Fix.** Guard centrally in `createPinchHandler` so no consumer can forget, give
+`WheelZoomCamera3D` the same explicit checks as its 2D twin, and stop `NaN`
+passing the schema as a number.
+
+**Acceptance.** A unit test driving two coincident touches and asserting the
+radius stays finite, plus the manual tablet protocol in the plan — run against
+`main` first, to confirm the bug reproduces before the fix.
+
 ### 1.1 Keyframe short-circuit swallows slider edits — HIGH
 
 `packages/app/src/hooks/useWorkspaceTimelineBinding.ts:87`
