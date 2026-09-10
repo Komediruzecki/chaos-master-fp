@@ -1,5 +1,5 @@
 import { DEBUG_MODE } from '@/defaults'
-import { accumulatedPointCount, forceAnimationExportNow, qualityPointCountLimit, setAnimationExportCancel, setAnimationExportProgress, setAnimationExportRunning, setExportQuality, setForceAnimationExportNow, } from '@/flame/renderStats'
+import { accumulatedPointCount, forceAnimationExportNow, qualityPointCountLimit, setAnimationExportCancel, setAnimationExportProgress, setAnimationExportRunning, setExportAccumulationFraction, setExportQuality, setForceAnimationExportNow, } from '@/flame/renderStats'
 import { DEFAULT_SHUTTER_ANGLE, subFrameLimit, subFrameOffsets, } from '@/utils/motionBlur'
 import { applyAudioMappingsToFlame, createAudioAnalyzer } from './audioAnalysis'
 import { createAudioVideoEncoder } from './audioExport'
@@ -183,6 +183,13 @@ export function createAnimationExport(
 
         function applySubFrame(subIdx: number) {
           const subFrame = frame + (subOffsets[subIdx] ?? 0)
+          // Each sub-frame accumulates only up to its cumulative share of the
+          // budget; otherwise the first export tick takes all of it.
+          setExportAccumulationFraction(
+            motionBlurSamples > 1
+              ? (subIdx + 1) / motionBlurSamples
+              : undefined,
+          )
 
           // Advance the playhead so anything resolved from currentFrame tracks this subFrame.
           timeline.setCurrentFrame(subFrame)
@@ -285,6 +292,7 @@ export function createAnimationExport(
                 // Only clear export state after the bitmap is captured
                 setOnExportImage(undefined)
                 setExportQuality(undefined)
+                setExportAccumulationFraction(undefined)
 
                 if (cancelled) {
                   bitmap.close()
@@ -365,6 +373,7 @@ export function createAnimationExport(
           setForceAnimationExportNow(false)
           setOnExportImage(undefined)
           setExportQuality(undefined)
+          setExportAccumulationFraction(undefined)
           restoreFlameState()
         }
       }
@@ -376,6 +385,7 @@ export function createAnimationExport(
         setForceAnimationExportNow(false)
         setOnExportImage(undefined)
         setExportQuality(undefined)
+        setExportAccumulationFraction(undefined)
         restoreFlameState()
         encoder.cancel()
       }
@@ -388,6 +398,9 @@ export function createAnimationExport(
 
   const cancel = () => {
     cancelled = true
+    // Clear the blur cap now, not when the loop next notices the cancel: if no
+    // export callback fires again, a stale fraction would cap the live view.
+    setExportAccumulationFraction(undefined)
     setAnimationExportRunning(false)
     setAnimationExportCancel(undefined)
     setAnimationExportProgress(undefined)
