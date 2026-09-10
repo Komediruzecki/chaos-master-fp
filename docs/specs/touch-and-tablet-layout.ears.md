@@ -463,6 +463,14 @@ tapped **while** `isTouchLayout()` holds, the workspace shall first set the
 preference to `'desktop'` and raise a timed toast naming the reason, then open
 the requested tool — because none of those panels have a touch layout.
 
+> **Known deviation:** `packages/app/src/components/AdvancedToolsDrawer/AdvancedToolsDrawer.tsx:33-122`
+> — the drawer's `tools()` list contains gallery, switch-desktop, art-director,
+> arena-clash, genetics-breeding, audio-reactive, timeline-animation and
+> high-res-export. There is **no Sonification card**, and the `onSonification?`
+> prop declared at `:12` has zero call sites even though `MainWorkspace.tsx:3510-3518`
+> passes a complete handler. The Sonification half of this requirement therefore
+> describes a path a user cannot take today. Tracked in `docs/agent/BUGS.md`.
+
 _(`MainWorkspace.tsx:3492-3527`; the "Switch to Desktop Layout" card itself at
 `:3483-3489`. `TouchSurface.test.tsx:69-105` asserts only that the callbacks
 fire — the preference write and toast live in `MainWorkspace`, which has no test.)_
