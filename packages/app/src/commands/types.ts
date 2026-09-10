@@ -27,6 +27,8 @@ export interface DirectorCandidate {
 }
 
 export interface DirectorState {
+  /** Keys this session's taste ratings; see RatedCandidate.sessionId. */
+  sessionId?: string | undefined
   generation: number
   steeringPrompt?: string
   candidates: DirectorCandidate[]
