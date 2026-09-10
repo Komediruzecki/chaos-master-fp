@@ -18,6 +18,9 @@ export default defineConfig(
       '**/node_modules',
       '**/.pnpm-store', // present in CI
       '**/.wrangler',
+      'scratch',
+      '**/scratch',
+      'workers/render-worker',
       '**/assets/local', // gitignored local scratch (snapshots, throwaway scripts)
       // Claude Code worktrees — a second checkout of this repo nested inside
       // it. Linting it doubles every run (and OOM'd the heap `pnpm lint` sets)

@@ -25,6 +25,9 @@
   max-width: 58rem;
   width: 92vw;
   height: 80vh;
+  /* Dynamic viewport units keep the card fully on-screen around mobile
+     browser chrome; the plain-vh line above is the fallback. */
+  height: 80dvh;
   max-height: 42rem;
   min-height: 28rem;
   background: #1e1e1e;
@@ -216,14 +219,28 @@
   line-height: 1.3;
 }
 
-/* Content Section */
+/* Content Section. Scrollable: signed-in state adds badges/pills that can
+   outgrow the card on smaller screens — the bottom (support pill, tiers)
+   must stay reachable. Centering comes from the first/last child auto
+   margins, which collapse to 0 once the column overflows, so scrolling
+   starts cleanly at the top instead of clipping it (a plain
+   justify-content: center makes the overflowing top unreachable). */
 .content {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  padding: 2rem;
-  gap: 1.5rem;
+  padding: 1.5rem 1.75rem;
+  gap: 1.1rem;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
   background: radial-gradient(ellipse at 60% 30%, #2a1a3e 0%, #1e1e1e 70%);
+}
+
+.content > :first-child {
+  margin-top: auto;
+}
+
+.content > :last-child {
+  margin-bottom: auto;
 }
 
 [data-theme='light'] .content {
@@ -795,4 +812,85 @@
   border-color: rgba(40, 160, 100, 0.15);
   background: rgba(40, 160, 100, 0.06);
   color: rgba(30, 130, 80, 0.7);
+}
+
+.userSession {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+[data-theme='light'] .userSession {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+.userSessionLabel {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+  font-weight: 500;
+}
+
+[data-theme='light'] .userSessionLabel {
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.userName {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+[data-theme='light'] .userName {
+  color: rgba(0, 0, 0, 0.85);
+}
+
+.tierBadge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  line-height: 1;
+}
+
+.tierFree {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='light'] .tierFree {
+  background: rgba(0, 0, 0, 0.04);
+  color: rgba(0, 0, 0, 0.45);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.tierPremium {
+  background: rgba(168, 85, 247, 0.12);
+  color: rgba(192, 132, 252, 0.9);
+  border: 1px solid rgba(168, 85, 247, 0.25);
+}
+
+[data-theme='light'] .tierPremium {
+  background: rgba(168, 85, 247, 0.08);
+  color: #7c3aed;
+  border-color: rgba(168, 85, 247, 0.2);
+}
+
+.tierPro {
+  background: rgba(234, 179, 8, 0.12);
+  color: rgba(253, 224, 71, 0.9);
+  border: 1px solid rgba(234, 179, 8, 0.25);
+}
+
+[data-theme='light'] .tierPro {
+  background: rgba(161, 98, 7, 0.08);
+  color: #a16207;
+  border-color: rgba(161, 98, 7, 0.2);
 }

@@ -2,6 +2,7 @@ import { createEffect, createSignal, Show } from 'solid-js'
 import { Bookmark, CameraIcon, Discord, Eye, FolderOpen, Home, Pause, Plus, Share, Shuffle, Zap, } from '@/icons'
 import { setActiveTab } from '@/lib/activeTab'
 import { isSessionRecording } from '@/recorder/recorder'
+import { AccountSection } from '../AccountSection/AccountSection'
 import { defaultPills, QualityPresets } from '../Quality/QualityPresets'
 import { recorderExportPending, recorderSavePending, recorderTaskPending, recorderVisible, setRecorderVisible, } from '../SessionRecorder/recorderUi'
 import ui from './FloatingActions.module.css'
@@ -359,6 +360,7 @@ export function FloatingActions(props: Props) {
                 </svg>
               </button>
             </Show>
+            <AccountSection />
           </div>
 
           {/* Divider */}

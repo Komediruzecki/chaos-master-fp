@@ -63,6 +63,7 @@ const basePipeline3DByRoot = new WeakMap<
 
 export function createIFSPipeline3D(
   root: TgpuRoot,
+  device: GPUDevice,
   camera: Camera3DContext,
   insideShaderCount: number,
   pointRandomSeeds: TgpuBuffer<WgslArray<Vec2u>> & StorageFlag,
@@ -380,13 +381,21 @@ export function createIFSPipeline3D(
 
   onCleanup(() => {
     vramLog(
-      '[ifsPipeline3D] Destroying flameUniforms, finalTransform, dimension & stochasticFilterRadius buffers',
+      '[ifsPipeline3D] Destroying flameUniforms, finalTransform, dimension & stochasticFilterRadius buffers (deferred)',
     )
-    flameUniformsBuffer.destroy()
-    outputTextureDimensionBuffer.destroy()
-    finalTransformBuffer.destroy()
-    stochasticFilterRadiusBuffer.destroy()
-    resetPointsBuffer.destroy()
+    // Defer destruction until in-flight GPU work completes so tearing down a
+    // pipeline mid-frame (e.g. leaving the welcome screen) can't invalidate
+    // buffers still referenced by submitted command encoders.
+    void device.queue
+      .onSubmittedWorkDone()
+      .then(() => {
+        flameUniformsBuffer.destroy()
+        outputTextureDimensionBuffer.destroy()
+        finalTransformBuffer.destroy()
+        stochasticFilterRadiusBuffer.destroy()
+        resetPointsBuffer.destroy()
+      })
+      .catch(() => {})
   })
 
   const bindGroup = root.createBindGroup(bindGroupLayout, {

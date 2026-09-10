@@ -3,6 +3,26 @@
 What's new in Lumen Apeiron. Concise highlights for each release; the full
 developer history lives in `dev.changelog.md`.
 
+## [Unreleased]
+
+### Added
+
+- **Server-side GPU rendering on RunPod serverless.** Render your flame in
+  the cloud: jobs run the exact client WGSL pipeline on an RTX-class GPU
+  (Deno WebGPU + runtime shader extraction), upload to R2, and stream back
+  into the app with live status. Failed or stuck renders are detected,
+  explained, and automatically refunded.
+- **Accounts and credits.** Email/password and Google sign-in (Turnstile
+  bot check included), a welcome credit grant, and an append-only credit
+  ledger: renders debit exactly one credit on acceptance and refund on any
+  failure. Credit packs and monthly tiers are purchasable (mock checkout
+  outside production until Stripe goes live).
+- **Redesigned Account modal.** A wider layout with a standout credits
+  pill, accent-tinted cards for credit packs and subscriptions, and a
+  reveal-password toggle on sign-in forms.
+- **Staging environment** at staging.lumenapeiron.com for testing the
+  full render/billing lifecycle before production.
+
 ## [0.9.11] - 2026-09-04
 
 ### Added

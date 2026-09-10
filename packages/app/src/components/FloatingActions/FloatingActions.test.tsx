@@ -1,8 +1,10 @@
 import { fireEvent, render, screen } from '@solidjs/testing-library'
 import { createSignal } from 'solid-js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { AuthContextProvider } from '@/contexts/AuthContext'
 import { examples } from '@/flame/examples'
 import { cancelSessionRecording, startSessionRecording, } from '@/recorder/recorder'
+import { Modal } from '../Modal/Modal'
 import { recorderVisible, setRecorderExportPending, setRecorderSavePending, setRecorderVisible, } from '../SessionRecorder/recorderUi'
 import { FloatingActions } from './FloatingActions'
 
@@ -10,43 +12,47 @@ function renderFloatingActions(initiallyCollapsed = false) {
   const [collapsed, setCollapsed] = createSignal(initiallyCollapsed)
   const noop = vi.fn()
   const result = render(() => (
-    <FloatingActions
-      initialLeft={100}
-      initialTop={100}
-      onNewFlame={noop}
-      onLoadFlame={noop}
-      onSaveForLater={noop}
-      onRender={noop}
-      onQuickExport={noop}
-      onShareLink={noop}
-      onShareDiscord={noop}
-      onLogoFavicon={noop}
-      onRandomizeColors={noop}
-      hideDiceButtons={() => false}
-      setHideDiceButtons={noop}
-      animationEnabled={() => false}
-      setAnimationEnabled={noop}
-      showTimeline={() => false}
-      setShowTimeline={noop}
-      adaptiveFilterEnabled={() => true}
-      setAdaptiveFilterEnabled={noop}
-      stochasticFilterEnabled={() => false}
-      setStochasticFilterEnabled={noop}
-      dimensions={() => 2}
-      setDimensions={noop}
-      flyMode={() => false}
-      setFlyMode={noop}
-      sidebarOpen={() => true}
-      onToggleSidebar={noop}
-      isPlaying={() => false}
-      togglePlay={noop}
-      qualityPreset={() => 'mid'}
-      setQualityPreset={noop}
-      accumulatedPointCount={() => 0}
-      qualityPointCountLimit={() => 1}
-      collapsed={collapsed}
-      setCollapsed={setCollapsed}
-    />
+    <AuthContextProvider>
+      <Modal>
+        <FloatingActions
+          initialLeft={100}
+          initialTop={100}
+          onNewFlame={noop}
+          onLoadFlame={noop}
+          onSaveForLater={noop}
+          onRender={noop}
+          onQuickExport={noop}
+          onShareLink={noop}
+          onShareDiscord={noop}
+          onLogoFavicon={noop}
+          onRandomizeColors={noop}
+          hideDiceButtons={() => false}
+          setHideDiceButtons={noop}
+          animationEnabled={() => false}
+          setAnimationEnabled={noop}
+          showTimeline={() => false}
+          setShowTimeline={noop}
+          adaptiveFilterEnabled={() => true}
+          setAdaptiveFilterEnabled={noop}
+          stochasticFilterEnabled={() => false}
+          setStochasticFilterEnabled={noop}
+          dimensions={() => 2}
+          setDimensions={noop}
+          flyMode={() => false}
+          setFlyMode={noop}
+          sidebarOpen={() => true}
+          onToggleSidebar={noop}
+          isPlaying={() => false}
+          togglePlay={noop}
+          qualityPreset={() => 'mid'}
+          setQualityPreset={noop}
+          accumulatedPointCount={() => 0}
+          qualityPointCountLimit={() => 1}
+          collapsed={collapsed}
+          setCollapsed={setCollapsed}
+        />
+      </Modal>
+    </AuthContextProvider>
   ))
   return { ...result, collapsed }
 }

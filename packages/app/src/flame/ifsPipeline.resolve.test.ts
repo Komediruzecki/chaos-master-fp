@@ -7,6 +7,12 @@ import { createIFSPipeline } from './ifsPipeline'
 import { createIFSPipeline3D } from './ifsPipeline3D'
 import type { RendererRandomImplementationId } from '@/shaders/random'
 
+// The pipelines only use the device to defer buffer destruction until
+// submitted GPU work completes (onCleanup) — a resolved promise stands in.
+const mockDevice = {
+  queue: { onSubmittedWorkDone: () => Promise.resolve() },
+}
+
 // Full WGSL *resolution* (the JS-DSL -> WGSL generation that runs at the first
 // dispatch on a real GPU) is what catches errors like assigning a storage
 // reference to a local. The unplugin-typegpu build only does the JS->JS
@@ -55,6 +61,8 @@ function resolveIFSCompute(opts: {
     createIFSPipeline(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       mockRoot as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      mockDevice as any,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       mockCamera as any,
       20,
@@ -123,6 +131,8 @@ function resolveIFSCompute3D(
     createIFSPipeline3D(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       mockRoot as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      mockDevice as any,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       { bindGroup: {} } as any,
       20,

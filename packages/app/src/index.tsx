@@ -1,6 +1,8 @@
 /* @refresh reload */
 import './styles/index.css'
 import { render } from 'solid-js/web'
+import { consumeGoogleRedirect } from '@/db/services/auth-service'
+import { initTelemetry } from './lib/telemetry'
 import { isBenchmarksPath } from './routing/appPath'
 
 // Solid Devtools is opt-in: it instruments every component (a real dev-startup
@@ -21,7 +23,7 @@ if (import.meta.env.DEV && !(root instanceof HTMLElement)) {
   )
 }
 
-import { initTelemetry } from './lib/telemetry'
+consumeGoogleRedirect()
 
 initTelemetry()
 

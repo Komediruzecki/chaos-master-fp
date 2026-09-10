@@ -21,6 +21,12 @@
       "runtimeArgs": ["--filter", "@chaos-master/landing", "preview"],
       "port": 4322,
       "url": "http://localhost:4322"
+    },
+    {
+      "name": "chaos-master-dev-http",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "chaos-master", "start:http"],
+      "port": 5173
     }
   ]
 }

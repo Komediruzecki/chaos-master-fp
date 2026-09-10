@@ -41,6 +41,13 @@ function makeEnv(over: Partial<Env> = {}): Env {
     OG_IMAGES: makeR2(),
     API_RL: passLimiter,
     DISCORD_RL: passLimiter,
+    // These tests never hit the D1-backed routes — a throwing stub keeps any
+    // accidental use loud instead of silently returning undefined.
+    CHAOS_DB: new Proxy({} as D1Database, {
+      get() {
+        throw new Error('CHAOS_DB is not mocked in this test')
+      },
+    }),
     ASSETS: {
       fetch: () =>
         Promise.resolve(

@@ -1,0 +1,470 @@
+.container {
+  width: 600px;
+  max-width: 95vw;
+}
+
+.dialogBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+}
+
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--bg-input, #1a1a1a);
+  border-radius: 8px;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--accent, #6c5ce7);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.profileInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--fg, #fff);
+}
+
+.email {
+  font-size: 12px;
+  color: var(--fg-secondary, #888);
+}
+
+.tier {
+  font-size: 11px;
+  color: var(--fg-tertiary, #666);
+  text-transform: capitalize;
+}
+
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border, #333);
+  margin-bottom: 4px;
+}
+
+.tab {
+  flex: 1;
+  padding: 8px;
+  border: none;
+  background: none;
+  color: var(--fg-secondary, #888);
+  font-size: 13px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+}
+
+.tab:hover {
+  color: var(--fg, #fff);
+}
+
+.activeTab {
+  color: var(--fg, #fff);
+  border-bottom-color: var(--accent, #6c5ce7);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field span {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg-secondary, #888);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.input {
+  padding: 8px 10px;
+  border: 1px solid var(--border, #333);
+  border-radius: 4px;
+  background: var(--bg-input, #1a1a1a);
+  color: var(--fg, #fff);
+  font-size: 14px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.input::placeholder {
+  color: var(--fg-tertiary, #555);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--accent, #6c5ce7);
+}
+
+.error {
+  font-size: 12px;
+  color: var(--error, #e74c3c);
+  padding: 8px;
+  background: var(--bg-error, rgba(231, 76, 60, 0.1));
+  border-radius: 4px;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--fg-tertiary, #555);
+  font-size: 12px;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border, #333);
+}
+
+.plans {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: var(--bg-input, #1a1a1a);
+  border-radius: 8px;
+}
+
+.sectionLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fg-tertiary, #666);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+}
+
+.sectionLabel:first-child {
+  margin-top: 0;
+}
+
+.planRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.planBtn {
+  font-size: 12px;
+}
+
+.devNote {
+  font-size: 11px;
+  color: var(--warning, #f0ad4e);
+  text-align: center;
+  padding: 8px;
+  background: var(--bg-warning, rgba(240, 173, 78, 0.1));
+  border-radius: 4px;
+}
+
+.upgradeNote {
+  font-size: 12px;
+  color: var(--fg-secondary, #888);
+  padding: 8px;
+  background: var(--bg-input, #1a1a1a);
+  border-radius: 4px;
+  text-align: center;
+}
+
+.success {
+  font-size: 12px;
+  color: var(--success, #2ecc71);
+  padding: 8px;
+  background: var(--bg-success, rgba(46, 204, 113, 0.1));
+  border-radius: 4px;
+  border: 1px solid rgba(46, 204, 113, 0.2);
+}
+
+.tierRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.tierBadge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  line-height: 1;
+}
+
+.tierFree {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='light'] .tierFree {
+  background: rgba(0, 0, 0, 0.04);
+  color: rgba(0, 0, 0, 0.45);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.tierPremium {
+  background: rgba(168, 85, 247, 0.12);
+  color: rgba(192, 132, 252, 0.9);
+  border: 1px solid rgba(168, 85, 247, 0.25);
+}
+
+[data-theme='light'] .tierPremium {
+  background: rgba(168, 85, 247, 0.08);
+  color: #7c3aed;
+  border-color: rgba(168, 85, 247, 0.2);
+}
+
+.tierPro {
+  background: rgba(234, 179, 8, 0.12);
+  color: rgba(253, 224, 71, 0.9);
+  border: 1px solid rgba(234, 179, 8, 0.25);
+}
+
+[data-theme='light'] .tierPro {
+  background: rgba(161, 98, 7, 0.08);
+  color: #a16207;
+  border-color: rgba(161, 98, 7, 0.2);
+}
+
+.rendersText {
+  font-size: 11px;
+  color: var(--fg-secondary, #888);
+}
+
+/* ── Redesign: credits pill, plan cards, password reveal ── */
+
+.creditsPill {
+  margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 16px;
+  border-radius: 12px;
+  background: oklch(62% 0.16 280 / 14%);
+  border: 1px solid oklch(62% 0.16 280 / 40%);
+  flex-shrink: 0;
+}
+
+[data-theme='light'] .creditsPill {
+  background: oklch(62% 0.16 280 / 10%);
+  border-color: oklch(55% 0.16 280 / 35%);
+}
+
+.creditsValue {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: oklch(80% 0.12 280);
+}
+
+[data-theme='light'] .creditsValue {
+  color: oklch(45% 0.16 280);
+}
+
+.creditsValue svg {
+  width: 15px;
+  height: 15px;
+}
+
+.creditsLabel {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--fg-secondary, #888);
+}
+
+/* Plan cards — accent-tinted gradient cards, hue cycled per card via
+   --card-accent (mercurypitch PricingPanel idiom, adapted). */
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.card {
+  --card-accent: var(--accent, #6c5ce7);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  text-align: left;
+  font: inherit;
+  color: var(--fg, #fff);
+  padding: 14px 14px 12px;
+  border: 1px solid
+    color-mix(in srgb, var(--card-accent) 34%, var(--border, #333));
+  border-radius: 10px;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--card-accent) 16%, var(--bg-input, #1a1a1a)) 0%,
+    var(--bg-input, #1a1a1a) 60%
+  );
+  cursor: pointer;
+  transition:
+    transform 0.16s ease,
+    border-color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--card-accent) 65%, var(--border, #333));
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--card-accent) 22%, transparent);
+}
+
+.card:focus-visible {
+  outline: 2px solid var(--card-accent);
+  outline-offset: 2px;
+}
+
+/* Soft accent sheen drifting across each card; staggered per card via
+   --sheen-delay. Disabled under reduced motion. */
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 20%,
+    color-mix(in srgb, var(--card-accent) 14%, transparent) 50%,
+    transparent 80%
+  );
+  background-size: 250% 100%;
+  background-position: 200% 0;
+  animation: accountCardSheen 8s linear infinite;
+  animation-delay: var(--sheen-delay, 0s);
+}
+
+@keyframes accountCardSheen {
+  to {
+    background-position: -50% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card::before {
+    animation: none;
+  }
+  .card,
+  .card:hover {
+    transform: none;
+  }
+}
+
+.cardName {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: color-mix(in srgb, var(--card-accent) 75%, var(--fg, #fff));
+}
+
+.cardCredits {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 24px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.cardUnit {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fg-secondary, #888);
+}
+
+.cardPrice {
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg-secondary, #aaa);
+}
+
+.manageRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+/* Password reveal toggle inside the input */
+.passwordWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.passwordWrap .input {
+  padding-right: 36px;
+}
+
+.eyeBtn {
+  position: absolute;
+  right: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: var(--fg-tertiary, #777);
+  cursor: pointer;
+}
+
+.eyeBtn:hover {
+  color: var(--fg, #fff);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme='light'] .eyeBtn:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.eyeBtn svg {
+  width: 16px;
+  height: 16px;
+}

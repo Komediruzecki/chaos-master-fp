@@ -1,0 +1,37 @@
+/**
+ * Server-side stub for @/lib/CameraContext.
+ * Re-exports the CameraContext type but provides no-op component/hook stubs.
+ */
+
+import type { Accessor } from 'solid-js'
+import type { TgpuBindGroup, TgpuBindGroupLayout, TgpuFn } from 'typegpu'
+import type { F32, v2f, Vec2f } from 'typegpu/data'
+
+export type CameraContext = {
+  update: () => void
+  bindGroup: TgpuBindGroup
+  BindGroupLayout: TgpuBindGroupLayout
+  wgsl: {
+    worldToClip: TgpuFn<(pos: Vec2f) => Vec2f>
+    clipToWorld: TgpuFn<(pos: Vec2f) => Vec2f>
+    clipToPixels: TgpuFn<(pos: Vec2f) => Vec2f>
+    resolution: TgpuFn<() => Vec2f>
+    pixelRatio: TgpuFn<() => F32>
+  }
+  js: {
+    worldToClip: (clip: v2f) => v2f
+    clipToWorld: (clip: v2f) => v2f
+  }
+  zoom: Accessor<number>
+  position: Accessor<v2f>
+  setPosition: (pos: v2f | ((prev: v2f) => v2f)) => v2f
+}
+
+export const CameraContextProvider = (_props: Record<string, unknown>) =>
+  undefined
+
+export function useCamera(): CameraContext {
+  throw new Error(
+    'Server-side stub: useCamera() is not available in the render worker.',
+  )
+}

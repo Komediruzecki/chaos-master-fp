@@ -66,7 +66,10 @@ export default defineConfig({
     solidSvg({ defaultAsComponent: true }),
     typegpuPlugin({}),
     ENABLE_DEVTOOLS ? devtools() : undefined,
-    ssl(),
+    // HTTPS by default (secure-context APIs: mic, clipboard). VITE_NO_HTTPS=1
+    // serves plain http for agent-driven browsers that cannot click through
+    // the self-signed-certificate interstitial.
+    process.env.VITE_NO_HTTPS ? undefined : ssl(),
     qrcode(),
     ANALYZE_BUNDLE ? bundleAnalyzer() : undefined,
   ],

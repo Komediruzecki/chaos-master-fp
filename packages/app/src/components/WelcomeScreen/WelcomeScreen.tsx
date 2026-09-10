@@ -2,6 +2,7 @@ import { createEffect, createMemo, createResource, createSignal, For, onCleanup,
 import { Portal } from 'solid-js/web'
 import { vec2f, vec4f } from 'typegpu/data'
 import { Checkbox } from '@/components/Checkbox/Checkbox'
+import { useAuth } from '@/contexts/AuthContext'
 import { ComputeGate, useComputeGate } from '@/contexts/ComputeGateContext'
 import { COMPUTE_GATE_CAPACITY, DEFAULT_VARIATION_PREVIEW_POINT_COUNT, THUMBNAIL_PREVIEW_QUALITY, THUMBNAIL_PREVIEW_QUALITY_HOVER, } from '@/defaults'
 import { examples } from '@/flame/examples'
@@ -228,6 +229,7 @@ function FlameThumbnail(props: {
 }
 
 export function WelcomeScreen(props: WelcomeScreenProps) {
+  const auth = useAuth()
   const recents = () => loadRecentFlames()
 
   const INITIAL_VISIBLE = 10
@@ -409,6 +411,24 @@ export function WelcomeScreen(props: WelcomeScreenProps) {
                   chaos game algorithm
                 </p>
               </div>
+
+              <Show when={auth.isAuthenticated()}>
+                <div class={ui.userSession}>
+                  <span class={ui.userSessionLabel}>Logged in as</span>
+                  <span class={ui.userName}>{auth.displayName()}</span>
+                  <span
+                    class={`${ui.tierBadge} ${
+                      auth.subscription().tier === 'pro'
+                        ? ui.tierPro
+                        : auth.subscription().tier === 'premium'
+                          ? ui.tierPremium
+                          : ui.tierFree
+                    }`}
+                  >
+                    {auth.subscription().tier}
+                  </span>
+                </div>
+              </Show>
 
               <Show when={props.onStartTour}>
                 <div class={ui.tourSection}>

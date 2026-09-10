@@ -95,6 +95,10 @@ export const [animationExportProgress, setAnimationExportProgress] =
 export const [animationExportRunning, setAnimationExportRunning] =
   createSignal(false)
 
+export const [animationExportBackend, setAnimationExportBackend] = createSignal<
+  'local' | 'server-gpu' | 'server-cpu'
+>('local')
+
 export const [animationExportCancel, setAnimationExportCancel] = createSignal<
   (() => void) | undefined
 >(undefined)
