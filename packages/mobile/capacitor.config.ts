@@ -33,6 +33,18 @@ const config: CapacitorConfig = {
     scrollEnabled: false,
     allowsLinkPreview: false,
   },
+  experimental: {
+    ios: {
+      spm: {
+        // `cap sync` writes CapApp-SPM/Package.swift with `.iOS(.v26)`, read
+        // from IPHONEOS_DEPLOYMENT_TARGET (26.0, the first iOS with WebGPU in
+        // WKWebView). PackageDescription only has `.v26` from tools version
+        // 6.2, so the 5.9 default fails package resolution in Xcode with
+        // "'v26' is unavailable".
+        swiftToolsVersion: '6.2',
+      },
+    },
+  },
 }
 
 export default config
