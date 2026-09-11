@@ -616,15 +616,34 @@ jobs:
           cd "$MOBILE_DIR/android"
           ./gradlew test lint assembleDebug --no-daemon
 
+      # The APK goes up as the file itself (archive: false), not zipped, so a
+      # phone can download and install it straight from the run page. The
+      # artifact then takes the file's name, hence the copy to a name that says
+      # which app, version and run it is. Zipping would save about 40% here (a
+      # debug build stores its dex and resources uncompressed), but the
+      # retention below keeps that small.
+      #
       # Retention is short on purpose: artifact storage on a private repository
       # counts against the plan quota too, and once it is full every upload,
       # and so every run, fails. A pull request's APK is superseded by the next
       # push anyway.
+      - name: Name debug APK
+        id: debug-apk
+        shell: bash
+        env:
+          APP_SLUG: ${{ inputs.app-slug }}
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          set -euo pipefail
+          apk="$RUNNER_TEMP/$APP_SLUG-$VERSION_NAME-run$RUN_NUMBER-debug.apk"
+          cp "$MOBILE_DIR/android/app/build/outputs/apk/debug/app-debug.apk" "$apk"
+          echo "path=$apk" >> "$GITHUB_OUTPUT"
+
       - name: Upload debug APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: ${{ inputs.app-slug }}-debug-apk
-          path: ${{ inputs.mobile-dir }}/android/app/build/outputs/apk/debug/app-debug.apk
+          path: ${{ steps.debug-apk.outputs.path }}
+          archive: false
           if-no-files-found: error
           retention-days: 14
 
