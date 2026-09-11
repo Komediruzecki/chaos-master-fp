@@ -11,8 +11,11 @@
 declare const __NATIVE_BUILD__: boolean
 
 /**
- * True only in `vite build --mode native` (the Capacitor bundle). A build-time
- * constant, so native-only branches are dead code in the web bundle.
+ * True only in `vite build --mode native` (the Capacitor bundle), false in
+ * every web build. Fine for branching, but the bundler does not fold it across
+ * modules: code that must stay out of the web bundle (a dynamic import of
+ * Capacitor code) tests `__NATIVE_BUILD__` in its own module, as
+ * lib/nativeSave.ts does.
  */
 export const IS_NATIVE: boolean = __NATIVE_BUILD__
 

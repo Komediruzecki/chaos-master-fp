@@ -10,6 +10,7 @@ import { variationTypes } from '@/flame/variations'
 import { AutoCanvas } from '@/lib/AutoCanvas'
 import { Root } from '@/lib/Root'
 import { WheelZoomCamera2D } from '@/lib/WheelZoomCamera2D'
+import { downloadBlob } from '@/utils/blob'
 import { deepClone } from '@/utils/clone'
 import { encodeIco } from '@/utils/icoEncoder'
 import { addHistoryEntry, clearHistory, loadHistoryEntries, } from '@/utils/logoHistoryDB'
@@ -868,12 +869,7 @@ export function createLogoFaviconGenerator(
       ctx.drawImage(img, 0, 0, 512, 512)
       c.toBlob((blob) => {
         if (!blob) return
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = 'logo.png'
-        a.click()
-        URL.revokeObjectURL(url)
+        downloadBlob(blob, 'logo.png')
       }, 'image/png')
     }
     img.src = entry.thumbnail
@@ -921,12 +917,7 @@ export function createLogoFaviconGenerator(
         }),
       )
       const icoBlob = encodeIco(frames)
-      const url = URL.createObjectURL(icoBlob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = 'favicon.ico'
-      a.click()
-      URL.revokeObjectURL(url)
+      downloadBlob(icoBlob, 'favicon.ico')
     }
     img.src = entry.thumbnail
   }
@@ -1100,12 +1091,7 @@ export function createLogoFaviconGenerator(
       if (canvas === null) return
       canvas.toBlob((blob) => {
         if (blob === null) return
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = 'logo.png'
-        a.click()
-        URL.revokeObjectURL(url)
+        downloadBlob(blob, 'logo.png')
       }, 'image/png')
     }
 
@@ -1146,12 +1132,7 @@ export function createLogoFaviconGenerator(
           }),
         )
         const icoBlob = encodeIco(frames)
-        const url = URL.createObjectURL(icoBlob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = 'favicon.ico'
-        a.click()
-        URL.revokeObjectURL(url)
+        downloadBlob(icoBlob, 'favicon.ico')
       }, 'image/png')
     }
 

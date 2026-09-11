@@ -68,15 +68,14 @@ packages/
     gradle/signing.gradle
     resources/          icon + splash masters            (todo)
     scripts/            icons.sh, dev-cert.sh             (todo)
-  mobile-runtime/       @chaos-master/mobile-runtime       (todo) ports + adapters
-    src/contracts.ts    Platform, Lifecycle, BackButton, SaveShare, Haptics, Purchases, DeepLink, ExternalLink
-    src/web.ts          browser adapters (anchor download, navigator.share, no-op haptics, purchases unavailable)
-    src/capacitor/*     Capacitor adapters (subpath exports, optional peer deps)
-    src/testing.ts      in-memory fakes for vitest
+  mobile-runtime/       @chaos-master/mobile-runtime       ports + adapters (files done, the rest todo)
+    src/files.ts        save/share: the FilePorts contract and the platform-neutral flow, tested against fakes
+    src/capacitor/*     Capacitor adapters (subpath exports)
+    (todo)              Platform, Lifecycle, BackButton, Haptics, Purchases, DeepLink, ExternalLink
 APP-STORE-EXCEPTION.md  AGPL section 7 additional permission for app-store distribution
 ```
 
-Web code reaches native behaviour only through `if (IS_NATIVE) await import('@chaos-master/mobile-runtime/capacitor')` (`IS_NATIVE` is the build-time `__NATIVE_BUILD__` constant, `packages/app/src/lib/platform.ts`), so the web bundle never contains Capacitor plugins.
+Web code reaches native behaviour only through a dynamic `import('@chaos-master/mobile-runtime/capacitor')` guarded by the literal `__NATIVE_BUILD__` define in the importing module (`packages/app/src/lib/nativeSave.ts`), so the web bundle never contains Capacitor plugins. The exported `IS_NATIVE` (`packages/app/src/lib/platform.ts`) is fine for branching but not for this: Vite 8's bundler does not fold constants across modules, so an `if (IS_NATIVE)` guard still emits the Capacitor chunk into the web build.
 
 ---
 
@@ -127,10 +126,10 @@ Web code reaches native behaviour only through `if (IS_NATIVE) await import('@ch
   - `build:native` (`vite build --mode native --outDir dist-native`);
   - the `__NATIVE_BUILD__` define, typed in `src/lib/platform.ts` and set to `false` in `vitest.config.ts`.
 - [x] Root scripts: `mobile:build`, `mobile:sync`, `mobile:android`.
-- [ ] Extend `typecheck` and `test` to cover `packages/mobile` and, once it exists, `packages/mobile-runtime`.
+- [x] Extend `typecheck` and `test` to cover `packages/mobile-runtime`. `packages/mobile` (only `capacitor.config.ts`) is still not typechecked.
 - [x] Ignore files: `dist-native` and signing material (`*.jks`, `*.keystore`, `*.p8`, `*.p12`, `*.mobileprovision`) in `.gitignore`; `packages/mobile/ios` and `packages/mobile/android` in `.prettierignore` and the eslint `ignores`.
 - [ ] `packages/mobile/scripts/icons.sh` (reproducible ImageMagick, with `png:exclude-chunk=tIME,date`) and `scripts/dev-cert.sh` (a LAN-IP TLS cert for on-device live reload).
-- [ ] `packages/mobile-runtime`: contracts, web adapters, Capacitor adapters and testing fakes, with vitest coverage of the web adapters.
+- [ ] `packages/mobile-runtime`: the files port is in (contract, Capacitor adapter, fakes, vitest); the other contracts and adapters are still todo.
 
 ### Phase 3: web-app seams (code)
 
@@ -144,7 +143,10 @@ Web code reaches native behaviour only through `if (IS_NATIVE) await import('@ch
   - the three `/discord` links (`MainWorkspace.tsx`, `HomeTab.tsx`, `HelpModal.tsx`).
 - [ ] Worker: a CORS allowlist of `capacitor://localhost` and `https://localhost` on `/api/*`, with `OPTIONS` preflight and `Vary: Origin`; keep the per-IP rate limits. It only takes effect once deployed to lumenapeiron.com, so until then the gallery and share links fail in the app, while the editor works offline.
 - [ ] `/.well-known/apple-app-site-association` and `/.well-known/assetlinks.json`, then `appUrlOpen` feeding the existing `?s=` / `?flame=` / `?cv=` decode path.
-- [ ] `SaveSharePort`: Filesystem to cache, then the Share sheet. Route every `<a download>` site through it, including `utils/blob.ts` and the inline copies.
+- [x] Saving files. Every `<a download>` site goes through `utils/blob.ts` `downloadBlob`, which in native builds calls `lib/nativeSave.ts` and the mobile-runtime files port:
+  - Android writes to `Documents/Lumen Apeiron`: no permission from Android 11, numbered names like a browser, and a share-sheet fallback. It toasts "Saved … to …" with a Share action.
+  - iOS writes to the cache and opens the share sheet.
+  - The export tracker's Download link fetches its blob URL and saves the same way.
 - [ ] Lifecycle: an `appActive` signal from `pause`/`resume`, ANDed into every `createAnimationFrame` paused accessor next to `gpuReady()`. `pause` also flushes autosave and ancestry and checkpoints exports.
 - [ ] Android back button: close the top modal, sheet, drawer or overlay, else `minimizeApp()` (needs a small modal-stack registry).
 - [x] `index.html` viewport: `viewport-fit=cover`, so `env(safe-area-inset-*)` is no longer 0 on iOS. Consider `interactive-widget=resizes-content` with the keyboard work.
