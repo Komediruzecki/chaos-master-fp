@@ -197,6 +197,19 @@ export async function saveFileWith(
   return shareFromCache(ports, blob, name)
 }
 
+/**
+ * The share sheet for a blob on either platform. The native stand-in for
+ * copying an image: a WebView cannot put one on Android's clipboard (the
+ * write resolves and the clipboard stays empty).
+ */
+export async function shareBlobWith(
+  ports: FilePorts,
+  blob: Blob,
+  fileName: string,
+): Promise<SaveOutcome> {
+  return shareFromCache(ports, blob, safeFileName(fileName))
+}
+
 /** The "Share" on a saved file's toast; a dismissed sheet is not an error. */
 export async function shareSavedWith(
   ports: FilePorts,

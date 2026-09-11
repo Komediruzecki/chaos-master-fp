@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { base64Of, candidateNames, CHUNK_BYTES, isShareCancel, safeFileName, saveFileWith, } from './files'
+import { base64Of, candidateNames, CHUNK_BYTES, isShareCancel, safeFileName, saveFileWith, shareBlobWith, } from './files'
 import type { FilePorts, StorageArea } from './files'
 
 const NOW = new Date('2026-09-11T10:38:12.345Z')
@@ -181,6 +181,16 @@ describe('saveFileWith on iOS', () => {
     await expect(
       saveFileWith(ports, png([7]), 'duel.png', OPTIONS, NOW),
     ).rejects.toThrow('No activity found')
+  })
+})
+
+describe('shareBlobWith', () => {
+  it('goes to the share sheet even on Android', async () => {
+    const { ports, files, shared } = fakePlatform('android')
+    const outcome = await shareBlobWith(ports, png([3]), 'card.png')
+    expect(outcome).toEqual({ kind: 'shared' })
+    expect(shared).toEqual(['file:///cache/exports/card.png'])
+    expect([...files.keys()]).toEqual(['cache:exports/card.png'])
   })
 })
 

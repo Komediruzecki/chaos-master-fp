@@ -57,3 +57,18 @@ export async function saveNative(blob: Blob, filename: string): Promise<void> {
     notify?.(`Could not save ${filename}`)
   }
 }
+
+/**
+ * The share sheet for a blob. The native stand-in for copying an image: a
+ * WebView's clipboard write resolves on Android, but the image never reaches
+ * the system clipboard.
+ */
+export async function shareNative(blob: Blob, filename: string): Promise<void> {
+  try {
+    const runtime = await loadRuntime()
+    await runtime.shareBlob(blob, filename)
+  } catch (error) {
+    console.error('Sharing the file failed:', error)
+    notify?.(`Could not share ${filename}`)
+  }
+}

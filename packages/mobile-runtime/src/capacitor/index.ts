@@ -6,7 +6,7 @@
 import { Capacitor } from '@capacitor/core'
 import { Directory, Filesystem } from '@capacitor/filesystem'
 import { Share } from '@capacitor/share'
-import { saveFileWith, shareSavedWith } from '../files'
+import { saveFileWith, shareBlobWith, shareSavedWith } from '../files'
 import type { FilePorts, SaveOptions, SaveOutcome, StorageArea } from '../files'
 
 export type { SaveOptions, SaveOutcome } from '../files'
@@ -45,6 +45,10 @@ export const saveFile = (
   fileName: string,
   options: SaveOptions,
 ): Promise<SaveOutcome> => saveFileWith(ports, blob, fileName, options)
+
+/** The share sheet for a blob, on both platforms: the stand-in for copying an image. */
+export const shareBlob = (blob: Blob, fileName: string): Promise<SaveOutcome> =>
+  shareBlobWith(ports, blob, fileName)
 
 /** Opens the share sheet for a file `saveFile` saved. */
 export const shareSavedFile = (uri: string, title: string): Promise<void> =>

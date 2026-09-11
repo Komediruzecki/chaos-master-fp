@@ -8,6 +8,8 @@ import { Flam3 } from '@/flame/Flam3'
 import { generateRandomFlame } from '@/flame/randomize'
 import { variationTypes } from '@/flame/variations'
 import { AutoCanvas } from '@/lib/AutoCanvas'
+import { shareNative } from '@/lib/nativeSave'
+import { IS_NATIVE } from '@/lib/platform'
 import { Root } from '@/lib/Root'
 import { WheelZoomCamera2D } from '@/lib/WheelZoomCamera2D'
 import { downloadBlob } from '@/utils/blob'
@@ -761,7 +763,9 @@ function LogoHistory(props: {
                       e.stopPropagation()
                       props.onCopyImage(entry)
                     }}
-                    title="Copy image to clipboard"
+                    title={
+                      IS_NATIVE ? 'Share image' : 'Copy image to clipboard'
+                    }
                   >
                     <svg
                       viewBox="0 0 16 16"
@@ -852,6 +856,12 @@ export function createLogoFaviconGenerator(
         c.toBlob(r, 'image/png')
       })
       if (!blob) return
+      // A WebView cannot put an image on Android's clipboard (the write
+      // resolves, nothing arrives), so the app opens the share sheet instead.
+      if (IS_NATIVE) {
+        await shareNative(blob, 'logo.png')
+        return
+      }
       await window.navigator.clipboard.write([
         new ClipboardItem({ 'image/png': blob }),
       ])
