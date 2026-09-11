@@ -1,5 +1,4 @@
 import { webLifecycle } from '@chaos-master/mobile-runtime/lifecycle'
-import { createSignal } from 'solid-js'
 import { popBack } from './backStack'
 import type { LifecyclePorts } from '@chaos-master/mobile-runtime/lifecycle'
 
@@ -13,6 +12,12 @@ import type { LifecyclePorts } from '@chaos-master/mobile-runtime/lifecycle'
  * one: the gesture belongs to the registry (lib/backStack.ts), and only an
  * empty registry sends the app to the background. Nothing here ever calls
  * history.back().
+ *
+ * Pause is the only side the app subscribes to. `LifecyclePorts` still
+ * carries resume, because the platforms report it and the seam should
+ * describe them honestly, but nothing here re-exposes it: an `appActive`
+ * signal and an `onAppResume` shipped with no reader, and a signal nothing
+ * reads is a claim rather than a feature.
  */
 
 // Vite's `define` turns this into a literal in each module. The import is
@@ -21,22 +26,11 @@ import type { LifecyclePorts } from '@chaos-master/mobile-runtime/lifecycle'
 declare const __NATIVE_BUILD__: boolean
 
 const pauseCallbacks = new Set<() => void>()
-const resumeCallbacks = new Set<() => void>()
-
-/** False between the platform's pause and the resume that follows it. */
-const [appActive, setAppActive] = createSignal(true)
-export { appActive }
 
 /** Runs `callback` when the app goes to the background. Returns a disposer. */
 export function onAppPause(callback: () => void): () => void {
   pauseCallbacks.add(callback)
   return () => pauseCallbacks.delete(callback)
-}
-
-/** Runs `callback` when the app comes back. Returns a disposer. */
-export function onAppResume(callback: () => void): () => void {
-  resumeCallbacks.add(callback)
-  return () => resumeCallbacks.delete(callback)
 }
 
 const run = (callbacks: ReadonlySet<() => void>) => {
@@ -59,12 +53,7 @@ function bind(next: LifecyclePorts) {
       })
     }),
     ports.onPause(() => {
-      setAppActive(false)
       run(pauseCallbacks)
-    }),
-    ports.onResume(() => {
-      setAppActive(true)
-      run(resumeCallbacks)
     }),
   ]
 }

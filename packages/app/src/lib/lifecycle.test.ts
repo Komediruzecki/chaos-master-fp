@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { pushBackHandler } from './backStack'
-import { appActive, loadLifecycle, onAppPause, onAppResume, useLifecyclePorts, } from './lifecycle'
+import { loadLifecycle, onAppPause, useLifecyclePorts } from './lifecycle'
 import type { LifecyclePorts } from '@chaos-master/mobile-runtime/lifecycle'
 
 /** A fake platform: the test fires what the OS would fire. */
@@ -58,30 +58,21 @@ describe('lifecycle facade', () => {
     expect(platform.minimizeApp).toHaveBeenCalledTimes(1)
   })
 
-  it('tracks pause and resume, and tells whoever asked', () => {
+  it('tells whoever asked when the app goes to the background', () => {
     const platform = fakePorts()
     useLifecyclePorts(platform.ports)
     const paused = vi.fn()
-    const resumed = vi.fn()
     const stopPause = onAppPause(paused)
-    const stopResume = onAppResume(resumed)
-    expect(appActive()).toBe(true)
     platform.pause()
-    expect(appActive()).toBe(false)
     expect(paused).toHaveBeenCalledTimes(1)
-    platform.resume()
-    expect(appActive()).toBe(true)
-    expect(resumed).toHaveBeenCalledTimes(1)
+
+    // A disposed subscriber stops hearing about it.
     stopPause()
-    stopResume()
     platform.pause()
     expect(paused).toHaveBeenCalledTimes(1)
-    platform.resume()
-    expect(resumed).toHaveBeenCalledTimes(1)
   })
 
   it('loads nothing in a web build', async () => {
     await expect(loadLifecycle()).resolves.toBeUndefined()
-    expect(appActive()).toBe(true)
   })
 })
