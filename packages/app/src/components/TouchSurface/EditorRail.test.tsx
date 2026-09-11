@@ -366,6 +366,17 @@ describe('EditorRail', () => {
     expect(impactMedium).toHaveBeenCalledTimes(1)
   })
 
+  it('docks the shell in front of the chips', () => {
+    mount({ leading: <button type="button">Create, navigation</button> })
+    const row = screen.getByTestId('editor-rail-leading')
+    const firstChip = screen.getAllByRole('tab')[0]!
+    expect(row.textContent).toBe('Create, navigation')
+    // Leading means leading: the capsule comes before the first chip.
+    expect(
+      row.compareDocumentPosition(firstChip) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+  })
+
   it('answers back one detent at a time', () => {
     mount()
     setRailDetent('large')

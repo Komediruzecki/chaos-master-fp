@@ -83,6 +83,15 @@
   touch-action: none;
 }
 
+/* The shell's capsule. A fixed box, so the chips keep the same room whether
+   the capsule is collapsed or expanded over the row. */
+.leading {
+  position: relative;
+  flex: 0 0 auto;
+  width: var(--la-capsule);
+  height: var(--la-capsule);
+}
+
 .chips {
   position: relative;
   flex: 1 1 auto;

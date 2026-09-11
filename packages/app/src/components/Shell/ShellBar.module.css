@@ -1,0 +1,286 @@
+/* The phone shell (components.md section 10): a floating glass pill with a
+   separated More circle, and Android's full-width Material bar. Colour,
+   radius, spacing, duration and easing come from the --la-* set only
+   (styles/designSystem/lumen.css); a test enforces it. */
+
+.dock {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 42; /* over the rail's dock, which is 40 */
+  display: flex;
+  align-items: flex-end;
+  gap: var(--la-s-2);
+  padding-right: max(var(--la-float-inset), var(--la-safe-right));
+  padding-bottom: calc(var(--la-safe-bottom) + var(--la-float-inset));
+  padding-left: max(var(--la-float-inset), var(--la-safe-left));
+  /* A frame around the bar: the canvas stays reachable beside it. */
+  pointer-events: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--la-s-2);
+  flex: 1 1 auto;
+  min-width: 0;
+  pointer-events: auto;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: var(--la-shell-h);
+  padding: 0 var(--la-s-1);
+  border-radius: var(--la-r-pill);
+  background: var(--la-glass-strong);
+  backdrop-filter: var(--la-glass-blur);
+  -webkit-backdrop-filter: var(--la-glass-blur);
+  border: var(--la-glass-edge);
+  box-shadow: var(--la-glass-shadow);
+}
+
+.item {
+  flex: 1 1 0;
+  min-width: 64px;
+  min-height: var(--la-tap);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 0;
+  background: none;
+  border-radius: var(--la-r-pill);
+  color: var(--la-ink-2);
+  font: var(--la-t-tab);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    background var(--la-dur-fast) var(--la-ease),
+    color var(--la-dur-fast) var(--la-ease);
+}
+
+.item[aria-current='page'] {
+  color: var(--la-accent);
+  background: var(--la-accent-wash);
+}
+
+.glyph {
+  display: grid;
+  place-items: center;
+}
+
+.icon {
+  width: var(--la-icon-box);
+  height: var(--la-icon-box);
+}
+
+.more {
+  flex: 0 0 auto;
+  width: var(--la-shell-h);
+  height: var(--la-shell-h);
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--la-glass-strong);
+  backdrop-filter: var(--la-glass-blur);
+  -webkit-backdrop-filter: var(--la-glass-blur);
+  border: var(--la-glass-edge);
+  box-shadow: var(--la-glass-shadow);
+  color: var(--la-ink-2);
+  cursor: pointer;
+  touch-action: manipulation;
+  pointer-events: auto;
+}
+
+/* The menu opens upward from the More circle, and the backdrop closes it from
+   anywhere: both sit outside the pill, whose blur would otherwise make it the
+   containing block for a fixed child (TouchSurface.module.css says why). */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  cursor: pointer;
+}
+
+.menu {
+  position: absolute;
+  right: max(var(--la-float-inset), var(--la-safe-right));
+  bottom: calc(
+    var(--la-safe-bottom) + var(--la-float-inset) + var(--la-shell-h) +
+      var(--la-s-2)
+  );
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  padding: var(--la-s-1);
+  border-radius: var(--la-r-md);
+  background: var(--la-glass-strong);
+  backdrop-filter: var(--la-glass-blur);
+  -webkit-backdrop-filter: var(--la-glass-blur);
+  border: var(--la-glass-edge);
+  box-shadow: var(--la-e-2);
+  pointer-events: auto;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: var(--la-s-3);
+  min-height: var(--la-tap);
+  padding: 0 var(--la-s-3);
+  border: 0;
+  background: none;
+  border-radius: var(--la-r-sm);
+  color: var(--la-ink);
+  font: var(--la-t-body-sm);
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.menuItem:active {
+  background: var(--la-surface-3);
+}
+
+.menuIcon {
+  width: var(--la-icon-box);
+  height: var(--la-icon-box);
+  flex: 0 0 auto;
+  color: var(--la-ink-2);
+}
+
+/* ---- Docked in the rail: the capsule ---------------------------------
+   In Create the shell is a 56px circle at the leading end of the rail's peek
+   row, and the expanded bar paints over that row rather than pushing the
+   chips along. The dock keeps the capsule's footprint either way, so nothing
+   in the row moves when it opens. */
+.capsuleDock {
+  position: relative;
+  flex: 0 0 auto;
+  width: var(--la-capsule);
+  height: var(--la-capsule);
+  z-index: auto;
+  padding: 0;
+}
+
+.capsuleDock .row {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  flex: 0 0 auto;
+}
+
+.capsuleDock .bar {
+  flex: 0 0 auto;
+}
+
+.capsuleDock .capsule {
+  width: var(--la-capsule);
+  height: var(--la-capsule);
+  min-width: var(--la-capsule);
+  border-radius: 50%;
+}
+
+/* Collapsed, the capsule is the whole shell: a glyph, no label. */
+.capsuleDock:not(.expanded) .bar {
+  padding: 0;
+  background: none;
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.capsuleDock:not(.expanded) .capsule {
+  background: var(--la-glass-strong);
+  backdrop-filter: var(--la-glass-blur);
+  -webkit-backdrop-filter: var(--la-glass-blur);
+  border: var(--la-glass-edge);
+  box-shadow: var(--la-glass-shadow);
+}
+
+.capsuleDock:not(.expanded) .label {
+  display: none;
+}
+
+@keyframes la-shell-expand {
+  from {
+    opacity: 0;
+    transform: translateX(calc(var(--la-s-2) * -1));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.capsuleDock.expanded .item:not(.capsule) {
+  animation: la-shell-expand var(--la-dur-fast) var(--la-ease);
+}
+
+/* ---- Android: the Material bar --------------------------------------- */
+:global(:root[data-platform='android']) .dock:not(.capsuleDock) {
+  padding-right: 0;
+  padding-left: 0;
+  padding-bottom: 0;
+}
+
+:global(:root[data-platform='android']) .dock:not(.capsuleDock) .bar {
+  height: calc(var(--la-shell-h-material) + var(--la-safe-bottom));
+  padding: 0 var(--la-s-2) var(--la-safe-bottom);
+  border: 0;
+  border-top: 1px solid var(--la-hairline);
+  border-radius: 0;
+  background: var(--la-surface);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+}
+
+:global(:root[data-platform='android']) .dock:not(.capsuleDock) .item {
+  height: var(--la-shell-h-material);
+  font: var(--la-t-tab-android);
+}
+
+/* M3 marks the destination with an indicator pill under the glyph, not by
+   tinting the whole item. */
+:global(:root[data-platform='android'])
+  .dock:not(.capsuleDock)
+  .item[aria-current='page'] {
+  background: none;
+  color: var(--la-ink);
+}
+
+:global(:root[data-platform='android'])
+  .dock:not(.capsuleDock)
+  .item[aria-current='page']
+  .glyph {
+  background: var(--la-accent-wash);
+  color: var(--la-accent);
+  border-radius: var(--la-r-pill);
+  padding: 3px var(--la-s-3);
+}
+
+:global(:root[data-platform='android']) .dock:not(.capsuleDock) .more {
+  border-radius: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  height: calc(var(--la-shell-h-material) + var(--la-safe-bottom));
+  padding-bottom: var(--la-safe-bottom);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .item,
+  .capsuleDock.expanded .item:not(.capsule) {
+    transition: none;
+    animation: none;
+  }
+}

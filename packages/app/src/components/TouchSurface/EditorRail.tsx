@@ -289,6 +289,13 @@ export function EditorRail(props: EditorRailProps) {
         </div>
         <div class={ui.peekRow}>
           <div class={ui.dragSurface} {...grabHandlers} />
+          {/* The shell's capsule docks here, so Create keeps the whole band
+              and navigation costs the editor one 56px circle. */}
+          <Show when={props.leading}>
+            <div class={ui.leading} data-testid="editor-rail-leading">
+              {props.leading}
+            </div>
+          </Show>
           <div class={ui.chips} role="tablist" aria-label="Tools">
             <For each={CHIPS}>
               {(chip) => (
