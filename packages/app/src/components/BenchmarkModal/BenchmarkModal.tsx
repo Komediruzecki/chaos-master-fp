@@ -7,6 +7,7 @@ import { AutoCanvas } from '@/lib/AutoCanvas'
 import { Root } from '@/lib/Root'
 import { getWebgpuComponents } from '@/lib/WebgpuAdapter'
 import { WheelZoomCamera2D } from '@/lib/WheelZoomCamera2D'
+import { downloadBlob } from '@/utils/blob'
 import { getWebglRenderer } from '@/utils/deviceInfo'
 import { formatBytes } from '@/utils/formatBytes'
 import { GIT_SHA, VERSION } from '@/version'
@@ -534,14 +535,10 @@ function BenchmarkModal(props: { respond: () => void; autoStart?: boolean }) {
     const canvas = renderBenchmarkCard()
     canvas.toBlob((blob) => {
       if (!blob) return
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `chaos-master-benchmark-${finalBps().toFixed(2)}Bps.png`
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      URL.revokeObjectURL(url)
+      downloadBlob(
+        blob,
+        `chaos-master-benchmark-${finalBps().toFixed(2)}Bps.png`,
+      )
     }, 'image/png')
   }
 
