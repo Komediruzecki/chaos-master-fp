@@ -179,12 +179,15 @@
 }
 
 /* Covers the screen under the top bar: the rail (40) and the canvas below it
-   are out of reach while a popover is open, and a tap anywhere closes it. */
+   are out of reach while a popover is open, and a tap anywhere closes it.
+   The cursor is what makes the tap arrive: iOS Safari synthesises a click
+   for a bare div only where it takes the element for something clickable. */
 .popoverBackdrop {
   position: fixed;
   inset: 0;
   z-index: 41;
   background: transparent;
+  cursor: pointer;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -646,6 +649,9 @@
 .drawerBackdrop {
   position: fixed;
   inset: 0;
+  /* As above: without it iOS may not synthesise the click that closes the
+     drawer from a tap beside it. */
+  cursor: pointer;
   background: rgba(0, 0, 0, 0.65);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
