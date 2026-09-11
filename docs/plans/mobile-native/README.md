@@ -2,6 +2,8 @@
 
 Status: **scaffolding in progress**, 2026-09-11. Branch `feat/mobile-capacitor-scaffolding-9224ec`, based on fork `main` at `0d264a2c`. The decisions are recorded in section 8.
 
+The interface this wrapper contains is planned in [`DESIGN.md`](./DESIGN.md) beside this file: the tokens, the bottom rail, the shell, settings, onboarding, the permission moment, export and share, the rename, Play and the phase-2 paywall, each with acceptance criteria per device class and a test plan. Its drawn counterpart is the showcase page `gallery-viewer/lumen-native.html` in the disjoint-colliders repository.
+
 Research behind this plan (maintainer-local, not in the repo): `~/.dotfiles/personal/chaos-master/research/mobile-native-2026-09-11/`
 
 - `index.html`: visual index of current screens, target mockups, concepts and the Mobbin board
@@ -90,8 +92,8 @@ Web code reaches native behaviour only through a dynamic `import('@chaos-master/
 
 ### Phase 1: WebGPU probe (the first TestFlight build)
 
-- [ ] First TestFlight build on an iPhone and an iPad (iOS 26). Record whether the editor renders, plus `adapter.info`, `adapter.limits`, frame rate and memory behaviour (Safari Web Inspector over USB needs a Mac; otherwise read the in-app degraded-shell state).
-- [ ] Android debug build on two or three devices (Adreno, Mali, WebView 146 or later).
+- [x] iPhone, 2026-09-11: TestFlight 0.9.11 (6) renders and animates the editor, exports go to the share sheet, the microphone asks. Still to run: an iPad (iPadOS 26), and the `adapter.info`, `adapter.limits`, frame-rate and memory readings over Safari Web Inspector.
+- [x] Android, 2026-09-11: the debug build on a Galaxy Tab S9+ (Adreno) renders, exports save to Documents/Lumen Apeiron, the microphone asks. Still to run: a Mali device.
 - [ ] Watch for GPU-process crashes (reported on iPhone 15 / iOS 26.4 WKWebView), jetsam reloads, the swapchain flicker, and preview-canvas starvation (research found touch-layout screenshots time out under real WebGPU while the desktop layout does not).
 - [ ] Optional: a native-only diagnostics readout (adapter info, limits, UA) if the probe needs more than the app's own state.
 - [ ] Record the verdict per platform here; Shipaton go/no-go.
