@@ -2,7 +2,7 @@
 
 .topHud {
   position: fixed;
-  top: max(var(--la-s-2), calc(var(--la-safe-top) + var(--la-s-2)));
+  top: var(--la-hud-top);
   left: 50%;
   transform: translateX(-50%);
   /* Above the popover backdrop, so the menu the backdrop belongs to stays

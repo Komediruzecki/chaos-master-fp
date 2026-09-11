@@ -1283,9 +1283,9 @@
   right: auto;
   left: max(0.75rem, env(safe-area-inset-left));
   align-items: flex-start;
+  /* Below the top bar, from the same token the bar is placed with. */
   top: calc(
-    max(0.75rem, env(safe-area-inset-top)) + 42px +
-      var(--toast-stack-offset, 0px)
+    var(--la-hud-bottom) + var(--la-s-2) + var(--toast-stack-offset, 0px)
   );
 }
 
