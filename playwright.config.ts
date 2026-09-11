@@ -44,8 +44,9 @@ export default defineConfig({
   },
   projects: [
     {
-      // Specs that need real GPU output: they skip or fail on the software
-      // adapter, so they stay local (see packages/app/TESTING.md).
+      // Specs that do not hold on the software adapter. `pnpm test:e2e` runs
+      // them with the same swiftshader flags as CI, so nothing enforces them;
+      // checking them needs a real GPU (packages/app/TESTING.md).
       name: 'chromium',
       testIgnore: CI_SPEC,
       use: swiftshader,
@@ -53,7 +54,7 @@ export default defineConfig({
     {
       // What CI runs: specs that hold on a software adapter. A skip here fails
       // the run (tests/reporters/failOnUnexpectedSkip.ts).
-      name: 'chromium-degraded',
+      name: 'chromium-ci',
       testMatch: CI_SPEC,
       use: swiftshader,
     },

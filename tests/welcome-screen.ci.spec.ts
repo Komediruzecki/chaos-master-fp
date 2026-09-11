@@ -1,4 +1,9 @@
-import { expect, test } from './helpers'
+import { dismissWelcomeIfPresent, expect, test } from './helpers'
+import type { Page } from '@playwright/test'
+
+/** The welcome screen's primary action, as dismissWelcomeIfPresent finds it. */
+const welcomeAction = (page: Page) =>
+  page.getByRole('button', { name: /^(Start|Enter)$/ }).first()
 
 test.describe('Welcome Screen', () => {
   test('should render app with welcome screen on first visit', async ({
@@ -7,70 +12,57 @@ test.describe('Welcome Screen', () => {
     await page.goto('/', { waitUntil: 'domcontentloaded' })
     await page.waitForTimeout(3000)
 
-    const root = page.locator('#root')
-    await expect(root).toBeAttached()
-
-    // Check for welcome screen elements or app renders
-    const welcomeText = page
-      .locator('text=Welcome')
-      .or(page.locator('text=welcome'))
-    const hasWelcome = await welcomeText
-      .isVisible({ timeout: 5000 })
-      .catch(() => false)
-
-    // Either welcome screen shows or app renders (depends on WebGPU availability)
-    expect(
-      hasWelcome ||
-        (await page.locator('#root').evaluate((el) => el.children.length > 0)),
-    ).toBeTruthy()
+    // First visit, nothing dismissed: the welcome screen has to show. This
+    // used to accept "welcome shows OR #root has children", which any render
+    // satisfies.
+    await expect(welcomeAction(page)).toBeVisible({ timeout: 15_000 })
   })
 
   test('should allow closing welcome screen', async ({ page }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded' })
-    await page.waitForTimeout(3000)
 
-    const root = page.locator('#root')
-    await expect(root).toBeAttached()
-
-    // Try to find Enter button (may not be visible if WebGPU failed)
-    const enterBtn = page.locator('button:has-text("Enter")').first()
-    const enterVisible = await enterBtn
-      .isVisible({ timeout: 2000 })
-      .catch(() => false)
-
-    if (enterVisible) {
-      await enterBtn.click()
-      await page.waitForTimeout(500)
-    }
-    // If Enter button is not visible, the welcome screen likely didn't render due to WebGPU failure
+    // Used to click Enter only if it happened to be visible, then assert
+    // nothing: green whether or not the welcome screen closes.
+    const action = welcomeAction(page)
+    await expect(action).toBeVisible({ timeout: 15_000 })
+    await action.click()
+    await expect(action).toBeHidden()
   })
 
   test('should not show welcome when URL has flame query param', async ({
     page,
   }) => {
-    const minimalFlame = {
-      version: '1.0',
-      metadata: { version: '1.0', author: 'test' },
-      transforms: {},
-      renderSettings: {
-        exposure: 0.25,
-        skipIters: 20,
-        drawMode: 'light',
-        camera: { zoom: 1, position: [0, 0] },
-        colorInitMode: 'colorInitZero',
-        pointInitMode: 'pointInitUnitDisk',
-        vibrancy: 0.5,
-      },
-    }
+    // A genuine share link, made by the app itself. The hand-built payload this
+    // test used before failed validation, so the welcome screen showed, and the
+    // test (which only checked that #root existed) never noticed.
+    await page.goto('/', { waitUntil: 'domcontentloaded' })
+    await dismissWelcomeIfPresent(page, 12_000)
+    const encoded = await page.evaluate(async () => {
+      const win = window as unknown as {
+        webmcp: {
+          executeTool: (
+            name: string,
+            input: unknown,
+          ) => Promise<{ content: { text: string }[] }>
+        }
+      }
+      const res = await win.webmcp.executeTool('create_share_link', {})
+      return (JSON.parse(res.content[0]!.text) as { encoded: string }).encoded
+    })
+    expect(encoded.length).toBeGreaterThan(100)
 
-    const encoded = btoa(JSON.stringify(minimalFlame))
+    // Forget the dismissal, so only the link can keep the welcome screen away.
+    await page.evaluate(() => {
+      localStorage.clear()
+    })
     await page.goto(`/?flame=${encodeURIComponent(encoded)}`, {
       waitUntil: 'domcontentloaded',
     })
     await page.waitForTimeout(3000)
 
-    const root = page.locator('#root')
-    await expect(root).toBeAttached()
+    // The first test shows the welcome screen appears within this window on a
+    // plain visit, so its absence here means something.
+    await expect(welcomeAction(page)).toHaveCount(0)
   })
 
   test('should handle invalid flame query param gracefully', async ({

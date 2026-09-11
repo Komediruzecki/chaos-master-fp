@@ -1,6 +1,6 @@
 import type { FullResult, Reporter, TestCase, TestResult, } from '@playwright/test/reporter'
 
-const CI_PROJECT = 'chromium-degraded'
+const CI_PROJECT = 'chromium-ci'
 
 /**
  * Fails the run when a test in the CI project skips. A spec that skips when its
@@ -8,8 +8,8 @@ const CI_PROJECT = 'chromium-degraded'
  * did exactly that for months after its `Docs` button went away. A skip that is
  * a real decision says so with an `intentional-skip` annotation.
  *
- * The full `chromium` project is exempt: its specs skip on purpose when the
- * software adapter cannot render, which is why they are not in CI.
+ * The `chromium` project is exempt: several of its specs skip on purpose when
+ * the software adapter cannot render, which is why they are not in CI.
  */
 export default class FailOnUnexpectedSkip implements Reporter {
   private readonly unexpected: string[] = []
