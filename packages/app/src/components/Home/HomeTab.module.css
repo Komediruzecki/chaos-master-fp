@@ -146,7 +146,16 @@
   padding-top: var(--la-safe-top);
 }
 
-.touch .scroll {
+/* The deck layout keeps the permanent navigation rail (components.md 9), so
+   Home starts after its column rather than covering it: the rail is the shell
+   there, and no bar floats over this page. */
+.deck {
+  left: var(--la-navrail-w);
+}
+
+/* Only where a bar actually floats over the page: on the deck layout the
+   clearance would be 80px of dead space under the last row. */
+.touch:not(.deck) .scroll {
   padding-bottom: calc(
     var(--la-shell-h) + var(--la-safe-bottom) + 2 * var(--la-float-inset)
   );

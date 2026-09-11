@@ -211,6 +211,12 @@
   --la-shell-h-material: 64px;
   --la-capsule: 56px; /* the collapsed shell, docked in the rail's peek row */
 
+  /* The shell is chrome over every destination, so it paints above Home
+     (2000) and above the editor the Arcade covers; below the version pill
+     (9999), the debug panel (10000) and the Arcade hub (10005), and far below
+     the toast region (100000), which stays on top of everything. */
+  --la-z-shell: 2100;
+
   /* Tablet chrome (see components.md section 9) */
   --la-navrail-w: 80px; /* leading navigation rail, both platforms */
   --la-deck-w: 360px; /* trailing inspector deck, portrait */

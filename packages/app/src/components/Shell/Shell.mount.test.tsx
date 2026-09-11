@@ -5,6 +5,8 @@ import { HomeShellBar } from './HomeShellBar'
 
 vi.mock('@/stores/workspaceLayoutStore', () => ({
   isTouchLayout: () => true,
+  // The phone bar's layout: the deck layout has the NavRail instead.
+  deckFits: () => false,
 }))
 
 describe('the shell over Home', () => {

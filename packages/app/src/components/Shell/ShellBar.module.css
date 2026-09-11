@@ -8,7 +8,11 @@
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 42; /* over the rail's dock, which is 40 */
+  /* Home and the Arcade are full-screen layers over the editor (2000 and
+     up). Docked at 42 - over the rail, but under them - the bar was painted
+     beneath the very screens that offer it, so Create, Library and More were
+     invisible and untappable on Library. */
+  z-index: var(--la-z-shell);
   display: flex;
   align-items: flex-end;
   gap: var(--la-s-2);
