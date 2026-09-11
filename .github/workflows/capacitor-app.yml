@@ -603,16 +603,18 @@ jobs:
         shell: bash
         env:
           DEBUG_KEYSTORE_FILE: ${{ env.HAS_DEBUG_KEY == 'true' && format('{0}/debug.jks', runner.temp) || '' }}
+          RUN_NUMBER: ${{ github.run_number }}
         run: |
           set -euo pipefail
           export "${PREFIX}_DEBUG_KEYSTORE_FILE=$DEBUG_KEYSTORE_FILE"
-          # The debug APK carries the real version NAME, so a report says which
-          # build it came from, but keeps signing.gradle's versionCode of 1.
-          # Android refuses to install a lower versionCode over a higher one,
-          # so a CI APK numbered by run would lock every local build out until
-          # an uninstall — the very wipe the shared debug keystore exists to
-          # prevent.
-          export "${PREFIX}_VERSION_NAME=$VERSION_NAME"
+          # The debug APK carries the real version NAME plus the run, so the
+          # installed build shows in Settings > Apps (0.9.11-ci.4) and a report
+          # says exactly which one it was, but keeps signing.gradle's versionCode
+          # of 1. Android refuses to install a lower versionCode over a higher
+          # one, so a CI APK numbered by run would lock every local build out
+          # until an uninstall — the very wipe the shared debug keystore exists
+          # to prevent. The version name has no such rule.
+          export "${PREFIX}_VERSION_NAME=$VERSION_NAME-ci.$RUN_NUMBER"
           cd "$MOBILE_DIR/android"
           ./gradlew test lint assembleDebug --no-daemon
 
