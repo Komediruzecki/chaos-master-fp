@@ -172,6 +172,15 @@
   padding: 0;
 }
 
+/* Expanded, the bar paints over the rail's peek row. It opens absolutely
+   inside EditorRail's `.leading`, which precedes `.chips` in the DOM, so
+   without a stacking order of its own the chips paint - and hit-test - on
+   top of it. One step is enough: the sheet's `contain: paint` is the
+   stacking context both of them are in. */
+.capsuleDock.expanded {
+  z-index: 1;
+}
+
 .capsuleDock .row {
   position: absolute;
   left: 0;
