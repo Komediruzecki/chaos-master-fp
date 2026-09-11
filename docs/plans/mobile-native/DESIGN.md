@@ -102,7 +102,9 @@ new surface and hooks the camera offset into `effectivePosition`.
 - [x] Haptics: `selectionChanged()` at each detent crossing, `impact(Light)` at the latch, `impact(Light)` at
       touch-down on a chip. A new `@chaos-master/mobile-runtime/haptics` module; nothing in `packages/app`
       calls `@capacitor/haptics` today although the plugin is already registered on both platforms.
-- [x] 44 pt minimum on every target, 48 dp on Android, measured on the touch box.
+- [x] 40 px minimum on every tappable control, 48 dp on Android, measured on the touch box. A drag
+      handle (the grabber row, the deck's divider) may be thinner, and its whole hit strip receives
+      touches.
 - [ ] The slider row from the kit: 56 pt phone / 48 pt tablet, 4 pt track, 28 pt thumb with a 44 pt touch box
       inflated by a `::before`, and **the value always visible** in tabular figures.
 - [ ] Long-press to remove a variation, with an undo toast. Delete the one-tap delete in
@@ -400,7 +402,8 @@ WebView 146)**, plus a phone on Android for the save path.
 - [ ] Rotate in every screen: the layout follows the short edge, the detent survives, nothing reloads.
 - [ ] iPad Split View at one-third, one-half and two-thirds: compact at 455 pt, regular above 900 pt, a
       cross-fade at the threshold, no lost state.
-- [ ] Every target measured at 44 pt (48 dp on Android) with the accessibility inspector.
+- [ ] Every tappable control measured at 40 px minimum (48 dp on Android) with the accessibility
+      inspector, and both edges of every drag handle's hit strip touched.
 - [ ] Dynamic Type at AX2 and the largest step: the rail, the sheet, the tab bar and the deck all survive.
 - [ ] VoiceOver and TalkBack: the rotor reads Parameters, Transforms and Palette; a slider announces its name
       and value and changes by swipe; the canvas has a spoken summary.
