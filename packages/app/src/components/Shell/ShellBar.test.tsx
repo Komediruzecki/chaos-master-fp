@@ -55,35 +55,70 @@ describe('ShellBar', () => {
     expect(selectionChanged).toHaveBeenCalledTimes(1)
   })
 
-  it('shows nothing but the capsule until it is tapped', () => {
+  /**
+   * A real tap is pointerdown, pointerup, then click - in that order, with
+   * the release before the click. Firing a click while the pointer is still
+   * down is a sequence no browser produces, and it is what hid the bug this
+   * suite now covers.
+   */
+  function tap(element: HTMLElement) {
+    fireEvent.pointerDown(element)
+    fireEvent.pointerUp(element)
+    element.click()
+  }
+
+  it('opens on the touch down rather than on the release', () => {
     vi.useFakeTimers()
     mount('capsule')
     expect(screen.queryByRole('button', { name: 'Library' })).toBeNull()
     expect(capsule().getAttribute('aria-expanded')).toBe('false')
 
-    capsule().click()
+    // A press and hold shows the bar; the user should not have to let go to
+    // find out whether anything happened.
+    fireEvent.pointerDown(capsule())
     expect(screen.getByRole('button', { name: 'Library' })).toBeTruthy()
     expect(capsule().getAttribute('aria-expanded')).toBe('true')
     expect(backDepth()).toBe(1)
+    vi.useRealTimers()
+  })
 
-    vi.advanceTimersByTime(CAPSULE_OPEN_MS)
+  it('holds while the finger rests on it, and counts down from the release', () => {
+    vi.useFakeTimers()
+    mount('capsule')
+    fireEvent.pointerDown(capsule())
+    vi.advanceTimersByTime(CAPSULE_OPEN_MS * 2)
+    expect(screen.getByRole('button', { name: 'Library' })).toBeTruthy()
+
+    fireEvent.pointerUp(capsule())
+    capsule().click()
+    vi.advanceTimersByTime(CAPSULE_OPEN_MS - 1)
+    expect(screen.getByRole('button', { name: 'Library' })).toBeTruthy()
+    vi.advanceTimersByTime(1)
     expect(screen.queryByRole('button', { name: 'Library' })).toBeNull()
     expect(backDepth()).toBe(0)
     vi.useRealTimers()
   })
 
-  it('stays open while a finger is on it', () => {
+  it('does not collapse on the tap that opened it, or on the next one', () => {
+    vi.useFakeTimers()
+    mount('capsule')
+    tap(capsule())
+    expect(screen.getByRole('button', { name: 'Library' })).toBeTruthy()
+    // The release's click used to toggle `expanded` back off, so the bar
+    // closed the instant the finger lifted.
+    tap(capsule())
+    expect(screen.getByRole('button', { name: 'Library' })).toBeTruthy()
+    vi.useRealTimers()
+  })
+
+  it('lets go of the bar when the finger lifts somewhere else', () => {
     vi.useFakeTimers()
     mount('capsule')
     fireEvent.pointerDown(capsule())
-    capsule().click()
-    vi.advanceTimersByTime(CAPSULE_OPEN_MS * 2)
-    expect(screen.getByRole('button', { name: 'Library' })).toBeTruthy()
-
-    fireEvent.pointerUp(capsule())
-    vi.advanceTimersByTime(CAPSULE_OPEN_MS - 1)
-    expect(screen.getByRole('button', { name: 'Library' })).toBeTruthy()
-    vi.advanceTimersByTime(1)
+    // No pointer capture, so a finger that slides off releases over whatever
+    // is under it; the countdown still has to start.
+    fireEvent.pointerUp(document.body)
+    vi.advanceTimersByTime(CAPSULE_OPEN_MS)
     expect(screen.queryByRole('button', { name: 'Library' })).toBeNull()
     vi.useRealTimers()
   })
@@ -91,7 +126,7 @@ describe('ShellBar', () => {
   it('collapses on back', () => {
     vi.useFakeTimers()
     mount('capsule')
-    capsule().click()
+    tap(capsule())
     expect(popBack()).toBe(true)
     expect(screen.queryByRole('button', { name: 'Library' })).toBeNull()
     expect(backDepth()).toBe(0)

@@ -11,9 +11,9 @@ import type { MoreMenuHandlers } from './moreMenu'
 export type ShellDestination = 'create' | 'library'
 
 /**
- * How long the capsule stays expanded after a tap. Long enough to read the
- * bar and reach it, short enough that the editor gets its band back without
- * being told to.
+ * How long the capsule stays expanded once the finger has left it. Long
+ * enough to read the bar and reach it, short enough that the editor gets its
+ * band back without being told to.
  */
 export const CAPSULE_OPEN_MS = 3000
 
@@ -85,6 +85,34 @@ export function ShellBar(props: ShellBarProps) {
     )
   })
 
+  /**
+   * The capsule opens on the touch down and stays up while the finger rests
+   * on it; the countdown starts when the finger leaves. The release is
+   * watched on the document rather than on this button, and the pointer is
+   * deliberately not captured: capturing sends the release - and the click
+   * that follows it - back to the capsule even when the finger has slid onto
+   * Library, so the one gesture that should reach Library never could.
+   */
+  let releasing: AbortController | undefined
+  onCleanup(() => {
+    releasing?.abort()
+  })
+
+  function holdCapsule() {
+    setExpanded(true)
+    setHeld(true)
+    releasing?.abort()
+    const controller = new AbortController()
+    releasing = controller
+    const release = () => {
+      setHeld(false)
+      controller.abort()
+    }
+    const options = { signal: controller.signal }
+    document.addEventListener('pointerup', release, options)
+    document.addEventListener('pointercancel', release, options)
+  }
+
   function select(destination: ShellDestination) {
     // motion.md 2.5: one selection tick per destination change, never on a
     // re-tap of the one you are already on.
@@ -151,26 +179,18 @@ export function ShellBar(props: ShellBarProps) {
                   aria-current={
                     props.current() === destination.id ? 'page' : undefined
                   }
-                  onPointerDown={(event) => {
+                  onPointerDown={() => {
                     if (!isCapsule(destination.id)) return
-                    // Capture the pointer so the release lands here even when
-                    // the finger slides off; without it a release elsewhere
-                    // would leave the bar held open over the rail for good.
-                    event.currentTarget.setPointerCapture?.(event.pointerId)
-                    setHeld(true)
-                  }}
-                  onPointerUp={() => {
-                    setHeld(false)
-                  }}
-                  onPointerCancel={() => {
-                    setHeld(false)
-                  }}
-                  onLostPointerCapture={() => {
-                    setHeld(false)
+                    holdCapsule()
                   }}
                   onClick={() => {
                     if (isCapsule(destination.id)) {
-                      setExpanded((was) => !was)
+                      // Never a toggle: this click is the release of the very
+                      // touch that opened the bar, so toggling here shut it
+                      // again the moment the finger lifted. Keyboard
+                      // activation brings no pointer down, and this is what
+                      // opens the bar for it.
+                      setExpanded(true)
                       return
                     }
                     select(destination.id)
