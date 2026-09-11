@@ -92,7 +92,16 @@ export function Modal(props: ParentProps<ModalProps>) {
               config: { content: Content, class: class_ },
             } = instance
 
+            // Answered once. With startViewTransition the removal from the
+            // list is deferred into the transition's callback, and the back
+            // handler below is disposed with the item's scope - so a second
+            // back inside that window cancelled this same dialog again
+            // instead of reaching the layer underneath it.
+            let settled = false
+
             function respond(option: unknown) {
+              if (settled) return
+              settled = true
               if ('startViewTransition' in document) {
                 const transition = document.startViewTransition(() => {
                   resolve(option)
