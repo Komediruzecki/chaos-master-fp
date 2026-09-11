@@ -65,7 +65,8 @@ describe('HelpModal haptics switch', () => {
 
   it('is on by default in the native app and can be turned off', () => {
     mount()
-    const box = screen.getByLabelText('Haptics')
+    // The type argument, not an assertion: eslint --fix strips the cast.
+    const box = screen.getByLabelText<HTMLInputElement>('Haptics')
     expect(box.checked).toBe(true)
     fireEvent.click(box)
     expect(hapticsEnabled()).toBe(false)
