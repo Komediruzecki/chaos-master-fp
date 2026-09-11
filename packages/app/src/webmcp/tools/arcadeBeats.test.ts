@@ -179,6 +179,26 @@ describe('arcade beats tools', () => {
       )
     })
 
+    it('switches to the loaded track when the microphone was the source', async () => {
+      const { ctx } = setup('Ember Drift')
+      const audio = ctx.audio!
+      audio.snapshot = vi.fn(() => ({
+        mapping: { preset: 'custom' as const, mappings: [] },
+        enabled: false,
+        source: 'mic' as const,
+        trackName: 'Ember Drift',
+      }))
+
+      const result = await run(arcadeStartBeats, {})
+
+      expect(result.ok).toBe(true)
+      const setSource = vi.mocked(audio.setSource)
+      expect(setSource).toHaveBeenCalledWith('file')
+      expect(setSource.mock.invocationCallOrder[0]!).toBeLessThan(
+        vi.mocked(audio.setEnabled).mock.invocationCallOrder[0]!,
+      )
+    })
+
     it('accepts a track id as well as its display name', async () => {
       const { load } = setup(undefined)
       await run(arcadeStartBeats, { trackName: 'cyber-pulse' })

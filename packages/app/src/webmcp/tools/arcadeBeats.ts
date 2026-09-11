@@ -189,6 +189,10 @@ export const arcadeStartBeats: WebMcpTool = {
 
     clearNarration()
     ctx.arcade.closeHub()
+    // Beats drives the flame from the track just ensured. A microphone chosen
+    // earlier in the session would otherwise keep driving it, and the mapping
+    // step would report no track loaded when one is.
+    ctx.audio.setSource('file')
     ctx.audio.setEnabled(true)
 
     const activeTrack = loaded.trackName

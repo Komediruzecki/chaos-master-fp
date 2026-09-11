@@ -24,8 +24,9 @@ export function pinchEventFrom(a: PinchPoint, b: PinchPoint): PinchEvent {
  * Two touches reported at the same coordinate give distance 0, and a consumer
  * dividing by it gets NaN or Infinity. `Math.min` and `Math.max` PROPAGATE NaN,
  * so a downstream clamp does not rescue the value -- it has to be rejected
- * here. WheelZoomCamera3D divided by this unguarded and wrote NaN into
- * camera3D.radius, which valibot then accepted as a number and persisted.
+ * here. WheelZoomCamera3D divided by this unguarded and wrote NaN or Infinity
+ * into camera3D.radius. Valibot rejects NaN, so that broke the render and the
+ * next reload; it accepts Infinity, which collapsed the radius and was saved.
  */
 export function isUsablePinch(event: PinchEvent): boolean {
   return (

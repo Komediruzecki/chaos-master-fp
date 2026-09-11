@@ -1,5 +1,7 @@
-import { describe, expect, it } from 'vitest'
-import { isUsablePinch, pinchEventFrom } from './createPinchHandler'
+import { createRoot } from 'solid-js'
+import { describe, expect, it, vi } from 'vitest'
+import { createPinchHandler, isUsablePinch, pinchEventFrom, } from './createPinchHandler'
+import type { PinchPoint } from './createPinchHandler'
 
 const p = (clientX: number, clientY: number) => ({ clientX, clientY })
 
@@ -26,20 +28,44 @@ describe('isUsablePinch', () => {
   })
 })
 
-describe('the ratio a consumer computes from two usable events', () => {
-  it('is always finite and positive, so a clamp cannot yield NaN', () => {
-    const prev = pinchEventFrom(p(0, 0), p(6, 8))
-    const next = pinchEventFrom(p(0, 0), p(12, 16))
-    const ratio = next.distance / prev.distance
-    expect(Number.isFinite(ratio)).toBe(true)
-    expect(ratio).toBeGreaterThan(0)
-    expect(Math.max(0.1, Math.min(1000, 5 / ratio))).toBe(2.5)
+/** A touch event carrying these touches, as the handler reads them. */
+const touchEvent = (type: string, ...points: PinchPoint[]) => {
+  const event = new Event(type)
+  Object.defineProperty(event, 'touches', { value: points })
+  return event as TouchEvent
+}
+
+describe('createPinchHandler', () => {
+  const start = () => {
+    const onPinchMove = vi.fn()
+    const createHandlers = vi.fn(() => ({ onPinchMove }))
+    let dispose!: () => void
+    const startPinch = createRoot((d) => {
+      dispose = d
+      return createPinchHandler(createHandlers)
+    })
+    return { startPinch, createHandlers, onPinchMove, dispose }
+  }
+
+  it('never starts a pinch from two coincident touches', () => {
+    const { startPinch, createHandlers, dispose } = start()
+    startPinch(touchEvent('touchstart', p(120, 240), p(120, 240)))
+    expect(createHandlers).not.toHaveBeenCalled()
+    dispose()
   })
 
-  it('documents why the guard has to be upstream: Math.min/max propagate NaN', () => {
-    const degenerate = pinchEventFrom(p(50, 50), p(50, 50))
-    const ratio = degenerate.distance / degenerate.distance // 0 / 0
-    expect(Number.isNaN(ratio)).toBe(true)
-    expect(Number.isNaN(Math.max(0.1, Math.min(1000, 5 / ratio)))).toBe(true)
+  it('drops a move whose touches coincide and passes the next usable one', () => {
+    const { startPinch, onPinchMove, dispose } = start()
+    startPinch(touchEvent('touchstart', p(0, 0), p(6, 8)))
+
+    document.dispatchEvent(touchEvent('touchmove', p(50, 50), p(50, 50)))
+    expect(onPinchMove).not.toHaveBeenCalled()
+
+    document.dispatchEvent(touchEvent('touchmove', p(0, 0), p(12, 16)))
+    expect(onPinchMove).toHaveBeenCalledOnce()
+    expect(onPinchMove.mock.calls[0]![0]).toMatchObject({ distance: 20 })
+
+    document.dispatchEvent(touchEvent('touchend'))
+    dispose()
   })
 })
