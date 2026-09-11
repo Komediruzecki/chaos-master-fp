@@ -1,6 +1,6 @@
 import { createRoot } from 'solid-js'
 import { describe, expect, it } from 'vitest'
-import { classifyLayout, createWorkspaceLayoutStore, deckFits, deckFitsWidth, isTouchLayout, isWideLayout, WIDE_LAYOUT_MIN_WIDTH, } from './workspaceLayoutStore'
+import { classifyLayout, createWorkspaceLayoutStore, deckFits, deckFitsWidth, isTouchLayout, isWideLayout, screenShortEdge, WIDE_LAYOUT_MIN_WIDTH, } from './workspaceLayoutStore'
 
 /** The store derives its class from one resize listener, so tests drive that. */
 function resizeTo(width: number, height: number) {
@@ -9,10 +9,23 @@ function resizeTo(width: number, height: number) {
   window.dispatchEvent(new Event('resize'))
 }
 
+/** The screen the window sits on. It does not move when the keyboard opens. */
+function screenIs(width: number, height: number) {
+  Object.defineProperty(window.screen, 'width', {
+    value: width,
+    configurable: true,
+  })
+  Object.defineProperty(window.screen, 'height', {
+    value: height,
+    configurable: true,
+  })
+}
+
 const touch = (width: number, height: number) =>
   classifyLayout({
     width,
     height,
+    shortEdge: Math.min(width, height),
     coarse: true,
     native: true,
     preference: 'auto',
@@ -41,6 +54,7 @@ describe('classifyLayout on a device', () => {
         classifyLayout({
           width,
           height: 1000,
+          shortEdge: Math.min(width, 1000),
           coarse: false,
           native: true,
           preference: 'auto',
@@ -50,11 +64,35 @@ describe('classifyLayout on a device', () => {
   })
 })
 
+describe('classifyLayout while the soft keyboard is open', () => {
+  // `interactive-widget=resizes-content` shrinks the window, not the screen.
+  const withKeyboard = (width: number, height: number, shortEdge: number) =>
+    classifyLayout({
+      width,
+      height,
+      shortEdge,
+      coarse: true,
+      native: true,
+      preference: 'auto',
+    })
+
+  it('keeps a landscape tablet a tablet', () => {
+    expect(withKeyboard(1280, 800, 800)).toBe('tablet')
+    expect(withKeyboard(1280, 450, 800)).toBe('tablet')
+  })
+
+  it('keeps a rotated phone a phone', () => {
+    expect(withKeyboard(852, 393, 393)).toBe('phone')
+    expect(withKeyboard(852, 220, 393)).toBe('phone')
+  })
+})
+
 describe('classifyLayout on the web', () => {
   const web = (width: number, height: number) =>
     classifyLayout({
       width,
       height,
+      shortEdge: 1440,
       coarse: false,
       native: false,
       preference: 'auto',
@@ -73,6 +111,7 @@ describe('classifyLayout on the web', () => {
       classifyLayout({
         width: 1280,
         height: 800,
+        shortEdge: 800,
         coarse: true,
         native: false,
         preference: 'auto',
@@ -85,6 +124,7 @@ describe('classifyLayout on the web', () => {
       classifyLayout({
         width: 393,
         height: 852,
+        shortEdge: 393,
         coarse: true,
         native: true,
         preference: 'desktop',
@@ -94,6 +134,7 @@ describe('classifyLayout on the web', () => {
       classifyLayout({
         width: 1440,
         height: 900,
+        shortEdge: 1440,
         coarse: false,
         native: false,
         preference: 'touch',
@@ -101,8 +142,11 @@ describe('classifyLayout on the web', () => {
     ).toBe('tablet')
     expect(
       classifyLayout({
+        // A desktop browser forced into the touch layout: its window is a
+        // fraction of its screen, so the window is what it is measured by.
         width: 500,
         height: 900,
+        shortEdge: 1440,
         coarse: false,
         native: false,
         preference: 'touch',
@@ -192,5 +236,17 @@ describe('workspaceLayoutStore', () => {
       resizeTo(1024, 768)
       dispose()
     })
+  })
+
+  it('measures the short edge on the screen, not on the window', () => {
+    screenIs(1280, 800)
+    // The variation search is focused and the keyboard takes half the window.
+    resizeTo(1280, 450)
+    expect(screenShortEdge()).toBe(800)
+    // No usable screen: the window is the honest measure.
+    screenIs(0, 0)
+    expect(screenShortEdge()).toBe(450)
+    screenIs(1024, 768)
+    resizeTo(1024, 768)
   })
 })
