@@ -3451,6 +3451,9 @@ export function MainWorkspace(props: AppProps) {
                 executeCommand('history.redo', cmdContext)
               }}
               onSnapshot={quickExport}
+              onOpenExportOptions={() => {
+                executeCommand('export.png', cmdContext)
+              }}
               onOpenDrawer={() => setTouchDrawerOpen(true)}
               onPickGallery={pickGalleryFlame}
             />

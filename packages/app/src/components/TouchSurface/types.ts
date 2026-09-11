@@ -1,4 +1,4 @@
-import type { Accessor, JSXElement } from 'solid-js'
+import type { Accessor } from 'solid-js'
 import type { CommandContext } from '@/commands/types'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 
@@ -36,21 +36,6 @@ export interface EditorRailProps {
   onOpenDrawer?: () => void
   /** The height of the viewport the sheet covers at its current detent, in px; 0 at peek. */
   onCoveredHeightChange?: (px: number) => void
-}
-
-export interface TabletSplitLayoutProps {
-  ctx: CommandContext
-  flame: Accessor<FlameDescriptor>
-  children: JSXElement
-  onOpenDrawer?: () => void
-  onRandomize?: () => void
-  onMutate?: () => void
-  onUndo?: () => void
-  onRedo?: () => void
-  canUndo?: Accessor<boolean>
-  canRedo?: Accessor<boolean>
-  onSnapshot?: () => void
-  onPickGallery?: () => void
 }
 
 export interface AdvancedDrawerItem {

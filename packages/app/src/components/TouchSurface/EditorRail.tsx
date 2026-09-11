@@ -3,12 +3,11 @@ import { CameraIcon, ColourWedge, ShapeTriangle, Shuffle, VariationSpiral, } fro
 import { haptic } from '@/lib/haptics'
 import { clampSheetHeight, detentHeights, heightOf, nearestDetent, PEEK_HEIGHT, settleDetent, } from './detents'
 import ui from './EditorRail.module.css'
+import { createLongPress } from './longPress'
 import { TouchControlSurface } from './TouchControlSurface'
 import type { JSX } from 'solid-js'
 import type { Detent } from './detents'
 import type { EditorRailProps, TouchTab } from './types'
-
-const LONG_PRESS_MS = 500
 
 const CHIPS: readonly {
   readonly tab: TouchTab
@@ -126,30 +125,17 @@ export function EditorRail(props: EditorRailProps) {
   }
 
   // The shutter: tap saves, a long press opens the options.
-  let pressTimer: ReturnType<typeof setTimeout> | null = null
-  let longPressed = false
-
-  function onShutterDown() {
-    haptic.impactLight()
-    longPressed = false
-    pressTimer = setTimeout(() => {
-      longPressed = true
+  const shutterHandlers = createLongPress({
+    onPressStart: () => {
+      haptic.impactLight()
+    },
+    onTap: () => {
+      props.onQuickExport()
+    },
+    onLongPress: () => {
       props.onOpenExportOptions()
-    }, LONG_PRESS_MS)
-  }
-
-  function cancelPress() {
-    if (pressTimer !== null) clearTimeout(pressTimer)
-    pressTimer = null
-  }
-
-  function onShutterClick() {
-    if (longPressed) {
-      longPressed = false
-      return
-    }
-    props.onQuickExport()
-  }
+    },
+  })
 
   const grabHandlers = {
     onPointerDown: onGrabDown,
@@ -201,11 +187,7 @@ export function EditorRail(props: EditorRailProps) {
             type="button"
             class={ui.shutter}
             aria-label="Save image"
-            onPointerDown={onShutterDown}
-            onPointerUp={cancelPress}
-            onPointerCancel={cancelPress}
-            onPointerLeave={cancelPress}
-            onClick={onShutterClick}
+            {...shutterHandlers}
           >
             <CameraIcon class={ui.shutterIcon} />
           </button>

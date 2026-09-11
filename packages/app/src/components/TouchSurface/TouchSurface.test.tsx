@@ -1,8 +1,9 @@
 import '@/commands/builtins'
 import { cleanup, fireEvent, render, screen } from '@solidjs/testing-library'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { safeRemoveItem } from '@/utils/storage'
 import { createMockCommandContext } from '@/webmcp/testUtils'
-import { AdvancedToolsDrawer, TabletInspectorDeck, TabletSplitLayout, TouchControlSurface, TouchHUD, } from './index'
+import { AdvancedToolsDrawer, TabletInspectorDeck, TouchControlSurface, TouchHUD, } from './index'
 import type { TransformId, VariationId } from '@/flame/schema/flameSchema'
 
 describe('TouchSurface Components', () => {
@@ -197,7 +198,18 @@ describe('TouchSurface Components', () => {
   })
 
   describe('TabletInspectorDeck', () => {
-    it('renders header and embedded control surface', () => {
+    beforeEach(() => {
+      // A landscape 11 inch iPad, and no width carried over from a sibling
+      // test. safeRemoveItem, because this runtime's localStorage is partial.
+      window.innerWidth = 1210
+      window.innerHeight = 834
+      safeRemoveItem('chaos-master-chaos-tablet-deck-width')
+    })
+
+    const deck = () =>
+      screen.getByRole('complementary', { name: 'Tablet Touch Inspector' })
+
+    it('renders the header, the segmented row and the control surface', () => {
       const ctx = createMockCommandContext()
       const onPickGallery = vi.fn()
 
@@ -209,36 +221,74 @@ describe('TouchSurface Components', () => {
         />
       ))
 
-      expect(
-        screen.getByRole('complementary', { name: 'Tablet Touch Inspector' }),
-      ).toBeTruthy()
-      expect(screen.getByText('Browse Gallery')).toBeTruthy()
-      const pickBtn = screen.getByRole('button', {
-        name: 'Browse & load flame from gallery',
-      })
-      pickBtn.click()
+      expect(deck()).toBeTruthy()
+      screen.getByRole('button', { name: 'Library' }).click()
       expect(onPickGallery).toHaveBeenCalled()
+      expect(screen.getByRole('button', { name: 'Undo' })).toBeTruthy()
+      expect(screen.getByRole('button', { name: 'Redo' })).toBeTruthy()
+      expect(screen.getByRole('button', { name: 'Save image' })).toBeTruthy()
+      expect(
+        screen.getAllByRole('tab').map((t) => t.textContent?.trim()),
+      ).toEqual(['Variations', 'Shape', 'Colour'])
       expect(screen.getByRole('button', { name: 'T1' })).toBeTruthy()
     })
-  })
 
-  describe('TabletSplitLayout', () => {
-    it('renders split layout with canvas pane and inspector pane', () => {
+    it('collapses to an edge tab on a double tap and reopens', () => {
       const ctx = createMockCommandContext()
-
       render(() => (
-        <TabletSplitLayout ctx={ctx} flame={ctx.flameDescriptor}>
-          <div data-testid="test-canvas-pane">Canvas Hero</div>
-        </TabletSplitLayout>
+        <TabletInspectorDeck ctx={ctx} flame={ctx.flameDescriptor} />
       ))
 
+      fireEvent.dblClick(screen.getByTestId('deck-divider'))
       expect(
-        screen.getByRole('main', { name: 'Tablet Split Studio' }),
-      ).toBeTruthy()
-      expect(screen.getByTestId('test-canvas-pane')).toBeTruthy()
-      expect(
-        screen.getByRole('complementary', { name: 'Tablet Touch Inspector' }),
-      ).toBeTruthy()
+        screen.queryByRole('complementary', { name: 'Tablet Touch Inspector' }),
+      ).toBeNull()
+
+      screen.getByRole('button', { name: 'Show inspector' }).click()
+      expect(deck()).toBeTruthy()
+    })
+
+    it('saves on a tap and opens the export options on a long press', () => {
+      vi.useFakeTimers()
+      const ctx = createMockCommandContext()
+      const onSnapshot = vi.fn()
+      const onOpenExportOptions = vi.fn()
+      render(() => (
+        <TabletInspectorDeck
+          ctx={ctx}
+          flame={ctx.flameDescriptor}
+          onSnapshot={onSnapshot}
+          onOpenExportOptions={onOpenExportOptions}
+        />
+      ))
+
+      const save = screen.getByRole('button', { name: 'Save image' })
+      fireEvent.pointerDown(save)
+      fireEvent.pointerUp(save)
+      fireEvent.click(save)
+      expect(onSnapshot).toHaveBeenCalledTimes(1)
+
+      fireEvent.pointerDown(save)
+      vi.advanceTimersByTime(600)
+      fireEvent.pointerUp(save)
+      fireEvent.click(save)
+      expect(onOpenExportOptions).toHaveBeenCalledTimes(1)
+      expect(onSnapshot).toHaveBeenCalledTimes(1)
+      vi.useRealTimers()
+    })
+
+    it('resizes by dragging the divider', () => {
+      const ctx = createMockCommandContext()
+      render(() => (
+        <TabletInspectorDeck ctx={ctx} flame={ctx.flameDescriptor} />
+      ))
+
+      const divider = screen.getByTestId('deck-divider')
+      expect(deck().style.width).toBe('380px')
+      fireEvent.pointerDown(divider, { clientX: 900, pointerId: 1 })
+      fireEvent.pointerMove(divider, { clientX: 860, pointerId: 1 })
+      fireEvent.pointerUp(divider, { clientX: 860, pointerId: 1 })
+      expect(deck().style.width).toBe('420px')
     })
   })
 })
