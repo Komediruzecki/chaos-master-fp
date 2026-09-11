@@ -27,6 +27,13 @@
   grid-template-areas: 'navrail viewport inspector';
 }
 
+/* There is no sidebar to tuck under on this layout: the canvas container's
+   own -0.4rem pulled the canvas 6.4px over the navigation rail's trailing
+   edge and its hairline (measured: canvas x 73.6 in an 80px column). */
+.tabletLayout .canvas-container:not(.fullscreen) {
+  margin-left: 0;
+}
+
 .canvas-container {
   grid-area: viewport;
   grid-row-end: viewport-controls;
