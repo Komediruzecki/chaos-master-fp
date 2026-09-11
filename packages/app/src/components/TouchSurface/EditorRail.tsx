@@ -96,24 +96,38 @@ export function EditorRail(props: EditorRailProps) {
   })
 
   /**
-   * The panel follows the live height rather than the settled detent: a drag
-   * from peek grows a sheet that is already filled, and a collapse keeps its
-   * contents until the height has finished shrinking, instead of emptying the
-   * glass and then closing it. Once built it stays mounted and is hidden at
-   * peek, where display:none pauses the variation previews through their
-   * IntersectionObserver; remounting would rebuild every WebGPU context and
-   * snapshot on the next tap.
+   * The panel follows the finger while a drag is on and the settled detent
+   * otherwise: a drag from peek grows a sheet that is already filled, and a
+   * collapse keeps its contents until the height has finished shrinking,
+   * instead of emptying the glass and then closing it. Once built it stays
+   * mounted and is hidden at peek, where display:none pauses the variation
+   * previews through their IntersectionObserver; remounting would rebuild
+   * every WebGPU context and snapshot on the next tap.
+   *
+   * Reading the settled height here would hide the panel the user is typing
+   * in: the detent heights floor at peek, so a keyboard that leaves a
+   * landscape phone 180px of viewport collapses medium onto peek while the
+   * sheet is still at medium.
    */
+  const bodyOpen = createMemo(() => {
+    const dragging = dragHeight()
+    return dragging === null ? detent() !== 'peek' : dragging > PEEK_HEIGHT
+  })
   const [bodyShown, setBodyShown] = createSignal(false)
   const [bodyBuilt, setBodyBuilt] = createSignal(false)
+  const [bodyFocused, setBodyFocused] = createSignal(false)
 
   createEffect(() => {
-    if (sheetHeight() > PEEK_HEIGHT) {
+    if (bodyOpen()) {
       setBodyBuilt(true)
       setBodyShown(true)
       return
     }
     if (!bodyShown()) return
+    // display:none takes the focus out of whatever holds it, and the keyboard
+    // goes with it. A panel being typed in waits, clipped, for the focus to
+    // leave: this effect runs again when it does.
+    if (bodyFocused()) return
     const timer = setTimeout(() => {
       setBodyShown(false)
     }, SHEET_TRANSITION_MS)
@@ -279,6 +293,12 @@ export function EditorRail(props: EditorRailProps) {
             class={ui.body}
             data-testid="editor-rail-body"
             hidden={!bodyShown()}
+            onFocusIn={() => {
+              setBodyFocused(true)
+            }}
+            onFocusOut={() => {
+              setBodyFocused(false)
+            }}
           >
             <TouchControlSurface
               ctx={props.ctx}

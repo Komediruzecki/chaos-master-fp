@@ -146,6 +146,44 @@ describe('EditorRail', () => {
     vi.useRealTimers()
   })
 
+  it('keeps the panel up when the keyboard shrinks the viewport', () => {
+    vi.useFakeTimers()
+    mount()
+    fireEvent.click(screen.getByRole('tab', { name: 'Variations' }))
+    const body = screen.getByTestId('editor-rail-body')
+    expect(body.hidden).toBe(false)
+
+    // A landscape phone with the keyboard open: 180px of visual viewport, so
+    // medium floors onto peek although the sheet is still at medium. Hiding
+    // the panel here takes the focus out of the field the keyboard was
+    // opened for, which closes the keyboard and grows the viewport back.
+    window.innerHeight = 180
+    window.dispatchEvent(new Event('resize'))
+    vi.advanceTimersByTime(SHEET_TRANSITION_MS + 1)
+    expect(sheet().style.height).toBe(`${PEEK_HEIGHT}px`)
+    expect(sheet().dataset['detent']).toBe('medium')
+    expect(body.hidden).toBe(false)
+    vi.useRealTimers()
+  })
+
+  it('waits for the focus to leave the panel before hiding it', () => {
+    vi.useFakeTimers()
+    mount()
+    const shape = screen.getByRole('tab', { name: 'Shape' })
+    fireEvent.click(shape)
+    const body = screen.getByTestId('editor-rail-body')
+    fireEvent.focusIn(body)
+
+    fireEvent.click(shape)
+    vi.advanceTimersByTime(SHEET_TRANSITION_MS + 1)
+    expect(body.hidden).toBe(false)
+
+    fireEvent.focusOut(body)
+    vi.advanceTimersByTime(SHEET_TRANSITION_MS + 1)
+    expect(body.hidden).toBe(true)
+    vi.useRealTimers()
+  })
+
   it('settles a flick, and drops it once the finger has rested', () => {
     mount()
     const grabber = screen.getByTestId('editor-rail-grabber')
