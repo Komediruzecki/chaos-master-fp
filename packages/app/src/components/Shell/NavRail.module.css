@@ -19,8 +19,10 @@
   padding-left: var(--la-safe-left);
   background: var(--la-ground);
   border-right: 1px solid var(--la-hairline);
-  /* It mounts with the deck, so it arrives the same way (DESIGN.md 4). */
-  animation: la-surface-enter var(--la-dur-fast) var(--la-ease);
+  /* It mounts with the deck, so it arrives the same way (DESIGN.md 4).
+     `global(...)` keeps the keyframe in lumen.css reachable: a CSS module
+     renames a bare animation name to one scoped to this file. */
+  animation: global(la-surface-enter) var(--la-dur-fast) var(--la-ease);
 }
 
 .mark {

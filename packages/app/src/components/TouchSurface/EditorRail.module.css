@@ -19,9 +19,6 @@
   padding-left: max(var(--la-float-inset), var(--la-safe-left));
   /* The dock is a frame around the sheet; the canvas stays reachable beside it. */
   pointer-events: none;
-  /* The threshold between this and the tablet deck is a cross-fade, never a
-     reload (DESIGN.md section 4); the detent survives it in detents.ts. */
-  animation: la-surface-enter var(--la-dur-fast) var(--la-ease);
 }
 
 .sheet {
@@ -38,6 +35,15 @@
   overflow: hidden;
   contain: layout paint;
   transition: height var(--la-dur-sheet) var(--la-ease);
+  /* The threshold between this and the tablet deck is a cross-fade, never a
+     reload (DESIGN.md section 4); the detent survives it in detents.ts.
+
+     On the sheet and not on the dock around it: an ancestor below full
+     opacity is a backdrop root, so fading the dock would make this glass
+     sample a flat fill for the 180ms and then pop. `global(...)` is what
+     keeps the keyframe in lumen.css reachable - a CSS module renames a bare
+     animation name to one scoped to this file, which no keyframe answers. */
+  animation: global(la-surface-enter) var(--la-dur-fast) var(--la-ease);
 }
 
 /* While the finger is the clock there is no easing between frames. */
@@ -192,7 +198,7 @@
   .shutter {
     transition: none;
   }
-  .dock {
+  .sheet {
     animation: none;
   }
 }

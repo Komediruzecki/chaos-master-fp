@@ -21,4 +21,28 @@ describe('touch surface stylesheets', () => {
     }
     expect(offenders).toEqual([])
   })
+
+  it('reaches the global surface-enter keyframe rather than a scoped name', () => {
+    // A CSS module rewrites `animation: la-surface-enter` to a name scoped to
+    // that file, while the keyframe itself is global (lumen.css). The two
+    // never met, so the cross-fade at the rail-or-deck threshold silently
+    // never ran. `global(...)` is the escape the same plugin honours.
+    const offenders: string[] = []
+    for (const dir of DIRS) {
+      for (const file of readdirSync(dir).filter((f) =>
+        f.endsWith('.module.css'),
+      )) {
+        const css = readFileSync(join(dir, file), 'utf8')
+        for (const match of css.matchAll(
+          /animation(?:-name)?:([^;]*la-surface-enter[^;]*);/g,
+        )) {
+          const value = match[1]!
+          if (!/global\(\s*la-surface-enter\s*\)/.test(value)) {
+            offenders.push(`${file}: ${value.trim()}`)
+          }
+        }
+      }
+    }
+    expect(offenders).toEqual([])
+  })
 })
