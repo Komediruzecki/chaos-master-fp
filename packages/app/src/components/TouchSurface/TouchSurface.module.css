@@ -2,51 +2,65 @@
 
 .topHud {
   position: fixed;
-  top: max(8px, env(safe-area-inset-top));
+  top: max(var(--la-s-2), calc(var(--la-safe-top) + var(--la-s-2)));
   left: 50%;
   transform: translateX(-50%);
-  z-index: 45;
+  z-index: 41;
+  height: var(--la-hud-h);
+  max-width: calc(100% - 40px);
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 14px;
-  background: rgba(15, 19, 32, 0.88);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 9999px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
-  pointer-events: auto;
-  touch-action: none;
-  max-width: calc(100vw - 32px);
+  gap: var(--la-s-1);
+  padding: 0 var(--la-s-1);
+  border-radius: var(--la-r-pill);
+  background: var(--la-glass);
+  backdrop-filter: var(--la-glass-blur);
+  -webkit-backdrop-filter: var(--la-glass-blur);
+  border: var(--la-glass-edge);
+  box-shadow: var(--la-glass-shadow);
   box-sizing: border-box;
+  pointer-events: auto;
 }
 
-.hudHomeBtn {
-  display: inline-flex;
+/* The tablet deck's header groups its icon buttons in one of these. */
+.hudActions {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.06);
-  color: #38bdf8;
-  cursor: pointer;
+  gap: var(--la-s-1);
+}
+
+.hudButton {
+  width: var(--la-tap);
+  height: var(--la-hud-h);
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: none;
+  color: var(--la-ink);
+  border-radius: var(--la-r-pill);
   padding: 0;
-  flex-shrink: 0;
-  transition: all 0.15s ease;
+  cursor: pointer;
   touch-action: manipulation;
+  transition:
+    background var(--la-dur-press) var(--la-ease),
+    transform var(--la-dur-press) var(--la-ease);
 }
 
-.hudHomeBtn:hover {
-  background: rgba(255, 255, 255, 0.14);
-  color: #7dd3fc;
-  border-color: rgba(56, 189, 248, 0.3);
-}
-
-.hudHomeBtn:active {
+.hudButton:active:not(:disabled) {
   transform: scale(0.94);
+}
+
+.hudButton:disabled {
+  color: var(--la-ink-4);
+  cursor: default;
+}
+
+.hudButtonIcon {
+  width: 22px;
+  height: 22px;
+  color: inherit;
+  stroke: currentColor;
+  fill: none;
 }
 
 .hudTitleWrapper {
@@ -57,99 +71,56 @@
   min-width: 0;
 }
 
-.hudTitle {
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: #f1f5f9;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 110px;
-  padding: 0 4px;
-  user-select: none;
-}
-
+/* The title is a control (it opens the tooltip), so its box is the pill's
+   full height even though the text is only 20px tall. */
 .hudTitleBtn {
   display: flex;
   align-items: center;
-  gap: 6px;
+  height: var(--la-hud-h);
+  min-width: 0;
   background: transparent;
-  border: 1px solid transparent;
-  color: #f1f5f9;
+  border: 0;
+  padding: 0;
+  color: var(--la-ink);
   cursor: pointer;
-  padding: 3px 8px;
-  border-radius: 9999px;
-  max-width: 110px;
-  transition: all 0.15s ease;
+  border-radius: var(--la-r-pill);
   touch-action: manipulation;
 }
 
-.hudTitleBtn:hover,
-.hudTitleBtn:active {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.15);
-}
-
-.hudTitleIcon {
-  width: 14px;
-  height: 14px;
-  color: #38bdf8;
-  flex-shrink: 0;
-}
-
 .hudTitleText {
-  font-size: 0.82rem;
-  font-weight: 600;
-  white-space: nowrap;
+  font: 600 15px/20px var(--la-font-body);
+  color: var(--la-ink);
+  max-width: 160px;
+  padding: 0 var(--la-s-2);
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .titleTooltip {
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + var(--la-s-2));
   left: 0;
-  background: rgba(15, 23, 42, 0.96);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 0.75rem;
-  color: #f8fafc;
+  background: var(--la-glass-strong);
+  backdrop-filter: var(--la-glass-blur);
+  -webkit-backdrop-filter: var(--la-glass-blur);
+  border: var(--la-glass-edge);
+  border-radius: var(--la-r-sm);
+  padding: var(--la-s-2) var(--la-s-3);
+  font: var(--la-t-caption);
+  color: var(--la-ink);
   width: max-content;
   max-width: 220px;
   white-space: normal;
   word-break: break-word;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--la-e-3);
   z-index: 60;
   pointer-events: auto;
 }
 
-.controlsRail {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-  flex-shrink: 0;
-  cursor: grab;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-.controlsRail.isDragging {
-  cursor: grabbing;
-}
-
-.controlsRail.isDragging * {
-  cursor: grabbing !important;
-  pointer-events: none;
-}
-
-.controlsRail::-webkit-scrollbar {
-  display: none;
+.titleTooltipBody {
+  margin-top: var(--la-s-1);
+  color: var(--la-ink-2);
 }
 
 .moreMenuWrapper {
@@ -160,51 +131,49 @@
 
 .moreMenuPopover {
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + var(--la-s-2));
   right: 0;
-  background: rgba(15, 23, 42, 0.96);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 12px;
-  padding: 6px;
+  background: var(--la-glass-strong);
+  backdrop-filter: var(--la-glass-blur);
+  -webkit-backdrop-filter: var(--la-glass-blur);
+  border: var(--la-glass-edge);
+  border-radius: var(--la-r-md);
+  padding: var(--la-s-1);
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  min-width: 210px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+  gap: var(--la-s-1);
+  min-width: 232px;
+  box-shadow: var(--la-e-3);
   z-index: 60;
 }
 
 .moreMenuItem {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
+  gap: var(--la-s-3);
+  min-height: var(--la-tap);
+  padding: 0 var(--la-s-3);
   background: transparent;
   border: none;
-  border-radius: 8px;
-  color: #f1f5f9;
-  font-size: 0.8rem;
-  font-weight: 500;
+  border-radius: var(--la-r-sm);
+  color: var(--la-ink);
+  font: var(--la-t-body-sm);
   cursor: pointer;
   text-align: left;
-  transition: background 0.15s ease;
+  transition: background var(--la-dur-press) var(--la-ease);
   touch-action: manipulation;
   width: 100%;
 }
 
-.moreMenuItem:hover,
 .moreMenuItem:active {
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
+  background: var(--la-surface-3);
 }
 
 .moreMenuIcon {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   flex-shrink: 0;
-  color: #38bdf8;
+  color: var(--la-accent);
 }
 
 .popoverBackdrop {
@@ -214,49 +183,11 @@
   background: transparent;
 }
 
-.hudActions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.hudButton {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.06);
-  color: #e2e8f0;
-  cursor: pointer;
-  padding: 0;
-  transition: all 0.15s ease;
-  touch-action: manipulation;
-}
-
-.hudButton:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.14);
-  color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-.hudButton:active:not(:disabled) {
-  transform: scale(0.94);
-}
-
-.hudButton:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-.hudButtonIcon {
-  width: 16px;
-  height: 16px;
-  color: inherit;
-  stroke: currentColor;
-  fill: none;
+@media (prefers-reduced-motion: reduce) {
+  .hudButton,
+  .moreMenuItem {
+    transition: none;
+  }
 }
 
 /* Bottom Sheet Container for Phone */

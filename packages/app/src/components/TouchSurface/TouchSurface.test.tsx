@@ -9,59 +9,82 @@ describe('TouchSurface Components', () => {
   afterEach(cleanup)
 
   describe('TouchHUD', () => {
-    it('renders flame name and action buttons', () => {
+    it('renders the flame name, Library and the history buttons', () => {
       const ctx = createMockCommandContext()
-      const onMutate = vi.fn()
-      const onRandomize = vi.fn()
-      const onSnapshot = vi.fn()
       const onPickGallery = vi.fn()
+      const onUndo = vi.fn()
+      const onRedo = vi.fn()
 
       render(() => (
         <TouchHUD
           ctx={ctx}
           flame={ctx.flameDescriptor}
-          onMutate={onMutate}
-          onRandomize={onRandomize}
-          onSnapshot={onSnapshot}
           onPickGallery={onPickGallery}
+          onUndo={onUndo}
+          onRedo={onRedo}
+          canUndo={() => true}
+          canRedo={() => false}
         />
       ))
 
       expect(screen.getByRole('banner')).toBeTruthy()
 
-      // Home button opens gallery
-      const homeBtn = screen.getByTitle('Browse & load flames from gallery')
-      expect(homeBtn).toBeTruthy()
-      homeBtn.click()
+      const library = screen.getByRole('button', { name: 'Library' })
+      library.click()
       expect(onPickGallery).toHaveBeenCalled()
 
-      // Title button toggles tooltip
+      // The title button keeps its tap tooltip.
       const titleBtn = screen.getByTitle(
-        ctx.flameDescriptor().metadata?.name || 'Chaos Master',
+        ctx.flameDescriptor().metadata?.name || 'Untitled flame',
       )
-      expect(titleBtn).toBeTruthy()
       titleBtn.click()
       expect(screen.getByRole('tooltip')).toBeTruthy()
 
-      // Snapshot button
-      const snapBtn = screen.getByTitle('Snapshot PNG')
-      snapBtn.click()
-      expect(onSnapshot).toHaveBeenCalled()
+      // Undo and Redo draw their disabled state instead of disappearing.
+      const undo = screen.getByRole('button', { name: 'Undo' })
+      const redo = screen.getByRole('button', { name: 'Redo' })
+      expect((redo as HTMLButtonElement).disabled).toBe(true)
+      expect((undo as HTMLButtonElement).disabled).toBe(false)
+      undo.click()
+      redo.click()
+      expect(onUndo).toHaveBeenCalledTimes(1)
+      expect(onRedo).not.toHaveBeenCalled()
+    })
 
-      // More menu opens popover with Mutate and Randomize
-      const moreBtn = screen.getByTitle('More Options')
-      expect(moreBtn).toBeTruthy()
-      moreBtn.click()
+    it('falls back to Untitled flame when the flame has no name', () => {
+      const ctx = createMockCommandContext()
+      const flame = () => ({
+        ...ctx.flameDescriptor(),
+        metadata: { ...ctx.flameDescriptor().metadata, name: '' },
+      })
 
-      const mutateBtn = screen.getByText('Mutate Flame')
-      mutateBtn.click()
-      expect(onMutate).toHaveBeenCalled()
+      render(() => <TouchHUD ctx={ctx} flame={flame} />)
 
-      // Open menu again for Randomize
-      moreBtn.click()
-      const randBtn = screen.getByText('Randomize Flame')
-      randBtn.click()
-      expect(onRandomize).toHaveBeenCalled()
+      expect(screen.getByTitle('Untitled flame')).toBeTruthy()
+    })
+
+    it('lists only the More items whose handler was given', () => {
+      const ctx = createMockCommandContext()
+      const onOpenExportModal = vi.fn()
+      const onOpenSettings = vi.fn()
+
+      render(() => (
+        <TouchHUD
+          ctx={ctx}
+          flame={ctx.flameDescriptor}
+          onOpenExportModal={onOpenExportModal}
+          onOpenSettings={onOpenSettings}
+        />
+      ))
+
+      screen.getByRole('button', { name: 'More' }).click()
+      expect(screen.getByText('Settings and more')).toBeTruthy()
+      expect(screen.queryByText('Share link')).toBeNull()
+
+      screen.getByText('Export options').click()
+      expect(onOpenExportModal).toHaveBeenCalled()
+      // Choosing an item closes the menu.
+      expect(screen.queryByRole('menu')).toBeNull()
     })
   })
 

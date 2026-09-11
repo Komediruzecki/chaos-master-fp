@@ -1,9 +1,10 @@
-import { createSignal, Show } from 'solid-js'
+import { createSignal, For, Show } from 'solid-js'
 import { executeCommand } from '@/commands/registry'
-import { CameraIcon, Download, Home, Redo, Shuffle, SidebarPanel, Sparkle, Undo, } from '@/icons'
-import { createHorizontalScrollDrag } from '@/utils/createHorizontalScrollDrag'
+import { Book, Download, GridIcon, Info, Menu, Redo, Share, SidebarPanel, Undo, Zap, } from '@/icons'
+import { setActiveTab } from '@/lib/activeTab'
+import { haptic } from '@/lib/haptics'
 import ui from './TouchSurface.module.css'
-import type { Accessor } from 'solid-js'
+import type { Accessor, JSX } from 'solid-js'
 import type { CommandContext } from '@/commands/types'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 
@@ -14,13 +15,14 @@ export interface TouchHUDProps {
   canRedo?: Accessor<boolean>
   onUndo?: () => void
   onRedo?: () => void
-  onFlashExport?: () => void
   onOpenExportModal?: () => void
-  onRandomize?: () => void
-  onMutate?: () => void
-  onSnapshot?: () => void
+  onShare?: () => void
   onOpenDrawer?: () => void
   onPickGallery?: () => void
+  onOpenSettings?: () => void
+  onOpenDocs?: () => void
+  onOpenBenchmark?: () => void
+  onDesktopLayout?: () => void
 }
 
 function MoreDotsIcon() {
@@ -38,45 +40,96 @@ function MoreDotsIcon() {
   )
 }
 
+interface MoreItem {
+  label: string
+  Icon: (props: { class?: string }) => JSX.Element
+  run: () => void
+}
+
 export function TouchHUD(props: TouchHUDProps) {
   const [showTitleTooltip, setShowTitleTooltip] = createSignal(false)
   const [moreMenuOpen, setMoreMenuOpen] = createSignal(false)
-  const [controlsRailEl, setControlsRailEl] = createSignal<HTMLDivElement>()
-  createHorizontalScrollDrag(controlsRailEl, { draggingClass: ui.isDragging })
 
   const dispatch = (id: string, ...args: unknown[]) => {
     executeCommand(id, props.ctx, ...args)
   }
 
-  const flameName = () => props.flame().metadata?.name?.trim() || 'Chaos Master'
+  const flameName = () =>
+    props.flame().metadata?.name?.trim() || 'Untitled flame'
 
-  const handleFlashExport = () => {
-    if (props.onFlashExport) props.onFlashExport()
-    else if (props.onSnapshot) props.onSnapshot()
-    else dispatch('flame.quickExport')
-  }
-
-  const handleOpenExportModal = () => {
-    if (props.onOpenExportModal) props.onOpenExportModal()
-    else dispatch('export.png')
+  /**
+   * What the touch layout cannot otherwise reach: the desktop sidebar and the
+   * floating version menu are not drawn here. An item whose handler prop is
+   * absent is not offered — the caller decides what this device can do.
+   */
+  const moreItems = (): MoreItem[] => {
+    const items: MoreItem[] = []
+    if (props.onOpenExportModal) {
+      items.push({
+        label: 'Export options',
+        Icon: Download,
+        run: () => props.onOpenExportModal?.(),
+      })
+    }
+    if (props.onShare) {
+      items.push({
+        label: 'Share link',
+        Icon: Share,
+        run: () => props.onShare?.(),
+      })
+    }
+    if (props.onOpenDrawer) {
+      items.push({
+        label: 'Advanced tools',
+        Icon: SidebarPanel,
+        run: () => props.onOpenDrawer?.(),
+      })
+    }
+    items.push({
+      label: 'Lumen Arcade',
+      Icon: Zap,
+      run: () => {
+        setActiveTab('arcade')
+      },
+    })
+    if (props.onOpenDocs) {
+      items.push({
+        label: 'Documentation',
+        Icon: Book,
+        run: () => props.onOpenDocs?.(),
+      })
+    }
+    if (props.onOpenSettings) {
+      items.push({
+        label: 'Settings and more',
+        Icon: Info,
+        run: () => props.onOpenSettings?.(),
+      })
+    }
+    if (props.onDesktopLayout) {
+      items.push({
+        label: 'Desktop layout',
+        Icon: Menu,
+        run: () => props.onDesktopLayout?.(),
+      })
+    }
+    return items
   }
 
   return (
     <header class={ui.topHud} role="banner" aria-label="Touch Navigation HUD">
-      {/* 1. Home / Gallery button */}
       <button
         type="button"
-        class={ui.hudHomeBtn}
+        class={ui.hudButton}
         onClick={() => {
           props.onPickGallery?.()
         }}
-        title="Browse & load flames from gallery"
-        aria-label="Browse & load flames from gallery"
+        title="Library"
+        aria-label="Library"
       >
-        <Home class={ui.hudButtonIcon} />
+        <GridIcon class={ui.hudButtonIcon} />
       </button>
 
-      {/* 2. Truncated Title with tap tooltip */}
       <div class={ui.hudTitleWrapper}>
         <button
           type="button"
@@ -98,7 +151,7 @@ export function TouchHUD(props: TouchHUDProps) {
           <div class={ui.titleTooltip} role="tooltip">
             <strong>{flameName()}</strong>
             <Show when={props.flame().metadata?.description}>
-              <div style={{ 'margin-top': '4px', opacity: '0.8' }}>
+              <div class={ui.titleTooltipBody}>
                 {props.flame().metadata?.description}
               </div>
             </Show>
@@ -106,59 +159,46 @@ export function TouchHUD(props: TouchHUDProps) {
         </Show>
       </div>
 
-      {/* 3. Controls Rail */}
-      <div
-        ref={setControlsRailEl}
-        class={ui.controlsRail}
-        role="toolbar"
-        aria-label="Controls"
+      <button
+        type="button"
+        class={ui.hudButton}
+        title="Undo"
+        aria-label="Undo"
+        disabled={props.canUndo ? !props.canUndo() : false}
+        onPointerDown={() => {
+          haptic.impactLight()
+        }}
+        onClick={() => {
+          if (props.onUndo) props.onUndo()
+          else dispatch('history.undo')
+        }}
       >
-        <button
-          type="button"
-          class={ui.hudButton}
-          title="Undo"
-          aria-label="Undo"
-          disabled={props.canUndo ? !props.canUndo() : false}
-          onClick={() => {
-            if (props.onUndo) props.onUndo()
-            else dispatch('history.undo')
-          }}
-        >
-          <Undo class={ui.hudButtonIcon} />
-        </button>
+        <Undo class={ui.hudButtonIcon} />
+      </button>
 
-        <button
-          type="button"
-          class={ui.hudButton}
-          title="Redo"
-          aria-label="Redo"
-          disabled={props.canRedo ? !props.canRedo() : false}
-          onClick={() => {
-            if (props.onRedo) props.onRedo()
-            else dispatch('history.redo')
-          }}
-        >
-          <Redo class={ui.hudButtonIcon} />
-        </button>
+      <button
+        type="button"
+        class={ui.hudButton}
+        title="Redo"
+        aria-label="Redo"
+        disabled={props.canRedo ? !props.canRedo() : false}
+        onPointerDown={() => {
+          haptic.impactLight()
+        }}
+        onClick={() => {
+          if (props.onRedo) props.onRedo()
+          else dispatch('history.redo')
+        }}
+      >
+        <Redo class={ui.hudButtonIcon} />
+      </button>
 
-        <button
-          type="button"
-          class={ui.hudButton}
-          title="Snapshot PNG"
-          aria-label="Snapshot PNG"
-          onClick={handleFlashExport}
-        >
-          <CameraIcon class={ui.hudButtonIcon} />
-        </button>
-      </div>
-
-      {/* 4. More (...) Menu */}
       <div class={ui.moreMenuWrapper}>
         <button
           type="button"
           class={ui.hudButton}
-          title="More Options"
-          aria-label="More Options"
+          title="More"
+          aria-label="More"
           aria-expanded={moreMenuOpen()}
           onClick={() => setMoreMenuOpen((o) => !o)}
         >
@@ -170,66 +210,23 @@ export function TouchHUD(props: TouchHUDProps) {
             class={ui.popoverBackdrop}
             onClick={() => setMoreMenuOpen(false)}
           />
-          <div
-            class={ui.moreMenuPopover}
-            role="menu"
-            aria-label="More Options Menu"
-          >
-            <button
-              type="button"
-              role="menuitem"
-              class={ui.moreMenuItem}
-              onClick={() => {
-                setMoreMenuOpen(false)
-                if (props.onMutate) props.onMutate()
-                else dispatch('flame.mutate')
-              }}
-            >
-              <Sparkle class={ui.moreMenuIcon} />
-              <span>Mutate Flame</span>
-            </button>
-
-            <button
-              type="button"
-              role="menuitem"
-              class={ui.moreMenuItem}
-              onClick={() => {
-                setMoreMenuOpen(false)
-                if (props.onRandomize) props.onRandomize()
-                else dispatch('flame.randomize')
-              }}
-            >
-              <Shuffle class={ui.moreMenuIcon} />
-              <span>Randomize Flame</span>
-            </button>
-
-            <button
-              type="button"
-              role="menuitem"
-              class={ui.moreMenuItem}
-              onClick={() => {
-                setMoreMenuOpen(false)
-                handleOpenExportModal()
-              }}
-            >
-              <Download class={ui.moreMenuIcon} />
-              <span>Full Export (Options & Animation)…</span>
-            </button>
-
-            <Show when={props.onOpenDrawer}>
-              <button
-                type="button"
-                role="menuitem"
-                class={ui.moreMenuItem}
-                onClick={() => {
-                  setMoreMenuOpen(false)
-                  props.onOpenDrawer?.()
-                }}
-              >
-                <SidebarPanel class={ui.moreMenuIcon} />
-                <span>Advanced Tools</span>
-              </button>
-            </Show>
+          <div class={ui.moreMenuPopover} role="menu" aria-label="More">
+            <For each={moreItems()}>
+              {(item) => (
+                <button
+                  type="button"
+                  role="menuitem"
+                  class={ui.moreMenuItem}
+                  onClick={() => {
+                    setMoreMenuOpen(false)
+                    item.run()
+                  }}
+                >
+                  <item.Icon class={ui.moreMenuIcon} />
+                  <span>{item.label}</span>
+                </button>
+              )}
+            </For>
           </div>
         </Show>
       </div>

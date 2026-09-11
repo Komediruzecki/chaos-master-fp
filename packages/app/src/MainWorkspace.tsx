@@ -3387,23 +3387,15 @@ export function MainWorkspace(props: AppProps) {
               flame={effectiveFlame}
               canUndo={undoRouter.canUndo}
               canRedo={undoRouter.canRedo}
-              onRandomize={() => {
-                executeCommand('flame.randomize', cmdContext)
-              }}
-              onMutate={() => {
-                executeCommand('flame.mutate', cmdContext)
-              }}
               onUndo={() => {
                 executeCommand('history.undo', cmdContext)
               }}
               onRedo={() => {
                 executeCommand('history.redo', cmdContext)
               }}
-              onFlashExport={quickExport}
               onOpenExportModal={() => {
                 executeCommand('export.png', cmdContext)
               }}
-              onSnapshot={quickExport}
               onOpenDrawer={() => setTouchDrawerOpen(true)}
               onPickGallery={pickGalleryFlame}
             />
