@@ -337,7 +337,11 @@
   flex: 1;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 0 12px;
+  /* The room under the last control is what keeps a slider's thumb whole: a
+     range input is as tall as its track, the thumb is drawn outside it, and
+     this box clips at its padding edge. With none, the bottom slider in a
+     panel (Color Speed) lost the lower half of its handle. */
+  padding: 0 var(--la-s-3) var(--la-s-3);
   box-sizing: border-box;
 }
 
