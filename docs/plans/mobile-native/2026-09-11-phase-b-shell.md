@@ -59,7 +59,7 @@
 
 **Files:** none.
 
-- [ ] **Step 1:** From the worktree you were started in, verify the base and create the branch.
+- [x] **Step 1:** From the worktree you were started in, verify the base and create the branch.
 
 ```bash
 git fetch origin
@@ -67,7 +67,7 @@ git checkout -b feat/native-shell origin/feat/native-rail
 git log --oneline -1   # must be f28e98d3 "chore(release): app 0.9.12" or a later commit on feat/native-rail
 ```
 
-- [ ] **Step 2:** Install dependencies if `node_modules` is missing in this worktree, then confirm the baseline is green.
+- [x] **Step 2:** Install dependencies if `node_modules` is missing in this worktree, then confirm the baseline is green.
 
 ```bash
 [ -d node_modules ] || timeout 900 pnpm install --frozen-lockfile
