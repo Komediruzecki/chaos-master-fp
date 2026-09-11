@@ -8,6 +8,7 @@ import { useKeyframeTarget } from '@/contexts/KeyframeTargetContext'
 import { useToast } from '@/contexts/ToastContext'
 import { setActiveTab, workspaceIsVisible } from '@/lib/activeTab'
 import { SHOWCASE_CONSENT_VERSION } from '@/lib/communityShowcase'
+import { hapticsEnabled, setHapticsEnabled } from '@/lib/haptics'
 import { trackAppInit } from '@/lib/telemetry'
 import { createDragHandler } from '@/utils/createDragHandler'
 import { recordEntries, recordKeys } from '@/utils/record'
@@ -1399,6 +1400,8 @@ export function MainWorkspace(props: AppProps) {
     IS_DEV ? () => setDevCrashTest(true) : undefined,
     () => props.hardwareTier ?? null,
     props.onHardwareTierChange,
+    hapticsEnabled,
+    setHapticsEnabled,
   )
 
   onMount(() => {

@@ -1,7 +1,6 @@
 import { createResource, createSignal, For, Show, Suspense } from 'solid-js'
 import { useToast } from '@/contexts/ToastContext'
 import { Changelog, Discord, GitHub, Globe, Heart, Terminal, TriangleAlert, } from '@/icons'
-import { hapticsEnabled, setHapticsEnabled } from '@/lib/haptics'
 import { IS_NATIVE } from '@/lib/platform'
 import { getWebgpuComponents } from '@/lib/WebgpuAdapter'
 import { getWebglRenderer } from '@/utils/deviceInfo'
@@ -187,6 +186,8 @@ export type HelpModalProps = {
   onInjectCrash?: () => void
   hardwareTier: () => HardwareTier | null
   onHardwareTierChange?: (tier: HardwareTier) => void
+  hapticsEnabled: () => boolean
+  onHapticsEnabledChange: (enabled: boolean) => void
 }
 
 export function HelpModal(props: HelpModalProps) {
@@ -326,9 +327,9 @@ export function HelpModal(props: HelpModalProps) {
           <span class={ui.pickerModeLabel}>Haptics</span>
           <Checkbox
             aria-label="Haptics"
-            checked={hapticsEnabled()}
+            checked={props.hapticsEnabled()}
             onChange={(checked) => {
-              setHapticsEnabled(checked)
+              props.onHapticsEnabledChange(checked)
             }}
           />
         </label>
@@ -656,9 +657,11 @@ export function createShowHelp(
   setCompact: (value: boolean) => void,
   theme: () => Theme,
   onThemeChange: (theme: Theme) => void,
-  onInjectCrash?: () => void,
-  hardwareTier?: () => HardwareTier | null,
-  onHardwareTierChange?: (tier: HardwareTier) => void,
+  onInjectCrash: (() => void) | undefined,
+  hardwareTier: () => HardwareTier | null,
+  onHardwareTierChange: ((tier: HardwareTier) => void) | undefined,
+  hapticsEnabled: () => boolean,
+  onHapticsEnabledChange: (enabled: boolean) => void,
 ) {
   const requestModal = useRequestModal()
 
@@ -677,8 +680,10 @@ export function createShowHelp(
           theme={theme}
           onThemeChange={onThemeChange}
           onInjectCrash={onInjectCrash}
-          hardwareTier={hardwareTier ?? (() => null)}
+          hardwareTier={hardwareTier}
           onHardwareTierChange={onHardwareTierChange}
+          hapticsEnabled={hapticsEnabled}
+          onHapticsEnabledChange={onHapticsEnabledChange}
         />
       ),
     })

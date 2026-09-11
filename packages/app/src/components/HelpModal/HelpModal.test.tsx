@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen } from '@solidjs/testing-library'
+import { createSignal } from 'solid-js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ToastProvider } from '@/contexts/ToastContext'
-import { hapticsEnabled, setHapticsEnabled } from '@/lib/haptics'
 import { ModalContext } from '../Modal/ModalContext'
 import { HelpModal } from './HelpModal'
 import type { RequestModalFn } from '../Modal/ModalContext'
@@ -35,6 +35,8 @@ vi.mock('../DataManagement/DataManagement', () => ({
 
 const requestModal = (() => Promise.resolve(undefined)) as RequestModalFn
 
+const [hapticsEnabled, setHapticsEnabled] = createSignal(true)
+
 function mount() {
   render(() => (
     <ModalContext.Provider value={requestModal}>
@@ -50,6 +52,8 @@ function mount() {
           theme={() => 'dark'}
           onThemeChange={() => undefined}
           hardwareTier={() => null}
+          hapticsEnabled={hapticsEnabled}
+          onHapticsEnabledChange={setHapticsEnabled}
         />
       </ToastProvider>
     </ModalContext.Provider>
