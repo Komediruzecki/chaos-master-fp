@@ -8,6 +8,8 @@ import { EditorRail } from './EditorRail'
 const impactLight = vi.fn()
 const impactMedium = vi.fn()
 const selectionChanged = vi.fn()
+const selectionStart = vi.fn()
+const selectionEnd = vi.fn()
 vi.mock('@/lib/haptics', () => ({
   haptic: {
     impactLight: () => impactLight(),
@@ -16,8 +18,8 @@ vi.mock('@/lib/haptics', () => ({
     success: () => undefined,
     warning: () => undefined,
     error: () => undefined,
-    selectionStart: () => undefined,
-    selectionEnd: () => undefined,
+    selectionStart: () => selectionStart(),
+    selectionEnd: () => selectionEnd(),
   },
 }))
 
@@ -46,6 +48,8 @@ describe('EditorRail', () => {
     impactLight.mockClear()
     impactMedium.mockClear()
     selectionChanged.mockClear()
+    selectionStart.mockClear()
+    selectionEnd.mockClear()
   })
   afterEach(cleanup)
 
@@ -96,6 +100,20 @@ describe('EditorRail', () => {
     fireEvent.pointerMove(grabber, { clientY: 900, pointerId: 1 })
     fireEvent.pointerUp(grabber, { clientY: 900, pointerId: 1 })
     expect(sheet().style.height).toBe(`${PEEK_HEIGHT}px`)
+  })
+
+  it('brackets the drag with a selection start and end', () => {
+    mount()
+    const grabber = screen.getByTestId('editor-rail-grabber')
+    // Both plugins drop selectionChanged until a generator is prepared, so
+    // the detent ticks are silent without the pair around them.
+    fireEvent.pointerDown(grabber, { clientY: 800, pointerId: 1 })
+    expect(selectionStart).toHaveBeenCalledTimes(1)
+    expect(selectionEnd).not.toHaveBeenCalled()
+    fireEvent.pointerMove(grabber, { clientY: 500, pointerId: 1 })
+    expect(selectionChanged).toHaveBeenCalled()
+    fireEvent.pointerUp(grabber, { clientY: 500, pointerId: 1 })
+    expect(selectionEnd).toHaveBeenCalledTimes(1)
   })
 
   it('lets the sheet go when a second finger lands', () => {

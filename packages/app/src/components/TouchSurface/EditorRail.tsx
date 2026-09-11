@@ -126,6 +126,9 @@ export function EditorRail(props: EditorRailProps) {
       let lastT = initEvent.timeStamp
       let velocity = 0
       let lastDetent = nearestDetent(startHeight, heights())
+      // Both plugins drop a selection tick until a generator is prepared, so
+      // the crossings inside the drag stay silent without this pair.
+      haptic.selectionStart()
 
       return {
         onPointerMove(event) {
@@ -148,6 +151,7 @@ export function EditorRail(props: EditorRailProps) {
         },
         onDone() {
           const target = settleDetent(sheetHeight(), velocity, heights())
+          haptic.selectionEnd()
           setDragHeight(null)
           settle(target)
         },
