@@ -169,15 +169,20 @@ describe('EditorRail', () => {
   it('waits for the focus to leave the panel before hiding it', () => {
     vi.useFakeTimers()
     mount()
-    const shape = screen.getByRole('tab', { name: 'Shape' })
-    fireEvent.click(shape)
+    const vary = screen.getByRole('tab', { name: 'Vary' })
+    fireEvent.click(vary)
     const body = screen.getByTestId('editor-rail-body')
+    const inside = screen.getByRole('button', { name: 'Randomize' })
+    inside.focus()
     fireEvent.focusIn(body)
 
-    fireEvent.click(shape)
+    // Hiding the panel under the focus is what closes the keyboard, so the
+    // sheet collapses without it and the panel follows once the focus goes.
+    fireEvent.click(vary)
     vi.advanceTimersByTime(SHEET_TRANSITION_MS + 1)
     expect(body.hidden).toBe(false)
 
+    inside.blur()
     fireEvent.focusOut(body)
     vi.advanceTimersByTime(SHEET_TRANSITION_MS + 1)
     expect(body.hidden).toBe(true)

@@ -46,6 +46,7 @@ export function EditorRail(props: EditorRailProps) {
 
   let dockEl: HTMLElement | undefined
   let sheetEl: HTMLDivElement | undefined
+  let bodyEl: HTMLDivElement | undefined
 
   /**
    * What the sheet may not grow into, read back from the dock's own padding:
@@ -126,8 +127,10 @@ export function EditorRail(props: EditorRailProps) {
     if (!bodyShown()) return
     // display:none takes the focus out of whatever holds it, and the keyboard
     // goes with it. A panel being typed in waits, clipped, for the focus to
-    // leave: this effect runs again when it does.
-    if (bodyFocused()) return
+    // leave: this effect runs again when it does. The event is what makes the
+    // wait reactive, the DOM is what makes it true - an element removed while
+    // focused does not always report the focus leaving.
+    if (bodyFocused() && bodyEl?.contains(document.activeElement)) return
     const timer = setTimeout(() => {
       setBodyShown(false)
     }, SHEET_TRANSITION_MS)
@@ -299,6 +302,7 @@ export function EditorRail(props: EditorRailProps) {
         <Show when={bodyBuilt()}>
           <div
             class={ui.body}
+            ref={bodyEl}
             data-testid="editor-rail-body"
             hidden={!bodyShown()}
             onFocusIn={() => {
