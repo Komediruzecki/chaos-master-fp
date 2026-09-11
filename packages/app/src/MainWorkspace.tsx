@@ -28,7 +28,7 @@ import { createLazyDiscordShareModal, createLazyImportVariationsModal, createLaz
 import { WorkspaceSidebar } from './components/WorkspaceSidebar'
 import { useWorkspaceAnimationGen, useWorkspaceArena, useWorkspaceArtDirector, useWorkspaceAutosave, useWorkspaceCamera, useWorkspaceCommands, useWorkspacePalette, useWorkspaceReplay, useWorkspaceShortcuts, useWorkspaceTimelineBinding, } from './hooks'
 import { createWorkspaceExportStore, createWorkspaceLayoutStore, createWorkspaceSelectionStore, isWideLayout, } from './stores'
-import { isTouchDevice, PHONE_MAX_WIDTH, TABLET_MAX_WIDTH, } from './stores/workspaceLayoutStore'
+import { isTouchDevice } from './stores/workspaceLayoutStore'
 
 const AncestryTreeModal = lazy(() =>
   import('./components/AncestryTreeModal/AncestryTreeModal').then((m) => ({
@@ -252,9 +252,7 @@ export function MainWorkspace(props: AppProps) {
     isMobile,
     setIsMobile,
     isPhone,
-    setIsPhone,
     isTablet,
-    setIsTablet,
     isTouchLayout,
     sidebarHidden,
     setSidebarHidden,
@@ -389,18 +387,12 @@ export function MainWorkspace(props: AppProps) {
   let sidebarScrollRef: HTMLDivElement | undefined
   let randomizerCardRef: HTMLDivElement | undefined
   createEffect(() => {
+    // The phone and tablet classes come from the layout store's one resize
+    // listener now; this effect only keeps the sidebar's own breakpoint.
     const mq = window.matchMedia('(max-width: 768px)')
-    const mqPhone = window.matchMedia(
-      `(max-width: ${PHONE_MAX_WIDTH - 0.02}px)`,
-    )
-    const mqTablet = window.matchMedia(
-      `(min-width: ${PHONE_MAX_WIDTH}px) and (max-width: ${TABLET_MAX_WIDTH}px)`,
-    )
 
     setIsMobile(mq.matches)
-    setIsPhone(mqPhone.matches)
-    setIsTablet(mqTablet.matches)
-    if (mq.matches || mqPhone.matches) setCompact(true)
+    if (mq.matches || isPhone()) setCompact(true)
 
     const handler = (e: MediaQueryListEvent) => {
       setIsMobile(e.matches)
@@ -410,21 +402,10 @@ export function MainWorkspace(props: AppProps) {
         else setSidebarHidden(true)
       }
     }
-    const phoneHandler = (e: MediaQueryListEvent) => {
-      setIsPhone(e.matches)
-      if (e.matches) setCompact(true)
-    }
-    const tabletHandler = (e: MediaQueryListEvent) => {
-      setIsTablet(e.matches)
-    }
 
     mq.addEventListener('change', handler)
-    mqPhone.addEventListener('change', phoneHandler)
-    mqTablet.addEventListener('change', tabletHandler)
     onCleanup(() => {
       mq.removeEventListener('change', handler)
-      mqPhone.removeEventListener('change', phoneHandler)
-      mqTablet.removeEventListener('change', tabletHandler)
     })
   })
   // The session currently open for replay (M4), if any. Lives here rather than
