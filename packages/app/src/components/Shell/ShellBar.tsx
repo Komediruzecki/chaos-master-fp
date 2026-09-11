@@ -1,14 +1,15 @@
 import { createEffect, createSignal, For, onCleanup, Show } from 'solid-js'
-import { Create, GridIcon, MoreDots } from '@/icons'
-import { pushBackHandler } from '@/lib/backStack'
-import { haptic } from '@/lib/haptics'
+import { MoreDots } from '@/icons'
+import { createBackLayer } from '@/lib/backStack'
+import { DESTINATIONS, tickForDestination } from './destinations'
+import { MoreMenu } from './MoreMenu'
 import { buildMoreMenu } from './moreMenu'
 import ui from './ShellBar.module.css'
-import type { Accessor, Component } from 'solid-js'
+import type { Accessor } from 'solid-js'
+import type { ShellDestination } from './destinations'
 import type { MoreMenuHandlers } from './moreMenu'
 
-/** Play is designed but not shown in this phase (DESIGN.md, section 12). */
-export type ShellDestination = 'create' | 'library'
+export type { ShellDestination } from './destinations'
 
 /**
  * How long the capsule stays expanded once the finger has left it. Long
@@ -17,21 +18,14 @@ export type ShellDestination = 'create' | 'library'
  */
 export const CAPSULE_OPEN_MS = 3000
 
-const DESTINATIONS: readonly {
-  readonly id: ShellDestination
-  readonly label: string
-  readonly Icon: Component<{ class?: string }>
-}[] = [
-  { id: 'create', label: 'Create', Icon: Create },
-  { id: 'library', label: 'Library', Icon: GridIcon },
-]
-
 export interface ShellBarProps {
   /** `capsule` is Create: the bar collapses so the editor keeps its canvas. */
   mode: 'full' | 'capsule'
   current: Accessor<ShellDestination>
   onSelect: (destination: ShellDestination) => void
-  more: MoreMenuHandlers
+  /** Absent where there is nothing to put in it: the capsule offers no More,
+   *  because the editor's top bar already carries the same list. */
+  more?: MoreMenuHandlers
 }
 
 /**
@@ -51,7 +45,8 @@ export function ShellBar(props: ShellBarProps) {
   const isCapsule = (destination: ShellDestination) =>
     props.mode === 'capsule' && destination === 'create'
   const open = () => props.mode === 'full' || expanded()
-  const moreItems = () => buildMoreMenu(props.more)
+  const moreItems = () => buildMoreMenu(props.more ?? {})
+  const moreShowing = () => props.mode === 'full' && moreOpen()
 
   // A finger resting on the capsule is a request to keep the bar up, so the
   // countdown only runs once nothing is holding it.
@@ -67,23 +62,13 @@ export function ShellBar(props: ShellBarProps) {
 
   // Expanded over the rail, the bar is the topmost layer: back gives the
   // editor its band back before anything else answers (lib/backStack.ts).
-  createEffect(() => {
-    if (!expanded()) return
-    onCleanup(
-      pushBackHandler(() => {
-        setExpanded(false)
-      }, 'shell bar'),
-    )
-  })
-
-  createEffect(() => {
-    if (!moreOpen()) return
-    onCleanup(
-      pushBackHandler(() => {
-        setMoreOpen(false)
-      }, 'more menu'),
-    )
-  })
+  createBackLayer(
+    expanded,
+    () => {
+      setExpanded(false)
+    },
+    'shell bar',
+  )
 
   /**
    * The capsule opens on the touch down and stays up while the finger rests
@@ -114,9 +99,7 @@ export function ShellBar(props: ShellBarProps) {
   }
 
   function select(destination: ShellDestination) {
-    // motion.md 2.5: one selection tick per destination change, never on a
-    // re-tap of the one you are already on.
-    if (destination !== props.current()) haptic.selectionChanged()
+    tickForDestination(destination, props.current())
     props.onSelect(destination)
   }
 
@@ -131,7 +114,7 @@ export function ShellBar(props: ShellBarProps) {
       {/* More is the full bar's, and only the full bar's: in Create the top
           bar already carries the same list, and a popover opened from inside
           the rail's peek row would be clipped by the sheet. */}
-      <Show when={props.mode === 'full' && moreOpen()}>
+      <Show when={moreShowing()}>
         <div
           class={ui.backdrop}
           data-testid="shell-more-backdrop"
@@ -139,25 +122,15 @@ export function ShellBar(props: ShellBarProps) {
             setMoreOpen(false)
           }}
         />
-        <div class={ui.menu} role="menu" aria-label="More">
-          <For each={moreItems()}>
-            {(item) => (
-              <button
-                type="button"
-                role="menuitem"
-                class={ui.menuItem}
-                onClick={() => {
-                  setMoreOpen(false)
-                  item.run()
-                }}
-              >
-                <item.Icon class={ui.menuIcon} />
-                <span>{item.label}</span>
-              </button>
-            )}
-          </For>
-        </div>
       </Show>
+      <MoreMenu
+        items={moreItems()}
+        open={moreShowing()}
+        onClose={() => {
+          setMoreOpen(false)
+        }}
+        menuClass={ui.menu!}
+      />
 
       <div class={ui.row}>
         <nav class={ui.bar} aria-label="Destinations">

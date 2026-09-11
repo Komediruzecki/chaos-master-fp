@@ -1,6 +1,7 @@
 import { Show } from 'solid-js'
-import { activeTab, setActiveTab } from '@/lib/activeTab'
+import { setActiveTab } from '@/lib/activeTab'
 import { deckFits, isTouchLayout } from '@/stores/workspaceLayoutStore'
+import { goToDestination, shellDestination } from './destinations'
 import { ShellBar } from './ShellBar'
 
 /**
@@ -20,10 +21,8 @@ export function HomeShellBar() {
     <Show when={isTouchLayout() && !deckFits()}>
       <ShellBar
         mode="full"
-        current={() => (activeTab() === 'home' ? 'library' : 'create')}
-        onSelect={(destination) => {
-          setActiveTab(destination === 'library' ? 'home' : 'workspace')
-        }}
+        current={shellDestination}
+        onSelect={goToDestination}
         more={{
           onOpenArcade: () => {
             setActiveTab('arcade')

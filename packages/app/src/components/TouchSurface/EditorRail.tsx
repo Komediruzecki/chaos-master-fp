@@ -1,6 +1,6 @@
 import { children, createEffect, createMemo, createSignal, For, onCleanup, onMount, Show, } from 'solid-js'
 import { CameraIcon, ColourWedge, ShapeTriangle, Shuffle, VariationSpiral, } from '@/icons'
-import { pushBackHandler } from '@/lib/backStack'
+import { createBackLayer } from '@/lib/backStack'
 import { haptic } from '@/lib/haptics'
 import { createDragHandler } from '@/utils/createDragHandler'
 import { createLongPress } from '@/utils/createLongPress'
@@ -165,14 +165,13 @@ export function EditorRail(props: EditorRailProps) {
    * not re-push the handler above whatever opened over the rail meanwhile.
    */
   const railOpen = createMemo(() => detent() !== 'peek')
-  createEffect(() => {
-    if (!railOpen()) return
-    onCleanup(
-      pushBackHandler(() => {
-        settle(detent() === 'large' ? 'medium' : 'peek')
-      }, 'rail detent'),
-    )
-  })
+  createBackLayer(
+    railOpen,
+    () => {
+      settle(detent() === 'large' ? 'medium' : 'peek')
+    },
+    'rail detent',
+  )
 
   function onChip(next: TouchTab) {
     if (detent() === 'peek') {

@@ -1,9 +1,10 @@
-import { createEffect, createSignal, For, mergeProps, onCleanup, Show, } from 'solid-js'
+import { createSignal, mergeProps, Show } from 'solid-js'
 import { executeCommand } from '@/commands/registry'
 import { GridIcon, MoreDots, Redo, Undo } from '@/icons'
 import { setActiveTab } from '@/lib/activeTab'
-import { pushBackHandler } from '@/lib/backStack'
+import { createBackLayer } from '@/lib/backStack'
 import { haptic } from '@/lib/haptics'
+import { MoreMenu } from '../Shell/MoreMenu'
 import { buildMoreMenu } from '../Shell/moreMenu'
 import ui from './TouchSurface.module.css'
 import type { Accessor } from 'solid-js'
@@ -61,24 +62,15 @@ export function TouchHUD(props: TouchHUDProps) {
   }
 
   // Both popovers are layers: back closes the open one before anything else
-  // answers (lib/backStack.ts), the same as a tap on the backdrop.
-  createEffect(() => {
-    if (!moreMenuOpen()) return
-    onCleanup(
-      pushBackHandler(() => {
-        setMoreMenuOpen(false)
-      }, 'more menu'),
-    )
-  })
-
-  createEffect(() => {
-    if (!showTitleTooltip()) return
-    onCleanup(
-      pushBackHandler(() => {
-        setShowTitleTooltip(false)
-      }, 'flame title'),
-    )
-  })
+  // answers (lib/backStack.ts), the same as a tap on the backdrop. The More
+  // list registers itself (Shell/MoreMenu.tsx).
+  createBackLayer(
+    showTitleTooltip,
+    () => {
+      setShowTitleTooltip(false)
+    },
+    'flame title',
+  )
 
   return (
     <>
@@ -178,26 +170,14 @@ export function TouchHUD(props: TouchHUDProps) {
             <MoreDots class={ui.hudButtonIcon} />
           </button>
 
-          <Show when={moreMenuOpen()}>
-            <div class={ui.moreMenuPopover} role="menu" aria-label="More">
-              <For each={moreItems()}>
-                {(item) => (
-                  <button
-                    type="button"
-                    role="menuitem"
-                    class={ui.moreMenuItem}
-                    onClick={() => {
-                      setMoreMenuOpen(false)
-                      item.run()
-                    }}
-                  >
-                    <item.Icon class={ui.moreMenuIcon} />
-                    <span>{item.label}</span>
-                  </button>
-                )}
-              </For>
-            </div>
-          </Show>
+          <MoreMenu
+            items={moreItems()}
+            open={moreMenuOpen()}
+            onClose={() => {
+              setMoreMenuOpen(false)
+            }}
+            menuClass={ui.moreMenuPopover!}
+          />
         </div>
       </header>
     </>

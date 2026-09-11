@@ -6,8 +6,8 @@ import { agentDriving } from '@/arcade/pilot'
 import { executeCommand } from '@/commands/registry'
 import { useKeyframeTarget } from '@/contexts/KeyframeTargetContext'
 import { useToast } from '@/contexts/ToastContext'
-import { activeTab, setActiveTab, workspaceIsVisible } from '@/lib/activeTab'
-import { pushBackHandler } from '@/lib/backStack'
+import { setActiveTab, workspaceIsVisible } from '@/lib/activeTab'
+import { createBackLayer } from '@/lib/backStack'
 import { SHOWCASE_CONSENT_VERSION } from '@/lib/communityShowcase'
 import { markDraftBaseline, saveDraft } from '@/lib/draft'
 import { hapticsEnabled, setHapticsEnabled } from '@/lib/haptics'
@@ -26,6 +26,7 @@ import { createLoadFlame } from './components/LoadFlameModal/LoadFlameModal'
 import { useRequestModal } from './components/Modal/ModalContext'
 import { qualityPresets } from './components/Quality/QualityPresets'
 import { recorderExportPending, recorderTaskPending, setRecorderCollapsed, setRecorderVisible, } from './components/SessionRecorder/recorderUi'
+import { goToDestination, shellDestination, } from './components/Shell/destinations'
 import { NavRail } from './components/Shell/NavRail'
 import { ShellBar } from './components/Shell/ShellBar'
 import { AdvancedToolsDrawer, EditorRail, TabletInspectorDeck, TouchHUD, } from './components/TouchSurface'
@@ -302,14 +303,13 @@ export function MainWorkspace(props: AppProps) {
 
   const [touchDrawerOpen, setTouchDrawerOpen] = createSignal(false)
   // The drawer is a layer over the editor: back closes it (lib/backStack.ts).
-  createEffect(() => {
-    if (!touchDrawerOpen()) return
-    onCleanup(
-      pushBackHandler(() => {
-        setTouchDrawerOpen(false)
-      }, 'advanced tools'),
-    )
-  })
+  createBackLayer(
+    touchDrawerOpen,
+    () => {
+      setTouchDrawerOpen(false)
+    },
+    'advanced tools',
+  )
   /** How much of the viewport the rail's sheet covers; 0 while it is at peek. */
   const [railInset, setRailInset] = createSignal(0)
   /** The phone, and a tablet too narrow for the deck, both get the rail. */
@@ -3511,12 +3511,7 @@ export function MainWorkspace(props: AppProps) {
                 <ShellBar
                   mode="capsule"
                   current={() => 'create'}
-                  onSelect={(destination) => {
-                    setActiveTab(
-                      destination === 'library' ? 'home' : 'workspace',
-                    )
-                  }}
-                  more={{}}
+                  onSelect={goToDestination}
                 />
               }
             />
@@ -3528,10 +3523,8 @@ export function MainWorkspace(props: AppProps) {
                 has the width for it; the rail layout docks the capsule in the
                 editor rail instead. */}
             <NavRail
-              current={() => (activeTab() === 'home' ? 'library' : 'create')}
-              onSelect={(destination) => {
-                setActiveTab(destination === 'library' ? 'home' : 'workspace')
-              }}
+              current={shellDestination}
+              onSelect={goToDestination}
               onOpenSettings={() => {
                 void showHelp()
               }}

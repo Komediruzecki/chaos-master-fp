@@ -1,4 +1,4 @@
-import { createSignal } from 'solid-js'
+import { createEffect, createSignal, onCleanup } from 'solid-js'
 
 interface BackEntry {
   readonly handler: () => void
@@ -29,6 +29,26 @@ export function pushBackHandler(
   return () => {
     setEntries((list) => list.filter((candidate) => candidate !== entry))
   }
+}
+
+/**
+ * Registers `handler` for as long as `when()` is true, and removes it again
+ * when it is not. Every dismissible layer wants exactly this, and wrote it by
+ * hand eight times.
+ *
+ * The condition is deliberately "open or not" and never the layer's inner
+ * state: a sheet that changes detent, or a menu that changes its items, must
+ * not re-push itself above whatever opened over it in the meantime.
+ */
+export function createBackLayer(
+  when: () => boolean,
+  handler: () => void,
+  label: string,
+): void {
+  createEffect(() => {
+    if (!when()) return
+    onCleanup(pushBackHandler(handler, label))
+  })
 }
 
 /** Runs the top handler. False when there was nothing to pop. */

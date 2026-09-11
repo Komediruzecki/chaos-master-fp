@@ -1,18 +1,9 @@
 import { For } from 'solid-js'
-import { Create, GridIcon, LumenMark, Settings } from '@/icons'
-import { haptic } from '@/lib/haptics'
+import { LumenMark, Settings } from '@/icons'
+import { DESTINATIONS, tickForDestination } from './destinations'
 import ui from './NavRail.module.css'
-import type { Accessor, Component } from 'solid-js'
-import type { ShellDestination } from './ShellBar'
-
-const DESTINATIONS: readonly {
-  readonly id: ShellDestination
-  readonly label: string
-  readonly Icon: Component<{ class?: string }>
-}[] = [
-  { id: 'create', label: 'Create', Icon: Create },
-  { id: 'library', label: 'Library', Icon: GridIcon },
-]
+import type { Accessor } from 'solid-js'
+import type { ShellDestination } from './destinations'
 
 export interface NavRailProps {
   current: Accessor<ShellDestination>
@@ -35,7 +26,7 @@ export interface NavRailProps {
  */
 export function NavRail(props: NavRailProps) {
   function select(destination: ShellDestination) {
-    if (destination !== props.current()) haptic.selectionChanged()
+    tickForDestination(destination, props.current())
     props.onSelect(destination)
   }
 

@@ -103,7 +103,8 @@
 
 /* The menu opens upward from the More circle, and the backdrop closes it from
    anywhere: both sit outside the pill, whose blur would otherwise make it the
-   containing block for a fixed child (TouchSurface.module.css says why). */
+   containing block for a fixed child (TouchSurface.module.css says why).
+   Placement only - the list's own look is Shell/MoreMenu.module.css. */
 .backdrop {
   position: fixed;
   inset: 0;
@@ -122,44 +123,6 @@
     var(--la-safe-bottom) + var(--la-float-inset) + var(--la-shell-h) +
       var(--la-s-2)
   );
-  min-width: 220px;
-  display: flex;
-  flex-direction: column;
-  padding: var(--la-s-1);
-  border-radius: var(--la-r-md);
-  background: var(--la-glass-strong);
-  backdrop-filter: var(--la-glass-blur);
-  -webkit-backdrop-filter: var(--la-glass-blur);
-  border: var(--la-glass-edge);
-  box-shadow: var(--la-e-2);
-  pointer-events: auto;
-}
-
-.menuItem {
-  display: flex;
-  align-items: center;
-  gap: var(--la-s-3);
-  min-height: var(--la-tap);
-  padding: 0 var(--la-s-3);
-  border: 0;
-  background: none;
-  border-radius: var(--la-r-sm);
-  color: var(--la-ink);
-  font: var(--la-t-body-sm);
-  text-align: left;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.menuItem:active {
-  background: var(--la-surface-3);
-}
-
-.menuIcon {
-  width: var(--la-icon-box);
-  height: var(--la-icon-box);
-  flex: 0 0 auto;
-  color: var(--la-ink-2);
 }
 
 /* ---- Docked in the rail: the capsule ---------------------------------

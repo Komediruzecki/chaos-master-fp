@@ -17,7 +17,7 @@ import { IS_DEV } from './defaults'
 import { initAncestry } from './flame/ancestry'
 import { importSharedVariations, loadCustomVariations, remapFlameCustomVariations, } from './flame/variations/custom'
 import { activeTab, arcadeMode, setActiveTab, tabFromHash, } from './lib/activeTab'
-import { pushBackHandler } from './lib/backStack'
+import { createBackLayer } from './lib/backStack'
 import { clearDraft, draftAction, readDraft } from './lib/draft'
 import { IS_NATIVE } from './lib/platform'
 import { Root } from './lib/Root'
@@ -288,23 +288,21 @@ export function Wrappers() {
   // Home and the Arcade are destinations over the editor, so back returns to
   // Create before the app minimises (lib/backStack.ts). Escape keeps its own
   // path through installHomeEscapeBoundary: two keys, one result.
-  createEffect(() => {
-    if (activeTab() !== 'home' || showWelcome()) return
-    onCleanup(
-      pushBackHandler(() => {
-        setActiveTab('workspace')
-      }, 'home'),
-    )
-  })
+  createBackLayer(
+    () => activeTab() === 'home' && !showWelcome(),
+    () => {
+      setActiveTab('workspace')
+    },
+    'home',
+  )
 
-  createEffect(() => {
-    if (activeTab() !== 'arcade') return
-    onCleanup(
-      pushBackHandler(() => {
-        setActiveTab('workspace')
-      }, 'arcade'),
-    )
-  })
+  createBackLayer(
+    () => activeTab() === 'arcade',
+    () => {
+      setActiveTab('workspace')
+    },
+    'arcade',
+  )
 
   function handleStartTour(tourId: string) {
     setShowWelcome(false)
