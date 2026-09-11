@@ -85,6 +85,23 @@ claims to cover it. If it stays green, that coverage is decorative. This is
 worth doing occasionally by hand on the functions that matter; it is not worth
 automating across the whole tree.
 
+**Decision (2026-09-11): automated for `packages/core` only, opt-in, not in
+CI.** `pnpm mutation:core` runs Stryker over core's pure logic. Measured: 1,302
+mutants in 34-41 s. Against core's two original test files the score is 17%
+(222 killed, 441 survived, 639 never reached by any test); with the stage 2
+characterization net (#92) it is 47% (611 killed, 305 survived, 386 unreached).
+A run that short is one people will actually repeat, so it stays, and its
+survivors are the to-do list: `flameSchema.ts` (113) and `fdiff.ts` (82) lead.
+
+- **Not in CI.** The score is a direction, not a gate; the coverage ratchet
+  already blocks a drop, and a gate on a 47% score would only invite tests
+  written to kill mutants rather than to pin behaviour.
+- **Not `packages/app/src/utils` yet.** Those tests run under happy-dom inside a
+  2,500-test suite, and per-test coverage there is a different cost class.
+  Measure it before adding it; do not assume core's 40 seconds carries over.
+- **The hand check stays** for app code: the audit's six-mutant probe list,
+  repeated at each release, is still the only mutation evidence for the app.
+
 **Therefore:** a coverage _drop_ is a real signal and blocks via the ratchet. A
 coverage _rise_ is weak evidence and should never be the argument that a change
 is well tested.
