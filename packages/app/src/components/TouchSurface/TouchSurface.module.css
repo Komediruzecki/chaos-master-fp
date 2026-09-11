@@ -5,7 +5,9 @@
   top: max(var(--la-s-2), calc(var(--la-safe-top) + var(--la-s-2)));
   left: 50%;
   transform: translateX(-50%);
-  z-index: 41;
+  /* Above the popover backdrop, so the menu the backdrop belongs to stays
+     tappable while every other surface is covered. */
+  z-index: 42;
   height: var(--la-hud-h);
   max-width: calc(100% - 40px);
   display: flex;
@@ -176,10 +178,12 @@
   color: var(--la-accent);
 }
 
+/* Covers the screen under the top bar: the rail (40) and the canvas below it
+   are out of reach while a popover is open, and a tap anywhere closes it. */
 .popoverBackdrop {
   position: fixed;
   inset: 0;
-  z-index: 55;
+  z-index: 41;
   background: transparent;
 }
 

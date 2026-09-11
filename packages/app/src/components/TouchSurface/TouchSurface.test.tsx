@@ -102,6 +102,35 @@ describe('TouchSurface Components', () => {
       // Choosing an item closes the menu.
       expect(screen.queryByRole('menu')).toBeNull()
     })
+
+    it('closes its popovers from a tap anywhere on the screen', () => {
+      const ctx = createMockCommandContext()
+      render(() => (
+        <TouchHUD
+          ctx={ctx}
+          flame={ctx.flameDescriptor}
+          onOpenSettings={vi.fn()}
+        />
+      ))
+
+      screen.getByRole('button', { name: 'More' }).click()
+      expect(screen.getByRole('menu')).toBeTruthy()
+      const backdrop = screen.getByTestId('hud-popover-backdrop')
+      // The pill's blur and its centring transform make it the containing
+      // block for a fixed child, so a backdrop inside it covers the pill and
+      // nothing else: the canvas below stayed live and the menu never closed.
+      expect(screen.getByRole('banner').contains(backdrop)).toBe(false)
+      backdrop.click()
+      expect(screen.queryByRole('menu')).toBeNull()
+
+      const titleBtn = screen.getByTitle(
+        ctx.flameDescriptor().metadata?.name || 'Untitled flame',
+      )
+      titleBtn.click()
+      expect(screen.getByRole('tooltip')).toBeTruthy()
+      screen.getByTestId('hud-popover-backdrop').click()
+      expect(screen.queryByRole('tooltip')).toBeNull()
+    })
   })
 
   describe('AdvancedToolsDrawer', () => {
