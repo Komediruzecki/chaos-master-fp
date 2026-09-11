@@ -27,6 +27,13 @@ const FOLDER = 'Lumen Apeiron'
 // emitted the Capacitor chunk (never fetched, but it has no business there).
 declare const __NATIVE_BUILD__: boolean
 
+/** The error in one line, for a toast a tester can report. */
+function describe(error: unknown): string {
+  const text = error instanceof Error ? error.message : String(error)
+  const line = text.replace(/\s+/g, ' ').trim()
+  return line.length > 140 ? `${line.slice(0, 139)}…` : line
+}
+
 function loadRuntime() {
   if (__NATIVE_BUILD__) return import('@chaos-master/mobile-runtime/capacitor')
   return Promise.reject(
@@ -54,7 +61,7 @@ export async function saveNative(blob: Blob, filename: string): Promise<void> {
     ])
   } catch (error) {
     console.error('Saving the file failed:', error)
-    notify?.(`Could not save ${filename}`)
+    notify?.(`Could not save ${filename}: ${describe(error)}`)
   }
 }
 
@@ -69,6 +76,6 @@ export async function shareNative(blob: Blob, filename: string): Promise<void> {
     await runtime.shareBlob(blob, filename)
   } catch (error) {
     console.error('Sharing the file failed:', error)
-    notify?.(`Could not share ${filename}`)
+    notify?.(`Could not share ${filename}: ${describe(error)}`)
   }
 }
