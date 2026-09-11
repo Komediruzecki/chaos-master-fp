@@ -109,6 +109,48 @@ describe('the background draft', () => {
     saveDraft(flame)
     expect(readDraft()).toBeUndefined()
   })
+
+  it('carries the timeline the animation was authored at', () => {
+    // Without the config a restored animation came back at the hand-off's
+    // reset - 30fps, 90 frames - so keyframes past frame 90 were unreachable
+    // and the motion ran at half speed, while the same flame through `?s=`
+    // returned intact.
+    markDraftBaseline(flame)
+    saveDraft(flame, tracks, {
+      fps: 60,
+      timeScale: 2,
+      startFrame: 0,
+      endFrame: 300,
+      loop: false,
+      autoFps: false,
+      loopMode: 'seamless',
+    })
+    const draft = readDraft()
+    expect(draft?.config?.fps).toBe(60)
+    expect(draft?.config?.endFrame).toBe(300)
+    expect(draft?.config?.timeScale).toBe(2)
+    expect(draft?.config?.loop).toBe(false)
+    expect(draft?.config?.loopMode).toBe('seamless')
+    clearDraft()
+  })
+
+  it('ignores a config that does not validate, and keeps the flame', () => {
+    // The config decides what playback does, so it goes through the same
+    // validation the tracks do: fps 0 would stop the timeline dead.
+    safeSetItem(
+      DRAFT_KEY,
+      JSON.stringify({
+        flame,
+        savedAt: Date.now(),
+        animation: { tracks, config: { fps: 0, endFrame: -5 } },
+      }),
+    )
+    const draft = readDraft()
+    expect(draft?.flame.metadata?.name).toBe('Draft')
+    expect(draft?.tracks?.[0]?.parameterPath).toBe(tracks[0]?.parameterPath)
+    expect(draft?.config).toBeUndefined()
+    clearDraft()
+  })
 })
 
 describe('what a launch does with the draft', () => {

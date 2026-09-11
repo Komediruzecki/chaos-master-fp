@@ -37,13 +37,19 @@ import type { Accessor, JSX } from 'solid-js'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 import type { ChangeHistory } from '@/utils/createStoreHistory'
 import type { AcceptMap } from '@/utils/pickFiles'
-import type { TimelineTrack } from '@/utils/timeline'
+import type { TimelineConfig, TimelineTrack } from '@/utils/timeline'
 
 const { performance } = globalThis
 
 export const CANCEL = 'cancel'
 
-export type AnimationLoad = { flame: FlameDescriptor; tracks: TimelineTrack[] }
+export type AnimationLoad = {
+  flame: FlameDescriptor
+  tracks: TimelineTrack[]
+  /** The timeline the animation was authored at, where the source has one
+   *  (a restored draft). Absent loads keep the workspace's defaults. */
+  config?: TimelineConfig
+}
 
 /** Keep one malformed stored/generated flame from taking down the whole modal. */
 function StaticVariationPreview(props: {

@@ -132,7 +132,7 @@ import type { HardwareTier } from './utils/hardwareTier'
 import type { SharePayload } from './utils/jsonQueryParam'
 import type { RandomizerHistoryEntry } from './utils/randomizerHistoryDB'
 import type { SonificationConfig } from './utils/sonification'
-import type { EasingCurve, KeyframeInterpolation, TimelineTrack, } from './utils/timeline'
+import type { EasingCurve, KeyframeInterpolation, TimelineConfig, TimelineTrack, } from './utils/timeline'
 import type { CommandContext } from '@/commands/types'
 import type { CommunityShowcaseRequest } from '@/lib/communityShowcase'
 
@@ -161,6 +161,11 @@ export type AppProps = {
   }
   flameFromWelcome?: () => FlameDescriptor | undefined
   welcomeTracks?: () => TimelineTrack[] | undefined
+  /**
+   * The timeline a restored draft was authored at (lib/draft.ts). A welcome
+   * or Home pick has none and keeps the hand-off reset's defaults.
+   */
+  welcomeConfig?: () => TimelineConfig | undefined
   /**
    * One-shot request from a Home "Explore" card: open the tool this flame was
    * curated to demonstrate, not just the flame. The value is the row's
@@ -630,6 +635,7 @@ export function MainWorkspace(props: AppProps) {
       }
       // Load animation tracks if the welcome selection includes them
       const tracks = props.welcomeTracks?.()
+      const config = props.welcomeConfig?.()
       if (IS_DEV) {
         console.info('[welcome] flame selected, tracks:', {
           hasTracks: !!tracks,
@@ -644,6 +650,7 @@ export function MainWorkspace(props: AppProps) {
             ...t,
             keyframes: t.keyframes.map((kf) => ({ ...kf })),
           })),
+          ...(config ? { config } : {}),
         })
       }
       props.resetFlameFromWelcome?.()
@@ -2591,7 +2598,16 @@ export function MainWorkspace(props: AppProps) {
         timeline.setAnimationEnabled(true)
         setAnimationEnabled(true)
         setShowTimeline(true)
-        timeline.setConfig({ ...timeline.config(), loop: true })
+        // A restored draft brings the timeline its animation was authored at.
+        // Without it the hand-off's reset (30fps, endFrame 90) truncated
+        // every longer animation and halved its speed, while the same flame
+        // through `?s=` came back intact. Loop stays on by default for a
+        // loaded animation; a stored config decides for itself.
+        timeline.setConfig({
+          ...timeline.config(),
+          loop: true,
+          ...anim.config,
+        })
         timeline.goToFrame(0)
         timeline.play()
       }

@@ -33,7 +33,7 @@ import { recordKeys } from './utils/record'
 import { dismissWelcome, hasWelcomeBeenDismissed, } from './utils/welcomeDismissed'
 import type { FlameDescriptor } from './flame/schema/flameSchema'
 import type { HardwareTier } from './utils/hardwareTier'
-import type { TimelineTrack } from './utils/timeline'
+import type { TimelineConfig, TimelineTrack } from './utils/timeline'
 
 export type { ExportImageInfo, ExportImageType } from './flame/exportImageType'
 
@@ -82,6 +82,14 @@ export function Wrappers() {
     TimelineTrack[] | undefined
   >()
   /**
+   * The timeline a restored draft was authored at (lib/draft.ts). Rides the
+   * same one-shot hand-off as the flame and its tracks; a welcome or Home
+   * pick sets nothing here.
+   */
+  const [selectedWelcomeConfig, setSelectedWelcomeConfig] = createSignal<
+    TimelineConfig | undefined
+  >()
+  /**
    * Set only by Home's "Explore" cards: the capability the chosen flame was
    * curated to demonstrate. Rides the same one-shot hand-off as the flame and
    * its tracks — MainWorkspace reads all three in one effect and calls
@@ -116,6 +124,7 @@ export function Wrappers() {
       // The same one-shot hand-off Home and the welcome screen use.
       setSelectedFlame(() => draft.flame)
       setSelectedWelcomeTracks(() => draft.tracks)
+      setSelectedWelcomeConfig(() => draft.config)
     })
     clearDraft()
     setDraftNotice('Restored your last flame')
@@ -334,6 +343,7 @@ export function Wrappers() {
                         sharedVariationFromQuery={sharedVariationFromQuery()}
                         flameFromWelcome={selectedFlame}
                         welcomeTracks={selectedWelcomeTracks}
+                        welcomeConfig={selectedWelcomeConfig}
                         capabilityFromHome={selectedCapability}
                         autoOpenBenchmark={benchmarkRequested}
                         autoStartBenchmark={benchmarkAuto}
@@ -346,6 +356,7 @@ export function Wrappers() {
                         resetFlameFromWelcome={() => {
                           setSelectedFlame(undefined)
                           setSelectedWelcomeTracks(undefined)
+                          setSelectedWelcomeConfig(undefined)
                           setSelectedCapability(undefined)
                         }}
                       />

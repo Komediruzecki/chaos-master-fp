@@ -1,7 +1,7 @@
 import { unzipSync } from 'fflate'
 import { isFlameXmlContent, parseFlameXml, registerImportedFlamePalette, } from '@/flame/flameXml'
 import { tryValidateFlame } from '@/flame/schema/flameSchema'
-import { TimelineTrack } from '@/flame/schema/timeline'
+import { TimelineSnapshotConfig, TimelineTrack } from '@/flame/schema/timeline'
 import * as v from '@/valibot'
 import { blobToBase64 } from './blob'
 import { extractFlameFromPng } from './flameInPng'
@@ -10,6 +10,7 @@ import { addRandomizerHistoryEntries, loadRandomizerHistoryEntries, MAX_RANDOMIZ
 import { loadRecentFlamesForRewrite, MAX_RECENT_FLAMES, newRecentFlameId, saveRecentFlames, } from './recentFlames'
 import type { BackupGroups } from './flameBackup'
 import type { RecentFlame } from './recentFlames'
+import type { TimelineConfig } from './timeline'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 
 /** Effectively "all" — every store is capped well below this. */
@@ -67,6 +68,9 @@ export type ParsedFlame = {
   name?: string
   savedAt?: number
   tracks?: TimelineTrack[]
+  /** The timeline the animation was authored at: fps, speed, the end frame
+   *  and the loop mode. Absent in envelopes written before it was stored. */
+  config?: TimelineConfig
 }
 
 /** Top-level backup folder -> destination store. */
@@ -102,6 +106,20 @@ function parseTracks(raw: unknown): TimelineTrack[] | undefined {
 }
 
 /**
+ * The timeline an animation was authored at, validated like its tracks: fps,
+ * the speed and the end frame all decide what playback does, so a value from
+ * an older build or a hand-edited file cannot be trusted straight in. The
+ * snapshot schema is the one that carries `timeScale`.
+ */
+function parseConfig(raw: unknown): TimelineConfig | undefined {
+  if (raw === null || typeof raw !== 'object') return undefined
+  const result = v.safeParse(TimelineSnapshotConfig, raw)
+  // Pinned at the call site: valibot's inferred output widens in ways that
+  // differ between a local typecheck and CI.
+  return result.success ? result.output : undefined
+}
+
+/**
  * Read the flame out of any envelope the app writes: a bare descriptor
  * (`{metadata, renderSettings, transforms}`), a share/animation payload
  * (`{flame, animation}`), or a recent-flame backup record (which adds `name`
@@ -124,9 +142,13 @@ export function parseFlameEnvelope(raw: unknown): ParsedFlame | undefined {
   if (typeof envelope.savedAt === 'number') {
     parsed.savedAt = envelope.savedAt
   }
-  const animation = envelope.animation as { tracks?: unknown } | undefined
+  const animation = envelope.animation as
+    | { tracks?: unknown; config?: unknown }
+    | undefined
   const tracks = parseTracks(animation?.tracks)
   if (tracks) parsed.tracks = tracks
+  const config = parseConfig(animation?.config)
+  if (config) parsed.config = config
   return parsed
 }
 

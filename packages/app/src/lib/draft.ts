@@ -2,7 +2,7 @@ import { parseFlameEnvelope } from '@/utils/flameImport'
 import { safeGetItem, safeRemoveItem, safeSetItem } from '@/utils/storage'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 import type { ParsedFlame } from '@/utils/flameImport'
-import type { TimelineTrack } from '@/utils/timeline'
+import type { TimelineConfig, TimelineTrack } from '@/utils/timeline'
 
 /**
  * The flame the app was holding when it went to the background.
@@ -24,7 +24,9 @@ export const DRAFT_KEY = 'chaos-master-draft'
 const signature = (
   flame: FlameDescriptor,
   tracks?: readonly TimelineTrack[],
-): string => JSON.stringify({ flame, tracks: tracks ?? [] })
+  config?: TimelineConfig,
+): string =>
+  JSON.stringify({ flame, tracks: tracks ?? [], config: config ?? null })
 
 /**
  * What the workspace loaded, or last came back to. A pause with nothing
@@ -39,15 +41,17 @@ let cleanSignature: string | undefined
 export function markDraftBaseline(
   flame: FlameDescriptor,
   tracks?: readonly TimelineTrack[],
+  config?: TimelineConfig,
 ): void {
-  cleanSignature = signature(flame, tracks)
+  cleanSignature = signature(flame, tracks, config)
 }
 
 export function saveDraft(
   flame: FlameDescriptor,
   tracks?: readonly TimelineTrack[],
+  config?: TimelineConfig,
 ): void {
-  if (signature(flame, tracks) === cleanSignature) {
+  if (signature(flame, tracks, config) === cleanSignature) {
     // Nothing unsaved, so nothing to come back to - and a draft left from an
     // earlier edit that has since been undone would outlive the work.
     clearDraft()
@@ -56,7 +60,11 @@ export function saveDraft(
   const envelope = {
     flame,
     savedAt: Date.now(),
-    ...(tracks && tracks.length > 0 ? { animation: { tracks } } : {}),
+    // The share link's shape, so one envelope reader serves both: the
+    // config is what says how long the animation is and how fast it runs.
+    ...(tracks && tracks.length > 0
+      ? { animation: { tracks, ...(config ? { config } : {}) } }
+      : {}),
   }
   if (!safeSetItem(DRAFT_KEY, JSON.stringify(envelope))) {
     // The safety net is gone and there is nobody to tell at pause time, so
