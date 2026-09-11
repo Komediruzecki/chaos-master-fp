@@ -28,7 +28,7 @@ import { createLazyDiscordShareModal, createLazyImportVariationsModal, createLaz
 import { WorkspaceSidebar } from './components/WorkspaceSidebar'
 import { useWorkspaceAnimationGen, useWorkspaceArena, useWorkspaceArtDirector, useWorkspaceAutosave, useWorkspaceCamera, useWorkspaceCommands, useWorkspacePalette, useWorkspaceReplay, useWorkspaceShortcuts, useWorkspaceTimelineBinding, } from './hooks'
 import { createWorkspaceExportStore, createWorkspaceLayoutStore, createWorkspaceSelectionStore, isWideLayout, } from './stores'
-import { isTouchDevice } from './stores/workspaceLayoutStore'
+import { deckFits, isTouchDevice } from './stores/workspaceLayoutStore'
 
 const AncestryTreeModal = lazy(() =>
   import('./components/AncestryTreeModal/AncestryTreeModal').then((m) => ({
@@ -289,6 +289,10 @@ export function MainWorkspace(props: AppProps) {
   } = layoutStore
 
   const [touchDrawerOpen, setTouchDrawerOpen] = createSignal(false)
+  /** How much of the viewport the rail's sheet covers; 0 while it is at peek. */
+  const [railInset, setRailInset] = createSignal(0)
+  /** The phone, and a tablet too narrow for the deck, both get the rail. */
+  const railLayout = createMemo(() => isPhone() || (isTablet() && !deckFits()))
 
   const {
     selectedTransformId,
@@ -3241,7 +3245,7 @@ export function MainWorkspace(props: AppProps) {
     <ChangeHistoryContextProvider value={history}>
       <TimelineContextProvider value={recorderTimeline}>
         <Dropzone
-          class={`${ui.layout} ${isPhone() ? ui.phoneLayout : ''} ${isTablet() ? ui.tabletLayout : ''}`}
+          class={`${ui.layout} ${railLayout() ? ui.phoneLayout : ''} ${isTablet() && deckFits() ? ui.tabletLayout : ''}`}
           onDrop={onDrop}
         >
           <>
@@ -3249,6 +3253,7 @@ export function MainWorkspace(props: AppProps) {
               isMobile={isMobile}
               showSidebar={showSidebar}
               hideMobileSidebarToggle={isPhone() || isTablet()}
+              railInset={railInset}
               onCanvasClick={() => {
                 // Tap canvas to close sidebar on mobile
                 if (isMobile()) hideMobileSidebarAsAuthoredAction()
@@ -3380,8 +3385,8 @@ export function MainWorkspace(props: AppProps) {
               </Show>
             </CanvasViewport>
           </>
-          {/* Mobile Phone Touch Interface */}
-          <Show when={isPhone()}>
+          {/* The rail layout: the phone, and a tablet under the deck's width */}
+          <Show when={railLayout()}>
             <TouchHUD
               ctx={cmdContext}
               flame={effectiveFlame}
@@ -3396,8 +3401,17 @@ export function MainWorkspace(props: AppProps) {
               onOpenExportModal={() => {
                 executeCommand('export.png', cmdContext)
               }}
+              onShare={() => {
+                void showShareLinkModal()
+              }}
               onOpenDrawer={() => setTouchDrawerOpen(true)}
               onPickGallery={pickGalleryFlame}
+              onOpenSettings={showHelp}
+              onOpenDocs={showDocumentation}
+              onDesktopLayout={() => {
+                setTouchLayoutPreference('desktop')
+                showToast('Switched to the desktop layout', 3500)
+              }}
             />
             <EditorRail
               ctx={cmdContext}
@@ -3413,11 +3427,12 @@ export function MainWorkspace(props: AppProps) {
                 executeCommand('export.png', cmdContext)
               }}
               onOpenDrawer={() => setTouchDrawerOpen(true)}
+              onCoveredHeightChange={setRailInset}
             />
           </Show>
 
           {/* Tablet Split Touch Interface */}
-          <Show when={isTablet()}>
+          <Show when={isTablet() && deckFits()}>
             <TabletInspectorDeck
               ctx={cmdContext}
               flame={effectiveFlame}
@@ -4068,6 +4083,7 @@ export function MainWorkspace(props: AppProps) {
             touchLayoutPreference={touchLayoutPreference}
             setTouchLayoutPreference={setTouchLayoutPreference}
             isTouchLayout={isTouchLayout}
+            hideVersionTrigger={railLayout}
             onPickGallery={pickGalleryFlame}
             duelShowing={duelShowing}
             playerFlame={effectiveFlame}

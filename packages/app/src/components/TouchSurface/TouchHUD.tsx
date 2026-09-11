@@ -21,7 +21,6 @@ export interface TouchHUDProps {
   onPickGallery?: () => void
   onOpenSettings?: () => void
   onOpenDocs?: () => void
-  onOpenBenchmark?: () => void
   onDesktopLayout?: () => void
 }
 
