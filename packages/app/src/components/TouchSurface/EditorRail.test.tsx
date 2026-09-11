@@ -366,6 +366,23 @@ describe('EditorRail', () => {
     expect(impactMedium).toHaveBeenCalledTimes(1)
   })
 
+  it('comes back at the detent it had before the layout changed', () => {
+    const first = mount()
+    fireEvent.click(screen.getByRole('tab', { name: 'Shape' }))
+    expect(sheet().style.height).toBe('375px')
+
+    // Crossing the rail-or-deck threshold unmounts this surface and mounts
+    // the other one; the canvas is handed back on the way out.
+    first.unmount()
+    expect(first.onCoveredHeightChange).toHaveBeenLastCalledWith(0)
+
+    const second = mount()
+    expect(sheet().style.height).toBe('375px')
+    expect(second.onCoveredHeightChange).toHaveBeenLastCalledWith(
+      375 - PEEK_HEIGHT,
+    )
+  })
+
   it('docks the shell in front of the chips', () => {
     mount({ leading: <button type="button">Create, navigation</button> })
     const row = screen.getByTestId('editor-rail-leading')

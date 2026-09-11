@@ -424,9 +424,9 @@ Order of registration is the order of opening, so the pop order in `A/screens.md
 - Modify: `packages/app/src/App.module.css` (a `la-surface-enter` keyframe: opacity 0 to 1 over `--la-dur-fast` `--la-ease`, applied to the rail's dock and the deck on mount, none under `prefers-reduced-motion`), `packages/app/src/components/TouchSurface/EditorRail.module.css`, `TabletDeck.module.css`
 - Test: `EditorRail.test.tsx`
 
-- [ ] **Step 1: Failing test** — render the rail, settle at `medium`, unmount, render again: the sheet is at `medium` (the module-level `railDetent` from Task 3 survives the remount) and the covered height is reported again.
-- [ ] **Step 2: Implement** the keyframe on both surfaces' root elements. Nothing in TypeScript changes for the fade.
-- [ ] **Step 3: Tick DESIGN.md section 4's fourth routing item**, run the suite, commit — `git commit -m "feat(touch): cross-fade the surfaces at the threshold, keep the detent"`.
+- [x] **Step 1: Failing test** — render the rail, settle at `medium`, unmount, render again: the sheet is at `medium` (the module-level `railDetent` from Task 3 survives the remount) and the covered height is reported again.
+- [x] **Step 2: Implement** the keyframe on both surfaces' root elements. Nothing in TypeScript changes for the fade.
+- [x] **Step 3: Tick DESIGN.md section 4's fourth routing item**, run the suite, commit — `git commit -m "feat(touch): cross-fade the surfaces at the threshold, keep the detent"`.
 
 ---
 

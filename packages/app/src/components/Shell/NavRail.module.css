@@ -19,6 +19,8 @@
   padding-left: var(--la-safe-left);
   background: var(--la-ground);
   border-right: 1px solid var(--la-hairline);
+  /* It mounts with the deck, so it arrives the same way (DESIGN.md 4). */
+  animation: la-surface-enter var(--la-dur-fast) var(--la-ease);
 }
 
 .mark {
@@ -65,5 +67,8 @@
 @media (prefers-reduced-motion: reduce) {
   .item {
     transition: none;
+  }
+  .rail {
+    animation: none;
   }
 }

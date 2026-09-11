@@ -19,6 +19,9 @@
   padding-left: max(var(--la-float-inset), var(--la-safe-left));
   /* The dock is a frame around the sheet; the canvas stays reachable beside it. */
   pointer-events: none;
+  /* The threshold between this and the tablet deck is a cross-fade, never a
+     reload (DESIGN.md section 4); the detent survives it in detents.ts. */
+  animation: la-surface-enter var(--la-dur-fast) var(--la-ease);
 }
 
 .sheet {
@@ -188,5 +191,8 @@
   .chip,
   .shutter {
     transition: none;
+  }
+  .dock {
+    animation: none;
   }
 }

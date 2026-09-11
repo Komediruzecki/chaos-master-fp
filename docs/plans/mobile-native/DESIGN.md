@@ -139,7 +139,7 @@ landscape (1210 pt) and a 13 inch (1366 pt) both fall through to the desktop wor
       900 pt rule for the tablet deck.
 - [x] Consult `IS_NATIVE` (`lib/platform.ts`) and `(pointer: coarse)`; width then chooses only compact or
       regular.
-- [ ] Crossing the threshold is a cross-fade, never a reload, and the rail's detent survives it.
+- [x] Crossing the threshold is a cross-fade, never a reload, and the rail's detent survives it.
 
 **Shell.** Nothing in the app has one. `setActiveTab('home')` is reachable only from `components/FloatingActions`,
 which is desktop-only, so **Home is unreachable on a phone or a tablet today**.
