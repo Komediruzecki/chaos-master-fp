@@ -1,4 +1,4 @@
-import { createMemo, createSignal, For, onCleanup, onMount, Show, } from 'solid-js'
+import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show, } from 'solid-js'
 import { CameraIcon, ColourWedge, ShapeTriangle, Shuffle, VariationSpiral, } from '@/icons'
 import { haptic } from '@/lib/haptics'
 import { clampSheetHeight, detentHeights, heightOf, nearestDetent, PEEK_HEIGHT, settleDetent, } from './detents'
@@ -51,14 +51,25 @@ export function EditorRail(props: EditorRailProps) {
     })
   })
 
+  // How much of the viewport the sheet covers above peek, reported whenever
+  // it changes and not only when a gesture settles: a rotation moves the
+  // detents, and leaving the rail (the desktop layout, or a tablet growing
+  // into the deck) must hand the canvas its full height back.
+  createEffect(() => {
+    const target = detent()
+    props.onCoveredHeightChange?.(
+      target === 'peek' ? 0 : heightOf(target, heights()) - PEEK_HEIGHT,
+    )
+  })
+  onCleanup(() => {
+    props.onCoveredHeightChange?.(0)
+  })
+
   function settle(target: Detent) {
     if (target !== detent()) {
       setDetent(target)
       haptic.impactLight()
     }
-    props.onCoveredHeightChange?.(
-      target === 'peek' ? 0 : heightOf(target, heights()) - PEEK_HEIGHT,
-    )
   }
 
   function onChip(next: TouchTab) {

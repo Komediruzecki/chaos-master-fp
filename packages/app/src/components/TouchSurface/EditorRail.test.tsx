@@ -33,8 +33,8 @@ function mount(extra: Partial<Parameters<typeof EditorRail>[0]> = {}) {
     onCoveredHeightChange: vi.fn(),
     ...extra,
   }
-  render(() => <EditorRail {...props} />)
-  return props
+  const { unmount } = render(() => <EditorRail {...props} />)
+  return { ...props, unmount }
 }
 
 const sheet = () => screen.getByTestId('editor-rail-sheet')
@@ -113,6 +113,30 @@ describe('EditorRail', () => {
     expect(props.onOpenExportOptions).toHaveBeenCalledTimes(1)
     expect(props.onQuickExport).toHaveBeenCalledTimes(1)
     vi.useRealTimers()
+  })
+
+  it('re-reports the covered height when the viewport changes', () => {
+    const props = mount()
+    fireEvent.click(screen.getByRole('tab', { name: 'Shape' }))
+    expect(props.onCoveredHeightChange).toHaveBeenLastCalledWith(
+      375 - PEEK_HEIGHT,
+    )
+    // The phone is rotated: medium is 173 now, so the canvas must pan back.
+    window.innerHeight = 393
+    window.dispatchEvent(new Event('resize'))
+    expect(props.onCoveredHeightChange).toHaveBeenLastCalledWith(
+      173 - PEEK_HEIGHT,
+    )
+  })
+
+  it('gives the canvas back when it unmounts', () => {
+    const props = mount()
+    fireEvent.click(screen.getByRole('tab', { name: 'Shape' }))
+    expect(props.onCoveredHeightChange).toHaveBeenLastCalledWith(
+      375 - PEEK_HEIGHT,
+    )
+    props.unmount()
+    expect(props.onCoveredHeightChange).toHaveBeenLastCalledWith(0)
   })
 
   it('reaches Mutate and Randomize through the Vary chip', () => {
