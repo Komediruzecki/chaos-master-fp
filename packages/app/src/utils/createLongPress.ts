@@ -24,8 +24,9 @@ type ButtonHandlers = Pick<
 /**
  * One button, two actions: a tap does the common thing, holding it opens the
  * fuller version. The click that follows a long press is swallowed, so the
- * finger lifting does not also fire the tap. Shared by the rail's shutter and
- * the tablet deck's save button, which offer the same pair.
+ * finger lifting does not also fire the tap, and so is a click that arrives
+ * while the button is held. Shared by the rail's shutter and the tablet
+ * deck's save button, which offer the same pair.
  *
  * The press belongs to the finger that started it. A second finger landing on
  * the same button is not a second press, and a lift from another pointer does
@@ -92,6 +93,11 @@ export function createLongPress(options: LongPressOptions): ButtonHandlers {
         longPressed = false
         return
       }
+      // A click arriving while a finger still holds the button belongs to
+      // some other pointer: this press has not ended, and taking it as a tap
+      // runs both actions off one hold. A click with no press behind it is a
+      // keyboard activation, which is a tap.
+      if (pressedBy !== null) return
       options.onTap()
     },
   }

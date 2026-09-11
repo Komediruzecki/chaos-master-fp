@@ -56,6 +56,33 @@ describe('createLongPress', () => {
     vi.useRealTimers()
   })
 
+  it('ignores a second finger while the first still holds', () => {
+    vi.useFakeTimers()
+    const onTap = vi.fn()
+    const onLongPress = vi.fn()
+    const button = mount({ onTap, onLongPress })
+
+    // Finger A holds the shutter for the options while finger B taps it.
+    // The pointer guard covered the ups but not the click, so B's tap saved
+    // an image and A's hold then opened the options: two from one press.
+    fireEvent.pointerDown(button, { pointerId: 1 })
+    fireEvent.pointerDown(button, { pointerId: 2 })
+    fireEvent.pointerUp(button, { pointerId: 2 })
+    fireEvent.click(button)
+    expect(onTap).not.toHaveBeenCalled()
+
+    vi.advanceTimersByTime(600)
+    expect(onLongPress).toHaveBeenCalledTimes(1)
+    vi.useRealTimers()
+  })
+
+  it('taps from the keyboard, where no pointer is involved', () => {
+    const onTap = vi.fn()
+    const button = mount({ onTap, onLongPress: vi.fn() })
+    fireEvent.click(button)
+    expect(onTap).toHaveBeenCalledTimes(1)
+  })
+
   it('captures the pointer so the up comes back to the button', () => {
     const captured: number[] = []
     const button = mount({ onTap: vi.fn(), onLongPress: vi.fn() })
