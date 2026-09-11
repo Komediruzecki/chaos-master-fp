@@ -213,10 +213,19 @@
   -webkit-backdrop-filter: none;
 }
 
+/* No backdrop-filter on either: this dock lives inside the rail's sheet,
+   which is itself a backdrop-filter element and therefore a backdrop root,
+   so the capsule can only ever sample the sheet's flat fill - never the
+   canvas. The blur showed no glass and still cost a readback and a blur on
+   every composited frame while the flame converged underneath. The cheap
+   form is what the shutter beside it in the same row already uses. */
+.capsuleDock .bar {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
 .capsuleDock:not(.expanded) .capsule {
-  background: var(--la-glass-strong);
-  backdrop-filter: var(--la-glass-blur);
-  -webkit-backdrop-filter: var(--la-glass-blur);
+  background: var(--la-glass);
   border: var(--la-glass-edge);
   box-shadow: var(--la-glass-shadow);
 }
