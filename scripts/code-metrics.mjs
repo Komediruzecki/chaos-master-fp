@@ -102,12 +102,19 @@ const m = {
 }
 
 // Coverage, if a run has produced a summary. Never fails the build when absent.
-const covPath = join(ROOT, 'packages/app/coverage-audit/coverage-summary.json')
-if (existsSync(covPath)) {
+// Core is reported on its own: merged into the app's number, its gap would
+// vanish in the app's mass, which is how it went unmeasured in the first place.
+const COVERAGE = [
+  ['coverage', 'packages/app/coverage-audit/coverage-summary.json'],
+  ['coverage_core', 'packages/core/coverage-audit/coverage-summary.json'],
+]
+for (const [prefix, file] of COVERAGE) {
+  const covPath = join(ROOT, file)
+  if (!existsSync(covPath)) continue
   const c = JSON.parse(readFileSync(covPath, 'utf8')).total
-  m.coverage_lines_pct = c.lines.pct
-  m.coverage_functions_pct = c.functions.pct
-  m.coverage_branches_pct = c.branches.pct
+  m[`${prefix}_lines_pct`] = c.lines.pct
+  m[`${prefix}_functions_pct`] = c.functions.pct
+  m[`${prefix}_branches_pct`] = c.branches.pct
 }
 
 if (has('--with-lint')) {
@@ -158,6 +165,9 @@ const HIGHER_IS_BETTER = new Set([
   'coverage_lines_pct',
   'coverage_functions_pct',
   'coverage_branches_pct',
+  'coverage_core_lines_pct',
+  'coverage_core_functions_pct',
+  'coverage_core_branches_pct',
 ])
 
 if (has('--json')) {
