@@ -22,7 +22,7 @@ import { createLoadFlame } from './components/LoadFlameModal/LoadFlameModal'
 import { useRequestModal } from './components/Modal/ModalContext'
 import { qualityPresets } from './components/Quality/QualityPresets'
 import { recorderExportPending, recorderTaskPending, setRecorderCollapsed, setRecorderVisible, } from './components/SessionRecorder/recorderUi'
-import { AdvancedToolsDrawer, MobileBottomSurface, TabletInspectorDeck, TouchHUD, } from './components/TouchSurface'
+import { AdvancedToolsDrawer, EditorRail, TabletInspectorDeck, TouchHUD, } from './components/TouchSurface'
 import { WorkspaceBottomBar } from './components/WorkspaceBottomBar'
 import { createLazyDiscordShareModal, createLazyImportVariationsModal, createLazyLogoFaviconGenerator, createLazyMigrationModal, createLazyShareLinkModal, createLazyShareVariationLinkModal, createLazyShareVariationLoadModal, createLazyShowBenchmark, createLazyShowCustomVariationEditor, createLazyShowDocumentation, createLazyShowHelp, WorkspaceModalsHost, } from './components/WorkspaceModalsHost'
 import { WorkspaceSidebar } from './components/WorkspaceSidebar'
@@ -3399,26 +3399,20 @@ export function MainWorkspace(props: AppProps) {
               onOpenDrawer={() => setTouchDrawerOpen(true)}
               onPickGallery={pickGalleryFlame}
             />
-            <MobileBottomSurface
+            <EditorRail
               ctx={cmdContext}
               flame={effectiveFlame}
-              canUndo={undoRouter.canUndo}
-              canRedo={undoRouter.canRedo}
               onRandomize={() => {
                 executeCommand('flame.randomize', cmdContext)
               }}
               onMutate={() => {
                 executeCommand('flame.mutate', cmdContext)
               }}
-              onUndo={() => {
-                executeCommand('history.undo', cmdContext)
+              onQuickExport={quickExport}
+              onOpenExportOptions={() => {
+                executeCommand('export.png', cmdContext)
               }}
-              onRedo={() => {
-                executeCommand('history.redo', cmdContext)
-              }}
-              onSnapshot={quickExport}
               onOpenDrawer={() => setTouchDrawerOpen(true)}
-              onPickGallery={pickGalleryFlame}
             />
           </Show>
 

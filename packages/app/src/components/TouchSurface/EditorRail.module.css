@@ -1,0 +1,155 @@
+/* The editor rail: one surface at three detents. Colour, radius, spacing,
+   duration and easing come from the --la-* set only (styles/designSystem/lumen.css);
+   a hex literal here would not follow a direction switch, and a test enforces it. */
+
+.dock {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  padding: 0 max(var(--la-float-inset), var(--la-safe-right))
+    max(var(--la-s-2), calc(var(--la-safe-bottom) + var(--la-s-2)))
+    max(var(--la-float-inset), var(--la-safe-left));
+  /* The dock is a frame around the sheet; the canvas stays reachable beside it. */
+  pointer-events: none;
+}
+
+.sheet {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--la-r-sheet) var(--la-r-sheet) 0 0;
+  background: var(--la-glass-strong);
+  backdrop-filter: var(--la-glass-blur);
+  -webkit-backdrop-filter: var(--la-glass-blur);
+  border: var(--la-glass-edge);
+  box-shadow: var(--la-e-sheet);
+  box-sizing: border-box;
+  overflow: hidden;
+  contain: layout paint;
+  transition: height var(--la-dur-sheet) var(--la-ease);
+}
+
+/* While the finger is the clock there is no easing between frames. */
+.sheet.dragging {
+  transition: none;
+}
+
+.grabberRow {
+  height: 24px;
+  display: grid;
+  place-items: center;
+  touch-action: none;
+  cursor: grab;
+}
+
+.grabber {
+  width: 36px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--la-hairline-strong);
+}
+
+.peekRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--la-s-2);
+  padding: 0 var(--la-s-2) var(--la-s-2);
+}
+
+/* Behind the chips and the shutter, so a drag started on the row's background
+   is a drag and a drag started on a control is not. */
+.dragSurface {
+  position: absolute;
+  inset: 0;
+  touch-action: none;
+}
+
+.chips {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.chips::-webkit-scrollbar {
+  display: none;
+}
+
+.chip {
+  flex: 1 0 68px;
+  height: var(--la-tap);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 0;
+  background: none;
+  border-radius: var(--la-r-pill);
+  color: var(--la-ink-2);
+  font: var(--la-t-tab);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    background var(--la-dur-fast) var(--la-ease),
+    color var(--la-dur-fast) var(--la-ease);
+}
+
+.chip[aria-selected='true'] {
+  color: var(--la-accent);
+  background: var(--la-accent-wash);
+}
+
+.chipIcon {
+  width: 26px;
+  height: 26px;
+}
+
+.shutter {
+  position: relative;
+  flex: 0 0 auto;
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--la-glass);
+  border: var(--la-glass-edge);
+  box-shadow: var(--la-glass-shadow);
+  color: var(--la-accent);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform var(--la-dur-press) var(--la-ease);
+}
+
+.shutter:active {
+  transform: scale(0.94);
+}
+
+.shutterIcon {
+  width: 26px;
+  height: 26px;
+}
+
+.body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  padding-bottom: calc(var(--la-safe-bottom) + var(--la-s-4));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet,
+  .chip,
+  .shutter {
+    transition: none;
+  }
+}

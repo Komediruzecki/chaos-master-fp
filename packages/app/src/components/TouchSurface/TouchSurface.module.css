@@ -719,6 +719,41 @@
   cursor: pointer;
 }
 
+/* Vary panel: the rail's fourth chip. The deck keeps its footer instead. */
+.varyPanel {
+  display: grid;
+  gap: var(--la-s-3);
+  padding: var(--la-s-4);
+}
+
+.varyButton {
+  height: 56px;
+  border-radius: var(--la-r-pill);
+  border: var(--la-glass-edge);
+  background: var(--la-surface-2);
+  color: var(--la-ink);
+  font: var(--la-t-body-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--la-s-2);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.varyButtonPrimary {
+  background: var(--la-accent);
+  color: var(--la-ink-invert);
+  border-color: transparent;
+}
+
+.varyCaption {
+  margin: 0;
+  font: var(--la-t-caption);
+  color: var(--la-ink-3);
+  text-align: center;
+}
+
 /* Action Footer Bar */
 .surfaceFooter {
   display: flex;

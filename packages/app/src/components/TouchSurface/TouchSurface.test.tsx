@@ -2,7 +2,7 @@ import '@/commands/builtins'
 import { cleanup, fireEvent, render, screen } from '@solidjs/testing-library'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createMockCommandContext } from '@/webmcp/testUtils'
-import { AdvancedToolsDrawer, MobileBottomSurface, TabletInspectorDeck, TabletSplitLayout, TouchControlSurface, TouchHUD, } from './index'
+import { AdvancedToolsDrawer, TabletInspectorDeck, TabletSplitLayout, TouchControlSurface, TouchHUD, } from './index'
 import type { TransformId, VariationId } from '@/flame/schema/flameSchema'
 
 describe('TouchSurface Components', () => {
@@ -193,33 +193,6 @@ describe('TouchSurface Components', () => {
       expect(ctx.setFlameDescriptor).toHaveBeenCalled()
       const t1 = ctx.flameDescriptor().transforms['t1' as TransformId]
       expect(t1?.variations['v1' as VariationId]?.weight).toBe(0.85)
-    })
-  })
-
-  describe('MobileBottomSurface', () => {
-    it('renders collapsed pill bar and expands on chip tap', () => {
-      const ctx = createMockCommandContext()
-      const onRandomize = vi.fn()
-
-      render(() => (
-        <MobileBottomSurface
-          ctx={ctx}
-          flame={ctx.flameDescriptor}
-          onRandomize={onRandomize}
-        />
-      ))
-
-      expect(
-        screen.getByRole('region', { name: 'Mobile Controls' }),
-      ).toBeTruthy()
-      const openVariations = screen.getByRole('button', {
-        name: 'Open Variations',
-      })
-      expect(openVariations).toBeTruthy()
-
-      openVariations.click()
-      // Once clicked, bottom sheet expands and renders TouchControlSurface
-      expect(screen.getByRole('button', { name: 'T1' })).toBeTruthy()
     })
   })
 
