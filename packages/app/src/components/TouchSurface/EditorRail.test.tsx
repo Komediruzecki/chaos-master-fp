@@ -2,7 +2,7 @@ import '@/commands/builtins'
 import { cleanup, fireEvent, render, screen } from '@solidjs/testing-library'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockCommandContext } from '@/webmcp/testUtils'
-import { PEEK_HEIGHT } from './detents'
+import { PEEK_HEIGHT, SHEET_TRANSITION_MS } from './detents'
 import { EditorRail } from './EditorRail'
 
 const impactLight = vi.fn()
@@ -112,6 +112,38 @@ describe('EditorRail', () => {
     fireEvent.pointerMove(grabber, { clientY: 900, pointerId: 1 })
     fireEvent.pointerUp(grabber, { clientY: 900, pointerId: 1 })
     expect(sheet().style.height).toBe(`${PEEK_HEIGHT}px`)
+  })
+
+  it('fills the sheet while a drag from peek grows it', () => {
+    mount()
+    const grabber = screen.getByTestId('editor-rail-grabber')
+    fireEvent.pointerDown(grabber, { clientY: 800, pointerId: 1 })
+    fireEvent.pointerMove(grabber, { clientY: 700, pointerId: 1 })
+    // Growing an empty sheet and filling it on release reads as a pop.
+    const body = screen.getByTestId('editor-rail-body')
+    expect(body.hidden).toBe(false)
+  })
+
+  it('keeps the panel mounted, and hides it once the sheet has shrunk', () => {
+    vi.useFakeTimers()
+    mount()
+    const shape = screen.getByRole('tab', { name: 'Shape' })
+    fireEvent.click(shape)
+    const body = screen.getByTestId('editor-rail-body')
+    expect(body.hidden).toBe(false)
+
+    fireEvent.click(shape)
+    // The sheet is still shrinking; emptying it now shows bare glass.
+    expect(body.hidden).toBe(false)
+    vi.advanceTimersByTime(SHEET_TRANSITION_MS + 1)
+    expect(body.hidden).toBe(true)
+
+    // Reopening reuses the same panel: every variation preview would
+    // otherwise build its WebGPU context and its snapshot again.
+    fireEvent.click(shape)
+    expect(screen.getByTestId('editor-rail-body')).toBe(body)
+    expect(body.hidden).toBe(false)
+    vi.useRealTimers()
   })
 
   it('settles a flick, and drops it once the finger has rested', () => {

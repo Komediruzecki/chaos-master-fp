@@ -19,6 +19,12 @@ export const FLICK_VELOCITY = 0.5
  */
 export const FLICK_MAX_AGE_MS = 100
 
+/**
+ * How long the sheet takes to reach a new detent. Mirrors --la-dur-sheet:
+ * the panel inside must stay on screen until the height has arrived.
+ */
+export const SHEET_TRANSITION_MS = 280
+
 export interface DetentHeights {
   readonly peek: number
   readonly medium: number

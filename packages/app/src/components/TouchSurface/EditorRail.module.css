@@ -154,6 +154,12 @@
   padding-bottom: var(--la-s-4);
 }
 
+/* Peek: the panel stays built but stops painting, which is what pauses the
+   variation previews through their IntersectionObserver. */
+.body[hidden] {
+  display: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sheet,
   .chip,

@@ -3,7 +3,7 @@ import { CameraIcon, ColourWedge, ShapeTriangle, Shuffle, VariationSpiral, } fro
 import { haptic } from '@/lib/haptics'
 import { createDragHandler } from '@/utils/createDragHandler'
 import { createLongPress } from '@/utils/createLongPress'
-import { clampSheetHeight, detentHeights, FLICK_MAX_AGE_MS, heightOf, nearestDetent, PEEK_HEIGHT, settleDetent, } from './detents'
+import { clampSheetHeight, detentHeights, FLICK_MAX_AGE_MS, heightOf, nearestDetent, PEEK_HEIGHT, settleDetent, SHEET_TRANSITION_MS, } from './detents'
 import ui from './EditorRail.module.css'
 import { TouchControlSurface } from './TouchControlSurface'
 import type { JSX } from 'solid-js'
@@ -93,6 +93,33 @@ export function EditorRail(props: EditorRailProps) {
   })
   onCleanup(() => {
     props.onCoveredHeightChange?.(0)
+  })
+
+  /**
+   * The panel follows the live height rather than the settled detent: a drag
+   * from peek grows a sheet that is already filled, and a collapse keeps its
+   * contents until the height has finished shrinking, instead of emptying the
+   * glass and then closing it. Once built it stays mounted and is hidden at
+   * peek, where display:none pauses the variation previews through their
+   * IntersectionObserver; remounting would rebuild every WebGPU context and
+   * snapshot on the next tap.
+   */
+  const [bodyShown, setBodyShown] = createSignal(false)
+  const [bodyBuilt, setBodyBuilt] = createSignal(false)
+
+  createEffect(() => {
+    if (sheetHeight() > PEEK_HEIGHT) {
+      setBodyBuilt(true)
+      setBodyShown(true)
+      return
+    }
+    if (!bodyShown()) return
+    const timer = setTimeout(() => {
+      setBodyShown(false)
+    }, SHEET_TRANSITION_MS)
+    onCleanup(() => {
+      clearTimeout(timer)
+    })
   })
 
   function settle(target: Detent) {
@@ -244,8 +271,12 @@ export function EditorRail(props: EditorRailProps) {
             <CameraIcon class={ui.shutterIcon} />
           </button>
         </div>
-        <Show when={detent() !== 'peek'}>
-          <div class={ui.body}>
+        <Show when={bodyBuilt()}>
+          <div
+            class={ui.body}
+            data-testid="editor-rail-body"
+            hidden={!bodyShown()}
+          >
             <TouchControlSurface
               ctx={props.ctx}
               flame={props.flame}
