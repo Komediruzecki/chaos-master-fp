@@ -1,6 +1,7 @@
 /* @refresh reload */
 import './styles/index.css'
 import { render } from 'solid-js/web'
+import { loadHaptics } from './lib/haptics'
 import { IS_NATIVE } from './lib/platform'
 import { isBenchmarksPath } from './routing/appPath'
 
@@ -26,6 +27,10 @@ if (IS_NATIVE && /Android/i.test(globalThis.navigator.userAgent)) {
       .join(', ')
   }
 }
+
+// Binds the Capacitor haptic ports in the native build; a no-op on the web.
+// Not awaited: nothing on screen waits for a vibration motor.
+void loadHaptics()
 
 const root = document.getElementById('root')
 
