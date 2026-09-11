@@ -1,7 +1,8 @@
 /* The phone shell (components.md section 10): a floating glass pill with a
    separated More circle, and Android's full-width Material bar. Colour,
    radius, spacing, duration and easing come from the --la-* set only
-   (styles/designSystem/lumen.css); a test enforces it. */
+   (styles/designSystem/lumen.css). tokens.test.ts enforces the colour half
+   of that - it matches hex literals - and the rest is convention. */
 
 .dock {
   position: fixed;
@@ -55,7 +56,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: var(--la-s-1);
   border: 0;
   background: none;
   border-radius: var(--la-r-pill);
@@ -89,7 +90,7 @@
   height: var(--la-shell-h);
   display: grid;
   place-items: center;
-  border-radius: 50%;
+  border-radius: var(--la-r-pill);
   background: var(--la-glass-strong);
   backdrop-filter: var(--la-glass-blur);
   -webkit-backdrop-filter: var(--la-glass-blur);
@@ -163,7 +164,7 @@
   width: var(--la-capsule);
   height: var(--la-capsule);
   min-width: var(--la-capsule);
-  border-radius: 50%;
+  border-radius: var(--la-r-pill);
 }
 
 /* Collapsed, the capsule is the whole shell: a glyph, no label. */
@@ -257,7 +258,9 @@
   background: var(--la-accent-wash);
   color: var(--la-accent);
   border-radius: var(--la-r-pill);
-  padding: 3px var(--la-s-3);
+  /* 4px around a 24px glyph is M3's 32px indicator exactly; the 3px it
+     replaces was two short and outside the token set. */
+  padding: var(--la-s-1) var(--la-s-3);
 }
 
 :global(:root[data-platform='android']) .dock:not(.capsuleDock) .more {
