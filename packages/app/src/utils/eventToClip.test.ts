@@ -22,6 +22,13 @@ function movableCanvas(x: number, y: number) {
   }
 }
 
+/** Wheel events carry the moment they happened; the constructor cannot set it. */
+function wheelAt(el: HTMLElement, timeStamp: number) {
+  const event = new window.WheelEvent('wheel', { bubbles: true })
+  Object.defineProperty(event, 'timeStamp', { value: timeStamp })
+  el.dispatchEvent(event)
+}
+
 describe('eventToClip', () => {
   beforeEach(() => {
     document.body.innerHTML = ''
@@ -46,6 +53,22 @@ describe('eventToClip', () => {
     // The point under the finger is now 140px above where it was.
     expect(eventToClip({ clientX: 200, clientY: 260 }, el).y).toBe(0)
     expect(eventToClip({ clientX: 200, clientY: 400 }, el).y).toBeCloseTo(-0.35)
+  })
+
+  it('takes a burst of wheel events for one gesture', () => {
+    const { el, moveTo } = movableCanvas(0, 0)
+    wheelAt(el, 1000)
+    expect(eventToClip({ clientX: 200, clientY: 400 }, el).y).toBe(0)
+
+    // A trackpad zoom is 60-120 wheel events a second and the canvas holds
+    // still through all of them; one measurement covers the burst.
+    moveTo(-140)
+    wheelAt(el, 1016)
+    expect(eventToClip({ clientX: 200, clientY: 400 }, el).y).toBe(0)
+
+    // The burst ended, so the next turn of the wheel measures again.
+    wheelAt(el, 1600)
+    expect(eventToClip({ clientX: 200, clientY: 260 }, el).y).toBe(0)
   })
 
   it('keeps the rect within one gesture', () => {
