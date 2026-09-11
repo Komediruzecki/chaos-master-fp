@@ -9,7 +9,7 @@ import { useToast } from '@/contexts/ToastContext'
 import { activeTab, setActiveTab, workspaceIsVisible } from '@/lib/activeTab'
 import { pushBackHandler } from '@/lib/backStack'
 import { SHOWCASE_CONSENT_VERSION } from '@/lib/communityShowcase'
-import { saveDraft } from '@/lib/draft'
+import { markDraftBaseline, saveDraft } from '@/lib/draft'
 import { hapticsEnabled, setHapticsEnabled } from '@/lib/haptics'
 import { onAppPause } from '@/lib/lifecycle'
 import { trackAppInit } from '@/lib/telemetry'
@@ -1552,17 +1552,28 @@ export function MainWorkspace(props: AppProps) {
   const timeline = createTimelineState({ seatId: 'player' })
 
   /**
-   * The editor has no autosave, and both platforms may kill a backgrounded
-   * WebView without warning. Pause is the last moment the app is told about,
-   * so the flame and its animation go to storage there; App.tsx offers them
-   * back on the next cold start (lib/draft.ts). The store is unwrapped
-   * because what is written has to be plain JSON, not a reactive proxy.
+   * The editor's autosave (hooks/useWorkspaceAutosave.ts) flushes to Recents
+   * on pagehide, which a WebView the OS force-stops never fires, so pause -
+   * the last moment a native app is told about - writes the flame and its
+   * animation to storage as well, and App.tsx offers them back on the next
+   * cold start (lib/draft.ts).
+   *
+   * Native only. On the web pause is `visibilitychange`, so this serialised
+   * the whole flame into localStorage on every tab switch while only the
+   * native build ever reads it back.
+   *
+   * The baseline is taken here so an untouched flame never becomes a draft.
+   * The store is unwrapped because what is written has to be plain JSON, not
+   * a reactive proxy.
    */
-  onCleanup(
-    onAppPause(() => {
-      saveDraft(unwrap(flameDescriptor), timeline.tracks())
-    }),
-  )
+  if (IS_NATIVE) {
+    markDraftBaseline(unwrap(flameDescriptor), timeline.tracks())
+    onCleanup(
+      onAppPause(() => {
+        saveDraft(unwrap(flameDescriptor), timeline.tracks())
+      }),
+    )
+  }
 
   const captureTimelineSnapshot = (): TimelineSnapshot => ({
     config: deepClone(timeline.config()),

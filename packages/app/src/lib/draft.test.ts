@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { parseFlameXml } from '@/flame/flameXml'
 import { safeSetItem } from '@/utils/storage'
-import { clearDraft, DRAFT_KEY, draftAction, hasSharePayload, readDraft, saveDraft, } from './draft'
+import { clearDraft, DRAFT_KEY, draftAction, hasSharePayload, markDraftBaseline, readDraft, saveDraft, } from './draft'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 import type { TimelineTrack } from '@/utils/timeline'
 
@@ -84,6 +84,30 @@ describe('the background draft', () => {
     safeSetItem(DRAFT_KEY, '{"hello":"world"}')
     expect(readDraft()).toBeUndefined()
     clearDraft()
+  })
+
+  it('writes nothing when nothing has changed since the baseline', () => {
+    // Android fires pause for every share sheet and permission dialog, so an
+    // untouched flame would otherwise become a draft on the first background
+    // and be offered back on every cold start after it.
+    markDraftBaseline(flame, tracks)
+    saveDraft(flame, tracks)
+    expect(readDraft()).toBeUndefined()
+  })
+
+  it('writes an edited flame, and clears once it is back at the baseline', () => {
+    markDraftBaseline(flame)
+    const edited: FlameDescriptor = {
+      ...flame,
+      metadata: { ...flame.metadata, name: 'Edited' },
+    }
+    saveDraft(edited)
+    expect(readDraft()?.flame.metadata?.name).toBe('Edited')
+
+    // Undone back to where it started: nothing left to restore, so the stale
+    // draft goes rather than outliving the work it came from.
+    saveDraft(flame)
+    expect(readDraft()).toBeUndefined()
   })
 })
 

@@ -7,11 +7,12 @@ import type { TimelineTrack } from '@/utils/timeline'
 /**
  * The flame the app was holding when it went to the background.
  *
- * The editor has no autosave: everything the user makes lives in memory until
- * they export or save it. An OS that kills a backgrounded WebView - which both
- * platforms do, without warning - would take the session with it, so pause
- * writes the current flame here (lib/lifecycle.ts calls it) and the next cold
- * start offers it back.
+ * The editor's own autosave (hooks/useWorkspaceAutosave.ts) reaches Recents
+ * on pagehide and at every load boundary - but a WebView the OS force-stops
+ * never fires pagehide, and both platforms force-stop without warning. Pause
+ * is the last moment a native app is told about, so the flame goes here too
+ * and the next cold start offers it back. Folding the two into one path is
+ * still open.
  *
  * The stored value is the envelope `utils/flameImport` already reads, so a
  * draft is validated on the way back in exactly like an imported file: a
@@ -20,16 +21,50 @@ import type { TimelineTrack } from '@/utils/timeline'
  */
 export const DRAFT_KEY = 'chaos-master-draft'
 
+const signature = (
+  flame: FlameDescriptor,
+  tracks?: readonly TimelineTrack[],
+): string => JSON.stringify({ flame, tracks: tracks ?? [] })
+
+/**
+ * What the workspace loaded, or last came back to. A pause with nothing
+ * changed since then is not worth a draft: Android fires pause for every
+ * share sheet and permission dialog, so an untouched default flame would
+ * otherwise be stored on the first background and offered back on every cold
+ * start after it, over whatever the user opened the app for.
+ */
+let cleanSignature: string | undefined
+
+/** Marks the current state as saved: what a pause may ignore. */
+export function markDraftBaseline(
+  flame: FlameDescriptor,
+  tracks?: readonly TimelineTrack[],
+): void {
+  cleanSignature = signature(flame, tracks)
+}
+
 export function saveDraft(
   flame: FlameDescriptor,
   tracks?: readonly TimelineTrack[],
 ): void {
+  if (signature(flame, tracks) === cleanSignature) {
+    // Nothing unsaved, so nothing to come back to - and a draft left from an
+    // earlier edit that has since been undone would outlive the work.
+    clearDraft()
+    return
+  }
   const envelope = {
     flame,
     savedAt: Date.now(),
     ...(tracks && tracks.length > 0 ? { animation: { tracks } } : {}),
   }
-  safeSetItem(DRAFT_KEY, JSON.stringify(envelope))
+  if (!safeSetItem(DRAFT_KEY, JSON.stringify(envelope))) {
+    // The safety net is gone and there is nobody to tell at pause time, so
+    // at least leave the reason somewhere rather than failing silently.
+    console.warn(
+      '[draft] storage refused the draft; this session is not backed up',
+    )
+  }
 }
 
 export function readDraft(): ParsedFlame | undefined {
