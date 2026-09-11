@@ -13,6 +13,10 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
+        <!-- Shows behind the status and navigation bars, which Capacitor's
+             SystemBars keeps the WebView clear of: the app's Void, in light
+             and dark system themes alike. -->
+        <item name="android:windowBackground">@color/lumen_background</item>
     </style>
 
 

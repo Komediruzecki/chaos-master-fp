@@ -33,6 +33,14 @@ const config: CapacitorConfig = {
     scrollEnabled: false,
     allowsLinkPreview: false,
   },
+  plugins: {
+    SystemBars: {
+      // Light status and navigation bar icons (Android): the app is dark in
+      // either system theme. The bars sit on the theme's windowBackground,
+      // the same --void (res/values/styles.xml).
+      style: 'DARK',
+    },
+  },
   experimental: {
     ios: {
       spm: {
