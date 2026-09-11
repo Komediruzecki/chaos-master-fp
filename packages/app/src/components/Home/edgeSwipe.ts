@@ -8,8 +8,10 @@ import { createDragHandler } from '@/utils/createDragHandler'
  * full-screen layer with somewhere to go back to. A drag that begins against
  * the leading edge and travels far enough to the right pops the back registry
  * once, which is the same thing the Android gesture does: it dismisses the
- * topmost layer, not necessarily Home, so a modal opened over Home still
- * closes first.
+ * topmost layer rather than Home specifically. A modal is not one of those
+ * layers in practice - `showModal()` puts the dialog in the top layer and
+ * makes the rest of the document inert, so no pointer event reaches Home
+ * while one is up.
  */
 
 /** How close to the leading edge a swipe has to start to be this gesture. */
@@ -22,6 +24,14 @@ export const EDGE_SWIPE_DISTANCE_PX = 60
 export function createHomeEdgeSwipe() {
   return createDragHandler(
     (initEvent) => {
+      // A finger or a pen, never a mouse. createDragHandler starts on button
+      // 0 by default, and on the desktop web the leading 24px of Home is the
+      // section rail's gutter, the brand text and the Overview button: a
+      // left-button drag there popped the back registry and dropped the user
+      // into the editor mid-drag. This gesture stands in for the back gesture
+      // iOS does not have (DESIGN.md section 4), so a pointing device has no
+      // business starting it.
+      if (initEvent.pointerType === 'mouse') return undefined
       if (initEvent.clientX > EDGE_SWIPE_START_PX) return undefined
       const startX = initEvent.clientX
       let popped = false

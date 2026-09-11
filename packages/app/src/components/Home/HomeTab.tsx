@@ -682,7 +682,13 @@ export function HomeTab(props: HomeTabProps) {
     <div
       class={ui.home}
       classList={{ [ui.touch!]: isTouchLayout(), [ui.deck!]: deckFits() }}
-      onPointerDown={startEdgeSwipe}
+      onPointerDown={(event) => {
+        // Touch layouts only: the desktop reaches Home through
+        // FloatingActions and leaves it the same way. Checked here rather
+        // than by swapping the handler, which Solid binds once.
+        if (!isTouchLayout()) return
+        startEdgeSwipe(event)
+      }}
     >
       <nav class={ui.rail} aria-label="Home sections">
         <span class={ui.railBrand}>Lumen Apeiron</span>
