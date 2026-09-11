@@ -42,6 +42,9 @@ function loadRuntime() {
 }
 
 export async function saveNative(blob: Blob, filename: string): Promise<void> {
+  // A breadcrumb for the device log, so a silent tap can be told from a
+  // tap that never reached here.
+  console.info(`[nativeSave] ${filename}, ${blob.size} bytes`)
   try {
     const runtime = await loadRuntime()
     const outcome = await runtime.saveFile(blob, filename, { folder: FOLDER })

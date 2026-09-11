@@ -21,10 +21,14 @@ export type StorageArea = 'documents' | 'cache'
 export interface FilePorts {
   /** `Capacitor.getPlatform()`: 'android', 'ios' or 'web'. */
   readonly platform: string
+  /** False only when nothing is at the path; any other failure rejects. */
   exists: (path: string, area: StorageArea) => Promise<boolean>
   /** Creates or truncates the file, and any missing folders; resolves its URI. */
   write: (path: string, area: StorageArea, base64: string) => Promise<string>
+  /** Appends to a file `write` created. */
   append: (path: string, area: StorageArea, base64: string) => Promise<void>
+  /** Deletes a file `write` created. */
+  remove: (path: string, area: StorageArea) => Promise<void>
   /** Opens the system share sheet for a file `write` created. */
   share: (uri: string, title: string) => Promise<void>
 }
@@ -65,6 +69,21 @@ export async function base64Of(blob: Blob): Promise<string> {
   return btoa(binary)
 }
 
+const messageOf = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error)
+
+/**
+ * The file was created but a later chunk failed. The partial file is already
+ * removed, so the name is free again; the folder is writable, the write is
+ * not, which is not something another name fixes.
+ */
+export class PartialWriteError extends Error {
+  constructor(path: string, cause: unknown) {
+    super(`${path} stopped after the first chunk: ${messageOf(cause)}`)
+    this.name = 'PartialWriteError'
+  }
+}
+
 async function writeBlob(
   ports: FilePorts,
   path: string,
@@ -76,12 +95,18 @@ async function writeBlob(
     area,
     await base64Of(blob.slice(0, CHUNK_BYTES)),
   )
-  for (let start = CHUNK_BYTES; start < blob.size; start += CHUNK_BYTES) {
-    await ports.append(
-      path,
-      area,
-      await base64Of(blob.slice(start, start + CHUNK_BYTES)),
-    )
+  try {
+    for (let start = CHUNK_BYTES; start < blob.size; start += CHUNK_BYTES) {
+      await ports.append(
+        path,
+        area,
+        await base64Of(blob.slice(start, start + CHUNK_BYTES)),
+      )
+    }
+  } catch (error) {
+    // Never leave a truncated PNG or MP4 where the Files app shows it.
+    await ports.remove(path, area).catch(() => undefined)
+    throw new PartialWriteError(path, error)
   }
   return uri
 }
@@ -126,13 +151,19 @@ export function candidateNames(fileName: string, now: Date): string[] {
   return [fileName, ...numbered, `${base} ${stamp}${ext}`]
 }
 
-/** Both platforms reject `Share.share` with "Share canceled" on dismissal. */
+/**
+ * Both platforms reject `Share.share` with exactly "Share canceled" when the
+ * user dismisses the sheet. Only that is a cancel: a failure whose message
+ * happens to mention cancelling must still reach the user as a failure.
+ */
 export function isShareCancel(error: unknown): boolean {
   const message =
     typeof error === 'object' && error !== null && 'message' in error
       ? error.message
       : error
-  return typeof message === 'string' && /cancel/i.test(message)
+  return (
+    typeof message === 'string' && /^share cancell?ed$/i.test(message.trim())
+  )
 }
 
 async function saveToDocuments(
@@ -145,8 +176,8 @@ async function saveToDocuments(
   let refusals = 0
   for (const candidate of candidateNames(fileName, now)) {
     const path = `${folder}/${candidate}`
-    if (await ports.exists(path, 'documents')) continue
     try {
+      if (await ports.exists(path, 'documents')) continue
       const uri = await writeBlob(ports, path, 'documents', blob)
       return {
         kind: 'saved',
@@ -154,7 +185,11 @@ async function saveToDocuments(
         fileName: candidate,
         uri,
       }
-    } catch {
+    } catch (error) {
+      // The reason reaches the device log (Capacitor/Console in logcat)
+      // even when the share sheet then takes over.
+      console.warn(`[files] Documents refused ${path}:`, messageOf(error))
+      if (error instanceof PartialWriteError) return null
       // A file an earlier install created is invisible to `exists` but still
       // refuses the write. One refusal moves on to the next name; a second
       // means shared storage is not writable here at all.

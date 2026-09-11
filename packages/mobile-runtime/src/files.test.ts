@@ -18,6 +18,10 @@ interface FakeOptions {
   readonly existing?: readonly string[]
   /** Paths inside Documents whose write is refused, like a file an earlier install left. */
   readonly refused?: readonly string[]
+  /** Paths inside Documents whose stat fails for a reason other than absence. */
+  readonly statRefused?: readonly string[]
+  /** Every append into Documents fails, after the first chunk was written. */
+  readonly appendRefused?: boolean
   readonly shareError?: Error
 }
 
@@ -30,7 +34,12 @@ function fakePlatform(platform: string, options: FakeOptions = {}) {
   }
   const ports: FilePorts = {
     platform,
-    exists: (path, area) => Promise.resolve(files.has(key(area, path))),
+    exists: (path, area) => {
+      if (area === 'documents' && options.statRefused?.includes(path)) {
+        return Promise.reject(new Error('OS-PLUG-FILE-0013 stat failed'))
+      }
+      return Promise.resolve(files.has(key(area, path)))
+    },
     write: (path, area, base64) => {
       if (area === 'documents' && options.refused?.includes(path)) {
         return Promise.reject(new Error('EACCES (Permission denied)'))
@@ -39,12 +48,19 @@ function fakePlatform(platform: string, options: FakeOptions = {}) {
       return Promise.resolve(`file:///${area}/${path}`)
     },
     append: (path, area, base64) => {
+      if (area === 'documents' && options.appendRefused) {
+        return Promise.reject(new Error('ENOSPC (No space left on device)'))
+      }
       const before = files.get(key(area, path)) ?? new Uint8Array()
       const added = decode(base64)
       const joined = new Uint8Array(before.length + added.length)
       joined.set(before)
       joined.set(added, before.length)
       files.set(key(area, path), joined)
+      return Promise.resolve()
+    },
+    remove: (path, area) => {
+      files.delete(key(area, path))
       return Promise.resolve()
     },
     share: (uri) => {
@@ -124,6 +140,38 @@ describe('saveFileWith on Android', () => {
     )
     expect(outcome).toEqual({ kind: 'shared' })
     expect(shared).toEqual(['file:///cache/exports/flame.png'])
+  })
+
+  it('counts a stat failure as a refusal', async () => {
+    const { ports, shared } = fakePlatform('android', {
+      statRefused: ['Lumen Apeiron/flame.png', 'Lumen Apeiron/flame (2).png'],
+    })
+    const outcome = await saveFileWith(
+      ports,
+      png([1]),
+      'flame.png',
+      OPTIONS,
+      NOW,
+    )
+    expect(outcome).toEqual({ kind: 'shared' })
+    expect(shared).toEqual(['file:///cache/exports/flame.png'])
+  })
+
+  it('removes a partial file and shares when a later chunk fails', async () => {
+    const bytes = new Uint8Array(CHUNK_BYTES + 5)
+    const { ports, files, shared } = fakePlatform('android', {
+      appendRefused: true,
+    })
+    const outcome = await saveFileWith(
+      ports,
+      new Blob([bytes]),
+      'clip.mp4',
+      OPTIONS,
+      NOW,
+    )
+    expect(outcome).toEqual({ kind: 'shared' })
+    expect([...files.keys()]).toEqual(['cache:exports/clip.mp4'])
+    expect(shared).toEqual(['file:///cache/exports/clip.mp4'])
   })
 
   it('reassembles a file larger than one bridge chunk', async () => {
@@ -215,9 +263,11 @@ describe('file names', () => {
     expect(candidateNames('notes', NOW)[1]).toBe('notes (2)')
   })
 
-  it('treats only cancellations as cancelled', () => {
+  it('treats only a dismissed share sheet as cancelled', () => {
     expect(isShareCancel(new Error('Share canceled'))).toBe(true)
-    expect(isShareCancel({ message: 'User cancelled' })).toBe(true)
+    expect(isShareCancel({ message: ' Share cancelled ' })).toBe(true)
+    expect(isShareCancel(new Error('Share canceled: no activity'))).toBe(false)
+    expect(isShareCancel({ message: 'User cancelled' })).toBe(false)
     expect(isShareCancel(new Error('No activity found'))).toBe(false)
     expect(isShareCancel(undefined)).toBe(false)
   })
