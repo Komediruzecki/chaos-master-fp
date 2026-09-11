@@ -18,13 +18,16 @@
   z-index: 20;
 }
 
-/* A 12px hit strip straddling the deck's leading edge: wide enough for a
-   finger, narrow enough that the 3px visual grip stays a hairline. */
+/* A 12px hit strip inside the deck's leading edge: wide enough for a finger,
+   narrow enough that the 3px visual grip stays a hairline. Inside, because
+   the deck's paint containment clips anything hanging over the edge out of
+   hit testing: half a strip that straddled it was not touchable. It covers
+   the body's own 12px gutter, so no control sits under it. */
 .divider {
   position: absolute;
   top: 0;
   bottom: 0;
-  left: -6px;
+  left: 0;
   width: 12px;
   cursor: col-resize;
   touch-action: none;
@@ -34,7 +37,7 @@
   content: '';
   position: absolute;
   top: 50%;
-  left: 5px;
+  left: 4px;
   width: 3px;
   height: 44px;
   transform: translateY(-50%);
@@ -64,6 +67,8 @@
 }
 
 .iconButton {
+  /* The title truncates; the buttons keep their target. */
+  flex-shrink: 0;
   width: var(--la-tap);
   height: var(--la-tap);
   display: grid;
