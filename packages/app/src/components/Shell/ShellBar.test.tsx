@@ -1,22 +1,14 @@
 import { cleanup, fireEvent, render, screen } from '@solidjs/testing-library'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { backDepth, popBack } from '@/lib/backStack'
+import { haptic } from '@/lib/haptics'
 import { CAPSULE_OPEN_MS, ShellBar } from './ShellBar'
 import type { ShellDestination } from './ShellBar'
 
-const selectionChanged = vi.fn()
-vi.mock('@/lib/haptics', () => ({
-  haptic: {
-    impactLight: () => undefined,
-    impactMedium: () => undefined,
-    selectionChanged: () => selectionChanged(),
-    success: () => undefined,
-    warning: () => undefined,
-    error: () => undefined,
-    selectionStart: () => undefined,
-    selectionEnd: () => undefined,
-  },
-}))
+// The real module is safe to call here: every method delegates to NO_HAPTICS
+// until the native ports load, which they never do on the web. Restating all
+// eight as a mock only created a second copy to keep in step with the module.
+const selectionChanged = vi.spyOn(haptic, 'selectionChanged')
 
 function mount(mode: 'full' | 'capsule', current: ShellDestination = 'create') {
   const onSelect = vi.fn()

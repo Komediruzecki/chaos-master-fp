@@ -2,27 +2,19 @@ import '@/commands/builtins'
 import { cleanup, fireEvent, render, screen } from '@solidjs/testing-library'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { backDepth, popBack } from '@/lib/backStack'
+import { haptic } from '@/lib/haptics'
 import { createMockCommandContext } from '@/webmcp/testUtils'
 import { PEEK_HEIGHT, setRailDetent, SHEET_TRANSITION_MS } from './detents'
 import { EditorRail } from './EditorRail'
 
-const impactLight = vi.fn()
-const impactMedium = vi.fn()
-const selectionChanged = vi.fn()
-const selectionStart = vi.fn()
-const selectionEnd = vi.fn()
-vi.mock('@/lib/haptics', () => ({
-  haptic: {
-    impactLight: () => impactLight(),
-    impactMedium: () => impactMedium(),
-    selectionChanged: () => selectionChanged(),
-    success: () => undefined,
-    warning: () => undefined,
-    error: () => undefined,
-    selectionStart: () => selectionStart(),
-    selectionEnd: () => selectionEnd(),
-  },
-}))
+// The real module is safe to call here: every method delegates to NO_HAPTICS
+// until the native ports load, which they never do on the web. Restating all
+// eight as a mock only created a second copy to keep in step with the module.
+const impactLight = vi.spyOn(haptic, 'impactLight')
+const impactMedium = vi.spyOn(haptic, 'impactMedium')
+const selectionChanged = vi.spyOn(haptic, 'selectionChanged')
+const selectionStart = vi.spyOn(haptic, 'selectionStart')
+const selectionEnd = vi.spyOn(haptic, 'selectionEnd')
 
 function mount(extra: Partial<Parameters<typeof EditorRail>[0]> = {}) {
   const ctx = createMockCommandContext()
