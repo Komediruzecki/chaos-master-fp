@@ -8,9 +8,15 @@
   right: 0;
   bottom: 0;
   z-index: 40;
-  padding: 0 max(var(--la-float-inset), var(--la-safe-right))
-    max(var(--la-s-2), calc(var(--la-safe-bottom) + var(--la-s-2)))
-    max(var(--la-float-inset), var(--la-safe-left));
+  /* The padding is the chrome the sheet may not grow into, and the rail reads
+     it back through getComputedStyle to cap the large detent: the top bar and
+     the gap under it above, the home indicator below. The box grows upward
+     from the bottom of the screen and is inert, so the padding blocks
+     nothing. */
+  padding-top: calc(var(--la-hud-bottom) + var(--la-s-2));
+  padding-right: max(var(--la-float-inset), var(--la-safe-right));
+  padding-bottom: var(--la-dock-bottom);
+  padding-left: max(var(--la-float-inset), var(--la-safe-left));
   /* The dock is a frame around the sheet; the canvas stays reachable beside it. */
   pointer-events: none;
 }
@@ -143,7 +149,9 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   touch-action: pan-y;
-  padding-bottom: calc(var(--la-safe-bottom) + var(--la-s-4));
+  /* No safe area here: the dock already lifts the whole sheet above the home
+     indicator, and counting it twice leaves a gap under the last row. */
+  padding-bottom: var(--la-s-4);
 }
 
 @media (prefers-reduced-motion: reduce) {

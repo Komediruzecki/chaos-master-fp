@@ -98,6 +98,24 @@ describe('EditorRail', () => {
     expect(sheet().style.height).toBe(`${PEEK_HEIGHT}px`)
   })
 
+  it('keeps the large detent clear of the top bar', () => {
+    mount()
+    // happy-dom applies no stylesheet, so the dock's padding is written here
+    // as an iPhone 15 resolves it: the top bar's bottom plus the 8px gap
+    // above the sheet, and the home indicator below it.
+    const dock = screen.getByRole('region', { name: 'Editor controls' })
+    dock.style.paddingTop = '119px'
+    dock.style.paddingBottom = '42px'
+    window.dispatchEvent(new Event('resize'))
+
+    const grabber = screen.getByTestId('editor-rail-grabber')
+    fireEvent.pointerDown(grabber, { clientY: 800, pointerId: 1 })
+    fireEvent.pointerMove(grabber, { clientY: 0, pointerId: 1 })
+    expect(sheet().style.height).toBe('691px')
+    fireEvent.pointerUp(grabber, { clientY: 0, pointerId: 1 })
+    expect(sheet().style.height).toBe('691px')
+  })
+
   it('fires the shutter on tap and export options on a long press', () => {
     vi.useFakeTimers()
     const props = mount()

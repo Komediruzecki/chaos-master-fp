@@ -19,11 +19,29 @@ export interface DetentHeights {
   readonly large: number
 }
 
-export function detentHeights(viewportHeight: number): DetentHeights {
+/**
+ * The three resting heights for a viewport, in order and never below peek:
+ * a keyboard can leave so little viewport that 44% of it would clip the
+ * chips and the shutter. `maxHeight` is what the chrome above the sheet
+ * leaves it (the top bar and the gap under it, the safe area below); the
+ * sheet never rises into it.
+ */
+export function detentHeights(
+  viewportHeight: number,
+  maxHeight = Infinity,
+): DetentHeights {
+  const ceiling = Math.max(PEEK_HEIGHT, maxHeight)
+  const medium = Math.min(
+    ceiling,
+    Math.max(PEEK_HEIGHT, Math.round(viewportHeight * MEDIUM_FRACTION)),
+  )
   return {
     peek: PEEK_HEIGHT,
-    medium: Math.round(viewportHeight * MEDIUM_FRACTION),
-    large: Math.round(viewportHeight * LARGE_FRACTION),
+    medium,
+    large: Math.min(
+      ceiling,
+      Math.max(medium, Math.round(viewportHeight * LARGE_FRACTION)),
+    ),
   }
 }
 

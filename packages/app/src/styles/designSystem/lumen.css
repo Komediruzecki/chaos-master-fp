@@ -194,6 +194,9 @@
   --la-hud-h: 44px;
   --la-rail-h: 64px;
   --la-hud-top: max(var(--la-s-2), calc(var(--la-safe-top) + var(--la-s-2)));
+  /* Where the top bar ends. Everything that floats under it is placed from
+     here, so a bar that moves takes the tracker and the toasts with it. */
+  --la-hud-bottom: calc(var(--la-hud-top) + var(--la-hud-h));
   --la-dock-bottom: max(
     var(--la-s-2),
     calc(var(--la-safe-bottom) + var(--la-s-2))

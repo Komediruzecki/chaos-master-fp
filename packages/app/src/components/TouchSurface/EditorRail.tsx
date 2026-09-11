@@ -37,12 +37,37 @@ export function EditorRail(props: EditorRailProps) {
   const [detent, setDetent] = createSignal<Detent>('peek')
   const [tab, setTab] = createSignal<TouchTab>('variations')
   const [vh, setVh] = createSignal(viewportHeight())
+  const [chrome, setChrome] = createSignal(0)
   const [dragHeight, setDragHeight] = createSignal<number | null>(null)
-  const heights = createMemo(() => detentHeights(vh()))
-  const sheetHeight = () => dragHeight() ?? heightOf(detent(), heights())
+  const heights = createMemo(() => detentHeights(vh(), vh() - chrome()))
+  const sheetHeight = () =>
+    dragHeight() ?? clampSheetHeight(heightOf(detent(), heights()), heights())
+
+  let dockEl: HTMLElement | undefined
+
+  /**
+   * What the sheet may not grow into, read back from the dock's own padding:
+   * above it the top bar and the gap under it, below it the home indicator.
+   * Both are built from env() insets, which only the resolved style knows,
+   * and the dock is inert, so the padding blocks nothing.
+   */
+  function measureChrome() {
+    if (!dockEl) return
+    const style = window.getComputedStyle(dockEl)
+    const top = Number.parseFloat(style.paddingTop)
+    const bottom = Number.parseFloat(style.paddingBottom)
+    setChrome(
+      (Number.isFinite(top) ? top : 0) + (Number.isFinite(bottom) ? bottom : 0),
+    )
+  }
 
   onMount(() => {
-    const onResize = () => setVh(viewportHeight())
+    measureChrome()
+    const onResize = () => {
+      setVh(viewportHeight())
+      // The safe areas change with the orientation, so the chrome does too.
+      measureChrome()
+    }
     window.addEventListener('resize', onResize)
     window.visualViewport?.addEventListener('resize', onResize)
     onCleanup(() => {
@@ -57,8 +82,11 @@ export function EditorRail(props: EditorRailProps) {
   // into the deck) must hand the canvas its full height back.
   createEffect(() => {
     const target = detent()
+    const measured = heights()
     props.onCoveredHeightChange?.(
-      target === 'peek' ? 0 : heightOf(target, heights()) - PEEK_HEIGHT,
+      target === 'peek'
+        ? 0
+        : clampSheetHeight(heightOf(target, measured), measured) - PEEK_HEIGHT,
     )
   })
   onCleanup(() => {
@@ -156,7 +184,12 @@ export function EditorRail(props: EditorRailProps) {
   }
 
   return (
-    <section class={ui.dock} role="region" aria-label="Editor controls">
+    <section
+      class={ui.dock}
+      role="region"
+      aria-label="Editor controls"
+      ref={dockEl}
+    >
       <div
         class={ui.sheet}
         classList={{ [ui.dragging!]: dragHeight() !== null }}
