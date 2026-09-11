@@ -87,7 +87,7 @@ timeout 1800 pnpm --filter chaos-master exec vitest run 2>&1 | tail -5   # 2603 
 
 - Produces: `pushBackHandler(handler: () => void, label: string): () => void`, `popBack(): boolean`, `backDepth: Accessor<number>`, `backLabels(): readonly string[]` (for tests and the debug overlay).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 import { describe, expect, it, vi } from 'vitest'
@@ -137,9 +137,9 @@ describe('backStack', () => {
 })
 ```
 
-- [ ] **Step 2: Run them to see them fail** — `timeout 300 pnpm --filter chaos-master exec vitest run src/lib/backStack.test.ts` fails with "Failed to resolve import".
+- [x] **Step 2: Run them to see them fail** — `timeout 300 pnpm --filter chaos-master exec vitest run src/lib/backStack.test.ts` fails with "Failed to resolve import".
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 ```ts
 import { createSignal } from 'solid-js'
@@ -184,8 +184,8 @@ export function popBack(): boolean {
 }
 ```
 
-- [ ] **Step 4: Run the tests** — all four pass.
-- [ ] **Step 5: Commit** — `git commit -m "feat(app): a back registry the layers push themselves onto"`.
+- [x] **Step 4: Run the tests** — all four pass.
+- [x] **Step 5: Commit** — `git commit -m "feat(app): a back registry the layers push themselves onto"`.
 
 ---
 
@@ -203,7 +203,7 @@ export function popBack(): boolean {
 - Produces (runtime): `interface LifecyclePorts { onBackButton(cb: () => void): () => void; onPause(cb: () => void): () => void; onResume(cb: () => void): () => void; minimizeApp(): Promise<void> }`, `webLifecycle(doc?: Document): LifecyclePorts` (pause and resume from `visibilitychange`; back button never fires; minimize resolves and does nothing), `capacitorLifecycle: LifecyclePorts` (in `capacitor/lifecycle.ts`).
 - Produces (app): `loadLifecycle(): Promise<void>` (idempotent; native builds only, guarded by the literal `__NATIVE_BUILD__`), `appActive: Accessor<boolean>` (true until the first pause, false until the next resume), `onAppPause(cb): () => void`, `onAppResume(cb): () => void`, the back button wired inside the facade (on back, `if (!popBack()) void ports.minimizeApp()`), and for tests `useLifecyclePorts(ports)`.
 
-- [ ] **Step 1: Write the failing runtime tests** (`packages/mobile-runtime/src/lifecycle.test.ts`)
+- [x] **Step 1: Write the failing runtime tests** (`packages/mobile-runtime/src/lifecycle.test.ts`)
 
 ```ts
 import { describe, expect, it, vi } from 'vitest'
@@ -258,7 +258,7 @@ describe('webLifecycle', () => {
 })
 ```
 
-- [ ] **Step 2: Implement the runtime** (`lifecycle.ts`)
+- [x] **Step 2: Implement the runtime** (`lifecycle.ts`)
 
 ```ts
 /**
@@ -294,14 +294,14 @@ export function webLifecycle(doc: Document = document): LifecyclePorts {
 
 `capacitor/lifecycle.ts` binds the same four to `@capacitor/app`: `App.addListener('backButton', cb)` (the listener's presence is what stops Capacitor's default of `history.back()` or exiting), `App.addListener('pause', cb)`, `App.addListener('resume', cb)`, `App.minimizeApp()`. `addListener` returns a promise of a handle; the returned disposer must call `handle.remove()` once the promise resolves and must tolerate being called before it does (keep a `disposed` flag and remove on resolve). Add both entries to `packages/mobile-runtime/package.json` `exports` in the shape `./haptics` and `./capacitor-haptics` use, and `"@capacitor/app": "^8.1.1"` to its dependencies; run `timeout 900 pnpm install` from the repo root.
 
-- [ ] **Step 3: Write the failing app tests** (`packages/app/src/lib/lifecycle.test.ts`) using a fake `LifecyclePorts` injected with `useLifecyclePorts`: (a) a back button press pops the registry first (`pushBackHandler` a spy, press, spy called once, `minimizeApp` not called); (b) with an empty registry the press calls `minimizeApp` once; (c) pause flips `appActive` to false and runs `onAppPause` callbacks once, resume flips it back and runs `onAppResume`; (d) `loadLifecycle()` in a web build (vitest defines `__NATIVE_BUILD__` as false) resolves without importing anything and `appActive()` stays true.
+- [x] **Step 3: Write the failing app tests** (`packages/app/src/lib/lifecycle.test.ts`) using a fake `LifecyclePorts` injected with `useLifecyclePorts`: (a) a back button press pops the registry first (`pushBackHandler` a spy, press, spy called once, `minimizeApp` not called); (b) with an empty registry the press calls `minimizeApp` once; (c) pause flips `appActive` to false and runs `onAppPause` callbacks once, resume flips it back and runs `onAppResume`; (d) `loadLifecycle()` in a web build (vitest defines `__NATIVE_BUILD__` as false) resolves without importing anything and `appActive()` stays true.
 
-- [ ] **Step 4: Implement the app facade** (`packages/app/src/lib/lifecycle.ts`), modelled on `lib/haptics.ts`: a module-level `ports: LifecyclePorts` defaulting to `webLifecycle()`, `useLifecyclePorts(next)` re-wires the four subscriptions, `loadLifecycle()` does `if (!__NATIVE_BUILD__) return` then `const { capacitorLifecycle } = await import('@chaos-master/mobile-runtime/capacitor-lifecycle')` (guarded by the literal in this module) and calls `useLifecyclePorts(capacitorLifecycle)`; a `[appActive, setAppActive]` signal; `onAppPause`/`onAppResume` keep sets of callbacks; the back subscription runs `if (!popBack()) void ports.minimizeApp()`. Errors from the dynamic import are logged with `console.warn('[lifecycle] ...')` and leave the web ports in place.
+- [x] **Step 4: Implement the app facade** (`packages/app/src/lib/lifecycle.ts`), modelled on `lib/haptics.ts`: a module-level `ports: LifecyclePorts` defaulting to `webLifecycle()`, `useLifecyclePorts(next)` re-wires the four subscriptions, `loadLifecycle()` does `if (!__NATIVE_BUILD__) return` then `const { capacitorLifecycle } = await import('@chaos-master/mobile-runtime/capacitor-lifecycle')` (guarded by the literal in this module) and calls `useLifecyclePorts(capacitorLifecycle)`; a `[appActive, setAppActive]` signal; `onAppPause`/`onAppResume` keep sets of callbacks; the back subscription runs `if (!popBack()) void ports.minimizeApp()`. Errors from the dynamic import are logged with `console.warn('[lifecycle] ...')` and leave the web ports in place.
 
-- [ ] **Step 5: Wire startup** — in `packages/app/src/index.tsx`, next to `void loadHaptics()`, add `void loadLifecycle()`.
+- [x] **Step 5: Wire startup** — in `packages/app/src/index.tsx`, next to `void loadHaptics()`, add `void loadLifecycle()`.
 
-- [ ] **Step 6: Run everything** — both test files pass; `timeout 1800 pnpm --filter chaos-master build` then `grep -l '@capacitor' packages/app/dist/assets/*.js` prints nothing; `timeout 1800 pnpm --filter chaos-master build:native` succeeds and `ls packages/app/dist-native/assets | grep -i lifecycle` shows the chunk.
-- [ ] **Step 7: Commit** — `git commit -m "feat(mobile): lifecycle ports, and the Android back gesture pops the registry"`.
+- [x] **Step 6: Run everything** — both test files pass; `timeout 1800 pnpm --filter chaos-master build` then `grep -l '@capacitor' packages/app/dist/assets/*.js` prints nothing; `timeout 1800 pnpm --filter chaos-master build:native` succeeds and `ls packages/app/dist-native/assets | grep -i lifecycle` shows the chunk.
+- [x] **Step 7: Commit** — `git commit -m "feat(mobile): lifecycle ports, and the Android back gesture pops the registry"`.
 
 ---
 
