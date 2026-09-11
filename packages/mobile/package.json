@@ -11,7 +11,8 @@
     "sync:android": "pnpm build:web && cap sync android",
     "open:ios": "cap open ios",
     "open:android": "cap open android",
-    "run:android": "pnpm sync:android && cap run android"
+    "run:android": "pnpm sync:android && cap run android",
+    "icons": "bash scripts/generate-icons.sh"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.1",

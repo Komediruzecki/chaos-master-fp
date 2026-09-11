@@ -66,8 +66,8 @@ packages/
     ios/                committed (SPM)
     android/            committed
     gradle/signing.gradle
-    resources/          icon + splash masters            (todo)
-    scripts/            icons.sh, dev-cert.sh             (todo)
+    assets/             icon-mark.svg, the icon and splash master (the favicon's mark)
+    scripts/            generate-icons.sh (`pnpm icons`); dev-cert.sh (todo)
   mobile-runtime/       @chaos-master/mobile-runtime       ports + adapters (files done, the rest todo)
     src/files.ts        save/share: the FilePorts contract and the platform-neutral flow, tested against fakes
     src/capacitor/*     Capacitor adapters (subpath exports)
@@ -120,7 +120,9 @@ Web code reaches native behaviour only through a dynamic `import('@chaos-master/
   - `allowBackup=false`;
   - `singleTop` (RevenueCat requires `standard` or `singleTop`);
   - `gradle/signing.gradle` with the `LUMEN` prefix.
-- [ ] Android `Theme.SplashScreen` splash and adaptive icons.
+- [x] Launcher icons and splash from the favicon mark (`packages/mobile/assets/icon-mark.svg`, `pnpm --filter @chaos-master/mobile icons`):
+  - Android: an adaptive icon with a themed (monochrome) layer, and a #080A0E `Theme.SplashScreen` background.
+  - iOS: the 1024 opaque icon and the splash.
 - [x] `packages/app`:
   - `.env.native` (no secrets): API and public origins = `https://lumenapeiron.com`, empty GA and Turnstile keys, `VITE_COMPUTE_GATE_CAPACITY=1`;
   - `build:native` (`vite build --mode native --outDir dist-native`);
@@ -128,7 +130,9 @@ Web code reaches native behaviour only through a dynamic `import('@chaos-master/
 - [x] Root scripts: `mobile:build`, `mobile:sync`, `mobile:android`.
 - [x] Extend `typecheck` and `test` to cover `packages/mobile-runtime`. `packages/mobile` (only `capacitor.config.ts`) is still not typechecked.
 - [x] Ignore files: `dist-native` and signing material (`*.jks`, `*.keystore`, `*.p8`, `*.p12`, `*.mobileprovision`) in `.gitignore`; `packages/mobile/ios` and `packages/mobile/android` in `.prettierignore` and the eslint `ignores`.
-- [ ] `packages/mobile/scripts/icons.sh` (reproducible ImageMagick, with `png:exclude-chunk=tIME,date`) and `scripts/dev-cert.sh` (a LAN-IP TLS cert for on-device live reload).
+- [ ] Scripts:
+  - Done: `packages/mobile/scripts/generate-icons.sh` (rsvg-convert and ImageMagick, byte-identical re-runs).
+  - Todo: `scripts/dev-cert.sh`, a LAN-IP TLS cert for on-device live reload.
 - [ ] `packages/mobile-runtime`: the files port is in (contract, Capacitor adapter, fakes, vitest); the other contracts and adapters are still todo.
 
 ### Phase 3: web-app seams (code)
