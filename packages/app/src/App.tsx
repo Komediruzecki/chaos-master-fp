@@ -18,7 +18,7 @@ import { initAncestry } from './flame/ancestry'
 import { importSharedVariations, loadCustomVariations, remapFlameCustomVariations, } from './flame/variations/custom'
 import { activeTab, arcadeMode, setActiveTab, tabFromHash, } from './lib/activeTab'
 import { pushBackHandler } from './lib/backStack'
-import { clearDraft, hasSharePayload, readDraft } from './lib/draft'
+import { clearDraft, draftAction, readDraft } from './lib/draft'
 import { IS_NATIVE } from './lib/platform'
 import { Root } from './lib/Root'
 
@@ -92,15 +92,24 @@ export function Wrappers() {
   const [draftNotice, setDraftNotice] = createSignal<string | null>(null)
 
   /**
-   * What the app was holding when the OS killed it (lib/draft.ts). Native
-   * only: a browser tab is not force-stopped from under the user, and a web
-   * session that ends is usually a deliberate one. A link that carries its
-   * own flame wins - restoring over it would replace what was opened - and so
-   * does the welcome screen, which is a first run by definition.
+   * What the app was holding when the OS killed it (lib/draft.ts). The
+   * welcome screen does not skip it: it shows on every launch until the user
+   * ticks "Don't show again", and the workspace is mounted behind it, so the
+   * flame is already there once they enter. A link that carries its own flame
+   * wins instead - restoring over it would replace what the link was opened
+   * for - and the draft is then dropped rather than left to surface over a
+   * later, unrelated session.
    */
   onMount(() => {
-    if (!IS_NATIVE) return
-    if (showWelcome() || hasSharePayload(window.location.search)) return
+    const action = draftAction({
+      native: IS_NATIVE,
+      search: window.location.search,
+    })
+    if (action === 'ignore') return
+    if (action === 'clear') {
+      clearDraft()
+      return
+    }
     const draft = readDraft()
     if (!draft) return
     batch(() => {

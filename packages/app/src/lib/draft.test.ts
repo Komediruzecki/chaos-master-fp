@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { parseFlameXml } from '@/flame/flameXml'
 import { safeSetItem } from '@/utils/storage'
-import { clearDraft, DRAFT_KEY, hasSharePayload, readDraft, saveDraft, } from './draft'
+import { clearDraft, DRAFT_KEY, draftAction, hasSharePayload, readDraft, saveDraft, } from './draft'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 import type { TimelineTrack } from '@/utils/timeline'
 
@@ -84,6 +84,28 @@ describe('the background draft', () => {
     safeSetItem(DRAFT_KEY, '{"hello":"world"}')
     expect(readDraft()).toBeUndefined()
     clearDraft()
+  })
+})
+
+describe('what a launch does with the draft', () => {
+  it('restores under the welcome screen, which is not a first run', () => {
+    // The welcome screen shows on every launch until the user ticks "Don't
+    // show again", and the workspace is mounted behind it, so there is
+    // somewhere for the flame to land. Skipping the restore there lost the
+    // session on the one path that always runs - and because the skip
+    // returned before clearing, the draft was left to be restored over some
+    // later, unrelated session. The welcome screen is deliberately not an
+    // input here.
+    expect(draftAction({ native: true, search: '' })).toBe('restore')
+  })
+
+  it('drops the draft when the link carries its own flame', () => {
+    expect(draftAction({ native: true, search: '?s=abc' })).toBe('clear')
+    expect(draftAction({ native: true, search: '?cv=abc' })).toBe('clear')
+  })
+
+  it('does nothing on the web, where nothing writes one', () => {
+    expect(draftAction({ native: false, search: '' })).toBe('ignore')
   })
 })
 

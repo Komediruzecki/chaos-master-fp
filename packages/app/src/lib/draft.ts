@@ -48,6 +48,29 @@ export function clearDraft(): void {
   safeRemoveItem(DRAFT_KEY)
 }
 
+export type DraftAction = 'restore' | 'clear' | 'ignore'
+
+/**
+ * What a launch should do with the draft.
+ *
+ * Native only: nothing writes a draft on the web, where a tab is not
+ * force-stopped from under the user (MainWorkspace registers the pause hook
+ * behind IS_NATIVE).
+ *
+ * The welcome screen is deliberately not an input. It is not a first run: it
+ * shows on every launch until the user ticks "Don't show again", and the
+ * workspace is mounted behind it, so a restored flame is waiting once they
+ * enter. A link that carries its own flame wins instead, and then the draft
+ * is dropped rather than left lying for a later, unrelated session.
+ */
+export function draftAction(input: {
+  native: boolean
+  search: string
+}): DraftAction {
+  if (!input.native) return 'ignore'
+  return hasSharePayload(input.search) ? 'clear' : 'restore'
+}
+
 /**
  * A link that carries its own flame (`?s=`, `?flame=`) or variation (`?cv=`).
  * Restoring the draft over it would replace what the link was opened for.
