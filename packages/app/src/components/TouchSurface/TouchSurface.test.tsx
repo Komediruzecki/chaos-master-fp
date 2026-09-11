@@ -1,6 +1,7 @@
 import '@/commands/builtins'
 import { cleanup, fireEvent, render, screen } from '@solidjs/testing-library'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { backDepth, popBack } from '@/lib/backStack'
 import { safeRemoveItem } from '@/utils/storage'
 import { createMockCommandContext } from '@/webmcp/testUtils'
 import { AdvancedToolsDrawer, TabletInspectorDeck, TouchControlSurface, TouchHUD, } from './index'
@@ -155,6 +156,23 @@ describe('TouchSurface Components', () => {
       expect(screen.getByRole('tooltip')).toBeTruthy()
       screen.getByTestId('hud-popover-backdrop').click()
       expect(screen.queryByRole('tooltip')).toBeNull()
+    })
+
+    it('closes its popovers on back', () => {
+      const ctx = createMockCommandContext()
+      render(() => (
+        <TouchHUD
+          ctx={ctx}
+          flame={ctx.flameDescriptor}
+          onOpenSettings={vi.fn()}
+        />
+      ))
+
+      screen.getByRole('button', { name: 'More' }).click()
+      expect(backDepth()).toBe(1)
+      expect(popBack()).toBe(true)
+      expect(screen.queryByRole('menu')).toBeNull()
+      expect(backDepth()).toBe(0)
     })
   })
 

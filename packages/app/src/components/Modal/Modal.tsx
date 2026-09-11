@@ -1,5 +1,6 @@
-import { createSignal, For, onMount } from 'solid-js'
+import { createSignal, For, onCleanup, onMount } from 'solid-js'
 import { Portal } from 'solid-js/web'
+import { pushBackHandler } from '@/lib/backStack'
 import ui from './Modal.module.css'
 import { ModalContext } from './ModalContext'
 import type { ParentProps } from 'solid-js'
@@ -108,6 +109,16 @@ export function Modal(props: ParentProps<ModalProps>) {
                 )
               }
             }
+
+            // A dialog is the topmost layer while it is up, so the Android
+            // back gesture closes it the way its own cancel does
+            // (lib/backStack.ts). The item's scope disposes this when the
+            // instance leaves the list, whichever way it was answered.
+            onCleanup(
+              pushBackHandler(() => {
+                respond(undefined)
+              }, 'modal'),
+            )
 
             return (
               <dialog

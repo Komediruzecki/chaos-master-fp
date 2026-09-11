@@ -1,9 +1,10 @@
 import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show, } from 'solid-js'
 import { CameraIcon, ColourWedge, ShapeTriangle, Shuffle, VariationSpiral, } from '@/icons'
+import { pushBackHandler } from '@/lib/backStack'
 import { haptic } from '@/lib/haptics'
 import { createDragHandler } from '@/utils/createDragHandler'
 import { createLongPress } from '@/utils/createLongPress'
-import { clampSheetHeight, detentHeights, FLICK_MAX_AGE_MS, heightOf, nearestDetent, PEEK_HEIGHT, settleDetent, SHEET_TRANSITION_MS, } from './detents'
+import { clampSheetHeight, detentHeights, FLICK_MAX_AGE_MS, heightOf, nearestDetent, PEEK_HEIGHT, railDetent, setRailDetent, settleDetent, SHEET_TRANSITION_MS, } from './detents'
 import ui from './EditorRail.module.css'
 import { TouchControlSurface } from './TouchControlSurface'
 import type { JSX } from 'solid-js'
@@ -35,7 +36,10 @@ function viewportHeight(): number {
  * is the floor, so the chips and the shutter are always one tap away.
  */
 export function EditorRail(props: EditorRailProps) {
-  const [detent, setDetent] = createSignal<Detent>('peek')
+  // The detent lives in detents.ts so it survives this component (the
+  // threshold between the rail and the tablet deck remounts it).
+  const detent = railDetent
+  const setDetent = setRailDetent
   const [tab, setTab] = createSignal<TouchTab>('variations')
   const [vh, setVh] = createSignal(viewportHeight())
   const [chrome, setChrome] = createSignal(0)
@@ -145,6 +149,22 @@ export function EditorRail(props: EditorRailProps) {
       haptic.impactLight()
     }
   }
+
+  /**
+   * An open sheet is a layer, so back closes it one step at a time: large to
+   * medium, medium to peek (A/screens.md 0.5). The registration keys off
+   * "open or not" rather than off the detent itself, so changing detent does
+   * not re-push the handler above whatever opened over the rail meanwhile.
+   */
+  const railOpen = createMemo(() => detent() !== 'peek')
+  createEffect(() => {
+    if (!railOpen()) return
+    onCleanup(
+      pushBackHandler(() => {
+        settle(detent() === 'large' ? 'medium' : 'peek')
+      }, 'rail detent'),
+    )
+  })
 
   function onChip(next: TouchTab) {
     if (detent() === 'peek') {

@@ -1,7 +1,8 @@
-import { createSignal, For, Show } from 'solid-js'
+import { createEffect, createSignal, For, onCleanup, Show } from 'solid-js'
 import { executeCommand } from '@/commands/registry'
 import { Book, Download, GaugeMax, GridIcon, Info, Menu, Redo, Share, SidebarPanel, Undo, Zap, } from '@/icons'
 import { setActiveTab } from '@/lib/activeTab'
+import { pushBackHandler } from '@/lib/backStack'
 import { haptic } from '@/lib/haptics'
 import ui from './TouchSurface.module.css'
 import type { Accessor, JSX } from 'solid-js'
@@ -136,6 +137,26 @@ export function TouchHUD(props: TouchHUDProps) {
     setShowTitleTooltip(false)
     setMoreMenuOpen(false)
   }
+
+  // Both popovers are layers: back closes the open one before anything else
+  // answers (lib/backStack.ts), the same as a tap on the backdrop.
+  createEffect(() => {
+    if (!moreMenuOpen()) return
+    onCleanup(
+      pushBackHandler(() => {
+        setMoreMenuOpen(false)
+      }, 'more menu'),
+    )
+  })
+
+  createEffect(() => {
+    if (!showTitleTooltip()) return
+    onCleanup(
+      pushBackHandler(() => {
+        setShowTitleTooltip(false)
+      }, 'flame title'),
+    )
+  })
 
   return (
     <>

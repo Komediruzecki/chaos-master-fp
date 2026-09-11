@@ -1,3 +1,5 @@
+import { createSignal } from 'solid-js'
+
 /**
  * The rail's three resting heights and how a drag settles between them.
  * Pure, so the rail's gesture handling is testable without a DOM.
@@ -24,6 +26,14 @@ export const FLICK_MAX_AGE_MS = 100
  * the panel inside must stay on screen until the height has arrived.
  */
 export const SHEET_TRANSITION_MS = 280
+
+/**
+ * Where the rail rests, kept outside the component on purpose: crossing the
+ * rail-or-deck threshold (a tablet rotating, an iPad resizing its Split View)
+ * unmounts one surface and mounts the other, and a sheet the user had opened
+ * must come back open rather than at the floor.
+ */
+export const [railDetent, setRailDetent] = createSignal<Detent>('peek')
 
 export interface DetentHeights {
   readonly peek: number

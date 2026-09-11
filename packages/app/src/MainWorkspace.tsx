@@ -7,6 +7,7 @@ import { executeCommand } from '@/commands/registry'
 import { useKeyframeTarget } from '@/contexts/KeyframeTargetContext'
 import { useToast } from '@/contexts/ToastContext'
 import { setActiveTab, workspaceIsVisible } from '@/lib/activeTab'
+import { pushBackHandler } from '@/lib/backStack'
 import { SHOWCASE_CONSENT_VERSION } from '@/lib/communityShowcase'
 import { hapticsEnabled, setHapticsEnabled } from '@/lib/haptics'
 import { trackAppInit } from '@/lib/telemetry'
@@ -291,6 +292,15 @@ export function MainWorkspace(props: AppProps) {
   } = layoutStore
 
   const [touchDrawerOpen, setTouchDrawerOpen] = createSignal(false)
+  // The drawer is a layer over the editor: back closes it (lib/backStack.ts).
+  createEffect(() => {
+    if (!touchDrawerOpen()) return
+    onCleanup(
+      pushBackHandler(() => {
+        setTouchDrawerOpen(false)
+      }, 'advanced tools'),
+    )
+  })
   /** How much of the viewport the rail's sheet covers; 0 while it is at peek. */
   const [railInset, setRailInset] = createSignal(0)
   /** The phone, and a tablet too narrow for the deck, both get the rail. */

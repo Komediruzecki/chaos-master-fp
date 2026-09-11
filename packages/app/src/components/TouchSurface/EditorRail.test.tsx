@@ -1,8 +1,9 @@
 import '@/commands/builtins'
 import { cleanup, fireEvent, render, screen } from '@solidjs/testing-library'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { backDepth, popBack } from '@/lib/backStack'
 import { createMockCommandContext } from '@/webmcp/testUtils'
-import { PEEK_HEIGHT, SHEET_TRANSITION_MS } from './detents'
+import { PEEK_HEIGHT, setRailDetent, SHEET_TRANSITION_MS } from './detents'
 import { EditorRail } from './EditorRail'
 
 const impactLight = vi.fn()
@@ -57,6 +58,9 @@ describe('EditorRail', () => {
   beforeEach(() => {
     window.innerHeight = 852
     window.dispatchEvent(new Event('resize'))
+    // The detent outlives the component (it survives the remount at the
+    // rail-or-deck threshold), so each test starts it back at the floor.
+    setRailDetent('peek')
     impactLight.mockClear()
     impactMedium.mockClear()
     selectionChanged.mockClear()
@@ -360,5 +364,21 @@ describe('EditorRail', () => {
     expect(props.onRandomize).toHaveBeenCalledTimes(1)
     expect(props.onMutate).toHaveBeenCalledTimes(1)
     expect(impactMedium).toHaveBeenCalledTimes(1)
+  })
+
+  it('answers back one detent at a time', () => {
+    mount()
+    setRailDetent('large')
+    expect(backDepth()).toBe(1)
+
+    expect(popBack()).toBe(true)
+    expect(sheet().dataset.detent).toBe('medium')
+    expect(popBack()).toBe(true)
+    expect(sheet().dataset.detent).toBe('peek')
+
+    // Peek is the floor: the rail is never dismissed, so back leaves the
+    // registry and the next press is the app's to answer.
+    expect(backDepth()).toBe(0)
+    expect(popBack()).toBe(false)
   })
 })
