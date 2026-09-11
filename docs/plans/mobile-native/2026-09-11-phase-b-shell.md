@@ -338,9 +338,9 @@ Order of registration is the order of opening, so the pop order in `A/screens.md
 
 - Produces: `interface MoreMenuHandlers { onOpenExportModal?; onShare?; onOpenDrawer?; onOpenArcade?; onOpenDocs?; onOpenBenchmark?; onOpenBenchmarkLab?; onOpenHelp?; onDesktopLayout? }` (all `() => void`; use the exact prop names `TouchHUDProps` already has for these nine so `buildMoreMenu(props)` type-checks), `interface MoreMenuItem { readonly label: string; readonly Icon: Component<{ class?: string }>; readonly run: () => void }`, `buildMoreMenu(handlers: MoreMenuHandlers): MoreMenuItem[]` (a declarative table filtered by which handlers exist; labels and order exactly as `TouchHUD` renders them today: Export options, Share link, Advanced tools, Lumen Arcade, Documentation, Quick GPU benchmark, Benchmark Lab, Settings and more, Desktop layout).
 
-- [ ] **Step 1: Failing test** — `buildMoreMenu({})` is empty; with every handler it yields the nine labels in that order; `run` calls the matching handler.
-- [ ] **Step 2: Implement** the table (`[{ label, Icon, run: handlers.onOpenExportModal }, ...].filter((item) => item.run)`), and make `TouchHUD` render `buildMoreMenu(props)`.
-- [ ] **Step 3: Run `TouchSurface.test.tsx`** (the More menu tests must still pass unchanged), then commit — `git commit -m "refactor(touch): one More list for every surface"`.
+- [x] **Step 1: Failing test** — `buildMoreMenu({})` is empty; with every handler it yields the nine labels in that order; `run` calls the matching handler.
+- [x] **Step 2: Implement** the table (`[{ label, Icon, run: handlers.onOpenExportModal }, ...].filter((item) => item.run)`), and make `TouchHUD` render `buildMoreMenu(props)`.
+- [x] **Step 3: Run `TouchSurface.test.tsx`** (the More menu tests must still pass unchanged), then commit — `git commit -m "refactor(touch): one More list for every surface"`.
 
 ---
 

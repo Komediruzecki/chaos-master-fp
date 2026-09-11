@@ -1,11 +1,12 @@
-import { createEffect, createSignal, For, onCleanup, Show } from 'solid-js'
+import { createEffect, createSignal, For, mergeProps, onCleanup, Show, } from 'solid-js'
 import { executeCommand } from '@/commands/registry'
-import { Book, Download, GaugeMax, GridIcon, Info, Menu, Redo, Share, SidebarPanel, Undo, Zap, } from '@/icons'
+import { GridIcon, Redo, Undo } from '@/icons'
 import { setActiveTab } from '@/lib/activeTab'
 import { pushBackHandler } from '@/lib/backStack'
 import { haptic } from '@/lib/haptics'
+import { buildMoreMenu } from '../Shell/moreMenu'
 import ui from './TouchSurface.module.css'
-import type { Accessor, JSX } from 'solid-js'
+import type { Accessor } from 'solid-js'
 import type { CommandContext } from '@/commands/types'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 
@@ -43,12 +44,6 @@ function MoreDotsIcon() {
   )
 }
 
-interface MoreItem {
-  label: string
-  Icon: (props: { class?: string }) => JSX.Element
-  run: () => void
-}
-
 export function TouchHUD(props: TouchHUDProps) {
   const [showTitleTooltip, setShowTitleTooltip] = createSignal(false)
   const [moreMenuOpen, setMoreMenuOpen] = createSignal(false)
@@ -61,77 +56,19 @@ export function TouchHUD(props: TouchHUDProps) {
     props.flame().metadata?.name?.trim() || 'Untitled flame'
 
   /**
-   * What the touch layout cannot otherwise reach: the desktop sidebar and the
-   * floating version menu are not drawn here. An item whose handler prop is
-   * absent is not offered — the caller decides what this device can do.
+   * The one More list (components/Shell/moreMenu.ts), so the top bar and the
+   * shell bar offer the same items. The Arcade is reachable from every touch
+   * surface, so it defaults here rather than making every host pass it.
    */
-  const moreItems = (): MoreItem[] => {
-    const items: MoreItem[] = []
-    if (props.onOpenExportModal) {
-      items.push({
-        label: 'Export options',
-        Icon: Download,
-        run: () => props.onOpenExportModal?.(),
-      })
-    }
-    if (props.onShare) {
-      items.push({
-        label: 'Share link',
-        Icon: Share,
-        run: () => props.onShare?.(),
-      })
-    }
-    if (props.onOpenDrawer) {
-      items.push({
-        label: 'Advanced tools',
-        Icon: SidebarPanel,
-        run: () => props.onOpenDrawer?.(),
-      })
-    }
-    items.push({
-      label: 'Lumen Arcade',
-      Icon: Zap,
-      run: () => {
+  const handlers = mergeProps(
+    {
+      onOpenArcade: () => {
         setActiveTab('arcade')
       },
-    })
-    if (props.onOpenDocs) {
-      items.push({
-        label: 'Documentation',
-        Icon: Book,
-        run: () => props.onOpenDocs?.(),
-      })
-    }
-    if (props.onOpenBenchmark) {
-      items.push({
-        label: 'Quick GPU benchmark',
-        Icon: Zap,
-        run: () => props.onOpenBenchmark?.(),
-      })
-    }
-    if (props.onOpenBenchmarkLab) {
-      items.push({
-        label: 'Benchmark Lab',
-        Icon: GaugeMax,
-        run: () => props.onOpenBenchmarkLab?.(),
-      })
-    }
-    if (props.onOpenSettings) {
-      items.push({
-        label: 'Settings and more',
-        Icon: Info,
-        run: () => props.onOpenSettings?.(),
-      })
-    }
-    if (props.onDesktopLayout) {
-      items.push({
-        label: 'Desktop layout',
-        Icon: Menu,
-        run: () => props.onDesktopLayout?.(),
-      })
-    }
-    return items
-  }
+    },
+    props,
+  )
+  const moreItems = () => buildMoreMenu(handlers)
 
   const closePopovers = () => {
     setShowTitleTooltip(false)
