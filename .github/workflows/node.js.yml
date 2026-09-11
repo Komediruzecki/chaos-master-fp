@@ -1,15 +1,13 @@
-
 name: Chaos-Master CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ['main']
   pull_request:
-    branches: [ "main" ]
+    branches: ['main']
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     # Type-aware linting (typescript-eslint strictTypeChecked + projectService)
@@ -26,52 +24,50 @@ jobs:
         node-version: [24.x]
 
     steps:
-    - name: ⬇️ Checkout code
-      uses: actions/checkout@v4
+      - name: ⬇️ Checkout code
+        uses: actions/checkout@v4
 
-    - name: 🔧 Setup Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        
-    - name: 📦 Install all dependencies
-      run: |
-        corepack enable
-        pnpm install
+      - name: 🔧 Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
 
-    - name: 🧹 Lint code
-      run: pnpm lint
+      - name: 📦 Install all dependencies
+        run: |
+          corepack enable
+          pnpm install
 
-    - name: 🔍 Type check
-      run: pnpm typecheck
+      - name: 🧹 Lint code
+        run: pnpm lint
 
-    - name: 🧪 Run tests
-      run: pnpm test
+      - name: 🔍 Type check
+        run: pnpm typecheck
 
-    - name: 🛠️ Build project
-      run: pnpm --filter chaos-master run build
+      - name: 🧪 Run tests
+        run: pnpm test
 
-    # The landing site has no tests, which is defensible for a marketing page.
-    # Not building it is not: nothing else in CI compiles it.
-    - name: Build landing
-      run: pnpm --filter @chaos-master/landing run build
+      - name: 🛠️ Build project
+        run: pnpm --filter chaos-master run build
 
-    - name: 🎭 Install Playwright browsers
-      run: pnpm exec playwright install --with-deps chromium
+      # The landing site has no tests, which is defensible for a marketing page.
+      # Not building it is not: nothing else in CI compiles it.
+      - name: Build landing
+        run: pnpm --filter @chaos-master/landing run build
 
-    # CI-stable subset only (tests/smoke.spec.ts): GitHub runners provide flaky
-    # software WebGPU (swiftshader), so the full WebGPU-dependent e2e suite
-    # stays local/manual (see packages/app/TESTING.md). The smoke suite still
-    # guards build/serve/boot regressions unit tests can't catch.
-    - name: 🎭 Run e2e smoke tests
-      run: pnpm test:e2e:ci
+      - name: 🎭 Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
 
-    - name: 📎 Upload Playwright report
-      if: ${{ !cancelled() }}
-      uses: actions/upload-artifact@v4
-      with:
-        name: playwright-report
-        path: playwright-report/
-        retention-days: 14
+      # The chromium-degraded project: every *.ci.spec.ts, i.e. the specs that
+      # hold on the software WebGPU (swiftshader) GitHub runners provide. Specs
+      # that need real GPU output stay local (see packages/app/TESTING.md). A
+      # skip in this project fails the run.
+      - name: 🎭 Run CI-safe e2e
+        run: pnpm test:e2e:ci
 
-
+      - name: 📎 Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
