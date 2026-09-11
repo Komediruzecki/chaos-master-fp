@@ -219,6 +219,37 @@ describe('EditorRail', () => {
     expect(sheet().style.height).toBe('250px')
   })
 
+  it('freezes the sheet where it stands as the finger lands', () => {
+    mount()
+    const el = sheet()
+    // The sheet is part-way through its 280ms opening when the finger lands.
+    el.getBoundingClientRect = () => ({ height: 200 }) as DOMRect
+    fireEvent.click(screen.getByRole('tab', { name: 'Shape' }))
+    expect(el.style.height).toBe('375px')
+
+    // The transition stops here, not at the first move: it would otherwise
+    // keep travelling under the finger and jump by the distance it covered.
+    const grabber = screen.getByTestId('editor-rail-grabber')
+    fireEvent.pointerDown(grabber, { clientY: 500, pointerId: 1 })
+    expect(el.style.height).toBe('200px')
+    expect(el.classList.contains('dragging')).toBe(true)
+  })
+
+  it('leaves the detent alone when the grabber is tapped, not dragged', () => {
+    mount()
+    const el = sheet()
+    el.getBoundingClientRect = () => ({ height: 200 }) as DOMRect
+    fireEvent.click(screen.getByRole('tab', { name: 'Shape' }))
+
+    const grabber = screen.getByTestId('editor-rail-grabber')
+    fireEvent.pointerDown(grabber, { clientY: 500, pointerId: 1 })
+    fireEvent.pointerUp(grabber, { clientY: 500, pointerId: 1 })
+    // Nothing moved, so the sheet keeps going where it was going; settling
+    // from the frozen height would send a half-open sheet back to peek.
+    expect(el.style.height).toBe('375px')
+    expect(el.dataset['detent']).toBe('medium')
+  })
+
   it('brackets the drag with a selection start and end', () => {
     mount()
     const grabber = screen.getByTestId('editor-rail-grabber')

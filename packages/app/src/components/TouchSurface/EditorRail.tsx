@@ -165,12 +165,19 @@ export function EditorRail(props: EditorRailProps) {
       const startY = initEvent.clientY
       // The height on screen, not the one the transition is heading for:
       // grabbing the sheet while it is still opening used to snap it by
-      // whatever distance was left to travel.
+      // whatever distance was left to travel. Committing it here stops the
+      // transition with the finger rather than with the first move, which it
+      // would otherwise keep outrunning.
       const rendered = sheetEl?.getBoundingClientRect().height ?? 0
-      const startHeight = rendered > 0 ? rendered : sheetHeight()
+      const startHeight = clampSheetHeight(
+        rendered > 0 ? rendered : sheetHeight(),
+        heights(),
+      )
+      setDragHeight(startHeight)
       let lastY = initEvent.clientY
       let lastT = initEvent.timeStamp
       let velocity = 0
+      let moved = false
       let lastDetent = nearestDetent(startHeight, heights())
       // Both plugins drop a selection tick until a generator is prepared, so
       // the crossings inside the drag stay silent without this pair.
@@ -178,6 +185,7 @@ export function EditorRail(props: EditorRailProps) {
 
       return {
         onPointerMove(event) {
+          moved = true
           const dt = event.timeStamp - lastT
           // A non-positive delta is not a sample: keep the last velocity
           // rather than dividing by zero.
@@ -200,11 +208,11 @@ export function EditorRail(props: EditorRailProps) {
           // so is a drag something else ended, which brings no event at all.
           const flicked =
             event !== undefined && event.timeStamp - lastT <= FLICK_MAX_AGE_MS
-          const target = settleDetent(
-            sheetHeight(),
-            flicked ? velocity : 0,
-            heights(),
-          )
+          // A tap on the grabber placed nothing: a sheet still opening would
+          // settle from wherever the transition had reached and go back.
+          const target = moved
+            ? settleDetent(sheetHeight(), flicked ? velocity : 0, heights())
+            : detent()
           haptic.selectionEnd()
           setDragHeight(null)
           settle(target)
