@@ -151,8 +151,10 @@ which is desktop-only, so **Home is unreachable on a phone or a tablet today**.
 - [x] In Create the bar collapses to a 56 pt capsule docked at the leading end of the rail, expanding over the
       rail for three seconds or while a touch is held. An editor that also shows a tab bar loses 106 pt of
       canvas to navigation nobody is using.
-- [x] On a tablet the navigation rail is permanent at 80 pt and gains Settings under the destinations. It
-      opens the existing HelpModal; phase C is what redesigns settings.
+- [x] On a tablet wide enough for the inspector deck (the 900 pt rule) the navigation rail is permanent at
+      80 pt and gains Settings under the destinations, and Library is inset by its column so the rail stays
+      exposed and tappable there. A narrower tablet - portrait, or a Split View pane - gets the phone's
+      rail and its docked capsule instead. It opens the existing HelpModal; phase C redesigns settings.
 - [x] `lib/activeTab.ts` already models `home | workspace | arcade` in the fragment; no new name was needed
       (Library is the existing Home tab, per section 12's cut list) and both shell surfaces are its touch
       entry point.

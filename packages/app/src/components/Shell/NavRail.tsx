@@ -21,11 +21,17 @@ export interface NavRailProps {
 }
 
 /**
- * The tablet's shell: permanent, on the leading edge, at every tablet width
- * (components.md section 9). It never minimises the way the phone's capsule
- * does - a tablet has the width to spare - and it carries Settings at the
- * bottom, which is not a destination but the one thing that has nowhere else
- * to live on a touch layout.
+ * The tablet's shell: permanent on the leading edge wherever the inspector
+ * deck fits (the 900px rule in stores/workspaceLayoutStore.ts), not at every
+ * tablet width - a portrait iPad or a Split View pane below it gets the
+ * phone's rail with the capsule docked in it instead.
+ *
+ * Where it does mount it is genuinely permanent: Library is inset by this
+ * column (Home/HomeTab.module.css `.deck`) rather than covering it, so the
+ * rail stays visible and tappable on every destination. It never minimises
+ * the way the capsule does - a tablet has the width to spare - and it
+ * carries Settings at the bottom, which is not a destination but the one
+ * thing with nowhere else to live on a touch layout.
  */
 export function NavRail(props: NavRailProps) {
   function select(destination: ShellDestination) {
