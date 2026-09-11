@@ -556,6 +556,9 @@ jobs:
       # store keys join this step's env, and a release rebuild follows the
       # debug APK, once the app sells something.
       - name: Build web assets
+        env:
+          # Lets the web app show which run built it, next to its version.
+          VITE_BUILD_NUMBER: ${{ github.run_number }}
         run: pnpm --filter "$WEB_PKG" run "$WEB_BUILD_SCRIPT"
 
       - name: Synchronize Android project
@@ -757,6 +760,9 @@ jobs:
       # PURCHASES: this is where MercuryPitch chose between the internal mock
       # and real StoreKit for a TestFlight build.
       - name: Build web assets
+        env:
+          # Lets the web app show which run built it, next to its version.
+          VITE_BUILD_NUMBER: ${{ github.run_number }}
         run: pnpm --filter "$WEB_PKG" run "$WEB_BUILD_SCRIPT"
 
       - name: Synchronize iOS project
@@ -1008,6 +1014,9 @@ jobs:
       # PURCHASES: the simulator build takes the Test Store key and the IPA a
       # release rebuild with the real one, as in the Android job.
       - name: Build web assets
+        env:
+          # Lets the web app show which run built it, next to its version.
+          VITE_BUILD_NUMBER: ${{ github.run_number }}
         run: pnpm --filter "$WEB_PKG" run "$WEB_BUILD_SCRIPT"
 
       - name: Synchronize iOS project
