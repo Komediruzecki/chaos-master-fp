@@ -56,6 +56,51 @@ describe('createLongPress', () => {
     vi.useRealTimers()
   })
 
+  it('captures the pointer so the up comes back to the button', () => {
+    const captured: number[] = []
+    const button = mount({ onTap: vi.fn(), onLongPress: vi.fn() })
+    button.setPointerCapture = (pointerId: number) => {
+      captured.push(pointerId)
+    }
+    fireEvent.pointerDown(button, { pointerId: 3 })
+    expect(captured).toEqual([3])
+  })
+
+  it('takes the press back when the up never arrived', () => {
+    vi.useFakeTimers()
+    const onTap = vi.fn()
+    const onLongPress = vi.fn()
+    const onPressStart = vi.fn()
+    const button = mount({ onTap, onLongPress, onPressStart })
+
+    // The long press opens a modal dialog. A pointer the browser did not
+    // capture lifts onto the dialog, so the button never sees the up and its
+    // latch would stay closed over every later tap.
+    fireEvent.pointerDown(button, { pointerId: 1 })
+    vi.advanceTimersByTime(600)
+    expect(onLongPress).toHaveBeenCalledTimes(1)
+
+    fireEvent.pointerDown(button, { pointerId: 2 })
+    fireEvent.pointerUp(button, { pointerId: 2 })
+    fireEvent.click(button)
+    expect(onPressStart).toHaveBeenCalledTimes(2)
+    expect(onTap).toHaveBeenCalledTimes(1)
+    vi.useRealTimers()
+  })
+
+  it('drops the press when the capture is lost', () => {
+    vi.useFakeTimers()
+    const onLongPress = vi.fn()
+    const button = mount({ onTap: vi.fn(), onLongPress })
+
+    // The button left the DOM under the finger, so the up will never come.
+    fireEvent.pointerDown(button, { pointerId: 1 })
+    fireEvent.lostPointerCapture(button, { pointerId: 1 })
+    vi.advanceTimersByTime(600)
+    expect(onLongPress).not.toHaveBeenCalled()
+    vi.useRealTimers()
+  })
+
   it('ignores a lift from a finger that did not start the press', () => {
     vi.useFakeTimers()
     const onTap = vi.fn()

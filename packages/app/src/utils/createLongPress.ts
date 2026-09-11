@@ -17,6 +17,7 @@ type ButtonHandlers = Pick<
   | 'onPointerUp'
   | 'onPointerCancel'
   | 'onPointerLeave'
+  | 'onLostPointerCapture'
   | 'onClick'
 >
 
@@ -30,6 +31,10 @@ type ButtonHandlers = Pick<
  * the same button is not a second press, and a lift from another pointer does
  * not end this one: otherwise the second touch-down orphaned the first timer,
  * which fired the long press with nothing on the screen.
+ *
+ * The pointer is captured so that the up comes back even once the long press
+ * has opened a dialog over the button; where a browser will not capture it,
+ * the latch still opens for a pointer going down again.
  */
 export function createLongPress(options: LongPressOptions): ButtonHandlers {
   let timer: ReturnType<typeof setTimeout> | null = null
@@ -50,8 +55,24 @@ export function createLongPress(options: LongPressOptions): ButtonHandlers {
 
   return {
     onPointerDown: (event: PointerEvent) => {
-      if (pressedBy !== null) return
+      // A second finger on a press that is still running is not a second
+      // press. A press whose long press has already fired is finished,
+      // though, and a pointer cannot go down twice without lifting: either
+      // means the up never came back (it landed on the dialog the long press
+      // opened), and keeping the latch shut would leave the button dead.
+      if (pressedBy !== null && !longPressed && event.pointerId !== pressedBy)
+        return
+      cancel()
       pressedBy = event.pointerId
+      // Touch pointers are captured implicitly; a pen or a mouse is not, and
+      // its up would land on whatever the long press opened.
+      if (event.currentTarget instanceof HTMLElement) {
+        try {
+          event.currentTarget.setPointerCapture(event.pointerId)
+        } catch {
+          // Not every engine grants it. The latch above is the way out.
+        }
+      }
       options.onPressStart?.()
       longPressed = false
       if (!options.onLongPress) return
@@ -64,6 +85,8 @@ export function createLongPress(options: LongPressOptions): ButtonHandlers {
     onPointerUp: endPress,
     onPointerCancel: endPress,
     onPointerLeave: endPress,
+    // The button left under the finger, so no up is coming.
+    onLostPointerCapture: endPress,
     onClick: () => {
       if (longPressed) {
         longPressed = false
