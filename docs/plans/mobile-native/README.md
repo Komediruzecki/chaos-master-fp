@@ -108,6 +108,7 @@ Web code reaches native behaviour only through a dynamic `import('@chaos-master/
   - deployment target 26.0 (project and App target);
   - `ITSAppUsesNonExemptEncryption=false`;
   - `NSMicrophoneUsageDescription` for audio-reactive mode;
+  - `NSPhotoLibraryAddUsageDescription`, which the share sheet's Save Image and Save Video need (without it iOS terminates the app);
   - `UIRequiredDeviceCapabilities` = `arm64`;
   - iPhone and iPad (`TARGETED_DEVICE_FAMILY 1,2`, so 13-inch iPad screenshots will be required);
   - Release on the App target: `CODE_SIGN_STYLE Manual`, `Apple Distribution`, `PROVISIONING_PROFILE_SPECIFIER = $(LUMEN_PROFILE)`.

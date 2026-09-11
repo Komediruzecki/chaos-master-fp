@@ -51,6 +51,8 @@
 	<false/>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Lumen Apeiron uses the microphone only when you turn on audio-reactive mode, so your flame can move with live sound.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Lumen Apeiron adds the images and videos you export to your photo library when you choose Save Image or Save Video.</string>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
 		<string>arm64</string>
