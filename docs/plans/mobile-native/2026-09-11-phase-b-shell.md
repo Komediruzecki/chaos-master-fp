@@ -453,3 +453,33 @@ git log --oneline origin/feat/native-rail..HEAD
 
 - Spec coverage: routing cross-fade (Task 9), destinations and the capsule (Task 5), the tablet rail with Settings (Task 6), `lib/activeTab.ts` touch entry point (Tasks 5 to 7; no new tab name needed since Library is Home), the back registry with its order (Tasks 1 and 3) and `minimizeApp()` (Task 2), pause and resume (Tasks 2 and 8). Play: deliberately not shown (decisions above).
 - Every task ends in a test that was red first, except the two CSS-only steps (the fade keyframe, the Android bar style), which the reviewer checks in a browser.
+
+---
+
+## Review fix pass (2026-09-12)
+
+The review of PR #96 lives at `~/agent-out/chaos-master-fp/2026-09-11/pr96-review-findings.md`: 17 findings
+and a set of cheap items below its cap. All are fixed on `feat/native-shell`, one commit per finding.
+
+- [x] **F1**, with decision **D2 taken as option 1**: a `--la-z-shell` layer puts the bar above Home, and the
+      deck layout insets Home by `--la-navrail-w` so the NavRail stays exposed and tappable. `HomeShellBar`
+      mounts only where the deck does not fit, which makes the design's "permanent" rail true.
+- [x] **F2** the expanded capsule bar paints over the rail's chips. **F8** the More backdrop takes its tap.
+- [x] **F7** the surface fade actually runs: `global(...)` reaches the keyframe a CSS module was renaming,
+      and the rail's fade moves onto the sheet so its glass is not flattened for 180ms.
+- [x] **F9** the capsule opens on the touch down and holds while a finger rests on it. **F10** the rail and
+      the HUD stay mounted behind a destination. **F12** the rail's leading slot is built once, not twice.
+- [x] Decision **D1 taken as option 1** (the draft is fixed in place, not folded into the autosave):
+      **F3** the welcome screen no longer swallows it, **F4** it is native-only and dirty-gated, **F6** it
+      carries the timeline config the share link already carried. **F5** — folding the draft into the
+      Recents autosave, and with it the same gap in `RecentFlame` — is left open for the owner.
+- [x] **F16** the chip row fits on Android again. **F17** the Android bar runs the full width.
+- [x] **F14** one back layer, one More list, one destination table. **F15** no blur the capsule cannot show.
+- [x] **F13** the edge swipe is a touch gesture only. **F11** the rail's reach is described honestly.
+- [x] The cheap items: the canvas margin on the deck layout, the last token literals, the lifecycle signals
+      nothing read, the Modal's double answer, the duplicated haptics mocks, and the comments that had
+      drifted (the detent module, the back registry, the edge swipe, a removed toast component).
+
+Still open and deliberately not done here: lifting the rail's detent into `stores/workspaceLayoutStore.ts`
+(which would also carry its back entry across a layout flip), back handlers for the Arcade's inner panels,
+and a shared `createListeners()` for the hand-rolled listener sets.
