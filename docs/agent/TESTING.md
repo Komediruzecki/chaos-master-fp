@@ -56,6 +56,16 @@ The remedy is a retroactive Phase 0: a commit that adds only tests, which is
 then verified to pass on **both** `v0.9.11` and `HEAD`. Any assertion that
 passes on the tag and fails on `HEAD` is a regression that already shipped.
 
+**Status (2026-09-11): built, in #92.** 101 tests over variation-type
+migration, core affine and easing maths, share links (including a link captured
+from `v0.9.11`), the `validateFlame` boundary table and a golden `.flame` round
+trip, each run on both the tag and `HEAD`. **No regression from the refactor
+turned up in those areas.** The golden round trip failed on _both_, which made
+its findings pre-existing rather than regressions: `skipIters` did not survive
+an export (fixed in #92), and palette chroma, dark background channels and
+exposure are still lost on export (pinned as `it.fails`; see
+[BUGS.md](BUGS.md)).
+
 ## 3. Where the untested risk actually is
 
 Ranked by what breaks silently, not by line count.
@@ -104,6 +114,16 @@ of the current specs are actively misleading:
 - One asserts a deep link that no longer resolves.
 
 Fix those before adding new ones.
+
+> **Update, 2026-09-11 (#93).** CI now runs a `chromium-ci` Playwright
+> project: every `*.ci.spec.ts`, 27 tests instead of 8, and a skip there fails
+> the run unless annotated `intentional-skip`. The three misleading specs turned
+> out to be `documentation` (the green skip above), `console-panel` (the version
+> pill it clicked now opens a menu, so its dialog never appeared) and `webmcp`
+> (a reworded tool message, star ratings that became Like/Dislike, and a close
+> button that was already gone). All three are fixed and in the CI project. 20
+> tests in six specs still fail under swiftshader; they stay in the local
+> `chromium` project and remain unenforced.
 
 ## 5. Rules for writing a test here
 

@@ -9,7 +9,9 @@ audio, benchmarks and core, mobile and docs. Each lens's high and medium
 findings were then handed to a second agent prompted to **refute** them by
 reading the code, defaulting to refuted when unconvinced. One further finding
 (`cam3d-pinch-nan`) came from a follow-up investigation into why the tablet
-exporter needed fixing twice.
+exporter needed fixing twice, and five more from the stage 2 characterization
+net and the motion blur work (2026-09-11) -- those carry their lens and the PR
+that found or fixed them.
 
 Every finding below cites a file and a line and was found by reading code, not
 by pattern-matching a linter.
@@ -34,11 +36,11 @@ the finder's — 21 of the confirmed findings were downgraded to low on review.
 
 | | Count |
 | --- | ---: |
-| Findings raised | 58 |
-| **Confirmed** | **32** |
-| — of which high | 4 |
-| — of which medium | 7 |
-| — of which low | 21 |
+| Findings raised | 63 |
+| **Confirmed** | **37** |
+| — of which high | 5 |
+| — of which medium | 9 |
+| — of which low | 23 |
 | Refuted | 5 |
 | Low, not verified | 21 |
 
@@ -130,6 +132,18 @@ This resolver is the one the auto-keyframe path reads: utils/timeline.ts:1517 `a
 **Repro.** Unit: drive the pinch handler with two touches at identical coordinates and assert camera3D.radius stays finite. Manual: on the Android tablet, open a 3D flame, two-finger tap the canvas, then export a PNG.
 
 **Suggested fix.** Guard centrally in createPinchHandler so no consumer can forget, give WheelZoomCamera3D the same explicit checks as its 2D twin, and add a finite-checked number schema for the unbounded camera fields -- the bounded ones such as zoom are already safe because a maxValue check rejects Infinity.
+
+### Motion blur never blurred, on either export path: the first sub-frame took the whole point budget
+
+`packages/app/src/flame/Flam3.tsx:958` — **high** · correctness · introduced by #78 · lens: stage 2 characterization net and export verification
+
+**Evidence.** The export driver sizes a tick to reach the whole quality point limit at once (estimateIterations, export branch). Instrumented at 1080p, the first onExportImage of every frame already reported 32.0M points against a 29.16M limit. Offscreen, each flame change additionally reset accumulation through the fingerprint effect.
+
+**How it fails.** With Motion Blur at 8x or 16x, sub-frames 1..N-1 stepped through a buffer that accepted no more points, so the export was identical to blur off -- offscreen and on the main canvas. On the main canvas two more faults hid behind it: the timeline reset effect wiped the buffer on every sub-frame whenever the timeline drove the view (the default after loading an animated flame), and the first tick of each frame read the previous frame's point total, which skipped the frame's first sub-frames. The audit had judged the main-canvas path correct from reading its code.
+
+**Verification.** Measured at the encoder boundary in headed Chrome. Offscreen (PR #91): identical to blur off until Flam3 gained accumulationFraction and exportFrameKey; after, sharpness fell 17-21%. Main canvas, timeline holding a frame: blur 8x as sharp as blur off (4.48 vs 4.17) on the first PR #91 head; after gating the timeline reset on exportOwnsResets and resetting at frame setup, 34-36% softer (2.76 vs 4.17). FIXED in PR #91.
+
+**Suggested fix.** Fixed in PR #91.
 
 
 ---
@@ -276,6 +290,30 @@ REFUTED sub-claim: 'clone.ts ... live in BOTH copies ... so the app bundle carri
 **Repro.** `md5sum packages/app/src/utils/record.ts packages/core/src/utils/record.ts` — identical. Then edit `catmullRom` in packages/core/src/math/easing.ts:62 (say, change the 0.5 coefficient) and run the app's timeline tests: packages/app/src/utils/timeline.test.ts:2 imports from './easing', so every test still passes and every keyframe still interpolates identically. The edit is unobservable because nothing imports core's copy.
 
 **Suggested fix.** Delete core/src/math/easing.ts, core/src/utils/schemaUtil.ts and core/src/xml/flam3PaletteParser.ts (or move the app's callers onto them and make the app files shims, the way fdiff.ts/affineTranform.ts were done). For clone.ts and record.ts, keep one implementation in core and turn the app's files into `export * from '@chaos-master/core'` shims.
+
+### Exported .flame files re-import with a different skipIters: the export formula is not the inverse of the import
+
+`packages/app/src/flame/flameXml.ts:870` — **medium** · correctness · introduced by pre-v0.9.11 · lens: stage 2 characterization net and export verification
+
+**Evidence.** Import maps quality to skipIters as round(50 - quality / 3) (flameXml.ts:489). Export wrote quality as round(50 - skipIters * 3) (flameXml.ts:870), which is not its inverse.
+
+**How it fails.** skipIters 17 exports as quality -1 and re-imports as 30 (clamped). Every golden .flame fixture lost its skipIters on a round trip, so any exported flame re-imported with a different warm-up.
+
+**Verification.** Reproduced by the golden .flame corpus and by a round-trip test over every value 0..30; fails identically on v0.9.11, so it predates the refactor. FIXED in PR #92 (export now writes 3 * (50 - skipIters)).
+
+**Suggested fix.** Fixed: export quality = 3 * (50 - skipIters).
+
+### Exporting a flame loses its transform colour chroma: only an angle-derived colour index is written, no palette
+
+`packages/app/src/flame/flameXml.ts:905` — **medium** · data-loss · introduced by pre-v0.9.11 · lens: stage 2 characterization net and export verification
+
+**Evidence.** exportFlameXml derives colour="..." from atan2(color.y, color.x) and writes no <palette>. Import, finding no palette, rebuilds each transform colour at a fixed 0.3 chroma from that index.
+
+**How it fails.** A flame imported with an embedded palette, exported and re-imported, comes back desaturated: transform colour (0.80, 0.67) returns as (0.23, 0.19) -- same hue angle, chroma forced to 0.3.
+
+**Verification.** Pinned as it.fails in flameXml.golden.test.ts (PR #92); fails identically on v0.9.11. Not a regression.
+
+**Suggested fix.** Export a 256-entry palette that reproduces each transform colour at its index, so import samples it back.
 
 
 ---
@@ -556,6 +594,26 @@ Also note the memo body at 116-117 is dead: `if (touchLayoutPreference() === 'to
 **Repro.** Swap lines 144-145 of packages/app/src/pages/Benchmarks/benchmarkRunnerUtils.ts and run a benchmark: buildBenchmarkResult returns `status: 'invalid'` with a `metric-mismatch` issue on every sample, because validation.ts:560 computes |throughput - completedWork/(elapsedMs/1000)| / derived > 0.005. The result is visibly rejected in the lab UI, not silently published. `ls packages/app/src/pages/Benchmarks/*.test.ts` confirms the missing file.
 
 **Suggested fix.** Add benchmarkRunnerUtils.test.ts: a table test over validateBenchmarkRunPreconditions' five branches, an assertion that createBenchmarkScheduleForRuntimes picks createBalancedComparisonSchedule at exactly length 2 and passes warmupPairs/measuredPairs through unswapped, and a round-trip asserting createBenchmarkSampleRecord copies entry.sequence/phase/pairIndex/orderInPair/blockOrder and points->completedWork / pointsPerSecond->throughput.
+
+### A very dark background channel exports as 1 and re-imports at full intensity
+
+`packages/app/src/flame/flameXml.ts:872` — **low** · correctness · introduced by pre-v0.9.11 · lens: stage 2 characterization net and export verification
+
+**Evidence.** Export rounds each background channel to 0-255 (flameXml.ts:872); import reads any channel of 1 or less as the 0-1 scale (flameXml.ts:470).
+
+**How it fails.** backgroundColor [0.004, 0, 0] exports as "1 0 0" and re-imports as [1, 0, 0]: a near-black background becomes pure red. Channels that are not a multiple of 1/255 are also quantized (0.1 -> 0.10196).
+
+**Suggested fix.** Decide the scale per colour, not per channel, or export 0-1 floats and read them back as such.
+
+### Exposure is rounded to a whole flam3 brightness step on export
+
+`packages/app/src/flame/flameXml.ts:866` — **low** · data-loss · introduced by pre-v0.9.11 · lens: stage 2 characterization net and export verification
+
+**Evidence.** brightness = round(2 ** (exposure / 1.5)) (flameXml.ts:866); import maps it back with log2(brightness) * 1.5.
+
+**How it fails.** An exposure of 1.0 exports as brightness 2 and re-imports as 1.5.
+
+**Suggested fix.** Write brightness with decimals; flam3 readers accept floats.
 
 
 ---

@@ -557,16 +557,19 @@ above 1, the background render shall produce the same accumulated sub-frame
 result as the main-canvas path, so the checkbox changes only _where_ the render
 happens and not _what_ it renders.
 
-> **Known deviation:**
-> `packages/app/src/components/ExportPngDialog/ExportPngDialog.tsx:1267` passes
-> `motionBlurSamples` into the `AnimationJobSpec` and
-> `packages/app/src/utils/exportJobs.ts:84` declares the field, but
-> `packages/app/src/components/ExportJobs/OffscreenAnimationRender.tsx` never
-> reads it — `frameFlame` (`:81-91`) resolves exactly one flame per integer frame
-> and `captureAndAdvance` (`:337-370`) encodes one bitmap per frame. The setting
-> is silently discarded on the offscreen path: the same dialog settings produce a
-> motion-blurred video with the checkbox off and a sharp-per-frame video with it
-> on, with no warning.
+> **Resolved in #91.** The offscreen render ignored `motionBlurSamples`
+> entirely (`OffscreenAnimationRender.tsx` resolved one flame per integer frame).
+> Wiring it in exposed a deeper fault shared by **both** paths: the export driver
+> sized a tick to reach the whole point budget at once, so the first sub-frame
+> took every point and the rest added nothing -- the main canvas had never blurred
+> either. Review of #91 then found two more main-canvas faults: the timeline
+> reset effect wiped the buffer on every sub-frame whenever the timeline drove
+> the view, and each frame's first tick read the previous frame's total and
+> skipped sub-frames. Flam3 now stops each sub-frame at its cumulative share
+> (`accumulationFraction`), resets only per output frame while an export owns
+> resets, and the main loop resets at frame setup. Measured at the encoder
+> boundary: offscreen 17-21% softer, main canvas 34-36% softer, blur-off
+> unchanged.
 
 ### REQ-RR-038 — The main-canvas export restores the workspace flame
 
@@ -612,7 +615,7 @@ unguarded.
 | REQ-RR-031 | The fingerprint is tested; the state-run loop in `OffscreenAnimationRender.tsx` that consumes it is not.                                                       |
 | REQ-RR-032 | No test file for `OffscreenAnimationRender.tsx`.                                                                                                               |
 | REQ-RR-036 | `utils/motionBlur.test.ts` re-derives the arithmetic inline and imports nothing from `animationExport.ts`; it stays green for any change to the export driver. |
-| REQ-RR-037 | Unguarded and currently violated — see its deviation blockquote.                                                                                               |
+| REQ-RR-037 | `utils/motionBlur.test.ts` pins the sub-frame rule; blur itself is verified by measurement only (#91).                                                         |
 | REQ-RR-038 | No test file for `utils/animationExport.ts`.                                                                                                                   |
 | REQ-RR-039 | No test file for any of the four drivers it cites.                                                                                                             |
 
