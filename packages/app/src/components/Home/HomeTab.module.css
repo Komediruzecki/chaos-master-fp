@@ -137,6 +137,21 @@
   }
 }
 
+/* Touch layouts: the shell bar floats over the bottom of this page and the
+   status bar sits over the top of it, so the page owns both insets. The
+   bottom clearance is the bar's own height plus its inset off the screen edge
+   and the inset again as a gap, or the last row of the gallery ends up under
+   the glass. */
+.touch {
+  padding-top: var(--la-safe-top);
+}
+
+.touch .scroll {
+  padding-bottom: calc(
+    var(--la-shell-h) + var(--la-safe-bottom) + 2 * var(--la-float-inset)
+  );
+}
+
 .section {
   padding: var(--space-8) var(--space-6);
   max-width: 78rem;

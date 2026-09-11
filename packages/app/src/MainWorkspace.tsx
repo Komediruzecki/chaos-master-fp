@@ -25,6 +25,7 @@ import { useRequestModal } from './components/Modal/ModalContext'
 import { qualityPresets } from './components/Quality/QualityPresets'
 import { recorderExportPending, recorderTaskPending, setRecorderCollapsed, setRecorderVisible, } from './components/SessionRecorder/recorderUi'
 import { NavRail } from './components/Shell/NavRail'
+import { ShellBar } from './components/Shell/ShellBar'
 import { AdvancedToolsDrawer, EditorRail, TabletInspectorDeck, TouchHUD, } from './components/TouchSurface'
 import { WorkspaceBottomBar } from './components/WorkspaceBottomBar'
 import { createLazyDiscordShareModal, createLazyImportVariationsModal, createLazyLogoFaviconGenerator, createLazyMigrationModal, createLazyShareLinkModal, createLazyShareVariationLinkModal, createLazyShareVariationLoadModal, createLazyShowBenchmark, createLazyShowCustomVariationEditor, createLazyShowDocumentation, createLazyShowHelp, WorkspaceModalsHost, } from './components/WorkspaceModalsHost'
@@ -3400,8 +3401,10 @@ export function MainWorkspace(props: AppProps) {
               </Show>
             </CanvasViewport>
           </>
-          {/* The rail layout: the phone, and a tablet under the deck's width */}
-          <Show when={railLayout()}>
+          {/* The rail layout: the phone, and a tablet under the deck's width.
+              Both belong to Create, so neither is drawn over Home or the
+              Arcade, which carry the shell bar instead. */}
+          <Show when={railLayout() && workspaceIsVisible()}>
             <TouchHUD
               ctx={cmdContext}
               flame={effectiveFlame}
@@ -3455,6 +3458,18 @@ export function MainWorkspace(props: AppProps) {
               }}
               onOpenDrawer={() => setTouchDrawerOpen(true)}
               onCoveredHeightChange={setRailInset}
+              leading={
+                <ShellBar
+                  mode="capsule"
+                  current={() => 'create'}
+                  onSelect={(destination) => {
+                    setActiveTab(
+                      destination === 'library' ? 'home' : 'workspace',
+                    )
+                  }}
+                  more={{}}
+                />
+              }
             />
           </Show>
 

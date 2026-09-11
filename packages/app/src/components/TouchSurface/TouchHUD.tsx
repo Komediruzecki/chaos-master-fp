@@ -1,6 +1,6 @@
 import { createEffect, createSignal, For, mergeProps, onCleanup, Show, } from 'solid-js'
 import { executeCommand } from '@/commands/registry'
-import { GridIcon, Redo, Undo } from '@/icons'
+import { GridIcon, MoreDots, Redo, Undo } from '@/icons'
 import { setActiveTab } from '@/lib/activeTab'
 import { pushBackHandler } from '@/lib/backStack'
 import { haptic } from '@/lib/haptics'
@@ -27,21 +27,6 @@ export interface TouchHUDProps {
   /** Web only: the Benchmark Lab is its own page (DESIGN.md, decision 1). */
   onOpenBenchmarkLab?: () => void
   onDesktopLayout?: () => void
-}
-
-function MoreDotsIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      class={ui.hudButtonIcon}
-      fill="currentColor"
-      stroke="none"
-    >
-      <circle cx="5" cy="12" r="2" />
-      <circle cx="12" cy="12" r="2" />
-      <circle cx="19" cy="12" r="2" />
-    </svg>
-  )
 }
 
 export function TouchHUD(props: TouchHUDProps) {
@@ -190,7 +175,7 @@ export function TouchHUD(props: TouchHUDProps) {
             aria-expanded={moreMenuOpen()}
             onClick={() => setMoreMenuOpen((o) => !o)}
           >
-            <MoreDotsIcon />
+            <MoreDots class={ui.hudButtonIcon} />
           </button>
 
           <Show when={moreMenuOpen()}>

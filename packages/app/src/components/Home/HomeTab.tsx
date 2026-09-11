@@ -4,7 +4,9 @@ import { COMPUTE_GATE_CAPACITY } from '@/defaults'
 import { ChevronLeft, ChevronRight } from '@/icons'
 import { setActiveTab } from '@/lib/activeTab'
 import { byCollection, bySection, fetchGallery, fetchGalleryItem, GALLERY_COLLECTIONS, galleryCredit, galleryExternalUrl, galleryResourceItems, isCommunityGalleryItem, needsPosterFrame, posterUrl, } from '@/lib/galleryContent'
+import { isTouchLayout } from '@/stores/workspaceLayoutStore'
 import { createSharedIntersectionObserver } from '@/utils/useIntersectionObserver'
+import { createHomeEdgeSwipe } from './edgeSwipe'
 import { installHomeEscapeBoundary } from './homeEscape'
 import { HomeFlame } from './HomeFlame'
 import { createPlaybackCoordinator } from './homePlayback'
@@ -672,8 +674,16 @@ export function HomeTab(props: HomeTabProps) {
     }
   }
 
+  // The interactive edge swipe (edgeSwipe.ts): iOS has no back gesture, and
+  // this page is the one full-screen layer with somewhere to go back to.
+  const startEdgeSwipe = createHomeEdgeSwipe()
+
   return (
-    <div class={ui.home}>
+    <div
+      class={ui.home}
+      classList={{ [ui.touch!]: isTouchLayout() }}
+      onPointerDown={startEdgeSwipe}
+    >
       <nav class={ui.rail} aria-label="Home sections">
         <span class={ui.railBrand}>Lumen Apeiron</span>
         <For each={SECTIONS}>

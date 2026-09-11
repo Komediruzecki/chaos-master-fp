@@ -51,6 +51,7 @@ export function ShellBar(props: ShellBarProps) {
   const isCapsule = (destination: ShellDestination) =>
     props.mode === 'capsule' && destination === 'create'
   const open = () => props.mode === 'full' || expanded()
+  const moreItems = () => buildMoreMenu(props.more)
 
   // A finger resting on the capsule is a request to keep the bar up, so the
   // countdown only runs once nothing is holding it.
@@ -111,7 +112,7 @@ export function ShellBar(props: ShellBarProps) {
           }}
         />
         <div class={ui.menu} role="menu" aria-label="More">
-          <For each={buildMoreMenu(props.more)}>
+          <For each={moreItems()}>
             {(item) => (
               <button
                 type="button"
@@ -185,7 +186,9 @@ export function ShellBar(props: ShellBarProps) {
           </For>
         </nav>
 
-        <Show when={props.mode === 'full'}>
+        {/* A More that opens an empty menu is worse than no More: a host
+            with nothing to put in it does not get the circle. */}
+        <Show when={props.mode === 'full' && moreItems().length > 0}>
           <button
             type="button"
             class={ui.more}

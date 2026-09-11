@@ -1,0 +1,32 @@
+import { Show } from 'solid-js'
+import { activeTab, setActiveTab } from '@/lib/activeTab'
+import { isTouchLayout } from '@/stores/workspaceLayoutStore'
+import { ShellBar } from './ShellBar'
+
+/**
+ * The shell over Home. A touch layout has no FloatingActions and no sidebar,
+ * so without this Library is somewhere you can arrive and not leave (the
+ * desktop keeps its own controls, and the deck layout keeps the NavRail
+ * underneath).
+ *
+ * More carries the Arcade: it is the one destination this phase does not put
+ * in the bar, and Home is otherwise the screen that cannot reach it.
+ */
+export function HomeShellBar() {
+  return (
+    <Show when={isTouchLayout()}>
+      <ShellBar
+        mode="full"
+        current={() => (activeTab() === 'home' ? 'library' : 'create')}
+        onSelect={(destination) => {
+          setActiveTab(destination === 'library' ? 'home' : 'workspace')
+        }}
+        more={{
+          onOpenArcade: () => {
+            setActiveTab('arcade')
+          },
+        }}
+      />
+    </Show>
+  )
+}

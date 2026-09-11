@@ -4,6 +4,7 @@ import { AppCrashed, WebgpuNotSupported, } from './components/ErrorHandling/Erro
 import { HomeTab } from './components/Home/HomeTab'
 import { Modal } from './components/Modal/Modal'
 import { NativeSaveToasts } from './components/NativeSaveToasts/NativeSaveToasts'
+import { HomeShellBar } from './components/Shell/HomeShellBar'
 import { ToastHost } from './components/Toast/Toast'
 import { WelcomeScreen } from './components/WelcomeScreen/WelcomeScreen'
 import { WorkspaceSkeleton } from './components/WorkspaceSkeleton'
@@ -329,6 +330,9 @@ export function Wrappers() {
                             })
                           }}
                         />
+                        {/* Touch has no FloatingActions, so this is the way
+                            back to the editor besides back and Escape. */}
+                        <HomeShellBar />
                       </Show>
                       {/* The Arcade overlays the workspace the same way Home
                           does: the editor stays mounted underneath so a lesson
