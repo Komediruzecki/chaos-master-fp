@@ -42,6 +42,16 @@
   transition: none;
 }
 
+/* Glass belongs where chrome floats over the artwork. Open, the sheet covers
+   up to 88% of a canvas that repaints while the flame converges, and the
+   compositor re-blurs all of it every frame; the ground is solid instead
+   until the sheet is back at peek. */
+.sheet.opaque {
+  background: var(--la-glass-solid);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
 .grabberRow {
   height: 24px;
   display: grid;

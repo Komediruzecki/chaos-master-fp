@@ -227,7 +227,10 @@ export function EditorRail(props: EditorRailProps) {
       <div
         class={ui.sheet}
         ref={sheetEl}
-        classList={{ [ui.dragging!]: dragHeight() !== null }}
+        classList={{
+          [ui.dragging!]: dragHeight() !== null,
+          [ui.opaque!]: bodyShown(),
+        }}
         style={{ height: `${sheetHeight()}px` }}
         data-testid="editor-rail-sheet"
         data-detent={detent()}

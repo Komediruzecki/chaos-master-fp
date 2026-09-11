@@ -37,10 +37,15 @@ function defaultWidth(): number {
 }
 
 export function TabletInspectorDeck(props: TabletInspectorDeckProps) {
-  const [width, setWidth] = persistentSignal<number>(
+  // The live width is a plain signal. The persisted one is read once for the
+  // starting width and written once when the divider is let go: serialising
+  // JSON into localStorage on every pointermove is a synchronous write per
+  // frame of the drag.
+  const [storedWidth, setStoredWidth] = persistentSignal<number>(
     'chaos-tablet-deck-width',
     defaultWidth(),
   )
+  const [width, setWidth] = createSignal(storedWidth())
   // Not persisted: a collapsed deck should not be how the app starts.
   const [collapsed, setCollapsed] = createSignal(false)
 
@@ -64,6 +69,9 @@ export function TabletInspectorDeck(props: TabletInspectorDeckProps) {
         onPointerMove(event) {
           const next = startWidth + (startX - event.clientX)
           setWidth(Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, next)))
+        },
+        onDone() {
+          if (width() !== storedWidth()) setStoredWidth(width())
         },
       }
     },

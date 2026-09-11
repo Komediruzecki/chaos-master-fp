@@ -5,6 +5,21 @@ import { safeRemoveItem } from '@/utils/storage'
 import { createMockCommandContext } from '@/webmcp/testUtils'
 import { AdvancedToolsDrawer, TabletInspectorDeck, TouchControlSurface, TouchHUD, } from './index'
 import type { TransformId, VariationId } from '@/flame/schema/flameSchema'
+import type * as StorageUtils from '@/utils/storage'
+
+// Every persisted signal writes through this, so a test can count the writes
+// a gesture costs. localStorage itself is not usable in this runtime.
+const storageWrite = vi.fn()
+vi.mock('@/utils/storage', async (importOriginal) => {
+  const actual = await importOriginal<typeof StorageUtils>()
+  return {
+    ...actual,
+    safeSetItem: (key: string, value: string) => {
+      storageWrite(key, value)
+      return actual.safeSetItem(key, value)
+    },
+  }
+})
 
 describe('TouchSurface Components', () => {
   afterEach(cleanup)
@@ -289,6 +304,30 @@ describe('TouchSurface Components', () => {
       fireEvent.pointerMove(divider, { clientX: 860, pointerId: 1 })
       fireEvent.pointerUp(divider, { clientX: 860, pointerId: 1 })
       expect(deck().style.width).toBe('420px')
+    })
+
+    it('stores the width once the divider is let go', () => {
+      const ctx = createMockCommandContext()
+      render(() => (
+        <TabletInspectorDeck ctx={ctx} flame={ctx.flameDescriptor} />
+      ))
+
+      const divider = screen.getByTestId('deck-divider')
+      fireEvent.pointerDown(divider, { clientX: 900, pointerId: 1 })
+      storageWrite.mockClear()
+      fireEvent.pointerMove(divider, { clientX: 880, pointerId: 1 })
+      fireEvent.pointerMove(divider, { clientX: 860, pointerId: 1 })
+      // The deck follows the finger; a JSON serialise and a synchronous
+      // storage write per pointermove do not go with it.
+      expect(deck().style.width).toBe('420px')
+      expect(storageWrite).not.toHaveBeenCalled()
+
+      fireEvent.pointerUp(divider, { clientX: 860, pointerId: 1 })
+      expect(storageWrite).toHaveBeenCalledTimes(1)
+      expect(storageWrite).toHaveBeenCalledWith(
+        'chaos-master-chaos-tablet-deck-width',
+        '420',
+      )
     })
   })
 })
