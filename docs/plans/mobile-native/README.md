@@ -111,7 +111,7 @@ Web code reaches native behaviour only through a dynamic `import('@chaos-master/
   - `UIRequiredDeviceCapabilities` = `arm64`;
   - iPhone and iPad (`TARGETED_DEVICE_FAMILY 1,2`, so 13-inch iPad screenshots will be required);
   - Release on the App target: `CODE_SIGN_STYLE Manual`, `Apple Distribution`, `PROVISIONING_PROFILE_SPECIFIER = $(LUMEN_PROFILE)`.
-- [ ] iOS `PrivacyInfo.xcprivacy` (register it in `project.pbxproj`; a file on disk alone compiles into nothing).
+- [x] iOS `PrivacyInfo.xcprivacy`, registered in `project.pbxproj` (a file on disk alone compiles into nothing). It declares the file timestamp reason `C617.1` for `@capacitor/filesystem`; Capacitor and Cordova ship their own manifests.
 - [ ] Decide the iPhone orientations deliberately (the template declares portrait and both landscapes); an undesigned orientation is a rejection risk.
 - [x] Android project:
   - `minSdk 31`, `targetSdk`/`compileSdk 36`;
@@ -151,10 +151,12 @@ Web code reaches native behaviour only through a dynamic `import('@chaos-master/
   - Android writes to `Documents/Lumen Apeiron`: no permission from Android 11, numbered names like a browser, and a share-sheet fallback. It toasts "Saved … to …" with a Share action.
   - iOS writes to the cache and opens the share sheet.
   - The export tracker's Download link fetches its blob URL and saves the same way.
+  - Copy Image (the benchmark card, the logo history) opens the share sheet instead (`shareNative`). In a WebView the image clipboard write resolves on Android but nothing reaches the system clipboard, and Capacitor's Clipboard plugin only copies text.
 - [ ] Lifecycle: an `appActive` signal from `pause`/`resume`, ANDed into every `createAnimationFrame` paused accessor next to `gpuReady()`. `pause` also flushes autosave and ancestry and checkpoints exports.
 - [ ] Android back button: close the top modal, sheet, drawer or overlay, else `minimizeApp()` (needs a small modal-stack registry).
 - [x] `index.html` viewport: `viewport-fit=cover`, so `env(safe-area-inset-*)` is no longer 0 on iOS. Consider `interactive-widget=resizes-content` with the keyboard work.
-- [ ] Safe-area CSS: `var(--safe-area-inset-*, env(safe-area-inset-*))` (Capacitor 8 SystemBars injects the vars on Android); `100dvh` instead of `100vh`.
+- [x] Android system bars: `src/index.tsx` drops `viewport-fit=cover` on native Android before DOMContentLoaded, when SystemBars reads it. SystemBars then pads the WebView between the status and navigation bars instead of passing the insets to a layout that does not pad for them. The bars show the theme's `windowBackground` (--void) with light icons (SystemBars `style: 'DARK'`).
+- [ ] Safe-area CSS, now for iOS only (`contentInset: 'never'` with `viewport-fit=cover`): check that every top-anchored control clears the iPad status bar with `env(safe-area-inset-top)`; `100dvh` instead of `100vh`.
 - [ ] Self-host Inter (`@fontsource-variable/inter`) and drop the Google Fonts `@import` (the offline story).
 - [ ] Hide in native: Discord share and Turnstile, `getDisplayMedia` replay video, the `/benchmarks` path entry, "try Chrome/Firefox/Safari" copy.
 - [ ] Native-aware unsupported copy in `ErrorHandling.tsx` and `PreviewPoster.tsx` ("requires iOS 26"; "update Android System WebView" with a runtime `Chrome/<major>` check below 146; "this GPU is not supported") and a "Restart renderer" action.
