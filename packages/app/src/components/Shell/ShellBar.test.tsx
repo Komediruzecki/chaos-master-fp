@@ -98,6 +98,16 @@ describe('ShellBar', () => {
     vi.useRealTimers()
   })
 
+  it('closes the More menu when the backdrop is tapped', () => {
+    mount('full')
+    screen.getByRole('button', { name: 'More' }).click()
+    expect(screen.getByRole('menu')).toBeTruthy()
+
+    screen.getByTestId('shell-more-backdrop').click()
+    expect(screen.queryByRole('menu')).toBeNull()
+    expect(backDepth()).toBe(0)
+  })
+
   it('opens the shared More list, and back closes it', () => {
     mount('full')
     screen.getByRole('button', { name: 'More' }).click()

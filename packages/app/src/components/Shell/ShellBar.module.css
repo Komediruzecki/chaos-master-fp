@@ -109,6 +109,10 @@
   inset: 0;
   z-index: -1;
   cursor: pointer;
+  /* The dock is pointer-events: none so the canvas stays reachable beside
+     the bar, and every child that has to be touched takes it back. Without
+     this the tap went through to whatever was under the menu. */
+  pointer-events: auto;
 }
 
 .menu {

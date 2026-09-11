@@ -25,4 +25,13 @@ describe('the shell bar stylesheet', () => {
     expect(z, 'the expanded dock needs a stacking order').not.toBeNull()
     expect(Number(z?.[1])).toBeGreaterThan(0)
   })
+
+  it('lets the More backdrop take the tap that closes the menu', () => {
+    // The backdrop sits inside `.dock`, which is `pointer-events: none` so
+    // the canvas stays reachable beside the bar. `.row`, `.more` and `.menu`
+    // each take it back; the backdrop did not, so on a phone with no system
+    // back a tap outside the menu fell through to the gallery plate
+    // underneath and the menu stayed up.
+    expect(declarations('.backdrop')).toMatch(/pointer-events:\s*auto/)
+  })
 })
