@@ -1,0 +1,44 @@
+name: Render Worker CI
+
+# Check + build only. Deployment is RunPod serverless: build the image locally,
+# push a pinned tag to GHCR, and point the RunPod endpoint at it — see
+# workers/render-worker/DEPLOY_TUTORIAL.md. (The old VPS SSH deploy is retired.)
+
+on:
+  push:
+    branches:
+      - main
+      - feat/server-side-gpu-renderer
+    paths:
+      - 'workers/render-worker/**'
+  pull_request:
+    paths:
+      - 'workers/render-worker/**'
+  workflow_dispatch:
+
+jobs:
+  check:
+    name: Check & Build Render Worker
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: '2.9.4'
+
+      - name: Type-check render worker
+        working-directory: workers/render-worker
+        run: deno task check
+
+      # GPU-free WGSL resolution of the extracted shaders — catches app
+      # render-core or typegpu drift before it reaches a billable GPU worker.
+      - name: Resolve smoke test
+        working-directory: workers/render-worker
+        run: deno task test
+
+      - name: Build Docker image
+        run: docker build -f workers/render-worker/Dockerfile -t chaos-master-render-worker .

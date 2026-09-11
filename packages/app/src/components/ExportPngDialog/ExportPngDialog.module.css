@@ -277,9 +277,27 @@
   background: var(--color-bg-input, #1a1a1a);
   color: var(--color-text, #eee);
   font-size: 0.85rem;
-  width: 100%;
   min-height: 3.5rem;
   resize: vertical;
+}
+
+.track {
+  height: 6px;
+  background: var(--color-bg-input, #1a1a1a);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  background: var(--accent-color, #3b82f6);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.statusText {
+  font-size: 12px;
+  color: var(--color-text-secondary, #999);
 }
 
 /* ── Animated-flame frame snapshot chip ── */

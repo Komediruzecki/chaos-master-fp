@@ -6,6 +6,7 @@ import { Modal } from './components/Modal/Modal'
 import { ToastHost } from './components/Toast/Toast'
 import { WelcomeScreen } from './components/WelcomeScreen/WelcomeScreen'
 import { WorkspaceSkeleton } from './components/WorkspaceSkeleton'
+import { AuthContextProvider } from './contexts/AuthContext'
 import { CompactModeProvider } from './contexts/CompactModeContext'
 import { KeyframeTargetProvider } from './contexts/KeyframeTargetContext'
 import { createSpotlightTourState, SpotlightTourContext, } from './contexts/SpotlightTourContext'
@@ -255,124 +256,126 @@ export function Wrappers() {
 
   return (
     <CompactModeProvider>
-      <SpotlightTourContext.Provider value={spotlightState}>
-        <ThemeContextProvider>
-          <KeyframeTargetProvider>
-            <ToastProvider>
-              <Root
-                adapterOptions={{
-                  powerPreference: 'high-performance',
-                }}
-              >
-                <Modal>
-                  <ErrorBoundary fallback={errorHandler}>
-                    <Suspense fallback={<WorkspaceSkeleton />}>
-                      <QueryErrorToast error={queryError()} />
-                      <MainWorkspace
-                        flameFromQuery={flameFromQuery()}
-                        sharedVariationFromQuery={sharedVariationFromQuery()}
-                        flameFromWelcome={selectedFlame}
-                        welcomeTracks={selectedWelcomeTracks}
-                        capabilityFromHome={selectedCapability}
-                        autoOpenBenchmark={benchmarkRequested}
-                        autoStartBenchmark={benchmarkAuto}
-                        hardwareTier={
-                          // When the welcome screen is skipped, detection never
-                          // runs — fall back to a sane tier so quality is set.
-                          hardwareTier() ?? (skipWelcome ? 'high' : null)
-                        }
-                        onHardwareTierChange={setHardwareTier}
-                        resetFlameFromWelcome={() => {
-                          setSelectedFlame(undefined)
-                          setSelectedWelcomeTracks(undefined)
-                          setSelectedCapability(undefined)
-                        }}
-                      />
-                      {/* Home overlays the workspace, which stays mounted so
-                          the editor keeps its state and its canvas size. It is
-                          suppressed while the welcome screen is up so first-run
-                          still has a single entry point. */}
-                      <Show when={activeTab() === 'home' && !showWelcome()}>
-                        <HomeTab
-                          onOpenFlame={(flame, tracks, capability) => {
-                            // Reuses the welcome screen's hand-off path rather
-                            // than adding a second way to seed the workspace.
+      <AuthContextProvider>
+        <SpotlightTourContext.Provider value={spotlightState}>
+          <ThemeContextProvider>
+            <KeyframeTargetProvider>
+              <ToastProvider>
+                <Root
+                  adapterOptions={{
+                    powerPreference: 'high-performance',
+                  }}
+                >
+                  <Modal>
+                    <ErrorBoundary fallback={errorHandler}>
+                      <Suspense fallback={<WorkspaceSkeleton />}>
+                        <QueryErrorToast error={queryError()} />
+                        <MainWorkspace
+                          flameFromQuery={flameFromQuery()}
+                          sharedVariationFromQuery={sharedVariationFromQuery()}
+                          flameFromWelcome={selectedFlame}
+                          welcomeTracks={selectedWelcomeTracks}
+                          capabilityFromHome={selectedCapability}
+                          autoOpenBenchmark={benchmarkRequested}
+                          autoStartBenchmark={benchmarkAuto}
+                          hardwareTier={
+                            // When the welcome screen is skipped, detection never
+                            // runs — fall back to a sane tier so quality is set.
+                            hardwareTier() ?? (skipWelcome ? 'high' : null)
+                          }
+                          onHardwareTierChange={setHardwareTier}
+                          resetFlameFromWelcome={() => {
+                            setSelectedFlame(undefined)
+                            setSelectedWelcomeTracks(undefined)
+                            setSelectedCapability(undefined)
+                          }}
+                        />
+                        {/* Home overlays the workspace, which stays mounted so
+                            the editor keeps its state and its canvas size. It is
+                            suppressed while the welcome screen is up so first-run
+                            still has a single entry point. */}
+                        <Show when={activeTab() === 'home' && !showWelcome()}>
+                          <HomeTab
+                            onOpenFlame={(flame, tracks, capability) => {
+                              // Reuses the welcome screen's hand-off path rather
+                              // than adding a second way to seed the workspace.
+                              batch(() => {
+                                setSelectedFlame(() => flame)
+                                setSelectedWelcomeTracks(() => tracks)
+                                setSelectedCapability(capability)
+                                setActiveTab('workspace')
+                              })
+                            }}
+                          />
+                        </Show>
+                        {/* The Arcade overlays the workspace the same way Home
+                            does: the editor stays mounted underneath so a lesson
+                            starts on the flame you were already looking at. */}
+                        <Show when={activeTab() === 'arcade' && !showWelcome()}>
+                          <ArcadeHub
+                            initialMode={arcadeMode()}
+                            onBackToEditor={() => {
+                              setActiveTab('workspace')
+                            }}
+                          />
+                        </Show>
+                      </Suspense>
+                      <Show when={showWelcome()}>
+                        <WelcomeScreen
+                          showDontShowAgain={dontShowAgain()}
+                          onDontShowAgainChange={(checked) => {
+                            setDontShowAgain(checked)
+                            if (checked) {
+                              dismissWelcome()
+                            }
+                          }}
+                          onEnter={() => setShowWelcome(false)}
+                          onBrowseGallery={() => {
+                            // Both flips are required: Home is suppressed while
+                            // the welcome screen is showing (see the Show above),
+                            // so dismissing without switching lands in the editor
+                            // and switching without dismissing shows nothing.
+                            batch(() => {
+                              setActiveTab('home')
+                              setShowWelcome(false)
+                            })
+                          }}
+                          onSelectFlame={(flame, tracks) => {
                             batch(() => {
                               setSelectedFlame(() => flame)
                               setSelectedWelcomeTracks(() => tracks)
-                              setSelectedCapability(capability)
+                              // Picking a flame means "take me to the editor".
+                              // Force the workspace tab so a stray #home in the
+                              // URL can't leave Home overlaying the flame the
+                              // user just chose.
                               setActiveTab('workspace')
                             })
                           }}
-                        />
-                      </Show>
-                      {/* The Arcade overlays the workspace the same way Home
-                          does: the editor stays mounted underneath so a lesson
-                          starts on the flame you were already looking at. */}
-                      <Show when={activeTab() === 'arcade' && !showWelcome()}>
-                        <ArcadeHub
-                          initialMode={arcadeMode()}
-                          onBackToEditor={() => {
-                            setActiveTab('workspace')
-                          }}
-                        />
-                      </Show>
-                    </Suspense>
-                    <Show when={showWelcome()}>
-                      <WelcomeScreen
-                        showDontShowAgain={dontShowAgain()}
-                        onDontShowAgainChange={(checked) => {
-                          setDontShowAgain(checked)
-                          if (checked) {
-                            dismissWelcome()
-                          }
-                        }}
-                        onEnter={() => setShowWelcome(false)}
-                        onBrowseGallery={() => {
-                          // Both flips are required: Home is suppressed while
-                          // the welcome screen is showing (see the Show above),
-                          // so dismissing without switching lands in the editor
-                          // and switching without dismissing shows nothing.
-                          batch(() => {
-                            setActiveTab('home')
+                          onStartTour={handleStartTour}
+                          onShowAbout={() => {
                             setShowWelcome(false)
-                          })
-                        }}
-                        onSelectFlame={(flame, tracks) => {
-                          batch(() => {
-                            setSelectedFlame(() => flame)
-                            setSelectedWelcomeTracks(() => tracks)
-                            // Picking a flame means "take me to the editor".
-                            // Force the workspace tab so a stray #home in the
-                            // URL can't leave Home overlaying the flame the
-                            // user just chose.
-                            setActiveTab('workspace')
-                          })
-                        }}
-                        onStartTour={handleStartTour}
-                        onShowAbout={() => {
-                          setShowWelcome(false)
-                          // Trigger the floating version pill to open About
-                          requestAnimationFrame(() => {
-                            const pill =
-                              document.querySelector<HTMLButtonElement>(
-                                '[class*="about-pill"]',
-                              )
-                            pill?.click()
-                          })
-                        }}
-                        hardwareTier={hardwareTier()}
-                        onHardwareTierChange={setHardwareTier}
-                      />
-                    </Show>
-                  </ErrorBoundary>
-                </Modal>
-              </Root>
-              <ToastHost />
-            </ToastProvider>
-          </KeyframeTargetProvider>
-        </ThemeContextProvider>
-      </SpotlightTourContext.Provider>
+                            // Trigger the floating version pill to open About
+                            requestAnimationFrame(() => {
+                              const pill =
+                                document.querySelector<HTMLButtonElement>(
+                                  '[class*="about-pill"]',
+                                )
+                              pill?.click()
+                            })
+                          }}
+                          hardwareTier={hardwareTier()}
+                          onHardwareTierChange={setHardwareTier}
+                        />
+                      </Show>
+                    </ErrorBoundary>
+                  </Modal>
+                </Root>
+                <ToastHost />
+              </ToastProvider>
+            </KeyframeTargetProvider>
+          </ThemeContextProvider>
+        </SpotlightTourContext.Provider>
+      </AuthContextProvider>
     </CompactModeProvider>
   )
 }

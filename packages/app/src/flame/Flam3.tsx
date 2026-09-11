@@ -4,7 +4,7 @@ import { clamp } from 'typegpu/std'
 import { useChangeHistory } from '@/contexts/ChangeHistoryContext'
 import { useTimeline } from '@/contexts/TimelineContext'
 import { DEBUG_MODE, PERSIST_RESEED_INTERVAL, PLOTS_PER_CHAIN, } from '@/defaults'
-import { accumulatedPointCount, animationExportProgress, animationExportRunning, exportQuality, setAccumulatedPointCountGlobal, setRenderTimings, } from '@/flame/renderStats'
+import { accumulatedPointCount, animationExportBackend, animationExportProgress, animationExportRunning, exportQuality, setAccumulatedPointCountGlobal, setRenderTimings, } from '@/flame/renderStats'
 import { DEFAULT_RENDERER_RANDOM_IMPLEMENTATION_ID } from '@/shaders/random'
 import { deepClone } from '@/utils/clone'
 import { createTimestampQuery } from '@/utils/createTimestampQuery'
@@ -458,7 +458,10 @@ export function Flam3(props: Flam3Props) {
     () =>
       (props.exportDriver ?? false) ||
       ((props.isExportRenderer ?? false) &&
-        (animationExportRunning() || exportQuality() !== undefined)),
+        // Server-backed animation exports render remotely — only a LOCAL
+        // animation export should switch this renderer to the export loop.
+        ((animationExportRunning() && animationExportBackend() === 'local') ||
+          exportQuality() !== undefined)),
   )
 
   const timestampQuery = createTimestampQuery(device, [
@@ -639,6 +642,7 @@ export function Flam3(props: Flam3Props) {
     if (dimensions === 3 && camera3D) {
       ifsPipeline3D = createIFSPipeline3D(
         root,
+        device,
         camera3D,
         Math.floor(flame.renderSettings.skipIters),
         pointRandomSeeds,
@@ -656,6 +660,7 @@ export function Flam3(props: Flam3Props) {
     } else {
       ifsPipeline = createIFSPipeline(
         root,
+        device,
         camera!,
         Math.floor(flame.renderSettings.skipIters),
         pointRandomSeeds,

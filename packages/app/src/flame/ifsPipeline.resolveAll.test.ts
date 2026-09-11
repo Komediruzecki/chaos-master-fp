@@ -14,6 +14,12 @@ import { variationTypes3D } from './variations3D'
 // to still resolve for all of them. It is also the safety net that must stay
 // green before/after consolidating the per-variation epsilon guards.
 
+// The pipelines only use the device to defer buffer destruction until
+// submitted GPU work completes (onCleanup) — a resolved promise stands in.
+const mockDevice = {
+  queue: { onSubmittedWorkDone: () => Promise.resolve() },
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mockRoot(capture: (compute: any) => void) {
   const fakeBuffer = {
@@ -56,6 +62,8 @@ function resolve2D(transforms: any): string {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       root as any,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      mockDevice as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       { bindGroup: {} } as any,
       20,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -88,6 +96,8 @@ function resolve3D(transforms: any): string {
     createIFSPipeline3D(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       root as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      mockDevice as any,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       { bindGroup: {} } as any,
       20,

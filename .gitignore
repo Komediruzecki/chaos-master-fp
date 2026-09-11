@@ -8,6 +8,10 @@ dist
 test-results
 playwright-report
 .wrangler
+scratch/
+workers/render-worker/flame-job.json
+workers/render-worker/test-out.png
+**/test-out.png
 **/.claude/settings.local.json
 # Local-only Claude skills (e.g. the fork-specific sync-fork workflow)
 **/.claude/skills/
@@ -24,3 +28,4 @@ playwright-report
 
 # Local security-audit scanner output (semgrep/gitleaks/nuclei/eslint telemetry)
 .audit_telemetry/
+__pycache__/

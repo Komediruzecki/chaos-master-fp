@@ -432,6 +432,10 @@ export function createColorGradingPipeline(
     return vec4f(mix(backgroundColor.rgb, rgb, flameAlpha), f32(1))
   }
 
+  // No explicit $uses here: unplugin-typegpu provides fragmentBody's metadata
+  // (drawMode/oklabToRgb resolve through the transform), and typegpu rejects
+  // $uses on plugin-transformed functions at resolution time. The render
+  // worker's runtime extractor applies its own uses map when it needs one.
   const fragment = tgpu.fragmentFn({
     in: VertexOutput,
     out: vec4f,

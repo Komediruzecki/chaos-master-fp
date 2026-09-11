@@ -1,4 +1,4 @@
-import { createSignal, Show } from 'solid-js'
+import { createEffect, createMemo, createSignal, Show } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { vec2f, vec3f, vec4f } from 'typegpu/data'
 import { clamp } from 'typegpu/std'
@@ -6,7 +6,7 @@ import { ScrubInput } from '@/components/Sliders/ScrubInput'
 import { Slider } from '@/components/Sliders/Slider'
 import { ALLOW_CAMERA_DURING_EXPORT, DEFAULT_POINT_COUNT, DEFAULT_PREVIEW_PIXEL_RATIO, } from '@/defaults'
 import { Flam3 } from '@/flame/Flam3'
-import { setCameraDuringExportEnabled } from '@/flame/renderStats'
+import { animationExportCancel, animationExportProgress, animationExportRunning, setCameraDuringExportEnabled, setForceAnimationExportNow, } from '@/flame/renderStats'
 import { MAX_CAMERA_ZOOM_VALUE, MIN_CAMERA_ZOOM_VALUE, } from '@/flame/schema/flameSchema'
 import { AutoCanvas } from '@/lib/AutoCanvas'
 import { Root } from '@/lib/Root'
@@ -34,6 +34,7 @@ import { commitChangedExportMetadata } from './metadataCommit'
 import type { Setter } from 'solid-js'
 import type { v2f } from 'typegpu/data'
 import type { Vec3 } from 'wgpu-matrix'
+import type { RequestModalFn } from '../Modal/ModalContext'
 import type { ExportMetadataPatch } from './metadataCommit'
 import type { Palette } from '@/flame/colorMap'
 import type { ExportImageType } from '@/flame/exportImageType'
@@ -103,9 +104,16 @@ type RenderDialogProps = {
   animationOffscreen: boolean
   onAnimationOffscreenChange: (v: boolean) => void
   onRenderAnimation: () => void
+  onServerRender?: () => void
+  renderBackend: 'local' | 'server-gpu' | 'server-cpu'
+  onRenderBackendChange: (v: 'local' | 'server-gpu' | 'server-cpu') => void
+  serverRenderAvailable: boolean
 }
 
 function RenderDialog(props: RenderDialogProps) {
+  // Offscreen jobs render locally, so a server backend switches them off.
+  const offscreen = () =>
+    props.animationOffscreen && props.renderBackend === 'local'
   const [renderMode, setRenderMode] = createSignal<'auto' | 'manual'>('auto')
   const [renderKey, setRenderKey] = createSignal(0)
   // True while the animation frame-preview gallery is rendering — locks the
@@ -847,10 +855,37 @@ function RenderDialog(props: RenderDialogProps) {
             </label>
 
             <label class={ui.field}>
+              <span>Render Backend</span>
+              <select
+                class={ui.select}
+                value={props.renderBackend}
+                onChange={(e) => {
+                  props.onRenderBackendChange(
+                    e.currentTarget.value as
+                      | 'local'
+                      | 'server-gpu'
+                      | 'server-cpu',
+                  )
+                }}
+              >
+                <option value="local">Local GPU (WebGPU)</option>
+                <Show when={props.serverRenderAvailable}>
+                  <option value="server-gpu">Server GPU (RunPod)</option>
+                  <option value="server-cpu">Server CPU (Software)</option>
+                </Show>
+              </select>
+            </label>
+
+            {/* A server render is one job per frame, so there are no
+                sub-frames to accumulate: motion blur is local-only. */}
+            <label class={ui.field}>
               <span>Motion Blur</span>
               <select
                 class={ui.select}
-                value={props.motionBlurSamples}
+                disabled={props.renderBackend !== 'local'}
+                value={
+                  props.renderBackend === 'local' ? props.motionBlurSamples : 1
+                }
                 onChange={(e) => {
                   props.onMotionBlurSamplesChange(Number(e.currentTarget.value))
                 }}
@@ -921,10 +956,13 @@ function RenderDialog(props: RenderDialogProps) {
 
             <label
               class={ui.checkboxField}
+              classList={{
+                [ui.disabled as string]: props.renderBackend !== 'local',
+              }}
               title="Render the video offscreen as a background job so you can keep using the app. Progress + download appear in the top-right export tracker. Off = render on the main canvas (locks the workspace)."
             >
               <Checkbox
-                checked={props.animationOffscreen}
+                checked={offscreen()}
                 onChange={(checked) => {
                   props.onAnimationOffscreenChange(checked)
                 }}
@@ -935,12 +973,12 @@ function RenderDialog(props: RenderDialogProps) {
             <label
               class={ui.checkboxField}
               classList={{
-                [ui.disabled as string]: props.animationOffscreen,
+                [ui.disabled as string]: offscreen(),
               }}
               title="Keep camera pan/scroll/zoom active while rendering — your live camera moves get baked into the video. Leave off for a deterministic export. (Main-canvas render only.)"
             >
               <Checkbox
-                checked={props.cameraDuringExport && !props.animationOffscreen}
+                checked={props.cameraDuringExport && !offscreen()}
                 onChange={(checked) => {
                   props.onCameraDuringExportChange(checked)
                 }}
@@ -964,6 +1002,9 @@ function RenderDialog(props: RenderDialogProps) {
             Render Animation
           </Button>
         </Show>
+        {props.onServerRender && props.exportTab === 'image' && (
+          <Button onClick={props.onServerRender}>Render on Server</Button>
+        )}
       </footer>
     </>
   )
@@ -988,6 +1029,7 @@ export function createExportPngDialog(
   getBlendWeight?: () => number,
   getAudioBuffer?: () => AudioBuffer | undefined,
   getAudioMapping?: () => AudioMappingEntry[],
+  onServerRender?: () => (() => void) | undefined,
 ) {
   const requestModal = useRequestModal()
   const [exportModalIsOpen, setExportModalIsOpen] = createSignal(false)
@@ -1111,6 +1153,9 @@ export function createExportPngDialog(
       config.fps,
     )
     const [playCount, setPlayCount] = persistentSignal('export/play-count', 1)
+    const [renderBackend, setRenderBackend] = persistentSignal<
+      'local' | 'server-gpu' | 'server-cpu'
+    >('export/render-backend', 'local')
     const [codec, setCodec] = persistentSignal<VideoEncoderConfig['codec']>(
       'export/codec',
       'avc',
@@ -1244,7 +1289,7 @@ export function createExportPngDialog(
 
       // Offscreen: enqueue a background job (workspace stays usable). Renders the
       // RAW workspace flame; the job applies the timeline per frame.
-      if (animationOffscreen()) {
+      if (animationOffscreen() && renderBackend() === 'local') {
         enqueueAnimationJob({
           name: previewDescriptor.metadata?.name?.trim() || 'flame',
           flame: deepClone(flameDescriptor),
@@ -1285,6 +1330,7 @@ export function createExportPngDialog(
         codec: codec(),
         embedMetadata: embedMetadata(),
         session: sessionSnapshot,
+        backend: renderBackend(),
         audioBuffer: audioBuf,
         audioMapping: getAudioMapping?.(),
         motionBlurSamples: motionBlurSamples(),
@@ -1292,6 +1338,12 @@ export function createExportPngDialog(
       // The canvas will be obtained from the Flam3 component in App.tsx
       // For now, we pass config and the factory calls startAnimationExport
       startAnimationExport(exportConfig, document.createElement('canvas'))
+      if (
+        exportConfig.backend === 'server-gpu' ||
+        exportConfig.backend === 'server-cpu'
+      ) {
+        void showServerAnimationProgressDialog(requestModal)
+      }
     }
 
     setExportModalIsOpen(true)
@@ -1360,6 +1412,18 @@ export function createExportPngDialog(
             handleRenderAnimation()
             respond()
           }}
+          renderBackend={renderBackend()}
+          onRenderBackendChange={setRenderBackend}
+          serverRenderAvailable={!!onServerRender && !!onServerRender()}
+          onServerRender={
+            onServerRender && onServerRender()
+              ? () => {
+                  respond()
+                  const fn = onServerRender()
+                  if (fn) fn()
+                }
+              : undefined
+          }
         />
       ),
     })
@@ -1367,4 +1431,140 @@ export function createExportPngDialog(
   }
 
   return { showExportPngDialog, quickExport, exportModalIsOpen }
+}
+
+export async function showServerAnimationProgressDialog(
+  requestModal: RequestModalFn,
+) {
+  await requestModal({
+    class: ui.container,
+    content: ({ respond }) => {
+      const progress = animationExportProgress
+
+      const overallProgress = createMemo(() => {
+        const p = progress()
+        if (!p || p.totalFrames <= 0) return 0
+        return p.totalFramesComplete / p.totalFrames
+      })
+
+      const currentFrameProgress = createMemo(() => {
+        const p = progress()
+        if (!p || p.targetPointsPerFrame <= 0) return 0
+        return p.currentPointCount / p.targetPointsPerFrame
+      })
+
+      const etaText = createMemo(() => {
+        const p = progress()
+        if (!p || p.totalFramesComplete <= 0) return ''
+        const elapsed = (globalThis.performance.now() - p.startedAt) / 1000
+        const avgPerFrame = elapsed / p.totalFramesComplete
+        const remaining = (p.totalFrames - p.totalFramesComplete) * avgPerFrame
+
+        if (!isFinite(remaining) || remaining <= 0) return ''
+        if (remaining < 60) return `${Math.ceil(remaining)}s remaining`
+        const min = Math.floor(remaining / 60)
+        const sec = Math.ceil(remaining % 60)
+        return `${min}m ${sec}s remaining`
+      })
+
+      let started = false
+      createEffect(() => {
+        const running = animationExportRunning()
+        if (running) {
+          started = true
+        }
+        if (started && !running) {
+          respond()
+        }
+      })
+
+      return (
+        <>
+          <ModalTitleBar
+            onClose={() => {
+              animationExportCancel()?.()
+              respond()
+            }}
+          >
+            Server Animation Render
+          </ModalTitleBar>
+          <div
+            class={ui.dialogBody}
+            style={{ display: 'flex', 'flex-direction': 'column', gap: '12px' }}
+          >
+            <div class={ui.statusText} style={{ 'font-weight': 'bold' }}>
+              {progress()?.status === 'encoding'
+                ? 'Assembling MP4 video...'
+                : `Rendering frame ${progress() ? progress()!.totalFramesComplete + 1 : 1} of ${progress() ? progress()!.totalFrames : 0}...`}
+            </div>
+
+            <Show when={progress()?.status !== 'encoding'}>
+              <div
+                style={{
+                  display: 'flex',
+                  'justify-content': 'space-between',
+                  'font-size': '13px',
+                  color: 'var(--color-text-secondary, #999)',
+                }}
+              >
+                <span>
+                  Frame progress: {Math.round(currentFrameProgress() * 100)}%
+                </span>
+                <span>{etaText()}</span>
+              </div>
+              <div class={ui.track}>
+                <div
+                  class={ui.fill}
+                  style={{
+                    width: `${Math.round(currentFrameProgress() * 100)}%`,
+                  }}
+                />
+              </div>
+            </Show>
+
+            <div
+              style={{
+                display: 'flex',
+                'justify-content': 'space-between',
+                'font-size': '13px',
+                color: 'var(--color-text-secondary, #999)',
+              }}
+            >
+              <span>
+                Total progress:{' '}
+                {progress() ? progress()!.totalFramesComplete : 0} /{' '}
+                {progress() ? progress()!.totalFrames : 0} frames (
+                {Math.round(overallProgress() * 100)}%)
+              </span>
+            </div>
+            <div class={ui.track}>
+              <div
+                class={ui.fill}
+                style={{ width: `${Math.round(overallProgress() * 100)}%` }}
+              />
+            </div>
+          </div>
+          <footer class={ui.footer}>
+            <Show when={progress()?.status !== 'encoding'}>
+              <Button
+                onClick={() => {
+                  setForceAnimationExportNow(true)
+                }}
+              >
+                Stop & Save
+              </Button>
+            </Show>
+            <Button
+              onClick={() => {
+                animationExportCancel()?.()
+                respond()
+              }}
+            >
+              Cancel
+            </Button>
+          </footer>
+        </>
+      )
+    },
+  })
 }

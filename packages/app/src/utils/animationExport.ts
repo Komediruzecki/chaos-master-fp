@@ -1,5 +1,6 @@
+import { pollUntilComplete, submitRender } from '@/db/services/render-service'
 import { DEBUG_MODE } from '@/defaults'
-import { accumulatedPointCount, forceAnimationExportNow, qualityPointCountLimit, setAnimationExportCancel, setAnimationExportProgress, setAnimationExportRunning, setExportQuality, setForceAnimationExportNow, } from '@/flame/renderStats'
+import { accumulatedPointCount, forceAnimationExportNow, qualityPointCountLimit, setAnimationExportBackend, setAnimationExportCancel, setAnimationExportProgress, setAnimationExportRunning, setExportQuality, setForceAnimationExportNow, } from '@/flame/renderStats'
 import { applyAudioMappingsToFlame, createAudioAnalyzer } from './audioAnalysis'
 import { createAudioVideoEncoder } from './audioExport'
 import { deepClone } from './clone'
@@ -29,6 +30,7 @@ export type AnimationExportConfig = {
   embedMetadata: boolean
   /** Recording association captured when the export was initiated. */
   session: RecordedSession | undefined
+  backend?: 'local' | 'server-gpu' | 'server-cpu'
   /** When set, produce an MP4 with a synced AAC audio track (WebCodecs AudioEncoder). */
   audioBuffer?: AudioBuffer
   /** Audio-reactive mappings applied per frame (requires audioBuffer). */
@@ -89,6 +91,8 @@ export function createAnimationExport(
     zoom,
   )
 
+  const abortController = new AbortController()
+
   const promise = (async () => {
     const encoder = config.audioBuffer
       ? await createAudioVideoEncoder(
@@ -110,7 +114,7 @@ export function createAnimationExport(
 
     if (DEBUG_MODE) {
       console.info(
-        `[AnimationExport ${logTime()}] start: ${totalRenders} frames @ ${config.fps}fps, quality ${config.quality}, ${resizeWidth}x${resizeHeight}, codec ${encoder.codec}${encoder.usedFallback ? ' (fallback)' : ''}${config.audioBuffer ? ', +audio' : ''}`,
+        `[AnimationExport ${logTime()}] start: ${totalRenders} frames @ ${config.fps}fps, quality ${config.quality}, ${resizeWidth}x${resizeHeight}, codec ${encoder.codec}${encoder.usedFallback ? ' (fallback)' : ''}${config.audioBuffer ? ', +audio' : ''}, backend ${config.backend ?? 'local'}`,
       )
     }
 
@@ -148,7 +152,7 @@ export function createAnimationExport(
       }
 
       function processNextFrame() {
-        if (cancelled) {
+        if (cancelled || abortController.signal.aborted) {
           cleanup()
           resolve(new Blob())
           return
@@ -173,6 +177,80 @@ export function createAnimationExport(
         }
 
         const frame = config.frameStart + (frameIndex % totalFrames)
+
+        if (
+          config.backend === 'server-gpu' ||
+          config.backend === 'server-cpu'
+        ) {
+          // One job per frame: no sub-frames, so motion blur does not apply
+          // (the export dialog disables it for server backends).
+          timeline.setCurrentFrame(frame)
+          const flameClone = deepClone(baseFlame)
+          applyTimelineToFlameAtFrame(timeline, flameClone, frame)
+
+          const flameJson = JSON.stringify(flameClone)
+          const targetBackend = config.backend === 'server-gpu' ? 'gpu' : 'cpu'
+
+          updateProgress(0, targetPointsPerFrame)
+
+          submitRender(flameJson, {
+            width: resizeWidth,
+            height: resizeHeight,
+            quality: config.quality,
+            backend: targetBackend,
+          })
+            .then(({ jobId }) => {
+              if (cancelled || abortController.signal.aborted) return
+
+              return pollUntilComplete(
+                jobId,
+                (job) => {
+                  if (cancelled || abortController.signal.aborted) return
+                  updateProgress(
+                    job.progress * targetPointsPerFrame,
+                    targetPointsPerFrame,
+                  )
+                },
+                { signal: abortController.signal, timeoutMs: 120_000 },
+              ).then((pngBytes) => {
+                if (cancelled || abortController.signal.aborted) return
+
+                const resultBlob = new Blob([pngBytes as BlobPart], {
+                  type: 'image/png',
+                })
+                // eslint-disable-next-line no-restricted-globals
+                return createImageBitmap(resultBlob).then(async (bitmap) => {
+                  if (cancelled || abortController.signal.aborted) {
+                    bitmap.close()
+                    return
+                  }
+
+                  const encodeStartTime = performance.now()
+                  await encoder.encodeFrame(bitmap, frameIndex)
+                  const encodeTime = performance.now() - encodeStartTime
+
+                  if (DEBUG_MODE) {
+                    console.info(
+                      `[AnimationExport ${logTime()}] Server Frame ${frameIndex + 1}/${totalRenders} (${targetBackend}): encoded in ${encodeTime.toFixed(1)}ms`,
+                    )
+                  }
+
+                  frameIndex++
+                  processNextFrame()
+                })
+              })
+            })
+            .catch((err: unknown) => {
+              if (cancelled || abortController.signal.aborted) {
+                // Ignore AbortError / cancelled rejections
+                return
+              }
+              reject(err instanceof Error ? err : new Error(String(err)))
+            })
+
+          return
+        }
+
         const motionBlurSamples = Math.max(1, config.motionBlurSamples ?? 1)
         const shutterAngle = config.shutterAngle ?? 180
         const shutterDuration = shutterAngle / 360
@@ -226,7 +304,7 @@ export function createAnimationExport(
           () => (exportCanvas: HTMLCanvasElement, info?: ExportInfo) => {
             if (capturing) return
 
-            if (cancelled) {
+            if (cancelled || abortController.signal.aborted) {
               cleanup()
               resolve(new Blob())
               return
@@ -285,7 +363,7 @@ export function createAnimationExport(
                 setOnExportImage(undefined)
                 setExportQuality(undefined)
 
-                if (cancelled) {
+                if (cancelled || abortController.signal.aborted) {
                   bitmap.close()
                   cleanup()
                   resolve(new Blob())
@@ -360,6 +438,7 @@ export function createAnimationExport(
         } finally {
           setAnimationExportCancel(undefined)
           setAnimationExportRunning(false)
+          setAnimationExportBackend('local')
           setAnimationExportProgress(undefined)
           setForceAnimationExportNow(false)
           setOnExportImage(undefined)
@@ -371,15 +450,18 @@ export function createAnimationExport(
       function cleanup() {
         setAnimationExportCancel(undefined)
         setAnimationExportRunning(false)
+        setAnimationExportBackend('local')
         setAnimationExportProgress(undefined)
         setForceAnimationExportNow(false)
         setOnExportImage(undefined)
         setExportQuality(undefined)
         restoreFlameState()
         encoder.cancel()
+        abortController.abort()
       }
 
       setAnimationExportRunning(true)
+      setAnimationExportBackend(config.backend ?? 'local')
       updateProgress(0, targetPointsPerFrame)
       processNextFrame()
     })
@@ -387,7 +469,9 @@ export function createAnimationExport(
 
   const cancel = () => {
     cancelled = true
+    abortController.abort()
     setAnimationExportRunning(false)
+    setAnimationExportBackend('local')
     setAnimationExportCancel(undefined)
     setAnimationExportProgress(undefined)
     setForceAnimationExportNow(false)

@@ -1,0 +1,6 @@
+.turnstile {
+  min-height: 65px;
+  margin: 0.25rem 0;
+  display: flex;
+  justify-content: center;
+}

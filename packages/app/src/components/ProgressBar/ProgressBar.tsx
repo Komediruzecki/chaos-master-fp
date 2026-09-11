@@ -1,5 +1,5 @@
 import { createMemo, Show } from 'solid-js'
-import { animationExportCancel, animationExportProgress, setForceAnimationExportNow, } from '@/flame/renderStats'
+import { animationExportBackend, animationExportCancel, animationExportProgress, setForceAnimationExportNow, } from '@/flame/renderStats'
 import { formatEta } from '@/utils/formatEta'
 import { formatPointCount } from '@/utils/formatPointCount'
 import { ExportActions } from '../ExportJobs/ExportActions'
@@ -14,6 +14,12 @@ const { performance } = globalThis
  */
 export function ProgressBar() {
   const animProgress = animationExportProgress
+
+  // Server-backed animation exports surface progress in their own modal — this
+  // overlay only tracks exports rendering locally on the main canvas.
+  const showLocalAnim = createMemo(
+    () => animProgress() !== undefined && animationExportBackend() === 'local',
+  )
 
   const animFramePct = createMemo(() => {
     const p = animProgress()
@@ -47,10 +53,10 @@ export function ProgressBar() {
   return (
     <div
       class={ui.overlay}
-      style={{ display: animProgress() ? 'block' : 'none' }}
+      style={{ display: showLocalAnim() ? 'block' : 'none' }}
     >
       <div class={ui.inner}>
-        <Show when={animProgress()}>
+        <Show when={showLocalAnim() && animProgress()}>
           <div class={ui.header}>
             <span class={ui.label}>
               {animProgress()?.status === 'encoding'

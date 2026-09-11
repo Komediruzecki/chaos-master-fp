@@ -1,0 +1,63 @@
+{
+  "version": "5",
+  "specifiers": {
+    "jsr:@std/cli@*": "1.0.30",
+    "npm:@typegpu/color@0.11.0": "0.11.0_typegpu@0.11.9",
+    "npm:@typegpu/noise@0.11.0": "0.11.0_typegpu@0.11.9",
+    "npm:typegpu@0.11.9": "0.11.9",
+    "npm:valibot@1.2.0": "1.2.0",
+    "npm:wgpu-matrix@3.4.2": "3.4.2"
+  },
+  "jsr": {
+    "@std/cli@1.0.30": {
+      "integrity": "769446536522d0417d7127ebcabcafac1ab0ce6766d0eb3fca1d36326fe98d13"
+    }
+  },
+  "npm": {
+    "@typegpu/color@0.11.0_typegpu@0.11.9": {
+      "integrity": "sha512-Ft/f5y6nL9LG325l3B7r6KKgq+Y6QKmk1Oe4rKNSgUJu1+jFCCJUoTxJmEoyCUlS2jxvlBubcVZN4X4QC0qhug==",
+      "dependencies": [
+        "typegpu"
+      ]
+    },
+    "@typegpu/noise@0.11.0_typegpu@0.11.9": {
+      "integrity": "sha512-4q5unoJz6MniMFIsazxCwiQFsaAV6YZD1iNdiXV/H6tWGi40Plknpm2Azn1ZMDaJIg6gz1sokp5sDXEbfqKIIw==",
+      "dependencies": [
+        "typegpu"
+      ]
+    },
+    "tinyest@0.3.2": {
+      "integrity": "sha512-1wqSt97RLezWzeogLSVXHr+E3jpYO8jxyaK2AIdJeGoZZTCubwNxQ9IqU5gbQpJVcxlbPugPAsII+m9/gqpPSA=="
+    },
+    "tsover-runtime@0.0.7": {
+      "integrity": "sha512-FHHwMJzZbnP23+fU1PxXljy7j0RRRosL2r1/CRUNTqfW+l7m35JsUkM615x/cAzw4GqRdXPIl3axKMj9qzpZtQ=="
+    },
+    "typed-binary@4.3.3": {
+      "integrity": "sha512-W2hLsSzt3k/tg38gDE4Fn/QiwcoqGuUHBc2cb3mXuH7KcYxe/GM57vzW14s2/bawB4R5knGgGq8Xb57vsaJ4Sg=="
+    },
+    "typegpu@0.11.9": {
+      "integrity": "sha512-AqBV6P9lW2jA7pEVDeiMD7Qoza9doPgueQbwyUyf09u4ndb9jOttHwpZ18c+BEzwLHaPlV50jw0hx5QsmVJGNg==",
+      "dependencies": [
+        "tinyest",
+        "tsover-runtime",
+        "typed-binary"
+      ],
+      "bin": true
+    },
+    "valibot@1.2.0": {
+      "integrity": "sha512-mm1rxUsmOxzrwnX5arGS+U4T25RdvpPjPN4yR0u9pUBov9+zGVtO84tif1eY4r6zWxVxu3KzIyknJy3rxfRZZg=="
+    },
+    "wgpu-matrix@3.4.2": {
+      "integrity": "sha512-IfZFbG7olEYBD76VCZy2TzqM57GKy3LT++AZh37tMHPPByO6R2h61zXGBZFNPi2IzxNivNi8y5dvze5PjaczjA=="
+    }
+  },
+  "workspace": {
+    "dependencies": [
+      "npm:@typegpu/color@0.11.0",
+      "npm:@typegpu/noise@0.11.0",
+      "npm:typegpu@0.11.9",
+      "npm:valibot@1.2.0",
+      "npm:wgpu-matrix@3.4.2"
+    ]
+  }
+}

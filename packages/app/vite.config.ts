@@ -66,7 +66,10 @@ export default defineConfig({
     solidSvg({ defaultAsComponent: true }),
     typegpuPlugin({}),
     ENABLE_DEVTOOLS ? devtools() : undefined,
-    ssl(),
+    // HTTPS by default (secure-context APIs: mic, clipboard). VITE_NO_HTTPS=1
+    // serves plain http for agent-driven browsers that cannot click through
+    // the self-signed-certificate interstitial.
+    process.env.VITE_NO_HTTPS ? undefined : ssl(),
     qrcode(),
     ANALYZE_BUNDLE ? bundleAnalyzer() : undefined,
   ],
@@ -110,5 +113,13 @@ export default defineConfig({
   build: {
     target: 'esnext',
     sourcemap: true,
+    rollupOptions: {
+      input: {
+        // The app itself, plus the headless render surface driven by the
+        // server-side Chrome renderer (workers/render-worker/tools).
+        main: fileURLToPath(new URL('index.html', import.meta.url)),
+        headless: fileURLToPath(new URL('headless.html', import.meta.url)),
+      },
+    },
   },
 })

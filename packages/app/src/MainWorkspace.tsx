@@ -4,6 +4,7 @@ import { createStore, unwrap } from 'solid-js/store'
 import { vec2f } from 'typegpu/data'
 import { agentDriving } from '@/arcade/pilot'
 import { executeCommand } from '@/commands/registry'
+import { useAuth } from '@/contexts/AuthContext'
 import { useKeyframeTarget } from '@/contexts/KeyframeTargetContext'
 import { useToast } from '@/contexts/ToastContext'
 import { setActiveTab, workspaceIsVisible } from '@/lib/activeTab'
@@ -21,6 +22,7 @@ import { FloatingActions } from './components/FloatingActions/FloatingActions'
 import { createLoadFlame } from './components/LoadFlameModal/LoadFlameModal'
 import { useRequestModal } from './components/Modal/ModalContext'
 import { qualityPresets } from './components/Quality/QualityPresets'
+import { createServerRenderDialog } from './components/ServerRenderDialog/ServerRenderDialog'
 import { recorderExportPending, recorderTaskPending, setRecorderCollapsed, setRecorderVisible, } from './components/SessionRecorder/recorderUi'
 import { AdvancedToolsDrawer, MobileBottomSurface, TabletInspectorDeck, TouchHUD, } from './components/TouchSurface'
 import { WorkspaceBottomBar } from './components/WorkspaceBottomBar'
@@ -72,7 +74,7 @@ import { initExample } from './flame/examples/initExample'
 import { initExample3D } from './flame/examples/initExample3D'
 import { newDefaultTransform } from './flame/newTransform'
 import { generateRandomFlame, mutateFlame, randomizeAllColors, randomRange, } from './flame/randomize'
-import { accumulatedPointCount, animationExportCancel, animationExportProgress, animationExportRunning, qualityPointCountLimit, setExportQuality, setForceAnimationExportNow, } from './flame/renderStats'
+import { accumulatedPointCount, animationExportBackend, animationExportCancel, animationExportProgress, animationExportRunning, qualityPointCountLimit, setAnimationExportBackend, setAnimationExportCancel, setAnimationExportRunning, setExportQuality, setForceAnimationExportNow, } from './flame/renderStats'
 import { tryValidateFlame } from './flame/schema/flameSchema'
 import { extractFlameUniforms, generateTransformId, generateVariationId, } from './flame/transformFunction'
 import { extractFlameUniforms3D } from './flame/transformFunction3D'
@@ -228,6 +230,7 @@ function logStoreInitDev(props: AppProps, flameDescriptor: FlameDescriptor) {
 export function MainWorkspace(props: AppProps) {
   const { theme, setTheme } = useTheme()
   const { targetedParameter, setTargetedParameter } = useKeyframeTarget()
+  const auth = useAuth()
   let isRandomizingAnimation = false
 
   createEffect(() => {
@@ -1528,7 +1531,11 @@ export function MainWorkspace(props: AppProps) {
 
   createEffect(() => {
     const progress = animationExportProgress()
-    if (animationExportRunning() && progress) {
+    if (
+      animationExportRunning() &&
+      progress &&
+      animationExportBackend() === 'local'
+    ) {
       if (!timeline.isPlaying()) {
         timeline.setCurrentFrame(progress.currentTimelineFrame)
       }
@@ -1727,6 +1734,20 @@ export function MainWorkspace(props: AppProps) {
       return
     }
 
+    // Assert the export signals BEFORE the canvas-resize await below so the
+    // server progress modal (opened right after this call returns) sees the
+    // export as running instead of auto-closing; createAnimationExport
+    // re-asserts and later clears them.
+    let startupCancelled = false
+    setAnimationExportRunning(true)
+    setAnimationExportBackend(config.backend ?? 'local')
+    setAnimationExportCancel(() => () => {
+      startupCancelled = true
+      setAnimationExportRunning(false)
+      setAnimationExportBackend('local')
+      setAnimationExportCancel(undefined)
+    })
+
     // True high-resolution export: render the canvas backing store at the exact
     // export dimensions (resolution + aspect) for the duration of the export,
     // instead of bitmap-upscaling the viewport canvas (which only interpolated
@@ -1734,39 +1755,56 @@ export function MainWorkspace(props: AppProps) {
     setExportDimensions({ width: config.width, height: config.height })
     await waitForStableCanvasSize(canvas)
 
-    // The canvas already renders at the export dimensions.
-    const { promise } = createAnimationExport(
-      config,
-      canvas,
-      timeline,
-      flameDescriptor,
-      // Silent writer: the export applies animated state once PER FRAME —
-      // recording it buried the user's real edits under hundreds of
-      // per-frame history entries (uncapped stack).
-      history.setSilently,
-      setOnExportImage,
-    )
+    if (startupCancelled) {
+      setExportDimensions(undefined)
+      return
+    }
 
-    promise
-      .then((blob) => {
-        if (blob.size === 0) return // cancelled
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = 'animation.mp4'
-        a.click()
-        URL.revokeObjectURL(url)
-        showToast('Animation exported')
-      })
+    try {
+      // The canvas already renders at the export dimensions.
+      const { promise } = createAnimationExport(
+        config,
+        canvas,
+        timeline,
+        flameDescriptor,
+        // Silent writer: the export applies animated state once PER FRAME —
+        // recording it buried the user's real edits under hundreds of
+        // per-frame history entries (uncapped stack).
+        history.setSilently,
+        setOnExportImage,
+      )
 
-      .catch((err: unknown) => {
-        console.error('Animation export failed:', err)
-        showToast('Animation export failed')
-      })
-      .finally(() => {
-        setExportDimensions(undefined)
-      })
+      promise
+        .then((blob) => {
+          if (blob.size === 0) return // cancelled
+          const url = URL.createObjectURL(blob)
+          const a = document.createElement('a')
+          a.href = url
+          a.download = 'animation.mp4'
+          a.click()
+          URL.revokeObjectURL(url)
+          showToast('Animation exported')
+        })
+        .catch((err: unknown) => {
+          console.error('Animation export failed:', err)
+          showToast('Animation export failed')
+        })
+        .finally(() => {
+          setExportDimensions(undefined)
+        })
+    } catch (err: unknown) {
+      console.error('Animation export startup failed:', err)
+      showToast('Animation export failed')
+      setAnimationExportRunning(false)
+      setAnimationExportBackend('local')
+      setAnimationExportCancel(undefined)
+      setExportDimensions(undefined)
+    }
   }
+
+  const { show: showServerRenderDialog } = createServerRenderDialog(
+    () => flameDescriptor,
+  )
 
   const { showExportPngDialog, quickExport, exportModalIsOpen } =
     createExportPngDialog(
@@ -1795,6 +1833,13 @@ export function MainWorkspace(props: AppProps) {
       () => resolvedBlendWeight(),
       () => audioBuffer(),
       () => audioMapping().mappings,
+      () =>
+        auth.featureFlags().serverRendering
+          ? () => {
+              if (timeline.isPlaying()) timeline.pause()
+              void showServerRenderDialog()
+            }
+          : undefined,
     )
 
   async function shareToDiscord() {

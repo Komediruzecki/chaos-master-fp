@@ -15,9 +15,39 @@ export interface Env {
   DISCORD_RL: {
     limit: (options: { key: string }) => Promise<{ success: boolean }>
   }
+  // Per-user burst limiter for GPU render submissions.
+  RENDER_RL?: {
+    limit: (options: { key: string }) => Promise<{ success: boolean }>
+  }
   ASSETS: { fetch: typeof fetch }
+  CHAOS_DB: D1Database
+  // R2 bucket holding completed server-render PNGs (renders/<jobId>.png).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  RENDERS?: any
+  // RunPod serverless (primary render path): API key + queue endpoint id.
+  RUNPOD_API_KEY?: string
+  RUNPOD_ENDPOINT_ID?: string
+  RUNPOD_BASE_URL?: string
+  // 'true' when the endpoint's image ships headless Chrome, which is what makes
+  // engine:'chrome' (and therefore 4K/8K) servable, and makes it the default
+  // for a render that names no engine. Set per deployment so a Chrome request
+  // against a Deno-only endpoint fails loudly instead of being silently
+  // rendered — and mis-attributed — by Deno.
+  RUNPOD_CHROME_ENGINE?: string
+  // Self-hosted pod fallback: base URL + shared bearer token.
+  RENDER_WORKER_URL?: string
+  RENDER_WORKER_TOKEN?: string
+  ENVIRONMENT?: string
+  APP_ORIGINS?: string
   // Secrets (set via \`wrangler secret put\`). When unset the related feature is
   // treated as not-configured rather than enforced — keeps local dev working.
+  JWT_SECRET?: string
+  STRIPE_SECRET_KEY?: string
+  STRIPE_WEBHOOK_SECRET?: string
+  STRIPE_PREMIUM_PRICE_ID?: string
+  STRIPE_PRO_PRICE_ID?: string
+  GOOGLE_CLIENT_ID?: string
+  GOOGLE_CLIENT_SECRET?: string
   TURNSTILE_SECRET?: string
   DISCORD_WEBHOOK_URL?: string
   DISCORD_INVITE_URL?: string

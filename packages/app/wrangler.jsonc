@@ -37,6 +37,7 @@
       // Hostnames a Turnstile token may have been solved on (pins the token to
       // this origin). Keep in sync with the Turnstile widget's hostname list.
       "vars": {
+        "ENVIRONMENT": "prod",
         "TURNSTILE_ALLOWED_HOSTNAMES": "lumenapeiron.com",
       },
       "routes": [
@@ -46,16 +47,31 @@
         },
       ],
       // NO `build.command` here on purpose — see the dev env below.
+      // Sweep stuck render jobs (fail + refund past the cutoff).
+      "triggers": {
+        "crons": ["*/5 * * * *"],
+      },
       "kv_namespaces": [
         {
           "binding": "KV_SHORTENER",
           "id": "7cf9ab98f6274a179d63cccbf3c93911",
         },
       ],
+      "d1_databases": [
+        {
+          "binding": "CHAOS_DB",
+          "database_name": "chaos-master-db",
+          "database_id": "PLACEHOLDER_PROD_D1_ID",
+        },
+      ],
       "r2_buckets": [
         {
           "binding": "OG_IMAGES",
           "bucket_name": "chaos-master-og-images",
+        },
+        {
+          "binding": "RENDERS",
+          "bucket_name": "chaos-master-renders",
         },
       ],
       // Home tab content: FlameDescriptor JSON served to the app so the
@@ -83,6 +99,13 @@
           "namespace_id": "2001",
           "simple": { "limit": 1, "period": 60 },
         },
+        // Per-user burst cap on GPU render submissions (the credit ledger
+        // bounds total spend; this stops scripted hammering of the endpoint).
+        {
+          "name": "RENDER_RL",
+          "namespace_id": "3001",
+          "simple": { "limit": 3, "period": 60 },
+        },
       ],
     },
     "dev": {
@@ -90,6 +113,11 @@
       // localhost included so `wrangler dev --env dev` accepts tokens solved on
       // the local Turnstile widget. Keep in sync with the widget hostname list.
       "vars": {
+        "ENVIRONMENT": "dev",
+        "STRIPE_SECRET_KEY": "",
+        "STRIPE_WEBHOOK_SECRET": "",
+        "STRIPE_PREMIUM_PRICE_ID": "",
+        "STRIPE_PRO_PRICE_ID": "",
         "TURNSTILE_ALLOWED_HOSTNAMES": "dev.lumenapeiron.com,localhost",
       },
       "routes": [
@@ -121,10 +149,23 @@
           "preview_id": "91bef067328b4904ad4cfbcbbcf980f2",
         },
       ],
+      "d1_databases": [
+        {
+          "binding": "CHAOS_DB",
+          "database_name": "chaos-master-db-dev",
+          "database_id": "PLACEHOLDER_DEV_D1_ID",
+        },
+      ],
       "r2_buckets": [
         {
           "binding": "OG_IMAGES",
           "bucket_name": "chaos-master-og-images-dev",
+        },
+        // `wrangler dev` simulates R2 locally, so this works with no real
+        // bucket; a deployed dev env shares the staging renders bucket.
+        {
+          "binding": "RENDERS",
+          "bucket_name": "chaos-master-renders-staging",
         },
       ],
       "d1_databases": [
@@ -145,6 +186,76 @@
           "namespace_id": "2002",
           "simple": { "limit": 1, "period": 60 },
         },
+        {
+          "name": "RENDER_RL",
+          "namespace_id": "3002",
+          "simple": { "limit": 3, "period": 60 },
+        },
+      ],
+    },
+    // Fork-owned test deployment at staging.lumenapeiron.com. Behaves like
+    // prod for credit enforcement (the lifecycle is the thing under test) but
+    // allows the mock Stripe checkout, so tiers/credits can be exercised
+    // without real money. dev/prod stay upstream-managed.
+    "staging": {
+      "name": "chaos-master-staging",
+      "vars": {
+        "ENVIRONMENT": "staging",
+        "TURNSTILE_ALLOWED_HOSTNAMES": "staging.lumenapeiron.com",
+        // The staging endpoint (4l7hb69v3wchcn) runs a CHROME_ENGINE=true
+        // image, so chrome is offered here and is the default engine. Set
+        // "false" against a Deno-only endpoint: renders then default to Deno,
+        // and chrome submits are rejected rather than silently served by Deno.
+        "RUNPOD_CHROME_ENGINE": "true",
+      },
+      "routes": [
+        {
+          "pattern": "staging.lumenapeiron.com",
+          "custom_domain": true,
+        },
+      ],
+      "triggers": {
+        "crons": ["*/5 * * * *"],
+      },
+      "kv_namespaces": [
+        {
+          "binding": "KV_SHORTENER",
+          "id": "7cf9ab98f6274a179d63cccbf3c93911",
+        },
+      ],
+      "d1_databases": [
+        {
+          "binding": "CHAOS_DB",
+          "database_name": "chaos-master-db-staging",
+          "database_id": "1d8cf6b7-5658-48b7-a7f1-7efdf88968d4",
+        },
+      ],
+      "r2_buckets": [
+        {
+          "binding": "OG_IMAGES",
+          "bucket_name": "chaos-master-og-images-dev",
+        },
+        {
+          "binding": "RENDERS",
+          "bucket_name": "chaos-master-renders-staging",
+        },
+      ],
+      "ratelimits": [
+        {
+          "name": "API_RL",
+          "namespace_id": "1004",
+          "simple": { "limit": 30, "period": 60 },
+        },
+        {
+          "name": "DISCORD_RL",
+          "namespace_id": "2004",
+          "simple": { "limit": 1, "period": 60 },
+        },
+        {
+          "name": "RENDER_RL",
+          "namespace_id": "3004",
+          "simple": { "limit": 3, "period": 60 },
+        },
       ],
     },
     "preview": {
@@ -157,6 +268,13 @@
           "binding": "KV_SHORTENER",
           "id": "7cf9ab98f6274a179d63cccbf3c93911",
           "preview_id": "91bef067328b4904ad4cfbcbbcf980f2",
+        },
+      ],
+      "d1_databases": [
+        {
+          "binding": "CHAOS_DB",
+          "database_name": "chaos-master-db-preview",
+          "database_id": "PLACEHOLDER_PREVIEW_D1_ID",
         },
       ],
       "r2_buckets": [
@@ -183,6 +301,11 @@
           "name": "DISCORD_RL",
           "namespace_id": "2003",
           "simple": { "limit": 1, "period": 60 },
+        },
+        {
+          "name": "RENDER_RL",
+          "namespace_id": "3003",
+          "simple": { "limit": 3, "period": 60 },
         },
       ],
     },
