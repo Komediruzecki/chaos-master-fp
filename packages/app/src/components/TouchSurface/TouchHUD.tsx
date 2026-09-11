@@ -1,6 +1,6 @@
 import { createSignal, For, Show } from 'solid-js'
 import { executeCommand } from '@/commands/registry'
-import { Book, Download, GridIcon, Info, Menu, Redo, Share, SidebarPanel, Undo, Zap, } from '@/icons'
+import { Book, Download, GaugeMax, GridIcon, Info, Menu, Redo, Share, SidebarPanel, Undo, Zap, } from '@/icons'
 import { setActiveTab } from '@/lib/activeTab'
 import { haptic } from '@/lib/haptics'
 import ui from './TouchSurface.module.css'
@@ -21,6 +21,9 @@ export interface TouchHUDProps {
   onPickGallery?: () => void
   onOpenSettings?: () => void
   onOpenDocs?: () => void
+  onOpenBenchmark?: () => void
+  /** Web only: the Benchmark Lab is its own page (DESIGN.md, decision 1). */
+  onOpenBenchmarkLab?: () => void
   onDesktopLayout?: () => void
 }
 
@@ -96,6 +99,20 @@ export function TouchHUD(props: TouchHUDProps) {
         label: 'Documentation',
         Icon: Book,
         run: () => props.onOpenDocs?.(),
+      })
+    }
+    if (props.onOpenBenchmark) {
+      items.push({
+        label: 'Quick GPU benchmark',
+        Icon: Zap,
+        run: () => props.onOpenBenchmark?.(),
+      })
+    }
+    if (props.onOpenBenchmarkLab) {
+      items.push({
+        label: 'Benchmark Lab',
+        Icon: GaugeMax,
+        run: () => props.onOpenBenchmarkLab?.(),
       })
     }
     if (props.onOpenSettings) {

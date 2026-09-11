@@ -103,6 +103,31 @@ describe('TouchSurface Components', () => {
       expect(screen.queryByRole('menu')).toBeNull()
     })
 
+    it('offers both ways into the benchmarks', () => {
+      const ctx = createMockCommandContext()
+      const onOpenBenchmark = vi.fn()
+      const onOpenBenchmarkLab = vi.fn()
+
+      render(() => (
+        <TouchHUD
+          ctx={ctx}
+          flame={ctx.flameDescriptor}
+          onOpenBenchmark={onOpenBenchmark}
+          onOpenBenchmarkLab={onOpenBenchmarkLab}
+        />
+      ))
+
+      // Hiding the floating version menu on this layout took both entry
+      // points with it; the More menu is where they live now.
+      screen.getByRole('button', { name: 'More' }).click()
+      screen.getByText('Quick GPU benchmark').click()
+      expect(onOpenBenchmark).toHaveBeenCalledTimes(1)
+
+      screen.getByRole('button', { name: 'More' }).click()
+      screen.getByText('Benchmark Lab').click()
+      expect(onOpenBenchmarkLab).toHaveBeenCalledTimes(1)
+    })
+
     it('closes its popovers from a tap anywhere on the screen', () => {
       const ctx = createMockCommandContext()
       render(() => (

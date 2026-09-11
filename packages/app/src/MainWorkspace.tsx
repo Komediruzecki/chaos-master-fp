@@ -86,6 +86,7 @@ import { captureTransformColors, runPaletteRestoreTransition, } from './recorder
 import { snapshotOrigin, snapshotOriginLabel } from './recorder/snapshotOrigin'
 import { applySonificationSnapshot, closeAuthoredSonificationPanel, shouldStopHiddenSonification, SONIFICATION_SNAPSHOT_VERSION, } from './recorder/sonificationState'
 import { createRecorderAwareTimeline, runTimelineSnapshotMutation, } from './recorder/timelineActions'
+import { BENCHMARKS_PATH } from './routing/appPath'
 import { createAnimationExport } from './utils/animationExport'
 import { downloadBlob } from './utils/blob'
 import { deepClone } from './utils/clone'
@@ -3411,6 +3412,18 @@ export function MainWorkspace(props: AppProps) {
               onPickGallery={pickGalleryFlame}
               onOpenSettings={showHelp}
               onOpenDocs={showDocumentation}
+              onOpenBenchmark={() => {
+                void showBenchmark()
+              }}
+              // The Benchmark Lab is a page of its own and web only
+              // (DESIGN.md, decision 1), so the native app is not offered it.
+              onOpenBenchmarkLab={
+                IS_NATIVE
+                  ? undefined
+                  : () => {
+                      window.location.assign(BENCHMARKS_PATH)
+                    }
+              }
               onDesktopLayout={() => {
                 setTouchLayoutPreference('desktop')
                 showToast('Switched to the desktop layout', 3500)
