@@ -3,7 +3,7 @@ import { CameraIcon, ColourWedge, ShapeTriangle, Shuffle, VariationSpiral, } fro
 import { haptic } from '@/lib/haptics'
 import { createDragHandler } from '@/utils/createDragHandler'
 import { createLongPress } from '@/utils/createLongPress'
-import { clampSheetHeight, detentHeights, heightOf, nearestDetent, PEEK_HEIGHT, settleDetent, } from './detents'
+import { clampSheetHeight, detentHeights, FLICK_MAX_AGE_MS, heightOf, nearestDetent, PEEK_HEIGHT, settleDetent, } from './detents'
 import ui from './EditorRail.module.css'
 import { TouchControlSurface } from './TouchControlSurface'
 import type { JSX } from 'solid-js'
@@ -45,6 +45,7 @@ export function EditorRail(props: EditorRailProps) {
     dragHeight() ?? clampSheetHeight(heightOf(detent(), heights()), heights())
 
   let dockEl: HTMLElement | undefined
+  let sheetEl: HTMLDivElement | undefined
 
   /**
    * What the sheet may not grow into, read back from the dock's own padding:
@@ -121,7 +122,11 @@ export function EditorRail(props: EditorRailProps) {
   const startGrab = createDragHandler(
     (initEvent) => {
       const startY = initEvent.clientY
-      const startHeight = sheetHeight()
+      // The height on screen, not the one the transition is heading for:
+      // grabbing the sheet while it is still opening used to snap it by
+      // whatever distance was left to travel.
+      const rendered = sheetEl?.getBoundingClientRect().height ?? 0
+      const startHeight = rendered > 0 ? rendered : sheetHeight()
       let lastY = initEvent.clientY
       let lastT = initEvent.timeStamp
       let velocity = 0
@@ -149,8 +154,16 @@ export function EditorRail(props: EditorRailProps) {
           }
           setDragHeight(h)
         },
-        onDone() {
-          const target = settleDetent(sheetHeight(), velocity, heights())
+        onDone(event) {
+          // A release that trails the last move is a placement, not a flick;
+          // so is a drag something else ended, which brings no event at all.
+          const flicked =
+            event !== undefined && event.timeStamp - lastT <= FLICK_MAX_AGE_MS
+          const target = settleDetent(
+            sheetHeight(),
+            flicked ? velocity : 0,
+            heights(),
+          )
           haptic.selectionEnd()
           setDragHeight(null)
           settle(target)
@@ -186,6 +199,7 @@ export function EditorRail(props: EditorRailProps) {
     >
       <div
         class={ui.sheet}
+        ref={sheetEl}
         classList={{ [ui.dragging!]: dragHeight() !== null }}
         style={{ height: `${sheetHeight()}px` }}
         data-testid="editor-rail-sheet"

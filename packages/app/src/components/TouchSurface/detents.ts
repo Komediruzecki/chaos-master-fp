@@ -12,6 +12,12 @@ export const MEDIUM_FRACTION = 0.44
 export const LARGE_FRACTION = 0.88
 /** px per ms; above this a release goes one detent in the direction of travel. */
 export const FLICK_VELOCITY = 0.5
+/**
+ * How long a release may trail the last move and still count as a flick. A
+ * finger that rested on the sheet before lifting placed it; the speed it
+ * arrived at, however high, says nothing about where it should go.
+ */
+export const FLICK_MAX_AGE_MS = 100
 
 export interface DetentHeights {
   readonly peek: number

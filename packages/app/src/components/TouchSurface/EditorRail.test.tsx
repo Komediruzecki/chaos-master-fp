@@ -41,6 +41,18 @@ function mount(extra: Partial<Parameters<typeof EditorRail>[0]> = {}) {
 
 const sheet = () => screen.getByTestId('editor-rail-sheet')
 
+/** Pointer events carry the moment the input happened; fireEvent cannot set it. */
+function pointerAt(type: string, clientY: number, timeStamp: number) {
+  const event = new window.PointerEvent(type, {
+    bubbles: true,
+    cancelable: true,
+    clientY,
+    pointerId: 1,
+  })
+  Object.defineProperty(event, 'timeStamp', { value: timeStamp })
+  return event
+}
+
 describe('EditorRail', () => {
   beforeEach(() => {
     window.innerHeight = 852
@@ -100,6 +112,41 @@ describe('EditorRail', () => {
     fireEvent.pointerMove(grabber, { clientY: 900, pointerId: 1 })
     fireEvent.pointerUp(grabber, { clientY: 900, pointerId: 1 })
     expect(sheet().style.height).toBe(`${PEEK_HEIGHT}px`)
+  })
+
+  it('settles a flick, and drops it once the finger has rested', () => {
+    mount()
+    const grabber = screen.getByTestId('editor-rail-grabber')
+
+    // 50px in 16ms: a flick, and it goes one detent up from 146.
+    grabber.dispatchEvent(pointerAt('pointerdown', 800, 0))
+    grabber.dispatchEvent(pointerAt('pointermove', 750, 16))
+    grabber.dispatchEvent(pointerAt('pointerup', 750, 32))
+    expect(sheet().style.height).toBe('375px')
+
+    // The same movement, but the finger rests on the sheet for a second and
+    // a half before it lifts. That is a placement, not a flick: the sheet
+    // settles at the detent nearest where it stands.
+    fireEvent.click(screen.getByRole('tab', { name: 'Shape' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Shape' }))
+    expect(sheet().style.height).toBe(`${PEEK_HEIGHT}px`)
+    grabber.dispatchEvent(pointerAt('pointerdown', 800, 1000))
+    grabber.dispatchEvent(pointerAt('pointermove', 750, 1016))
+    grabber.dispatchEvent(pointerAt('pointerup', 750, 2516))
+    expect(sheet().style.height).toBe(`${PEEK_HEIGHT}px`)
+  })
+
+  it('starts a drag from the height on screen, not the one it is opening to', () => {
+    mount()
+    const el = sheet()
+    // The sheet is part-way through its 280ms opening when the finger lands.
+    el.getBoundingClientRect = () => ({ height: 200 }) as DOMRect
+    fireEvent.click(screen.getByRole('tab', { name: 'Shape' }))
+
+    const grabber = screen.getByTestId('editor-rail-grabber')
+    fireEvent.pointerDown(grabber, { clientY: 500, pointerId: 1 })
+    fireEvent.pointerMove(grabber, { clientY: 450, pointerId: 1 })
+    expect(sheet().style.height).toBe('250px')
   })
 
   it('brackets the drag with a selection start and end', () => {
