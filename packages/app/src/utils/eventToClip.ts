@@ -1,19 +1,44 @@
 import { vec2f } from 'typegpu/data'
 
-const rectCache = new WeakMap<HTMLElement, DOMRectReadOnly>()
+interface CachedRect {
+  readonly rect: DOMRectReadOnly
+  readonly gesture: number
+}
+
+const rectCache = new WeakMap<HTMLElement, CachedRect>()
 const resizeObserver = new ResizeObserver((entries) => {
   for (const entry of entries) {
     rectCache.delete(entry.target as HTMLElement)
   }
 })
 
-export function getCachedBoundingRect(el: HTMLElement): DOMRectReadOnly {
-  let rect = rectCache.get(el)
-  if (!rect) {
-    rect = el.getBoundingClientRect()
-    rectCache.set(el, rect)
-    resizeObserver.observe(el)
+/**
+ * Bumped when a gesture starts. A cached rect survives a *move*: the rail's
+ * sheet translates the canvas without resizing it, so no ResizeObserver
+ * fires and every pointer would map through the old position for as long as
+ * the sheet stayed open. Measuring once per gesture keeps the per-move reads
+ * free and the first sample of every gesture honest.
+ */
+let gesture = 0
+
+if (typeof document !== 'undefined') {
+  for (const type of ['pointerdown', 'touchstart', 'wheel'] as const) {
+    document.addEventListener(
+      type,
+      () => {
+        gesture += 1
+      },
+      { capture: true, passive: true },
+    )
   }
+}
+
+export function getCachedBoundingRect(el: HTMLElement): DOMRectReadOnly {
+  const cached = rectCache.get(el)
+  if (cached && cached.gesture === gesture) return cached.rect
+  const rect = el.getBoundingClientRect()
+  if (!cached) resizeObserver.observe(el)
+  rectCache.set(el, { rect, gesture })
   return rect
 }
 
