@@ -69,6 +69,31 @@ describe('EditorRail', () => {
   })
   afterEach(cleanup)
 
+  it('builds the leading slot once', () => {
+    // Written as a JSX attribute, `leading` compiles to a getter, so reading
+    // it in the Show and again in the body constructed two shell bars. The
+    // first kept its signals, effects and collapse timer alive under the
+    // Show's memo until the whole rail disposed.
+    let built = 0
+    const Probe = () => {
+      built++
+      return <span />
+    }
+    const ctx = createMockCommandContext()
+    render(() => (
+      <EditorRail
+        ctx={ctx}
+        flame={ctx.flameDescriptor}
+        onRandomize={vi.fn()}
+        onMutate={vi.fn()}
+        onQuickExport={vi.fn()}
+        onOpenExportOptions={vi.fn()}
+        leading={<Probe />}
+      />
+    ))
+    expect(built).toBe(1)
+  })
+
   it('starts at peek with four chips and the shutter', () => {
     mount()
     expect(sheet().style.height).toBe(`${PEEK_HEIGHT}px`)

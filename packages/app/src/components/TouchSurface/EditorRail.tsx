@@ -1,4 +1,4 @@
-import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show, } from 'solid-js'
+import { children, createEffect, createMemo, createSignal, For, onCleanup, onMount, Show, } from 'solid-js'
 import { CameraIcon, ColourWedge, ShapeTriangle, Shuffle, VariationSpiral, } from '@/icons'
 import { pushBackHandler } from '@/lib/backStack'
 import { haptic } from '@/lib/haptics'
@@ -47,6 +47,14 @@ export function EditorRail(props: EditorRailProps) {
   const heights = createMemo(() => detentHeights(vh(), vh() - chrome()))
   const sheetHeight = () =>
     dragHeight() ?? clampSheetHeight(heightOf(detent(), heights()), heights())
+
+  /**
+   * Resolved once. `leading` is written as a JSX attribute, which compiles to
+   * a getter, so reading it in the Show and again in the body built two shell
+   * bars per mount - the first one left alive, with its signals, effects and
+   * collapse timer, under the Show's memo until the rail disposed.
+   */
+  const leading = children(() => props.leading)
 
   let dockEl: HTMLElement | undefined
   let sheetEl: HTMLDivElement | undefined
@@ -291,9 +299,9 @@ export function EditorRail(props: EditorRailProps) {
           <div class={ui.dragSurface} {...grabHandlers} />
           {/* The shell's capsule docks here, so Create keeps the whole band
               and navigation costs the editor one 56px circle. */}
-          <Show when={props.leading}>
+          <Show when={leading()}>
             <div class={ui.leading} data-testid="editor-rail-leading">
-              {props.leading}
+              {leading()}
             </div>
           </Show>
           <div class={ui.chips} role="tablist" aria-label="Tools">
