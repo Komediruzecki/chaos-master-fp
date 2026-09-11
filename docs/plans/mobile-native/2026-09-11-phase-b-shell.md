@@ -378,9 +378,9 @@ Order of registration is the order of opening, so the pop order in `A/screens.md
 
 - Produces: `NavRail(props: { current: Accessor<ShellDestination>; onSelect: (d: ShellDestination) => void; onOpenSettings: () => void })`: a `nav` with `aria-label="Destinations"`, 80 px wide (`--la-navrail-w`), items 64 px tall (glyph 26, label 11 px), Create and Library at the top, a spacer, Settings at the bottom, the brand mark at the very top (reuse the app's existing mark component or SVG; do not add a raster), `padding-left: var(--la-safe-left)`, background `--la-ground`, a trailing hairline.
 
-- [ ] **Step 1: Failing test** — renders the three items with `aria-current` on the current one; Settings calls `onOpenSettings`; Library calls `onSelect('library')` and `haptic.selectionChanged`.
-- [ ] **Step 2: Implement**, mount it in `MainWorkspace` for the deck layout, wire `onOpenSettings` to the existing `showHelp` path and `onSelect` to `setActiveTab('home' | 'workspace')`. The deck's `Library` header button stays (it opens the load-flame modal, a different thing).
-- [ ] **Step 3: Run the suite, commit** — `git commit -m "feat(shell): the tablet navigation rail"`.
+- [x] **Step 1: Failing test** — renders the three items with `aria-current` on the current one; Settings calls `onOpenSettings`; Library calls `onSelect('library')` and `haptic.selectionChanged`.
+- [x] **Step 2: Implement**, mount it in `MainWorkspace` for the deck layout, wire `onOpenSettings` to the existing `showHelp` path and `onSelect` to `setActiveTab('home' | 'workspace')`. The deck's `Library` header button stays (it opens the load-flame modal, a different thing).
+- [x] **Step 3: Run the suite, commit** — `git commit -m "feat(shell): the tablet navigation rail"`.
 
 ---
 

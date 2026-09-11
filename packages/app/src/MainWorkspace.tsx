@@ -6,7 +6,7 @@ import { agentDriving } from '@/arcade/pilot'
 import { executeCommand } from '@/commands/registry'
 import { useKeyframeTarget } from '@/contexts/KeyframeTargetContext'
 import { useToast } from '@/contexts/ToastContext'
-import { setActiveTab, workspaceIsVisible } from '@/lib/activeTab'
+import { activeTab, setActiveTab, workspaceIsVisible } from '@/lib/activeTab'
 import { pushBackHandler } from '@/lib/backStack'
 import { SHOWCASE_CONSENT_VERSION } from '@/lib/communityShowcase'
 import { hapticsEnabled, setHapticsEnabled } from '@/lib/haptics'
@@ -24,6 +24,7 @@ import { createLoadFlame } from './components/LoadFlameModal/LoadFlameModal'
 import { useRequestModal } from './components/Modal/ModalContext'
 import { qualityPresets } from './components/Quality/QualityPresets'
 import { recorderExportPending, recorderTaskPending, setRecorderCollapsed, setRecorderVisible, } from './components/SessionRecorder/recorderUi'
+import { NavRail } from './components/Shell/NavRail'
 import { AdvancedToolsDrawer, EditorRail, TabletInspectorDeck, TouchHUD, } from './components/TouchSurface'
 import { WorkspaceBottomBar } from './components/WorkspaceBottomBar'
 import { createLazyDiscordShareModal, createLazyImportVariationsModal, createLazyLogoFaviconGenerator, createLazyMigrationModal, createLazyShareLinkModal, createLazyShareVariationLinkModal, createLazyShareVariationLoadModal, createLazyShowBenchmark, createLazyShowCustomVariationEditor, createLazyShowDocumentation, createLazyShowHelp, WorkspaceModalsHost, } from './components/WorkspaceModalsHost'
@@ -3459,6 +3460,18 @@ export function MainWorkspace(props: AppProps) {
 
           {/* Tablet Split Touch Interface */}
           <Show when={isTablet() && deckFits()}>
+            {/* The shell, permanent on the leading edge. Only the deck layout
+                has the width for it; the rail layout docks the capsule in the
+                editor rail instead. */}
+            <NavRail
+              current={() => (activeTab() === 'home' ? 'library' : 'create')}
+              onSelect={(destination) => {
+                setActiveTab(destination === 'library' ? 'home' : 'workspace')
+              }}
+              onOpenSettings={() => {
+                void showHelp()
+              }}
+            />
             <TabletInspectorDeck
               ctx={cmdContext}
               flame={effectiveFlame}
