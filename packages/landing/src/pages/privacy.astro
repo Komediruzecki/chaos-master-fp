@@ -58,7 +58,7 @@ const UPDATED = 'September 11, 2026'
             <strong>Sharing to Discord (web app only).</strong> If you post a
             flame to our Discord community, the image, its title and the name you
             enter are sent to our Discord server. Cloudflare Turnstile checks that
-            the request comes from a person; see Cloudflare's
+            the request comes from a person; see Cloudflare's{' '}
             <a href="https://www.cloudflare.com/turnstile-privacy-policy/"
               >Turnstile Privacy Notice</a
             >. If you also choose to suggest the flame for the home gallery, we
@@ -70,7 +70,7 @@ const UPDATED = 'September 11, 2026'
             use Google Analytics 4 to count visits and see which features are
             used. The web app removes the query part of the address before a page
             view is sent, so share links and their contents never reach Google.
-            See
+            See{' '}
             <a href="https://policies.google.com/privacy">Google's Privacy Policy</a
             >. <strong>The iPhone, iPad and Android apps contain no analytics.</strong
             >
@@ -85,7 +85,7 @@ const UPDATED = 'September 11, 2026'
             <strong>In-app purchases (apps).</strong> Purchases are processed by
             Apple or Google; we never see your payment details. We use RevenueCat
             to confirm what you bought. It receives an anonymous app identifier
-            and your purchase history, not your name or email; see
+            and your purchase history, not your name or email; see{' '}
             <a href="https://www.revenuecat.com/privacy/">RevenueCat's Privacy Policy</a
             >.
           </li>
@@ -122,7 +122,7 @@ const UPDATED = 'September 11, 2026'
           If you are in the EU or EEA, you may ask to access, correct, erase,
           restrict, object to, or receive a copy of personal data we hold about
           you. You may also complain to your local supervisory authority; in
-          Croatia that is
+          Croatia that is{' '}
           <abbr title="Agencija za zaštitu osobnih podataka">AZOP</abbr>.
         </p>
       </section>
@@ -131,7 +131,7 @@ const UPDATED = 'September 11, 2026'
         <h2>Who we are</h2>
         <p>
           Lumen Apeiron is operated by {CONTROLLER} (Croatia), the data
-          controller for the data described above. Questions or requests:
+          controller for the data described above. Questions or requests:{' '}
           <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>. We will
           update the date at the top when this notice changes.
         </p>
@@ -188,6 +188,7 @@ const UPDATED = 'September 11, 2026'
   }
 
   .legal section {
+    padding-block: 0;
     margin-top: 3rem;
   }
 
