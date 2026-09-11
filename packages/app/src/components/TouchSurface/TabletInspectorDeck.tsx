@@ -2,8 +2,9 @@ import { createSignal, Show } from 'solid-js'
 import { executeCommand } from '@/commands/registry'
 import { CameraIcon, GridIcon, Redo, SidebarPanel, Undo } from '@/icons'
 import { haptic } from '@/lib/haptics'
+import { createDragHandler } from '@/utils/createDragHandler'
+import { createLongPress } from '@/utils/createLongPress'
 import { persistentSignal } from '@/utils/persistentSignal'
-import { createLongPress } from './longPress'
 import ui from './TabletDeck.module.css'
 import { TouchControlSurface } from './TouchControlSurface'
 import type { Accessor } from 'solid-js'
@@ -50,25 +51,26 @@ export function TabletInspectorDeck(props: TabletInspectorDeckProps) {
   const flameName = () =>
     props.flame().metadata?.name?.trim() || 'Untitled flame'
 
-  // Dragging the divider: the deck's leading edge follows the finger 1:1,
-  // so moving left (a smaller clientX) makes the deck wider.
-  let drag: { startX: number; startWidth: number } | null = null
-
-  function onDividerDown(e: PointerEvent) {
-    if (e.pointerType === 'mouse' && e.button !== 0) return
-    ;(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
-    drag = { startX: e.clientX, startWidth: width() }
-  }
-
-  function onDividerMove(e: PointerEvent) {
-    if (!drag) return
-    const next = drag.startWidth + (drag.startX - e.clientX)
-    setWidth(Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, next)))
-  }
-
-  function onDividerUp() {
-    drag = null
-  }
+  /**
+   * Dragging the divider: the deck's leading edge follows the finger 1:1, so
+   * moving left (a smaller clientX) makes the deck wider. Each gesture keeps
+   * its own start point, and a second touch ends it (createDragHandler).
+   */
+  const startDividerDrag = createDragHandler(
+    (initEvent) => {
+      const startX = initEvent.clientX
+      const startWidth = width()
+      return {
+        onPointerMove(event) {
+          const next = startWidth + (startX - event.clientX)
+          setWidth(Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, next)))
+        },
+      }
+    },
+    // Preventing the default on the pointer down would swallow the double tap
+    // that collapses the deck.
+    { preventDefault: false },
+  )
 
   // The same pair the rail's shutter offers: tap saves, hold opens the options.
   const saveHandlers = createLongPress({
@@ -84,7 +86,6 @@ export function TabletInspectorDeck(props: TabletInspectorDeckProps) {
   })
 
   function toggleCollapsed() {
-    drag = null
     setCollapsed((open) => !open)
     haptic.impactLight()
   }
@@ -111,10 +112,7 @@ export function TabletInspectorDeck(props: TabletInspectorDeckProps) {
         <div
           class={ui.divider}
           data-testid="deck-divider"
-          onPointerDown={onDividerDown}
-          onPointerMove={onDividerMove}
-          onPointerUp={onDividerUp}
-          onPointerCancel={onDividerUp}
+          onPointerDown={startDividerDrag}
           onDblClick={toggleCollapsed}
         />
 

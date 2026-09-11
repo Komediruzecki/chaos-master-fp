@@ -98,6 +98,25 @@ describe('EditorRail', () => {
     expect(sheet().style.height).toBe(`${PEEK_HEIGHT}px`)
   })
 
+  it('lets the sheet go when a second finger lands', () => {
+    mount()
+    const grabber = screen.getByTestId('editor-rail-grabber')
+    fireEvent.pointerDown(grabber, { clientY: 800, pointerId: 1 })
+    fireEvent.pointerMove(grabber, { clientY: 700, pointerId: 1 })
+    expect(sheet().style.height).toBe(`${PEEK_HEIGHT + 100}px`)
+
+    // A pinch begins on the sheet. Tracking two fingers against one start
+    // point walks the sheet around, so the drag ends where it stands.
+    const second = new window.TouchEvent('touchstart', { bubbles: true })
+    Object.defineProperty(second, 'touches', { value: [{}, {}] })
+    document.dispatchEvent(second)
+    const settled = sheet().style.height
+    expect(settled).not.toBe(`${PEEK_HEIGHT + 100}px`)
+
+    fireEvent.pointerMove(grabber, { clientY: 400, pointerId: 2 })
+    expect(sheet().style.height).toBe(settled)
+  })
+
   it('keeps the large detent clear of the top bar', () => {
     mount()
     // happy-dom applies no stylesheet, so the dock's padding is written here

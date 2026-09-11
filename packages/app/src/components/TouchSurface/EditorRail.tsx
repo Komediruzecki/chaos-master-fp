@@ -1,9 +1,10 @@
 import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show, } from 'solid-js'
 import { CameraIcon, ColourWedge, ShapeTriangle, Shuffle, VariationSpiral, } from '@/icons'
 import { haptic } from '@/lib/haptics'
+import { createDragHandler } from '@/utils/createDragHandler'
+import { createLongPress } from '@/utils/createLongPress'
 import { clampSheetHeight, detentHeights, heightOf, nearestDetent, PEEK_HEIGHT, settleDetent, } from './detents'
 import ui from './EditorRail.module.css'
-import { createLongPress } from './longPress'
 import { TouchControlSurface } from './TouchControlSurface'
 import type { JSX } from 'solid-js'
 import type { Detent } from './detents'
@@ -111,57 +112,51 @@ export function EditorRail(props: EditorRailProps) {
     }
   }
 
-  // The drag: the sheet tracks the finger 1:1, no easing; velocity in px/ms
-  // from the last two samples, positive when the sheet grows.
-  let drag: {
-    startY: number
-    startHeight: number
-    lastY: number
-    lastT: number
-    velocity: number
-    lastDetent: Detent
-  } | null = null
+  /**
+   * The drag: the sheet tracks the finger 1:1, no easing; velocity in px/ms
+   * from the last two samples, positive when the sheet grows. Every gesture
+   * keeps its own start point, and a second touch ends it rather than walking
+   * the sheet around against one start point (createDragHandler).
+   */
+  const startGrab = createDragHandler(
+    (initEvent) => {
+      const startY = initEvent.clientY
+      const startHeight = sheetHeight()
+      let lastY = initEvent.clientY
+      let lastT = initEvent.timeStamp
+      let velocity = 0
+      let lastDetent = nearestDetent(startHeight, heights())
 
-  function onGrabDown(e: PointerEvent) {
-    if (e.pointerType === 'mouse' && e.button !== 0) return
-    ;(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
-    drag = {
-      startY: e.clientY,
-      startHeight: sheetHeight(),
-      lastY: e.clientY,
-      lastT: e.timeStamp,
-      velocity: 0,
-      lastDetent: nearestDetent(sheetHeight(), heights()),
-    }
-  }
-
-  function onGrabMove(e: PointerEvent) {
-    if (!drag) return
-    const dt = e.timeStamp - drag.lastT
-    // A non-positive delta is not a sample: keep the last velocity rather
-    // than dividing by zero.
-    if (dt > 0) drag.velocity = (drag.lastY - e.clientY) / dt
-    drag.lastY = e.clientY
-    drag.lastT = e.timeStamp
-    const h = clampSheetHeight(
-      drag.startHeight + (drag.startY - e.clientY),
-      heights(),
-    )
-    const crossed = nearestDetent(h, heights())
-    if (crossed !== drag.lastDetent) {
-      haptic.selectionChanged()
-      drag.lastDetent = crossed
-    }
-    setDragHeight(h)
-  }
-
-  function onGrabUp() {
-    if (!drag) return
-    const target = settleDetent(sheetHeight(), drag.velocity, heights())
-    drag = null
-    setDragHeight(null)
-    settle(target)
-  }
+      return {
+        onPointerMove(event) {
+          const dt = event.timeStamp - lastT
+          // A non-positive delta is not a sample: keep the last velocity
+          // rather than dividing by zero.
+          if (dt > 0) velocity = (lastY - event.clientY) / dt
+          lastY = event.clientY
+          lastT = event.timeStamp
+          const h = clampSheetHeight(
+            startHeight + (startY - event.clientY),
+            heights(),
+          )
+          const crossed = nearestDetent(h, heights())
+          if (crossed !== lastDetent) {
+            haptic.selectionChanged()
+            lastDetent = crossed
+          }
+          setDragHeight(h)
+        },
+        onDone() {
+          const target = settleDetent(sheetHeight(), velocity, heights())
+          setDragHeight(null)
+          settle(target)
+        },
+      }
+    },
+    // The grabber's own touch-action already stops the page from scrolling;
+    // preventing the default here would swallow the taps on the row behind it.
+    { preventDefault: false },
+  )
 
   // The shutter: tap saves, a long press opens the options.
   const shutterHandlers = createLongPress({
@@ -176,12 +171,7 @@ export function EditorRail(props: EditorRailProps) {
     },
   })
 
-  const grabHandlers = {
-    onPointerDown: onGrabDown,
-    onPointerMove: onGrabMove,
-    onPointerUp: onGrabUp,
-    onPointerCancel: onGrabUp,
-  }
+  const grabHandlers = { onPointerDown: startGrab }
 
   return (
     <section
