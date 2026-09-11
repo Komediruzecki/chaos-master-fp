@@ -89,10 +89,13 @@ export function qualityPointLimit(
 /**
  * Which server renderer runs the job.
  *
- * 'deno'   the Deno CLI renderer. Its WebGPU refuses single buffer allocations
- *          above ~100MB, capping it near 5.1Mpx.
- * 'chrome' the app's own bundle in headless Chrome (Dawn), which has no such
- *          ceiling and reaches 8K, at ~1.5s more fixed cost per job.
+ * 'chrome' the app's own bundle in headless Chrome (Dawn): the primary engine.
+ *          It renders with the very shaders the client ships, so there is no
+ *          second shader path to drift, and it reaches 8K, at ~1.5s more fixed
+ *          cost per job.
+ * 'deno'   the Deno CLI renderer, kept as the fallback for endpoints whose
+ *          image does not ship Chrome. Its WebGPU refuses single buffer
+ *          allocations above ~100MB, capping it near 5.1Mpx.
  *
  * Declared HERE, in the pure module the client, the Worker and the render
  * dialog all already import, so there is exactly one definition. Three
@@ -100,6 +103,15 @@ export function qualityPointLimit(
  * hid that, right up until one of them gained a third engine.
  */
 export type RenderEngine = 'deno' | 'chrome'
+
+/**
+ * The engine a job gets when it names none: Chrome wherever the deployment
+ * ships it, Deno otherwise. The Worker (which charges) and the render dialog
+ * (which quotes) both ask this, so they cannot pick differently.
+ */
+export function defaultRenderEngine(chromeAvailable: boolean): RenderEngine {
+  return chromeAvailable ? 'chrome' : 'deno'
+}
 
 /**
  * Server render seconds, calibrated on the RunPod RTX 4090 endpoint
@@ -124,9 +136,10 @@ export type RenderEngine = 'deno' | 'chrome'
 export const RENDER_FIXED_SECONDS: Record<RenderEngine, number> = {
   // Deno boot + shader compile.
   deno: 1.3,
-  // Node start + Chromium launch + page load, on top of the same work. This is
-  // the whole reason to prefer deno wherever it can allocate: it is a flat
-  // ~1.5s tax on every job, worst in relative terms on cheap renders.
+  // Node start + Chromium launch + page load, on top of the same work: a flat
+  // ~1.5s tax on every job, worst in relative terms on cheap renders. Paid on
+  // purpose. Chrome is the default for its single shader path and its 8K
+  // ceiling, not for its speed.
   chrome: 2.8,
 }
 export const RENDER_SECONDS_PER_MEGAPIXEL = 0.12
@@ -135,7 +148,7 @@ export const RENDER_POINTS_PER_SECOND = 1.9e9
 export function estimateRenderSeconds(
   target: RenderTarget,
   camera: Camera2DLike | Camera3DLike,
-  engine: RenderEngine = 'deno',
+  engine: RenderEngine = 'chrome',
 ): number {
   const megapixels = (target.width * target.height) / 1e6
   const points = qualityPointLimit(target, camera)
@@ -157,7 +170,7 @@ export const SECONDS_PER_CREDIT = 5
 export function creditsForRender(
   target: RenderTarget,
   camera: Camera2DLike | Camera3DLike,
-  engine: RenderEngine = 'deno',
+  engine: RenderEngine = 'chrome',
 ): number {
   return Math.max(
     1,
@@ -172,7 +185,7 @@ export function creditsForAnimation(
   target: RenderTarget,
   camera: Camera2DLike | Camera3DLike,
   frameCount: number,
-  engine: RenderEngine = 'deno',
+  engine: RenderEngine = 'chrome',
 ): number {
   return creditsForRender(target, camera, engine) * Math.max(1, frameCount)
 }
@@ -181,7 +194,7 @@ export function estimateAnimationSeconds(
   target: RenderTarget,
   camera: Camera2DLike | Camera3DLike,
   frameCount: number,
-  engine: RenderEngine = 'deno',
+  engine: RenderEngine = 'chrome',
 ): number {
   return estimateRenderSeconds(target, camera, engine) * Math.max(1, frameCount)
 }

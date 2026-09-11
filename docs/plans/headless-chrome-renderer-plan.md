@@ -69,8 +69,10 @@ both: deno 1.82-2.00e9 points/s, chrome 1.79-1.98e9. Every deno 4K cell fails in
 
 The entire difference is fixed overhead — deno ~1.4 s, chrome ~2.8 s, because
 chrome starts a browser per job. So **deno is cheaper wherever it can allocate**,
-and chrome is the only option above ~5.1 megapixels. The defaults reflect that:
-deno unless asked otherwise.
+and chrome is the only option above ~5.1 megapixels. Chrome is the default
+anyway, wherever the deployment ships it (since 2026-09-11): one shader path
+shared with the client and an 8K ceiling are worth ~1.5 s per job. Deno stays as
+the fallback for endpoints without Chrome.
 
 That equality was not free. The headless page first ran Flam3's INTERACTIVE rAF
 loop — 60 ticks/s of small chunks sized for UI responsiveness — and sustained
@@ -123,7 +125,10 @@ node workers/render-worker/tools/chrome-render.mjs --flame flame.json --out out.
 
 ## Engine selection (built)
 
-`POST /api/renders` accepts `engine: 'deno' | 'chrome'`, defaulting to `deno`.
+`POST /api/renders` accepts `engine: 'deno' | 'chrome'`. A request that names
+no engine gets `chrome` where the deployment ships it (`RUNPOD_CHROME_ENGINE=true`)
+and `deno` otherwise: `defaultRenderEngine`, which the render dialog shares so
+its quote matches the charge.
 
 The rule throughout is **never silently downgrade**. A `chrome` request against
 a deployment or image that cannot serve it is rejected, not quietly rendered by

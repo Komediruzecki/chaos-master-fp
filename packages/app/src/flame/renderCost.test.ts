@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bucketProbabilityInv, cameraFromFlame, creditsForAnimation, creditsForRender, estimateRenderSeconds, qualityPointLimit, safeQualityCap, } from './renderCost'
+import { bucketProbabilityInv, cameraFromFlame, creditsForAnimation, creditsForRender, defaultRenderEngine, estimateRenderSeconds, qualityPointLimit, safeQualityCap, } from './renderCost'
 import type { RenderEngine } from './renderCost'
 
 const HD = { width: 1920, height: 1080, quality: 0.95 }
@@ -145,18 +145,33 @@ describe('estimateRenderSeconds', () => {
     expect(chrome - deno).toBeCloseTo(1.5, 5)
   })
 
-  it('defaults to deno when no engine is given', () => {
+  it('prices chrome, the primary engine, when no engine is given', () => {
     expect(estimateRenderSeconds(HD, { zoom: 1 })).toBe(
-      estimateRenderSeconds(HD, { zoom: 1 }, 'deno'),
+      estimateRenderSeconds(HD, { zoom: 1 }, 'chrome'),
     )
   })
 
   it('grows with zoom because the point budget does', () => {
-    const flat = estimateRenderSeconds(HD, { zoom: 1 })
+    // Pinned to deno: its smaller fixed term is what lets modest zoom show.
+    const flat = estimateRenderSeconds(HD, { zoom: 1 }, 'deno')
     // Modest zoom is still dominated by the ~1.5s fixed overhead...
-    expect(estimateRenderSeconds(HD, { zoom: 4 })).toBeGreaterThan(flat * 1.3)
+    expect(estimateRenderSeconds(HD, { zoom: 4 }, 'deno')).toBeGreaterThan(
+      flat * 1.3,
+    )
     // ...but deep zoom is squarely point-bound (16x zoom = 256x the points).
-    expect(estimateRenderSeconds(HD, { zoom: 16 })).toBeGreaterThan(flat * 5)
+    expect(estimateRenderSeconds(HD, { zoom: 16 }, 'deno')).toBeGreaterThan(
+      flat * 5,
+    )
+  })
+})
+
+describe('defaultRenderEngine', () => {
+  it('picks chrome wherever the deployment ships it', () => {
+    expect(defaultRenderEngine(true)).toBe('chrome')
+  })
+
+  it('falls back to deno where it does not', () => {
+    expect(defaultRenderEngine(false)).toBe('deno')
   })
 })
 

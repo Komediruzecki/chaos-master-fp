@@ -5,7 +5,7 @@ import { ModalTitleBar } from '@/components/Modal/ModalTitleBar'
 import { useAuth } from '@/contexts/AuthContext'
 import { fetchFeatureFlags, pollUntilComplete, submitRender, } from '@/db/services/render-service'
 import { IS_DEV } from '@/defaults'
-import { cameraFromFlame, creditsForRender, estimateRenderSeconds, qualityPointLimit, } from '@/flame/renderCost'
+import { cameraFromFlame, creditsForRender, defaultRenderEngine, estimateRenderSeconds, qualityPointLimit, } from '@/flame/renderCost'
 import { formatPointCount } from '@/utils/formatPointCount'
 import ui from './ServerRenderDialog.module.css'
 import type { ServerRenderEngine, ServerRenderJob, } from '@/db/services/render-service'
@@ -35,8 +35,8 @@ const ENGINE_OPTIONS: {
   label: string
   hint: string
 }[] = [
-  { value: 'deno', label: 'Deno', hint: 'up to 3008px' },
   { value: 'chrome', label: 'Chrome', hint: 'up to 8K' },
+  { value: 'deno', label: 'Deno', hint: 'up to 3008px' },
 ]
 
 /** Server quality presets — the SAME values as the in-app quality pills, so
@@ -70,9 +70,6 @@ export function createServerRenderDialog(
     // Chrome is only offered where the render endpoint's image ships it;
     // otherwise picking it would just earn a 400 from the submit route.
     const [chromeAvailable, setChromeAvailable] = createSignal(false)
-    void fetchFeatureFlags().then((flags) => {
-      setChromeAvailable(Boolean(flags.chromeRenderEngine))
-    })
 
     const tier = () => auth.subscription().tier
     const maxResFor = (e: ServerRenderEngine) =>
@@ -94,6 +91,15 @@ export function createServerRenderDialog(
       setEngine(next)
       if (resolution() > maxResFor(next)) setResolution(maxResFor(next))
     }
+
+    // Deno until the flags answer, since every endpoint can serve it; then the
+    // deployment's default, the same engine the Worker picks for a request that
+    // names none.
+    void fetchFeatureFlags().then((flags) => {
+      const available = Boolean(flags.chromeRenderEngine)
+      setChromeAvailable(available)
+      selectEngine(defaultRenderEngine(available))
+    })
 
     // Live estimate from the shared cost model — same numbers the server
     // charges, including the camera zoom of the flame being rendered.

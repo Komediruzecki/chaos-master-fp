@@ -8,10 +8,10 @@ developer history lives in `dev.changelog.md`.
 ### Added
 
 - **Server-side GPU rendering on RunPod serverless.** Render your flame in
-  the cloud: jobs run the exact client WGSL pipeline on an RTX-class GPU
-  (Deno WebGPU + runtime shader extraction), upload to R2, and stream back
-  into the app with live status. Failed or stuck renders are detected,
-  explained, and automatically refunded.
+  the cloud at up to 8K: jobs run the app's own renderer in headless Chrome
+  on an RTX-class GPU, with a Deno WebGPU renderer as the fallback, upload to
+  R2, and stream back into the app with live status. Failed or stuck renders
+  are detected, explained, and automatically refunded.
 - **Accounts and credits.** Email/password and Google sign-in (Turnstile
   bot check included), a welcome credit grant, and an append-only credit
   ledger: renders debit exactly one credit on acceptance and refund on any

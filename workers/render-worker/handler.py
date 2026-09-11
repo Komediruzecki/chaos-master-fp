@@ -10,11 +10,12 @@ upload. Mirrors the mercurypitch handler contract:
                                         treats output.error as failed and
                                         refunds)
 
-`engine` picks the renderer:
-  'deno'   the Deno CLI (src/cli.ts). Its WebGPU refuses single allocations
-           above ~100MB, so it caps near 5.1Mpx.
+`engine` picks the renderer, defaulting to chrome wherever this image ships it
+(CHROME_RENDER_ENABLED) and to deno otherwise:
   'chrome' the app's own bundle in headless Chrome (tools/chrome-render.mjs),
-           which has no such ceiling and reaches 8K.
+           the primary engine. It reaches 8K.
+  'deno'   the Deno CLI (src/cli.ts), kept as the fallback. Its WebGPU refuses
+           single allocations above ~100MB, so it caps near 5.1Mpx.
 The engine that actually ran is echoed in EVERY output, success or failure, so
 a job can always be attributed to the renderer that produced it.
 
@@ -296,7 +297,7 @@ def handler(job):
     except ValueError:
         return {"error": "flameJson is not valid JSON"}
 
-    engine = str(inp.get("engine") or "deno")
+    engine = str(inp.get("engine") or ("chrome" if CHROME_ENABLED else "deno"))
     if engine not in ("deno", "chrome"):
         return {"error": f"unknown engine '{engine}'", "engine": engine}
     # Never silently downgrade: a chrome job served by Deno would fail at any

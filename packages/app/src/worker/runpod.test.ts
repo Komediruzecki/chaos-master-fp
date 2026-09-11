@@ -301,7 +301,13 @@ describe('decideJobTransition', () => {
 // ── render engine selection ─────────────────────────────────────
 
 describe('resolveRenderEngine', () => {
-  it('defaults to deno when the client asks for nothing', () => {
+  it('defaults to chrome where the endpoint ships it', () => {
+    expect(resolveRenderEngine(undefined, true)).toEqual({ engine: 'chrome' })
+  })
+
+  it('falls back to deno where the endpoint does not', () => {
+    // An unnamed engine is a default, not a request, so this is not the silent
+    // downgrade the rejection below exists to prevent.
     expect(resolveRenderEngine(undefined, false)).toEqual({ engine: 'deno' })
   })
 

@@ -149,9 +149,10 @@ queue job invokes a renderer once, uploads the PNG to R2 via the S3 API, and
 returns `{ imageKey, engine, timings, cost }` (or `{ error, engine }` — the
 submitting Cloudflare Worker treats that as failed and refunds the credit).
 
-The job's `engine` input selects the renderer: `deno` (the CLI, capped near
-5.1 Mpx by its WebGPU's ~100 MB per-allocation ceiling) or `chrome` (the app's
-own bundle in headless Chrome, which reaches 8K). See
+The job's `engine` input selects the renderer: `chrome` (the app's own bundle
+in headless Chrome, which reaches 8K) or `deno` (the CLI, capped near 5.1 Mpx by
+its WebGPU's ~100 MB per-allocation ceiling). Chrome is the default wherever the
+image ships it; Deno is the fallback. See
 `docs/plans/headless-chrome-renderer-plan.md`.
 
 1. Build and push a **pinned tag** to GHCR (never `latest` — bumping the tag
@@ -162,13 +163,14 @@ own bundle in headless Chrome, which reaches 8K). See
    pnpm --filter chaos-master build
    ```
 
-   Deno-only image:
+   Deno-only image (the fallback; no 4K/8K):
 
    ```bash
    docker build -f workers/render-worker/Dockerfile -t ghcr.io/komediruzecki/chaos-render-worker:0.1.0 .
    ```
 
-   With the Chrome engine (adds Node + Chromium, ~500 MB, and enables 4K/8K):
+   With the Chrome engine, the default renderer (adds Node + Chromium,
+   ~500 MB, and enables 4K/8K):
 
    ```bash
    docker build -f workers/render-worker/Dockerfile --build-arg CHROME_ENGINE=true -t ghcr.io/komediruzecki/chaos-render-worker:0.2.0-chrome .
@@ -203,9 +205,11 @@ own bundle in headless Chrome, which reaches 8K). See
 4. Cloudflare Worker secrets: `RUNPOD_API_KEY` + `RUNPOD_ENDPOINT_ID`
    (`wrangler secret put ... --env staging`). To offer the Chrome engine, also
    set the `RUNPOD_CHROME_ENGINE: "true"` var in `wrangler.jsonc` for that env —
-   it both shows the renderer picker in the UI and permits `engine: 'chrome'`
-   submits. Leave it `"false"` against a Deno-only endpoint: a Chrome request
-   is then rejected rather than silently rendered (and mis-attributed) by Deno.
+   it shows the renderer picker in the UI, permits `engine: 'chrome'` submits,
+   and makes Chrome the default for renders that name no engine. Leave it
+   `"false"` against a Deno-only endpoint: renders then default to Deno, and a
+   Chrome request is rejected rather than silently rendered (and
+   mis-attributed) by Deno.
 
 #### Rolling out a new image (IMPORTANT)
 

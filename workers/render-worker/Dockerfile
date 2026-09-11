@@ -71,8 +71,9 @@ FROM appdist-${CHROME_ENGINE} AS appdist
 # ── Chrome render engine (optional) ──────────────────────────────
 # Build with --build-arg CHROME_ENGINE=true to include headless Chrome and the
 # built app bundle, which together serve engine:'chrome' jobs (4K/8K — see
-# docs/plans/headless-chrome-renderer-plan.md). Off by default: it adds Node,
-# Chromium and ~1.5GB, and a Deno-only endpoint has no use for any of it.
+# docs/plans/headless-chrome-renderer-plan.md). Chrome is the default engine, so
+# deployed endpoints should ship it; the arg is off by default only so a plain
+# build (CI's included) needs no app bundle and skips Node, Chromium and ~1.5GB.
 FROM base
 
 # Re-declared: a global ARG is visible to FROM lines only, so a stage that wants

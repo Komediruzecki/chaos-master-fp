@@ -1,4 +1,4 @@
-import { cameraFromFlame, creditsForRender } from '../flame/renderCost'
+import { cameraFromFlame, creditsForRender, defaultRenderEngine, } from '../flame/renderCost'
 import { createJwt, extractBearerToken, generateId, hashPassword, isoNow, signState, verifyGoogleToken, verifyJwt, verifyPassword, verifyState, } from './auth'
 import { createRenderJob, createSubscription, createUser, creditBalance, debitCredits, getAllFeatureFlags, getRenderJob, getRenderJobsByUser, getStaleRenderJobs, getSubscriptionByUserId, getUserByEmail, getUserById, getUserByProviderId, grantCredits, incrementRenderCount, refundCredits, updateRenderJob, updateUser, upsertSubscription, } from './db'
 import { checkApiRateLimit } from './middleware/rateLimit'
@@ -579,15 +579,19 @@ interface RenderOptions {
   height: number
   quality: number
   backend?: 'gpu' | 'cpu'
+  /** Omitted means the deployment's default: see defaultRenderEngine. */
   engine?: RenderEngine
 }
 
+/** RenderOptions once resolveRenderEngine has decided the engine. */
+type ResolvedRenderOptions = RenderOptions & { engine: RenderEngine }
+
+// No engine here: a request without options gets the deployment's default too.
 const DEFAULT_RENDER_OPTIONS: RenderOptions = {
   width: 1920,
   height: 1080,
   quality: 0.5,
   backend: 'gpu',
-  engine: 'deno',
 }
 
 /**
@@ -604,16 +608,18 @@ export const MAX_RENDER_PIXELS: Record<RenderEngine, number> = {
 /**
  * Resolve the requested engine, or explain why it cannot run.
  *
- * A request for an engine the endpoint cannot serve is REJECTED rather than
- * quietly downgraded: silently rendering a 'chrome' job on Deno would attribute
- * that path's timings and failures to the wrong engine, which defeats the point
- * of having the choice.
+ * A request that names no engine gets the deployment's default: Chrome where
+ * the endpoint ships it, Deno otherwise. A request for an engine the endpoint
+ * cannot serve is REJECTED rather than quietly downgraded: silently rendering
+ * a 'chrome' job on Deno would attribute that path's timings and failures to
+ * the wrong engine, which defeats the point of having the choice.
  */
 export function resolveRenderEngine(
   requested: string | undefined,
   chromeAvailable: boolean,
 ): { engine: RenderEngine } | { error: string } {
-  const engine = (requested ?? 'deno') as RenderEngine
+  const engine = (requested ??
+    defaultRenderEngine(chromeAvailable)) as RenderEngine
   if (!RENDER_ENGINES.includes(engine)) {
     return { error: `Unknown render engine '${requested}'` }
   }
@@ -651,7 +657,7 @@ async function handleSubmitRender(
   if ('error' in resolved) {
     return json({ error: resolved.error }, 400)
   }
-  const opts: RenderOptions = { ...requested, engine: resolved.engine }
+  const opts: ResolvedRenderOptions = { ...requested, engine: resolved.engine }
 
   // Cheap validation BEFORE anything billable is touched.
   if (
@@ -745,13 +751,16 @@ async function fetchWithRetry(
  * zoomed-in flame needs zoom^2 more points for the same quality).
  * Falls back to 1 credit if the descriptor can't be parsed.
  */
-function renderCostCredits(flameJson: string, opts: RenderOptions): number {
+function renderCostCredits(
+  flameJson: string,
+  opts: ResolvedRenderOptions,
+): number {
   try {
     const flame = JSON.parse(flameJson) as Parameters<typeof cameraFromFlame>[0]
     return creditsForRender(
       { width: opts.width, height: opts.height, quality: opts.quality },
       cameraFromFlame(flame),
-      opts.engine ?? 'deno',
+      opts.engine,
     )
   } catch {
     return 1
@@ -797,7 +806,7 @@ async function createAndSubmitRender(
   env: Env,
   userId: string,
   flameJson: string,
-  opts: RenderOptions,
+  opts: ResolvedRenderOptions,
 ): Promise<Response> {
   const now = isoNow()
   // eslint-disable-next-line no-restricted-globals
@@ -833,7 +842,7 @@ async function createAndSubmitRender(
         height: opts.height,
         quality: opts.quality,
         seed,
-        engine: opts.engine ?? 'deno',
+        engine: opts.engine,
       })
       job.runpodJobId = runpodJobId
       job.status = 'running'
