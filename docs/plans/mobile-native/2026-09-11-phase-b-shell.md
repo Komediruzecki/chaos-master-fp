@@ -436,7 +436,7 @@ Order of registration is the order of opening, so the pop order in `A/screens.md
 
 - Modify: `docs/plans/mobile-native/DESIGN.md` (section 4 shell items: tick what shipped, reword the Play item to "reserved, not shown" with the reason; section 12's Play row stays), `docs/plans/mobile-native/README.md` (the Phase 3 items "Android back button" and lifecycle: tick), this file (every step ticked)
 
-- [ ] **Step 1: Final verification block**, paste the results into the report:
+- [x] **Step 1: Final verification block**, paste the results into the report:
 
 ```bash
 timeout 1800 pnpm check
@@ -447,7 +447,7 @@ timeout 1800 pnpm --filter chaos-master build:native
 git log --oneline origin/feat/native-rail..HEAD
 ```
 
-- [ ] **Step 2: Push and open the PR** — `git push -u origin feat/native-shell`, then `gh pr create --base feat/native-rail --title "feat(shell): the shell, back and lifecycle (Phase B)" --body-file <tmp>` with the body written to a temp file under the scratch directory: what changed per task, the decisions, the deviations, the manual checks (phone: capsule expand and collapse, Android back from every depth ends in the app minimising, the draft comes back after a force-stop; tablet: the rail, Settings; both: Library and back; iPhone: the edge swipe).
+- [x] **Step 2: Push and open the PR** — `git push -u origin feat/native-shell`, then `gh pr create --base feat/native-rail --title "feat(shell): the shell, back and lifecycle (Phase B)" --body-file <tmp>` with the body written to a temp file under the scratch directory: what changed per task, the decisions, the deviations, the manual checks (phone: capsule expand and collapse, Android back from every depth ends in the app minimising, the draft comes back after a force-stop; tablet: the rail, Settings; both: Library and back; iPhone: the edge swipe).
 
 ## Self-review notes
 
