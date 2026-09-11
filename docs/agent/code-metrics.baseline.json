@@ -1,6 +1,6 @@
 {
   "source_files": 1060,
-  "source_loc": 175645,
+  "source_loc": 175672,
   "mean_file_loc": 166,
   "files_over_500": 67,
   "files_over_800": 34,
@@ -11,7 +11,7 @@
   "test_file_ratio": 0.22,
   "missing_header_comment": 989,
   "todo_markers": 7,
-  "coverage_lines_pct": 46.92,
-  "coverage_functions_pct": 35.8,
-  "coverage_branches_pct": 46.4
+  "coverage_lines_pct": 45.72,
+  "coverage_functions_pct": 37.61,
+  "coverage_branches_pct": 43.73
 }

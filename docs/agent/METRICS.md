@@ -88,10 +88,18 @@ automating across the whole tree.
 coverage _rise_ is weak evidence and should never be the argument that a change
 is well tested.
 
-Baseline at the time of writing: 46.92% lines, 35.8% functions, 46.4% branches.
-Functions being ~11 points below lines is the interesting part — it says a lot
-of code is reached incidentally through a few entry points rather than exercised
-directly.
+Baseline at the time of writing: 45.72% lines, 37.61% functions, 43.73%
+branches. Functions sitting ~8 points below lines is the interesting part — it
+says a lot of code is reached incidentally through a few entry points rather
+than exercised directly.
+
+**What is excluded, and why.** The variation bodies under
+`flame/variations/{simple,simple3D,parametric,parametric3D}` are `'use gpu'`
+functions compiled to WGSL. The registry imports all of them, so ~2,700 of their
+lines "ran" on import without any assertion reaching a shader. Counting them
+measured shader volume, not tested code: with them in, the baseline read 46.92 /
+35.8 / 46.4. The list lives in `packages/app/vitest.config.ts`, next to the
+reason; extend it only with the same kind of argument.
 
 ---
 

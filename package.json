@@ -25,7 +25,7 @@
     "arch": "depcruise --config .dependency-cruiser.cjs --output-type err packages/app/src packages/core/src",
     "arch:summary": "depcruise --config .dependency-cruiser.cjs --output-type err-long packages/app/src packages/core/src",
     "verify:webgpu": "node scripts/verify-webgpu-headed.mjs",
-    "test:coverage": "pnpm --filter chaos-master exec vitest run --coverage --coverage.provider=v8 --coverage.all --coverage.include=\"src/**/*.{ts,tsx}\" --coverage.exclude=\"src/**/*.{test,spec}.{ts,tsx}\" --coverage.reporter=text-summary --coverage.reporter=json-summary --coverage.reportsDirectory=coverage-audit",
+    "test:coverage": "pnpm --filter chaos-master exec vitest run --coverage",
     "test": "pnpm --filter @chaos-master/core test && pnpm --filter chaos-master exec vitest run && pnpm --filter chaos-master test:scripts",
     "test:ui": "pnpm --filter chaos-master exec vitest --ui",
     "test:watch": "pnpm --filter chaos-master exec vitest",
