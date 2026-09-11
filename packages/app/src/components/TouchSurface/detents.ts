@@ -1,8 +1,15 @@
 import { createSignal } from 'solid-js'
 
 /**
- * The rail's three resting heights and how a drag settles between them.
- * Pure, so the rail's gesture handling is testable without a DOM.
+ * The rail's three resting heights and how a drag settles between them. The
+ * arithmetic is pure, so the gesture handling is testable without a DOM.
+ *
+ * The module also owns `railDetent`, which is UI state rather than geometry
+ * and is neither pure nor DOM-free - it lives here because it has to survive
+ * the rail's remount at the rail-or-deck threshold. Lifting it into the store
+ * whose decision causes that remount (stores/workspaceLayoutStore.ts) is
+ * still open, and would also let the detent's back entry survive the flip.
+ *
  * Heights are CSS px measured from the bottom of the viewport; the peek
  * height includes the bottom safe area.
  */

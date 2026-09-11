@@ -6,10 +6,12 @@ interface BackEntry {
 }
 
 /**
- * One registry for "back". The Android back gesture, a sheet's downward drag
- * and the iOS edge swipe all pop it, and every layer that can be dismissed
- * pushes itself while it is open: a modal, the drawer, the top bar's menu,
- * the rail's detents, Home over the editor. The order is the order things
+ * One registry for "back". The Android back gesture and the iOS edge swipe
+ * pop it - lib/lifecycle.ts and components/Home/edgeSwipe.ts are popBack's
+ * only two callers. A sheet's downward drag does not: it settles its own
+ * detent directly. Every layer that can be dismissed pushes itself while it
+ * is open: a modal, the drawer, the top bar's menu, the rail's detents, Home
+ * over the editor. The order is the order things
  * opened, so the newest layer answers first. When the stack is empty the
  * app minimises (lib/lifecycle.ts); nothing here ever calls history.back(),
  * because the tab switches use replaceState and "back" must leave the app,
