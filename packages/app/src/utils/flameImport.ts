@@ -62,7 +62,7 @@ export type ImportSummary = {
 }
 
 /** Flame plus the metadata its envelope carried, before it becomes an entry. */
-type ParsedFlame = {
+export type ParsedFlame = {
   flame: FlameDescriptor
   name?: string
   savedAt?: number

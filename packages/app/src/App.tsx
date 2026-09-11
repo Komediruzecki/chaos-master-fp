@@ -18,6 +18,8 @@ import { initAncestry } from './flame/ancestry'
 import { importSharedVariations, loadCustomVariations, remapFlameCustomVariations, } from './flame/variations/custom'
 import { activeTab, arcadeMode, setActiveTab, tabFromHash, } from './lib/activeTab'
 import { pushBackHandler } from './lib/backStack'
+import { clearDraft, hasSharePayload, readDraft } from './lib/draft'
+import { IS_NATIVE } from './lib/platform'
 import { Root } from './lib/Root'
 
 const MainWorkspace = lazy(() =>
@@ -35,11 +37,13 @@ import type { TimelineTrack } from './utils/timeline'
 
 export type { ExportImageInfo, ExportImageType } from './flame/exportImageType'
 
-function QueryErrorToast(props: { error: string | null }) {
+/** Shows a message once it is set. Lives inside the ToastProvider, which is
+ *  why it is a component rather than a call in Wrappers' body. */
+function MessageToast(props: { message: string | null }) {
   const { showToast } = useToast()
   createEffect(() => {
-    if (props.error) {
-      showToast(props.error)
+    if (props.message) {
+      showToast(props.message)
     }
   })
   return null
@@ -85,6 +89,28 @@ export function Wrappers() {
    */
   const [selectedCapability, setSelectedCapability] = createSignal<string>()
   const [queryError, setQueryError] = createSignal<string | null>(null)
+  const [draftNotice, setDraftNotice] = createSignal<string | null>(null)
+
+  /**
+   * What the app was holding when the OS killed it (lib/draft.ts). Native
+   * only: a browser tab is not force-stopped from under the user, and a web
+   * session that ends is usually a deliberate one. A link that carries its
+   * own flame wins - restoring over it would replace what was opened - and so
+   * does the welcome screen, which is a first run by definition.
+   */
+  onMount(() => {
+    if (!IS_NATIVE) return
+    if (showWelcome() || hasSharePayload(window.location.search)) return
+    const draft = readDraft()
+    if (!draft) return
+    batch(() => {
+      // The same one-shot hand-off Home and the welcome screen use.
+      setSelectedFlame(() => draft.flame)
+      setSelectedWelcomeTracks(() => draft.tracks)
+    })
+    clearDraft()
+    setDraftNotice('Restored your last flame')
+  })
 
   const [flameFromQuery] = createResource(async () => {
     const urlParams = new URLSearchParams(window.location.search)
@@ -292,7 +318,8 @@ export function Wrappers() {
                 <Modal>
                   <ErrorBoundary fallback={errorHandler}>
                     <Suspense fallback={<WorkspaceSkeleton />}>
-                      <QueryErrorToast error={queryError()} />
+                      <MessageToast message={queryError()} />
+                      <MessageToast message={draftNotice()} />
                       <MainWorkspace
                         flameFromQuery={flameFromQuery()}
                         sharedVariationFromQuery={sharedVariationFromQuery()}

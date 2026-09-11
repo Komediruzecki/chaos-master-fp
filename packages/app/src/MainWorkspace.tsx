@@ -9,7 +9,9 @@ import { useToast } from '@/contexts/ToastContext'
 import { activeTab, setActiveTab, workspaceIsVisible } from '@/lib/activeTab'
 import { pushBackHandler } from '@/lib/backStack'
 import { SHOWCASE_CONSENT_VERSION } from '@/lib/communityShowcase'
+import { saveDraft } from '@/lib/draft'
 import { hapticsEnabled, setHapticsEnabled } from '@/lib/haptics'
+import { onAppPause } from '@/lib/lifecycle'
 import { trackAppInit } from '@/lib/telemetry'
 import { createDragHandler } from '@/utils/createDragHandler'
 import { recordEntries, recordKeys } from '@/utils/record'
@@ -1548,6 +1550,20 @@ export function MainWorkspace(props: AppProps) {
   )
 
   const timeline = createTimelineState({ seatId: 'player' })
+
+  /**
+   * The editor has no autosave, and both platforms may kill a backgrounded
+   * WebView without warning. Pause is the last moment the app is told about,
+   * so the flame and its animation go to storage there; App.tsx offers them
+   * back on the next cold start (lib/draft.ts). The store is unwrapped
+   * because what is written has to be plain JSON, not a reactive proxy.
+   */
+  onCleanup(
+    onAppPause(() => {
+      saveDraft(unwrap(flameDescriptor), timeline.tracks())
+    }),
+  )
+
   const captureTimelineSnapshot = (): TimelineSnapshot => ({
     config: deepClone(timeline.config()),
     currentFrame: timeline.currentFrame(),
