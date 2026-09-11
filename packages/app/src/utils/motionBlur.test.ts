@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { examples } from '@/flame/examples'
 import { deepClone } from './clone'
-import { DEFAULT_SHUTTER_ANGLE, motionBlurSettings, subFrameLimit, subFrameOffsets, } from './motionBlur'
+import { DEFAULT_SHUTTER_ANGLE, exportTickIterations, motionBlurSettings, subFrameLimit, subFrameOffsets, } from './motionBlur'
 import { applyTimelineToFlameAtFrame, defaultConfig } from './timeline'
 import type { TimelineTrack } from './timeline'
 
@@ -67,5 +67,21 @@ describe('motion blur sub-frame rule', () => {
     applyTimelineToFlameAtFrame(timelineStub, flame, 2.25)
     // 0.2 + 0.225 * 1.0 = 0.425
     expect(flame.renderSettings.exposure).toBeCloseTo(0.425, 4)
+  })
+})
+
+describe('exportTickIterations', () => {
+  it('stops a tick at the sub-frame share instead of the whole budget', () => {
+    // 1M points per iteration, 2.5M left in this sub-frame, driver planned 30.
+    expect(exportTickIterations(30, 2_500_000, 1_000_000)).toBe(3)
+  })
+
+  it('never plans more than the driver asked for', () => {
+    expect(exportTickIterations(4, 50_000_000, 1_000_000)).toBe(4)
+  })
+
+  it('always runs at least one iteration, even at or past the share', () => {
+    expect(exportTickIterations(30, 0, 1_000_000)).toBe(1)
+    expect(exportTickIterations(30, -5, 1_000_000)).toBe(1)
   })
 })

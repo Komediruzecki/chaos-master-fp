@@ -9,6 +9,7 @@ import { DEFAULT_RENDERER_RANDOM_IMPLEMENTATION_ID } from '@/shaders/random'
 import { deepClone } from '@/utils/clone'
 import { createTimestampQuery } from '@/utils/createTimestampQuery'
 import { logTime } from '@/utils/logTime'
+import { exportTickIterations } from '@/utils/motionBlur'
 import { recordEntries } from '@/utils/record'
 import { applyTimelineToFlame } from '@/utils/timeline'
 import { vramTrack } from '@/utils/vramLog'
@@ -817,7 +818,10 @@ export function Flam3(props: Flam3Props) {
     createEffect(() => {
       if (!timeline) return
       timeline.currentFrame()
-      if (timeline.isDrivingView()) {
+      // An export steps the playhead once per motion-blur sub-frame, so a reset
+      // here would keep only the last sub-frame. Exports reset once per output
+      // frame themselves: the export-frame effect below, or exportFrameKey.
+      if (timeline.isDrivingView() && !exportOwnsResets()) {
         resetAccumulation()
       }
     })
@@ -957,11 +961,10 @@ export function Flam3(props: Flam3Props) {
           drivers.export?.getExportIterationCount() ?? EXPORT_INITIAL_ITERATIONS
         if (props.accumulationFraction === undefined) return planned
         // Motion blur: a tick may not run past this sub-frame's share.
-        const perIteration = props.pointCountPerBatch * plotsPerChainBaked
-        const remaining = accumulationStop() - accumulatedPointCount_
-        return Math.max(
-          1,
-          Math.min(planned, Math.ceil(remaining / perIteration)),
+        return exportTickIterations(
+          planned,
+          accumulationStop() - accumulatedPointCount_,
+          props.pointCountPerBatch * plotsPerChainBaked,
         )
       }
       if (timings) {

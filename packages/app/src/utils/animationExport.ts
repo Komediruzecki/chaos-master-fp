@@ -218,6 +218,12 @@ export function createAnimationExport(
 
         applySubFrame(0)
         setExportQuality(config.quality)
+        // A new output frame starts from an empty buffer. Report it now, which
+        // resets accumulation through Flam3's export-frame effect, instead of
+        // on the first export tick: that tick still reads the previous frame's
+        // total, which met every sub-frame limit and skipped straight past
+        // this frame's first sub-frames.
+        updateProgress(0, qualityPointCountLimit()())
 
         frameAccumStartMs = performance.now()
         if (DEBUG_MODE) {
@@ -322,6 +328,7 @@ export function createAnimationExport(
               })
               .catch((err: unknown) => {
                 capturing = false
+                setExportAccumulationFraction(undefined)
                 reject(err instanceof Error ? err : new Error(String(err)))
               })
           },

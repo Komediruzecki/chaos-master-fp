@@ -48,3 +48,20 @@ export function subFrameLimit(
 ): number {
   return Math.round(((subIndex + 1) / sampleCount(samples)) * limit)
 }
+
+/**
+ * Iterations for one export tick under motion blur: enough to reach this
+ * sub-frame's share of the budget and no more, but always at least one so the
+ * loop keeps moving. Uncapped, the export driver planned a tick that reached
+ * the whole budget at once, and every later sub-frame accumulated nothing.
+ */
+export function exportTickIterations(
+  planned: number,
+  remainingPoints: number,
+  pointsPerIteration: number,
+): number {
+  return Math.max(
+    1,
+    Math.min(planned, Math.ceil(remainingPoints / pointsPerIteration)),
+  )
+}
