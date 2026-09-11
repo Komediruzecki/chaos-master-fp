@@ -3418,9 +3418,15 @@ export function MainWorkspace(props: AppProps) {
             </CanvasViewport>
           </>
           {/* The rail layout: the phone, and a tablet under the deck's width.
-              Both belong to Create, so neither is drawn over Home or the
-              Arcade, which carry the shell bar instead. */}
-          <Show when={railLayout() && workspaceIsVisible()}>
+              Home and the Arcade hub already cover these completely, so they
+              stay mounted while a destination is up. Gating on visibility
+              bought nothing and cost a full rebuild of TouchHUD, the rail and
+              the capsule on every round trip - a getComputedStyle at mount,
+              listeners re-bound, the chip row reset to Variations, an open
+              sheet rebuilding every preview canvas, and the canvas re-panning
+              because the unmount reports a covered height of 0 - all of it
+              synchronously inside the edge swipe's pointermove. */}
+          <Show when={railLayout()}>
             <TouchHUD
               ctx={cmdContext}
               flame={effectiveFlame}
