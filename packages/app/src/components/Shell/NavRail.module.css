@@ -74,7 +74,10 @@
   position: fixed;
   inset: 0;
   z-index: var(--la-z-shell);
-  /* A frame around the menu: the page stays reachable beside it. */
+  /* The layer catches nothing itself; the backdrop inside it does, and that
+     covers the rail as well. So the first tap on Create or Settings while
+     More is open spends itself closing the menu and goes no further - what
+     a menu backdrop is for, and what the phone's bar does. */
   pointer-events: none;
 }
 
