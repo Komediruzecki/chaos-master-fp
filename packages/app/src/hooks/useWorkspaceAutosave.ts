@@ -13,6 +13,13 @@ export interface UseWorkspaceAutosaveParams {
     duration?: number | 'sticky',
     actions?: Array<{ label: string; onClick: () => void }>,
   ) => void
+  /**
+   * The Recents entry this workspace should keep writing to, when it opens
+   * on work that already has one: a draft the launch rescued is upserted
+   * into the entry its killed session owned (lib/draft.ts), and a second id
+   * here would add a duplicate of the same work a minute later.
+   */
+  restoredSessionId?: () => string | undefined
 }
 
 export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
@@ -20,9 +27,11 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
 
   const newAutosaveId = () =>
     `autosave-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
-  let autosaveSessionId = newAutosaveId()
+  let autosaveSessionId = params.restoredSessionId?.() ?? newAutosaveId()
   const autosaveSnapshot = () =>
     JSON.stringify({ flame: flameDescriptor, tracks: getTracks() })
+  /** Which document the current entry belongs to - see markLoadedBaseline. */
+  let sessionFlame = JSON.stringify(flameDescriptor)
   let autosaveBaseline = autosaveSnapshot()
   let editingSince: number | null = null
   let lastAutosaveAt = 0
@@ -36,7 +45,17 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
   const markLoadedBaseline = () => {
     autosaveBaseline = autosaveSnapshot()
     editingSince = null
-    autosaveSessionId = newAutosaveId()
+    // A load boundary starts a new Recents entry only when it actually loads
+    // a different document. One hand-off crosses this boundary twice - the
+    // flame lands in one effect and its animation in another - so keying the
+    // new entry on the call rather than on the flame gave the second half of
+    // a restored draft an entry of its own, beside the one the launch had
+    // just put the same work into (lib/draft.ts).
+    const flame = JSON.stringify(flameDescriptor)
+    if (flame !== sessionFlame) {
+      sessionFlame = flame
+      autosaveSessionId = newAutosaveId()
+    }
   }
 
   const autosaveNow = () => {
@@ -125,5 +144,7 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
     markLoadedBaseline,
     autosaveNow,
     flushDirtyToRecents,
+    /** The Recents entry this session writes to, for the pause backup. */
+    autosaveSessionId: () => autosaveSessionId,
   }
 }

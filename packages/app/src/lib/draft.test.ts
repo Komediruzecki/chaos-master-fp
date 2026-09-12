@@ -1,21 +1,21 @@
 import { createRoot } from 'solid-js'
-import { createStore, reconcile, unwrap } from 'solid-js/store'
+import { createStore, unwrap } from 'solid-js/store'
 import { describe, expect, it, vi } from 'vitest'
 import { parseFlameXml } from '@/flame/flameXml'
 import { useWorkspaceAutosave } from '@/hooks/useWorkspaceAutosave'
 import { clearRecentFlames, loadRecentFlames } from '@/utils/recentFlames'
 import { safeSetItem } from '@/utils/storage'
-import { defaultConfig } from '@/utils/timeline'
-import { clearDraft, DRAFT_KEY, draftAction, draftForLaunch, handoffTakesBaseline, hasSharePayload, installDraftBackup, markDraftBaseline, readDraft, saveDraft, } from './draft'
+import { clearDraft, DRAFT_KEY, hasSharePayload, installDraftBackup, readDraft, saveDraft, takeDraftForLaunch, } from './draft'
 import { useLifecyclePorts } from './lifecycle'
 import type { LifecyclePorts } from '@chaos-master/mobile-runtime/lifecycle'
-import type { DraftState, HandoffSource } from './draft'
+import type { DraftState } from './draft'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 import type { TimelineConfig, TimelineTrack } from '@/utils/timeline'
 
 // localStorage is not usable in this runtime (the same reason
-// TouchSurface.test.tsx mocks this module), so the draft round-trips through
-// an in-memory store. What is under test is the envelope, not the browser's.
+// TouchSurface.test.tsx mocks this module), so the draft and Recents both
+// round-trip through an in-memory store. What is under test is the app's
+// envelope, not the browser's.
 const store = new Map<string, string>()
 vi.mock('@/utils/storage', () => ({
   safeGetItem: (key: string) => store.get(key) ?? null,
@@ -63,17 +63,42 @@ const config: TimelineConfig = {
   loopMode: 'seamless',
 }
 
-/** What the workspace hands the draft: a flame, its tracks and its timeline. */
+/** What the workspace hands the draft: a flame, its animation, its entry. */
 const state = (overrides: Partial<DraftState> = {}): DraftState => ({
   flame,
   tracks,
   config,
+  sessionId: 'autosave-session',
   ...overrides,
 })
 
+/** A draft already in storage, as a killed session would have left it. */
+const seedDraft = (
+  overrides: {
+    sessionId?: string
+    savedAt?: number
+    tracks?: TimelineTrack[]
+  } = {},
+) => {
+  safeSetItem(
+    DRAFT_KEY,
+    JSON.stringify({
+      flame,
+      savedAt: overrides.savedAt ?? Date.now(),
+      animation: { tracks: overrides.tracks ?? tracks, config },
+      sessionId: overrides.sessionId ?? 'autosave-killed',
+    }),
+  )
+}
+
+const reset = () => {
+  clearDraft()
+  clearRecentFlames()
+}
+
 describe('the background draft', () => {
-  it('comes back with its flame and its tracks', () => {
-    saveDraft(state())
+  it('comes back with its flame, its tracks and its entry', () => {
+    saveDraft(state(), true)
     const draft = readDraft()
     expect(draft?.flame.metadata?.name).toBe('Draft')
     // The keyframes come back through the same validation an imported file
@@ -87,92 +112,84 @@ describe('the background draft', () => {
       [60, 2],
     ])
     expect(typeof draft?.savedAt).toBe('number')
-    clearDraft()
+    expect(takeDraftForLaunch({ native: true, search: '' })?.sessionId).toBe(
+      'autosave-session',
+    )
+    reset()
   })
 
-  it('saves a flame with no animation', () => {
-    saveDraft(state({ tracks: [] }))
+  it('saves a flame with no animation, and its timeline with it', () => {
+    // The config decides how long the animation is and how fast it runs, and
+    // a flame with no tracks still has one: leaving it out sent every
+    // restored animation back at the hand-off's reset, 30fps over 90 frames.
+    saveDraft(state({ tracks: [] }), true)
     const draft = readDraft()
     expect(draft?.flame.metadata?.name).toBe('Draft')
     expect(draft?.tracks).toBeUndefined()
-    clearDraft()
-  })
-
-  it('reads nothing once it is cleared', () => {
-    saveDraft(state())
-    clearDraft()
-    expect(readDraft()).toBeUndefined()
+    expect(draft?.config?.fps).toBe(60)
+    expect(draft?.config?.endFrame).toBe(300)
+    expect(draft?.config?.loopMode).toBe('seamless')
+    reset()
   })
 
   it('is not a crash when the value is corrupt', () => {
     safeSetItem(DRAFT_KEY, '{"flame": nonsense')
     expect(readDraft()).toBeUndefined()
+    expect(takeDraftForLaunch({ native: true, search: '' })).toBeUndefined()
     safeSetItem(DRAFT_KEY, '{"hello":"world"}')
     expect(readDraft()).toBeUndefined()
-    clearDraft()
+    reset()
   })
 
-  it('writes nothing when nothing has changed since the baseline', () => {
+  it('writes nothing for a workspace with nothing unsaved in it', () => {
     // Android fires pause for every share sheet and permission dialog, so an
     // untouched flame would otherwise become a draft on the first background
     // and be offered back on every cold start after it.
-    markDraftBaseline(state())
-    saveDraft(state())
+    saveDraft(state(), false)
     expect(readDraft()).toBeUndefined()
   })
 
-  it('writes an edited flame, and clears once it is back at the baseline', () => {
-    markDraftBaseline(state())
+  it('leaves a stored draft alone when the workspace looks clean', () => {
+    // THE RULE. A pause that finds nothing unsaved has learned nothing about
+    // the draft already in storage, and every earlier version of this deleted
+    // it here - which is how a restored session was destroyed by any share
+    // sheet that followed it, three fix passes running.
+    seedDraft()
+    saveDraft(
+      state({
+        flame: { ...flame, metadata: { ...flame.metadata, name: 'Clean' } },
+      }),
+      false,
+    )
+    expect(readDraft()?.flame.metadata?.name).toBe('Draft')
+    reset()
+  })
+
+  it('replaces a draft only with newer unsaved work', () => {
+    seedDraft()
     const edited = state({
       flame: { ...flame, metadata: { ...flame.metadata, name: 'Edited' } },
     })
-    saveDraft(edited)
+    saveDraft(edited, true)
     expect(readDraft()?.flame.metadata?.name).toBe('Edited')
-
-    // Undone back to where it started: nothing left to restore, so the stale
-    // draft goes rather than outliving the work it came from.
-    saveDraft(state())
-    expect(readDraft()).toBeUndefined()
+    reset()
   })
 
-  it('carries the timeline the animation was authored at', () => {
-    // Without the config a restored animation came back at the hand-off's
-    // reset - 30fps, 90 frames - so keyframes past frame 90 were unreachable
-    // and the motion ran at half speed, while the same flame through `?s=`
-    // returned intact.
-    markDraftBaseline(state({ tracks: [] }))
-    saveDraft(state())
-    const draft = readDraft()
-    expect(draft?.config?.fps).toBe(60)
-    expect(draft?.config?.endFrame).toBe(300)
-    expect(draft?.config?.timeScale).toBe(2)
-    expect(draft?.config?.loop).toBe(false)
-    expect(draft?.config?.loopMode).toBe('seamless')
-    clearDraft()
+  it('does not rewrite what it already holds', () => {
+    // Pause fires for every share sheet, so the same second of work would be
+    // rewritten a dozen times over.
+    saveDraft(state(), true)
+    const first = readDraft()?.savedAt
+    saveDraft(state(), true)
+    expect(readDraft()?.savedAt).toBe(first)
+    reset()
   })
 
-  it('treats a change to only the timeline as a change', () => {
-    // The config sat outside the signature, so lengthening the animation or
-    // changing its frame rate read as "nothing has changed" - and that is
-    // the branch that deletes whatever draft was already there.
-    markDraftBaseline(state())
-    saveDraft(state({ config: { ...config, endFrame: 600 } }))
+  it('counts a change to only the timeline as work', () => {
+    saveDraft(state(), true)
+    saveDraft(state({ config: { ...config, endFrame: 600 } }), true)
     expect(readDraft()?.config?.endFrame).toBe(600)
-    clearDraft()
-  })
-
-  it('carries the timeline of a flame that has no tracks', () => {
-    // The signature counts the config whether or not there are tracks, so a
-    // change to only the fps or the end frame is a change worth a draft -
-    // and the write then dropped the animation block, storing the very draft
-    // that change had asked for without the change in it.
-    markDraftBaseline(state({ tracks: [] }))
-    saveDraft(state({ tracks: [], config: { ...config, endFrame: 600 } }))
-    const draft = readDraft()
-    expect(draft?.tracks).toBeUndefined()
-    expect(draft?.config?.endFrame).toBe(600)
-    expect(draft?.config?.fps).toBe(60)
-    clearDraft()
+    reset()
   })
 
   it('ignores a config that does not validate, and keeps the flame', () => {
@@ -190,7 +207,7 @@ describe('the background draft', () => {
     expect(draft?.flame.metadata?.name).toBe('Draft')
     expect(draft?.tracks?.[0]?.parameterPath).toBe(tracks[0]?.parameterPath)
     expect(draft?.config).toBeUndefined()
-    clearDraft()
+    reset()
   })
 })
 
@@ -218,16 +235,21 @@ function fakePlatform() {
 
 describe('the pause backup', () => {
   it('writes what the pause finds, timeline and all', () => {
-    // The path the app actually takes: one reader, a baseline at install and
-    // a write when the platform says the app is going away. The workspace
-    // wrote those two out by hand and left the config out of both.
+    // The path the app actually takes: one reader, the editor's dirty flag,
+    // and a write when the platform says the app is going away.
     const platform = fakePlatform()
     let current = state()
-    const backup = installDraftBackup({ native: true, read: () => current })
+    let unsaved = false
+    const backup = installDraftBackup({
+      native: true,
+      read: () => current,
+      unsaved: () => unsaved,
+    })
 
     platform.pause()
     expect(readDraft()).toBeUndefined()
 
+    unsaved = true
     current = state({ config: { ...config, fps: 24, endFrame: 480 } })
     platform.pause()
     const draft = readDraft()
@@ -235,45 +257,15 @@ describe('the pause backup', () => {
     expect(draft?.config?.endFrame).toBe(480)
 
     backup.dispose()
-    clearDraft()
-  })
-
-  it('takes a new baseline when a load boundary says so', () => {
-    // Opening a flame from Library, from a share link or from the welcome
-    // grid is not somebody's unsaved work. With the baseline taken once, at
-    // construction, backgrounding straight after opening one wrote a draft,
-    // and the next cold start offered it back as a rescued session.
-    const platform = fakePlatform()
-    let current = state()
-    const backup = installDraftBackup({ native: true, read: () => current })
-
-    current = state({
-      flame: {
-        ...flame,
-        metadata: { ...flame.metadata, name: 'From Library' },
-      },
-    })
-    platform.pause()
-    // Unmarked, a load is indistinguishable from an edit.
-    expect(readDraft()?.flame.metadata?.name).toBe('From Library')
-    clearDraft()
-
-    backup.markBaseline()
-    platform.pause()
-    expect(readDraft()).toBeUndefined()
-
-    backup.dispose()
+    reset()
   })
 
   it('does nothing on the web, where nothing reads a draft back', () => {
     const platform = fakePlatform()
-    markDraftBaseline(state())
     const backup = installDraftBackup({
       native: false,
-      read: () =>
-        state({
-          flame: { ...flame, metadata: { ...flame.metadata, name: 'Edited' } },
-        }),
+      read: () => state(),
+      unsaved: () => true,
     })
 
     platform.pause()
@@ -282,64 +274,86 @@ describe('the pause backup', () => {
   })
 })
 
-/** An envelope already in storage, without touching the pause baseline. */
-const seedDraft = () => {
-  safeSetItem(
-    DRAFT_KEY,
-    JSON.stringify({
-      flame,
-      savedAt: Date.now(),
-      animation: { tracks, config },
-    }),
-  )
-}
-
 describe('what a launch does with the draft', () => {
-  it('restores under the welcome screen, which is not a first run', () => {
-    // The welcome screen shows on every launch until the user ticks "Don't
-    // show again", and the workspace is mounted behind it, so there is
-    // somewhere for the flame to land. Skipping the restore there lost the
-    // session on the one path that always runs - and because the skip
-    // returned before clearing, the draft was left to be restored over some
-    // later, unrelated session. The welcome screen is deliberately not an
-    // input here.
-    expect(draftAction({ native: true, search: '' })).toBe('restore')
+  it('rescues it into Recents and hands it over', () => {
+    // The welcome screen is deliberately not an input: it shows on every
+    // launch until the user ticks "Don't show again", and the workspace is
+    // mounted behind it, so a restored flame is waiting once they enter.
+    seedDraft()
+    const restored = takeDraftForLaunch({ native: true, search: '' })
+    expect(restored?.flame.metadata?.name).toBe('Draft')
+    expect(restored?.sessionId).toBe('autosave-killed')
+    expect(restored?.tracks?.[0]?.parameterPath).toBe(tracks[0]?.parameterPath)
+    expect(restored?.config?.endFrame).toBe(300)
+
+    const recents = loadRecentFlames()
+    expect(recents.map((entry) => entry.id)).toEqual(['autosave-killed'])
+    expect(recents[0]?.flame.metadata?.name).toBe('Draft')
+    expect(recents[0]?.tracks?.[0]?.parameterPath).toBe(
+      tracks[0]?.parameterPath,
+    )
+    // Spent: the work is somewhere it can be found by hand.
+    expect(readDraft()).toBeUndefined()
+    reset()
   })
 
-  it('drops the draft when the link carries its own flame', () => {
-    expect(draftAction({ native: true, search: '?s=abc' })).toBe('clear')
-    expect(draftAction({ native: true, search: '?cv=abc' })).toBe('clear')
+  it('updates the killed session entry instead of adding a second', () => {
+    // The session id regenerated on every restore, so the rescue filed the
+    // same work under a new name and Recents grew a duplicate per launch.
+    seedDraft({ sessionId: 'autosave-killed', savedAt: 2000 })
+    takeDraftForLaunch({ native: true, search: '' })
+    seedDraft({ sessionId: 'autosave-killed', savedAt: 3000 })
+    takeDraftForLaunch({ native: true, search: '' })
+    expect(loadRecentFlames()).toHaveLength(1)
+    reset()
   })
 
-  it('does nothing on the web, where nothing writes one', () => {
-    expect(draftAction({ native: false, search: '' })).toBe('ignore')
+  it('never writes over a newer Recents entry of the same session', () => {
+    // That session's autosave writes to this entry too. A draft written
+    // before the last autosave is the older half of one piece of work.
+    seedDraft({ sessionId: 'autosave-killed', savedAt: 1000 })
+    takeDraftForLaunch({ native: true, search: '' })
+    const rescued = loadRecentFlames()[0]?.savedAt ?? 0
+    seedDraft({ sessionId: 'autosave-killed', savedAt: 1 })
+    takeDraftForLaunch({ native: true, search: '' })
+    expect(loadRecentFlames()[0]?.savedAt).toBe(rescued)
+    reset()
   })
 
-  it('leaves the draft it restored in storage', () => {
-    // Restoring and clearing on the same tick lost the session: the flame
-    // lands behind the welcome screen, and a starter flame picked from the
-    // grid overwrites it while the restore's own baseline says the workspace
-    // is clean - so the work went from memory, from storage and from Recents
-    // at once. The next pause is what settles the draft.
+  it('declines to restore over a link, and leaves the draft where it is', () => {
+    // Restoring over the link would replace what it was opened for. Dropping
+    // the draft instead lost a friend's tap: the work was gone from storage
+    // and had never reached Recents.
     seedDraft()
     expect(
-      draftForLaunch({ native: true, search: '' })?.flame.metadata?.name,
-    ).toBe('Draft')
+      takeDraftForLaunch({ native: true, search: '?s=abc' }),
+    ).toBeUndefined()
     expect(readDraft()?.flame.metadata?.name).toBe('Draft')
-    clearDraft()
-  })
-
-  it('drops it where the link carries its own flame', () => {
-    seedDraft()
-    expect(draftForLaunch({ native: true, search: '?s=abc' })).toBeUndefined()
-    expect(readDraft()).toBeUndefined()
+    expect(loadRecentFlames()).toHaveLength(1)
+    reset()
   })
 
   it('adopts nothing on the web, and leaves what is there alone', () => {
     seedDraft()
-    expect(draftForLaunch({ native: false, search: '' })).toBeUndefined()
+    expect(takeDraftForLaunch({ native: false, search: '' })).toBeUndefined()
     expect(readDraft()?.flame.metadata?.name).toBe('Draft')
-    clearDraft()
+    expect(loadRecentFlames()).toHaveLength(0)
+    reset()
+  })
+
+  it('rescues a draft written before the envelope carried an entry', () => {
+    safeSetItem(
+      DRAFT_KEY,
+      JSON.stringify({
+        flame,
+        savedAt: Date.now(),
+        animation: { tracks, config },
+      }),
+    )
+    const restored = takeDraftForLaunch({ native: true, search: '' })
+    expect(restored?.sessionId).toMatch(/^autosave-/)
+    expect(loadRecentFlames()).toHaveLength(1)
+    reset()
   })
 })
 
@@ -354,90 +368,102 @@ describe('hasSharePayload', () => {
 })
 
 describe('the draft a launch restored', () => {
-  it('reaches Recents before anything is allowed to delete it', () => {
-    // The chain the app walks, with the two real safety nets wired the way
-    // MainWorkspace wires them: the editor's autosave, the pause backup, one
-    // load boundary over both, and the hand-off deciding whether to take one.
+  it('is safe from a workspace that counts itself clean', () => {
+    // The chain the app walks, with the modules the app walks it with: the
+    // launch (App.tsx), the editor's autosave and the pause backup wired the
+    // way MainWorkspace wires them.
     //
-    // Baselining the restored flame is what lost the session: it counted as
-    // saved while it existed only in the draft slot, so the flush wrote
-    // nothing, the reset dropped it, and the next pause cleared the draft.
+    // This is the scenario three fix passes shipped broken. A draft carrying
+    // an animation lands in the workspace, whose load boundary - taken twice
+    // per hand-off, once for the flame and once for its animation - says the
+    // workspace is clean. Every earlier version read that as "nothing to keep"
+    // and deleted the draft on the next pause, and the work was gone from
+    // memory, from storage and from Recents at once.
+    seedDraft({ sessionId: 'autosave-killed' })
     const platform = fakePlatform()
-    const restored: FlameDescriptor = {
-      ...flame,
-      metadata: { ...flame.metadata, name: 'Restored' },
-    }
-    const starter: FlameDescriptor = {
-      ...flame,
-      metadata: { ...flame.metadata, name: 'Starter' },
-    }
 
-    try {
-      createRoot((dispose) => {
-        const [flameStore, setFlameStore] = createStore<FlameDescriptor>(
-          JSON.parse(JSON.stringify(flame)),
-        )
-        let currentTracks: TimelineTrack[] = []
-        let currentConfig: TimelineConfig = defaultConfig()
-        const autosave = useWorkspaceAutosave({
-          flameDescriptor: flameStore,
-          getTracks: () => currentTracks,
-          agentDriving: () => false,
-          showToast: () => undefined,
-        })
-        const backup = installDraftBackup({
-          native: true,
-          read: () => ({
-            flame: unwrap(flameStore),
-            tracks: currentTracks,
-            config: currentConfig,
-          }),
-        })
+    const restored = takeDraftForLaunch({ native: true, search: '' })
+    expect(restored?.tracks?.length).toBe(1)
 
-        /** MainWorkspace's own: one load boundary over both nets. */
-        const markLoadedBaseline = () => {
-          autosave.markLoadedBaseline()
-          backup.markBaseline()
-        }
-        /** Its hand-off: flush the outgoing flame, reset, then this one. */
-        const handoff = (
-          source: HandoffSource,
-          next: FlameDescriptor,
-          nextTracks: TimelineTrack[],
-          nextConfig: TimelineConfig,
-        ) => {
-          autosave.flushDirtyToRecents()
-          setFlameStore(reconcile(next))
-          currentTracks = nextTracks
-          currentConfig = nextConfig
-          if (handoffTakesBaseline(source)) markLoadedBaseline()
-        }
-
-        // The launch hands the draft to the workspace, behind the welcome
-        // screen.
-        handoff('draft', restored, tracks, config)
-
-        // Any share sheet or app switch. This work exists nowhere else, so
-        // the pause has to leave the draft where it is.
-        platform.pause()
-        expect(readDraft()?.flame.metadata?.name).toBe('Restored')
-
-        // The user taps a starter flame on the welcome grid instead.
-        handoff('user', starter, [], defaultConfig())
-        expect(
-          loadRecentFlames().map((entry) => entry.flame.metadata?.name),
-        ).toContain('Restored')
-
-        // Only now is the draft spent: what it held is in Recents.
-        platform.pause()
-        expect(readDraft()).toBeUndefined()
-
-        backup.dispose()
-        dispose()
+    createRoot((dispose) => {
+      const [flameStore] = createStore<FlameDescriptor>(
+        JSON.parse(JSON.stringify(restored?.flame)),
+      )
+      const currentTracks = restored?.tracks ?? []
+      const autosave = useWorkspaceAutosave({
+        flameDescriptor: flameStore,
+        getTracks: () => currentTracks,
+        agentDriving: () => false,
+        showToast: () => undefined,
+        restoredSessionId: () => restored?.sessionId,
       })
-    } finally {
-      clearRecentFlames()
-      clearDraft()
-    }
+      const backup = installDraftBackup({
+        native: true,
+        read: () => ({
+          flame: unwrap(flameStore),
+          tracks: currentTracks,
+          config,
+          sessionId: autosave.autosaveSessionId(),
+        }),
+        unsaved: autosave.isFlameDirty,
+      })
+
+      // Both halves of the hand-off take the load boundary.
+      autosave.markLoadedBaseline()
+      autosave.markLoadedBaseline()
+      // A launch nobody has touched is not somebody mid-edit: dirty here is
+      // what made the autosave prompt and the five-minute reminder fire on
+      // every restore.
+      expect(autosave.isFlameDirty()).toBe(false)
+
+      // Any share sheet or app switch.
+      platform.pause()
+
+      const recents = loadRecentFlames()
+      expect(recents.map((entry) => entry.flame.metadata?.name)).toEqual([
+        'Draft',
+      ])
+      // One entry, the killed session's own, with the animation in it.
+      expect(recents[0]?.id).toBe('autosave-killed')
+      expect(recents[0]?.tracks?.[0]?.parameterPath).toBe(
+        tracks[0]?.parameterPath,
+      )
+
+      backup.dispose()
+      dispose()
+    })
+    reset()
+  })
+
+  it('keeps its entry while the work goes on in it', () => {
+    // The workspace that adopted the rescued entry keeps writing to it, so a
+    // rescued session is one entry in Recents rather than one per launch.
+    seedDraft({ sessionId: 'autosave-killed' })
+    const restored = takeDraftForLaunch({ native: true, search: '' })
+
+    createRoot((dispose) => {
+      const [flameStore, setFlameStore] = createStore<FlameDescriptor>(
+        JSON.parse(JSON.stringify(restored?.flame)),
+      )
+      const autosave = useWorkspaceAutosave({
+        flameDescriptor: flameStore,
+        getTracks: () => [],
+        agentDriving: () => false,
+        showToast: () => undefined,
+        restoredSessionId: () => restored?.sessionId,
+      })
+      autosave.markLoadedBaseline()
+
+      setFlameStore('metadata', 'name', 'Kept editing')
+      expect(autosave.isFlameDirty()).toBe(true)
+      autosave.flushDirtyToRecents()
+
+      const recents = loadRecentFlames()
+      expect(recents).toHaveLength(1)
+      expect(recents[0]?.id).toBe('autosave-killed')
+      expect(recents[0]?.flame.metadata?.name).toBe('Kept editing')
+      dispose()
+    })
+    reset()
   })
 })

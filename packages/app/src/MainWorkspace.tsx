@@ -9,7 +9,7 @@ import { useToast } from '@/contexts/ToastContext'
 import { setActiveTab, workspaceIsVisible } from '@/lib/activeTab'
 import { createBackLayer } from '@/lib/backStack'
 import { SHOWCASE_CONSENT_VERSION } from '@/lib/communityShowcase'
-import { handoffTakesBaseline, installDraftBackup } from '@/lib/draft'
+import { installDraftBackup } from '@/lib/draft'
 import { hapticsEnabled, setHapticsEnabled } from '@/lib/haptics'
 import { trackAppInit } from '@/lib/telemetry'
 import { createDragHandler } from '@/utils/createDragHandler'
@@ -136,7 +136,6 @@ import type { SonificationConfig } from './utils/sonification'
 import type { EasingCurve, KeyframeInterpolation, TimelineConfig, TimelineTrack, } from './utils/timeline'
 import type { CommandContext } from '@/commands/types'
 import type { CommunityShowcaseRequest } from '@/lib/communityShowcase'
-import type { HandoffSource } from '@/lib/draft'
 
 export type { ExportImageInfo, ExportImageType } from '@/flame/exportImageType'
 
@@ -169,11 +168,12 @@ export type AppProps = {
    */
   welcomeConfig?: () => TimelineConfig | undefined
   /**
-   * Where the hand-off's flame came from. A draft this launch restored is
-   * unsaved work that has never reached Recents, so it deliberately does not
-   * re-baseline the safety nets - see `handoffTakesBaseline` in lib/draft.ts.
+   * The Recents entry the hand-off's flame already lives in, when it has one.
+   * Only the draft restore sets it: the launch puts that work in Recents
+   * before handing it over (lib/draft.ts), and the workspace keeps writing
+   * to the same entry instead of opening a second one for it.
    */
-  flameHandoffSource?: () => HandoffSource
+  handoffSessionId?: () => string | undefined
   /**
    * One-shot request from a Home "Explore" card: open the tool this flame was
    * curated to demonstrate, not just the flame. The value is the row's
@@ -637,7 +637,6 @@ export function MainWorkspace(props: AppProps) {
       )
       // Read BEFORE resetFlameFromWelcome() clears the whole hand-off.
       const capability = props.capabilityFromHome?.()
-      const handoffSource = props.flameHandoffSource?.() ?? 'user'
       if (capability !== undefined) {
         setPendingCapability(capability)
       }
@@ -662,12 +661,14 @@ export function MainWorkspace(props: AppProps) {
         })
       }
       props.resetFlameFromWelcome?.()
-      // A welcome pick is a fresh starting point for dirty tracking. A draft
-      // this launch restored is not: baselining that one made work which
-      // exists only in the draft slot count as saved, so the flush above
-      // wrote nothing to Recents and the next pause deleted the draft
-      // (lib/draft.ts). Left dirty, that flush is what rescues it.
-      if (handoffTakesBaseline(handoffSource)) markLoadedBaseline()
+      // Every hand-off is a fresh starting point for dirty tracking, the
+      // restored draft included: its work reached Recents before the launch
+      // handed it over (lib/draft.ts), so nothing is lost by the workspace
+      // counting it as loaded - while leaving it dirty made the autosave
+      // prompt and the five-minute reminder fire on a launch nobody had
+      // touched. The guard that stood here was one of three that tried to
+      // keep restored work alive by not baselining it.
+      markLoadedBaseline()
     }
   })
 
@@ -1569,30 +1570,6 @@ export function MainWorkspace(props: AppProps) {
   )
 
   const timeline = createTimelineState({ seatId: 'player' })
-
-  /**
-   * The editor's autosave (hooks/useWorkspaceAutosave.ts) flushes to Recents
-   * on pagehide, which a WebView the OS force-stops never fires, so pause -
-   * the last moment a native app is told about - writes the flame and its
-   * animation to storage as well, and App.tsx offers them back on the next
-   * cold start (lib/draft.ts).
-   *
-   * One reader for the baseline and for the pause write: the two used to be
-   * written out separately here and both left the timeline's config behind,
-   * so every restored animation came back at 30fps over 90 frames and a
-   * change to only the timeline deleted the draft instead of storing it.
-   * The store is unwrapped because what is written has to be plain JSON, not
-   * a reactive proxy.
-   */
-  const draftBackup = installDraftBackup({
-    native: IS_NATIVE,
-    read: () => ({
-      flame: unwrap(flameDescriptor),
-      tracks: timeline.tracks(),
-      config: timeline.config(),
-    }),
-  })
-  onCleanup(draftBackup.dispose)
 
   const captureTimelineSnapshot = (): TimelineSnapshot => ({
     config: deepClone(timeline.config()),
@@ -2665,28 +2642,46 @@ export function MainWorkspace(props: AppProps) {
 
   // ── Autosave & save-awareness ──────────────────────────────────────────
   const {
+    isFlameDirty,
     markSavedBaseline,
-    markLoadedBaseline: markAutosaveBaseline,
+    markLoadedBaseline,
     flushDirtyToRecents,
+    autosaveSessionId,
   } = useWorkspaceAutosave({
     flameDescriptor,
     getTracks: () => timeline.tracks(),
     agentDriving,
     showToast,
+    // A draft the launch rescued is already in Recents, in the entry its
+    // killed session owned; this workspace keeps writing to that one.
+    restoredSessionId: () => props.handoffSessionId?.(),
   })
 
   /**
-   * A load is a fresh starting point for both safety nets, not an edit. The
-   * draft's baseline used to be taken once, at construction, so opening a
-   * flame from Library or a share link and backgrounding without touching it
-   * wrote a draft - and the next cold start offered "Restored your last
-   * flame" for work nobody had done. Every load boundary goes through here,
-   * so neither net can drift from the other.
+   * The editor's autosave (hooks/useWorkspaceAutosave.ts) flushes to Recents
+   * on pagehide, which a WebView the OS force-stops never fires, so pause -
+   * the last moment a native app is told about - writes the flame and its
+   * animation to storage as well, and App.tsx rescues them on the next cold
+   * start (lib/draft.ts).
+   *
+   * The dirty flag is the editor's own, and the only question the draft asks
+   * of the workspace. It used to keep a baseline of its own and delete the
+   * draft whenever the two matched, which is how three fix passes in a row
+   * destroyed restored work: a clean workspace can now only leave the stored
+   * draft alone. The store is unwrapped because what is written has to be
+   * plain JSON, not a reactive proxy.
    */
-  const markLoadedBaseline = () => {
-    markAutosaveBaseline()
-    draftBackup.markBaseline()
-  }
+  const draftBackup = installDraftBackup({
+    native: IS_NATIVE,
+    read: () => ({
+      flame: unwrap(flameDescriptor),
+      tracks: timeline.tracks(),
+      config: timeline.config(),
+      sessionId: autosaveSessionId(),
+    }),
+    unsaved: isFlameDirty,
+  })
+  onCleanup(draftBackup.dispose)
 
   // Apply flame and animation from shared URL (fires once when resource resolves)
   let queryApplied = false

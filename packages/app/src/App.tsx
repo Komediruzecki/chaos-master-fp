@@ -18,7 +18,7 @@ import { initAncestry } from './flame/ancestry'
 import { importSharedVariations, loadCustomVariations, remapFlameCustomVariations, } from './flame/variations/custom'
 import { activeTab, arcadeMode, setActiveTab, tabFromHash, } from './lib/activeTab'
 import { createBackLayer } from './lib/backStack'
-import { draftForLaunch } from './lib/draft'
+import { takeDraftForLaunch } from './lib/draft'
 import { IS_NATIVE } from './lib/platform'
 import { Root } from './lib/Root'
 
@@ -32,7 +32,6 @@ import { persistentSignal } from './utils/persistentSignal'
 import { recordKeys } from './utils/record'
 import { dismissWelcome, hasWelcomeBeenDismissed, } from './utils/welcomeDismissed'
 import type { FlameDescriptor } from './flame/schema/flameSchema'
-import type { HandoffSource } from './lib/draft'
 import type { HardwareTier } from './utils/hardwareTier'
 import type { TimelineConfig, TimelineTrack } from './utils/timeline'
 
@@ -100,39 +99,38 @@ export function Wrappers() {
   const [queryError, setQueryError] = createSignal<string | null>(null)
   const [draftNotice, setDraftNotice] = createSignal<string | null>(null)
   /**
-   * Where the flame in the hand-off above came from. Only the draft restore
-   * sets it: the workspace treats that flame as unsaved work rather than as a
-   * load boundary, which is what keeps it recoverable (lib/draft.ts).
+   * The Recents entry the flame in the hand-off above already lives in. Only
+   * the draft restore sets it: that work is put in Recents before it is
+   * handed over, and the workspace keeps writing to the same entry rather
+   * than opening a second one for it (lib/draft.ts).
    */
-  const [flameHandoffSource, setFlameHandoffSource] =
-    createSignal<HandoffSource>('user')
+  const [handoffSessionId, setHandoffSessionId] = createSignal<string>()
 
   /**
    * What the app was holding when the OS killed it (lib/draft.ts). The
    * welcome screen does not skip it: it shows on every launch until the user
    * ticks "Don't show again", and the workspace is mounted behind it, so the
    * flame is already there once they enter. A link that carries its own flame
-   * wins instead - restoring over it would replace what the link was opened
-   * for - and the draft is then dropped rather than left to surface over a
-   * later, unrelated session.
+   * is restored over nothing - the draft is left where it is and offered
+   * again next launch.
    *
-   * Adopting one does not clear it: the welcome screen is still up, and a
-   * starter flame picked from the grid overwrites the restored flame before
-   * anything has had a chance to write it back. The next pause settles it.
+   * `takeDraftForLaunch` has already put the work in Recents by the time this
+   * runs, so from here the hand-off is an ordinary one: whatever the user
+   * does next - taps a starter flame, opens Library, leaves - the work is
+   * safe and this screen is the only thing that has to happen at the right
+   * moment.
    */
   onMount(() => {
-    const draft = draftForLaunch({
+    const draft = takeDraftForLaunch({
       native: IS_NATIVE,
       search: window.location.search,
     })
     if (!draft) return
     batch(() => {
-      // The same one-shot hand-off Home and the welcome screen use, with one
-      // difference: this flame is somebody's unsaved work.
       setSelectedFlame(() => draft.flame)
       setSelectedWelcomeTracks(() => draft.tracks)
       setSelectedWelcomeConfig(() => draft.config)
-      setFlameHandoffSource('draft')
+      setHandoffSessionId(draft.sessionId)
     })
     setDraftNotice('Restored your last flame')
   })
@@ -365,13 +363,13 @@ export function Wrappers() {
                           hardwareTier() ?? (skipWelcome ? 'high' : null)
                         }
                         onHardwareTierChange={setHardwareTier}
-                        flameHandoffSource={flameHandoffSource}
+                        handoffSessionId={handoffSessionId}
                         resetFlameFromWelcome={() => {
                           setSelectedFlame(undefined)
                           setSelectedWelcomeTracks(undefined)
                           setSelectedWelcomeConfig(undefined)
                           setSelectedCapability(undefined)
-                          setFlameHandoffSource('user')
+                          setHandoffSessionId(undefined)
                         }}
                       />
                       {/* Home overlays the workspace, which stays mounted so
