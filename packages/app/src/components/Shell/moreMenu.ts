@@ -1,12 +1,19 @@
 import { Book, Download, GaugeMax, Info, Menu, Share, SidebarPanel, Zap, } from '@/icons'
+import { setActiveTab } from '@/lib/activeTab'
 import type { Component } from 'solid-js'
 
 /**
- * The one More list. The top bar and the shell bar both render it, so an item
+ * The one More list. Every surface that offers More renders it - the editor's
+ * top bar, the phone's shell bar, the tablet's navigation rail - so an item
  * added here shows up wherever More is offered. An item whose handler is
  * absent is not offered: the host decides what this device can do (the
  * Benchmark Lab is a page of its own and web only, the desktop layout is not
  * a native option).
+ *
+ * The Arcade is the exception, and defaults. It is reachable from every touch
+ * surface and is the one destination this phase does not put in the bar, so
+ * three hosts were restating the same one-line handler - and the rail, which
+ * did not, was a dead end on a landscape tablet.
  *
  * The names are the props `TouchHUDProps` already carries, so a surface can
  * pass its own props straight in.
@@ -44,7 +51,15 @@ export function buildMoreMenu(
     },
     { label: 'Share link', Icon: Share, run: handlers.onShare },
     { label: 'Advanced tools', Icon: SidebarPanel, run: handlers.onOpenDrawer },
-    { label: 'Lumen Arcade', Icon: Zap, run: handlers.onOpenArcade },
+    {
+      label: 'Lumen Arcade',
+      Icon: Zap,
+      run:
+        handlers.onOpenArcade ??
+        (() => {
+          setActiveTab('arcade')
+        }),
+    },
     { label: 'Documentation', Icon: Book, run: handlers.onOpenDocs },
     {
       label: 'Quick GPU benchmark',

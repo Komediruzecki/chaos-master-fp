@@ -1,5 +1,4 @@
 import { Show } from 'solid-js'
-import { setActiveTab } from '@/lib/activeTab'
 import { deckFits, isTouchLayout } from '@/stores/workspaceLayoutStore'
 import { goToDestination, shellDestination } from './destinations'
 import { ShellBar } from './ShellBar'
@@ -14,7 +13,8 @@ import { ShellBar } from './ShellBar'
  * both would put a second, redundant bar over a rail that already works.
  *
  * More carries the Arcade: it is the one destination this phase does not put
- * in the bar, and Home is otherwise the screen that cannot reach it.
+ * in the bar, and Home is otherwise the screen that cannot reach it. The
+ * shared list defaults it (Shell/moreMenu.ts), so there is nothing to pass.
  */
 export function HomeShellBar() {
   return (
@@ -23,11 +23,6 @@ export function HomeShellBar() {
         mode="full"
         current={shellDestination}
         onSelect={goToDestination}
-        more={{
-          onOpenArcade: () => {
-            setActiveTab('arcade')
-          },
-        }}
       />
     </Show>
   )

@@ -66,6 +66,31 @@
   flex: 1 1 auto;
 }
 
+/* More opens beside the rail rather than over it: the rail is a page edge
+   and stays legible while its own menu is up. The layer is fixed and
+   portalled, so it sits over Home (--la-z-shell) the way the phone's dock
+   does; the list's own look is Shell/MoreMenu.module.css. */
+.menuLayer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--la-z-shell);
+  /* A frame around the menu: the page stays reachable beside it. */
+  pointer-events: none;
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.menu {
+  position: absolute;
+  left: calc(var(--la-navrail-w) + var(--la-safe-left) + var(--la-s-2));
+  bottom: max(var(--la-s-4), calc(var(--la-safe-bottom) + var(--la-s-2)));
+}
+
 @media (prefers-reduced-motion: reduce) {
   .item {
     transition: none;

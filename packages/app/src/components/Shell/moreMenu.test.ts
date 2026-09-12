@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { activeTab, setActiveTab } from '@/lib/activeTab'
 import { buildMoreMenu } from './moreMenu'
 
 const LABELS = [
@@ -14,8 +15,20 @@ const LABELS = [
 ]
 
 describe('buildMoreMenu', () => {
-  it('offers nothing a host cannot do', () => {
-    expect(buildMoreMenu({})).toEqual([])
+  afterEach(() => {
+    setActiveTab('workspace')
+  })
+
+  it('offers nothing a host cannot do, bar the Arcade', () => {
+    // The Arcade is reachable from every touch surface and is the one
+    // destination this phase does not put in the bar, so it defaults here
+    // rather than being restated by each host - and the tablet's rail, the
+    // host that did not restate it, was a dead end because of that.
+    const items = buildMoreMenu({})
+    expect(items.map((item) => item.label)).toEqual(['Lumen Arcade'])
+
+    items[0]?.run()
+    expect(activeTab()).toBe('arcade')
   })
 
   it('lists every item the host can do, in one order', () => {
@@ -46,6 +59,7 @@ describe('buildMoreMenu', () => {
     })
     expect(items.map((item) => item.label)).toEqual([
       'Share link',
+      'Lumen Arcade',
       'Desktop layout',
     ])
   })

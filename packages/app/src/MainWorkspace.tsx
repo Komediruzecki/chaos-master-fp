@@ -35,6 +35,7 @@ import { WorkspaceSidebar } from './components/WorkspaceSidebar'
 import { useWorkspaceAnimationGen, useWorkspaceArena, useWorkspaceArtDirector, useWorkspaceAutosave, useWorkspaceCamera, useWorkspaceCommands, useWorkspacePalette, useWorkspaceReplay, useWorkspaceShortcuts, useWorkspaceTimelineBinding, } from './hooks'
 import { createWorkspaceExportStore, createWorkspaceLayoutStore, createWorkspaceSelectionStore, isWideLayout, } from './stores'
 import { deckFits, isTouchDevice } from './stores/workspaceLayoutStore'
+import type { MoreMenuHandlers } from './components/Shell/moreMenu'
 
 const AncestryTreeModal = lazy(() =>
   import('./components/AncestryTreeModal/AncestryTreeModal').then((m) => ({
@@ -3288,6 +3289,46 @@ export function MainWorkspace(props: AppProps) {
     executeCommand(id, cmdContext, ...args)
   }
 
+  /**
+   * One More list for the editor's two shells (components/Shell/moreMenu.ts):
+   * the phone's top bar carries it, and now so does the tablet's navigation
+   * rail, which had no More at all - so Library on a landscape tablet reached
+   * neither the Arcade nor Share link, Export options, Advanced tools,
+   * Documentation nor the benchmark until you went back to Create. Settings
+   * keeps its own item on the rail as well; a tablet reaches for it there.
+   */
+  const moreHandlers: MoreMenuHandlers = {
+    onOpenExportModal: () => {
+      executeCommand('export.png', cmdContext)
+    },
+    onShare: () => {
+      void showShareLinkModal()
+    },
+    onOpenDrawer: () => {
+      setTouchDrawerOpen(true)
+    },
+    onOpenSettings: () => {
+      void showHelp()
+    },
+    onOpenDocs: () => {
+      void showDocumentation()
+    },
+    onOpenBenchmark: () => {
+      void showBenchmark()
+    },
+    // The Benchmark Lab is a page of its own and web only (DESIGN.md,
+    // decision 1), so the native app is not offered it.
+    onOpenBenchmarkLab: IS_NATIVE
+      ? undefined
+      : () => {
+          window.location.assign(BENCHMARKS_PATH)
+        },
+    onDesktopLayout: () => {
+      setTouchLayoutPreference('desktop')
+      showToast('Switched to the desktop layout', 3500)
+    },
+  }
+
   const startSidebarDrag = createDragHandler((_initEvent) => {
     const sidebar = sidebarRef
     if (!sidebar) return
@@ -3464,32 +3505,8 @@ export function MainWorkspace(props: AppProps) {
               onRedo={() => {
                 executeCommand('history.redo', cmdContext)
               }}
-              onOpenExportModal={() => {
-                executeCommand('export.png', cmdContext)
-              }}
-              onShare={() => {
-                void showShareLinkModal()
-              }}
-              onOpenDrawer={() => setTouchDrawerOpen(true)}
               onPickGallery={pickGalleryFlame}
-              onOpenSettings={showHelp}
-              onOpenDocs={showDocumentation}
-              onOpenBenchmark={() => {
-                void showBenchmark()
-              }}
-              // The Benchmark Lab is a page of its own and web only
-              // (DESIGN.md, decision 1), so the native app is not offered it.
-              onOpenBenchmarkLab={
-                IS_NATIVE
-                  ? undefined
-                  : () => {
-                      window.location.assign(BENCHMARKS_PATH)
-                    }
-              }
-              onDesktopLayout={() => {
-                setTouchLayoutPreference('desktop')
-                showToast('Switched to the desktop layout', 3500)
-              }}
+              {...moreHandlers}
             />
             <EditorRail
               ctx={cmdContext}
@@ -3527,6 +3544,7 @@ export function MainWorkspace(props: AppProps) {
               onOpenSettings={() => {
                 void showHelp()
               }}
+              more={moreHandlers}
             />
             <TabletInspectorDeck
               ctx={cmdContext}

@@ -1,7 +1,6 @@
-import { createSignal, mergeProps, Show } from 'solid-js'
+import { createSignal, Show } from 'solid-js'
 import { executeCommand } from '@/commands/registry'
 import { GridIcon, MoreDots, Redo, Undo } from '@/icons'
-import { setActiveTab } from '@/lib/activeTab'
 import { createBackLayer } from '@/lib/backStack'
 import { haptic } from '@/lib/haptics'
 import { MoreMenu } from '../Shell/MoreMenu'
@@ -42,19 +41,11 @@ export function TouchHUD(props: TouchHUDProps) {
     props.flame().metadata?.name?.trim() || 'Untitled flame'
 
   /**
-   * The one More list (components/Shell/moreMenu.ts), so the top bar and the
-   * shell bar offer the same items. The Arcade is reachable from every touch
-   * surface, so it defaults here rather than making every host pass it.
+   * The one More list (components/Shell/moreMenu.ts), so every surface that
+   * offers More offers the same items. These props are named after its
+   * handlers, so they go straight in; the Arcade defaults inside it.
    */
-  const handlers = mergeProps(
-    {
-      onOpenArcade: () => {
-        setActiveTab('arcade')
-      },
-    },
-    props,
-  )
-  const moreItems = () => buildMoreMenu(handlers)
+  const moreItems = () => buildMoreMenu(props)
 
   const closePopovers = () => {
     setShowTitleTooltip(false)

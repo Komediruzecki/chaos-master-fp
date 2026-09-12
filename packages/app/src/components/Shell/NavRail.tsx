@@ -1,14 +1,20 @@
-import { For } from 'solid-js'
-import { LumenMark, Settings } from '@/icons'
+import { createSignal, For, Show } from 'solid-js'
+import { Portal } from 'solid-js/web'
+import { LumenMark, MoreDots, Settings } from '@/icons'
 import { DESTINATIONS, tickForDestination } from './destinations'
+import { MoreMenu } from './MoreMenu'
+import { buildMoreMenu } from './moreMenu'
 import ui from './NavRail.module.css'
 import type { Accessor } from 'solid-js'
 import type { ShellDestination } from './destinations'
+import type { MoreMenuHandlers } from './moreMenu'
 
 export interface NavRailProps {
   current: Accessor<ShellDestination>
   onSelect: (destination: ShellDestination) => void
   onOpenSettings: () => void
+  /** The same list every other surface offers (moreMenu.ts). */
+  more?: MoreMenuHandlers
 }
 
 /**
@@ -23,45 +29,96 @@ export interface NavRailProps {
  * the way the capsule does - a tablet has the width to spare - and it
  * carries Settings at the bottom, which is not a destination but the one
  * thing with nowhere else to live on a touch layout.
+ *
+ * More is beside it, and matters most here: the phone's bar is not mounted on
+ * this layout and the editor's top bar is behind Home, so without it Library
+ * on a landscape tablet reached neither the Arcade nor Share link, Export
+ * options, Advanced tools, Documentation nor the benchmark until you went
+ * back to Create.
  */
 export function NavRail(props: NavRailProps) {
+  const [moreOpen, setMoreOpen] = createSignal(false)
+  const moreItems = () => buildMoreMenu(props.more ?? {})
+
   function select(destination: ShellDestination) {
     tickForDestination(destination, props.current())
     props.onSelect(destination)
   }
 
   return (
-    <nav class={ui.rail} aria-label="Destinations">
-      {/* The mark carries its own two inks and is never tinted. */}
-      <LumenMark class={ui.mark} />
-      <For each={DESTINATIONS}>
-        {(destination) => (
+    <>
+      <nav class={ui.rail} aria-label="Destinations">
+        {/* The mark carries its own two inks and is never tinted. */}
+        <LumenMark class={ui.mark} />
+        <For each={DESTINATIONS}>
+          {(destination) => (
+            <button
+              type="button"
+              class={ui.item}
+              aria-current={
+                props.current() === destination.id ? 'page' : undefined
+              }
+              onClick={() => {
+                select(destination.id)
+              }}
+            >
+              <destination.Icon class={ui.icon} />
+              {destination.label}
+            </button>
+          )}
+        </For>
+        <div class={ui.spacer} />
+        {/* A More that opens an empty menu is worse than no More. */}
+        <Show when={moreItems().length > 0}>
           <button
             type="button"
             class={ui.item}
-            aria-current={
-              props.current() === destination.id ? 'page' : undefined
-            }
+            aria-expanded={moreOpen()}
             onClick={() => {
-              select(destination.id)
+              setMoreOpen((was) => !was)
             }}
           >
-            <destination.Icon class={ui.icon} />
-            {destination.label}
+            <MoreDots class={ui.icon} />
+            More
           </button>
-        )}
-      </For>
-      <div class={ui.spacer} />
-      <button
-        type="button"
-        class={ui.item}
-        onClick={() => {
-          props.onOpenSettings()
-        }}
-      >
-        <Settings class={ui.icon} />
-        Settings
-      </button>
-    </nav>
+        </Show>
+        <button
+          type="button"
+          class={ui.item}
+          onClick={() => {
+            props.onOpenSettings()
+          }}
+        >
+          <Settings class={ui.icon} />
+          Settings
+        </button>
+      </nav>
+
+      {/* Portalled out of the workspace, which isolates a stacking context of
+          its own (App.module.css `.layout`): a menu left inside it painted
+          under Home however high its z-index went - which is how the floating
+          version menu, the rail's only other host, became unreachable. */}
+      <Portal>
+        <div class={ui.menuLayer}>
+          <Show when={moreOpen()}>
+            <div
+              class={ui.backdrop}
+              data-testid="navrail-more-backdrop"
+              onClick={() => {
+                setMoreOpen(false)
+              }}
+            />
+          </Show>
+          <MoreMenu
+            items={moreItems()}
+            open={moreOpen()}
+            onClose={() => {
+              setMoreOpen(false)
+            }}
+            menuClass={ui.menu!}
+          />
+        </div>
+      </Portal>
+    </>
   )
 }
