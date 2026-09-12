@@ -11,6 +11,12 @@ const flame = parseFlameXml(`<?xml version="1.0" encoding="UTF-8"?>
   <xform weight="1" color="0" linear="1" coefs="1 0 0 1 0 0"/>
 </flame>`)
 
+/** A second flame, so a seeding that lands can be told from one that did not. */
+const starter = {
+  ...flame,
+  metadata: { ...flame.metadata, name: 'Starter' },
+}
+
 const tracks: TimelineTrack[] = [
   {
     parameterPath: 'renderSettings.brightness',
@@ -75,6 +81,70 @@ describe('the workspace hand-off', () => {
     expect(entered).toBe(0)
     seat.seed({ flame, enterWorkspace: true })
     expect(entered).toBe(1)
+  })
+
+  it('will not let a welcome tap wipe a restore nobody has taken yet', () => {
+    // MainWorkspace is lazy and drains this seat when its chunk resolves,
+    // while the welcome grid renders outside that Suspense and is tappable
+    // straight away. A starter flame tapped in that window overwrote the
+    // restored flame, its tracks, its timeline AND the entry the rescue had
+    // just written into - so the restored flame never reached the editor at
+    // all, after the app had said it was restored. For a restore Recents
+    // could not take, that is the work itself, lost without the user going
+    // near the Library.
+    const seat = handoff()
+    seat.seed({
+      flame,
+      tracks,
+      config,
+      restoredEntry: { id: 'autosave-killed', fingerprint: 'abc' },
+      restored: true,
+    })
+
+    const seeded = seat.seed({ flame: starter, enterWorkspace: true })
+
+    expect(seeded).toBe(false)
+    expect(seat.flame()?.metadata?.name).toBe(flame.metadata?.name)
+    expect(seat.tracks()).toEqual(tracks)
+    expect(seat.config()).toEqual(config)
+    expect(seat.restoredEntry()?.id).toBe('autosave-killed')
+  })
+
+  it('does not enter the editor on a pick it refused', () => {
+    // The losing side has to lose completely: switching to the workspace on a
+    // seeding that was not applied leaves the user in the editor looking at
+    // a different flame from the one they tapped, with nothing said.
+    let entered = 0
+    const seat = handoff(() => {
+      entered++
+    })
+    seat.seed({ flame, restored: true })
+
+    seat.seed({ flame: starter, enterWorkspace: true })
+
+    expect(entered).toBe(0)
+  })
+
+  it('carries why a restore is not in Recents', () => {
+    // The workspace cannot work this out for itself, and it decides whether
+    // the restored document may be marked clean - a clean document is skipped
+    // by every writer there is (hooks/useWorkspaceAutosave.ts).
+    const seat = handoff()
+    seat.seed({ flame, restored: true, restoreUnsecured: 'full' })
+    expect(seat.restoreUnsecured()).toBe('full')
+  })
+
+  it('takes the next pick once the workspace has drained the restore', () => {
+    // The window is narrow on purpose. Once MainWorkspace has consumed the
+    // seat - which it signals by seeding nothing - every later pick lands
+    // normally and goes through the document replacement like any other.
+    const seat = handoff()
+    seat.seed({ flame, restored: true, restoreUnsecured: 'refused' })
+    seat.seed()
+
+    expect(seat.seed({ flame: starter })).toBe(true)
+    expect(seat.flame()?.metadata?.name).toBe(starter.metadata?.name)
+    expect(seat.restoreUnsecured()).toBeUndefined()
   })
 
   it('writes the whole hand-off in one pass', async () => {
