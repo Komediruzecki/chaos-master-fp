@@ -7,7 +7,7 @@ import { clearRecentFlames, deleteRecentFlame, loadRecentFlames, loadRecentFlame
 import { safeSetItem } from '@/utils/storage'
 import { defaultConfig } from '@/utils/timeline'
 import { useLifecyclePorts } from './lifecycle'
-import { installPauseSave, LEGACY_DRAFT_KEY, migrateLegacyDraft, reopenTarget, stopPauseSave, takePauseSaveFailure, } from './pauseSave'
+import { installPauseSave, LEGACY_DRAFT_KEY, migrateLegacyDraft, reopenTarget, stopPauseSave, takePauseSaveEviction, takePauseSaveFailure, } from './pauseSave'
 import { createWorkspaceHandoff } from './workspaceHandoff'
 import type { LifecyclePorts } from '@chaos-master/mobile-runtime/lifecycle'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
@@ -329,6 +329,82 @@ describe('a pause at the cap', () => {
       expect(kept.some((entry) => entry.id === 'kept-149')).toBe(false)
       dispose()
     })
+  })
+})
+
+describe('what a forced pause write cost', () => {
+  it('names the kept flame it replaced, at the next launch, once', () => {
+    // Forcing past the cap is sanctioned here - nobody to ask, and the
+    // process may be ending - but it deletes a flame the user chose to keep,
+    // and pause is a wider door than the pagehide it borrowed the licence
+    // from: Android fires it for every share sheet. So the launch after it
+    // says which flame went, and says it once.
+    const platform = fakePlatform()
+    fillRecents()
+    createRoot((dispose) => {
+      const { setOpen } = workspace()
+      setOpen('metadata', 'name', 'The only copy there is')
+      platform.pause()
+      dispose()
+    })
+    stopPauseSave()
+
+    expect(takePauseSaveEviction()).toBe('Kept 149')
+    expect(takePauseSaveEviction()).toBeUndefined()
+  })
+
+  it('says nothing when the shelf had room', () => {
+    const platform = fakePlatform()
+    createRoot((dispose) => {
+      const { setOpen } = workspace()
+      setOpen('metadata', 'name', 'Room on the shelf')
+      platform.pause()
+      dispose()
+    })
+    stopPauseSave()
+
+    expect(takePauseSaveEviction()).toBeUndefined()
+  })
+
+  it('says nothing when the session already owned its place', () => {
+    // The common case at the cap, and the reason the force is rarely reached:
+    // writing into an id that is already on the list replaces that entry and
+    // grows nothing, so no kept flame is touched and there is nothing to
+    // report.
+    const platform = fakePlatform()
+    fillRecents()
+    createRoot((dispose) => {
+      const { autosave, setOpen } = workspace()
+      setOpen('metadata', 'name', 'First save of the session')
+      expect(autosave.flushDirtyToRecents(true)).toBe('saved')
+
+      setOpen('metadata', 'name', 'And then some more')
+      platform.pause()
+      dispose()
+    })
+    stopPauseSave()
+
+    expect(takePauseSaveEviction()).toBeUndefined()
+  })
+
+  it('claims nothing when the forced write was refused as well', () => {
+    // The shelf is full AND storage says no. Nothing was written and so
+    // nothing was replaced - telling the user a flame of theirs had been
+    // deleted would be a second loss they never actually took.
+    const platform = fakePlatform()
+    fillRecents()
+    createRoot((dispose) => {
+      const { setOpen } = workspace()
+      setOpen('metadata', 'name', 'Work with nowhere to go')
+      refusing = 'flames'
+      platform.pause()
+      refusing = 'nothing'
+      dispose()
+    })
+    stopPauseSave()
+
+    expect(takePauseSaveEviction()).toBeUndefined()
+    expect(takePauseSaveFailure()).toBe(true)
   })
 })
 

@@ -1,6 +1,6 @@
 import { onCleanup } from 'solid-js'
 import { autosaveIntervalMin, autosaveRecents, saveReminderDismissed, setAutosaveRecents, setSaveReminderDismissed, } from '@/utils/autosaveSettings'
-import { MAX_RECENT_FLAMES, upsertRecentFlame } from '@/utils/recentFlames'
+import { getOldestRecentFlame, MAX_RECENT_FLAMES, upsertRecentFlame, } from '@/utils/recentFlames'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 import type { FlushOutcome } from '@/lib/documentLoad'
 import type { RecentWriteOutcome } from '@/utils/recentFlames'
@@ -22,6 +22,13 @@ export interface PauseSaveReport {
    * there is nothing to point at otherwise.
    */
   entryId?: string
+  /**
+   * The name of the kept flame this write pushed off the end of the list, on
+   * the one path allowed to do that without asking. Set only when a flame was
+   * actually replaced, because the next launch says so by name and a claim
+   * that something was deleted had better be true.
+   */
+  evicted?: string
 }
 
 export interface UseWorkspaceAutosaveParams {
@@ -306,19 +313,37 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
    * and a write would move this session's entry to the front of the list each
    * time.
    *
-   * @returns what the write did and where it put it, for the caller to carry
-   * to the next launch - a toast raised as the process ends is never read
-   * (lib/pauseSave.ts).
+   * @returns what the write did, where it put it and what it cost, for the
+   * caller to carry to the next launch - a toast raised as the process ends
+   * is never read (lib/pauseSave.ts).
    */
   const saveOnPause = (): PauseSaveReport => {
     const first = flushDirtyToRecents()
-    const outcome = first === 'full' ? flushDirtyToRecents(true) : first
     // The id goes out only when the write landed. Naming an entry that was
     // never written would send the next launch to whatever else happens to
     // hold that id - or, far more often, to nothing at all.
-    return outcome === 'saved'
-      ? { outcome, entryId: autosaveSessionId }
-      : { outcome }
+    if (first !== 'full') {
+      return first === 'saved'
+        ? { outcome: first, entryId: autosaveSessionId }
+        : { outcome: first }
+    }
+    // The shelf is full and this session owns no place on it, so the forced
+    // write below makes room by dropping the oldest kept flame. Read its name
+    // while it is still there - afterwards there is nothing left to name it
+    // with. Forcing is right, because the process may be ending; but an
+    // Android pause is as often a share sheet as a death sentence, so what it
+    // cost is carried to the next launch rather than left to be discovered by
+    // its absence.
+    const evicted = getOldestRecentFlame()?.name
+    const outcome = flushDirtyToRecents(true)
+    // A forced write that storage still refused replaced nothing, and must
+    // not report that it did.
+    if (outcome !== 'saved') return { outcome }
+    return {
+      outcome,
+      entryId: autosaveSessionId,
+      ...(evicted === undefined ? {} : { evicted }),
+    }
   }
 
   window.addEventListener('pagehide', saveOnPagehide)

@@ -61,6 +61,15 @@ const PAUSE_FAILED_KEY = 'chaos-master-pause-save-failed'
 const REOPEN_KEY = 'chaos-master-reopen'
 
 /**
+ * The kept flame a forced pause write replaced, until a launch has said so.
+ *
+ * A name, not an entry: the flame itself is gone, and what is owed the user is
+ * being told which one it was. Carried exactly as a refusal is, and for the
+ * same reason - there is no reader at pause time.
+ */
+const PAUSE_EVICTED_KEY = 'chaos-master-pause-save-evicted'
+
+/**
  * The open document's writer, as the workspace last installed it.
  *
  * One slot rather than a set: a workspace that mounts again replaces the one
@@ -79,6 +88,13 @@ function recordOutcome(report: PauseSaveReport): void {
   // a clean pause means the user is still on the document the last write
   // named, so the pointer standing is the pointer being right.
   if (report.entryId !== undefined) safeSetItem(REOPEN_KEY, report.entryId)
+  // What the write cost. At the cap, with work that existed nowhere else and
+  // a process that may be ending, forcing past the guard is the smaller loss
+  // - but it deleted a flame the user chose to keep, and the app deciding
+  // that on its own is exactly the kind of thing that may not go unnoticed.
+  if (report.evicted !== undefined) {
+    safeSetItem(PAUSE_EVICTED_KEY, report.evicted)
+  }
   // Nothing to say: either the document was already on the shelf, or it is
   // there now.
   if (outcome === 'clean') return
@@ -149,6 +165,20 @@ export function takePauseSaveFailure(): boolean {
   if (safeGetItem(PAUSE_FAILED_KEY) === null) return false
   safeRemoveItem(PAUSE_FAILED_KEY)
   return true
+}
+
+/**
+ * The kept flame the last pause write had to replace, if it replaced one.
+ *
+ * Said once: reading it clears the record. Same shape as
+ * {@link takePauseSaveFailure}, because it answers the same question at the
+ * same moment - what happened while nobody was there to be told.
+ */
+export function takePauseSaveEviction(): string | undefined {
+  const name = safeGetItem(PAUSE_EVICTED_KEY)
+  if (name === null) return undefined
+  safeRemoveItem(PAUSE_EVICTED_KEY)
+  return name
 }
 
 /** The document a launch puts back on screen, read out of Recents exactly as

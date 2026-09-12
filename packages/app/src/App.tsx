@@ -18,7 +18,7 @@ import { initAncestry } from './flame/ancestry'
 import { importSharedVariations, loadCustomVariations, remapFlameCustomVariations, } from './flame/variations/custom'
 import { activeTab, arcadeMode, setActiveTab, tabFromHash, } from './lib/activeTab'
 import { createBackLayer } from './lib/backStack'
-import { migrateLegacyDraft, reopenTarget, takePauseSaveFailure, } from './lib/pauseSave'
+import { migrateLegacyDraft, reopenTarget, takePauseSaveEviction, takePauseSaveFailure, } from './lib/pauseSave'
 import { IS_NATIVE } from './lib/platform'
 import { Root } from './lib/Root'
 import { createWorkspaceHandoff } from './lib/workspaceHandoff'
@@ -69,6 +69,18 @@ const PAUSE_SAVE_REFUSED =
  * nothing wrong with it.
  */
 const REOPENED = 'Reopened the flame you were last working on.'
+
+/**
+ * What a launch says about a flame the last pause write had to replace.
+ *
+ * Recents was full and the open document existed nowhere else, so the write
+ * forced past the cap and the oldest kept flame gave way. That trade is
+ * sanctioned - the process may have been ending - but it is the app deleting
+ * something the user chose to keep, without asking, and an Android pause is
+ * as often a share sheet as a force-stop. So it is named (lib/pauseSave.ts).
+ */
+const evictionNotice = (name: string) =>
+  `Recents was full when the app last closed, so saving the flame you had open replaced the oldest one, "${name}".`
 
 export function Wrappers() {
   // Load persisted ancestry data from IndexedDB on startup.
@@ -137,6 +149,8 @@ export function Wrappers() {
     // evict the first from a column that holds four.
     const notices: string[] = []
     if (takePauseSaveFailure()) notices.push(PAUSE_SAVE_REFUSED)
+    const evicted = takePauseSaveEviction()
+    if (evicted !== undefined) notices.push(evictionNotice(evicted))
     const reopen = reopenTarget(IS_NATIVE)
     if (reopen) {
       // No `enterWorkspace`: the editor is already the tab a launch lands on,
