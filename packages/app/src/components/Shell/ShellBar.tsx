@@ -79,23 +79,32 @@ export function ShellBar(props: ShellBarProps) {
    * The capsule opens on the touch down and stays up while the finger rests
    * on it; the countdown starts when the finger leaves. The release is
    * watched on the document rather than on this button, and the pointer is
-   * deliberately not captured: capturing sends the release - and the click
-   * that follows it - back to the capsule even when the finger has slid onto
-   * Library, so the one gesture that should reach Library never could.
+   * deliberately not captured: a captured pointer reports its release back to
+   * the capsule wherever the finger actually went, so the bar collapsed under
+   * a finger that had slid onto Library. Not capturing does not let that
+   * finger select Library either - a touch pointer has implicit capture, and
+   * the compatibility click lands on the nearest common ancestor - what it
+   * does is keep the bar up, which is the part a slide needs.
+   *
+   * The hold belongs to the pointer that started it. The listener was
+   * pointer-agnostic, so a second finger lifting anywhere on the screen ended
+   * the hold while the first was still resting on the capsule, and the real
+   * release went unheard because the controller had already been aborted.
    */
   let releasing: AbortController | undefined
   onCleanup(() => {
     releasing?.abort()
   })
 
-  function holdCapsule() {
+  function holdCapsule(pointerId: number) {
     openedOnDown = !expanded()
     setExpanded(true)
     setHeld(true)
     releasing?.abort()
     const controller = new AbortController()
     releasing = controller
-    const release = () => {
+    const release = (event: PointerEvent) => {
+      if (event.pointerId !== pointerId) return
       setHeld(false)
       controller.abort()
     }
@@ -158,9 +167,9 @@ export function ShellBar(props: ShellBarProps) {
                   aria-current={
                     props.current() === destination.id ? 'page' : undefined
                   }
-                  onPointerDown={() => {
+                  onPointerDown={(event) => {
                     if (!isCapsule(destination.id)) return
-                    holdCapsule()
+                    holdCapsule(event.pointerId)
                   }}
                   onClick={() => {
                     if (isCapsule(destination.id)) {

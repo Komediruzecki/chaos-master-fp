@@ -118,13 +118,32 @@ describe('ShellBar', () => {
     vi.useRealTimers()
   })
 
-  it('lets go of the bar when the finger lifts somewhere else', () => {
+  it('lets go of the bar when the finger that held it lifts elsewhere', () => {
     vi.useFakeTimers()
     mount('capsule')
-    fireEvent.pointerDown(capsule())
-    // No pointer capture, so a finger that slides off releases over whatever
-    // is under it; the countdown still has to start.
-    fireEvent.pointerUp(document.body)
+    fireEvent.pointerDown(capsule(), { pointerId: 1 })
+    // The pointer is not captured, so a finger that slides off the capsule
+    // releases over whatever is under it; the countdown still has to start.
+    fireEvent.pointerUp(document.body, { pointerId: 1 })
+    vi.advanceTimersByTime(CAPSULE_OPEN_MS)
+    expect(screen.queryByRole('button', { name: 'Library' })).toBeNull()
+    vi.useRealTimers()
+  })
+
+  it('ignores another finger lifting while the first still holds it', () => {
+    vi.useFakeTimers()
+    mount('capsule')
+    fireEvent.pointerDown(capsule(), { pointerId: 1 })
+
+    // A second finger anywhere on the screen. The release listener was
+    // pointer-agnostic, so this ended the hold: the bar collapsed three
+    // seconds later with the first finger still down, and its own release
+    // was never heard because the controller had been aborted.
+    fireEvent.pointerUp(document.body, { pointerId: 2 })
+    vi.advanceTimersByTime(CAPSULE_OPEN_MS * 2)
+    expect(screen.getByRole('button', { name: 'Library' })).toBeTruthy()
+
+    fireEvent.pointerUp(document.body, { pointerId: 1 })
     vi.advanceTimersByTime(CAPSULE_OPEN_MS)
     expect(screen.queryByRole('button', { name: 'Library' })).toBeNull()
     vi.useRealTimers()
