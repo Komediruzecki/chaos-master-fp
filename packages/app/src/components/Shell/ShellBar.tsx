@@ -48,13 +48,24 @@ export function ShellBar(props: ShellBarProps) {
   const moreItems = () => buildMoreMenu(props.more ?? {})
   const moreShowing = () => props.mode === 'full' && moreOpen()
 
+  /**
+   * Whether the touch currently on the capsule is the one that opened the
+   * bar. The click that ends that touch must not shut what it just opened -
+   * but a tap on a bar that is already up is a dismissal, and without this
+   * only back or the countdown closed it while it covered the chip row.
+   */
+  let openedOnDown = false
+
+  const collapse = () => {
+    setExpanded(false)
+    openedOnDown = false
+  }
+
   // A finger resting on the capsule is a request to keep the bar up, so the
   // countdown only runs once nothing is holding it.
   createEffect(() => {
     if (props.mode === 'full' || !expanded() || held()) return
-    const timer = setTimeout(() => {
-      setExpanded(false)
-    }, CAPSULE_OPEN_MS)
+    const timer = setTimeout(collapse, CAPSULE_OPEN_MS)
     onCleanup(() => {
       clearTimeout(timer)
     })
@@ -62,13 +73,7 @@ export function ShellBar(props: ShellBarProps) {
 
   // Expanded over the rail, the bar is the topmost layer: back gives the
   // editor its band back before anything else answers (lib/backStack.ts).
-  createBackLayer(
-    expanded,
-    () => {
-      setExpanded(false)
-    },
-    'shell bar',
-  )
+  createBackLayer(expanded, collapse, 'shell bar')
 
   /**
    * The capsule opens on the touch down and stays up while the finger rests
@@ -84,6 +89,7 @@ export function ShellBar(props: ShellBarProps) {
   })
 
   function holdCapsule() {
+    openedOnDown = !expanded()
     setExpanded(true)
     setHeld(true)
     releasing?.abort()
@@ -158,12 +164,18 @@ export function ShellBar(props: ShellBarProps) {
                   }}
                   onClick={() => {
                     if (isCapsule(destination.id)) {
-                      // Never a toggle: this click is the release of the very
-                      // touch that opened the bar, so toggling here shut it
-                      // again the moment the finger lifted. Keyboard
-                      // activation brings no pointer down, and this is what
-                      // opens the bar for it.
-                      setExpanded(true)
+                      if (openedOnDown) {
+                        // The release of the very touch that opened the bar:
+                        // toggling here shut it again the moment the finger
+                        // lifted.
+                        openedOnDown = false
+                        return
+                      }
+                      // A tap on a bar that was already up puts it away.
+                      // Keyboard activation brings no pointer down at all,
+                      // so this is also what opens the bar for it.
+                      if (expanded()) collapse()
+                      else setExpanded(true)
                       return
                     }
                     select(destination.id)

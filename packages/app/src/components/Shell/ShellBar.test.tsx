@@ -91,15 +91,30 @@ describe('ShellBar', () => {
     vi.useRealTimers()
   })
 
-  it('does not collapse on the tap that opened it, or on the next one', () => {
+  it('stays up through the tap that opened it, and the next tap puts it away', () => {
     vi.useFakeTimers()
     mount('capsule')
     tap(capsule())
-    expect(screen.getByRole('button', { name: 'Library' })).toBeTruthy()
     // The release's click used to toggle `expanded` back off, so the bar
     // closed the instant the finger lifted.
-    tap(capsule())
     expect(screen.getByRole('button', { name: 'Library' })).toBeTruthy()
+
+    // Fixing that by always opening took the dismissal away instead: the bar
+    // covers the chip row, and only back or the countdown put it back.
+    tap(capsule())
+    expect(screen.queryByRole('button', { name: 'Library' })).toBeNull()
+    expect(capsule().getAttribute('aria-expanded')).toBe('false')
+    expect(backDepth()).toBe(0)
+    vi.useRealTimers()
+  })
+
+  it('opens and closes from a keyboard activation, which brings no pointer', () => {
+    vi.useFakeTimers()
+    mount('capsule')
+    capsule().click()
+    expect(screen.getByRole('button', { name: 'Library' })).toBeTruthy()
+    capsule().click()
+    expect(screen.queryByRole('button', { name: 'Library' })).toBeNull()
     vi.useRealTimers()
   })
 
