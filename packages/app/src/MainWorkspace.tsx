@@ -4530,7 +4530,12 @@ export function MainWorkspace(props: AppProps) {
             touchLayoutPreference={touchLayoutPreference}
             setTouchLayoutPreference={setTouchLayoutPreference}
             isTouchLayout={isTouchLayout}
-            hideVersionTrigger={railLayout}
+            /* Every touch layout, not just the ones with the rail. Gated on
+               `railLayout` this hid on the phone and on a narrow tablet and
+               showed on the one layout that also mounts the NavRail: the
+               hamburger landed at 8,8 directly over the rail's Create and
+               Library, offering a second copy of the same More list. */
+            hideVersionTrigger={isTouchLayout}
             onPickGallery={pickGalleryFlame}
             duelShowing={duelShowing}
             playerFlame={renderedFlame}
