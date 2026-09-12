@@ -9,9 +9,8 @@ import { useToast } from '@/contexts/ToastContext'
 import { setActiveTab, workspaceIsVisible } from '@/lib/activeTab'
 import { createBackLayer } from '@/lib/backStack'
 import { SHOWCASE_CONSENT_VERSION } from '@/lib/communityShowcase'
-import { markDraftBaseline, saveDraft } from '@/lib/draft'
+import { installDraftBackup } from '@/lib/draft'
 import { hapticsEnabled, setHapticsEnabled } from '@/lib/haptics'
-import { onAppPause } from '@/lib/lifecycle'
 import { trackAppInit } from '@/lib/telemetry'
 import { createDragHandler } from '@/utils/createDragHandler'
 import { recordEntries, recordKeys } from '@/utils/record'
@@ -1565,22 +1564,22 @@ export function MainWorkspace(props: AppProps) {
    * animation to storage as well, and App.tsx offers them back on the next
    * cold start (lib/draft.ts).
    *
-   * Native only. On the web pause is `visibilitychange`, so this serialised
-   * the whole flame into localStorage on every tab switch while only the
-   * native build ever reads it back.
-   *
-   * The baseline is taken here so an untouched flame never becomes a draft.
+   * One reader for the baseline and for the pause write: the two used to be
+   * written out separately here and both left the timeline's config behind,
+   * so every restored animation came back at 30fps over 90 frames and a
+   * change to only the timeline deleted the draft instead of storing it.
    * The store is unwrapped because what is written has to be plain JSON, not
    * a reactive proxy.
    */
-  if (IS_NATIVE) {
-    markDraftBaseline(unwrap(flameDescriptor), timeline.tracks())
-    onCleanup(
-      onAppPause(() => {
-        saveDraft(unwrap(flameDescriptor), timeline.tracks())
-      }),
-    )
-  }
+  const draftBackup = installDraftBackup({
+    native: IS_NATIVE,
+    read: () => ({
+      flame: unwrap(flameDescriptor),
+      tracks: timeline.tracks(),
+      config: timeline.config(),
+    }),
+  })
+  onCleanup(draftBackup.dispose)
 
   const captureTimelineSnapshot = (): TimelineSnapshot => ({
     config: deepClone(timeline.config()),

@@ -1,9 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
 import { parseFlameXml } from '@/flame/flameXml'
 import { safeSetItem } from '@/utils/storage'
-import { clearDraft, DRAFT_KEY, draftAction, hasSharePayload, markDraftBaseline, readDraft, saveDraft, } from './draft'
+import { clearDraft, DRAFT_KEY, draftAction, hasSharePayload, installDraftBackup, markDraftBaseline, readDraft, saveDraft, } from './draft'
+import { useLifecyclePorts } from './lifecycle'
+import type { LifecyclePorts } from '@chaos-master/mobile-runtime/lifecycle'
+import type { DraftState } from './draft'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
-import type { TimelineTrack } from '@/utils/timeline'
+import type { TimelineConfig, TimelineTrack } from '@/utils/timeline'
 
 // localStorage is not usable in this runtime (the same reason
 // TouchSurface.test.tsx mocks this module), so the draft round-trips through
@@ -45,9 +48,27 @@ const tracks: TimelineTrack[] = [
   },
 ]
 
+const config: TimelineConfig = {
+  fps: 60,
+  timeScale: 2,
+  startFrame: 0,
+  endFrame: 300,
+  loop: false,
+  autoFps: false,
+  loopMode: 'seamless',
+}
+
+/** What the workspace hands the draft: a flame, its tracks and its timeline. */
+const state = (overrides: Partial<DraftState> = {}): DraftState => ({
+  flame,
+  tracks,
+  config,
+  ...overrides,
+})
+
 describe('the background draft', () => {
   it('comes back with its flame and its tracks', () => {
-    saveDraft(flame, tracks)
+    saveDraft(state())
     const draft = readDraft()
     expect(draft?.flame.metadata?.name).toBe('Draft')
     // The keyframes come back through the same validation an imported file
@@ -65,7 +86,7 @@ describe('the background draft', () => {
   })
 
   it('saves a flame with no animation', () => {
-    saveDraft(flame)
+    saveDraft(state({ tracks: [] }))
     const draft = readDraft()
     expect(draft?.flame.metadata?.name).toBe('Draft')
     expect(draft?.tracks).toBeUndefined()
@@ -73,7 +94,7 @@ describe('the background draft', () => {
   })
 
   it('reads nothing once it is cleared', () => {
-    saveDraft(flame)
+    saveDraft(state())
     clearDraft()
     expect(readDraft()).toBeUndefined()
   })
@@ -90,23 +111,22 @@ describe('the background draft', () => {
     // Android fires pause for every share sheet and permission dialog, so an
     // untouched flame would otherwise become a draft on the first background
     // and be offered back on every cold start after it.
-    markDraftBaseline(flame, tracks)
-    saveDraft(flame, tracks)
+    markDraftBaseline(state())
+    saveDraft(state())
     expect(readDraft()).toBeUndefined()
   })
 
   it('writes an edited flame, and clears once it is back at the baseline', () => {
-    markDraftBaseline(flame)
-    const edited: FlameDescriptor = {
-      ...flame,
-      metadata: { ...flame.metadata, name: 'Edited' },
-    }
+    markDraftBaseline(state())
+    const edited = state({
+      flame: { ...flame, metadata: { ...flame.metadata, name: 'Edited' } },
+    })
     saveDraft(edited)
     expect(readDraft()?.flame.metadata?.name).toBe('Edited')
 
     // Undone back to where it started: nothing left to restore, so the stale
     // draft goes rather than outliving the work it came from.
-    saveDraft(flame)
+    saveDraft(state())
     expect(readDraft()).toBeUndefined()
   })
 
@@ -115,22 +135,24 @@ describe('the background draft', () => {
     // reset - 30fps, 90 frames - so keyframes past frame 90 were unreachable
     // and the motion ran at half speed, while the same flame through `?s=`
     // returned intact.
-    markDraftBaseline(flame)
-    saveDraft(flame, tracks, {
-      fps: 60,
-      timeScale: 2,
-      startFrame: 0,
-      endFrame: 300,
-      loop: false,
-      autoFps: false,
-      loopMode: 'seamless',
-    })
+    markDraftBaseline(state({ tracks: [] }))
+    saveDraft(state())
     const draft = readDraft()
     expect(draft?.config?.fps).toBe(60)
     expect(draft?.config?.endFrame).toBe(300)
     expect(draft?.config?.timeScale).toBe(2)
     expect(draft?.config?.loop).toBe(false)
     expect(draft?.config?.loopMode).toBe('seamless')
+    clearDraft()
+  })
+
+  it('treats a change to only the timeline as a change', () => {
+    // The config sat outside the signature, so lengthening the animation or
+    // changing its frame rate read as "nothing has changed" - and that is
+    // the branch that deletes whatever draft was already there.
+    markDraftBaseline(state())
+    saveDraft(state({ config: { ...config, endFrame: 600 } }))
+    expect(readDraft()?.config?.endFrame).toBe(600)
     clearDraft()
   })
 
@@ -150,6 +172,67 @@ describe('the background draft', () => {
     expect(draft?.tracks?.[0]?.parameterPath).toBe(tracks[0]?.parameterPath)
     expect(draft?.config).toBeUndefined()
     clearDraft()
+  })
+})
+
+/** A fake platform, so what fires here is the pause the app subscribes to. */
+function fakePlatform() {
+  const pauses = new Set<() => void>()
+  const ports: LifecyclePorts = {
+    onBackButton: () => () => undefined,
+    onPause: (callback: () => void) => {
+      pauses.add(callback)
+      return () => pauses.delete(callback)
+    },
+    onResume: () => () => undefined,
+    minimizeApp: () => Promise.resolve(),
+  }
+  useLifecyclePorts(ports)
+  return {
+    pause: () => {
+      pauses.forEach((callback) => {
+        callback()
+      })
+    },
+  }
+}
+
+describe('the pause backup', () => {
+  it('writes what the pause finds, timeline and all', () => {
+    // The path the app actually takes: one reader, a baseline at install and
+    // a write when the platform says the app is going away. The workspace
+    // wrote those two out by hand and left the config out of both.
+    const platform = fakePlatform()
+    let current = state()
+    const backup = installDraftBackup({ native: true, read: () => current })
+
+    platform.pause()
+    expect(readDraft()).toBeUndefined()
+
+    current = state({ config: { ...config, fps: 24, endFrame: 480 } })
+    platform.pause()
+    const draft = readDraft()
+    expect(draft?.config?.fps).toBe(24)
+    expect(draft?.config?.endFrame).toBe(480)
+
+    backup.dispose()
+    clearDraft()
+  })
+
+  it('does nothing on the web, where nothing reads a draft back', () => {
+    const platform = fakePlatform()
+    markDraftBaseline(state())
+    const backup = installDraftBackup({
+      native: false,
+      read: () =>
+        state({
+          flame: { ...flame, metadata: { ...flame.metadata, name: 'Edited' } },
+        }),
+    })
+
+    platform.pause()
+    expect(readDraft()).toBeUndefined()
+    backup.dispose()
   })
 })
 
