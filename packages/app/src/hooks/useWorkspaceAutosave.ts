@@ -113,9 +113,13 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
       // it once, and say what clears it.
       if (!fullNoticeShown) {
         fullNoticeShown = true
+        // Long enough to read and act on. Asking for 'sticky' would have
+        // been quietly downgraded to the four-second default, because a
+        // sticky toast with nothing to answer it with cannot be dismissed
+        // and the toast store refuses to strand one (contexts/ToastContext).
         showToast(
           `Recents is full (${MAX_RECENT_FLAMES} flames), so this one was not auto-saved. Delete one in Library, or use Save for Later to replace the oldest.`,
-          'sticky',
+          12000,
         )
       }
       return
