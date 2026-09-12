@@ -1,8 +1,10 @@
 import { createRoot } from 'solid-js'
 import { createStore } from 'solid-js/store'
+import ts from 'typescript'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { parseFlameXml } from '@/flame/flameXml'
 import { useWorkspaceAutosave } from '@/hooks/useWorkspaceAutosave'
+import workspaceSource from '@/MainWorkspace.tsx?raw'
 import { clearRecentFlames, loadRecentFlames } from '@/utils/recentFlames'
 import { replaceOpenDocument } from './documentLoad'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
@@ -68,6 +70,35 @@ describe('replacing the open document', () => {
       expect(recents[0]?.flame.metadata?.name).toBe('Unsaved work')
       dispose()
     })
+  })
+
+  it('is where every replacement in the workspace flushes', () => {
+    // The claim this module makes about itself, checked rather than
+    // asserted: a replacement that flushes by hand is one edit away from
+    // flushing after the replacement, or not at all, which is the bug that
+    // put this module here. Passing the flush to the chokepoint as a value
+    // is the only form allowed; a call of its own is what this catches.
+    const ast = ts.createSourceFile(
+      'MainWorkspace.tsx',
+      workspaceSource,
+      ts.ScriptTarget.Latest,
+      true,
+      ts.ScriptKind.TSX,
+    )
+    const byHand: string[] = []
+    const walk = (node: ts.Node) => {
+      if (
+        ts.isCallExpression(node) &&
+        ts.isIdentifier(node.expression) &&
+        node.expression.text === 'flushDirtyToRecents'
+      ) {
+        const { line } = ast.getLineAndCharacterOfPosition(node.getStart(ast))
+        byHand.push(`MainWorkspace.tsx:${line + 1}`)
+      }
+      ts.forEachChild(node, walk)
+    }
+    walk(ast)
+    expect(byHand).toEqual([])
   })
 
   it('writes nothing when the open document holds nothing unsaved', () => {

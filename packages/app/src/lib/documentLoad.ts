@@ -8,9 +8,13 @@
  * except the desktop's own Load button used to do, because the flush lived
  * on that button rather than at the replacement.
  *
- * So it lives here, with a name, and both document boundaries in
- * MainWorkspace go through it: the Library load and the hand-off from the
- * welcome grid and Home.
+ * So it lives here, with a name, and every document replacement in
+ * MainWorkspace goes through it: the Library load, the hand-off from the
+ * welcome grid and Home, a randomizer-history load, New Flame, and the 2D/3D
+ * switch, whose stash is in memory only. Three of those were still flushing
+ * by hand while this said there were two - the claim is checked now, by a
+ * test that fails on any call of the flush outside this function
+ * (documentLoad.test.ts).
  */
 export function replaceOpenDocument(steps: {
   /** Put whatever the open document is holding somewhere it survives. */

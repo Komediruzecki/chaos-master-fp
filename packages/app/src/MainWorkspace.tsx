@@ -2451,13 +2451,17 @@ export function MainWorkspace(props: AppProps) {
     setSelectedHistoryTimestamp(entry.timestamp)
     // Loading a history entry is a fresh starting point: keep unsaved work
     // recoverable and don't autosave the untouched loaded flame.
-    flushDirtyToRecents()
-    executeFlameLoad(
-      entry.flame,
-      'Load History Flame',
-      snapshotOrigin('flame.history'),
-    )
-    markLoadedBaseline()
+    replaceOpenDocument({
+      flushUnsaved: flushDirtyToRecents,
+      replace: () => {
+        executeFlameLoad(
+          entry.flame,
+          'Load History Flame',
+          snapshotOrigin('flame.history'),
+        )
+        markLoadedBaseline()
+      },
+    })
   }
 
   const { handleRandomizeAnimation, handleSmartAnimation } =
@@ -2755,6 +2759,99 @@ export function MainWorkspace(props: AppProps) {
     } else {
       showToast('Could not save the flame to Recents', 5000)
     }
+  }
+
+  /**
+   * Start again from the starter flame. A document replacement like any
+   * other: the outgoing flame and its animation reach Recents first, because
+   * undo restores the flame but keyframe tracks are not part of change
+   * history (lib/documentLoad.ts).
+   */
+  const loadNewFlame = () => {
+    if (timeline.isPlaying()) timeline.pause()
+    replaceOpenDocument({
+      flushUnsaved: flushDirtyToRecents,
+      replace: () => {
+        const is3D = (flameDescriptor.renderSettings.dimensions ?? 2) === 3
+        const flame = deepClone(is3D ? initExample3D : initExample)
+        executeFlameLoad(flame, 'New Flame', snapshotOrigin('flame.new'))
+        setLoadedAnimation({ flame, tracks: [] })
+      },
+    })
+    showToast('Fresh flame loaded — undo restores the previous one')
+  }
+
+  /**
+   * Switch between 2D and 3D, each keeping its own flame and animation.
+   *
+   * The stash is in memory only, so this is a document replacement too: what
+   * is unsaved reaches Recents before the switch, or switch-then-close loses
+   * it (lib/documentLoad.ts).
+   */
+  const switchDimensions = (v: number) => {
+    const current = flameDescriptor.renderSettings.dimensions ?? 2
+    if (v === current) return
+    replaceOpenDocument({
+      flushUnsaved: flushDirtyToRecents,
+      replace: () => {
+        // Stash the active flame AND its animation tracks under the current
+        // dimension; restore the target dimension's own pair so 2D and 3D
+        // each keep independent animations.
+        if (current === 3) {
+          stashedFlame3D = deepClone(flameDescriptor)
+          stashedTracks3D = deepClone(timeline.tracks())
+        } else {
+          stashedFlame2D = deepClone(flameDescriptor)
+          stashedTracks2D = deepClone(timeline.tracks())
+        }
+        // Fly mode only makes sense in 3D.
+        if (v !== 3 && flyMode()) {
+          executeCommand('view.setFlyMode', cmdContext, false)
+        }
+        const restored =
+          v === 3
+            ? (stashedFlame3D ?? example34)
+            : (stashedFlame2D ?? initExample)
+        const restoredTracks = v === 3 ? stashedTracks3D : stashedTracks2D
+        // These document-boundary writes are represented by the two synthetic
+        // actions below. Suppress their coverage hooks so the recorder does
+        // not also flag the same, faithfully represented switch as an unnamed
+        // write.
+        withRecordingSuppressed(() => {
+          withPaletteRestoreTransition({}, `Switch to ${v}D`, () => {
+            setFlameDescriptor(() => deepClone(restored), `Switch to ${v}D`)
+          })
+          // Swap the timeline to the target dimension's tracks (empty on
+          // first entry — matches the starter flame).
+          timeline.loadTracks(restoredTracks ?? [])
+        })
+        // The switch restores from an in-memory stash, so replaying it as
+        // "switch to 3D" would land on the VIEWER's stash, not ours. Log the
+        // descriptor and tracks it actually produced instead — those replay
+        // exactly. The live path keeps one replacement-style history entry,
+        // including its palette provenance.
+        const flameOrigin = snapshotOrigin('flame.dimension', `${v}D`)
+        recordSyntheticAction(
+          'flame.load',
+          [deepClone(restored), `Switch to ${v}D`, {}, flameOrigin],
+          snapshotOriginLabel(flameOrigin) ?? `Switch to ${v}D`,
+        )
+        const timelineOrigin = snapshotOrigin('timeline.dimension', `${v}D`)
+        recordSyntheticAction(
+          'timeline.loadTimeline',
+          [
+            {
+              config: deepClone(timeline.config()),
+              tracks: deepClone(restoredTracks ?? []),
+            },
+            timelineOrigin,
+          ],
+          snapshotOriginLabel(timelineOrigin) ?? `Load ${v}D animation`,
+        )
+        // Mode switches restore stashed/starter state — not an edit.
+        markLoadedBaseline()
+      },
+    })
   }
 
   /**
@@ -4076,24 +4173,7 @@ export function MainWorkspace(props: AppProps) {
               disabled={animationExportRunning()}
               initialLeft={floatingLeft()}
               initialTop={floatingTop()}
-              onNewFlame={() => {
-                if (timeline.isPlaying()) timeline.pause()
-                // Undo restores the flame, but keyframe tracks aren't part of
-                // change history — flush unsaved work (flame + animation) to
-                // Recents so a reset can't silently destroy anything. Unlike
-                // saveRecentFlame, the upsert never declines on a full list.
-                flushDirtyToRecents()
-                const is3D =
-                  (flameDescriptor.renderSettings.dimensions ?? 2) === 3
-                const flame = deepClone(is3D ? initExample3D : initExample)
-                executeFlameLoad(
-                  flame,
-                  'New Flame',
-                  snapshotOrigin('flame.new'),
-                )
-                setLoadedAnimation({ flame, tracks: [] })
-                showToast('Fresh flame loaded — undo restores the previous one')
-              }}
+              onNewFlame={loadNewFlame}
               onLoadFlame={() => {
                 if (timeline.isPlaying()) timeline.pause()
                 // Unsaved work is flushed where the replacement happens
@@ -4171,76 +4251,7 @@ export function MainWorkspace(props: AppProps) {
               collapsed={floatingActionsCollapsed}
               setCollapsed={setFloatingActionsCollapsed}
               dimensions={() => flameDescriptor.renderSettings.dimensions ?? 2}
-              setDimensions={(v) => {
-                const current = flameDescriptor.renderSettings.dimensions ?? 2
-                if (v === current) return
-                // The stash below is in-memory only — flush unsaved work to
-                // Recents first so switch-then-close can't lose it.
-                flushDirtyToRecents()
-                // Stash the active flame AND its animation tracks under the
-                // current dimension; restore the target dimension's own pair so
-                // 2D and 3D each keep independent animations.
-                if (current === 3) {
-                  stashedFlame3D = deepClone(flameDescriptor)
-                  stashedTracks3D = deepClone(timeline.tracks())
-                } else {
-                  stashedFlame2D = deepClone(flameDescriptor)
-                  stashedTracks2D = deepClone(timeline.tracks())
-                }
-                // Fly mode only makes sense in 3D.
-                if (v !== 3 && flyMode()) {
-                  executeCommand('view.setFlyMode', cmdContext, false)
-                }
-                const restored =
-                  v === 3
-                    ? (stashedFlame3D ?? example34)
-                    : (stashedFlame2D ?? initExample)
-                const restoredTracks =
-                  v === 3 ? stashedTracks3D : stashedTracks2D
-                // These document-boundary writes are represented by the two
-                // synthetic actions below. Suppress their coverage hooks so the
-                // recorder does not also flag the same, faithfully represented
-                // switch as an unnamed write.
-                withRecordingSuppressed(() => {
-                  withPaletteRestoreTransition({}, `Switch to ${v}D`, () => {
-                    setFlameDescriptor(
-                      () => deepClone(restored),
-                      `Switch to ${v}D`,
-                    )
-                  })
-                  // Swap the timeline to the target dimension's tracks (empty
-                  // on first entry — matches the starter flame).
-                  timeline.loadTracks(restoredTracks ?? [])
-                })
-                // The switch restores from an in-memory stash, so replaying it
-                // as "switch to 3D" would land on the VIEWER's stash, not ours.
-                // Log the descriptor and tracks it actually produced instead —
-                // those replay exactly. The live path keeps one replacement-
-                // style history entry, including its palette provenance.)
-                const flameOrigin = snapshotOrigin('flame.dimension', `${v}D`)
-                recordSyntheticAction(
-                  'flame.load',
-                  [deepClone(restored), `Switch to ${v}D`, {}, flameOrigin],
-                  snapshotOriginLabel(flameOrigin) ?? `Switch to ${v}D`,
-                )
-                const timelineOrigin = snapshotOrigin(
-                  'timeline.dimension',
-                  `${v}D`,
-                )
-                recordSyntheticAction(
-                  'timeline.loadTimeline',
-                  [
-                    {
-                      config: deepClone(timeline.config()),
-                      tracks: deepClone(restoredTracks ?? []),
-                    },
-                    timelineOrigin,
-                  ],
-                  snapshotOriginLabel(timelineOrigin) ?? `Load ${v}D animation`,
-                )
-                // Mode switches restore stashed/starter state — not an edit.
-                markLoadedBaseline()
-              }}
+              setDimensions={switchDimensions}
               flyMode={flyMode}
               setFlyMode={(v) => {
                 executeCommand('view.setFlyMode', cmdContext, v)
