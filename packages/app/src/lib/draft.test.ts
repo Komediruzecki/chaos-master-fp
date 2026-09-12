@@ -3,7 +3,7 @@ import { createStore, unwrap } from 'solid-js/store'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { parseFlameXml } from '@/flame/flameXml'
 import { useWorkspaceAutosave } from '@/hooks/useWorkspaceAutosave'
-import { clearRecentFlames, loadRecentFlames, upsertRecentFlame, } from '@/utils/recentFlames'
+import { clearRecentFlames, loadRecentFlames, MAX_RECENT_FLAMES, upsertRecentFlame, } from '@/utils/recentFlames'
 import { safeSetItem } from '@/utils/storage'
 import { clearDraft, DRAFT_KEY, hasSharePayload, installDraftBackup, readDraft, saveDraft, takeDraftForLaunch, } from './draft'
 import { useLifecyclePorts } from './lifecycle'
@@ -77,6 +77,17 @@ const state = (overrides: Partial<DraftState> = {}): DraftState => ({
   sessionId: 'autosave-session',
   ...overrides,
 })
+
+/** A Recents list with no room left in it. */
+const seedFullRecents = (ids: string[] = []) => {
+  const entries = Array.from({ length: MAX_RECENT_FLAMES }, (_, index) => ({
+    id: ids[index] ?? `kept-${index}`,
+    name: `Kept ${index}`,
+    savedAt: 1000 + index,
+    flame,
+  }))
+  safeSetItem(RECENTS_KEY, JSON.stringify(entries))
+}
 
 /** A draft already in storage, as a killed session would have left it. */
 const seedDraft = (
@@ -437,9 +448,47 @@ describe('what a launch does with the draft', () => {
     storageRefuses = true
     const restored = takeDraftForLaunch({ native: true, search: '' })
     expect(restored?.flame.metadata?.name).toBe('Draft')
+    expect(restored?.unsecured).toBe('refused')
     storageRefuses = false
     expect(readDraft()?.flame.metadata?.name).toBe('Draft')
     expect(loadRecentFlames()).toHaveLength(0)
+  })
+
+  it('will not evict a saved flame to make room for crash debris', () => {
+    // Save for Later stops and asks before overwriting the oldest entry. A
+    // rescue nobody asked for must not do quietly what the user is asked
+    // about, so nothing is evicted, the work stays in the slot, and the
+    // user's own next save is what decides.
+    seedFullRecents()
+    seedDraft({ sessionId: 'autosave-killed' })
+
+    const restored = takeDraftForLaunch({ native: true, search: '' })
+    expect(restored?.flame.metadata?.name).toBe('Draft')
+
+    // The oldest kept flame is still there.
+    const recents = loadRecentFlames()
+    expect(recents).toHaveLength(MAX_RECENT_FLAMES)
+    expect(recents.some((entry) => entry.id === 'kept-149')).toBe(true)
+    expect(recents.some((entry) => entry.id === 'autosave-killed')).toBe(false)
+    // Offered again next launch, rather than gone.
+    expect(readDraft()?.flame.metadata?.name).toBe('Draft')
+    // And the notice will not claim the flame is saved.
+    expect(restored?.unsecured).toBe('full')
+  })
+
+  it('still writes into its own entry when the list is full', () => {
+    // Replacing an entry that is already there grows nothing and evicts
+    // nobody: it is the same session's own work.
+    seedFullRecents(['autosave-killed'])
+    seedDraft({ sessionId: 'autosave-killed', savedAt: 9e12 })
+
+    const restored = takeDraftForLaunch({ native: true, search: '' })
+    expect(restored?.unsecured).toBeUndefined()
+    const recents = loadRecentFlames()
+    expect(recents).toHaveLength(MAX_RECENT_FLAMES)
+    expect(recents[0]?.id).toBe('autosave-killed')
+    expect(recents[0]?.flame.metadata?.name).toBe('Draft')
+    expect(readDraft()).toBeUndefined()
   })
 
   it('rescues a draft written before the envelope carried an entry', () => {

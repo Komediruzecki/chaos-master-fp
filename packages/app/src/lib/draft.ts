@@ -1,5 +1,5 @@
 import { parseFlameEnvelope } from '@/utils/flameImport'
-import { loadRecentFlames, upsertRecentFlame } from '@/utils/recentFlames'
+import { loadRecentFlames, loadRecentFlamesForRewrite, MAX_RECENT_FLAMES, upsertRecentFlame, } from '@/utils/recentFlames'
 import { safeGetItem, safeRemoveItem, safeSetItem } from '@/utils/storage'
 import { onAppPause } from './lifecycle'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
@@ -187,7 +187,18 @@ export interface RestoredDraft {
   readonly flame: FlameDescriptor
   readonly tracks?: TimelineTrack[]
   readonly config?: TimelineConfig
+  /**
+   * Why the work is in the workspace only, when it is: Recents is at its cap
+   * and taking it would evict a flame the user kept, or the write was
+   * refused. The draft slot keeps the work in both cases, so the launch
+   * after this one offers it again - but the notice must not say the flame
+   * is somewhere it is not.
+   */
+  readonly unsecured?: UnsecuredReason
 }
+
+/** What stopped the rescue writing: a full shelf, or storage saying no. */
+export type UnsecuredReason = 'full' | 'refused'
 
 /** A session id for a draft written before the envelope carried one. */
 const strandedSessionId = (): string =>
@@ -204,11 +215,13 @@ const strandedSessionId = (): string =>
  * is an empty object, which would have counted as a copy of the work while
  * being invisible everywhere the user could look for it.
  *
- * @returns whether the work is safe there - false when storage refused the
- * write or what landed is not readable, and the draft slot is then still the
- * only copy of it.
+ * @returns nothing when the work is safe there, or why it is not - and the
+ * draft slot is then still the only copy of it.
  */
-function secureInRecents(draft: ParsedFlame, sessionId: string): boolean {
+function secureInRecents(
+  draft: ParsedFlame,
+  sessionId: string,
+): UnsecuredReason | undefined {
   const existing = loadRecentFlames().find((entry) => entry.id === sessionId)
   // That session's autosave writes to this entry too. A draft written before
   // the last autosave holds the older half of one piece of work, and
@@ -220,7 +233,16 @@ function secureInRecents(draft: ParsedFlame, sessionId: string): boolean {
   // was then cleared without the work ever being written anywhere: the one
   // default this module cannot take is the one that deletes.
   const writtenAt = draft.savedAt ?? Number.POSITIVE_INFINITY
-  if (existing && existing.savedAt >= writtenAt) return true
+  if (existing && existing.savedAt >= writtenAt) return undefined
+  // At the cap, an id that is not already in the list pushes the oldest
+  // entry out. That entry is a flame the user chose to keep, and this one is
+  // debris from a crash: Save for Later stops and asks before overwriting
+  // it, and a rescue nobody asked for must not do quietly what the user is
+  // asked about. Writing into an id already there replaces it rather than
+  // growing the list, so only the new-id case is refused.
+  const stored = loadRecentFlamesForRewrite()
+  const hasSlot = stored.some((entry) => entry.id === sessionId)
+  if (!hasSlot && stored.length >= MAX_RECENT_FLAMES) return 'full'
   // The timeline goes in with the tracks. Without it the rescued entry came
   // back at the workspace's defaults once the slot was cleared, so the frame
   // rate the work was authored at lived only in memory.
@@ -233,12 +255,14 @@ function secureInRecents(draft: ParsedFlame, sessionId: string): boolean {
       draft.config,
     )
   ) {
-    return false
+    return 'refused'
   }
   // Read it back the way it will be read. A write that lands as something
   // the Library drops is not a rescue, and saying so is what lets the slot
   // keep the only copy.
   return loadRecentFlames().some((entry) => entry.id === sessionId)
+    ? undefined
+    : 'refused'
 }
 
 /**
@@ -247,11 +271,17 @@ function secureInRecents(draft: ParsedFlame, sessionId: string): boolean {
  * Native only: nothing writes a draft on the web, where a tab is not
  * force-stopped from under the user.
  *
- * The work reaches Recents first and unconditionally, so from that moment it
- * is safe whatever the user does next - taps a starter flame on the welcome
- * grid, opens something from Library, follows a friend's link. Nothing
- * downstream has to remember to flush it before dropping it, which is what
- * every earlier version of this got wrong.
+ * The work reaches Recents first, so from that moment it is safe whatever
+ * the user does next - taps a starter flame on the welcome grid, opens
+ * something from Library, follows a friend's link. Nothing downstream has to
+ * remember to flush it before dropping it, which is what every earlier
+ * version of this got wrong.
+ *
+ * Two things can stop it getting there: a full shelf, where taking a place
+ * would evict a flame the user kept, and storage refusing the write. Neither
+ * is worth destroying something for, so the draft stays in its slot, the
+ * flame is still handed to the workspace, and the caller is told not to
+ * promise it is saved.
  *
  * The welcome screen is deliberately not an input. It is not a first run: it
  * shows on every launch until the user ticks "Don't show again", and the
@@ -274,16 +304,18 @@ export function takeDraftForLaunch(input: {
     typeof stored.sessionId === 'string' && stored.sessionId !== ''
       ? stored.sessionId
       : strandedSessionId()
-  const secured = secureInRecents(parsed, sessionId)
+  const unsecured = secureInRecents(parsed, sessionId)
 
   if (hasSharePayload(input.search)) return undefined
-  // Only once the work is somewhere else. If storage refused Recents the
-  // slot is all there is, so the draft stays in it.
-  if (secured) clearDraft()
+  // Only once the work is somewhere else. If Recents could not take it the
+  // slot is all there is, so the draft stays in it and the caller is told,
+  // because the flame is then only as safe as this one process.
+  if (unsecured === undefined) clearDraft()
   return {
     flame: parsed.flame,
     ...(parsed.tracks ? { tracks: parsed.tracks } : {}),
     ...(parsed.config ? { config: parsed.config } : {}),
+    ...(unsecured ? { unsecured } : {}),
   }
 }
 

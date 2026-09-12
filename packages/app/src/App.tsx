@@ -49,6 +49,22 @@ function MessageToast(props: { message: string | null }) {
   return null
 }
 
+/**
+ * What the launch says about the flame it just put back.
+ *
+ * The plain notice is only true once the work is also in Recents. When it is
+ * not, the flame is in this session and in the draft slot and nowhere else,
+ * so the notice says so and points at the one action that fixes it - the
+ * user's own save, which is also the only thing allowed to decide that an
+ * older flame may be replaced.
+ */
+const NOTICE = {
+  secured: 'Restored your last flame',
+  full: 'Restored your last flame. Recents is full, so save it for later to keep it.',
+  refused:
+    'Restored your last flame. It could not be added to Recents, so save it for later to keep it.',
+} as const
+
 export function Wrappers() {
   // Load persisted ancestry data from IndexedDB on startup.
   onMount(() => {
@@ -160,7 +176,7 @@ export function Wrappers() {
       ...(draft.tracks ? { tracks: draft.tracks } : {}),
       ...(draft.config ? { config: draft.config } : {}),
     })
-    setDraftNotice('Restored your last flame')
+    setDraftNotice(NOTICE[draft.unsecured ?? 'secured'])
   })
 
   const [flameFromQuery] = createResource(async () => {
