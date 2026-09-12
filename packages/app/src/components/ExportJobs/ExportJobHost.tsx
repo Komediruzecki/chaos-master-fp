@@ -150,8 +150,11 @@ function OffscreenRender(props: { job: ImageJob }) {
     // the condition above, and with "Embed flame" off it does not hold. That
     // export writes a plain image, so the refused entry was the only record
     // this flame ever had, and saying nothing loses it without a trace.
+    // `authoredFlame`, never `job.flame`: the rendered one carries the audio
+    // overlay that was on the canvas when Export was pressed, and filing that
+    // would make one frame of a track the flame the user comes back to.
     const stored = saveRecentFlame(
-      job.flame,
+      job.authoredFlame,
       undefined,
       job.tracks,
       false,

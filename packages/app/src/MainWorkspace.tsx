@@ -1814,6 +1814,11 @@ export function MainWorkspace(props: AppProps) {
    * clean, quality-graded image, then scales it down (aspect preserved).
    */
   async function captureOgImageBlob(maxDim = 1000): Promise<Blob | null> {
+    // The flame behind the frame this capture keeps. Filled in when that frame
+    // lands, because the preview is an image of the canvas: the overlay the
+    // audio loop republishes 30 times a second is in those pixels, and the
+    // flame the PNG carries has to be the one that drew them.
+    let capturedFlame: FlameDescriptor | undefined
     const rawBlob = await new Promise<Blob | null>((resolve) => {
       let settled = false
       const finish = (b: Blob | null) => {
@@ -1833,6 +1838,7 @@ export function MainWorkspace(props: AppProps) {
             // Wait for the export driver's clean, quality-graded frame.
             if (info?.finalImageReady !== true) return
             clearTimeout(timer)
+            capturedFlame = deepClone(renderedFlame())
             canvas.toBlob(
               (b) => {
                 finish(b)
@@ -1845,7 +1851,8 @@ export function MainWorkspace(props: AppProps) {
       // Same render path as PNG export; current quality keeps the canvas as-is.
       setExportQuality(qualityPresets[qualityPreset()])
     })
-    if (!rawBlob) return null
+    // No frame, or no flame behind it, means no honest preview to upload.
+    if (!rawBlob || !capturedFlame) return null
 
     const url = URL.createObjectURL(rawBlob)
     try {
@@ -1879,8 +1886,8 @@ export function MainWorkspace(props: AppProps) {
       const config = timeline.config()
       const hasAnimation = tracks.some((track) => track.keyframes.length > 0)
       const payload = hasAnimation
-        ? { flame: flameDescriptor, animation: { tracks, config } }
-        : flameDescriptor
+        ? { flame: capturedFlame, animation: { tracks, config } }
+        : capturedFlame
       const encoded = await compressJsonQueryParam(payload)
       const pngBytes = new Uint8Array(await downscaled.arrayBuffer())
       return addFlameDataToPng(encoded, pngBytes)
@@ -1991,6 +1998,7 @@ export function MainWorkspace(props: AppProps) {
   const { showExportPngDialog, quickExport, exportModalIsOpen } =
     createExportPngDialog(
       flameDescriptor,
+      renderedFlame,
       () => timeline,
       pixelRatio,
       setPixelRatio,
@@ -2034,10 +2042,17 @@ export function MainWorkspace(props: AppProps) {
       ),
     )
 
-    // Step 1: Capture the current flame at its current resolution to prevent flickering/resizing
+    // Step 1: Capture the current flame at its current resolution to prevent
+    // flickering/resizing. The pixels come off the LIVE canvas, so the flame
+    // that produced them - the open document with this frame of audio
+    // modulation over it - is frozen alongside them and is what the PNG
+    // embeds. The share link and the showcase entry keep `sharedFlame`: they
+    // are the user's work, not a picture of one frame of it.
+    let capturedFlame: FlameDescriptor | undefined
     const rawBlob = await new Promise<Blob | null>((resolve) => {
       setOnExportImage(() => (canvas: HTMLCanvasElement) => {
         setOnExportImage(undefined)
+        capturedFlame = deepClone(renderedFlame())
         canvas.toBlob(
           (b) => {
             resolve(b)
@@ -2048,7 +2063,7 @@ export function MainWorkspace(props: AppProps) {
       })
     })
 
-    if (!rawBlob) {
+    if (!rawBlob || !capturedFlame) {
       showToast('Failed to capture flame image')
       return
     }
@@ -2058,12 +2073,12 @@ export function MainWorkspace(props: AppProps) {
     const payload =
       hasAnimation || customVariations.length > 0
         ? {
-            flame: sharedFlame,
+            flame: capturedFlame,
             animation,
             customVariations:
               customVariations.length > 0 ? customVariations : undefined,
           }
-        : sharedFlame
+        : capturedFlame
     const encoded = await compressJsonQueryParam(payload)
     let pngBytes = new Uint8Array(await rawBlob.arrayBuffer())
     pngBytes = new Uint8Array(
