@@ -23,6 +23,12 @@ export function DebugOverlay(props: DebugOverlayProps) {
     buildReadableIds(props.flameDescriptor.transforms),
   )
 
+  // Dev only, and it paints at z-index 10000 - over Home rather than behind
+  // it - so it stays reachable and needs a name: its label is an arrow glyph
+  // and nothing else.
+  const toggleLabel = () =>
+    expanded() ? 'Hide debug panel' : 'Show debug panel'
+
   const resolvedValues = createMemo(() => {
     const f = frame()
     const trackList = tracks()
@@ -92,7 +98,8 @@ export function DebugOverlay(props: DebugOverlayProps) {
           'line-height': '1',
           transition: 'right 0.2s ease',
         }}
-        title={expanded() ? 'Hide debug panel' : 'Show debug panel'}
+        aria-label={toggleLabel()}
+        title={toggleLabel()}
       >
         {expanded() ? '▶' : '◀'}
       </button>

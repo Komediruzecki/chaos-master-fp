@@ -359,6 +359,39 @@ describe('TouchSurface Components', () => {
       expect(deck()).toBeTruthy()
     })
 
+    it('leaves the tab order while a destination covers it', () => {
+      const ctx = createMockCommandContext()
+      render(() => (
+        <TabletInspectorDeck ctx={ctx} flame={ctx.flameDescriptor} />
+      ))
+
+      expect(deck().hasAttribute('inert')).toBe(false)
+
+      // The deck layout is where this matters most: the rail the phone marks
+      // inert is not even mounted here, and the deck is expanded under Home
+      // with its header, its tab chips and every variation tile still in the
+      // tab order - 64 of 70 focusable controls behind the overlay.
+      setActiveTab('home')
+      expect(deck().hasAttribute('inert')).toBe(true)
+      // Out of reach, not gone: the deck keeps its width and its state.
+      expect(deck().style.width).toBe('380px')
+
+      // Collapsed - which is done from the editor, never from under Home -
+      // the edge tab is all that is left of the deck, and it goes behind the
+      // overlay just the same.
+      setActiveTab('workspace')
+      fireEvent.dblClick(screen.getByTestId('deck-divider'))
+      const edgeTab = () =>
+        screen.getByRole('button', { name: 'Show inspector' })
+      expect(edgeTab().hasAttribute('inert')).toBe(false)
+
+      setActiveTab('home')
+      expect(edgeTab().hasAttribute('inert')).toBe(true)
+
+      setActiveTab('workspace')
+      expect(edgeTab().hasAttribute('inert')).toBe(false)
+    })
+
     it('saves on a tap and opens the export options on a long press', () => {
       vi.useFakeTimers()
       const ctx = createMockCommandContext()
