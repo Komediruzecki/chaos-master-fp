@@ -393,10 +393,18 @@ export function takeDraftForLaunch(input: {
 }
 
 /**
- * A link that carries its own flame (`?s=`, `?flame=`) or variation (`?cv=`).
- * Restoring the draft over it would replace what the link was opened for.
+ * A link that carries its own flame: `?s=` (a shortened share) or `?flame=`
+ * (the payload inline). Restoring the draft over it would replace what the
+ * link was opened for.
+ *
+ * `?cv=` is not one of these. It carries a single custom variation, which is
+ * previewed over whatever flame is already open - it opens no document of its
+ * own, so there is nothing for a restore to replace. Counting it here shelved
+ * the user's work instead of restoring it and then previewed the variation
+ * against the starter flame rather than against the flame they were editing,
+ * which is the one thing the link is for.
  */
 export function hasSharePayload(search: string): boolean {
   const params = new URLSearchParams(search)
-  return params.has('s') || params.has('flame') || params.has('cv')
+  return params.has('s') || params.has('flame')
 }

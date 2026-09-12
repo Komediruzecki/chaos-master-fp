@@ -653,12 +653,32 @@ describe('the slot a save empties', () => {
 })
 
 describe('hasSharePayload', () => {
-  it('knows the three ways a link carries a flame', () => {
+  it('knows the two ways a link carries a flame', () => {
     expect(hasSharePayload('?s=abc')).toBe(true)
     expect(hasSharePayload('?flame=abc')).toBe(true)
-    expect(hasSharePayload('?cv=abc')).toBe(true)
     expect(hasSharePayload('?benchmark=auto')).toBe(false)
     expect(hasSharePayload('')).toBe(false)
+  })
+
+  it('does not count a variation link, which opens no document', () => {
+    // `?cv=` carries one custom variation, previewed over whatever flame is
+    // already open. Counted as a flame-carrying link it shelved the user's
+    // own work instead of restoring it, and then previewed the variation
+    // against the starter flame - which is the one thing the link is not for.
+    expect(hasSharePayload('?cv=abc')).toBe(false)
+  })
+
+  it('restores the draft a variation link arrives with', () => {
+    // The behaviour behind the rule: a cv launch is an ordinary launch. The
+    // draft comes back into the workspace, rather than being shelved with a
+    // notice pointing at the Library.
+    seedDraft({ sessionId: 'autosave-killed' })
+
+    const restored = takeDraftForLaunch({ native: true, search: '?cv=abc' })
+
+    expect(restored?.shelvedOnly).toBeUndefined()
+    expect(restored?.flame.metadata?.name).toBe('Draft')
+    expect(restored?.tracks?.length).toBe(1)
   })
 })
 
