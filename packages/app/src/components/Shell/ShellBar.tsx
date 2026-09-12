@@ -86,27 +86,37 @@ export function ShellBar(props: ShellBarProps) {
    * the compatibility click lands on the nearest common ancestor - what it
    * does is keep the bar up, which is the part a slide needs.
    *
-   * The hold belongs to the pointer that started it. The listener was
-   * pointer-agnostic, so a second finger lifting anywhere on the screen ended
-   * the hold while the first was still resting on the capsule, and the real
-   * release went unheard because the controller had already been aborted.
+   * The hold belongs to the pointer that started it, and keeps belonging to
+   * it. The listener was pointer-agnostic, so a second finger lifting
+   * anywhere ended the hold while the first was still resting on the capsule;
+   * a second finger landing on the capsule did the same thing from the other
+   * side, by re-entering the hold and aborting the first finger's listener.
+   * Either way the real release went unheard.
    */
   let releasing: AbortController | undefined
+  /** The pointer whose hold is live, while it is live. */
+  let holdingPointer: number | undefined
   onCleanup(() => {
     releasing?.abort()
   })
 
   function holdCapsule(pointerId: number) {
+    if (holdingPointer !== undefined) return
+    holdingPointer = pointerId
     openedOnDown = !expanded()
     setExpanded(true)
     setHeld(true)
-    releasing?.abort()
     const controller = new AbortController()
     releasing = controller
     const release = (event: PointerEvent) => {
       if (event.pointerId !== pointerId) return
+      holdingPointer = undefined
       setHeld(false)
       controller.abort()
+      // Nothing follows a cancelled touch - no release click - so the flag
+      // that tells the click "this touch opened the bar" would outlive the
+      // touch and swallow the next keyboard activation on the capsule.
+      if (event.type === 'pointercancel') openedOnDown = false
     }
     const options = { signal: controller.signal }
     document.addEventListener('pointerup', release, options)

@@ -149,6 +149,44 @@ describe('ShellBar', () => {
     vi.useRealTimers()
   })
 
+  it('keeps the hold with the finger that started it when a second lands', () => {
+    vi.useFakeTimers()
+    mount('capsule')
+    fireEvent.pointerDown(capsule(), { pointerId: 1 })
+
+    // A second finger on the capsule itself re-entered the hold and aborted
+    // the first finger's listener, so lifting the second started the
+    // countdown while the first still rested on the bar - and the first
+    // finger's own release was then never heard.
+    fireEvent.pointerDown(capsule(), { pointerId: 2 })
+    fireEvent.pointerUp(capsule(), { pointerId: 2 })
+    vi.advanceTimersByTime(CAPSULE_OPEN_MS * 2)
+    expect(screen.getByRole('button', { name: 'Library' })).toBeTruthy()
+
+    fireEvent.pointerUp(capsule(), { pointerId: 1 })
+    vi.advanceTimersByTime(CAPSULE_OPEN_MS)
+    expect(screen.queryByRole('button', { name: 'Library' })).toBeNull()
+    vi.useRealTimers()
+  })
+
+  it('still answers the keyboard after a cancelled touch', () => {
+    vi.useFakeTimers()
+    mount('capsule')
+    fireEvent.pointerDown(capsule(), { pointerId: 1 })
+
+    // The system took the gesture. A cancelled touch brings no click after
+    // it, so the flag saying "this touch opened the bar" had nothing to
+    // consume it and swallowed the next Enter on the focused capsule.
+    fireEvent.pointerCancel(capsule(), { pointerId: 1 })
+    vi.advanceTimersByTime(CAPSULE_OPEN_MS - 1)
+    expect(screen.getByRole('button', { name: 'Library' })).toBeTruthy()
+
+    capsule().click()
+    expect(screen.queryByRole('button', { name: 'Library' })).toBeNull()
+    expect(capsule().getAttribute('aria-expanded')).toBe('false')
+    vi.useRealTimers()
+  })
+
   it('collapses on back', () => {
     vi.useFakeTimers()
     mount('capsule')
