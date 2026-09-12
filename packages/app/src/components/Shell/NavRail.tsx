@@ -68,20 +68,20 @@ export function NavRail(props: NavRailProps) {
           )}
         </For>
         <div class={ui.spacer} />
-        {/* A More that opens an empty menu is worse than no More. */}
-        <Show when={moreItems().length > 0}>
-          <button
-            type="button"
-            class={ui.item}
-            aria-expanded={moreOpen()}
-            onClick={() => {
-              setMoreOpen((was) => !was)
-            }}
-          >
-            <MoreDots class={ui.icon} />
-            More
-          </button>
-        </Show>
+        {/* Always offered, because the list is never empty: the Arcade
+            defaults into it (Shell/moreMenu.ts). The guard that stood here
+            read as if a host could open an empty menu, and could not fire. */}
+        <button
+          type="button"
+          class={ui.item}
+          aria-expanded={moreOpen()}
+          onClick={() => {
+            setMoreOpen((was) => !was)
+          }}
+        >
+          <MoreDots class={ui.icon} />
+          More
+        </button>
         <button
           type="button"
           class={ui.item}

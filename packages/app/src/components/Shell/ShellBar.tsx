@@ -210,9 +210,11 @@ export function ShellBar(props: ShellBarProps) {
           </For>
         </nav>
 
-        {/* A More that opens an empty menu is worse than no More: a host
-            with nothing to put in it does not get the circle. */}
-        <Show when={props.mode === 'full' && moreItems().length > 0}>
+        {/* The list is never empty - the Arcade defaults into it
+            (Shell/moreMenu.ts) - and Home mounts this bar with no handlers at
+            all, so that one item is Home's only way into the Arcade. The
+            length guard that stood here could not fire. */}
+        <Show when={props.mode === 'full'}>
           <button
             type="button"
             class={ui.more}

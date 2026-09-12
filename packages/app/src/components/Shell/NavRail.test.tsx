@@ -106,9 +106,30 @@ describe('NavRail', () => {
       />
     ))
     expect(railList).toEqual(moreLabels())
-    expect(railList).toContain('Lumen Arcade')
-    expect(railList).toContain('Share link')
-    expect(railList).toContain('Export options')
+    // Pinned, because "both surfaces build the same list" is true of two
+    // calls to one function whatever that function returns.
+    expect(railList).toEqual([
+      'Export options',
+      'Share link',
+      'Advanced tools',
+      'Lumen Arcade',
+      'Documentation',
+      'Quick GPU benchmark',
+      'Benchmark Lab',
+      'Settings and more',
+      'Desktop layout',
+    ])
+  })
+
+  it('is the Arcade alone where the host hands the bar nothing', () => {
+    // What App mounts over Home: no handlers at all, because the editor's
+    // callbacks mean nothing on Library. The Arcade defaults into the list,
+    // and that one item is Home's only way into it - which is why neither
+    // surface guards More on the length of the list.
+    render(() => (
+      <ShellBar mode="full" current={() => 'library'} onSelect={vi.fn()} />
+    ))
+    expect(moreLabels()).toEqual(['Lumen Arcade'])
   })
 
   it('runs what was chosen, and closes from the backdrop and from back', () => {

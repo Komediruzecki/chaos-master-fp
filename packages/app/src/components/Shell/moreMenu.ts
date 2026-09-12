@@ -15,6 +15,10 @@ import type { Component } from 'solid-js'
  * three hosts were restating the same one-line handler - and the rail, which
  * did not, was a dead end on a landscape tablet.
  *
+ * So the list is never empty, and no surface guards against an empty More:
+ * `buildMoreMenu({})` is the Arcade alone, which is exactly what the bar over
+ * Home offers and its only way in.
+ *
  * The names are the props `TouchHUDProps` already carries, so a surface can
  * pass its own props straight in.
  */
