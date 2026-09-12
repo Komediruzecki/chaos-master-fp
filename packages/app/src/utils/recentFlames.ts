@@ -2,6 +2,7 @@ import { tryValidateFlame } from '@/flame/schema/flameSchema'
 import { TimelineSnapshotConfig } from '@/flame/schema/timeline'
 import { deepClone } from '@/utils/clone'
 import { safeGetItem, safeRemoveItem, safeSetItem } from '@/utils/storage'
+import { clampTimelineConfig } from '@/utils/timeline'
 import * as v from '@/valibot'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 import type { TimelineConfig, TimelineTrack } from '@/utils/timeline'
@@ -60,17 +61,54 @@ function isValidRecentFlame(item: unknown): item is RecentFlame {
   )
 }
 
+/** The shape of a timeline, with none of its limits.
+ *
+ *  Splitting the two is what lets an out-of-range config be repaired instead
+ *  of thrown away: what this rejects is not a timeline at all - a string
+ *  where the frame rate goes, a missing `loop` - and there is nothing to
+ *  repair. Ranges are not checked here; `clampTimelineConfig` owns those, and
+ *  it also rounds, so a stored `fps: 29.5` is a fixable value rather than a
+ *  fatal one. */
+const StoredTimelineShape = v.object({
+  fps: v.pipe(v.number(), v.finite()),
+  timeScale: v.pipe(v.number(), v.finite()),
+  startFrame: v.pipe(v.number(), v.finite()),
+  endFrame: v.pipe(v.number(), v.finite()),
+  loop: v.boolean(),
+  autoFps: v.optional(v.boolean()),
+  loopMode: v.optional(v.picklist(['off', 'seamless', 'cycle'])),
+})
+
 /** The stored timeline, validated like the flame beside it. What it decides -
  *  the frame rate, the speed, the end frame - is what playback does, so a
  *  value from an older build or a hand-edited backup cannot be trusted
- *  straight in: `fps: 0` would stop the timeline dead. A config that fails is
- *  dropped and its entry kept, the way a flame that fails drops its entry. */
+ *  straight in: `fps: 0` would stop the timeline dead.
+ *
+ *  A value merely past a limit is clamped rather than dropped. Dropping it
+ *  took the whole config with it, so a flame stored before the clamp existed
+ *  - a seamless loop pushes `endFrame` past the ceiling on its own
+ *  (utils/timeline.ts) - came back at 30fps over 90 frames, silently, having
+ *  been reported as saved. Only a config that is structurally unusable is
+ *  dropped, and its entry kept, the way a flame that fails drops its entry. */
 function parseStoredConfig(raw: unknown): TimelineConfig | undefined {
   if (raw === null || typeof raw !== 'object') return undefined
   const result = v.safeParse(TimelineSnapshotConfig, raw)
   // Pinned at the call site: valibot's inferred output widens in ways that
   // differ between a local typecheck and CI.
-  return result.success ? result.output : undefined
+  if (result.success) return result.output
+  const loose = v.safeParse(StoredTimelineShape, raw)
+  if (!loose.success) return undefined
+  const { fps, timeScale, startFrame, endFrame, loop, autoFps, loopMode } =
+    loose.output
+  return clampTimelineConfig({
+    fps,
+    timeScale,
+    startFrame,
+    endFrame,
+    loop,
+    ...(autoFps === undefined ? {} : { autoFps }),
+    ...(loopMode === undefined ? {} : { loopMode }),
+  })
 }
 
 /** Memo for `loadRecentFlames`, keyed on the exact payload it was built from.

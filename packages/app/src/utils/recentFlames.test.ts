@@ -1,3 +1,4 @@
+import { MAX_TIMELINE_FRAME } from '@chaos-master/core'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { examples } from '@/flame/examples'
 import { clearRecentFlames, clearRecentFlamesCache, deleteRecentFlame, formatRecentDate, getOldestRecentFlame, loadRecentFlame, loadRecentFlames, loadRecentFlamesForRewrite, MAX_RECENT_FLAMES, recentFlameFingerprint, saveRecentFlame, saveRecentFlames, upsertRecentFlame, } from './recentFlames'
@@ -372,16 +373,33 @@ describe('saveRecentFlame', () => {
     expect(loadRecentFlames()[0]!.config).toEqual(sampleConfig())
   })
 
-  it('does not report success for a timeline that cannot be read back', () => {
-    // The loader drops a config that fails validation and keeps the entry,
-    // so a write like this lands as a flame at the default 30fps over 90
-    // frames while the caller was told the flame was saved - and marked the
-    // workspace clean on the strength of it, so nothing ever retried.
+  it('clamps a timeline past a limit instead of losing all of it', () => {
+    // Out of range is not unusable. A seamless loop over a long animation
+    // pushes `endFrame` past the ceiling on its own (utils/timeline.ts), and
+    // dropping the config for it took the frame rate and the loop mode with
+    // it - the flame came back at 30fps over 90 frames, reported as saved.
     seed([])
     const outcome = saveRecentFlame(sampleFlame(), 'Long', [], true, {
       ...sampleConfig(),
       endFrame: 5000,
     })
+    expect(outcome).toBe('saved')
+    const stored = loadRecentFlames()[0]!.config!
+    expect(stored.endFrame).toBe(MAX_TIMELINE_FRAME)
+    expect(stored.fps).toBe(sampleConfig().fps)
+    expect(stored.loopMode).toBe(sampleConfig().loopMode)
+  })
+
+  it('does not report success for a timeline that cannot be read back', () => {
+    // A config with a string where the frame rate goes is not a timeline at
+    // all: there is nothing to clamp, so the loader still drops it and keeps
+    // the entry. The caller marks the workspace clean on success, so a write
+    // that claimed this landed would lose it with nothing left to retry.
+    seed([])
+    const outcome = saveRecentFlame(sampleFlame(), 'Broken', [], true, {
+      ...sampleConfig(),
+      fps: 'fast',
+    } as never)
     expect(loadRecentFlames()[0]!.config).toBeUndefined()
     expect(outcome).toBe('refused')
   })
@@ -560,14 +578,35 @@ describe('upsertRecentFlame', () => {
   it('does not report success for a timeline that cannot be read back', () => {
     // The autosave marks the workspace clean on success, so the same lie
     // here loses the timeline at the next load boundary rather than at the
-    // next launch.
+    // next launch. `loop` missing entirely is a shape the clamp cannot
+    // repair, unlike a value merely out of range.
     seed([])
-    const outcome = upsertRecentFlame('auto', sampleFlame(), 'Long', [], {
+    const { loop: _loop, ...withoutLoop } = sampleConfig()
+    const outcome = upsertRecentFlame(
+      'auto',
+      sampleFlame(),
+      'Broken',
+      [],
+      withoutLoop as never,
+    )
+    expect(loadRecentFlames()[0]!.config).toBeUndefined()
+    expect(outcome).toBe('refused')
+  })
+
+  it('clamps a timeline past a limit instead of losing all of it', () => {
+    // Same rule as saveRecentFlame: a stored `fps: 0` would stop playback
+    // dead, so it is pulled back to the low end of its range rather than
+    // taking the whole config - and with it the end frame and loop mode -
+    // out of the entry.
+    seed([])
+    const outcome = upsertRecentFlame('auto', sampleFlame(), 'Slow', [], {
       ...sampleConfig(),
       fps: 0,
     })
-    expect(loadRecentFlames()[0]!.config).toBeUndefined()
-    expect(outcome).toBe('refused')
+    expect(outcome).toBe('saved')
+    const stored = loadRecentFlames()[0]!.config!
+    expect(stored.fps).toBe(1)
+    expect(stored.endFrame).toBe(sampleConfig().endFrame)
   })
 
   it('stores the timeline whether or not there are keyframes', () => {
