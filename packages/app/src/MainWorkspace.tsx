@@ -9,6 +9,7 @@ import { useToast } from '@/contexts/ToastContext'
 import { setActiveTab, workspaceIsVisible } from '@/lib/activeTab'
 import { createBackLayer } from '@/lib/backStack'
 import { SHOWCASE_CONSENT_VERSION } from '@/lib/communityShowcase'
+import { replaceOpenDocument } from '@/lib/documentLoad'
 import { installDraftBackup } from '@/lib/draft'
 import { hapticsEnabled, setHapticsEnabled } from '@/lib/haptics'
 import { trackAppInit } from '@/lib/telemetry'
@@ -552,20 +553,24 @@ export function MainWorkspace(props: AppProps) {
     label = 'Load flame',
     origin?: SnapshotOrigin,
   ) => {
-    // Reads the OUTGOING flame and its tracks, so it has to run before the
-    // replacement below drops them.
-    flushDirtyToRecents()
     const flame = deepClone(next)
     const description = snapshotOriginLabel(origin) ?? label
-    // A different document cannot inherit another flame's pre-palette stash.
-    // If the loaded flame already carries a palette, its earlier natural
-    // colours are unknowable; Unselect safely keeps its current colours. The
-    // history side effects restore the outgoing provenance if this load is
-    // undone and clear it again on redo.
-    withRecordingSuppressed(() => {
-      withPaletteRestoreTransition({}, description, () => {
-        setFlameDescriptor(() => flame, description)
-      })
+    replaceOpenDocument({
+      // Reads the OUTGOING flame and its tracks, so it has to run before the
+      // replacement below drops them (lib/documentLoad.ts).
+      flushUnsaved: flushDirtyToRecents,
+      // A different document cannot inherit another flame's pre-palette
+      // stash. If the loaded flame already carries a palette, its earlier
+      // natural colours are unknowable; Unselect safely keeps its current
+      // colours. The history side effects restore the outgoing provenance if
+      // this load is undone and clear it again on redo.
+      replace: () => {
+        withRecordingSuppressed(() => {
+          withPaletteRestoreTransition({}, description, () => {
+            setFlameDescriptor(() => flame, description)
+          })
+        })
+      },
     })
     recordSyntheticAction(
       'flame.load',
@@ -616,27 +621,30 @@ export function MainWorkspace(props: AppProps) {
         return
       }
       const outgoingPaletteRestoreColors = deepClone(prePaletteColors())
-      // Order is load-bearing. `flushDirtyToRecents` reads the OUTGOING flame
-      // and its tracks, so it has to run before the reset drops them —
-      // otherwise a hand-off would silently destroy unsaved work.
-      flushDirtyToRecents()
-      // Then a clean slate, THEN this flame's own state. Every hand-off starts
-      // from the same baseline, so the second flame you open from Home looks
-      // exactly like the first one would have. See resetWorkspaceForHandoff for
-      // what was leaking and why.
-      resetWorkspaceForHandoff()
-      runPaletteRestoreTransition(
-        history,
-        outgoingPaletteRestoreColors,
-        {},
-        (colors) => {
-          setPrePaletteColors(colors)
+      replaceOpenDocument({
+        // Reads the OUTGOING flame and its tracks, so it has to run before
+        // the reset drops them (lib/documentLoad.ts).
+        flushUnsaved: flushDirtyToRecents,
+        // Then a clean slate, THEN this flame's own state. Every hand-off
+        // starts from the same baseline, so the second flame you open from
+        // Home looks exactly like the first one would have. See
+        // resetWorkspaceForHandoff for what was leaking and why.
+        replace: () => {
+          resetWorkspaceForHandoff()
+          runPaletteRestoreTransition(
+            history,
+            outgoingPaletteRestoreColors,
+            {},
+            (colors) => {
+              setPrePaletteColors(colors)
+            },
+            'Load Home flame',
+            () => {
+              setFlameDescriptor(() => deepClone(newFlame), 'Load Home flame')
+            },
+          )
         },
-        'Load Home flame',
-        () => {
-          setFlameDescriptor(() => deepClone(newFlame), 'Load Home flame')
-        },
-      )
+      })
       // Read BEFORE resetFlameFromWelcome() clears the whole hand-off.
       const capability = props.capabilityFromHome?.()
       if (capability !== undefined) {

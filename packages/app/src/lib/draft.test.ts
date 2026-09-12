@@ -5,6 +5,7 @@ import { parseFlameXml } from '@/flame/flameXml'
 import { useWorkspaceAutosave } from '@/hooks/useWorkspaceAutosave'
 import { clearRecentFlames, loadRecentFlames, MAX_RECENT_FLAMES, upsertRecentFlame, } from '@/utils/recentFlames'
 import { safeSetItem } from '@/utils/storage'
+import { defaultConfig } from '@/utils/timeline'
 import { clearDraft, DRAFT_KEY, hasSharePayload, installDraftBackup, readDraft, saveDraft, takeDraftForLaunch, } from './draft'
 import { useLifecyclePorts } from './lifecycle'
 import type { LifecyclePorts } from '@chaos-master/mobile-runtime/lifecycle'
@@ -376,6 +377,36 @@ describe('what a launch does with the draft', () => {
     expect(loadRecentFlames()[0]?.savedAt).toBe(rescued)
   })
 
+  it('draws the line between the two halves at the millisecond', () => {
+    // The entry and the draft are two halves of one session's work. Newer or
+    // level, the entry stands; older by a millisecond, the draft replaces it.
+    const seedEntry = (savedAt: number) => {
+      safeSetItem(
+        RECENTS_KEY,
+        JSON.stringify([
+          {
+            id: 'autosave-killed',
+            name: 'Entry',
+            savedAt,
+            flame: { ...flame, metadata: { ...flame.metadata, name: 'Entry' } },
+          },
+        ]),
+      )
+    }
+    for (const [entrySavedAt, winner] of [
+      [999, 'Draft'],
+      [1000, 'Entry'],
+      [1001, 'Entry'],
+    ] as const) {
+      seedEntry(entrySavedAt)
+      seedDraft({ sessionId: 'autosave-killed', savedAt: 1000 })
+      takeDraftForLaunch({ native: true, search: '' })
+      expect(loadRecentFlames()[0]?.flame.metadata?.name).toBe(winner)
+      expect(readDraft()).toBeUndefined()
+      reset()
+    }
+  })
+
   it('declines to restore over a link, and leaves the draft where it is', () => {
     // Restoring over the link would replace what it was opened for. Dropping
     // the draft instead lost a friend's tap: the work was gone from storage
@@ -518,32 +549,42 @@ describe('hasSharePayload', () => {
 })
 
 describe('the draft a launch restored', () => {
-  it('is safe from a workspace that counts itself clean', () => {
+  it('survives the hand-off the app actually makes', () => {
     // The chain the app walks, with the modules the app walks it with: the
     // launch (App.tsx), the editor's autosave and the pause backup wired the
     // way MainWorkspace wires them.
     //
-    // This is the scenario three fix passes shipped broken. A draft carrying
-    // an animation lands in the workspace, whose load boundary - taken twice
-    // per hand-off, once for the flame and once for its animation - says the
-    // workspace is clean. Every earlier version read that as "nothing to keep"
-    // and deleted the draft on the next pause, and the work was gone from
-    // memory, from storage and from Recents at once.
+    // One hand-off takes the load boundary TWICE, and not at the same
+    // moment: once when the flame lands, with the timeline still at the
+    // reset's defaults, and once when the animation arrives in the effect
+    // that consumes it. The window between them is where three fix passes'
+    // bugs lived, and a test that takes both baselines together never enters
+    // it.
     seedDraft({ sessionId: 'autosave-killed' })
     const platform = fakePlatform()
 
     const restored = takeDraftForLaunch({ native: true, search: '' })
     expect(restored?.tracks?.length).toBe(1)
+    // The rescue got there first: the work is on the shelf, timeline and all.
+    const rescued = loadRecentFlames()
+    expect(rescued.map((entry) => entry.id)).toEqual(['autosave-killed'])
+    expect(rescued[0]?.tracks?.[0]?.parameterPath).toBe(
+      tracks[0]?.parameterPath,
+    )
+    expect(rescued[0]?.config?.endFrame).toBe(300)
 
     createRoot((dispose) => {
       const [flameStore] = createStore<FlameDescriptor>(
         JSON.parse(JSON.stringify(restored?.flame)),
       )
-      const currentTracks = restored?.tracks ?? []
+      // What the hand-off's reset leaves behind: no tracks, and the default
+      // timeline, until the animation effect runs.
+      let liveTracks: TimelineTrack[] = []
+      let liveConfig: TimelineConfig = defaultConfig()
       const autosave = useWorkspaceAutosave({
         flameDescriptor: flameStore,
-        getTracks: () => currentTracks,
-        getConfig: () => config,
+        getTracks: () => liveTracks,
+        getConfig: () => liveConfig,
         agentDriving: () => false,
         showToast: () => undefined,
       })
@@ -551,33 +592,47 @@ describe('the draft a launch restored', () => {
         native: true,
         read: () => ({
           flame: unwrap(flameStore),
-          tracks: currentTracks,
-          config,
+          tracks: liveTracks,
+          config: liveConfig,
           sessionId: autosave.autosaveSessionId(),
         }),
         unsaved: autosave.isFlameDirty,
       })
 
-      // Both halves of the hand-off take the load boundary.
+      // FIRST boundary: the flame is in, its animation is not.
       autosave.markLoadedBaseline()
-      autosave.markLoadedBaseline()
-      // A launch nobody has touched is not somebody mid-edit: dirty here is
-      // what made the autosave prompt and the five-minute reminder fire on
-      // every restore.
       expect(autosave.isFlameDirty()).toBe(false)
 
-      // Any share sheet or app switch.
-      platform.pause()
+      // The animation lands in its own effect. Until the second boundary the
+      // workspace holds something its baseline does not.
+      liveTracks = restored?.tracks ?? []
+      liveConfig = restored?.config ?? defaultConfig()
+      expect(autosave.isFlameDirty()).toBe(true)
 
+      // A pause in that window - a share sheet, an app switch - keeps a copy
+      // of what is in front of the user rather than dropping one.
+      platform.pause()
+      expect(readDraft()?.config?.endFrame).toBe(300)
+      expect(readDraft()?.tracks?.[0]?.parameterPath).toBe(
+        tracks[0]?.parameterPath,
+      )
+
+      // SECOND boundary: a launch nobody has touched is not somebody
+      // mid-edit, which is what made the autosave prompt and the five-minute
+      // reminder fire on every restore.
+      autosave.markLoadedBaseline()
+      expect(autosave.isFlameDirty()).toBe(false)
+
+      // And the rescued entry came through all of it untouched.
       const recents = loadRecentFlames()
       expect(recents.map((entry) => entry.flame.metadata?.name)).toEqual([
         'Draft',
       ])
-      // One entry, the killed session's own, with the animation in it.
       expect(recents[0]?.id).toBe('autosave-killed')
       expect(recents[0]?.tracks?.[0]?.parameterPath).toBe(
         tracks[0]?.parameterPath,
       )
+      expect(recents[0]?.config?.endFrame).toBe(300)
 
       backup.dispose()
       dispose()

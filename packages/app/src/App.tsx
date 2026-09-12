@@ -21,6 +21,7 @@ import { createBackLayer } from './lib/backStack'
 import { takeDraftForLaunch } from './lib/draft'
 import { IS_NATIVE } from './lib/platform'
 import { Root } from './lib/Root'
+import { createWorkspaceHandoff } from './lib/workspaceHandoff'
 
 const MainWorkspace = lazy(() =>
   import('./MainWorkspace').then((m) => ({ default: m.MainWorkspace })),
@@ -31,9 +32,7 @@ import { decodeSharePayload, decodeVariationShare, } from './utils/jsonQueryPara
 import { persistentSignal } from './utils/persistentSignal'
 import { recordKeys } from './utils/record'
 import { dismissWelcome, hasWelcomeBeenDismissed, } from './utils/welcomeDismissed'
-import type { FlameDescriptor } from './flame/schema/flameSchema'
 import type { HardwareTier } from './utils/hardwareTier'
-import type { TimelineConfig, TimelineTrack } from './utils/timeline'
 
 export type { ExportImageInfo, ExportImageType } from './flame/exportImageType'
 
@@ -91,62 +90,21 @@ export function Wrappers() {
     'hardwareTier',
     null,
   )
-  const [selectedFlame, setSelectedFlame] = createSignal<
-    FlameDescriptor | undefined
-  >()
-  const [selectedWelcomeTracks, setSelectedWelcomeTracks] = createSignal<
-    TimelineTrack[] | undefined
-  >()
-  /**
-   * The timeline a restored draft was authored at (lib/draft.ts). Rides the
-   * same one-shot hand-off as the flame and its tracks; a welcome or Home
-   * pick sets nothing here.
-   */
-  const [selectedWelcomeConfig, setSelectedWelcomeConfig] = createSignal<
-    TimelineConfig | undefined
-  >()
-  /**
-   * Set only by Home's "Explore" cards: the capability the chosen flame was
-   * curated to demonstrate. Rides the same one-shot hand-off as the flame and
-   * its tracks — MainWorkspace reads all three in one effect and calls
-   * `resetFlameFromWelcome`, which clears the lot.
-   */
-  const [selectedCapability, setSelectedCapability] = createSignal<string>()
   const [queryError, setQueryError] = createSignal<string | null>(null)
   const [draftNotice, setDraftNotice] = createSignal<string | null>(null)
 
   /**
-   * Everything the workspace is seeded with, in one place.
-   *
-   * Every field is written on every seeding, including the ones a caller has
-   * nothing to say about, because a path that set only some of them
-   * inherited the rest from whoever seeded last - and the welcome grid is
-   * live before the workspace chunk has finished loading, so a starter flame
-   * tapped in that window arrived carrying the restored draft's timeline.
-   *
-   * Called with nothing, it clears the hand-off: that is what MainWorkspace
-   * does once it has consumed one.
+   * Everything the workspace is seeded with, in one place: the flame, the
+   * tracks and the timeline it arrives with, and the capability a Home card
+   * asked to open with it (lib/workspaceHandoff.ts). MainWorkspace reads
+   * them in one effect and clears the lot.
    */
-  const seedWorkspace = (seed?: {
-    flame: FlameDescriptor
-    tracks?: TimelineTrack[]
-    /** The timeline the flame's animation was authored at, if it has one. */
-    config?: TimelineConfig
-    /** A Home "Explore" card's curated capability. */
-    capability?: string
-    /** Whether this also means "take me to the editor". */
-    enterWorkspace?: boolean
-  }) => {
-    batch(() => {
-      setSelectedFlame(() => seed?.flame)
-      setSelectedWelcomeTracks(() => seed?.tracks)
-      setSelectedWelcomeConfig(() => seed?.config)
-      setSelectedCapability(seed?.capability)
-      // Picking a flame means "take me to the editor". Forcing the tab keeps
-      // a stray #home in the URL from leaving Home over the chosen flame.
-      if (seed?.enterWorkspace) setActiveTab('workspace')
-    })
-  }
+  const handoff = createWorkspaceHandoff({
+    enterWorkspace: () => {
+      setActiveTab('workspace')
+    },
+  })
+  const seedWorkspace = handoff.seed
 
   /**
    * What the app was holding when the OS killed it (lib/draft.ts). The
@@ -395,10 +353,10 @@ export function Wrappers() {
                       <MainWorkspace
                         flameFromQuery={flameFromQuery()}
                         sharedVariationFromQuery={sharedVariationFromQuery()}
-                        flameFromWelcome={selectedFlame}
-                        welcomeTracks={selectedWelcomeTracks}
-                        welcomeConfig={selectedWelcomeConfig}
-                        capabilityFromHome={selectedCapability}
+                        flameFromWelcome={handoff.flame}
+                        welcomeTracks={handoff.tracks}
+                        welcomeConfig={handoff.config}
+                        capabilityFromHome={handoff.capability}
                         autoOpenBenchmark={benchmarkRequested}
                         autoStartBenchmark={benchmarkAuto}
                         hardwareTier={
