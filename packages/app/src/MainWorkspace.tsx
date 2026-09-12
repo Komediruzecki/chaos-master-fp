@@ -2652,13 +2652,29 @@ export function MainWorkspace(props: AppProps) {
   })
 
   // ── Autosave & save-awareness ──────────────────────────────────────────
-  const { markSavedBaseline, markLoadedBaseline, flushDirtyToRecents } =
-    useWorkspaceAutosave({
-      flameDescriptor,
-      getTracks: () => timeline.tracks(),
-      agentDriving,
-      showToast,
-    })
+  const {
+    markSavedBaseline,
+    markLoadedBaseline: markAutosaveBaseline,
+    flushDirtyToRecents,
+  } = useWorkspaceAutosave({
+    flameDescriptor,
+    getTracks: () => timeline.tracks(),
+    agentDriving,
+    showToast,
+  })
+
+  /**
+   * A load is a fresh starting point for both safety nets, not an edit. The
+   * draft's baseline used to be taken once, at construction, so opening a
+   * flame from Library or a share link and backgrounding without touching it
+   * wrote a draft - and the next cold start offered "Restored your last
+   * flame" for work nobody had done. Every load boundary goes through here,
+   * so neither net can drift from the other.
+   */
+  const markLoadedBaseline = () => {
+    markAutosaveBaseline()
+    draftBackup.markBaseline()
+  }
 
   // Apply flame and animation from shared URL (fires once when resource resolves)
   let queryApplied = false

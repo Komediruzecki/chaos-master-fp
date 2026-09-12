@@ -219,6 +219,33 @@ describe('the pause backup', () => {
     clearDraft()
   })
 
+  it('takes a new baseline when a load boundary says so', () => {
+    // Opening a flame from Library, from a share link or from the welcome
+    // grid is not somebody's unsaved work. With the baseline taken once, at
+    // construction, backgrounding straight after opening one wrote a draft,
+    // and the next cold start offered it back as a rescued session.
+    const platform = fakePlatform()
+    let current = state()
+    const backup = installDraftBackup({ native: true, read: () => current })
+
+    current = state({
+      flame: {
+        ...flame,
+        metadata: { ...flame.metadata, name: 'From Library' },
+      },
+    })
+    platform.pause()
+    // Unmarked, a load is indistinguishable from an edit.
+    expect(readDraft()?.flame.metadata?.name).toBe('From Library')
+    clearDraft()
+
+    backup.markBaseline()
+    platform.pause()
+    expect(readDraft()).toBeUndefined()
+
+    backup.dispose()
+  })
+
   it('does nothing on the web, where nothing reads a draft back', () => {
     const platform = fakePlatform()
     markDraftBaseline(state())
