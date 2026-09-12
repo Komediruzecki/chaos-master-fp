@@ -1,3 +1,4 @@
+import { DRAFT_KEY } from '@/lib/draft'
 import { clearHistory, loadHistoryEntries } from './logoHistoryDB'
 import { clearRandomizerHistory, loadRandomizerHistoryEntries, } from './randomizerHistoryDB'
 import { clearRecentFlames, loadRecentFlames } from './recentFlames'
@@ -6,6 +7,17 @@ import { clearRecentFlames, loadRecentFlames } from './recentFlames'
 const LS_PREFIX = 'chaos-master-'
 /** Recent flames live under this key — counted as flame data, not settings. */
 const RECENT_FLAMES_KEY = 'chaos-master-recent-flames'
+/**
+ * Keys under the app's prefix that hold a user's flame rather than a
+ * preference, and so are neither counted as settings nor swept by
+ * "Clear settings" — which promises "Your saved flames are not touched."
+ *
+ * `chaos-master-draft` is the crash-recovery slot (lib/draft.ts), and at the
+ * cap it is the ONLY copy of a restored flame there is. The trap was exact:
+ * the app tells a user at the cap to free space, they clear settings, and the
+ * work the app had just told them it restored goes with the theme.
+ */
+const FLAME_KEYS = new Set<string>([RECENT_FLAMES_KEY, DRAFT_KEY])
 /** Effectively "all" — histories are capped well below this. */
 const ALL = 1_000_000
 
@@ -26,13 +38,13 @@ function utf8Bytes(s: string): number {
   return new TextEncoder().encode(s).length
 }
 
-/** All app settings keys in localStorage (everything but the recent flames). */
+/** All app settings keys in localStorage (everything but the flame data). */
 function settingsKeys(): string[] {
   const keys: string[] = []
   try {
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i)
-      if (k !== null && k.startsWith(LS_PREFIX) && k !== RECENT_FLAMES_KEY) {
+      if (k !== null && k.startsWith(LS_PREFIX) && !FLAME_KEYS.has(k)) {
         keys.push(k)
       }
     }
