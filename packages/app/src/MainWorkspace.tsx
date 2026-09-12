@@ -668,6 +668,13 @@ export function MainWorkspace(props: AppProps) {
           })),
           ...(config ? { config } : {}),
         })
+      } else if (config) {
+        // A flame with no tracks still has a timeline, and the reset above
+        // has just replaced it with the default one. Nothing downstream puts
+        // a restored draft's fps and end frame back on this path:
+        // setLoadedAnimation is the animation loader, and there is no
+        // animation here to load.
+        timeline.setConfig({ ...timeline.config(), ...config })
       }
       props.resetFlameFromWelcome?.()
       // Every hand-off is a fresh starting point for dirty tracking, the
@@ -2596,16 +2603,23 @@ export function MainWorkspace(props: AppProps) {
         timeline.setAnimationEnabled(true)
         setAnimationEnabled(true)
         setShowTimeline(true)
-        // A restored draft brings the timeline its animation was authored at.
-        // Without it the hand-off's reset (30fps, endFrame 90) truncated
-        // every longer animation and halved its speed, while the same flame
-        // through `?s=` came back intact. Loop stays on by default for a
-        // loaded animation; a stored config decides for itself.
+      }
+      // A restored draft brings the timeline its animation was authored at.
+      // Without it the hand-off's reset (30fps, endFrame 90) truncated every
+      // longer animation and halved its speed, while the same flame through
+      // `?s=` came back intact. Applied outside the branch above because the
+      // envelope carries a config whether or not it carries tracks, and
+      // inside it the stored fps and end frame of a flame with no animation
+      // were read back and then dropped. Loop stays on by default for a
+      // loaded animation; a stored config decides for itself.
+      if (anim.config || anim.tracks.length > 0) {
         timeline.setConfig({
           ...timeline.config(),
-          loop: true,
+          ...(anim.tracks.length > 0 ? { loop: true } : {}),
           ...anim.config,
         })
+      }
+      if (anim.tracks.length > 0) {
         timeline.goToFrame(0)
         timeline.play()
       }
