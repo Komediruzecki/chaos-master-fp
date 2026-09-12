@@ -18,7 +18,8 @@ import { initAncestry } from './flame/ancestry'
 import { importSharedVariations, loadCustomVariations, remapFlameCustomVariations, } from './flame/variations/custom'
 import { activeTab, arcadeMode, setActiveTab, tabFromHash, } from './lib/activeTab'
 import { createBackLayer } from './lib/backStack'
-import { migrateLegacyDraft, takePauseSaveFailure } from './lib/pauseSave'
+import { migrateLegacyDraft, reopenTarget, takePauseSaveFailure, } from './lib/pauseSave'
+import { IS_NATIVE } from './lib/platform'
 import { Root } from './lib/Root'
 import { createWorkspaceHandoff } from './lib/workspaceHandoff'
 
@@ -58,6 +59,16 @@ function MessageToast(props: { message: string | null }) {
  */
 const PAUSE_SAVE_REFUSED =
   'The flame you had open when the app last closed was not saved: this device refused to store it.'
+
+/**
+ * What a launch says when it puts the last document back on screen.
+ *
+ * Deliberately says nothing about saving. The work reached Recents when the
+ * OS backgrounded the app, so this is only about where the user has landed -
+ * and a launch that reopens nothing says nothing at all, because there is
+ * nothing wrong with it.
+ */
+const REOPENED = 'Reopened the flame you were last working on.'
 
 export function Wrappers() {
   // Load persisted ancestry data from IndexedDB on startup.
@@ -104,21 +115,41 @@ export function Wrappers() {
   /**
    * What the launch owes the last session.
    *
-   * Nothing is restored here and nothing is seeded: the native app writes the
-   * open document straight into Recents when the OS backgrounds it, so by the
-   * time a cold start runs, the work is already on the shelf the Library
-   * shows. Whatever the user does next - taps a starter flame, opens Library,
-   * follows a link - it is already somewhere they can reach it, which is the
-   * whole reason the crash copy stopped being a slot of its own
-   * (lib/pauseSave.ts).
+   * Nothing is restored here, because nothing needs rescuing: the native app
+   * writes the open document straight into Recents when the OS backgrounds
+   * it, so by the time a cold start runs the work is already on the shelf the
+   * Library shows (lib/pauseSave.ts).
    *
-   * What is left is a one-time move for anyone upgrading with the old slot
-   * still populated, and the one thing a pause cannot say at the time it
-   * happens.
+   * What is left is where to put the user. The pause write recorded which
+   * entry it made, and this opens it - an ordinary seeding, the same one a
+   * Home card or the welcome grid does, over work that is safe either way. It
+   * takes no precedence and holds nothing back: a tap on a starter flame that
+   * gets to the hand-off first wins it, and the flame this would have opened
+   * stays in the Library.
+   *
+   * Plus a one-time move for anyone upgrading with the old crash slot still
+   * populated, and the one thing a pause cannot say at the time it happens.
    */
   onMount(() => {
     migrateLegacyDraft()
-    if (takePauseSaveFailure()) setLaunchNotice(PAUSE_SAVE_REFUSED)
+    // Said together in one toast rather than one after another: a launch has
+    // at most a sentence of the user's attention, and a second toast would
+    // evict the first from a column that holds four.
+    const notices: string[] = []
+    if (takePauseSaveFailure()) notices.push(PAUSE_SAVE_REFUSED)
+    const reopen = reopenTarget(IS_NATIVE)
+    if (reopen) {
+      // No `enterWorkspace`: the editor is already the tab a launch lands on,
+      // and forcing it would drag a `#home` or `#arcade` link out of the
+      // destination it asked for.
+      seedWorkspace({
+        flame: reopen.flame,
+        ...(reopen.tracks ? { tracks: reopen.tracks } : {}),
+        ...(reopen.config ? { config: reopen.config } : {}),
+      })
+      notices.push(REOPENED)
+    }
+    if (notices.length > 0) setLaunchNotice(notices.join(' '))
   })
 
   const [flameFromQuery] = createResource(async () => {

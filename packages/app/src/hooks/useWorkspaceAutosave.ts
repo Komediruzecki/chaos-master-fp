@@ -6,6 +6,24 @@ import type { FlushOutcome } from '@/lib/documentLoad'
 import type { RecentWriteOutcome } from '@/utils/recentFlames'
 import type { TimelineConfig, TimelineTrack } from '@/utils/timeline'
 
+/**
+ * What one pause write did.
+ *
+ * More than the outcome, because the launch after a force-stop is the only
+ * reader this write ever gets: a toast raised as the process ends is never
+ * seen, so everything the next launch has to act on leaves here
+ * (lib/pauseSave.ts).
+ */
+export interface PauseSaveReport {
+  outcome: FlushOutcome
+  /**
+   * The Recents entry the write landed in - the one a cold start reopens, so
+   * a force-stop does not cost the user their place. Set only on 'saved':
+   * there is nothing to point at otherwise.
+   */
+  entryId?: string
+}
+
 export interface UseWorkspaceAutosaveParams {
   flameDescriptor: FlameDescriptor
   getTracks: () => TimelineTrack[] | undefined
@@ -288,12 +306,19 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
    * and a write would move this session's entry to the front of the list each
    * time.
    *
-   * @returns what the write did, for the caller to carry to the next launch -
-   * a toast raised as the process ends is never read (lib/pauseSave.ts).
+   * @returns what the write did and where it put it, for the caller to carry
+   * to the next launch - a toast raised as the process ends is never read
+   * (lib/pauseSave.ts).
    */
-  const saveOnPause = (): FlushOutcome => {
-    const outcome = flushDirtyToRecents()
-    return outcome === 'full' ? flushDirtyToRecents(true) : outcome
+  const saveOnPause = (): PauseSaveReport => {
+    const first = flushDirtyToRecents()
+    const outcome = first === 'full' ? flushDirtyToRecents(true) : first
+    // The id goes out only when the write landed. Naming an entry that was
+    // never written would send the next launch to whatever else happens to
+    // hold that id - or, far more often, to nothing at all.
+    return outcome === 'saved'
+      ? { outcome, entryId: autosaveSessionId }
+      : { outcome }
   }
 
   window.addEventListener('pagehide', saveOnPagehide)

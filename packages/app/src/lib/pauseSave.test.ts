@@ -3,11 +3,12 @@ import { createStore } from 'solid-js/store'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { parseFlameXml } from '@/flame/flameXml'
 import { useWorkspaceAutosave } from '@/hooks/useWorkspaceAutosave'
-import { clearRecentFlames, loadRecentFlames, loadRecentFlamesForRewrite, MAX_RECENT_FLAMES, } from '@/utils/recentFlames'
+import { clearRecentFlames, deleteRecentFlame, loadRecentFlames, loadRecentFlamesForRewrite, MAX_RECENT_FLAMES, } from '@/utils/recentFlames'
 import { safeSetItem } from '@/utils/storage'
 import { defaultConfig } from '@/utils/timeline'
 import { useLifecyclePorts } from './lifecycle'
-import { installPauseSave, LEGACY_DRAFT_KEY, migrateLegacyDraft, stopPauseSave, takePauseSaveFailure, } from './pauseSave'
+import { installPauseSave, LEGACY_DRAFT_KEY, migrateLegacyDraft, reopenTarget, stopPauseSave, takePauseSaveFailure, } from './pauseSave'
+import { createWorkspaceHandoff } from './workspaceHandoff'
 import type { LifecyclePorts } from '@chaos-master/mobile-runtime/lifecycle'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 import type { TimelineConfig, TimelineTrack } from '@/utils/timeline'
@@ -408,6 +409,135 @@ describe('a pause that could not save', () => {
       dispose()
     })
     expect(takePauseSaveFailure()).toBe(false)
+  })
+})
+
+describe('where the next launch lands', () => {
+  it('reopens the flame the pause wrote', () => {
+    // The fold made the work durable, and durable is not the same as in front
+    // of you: without this a force-stop returned the user to the welcome
+    // screen with an hour of work sitting in the Library. The pause write
+    // records which entry it made, and the launch opens that entry.
+    const platform = fakePlatform()
+    createRoot((dispose) => {
+      const { setOpen } = workspace()
+      setOpen('metadata', 'name', 'An hour of work')
+      platform.pause()
+      dispose()
+    })
+    stopPauseSave()
+
+    const reopen = reopenTarget(true)
+    expect(reopen?.flame.metadata?.name).toBe('An hour of work')
+    // The timeline comes back with it, or the animation resumes at the
+    // workspace's defaults, 30fps over 90 frames.
+    expect(reopen?.tracks?.[0]?.parameterPath).toBe(tracks[0]?.parameterPath)
+    expect(reopen?.config?.fps).toBe(60)
+    expect(reopen?.config?.endFrame).toBe(300)
+  })
+
+  it('keeps pointing at the last write through a pause that wrote nothing', () => {
+    // Android fires pause for every share sheet, and a clean document is not
+    // written. The pointer is not consumed on the way out either, so the
+    // second force-stop of a session that changed nothing still comes back to
+    // the same flame instead of the starter one.
+    const platform = fakePlatform()
+    createRoot((dispose) => {
+      const { setOpen } = workspace()
+      setOpen('metadata', 'name', 'Written once')
+      platform.pause()
+      platform.pause()
+      dispose()
+    })
+    stopPauseSave()
+
+    expect(reopenTarget(true)?.flame.metadata?.name).toBe('Written once')
+    expect(reopenTarget(true)?.flame.metadata?.name).toBe('Written once')
+  })
+
+  it('opens nothing, and raises nothing, when the entry is gone', () => {
+    // The user deleted it in Library, or everything saved since pushed it off
+    // the end of the list. A pointer is a convenience over work that is safe
+    // without it, so there is no error here and nothing to report - the launch
+    // opens what it would have opened anyway.
+    const platform = fakePlatform()
+    createRoot((dispose) => {
+      const { setOpen } = workspace()
+      setOpen('metadata', 'name', 'Deleted in Library afterwards')
+      platform.pause()
+      dispose()
+    })
+    stopPauseSave()
+    const id = loadRecentFlamesForRewrite()[0]?.id
+    expect(id).toBeDefined()
+    expect(deleteRecentFlame(id!)).toBe(true)
+
+    expect(reopenTarget(true)).toBeUndefined()
+    expect(takePauseSaveFailure()).toBe(false)
+  })
+
+  it('points at nothing when the pause could not save', () => {
+    // Storage refused, so there is no entry to name. Pointing at an id that
+    // was never written sends the launch either nowhere or, worse, at whatever
+    // else holds it.
+    const platform = fakePlatform()
+    createRoot((dispose) => {
+      const { setOpen } = workspace()
+      setOpen('metadata', 'name', 'Work with nowhere to go')
+      refusing = 'flames'
+      platform.pause()
+      refusing = 'nothing'
+      dispose()
+    })
+    stopPauseSave()
+
+    expect(reopenTarget(true)).toBeUndefined()
+  })
+
+  it('does nothing on the web, where a tab gets its pagehide', () => {
+    const platform = fakePlatform()
+    createRoot((dispose) => {
+      const { setOpen } = workspace()
+      setOpen('metadata', 'name', 'Open in a tab')
+      platform.pause()
+      dispose()
+    })
+    stopPauseSave()
+
+    expect(reopenTarget(false)).toBeUndefined()
+  })
+
+  it('lets a welcome tap that gets there first win', () => {
+    // The old restore held a seat, because the tap overwrote the only copy of
+    // the work on its way to the editor. There is nothing to hold now: the
+    // flame is an ordinary Library entry before the app comes back, so a tap
+    // that beats the reopen simply takes the hand-off.
+    const platform = fakePlatform()
+    createRoot((dispose) => {
+      const { setOpen } = workspace()
+      setOpen('metadata', 'name', 'What they were working on')
+      platform.pause()
+      dispose()
+    })
+    stopPauseSave()
+
+    const seat = createWorkspaceHandoff({ enterWorkspace: () => undefined })
+    const reopen = reopenTarget(true)
+    expect(reopen).toBeDefined()
+    seat.seed({ flame: reopen!.flame })
+
+    // The welcome grid is live before the workspace chunk resolves.
+    seat.seed({
+      flame: { ...flame, metadata: { ...flame.metadata, name: 'Starter' } },
+      enterWorkspace: true,
+    })
+
+    expect(seat.flame()?.metadata?.name).toBe('Starter')
+    expect(
+      loadRecentFlames().some(
+        (entry) => entry.flame.metadata?.name === 'What they were working on',
+      ),
+    ).toBe(true)
   })
 })
 
