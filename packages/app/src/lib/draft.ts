@@ -71,9 +71,12 @@ export function saveDraft(state: DraftState): void {
     savedAt: Date.now(),
     // The share link's shape, so one envelope reader serves both: the
     // config is what says how long the animation is and how fast it runs.
-    ...(state.tracks.length > 0
-      ? { animation: { tracks: state.tracks, config: state.config } }
-      : {}),
+    // Written whether or not there are tracks, because the signature counts
+    // the config either way: on a flame with no tracks a change to the fps
+    // or the end frame was a change worth a draft, and the draft it asked
+    // for was then written without it. The reader drops an empty track list
+    // and reads the config beside it (utils/flameImport).
+    animation: { tracks: state.tracks, config: state.config },
   }
   if (!safeSetItem(DRAFT_KEY, JSON.stringify(envelope))) {
     // The safety net is gone and there is nobody to tell at pause time, so

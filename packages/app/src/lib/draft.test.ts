@@ -161,6 +161,20 @@ describe('the background draft', () => {
     clearDraft()
   })
 
+  it('carries the timeline of a flame that has no tracks', () => {
+    // The signature counts the config whether or not there are tracks, so a
+    // change to only the fps or the end frame is a change worth a draft -
+    // and the write then dropped the animation block, storing the very draft
+    // that change had asked for without the change in it.
+    markDraftBaseline(state({ tracks: [] }))
+    saveDraft(state({ tracks: [], config: { ...config, endFrame: 600 } }))
+    const draft = readDraft()
+    expect(draft?.tracks).toBeUndefined()
+    expect(draft?.config?.endFrame).toBe(600)
+    expect(draft?.config?.fps).toBe(60)
+    clearDraft()
+  })
+
   it('ignores a config that does not validate, and keeps the flame', () => {
     // The config decides what playback does, so it goes through the same
     // validation the tracks do: fps 0 would stop the timeline dead.
