@@ -547,12 +547,21 @@ export function MainWorkspace(props: AppProps) {
    * recorder still needs a self-contained action that can reproduce the
    * resulting document. Keep one replacement-style history entry and log the
    * exact descriptor it produced, mirroring the 2D/3D switch path below.
+   *
+   * The flush belongs here, at the one point every document replacement
+   * passes through, rather than at the buttons: the desktop's Load did it
+   * and the touch layouts' way into the same dialog - the HUD, the rail and
+   * the tools drawer all reach it through `pickGalleryFlame` - did not, so
+   * opening a flame from Library on a phone dropped whatever was unsaved.
    */
   const replaceLoadedFlame = (
     next: FlameDescriptor,
     label = 'Load flame',
     origin?: SnapshotOrigin,
   ) => {
+    // Reads the OUTGOING flame and its tracks, so it has to run before the
+    // replacement below drops them.
+    flushDirtyToRecents()
     const flame = deepClone(next)
     const description = snapshotOriginLabel(origin) ?? label
     // A different document cannot inherit another flame's pre-palette stash.
@@ -3993,9 +4002,9 @@ export function MainWorkspace(props: AppProps) {
               }}
               onLoadFlame={() => {
                 if (timeline.isPlaying()) timeline.pause()
-                // Loading replaces the flame and resets dirty tracking — flush
-                // unsaved work first so it stays recoverable from Recents.
-                flushDirtyToRecents()
+                // Unsaved work is flushed where the replacement happens
+                // (replaceLoadedFlame), so every way into this dialog is
+                // covered rather than only this button.
                 void showLoadFlameModal()
               }}
               onSaveForLater={async () => {
