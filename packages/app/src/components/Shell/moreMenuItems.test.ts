@@ -3,6 +3,7 @@ import { activeTab, setActiveTab } from '@/lib/activeTab'
 import { buildMoreMenu } from './moreMenuItems'
 
 const LABELS = [
+  'Save for later',
   'Export options',
   'Share link',
   'Advanced tools',
@@ -33,6 +34,7 @@ describe('buildMoreMenu', () => {
 
   it('lists every item the host can do, in one order', () => {
     const handlers = {
+      onSaveForLater: vi.fn(),
       onOpenExportModal: vi.fn(),
       onShare: vi.fn(),
       onOpenDrawer: vi.fn(),
@@ -62,5 +64,21 @@ describe('buildMoreMenu', () => {
       'Lumen Arcade',
       'Desktop layout',
     ])
+  })
+
+  it('offers the save the restore notice tells the user to make', () => {
+    // The notice a launch shows when Recents could not take the restored
+    // flame says to save it for later. That control lived on the desktop
+    // layout's floating bar alone, and the draft it is about is only ever
+    // read on native - so on the device the notice is written for there was
+    // nothing to tap, and the same notice came back every launch.
+    const onSaveForLater = vi.fn()
+    const items = buildMoreMenu({ onSaveForLater })
+    expect(items.map((item) => item.label)).toEqual([
+      'Save for later',
+      'Lumen Arcade',
+    ])
+    items[0]?.run()
+    expect(onSaveForLater).toHaveBeenCalledTimes(1)
   })
 })

@@ -6,7 +6,7 @@ import { useWorkspaceAutosave } from '@/hooks/useWorkspaceAutosave'
 import { clearRecentFlames, loadRecentFlames, loadRecentFlamesForRewrite, MAX_RECENT_FLAMES, upsertRecentFlame, } from '@/utils/recentFlames'
 import { safeSetItem } from '@/utils/storage'
 import { defaultConfig } from '@/utils/timeline'
-import { clearDraft, DRAFT_KEY, hasSharePayload, installDraftBackup, readDraft, saveDraft, takeDraftForLaunch, } from './draft'
+import { clearDraft, clearDraftIfSaved, DRAFT_KEY, hasSharePayload, installDraftBackup, readDraft, saveDraft, takeDraftForLaunch, } from './draft'
 import { useLifecyclePorts } from './lifecycle'
 import type { LifecyclePorts } from '@chaos-master/mobile-runtime/lifecycle'
 import type { DraftState } from './draft'
@@ -575,6 +575,44 @@ describe('what a launch does with the draft', () => {
     expect(restored?.flame.metadata?.name).toBe('Draft')
     expect(loadRecentFlames()).toHaveLength(1)
     expect(loadRecentFlames()[0]?.id).toMatch(/^autosave-/)
+  })
+})
+
+describe('the slot a save empties', () => {
+  it('goes when the work in it is the work that was just saved', () => {
+    // At the cap the rescue writes nothing and keeps the slot, so the launch
+    // after it offers the same flame again - and the notice telling the user
+    // to save it for later came back every launch, with nothing the save
+    // could do about it. Their own save is what ends it.
+    seedDraft({ sessionId: 'autosave-killed' })
+    clearDraftIfSaved({ flame, tracks, config })
+    expect(readDraft()).toBeUndefined()
+  })
+
+  it('stays when the slot holds something else', () => {
+    // The slot holds one piece of work and the workspace may be holding
+    // another - the user restored a draft and then opened a different flame.
+    // Emptying it on any successful save would delete unsaved work that has
+    // never been anywhere else.
+    seedDraft({ sessionId: 'autosave-killed' })
+    clearDraftIfSaved({
+      flame: {
+        ...flame,
+        metadata: { ...flame.metadata, name: 'Something else' },
+      },
+      tracks,
+      config,
+    })
+    expect(readDraft()?.flame.metadata?.name).toBe('Draft')
+
+    // Same flame, a timeline the slot does not have: still not the same work.
+    clearDraftIfSaved({ flame, tracks, config: { ...config, fps: 24 } })
+    expect(readDraft()?.flame.metadata?.name).toBe('Draft')
+  })
+
+  it('is harmless with no slot at all', () => {
+    clearDraftIfSaved({ flame, tracks, config })
+    expect(readDraft()).toBeUndefined()
   })
 })
 

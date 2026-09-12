@@ -10,7 +10,7 @@ import { setActiveTab, workspaceIsVisible } from '@/lib/activeTab'
 import { createBackLayer } from '@/lib/backStack'
 import { SHOWCASE_CONSENT_VERSION } from '@/lib/communityShowcase'
 import { replaceOpenDocument } from '@/lib/documentLoad'
-import { installDraftBackup } from '@/lib/draft'
+import { clearDraftIfSaved, installDraftBackup } from '@/lib/draft'
 import { hapticsEnabled, setHapticsEnabled } from '@/lib/haptics'
 import { trackAppInit } from '@/lib/telemetry'
 import { createDragHandler } from '@/utils/createDragHandler'
@@ -2715,6 +2715,14 @@ export function MainWorkspace(props: AppProps) {
       saveRecentFlame(flameDescriptor, undefined, tracks, force, config)
     const announce = (replacedOldest: boolean) => {
       markSavedBaseline()
+      // The work is on the shelf now, so the slot holding a copy of it has
+      // nothing left to protect - and at the cap the rescue cannot empty it,
+      // which left the restore notice coming back every launch (lib/draft.ts).
+      clearDraftIfSaved({
+        flame: unwrap(flameDescriptor),
+        tracks,
+        config,
+      })
       showToast(
         tracks.length > 0
           ? `Flame + animation saved${replacedOldest ? ' (replaced oldest)' : ' for later'}`
@@ -3413,6 +3421,9 @@ export function MainWorkspace(props: AppProps) {
    * keeps its own item on the rail as well; a tablet reaches for it there.
    */
   const moreHandlers: MoreMenuHandlers = {
+    onSaveForLater: () => {
+      void saveFlameForLater()
+    },
     onOpenExportModal: () => {
       executeCommand('export.png', cmdContext)
     },

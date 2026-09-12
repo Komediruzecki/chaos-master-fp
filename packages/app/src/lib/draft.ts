@@ -172,6 +172,37 @@ export function clearDraft(): void {
 }
 
 /**
+ * Empty the slot when what is in it is the work that was just saved.
+ *
+ * The other way the slot is spent. `takeDraftForLaunch` clears it once the
+ * rescue has put the work in Recents, but at the cap the rescue writes
+ * nothing and keeps it - so the next launch offered the same flame again,
+ * with a notice telling the user to save it for later, and nothing that save
+ * did could stop the notice coming back on the launch after that. Their own
+ * save ends it.
+ *
+ * The comparison is the whole safety of this: the slot may be holding one
+ * piece of work while the workspace holds another - a restored draft, then a
+ * different flame opened from Library - and emptying it on any successful
+ * save would delete work that has never been anywhere else. Same flame, same
+ * animation, same timeline, or the slot stays exactly where it is.
+ */
+export function clearDraftIfSaved(state: {
+  flame: FlameDescriptor
+  tracks: readonly TimelineTrack[]
+  config: TimelineConfig
+}): void {
+  const stored = storedEnvelope()
+  if (stored === undefined) return
+  const saved = {
+    flame: state.flame,
+    animation: { tracks: state.tracks, config: state.config },
+    sessionId: stored.sessionId,
+  }
+  if (contentOf(stored) === contentOf(saved)) clearDraft()
+}
+
+/**
  * A draft the launch has adopted. Its work is already in Recents by the time
  * a caller holds one of these.
  */

@@ -1,4 +1,4 @@
-import { Book, Download, GaugeMax, Info, Menu, Share, SidebarPanel, Zap, } from '@/icons'
+import { Book, Bookmark, Download, GaugeMax, Info, Menu, Share, SidebarPanel, Zap, } from '@/icons'
 import { setActiveTab } from '@/lib/activeTab'
 import type { Component } from 'solid-js'
 
@@ -23,6 +23,11 @@ import type { Component } from 'solid-js'
  * pass its own props straight in.
  */
 export interface MoreMenuHandlers {
+  /** The user's own save: the one write allowed to replace a flame they
+   *  kept, because it asks first. First in the list because the notice a
+   *  launch shows when Recents could not take a restored flame tells the
+   *  user to make it, and on a touch layout there was nothing to tap. */
+  onSaveForLater?: () => void
   onOpenExportModal?: () => void
   onShare?: () => void
   onOpenDrawer?: () => void
@@ -48,6 +53,7 @@ export function buildMoreMenu(
     Icon: Component<{ class?: string }>
     run: (() => void) | undefined
   }[] = [
+    { label: 'Save for later', Icon: Bookmark, run: handlers.onSaveForLater },
     {
       label: 'Export options',
       Icon: Download,

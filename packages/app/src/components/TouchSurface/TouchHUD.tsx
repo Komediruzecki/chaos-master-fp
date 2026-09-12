@@ -8,26 +8,24 @@ import { MoreMenu } from '../Shell/MoreMenu'
 import { buildMoreMenu } from '../Shell/moreMenuItems'
 import ui from './TouchSurface.module.css'
 import type { Accessor } from 'solid-js'
+import type { MoreMenuHandlers } from '../Shell/moreMenuItems'
 import type { CommandContext } from '@/commands/types'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 
-export interface TouchHUDProps {
+/**
+ * The More handlers are not restated here. They were, and the copy went out
+ * of step the moment the list grew: Save for later reached the tablet's rail
+ * and not the phone's bar, which is the layout the restore notice is written
+ * for. One name for the list, one for what a host can offer it.
+ */
+export interface TouchHUDProps extends MoreMenuHandlers {
   ctx: CommandContext
   flame: Accessor<FlameDescriptor>
   canUndo?: Accessor<boolean>
   canRedo?: Accessor<boolean>
   onUndo?: () => void
   onRedo?: () => void
-  onOpenExportModal?: () => void
-  onShare?: () => void
-  onOpenDrawer?: () => void
   onPickGallery?: () => void
-  onOpenSettings?: () => void
-  onOpenDocs?: () => void
-  onOpenBenchmark?: () => void
-  /** Web only: the Benchmark Lab is its own page (DESIGN.md, decision 1). */
-  onOpenBenchmarkLab?: () => void
-  onDesktopLayout?: () => void
 }
 
 export function TouchHUD(props: TouchHUDProps) {
