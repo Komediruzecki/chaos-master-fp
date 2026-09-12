@@ -94,7 +94,7 @@ import { extractFlameUniforms3D } from './flame/transformFunction3D'
 import { collectFlameCustomVariations, deleteCustomVariation, duplicateCustomVariation, getCustomVariations, loadCustomVariations, persistSharedVariations, restoreCustomVariation, } from './flame/variations/custom'
 import { getVariationDefault } from './flame/variations/utils'
 import { IS_NATIVE } from './lib/platform'
-import { breakRecordingCoalescing, cancelSessionRecording, invalidateLastFinishedSession, isSessionRecording, notePreviewStarted, recordedActionCount, recordSyntheticAction, reportDerivedWorkspaceWrite, reportDocumentWrite, reportTimelineTransport, reportUnreplayable, reportUnreplayableOnce, startSessionRecording, stopSessionRecording, withRecordingSuppressed, } from './recorder/recorder'
+import { breakRecordingCoalescing, cancelSessionRecording, invalidateLastFinishedSession, isSessionRecording, notePreviewStarted, recordedActionCount, recordSyntheticAction, reportDocumentWrite, reportTimelineTransport, reportUnreplayable, startSessionRecording, stopSessionRecording, withRecordingSuppressed, } from './recorder/recorder'
 import { canEnableReplayAudio } from './recorder/replay'
 import { captureTransformColors, runPaletteRestoreTransition, } from './recorder/replayPaletteState'
 import { snapshotOrigin, snapshotOriginLabel } from './recorder/snapshotOrigin'
@@ -102,6 +102,7 @@ import { applySonificationSnapshot, closeAuthoredSonificationPanel, shouldStopHi
 import { createRecorderAwareTimeline, runTimelineSnapshotMutation, } from './recorder/timelineActions'
 import { BENCHMARKS_PATH } from './routing/appPath'
 import { createAnimationExport } from './utils/animationExport'
+import { applyAudioTargetValues } from './utils/audioAnalysis'
 import { downloadBlob } from './utils/blob'
 import { deepClone } from './utils/clone'
 import { createStoreHistory } from './utils/createStoreHistory'
@@ -136,7 +137,7 @@ import type { RecordedSession } from './recorder/schema'
 import type { SnapshotOrigin } from './recorder/snapshotOrigin'
 import type { SonificationSnapshot } from './recorder/sonificationState'
 import type { AnimationExportConfig } from './utils/animationExport'
-import type { AudioAnalyzer, LiveAudioAnalyzer } from './utils/audioAnalysis'
+import type { AudioAnalyzer, AudioTargetValue, LiveAudioAnalyzer, } from './utils/audioAnalysis'
 import type { HardwareTier } from './utils/hardwareTier'
 import type { SharePayload } from './utils/jsonQueryParam'
 import type { RandomizerHistoryEntry } from './utils/randomizerHistoryDB'
@@ -897,6 +898,22 @@ export function MainWorkspace(props: AppProps) {
       },
     ],
   })
+  /**
+   * The frame of modulation the renderer is layering on right now, or
+   * `undefined` when nothing is modulating.
+   *
+   * Modulation used to be written into the document 30 times a second through
+   * `history.setSilently`, which meant that after any audio-reactive playback
+   * the user's flame WAS the frame the music stopped on — permanently, with no
+   * undo to reach it (those writes were kept out of history deliberately), and
+   * with the autosave and the pause write then filing that frame as their
+   * work. It is a render-time overlay instead: the document is never touched,
+   * so there is nothing to stash when the music starts and nothing to restore
+   * when it stops.
+   */
+  const [audioModulation, setAudioModulation] = createSignal<
+    AudioTargetValue[] | undefined
+  >(undefined)
   const [audioSource, setAudioSource] = createSignal<'file' | 'mic'>('file')
   // Named, not carried: a recorded session can say which track it was wired
   // against, but an AudioBuffer can never ride in a `.steps.json`.
@@ -1517,6 +1534,39 @@ export function MainWorkspace(props: AppProps) {
     }
   })
 
+  /**
+   * What the canvas draws: the effective flame with this frame of audio
+   * modulation laid over it.
+   *
+   * Given only to the renderers, never to the editing surfaces, and that
+   * split is the whole point. Modulation changes something 30 times a second;
+   * handing that to the inspector would mean its memos re-run on every frame
+   * (they track `effectiveFlame` as a whole, not the store paths they read)
+   * and its sliders would show numbers that are not in the document — the
+   * same confusion the document writes created, minus the data loss.
+   *
+   * `deepClone` reads the whole store, so an edit made while the music plays
+   * re-runs this and the next frame is modulated from the edited flame. That
+   * is the intent: edits during playback are ordinary edits, and the audio
+   * goes on to drive the new flame.
+   *
+   * With nothing modulating this is `effectiveFlame` itself — the store
+   * proxy, when nothing is hovered either — so the renderer keeps its
+   * fine-grained tracking and nobody pays for a clone.
+   */
+  const renderedFlame = createMemo<FlameDescriptor>(() => {
+    const base = effectiveFlame()
+    const values = audioModulation()
+    if (values === undefined || values.length === 0) return base
+    try {
+      const clone: FlameDescriptor = deepClone(base)
+      applyAudioTargetValues(clone, values)
+      return clone
+    } catch {
+      return base
+    }
+  })
+
   const finalRenderInterval = () =>
     // Home covers the workspace while it is showing, so the canvas has nothing
     // to display — pause it exactly as an open modal does rather than paying
@@ -1719,19 +1769,22 @@ export function MainWorkspace(props: AppProps) {
   // Ctrl+Z/Ctrl+Y and the toolbar buttons all route through this.
   const undoRouter = createUndoRouter(history, timeline)
 
-  // Audio-reactive loop: plays audio through AudioContext, drives
-  // renderSettings at 30fps synced to playback time.
+  /*
+   * Audio-reactive loop: plays audio through AudioContext and publishes one
+   * frame of modulation values at 30fps, synced to playback time.
+   *
+   * It used to write those values into the document through
+   * `history.setSilently`, and so had to tell the recorder about a derived
+   * write and warn once per take that the take was unreplayable. Neither is
+   * true of a publish: the document the recorder captures is the authored one,
+   * frame by frame, whatever the music is doing to the canvas.
+   */
   useAudioReactive(
     audioEnabled,
     audioBuffer,
     audioMapping,
-    (write) => {
-      reportDerivedWorkspaceWrite()
-      reportUnreplayableOnce(
-        'live-audio-modulation',
-        'Live audio modulation changed the flame without embedding the audio source',
-      )
-      history.setSilently(write)
+    (values) => {
+      setAudioModulation(values)
     },
     liveAnalyzer,
     audioSource,
@@ -3755,7 +3808,7 @@ export function MainWorkspace(props: AppProps) {
               }}
               onToggleMobileSidebar={toggleMobileSidebarAsAuthoredAction}
               flameDescriptor={flameDescriptor}
-              effectiveFlame={effectiveFlame}
+              effectiveFlame={renderedFlame}
               canvasPixelRatio={canvasPixelRatio}
               exportDimensions={exportDimensions}
               qualityPreset={qualityPreset}
@@ -4465,7 +4518,7 @@ export function MainWorkspace(props: AppProps) {
             hideVersionTrigger={railLayout}
             onPickGallery={pickGalleryFlame}
             duelShowing={duelShowing}
-            playerFlame={effectiveFlame}
+            playerFlame={renderedFlame}
             playerZoom={[effectiveZoom, setFlameZoom]}
             playerPosition={[effectivePosition, setFlamePosition]}
             playerCamera3D={{
