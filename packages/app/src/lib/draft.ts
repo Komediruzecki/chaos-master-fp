@@ -1,5 +1,5 @@
 import { parseFlameEnvelope } from '@/utils/flameImport'
-import { loadRecentFlamesForRewrite, upsertRecentFlame, } from '@/utils/recentFlames'
+import { loadRecentFlames, upsertRecentFlame } from '@/utils/recentFlames'
 import { safeGetItem, safeRemoveItem, safeSetItem } from '@/utils/storage'
 import { onAppPause } from './lifecycle'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
@@ -197,19 +197,37 @@ const strandedSessionId = (): string =>
  * Put a draft's work in Recents, in the entry the session that wrote it
  * owned.
  *
- * @returns whether the work is safe there - false only when storage refused
- * the write, and the draft slot is then still the only copy of it.
+ * Secured means one thing: the work is on the shelf the user can reach, and
+ * the Library will show it. So the comparison and the confirmation both read
+ * Recents through `loadRecentFlames`, the same schema-validating loader the
+ * Library reads it with - the structural loader accepts an entry whose flame
+ * is an empty object, which would have counted as a copy of the work while
+ * being invisible everywhere the user could look for it.
+ *
+ * @returns whether the work is safe there - false when storage refused the
+ * write or what landed is not readable, and the draft slot is then still the
+ * only copy of it.
  */
 function secureInRecents(draft: ParsedFlame, sessionId: string): boolean {
-  const existing = loadRecentFlamesForRewrite().find(
-    (entry) => entry.id === sessionId,
-  )
+  const existing = loadRecentFlames().find((entry) => entry.id === sessionId)
   // That session's autosave writes to this entry too. A draft written before
   // the last autosave holds the older half of one piece of work, and
   // overwriting the newer half with it would be the loss this module exists
   // to prevent.
-  if (existing && existing.savedAt >= (draft.savedAt ?? 0)) return true
-  return upsertRecentFlame(sessionId, draft.flame, undefined, draft.tracks)
+  //
+  // A draft with no usable clock is the newest thing there is. Reading it as
+  // the oldest handed the argument to any entry that existed, and the slot
+  // was then cleared without the work ever being written anywhere: the one
+  // default this module cannot take is the one that deletes.
+  const writtenAt = draft.savedAt ?? Number.POSITIVE_INFINITY
+  if (existing && existing.savedAt >= writtenAt) return true
+  if (!upsertRecentFlame(sessionId, draft.flame, undefined, draft.tracks)) {
+    return false
+  }
+  // Read it back the way it will be read. A write that lands as something
+  // the Library drops is not a rescue, and saying so is what lets the slot
+  // keep the only copy.
+  return loadRecentFlames().some((entry) => entry.id === sessionId)
 }
 
 /**

@@ -1,6 +1,6 @@
 import { createRoot } from 'solid-js'
 import { createStore, unwrap } from 'solid-js/store'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { parseFlameXml } from '@/flame/flameXml'
 import { useWorkspaceAutosave } from '@/hooks/useWorkspaceAutosave'
 import { clearRecentFlames, loadRecentFlames, upsertRecentFlame, } from '@/utils/recentFlames'
@@ -17,9 +17,12 @@ import type { TimelineConfig, TimelineTrack } from '@/utils/timeline'
 // round-trip through an in-memory store. What is under test is the app's
 // envelope, not the browser's.
 const store = new Map<string, string>()
+/** Quota, private mode, a locked-down WebView: storage that says no. */
+let storageRefuses = false
 vi.mock('@/utils/storage', () => ({
   safeGetItem: (key: string) => store.get(key) ?? null,
   safeSetItem: (key: string, value: string) => {
+    if (storageRefuses) return false
     store.set(key, value)
     return true
   },
@@ -27,6 +30,9 @@ vi.mock('@/utils/storage', () => ({
     store.delete(key)
   },
 }))
+
+/** Where Recents lives, for seeding entries the loaders disagree about. */
+const RECENTS_KEY = 'chaos-master-recent-flames'
 
 const FLAME_XML = `<?xml version="1.0" encoding="UTF-8"?>
 <flame name="Draft" version="Apophysis 7X" size="800 600"
@@ -92,9 +98,15 @@ const seedDraft = (
 }
 
 const reset = () => {
+  storageRefuses = false
   clearDraft()
   clearRecentFlames()
 }
+
+// Every test starts on empty storage. A trailing reset inside each one is
+// skipped by the failure it is meant to clean up after, so the next test
+// then runs on the wreckage and reports something that is not its own.
+afterEach(reset)
 
 describe('the background draft', () => {
   it('comes back with its flame, its tracks and its entry', () => {
@@ -114,7 +126,6 @@ describe('the background draft', () => {
     expect(typeof draft?.savedAt).toBe('number')
     takeDraftForLaunch({ native: true, search: '' })
     expect(loadRecentFlames()[0]?.id).toBe('autosave-session')
-    reset()
   })
 
   it('saves a flame with no animation, and its timeline with it', () => {
@@ -128,7 +139,6 @@ describe('the background draft', () => {
     expect(draft?.config?.fps).toBe(60)
     expect(draft?.config?.endFrame).toBe(300)
     expect(draft?.config?.loopMode).toBe('seamless')
-    reset()
   })
 
   it('is not a crash when the value is corrupt', () => {
@@ -137,7 +147,6 @@ describe('the background draft', () => {
     expect(takeDraftForLaunch({ native: true, search: '' })).toBeUndefined()
     safeSetItem(DRAFT_KEY, '{"hello":"world"}')
     expect(readDraft()).toBeUndefined()
-    reset()
   })
 
   it('writes nothing for a workspace with nothing unsaved in it', () => {
@@ -161,7 +170,6 @@ describe('the background draft', () => {
       false,
     )
     expect(readDraft()?.flame.metadata?.name).toBe('Draft')
-    reset()
   })
 
   it('replaces a draft only with newer unsaved work', () => {
@@ -171,7 +179,6 @@ describe('the background draft', () => {
     })
     saveDraft(edited, true)
     expect(readDraft()?.flame.metadata?.name).toBe('Edited')
-    reset()
   })
 
   it('does not rewrite what it already holds', () => {
@@ -181,14 +188,12 @@ describe('the background draft', () => {
     const first = readDraft()?.savedAt
     saveDraft(state(), true)
     expect(readDraft()?.savedAt).toBe(first)
-    reset()
   })
 
   it('counts a change to only the timeline as work', () => {
     saveDraft(state(), true)
     saveDraft(state({ config: { ...config, endFrame: 600 } }), true)
     expect(readDraft()?.config?.endFrame).toBe(600)
-    reset()
   })
 
   it('ignores a config that does not validate, and keeps the flame', () => {
@@ -206,7 +211,6 @@ describe('the background draft', () => {
     expect(draft?.flame.metadata?.name).toBe('Draft')
     expect(draft?.tracks?.[0]?.parameterPath).toBe(tracks[0]?.parameterPath)
     expect(draft?.config).toBeUndefined()
-    reset()
   })
 })
 
@@ -256,7 +260,6 @@ describe('the pause backup', () => {
     expect(draft?.config?.endFrame).toBe(480)
 
     backup.dispose()
-    reset()
   })
 
   it('does nothing on the web, where nothing reads a draft back', () => {
@@ -295,7 +298,6 @@ describe('what a launch does with the draft', () => {
     )
     // Spent: the work is somewhere it can be found by hand.
     expect(readDraft()).toBeUndefined()
-    reset()
   })
 
   it('updates the killed session entry instead of adding a second', () => {
@@ -306,7 +308,6 @@ describe('what a launch does with the draft', () => {
     seedDraft({ sessionId: 'autosave-killed', savedAt: 3000 })
     takeDraftForLaunch({ native: true, search: '' })
     expect(loadRecentFlames()).toHaveLength(1)
-    reset()
   })
 
   it('never writes over a newer Recents entry of the same session', () => {
@@ -318,7 +319,6 @@ describe('what a launch does with the draft', () => {
     seedDraft({ sessionId: 'autosave-killed', savedAt: 1 })
     takeDraftForLaunch({ native: true, search: '' })
     expect(loadRecentFlames()[0]?.savedAt).toBe(rescued)
-    reset()
   })
 
   it('declines to restore over a link, and leaves the draft where it is', () => {
@@ -331,7 +331,6 @@ describe('what a launch does with the draft', () => {
     ).toBeUndefined()
     expect(readDraft()?.flame.metadata?.name).toBe('Draft')
     expect(loadRecentFlames()).toHaveLength(1)
-    reset()
   })
 
   it('adopts nothing on the web, and leaves what is there alone', () => {
@@ -339,7 +338,64 @@ describe('what a launch does with the draft', () => {
     expect(takeDraftForLaunch({ native: false, search: '' })).toBeUndefined()
     expect(readDraft()?.flame.metadata?.name).toBe('Draft')
     expect(loadRecentFlames()).toHaveLength(0)
-    reset()
+  })
+
+  it('rescues a draft whose envelope carries no usable clock', () => {
+    // `savedAt` missing, then not a number. Reading either as zero handed
+    // the argument to any entry that happened to exist, and the slot was
+    // cleared without the work being written anywhere at all.
+    for (const savedAt of [undefined, 'yesterday']) {
+      upsertRecentFlame('autosave-killed', {
+        ...flame,
+        metadata: { ...flame.metadata, name: 'Older work, newer entry' },
+      })
+      safeSetItem(
+        DRAFT_KEY,
+        JSON.stringify({
+          flame,
+          ...(savedAt === undefined ? {} : { savedAt }),
+          animation: { tracks, config },
+          sessionId: 'autosave-killed',
+        }),
+      )
+
+      takeDraftForLaunch({ native: true, search: '' })
+      expect(loadRecentFlames()[0]?.flame.metadata?.name).toBe('Draft')
+      expect(readDraft()).toBeUndefined()
+      reset()
+    }
+  })
+
+  it('does not count an entry the Library cannot read as a copy', () => {
+    // Structurally an entry, but its flame fails the schema, so the Library
+    // - which validates - never shows it. Comparing against it and calling
+    // the work secured left that work invisible everywhere the user could
+    // look for it, and took the draft slot away as well.
+    safeSetItem(
+      RECENTS_KEY,
+      JSON.stringify([
+        { id: 'autosave-killed', name: 'Hollow', savedAt: 9e12, flame: {} },
+      ]),
+    )
+    seedDraft({ sessionId: 'autosave-killed', savedAt: 1000 })
+
+    takeDraftForLaunch({ native: true, search: '' })
+    expect(
+      loadRecentFlames().map((entry) => entry.flame.metadata?.name),
+    ).toEqual(['Draft'])
+    expect(readDraft()).toBeUndefined()
+  })
+
+  it('keeps the slot when the write itself is refused', () => {
+    // The slot is then the only copy of the work, so it stays in it and the
+    // next launch offers it again.
+    seedDraft({ sessionId: 'autosave-killed' })
+    storageRefuses = true
+    const restored = takeDraftForLaunch({ native: true, search: '' })
+    expect(restored?.flame.metadata?.name).toBe('Draft')
+    storageRefuses = false
+    expect(readDraft()?.flame.metadata?.name).toBe('Draft')
+    expect(loadRecentFlames()).toHaveLength(0)
   })
 
   it('rescues a draft written before the envelope carried an entry', () => {
@@ -355,7 +411,6 @@ describe('what a launch does with the draft', () => {
     expect(restored?.flame.metadata?.name).toBe('Draft')
     expect(loadRecentFlames()).toHaveLength(1)
     expect(loadRecentFlames()[0]?.id).toMatch(/^autosave-/)
-    reset()
   })
 })
 
@@ -433,7 +488,6 @@ describe('the draft a launch restored', () => {
       backup.dispose()
       dispose()
     })
-    reset()
   })
 
   it('never writes over the newer entry the rescue declined to touch', () => {
@@ -479,6 +533,5 @@ describe('the draft a launch restored', () => {
       expect(names).toContain('Edited after the restore')
       dispose()
     })
-    reset()
   })
 })
