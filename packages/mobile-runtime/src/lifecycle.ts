@@ -1,9 +1,11 @@
 /**
  * What the app needs from the platform's lifecycle, and nothing more: the
  * Android back gesture, pause and resume, and a way to send the app to the
- * background. The web has no back button and no minimize; it still pauses,
- * through visibilitychange, so the draft save (app lib/draft.ts) behaves the
- * same in a browser tab.
+ * background. The web has no back button and no minimize; it still reports a
+ * pause, through visibilitychange, so the seam describes both platforms
+ * honestly - but what the app hangs off pause, the save it makes on its way to
+ * the background (app lib/pauseSave.ts), is native only: a browser tab gets a
+ * pagehide and is not force-stopped from under the user.
  */
 export interface LifecyclePorts {
   onBackButton(callback: () => void): () => void

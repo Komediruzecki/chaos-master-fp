@@ -12,7 +12,7 @@ import dragAndDropSource from '@/utils/useAppDragAndDrop.ts?raw'
 import { replaceOpenDocument } from './documentLoad'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 
-// Same reason as draft.test.ts: localStorage is not usable in this runtime,
+// Same reason as pauseSave.test.ts: localStorage is not usable in this runtime,
 // so Recents round-trips through an in-memory store.
 const { loadFlameFromFileMock } = vi.hoisted(() => ({
   loadFlameFromFileMock: vi.fn(),
@@ -258,7 +258,7 @@ describe('replacing the open document', () => {
     // it was running at - so New Flame, which carries no animation at all,
     // opened the starter flame at the last flame's 60fps over 300 frames. The
     // hand-off path is not in this: it resets the timeline itself before
-    // seeding, and it passes the restored draft's config through.
+    // seeding, and it passes the seeded config through.
     //
     // Every file that seeds a load, not just the workspace. Scanning
     // MainWorkspace alone left the Library's own plain-flame load and a
@@ -472,9 +472,8 @@ describe('replacing the open document', () => {
     // Two of the four call sites reached that function and nothing else - an
     // accepted migration and a generated logo - so they took no boundary at
     // all: the session id was never rotated, and the new flame's autosaves
-    // went into the entry the flush had just written the OUTGOING flame into.
-    // A restored draft's claim on its rescued entry was inherited too, and
-    // the baseline still described the document that had left.
+    // went into the entry the flush had just written the OUTGOING flame into,
+    // and the baseline still described the document that had left.
     const ast = parseWorkspace()
     let body: ts.Block | undefined
     const find = (node: ts.Node) => {

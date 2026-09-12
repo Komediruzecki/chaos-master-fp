@@ -46,7 +46,8 @@ export type AnimationLoad = {
   flame: FlameDescriptor
   tracks: TimelineTrack[]
   /** The timeline the animation was authored at, where the source has one
-   *  (a restored draft). Absent loads keep the workspace's defaults. */
+   *  (a stored entry, an imported file). Absent loads keep the workspace's
+   *  defaults. */
   config?: TimelineConfig
 }
 

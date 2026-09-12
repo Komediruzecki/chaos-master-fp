@@ -10,7 +10,6 @@ import { setActiveTab, workspaceIsVisible } from '@/lib/activeTab'
 import { createBackLayer } from '@/lib/backStack'
 import { SHOWCASE_CONSENT_VERSION } from '@/lib/communityShowcase'
 import { replaceOpenDocument } from '@/lib/documentLoad'
-import { clearDraftIfSaved, installDraftBackup } from '@/lib/draft'
 import { hapticsEnabled, setHapticsEnabled } from '@/lib/haptics'
 import { trackAppInit } from '@/lib/telemetry'
 import { createDragHandler } from '@/utils/createDragHandler'
@@ -93,6 +92,7 @@ import { extractFlameUniforms, generateTransformId, generateVariationId, } from 
 import { extractFlameUniforms3D } from './flame/transformFunction3D'
 import { collectFlameCustomVariations, deleteCustomVariation, duplicateCustomVariation, getCustomVariations, loadCustomVariations, persistSharedVariations, restoreCustomVariation, } from './flame/variations/custom'
 import { getVariationDefault } from './flame/variations/utils'
+import { installPauseSave } from './lib/pauseSave'
 import { IS_NATIVE } from './lib/platform'
 import { breakRecordingCoalescing, cancelSessionRecording, invalidateLastFinishedSession, isSessionRecording, notePreviewStarted, recordedActionCount, recordSyntheticAction, reportDocumentWrite, reportTimelineTransport, reportUnreplayable, startSessionRecording, stopSessionRecording, withRecordingSuppressed, } from './recorder/recorder'
 import { canEnableReplayAudio } from './recorder/replay'
@@ -141,12 +141,10 @@ import type { AudioAnalyzer, AudioTargetValue, LiveAudioAnalyzer, } from './util
 import type { HardwareTier } from './utils/hardwareTier'
 import type { SharePayload } from './utils/jsonQueryParam'
 import type { RandomizerHistoryEntry } from './utils/randomizerHistoryDB'
-import type { RecentFlameClaim } from './utils/recentFlames'
 import type { SonificationConfig } from './utils/sonification'
 import type { EasingCurve, KeyframeInterpolation, TimelineConfig, TimelineTrack, } from './utils/timeline'
 import type { CommandContext } from '@/commands/types'
 import type { CommunityShowcaseRequest } from '@/lib/communityShowcase'
-import type { UnsecuredReason } from '@/lib/draft'
 
 export type { ExportImageInfo, ExportImageType } from '@/flame/exportImageType'
 
@@ -174,8 +172,9 @@ export type AppProps = {
   flameFromWelcome?: () => FlameDescriptor | undefined
   welcomeTracks?: () => TimelineTrack[] | undefined
   /**
-   * The timeline a restored draft was authored at (lib/draft.ts). A welcome
-   * or Home pick has none and keeps the hand-off reset's defaults.
+   * The timeline the seeded flame's animation was authored at, where the
+   * seeding has one. A pick that carries none keeps the hand-off reset's
+   * defaults.
    */
   welcomeConfig?: () => TimelineConfig | undefined
   /**
@@ -186,22 +185,6 @@ export type AppProps = {
    * cleared in the same effect that consumes `flameFromWelcome`.
    */
   capabilityFromHome?: () => string | undefined
-  /**
-   * The Recents entry the launch rescued this flame into (lib/draft.ts). The
-   * editor's autosave carries on in it instead of opening a second entry for
-   * the same work; it verifies the entry still holds what the rescue wrote
-   * before it touches anything. Only a restored draft carries one.
-   */
-  restoredEntryFromLaunch?: () => RecentFlameClaim | undefined
-  /**
-   * Why a restored draft is NOT in Recents - the shelf was at its cap, or
-   * storage refused the write (lib/draft.ts). Set, it means this process
-   * holds the only live copy of that flame, so the hand-off must not be
-   * baselined as loaded: a clean document is skipped by the interval
-   * autosave, by the pagehide flush and by the flush at the next replacement,
-   * and the single draft slot was then all there was.
-   */
-  restoreUnsecuredFromLaunch?: () => UnsecuredReason | undefined
   resetFlameFromWelcome?: () => void
   hardwareTier?: HardwareTier | null
   onHardwareTierChange?: (tier: HardwareTier) => void
@@ -615,13 +598,12 @@ export function MainWorkspace(props: AppProps) {
     // each caller. Two of the four reached this function and nothing else -
     // an accepted migration and a generated logo - and so took no boundary at
     // all: the session id was never rotated, so the new flame's autosaves
-    // overwrote the entry the flush had just written the OUTGOING flame into;
-    // a restore's claim on its rescued entry was inherited by a document that
-    // had no business with it; and the baseline still described the flame
-    // that had left, so the incoming one read as unsaved work from the moment
-    // it opened. The other two also seed an animation, whose effect takes a
-    // boundary as well - re-taking it there is what picks up the tracks and
-    // the timeline that land after this returns (hooks/useWorkspaceAutosave).
+    // overwrote the entry the flush had just written the OUTGOING flame into,
+    // and the baseline still described the flame that had left, so the
+    // incoming one read as unsaved work from the moment it opened. The other
+    // two also seed an animation, whose effect takes a boundary as well -
+    // re-taking it there is what picks up the tracks and the timeline that
+    // land after this returns (hooks/useWorkspaceAutosave).
     markLoadedBaseline()
     recordSyntheticAction(
       'flame.load',
@@ -718,8 +700,6 @@ export function MainWorkspace(props: AppProps) {
         })
         // Read BEFORE resetFlameFromWelcome() clears the whole hand-off.
         const capability = props.capabilityFromHome?.()
-        const rescuedEntry = props.restoredEntryFromLaunch?.()
-        const restoreUnsecured = props.restoreUnsecuredFromLaunch?.()
         if (capability !== undefined) {
           setPendingCapability(capability)
         }
@@ -745,31 +725,18 @@ export function MainWorkspace(props: AppProps) {
         } else if (config) {
           // A flame with no tracks still has a timeline, and the reset above
           // has just replaced it with the default one. Nothing downstream puts
-          // a restored draft's fps and end frame back on this path:
-          // setLoadedAnimation is the animation loader, and there is no
-          // animation here to load.
+          // a seeded fps and end frame back on this path: setLoadedAnimation
+          // is the animation loader, and there is no animation here to load.
           timeline.setConfig({ ...timeline.config(), ...config })
         }
         props.resetFlameFromWelcome?.()
-        // Every hand-off is a fresh starting point for dirty tracking,
-        // including a restored draft whose work reached Recents before the
-        // launch handed it over: nothing is lost by counting that as loaded,
-        // while leaving it dirty made the autosave prompt and the five-minute
-        // reminder fire on a launch nobody had touched.
-        //
-        // A restore the rescue could NOT shelve is the exception, and the one
-        // this used to get wrong by passing nothing: that flame is in this
-        // process and in the draft slot and nowhere else, so marking it clean
-        // took it out of the reach of every writer - the interval autosave,
-        // the pagehide flush and the flush at the next replacement all skip a
-        // clean document - and the next pause on a different document
-        // overwrote the slot. It stays dirty; the prompts are told separately
-        // that nobody has touched it (hooks/useWorkspaceAutosave.ts).
-        markLoadedBaseline({ unsecured: restoreUnsecured !== undefined })
-        // After the boundary, which is what mints the id this replaces: the
-        // work is already in that entry, so the session carries on in it and
-        // one restored flame keeps one place on the shelf.
-        claimRestoredEntry(rescuedEntry)
+        // Every hand-off is a fresh starting point for dirty tracking: the
+        // flame that arrives here came from somewhere the user can reach it
+        // again - the welcome grid, a Home card, the Library - so nothing is
+        // lost by counting it as loaded, while leaving it dirty made the
+        // autosave prompt and the five-minute reminder fire on a launch
+        // nobody had touched.
+        markLoadedBaseline()
       })()
     }
   })
@@ -2815,10 +2782,10 @@ export function MainWorkspace(props: AppProps) {
         setAnimationEnabled(true)
         setShowTimeline(true)
       }
-      // A restored draft brings the timeline its animation was authored at.
-      // Without it the hand-off's reset (30fps, endFrame 90) truncated every
-      // longer animation and halved its speed, while the same flame through
-      // `?s=` came back intact. Applied outside the branch above because the
+      // A load brings the timeline its animation was authored at. Without it
+      // the hand-off's reset (30fps, endFrame 90) truncated every longer
+      // animation and halved its speed, while the same flame through `?s=`
+      // came back intact. Applied outside the branch above because the
       // envelope carries a config whether or not it carries tracks, and
       // inside it the stored fps and end frame of a flame with no animation
       // were read back and then dropped. Loop stays on by default for a
@@ -2914,13 +2881,11 @@ export function MainWorkspace(props: AppProps) {
 
   // ── Autosave & save-awareness ──────────────────────────────────────────
   const {
-    isFlameDirty,
     markSavedBaseline,
     markLoadedBaseline,
-    claimRestoredEntry,
     flushDirtyToRecents,
     prepareDocumentReplacement,
-    autosaveSessionId,
+    saveOnPause,
   } = useWorkspaceAutosave({
     flameDescriptor,
     getTracks: () => timeline.tracks(),
@@ -2953,14 +2918,6 @@ export function MainWorkspace(props: AppProps) {
       saveRecentFlame(flameDescriptor, undefined, tracks, force, config)
     const announce = (replacedOldest: boolean) => {
       markSavedBaseline()
-      // The work is on the shelf now, so the slot holding a copy of it has
-      // nothing left to protect - and at the cap the rescue cannot empty it,
-      // which left the restore notice coming back every launch (lib/draft.ts).
-      clearDraftIfSaved({
-        flame: unwrap(flameDescriptor),
-        tracks,
-        config,
-      })
       showToast(
         tracks.length > 0
           ? `Flame + animation saved${replacedOldest ? ' (replaced oldest)' : ' for later'}`
@@ -3097,29 +3054,17 @@ export function MainWorkspace(props: AppProps) {
 
   /**
    * The editor's autosave (hooks/useWorkspaceAutosave.ts) flushes to Recents
-   * on pagehide, which a WebView the OS force-stops never fires, so pause -
-   * the last moment a native app is told about - writes the flame and its
-   * animation to storage as well, and App.tsx rescues them on the next cold
-   * start (lib/draft.ts).
+   * on pagehide, which a WebView the OS force-stops never fires, so the same
+   * write is made when the OS backgrounds the app - the last moment a native
+   * app is told about (lib/pauseSave.ts).
    *
-   * The dirty flag is the editor's own, and the only question the draft asks
-   * of the workspace. It used to keep a baseline of its own and delete the
-   * draft whenever the two matched, which is how three fix passes in a row
-   * destroyed restored work: a clean workspace can now only leave the stored
-   * draft alone. The store is unwrapped because what is written has to be
-   * plain JSON, not a reactive proxy.
+   * No `onCleanup`, deliberately: an ErrorBoundary catch (App.tsx) or a
+   * WebGPU degrade unmounts this component, and unregistering here would take
+   * the crash net down at the moment there is unsaved work and no editor left
+   * to write it. The subscription lives in the module and a remount replaces
+   * its one writer.
    */
-  const draftBackup = installDraftBackup({
-    native: IS_NATIVE,
-    read: () => ({
-      flame: unwrap(flameDescriptor),
-      tracks: timeline.tracks(),
-      config: timeline.config(),
-      sessionId: autosaveSessionId(),
-    }),
-    unsaved: isFlameDirty,
-  })
-  onCleanup(draftBackup.dispose)
+  installPauseSave({ native: IS_NATIVE, save: saveOnPause })
 
   // Apply flame and animation from shared URL (fires once when resource resolves)
   let queryApplied = false

@@ -1,9 +1,9 @@
 import { onCleanup } from 'solid-js'
 import { autosaveIntervalMin, autosaveRecents, saveReminderDismissed, setAutosaveRecents, setSaveReminderDismissed, } from '@/utils/autosaveSettings'
-import { MAX_RECENT_FLAMES, recentFlameFingerprint, upsertRecentFlame, } from '@/utils/recentFlames'
+import { MAX_RECENT_FLAMES, upsertRecentFlame } from '@/utils/recentFlames'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 import type { FlushOutcome } from '@/lib/documentLoad'
-import type { RecentFlameClaim, RecentWriteOutcome } from '@/utils/recentFlames'
+import type { RecentWriteOutcome } from '@/utils/recentFlames'
 import type { TimelineConfig, TimelineTrack } from '@/utils/timeline'
 
 export interface UseWorkspaceAutosaveParams {
@@ -14,8 +14,8 @@ export interface UseWorkspaceAutosaveParams {
    * the tracks: the frame rate, the speed, the end frame and the loop mode
    * live in their own signal, so a snapshot of the flame and its keyframes
    * alone reported a workspace with a changed frame rate as holding nothing
-   * unsaved - no draft on pause, no flush at a load boundary, and the change
-   * died with the process.
+   * unsaved - nothing written on pause, no flush at a load boundary, and the
+   * change died with the process.
    */
   getConfig: () => TimelineConfig | undefined
   agentDriving: () => boolean
@@ -38,8 +38,9 @@ export interface UseWorkspaceAutosaveParams {
    * Taken as a parameter rather than reached for, because only one caller
    * here is ever allowed to ask: the flush at a document replacement, which
    * is the last moment the open document's work exists anywhere. The
-   * interval autosave and the pagehide flush both have answers of their own
-   * (below) and neither may raise this.
+   * interval autosave and the two writers for a process that is ending - the
+   * pagehide flush and the pause save - all have answers of their own
+   * (below), and none of them may raise this.
    */
   confirmOverwriteOldest: () => Promise<boolean>
   /**
@@ -69,89 +70,34 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
   const newAutosaveId = () =>
     `autosave-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
   /**
-   * The entry this session owns. Always a fresh one, except for the single
-   * case below: the rescue skips its write when what is already at an id is
-   * newer, and a workspace that had adopted that id put the older restored
-   * flame over the newer entry at its first autosave. An id alone is not
-   * evidence of anything (lib/draft.ts).
+   * The entry this session owns: one editing session, one place on the shelf,
+   * rather than a new entry per write. A fresh one at every load boundary -
+   * the document that opens there is not the document that left.
    */
   let autosaveSessionId = newAutosaveId()
-  /**
-   * The entry a launch rescued this document's work into, and a fingerprint
-   * of exactly what the rescue wrote there.
-   *
-   * Taking it over is what keeps one restored flame in one entry: without it
-   * the rescue wrote one entry and this session wrote another for the same
-   * work, so every crash cost two of the 150 places. It is taken over only
-   * while the entry still holds that exact content, checked at the moment of
-   * the write rather than at the hand-off - so an entry something else has
-   * written to since is left alone, and the id is never trusted on its own.
-   */
-  let restoredEntry: RecentFlameClaim | undefined
   /** Said once each. Neither a full shelf nor a storage that says no fixes
    *  itself mid-session, and both are spent only on a toast that was shown. */
   let fullNoticeShown = false
   let refusedNoticeShown = false
-  /**
-   * Set while the open document exists in this process and nowhere else: a
-   * draft the launch put back in front of the user but could NOT put in
-   * Recents, because the shelf is at its cap or storage refused the write
-   * (lib/draft.ts).
-   *
-   * It forces the dirty flag, and that is the whole of it. Baselining such a
-   * restore marks the only live copy of a user's flame clean, and the
-   * interval autosave, the pagehide flush and the flush at the next
-   * replacement all skip a clean document - so the single draft slot was the
-   * only copy left, and the next pause on a different document took it. The
-   * flame and its whole animation went, after the app had said it was
-   * restored.
-   */
-  let unsecuredRestore = false
   const autosaveSnapshot = () =>
     JSON.stringify({
       flame: flameDescriptor,
       tracks: getTracks(),
       config: getConfig(),
     })
-  /** Which document the unspent rescue claim belongs to - see
-   *  markLoadedBaseline. */
-  let sessionFlame = JSON.stringify(flameDescriptor)
   let autosaveBaseline = autosaveSnapshot()
-  /**
-   * The document as the last load boundary left it: what says whether the
-   * USER has touched this document, as against whether Recents is holding a
-   * copy of it.
-   *
-   * The two are the same question on every ordinary load and not the same
-   * question on an unsecured restore, which is dirty from the moment it opens
-   * and by nobody's doing. "Auto-save your flames?" and "Enjoying this
-   * flame?" fired on a launch nobody had touched when that was keyed on dirty
-   * alone.
-   */
-  let untouchedSnapshot = autosaveBaseline
   let editingSince: number | null = null
   let lastAutosaveAt = 0
   let reminderShown = false
   let autosavePromptShown = false
 
-  const isFlameDirty = () =>
-    unsecuredRestore || autosaveSnapshot() !== autosaveBaseline
-  /** Whether the user has changed anything since the document opened. */
-  const isUserEdited = () => autosaveSnapshot() !== untouchedSnapshot
+  const isFlameDirty = () => autosaveSnapshot() !== autosaveBaseline
   const markSavedBaseline = () => {
     autosaveBaseline = autosaveSnapshot()
-    // The work is on the shelf now, so nothing is holding the only copy of it
-    // any more.
-    unsecuredRestore = false
   }
   /**
    * A different document is on screen: re-take the baseline, and start a
    * Recents entry of its own for it.
-   *
-   * `unsecured` is the one load whose work is NOT in Recents - a restored
-   * draft the rescue could not shelve (lib/draft.ts). It is left dirty so
-   * every writer still catches it; only the prompts are told nobody has
-   * touched it.
    *
    * A boundary ALWAYS starts a new entry. It used to start one only when the
    * incoming flame differed from the last one, which quietly kept the entry
@@ -159,33 +105,15 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
    * edits into that entry, the boundary kept it, and the next autosave of the
    * fresh copy replaced them - under the same name, so nothing looked wrong.
    *
-   * What the comparison was really holding together is a single hand-off,
-   * which crosses this boundary twice: the flame lands in one effect and its
-   * animation in another, and both halves carry the same flame, so the
-   * descriptor cannot tell the second half of one load from a second load of
-   * the same flame. What can is that nothing has been written in between -
-   * the rescue's claim on the entry is still unspent (`claimRestoredEntry`,
-   * spent at the first write). So the entry is kept for exactly that: an
-   * unspent claim, on the flame it was taken for. Everything else rotates.
+   * A single hand-off crosses this boundary twice, because the flame lands in
+   * one effect and its animation in another. That costs an id and nothing
+   * else: only the last one is ever written to, and the document is clean at
+   * both halves.
    */
-  const markLoadedBaseline = (loaded: { unsecured?: boolean } = {}) => {
-    const flame = JSON.stringify(flameDescriptor)
-    if (loaded.unsecured) unsecuredRestore = true
-    else if (flame !== sessionFlame) {
-      // A different document is not the restore that could not be shelved.
-      unsecuredRestore = false
-    }
-    if (!unsecuredRestore) autosaveBaseline = autosaveSnapshot()
-    untouchedSnapshot = autosaveSnapshot()
+  const markLoadedBaseline = () => {
+    autosaveBaseline = autosaveSnapshot()
     editingSince = null
-    const continuesHandoff =
-      restoredEntry !== undefined && flame === sessionFlame
-    sessionFlame = flame
-    if (continuesHandoff) return
     autosaveSessionId = newAutosaveId()
-    // A different document cannot inherit a claim on the entry the one
-    // before it was rescued into.
-    restoredEntry = undefined
   }
 
   /**
@@ -193,22 +121,11 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
    *
    * `force` is what gets a write past the guard that stops an automatic save
    * from deleting a flame the user kept (utils/recentFlames.ts), so it is
-   * never a default and never a convenience: the two callers that pass true
-   * both have a reason the guard was written for - a user who answered the
-   * question, and a process that is about to end.
+   * never a default and never a convenience: the three callers that pass true
+   * all have a reason the guard was written for - a user who answered the
+   * question, and the two writers for a process that is about to end.
    */
   const writeToRecents = (force: boolean): RecentWriteOutcome => {
-    const claim = restoredEntry
-    if (claim) {
-      // Checked here rather than where the entry was offered, because this is
-      // the moment of the write: an entry something else has taken over since
-      // the hand-off is left alone, and this session opens one of its own.
-      // One shot, whichever way it goes.
-      restoredEntry = undefined
-      if (recentFlameFingerprint(claim.id) !== claim.fingerprint) {
-        autosaveSessionId = newAutosaveId()
-      }
-    }
     const outcome = upsertRecentFlame(
       autosaveSessionId,
       flameDescriptor,
@@ -277,8 +194,8 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
    * Save the open document if it holds anything unsaved, and say what
    * happened. Callers act on the answer differently, which is why this
    * reports one instead of swallowing it: a document replacement stops on
-   * `full` and asks, pagehide forces past it, and the interval autosave
-   * raises the notice (lib/documentLoad.ts).
+   * `full` and asks, pagehide and pause force past it, and the interval
+   * autosave raises the notice (lib/documentLoad.ts).
    */
   const flushDirtyToRecents = (force = false): FlushOutcome => {
     if (!isFlameDirty()) return 'clean'
@@ -291,13 +208,9 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
    * Nothing is written. What changes is that the work stops counting as
    * unsaved, so the chokepoint's own flush does not refuse the replacement a
    * second time over the answer that was just given (lib/documentLoad.ts).
-   * The draft slot is untouched: on native it may still be holding this work,
-   * and the worst that costs is one stale offer on the next launch, against
-   * deleting something nobody asked to delete (lib/draft.ts).
    */
   const dropUnsavedWork = () => {
     autosaveBaseline = autosaveSnapshot()
-    unsecuredRestore = false
   }
 
   /**
@@ -343,16 +256,46 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
   }
 
   const saveOnPagehide = () => {
-    // The only automatic path allowed to evict a kept flame, because it is
-    // the only one with nobody to ask and no next chance: the process is
-    // going away, and losing the oldest entry on the shelf is the smaller
-    // loss against certainly losing the document that is open.
+    // One of the two automatic paths allowed to evict a kept flame - the
+    // other is the pause save below - because they are the ones with nobody
+    // to ask and no next chance: the process is going away, and losing the
+    // oldest entry on the shelf is the smaller loss against certainly losing
+    // the document that is open.
     if (flushDirtyToRecents() === 'full') flushDirtyToRecents(true)
     // The one-per-run notice is deliberately not spent here. A toast raised
     // as the page is being torn down is never on screen long enough to read,
     // and spending the flag on it would silence the notice for the rest of
     // the run - so the user would never learn the shelf is full.
   }
+  /**
+   * The write a native app makes when the OS backgrounds it (lib/pauseSave.ts).
+   *
+   * Same reasoning as pagehide, for the platform that never fires it: a
+   * force-stopped WebView gets no pagehide at all, so this is the crash net,
+   * and it forces past the cap because there is nobody to ask and the process
+   * may not come back. The common case never reaches the force - this
+   * session's entry is already on the list, and writing into an id that is
+   * there replaces it rather than growing the list, so nothing is evicted.
+   *
+   * Deliberately NOT gated on `autosaveRecents`. Declining "auto-save your
+   * flames while you edit?" is declining a habit, not "lose my work when the
+   * OS kills the app": the interval writer below obeys that setting and this
+   * does not, and since the single draft slot was folded into Recents this is
+   * the only thing standing between a force-stop and the open document.
+   *
+   * A clean document writes nothing, which is what keeps the Library still:
+   * Android fires pause for every share sheet and every permission dialog,
+   * and a write would move this session's entry to the front of the list each
+   * time.
+   *
+   * @returns what the write did, for the caller to carry to the next launch -
+   * a toast raised as the process ends is never read (lib/pauseSave.ts).
+   */
+  const saveOnPause = (): FlushOutcome => {
+    const outcome = flushDirtyToRecents()
+    return outcome === 'full' ? flushDirtyToRecents(true) : outcome
+  }
+
   window.addEventListener('pagehide', saveOnPagehide)
   onCleanup(() => {
     window.removeEventListener('pagehide', saveOnPagehide)
@@ -362,16 +305,10 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
   const REMINDER_AFTER_MS = 5 * 60_000
   const autosavePoll = setInterval(() => {
     const dirty = isFlameDirty()
-    // Both prompts are about the user's own editing, so they read the one
-    // flag that means that. A restore the launch could not shelve is dirty
-    // for the writers and untouched for these two, and asking "enjoying this
-    // flame?" about a launch nobody has opened yet is how the dirty flag was
-    // made to speak for something it does not know.
-    const touched = dirty && isUserEdited()
-    if (touched && editingSince === null) editingSince = Date.now()
+    if (dirty && editingSince === null) editingSince = Date.now()
 
     if (
-      touched &&
+      dirty &&
       autosaveRecents() === 'unset' &&
       !autosavePromptShown &&
       !agentDriving()
@@ -434,22 +371,6 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
     autosaveNow,
     flushDirtyToRecents,
     prepareDocumentReplacement,
-    /**
-     * Offer this session the entry a launch rescued its document into
-     * (lib/draft.ts). Called after the hand-off's load boundary, because that
-     * boundary is what mints the id this replaces.
-     */
-    claimRestoredEntry: (entry: RecentFlameClaim | undefined) => {
-      restoredEntry = entry
-      // Taken on immediately, not at the first write: the pause backup names
-      // this entry in the draft it writes (lib/draft.ts), so a crash between
-      // the restore and the first flush would otherwise send the next launch
-      // to a fresh id and file the same work a second time. Nothing is
-      // written here - the entry is still checked at the moment of the write,
-      // and a fresh id minted then if it is no longer what the rescue left.
-      if (entry) autosaveSessionId = entry.id
-    },
-    /** The Recents entry this session writes to, for the pause backup. */
-    autosaveSessionId: () => autosaveSessionId,
+    saveOnPause,
   }
 }

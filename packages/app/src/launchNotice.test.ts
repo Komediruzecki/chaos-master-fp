@@ -3,10 +3,11 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 /**
- * "Restored your last flame" is the one thing the user is told about a
- * launch that just put their unsaved work back, and the moment it is needed
- * is the moment it is written: the welcome grid is still up, a starter flame
- * is one tap away, and the workspace it would replace is mounted behind it.
+ * The launch notice is the one thing the app says for itself at startup: the
+ * native app saved the open document when the OS backgrounded it, and if that
+ * save was refused, this is the only place the user can be told
+ * (lib/pauseSave.ts). It is raised on a cold start, with the welcome screen
+ * still up.
  *
  * Two things have to hold for it to be seen, and each has broken once. The
  * notice must be rendered outside the Suspense boundary, because an effect
@@ -28,14 +29,14 @@ const zIndexOf = (css: string, selector: string): number | undefined => {
   return z ? Number(z[1]) : undefined
 }
 
-describe('the restore notice', () => {
+describe('the launch notice', () => {
   it('is written where an unresolved Suspense cannot hold it back', () => {
     const app = readFileSync(join(import.meta.dirname, 'App.tsx'), 'utf8')
-    const notice = app.indexOf('MessageToast message={draftNotice()}')
+    const notice = app.indexOf('MessageToast message={launchNotice()}')
     const suspense = app.indexOf('<Suspense')
     expect(
       notice,
-      'the restore notice is rendered as <MessageToast message={draftNotice()} />',
+      'the launch notice is rendered as <MessageToast message={launchNotice()} />',
     ).toBeGreaterThan(-1)
     expect(suspense, 'App still suspends the workspace').toBeGreaterThan(-1)
     expect(

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { DRAFT_KEY } from '@/lib/draft'
+import { LEGACY_DRAFT_KEY } from '@/lib/pauseSave'
 import { clearSettings, computeStorageUsage } from './storageUsage'
 
 // The two IndexedDB-backed histories. This runtime has no IndexedDB and the
@@ -57,28 +57,29 @@ afterEach(() => {
 })
 
 describe('clearing settings', () => {
-  it('leaves the crash draft where it is', () => {
+  it('leaves the pre-fold crash slot where it is', () => {
     // THE TRAP. Recents is full, so the app tells the user to free space.
     // They open Data Management, read "Your saved flames are not touched",
-    // and clear their settings - and the draft slot went with the theme,
+    // and clear their settings - and the crash slot went with the theme,
     // because the sweep took every `chaos-master-*` key that was not the
-    // Recents list. At the cap that slot is the ONLY copy of the flame the
-    // app has just told them it restored (lib/draft.ts).
-    memory.setItem(DRAFT_KEY, '{"flame":{},"savedAt":1}')
+    // Recents list. Nothing writes that slot now, but until the migration
+    // has moved it onto the shelf it is still the only copy of whatever the
+    // build before the fold was holding (lib/pauseSave.ts).
+    memory.setItem(LEGACY_DRAFT_KEY, '{"flame":{},"savedAt":1}')
     memory.setItem('chaos-master-theme', '"dark"')
     memory.setItem('chaos-master-recent-flames', '[]')
 
     const cleared = clearSettings()
 
-    expect(memory.getItem(DRAFT_KEY)).toBe('{"flame":{},"savedAt":1}')
+    expect(memory.getItem(LEGACY_DRAFT_KEY)).toBe('{"flame":{},"savedAt":1}')
     expect(memory.getItem('chaos-master-theme')).toBeNull()
     // And it is not counted as a setting either, so the dialog does not offer
     // the user bytes it is not going to free.
     expect(cleared.count).toBe(1)
   })
 
-  it('does not count the draft in the settings the dialog offers to free', async () => {
-    memory.setItem(DRAFT_KEY, `{"padding":"${'x'.repeat(500)}"}`)
+  it('does not count that slot in the settings the dialog offers to free', async () => {
+    memory.setItem(LEGACY_DRAFT_KEY, `{"padding":"${'x'.repeat(500)}"}`)
     memory.setItem('chaos-master-theme', '"dark"')
 
     const usage = await computeStorageUsage()

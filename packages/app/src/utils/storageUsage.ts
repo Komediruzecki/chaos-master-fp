@@ -1,4 +1,4 @@
-import { DRAFT_KEY } from '@/lib/draft'
+import { LEGACY_DRAFT_KEY } from '@/lib/pauseSave'
 import { clearHistory, loadHistoryEntries } from './logoHistoryDB'
 import { clearRandomizerHistory, loadRandomizerHistoryEntries, } from './randomizerHistoryDB'
 import { clearRecentFlames, loadRecentFlames } from './recentFlames'
@@ -12,12 +12,15 @@ const RECENT_FLAMES_KEY = 'chaos-master-recent-flames'
  * preference, and so are neither counted as settings nor swept by
  * "Clear settings" — which promises "Your saved flames are not touched."
  *
- * `chaos-master-draft` is the crash-recovery slot (lib/draft.ts), and at the
- * cap it is the ONLY copy of a restored flame there is. The trap was exact:
- * the app tells a user at the cap to free space, they clear settings, and the
- * work the app had just told them it restored goes with the theme.
+ * `chaos-master-draft` is the crash slot of a build before the pause write
+ * was folded into Recents (lib/pauseSave.ts). Nothing writes it any more, but
+ * an upgrade may still find work in it that has been nowhere else, and the
+ * migration only retires the key once that work is on the shelf. The trap was
+ * exact: the app tells a user at the cap to free space, they clear settings,
+ * and the work goes with the theme. It stays listed here for as long as the
+ * migration does.
  */
-const FLAME_KEYS = new Set<string>([RECENT_FLAMES_KEY, DRAFT_KEY])
+const FLAME_KEYS = new Set<string>([RECENT_FLAMES_KEY, LEGACY_DRAFT_KEY])
 /** Effectively "all" — histories are capped well below this. */
 const ALL = 1_000_000
 

@@ -229,84 +229,6 @@ describe('the Recents entry a session writes to', () => {
   })
 })
 
-describe('a restored draft Recents could not take', () => {
-  it('stays unsaved, so every writer still catches it', () => {
-    // The launch put this flame back in front of the user and could NOT put
-    // it in Recents. Baselining it marked the only live copy clean, and the
-    // interval autosave, the pagehide flush and the flush at the next
-    // replacement all skip a clean document - so the single draft slot was
-    // the whole of the safety net, and the next pause on another document
-    // took it.
-    createRoot((dispose) => {
-      const { autosave } = workspace()
-      autosave.markLoadedBaseline({ unsecured: true })
-
-      expect(autosave.isFlameDirty()).toBe(true)
-      expect(autosave.flushDirtyToRecents()).toBe('saved')
-      expect(loadRecentFlames()).toHaveLength(1)
-      dispose()
-    })
-  })
-
-  it('stops counting as unsaved once it reaches Recents', () => {
-    createRoot((dispose) => {
-      const { autosave } = workspace()
-      autosave.markLoadedBaseline({ unsecured: true })
-      autosave.autosaveNow()
-
-      expect(autosave.isFlameDirty()).toBe(false)
-      dispose()
-    })
-  })
-
-  it('is still unsaved after the second half of the hand-off lands', () => {
-    // One hand-off crosses the boundary twice - the flame in one effect, its
-    // animation in another - and only the first half knows the rescue failed.
-    // A second boundary that re-baselined blindly put the bug straight back.
-    createRoot((dispose) => {
-      const { autosave } = workspace()
-      autosave.markLoadedBaseline({ unsecured: true })
-      autosave.markLoadedBaseline()
-
-      expect(autosave.isFlameDirty()).toBe(true)
-      dispose()
-    })
-  })
-
-  it('is not treated as unsaved once a different document is loaded', () => {
-    createRoot((dispose) => {
-      const { autosave, setOpen } = workspace()
-      autosave.markLoadedBaseline({ unsecured: true })
-      setOpen('metadata', 'name', 'Something else entirely')
-      autosave.markLoadedBaseline()
-
-      expect(autosave.isFlameDirty()).toBe(false)
-      dispose()
-    })
-  })
-
-  it('does not ask to auto-save a launch nobody has touched', () => {
-    // Dirty and untouched are different questions, and this is the one place
-    // they come apart. Keyed on dirty alone, "auto-save your flames?" and the
-    // five-minute "enjoying this flame?" fired on a restore the user had not
-    // so much as looked at.
-    vi.useFakeTimers()
-    createRoot((dispose) => {
-      const { autosave, setOpen, toasts } = workspace()
-      autosave.markLoadedBaseline({ unsecured: true })
-
-      vi.advanceTimersByTime(6 * 60_000)
-      expect(toasts).toEqual([])
-
-      // One real edit and the prompt is owed.
-      setOpen('metadata', 'name', 'Now they have touched it')
-      vi.advanceTimersByTime(30_000)
-      expect(toasts.join(' ')).toContain('Auto-save your flames')
-      dispose()
-    })
-  })
-})
-
 describe('a replacement the open flame could not be saved for', () => {
   it('stops and asks when storage refused the flush', () => {
     // `refused` fell through as if the write had landed, so the replacement
@@ -386,6 +308,93 @@ describe('a replacement the open flame could not be saved for', () => {
 
       expect(await autosave.prepareDocumentReplacement()).toBe(false)
       expect(askedDiscard).toBe(1)
+      dispose()
+    })
+  })
+})
+
+describe('the flames on the shelf, when the shelf is full', () => {
+  it('never pushes one out on a write nobody was asked about', () => {
+    // The rule every automatic writer is held to (utils/recentFlames.ts): the
+    // 150 entries are flames the user chose to keep, and an autosave is work
+    // they have not asked to keep. Silence would be the app quietly not
+    // saving, so the interval writer declines AND says so.
+    fillRecents()
+    createRoot((dispose) => {
+      const { autosave, setOpen, toasts } = workspace()
+      autosave.markLoadedBaseline()
+      setOpen('metadata', 'name', 'Unsaved work')
+
+      autosave.autosaveNow()
+
+      const kept = loadRecentFlamesForRewrite()
+      expect(kept).toHaveLength(MAX_RECENT_FLAMES)
+      expect(kept.some((entry) => entry.id === 'kept-149')).toBe(true)
+      expect(
+        kept.some((entry) => entry.flame.metadata?.name === 'Unsaved work'),
+      ).toBe(false)
+      expect(toasts.join(' ')).toContain('Recents is full')
+      dispose()
+    })
+  })
+
+  it('spends the oldest kept flame at a boundary only when the user says so', async () => {
+    // Declining looked right everywhere until the boundary flush turned out
+    // to be the ONLY thing that saves the OUTGOING document
+    // (lib/documentLoad.ts). At the cap, refusing there meant opening
+    // anything from Library destroyed whatever was unsaved in what was on
+    // screen - and undo restores a flame, not its keyframe tracks. The live
+    // document is the work the user can see; the 150th-oldest entry is the
+    // work they cannot. So the boundary asks, and a yes is what spends it.
+    fillRecents()
+    let asked = 0
+    await createRoot(async (dispose) => {
+      const { autosave, setOpen } = workspace({
+        confirmOverwriteOldest: () => {
+          asked += 1
+          return Promise.resolve(true)
+        },
+      })
+      autosave.markLoadedBaseline()
+      setOpen('metadata', 'name', 'Unsaved work')
+
+      // The write itself still declines on its own. Only the answer moves it.
+      expect(autosave.flushDirtyToRecents()).toBe('full')
+      expect(await autosave.prepareDocumentReplacement()).toBe(true)
+      expect(asked).toBe(1)
+
+      const kept = loadRecentFlamesForRewrite()
+      expect(kept).toHaveLength(MAX_RECENT_FLAMES)
+      expect(kept[0]?.flame.metadata?.name).toBe('Unsaved work')
+      expect(kept.some((entry) => entry.id === 'kept-149')).toBe(false)
+      expect(autosave.isFlameDirty()).toBe(false)
+      dispose()
+    })
+  })
+
+  it('forces the pagehide flush, because there is nobody left to ask', () => {
+    // One of the two paths allowed what no other is - the pause save is the
+    // other (lib/pauseSave.ts). A pagehide has no prompt available and no
+    // next chance: the alternative to evicting the oldest kept flame is
+    // certainly losing the document that is open.
+    fillRecents()
+    createRoot((dispose) => {
+      const { autosave, setOpen, toasts } = workspace()
+      autosave.markLoadedBaseline()
+      setOpen('metadata', 'name', 'Edited before the process died')
+
+      window.dispatchEvent(new Event('pagehide'))
+
+      const kept = loadRecentFlamesForRewrite()
+      expect(kept[0]?.flame.metadata?.name).toBe(
+        'Edited before the process died',
+      )
+      expect(kept).toHaveLength(MAX_RECENT_FLAMES)
+      // The one-per-run notice is spent only by showing it, so no toast here
+      // is the whole assertion: a toast raised as the page is torn down is
+      // never read, and burning the flag on it would silence the notice for
+      // the rest of the run.
+      expect(toasts).toEqual([])
       dispose()
     })
   })

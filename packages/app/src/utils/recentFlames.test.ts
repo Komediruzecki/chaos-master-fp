@@ -1,7 +1,7 @@
 import { MAX_TIMELINE_FRAME } from '@chaos-master/core'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { examples } from '@/flame/examples'
-import { clearRecentFlames, clearRecentFlamesCache, deleteRecentFlame, formatRecentDate, getOldestRecentFlame, loadRecentFlame, loadRecentFlames, loadRecentFlamesForRewrite, MAX_RECENT_FLAMES, recentFlameFingerprint, saveRecentFlame, saveRecentFlames, upsertRecentFlame, } from './recentFlames'
+import { clearRecentFlames, clearRecentFlamesCache, deleteRecentFlame, formatRecentDate, getOldestRecentFlame, loadRecentFlame, loadRecentFlames, loadRecentFlamesForRewrite, MAX_RECENT_FLAMES, saveRecentFlame, saveRecentFlames, upsertRecentFlame, } from './recentFlames'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 
 const STORAGE_KEY = 'chaos-master-recent-flames'
@@ -652,42 +652,6 @@ describe('upsertRecentFlame', () => {
       removeItem: () => {},
     })
     expect(upsertRecentFlame('auto', sampleFlame(), 'doomed')).toBe('refused')
-  })
-})
-
-// ── recentFlameFingerprint ───────────────────────────────────────────────
-
-describe('recentFlameFingerprint', () => {
-  it('identifies the exact content an entry holds', () => {
-    // What lets a restored workspace take over the entry the rescue wrote
-    // without risking the overwrite that adopting an id caused: the id alone
-    // says nothing about whether the entry is still that write.
-    seed([])
-    upsertRecentFlame('auto', sampleFlame(), 'Rescued', [], sampleConfig())
-    const written = recentFlameFingerprint('auto')
-    expect(written).toBeDefined()
-    expect(recentFlameFingerprint('auto')).toBe(written)
-
-    upsertRecentFlame('auto', sampleFlame(), 'Something else', [], {
-      ...sampleConfig(),
-      fps: 24,
-    })
-    expect(recentFlameFingerprint('auto')).not.toBe(written)
-  })
-
-  it('is undefined for an entry that is not there', () => {
-    seed([goodEntry('a')])
-    expect(recentFlameFingerprint('gone')).toBeUndefined()
-    deleteRecentFlame('a')
-    expect(recentFlameFingerprint('a')).toBeUndefined()
-  })
-
-  it('ignores the clock, which moves on every write', () => {
-    seed([])
-    upsertRecentFlame('auto', sampleFlame(), 'Rescued')
-    const first = recentFlameFingerprint('auto')
-    seed([{ ...loadRecentFlamesForRewrite()[0]!, savedAt: 999 }])
-    expect(recentFlameFingerprint('auto')).toBe(first)
   })
 })
 

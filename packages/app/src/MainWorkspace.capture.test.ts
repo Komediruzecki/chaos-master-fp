@@ -54,8 +54,8 @@ describe('the writes that keep a document', () => {
     )
   })
 
-  it('autosaves and writes the pause backup from the document', () => {
-    // The autosave hook is handed the store once; the draft it writes when the
+  it('autosaves and writes the pause save from the document', () => {
+    // The autosave hook is handed the store once; the write it makes when the
     // native app is backgrounded, and the flush at a load boundary, both read
     // from it. Hand it `renderedFlame` and every one of them files a frame of
     // a song as the open document.

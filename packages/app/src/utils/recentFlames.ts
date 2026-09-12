@@ -182,10 +182,10 @@ export function loadRecentFlames(): RecentFlame[] {
  * One entry, read exactly the way the Library reads the list it shows.
  *
  * Same validation as {@link loadRecentFlames}, over one entry instead of 150.
- * That pass costs about 90ms for a full list, and the launch's draft rescue
- * ran two of them before first paint on every native cold start while caring
- * about a single id (lib/draft.ts). The memo is used when it is already warm,
- * so a caller on a screen that has just loaded the list pays nothing.
+ * That pass costs about 90ms for a full list, and a caller that cares about a
+ * single id - every writer, confirming its own write - should not pay it. The
+ * memo is used when it is already warm, so a caller on a screen that has just
+ * loaded the list pays nothing.
  *
  * Read-only, like every entry this module hands out: it can come from the
  * shared memo.
@@ -352,36 +352,6 @@ export function upsertRecentFlame(
   )
   if (!safeSetItem(STORAGE_KEY, JSON.stringify(updated))) return 'refused'
   return landedIntact(id, config) ? 'saved' : 'refused'
-}
-
-/**
- * What an entry holds, as a string that changes when its content does.
- *
- * The clock is deliberately not in it: every write moves `savedAt`, and what
- * this answers is "is this entry still the write I made?", asked by a
- * workspace that has just been handed a flame the launch rescued into
- * Recents. It takes that entry over for its own autosave only while the
- * answer is yes, so one restored flame occupies one entry - and an entry that
- * something else has since written to is never touched, which is the
- * overwrite that adopting a bare id caused (lib/draft.ts).
- *
- * Structural read: this compares what is stored, not what the schema makes of
- * it.
- */
-export interface RecentFlameClaim {
-  readonly id: string
-  /** What {@link recentFlameFingerprint} returned for that entry. */
-  readonly fingerprint: string
-}
-
-export function recentFlameFingerprint(id: string): string | undefined {
-  const entry = loadRecentFlamesForRewrite().find((item) => item.id === id)
-  if (!entry) return undefined
-  return JSON.stringify({
-    flame: entry.flame,
-    tracks: entry.tracks ?? null,
-    config: entry.config ?? null,
-  })
 }
 
 /** The oldest stored entry — the one a save would evict. Structural load only:

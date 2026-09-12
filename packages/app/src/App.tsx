@@ -18,8 +18,7 @@ import { initAncestry } from './flame/ancestry'
 import { importSharedVariations, loadCustomVariations, remapFlameCustomVariations, } from './flame/variations/custom'
 import { activeTab, arcadeMode, setActiveTab, tabFromHash, } from './lib/activeTab'
 import { createBackLayer } from './lib/backStack'
-import { takeDraftForLaunch } from './lib/draft'
-import { IS_NATIVE } from './lib/platform'
+import { migrateLegacyDraft, takePauseSaveFailure } from './lib/pauseSave'
 import { Root } from './lib/Root'
 import { createWorkspaceHandoff } from './lib/workspaceHandoff'
 
@@ -49,30 +48,16 @@ function MessageToast(props: { message: string | null }) {
 }
 
 /**
- * What the launch says about the flame it just put back.
+ * The one thing a launch has to say for itself.
  *
- * The plain notice is only true once the work is also in Recents. When it is
- * not, the flame is in this session and in the draft slot and nowhere else,
- * so the notice says so and points at the one action that fixes it - the
- * user's own save, which is also the only thing allowed to decide that an
- * older flame may be replaced.
+ * The native app saves the open document when the OS backgrounds it, and a
+ * refusal there cannot be reported at the time: the process is ending and a
+ * toast nobody sees is the same as silence. So it is carried here
+ * (lib/pauseSave.ts). Nothing is claimed about where the flame is, because it
+ * is nowhere - that is what the message is for.
  */
-const NOTICE = {
-  secured: 'Restored your last flame',
-  /** A link opened its own flame, so the last one was shelved rather than
-   *  restored - and saying nothing would leave the user thinking the work
-   *  they were in the middle of is gone. */
-  shelved: 'Your last flame is in Recents, in the Library',
-  full: 'Restored your last flame. Recents is full, so save it for later to keep it.',
-  refused:
-    'Restored your last flame. It could not be added to Recents, so save it for later to keep it.',
-  /** The welcome grid is tappable before the workspace chunk has loaded, and
-   *  a pick in that window would overwrite the restore before it reaches the
-   *  editor (lib/workspaceHandoff.ts). The restore wins, so the pick has to
-   *  be accounted for rather than vanishing. */
-  restoreWon:
-    'Opening the flame you were last working on. Pick another from the Library once it is open.',
-} as const
+const PAUSE_SAVE_REFUSED =
+  'The flame you had open when the app last closed was not saved: this device refused to store it.'
 
 export function Wrappers() {
   // Load persisted ancestry data from IndexedDB on startup.
@@ -101,7 +86,7 @@ export function Wrappers() {
     null,
   )
   const [queryError, setQueryError] = createSignal<string | null>(null)
-  const [draftNotice, setDraftNotice] = createSignal<string | null>(null)
+  const [launchNotice, setLaunchNotice] = createSignal<string | null>(null)
 
   /**
    * Everything the workspace is seeded with, in one place: the flame, the
@@ -117,51 +102,23 @@ export function Wrappers() {
   const seedWorkspace = handoff.seed
 
   /**
-   * What the app was holding when the OS killed it (lib/draft.ts). The
-   * welcome screen does not skip it: it shows on every launch until the user
-   * ticks "Don't show again", and the workspace is mounted behind it, so the
-   * flame is already there once they enter. A link that carries its own flame
-   * is restored over nothing - the draft is left where it is and offered
-   * again next launch.
+   * What the launch owes the last session.
    *
-   * `takeDraftForLaunch` has already put the work in Recents by the time this
-   * runs, so from here the hand-off is an ordinary one: whatever the user
-   * does next - taps a starter flame, opens Library, leaves - the work is
-   * safe and this screen is the only thing that has to happen at the right
-   * moment.
+   * Nothing is restored here and nothing is seeded: the native app writes the
+   * open document straight into Recents when the OS backgrounds it, so by the
+   * time a cold start runs, the work is already on the shelf the Library
+   * shows. Whatever the user does next - taps a starter flame, opens Library,
+   * follows a link - it is already somewhere they can reach it, which is the
+   * whole reason the crash copy stopped being a slot of its own
+   * (lib/pauseSave.ts).
    *
-   * The entry the rescue wrote travels with the flame so the workspace
-   * carries on in it rather than filing the same work twice. It is handed
-   * over only when the rescue actually wrote it, and with a fingerprint of
-   * what was written, because adopting a bare id let the first autosave
-   * overwrite an entry the rescue had decided not to write to (lib/draft.ts).
+   * What is left is a one-time move for anyone upgrading with the old slot
+   * still populated, and the one thing a pause cannot say at the time it
+   * happens.
    */
   onMount(() => {
-    const draft = takeDraftForLaunch({
-      native: IS_NATIVE,
-      search: window.location.search,
-    })
-    if (!draft) return
-    // A link brought its own flame, so this one is on the shelf rather than
-    // in front of the user. Nothing is seeded over what the link opened.
-    if (draft.shelvedOnly) {
-      setDraftNotice(NOTICE.shelved)
-      return
-    }
-    seedWorkspace({
-      flame: draft.flame,
-      ...(draft.tracks ? { tracks: draft.tracks } : {}),
-      ...(draft.config ? { config: draft.config } : {}),
-      ...(draft.entry ? { restoredEntry: draft.entry } : {}),
-      // Both of these travel because the workspace cannot work either out for
-      // itself. `restored` gives this seeding right of way until the editor
-      // has taken it, and `restoreUnsecured` says the work is NOT in Recents,
-      // which is what stops the workspace marking the only live copy of a
-      // flame clean (hooks/useWorkspaceAutosave.ts).
-      restored: true,
-      ...(draft.unsecured ? { restoreUnsecured: draft.unsecured } : {}),
-    })
-    setDraftNotice(NOTICE[draft.unsecured ?? 'secured'])
+    migrateLegacyDraft()
+    if (takePauseSaveFailure()) setLaunchNotice(PAUSE_SAVE_REFUSED)
   })
 
   const [flameFromQuery] = createResource(async () => {
@@ -367,7 +324,7 @@ export function Wrappers() {
                   the moment the launch restores something, with the welcome
                   grid still up and a starter flame one tap away. The toast
                   column sits above the welcome screen's own layer. */}
-              <MessageToast message={draftNotice()} />
+              <MessageToast message={launchNotice()} />
               <Root
                 adapterOptions={{
                   powerPreference: 'high-performance',
@@ -384,8 +341,6 @@ export function Wrappers() {
                         welcomeTracks={handoff.tracks}
                         welcomeConfig={handoff.config}
                         capabilityFromHome={handoff.capability}
-                        restoredEntryFromLaunch={handoff.restoredEntry}
-                        restoreUnsecuredFromLaunch={handoff.restoreUnsecured}
                         autoOpenBenchmark={benchmarkRequested}
                         autoStartBenchmark={benchmarkAuto}
                         hardwareTier={
@@ -405,7 +360,7 @@ export function Wrappers() {
                       <Show when={activeTab() === 'home' && !showWelcome()}>
                         <HomeTab
                           onOpenFlame={(flame, tracks, capability) => {
-                            const seeded = seedWorkspace({
+                            seedWorkspace({
                               flame,
                               ...(tracks ? { tracks } : {}),
                               ...(capability !== undefined
@@ -413,7 +368,6 @@ export function Wrappers() {
                                 : {}),
                               enterWorkspace: true,
                             })
-                            if (!seeded) setDraftNotice(NOTICE.restoreWon)
                           }}
                         />
                         {/* Touch has no FloatingActions, so this is the way
@@ -453,17 +407,11 @@ export function Wrappers() {
                           })
                         }}
                         onSelectFlame={(flame, tracks) => {
-                          // This grid is live before the workspace chunk has
-                          // resolved, so a pick here can land while a rescued
-                          // draft is still waiting to be taken. The restore
-                          // wins; the pick is reported rather than dropped
-                          // (lib/workspaceHandoff.ts).
-                          const seeded = seedWorkspace({
+                          seedWorkspace({
                             flame,
                             ...(tracks ? { tracks } : {}),
                             enterWorkspace: true,
                           })
-                          if (!seeded) setDraftNotice(NOTICE.restoreWon)
                         }}
                         onStartTour={handleStartTour}
                         onShowAbout={() => {
