@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest'
 import source from './MainWorkspace.tsx?raw'
 
 /**
- * An artifact carries the flame that produced its pixels; anything persisted
- * as the user's work carries the authored flame.
+ * A post carries the flame that produced its pixels - in the image and in the
+ * link beside it; anything persisted as the user's work carries the authored
+ * flame.
  *
  * The two share captures live inside MainWorkspace, which no test can mount -
  * it is the whole editor, a WebGPU root and a dozen contexts - so the rule is
@@ -36,13 +37,17 @@ describe('the share captures', () => {
   })
 
   it('embed that flame in the PNG posted to Discord', () => {
-    expect(code).toContain('flame: capturedFlame, animation, customVariations:')
+    expect(code).toContain('flame: postedFlame, animation, customVariations:')
   })
 
-  it('still hand the document to the share link itself', () => {
-    // A link is not a picture: it opens the flame the user authored, and the
-    // showcase entry behind it is their work rather than one frame of a track.
-    expect(code).toContain('createShareLink({ flame: sharedFlame,')
+  it('hand the same flame to the link beside the image', () => {
+    // One post is one artifact. The PNG carried the captured frame while the
+    // link and the showcase entry carried the authored document, so while a
+    // track played, "Copy share link" under the picture handed someone a
+    // flame that does not look like it. One binding now, read by all three.
+    expect(code).toContain('const postedFlame = capturedFlame')
+    expect(code).toContain('createShareLink({ flame: postedFlame,')
+    expect(code).toContain('flame: postedFlame, animation, shareUrl:')
   })
 })
 

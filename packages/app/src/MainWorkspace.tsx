@@ -1995,7 +1995,10 @@ export function MainWorkspace(props: AppProps) {
   async function shareToDiscord() {
     // Freeze one authored document for the entire flow. The capture callback,
     // share-link shortener and consent modal all resolve asynchronously; using
-    // the live store again later could pair flame B with flame A's PNG.
+    // the live store again later could pair flame B with flame A's PNG. What
+    // is read off this below is the document's own description - its name, and
+    // which custom variations it references - never the artifact the post
+    // carries, which is `postedFlame`.
     const sharedFlame = deepClone(flameDescriptor)
     const tracks = deepClone(timeline.tracks())
     const config = deepClone(timeline.config())
@@ -2012,9 +2015,7 @@ export function MainWorkspace(props: AppProps) {
     // Step 1: Capture the current flame at its current resolution to prevent
     // flickering/resizing. The pixels come off the LIVE canvas, so the flame
     // that produced them - the open document with this frame of audio
-    // modulation over it - is frozen alongside them and is what the PNG
-    // embeds. The share link and the showcase entry keep `sharedFlame`: they
-    // are the user's work, not a picture of one frame of it.
+    // modulation over it - is frozen alongside them.
     let capturedFlame: FlameDescriptor | undefined
     const rawBlob = await new Promise<Blob | null>((resolve) => {
       setOnExportImage(() => (canvas: HTMLCanvasElement) => {
@@ -2035,17 +2036,32 @@ export function MainWorkspace(props: AppProps) {
       return
     }
 
+    /**
+     * One post, one artifact: the flame in the image, in the link beside it,
+     * and in the showcase entry the post can become.
+     *
+     * These used to disagree. The PNG carried the captured frame while the
+     * link and the showcase carried the authored document, so while a track
+     * played, someone clicking "Copy share link" under the picture got a
+     * flame that does not look like it - the same post saying two things.
+     *
+     * Recents, the autosave and the pause write are untouched by this and
+     * keep the authored flame: that is the user's work, and a picture of one
+     * frame of it is not something to save over it.
+     */
+    const postedFlame = capturedFlame
+
     // Step 2: Embed flame data into the PNG so it can be loaded back
     const animation = hasAnimation ? { tracks, config } : undefined
     const payload =
       hasAnimation || customVariations.length > 0
         ? {
-            flame: capturedFlame,
+            flame: postedFlame,
             animation,
             customVariations:
               customVariations.length > 0 ? customVariations : undefined,
           }
-        : capturedFlame
+        : postedFlame
     const encoded = await compressJsonQueryParam(payload)
     let pngBytes = new Uint8Array(await rawBlob.arrayBuffer())
     pngBytes = new Uint8Array(
@@ -2062,7 +2078,7 @@ export function MainWorkspace(props: AppProps) {
     // fallback "Copy share link" is instant and correct. Runs in parallel; the
     // OG preview upload is best-effort so the copied link shows a rich card.
     const sharePromise = createShareLink({
-      flame: sharedFlame,
+      flame: postedFlame,
       animation,
       customVariations:
         customVariations.length > 0 ? customVariations : undefined,
@@ -2097,7 +2113,7 @@ export function MainWorkspace(props: AppProps) {
             ? {
                 consent: true,
                 consentVersion: SHOWCASE_CONSENT_VERSION,
-                flame: sharedFlame,
+                flame: postedFlame,
                 animation,
                 shareUrl: (await sharePromise).primaryUrl,
               }
