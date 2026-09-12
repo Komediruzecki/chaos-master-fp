@@ -1,5 +1,6 @@
 import { cleanup, render, screen } from '@solidjs/testing-library'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { activeTab, setActiveTab } from '@/lib/activeTab'
 import { backDepth, popBack } from '@/lib/backStack'
 import { haptic } from '@/lib/haptics'
 import { NavRail } from './NavRail'
@@ -48,7 +49,10 @@ describe('NavRail', () => {
   beforeEach(() => {
     selectionChanged.mockClear()
   })
-  afterEach(cleanup)
+  afterEach(() => {
+    cleanup()
+    setActiveTab('workspace')
+  })
 
   it('carries the destinations and Settings, and marks where you are', () => {
     const { onSelect, onOpenSettings } = mount('create')
@@ -121,15 +125,32 @@ describe('NavRail', () => {
     ])
   })
 
-  it('is the Arcade alone where the host hands the bar nothing', () => {
+  it('reaches the Arcade from a surface the host hands nothing', () => {
     // What App mounts over Home: no handlers at all, because the editor's
-    // callbacks mean nothing on Library. The Arcade defaults into the list,
-    // and that one item is Home's only way into it - which is why neither
-    // surface guards More on the length of the list.
+    // callbacks mean nothing on Library. The Arcade defaults into the list
+    // (moreMenuItems.ts), and that one item is Home's only way into it.
+    //
+    // This used to assert the labels and stop, which is what buildMoreMenu's
+    // own test already does and says nothing about either surface - it
+    // passed identically with the length guard those surfaces used to carry
+    // put back, because the default makes the list one item long and the
+    // guard could never fire. What is worth holding is that a host with
+    // nothing to offer still gets a way in, and that pressing the item on
+    // the surface arrives somewhere.
+    mount('library')
+    expect(moreLabels()).toEqual(['Lumen Arcade'])
+    screen.getByText('Lumen Arcade').click()
+    expect(activeTab()).toBe('arcade')
+
+    setActiveTab('workspace')
+    cleanup()
+
     render(() => (
       <ShellBar mode="full" current={() => 'library'} onSelect={vi.fn()} />
     ))
     expect(moreLabels()).toEqual(['Lumen Arcade'])
+    screen.getByText('Lumen Arcade').click()
+    expect(activeTab()).toBe('arcade')
   })
 
   it('runs what was chosen, and closes from the backdrop and from back', () => {
