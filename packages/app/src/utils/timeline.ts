@@ -343,16 +343,30 @@ export type TimelineConfig = {
  * rather than at each writer.
  */
 export function clampTimelineConfig(config: TimelineConfig): TimelineConfig {
-  // A field that is not a number at all (a hand-edited file, an older build)
-  // takes the low end rather than travelling on as NaN.
-  const inRange = (value: number, min: number, max: number) =>
-    Number.isFinite(value) ? clamp(value, min, max) : min
+  // A field that is not a number at all takes the default rather than the low
+  // end of its range: clearing the Frames or Speed box sends
+  // `Math.round(Number(''))`, which is NaN, and the low end of a speed is a
+  // timeline frozen at zero - indistinguishable from the app hanging.
+  const fallback = defaultConfig()
+  const inRange = (value: number, min: number, max: number, orElse: number) =>
+    Number.isFinite(value) ? clamp(value, min, max) : orElse
   return {
     ...config,
-    fps: Math.round(inRange(config.fps, 1, MAX_TIMELINE_PLAYBACK_FPS)),
-    timeScale: inRange(config.timeScale, 0, MAX_TIMELINE_TIME_SCALE),
-    startFrame: Math.round(inRange(config.startFrame, 0, MAX_TIMELINE_FRAME)),
-    endFrame: Math.round(inRange(config.endFrame, 1, MAX_TIMELINE_FRAME)),
+    fps: Math.round(
+      inRange(config.fps, 1, MAX_TIMELINE_PLAYBACK_FPS, fallback.fps),
+    ),
+    timeScale: inRange(
+      config.timeScale,
+      0,
+      MAX_TIMELINE_TIME_SCALE,
+      fallback.timeScale,
+    ),
+    startFrame: Math.round(
+      inRange(config.startFrame, 0, MAX_TIMELINE_FRAME, fallback.startFrame),
+    ),
+    endFrame: Math.round(
+      inRange(config.endFrame, 1, MAX_TIMELINE_FRAME, fallback.endFrame),
+    ),
   }
 }
 

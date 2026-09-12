@@ -680,6 +680,30 @@ describe('Timeline Utilities', () => {
       ).toBe(true)
     })
 
+    it('falls back to the default for a value that is not a number', () => {
+      // A speed clamped to the low end of its range is a timeline frozen at
+      // zero, which reads as the app hanging rather than as a value being
+      // rejected. So a value that is not a number at all takes the field's
+      // default instead of its floor. An emptied number input is a different
+      // case: it sends 0, which is a number, and clamps into range.
+      timeline.setConfig({
+        ...timeline.config(),
+        fps: Number.NaN,
+        timeScale: Number.NaN,
+        endFrame: Number.NaN,
+      })
+      expect(timeline.config().fps).toBe(30)
+      expect(timeline.config().timeScale).toBe(1)
+      expect(timeline.config().endFrame).toBe(90)
+
+      timeline.setConfig({ ...timeline.config(), fps: 0, endFrame: 0 })
+      expect(timeline.config().fps).toBe(1)
+      expect(timeline.config().endFrame).toBe(1)
+      expect(
+        v.safeParse(TimelineSnapshotConfig, timeline.config()).success,
+      ).toBe(true)
+    })
+
     it('leaves an ordinary config exactly as it was', () => {
       const next = {
         ...timeline.config(),
