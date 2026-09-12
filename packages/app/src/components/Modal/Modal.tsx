@@ -93,15 +93,18 @@ export function Modal(props: ParentProps<ModalProps>) {
             } = instance
 
             // Answered once. With startViewTransition the removal from the
-            // list is deferred into the transition's callback, and the back
-            // handler below is disposed with the item's scope - so a second
-            // back inside that window cancelled this same dialog again
-            // instead of reaching the layer underneath it.
+            // list is deferred into the transition's callback, so the item's
+            // scope outlives the answer by a frame or two.
             let settled = false
 
             function respond(option: unknown) {
               if (settled) return
               settled = true
+              // Off the back stack now, not when the scope disposes. Waiting
+              // for the scope left a handler that did nothing and reported
+              // success, so a second back inside the transition's window
+              // neither reached the layer beneath nor minimised the app.
+              dropBackEntry()
               if ('startViewTransition' in document) {
                 const transition = document.startViewTransition(() => {
                   resolve(option)
@@ -121,13 +124,13 @@ export function Modal(props: ParentProps<ModalProps>) {
 
             // A dialog is the topmost layer while it is up, so the Android
             // back gesture closes it the way its own cancel does
-            // (lib/backStack.ts). The item's scope disposes this when the
-            // instance leaves the list, whichever way it was answered.
-            onCleanup(
-              pushBackHandler(() => {
-                respond(undefined)
-              }, 'modal'),
-            )
+            // (lib/backStack.ts). Answering drops the entry; the scope drops
+            // it too, for the instance that is torn down without an answer.
+            // The disposer is idempotent, so both may run.
+            const dropBackEntry = pushBackHandler(() => {
+              respond(undefined)
+            }, 'modal')
+            onCleanup(dropBackEntry)
 
             return (
               <dialog
