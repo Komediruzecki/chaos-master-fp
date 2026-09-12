@@ -98,13 +98,6 @@ export function Wrappers() {
   const [selectedCapability, setSelectedCapability] = createSignal<string>()
   const [queryError, setQueryError] = createSignal<string | null>(null)
   const [draftNotice, setDraftNotice] = createSignal<string | null>(null)
-  /**
-   * The Recents entry the flame in the hand-off above already lives in. Only
-   * the draft restore sets it: that work is put in Recents before it is
-   * handed over, and the workspace keeps writing to the same entry rather
-   * than opening a second one for it (lib/draft.ts).
-   */
-  const [handoffSessionId, setHandoffSessionId] = createSignal<string>()
 
   /**
    * Everything the workspace is seeded with, in one place.
@@ -113,9 +106,7 @@ export function Wrappers() {
    * nothing to say about, because a path that set only some of them
    * inherited the rest from whoever seeded last - and the welcome grid is
    * live before the workspace chunk has finished loading, so a starter flame
-   * tapped in that window arrived carrying the restored draft's timeline and
-   * the Recents entry the draft had just been rescued into. Its first
-   * autosave would then have written over that work.
+   * tapped in that window arrived carrying the restored draft's timeline.
    *
    * Called with nothing, it clears the hand-off: that is what MainWorkspace
    * does once it has consumed one.
@@ -127,8 +118,6 @@ export function Wrappers() {
     config?: TimelineConfig
     /** A Home "Explore" card's curated capability. */
     capability?: string
-    /** Only a rescued draft arrives with a Recents entry (lib/draft.ts). */
-    sessionId?: string
     /** Whether this also means "take me to the editor". */
     enterWorkspace?: boolean
   }) => {
@@ -137,7 +126,6 @@ export function Wrappers() {
       setSelectedWelcomeTracks(() => seed?.tracks)
       setSelectedWelcomeConfig(() => seed?.config)
       setSelectedCapability(seed?.capability)
-      setHandoffSessionId(seed?.sessionId)
       // Picking a flame means "take me to the editor". Forcing the tab keeps
       // a stray #home in the URL from leaving Home over the chosen flame.
       if (seed?.enterWorkspace) setActiveTab('workspace')
@@ -156,7 +144,10 @@ export function Wrappers() {
    * runs, so from here the hand-off is an ordinary one: whatever the user
    * does next - taps a starter flame, opens Library, leaves - the work is
    * safe and this screen is the only thing that has to happen at the right
-   * moment.
+   * moment. It is an ordinary one in the other direction too: the workspace
+   * opens its own Recents entry for it, because adopting the rescued one let
+   * the first autosave overwrite an entry the rescue had decided not to
+   * write to (lib/draft.ts).
    */
   onMount(() => {
     const draft = takeDraftForLaunch({
@@ -168,7 +159,6 @@ export function Wrappers() {
       flame: draft.flame,
       ...(draft.tracks ? { tracks: draft.tracks } : {}),
       ...(draft.config ? { config: draft.config } : {}),
-      sessionId: draft.sessionId,
     })
     setDraftNotice('Restored your last flame')
   })
@@ -401,7 +391,6 @@ export function Wrappers() {
                           hardwareTier() ?? (skipWelcome ? 'high' : null)
                         }
                         onHardwareTierChange={setHardwareTier}
-                        handoffSessionId={handoffSessionId}
                         resetFlameFromWelcome={() => {
                           seedWorkspace()
                         }}

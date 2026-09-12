@@ -13,13 +13,6 @@ export interface UseWorkspaceAutosaveParams {
     duration?: number | 'sticky',
     actions?: Array<{ label: string; onClick: () => void }>,
   ) => void
-  /**
-   * The Recents entry this workspace should keep writing to, when it opens
-   * on work that already has one: a draft the launch rescued is upserted
-   * into the entry its killed session owned (lib/draft.ts), and a second id
-   * here would add a duplicate of the same work a minute later.
-   */
-  restoredSessionId?: () => string | undefined
 }
 
 export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
@@ -27,7 +20,15 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
 
   const newAutosaveId = () =>
     `autosave-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
-  let autosaveSessionId = params.restoredSessionId?.() ?? newAutosaveId()
+  /**
+   * The entry this session owns. Always a fresh one, including on a launch
+   * that restored a draft: the rescue writes that work into the entry its
+   * killed session owned, but it skips the write when what is already there
+   * is newer, and a workspace that had adopted that id then put the older
+   * restored flame over the newer entry at its first autosave. An entry of
+   * its own can duplicate work; it cannot destroy any (lib/draft.ts).
+   */
+  let autosaveSessionId = newAutosaveId()
   const autosaveSnapshot = () =>
     JSON.stringify({ flame: flameDescriptor, tracks: getTracks() })
   /** Which document the current entry belongs to - see markLoadedBaseline. */

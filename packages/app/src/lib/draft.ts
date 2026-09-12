@@ -47,7 +47,8 @@ export interface DraftState {
    * The Recents entry this editing session keeps updating
    * (hooks/useWorkspaceAutosave.ts). It rides along so the launch that
    * rescues the draft writes into the entry the killed session owned, rather
-   * than adding a second one beside it.
+   * than adding a second one beside it. It is spent there: the workspace the
+   * draft is restored into opens an entry of its own (see RestoredDraft).
    */
   readonly sessionId: string
 }
@@ -172,13 +173,20 @@ export function clearDraft(): void {
 /**
  * A draft the launch has adopted. Its work is already in Recents by the time
  * a caller holds one of these.
+ *
+ * What it deliberately does NOT carry is the Recents entry the rescue wrote
+ * to. Handing that id to the workspace made its autosave the owner of an
+ * entry it had not written: when the rescue found a newer entry there and
+ * skipped the write, the first autosave after the restore put the older
+ * flame over the newer one, and the user had been told their work was
+ * restored. A second entry for one piece of work is an annoyance; an
+ * overwrite is lost work, so the workspace opens its own entry and this
+ * carries no id to adopt.
  */
 export interface RestoredDraft {
   readonly flame: FlameDescriptor
   readonly tracks?: TimelineTrack[]
   readonly config?: TimelineConfig
-  /** The Recents entry the work now lives in, for the workspace to keep. */
-  readonly sessionId: string
 }
 
 /** A session id for a draft written before the envelope carried one. */
@@ -245,7 +253,6 @@ export function takeDraftForLaunch(input: {
   if (secured) clearDraft()
   return {
     flame: parsed.flame,
-    sessionId,
     ...(parsed.tracks ? { tracks: parsed.tracks } : {}),
     ...(parsed.config ? { config: parsed.config } : {}),
   }

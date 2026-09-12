@@ -168,13 +168,6 @@ export type AppProps = {
    */
   welcomeConfig?: () => TimelineConfig | undefined
   /**
-   * The Recents entry the hand-off's flame already lives in, when it has one.
-   * Only the draft restore sets it: the launch puts that work in Recents
-   * before handing it over (lib/draft.ts), and the workspace keeps writing
-   * to the same entry instead of opening a second one for it.
-   */
-  handoffSessionId?: () => string | undefined
-  /**
    * One-shot request from a Home "Explore" card: open the tool this flame was
    * curated to demonstrate, not just the flame. The value is the row's
    * `gallery_items.capability` — see `openCapability` below for the mapping and
@@ -2675,9 +2668,6 @@ export function MainWorkspace(props: AppProps) {
     getTracks: () => timeline.tracks(),
     agentDriving,
     showToast,
-    // A draft the launch rescued is already in Recents, in the entry its
-    // killed session owned; this workspace keeps writing to that one.
-    restoredSessionId: () => props.handoffSessionId?.(),
   })
 
   /**

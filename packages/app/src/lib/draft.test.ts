@@ -3,7 +3,7 @@ import { createStore, unwrap } from 'solid-js/store'
 import { describe, expect, it, vi } from 'vitest'
 import { parseFlameXml } from '@/flame/flameXml'
 import { useWorkspaceAutosave } from '@/hooks/useWorkspaceAutosave'
-import { clearRecentFlames, loadRecentFlames } from '@/utils/recentFlames'
+import { clearRecentFlames, loadRecentFlames, upsertRecentFlame, } from '@/utils/recentFlames'
 import { safeSetItem } from '@/utils/storage'
 import { clearDraft, DRAFT_KEY, hasSharePayload, installDraftBackup, readDraft, saveDraft, takeDraftForLaunch, } from './draft'
 import { useLifecyclePorts } from './lifecycle'
@@ -112,9 +112,8 @@ describe('the background draft', () => {
       [60, 2],
     ])
     expect(typeof draft?.savedAt).toBe('number')
-    expect(takeDraftForLaunch({ native: true, search: '' })?.sessionId).toBe(
-      'autosave-session',
-    )
+    takeDraftForLaunch({ native: true, search: '' })
+    expect(loadRecentFlames()[0]?.id).toBe('autosave-session')
     reset()
   })
 
@@ -282,7 +281,9 @@ describe('what a launch does with the draft', () => {
     seedDraft()
     const restored = takeDraftForLaunch({ native: true, search: '' })
     expect(restored?.flame.metadata?.name).toBe('Draft')
-    expect(restored?.sessionId).toBe('autosave-killed')
+    // No entry id rides back with it: the workspace opens its own, so an
+    // autosave can never land on an entry the rescue did not write.
+    expect(restored && 'sessionId' in restored).toBe(false)
     expect(restored?.tracks?.[0]?.parameterPath).toBe(tracks[0]?.parameterPath)
     expect(restored?.config?.endFrame).toBe(300)
 
@@ -351,8 +352,9 @@ describe('what a launch does with the draft', () => {
       }),
     )
     const restored = takeDraftForLaunch({ native: true, search: '' })
-    expect(restored?.sessionId).toMatch(/^autosave-/)
+    expect(restored?.flame.metadata?.name).toBe('Draft')
     expect(loadRecentFlames()).toHaveLength(1)
+    expect(loadRecentFlames()[0]?.id).toMatch(/^autosave-/)
     reset()
   })
 })
@@ -395,7 +397,6 @@ describe('the draft a launch restored', () => {
         getTracks: () => currentTracks,
         agentDriving: () => false,
         showToast: () => undefined,
-        restoredSessionId: () => restored?.sessionId,
       })
       const backup = installDraftBackup({
         native: true,
@@ -435,11 +436,24 @@ describe('the draft a launch restored', () => {
     reset()
   })
 
-  it('keeps its entry while the work goes on in it', () => {
-    // The workspace that adopted the rescued entry keeps writing to it, so a
-    // rescued session is one entry in Recents rather than one per launch.
-    seedDraft({ sessionId: 'autosave-killed' })
+  it('never writes over the newer entry the rescue declined to touch', () => {
+    // THE SEQUENCE. Edit a flame; the share sheet pauses the app and the
+    // draft is written under that session's entry. Come back, open another
+    // flame from Library - the chokepoint flushes the newer version into
+    // that same entry - touch nothing, and the OS force-stops the app.
+    seedDraft({ sessionId: 'autosave-killed', savedAt: 1000 })
+    upsertRecentFlame(
+      'autosave-killed',
+      { ...flame, metadata: { ...flame.metadata, name: 'Flushed after it' } },
+      undefined,
+      [],
+    )
+
+    // Relaunch. The rescue finds a newer entry there and rightly leaves it
+    // alone - and used to hand that entry's id over anyway, so the workspace
+    // adopted an entry nothing had written the restored flame into.
     const restored = takeDraftForLaunch({ native: true, search: '' })
+    expect(restored?.flame.metadata?.name).toBe('Draft')
 
     createRoot((dispose) => {
       const [flameStore, setFlameStore] = createStore<FlameDescriptor>(
@@ -447,21 +461,22 @@ describe('the draft a launch restored', () => {
       )
       const autosave = useWorkspaceAutosave({
         flameDescriptor: flameStore,
-        getTracks: () => [],
+        getTracks: () => restored?.tracks ?? [],
         agentDriving: () => false,
         showToast: () => undefined,
-        restoredSessionId: () => restored?.sessionId,
       })
       autosave.markLoadedBaseline()
 
-      setFlameStore('metadata', 'name', 'Kept editing')
-      expect(autosave.isFlameDirty()).toBe(true)
+      // The first thing the user does with the flame they were told was
+      // restored. This is the write that destroyed the other half.
+      setFlameStore('metadata', 'name', 'Edited after the restore')
       autosave.flushDirtyToRecents()
 
-      const recents = loadRecentFlames()
-      expect(recents).toHaveLength(1)
-      expect(recents[0]?.id).toBe('autosave-killed')
-      expect(recents[0]?.flame.metadata?.name).toBe('Kept editing')
+      const names = loadRecentFlames().map(
+        (entry) => entry.flame.metadata?.name,
+      )
+      expect(names).toContain('Flushed after it')
+      expect(names).toContain('Edited after the restore')
       dispose()
     })
     reset()
