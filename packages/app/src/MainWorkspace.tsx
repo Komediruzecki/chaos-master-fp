@@ -2696,6 +2696,60 @@ export function MainWorkspace(props: AppProps) {
   })
 
   /**
+   * The user's own save: the one write allowed to replace a flame they kept,
+   * because it is the one that asks first.
+   *
+   * Named and declared here rather than inline on the desktop button, so the
+   * touch layouts can offer the same action - the restore notice tells the
+   * user to save the flame for later, and on the device that notice is
+   * written for there was nothing to tap (components/Shell/moreMenuItems.ts).
+   *
+   * Nothing here claims more than happened: `full` is the only outcome worth
+   * asking about, anything else means the write did not land and the
+   * workspace stays dirty so the next boundary tries again.
+   */
+  const saveFlameForLater = async () => {
+    const tracks = timeline.tracks()
+    const config = timeline.config()
+    const saved = (force: boolean) =>
+      saveRecentFlame(flameDescriptor, undefined, tracks, force, config)
+    const announce = (replacedOldest: boolean) => {
+      markSavedBaseline()
+      showToast(
+        tracks.length > 0
+          ? `Flame + animation saved${replacedOldest ? ' (replaced oldest)' : ' for later'}`
+          : `Flame saved${replacedOldest ? ' (replaced oldest)' : ' for later'}`,
+      )
+    }
+    const outcome = saved(false)
+    if (outcome === 'saved') {
+      announce(false)
+      return
+    }
+    if (outcome === 'refused') {
+      showToast('Could not save the flame to Recents', 5000)
+      return
+    }
+    const oldestName = getOldestRecentFlame()?.name || 'Flame'
+    const confirmed = await _requestModal<boolean>({
+      content: ({ respond }) => (
+        <Suspense>
+          <ConfirmOverwriteRecentModal
+            oldestName={oldestName}
+            respond={respond}
+          />
+        </Suspense>
+      ),
+    })
+    if (!confirmed) return
+    if (saved(true) === 'saved') {
+      announce(true)
+    } else {
+      showToast('Could not save the flame to Recents', 5000)
+    }
+  }
+
+  /**
    * The editor's autosave (hooks/useWorkspaceAutosave.ts) flushes to Recents
    * on pagehide, which a WebView the OS force-stops never fires, so pause -
    * the last moment a native app is told about - writes the flame and its
@@ -4036,62 +4090,7 @@ export function MainWorkspace(props: AppProps) {
                 // covered rather than only this button.
                 void showLoadFlameModal()
               }}
-              onSaveForLater={async () => {
-                const tracks = timeline.tracks()
-                const config = timeline.config()
-                const success = saveRecentFlame(
-                  flameDescriptor,
-                  undefined,
-                  tracks,
-                  false,
-                  config,
-                )
-                if (!success) {
-                  const oldest = getOldestRecentFlame()
-                  const oldestName = oldest?.name || 'Flame'
-                  const confirmed = await _requestModal<boolean>({
-                    content: ({ respond }) => (
-                      <Suspense>
-                        <ConfirmOverwriteRecentModal
-                          oldestName={oldestName}
-                          respond={respond}
-                        />
-                      </Suspense>
-                    ),
-                  })
-                  if (confirmed) {
-                    // Honour the write result. `saveRecentFlame` now reports a
-                    // failed write instead of always claiming success, so marking
-                    // the workspace clean here unconditionally would tell the user
-                    // their flame is safe when nothing landed.
-                    if (
-                      saveRecentFlame(
-                        flameDescriptor,
-                        undefined,
-                        tracks,
-                        true,
-                        config,
-                      )
-                    ) {
-                      markSavedBaseline()
-                      showToast(
-                        tracks.length > 0
-                          ? 'Flame + animation saved (replaced oldest)'
-                          : 'Flame saved (replaced oldest)',
-                      )
-                    } else {
-                      showToast('Could not save the flame to Recents', 5000)
-                    }
-                  }
-                } else {
-                  markSavedBaseline()
-                  showToast(
-                    tracks.length > 0
-                      ? 'Flame + animation saved for later'
-                      : 'Flame saved for later',
-                  )
-                }
-              }}
+              onSaveForLater={saveFlameForLater}
               onRender={() => {
                 if (timeline.isPlaying()) timeline.pause()
                 executeCommand('export.png', cmdContext)

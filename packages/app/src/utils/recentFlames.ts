@@ -175,6 +175,25 @@ export function loadRecentFlame(id: string): RecentFlame | undefined {
   }
 }
 
+/**
+ * Did the write land as something the Library can read, timeline and all?
+ *
+ * "Saved" is a claim about where the user's work is, and every caller acts on
+ * it: Save for Later says so and marks the workspace clean, the autosave
+ * resets its baseline, the draft rescue clears the slot that held the only
+ * other copy. The loader keeps an entry whose config fails validation and
+ * drops the config, so a flame could be stored while the timeline it was
+ * authored at quietly was not - and nothing retried, because the write had
+ * reported success.
+ *
+ * So a writer confirms its own write the way the Library will read it.
+ */
+function landedIntact(id: string, config?: TimelineConfig): boolean {
+  const stored = loadRecentFlame(id)
+  if (!stored) return false
+  return config === undefined || stored.config !== undefined
+}
+
 export function saveRecentFlame(
   flame: FlameDescriptor,
   name?: string,
@@ -187,14 +206,14 @@ export function saveRecentFlame(
    */
   forceOverwriteOldest: boolean = false,
   config?: TimelineConfig,
-): boolean {
+): RecentWriteOutcome {
   // Read-modify-write: use the structural loader, not the schema one. Rewriting
   // the list from schema-validated entries silently deletes every entry the
   // validator rejects, and under-counts the list so the "full" guard below
   // never fires. Same reasoning as `upsertRecentFlame`.
   const recent = loadRecentFlamesForRewrite()
   if (recent.length >= MAX_RECENT_FLAMES && !forceOverwriteOldest) {
-    return false
+    return 'full'
   }
   const id = newRecentFlameId()
   const entry: RecentFlame = {
@@ -214,7 +233,8 @@ export function saveRecentFlame(
   // Report the real outcome. This used to return `true` unconditionally, so a
   // write that failed on quota or in private mode still told the caller the
   // flame was saved — and the caller marks the workspace clean on success.
-  return safeSetItem(STORAGE_KEY, JSON.stringify(updated))
+  if (!safeSetItem(STORAGE_KEY, JSON.stringify(updated))) return 'refused'
+  return landedIntact(id, config) ? 'saved' : 'refused'
 }
 
 /**
@@ -282,7 +302,8 @@ export function upsertRecentFlame(
     0,
     MAX_RECENT_FLAMES,
   )
-  return safeSetItem(STORAGE_KEY, JSON.stringify(updated)) ? 'saved' : 'refused'
+  if (!safeSetItem(STORAGE_KEY, JSON.stringify(updated))) return 'refused'
+  return landedIntact(id, config) ? 'saved' : 'refused'
 }
 
 /**

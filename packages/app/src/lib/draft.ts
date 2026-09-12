@@ -215,13 +215,14 @@ const strandedSessionId = (): string =>
  * owned.
  *
  * Secured means one thing: the work is on the shelf the user can reach, and
- * the Library will show it. So the comparison and the confirmation both read
- * the entry through `loadRecentFlame`, which validates it exactly as the
- * Library does - the structural loader accepts an entry whose flame is an
- * empty object, which would have counted as a copy of the work while being
- * invisible everywhere the user could look for it. One entry, not the list:
- * this runs before first paint on every native cold start that has a draft,
- * and a schema pass over a full shelf costs about 90ms.
+ * the Library will show it. So the comparison reads the entry through
+ * `loadRecentFlame`, which validates it exactly as the Library does - the
+ * structural loader accepts an entry whose flame is an empty object, which
+ * would have counted as a copy of the work while being invisible everywhere
+ * the user could look for it - and the write is trusted only when the writer
+ * says it read back. One entry, not the list: this runs before first paint on
+ * every native cold start that has a draft, and a schema pass over a full
+ * shelf costs about 90ms.
  *
  * @returns why the work is not there, or nothing when it is - and the draft
  * slot is then still the only copy of it - plus whether this call is what put
@@ -264,13 +265,14 @@ function secureInRecents(
     draft.tracks,
     draft.config,
   )
+  // `saved` already means the entry reads back the way the Library reads it,
+  // its timeline included - the writer confirms its own write, so every path
+  // through it gets the same answer and this one does not read the list a
+  // second time (utils/recentFlames.ts). A write that lands as something the
+  // Library drops is not a rescue, and saying so is what lets the slot keep
+  // the only copy.
   if (outcome !== 'saved') return { unsecured: outcome, wrote: false }
-  // Read it back the way it will be read. A write that lands as something
-  // the Library drops is not a rescue, and saying so is what lets the slot
-  // keep the only copy.
-  return loadRecentFlame(sessionId) !== undefined
-    ? { wrote: true }
-    : { unsecured: 'refused', wrote: false }
+  return { wrote: true }
 }
 
 /**

@@ -349,7 +349,9 @@ describe('saveRecentFlame', () => {
     seed(
       Array.from({ length: MAX_RECENT_FLAMES }, (_, i) => brokenEntry(`b${i}`)),
     )
-    expect(saveRecentFlame(sampleFlame(), 'nope', undefined, false)).toBe(false)
+    expect(saveRecentFlame(sampleFlame(), 'nope', undefined, false)).toBe(
+      'full',
+    )
     expect(loadRecentFlamesForRewrite()).toHaveLength(MAX_RECENT_FLAMES)
   })
 
@@ -358,7 +360,9 @@ describe('saveRecentFlame', () => {
       Array.from({ length: MAX_RECENT_FLAMES }, (_, i) => goodEntry(`g${i}`)),
     )
     const before = localStorage.getItem(STORAGE_KEY)
-    expect(saveRecentFlame(sampleFlame(), 'nope', undefined, false)).toBe(false)
+    expect(saveRecentFlame(sampleFlame(), 'nope', undefined, false)).toBe(
+      'full',
+    )
     expect(localStorage.getItem(STORAGE_KEY)).toBe(before)
   })
 
@@ -368,13 +372,38 @@ describe('saveRecentFlame', () => {
     expect(loadRecentFlames()[0]!.config).toEqual(sampleConfig())
   })
 
+  it('does not report success for a timeline that cannot be read back', () => {
+    // The loader drops a config that fails validation and keeps the entry,
+    // so a write like this lands as a flame at the default 30fps over 90
+    // frames while the caller was told the flame was saved - and marked the
+    // workspace clean on the strength of it, so nothing ever retried.
+    seed([])
+    const outcome = saveRecentFlame(sampleFlame(), 'Long', [], true, {
+      ...sampleConfig(),
+      endFrame: 5000,
+    })
+    expect(loadRecentFlames()[0]!.config).toBeUndefined()
+    expect(outcome).toBe('refused')
+  })
+
+  it('reports what it did, so a caller knows whether to ask', () => {
+    seed([])
+    expect(saveRecentFlame(sampleFlame(), 'first')).toBe('saved')
+    seed(
+      Array.from({ length: MAX_RECENT_FLAMES }, (_, i) => goodEntry(`g${i}`)),
+    )
+    expect(saveRecentFlame(sampleFlame(), 'nope')).toBe('full')
+  })
+
   it('evicts the oldest when forced, staying at the cap', () => {
     seed(
       Array.from({ length: MAX_RECENT_FLAMES }, (_, i) =>
         goodEntry(`g${i}`, i),
       ),
     )
-    expect(saveRecentFlame(sampleFlame(), 'forced', undefined, true)).toBe(true)
+    expect(saveRecentFlame(sampleFlame(), 'forced', undefined, true)).toBe(
+      'saved',
+    )
     const after = loadRecentFlamesForRewrite()
     expect(after).toHaveLength(MAX_RECENT_FLAMES)
     expect(after[0]!.name).toBe('forced')
@@ -391,7 +420,7 @@ describe('saveRecentFlame', () => {
       },
       removeItem: () => {},
     })
-    expect(saveRecentFlame(sampleFlame(), 'doomed')).toBe(false)
+    expect(saveRecentFlame(sampleFlame(), 'doomed')).toBe('refused')
   })
 })
 
@@ -526,6 +555,19 @@ describe('upsertRecentFlame', () => {
     expect(loadRecentFlamesForRewrite()[0]!.tracks).toHaveLength(1)
     upsertRecentFlame('auto2', sampleFlame(), 'Plain', [])
     expect(loadRecentFlamesForRewrite()[0]!.tracks).toBeUndefined()
+  })
+
+  it('does not report success for a timeline that cannot be read back', () => {
+    // The autosave marks the workspace clean on success, so the same lie
+    // here loses the timeline at the next load boundary rather than at the
+    // next launch.
+    seed([])
+    const outcome = upsertRecentFlame('auto', sampleFlame(), 'Long', [], {
+      ...sampleConfig(),
+      fps: 0,
+    })
+    expect(loadRecentFlames()[0]!.config).toBeUndefined()
+    expect(outcome).toBe('refused')
   })
 
   it('stores the timeline whether or not there are keyframes', () => {
