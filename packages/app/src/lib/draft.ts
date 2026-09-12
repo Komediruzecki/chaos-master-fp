@@ -225,6 +225,20 @@ export interface RestoredDraft {
    */
   readonly entry?: RecentFlameClaim
   /**
+   * The work is in Recents, but this launch is not opening it: a link that
+   * carries its own flame owns the workspace, and restoring over it would
+   * replace what the link was opened for.
+   *
+   * The launch used to write the entry and then keep the slot as well, which
+   * is neither thing: the slot held a copy of work that was already on the
+   * shelf, so the first pause on the linked flame overwrote it, and deleting
+   * that entry in Library got it written back on the next plain launch. The
+   * work is shelved and the slot is spent, exactly as on a plain launch -
+   * only the opening is declined, and the caller says where the flame went
+   * rather than claiming it was restored.
+   */
+  readonly shelvedOnly?: true
+  /**
    * Why the work is in the workspace only, when it is: Recents is at its cap
    * and taking it would evict a flame the user kept, or the write was
    * refused. The draft slot keeps the work in both cases, so the launch
@@ -328,8 +342,10 @@ function secureInRecents(
  * shows on every launch until the user ticks "Don't show again", and the
  * workspace is mounted behind it, so a restored flame is waiting once they
  * enter. A link that carries its own flame is an input: restoring over it
- * would replace what the link was opened for, so the draft is left where it
- * is - declined, not deleted - and the next plain launch offers it again.
+ * would replace what the link was opened for, so the work is shelved without
+ * being opened and the caller is told that is what happened (see
+ * `shelvedOnly`). Nothing is left half done - when the shelf could not take
+ * it, the slot keeps it and this launch reports nothing at all.
  */
 export function takeDraftForLaunch(input: {
   native: boolean
@@ -347,11 +363,19 @@ export function takeDraftForLaunch(input: {
       : strandedSessionId()
   const { unsecured, wrote } = secureInRecents(parsed, sessionId)
 
-  if (hasSharePayload(input.search)) return undefined
   // Only once the work is somewhere else. If Recents could not take it the
   // slot is all there is, so the draft stays in it and the caller is told,
   // because the flame is then only as safe as this one process.
   if (unsecured === undefined) clearDraft()
+  if (hasSharePayload(input.search)) {
+    // Nothing to hand the workspace and no entry to hand over with it: the
+    // link is opening its own flame. Either the work is on the shelf, and
+    // this says so, or it is still in the slot and the next plain launch
+    // offers it.
+    return unsecured === undefined
+      ? { flame: parsed.flame, shelvedOnly: true }
+      : undefined
+  }
   // What was written, so the workspace can carry on in that entry rather
   // than opening a second one for the same work. Taken from storage after
   // the write, so it is the stored shape both sides compare - and only when

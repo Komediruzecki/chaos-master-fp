@@ -59,6 +59,10 @@ function MessageToast(props: { message: string | null }) {
  */
 const NOTICE = {
   secured: 'Restored your last flame',
+  /** A link opened its own flame, so the last one was shelved rather than
+   *  restored - and saying nothing would leave the user thinking the work
+   *  they were in the middle of is gone. */
+  shelved: 'Your last flame is in Recents, in the Library',
   full: 'Restored your last flame. Recents is full, so save it for later to keep it.',
   refused:
     'Restored your last flame. It could not be added to Recents, so save it for later to keep it.',
@@ -132,6 +136,12 @@ export function Wrappers() {
       search: window.location.search,
     })
     if (!draft) return
+    // A link brought its own flame, so this one is on the shelf rather than
+    // in front of the user. Nothing is seeded over what the link opened.
+    if (draft.shelvedOnly) {
+      setDraftNotice(NOTICE.shelved)
+      return
+    }
     seedWorkspace({
       flame: draft.flame,
       ...(draft.tracks ? { tracks: draft.tracks } : {}),

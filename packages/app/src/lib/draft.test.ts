@@ -3,7 +3,7 @@ import { createStore, unwrap } from 'solid-js/store'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { parseFlameXml } from '@/flame/flameXml'
 import { useWorkspaceAutosave } from '@/hooks/useWorkspaceAutosave'
-import { clearRecentFlames, loadRecentFlames, loadRecentFlamesForRewrite, MAX_RECENT_FLAMES, upsertRecentFlame, } from '@/utils/recentFlames'
+import { clearRecentFlames, deleteRecentFlame, loadRecentFlames, loadRecentFlamesForRewrite, MAX_RECENT_FLAMES, upsertRecentFlame, } from '@/utils/recentFlames'
 import { safeSetItem } from '@/utils/storage'
 import { defaultConfig } from '@/utils/timeline'
 import { clearDraft, clearDraftIfSaved, DRAFT_KEY, hasSharePayload, installDraftBackup, readDraft, saveDraft, takeDraftForLaunch, } from './draft'
@@ -429,16 +429,44 @@ describe('what a launch does with the draft', () => {
     }
   })
 
-  it('declines to restore over a link, and leaves the draft where it is', () => {
-    // Restoring over the link would replace what it was opened for. Dropping
-    // the draft instead lost a friend's tap: the work was gone from storage
-    // and had never reached Recents.
+  it('shelves the work rather than opening it over a link', () => {
+    // Restoring over the link would replace what it was opened for, and
+    // dropping the draft would lose a friend's tap. Half of each - write the
+    // entry, keep the slot - was what it did, and the slot then held a copy
+    // of work that was already on the shelf: the first pause on the flame
+    // the link opened overwrote it, and deleting the entry in Library got it
+    // written back on the next plain launch. So the work goes to Recents and
+    // the slot is spent, exactly as on a plain launch; only the opening is
+    // declined.
     seedDraft()
+    const outcome = takeDraftForLaunch({ native: true, search: '?s=abc' })
+    expect(outcome?.shelvedOnly).toBe(true)
+    expect(outcome?.entry).toBeUndefined()
+    expect(loadRecentFlames()[0]?.flame.metadata?.name).toBe('Draft')
+    expect(readDraft()).toBeUndefined()
+  })
+
+  it('does not write an entry back after the user deletes it', () => {
+    // THE SEQUENCE. Tap a friend's link, see the flame from last time appear
+    // in Library, delete it - and the next plain launch put it back, because
+    // the slot still held it.
+    seedDraft({ sessionId: 'autosave-killed' })
+    takeDraftForLaunch({ native: true, search: '?s=abc' })
+    deleteRecentFlame('autosave-killed')
+
+    expect(takeDraftForLaunch({ native: true, search: '' })).toBeUndefined()
+    expect(loadRecentFlames()).toHaveLength(0)
+  })
+
+  it('keeps the slot when a link launch cannot shelve the work', () => {
+    // Nothing else holds it, so the slot is still the only copy and the next
+    // plain launch offers it again.
+    seedFullRecents()
+    seedDraft({ sessionId: 'autosave-killed' })
     expect(
       takeDraftForLaunch({ native: true, search: '?s=abc' }),
     ).toBeUndefined()
     expect(readDraft()?.flame.metadata?.name).toBe('Draft')
-    expect(loadRecentFlames()).toHaveLength(1)
   })
 
   it('adopts nothing on the web, and leaves what is there alone', () => {
