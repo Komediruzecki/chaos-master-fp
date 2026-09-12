@@ -6,8 +6,16 @@
   z-index: 10005;
   overflow-y: auto;
   /* Top padding clears the pinned back control below, and the notch above it,
-     so the wordmark never starts underneath either. */
-  padding: calc(var(--la-safe-top, 0px) + 64px) clamp(16px, 5vw, 72px) 48px;
+     so the wordmark never starts underneath either.
+
+     The side gutters take whichever is wider, the page gutter or the display
+     cutout: held in landscape on a notched phone the cutout is wider than the
+     gutter, and cards laid out to the gutter alone ran under it. Not a bare
+     env(): the tokens fall back to 0px, which is also every Android value
+     (lumen.css, safe-area rule 1). */
+  padding: calc(var(--la-safe-top, 0px) + 64px)
+    max(clamp(16px, 5vw, 72px), var(--la-safe-right, 0px)) 48px
+    max(clamp(16px, 5vw, 72px), var(--la-safe-left, 0px));
   color: #f2f4f8;
   font:
     15px/1.5 system-ui,
@@ -92,7 +100,9 @@
   }
 
   .hub {
-    padding: calc(var(--la-safe-top, 0px) + 64px) 16px 28px;
+    padding: calc(var(--la-safe-top, 0px) + 64px)
+      max(16px, var(--la-safe-right, 0px)) 28px
+      max(16px, var(--la-safe-left, 0px));
   }
 }
 
