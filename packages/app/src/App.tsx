@@ -107,6 +107,44 @@ export function Wrappers() {
   const [handoffSessionId, setHandoffSessionId] = createSignal<string>()
 
   /**
+   * Everything the workspace is seeded with, in one place.
+   *
+   * Every field is written on every seeding, including the ones a caller has
+   * nothing to say about, because a path that set only some of them
+   * inherited the rest from whoever seeded last - and the welcome grid is
+   * live before the workspace chunk has finished loading, so a starter flame
+   * tapped in that window arrived carrying the restored draft's timeline and
+   * the Recents entry the draft had just been rescued into. Its first
+   * autosave would then have written over that work.
+   *
+   * Called with nothing, it clears the hand-off: that is what MainWorkspace
+   * does once it has consumed one.
+   */
+  const seedWorkspace = (seed?: {
+    flame: FlameDescriptor
+    tracks?: TimelineTrack[]
+    /** The timeline the flame's animation was authored at, if it has one. */
+    config?: TimelineConfig
+    /** A Home "Explore" card's curated capability. */
+    capability?: string
+    /** Only a rescued draft arrives with a Recents entry (lib/draft.ts). */
+    sessionId?: string
+    /** Whether this also means "take me to the editor". */
+    enterWorkspace?: boolean
+  }) => {
+    batch(() => {
+      setSelectedFlame(() => seed?.flame)
+      setSelectedWelcomeTracks(() => seed?.tracks)
+      setSelectedWelcomeConfig(() => seed?.config)
+      setSelectedCapability(seed?.capability)
+      setHandoffSessionId(seed?.sessionId)
+      // Picking a flame means "take me to the editor". Forcing the tab keeps
+      // a stray #home in the URL from leaving Home over the chosen flame.
+      if (seed?.enterWorkspace) setActiveTab('workspace')
+    })
+  }
+
+  /**
    * What the app was holding when the OS killed it (lib/draft.ts). The
    * welcome screen does not skip it: it shows on every launch until the user
    * ticks "Don't show again", and the workspace is mounted behind it, so the
@@ -126,11 +164,11 @@ export function Wrappers() {
       search: window.location.search,
     })
     if (!draft) return
-    batch(() => {
-      setSelectedFlame(() => draft.flame)
-      setSelectedWelcomeTracks(() => draft.tracks)
-      setSelectedWelcomeConfig(() => draft.config)
-      setHandoffSessionId(draft.sessionId)
+    seedWorkspace({
+      flame: draft.flame,
+      ...(draft.tracks ? { tracks: draft.tracks } : {}),
+      ...(draft.config ? { config: draft.config } : {}),
+      sessionId: draft.sessionId,
     })
     setDraftNotice('Restored your last flame')
   })
@@ -365,11 +403,7 @@ export function Wrappers() {
                         onHardwareTierChange={setHardwareTier}
                         handoffSessionId={handoffSessionId}
                         resetFlameFromWelcome={() => {
-                          setSelectedFlame(undefined)
-                          setSelectedWelcomeTracks(undefined)
-                          setSelectedWelcomeConfig(undefined)
-                          setSelectedCapability(undefined)
-                          setHandoffSessionId(undefined)
+                          seedWorkspace()
                         }}
                       />
                       {/* Home overlays the workspace, which stays mounted so
@@ -379,13 +413,13 @@ export function Wrappers() {
                       <Show when={activeTab() === 'home' && !showWelcome()}>
                         <HomeTab
                           onOpenFlame={(flame, tracks, capability) => {
-                            // Reuses the welcome screen's hand-off path rather
-                            // than adding a second way to seed the workspace.
-                            batch(() => {
-                              setSelectedFlame(() => flame)
-                              setSelectedWelcomeTracks(() => tracks)
-                              setSelectedCapability(capability)
-                              setActiveTab('workspace')
+                            seedWorkspace({
+                              flame,
+                              ...(tracks ? { tracks } : {}),
+                              ...(capability !== undefined
+                                ? { capability }
+                                : {}),
+                              enterWorkspace: true,
                             })
                           }}
                         />
@@ -426,14 +460,10 @@ export function Wrappers() {
                           })
                         }}
                         onSelectFlame={(flame, tracks) => {
-                          batch(() => {
-                            setSelectedFlame(() => flame)
-                            setSelectedWelcomeTracks(() => tracks)
-                            // Picking a flame means "take me to the editor".
-                            // Force the workspace tab so a stray #home in the
-                            // URL can't leave Home overlaying the flame the
-                            // user just chose.
-                            setActiveTab('workspace')
+                          seedWorkspace({
+                            flame,
+                            ...(tracks ? { tracks } : {}),
+                            enterWorkspace: true,
                           })
                         }}
                         onStartTour={handleStartTour}
