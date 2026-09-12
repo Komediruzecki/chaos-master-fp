@@ -140,6 +140,41 @@ export function loadRecentFlames(): RecentFlame[] {
   }
 }
 
+/**
+ * One entry, read exactly the way the Library reads the list it shows.
+ *
+ * Same validation as {@link loadRecentFlames}, over one entry instead of 150.
+ * That pass costs about 90ms for a full list, and the launch's draft rescue
+ * ran two of them before first paint on every native cold start while caring
+ * about a single id (lib/draft.ts). The memo is used when it is already warm,
+ * so a caller on a screen that has just loaded the list pays nothing.
+ *
+ * Read-only, like every entry this module hands out: it can come from the
+ * shared memo.
+ */
+export function loadRecentFlame(id: string): RecentFlame | undefined {
+  try {
+    const raw = safeGetItem(STORAGE_KEY)
+    if (raw === null) return undefined
+    if (validatedCache?.raw === raw) {
+      return validatedCache.entries.find((entry) => entry.id === id)
+    }
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return undefined
+    const item = parsed
+      .filter(isValidRecentFlame)
+      .find((entry) => entry.id === id)
+    if (!item) return undefined
+    const flame = tryValidateFlame(item.flame)
+    if (!flame) return undefined
+    const { config: stored, ...rest } = item
+    const config = parseStoredConfig(stored)
+    return { ...rest, flame, ...(config ? { config } : {}) }
+  } catch {
+    return undefined
+  }
+}
+
 export function saveRecentFlame(
   flame: FlameDescriptor,
   name?: string,

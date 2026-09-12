@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { examples } from '@/flame/examples'
-import { clearRecentFlames, clearRecentFlamesCache, deleteRecentFlame, formatRecentDate, getOldestRecentFlame, loadRecentFlames, loadRecentFlamesForRewrite, MAX_RECENT_FLAMES, recentFlameFingerprint, saveRecentFlame, saveRecentFlames, upsertRecentFlame, } from './recentFlames'
+import { clearRecentFlames, clearRecentFlamesCache, deleteRecentFlame, formatRecentDate, getOldestRecentFlame, loadRecentFlame, loadRecentFlames, loadRecentFlamesForRewrite, MAX_RECENT_FLAMES, recentFlameFingerprint, saveRecentFlame, saveRecentFlames, upsertRecentFlame, } from './recentFlames'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 
 const STORAGE_KEY = 'chaos-master-recent-flames'
@@ -221,6 +221,40 @@ describe('loadRecentFlames memo', () => {
       ;(entry as { name: string }).name = 'mutated'
     }).toThrow()
     expect(loadRecentFlames()[0]!.name).toBe('good a')
+  })
+})
+
+// ── loadRecentFlame (one entry, validated like the list) ──────────────────
+
+describe('loadRecentFlame', () => {
+  it('reads one entry the way the Library reads the list', () => {
+    seed([goodEntry('a'), { ...goodEntry('b'), config: sampleConfig() }])
+    expect(loadRecentFlame('b')?.name).toBe('good b')
+    expect(loadRecentFlame('b')?.config).toEqual(sampleConfig())
+  })
+
+  it('drops an entry the Library would not show', () => {
+    // The whole point of validating rather than reading structurally: an
+    // entry whose flame fails the schema is invisible in Library, so calling
+    // it a copy of anything is a lie about where the work is.
+    seed([brokenEntry('bad')])
+    expect(loadRecentFlame('bad')).toBeUndefined()
+  })
+
+  it('is undefined for an id that is not there, and for junk', () => {
+    seed([goodEntry('a')])
+    expect(loadRecentFlame('nope')).toBeUndefined()
+    seedRaw('{ not json')
+    expect(loadRecentFlame('a')).toBeUndefined()
+    seedRaw(JSON.stringify({ id: 'a' }))
+    expect(loadRecentFlame('a')).toBeUndefined()
+  })
+
+  it('agrees with the full loader, warm memo or cold', () => {
+    seed([goodEntry('a'), { ...goodEntry('b'), config: sampleConfig() }])
+    const cold = loadRecentFlame('b')
+    expect(loadRecentFlames().map((e) => e.id)).toEqual(['a', 'b'])
+    expect(loadRecentFlame('b')).toEqual(cold)
   })
 })
 

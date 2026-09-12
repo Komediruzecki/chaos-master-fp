@@ -32,6 +32,28 @@ vi.mock('@/utils/storage', () => ({
   },
 }))
 
+/** Every flame the schema is asked to validate, counted. The rescue runs
+ *  before first paint on a native cold start, and a pass over a full 150-entry
+ *  list costs about 90ms by that module's own measurement, so what it is
+ *  allowed to validate is a property worth pinning. The real validator still
+ *  does the work - this only counts the calls. */
+const validations = vi.hoisted(() => ({ count: 0 }))
+vi.mock('@/flame/schema/flameSchema', async (importOriginal) => {
+  // Declared as taking `unknown`, so `--fix` cannot decide the cast is
+  // unnecessary and delete it: `importOriginal` is untyped here.
+  const exportsOf = (module: unknown): Record<string, unknown> =>
+    module as Record<string, unknown>
+  const actual = exportsOf(await importOriginal())
+  const validate = actual.tryValidateFlame as (value: unknown) => unknown
+  return {
+    ...actual,
+    tryValidateFlame: (value: unknown) => {
+      validations.count++
+      return validate(value)
+    },
+  }
+})
+
 /** Where Recents lives, for seeding entries the loaders disagree about. */
 const RECENTS_KEY = 'chaos-master-recent-flames'
 
@@ -520,6 +542,24 @@ describe('what a launch does with the draft', () => {
     expect(recents[0]?.id).toBe('autosave-killed')
     expect(recents[0]?.flame.metadata?.name).toBe('Draft')
     expect(readDraft()).toBeUndefined()
+  })
+
+  it('validates the entry it cares about, not the whole shelf', () => {
+    // The rescue ran two full schema passes over the stored list before
+    // first paint, on every native cold start that had a draft. What it
+    // needs is one entry: the one its killed session owned, read the way the
+    // Library reads it.
+    seedFullRecents(['autosave-killed'])
+    seedDraft({ sessionId: 'autosave-killed', savedAt: 9e12 })
+
+    validations.count = 0
+    const restored = takeDraftForLaunch({ native: true, search: '' })
+
+    // The draft's own flame, the entry before the write, the same entry
+    // after it. Nothing that scales with the length of the list.
+    expect(validations.count).toBeLessThanOrEqual(3)
+    expect(restored?.flame.metadata?.name).toBe('Draft')
+    expect(loadRecentFlames()[0]?.flame.metadata?.name).toBe('Draft')
   })
 
   it('rescues a draft written before the envelope carried an entry', () => {

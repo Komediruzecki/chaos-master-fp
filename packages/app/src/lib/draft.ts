@@ -1,5 +1,5 @@
 import { parseFlameEnvelope } from '@/utils/flameImport'
-import { loadRecentFlames, recentFlameFingerprint, upsertRecentFlame, } from '@/utils/recentFlames'
+import { loadRecentFlame, recentFlameFingerprint, upsertRecentFlame, } from '@/utils/recentFlames'
 import { safeGetItem, safeRemoveItem, safeSetItem } from '@/utils/storage'
 import { onAppPause } from './lifecycle'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
@@ -216,10 +216,12 @@ const strandedSessionId = (): string =>
  *
  * Secured means one thing: the work is on the shelf the user can reach, and
  * the Library will show it. So the comparison and the confirmation both read
- * Recents through `loadRecentFlames`, the same schema-validating loader the
- * Library reads it with - the structural loader accepts an entry whose flame
- * is an empty object, which would have counted as a copy of the work while
- * being invisible everywhere the user could look for it.
+ * the entry through `loadRecentFlame`, which validates it exactly as the
+ * Library does - the structural loader accepts an entry whose flame is an
+ * empty object, which would have counted as a copy of the work while being
+ * invisible everywhere the user could look for it. One entry, not the list:
+ * this runs before first paint on every native cold start that has a draft,
+ * and a schema pass over a full shelf costs about 90ms.
  *
  * @returns why the work is not there, or nothing when it is - and the draft
  * slot is then still the only copy of it - plus whether this call is what put
@@ -234,7 +236,7 @@ function secureInRecents(
   draft: ParsedFlame,
   sessionId: string,
 ): { unsecured?: UnsecuredReason; wrote: boolean } {
-  const existing = loadRecentFlames().find((entry) => entry.id === sessionId)
+  const existing = loadRecentFlame(sessionId)
   // That session's autosave writes to this entry too. A draft written before
   // the last autosave holds the older half of one piece of work, and
   // overwriting the newer half with it would be the loss this module exists
@@ -266,7 +268,7 @@ function secureInRecents(
   // Read it back the way it will be read. A write that lands as something
   // the Library drops is not a rescue, and saying so is what lets the slot
   // keep the only copy.
-  return loadRecentFlames().some((entry) => entry.id === sessionId)
+  return loadRecentFlame(sessionId) !== undefined
     ? { wrote: true }
     : { unsecured: 'refused', wrote: false }
 }
