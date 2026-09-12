@@ -555,15 +555,24 @@ export function MainWorkspace(props: AppProps) {
    * and the touch layouts' way into the same dialog - the HUD, the rail and
    * the tools drawer all reach it through `pickGalleryFlame` - did not, so
    * opening a flame from Library on a phone dropped whatever was unsaved.
+   *
+   * Every caller settles the cap question first, with
+   * `prepareDocumentReplacement`: the chokepoint's answer to a replacement
+   * that skipped it is to refuse, so a call without the gate does not fall
+   * back to the old destructive behaviour - it does nothing at all, and the
+   * drop or the migration behind it appears to be ignored. A caller that
+   * forgets is caught by a guard over this file in lib/documentLoad.test.ts.
+   *
+   * @returns whether the document was actually replaced.
    */
   const replaceLoadedFlame = (
     next: FlameDescriptor,
     label = 'Load flame',
     origin?: SnapshotOrigin,
-  ) => {
+  ): boolean => {
     const flame = deepClone(next)
     const description = snapshotOriginLabel(origin) ?? label
-    replaceOpenDocument({
+    const replaced = replaceOpenDocument({
       // Reads the OUTGOING flame and its tracks, so it has to run before the
       // replacement below drops them (lib/documentLoad.ts).
       flushUnsaved: flushDirtyToRecents,
@@ -580,6 +589,10 @@ export function MainWorkspace(props: AppProps) {
         })
       },
     })
+    // A refused replacement opened nothing, so there is no load to record:
+    // a `flame.load` for a document that never landed makes a replay apply
+    // every action after it to the wrong flame.
+    if (!replaced) return false
     recordSyntheticAction(
       'flame.load',
       origin === undefined
@@ -587,6 +600,7 @@ export function MainWorkspace(props: AppProps) {
         : [deepClone(flame), description, {}, origin],
       description,
     )
+    return true
   }
   // Blend composition is part of the flame document too (renderSettings
   // .blendFlame / .blendWeight): picking, adjusting, or clearing a blend is
@@ -1642,6 +1656,13 @@ export function MainWorkspace(props: AppProps) {
       replace: (next, label) => {
         replaceLoadedFlame(next, label, snapshotOrigin('flame.file'))
       },
+      // Settled once the dropped file has been read, before the hook's batch
+      // drops the open document - and beside `replace` rather than inside it
+      // for the same reason the load dialog does it here: an await from
+      // inside that batch would let the animation seed take the load
+      // boundary while the outgoing flame was still on screen. A thunk
+      // because the autosave that answers this is created further down.
+      prepareReplace: () => prepareDocumentReplacement(),
     },
     setLoadedAnimation,
     importReplaySession,
@@ -1795,7 +1816,11 @@ export function MainWorkspace(props: AppProps) {
 
   const { showShareVariationLoadModal } = createLazyShareVariationLoadModal()
 
-  const { showMigrationModal } = createLazyMigrationModal((flame) => {
+  const { showMigrationModal } = createLazyMigrationModal(async (flame) => {
+    // Accepting a migration replaces the open document like any other load,
+    // so the cap question is settled here. Without it the chokepoint refuses
+    // the replacement and the modal closes having done nothing.
+    if (!(await prepareDocumentReplacement())) return
     replaceLoadedFlame(flame, 'Load migrated flame')
   })
 
@@ -2030,7 +2055,11 @@ export function MainWorkspace(props: AppProps) {
   const { showLogoFaviconGenerator } = createLazyLogoFaviconGenerator(
     flameDescriptor,
     () => selectedPalette(),
-    (flame) => {
+    async (flame) => {
+      // Same as the migration modal: the generated logo replaces the open
+      // document, so the question is asked here or the chokepoint refuses
+      // the replacement and the generator appears to load nothing.
+      if (!(await prepareDocumentReplacement())) return
       replaceLoadedFlame(flame, 'Load generated logo')
     },
   )

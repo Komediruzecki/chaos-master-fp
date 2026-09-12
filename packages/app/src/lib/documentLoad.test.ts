@@ -7,12 +7,21 @@ import { parseFlameXml } from '@/flame/flameXml'
 import { useWorkspaceAutosave } from '@/hooks/useWorkspaceAutosave'
 import workspaceSource from '@/MainWorkspace.tsx?raw'
 import { clearRecentFlames, loadRecentFlames, loadRecentFlamesForRewrite, MAX_RECENT_FLAMES, } from '@/utils/recentFlames'
+import { useAppDragAndDrop } from '@/utils/useAppDragAndDrop'
 import dragAndDropSource from '@/utils/useAppDragAndDrop.ts?raw'
 import { replaceOpenDocument } from './documentLoad'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 
 // Same reason as draft.test.ts: localStorage is not usable in this runtime,
 // so Recents round-trips through an in-memory store.
+const { loadFlameFromFileMock } = vi.hoisted(() => ({
+  loadFlameFromFileMock: vi.fn(),
+}))
+
+vi.mock('@/utils/useLoadFlameFromFile', () => ({
+  useLoadFlameFromFile: () => loadFlameFromFileMock,
+}))
+
 const store = new Map<string, string>()
 vi.mock('@/utils/storage', () => ({
   safeGetItem: (key: string) => store.get(key) ?? null,
@@ -73,6 +82,92 @@ const calleeName = (node: ts.CallExpression): string | undefined => {
   return undefined
 }
 
+/** Whether this property of an object literal is the one called `name`. */
+const named = (property: ts.ObjectLiteralElementLike, name: string) =>
+  property.name !== undefined &&
+  ts.isIdentifier(property.name) &&
+  property.name.text === name
+
+const isFunctionLike = (node: ts.Node): boolean =>
+  ts.isArrowFunction(node) ||
+  ts.isFunctionExpression(node) ||
+  ts.isFunctionDeclaration(node) ||
+  ts.isMethodDeclaration(node)
+
+/**
+ * The nearest function a node is written inside.
+ *
+ * Nearest, and not any enclosing one: MainWorkspace's own body holds
+ * several settled replacements, so a guard that accepted a gate from any
+ * ancestor scope would call every call site in the file settled forever -
+ * which is the shape of guard that reads as coverage and is none.
+ */
+const enclosingFunction = (node: ts.Node): ts.Node => {
+  let scope: ts.Node = node
+  while (scope.parent !== undefined && !isFunctionLike(scope)) {
+    scope = scope.parent
+  }
+  return scope
+}
+
+/** Whether `name` is written anywhere inside this node. */
+const mentions = (node: ts.Node, name: string): boolean => {
+  let found = false
+  const visit = (child: ts.Node) => {
+    if (found) return
+    if (ts.isIdentifier(child) && child.text === name) found = true
+    else ts.forEachChild(child, visit)
+  }
+  visit(node)
+  return found
+}
+
+/** Whether `name` is called inside this node, before `position`. */
+const callsBefore = (
+  scope: ts.Node,
+  name: string,
+  position: number,
+  ast: ts.SourceFile,
+): boolean => {
+  let found = false
+  const visit = (child: ts.Node) => {
+    if (found) return
+    if (
+      ts.isCallExpression(child) &&
+      calleeName(child) === name &&
+      child.getStart(ast) < position
+    ) {
+      found = true
+      return
+    }
+    ts.forEachChild(child, visit)
+  }
+  visit(scope)
+  return found
+}
+
+/** Whether this statement leaves the function it is in. */
+const containsReturn = (node: ts.Node): boolean => {
+  let found = false
+  const visit = (child: ts.Node) => {
+    if (found) return
+    if (ts.isReturnStatement(child)) found = true
+    else ts.forEachChild(child, visit)
+  }
+  visit(node)
+  return found
+}
+
+/** The workspace source, parsed once per guard that walks it. */
+const parseWorkspace = () =>
+  ts.createSourceFile(
+    'MainWorkspace.tsx',
+    workspaceSource,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TSX,
+  )
+
 /** Every file that seeds the workspace's animation loader. */
 const seeding: Array<[string, string]> = [
   ['MainWorkspace.tsx', workspaceSource],
@@ -128,13 +223,7 @@ describe('replacing the open document', () => {
     // `autosave.flushDirtyToRecents()` - the shape this hook is returned in
     // - slipped straight past, so the guard could be disarmed by a rename
     // nobody would think twice about.
-    const ast = ts.createSourceFile(
-      'MainWorkspace.tsx',
-      workspaceSource,
-      ts.ScriptTarget.Latest,
-      true,
-      ts.ScriptKind.TSX,
-    )
+    const ast = parseWorkspace()
     const byHand: string[] = []
     const walk = (node: ts.Node) => {
       if (
@@ -163,10 +252,6 @@ describe('replacing the open document', () => {
     // MainWorkspace alone left the Library's own plain-flame load and a
     // dropped file green while both handed over empty tracks and no
     // timeline, which is the exact shape this exists to catch.
-    const named = (property: ts.ObjectLiteralElementLike, name: string) =>
-      property.name !== undefined &&
-      ts.isIdentifier(property.name) &&
-      property.name.text === name
     const inherited: string[] = []
     for (const [fileName, source] of seeding) {
       const ast = ts.createSourceFile(
@@ -352,5 +437,219 @@ describe('replacing the open document', () => {
       expect(loadRecentFlames()).toHaveLength(0)
       dispose()
     })
+  })
+
+  it('settles the cap question before every replacement it loads', () => {
+    // `replaceLoadedFlame` is the workspace's one way to put a different
+    // document on screen, and the chokepoint refuses a replacement whose
+    // question was never asked. So a call that skips the gate does not fall
+    // back to the old, destructive behaviour - it does nothing at all, and
+    // the drop, the accepted migration or the generated logo behind it
+    // appears to have been ignored. Three of the four call sites were like
+    // that, because the gate was added at the load dialog only.
+    //
+    // Two shapes count as asking, and nothing else does. Either the
+    // callback holding the call awaits `prepareDocumentReplacement` before
+    // it, or the callback is handed to a hook beside a `prepareReplace`
+    // that does - the shape the load dialog and the drop handler need,
+    // because their replacement sits inside a batch with the animation seed
+    // that an await must not split.
+    const ast = parseWorkspace()
+    const loads: string[] = []
+    const ungated: string[] = []
+    const walk = (node: ts.Node) => {
+      if (
+        ts.isCallExpression(node) &&
+        calleeName(node) === 'replaceLoadedFlame'
+      ) {
+        const { line } = ast.getLineAndCharacterOfPosition(node.getStart(ast))
+        const at = `MainWorkspace.tsx:${line + 1}`
+        loads.push(at)
+        const scope = enclosingFunction(node)
+        const asksItself = callsBefore(
+          scope,
+          'prepareDocumentReplacement',
+          node.getStart(ast),
+          ast,
+        )
+        const handedOver =
+          scope.parent !== undefined &&
+          ts.isPropertyAssignment(scope.parent) &&
+          ts.isObjectLiteralExpression(scope.parent.parent) &&
+          scope.parent.parent.properties.some(
+            (property) =>
+              named(property, 'prepareReplace') &&
+              mentions(property, 'prepareDocumentReplacement'),
+          )
+        if (!asksItself && !handedOver) ungated.push(at)
+      }
+      ts.forEachChild(node, walk)
+    }
+    walk(ast)
+
+    // A rename that walked past every call site would otherwise leave this
+    // green while guarding nothing.
+    expect(loads.length).toBeGreaterThan(0)
+    expect(ungated).toEqual([])
+  })
+
+  it('records a load only for a replacement that happened', () => {
+    // `replaceLoadedFlame` records a synthetic `flame.load` so a recording
+    // can reproduce the document it opened. A refused replacement opened
+    // nothing, and recording one hands replay a load of a flame that never
+    // landed - every action after it is then applied to the wrong flame.
+    //
+    // Read off the source rather than run: `replaceLoadedFlame` is a
+    // closure inside MainWorkspace, which no test can construct. What is
+    // checked is that the recording is reached only through the
+    // chokepoint's answer - an early return on it, or a branch that reads
+    // it - and not that a recording is made, which recorder.test.ts covers.
+    const ast = parseWorkspace()
+    let body: ts.Block | undefined
+    const find = (node: ts.Node) => {
+      if (
+        ts.isVariableDeclaration(node) &&
+        ts.isIdentifier(node.name) &&
+        node.name.text === 'replaceLoadedFlame' &&
+        node.initializer !== undefined &&
+        ts.isArrowFunction(node.initializer) &&
+        ts.isBlock(node.initializer.body)
+      ) {
+        body = node.initializer.body
+      }
+      ts.forEachChild(node, find)
+    }
+    find(ast)
+    expect(body).toBeDefined()
+    if (!body) return
+
+    // The answer, by whatever name it was bound to. Unbound - the call
+    // written as a bare statement, which is how the return value came to be
+    // ignored - leaves only the call itself, and then nothing below reads it.
+    const answers = new Set(['replaceOpenDocument'])
+    for (const statement of body.statements) {
+      if (!ts.isVariableStatement(statement)) continue
+      for (const declared of statement.declarationList.declarations) {
+        if (
+          declared.initializer !== undefined &&
+          ts.isCallExpression(declared.initializer) &&
+          calleeName(declared.initializer) === 'replaceOpenDocument' &&
+          ts.isIdentifier(declared.name)
+        ) {
+          answers.add(declared.name.text)
+        }
+      }
+    }
+    const readsTheAnswer = (node: ts.Node) =>
+      [...answers].some((name) => mentions(node, name))
+
+    const records: ts.CallExpression[] = []
+    const collect = (node: ts.Node) => {
+      if (
+        ts.isCallExpression(node) &&
+        calleeName(node) === 'recordSyntheticAction'
+      ) {
+        records.push(node)
+      }
+      ts.forEachChild(node, collect)
+    }
+    collect(body)
+    // Same reason as above: a rename must not quietly empty this.
+    expect(records.length).toBeGreaterThan(0)
+
+    const unconditional: string[] = []
+    for (const record of records) {
+      const start = record.getStart(ast)
+      const returnedEarly = body.statements.some(
+        (statement) =>
+          statement.end <= start &&
+          ts.isIfStatement(statement) &&
+          readsTheAnswer(statement.expression) &&
+          containsReturn(statement.thenStatement),
+      )
+      let branched = false
+      let scope: ts.Node = record
+      while (scope !== body && scope.parent !== undefined) {
+        scope = scope.parent
+        if (ts.isIfStatement(scope) && readsTheAnswer(scope.expression)) {
+          branched = true
+        }
+        if (
+          ts.isConditionalExpression(scope) &&
+          readsTheAnswer(scope.condition)
+        ) {
+          branched = true
+        }
+      }
+      if (!returnedEarly && !branched) {
+        const { line } = ast.getLineAndCharacterOfPosition(start)
+        unconditional.push(`MainWorkspace.tsx:${line + 1}`)
+      }
+    }
+    expect(unconditional).toEqual([])
+  })
+
+  it('loads nothing from a dropped file when the answer is no', async () => {
+    // A drop replaces the open document like any other load, so at the cap
+    // it is the same question - and the drop handler never asked it, so the
+    // chokepoint refused and the drop was swallowed whole: no flame, no
+    // timeline, and nothing said. The gate is handed in beside `replace`
+    // because the replacement itself sits inside a batch with the animation
+    // seed that an await must not split.
+    fillRecents()
+    loadFlameFromFileMock.mockResolvedValue({ flame })
+    const toasts: string[] = []
+    await createRoot(async (dispose) => {
+      const [open, setOpen] = createStore<FlameDescriptor>(
+        JSON.parse(JSON.stringify(flame)),
+      )
+      const autosave = useWorkspaceAutosave({
+        flameDescriptor: open,
+        getTracks: () => [],
+        getConfig: () => undefined,
+        agentDriving: () => false,
+        showToast: (message) => toasts.push(message),
+        confirmOverwriteOldest: declineOverwrite,
+      })
+      autosave.markLoadedBaseline()
+      setOpen('metadata', 'name', 'Unsaved work')
+
+      const replace = vi.fn()
+      const setLoadedAnimation = vi.fn()
+      const onDrop = useAppDragAndDrop(
+        {
+          replace,
+          prepareReplace: () => autosave.prepareDocumentReplacement(),
+        },
+        setLoadedAnimation,
+      )
+      await onDrop(new File(['flame'], 'Dropped.png'))
+
+      // Nothing replaced the document, and nothing reset the timeline
+      // underneath it either.
+      expect(replace).not.toHaveBeenCalled()
+      expect(setLoadedAnimation).not.toHaveBeenCalled()
+      // The shelf they said not to touch is exactly as it was.
+      const kept = loadRecentFlamesForRewrite()
+      expect(kept).toHaveLength(MAX_RECENT_FLAMES)
+      expect(kept.some((entry) => entry.id === 'kept-149')).toBe(true)
+      expect(toasts.join(' ')).toContain('Kept the open flame')
+      dispose()
+    })
+  })
+
+  it('loads a dropped file when no gate was handed in', async () => {
+    // The gate is optional so that a caller settling nothing - the hook's
+    // other users, and its own tests - drops files exactly as it always
+    // has, rather than every drop stopping on an answer nobody gives.
+    loadFlameFromFileMock.mockResolvedValue({ flame })
+    const replace = vi.fn()
+    const setLoadedAnimation = vi.fn()
+    const onDrop = useAppDragAndDrop({ replace }, setLoadedAnimation)
+
+    await onDrop(new File(['flame'], 'Dropped.png'))
+
+    expect(replace).toHaveBeenCalledTimes(1)
+    expect(setLoadedAnimation).toHaveBeenCalledTimes(1)
   })
 })

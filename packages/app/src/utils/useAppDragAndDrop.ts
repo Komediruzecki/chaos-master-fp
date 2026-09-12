@@ -7,7 +7,24 @@ import type { RecordedSession } from '@/recorder/schema'
 import type { TimelineConfig, TimelineTrack } from '@/utils/timeline'
 
 export function useAppDragAndDrop(
-  history: { replace: (v: FlameDescriptor, label?: string) => void },
+  history: {
+    replace: (v: FlameDescriptor, label?: string) => void
+    /**
+     * Settle whether the open document may be replaced, before anything
+     * here touches it. At the cap that is the user's question to answer -
+     * the only way to save the outgoing flame is to evict the oldest one
+     * they kept - and the answer can be no (lib/documentLoad.ts).
+     *
+     * Awaited here rather than at `history.replace`, because that call sits
+     * inside the batch below with the animation seed: a decision awaited
+     * from in there would let the seed's effect take the load-boundary
+     * baseline while the outgoing flame was still on screen.
+     *
+     * Optional, so a caller that settles nothing drops files exactly as it
+     * always has.
+     */
+    prepareReplace?: () => Promise<boolean>
+  },
   setLoadedAnimation: (state: {
     flame: FlameDescriptor
     tracks: TimelineTrack[]
@@ -34,6 +51,12 @@ export function useAppDragAndDrop(
       return
     }
     const flame = result.flame
+    // The open document's unsaved work has to be somewhere it survives
+    // before the batch below drops it. A no leaves the dropped file
+    // unloaded and that work on screen, which is the point of asking - and
+    // the session the file may carry stays unoffered with it, because
+    // replaying it would replace the document just kept.
+    if ((await history.prepareReplace?.()) === false) return
     batch(() => {
       history.replace(deepClone(flame), 'Drop flame')
       if (result.animation && result.animation.tracks.length > 0) {
