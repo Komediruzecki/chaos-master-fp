@@ -142,6 +142,13 @@ const reset = () => {
 // then runs on the wreckage and reports something that is not its own.
 afterEach(reset)
 
+/** The answer these tests give when a save at the cap asks whether it may
+ *  evict the oldest kept flame. No, unless a test says otherwise: an
+ *  unanswered prompt would leave the boundary flush pending forever, and a
+ *  yes would quietly let a write past the guard the flush is there to
+ *  respect. */
+const declineOverwrite = () => Promise.resolve(false)
+
 describe('the background draft', () => {
   it('comes back with its flame, its tracks and its entry', () => {
     saveDraft(state(), true)
@@ -308,6 +315,7 @@ describe('the pause backup', () => {
         getTracks: () => tracks,
         getConfig: current,
         agentDriving: () => false,
+        confirmOverwriteOldest: declineOverwrite,
         showToast: () => undefined,
       })
       const backup = installDraftBackup({
@@ -692,6 +700,7 @@ describe('the draft a launch restored', () => {
         getTracks: () => liveTracks,
         getConfig: () => liveConfig,
         agentDriving: () => false,
+        confirmOverwriteOldest: declineOverwrite,
         showToast: () => undefined,
       })
       const backup = installDraftBackup({
@@ -776,6 +785,7 @@ describe('the draft a launch restored', () => {
         getTracks: () => restored?.tracks ?? [],
         getConfig: () => restored?.config,
         agentDriving: () => false,
+        confirmOverwriteOldest: declineOverwrite,
         showToast: () => undefined,
       })
       autosave.markLoadedBaseline()
@@ -815,6 +825,7 @@ describe('the draft a launch restored', () => {
         getTracks: () => restored?.tracks ?? [],
         getConfig: () => restored?.config,
         agentDriving: () => false,
+        confirmOverwriteOldest: declineOverwrite,
         showToast: () => undefined,
       })
       autosave.markLoadedBaseline()
@@ -850,6 +861,7 @@ describe('the draft a launch restored', () => {
         getTracks: () => restored?.tracks ?? [],
         getConfig: () => restored?.config,
         agentDriving: () => false,
+        confirmOverwriteOldest: declineOverwrite,
         showToast: () => undefined,
       })
       const backup = installDraftBackup({
@@ -899,6 +911,7 @@ describe('the draft a launch restored', () => {
         getTracks: () => restored?.tracks ?? [],
         getConfig: () => restored?.config,
         agentDriving: () => false,
+        confirmOverwriteOldest: declineOverwrite,
         showToast: () => undefined,
       })
       autosave.markLoadedBaseline()
@@ -916,13 +929,14 @@ describe('the draft a launch restored', () => {
     })
   })
 
-  it('never pushes out a kept flame, whichever write is doing it', () => {
+  it('never pushes out a kept flame on a write nobody was asked about', () => {
     // The rescue refuses to evict at the cap and keeps the slot - and then
     // the restored workspace's own first flush went through the upsert,
     // which dropped the oldest entry to make room. Recents full, crash
     // restore, type one character, and a flame the user chose to keep was
-    // gone with nobody asked. The rule holds at every writer, so the flush
-    // declines too, and says so rather than failing silently.
+    // gone with nobody asked. The rule holds at every automatic writer, so
+    // the interval autosave declines too, and says so rather than failing
+    // silently.
     seedFullRecents()
     seedDraft({ sessionId: 'autosave-killed' })
     const restored = takeDraftForLaunch({ native: true, search: '' })
@@ -938,6 +952,7 @@ describe('the draft a launch restored', () => {
         getTracks: () => restored?.tracks ?? [],
         getConfig: () => restored?.config,
         agentDriving: () => false,
+        confirmOverwriteOldest: declineOverwrite,
         showToast: (message) => toasts.push(message),
       })
       // Nothing to take over: the rescue wrote nothing, so this workspace
@@ -946,7 +961,7 @@ describe('the draft a launch restored', () => {
       expect(restored?.entry).toBeUndefined()
 
       setFlameStore('metadata', 'name', 'Edited after the restore')
-      autosave.flushDirtyToRecents()
+      autosave.autosaveNow()
 
       const kept = loadRecentFlamesForRewrite()
       expect(kept).toHaveLength(MAX_RECENT_FLAMES)
@@ -960,6 +975,91 @@ describe('the draft a launch restored', () => {
       // and the work is still in the slot for the next launch.
       expect(toasts.join(' ')).toContain('Recents is full')
       expect(readDraft()?.flame.metadata?.name).toBe('Draft')
+      dispose()
+    })
+  })
+
+  it('spends the oldest kept flame at a boundary only when the user says so', async () => {
+    // Declining looked right everywhere until the boundary flush turned out
+    // to be the ONLY thing that saves the OUTGOING document
+    // (lib/documentLoad.ts). At the cap, refusing there meant opening
+    // anything from Library destroyed whatever was unsaved in what was on
+    // screen - and undo restores a flame, not its keyframe tracks. The live
+    // document is the work the user can see; the 150th-oldest entry is the
+    // work they cannot. So the boundary asks, and a yes is what spends it.
+    seedFullRecents()
+    seedDraft({ sessionId: 'autosave-killed' })
+    const restored = takeDraftForLaunch({ native: true, search: '' })
+
+    let asked = 0
+    await createRoot(async (dispose) => {
+      const [flameStore, setFlameStore] = createStore<FlameDescriptor>(
+        JSON.parse(JSON.stringify(restored?.flame)),
+      )
+      const autosave = useWorkspaceAutosave({
+        flameDescriptor: flameStore,
+        getTracks: () => restored?.tracks ?? [],
+        getConfig: () => restored?.config,
+        agentDriving: () => false,
+        confirmOverwriteOldest: () => {
+          asked += 1
+          return Promise.resolve(true)
+        },
+        showToast: () => undefined,
+      })
+      autosave.markLoadedBaseline()
+      setFlameStore('metadata', 'name', 'Edited after the restore')
+
+      // The write itself still declines on its own. Only the answer moves it.
+      expect(autosave.flushDirtyToRecents()).toBe('full')
+      expect(await autosave.prepareDocumentReplacement()).toBe(true)
+      expect(asked).toBe(1)
+
+      const kept = loadRecentFlamesForRewrite()
+      expect(kept).toHaveLength(MAX_RECENT_FLAMES)
+      expect(kept[0]?.flame.metadata?.name).toBe('Edited after the restore')
+      expect(kept.some((entry) => entry.id === 'kept-149')).toBe(false)
+      expect(autosave.isFlameDirty()).toBe(false)
+      dispose()
+    })
+  })
+
+  it('forces the pagehide flush, because there is nobody left to ask', () => {
+    // The one automatic path allowed what no other is. A pagehide has no
+    // prompt available and no next chance: the alternative to evicting the
+    // oldest kept flame is certainly losing the document that is open.
+    seedFullRecents()
+    seedDraft({ sessionId: 'autosave-killed' })
+    const restored = takeDraftForLaunch({ native: true, search: '' })
+
+    const toasts: string[] = []
+    createRoot((dispose) => {
+      const [flameStore, setFlameStore] = createStore<FlameDescriptor>(
+        JSON.parse(JSON.stringify(restored?.flame)),
+      )
+      const autosave = useWorkspaceAutosave({
+        flameDescriptor: flameStore,
+        getTracks: () => restored?.tracks ?? [],
+        getConfig: () => restored?.config,
+        agentDriving: () => false,
+        confirmOverwriteOldest: declineOverwrite,
+        showToast: (message) => toasts.push(message),
+      })
+      autosave.markLoadedBaseline()
+      setFlameStore('metadata', 'name', 'Edited before the process died')
+
+      window.dispatchEvent(new Event('pagehide'))
+
+      const kept = loadRecentFlamesForRewrite()
+      expect(kept[0]?.flame.metadata?.name).toBe(
+        'Edited before the process died',
+      )
+      expect(kept).toHaveLength(MAX_RECENT_FLAMES)
+      // The one-per-run notice is spent only by showing it, so no toast here
+      // is the whole assertion: a toast raised as the page is torn down is
+      // never read, and burning the flag on it would silence the notice for
+      // the rest of the run.
+      expect(toasts).toEqual([])
       dispose()
     })
   })

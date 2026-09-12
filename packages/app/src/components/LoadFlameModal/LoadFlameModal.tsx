@@ -23,7 +23,7 @@ import { persistentSignal } from '@/utils/persistentSignal'
 import { pickFiles } from '@/utils/pickFiles'
 import { deleteRecentFlame, formatRecentDate, loadRecentFlames, } from '@/utils/recentFlames'
 import { recordEntries } from '@/utils/record'
-import { applyTracksToFlame } from '@/utils/timeline'
+import { applyTracksToFlame, defaultConfig as defaultTimelineConfig, } from '@/utils/timeline'
 import { createSharedIntersectionObserver } from '@/utils/useIntersectionObserver'
 import { useRequestModal } from '../Modal/ModalContext'
 import { ModalTitleBar } from '../Modal/ModalTitleBar'
@@ -1261,7 +1261,20 @@ export function LoadFlameModal(props: LoadFlameModalProps) {
 }
 
 export function createLoadFlame(
-  history: Pick<ChangeHistory<FlameDescriptor>, 'replace'>,
+  history: Pick<ChangeHistory<FlameDescriptor>, 'replace'> & {
+    /**
+     * Settle whether the open document may be replaced, before anything
+     * here touches it. At the cap that is a question for the user - saving
+     * the outgoing flame means evicting the oldest one they kept - and the
+     * answer can be no (lib/documentLoad.ts).
+     *
+     * Asked here rather than at `history.replace`, because that call sits
+     * inside the batch below with the animation seed: a decision awaited
+     * from in there would let the seed's effect take the load-boundary
+     * baseline while the outgoing flame was still on screen.
+     */
+    prepareReplace?: () => Promise<boolean>
+  },
   currentDimensions?: () => number,
 ) {
   const requestModal = useRequestModal()
@@ -1290,6 +1303,12 @@ export function createLoadFlame(
     })
     setLoadModalIsOpen(false)
     if (result === CANCEL) {
+      return undefined
+    }
+    // The open document's unsaved work has to be somewhere it survives
+    // before the batch below drops it. A no leaves this flame unloaded and
+    // that work on screen, which is the point of asking.
+    if ((await history.prepareReplace?.()) === false) {
       return undefined
     }
     // Animation load: flame + keyframe tracks
@@ -1327,7 +1346,12 @@ export function createLoadFlame(
         flame.renderSettings.camera3D = deepClone(camera3DDefault)
       }
       history.replace(flame, 'Load flame')
-      setLoadedAnimation({ flame, tracks: [] })
+      // A plain flame carries no animation but still has a timeline, and
+      // the effect that consumes this only applies one when it is handed
+      // one - so without this the flame opened at whatever frame rate and
+      // end frame the document before it was running at, and autosaved
+      // there (utils/timeline.ts).
+      setLoadedAnimation({ flame, tracks: [], config: defaultTimelineConfig() })
     })
     return result
   }

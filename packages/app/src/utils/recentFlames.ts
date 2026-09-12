@@ -322,10 +322,20 @@ export function upsertRecentFlame(
   name?: string,
   tracks?: TimelineTrack[],
   config?: TimelineConfig,
+  /**
+   * The user's own answer to "may this replace the oldest flame?", the same
+   * one `saveRecentFlame` takes. Defaults to no, so leaving it out cannot
+   * evict anything. Two callers ever set it, and both have the answer: the
+   * flush at a document replacement, which asked (lib/documentLoad.ts), and
+   * the pagehide flush, which has nobody left to ask and a document about to
+   * cease to exist (hooks/useWorkspaceAutosave.ts).
+   */
+  forceOverwriteOldest: boolean = false,
 ): RecentWriteOutcome {
   const recent = loadRecentFlamesForRewrite()
   const existing = recent.find((item) => item.id === id)
-  if (!existing && recent.length >= MAX_RECENT_FLAMES) return 'full'
+  if (!existing && recent.length >= MAX_RECENT_FLAMES && !forceOverwriteOldest)
+    return 'full'
   const entry: RecentFlame = {
     id,
     name: name || flame.metadata?.name || existing?.name || 'Autosave',

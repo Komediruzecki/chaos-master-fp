@@ -1,4 +1,15 @@
 /**
+ * What a flush of the open document's unsaved work did.
+ *
+ * `full` is the one outcome that is a question rather than a result: Recents
+ * is at its cap, the only way to make room is to destroy a flame the user
+ * chose to keep, and no automatic path may decide that
+ * (utils/recentFlames.ts). `refused` is storage saying no - a quota, a
+ * private window - and there is nothing to ask about.
+ */
+export type FlushOutcome = 'clean' | 'saved' | 'full' | 'refused'
+
+/**
  * Swap the document the editor is holding for another one.
  *
  * The order is the whole of it. `flushUnsaved` reads the OUTGOING flame and
@@ -15,13 +26,33 @@
  * by hand while this said there were two - the claim is checked now, by a
  * test that fails on any call of the flush outside this function
  * (documentLoad.test.ts).
+ *
+ * `full` stops the replacement, and that is the point. At the cap the flush
+ * writes nothing, so going ahead destroys the open document's unsaved work
+ * outright - with the toast explaining it painting after the work is already
+ * gone, and undo restoring the flame but not the keyframe tracks. Whether to
+ * evict the oldest kept flame instead is the user's answer to give, and the
+ * caller settles it before it gets here (MainWorkspace's
+ * `prepareDocumentReplacement`). Reaching this with `full` therefore means
+ * the question was skipped, and then the document on screen is the one worth
+ * keeping: it is the work the user can see.
+ *
+ * Deliberately synchronous, which is why the asking happens before it rather
+ * than inside. The Library path calls this from inside a `batch` that also
+ * seeds the incoming animation, and the load-boundary baseline is taken by
+ * the effect that batch schedules - so a replacement deferred across an
+ * await would be baselined against the OUTGOING flame, and the freshly
+ * loaded document would read as unsaved work from the moment it opened.
+ *
+ * @returns whether the new document actually went in.
  */
 export function replaceOpenDocument(steps: {
   /** Put whatever the open document is holding somewhere it survives. */
-  flushUnsaved: () => void
+  flushUnsaved: () => FlushOutcome
   /** Then, and only then, put the new document in its place. */
   replace: () => void
-}): void {
-  steps.flushUnsaved()
+}): boolean {
+  if (steps.flushUnsaved() === 'full') return false
   steps.replace()
+  return true
 }

@@ -2,10 +2,12 @@ import { createRoot } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import ts from 'typescript'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import loadFlameModalSource from '@/components/LoadFlameModal/LoadFlameModal.tsx?raw'
 import { parseFlameXml } from '@/flame/flameXml'
 import { useWorkspaceAutosave } from '@/hooks/useWorkspaceAutosave'
 import workspaceSource from '@/MainWorkspace.tsx?raw'
-import { clearRecentFlames, loadRecentFlames } from '@/utils/recentFlames'
+import { clearRecentFlames, loadRecentFlames, loadRecentFlamesForRewrite, MAX_RECENT_FLAMES, } from '@/utils/recentFlames'
+import dragAndDropSource from '@/utils/useAppDragAndDrop.ts?raw'
 import { replaceOpenDocument } from './documentLoad'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 
@@ -36,6 +38,48 @@ const flame: FlameDescriptor = {
 
 afterEach(clearRecentFlames)
 
+/** A shelf with no room left on it, written structurally so the cap is
+ *  reached without 150 schema passes. `kept-149` is the oldest, and so the
+ *  one a forced save spends. */
+const fillRecents = () => {
+  store.set(
+    'chaos-master-recent-flames',
+    JSON.stringify(
+      Array.from({ length: MAX_RECENT_FLAMES }, (_, index) => ({
+        id: `kept-${index}`,
+        name: `Kept ${index}`,
+        savedAt: 1000 + index,
+        flame,
+      })),
+    ),
+  )
+}
+
+/** The answer these tests give when a save at the cap asks whether it may
+ *  evict the oldest kept flame. No, unless a test says otherwise: an
+ *  unanswered prompt would leave the boundary flush pending forever, and a
+ *  yes would quietly let a write past the guard the flush is there to
+ *  respect. */
+const declineOverwrite = () => Promise.resolve(false)
+
+/** The name a call is calling, whether it is written bare or reached through
+ *  the object it was returned in. A guard that only knew the bare form was
+ *  disarmed by `autosave.flushDirtyToRecents()`. */
+const calleeName = (node: ts.CallExpression): string | undefined => {
+  if (ts.isIdentifier(node.expression)) return node.expression.text
+  if (ts.isPropertyAccessExpression(node.expression)) {
+    return node.expression.name.text
+  }
+  return undefined
+}
+
+/** Every file that seeds the workspace's animation loader. */
+const seeding: Array<[string, string]> = [
+  ['MainWorkspace.tsx', workspaceSource],
+  ['LoadFlameModal.tsx', loadFlameModalSource],
+  ['useAppDragAndDrop.ts', dragAndDropSource],
+]
+
 describe('replacing the open document', () => {
   it('puts the outgoing flame in Recents before the incoming one lands', () => {
     // The Library chokepoint, with the editor's own autosave doing the
@@ -51,6 +95,7 @@ describe('replacing the open document', () => {
         getTracks: () => [],
         getConfig: () => undefined,
         agentDriving: () => false,
+        confirmOverwriteOldest: declineOverwrite,
         showToast: () => undefined,
       })
       autosave.markLoadedBaseline()
@@ -78,6 +123,11 @@ describe('replacing the open document', () => {
     // flushing after the replacement, or not at all, which is the bug that
     // put this module here. Passing the flush to the chokepoint as a value
     // is the only form allowed; a call of its own is what this catches.
+    //
+    // Property access counts. Matching bare identifiers alone meant
+    // `autosave.flushDirtyToRecents()` - the shape this hook is returned in
+    // - slipped straight past, so the guard could be disarmed by a rename
+    // nobody would think twice about.
     const ast = ts.createSourceFile(
       'MainWorkspace.tsx',
       workspaceSource,
@@ -89,8 +139,7 @@ describe('replacing the open document', () => {
     const walk = (node: ts.Node) => {
       if (
         ts.isCallExpression(node) &&
-        ts.isIdentifier(node.expression) &&
-        node.expression.text === 'flushDirtyToRecents'
+        calleeName(node) === 'flushDirtyToRecents'
       ) {
         const { line } = ast.getLineAndCharacterOfPosition(node.getStart(ast))
         byHand.push(`MainWorkspace.tsx:${line + 1}`)
@@ -109,46 +158,173 @@ describe('replacing the open document', () => {
     // opened the starter flame at the last flame's 60fps over 300 frames. The
     // hand-off path is not in this: it resets the timeline itself before
     // seeding, and it passes the restored draft's config through.
-    const ast = ts.createSourceFile(
-      'MainWorkspace.tsx',
-      workspaceSource,
-      ts.ScriptTarget.Latest,
-      true,
-      ts.ScriptKind.TSX,
-    )
+    //
+    // Every file that seeds a load, not just the workspace. Scanning
+    // MainWorkspace alone left the Library's own plain-flame load and a
+    // dropped file green while both handed over empty tracks and no
+    // timeline, which is the exact shape this exists to catch.
     const named = (property: ts.ObjectLiteralElementLike, name: string) =>
       property.name !== undefined &&
       ts.isIdentifier(property.name) &&
       property.name.text === name
     const inherited: string[] = []
-    const walk = (node: ts.Node) => {
-      if (
-        ts.isCallExpression(node) &&
-        ts.isIdentifier(node.expression) &&
-        node.expression.text === 'setLoadedAnimation' &&
-        node.arguments[0] !== undefined &&
-        ts.isObjectLiteralExpression(node.arguments[0])
-      ) {
-        const seed = node.arguments[0]
-        const carriesNoTracks = seed.properties.some(
-          (property) =>
-            ts.isPropertyAssignment(property) &&
-            named(property, 'tracks') &&
-            ts.isArrayLiteralExpression(property.initializer) &&
-            property.initializer.elements.length === 0,
-        )
-        const saysTimeline = seed.properties.some((property) =>
-          named(property, 'config'),
-        )
-        if (carriesNoTracks && !saysTimeline) {
-          const { line } = ast.getLineAndCharacterOfPosition(node.getStart(ast))
-          inherited.push(`MainWorkspace.tsx:${line + 1}`)
+    for (const [fileName, source] of seeding) {
+      const ast = ts.createSourceFile(
+        fileName,
+        source,
+        ts.ScriptTarget.Latest,
+        true,
+        fileName.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+      )
+      const walk = (node: ts.Node) => {
+        if (
+          ts.isCallExpression(node) &&
+          calleeName(node) === 'setLoadedAnimation' &&
+          node.arguments[0] !== undefined &&
+          ts.isObjectLiteralExpression(node.arguments[0])
+        ) {
+          const seed = node.arguments[0]
+          const carriesNoTracks = seed.properties.some(
+            (property) =>
+              ts.isPropertyAssignment(property) &&
+              named(property, 'tracks') &&
+              ts.isArrayLiteralExpression(property.initializer) &&
+              property.initializer.elements.length === 0,
+          )
+          const saysTimeline = seed.properties.some((property) =>
+            named(property, 'config'),
+          )
+          if (carriesNoTracks && !saysTimeline) {
+            const { line } = ast.getLineAndCharacterOfPosition(
+              node.getStart(ast),
+            )
+            inherited.push(`${fileName}:${line + 1}`)
+          }
         }
+        ts.forEachChild(node, walk)
       }
-      ts.forEachChild(node, walk)
+      walk(ast)
     }
-    walk(ast)
     expect(inherited).toEqual([])
+  })
+
+  it('asks before a replacement at the cap, and saves on a yes', async () => {
+    // The flush here is the ONLY thing that saves the outgoing document, so
+    // at the cap the two things that could give way are both the user's: the
+    // flame on screen, unsaved, or the oldest one they kept. Declining in
+    // silence picked the first and destroyed it, with the toast explaining it
+    // painting after the document was already gone.
+    fillRecents()
+    let asked = 0
+    await createRoot(async (dispose) => {
+      const [open, setOpen] = createStore<FlameDescriptor>(
+        JSON.parse(JSON.stringify(flame)),
+      )
+      const autosave = useWorkspaceAutosave({
+        flameDescriptor: open,
+        getTracks: () => [],
+        getConfig: () => undefined,
+        agentDriving: () => false,
+        showToast: () => undefined,
+        confirmOverwriteOldest: () => {
+          asked += 1
+          return Promise.resolve(true)
+        },
+      })
+      autosave.markLoadedBaseline()
+      setOpen('metadata', 'name', 'Unsaved work')
+
+      expect(await autosave.prepareDocumentReplacement()).toBe(true)
+      expect(asked).toBe(1)
+      const replaced = replaceOpenDocument({
+        flushUnsaved: autosave.flushDirtyToRecents,
+        replace: () => {
+          setOpen('metadata', 'name', 'Opened from Library')
+        },
+      })
+
+      expect(replaced).toBe(true)
+      expect(open.metadata?.name).toBe('Opened from Library')
+      const kept = loadRecentFlamesForRewrite()
+      expect(kept).toHaveLength(MAX_RECENT_FLAMES)
+      expect(kept[0]?.flame.metadata?.name).toBe('Unsaved work')
+      // The oldest kept flame is what paid for the room.
+      expect(kept.some((entry) => entry.id === 'kept-149')).toBe(false)
+      dispose()
+    })
+  })
+
+  it('keeps the open document, and Recents, when the answer is no', async () => {
+    // A no is not a reason to go ahead anyway. The work stays on screen,
+    // where the user can still save it themselves - and the shelf they said
+    // not to touch is exactly as it was.
+    fillRecents()
+    const toasts: string[] = []
+    await createRoot(async (dispose) => {
+      const [open, setOpen] = createStore<FlameDescriptor>(
+        JSON.parse(JSON.stringify(flame)),
+      )
+      const autosave = useWorkspaceAutosave({
+        flameDescriptor: open,
+        getTracks: () => [],
+        getConfig: () => undefined,
+        agentDriving: () => false,
+        showToast: (message) => toasts.push(message),
+        confirmOverwriteOldest: declineOverwrite,
+      })
+      autosave.markLoadedBaseline()
+      setOpen('metadata', 'name', 'Unsaved work')
+
+      expect(await autosave.prepareDocumentReplacement()).toBe(false)
+
+      // The caller stops here; nothing replaced the document.
+      expect(open.metadata?.name).toBe('Unsaved work')
+      expect(autosave.isFlameDirty()).toBe(true)
+      const kept = loadRecentFlamesForRewrite()
+      expect(kept).toHaveLength(MAX_RECENT_FLAMES)
+      expect(kept.some((entry) => entry.id === 'kept-149')).toBe(true)
+      expect(
+        kept.some((entry) => entry.flame.metadata?.name === 'Unsaved work'),
+      ).toBe(false)
+      // A tap on Library that appears to do nothing is the one outcome
+      // nobody can report.
+      expect(toasts.join(' ')).toContain('Kept the open flame')
+      dispose()
+    })
+  })
+
+  it('refuses to replace when the question was skipped', () => {
+    // The backstop. A replacement added without the gate would otherwise
+    // drop the open document's unsaved work at the cap, silently - so the
+    // chokepoint keeps what is on screen instead.
+    fillRecents()
+    createRoot((dispose) => {
+      const [open, setOpen] = createStore<FlameDescriptor>(
+        JSON.parse(JSON.stringify(flame)),
+      )
+      const autosave = useWorkspaceAutosave({
+        flameDescriptor: open,
+        getTracks: () => [],
+        getConfig: () => undefined,
+        agentDriving: () => false,
+        showToast: () => undefined,
+        confirmOverwriteOldest: declineOverwrite,
+      })
+      autosave.markLoadedBaseline()
+      setOpen('metadata', 'name', 'Unsaved work')
+
+      const replaced = replaceOpenDocument({
+        flushUnsaved: autosave.flushDirtyToRecents,
+        replace: () => {
+          setOpen('metadata', 'name', 'Opened from Library')
+        },
+      })
+
+      expect(replaced).toBe(false)
+      expect(open.metadata?.name).toBe('Unsaved work')
+      expect(loadRecentFlamesForRewrite()).toHaveLength(MAX_RECENT_FLAMES)
+      dispose()
+    })
   })
 
   it('writes nothing when the open document holds nothing unsaved', () => {
@@ -161,6 +337,7 @@ describe('replacing the open document', () => {
         getTracks: () => [],
         getConfig: () => undefined,
         agentDriving: () => false,
+        confirmOverwriteOldest: declineOverwrite,
         showToast: () => undefined,
       })
       autosave.markLoadedBaseline()

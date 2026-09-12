@@ -628,77 +628,97 @@ export function MainWorkspace(props: AppProps) {
         showToast('Stop or discard the recording before opening a Home flame')
         return
       }
-      const outgoingPaletteRestoreColors = deepClone(prePaletteColors())
-      replaceOpenDocument({
-        // Reads the OUTGOING flame and its tracks, so it has to run before
-        // the reset drops them (lib/documentLoad.ts).
-        flushUnsaved: flushDirtyToRecents,
-        // Then a clean slate, THEN this flame's own state. Every hand-off
-        // starts from the same baseline, so the second flame you open from
-        // Home looks exactly like the first one would have. See
-        // resetWorkspaceForHandoff for what was leaking and why.
-        replace: () => {
-          resetWorkspaceForHandoff()
-          runPaletteRestoreTransition(
-            history,
-            outgoingPaletteRestoreColors,
-            {},
-            (colors) => {
-              setPrePaletteColors(colors)
-            },
-            'Load Home flame',
-            () => {
-              setFlameDescriptor(() => deepClone(newFlame), 'Load Home flame')
-            },
-          )
-        },
-      })
-      // Read BEFORE resetFlameFromWelcome() clears the whole hand-off.
-      const capability = props.capabilityFromHome?.()
-      const rescuedEntry = props.restoredEntryFromLaunch?.()
-      if (capability !== undefined) {
-        setPendingCapability(capability)
-      }
-      // Load animation tracks if the welcome selection includes them
-      const tracks = props.welcomeTracks?.()
-      const config = props.welcomeConfig?.()
-      if (IS_DEV) {
-        console.info('[welcome] flame selected, tracks:', {
-          hasTracks: !!tracks,
-          trackCount: tracks?.length ?? 0,
-          trackPaths: tracks?.map((t) => t.parameterPath) ?? [],
+      // The hand-off replaces the open document, so whatever is unsaved in
+      // it has to reach Recents before the reset below drops it - and at the
+      // cap, whether that save may evict the oldest kept flame is the user's
+      // question (lib/documentLoad.ts).
+      void (async () => {
+        if (!(await prepareDocumentReplacement())) {
+          // They chose to keep what is open, so the pending selection has to
+          // go: nothing re-triggers this effect, and a hand-off left standing
+          // would sit there unapplied for the rest of the session.
+          props.resetFlameFromWelcome?.()
+          return
+        }
+        // Read after the answer, not before it. Everything this hand-off
+        // needs is either live state or a prop accessor, so the only thing
+        // that could go stale across the question is the outgoing palette
+        // provenance - and taking it here means there is nothing to go
+        // stale. The signal is read outside the effect's tracking scope now,
+        // which is also what stops a palette edit from replaying a hand-off
+        // that has already happened.
+        const outgoingPaletteRestoreColors = deepClone(prePaletteColors())
+        replaceOpenDocument({
+          // Reads the OUTGOING flame and its tracks, so it has to run before
+          // the reset drops them (lib/documentLoad.ts).
+          flushUnsaved: flushDirtyToRecents,
+          // Then a clean slate, THEN this flame's own state. Every hand-off
+          // starts from the same baseline, so the second flame you open from
+          // Home looks exactly like the first one would have. See
+          // resetWorkspaceForHandoff for what was leaking and why.
+          replace: () => {
+            resetWorkspaceForHandoff()
+            runPaletteRestoreTransition(
+              history,
+              outgoingPaletteRestoreColors,
+              {},
+              (colors) => {
+                setPrePaletteColors(colors)
+              },
+              'Load Home flame',
+              () => {
+                setFlameDescriptor(() => deepClone(newFlame), 'Load Home flame')
+              },
+            )
+          },
         })
-      }
-      if (tracks && tracks.length > 0) {
-        setLoadedAnimation({
-          flame: deepClone(newFlame),
-          tracks: tracks.map((t) => ({
-            ...t,
-            keyframes: t.keyframes.map((kf) => ({ ...kf })),
-          })),
-          ...(config ? { config } : {}),
-        })
-      } else if (config) {
-        // A flame with no tracks still has a timeline, and the reset above
-        // has just replaced it with the default one. Nothing downstream puts
-        // a restored draft's fps and end frame back on this path:
-        // setLoadedAnimation is the animation loader, and there is no
-        // animation here to load.
-        timeline.setConfig({ ...timeline.config(), ...config })
-      }
-      props.resetFlameFromWelcome?.()
-      // Every hand-off is a fresh starting point for dirty tracking, the
-      // restored draft included: its work reached Recents before the launch
-      // handed it over (lib/draft.ts), so nothing is lost by the workspace
-      // counting it as loaded - while leaving it dirty made the autosave
-      // prompt and the five-minute reminder fire on a launch nobody had
-      // touched. The guard that stood here was one of three that tried to
-      // keep restored work alive by not baselining it.
-      markLoadedBaseline()
-      // After the boundary, which is what mints the id this replaces: the
-      // work is already in that entry, so the session carries on in it and
-      // one restored flame keeps one place on the shelf.
-      claimRestoredEntry(rescuedEntry)
+        // Read BEFORE resetFlameFromWelcome() clears the whole hand-off.
+        const capability = props.capabilityFromHome?.()
+        const rescuedEntry = props.restoredEntryFromLaunch?.()
+        if (capability !== undefined) {
+          setPendingCapability(capability)
+        }
+        // Load animation tracks if the welcome selection includes them
+        const tracks = props.welcomeTracks?.()
+        const config = props.welcomeConfig?.()
+        if (IS_DEV) {
+          console.info('[welcome] flame selected, tracks:', {
+            hasTracks: !!tracks,
+            trackCount: tracks?.length ?? 0,
+            trackPaths: tracks?.map((t) => t.parameterPath) ?? [],
+          })
+        }
+        if (tracks && tracks.length > 0) {
+          setLoadedAnimation({
+            flame: deepClone(newFlame),
+            tracks: tracks.map((t) => ({
+              ...t,
+              keyframes: t.keyframes.map((kf) => ({ ...kf })),
+            })),
+            ...(config ? { config } : {}),
+          })
+        } else if (config) {
+          // A flame with no tracks still has a timeline, and the reset above
+          // has just replaced it with the default one. Nothing downstream puts
+          // a restored draft's fps and end frame back on this path:
+          // setLoadedAnimation is the animation loader, and there is no
+          // animation here to load.
+          timeline.setConfig({ ...timeline.config(), ...config })
+        }
+        props.resetFlameFromWelcome?.()
+        // Every hand-off is a fresh starting point for dirty tracking, the
+        // restored draft included: its work reached Recents before the launch
+        // handed it over (lib/draft.ts), so nothing is lost by the workspace
+        // counting it as loaded - while leaving it dirty made the autosave
+        // prompt and the five-minute reminder fire on a launch nobody had
+        // touched. The guard that stood here was one of three that tried to
+        // keep restored work alive by not baselining it.
+        markLoadedBaseline()
+        // After the boundary, which is what mints the id this replaces: the
+        // work is already in that entry, so the session carries on in it and
+        // one restored flame keeps one place on the shelf.
+        claimRestoredEntry(rescuedEntry)
+      })()
     }
   })
 
@@ -764,6 +784,10 @@ export function MainWorkspace(props: AppProps) {
       replace: (next, label) => {
         replaceLoadedFlame(next, label, loadModalOrigin)
       },
+      // Settled once the user has picked, before the dialog's batch drops
+      // the open document. A thunk because the autosave that answers this is
+      // created further down, after the modal is wired up.
+      prepareReplace: () => prepareDocumentReplacement(),
     },
     () => flameDescriptor.renderSettings.dimensions ?? 2,
   )
@@ -1132,16 +1156,28 @@ export function MainWorkspace(props: AppProps) {
             flame={flameDescriptor}
             hardwareTier={props.hardwareTier}
             onApply={(flame) => {
-              if (blendFlame())
-                showToast(
-                  'Blend is still active — the loaded flame will look mixed',
-                  4000,
-                )
-              executeFlameLoad(
-                flame,
-                undefined,
-                snapshotOrigin('flame.simulator'),
-              )
+              // A document replacement like any other, and it was not going
+              // through the chokepoint: applying a simulator result dropped
+              // whatever was unsaved in the flame it replaced
+              // (lib/documentLoad.ts).
+              void (async () => {
+                if (!(await prepareDocumentReplacement())) return
+                if (blendFlame())
+                  showToast(
+                    'Blend is still active — the loaded flame will look mixed',
+                    4000,
+                  )
+                replaceOpenDocument({
+                  flushUnsaved: flushDirtyToRecents,
+                  replace: () => {
+                    executeFlameLoad(
+                      flame,
+                      undefined,
+                      snapshotOrigin('flame.simulator'),
+                    )
+                  },
+                })
+              })()
             }}
             respond={respond}
           />
@@ -1158,16 +1194,28 @@ export function MainWorkspace(props: AppProps) {
             flame={flameDescriptor}
             hardwareTier={props.hardwareTier}
             onApply={(flame) => {
-              if (blendFlame())
-                showToast(
-                  'Blend is still active — the loaded flame will look mixed',
-                  4000,
-                )
-              executeFlameLoad(
-                flame,
-                undefined,
-                snapshotOrigin('flame.ancestry'),
-              )
+              // A document replacement like any other, and it was not going
+              // through the chokepoint: applying an ancestry result dropped
+              // whatever was unsaved in the flame it replaced
+              // (lib/documentLoad.ts).
+              void (async () => {
+                if (!(await prepareDocumentReplacement())) return
+                if (blendFlame())
+                  showToast(
+                    'Blend is still active — the loaded flame will look mixed',
+                    4000,
+                  )
+                replaceOpenDocument({
+                  flushUnsaved: flushDirtyToRecents,
+                  replace: () => {
+                    executeFlameLoad(
+                      flame,
+                      undefined,
+                      snapshotOrigin('flame.ancestry'),
+                    )
+                  },
+                })
+              })()
             }}
             onCompare={openDiffAsModal}
             respond={respond}
@@ -2447,7 +2495,11 @@ export function MainWorkspace(props: AppProps) {
     ])
   }
 
-  const handleLoadHistory = (entry: RandomizerHistoryEntry) => {
+  const handleLoadHistory = async (entry: RandomizerHistoryEntry) => {
+    // Asked before anything moves, including the highlight: a no means this
+    // entry was never opened, so nothing should look as though it was
+    // (lib/documentLoad.ts).
+    if (!(await prepareDocumentReplacement())) return
     setSelectedHistoryTimestamp(entry.timestamp)
     // Loading a history entry is a fresh starting point: keep unsaved work
     // recoverable and don't autosave the untouched loaded flame.
@@ -2681,6 +2733,28 @@ export function MainWorkspace(props: AppProps) {
     markLoadedBaseline()
   })
 
+  /**
+   * The one question a save at the cap has to have an answer to: Recents is
+   * full, so storing this flame means destroying the oldest one the user
+   * kept. Asked by the two writes that are allowed to ask - the user's own
+   * Save for Later, and the flush at a document replacement, which is the
+   * last moment the open document's work exists anywhere
+   * (lib/documentLoad.ts).
+   */
+  const confirmOverwriteOldest = async () => {
+    const oldestName = getOldestRecentFlame()?.name || 'Flame'
+    return await _requestModal<boolean>({
+      content: ({ respond }) => (
+        <Suspense>
+          <ConfirmOverwriteRecentModal
+            oldestName={oldestName}
+            respond={respond}
+          />
+        </Suspense>
+      ),
+    })
+  }
+
   // ── Autosave & save-awareness ──────────────────────────────────────────
   const {
     isFlameDirty,
@@ -2688,6 +2762,7 @@ export function MainWorkspace(props: AppProps) {
     markLoadedBaseline,
     claimRestoredEntry,
     flushDirtyToRecents,
+    prepareDocumentReplacement,
     autosaveSessionId,
   } = useWorkspaceAutosave({
     flameDescriptor,
@@ -2697,6 +2772,7 @@ export function MainWorkspace(props: AppProps) {
     getConfig: () => timeline.config(),
     agentDriving,
     showToast,
+    confirmOverwriteOldest,
   })
 
   /**
@@ -2742,18 +2818,7 @@ export function MainWorkspace(props: AppProps) {
       showToast('Could not save the flame to Recents', 5000)
       return
     }
-    const oldestName = getOldestRecentFlame()?.name || 'Flame'
-    const confirmed = await _requestModal<boolean>({
-      content: ({ respond }) => (
-        <Suspense>
-          <ConfirmOverwriteRecentModal
-            oldestName={oldestName}
-            respond={respond}
-          />
-        </Suspense>
-      ),
-    })
-    if (!confirmed) return
+    if (!(await confirmOverwriteOldest())) return
     if (saved(true) === 'saved') {
       announce(true)
     } else {
@@ -2767,7 +2832,9 @@ export function MainWorkspace(props: AppProps) {
    * undo restores the flame but keyframe tracks are not part of change
    * history (lib/documentLoad.ts).
    */
-  const loadNewFlame = () => {
+  const loadNewFlame = async () => {
+    // Before the pause, so a no leaves the workspace exactly as it was.
+    if (!(await prepareDocumentReplacement())) return
     if (timeline.isPlaying()) timeline.pause()
     replaceOpenDocument({
       flushUnsaved: flushDirtyToRecents,
@@ -2796,7 +2863,15 @@ export function MainWorkspace(props: AppProps) {
    * is unsaved reaches Recents before the switch, or switch-then-close loses
    * it (lib/documentLoad.ts).
    */
-  const switchDimensions = (v: number) => {
+  const switchDimensions = async (v: number) => {
+    if ((flameDescriptor.renderSettings.dimensions ?? 2) === v) return
+    // The stash the switch restores from is in memory only, so this is the
+    // same boundary as a load: what is unsaved reaches Recents first, or
+    // switch-then-close loses it (lib/documentLoad.ts).
+    if (!(await prepareDocumentReplacement())) return
+    // Read after the answer. `current` decides which dimension's stash the
+    // outgoing flame is filed under, so a value taken before the question
+    // would be a guess about what is still open by the time it runs.
     const current = flameDescriptor.renderSettings.dimensions ?? 2
     if (v === current) return
     replaceOpenDocument({

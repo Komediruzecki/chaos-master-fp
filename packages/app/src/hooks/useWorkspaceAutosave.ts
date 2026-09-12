@@ -2,7 +2,8 @@ import { onCleanup } from 'solid-js'
 import { autosaveIntervalMin, autosaveRecents, saveReminderDismissed, setAutosaveRecents, setSaveReminderDismissed, } from '@/utils/autosaveSettings'
 import { MAX_RECENT_FLAMES, recentFlameFingerprint, upsertRecentFlame, } from '@/utils/recentFlames'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
-import type { RecentFlameClaim } from '@/utils/recentFlames'
+import type { FlushOutcome } from '@/lib/documentLoad'
+import type { RecentFlameClaim, RecentWriteOutcome } from '@/utils/recentFlames'
 import type { TimelineConfig, TimelineTrack } from '@/utils/timeline'
 
 export interface UseWorkspaceAutosaveParams {
@@ -23,11 +24,28 @@ export interface UseWorkspaceAutosaveParams {
     duration?: number | 'sticky',
     actions?: Array<{ label: string; onClick: () => void }>,
   ) => void
+  /**
+   * Put "Recents is full - may this replace the oldest flame?" to the user
+   * and resolve with their answer.
+   *
+   * Taken as a parameter rather than reached for, because only one caller
+   * here is ever allowed to ask: the flush at a document replacement, which
+   * is the last moment the open document's work exists anywhere. The
+   * interval autosave and the pagehide flush both have answers of their own
+   * (below) and neither may raise this.
+   */
+  confirmOverwriteOldest: () => Promise<boolean>
 }
 
 export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
-  const { flameDescriptor, getTracks, getConfig, agentDriving, showToast } =
-    params
+  const {
+    flameDescriptor,
+    getTracks,
+    getConfig,
+    agentDriving,
+    showToast,
+    confirmOverwriteOldest,
+  } = params
 
   const newAutosaveId = () =>
     `autosave-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
@@ -90,7 +108,16 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
     }
   }
 
-  const autosaveNow = () => {
+  /**
+   * One write of the open document into this session's Recents entry.
+   *
+   * `force` is what gets a write past the guard that stops an automatic save
+   * from deleting a flame the user kept (utils/recentFlames.ts), so it is
+   * never a default and never a convenience: the two callers that pass true
+   * both have a reason the guard was written for - a user who answered the
+   * question, and a process that is about to end.
+   */
+  const writeToRecents = (force: boolean): RecentWriteOutcome => {
     const claim = restoredEntry
     if (claim) {
       // Checked here rather than where the entry was offered, because this is
@@ -108,35 +135,88 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
       undefined,
       getTracks(),
       getConfig(),
+      force,
     )
-    if (outcome === 'full') {
-      // Declining is right - the alternative is deleting a flame the user
-      // kept - but declining in silence is the app quietly not saving. Say
-      // it once, and say what clears it.
-      if (!fullNoticeShown) {
-        fullNoticeShown = true
-        // Long enough to read and act on. Asking for 'sticky' would have
-        // been quietly downgraded to the four-second default, because a
-        // sticky toast with nothing to answer it with cannot be dismissed
-        // and the toast store refuses to strand one (contexts/ToastContext).
-        showToast(
-          `Recents is full (${MAX_RECENT_FLAMES} flames), so this one was not auto-saved. Delete one in Library, or use Save for Later to replace the oldest.`,
-          12000,
-        )
-      }
-      return
+    if (outcome === 'saved') {
+      lastAutosaveAt = Date.now()
+      markSavedBaseline()
     }
-    if (outcome !== 'saved') return
-    lastAutosaveAt = Date.now()
-    markSavedBaseline()
+    return outcome
   }
 
-  const flushDirtyToRecents = () => {
-    if (isFlameDirty()) autosaveNow()
+  /** Declining is right - the alternative is deleting a flame the user kept -
+   *  but declining in silence is the app quietly not saving. Said once: a
+   *  full shelf does not empty itself mid-session. */
+  const noticeFull = () => {
+    if (fullNoticeShown) return
+    fullNoticeShown = true
+    // Long enough to read and act on. Asking for 'sticky' would have been
+    // quietly downgraded to the four-second default, because a sticky toast
+    // with nothing to answer it with cannot be dismissed and the toast store
+    // refuses to strand one (contexts/ToastContext).
+    showToast(
+      `Recents is full (${MAX_RECENT_FLAMES} flames), so this one was not auto-saved. Delete one in Library, or use Save for Later to replace the oldest.`,
+      12000,
+    )
+  }
+
+  const autosaveNow = () => {
+    if (writeToRecents(false) === 'full') noticeFull()
+  }
+
+  /**
+   * Save the open document if it holds anything unsaved, and say what
+   * happened. Callers act on the answer differently, which is why this
+   * reports one instead of swallowing it: a document replacement stops on
+   * `full` and asks, pagehide forces past it, and the interval autosave
+   * raises the notice (lib/documentLoad.ts).
+   */
+  const flushDirtyToRecents = (force = false): FlushOutcome => {
+    if (!isFlameDirty()) return 'clean'
+    return writeToRecents(force)
+  }
+
+  /**
+   * Settle the one question a document replacement cannot answer for itself,
+   * before any of the replacement happens.
+   *
+   * At the cap the two things that could give way are both the user's: the
+   * flame they are looking at, unsaved, or the oldest one they kept. The app
+   * picking silently is how a tap on Library came to destroy the open
+   * document's keyframe tracks - undo brings a flame back, not its tracks -
+   * so it asks, with the same modal Save for Later asks with.
+   *
+   * @returns whether the replacement may go ahead. False is the user's own
+   * no, and then nothing is loaded and their work stays on screen.
+   */
+  const prepareDocumentReplacement = async (): Promise<boolean> => {
+    if (flushDirtyToRecents() !== 'full') return true
+    if (!(await confirmOverwriteOldest())) {
+      // A tap that appears to do nothing is the one outcome a user cannot
+      // report, so name what their answer did.
+      showToast('Kept the open flame. Nothing was loaded.', 5000)
+      return false
+    }
+    if (flushDirtyToRecents(true) !== 'saved') {
+      // They said yes and it still did not land, which is storage refusing
+      // rather than the shelf being full - nothing left to ask. Going ahead
+      // anyway, because a workspace that cannot write to storage must not
+      // become one that can never open a flame either.
+      showToast('Could not save the open flame to Recents', 5000)
+    }
+    return true
   }
 
   const saveOnPagehide = () => {
-    flushDirtyToRecents()
+    // The only automatic path allowed to evict a kept flame, because it is
+    // the only one with nobody to ask and no next chance: the process is
+    // going away, and losing the oldest entry on the shelf is the smaller
+    // loss against certainly losing the document that is open.
+    if (flushDirtyToRecents() === 'full') flushDirtyToRecents(true)
+    // The one-per-run notice is deliberately not spent here. A toast raised
+    // as the page is being torn down is never on screen long enough to read,
+    // and spending the flag on it would silence the notice for the rest of
+    // the run - so the user would never learn the shelf is full.
   }
   window.addEventListener('pagehide', saveOnPagehide)
   onCleanup(() => {
@@ -161,7 +241,10 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
           label: 'Yes',
           onClick: () => {
             setAutosaveRecents('on')
-            flushDirtyToRecents()
+            // The notice belongs to this write too: the user has just asked
+            // for auto-saving, so a shelf too full to take it is theirs to
+            // hear about - and this used to reach it through `autosaveNow`.
+            if (flushDirtyToRecents() === 'full') noticeFull()
           },
         },
         { label: 'No', onClick: () => setAutosaveRecents('off') },
@@ -205,6 +288,7 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
     markLoadedBaseline,
     autosaveNow,
     flushDirtyToRecents,
+    prepareDocumentReplacement,
     /**
      * Offer this session the entry a launch rescued its document into
      * (lib/draft.ts). Called after the hand-off's load boundary, because that
