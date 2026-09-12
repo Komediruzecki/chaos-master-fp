@@ -18,7 +18,7 @@ import { initAncestry } from './flame/ancestry'
 import { importSharedVariations, loadCustomVariations, remapFlameCustomVariations, } from './flame/variations/custom'
 import { activeTab, arcadeMode, setActiveTab, tabFromHash, } from './lib/activeTab'
 import { createBackLayer } from './lib/backStack'
-import { clearDraft, draftAction, readDraft } from './lib/draft'
+import { draftForLaunch } from './lib/draft'
 import { IS_NATIVE } from './lib/platform'
 import { Root } from './lib/Root'
 
@@ -107,18 +107,16 @@ export function Wrappers() {
    * wins instead - restoring over it would replace what the link was opened
    * for - and the draft is then dropped rather than left to surface over a
    * later, unrelated session.
+   *
+   * Adopting one does not clear it: the welcome screen is still up, and a
+   * starter flame picked from the grid overwrites the restored flame before
+   * anything has had a chance to write it back. The next pause settles it.
    */
   onMount(() => {
-    const action = draftAction({
+    const draft = draftForLaunch({
       native: IS_NATIVE,
       search: window.location.search,
     })
-    if (action === 'ignore') return
-    if (action === 'clear') {
-      clearDraft()
-      return
-    }
-    const draft = readDraft()
     if (!draft) return
     batch(() => {
       // The same one-shot hand-off Home and the welcome screen use.
@@ -126,7 +124,6 @@ export function Wrappers() {
       setSelectedWelcomeTracks(() => draft.tracks)
       setSelectedWelcomeConfig(() => draft.config)
     })
-    clearDraft()
     setDraftNotice('Restored your last flame')
   })
 

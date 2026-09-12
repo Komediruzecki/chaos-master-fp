@@ -159,6 +159,30 @@ export function draftAction(input: {
 }
 
 /**
+ * The draft a launch should adopt, if there is one.
+ *
+ * A restore deliberately leaves the value in storage. Reading it and clearing
+ * it on the same tick lost the session: the flame lands behind the welcome
+ * screen, and picking a starter flame from the grid overwrites it and resets
+ * the workspace - while the restore has already ended in a fresh baseline, so
+ * the flame counts as clean and nothing writes it back. Left where it is, the
+ * next pause either overwrites the draft or clears it through the
+ * clean-signature path, and a draft nobody adopted is offered again.
+ */
+export function draftForLaunch(input: {
+  native: boolean
+  search: string
+}): ParsedFlame | undefined {
+  const action = draftAction(input)
+  if (action === 'ignore') return undefined
+  if (action === 'clear') {
+    clearDraft()
+    return undefined
+  }
+  return readDraft()
+}
+
+/**
  * A link that carries its own flame (`?s=`, `?flame=`) or variation (`?cv=`).
  * Restoring the draft over it would replace what the link was opened for.
  */

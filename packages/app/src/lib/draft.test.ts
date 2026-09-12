@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { parseFlameXml } from '@/flame/flameXml'
 import { safeSetItem } from '@/utils/storage'
-import { clearDraft, DRAFT_KEY, draftAction, hasSharePayload, installDraftBackup, markDraftBaseline, readDraft, saveDraft, } from './draft'
+import { clearDraft, DRAFT_KEY, draftAction, draftForLaunch, hasSharePayload, installDraftBackup, markDraftBaseline, readDraft, saveDraft, } from './draft'
 import { useLifecyclePorts } from './lifecycle'
 import type { LifecyclePorts } from '@chaos-master/mobile-runtime/lifecycle'
 import type { DraftState } from './draft'
@@ -236,6 +236,18 @@ describe('the pause backup', () => {
   })
 })
 
+/** An envelope already in storage, without touching the pause baseline. */
+const seedDraft = () => {
+  safeSetItem(
+    DRAFT_KEY,
+    JSON.stringify({
+      flame,
+      savedAt: Date.now(),
+      animation: { tracks, config },
+    }),
+  )
+}
+
 describe('what a launch does with the draft', () => {
   it('restores under the welcome screen, which is not a first run', () => {
     // The welcome screen shows on every launch until the user ticks "Don't
@@ -255,6 +267,33 @@ describe('what a launch does with the draft', () => {
 
   it('does nothing on the web, where nothing writes one', () => {
     expect(draftAction({ native: false, search: '' })).toBe('ignore')
+  })
+
+  it('leaves the draft it restored in storage', () => {
+    // Restoring and clearing on the same tick lost the session: the flame
+    // lands behind the welcome screen, and a starter flame picked from the
+    // grid overwrites it while the restore's own baseline says the workspace
+    // is clean - so the work went from memory, from storage and from Recents
+    // at once. The next pause is what settles the draft.
+    seedDraft()
+    expect(
+      draftForLaunch({ native: true, search: '' })?.flame.metadata?.name,
+    ).toBe('Draft')
+    expect(readDraft()?.flame.metadata?.name).toBe('Draft')
+    clearDraft()
+  })
+
+  it('drops it where the link carries its own flame', () => {
+    seedDraft()
+    expect(draftForLaunch({ native: true, search: '?s=abc' })).toBeUndefined()
+    expect(readDraft()).toBeUndefined()
+  })
+
+  it('adopts nothing on the web, and leaves what is there alone', () => {
+    seedDraft()
+    expect(draftForLaunch({ native: false, search: '' })).toBeUndefined()
+    expect(readDraft()?.flame.metadata?.name).toBe('Draft')
+    clearDraft()
   })
 })
 
