@@ -97,10 +97,15 @@ export function NavRail(props: NavRailProps) {
       {/* Portalled out of the workspace, which isolates a stacking context of
           its own (App.module.css `.layout`): a menu left inside it painted
           under Home however high its z-index went - which is how the floating
-          version menu, the rail's only other host, became unreachable. */}
-      <Portal>
-        <div class={ui.menuLayer}>
-          <Show when={moreOpen()}>
+          version menu, the rail's only other host, became unreachable.
+
+          Mounted with the menu, not with the layout. The layer is fixed
+          across the whole viewport at --la-z-shell, and it sat over the app
+          for the life of the deck - harmless only for as long as nothing
+          disturbs its `pointer-events: none`. */}
+      <Show when={moreOpen()}>
+        <Portal>
+          <div class={ui.menuLayer} data-testid="navrail-more-layer">
             <div
               class={ui.backdrop}
               data-testid="navrail-more-backdrop"
@@ -108,17 +113,17 @@ export function NavRail(props: NavRailProps) {
                 setMoreOpen(false)
               }}
             />
-          </Show>
-          <MoreMenu
-            items={moreItems()}
-            open={moreOpen()}
-            onClose={() => {
-              setMoreOpen(false)
-            }}
-            menuClass={ui.menu!}
-          />
-        </div>
-      </Portal>
+            <MoreMenu
+              items={moreItems()}
+              open={moreOpen()}
+              onClose={() => {
+                setMoreOpen(false)
+              }}
+              menuClass={ui.menu!}
+            />
+          </div>
+        </Portal>
+      </Show>
     </>
   )
 }

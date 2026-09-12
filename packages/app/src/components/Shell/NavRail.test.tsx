@@ -74,6 +74,20 @@ describe('NavRail', () => {
     expect(onOpenSettings).toHaveBeenCalledTimes(1)
   })
 
+  it('mounts its menu layer only while the menu is open', () => {
+    // The layer is fixed across the whole viewport at --la-z-shell, and it
+    // used to be mounted for the life of the deck layout: over the app the
+    // whole time, harmless only because it sets pointer-events: none.
+    mount('library', HANDLERS)
+    expect(screen.queryByTestId('navrail-more-layer')).toBeNull()
+
+    screen.getByRole('button', { name: 'More' }).click()
+    expect(screen.getByTestId('navrail-more-layer')).toBeTruthy()
+
+    screen.getByTestId('navrail-more-backdrop').click()
+    expect(screen.queryByTestId('navrail-more-layer')).toBeNull()
+  })
+
   it('offers the same More list the phone bar offers', () => {
     // This layout mounts no phone bar, and the editor's top bar is behind
     // Home, so before this the rail was the only shell on a landscape tablet
