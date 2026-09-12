@@ -93,11 +93,13 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
   const autosaveNow = () => {
     const claim = restoredEntry
     if (claim) {
-      // One shot, whichever way it goes: after this the document has either
-      // taken the entry over or lost the right to.
+      // Checked here rather than where the entry was offered, because this is
+      // the moment of the write: an entry something else has taken over since
+      // the hand-off is left alone, and this session opens one of its own.
+      // One shot, whichever way it goes.
       restoredEntry = undefined
-      if (recentFlameFingerprint(claim.id) === claim.fingerprint) {
-        autosaveSessionId = claim.id
+      if (recentFlameFingerprint(claim.id) !== claim.fingerprint) {
+        autosaveSessionId = newAutosaveId()
       }
     }
     const outcome = upsertRecentFlame(
@@ -210,6 +212,13 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
      */
     claimRestoredEntry: (entry: RecentFlameClaim | undefined) => {
       restoredEntry = entry
+      // Taken on immediately, not at the first write: the pause backup names
+      // this entry in the draft it writes (lib/draft.ts), so a crash between
+      // the restore and the first flush would otherwise send the next launch
+      // to a fresh id and file the same work a second time. Nothing is
+      // written here - the entry is still checked at the moment of the write,
+      // and a fresh id minted then if it is no longer what the rescue left.
+      if (entry) autosaveSessionId = entry.id
     },
     /** The Recents entry this session writes to, for the pause backup. */
     autosaveSessionId: () => autosaveSessionId,

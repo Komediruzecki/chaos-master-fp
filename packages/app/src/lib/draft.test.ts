@@ -831,6 +831,54 @@ describe('the draft a launch restored', () => {
     })
   })
 
+  it('still costs one place when the crash comes before any flush', () => {
+    // Restore, type one character, and the OS force-stops the app before
+    // anything has flushed: the only write is the pause backup, and the entry
+    // it names is the one the next launch rescues into. Taking the entry over
+    // at the first write alone left that draft carrying a fresh id, so the
+    // launch after it filed the same work a second time.
+    seedDraft({ sessionId: 'autosave-killed' })
+    const platform = fakePlatform()
+    const restored = takeDraftForLaunch({ native: true, search: '' })
+
+    createRoot((dispose) => {
+      const [flameStore, setFlameStore] = createStore<FlameDescriptor>(
+        JSON.parse(JSON.stringify(restored?.flame)),
+      )
+      const autosave = useWorkspaceAutosave({
+        flameDescriptor: flameStore,
+        getTracks: () => restored?.tracks ?? [],
+        getConfig: () => restored?.config,
+        agentDriving: () => false,
+        showToast: () => undefined,
+      })
+      const backup = installDraftBackup({
+        native: true,
+        read: () => ({
+          flame: unwrap(flameStore),
+          tracks: restored?.tracks ?? [],
+          config: restored?.config ?? defaultConfig(),
+          sessionId: autosave.autosaveSessionId(),
+        }),
+        unsaved: autosave.isFlameDirty,
+      })
+      autosave.markLoadedBaseline()
+      autosave.claimRestoredEntry(restored?.entry)
+
+      setFlameStore('metadata', 'name', 'Edited after the restore')
+      platform.pause()
+
+      backup.dispose()
+      dispose()
+    })
+
+    // The launch after the force-stop.
+    takeDraftForLaunch({ native: true, search: '' })
+    const recents = loadRecentFlames()
+    expect(recents).toHaveLength(1)
+    expect(recents[0]?.flame.metadata?.name).toBe('Edited after the restore')
+  })
+
   it('leaves that entry alone once something else has written to it', () => {
     // The id is not proof. Between the rescue and the first flush another
     // path can write to the same entry, and taking it over then is the
