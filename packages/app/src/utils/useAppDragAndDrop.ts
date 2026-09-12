@@ -1,15 +1,20 @@
 import { batch } from 'solid-js'
 import { deepClone } from '@/utils/clone'
+import { defaultConfig as defaultTimelineConfig } from '@/utils/timeline'
 import { useLoadFlameFromFile } from '@/utils/useLoadFlameFromFile'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 import type { RecordedSession } from '@/recorder/schema'
-import type { TimelineTrack } from '@/utils/timeline'
+import type { TimelineConfig, TimelineTrack } from '@/utils/timeline'
 
 export function useAppDragAndDrop(
   history: { replace: (v: FlameDescriptor, label?: string) => void },
   setLoadedAnimation: (state: {
     flame: FlameDescriptor
     tracks: TimelineTrack[]
+    /** The timeline the dropped document belongs on. Not optional in
+     *  practice: a load that says nothing about it leaves the workspace
+     *  running the previous flame's frame rate and end frame. */
+    config?: TimelineConfig
   }) => void,
   /** Offered the session and source file carried by a dropped artifact. */
   onSessionDropped?: (
@@ -38,12 +43,25 @@ export function useAppDragAndDrop(
             ...t,
             keyframes: t.keyframes.map((kf) => ({ ...kf })),
           })),
+          // The file says what frame rate and end frame its keyframes were
+          // authored at, and dropping that read the timing out of the file
+          // and then threw it away - the animation played back at whatever
+          // the previous document was running at.
+          ...(result.animation.config
+            ? { config: result.animation.config }
+            : {}),
         })
       } else {
         // Route through setLoadedAnimation like the LoadFlame modal: clears
         // stale timeline tracks from the previous flame and resets dirty
-        // tracking (a plain drop is a load, not an edit).
-        setLoadedAnimation({ flame: deepClone(flame), tracks: [] })
+        // tracking (a plain drop is a load, not an edit). The timeline goes
+        // back to its defaults for the same reason the tracks do - a plain
+        // flame has no claim on the last one's 60fps over 300 frames.
+        setLoadedAnimation({
+          flame: deepClone(flame),
+          tracks: [],
+          config: defaultTimelineConfig(),
+        })
       }
     })
     // After the flame is in place, so replaying starts from the same
