@@ -23,9 +23,12 @@ vi.mock('@/utils/useLoadFlameFromFile', () => ({
 }))
 
 const store = new Map<string, string>()
+/** Quota, private mode, a locked-down WebView: storage that says no. */
+let storageRefuses = false
 vi.mock('@/utils/storage', () => ({
   safeGetItem: (key: string) => store.get(key) ?? null,
   safeSetItem: (key: string, value: string) => {
+    if (storageRefuses) return false
     store.set(key, value)
     return true
   },
@@ -45,7 +48,10 @@ const flame: FlameDescriptor = {
   metadata: { ...parsed.metadata, name: 'Open' },
 }
 
-afterEach(clearRecentFlames)
+afterEach(() => {
+  storageRefuses = false
+  clearRecentFlames()
+})
 
 /** A shelf with no room left on it, written structurally so the cap is
  *  reached without 150 schema passes. `kept-149` is the oldest, and so the
@@ -70,6 +76,11 @@ const fillRecents = () => {
  *  yes would quietly let a write past the guard the flush is there to
  *  respect. */
 const declineOverwrite = () => Promise.resolve(false)
+
+/** The answer these tests give when a replacement asks whether the open flame
+ *  may be dropped because storage refused to save it. No: keeping the work is
+ *  the default everywhere, and a test that wants the other answer says so. */
+const keepUnsaved = () => Promise.resolve(false)
 
 /** The name a call is calling, whether it is written bare or reached through
  *  the object it was returned in. A guard that only knew the bare form was
@@ -191,7 +202,8 @@ describe('replacing the open document', () => {
         getConfig: () => undefined,
         agentDriving: () => false,
         confirmOverwriteOldest: declineOverwrite,
-        showToast: () => undefined,
+        confirmDiscardUnsaved: keepUnsaved,
+        showToast: () => 0,
       })
       autosave.markLoadedBaseline()
       setOpen('metadata', 'name', 'Unsaved work')
@@ -310,7 +322,8 @@ describe('replacing the open document', () => {
         getTracks: () => [],
         getConfig: () => undefined,
         agentDriving: () => false,
-        showToast: () => undefined,
+        showToast: () => 0,
+        confirmDiscardUnsaved: keepUnsaved,
         confirmOverwriteOldest: () => {
           asked += 1
           return Promise.resolve(true)
@@ -356,6 +369,7 @@ describe('replacing the open document', () => {
         agentDriving: () => false,
         showToast: (message) => toasts.push(message),
         confirmOverwriteOldest: declineOverwrite,
+        confirmDiscardUnsaved: keepUnsaved,
       })
       autosave.markLoadedBaseline()
       setOpen('metadata', 'name', 'Unsaved work')
@@ -378,6 +392,172 @@ describe('replacing the open document', () => {
     })
   })
 
+  it('refuses to replace when storage refused the flush', () => {
+    // `refused` was tested for nowhere: the chokepoint asked only whether the
+    // outcome was `full`, so a storage refusal read exactly like a save and
+    // the replacement went ahead over the outgoing flame and its keyframe
+    // tracks, with no message at all. A write that did not land is a write
+    // that did not land, whichever reason it gives.
+    createRoot((dispose) => {
+      const [open, setOpen] = createStore<FlameDescriptor>(
+        JSON.parse(JSON.stringify(flame)),
+      )
+      const autosave = useWorkspaceAutosave({
+        flameDescriptor: open,
+        getTracks: () => [],
+        getConfig: () => undefined,
+        agentDriving: () => false,
+        showToast: () => 0,
+        confirmOverwriteOldest: declineOverwrite,
+        confirmDiscardUnsaved: keepUnsaved,
+      })
+      autosave.markLoadedBaseline()
+      setOpen('metadata', 'name', 'Unsaved work')
+      storageRefuses = true
+
+      const replaced = replaceOpenDocument({
+        flushUnsaved: autosave.flushDirtyToRecents,
+        replace: () => {
+          setOpen('metadata', 'name', 'Opened from Library')
+        },
+      })
+
+      expect(replaced).toBe(false)
+      expect(open.metadata?.name).toBe('Unsaved work')
+      dispose()
+    })
+  })
+
+  it('replaces once the user has answered the refusal question', () => {
+    // The other half of the rule above: a no must stop the load, and a yes
+    // must not leave the chokepoint refusing the replacement it was just
+    // given permission for.
+    return createRoot(async (dispose) => {
+      const [open, setOpen] = createStore<FlameDescriptor>(
+        JSON.parse(JSON.stringify(flame)),
+      )
+      const autosave = useWorkspaceAutosave({
+        flameDescriptor: open,
+        getTracks: () => [],
+        getConfig: () => undefined,
+        agentDriving: () => false,
+        showToast: () => 0,
+        confirmOverwriteOldest: declineOverwrite,
+        confirmDiscardUnsaved: () => Promise.resolve(true),
+      })
+      autosave.markLoadedBaseline()
+      setOpen('metadata', 'name', 'Unsaved work')
+      storageRefuses = true
+
+      expect(await autosave.prepareDocumentReplacement()).toBe(true)
+      const replaced = replaceOpenDocument({
+        flushUnsaved: autosave.flushDirtyToRecents,
+        replace: () => {
+          setOpen('metadata', 'name', 'Opened from Library')
+        },
+      })
+
+      expect(replaced).toBe(true)
+      expect(open.metadata?.name).toBe('Opened from Library')
+      dispose()
+    })
+  })
+
+  it('takes the load boundary inside the one function every load shares', () => {
+    // `replaceLoadedFlame` is a closure inside MainWorkspace, which no test
+    // can construct, so this is read off the source: what is checked is that
+    // the boundary is taken where every replacement passes, and only for a
+    // replacement that happened.
+    //
+    // Two of the four call sites reached that function and nothing else - an
+    // accepted migration and a generated logo - so they took no boundary at
+    // all: the session id was never rotated, and the new flame's autosaves
+    // went into the entry the flush had just written the OUTGOING flame into.
+    // A restored draft's claim on its rescued entry was inherited too, and
+    // the baseline still described the document that had left.
+    const ast = parseWorkspace()
+    let body: ts.Block | undefined
+    const find = (node: ts.Node) => {
+      if (
+        ts.isVariableDeclaration(node) &&
+        ts.isIdentifier(node.name) &&
+        node.name.text === 'replaceLoadedFlame' &&
+        node.initializer !== undefined &&
+        ts.isArrowFunction(node.initializer) &&
+        ts.isBlock(node.initializer.body)
+      ) {
+        body = node.initializer.body
+      }
+      ts.forEachChild(node, find)
+    }
+    find(ast)
+    expect(body).toBeDefined()
+    if (!body) return
+
+    const boundaries: ts.CallExpression[] = []
+    const collect = (node: ts.Node) => {
+      if (
+        ts.isCallExpression(node) &&
+        calleeName(node) === 'markLoadedBaseline'
+      ) {
+        boundaries.push(node)
+      }
+      ts.forEachChild(node, collect)
+    }
+    collect(body)
+    expect(boundaries).toHaveLength(1)
+
+    // And after the chokepoint's answer, not before it: a refused
+    // replacement opened nothing, so baselining there would mark the
+    // document still on screen as freshly loaded and drop its unsaved work
+    // from every writer.
+    const start = boundaries[0]?.getStart(ast) ?? 0
+    const gated = body.statements.some(
+      (statement) =>
+        statement.end <= start &&
+        ts.isIfStatement(statement) &&
+        mentions(statement.expression, 'replaced') &&
+        containsReturn(statement.thenStatement),
+    )
+    expect(gated).toBe(true)
+  })
+
+  it('gives every bare replacement a timeline of its own', () => {
+    // A `replaceLoadedFlame` that seeds no animation leaves the keyframe
+    // tracks, frame rate and end frame of the document it replaced standing,
+    // and then autosaves the new flame at them. The two call sites that do
+    // not go through the load dialog - an accepted migration and a generated
+    // logo - were both like that.
+    const ast = parseWorkspace()
+    const bare: string[] = []
+    const walk = (node: ts.Node) => {
+      if (
+        ts.isCallExpression(node) &&
+        calleeName(node) === 'replaceLoadedFlame'
+      ) {
+        const scope = enclosingFunction(node)
+        // Either this callback seeds the animation itself, or it is handed
+        // to a hook that seeds one beside it - the shape the load dialog and
+        // the drop handler use, because their seed sits in the same batch.
+        const seedsItself = mentions(scope, 'setLoadedAnimation')
+        const handedOver =
+          scope.parent !== undefined &&
+          ts.isPropertyAssignment(scope.parent) &&
+          ts.isObjectLiteralExpression(scope.parent.parent) &&
+          scope.parent.parent.properties.some((property) =>
+            named(property, 'prepareReplace'),
+          )
+        if (!seedsItself && !handedOver) {
+          const { line } = ast.getLineAndCharacterOfPosition(node.getStart(ast))
+          bare.push(`MainWorkspace.tsx:${line + 1}`)
+        }
+      }
+      ts.forEachChild(node, walk)
+    }
+    walk(ast)
+    expect(bare).toEqual([])
+  })
+
   it('refuses to replace when the question was skipped', () => {
     // The backstop. A replacement added without the gate would otherwise
     // drop the open document's unsaved work at the cap, silently - so the
@@ -392,8 +572,9 @@ describe('replacing the open document', () => {
         getTracks: () => [],
         getConfig: () => undefined,
         agentDriving: () => false,
-        showToast: () => undefined,
+        showToast: () => 0,
         confirmOverwriteOldest: declineOverwrite,
+        confirmDiscardUnsaved: keepUnsaved,
       })
       autosave.markLoadedBaseline()
       setOpen('metadata', 'name', 'Unsaved work')
@@ -423,7 +604,8 @@ describe('replacing the open document', () => {
         getConfig: () => undefined,
         agentDriving: () => false,
         confirmOverwriteOldest: declineOverwrite,
-        showToast: () => undefined,
+        confirmDiscardUnsaved: keepUnsaved,
+        showToast: () => 0,
       })
       autosave.markLoadedBaseline()
 
@@ -610,6 +792,7 @@ describe('replacing the open document', () => {
         agentDriving: () => false,
         showToast: (message) => toasts.push(message),
         confirmOverwriteOldest: declineOverwrite,
+        confirmDiscardUnsaved: keepUnsaved,
       })
       autosave.markLoadedBaseline()
       setOpen('metadata', 'name', 'Unsaved work')
@@ -636,6 +819,50 @@ describe('replacing the open document', () => {
       expect(toasts.join(' ')).toContain('Kept the open flame')
       dispose()
     })
+  })
+
+  it('reads the answer a delete gives, rather than assuming it landed', () => {
+    // `deleteRecentFlame` returns false when the localStorage write failed,
+    // "so a caller can tell the user the entry is still there instead of
+    // silently leaving it on screen" - its own docstring. The only call site
+    // dropped that answer, so the row vanished from the list, came back on
+    // the next read, and a user trying to free space deleted the same flame
+    // over and over.
+    //
+    // Read off the source: the call sits inside a Solid component and a
+    // modal flow no test can drive. What is checked is that the answer is
+    // read at all - branched on, or bound to something.
+    const ast = ts.createSourceFile(
+      'LoadFlameModal.tsx',
+      loadFlameModalSource,
+      ts.ScriptTarget.Latest,
+      true,
+      ts.ScriptKind.TSX,
+    )
+    const ignored: string[] = []
+    const walk = (node: ts.Node) => {
+      if (
+        ts.isCallExpression(node) &&
+        calleeName(node) === 'deleteRecentFlame'
+      ) {
+        const parent = node.parent
+        const read =
+          parent !== undefined &&
+          (ts.isIfStatement(parent) ||
+            ts.isPrefixUnaryExpression(parent) ||
+            ts.isVariableDeclaration(parent) ||
+            ts.isBinaryExpression(parent) ||
+            ts.isConditionalExpression(parent) ||
+            ts.isReturnStatement(parent))
+        if (!read) {
+          const { line } = ast.getLineAndCharacterOfPosition(node.getStart(ast))
+          ignored.push(`LoadFlameModal.tsx:${line + 1}`)
+        }
+      }
+      ts.forEachChild(node, walk)
+    }
+    walk(ast)
+    expect(ignored).toEqual([])
   })
 
   it('loads a dropped file when no gate was handed in', async () => {

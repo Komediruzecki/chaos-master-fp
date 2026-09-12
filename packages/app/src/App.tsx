@@ -66,6 +66,12 @@ const NOTICE = {
   full: 'Restored your last flame. Recents is full, so save it for later to keep it.',
   refused:
     'Restored your last flame. It could not be added to Recents, so save it for later to keep it.',
+  /** The welcome grid is tappable before the workspace chunk has loaded, and
+   *  a pick in that window would overwrite the restore before it reaches the
+   *  editor (lib/workspaceHandoff.ts). The restore wins, so the pick has to
+   *  be accounted for rather than vanishing. */
+  restoreWon:
+    'Opening the flame you were last working on. Pick another from the Library once it is open.',
 } as const
 
 export function Wrappers() {
@@ -147,6 +153,13 @@ export function Wrappers() {
       ...(draft.tracks ? { tracks: draft.tracks } : {}),
       ...(draft.config ? { config: draft.config } : {}),
       ...(draft.entry ? { restoredEntry: draft.entry } : {}),
+      // Both of these travel because the workspace cannot work either out for
+      // itself. `restored` gives this seeding right of way until the editor
+      // has taken it, and `restoreUnsecured` says the work is NOT in Recents,
+      // which is what stops the workspace marking the only live copy of a
+      // flame clean (hooks/useWorkspaceAutosave.ts).
+      restored: true,
+      ...(draft.unsecured ? { restoreUnsecured: draft.unsecured } : {}),
     })
     setDraftNotice(NOTICE[draft.unsecured ?? 'secured'])
   })
@@ -372,6 +385,7 @@ export function Wrappers() {
                         welcomeConfig={handoff.config}
                         capabilityFromHome={handoff.capability}
                         restoredEntryFromLaunch={handoff.restoredEntry}
+                        restoreUnsecuredFromLaunch={handoff.restoreUnsecured}
                         autoOpenBenchmark={benchmarkRequested}
                         autoStartBenchmark={benchmarkAuto}
                         hardwareTier={
@@ -391,7 +405,7 @@ export function Wrappers() {
                       <Show when={activeTab() === 'home' && !showWelcome()}>
                         <HomeTab
                           onOpenFlame={(flame, tracks, capability) => {
-                            seedWorkspace({
+                            const seeded = seedWorkspace({
                               flame,
                               ...(tracks ? { tracks } : {}),
                               ...(capability !== undefined
@@ -399,6 +413,7 @@ export function Wrappers() {
                                 : {}),
                               enterWorkspace: true,
                             })
+                            if (!seeded) setDraftNotice(NOTICE.restoreWon)
                           }}
                         />
                         {/* Touch has no FloatingActions, so this is the way
@@ -438,11 +453,17 @@ export function Wrappers() {
                           })
                         }}
                         onSelectFlame={(flame, tracks) => {
-                          seedWorkspace({
+                          // This grid is live before the workspace chunk has
+                          // resolved, so a pick here can land while a rescued
+                          // draft is still waiting to be taken. The restore
+                          // wins; the pick is reported rather than dropped
+                          // (lib/workspaceHandoff.ts).
+                          const seeded = seedWorkspace({
                             flame,
                             ...(tracks ? { tracks } : {}),
                             enterWorkspace: true,
                           })
+                          if (!seeded) setDraftNotice(NOTICE.restoreWon)
                         }}
                         onStartTour={handleStartTour}
                         onShowAbout={() => {

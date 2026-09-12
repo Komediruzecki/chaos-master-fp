@@ -67,6 +67,13 @@ const ConfirmOverwriteRecentModal = lazy(() =>
     }),
   ),
 )
+const ConfirmDiscardUnsavedModal = lazy(() =>
+  import('./components/LoadFlameModal/ConfirmDiscardUnsavedModal').then(
+    (m) => ({
+      default: m.ConfirmDiscardUnsavedModal,
+    }),
+  ),
+)
 import { createVariationSelector } from './components/VariationSelector/VariationSelector'
 import { ChangeHistoryContextProvider } from './contexts/ChangeHistoryContext'
 import { useCompactMode } from './contexts/CompactModeContext'
@@ -138,6 +145,7 @@ import type { SonificationConfig } from './utils/sonification'
 import type { EasingCurve, KeyframeInterpolation, TimelineConfig, TimelineTrack, } from './utils/timeline'
 import type { CommandContext } from '@/commands/types'
 import type { CommunityShowcaseRequest } from '@/lib/communityShowcase'
+import type { UnsecuredReason } from '@/lib/draft'
 
 export type { ExportImageInfo, ExportImageType } from '@/flame/exportImageType'
 
@@ -184,6 +192,15 @@ export type AppProps = {
    * before it touches anything. Only a restored draft carries one.
    */
   restoredEntryFromLaunch?: () => RecentFlameClaim | undefined
+  /**
+   * Why a restored draft is NOT in Recents - the shelf was at its cap, or
+   * storage refused the write (lib/draft.ts). Set, it means this process
+   * holds the only live copy of that flame, so the hand-off must not be
+   * baselined as loaded: a clean document is skipped by the interval
+   * autosave, by the pagehide flush and by the flush at the next replacement,
+   * and the single draft slot was then all there was.
+   */
+  restoreUnsecuredFromLaunch?: () => UnsecuredReason | undefined
   resetFlameFromWelcome?: () => void
   hardwareTier?: HardwareTier | null
   onHardwareTierChange?: (tier: HardwareTier) => void
@@ -593,6 +610,18 @@ export function MainWorkspace(props: AppProps) {
     // a `flame.load` for a document that never landed makes a replay apply
     // every action after it to the wrong flame.
     if (!replaced) return false
+    // A replacement IS the load boundary, so it is taken here rather than by
+    // each caller. Two of the four reached this function and nothing else -
+    // an accepted migration and a generated logo - and so took no boundary at
+    // all: the session id was never rotated, so the new flame's autosaves
+    // overwrote the entry the flush had just written the OUTGOING flame into;
+    // a restore's claim on its rescued entry was inherited by a document that
+    // had no business with it; and the baseline still described the flame
+    // that had left, so the incoming one read as unsaved work from the moment
+    // it opened. The other two also seed an animation, whose effect takes a
+    // boundary as well - re-taking it there is what picks up the tracks and
+    // the timeline that land after this returns (hooks/useWorkspaceAutosave).
+    markLoadedBaseline()
     recordSyntheticAction(
       'flame.load',
       origin === undefined
@@ -689,6 +718,7 @@ export function MainWorkspace(props: AppProps) {
         // Read BEFORE resetFlameFromWelcome() clears the whole hand-off.
         const capability = props.capabilityFromHome?.()
         const rescuedEntry = props.restoredEntryFromLaunch?.()
+        const restoreUnsecured = props.restoreUnsecuredFromLaunch?.()
         if (capability !== undefined) {
           setPendingCapability(capability)
         }
@@ -720,14 +750,21 @@ export function MainWorkspace(props: AppProps) {
           timeline.setConfig({ ...timeline.config(), ...config })
         }
         props.resetFlameFromWelcome?.()
-        // Every hand-off is a fresh starting point for dirty tracking, the
-        // restored draft included: its work reached Recents before the launch
-        // handed it over (lib/draft.ts), so nothing is lost by the workspace
-        // counting it as loaded - while leaving it dirty made the autosave
-        // prompt and the five-minute reminder fire on a launch nobody had
-        // touched. The guard that stood here was one of three that tried to
-        // keep restored work alive by not baselining it.
-        markLoadedBaseline()
+        // Every hand-off is a fresh starting point for dirty tracking,
+        // including a restored draft whose work reached Recents before the
+        // launch handed it over: nothing is lost by counting that as loaded,
+        // while leaving it dirty made the autosave prompt and the five-minute
+        // reminder fire on a launch nobody had touched.
+        //
+        // A restore the rescue could NOT shelve is the exception, and the one
+        // this used to get wrong by passing nothing: that flame is in this
+        // process and in the draft slot and nowhere else, so marking it clean
+        // took it out of the reach of every writer - the interval autosave,
+        // the pagehide flush and the flush at the next replacement all skip a
+        // clean document - and the next pause on a different document
+        // overwrote the slot. It stays dirty; the prompts are told separately
+        // that nobody has touched it (hooks/useWorkspaceAutosave.ts).
+        markLoadedBaseline({ unsecured: restoreUnsecured !== undefined })
         // After the boundary, which is what mints the id this replaces: the
         // work is already in that entry, so the session carries on in it and
         // one restored flame keeps one place on the shelf.
@@ -1821,7 +1858,11 @@ export function MainWorkspace(props: AppProps) {
     // so the cap question is settled here. Without it the chokepoint refuses
     // the replacement and the modal closes having done nothing.
     if (!(await prepareDocumentReplacement())) return
-    replaceLoadedFlame(flame, 'Load migrated flame')
+    if (!replaceLoadedFlame(flame, 'Load migrated flame')) return
+    // A migrated flame carries no animation, but it still has a timeline.
+    // Without this it opened on the keyframe tracks, frame rate and end frame
+    // of the document it replaced, and autosaved there (lib/documentLoad.ts).
+    setLoadedAnimation({ flame, tracks: [], config: defaultTimelineConfig() })
   })
 
   /** Waits until the canvas backing-store size stops changing (the resize is
@@ -2060,7 +2101,10 @@ export function MainWorkspace(props: AppProps) {
       // document, so the question is asked here or the chokepoint refuses
       // the replacement and the generator appears to load nothing.
       if (!(await prepareDocumentReplacement())) return
-      replaceLoadedFlame(flame, 'Load generated logo')
+      if (!replaceLoadedFlame(flame, 'Load generated logo')) return
+      // Same as the migration above: a generated logo has no animation and a
+      // timeline of its own, and inherited the previous document's otherwise.
+      setLoadedAnimation({ flame, tracks: [], config: defaultTimelineConfig() })
     },
   )
 
@@ -2784,6 +2828,22 @@ export function MainWorkspace(props: AppProps) {
     })
   }
 
+  /**
+   * The other way a flush writes nothing: storage refused it, so the open
+   * document is not in Recents and going ahead would lose it outright. There
+   * is nothing to trade here - no oldest flame to spend - so it is its own
+   * question, and the answer that keeps their work is the one a dismissed
+   * modal gives (lib/documentLoad.ts).
+   */
+  const confirmDiscardUnsaved = async () =>
+    await _requestModal<boolean>({
+      content: ({ respond }) => (
+        <Suspense>
+          <ConfirmDiscardUnsavedModal respond={respond} />
+        </Suspense>
+      ),
+    })
+
   // ── Autosave & save-awareness ──────────────────────────────────────────
   const {
     isFlameDirty,
@@ -2802,6 +2862,7 @@ export function MainWorkspace(props: AppProps) {
     agentDriving,
     showToast,
     confirmOverwriteOldest,
+    confirmDiscardUnsaved,
   })
 
   /**

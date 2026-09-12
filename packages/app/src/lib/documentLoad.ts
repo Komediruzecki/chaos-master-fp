@@ -27,15 +27,20 @@ export type FlushOutcome = 'clean' | 'saved' | 'full' | 'refused'
  * test that fails on any call of the flush outside this function
  * (documentLoad.test.ts).
  *
- * `full` stops the replacement, and that is the point. At the cap the flush
- * writes nothing, so going ahead destroys the open document's unsaved work
- * outright - with the toast explaining it painting after the work is already
- * gone, and undo restoring the flame but not the keyframe tracks. Whether to
- * evict the oldest kept flame instead is the user's answer to give, and the
- * caller settles it before it gets here (MainWorkspace's
- * `prepareDocumentReplacement`). Reaching this with `full` therefore means
- * the question was skipped, and then the document on screen is the one worth
- * keeping: it is the work the user can see.
+ * A flush that wrote nothing stops the replacement, and that is the point. At
+ * the cap, and when storage refuses the write, the flush writes nothing - so
+ * going ahead destroys the open document's unsaved work outright, with the
+ * toast explaining it painting after the work is already gone, and undo
+ * restoring the flame but not the keyframe tracks. Which of the two things
+ * gives way is the user's answer to give, and the caller settles it before it
+ * gets here (MainWorkspace's `prepareDocumentReplacement`). Reaching this
+ * with anything but `clean` or `saved` therefore means the question was
+ * skipped, and then the document on screen is the one worth keeping: it is
+ * the work the user can see.
+ *
+ * `refused` used to fall through here as if the write had landed, because
+ * only `full` was tested for. Storage saying no is not a reason to destroy
+ * anything - it is the reason there is nowhere else for the work to be.
  *
  * Deliberately synchronous, which is why the asking happens before it rather
  * than inside. The Library path calls this from inside a `batch` that also
@@ -52,7 +57,8 @@ export function replaceOpenDocument(steps: {
   /** Then, and only then, put the new document in its place. */
   replace: () => void
 }): boolean {
-  if (steps.flushUnsaved() === 'full') return false
+  const flushed = steps.flushUnsaved()
+  if (flushed !== 'clean' && flushed !== 'saved') return false
   steps.replace()
   return true
 }

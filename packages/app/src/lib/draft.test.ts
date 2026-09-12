@@ -149,6 +149,11 @@ afterEach(reset)
  *  respect. */
 const declineOverwrite = () => Promise.resolve(false)
 
+/** The answer these tests give when a replacement asks whether the open flame
+ *  may be dropped because storage refused to save it. No: keeping the work is
+ *  the default everywhere, and a test that wants the other answer says so. */
+const keepUnsaved = () => Promise.resolve(false)
+
 describe('the background draft', () => {
   it('comes back with its flame, its tracks and its entry', () => {
     saveDraft(state(), true)
@@ -316,7 +321,8 @@ describe('the pause backup', () => {
         getConfig: current,
         agentDriving: () => false,
         confirmOverwriteOldest: declineOverwrite,
-        showToast: () => undefined,
+        confirmDiscardUnsaved: keepUnsaved,
+        showToast: () => 0,
       })
       const backup = installDraftBackup({
         native: true,
@@ -721,7 +727,8 @@ describe('the draft a launch restored', () => {
         getConfig: () => liveConfig,
         agentDriving: () => false,
         confirmOverwriteOldest: declineOverwrite,
-        showToast: () => undefined,
+        confirmDiscardUnsaved: keepUnsaved,
+        showToast: () => 0,
       })
       const backup = installDraftBackup({
         native: true,
@@ -806,7 +813,8 @@ describe('the draft a launch restored', () => {
         getConfig: () => restored?.config,
         agentDriving: () => false,
         confirmOverwriteOldest: declineOverwrite,
-        showToast: () => undefined,
+        confirmDiscardUnsaved: keepUnsaved,
+        showToast: () => 0,
       })
       autosave.markLoadedBaseline()
       autosave.claimRestoredEntry(restored?.entry)
@@ -846,7 +854,8 @@ describe('the draft a launch restored', () => {
         getConfig: () => restored?.config,
         agentDriving: () => false,
         confirmOverwriteOldest: declineOverwrite,
-        showToast: () => undefined,
+        confirmDiscardUnsaved: keepUnsaved,
+        showToast: () => 0,
       })
       autosave.markLoadedBaseline()
       autosave.claimRestoredEntry(restored?.entry)
@@ -862,12 +871,119 @@ describe('the draft a launch restored', () => {
     })
   })
 
+  it('is still unsaved work when Recents could not take it', () => {
+    // THE SEQUENCE. The shelf is full, so the rescue writes nothing and the
+    // flame is handed to the workspace with the slot still holding it. The
+    // workspace baselined that hand-off like any other, so the document read
+    // clean - and the interval autosave, the pagehide flush and the flush at
+    // the next replacement all skip a clean document. The single draft slot
+    // was the whole safety net, and the next pause on a different document
+    // overwrote it: a flame and its entire animation, gone after the app had
+    // said it was restored.
+    seedFullRecents()
+    seedDraft({ sessionId: 'autosave-killed' })
+
+    const restored = takeDraftForLaunch({ native: true, search: '' })
+    expect(restored?.unsecured).toBe('full')
+    // Still in the slot, because it is the only copy there is.
+    expect(readDraft()?.flame.metadata?.name).toBe('Draft')
+
+    createRoot((dispose) => {
+      const [flameStore] = createStore<FlameDescriptor>(
+        JSON.parse(JSON.stringify(restored?.flame)),
+      )
+      const autosave = useWorkspaceAutosave({
+        flameDescriptor: flameStore,
+        getTracks: () => restored?.tracks ?? [],
+        getConfig: () => restored?.config,
+        agentDriving: () => false,
+        confirmOverwriteOldest: declineOverwrite,
+        confirmDiscardUnsaved: keepUnsaved,
+        showToast: () => 0,
+      })
+      // What App.tsx hands over now: the reason the work is not on the shelf.
+      autosave.markLoadedBaseline({
+        unsecured: restored?.unsecured !== undefined,
+      })
+
+      expect(autosave.isFlameDirty()).toBe(true)
+      // So the pagehide flush - the one writer with nobody left to ask - still
+      // has something to write, and the flame survives the process.
+      autosave.flushDirtyToRecents(true)
+      const names = loadRecentFlames().map(
+        (entry) => entry.flame.metadata?.name,
+      )
+      expect(names).toContain('Draft')
+      dispose()
+    })
+  })
+
+  it('keeps its one entry across both halves of the hand-off', () => {
+    // A boundary always starts a new Recents entry now, which is what stops
+    // "open F, edit, open F again" replacing the first session's work. The
+    // one thing that must survive that rule is a single hand-off, which
+    // crosses the boundary TWICE: the flame lands in one effect and its
+    // animation in another, and both halves carry the same flame - so the
+    // descriptor cannot tell the second half of one load from a second load.
+    //
+    // What tells them apart is that nothing has been written in between: the
+    // rescue's claim on its entry is still unspent. Spend it and the rule
+    // applies again.
+    seedDraft({ sessionId: 'autosave-killed' })
+    const restored = takeDraftForLaunch({ native: true, search: '' })
+
+    createRoot((dispose) => {
+      const [flameStore, setFlameStore] = createStore<FlameDescriptor>(
+        JSON.parse(JSON.stringify(restored?.flame)),
+      )
+      // What the hand-off's reset leaves behind until the animation effect
+      // runs, exactly as in the walk-through above.
+      let liveTracks: TimelineTrack[] = []
+      let liveConfig: TimelineConfig = defaultConfig()
+      const autosave = useWorkspaceAutosave({
+        flameDescriptor: flameStore,
+        getTracks: () => liveTracks,
+        getConfig: () => liveConfig,
+        agentDriving: () => false,
+        confirmOverwriteOldest: declineOverwrite,
+        confirmDiscardUnsaved: keepUnsaved,
+        showToast: () => 0,
+      })
+
+      // FIRST boundary, then the claim - the order MainWorkspace takes them in.
+      autosave.markLoadedBaseline()
+      autosave.claimRestoredEntry(restored?.entry)
+      // SECOND boundary, once the animation has landed.
+      liveTracks = restored?.tracks ?? []
+      liveConfig = restored?.config ?? defaultConfig()
+      autosave.markLoadedBaseline()
+
+      setFlameStore('metadata', 'name', 'Edited after the restore')
+      autosave.flushDirtyToRecents()
+
+      const recents = loadRecentFlames()
+      expect(recents).toHaveLength(1)
+      expect(recents[0]?.id).toBe('autosave-killed')
+      dispose()
+    })
+  })
+
   it('still costs one place when the crash comes before any flush', () => {
     // Restore, type one character, and the OS force-stops the app before
     // anything has flushed: the only write is the pause backup, and the entry
     // it names is the one the next launch rescues into. Taking the entry over
     // at the first write alone left that draft carrying a fresh id, so the
     // launch after it filed the same work a second time.
+    //
+    // The clock is the test's rather than the machine's. The rescue stamps
+    // its entry with Date.now() and the pause stamps the draft the same way,
+    // and a launch declines to write over an entry of the same millisecond
+    // (see "draws the line between the two halves" above) - so on a warm run,
+    // where the whole body below fits inside one, the second rescue wrote
+    // nothing and this failed on a race rather than on the behaviour.
+    const tick = vi.spyOn(Date, 'now')
+    let clock = Date.now()
+    tick.mockImplementation(() => (clock += 1))
     seedDraft({ sessionId: 'autosave-killed' })
     const platform = fakePlatform()
     const restored = takeDraftForLaunch({ native: true, search: '' })
@@ -882,7 +998,8 @@ describe('the draft a launch restored', () => {
         getConfig: () => restored?.config,
         agentDriving: () => false,
         confirmOverwriteOldest: declineOverwrite,
-        showToast: () => undefined,
+        confirmDiscardUnsaved: keepUnsaved,
+        showToast: () => 0,
       })
       const backup = installDraftBackup({
         native: true,
@@ -909,6 +1026,7 @@ describe('the draft a launch restored', () => {
     const recents = loadRecentFlames()
     expect(recents).toHaveLength(1)
     expect(recents[0]?.flame.metadata?.name).toBe('Edited after the restore')
+    tick.mockRestore()
   })
 
   it('leaves that entry alone once something else has written to it', () => {
@@ -932,7 +1050,8 @@ describe('the draft a launch restored', () => {
         getConfig: () => restored?.config,
         agentDriving: () => false,
         confirmOverwriteOldest: declineOverwrite,
-        showToast: () => undefined,
+        confirmDiscardUnsaved: keepUnsaved,
+        showToast: () => 0,
       })
       autosave.markLoadedBaseline()
       autosave.claimRestoredEntry(restored?.entry)
@@ -973,6 +1092,7 @@ describe('the draft a launch restored', () => {
         getConfig: () => restored?.config,
         agentDriving: () => false,
         confirmOverwriteOldest: declineOverwrite,
+        confirmDiscardUnsaved: keepUnsaved,
         showToast: (message) => toasts.push(message),
       })
       // Nothing to take over: the rescue wrote nothing, so this workspace
@@ -1021,11 +1141,12 @@ describe('the draft a launch restored', () => {
         getTracks: () => restored?.tracks ?? [],
         getConfig: () => restored?.config,
         agentDriving: () => false,
+        confirmDiscardUnsaved: keepUnsaved,
         confirmOverwriteOldest: () => {
           asked += 1
           return Promise.resolve(true)
         },
-        showToast: () => undefined,
+        showToast: () => 0,
       })
       autosave.markLoadedBaseline()
       setFlameStore('metadata', 'name', 'Edited after the restore')
@@ -1063,6 +1184,7 @@ describe('the draft a launch restored', () => {
         getConfig: () => restored?.config,
         agentDriving: () => false,
         confirmOverwriteOldest: declineOverwrite,
+        confirmDiscardUnsaved: keepUnsaved,
         showToast: (message) => toasts.push(message),
       })
       autosave.markLoadedBaseline()

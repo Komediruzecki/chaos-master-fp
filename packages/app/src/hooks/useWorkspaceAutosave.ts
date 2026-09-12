@@ -19,11 +19,18 @@ export interface UseWorkspaceAutosaveParams {
    */
   getConfig: () => TimelineConfig | undefined
   agentDriving: () => boolean
+  /**
+   * @returns the toast's id, or -1 when nothing was shown - the store is
+   * muted while an Arcade pilot drives (contexts/ToastContext.tsx). The
+   * answer is load-bearing here: the notices below are said once per run, and
+   * spending that one shot on a toast nobody saw would silence it for the
+   * rest of the session.
+   */
   showToast: (
     message: string,
     duration?: number | 'sticky',
     actions?: Array<{ label: string; onClick: () => void }>,
-  ) => void
+  ) => number
   /**
    * Put "Recents is full - may this replace the oldest flame?" to the user
    * and resolve with their answer.
@@ -35,6 +42,17 @@ export interface UseWorkspaceAutosaveParams {
    * (below) and neither may raise this.
    */
   confirmOverwriteOldest: () => Promise<boolean>
+  /**
+   * Put "storage refused to save the open flame - open the other one
+   * anyway?" to the user and resolve with their answer.
+   *
+   * A different question from the one above, and so a different prompt: at
+   * the cap something of the user's gives way whichever answer they give and
+   * they choose which, while a refusal offers nothing to trade - the work
+   * cannot be stored at all, and the only thing left to decide is whether to
+   * walk away from it. Answering no keeps it, so no is the default.
+   */
+  confirmDiscardUnsaved: () => Promise<boolean>
 }
 
 export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
@@ -45,6 +63,7 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
     agentDriving,
     showToast,
     confirmOverwriteOldest,
+    confirmDiscardUnsaved,
   } = params
 
   const newAutosaveId = () =>
@@ -69,43 +88,104 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
    * written to since is left alone, and the id is never trusted on its own.
    */
   let restoredEntry: RecentFlameClaim | undefined
-  /** Said once. A full shelf does not empty itself mid-session. */
+  /** Said once each. Neither a full shelf nor a storage that says no fixes
+   *  itself mid-session, and both are spent only on a toast that was shown. */
   let fullNoticeShown = false
+  let refusedNoticeShown = false
+  /**
+   * Set while the open document exists in this process and nowhere else: a
+   * draft the launch put back in front of the user but could NOT put in
+   * Recents, because the shelf is at its cap or storage refused the write
+   * (lib/draft.ts).
+   *
+   * It forces the dirty flag, and that is the whole of it. Baselining such a
+   * restore marks the only live copy of a user's flame clean, and the
+   * interval autosave, the pagehide flush and the flush at the next
+   * replacement all skip a clean document - so the single draft slot was the
+   * only copy left, and the next pause on a different document took it. The
+   * flame and its whole animation went, after the app had said it was
+   * restored.
+   */
+  let unsecuredRestore = false
   const autosaveSnapshot = () =>
     JSON.stringify({
       flame: flameDescriptor,
       tracks: getTracks(),
       config: getConfig(),
     })
-  /** Which document the current entry belongs to - see markLoadedBaseline. */
+  /** Which document the unspent rescue claim belongs to - see
+   *  markLoadedBaseline. */
   let sessionFlame = JSON.stringify(flameDescriptor)
   let autosaveBaseline = autosaveSnapshot()
+  /**
+   * The document as the last load boundary left it: what says whether the
+   * USER has touched this document, as against whether Recents is holding a
+   * copy of it.
+   *
+   * The two are the same question on every ordinary load and not the same
+   * question on an unsecured restore, which is dirty from the moment it opens
+   * and by nobody's doing. "Auto-save your flames?" and "Enjoying this
+   * flame?" fired on a launch nobody had touched when that was keyed on dirty
+   * alone.
+   */
+  let untouchedSnapshot = autosaveBaseline
   let editingSince: number | null = null
   let lastAutosaveAt = 0
   let reminderShown = false
   let autosavePromptShown = false
 
-  const isFlameDirty = () => autosaveSnapshot() !== autosaveBaseline
+  const isFlameDirty = () =>
+    unsecuredRestore || autosaveSnapshot() !== autosaveBaseline
+  /** Whether the user has changed anything since the document opened. */
+  const isUserEdited = () => autosaveSnapshot() !== untouchedSnapshot
   const markSavedBaseline = () => {
     autosaveBaseline = autosaveSnapshot()
+    // The work is on the shelf now, so nothing is holding the only copy of it
+    // any more.
+    unsecuredRestore = false
   }
-  const markLoadedBaseline = () => {
-    autosaveBaseline = autosaveSnapshot()
-    editingSince = null
-    // A load boundary starts a new Recents entry only when it actually loads
-    // a different document. One hand-off crosses this boundary twice - the
-    // flame lands in one effect and its animation in another - so keying the
-    // new entry on the call rather than on the flame gave the second half of
-    // a restored draft an entry of its own, beside the one the launch had
-    // just put the same work into (lib/draft.ts).
+  /**
+   * A different document is on screen: re-take the baseline, and start a
+   * Recents entry of its own for it.
+   *
+   * `unsecured` is the one load whose work is NOT in Recents - a restored
+   * draft the rescue could not shelve (lib/draft.ts). It is left dirty so
+   * every writer still catches it; only the prompts are told nobody has
+   * touched it.
+   *
+   * A boundary ALWAYS starts a new entry. It used to start one only when the
+   * incoming flame differed from the last one, which quietly kept the entry
+   * across "open F, edit, open F again from Library": the flush wrote the
+   * edits into that entry, the boundary kept it, and the next autosave of the
+   * fresh copy replaced them - under the same name, so nothing looked wrong.
+   *
+   * What the comparison was really holding together is a single hand-off,
+   * which crosses this boundary twice: the flame lands in one effect and its
+   * animation in another, and both halves carry the same flame, so the
+   * descriptor cannot tell the second half of one load from a second load of
+   * the same flame. What can is that nothing has been written in between -
+   * the rescue's claim on the entry is still unspent (`claimRestoredEntry`,
+   * spent at the first write). So the entry is kept for exactly that: an
+   * unspent claim, on the flame it was taken for. Everything else rotates.
+   */
+  const markLoadedBaseline = (loaded: { unsecured?: boolean } = {}) => {
     const flame = JSON.stringify(flameDescriptor)
-    if (flame !== sessionFlame) {
-      sessionFlame = flame
-      autosaveSessionId = newAutosaveId()
-      // A different document cannot inherit a claim on the entry the one
-      // before it was rescued into.
-      restoredEntry = undefined
+    if (loaded.unsecured) unsecuredRestore = true
+    else if (flame !== sessionFlame) {
+      // A different document is not the restore that could not be shelved.
+      unsecuredRestore = false
     }
+    if (!unsecuredRestore) autosaveBaseline = autosaveSnapshot()
+    untouchedSnapshot = autosaveSnapshot()
+    editingSince = null
+    const continuesHandoff =
+      restoredEntry !== undefined && flame === sessionFlame
+    sessionFlame = flame
+    if (continuesHandoff) return
+    autosaveSessionId = newAutosaveId()
+    // A different document cannot inherit a claim on the entry the one
+    // before it was rescued into.
+    restoredEntry = undefined
   }
 
   /**
@@ -149,19 +229,48 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
    *  full shelf does not empty itself mid-session. */
   const noticeFull = () => {
     if (fullNoticeShown) return
-    fullNoticeShown = true
     // Long enough to read and act on. Asking for 'sticky' would have been
     // quietly downgraded to the four-second default, because a sticky toast
     // with nothing to answer it with cannot be dismissed and the toast store
     // refuses to strand one (contexts/ToastContext).
-    showToast(
+    const shown = showToast(
       `Recents is full (${MAX_RECENT_FLAMES} flames), so this one was not auto-saved. Delete one in Library, or use Save for Later to replace the oldest.`,
       12000,
     )
+    // Spent only on a toast that reached the screen. The store is muted while
+    // an Arcade pilot drives and returns -1 having shown nothing, so setting
+    // the flag first meant the one notice a run gets could be swallowed by a
+    // lesson and never said again (contexts/ToastContext.tsx).
+    if (shown !== -1) fullNoticeShown = true
+  }
+
+  /**
+   * Storage said no: a quota, a private window, a locked-down WebView.
+   *
+   * Nothing the user can rearrange fixes this, so unlike the full shelf there
+   * is no action to point at - but the one thing they must not be left
+   * believing is that auto-saving is running. It is not, and every write this
+   * session makes is being discarded.
+   */
+  const noticeRefused = () => {
+    if (refusedNoticeShown) return
+    const shown = showToast(
+      'Auto-saving is not working: this device refused to store the flame. Export a PNG or share a link to keep this one.',
+      12000,
+    )
+    if (shown !== -1) refusedNoticeShown = true
+  }
+
+  /** Say what a write that did not land actually was. A refusal read as
+   *  success for as long as only `full` was worth mentioning, so a user could
+   *  edit for hours with every write discarded and nothing said. */
+  const noticeOutcome = (outcome: FlushOutcome | RecentWriteOutcome) => {
+    if (outcome === 'full') noticeFull()
+    else if (outcome === 'refused') noticeRefused()
   }
 
   const autosaveNow = () => {
-    if (writeToRecents(false) === 'full') noticeFull()
+    noticeOutcome(writeToRecents(false))
   }
 
   /**
@@ -177,7 +286,22 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
   }
 
   /**
-   * Settle the one question a document replacement cannot answer for itself,
+   * The user has been asked and has chosen to open the other flame anyway.
+   *
+   * Nothing is written. What changes is that the work stops counting as
+   * unsaved, so the chokepoint's own flush does not refuse the replacement a
+   * second time over the answer that was just given (lib/documentLoad.ts).
+   * The draft slot is untouched: on native it may still be holding this work,
+   * and the worst that costs is one stale offer on the next launch, against
+   * deleting something nobody asked to delete (lib/draft.ts).
+   */
+  const dropUnsavedWork = () => {
+    autosaveBaseline = autosaveSnapshot()
+    unsecuredRestore = false
+  }
+
+  /**
+   * Settle the questions a document replacement cannot answer for itself,
    * before any of the replacement happens.
    *
    * At the cap the two things that could give way are both the user's: the
@@ -186,24 +310,35 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
    * document's keyframe tracks - undo brings a flame back, not its tracks -
    * so it asks, with the same modal Save for Later asks with.
    *
+   * A refusal is the other way the flush writes nothing, and it read as
+   * success here for as long as only `full` was tested for: the replacement
+   * went ahead and took the outgoing flame and its tracks with it, with
+   * nothing said at all. There is nothing to trade in that case, so the
+   * question is a different one and gets its own prompt - and the answer that
+   * keeps their work is the default.
+   *
    * @returns whether the replacement may go ahead. False is the user's own
    * no, and then nothing is loaded and their work stays on screen.
    */
   const prepareDocumentReplacement = async (): Promise<boolean> => {
-    if (flushDirtyToRecents() !== 'full') return true
-    if (!(await confirmOverwriteOldest())) {
+    const kept = () => {
       // A tap that appears to do nothing is the one outcome a user cannot
       // report, so name what their answer did.
       showToast('Kept the open flame. Nothing was loaded.', 5000)
       return false
     }
-    if (flushDirtyToRecents(true) !== 'saved') {
+    const outcome = flushDirtyToRecents()
+    if (outcome === 'clean' || outcome === 'saved') return true
+    if (outcome === 'full') {
+      if (!(await confirmOverwriteOldest())) return kept()
+      if (flushDirtyToRecents(true) === 'saved') return true
       // They said yes and it still did not land, which is storage refusing
-      // rather than the shelf being full - nothing left to ask. Going ahead
-      // anyway, because a workspace that cannot write to storage must not
-      // become one that can never open a flame either.
-      showToast('Could not save the open flame to Recents', 5000)
+      // rather than the shelf being full. Falling through to the refusal
+      // question rather than going ahead: the eviction they agreed to bought
+      // nothing, and the work on screen is still the only copy there is.
     }
+    if (!(await confirmDiscardUnsaved())) return kept()
+    dropUnsavedWork()
     return true
   }
 
@@ -227,10 +362,16 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
   const REMINDER_AFTER_MS = 5 * 60_000
   const autosavePoll = setInterval(() => {
     const dirty = isFlameDirty()
-    if (dirty && editingSince === null) editingSince = Date.now()
+    // Both prompts are about the user's own editing, so they read the one
+    // flag that means that. A restore the launch could not shelve is dirty
+    // for the writers and untouched for these two, and asking "enjoying this
+    // flame?" about a launch nobody has opened yet is how the dirty flag was
+    // made to speak for something it does not know.
+    const touched = dirty && isUserEdited()
+    if (touched && editingSince === null) editingSince = Date.now()
 
     if (
-      dirty &&
+      touched &&
       autosaveRecents() === 'unset' &&
       !autosavePromptShown &&
       !agentDriving()
@@ -242,9 +383,11 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
           onClick: () => {
             setAutosaveRecents('on')
             // The notice belongs to this write too: the user has just asked
-            // for auto-saving, so a shelf too full to take it is theirs to
-            // hear about - and this used to reach it through `autosaveNow`.
-            if (flushDirtyToRecents() === 'full') noticeFull()
+            // for auto-saving, so a write that did not land is theirs to hear
+            // about - and this used to reach it through `autosaveNow`. A
+            // refusal especially: answering yes and seeing no complaint is
+            // how a session came to edit for hours with every write discarded.
+            noticeOutcome(flushDirtyToRecents())
           },
         },
         { label: 'No', onClick: () => setAutosaveRecents('off') },
@@ -264,8 +407,7 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
       editingSince !== null &&
       Date.now() - editingSince >= REMINDER_AFTER_MS
     ) {
-      reminderShown = true
-      showToast(
+      const shown = showToast(
         'Enjoying this flame? Save it for later, export a PNG, or share a link from the actions bar.',
         12000,
         [
@@ -275,6 +417,9 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
           },
         ],
       )
+      // Same as the notices above: a muted store shows nothing and returns
+      // -1, and this is the only reminder the run gets.
+      if (shown !== -1) reminderShown = true
     }
   }, AUTOSAVE_POLL_MS)
 

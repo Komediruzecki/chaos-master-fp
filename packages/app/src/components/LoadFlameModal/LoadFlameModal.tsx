@@ -882,7 +882,17 @@ export function LoadFlameModal(props: LoadFlameModalProps) {
       if (!confirmed) return
     }
 
-    deleteRecentFlame(id)
+    // The delete is a storage write like any other and can be refused - a
+    // quota, a private window, a locked-down WebView. The answer was dropped
+    // here against the function's own docstring, so the row vanished from the
+    // list, came back on the next read, and the user was left deleting the
+    // same flame over and over to make room they were never going to get.
+    if (!deleteRecentFlame(id)) {
+      showToast(
+        'Could not delete that flame: this device refused the change. It is still in Recents.',
+        8000,
+      )
+    }
     setRecentFlames(loadRecentFlames())
   }
 
