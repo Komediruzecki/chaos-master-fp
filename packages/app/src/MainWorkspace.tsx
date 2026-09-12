@@ -2775,7 +2775,15 @@ export function MainWorkspace(props: AppProps) {
         const is3D = (flameDescriptor.renderSettings.dimensions ?? 2) === 3
         const flame = deepClone(is3D ? initExample3D : initExample)
         executeFlameLoad(flame, 'New Flame', snapshotOrigin('flame.new'))
-        setLoadedAnimation({ flame, tracks: [] })
+        // The timeline is part of the document too. A fresh flame that said
+        // nothing about it kept the frame rate, the end frame and the loop
+        // mode of the flame it replaced, because the effect that consumes
+        // this only applies a timeline when it is handed one.
+        setLoadedAnimation({
+          flame,
+          tracks: [],
+          config: defaultTimelineConfig(),
+        })
       },
     })
     showToast('Fresh flame loaded — undo restores the previous one')

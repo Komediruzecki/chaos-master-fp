@@ -101,6 +101,56 @@ describe('replacing the open document', () => {
     expect(byHand).toEqual([])
   })
 
+  it('gives a replacement with no animation a timeline of its own', () => {
+    // The timeline is part of the document: the frame rate, the end frame and
+    // the loop mode. The effect that consumes a load applies the config it is
+    // handed, and a load that hands none leaves whatever the document before
+    // it was running at - so New Flame, which carries no animation at all,
+    // opened the starter flame at the last flame's 60fps over 300 frames. The
+    // hand-off path is not in this: it resets the timeline itself before
+    // seeding, and it passes the restored draft's config through.
+    const ast = ts.createSourceFile(
+      'MainWorkspace.tsx',
+      workspaceSource,
+      ts.ScriptTarget.Latest,
+      true,
+      ts.ScriptKind.TSX,
+    )
+    const named = (property: ts.ObjectLiteralElementLike, name: string) =>
+      property.name !== undefined &&
+      ts.isIdentifier(property.name) &&
+      property.name.text === name
+    const inherited: string[] = []
+    const walk = (node: ts.Node) => {
+      if (
+        ts.isCallExpression(node) &&
+        ts.isIdentifier(node.expression) &&
+        node.expression.text === 'setLoadedAnimation' &&
+        node.arguments[0] !== undefined &&
+        ts.isObjectLiteralExpression(node.arguments[0])
+      ) {
+        const seed = node.arguments[0]
+        const carriesNoTracks = seed.properties.some(
+          (property) =>
+            ts.isPropertyAssignment(property) &&
+            named(property, 'tracks') &&
+            ts.isArrayLiteralExpression(property.initializer) &&
+            property.initializer.elements.length === 0,
+        )
+        const saysTimeline = seed.properties.some((property) =>
+          named(property, 'config'),
+        )
+        if (carriesNoTracks && !saysTimeline) {
+          const { line } = ast.getLineAndCharacterOfPosition(node.getStart(ast))
+          inherited.push(`MainWorkspace.tsx:${line + 1}`)
+        }
+      }
+      ts.forEachChild(node, walk)
+    }
+    walk(ast)
+    expect(inherited).toEqual([])
+  })
+
   it('writes nothing when the open document holds nothing unsaved', () => {
     createRoot((dispose) => {
       const [open, setOpen] = createStore<FlameDescriptor>(
