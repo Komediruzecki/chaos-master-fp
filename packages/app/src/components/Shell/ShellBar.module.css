@@ -275,6 +275,15 @@
   padding-bottom: var(--la-safe-bottom);
 }
 
+/* ...and the row that carries them must not space them apart. Zeroing the
+   gap on `.dock` did nothing - `.row` is its only in-flow child, the backdrop
+   being fixed and the menu absolute - while the row's own 8px gap left a
+   transparent strip between the two surfaces, showing the page straight
+   through what M3 expects to read as one bar. */
+:global(:root[data-platform='android']) .dock:not(.capsuleDock) .row {
+  gap: 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .item,
   .capsuleDock.expanded .item:not(.capsule) {
