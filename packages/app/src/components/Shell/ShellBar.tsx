@@ -108,19 +108,45 @@ export function ShellBar(props: ShellBarProps) {
     setHeld(true)
     const controller = new AbortController()
     releasing = controller
-    const release = (event: PointerEvent) => {
-      if (event.pointerId !== pointerId) return
+    const endHold = (silent: boolean) => {
       holdingPointer = undefined
       setHeld(false)
       controller.abort()
       // Nothing follows a cancelled touch - no release click - so the flag
       // that tells the click "this touch opened the bar" would outlive the
-      // touch and swallow the next keyboard activation on the capsule.
-      if (event.type === 'pointercancel') openedOnDown = false
+      // touch and swallow the next keyboard activation on the capsule. A
+      // release the page never saw brings no click either.
+      if (silent) openedOnDown = false
+    }
+    const release = (event: PointerEvent) => {
+      if (event.pointerId !== pointerId) return
+      endHold(event.type === 'pointercancel')
     }
     const options = { signal: controller.signal }
     document.addEventListener('pointerup', release, options)
     document.addEventListener('pointercancel', release, options)
+    // A mouse button released outside the window reports its release to
+    // nobody in here, so the hold never ended: the bar stayed held open over
+    // the chip row, its countdown could not start, and holdCapsule's own
+    // guard turned every later press away for the life of the component.
+    // Two things say the release already happened - the pointer moving over
+    // the page again with no button down, and the window losing focus - and
+    // neither is followed by a click.
+    document.addEventListener(
+      'pointermove',
+      (event: PointerEvent) => {
+        if (event.pointerId !== pointerId || event.buttons !== 0) return
+        endHold(true)
+      },
+      options,
+    )
+    window.addEventListener(
+      'blur',
+      () => {
+        endHold(true)
+      },
+      options,
+    )
   }
 
   function select(destination: ShellDestination) {

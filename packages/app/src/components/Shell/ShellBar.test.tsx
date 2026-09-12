@@ -187,6 +187,50 @@ describe('ShellBar', () => {
     vi.useRealTimers()
   })
 
+  it('lets go when a mouse is released where the page cannot see it', () => {
+    vi.useFakeTimers()
+    mount('capsule')
+    fireEvent.pointerDown(capsule(), { pointerId: 1 })
+
+    // A drag off the window and a release over another app: no pointerup
+    // reaches the document at all. The hold was left set for the life of the
+    // component - the bar sat open over the chip row, the countdown could
+    // never start, and no later press was accepted either.
+    fireEvent.pointerMove(document.body, { pointerId: 1, buttons: 0 })
+    vi.advanceTimersByTime(CAPSULE_OPEN_MS)
+    expect(screen.queryByRole('button', { name: 'Library' })).toBeNull()
+
+    // And the capsule still answers the next press.
+    fireEvent.pointerDown(capsule(), { pointerId: 1 })
+    expect(screen.getByRole('button', { name: 'Library' })).toBeTruthy()
+    vi.useRealTimers()
+  })
+
+  it('lets go when the window loses focus under the held button', () => {
+    vi.useFakeTimers()
+    mount('capsule')
+    fireEvent.pointerDown(capsule(), { pointerId: 1 })
+
+    fireEvent.blur(window)
+    vi.advanceTimersByTime(CAPSULE_OPEN_MS)
+    expect(screen.queryByRole('button', { name: 'Library' })).toBeNull()
+    vi.useRealTimers()
+  })
+
+  it('keeps holding while the button is still down', () => {
+    vi.useFakeTimers()
+    mount('capsule')
+    fireEvent.pointerDown(capsule(), { pointerId: 1 })
+
+    // A drag with the button down is not a release, whatever it passes over.
+    fireEvent.pointerMove(document.body, { pointerId: 1, buttons: 1 })
+    // Nor is another pointer hovering.
+    fireEvent.pointerMove(document.body, { pointerId: 2, buttons: 0 })
+    vi.advanceTimersByTime(CAPSULE_OPEN_MS * 2)
+    expect(screen.getByRole('button', { name: 'Library' })).toBeTruthy()
+    vi.useRealTimers()
+  })
+
   it('collapses on back', () => {
     vi.useFakeTimers()
     mount('capsule')
