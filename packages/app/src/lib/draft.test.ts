@@ -1,4 +1,4 @@
-import { createRoot } from 'solid-js'
+import { createRoot, createSignal } from 'solid-js'
 import { createStore, unwrap } from 'solid-js/store'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { parseFlameXml } from '@/flame/flameXml'
@@ -190,12 +190,6 @@ describe('the background draft', () => {
     expect(readDraft()?.savedAt).toBe(first)
   })
 
-  it('counts a change to only the timeline as work', () => {
-    saveDraft(state(), true)
-    saveDraft(state({ config: { ...config, endFrame: 600 } }), true)
-    expect(readDraft()?.config?.endFrame).toBe(600)
-  })
-
   it('ignores a config that does not validate, and keeps the flame', () => {
     // The config decides what playback does, so it goes through the same
     // validation the tracks do: fps 0 would stop the timeline dead.
@@ -260,6 +254,56 @@ describe('the pause backup', () => {
     expect(draft?.config?.endFrame).toBe(480)
 
     backup.dispose()
+  })
+
+  it('counts a change to only the timeline as work, as the app must', () => {
+    // The app cannot hand the unsaved flag in: it is the editor's own dirty
+    // flag, computed from the snapshot in useWorkspaceAutosave. Until the
+    // timeline was part of that snapshot, changing the frame rate, the end
+    // frame or the loop mode and nothing else left the app believing there
+    // was nothing to keep - no draft on pause, no flush at a load boundary,
+    // and the change died with the process.
+    const platform = fakePlatform()
+    createRoot((dispose) => {
+      const [flameStore] = createStore<FlameDescriptor>(
+        JSON.parse(JSON.stringify(flame)),
+      )
+      const [current, setCurrent] = createSignal<TimelineConfig>(config)
+      const autosave = useWorkspaceAutosave({
+        flameDescriptor: flameStore,
+        getTracks: () => tracks,
+        getConfig: current,
+        agentDriving: () => false,
+        showToast: () => undefined,
+      })
+      const backup = installDraftBackup({
+        native: true,
+        read: () => ({
+          flame: unwrap(flameStore),
+          tracks,
+          config: current(),
+          sessionId: autosave.autosaveSessionId(),
+        }),
+        unsaved: autosave.isFlameDirty,
+      })
+      autosave.markLoadedBaseline()
+      expect(autosave.isFlameDirty()).toBe(false)
+
+      // The only thing the user touches.
+      setCurrent({ ...config, fps: 24 })
+      expect(autosave.isFlameDirty()).toBe(true)
+
+      platform.pause()
+      expect(readDraft()?.config?.fps).toBe(24)
+
+      // And the same change reaches Recents, where the work outlives the
+      // draft slot.
+      autosave.flushDirtyToRecents()
+      expect(loadRecentFlames()[0]?.config?.fps).toBe(24)
+
+      backup.dispose()
+      dispose()
+    })
   })
 
   it('does nothing on the web, where nothing reads a draft back', () => {
@@ -450,6 +494,7 @@ describe('the draft a launch restored', () => {
       const autosave = useWorkspaceAutosave({
         flameDescriptor: flameStore,
         getTracks: () => currentTracks,
+        getConfig: () => config,
         agentDriving: () => false,
         showToast: () => undefined,
       })
@@ -516,6 +561,7 @@ describe('the draft a launch restored', () => {
       const autosave = useWorkspaceAutosave({
         flameDescriptor: flameStore,
         getTracks: () => restored?.tracks ?? [],
+        getConfig: () => restored?.config,
         agentDriving: () => false,
         showToast: () => undefined,
       })

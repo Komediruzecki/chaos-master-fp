@@ -2666,6 +2666,9 @@ export function MainWorkspace(props: AppProps) {
   } = useWorkspaceAutosave({
     flameDescriptor,
     getTracks: () => timeline.tracks(),
+    // The timeline is part of the document: a change to the frame rate or
+    // the end frame alone is unsaved work like any other.
+    getConfig: () => timeline.config(),
     agentDriving,
     showToast,
   })
@@ -4013,11 +4016,13 @@ export function MainWorkspace(props: AppProps) {
               }}
               onSaveForLater={async () => {
                 const tracks = timeline.tracks()
+                const config = timeline.config()
                 const success = saveRecentFlame(
                   flameDescriptor,
                   undefined,
                   tracks,
                   false,
+                  config,
                 )
                 if (!success) {
                   const oldest = getOldestRecentFlame()
@@ -4038,7 +4043,13 @@ export function MainWorkspace(props: AppProps) {
                     // the workspace clean here unconditionally would tell the user
                     // their flame is safe when nothing landed.
                     if (
-                      saveRecentFlame(flameDescriptor, undefined, tracks, true)
+                      saveRecentFlame(
+                        flameDescriptor,
+                        undefined,
+                        tracks,
+                        true,
+                        config,
+                      )
                     ) {
                       markSavedBaseline()
                       showToast(

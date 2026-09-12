@@ -221,7 +221,18 @@ function secureInRecents(draft: ParsedFlame, sessionId: string): boolean {
   // default this module cannot take is the one that deletes.
   const writtenAt = draft.savedAt ?? Number.POSITIVE_INFINITY
   if (existing && existing.savedAt >= writtenAt) return true
-  if (!upsertRecentFlame(sessionId, draft.flame, undefined, draft.tracks)) {
+  // The timeline goes in with the tracks. Without it the rescued entry came
+  // back at the workspace's defaults once the slot was cleared, so the frame
+  // rate the work was authored at lived only in memory.
+  if (
+    !upsertRecentFlame(
+      sessionId,
+      draft.flame,
+      undefined,
+      draft.tracks,
+      draft.config,
+    )
+  ) {
     return false
   }
   // Read it back the way it will be read. A write that lands as something

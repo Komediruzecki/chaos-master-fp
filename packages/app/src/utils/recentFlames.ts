@@ -1,8 +1,10 @@
 import { tryValidateFlame } from '@/flame/schema/flameSchema'
+import { TimelineSnapshotConfig } from '@/flame/schema/timeline'
 import { deepClone } from '@/utils/clone'
 import { safeGetItem, safeRemoveItem, safeSetItem } from '@/utils/storage'
+import * as v from '@/valibot'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
-import type { TimelineTrack } from '@/utils/timeline'
+import type { TimelineConfig, TimelineTrack } from '@/utils/timeline'
 
 const STORAGE_KEY = 'chaos-master-recent-flames'
 export const MAX_RECENT_FLAMES = 150
@@ -13,6 +15,17 @@ export type RecentFlame = {
   flame: FlameDescriptor
   savedAt: number
   tracks?: TimelineTrack[]
+  /**
+   * The timeline the flame was last seen at: how fast it runs, how long it
+   * is, whether it loops. Stored beside the tracks because it is not derived
+   * from them - a flame with no keyframes still has a frame rate and an end
+   * frame, and an entry that kept the tracks and dropped this came back at
+   * the workspace's defaults, 30fps over 90 frames.
+   *
+   * Absent in every record written before this existed, which is why it is
+   * optional and why nothing downstream may assume it.
+   */
+  config?: TimelineConfig
 }
 
 export function newRecentFlameId(): string {
@@ -28,6 +41,19 @@ function isValidRecentFlame(item: unknown): item is RecentFlame {
     typeof obj.savedAt === 'number' &&
     typeof obj.flame === 'object'
   )
+}
+
+/** The stored timeline, validated like the flame beside it. What it decides -
+ *  the frame rate, the speed, the end frame - is what playback does, so a
+ *  value from an older build or a hand-edited backup cannot be trusted
+ *  straight in: `fps: 0` would stop the timeline dead. A config that fails is
+ *  dropped and its entry kept, the way a flame that fails drops its entry. */
+function parseStoredConfig(raw: unknown): TimelineConfig | undefined {
+  if (raw === null || typeof raw !== 'object') return undefined
+  const result = v.safeParse(TimelineSnapshotConfig, raw)
+  // Pinned at the call site: valibot's inferred output widens in ways that
+  // differ between a local typecheck and CI.
+  return result.success ? result.output : undefined
 }
 
 /** Memo for `loadRecentFlames`, keyed on the exact payload it was built from.
@@ -84,7 +110,10 @@ export function loadRecentFlames(): RecentFlame[] {
     if (!Array.isArray(parsed)) return []
     const entries = parsed.filter(isValidRecentFlame).flatMap((item) => {
       const flame = tryValidateFlame(item.flame)
-      return flame ? [{ ...item, flame }] : []
+      if (!flame) return []
+      const { config: stored, ...rest } = item
+      const config = parseStoredConfig(stored)
+      return [{ ...rest, flame, ...(config ? { config } : {}) }]
     })
     if (import.meta.env.DEV) entries.forEach((entry) => deepFreeze(entry))
     validatedCache = { raw, entries }
@@ -99,6 +128,7 @@ export function saveRecentFlame(
   name?: string,
   tracks?: TimelineTrack[],
   forceOverwriteOldest: boolean = true,
+  config?: TimelineConfig,
 ): boolean {
   // Read-modify-write: use the structural loader, not the schema one. Rewriting
   // the list from schema-validated entries silently deletes every entry the
@@ -119,6 +149,9 @@ export function saveRecentFlame(
   if (tracks && tracks.length > 0) {
     entry.tracks = deepClone(tracks)
   }
+  // The timeline goes in whether or not there are tracks: it is what says
+  // how fast the flame runs and how long it is.
+  if (config) entry.config = deepClone(config)
   const updated = [entry, ...recent].slice(0, MAX_RECENT_FLAMES)
   // Report the real outcome. This used to return `true` unconditionally, so a
   // write that failed on quota or in private mode still told the caller the
@@ -166,6 +199,7 @@ export function upsertRecentFlame(
   flame: FlameDescriptor,
   name?: string,
   tracks?: TimelineTrack[],
+  config?: TimelineConfig,
 ): boolean {
   const recent = loadRecentFlamesForRewrite()
   const existing = recent.find((item) => item.id === id)
@@ -178,6 +212,7 @@ export function upsertRecentFlame(
   if (tracks && tracks.length > 0) {
     entry.tracks = deepClone(tracks)
   }
+  if (config) entry.config = deepClone(config)
   const updated = [entry, ...recent.filter((item) => item.id !== id)].slice(
     0,
     MAX_RECENT_FLAMES,

@@ -2,11 +2,20 @@ import { onCleanup } from 'solid-js'
 import { autosaveIntervalMin, autosaveRecents, saveReminderDismissed, setAutosaveRecents, setSaveReminderDismissed, } from '@/utils/autosaveSettings'
 import { upsertRecentFlame } from '@/utils/recentFlames'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
-import type { TimelineTrack } from '@/utils/timeline'
+import type { TimelineConfig, TimelineTrack } from '@/utils/timeline'
 
 export interface UseWorkspaceAutosaveParams {
   flameDescriptor: FlameDescriptor
   getTracks: () => TimelineTrack[] | undefined
+  /**
+   * The timeline the flame is being edited at. Part of the document, not of
+   * the tracks: the frame rate, the speed, the end frame and the loop mode
+   * live in their own signal, so a snapshot of the flame and its keyframes
+   * alone reported a workspace with a changed frame rate as holding nothing
+   * unsaved - no draft on pause, no flush at a load boundary, and the change
+   * died with the process.
+   */
+  getConfig: () => TimelineConfig | undefined
   agentDriving: () => boolean
   showToast: (
     message: string,
@@ -16,7 +25,8 @@ export interface UseWorkspaceAutosaveParams {
 }
 
 export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
-  const { flameDescriptor, getTracks, agentDriving, showToast } = params
+  const { flameDescriptor, getTracks, getConfig, agentDriving, showToast } =
+    params
 
   const newAutosaveId = () =>
     `autosave-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
@@ -30,7 +40,11 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
    */
   let autosaveSessionId = newAutosaveId()
   const autosaveSnapshot = () =>
-    JSON.stringify({ flame: flameDescriptor, tracks: getTracks() })
+    JSON.stringify({
+      flame: flameDescriptor,
+      tracks: getTracks(),
+      config: getConfig(),
+    })
   /** Which document the current entry belongs to - see markLoadedBaseline. */
   let sessionFlame = JSON.stringify(flameDescriptor)
   let autosaveBaseline = autosaveSnapshot()
@@ -65,6 +79,7 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
       flameDescriptor,
       undefined,
       getTracks(),
+      getConfig(),
     )
     if (!saved) return
     lastAutosaveAt = Date.now()

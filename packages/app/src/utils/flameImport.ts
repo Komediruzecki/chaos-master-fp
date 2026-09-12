@@ -36,6 +36,10 @@ export type ImportCandidate = {
   flame: FlameDescriptor
   savedAt: number
   tracks?: TimelineTrack[]
+  /** The timeline the animation was authored at, where the backup carried
+   *  one. Not derived from the tracks: a flame with none still has a frame
+   *  rate and an end frame. */
+  config?: TimelineConfig
   /** PNG data URL. History galleries are plain `<img>` tiles, so a
    *  generated/logo flame that arrives without one (a JSON-only backup) is
    *  routed to Recent flames instead, which renders its own live preview. */
@@ -212,6 +216,7 @@ function toCandidate(
     savedAt: parsed.savedAt ?? fallbackSavedAt,
   }
   if (parsed.tracks) candidate.tracks = parsed.tracks
+  if (parsed.config) candidate.config = parsed.config
   if (thumbnail !== undefined) candidate.thumbnail = thumbnail
   return candidate
 }
@@ -426,6 +431,9 @@ export function mergeRecentFlames(
     if (candidate.tracks && candidate.tracks.length > 0) {
       entry.tracks = candidate.tracks
     }
+    // The timeline the animation was authored at, so a backup round trip
+    // does not quietly return every flame at 30fps over 90 frames.
+    if (candidate.config) entry.config = candidate.config
     added.push(entry)
     outcome.added++
   }

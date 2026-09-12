@@ -7,6 +7,17 @@ const STORAGE_KEY = 'chaos-master-recent-flames'
 
 const sampleFlame = () => Object.values(examples)[0] as FlameDescriptor
 
+/** A whole timeline, as the workspace hands one over. */
+const sampleConfig = () => ({
+  fps: 60,
+  timeScale: 2,
+  startFrame: 0,
+  endFrame: 300,
+  loop: false,
+  autoFps: false,
+  loopMode: 'seamless' as const,
+})
+
 /** Minimal timeline track — only its presence and cloning matter here. */
 const sampleTrack = () => ({
   id: 'track-1',
@@ -114,6 +125,28 @@ describe('loadRecentFlames input handling', () => {
   it('drops entries that fail the flame schema', () => {
     seed([goodEntry('a'), brokenEntry('bad'), goodEntry('b')])
     expect(ids(loadRecentFlames())).toEqual(['a', 'b'])
+  })
+
+  it('reads a stored timeline back', () => {
+    seed([{ ...goodEntry('a'), config: sampleConfig() }])
+    expect(loadRecentFlames()[0]!.config).toEqual(sampleConfig())
+  })
+
+  it('drops a timeline that does not validate, and keeps its entry', () => {
+    // What the config decides is what playback does: fps 0 stops the
+    // timeline dead. The flame is still worth showing, so the entry stays
+    // and comes back at the workspace's defaults.
+    seed([{ ...goodEntry('a'), config: { fps: 0, endFrame: -5 } }])
+    const entries = loadRecentFlames()
+    expect(ids(entries)).toEqual(['a'])
+    expect(entries[0]!.config).toBeUndefined()
+  })
+
+  it('reads a record written before entries carried a timeline', () => {
+    seed([goodEntry('a')])
+    const entry = loadRecentFlames()[0]!
+    expect(entry.config).toBeUndefined()
+    expect('config' in entry).toBe(false)
   })
 })
 
@@ -295,6 +328,12 @@ describe('saveRecentFlame', () => {
     expect(localStorage.getItem(STORAGE_KEY)).toBe(before)
   })
 
+  it('stores the timeline it is given', () => {
+    seed([])
+    saveRecentFlame(sampleFlame(), 'Saved', [], true, sampleConfig())
+    expect(loadRecentFlames()[0]!.config).toEqual(sampleConfig())
+  })
+
   it('evicts the oldest when forced, staying at the cap', () => {
     seed(
       Array.from({ length: MAX_RECENT_FLAMES }, (_, i) =>
@@ -417,6 +456,23 @@ describe('upsertRecentFlame', () => {
     expect(loadRecentFlamesForRewrite()[0]!.tracks).toHaveLength(1)
     upsertRecentFlame('auto2', sampleFlame(), 'Plain', [])
     expect(loadRecentFlamesForRewrite()[0]!.tracks).toBeUndefined()
+  })
+
+  it('stores the timeline whether or not there are keyframes', () => {
+    // Not derived from the tracks: a flame with none still has a frame rate
+    // and an end frame, and an entry that dropped this came back at 30fps
+    // over 90 frames however it was authored.
+    seed([])
+    upsertRecentFlame('auto', sampleFlame(), 'Plain', [], sampleConfig())
+    expect(loadRecentFlames()[0]!.config).toEqual(sampleConfig())
+  })
+
+  it('deep-clones the timeline it stores', () => {
+    seed([])
+    const config = sampleConfig()
+    upsertRecentFlame('auto', sampleFlame(), 'Plain', [], config)
+    config.fps = 1
+    expect(loadRecentFlames()[0]!.config!.fps).toBe(60)
   })
 
   it('falls back to "Autosave" with no name, no metadata and no prior entry', () => {

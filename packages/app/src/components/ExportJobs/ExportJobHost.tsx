@@ -141,7 +141,7 @@ function OffscreenRender(props: { job: ImageJob }) {
         await addFlameDataToPng(encoded, bytes, encodedSteps).arrayBuffer(),
       )
     }
-    saveRecentFlame(job.flame, undefined, job.tracks)
+    saveRecentFlame(job.flame, undefined, job.tracks, true, job.config)
     // The user may have cancelled (job removed) while we were encoding.
     if (!jobExists(job.id)) return
     const png = new Blob([bytes], { type: 'image/png' })

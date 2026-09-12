@@ -1059,7 +1059,13 @@ export function createExportPngDialog(
                   encodedSteps,
                 ).arrayBuffer(),
               )
-              saveRecentFlame(flameDescriptor, undefined, currentTracks)
+              saveRecentFlame(
+                flameDescriptor,
+                undefined,
+                currentTracks,
+                true,
+                config,
+              )
               downloadBlob(
                 new Blob([pngBytes], { type: 'image/png' }),
                 'flame.png',
