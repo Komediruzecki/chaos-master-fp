@@ -1,6 +1,7 @@
 import '@/commands/builtins'
 import { cleanup, fireEvent, render, screen } from '@solidjs/testing-library'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { setActiveTab } from '@/lib/activeTab'
 import { backDepth, popBack } from '@/lib/backStack'
 import { safeRemoveItem } from '@/utils/storage'
 import { createMockCommandContext } from '@/webmcp/testUtils'
@@ -173,6 +174,29 @@ describe('TouchSurface Components', () => {
       expect(popBack()).toBe(true)
       expect(screen.queryByRole('menu')).toBeNull()
       expect(backDepth()).toBe(0)
+    })
+
+    it('leaves the tab order while a destination covers it', () => {
+      const ctx = createMockCommandContext()
+      render(() => (
+        <TouchHUD
+          ctx={ctx}
+          flame={ctx.flameDescriptor}
+          onOpenSettings={vi.fn()}
+        />
+      ))
+
+      const hud = screen.getByRole('banner')
+      expect(hud.hasAttribute('inert')).toBe(false)
+
+      setActiveTab('home')
+      expect(hud.hasAttribute('inert')).toBe(true)
+      // Still mounted, still holding its state: Home covers the editor, it
+      // does not unmount it.
+      expect(screen.getByRole('button', { name: 'Library' })).toBeTruthy()
+
+      setActiveTab('workspace')
+      expect(hud.hasAttribute('inert')).toBe(false)
     })
   })
 

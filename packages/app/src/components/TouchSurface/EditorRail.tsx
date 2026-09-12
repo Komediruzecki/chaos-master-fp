@@ -1,5 +1,6 @@
 import { children, createEffect, createMemo, createSignal, For, onCleanup, onMount, Show, } from 'solid-js'
 import { CameraIcon, ColourWedge, ShapeTriangle, Shuffle, VariationSpiral, } from '@/icons'
+import { workspaceIsVisible } from '@/lib/activeTab'
 import { createBackLayer } from '@/lib/backStack'
 import { haptic } from '@/lib/haptics'
 import { createDragHandler } from '@/utils/createDragHandler'
@@ -270,10 +271,17 @@ export function EditorRail(props: EditorRailProps) {
   const grabHandlers = { onPointerDown: startGrab }
 
   return (
+    // Home and the Arcade cover the editor completely and it stays mounted
+    // underneath them, so everything in here is behind a full-screen layer:
+    // inert takes it out of the tab order and off the screen reader for as
+    // long as that lasts, while every signal, canvas and listener stays
+    // exactly where it was. Unmounting instead is what this branch stopped
+    // doing, and for good reasons (see the Show that mounts this).
     <section
       class={ui.dock}
       role="region"
       aria-label="Editor controls"
+      inert={!workspaceIsVisible()}
       ref={dockEl}
     >
       <div

@@ -1,6 +1,7 @@
 import '@/commands/builtins'
 import { cleanup, fireEvent, render, screen } from '@solidjs/testing-library'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { setActiveTab } from '@/lib/activeTab'
 import { backDepth, popBack } from '@/lib/backStack'
 import { haptic } from '@/lib/haptics'
 import { createMockCommandContext } from '@/webmcp/testUtils'
@@ -425,5 +426,24 @@ describe('EditorRail', () => {
     // registry and the next press is the app's to answer.
     expect(backDepth()).toBe(0)
     expect(popBack()).toBe(false)
+  })
+
+  it('leaves the tab order while a destination covers it', () => {
+    mount()
+    const dock = screen.getByRole('region', { name: 'Editor controls' })
+    expect(dock.hasAttribute('inert')).toBe(false)
+
+    // Home overlays the editor and the editor stays mounted, so without this
+    // a keyboard or screen reader walked the rail, the chips and the capsule
+    // behind it - fourteen controls that used to be unmounted here.
+    setActiveTab('home')
+    expect(dock.hasAttribute('inert')).toBe(true)
+    // Out of reach, not gone: the sheet, its detent and the chip row are all
+    // still here, which is the whole reason this stays mounted.
+    expect(sheet().getAttribute('data-detent')).toBe('peek')
+    expect(screen.getAllByRole('tab')).toHaveLength(4)
+
+    setActiveTab('workspace')
+    expect(dock.hasAttribute('inert')).toBe(false)
   })
 })

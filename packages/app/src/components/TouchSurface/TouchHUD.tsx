@@ -1,6 +1,7 @@
 import { createSignal, Show } from 'solid-js'
 import { executeCommand } from '@/commands/registry'
 import { GridIcon, MoreDots, Redo, Undo } from '@/icons'
+import { workspaceIsVisible } from '@/lib/activeTab'
 import { createBackLayer } from '@/lib/backStack'
 import { haptic } from '@/lib/haptics'
 import { MoreMenu } from '../Shell/MoreMenu'
@@ -77,7 +78,15 @@ export function TouchHUD(props: TouchHUDProps) {
           onClick={closePopovers}
         />
       </Show>
-      <header class={ui.topHud} role="banner" aria-label="Touch Navigation HUD">
+      {/* Behind Home and the Arcade while either is up: inert keeps the
+          pill's five controls out of the tab order and off the screen
+          reader without unmounting a thing. */}
+      <header
+        class={ui.topHud}
+        role="banner"
+        aria-label="Touch Navigation HUD"
+        inert={!workspaceIsVisible()}
+      >
         <button
           type="button"
           class={ui.hudButton}
