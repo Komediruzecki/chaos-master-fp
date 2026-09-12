@@ -102,25 +102,37 @@ export function ShellBar(props: ShellBarProps) {
 
   function holdCapsule(pointerId: number) {
     if (holdingPointer !== undefined) return
+    // A hold that ended without its pointer (see the blur below) leaves its
+    // listeners waiting for a release that may never come; the new press
+    // owns the capsule from here.
+    releasing?.abort()
     holdingPointer = pointerId
     openedOnDown = !expanded()
     setExpanded(true)
     setHeld(true)
     const controller = new AbortController()
     releasing = controller
-    const endHold = (silent: boolean) => {
+    /** Stop keeping the bar up. The countdown to collapse starts here. */
+    const endHold = () => {
       holdingPointer = undefined
       setHeld(false)
+    }
+    /**
+     * The pointer is done with: stop listening for it, and retire the flag
+     * that tells the click "this touch opened the bar" when no click is
+     * coming. Nothing follows a cancelled touch and nothing follows a
+     * release the page never saw, so the flag would otherwise outlive the
+     * touch and swallow the next keyboard activation on the capsule.
+     */
+    const endPointer = (clickFollows: boolean) => {
+      endHold()
       controller.abort()
-      // Nothing follows a cancelled touch - no release click - so the flag
-      // that tells the click "this touch opened the bar" would outlive the
-      // touch and swallow the next keyboard activation on the capsule. A
-      // release the page never saw brings no click either.
-      if (silent) openedOnDown = false
+      releasing = undefined
+      if (!clickFollows) openedOnDown = false
     }
     const release = (event: PointerEvent) => {
       if (event.pointerId !== pointerId) return
-      endHold(event.type === 'pointercancel')
+      endPointer(event.type === 'pointerup')
     }
     const options = { signal: controller.signal }
     document.addEventListener('pointerup', release, options)
@@ -128,25 +140,25 @@ export function ShellBar(props: ShellBarProps) {
     // A mouse button released outside the window reports its release to
     // nobody in here, so the hold never ended: the bar stayed held open over
     // the chip row, its countdown could not start, and holdCapsule's own
-    // guard turned every later press away for the life of the component.
-    // Two things say the release already happened - the pointer moving over
-    // the page again with no button down, and the window losing focus - and
-    // neither is followed by a click.
+    // guard turned every later press away for the life of the component. A
+    // pointer moving over the page again with no button down says the
+    // release already happened, and brings no click with it.
     document.addEventListener(
       'pointermove',
       (event: PointerEvent) => {
         if (event.pointerId !== pointerId || event.buttons !== 0) return
-        endHold(true)
+        endPointer(false)
       },
       options,
     )
-    window.addEventListener(
-      'blur',
-      () => {
-        endHold(true)
-      },
-      options,
-    )
+    // Losing focus - alt-tab, a permission dialog, any system surface over
+    // the app - says nothing about the finger. It is still down, and its
+    // release is still coming with a click behind it. So this ends the hold
+    // and leaves the pointer's own listeners in place: treating it as a
+    // release instead disarmed that click, and the click then read as a tap
+    // on an open bar and shut it the moment the finger lifted - the exact
+    // symptom the capsule fix removed, back under any focus loss.
+    window.addEventListener('blur', endHold, options)
   }
 
   function select(destination: ShellDestination) {

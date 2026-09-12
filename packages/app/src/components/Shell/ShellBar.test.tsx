@@ -217,6 +217,43 @@ describe('ShellBar', () => {
     vi.useRealTimers()
   })
 
+  it('does not let a focus loss close the bar under the real release', () => {
+    vi.useFakeTimers()
+    mount('capsule')
+    fireEvent.pointerDown(capsule(), { pointerId: 1 })
+
+    // A system surface takes focus with the finger still on the capsule.
+    // Ending the hold as though the pointer were gone disarmed the click
+    // that its real release brings, and that click then read as a tap on an
+    // open bar: the bar shut the instant the finger lifted, which is the
+    // symptom the capsule was fixed for in the first place.
+    fireEvent.blur(window)
+    vi.advanceTimersByTime(CAPSULE_OPEN_MS - 1)
+    fireEvent.pointerUp(capsule(), { pointerId: 1 })
+    capsule().click()
+    expect(screen.getByRole('button', { name: 'Library' })).toBeTruthy()
+
+    // It still puts itself away on the countdown the focus loss started.
+    vi.advanceTimersByTime(1)
+    expect(screen.queryByRole('button', { name: 'Library' })).toBeNull()
+    vi.useRealTimers()
+  })
+
+  it('still answers the keyboard after a focus loss with no release', () => {
+    vi.useFakeTimers()
+    mount('capsule')
+    fireEvent.pointerDown(capsule(), { pointerId: 1 })
+    fireEvent.blur(window)
+    // The countdown puts the bar away, which retires the flag with it, so a
+    // pointer that never reports back cannot swallow a later activation.
+    vi.advanceTimersByTime(CAPSULE_OPEN_MS)
+    expect(screen.queryByRole('button', { name: 'Library' })).toBeNull()
+
+    capsule().click()
+    expect(screen.getByRole('button', { name: 'Library' })).toBeTruthy()
+    vi.useRealTimers()
+  })
+
   it('keeps holding while the button is still down', () => {
     vi.useFakeTimers()
     mount('capsule')
