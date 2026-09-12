@@ -186,8 +186,39 @@ async function readFlamePng(
     const parsed: ParsedFlame = { flame: result.flame }
     const tracks = parseTracks(result.animation?.tracks)
     if (tracks) parsed.tracks = tracks
+    // The app writes this into the image beside the tracks, and reading the
+    // tracks without it brought the animation back at the workspace's
+    // defaults - 30fps over 90 frames, however long it actually was.
+    const config = parseConfig(result.animation?.config)
+    if (config) parsed.config = config
     return parsed
   } catch (_) {
+    return undefined
+  }
+}
+
+/**
+ * One dropped or picked file, opened straight into the workspace.
+ *
+ * The same readers the backup importer uses, because it is the same bytes:
+ * the single-file path had a copy of its own that stopped at the tracks, so
+ * the app wrote a timeline into an exported PNG and read that exact file back
+ * at the workspace's defaults. What the caller does with a failure differs -
+ * it names the file in an alert rather than counting it - so this reports
+ * nothing rather than throwing.
+ */
+export async function readSingleFlameFile(
+  file: File,
+): Promise<ParsedFlame | undefined> {
+  const name = file.name.toLowerCase()
+  const isText =
+    name.endsWith('.flame') || name.endsWith('.xml') || name.endsWith('.json')
+  try {
+    return isText
+      ? readFlameText(await file.text())
+      : await readFlamePng(new Uint8Array(await file.arrayBuffer()))
+  } catch (err) {
+    console.warn(err)
     return undefined
   }
 }
