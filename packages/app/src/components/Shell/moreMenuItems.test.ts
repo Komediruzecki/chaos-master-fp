@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { activeTab, setActiveTab } from '@/lib/activeTab'
-import { buildMoreMenu } from './moreMenu'
+import { buildMoreMenu } from './moreMenuItems'
 
 const LABELS = [
   'Export options',

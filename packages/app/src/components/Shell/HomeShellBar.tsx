@@ -14,7 +14,7 @@ import { ShellBar } from './ShellBar'
  *
  * More carries the Arcade: it is the one destination this phase does not put
  * in the bar, and Home is otherwise the screen that cannot reach it. The
- * shared list defaults it (Shell/moreMenu.ts), so there is nothing to pass.
+ * shared list defaults it (Shell/moreMenuItems.ts), so there is nothing to pass.
  */
 export function HomeShellBar() {
   return (

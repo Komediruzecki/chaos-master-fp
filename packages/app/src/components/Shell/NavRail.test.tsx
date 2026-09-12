@@ -4,7 +4,7 @@ import { backDepth, popBack } from '@/lib/backStack'
 import { haptic } from '@/lib/haptics'
 import { NavRail } from './NavRail'
 import { ShellBar } from './ShellBar'
-import type { MoreMenuHandlers } from './moreMenu'
+import type { MoreMenuHandlers } from './moreMenuItems'
 import type { ShellDestination } from './ShellBar'
 
 // The real module is safe to call here: every method delegates to NO_HAPTICS

@@ -5,7 +5,7 @@ import { workspaceIsVisible } from '@/lib/activeTab'
 import { createBackLayer } from '@/lib/backStack'
 import { haptic } from '@/lib/haptics'
 import { MoreMenu } from '../Shell/MoreMenu'
-import { buildMoreMenu } from '../Shell/moreMenu'
+import { buildMoreMenu } from '../Shell/moreMenuItems'
 import ui from './TouchSurface.module.css'
 import type { Accessor } from 'solid-js'
 import type { CommandContext } from '@/commands/types'
@@ -42,7 +42,7 @@ export function TouchHUD(props: TouchHUDProps) {
     props.flame().metadata?.name?.trim() || 'Untitled flame'
 
   /**
-   * The one More list (components/Shell/moreMenu.ts), so every surface that
+   * The one More list (components/Shell/moreMenuItems.ts), so every surface that
    * offers More offers the same items. These props are named after its
    * handlers, so they go straight in; the Arcade defaults inside it.
    */

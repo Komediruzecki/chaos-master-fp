@@ -35,7 +35,7 @@ import { WorkspaceSidebar } from './components/WorkspaceSidebar'
 import { useWorkspaceAnimationGen, useWorkspaceArena, useWorkspaceArtDirector, useWorkspaceAutosave, useWorkspaceCamera, useWorkspaceCommands, useWorkspacePalette, useWorkspaceReplay, useWorkspaceShortcuts, useWorkspaceTimelineBinding, } from './hooks'
 import { createWorkspaceExportStore, createWorkspaceLayoutStore, createWorkspaceSelectionStore, isWideLayout, } from './stores'
 import { deckFits, isTouchDevice } from './stores/workspaceLayoutStore'
-import type { MoreMenuHandlers } from './components/Shell/moreMenu'
+import type { MoreMenuHandlers } from './components/Shell/moreMenuItems'
 
 const AncestryTreeModal = lazy(() =>
   import('./components/AncestryTreeModal/AncestryTreeModal').then((m) => ({
@@ -3318,7 +3318,7 @@ export function MainWorkspace(props: AppProps) {
   }
 
   /**
-   * One More list for the editor's two shells (components/Shell/moreMenu.ts):
+   * One More list for the editor's two shells (components/Shell/moreMenuItems.ts):
    * the phone's top bar carries it, and now so does the tablet's navigation
    * rail, which had no More at all - so Library on a landscape tablet reached
    * neither the Arcade nor Share link, Export options, Advanced tools,

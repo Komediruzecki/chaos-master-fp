@@ -3,17 +3,17 @@ import { Portal } from 'solid-js/web'
 import { LumenMark, MoreDots, Settings } from '@/icons'
 import { DESTINATIONS, tickForDestination } from './destinations'
 import { MoreMenu } from './MoreMenu'
-import { buildMoreMenu } from './moreMenu'
+import { buildMoreMenu } from './moreMenuItems'
 import ui from './NavRail.module.css'
 import type { Accessor } from 'solid-js'
 import type { ShellDestination } from './destinations'
-import type { MoreMenuHandlers } from './moreMenu'
+import type { MoreMenuHandlers } from './moreMenuItems'
 
 export interface NavRailProps {
   current: Accessor<ShellDestination>
   onSelect: (destination: ShellDestination) => void
   onOpenSettings: () => void
-  /** The same list every other surface offers (moreMenu.ts). */
+  /** The same list every other surface offers (moreMenuItems.ts). */
   more?: MoreMenuHandlers
 }
 
@@ -69,7 +69,7 @@ export function NavRail(props: NavRailProps) {
         </For>
         <div class={ui.spacer} />
         {/* Always offered, because the list is never empty: the Arcade
-            defaults into it (Shell/moreMenu.ts). The guard that stood here
+            defaults into it (Shell/moreMenuItems.ts). The guard that stood here
             read as if a host could open an empty menu, and could not fire. */}
         <button
           type="button"

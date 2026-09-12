@@ -3,11 +3,11 @@ import { MoreDots } from '@/icons'
 import { createBackLayer } from '@/lib/backStack'
 import { DESTINATIONS, tickForDestination } from './destinations'
 import { MoreMenu } from './MoreMenu'
-import { buildMoreMenu } from './moreMenu'
+import { buildMoreMenu } from './moreMenuItems'
 import ui from './ShellBar.module.css'
 import type { Accessor } from 'solid-js'
 import type { ShellDestination } from './destinations'
-import type { MoreMenuHandlers } from './moreMenu'
+import type { MoreMenuHandlers } from './moreMenuItems'
 
 export type { ShellDestination } from './destinations'
 
@@ -211,7 +211,7 @@ export function ShellBar(props: ShellBarProps) {
         </nav>
 
         {/* The list is never empty - the Arcade defaults into it
-            (Shell/moreMenu.ts) - and Home mounts this bar with no handlers at
+            (Shell/moreMenuItems.ts) - and Home mounts this bar with no handlers at
             all, so that one item is Home's only way into the Arcade. The
             length guard that stood here could not fire. */}
         <Show when={props.mode === 'full'}>

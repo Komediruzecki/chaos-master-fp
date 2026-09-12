@@ -1,7 +1,7 @@
 import { For, Show } from 'solid-js'
 import { createBackLayer } from '@/lib/backStack'
 import ui from './MoreMenu.module.css'
-import type { MoreMenuItem } from './moreMenu'
+import type { MoreMenuItem } from './moreMenuItems'
 
 export interface MoreMenuProps {
   items: readonly MoreMenuItem[]
@@ -16,7 +16,7 @@ export interface MoreMenuProps {
 }
 
 /**
- * The one More popover. Both surfaces offer the same list (moreMenu.ts) and
+ * The one More popover. Both surfaces offer the same list (moreMenuItems.ts) and
  * rendered it twice: two sets of markup, two back registrations, and two
  * stylesheets that had already drifted apart on width, elevation and icon.
  *
