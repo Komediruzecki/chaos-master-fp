@@ -9,7 +9,7 @@ import { useToast } from '@/contexts/ToastContext'
 import { setActiveTab, workspaceIsVisible } from '@/lib/activeTab'
 import { createBackLayer } from '@/lib/backStack'
 import { SHOWCASE_CONSENT_VERSION } from '@/lib/communityShowcase'
-import { installDraftBackup } from '@/lib/draft'
+import { handoffTakesBaseline, installDraftBackup } from '@/lib/draft'
 import { hapticsEnabled, setHapticsEnabled } from '@/lib/haptics'
 import { trackAppInit } from '@/lib/telemetry'
 import { createDragHandler } from '@/utils/createDragHandler'
@@ -136,6 +136,7 @@ import type { SonificationConfig } from './utils/sonification'
 import type { EasingCurve, KeyframeInterpolation, TimelineConfig, TimelineTrack, } from './utils/timeline'
 import type { CommandContext } from '@/commands/types'
 import type { CommunityShowcaseRequest } from '@/lib/communityShowcase'
+import type { HandoffSource } from '@/lib/draft'
 
 export type { ExportImageInfo, ExportImageType } from '@/flame/exportImageType'
 
@@ -167,6 +168,12 @@ export type AppProps = {
    * or Home pick has none and keeps the hand-off reset's defaults.
    */
   welcomeConfig?: () => TimelineConfig | undefined
+  /**
+   * Where the hand-off's flame came from. A draft this launch restored is
+   * unsaved work that has never reached Recents, so it deliberately does not
+   * re-baseline the safety nets - see `handoffTakesBaseline` in lib/draft.ts.
+   */
+  flameHandoffSource?: () => HandoffSource
   /**
    * One-shot request from a Home "Explore" card: open the tool this flame was
    * curated to demonstrate, not just the flame. The value is the row's
@@ -630,6 +637,7 @@ export function MainWorkspace(props: AppProps) {
       )
       // Read BEFORE resetFlameFromWelcome() clears the whole hand-off.
       const capability = props.capabilityFromHome?.()
+      const handoffSource = props.flameHandoffSource?.() ?? 'user'
       if (capability !== undefined) {
         setPendingCapability(capability)
       }
@@ -654,8 +662,12 @@ export function MainWorkspace(props: AppProps) {
         })
       }
       props.resetFlameFromWelcome?.()
-      // A welcome pick is a fresh starting point for dirty tracking.
-      markLoadedBaseline()
+      // A welcome pick is a fresh starting point for dirty tracking. A draft
+      // this launch restored is not: baselining that one made work which
+      // exists only in the draft slot count as saved, so the flush above
+      // wrote nothing to Recents and the next pause deleted the draft
+      // (lib/draft.ts). Left dirty, that flush is what rescues it.
+      if (handoffTakesBaseline(handoffSource)) markLoadedBaseline()
     }
   })
 

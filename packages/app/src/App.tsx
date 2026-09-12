@@ -32,6 +32,7 @@ import { persistentSignal } from './utils/persistentSignal'
 import { recordKeys } from './utils/record'
 import { dismissWelcome, hasWelcomeBeenDismissed, } from './utils/welcomeDismissed'
 import type { FlameDescriptor } from './flame/schema/flameSchema'
+import type { HandoffSource } from './lib/draft'
 import type { HardwareTier } from './utils/hardwareTier'
 import type { TimelineConfig, TimelineTrack } from './utils/timeline'
 
@@ -98,6 +99,13 @@ export function Wrappers() {
   const [selectedCapability, setSelectedCapability] = createSignal<string>()
   const [queryError, setQueryError] = createSignal<string | null>(null)
   const [draftNotice, setDraftNotice] = createSignal<string | null>(null)
+  /**
+   * Where the flame in the hand-off above came from. Only the draft restore
+   * sets it: the workspace treats that flame as unsaved work rather than as a
+   * load boundary, which is what keeps it recoverable (lib/draft.ts).
+   */
+  const [flameHandoffSource, setFlameHandoffSource] =
+    createSignal<HandoffSource>('user')
 
   /**
    * What the app was holding when the OS killed it (lib/draft.ts). The
@@ -119,10 +127,12 @@ export function Wrappers() {
     })
     if (!draft) return
     batch(() => {
-      // The same one-shot hand-off Home and the welcome screen use.
+      // The same one-shot hand-off Home and the welcome screen use, with one
+      // difference: this flame is somebody's unsaved work.
       setSelectedFlame(() => draft.flame)
       setSelectedWelcomeTracks(() => draft.tracks)
       setSelectedWelcomeConfig(() => draft.config)
+      setFlameHandoffSource('draft')
     })
     setDraftNotice('Restored your last flame')
   })
@@ -323,6 +333,14 @@ export function Wrappers() {
           <KeyframeTargetProvider>
             <ToastProvider>
               <NativeSaveToasts />
+              {/* Outside the Suspense below on purpose: an effect inside a
+                  suspended boundary does not run until the boundary resolves,
+                  so this notice waited on the workspace chunk and on the
+                  share-link resource - while the one moment it is needed is
+                  the moment the launch restores something, with the welcome
+                  grid still up and a starter flame one tap away. The toast
+                  column sits above the welcome screen's own layer. */}
+              <MessageToast message={draftNotice()} />
               <Root
                 adapterOptions={{
                   powerPreference: 'high-performance',
@@ -332,7 +350,6 @@ export function Wrappers() {
                   <ErrorBoundary fallback={errorHandler}>
                     <Suspense fallback={<WorkspaceSkeleton />}>
                       <MessageToast message={queryError()} />
-                      <MessageToast message={draftNotice()} />
                       <MainWorkspace
                         flameFromQuery={flameFromQuery()}
                         sharedVariationFromQuery={sharedVariationFromQuery()}
@@ -348,11 +365,13 @@ export function Wrappers() {
                           hardwareTier() ?? (skipWelcome ? 'high' : null)
                         }
                         onHardwareTierChange={setHardwareTier}
+                        flameHandoffSource={flameHandoffSource}
                         resetFlameFromWelcome={() => {
                           setSelectedFlame(undefined)
                           setSelectedWelcomeTracks(undefined)
                           setSelectedWelcomeConfig(undefined)
                           setSelectedCapability(undefined)
+                          setFlameHandoffSource('user')
                         }}
                       />
                       {/* Home overlays the workspace, which stays mounted so

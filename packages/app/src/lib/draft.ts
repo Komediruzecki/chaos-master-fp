@@ -182,6 +182,30 @@ export function draftForLaunch(input: {
   return readDraft()
 }
 
+/** Where the flame a hand-off carries came from. */
+export type HandoffSource = 'user' | 'draft'
+
+/**
+ * Whether a hand-off is a fresh starting point for the workspace's two safety
+ * nets - the editor's autosave and this draft.
+ *
+ * A flame the user picked is one: nothing about a gallery flame is unsaved the
+ * moment it lands. A flame this launch restored from the draft slot is not.
+ * It is unsaved work that has never reached Recents, and taking a baseline on
+ * it made it count as saved: when the user then tapped a starter flame on the
+ * welcome grid the autosave's flush wrote nothing, the hand-off's reset
+ * dropped the restored flame from memory, and the very next pause - any share
+ * sheet or app switch - matched the new baseline and took the branch that
+ * deletes the draft. The work was gone from memory, from Recents and from
+ * storage at once.
+ *
+ * Left unsaved, the flush that already runs at every hand-off puts it in
+ * Recents on the way past, and the draft is only cleared once it has.
+ */
+export function handoffTakesBaseline(source: HandoffSource): boolean {
+  return source !== 'draft'
+}
+
 /**
  * A link that carries its own flame (`?s=`, `?flame=`) or variation (`?cv=`).
  * Restoring the draft over it would replace what the link was opened for.

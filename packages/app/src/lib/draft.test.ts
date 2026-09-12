@@ -1,10 +1,15 @@
+import { createRoot } from 'solid-js'
+import { createStore, reconcile, unwrap } from 'solid-js/store'
 import { describe, expect, it, vi } from 'vitest'
 import { parseFlameXml } from '@/flame/flameXml'
+import { useWorkspaceAutosave } from '@/hooks/useWorkspaceAutosave'
+import { clearRecentFlames, loadRecentFlames } from '@/utils/recentFlames'
 import { safeSetItem } from '@/utils/storage'
-import { clearDraft, DRAFT_KEY, draftAction, draftForLaunch, hasSharePayload, installDraftBackup, markDraftBaseline, readDraft, saveDraft, } from './draft'
+import { defaultConfig } from '@/utils/timeline'
+import { clearDraft, DRAFT_KEY, draftAction, draftForLaunch, handoffTakesBaseline, hasSharePayload, installDraftBackup, markDraftBaseline, readDraft, saveDraft, } from './draft'
 import { useLifecyclePorts } from './lifecycle'
 import type { LifecyclePorts } from '@chaos-master/mobile-runtime/lifecycle'
-import type { DraftState } from './draft'
+import type { DraftState, HandoffSource } from './draft'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 import type { TimelineConfig, TimelineTrack } from '@/utils/timeline'
 
@@ -331,5 +336,94 @@ describe('hasSharePayload', () => {
     expect(hasSharePayload('?cv=abc')).toBe(true)
     expect(hasSharePayload('?benchmark=auto')).toBe(false)
     expect(hasSharePayload('')).toBe(false)
+  })
+})
+
+describe('the draft a launch restored', () => {
+  it('reaches Recents before anything is allowed to delete it', () => {
+    // The chain the app walks, with the two real safety nets wired the way
+    // MainWorkspace wires them: the editor's autosave, the pause backup, one
+    // load boundary over both, and the hand-off deciding whether to take one.
+    //
+    // Baselining the restored flame is what lost the session: it counted as
+    // saved while it existed only in the draft slot, so the flush wrote
+    // nothing, the reset dropped it, and the next pause cleared the draft.
+    const platform = fakePlatform()
+    const restored: FlameDescriptor = {
+      ...flame,
+      metadata: { ...flame.metadata, name: 'Restored' },
+    }
+    const starter: FlameDescriptor = {
+      ...flame,
+      metadata: { ...flame.metadata, name: 'Starter' },
+    }
+
+    try {
+      createRoot((dispose) => {
+        const [flameStore, setFlameStore] = createStore<FlameDescriptor>(
+          JSON.parse(JSON.stringify(flame)),
+        )
+        let currentTracks: TimelineTrack[] = []
+        let currentConfig: TimelineConfig = defaultConfig()
+        const autosave = useWorkspaceAutosave({
+          flameDescriptor: flameStore,
+          getTracks: () => currentTracks,
+          agentDriving: () => false,
+          showToast: () => undefined,
+        })
+        const backup = installDraftBackup({
+          native: true,
+          read: () => ({
+            flame: unwrap(flameStore),
+            tracks: currentTracks,
+            config: currentConfig,
+          }),
+        })
+
+        /** MainWorkspace's own: one load boundary over both nets. */
+        const markLoadedBaseline = () => {
+          autosave.markLoadedBaseline()
+          backup.markBaseline()
+        }
+        /** Its hand-off: flush the outgoing flame, reset, then this one. */
+        const handoff = (
+          source: HandoffSource,
+          next: FlameDescriptor,
+          nextTracks: TimelineTrack[],
+          nextConfig: TimelineConfig,
+        ) => {
+          autosave.flushDirtyToRecents()
+          setFlameStore(reconcile(next))
+          currentTracks = nextTracks
+          currentConfig = nextConfig
+          if (handoffTakesBaseline(source)) markLoadedBaseline()
+        }
+
+        // The launch hands the draft to the workspace, behind the welcome
+        // screen.
+        handoff('draft', restored, tracks, config)
+
+        // Any share sheet or app switch. This work exists nowhere else, so
+        // the pause has to leave the draft where it is.
+        platform.pause()
+        expect(readDraft()?.flame.metadata?.name).toBe('Restored')
+
+        // The user taps a starter flame on the welcome grid instead.
+        handoff('user', starter, [], defaultConfig())
+        expect(
+          loadRecentFlames().map((entry) => entry.flame.metadata?.name),
+        ).toContain('Restored')
+
+        // Only now is the draft spent: what it held is in Recents.
+        platform.pause()
+        expect(readDraft()).toBeUndefined()
+
+        backup.dispose()
+        dispose()
+      })
+    } finally {
+      clearRecentFlames()
+      clearDraft()
+    }
   })
 })
