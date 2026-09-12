@@ -37,12 +37,12 @@ describe('Modal and back', () => {
     expect(backDepth()).toBe(0)
   })
 
-  it('is off the stack the moment it is answered, mid transition', async () => {
+  it('swallows a back that arrives while it is dismissing', async () => {
     // startViewTransition defers the removal from the list into its own
-    // callback, so the item's scope - and with it the back handler - used to
-    // outlive the answer. A second back inside that window cancelled the same
-    // dialog again and still reported success: on Android two quick presses
-    // after answering left the layer beneath unanswered and the app up.
+    // callback, so the dialog is still on screen for a frame or two after it
+    // has been answered. Dropping its back entry at the answer let a press
+    // inside that window through: the layer beneath was dismissed by a press
+    // meant for the dialog, and with an empty stack the app minimised.
     const deferred: (() => void)[] = []
     Object.defineProperty(document, 'startViewTransition', {
       configurable: true,
@@ -71,18 +71,73 @@ describe('Modal and back', () => {
       })
       expect(backDepth()).toBe(2)
 
-      // The answer: the transition's callback is captured, not run, which is
-      // exactly the window the second back arrives in.
+      // The answer, then a second press before the transition has run.
       expect(popBack()).toBe(true)
-      expect(backDepth()).toBe(1)
-
       expect(popBack()).toBe(true)
-      expect(beneath).toHaveBeenCalledTimes(1)
+      expect(beneath).not.toHaveBeenCalled()
 
+      // Once the dialog is actually gone, the stack is the layer beneath's.
       deferred.forEach((callback) => {
         callback()
       })
       await expect(answer).resolves.toBeUndefined()
+      expect(backDepth()).toBe(1)
+      expect(popBack()).toBe(true)
+      expect(beneath).toHaveBeenCalledTimes(1)
+    } finally {
+      dropBeneath()
+      Reflect.deleteProperty(document, 'startViewTransition')
+    }
+  })
+
+  it('swallows a back that follows its own button', async () => {
+    // The same window, reached the way a user reaches it: tap Cancel, press
+    // back before the dialog has finished leaving.
+    const deferred: (() => void)[] = []
+    Object.defineProperty(document, 'startViewTransition', {
+      configurable: true,
+      value: (callback: () => void) => {
+        deferred.push(callback)
+        return { ready: Promise.resolve(), finished: Promise.resolve() }
+      },
+    })
+    const beneath = vi.fn()
+    const dropBeneath = pushBackHandler(beneath, 'beneath')
+
+    try {
+      let request: RequestModalFn | undefined
+      render(() => (
+        <Modal>
+          <Host
+            onReady={(fn) => {
+              request = fn
+            }}
+          />
+        </Modal>
+      ))
+
+      const answer = request?.<string | undefined>({
+        content: (props) => (
+          <button
+            type="button"
+            onClick={() => {
+              props.respond('cancel')
+            }}
+          >
+            Cancel
+          </button>
+        ),
+      })
+      expect(backDepth()).toBe(2)
+
+      document.querySelector<HTMLButtonElement>('dialog button')?.click()
+      expect(popBack()).toBe(true)
+      expect(beneath).not.toHaveBeenCalled()
+
+      deferred.forEach((callback) => {
+        callback()
+      })
+      await expect(answer).resolves.toBe('cancel')
       expect(backDepth()).toBe(1)
     } finally {
       dropBeneath()

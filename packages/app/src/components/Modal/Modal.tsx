@@ -100,11 +100,6 @@ export function Modal(props: ParentProps<ModalProps>) {
             function respond(option: unknown) {
               if (settled) return
               settled = true
-              // Off the back stack now, not when the scope disposes. Waiting
-              // for the scope left a handler that did nothing and reported
-              // success, so a second back inside the transition's window
-              // neither reached the layer beneath nor minimised the app.
-              dropBackEntry()
               if ('startViewTransition' in document) {
                 const transition = document.startViewTransition(() => {
                   resolve(option)
@@ -124,10 +119,16 @@ export function Modal(props: ParentProps<ModalProps>) {
 
             // A dialog is the topmost layer while it is up, so the Android
             // back gesture closes it the way its own cancel does
-            // (lib/backStack.ts). Answering drops the entry; the scope drops
-            // it too, for the instance that is torn down without an answer.
-            // The disposer is idempotent, so both may run.
+            // (lib/backStack.ts). The entry stays until the scope disposes,
+            // which under startViewTransition is a frame or two after the
+            // answer - and answered, its handler does nothing. Dropping it at
+            // the answer instead let the press that arrives in that window
+            // through to the layer beneath, or minimised the app: the dialog
+            // was still on screen, and something else took the press.
+            // Swallowing one press during a 200ms dismissal is the safer half
+            // of that trade.
             const dropBackEntry = pushBackHandler(() => {
+              if (settled) return
               respond(undefined)
             }, 'modal')
             onCleanup(dropBackEntry)
