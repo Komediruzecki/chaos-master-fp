@@ -404,10 +404,14 @@ export function Wrappers() {
                           still has a single entry point. */}
                       <Show when={activeTab() === 'home' && !showWelcome()}>
                         <HomeTab
-                          onOpenFlame={(flame, tracks, capability) => {
+                          onOpenFlame={(flame, tracks, config, capability) => {
                             seedWorkspace({
                               flame,
                               ...(tracks ? { tracks } : {}),
+                              // The timeline the row was authored at. Without
+                              // it an animated gallery flame opened at the
+                              // workspace defaults, 30fps over 90 frames.
+                              ...(config ? { config } : {}),
                               ...(capability !== undefined
                                 ? { capability }
                                 : {}),
