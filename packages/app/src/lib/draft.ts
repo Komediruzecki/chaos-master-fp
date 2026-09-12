@@ -1,9 +1,10 @@
 import { parseFlameEnvelope } from '@/utils/flameImport'
-import { loadRecentFlames, loadRecentFlamesForRewrite, MAX_RECENT_FLAMES, upsertRecentFlame, } from '@/utils/recentFlames'
+import { loadRecentFlames, recentFlameFingerprint, upsertRecentFlame, } from '@/utils/recentFlames'
 import { safeGetItem, safeRemoveItem, safeSetItem } from '@/utils/storage'
 import { onAppPause } from './lifecycle'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 import type { ParsedFlame } from '@/utils/flameImport'
+import type { RecentFlameClaim } from '@/utils/recentFlames'
 import type { TimelineConfig, TimelineTrack } from '@/utils/timeline'
 
 /**
@@ -173,20 +174,25 @@ export function clearDraft(): void {
 /**
  * A draft the launch has adopted. Its work is already in Recents by the time
  * a caller holds one of these.
- *
- * What it deliberately does NOT carry is the Recents entry the rescue wrote
- * to. Handing that id to the workspace made its autosave the owner of an
- * entry it had not written: when the rescue found a newer entry there and
- * skipped the write, the first autosave after the restore put the older
- * flame over the newer one, and the user had been told their work was
- * restored. A second entry for one piece of work is an annoyance; an
- * overwrite is lost work, so the workspace opens its own entry and this
- * carries no id to adopt.
  */
 export interface RestoredDraft {
   readonly flame: FlameDescriptor
   readonly tracks?: TimelineTrack[]
   readonly config?: TimelineConfig
+  /**
+   * The entry the rescue wrote, with a fingerprint of exactly what it wrote
+   * there, for the workspace to carry on in rather than opening a second
+   * entry for the same work (hooks/useWorkspaceAutosave.ts).
+   *
+   * A bare id is never enough. Handing one over made the workspace's autosave
+   * the owner of an entry it had not written: the rescue skips its write when
+   * what is already at that id is newer, and the first autosave after the
+   * restore then put the older restored flame over the newer entry, having
+   * told the user their work was restored. So this is present only when the
+   * rescue actually wrote, it carries what was written, and the workspace
+   * checks that the entry still holds it before touching anything.
+   */
+  readonly entry?: RecentFlameClaim
   /**
    * Why the work is in the workspace only, when it is: Recents is at its cap
    * and taking it would evict a flame the user kept, or the write was
@@ -215,13 +221,19 @@ const strandedSessionId = (): string =>
  * is an empty object, which would have counted as a copy of the work while
  * being invisible everywhere the user could look for it.
  *
- * @returns nothing when the work is safe there, or why it is not - and the
- * draft slot is then still the only copy of it.
+ * @returns why the work is not there, or nothing when it is - and the draft
+ * slot is then still the only copy of it - plus whether this call is what put
+ * it there. `wrote` is what decides whether the workspace may carry on in
+ * that entry: when the entry already held newer work of the same session
+ * this writes nothing, and handing it over then would let the first autosave
+ * put the older restored flame over the newer half. That is the overwrite
+ * this module exists to prevent, so a skipped write hands over nothing and
+ * the launch costs a duplicate entry instead.
  */
 function secureInRecents(
   draft: ParsedFlame,
   sessionId: string,
-): UnsecuredReason | undefined {
+): { unsecured?: UnsecuredReason; wrote: boolean } {
   const existing = loadRecentFlames().find((entry) => entry.id === sessionId)
   // That session's autosave writes to this entry too. A draft written before
   // the last autosave holds the older half of one piece of work, and
@@ -233,36 +245,30 @@ function secureInRecents(
   // was then cleared without the work ever being written anywhere: the one
   // default this module cannot take is the one that deletes.
   const writtenAt = draft.savedAt ?? Number.POSITIVE_INFINITY
-  if (existing && existing.savedAt >= writtenAt) return undefined
-  // At the cap, an id that is not already in the list pushes the oldest
-  // entry out. That entry is a flame the user chose to keep, and this one is
-  // debris from a crash: Save for Later stops and asks before overwriting
-  // it, and a rescue nobody asked for must not do quietly what the user is
-  // asked about. Writing into an id already there replaces it rather than
-  // growing the list, so only the new-id case is refused.
-  const stored = loadRecentFlamesForRewrite()
-  const hasSlot = stored.some((entry) => entry.id === sessionId)
-  if (!hasSlot && stored.length >= MAX_RECENT_FLAMES) return 'full'
+  if (existing && existing.savedAt >= writtenAt) return { wrote: false }
   // The timeline goes in with the tracks. Without it the rescued entry came
   // back at the workspace's defaults once the slot was cleared, so the frame
   // rate the work was authored at lived only in memory.
-  if (
-    !upsertRecentFlame(
-      sessionId,
-      draft.flame,
-      undefined,
-      draft.tracks,
-      draft.config,
-    )
-  ) {
-    return 'refused'
-  }
+  //
+  // At the cap the writer declines rather than pushing the oldest entry out:
+  // that entry is a flame the user chose to keep and this one is debris from
+  // a crash, and Save for Later stops and asks before the same eviction. The
+  // guard lives in the writer, so every path is held to it and not just this
+  // one (utils/recentFlames.ts).
+  const outcome = upsertRecentFlame(
+    sessionId,
+    draft.flame,
+    undefined,
+    draft.tracks,
+    draft.config,
+  )
+  if (outcome !== 'saved') return { unsecured: outcome, wrote: false }
   // Read it back the way it will be read. A write that lands as something
   // the Library drops is not a rescue, and saying so is what lets the slot
   // keep the only copy.
   return loadRecentFlames().some((entry) => entry.id === sessionId)
-    ? undefined
-    : 'refused'
+    ? { wrote: true }
+    : { unsecured: 'refused', wrote: false }
 }
 
 /**
@@ -304,18 +310,26 @@ export function takeDraftForLaunch(input: {
     typeof stored.sessionId === 'string' && stored.sessionId !== ''
       ? stored.sessionId
       : strandedSessionId()
-  const unsecured = secureInRecents(parsed, sessionId)
+  const { unsecured, wrote } = secureInRecents(parsed, sessionId)
 
   if (hasSharePayload(input.search)) return undefined
   // Only once the work is somewhere else. If Recents could not take it the
   // slot is all there is, so the draft stays in it and the caller is told,
   // because the flame is then only as safe as this one process.
   if (unsecured === undefined) clearDraft()
+  // What was written, so the workspace can carry on in that entry rather
+  // than opening a second one for the same work. Taken from storage after
+  // the write, so it is the stored shape both sides compare - and only when
+  // this launch is what wrote it.
+  const fingerprint = wrote ? recentFlameFingerprint(sessionId) : undefined
   return {
     flame: parsed.flame,
     ...(parsed.tracks ? { tracks: parsed.tracks } : {}),
     ...(parsed.config ? { config: parsed.config } : {}),
     ...(unsecured ? { unsecured } : {}),
+    ...(fingerprint === undefined
+      ? {}
+      : { entry: { id: sessionId, fingerprint } }),
   }
 }
 

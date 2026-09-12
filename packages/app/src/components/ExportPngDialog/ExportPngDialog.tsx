@@ -1059,11 +1059,14 @@ export function createExportPngDialog(
                   encodedSteps,
                 ).arrayBuffer(),
               )
+              // Not forced: at the cap this declines rather than evicting
+              // the oldest kept flame for one the user exported rather than
+              // saved. The PNG carries the flame, so nothing is lost.
               saveRecentFlame(
                 flameDescriptor,
                 undefined,
                 currentTracks,
-                true,
+                false,
                 config,
               )
               downloadBlob(

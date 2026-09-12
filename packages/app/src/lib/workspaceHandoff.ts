@@ -1,5 +1,6 @@
 import { batch, createSignal } from 'solid-js'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
+import type { RecentFlameClaim } from '@/utils/recentFlames'
 import type { TimelineConfig, TimelineTrack } from '@/utils/timeline'
 
 /**
@@ -13,6 +14,12 @@ export interface WorkspaceSeed {
   readonly config?: TimelineConfig
   /** A Home "Explore" card's curated capability. */
   readonly capability?: string
+  /**
+   * The Recents entry a launch rescued this flame into, for the workspace to
+   * carry on in rather than opening a second entry for the same work
+   * (lib/draft.ts). Only a restored draft has one.
+   */
+  readonly restoredEntry?: RecentFlameClaim
   /** Whether this also means "take me to the editor". */
   readonly enterWorkspace?: boolean
 }
@@ -36,6 +43,9 @@ export function createWorkspaceHandoff(input: {
   const [tracks, setTracks] = createSignal<TimelineTrack[] | undefined>()
   const [config, setConfig] = createSignal<TimelineConfig | undefined>()
   const [capability, setCapability] = createSignal<string | undefined>()
+  const [restoredEntry, setRestoredEntry] = createSignal<
+    RecentFlameClaim | undefined
+  >()
 
   /**
    * Hand a flame over. Called with nothing it clears the hand-off, which is
@@ -47,11 +57,12 @@ export function createWorkspaceHandoff(input: {
       setTracks(() => next?.tracks)
       setConfig(() => next?.config)
       setCapability(next?.capability)
+      setRestoredEntry(() => next?.restoredEntry)
       // Picking a flame means "take me to the editor". Forcing the tab keeps
       // a stray #home in the URL from leaving Home over the chosen flame.
       if (next?.enterWorkspace) input.enterWorkspace()
     })
   }
 
-  return { flame, tracks, config, capability, seed }
+  return { flame, tracks, config, capability, restoredEntry, seed }
 }

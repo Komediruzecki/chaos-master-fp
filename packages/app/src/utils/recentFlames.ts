@@ -9,6 +9,23 @@ import type { TimelineConfig, TimelineTrack } from '@/utils/timeline'
 const STORAGE_KEY = 'chaos-master-recent-flames'
 export const MAX_RECENT_FLAMES = 150
 
+/**
+ * What a write to Recents did.
+ *
+ * `full` is the one a caller may resolve by asking the user, because the only
+ * way to make room is to destroy an entry they chose to keep. Every other
+ * refusal is `refused`: storage said no, and there is nothing to ask about.
+ *
+ * ONE RULE GOVERNS EVERY WRITER HERE: no write evicts a flame the user kept
+ * unless the user was asked. The list is a shelf the user put things on; an
+ * automatic write - the autosave's interval, a load boundary, a crash rescue
+ * - is work they have not asked to keep, and pushing the oldest entry off the
+ * end to store it destroys something irreplaceable to save something the app
+ * can offer back anyway. `saveRecentFlame` takes the answer to that question
+ * as `forceOverwriteOldest`, and it is the only way past the guard.
+ */
+export type RecentWriteOutcome = 'saved' | 'full' | 'refused'
+
 export type RecentFlame = {
   id: string
   name: string
@@ -127,7 +144,13 @@ export function saveRecentFlame(
   flame: FlameDescriptor,
   name?: string,
   tracks?: TimelineTrack[],
-  forceOverwriteOldest: boolean = true,
+  /**
+   * The user's own answer to "may this replace the oldest flame?". Defaults
+   * to no: a caller that has not asked must not be able to evict by leaving
+   * an argument out, which is how two export paths were quietly dropping the
+   * oldest entry every time they saved the exported flame.
+   */
+  forceOverwriteOldest: boolean = false,
   config?: TimelineConfig,
 ): boolean {
   // Read-modify-write: use the structural loader, not the schema one. Rewriting
@@ -191,8 +214,14 @@ export function loadRecentFlamesForRewrite(): RecentFlame[] {
 /**
  * Insert-or-update a recent entry by id and move it to the front. Used by
  * autosave so one editing session keeps updating a single entry instead of
- * flooding the list; drops the oldest entry when the list is full.
- * @returns false when the localStorage write failed.
+ * flooding the list.
+ *
+ * At the cap it declines rather than dropping the oldest entry. Nobody asks
+ * the user before an autosave, so this write may not do what Save for Later
+ * stops and asks about: at 150 kept flames, one crash restore and a single
+ * keystroke used to delete the oldest of them with no prompt. Writing into an
+ * id already on the list replaces that entry and grows nothing, so only a new
+ * id can be refused.
  */
 export function upsertRecentFlame(
   id: string,
@@ -200,9 +229,10 @@ export function upsertRecentFlame(
   name?: string,
   tracks?: TimelineTrack[],
   config?: TimelineConfig,
-): boolean {
+): RecentWriteOutcome {
   const recent = loadRecentFlamesForRewrite()
   const existing = recent.find((item) => item.id === id)
+  if (!existing && recent.length >= MAX_RECENT_FLAMES) return 'full'
   const entry: RecentFlame = {
     id,
     name: name || flame.metadata?.name || existing?.name || 'Autosave',
@@ -217,7 +247,37 @@ export function upsertRecentFlame(
     0,
     MAX_RECENT_FLAMES,
   )
-  return safeSetItem(STORAGE_KEY, JSON.stringify(updated))
+  return safeSetItem(STORAGE_KEY, JSON.stringify(updated)) ? 'saved' : 'refused'
+}
+
+/**
+ * What an entry holds, as a string that changes when its content does.
+ *
+ * The clock is deliberately not in it: every write moves `savedAt`, and what
+ * this answers is "is this entry still the write I made?", asked by a
+ * workspace that has just been handed a flame the launch rescued into
+ * Recents. It takes that entry over for its own autosave only while the
+ * answer is yes, so one restored flame occupies one entry - and an entry that
+ * something else has since written to is never touched, which is the
+ * overwrite that adopting a bare id caused (lib/draft.ts).
+ *
+ * Structural read: this compares what is stored, not what the schema makes of
+ * it.
+ */
+export interface RecentFlameClaim {
+  readonly id: string
+  /** What {@link recentFlameFingerprint} returned for that entry. */
+  readonly fingerprint: string
+}
+
+export function recentFlameFingerprint(id: string): string | undefined {
+  const entry = loadRecentFlamesForRewrite().find((item) => item.id === id)
+  if (!entry) return undefined
+  return JSON.stringify({
+    flame: entry.flame,
+    tracks: entry.tracks ?? null,
+    config: entry.config ?? null,
+  })
 }
 
 /** The oldest stored entry — the one a save would evict. Structural load only:

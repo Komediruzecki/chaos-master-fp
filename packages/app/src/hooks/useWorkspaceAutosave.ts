@@ -1,7 +1,8 @@
 import { onCleanup } from 'solid-js'
 import { autosaveIntervalMin, autosaveRecents, saveReminderDismissed, setAutosaveRecents, setSaveReminderDismissed, } from '@/utils/autosaveSettings'
-import { upsertRecentFlame } from '@/utils/recentFlames'
+import { MAX_RECENT_FLAMES, recentFlameFingerprint, upsertRecentFlame, } from '@/utils/recentFlames'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
+import type { RecentFlameClaim } from '@/utils/recentFlames'
 import type { TimelineConfig, TimelineTrack } from '@/utils/timeline'
 
 export interface UseWorkspaceAutosaveParams {
@@ -31,14 +32,27 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
   const newAutosaveId = () =>
     `autosave-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
   /**
-   * The entry this session owns. Always a fresh one, including on a launch
-   * that restored a draft: the rescue writes that work into the entry its
-   * killed session owned, but it skips the write when what is already there
-   * is newer, and a workspace that had adopted that id then put the older
-   * restored flame over the newer entry at its first autosave. An entry of
-   * its own can duplicate work; it cannot destroy any (lib/draft.ts).
+   * The entry this session owns. Always a fresh one, except for the single
+   * case below: the rescue skips its write when what is already at an id is
+   * newer, and a workspace that had adopted that id put the older restored
+   * flame over the newer entry at its first autosave. An id alone is not
+   * evidence of anything (lib/draft.ts).
    */
   let autosaveSessionId = newAutosaveId()
+  /**
+   * The entry a launch rescued this document's work into, and a fingerprint
+   * of exactly what the rescue wrote there.
+   *
+   * Taking it over is what keeps one restored flame in one entry: without it
+   * the rescue wrote one entry and this session wrote another for the same
+   * work, so every crash cost two of the 150 places. It is taken over only
+   * while the entry still holds that exact content, checked at the moment of
+   * the write rather than at the hand-off - so an entry something else has
+   * written to since is left alone, and the id is never trusted on its own.
+   */
+  let restoredEntry: RecentFlameClaim | undefined
+  /** Said once. A full shelf does not empty itself mid-session. */
+  let fullNoticeShown = false
   const autosaveSnapshot = () =>
     JSON.stringify({
       flame: flameDescriptor,
@@ -70,18 +84,43 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
     if (flame !== sessionFlame) {
       sessionFlame = flame
       autosaveSessionId = newAutosaveId()
+      // A different document cannot inherit a claim on the entry the one
+      // before it was rescued into.
+      restoredEntry = undefined
     }
   }
 
   const autosaveNow = () => {
-    const saved = upsertRecentFlame(
+    const claim = restoredEntry
+    if (claim) {
+      // One shot, whichever way it goes: after this the document has either
+      // taken the entry over or lost the right to.
+      restoredEntry = undefined
+      if (recentFlameFingerprint(claim.id) === claim.fingerprint) {
+        autosaveSessionId = claim.id
+      }
+    }
+    const outcome = upsertRecentFlame(
       autosaveSessionId,
       flameDescriptor,
       undefined,
       getTracks(),
       getConfig(),
     )
-    if (!saved) return
+    if (outcome === 'full') {
+      // Declining is right - the alternative is deleting a flame the user
+      // kept - but declining in silence is the app quietly not saving. Say
+      // it once, and say what clears it.
+      if (!fullNoticeShown) {
+        fullNoticeShown = true
+        showToast(
+          `Recents is full (${MAX_RECENT_FLAMES} flames), so this one was not auto-saved. Delete one in Library, or use Save for Later to replace the oldest.`,
+          'sticky',
+        )
+      }
+      return
+    }
+    if (outcome !== 'saved') return
     lastAutosaveAt = Date.now()
     markSavedBaseline()
   }
@@ -160,6 +199,14 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
     markLoadedBaseline,
     autosaveNow,
     flushDirtyToRecents,
+    /**
+     * Offer this session the entry a launch rescued its document into
+     * (lib/draft.ts). Called after the hand-off's load boundary, because that
+     * boundary is what mints the id this replaces.
+     */
+    claimRestoredEntry: (entry: RecentFlameClaim | undefined) => {
+      restoredEntry = entry
+    },
     /** The Recents entry this session writes to, for the pause backup. */
     autosaveSessionId: () => autosaveSessionId,
   }

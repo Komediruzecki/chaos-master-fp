@@ -3,7 +3,7 @@ import { createStore, unwrap } from 'solid-js/store'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { parseFlameXml } from '@/flame/flameXml'
 import { useWorkspaceAutosave } from '@/hooks/useWorkspaceAutosave'
-import { clearRecentFlames, loadRecentFlames, MAX_RECENT_FLAMES, upsertRecentFlame, } from '@/utils/recentFlames'
+import { clearRecentFlames, loadRecentFlames, loadRecentFlamesForRewrite, MAX_RECENT_FLAMES, upsertRecentFlame, } from '@/utils/recentFlames'
 import { safeSetItem } from '@/utils/storage'
 import { defaultConfig } from '@/utils/timeline'
 import { clearDraft, DRAFT_KEY, hasSharePayload, installDraftBackup, readDraft, saveDraft, takeDraftForLaunch, } from './draft'
@@ -654,9 +654,12 @@ describe('the draft a launch restored', () => {
 
     // Relaunch. The rescue finds a newer entry there and rightly leaves it
     // alone - and used to hand that entry's id over anyway, so the workspace
-    // adopted an entry nothing had written the restored flame into.
+    // adopted an entry nothing had written the restored flame into. It hands
+    // over an entry only when it wrote one, so there is nothing to take over
+    // here even though the id exists.
     const restored = takeDraftForLaunch({ native: true, search: '' })
     expect(restored?.flame.metadata?.name).toBe('Draft')
+    expect(restored?.entry).toBeUndefined()
 
     createRoot((dispose) => {
       const [flameStore, setFlameStore] = createStore<FlameDescriptor>(
@@ -670,6 +673,7 @@ describe('the draft a launch restored', () => {
         showToast: () => undefined,
       })
       autosave.markLoadedBaseline()
+      autosave.claimRestoredEntry(restored?.entry)
 
       // The first thing the user does with the flame they were told was
       // restored. This is the write that destroyed the other half.
@@ -681,6 +685,127 @@ describe('the draft a launch restored', () => {
       )
       expect(names).toContain('Flushed after it')
       expect(names).toContain('Edited after the restore')
+      dispose()
+    })
+  })
+
+  it('takes over the entry the rescue wrote instead of adding a second', () => {
+    // ONE RESTORED FLAME, ONE ENTRY. The workspace mints an id of its own,
+    // which is what stopped it overwriting an entry the rescue had decided
+    // not to write to - and left the rescue's entry and the workspace's
+    // entry holding the same piece of work, so one crash cost two of the 150
+    // places. The entry is taken over only while it still holds exactly what
+    // the rescue put there, which is checked at the moment of the write.
+    seedDraft({ sessionId: 'autosave-killed' })
+    const restored = takeDraftForLaunch({ native: true, search: '' })
+    expect(restored?.entry?.id).toBe('autosave-killed')
+
+    createRoot((dispose) => {
+      const [flameStore, setFlameStore] = createStore<FlameDescriptor>(
+        JSON.parse(JSON.stringify(restored?.flame)),
+      )
+      const autosave = useWorkspaceAutosave({
+        flameDescriptor: flameStore,
+        getTracks: () => restored?.tracks ?? [],
+        getConfig: () => restored?.config,
+        agentDriving: () => false,
+        showToast: () => undefined,
+      })
+      autosave.markLoadedBaseline()
+      autosave.claimRestoredEntry(restored?.entry)
+
+      setFlameStore('metadata', 'name', 'Edited after the restore')
+      autosave.flushDirtyToRecents()
+
+      const recents = loadRecentFlames()
+      expect(recents).toHaveLength(1)
+      expect(recents[0]?.id).toBe('autosave-killed')
+      expect(recents[0]?.flame.metadata?.name).toBe('Edited after the restore')
+      dispose()
+    })
+  })
+
+  it('leaves that entry alone once something else has written to it', () => {
+    // The id is not proof. Between the rescue and the first flush another
+    // path can write to the same entry, and taking it over then is the
+    // overwrite that cost a user their newer flame.
+    seedDraft({ sessionId: 'autosave-killed' })
+    const restored = takeDraftForLaunch({ native: true, search: '' })
+    upsertRecentFlame('autosave-killed', {
+      ...flame,
+      metadata: { ...flame.metadata, name: 'Written by something else' },
+    })
+
+    createRoot((dispose) => {
+      const [flameStore, setFlameStore] = createStore<FlameDescriptor>(
+        JSON.parse(JSON.stringify(restored?.flame)),
+      )
+      const autosave = useWorkspaceAutosave({
+        flameDescriptor: flameStore,
+        getTracks: () => restored?.tracks ?? [],
+        getConfig: () => restored?.config,
+        agentDriving: () => false,
+        showToast: () => undefined,
+      })
+      autosave.markLoadedBaseline()
+      autosave.claimRestoredEntry(restored?.entry)
+
+      setFlameStore('metadata', 'name', 'Edited after the restore')
+      autosave.flushDirtyToRecents()
+
+      const names = loadRecentFlames().map(
+        (entry) => entry.flame.metadata?.name,
+      )
+      expect(names).toContain('Written by something else')
+      expect(names).toContain('Edited after the restore')
+      dispose()
+    })
+  })
+
+  it('never pushes out a kept flame, whichever write is doing it', () => {
+    // The rescue refuses to evict at the cap and keeps the slot - and then
+    // the restored workspace's own first flush went through the upsert,
+    // which dropped the oldest entry to make room. Recents full, crash
+    // restore, type one character, and a flame the user chose to keep was
+    // gone with nobody asked. The rule holds at every writer, so the flush
+    // declines too, and says so rather than failing silently.
+    seedFullRecents()
+    seedDraft({ sessionId: 'autosave-killed' })
+    const restored = takeDraftForLaunch({ native: true, search: '' })
+    expect(restored?.unsecured).toBe('full')
+
+    const toasts: string[] = []
+    createRoot((dispose) => {
+      const [flameStore, setFlameStore] = createStore<FlameDescriptor>(
+        JSON.parse(JSON.stringify(restored?.flame)),
+      )
+      const autosave = useWorkspaceAutosave({
+        flameDescriptor: flameStore,
+        getTracks: () => restored?.tracks ?? [],
+        getConfig: () => restored?.config,
+        agentDriving: () => false,
+        showToast: (message) => toasts.push(message),
+      })
+      // Nothing to take over: the rescue wrote nothing, so this workspace
+      // opens an entry of its own - which is the write that used to evict.
+      autosave.markLoadedBaseline()
+      expect(restored?.entry).toBeUndefined()
+
+      setFlameStore('metadata', 'name', 'Edited after the restore')
+      autosave.flushDirtyToRecents()
+
+      const kept = loadRecentFlamesForRewrite()
+      expect(kept).toHaveLength(MAX_RECENT_FLAMES)
+      expect(kept.some((entry) => entry.id === 'kept-149')).toBe(true)
+      expect(
+        kept.some(
+          (entry) => entry.flame.metadata?.name === 'Edited after the restore',
+        ),
+      ).toBe(false)
+      // Silence would be the app quietly not saving. The user is told, once,
+      // and the work is still in the slot for the next launch.
+      expect(toasts.join(' ')).toContain('Recents is full')
+      expect(readDraft()?.flame.metadata?.name).toBe('Draft')
       dispose()
     })
   })

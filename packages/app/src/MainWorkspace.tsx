@@ -133,6 +133,7 @@ import type { AudioAnalyzer, LiveAudioAnalyzer } from './utils/audioAnalysis'
 import type { HardwareTier } from './utils/hardwareTier'
 import type { SharePayload } from './utils/jsonQueryParam'
 import type { RandomizerHistoryEntry } from './utils/randomizerHistoryDB'
+import type { RecentFlameClaim } from './utils/recentFlames'
 import type { SonificationConfig } from './utils/sonification'
 import type { EasingCurve, KeyframeInterpolation, TimelineConfig, TimelineTrack, } from './utils/timeline'
 import type { CommandContext } from '@/commands/types'
@@ -176,6 +177,13 @@ export type AppProps = {
    * cleared in the same effect that consumes `flameFromWelcome`.
    */
   capabilityFromHome?: () => string | undefined
+  /**
+   * The Recents entry the launch rescued this flame into (lib/draft.ts). The
+   * editor's autosave carries on in it instead of opening a second entry for
+   * the same work; it verifies the entry still holds what the rescue wrote
+   * before it touches anything. Only a restored draft carries one.
+   */
+  restoredEntryFromLaunch?: () => RecentFlameClaim | undefined
   resetFlameFromWelcome?: () => void
   hardwareTier?: HardwareTier | null
   onHardwareTierChange?: (tier: HardwareTier) => void
@@ -647,6 +655,7 @@ export function MainWorkspace(props: AppProps) {
       })
       // Read BEFORE resetFlameFromWelcome() clears the whole hand-off.
       const capability = props.capabilityFromHome?.()
+      const rescuedEntry = props.restoredEntryFromLaunch?.()
       if (capability !== undefined) {
         setPendingCapability(capability)
       }
@@ -686,6 +695,10 @@ export function MainWorkspace(props: AppProps) {
       // touched. The guard that stood here was one of three that tried to
       // keep restored work alive by not baselining it.
       markLoadedBaseline()
+      // After the boundary, which is what mints the id this replaces: the
+      // work is already in that entry, so the session carries on in it and
+      // one restored flame keeps one place on the shelf.
+      claimRestoredEntry(rescuedEntry)
     }
   })
 
@@ -2669,6 +2682,7 @@ export function MainWorkspace(props: AppProps) {
     isFlameDirty,
     markSavedBaseline,
     markLoadedBaseline,
+    claimRestoredEntry,
     flushDirtyToRecents,
     autosaveSessionId,
   } = useWorkspaceAutosave({

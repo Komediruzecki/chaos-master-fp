@@ -141,7 +141,11 @@ function OffscreenRender(props: { job: ImageJob }) {
         await addFlameDataToPng(encoded, bytes, encodedSteps).arrayBuffer(),
       )
     }
-    saveRecentFlame(job.flame, undefined, job.tracks, true, job.config)
+    // Not forced: at the cap this declines rather than dropping the oldest
+    // kept flame for a flame the user exported rather than saved - and the
+    // PNG it just wrote carries the flame itself, so nothing is lost by
+    // declining (utils/recentFlames.ts).
+    saveRecentFlame(job.flame, undefined, job.tracks, false, job.config)
     // The user may have cancelled (job removed) while we were encoding.
     if (!jobExists(job.id)) return
     const png = new Blob([bytes], { type: 'image/png' })

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { examples } from '@/flame/examples'
-import { clearRecentFlames, clearRecentFlamesCache, deleteRecentFlame, formatRecentDate, getOldestRecentFlame, loadRecentFlames, loadRecentFlamesForRewrite, MAX_RECENT_FLAMES, saveRecentFlame, saveRecentFlames, upsertRecentFlame, } from './recentFlames'
+import { clearRecentFlames, clearRecentFlamesCache, deleteRecentFlame, formatRecentDate, getOldestRecentFlame, loadRecentFlames, loadRecentFlamesForRewrite, MAX_RECENT_FLAMES, recentFlameFingerprint, saveRecentFlame, saveRecentFlames, upsertRecentFlame, } from './recentFlames'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 
 const STORAGE_KEY = 'chaos-master-recent-flames'
@@ -422,7 +422,7 @@ describe('getOldestRecentFlame', () => {
 describe('upsertRecentFlame', () => {
   it('inserts a new entry at the front', () => {
     seed([goodEntry('a')])
-    expect(upsertRecentFlame('auto', sampleFlame(), 'Autosaved')).toBe(true)
+    expect(upsertRecentFlame('auto', sampleFlame(), 'Autosaved')).toBe('saved')
     expect(ids(loadRecentFlamesForRewrite())).toEqual(['auto', 'a'])
   })
 
@@ -440,6 +440,42 @@ describe('upsertRecentFlame', () => {
     )
     upsertRecentFlame('auto', sampleFlame(), 'Autosaved')
     expect(loadRecentFlamesForRewrite()).toHaveLength(MAX_RECENT_FLAMES)
+  })
+
+  it('refuses a new entry at the cap rather than evicting the oldest', () => {
+    // The autosave writes through here, on a timer and at every document
+    // boundary. Making room by dropping the last entry destroyed a flame the
+    // user deliberately kept in order to store one they never asked to save,
+    // while Save for Later - the write the user does ask for - stops and asks
+    // before the same eviction. Nothing evicts without asking, so this
+    // declines and says why.
+    seed(
+      Array.from({ length: MAX_RECENT_FLAMES }, (_, i) =>
+        goodEntry(`g${i}`, i),
+      ),
+    )
+    const before = localStorage.getItem(STORAGE_KEY)
+    const outcome = upsertRecentFlame('auto', sampleFlame(), 'Autosaved')
+    expect(ids(loadRecentFlamesForRewrite())).toContain(
+      `g${MAX_RECENT_FLAMES - 1}`,
+    )
+    expect(localStorage.getItem(STORAGE_KEY)).toBe(before)
+    expect(outcome).toBe('full')
+  })
+
+  it('still updates its own entry when the list is full', () => {
+    // Writing into an id already there replaces it: the list does not grow
+    // and nothing is pushed off the end, so this one is always allowed.
+    seed([
+      ...Array.from({ length: MAX_RECENT_FLAMES - 1 }, (_, i) =>
+        goodEntry(`g${i}`, i),
+      ),
+      goodEntry('auto', 0),
+    ])
+    expect(upsertRecentFlame('auto', sampleFlame(), 'Updated')).toBe('saved')
+    const after = loadRecentFlamesForRewrite()
+    expect(after).toHaveLength(MAX_RECENT_FLAMES)
+    expect(after[0]!.name).toBe('Updated')
   })
 
   it('preserves schema-invalid entries', () => {
@@ -500,7 +536,43 @@ describe('upsertRecentFlame', () => {
       },
       removeItem: () => {},
     })
-    expect(upsertRecentFlame('auto', sampleFlame(), 'doomed')).toBe(false)
+    expect(upsertRecentFlame('auto', sampleFlame(), 'doomed')).toBe('refused')
+  })
+})
+
+// ── recentFlameFingerprint ───────────────────────────────────────────────
+
+describe('recentFlameFingerprint', () => {
+  it('identifies the exact content an entry holds', () => {
+    // What lets a restored workspace take over the entry the rescue wrote
+    // without risking the overwrite that adopting an id caused: the id alone
+    // says nothing about whether the entry is still that write.
+    seed([])
+    upsertRecentFlame('auto', sampleFlame(), 'Rescued', [], sampleConfig())
+    const written = recentFlameFingerprint('auto')
+    expect(written).toBeDefined()
+    expect(recentFlameFingerprint('auto')).toBe(written)
+
+    upsertRecentFlame('auto', sampleFlame(), 'Something else', [], {
+      ...sampleConfig(),
+      fps: 24,
+    })
+    expect(recentFlameFingerprint('auto')).not.toBe(written)
+  })
+
+  it('is undefined for an entry that is not there', () => {
+    seed([goodEntry('a')])
+    expect(recentFlameFingerprint('gone')).toBeUndefined()
+    deleteRecentFlame('a')
+    expect(recentFlameFingerprint('a')).toBeUndefined()
+  })
+
+  it('ignores the clock, which moves on every write', () => {
+    seed([])
+    upsertRecentFlame('auto', sampleFlame(), 'Rescued')
+    const first = recentFlameFingerprint('auto')
+    seed([{ ...loadRecentFlamesForRewrite()[0]!, savedAt: 999 }])
+    expect(recentFlameFingerprint('auto')).toBe(first)
   })
 })
 

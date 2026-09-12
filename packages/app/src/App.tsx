@@ -118,10 +118,13 @@ export function Wrappers() {
    * runs, so from here the hand-off is an ordinary one: whatever the user
    * does next - taps a starter flame, opens Library, leaves - the work is
    * safe and this screen is the only thing that has to happen at the right
-   * moment. It is an ordinary one in the other direction too: the workspace
-   * opens its own Recents entry for it, because adopting the rescued one let
-   * the first autosave overwrite an entry the rescue had decided not to
-   * write to (lib/draft.ts).
+   * moment.
+   *
+   * The entry the rescue wrote travels with the flame so the workspace
+   * carries on in it rather than filing the same work twice. It is handed
+   * over only when the rescue actually wrote it, and with a fingerprint of
+   * what was written, because adopting a bare id let the first autosave
+   * overwrite an entry the rescue had decided not to write to (lib/draft.ts).
    */
   onMount(() => {
     const draft = takeDraftForLaunch({
@@ -133,6 +136,7 @@ export function Wrappers() {
       flame: draft.flame,
       ...(draft.tracks ? { tracks: draft.tracks } : {}),
       ...(draft.config ? { config: draft.config } : {}),
+      ...(draft.entry ? { restoredEntry: draft.entry } : {}),
     })
     setDraftNotice(NOTICE[draft.unsecured ?? 'secured'])
   })
@@ -357,6 +361,7 @@ export function Wrappers() {
                         welcomeTracks={handoff.tracks}
                         welcomeConfig={handoff.config}
                         capabilityFromHome={handoff.capability}
+                        restoredEntryFromLaunch={handoff.restoredEntry}
                         autoOpenBenchmark={benchmarkRequested}
                         autoStartBenchmark={benchmarkAuto}
                         hardwareTier={
