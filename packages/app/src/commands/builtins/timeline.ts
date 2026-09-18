@@ -392,6 +392,83 @@ registerCommand({
 })
 
 /**
+ * Transport an agent or a script can actually use.
+ *
+ * `timeline.play` is a toggle with no end: it is `replayable: false`, so
+ * `execute_command` refuses it, and it would leave the GPU animating for as
+ * long as the caller spent composing its next call. A bounded play does have
+ * an end, and the caller knows when — so the pair below starts playback with
+ * the stop already scheduled, and `timeline.stop` ends it early.
+ *
+ * Both are `recordable: false` like the toggle: wall-clock transport is not a
+ * step in a creation session. They are replay-validated only because that is
+ * the gate `execute_command` applies; the worst a hand-written session file
+ * gets out of them is ten minutes of playback the viewer can stop.
+ */
+
+const MAX_PLAY_FOR_SECONDS = 600
+
+let pendingStop: ReturnType<typeof setTimeout> | undefined
+
+function cancelPendingStop() {
+  if (pendingStop !== undefined) {
+    clearTimeout(pendingStop)
+    pendingStop = undefined
+  }
+}
+
+function isPlaySeconds(value: unknown): value is number {
+  return (
+    typeof value === 'number' &&
+    Number.isFinite(value) &&
+    value > 0 &&
+    value <= MAX_PLAY_FOR_SECONDS
+  )
+}
+
+registerCommand({
+  id: 'timeline.playFor',
+  describe: ([seconds]) => `Play the timeline for ${num(seconds, 2) ?? '?'}s`,
+  label: 'Play Timeline For',
+  description:
+    'Start timeline playback and stop it again after a number of seconds (0-600). Use instead of timeline.play, which cannot be stopped from a script.',
+  recordable: false,
+  validateReplayArgs: (args) =>
+    args.length === 1 && isPlaySeconds(args[0])
+      ? undefined
+      : `play for expects one duration in seconds, up to ${MAX_PLAY_FOR_SECONDS}`,
+  execute(ctx, seconds?: unknown) {
+    if (!isPlaySeconds(seconds)) return
+    const pause = ctx.timeline.pause
+    // Refuse rather than start playback this command cannot end: a sandbox
+    // without a transport would otherwise be left running by a caller who was
+    // told the play succeeded.
+    if (pause === undefined) return
+    cancelPendingStop()
+    if (ctx.timeline.isPlaying?.() !== true) ctx.timeline.play()
+    pendingStop = setTimeout(() => {
+      pendingStop = undefined
+      if (ctx.timeline.isPlaying?.() !== false) pause()
+    }, seconds * 1000)
+  },
+})
+
+registerCommand({
+  id: 'timeline.stop',
+  describe: () => 'Stop the timeline',
+  label: 'Stop Timeline',
+  description:
+    'Stop timeline playback now, cancelling any pending timeline.playFor',
+  recordable: false,
+  validateReplayArgs: (args) =>
+    args.length === 0 ? undefined : 'stop takes no arguments',
+  execute(ctx) {
+    cancelPendingStop()
+    if (ctx.timeline.isPlaying?.() !== false) ctx.timeline.pause?.()
+  },
+})
+
+/**
  * The rest of the keyframe verbs.
  *
  * The timeline keeps its own undo stack, so before these existed every dope
