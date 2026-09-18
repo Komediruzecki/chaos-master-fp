@@ -3860,6 +3860,17 @@ export function MainWorkspace(props: AppProps) {
     return flameDescriptor.renderSettings.camera.zoom
   })
 
+  const effectiveRotation = createMemo(() => {
+    if (animatingCamera()) {
+      const val = timeline.resolveValueAtPath(
+        'camera.rotation',
+        timeline.currentFrame(),
+      )
+      if (val !== null && typeof val === 'number') return val
+    }
+    return flameDescriptor.renderSettings.camera.rotation ?? 0
+  })
+
   const effectivePosition = createMemo(() => {
     const base = flameDescriptor.renderSettings.camera.position
     if (animatingCamera()) {
@@ -4919,6 +4930,7 @@ export function MainWorkspace(props: AppProps) {
                         <WheelZoomCamera2D
                           zoom={[effectiveZoom, setFlameZoom]}
                           position={[effectivePosition, setFlamePosition]}
+                          rotation={effectiveRotation}
                           interactive={() =>
                             !timeline.isPlaying() &&
                             (!animationExportRunning() ||
