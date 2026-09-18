@@ -2,10 +2,13 @@ import '@/commands/builtins'
 import { afterEach, describe, expect, it } from 'vitest'
 import { pilotLog, resetPilot, startPilot } from '@/arcade/pilot'
 import { clearPilotFocus, pilotFocus } from '@/arcade/pilotFocus'
+import { createGlideRuntime, setGlideEnabled, setGlideRuntime, } from '@/flame/glide/runtime'
 import { cancelSessionRecording, startSessionRecording, stopSessionRecording, } from '@/recorder/recorder'
+import { deepClone } from '@/utils/clone'
 import { clearWebMcpContext, setWebMcpContext } from '@/webmcp/contextBridge'
 import { createMockCommandContext } from '@/webmcp/testUtils'
 import { executeCommandTool } from './executeCommand'
+import type { CommandContext } from '@/commands/types'
 
 describe('execute_command dispatch', () => {
   afterEach(() => {
@@ -243,5 +246,134 @@ describe('execute_command dispatch', () => {
     expect(pilotLog().find((e) => e.kind === 'command')?.text).toBe(
       'Open the sidebar',
     )
+  })
+})
+
+/**
+ * The glide option.
+ *
+ * Two properties beyond "it animates": the duration is PRESENTATION and must
+ * never reach the recorder's `args` — a session says what the person did, not
+ * how long it took to appear — and the call has to await the transition, or an
+ * agent firing twenty commands stacks twenty of them.
+ */
+describe('execute_command glides', () => {
+  afterEach(() => {
+    setGlideRuntime(undefined)
+    setGlideEnabled(false)
+    cancelSessionRecording()
+    clearWebMcpContext()
+  })
+
+  function mountRuntime(ctx: CommandContext) {
+    let time = 0
+    let pending: ((time: number) => void)[] = []
+    const runtime = createGlideRuntime({
+      readFlame: () => deepClone(ctx.flameDescriptor()),
+      writeFlame: () => {},
+      now: () => time,
+      requestFrame: (callback) => {
+        pending.push(callback)
+        return pending.length
+      },
+      cancelFrame: () => {
+        pending = []
+      },
+    })
+    setGlideRuntime(runtime)
+    return {
+      runtime,
+      advance: (ms: number) => {
+        time += ms
+        const due = pending
+        pending = []
+        for (const callback of due) callback(time)
+      },
+    }
+  }
+
+  it('animates when asked and keeps the duration out of the recording', async () => {
+    const ctx = createMockCommandContext()
+    setWebMcpContext(ctx)
+    const world = mountRuntime(ctx)
+    expect(startSessionRecording(ctx.flameDescriptor())).toEqual({ ok: true })
+
+    const call = executeCommandTool.execute(
+      { commandId: 'flame.setGamma', args: [4], glideMs: 400 },
+      {},
+    )
+    // The document is already at the target; the glide plays over the top.
+    expect(ctx.flameDescriptor().renderSettings.gamma).toBe(4)
+    expect(world.runtime.isGliding()).toBe(true)
+    world.advance(400)
+    expect(await call).toEqual({ success: true, commandId: 'flame.setGamma' })
+
+    const session = stopSessionRecording()
+    expect(session?.actions.map((action) => [action.id, action.args])).toEqual([
+      ['flame.setGamma', [4]],
+    ])
+    expect(session?.actions[0]).not.toHaveProperty('glideMs')
+  })
+
+  it('does nothing when the mode is off and nothing is asked for', async () => {
+    const ctx = createMockCommandContext()
+    setWebMcpContext(ctx)
+    const world = mountRuntime(ctx)
+    await executeCommandTool.execute(
+      { commandId: 'flame.setGamma', args: [4] },
+      {},
+    )
+    expect(world.runtime.isGliding()).toBe(false)
+  })
+
+  it('follows the workspace mode when no duration is given', async () => {
+    const ctx = createMockCommandContext()
+    setWebMcpContext(ctx)
+    const world = mountRuntime(ctx)
+    setGlideEnabled(true)
+    const call = executeCommandTool.execute(
+      { commandId: 'flame.setGamma', args: [4] },
+      {},
+    )
+    expect(world.runtime.isGliding()).toBe(true)
+    world.advance(5000)
+    await call
+  })
+
+  it('lets an explicit zero turn the mode off for one call', async () => {
+    const ctx = createMockCommandContext()
+    setWebMcpContext(ctx)
+    const world = mountRuntime(ctx)
+    setGlideEnabled(true)
+    await executeCommandTool.execute(
+      { commandId: 'flame.setGamma', args: [4], glideMs: 0 },
+      {},
+    )
+    expect(world.runtime.isGliding()).toBe(false)
+  })
+
+  it('leaves nothing running when the command changed nothing', async () => {
+    const ctx = createMockCommandContext()
+    setWebMcpContext(ctx)
+    const world = mountRuntime(ctx)
+    const unchanged = ctx.flameDescriptor().renderSettings.gamma
+    await executeCommandTool.execute(
+      { commandId: 'flame.setGamma', args: [unchanged], glideMs: 400 },
+      {},
+    )
+    // Nothing differs, so there is nothing to animate and the call returns
+    // rather than holding an agent for four hundred milliseconds of stillness.
+    expect(world.runtime.isGliding()).toBe(false)
+    expect(ctx.flameDescriptor().renderSettings.gamma).toBe(unchanged)
+  })
+
+  it('offers the option in its schema so an agent can find it', () => {
+    const properties = (
+      executeCommandTool.inputSchema as {
+        properties: Record<string, { type: string }>
+      }
+    ).properties
+    expect(properties.glideMs?.type).toBe('number')
+    expect(properties.glideQuality?.type).toBe('string')
   })
 })
