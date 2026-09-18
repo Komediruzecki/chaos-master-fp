@@ -60,7 +60,7 @@ function unwrapFlamePayload(input: unknown): unknown {
   try {
     return coerceFlamePayload(input).flame
   } catch {
-    return (input).flame
+    return input.flame
   }
 }
 
