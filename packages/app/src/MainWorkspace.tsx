@@ -4706,6 +4706,11 @@ export function MainWorkspace(props: AppProps) {
       setShowSidebar(view.sidebarOpen)
       setPrePaletteColors(deepClone(view.paletteRestoreColors ?? {}))
     },
+    readFlame: () => deepClone(flameDescriptor),
+    glide: (from, durationMs) => {
+      void glideRuntime.glideFrom(from, { durationMs })
+    },
+    settleGlide: () => glideRuntime.settleForNextChange(),
     execute: (id, args) => {
       const currentPaletteColors = prePaletteColors()
       // Derive this before executing: applyPalette replaces the colours whose

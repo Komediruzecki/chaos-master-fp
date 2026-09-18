@@ -156,6 +156,39 @@ export type GlideOptions = {
   entry?: 'weight'
 }
 
+/**
+ * What a recorded step says about its own transition.
+ *
+ * Semantic, not a duration: a file says "this step is a cut" or "this step is
+ * a whole-flame change" and the duration table resolves it at replay time, so
+ * retuning the pacing does not mean rewriting every session ever saved. A
+ * synthesized session sets it from the change it planned; a real recording
+ * usually omits it and lets the planner classify the diff itself.
+ */
+export type GlideStepHint =
+  | 'cut'
+  | 'scalar'
+  | 'camera'
+  | 'variation'
+  | 'transform'
+  | 'whole'
+
+export const GLIDE_STEP_HINTS = [
+  'cut',
+  'scalar',
+  'camera',
+  'variation',
+  'transform',
+  'whole',
+] as const
+
+export function isGlideStepHint(value: unknown): value is GlideStepHint {
+  return (
+    typeof value === 'string' &&
+    (GLIDE_STEP_HINTS as readonly string[]).includes(value)
+  )
+}
+
 /** Longest a single glide may run, however it was asked for. */
 export const MAX_GLIDE_MS = 5000
 /** Shortest glide worth planning; below this a change is better off snapping. */

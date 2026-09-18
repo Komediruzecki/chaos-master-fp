@@ -318,3 +318,87 @@ describe('the synthetic marker', () => {
     ).toBeUndefined()
   })
 })
+
+/**
+ * The per-step transition hint.
+ *
+ * A synthesized session already knows what each step changes, so it says so
+ * rather than making the replay re-derive it from a diff. Semantic, never a
+ * duration: the pacing table can be retuned without rewriting a file.
+ */
+describe('the glide hint on a synthesized step', () => {
+  it('stamps one on every step', () => {
+    const session = plan(examples.example1)
+    expect(session.actions.length).toBeGreaterThan(0)
+    for (const action of session.actions) {
+      expect(action.glide, action.id).toBeDefined()
+    }
+  })
+
+  it('calls the opening clear a cut, because that is what it reads as', () => {
+    const session = plan(examples.example1)
+    const first = session.actions[0]!
+    expect(first.id).toBe('flame.clearTransforms')
+    expect(first.glide).toBe('cut')
+  })
+
+  it('names the kind of change each step makes', () => {
+    const session = plan(examples.example1)
+    const kinds = new Map(
+      session.actions.map((action) => [action.id, action.glide]),
+    )
+    expect(kinds.get('flame.addTransform')).toBe('transform')
+    expect(kinds.get('flame.addVariation')).toBe('variation')
+    if (kinds.has('flame.setVariationWeight')) {
+      expect(kinds.get('flame.setVariationWeight')).toBe('variation')
+    }
+    if (kinds.has('flame.setRenderSetting')) {
+      expect(['scalar', 'camera']).toContain(
+        kinds.get('flame.setRenderSetting'),
+      )
+    }
+  })
+
+  it('calls the closing snap a cut, because nobody watches it arrive', () => {
+    const session = plan(examples.example1, { maxSteps: 3 })
+    const last = session.actions.at(-1)!
+    expect(last.id).toBe('flame.load')
+    expect(last.glide).toBe('cut')
+  })
+
+  it('survives a serialize/parse round trip, and an older file still loads', () => {
+    const session = plan(examples.example1)
+    const reparsed = parseSession(serializeSession(session))
+    expect(reparsed?.actions.map((action) => action.glide)).toEqual(
+      session.actions.map((action) => action.glide),
+    )
+    // The fields are optional with no default, so the format version is
+    // unchanged and a session written before they existed still validates.
+    const older = validateSession({
+      ...session,
+      actions: session.actions.map(({ glide: _glide, ...rest }) => rest),
+    })
+    expect(older).toBeDefined()
+    expect(older?.actions[0]).not.toHaveProperty('glide')
+    expect(older?.version).toBe(SESSION_FORMAT_VERSION)
+  })
+
+  it('accepts an authored duration beside the hint and rejects a silly one', () => {
+    const session = plan(examples.example1)
+    const authored = validateSession({
+      ...session,
+      actions: session.actions.map((action, index) =>
+        index === 0 ? { ...action, glideMs: 1200 } : action,
+      ),
+    })
+    expect(authored?.actions[0]?.glideMs).toBe(1200)
+    expect(
+      validateSession({
+        ...session,
+        actions: session.actions.map((action, index) =>
+          index === 0 ? { ...action, glideMs: 10_000_000 } : action,
+        ),
+      }),
+    ).toBeUndefined()
+  })
+})
