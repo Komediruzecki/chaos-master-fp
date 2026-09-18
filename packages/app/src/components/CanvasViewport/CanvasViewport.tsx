@@ -64,6 +64,8 @@ export interface CanvasViewportProps {
   setFlameZoom: Setter<number>
   effectivePosition: Accessor<v2f>
   setFlamePosition: Setter<v2f>
+  /** Radians, resolved through the timeline like zoom and position are. */
+  effectiveRotation: Accessor<number>
 
   // 3D Camera
   effectiveTheta: Accessor<number>
@@ -176,6 +178,7 @@ export function CanvasViewport(props: CanvasViewportProps) {
                 <WheelZoomCamera2D
                   zoom={[props.effectiveZoom, props.setFlameZoom]}
                   position={[props.effectivePosition, props.setFlamePosition]}
+                  rotation={props.effectiveRotation}
                   interactive={() =>
                     !props.isPlaying() &&
                     (!animationExportRunning() || cameraDuringExportEnabled())
