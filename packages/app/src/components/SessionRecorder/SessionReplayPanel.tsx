@@ -695,6 +695,7 @@ export function SessionReplayPanel(props: {
                               mode,
                               session: validated,
                               playbackSpeed: speed(),
+                              glide: glideOptions(),
                             }
 
                       setExportError(undefined)

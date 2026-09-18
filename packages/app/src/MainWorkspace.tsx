@@ -4802,7 +4802,11 @@ export function MainWorkspace(props: AppProps) {
     try {
       if (request.mode === 'artwork') {
         enqueueAnimationJob(
-          createReplayVideoJobSpec(request.session, request.playbackSpeed),
+          createReplayVideoJobSpec(
+            request.session,
+            request.playbackSpeed,
+            request.glide,
+          ),
         )
         showToast('Artwork replay added to Exports', 3500)
         return
