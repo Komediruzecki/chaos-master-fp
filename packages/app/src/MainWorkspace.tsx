@@ -720,6 +720,22 @@ export function MainWorkspace(props: AppProps) {
     setGlideRuntime(undefined)
   })
 
+  /**
+   * Render quality for the live canvas, downshifted while a glide moves.
+   *
+   * Every glide frame is a different flame, so accumulation restarts and each
+   * one pays a full convergence. The eye does not resolve detail in motion and
+   * the settled frame is the one people stop on, so the tier's fraction
+   * applies here and full quality returns the moment the glide lands.
+   *
+   * Reactive rather than a `Flam3` change: `qualityPointCountLimit` already
+   * reads `props.quality`, so multiplying it here keeps the render seam
+   * untouched (HM2 in plans/state-morph-transitions.md).
+   */
+  const liveRenderQuality = () =>
+    qualityPresets[qualityPreset()] *
+    (glideRuntime.activeQuality()?.accumulationScale ?? 1)
+
   const withPaletteRestoreTransition = (
     after: Record<string, { x: number; y: number }>,
     description: string,
@@ -7997,7 +8013,7 @@ export function MainWorkspace(props: AppProps) {
                 fov: [effectiveFov, setFlameFov],
                 roll: [effectiveRoll, setFlameRoll],
               }}
-              quality={qualityPresets[qualityPreset()]}
+              quality={liveRenderQuality()}
               adaptiveFilter={adaptiveFilterEnabled()}
               stochasticFilter={stochasticFilterEnabled()}
               sidebarWidthRem={sidebarWidth}
