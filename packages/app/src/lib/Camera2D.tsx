@@ -1,8 +1,9 @@
 import { createMemo } from 'solid-js'
 import { tgpu } from 'typegpu'
-import { f32, mat3x3f, mat4x4f, struct, vec2f, vec3f } from 'typegpu/data'
+import { f32, mat3x3f, struct, vec2f, vec3f } from 'typegpu/data'
 import { div, mul } from 'typegpu/std'
-import { mat3, mat4 } from 'wgpu-matrix'
+import { mat3 } from 'wgpu-matrix'
+import { camera2DViewMatrix } from './camera2DView'
 import { CameraContextProvider } from './CameraContext'
 import { useCanvas } from './CanvasContext'
 import { useLiveRootContext } from './RootContext'
@@ -88,27 +89,7 @@ export function Camera2D(props: ParentProps<Camera2DProps>) {
     const { position, zoom } = props
     const { x, y } = position
     const aspect = height > 0 ? width / height : 1
-    const viewMatrix4 = mat4x4f()
-    const fovy = 1 / zoom
-    // near/far are -1/1 (not 0/0): the projection is 2D, so the z entries are
-    // unused (only the xyw of columns 0/1/3 are read below), but 0/0 makes
-    // ortho write NaN/Inf into those entries, which TypeGPU 0.11 rejects
-    // (Finite Math Assumption).
-    mat4.ortho(
-      x - aspect * fovy,
-      x + aspect * fovy,
-      y - fovy,
-      y + fovy,
-      -1,
-      1,
-      viewMatrix4,
-    )
-    // prettier-ignore
-    const viewMatrix = mat3x3f(
-      viewMatrix4.columns[0].xyw,
-      viewMatrix4.columns[1].xyw,
-      viewMatrix4.columns[3].xyw,
-    )
+    const viewMatrix = camera2DViewMatrix({ x, y, zoom, aspect })
     const viewMatrixInverse = mat3.inverse(viewMatrix, mat3x3f())
     return {
       viewMatrix,
