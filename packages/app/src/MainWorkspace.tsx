@@ -94,6 +94,7 @@ import { initExample } from './flame/examples/initExample'
 import { initExample3D } from './flame/examples/initExample3D'
 import { tid as toTransformId, vid as toVariationId, } from './flame/examples/util'
 import { Flam3 } from './flame/Flam3'
+import { createGlideRuntime, setGlideRuntime } from './flame/glide/runtime'
 import { newDefaultTransform } from './flame/newTransform'
 import { pointInitModeToImplFn } from './flame/pointInitMode'
 import { pointInitMode3DToImplFn } from './flame/pointInitMode3D'
@@ -696,6 +697,28 @@ export function MainWorkspace(props: AppProps) {
       onPreviewStarted: notePreviewStarted,
     },
   )
+
+  /**
+   * The glide driver — construct and provide, nothing else.
+   *
+   * All of the judgement lives in `flame/glide/`, which is pure; this is the
+   * only place the workspace and that module meet. Intermediates go through
+   * `replaceSilently`, the same non-undoable write path the animation export
+   * uses, so a transition lands on neither the undo stack nor the recorder,
+   * and glide tracks are never written into the user's timeline.
+   */
+  const glideRuntime = createGlideRuntime({
+    readFlame: () => deepClone(flameDescriptor),
+    writeFlame: (flame) => {
+      history.replaceSilently(flame)
+    },
+    qualityPreset: () => qualityPreset(),
+  })
+  setGlideRuntime(glideRuntime)
+  onCleanup(() => {
+    glideRuntime.dispose()
+    setGlideRuntime(undefined)
+  })
 
   const withPaletteRestoreTransition = (
     after: Record<string, { x: number; y: number }>,
