@@ -68,6 +68,8 @@ export const camera2DPixelRatio = tgpu.fn(
 type Camera2DProps = {
   position: v2f
   zoom: number
+  /** Radians; 0 for the callers that never turn the view (thumbnails, probes). */
+  rotation?: number
 }
 
 export function Camera2D(props: ParentProps<Camera2DProps>) {
@@ -93,7 +95,14 @@ export function Camera2D(props: ParentProps<Camera2DProps>) {
     const y = Number.isFinite(rawY) ? rawY : 0
     const safeZoom = Number.isFinite(zoom) && zoom > 0 ? zoom : 1
     const aspect = height > 0 ? width / height : 1
-    const viewMatrix = camera2DViewMatrix({ x, y, zoom: safeZoom, aspect })
+    const rotation = props.rotation ?? 0
+    const viewMatrix = camera2DViewMatrix({
+      x,
+      y,
+      zoom: safeZoom,
+      rotation,
+      aspect,
+    })
     const viewMatrixInverse = mat3.inverse(viewMatrix, mat3x3f())
     return {
       viewMatrix,
