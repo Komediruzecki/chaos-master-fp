@@ -70,6 +70,7 @@ import { example1 } from './flame/examples/example1'
 import { example34 } from './flame/examples/example34'
 import { initExample } from './flame/examples/initExample'
 import { initExample3D } from './flame/examples/initExample3D'
+import { createGlideRuntime, setGlideRuntime } from './flame/glide/runtime'
 import { newDefaultTransform } from './flame/newTransform'
 import { generateRandomFlame, mutateFlame, randomizeAllColors, randomRange, } from './flame/randomize'
 import { accumulatedPointCount, animationExportCancel, animationExportProgress, animationExportRunning, qualityPointCountLimit, setExportQuality, setForceAnimationExportNow, } from './flame/renderStats'
@@ -528,6 +529,28 @@ export function MainWorkspace(props: AppProps) {
     setShowSidebar,
     showTimeline,
     setShowTimeline,
+  })
+
+  /**
+   * The glide driver — construct and provide, nothing else.
+   *
+   * All of the judgement lives in `flame/glide/`, which is pure; this is the
+   * only place the workspace and that module meet. Intermediates go through
+   * `replaceSilently`, the same non-undoable write path the animation export
+   * uses, so a transition lands on neither the undo stack nor the recorder,
+   * and glide tracks are never written into the user's timeline.
+   */
+  const glideRuntime = createGlideRuntime({
+    readFlame: () => deepClone(flameDescriptor),
+    writeFlame: (flame) => {
+      history.replaceSilently(flame)
+    },
+    qualityPreset: () => qualityPreset(),
+  })
+  setGlideRuntime(glideRuntime)
+  onCleanup(() => {
+    glideRuntime.dispose()
+    setGlideRuntime(undefined)
   })
 
   /**
