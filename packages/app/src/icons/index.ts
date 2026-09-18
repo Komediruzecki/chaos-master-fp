@@ -21,6 +21,7 @@ import Focus from './focus.svg'
 import FolderOpen from './folder-open.svg'
 import GaugeMax from './gauge-max.svg'
 import GitHub from './github.svg'
+import Glide from './glide.svg'
 import Globe from './globe.svg'
 import GridIcon from './grid.svg'
 import Heart from './heart.svg'
@@ -82,6 +83,7 @@ export {
   FolderOpen,
   Focus,
   GaugeMax,
+  Glide,
   GitHub,
   Globe,
   GridIcon,

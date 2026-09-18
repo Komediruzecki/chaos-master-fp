@@ -9,7 +9,7 @@
 
 import { MAX_TIMELINE_FRAME } from '@/flame/schema/timeline'
 import { MAX_GLIDE_MS, MIN_GLIDE_MS } from './types'
-import type { GlideChangeClass } from './types'
+import type { GlideChangeClass, GlideStepHint } from './types'
 import type { EasingCurve } from '@/flame/schema/timeline'
 
 export const GLIDE_DURATIONS: Record<GlideChangeClass, number> = {
@@ -66,6 +66,22 @@ export function classifyChange(counts: GlideChangeCounts): GlideChangeClass {
   if (counts.variationsAdded + counts.variationsRemoved > 0) return 'variation'
   if (counts.cameraChanged) return 'camera'
   return counts.anyChange ? 'scalar' : 'none'
+}
+
+/**
+ * The duration a recorded step's own hint asks for, or `undefined` when the
+ * step says nothing and the planner should classify the diff itself.
+ *
+ * `cut` returns 0, which is how a session says "this one snaps" — a palette
+ * apply, or a step whose change is invisible.
+ */
+export function glideMsForHint(
+  hint: GlideStepHint | undefined,
+  durationScale = 1,
+): number | undefined {
+  if (hint === undefined) return undefined
+  if (hint === 'cut') return 0
+  return clampGlideMs(GLIDE_DURATIONS[hint] * durationScale)
 }
 
 export function clampGlideMs(ms: number): number {
