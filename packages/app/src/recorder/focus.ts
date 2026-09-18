@@ -422,6 +422,14 @@ export function focusHintFor(
       return 'ui:pixelRatio-buttons'
     case 'view.setShowTimeline':
       return 'ui:show-timeline'
+    case 'glide.setEnabled':
+    case 'glide.setQuality':
+      return 'ui:replay-glide'
+    // Deliberately unfocused, like a whole-flame load: the change is the whole
+    // picture, and there is no one control to spotlight. Not `ui:canvas` — see
+    // the note above the camera cases.
+    case 'glide.toFlame':
+      return undefined
     case 'sidebar.open':
     case 'sidebar.close':
       return 'ui:sidebar'
