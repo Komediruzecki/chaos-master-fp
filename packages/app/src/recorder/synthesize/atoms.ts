@@ -2,7 +2,7 @@ import { isSafeFlameEntityId, renderSettingsDefault, } from '@/flame/schema/flam
 import { isVariationTypeFor } from '@/flame/variationRegistry'
 import { canonicallyEqual } from './canonical'
 import type { CanonicalFlame } from './canonical'
-import type { FlameDescriptor } from '@/flame/schema/flameSchema'
+import type { FlameDescriptor, TransformFunction, TransformId, VariationId, } from '@/flame/schema/flameSchema'
 import type { Dims } from '@/flame/variationRegistry'
 
 /**
@@ -91,6 +91,27 @@ export function renderSettingPaths(): string[] {
   return paths.filter(
     (path) => !NON_PATH_SETTINGS.has(path.split('.')[0] ?? ''),
   )
+}
+
+/**
+ * Entity records are keyed by branded ids, while an atom addresses its target
+ * by the plain string it will put in the session file. These two helpers are
+ * the only place that gap is crossed, and they cross it after the id has
+ * already passed `isSafeFlameEntityId`.
+ */
+function transformAt(
+  flame: FlameDescriptor,
+  transformId: string,
+): TransformFunction | undefined {
+  return flame.transforms[transformId as TransformId]
+}
+
+function variationAt(
+  flame: FlameDescriptor,
+  transformId: string,
+  variationId: string,
+): TransformFunction['variations'][VariationId] | undefined {
+  return transformAt(flame, transformId)?.variations[variationId as VariationId]
 }
 
 function atPath(root: unknown, path: string): unknown {
@@ -243,8 +264,8 @@ function transformAtoms(
         needs: [txKey],
         read: (flame) =>
           which === 'pre'
-            ? flame.transforms[transformId]?.preAffine
-            : flame.transforms[transformId]?.postAffine,
+            ? transformAt(flame, transformId)?.preAffine
+            : transformAt(flame, transformId)?.postAffine,
         expected: affine,
       })
     }
@@ -256,7 +277,7 @@ function transformAtoms(
       group: 'shape',
       transformIndex: index,
       needs: [txKey],
-      read: (flame) => flame.transforms[transformId]?.probability,
+      read: (flame) => transformAt(flame, transformId)?.probability,
       expected: transform.probability,
     })
 
@@ -267,7 +288,7 @@ function transformAtoms(
       group: 'colour',
       transformIndex: index,
       needs: [txKey],
-      read: (flame) => flame.transforms[transformId]?.colorSpeed,
+      read: (flame) => transformAt(flame, transformId)?.colorSpeed,
       expected: transform.colorSpeed,
     })
 
@@ -280,7 +301,7 @@ function transformAtoms(
       // A palette recolours every transform, so it can never land after the
       // colours it would overwrite.
       needs: hasPalette ? [txKey, PALETTE_KEY] : [txKey],
-      read: (flame) => flame.transforms[transformId]?.color,
+      read: (flame) => transformAt(flame, transformId)?.color,
       expected: transform.color,
     })
 
@@ -292,7 +313,7 @@ function transformAtoms(
         group: 'shape',
         transformIndex: index,
         needs: [txKey],
-        read: (flame) => flame.transforms[transformId]?.visible,
+        read: (flame) => transformAt(flame, transformId)?.visible,
         expected: false,
       })
     }
@@ -325,7 +346,7 @@ type VariationAtomInput = {
   transformIndex: number
   txKey: string
   variationId: string
-  descriptor: FlameDescriptor['transforms'][string]['variations'][string]
+  descriptor: TransformFunction['variations'][VariationId]
   created: boolean
 }
 
@@ -366,8 +387,7 @@ function variationAtoms(input: VariationAtomInput): void {
       group: 'structure',
       transformIndex,
       needs: [txKey],
-      read: (flame) =>
-        flame.transforms[transformId]?.variations[variationId]?.type,
+      read: (flame) => variationAt(flame, transformId, variationId)?.type,
       expected: descriptor.type,
     })
   }
@@ -381,8 +401,7 @@ function variationAtoms(input: VariationAtomInput): void {
     transformIndex,
     prominence,
     needs: [varKey],
-    read: (flame) =>
-      flame.transforms[transformId]?.variations[variationId]?.weight,
+    read: (flame) => variationAt(flame, transformId, variationId)?.weight,
     expected: descriptor.weight,
   })
 
@@ -402,7 +421,7 @@ function variationAtoms(input: VariationAtomInput): void {
         transformIndex,
         prominence,
         needs: [varKey],
-        read: (flame) => flame.transforms[transformId]?.variations[variationId],
+        read: (flame) => variationAt(flame, transformId, variationId),
         expected: descriptor,
       })
     } else {
@@ -417,7 +436,7 @@ function variationAtoms(input: VariationAtomInput): void {
           needs: [varKey],
           read: (flame) =>
             (
-              flame.transforms[transformId]?.variations[variationId] as
+              variationAt(flame, transformId, variationId) as
                 | { params?: Record<string, unknown> }
                 | undefined
             )?.params?.[name],
@@ -427,7 +446,7 @@ function variationAtoms(input: VariationAtomInput): void {
     }
   }
 
-  if (descriptor.visible === false) {
+  if (!descriptor.visible) {
     atoms.push({
       id: 'flame.setVariationVisible',
       args: [transformId, variationId, false],
@@ -436,8 +455,7 @@ function variationAtoms(input: VariationAtomInput): void {
       transformIndex,
       prominence,
       needs: [varKey],
-      read: (flame) =>
-        flame.transforms[transformId]?.variations[variationId]?.visible,
+      read: (flame) => variationAt(flame, transformId, variationId)?.visible,
       expected: false,
     })
   }
