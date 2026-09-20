@@ -29,8 +29,13 @@ jobs:
         node-version: [24.x]
 
     steps:
+    # Full history: the scoped pull-request test run diffs the working tree
+    # against the base commit, and the default shallow clone has neither the
+    # base commit nor the branch history to reach it.
     - name: ⬇️ Checkout code
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: 🔧 Setup Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
@@ -48,8 +53,21 @@ jobs:
     - name: 🔍 Type check
       run: pnpm typecheck
 
+    # Everything, on main and on a manual run. This is the run that decides
+    # whether main is green.
     - name: 🧪 Run tests
+      if: github.event_name != 'pull_request'
       run: pnpm test
+
+    # On a pull request: core and mobile-runtime in full (a second, together),
+    # and the app suite scoped to what the branch touched plus a list of tests
+    # that read the source tree through the filesystem and so cannot be scoped.
+    # See scripts/test-changed.mjs and packages/app/TESTING.md.
+    - name: Run tests scoped to the pull request
+      if: github.event_name == 'pull_request'
+      run: pnpm test:pr
+      env:
+        TEST_CHANGED_BASE: ${{ github.event.pull_request.base.sha }}
 
     - name: 🛠️ Build project
       run: pnpm --filter chaos-master run build
