@@ -1,4 +1,4 @@
-import { createMemo, createSignal } from 'solid-js'
+import { createMemo, createRoot, createSignal } from 'solid-js'
 import { IS_NATIVE } from '@/lib/platform'
 import { persistentSignal } from '@/utils/persistentSignal'
 import type { Accessor, Setter } from 'solid-js'
@@ -173,26 +173,57 @@ if (typeof window !== 'undefined') {
   }
 }
 
-export const viewportWidth = createMemo(() => viewport().width)
+/**
+ * Device classification outlives every component, so these memos are
+ * deliberately global. `createRoot` makes that explicit and gives them an
+ * owner; at module scope they were created outside any root and Solid warned,
+ * on every page load, that they would never be disposed. The root is never
+ * disposed on purpose, so its dispose function is discarded.
+ */
+const {
+  viewportWidth,
+  layoutClass,
+  isPhone,
+  isTablet,
+  isTouchLayout,
+  deckFits,
+} = createRoot(() => {
+  const viewportWidth = createMemo(() => viewport().width)
+  const layoutClass = createMemo<LayoutClass>(() =>
+    classifyLayout({
+      ...viewport(),
+      coarse: coarsePointer(),
+      native: IS_NATIVE,
+      preference: touchLayoutPreference(),
+    }),
+  )
+  const isPhone = createMemo(() => layoutClass() === 'phone')
+  const isTablet = createMemo(() => layoutClass() === 'tablet')
+  const isTouchLayout = createMemo(() => isPhone() || isTablet())
+  /** The tablet shows the side deck; below the threshold it uses the phone rail. */
+  const deckFits = createMemo(
+    () => isTablet() && deckFitsWidth(viewportWidth()),
+  )
+  return {
+    viewportWidth,
+    layoutClass,
+    isPhone,
+    isTablet,
+    isTouchLayout,
+    deckFits,
+  }
+})
 
-export const layoutClass = createMemo<LayoutClass>(() =>
-  classifyLayout({
-    ...viewport(),
-    coarse: coarsePointer(),
-    native: IS_NATIVE,
-    preference: touchLayoutPreference(),
-  }),
-)
-
-export const isPhone = createMemo(() => layoutClass() === 'phone')
-export const isTablet = createMemo(() => layoutClass() === 'tablet')
-export const isTouchLayout = createMemo(() => isPhone() || isTablet())
-/** The tablet shows the side deck; below the threshold it uses the phone rail. */
-export const deckFits = createMemo(
-  () => isTablet() && deckFitsWidth(viewportWidth()),
-)
-
-export { touchLayoutPreference, setTouchLayoutPreference }
+export {
+  viewportWidth,
+  layoutClass,
+  isPhone,
+  isTablet,
+  isTouchLayout,
+  deckFits,
+  touchLayoutPreference,
+  setTouchLayoutPreference,
+}
 
 export function createWorkspaceLayoutStore(
   initialWide?: boolean,
