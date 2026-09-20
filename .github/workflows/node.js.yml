@@ -6,6 +6,9 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  # Lets a branch exercise the main-only jobs (the full suite, and health)
+  # before it is merged, instead of finding out on main.
+  workflow_dispatch:
 
 jobs:
   build:
@@ -73,5 +76,41 @@ jobs:
         name: playwright-report
         path: playwright-report/
         retention-days: 14
+
+  # The code-health ratchets, on main and on a manual run only. A pull request
+  # that moves a ratchet is a conversation, not a blocked merge. They sit in
+  # their own job so that a ratchet failure can never hide a test failure in
+  # `build`, and so the branch that fixes a ratchet is obvious from the job
+  # that went red.
+  health:
+    if: github.event_name != 'pull_request'
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 24.x
+
+    - name: Install all dependencies
+      run: |
+        corepack enable
+        pnpm install
+
+    # Both scripts walk packages/ and read files. Neither builds a TypeScript
+    # program, so the raised heap the build job needs is not needed here.
+    - name: Check the generated agent index is current
+      run: pnpm docs:index:check
+
+    - name: Check the code metrics ratchet
+      run: pnpm metrics:check
+
+    # `pnpm arch` belongs in this job and joins it once the
+    # flame/mutationOperators <-> flame/randomize import cycle is broken. It is
+    # red today, and adding it now would make main red on day one.
 
 
