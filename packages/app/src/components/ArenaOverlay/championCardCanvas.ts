@@ -1,3 +1,4 @@
+import { downloadBlob } from '@/utils/blob'
 import ui from '../ArenaOverlay.module.css'
 import type { ArenaFighterStats } from '@/commands/types'
 import type { FlameSchool, GroundedFlameStats } from '@/flame/stats'
@@ -64,9 +65,30 @@ export function drawRoundedRect(
   }
 }
 
+/**
+ * How long the export waits for the victor's artwork before drawing the card
+ * without it. canvas.toBlob on a WebGPU canvas can simply never call back --
+ * a lost device, a backgrounded tab -- and the export button then stayed on
+ * "Exporting" for good, because nothing else ever settled the wait.
+ */
+export const VICTOR_IMAGE_TIMEOUT_MS = 4000
+
 export function getVictorImage(
   isWinner1: boolean,
+  timeoutMs = VICTOR_IMAGE_TIMEOUT_MS,
 ): Promise<HTMLImageElement | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const gaveUp = new Promise<null>((resolve) => {
+    timer = setTimeout(() => {
+      resolve(null)
+    }, timeoutMs)
+  })
+  return Promise.race([findVictorImage(isWinner1), gaveUp]).finally(() => {
+    clearTimeout(timer)
+  })
+}
+
+function findVictorImage(isWinner1: boolean): Promise<HTMLImageElement | null> {
   const cardSelector = isWinner1 ? `.${ui.p1Card}` : `.${ui.p2Card}`
   const targetCard = document.querySelector<HTMLElement>(cardSelector)
   const winnerContainer = document.querySelector<HTMLElement>(
@@ -421,16 +443,14 @@ export async function exportChampionCardPng(options: {
       thumbnailImg: img,
     })
 
-    const dataUrl = offscreen.toDataURL('image/png')
-    const a = document.createElement('a')
+    const blob = await new Promise<Blob | null>((resolve) => {
+      offscreen.toBlob(resolve, 'image/png')
+    })
+    if (blob === null) return false
     const safeName = (options.victor.name || 'champion')
       .toLowerCase()
       .replace(/[^a-z0-9_-]+/g, '-')
-    a.download = `champion-${safeName}.png`
-    a.href = dataUrl
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
+    downloadBlob(blob, `champion-${safeName}.png`)
     return true
   } catch {
     return false

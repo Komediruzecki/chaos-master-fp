@@ -1,3 +1,10 @@
+# Capacitor's native projects (packages/mobile). After `cap sync` both trees
+# hold a full copy of the built web bundle (ios/App/App/public and
+# android/app/src/main/assets/public), which `pnpm fmt:fix` would otherwise
+# walk and rewrite; the rest is generated Xcode and Gradle output.
+packages/mobile/ios
+packages/mobile/android
+
 # Generated from the audit findings by a script; its body is quoted evidence —
 # code, log lines and shell fragments — not prose. Prettier parses the `*` and
 # `_` in that quoted text as markdown emphasis and rewrites them, turning

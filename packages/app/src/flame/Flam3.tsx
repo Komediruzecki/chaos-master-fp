@@ -9,6 +9,7 @@ import { DEFAULT_RENDERER_RANDOM_IMPLEMENTATION_ID } from '@/shaders/random'
 import { deepClone } from '@/utils/clone'
 import { createTimestampQuery } from '@/utils/createTimestampQuery'
 import { logTime } from '@/utils/logTime'
+import { exportTickIterations } from '@/utils/motionBlur'
 import { recordEntries } from '@/utils/record'
 import { applyTimelineToFlame } from '@/utils/timeline'
 import { vramTrack } from '@/utils/vramLog'
@@ -66,6 +67,19 @@ type Flam3Props = {
    *  export signals). Used by the offscreen export-job renderer so it runs the
    *  fast loop without flipping the main workspace renderer into export mode. */
   exportDriver?: boolean
+  /** Offscreen export driver only. While set, accumulation resets when this key
+   *  changes and on nothing else, so the sub-frames of one output frame (motion
+   *  blur) accumulate into one buffer instead of each flame change starting it
+   *  over. The main workspace renderer gets the same behaviour from the global
+   *  animationExportRunning signal; an offscreen job cannot use that, because it
+   *  would also freeze the live view's resets while the job runs. */
+  exportFrameKey?: number
+  /** Export motion blur: stop accumulating at this fraction of the quality
+   *  point limit, and never let one export tick run past it. The export loop
+   *  raises it sub-frame by sub-frame. Without it the export driver sizes a
+   *  tick to reach the whole limit at once, so the first sub-frame took the
+   *  entire budget and the rest accumulated nothing. Undefined = whole limit. */
+  accumulationFraction?: number
   setCurrentQuality?: (fn: () => number) => void
   setQualityPointCountLimit?: (fn: () => number) => void
   palette?: () => Palette | undefined
@@ -357,6 +371,21 @@ export function Flam3(props: Flam3Props) {
     }
   })
 
+  /*
+   * The draw mode alone, not the flame it came from.
+   *
+   * `colorGradingPipeline` below builds a real GPU pipeline, and it used to
+   * read `props.flameDescriptor.renderSettings.drawMode` inline. That reads
+   * one store path while the workspace hands over the store proxy, but a
+   * whole new object whenever the flame is derived — a hovered variation, or
+   * audio modulation at 30fps — and the pipeline was then rebuilt for every
+   * one of those frames. Memoizing the mode gives the pipeline a dependency
+   * that changes when the draw mode does and not before.
+   */
+  const drawModeImpl = createMemo(
+    () => drawModeToImplFn[props.flameDescriptor.renderSettings.drawMode],
+  )
+
   const colorGradingPipeline = createMemo(() => {
     const o = outputTextures()
     if (!o) {
@@ -379,7 +408,7 @@ export function Flam3(props: Flam3Props) {
         ? typedPostprocessBuffer
         : typedAccumulationBuffer,
       canvasFormat,
-      drawModeToImplFn[props.flameDescriptor.renderSettings.drawMode],
+      drawModeImpl(),
       props.palette?.(),
     )
   })
@@ -446,9 +475,13 @@ export function Flam3(props: Flam3Props) {
     filter.densityPipeline.setEstimatorCurve(estimatorCurve)
   })
 
+  /** Where accumulation stops: the quality limit, or this step's share of it. */
+  const accumulationStop = () =>
+    qualityPointCountLimit() * (props.accumulationFraction ?? 1)
+
   const continueRendering = (accumulatedPointCount: number) => {
     if (props.disableQualityLimit) return true
-    return accumulatedPointCount <= qualityPointCountLimit()
+    return accumulatedPointCount <= accumulationStop()
   }
 
   // True while an export (animation or still) should drive this renderer via
@@ -761,6 +794,11 @@ export function Flam3(props: Flam3Props) {
       pipeline.setStochasticFilterRadius(radius)
     })
 
+    // An export loop owns accumulation resets -- the global main-canvas export,
+    // or this instance's exportFrameKey -- rather than ordinary edits.
+    const exportOwnsResets = () =>
+      animationExportRunning() || props.exportFrameKey !== undefined
+
     const accumulationFingerprint = createMemo(() => {
       const flame = animatedFlame()
       const bf = props.blendFlame
@@ -782,7 +820,7 @@ export function Flam3(props: Flam3Props) {
     // During animation export, accumulation resets are driven explicitly by export frame change.
     createEffect(() => {
       accumulationFingerprint()
-      if (!animationExportRunning()) {
+      if (!exportOwnsResets()) {
         resetAccumulation()
       }
     })
@@ -795,7 +833,10 @@ export function Flam3(props: Flam3Props) {
     createEffect(() => {
       if (!timeline) return
       timeline.currentFrame()
-      if (timeline.isDrivingView()) {
+      // An export steps the playhead once per motion-blur sub-frame, so a reset
+      // here would keep only the last sub-frame. Exports reset once per output
+      // frame themselves: the export-frame effect below, or exportFrameKey.
+      if (timeline.isDrivingView() && !exportOwnsResets()) {
         resetAccumulation()
       }
     })
@@ -808,7 +849,7 @@ export function Flam3(props: Flam3Props) {
     createEffect(() => {
       camera?.update()
       camera3D?.update()
-      if (!animationExportRunning()) resetAccumulation()
+      if (!exportOwnsResets()) resetAccumulation()
     })
 
     // Reset accumulation on export frame index change.
@@ -824,6 +865,11 @@ export function Flam3(props: Flam3Props) {
       } else {
         lastExportFrame = undefined
       }
+    })
+
+    // Offscreen export: a new output frame, signalled by this instance's key.
+    createEffect(() => {
+      if (props.exportFrameKey !== undefined) resetAccumulation()
     })
 
     function resetAccumulation() {
@@ -926,8 +972,14 @@ export function Flam3(props: Flam3Props) {
     ): number {
       if (!continueRendering(accumulatedPointCount_)) return 0
       if (exportMode) {
-        return (
+        const planned =
           drivers.export?.getExportIterationCount() ?? EXPORT_INITIAL_ITERATIONS
+        if (props.accumulationFraction === undefined) return planned
+        // Motion blur: a tick may not run past this sub-frame's share.
+        return exportTickIterations(
+          planned,
+          accumulationStop() - accumulatedPointCount_,
+          props.pointCountPerBatch * plotsPerChainBaked,
         )
       }
       if (timings) {
