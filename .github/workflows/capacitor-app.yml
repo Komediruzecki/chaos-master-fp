@@ -548,6 +548,13 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # Not the action's default. That default installs the obsolete
+          # `tools` package, which Google withdrew from the SDK repository --
+          # sdkmanager reports "Failed to find package 'tools'" and exits 1, so
+          # every Android run failed from 2026-09-20. The next step installs
+          # what the build actually needs.
+          packages: 'platform-tools'
 
       - name: Install Android SDK packages
         run: sdkmanager 'platform-tools' 'platforms;android-36' 'build-tools;36.0.0'
