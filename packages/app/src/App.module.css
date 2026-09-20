@@ -18,10 +18,20 @@
   grid-template-areas: 'viewport';
 }
 
+/* The deck layout: the shell's navigation rail leads, the inspector deck
+   trails, the canvas has what is left. The rail is a column of its own rather
+   than chrome over the canvas: it is a page edge, not a floating bar. */
 .tabletLayout {
-  grid-template-columns: 1fr auto;
+  grid-template-columns: var(--la-navrail-w) 1fr auto;
   grid-template-rows: 1fr;
-  grid-template-areas: 'viewport inspector';
+  grid-template-areas: 'navrail viewport inspector';
+}
+
+/* There is no sidebar to tuck under on this layout: the canvas container's
+   own -0.4rem pulled the canvas 6.4px over the navigation rail's trailing
+   edge and its hairline (measured: canvas x 73.6 in an 80px column). */
+.tabletLayout .canvas-container:not(.fullscreen) {
+  margin-left: 0;
 }
 
 .canvas-container {
@@ -174,6 +184,22 @@
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
+
+  /* The rail's sheet covers the bottom of the canvas; half of that height
+     pans the picture up so the subject stays in view (DESIGN.md, Phase A).
+     A transform, not a camera change: nothing enters the flame or its undo
+     history, and it reverts when the sheet closes. It rides the canvas
+     rather than its container because a transformed container would become
+     the containing block for the fixed progress bar and export tracker
+     inside it. */
+  transform: translateY(calc(var(--rail-inset, 0px) / -2));
+  transition: transform var(--la-dur-sheet) var(--la-ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .canvas {
+    transition: none;
+  }
 }
 
 /* Global: prevent text selection popups on all canvas elements on touch devices */
@@ -1267,9 +1293,9 @@
   right: auto;
   left: max(0.75rem, env(safe-area-inset-left));
   align-items: flex-start;
+  /* Below the top bar, from the same token the bar is placed with. */
   top: calc(
-    max(0.75rem, env(safe-area-inset-top)) + 42px +
-      var(--toast-stack-offset, 0px)
+    var(--la-hud-bottom) + var(--la-s-2) + var(--toast-stack-offset, 0px)
   );
 }
 
@@ -1427,7 +1453,19 @@
 
 /* Tablet portrait / mobile: overlay sidebar */
 @media (max-width: 768px) {
-  .layout {
+  /*
+   * Device bands, as classified by workspaceLayoutStore:
+   *   phone   width < PHONE_MAX_WIDTH (680)          -> .phoneLayout
+   *   tablet  680 <= width <= TABLET_MAX_WIDTH (1024) -> .tabletLayout
+   *   desktop everything else, or preference 'desktop'
+   * This block is width-only and predates that classification, and it sits
+   * after .tabletLayout with equal specificity, so without the :not() it won
+   * across 680-768px: iPad Mini 6 portrait at 744, older iPads at 768 and many
+   * Android tablets lost the 'inspector' grid area while isTablet() was true.
+   * .phoneLayout is deliberately still overridden here -- that is the layout
+   * the phone chrome was built and tested against.
+   */
+  .layout:not(.tabletLayout) {
     grid-template-columns: 1fr;
     grid-template-areas:
       'viewport'

@@ -8,9 +8,10 @@ import { ExportJobTracker } from '@/components/ExportJobs/ExportJobTracker'
 import { ProgressBar } from '@/components/ProgressBar/ProgressBar'
 import { DEFAULT_POINT_COUNT } from '@/defaults'
 import { Flam3 } from '@/flame/Flam3'
-import { animationExportRunning, cameraDuringExportEnabled, exportQuality, setCurrentQuality, setQualityPointCountLimit, } from '@/flame/renderStats'
+import { animationExportRunning, cameraDuringExportEnabled, exportAccumulationFraction, exportQuality, setCurrentQuality, setQualityPointCountLimit, } from '@/flame/renderStats'
 import { getNormalizedVariationName } from '@/flame/variations/utils'
 import { Menu } from '@/icons'
+import { workspaceIsVisible } from '@/lib/activeTab'
 import { AutoCanvas } from '@/lib/AutoCanvas'
 import { WheelZoomCamera2D } from '@/lib/WheelZoomCamera2D'
 import { WheelZoomCamera3D } from '@/lib/WheelZoomCamera3D'
@@ -38,6 +39,8 @@ export interface CanvasViewportProps {
   onCanvasClick: () => void
   onToggleMobileSidebar: () => void
   hideMobileSidebarToggle?: boolean
+  /** Px of viewport the editor rail's sheet covers; the canvas pans up by half. */
+  railInset?: Accessor<number>
 
   // Flame / rendering
   flameDescriptor: FlameDescriptor
@@ -94,10 +97,18 @@ export interface CanvasViewportProps {
 
 export function CanvasViewport(props: CanvasViewportProps) {
   return (
+    // Home and the Arcade cover the editor completely and it stays mounted
+    // underneath, so everything in here is behind a full-screen layer: the
+    // sidebar tab, the WebGPU poster's "Check WebGPU support" link and the
+    // export tracker (z-index 1000, under Home's 2000) were all still in the
+    // tab order and still announced. `inert` takes the subtree out of both
+    // without unmounting the canvas or stopping a single frame.
     <div
       class={ui.canvasContainer}
       data-tour-target="canvas"
       classList={{ [ui.fullscreen as string]: !props.showSidebar() }}
+      style={{ '--rail-inset': `${props.railInset?.() ?? 0}px` }}
+      inert={!workspaceIsVisible()}
       onClick={props.onCanvasClick}
     >
       <Show when={props.isMobile() && !props.hideMobileSidebarToggle}>
@@ -188,6 +199,7 @@ export function CanvasViewport(props: CanvasViewportProps) {
                     }
                     pointCountPerBatch={DEFAULT_POINT_COUNT}
                     isExportRenderer
+                    accumulationFraction={exportAccumulationFraction()}
                     adaptiveFilterEnabled={props.adaptiveFilterEnabled()}
                     stochasticFilterEnabled={props.stochasticFilterEnabled()}
                     animationEnabled={props.animationEnabled()}
@@ -237,6 +249,7 @@ export function CanvasViewport(props: CanvasViewportProps) {
                   }
                   pointCountPerBatch={DEFAULT_POINT_COUNT}
                   isExportRenderer
+                  accumulationFraction={exportAccumulationFraction()}
                   adaptiveFilterEnabled={props.adaptiveFilterEnabled()}
                   animationEnabled={props.animationEnabled()}
                   flameDescriptor={props.effectiveFlame()}

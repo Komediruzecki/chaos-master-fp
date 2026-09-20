@@ -1,12 +1,14 @@
 import { createResource, createSignal, For, Show, Suspense } from 'solid-js'
 import { useToast } from '@/contexts/ToastContext'
 import { Changelog, Discord, GitHub, Globe, Heart, Terminal, TriangleAlert, } from '@/icons'
+import { IS_NATIVE } from '@/lib/platform'
 import { getWebgpuComponents } from '@/lib/WebgpuAdapter'
 import { getWebglRenderer } from '@/utils/deviceInfo'
 import { formatBytes } from '@/utils/formatBytes'
 import { detectHardwareTier, hardwareTiers } from '@/utils/hardwareTier'
-import { GIT_SHA, VERSION } from '@/version'
+import { BUILD_NUMBER, DISPLAY_VERSION, GIT_SHA, VERSION } from '@/version'
 import { createShowChangelog } from '../AboutPanel/Changelog'
+import { Checkbox } from '../Checkbox/Checkbox'
 import { ConsoleLog } from '../ConsoleLog/ConsoleLog'
 import { DataManagement } from '../DataManagement/DataManagement'
 import { useRequestModal } from '../Modal/ModalContext'
@@ -126,7 +128,7 @@ function gatherFullDeviceInfo(
   const lines: string[] = []
   const { navigator: n, screen } = globalThis
 
-  lines.push(`App Version : ${VERSION}${GIT_SHA ? ` (${GIT_SHA})` : ''}`)
+  lines.push(`App Version : ${DISPLAY_VERSION}`)
   lines.push(`User Agent  : ${n.userAgent}`)
   // eslint-disable-next-line @typescript-eslint/no-deprecated
   lines.push(`Platform    : ${n.platform}`)
@@ -171,7 +173,7 @@ function gatherFullDeviceInfo(
   return lines.join('\n')
 }
 
-type HelpModalProps = {
+export type HelpModalProps = {
   respond: () => void
   quickPickerMode: () => QuickPickerMode
   onQuickPickerModeChange: (mode: QuickPickerMode) => void
@@ -184,9 +186,11 @@ type HelpModalProps = {
   onInjectCrash?: () => void
   hardwareTier: () => HardwareTier | null
   onHardwareTierChange?: (tier: HardwareTier) => void
+  hapticsEnabled: () => boolean
+  onHapticsEnabledChange: (enabled: boolean) => void
 }
 
-function HelpModal(props: HelpModalProps) {
+export function HelpModal(props: HelpModalProps) {
   const [gpuDeviceInfo] = createResource(getGPUDeviceInformation)
   const showChangelog = createShowChangelog()
   const [showConsole, setShowConsole] = createSignal(true)
@@ -293,7 +297,10 @@ function HelpModal(props: HelpModalProps) {
             </Show>
           </div>
           <div class={ui.badgeRow}>
-            <span class={ui.versionBadge}>v{VERSION}</span>
+            <span class={ui.versionBadge}>
+              v{VERSION}
+              {BUILD_NUMBER === '' ? '' : `-ci.${BUILD_NUMBER}`}
+            </span>
             {GIT_SHA ? <span class={ui.shaBadge}>{GIT_SHA}</span> : null}
           </div>
         </div>
@@ -314,6 +321,19 @@ function HelpModal(props: HelpModalProps) {
       </div>
 
       <h2 class={ui.sectionTitle}>General Settings</h2>
+      {/* The web has no vibration motor worth the name; only the app offers it. */}
+      <Show when={IS_NATIVE}>
+        <label class={ui.pickerModeRow}>
+          <span class={ui.pickerModeLabel}>Haptics</span>
+          <Checkbox
+            aria-label="Haptics"
+            checked={props.hapticsEnabled()}
+            onChange={(checked) => {
+              props.onHapticsEnabledChange(checked)
+            }}
+          />
+        </label>
+      </Show>
       <div class={ui.pickerModeRow}>
         <span class={ui.pickerModeLabel}>Default mode</span>
         <div class={ui.pickerModeBtns}>
@@ -637,9 +657,11 @@ export function createShowHelp(
   setCompact: (value: boolean) => void,
   theme: () => Theme,
   onThemeChange: (theme: Theme) => void,
-  onInjectCrash?: () => void,
-  hardwareTier?: () => HardwareTier | null,
-  onHardwareTierChange?: (tier: HardwareTier) => void,
+  onInjectCrash: (() => void) | undefined,
+  hardwareTier: () => HardwareTier | null,
+  onHardwareTierChange: ((tier: HardwareTier) => void) | undefined,
+  hapticsEnabled: () => boolean,
+  onHapticsEnabledChange: (enabled: boolean) => void,
 ) {
   const requestModal = useRequestModal()
 
@@ -658,8 +680,10 @@ export function createShowHelp(
           theme={theme}
           onThemeChange={onThemeChange}
           onInjectCrash={onInjectCrash}
-          hardwareTier={hardwareTier ?? (() => null)}
+          hardwareTier={hardwareTier}
           onHardwareTierChange={onHardwareTierChange}
+          hapticsEnabled={hapticsEnabled}
+          onHapticsEnabledChange={onHapticsEnabledChange}
         />
       ),
     })
