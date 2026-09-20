@@ -2,6 +2,60 @@
 
 This document describes the testing setup created to catch runtime errors in the Lumen Apeiron app.
 
+## Which checks run where
+
+A pull request runs smoke plus what the branch touched. Main runs everything.
+
+| Check                                                   | Pull request           | Push to main, or manual dispatch |
+| ------------------------------------------------------- | ---------------------- | -------------------------------- |
+| `pnpm lint`, `pnpm typecheck`                           | yes                    | yes                              |
+| `@chaos-master/core` and `@chaos-master/mobile-runtime` | in full                | in full                          |
+| The app suite (`packages/app`, ~2,500 tests)            | **scoped** (see below) | in full                          |
+| App build, landing build, `pnpm test:e2e:ci`            | yes                    | yes                              |
+| `pnpm docs:index:check`, `pnpm metrics:check`           | no                     | yes, in the `health` job         |
+
+The scoped run is `pnpm test:pr`, which calls `pnpm test:changed`
+(`scripts/test-changed.mjs`). It runs core and mobile-runtime in full — ~118
+tests, about a second together, nothing to gain by scoping them — and selects
+the app's test files as the union of:
+
+1. **What the branch touched**, via `vitest --changed <base>`: every test file
+   whose module graph reaches a changed file. On CI the base is the pull
+   request's base SHA from the event payload, which is why the checkout uses
+   `fetch-depth: 0`.
+2. **The always-on list** in `scripts/test-changed.mjs`: test files that reach
+   their subject through `readFileSync`, `readdirSync` or `import.meta.glob`
+   rather than an import. The module graph has no edge to what they check, so
+   `--changed` can never select them — `ShellBar.module.test.ts` would sit out
+   while `ShellBar.module.css` changed underneath it. Each entry in the list
+   carries the reason it is there.
+
+Scoping switches off and the whole app suite runs when the branch touched the
+harness itself: a `vite`/`vitest` config, a `package.json`, `pnpm-lock.yaml`, a
+`tsconfig*.json` or `vitest.setup.*`.
+
+Run it yourself the same way CI does:
+
+```bash
+pnpm test:changed                    # against origin/main
+pnpm test:changed <commit-ish>       # against something else
+node scripts/test-changed.mjs --dry-run   # print the selection, run nothing
+```
+
+### The trade-off this accepts
+
+A pull request can be green and still break main. Scoping is a bet that the
+module graph plus the always-on list covers what a change can reach, and that
+bet is wrong sometimes: a test the graph does not connect to the change, and
+that the always-on list does not name, will not run until the merge. The
+mitigation is not a cleverer selection — it is that **the merging agent runs
+`pnpm typecheck` and `pnpm test` on main after every merge and stops on red**,
+and that the deploy comes from main, so a red main is visible in minutes rather
+than at the next release. The alternative, a full 2,500-test suite on every push
+to every branch, costs more than the failure mode it prevents.
+
+---
+
 ## Created Files
 
 ### 1. Playwright E2E Tests (`e2e/console-errors.spec.ts`)
