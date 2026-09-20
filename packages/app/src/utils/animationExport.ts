@@ -1,5 +1,6 @@
 import { DEBUG_MODE } from '@/defaults'
-import { accumulatedPointCount, forceAnimationExportNow, qualityPointCountLimit, setAnimationExportCancel, setAnimationExportProgress, setAnimationExportRunning, setExportQuality, setForceAnimationExportNow, } from '@/flame/renderStats'
+import { accumulatedPointCount, forceAnimationExportNow, qualityPointCountLimit, setAnimationExportCancel, setAnimationExportProgress, setAnimationExportRunning, setExportAccumulationFraction, setExportQuality, setForceAnimationExportNow, } from '@/flame/renderStats'
+import { DEFAULT_SHUTTER_ANGLE, subFrameLimit, subFrameOffsets, } from '@/utils/motionBlur'
 import { applyAudioMappingsToFlame, createAudioAnalyzer } from './audioAnalysis'
 import { createAudioVideoEncoder } from './audioExport'
 import { deepClone } from './clone'
@@ -67,7 +68,8 @@ export function createAnimationExport(
 ): { cancel: () => void; promise: Promise<Blob> } {
   let cancelled = false
 
-  // Snapshot original flame state so we can restore it after export.
+  // Snapshot the parts of the flame the per-frame writes below overwrite, so
+  // they can be put back when the export ends (see restoreFlameState).
   // baseFlame is a reactive store proxy — deep-clone to a plain object.
   const baseFlameSnapshot = deepClone(baseFlame)
 
@@ -173,17 +175,22 @@ export function createAnimationExport(
         }
 
         const frame = config.frameStart + (frameIndex % totalFrames)
-        const motionBlurSamples = Math.max(1, config.motionBlurSamples ?? 1)
-        const shutterAngle = config.shutterAngle ?? 180
-        const shutterDuration = shutterAngle / 360
+        const subOffsets = subFrameOffsets(
+          config.motionBlurSamples ?? 1,
+          config.shutterAngle ?? DEFAULT_SHUTTER_ANGLE,
+        )
+        const motionBlurSamples = subOffsets.length
         let subFrameIndex = 0
 
         function applySubFrame(subIdx: number) {
-          const subOffset =
+          const subFrame = frame + (subOffsets[subIdx] ?? 0)
+          // Each sub-frame accumulates only up to its cumulative share of the
+          // budget; otherwise the first export tick takes all of it.
+          setExportAccumulationFraction(
             motionBlurSamples > 1
-              ? (subIdx / motionBlurSamples) * shutterDuration
-              : 0
-          const subFrame = frame + subOffset
+              ? (subIdx + 1) / motionBlurSamples
+              : undefined,
+          )
 
           // Advance the playhead so anything resolved from currentFrame tracks this subFrame.
           timeline.setCurrentFrame(subFrame)
@@ -212,6 +219,12 @@ export function createAnimationExport(
 
         applySubFrame(0)
         setExportQuality(config.quality)
+        // A new output frame starts from an empty buffer. Report it now, which
+        // resets accumulation through Flam3's export-frame effect, instead of
+        // on the first export tick: that tick still reads the previous frame's
+        // total, which met every sub-frame limit and skipped straight past
+        // this frame's first sub-frames.
+        updateProgress(0, qualityPointCountLimit()())
 
         frameAccumStartMs = performance.now()
         if (DEBUG_MODE) {
@@ -243,8 +256,10 @@ export function createAnimationExport(
               motionBlurSamples > 1 &&
               subFrameIndex < motionBlurSamples - 1
             ) {
-              const subLimit = Math.round(
-                ((subFrameIndex + 1) / motionBlurSamples) * limit,
+              const subLimit = subFrameLimit(
+                subFrameIndex,
+                motionBlurSamples,
+                limit,
               )
               if (current >= subLimit) {
                 subFrameIndex++
@@ -284,6 +299,7 @@ export function createAnimationExport(
                 // Only clear export state after the bitmap is captured
                 setOnExportImage(undefined)
                 setExportQuality(undefined)
+                setExportAccumulationFraction(undefined)
 
                 if (cancelled) {
                   bitmap.close()
@@ -313,17 +329,28 @@ export function createAnimationExport(
               })
               .catch((err: unknown) => {
                 capturing = false
+                setExportAccumulationFraction(undefined)
                 reject(err instanceof Error ? err : new Error(String(err)))
               })
           },
         )
       }
 
+      /**
+       * Put back exactly what the export overwrote, and nothing else.
+       *
+       * The per-frame setup above writes `renderSettings` and `transforms`
+       * for every frame it renders, so both are the export's to return.
+       * `metadata` is not: nothing here ever writes it, and restoring it
+       * reverted a name or a description typed while the export ran. A
+       * main-canvas animation export takes minutes and the editor stays
+       * usable throughout, so that is a real edit being silently undone at
+       * the moment the export happens to finish.
+       */
       function restoreFlameState() {
         setFlameDescriptor((draft) => {
           draft.renderSettings = baseFlameSnapshot.renderSettings
           draft.transforms = baseFlameSnapshot.transforms
-          draft.metadata = baseFlameSnapshot.metadata
         })
       }
 
@@ -364,6 +391,7 @@ export function createAnimationExport(
           setForceAnimationExportNow(false)
           setOnExportImage(undefined)
           setExportQuality(undefined)
+          setExportAccumulationFraction(undefined)
           restoreFlameState()
         }
       }
@@ -375,6 +403,7 @@ export function createAnimationExport(
         setForceAnimationExportNow(false)
         setOnExportImage(undefined)
         setExportQuality(undefined)
+        setExportAccumulationFraction(undefined)
         restoreFlameState()
         encoder.cancel()
       }
@@ -387,6 +416,9 @@ export function createAnimationExport(
 
   const cancel = () => {
     cancelled = true
+    // Clear the blur cap now, not when the loop next notices the cancel: if no
+    // export callback fires again, a stale fraction would cap the live view.
+    setExportAccumulationFraction(undefined)
     setAnimationExportRunning(false)
     setAnimationExportCancel(undefined)
     setAnimationExportProgress(undefined)

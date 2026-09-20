@@ -15,6 +15,11 @@ export default defineConfig(
       '**/coverage',
       '**/coverage-audit',
       '**/dist',
+      '**/dist-native', // packages/app native (Capacitor) build output
+      // Capacitor native projects: generated Xcode/Gradle files plus, after
+      // `cap sync`, a full copy of the built web bundle.
+      'packages/mobile/ios',
+      'packages/mobile/android',
       // Tool config, not source. It is CommonJS and outside every tsconfig
       // project, so the type-aware parser cannot resolve it.
       '.dependency-cruiser.cjs',

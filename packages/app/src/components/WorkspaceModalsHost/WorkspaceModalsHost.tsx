@@ -46,6 +46,9 @@ export interface WorkspaceModalsHostProps {
   touchLayoutPreference?: () => TouchLayoutPreference
   setTouchLayoutPreference?: (pref: TouchLayoutPreference) => void
   isTouchLayout?: () => boolean
+  /** True on every touch layout: each one already carries this list in its
+   *  own More menu (Shell/moreMenuItems.ts). See SoftwareVersion. */
+  hideVersionTrigger?: () => boolean
   onPickGallery?: () => void
 }
 
@@ -60,6 +63,7 @@ export function WorkspaceModalsHost(props: WorkspaceModalsHostProps) {
         touchLayoutPreference={props.touchLayoutPreference}
         setTouchLayoutPreference={props.setTouchLayoutPreference}
         isTouchLayout={props.isTouchLayout}
+        hideTrigger={props.hideVersionTrigger}
         onPickGallery={props.onPickGallery}
       />
       <Show when={props.devCrashTest()}>
