@@ -1,17 +1,19 @@
 import { createEffect, createMemo, createSignal, createUniqueId, For, onCleanup, Show, untrack, } from 'solid-js'
 import { createStore, unwrap } from 'solid-js/store'
 import { usePrefersReducedMotion } from '@/components/Home/homePlayback'
-import { ChevronLeft, ChevronRight, Download, Focus, Pause, Pencil, PlayPause, SkipBack, Speech, } from '@/icons'
+import { getGlideRuntime } from '@/flame/glide/runtime'
+import { ChevronLeft, ChevronRight, Download, Focus, Glide, Pause, Pencil, PlayPause, SkipBack, Speech, } from '@/icons'
 import { deriveReplayFocusPreparation } from '@/recorder/focusPreparation'
 import { createSessionPlayer, PLAYBACK_SPEEDS } from '@/recorder/player'
 import { replayInterfaceCaptureSupported } from '@/recorder/replayInterfaceVideo'
 import { MAX_ACTION_HOLD_MS, MAX_ACTION_NOTE_CHARS, validateSession, } from '@/recorder/schema'
 import { deepClone } from '@/utils/clone'
-import { agentRailEnabled, followCamEnabled, setAgentRailEnabled, setFollowCamEnabled, setRecorderExportPending, } from './recorderUi'
+import { agentRailEnabled, followCamEnabled, replayGlideEnabled, setAgentRailEnabled, setFollowCamEnabled, setRecorderExportPending, setReplayGlideEnabled, } from './recorderUi'
 import { ReplayAgentRail } from './ReplayAgentRail'
 import { ReplaySpotlight } from './ReplaySpotlight'
 import styles from './SessionReplayPanel.module.css'
 import type { ReplayFocusPreparation, ReplayFocusPreparationHandler, } from '@/recorder/focusPreparation'
+import type { ReplayGlideOptions } from '@/recorder/glide'
 import type { ReplayTarget } from '@/recorder/replay'
 import type { ReplayVideoExportMode, ReplayVideoExportRequest, } from '@/recorder/replayInterfaceVideo'
 import type { RecordedSession } from '@/recorder/schema'
@@ -83,8 +85,27 @@ export function SessionReplayPanel(props: {
    */
   const [session, setSession] = createStore(deepClone(props.session))
 
+  /**
+   * The glide settings a replay runs with, read afresh for every step so the
+   * toggle lands on the next one rather than on the next Play.
+   *
+   * The tier comes from the workspace's own glide quality, so a replay
+   * downshifts exactly as an edit does — and it travels with an export request
+   * so the queued job renders what the panel was showing.
+   */
+  const glideOptions = (): ReplayGlideOptions => {
+    const quality = getGlideRuntime()?.quality()
+    return {
+      enabled: replayGlideEnabled(),
+      ...(quality === undefined
+        ? {}
+        : { durationScale: quality.durationScale, tier: quality.tier }),
+    }
+  }
+
   const player = createSessionPlayer(session, props.target, {
     speed,
+    glide: glideOptions,
     beforeAction: (action) => {
       if (followCamEnabled()) {
         props.onPrepareAction?.(deriveReplayFocusPreparation(action))
@@ -242,6 +263,24 @@ export function SessionReplayPanel(props: {
         <p class="sr-only" role="status" aria-live="polite" aria-atomic="true">
           {replayStatus()}
         </p>
+        {/* A synthesized session was planned from the finished flame, not
+            recorded while someone made it. The panel must not let a viewer
+            read it as "how this was made" — see recorder/synthesize. */}
+        <Show when={session.synthetic}>
+          {(synthetic) => (
+            <span
+              class={styles.synthetic}
+              data-replay-synthetic
+              title={`These steps were planned from the finished flame (${synthetic().strategy}, seed ${synthetic().seed})${
+                synthetic().snapped
+                  ? ', ending with a snap to the parts no command could rebuild'
+                  : ''
+              }. They are not a recording of how it was made.`}
+            >
+              A possible way to build this
+            </span>
+          )}
+        </Show>
         <Show when={session.unnamedWriteCount > 0}>
           <span
             class={styles.warning}
@@ -375,6 +414,26 @@ export function SessionReplayPanel(props: {
           disabled={exporting()}
         >
           <Focus class={styles.buttonIcon} aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          class={styles.button}
+          classList={{ [styles.toggleOn as string]: replayGlideEnabled() }}
+          onClick={() => setReplayGlideEnabled((on) => !on)}
+          title={
+            replayGlideEnabled()
+              ? 'Glide on — each step animates into place instead of snapping'
+              : 'Glide off — each step appears in one move'
+          }
+          aria-pressed={replayGlideEnabled()}
+          aria-label={
+            replayGlideEnabled()
+              ? 'Cut between replay steps'
+              : 'Glide between replay steps'
+          }
+          disabled={exporting()}
+        >
+          <Glide class={styles.buttonIcon} aria-hidden="true" />
         </button>
         <button
           type="button"
@@ -636,6 +695,7 @@ export function SessionReplayPanel(props: {
                               mode,
                               session: validated,
                               playbackSpeed: speed(),
+                              glide: glideOptions(),
                             }
 
                       setExportError(undefined)
