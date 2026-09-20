@@ -25,8 +25,10 @@ test.describe('Flame Clash Arena', () => {
     // own name (Cyan Guardian only when it has none), so pin the fixed rival.
     await expect(page.getByText('Crimson Nemesis').first()).toBeVisible()
 
-    // Click Clash Flames button
-    const clashBtn = page.getByRole('button', { name: /CLASH FLAMES/i })
+    // The button is named CLASH, not CLASH FLAMES: 0d264a2c moved it into
+    // ArenaCenterStage as <Zap/><span>CLASH</span><Zap/>. Anchored, because a
+    // bare /CLASH/i also matches 'READY TO CLASH' in ArenaTopBar.
+    const clashBtn = page.getByRole('button', { name: /^CLASH$/i })
     await expect(clashBtn).toBeVisible()
     await clashBtn.click()
 
