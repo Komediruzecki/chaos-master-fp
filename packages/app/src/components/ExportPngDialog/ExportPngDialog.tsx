@@ -4,6 +4,7 @@ import { vec2f, vec3f, vec4f } from 'typegpu/data'
 import { clamp } from 'typegpu/std'
 import { ScrubInput } from '@/components/Sliders/ScrubInput'
 import { Slider } from '@/components/Sliders/Slider'
+import { useToast } from '@/contexts/ToastContext'
 import { ALLOW_CAMERA_DURING_EXPORT, DEFAULT_POINT_COUNT, DEFAULT_PREVIEW_PIXEL_RATIO, } from '@/defaults'
 import { Flam3 } from '@/flame/Flam3'
 import { setCameraDuringExportEnabled } from '@/flame/renderStats'
@@ -13,6 +14,7 @@ import { Root } from '@/lib/Root'
 import { WheelZoomCamera2D } from '@/lib/WheelZoomCamera2D'
 import { WheelZoomCamera3D } from '@/lib/WheelZoomCamera3D'
 import { lastFinishedSession } from '@/recorder/recorder'
+import { downloadBlob } from '@/utils/blob'
 import { deepClone } from '@/utils/clone'
 import { computeExportDimensions, DEFAULT_EXPORT_ASPECT, DEFAULT_EXPORT_RESOLUTION, } from '@/utils/exportDimensions'
 import { embedStepsInExports, sessionForExport, setEmbedStepsInExports, snapshotExportSession, } from '@/utils/exportPreferences'
@@ -970,6 +972,9 @@ function RenderDialog(props: RenderDialogProps) {
   )
 }
 
+/** How long the flash export waits for the renderer before giving up. */
+const QUICK_EXPORT_DEADLINE_MS = 20_000
+
 export function createExportPngDialog(
   flameDescriptor: FlameDescriptor,
   getTimeline: () => TimelineState | undefined,
@@ -991,6 +996,7 @@ export function createExportPngDialog(
   getAudioMapping?: () => AudioMappingEntry[],
 ) {
   const requestModal = useRequestModal()
+  const { showToast } = useToast()
   const [exportModalIsOpen, setExportModalIsOpen] = createSignal(false)
 
   function quickExport() {
@@ -1001,44 +1007,68 @@ export function createExportPngDialog(
     const currentRatio = getPixelRatio()
     const sessionSnapshot = snapshotExportSession(sessionForExport())
 
+    // Every way this can fail ends in a toast: a tap that does nothing is
+    // the one outcome a tester cannot report.
+    const fail = (error: unknown) => {
+      console.error('[quickExport] failed:', error)
+      const reason = error instanceof Error ? error.message : String(error)
+      showToast(`Flash export failed: ${reason}`)
+    }
+    // The renderer answers on its next tick. One that never ticks (a lost
+    // device, a pipeline still compiling) would otherwise leave the tap
+    // unanswered.
+    const timer = setTimeout(() => {
+      setOnExportImage(undefined)
+      setPixelRatio(currentRatio)
+      fail(new Error('the renderer produced no frame within 20 s'))
+    }, QUICK_EXPORT_DEADLINE_MS)
+
     setPixelRatio(currentRatio)
     setOnExportImage(() => (canvas: HTMLCanvasElement) => {
+      clearTimeout(timer)
       setOnExportImage(undefined)
       setPixelRatio(currentRatio)
       canvas.toBlob(
-        async (blob) => {
-          if (!blob) return
-          const imgData = await blob.arrayBuffer()
-          let pngBytes = new Uint8Array(imgData)
-          const currentTracks = timeline?.tracks() ?? []
-          const payload = hasAnimation
-            ? {
-                flame: flameDescriptor,
-                animation: { tracks: currentTracks, config },
+        (blob) => {
+          void (async () => {
+            try {
+              if (!blob) {
+                throw new Error(
+                  'the canvas gave no image (toBlob returned null)',
+                )
               }
-            : flameDescriptor
-          const encoded = await compressJsonQueryParam(payload)
-          // If a session was recorded for this flame, it rides along in a
-          // second chunk, so a dropped PNG can offer to replay how it was
-          // made (docs/plans/semantic-recorder-plan.md, M5).
-          const encodedSteps = sessionSnapshot
-            ? await compressJsonQueryParam(sessionSnapshot)
-            : undefined
-          pngBytes = new Uint8Array(
-            await addFlameDataToPng(
-              encoded,
-              pngBytes,
-              encodedSteps,
-            ).arrayBuffer(),
-          )
-          saveRecentFlame(flameDescriptor, undefined, currentTracks)
-          const fileUrlExt = URL.createObjectURL(
-            new Blob([pngBytes], { type: 'image/png' }),
-          )
-          const downloadLink = window.document.createElement('a')
-          downloadLink.href = fileUrlExt
-          downloadLink.download = 'flame.png'
-          downloadLink.click()
+              const imgData = await blob.arrayBuffer()
+              let pngBytes = new Uint8Array(imgData)
+              const currentTracks = timeline?.tracks() ?? []
+              const payload = hasAnimation
+                ? {
+                    flame: flameDescriptor,
+                    animation: { tracks: currentTracks, config },
+                  }
+                : flameDescriptor
+              const encoded = await compressJsonQueryParam(payload)
+              // If a session was recorded for this flame, it rides along in a
+              // second chunk, so a dropped PNG can offer to replay how it was
+              // made (docs/plans/semantic-recorder-plan.md, M5).
+              const encodedSteps = sessionSnapshot
+                ? await compressJsonQueryParam(sessionSnapshot)
+                : undefined
+              pngBytes = new Uint8Array(
+                await addFlameDataToPng(
+                  encoded,
+                  pngBytes,
+                  encodedSteps,
+                ).arrayBuffer(),
+              )
+              saveRecentFlame(flameDescriptor, undefined, currentTracks)
+              downloadBlob(
+                new Blob([pngBytes], { type: 'image/png' }),
+                'flame.png',
+              )
+            } catch (error) {
+              fail(error)
+            }
+          })()
         },
         'image/png',
         1,
