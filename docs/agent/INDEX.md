@@ -30,7 +30,7 @@ file instead of rediscovering the architecture every session.
 
 | Directory                 | Package name                   | Source files | LOC    |
 | ------------------------- | ------------------------------ | ------------ | ------ |
-| `packages/app`            | `chaos-master`                 | 1071         | 181.7k |
+| `packages/app`            | `chaos-master`                 | 1072         | 181.9k |
 | `packages/landing`        | `@chaos-master/landing`        | 20           | 2.5k   |
 | `packages/core`           | `@chaos-master/core`           | 17           | 1.9k   |
 | `packages/mobile-runtime` | `@chaos-master/mobile-runtime` | 7            | 600    |
@@ -273,9 +273,9 @@ file instead of rediscovering the architecture every session.
 | [sonification.ts](../../packages/app/src/utils/sonification.ts)             | 800  | _(no header comment)_                                                                                                                        |
 | [flameImport.ts](../../packages/app/src/utils/flameImport.ts)               | 650  | Effectively "all" — every store is capped well below this.                                                                                   |
 | [videoEncoder.ts](../../packages/app/src/utils/videoEncoder.ts)             | 550  | Offline-export default bitrate: ~0.12 bits per pixel per frame, clamped to a sane range.                                                     |
-| [createStoreHistory.ts](../../packages/app/src/utils/createStoreHistory.ts) | 500  | Optional workspace state that travels with this entry.                                                                                       |
 | [animationExport.ts](../../packages/app/src/utils/animationExport.ts)       | 450  | _(no header comment)_                                                                                                                        |
 | [audioExport.ts](../../packages/app/src/utils/audioExport.ts)               | 450  | _(no header comment)_                                                                                                                        |
+| [createStoreHistory.ts](../../packages/app/src/utils/createStoreHistory.ts) | 450  | Undo and redo for a Solid store, kept as patches rather than snapshots.                                                                      |
 | [exportJobs.ts](../../packages/app/src/utils/exportJobs.ts)                 | 400  | Whether steps glide into place, and how long for.                                                                                            |
 | [jsonQueryParam.ts](../../packages/app/src/utils/jsonQueryParam.ts)         | 400  | Decompress and JSON-parse, with no assumption about the shape.                                                                               |
 | [mathToWgsl.ts](../../packages/app/src/utils/mathToWgsl.ts)                 | 400  | Translate a math-notation expression (LaTeX-like) into a WGSL function body.                                                                 |
