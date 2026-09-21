@@ -20,10 +20,13 @@
 //    because nothing about a scoped run is trustworthy once the thing doing
 //    the scoping has changed.
 //
-// 2. ALWAYS_ON below: test files that read the source tree through the
-//    filesystem instead of importing it. `--changed` works off the module
-//    graph, so it cannot see those reads, and the test stays unselected while
-//    the very file it guards changes underneath it. Each entry says why.
+// 2. ALWAYS_ON, from ./always-on-tests.mjs: test files that read the source
+//    tree through the filesystem instead of importing it. `--changed` works
+//    off the module graph, so it cannot see those reads, and the test stays
+//    unselected while the very file it guards changes underneath it. The list
+//    lives in its own data module so that a test can import it too:
+//    packages/app/src/alwaysOnTestList.test.ts fails when a test of that genre
+//    is missing from it, which is what keeps the list from going stale.
 //
 // Core and mobile-runtime are NOT scoped -- they are 100-odd tests that finish
 // in under a second, so `pnpm test:pr` runs both in full. Only the app's
@@ -37,96 +40,10 @@ import { spawnSync } from 'node:child_process'
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, relative } from 'node:path'
+import { ALWAYS_ON } from './always-on-tests.mjs'
 
 const ROOT = process.cwd()
 const APP = join(ROOT, 'packages/app')
-
-/**
- * Test files that `--changed` cannot select, because they reach their subject
- * through `readFileSync`/`readdirSync`/`import.meta.glob` rather than an
- * import. Nothing links them to the file they guard, so they only ever run
- * when the whole suite runs. Keep the reason with the entry: an entry with no
- * reason is an entry nobody can ever delete.
- */
-const ALWAYS_ON = [
-  // Walk every file under src/ with the TypeScript AST. Their subject is the
-  // whole tree; the module graph connects them to none of it.
-  [
-    'src/eagerComputationOrder.test.ts',
-    'walks all of src/ for eager-memo temporal dead zones',
-  ],
-  [
-    'src/moduleScopeComputations.test.ts',
-    'walks all of src/ for module-scope Solid computations',
-  ],
-
-  // Read a non-source file that the graph has no edge to.
-  [
-    'src/webmcp/tools/toolCount.test.ts',
-    'reads docs/webmcp.md through process.cwd()',
-  ],
-
-  // Read sibling .css/.tsx through the filesystem. Editing the stylesheet
-  // alone leaves the test unselected -- which is the whole point of the test.
-  ['src/launchNotice.test.ts', 'reads App.tsx and App.module.css'],
-  ['src/components/Shell/ShellBar.module.test.ts', 'reads ShellBar.module.css'],
-  [
-    'src/components/TouchSurface/EditorRail.module.test.ts',
-    'reads EditorRail.module.css',
-  ],
-  [
-    'src/components/TouchSurface/tokens.test.ts',
-    'readdirSync over TouchSurface/ and Shell/ stylesheets',
-  ],
-  [
-    'src/components/Arcade/pilotOverlayCss.test.ts',
-    'reads PilotOverlay.module.css',
-  ],
-  [
-    'src/components/Arcade/pilotSpotlightCss.test.ts',
-    'reads PilotSpotlight.module.css and PilotOverlay.module.css',
-  ],
-  [
-    'src/components/Duel/duelChipsCss.test.ts',
-    'reads DuelChips.module.css and DuelChips.tsx',
-  ],
-  ['src/components/Home/HomeTab.community.test.ts', 'reads HomeTab.module.css'],
-  [
-    'src/components/LoadFlameModal/dropzoneStyles.test.ts',
-    'reads LoadFlameModal.module.css',
-  ],
-  [
-    'src/components/SessionRecorder/SessionRecorderSizing.test.ts',
-    'reads four SessionRecorder stylesheets',
-  ],
-
-  // Enumerate a directory at run time, so a new or edited entry in it is
-  // invisible to the graph.
-  [
-    'src/recorder/synthesize/corpus.test.ts',
-    'readdirSync over the synthesis corpus',
-  ],
-  [
-    'src/recorder/uiCoverageRatchet.test.ts',
-    'import.meta.glob over recorder sources',
-  ],
-  [
-    'src/flame/flameXml.golden.test.ts',
-    'import.meta.glob over the .flame fixtures',
-  ],
-
-  // Golden records. breedFlame.golden asserts the ORDER of random draws across
-  // the flame subsystem: any module that pulls from the shared source can move
-  // it without an import edge to this file.
-  [
-    'src/flame/breedFlame.golden.test.ts',
-    'golden record of breeding draw order across the flame subsystem',
-  ],
-
-  // Constructs the whole app tree. The cheapest check that a change did not
-  // break mounting, and worth a few seconds on every pull request.
-  ['src/App.integration.test.tsx', 'constructs the whole app tree'],
-]
 
 /**
  * Touch one of these and the whole app suite runs, scoping off.
@@ -242,11 +159,11 @@ const selected = new Set(changed.map((f) => relative(APP, f)))
 const byChanged = selected.size
 const added = []
 
-for (const [file, why] of ALWAYS_ON) {
+for (const { file, why } of ALWAYS_ON) {
   if (!existsSync(join(APP, file))) {
     fail(
       `ALWAYS_ON lists ${file}, which does not exist. It was renamed or ` +
-        'deleted: fix the list rather than letting it rot.',
+        'deleted: fix scripts/always-on-tests.mjs rather than letting it rot.',
     )
   }
   if (!selected.has(file)) {
