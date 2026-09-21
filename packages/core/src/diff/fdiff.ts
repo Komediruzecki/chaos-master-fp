@@ -158,6 +158,12 @@ function compareColors(a: LooseTransform, b: LooseTransform): number {
   return (simX + simY + simSpeed) / 3
 }
 
+/** Code-unit order: the same answer on every machine, for any two ids. */
+function compareIds(a: string, b: string): number {
+  if (a === b) return 0
+  return a < b ? -1 : 1
+}
+
 /**
  * Full transform diff — which transform in A corresponds to which in B.
  *
@@ -218,11 +224,16 @@ export function diffTransforms(
   // happened to return: the glide planner builds a structural union from this
   // pairing, so two runs that paired differently would produce two different
   // animations for the same pair of flames.
+  //
+  // Compared as strings rather than with `localeCompare`, which answers a
+  // different question — one whose answer depends on the default locale and
+  // the runtime's ICU data, and so differs between two machines replaying the
+  // same session. Transform ids are identifiers, not words.
   matrix.sort((a, b) => {
     if (b.sim !== a.sim) return b.sim - a.sim
-    const byA = entriesA[a.i]![0].localeCompare(entriesA[b.i]![0])
+    const byA = compareIds(entriesA[a.i]![0], entriesA[b.i]![0])
     if (byA !== 0) return byA
-    return entriesB[a.j]![0].localeCompare(entriesB[b.j]![0])
+    return compareIds(entriesB[a.j]![0], entriesB[b.j]![0])
   })
 
   const usedA = new Set<number>()
