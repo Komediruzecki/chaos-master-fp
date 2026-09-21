@@ -1,8 +1,9 @@
 import '@/commands/builtins'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { pilotLog, resetPilot, startPilot } from '@/arcade/pilot'
 import { clearPilotFocus, pilotFocus } from '@/arcade/pilotFocus'
 import { createGlideRuntime, setGlideEnabled, setGlideRuntime, } from '@/flame/glide/runtime'
+import { GLIDE_DEADLINE_SLACK_MS } from '@/flame/glide/types'
 import { cancelSessionRecording, startSessionRecording, stopSessionRecording, } from '@/recorder/recorder'
 import { deepClone } from '@/utils/clone'
 import { clearWebMcpContext, setWebMcpContext } from '@/webmcp/contextBridge'
@@ -265,14 +266,21 @@ describe('execute_command glides', () => {
     clearWebMcpContext()
   })
 
-  function mountRuntime(ctx: CommandContext) {
+  function mountRuntime(
+    ctx: CommandContext,
+    /** `stalledFrames`: a hidden tab, which never calls a frame back. */
+    options: { stalledFrames?: boolean } = {},
+  ) {
     let time = 0
     let pending: ((time: number) => void)[] = []
     const runtime = createGlideRuntime({
       readFlame: () => deepClone(ctx.flameDescriptor()),
-      writeFlame: () => {},
+      writeFlame: (next) => {
+        ctx.setFlameDescriptor(() => deepClone(next))
+      },
       now: () => time,
       requestFrame: (callback) => {
+        if (options.stalledFrames === true) return 0
         pending.push(callback)
         return pending.length
       },
@@ -302,10 +310,12 @@ describe('execute_command glides', () => {
       { commandId: 'flame.setGamma', args: [4], glideMs: 400 },
       {},
     )
-    // The document is already at the target; the glide plays over the top.
-    expect(ctx.flameDescriptor().renderSettings.gamma).toBe(4)
+    // The command has already landed; what the viewer sees is the glide
+    // playing over the top, which starts back at the gamma it came from.
     expect(world.runtime.isGliding()).toBe(true)
+    expect(ctx.flameDescriptor().renderSettings.gamma).toBe(2.2)
     world.advance(400)
+    expect(ctx.flameDescriptor().renderSettings.gamma).toBe(4)
     expect(await call).toEqual({ success: true, commandId: 'flame.setGamma' })
 
     const session = stopSessionRecording()
@@ -365,6 +375,50 @@ describe('execute_command glides', () => {
     // rather than holding an agent for four hundred milliseconds of stillness.
     expect(world.runtime.isGliding()).toBe(false)
     expect(ctx.flameDescriptor().renderSettings.gamma).toBe(unchanged)
+  })
+
+  it('returns on a deadline when the tab never animates, and says so', async () => {
+    vi.useFakeTimers()
+    try {
+      const ctx = createMockCommandContext()
+      setWebMcpContext(ctx)
+      // Our automation browser lives on a hidden Hyprland workspace, where
+      // Chrome stops running requestAnimationFrame entirely. That used to
+      // leave this call pending for as long as the tab stayed hidden.
+      const world = mountRuntime(ctx, { stalledFrames: true })
+
+      const call = executeCommandTool.execute(
+        { commandId: 'flame.setGamma', args: [4], glideMs: 400 },
+        {},
+      )
+      vi.advanceTimersByTime(400 + GLIDE_DEADLINE_SLACK_MS)
+      expect(world.runtime.isGliding()).toBe(false)
+      // Exactly the target, not the frame the stalled glide was left on.
+      expect(ctx.flameDescriptor().renderSettings.gamma).toBe(4)
+      expect(await call).toEqual({
+        success: true,
+        commandId: 'flame.setGamma',
+        glide: { completedBy: 'deadline' },
+      })
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('says nothing about the glide when the animation ran it', async () => {
+    const ctx = createMockCommandContext()
+    setWebMcpContext(ctx)
+    const world = mountRuntime(ctx)
+
+    const call = executeCommandTool.execute(
+      { commandId: 'flame.setGamma', args: [4], glideMs: 400 },
+      {},
+    )
+    world.advance(400)
+    expect(await call).toEqual({
+      success: true,
+      commandId: 'flame.setGamma',
+    })
   })
 
   it('offers the option in its schema so an agent can find it', () => {

@@ -12,7 +12,7 @@ import { focusForCommand } from '@/recorder/focus'
 import { NARRATION_COMMAND_ID } from '@/recorder/narrationMode'
 import { deepClone } from '@/utils/clone'
 import { getWebMcpContext } from '@/webmcp/contextBridge'
-import type { GlideOptions } from '@/flame/glide/types'
+import type { GlideOptions, GlideOutcome } from '@/flame/glide/types'
 import type { WebMcpTool } from '@/webmcp/types'
 
 /**
@@ -176,9 +176,14 @@ export const executeCommandTool: WebMcpTool = {
     // failed tool call, so it is swallowed exactly like `describe` is.
     // Awaited, and bounded by MAX_GLIDE_MS, so an agent firing twenty commands
     // does not stack twenty transitions on top of each other.
-    if (runtime !== undefined && glideFrom !== undefined) {
-      await runtime.glideFrom(glideFrom, glide ?? {})
-    }
+    // Bounded by the runtime's own wall-clock deadline as well as by
+    // MAX_GLIDE_MS: `requestAnimationFrame` does not run in a tab that is not
+    // visible, and an agent driving a hidden tab would otherwise hold this
+    // call until somebody looked at the browser again.
+    const outcome =
+      runtime !== undefined && glideFrom !== undefined
+        ? await runtime.glideFrom(glideFrom, glide ?? {})
+        : undefined
 
     let result: unknown
     try {
@@ -226,8 +231,24 @@ export const executeCommandTool: WebMcpTool = {
       }
     }
 
-    return { success: true, commandId, ...reported }
+    return { success: true, commandId, ...reported, ...glideReport(outcome) }
   },
+}
+
+/**
+ * What the caller is told about the transition, which is nothing at all in the
+ * ordinary case.
+ *
+ * Only a glide the DEADLINE landed is worth a word. The document is on exactly
+ * the target either way; this says nobody watched it get there, which is what
+ * a tab with no `requestAnimationFrame` looks like and what an agent composing
+ * a demo or a recording needs to know. The Arcade path never reaches it — a
+ * duel turns glides off outright, so there is no outcome to report.
+ */
+function glideReport(outcome: GlideOutcome | undefined) {
+  return outcome?.completedByDeadline === true
+    ? { glide: { completedBy: 'deadline' } }
+    : {}
 }
 
 /**

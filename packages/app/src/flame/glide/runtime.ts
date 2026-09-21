@@ -20,8 +20,8 @@ import { createSignal } from 'solid-js'
 import { planGlide } from './plan'
 import { resolveGlideQuality } from './quality'
 import { sampleGlide } from './sample'
-import { isGlideRefusal } from './types'
-import type { GlideOptions, GlidePlan, GlideQuality, GlideQualityPreference, } from './types'
+import { GLIDE_DEADLINE_SLACK_MS, isGlideRefusal } from './types'
+import type { GlideOptions, GlideOutcome, GlidePlan, GlideQuality, GlideQualityPreference, } from './types'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 
 /**
@@ -71,16 +71,22 @@ export type GlideRuntime = {
    * Callers take the returned flame as the next glide's starting point.
    */
   settleForNextChange: () => FlameDescriptor | undefined
-  /** Animate from `from` to whatever is in the store right now. */
+  /**
+   * Animate from `from` to whatever is in the store right now.
+   *
+   * Always settles within the glide's own duration plus
+   * `GLIDE_DEADLINE_SLACK_MS`, whatever the animation clock does, and the
+   * outcome says which clock got it there.
+   */
   glideFrom: (
     from: FlameDescriptor,
     options?: GlideOptions,
-  ) => Promise<GlidePlan | undefined>
+  ) => Promise<GlideOutcome | undefined>
   /** Animate from the store to `target`, landing exactly on `target`. */
   glideTo: (
     target: FlameDescriptor,
     options?: GlideOptions,
-  ) => Promise<GlidePlan | undefined>
+  ) => Promise<GlideOutcome | undefined>
   /** Stop and leave the document on the frame it reached. */
   cancel: () => void
   /** Stop and land on the settle now. */
@@ -91,7 +97,7 @@ export type GlideRuntime = {
 type ActiveGlide = {
   plan: GlidePlan
   startedAt: number
-  resolve: (plan: GlidePlan | undefined) => void
+  resolve: (outcome: GlideOutcome | undefined) => void
 }
 
 export function createGlideRuntime(deps: GlideRuntimeDeps): GlideRuntime {
@@ -107,20 +113,23 @@ export function createGlideRuntime(deps: GlideRuntimeDeps): GlideRuntime {
 
   const [active, setActive] = createSignal<ActiveGlide | undefined>()
   let frameHandle: number | undefined
+  let deadlineHandle: ReturnType<typeof setTimeout> | undefined
 
   function stopClock() {
     if (frameHandle !== undefined) cancelFrame(frameHandle)
     frameHandle = undefined
+    if (deadlineHandle !== undefined) clearTimeout(deadlineHandle)
+    deadlineHandle = undefined
   }
 
-  function release(landOnSettle: boolean) {
+  function release(landOnSettle: boolean, completedByDeadline = false) {
     const current = active()
     stopClock()
     setActive(undefined)
     deps.onQualityChange?.(undefined)
     if (!current) return
     if (landOnSettle) deps.writeFlame(current.plan.settle)
-    current.resolve(current.plan)
+    current.resolve({ plan: current.plan, completedByDeadline })
   }
 
   function tick() {
@@ -143,7 +152,7 @@ export function createGlideRuntime(deps: GlideRuntimeDeps): GlideRuntime {
     from: FlameDescriptor,
     to: FlameDescriptor,
     options: GlideOptions,
-  ): Promise<GlidePlan | undefined> {
+  ): Promise<GlideOutcome | undefined> {
     const planned = planGlide(from, to, {
       ...options,
       quality: options.quality ?? glideQualityPreference(),
@@ -157,13 +166,23 @@ export function createGlideRuntime(deps: GlideRuntimeDeps): GlideRuntime {
     }
     if (planned.durationMs <= 0 || planned.channels.length === 0) {
       deps.writeFlame(planned.settle)
-      return Promise.resolve(planned)
+      return Promise.resolve({ plan: planned, completedByDeadline: false })
     }
-    return new Promise<GlidePlan | undefined>((resolve) => {
+    return new Promise<GlideOutcome | undefined>((resolve) => {
       setActive({ plan: planned, startedAt: now(), resolve })
       deps.onQualityChange?.(planned.quality)
       deps.writeFlame(sampleGlide(planned, 0))
       frameHandle = requestFrame(tick)
+      // The wall clock, which a hidden tab still runs. rAF is the animation
+      // clock and Chrome simply stops calling it back when the tab is not
+      // visible, so without this a glide — and any caller awaiting it — waits
+      // for the viewer to come back to the tab. Landing on the settle is the
+      // right answer there: the document must reach the state the change
+      // asked for whether or not anyone watched it arrive.
+      deadlineHandle = setTimeout(() => {
+        deadlineHandle = undefined
+        release(true, true)
+      }, planned.durationMs + GLIDE_DEADLINE_SLACK_MS)
     })
   }
 

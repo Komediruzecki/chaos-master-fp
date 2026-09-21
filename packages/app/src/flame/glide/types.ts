@@ -132,6 +132,19 @@ export type GlidePlan = {
   notes: GlideNote[]
 }
 
+/**
+ * What a finished glide tells whoever asked for it.
+ *
+ * `completedByDeadline` is not an error: the document still lands on exactly
+ * `plan.settle`. It says the wall clock got it there because the animation
+ * clock never ran — which is what a hidden or throttled tab looks like, and
+ * the one case where an agent should not believe anybody watched the motion.
+ */
+export type GlideOutcome = {
+  plan: GlidePlan
+  completedByDeadline: boolean
+}
+
 export type GlideRefusal = { refused: true; reason: string }
 
 export function isGlideRefusal(
@@ -193,3 +206,13 @@ export function isGlideStepHint(value: unknown): value is GlideStepHint {
 export const MAX_GLIDE_MS = 5000
 /** Shortest glide worth planning; below this a change is better off snapping. */
 export const MIN_GLIDE_MS = 80
+/**
+ * How long past its own duration a glide waits before the wall clock lands it.
+ *
+ * `requestAnimationFrame` is the animation clock and a hidden tab does not run
+ * it at all, so a glide clocked by rAF alone can hang forever — and with it any
+ * caller awaiting the transition. Every glide therefore also carries a
+ * `setTimeout` deadline; this is the only slack it allows a healthy tab, which
+ * needs one frame (~17 ms at 60 Hz) past the end to notice it has arrived.
+ */
+export const GLIDE_DEADLINE_SLACK_MS = 250
