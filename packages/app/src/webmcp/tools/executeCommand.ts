@@ -149,14 +149,17 @@ export const executeCommandTool: WebMcpTool = {
     // wall-clock, so a pilot spending five seconds of it on animation would be
     // buying time rather than flying.
     const glide = resolveGlideRequest(rawInput, driving !== undefined)
-    const runtime = glide === undefined ? undefined : getGlideRuntime()
-    // Settle anything already in flight FIRST, so this command is applied to
-    // the settled document rather than to a frame of the last transition —
-    // and keep what the viewer can see, so the next one starts from there.
+    const runtime = getGlideRuntime()
+    // Settle anything already in flight FIRST, whether or not THIS call
+    // animates: a scripted command is a change, so the transition before it
+    // belongs to the change before it and must land on its own target rather
+    // than be cancelled halfway. `settleForNextChange` hands back what the
+    // viewer can see, so an animation that follows starts from there.
+    const visible = runtime?.settleForNextChange()
     const glideFrom =
-      runtime === undefined
+      glide === undefined
         ? undefined
-        : deepClone(runtime.settleForNextChange() ?? ctx.flameDescriptor())
+        : deepClone(visible ?? ctx.flameDescriptor())
 
     try {
       // Live dispatch: recorded by the session recorder, args normalised, and

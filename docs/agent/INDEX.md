@@ -30,7 +30,7 @@ file instead of rediscovering the architecture every session.
 
 | Directory                 | Package name                   | Source files | LOC    |
 | ------------------------- | ------------------------------ | ------------ | ------ |
-| `packages/app`            | `chaos-master`                 | 1071         | 181.6k |
+| `packages/app`            | `chaos-master`                 | 1071         | 181.7k |
 | `packages/landing`        | `@chaos-master/landing`        | 20           | 2.5k   |
 | `packages/core`           | `@chaos-master/core`           | 17           | 1.9k   |
 | `packages/mobile-runtime` | `@chaos-master/mobile-runtime` | 7            | 600    |
@@ -70,7 +70,7 @@ file instead of rediscovering the architecture every session.
 | --------------- | ----------------------------------------------------------------------- | ----- | --------------------- |
 | `variations`    | [index.ts](../../packages/app/src/flame/variations/parametric/index.ts) | 33.6k | _(no header comment)_ |
 | `examples`      | [index.ts](../../packages/app/src/flame/examples/index.ts)              | 12.7k | _(no header comment)_ |
-| `glide`         | [index.ts](../../packages/app/src/flame/glide/index.ts)                 | 2.6k  | _(no header comment)_ |
+| `glide`         | [index.ts](../../packages/app/src/flame/glide/index.ts)                 | 2.7k  | _(no header comment)_ |
 | `renderDrivers` | [index.ts](../../packages/app/src/flame/renderDrivers/index.ts)         | 400   | _(no header comment)_ |
 | `schema`        | [flameSchema.ts](../../packages/app/src/flame/schema/flameSchema.ts)    | 100   | _(no header comment)_ |
 | `variations3D`  | [index.ts](../../packages/app/src/flame/variations3D/index.ts)          | 50    | _(no header comment)_ |

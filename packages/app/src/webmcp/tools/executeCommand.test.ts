@@ -421,6 +421,33 @@ describe('execute_command glides', () => {
     })
   })
 
+  it('settles the transition in flight before the next command, always', async () => {
+    const ctx = createMockCommandContext()
+    setWebMcpContext(ctx)
+    const world = mountRuntime(ctx)
+
+    const first = executeCommandTool.execute(
+      { commandId: 'flame.setGamma', args: [4], glideMs: 400 },
+      {},
+    )
+    world.advance(200)
+    expect(world.runtime.isGliding()).toBe(true)
+
+    // A second command arriving mid-transition, asking for no glide of its
+    // own. The first change still has to land on ITS target before this one
+    // applies — a scripted step is a change, not a person editing what they
+    // can see, so the previous transition is completed rather than cancelled.
+    await executeCommandTool.execute(
+      { commandId: 'flame.setExposure', args: [0.9] },
+      {},
+    )
+    await first
+
+    expect(world.runtime.isGliding()).toBe(false)
+    expect(ctx.flameDescriptor().renderSettings.gamma).toBe(4)
+    expect(ctx.flameDescriptor().renderSettings.exposure).toBe(0.9)
+  })
+
   it('offers the option in its schema so an agent can find it', () => {
     const properties = (
       executeCommandTool.inputSchema as {

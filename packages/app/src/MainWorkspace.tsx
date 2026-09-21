@@ -85,7 +85,7 @@ import { example1 } from './flame/examples/example1'
 import { example34 } from './flame/examples/example34'
 import { initExample } from './flame/examples/initExample'
 import { initExample3D } from './flame/examples/initExample3D'
-import { createGlideRuntime, setGlideRuntime } from './flame/glide/runtime'
+import { createGlideRuntime, setGlideRuntime, yieldGlideToDocumentWrite, } from './flame/glide/runtime'
 import { newDefaultTransform } from './flame/newTransform'
 import { generateRandomFlame, mutateFlame, randomizeAllColors, randomRange, } from './flame/randomize'
 import { accumulatedPointCount, animationExportCancel, animationExportProgress, animationExportRunning, qualityPointCountLimit, setExportQuality, setForceAnimationExportNow, } from './flame/renderStats'
@@ -496,10 +496,19 @@ export function MainWorkspace(props: AppProps) {
     // session recorder listens to every pushed entry to flag edits that
     // bypassed the command registry (its coverage ratchet), and to the
     // gesture boundary so a drag records as one step rather than hundreds.
+    // A glide owns the document while it runs, and hands it back here: both
+    // hooks fire for a write that is not the runtime's own, and the first one
+    // takes the flame off the transition rather than being overwritten by it.
     {
       journal: true,
-      onEntryPushed: reportDocumentWrite,
-      onPreviewStarted: notePreviewStarted,
+      onEntryPushed: (description, fromPreview) => {
+        yieldGlideToDocumentWrite()
+        reportDocumentWrite(description, fromPreview)
+      },
+      onPreviewStarted: () => {
+        yieldGlideToDocumentWrite()
+        notePreviewStarted()
+      },
     },
   )
 

@@ -17,6 +17,7 @@
  */
 
 import { createSignal } from 'solid-js'
+import { isRecordingSuppressed } from '@/recorder/recorder'
 import { planGlide } from './plan'
 import { resolveGlideQuality } from './quality'
 import { sampleGlide } from './sample'
@@ -87,6 +88,16 @@ export type GlideRuntime = {
     target: FlameDescriptor,
     options?: GlideOptions,
   ) => Promise<GlideOutcome | undefined>
+  /**
+   * A write this runtime did not make has reached the document.
+   *
+   * Stop where we are and let it win: no settle, no jump to the target. A
+   * glide is presentation, and a person editing the flame they can see is not
+   * something to animate over — the frame on screen is the one they meant to
+   * change. Callers that ARE a change (a command, a replay step) settle first
+   * with `settleForNextChange` instead, and so never reach this.
+   */
+  noteForeignWrite: () => void
   /** Stop and leave the document on the frame it reached. */
   cancel: () => void
   /** Stop and land on the settle now. */
@@ -114,6 +125,19 @@ export function createGlideRuntime(deps: GlideRuntimeDeps): GlideRuntime {
   const [active, setActive] = createSignal<ActiveGlide | undefined>()
   let frameHandle: number | undefined
   let deadlineHandle: ReturnType<typeof setTimeout> | undefined
+  /** Depth, not a boolean: what makes `noteForeignWrite` mean FOREIGN. A host
+   *  that routes its writes through a hook that calls back here must not have
+   *  the runtime cancel itself on its own frames. */
+  let ownWriteDepth = 0
+
+  function writeFlame(flame: FlameDescriptor) {
+    ownWriteDepth++
+    try {
+      deps.writeFlame(flame)
+    } finally {
+      ownWriteDepth--
+    }
+  }
 
   function stopClock() {
     if (frameHandle !== undefined) cancelFrame(frameHandle)
@@ -128,7 +152,7 @@ export function createGlideRuntime(deps: GlideRuntimeDeps): GlideRuntime {
     setActive(undefined)
     deps.onQualityChange?.(undefined)
     if (!current) return
-    if (landOnSettle) deps.writeFlame(current.plan.settle)
+    if (landOnSettle) writeFlame(current.plan.settle)
     current.resolve({ plan: current.plan, completedByDeadline })
   }
 
@@ -144,7 +168,7 @@ export function createGlideRuntime(deps: GlideRuntimeDeps): GlideRuntime {
       release(true)
       return
     }
-    deps.writeFlame(sampleGlide(current.plan, t))
+    writeFlame(sampleGlide(current.plan, t))
     frameHandle = requestFrame(tick)
   }
 
@@ -161,17 +185,17 @@ export function createGlideRuntime(deps: GlideRuntimeDeps): GlideRuntime {
     if (isGlideRefusal(planned)) {
       // A refusal is not a failure to change the document: the change still
       // happens, it just happens at once.
-      deps.writeFlame(to)
+      writeFlame(to)
       return Promise.resolve(undefined)
     }
     if (planned.durationMs <= 0 || planned.channels.length === 0) {
-      deps.writeFlame(planned.settle)
+      writeFlame(planned.settle)
       return Promise.resolve({ plan: planned, completedByDeadline: false })
     }
     return new Promise<GlideOutcome | undefined>((resolve) => {
       setActive({ plan: planned, startedAt: now(), resolve })
       deps.onQualityChange?.(planned.quality)
-      deps.writeFlame(sampleGlide(planned, 0))
+      writeFlame(sampleGlide(planned, 0))
       frameHandle = requestFrame(tick)
       // The wall clock, which a hidden tab still runs. rAF is the animation
       // clock and Chrome simply stops calling it back when the tab is not
@@ -205,6 +229,13 @@ export function createGlideRuntime(deps: GlideRuntimeDeps): GlideRuntime {
     glideTo(target, options = {}) {
       return start(deps.readFlame(), target, options)
     },
+    noteForeignWrite() {
+      if (ownWriteDepth > 0) return
+      // `release(false)`, not `finish()`: the document stays on the frame the
+      // write was made to. Landing on the settle here would apply the edit and
+      // then move the flame out from under it.
+      release(false)
+    },
     cancel: () => {
       release(false)
     },
@@ -230,6 +261,25 @@ export function setGlideRuntime(runtime: GlideRuntime | undefined): void {
 
 export function getGlideRuntime(): GlideRuntime | undefined {
   return current
+}
+
+/**
+ * Hand the document back to whoever is writing it right now.
+ *
+ * Wired to the flame history's own hooks — a gesture opening, an entry
+ * landing — so a slider drag or a button press during a transition takes the
+ * flame off the glide instead of being overwritten frame by frame and then
+ * replaced by the settle.
+ *
+ * Machinery is exempt, and the recorder already answers "was a person behind
+ * this write": the replay player commits its batch inside
+ * `withRecordingSuppressed`, and that commit can land while the last step's
+ * transition is still moving. Cancelling there would freeze a replay on a
+ * half-finished frame.
+ */
+export function yieldGlideToDocumentWrite(): void {
+  if (isRecordingSuppressed()) return
+  current?.noteForeignWrite()
 }
 
 /** The tier a caller would get right now, without planning anything. */
