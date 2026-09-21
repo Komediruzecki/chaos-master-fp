@@ -47,6 +47,23 @@ export type GlideRuntimeDeps = {
   writeFlame: (flame: FlameDescriptor) => void
   /** The workspace's quality preset key, for `quality: 'auto'`. */
   qualityPreset?: () => string
+  /**
+   * Identify the document's newest history entry, called as a transition
+   * starts. A transition that follows a document change is presenting that
+   * entry, and this is how a cut-short one says WHICH entry it was showing.
+   */
+  markDocumentEntry?: () => number | null
+  /**
+   * The transition was cut short and the document is staying on the frame it
+   * reached, so the entry it was presenting has to end there instead of on
+   * `recordedEnd` — otherwise undo is exact only by luck and redo puts the
+   * viewer on a flame they interrupted to avoid. The host decides whether the
+   * marked entry is still the one to rewrite.
+   */
+  amendDocumentEntry?: (
+    mark: number | null,
+    recordedEnd: FlameDescriptor,
+  ) => void
   /** Told the tier while a glide runs, and `undefined` once it settles. */
   onQualityChange?: (quality: GlideQuality | undefined) => void
   now?: () => number
@@ -108,6 +125,8 @@ export type GlideRuntime = {
 type ActiveGlide = {
   plan: GlidePlan
   startedAt: number
+  /** The document's newest history entry when this started. */
+  mark: number | null
   resolve: (outcome: GlideOutcome | undefined) => void
 }
 
@@ -193,7 +212,12 @@ export function createGlideRuntime(deps: GlideRuntimeDeps): GlideRuntime {
       return Promise.resolve({ plan: planned, completedByDeadline: false })
     }
     return new Promise<GlideOutcome | undefined>((resolve) => {
-      setActive({ plan: planned, startedAt: now(), resolve })
+      setActive({
+        plan: planned,
+        startedAt: now(),
+        mark: deps.markDocumentEntry?.() ?? null,
+        resolve,
+      })
       deps.onQualityChange?.(planned.quality)
       writeFlame(sampleGlide(planned, 0))
       frameHandle = requestFrame(tick)
@@ -231,6 +255,13 @@ export function createGlideRuntime(deps: GlideRuntimeDeps): GlideRuntime {
     },
     noteForeignWrite() {
       if (ownWriteDepth > 0) return
+      const current = active()
+      if (current) {
+        // The document is staying here, so the entry that was being presented
+        // has to say so — before the write that interrupted it lands, which is
+        // why the host calls this from its before-write hook.
+        deps.amendDocumentEntry?.(current.mark, current.plan.settle)
+      }
       // `release(false)`, not `finish()`: the document stays on the frame the
       // write was made to. Landing on the settle here would apply the edit and
       // then move the flame out from under it.

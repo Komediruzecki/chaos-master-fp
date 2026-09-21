@@ -88,6 +88,11 @@ export type ChangeHistory<T> = {
     owner: HistoryPreviewOwner,
     options?: HistoryCommitOptions,
   ) => boolean
+  /** Rewrite the newest entry to end on the store's current value instead of
+   *  `recordedEnd`, for a change that was presented as a transition and cut
+   *  short. `mark` is the `peekUndoSeq()` taken when that transition started;
+   *  false when the entry is no longer that one, or never ended there. */
+  readonly amendNewestEntry: (mark: number | null, recordedEnd: T) => boolean
   /** Journal stamp of the entry the next undo/redo would apply (null: none).
    *  Used by the cross-system undo router; always null when not journaled. */
   readonly peekUndoSeq: () => number | null
@@ -123,6 +128,13 @@ type CreateStoreHistoryOptions = {
   /** Called when a gesture opens (`startPreview`). Bounds the window in which
    *  the recorder coalesces a drag's repeated commands into one action. */
   onPreviewStarted?: () => void
+  /** Called immediately BEFORE an ordinary edit writes the store (`set`,
+   *  `replace`), while it still holds the frame the viewer can see and the
+   *  stack still ends on the entry that edit is being made against. Anything
+   *  that has to hand the document back — a transition writing interpolated
+   *  frames through `replaceSilently` — does it here, because afterwards the
+   *  edit's own entry is on top and the transition's is not. */
+  onBeforeDocumentWrite?: () => void
   /** Called immediately BEFORE an undo or a redo patches the store, and only
    *  when one is really about to happen. The entry being applied was recorded
    *  against the state its own patches end on, so anything presenting the
@@ -138,6 +150,7 @@ export function createStoreHistory<T extends object>(
     journal = false,
     onEntryPushed,
     onPreviewStarted,
+    onBeforeDocumentWrite,
     onBeforeTimeTravel,
   }: CreateStoreHistoryOptions = {},
 ) {
@@ -324,6 +337,7 @@ export function createStoreHistory<T extends object>(
   }
 
   const set: HistorySetter<T> = (setFn, description) => {
+    onBeforeDocumentWrite?.()
     relinquishOwnedPreview()
     // Run the mutation callback exactly ONCE. produceWithPatches yields both
     // the resulting state and the patches; the store is then updated by
@@ -452,6 +466,7 @@ export function createStoreHistory<T extends object>(
   }
 
   function replace(value: T, description?: string) {
+    onBeforeDocumentWrite?.()
     relinquishOwnedPreview()
     batch(() => {
       const [_, forwardPatches, backwardPatches] = produceWithPatches(
@@ -461,6 +476,66 @@ export function createStoreHistory<T extends object>(
       setStore(reconcile(value))
       addToStack({ forwardPatches, backwardPatches, description })
     })
+  }
+
+  /**
+   * Rewrite the newest entry so that it ends where the document actually is.
+   *
+   * For a change that was presented as a transition and cut short: the entry
+   * says "before -> target" while the document stopped on an intermediate
+   * frame. Left alone, undo is exact only by luck and redo puts the viewer on
+   * the target — a flame they interrupted precisely because they did not want
+   * it. Amended, both directions land on states that were really on screen.
+   *
+   * Nothing is pushed, so the recorder never sees a transition as an edit, and
+   * the entry keeps its description, its effects and its journal stamp: it is
+   * the same action, it just ended sooner than it meant to.
+   *
+   * `recordedEnd` is the state the entry was recorded as ending on. The stack
+   * holds patches and never snapshots, so it is the only way back to the state
+   * the entry started from — and going back through the entry's own backward
+   * patches is exact, because the pair are inverses by construction.
+   *
+   * Refused unless the newest entry is still the one `mark` was taken from, no
+   * gesture or replay transaction owns the document, and that entry really
+   * does end where the caller says: a transition with no entry behind it must
+   * not rewrite somebody else's.
+   */
+  function amendNewestEntry(mark: number | null, recordedEnd: T): boolean {
+    if (mark === null || preview() !== undefined) return false
+    const i = stackIndex()
+    const item = stack()[i]
+    if (!item || i !== stack().length - 1 || item.seq !== mark) return false
+
+    const end = deepClone(recordedEnd)
+    const before = (applyPatchesMutatively(end, item.backwardPatches) ??
+      end) as T
+    // Does this entry really end where the caller says? Taking it backwards
+    // and forwards again must land back on `recordedEnd`. It is a consistency
+    // check rather than a proof — an entry whose forward values happen to
+    // agree passes it — but it does refuse the case that matters, a
+    // transition with no entry of its own trying to rewrite somebody else's.
+    // A false refusal only leaves the entry as it is, which is where it was.
+    const roundTrip = applyPatchesMutatively(
+      deepClone(before) as object,
+      item.forwardPatches,
+    )
+    if (JSON.stringify(roundTrip) !== JSON.stringify(recordedEnd)) return false
+
+    const [, forwardPatches, backwardPatches] = produceWithPatches(
+      deepClone(before),
+      () => deepClone(unwrap(store)),
+    )
+    const amended: HistoryItem = {
+      ...item,
+      forwardPatches: deepClone(compressPatches(forwardPatches)),
+      backwardPatches: deepClone(compressPatches(backwardPatches)),
+    }
+    setStack((p) => {
+      p.splice(i, 1, amended)
+      return p
+    })
+    return true
   }
 
   function wrapIntoUndoing(fn: () => void) {
@@ -492,6 +567,7 @@ export function createStoreHistory<T extends object>(
       commit,
       commitOwnedPreview,
       replace,
+      amendNewestEntry,
       peekUndoSeq,
       peekRedoSeq,
       setSilently,

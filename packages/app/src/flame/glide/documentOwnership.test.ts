@@ -39,9 +39,10 @@ function workspace(start: FlameDescriptor) {
     createStore<FlameDescriptor>(deepClone(start)),
     {
       journal: true,
-      // Exactly what MainWorkspace passes, minus the recorder's own reporter.
-      onEntryPushed: yieldGlideToDocumentWrite,
+      // Exactly what MainWorkspace passes, minus the recorder's own reporter
+      // (which is all `onEntryPushed` carries there).
       onPreviewStarted: yieldGlideToDocumentWrite,
+      onBeforeDocumentWrite: yieldGlideToDocumentWrite,
       onBeforeTimeTravel: settleGlideBeforeTimeTravel,
     },
   )
@@ -51,6 +52,10 @@ function workspace(start: FlameDescriptor) {
     readFlame: () => deepClone(flame),
     writeFlame: (next) => {
       history.replaceSilently(next)
+    },
+    markDocumentEntry: () => history.peekUndoSeq(),
+    amendDocumentEntry: (mark, recordedEnd) => {
+      history.amendNewestEntry(mark, recordedEnd)
     },
     now: () => time,
     requestFrame: (callback) => {
@@ -174,6 +179,200 @@ describe('a document write that arrives mid-glide', () => {
   })
 })
 
+/**
+ * The whole undo walk after a transition was cut short.
+ *
+ * One undo restoring the interrupted frame is not enough on its own: the
+ * entries under it were recorded against states the document never reached, so
+ * every step of the walk has to be checked against the flame it claims to
+ * restore — exactly, because "close enough" in a document means a flame the
+ * person did not ask for.
+ */
+describe('the history walk after an interrupted transition', () => {
+  const START = makeFlame({
+    transforms: { one: { probability: 1, preAffine: { c: 0 } } },
+    renderSettings: { gamma: 2 },
+  })
+  /** Scalar and affine only: the two documents have the same shape. */
+  const MOVED = makeFlame({
+    transforms: { one: { probability: 1, preAffine: { c: 4 } } },
+    renderSettings: { gamma: 3 },
+  })
+  /** Structural: a transform the other side does not have at all, which the
+   *  planner carries as a union member rising from probability zero. */
+  const GREW = makeFlame({
+    transforms: {
+      one: { probability: 0.5, preAffine: { c: 4 } },
+      two: { probability: 0.5, preAffine: { c: -2 } },
+    },
+    renderSettings: { gamma: 3 },
+  })
+
+  function interruptedWalk(second: FlameDescriptor) {
+    const world = workspace(START)
+    // E1 and E2, the two entries the walk unwinds.
+    world.history.replace(deepClone(START), 'First')
+    const first = deepClone(world.flame)
+    world.history.replace(deepClone(second), 'Second')
+
+    // E2 is presented as a transition, and interrupted half way through it.
+    void world.runtime.glideFrom(first, { durationMs: 400 })
+    world.advance(200)
+    const interrupted = deepClone(world.flame)
+    expect(world.runtime.isGliding()).toBe(true)
+
+    // E3: the edit that cut it short, made on the frame that was on screen.
+    world.setFlame((draft) => {
+      draft.renderSettings.gamma = 1.25
+    }, 'Third')
+    world.advance(400)
+    const edited = deepClone(world.flame)
+    expect(world.runtime.isGliding()).toBe(false)
+
+    return { world, first, interrupted, edited }
+  }
+
+  it('walks back and forward through a scalar transition, exactly', () => {
+    createRoot((dispose) => {
+      const { world, first, interrupted, edited } = interruptedWalk(MOVED)
+
+      world.history.undo()
+      expect(world.flame).toEqual(interrupted)
+      world.history.undo()
+      expect(world.flame).toEqual(first)
+
+      world.history.redo()
+      expect(world.flame).toEqual(interrupted)
+      world.history.redo()
+      expect(world.flame).toEqual(edited)
+
+      world.dispose()
+      dispose()
+    })
+  })
+
+  it('walks back and forward through a structural transition, exactly', () => {
+    createRoot((dispose) => {
+      const { world, first, interrupted, edited } = interruptedWalk(GREW)
+
+      world.history.undo()
+      expect(world.flame).toEqual(interrupted)
+      world.history.undo()
+      expect(world.flame).toEqual(first)
+
+      world.history.redo()
+      expect(world.flame).toEqual(interrupted)
+      world.history.redo()
+      expect(world.flame).toEqual(edited)
+
+      world.dispose()
+      dispose()
+    })
+  })
+
+  it('refuses an entry that does not end where the transition was heading', () => {
+    createRoot((dispose) => {
+      const world = workspace(START)
+      // Narrow patches, from `set` rather than a whole-document replace: an
+      // entry like this rewritten against a document it never produced would
+      // take the difference with it, which is why the refusal matters.
+      world.setFlame((draft) => {
+        draft.renderSettings.gamma = MOVED.renderSettings.gamma
+        for (const transform of Object.values(draft.transforms)) {
+          transform.preAffine.c = 4
+        }
+      }, 'Someone else')
+      const seq = world.history.peekUndoSeq()
+
+      // The state a transition with no entry of its own would be heading for:
+      // a different shape, which this entry never produced and must not be
+      // made to claim.
+      const elsewhere = makeFlame({
+        transforms: {
+          one: { probability: 0.5, preAffine: { c: 9 } },
+          two: { probability: 0.5, preAffine: { c: -7 } },
+        },
+        renderSettings: { gamma: 5 },
+      })
+      world.history.replaceSilently(deepClone(elsewhere))
+
+      expect(world.history.amendNewestEntry(seq, elsewhere)).toBe(false)
+
+      world.dispose()
+      dispose()
+    })
+  })
+
+  it('refuses while a replay transaction owns the document', () => {
+    createRoot((dispose) => {
+      const world = workspace(START)
+      world.history.replace(deepClone(MOVED), 'A step')
+      const seq = world.history.peekUndoSeq()
+
+      // Replay holds its batch open across the step it is playing, and its
+      // own writes are not somebody interrupting a transition.
+      world.history.startOwnedPreview('Replay batch', () => {})
+      expect(world.history.amendNewestEntry(seq, deepClone(MOVED))).toBe(false)
+
+      world.dispose()
+      dispose()
+    })
+  })
+
+  it('refuses an entry that has a redo stacked on it', () => {
+    createRoot((dispose) => {
+      const world = workspace(START)
+      world.history.replace(deepClone(MOVED), 'A step')
+      world.history.replace(deepClone(GREW), 'A shape change')
+      // Back onto the first step, with the second waiting in the redos. Its
+      // forward patches were computed against this entry's end, so rewriting
+      // that end would leave the redo describing a document that no longer
+      // exists.
+      world.history.undo()
+
+      expect(
+        world.history.amendNewestEntry(
+          world.history.peekUndoSeq(),
+          deepClone(MOVED),
+        ),
+      ).toBe(false)
+
+      world.dispose()
+      dispose()
+    })
+  })
+
+  it('refuses when the entry it marked has been replaced', () => {
+    createRoot((dispose) => {
+      const world = workspace(START)
+      world.history.replace(deepClone(MOVED), 'A step')
+      world.history.replace(deepClone(GREW), 'A shape change')
+      const seq = world.history.peekUndoSeq()
+      world.history.undo()
+      // Undone and then written over: a different action, which the stamp is
+      // the only thing that can tell apart from the one that was marked,
+      // because it happens to end in the same place.
+      world.history.replace(deepClone(GREW), 'Another road to the same flame')
+
+      expect(world.history.amendNewestEntry(seq, deepClone(GREW))).toBe(false)
+
+      world.dispose()
+      dispose()
+    })
+  })
+})
+
+/**
+ * Undo and redo, while a transition is running.
+ *
+ * Time travel is a change like any other, so it settles first: the entry the
+ * stack is about to unwind was recorded as ending on the settle, and a
+ * backward patch applied to a half-interpolated frame is only as exact as the
+ * patch model. Cancelling in place instead would leave the document on a frame
+ * no entry describes; leaving the transition running would be worse still —
+ * the next frame writes over the undone document and the settle then lands the
+ * undone entry's state while the stack says otherwise.
+ */
 describe('time travel while a transition is running', () => {
   afterEach(() => {
     vi.useRealTimers()

@@ -501,14 +501,15 @@ export function MainWorkspace(props: AppProps) {
     // takes the flame off the transition rather than being overwritten by it.
     {
       journal: true,
-      onEntryPushed: (description, fromPreview) => {
-        yieldGlideToDocumentWrite()
-        reportDocumentWrite(description, fromPreview)
-      },
+      onEntryPushed: reportDocumentWrite,
       onPreviewStarted: () => {
         yieldGlideToDocumentWrite()
         notePreviewStarted()
       },
+      // Before the write, not after it: the transition's own entry is still
+      // the newest one here, and it is the one that has to end where the
+      // document is about to stop.
+      onBeforeDocumentWrite: yieldGlideToDocumentWrite,
       // Time travel is a change too, and one computed from the entry's own end
       // state, so it lands the transition instead of taking it off.
       onBeforeTimeTravel: settleGlideBeforeTimeTravel,
@@ -577,6 +578,10 @@ export function MainWorkspace(props: AppProps) {
       history.replaceSilently(flame)
     },
     qualityPreset: () => qualityPreset(),
+    markDocumentEntry: () => history.peekUndoSeq(),
+    amendDocumentEntry: (mark, recordedEnd) => {
+      history.amendNewestEntry(mark, recordedEnd)
+    },
   })
   setGlideRuntime(glideRuntime)
   onCleanup(() => {
