@@ -61,6 +61,11 @@ const APP = join(ROOT, 'packages/app')
  * A config that decides what runs is the last change that should be scoped,
  * so the rule lives here instead of depending on an upstream glob that is
  * already wrong in one of its two halves.
+ *
+ * The scoper counts as harness. This file, the list it reads and the workflow
+ * that calls it all decide what runs, so a branch touching one of them has to
+ * prove itself against the whole suite -- otherwise a change to the selection
+ * logic would be validated by the very selection it changed.
  */
 const FULL_RUN_TRIGGERS = [
   /(^|\/)(vite|vitest)\.config\.[^/]+$/,
@@ -68,6 +73,9 @@ const FULL_RUN_TRIGGERS = [
   /(^|\/)pnpm-lock\.yaml$/,
   /(^|\/)tsconfig[^/]*\.json$/,
   /(^|\/)vitest\.setup\.[^/]+$/,
+  /(^|\/)scripts\/test-changed\.mjs$/,
+  /(^|\/)scripts\/always-on-tests\.mjs$/,
+  /(^|\/)\.github\/workflows\/node\.js\.yml$/,
 ]
 
 function git(args) {
