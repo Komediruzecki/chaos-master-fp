@@ -334,6 +334,26 @@ export function settleGlideBeforeTimeTravel(): void {
   current?.finish()
 }
 
+/**
+ * Land a transition when an Arcade session ends.
+ *
+ * Teach, Cinema and Beats animate a scripted change, and `execute_command`
+ * awaits the transition it started. A viewer who presses Stop in the middle of
+ * one leaves nothing to end it but the runtime's own wall-clock deadline, so
+ * the flame would go on moving for up to its remaining duration after the take
+ * was over, at the downshifted tier.
+ *
+ * It settles rather than cancelling in place, for the reason an undo does: the
+ * agent's change was a change, and the document belongs on the flame it asked
+ * for. Cancelling would leave the take ending on a frame that is no state
+ * anyone chose. Settling an already-settled runtime does nothing, so the call
+ * is unconditional, and a duel — which never glides — simply finds nothing in
+ * flight.
+ */
+export function settleGlideOnArcadeEnd(): void {
+  current?.finish()
+}
+
 /** The tier a caller would get right now, without planning anything. */
 export function currentGlideQuality(qualityPreset?: string): GlideQuality {
   return resolveGlideQuality(glideQualityPreference(), qualityPreset)
