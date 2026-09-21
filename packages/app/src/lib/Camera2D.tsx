@@ -68,8 +68,15 @@ export const camera2DPixelRatio = tgpu.fn(
 type Camera2DProps = {
   position: v2f
   zoom: number
-  /** Radians; 0 for the callers that never turn the view (thumbnails, probes). */
-  rotation?: number
+  /**
+   * Radians. Required, and deliberately not defaulted: rotation reaches the
+   * renderer through this prop and nowhere else, so a mount that omits it
+   * renders the flame un-turned while an export of the same flame turns. A
+   * view of its own — a thumbnail framed by the component, an editor's grid —
+   * passes a literal 0 and says so; a mount that frames a flame with the
+   * flame's own camera passes `camera.rotation ?? 0`.
+   */
+  rotation: number
 }
 
 export function Camera2D(props: ParentProps<Camera2DProps>) {
@@ -88,14 +95,14 @@ export function Camera2D(props: ParentProps<Camera2DProps>) {
   const uniforms = createMemo(() => {
     const size = canvasSize()
     const { width, height } = size
-    const { position, zoom } = props
+    const { position, zoom, rotation: rawRotation } = props
     const rawX = position?.x
     const rawY = position?.y
     const x = Number.isFinite(rawX) ? rawX : 0
     const y = Number.isFinite(rawY) ? rawY : 0
     const safeZoom = Number.isFinite(zoom) && zoom > 0 ? zoom : 1
     const aspect = height > 0 ? width / height : 1
-    const rotation = props.rotation ?? 0
+    const rotation = Number.isFinite(rawRotation) ? rawRotation : 0
     const viewMatrix = camera2DViewMatrix({
       x,
       y,
