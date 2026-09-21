@@ -85,7 +85,7 @@ import { example1 } from './flame/examples/example1'
 import { example34 } from './flame/examples/example34'
 import { initExample } from './flame/examples/initExample'
 import { initExample3D } from './flame/examples/initExample3D'
-import { createGlideRuntime, setGlideRuntime, yieldGlideToDocumentWrite, } from './flame/glide/runtime'
+import { createGlideRuntime, setGlideRuntime, settleGlideBeforeTimeTravel, yieldGlideToDocumentWrite, } from './flame/glide/runtime'
 import { newDefaultTransform } from './flame/newTransform'
 import { generateRandomFlame, mutateFlame, randomizeAllColors, randomRange, } from './flame/randomize'
 import { accumulatedPointCount, animationExportCancel, animationExportProgress, animationExportRunning, qualityPointCountLimit, setExportQuality, setForceAnimationExportNow, } from './flame/renderStats'
@@ -509,6 +509,9 @@ export function MainWorkspace(props: AppProps) {
         yieldGlideToDocumentWrite()
         notePreviewStarted()
       },
+      // Time travel is a change too, and one computed from the entry's own end
+      // state, so it lands the transition instead of taking it off.
+      onBeforeTimeTravel: settleGlideBeforeTimeTravel,
     },
   )
 

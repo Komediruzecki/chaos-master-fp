@@ -12,12 +12,15 @@
 // reach a different hook. The wiring below is the workspace's wiring.
 import { createRoot } from 'solid-js'
 import { createStore } from 'solid-js/store'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { deepClone } from '@/utils/clone'
 import { createStoreHistory } from '@/utils/createStoreHistory'
-import { createGlideRuntime, setGlideRuntime, yieldGlideToDocumentWrite, } from './runtime'
+import { createUndoRouter } from '@/utils/undoRouting'
+import { createGlideRuntime, setGlideRuntime, settleGlideBeforeTimeTravel, yieldGlideToDocumentWrite, } from './runtime'
 import { makeFlame } from './testUtils'
+import { GLIDE_DEADLINE_SLACK_MS } from './types'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
+import type { TimelineState } from '@/utils/timeline'
 
 const A = makeFlame({
   transforms: { one: { probability: 1, preAffine: { c: 0 } } },
@@ -39,6 +42,7 @@ function workspace(start: FlameDescriptor) {
       // Exactly what MainWorkspace passes, minus the recorder's own reporter.
       onEntryPushed: yieldGlideToDocumentWrite,
       onPreviewStarted: yieldGlideToDocumentWrite,
+      onBeforeTimeTravel: settleGlideBeforeTimeTravel,
     },
   )
   let time = 0
@@ -163,6 +167,127 @@ describe('a document write that arrives mid-glide', () => {
       world.advance(200)
       // Ran to its own end and landed on exactly the target.
       expect(world.flame).toEqual(B)
+
+      world.dispose()
+      dispose()
+    })
+  })
+})
+
+describe('time travel while a transition is running', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('settles before an undo, so the undo lands exactly on the old flame', () => {
+    createRoot((dispose) => {
+      const world = workspace(A)
+      world.history.replace(deepClone(B), 'Set gamma')
+      void world.runtime.glideFrom(A, { durationMs: 400 })
+      world.advance(200)
+      expect(world.runtime.isGliding()).toBe(true)
+
+      world.history.undo()
+
+      expect(world.runtime.isGliding()).toBe(false)
+      expect(world.flame).toEqual(A)
+      // And nothing arrives afterwards to move it off what undo restored.
+      world.advance(400)
+      expect(world.flame).toEqual(A)
+
+      world.dispose()
+      dispose()
+    })
+  })
+
+  it('settles before a redo, so the redo lands exactly on the new flame', () => {
+    createRoot((dispose) => {
+      const world = workspace(A)
+      world.history.replace(deepClone(B), 'Set gamma')
+      world.history.undo()
+      // The undo itself animated: a transition from what was on screen back to
+      // the restored document, still running when redo is pressed.
+      void world.runtime.glideFrom(B, { durationMs: 400 })
+      world.advance(200)
+      expect(world.runtime.isGliding()).toBe(true)
+
+      world.history.redo()
+
+      expect(world.runtime.isGliding()).toBe(false)
+      expect(world.flame).toEqual(B)
+      world.advance(400)
+      expect(world.flame).toEqual(B)
+
+      world.dispose()
+      dispose()
+    })
+  })
+
+  it('takes the deadline with it, in a tab that never animated', () => {
+    vi.useFakeTimers()
+    createRoot((dispose) => {
+      const world = workspace(A)
+      world.history.replace(deepClone(B), 'Set gamma')
+      // Not one frame: only the wall-clock deadline is pending.
+      void world.runtime.glideFrom(A, { durationMs: 400 })
+
+      world.history.undo()
+      expect(world.flame).toEqual(A)
+
+      vi.advanceTimersByTime(400 + GLIDE_DEADLINE_SLACK_MS + 50)
+      expect(world.flame).toEqual(A)
+
+      world.dispose()
+      dispose()
+    })
+  })
+
+  it('leaves the transition alone when there is nothing to undo', () => {
+    createRoot((dispose) => {
+      const world = workspace(A)
+      // Silent, so the stack stays empty: the keystroke reaches the history
+      // and finds no entry to apply. A time travel that does not happen is no
+      // reason to end what is on screen.
+      world.history.replaceSilently(deepClone(B))
+      void world.runtime.glideFrom(A, { durationMs: 400 })
+      world.advance(200)
+
+      world.history.undo()
+      world.history.redo()
+
+      expect(world.runtime.isGliding()).toBe(true)
+      expect(gammaOf(world.flame)).toBeLessThan(4)
+
+      world.dispose()
+      dispose()
+    })
+  })
+
+  it('leaves the transition alone when the undo belongs to the timeline', () => {
+    createRoot((dispose) => {
+      const world = workspace(A)
+      world.history.replace(deepClone(B), 'Set gamma')
+      void world.runtime.glideFrom(A, { durationMs: 400 })
+      world.advance(200)
+
+      let timelineUndos = 0
+      const timeline = {
+        timelineUndo: () => {
+          timelineUndos++
+        },
+        timelineRedo: () => {},
+        hasTimelineUndo: () => true,
+        hasTimelineRedo: () => false,
+        // More recent than anything the flame history holds, so the router
+        // sends this undo to the timeline and the flame is not involved.
+        peekUndoSeq: () => Number.MAX_SAFE_INTEGER,
+        peekRedoSeq: () => null,
+      } as unknown as TimelineState
+      const router = createUndoRouter(world.history, timeline)
+
+      expect(router.undoLast()).toBe(true)
+      expect(timelineUndos).toBe(1)
+      expect(world.runtime.isGliding()).toBe(true)
 
       world.dispose()
       dispose()

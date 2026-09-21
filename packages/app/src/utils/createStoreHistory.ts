@@ -123,6 +123,13 @@ type CreateStoreHistoryOptions = {
   /** Called when a gesture opens (`startPreview`). Bounds the window in which
    *  the recorder coalesces a drag's repeated commands into one action. */
   onPreviewStarted?: () => void
+  /** Called immediately BEFORE an undo or a redo patches the store, and only
+   *  when one is really about to happen. The entry being applied was recorded
+   *  against the state its own patches end on, so anything presenting the
+   *  document as something else — a transition writing interpolated frames
+   *  through `replaceSilently` — has to land before the patch is computed, or
+   *  time travel is applied to a state no entry describes. */
+  onBeforeTimeTravel?: () => void
 }
 
 export function createStoreHistory<T extends object>(
@@ -131,6 +138,7 @@ export function createStoreHistory<T extends object>(
     journal = false,
     onEntryPushed,
     onPreviewStarted,
+    onBeforeTimeTravel,
   }: CreateStoreHistoryOptions = {},
 ) {
   const [stackIndex, setStackIndex] = createSignal(-1)
@@ -227,6 +235,9 @@ export function createStoreHistory<T extends object>(
       console.warn('Nothing to undo')
       return
     }
+    // Before the store is read, never after: the callback may write the very
+    // state this patch is computed against.
+    onBeforeTimeTravel?.()
     const { backwardPatches } = item
     // Apply patches to a plain object copy, then reconcile into the store.
     // Using produce + applyPatchesMutatively doesn't truly remove deleted keys
@@ -255,6 +266,7 @@ export function createStoreHistory<T extends object>(
       console.warn('Nothing to redo')
       return
     }
+    onBeforeTimeTravel?.()
     const { forwardPatches } = item
     const plain = deepClone(store)
     const result = applyPatchesMutatively(plain, forwardPatches)

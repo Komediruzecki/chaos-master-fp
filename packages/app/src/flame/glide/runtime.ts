@@ -282,6 +282,27 @@ export function yieldGlideToDocumentWrite(): void {
   current?.noteForeignWrite()
 }
 
+/**
+ * Land a transition before the document time-travels.
+ *
+ * Wired to the flame history's `onBeforeTimeTravel`, so undo and redo reach it
+ * however they were triggered — the keyboard router, the toolbar command, the
+ * agent's tool — rather than each call site remembering to ask.
+ *
+ * It settles rather than cancelling in place, which is the opposite of what a
+ * person's edit does, and for the opposite reason: an edit is made to the
+ * frame on screen, while an undo is computed from the entry's own end state.
+ * Applying a backward patch to a half-interpolated frame is only as exact as
+ * the patch model, so the document is put back on the state the entry recorded
+ * before the patch is taken.
+ *
+ * Deliberately not exempt while recording is suppressed: a replayed undo wants
+ * the same exactness, and settling an already-settled runtime does nothing.
+ */
+export function settleGlideBeforeTimeTravel(): void {
+  current?.finish()
+}
+
 /** The tier a caller would get right now, without planning anything. */
 export function currentGlideQuality(qualityPreset?: string): GlideQuality {
   return resolveGlideQuality(glideQualityPreference(), qualityPreset)
