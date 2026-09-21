@@ -80,15 +80,26 @@ No tool writes `ctx.setFlameDescriptor` or `ctx.timeline.setTracks` directly.
 transition into the change; neither reaches the recorded step, because a
 session says what the person did, not how long it took to appear. An explicit
 `glideMs: 0` turns a glide off for one call even with the workspace's Animate
-Changes setting on, and a duel turns them off outright, because its clock is
-wall-clock and an agent could otherwise buy time with animation.
+Changes setting on.
+
+**In the Arcade, only a duel turns them off.** Teach, Cinema and Beats animate
+like anywhere else — they are presentations, and a change the viewer is meant
+to watch is what a transition is for. A duel refuses for two reasons: its clock
+is wall-clock, so an agent could buy time with animation, and it points the
+tool bridge at the rival's seat while the only glide runtime belongs to the
+player's workspace, so a transition asked for there would move the viewer's own
+flame. A mode's allow-list, its step budget and the duel clock are all answered
+before the glide is resolved, so a transition can only ever present a change
+the lock already let through; and ending a session lands whatever is in flight,
+so a take never stops part-way through one.
 
 The call awaits the transition, bounded by the glide's own duration plus a
 small margin (`GLIDE_DEADLINE_SLACK_MS`). If that deadline — rather than the
 animation — is what landed the change, the result carries
-`glide: { completedBy: 'deadline' }`. The document is on exactly the target
-either way; the field says nobody watched it arrive, which is what a tab with
-no `requestAnimationFrame` (a background or hidden window) looks like.
+`glide: { completedBy: 'deadline' }`, on the Arcade's return path as well as
+the ordinary one. The document is on exactly the target either way; the field
+says nobody watched it arrive, which is what a tab with no
+`requestAnimationFrame` (a background or hidden window) looks like.
 
 ## The Arcade
 
