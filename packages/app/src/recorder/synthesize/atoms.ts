@@ -62,7 +62,6 @@ export type AtomGroup =
  * then a snap, and clearing the canvas is meant to read as a cut.
  */
 export function glideHintForAtom(atom: Atom): GlideStepHint {
-  if (atom.id === 'flame.load') return 'whole'
   if (atom.id === 'flame.addVariation') return 'variation'
   switch (atom.group) {
     case 'stage':

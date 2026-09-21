@@ -51,6 +51,11 @@ export const ALWAYS_ON = [
     why: 'the guard for this list: walks all of src/ looking for tests that belong on it',
     genre: 'filesystem',
   },
+  {
+    file: 'src/lib/camera2DRotation.test.ts',
+    why: 'walks src/, scripts/ and the landing package for <Camera2D> mounts that omit the view rotation',
+    genre: 'filesystem',
+  },
 
   // Read a non-source file the graph has no edge to.
   {
@@ -117,7 +122,7 @@ export const ALWAYS_ON = [
   // invisible to the graph.
   {
     file: 'src/recorder/synthesize/corpus.test.ts',
-    why: 'readdirSync over the synthesis corpus',
+    why: 'import.meta.glob over the .flame fixtures it plans, and readdirSync over an external corpus',
     genre: 'filesystem',
   },
   {

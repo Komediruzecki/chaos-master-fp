@@ -85,7 +85,7 @@ import { example1 } from './flame/examples/example1'
 import { example34 } from './flame/examples/example34'
 import { initExample } from './flame/examples/initExample'
 import { initExample3D } from './flame/examples/initExample3D'
-import { createGlideRuntime, setGlideRuntime } from './flame/glide/runtime'
+import { createGlideRuntime, setGlideRuntime, settleGlideBeforeTimeTravel, yieldGlideToDocumentWrite, } from './flame/glide/runtime'
 import { newDefaultTransform } from './flame/newTransform'
 import { generateRandomFlame, mutateFlame, randomizeAllColors, randomRange, } from './flame/randomize'
 import { accumulatedPointCount, animationExportCancel, animationExportProgress, animationExportRunning, qualityPointCountLimit, setExportQuality, setForceAnimationExportNow, } from './flame/renderStats'
@@ -496,10 +496,23 @@ export function MainWorkspace(props: AppProps) {
     // session recorder listens to every pushed entry to flag edits that
     // bypassed the command registry (its coverage ratchet), and to the
     // gesture boundary so a drag records as one step rather than hundreds.
+    // A glide owns the document while it runs, and hands it back here: both
+    // hooks fire for a write that is not the runtime's own, and the first one
+    // takes the flame off the transition rather than being overwritten by it.
     {
       journal: true,
       onEntryPushed: reportDocumentWrite,
-      onPreviewStarted: notePreviewStarted,
+      onPreviewStarted: () => {
+        yieldGlideToDocumentWrite()
+        notePreviewStarted()
+      },
+      // Before the write, not after it: the transition's own entry is still
+      // the newest one here, and it is the one that has to end where the
+      // document is about to stop.
+      onBeforeDocumentWrite: yieldGlideToDocumentWrite,
+      // Time travel is a change too, and one computed from the entry's own end
+      // state, so it lands the transition instead of taking it off.
+      onBeforeTimeTravel: settleGlideBeforeTimeTravel,
     },
   )
 
@@ -565,6 +578,10 @@ export function MainWorkspace(props: AppProps) {
       history.replaceSilently(flame)
     },
     qualityPreset: () => qualityPreset(),
+    markDocumentEntry: () => history.peekUndoSeq(),
+    amendDocumentEntry: (mark, recordedEnd) => {
+      history.amendNewestEntry(mark, recordedEnd)
+    },
   })
   setGlideRuntime(glideRuntime)
   onCleanup(() => {

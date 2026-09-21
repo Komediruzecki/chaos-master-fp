@@ -99,6 +99,7 @@ export function PreviewFinalFlame(props: {
               () => vec2f(...props.flame.renderSettings.camera.position),
               props.setFlamePosition,
             ]}
+            rotation={() => props.flame.renderSettings.camera.rotation ?? 0}
           >
             <Flam3
               animationEnabled={false}

@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { deepClone } from '@/utils/clone'
 import { createGlideRuntime, glideEnabled, glideQualityPreference, setGlideEnabled, setGlideQualityPreference, } from './runtime'
 import { makeFlame } from './testUtils'
+import { GLIDE_DEADLINE_SLACK_MS } from './types'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 
 /**
@@ -11,7 +12,12 @@ import type { FlameDescriptor } from '@/flame/schema/flameSchema'
  * `history.replaceSilently` — so what this asserts about the sequence of
  * writes is what the document actually sees.
  */
-function harness(start: FlameDescriptor) {
+function harness(
+  start: FlameDescriptor,
+  /** `stalledFrames`: a hidden tab, which takes the request and never calls
+   *  back. The only clock left is the wall clock. */
+  options: { stalledFrames?: boolean } = {},
+) {
   let flame = deepClone(start)
   let time = 0
   let pending: ((time: number) => void)[] = []
@@ -24,6 +30,7 @@ function harness(start: FlameDescriptor) {
     },
     now: () => time,
     requestFrame: (callback) => {
+      if (options.stalledFrames === true) return 0
       pending.push(callback)
       return pending.length
     },
@@ -131,6 +138,65 @@ describe('createGlideRuntime', () => {
     await second
   })
 
+  /**
+   * The wall-clock deadline.
+   *
+   * `requestAnimationFrame` is an animation clock, not a timer: Chrome stops
+   * running it in a tab that is not visible. Our own automation browser lives
+   * on a hidden workspace, so this is the ordinary case rather than the exotic
+   * one — and a glide clocked by rAF alone leaves the document on frame 0 and
+   * the awaiting tool call pending for as long as the tab stays hidden.
+   */
+  describe('when the animation clock never runs', () => {
+    it('lands exactly on the target, on the wall clock', async () => {
+      vi.useFakeTimers()
+      try {
+        const world = harness(A, { stalledFrames: true })
+        world.set(B)
+        const done = world.runtime.glideFrom(A, { durationMs: 400 })
+        // Frame 0 is written the moment the glide starts, so the document is
+        // sitting at A's gamma with nothing on the way to move it.
+        expect(gammaOf(world.read())).toBeCloseTo(2, 9)
+        expect(world.runtime.isGliding()).toBe(true)
+
+        // A healthy tab gets its own duration plus one frame's grace first.
+        vi.advanceTimersByTime(400)
+        expect(world.runtime.isGliding()).toBe(true)
+
+        vi.advanceTimersByTime(GLIDE_DEADLINE_SLACK_MS)
+        expect(world.runtime.isGliding()).toBe(false)
+        expect(world.read()).toEqual(B)
+
+        const outcome = await done
+        expect(outcome?.completedByDeadline).toBe(true)
+        expect(outcome?.plan.settle).toEqual(B)
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('leaves the deadline alone when the animation does arrive', async () => {
+      vi.useFakeTimers()
+      try {
+        const world = harness(A)
+        world.set(B)
+        const done = world.runtime.glideFrom(A, { durationMs: 400 })
+        world.advance(400)
+        expect(world.runtime.isGliding()).toBe(false)
+
+        const outcome = await done
+        expect(outcome?.completedByDeadline).toBe(false)
+        // The deadline was cancelled with the rest of the clock: nothing
+        // writes the settle a second time.
+        const writesAfterLanding = world.writes.length
+        vi.advanceTimersByTime(10_000)
+        expect(world.writes).toHaveLength(writesAfterLanding)
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+  })
+
   it('glideTo animates from the document to the target', async () => {
     const world = harness(A)
     const done = world.runtime.glideTo(B, { durationMs: 400 })
@@ -148,19 +214,19 @@ describe('createGlideRuntime', () => {
       renderSettings: { dimensions: 3 },
     })
     world.set(threeD)
-    const plan = await world.runtime.glideFrom(A, { durationMs: 400 })
+    const outcome = await world.runtime.glideFrom(A, { durationMs: 400 })
     // A refusal is not a failure to change the document.
-    expect(plan).toBeUndefined()
+    expect(outcome).toBeUndefined()
     expect(world.read()).toEqual(threeD)
     expect(world.runtime.isGliding()).toBe(false)
   })
 
   it('arrives at once when nothing differs', async () => {
     const world = harness(A)
-    const plan = await world.runtime.glideFrom(deepClone(A), {
+    const outcome = await world.runtime.glideFrom(deepClone(A), {
       durationMs: 400,
     })
-    expect(plan?.changeClass).toBe('none')
+    expect(outcome?.plan.changeClass).toBe('none')
     expect(world.runtime.isGliding()).toBe(false)
     expect(world.read()).toEqual(A)
   })

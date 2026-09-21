@@ -423,15 +423,16 @@ export function createSessionPlayer(
   function applyAction(index: number): boolean {
     const action = actions[index]
     if (!action) return false
+    // Settled BEFORE the command runs, whether or not THIS step animates. A
+    // glide is subtracted from the gap that precedes it, so a step can be due
+    // while the previous transition is still moving; a cut applied underneath
+    // one is overwritten frame by frame and then undone by that transition's
+    // own settle, and the viewer sees the step it cut to appear and vanish.
+    const settled = target.settleGlide?.()
     const durationMs = glideMsFor(action)
-    // Captured BEFORE the command runs, and from the settled document: a glide
-    // in flight is settled first so this step lands on the state the recording
-    // describes, while the animation still starts from what the viewer can
-    // currently see.
-    const from =
-      durationMs > 0
-        ? (target.settleGlide?.() ?? target.readFlame?.())
-        : undefined
+    // What the viewer can currently see, so the animation starts from there
+    // while the step itself lands on the state the recording describes.
+    const from = durationMs > 0 ? (settled ?? target.readFlame?.()) : undefined
     const start = from === undefined ? undefined : deepClone(from)
     const result = executeAction(action, true)
     if (!result.ok) return rejectAction(index, result.error)

@@ -2,6 +2,7 @@ import './timeline'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { examples } from '@/flame/examples'
 import { cancelSessionRecording, startSessionRecording, stopSessionRecording, } from '@/recorder/recorder'
+import { createTimelineState } from '@/utils/timeline'
 import { executeCommand, preflightLiveCommand } from '../registry'
 import type { CommandContext } from '../types'
 
@@ -124,5 +125,73 @@ describe('timeline.stop', () => {
     executeCommand('timeline.stop', ctx)
 
     expect(pause).not.toHaveBeenCalled()
+  })
+})
+
+/**
+ * The same two commands against the workspace's real transport.
+ *
+ * A fake `playing` boolean cannot show the defect this covers: whether a
+ * pending stop still belongs to the playback its own call started is a
+ * question about a signal changing between the two, and that signal lives in
+ * `createTimelineState`. It is also the only honest evidence that
+ * `timeline.stop` stops anything — the real state says so, rather than a mock
+ * agreeing with a mock.
+ */
+describe('bounded transport, against the real timeline state', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+  })
+
+  // No `createRoot` around a test body on purpose (as `utils/timeline.test.ts`
+  // does): Solid runs one update cycle per root body, so wrapping these would
+  // collapse a pause and the Play after it into a single cycle — which no
+  // interaction produces, and which would hide the watcher doing its job.
+  function realTransport() {
+    const timeline = createTimelineState()
+    const ctx = {
+      timeline: {
+        play: timeline.play,
+        pause: timeline.pause,
+        isPlaying: timeline.isPlaying,
+      },
+    } as unknown as CommandContext
+    return { timeline, ctx }
+  }
+
+  it('starts the real transport and stops it on its own deadline', () => {
+    const { timeline, ctx } = realTransport()
+
+    executeCommand('timeline.playFor', ctx, 4)
+    expect(timeline.isPlaying()).toBe(true)
+    vi.advanceTimersByTime(3999)
+    expect(timeline.isPlaying()).toBe(true)
+    vi.advanceTimersByTime(1)
+    expect(timeline.isPlaying()).toBe(false)
+  })
+
+  it('timeline.stop really stops the real transport', () => {
+    const { timeline, ctx } = realTransport()
+
+    executeCommand('timeline.playFor', ctx, 60)
+    expect(timeline.isPlaying()).toBe(true)
+    executeCommand('timeline.stop', ctx)
+    expect(timeline.isPlaying()).toBe(false)
+  })
+
+  it('a stale deadline leaves a playback it did not start alone', () => {
+    const { timeline, ctx } = realTransport()
+
+    executeCommand('timeline.playFor', ctx, 10)
+    // The viewer stops it by hand and starts it again, inside the window. The
+    // run the deadline was scheduled for is over; what is playing now is
+    // theirs, and the deadline has no claim on it.
+    timeline.pause()
+    timeline.play()
+
+    vi.advanceTimersByTime(20_000)
+    expect(timeline.isPlaying()).toBe(true)
+
+    executeCommand('timeline.stop', ctx)
   })
 })

@@ -30,7 +30,7 @@ file instead of rediscovering the architecture every session.
 
 | Directory                 | Package name                   | Source files | LOC    |
 | ------------------------- | ------------------------------ | ------------ | ------ |
-| `packages/app`            | `chaos-master`                 | 1071         | 181.5k |
+| `packages/app`            | `chaos-master`                 | 1072         | 181.9k |
 | `packages/landing`        | `@chaos-master/landing`        | 20           | 2.5k   |
 | `packages/core`           | `@chaos-master/core`           | 17           | 1.9k   |
 | `packages/mobile-runtime` | `@chaos-master/mobile-runtime` | 7            | 600    |
@@ -70,7 +70,7 @@ file instead of rediscovering the architecture every session.
 | --------------- | ----------------------------------------------------------------------- | ----- | --------------------- |
 | `variations`    | [index.ts](../../packages/app/src/flame/variations/parametric/index.ts) | 33.6k | _(no header comment)_ |
 | `examples`      | [index.ts](../../packages/app/src/flame/examples/index.ts)              | 12.7k | _(no header comment)_ |
-| `glide`         | [index.ts](../../packages/app/src/flame/glide/index.ts)                 | 2.6k  | _(no header comment)_ |
+| `glide`         | [index.ts](../../packages/app/src/flame/glide/index.ts)                 | 2.7k  | _(no header comment)_ |
 | `renderDrivers` | [index.ts](../../packages/app/src/flame/renderDrivers/index.ts)         | 400   | _(no header comment)_ |
 | `schema`        | [flameSchema.ts](../../packages/app/src/flame/schema/flameSchema.ts)    | 100   | _(no header comment)_ |
 | `variations3D`  | [index.ts](../../packages/app/src/flame/variations3D/index.ts)          | 50    | _(no header comment)_ |
@@ -100,7 +100,7 @@ file instead of rediscovering the architecture every session.
 | `Sliders`               | [AngleEditor.tsx](../../packages/app/src/components/Sliders/ParametricEditors/AngleEditor.tsx)                 | 1.0k | _(no header comment)_                                                                                                                        |
 | `PopulationSimulator`   | [PopulationSimulator.tsx](../../packages/app/src/components/PopulationSimulator/PopulationSimulator.tsx)       | 900  | _(no header comment)_                                                                                                                        |
 | `BenchmarkModal`        | [BenchmarkModal.tsx](../../packages/app/src/components/BenchmarkModal/BenchmarkModal.tsx)                      | 850  | _(no header comment)_                                                                                                                        |
-| `CustomVariationEditor` | [CustomVariationEditor.tsx](../../packages/app/src/components/CustomVariationEditor/CustomVariationEditor.tsx) | 800  | _(no header comment)_                                                                                                                        |
+| `CustomVariationEditor` | [CustomVariationEditor.tsx](../../packages/app/src/components/CustomVariationEditor/CustomVariationEditor.tsx) | 850  | _(no header comment)_                                                                                                                        |
 | `FloatingActions`       | [FloatingActions.tsx](../../packages/app/src/components/FloatingActions/FloatingActions.tsx)                   | 750  | _(no header comment)_                                                                                                                        |
 | `Migration`             | [Migration.tsx](../../packages/app/src/components/Migration/Migration.tsx)                                     | 750  | _(no header comment)_                                                                                                                        |
 | `HelpModal`             | [HelpModal.tsx](../../packages/app/src/components/HelpModal/HelpModal.tsx)                                     | 700  | _(no header comment)_                                                                                                                        |
@@ -273,9 +273,9 @@ file instead of rediscovering the architecture every session.
 | [sonification.ts](../../packages/app/src/utils/sonification.ts)             | 800  | _(no header comment)_                                                                                                                        |
 | [flameImport.ts](../../packages/app/src/utils/flameImport.ts)               | 650  | Effectively "all" — every store is capped well below this.                                                                                   |
 | [videoEncoder.ts](../../packages/app/src/utils/videoEncoder.ts)             | 550  | Offline-export default bitrate: ~0.12 bits per pixel per frame, clamped to a sane range.                                                     |
-| [createStoreHistory.ts](../../packages/app/src/utils/createStoreHistory.ts) | 500  | Optional workspace state that travels with this entry.                                                                                       |
 | [animationExport.ts](../../packages/app/src/utils/animationExport.ts)       | 450  | _(no header comment)_                                                                                                                        |
 | [audioExport.ts](../../packages/app/src/utils/audioExport.ts)               | 450  | _(no header comment)_                                                                                                                        |
+| [createStoreHistory.ts](../../packages/app/src/utils/createStoreHistory.ts) | 450  | Undo and redo for a Solid store, kept as patches rather than snapshots.                                                                      |
 | [exportJobs.ts](../../packages/app/src/utils/exportJobs.ts)                 | 400  | Whether steps glide into place, and how long for.                                                                                            |
 | [jsonQueryParam.ts](../../packages/app/src/utils/jsonQueryParam.ts)         | 400  | Decompress and JSON-parse, with no assumption about the shape.                                                                               |
 | [mathToWgsl.ts](../../packages/app/src/utils/mathToWgsl.ts)                 | 400  | Translate a math-notation expression (LaTeX-like) into a WGSL function body.                                                                 |

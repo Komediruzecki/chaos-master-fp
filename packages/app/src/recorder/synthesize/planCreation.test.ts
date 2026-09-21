@@ -366,6 +366,22 @@ describe('the glide hint on a synthesized step', () => {
     expect(last.glide).toBe('cut')
   })
 
+  it('loads a whole flame only there, whatever the strategy', () => {
+    // The steps build the flame; a `flame.load` among them would make every
+    // step before it pointless. Nothing in the step vocabulary mints one, so
+    // the snap is the only one a session can hold — which is why the hint for
+    // a load is decided at the snap and nowhere else.
+    for (const strategy of SYNTHESIS_STRATEGIES) {
+      const session = plan(examples.example26, { strategy })
+      const loads = session.actions.filter(
+        (action) => action.id === 'flame.load',
+      )
+      expect(loads, strategy).toHaveLength(1)
+      expect(session.actions.at(-1), strategy).toBe(loads[0])
+      expect(loads[0]?.glide, strategy).toBe('cut')
+    }
+  })
+
   it('survives a serialize/parse round trip, and an older file still loads', () => {
     const session = plan(examples.example1)
     const reparsed = parseSession(serializeSession(session))

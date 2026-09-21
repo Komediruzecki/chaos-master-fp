@@ -12,7 +12,7 @@ import { focusForCommand } from '@/recorder/focus'
 import { NARRATION_COMMAND_ID } from '@/recorder/narrationMode'
 import { deepClone } from '@/utils/clone'
 import { getWebMcpContext } from '@/webmcp/contextBridge'
-import type { GlideOptions } from '@/flame/glide/types'
+import type { GlideOptions, GlideOutcome } from '@/flame/glide/types'
 import type { WebMcpTool } from '@/webmcp/types'
 
 /**
@@ -149,14 +149,17 @@ export const executeCommandTool: WebMcpTool = {
     // wall-clock, so a pilot spending five seconds of it on animation would be
     // buying time rather than flying.
     const glide = resolveGlideRequest(rawInput, driving !== undefined)
-    const runtime = glide === undefined ? undefined : getGlideRuntime()
-    // Settle anything already in flight FIRST, so this command is applied to
-    // the settled document rather than to a frame of the last transition —
-    // and keep what the viewer can see, so the next one starts from there.
+    const runtime = getGlideRuntime()
+    // Settle anything already in flight FIRST, whether or not THIS call
+    // animates: a scripted command is a change, so the transition before it
+    // belongs to the change before it and must land on its own target rather
+    // than be cancelled halfway. `settleForNextChange` hands back what the
+    // viewer can see, so an animation that follows starts from there.
+    const visible = runtime?.settleForNextChange()
     const glideFrom =
-      runtime === undefined
+      glide === undefined
         ? undefined
-        : deepClone(runtime.settleForNextChange() ?? ctx.flameDescriptor())
+        : deepClone(visible ?? ctx.flameDescriptor())
 
     try {
       // Live dispatch: recorded by the session recorder, args normalised, and
@@ -176,9 +179,14 @@ export const executeCommandTool: WebMcpTool = {
     // failed tool call, so it is swallowed exactly like `describe` is.
     // Awaited, and bounded by MAX_GLIDE_MS, so an agent firing twenty commands
     // does not stack twenty transitions on top of each other.
-    if (runtime !== undefined && glideFrom !== undefined) {
-      await runtime.glideFrom(glideFrom, glide ?? {})
-    }
+    // Bounded by the runtime's own wall-clock deadline as well as by
+    // MAX_GLIDE_MS: `requestAnimationFrame` does not run in a tab that is not
+    // visible, and an agent driving a hidden tab would otherwise hold this
+    // call until somebody looked at the browser again.
+    const outcome =
+      runtime !== undefined && glideFrom !== undefined
+        ? await runtime.glideFrom(glideFrom, glide ?? {})
+        : undefined
 
     let result: unknown
     try {
@@ -226,8 +234,24 @@ export const executeCommandTool: WebMcpTool = {
       }
     }
 
-    return { success: true, commandId, ...reported }
+    return { success: true, commandId, ...reported, ...glideReport(outcome) }
   },
+}
+
+/**
+ * What the caller is told about the transition, which is nothing at all in the
+ * ordinary case.
+ *
+ * Only a glide the DEADLINE landed is worth a word. The document is on exactly
+ * the target either way; this says nobody watched it get there, which is what
+ * a tab with no `requestAnimationFrame` looks like and what an agent composing
+ * a demo or a recording needs to know. The Arcade path never reaches it — a
+ * duel turns glides off outright, so there is no outcome to report.
+ */
+function glideReport(outcome: GlideOutcome | undefined) {
+  return outcome?.completedByDeadline === true
+    ? { glide: { completedBy: 'deadline' } }
+    : {}
 }
 
 /**

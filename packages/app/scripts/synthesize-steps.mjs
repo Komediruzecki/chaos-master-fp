@@ -24,7 +24,10 @@
  *   --max-steps <n>    cap before the closing snap
  *   --colour-first     put colour before shape wherever the strategy is free
  *   --out <file>       write one session here (single input, single strategy)
- *   --out-dir <dir>    write <name>.<strategy>.steps.json per input/strategy
+ *   --out-dir <dir>    write <name>.<strategy>.steps.json per input/strategy.
+ *                      With neither, each session is written BESIDE ITS INPUT
+ *                      FLAME — which for a dropped PNG means your Pictures or
+ *                      downloads folder, so pass one of the two.
  *   --created-at <iso> fixed timestamp, so a rerun is byte-identical
  *   --manifest <file>  a JSON array of { name?, path } to use as the inputs
  *   --json             print the machine-readable report instead of a summary
@@ -33,10 +36,10 @@
  * gallery-sequence.mjs does — no browser and no GPU are involved.
  */
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { basename, dirname, extname, join, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { basename, dirname, extname, isAbsolute, join, relative, resolve, } from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const scriptDir = dirname(fileURLToPath(import.meta.url))
 const appDir = resolve(scriptDir, '..')
@@ -123,6 +126,7 @@ function printUsage() {
       '  --colour-first     colour before shape where the strategy is free',
       '  --out <file>       write one session to this path',
       '  --out-dir <dir>    write <name>.<strategy>.steps.json per result',
+      '                     (default: beside each input flame)',
       '  --created-at <iso> fixed timestamp for reproducible files',
       '  --manifest <file>  JSON array of { name?, path } to use as inputs',
       '  --json             print the machine-readable report',
@@ -167,73 +171,127 @@ function readManifest(path) {
  * the platform binary the way the app's own build does.
  */
 /**
- * The app's `.env`, as vite would expose it.
+ * `import.meta.env`, which esbuild has no notion of.
  *
- * The planner reaches `src/defaults.ts` through the command registry, and that
- * module reads `import.meta.env.VITE_*` at import time. esbuild has no such
- * thing, so the values are injected — from the checked-in `.env`, not from
- * invented constants, so a bundled run computes what the app computes.
+ * Vite's four own fields and nothing else. The planner reaches
+ * `src/defaults.ts` through the command registry and that module reads
+ * `import.meta.env.VITE_*` at import time, but every one of those values is a
+ * rendering default — point counts, preview qualities, a Turnstile site key —
+ * and a planned session contains none of them. Verified rather than assumed:
+ * the sessions this writes are byte-identical with and without the file.
+ *
+ * So the app's `.env` is NOT read. It used to be inlined wholesale into a
+ * bundle in `$TMPDIR` that nothing deleted, which is a habit that only has to
+ * meet `.env.local` once to leave a secret on disk. If the bundle ever does
+ * need a variable, define that one variable here and say which and why.
  */
 function viteEnv() {
-  const env = { DEV: false, PROD: true, MODE: 'production', BASE_URL: '/' }
-  let text
+  return { DEV: false, PROD: true, MODE: 'production', BASE_URL: '/' }
+}
+
+/**
+ * Run `fn` with a scratch directory, and take the directory away afterwards.
+ *
+ * The bundle written into it is a full copy of the planner and everything it
+ * imports — a few megabytes per run. It is scratch, so it goes whether the run
+ * succeeded, threw, or was interrupted at the terminal.
+ */
+export async function withBundleDir(fn) {
+  const dir = mkdtempSync(join(tmpdir(), 'synthesize-steps-'))
+  const remove = () => {
+    rmSync(dir, { recursive: true, force: true })
+  }
+  const onSignal = () => {
+    remove()
+    process.exit(130)
+  }
+  process.once('SIGINT', onSignal)
+  process.once('SIGTERM', onSignal)
   try {
-    text = readFileSync(join(appDir, '.env'), 'utf8')
-  } catch {
-    return env
+    return await fn(dir)
+  } finally {
+    process.off('SIGINT', onSignal)
+    process.off('SIGTERM', onSignal)
+    remove()
   }
-  for (const line of text.split('\n')) {
-    const match = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/.exec(line)
-    if (match === null || line.trimStart().startsWith('#')) continue
-    env[match[1]] = match[2].replace(/^["']|["']$/g, '')
-  }
-  return env
 }
 
 async function runPlanner(payload) {
   const esbuild = await import('esbuild')
-  const dir = mkdtempSync(join(tmpdir(), 'synthesize-steps-'))
-  const bundle = join(dir, 'synthesize.mjs')
-  await esbuild.build({
-    entryPoints: [join(scriptDir, 'synthesize-steps.entry.ts')],
-    bundle: true,
-    platform: 'node',
-    format: 'esm',
-    logLevel: 'error',
-    alias: { '@': join(appDir, 'src') },
-    define: {
-      'import.meta.env': '__SYNTHESIZE_ENV__',
-      __GIT_SHA__: '"synthesize-steps"',
-    },
-    banner: {
-      js: [
-        `const __SYNTHESIZE_ENV__ = ${JSON.stringify(viteEnv())};`,
-        // The app mints entity ids with `window.crypto.randomUUID()`, and some
-        // of its modules do so while they load. Node has the same `crypto` on
-        // `globalThis`; this is the one browser assumption the bundle needs.
-        'globalThis.window ??= globalThis;',
-      ].join('\n'),
-    },
-    outfile: bundle,
+  return withBundleDir(async (dir) => {
+    const bundle = join(dir, 'synthesize.mjs')
+    await esbuild.build({
+      entryPoints: [join(scriptDir, 'synthesize-steps.entry.ts')],
+      bundle: true,
+      platform: 'node',
+      format: 'esm',
+      logLevel: 'error',
+      alias: { '@': join(appDir, 'src') },
+      define: {
+        'import.meta.env': '__SYNTHESIZE_ENV__',
+        __GIT_SHA__: '"synthesize-steps"',
+        // `src/version.ts` reads it at module scope and the planner stamps the
+        // app version into every session, so leaving it out made the bundle
+        // throw `__NATIVE_BUILD__ is not defined` before it read a flame.
+        __NATIVE_BUILD__: 'false',
+      },
+      banner: {
+        js: [
+          `const __SYNTHESIZE_ENV__ = ${JSON.stringify(viteEnv())};`,
+          // The app mints entity ids with `window.crypto.randomUUID()`, and
+          // some of its modules do so while they load. Node has the same
+          // `crypto` on `globalThis`; this is the one browser assumption the
+          // bundle needs.
+          'globalThis.window ??= globalThis;',
+        ].join('\n'),
+      },
+      outfile: bundle,
+    })
+    // Child stderr goes straight to the terminal: a planner that throws should
+    // print the stack, not a Buffer dump of it inside an execFileSync error.
+    const out = execFileSync('node', [bundle], {
+      cwd: appDir,
+      input: JSON.stringify(payload),
+      maxBuffer: 512 * 1024 * 1024,
+      stdio: ['pipe', 'pipe', 'inherit'],
+    })
+    return JSON.parse(out.toString())
   })
-  // Child stderr goes straight to the terminal: a planner that throws should
-  // print the stack, not a Buffer dump of it inside an execFileSync error.
-  const out = execFileSync('node', [bundle], {
-    cwd: appDir,
-    input: JSON.stringify(payload),
-    maxBuffer: 512 * 1024 * 1024,
-    stdio: ['pipe', 'pipe', 'inherit'],
-  })
-  return JSON.parse(out.toString())
 }
 
-function outputPath(options, result, names) {
+/** A label turned into a file name: one path segment, and nothing else. */
+export function safeName(name) {
+  return name.replace(/[^\w-]+/g, '_')
+}
+
+/** True when `target` is `dir` itself or something underneath it. */
+export function isInside(dir, target) {
+  const rel = relative(resolve(dir), target)
+  return rel !== '' && !rel.startsWith('..') && !isAbsolute(rel)
+}
+
+/**
+ * Where one result is written.
+ *
+ * A manifest is data someone else may have written, and its `name` is a label,
+ * not a path: it goes through the same sanitiser as the basename fallback, so
+ * `../../x` and `/etc/passwd` both flatten to one segment. The containment
+ * check after resolving is deliberately redundant — it states the property the
+ * sanitiser is there for, so an edit to that pattern cannot quietly lose it.
+ *
+ * An explicit `--out` is exempt: that path is the caller's own instruction.
+ */
+export function outputPath(options, result, names) {
   if (options.out !== undefined) return options.out
-  const base =
-    names.get(result.input) ??
-    basename(result.input, extname(result.input)).replace(/[^\w-]+/g, '_')
+  const base = safeName(
+    names.get(result.input) ?? basename(result.input, extname(result.input)),
+  )
   const dir = options.outDir ?? dirname(result.input)
-  return join(dir, `${base}.${result.strategy}.steps.json`)
+  const target = resolve(dir, `${base}.${result.strategy}.steps.json`)
+  if (!isInside(dir, target)) {
+    fail(`refusing to write ${target}: outside ${resolve(dir)}`)
+  }
+  return target
 }
 
 async function main() {
@@ -331,4 +389,11 @@ async function main() {
   if (failures > 0) process.exitCode = 1
 }
 
-await main()
+// Only when run, not when imported: the helpers above are unit-tested, and
+// importing this file to reach them must not plan anything.
+if (
+  process.argv[1] !== undefined &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
+  await main()
+}

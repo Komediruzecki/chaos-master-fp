@@ -1,3 +1,4 @@
+import { createReaction, createRoot } from 'solid-js'
 import { isTimelineParameterPath, MAX_TIMELINE_FRAME, MAX_TIMELINE_KEYFRAME_NUMBER_MAGNITUDE, MAX_TIMELINE_KEYFRAME_STRING_LENGTH, MAX_TIMELINE_PLAYBACK_FPS, MAX_TIMELINE_TIME_SCALE, MAX_TIMELINE_TRACKS, tryValidateTimelineSnapshot, } from '@/flame/schema/timeline'
 import { snapshotOriginForCommand, snapshotOriginLabel, tryValidateSnapshotOrigin, } from '@/recorder/snapshotOrigin'
 import { registerCommand } from '../registry'
@@ -408,13 +409,50 @@ registerCommand({
 
 const MAX_PLAY_FOR_SECONDS = 600
 
-let pendingStop: ReturnType<typeof setTimeout> | undefined
+/**
+ * The deadline `timeline.playFor` scheduled, and its claim on the transport.
+ *
+ * A deadline may only stop THE PLAYBACK ITS OWN CALL STARTED. Module state
+ * cannot tell one run from the next by itself, so `release` watches
+ * `isPlaying` for the end of this run: whoever ends it — the viewer, the
+ * timeline reaching its end, `timeline.stop` — retires the deadline with it,
+ * and a Play pressed afterwards belongs to whoever pressed it.
+ */
+type PendingStop = {
+  timer: ReturnType<typeof setTimeout>
+  release: () => void
+}
+
+let pendingStop: PendingStop | undefined
 
 function cancelPendingStop() {
-  if (pendingStop !== undefined) {
-    clearTimeout(pendingStop)
-    pendingStop = undefined
-  }
+  if (pendingStop === undefined) return
+  const { timer, release } = pendingStop
+  pendingStop = undefined
+  clearTimeout(timer)
+  release()
+}
+
+/**
+ * Call `onEnded` the first time `isPlaying` changes, and hand back the undo.
+ *
+ * `createReaction` rather than an effect: this wants ONE notification, when
+ * the run ends, and a reaction is inert after it fires. A context with no
+ * `isPlaying` — a sandbox, the Home portal — gets no watcher, which leaves the
+ * bare deadline it has always had.
+ */
+function watchPlaybackEnd(
+  isPlaying: (() => boolean) | undefined,
+  onEnded: () => void,
+): () => void {
+  if (isPlaying === undefined) return () => {}
+  return createRoot((dispose) => {
+    const track = createReaction(() => {
+      if (!isPlaying()) onEnded()
+    })
+    track(() => isPlaying())
+    return dispose
+  })
 }
 
 function isPlaySeconds(value: unknown): value is number {
@@ -445,11 +483,18 @@ registerCommand({
     // told the play succeeded.
     if (pause === undefined) return
     cancelPendingStop()
-    if (ctx.timeline.isPlaying?.() !== true) ctx.timeline.play()
-    pendingStop = setTimeout(() => {
+    const isPlaying = ctx.timeline.isPlaying
+    if (isPlaying?.() !== true) ctx.timeline.play()
+    const timer = setTimeout(() => {
+      const deadline = pendingStop
       pendingStop = undefined
-      if (ctx.timeline.isPlaying?.() !== false) pause()
+      deadline?.release()
+      if (isPlaying?.() !== false) pause()
     }, seconds * 1000)
+    pendingStop = {
+      timer,
+      release: watchPlaybackEnd(isPlaying, cancelPendingStop),
+    }
   },
 })
 

@@ -1312,6 +1312,49 @@ describe('createSessionPlayer with glides', () => {
     })
   })
 
+  it('settles a transition in flight even when the next step is a cut', () => {
+    createRoot((dispose) => {
+      const world = makeGlidingTarget(examples.initExample)
+      // Settles and executes in the order the player asked for them. A cut
+      // applied UNDER a running transition is overwritten frame by frame and
+      // then undone by that transition's own settle, so the settle has to come
+      // first whether or not the step itself glides.
+      const events: string[] = []
+      const target = {
+        ...world.target,
+        settleGlide: () => {
+          events.push('settle')
+          world.target.settleGlide()
+          // Nothing to hand back: the harness has no document in flight, the
+          // same answer a workspace with no glide running gives.
+          return undefined
+        },
+        execute: (id: string, args: unknown[]) => {
+          events.push(`execute ${String(args[0])}`)
+          return world.target.execute(id, args)
+        },
+      }
+      // 1200 ms of glide against a 100 ms authored gap: the gap collapses to
+      // MIN_STEP_GAP_MS, so the cut lands while the transition is still moving.
+      const authored = makeSession([
+        { t: 0, id: 'flame.setGamma', args: [1.5], glideMs: 1200 },
+        { t: 100, id: 'flame.setGamma', args: [2.5], glide: 'cut' },
+      ])
+      const player = createSessionPlayer(authored, target, {
+        glide: () => ({ enabled: true, defaultMs: 300 }),
+      })
+      player.play()
+      vi.advanceTimersByTime(20_000)
+
+      const glided = events.indexOf('execute 1.5')
+      const cut = events.indexOf('execute 2.5')
+      expect(glided).toBeGreaterThanOrEqual(0)
+      expect(cut).toBeGreaterThan(glided)
+      expect(events.slice(glided + 1, cut)).toContain('settle')
+      dispose()
+    })
+  })
+
   it('does not lengthen the take', () => {
     const totalDuration = (glideMs: number) => {
       let total = 0
