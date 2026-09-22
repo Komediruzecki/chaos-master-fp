@@ -22,7 +22,7 @@ import { planGlide } from './plan'
 import { resolveGlideQuality } from './quality'
 import { sampleGlide } from './sample'
 import { GLIDE_DEADLINE_SLACK_MS, isGlideRefusal } from './types'
-import type { GlideOptions, GlideOutcome, GlidePlan, GlideQuality, GlideQualityPreference, } from './types'
+import type { GlideOptions, GlideOutcome, GlidePlan, GlideQuality, GlideQualityPreference, GlideSwitches, } from './types'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 
 /**
@@ -352,6 +352,29 @@ export function settleGlideBeforeTimeTravel(): void {
  */
 export function settleGlideOnArcadeEnd(): void {
   current?.finish()
+}
+
+/**
+ * The two switches as they stand, for a take to hold on to when it starts.
+ *
+ * Teach, Cinema and Beats let the agent flip them for its own presentation
+ * (`PRESENTATION_SWITCHES`), and the lock keeps the viewer off them for the
+ * whole take, so this is exactly the state the viewer left.
+ */
+export function captureGlideSwitches(): GlideSwitches {
+  return { enabled: glideEnabled(), quality: glideQualityPreference() }
+}
+
+/**
+ * Put the switches back the way a take found them.
+ *
+ * `finishPilot` calls it after `settleGlideOnArcadeEnd`, never before: the
+ * transition in flight belongs to the take and lands first, and only the
+ * editor after it goes back to the viewer's settings.
+ */
+export function restoreGlideSwitches(switches: GlideSwitches): void {
+  setGlideEnabled(switches.enabled)
+  setGlideQualityPreference(switches.quality)
 }
 
 /** The tier a caller would get right now, without planning anything. */

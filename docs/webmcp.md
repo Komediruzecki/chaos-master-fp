@@ -93,6 +93,25 @@ before the glide is resolved, so a transition can only ever present a change
 the lock already let through; and ending a session lands whatever is in flight,
 so a take never stops part-way through one.
 
+**The switches themselves are allowed in Teach, Cinema and Beats.**
+`glide.setEnabled` and `glide.setQuality` (`PRESENTATION_SWITCHES` in
+`packages/app/src/arcade/topics.ts`) let an agent make every later change flow
+without naming a duration each time. They are enforced but printed in no brief,
+which is held to the ~1.5 KB result budget; the refusal message's list of what
+a mode allows names them, and so does `list_commands`. A duel refuses both, and
+`glide.toFlame` is on no mode's list: it replaces the document with a flame
+carried in its arguments, which is `flame.load`'s permission, not a
+presentation one. Turning Glide off mid-transition lands that transition on its
+target first, as any command does; because the switch is read before it flips,
+that one call is still presented, and changes cut from the next one.
+
+The switches last for the take. It holds both as the viewer left them, and
+ending it — its end tool, or Stop — lands whatever transition is in flight and
+then gives them back (`finishPilot`); the lock keeps the viewer off them for
+the whole take, so what comes back is exactly what they left. A replay of the
+take is not covered: the switch steps are recorded like any command, and
+replaying them sets the viewer's own switches and leaves them set.
+
 The call awaits the transition, bounded by the glide's own duration plus a
 small margin (`GLIDE_DEADLINE_SLACK_MS`). If that deadline — rather than the
 animation — is what landed the change, the result carries
@@ -108,8 +127,9 @@ says nobody watched it arrive, which is what a tab with no
 
 - **Teach** — pick one of seven topics (`variations`, `affine`, `color`,
   `camera`, `genetics`, `sonification`, `render`). The agent gets a brief with
-  the goal, the allowed commands and their exact argument shapes, and a step
-  budget. It narrates through
+  the goal, the topic's commands and their exact argument shapes, and a step
+  budget; the two Glide switches are allowed on top of that list without being
+  printed in it (see Animating a write, above). It narrates through
   `arcade_narrate` (a real `lesson.note` command, so the sentence replays as a
   caption between the edits it describes) and builds the example with
   `execute_command`. The recording is saved as `Lesson: <Topic> — <title>`.
