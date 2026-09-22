@@ -300,8 +300,11 @@ writes the result to the library as a new entry, leaving the raw take alone.
 
 The replay panel offers two deliberately different publication modes. Both use
 the panel's current caption and hold edits at the selected replay speed without
-requiring a separate save, and both refuse takes whose `unnamedWriteCount` says
-the authored result is incomplete.
+requiring a separate save. A take with uncaptured steps exports the way it
+replays: the steps it did not capture were never in its actions, so the video
+skips them. Before such an export starts, the panel lists what will be skipped
+and says from which step on the video may differ from the take; the next press
+of the export button starts it.
 
 **Artwork** queues a 1920 × 1080 landscape MP4 in the normal Exports tracker.
 That frame matches the editor camera's landscape composition: the 2D camera

@@ -9,9 +9,9 @@ import type { RecordedSession, UncapturedStep } from './schema'
  * says a replay will differ, not where or why. This module owns the rest of
  * the answer. The recorder keeps an {@link UncapturedLog} while a take runs
  * and writes it into the session; the recorder controls, the library, the
- * replay panel and the console line a stop writes all read it back through
- * {@link summarizeUncapturedSteps}, so they say the same thing in the same
- * words.
+ * replay panel, the export notice and the console line a stop writes all read
+ * it back through {@link summarizeUncapturedSteps}, so they say the same thing
+ * in the same words.
  */
 
 /** Shown in place of names for a take recorded before they were saved. */
@@ -146,6 +146,28 @@ export function uncapturedStopMessage(
  *  commands, at 0:43". The time is take time, as the recorder measured it. */
 export function describeUncapturedStep(step: UncapturedStep): string {
   return `${step.reason}, at ${formatTakeTime(step.t)}`
+}
+
+/**
+ * What an export will do with a take that has uncaptured steps, said before
+ * it starts. The replay applies the recorded steps and nothing else, so it
+ * matches the take up to the first step recorded after the first uncaptured
+ * one; `actions` locates that step for the viewer, who sees steps numbered in
+ * the replay panel rather than take time.
+ */
+export function describeExportSkips(
+  session: UncapturedSource & { actions: readonly { t: number }[] },
+): string | undefined {
+  const { count, firstAtMs } = summarizeUncapturedSteps(session)
+  if (count === 0) return undefined
+  const head = `This take has ${count === 1 ? '1 step' : `${count} steps`} it did not capture. The video skips ${count === 1 ? 'it' : 'them'}, so`
+  if (firstAtMs === undefined) {
+    return `${head} it may differ from what was recorded.`
+  }
+  const step = session.actions.findIndex(({ t }) => t >= firstAtMs)
+  return step < 0
+    ? `${head} the finished flame may differ from what was recorded.`
+    : `${head} from step ${step + 1} on it may differ from what was recorded.`
 }
 
 /** Take time as m:ss. Minutes keep counting past the hour: a take is capped

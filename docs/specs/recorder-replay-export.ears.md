@@ -17,7 +17,7 @@ drive a recording, or the PNG/MP4 chunk formats (`utils/flameInPng.ts`,
 **Source:**
 
 - `packages/app/src/recorder/recorder.ts` — per-seat recording streams, command/gesture capture, coalescing, the unnamed-write honesty counter, suppression
-- `packages/app/src/recorder/uncapturedSteps.ts` — the named uncaptured steps a take saves, and the words every panel uses for them
+- `packages/app/src/recorder/uncapturedSteps.ts` — the named uncaptured steps a take saves, and the words every panel and the export notice use for them
 - `packages/app/src/recorder/schema.ts` — the `.steps.json` v1 format, every bound, and `validateSession` (ordering, command-id policy, sonification churn)
 - `packages/app/src/recorder/types.ts` — the three start-failure reasons
 - `packages/app/src/recorder/snapshotOrigin.ts` — the closed origin vocabulary behind value-pinned snapshot actions
@@ -453,12 +453,13 @@ _(`recorder/replayVideo.ts:388-453`, `recorder/player.ts:135-190`; guarded by
 
 ### REQ-RR-029 — Video export refuses takes it cannot reproduce or afford
 
-**If** a take has a non-zero `unnamedWriteCount`, has no actions, references a
-`custom_`-prefixed variation anywhere in its baseline flame or any action's
-arguments, or schedules to more than 300 000 ms, **then** both video export paths
-shall throw a message naming the problem (and, for custom variations, the 1-based
-step) — and shall do so before an encoder is allocated and, for the interface
-path, before the privacy-sensitive screen-share picker is shown.
+**If** a take has no actions, references a `custom_`-prefixed variation anywhere
+in its baseline flame or any action's arguments, or schedules to more than
+300 000 ms, **then** both video export paths shall throw a message naming the
+problem (and, for custom variations, the 1-based step) — and shall do so before
+an encoder is allocated and, for the interface path, before the
+privacy-sensitive screen-share picker is shown. A non-zero `unnamedWriteCount`
+is not such a problem (REQ-RR-042).
 
 _(`recorder/replayVideo.ts:51`, `:302-380`, `:429-436`, `:859-895`,
 `recorder/replayInterfaceVideo.ts:310-323`; guarded by `replayVideo.test.ts:40`,
@@ -657,6 +658,26 @@ _(`recorder/uncapturedSteps.ts:38-67`, `:95-145`, `recorder/recorder.ts:210`,
 `recorder.test.ts:2072`, `:2105`, `:2119`, `:2132`, `:2151`, `:2163`,
 `uncapturedSteps.test.ts`, `SessionRecorderControls.test.tsx:277`,
 `SessionLibraryPanel.test.tsx:54`, `SessionReplayPanel.test.tsx:255`, `:282`.)_
+
+### REQ-RR-042 — An export skips uncaptured steps, and says so before it starts
+
+**When** the viewer starts a video export of a take with uncaptured steps, the
+replay panel shall first show, in place of starting, how many steps the video
+skips, from which replay step on it may differ from the take (or that its
+finished flame may, or simply that it may when the names were not saved), and
+the named list; the export button shall read "Export anyway" or "Record anyway"
+and the next press shall start the export, on that press's own stack so a
+full-interface capture keeps its user activation. Cancel shall leave nothing
+started. Both export paths shall then run the take the way the in-app replay
+does: the uncaptured steps are not in `actions`, so there is nothing to apply
+for them, and the embedded session keeps their count and names.
+
+_(`components/SessionRecorder/SessionReplayPanel.tsx:678-684`, `:769-776`,
+`components/SessionRecorder/UncapturedSteps.tsx:53-82`,
+`recorder/uncapturedSteps.ts:158-173`, `recorder/replayVideo.ts:998`,
+`recorder/replayInterfaceVideo.ts:324`; guarded by `replayVideo.test.ts:214`,
+`replayInterfaceVideo.test.ts:162`, `SessionReplayPanel.test.tsx:302`,
+`:348`.)_
 
 ---
 

@@ -1,5 +1,6 @@
-/* A take's uncaptured steps: the count as a disclosure and the list it opens
-   into. Shared by the recorder controls, the library and the replay panel. */
+/* A take's uncaptured steps: the count as a disclosure, the list it opens
+   into, and the notice an export shows before it skips them. Shared by the
+   recorder controls, the library and the replay panel. */
 .uncaptured {
   min-width: 0;
   max-width: 100%;
@@ -89,8 +90,48 @@
   line-height: 1.3;
 }
 
+/* Full width inside the export row's wrap, between the button and its help. */
+.skip-notice {
+  flex-basis: 100%;
+  order: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  padding: 0.3rem 0.4rem;
+  border-radius: 8px;
+  background: oklch(60% 0.18 60 / 0.18);
+  border: 1px solid oklch(60% 0.18 60 / 0.45);
+  line-height: 1.3;
+}
+
+.skip-text {
+  margin: 0;
+}
+
+.skip-list {
+  max-height: 6rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.cancel {
+  padding: 0.1rem 0.45rem;
+  border-radius: 10px;
+  border: 1px solid oklch(50% 0.08 240 / 0.5);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+
+  &:hover {
+    background: oklch(50% 0.08 240 / 0.25);
+  }
+}
+
 @media (pointer: coarse) {
-  .summary {
+  .summary,
+  .cancel {
     min-height: var(--recorder-coarse-target, 2.25rem);
   }
 }
