@@ -18,9 +18,9 @@ export const ALWAYS_ALLOWED = [
  * and an agent that wants every change from here on to flow rather than cut
  * should not have to remember a duration on each call. The per-call
  * `glideMs` on `execute_command` is the other half of the same permission
- * and is gated separately, in `webmcp/tools/executeCommand.ts`. They are
- * switches, not settings of the take: nothing sets them back when the
- * session ends.
+ * and is gated separately, in `webmcp/tools/executeCommand.ts`. They last
+ * for the take: it holds both as the viewer left them, and `finishPilot`
+ * gives them back once whatever transition is in flight has landed.
  *
  * Enforced, never advertised. Each of those modes adds them to the list its
  * lock enforces and describes its brief from the list without them: a brief

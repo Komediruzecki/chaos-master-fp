@@ -6,6 +6,7 @@ import { agentDriving, drivingState, notePilotStep, pilot, pilotElapsedMs, pilot
 import { budgetExhaustedMessage, finishPilot } from '@/arcade/pilotActions'
 import { ALWAYS_ALLOWED, BLANK_CANVAS_STEPS, isTopicId, LESSON_TOPICS, PRESENTATION_SWITCHES, TOPIC_IDS, } from '@/arcade/topics'
 import { executeCommand, preflightReplayCommand } from '@/commands/registry'
+import { captureGlideSwitches } from '@/flame/glide/runtime'
 import { variationTypes as registeredVariationTypes } from '@/flame/variations'
 import { variationTypes3D } from '@/flame/variations3D'
 import { anySessionRecording } from '@/recorder/recorder'
@@ -148,6 +149,7 @@ export const arcadeStartLesson: WebMcpTool = {
       stepBudget: topic.stepBudget,
       allowed,
       qualityRankAtStart: qualityRank(ctx.arcade.qualityPreset()),
+      glideAtStart: captureGlideSwitches(),
     })
     if (!pilotResult.ok) {
       ctx.recorder.cancel()

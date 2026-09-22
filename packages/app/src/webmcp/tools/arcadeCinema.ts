@@ -6,6 +6,7 @@ import { agentDriving, drivingState, notePilotStep, pilotStepsRemaining, startPi
 import { finishPilot } from '@/arcade/pilotActions'
 import { ALWAYS_ALLOWED, CINEMA_ALLOWED, CINEMA_STEP_BUDGET, PRESENTATION_SWITCHES, } from '@/arcade/topics'
 import { executeCommand, preflightReplayCommand } from '@/commands/registry'
+import { captureGlideSwitches } from '@/flame/glide/runtime'
 import { withRecordingSuppressed } from '@/recorder/recorder'
 import { getWebMcpContext } from '@/webmcp/contextBridge'
 import type { CatalogEntry } from '@/arcade/animatablePaths'
@@ -60,6 +61,7 @@ export const arcadeStartCinema: WebMcpTool = {
       stepBudget: CINEMA_STEP_BUDGET,
       allowed,
       qualityRankAtStart: qualityRank(ctx.arcade.qualityPreset()),
+      glideAtStart: captureGlideSwitches(),
     })
     if (!result.ok) {
       ctx.recorder.cancel()

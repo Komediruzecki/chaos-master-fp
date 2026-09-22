@@ -24,23 +24,28 @@
 // sits at the edge of it. The refusal message and `list_commands` are where
 // an agent finds them instead.
 //
+// They last for the take. It holds both as the viewer left them and gives them
+// back when it ends, so an agent's presentation never becomes the editor's.
+//
 // Each mode is started through its real tool rather than through `startPilot`
 // with a hand-written list, because the thing under test is what those tools
 // assemble.
 import '@/commands/builtins'
 import { afterEach, describe, expect, it } from 'vitest'
 import { duelActive, stopDuel } from '@/arcade/duel'
+import { finishDuel } from '@/arcade/duelActions'
 import { drivingState, resetPilot } from '@/arcade/pilot'
+import { finishPilot } from '@/arcade/pilotActions'
 import { TOPIC_IDS } from '@/arcade/topics'
 import { createGlideRuntime, glideEnabled, glideQualityPreference, setGlideEnabled, setGlideQualityPreference, setGlideRuntime, } from '@/flame/glide/runtime'
 import { cancelSessionRecording } from '@/recorder/recorder'
 import { deepClone } from '@/utils/clone'
 import { clearWebMcpContext, setWebMcpContext, setWebMcpTarget, } from '@/webmcp/contextBridge'
 import { createMockCommandContext, createTestFlame } from '@/webmcp/testUtils'
-import { arcadeStartBeats } from './arcadeBeats'
-import { arcadeStartCinema } from './arcadeCinema'
+import { arcadeEndBeats, arcadeStartBeats } from './arcadeBeats'
+import { arcadeEndCinema, arcadeStartCinema } from './arcadeCinema'
 import { arcadeStartDuel } from './arcadeDuel'
-import { arcadeStartLesson } from './arcadeTeach'
+import { arcadeEndLesson, arcadeStartLesson } from './arcadeTeach'
 import { executeCommandTool } from './executeCommand'
 import { listCommands } from './listCommands'
 import type { PilotMode } from '@/arcade/pilot'
@@ -58,6 +63,15 @@ const START: Record<PilotMode, () => unknown> = {
   cinema: () => arcadeStartCinema.execute({}, {}),
   beats: () => arcadeStartBeats.execute({ trackName: 'Cyber Pulse' }, {}),
   duel: () => arcadeStartDuel.execute({ durationSeconds: 120 }, {}),
+}
+
+/** End one mode the way the Arcade really ends it. */
+const END: Record<PilotMode, (ctx: CommandContext) => unknown> = {
+  teach: () => arcadeEndLesson.execute({ title: 'Lesson' }, {}),
+  cinema: () => arcadeEndCinema.execute({ title: 'Take' }, {}),
+  beats: () => arcadeEndBeats.execute({ title: 'Beats' }, {}),
+  // No tool ends a duel: the clock does, or the viewer's own Stop.
+  duel: (ctx) => finishDuel(ctx, 'stopped'),
 }
 
 const PRESENTING: readonly PilotMode[] = ['teach', 'cinema', 'beats']
@@ -90,6 +104,36 @@ function tearDown() {
   setGlideRuntime(undefined)
   setGlideEnabled(false)
   setGlideQualityPreference('auto')
+}
+
+/** A glide runtime on a clock the test moves by hand. */
+function mountRuntime(ctx: CommandContext) {
+  let time = 0
+  let pending: ((time: number) => void)[] = []
+  const runtime = createGlideRuntime({
+    readFlame: () => deepClone(ctx.flameDescriptor()),
+    writeFlame: (next) => {
+      ctx.setFlameDescriptor(() => deepClone(next))
+    },
+    now: () => time,
+    requestFrame: (callback) => {
+      pending.push(callback)
+      return pending.length
+    },
+    cancelFrame: () => {
+      pending = []
+    },
+  })
+  setGlideRuntime(runtime)
+  return {
+    runtime,
+    advance: (ms: number) => {
+      time += ms
+      const due = pending
+      pending = []
+      for (const callback of due) callback(time)
+    },
+  }
 }
 
 describe('the presentation switches while an agent drives', () => {
@@ -219,6 +263,94 @@ describe('what the agent is told about them', () => {
 })
 
 /**
+ * When the take ends.
+ *
+ * The switches are for the agent's presentation, not for the editor the
+ * viewer gets back. A take holds on to both as they were when it started and
+ * gives them back when it ends, through its end tool or the overlay's Stop,
+ * after landing whatever transition is in flight. The lock keeps the viewer
+ * off them for the whole take, so what comes back is exactly what they left.
+ * A duel holds nothing, because it cannot change them.
+ */
+describe('when the take ends', () => {
+  afterEach(tearDown)
+
+  for (const mode of PRESENTING) {
+    it(`ending the ${mode} take turns Glide back off`, async () => {
+      const ctx = await drive(mode)
+      await run('glide.setEnabled', [true])
+      expect(glideEnabled(), 'the agent turned it on').toBe(true)
+
+      await END[mode](ctx)
+
+      expect(drivingState(), 'the take ended').toBeUndefined()
+      expect(glideEnabled()).toBe(false)
+    })
+
+    it(`ending the ${mode} take gives the quality back`, async () => {
+      setGlideQualityPreference('balanced')
+      const ctx = await drive(mode)
+      await run('glide.setQuality', ['full'])
+      expect(glideQualityPreference(), 'the agent chose a tier').toBe('full')
+
+      await END[mode](ctx)
+
+      expect(drivingState(), 'the take ended').toBeUndefined()
+      expect(glideQualityPreference()).toBe('balanced')
+    })
+  }
+
+  it('Stop gives back what the viewer had, not the defaults', async () => {
+    setGlideEnabled(true)
+    setGlideQualityPreference('responsive')
+    const ctx = await drive('teach')
+    await run('glide.setEnabled', [false])
+    await run('glide.setQuality', ['full'])
+
+    // What the overlay's Stop button, and Escape twice, call.
+    await finishPilot(ctx, 'stopped')
+
+    expect(drivingState(), 'the take ended').toBeUndefined()
+    expect(glideEnabled()).toBe(true)
+    expect(glideQualityPreference()).toBe('responsive')
+  })
+
+  it('a take that ends mid-transition lands it, then gives them back', async () => {
+    const ctx = await drive('teach')
+    const world = mountRuntime(ctx)
+    await run('glide.setEnabled', [true])
+    await run('glide.setQuality', ['full'])
+    const moving = executeCommandTool.execute(
+      { commandId: 'flame.setGamma', args: [4], glideMs: 400 },
+      {},
+    )
+    world.advance(200)
+    expect(world.runtime.isGliding(), 'a transition is in flight').toBe(true)
+
+    await END.teach(ctx)
+    await moving
+
+    expect(world.runtime.isGliding()).toBe(false)
+    expect(world.runtime.activeQuality()).toBeUndefined()
+    expect(ctx.flameDescriptor().renderSettings.gamma).toBe(4)
+    expect(glideEnabled()).toBe(false)
+    expect(glideQualityPreference()).toBe('auto')
+  })
+
+  it('a duel leaves them as it found them', async () => {
+    setGlideEnabled(true)
+    setGlideQualityPreference('full')
+    const ctx = await drive('duel')
+
+    await END.duel(ctx)
+
+    expect(drivingState(), 'the duel ended').toBeUndefined()
+    expect(glideEnabled()).toBe(true)
+    expect(glideQualityPreference()).toBe('full')
+  })
+})
+
+/**
  * The switch thrown in the middle of a transition.
  *
  * The runtime's `setEnabled` is a signal the planner reads when the NEXT
@@ -234,35 +366,6 @@ describe('what the agent is told about them', () => {
  */
 describe('turning Glide off in the middle of one', () => {
   afterEach(tearDown)
-
-  function mountRuntime(ctx: CommandContext) {
-    let time = 0
-    let pending: ((time: number) => void)[] = []
-    const runtime = createGlideRuntime({
-      readFlame: () => deepClone(ctx.flameDescriptor()),
-      writeFlame: (next) => {
-        ctx.setFlameDescriptor(() => deepClone(next))
-      },
-      now: () => time,
-      requestFrame: (callback) => {
-        pending.push(callback)
-        return pending.length
-      },
-      cancelFrame: () => {
-        pending = []
-      },
-    })
-    setGlideRuntime(runtime)
-    return {
-      runtime,
-      advance: (ms: number) => {
-        time += ms
-        const due = pending
-        pending = []
-        for (const callback of due) callback(time)
-      },
-    }
-  }
 
   it('leaves the flame on the target, never on the frame it had reached', async () => {
     const ctx = await drive('teach')

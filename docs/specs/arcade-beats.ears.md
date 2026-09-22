@@ -302,6 +302,8 @@ prefixes, a quality preset above the rank captured at start, and the locked
 point-count/dimensions/quality render settings — returning the reason and the
 allowed list, and logging it to the pilot rail. The switches are enforced
 without being described: the brief of REQ-AB-009 lists `BEATS_ALLOWED` alone.
+Ending the session gives both back as they were when it started, after landing
+any transition in flight (`finishPilot`).
 
 _(`guard.ts:29-73`; `topics.ts:302-315`, with `PRESENTATION_SWITCHES` at
 `topics.ts:14-44`; enforcement at

@@ -6,6 +6,7 @@ import { agentDriving, drivingState, notePilotStep, pilotStepsRemaining, startPi
 import { finishPilot } from '@/arcade/pilotActions'
 import { ALWAYS_ALLOWED, BEATS_ALLOWED, BEATS_STEP_BUDGET, PRESENTATION_SWITCHES, } from '@/arcade/topics'
 import { executeCommand } from '@/commands/registry'
+import { captureGlideSwitches } from '@/flame/glide/runtime'
 import { AudioMapping, AudioPreset } from '@/flame/schema/audioWiring'
 import * as v from '@/valibot'
 import { getWebMcpContext } from '@/webmcp/contextBridge'
@@ -184,6 +185,7 @@ export const arcadeStartBeats: WebMcpTool = {
       stepBudget: BEATS_STEP_BUDGET,
       allowed,
       qualityRankAtStart: qualityRank(ctx.arcade.qualityPreset()),
+      glideAtStart: captureGlideSwitches(),
     })
     if (!result.ok) {
       ctx.recorder.cancel()
