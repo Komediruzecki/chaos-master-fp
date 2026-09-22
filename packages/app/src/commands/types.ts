@@ -317,6 +317,14 @@ export interface FlameCommand {
   /** False for wall-clock/device transport that cannot be serialized. */
   recordable?: boolean
   /**
+   * False for a step only a recording writes: a session may replay it, but
+   * `execute_command` refuses it live. `timeline.setPlaying` is the case — as
+   * a step it runs between two recorded moments and ends where the take
+   * ended, but a script calling it would start playback nothing stops, which
+   * is why `timeline.play` is refused and `timeline.playFor` exists.
+   */
+  agentCallable?: boolean
+  /**
    * False when a command must never be accepted from an untrusted session.
    * Every other command is still denied unless it declares
    * `validateReplayArgs` or the registry owns an explicit safe signature for

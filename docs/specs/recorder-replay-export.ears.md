@@ -143,15 +143,18 @@ writes as unnamed".)_
 ### REQ-RR-007 — A continuous effect earns exactly one fidelity marker per take
 
 **When** a high-frequency unreplayable effect reports itself — audio modulation
-ticks, wall-clock timeline transport — the recorder shall record one unnamed
-write for the first report under that key and ignore every later report with the
-same key for the remainder of the take. **Where** the seat reporting transport is
-the seat an Arcade agent is currently driving, no marker shall be recorded at
-all: the tool's own preview is not a claim that the session reproduces it.
+ticks, a seek or frame step made on the raw timeline outside a command — the
+recorder shall record one unnamed write for the first report under that key and
+ignore every later report with the same key for the remainder of the take. Play
+and Pause are not such an effect: they are steps (REQ-RR-040). **Where** the
+seat reporting transport is the seat an Arcade agent is currently driving, no
+marker shall be recorded at all: the tool's own preview is not a claim that the
+session reproduces it.
 
-_(`recorder/recorder.ts:252-261`, `:757-766`, `:855-869`; guarded by
+_(`recorder/recorder.ts:253-262`, `:758-767`, `:857-871`; guarded by
 `recorder.test.ts:1334` "reports a high-rate unreplayable effect only once per
-take" and `uiCoverageRatchet.test.ts:340`.)_
+take", `recorder.test.ts:1970` "tracks direct timeline seeks without flooding
+the recording" and `uiCoverageRatchet.test.ts:340`.)_
 
 ### REQ-RR-008 — Undo/redo is represented by its result, not the viewer's stacks
 
@@ -226,9 +229,14 @@ semantic log; **while** it is paused, the same button shall dispatch a
 deterministic `timeline.setCurrentFrame` seek that replays like clicking the
 ruler, wrapping at the configured loop bounds.
 
+A frame the render loop advances while the timeline plays is part of that
+playback, not a seek of its own, so the raw timeline reports neither a transport
+marker nor a step for it (`utils/timeline.ts:1421-1452`).
+
 _(`recorder/timelineActions.ts:193-217`; guarded by
 `timelineActions.test.ts:433` "records paused previous/next buttons as
-deterministic frame actions".)_
+deterministic frame actions" and `recorder.test.ts:1987` "records direct Play
+and Pause as steps that pin the frame".)_
 
 ### REQ-RR-013 — Action timestamps are non-decreasing
 
@@ -597,6 +605,31 @@ _(`utils/animationExport.ts:157-170`, `:224-274`,
 `components/ExportJobs/ExportJobHost.tsx:158-183`, `utils/exportJobs.ts:247-249`,
 `:279-289`.)_
 
+### REQ-RR-040 — Play and Pause are steps that pin the frame
+
+**When** the timeline's playing state changes while a take is recording —
+through Space, the transport buttons, a workspace flow that pauses the raw
+timeline, or a non-looping playback that runs off its end and stops itself —
+the recorder shall append `timeline.setPlaying(playing, frame)` carrying the
+frame playback started or stopped on, and shall count no unnamed write for it.
+A Pause with nothing playing is not a change and shall record nothing. **While**
+a command is running, or recording is suppressed, or the seat is the one an
+Arcade agent drives, the change shall not be recorded. **When** a replay applies
+the step, it shall seek to that frame and then play or pause, so a replay pauses
+exactly where the take paused however long its own paced playback ran; **when**
+a replay rebuilds from the baseline, the workspace target shall pause first,
+because every take starts paused. `execute_command` shall refuse the step live
+(`agentCallable: false`).
+
+_(`utils/timeline.ts:1421-1452`, `:1478-1508`, `recorder/recorder.ts:873-918`,
+`commands/builtins/timeline.ts:502-535`, `commands/registry.ts:581-585`,
+`hooks/useWorkspaceReplay.ts:455-459`; guarded by `timelineActions.test.ts:613`
+"records Space pressed twice as two steps and replays to the paused frame",
+`:656` "pins the frame a playback stops on when it reaches the end by itself",
+`:690` "records a pause that a workspace flow makes on the raw timeline",
+`:717` "leaves the playback of the seat an Arcade agent drives out of its take",
+and `commands/builtins/timeline.test.ts` "timeline.setPlaying".)_
+
 ---
 
 ## Coverage gaps
@@ -608,7 +641,7 @@ unguarded.
 
 | ID         | Why it is unguarded                                                                                                                                            |
 | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| REQ-RR-007 | The Arcade-pilot transport exemption (`recorder.ts:862`) has no test of its own; `uiCoverageRatchet.test.ts:340` covers only the non-exempt path.              |
+| REQ-RR-007 | The Arcade-pilot exemption for seeks (`recorder.ts:864`) has no test of its own; the same exemption for Play and Pause is guarded (REQ-RR-040).                |
 | REQ-RR-011 | The facade is tested; the **MainWorkspace wiring** that decides whether the facade is used at all is not — which is exactly how its known deviation shipped.   |
 | REQ-RR-016 | Nothing constructs a prototype-bearing `paletteRestoreColors` and asserts the session is rejected rather than emptied.                                         |
 | REQ-RR-027 | `focusPreparation.test.ts` covers derivation only. Nothing tests `useWorkspaceReplay.ts:365-435`, which applies it — that hook has no test file.               |

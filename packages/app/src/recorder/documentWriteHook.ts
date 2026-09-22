@@ -18,9 +18,15 @@ import type { SeatId } from '@/seats/seatId'
 
 type DocumentWriteReporter = (description?: string, seatId?: SeatId) => void
 type TimelineTransportReporter = (description: string, seatId?: SeatId) => void
+type TimelinePlaybackReporter = (
+  playing: boolean,
+  frame: number,
+  seatId?: SeatId,
+) => void
 
 let reporter: DocumentWriteReporter | undefined
 let transportReporter: TimelineTransportReporter | undefined
+let playbackReporter: TimelinePlaybackReporter | undefined
 
 export function setDocumentWriteReporter(fn: DocumentWriteReporter): void {
   reporter = fn
@@ -48,4 +54,27 @@ export function notifyTimelineTransport(
   seatId?: SeatId,
 ): void {
   transportReporter?.(description, seatId)
+}
+
+/**
+ * Playback started or stopped, and the frame it did so on.
+ *
+ * Separate from {@link notifyTimelineTransport} because the two mean opposite
+ * things to a recording. A seek outside a command is transport the log cannot
+ * name; a start or stop is a step it can: `frame` pins where the playhead was,
+ * so a replay pauses exactly where the take paused. Reported only when the
+ * playing state actually changes — a Pause with nothing playing is not one.
+ */
+export function setTimelinePlaybackReporter(
+  fn: TimelinePlaybackReporter,
+): void {
+  playbackReporter = fn
+}
+
+export function notifyTimelinePlayback(
+  playing: boolean,
+  frame: number,
+  seatId?: SeatId,
+): void {
+  playbackReporter?.(playing, frame, seatId)
 }

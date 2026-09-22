@@ -5,10 +5,11 @@ import { DEFAULT_SEAT } from '@/seats/seatId'
 import { deepClone } from '@/utils/clone'
 import { currentUndoSeq } from '@/utils/undoJournal'
 import { VERSION } from '@/version'
-import { setDocumentWriteReporter, setTimelineTransportReporter, } from './documentWriteHook'
+import { setDocumentWriteReporter, setTimelinePlaybackReporter, setTimelineTransportReporter, } from './documentWriteHook'
 import { focusForCommand, focusHintFor } from './focus'
 import { NARRATION_COMMAND_ID, narrationAsStep } from './narrationMode'
 import { MAX_ACTION_TIMESTAMP_MS, MAX_SESSION_ACTIONS, MAX_SESSION_FILE_BYTES, MAX_SESSION_JSON_CHARS, serializeSession, SESSION_FORMAT_VERSION, validateRecordedAction, validateSession, } from './schema'
+import { describeTimelinePlayback, TIMELINE_PLAYBACK_COMMAND_ID, } from './transportStep'
 import type { Accessor, Setter } from 'solid-js'
 import type { RecordedAction, RecordedSession, SessionViewSnapshot, } from './schema'
 import type { SonificationSnapshot } from './sonificationState'
@@ -837,11 +838,12 @@ function reportTimelineWriteIn(s: StreamState, description?: string): void {
   noteUnnamedWrite(s, rec, description)
 }
 
-/** Direct scrub/play/step controls are transport, not timeline document
- * entries. They still detach stale export metadata, and while recording they
- * receive one honest fidelity marker per take because wall-clock transport is
- * deliberately not replayed. Command-routed seeks are already represented in
- * the log and therefore skip this hook while `commandDepth > 0`. */
+/** Direct scrub/step controls are transport, not timeline document entries.
+ * They still detach stale export metadata, and while recording they receive
+ * one honest fidelity marker per take because a seek outside a command is not
+ * replayed. Command-routed seeks are already represented in the log and
+ * therefore skip this hook while `commandDepth > 0`. Play and Pause are not
+ * reported here: see {@link reportTimelinePlaybackIn}. */
 function reportTimelineTransportIn(s: StreamState, description: string): void {
   if (commandDepth > 0 || suppressDepth > 0) return
   // An Arcade pilot's playback is the tool's own preview, started so the
@@ -856,6 +858,59 @@ function reportTimelineTransportIn(s: StreamState, description: string): void {
     return
   }
   reportUnreplayableOnceIn(s, 'timeline-transport', description)
+}
+
+/**
+ * Playback started or stopped: log the step that puts it back.
+ *
+ * Any Play or Pause reaches here — Space, the transport buttons, a workspace
+ * flow pausing the raw timeline, a non-looping playback running off its end —
+ * because the timeline reports the change itself rather than each control
+ * remembering to. The step is `timeline.setPlaying(playing, frame)`: the frame
+ * is what makes it replayable, since a replay's own playback runs on paced
+ * time and would otherwise pause wherever that clock had got to.
+ *
+ * Skipped inside a command (that command is what the log carries) and under
+ * suppression (replay, and recorder plumbing such as the pause a take starts
+ * with). The Arcade exemption is the one `reportTimelineTransportIn` has
+ * always made: the seat an agent drives previews its own animation, and the
+ * session deliberately leaves Play to the viewer.
+ *
+ * A step ends any coalescing run, like every synthetic action, but it is not
+ * a document write, so it does not claim the gesture a drag may still have
+ * open.
+ */
+function reportTimelinePlaybackIn(
+  s: StreamState,
+  playing: boolean,
+  frame: number,
+): void {
+  if (commandDepth > 0 || suppressDepth > 0) return
+  if (drivingSeat() === s.id) return
+  noteLiveWorkspaceMutation(s)
+  const rec = s.active
+  if (!rec) {
+    invalidateLastFinishedSessionIn(s)
+    return
+  }
+  s.coalesceAnchors = new Map()
+  // The playhead is a whole frame everywhere it is set, and the step's replay
+  // policy accepts nothing else; one stray fraction must not make the whole
+  // take refuse to replay.
+  const pinned = Math.max(0, Math.round(frame))
+  const args = [playing, pinned]
+  const snapshot = snapshotAction(s, rec, {
+    t: elapsedMs(rec),
+    id: TIMELINE_PLAYBACK_COMMAND_ID,
+    args,
+    label: describeTimelinePlayback(playing, pinned),
+    focus: focusHintFor(TIMELINE_PLAYBACK_COMMAND_ID, args),
+  })
+  if (snapshot === undefined) return
+  rec.actions.push(snapshot.action)
+  rec.actionJsonChars.push(snapshot.jsonChars)
+  rec.actionJsonCharsTotal += snapshot.jsonChars
+  s.setActionCount(rec.actions.length)
 }
 
 function noteUnnamedWrite(
@@ -960,6 +1015,9 @@ export function recorderStream(id: SeatId): RecorderStream {
     },
     reportTimelineTransport: (description) => {
       reportTimelineTransportIn(s, description)
+    },
+    reportTimelinePlayback: (playing, frame) => {
+      reportTimelinePlaybackIn(s, playing, frame)
     },
     reportDerivedWorkspaceWrite: () => {
       reportDerivedWorkspaceWriteIn(s)
@@ -1099,4 +1157,7 @@ setDocumentWriteReporter((description, seatId) => {
 })
 setTimelineTransportReporter((description, seatId) => {
   recorderStream(seatId ?? DEFAULT_SEAT).reportTimelineTransport(description)
+})
+setTimelinePlaybackReporter((playing, frame, seatId) => {
+  recorderStream(seatId ?? DEFAULT_SEAT).reportTimelinePlayback(playing, frame)
 })

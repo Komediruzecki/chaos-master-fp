@@ -1967,7 +1967,7 @@ describe('finished-session export association', () => {
     expect(lastFinishedSession()).toBeUndefined()
   })
 
-  it('tracks direct timeline transport without flooding the recording', () => {
+  it('tracks direct timeline seeks without flooding the recording', () => {
     const timeline = createTimelineState()
 
     finishSession()
@@ -1976,13 +1976,37 @@ describe('finished-session export association', () => {
 
     startSessionRecording(examples.example1)
     timeline.goToFrame(20)
-    timeline.togglePlay()
+    timeline.goBackFrame()
     timeline.advanceFrame()
-    timeline.pause()
 
     const session = stopOrThrow()
     expect(session.actions).toEqual([])
     expect(session.unnamedWriteCount).toBe(1)
+  })
+
+  it('records direct Play and Pause as steps that pin the frame', () => {
+    const timeline = createTimelineState()
+
+    finishSession()
+    timeline.togglePlay()
+    timeline.pause()
+    expect(lastFinishedSession()).toBeUndefined()
+
+    timeline.goToFrame(20)
+    startSessionRecording(examples.example1)
+    timeline.togglePlay()
+    // A frame the render loop advances while playing is the playback itself,
+    // not a seek: it is neither a step nor an uncaptured edit.
+    timeline.advanceFrame()
+    timeline.advanceFrame()
+    timeline.pause()
+
+    const session = stopOrThrow()
+    expect(session.unnamedWriteCount).toBe(0)
+    expect(session.actions.map(({ id, args }) => [id, ...args])).toEqual([
+      ['timeline.setPlaying', true, 20],
+      ['timeline.setPlaying', false, 22],
+    ])
   })
 })
 

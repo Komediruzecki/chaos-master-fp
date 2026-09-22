@@ -580,6 +580,11 @@ export function preflightLiveCommand(
   if (!cmd) return { error: `Unknown command "${id}"` }
   if (cmd.replayable === false)
     return { error: `${cmd.label} is not replayable` }
+  // A step only a recording writes. Its description says what to call
+  // instead, so the refusal carries it rather than a generic "no".
+  if (cmd.agentCallable === false) {
+    return { error: `${cmd.label} is not a live command. ${cmd.description}` }
+  }
   const validator =
     cmd.validateReplayArgs ??
     (Object.hasOwn(REPLAY_ARG_POLICIES, id)

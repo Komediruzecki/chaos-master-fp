@@ -92,6 +92,7 @@ export interface RecorderStream {
   reportDocumentWrite(description?: string, fromPreview?: boolean): void
   reportTimelineWrite(description?: string): void
   reportTimelineTransport(description: string): void
+  reportTimelinePlayback(playing: boolean, frame: number): void
   reportDerivedWorkspaceWrite(): void
   isUndoTargetWithinRecording(target: UndoTarget | undefined): boolean
   notePreviewStarted(): void
