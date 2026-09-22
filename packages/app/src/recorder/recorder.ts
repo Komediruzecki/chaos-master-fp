@@ -71,25 +71,15 @@ type ActiveRecording = {
   unreplayableKeys: Set<string>
 }
 
-/**
- * The editing state around the flame that a recording also starts from.
- *
- * The flame is the document, but it is not the whole world: keyframe edits
- * mean nothing without the tracks they land on, and an audio mapping drives
- * the flame every frame. Both are snapshotted so a replay edits the animation
- * it was recorded against rather than whatever the viewer happens to have
- * open. Optional because sandboxes (tests, the Home portal) have neither.
- */
-export type SessionStartExtras = {
-  timeline?: TimelineSnapshot
-  audio?: AudioWiringSnapshot
-  sonification?: SonificationSnapshot
-  view?: SessionViewSnapshot
+import type { RecordableCommand, RecorderStream, SessionRecordingStartFailureReason, SessionRecordingStartResult, SessionStartExtras, } from './types'
+
+export type {
+  RecordableCommand,
+  RecorderStream,
+  SessionRecordingStartFailureReason,
+  SessionRecordingStartResult,
+  SessionStartExtras,
 }
-
-import type { SessionRecordingStartFailureReason, SessionRecordingStartResult, } from './types'
-
-export type { SessionRecordingStartFailureReason, SessionRecordingStartResult }
 
 /**
  * One recording per seat.
@@ -922,65 +912,6 @@ export function withRecordingSuppressed<T>(fn: () => T): T {
  */
 export function isRecordingSuppressed(): boolean {
   return suppressDepth > 0
-}
-
-export type RecordableCommand = Pick<
-  FlameCommand,
-  | 'id'
-  | 'label'
-  | 'coalesceArgs'
-  | 'coalesceKey'
-  | 'describe'
-  | 'focus'
-  | 'preservesFinishedSession'
-  | 'recordable'
->
-
-/** One seat's recorder. Every method is the per-stream form of the module
- *  function of the same name; the module functions delegate to the `player`
- *  stream so existing callers see no change. */
-export interface RecorderStream {
-  readonly id: SeatId
-  /** `now` lets several streams share one time origin (a duel starts both in
-   *  one call). */
-  start(
-    initial: FlameDescriptor,
-    extras?: SessionStartExtras,
-    now?: number,
-  ): SessionRecordingStartResult
-  stop(): RecordedSession | undefined
-  cancel(): void
-  isRecording: () => boolean
-  actionCount: () => number
-  unnamedWriteCount: () => number
-  lastSession: () => RecordedSession | undefined
-  lastFinishedSession(): RecordedSession | undefined
-  invalidateLastFinishedSession(): void
-  liveWorkspaceMutationGeneration(): number
-  recordCommandExecution(
-    cmd: RecordableCommand,
-    args: readonly unknown[],
-    run: () => void,
-  ): void
-  recordSyntheticAction(
-    id: string,
-    args: readonly unknown[],
-    label?: string,
-  ): void
-  replaceCurrentRecordedAction(
-    id: string,
-    args: readonly unknown[],
-    label?: string,
-  ): void
-  reportUnreplayable(reason: string): void
-  reportUnreplayableOnce(key: string, reason: string): void
-  reportDocumentWrite(description?: string, fromPreview?: boolean): void
-  reportTimelineWrite(description?: string): void
-  reportTimelineTransport(description: string): void
-  reportDerivedWorkspaceWrite(): void
-  isUndoTargetWithinRecording(target: UndoTarget | undefined): boolean
-  notePreviewStarted(): void
-  breakRecordingCoalescing(): void
 }
 
 const handles = new Map<SeatId, RecorderStream>()
