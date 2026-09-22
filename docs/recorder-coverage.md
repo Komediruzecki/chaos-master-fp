@@ -17,7 +17,12 @@ reproduces its authored workspace output. An **uncovered document or timeline
 write** still works normally — it writes anonymously, which the recorder
 counts as an _unnamed write_ and reports in the pill and in the saved file's
 `unnamedWriteCount`. A log with a non-zero count is telling you it cannot fully
-reproduce that session.
+reproduce that session. Each one is also saved by name in `uncapturedSteps`
+(when it happened and why it was not captured, for example "Undo of a change
+made before recording started, at 0:43"), and the pill, the library and the
+replay panel open the count into that list. A take saved before the names
+existed says "Details were not saved by the version that recorded it."
+instead.
 
 Some state lives outside both histories, so the unnamed-write detector cannot
 see it. Those gaps are called out explicitly below rather than being hidden
@@ -372,7 +377,7 @@ the replay and library panels it opens.
   picks up the **last finished** session. To publish the steps themselves as a
   video, open that take in Replay and choose **Artwork** or **Full interface**.
 - `unnamedWriteCount` in the saved file is the honest measure of untracked
-  flame/timeline writes. Zero means every watched document edit was
+  flame/timeline writes, and `uncapturedSteps` names them. Zero means every watched document edit was
   represented; state explicitly listed under “Authored state not represented
   yet” remains outside that detector, and a matching external audio source is
   still required when the take used one.

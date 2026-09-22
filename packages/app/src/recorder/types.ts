@@ -5,7 +5,7 @@
  * depend on it without reaching the recorder's runtime state.
  */
 
-import type { RecordedSession, SessionViewSnapshot } from './schema'
+import type { RecordedSession, SessionViewSnapshot, UncapturedStep, } from './schema'
 import type { SonificationSnapshot } from './sonificationState'
 import type { FlameCommand } from '@/commands/types'
 import type { AudioWiringSnapshot } from '@/flame/schema/audioWiring'
@@ -68,6 +68,8 @@ export interface RecorderStream {
   isRecording: () => boolean
   actionCount: () => number
   unnamedWriteCount: () => number
+  /** The take's uncaptured steps so far, named (see uncapturedSteps.ts). */
+  uncapturedSteps: () => readonly UncapturedStep[]
   lastSession: () => RecordedSession | undefined
   lastFinishedSession(): RecordedSession | undefined
   invalidateLastFinishedSession(): void

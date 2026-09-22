@@ -10,9 +10,11 @@ import { focusForCommand, focusHintFor } from './focus'
 import { NARRATION_COMMAND_ID, narrationAsStep } from './narrationMode'
 import { MAX_ACTION_TIMESTAMP_MS, MAX_SESSION_ACTIONS, MAX_SESSION_FILE_BYTES, MAX_SESSION_JSON_CHARS, serializeSession, SESSION_FORMAT_VERSION, validateRecordedAction, validateSession, } from './schema'
 import { describeTimelinePlayback, TIMELINE_PLAYBACK_COMMAND_ID, } from './transportStep'
+import { createUncapturedLog, describeUnrecordedCommand, describeUnroutedEdit, noteUncapturedStep, uncapturedJsonChars, uncapturedSessionFields, uncapturedStopMessage, } from './uncapturedSteps'
 import type { Accessor, Setter } from 'solid-js'
-import type { RecordedAction, RecordedSession, SessionViewSnapshot, } from './schema'
+import type { RecordedAction, RecordedSession, SessionViewSnapshot, UncapturedStep, } from './schema'
 import type { SonificationSnapshot } from './sonificationState'
+import type { UncapturedLog } from './uncapturedSteps'
 import type { FlameCommand } from '@/commands/types'
 import type { AudioWiringSnapshot } from '@/flame/schema/audioWiring'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
@@ -64,10 +66,10 @@ type ActiveRecording = {
    * session budget without serializing the initial flame after every click. */
   actionJsonChars: number[]
   actionJsonCharsTotal: number
-  /** Compact size of this session with an empty action list and zero unnamed
-   * writes. Action and counter deltas are added to this baseline. */
+  /** Compact size of this session with an empty action list and nothing
+   * uncaptured. Action and uncaptured-step deltas are added to this baseline. */
   baseJsonChars: number
-  unnamedWrites: { t: number; description?: string }[]
+  uncaptured: UncapturedLog
   /** High-frequency effects report once per take instead of once per frame. */
   unreplayableKeys: Set<string>
 }
@@ -119,7 +121,8 @@ type StreamState = {
   actionCount: Accessor<number>
   setActionCount: Setter<number>
   unnamedWriteCount: Accessor<number>
-  setUnnamedWriteCount: Setter<number>
+  uncapturedSteps: Accessor<readonly UncapturedStep[]>
+  setUncapturedSteps: Setter<readonly UncapturedStep[]>
   lastSession: Accessor<RecordedSession | undefined>
   setLastSession: Setter<RecordedSession | undefined>
 }
@@ -134,7 +137,9 @@ function streamState(id: SeatId): StreamState {
   if (existing) return existing
   const [isRecording, setIsRecording] = createSignal(false)
   const [actionCount, setActionCount] = createSignal(0)
-  const [unnamedWriteCount, setUnnamedWriteCount] = createSignal(0)
+  const [uncapturedSteps, setUncapturedSteps] = createSignal<
+    readonly UncapturedStep[]
+  >([])
   const [lastSession, setLastSession] = createSignal<RecordedSession>()
   const created: StreamState = {
     id,
@@ -148,8 +153,9 @@ function streamState(id: SeatId): StreamState {
     setIsRecording,
     actionCount,
     setActionCount,
-    unnamedWriteCount,
-    setUnnamedWriteCount,
+    unnamedWriteCount: () => uncapturedSteps().length,
+    uncapturedSteps,
+    setUncapturedSteps,
     lastSession,
     setLastSession,
   }
@@ -201,7 +207,7 @@ function sessionFrom(rec: ActiveRecording): RecordedSession {
     initialSonification: rec.initialSonification,
     initialView: rec.initialView,
     actions: rec.actions,
-    unnamedWriteCount: rec.unnamedWrites.length,
+    ...uncapturedSessionFields(rec.uncaptured),
   }
 }
 
@@ -213,8 +219,7 @@ function compactSessionChars(rec: ActiveRecording): number {
     rec.baseJsonChars +
     rec.actionJsonCharsTotal +
     Math.max(0, rec.actions.length - 1) +
-    String(rec.unnamedWrites.length).length -
-    1
+    uncapturedJsonChars(rec.uncaptured)
   )
 }
 
@@ -376,7 +381,7 @@ function startIn(
       actionJsonChars: [],
       actionJsonCharsTotal: 0,
       baseJsonChars: 0,
-      unnamedWrites: [],
+      uncaptured: createUncapturedLog(),
       unreplayableKeys: new Set(),
     }
   } catch {
@@ -396,7 +401,7 @@ function startIn(
   // already spoken for the step about to be recorded.
   s.pendingNarration = undefined
   s.setActionCount(0)
-  s.setUnnamedWriteCount(0)
+  s.setUncapturedSteps([])
   // A finished session describes the flame it was recorded against; once a
   // new recording starts it must not be embedded into anything.
   s.setLastSession(undefined)
@@ -455,6 +460,8 @@ function stopIn(s: StreamState): RecordedSession | undefined {
     return undefined
   }
   s.setLastSession(finished)
+  const uncaptured = uncapturedStopMessage(finished)
+  if (uncaptured !== undefined) console.warn(`[recorder] ${uncaptured}`)
   return finished
 }
 
@@ -591,7 +598,7 @@ function recordCommandExecutionIn(
     if (cmd.recordable === false) {
       s.coalesceAnchors = new Map()
       s.gestureClaimed = false
-      noteUnnamedWrite(s, rec, `${cmd.label} is wall-clock transport`)
+      noteUnnamedWrite(s, rec, describeUnrecordedCommand(cmd.label))
     } else if (cmd.id === NARRATION_COMMAND_ID && !narrationAsStep()) {
       // The sentence still runs (the live rail shows it); it just waits to
       // caption the step it introduces instead of standing as a step itself.
@@ -733,8 +740,8 @@ function reportUnreplayableIn(s: StreamState, reason: string): void {
     s.pendingActionIndex = undefined
   }
   s.coalesceAnchors = new Map()
-  rec.unnamedWrites.push({ t: elapsedMs(rec), description: reason })
-  s.setUnnamedWriteCount(rec.unnamedWrites.length)
+  noteUncapturedStep(rec.uncaptured, elapsedMs(rec), reason)
+  s.setUncapturedSteps([...rec.uncaptured.steps])
   console.warn('[recorder] Unreplayable during recording:', reason)
 }
 
@@ -805,7 +812,7 @@ function reportDocumentWriteIn(
     return
   }
   if (claimed || suppressDepth > 0) return
-  noteUnnamedWrite(s, rec, description)
+  noteUnnamedWrite(s, rec, describeUnroutedEdit(description))
 }
 
 /**
@@ -835,7 +842,7 @@ function reportTimelineWriteIn(s: StreamState, description?: string): void {
     invalidateLastFinishedSessionIn(s)
     return
   }
-  noteUnnamedWrite(s, rec, description)
+  noteUnnamedWrite(s, rec, describeUnroutedEdit(description))
 }
 
 /** Direct scrub/step controls are transport, not timeline document entries.
@@ -916,13 +923,13 @@ function reportTimelinePlaybackIn(
 function noteUnnamedWrite(
   s: StreamState,
   rec: ActiveRecording,
-  description: string | undefined,
+  reason: string,
 ): void {
-  rec.unnamedWrites.push({ t: elapsedMs(rec), description })
-  s.setUnnamedWriteCount(rec.unnamedWrites.length)
+  noteUncapturedStep(rec.uncaptured, elapsedMs(rec), reason)
+  s.setUncapturedSteps([...rec.uncaptured.steps])
   console.warn(
     '[recorder] Unnamed write during recording — not replayable:',
-    description ?? '(no description)',
+    reason,
   )
 }
 
@@ -986,6 +993,7 @@ export function recorderStream(id: SeatId): RecorderStream {
     isRecording: s.isRecording,
     actionCount: s.actionCount,
     unnamedWriteCount: s.unnamedWriteCount,
+    uncapturedSteps: s.uncapturedSteps,
     lastSession: s.lastSession,
     lastFinishedSession: () => lastFinishedSessionIn(s),
     invalidateLastFinishedSession: () => {
@@ -1054,6 +1062,8 @@ const player = () => recorderStream(DEFAULT_SEAT)
 export const isSessionRecording = (): boolean => player().isRecording()
 export const recordedActionCount = (): number => player().actionCount()
 export const unnamedWriteCount = (): number => player().unnamedWriteCount()
+export const uncapturedSteps = (): readonly UncapturedStep[] =>
+  player().uncapturedSteps()
 
 export function getLiveWorkspaceMutationGeneration(): number {
   return player().liveWorkspaceMutationGeneration()

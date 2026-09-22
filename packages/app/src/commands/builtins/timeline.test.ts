@@ -189,6 +189,9 @@ describe('bounded transport, against the real timeline state', () => {
     const session = stopSessionRecording()
     expect(timeline.isPlaying()).toBe(false)
     expect(session?.unnamedWriteCount).toBe(1)
+    expect(session?.uncapturedSteps?.map(({ reason }) => reason)).toEqual([
+      'Play Timeline For, a command a recording does not replay',
+    ])
     expect(session?.actions.map(({ id, args }) => [id, ...args])).toEqual([
       ['timeline.setPlaying', false, timeline.currentFrame()],
     ])

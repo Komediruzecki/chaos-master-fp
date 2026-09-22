@@ -270,6 +270,53 @@ describe('SessionReplayPanel accessibility', () => {
     second.unmount()
   })
 
+  it('names each step the take did not capture', () => {
+    const session = makeSession()
+    session.unnamedWriteCount = 2
+    session.uncapturedSteps = [
+      { t: 43_000, reason: 'Undo of a change made before recording started' },
+      { t: 61_000, reason: 'Exposure, made outside the recorded commands' },
+    ]
+    const { unmount } = render(() => (
+      <SessionReplayPanel
+        session={session}
+        target={makeTarget()}
+        onClose={() => {}}
+      />
+    ))
+
+    expect(screen.getByText('2 not captured')).toBeTruthy()
+    expect(
+      screen.getByText(
+        'Undo of a change made before recording started, at 0:43',
+      ),
+    ).toBeTruthy()
+    expect(
+      screen.getByText('Exposure, made outside the recorded commands, at 1:01'),
+    ).toBeTruthy()
+    unmount()
+  })
+
+  it('says when the version that recorded a take did not save which steps it missed', () => {
+    const session = makeSession()
+    session.unnamedWriteCount = 1
+    const { unmount } = render(() => (
+      <SessionReplayPanel
+        session={session}
+        target={makeTarget()}
+        onClose={() => {}}
+      />
+    ))
+
+    expect(screen.getByText('1 not captured')).toBeTruthy()
+    expect(
+      screen.getByText(
+        'Details were not saved by the version that recorded it.',
+      ),
+    ).toBeTruthy()
+    unmount()
+  })
+
   // A synthesized session rebuilds a flame plausibly; it is not evidence of
   // how the flame was made, and the panel must not let it read that way.
   it('says a synthesized session is only a possible way to build the flame', () => {

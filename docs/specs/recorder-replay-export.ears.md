@@ -17,6 +17,7 @@ drive a recording, or the PNG/MP4 chunk formats (`utils/flameInPng.ts`,
 **Source:**
 
 - `packages/app/src/recorder/recorder.ts` — per-seat recording streams, command/gesture capture, coalescing, the unnamed-write honesty counter, suppression
+- `packages/app/src/recorder/uncapturedSteps.ts` — the named uncaptured steps a take saves, and the words every panel uses for them
 - `packages/app/src/recorder/schema.ts` — the `.steps.json` v1 format, every bound, and `validateSession` (ordering, command-id policy, sonification churn)
 - `packages/app/src/recorder/types.ts` — the three start-failure reasons
 - `packages/app/src/recorder/snapshotOrigin.ts` — the closed origin vocabulary behind value-pinned snapshot actions
@@ -132,9 +133,10 @@ _(`recorder/recorder.ts:481-516`, `:547-575`, `:802-818`, `:832-848`; guarded by
 
 **If** a history entry lands on the flame or timeline stack outside any command
 scope and without a gesture that commands already claimed, **then** the recorder
-shall append an unnamed write with its elapsed timestamp, publish the new count,
-and warn — rather than dropping the mutation silently. `unnamedWriteCount` is the
-log's fidelity marker and 0 is the goal state.
+shall append an unnamed write with its elapsed timestamp and a reason naming the
+entry, publish the new count, and warn — rather than dropping the mutation
+silently. `unnamedWriteCount` is the log's fidelity marker and 0 is the goal
+state; REQ-RR-041 is what it saves about each one.
 
 _(`recorder/recorder.ts:802-818`, `:832-848`, `:871-882`, `schema.ts:227-232`;
 guarded by `recorder.test.ts:1356` "attributes command writes, counts direct
@@ -629,6 +631,32 @@ _(`utils/timeline.ts:1421-1452`, `:1478-1508`, `recorder/recorder.ts:873-918`,
 `:690` "records a pause that a workspace flow makes on the raw timeline",
 `:717` "leaves the playback of the seat an Arcade agent drives out of its take",
 and `commands/builtins/timeline.test.ts` "timeline.setPlaying".)_
+
+### REQ-RR-041 — Every uncaptured step is saved by name
+
+**When** a take counts an uncaptured step, the recorder shall keep when it
+happened (take time, held to the session's timestamp range) and why, in words a
+person can read: the history entry's own description for an edit made outside
+the commands, the command's label for a command that is not a step, and which
+case an unreplayable undo or redo is (an edit from before recording started,
+nothing left to undo, a history with no journal stamps). A finished session
+shall carry them as `uncapturedSteps`, in order, next to the count, which stays
+for readers that predate the list. The list shall name at most as many steps
+as a take can hold actions and shall never name more steps than the count;
+`validateSession` shall refuse a file that does. **When** the take stops with
+any, the recorder shall write the named list to the console. The recorder
+controls (while recording), each library entry and the replay panel shall open
+the count into the list, each line reading "reason, at m:ss"; **if** a session
+carries a count but no list, **then** they shall say "Details were not saved by
+the version that recorded it."
+
+_(`recorder/uncapturedSteps.ts:38-67`, `:95-145`, `recorder/recorder.ts:210`,
+`:222`, `:463-464`, `:735-744`, `:923-930`, `recorder/schema.ts:273-286`,
+`:338-340`, `:435-441`, `commands/builtins/history.ts:81-94`,
+`components/SessionRecorder/UncapturedSteps.tsx:18-45`; guarded by
+`recorder.test.ts:2072`, `:2105`, `:2119`, `:2132`, `:2151`, `:2163`,
+`uncapturedSteps.test.ts`, `SessionRecorderControls.test.tsx:277`,
+`SessionLibraryPanel.test.tsx:54`, `SessionReplayPanel.test.tsx:255`, `:282`.)_
 
 ---
 

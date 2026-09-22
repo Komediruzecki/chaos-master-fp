@@ -30,7 +30,7 @@ file instead of rediscovering the architecture every session.
 
 | Directory                 | Package name                   | Source files | LOC    |
 | ------------------------- | ------------------------------ | ------------ | ------ |
-| `packages/app`            | `chaos-master`                 | 1073         | 182.2k |
+| `packages/app`            | `chaos-master`                 | 1075         | 182.5k |
 | `packages/landing`        | `@chaos-master/landing`        | 20           | 2.5k   |
 | `packages/core`           | `@chaos-master/core`           | 17           | 1.9k   |
 | `packages/mobile-runtime` | `@chaos-master/mobile-runtime` | 7            | 600    |
@@ -83,7 +83,7 @@ file instead of rediscovering the architecture every session.
 | `Home`                  | [HomeFlame.tsx](../../packages/app/src/components/Home/HomeFlame.tsx)                                          | 4.1k | _(no header comment)_                                                                                                                        |
 | `AudioWiringModal`      | [AudioWiringModal.tsx](../../packages/app/src/components/AudioWiringModal/AudioWiringModal.tsx)                | 4.0k | _(no header comment)_                                                                                                                        |
 | `Duel`                  | [DuelChips.tsx](../../packages/app/src/components/Duel/DuelChips.tsx)                                          | 3.2k | Pointer intent, so a cursor crossing the top edge does not detonate a panel.                                                                 |
-| `SessionRecorder`       | [SessionRecorderDock.tsx](../../packages/app/src/components/SessionRecorder/SessionRecorderDock.tsx)           | 2.7k | _(no header comment)_                                                                                                                        |
+| `SessionRecorder`       | [SessionRecorderDock.tsx](../../packages/app/src/components/SessionRecorder/SessionRecorderDock.tsx)           | 2.8k | _(no header comment)_                                                                                                                        |
 | `WorkspaceSidebar`      | [index.ts](../../packages/app/src/components/WorkspaceSidebar/index.ts)                                        | 2.4k | _(no header comment)_                                                                                                                        |
 | `ExportPngDialog`       | [ExportPngDialog.tsx](../../packages/app/src/components/ExportPngDialog/ExportPngDialog.tsx)                   | 2.1k | _(no header comment)_                                                                                                                        |
 | `FlameRandomizerCard`   | [FlameRandomizerCard.tsx](../../packages/app/src/components/FlameRandomizerCard/FlameRandomizerCard.tsx)       | 2.0k | _(no header comment)_                                                                                                                        |
@@ -223,12 +223,13 @@ file instead of rediscovering the architecture every session.
 | [player.ts](../../packages/app/src/recorder/player.ts)                             | 600  | Timed playback of a recorded session (semantic-recorder-plan, M4).                                                                           |
 | [focus.ts](../../packages/app/src/recorder/focus.ts)                               | 500  | Follow-cam hints: **what to look at** while a step runs, never **where**.                                                                    |
 | [focusPreparation.ts](../../packages/app/src/recorder/focusPreparation.ts)         | 500  | UI state that must be ready before the follow-cam resolves an action's DOM target.                                                           |
+| [schema.ts](../../packages/app/src/recorder/schema.ts)                             | 500  | The `.steps.json` session format — version 1.                                                                                                |
 | [replayInterfaceVideo.ts](../../packages/app/src/recorder/replayInterfaceVideo.ts) | 450  | Full-interface capture keeps the viewport aspect ratio, but caps the long edge and pixel count so a 4K/5K monitor cannot create an unboun... |
-| [schema.ts](../../packages/app/src/recorder/schema.ts)                             | 450  | The `.steps.json` session format — version 1.                                                                                                |
 | [timelineActions.ts](../../packages/app/src/recorder/timelineActions.ts)           | 450  | A timeline whose compound edits reach the session recorder.                                                                                  |
 | [replay.ts](../../packages/app/src/recorder/replay.ts)                             | 250  | Whether replay may need browser user activation for generated audio.                                                                         |
 | [snapshotOrigin.ts](../../packages/app/src/recorder/snapshotOrigin.ts)             | 200  | Why a value-pinned snapshot exists.                                                                                                          |
 | [sonificationState.ts](../../packages/app/src/recorder/sonificationState.ts)       | 150  | Sonification is authored output state, but it is not part of the flame document.                                                             |
+| [uncapturedSteps.ts](../../packages/app/src/recorder/uncapturedSteps.ts)           | 150  | The steps a take could not record, by name.                                                                                                  |
 | [replaySideState.ts](../../packages/app/src/recorder/replaySideState.ts)           | 100  | Editor-only state that follow-cam may change while revealing a target.                                                                       |
 | [types.ts](../../packages/app/src/recorder/types.ts)                               | 100  | The session recorder's public types, apart from the module that implements them: what a recording starts from, what a command must expose... |
 

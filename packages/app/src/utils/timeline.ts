@@ -1,5 +1,6 @@
 import { createSignal, getOwner, onCleanup } from 'solid-js'
 import { notifyDocumentWrite, notifyTimelinePlayback, notifyTimelineTransport, } from '@/recorder/documentWriteHook'
+import { PLAYHEAD_MOVE_REASON } from '@/recorder/transportStep'
 import { applyEasing, catmullRom, clamp } from './easing'
 import { persistentSignal } from './persistentSignal'
 import { clearAllRedos, nextUndoSeq, registerRedoClearer } from './undoJournal'
@@ -1422,7 +1423,7 @@ export function createTimelineState(options: TimelineStateOptions = {}) {
     // While playing, this is the render loop stepping the playback a Play
     // already reported, not a seek of its own. A step while paused is.
     const playing = isPlaying()
-    if (!playing) notifyTimelineTransport('Timeline frame transport', seatId)
+    if (!playing) notifyTimelineTransport(PLAYHEAD_MOVE_REASON, seatId)
     const cfg = config()
     // Sample the achieved rate between auto-FPS advances (each advance fires
     // when a frame hits target quality). Skip manual stepping (not playing).
@@ -1458,7 +1459,7 @@ export function createTimelineState(options: TimelineStateOptions = {}) {
   }
 
   function goBackFrame() {
-    notifyTimelineTransport('Timeline frame transport', seatId)
+    notifyTimelineTransport(PLAYHEAD_MOVE_REASON, seatId)
     const cfg = config()
     const prev = currentFrame() - 1
     if (prev < cfg.startFrame) {
@@ -1470,7 +1471,7 @@ export function createTimelineState(options: TimelineStateOptions = {}) {
   }
 
   function goToFrame(frame: number) {
-    notifyTimelineTransport('Timeline frame transport', seatId)
+    notifyTimelineTransport(PLAYHEAD_MOVE_REASON, seatId)
     setCurrentFrame(clamp(frame, config().startFrame, config().endFrame))
     setPreviewHeld(true)
   }

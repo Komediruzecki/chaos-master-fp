@@ -109,6 +109,9 @@ type RecordedSession = {
   initialView?: SessionViewSnapshot
   actions: RecordedAction[]
   unnamedWriteCount: number
+  // Each counted step by name: `t` in take time and a reason a person can
+  // read. Absent on a clean take and on takes saved before names existed.
+  uncapturedSteps?: { t: number; reason: string }[]
 }
 
 type RecordedAction = {

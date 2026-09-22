@@ -1638,7 +1638,7 @@ export function MainWorkspace(props: AppProps) {
     // say so instead of letting the log claim fidelity it lost.
     if (isSessionRecording()) {
       reportUnreplayable(
-        'Workspace remounted — the recording started against a different document',
+        'The workspace reloaded, so later steps apply to a different document than this take started from',
       )
     }
     trackAppInit(Boolean(window.navigator?.gpu))
@@ -2884,7 +2884,7 @@ export function MainWorkspace(props: AppProps) {
 
     if (anim.tracks.length > 0) {
       reportTimelineTransport(
-        'Loaded animation autoplay is wall-clock transport and is not replayed',
+        'Autoplay of a loaded animation, which a recording does not replay',
       )
     }
 

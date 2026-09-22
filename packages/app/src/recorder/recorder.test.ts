@@ -11,7 +11,7 @@ import { MAX_FLAME_TRANSFORMS } from '@/flame/schema/flameSchema'
 import { deepClone } from '@/utils/clone'
 import { createStoreHistory } from '@/utils/createStoreHistory'
 import { createTimelineState } from '@/utils/timeline'
-import { cancelSessionRecording, getLiveWorkspaceMutationGeneration, isSessionRecording, lastFinishedSession, notePreviewStarted, recordedActionCount, recordSyntheticAction, reportDerivedWorkspaceWrite, reportDocumentWrite, reportTimelineWrite, reportUnreplayableOnce, startSessionRecording, stopSessionRecording, unnamedWriteCount, withRecordingSuppressed, } from './recorder'
+import { cancelSessionRecording, getLiveWorkspaceMutationGeneration, isSessionRecording, lastFinishedSession, notePreviewStarted, recordedActionCount, recordSyntheticAction, reportDerivedWorkspaceWrite, reportDocumentWrite, reportTimelineWrite, reportUnreplayableOnce, startSessionRecording, stopSessionRecording, uncapturedSteps, unnamedWriteCount, withRecordingSuppressed, } from './recorder'
 import { replaySessionInstant } from './replay'
 import { captureTransformColors, paletteRestoreColorsAfterReplayCommand, runPaletteRestoreTransition, } from './replayPaletteState'
 import { MAX_ACTION_ARGS, MAX_ACTION_TIMESTAMP_MS, MAX_SESSION_ACTIONS, MAX_SESSION_JSON_CHARS, MAX_SONIFICATION_MODEL_TRANSITIONS, parseSession, serializeSession, sessionFilename, validateSession, } from './schema'
@@ -2061,5 +2061,116 @@ describe('session action ordering', () => {
     }
     expect(validateSession(withTimes(10, 20))).toBeDefined()
     expect(validateSession(withTimes(20, 10))).toBeUndefined()
+  })
+})
+
+/**
+ * A take has always counted the steps it could not record. These pin that it
+ * also says which steps they were, and when, in the file a person gets back.
+ */
+describe('uncaptured steps are named', () => {
+  it('saves each one with the time it happened and why it was not captured', () => {
+    const clock = vi.spyOn(globalThis.performance, 'now').mockReturnValue(1_000)
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    createRoot((dispose) => {
+      const world = makeHeadlessWorld(examples.example1)
+      // Made before Record, so undoing it cannot be replayed from the take.
+      executeCommand('flame.setGamma', world.ctx, 7)
+      startSessionRecording(world.flame)
+      clock.mockReturnValue(44_000)
+      executeCommand('history.undo', world.ctx)
+      clock.mockReturnValue(46_500)
+      reportDocumentWrite('Exposure')
+      clock.mockReturnValue(47_000)
+      reportTimelineWrite('timeline edit')
+      const session = stopOrThrow()
+
+      expect(session.unnamedWriteCount).toBe(3)
+      expect(session.uncapturedSteps).toEqual([
+        { t: 43_000, reason: 'Undo of a change made before recording started' },
+        { t: 45_500, reason: 'Exposure, made outside the recorded commands' },
+        {
+          t: 46_000,
+          reason: 'Timeline edit, made outside the recorded commands',
+        },
+      ])
+      // The names survive the file a person downloads and opens again.
+      expect(parseSession(serializeSession(session))?.uncapturedSteps).toEqual(
+        session.uncapturedSteps,
+      )
+      dispose()
+    })
+  })
+
+  it('names an undo that has nothing left to undo', () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    createRoot((dispose) => {
+      const world = makeHeadlessWorld(examples.example1)
+      startSessionRecording(world.flame)
+      executeCommand('history.undo', world.ctx)
+      const session = stopOrThrow()
+      expect(session.uncapturedSteps?.map(({ reason }) => reason)).toEqual([
+        'Undo with nothing left to undo',
+      ])
+      dispose()
+    })
+  })
+
+  it('names each one while the take is still recording', () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const clock = vi.spyOn(globalThis.performance, 'now').mockReturnValue(0)
+    startSessionRecording(examples.example1)
+    expect(uncapturedSteps()).toEqual([])
+    clock.mockReturnValue(12_000)
+    reportDocumentWrite('Camera pan')
+    expect(uncapturedSteps()).toEqual([
+      { t: 12_000, reason: 'Camera pan, made outside the recorded commands' },
+    ])
+    expect(unnamedWriteCount()).toBe(1)
+  })
+
+  it('logs the named list when the take stops', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const clock = vi.spyOn(globalThis.performance, 'now').mockReturnValue(0)
+    startSessionRecording(examples.example1)
+    stopOrThrow()
+    // A clean take has nothing to say.
+    expect(warn).not.toHaveBeenCalled()
+
+    startSessionRecording(examples.example1)
+    clock.mockReturnValue(43_000)
+    reportDocumentWrite('Exposure')
+    warn.mockClear()
+    stopOrThrow()
+    expect(warn).toHaveBeenCalledTimes(1)
+    expect(String(warn.mock.calls[0]?.[0])).toContain(
+      'Exposure, made outside the recorded commands, at 0:43',
+    )
+  })
+
+  it('refuses a file that names more uncaptured steps than it counts', () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    startSessionRecording(examples.example1)
+    reportDocumentWrite('Exposure')
+    const session = stopOrThrow()
+    const forged = JSON.parse(serializeSession(session)) as {
+      unnamedWriteCount: number
+    }
+    forged.unnamedWriteCount = 0
+    expect(validateSession(forged)).toBeUndefined()
+  })
+
+  it('still opens a count-only file from a version that did not name them', () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    startSessionRecording(examples.example1)
+    reportDocumentWrite('Exposure')
+    const session = stopOrThrow()
+    const older = JSON.parse(serializeSession(session)) as {
+      uncapturedSteps?: unknown
+    }
+    delete older.uncapturedSteps
+    const opened = validateSession(older)
+    expect(opened?.unnamedWriteCount).toBe(1)
+    expect(opened?.uncapturedSteps).toBeUndefined()
   })
 })

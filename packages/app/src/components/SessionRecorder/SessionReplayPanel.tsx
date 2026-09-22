@@ -12,6 +12,7 @@ import { agentRailEnabled, followCamEnabled, replayGlideEnabled, setAgentRailEna
 import { ReplayAgentRail } from './ReplayAgentRail'
 import { ReplaySpotlight } from './ReplaySpotlight'
 import styles from './SessionReplayPanel.module.css'
+import { UncapturedSteps } from './UncapturedSteps'
 import type { ReplayFocusPreparation, ReplayFocusPreparationHandler, } from '@/recorder/focusPreparation'
 import type { ReplayGlideOptions } from '@/recorder/glide'
 import type { ReplayTarget } from '@/recorder/replay'
@@ -281,14 +282,6 @@ export function SessionReplayPanel(props: {
             </span>
           )}
         </Show>
-        <Show when={session.unnamedWriteCount > 0}>
-          <span
-            class={styles.warning}
-            title={`${session.unnamedWriteCount} edit(s) in this session were not captured as commands, so this replay cannot reproduce them.`}
-          >
-            {session.unnamedWriteCount} not captured
-          </span>
-        </Show>
         <button
           data-recorder-replay-close
           type="button"
@@ -308,6 +301,7 @@ export function SessionReplayPanel(props: {
           Close
         </button>
       </div>
+      <UncapturedSteps session={session} />
 
       <div class={styles.transport}>
         <button

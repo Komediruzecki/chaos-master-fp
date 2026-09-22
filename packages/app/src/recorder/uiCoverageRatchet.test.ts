@@ -290,7 +290,7 @@ describe('real UI recorder coverage ratchet', () => {
       'data-focus-id={transformColorRandomizeFocusId(',
     )
     expect(allSources).toContain(
-      'Loaded animation autoplay is wall-clock transport and is not replayed',
+      'Autoplay of a loaded animation, which a recording does not replay',
     )
     expect(allSources).toContain(
       'Stop or discard the recording before opening a Home flame',

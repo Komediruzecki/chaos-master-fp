@@ -1,5 +1,6 @@
 /**
- * The recorded form of Play and Pause: `timeline.setPlaying(playing, frame)`.
+ * The recorded form of Play and Pause: `timeline.setPlaying(playing, frame)`,
+ * and the words for the one kind of transport a take still cannot record.
  *
  * A leaf, like `documentWriteHook.ts`, because both ends need it and neither
  * may import the other: the command registers under this id and describes
@@ -16,3 +17,12 @@ export function describeTimelinePlayback(
 ): string {
   return playing ? `Play from frame ${frame}` : `Pause at frame ${frame}`
 }
+
+/**
+ * Why a raw playhead move is an uncaptured step, as the recorder panels show
+ * it. A seek made through a command is a step of its own; one made directly on
+ * the raw timeline is not, and a take lists only the first (see
+ * `reportTimelineTransportIn` in recorder.ts), which the words say.
+ */
+export const PLAYHEAD_MOVE_REASON =
+  'Playhead moved outside the recorded commands (counted once per take)'
