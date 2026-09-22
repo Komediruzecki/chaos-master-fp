@@ -189,7 +189,7 @@ file instead of rediscovering the architecture every session.
 
 | File                                                                   | LOC | What it is                                                                                                                                   |
 | ---------------------------------------------------------------------- | --- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| [topics.ts](../../packages/app/src/arcade/topics.ts)                   | 450 | Commands every Arcade mode may use.                                                                                                          |
+| [topics.ts](../../packages/app/src/arcade/topics.ts)                   | 500 | Commands every Arcade mode may use.                                                                                                          |
 | [animatablePaths.ts](../../packages/app/src/arcade/animatablePaths.ts) | 350 | Read the live value behind one `TIMELINE_PARAMETERS` path.                                                                                   |
 | [tasteStore.ts](../../packages/app/src/arcade/tasteStore.ts)           | 350 | Persistent taste profile store and flame feature extraction for Evolutionary Art Director.                                                   |
 | [duel.ts](../../packages/app/src/arcade/duel.ts)                       | 250 | A duel, as one module-global state — the same shape as `arcade/pilot.ts`, and for the same reason: the tools that start it, the stage tha... |

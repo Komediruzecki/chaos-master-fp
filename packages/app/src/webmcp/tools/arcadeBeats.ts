@@ -4,7 +4,7 @@ import { qualityRank } from '@/arcade/guard'
 import { clearNarration } from '@/arcade/narration'
 import { agentDriving, drivingState, notePilotStep, pilotStepsRemaining, startPilot, } from '@/arcade/pilot'
 import { finishPilot } from '@/arcade/pilotActions'
-import { ALWAYS_ALLOWED, BEATS_ALLOWED, BEATS_STEP_BUDGET, } from '@/arcade/topics'
+import { ALWAYS_ALLOWED, BEATS_ALLOWED, BEATS_STEP_BUDGET, PRESENTATION_SWITCHES, } from '@/arcade/topics'
 import { executeCommand } from '@/commands/registry'
 import { AudioMapping, AudioPreset } from '@/flame/schema/audioWiring'
 import * as v from '@/valibot'
@@ -174,7 +174,10 @@ export const arcadeStartBeats: WebMcpTool = {
       return { error: `Could not start recording: ${started.reason}` }
     }
 
-    const allowed = [...BEATS_ALLOWED, ...ALWAYS_ALLOWED]
+    // Enforced, not advertised: the brief is described from `briefed`, and
+    // PRESENTATION_SWITCHES says why the switches stay out of it.
+    const briefed = [...BEATS_ALLOWED, ...ALWAYS_ALLOWED]
+    const allowed = [...briefed, ...PRESENTATION_SWITCHES]
     const result = startPilot({
       mode: 'beats',
       title: 'Wiring your flame to the beat',
@@ -200,7 +203,7 @@ export const arcadeStartBeats: WebMcpTool = {
     return {
       ok: true,
       stepBudget: BEATS_STEP_BUDGET,
-      allowedCommands: describeAllowedCommands(allowed),
+      allowedCommands: describeAllowedCommands(briefed),
       activeTrack,
       tips: [
         'Call arcade_get_audio_catalog first to inspect available modulation targets and audio features.',
