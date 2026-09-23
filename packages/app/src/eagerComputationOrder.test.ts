@@ -35,6 +35,13 @@ const SRC = import.meta.dirname
  * Solid primitives that run their callback synchronously at creation.
  * Verified against solid-js 1.9.11 `dist/solid.js`: each one reaches
  * `updateComputation(...)` on the spot, outside a transition.
+ *
+ * `createResource` too, for both of its function arguments: a function
+ * source becomes a `createMemo`, and `load(false)` runs at creation and calls
+ * the fetcher unless the source value is `null` or `false`. The fetcher's
+ * throw is caught and stored as the resource's error, so the ReferenceError
+ * surfaces where the resource is read rather than at the call, but it is the
+ * same dead binding.
  */
 const EAGER = new Set([
   'createMemo',
@@ -42,7 +49,11 @@ const EAGER = new Set([
   'createRenderEffect',
   'createDeferred',
   'createSelector',
+  'createResource',
 ])
+
+/** The primitives whose every function argument runs, not only the first. */
+const EAGER_EVERY_ARGUMENT = new Set(['createResource'])
 
 /** TDZ bindings. `var` and `function` hoist, so they cannot be the hazard. */
 function isTemporalDeadZone(node: ts.Node): boolean {
@@ -177,13 +188,15 @@ function scan(file: string, text: string): Offender[] {
   const walk = (node: ts.Node) => {
     if (ts.isCallExpression(node) && ts.isIdentifier(node.expression)) {
       const primitive = node.expression.text
-      const callback = node.arguments[0]
-      if (
-        EAGER.has(primitive) &&
-        callback !== undefined &&
-        (ts.isArrowFunction(callback) || ts.isFunctionExpression(callback))
-      ) {
-        const reads = readNames(callback)
+      const callbacks = EAGER.has(primitive)
+        ? (EAGER_EVERY_ARGUMENT.has(primitive)
+            ? node.arguments
+            : node.arguments.slice(0, 1)
+          ).filter((a) => ts.isArrowFunction(a) || ts.isFunctionExpression(a))
+        : []
+      if (callbacks.length > 0) {
+        // One set per call, so a binding read by two arguments is one offender.
+        const reads = new Set(callbacks.flatMap((c) => [...readNames(c)]))
         for (const statements of enclosingStatementLists(node)) {
           for (const statement of statements) {
             // Only what comes after the computation is in its dead zone.
@@ -1015,5 +1028,62 @@ describe('the hook-boundary scan itself', () => {
         return { handler, value, keep }
       }`
     expect(run(hook, caller)).toEqual([])
+  })
+})
+
+describe('the eager primitives the scans know', () => {
+  const late = (lines: string) => `
+    export function Workspace() {
+${lines}
+      const late = () => 1
+      return null
+    }`
+
+  it('include createResource: its source and fetcher run at creation', () => {
+    // solid-js 1.9.11: a function source becomes a createMemo, and load(false)
+    // calls the fetcher on the spot unless the source value is null or false.
+    const offenders = scan(
+      'resource.tsx',
+      late(`
+      const [one] = createResource(() => late())
+      const [two] = createResource(() => 'key', (key) => key + late())
+      const [three] = createResource(() => late(), (key) => key)
+      const [four] = createResource(() => late(), () => late())`),
+    ).map((o) => `${o.computation}@${o.usedAtLine}:${o.readName}`)
+    // One entry per call and binding, however many of its arguments read it.
+    expect(offenders).toEqual([
+      'createResource@4:late',
+      'createResource@5:late',
+      'createResource@6:late',
+      'createResource@7:late',
+    ])
+  })
+
+  it('include createResource across the hook boundary', () => {
+    const hooks = eagerHookTable([
+      {
+        file: 'hook.ts',
+        ast: parse(
+          'hook.ts',
+          `export function useWorkspaceProbe(params: Params) {
+            const [data] = createResource(() => params.load())
+            return data
+          }`,
+        ),
+      },
+    ])
+    const offenders = scanHookCalls(
+      'caller.tsx',
+      parse(
+        'caller.tsx',
+        `export function Workspace() {
+          const data = useWorkspaceProbe({ load: () => late() })
+          const late = () => 1
+          return data
+        }`,
+      ),
+      hooks,
+    ).map((o) => `${o.param}->${o.readName}`)
+    expect(offenders).toEqual(['load->late'])
   })
 })
