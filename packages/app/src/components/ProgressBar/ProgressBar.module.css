@@ -1,4 +1,19 @@
+/*
+ * The animation export's progress card, over the canvas it renders on.
+ *
+ * Chrome glass (docs/plans/glass-panels.md, phase 1) at the stronger
+ * --la-glass-strong fill, as it carries three tiers of text: the 86% fill
+ * keeps ink-3 at 4.52:1 over white-hot art, where 72% allows ink alone.
+ * The text reads the --tier-* properties, so the card's two looks differ in
+ * one rule. The desktop's light theme keeps the card it had, dark in both
+ * themes before (the glass is dark-only, decision b); a touch layout, which
+ * sets .touch, is glass in both.
+ */
 .overlay {
+  composes: chrome from '@/styles/designSystem/glass.module.css';
+  --tier-1: var(--la-ink);
+  --tier-2: var(--la-ink-2);
+  --tier-3: var(--la-ink-3);
   position: fixed;
   bottom: 1.5rem;
   left: 50%;
@@ -9,6 +24,13 @@
   width: calc(100vw - 3rem);
   padding: 1rem 1.25rem;
   border-radius: 0.75rem;
+  background: var(--la-glass-strong);
+}
+
+[data-theme='light'] .overlay:not(.touch) {
+  --tier-1: var(--color-text, #eee);
+  --tier-2: var(--color-text-secondary, #888);
+  --tier-3: var(--color-text-secondary, #777);
   background: rgba(15, 15, 17, 0.92);
   border: 1px solid rgba(255, 255, 255, 0.08);
   -webkit-backdrop-filter: blur(16px);
@@ -33,13 +55,13 @@
 .label {
   font-size: 0.78rem;
   font-weight: 600;
-  color: var(--color-text, #eee);
+  color: var(--tier-1);
   letter-spacing: 0.02em;
 }
 
 .stats {
   font-size: 0.68rem;
-  color: var(--color-text-secondary, #888);
+  color: var(--tier-2);
   font-variant-numeric: tabular-nums;
 }
 
@@ -47,7 +69,7 @@
   display: flex;
   justify-content: space-between;
   font-size: 0.65rem;
-  color: var(--color-text-secondary, #777);
+  color: var(--tier-3);
   font-variant-numeric: tabular-nums;
 }
 
@@ -84,7 +106,7 @@
 
 .eta {
   font-size: 0.65rem;
-  color: var(--color-text-secondary, #777);
+  color: var(--tier-3);
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
