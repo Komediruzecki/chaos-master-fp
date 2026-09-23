@@ -201,7 +201,7 @@ The GPU has f32 only. Each pixel stores `d = w * 2^e` with `w` an f32 pair and
   1e300, ~9 s at 1e1000 — hence a worker, sliced so a moved view cancels it.
 - A reference serves while the view centre is within 1024 px of it and it
   has 64 guard bits for the current depth (it is made with 8 octaves of zoom
-  to spare). Past that, it *stands in* while the next one is computed: down
+  to spare). Past that, it _stands in_ while the next one is computed: down
   to 32 guard bits (the kernel mirror agrees with exact iteration at 16 and
   fails at 8), and step by step, without its BLA table, once the view zooms
   out past the table's radius (`standIn` in `referencePlan.ts`).
@@ -321,6 +321,7 @@ without BLA, for both set kinds.
 | `explorerLocation.ts`      | Location signal kept in step with the URL fragment              |
 | `explorerPalette.ts`       | App palette -> mirrored OkLab (a, b) lookup table               |
 | `JuliaMarker.tsx`          | The split view's point: the Julia constant, dragged on the set  |
+| `explorerScrub.ts`         | What a sideways drag does to c and to the iteration limit       |
 
 Routing: `/explore` (new branch in `index.tsx`, `routing/appPath.ts`, a
 trailing-slash redirect in the Cloudflare worker). Entry points: the desktop
@@ -328,7 +329,10 @@ version menu next to Benchmark Lab, and the shared More menu. View state lives
 in the URL **fragment** (never sent to the server or GA).
 
 Controls as built: Mandelbrot / Julia / Both; "Julia set of the view
-centre"; the Julia constant; iteration limit (halve, double, or type); palette
+centre"; the Julia constant; iteration limit (halve, double, or type); the
+number fields also scrub when dragged sideways (`utils/createInputScrub.ts`:
+c by 0.001/px, the limit doubling every 100 px, Shift ten times finer, a
+press without a drag types); palette
 (`PaletteSelector`), colour cycle and shift; relief (distance shading);
 quality (pixel budget and supersamples); home; copy link; save PNG. Readout:
 magnification, progress, reference state. Input: wheel zooms at the pointer,
