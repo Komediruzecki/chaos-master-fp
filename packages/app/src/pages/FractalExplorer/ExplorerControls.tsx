@@ -11,8 +11,9 @@ import { createInputScrub } from '@/utils/createInputScrub'
 import { C_PER_PIXEL, clampedLog2, PIXELS_PER_DOUBLING, scrubbedDecimal, scrubbedIterations, } from './explorerScrub'
 import ui from './FractalExplorerPage.module.css'
 import type { ComplexString, ExplorerLocation } from '@chaos-master/core'
+import type { ExplorerMode } from './explorerModes'
 import type { ExplorerStatus } from './ExplorerRenderer'
-import type { ExplorerMode, Quality } from './FractalExplorerPage'
+import type { Quality } from './FractalExplorerPage'
 import type { Palette } from '@/flame/colorMap'
 
 export interface ExplorerControlsProps {

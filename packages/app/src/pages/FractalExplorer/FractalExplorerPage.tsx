@@ -7,7 +7,7 @@
  * second renderer draws it, and dragging the point (`JuliaMarker`) across
  * the Mandelbrot pane changes it as you watch.
  */
-import { centerOffsetPixels, formatMagnification, homeView, JULIA_HOME, MANDELBROT_HOME, } from '@chaos-master/core'
+import { formatMagnification } from '@chaos-master/core'
 import { createMemo, createSignal, onCleanup, Show } from 'solid-js'
 import { useToast } from '@/contexts/ToastContext'
 import { ChevronLeft, Settings, SplitView } from '@/icons'
@@ -15,20 +15,19 @@ import { AutoCanvas } from '@/lib/AutoCanvas'
 import { downloadBlob } from '@/utils/blob'
 import { ExplorerControls } from './ExplorerControls'
 import { createExplorerLocation } from './explorerLocation'
+import { explorerMode, withHome, withJuliaFromCentre, withMode, } from './explorerModes'
 import { resolvePalette } from './explorerPalette'
 import { ExplorerRenderer } from './ExplorerRenderer'
 import ui from './FractalExplorerPage.module.css'
 import { JuliaMarker, shortComplex } from './JuliaMarker'
-import type { ComplexString, DeepZoomView, FractalKind, } from '@chaos-master/core'
+import type { ExplorerLocation } from '@chaos-master/core'
 import type { ExplorerGpu } from './explorerGpu'
+import type { ExplorerMode } from './explorerModes'
 import type { ExplorerScene, ExplorerStatus } from './ExplorerRenderer'
 import type { ColourSetup } from './explorerTypes'
 import type { Palette } from '@/flame/colorMap'
 
 export type Quality = 'fast' | 'balanced' | 'sharp'
-
-/** One fractal, or the Mandelbrot set beside the Julia set of a point. */
-export type ExplorerMode = FractalKind | 'split'
 
 /** Render pixels at most, and supersamples per pixel once finished. */
 const QUALITY: Record<Quality, { pixels: number; samples: number }> = {
@@ -39,16 +38,6 @@ const QUALITY: Record<Quality, { pixels: number; samples: number }> = {
 
 type ReadDisplay = ExplorerGpu['readDisplay']
 type Shot = NonNullable<Awaited<ReturnType<ReadDisplay>>>
-
-/**
- * Is the point well inside the square every pane shows around its centre?
- * The nominal 1000 px cancels out: the test is in units of the smaller pane
- * dimension, and exact at any depth.
- */
-function showsPoint(view: DeepZoomView, point: ComplexString): boolean {
-  const offset = centerOffsetPixels(view, point, 1000)
-  return Math.abs(offset.x) < 400 && Math.abs(offset.y) < 400
-}
 
 /** Pictures side by side, or stacked, on one canvas. */
 function drawShots(
@@ -120,7 +109,7 @@ export function FractalExplorerPage() {
   let juliaPane: HTMLDivElement | undefined
 
   const split = () => location().split
-  const mode = (): ExplorerMode => (split() ? 'split' : location().kind)
+  const mode = () => explorerMode(location())
 
   const scene = createMemo<ExplorerScene>(() => {
     const l = location()
@@ -155,52 +144,13 @@ export function FractalExplorerPage() {
     background: [0.05, 0.055, 0.07],
   }))
 
+  /** Moves to a location from explorerModes.ts; the same one is no change. */
+  function go(next: ExplorerLocation) {
+    if (next !== location()) update(next)
+  }
+
   function setMode(next: ExplorerMode) {
-    const l = location()
-    if (next === mode()) return
-    if (next === 'split') {
-      update(
-        l.kind === 'julia'
-          ? {
-              split: true,
-              kind: 'mandelbrot',
-              view: MANDELBROT_HOME,
-              juliaView: l.view,
-            }
-          : {
-              split: true,
-              juliaView: JULIA_HOME,
-              // Keep c while it is on screen, or start from the middle.
-              juliaC: showsPoint(l.view, l.juliaC)
-                ? l.juliaC
-                : { re: l.view.centerRe, im: l.view.centerIm },
-            },
-      )
-    } else if (l.split) {
-      // Leaving the split keeps the pane asked for, just as it was.
-      update(
-        next === 'julia'
-          ? { split: false, kind: 'julia', view: l.juliaView }
-          : { split: false },
-      )
-    } else {
-      update({ kind: next, view: homeView(next) })
-    }
-  }
-
-  /** c from the view centre: the Julia set there, or the split's point. */
-  function juliaFromCentre() {
-    const l = location()
-    const juliaC = { re: l.view.centerRe, im: l.view.centerIm }
-    update(l.split ? { juliaC } : { kind: 'julia', juliaC, view: JULIA_HOME })
-  }
-
-  function goHome() {
-    update(
-      split()
-        ? { view: MANDELBROT_HOME, juliaView: JULIA_HOME }
-        : { view: homeView(location().kind) },
-    )
+    go(withMode(location(), next))
   }
 
   async function copyLink() {
@@ -377,7 +327,9 @@ export function FractalExplorerPage() {
             onJuliaC={(juliaC) => {
               update({ juliaC })
             }}
-            onJuliaHere={juliaFromCentre}
+            onJuliaHere={() => {
+              go(withJuliaFromCentre(location()))
+            }}
             onIterations={(maxIterations) => {
               update({ maxIterations })
             }}
@@ -389,7 +341,9 @@ export function FractalExplorerPage() {
             onPhase={setPhase}
             onRelief={setRelief}
             onQuality={setQuality}
-            onHome={goHome}
+            onHome={() => {
+              go(withHome(location()))
+            }}
             onCopyLink={() => void copyLink()}
             onSave={() => void savePicture()}
           />
