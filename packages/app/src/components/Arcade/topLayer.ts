@@ -11,6 +11,7 @@
  * dialog that was open before the lock stays open under it, untouched, and
  * is the viewer's again when the shield goes.
  */
+import { clearDelegatedEvents, delegateEvents } from 'solid-js/web'
 
 /**
  * Show `dialog` as the topmost modal and keep it there: over a modal opened
@@ -45,6 +46,35 @@ export function holdTopLayer(dialog: HTMLDialogElement): () => void {
   return () => {
     watch.disconnect()
     dialog.close()
+  }
+}
+
+const KEYS = ['keydown', 'keyup']
+
+/**
+ * Keep every key that starts in `portal` (the shield's) inside it. The focus
+ * is always in the shield, so no window or document listener, nor a Solid
+ * handler outside, hears the viewer's keys. Solid runs its handlers from
+ * `document`; the ones inside run from here instead, before the stop (its
+ * delegateEvents is typed for a document and only listens on it). A capture
+ * listener above hears a key first: the pilot's Esc-twice is one. The theme
+ * chord stays the viewer's (maff's call), handed to `document` as a copy so
+ * nothing inside hears it twice.
+ */
+export function holdKeys(portal: HTMLElement): () => void {
+  const root = portal as unknown as Document
+  delegateEvents(KEYS, root)
+  const stop = (ev: Event) => {
+    ev.stopPropagation()
+    const key = ev as KeyboardEvent
+    if (key.code !== 'KeyD' || !(key.ctrlKey || key.metaKey)) return
+    if (!document.dispatchEvent(new KeyboardEvent(ev.type, key)))
+      ev.preventDefault()
+  }
+  for (const type of KEYS) portal.addEventListener(type, stop)
+  return () => {
+    for (const type of KEYS) portal.removeEventListener(type, stop)
+    clearDelegatedEvents(root)
   }
 }
 

@@ -18,7 +18,8 @@
  * - before every export, share and scripted render, which capture the canvas
  *   or snapshot the document, so the preview ends first and the pixels, the
  *   flame they carry and Recents agree (quickExport.test.tsx,
- *   lazyModals.shareLink.test.ts);
+ *   lazyModals.shareLink.test.ts), and before a take starts, which records
+ *   the document as its first state;
  * - in Save for Later and the 2D/3D stash, which store the document and read
  *   it without the preview.
  */
@@ -167,6 +168,12 @@ describe('the gallery hover preview in MainWorkspace', () => {
     )
   })
 
+  it('is what the badge over the canvas names, not the tile under the pointer', () => {
+    expect(jsxAttribute('CanvasViewport', 'hoveredBlendName')).toBe(
+      '{blendPick.badge}',
+    )
+  })
+
   it('comes off, both halves of it, before a breed pick reads parent A', () => {
     expect(jsxAttribute('WorkspaceSidebar', 'endBreedPreview')).toBe(
       '{blendPick.end}',
@@ -183,6 +190,24 @@ describe('the gallery hover preview in MainWorkspace', () => {
 
   it('comes off before a Discord share freezes the document', () => {
     expect(statementsOf('shareToDiscord')[0]).toBe('blendPick.end()')
+  })
+
+  it('comes off before a take starts, from the dock or from the Arcade', () => {
+    expect(statementsOf('captureRecorderStartExtras')[0]).toBe(
+      'blendPick.end()',
+    )
+    // The dock's Record button captures them before it starts
+    // (SessionRecorderControls.test.tsx)...
+    expect(
+      jsxAttribute('WorkspaceBottomBar', 'captureRecorderStartExtras'),
+    ).toBe('{captureRecorderStartExtras}')
+    // ...and `ctx.recorder.start`, where every Arcade take starts (Teach,
+    // Cinema, Beats and a duel's player seat), before it reads the document.
+    expect(argumentsOf('startSessionRecording')).toEqual([
+      'flameDescriptor',
+      'captureRecorderStartExtras()',
+      'now',
+    ])
   })
 
   it('comes off before a scripted render snapshots the document', () => {

@@ -2,8 +2,8 @@
  * The partner gallery's hover preview, and the pick that commits a partner.
  *
  * A hover shows a child of the two flames for Breed, the blend for Blend and
- * Morph, and nothing for Evolve and Diff, which never use a blend (the tile's
- * name still shows over the canvas).
+ * Morph in 2D, and nothing for Evolve and Diff, which never use a blend (the
+ * tile's name still shows over the canvas, as it does over a preview shown).
  *
  * Hovering a tile writes the document silently: a hover must not reach the
  * undo stack or the recorder. Leaving the tiles puts back exactly what the
@@ -78,6 +78,8 @@ function breedFields(flame: FlameDescriptor): string {
   return stableStringify({ transforms, metadata })
 }
 
+const in3D = (flame: FlameDescriptor) => flame.renderSettings.dimensions === 3
+
 /** Put back what a blend preview replaced. */
 function putBack(
   settings: FlameDescriptor['renderSettings'],
@@ -92,8 +94,9 @@ function putBack(
 export function useWorkspaceBlendPick(params: UseWorkspaceBlendPickParams) {
   const intent = params.intent ?? (() => 'blend' as const)
   let replaced: ReplacedBlend | undefined
-  /** The blend fields the preview wrote, to recognise them by. */
-  let blendShown: string | undefined
+  /** The blend fields the preview wrote, to recognise them by. Signals, like
+   *  the child's, so the badge follows what the canvas shows. */
+  const [blendShown, setBlendShown] = createSignal<string>()
 
   /**
    * The child generated for whichever candidate is hovered, so clicking opens
@@ -106,25 +109,25 @@ export function useWorkspaceBlendPick(params: UseWorkspaceBlendPickParams) {
   /** The workspace flame as it was before a breed preview replaced it. */
   let breedRestore: FlameDescriptor | undefined
   /** The child the breed preview wrote, to recognise it by. */
-  let breedShown: string | undefined
+  const [breedShown, setBreedShown] = createSignal<string>()
   let breedTimer: ReturnType<typeof setTimeout> | undefined
 
   /** The document still shows the blend the preview wrote. */
   const holdsBlend = () =>
-    blendShown !== undefined && blendFields(params.flame()) === blendShown
+    blendShown() !== undefined && blendFields(params.flame()) === blendShown()
   /** The document still shows the child the breed preview wrote. */
   const holdsBreed = () =>
-    breedShown !== undefined && breedFields(params.flame()) === breedShown
+    breedShown() !== undefined && breedFields(params.flame()) === breedShown()
 
   /** Forget a preview the document no longer shows: what it replaced is stale. */
   function dropStale(): void {
     if (replaced !== undefined && !holdsBlend()) {
       replaced = undefined
-      blendShown = undefined
+      setBlendShown(undefined)
     }
     if (breedRestore !== undefined && !holdsBreed()) {
       breedRestore = undefined
-      breedShown = undefined
+      setBreedShown(undefined)
       setBreedChild(undefined)
     }
   }
@@ -149,7 +152,7 @@ export function useWorkspaceBlendPick(params: UseWorkspaceBlendPickParams) {
     if (breedRestore !== undefined) {
       writeDescriptor(breedRestore)
       breedRestore = undefined
-      breedShown = undefined
+      setBreedShown(undefined)
     }
   }
 
@@ -185,7 +188,7 @@ export function useWorkspaceBlendPick(params: UseWorkspaceBlendPickParams) {
       breedRestore ??= deepClone(unwrap(params.flame()))
       setBreedChild(child)
       writeDescriptor(child)
-      breedShown = breedFields(params.flame())
+      setBreedShown(breedFields(params.flame()))
     }, BREED_PREVIEW_DELAY_MS)
   }
 
@@ -212,10 +215,13 @@ export function useWorkspaceBlendPick(params: UseWorkspaceBlendPickParams) {
   function previewBlend(flame: FlameDescriptor): void {
     // The hover preview IS the blend mechanism, and blending is 2D-only:
     // `ifsPipeline3D.update()` takes a single flame — it has no blend input at
-    // all, so `renderSettings.blendFlame` is silently ignored in 3D. Writing it
-    // anyway changed the hovered NAME while the picture stayed put, which reads
-    // as a broken preview rather than an unsupported one. Skip it instead.
-    if ((flame.renderSettings.dimensions ?? 2) === 3) return
+    // all, so `renderSettings.blendFlame` is silently ignored in 3D, whichever
+    // of the two flames is 3D. So nothing is written, the last tile's preview
+    // ends, and no badge names a blend the canvas does not show.
+    if (in3D(flame) || in3D(params.flame())) {
+      endBlend()
+      return
+    }
     dropStale()
     if (replaced === undefined) {
       const { blendFlame, blendWeight } = params.flame().renderSettings
@@ -228,7 +234,7 @@ export function useWorkspaceBlendPick(params: UseWorkspaceBlendPickParams) {
       draft.renderSettings.blendFlame = deepClone(flame)
       draft.renderSettings.blendWeight = DEFAULT_BLEND_WEIGHT
     })
-    blendShown = blendFields(params.flame())
+    setBlendShown(blendFields(params.flame()))
   }
 
   /** Put back what the blend preview replaced, if the document still shows
@@ -238,7 +244,7 @@ export function useWorkspaceBlendPick(params: UseWorkspaceBlendPickParams) {
     const restore = replaced
     if (restore === undefined) return
     replaced = undefined
-    blendShown = undefined
+    setBlendShown(undefined)
     params.setSilently((draft) => {
       putBack(draft.renderSettings, restore)
     })
@@ -279,5 +285,17 @@ export function useWorkspaceBlendPick(params: UseWorkspaceBlendPickParams) {
     return saved
   }
 
-  return { preview, end, breedChild, commit, pick, withoutPreview }
+  /** Name the hovered tile, or `null` for none: the gallery calls it after
+   *  `preview`. */
+  const [hovered, name] = createSignal<string | null>(null)
+  /** The name the badge over the canvas shows: only while the tile's preview
+   *  is on the canvas, which a blend in 3D never is. Evolve and Diff preview
+   *  nothing, and their badge says what a click does. */
+  const badge = () =>
+    ['evolve', 'diff'].includes(intent()) ||
+    (intent() === 'breed' ? holdsBreed() : holdsBlend())
+      ? hovered()
+      : null
+
+  return { preview, end, breedChild, commit, pick, withoutPreview, badge, name }
 }

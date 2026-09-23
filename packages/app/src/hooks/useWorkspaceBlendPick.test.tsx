@@ -474,3 +474,77 @@ describe('Breed after a quick switch', () => {
     }
   })
 })
+
+describe('the badge over the canvas', () => {
+  // The gallery's order: the preview first, then the tile's name.
+  /** A 3D flame in the workspace: blending renders nothing there. */
+  const in3D = (workspace: Workspace) => {
+    workspace.history.replace(deepClone(examples.example36), 'Load flame')
+  }
+
+  it('names a blend partner while its preview is on the canvas', () => {
+    const workspace = workspaceRoot()
+    workspace.blendPick.preview(deepClone(examples.example2))
+    workspace.blendPick.name('example2')
+    expect(workspace.blendPick.badge()).toBe('example2')
+
+    workspace.blendPick.preview(null)
+    expect(workspace.blendPick.badge()).toBeNull()
+  })
+
+  it.each(['blend', 'morph'] as const)(
+    'names nothing for %s in 3D, where the hover writes nothing',
+    (intent) => {
+      const workspace = workspaceRoot()
+      workspace.setIntent(intent)
+      in3D(workspace)
+      const before = plain(workspace)
+      workspace.blendPick.preview(deepClone(examples.example2))
+      expect(plain(workspace)).toEqual(before)
+
+      workspace.blendPick.name('example2')
+      expect(workspace.blendPick.badge()).toBeNull()
+    },
+  )
+
+  it('ends the last preview when the next tile is a 3D flame', () => {
+    const workspace = workspaceRoot()
+    const before = plain(workspace)
+    workspace.blendPick.preview(deepClone(examples.example2))
+    const flame3D = deepClone(examples.example3)
+    flame3D.renderSettings.dimensions = 3
+    workspace.blendPick.preview(flame3D)
+    workspace.blendPick.name('example3')
+
+    expect(plain(workspace)).toEqual(before)
+    expect(workspace.blendPick.badge()).toBeNull()
+  })
+
+  it('names a breed partner once its child is on the canvas, in 3D too', () => {
+    vi.useFakeTimers()
+    try {
+      const workspace = workspaceRoot()
+      workspace.setIntent('breed')
+      in3D(workspace)
+      workspace.blendPick.preview(deepClone(examples.example41))
+      workspace.blendPick.name('example41')
+      expect(workspace.blendPick.badge()).toBeNull()
+
+      vi.advanceTimersByTime(BREED_PREVIEW_DELAY_MS)
+      expect(workspace.blendPick.badge()).toBe('example41')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it.each(['evolve', 'diff'] as const)(
+    'names the %s tile, whose badge says what a click does',
+    (intent) => {
+      const workspace = workspaceRoot()
+      workspace.setIntent(intent)
+      workspace.blendPick.preview(deepClone(examples.example2))
+      workspace.blendPick.name('example2')
+      expect(workspace.blendPick.badge()).toBe('example2')
+    },
+  )
+})
