@@ -33,3 +33,14 @@ function writeGlassPanels(on: boolean): void {
   if (on) root.dataset.glassPanels = 'on'
   else delete root.dataset.glassPanels
 }
+
+/**
+ * data-glass="busy": the editor canvas presents every frame, so the large
+ * panels go solid. hooks/useWorkspaceGlassBusy.ts decides when, and is the
+ * only caller.
+ */
+export function writeGlassBusy(busy: boolean): void {
+  const root = document.documentElement
+  if (busy) root.dataset.glass = 'busy'
+  else delete root.dataset.glass
+}
