@@ -8,7 +8,7 @@
  * the Mandelbrot pane changes it as you watch.
  */
 import { centerOffsetPixels, formatMagnification, homeView, JULIA_HOME, MANDELBROT_HOME, } from '@chaos-master/core'
-import { createMemo, createSignal, Show } from 'solid-js'
+import { createMemo, createSignal, onCleanup, Show } from 'solid-js'
 import { useToast } from '@/contexts/ToastContext'
 import { ChevronLeft, Settings, SplitView } from '@/icons'
 import { AutoCanvas } from '@/lib/AutoCanvas'
@@ -89,6 +89,11 @@ const PAN_HINT =
 
 export function FractalExplorerPage() {
   const { showToast } = useToast()
+  const previousTitle = document.title
+  document.title = 'Mandelbrot Explorer — Lumen Apeiron'
+  onCleanup(() => {
+    document.title = previousTitle
+  })
   const { location, update, link } = createExplorerLocation()
   const [picked, setPicked] = createSignal<Palette | undefined>()
   // Read from the location, so a link pasted into this tab brings its

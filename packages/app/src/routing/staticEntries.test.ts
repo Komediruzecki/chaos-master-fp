@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import { BENCHMARKS_PATH, EXPLORER_PATH } from './appPath'
-import { nestedIndexHtml, redirectPageHtml, staticEntryFiles, } from './staticEntries'
+import { nestedIndexHtml, redirectPageHtml, staticEntryFiles, withPageUrl, } from './staticEntries'
 
 const ORIGIN = 'https://example.test'
 
@@ -14,6 +14,7 @@ const BUILT_INDEX = `<!doctype html>
   <head>
     <link rel="icon" type="image/svg+xml" href="./assets/favicon-a1.svg" />
     <link rel="canonical" href="https://lumenapeiron.com/" />
+    <meta property="og:url" content="https://lumenapeiron.com/" />
     <script type="module" crossorigin src="./assets/index-b2.js"></script>
     <link rel="modulepreload" crossorigin href="./assets/solid-c3.js">
     <link rel="stylesheet" crossorigin href='./assets/index-d4.css'>
@@ -71,9 +72,20 @@ describe('staticEntryFiles', () => {
   it('writes the nested page into each page route folder', () => {
     for (const route of [BENCHMARKS_PATH, EXPLORER_PATH]) {
       expect(files[`${route.slice(1)}/index.html`]).toBe(
-        nestedIndexHtml(BUILT_INDEX),
+        withPageUrl(nestedIndexHtml(BUILT_INDEX), route),
       )
     }
+  })
+
+  it('names each route, not the home page, as the canonical URL', () => {
+    const page = files['explore/index.html'] ?? ''
+    expect(page).toContain(
+      '<link rel="canonical" href="https://lumenapeiron.com/explore" />',
+    )
+    expect(page).toContain(
+      '<meta property="og:url" content="https://lumenapeiron.com/explore" />',
+    )
+    expect(page).not.toContain('"https://lumenapeiron.com/"')
   })
 
   it('sends /arcade/ to the Arcade tab', () => {

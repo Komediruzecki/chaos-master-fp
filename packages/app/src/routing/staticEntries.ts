@@ -6,7 +6,8 @@
  * 404. So the build writes a file for each: a copy of index.html in each page
  * route's folder, and a redirect page for /arcade. Such a host redirects
  * /explore to /explore/, one folder down, where the copy's relative asset URLs
- * would miss; they climb out of the folder instead. The Vite plugin in
+ * would miss; they climb out of the folder instead, and the canonical link
+ * names the route rather than the home page. The Vite plugin in
  * vite.config.ts emits the files; Cloudflare serves the same ones.
  */
 import { BENCHMARKS_PATH, EXPLORER_PATH } from './appPath'
@@ -20,6 +21,20 @@ const PAGE_ROUTES = [BENCHMARKS_PATH, EXPLORER_PATH]
  */
 export function nestedIndexHtml(html: string): string {
   return html.replace(/\b(src|href)=(["'])\.\//g, '$1=$2../')
+}
+
+const CANONICAL = /(<link rel="canonical" href=")([^"]+)(")/
+const OG_URL = /(<meta property="og:url" content=")([^"]+)(")/
+
+/**
+ * index.html as the page at `route`: its canonical link and og:url name the
+ * route on the same origin, so a search engine does not fold the page into
+ * the home page as a duplicate of it.
+ */
+export function withPageUrl(html: string, route: string): string {
+  const own = (_: string, open: string, url: string, close: string) =>
+    `${open}${new URL(route, url).href}${close}`
+  return html.replace(CANONICAL, own).replace(OG_URL, own)
 }
 
 /**
@@ -47,7 +62,7 @@ export function staticEntryFiles(indexHtml: string): Record<string, string> {
   const page = nestedIndexHtml(indexHtml)
   const files: Record<string, string> = {}
   for (const route of PAGE_ROUTES) {
-    files[`${route.slice(1)}/index.html`] = page
+    files[`${route.slice(1)}/index.html`] = withPageUrl(page, route)
   }
   // The Arcade is a tab, routed by fragment (lib/activeTab.ts); the Worker
   // redirects /arcade to /#arcade.
