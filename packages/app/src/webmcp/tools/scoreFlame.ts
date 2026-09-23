@@ -9,8 +9,9 @@ import type { WebMcpTool } from '@/webmcp/types'
 // `variation.type`. A variation's key in `transform.variations` is its id (a
 // generated UUID in the editor), which never matches a type name.
 //
-// Linear variations excluded from chaos accumulator
-const LINEAR = new Set(['linearVar', 'linearTVar'])
+// Linear variations excluded from chaos accumulator: the 2D registry's two and
+// the 3D registry's one, as in flame/stats.ts.
+const LINEAR = new Set(['linearVar', 'linearTVar', 'linear3D'])
 
 // Symmetry indicators
 const SYMMETRY = new Set([

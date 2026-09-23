@@ -120,6 +120,17 @@ describe('scoreFlame tool', () => {
     expect(linearRes.metrics.symmetryScore).toBe(0)
     expect(linearRes.metrics.chaosLevel).toBe(0)
     expect(linearRes.powerLevel).toBe(670)
+
+    // The 3D registry's linear is as linear as the 2D one: a 3D flame of
+    // linear3D alone scores what the 2D linearVar flame scores.
+    const flame3D = mk('linear3D')
+    flame3D.renderSettings.dimensions = 3
+    const linear3DRes = (
+      scoreFlame.execute({ flame: flame3D }, {}) as ScoreResult
+    ).stats
+    expect(linear3DRes.metrics.symmetryScore).toBe(0)
+    expect(linear3DRes.metrics.chaosLevel).toBe(0)
+    expect(linear3DRes.powerLevel).toBe(670)
   })
 
   it('correctly scores structural rotational symmetry transforms (_sym__ prefix)', () => {
