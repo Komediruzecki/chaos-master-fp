@@ -86,7 +86,7 @@
  *     (lumen.css), and need nothing of their own.
  *
  * ATTRIBUTES ON <html>, for what a class cannot say. lib/glass.ts is the
- * only writer of either:
+ * only writer of the first two:
  *
  *   data-glass="busy"       the editor canvas presents every frame: playback,
  *                           an export, audio modulation, a drag. Decided in
@@ -95,11 +95,21 @@
  *                           converging after an edit never flickers it.
  *   data-glass-panels="on"  the experimental Glass panels setting, off by
  *                           default, offered in Settings on the touch
- *                           layouts. It turns the rail sheet into a panel
- *                           past peek (TouchSurface/EditorRail.tsx).
+ *                           layouts. It lets the Android rule below keep a
+ *                           panel's glass, and it turns the rail sheet into
+ *                           a panel past peek (TouchSurface/EditorRail.tsx).
  *                           A component reads glassPanels() from
  *                           lib/glass.ts; a CSS module reaches it as
  *                           :global(:root[data-glass-panels='on']).
+ *   data-platform="android" written by index.tsx in the native Android app
+ *                           only; the web, Android's browsers included,
+ *                           never carries it. Mid-range Android GPUs are the
+ *                           worst case for blur, so panels there are solid
+ *                           until measured, unless the Glass panels setting
+ *                           asks for glass (glass-panels.md, section 6).
+ *                           Solid rather than flat: a panel's ink-2 text
+ *                           needs 76% of fill over white-hot art, and flat
+ *                           is 72% with the art behind it unblurred.
  */
 
 /* ---- The classes --------------------------------------------------- */
@@ -146,6 +156,13 @@
 /* No transition here: at this weight it would replace the surface's own,
    and a sheet's height would stop animating whenever the canvas is busy. */
 :root[data-glass='busy'] .panel {
+  background: var(--la-glass-solid);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* The native Android app, unless the Glass panels setting asks for glass. */
+:root[data-platform='android']:not([data-glass-panels='on']) .panel {
   background: var(--la-glass-solid);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
