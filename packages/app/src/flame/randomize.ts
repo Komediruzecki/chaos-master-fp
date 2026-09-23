@@ -1,3 +1,13 @@
+/**
+ * Random flame generation and mutation: `generateRandomFlame`, `mutateFlame`
+ * and their seeded wrappers, which the benchmarks and the session recorder's
+ * replay use to reproduce a result from a seed. The layers beneath live in
+ * their own modules and are re-exported here, so this stays the one entry
+ * point: the ambient source (randomSource.ts), the primitives
+ * (randomPrimitives.ts), the per-transform operators (mutationOperators.ts)
+ * and the rates and option types (mutationRates.ts).
+ */
+
 import { deepClone } from '@/utils/clone'
 import { recordEntries } from '@/utils/record'
 import { applyStructuralRemoval, countStructuralAdditions, createRandomMutatedTransform, mutateTransformAffine, mutateTransformColor, mutateTransformVariations, normalizeTransformProbabilities, resolveEffectiveMutationRates, } from './mutationOperators'

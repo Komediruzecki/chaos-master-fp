@@ -1,3 +1,10 @@
+/**
+ * The command system's types: `FlameCommand`, what every registered command
+ * declares, and `CommandContext`, the workspace surface a command runs
+ * against (document, history, timeline, recorder, export and the rest), plus
+ * the director and arena state shapes that context carries.
+ */
+
 import type { Accessor, Setter } from 'solid-js'
 import type { v2f } from 'typegpu/data'
 import type { BundledTrack } from '@/arcade/bundledTracks'

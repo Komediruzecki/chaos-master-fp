@@ -1,3 +1,10 @@
+/**
+ * The per-transform steps of `mutateFlame`: resolving the effective rates,
+ * structural removal and addition, and mutating one transform's affine,
+ * color and variations. Every draw comes from the ambient source in
+ * randomSource.ts, directly or through randomPrimitives.ts.
+ */
+
 import { recordEntries } from '@/utils/record'
 import { MUTATION_RATE_DEFAULTS } from './mutationRates'
 import { buildRandomVariation, normalizeVariationWeights, perturbVariationInPlace, pickRandomVariationType, randomizeAffineCoef, randomizeVariationParams, smartMutateAffine2D, smartMutateAffine3D, } from './randomPrimitives'
