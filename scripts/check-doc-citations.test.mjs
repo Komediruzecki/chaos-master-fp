@@ -219,6 +219,27 @@ await describe('parseDocument modes', async () => {
     )
   })
 
+  await it('reads a marker in a code span as text, not as a marker', () => {
+    const md = [
+      'Pin a region with `<!-- cite-check: pinned <rev> -->`.',
+      '`a.ts:13` (`beta`)',
+    ].join('\n')
+    const p = parseDocument(md)
+    assert.deepEqual(p.problems, [])
+    assert.deepEqual(
+      p.citations.map((c) => [c.lines, c.rev]),
+      [['13', null]],
+    )
+  })
+
+  await it('keeps an HTML comment in a code span as text', () => {
+    const md = 'Write `<!--` to open one; `a.ts:13` (`beta`) still counts.'
+    assert.deepEqual(
+      parseDocument(md).citations.map((c) => c.lines),
+      ['13'],
+    )
+  })
+
   await it('treats a document marked historical in its first 10 lines as history', () => {
     const md =
       '# Old plan\n<!-- cite-check: historical superseded by the master plan -->\n`a.ts:3`'

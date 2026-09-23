@@ -200,21 +200,23 @@ export function blocks(markdown) {
       return
     }
     let line = raw
+    // Markup inside a code span is text: `<!-- cite-check: live -->` written
+    // in backticks documents a marker, it is not one.
     if (inComment) {
-      const end = line.indexOf('-->')
+      const end = maskCode(line).indexOf('-->')
       if (end === -1) return
       line = line.slice(end + 3)
       inComment = false
     }
-    const marker = line.match(MARKER)
+    const marker = maskCode(line).match(MARKER)
     if (marker) {
       flush()
       out.push({ marker: marker[1], arg: marker[2], line: lineNo })
       return
     }
     // Drop inline comments, and open a multi-line one.
-    line = line.replace(/<!--.*?-->/g, '')
-    const open = line.indexOf('<!--')
+    line = withoutComments(line)
+    const open = maskCode(line).indexOf('<!--')
     if (open !== -1) {
       line = line.slice(0, open)
       inComment = true
@@ -235,6 +237,24 @@ export function blocks(markdown) {
     if (/^\s*(?:#{1,6}\s|\|)/.test(line)) flush()
   })
   flush()
+  return out
+}
+
+const CODE_SPAN = /(`+)([\s\S]*?[^`])\1(?!`)/g
+
+/** A line with its code spans blanked out, the same length as the line. */
+function maskCode(line) {
+  return line.replace(CODE_SPAN, (m) => ' '.repeat(m.length))
+}
+
+/** A line without its complete HTML comments, those in code spans kept. */
+function withoutComments(line) {
+  const masked = maskCode(line)
+  let out = line
+  const found = [...masked.matchAll(/<!--.*?-->/g)].reverse()
+  for (const m of found) {
+    out = out.slice(0, m.index) + out.slice(m.index + m[0].length)
+  }
   return out
 }
 
@@ -427,7 +447,7 @@ export function citationsInBlock(text) {
 /** Parses a document into citations with their line number and mode. */
 export function parseDocument(markdown) {
   const all = blocks(markdown)
-  const head = markdown.split('\n').slice(0, 10).join('\n')
+  const head = maskCode(markdown.split('\n').slice(0, 10).join('\n'))
   const historical = head.match(
     /<!--\s*cite-check:\s*historical\b\s*(.*?)\s*-->/,
   )
