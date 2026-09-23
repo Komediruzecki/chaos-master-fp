@@ -20,7 +20,7 @@
  */
 import { cleanup, fireEvent, render, screen } from '@solidjs/testing-library'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { resetPilot, startPilot } from '@/arcade/pilot'
+import { notePilotStep, pilot, resetPilot, startPilot } from '@/arcade/pilot'
 import { popBack, pushBackHandler } from '@/lib/backStack'
 import { useLifecyclePorts } from '@/lib/lifecycle'
 import { createMockCommandContext } from '@/webmcp/testUtils'
@@ -158,6 +158,28 @@ describe('keys under the screen lock', () => {
       'document keyup Delete',
       'window keyup Delete',
     ])
+  })
+
+  it('end the take through Esc-twice across the agent’s steps', () => {
+    render(() => <PilotOverlay ctx={createMockCommandContext()} />)
+    drive('screen')
+    const lock = screen.getByRole('dialog', { name: LOCK })
+    // A capture listener added after the lock that claims Escape, as Home's
+    // did when the address bar opened it mid-take.
+    const claim = (ev: KeyboardEvent) => {
+      if (ev.key === 'Escape') ev.stopImmediatePropagation()
+    }
+    document.addEventListener('keydown', claim, true)
+
+    notePilotStep('command', 'Exposure 0.3')
+    press(lock, 'Escape')
+    notePilotStep('command', 'Exposure 0.4')
+    const armed = screen.getByRole('button', { name: STOP }).textContent
+    press(lock, 'Escape')
+    document.removeEventListener('keydown', claim, true)
+
+    expect(armed).toContain('Esc again')
+    expect(pilot().phase).toBe('ended')
   })
 
   it('are the viewer’s under a seat lock', () => {

@@ -1,7 +1,7 @@
-import { createEffect, createSignal, For, onCleanup, onMount, Show, untrack, } from 'solid-js'
+import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show, untrack, } from 'solid-js'
 import { duelActive } from '@/arcade/duel'
 import { finishDuel } from '@/arcade/duelActions'
-import { agentDriving, drivingState, lastPilotSession, pilot, pilotElapsedMs, pilotLog, resetPilot, } from '@/arcade/pilot'
+import { agentDriving, drivingState, lastPilotSession, pilot, pilotElapsedMs, pilotLog, pilotOwnsKeyboard, resetPilot, } from '@/arcade/pilot'
 import { finishPilot } from '@/arcade/pilotActions'
 import { Robot, Stop } from '@/icons'
 import { LockShield } from './LockShield'
@@ -49,12 +49,15 @@ export function PilotOverlay(props: {
     })
   })
 
+  // Once per lock: an agent step is a new pilot state, and re-registering on
+  // it put the listener behind any added since and disarmed a first Escape.
+  const ownsKeyboard = createMemo(pilotOwnsKeyboard)
   createEffect(() => {
     // Only the screen lock claims Escape. Under a seat lock the shield is not
     // drawn, so swallowing every Escape globally took the key away from every
     // dialog in the app with nothing on screen to explain why — and two of
     // them within 1500 ms silently ended the take.
-    if (drivingState()?.lock !== 'screen') return
+    if (!ownsKeyboard()) return
     // Captured on the way down so nothing else can claim Escape first: while
     // the agent drives, Escape means "give me the controls back", never "close
     // this panel".

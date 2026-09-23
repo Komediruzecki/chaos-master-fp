@@ -101,8 +101,8 @@ test.describe('keys under the screen lock', () => {
     await openEditor(page)
     await startLock(page)
     // A take starts in the editor, but the address bar can still open Home
-    // under it; Home then claims Escape in the capture phase, and so does the
-    // pilot again after every step the agent takes.
+    // under it, and Home claims Escape in the capture phase too, whatever
+    // steps the agent takes after.
     await page.evaluate(() => {
       window.location.hash = '#home'
     })
