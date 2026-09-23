@@ -23,6 +23,7 @@
     "metrics:json": "node scripts/code-metrics.mjs --json",
     "metrics:check": "node scripts/code-metrics.mjs --check",
     "metrics:update": "node scripts/code-metrics.mjs --update",
+    "metrics:caps": "node scripts/code-metrics.mjs --lower-caps",
     "mutation:core": "pnpm --filter @chaos-master/core exec stryker run",
     "arch": "depcruise --config .dependency-cruiser.cjs --output-type err packages/app/src packages/core/src",
     "arch:summary": "depcruise --config .dependency-cruiser.cjs --output-type err-long packages/app/src packages/core/src",
