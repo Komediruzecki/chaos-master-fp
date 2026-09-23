@@ -486,7 +486,7 @@ microphone, both transport and modulation shall be gated on reactivity being
 enabled, so an idle mic capture is never held open.
 
 _(`useAudioReactive.ts:139-257` (`source`) for file mode — note the analyzer is consulted only
-at `:214` (`analyzer`); `:259-297` (`source`) for mic mode.)_
+at `:228` (`analyzer`); `:273-313` (`source`) for mic mode.)_
 
 ### REQ-TA-034 — Replay suspension freezes modulation and its clock
 
@@ -496,7 +496,7 @@ baseline, so the first tick after resuming uses a fresh `dt` rather than chargin
 the envelope for the whole suspended interval. The transport clock shall keep
 advancing.
 
-_(`useAudioReactive.ts:209-217` (`modulationSuspended`), `:267-271` (`modulationSuspended`); guarded by
+_(`useAudioReactive.ts:223-231` (`modulationSuspended`), `:282-286` (`modulationSuspended`); guarded by
 `useAudioReactive.test.ts:37` "freezes both the overlay and smoothing time while replay owns the document".)_
 
 ---
