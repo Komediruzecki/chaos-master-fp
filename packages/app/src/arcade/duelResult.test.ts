@@ -69,6 +69,22 @@ describe('the duel ending', () => {
     expect(duelShowing()).toBe(false)
     expect(duelRivalSeat()).toBeUndefined()
   })
+
+  it('takes the old result card down when a rematch starts', async () => {
+    const ctx = createMockCommandContext()
+    setWebMcpContext(ctx)
+    beginDuel(ctx, { seconds: 90, opponent: 'none' })
+    await finishDuel(ctx, 'stopped')
+    expect(duelResult()).toBeDefined()
+
+    // The rematch, started while the card is still up: the card covered the
+    // new duel's End button.
+    const again = beginDuel(ctx, { seconds: 90, opponent: 'none' })
+
+    expect(again).toHaveProperty('ok', true)
+    expect(duelActive()).toBe(true)
+    expect(duelResult()).toBeUndefined()
+  })
 })
 
 describe('powerCurveJudge', () => {

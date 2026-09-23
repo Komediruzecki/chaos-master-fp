@@ -4,9 +4,9 @@ import { DEFAULT_SEAT } from '@/seats/seatId'
 import { deepClone } from '@/utils/clone'
 import { getWebMcpContext, setWebMcpContext, setWebMcpTarget, } from '@/webmcp/contextBridge'
 import { calculateFlameStats } from '@/webmcp/tools/scoreFlame'
-import { closeDuelView, duelActive, duelShowing, runningDuel, startDuel, stopDuel, } from './duel'
+import { duelActive, duelShowing, runningDuel, startDuel, stopDuel, } from './duel'
 import { duelJudge } from './duelJudge'
-import { newDuelId, showDuelResult } from './duelResult'
+import { clearDuelResult, duelResult, newDuelId, showDuelResult, } from './duelResult'
 import { qualityRank } from './guard'
 import { clearNarration } from './narration'
 import { agentDriving, appendPilotLog, endPilot, notePilotSaveResult, startPilot, } from './pilot'
@@ -43,8 +43,10 @@ export function beginDuel(
   }
   if (duelActive()) return { error: 'A duel is already running.' }
   // A result card left on screen is not a running duel, but its seat is still
-  // alive; starting over takes the old screen down first.
-  if (duelShowing()) closeDuelView()
+  // alive; starting over takes the old screen down first, the card with it.
+  // Closing only the view left the card up over the new duel, covering its
+  // End button.
+  if (duelShowing() || duelResult()) clearDuelResult()
   // Through the registry, so the replacement is one recorded step the viewer
   // can undo — and so the duel's own take begins from a state that exists.
   if (opts.startFrom === 'random-2d' || opts.startFrom === 'random-3d') {
