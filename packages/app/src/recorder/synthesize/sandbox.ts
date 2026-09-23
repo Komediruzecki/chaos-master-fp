@@ -121,6 +121,9 @@ export function createFlameSandbox(initial: FlameDescriptor): FlameSandbox {
       },
     },
     modal: { open: () => {} },
+    // Nothing here glides, and a take's switch steps must not reach the
+    // viewer's editor while the sandbox checks a plan.
+    glideSwitches: { setEnabled: () => {}, setQuality: () => {} },
   }
 
   return {

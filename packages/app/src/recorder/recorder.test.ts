@@ -2075,7 +2075,8 @@ describe('finished-session export association', () => {
     expect(session.unnamedWriteCount).toBe(0)
     expect(session.actions.map(({ id, args }) => [id, ...args])).toEqual([
       ['timeline.setPlaying', true, 20],
-      ['timeline.setPlaying', false, 22],
+      // The Pause counts the two frames the playback advanced.
+      ['timeline.setPlaying', false, 22, 2],
     ])
   })
 })

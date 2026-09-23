@@ -631,9 +631,11 @@ describe('Play and Pause during a recording', () => {
 
     expect(session.unnamedWriteCount).toBe(0)
     expect(pausedAt).toBeGreaterThan(100)
+    // The Pause also counts the frames the playback advanced, which from
+    // frame 0 without a wrap is the frame it paused on.
     expect(steps(session)).toEqual([
       ['timeline.setPlaying', true, 0],
-      ['timeline.setPlaying', false, pausedAt],
+      ['timeline.setPlaying', false, pausedAt, pausedAt],
     ])
 
     const replay = makeTimelineWorld()
@@ -644,8 +646,9 @@ describe('Play and Pause during a recording', () => {
     vi.advanceTimersByTime(1200)
     expect(replay.raw.isPlaying()).toBe(true)
     expect(replay.raw.currentFrame()).toBeGreaterThan(0)
-    // ...and pauses exactly where the recording paused, although that clock
-    // ran for a paced two seconds rather than the five that were recorded.
+    // ...and pauses exactly where the recording paused. This target has no
+    // playback hold, so the clock is the replay's own; the paced replay
+    // (playWindowReplay.test.ts) also moves the frames at the take's pace.
     vi.advanceTimersByTime(10_000)
     stopReplay()
     expect(player.isFinished()).toBe(true)
@@ -673,9 +676,10 @@ describe('Play and Pause during a recording', () => {
     expect(live.raw.isPlaying()).toBe(false)
     expect(live.raw.currentFrame()).toBe(3)
     expect(session.unnamedWriteCount).toBe(0)
+    // Five to fifteen is ten advances, and the eleventh ran off the end.
     expect(steps(session)).toEqual([
       ['timeline.setPlaying', true, 5],
-      ['timeline.setPlaying', false, 3],
+      ['timeline.setPlaying', false, 3, 11],
     ])
 
     const replay = makeTimelineWorld()
@@ -710,7 +714,7 @@ describe('Play and Pause during a recording', () => {
     expect(session.unnamedWriteCount).toBe(0)
     expect(steps(session)).toEqual([
       ['timeline.setPlaying', true, 0],
-      ['timeline.setPlaying', false, pausedAt],
+      ['timeline.setPlaying', false, pausedAt, pausedAt],
     ])
   })
 
