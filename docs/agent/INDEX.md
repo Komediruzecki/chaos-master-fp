@@ -30,7 +30,7 @@ file instead of rediscovering the architecture every session.
 
 | Directory                 | Package name                   | Source files | LOC    |
 | ------------------------- | ------------------------------ | ------------ | ------ |
-| `packages/app`            | `chaos-master`                 | 1103         | 188.2k |
+| `packages/app`            | `chaos-master`                 | 1118         | 190.3k |
 | `packages/core`           | `@chaos-master/core`           | 26           | 3.6k   |
 | `packages/landing`        | `@chaos-master/landing`        | 20           | 2.5k   |
 | `packages/mobile-runtime` | `@chaos-master/mobile-runtime` | 7            | 600    |
@@ -66,14 +66,15 @@ file instead of rediscovering the architecture every session.
 
 #### Flame engine (`packages/app/src/flame/`) — variations, pipeline, serialization
 
-| Module          | Entry point                                                             | LOC   | What it is            |
-| --------------- | ----------------------------------------------------------------------- | ----- | --------------------- |
-| `variations`    | [index.ts](../../packages/app/src/flame/variations/parametric/index.ts) | 33.6k | _(no header comment)_ |
-| `examples`      | [index.ts](../../packages/app/src/flame/examples/index.ts)              | 12.7k | _(no header comment)_ |
-| `glide`         | [index.ts](../../packages/app/src/flame/glide/index.ts)                 | 2.9k  | _(no header comment)_ |
-| `renderDrivers` | [index.ts](../../packages/app/src/flame/renderDrivers/index.ts)         | 400   | _(no header comment)_ |
-| `schema`        | [flameSchema.ts](../../packages/app/src/flame/schema/flameSchema.ts)    | 100   | _(no header comment)_ |
-| `variations3D`  | [index.ts](../../packages/app/src/flame/variations3D/index.ts)          | 50    | _(no header comment)_ |
+| Module          | Entry point                                                             | LOC   | What it is                                                                                                                                  |
+| --------------- | ----------------------------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `variations`    | [index.ts](../../packages/app/src/flame/variations/parametric/index.ts) | 33.6k | _(no header comment)_                                                                                                                       |
+| `examples`      | [index.ts](../../packages/app/src/flame/examples/index.ts)              | 12.7k | _(no header comment)_                                                                                                                       |
+| `glide`         | [index.ts](../../packages/app/src/flame/glide/index.ts)                 | 2.9k  | _(no header comment)_                                                                                                                       |
+| `clash`         | [choreographer.ts](../../packages/app/src/flame/clash/choreographer.ts) | 1.2k  | The scripted 12-second bout of the Flame Clash preview: the intro, one hit, a beam clash, the Devour finisher and the victory, as a pure... |
+| `renderDrivers` | [index.ts](../../packages/app/src/flame/renderDrivers/index.ts)         | 400   | _(no header comment)_                                                                                                                       |
+| `schema`        | [flameSchema.ts](../../packages/app/src/flame/schema/flameSchema.ts)    | 100   | _(no header comment)_                                                                                                                       |
+| `variations3D`  | [index.ts](../../packages/app/src/flame/variations3D/index.ts)          | 50    | _(no header comment)_                                                                                                                       |
 
 #### Components (`packages/app/src/components/`) — UI surfaces
 
@@ -123,6 +124,7 @@ file instead of rediscovering the architecture every session.
 | `CanvasViewport`        | [index.ts](../../packages/app/src/components/CanvasViewport/index.ts)                                          | 300  | _(no header comment)_                                                                                                                        |
 | `ErrorHandling`         | [ErrorHandling.tsx](../../packages/app/src/components/ErrorHandling/ErrorHandling.tsx)                         | 300  | _(no header comment)_                                                                                                                        |
 | `WorkspaceBottomBar`    | [index.ts](../../packages/app/src/components/WorkspaceBottomBar/index.ts)                                      | 300  | _(no header comment)_                                                                                                                        |
+| `ClashStage`            | [ClashStage.tsx](../../packages/app/src/components/ClashStage/ClashStage.tsx)                                  | 250  | The Flame Clash stage: one scripted bout between two fighters, on a canvas of its own.                                                       |
 | `MathEditor`            | [MathEditor.tsx](../../packages/app/src/components/MathEditor/MathEditor.tsx)                                  | 250  | _(no header comment)_                                                                                                                        |
 | `Modal`                 | [Modal.tsx](../../packages/app/src/components/Modal/Modal.tsx)                                                 | 250  | _(no header comment)_                                                                                                                        |
 | `PaletteSelector`       | [PaletteSelector.tsx](../../packages/app/src/components/PaletteSelector/PaletteSelector.tsx)                   | 250  | _(no header comment)_                                                                                                                        |
@@ -163,6 +165,7 @@ file instead of rediscovering the architecture every session.
 | ----------------- | ----------------------------------------------------------------------------------------------- | ---- | ------------------------------------------------------------------------------------------ |
 | `FractalExplorer` | [FractalExplorerPage.tsx](../../packages/app/src/pages/FractalExplorer/FractalExplorerPage.tsx) | 3.8k | The deep-zoom explorer page: a full-bleed canvas, a heads-up readout and a settings panel. |
 | `Benchmarks`      | [BenchmarksPage.tsx](../../packages/app/src/pages/Benchmarks/BenchmarksPage.tsx)                | 3.7k | _(no header comment)_                                                                      |
+| `Clash`           | [ClashPage.tsx](../../packages/app/src/pages/Clash/ClashPage.tsx)                               | 350  | The Flame Clash preview page (`/clash`): two fighters, one scripted bout.                  |
 
 #### Cloudflare Worker (`packages/app/src/worker/`) — backend routes
 
@@ -182,7 +185,7 @@ file instead of rediscovering the architecture every session.
 | Module     | Entry point                                                                              | LOC  | What it is                                                                                       |
 | ---------- | ---------------------------------------------------------------------------------------- | ---- | ------------------------------------------------------------------------------------------------ |
 | `deepzoom` | [deepZoomView.ts](../../packages/core/src/deepzoom/deepZoomView.ts)                      | 1.7k | The deep-zoom camera: a centre with unlimited digits and a magnification held as a power of two. |
-| `schema`   | [flameSchema.ts](../../packages/core/src/schema/flameSchema.ts)                          | 1.1k | _(no header comment)_                                                                            |
+| `schema`   | [flameSchema.ts](../../packages/core/src/schema/flameSchema.ts)                          | 1.2k | _(no header comment)_                                                                            |
 | `diff`     | [fdiff.ts](../../packages/core/src/diff/fdiff.ts)                                        | 300  | _(no header comment)_                                                                            |
 | `math`     | [affine3DView.ts](../../packages/core/src/math/affine3DView.ts)                          | 250  | _(no header comment)_                                                                            |
 | `utils`    | [prettyPrintValibotErrors.ts](../../packages/core/src/utils/prettyPrintValibotErrors.ts) | 100  | _(no header comment)_                                                                            |
@@ -315,7 +318,7 @@ file instead of rediscovering the architecture every session.
 | [MainWorkspace.tsx](../../packages/app/src/MainWorkspace.tsx) | 4.5k | _(no header comment)_                                    |
 | [App.tsx](../../packages/app/src/App.tsx)                     | 500  | _(no header comment)_                                    |
 | [defaults.ts](../../packages/app/src/defaults.ts)             | 150  | _(no header comment)_                                    |
-| [index.tsx](../../packages/app/src/index.tsx)                 | 50   | @refresh reload \*/                                      |
+| [index.tsx](../../packages/app/src/index.tsx)                 | 100  | @refresh reload \*/                                      |
 | [valibot.ts](../../packages/app/src/valibot.ts)               | 50   | We re-export only things we use to keep the bundle small |
 | [version.ts](../../packages/app/src/version.ts)               | 50   | _(no header comment)_                                    |
 | [vitest.setup.ts](../../packages/app/src/vitest.setup.ts)     | 50   | Vitest test setup file.                                  |
