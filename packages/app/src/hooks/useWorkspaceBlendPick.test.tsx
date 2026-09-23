@@ -193,6 +193,18 @@ describe('a blend partner picked in the gallery', () => {
     expect(plain(workspace)).toEqual(before)
   })
 
+  it('puts back the pick, not the document before it, when a later hover leaves', () => {
+    // The gallery opened again after a pick: a hover over another tile, then
+    // the pointer leaves the tiles.
+    const workspace = workspaceRoot()
+    workspace.blendPick.preview(deepClone(examples.example2))
+    workspace.blendPick.pick(deepClone(examples.example2))
+    const picked = plain(workspace)
+    workspace.blendPick.preview(deepClone(examples.example3))
+    workspace.blendPick.preview(null)
+    expect(plain(workspace)).toEqual(picked)
+  })
+
   it('puts back exactly what a hover replaced when the pointer leaves', () => {
     const workspace = workspaceRoot()
     const before = plain(workspace)
