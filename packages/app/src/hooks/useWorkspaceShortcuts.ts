@@ -105,6 +105,8 @@ export function useWorkspaceShortcuts(params: UseWorkspaceShortcutsParams) {
       return true
     },
     KeyI: (ev) => {
+      // Ctrl/Cmd+I is the browser's, as Ctrl/Cmd+F is. Alt+I removes a key.
+      if (ev.ctrlKey || ev.metaKey) return false
       // A keyframe is an edit of the take the agent is making.
       if (pilotOwnsKeyboard()) return false
       if (animationExportRunning()) return false

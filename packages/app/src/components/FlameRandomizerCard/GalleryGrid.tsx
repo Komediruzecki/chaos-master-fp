@@ -72,38 +72,21 @@ export function GalleryGrid(props: {
     }
   }
 
-  // Enter applies the selected cell (modal model). Ignore while typing in the
-  // size/brightness inputs.
-  createEffect(() => {
-    if (props.applyOnClick) return
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== 'Enter') return
-      // Heard on the whole document, so the inert page under the Arcade's
-      // screen lock does not stop it: a candidate selected before the agent
-      // took the screen was applied over its take, and the Enter a focused
-      // Stop button needed was prevented.
-      if (pilotOwnsKeyboard()) return
-      const target = e.target
-      if (
-        target instanceof HTMLElement &&
-        (target.tagName === 'INPUT' ||
-          target.tagName === 'TEXTAREA' ||
-          target.tagName === 'SELECT' ||
-          target.isContentEditable)
-      ) {
-        return
-      }
-      const candidate = props.candidates[selectedIndex()]
-      if (candidate !== undefined) {
-        e.preventDefault()
-        props.onApply(candidate)
-      }
+  // Enter applies the selected cell (modal model), heard only from the grid
+  // itself or a cell, which the click that selected it focused. On the whole
+  // document it took the Enter of every focused control, a cell's own buttons
+  // included. The agent owns the keyboard under the Arcade's screen lock.
+  const applyOnEnter = (e: KeyboardEvent & { currentTarget: HTMLElement }) => {
+    if (props.applyOnClick || e.key !== 'Enter' || pilotOwnsKeyboard()) return
+    const target = e.target as Element
+    if (target !== e.currentTarget && target.parentElement !== e.currentTarget)
+      return
+    const candidate = props.candidates[selectedIndex()]
+    if (candidate !== undefined) {
+      e.preventDefault()
+      props.onApply(candidate)
     }
-    document.addEventListener('keydown', onKeyDown)
-    onCleanup(() => {
-      document.removeEventListener('keydown', onKeyDown)
-    })
-  })
+  }
 
   // Clear the applied-cell highlight when another part of the randomizer card
   // takes over the selection (apply-on-click mode only).
@@ -158,6 +141,7 @@ export function GalleryGrid(props: {
     <ComputeGate capacity={COMPUTE_GATE_CAPACITY}>
       <div
         ref={setGridEl}
+        onKeyDown={applyOnEnter}
         class={ui.grid}
         classList={{ [ui.scroll!]: props.maxHeight !== undefined }}
         style={{
@@ -174,6 +158,7 @@ export function GalleryGrid(props: {
             return (
               <div
                 ref={setCellEl}
+                tabIndex={-1}
                 class={ui.cell}
                 classList={{
                   [ui.cellActive!]: activeIndex() === i(),

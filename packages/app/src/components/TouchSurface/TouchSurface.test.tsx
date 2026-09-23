@@ -1,11 +1,12 @@
 import '@/commands/builtins'
 import { cleanup, fireEvent, render, screen } from '@solidjs/testing-library'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi, } from 'vitest'
 import { setActiveTab } from '@/lib/activeTab'
 import { backDepth, popBack } from '@/lib/backStack'
 import { safeRemoveItem } from '@/utils/storage'
 import { createMockCommandContext } from '@/webmcp/testUtils'
 import { AdvancedToolsDrawer, TabletInspectorDeck, TouchControlSurface, TouchHUD, } from './index'
+import type { TouchControlSurfaceProps } from './types'
 import type { TransformId, VariationId } from '@/flame/schema/flameSchema'
 import type * as StorageUtils from '@/utils/storage'
 
@@ -255,6 +256,12 @@ describe('TouchSurface Components', () => {
   })
 
   describe('TouchControlSurface', () => {
+    // The tablet deck's save button calls its own `onSnapshot`; the surface
+    // was handed one too and never read it. Checked by `pnpm typecheck`.
+    it('takes no save handler of its own', () => {
+      expectTypeOf<TouchControlSurfaceProps>().not.toHaveProperty('onSnapshot')
+    })
+
     it('renders transform pills, tabs, and switches views', () => {
       const ctx = createMockCommandContext()
 

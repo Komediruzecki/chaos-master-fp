@@ -206,7 +206,7 @@ file instead of rediscovering the architecture every session.
 | File                                                                                          | LOC | What it is                                                                |
 | --------------------------------------------------------------------------------------------- | --- | ------------------------------------------------------------------------- |
 | [useWorkspaceReplay.ts](../../packages/app/src/hooks/useWorkspaceReplay.ts)                   | 650 | _(no header comment)_                                                     |
-| [useWorkspaceAutosave.ts](../../packages/app/src/hooks/useWorkspaceAutosave.ts)               | 450 | What one pause write did.                                                 |
+| [useWorkspaceAutosave.ts](../../packages/app/src/hooks/useWorkspaceAutosave.ts)               | 500 | What one pause write did.                                                 |
 | [useWorkspaceTimelineBinding.ts](../../packages/app/src/hooks/useWorkspaceTimelineBinding.ts) | 450 | _(no header comment)_                                                     |
 | [useWorkspaceBlendPick.ts](../../packages/app/src/hooks/useWorkspaceBlendPick.ts)             | 300 | The partner gallery's hover preview, and the pick that commits a partner. |
 | [useWorkspaceAnimationGen.ts](../../packages/app/src/hooks/useWorkspaceAnimationGen.ts)       | 250 | _(no header comment)_                                                     |
@@ -338,7 +338,7 @@ Grep for the symbol and read the surrounding range instead.
 | [packages/app/src/flame/variations/docs/content.general.ts](../../packages/app/src/flame/variations/docs/content.general.ts)                                 | 1.9k |
 | [packages/app/src/flame/variations/docs/content.general2.ts](../../packages/app/src/flame/variations/docs/content.general2.ts)                               | 1.8k |
 | [packages/app/src/components/AudioWiringModal/AudioWiringModal.tsx](../../packages/app/src/components/AudioWiringModal/AudioWiringModal.tsx)                 | 1.6k |
-| [packages/app/src/components/ExportPngDialog/ExportPngDialog.tsx](../../packages/app/src/components/ExportPngDialog/ExportPngDialog.tsx)                     | 1.4k |
+| [packages/app/src/components/ExportPngDialog/ExportPngDialog.tsx](../../packages/app/src/components/ExportPngDialog/ExportPngDialog.tsx)                     | 1.5k |
 | [packages/app/src/components/LoadFlameModal/LoadFlameModal.tsx](../../packages/app/src/components/LoadFlameModal/LoadFlameModal.tsx)                         | 1.4k |
 | [packages/app/src/recorder/replayVideo.ts](../../packages/app/src/recorder/replayVideo.ts)                                                                   | 1.4k |
 | [packages/app/src/components/AudioReactivePanel/AudioReactivePanel.tsx](../../packages/app/src/components/AudioReactivePanel/AudioReactivePanel.tsx)         | 1.3k |

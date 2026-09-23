@@ -8,72 +8,18 @@
  * focus sits in the overlay, and it comes back to the viewer's control once
  * the lock and its end card are gone.
  *
+ * The page behind is inert because the lock is a modal dialog, the newest
+ * one, in the browser's top layer. So a dialog the viewer had open is under
+ * it too, and theirs again afterwards; one opened during the take goes under
+ * it; and nothing added to the page mid-take takes the focus or a click.
+ *
  * And F with a modifier is the browser's: Ctrl+F is find. A headless browser
  * draws no find bar, so what this checks is the part the page controls: the
  * app does not prevent the key and does not toggle the sidebar on it.
  */
-import { dismissWelcomeIfPresent, expect, test } from './helpers'
-import type { Locator, Page } from '@playwright/test'
-
-type Envelope = { content: { type: string; text: string }[]; isError?: boolean }
-
-async function callTool(
-  page: Page,
-  name: string,
-  input: unknown,
-): Promise<Record<string, unknown>> {
-  const envelope = await page.evaluate(
-    async ([n, i]) => {
-      const win = window as unknown as {
-        webmcp: {
-          execute: (name: string, input: unknown) => Promise<Envelope>
-        }
-      }
-      return await win.webmcp.execute(n, i)
-    },
-    [name, input] as const,
-  )
-  return JSON.parse(envelope.content[0]!.text) as Record<string, unknown>
-}
-
-async function openEditor(page: Page) {
-  await page.goto('/', { waitUntil: 'domcontentloaded' })
-  await dismissWelcomeIfPresent(page, 12_000)
-  await page.waitForFunction(() => 'webmcp' in window, undefined, {
-    timeout: 20_000,
-  })
-}
-
-const LOCK_NAME = 'The agent is driving the editor'
-const STOP_NAME = 'Stop the agent and keep what was recorded'
-
-async function startLock(page: Page): Promise<Locator> {
-  expect(await callTool(page, 'arcade_start_cinema', {})).toMatchObject({
-    ok: true,
-  })
-  const lock = page.getByRole('dialog', { name: LOCK_NAME })
-  await expect(lock).toBeVisible()
-  return lock
-}
-
-/** What has the focus, by its accessible name or its tag. */
-async function focused(page: Page): Promise<string> {
-  return await page.evaluate(() => {
-    const el = document.activeElement
-    if (!el || el === document.body) return 'body'
-    return el.getAttribute('aria-label') ?? el.tagName
-  })
-}
-
-async function isFocused(locator: Locator): Promise<boolean> {
-  return await locator.evaluate((el) => el === document.activeElement)
-}
-
-async function rootIsInert(page: Page): Promise<boolean> {
-  return await page.evaluate(
-    () => document.getElementById('root')?.hasAttribute('inert') === true,
-  )
-}
+import { expect, test } from './helpers'
+import { centreOf, clickOver, expectDialogHeldUnderLock, focused, isFocused, LOCK_NAME, openEditor, startLock, STOP_NAME, topDialogAt, } from './pilotLock'
+import type { Page } from '@playwright/test'
 
 test.describe('the screen lock', () => {
   test('a slider focused before it takes no key, and gets its focus back after', async ({
@@ -87,9 +33,9 @@ test.describe('the screen lock', () => {
 
     await startLock(page)
 
-    // Focus left the page for the overlay, and the page is inert behind it.
+    // Focus left the page for the overlay, which covers the page.
     expect(await focused(page)).toBe(LOCK_NAME)
-    expect(await rootIsInert(page)).toBe(true)
+    expect(await topDialogAt(page)).toBe(LOCK_NAME)
     for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowRight')
     expect(await slider.inputValue()).toBe(before)
     // Nor can it take the focus back while the lock is on.
@@ -117,8 +63,9 @@ test.describe('the screen lock', () => {
     const card = page.getByRole('dialog', { name: /Stopped by you/ })
     await expect(card).toBeVisible()
 
-    // The end card holds the focus the lock had, over a live page.
-    expect(await rootIsInert(page)).toBe(false)
+    // The end card takes over the lock's place and its focus. Polled: the
+    // theme's view transition hit-tests as the page root while it runs.
+    await expect.poll(() => topDialogAt(page)).toMatch(/Stopped by you/)
     expect(await isFocused(card)).toBe(true)
 
     // Dismissed, it gives the viewer their slider back, keys and all.
@@ -162,6 +109,100 @@ test.describe('the screen lock', () => {
     expect(await toggle.getAttribute('aria-expanded')).toBe(expanded)
     // Still locked: neither key reached Stop, which only a focused Stop gets.
     await expect(page.getByRole('dialog', { name: LOCK_NAME })).toBeVisible()
+  })
+})
+
+test.describe('dialogs under the screen lock', () => {
+  test('a dialog open before it is covered, then handed back as it was', async ({
+    page,
+  }) => {
+    await openEditor(page)
+    // Built the way the app's own are (components/Modal): a modal dialog a
+    // close request closes, in a portal. The app's that hold a text field
+    // mount a WebGPU root, which the software adapter does not hold
+    // (pilot-lock-export.spec.ts runs this on the export dialog, on a GPU).
+    await page.evaluate(() => {
+      const portal = document.createElement('div')
+      const dialog = document.createElement('dialog')
+      dialog.id = 'viewer-dialog'
+      dialog.innerHTML = '<input id="viewer-field" value="kept">'
+      dialog.addEventListener('cancel', (ev) => {
+        ev.preventDefault()
+        dialog.close()
+      })
+      portal.append(dialog)
+      document.body.append(portal)
+      dialog.showModal()
+      document.getElementById('viewer-field')!.focus()
+    })
+    const dialog = page.locator('#viewer-dialog')
+    const field = page.locator('#viewer-field')
+    await field.press('End')
+
+    await expectDialogHeldUnderLock(page, dialog, field)
+
+    await page.keyboard.press('Escape')
+    await expect(dialog).toBeHidden()
+  })
+
+  test('a dialog opened during the take goes under it', async ({ page }) => {
+    await openEditor(page)
+    await startLock(page)
+
+    await page.evaluate(() => {
+      const late = document.createElement('dialog')
+      late.id = 'late-dialog'
+      late.innerHTML = '<input id="late-field">'
+      document.body.append(late)
+      late.showModal()
+      document.getElementById('late-field')!.focus()
+    })
+    const lateField = page.locator('#late-field')
+
+    await expect
+      .poll(async () => topDialogAt(page, await centreOf(lateField)))
+      .toBe(LOCK_NAME)
+    expect(await focused(page)).toBe(LOCK_NAME)
+    await page.keyboard.type('late')
+    expect(await lateField.inputValue()).toBe('')
+
+    // Still open when the take ends, and on top once the card is gone.
+    await page.getByRole('button', { name: STOP_NAME }).click()
+    await page.keyboard.press('Escape')
+    await expect(
+      page.getByRole('dialog', { name: /Stopped by you/ }),
+    ).toBeHidden()
+    expect(await topDialogAt(page, await centreOf(lateField))).toBe(
+      'late-dialog',
+    )
+  })
+
+  test('nothing added to the page mid-take takes a click or the focus', async ({
+    page,
+  }) => {
+    await openEditor(page)
+    await startLock(page)
+
+    // A portal as a panel or a toast would add it, stacked as high as CSS goes.
+    await page.evaluate(() => {
+      const late = document.createElement('button')
+      late.id = 'late-button'
+      late.textContent = 'Late'
+      late.style.cssText =
+        'position:fixed;left:40px;top:300px;z-index:2147483647'
+      late.onclick = () => {
+        late.dataset.clicked = 'yes'
+      }
+      document.body.append(late)
+      late.focus()
+    })
+    const late = page.locator('#late-button')
+
+    expect(await focused(page)).toBe(LOCK_NAME)
+    await clickOver(page, late)
+    expect(await late.getAttribute('data-clicked')).toBeNull()
+    await page.keyboard.press('Enter')
+    expect(await late.getAttribute('data-clicked')).toBeNull()
   })
 })
 
