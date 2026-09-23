@@ -1,23 +1,33 @@
 /* Touch Surface Styling - Clean, Dark Glassmorphism, Cross-Browser */
 
-.topHud {
-  composes: chrome from '@/styles/designSystem/glass.module.css';
+/* The top bar's frame: it places the pill and holds the More list beside
+   it, so the list is a glass layer of its own over the art. Inside the pill
+   it was glass in glass, which the nested rule in glass.module.css leaves
+   unblurred. The frame is neither glass nor transformed (auto margins
+   centre it), so nothing on it stands between the list and the art. */
+.hudFrame {
   position: fixed;
   top: var(--la-hud-top);
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
+  right: 0;
+  width: fit-content;
+  max-width: calc(100% - 40px);
+  margin: 0 auto;
   /* Above the popover backdrop, so the menu the backdrop belongs to stays
      tappable while every other surface is covered. */
   z-index: 42;
+  pointer-events: auto;
+}
+
+.topHud {
+  composes: chrome from '@/styles/designSystem/glass.module.css';
   height: var(--la-hud-h);
-  max-width: calc(100% - 40px);
   display: flex;
   align-items: center;
   gap: var(--la-s-1);
   padding: 0 var(--la-s-1);
   border-radius: var(--la-r-pill);
   box-sizing: border-box;
-  pointer-events: auto;
 }
 
 /* The tablet deck's header groups its icon buttons in one of these. */
@@ -95,10 +105,10 @@
   white-space: nowrap;
 }
 
-/* Inside the pill, so the glass rule flattens its blur: the pill is its
-   backdrop root and the blur could only ever sample the pill's own fill. */
+/* Inside the pill, which is its backdrop root: a blur here could only ever
+   sample the pill's own fill, so it is flat glass, with no blur to drop. */
 .titleTooltip {
-  composes: chrome from '@/styles/designSystem/glass.module.css';
+  composes: flat from '@/styles/designSystem/glass.module.css';
   position: absolute;
   top: calc(100% + var(--la-s-2));
   left: 0;
@@ -121,17 +131,12 @@
   color: var(--la-ink-2);
 }
 
-.moreMenuWrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
+/* Under the pill's trailing end, where the More button is, placed from the
+   frame. Placement only; the list's own look is Shell/MoreMenu.module.css. */
 .moreMenuPopover {
   position: absolute;
   top: calc(100% + var(--la-s-2));
   right: 0;
-  /* Placement only; the list's own look is Shell/MoreMenu.module.css. */
   z-index: 60;
 }
 
