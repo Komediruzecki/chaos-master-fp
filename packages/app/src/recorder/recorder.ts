@@ -5,13 +5,14 @@ import { DEFAULT_SEAT } from '@/seats/seatId'
 import { deepClone } from '@/utils/clone'
 import { currentUndoSeq } from '@/utils/undoJournal'
 import { VERSION } from '@/version'
-import { setDocumentWriteReporter, setTimelinePlaybackReporter, setTimelineTransportReporter, } from './documentWriteHook'
+import { probeTimelinePlayback, setDocumentWriteReporter, setTimelinePlaybackReporter, setTimelineTransportReporter, } from './documentWriteHook'
 import { focusForCommand, focusHintFor } from './focus'
 import { NARRATION_COMMAND_ID, narrationAsStep } from './narrationMode'
 import { MAX_ACTION_TIMESTAMP_MS, MAX_SESSION_ACTIONS, MAX_SESSION_FILE_BYTES, MAX_SESSION_JSON_CHARS, serializeSession, SESSION_FORMAT_VERSION, validateRecordedAction, validateSession, } from './schema'
 import { describeTimelinePlayback, TIMELINE_PLAYBACK_COMMAND_ID, } from './transportStep'
 import { createUncapturedLog, describeUnrecordedCommand, describeUnroutedEdit, noteUncapturedStep, uncapturedJsonChars, uncapturedSessionFields, uncapturedStopMessage, } from './uncapturedSteps'
 import type { Accessor, Setter } from 'solid-js'
+import type { PlaybackStep } from './playWindows'
 import type { RecordedAction, RecordedSession, SessionViewSnapshot, UncapturedStep, } from './schema'
 import type { SonificationSnapshot } from './sonificationState'
 import type { UncapturedLog } from './uncapturedSteps'
@@ -441,6 +442,9 @@ function reportDerivedWorkspaceWriteIn(s: StreamState): void {
 
 function stopIn(s: StreamState): RecordedSession | undefined {
   if (!s.active) return undefined
+  // Stopped while playing: end on where the playback got, still playing.
+  const still = drivingSeat() === s.id ? undefined : probeTimelinePlayback(s.id)
+  if (still) logPlayback(s, s.active, { playing: true, ...still })
   // Compact validation is enforced while recording. Pretty-printed downloads
   // and UTF-8 can be slightly larger, so trim only the newest actions until
   // the exact persisted form also fits. Earlier steps remain a valid prefix,
@@ -873,27 +877,24 @@ function reportTimelineTransportIn(s: StreamState, description: string): void {
 /**
  * Playback started or stopped: log the step that puts it back.
  *
- * Any Play or Pause reaches here — Space, the transport buttons, a workspace
- * flow pausing the raw timeline, a non-looping playback running off its end —
- * because the timeline reports the change itself rather than each control
- * remembering to. The step is `timeline.setPlaying(playing, frame)`: the frame
- * is what makes it replayable, since a replay's own playback runs on paced
- * time and would otherwise pause wherever that clock had got to.
+ * Any Play or Pause reaches here (Space, the transport buttons, a workspace
+ * flow pausing the raw timeline, a non-looping playback running off its end),
+ * because the timeline reports the change itself. The step is
+ * `timeline.setPlaying(playing, frame)`; a stop adds the frames the playback
+ * advanced. The frame makes it replayable, the count lets a replay play the
+ * window at the take's pace (recorder/playWindows.ts).
  *
- * Skipped inside a command (that command is what the log carries) and under
+ * Skipped inside a command (that command is what the log carries), under
  * suppression (replay, and recorder plumbing such as the pause a take starts
- * with). The Arcade exemption is the one `reportTimelineTransportIn` has
- * always made: the seat an agent drives previews its own animation, and the
- * session deliberately leaves Play to the viewer.
- *
- * A step ends any coalescing run, like every synthetic action, but it is not
- * a document write, so it does not claim the gesture a drag may still have
- * open.
+ * with), and for the seat an Arcade agent drives, which previews its own
+ * animation (as in `reportTimelineTransportIn`). A step ends any coalescing
+ * run but, not being a document write, claims no gesture a drag has open.
  */
 function reportTimelinePlaybackIn(
   s: StreamState,
   playing: boolean,
   frame: number,
+  advanced?: number,
 ): void {
   if (commandDepth > 0 || suppressDepth > 0) return
   if (drivingSeat() === s.id) return
@@ -903,17 +904,24 @@ function reportTimelinePlaybackIn(
     invalidateLastFinishedSessionIn(s)
     return
   }
+  const count = playing ? undefined : advanced
+  logPlayback(s, rec, { playing, frame, advanced: count })
+}
+
+function logPlayback(s: StreamState, rec: ActiveRecording, step: PlaybackStep) {
+  const { playing, frame, advanced } = step
   s.coalesceAnchors = new Map()
   // The playhead is a whole frame everywhere it is set, and the step's replay
   // policy accepts nothing else; one stray fraction must not make the whole
   // take refuse to replay.
   const pinned = Math.max(0, Math.round(frame))
-  const args = [playing, pinned]
+  const args: unknown[] = [playing, pinned]
+  if (advanced !== undefined) args.push(Math.max(0, Math.round(advanced)))
   const snapshot = snapshotAction(s, rec, {
     t: elapsedMs(rec),
     id: TIMELINE_PLAYBACK_COMMAND_ID,
     args,
-    label: describeTimelinePlayback(playing, pinned),
+    label: describeTimelinePlayback(playing, pinned, advanced !== undefined),
     focus: focusHintFor(TIMELINE_PLAYBACK_COMMAND_ID, args),
   })
   if (snapshot === undefined) return
@@ -1041,8 +1049,8 @@ export function recorderStream(id: SeatId): RecorderStream {
     reportTimelineTransport: (description) => {
       reportTimelineTransportIn(s, description)
     },
-    reportTimelinePlayback: (playing, frame) => {
-      reportTimelinePlaybackIn(s, playing, frame)
+    reportTimelinePlayback: (playing, frame, advanced) => {
+      reportTimelinePlaybackIn(s, playing, frame, advanced)
     },
     reportDerivedWorkspaceWrite: () => {
       reportDerivedWorkspaceWriteIn(s)
@@ -1185,6 +1193,7 @@ setDocumentWriteReporter((description, seatId) => {
 setTimelineTransportReporter((description, seatId) => {
   recorderStream(seatId ?? DEFAULT_SEAT).reportTimelineTransport(description)
 })
-setTimelinePlaybackReporter((playing, frame, seatId) => {
-  recorderStream(seatId ?? DEFAULT_SEAT).reportTimelinePlayback(playing, frame)
+setTimelinePlaybackReporter((playing, frame, seatId, advanced) => {
+  const stream = recorderStream(seatId ?? DEFAULT_SEAT)
+  stream.reportTimelinePlayback(playing, frame, advanced)
 })

@@ -1,5 +1,5 @@
 import { createSignal, getOwner, onCleanup } from 'solid-js'
-import { notifyDocumentWrite, notifyTimelinePlayback, notifyTimelineTransport, } from '@/recorder/documentWriteHook'
+import { notifyDocumentWrite, notifyTimelinePlayback, notifyTimelineTransport, registerTimelinePlaybackProbe, } from '@/recorder/documentWriteHook'
 import { PLAYHEAD_MOVE_REASON } from '@/recorder/transportStep'
 import { applyEasing, catmullRom, clamp } from './easing'
 import { persistentSignal } from './persistentSignal'
@@ -702,12 +702,18 @@ export type TimelineStateOptions = {
 export function createTimelineState(options: TimelineStateOptions = {}) {
   const seatId = options.seatId
   const [currentFrame, setCurrentFrameRaw] = createSignal(0)
+  // Frames the playback advanced since it started or the playhead last moved
+  // some other way. A take's Pause records it, so a replay plays that window
+  // at the pace it actually ran (recorder/playWindows.ts).
+  let playedFrames = 0
+  let advancing = false
   // Moving the playhead ends any keyframe-coalescing run: returning to a
   // frame later must start a NEW undo step, not merge into the old gesture.
   const setCurrentFrame: typeof setCurrentFrameRaw = (
     value: Parameters<typeof setCurrentFrameRaw>[0],
   ) => {
     breakUndoCoalescing()
+    if (!advancing) playedFrames = 0
     return setCurrentFrameRaw(value as never)
   }
   const [config, setStoredConfig] =
@@ -722,6 +728,17 @@ export function createTimelineState(options: TimelineStateOptions = {}) {
     equals: false,
   })
   const [isPlaying, setIsPlaying] = createSignal(false)
+  // While a replay paces a play window, the render loop leaves the playhead
+  // alone and only the replay moves it (recorder/replayPlayback.ts).
+  const [pacedPlayback, setPacedPlayback] = createSignal(false)
+  if (seatId !== undefined) {
+    const unregister = registerTimelinePlaybackProbe(seatId, () =>
+      isPlaying()
+        ? { frame: currentFrame(), advanced: playedFrames }
+        : undefined,
+    )
+    if (getOwner()) onCleanup(unregister)
+  }
   // Bumped by `loadTracks`: one number the view can watch to know that a whole
   // animation arrived (a file, a drop, a share link, the gallery, a tool) as
   // opposed to a keyframe being edited. The dope sheet fits itself to it.
@@ -1443,17 +1460,25 @@ export function createTimelineState(options: TimelineStateOptions = {}) {
       lastAdvanceTs = now
     }
     const next = currentFrame() + 1
-    if (next > cfg.endFrame) {
-      setCurrentFrame(cfg.startFrame)
-      if (!cfg.loop) {
-        setIsPlaying(false)
-        resetFpsMeter()
-        // Nobody pressed anything, and the playback still stopped: a take
-        // has to pin where, or its replay pauses wherever its own clock got.
-        if (playing) notifyTimelinePlayback(false, cfg.startFrame, seatId)
+    if (playing) playedFrames++
+    advancing = playing
+    try {
+      if (next > cfg.endFrame) {
+        setCurrentFrame(cfg.startFrame)
+        if (!cfg.loop) {
+          setIsPlaying(false)
+          resetFpsMeter()
+          // Nobody pressed anything, and the playback still stopped: a take
+          // has to pin where, or its replay pauses wherever its own clock got.
+          if (playing) {
+            notifyTimelinePlayback(false, cfg.startFrame, seatId, playedFrames)
+          }
+        }
+      } else {
+        setCurrentFrame(next)
       }
-    } else {
-      setCurrentFrame(next)
+    } finally {
+      advancing = false
     }
     setPreviewHeld(true)
   }
@@ -1490,6 +1515,7 @@ export function createTimelineState(options: TimelineStateOptions = {}) {
     setPreviewHeld(true)
     setIsPlaying(true)
     if (!wasPlaying || currentFrame() !== from) {
+      playedFrames = 0
       notifyTimelinePlayback(true, currentFrame(), seatId)
     }
   }
@@ -1498,14 +1524,22 @@ export function createTimelineState(options: TimelineStateOptions = {}) {
     const wasPlaying = isPlaying()
     setIsPlaying(false)
     resetFpsMeter()
-    if (wasPlaying) notifyTimelinePlayback(false, currentFrame(), seatId)
+    if (wasPlaying) {
+      notifyTimelinePlayback(false, currentFrame(), seatId, playedFrames)
+    }
   }
 
   function togglePlay() {
     const next = !isPlaying()
     setIsPlaying(next)
     resetFpsMeter()
-    notifyTimelinePlayback(next, currentFrame(), seatId)
+    if (next) playedFrames = 0
+    notifyTimelinePlayback(
+      next,
+      currentFrame(),
+      seatId,
+      next ? undefined : playedFrames,
+    )
   }
 
   function hasAnyKeyframes(parameterPath: string): boolean {
@@ -1771,6 +1805,8 @@ export function createTimelineState(options: TimelineStateOptions = {}) {
     lastAddedKeyframe,
     isPlaying,
     setIsPlaying,
+    pacedPlayback,
+    setPacedPlayback,
     measuredFps,
     isScrubbing,
     setIsScrubbing,

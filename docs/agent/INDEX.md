@@ -30,7 +30,7 @@ file instead of rediscovering the architecture every session.
 
 | Directory                 | Package name                   | Source files | LOC    |
 | ------------------------- | ------------------------------ | ------------ | ------ |
-| `packages/app`            | `chaos-master`                 | 1077         | 182.8k |
+| `packages/app`            | `chaos-master`                 | 1081         | 183.6k |
 | `packages/landing`        | `@chaos-master/landing`        | 20           | 2.5k   |
 | `packages/core`           | `@chaos-master/core`           | 17           | 1.9k   |
 | `packages/mobile-runtime` | `@chaos-master/mobile-runtime` | 7            | 600    |
@@ -205,7 +205,7 @@ file instead of rediscovering the architecture every session.
 
 | File                                                                                          | LOC | What it is                                                              |
 | --------------------------------------------------------------------------------------------- | --- | ----------------------------------------------------------------------- |
-| [useWorkspaceReplay.ts](../../packages/app/src/hooks/useWorkspaceReplay.ts)                   | 600 | _(no header comment)_                                                   |
+| [useWorkspaceReplay.ts](../../packages/app/src/hooks/useWorkspaceReplay.ts)                   | 650 | _(no header comment)_                                                   |
 | [useWorkspaceAutosave.ts](../../packages/app/src/hooks/useWorkspaceAutosave.ts)               | 450 | What one pause write did.                                               |
 | [useWorkspaceTimelineBinding.ts](../../packages/app/src/hooks/useWorkspaceTimelineBinding.ts) | 450 | _(no header comment)_                                                   |
 | [useWorkspaceAnimationGen.ts](../../packages/app/src/hooks/useWorkspaceAnimationGen.ts)       | 250 | _(no header comment)_                                                   |
@@ -219,18 +219,22 @@ file instead of rediscovering the architecture every session.
 
 | File                                                                               | LOC  | What it is                                                                                                                                   |
 | ---------------------------------------------------------------------------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| [replayVideo.ts](../../packages/app/src/recorder/replayVideo.ts)                   | 1.3k | Register every command a session may contain before building the isolated replay world.                                                      |
 | [recorder.ts](../../packages/app/src/recorder/recorder.ts)                         | 1.2k | The session recorder: turns an editing session into a `.steps.json` log of registered-command invocations (see schema.ts for why intents,... |
-| [replayVideo.ts](../../packages/app/src/recorder/replayVideo.ts)                   | 1.2k | Register every command a session may contain before building the isolated replay world.                                                      |
-| [player.ts](../../packages/app/src/recorder/player.ts)                             | 600  | Timed playback of a recorded session (semantic-recorder-plan, M4).                                                                           |
+| [player.ts](../../packages/app/src/recorder/player.ts)                             | 700  | Timed playback of a recorded session (semantic-recorder-plan, M4).                                                                           |
 | [focus.ts](../../packages/app/src/recorder/focus.ts)                               | 500  | Follow-cam hints: **what to look at** while a step runs, never **where**.                                                                    |
 | [focusPreparation.ts](../../packages/app/src/recorder/focusPreparation.ts)         | 500  | UI state that must be ready before the follow-cam resolves an action's DOM target.                                                           |
 | [schema.ts](../../packages/app/src/recorder/schema.ts)                             | 500  | The `.steps.json` session format — version 1.                                                                                                |
 | [replayInterfaceVideo.ts](../../packages/app/src/recorder/replayInterfaceVideo.ts) | 450  | Full-interface capture keeps the viewport aspect ratio, but caps the long edge and pixel count so a 4K/5K monitor cannot create an unboun... |
 | [timelineActions.ts](../../packages/app/src/recorder/timelineActions.ts)           | 450  | A timeline whose compound edits reach the session recorder.                                                                                  |
 | [replay.ts](../../packages/app/src/recorder/replay.ts)                             | 250  | Whether replay may need browser user activation for generated audio.                                                                         |
+| [playWindowPace.ts](../../packages/app/src/recorder/playWindowPace.ts)             | 200  | The pace a replay plays a take's play windows at (recorder/playWindows.ts).                                                                  |
 | [snapshotOrigin.ts](../../packages/app/src/recorder/snapshotOrigin.ts)             | 200  | Why a value-pinned snapshot exists.                                                                                                          |
 | [uncapturedSteps.ts](../../packages/app/src/recorder/uncapturedSteps.ts)           | 200  | The steps a take could not record, by name.                                                                                                  |
+| [playerPlayWindows.ts](../../packages/app/src/recorder/playerPlayWindows.ts)       | 150  | The replay player's half of a play window (recorder/playWindows.ts).                                                                         |
+| [playWindows.ts](../../packages/app/src/recorder/playWindows.ts)                   | 150  | Play windows: the stretches of a take in which its timeline was playing.                                                                     |
 | [sonificationState.ts](../../packages/app/src/recorder/sonificationState.ts)       | 150  | Sonification is authored output state, but it is not part of the flame document.                                                             |
+| [documentWriteHook.ts](../../packages/app/src/recorder/documentWriteHook.ts)       | 100  | A leaf seam between document owners and the recorder.                                                                                        |
 | [replaySideState.ts](../../packages/app/src/recorder/replaySideState.ts)           | 100  | Editor-only state that follow-cam may change while revealing a target.                                                                       |
 | [types.ts](../../packages/app/src/recorder/types.ts)                               | 100  | The session recorder's public types, apart from the module that implements them: what a recording starts from, what a command must expose... |
 
@@ -340,12 +344,12 @@ Grep for the symbol and read the surrounding range instead.
 | [packages/app/src/components/LogoFaviconGenerator/LogoFaviconGenerator.tsx](../../packages/app/src/components/LogoFaviconGenerator/LogoFaviconGenerator.tsx) | 1.3k |
 | [packages/app/src/components/VariationSelector/VariationSelector.tsx](../../packages/app/src/components/VariationSelector/VariationSelector.tsx)             | 1.3k |
 | [packages/app/src/flame/Flam3.tsx](../../packages/app/src/flame/Flam3.tsx)                                                                                   | 1.3k |
+| [packages/app/src/recorder/replayVideo.ts](../../packages/app/src/recorder/replayVideo.ts)                                                                   | 1.3k |
 | [packages/app/src/benchmarks/validation.ts](../../packages/app/src/benchmarks/validation.ts)                                                                 | 1.2k |
 | [packages/app/src/components/AffineEditor/AffineEditor.tsx](../../packages/app/src/components/AffineEditor/AffineEditor.tsx)                                 | 1.2k |
 | [packages/app/src/components/Home/HomeFlame.tsx](../../packages/app/src/components/Home/HomeFlame.tsx)                                                       | 1.2k |
 | [packages/app/src/flame/variations/utils.ts](../../packages/app/src/flame/variations/utils.ts)                                                               | 1.2k |
 | [packages/app/src/recorder/recorder.ts](../../packages/app/src/recorder/recorder.ts)                                                                         | 1.2k |
-| [packages/app/src/recorder/replayVideo.ts](../../packages/app/src/recorder/replayVideo.ts)                                                                   | 1.2k |
 | [packages/app/src/components/AudioWiringModal/NodeGraphView.tsx](../../packages/app/src/components/AudioWiringModal/NodeGraphView.tsx)                       | 1.1k |
 
 <!-- END:GENERATED heavy-files -->

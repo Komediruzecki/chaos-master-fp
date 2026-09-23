@@ -193,7 +193,8 @@ describe('bounded transport, against the real timeline state', () => {
       'Play Timeline For, a command a recording does not replay',
     ])
     expect(session?.actions.map(({ id, args }) => [id, ...args])).toEqual([
-      ['timeline.setPlaying', false, timeline.currentFrame()],
+      // No render loop runs here, so the playback advanced no frames.
+      ['timeline.setPlaying', false, timeline.currentFrame(), 0],
     ])
   })
 
@@ -254,10 +255,18 @@ describe('timeline.setPlaying', () => {
     expect(timeline.currentFrame()).toBe(31)
   })
 
-  it('accepts exactly a playing flag and a frame from a session', () => {
-    expect(preflightReplayCommand('timeline.setPlaying', [false, 12])).toBe(
-      undefined,
-    )
+  it('accepts exactly a playing flag, a frame and an optional count from a session', () => {
+    for (const args of [
+      [false, 12],
+      // A stop counts the frames the playback advanced, loops included.
+      [false, 12, 0],
+      [false, 12, 4000],
+      [true, 75, 75],
+    ]) {
+      expect(preflightReplayCommand('timeline.setPlaying', args)).toBe(
+        undefined,
+      )
+    }
     for (const args of [
       [],
       [true],
@@ -265,9 +274,27 @@ describe('timeline.setPlaying', () => {
       [true, -1],
       [true, 1.5],
       [true, 3, 'extra'],
+      [false, 3, -1],
+      [false, 3, 1.5],
+      [false, 3, 4, 5],
     ]) {
       expect(preflightReplayCommand('timeline.setPlaying', args)).toBeDefined()
     }
+  })
+
+  it('ignores the count when it runs: the frame is what it pins', () => {
+    const { timeline, ctx } = realTransport()
+    timeline.goToFrame(3)
+    expect(executeReplayCommand('timeline.setPlaying', ctx, true, 7, 999)).toBe(
+      true,
+    )
+    expect(timeline.isPlaying()).toBe(true)
+    expect(timeline.currentFrame()).toBe(7)
+    expect(
+      executeReplayCommand('timeline.setPlaying', ctx, false, 31, 24),
+    ).toBe(true)
+    expect(timeline.isPlaying()).toBe(false)
+    expect(timeline.currentFrame()).toBe(31)
   })
 
   it('is refused live, so a script cannot start playback with no end', () => {

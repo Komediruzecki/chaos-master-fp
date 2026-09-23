@@ -4,6 +4,7 @@ import { getGlideRuntime } from '@/flame/glide/runtime'
 import { applyReplayAudioWiring, sessionMayEnableSonification, } from '@/recorder/replay'
 import { captureReplayInterfaceVideo } from '@/recorder/replayInterfaceVideo'
 import { paletteRestoreColorsAfterReplayCommand } from '@/recorder/replayPaletteState'
+import { timelineReplayPlayback } from '@/recorder/replayPlayback'
 import { normalizeReplayPresentation, replaySideStateChanged, } from '@/recorder/replaySideState'
 import { createReplayVideoJobSpec, replayVideoFileName, } from '@/recorder/replayVideo'
 import { shouldRevealSonificationAfterReplay } from '@/recorder/sonificationState'
@@ -436,6 +437,9 @@ export function useWorkspaceReplay(params: UseWorkspaceReplayParams) {
   }
 
   const replayTarget: ReplayTarget = {
+    // The replay moves the playhead through a take's play windows at the pace
+    // they were recorded at, rather than on the timeline's own clock.
+    playback: timelineReplayPlayback(timeline),
     readFlame: () => deepClone(flameDescriptor),
     glide: (from, durationMs) => {
       void getGlideRuntime()?.glideFrom(from, { durationMs })
