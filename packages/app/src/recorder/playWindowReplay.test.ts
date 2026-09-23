@@ -535,6 +535,10 @@ describe('a play window replays at the pace the take played it', () => {
     // The take left it playing, so the replay does, on the timeline's clock.
     expect(replay.raw.isPlaying()).toBe(true)
     expect(replay.raw.pacedPlayback()).toBe(false)
+    // Closing a replay that has finished leaves it playing too: the replay no
+    // longer holds the playhead, so there is nothing of its to stop.
+    player.stop()
+    expect(replay.raw.isPlaying()).toBe(true)
     vi.advanceTimersByTime(1000)
     stopReplay()
     expect(replay.raw.currentFrame()).toBe(100)
@@ -583,6 +587,122 @@ describe('a play window replays at the pace the take played it', () => {
     expect(ran[1]!.at - ran[0]!.at).toBe(2161)
     expect(ran[1]!.frame).toBe(58)
     expect(backwardMoves(trace.frames)).toEqual([])
+  })
+})
+
+describe('a replay that ends early inside a window pauses the timeline where it is', () => {
+  /** A replay the viewer can take over, with the steps that failed. */
+  function replayWithTakeover(session: RecordedSession) {
+    const replay = makeWorld()
+    const stopReplay = driveRenderLoop(replay.raw)
+    const { target } = replayTargetFor(replay)
+    let owner: (() => void) | undefined
+    target.beginBatch = (onTakeover) => {
+      owner = onTakeover
+    }
+    target.endBatch = () => {
+      owner = undefined
+    }
+    const errors: string[] = []
+    const player = createSessionPlayer(session, target, {
+      onError: (message) => errors.push(message),
+    })
+    return { replay, player, errors, stopReplay, takeOver: () => owner?.() }
+  }
+
+  /** A take the viewer starts now, to show the replay's pause is no step. */
+  function recordOn(world: World) {
+    startSessionRecording(world.flame, {
+      timeline: snapshotTimeline(world.raw),
+    })
+  }
+
+  /** Paused on `frame`, off the replay's clock, and staying there. */
+  function expectPausedOn(world: World, frame: number) {
+    expect(world.raw.isPlaying()).toBe(false)
+    expect(world.raw.pacedPlayback()).toBe(false)
+    expect(world.raw.currentFrame()).toBe(frame)
+    vi.advanceTimersByTime(2000)
+    expect(world.raw.currentFrame()).toBe(frame)
+  }
+
+  it('pauses on the frame it had when the replay is closed', () => {
+    vi.useFakeTimers()
+    const { replay, player, stopReplay } = replayWithTakeover(
+      recordPlayFor(4000),
+    )
+    player.play()
+    vi.advanceTimersByTime(1500)
+    recordOn(replay)
+    player.stop()
+    expectPausedOn(replay, 37)
+    expect(steps(stopOrThrow())).toEqual([])
+    stopReplay()
+  })
+
+  it('pauses on the frame it had when the viewer takes the document over', () => {
+    vi.useFakeTimers()
+    const { replay, player, stopReplay, takeOver } = replayWithTakeover(
+      recordPlayFor(4000),
+    )
+    player.play()
+    vi.advanceTimersByTime(1500)
+    recordOn(replay)
+    takeOver()
+    expect(player.isPlaying()).toBe(false)
+    expectPausedOn(replay, 37)
+    expect(steps(stopOrThrow())).toEqual([])
+    stopReplay()
+  })
+
+  it('pauses on the frame the failed step ran on', () => {
+    vi.useFakeTimers()
+    const live = makeWorld()
+    configure(live, {})
+    const stopLive = driveRenderLoop(live.raw)
+    startSessionRecording(live.flame, { timeline: snapshotTimeline(live.raw) })
+    live.facade.togglePlay()
+    vi.advanceTimersByTime(250)
+    executeCommand('flame.setGamma', live.ctx, 2.5)
+    vi.advanceTimersByTime(1750)
+    live.facade.togglePlay()
+    const session = stopOrThrow()
+    stopLive()
+
+    const { replay, player, errors, stopReplay } = replayWithTakeover(session)
+    player.play()
+    vi.advanceTimersByTime(100)
+    // A take started mid-replay fails the next step: replay refuses to run
+    // under a recording.
+    recordOn(replay)
+    vi.advanceTimersByTime(150)
+    expect(errors).toEqual([
+      'Step 2 could not be replayed: Stop the active recording before continuing replay',
+    ])
+    expectPausedOn(replay, 6)
+    expect(steps(stopOrThrow())).toEqual([])
+    stopReplay()
+  })
+
+  it('pauses on Space pressed inside the window, as the press meant', () => {
+    vi.useFakeTimers()
+    const { replay, player, stopReplay, takeOver } = replayWithTakeover(
+      recordPlayFor(4000),
+    )
+    // The transport the viewer presses takes the replay over first.
+    const transport = createRecorderAwareTimeline(
+      replay.raw,
+      (id, ...args) => {
+        executeCommand(id, replay.ctx, ...args)
+      },
+      takeOver,
+    )
+    player.play()
+    vi.advanceTimersByTime(1500)
+    transport.togglePlay()
+    expect(player.isPlaying()).toBe(false)
+    expectPausedOn(replay, 37)
+    stopReplay()
   })
 })
 

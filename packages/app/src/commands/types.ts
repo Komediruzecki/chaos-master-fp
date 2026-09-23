@@ -1,7 +1,7 @@
 import type { Accessor, Setter } from 'solid-js'
 import type { v2f } from 'typegpu/data'
 import type { BundledTrack } from '@/arcade/bundledTracks'
-import type { GlideQualityPreference } from '@/flame/glide/types'
+import type { GlideDriver, GlideQualityPreference } from '@/flame/glide/types'
 import type { AudioMapping, AudioWiringSnapshot, } from '@/flame/schema/audioWiring'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 import type { TimelineSnapshot } from '@/flame/schema/timeline'
@@ -311,6 +311,9 @@ export interface CommandContext {
     setEnabled: (enabled: boolean) => void
     setQuality: (quality: GlideQualityPreference) => void
   }
+  /** Its own glide runtime, for `glide.toFlame`: none, so a take's glide
+   *  never animates the live canvas. Absent: the workspace's. */
+  glideRuntime?: () => GlideDriver | undefined
 }
 
 export type ReplayArgsValidator = (

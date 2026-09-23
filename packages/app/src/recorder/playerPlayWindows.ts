@@ -24,8 +24,9 @@ export type PlayerPlayWindows = {
   stopClock: () => void
   /** Every take starts paused: forget the windows walked so far. */
   reset: () => void
-  /** Hand the playhead back to the timeline's own clock. */
-  release: () => void
+  /** Hand the playhead back to the timeline's own clock; `pause` first stops
+   *  a playback the replay holds, on the frame it has. */
+  release: (pause?: boolean) => void
 }
 
 type TakeClock = { t: number; wall: number; speed: number; until: number }
@@ -43,14 +44,21 @@ export function createPlayerPlayWindows(
   const after = planPlayWindows(actions).after
   const pacer = createPlayheadPacer(actions)
   let last = -1
+  /** Whether the replay holds the playhead playing. */
+  let playing = false
   let clock: TakeClock | undefined
   let cancelFrame: (() => void) | undefined
   const wallNow = () => globalThis.performance.now()
 
-  function holdAt(t: number, playing: boolean): void {
+  function holdAt(t: number, on: boolean): void {
     if (!playback || !pacer.current()) return
     const frame = pacer.frameAt(t, playback.read())
-    if (frame !== undefined) playback.hold(frame, playing)
+    if (frame !== undefined) hold(frame, on)
+  }
+
+  function hold(frame: number, on: boolean): void {
+    playback?.hold(frame, on)
+    playing = on
   }
 
   function now(): number | undefined {
@@ -89,6 +97,13 @@ export function createPlayerPlayWindows(
     requestTick()
   }
 
+  function release(pause = false): void {
+    if (!playback) return
+    if (pause && playing) hold(playback.read().frame, false)
+    playing = false
+    playback.release()
+  }
+
   function stopClock(): void {
     cancelFrame?.()
     cancelFrame = undefined
@@ -103,8 +118,8 @@ export function createPlayerPlayWindows(
       if (!playback) return
       const state = playback.read()
       pacer.afterStep(index, state.frame, state)
-      if (pacer.current()) playback.hold(state.frame, true)
-      else playback.release()
+      if (pacer.current()) hold(state.frame, true)
+      else release()
     },
     now,
     startClock(t, until) {
@@ -118,6 +133,6 @@ export function createPlayerPlayWindows(
       last = -1
       pacer.reset()
     },
-    release: () => playback?.release(),
+    release,
   }
 }
