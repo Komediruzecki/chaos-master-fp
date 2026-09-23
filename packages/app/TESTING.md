@@ -144,11 +144,13 @@ pull request: `MainWorkspace.tsx` must have exactly the line count it names.
 ## Browser tests: Playwright
 
 `tests/` holds Playwright only: the specs, their helpers (`helpers.ts`,
-`pilotLock.ts`) and a reporter. Nothing in it is a unit test. The config is
+`pilotLock.ts`) and a reporter. Nothing in it is a unit test, and all of it is
+type-checked by `pnpm typecheck` through `tests/tsconfig.json`. The config is
 the root `playwright.config.ts`. It builds the app and serves the production
-preview (`pnpm --filter chaos-master e2e:serve`, `vite preview` with a
-self-signed certificate on `https://localhost:4173`), then runs one of two
-projects, both on headless Chromium with swiftshader standing in for a GPU:
+preview (`pnpm --filter chaos-master e2e:serve`, `vite preview --strictPort`
+with a self-signed certificate, on `https://localhost:4273` unless `E2E_PORT`
+says otherwise), then runs one of two projects, both on headless Chromium with
+swiftshader standing in for a GPU:
 
 | Project       | Specs                         | Runs                               | Today              |
 | ------------- | ----------------------------- | ---------------------------------- | ------------------ |
@@ -170,26 +172,32 @@ pass on real hardware against an already running server.
 
 ### Running e2e on a port of your own
 
-`playwright.config.ts` pins port 4173 and reuses a server already listening
-there. When 4173 belongs to someone else (a person's own preview, or another
-agent), serve the build on a private port and point a local config at it:
+Every run starts its own preview server, on port 4273 by default, and never
+uses one it did not start. If the port is taken, Playwright stops with
+`https://localhost:4273 is already used` instead of testing whatever answers
+there. Until 2026-09-23 the config pinned 4173, vite preview's default, and
+reused a server already listening on it, so a local run could quietly test a
+person's own preview, built from another checkout.
+
+Pick another port with `E2E_PORT`, for example when two runs share a machine or
+4273 belongs to someone else:
 
 ```bash
-# 1. Build once and serve it on a port of your own, say 4401.
+# Builds the app, serves it on 4401, runs the CI project, stops the server.
+E2E_PORT=4401 pnpm exec playwright test --project=chromium-ci
+
+# One spec.
+E2E_PORT=4401 pnpm exec playwright test --project=chromium-ci tests/smoke.ci.spec.ts
+```
+
+To iterate against a server you started yourself, build once, serve it on your
+own port, and opt in to reusing it with `E2E_REUSE_SERVER=1`. It is ignored on
+CI, which always starts a fresh server.
+
+```bash
 VITE_GA_ID= pnpm --filter chaos-master exec vite build
 pnpm --filter chaos-master exec vite preview --port 4401 --strictPort &
-
-# 2. playwright.private.config.ts, next to playwright.config.ts, not committed:
-#      import base from './playwright.config'
-#      export default {
-#        ...base,
-#        webServer: undefined,
-#        use: { ...base.use, baseURL: 'https://localhost:4401' },
-#      }
-
-# 3. Run one spec, or a project.
-pnpm exec playwright test --config playwright.private.config.ts \
-  --project=chromium-ci tests/smoke.ci.spec.ts
+E2E_PORT=4401 E2E_REUSE_SERVER=1 pnpm exec playwright test --project=chromium-ci
 ```
 
 Stop the preview server by its PID or its port (`fuser -k 4401/tcp`) when you
