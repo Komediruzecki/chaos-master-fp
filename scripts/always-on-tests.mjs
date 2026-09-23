@@ -126,6 +126,11 @@ export const ALWAYS_ON = [
     genre: 'filesystem',
   },
   {
+    file: 'src/commands/dispatchedCommandIds.test.ts',
+    why: 'walks all of src/ for command ids dispatched by name and asks the registry about each',
+    genre: 'filesystem',
+  },
+  {
     file: 'src/recorder/uiCoverageRatchet.test.ts',
     why: 'import.meta.glob over the recorder sources',
     genre: 'filesystem',

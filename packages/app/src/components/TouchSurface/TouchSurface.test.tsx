@@ -328,6 +328,7 @@ describe('TouchSurface Components', () => {
         <TabletInspectorDeck
           ctx={ctx}
           flame={ctx.flameDescriptor}
+          onSnapshot={() => {}}
           onPickGallery={onPickGallery}
         />
       ))
@@ -347,7 +348,11 @@ describe('TouchSurface Components', () => {
     it('collapses to an edge tab on a double tap and reopens', () => {
       const ctx = createMockCommandContext()
       render(() => (
-        <TabletInspectorDeck ctx={ctx} flame={ctx.flameDescriptor} />
+        <TabletInspectorDeck
+          ctx={ctx}
+          flame={ctx.flameDescriptor}
+          onSnapshot={() => {}}
+        />
       ))
 
       fireEvent.dblClick(screen.getByTestId('deck-divider'))
@@ -362,7 +367,11 @@ describe('TouchSurface Components', () => {
     it('leaves the tab order while a destination covers it', () => {
       const ctx = createMockCommandContext()
       render(() => (
-        <TabletInspectorDeck ctx={ctx} flame={ctx.flameDescriptor} />
+        <TabletInspectorDeck
+          ctx={ctx}
+          flame={ctx.flameDescriptor}
+          onSnapshot={() => {}}
+        />
       ))
 
       expect(deck().hasAttribute('inert')).toBe(false)
@@ -424,7 +433,11 @@ describe('TouchSurface Components', () => {
     it('resizes by dragging the divider', () => {
       const ctx = createMockCommandContext()
       render(() => (
-        <TabletInspectorDeck ctx={ctx} flame={ctx.flameDescriptor} />
+        <TabletInspectorDeck
+          ctx={ctx}
+          flame={ctx.flameDescriptor}
+          onSnapshot={() => {}}
+        />
       ))
 
       const divider = screen.getByTestId('deck-divider')
@@ -438,7 +451,11 @@ describe('TouchSurface Components', () => {
     it('stores the width once the divider is let go', () => {
       const ctx = createMockCommandContext()
       render(() => (
-        <TabletInspectorDeck ctx={ctx} flame={ctx.flameDescriptor} />
+        <TabletInspectorDeck
+          ctx={ctx}
+          flame={ctx.flameDescriptor}
+          onSnapshot={() => {}}
+        />
       ))
 
       const divider = screen.getByTestId('deck-divider')

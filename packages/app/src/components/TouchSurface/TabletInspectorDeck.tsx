@@ -22,7 +22,13 @@ export interface TabletInspectorDeckProps {
   onRedo?: () => void
   canUndo?: Accessor<boolean>
   canRedo?: Accessor<boolean>
-  onSnapshot?: () => void
+  /**
+   * The save button's tap. Required, like the phone rail's `onQuickExport`:
+   * the optional prop used to fall back to dispatching `flame.quickExport`,
+   * a command no one ever registered, so a deck mounted without it had a save
+   * button that did nothing at all.
+   */
+  onSnapshot: () => void
   /** Offered on a long press of the save button, as on the phone's shutter. */
   onOpenExportOptions?: () => void
   onPickGallery?: () => void
@@ -87,8 +93,7 @@ export function TabletInspectorDeck(props: TabletInspectorDeckProps) {
       haptic.impactLight()
     },
     onTap: () => {
-      if (props.onSnapshot) props.onSnapshot()
-      else dispatch('flame.quickExport')
+      props.onSnapshot()
     },
     onLongPress:
       props.onOpenExportOptions && (() => props.onOpenExportOptions?.()),
