@@ -267,6 +267,35 @@ describe('orbitWorker', () => {
     expect(iterations.runs).toBe(0)
   })
 
+  it('reports a Julia request in halves: the view orbit, then the critical one', async () => {
+    const worker = await loadWorker()
+    const still = {
+      ...SLOW,
+      kind: 'julia',
+      juliaC: { re: '0', im: '0' },
+    } as const satisfies Omit<OrbitRequest, 'id'>
+    // From 0.5 under c = 0 the view orbit never escapes: it is the slow one.
+    worker.request(1, { ...still, reference: { re: '0.5', im: '0' } })
+    await progressed(worker, 1)
+    // From 10 it escapes at once, and the critical orbit is the slow one.
+    worker.request(2, { ...still, reference: { re: '10', im: '0' } })
+    await progressed(worker, 2)
+    worker.send({ type: 'cancel' })
+    await vi.waitFor(() => {
+      expect(worker.answer(2)?.message.type).toBe('superseded')
+    })
+    const fractions = (id: number) =>
+      worker.posted.flatMap((p) =>
+        p.message.type === 'progress' && p.message.id === id
+          ? [p.message.fraction]
+          : [],
+      )
+    expect(Math.min(...fractions(1))).toBeGreaterThan(0)
+    expect(Math.max(...fractions(1))).toBeLessThan(0.5)
+    expect(Math.min(...fractions(2))).toBeGreaterThan(0.5)
+    expect(Math.max(...fractions(2))).toBeLessThan(1)
+  })
+
   it('iterates the same request only once', async () => {
     const worker = await loadWorker()
     worker.request(1, MANDELBROT)
