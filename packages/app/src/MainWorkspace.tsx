@@ -3903,6 +3903,7 @@ export function MainWorkspace(props: AppProps) {
               hoveredVariationType={hoveredVariationType}
               hoveredCustomVarDef={hoveredCustomVarDef}
               hoveredBlendName={hoveredBlendName}
+              blendIntent={blendIntent}
               effectiveRotation={effectiveRotation}
             >
               <Show when={!isPhone() && !isTablet()}>
