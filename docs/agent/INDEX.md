@@ -30,7 +30,7 @@ file instead of rediscovering the architecture every session.
 
 | Directory                 | Package name                   | Source files | LOC    |
 | ------------------------- | ------------------------------ | ------------ | ------ |
-| `packages/app`            | `chaos-master`                 | 1083         | 184.2k |
+| `packages/app`            | `chaos-master`                 | 1087         | 184.3k |
 | `packages/landing`        | `@chaos-master/landing`        | 20           | 2.5k   |
 | `packages/core`           | `@chaos-master/core`           | 17           | 1.9k   |
 | `packages/mobile-runtime` | `@chaos-master/mobile-runtime` | 7            | 600    |
@@ -256,10 +256,10 @@ file instead of rediscovering the architecture every session.
 
 #### Command registry (`packages/app/src/commands/`)
 
-| File                                                       | LOC | What it is            |
-| ---------------------------------------------------------- | --- | --------------------- |
-| [registry.ts](../../packages/app/src/commands/registry.ts) | 650 | _(no header comment)_ |
-| [types.ts](../../packages/app/src/commands/types.ts)       | 400 | _(no header comment)_ |
+| File                                                       | LOC | What it is                                                                                                                                   |
+| ---------------------------------------------------------- | --- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| [registry.ts](../../packages/app/src/commands/registry.ts) | 650 | _(no header comment)_                                                                                                                        |
+| [types.ts](../../packages/app/src/commands/types.ts)       | 450 | The command system's types: `FlameCommand`, what every registered command declares, and `CommandContext`, the workspace surface a command... |
 
 #### Stores (`packages/app/src/stores/`) — global reactive state
 
