@@ -15,8 +15,9 @@
  * freeze still trembles.
  *
  * Reduced motion keeps the story, the outcome and the captions, and drops
- * what moves the eye: the camera holds still, the fighters hold their marks,
- * nothing flashes, squashes or shakes, and the hit arrives as a slow leak.
+ * what moves the eye: the camera holds still, a fighter moves only by a short
+ * slide or by a cut between beats, nothing squashes, spins or shakes, a flash
+ * stays under x1.15, and the hit arrives as a slow leak.
  *
  * The winner is an input. Phase 1 scripts it; phase 2 hands in the result of
  * the rules, and `boutCues` is where sound and clip export will hook on.
@@ -143,10 +144,32 @@ const easeOut = (x: number) => 1 - (1 - clamp01(x)) ** 3
 const sideOf = (team: Team) => (team === 'A' ? -1 : 1)
 /** B walks on a beat after A. */
 const entranceDelay = (team: Team) => (team === 'A' ? 0 : 0.2)
+/** Each fighter's mark on the fight line, and where it walks on from. */
 const SEPARATION = 1.45
 const ENTRANCE = 4.4
+/** The marks of the beam clash, close enough for the two to touch. */
+const CLASH_MARK = 0.78
+/** How far the winner pushes the contact point through the beam clash. */
+const CLASH_SHOVE = 0.35
+/** Centre distance at which two fighters of scale 1 touch. */
+const CONTACT = 1.1
+/** The strike's dash ends at contact, never short of it. */
+const DASH_REACH = 2 * SEPARATION - CONTACT
 const MORPH_START = 0.5
 const MORPH_END = 2.2
+/** The turn that shows a flat card's depth as it inflates. */
+const INFLATE_TURN = 0.9
+/** Each side's leak in the beam clash, as the design sets it. */
+const BEAM_LEAK = 0.2
+/** How often the beam clash sways; kept under the 3 flashes a second limit. */
+const SWAY_HZ = 1.2
+/** The winner's share of walkers while the loser is drawn into it. */
+const DEVOUR_SHARE = 0.72
+/** How much of the loser's walking borrows the winner's maps in the Devour. */
+const SWALLOW_LEAK = 0.5
+/** Reduced motion: the longest slide (0.2 of the separation) and the flash cap. */
+const SLIDE = 0.2 * 2 * SEPARATION
+const REDUCED_FLASH = 0.15
 
 export function beatAt(story: number): Beat {
   let beat: Beat = 'intro'
@@ -154,36 +177,39 @@ export function beatAt(story: number): Beat {
   return beat
 }
 
-/** Shared by both scripts: the flat card inflating and the team colour. */
+/**
+ * Shared by both scripts: each fighter walks on in its own colours, so it is
+ * recognised, takes its team colour as it reaches its mark, and then a flat
+ * card inflates, so the recolour and the inflation read as two changes.
+ */
 function introLooks(story: number) {
   return {
     morph: easeOut((story - MORPH_START) / (MORPH_END - MORPH_START)),
-    tint: DEFAULT_TINT * smooth(1.2, 2.2, story),
+    tint: DEFAULT_TINT * smooth(0.6, 1.4, story),
   }
 }
 
 /** Walker share and leaks: the fight's uniforms, as the winner's share. */
 function fightUniforms(s: number, reducedMotion: boolean) {
   const approach = smooth(5.0, 5.7, s)
-  const devour = smooth(8.3, 9.9, s)
+  // The loser keeps a share it can be seen with while it is drawn in, and
+  // loses the rest at the gulp.
+  const drawnIn = smooth(8.3, 9.3, s)
   const gone = smooth(9.9, 10.3, s)
   const sway = reducedMotion
     ? 0
-    : 0.1 * Math.sin(2 * Math.PI * 0.5 * (s - 5.3)) * approach
+    : 0.1 * Math.sin(2 * Math.PI * SWAY_HZ * (s - 5.3)) * approach
   const clashShare = 0.5 + sway + 0.1 * smooth(7.4, 8.2, s)
-  const winnerShare = lerp(lerp(clashShare, 0.985, devour), 1, gone)
-  const clinch = reducedMotion
-    ? 0.06
-    : 0.06 + 0.05 * (0.5 + 0.5 * Math.sin(2 * Math.PI * 1.4 * (s - 5)))
+  const winnerShare = lerp(lerp(clashShare, DEVOUR_SHARE, drawnIn), 1, gone)
   const inClinch = approach * (1 - smooth(8.2, 8.6, s))
   const hit = reducedMotion
     ? 0.18 * smooth(2.9, 3.3, s) * (1 - smooth(3.6, 4.6, s))
     : 0.32 * pulse(3.15, 3.5, s)
-  const swallowed = 0.85 * smooth(8.3, 9.3, s) * (1 - gone)
+  const swallowed = SWALLOW_LEAK * drawnIn * (1 - gone)
   return {
     winnerShare,
-    winnerLeak: Math.max(hit, clinch * inClinch),
-    loserLeak: Math.max(clinch * inClinch, swallowed),
+    winnerLeak: Math.max(hit, BEAM_LEAK * inClinch),
+    loserLeak: Math.max(BEAM_LEAK * inClinch, swallowed),
   }
 }
 
@@ -210,10 +236,16 @@ function fullMotion(s: number, wall: number, winner: Team) {
   const enter = (delay: number) => easeOut((s - delay) / 1.4)
   const approach = smooth(5.0, 5.7, s)
   const bob = (phase: number) => 0.06 * Math.sin(1.7 * s + phase)
-  // The winner's strike: wind up, dash in, land at the impact, recover.
+  // Both turn while the flat cards inflate, so the new depth shows.
+  const turn = INFLATE_TURN * Math.sin(Math.PI * clamp01((s - 0.9) / 1.6))
+  // The winner's strike: wind up, dash in, stop at contact on the impact,
+  // recover. The loser is knocked back only after the hit-stop, so the frozen
+  // impact frame shows the two touching.
   const wind = smooth(2.4, 2.9, s) * (1 - smooth(2.9, 3.15, s))
   const dash = smooth(2.9, 3.15, s) * (1 - smooth(3.35, 3.95, s))
-  const knock = pulse(3.15, 3.95, s)
+  const knock = smooth(3.15, 3.45, s) * (1 - smooth(3.6, 4.4, s))
+  // Through the beam clash the winner pushes the contact point back.
+  const shove = sl * CLASH_SHOVE * smooth(5.7, 8.2, s)
   // Devour: the loser shrinks into the winner, the winner takes the centre.
   const shrink = smooth(8.6, 9.9, s)
   const drawn = smooth(8.8, 9.9, s)
@@ -221,26 +253,33 @@ function fullMotion(s: number, wall: number, winner: Team) {
   const victory = smooth(10.4, 11.0, s)
   const stand = (team: Team) =>
     sideOf(team) *
-    lerp(lerp(ENTRANCE, SEPARATION, enter(entranceDelay(team))), 0.78, approach)
+    lerp(
+      lerp(ENTRANCE, SEPARATION, enter(entranceDelay(team))),
+      CLASH_MARK,
+      approach,
+    )
   const winnerX =
-    lerp(stand(winner), 0, centre) - sw * (1.05 * dash - 0.3 * wind)
-  const loserX = lerp(stand(loser) + sl * 0.55 * knock, sw * 0.3, drawn)
+    lerp(stand(winner) + shove, 0, centre) -
+    sw * (DASH_REACH * dash - 0.3 * wind)
+  const loserX = lerp(stand(loser) + shove + sl * 0.55 * knock, sw * 0.3, drawn)
   const facing = (side: number) => -side * lerp(0.3, 0.55, approach)
   const winnerPose = pose(
     [winnerX, bob(0), 0],
     {
-      yaw: lerp(facing(sw), 0, victory) + 0.5 * Math.max(0, s - 10.4),
+      yaw: lerp(facing(sw), 0, victory) + turn + 0.5 * Math.max(0, s - 10.4),
       lean: -sw * (0.22 * dash - 0.18 * wind),
       scale:
         lerp(0.75, 1, enter(entranceDelay(winner))) *
         lerp(1, 1.12, smooth(9.0, 10.2, s)),
+      // The gulp: stretched at the swallow, settling back.
+      squash: 1 + 0.15 * pulse(9.9, 10.4, s),
     },
     looks,
   )
   const loserPose = pose(
     [loserX, bob(1.3), 0],
     {
-      yaw: facing(sl),
+      yaw: facing(sl) + turn,
       lean: sl * 0.25 * knock,
       scale: lerp(0.75, 1, enter(entranceDelay(loser))) * lerp(1, 0.35, shrink),
       squash: 1 - 0.32 * pulse(3.15, 3.6, s),
@@ -268,15 +307,24 @@ function fullMotion(s: number, wall: number, winner: Team) {
     halfWidth: lerp(lerp(SEPARATION + 1.3, 2.0, approach), 1.5, push),
     halfHeight: 1.4,
   }
-  const exposure = 1 + 0.8 * pulse(3.15, 3.33, s) + 0.5 * pulse(9.9, 10.3, s)
+  const exposure = 1 + 0.8 * pulse(3.15, 3.33, s) + 0.8 * pulse(9.9, 10.3, s)
   return { winnerPose, loserPose, camera, exposure }
 }
 
 function reduced(s: number, winner: Team) {
   const loser: Team = winner === 'A' ? 'B' : 'A'
   const looks = introLooks(s)
-  const still = (team: Team) =>
-    pose([sideOf(team) * SEPARATION, 0, 0], { yaw: -sideOf(team) * 0.3 }, looks)
+  // Beats change by cuts: the intro marks, closer marks from the beam clash,
+  // and the centre for the victor. Within a beat the only move is the
+  // strike's short slide in and back.
+  const closer = s >= 5.0
+  const won = s >= 10.4
+  const mark = (team: Team) =>
+    sideOf(team) * (closer ? SEPARATION - 0.5 : SEPARATION)
+  const lunge = smooth(2.9, 3.15, s) * (1 - smooth(3.6, 4.4, s))
+  const winnerX = won ? 0 : mark(winner) - sideOf(winner) * SLIDE * lunge
+  const still = (team: Team, x: number) =>
+    pose([x, 0, 0], { yaw: -sideOf(team) * 0.3 }, looks)
   const camera: ClashCamera = {
     theta: 0.25,
     phi: 1.25,
@@ -286,10 +334,10 @@ function reduced(s: number, winner: Team) {
     halfHeight: 1.4,
   }
   return {
-    winnerPose: still(winner),
-    loserPose: still(loser),
+    winnerPose: still(winner, winnerX),
+    loserPose: still(loser, mark(loser)),
     camera,
-    exposure: 1,
+    exposure: 1 + REDUCED_FLASH * (pulse(3.15, 3.33, s) + pulse(9.9, 10.3, s)),
   }
 }
 

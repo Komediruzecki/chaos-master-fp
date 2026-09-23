@@ -89,13 +89,24 @@ describe('a bout', () => {
     }
   })
 
-  it('enters as flat cards and inflates, then takes the team colours', () => {
+  it('walks on in its own colours, takes its team colour, then inflates', () => {
     const start = boutFrame(0, full)
     expect(start.a.morph).toBe(0)
     expect(start.a.tint).toBe(0)
+    const marked = boutFrame(1.4, full)
+    expect(marked.b.tint).toBeCloseTo(DEFAULT_TINT, 9)
+    expect(marked.b.morph).toBeLessThan(0.95)
     const settled = boutFrame(2.4, full)
     expect(settled.a.morph).toBeGreaterThan(0.99)
-    expect(settled.b.tint).toBeCloseTo(DEFAULT_TINT, 9)
+  })
+
+  it('turns both fighters while the flat cards inflate', () => {
+    const before = boutFrame(0.5, full)
+    const during = boutFrame(1.7, full)
+    for (const side of ['a', 'b'] as const) {
+      const turned = during[side].placement.yaw - before[side].placement.yaw
+      expect(Math.abs(turned)).toBeGreaterThan(0.6)
+    }
   })
 
   it('lands the hit as a leak from the attacker, with a flash and a squash', () => {
@@ -106,6 +117,16 @@ describe('a bout', () => {
     expect(impact.b.placement.squash).toBeLessThan(0.75)
     const before = boutFrame(2.5, full)
     expect(before.leakA).toBe(0)
+  })
+
+  it('stops the dash at contact and knocks back only after the hit-stop', () => {
+    const start = wallTime(HIT_STOPS[0].at)
+    const impact = boutFrame(start + 0.01, full)
+    const gap = (f: BoutFrame) =>
+      f.b.placement.position[0] - f.a.placement.position[0]
+    expect(gap(impact)).toBeCloseTo(1.1, 9)
+    const after = boutFrame(start + HIT_STOPS[0].hold + 0.25, full)
+    expect(gap(after)).toBeGreaterThan(gap(impact) + 0.2)
   })
 
   it('holds the whole impact frame still through the hit-stop', () => {
@@ -124,12 +145,29 @@ describe('a bout', () => {
     expect(boutFrame(BOUT_SECONDS, full).done).toBe(true)
   })
 
-  it('devours through the loser borrowing the winner maps', () => {
-    const devour = boutFrame(wallTime(9.2), { ...full, winner: 'B' })
-    expect(devour.beat).toBe('devour')
-    expect(devour.leakA).toBeGreaterThan(0.6)
-    expect(devour.split).toBeLessThan(0.2)
-    expect(devour.a.placement.scale).toBeLessThan(0.9)
+  it('leaks both ways in the beam clash and shoves the contact point', () => {
+    const mid = boutFrame(wallTime(6.5), full)
+    expect(mid.beat).toBe('clash')
+    expect(mid.leakA).toBeCloseTo(0.2, 9)
+    expect(mid.leakB).toBeCloseTo(0.2, 9)
+    const contact = (f: BoutFrame) =>
+      (f.a.placement.position[0] + f.b.placement.position[0]) / 2
+    // Towards B, the loser, at +x.
+    const early = boutFrame(wallTime(5.8), full)
+    const late = boutFrame(wallTime(8.1), full)
+    expect(contact(late) - contact(early)).toBeGreaterThan(0.25)
+  })
+
+  it('keeps the loser in sight while it is drawn in, then swallows it', () => {
+    const drawn = boutFrame(wallTime(9.5), { ...full, winner: 'B' })
+    expect(drawn.beat).toBe('devour')
+    // A, the loser, borrows the winner's maps and keeps a share to be seen by.
+    expect(drawn.leakA).toBeGreaterThan(0.4)
+    expect(drawn.split).toBeGreaterThan(0.2)
+    expect(drawn.a.placement.scale).toBeLessThan(0.9)
+    const gulped = boutFrame(wallTime(10.35), { ...full, winner: 'B' })
+    expect(gulped.split).toBe(0)
+    expect(gulped.b.placement.squash).toBeGreaterThan(1)
   })
 
   it('mirrors the script for the other winner', () => {
@@ -148,12 +186,36 @@ describe('reduced motion', () => {
     for (const f of frames) expect(f.camera).toEqual(frames[0]!.camera)
   })
 
-  it('keeps the fighters on their marks, unsquashed and unflashed', () => {
+  it('never squashes, spins or flashes past x1.15', () => {
     for (const f of frames) {
-      expect(f.a.placement).toEqual(frames[0]!.a.placement)
-      expect(f.b.placement).toEqual(frames[0]!.b.placement)
-      expect(f.exposure).toBe(1)
+      for (const side of ['a', 'b'] as const) {
+        const p = f[side].placement
+        expect(p.squash).toBe(1)
+        expect(p.lean).toBe(0)
+        expect(p.scale).toBe(1)
+        expect(p.yaw).toBe(frames[0]![side].placement.yaw)
+      }
+      expect(f.exposure).toBeLessThanOrEqual(1.15 + 1e-12)
     }
+    expect(Math.max(...frames.map((f) => f.exposure))).toBeGreaterThan(1.1)
+  })
+
+  it('moves a fighter within a beat by a short slide at most', () => {
+    // At most 0.2 of the separation; beats change by cuts.
+    const slide = 0.2 * 2 * 1.45
+    let start = frames[0]!
+    for (const f of frames) {
+      if (f.beat !== start.beat) start = f
+      for (const side of ['a', 'b'] as const) {
+        const moved =
+          f[side].placement.position[0] - start[side].placement.position[0]
+        expect(Math.abs(moved)).toBeLessThanOrEqual(slide + 1e-9)
+      }
+    }
+  })
+
+  it('cuts the victor to the centre', () => {
+    expect(frames.at(-1)?.a.placement.position).toEqual([0, 0, 0])
   })
 
   it('still tells the whole story', () => {
