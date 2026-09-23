@@ -99,6 +99,14 @@ function handleArenaKeyboardNavigation(
   }
 }
 
+/**
+ * The dimension a clash is staged in: player 1's flame's, 3D when it does not
+ * say. One function for the staging and the title, so the two cannot disagree.
+ */
+function clashDimensions(flame: FlameDescriptor | undefined): 2 | 3 {
+  return (flame?.renderSettings.dimensions as 2 | 3 | undefined) ?? 3
+}
+
 export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
   const history = useChangeHistory()
   const timeline = useTimeline()
@@ -522,7 +530,7 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
       'Fighters engaging in shared arena volume... Calculating trajectory and impact dynamics!',
     )
 
-    const flameDimensions = (p1.flame.renderSettings?.dimensions as 2 | 3) ?? 3
+    const flameDimensions = clashDimensions(p1.flame)
 
     const simRes = simulateClash.execute(
       {
@@ -707,6 +715,7 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
           winner={winner()}
           commentary={commentary()}
           eventBanner={eventBanner()}
+          dimensions={clashDimensions(props.arena.player1Stats()?.flame)}
           onReplay={() => {
             runSimulation()
           }}
