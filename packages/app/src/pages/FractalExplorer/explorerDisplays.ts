@@ -45,21 +45,19 @@ export async function readBack(
 export function createDisplays(root: TgpuRoot) {
   let display: Display | undefined
   let backdrop: Display | undefined
-  let spare: Display | undefined
   /** The display has been coloured since `begin`. */
   let drawn = false
 
   /** Make a display of `size` current for a new picture. */
   function begin(size: GridSize) {
-    if (spare && !sameSize(spare.size, size)) {
-      spare.buffer.destroy()
-      spare = undefined
-    }
+    // The old backdrop, when the display replaces it and it is the right
+    // size, becomes the new display.
+    let spare: Display | undefined
     if (display && drawn) {
       const retired = backdrop
       backdrop = display
       display = undefined
-      if (retired && sameSize(retired.size, size) && !spare) spare = retired
+      if (retired && sameSize(retired.size, size)) spare = retired
       else retired?.buffer.destroy()
     } else if (display && !sameSize(display.size, size)) {
       display.buffer.destroy()
@@ -70,7 +68,6 @@ export function createDisplays(root: TgpuRoot) {
         buffer: createDisplayBuffer(root, size.width * size.height),
         size,
       }
-      spare = undefined
     }
     drawn = false
   }
@@ -89,7 +86,6 @@ export function createDisplays(root: TgpuRoot) {
   function destroy() {
     display?.buffer.destroy()
     backdrop?.buffer.destroy()
-    spare?.buffer.destroy()
   }
 
   return {
