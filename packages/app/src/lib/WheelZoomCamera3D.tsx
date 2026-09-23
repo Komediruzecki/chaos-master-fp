@@ -523,11 +523,9 @@ export function WheelZoomCamera3D(props: ParentProps<WheelZoomCamera3DProps>) {
   }
 
   function onKeyDown(ev: KeyboardEvent) {
-    // The camera is the agent's while it owns the screen: a key here panned
-    // under it, and the pan reached the document as a history entry no
-    // recorded command made. Nothing is claimed either, so a focused Stop
-    // button still gets its Space. A key already held stops at its first
-    // repeat instead of running until it comes up.
+    // The camera is the agent's while it owns the screen: a pan here became a
+    // history entry no recorded command made. Nothing is claimed, and a key
+    // already held stops at its next repeat.
     if (pilotOwnsKeyboard()) {
       activeKeys.clear()
       return

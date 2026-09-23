@@ -22,12 +22,8 @@ export interface TabletInspectorDeckProps {
   onRedo?: () => void
   canUndo?: Accessor<boolean>
   canRedo?: Accessor<boolean>
-  /**
-   * The save button's tap. Required, like the phone rail's `onQuickExport`:
-   * the optional prop used to fall back to dispatching `flame.quickExport`,
-   * a command no one ever registered, so a deck mounted without it had a save
-   * button that did nothing at all.
-   */
+  /** The save button's tap. Required: its fallback dispatched
+   *  `flame.quickExport`, a command no one ever registered. */
   onSnapshot: () => void
   /** Offered on a long press of the save button, as on the phone's shutter. */
   onOpenExportOptions?: () => void

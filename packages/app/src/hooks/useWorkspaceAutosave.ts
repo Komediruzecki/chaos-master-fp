@@ -34,13 +34,9 @@ export interface PauseSaveReport {
 export interface UseWorkspaceAutosaveParams {
   flameDescriptor: FlameDescriptor
   /**
-   * The document as a save stores it, when that is not the document itself:
-   * the workspace passes its own with the partner gallery's hover preview
-   * taken off (useWorkspaceBlendPick). A hover writes the document silently,
-   * and every writer here - the interval, the pagehide and pause saves, the
-   * flush before a replacement - read it straight off the store, so a pointer
-   * resting on a tile put a partner nobody picked into Recents, and a hover
-   * alone counted as unsaved work.
+   * The document as every save here stores it: the workspace passes its own
+   * without the gallery's silent hover preview (useWorkspaceBlendPick), which
+   * otherwise put a partner nobody picked into Recents.
    */
   savedFlame?: () => FlameDescriptor
   getTracks: () => TimelineTrack[] | undefined

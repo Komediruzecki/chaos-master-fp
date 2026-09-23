@@ -28,9 +28,6 @@ import type { QuickPickState } from '@/stores/workspaceSelectionStore'
 import type { HistoryPreviewOwner } from '@/utils/createStoreHistory'
 import type { TimelineState } from '@/utils/timeline'
 
-/** A replay opens no dialog: see `replayCommandContext`. */
-const REPLAY_MODAL: CommandContext['modal'] = { open: () => {} }
-
 export type ReplaySideState = ReplayNonFlameSideState & {
   flame: FlameDescriptor
 }
@@ -440,19 +437,15 @@ export function useWorkspaceReplay(params: UseWorkspaceReplayParams) {
   }
 
   /**
-   * The workspace's commands as a replay runs them: its own, but for the
-   * modal. Opening the export dialog is a step a take records (`export.png`,
-   * `export.animation`), and run against the live context it opened the
-   * dialog over the replay, and over the video a full-interface export
-   * captures from this same replay. The step still runs and keeps its place,
-   * spotlight and all; it opens nothing. The artwork export and the
-   * synthesize sandbox keep a no-op modal in their own worlds for the same
-   * reason (recorder/replayVideo.ts, recorder/synthesize/sandbox.ts). Built
-   * per step, so it reads the context as it is then.
+   * The workspace's commands as a replay runs them, with a modal that opens
+   * nothing. A take records opening the export dialog (`export.png`,
+   * `export.animation`), and replayed live it opened over the replay and
+   * over a full-interface export's video. The step still runs, spotlight and
+   * all, like the no-op modals of replayVideo.ts and synthesize/sandbox.ts.
    */
-  const replayCommandContext = (): CommandContext => ({
+  const replayContext = (): CommandContext => ({
     ...cmdContext,
-    modal: REPLAY_MODAL,
+    modal: { open: () => {} },
   })
 
   const replayTarget: ReplayTarget = {
@@ -525,7 +518,7 @@ export function useWorkspaceReplay(params: UseWorkspaceReplayParams) {
         flameDescriptor,
         currentPaletteColors,
       )
-      const accepted = executeReplayCommand(id, replayCommandContext(), ...args)
+      const accepted = executeReplayCommand(id, replayContext(), ...args)
       if (accepted && nextPaletteColors !== currentPaletteColors) {
         view.setPrePaletteColors(nextPaletteColors)
       }
