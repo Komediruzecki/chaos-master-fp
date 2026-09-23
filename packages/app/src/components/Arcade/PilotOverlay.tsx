@@ -8,18 +8,18 @@ import { LockShield } from './LockShield'
 import { formatElapsed, reasonLabel, savedLine } from './pilotFormat'
 import ui from './PilotOverlay.module.css'
 import { PilotSpotlight } from './PilotSpotlight'
-import { refocus } from './screenLockInert'
+import { refocus } from './topLayer'
 import type { CommandContext } from '@/commands/types'
 import type { ReplayFocusPreparationHandler } from '@/recorder/focusPreparation'
 
 const ESC_ARM_MS = 1500
 
 /**
- * Hard lock while an agent drives: a full-screen shield swallows pointer
- * input, the rest of the page is inert so no control keeps the keyboard, the
- * banner says what is happening, and Stop (or Esc twice) ends the take and
- * still saves it. When the pilot ends, the same component shows the end card
- * with Replay / Back to Arcade.
+ * Hard lock while an agent drives: a full-screen shield, the topmost modal
+ * dialog, swallows pointer input and leaves the rest of the page inert so no
+ * control keeps the keyboard, the banner says what is happening, and Stop (or
+ * Esc twice) ends the take and still saves it. When the pilot ends, the same
+ * component shows the end card with Replay / Back to Arcade, a modal too.
  */
 export function PilotOverlay(props: {
   ctx: CommandContext
@@ -114,14 +114,20 @@ export function PilotOverlay(props: {
   /**
    * The end card is a modal: it takes the focus the lock held, so its buttons
    * are one Tab away and no key lands behind it, and gives it back to the
-   * viewer's control when it goes. A ref runs under the card's own owner, so
-   * both hooks live exactly as long as the card.
+   * viewer's control when it goes. The newest modal, so it lands over a
+   * dialog the viewer left open, which is theirs again, as it was, once the
+   * card closes. A ref runs under the card's own owner, so both hooks live
+   * exactly as long as the card.
    */
-  const takeFocusUntilDismissed = (card: HTMLDivElement) => {
+  const takeFocusUntilDismissed = (card: HTMLDialogElement) => {
     onMount(() => {
+      card.showModal()
       card.focus({ preventScroll: true })
     })
-    onCleanup(giveFocusBack)
+    onCleanup(() => {
+      card.close()
+      giveFocusBack()
+    })
   }
 
   // Escape on the end card does what "Stay in the editor" does. A modal that
@@ -197,26 +203,29 @@ export function PilotOverlay(props: {
               <div class={ui.hint}>
                 You are watching. Press Esc twice or Stop to take over.
               </div>
+              {/* Inside the shield, in the top layer with it: the ring points
+                  at the editor the lock covers. Never in a duel, which takes a
+                  seat lock and draws no shield: there the workspace sidebar is
+                  the viewer's, and the agent's edits kept lighting up
+                  controls on the human's half. */}
+              <PilotSpotlight onPrepareFocus={props.onPrepareFocus} />
             </LockShield>
           </Show>
         )}
       </Show>
-      {/* Not during a duel. The ring points at the workspace sidebar, which
-          in a duel belongs to the viewer — so the agent's edits kept lighting
-          up controls on the human's half, over their own flame. What the agent
-          is doing is already listed under its seat. */}
-      <Show when={agentDriving() && !duelActive()}>
-        <PilotSpotlight onPrepareFocus={props.onPrepareFocus} />
-      </Show>
       <Show when={ended()}>
         {(end) => (
-          <div
+          <dialog
             ref={takeFocusUntilDismissed}
             class={ui.endBackdrop}
-            role="dialog"
-            aria-modal="true"
             aria-label={`${end().title}: ${reasonLabel(end().reason)}`}
             tabIndex={-1}
+            // A close request that is not Escape (a back gesture) does what
+            // Escape does.
+            onCancel={(ev) => {
+              ev.preventDefault()
+              resetPilot()
+            }}
           >
             <div class={ui.endCard}>
               <h2 class={ui.endTitle}>{end().title}</h2>
@@ -294,7 +303,7 @@ export function PilotOverlay(props: {
                 </button>
               </div>
             </div>
-          </div>
+          </dialog>
         )}
       </Show>
     </>
