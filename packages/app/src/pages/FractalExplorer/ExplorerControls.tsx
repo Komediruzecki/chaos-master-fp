@@ -220,8 +220,14 @@ export function ExplorerControls(props: ExplorerControlsProps) {
             aria-label="Iteration limit"
             onPointerDown={scrubIterations}
             onChange={(e) => {
-              const n = Number(e.currentTarget.value)
-              if (Number.isFinite(n)) props.onIterations(clampIterations(n))
+              // Number('') is 0, so an emptied field would commit the lowest
+              // limit; blank goes back to the limit, like text that is no
+              // number at all.
+              const text = e.currentTarget.value.trim()
+              const n = Number(text)
+              if (text !== '' && Number.isFinite(n)) {
+                props.onIterations(clampIterations(n))
+              }
               e.currentTarget.value = String(iterations())
             }}
           />

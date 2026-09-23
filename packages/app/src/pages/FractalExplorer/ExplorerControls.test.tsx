@@ -100,4 +100,15 @@ describe('ExplorerControls number fields', () => {
     fireEvent.change(field)
     expect(props.onJuliaC).toHaveBeenCalledOnce()
   })
+
+  it('puts back an iteration limit that is emptied, as it does one that does not parse', () => {
+    const props = renderControls()
+    const field = screen.getByLabelText<HTMLInputElement>('Iteration limit')
+    for (const text of ['', '   ', 'abc']) {
+      field.value = text
+      fireEvent.change(field)
+      expect(field.value).toBe('1000')
+    }
+    expect(props.onIterations).not.toHaveBeenCalled()
+  })
 })
