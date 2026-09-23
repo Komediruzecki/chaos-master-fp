@@ -3132,12 +3132,13 @@ export function MainWorkspace(props: AppProps) {
   }
 
   /**
-   * The same snapshot the recorder dock passes as `startExtras`, shared with
-   * the `ctx.recorder.start` seam so an agent-started take records the same
-   * side state as a human-started one. Wall-clock playback is not authored
-   * session state and is deliberately absent.
+   * The same snapshot for the dock's Record and the `ctx.recorder.start` seam
+   * every Arcade take starts through. A gallery hover preview ends first, so
+   * a take starts from the document the canvas then shows. Wall-clock
+   * playback is not authored session state and is deliberately absent.
    */
   function captureRecorderStartExtras(): SessionStartExtras {
+    blendPick.end()
     return {
       timeline: cmdContext.timeline.edit?.snapshot(),
       audio: cmdContext.audio?.snapshot(),
