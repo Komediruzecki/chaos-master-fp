@@ -7,9 +7,24 @@
 import { BAILOUT, computeOrbit } from '@chaos-master/core'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type * as Core from '@chaos-master/core'
+import type * as Cache from './orbitCache'
 import type { OrbitRequest, OrbitResponse } from './orbitProtocol'
 
 const iterations = vi.hoisted(() => ({ runs: 0 }))
+/** A byte cap for the next worker's cache, in place of its own. */
+const cacheCap = vi.hoisted(() => ({ bytes: undefined as number | undefined }))
+
+vi.mock('./orbitCache', async (importOriginal) => {
+  const cache = await importOriginal<typeof Cache>()
+  return {
+    ...cache,
+    createOrbitCache: (limits: Cache.OrbitCacheLimits) =>
+      cache.createOrbitCache({
+        ...limits,
+        bytes: cacheCap.bytes ?? limits.bytes,
+      }),
+  }
+})
 
 vi.mock('@chaos-master/core', async (importOriginal) => {
   const core = await importOriginal<typeof Core>()
@@ -109,6 +124,7 @@ function progressed(worker: LoadedWorker, id: number): Promise<void> {
 beforeEach(() => {
   vi.resetModules()
   iterations.runs = 0
+  cacheCap.bytes = undefined
 })
 
 afterEach(() => {
@@ -196,6 +212,21 @@ describe('orbitWorker', () => {
     )
   })
 
+  it('answers a request it cannot read with an error, and runs the next', async () => {
+    const worker = await loadWorker()
+    worker.send({ kind: 'mandelbrot', id: 1 })
+    await vi.waitFor(() => {
+      expect(worker.answer(1)).toBeDefined()
+    })
+    expect(worker.answer(1)?.message).toEqual({
+      type: 'error',
+      id: 1,
+      message: expect.stringMatching(/^TypeError: /) as string,
+    })
+    worker.send({ ...MANDELBROT, id: 2 })
+    await doneSet(worker, 2)
+  })
+
   it('iterates the same request only once', async () => {
     const worker = await loadWorker()
     worker.send({ ...MANDELBROT, id: 1 })
@@ -217,6 +248,20 @@ describe('orbitWorker', () => {
     await doneSet(worker, 1)
     expect(iterations.runs).toBe(2)
     worker.send({ ...JULIA, reference: { re: '0.1', im: '0.21' }, id: 2 })
+    await doneSet(worker, 2)
+    expect(iterations.runs).toBe(3)
+  })
+
+  it('keeps the critical orbit across a Julia pan when its two orbits are over the cap', async () => {
+    // With c = 0 neither orbit escapes, so each is 1001 entries of 20 B, and
+    // the cap has room for one: the case of two 4M orbits against 128 MiB.
+    cacheCap.bytes = 30_000
+    const worker = await loadWorker()
+    const still = { ...JULIA, juliaC: { re: '0', im: '0' } }
+    worker.send({ ...still, reference: { re: '0.5', im: '0' }, id: 1 })
+    const { set } = await doneSet(worker, 1)
+    expect([set.main.length, set.critical?.length]).toEqual([1001, 1001])
+    worker.send({ ...still, reference: { re: '0.5', im: '0.01' }, id: 2 })
     await doneSet(worker, 2)
     expect(iterations.runs).toBe(3)
   })

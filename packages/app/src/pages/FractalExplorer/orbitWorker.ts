@@ -1,11 +1,15 @@
 /**
  * Reference-orbit worker: BigInt iteration plus BLA construction, off the
- * main thread. Raw orbits are cached, so changing only the BLA radius (a
- * zoom-out) or only the view of a Julia set (whose critical orbit does not
- * depend on it) costs a table build instead of a full iteration.
+ * main thread. Raw orbits are cached under everything they depend on (the
+ * start, c, the bits and the iteration limit), so an orbit asked for again
+ * costs a table build instead of a full iteration. That is what keeps a
+ * Julia pan cheap: its critical orbit depends on c alone. A zoom-out never
+ * hits, since the explorer asks for the new view's centre at the new view's
+ * precision, and both are part of the key.
  */
 import { BAILOUT, buildBla, iterateOrbit, packOrbit } from '@chaos-master/core'
-import type { ReferenceOrbit } from '@chaos-master/core'
+import { createOrbitCache } from './orbitCache'
+import type { ComplexString, ReferenceOrbit } from '@chaos-master/core'
 import type { GpuOrbit, OrbitRequest, OrbitResponse } from './orbitProtocol'
 
 interface WorkerScope {
@@ -20,22 +24,21 @@ const scope = globalThis as unknown as WorkerScope
 const { performance } = globalThis
 
 let latestId = 0
-const cache = new Map<string, ReferenceOrbit>()
-/** Orbits kept, by count and by size: 20 B per iteration each. */
-const CACHE_LIMIT = 4
-const CACHE_BYTES = 128 * 1024 * 1024
+const cache = createOrbitCache({ orbits: 4, bytes: 128 * 1024 * 1024 })
 
-function remember(key: string, orbit: ReferenceOrbit) {
-  cache.set(key, orbit)
-  const bytes = () =>
-    [...cache.values()].reduce((sum, o) => sum + o.length * 20, 0)
-  // Oldest first, but never the orbit just made: it is about to be used.
-  while (
-    cache.size > 1 &&
-    (cache.size > CACHE_LIMIT || bytes() > CACHE_BYTES)
-  ) {
-    cache.delete(cache.keys().next().value!)
-  }
+function orbitKey(
+  request: OrbitRequest,
+  start: ComplexString,
+  c: ComplexString,
+): string {
+  return [
+    start.re,
+    start.im,
+    c.re,
+    c.im,
+    request.bits,
+    request.maxIterations,
+  ].join('|')
 }
 
 /** Let queued messages in, so a newer request can supersede this one. */
@@ -53,18 +56,12 @@ class Superseded extends Error {}
 
 async function orbitFor(
   request: OrbitRequest,
-  start: { re: string; im: string },
-  c: { re: string; im: string },
+  start: ComplexString,
+  c: ComplexString,
+  inUse: readonly string[],
   progress: (fraction: number) => void,
 ): Promise<ReferenceOrbit> {
-  const key = [
-    start.re,
-    start.im,
-    c.re,
-    c.im,
-    request.bits,
-    request.maxIterations,
-  ].join('|')
+  const key = orbitKey(request, start, c)
   const hit = cache.get(key)
   if (hit) return hit
   const run = iterateOrbit({
@@ -80,7 +77,7 @@ async function orbitFor(
   for (;;) {
     const step = run.next()
     if (step.done) {
-      remember(key, step.value)
+      cache.remember(key, step.value, inUse)
       return step.value
     }
     const now = performance.now()
@@ -118,6 +115,10 @@ async function handle(request: OrbitRequest): Promise<void> {
   const t0 = performance.now()
   const zero = { re: '0', im: '0' }
   const julia = request.kind === 'julia'
+  // A Mandelbrot orbit starts at 0 with the reference as c. A Julia one
+  // starts at the reference, and its critical orbit at 0, both with juliaC.
+  const start = julia ? request.reference : zero
+  const c = julia ? request.juliaC : request.reference
   const progress = (fraction: number) => {
     scope.postMessage({
       type: 'progress',
@@ -125,12 +126,15 @@ async function handle(request: OrbitRequest): Promise<void> {
       fraction: julia ? fraction / 2 : fraction,
     })
   }
+  // Everything that can throw stays in here: a rejected `handle` would
+  // stop the queue, and no later request would ever be answered.
   try {
-    const main = julia
-      ? await orbitFor(request, request.reference, request.juliaC, progress)
-      : await orbitFor(request, zero, request.reference, progress)
+    // Neither orbit may push the other out of the cache to make room.
+    const inUse = [orbitKey(request, start, c)]
+    if (julia) inUse.push(orbitKey(request, zero, c))
+    const main = await orbitFor(request, start, c, inUse, progress)
     const critical = julia
-      ? await orbitFor(request, zero, request.juliaC, (f) => {
+      ? await orbitFor(request, zero, c, inUse, (f) => {
           progress(1 + f)
         })
       : undefined
