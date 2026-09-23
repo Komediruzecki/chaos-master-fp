@@ -110,11 +110,16 @@ export function useWorkspaceShortcuts(params: UseWorkspaceShortcutsParams) {
       }
       return true
     },
-    Space: () => {
+    Space: (ev) => {
       // The playback is the agent's while it owns the screen: Space started
       // and stopped the animation of the take the viewer was only watching.
-      // Left unclaimed, so a focused Stop button still gets its Space.
-      if (pilotOwnsKeyboard()) return false
+      // Nothing after this hears it either (the audio panel toggles its track
+      // on Space), but the default stays, so a focused Stop button still
+      // gets its Space.
+      if (pilotOwnsKeyboard()) {
+        ev.stopImmediatePropagation()
+        return false
+      }
       if (animationExportRunning()) return false
       if (!showTimeline()) return
       if (!animationEnabled()) {

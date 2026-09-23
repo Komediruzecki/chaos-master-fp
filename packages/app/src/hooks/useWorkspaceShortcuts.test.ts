@@ -10,7 +10,7 @@
  */
 import '@/commands/builtins'
 import { createRoot } from 'solid-js'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { resetPilot, startPilot } from '@/arcade/pilot'
 import { executeCommand } from '@/commands/registry'
 import { examples } from '@/flame/examples'
@@ -108,6 +108,23 @@ describe('Space under an Arcade lock', () => {
     const session = stopTake()
     expect(session.actions).toEqual([])
     expect(session.unnamedWriteCount).toBe(0)
+  })
+
+  it('lets nothing further along act on Space while the agent owns the screen', () => {
+    // Where the audio panel listens: on window, after the workspace. It
+    // toggles its track on Space, and a viewer can leave it open, track
+    // loaded, when a session starts.
+    mount()
+    drive('screen', 'player')
+    const later = vi.fn()
+    window.addEventListener('keydown', later)
+    try {
+      pressSpace()
+    } finally {
+      window.removeEventListener('keydown', later)
+    }
+
+    expect(later).not.toHaveBeenCalled()
   })
 
   it('plays and records the step once the viewer has the screen back', () => {
