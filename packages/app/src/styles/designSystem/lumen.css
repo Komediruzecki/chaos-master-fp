@@ -72,11 +72,12 @@
      Text on glass keeps to the tier its fill allows over a white-hot flame
      (docs/plans/glass-panels.md, decision c): on --la-glass ink only, on
      --la-glass-panel ink and ink-2, on --la-glass-strong ink down to ink-3.
-     Accent needs an 84% fill for 4.5:1, so on the two lighter fills it
-     marks fills and edges, never text. */
+     Accent needs a fill over 84% for 4.5:1, so on glass it marks fills and
+     edges, never text. glassContrast.test.ts measures these tiers from the
+     values below and fails when a change here moves one. */
   --la-glass: color-mix(in srgb, var(--la-ground) 72%, transparent);
-  /* Panels that carry text. ink-2 needs a 75% fill to clear 4.5:1 over a
-     white-hot flame: this gives it 5.39:1, where --la-glass gives 3.99. */
+  /* Panels that carry text. ink-2 needs a fill over 75% to clear 4.5:1 over
+     a white-hot flame: this gives it 5.39:1, where --la-glass gives 3.99. */
   --la-glass-panel: color-mix(in srgb, var(--la-ground) 80%, transparent);
   --la-glass-strong: color-mix(in srgb, var(--la-ground) 86%, transparent);
   --la-glass-solid: color-mix(in srgb, var(--la-ground) 96%, transparent);

@@ -23,6 +23,7 @@
     13px/1.4 system-ui,
     sans-serif;
   pointer-events: none;
+  -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
   box-shadow: 0 6px 24px oklch(0% 0 0 / 0.4);
 }

@@ -17,6 +17,7 @@
   border: 1px solid oklch(50% 0.08 240 / 0.6);
   color: oklch(88% 0.04 240);
   font-size: 0.72rem;
+  -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
   box-shadow: 0 2px 12px oklch(0% 0 0 / 0.4);
 

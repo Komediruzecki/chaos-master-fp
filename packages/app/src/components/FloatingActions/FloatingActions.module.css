@@ -11,6 +11,7 @@
   overflow: hidden;
   user-select: none;
   transition: box-shadow 0.15s;
+  -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
 
   [data-theme='dark'] & {
