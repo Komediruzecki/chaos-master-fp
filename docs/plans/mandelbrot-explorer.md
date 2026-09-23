@@ -303,28 +303,33 @@ without BLA, for both set kinds.
 
 ### 5.2 App — `packages/app/src/pages/FractalExplorer/`
 
-| File                       | Contents                                                        |
-| -------------------------- | --------------------------------------------------------------- |
-| `FractalExplorerApp.tsx`   | Providers, copied from `BenchmarksApp`                          |
-| `FractalExplorerPage.tsx`  | Layout: full-bleed canvas, HUD, settings panel, save and share  |
-| `ExplorerControls.tsx`     | The settings panel                                              |
-| `ExplorerRenderer.tsx`     | Inside `AutoCanvas`: frame loop, step budget, references, AA    |
-| `explorerGpu.ts`           | Pixel state, display ping-pong, command encoding, readback      |
-| `explorerOrbitBuffers.ts`  | Orbit and BLA buffers, never past one binding; error scopes     |
-| `explorerSchedule.ts`      | The frame loop's next action, as a pure function; step timeout  |
-| `explorerShaders.ts`       | Structs, layouts, the init and iterate passes                   |
-| `explorerColourShaders.ts` | Colouring (gamut map, band limit, accumulation) and present     |
-| `orbitUpload.ts`           | Lays both orbits and their BLA tables out in shared buffers     |
-| `explorerInput.ts`         | Wheel, drag, pinch, double-click, keyboard -> view operations   |
-| `orbitWorker.ts`           | Web Worker: reference orbits + BLA, cached, superseded requests |
-| `orbitClient.ts`           | Worker requests, stale-result dropping                          |
-| `explorerLocation.ts`      | Location signal kept in step with the URL fragment              |
-| `explorerPalette.ts`       | App palette -> mirrored OkLab (a, b) lookup table               |
-| `JuliaMarker.tsx`          | The split view's point: the Julia constant, dragged on the set  |
-| `explorerScrub.ts`         | What a sideways drag does to c and to the iteration limit       |
+| File                       | Contents                                                                                              |
+| -------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `FractalExplorerApp.tsx`   | Providers, copied from `BenchmarksApp`                                                                |
+| `FractalExplorerPage.tsx`  | Layout: full-bleed canvas, HUD, settings panel, save and share                                        |
+| `ExplorerControls.tsx`     | The settings panel                                                                                    |
+| `ExplorerRenderer.tsx`     | Inside `AutoCanvas`: frame loop, step budget, references, AA                                          |
+| `explorerGpu.ts`           | Pixel state, display ping-pong, command encoding, readback                                            |
+| `explorerDisplays.ts`      | The display and backdrop buffers a restart promotes and reuses                                        |
+| `explorerOrbitBuffers.ts`  | Orbit and BLA buffers, never past one binding; error scopes                                           |
+| `explorerSchedule.ts`      | The frame loop's next action, as a pure function; step timeout                                        |
+| `explorerShaders.ts`       | Structs, layouts, the init and iterate passes                                                         |
+| `explorerColourShaders.ts` | Colouring (gamut map, band limit, accumulation) and present                                           |
+| `orbitUpload.ts`           | Lays both orbits and their BLA tables out in shared buffers                                           |
+| `explorerInput.ts`         | Wheel, drag, pinch, double-click, keyboard -> view operations                                         |
+| `orbitWorker.ts`           | Web Worker: reference orbits + BLA, cached, superseded or cancelled requests                          |
+| `orbitCache.ts`            | The worker's orbit cache, capped by count and bytes, never evicting an orbit the current request uses |
+| `orbitClient.ts`           | Worker requests, stale-result dropping, cancel; a worker that failed to load says so                  |
+| `explorerLocation.ts`      | Location signal kept in step with the URL fragment                                                    |
+| `explorerModes.ts`         | The mode changes and the two view actions, as pure functions of the location                          |
+| `explorerPalette.ts`       | App palette -> mirrored OkLab (a, b) lookup table                                                     |
+| `JuliaMarker.tsx`          | The split view's point: the Julia constant, dragged on the set                                        |
+| `explorerScrub.ts`         | What a sideways drag does to c and to the iteration limit                                             |
 
 Routing: `/explore` (new branch in `index.tsx`, `routing/appPath.ts`, a
-trailing-slash redirect in the Cloudflare worker). Entry points: the desktop
+trailing-slash redirect in the Cloudflare worker). `PAGE_ROUTES` is the one
+list of page routes the build and the worker share, and a static host's
+`/explore/index.html` is read as `/explore`. Entry points: the desktop
 version menu next to Benchmark Lab, and the shared More menu. View state lives
 in the URL **fragment** (never sent to the server or GA).
 
@@ -332,10 +337,12 @@ Controls as built: Mandelbrot / Julia / Both; "Julia set of the view
 centre"; the Julia constant; iteration limit (halve, double, or type); the
 number fields also scrub when dragged sideways (`utils/createInputScrub.ts`:
 c by 0.001/px, the limit doubling every 100 px, Shift ten times finer, a
-press without a drag types); palette
+press without a drag types, and a finger may drift 10 px before a scrub
+starts where a mouse or pen may drift 4); palette
 (`PaletteSelector`), colour cycle and shift; relief (distance shading);
 quality (pixel budget and supersamples); home; copy link; save PNG. Readout:
-magnification, progress, reference state. Input: wheel zooms at the pointer,
+magnification, progress (Reference while an orbit is on its way, Error once
+the picture has stopped). Input: wheel zooms at the pointer,
 drag pans, pinch, double-click zooms in (Shift: out), `+`/`-`/arrows. Not
 built yet: automatic iteration limit from depth, a BLA toggle, copy
 coordinates, `r`/`j` shortcuts.
@@ -343,8 +350,9 @@ coordinates, `r`/`j` shortcuts.
 Split view ("Both", or the HUD toggle): the Mandelbrot set beside the Julia
 set of a point, stacked on a portrait screen. The point is a ring on the
 Mandelbrot pane; drag it, move it with the arrow keys, or drag with the
-right mouse button anywhere on the pane, as maff's thesis version did, and
-the Julia pane redraws as it moves.
+right mouse button (or a pen's barrel button) anywhere on the pane, as
+maff's thesis version did, and the Julia pane redraws as it moves. Only the
+primary button pans, whatever the pointer.
 
 - Each pane is its own `ExplorerRenderer` with its own worker, and each gets
   half the pixel budget, so the split costs what one full view does. The
