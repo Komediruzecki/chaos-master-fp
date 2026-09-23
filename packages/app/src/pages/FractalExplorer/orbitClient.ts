@@ -2,7 +2,7 @@
  * Main-thread side of the orbit worker: one request in flight at a time
  * from the caller's point of view, each newer one superseding the last.
  */
-import type { GpuOrbitSet, OrbitRequest, OrbitResponse } from './orbitProtocol'
+import type { GpuOrbitSet, OrbitCommand, OrbitRequest, OrbitResponse, } from './orbitProtocol'
 
 export interface OrbitResult {
   readonly set: GpuOrbitSet
@@ -10,8 +10,13 @@ export interface OrbitResult {
 }
 
 export interface OrbitClient {
-  /** Resolves undefined when a newer request superseded this one. */
+  /**
+   * Resolves undefined when a newer request superseded this one, or it was
+   * cancelled.
+   */
   request(request: Omit<OrbitRequest, 'id'>): Promise<OrbitResult | undefined>
+  /** Drop the request in flight, and stop the worker iterating it. */
+  cancel(): void
   dispose(): void
 }
 
@@ -70,8 +75,21 @@ export function createOrbitClient(
       latest = id
       return new Promise((resolve, reject) => {
         pending.set(id, { resolve, reject })
-        worker.postMessage({ ...request, id } satisfies OrbitRequest)
+        worker.postMessage({
+          ...request,
+          type: 'request',
+          id,
+        } satisfies OrbitCommand)
       })
+    },
+    cancel() {
+      if (pending.size === 0) return
+      // Settled as a supersede is, and deaf to what the worker still posts
+      // for it: its progress, and the `superseded` it ends with.
+      latest = 0
+      for (const entry of pending.values()) entry.resolve(undefined)
+      pending.clear()
+      worker.postMessage({ type: 'cancel' } satisfies OrbitCommand)
     },
     dispose() {
       worker.terminate()

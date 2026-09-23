@@ -8,7 +8,7 @@ import { BAILOUT, computeOrbit } from '@chaos-master/core'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type * as Core from '@chaos-master/core'
 import type * as Cache from './orbitCache'
-import type { OrbitRequest, OrbitResponse } from './orbitProtocol'
+import type { OrbitCommand, OrbitRequest, OrbitResponse } from './orbitProtocol'
 
 const iterations = vi.hoisted(() => ({ runs: 0 }))
 /** A byte cap for the next worker's cache, in place of its own. */
@@ -83,10 +83,14 @@ async function loadWorker() {
   await import('./orbitWorker')
   if (!listener) throw new Error('the worker listens for no messages')
   const handler = listener
+  const send = (command: OrbitCommand) => {
+    handler(new MessageEvent('message', { data: command }))
+  }
   return {
     posted,
-    send(data: unknown) {
-      handler(new MessageEvent('message', { data }))
+    send,
+    request(id: number, request: Omit<OrbitRequest, 'id'>) {
+      send({ ...request, type: 'request', id })
     },
     /** Every answer but progress, in the order they were posted. */
     answers() {
@@ -134,7 +138,7 @@ afterEach(() => {
 describe('orbitWorker', () => {
   it('answers a Mandelbrot request with the orbit of its reference', async () => {
     const worker = await loadWorker()
-    worker.send({ ...MANDELBROT, id: 1 })
+    worker.request(1, MANDELBROT)
     const { set, transfer } = await doneSet(worker, 1)
     const expected = computeOrbit({
       startRe: '0',
@@ -157,7 +161,7 @@ describe('orbitWorker', () => {
 
   it('answers a Julia request with its view orbit and the critical orbit of c', async () => {
     const worker = await loadWorker()
-    worker.send({ ...JULIA, id: 1 })
+    worker.request(1, JULIA)
     const { set, transfer } = await doneSet(worker, 1)
     const spec = {
       cRe: JULIA.juliaC.re,
@@ -186,8 +190,8 @@ describe('orbitWorker', () => {
 
   it('supersedes a queued request with the one sent after it', async () => {
     const worker = await loadWorker()
-    worker.send({ ...SLOW, id: 1 })
-    worker.send({ ...MANDELBROT, id: 2 })
+    worker.request(1, SLOW)
+    worker.request(2, MANDELBROT)
     await doneSet(worker, 2)
     expect(worker.answers().map((p) => p.message.type)).toEqual([
       'superseded',
@@ -200,9 +204,9 @@ describe('orbitWorker', () => {
 
   it('stops a request in flight at its next yield when a newer one arrives', async () => {
     const worker = await loadWorker()
-    worker.send({ ...SLOW, id: 1 })
+    worker.request(1, SLOW)
     await progressed(worker, 1)
-    worker.send({ ...MANDELBROT, id: 2 })
+    worker.request(2, MANDELBROT)
     await doneSet(worker, 2)
     expect(worker.answers().map((p) => [p.message.type, p.message.id])).toEqual(
       [
@@ -214,7 +218,9 @@ describe('orbitWorker', () => {
 
   it('answers a request it cannot read with an error, and runs the next', async () => {
     const worker = await loadWorker()
-    worker.send({ kind: 'mandelbrot', id: 1 })
+    // Short of every field a request needs but these.
+    const unreadable = { type: 'request', kind: 'mandelbrot', id: 1 }
+    worker.send(unreadable as unknown as OrbitCommand)
     await vi.waitFor(() => {
       expect(worker.answer(1)).toBeDefined()
     })
@@ -223,15 +229,49 @@ describe('orbitWorker', () => {
       id: 1,
       message: expect.stringMatching(/^TypeError: /) as string,
     })
-    worker.send({ ...MANDELBROT, id: 2 })
+    worker.request(2, MANDELBROT)
     await doneSet(worker, 2)
+  })
+
+  it('stops a request in flight at its next yield when it is cancelled', async () => {
+    const worker = await loadWorker()
+    worker.request(1, SLOW)
+    await progressed(worker, 1)
+    worker.send({ type: 'cancel' })
+    await vi.waitFor(() => {
+      expect(worker.answer(1)).toBeDefined()
+    })
+    // A request after the cancel is answered as usual.
+    worker.request(2, MANDELBROT)
+    await doneSet(worker, 2)
+    expect(worker.answers().map((p) => [p.message.type, p.message.id])).toEqual(
+      [
+        ['superseded', 1],
+        ['done', 2],
+      ],
+    )
+  })
+
+  it('never starts a queued request that was cancelled', async () => {
+    const worker = await loadWorker()
+    worker.request(1, SLOW)
+    worker.send({ type: 'cancel' })
+    await vi.waitFor(() => {
+      expect(worker.answer(1)).toBeDefined()
+    })
+    // Give a cancel mistaken for a request the time to be answered.
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    expect(worker.answers().map((p) => [p.message.type, p.message.id])).toEqual(
+      [['superseded', 1]],
+    )
+    expect(iterations.runs).toBe(0)
   })
 
   it('iterates the same request only once', async () => {
     const worker = await loadWorker()
-    worker.send({ ...MANDELBROT, id: 1 })
+    worker.request(1, MANDELBROT)
     const first = await doneSet(worker, 1)
-    worker.send({ ...MANDELBROT, id: 2 })
+    worker.request(2, MANDELBROT)
     const second = await doneSet(worker, 2)
     expect(iterations.runs).toBe(1)
     expect(second.set.main.length).toBe(first.set.main.length)
@@ -244,10 +284,10 @@ describe('orbitWorker', () => {
 
   it('keeps the critical orbit across a Julia pan', async () => {
     const worker = await loadWorker()
-    worker.send({ ...JULIA, id: 1 })
+    worker.request(1, JULIA)
     await doneSet(worker, 1)
     expect(iterations.runs).toBe(2)
-    worker.send({ ...JULIA, reference: { re: '0.1', im: '0.21' }, id: 2 })
+    worker.request(2, { ...JULIA, reference: { re: '0.1', im: '0.21' } })
     await doneSet(worker, 2)
     expect(iterations.runs).toBe(3)
   })
@@ -258,10 +298,10 @@ describe('orbitWorker', () => {
     cacheCap.bytes = 30_000
     const worker = await loadWorker()
     const still = { ...JULIA, juliaC: { re: '0', im: '0' } }
-    worker.send({ ...still, reference: { re: '0.5', im: '0' }, id: 1 })
+    worker.request(1, { ...still, reference: { re: '0.5', im: '0' } })
     const { set } = await doneSet(worker, 1)
     expect([set.main.length, set.critical?.length]).toEqual([1001, 1001])
-    worker.send({ ...still, reference: { re: '0.5', im: '0.01' }, id: 2 })
+    worker.request(2, { ...still, reference: { re: '0.5', im: '0.01' } })
     await doneSet(worker, 2)
     expect(iterations.runs).toBe(3)
   })

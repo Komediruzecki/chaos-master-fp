@@ -214,6 +214,7 @@ export function ExplorerRenderer(props: ExplorerRendererProps) {
     if (reference && referenceServes(reference, t)) {
       // Back inside the current reference: a pending one is no longer
       // wanted, and adopting it late would restart a finished picture.
+      if (requested) orbits.cancel()
       requested = undefined
       return
     }

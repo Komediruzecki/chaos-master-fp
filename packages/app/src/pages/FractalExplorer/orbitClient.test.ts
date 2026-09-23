@@ -172,6 +172,35 @@ describe('createOrbitClient', () => {
     })
   })
 
+  it('cancels the request in flight: it resolves as undefined and the worker is told', async () => {
+    const { client, worker, progress } = setup()
+    const a = client.request(REQUEST)
+    client.cancel()
+    expect(await settledWithin(a)).toEqual({ resolved: undefined })
+    expect(worker.posted).toEqual([
+      expect.objectContaining({ id: 1 }),
+      { type: 'cancel' },
+    ])
+    // What the worker still says about it changes nothing.
+    worker.reply({ type: 'progress', id: 1, fraction: 0.5 })
+    worker.reply({ type: 'superseded', id: 1 })
+    expect(progress).not.toHaveBeenCalled()
+    // The next request goes out and is answered as usual.
+    const b = client.request(REQUEST)
+    worker.reply({ type: 'done', id: 2, set: SET, ms: 4 })
+    expect(await settledWithin(b)).toEqual({ resolved: { set: SET, ms: 4 } })
+  })
+
+  it('tells the worker nothing when there is nothing to cancel', async () => {
+    const { client, worker } = setup()
+    client.cancel()
+    const a = client.request(REQUEST)
+    worker.reply({ type: 'done', id: 1, set: SET, ms: 1 })
+    await a
+    client.cancel()
+    expect(worker.posted).toHaveLength(1)
+  })
+
   it('terminates the worker on dispose and resolves what was pending as undefined', async () => {
     const { client, worker } = setup()
     const a = client.request(REQUEST)

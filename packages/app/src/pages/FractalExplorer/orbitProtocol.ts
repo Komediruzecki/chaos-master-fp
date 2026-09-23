@@ -4,9 +4,15 @@
  * The worker iterates in BigInt, which takes from microseconds (a shallow
  * view) to seconds (1e1000), so it lives off the main thread and a newer
  * request always supersedes an older one: the older one is answered with
- * `superseded` as soon as the worker notices, between two slices.
+ * `superseded` as soon as the worker notices, between two slices. A cancel
+ * does the same to the latest request without sending a new one.
  */
 import type { BlaLevel, ComplexString, FractalKind } from '@chaos-master/core'
+
+/** Main thread to worker. */
+export type OrbitCommand =
+  | ({ readonly type: 'request' } & OrbitRequest)
+  | { readonly type: 'cancel' }
 
 export interface OrbitRequest {
   readonly id: number

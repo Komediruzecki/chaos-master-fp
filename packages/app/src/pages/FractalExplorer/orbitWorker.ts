@@ -10,19 +10,20 @@
 import { BAILOUT, buildBla, iterateOrbit, packOrbit } from '@chaos-master/core'
 import { createOrbitCache } from './orbitCache'
 import type { ComplexString, ReferenceOrbit } from '@chaos-master/core'
-import type { GpuOrbit, OrbitRequest, OrbitResponse } from './orbitProtocol'
+import type { GpuOrbit, OrbitCommand, OrbitRequest, OrbitResponse, } from './orbitProtocol'
 
 interface WorkerScope {
   postMessage(message: OrbitResponse, transfer?: Transferable[]): void
   addEventListener(
     type: 'message',
-    listener: (event: MessageEvent<OrbitRequest>) => void,
+    listener: (event: MessageEvent<OrbitCommand>) => void,
   ): void
 }
 
 const scope = globalThis as unknown as WorkerScope
 const { performance } = globalThis
 
+/** The one request still wanted; 0, which no request has, after a cancel. */
 let latestId = 0
 const cache = createOrbitCache({ orbits: 4, bytes: 128 * 1024 * 1024 })
 
@@ -165,6 +166,11 @@ let queue: Promise<void> = Promise.resolve()
 
 scope.addEventListener('message', (event) => {
   const request = event.data
+  if (request.type === 'cancel') {
+    // Whatever runs or waits is now superseded, and stops at its next slice.
+    latestId = 0
+    return
+  }
   latestId = request.id
   queue = queue.then(async () => {
     if (latestId === request.id) await handle(request)
