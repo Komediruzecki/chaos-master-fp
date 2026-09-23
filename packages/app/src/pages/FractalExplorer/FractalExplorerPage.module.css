@@ -298,6 +298,12 @@
   background: var(--la-surface-2);
   color: var(--la-ink);
   font: var(--la-t-mono);
+  /* Sideways drags scrub the value; vertical ones still scroll the panel. */
+  touch-action: pan-y;
+
+  &:not(:focus) {
+    cursor: ew-resize;
+  }
 
   &[aria-invalid='true'] {
     border-color: var(--la-error);

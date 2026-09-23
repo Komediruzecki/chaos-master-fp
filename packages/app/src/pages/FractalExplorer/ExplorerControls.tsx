@@ -7,6 +7,8 @@ import { createSignal, For, Show } from 'solid-js'
 import { PaletteSelector } from '@/components/PaletteSelector/PaletteSelector'
 import { Slider } from '@/components/Sliders/Slider'
 import { Copy, DeepZoom, Download, Home, Minus, Plus } from '@/icons'
+import { createInputScrub } from '@/utils/createInputScrub'
+import { C_PER_PIXEL, clampedLog2, PIXELS_PER_DOUBLING, scrubbedDecimal, scrubbedIterations, } from './explorerScrub'
 import ui from './FractalExplorerPage.module.css'
 import type { ComplexString, ExplorerLocation } from '@chaos-master/core'
 import type { ExplorerStatus } from './ExplorerRenderer'
@@ -75,7 +77,10 @@ function Segmented<T extends string>(props: {
   )
 }
 
-/** A decimal field that only commits text that parses. */
+/**
+ * A decimal field that only commits text that parses. Dragged sideways, it
+ * scrubs the value instead.
+ */
 function DecimalField(props: {
   label: string
   value: string
@@ -84,6 +89,17 @@ function DecimalField(props: {
   const [draft, setDraft] = createSignal<string | undefined>()
   const text = () => draft() ?? props.value
   const valid = () => explorerDecimal(text()) !== undefined
+  let dragged = 0
+  const scrub = createInputScrub({
+    onStart: () => {
+      dragged = Number(props.value)
+    },
+    onScrub: (dx) => {
+      dragged += dx * C_PER_PIXEL
+      const next = scrubbedDecimal(dragged)
+      if (next !== undefined && next !== props.value) props.onCommit(next)
+    },
+  })
   return (
     <label class={ui.field}>
       <span class={ui.fieldLabel}>{props.label}</span>
@@ -93,6 +109,7 @@ function DecimalField(props: {
         spellcheck={false}
         value={text()}
         aria-invalid={!valid()}
+        onPointerDown={scrub}
         onInput={(e) => setDraft(e.currentTarget.value)}
         onChange={() => {
           const value = explorerDecimal(text())
@@ -127,6 +144,17 @@ function statusLine(status: ExplorerStatus | undefined): string {
 
 export function ExplorerControls(props: ExplorerControlsProps) {
   const iterations = () => props.location.maxIterations
+  let draggedLog2 = 0
+  const scrubIterations = createInputScrub({
+    onStart: () => {
+      draggedLog2 = Math.log2(iterations())
+    },
+    onScrub: (dx) => {
+      draggedLog2 = clampedLog2(draggedLog2 + dx / PIXELS_PER_DOUBLING)
+      const n = scrubbedIterations(draggedLog2)
+      if (n !== iterations()) props.onIterations(n)
+    },
+  })
   return (
     <div class={ui.controls}>
       <section class={ui.section}>
@@ -190,6 +218,7 @@ export function ExplorerControls(props: ExplorerControlsProps) {
             inputmode="numeric"
             value={iterations()}
             aria-label="Iteration limit"
+            onPointerDown={scrubIterations}
             onChange={(e) => {
               const n = Number(e.currentTarget.value)
               if (Number.isFinite(n)) props.onIterations(clampIterations(n))
@@ -291,7 +320,8 @@ export function ExplorerControls(props: ExplorerControlsProps) {
         <p class={ui.status}>{statusLine(props.status)}</p>
         <p class={ui.hint}>
           Drag to pan. Scroll or pinch to zoom. Double-click zooms in, with
-          Shift out.
+          Shift out. Drag a number field sideways to change it, with Shift in
+          finer steps.
           {props.mode === 'split'
             ? ' Drag the ring on the Mandelbrot set, or drag there with the right mouse button, to choose c.'
             : ''}

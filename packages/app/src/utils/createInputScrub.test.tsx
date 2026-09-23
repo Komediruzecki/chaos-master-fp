@@ -1,0 +1,108 @@
+/**
+ * A sideways drag on a text input scrubs it, Shift ten times finer; a press
+ * that does not move focuses the input for typing, and an input being
+ * edited keeps its caret.
+ */
+import { cleanup, render, screen } from '@solidjs/testing-library'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { createInputScrub } from './createInputScrub'
+import type { InputScrub } from './createInputScrub'
+
+afterEach(() => {
+  cleanup()
+})
+
+function Field(props: InputScrub) {
+  const scrub = createInputScrub(props)
+  return <input aria-label="value" value="12.5" onPointerDown={scrub} />
+}
+
+function mount() {
+  const onStart = vi.fn()
+  const onScrub = vi.fn()
+  render(() => <Field onStart={onStart} onScrub={onScrub} />)
+  return { input: screen.getByLabelText('value'), onStart, onScrub }
+}
+
+const pointer = (type: string) => ({
+  pointerId: 3,
+  pointerType: type,
+  button: 0,
+  bubbles: true,
+  cancelable: true,
+})
+
+function press(input: HTMLElement, type = 'mouse', x = 100): PointerEvent {
+  const down = new PointerEvent('pointerdown', { ...pointer(type), clientX: x })
+  input.dispatchEvent(down)
+  return down
+}
+
+function moveTo(x: number, type = 'mouse', shiftKey = false) {
+  document.dispatchEvent(
+    new PointerEvent('pointermove', { ...pointer(type), clientX: x, shiftKey }),
+  )
+}
+
+function release(x: number, type = 'mouse') {
+  document.dispatchEvent(
+    new PointerEvent('pointerup', { ...pointer(type), clientX: x }),
+  )
+}
+
+describe('createInputScrub', () => {
+  it.each(['mouse', 'pen', 'touch'])(
+    'reports a sideways %s drag, step by step, past a small dead zone',
+    (type) => {
+      const { input, onStart, onScrub } = mount()
+      press(input, type)
+      moveTo(103, type)
+      expect(onStart).not.toHaveBeenCalled()
+      moveTo(110, type)
+      moveTo(90, type)
+      release(90, type)
+      expect(onStart).toHaveBeenCalledOnce()
+      expect(onScrub.mock.calls).toEqual([[10], [-20]])
+      expect(document.activeElement).not.toBe(input)
+    },
+  )
+
+  it('is ten times finer with Shift held', () => {
+    const { input, onScrub } = mount()
+    press(input)
+    moveTo(110)
+    moveTo(130, 'mouse', true)
+    release(130)
+    expect(onScrub.mock.calls).toEqual([[10], [2]])
+  })
+
+  it('focuses the field and selects its text on a press that does not move', () => {
+    const { input, onScrub } = mount()
+    press(input)
+    moveTo(102)
+    release(102)
+    expect(onScrub).not.toHaveBeenCalled()
+    expect(document.activeElement).toBe(input)
+    const field = input as HTMLInputElement
+    expect([field.selectionStart, field.selectionEnd]).toEqual([0, 4])
+  })
+
+  it('keeps a mouse press from selecting text, and leaves a tap to the browser', () => {
+    const { input } = mount()
+    expect(press(input, 'mouse').defaultPrevented).toBe(true)
+    release(100, 'mouse')
+    input.blur()
+    expect(press(input, 'touch').defaultPrevented).toBe(false)
+    release(100, 'touch')
+  })
+
+  it('leaves a field being edited to its caret', () => {
+    const { input, onScrub } = mount()
+    input.focus()
+    const down = press(input)
+    moveTo(160)
+    release(160)
+    expect(down.defaultPrevented).toBe(false)
+    expect(onScrub).not.toHaveBeenCalled()
+  })
+})
