@@ -74,7 +74,10 @@
  * only writer of either:
  *
  *   data-glass="busy"       the editor canvas presents every frame: playback,
- *                           an export, audio modulation, a drag.
+ *                           an export, audio modulation, a drag. Decided in
+ *                           hooks/useWorkspaceGlassBusy.ts, and only once the
+ *                           state has held for 150 ms, so a tap or the canvas
+ *                           converging after an edit never flickers it.
  *   data-glass-panels="on"  the experimental Glass panels setting, off by
  *                           default, offered in Settings on the touch
  *                           layouts. Nothing reads it yet. A component reads

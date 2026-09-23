@@ -34,7 +34,7 @@ import { AdvancedToolsDrawer, EditorRail, TabletInspectorDeck, TouchHUD, } from 
 import { WorkspaceBottomBar } from './components/WorkspaceBottomBar'
 import { createLazyDiscordShareModal, createLazyImportVariationsModal, createLazyLogoFaviconGenerator, createLazyMigrationModal, createLazyShareLinkModal, createLazyShareVariationLinkModal, createLazyShareVariationLoadModal, createLazyShowBenchmark, createLazyShowCustomVariationEditor, createLazyShowDocumentation, createLazyShowHelp, WorkspaceModalsHost, } from './components/WorkspaceModalsHost'
 import { WorkspaceSidebar } from './components/WorkspaceSidebar'
-import { useWorkspaceAnimationGen, useWorkspaceArena, useWorkspaceArtDirector, useWorkspaceAutosave, useWorkspaceBlendPick, useWorkspaceCamera, useWorkspaceCommands, useWorkspacePalette, useWorkspaceReplay, useWorkspaceShortcuts, useWorkspaceTimelineBinding, } from './hooks'
+import { useWorkspaceAnimationGen, useWorkspaceArena, useWorkspaceArtDirector, useWorkspaceAutosave, useWorkspaceBlendPick, useWorkspaceCamera, useWorkspaceCommands, useWorkspaceGlassBusy, useWorkspacePalette, useWorkspaceReplay, useWorkspaceShortcuts, useWorkspaceTimelineBinding, } from './hooks'
 import { createWorkspaceExportStore, createWorkspaceLayoutStore, createWorkspaceSelectionStore, isWideLayout, } from './stores'
 import { deckFits, isTouchDevice } from './stores/workspaceLayoutStore'
 import type { MoreMenuHandlers } from './components/Shell/moreMenuItems'
@@ -1679,13 +1679,11 @@ export function MainWorkspace(props: AppProps) {
    * true of a publish: the document the recorder captures is the authored one,
    * frame by frame, whatever the music is doing to the canvas.
    */
-  useAudioReactive(
+  const audioModulating = useAudioReactive(
     audioEnabled,
     audioBuffer,
     audioMapping,
-    (values) => {
-      setAudioModulation(values)
-    },
+    setAudioModulation,
     liveAnalyzer,
     audioSource,
     playbackPaused,
@@ -1694,6 +1692,7 @@ export function MainWorkspace(props: AppProps) {
     fileAnalyzer,
     replaySuspendsAudioModulation,
   )
+  useWorkspaceGlassBusy({ timeline, history, exportStore, audioModulating })
 
   // Sonification loop: synthesizes audio in real-time from flame structure.
   const sonificationLifecycle = useSonification(
