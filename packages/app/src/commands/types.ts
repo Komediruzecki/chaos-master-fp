@@ -1,6 +1,7 @@
 import type { Accessor, Setter } from 'solid-js'
 import type { v2f } from 'typegpu/data'
 import type { BundledTrack } from '@/arcade/bundledTracks'
+import type { GlideQualityPreference } from '@/flame/glide/types'
 import type { AudioMapping, AudioWiringSnapshot, } from '@/flame/schema/audioWiring'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 import type { TimelineSnapshot } from '@/flame/schema/timeline'
@@ -303,6 +304,12 @@ export interface CommandContext {
     closeHub: () => void
     toast: (text: string) => void
     qualityPreset: () => string
+  }
+  /** A replay world's own Glide switches (the artwork export, the synthesize
+   *  sandbox), so a take's never reach the viewer's. Absent: the viewer's. */
+  glideSwitches?: {
+    setEnabled: (enabled: boolean) => void
+    setQuality: (quality: GlideQualityPreference) => void
   }
 }
 

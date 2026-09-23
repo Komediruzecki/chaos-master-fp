@@ -912,6 +912,9 @@ export function createReplayVideoDriver(
       },
     },
     modal: { open: () => {} },
+    // This world's glides come from the export request: a take's Glide
+    // switches change nothing here, and never the viewer's.
+    glideSwitches: { setEnabled: () => {}, setQuality: () => {} },
   }
 
   function frameState(

@@ -1,4 +1,5 @@
 import { createSignal } from 'solid-js'
+import { captureGlideSwitches, restoreGlideSwitches, } from '@/flame/glide/runtime'
 import { deepClone } from '@/utils/clone'
 import { glideMsForAction } from './glide'
 import { NARRATION_COMMAND_ID } from './narrationMode'
@@ -8,6 +9,7 @@ import { loadSessionStart } from './replay'
 import type { ReplayGlideOptions } from './glide'
 import type { ReplayTarget } from './replay'
 import type { RecordedAction, RecordedSession } from './schema'
+import type { GlideSwitches } from '@/flame/glide/types'
 
 /**
  * Timed playback of a recorded session (semantic-recorder-plan, M4).
@@ -301,6 +303,18 @@ export function createSessionPlayer(
   })
   /** Where a replay Pause stopped the take's clock inside a window. */
   let resumeAt: number | undefined
+  /**
+   * The viewer's Glide switches, held while the replay runs. A take may
+   * switch Glide (`glide.setEnabled`, `glide.setQuality`); the switches follow
+   * the take while it plays and go back to the viewer's when it ends.
+   */
+  let glideLease: GlideSwitches | undefined
+
+  function returnGlideSwitches(): void {
+    if (glideLease === undefined) return
+    restoreGlideSwitches(glideLease)
+    glideLease = undefined
+  }
 
   const speed = () => {
     const value = options.speed?.() ?? 1
@@ -337,7 +351,8 @@ export function createSessionPlayer(
       resumeAt = windows.now()
       if (resumeAt !== undefined) windows.holdAt(resumeAt, false)
     } else {
-      // An edit ends the replay: the timeline keeps its own clock from here.
+      // An edit ends the replay: the timeline keeps its own clock from here,
+      // and the viewer gets their Glide switches back.
       endReplayState()
     }
     windows.stopClock()
@@ -356,6 +371,7 @@ export function createSessionPlayer(
 
   function openBatch() {
     if (batchOpen) return
+    glideLease ??= captureGlideSwitches()
     withRecordingSuppressed(() => target.prepare?.())
     target.beginBatch?.(takeOverByUser)
     batchOpen = true
@@ -455,11 +471,13 @@ export function createSessionPlayer(
     return result
   }
 
-  /** The playback is no longer the replay's: it has its own clock again. */
+  /** The playback is no longer the replay's: its own clock, the viewer's
+   *  Glide switches. */
   function endReplayState(): void {
     windows.stopClock()
     resumeAt = undefined
     windows.release()
+    returnGlideSwitches()
   }
 
   /** How long the transition INTO `index` should take. 0 = a cut. */
@@ -506,10 +524,12 @@ export function createSessionPlayer(
     baselineLoaded = true
     setStepIndex(-1)
     setActionPublished(false)
-    // Every take starts paused: no window is open before its first step.
+    // Every take starts paused, and with the Glide switches the viewer had:
+    // the steps before the seek point set them again as the take did.
     windows.reset()
     resumeAt = undefined
     windows.release()
+    if (glideLease) restoreGlideSwitches(glideLease)
 
     // Rebuild the historical prefix silently. Preparing and publishing every
     // intermediate action made a seek through N steps scroll/focus the UI N
