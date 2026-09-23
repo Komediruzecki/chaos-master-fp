@@ -15,9 +15,9 @@ export const baseHandler = {
     const url = new URL(request.url)
     const { pathname } = url
 
-    // Keep the benchmark and explorer routes canonical. The Vite build uses a
-    // relative asset base, so serving index.html at `/benchmarks/` would make
-    // its asset URLs resolve under `/benchmarks/assets/`.
+    // One canonical URL per page route, without the slash. The asset layer
+    // serves the build's benchmarks/index.html and explore/index.html there
+    // (routing/staticEntries.ts, html_handling in wrangler.jsonc).
     if (
       (pathname === '/benchmarks/' || pathname === '/explore/') &&
       (request.method === 'GET' || request.method === 'HEAD')
