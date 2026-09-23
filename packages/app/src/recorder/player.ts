@@ -345,8 +345,8 @@ export function createSessionPlayer(
       resumeAt = windows.now()
       if (resumeAt !== undefined) windows.holdAt(resumeAt, false)
     } else {
-      // An edit ends the replay: own clock, the viewer's Glide switches.
-      endReplayState()
+      // An edit ends the replay: paused where it is, the viewer's switches.
+      endReplayState(true)
     }
     windows.stopClock()
     setIsPlaying(false)
@@ -395,7 +395,7 @@ export function createSessionPlayer(
     setIsFinished(false)
     clearTimer()
     closeBatch()
-    endReplayState()
+    endReplayState(true)
     options.onError?.(message)
     return false
   }
@@ -408,7 +408,7 @@ export function createSessionPlayer(
     setIsFinished(false)
     clearTimer()
     closeBatch()
-    endReplayState()
+    endReplayState(true)
     options.onError?.(message)
     return false
   }
@@ -465,11 +465,11 @@ export function createSessionPlayer(
   }
 
   /** The playback is no longer the replay's: its own clock, the viewer's
-   *  Glide switches. */
-  function endReplayState(): void {
+   *  Glide switches. A replay ended early pauses a window where it is. */
+  function endReplayState(early = false): void {
     windows.stopClock()
     resumeAt = undefined
-    windows.release()
+    windows.release(early)
     returnGlideSwitches()
   }
 
@@ -699,7 +699,7 @@ export function createSessionPlayer(
       setIsFinished(false)
       clearTimer()
       closeBatch()
-      endReplayState()
+      endReplayState(true)
     },
     stepIndex,
     currentAction: () => (actionPublished() ? actions[stepIndex()] : undefined),
