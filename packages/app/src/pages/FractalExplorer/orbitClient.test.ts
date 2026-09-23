@@ -142,6 +142,36 @@ describe('createOrbitClient', () => {
     await expect(b).rejects.toThrow('x')
   })
 
+  it('reports a worker that failed to load, and refuses later requests at once', async () => {
+    const { client, worker } = setup()
+    const a = client.request(REQUEST)
+    // A module worker whose script cannot load (offline, a chunk gone after
+    // a deploy, CSP) fires a plain Event with no message, and never runs.
+    worker.dispatchEvent(new Event('error'))
+    const failed = {
+      rejected:
+        'the orbit worker failed to start. Reload the page to try again.',
+    }
+    expect(await settledWithin(a)).toEqual(failed)
+    expect(await settledWithin(client.request(REQUEST))).toEqual(failed)
+    // Nothing more goes to a worker that will never answer.
+    expect(worker.posted).toHaveLength(1)
+  })
+
+  it('refuses later requests with the message of the error that stopped the worker', async () => {
+    const { client, worker } = setup()
+    worker.dispatchEvent(new ErrorEvent('error', { message: 'x' }))
+    expect(await settledWithin(client.request(REQUEST))).toEqual({
+      rejected: 'x',
+    })
+    const other = setup()
+    other.worker.dispatchEvent(new ErrorEvent('error'))
+    expect(await settledWithin(other.client.request(REQUEST))).toEqual({
+      rejected:
+        'the orbit worker failed to start. Reload the page to try again.',
+    })
+  })
+
   it('terminates the worker on dispose and resolves what was pending as undefined', async () => {
     const { client, worker } = setup()
     const a = client.request(REQUEST)

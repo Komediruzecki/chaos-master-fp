@@ -15,6 +15,10 @@ export interface OrbitClient {
   dispose(): void
 }
 
+/** What a worker that could not load says, since its error carries nothing. */
+const FAILED_TO_START =
+  'the orbit worker failed to start. Reload the page to try again.'
+
 export function createOrbitClient(
   onProgress: (fraction: number) => void,
 ): OrbitClient {
@@ -24,6 +28,8 @@ export function createOrbitClient(
   })
   let nextId = 1
   let latest = 0
+  /** Set once the worker has failed; every request after is refused. */
+  let failure: string | undefined
   const pending = new Map<
     number,
     {
@@ -46,13 +52,19 @@ export function createOrbitClient(
     else if (message.type === 'superseded') entry.resolve(undefined)
     else entry.reject(new Error(message.message))
   })
-  worker.addEventListener('error', (event) => {
-    for (const entry of pending.values()) entry.reject(new Error(event.message))
+  worker.addEventListener('error', (event: Event) => {
+    // A worker whose script cannot load (offline, a chunk gone after a
+    // deploy, CSP) fires a plain Event with no message, and will never
+    // answer, so anything sent to it after would wait forever.
+    const message = event instanceof ErrorEvent ? event.message : ''
+    failure = message === '' ? FAILED_TO_START : message
+    for (const entry of pending.values()) entry.reject(new Error(failure))
     pending.clear()
   })
 
   return {
     request(request) {
+      if (failure !== undefined) return Promise.reject(new Error(failure))
       const id = nextId
       nextId += 1
       latest = id
