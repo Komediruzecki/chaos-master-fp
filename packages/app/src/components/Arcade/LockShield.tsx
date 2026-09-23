@@ -4,12 +4,14 @@
  * A modal `<dialog>` portalled under `<body>` and held in the browser's top
  * layer (topLayer.ts): above every other modal, the rest of the page inert,
  * and the focus in it, so no control the viewer had focused keeps the
- * keyboard. When it goes it hands `onRelease` that control, for whoever takes
- * the focus next.
+ * keyboard, and no listener past it hears a key. Back does nothing under it.
+ * When it goes it hands `onRelease` that control, for whoever takes the focus
+ * next.
  */
 import { onCleanup, onMount } from 'solid-js'
 import { Portal } from 'solid-js/web'
-import { holdTopLayer } from './topLayer'
+import { holdBack } from '@/lib/backStack'
+import { holdKeys, holdTopLayer } from './topLayer'
 import type { ParentProps } from 'solid-js'
 
 export function LockShield(
@@ -20,20 +22,21 @@ export function LockShield(
   }>,
 ) {
   let shield!: HTMLDialogElement
+  let portal!: HTMLDivElement
   onMount(() => {
     const active = document.activeElement
     const focusBefore =
       active instanceof HTMLElement && active !== document.body
         ? active
         : undefined
-    const release = holdTopLayer(shield)
+    const releases = [holdTopLayer(shield), holdKeys(portal), holdBack()]
     onCleanup(() => {
-      release()
+      for (const release of releases) release()
       props.onRelease(focusBefore)
     })
   })
   return (
-    <Portal>
+    <Portal ref={portal}>
       <dialog
         ref={shield}
         class={props.class}
