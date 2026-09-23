@@ -167,6 +167,12 @@ describe('the gallery hover preview in MainWorkspace', () => {
     )
   })
 
+  it('is what the badge over the canvas names, not the tile under the pointer', () => {
+    expect(jsxAttribute('CanvasViewport', 'hoveredBlendName')).toBe(
+      '{blendPick.badge}',
+    )
+  })
+
   it('comes off, both halves of it, before a breed pick reads parent A', () => {
     expect(jsxAttribute('WorkspaceSidebar', 'endBreedPreview')).toBe(
       '{blendPick.end}',

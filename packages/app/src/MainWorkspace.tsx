@@ -1361,10 +1361,6 @@ export function MainWorkspace(props: AppProps) {
     intent: blendIntent,
   })
 
-  const [hoveredBlendName, setHoveredBlendName] = createSignal<string | null>(
-    null,
-  )
-
   const { showVariationSelector, varSelectorModalIsOpen } =
     createVariationSelector(history, props.hardwareTier)
 
@@ -3742,7 +3738,7 @@ export function MainWorkspace(props: AppProps) {
       revealSidebar,
       openRandomizerCard,
       handlePreviewBlend: blendPick.preview,
-      setHoveredBlendName,
+      setHoveredBlendName: blendPick.name,
       showToast,
       withReplayDeferredEffects,
       withRecordingSuppressed,
@@ -3864,7 +3860,7 @@ export function MainWorkspace(props: AppProps) {
               flySpeed={flySpeed}
               hoveredVariationType={hoveredVariationType}
               hoveredCustomVarDef={hoveredCustomVarDef}
-              hoveredBlendName={hoveredBlendName}
+              hoveredBlendName={blendPick.badge}
               blendIntent={blendIntent}
               effectiveRotation={effectiveRotation}
             >
@@ -4177,7 +4173,7 @@ export function MainWorkspace(props: AppProps) {
               commitBlendPick={blendPick.pick}
               blendFlame={blendFlame}
               handlePreviewBlend={blendPick.preview}
-              setHoveredBlendName={setHoveredBlendName}
+              setHoveredBlendName={blendPick.name}
               history={history}
               hardwareTier={props.hardwareTier}
               quickPickState={quickPickState}
