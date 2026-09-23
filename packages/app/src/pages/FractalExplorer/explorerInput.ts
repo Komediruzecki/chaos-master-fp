@@ -55,7 +55,10 @@ export function attachExplorerInput(
   }
 
   const onPointerDown = (event: PointerEvent) => {
-    if (event.button !== 0 && event.pointerType === 'mouse') return
+    // Only the primary button pans: a finger and a pen's tip report 0 too.
+    // The right button, which is also a pen's barrel button, belongs to the
+    // split view's point.
+    if (event.button !== 0) return
     element.setPointerCapture(event.pointerId)
     pointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
   }

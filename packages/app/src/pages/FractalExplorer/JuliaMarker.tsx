@@ -1,9 +1,9 @@
 /**
  * The split view's point: a handle on the Mandelbrot pane whose position is
  * the constant c of the Julia set in the other pane. Drag it (mouse, pen or
- * finger) or move it with the arrow keys, and the Julia set follows. With a
- * mouse, a right-button drag anywhere on the pane also sets c, while the left
- * button keeps panning.
+ * finger) or move it with the arrow keys, and the Julia set follows. A
+ * right-button drag anywhere on the pane, with a mouse or with a pen's barrel
+ * button, also sets c, while the left button keeps panning.
  *
  * Offsets are CSS pixels from the pane centre, the frame the core's
  * `pointAt` and `centerOffsetPixels` work in, so the point is exact at any

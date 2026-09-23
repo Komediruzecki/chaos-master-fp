@@ -89,3 +89,31 @@ describe('a pinch', () => {
     expect(view().zoomLog2).toBe(10)
   })
 })
+
+describe('a drag', () => {
+  it.each(['mouse', 'pen', 'touch'])(
+    'pans a %s drag by its travel in grid pixels',
+    (type) => {
+      const { pointer, view } = setup()
+      pointer('pointerdown', 7, 500, 300, { pointerType: type })
+      pointer('pointermove', 7, 510, 290, { pointerType: type })
+      expect(view()).toEqual(panView(START, 20, -20, MIN_DIMENSION))
+    },
+  )
+
+  // The right button belongs to the split view's point and the middle one to
+  // the browser. A pen's barrel button is its right button.
+  it.each([
+    ['mouse', 1],
+    ['mouse', 2],
+    ['pen', 2],
+  ])(
+    'leaves the view alone for a %s pressed with button %i',
+    (type, button) => {
+      const { pointer, setView } = setup()
+      pointer('pointerdown', 7, 500, 300, { pointerType: type, button })
+      pointer('pointermove', 7, 540, 320, { pointerType: type })
+      expect(setView).not.toHaveBeenCalled()
+    },
+  )
+})
