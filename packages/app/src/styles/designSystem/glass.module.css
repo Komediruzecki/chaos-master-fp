@@ -98,43 +98,43 @@
 
 :where(.chrome):not(html) {
   background: var(--la-glass);
-  backdrop-filter: var(--la-glass-blur);
   -webkit-backdrop-filter: var(--la-glass-blur);
+  backdrop-filter: var(--la-glass-blur);
 }
 
 :where(.panel):not(html) {
   background: var(--la-glass-panel);
-  backdrop-filter: var(--la-glass-blur);
   -webkit-backdrop-filter: var(--la-glass-blur);
+  backdrop-filter: var(--la-glass-blur);
   transition: background-color var(--la-dur-fast) var(--la-ease);
 }
 
 :where(.flat):not(html) {
   background: var(--la-glass);
-  backdrop-filter: none;
   -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 :where(.solid):not(html) {
   background: var(--la-glass-solid);
-  backdrop-filter: none;
   -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 /* ---- What they enforce ---------------------------------------------- */
 
 /* One blurred layer. Two classes' weight, so a surface cannot put it back. */
 :is(.chrome, .panel, .flat, .solid) :is(.chrome, .panel, .flat, .solid) {
-  backdrop-filter: none;
   -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 /* No transition here: at this weight it would replace the surface's own,
    and a sheet's height would stop animating whenever the canvas is busy. */
 :root[data-glass='busy'] .panel {
   background: var(--la-glass-solid);
-  backdrop-filter: none;
   -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 /* Written as two negations joined by `and` rather than `not (a or b)`: the

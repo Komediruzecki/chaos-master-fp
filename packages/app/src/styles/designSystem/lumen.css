@@ -340,6 +340,7 @@
     --la-hairline-strong: rgba(242, 243, 245, 0.32);
     --la-glass: var(--la-glass-solid);
     --la-glass-panel: var(--la-glass-solid);
+    --la-glass-strong: var(--la-glass-solid);
     --la-glass-blur: none;
   }
 }

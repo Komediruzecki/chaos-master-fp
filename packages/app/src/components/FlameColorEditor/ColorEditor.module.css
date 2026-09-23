@@ -16,8 +16,8 @@
   padding: 3px;
   border-radius: var(--space-2, 6px);
   background: rgba(0, 0, 0, 0.28);
-  backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
 }
 
 .tab {
