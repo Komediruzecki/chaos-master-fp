@@ -181,11 +181,8 @@ export interface UseWorkspaceReplayParams {
   setReplayPreservesSonificationOutput: Setter<boolean>
 }
 
-/**
- * Whether a replay's export steps queue real renders: never (REQ-RR-048). The
- * one place that decides it, so an opt-in for automation reads its setting
- * here and nothing else changes.
- */
+/** Whether a replay's export steps queue real renders: never (REQ-RR-048).
+ *  The one place that decides it, where an automation opt-in would plug in. */
 const replayRunsExports = (): boolean => false
 
 export function useWorkspaceReplay(params: UseWorkspaceReplayParams) {
@@ -445,12 +442,10 @@ export function useWorkspaceReplay(params: UseWorkspaceReplayParams) {
 
   /**
    * The workspace's commands as a replay runs them, with a modal that opens
-   * nothing and no export host. A take records opening the export dialog
-   * (`export.png`, `export.animation`), and replayed live it opened over the
-   * replay and over a full-interface export's video; a hand-written one can
-   * carry `export.renderImage` or `export.renderAnimation`, which queued a
-   * real render. The step still runs, spotlight and all, like the worlds of
-   * replayVideo.ts and synthesize/sandbox.ts.
+   * nothing and no export host: replayed live, a take's `export.png` opened
+   * the dialog over the replay (and a full-interface export's video), and a
+   * hand-written `export.renderImage` queued a real render. The step still
+   * runs, spotlight and all, like the worlds of replayVideo.ts and sandbox.ts.
    */
   const replayContext = (): CommandContext => ({
     ...cmdContext,

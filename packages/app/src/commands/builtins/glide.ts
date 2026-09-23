@@ -41,9 +41,8 @@ registerCommand({
         ? 'Animate changes'
         : 'Stop animating changes'
       : undefined,
-  // Neither switch changes a document, so a live flip is no edit: a paused
-  // replay resumes where it paused, a playing one plays on, and a finished
-  // take stays attached.
+  // Neither switch changes a document, so a live flip is no edit: a replay
+  // plays or resumes on, and a finished take stays attached.
   preservesFinishedSession: true,
   presentationSwitch: true,
   execute(ctx, on?: unknown) {

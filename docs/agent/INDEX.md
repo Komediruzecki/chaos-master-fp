@@ -219,7 +219,7 @@ file instead of rediscovering the architecture every session.
 
 | File                                                                               | LOC  | What it is                                                                                                                                   |
 | ---------------------------------------------------------------------------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| [replayVideo.ts](../../packages/app/src/recorder/replayVideo.ts)                   | 1.4k | Register every command a session may contain before building the isolated replay world.                                                      |
+| [replayVideo.ts](../../packages/app/src/recorder/replayVideo.ts)                   | 1.3k | Register every command a session may contain before building the isolated replay world.                                                      |
 | [recorder.ts](../../packages/app/src/recorder/recorder.ts)                         | 1.2k | The session recorder: turns an editing session into a `.steps.json` log of registered-command invocations (see schema.ts for why intents,... |
 | [player.ts](../../packages/app/src/recorder/player.ts)                             | 700  | Timed playback of a recorded session (semantic-recorder-plan, M4).                                                                           |
 | [focus.ts](../../packages/app/src/recorder/focus.ts)                               | 500  | Follow-cam hints: **what to look at** while a step runs, never **where**.                                                                    |
@@ -235,7 +235,6 @@ file instead of rediscovering the architecture every session.
 | [playWindows.ts](../../packages/app/src/recorder/playWindows.ts)                   | 150  | Play windows: the stretches of a take in which its timeline was playing.                                                                     |
 | [sonificationState.ts](../../packages/app/src/recorder/sonificationState.ts)       | 150  | Sonification is authored output state, but it is not part of the flame document.                                                             |
 | [documentWriteHook.ts](../../packages/app/src/recorder/documentWriteHook.ts)       | 100  | A leaf seam between document owners and the recorder.                                                                                        |
-| [glide.ts](../../packages/app/src/recorder/glide.ts)                               | 100  | How long a replayed step's transition lasts.                                                                                                 |
 | [replaySideState.ts](../../packages/app/src/recorder/replaySideState.ts)           | 100  | Editor-only state that follow-cam may change while revealing a target.                                                                       |
 | [types.ts](../../packages/app/src/recorder/types.ts)                               | 100  | The session recorder's public types, apart from the module that implements them: what a recording starts from, what a command must expose... |
 
@@ -260,7 +259,7 @@ file instead of rediscovering the architecture every session.
 | File                                                       | LOC | What it is                                                                     |
 | ---------------------------------------------------------- | --- | ------------------------------------------------------------------------------ |
 | [registry.ts](../../packages/app/src/commands/registry.ts) | 650 | Explicit signatures for commands whose arguments are small scalar/data shapes. |
-| [types.ts](../../packages/app/src/commands/types.ts)       | 450 | _(no header comment)_                                                          |
+| [types.ts](../../packages/app/src/commands/types.ts)       | 400 | _(no header comment)_                                                          |
 
 #### Stores (`packages/app/src/stores/`) — global reactive state
 
@@ -340,12 +339,12 @@ Grep for the symbol and read the surrounding range instead.
 | [packages/app/src/components/AudioWiringModal/AudioWiringModal.tsx](../../packages/app/src/components/AudioWiringModal/AudioWiringModal.tsx)                 | 1.6k |
 | [packages/app/src/components/ExportPngDialog/ExportPngDialog.tsx](../../packages/app/src/components/ExportPngDialog/ExportPngDialog.tsx)                     | 1.5k |
 | [packages/app/src/components/LoadFlameModal/LoadFlameModal.tsx](../../packages/app/src/components/LoadFlameModal/LoadFlameModal.tsx)                         | 1.4k |
-| [packages/app/src/recorder/replayVideo.ts](../../packages/app/src/recorder/replayVideo.ts)                                                                   | 1.4k |
 | [packages/app/src/components/AudioReactivePanel/AudioReactivePanel.tsx](../../packages/app/src/components/AudioReactivePanel/AudioReactivePanel.tsx)         | 1.3k |
 | [packages/app/src/components/FlameRandomizerCard/FlameRandomizerCard.tsx](../../packages/app/src/components/FlameRandomizerCard/FlameRandomizerCard.tsx)     | 1.3k |
 | [packages/app/src/components/LogoFaviconGenerator/LogoFaviconGenerator.tsx](../../packages/app/src/components/LogoFaviconGenerator/LogoFaviconGenerator.tsx) | 1.3k |
 | [packages/app/src/components/VariationSelector/VariationSelector.tsx](../../packages/app/src/components/VariationSelector/VariationSelector.tsx)             | 1.3k |
 | [packages/app/src/flame/Flam3.tsx](../../packages/app/src/flame/Flam3.tsx)                                                                                   | 1.3k |
+| [packages/app/src/recorder/replayVideo.ts](../../packages/app/src/recorder/replayVideo.ts)                                                                   | 1.3k |
 | [packages/app/src/benchmarks/validation.ts](../../packages/app/src/benchmarks/validation.ts)                                                                 | 1.2k |
 | [packages/app/src/components/AffineEditor/AffineEditor.tsx](../../packages/app/src/components/AffineEditor/AffineEditor.tsx)                                 | 1.2k |
 | [packages/app/src/components/Home/HomeFlame.tsx](../../packages/app/src/components/Home/HomeFlame.tsx)                                                       | 1.2k |

@@ -216,8 +216,7 @@ export function createPortalDriver(start: FlameDescriptor): PortalDriver {
       },
     },
     modal: { open: () => {} },
-    // The tours animate through `animateValue`; a Glide step here must not
-    // reach the viewer's switches or the editor's canvas behind Home.
+    // Tours animate through `animateValue`; no Glide step reaches the editor.
     ...APART_FROM_LIVE_GLIDE,
   }
 

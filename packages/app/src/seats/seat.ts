@@ -276,8 +276,7 @@ export function createSeatCommandContext(seat: {
       center: () => {},
     },
     modal: { open: () => {} },
-    // No glide of its own: a duel refuses transitions, and the only runtime
-    // and switches are the viewer's workspace's.
+    // A duel refuses transitions; the only glide is the viewer workspace's.
     ...APART_FROM_LIVE_GLIDE,
   }
 }

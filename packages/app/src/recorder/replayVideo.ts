@@ -566,8 +566,7 @@ export function replayStateAtFrame(
   return { actionIndex, glideT, takeMs }
 }
 
-/** The render quality of one output frame: a glide frame at the tier of the
- *  step it glides into, every settled frame at all of it. */
+/** One output frame's quality: a glide frame at its step's tier, else full. */
 export function replayFrameQuality(
   schedule: ReplayVideoSchedule,
   at: ReplayVideoStateAt,

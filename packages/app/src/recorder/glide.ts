@@ -72,14 +72,10 @@ const presetOf = (key: unknown) =>
   typeof key === 'string' && key in qualityPresets ? key : undefined
 
 /**
- * The options for the glide into each step of a take, at the tier in force
- * once that step ran.
- *
- * The live replay's glides follow the take: its `glide.setQuality` steps, and
- * under `auto` the quality preset its view and `view.setQualityPreset` steps
- * set. So the artwork export follows them from the same start, the viewer's
- * `preference`, in length and in per-frame quality. A take's
- * `glide.setEnabled` changes nothing here: replay glides follow the panel.
+ * The options for the glide into each step, at the tier in force once it ran,
+ * as the live replay's glides take it: from the viewer's `preference`, switched
+ * by the take's `glide.setQuality` steps, and under `auto` by the preset of its
+ * view and `view.setQualityPreset` steps. `glide.setEnabled` changes nothing.
  */
 export function glideOptionsByStep(
   session: Pick<RecordedSession, 'actions' | 'initialView'>,

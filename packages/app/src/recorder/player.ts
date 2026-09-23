@@ -495,8 +495,7 @@ export function createSessionPlayer(
     const start = from === undefined ? undefined : deepClone(from)
     const result = runStep(index, true)
     if (!result.ok) return rejectAction(index, result.error)
-    // Timed once the step ran, at the tier the take has in force then, which
-    // is the glide the dwell after it subtracts and the one it renders at.
+    // Timed once the step ran, at its tier: the one the dwell and render use.
     const durationMs = start === undefined ? 0 : glideMsFor(action)
     if (start !== undefined && durationMs > 0) target.glide?.(start, durationMs)
     setStepIndex(index)
