@@ -1,6 +1,15 @@
 /*
  * Deep-zoom explorer: a full-bleed canvas under glass HUD and panel, or in
  * split view two panes, the Mandelbrot set and the Julia set of its point.
+ *
+ * Text on glass keeps to the tier its fill allows over bright art (lumen.css,
+ * section 5): the HUD pills are chrome at 72% and carry ink only, the panel
+ * is panel at 80% and carries nothing below ink-2. Text on the opaque inner
+ * surfaces - inputs, segments, actions - is not on glass. Accent marks
+ * edges and fills here, never text or a glyph.
+ *
+ * Under 680px is a phone, as in the app (PHONE_MAX_WIDTH,
+ * stores/workspaceLayoutStore.ts): the panel becomes a bottom sheet.
  */
 
 .page {
@@ -33,7 +42,7 @@
 }
 
 /* Beside the side panel rather than under it, so the Julia pane stays whole. */
-@media (min-width: 641px) {
+@media (min-width: 680px) {
   .page[data-split][data-panel] .stage {
     right: calc(
       var(--la-safe-right) + 2 * var(--la-s-3) +
@@ -109,7 +118,7 @@
   padding: var(--la-s-1) var(--la-s-3);
   border-radius: var(--la-r-pill);
   font: var(--la-t-mono);
-  color: var(--la-ink-2);
+  color: var(--la-ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -132,9 +141,10 @@
     height: 20px;
   }
 
+  /* The edge, not the glyph: accent on the 72% fill is 2.86:1 over white. */
   &:hover,
   &[aria-pressed='true'] {
-    color: var(--la-accent);
+    border-color: var(--la-accent);
   }
 
   &:focus-visible {
@@ -159,7 +169,7 @@
 
 .subtitle {
   font: var(--la-t-label);
-  color: var(--la-ink-3);
+  color: var(--la-ink);
   letter-spacing: var(--la-t-label-track);
   text-transform: uppercase;
 }
@@ -181,7 +191,7 @@
 
   & dt {
     font: var(--la-t-label);
-    color: var(--la-ink-3);
+    color: var(--la-ink);
     text-transform: uppercase;
     letter-spacing: var(--la-t-label-track);
   }
@@ -194,7 +204,7 @@
 }
 
 .panel {
-  composes: chrome from '@/styles/designSystem/glass.module.css';
+  composes: panel from '@/styles/designSystem/glass.module.css';
   position: absolute;
   top: calc(var(--la-safe-top) + var(--la-s-3) + var(--la-tap) + var(--la-s-3));
   right: calc(var(--la-safe-right) + var(--la-s-3));
@@ -205,7 +215,7 @@
   overscroll-behavior: contain;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 679.98px) {
   .panel {
     top: auto;
     left: calc(var(--la-safe-left) + var(--la-s-3));
@@ -275,7 +285,7 @@
 
 .fieldLabel {
   font: var(--la-t-label);
-  color: var(--la-ink-3);
+  color: var(--la-ink-2);
   text-transform: uppercase;
   letter-spacing: var(--la-t-label-track);
 }
@@ -368,5 +378,5 @@
 .hint {
   margin: 0;
   font: var(--la-t-caption);
-  color: var(--la-ink-3);
+  color: var(--la-ink-2);
 }

@@ -344,10 +344,14 @@
 }
 
 /* =====================================================================
-   Tablet. The breakpoints match the app's existing store exactly
-   (packages/app/src/stores/workspaceLayoutStore.ts: PHONE_MAX_WIDTH 680,
-   TABLET_MAX_WIDTH 1024), so the CSS and the Solid layout never disagree
-   about which device they are on.
+   Tablet. 680px is the app's PHONE_MAX_WIDTH
+   (packages/app/src/stores/workspaceLayoutStore.ts), but the two do not
+   measure the same thing. This query reads the window's width. The store
+   decides a device (the native app, or a coarse pointer) by its screen's
+   short edge, so a phone turned to landscape stays a phone there and gets
+   these sizes here; its TABLET_MAX_WIDTH (1024) applies only to a fine
+   pointer, and nothing here matches it. Where the layout matters, ask the
+   store, not this query.
    ===================================================================== */
 
 @media (min-width: 680px) {
