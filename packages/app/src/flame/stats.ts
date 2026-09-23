@@ -276,6 +276,148 @@ function analyze2x2Affine(
   return { sigma1, sigma2, angle, det }
 }
 
+const IDENTITY_2D = { a: 1, b: 0, c: 0, d: 0, e: 1, f: 0 }
+
+/** What the grounded stats read from one transform's linear part. */
+type LinearAnalysis = {
+  /** Largest singular value: the most the map stretches any direction. */
+  sigma1: number
+  /** Contraction ratio for the Moran equation, clamped to [0.05, 0.98]. */
+  ratio: number
+  /** Rotation in the xy plane, for rotational symmetry detection. */
+  angle: number
+}
+
+type AffineRecord = Record<string, number | undefined>
+
+/**
+ * A 2D affine is (a x + b y + c, d x + e y + f): the linear part is
+ * [[a, b], [d, e]], and c and f translate. The ratio is sqrt(|det|), the
+ * geometric mean of the two singular values, which is exactly s for a
+ * similarity scaled by s.
+ */
+function analyzeLinear2D(aff: AffineRecord): LinearAnalysis {
+  const { sigma1, det, angle } = analyze2x2Affine(
+    aff.a ?? 1,
+    aff.b ?? 0,
+    aff.d ?? 0,
+    aff.e ?? 1,
+  )
+  const ratio = Math.max(
+    0.05,
+    Math.min(0.98, Math.sqrt(Math.max(0.001, Math.abs(det)))),
+  )
+  return { sigma1, ratio, angle }
+}
+
+/**
+ * An affine in the 3D layout carries g..l; a 2D one only a..f. The same test
+ * as the renderer's `isAffine3D` (transformFunction3D.ts), repeated here so
+ * the stats do not import the shader module.
+ */
+function isAffine3DLayout(aff: AffineRecord): boolean {
+  return ['g', 'h', 'i', 'j', 'k', 'l'].some((key) => aff[key] !== undefined)
+}
+
+/**
+ * The same analysis for a 3D affine, from its 3x3 linear part.
+ *
+ * Layout, as the renderer applies it (`transformAffine3D`):
+ *   (a x + b y + c z + d,  e x + f y + g z + h,  i x + j y + k z + l)
+ * so the linear part is M = [[a, b, c], [e, f, g], [i, j, k]] and d, h and l
+ * translate. An affine with only a..f inside a 3D flame is promoted the way
+ * `extractFlameUniforms3D` promotes it: M = [[a, b, 0], [d, e, 0], [0, 0, 1]]
+ * (c and f translate, z is left as it is). Reading a 3D affine as the 2D
+ * [[a, b], [d, e]] took the x translation d for a matrix entry, so moving a
+ * transform changed its stability, HP and Power.
+ *
+ * - sigma1 = sqrt(largest eigenvalue of M^T M), the spectral norm, as in 2D.
+ *   M^T M is symmetric, so its eigenvalues have a closed form (Smith 1961,
+ *   "Eigenvalues of a symmetric 3 x 3 matrix").
+ * - ratio = |det M|^(1/3), the geometric mean of the three singular values
+ *   (their product is |det M|): exactly s for a similarity scaled by s, the
+ *   3D counterpart of 2D's sqrt(|det|), clamped the same way.
+ * - The Moran equation sum(ratio_i^D) = 1 then gives the similarity
+ *   dimension, searched up to 3: 2 for the Sierpinski tetrahedron (four maps
+ *   at 1/2), log 20 / log 3 = 2.727 for the Menger sponge (twenty at 1/3).
+ * - angle = atan2(e - b, a + f), the rotation of the xy block: the 3D
+ *   symmetry transforms (`applySymmetryToFlame`) rotate about z, so this is
+ *   the angle whose multiples of 2 pi / k the symmetry detector looks for.
+ */
+function analyzeLinear3D(aff: AffineRecord): LinearAnalysis {
+  const layout3D = isAffine3DLayout(aff)
+  const m = layout3D
+    ? [
+        [aff.a ?? 1, aff.b ?? 0, aff.c ?? 0],
+        [aff.e ?? 0, aff.f ?? 1, aff.g ?? 0],
+        [aff.i ?? 0, aff.j ?? 0, aff.k ?? 1],
+      ]
+    : [
+        [aff.a ?? 1, aff.b ?? 0, 0],
+        [aff.d ?? 0, aff.e ?? 1, 0],
+        [0, 0, 1],
+      ]
+  const [[m00, m01, m02], [m10, m11, m12], [m20, m21, m22]] = m as [
+    [number, number, number],
+    [number, number, number],
+    [number, number, number],
+  ]
+  const det =
+    m00 * (m11 * m22 - m12 * m21) -
+    m01 * (m10 * m22 - m12 * m20) +
+    m02 * (m10 * m21 - m11 * m20)
+  const sigma1 = Math.sqrt(
+    largestEigenvalueOfGram(m00, m01, m02, m10, m11, m12, m20, m21, m22),
+  )
+  const ratio = Math.max(0.05, Math.min(0.98, Math.cbrt(Math.abs(det))))
+  const angle = Math.atan2(m10 - m01, m00 + m11)
+  return { sigma1, ratio, angle }
+}
+
+/**
+ * Largest eigenvalue of A = M^T M for M = [[m00, m01, m02], [m10, m11, m12],
+ * [m20, m21, m22]], by the trigonometric solution for a symmetric 3x3.
+ */
+function largestEigenvalueOfGram(
+  m00: number,
+  m01: number,
+  m02: number,
+  m10: number,
+  m11: number,
+  m12: number,
+  m20: number,
+  m21: number,
+  m22: number,
+): number {
+  // A = M^T M: column dot products.
+  const a00 = m00 * m00 + m10 * m10 + m20 * m20
+  const a11 = m01 * m01 + m11 * m11 + m21 * m21
+  const a22 = m02 * m02 + m12 * m12 + m22 * m22
+  const a01 = m00 * m01 + m10 * m11 + m20 * m21
+  const a02 = m00 * m02 + m10 * m12 + m20 * m22
+  const a12 = m01 * m02 + m11 * m12 + m21 * m22
+  const offDiagonal = a01 * a01 + a02 * a02 + a12 * a12
+  if (offDiagonal === 0) return Math.max(0, a00, a11, a22)
+  const q = (a00 + a11 + a22) / 3
+  const p = Math.sqrt(
+    ((a00 - q) ** 2 + (a11 - q) ** 2 + (a22 - q) ** 2 + 2 * offDiagonal) / 6,
+  )
+  // B = (A - q I) / p; its determinant over 2 is cos(3 phi).
+  const b00 = (a00 - q) / p
+  const b11 = (a11 - q) / p
+  const b22 = (a22 - q) / p
+  const b01 = a01 / p
+  const b02 = a02 / p
+  const b12 = a12 / p
+  const halfDetB =
+    (b00 * (b11 * b22 - b12 * b12) -
+      b01 * (b01 * b22 - b12 * b02) +
+      b02 * (b01 * b12 - b11 * b02)) /
+    2
+  const phi = Math.acos(Math.max(-1, Math.min(1, halfDetB))) / 3
+  return Math.max(0, q + 2 * p * Math.cos(phi))
+}
+
 /**
  * Solve Moran similarity dimension: sum r_i^D = 1
  */
@@ -378,22 +520,14 @@ export function calculateGroundedStats(
     totalProb += p
     probs.push(p)
 
-    const aff = t.preAffine ?? { a: 1, b: 0, c: 0, d: 0, e: 1, f: 0 }
-    const { sigma1, det, angle } = analyze2x2Affine(
-      aff.a ?? 1,
-      aff.b ?? 0,
-      aff.d ?? 0,
-      aff.e ?? 1,
-    )
+    const aff = (t.preAffine ?? IDENTITY_2D) as AffineRecord
+    // 3D flames read their 3x3 linear part; 2D flames exactly as before.
+    const { sigma1, ratio, angle } =
+      spaceDim === 3 ? analyzeLinear3D(aff) : analyzeLinear2D(aff)
     spectralNorms.push(sigma1)
     angles.push(angle)
-
     // Contraction ratio r_i
-    const r = Math.max(
-      0.05,
-      Math.min(0.98, Math.sqrt(Math.max(0.001, Math.abs(det)))),
-    )
-    rValues.push(r)
+    rValues.push(ratio)
 
     for (const vData of Object.values(t.variations ?? {})) {
       const w = Math.abs(vData.weight)

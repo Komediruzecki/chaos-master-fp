@@ -1,4 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { deepClone } from '@/utils/clone'
+import { cantorDust, heighwayDragon, kochCurve, mengerSponge, sierpinskiCarpet, sierpinskiTetrahedron, sierpinskiTriangle, } from './examples/classics'
+import { example30 } from './examples/example30'
 import { calculateGroundedStats, classifySchool, getSchoolMultiplier, resolveClashCombat, } from './stats'
 import { generateVariationId } from './transformFunction'
 import type { FlameDescriptor } from './schema/flameSchema'
@@ -162,6 +165,102 @@ describe('flame/stats', () => {
       expect(stats.atk).toBeGreaterThan(0)
       expect(stats.def).toBeGreaterThan(0)
       expect(stats.powerLevel).toBeGreaterThan(0)
+    })
+  })
+
+  // The bundled classic IFS are exactly self-similar, so the Moran equation
+  // over their contraction ratios gives their known dimension: the ground
+  // truth for the estimator. It rounds to two decimals, so it may be off by
+  // up to 0.005 (toBeCloseTo(x, 2)).
+  describe('calculateGroundedStats: dimension and stability', () => {
+    const dimensionOf = (flame: FlameDescriptor) =>
+      calculateGroundedStats(flame).dimension
+
+    it('2D: the classics', () => {
+      expect(dimensionOf(sierpinskiTriangle)).toBeCloseTo(Math.log2(3), 2)
+      expect(dimensionOf(sierpinskiCarpet)).toBeCloseTo(
+        Math.log(8) / Math.log(3),
+        2,
+      )
+      expect(dimensionOf(kochCurve)).toBeCloseTo(Math.log(4) / Math.log(3), 2)
+      expect(dimensionOf(cantorDust)).toBeCloseTo(Math.log(4) / Math.log(3), 2)
+      expect(dimensionOf(heighwayDragon)).toBe(2)
+    })
+
+    // Four maps at 1/2 and twenty at 1/3, in the 3D affine layout with the
+    // translation in d, h and l.
+    it('3D: the Sierpinski tetrahedron and the Menger sponge', () => {
+      expect(dimensionOf(sierpinskiTetrahedron)).toBe(2)
+      expect(dimensionOf(mengerSponge)).toBeCloseTo(
+        Math.log(20) / Math.log(3),
+        2,
+      )
+      // stability = 1 - 0.7 * sigma1, sigma1 the scale of every map.
+      expect(calculateGroundedStats(sierpinskiTetrahedron).stability).toBe(0.65)
+      expect(calculateGroundedStats(mengerSponge).stability).toBe(0.77)
+    })
+
+    // The probe from the arcade audit: example30 with only the x translation
+    // of its first transform moved. Translation is not shape.
+    it('3D: moving a transform changes nothing', () => {
+      const moved = deepClone(example30)
+      const first = Object.values(moved.transforms)[0]!
+      ;(first.preAffine as unknown as { d: number }).d += 1.5
+      const pick = (flame: FlameDescriptor) => {
+        const g = calculateGroundedStats(flame)
+        return [g.dimension, g.stability, g.hp, g.def, g.powerLevel]
+      }
+      expect(pick(moved)).toEqual(pick(example30))
+    })
+
+    // Singular values do not change under a rotation, so neither does
+    // anything computed from them: every map of the tetrahedron composed with
+    // R = Rz(0.6) Rx(0.87), a turn about an axis off every coordinate axis.
+    it('3D: turning every map changes nothing', () => {
+      const [ca, sa] = [Math.cos(0.6), Math.sin(0.6)]
+      const [cb, sb] = [Math.cos(0.87), Math.sin(0.87)]
+      const rotation = [
+        [ca, -sa * cb, sa * sb],
+        [sa, ca * cb, -ca * sb],
+        [0, sb, cb],
+      ]
+      const rows = [
+        ['a', 'b', 'c'],
+        ['e', 'f', 'g'],
+        ['i', 'j', 'k'],
+      ] as const
+      const turned = deepClone(sierpinskiTetrahedron)
+      for (const t of Object.values(turned.transforms)) {
+        const m = t.preAffine as unknown as Record<string, number>
+        const linear = rows.map((row) => row.map((key) => m[key]!))
+        // M' = M R
+        rows.forEach((row, r) => {
+          row.forEach((key, col) => {
+            m[key] = linear[r]!.reduce(
+              (sum, value, k) => sum + value * rotation[k]![col]!,
+              0,
+            )
+          })
+        })
+      }
+      const pick = (flame: FlameDescriptor) => {
+        const g = calculateGroundedStats(flame)
+        return [g.dimension, g.stability]
+      }
+      expect(pick(turned)).toEqual(pick(sierpinskiTetrahedron))
+    })
+
+    // A 3D flame can hold an affine with only a..f (a hand-built flame; a
+    // loaded one is migrated). The renderer promotes it with z untouched,
+    // [[a, b, 0], [d, e, 0], [0, 0, 1]], and the stats read it the same way:
+    // the triangle's half-scale maps then contract by 4^(-1/3) in volume
+    // terms and not at all along z.
+    it('3D: a 2D-layout affine reads as the renderer promotes it', () => {
+      const flat = deepClone(sierpinskiTriangle)
+      flat.renderSettings.dimensions = 3
+      const g = calculateGroundedStats(flat)
+      expect(g.dimension).toBeCloseTo((3 * Math.log(3)) / Math.log(4), 2)
+      expect(g.stability).toBe(0.3)
     })
   })
 
