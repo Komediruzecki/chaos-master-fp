@@ -206,6 +206,27 @@ describe('planCreation', () => {
     ).toBe(true)
   })
 
+  it('builds a blend at the weight the target has', () => {
+    // A partner set from none starts at the default weight unless its step
+    // names one, so the partner's own step carries the target's weight.
+    const target = {
+      ...twoTransforms,
+      renderSettings: {
+        ...twoTransforms.renderSettings,
+        blendFlame: examples.example2,
+        blendWeight: 0.7,
+      },
+    }
+    for (const strategy of SYNTHESIS_STRATEGIES) {
+      const session = expectRebuilds(target, { strategy })
+      expect(session.synthetic?.snapped).toBe(false)
+      const blendSteps = session.actions.filter((a) => a.id.includes('Blend'))
+      expect(blendSteps.map(({ id, args }) => [id, args])).toEqual([
+        ['flame.setBlendFlame', [examples.example2, 0.7]],
+      ])
+    }
+  })
+
   it('migrates a legacy descriptor before planning it', () => {
     // Short variation names and no schema defaults — a 2023 export.
     const legacy = {

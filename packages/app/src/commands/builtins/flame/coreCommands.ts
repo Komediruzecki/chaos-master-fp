@@ -1,3 +1,4 @@
+import { DEFAULT_BLEND_WEIGHT } from '@/flame/blend'
 import { examples } from '@/flame/examples'
 import { tryValidateFlame } from '@/flame/schema/flameSchema'
 import { tryValidateTransformColorSnapshot } from '@/recorder/schema'
@@ -32,20 +33,37 @@ registerCommand({
   },
 })
 
+/**
+ * The partner and, when the caller names one, the weight, as one history
+ * entry. Without a weight, a blend that starts from none gets the default (the
+ * weight the gallery previews a partner at, so a take recorded before picks
+ * carried their weight replays to what its viewer saw), and a partner swapped
+ * into an existing blend keeps the weight that blend had.
+ */
 registerCommand({
   id: 'flame.setBlendFlame',
   label: 'Set Blend Flame',
-  description: 'Set or clear the flame being blended with (null clears)',
-  execute(ctx, flame?: unknown) {
+  description: `Set or clear the flame being blended with (null clears). An optional second argument sets the weight (0-1); without it, a blend that starts from none gets ${DEFAULT_BLEND_WEIGHT} and a swapped partner keeps the current weight`,
+  execute(ctx, flame?: unknown, weight?: unknown) {
     const next = isAbsentRef(flame) ? undefined : tryValidateFlame(flame)
     if (!isAbsentRef(flame) && !next) {
       console.warn('[cmd] flame.setBlendFlame: not a valid flame', flame)
       return
     }
+    const named =
+      typeof weight === 'number' && Number.isFinite(weight)
+        ? Math.max(0, Math.min(1, weight))
+        : undefined
     ctx.setFlameDescriptor(
       (draft) => {
+        const fromNone = draft.renderSettings.blendFlame === undefined
         if (next === undefined) delete draft.renderSettings.blendFlame
         else draft.renderSettings.blendFlame = next
+        if (named !== undefined) {
+          draft.renderSettings.blendWeight = named
+        } else if (next !== undefined && fromNone) {
+          draft.renderSettings.blendWeight = DEFAULT_BLEND_WEIGHT
+        }
       },
       next ? 'Set Blend Flame' : 'Remove Blend Flame',
     )

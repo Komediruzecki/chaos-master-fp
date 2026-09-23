@@ -30,7 +30,7 @@ file instead of rediscovering the architecture every session.
 
 | Directory                 | Package name                   | Source files | LOC    |
 | ------------------------- | ------------------------------ | ------------ | ------ |
-| `packages/app`            | `chaos-master`                 | 1076         | 182.6k |
+| `packages/app`            | `chaos-master`                 | 1077         | 182.7k |
 | `packages/landing`        | `@chaos-master/landing`        | 20           | 2.5k   |
 | `packages/core`           | `@chaos-master/core`           | 17           | 1.9k   |
 | `packages/mobile-runtime` | `@chaos-master/mobile-runtime` | 7            | 600    |
@@ -203,16 +203,17 @@ file instead of rediscovering the architecture every session.
 
 #### Workspace hooks (`packages/app/src/hooks/`)
 
-| File                                                                                          | LOC | What it is                |
-| --------------------------------------------------------------------------------------------- | --- | ------------------------- |
-| [useWorkspaceReplay.ts](../../packages/app/src/hooks/useWorkspaceReplay.ts)                   | 600 | _(no header comment)_     |
-| [useWorkspaceAutosave.ts](../../packages/app/src/hooks/useWorkspaceAutosave.ts)               | 450 | What one pause write did. |
-| [useWorkspaceTimelineBinding.ts](../../packages/app/src/hooks/useWorkspaceTimelineBinding.ts) | 450 | _(no header comment)_     |
-| [useWorkspaceAnimationGen.ts](../../packages/app/src/hooks/useWorkspaceAnimationGen.ts)       | 250 | _(no header comment)_     |
-| [useWorkspaceCamera.ts](../../packages/app/src/hooks/useWorkspaceCamera.ts)                   | 200 | _(no header comment)_     |
-| [useWorkspaceArena.ts](../../packages/app/src/hooks/useWorkspaceArena.ts)                     | 150 | _(no header comment)_     |
-| [useWorkspaceArtDirector.tsx](../../packages/app/src/hooks/useWorkspaceArtDirector.tsx)       | 150 | _(no header comment)_     |
-| [useWorkspaceShortcuts.ts](../../packages/app/src/hooks/useWorkspaceShortcuts.ts)             | 150 | _(no header comment)_     |
+| File                                                                                          | LOC | What it is                                                              |
+| --------------------------------------------------------------------------------------------- | --- | ----------------------------------------------------------------------- |
+| [useWorkspaceReplay.ts](../../packages/app/src/hooks/useWorkspaceReplay.ts)                   | 600 | _(no header comment)_                                                   |
+| [useWorkspaceAutosave.ts](../../packages/app/src/hooks/useWorkspaceAutosave.ts)               | 450 | What one pause write did.                                               |
+| [useWorkspaceTimelineBinding.ts](../../packages/app/src/hooks/useWorkspaceTimelineBinding.ts) | 450 | _(no header comment)_                                                   |
+| [useWorkspaceAnimationGen.ts](../../packages/app/src/hooks/useWorkspaceAnimationGen.ts)       | 250 | _(no header comment)_                                                   |
+| [useWorkspaceCamera.ts](../../packages/app/src/hooks/useWorkspaceCamera.ts)                   | 200 | _(no header comment)_                                                   |
+| [useWorkspaceArena.ts](../../packages/app/src/hooks/useWorkspaceArena.ts)                     | 150 | _(no header comment)_                                                   |
+| [useWorkspaceArtDirector.tsx](../../packages/app/src/hooks/useWorkspaceArtDirector.tsx)       | 150 | _(no header comment)_                                                   |
+| [useWorkspaceShortcuts.ts](../../packages/app/src/hooks/useWorkspaceShortcuts.ts)             | 150 | _(no header comment)_                                                   |
+| [useWorkspaceBlendPick.ts](../../packages/app/src/hooks/useWorkspaceBlendPick.ts)             | 100 | The blend gallery's hover preview, and the pick that commits a partner. |
 
 #### Recorder (`packages/app/src/recorder/`) — deterministic capture and replay
 

@@ -30,6 +30,7 @@ drive a recording, or the PNG/MP4 chunk formats (`utils/flameInPng.ts`,
 - `packages/app/src/recorder/replayInterfaceVideo.ts` — real-time full-interface screen capture
 - `packages/app/src/recorder/player.ts` — `stepGapMs` / `closingHoldMs`, shared with the video schedule
 - `packages/app/src/hooks/useWorkspaceReplay.ts` — the live workspace's `ReplayTarget`, side-state capture/restore and video-export dispatch
+- `packages/app/src/hooks/useWorkspaceBlendPick.ts`, `packages/app/src/flame/blend.ts` — the blend gallery's hover preview, the pick it commits, and the default weight both use
 - `packages/app/src/components/ExportPngDialog/ExportPngDialog.tsx` — the export dialog, its two animation paths and the motion-blur control
 - `packages/app/src/components/ExportPngDialog/metadataCommit.ts` — metadata written back through semantic commands
 - `packages/app/src/components/ExportJobs/OffscreenAnimationRender.tsx` — the offscreen/background video render driver
@@ -678,6 +679,30 @@ _(`components/SessionRecorder/SessionReplayPanel.tsx:678-684`, `:769-776`,
 `recorder/replayInterfaceVideo.ts:324`; guarded by `replayVideo.test.ts:214`,
 `replayInterfaceVideo.test.ts:162`, `SessionReplayPanel.test.tsx:302`,
 `:348`.)_
+
+### REQ-RR-043 — A picked blend partner is recorded with the weight it showed
+
+**When** a partner is picked in the blend gallery, the workspace shall first
+put back what the hover preview replaced, an absent weight included, and then
+run `flame.setBlendFlame(partner, 0.4)`: one step that names the default
+weight the preview showed, so a replay lands on the blend the viewer saw, and
+one history entry that spans the document from before the hover, so one undo
+returns to exactly that, partner and weight. A pick made without a hover (a
+touch, or Enter on a tile) shall record the same step. A morph set up from a
+hovered partner shall put the preview back the same way before
+`flame.setupMorph` runs. **When** `flame.setBlendFlame` runs without a weight,
+as an older take or an agent may, a partner set where there was none shall
+start at the default weight and a partner swap shall keep the current weight;
+a weight it is given shall be held to 0..1 and win. The replay policy shall
+accept the one- and two-argument forms and refuse a weight outside 0..1. The
+creation synthesizer shall name the target's weight on the partner's step.
+
+_(`flame/blend.ts:12`, `hooks/useWorkspaceBlendPick.ts:42-98`,
+`commands/builtins/flame/coreCommands.ts:44-71`, `commands/registry.ts:288-296`,
+`recorder/synthesize/atoms.ts:523-557`, `MainWorkspace.tsx:1329-1334`; guarded
+by `useWorkspaceBlendPick.test.tsx:116`, `:154`, `:176`, `:195`,
+`commands/builtins/flame/blend.test.ts:46`, `:55`, `:64`, `:83`, `:110` and
+`planCreation.test.ts:209`.)_
 
 ---
 

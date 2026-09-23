@@ -520,28 +520,38 @@ function renderAtoms(
     })
   }
 
+  // The partner's own step names the weight, the way a gallery pick records
+  // it. A partner set from none starts at the default weight unless its step
+  // names one, so a weight step placed before the partner would be undone by
+  // it.
+  const blendFlame = target.renderSettings.blendFlame
   const blendWeight = target.renderSettings.blendWeight
+  if (blendFlame !== undefined) {
+    atoms.push({
+      id: 'flame.setBlendFlame',
+      args:
+        blendWeight === undefined ? [blendFlame] : [blendFlame, blendWeight],
+      key: 'render:blendFlame',
+      group: 'render',
+      needs: stageKeys,
+      read: (flame) => flame.renderSettings.blendFlame,
+      expected: blendFlame,
+    })
+  }
   if (blendWeight !== undefined) {
     atoms.push({
       id: 'flame.setBlendWeight',
       args: [blendWeight],
       key: 'render:blendWeight',
       group: 'render',
-      needs: stageKeys,
+      // After the partner: its step has usually set this already, so this one
+      // emits nothing, and it still corrects a weight that step did not set.
+      needs:
+        blendFlame === undefined
+          ? stageKeys
+          : [...stageKeys, 'render:blendFlame'],
       read: (flame) => flame.renderSettings.blendWeight,
       expected: blendWeight,
-    })
-  }
-  const blendFlame = target.renderSettings.blendFlame
-  if (blendFlame !== undefined) {
-    atoms.push({
-      id: 'flame.setBlendFlame',
-      args: [blendFlame],
-      key: 'render:blendFlame',
-      group: 'render',
-      needs: stageKeys,
-      read: (flame) => flame.renderSettings.blendFlame,
-      expected: blendFlame,
     })
   }
 }

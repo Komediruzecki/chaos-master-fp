@@ -1327,8 +1327,11 @@ export function MainWorkspace(props: AppProps) {
    * cross-dissolves A into B. Combine with "Seamless Loop" for an A→B→A cycle.
    */
   function setupMorph(endFlame: FlameDescriptor) {
-    // One flame-history entry for the composition (blend flame + weight)...
-    executeCommand('flame.setupMorph', cmdContext, endFlame)
+    // One flame-history entry for the composition (blend flame + weight),
+    // taken after the hover preview is put back so undo returns to before it...
+    blendPick.commit(() => {
+      executeCommand('flame.setupMorph', cmdContext, endFlame)
+    })
     const cfg = timeline.config()
     // ...and one timeline undo step for the keyframes (remove + both adds).
     runTimelineSnapshotMutation(

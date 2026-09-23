@@ -285,8 +285,14 @@ const REPLAY_ARG_POLICIES: Readonly<Record<string, ReplayArgsValidator>> = {
   'flame.setBlendWeight': signature(
     (value) => isFiniteNumber(value) && value >= 0 && value <= 1,
   ),
-  'flame.setBlendFlame': signature(
-    (value) => value === null || isPlainRecord(value),
+  // The weight is optional: takes recorded before a pick carried one have the
+  // one-argument form, and the command's own rule decides their weight.
+  'flame.setBlendFlame': oneOfSignatures(
+    signature((value) => value === null || isPlainRecord(value)),
+    signature(
+      (value) => value === null || isPlainRecord(value),
+      (value) => isFiniteNumber(value) && value >= 0 && value <= 1,
+    ),
   ),
   'flame.setupMorph': oneRecord,
   'flame.updateRenderSettings': oneOfSignatures(

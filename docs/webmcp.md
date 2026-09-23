@@ -212,6 +212,10 @@ pnpm test:e2e -- tests/arcade.ci.spec.ts
   step a recording writes for every Play and Pause, is refused live for the
   same reason (`agentCallable: false`): use `timeline.playFor` and
   `timeline.stop`.
+- `flame.setBlendFlame` takes the partner and an optional weight from 0 to 1.
+  Without the weight, a partner set where there was none starts at the
+  default 40% and a partner swap keeps the current weight. A pick in the
+  blend gallery always names 40%.
 - A page reload during a session ends it and loses the recorder's in-memory
   take: it was never saved, so nothing appears in the library.
 - Cinema playback is started by `arcade_set_keyframes` itself and is
