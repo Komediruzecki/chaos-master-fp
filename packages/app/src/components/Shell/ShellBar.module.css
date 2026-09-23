@@ -34,6 +34,7 @@
 }
 
 .bar {
+  composes: chrome from '@/styles/designSystem/glass.module.css';
   display: flex;
   align-items: center;
   flex: 1 1 auto;
@@ -42,10 +43,6 @@
   padding: 0 var(--la-s-1);
   border-radius: var(--la-r-pill);
   background: var(--la-glass-strong);
-  backdrop-filter: var(--la-glass-blur);
-  -webkit-backdrop-filter: var(--la-glass-blur);
-  border: var(--la-glass-edge);
-  box-shadow: var(--la-glass-shadow);
 }
 
 .item {
@@ -85,6 +82,7 @@
 }
 
 .more {
+  composes: chrome from '@/styles/designSystem/glass.module.css';
   flex: 0 0 auto;
   width: var(--la-shell-h);
   height: var(--la-shell-h);
@@ -92,10 +90,6 @@
   place-items: center;
   border-radius: var(--la-r-pill);
   background: var(--la-glass-strong);
-  backdrop-filter: var(--la-glass-blur);
-  -webkit-backdrop-filter: var(--la-glass-blur);
-  border: var(--la-glass-edge);
-  box-shadow: var(--la-glass-shadow);
   color: var(--la-ink-2);
   cursor: pointer;
   touch-action: manipulation;
