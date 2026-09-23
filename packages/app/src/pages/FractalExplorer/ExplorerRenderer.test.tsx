@@ -270,6 +270,28 @@ describe('ExplorerRenderer references', () => {
     expect(r.statuses.at(-1)).toMatchObject({ orbitPending: true })
   })
 
+  it('cancels the reference it asked for once the view is back inside the old one', async () => {
+    const r = mount()
+    await r.adopt()
+    r.move({ ...SCENE.view, zoomLog2: 30 })
+    r.frame(1100)
+    expect(r.orbits.client.request).toHaveBeenCalledTimes(2)
+
+    r.move(SCENE.view)
+    r.frame(1200)
+    expect(r.orbits.client.cancel).toHaveBeenCalledOnce()
+    // An answer that comes anyway is not adopted.
+    r.orbits.requests[1]!.resolve(orbitResult())
+    await r.settle()
+    expect(r.gpu.uploadOrbits).toHaveBeenCalledOnce()
+
+    // A restart with nothing on its way has nothing to cancel.
+    r.move(panView(SCENE.view, 10, 0, 600))
+    r.frame(1300)
+    expect(r.orbits.client.cancel).toHaveBeenCalledOnce()
+    expect(r.orbits.client.request).toHaveBeenCalledTimes(2)
+  })
+
   it('keeps a Julia reference, and its BLA table, through a zoom out', async () => {
     const julia: ExplorerScene = {
       ...SCENE,
