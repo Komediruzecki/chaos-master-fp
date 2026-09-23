@@ -10,9 +10,7 @@
  * names the route rather than the home page. The Vite plugin in
  * vite.config.ts emits the files; Cloudflare serves the same ones.
  */
-import { BENCHMARKS_PATH, EXPLORER_PATH } from './appPath'
-
-const PAGE_ROUTES = [BENCHMARKS_PATH, EXPLORER_PATH]
+import { PAGE_ROUTES } from './appPath'
 
 /**
  * index.html as served from a folder one level down. The build's asset base is

@@ -13,3 +13,11 @@ const EXPLORER_PATHS = new Set([EXPLORER_PATH, `${EXPLORER_PATH}/`])
 export function isExplorerPath(pathname: string): boolean {
   return EXPLORER_PATHS.has(pathname)
 }
+
+/**
+ * The routes served as pages of their own: the build writes a copy of
+ * index.html for each (staticEntries.ts), and the worker redirects each
+ * one's trailing-slash form to it. Renaming a route here renames it
+ * everywhere.
+ */
+export const PAGE_ROUTES: readonly string[] = [BENCHMARKS_PATH, EXPLORER_PATH]

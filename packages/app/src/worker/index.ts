@@ -1,3 +1,4 @@
+import { PAGE_ROUTES } from '../routing/appPath'
 import { checkApiRateLimit } from './middleware/rateLimit'
 import { isReviewHost, reviewRobotsTxt, withNoIndex, } from './middleware/reviewHost'
 import { withSecurityHeaders } from './middleware/securityHeaders'
@@ -10,6 +11,8 @@ import type { Env } from './types'
 
 export type { Env }
 
+const SLASHED_PAGE_ROUTES = new Set(PAGE_ROUTES.map((route) => `${route}/`))
+
 export const baseHandler = {
   async fetch(request: Request, env: Env, _ctx: unknown): Promise<Response> {
     const url = new URL(request.url)
@@ -19,7 +22,7 @@ export const baseHandler = {
     // serves the build's benchmarks/index.html and explore/index.html there
     // (routing/staticEntries.ts, html_handling in wrangler.jsonc).
     if (
-      (pathname === '/benchmarks/' || pathname === '/explore/') &&
+      SLASHED_PAGE_ROUTES.has(pathname) &&
       (request.method === 'GET' || request.method === 'HEAD')
     ) {
       url.pathname = pathname.slice(0, -1)
