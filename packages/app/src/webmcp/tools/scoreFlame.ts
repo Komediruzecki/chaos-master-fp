@@ -125,6 +125,16 @@ export function calculateStructuralSymmetry(
   return symTransforms > 0 ? Math.min(10, 2.5 + (symTransforms - 1) * 1.25) : 0
 }
 
+/**
+ * Energy on 0..10, like the other three measurements. Exposure goes down to
+ * -8, so the sum alone reaches -16, and below 0 it put the Duel verdict's
+ * curve 10 E / (E + 4) on its pole at E = -4: exposure -3.5 at the default
+ * vibrancy and colour speed scored -Infinity, -3.55 scored 10,474, and dark
+ * flames, most of them 3D, scored below 0 (arcade audit, finding 3). A flame
+ * darker than that has no energy, and every reader (the verdict, the HUD,
+ * the Arena card's bar, the Clash stances, the taste profile) sees the same
+ * floor.
+ */
 export function calculateEnergyIntensity(
   rs: FlameDescriptor['renderSettings'],
   transformCount: number,
@@ -133,8 +143,8 @@ export function calculateEnergyIntensity(
   const exposure = rs?.exposure ?? 0.25
   const vibrancy = rs?.vibrancy ?? 0.5
   const avgColorSpeed = transformCount > 0 ? colorSpeedSum / transformCount : 0
-
-  return Math.min(10, exposure * 2 + vibrancy * 2 + avgColorSpeed * 5)
+  const sum = exposure * 2 + vibrancy * 2 + avgColorSpeed * 5
+  return Math.max(0, Math.min(10, sum))
 }
 
 export function classifyFlameType(

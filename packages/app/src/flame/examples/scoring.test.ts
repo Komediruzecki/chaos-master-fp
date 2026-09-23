@@ -219,26 +219,27 @@ describe('the bundled examples, as players see them', () => {
         'initExample3D            151   1.5   0.0   0.0    4.7   490',
         'example30                449   3.8   3.4   6.1    4.7  1715',
         'example31                384   3.8   3.4   3.5    4.7  1405',
-        'example32               -480   3.8   3.8   3.2  -30.0   705',
-        'example33               -857   3.8   4.0   5.0  -47.1   914',
-        'example34                203   3.8   3.8   5.3   -4.8  1109',
+        'example32                270   3.8   3.8   3.2    0.0  1065',
+        'example33                321   3.8   4.0   5.0    0.0  1309',
+        'example34                323   3.8   3.8   5.3    0.0  1265',
         'example35                339   4.0   3.6   3.5    2.5  1237',
         'example36                316   4.0   3.6   3.8    1.3  1179',
-        'example37                263   4.6   3.9   3.2   -1.1  1155',
+        'example37                290   4.6   3.9   3.2    0.0  1200',
         'example38                225   4.0   3.9   0.0    1.1  1030',
         'example39                287   4.0   3.8   3.5    0.2  1115',
-        'example40                  9   4.0   3.6   1.8   -9.0   757',
+        'example40                234   4.0   3.6   1.8    0.0   983',
         'example41                333   4.0   3.4   2.9    3.1  1185',
-        'example42                248   4.7   4.0   1.8   -0.5  1163',
+        'example42                260   4.7   4.0   1.8    0.0  1185',
         'example43                342   4.0   3.9   5.3    0.5  1354',
-        'example44                 82   4.6   4.3   2.6   -8.2  1069',
+        'example44                287   4.6   4.3   2.6    0.0  1284',
         'example46                434   4.6   4.4   4.4    4.0  1811',
       ])
     })
 
     // Exposure at the default vibrancy (0.5) and colour speed (0.4) of
     // example1: the energy part, the verdict and the HUD score around -3.5,
-    // where the energy measurement reaches -4.
+    // where the energy sum reaches -4, the pole of the verdict's energy
+    // curve. Energy stops at 0, so every exposure below -1.5 scores alike.
     it('energy near exposure -3.5', () => {
       const rows = [-4, -3.6, -3.55, -3.5, -3.45, -3.4, -1, 0, 0.25, 8].map(
         (exposure) => {
@@ -257,12 +258,12 @@ describe('the bundled examples, as players see them', () => {
       )
       // pins:energyEdge
       expect(rows).toEqual([
-        'exposure -4: energy -5, part 50, verdict 1446, HUD 325',
-        'exposure -3.6: energy -4.2, part 210, verdict 5446, HUD 421',
-        'exposure -3.55: energy -4.1, part 410, verdict 10446, HUD 433',
-        'exposure -3.5: energy -4, part -Infinity, verdict -Infinity, HUD 445',
-        'exposure -3.45: energy -3.9, part -390, verdict -9554, HUD 457',
-        'exposure -3.4: energy -3.8, part -190, verdict -4554, HUD 469',
+        'exposure -4: energy 0, part 0, verdict 196, HUD 925',
+        'exposure -3.6: energy 0, part 0, verdict 196, HUD 925',
+        'exposure -3.55: energy 0, part 0, verdict 196, HUD 925',
+        'exposure -3.5: energy 0, part 0, verdict 196, HUD 925',
+        'exposure -3.45: energy 0, part 0, verdict 196, HUD 925',
+        'exposure -3.4: energy 0, part 0, verdict 196, HUD 925',
         'exposure -1: energy 1, part 2, verdict 246, HUD 1045',
         'exposure 0: energy 3, part 4.3, verdict 304, HUD 1285',
         'exposure 0.25: energy 3.5, part 4.7, verdict 314, HUD 1345',

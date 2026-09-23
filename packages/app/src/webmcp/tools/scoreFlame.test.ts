@@ -202,4 +202,19 @@ describe('scoreFlame tool', () => {
     )
     expect(capped).toBe(10)
   })
+
+  // The darkest flame the schema allows: exposure -8, vibrancy 0, colour
+  // speed 0. Energy is a 0..10 measurement like the other three.
+  it('calculates energy intensity respecting minimum bounds', async () => {
+    const { calculateEnergyIntensity } = await import('./scoreFlame')
+    const floored = calculateEnergyIntensity(
+      {
+        exposure: -8,
+        vibrancy: 0,
+      } as unknown as FlameDescriptor['renderSettings'],
+      1,
+      0,
+    )
+    expect(floored).toBe(0)
+  })
 })
