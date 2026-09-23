@@ -149,6 +149,8 @@
   height: 10rem;
   border-radius: 4px;
   cursor: crosshair;
+  /* A finger drag moves the point instead of scrolling the panel. */
+  touch-action: none;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background:

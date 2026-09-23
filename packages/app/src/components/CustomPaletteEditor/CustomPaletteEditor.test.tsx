@@ -1,6 +1,7 @@
 /**
- * Palette stops drag with any pointer, a finger included, and the selection
- * stays on the dragged stop when it passes a neighbour.
+ * Palette stops, and the point on the colour plane, drag with any pointer, a
+ * finger included; the selection stays on the dragged stop when it passes a
+ * neighbour.
  */
 import { cleanup, fireEvent, render, screen } from '@solidjs/testing-library'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -12,6 +13,20 @@ afterEach(() => {
 })
 
 const BAR_WIDTH = 200
+
+function rectOf(width: number, height: number): DOMRect {
+  return {
+    x: 0,
+    y: 0,
+    left: 0,
+    top: 0,
+    width,
+    height,
+    right: width,
+    bottom: height,
+    toJSON: () => ({}),
+  }
+}
 
 function handles(): HTMLElement[] {
   return [...document.querySelectorAll<HTMLElement>('[data-stop-id]')]
@@ -27,17 +42,7 @@ function handleAt(left: string): HTMLElement {
 function renderWithThreeStops() {
   render(() => <CustomPaletteEditor onSave={vi.fn()} onCancel={vi.fn()} />)
   const bar = handles()[0]!.parentElement!
-  vi.spyOn(bar, 'getBoundingClientRect').mockReturnValue({
-    x: 0,
-    y: 0,
-    left: 0,
-    top: 0,
-    width: BAR_WIDTH,
-    height: 40,
-    right: BAR_WIDTH,
-    bottom: 40,
-    toJSON: () => ({}),
-  })
+  vi.spyOn(bar, 'getBoundingClientRect').mockReturnValue(rectOf(BAR_WIDTH, 40))
   fireEvent.click(bar, { clientX: BAR_WIDTH / 2 })
   expect(handles()).toHaveLength(3)
 }
@@ -86,4 +91,47 @@ describe('CustomPaletteEditor stop dragging', () => {
     drag(middle, BAR_WIDTH / 2, BAR_WIDTH / 2 + 2, 'touch')
     expect(handleAt('50%')).toBe(middle)
   })
+})
+
+describe('CustomPaletteEditor colour plane', () => {
+  it.each(['touch', 'mouse', 'pen'])(
+    'puts the point where %s presses, and drags it',
+    (type) => {
+      renderWithThreeStops()
+      // Pressing a stop without moving it selects it.
+      drag(handleAt('50%'), BAR_WIDTH / 2, BAR_WIDTH / 2, type)
+      fireEvent.click(screen.getByText('Edit Color'))
+      const plane = document.querySelector<HTMLElement>('.oklabPicker')!
+      vi.spyOn(plane, 'getBoundingClientRect').mockReturnValue(rectOf(200, 160))
+      const point = () => {
+        const style = document.querySelector<HTMLElement>('.crosshair')!.style
+        return [style.left, style.top]
+      }
+      const init = { pointerId: 9, pointerType: type, button: 0, bubbles: true }
+      plane.dispatchEvent(
+        new PointerEvent('pointerdown', { ...init, clientX: 50, clientY: 40 }),
+      )
+      expect(point()).toEqual(['25%', '25%'])
+      document.dispatchEvent(
+        new PointerEvent('pointermove', {
+          ...init,
+          clientX: 150,
+          clientY: 120,
+        }),
+      )
+      expect(point()).toEqual(['75%', '75%'])
+      document.dispatchEvent(
+        new PointerEvent('pointerup', { ...init, clientX: 150, clientY: 120 }),
+      )
+      // Past the edge, the point stays on the plane.
+      plane.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          ...init,
+          clientX: -30,
+          clientY: 400,
+        }),
+      )
+      expect(point()).toEqual(['0%', '100%'])
+    },
+  )
 })

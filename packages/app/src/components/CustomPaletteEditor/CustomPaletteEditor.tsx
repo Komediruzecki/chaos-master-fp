@@ -158,15 +158,21 @@ export function CustomPaletteEditor(props: CustomPaletteEditorProps) {
     { deadZoneRadius: 4 },
   )
 
-  function handlePickerClick(e: MouseEvent) {
+  /** Put the a/b point under the pointer, kept inside the plane. */
+  function pickAt(e: PointerEvent) {
     if (!pickerRef) return
     const rect = pickerRef.getBoundingClientRect()
     // x: -1 to 1 (a channel), y: -1 to 1 (b channel)
-    const a = clamp(((e.clientX - rect.left) / rect.width) * 2 - 1, -1, 1)
-    const b = clamp((1 - (e.clientY - rect.top) / rect.height) * 2 - 1, -1, 1)
-    setEditA(a)
-    setEditB(b)
+    setEditA(clamp(((e.clientX - rect.left) / rect.width) * 2 - 1, -1, 1))
+    setEditB(clamp((1 - (e.clientY - rect.top) / rect.height) * 2 - 1, -1, 1))
   }
+
+  // The point jumps to where the plane is pressed and follows the pointer,
+  // mouse, pen or finger, until it is let go.
+  const startPick = createDragHandler((event) => {
+    pickAt(event)
+    return { onPointerMove: pickAt }
+  })
 
   function applyColorToStop() {
     const id = activeStopId()
@@ -310,7 +316,7 @@ export function CustomPaletteEditor(props: CustomPaletteEditorProps) {
             <div
               ref={pickerRef}
               class={ui.oklabPicker}
-              onClick={handlePickerClick}
+              onPointerDown={startPick}
             >
               {/* Grid overlay */}
               <div class={ui.pickerGrid} />
