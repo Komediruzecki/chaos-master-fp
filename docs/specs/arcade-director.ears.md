@@ -219,7 +219,7 @@ The taste store shall persist its records as a JSON array under the single
 module-level list so that a read after a successful write returns the same
 records without touching storage again.
 
-_(`arcade/tasteStore.ts:61` (`STORAGE_KEY`), `:64` (`memoryRatings`), `:136-162` (`getStoredRatings`). `clearTasteStore` (`:319-326`)
+_(`arcade/tasteStore.ts:61` (`STORAGE_KEY`), `:64` (`memoryRatings`), `:138-164` (`getStoredRatings`). `clearTasteStore` (`:321-328`)
 empties both.)_
 
 ### REQ-AD-017 — Unreadable storage degrades to the in-memory list
@@ -229,9 +229,9 @@ does not parse to an array, **then** `getStoredRatings` shall return the
 in-memory list instead of throwing, so a private window, a sandboxed iframe or a
 corrupted key costs the session its history but not the Director.
 
-_(`arcade/tasteStore.ts:136-150` (`getStoredRatings`). The array is adopted as-is: no record is
+_(`arcade/tasteStore.ts:138-152` (`getStoredRatings`). The array is adopted as-is: no record is
 validated, so a hand-edited key whose entries lack `features` will make
-`deriveTasteProfile` throw at `:238` (`variationCategories`).)_
+`deriveTasteProfile` throw at `:240` (`variationCategories`).)_
 
 ### REQ-AD-018 — Unwritable storage never breaks rating
 
@@ -240,7 +240,7 @@ validated, so a hand-edited key whose entries lack `features` will make
 it in the in-memory list, so ratings continue to accumulate for the life of the
 page.
 
-_(`arcade/tasteStore.ts:155-162` (`saveRatings`))_
+_(`arcade/tasteStore.ts:157-164` (`saveRatings`))_
 
 ### REQ-AD-019 — The store keeps the newest hundred records
 
@@ -248,7 +248,7 @@ The taste store shall retain at most `MAX_RATINGS_HISTORY` (100) records,
 discarding the oldest on each save, so a long-running profile cannot grow the
 storage key without bound.
 
-_(`arcade/tasteStore.ts:62`, `:156` — `ratings.slice(-MAX_RATINGS_HISTORY)`.
+_(`arcade/tasteStore.ts:62`, `:158` — `ratings.slice(-MAX_RATINGS_HISTORY)`.
 Trimming happens on save only, so a payload longer than 100 read back from
 storage is aggregated in full until the next write.)_
 
@@ -280,7 +280,7 @@ store shall replace that record in place — refreshing reaction, tags, note,
 `wasSelected`, features and timestamp — rather than appending a second one, so a
 user who flips Like to Dislike is counted once.
 
-_(`arcade/tasteStore.ts:184-195` (`existingIndex`); guarded by `tasteStore.test.ts:40-53` (`entry2`).)_
+_(`arcade/tasteStore.ts:186-197` (`existingIndex`); guarded by `tasteStore.test.ts:41-54` (`entry2`).)_
 
 ### REQ-AD-022 — Taste features are extracted from the candidate flame alone
 
@@ -291,9 +291,9 @@ sorted deduplicated set of variation **categories** resolved in the flame's own
 dimensionality, and a palette temperature — and nothing about the user, the
 generation or the session.
 
-_(`arcade/tasteStore.ts:97-131` (`extractFlameTasteFeatures`); `categoryOf` at
-`flame/variationRegistry.ts:37-47`. `transformCount` (`tasteStore.ts:127`) counts every
-transform, while the category walk (`:107-115` (`visible`)) skips some — see REQ-AD-024.)_
+_(`arcade/tasteStore.ts:97-133` (`extractFlameTasteFeatures`); `categoryOf` at
+`flame/variationRegistry.ts:37-47`. `transformCount` (`tasteStore.ts:129`) counts every
+transform, while the category walk (`:107-117` (`visible`)) skips some — see REQ-AD-024.)_
 
 ### REQ-AD-023 — Palette temperature needs a margin of two
 
@@ -333,8 +333,8 @@ distinguishes "No user taste data recorded yet." from
 "`<n>` candidate(s) rated. No likes registered yet." — dislikes alone never
 produce preferences.
 
-_(`arcade/tasteStore.ts:215-231` (`likes`); the first branch guarded by
-`tasteStore.test.ts:61-64` (`emptyProfile`).)_
+_(`arcade/tasteStore.ts:217-233` (`likes`); the first branch guarded by
+`tasteStore.test.ts:62-65` (`emptyProfile`).)_
 
 ### REQ-AD-026 — Preferred and avoided categories are frequency-ordered
 
@@ -344,7 +344,7 @@ appearing on any liked record, ordered by like frequency descending, and as
 their like count, ordered by dislike frequency descending. A category liked and
 disliked equally often appears in neither list beyond its like-driven entry.
 
-_(`arcade/tasteStore.ts:234-255` (`catLikeCount`))_
+_(`arcade/tasteStore.ts:236-257` (`catLikeCount`))_
 
 ### REQ-AD-027 — Averages are taken over liked records only, to one decimal
 
@@ -352,7 +352,7 @@ The profile's `avgLikedSymmetry`, `avgLikedComplexity` and `avgLikedChaos` shall
 be the means of those metrics across liked records only — never disliked or
 neutral ones — each rounded to one decimal place.
 
-_(`arcade/tasteStore.ts:257-276` (`avgLikedSymmetry`))_
+_(`arcade/tasteStore.ts:259-278` (`avgLikedSymmetry`))_
 
 ### REQ-AD-028 — Preferred palette is a strict majority of the liked records
 
@@ -360,7 +360,7 @@ The profile's `preferredPalette` shall be `warm` when liked records with a warm
 palette outnumber cool ones, `cool` in the mirror case, and `balanced` on a tie —
 liked records whose own temperature is `balanced` count toward neither side.
 
-_(`arcade/tasteStore.ts:278-285` (`warmCount`); guarded by `arcadeDirector.test.ts:154-164` (`updated`)
+_(`arcade/tasteStore.ts:280-287` (`warmCount`); guarded by `arcadeDirector.test.ts:160-170` (`updated`)
 for the warm case.)_
 
 ### REQ-AD-029 — The summary is one sentence naming at most five signals
@@ -370,7 +370,7 @@ the two most-avoided ones, and shall always close with the liked symmetry and
 complexity averages out of 10 and the preferred palette — so an agent that reads
 nothing but `summary` still receives the direction.
 
-_(`arcade/tasteStore.ts:287-312` (`summaryParts`). `avgLikedChaos` is computed and returned as a
+_(`arcade/tasteStore.ts:289-314` (`summaryParts`). `avgLikedChaos` is computed and returned as a
 field but is deliberately absent from the sentence.)_
 
 ### REQ-AD-030 — `director_get_taste_profile` reads the store, never the session
@@ -379,7 +379,7 @@ field but is deliberately absent from the sentence.)_
 rating history and shall return `{ ok: true, profile }` unconditionally — with no
 workspace context, no open modal and no active generation required.
 
-_(`arcadeDirector.ts:236-254` (`directorGetTasteProfile`); guarded by `arcadeDirector.test.ts:116-165` "retrieves aggregated taste profile",
+_(`arcadeDirector.ts:236-254` (`directorGetTasteProfile`); guarded by `arcadeDirector.test.ts:122-171` "retrieves aggregated taste profile",
 which asserts the empty profile before any rating and the aggregated one after.)_
 
 ### REQ-AD-031 — `director_get_feedback` reads the session, never the store
@@ -391,7 +391,7 @@ dislikes and naming the selected candidate. **If** no generation is active it
 shall return `{ ok: true, generation: 0, candidates: [] }` with an explanatory
 message rather than an error.
 
-_(`arcadeDirector.ts:188-229` (`state`); guarded by `arcadeDirector.test.ts:70-114` "retrieves user feedback and extracted features".
+_(`arcadeDirector.ts:188-229` (`state`); guarded by `arcadeDirector.test.ts:70-120` "retrieves user feedback and extracted features".
 Features are recomputed from the candidate flames on every call — the tool never
 consults the persisted taste records, so a candidate rated in this session
 appears here with its live reaction and in REQ-AD-030's profile independently.)_
@@ -451,7 +451,7 @@ generation 1; the taste records written during that session shall survive the
 reload and continue to feed `director_get_taste_profile`.
 
 _(`useWorkspaceArtDirector.tsx:27-30` (`createSignal`) — plain signals, no persistence; contrast
-`arcade/tasteStore.ts:155-162` (`saveRatings`). The workspace flame itself is autosaved
+`arcade/tasteStore.ts:157-164` (`saveRatings`). The workspace flame itself is autosaved
 separately, so a candidate loaded via REQ-AD-015 does survive a reload.)_
 
 ---
@@ -468,14 +468,14 @@ Requirements with **no test that goes red when they are violated**:
 | REQ-AD-036                     | Session state is not persisted                                                        | same                                                                                                                       |
 | REQ-AD-008, 009                | Candidate repair and the flame-less fallback                                          | `arcadeDirector.test.ts` only ever passes well-formed flames from `createTestFlame`                                        |
 | REQ-AD-017, 018, 019           | Storage read failure, write failure, the 100-record cap                               | `tasteStore.test.ts` never throws from storage and never stores more than two records                                      |
-| REQ-AD-023, 024                | Palette hue bands and the margin of two; the implicit-`visible` deviation             | `tasteStore.test.ts:19` (`paletteTemperature`) only asserts the value is one of the three literals                         |
-| REQ-AD-026, 027, 029           | Category ordering, liked-only averages, summary composition                           | `tasteStore.test.ts:85-89` (`profile`) asserts totals and a `'likes symmetry'` substring; no ordering or numeric assertion |
+| REQ-AD-023, 024                | Palette hue bands and the margin of two; the implicit-`visible` deviation             | `tasteStore.test.ts:20` (`paletteTemperature`) only asserts the value is one of the three literals                         |
+| REQ-AD-026, 027, 029           | Category ordering, liked-only averages, summary composition                           | `tasteStore.test.ts:86-90` (`profile`) asserts totals and a `'likes symmetry'` substring; no ordering or numeric assertion |
 | REQ-AD-002 (partial)           | The Launch Art Director Overlay button                                                | `topics.test.ts` covers the presets and prompt card, not the panel                                                         |
 | REQ-AD-001 (partial)           | `readOnlyHint` on the two read tools                                                  | `toolCount.test.ts` checks names against the docs table, not annotations                                                   |
 
 Partially guarded, and worth knowing how thinly:
 
 - **REQ-AD-006** — `arcadeDirector.test.ts:18-23` "refuses without workspace context" asserts only `toHaveProperty('error')`, so the two distinct refusal messages are interchangeable as far as the suite is concerned.
-- **REQ-AD-020** — guarded since #90 by `tasteStore.test.ts:92` "keeps ratings from separate Director sessions that reuse generation numbers" and `:112` "still updates a rating in place within one session". `tasteStore.test.ts:35` (`entry1`) still expects `cand-1-0`, the id of a record written without a session id.
-- **REQ-AD-021** — genuinely guarded by `tasteStore.test.ts:40-53` (`entry2`).
+- **REQ-AD-020** — guarded since #90 by `tasteStore.test.ts:102` "keeps ratings from separate Director sessions that reuse generation numbers" and `:122` "still updates a rating in place within one session". `tasteStore.test.ts:36` (`entry1`) still expects `cand-1-0`, the id of a record written without a session id.
+- **REQ-AD-021** — genuinely guarded by `tasteStore.test.ts:41-54` (`entry2`).
 - **REQ-AD-007, 010, 030, 031** — genuinely guarded by `arcadeDirector.test.ts`.

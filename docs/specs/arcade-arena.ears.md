@@ -195,7 +195,7 @@ variation-family bonus capped at `0.3`; and shall then map those onto HP, ATK, D
 chance and power level through `COMBAT_COEFFICIENTS`, with beauty taken as
 `round(fitness.composite * 100)`.
 
-_(`stats.ts:96-110` (`COMBAT_COEFFICIENTS`) (the coefficients), `:274-296` (`solveMoranDimension`), `:332-498` (`calculateGroundedStats`))_
+_(`stats.ts:96-110` (`COMBAT_COEFFICIENTS`) (the coefficients), `:424-446` (`solveMoranDimension`), `:482-641` (`calculateGroundedStats`))_
 
 ### REQ-AA-015 — A transformless flame gets the fallback stat block
 
@@ -204,7 +204,7 @@ fixed block `{ dimension 1.0, stability 0.8, entropy 0.5, nonlinearity 0.3,
 symmetryOrder 1, beauty 50, school 'Order', hp/maxHp 180, atk 45, def 40, critChance
 0.15, powerLevel 500 }` rather than dividing by zero.
 
-_(`stats.ts:338-354` (`transforms`))_
+_(`stats.ts:488-504` (`transforms`))_
 
 ### REQ-AA-016 — Explicit symmetry transforms outrank angle detection
 
@@ -214,7 +214,7 @@ pre-affine rotation angles, returning the largest `k ∈ {8,6,5,4,3,2}` whose `2
 spacing matches within `0.18` rad, and falling back to 2 when symmetry-family variations
 are present and 1 when they are not.
 
-_(`stats.ts:301-327` (`detectRotationalSymmetryOrder`), `:440-446` (`symTransformCount`))_
+_(`stats.ts:451-477` (`detectRotationalSymmetryOrder`), `:583-589` (`symTransformCount`))_
 
 ### REQ-AA-017 — Only visible transforms contribute to grounded stats
 
@@ -222,7 +222,7 @@ _(`stats.ts:301-327` (`detectRotationalSymmetryOrder`), `:440-446` (`symTransfor
 visible, so that an agent-supplied descriptor scores the same as the identical flame
 after schema validation.
 
-> **Known deviation:** `packages/app/src/flame/stats.ts:368` (`visible`) — the loop reads
+> **Known deviation:** `packages/app/src/flame/stats.ts:518` (`visible`) — the loop reads
 > `if (!t.visible) continue`, so every transform of an unvalidated agent-supplied flame
 > is skipped and the fighter falls through to the REQ-AA-015 fallback block. The
 > schema materialises `visible: true` (`packages/core/src/schema/flameSchema.ts:236`)
@@ -241,7 +241,7 @@ flame with no transforms or no positive bucket is `Order` — and `getSchoolMult
 shall return `1.25` on the advantage cycle Vortex > Order > Void > Crystal > Tide >
 Vortex, `0.8` against it, a flat `1.1` when the attacker is Arcane, and `1.0` otherwise.
 
-_(`stats.ts:72-94` (`SCHOOL_ADVANTAGE`), `:204-248` (`classifySchool`); the fighter cards show `+25%` style advantage badges from
+_(`stats.ts:72-94` (`SCHOOL_ADVANTAGE`), `:211-256` (`classifySchool`); the fighter cards show `+25%` style advantage badges from
 the same function, `ArenaOverlay.tsx:186-199` (`p1Advantage`), passed to the cards at `:714` (`p1Advantage`)
 and `:776` (`p2Advantage`) and rendered at `ArenaOverlay/ArenaFighterCard.tsx:313-316` (`advantage`).)_
 
@@ -343,7 +343,7 @@ the round tally alone — more round wins, ties are `draw` — and shall pass th
 `resolveClashCombat` as `territoryWinner`, so the HP battle log narrates the same victor
 the territory scoring chose even where remaining HP would have said otherwise.
 
-_(`simulateClash.ts:156-163` (`determineOverallWinner`), `:346-371` (`simulateRounds`); `stats.ts:620-636` (`draw`) applies the override before
+_(`simulateClash.ts:156-163` (`determineOverallWinner`), `:346-371` (`simulateRounds`); `stats.ts:763-779` (`draw`) applies the override before
 its own HP comparison.)_
 
 ### REQ-AA-028 — Combat resolution is deterministic, stanced, and never zero-damage
@@ -355,7 +355,7 @@ the stance modifiers (`balanced 1.0/1.0/1.0`, `resonance 1.25/0.95/1.0`, `bastio
 ±15% fluctuation and a floor of 12, and — absent a `territoryWinner` — break the match
 by remaining HP, then round wins, then beauty, then `draw`.
 
-_(`stats.ts:503-648` (`resolveClashCombat`); an unknown stance falls back to `balanced`, `:542-543`.)_
+_(`stats.ts:646-791` (`resolveClashCombat`); an unknown stance falls back to `balanced`, `:685-686`.)_
 
 ### REQ-AA-029 — Agent-supplied simulation parameters are bounded
 
@@ -550,7 +550,7 @@ file in the `Tests:` block is not the same as being guarded, so these are listed
 - REQ-AA-024 (equal-probability and empty-transform branches) — only the missing-descriptor branch is covered (`flameToolsModular.test.ts:147` "handles missing clashFlame gracefully").
 - REQ-AA-026 — `simulateClash.test.ts:138-174` "detects narrative events across diverse clash scenarios" exercises `Entangled` and `Collapse` only; `Nova`, `Symmetry Lock` and `Chaos Cascade` are unreached.
 - REQ-AA-027 — nothing asserts that `territoryWinner` overrides the HP comparison.
-- REQ-AA-028 (tie-break chain) — `stats.test.ts:149` "deterministically resolves 3 rounds with battle log" checks one deterministic 3-round run; the HP → round-wins → beauty → draw ladder is untested.
+- REQ-AA-028 (tie-break chain) — `stats.test.ts:268` "deterministically resolves 3 rounds with battle log" checks one deterministic 3-round run; the HP → round-wins → beauty → draw ladder is untested.
 - REQ-AA-029, REQ-AA-036, REQ-AA-037, REQ-AA-042 (`rounds`) — the four known deviations. None has a failing test standing behind it.
 - REQ-AA-030 — `webmcp/tools/animateClash.ts` has no test file.
 - REQ-AA-032, REQ-AA-033 — spectator pacing, the VFX timers and the keyboard handler are untested; the `ArenaOverlay.test.tsx:257` "immediately presents the Center Winner Trophy Card upon results state" results test drives `startClash` directly.
