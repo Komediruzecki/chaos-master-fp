@@ -21,13 +21,12 @@ import { ExplorerRenderer } from './ExplorerRenderer'
 import ui from './FractalExplorerPage.module.css'
 import { JuliaMarker, shortComplex } from './JuliaMarker'
 import type { ExplorerLocation } from '@chaos-master/core'
+import type { Quality } from './ExplorerControls'
 import type { ExplorerGpu } from './explorerGpu'
 import type { ExplorerMode } from './explorerModes'
 import type { ExplorerScene, ExplorerStatus } from './ExplorerRenderer'
 import type { ColourSetup } from './explorerTypes'
 import type { Palette } from '@/flame/colorMap'
-
-export type Quality = 'fast' | 'balanced' | 'sharp'
 
 /** Render pixels at most, and supersamples per pixel once finished. */
 const QUALITY: Record<Quality, { pixels: number; samples: number }> = {

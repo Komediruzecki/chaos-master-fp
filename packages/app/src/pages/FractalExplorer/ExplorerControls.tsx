@@ -13,8 +13,10 @@ import ui from './FractalExplorerPage.module.css'
 import type { ComplexString, ExplorerLocation } from '@chaos-master/core'
 import type { ExplorerMode } from './explorerModes'
 import type { ExplorerStatus } from './ExplorerRenderer'
-import type { Quality } from './FractalExplorerPage'
 import type { Palette } from '@/flame/colorMap'
+
+/** How hard the explorer works on a picture: its pixel budget and supersamples. */
+export type Quality = 'fast' | 'balanced' | 'sharp'
 
 export interface ExplorerControlsProps {
   location: ExplorerLocation
