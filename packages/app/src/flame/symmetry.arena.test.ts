@@ -181,16 +181,19 @@ describe('Arena symmetry: the stat sheet per fold', () => {
       ])
     })
 
+    // Beauty's variation-diversity term counts types. The symmetry
+    // transforms carry linearVar, the type this fighter already has; before,
+    // their unregistered 'linear' counted as one more type.
     it('beauty, ATK and Power', () => {
       expect(FOLDS.map((n) => powerRow(FIGHTER_2D_LINEAR, n))).toEqual([
         [1, 37, 27, 1024],
-        [2, 65, 43, 1240],
-        [3, 70, 45, 1279],
-        [4, 67, 45, 1276],
-        [5, 64, 44, 1268],
-        [6, 59, 42, 1253],
-        [7, 55, 40, 1242],
-        [8, 51, 38, 1195],
+        [2, 60, 41, 1204],
+        [3, 64, 43, 1239],
+        [4, 62, 43, 1240],
+        [5, 59, 42, 1232],
+        [6, 54, 40, 1217],
+        [7, 50, 38, 1206],
+        [8, 46, 36, 1159],
       ])
     })
 
@@ -307,7 +310,7 @@ describe('Arena symmetry: a clash after C4', () => {
         ['A', 0.938, 0.059],
       ],
       finalScore: { A: 3, B: 0 },
-      combatHp: { A: 90, B: 52 },
+      combatHp: { A: 90, B: 59 },
       combatScore: { A: 2, B: 1 },
     })
   })

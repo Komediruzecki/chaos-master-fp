@@ -208,9 +208,9 @@ describe('ArenaOverlay Component', () => {
       37,
       'Order',
     ])
-    expect([g.beauty, g.atk, g.powerLevel]).toEqual([67, 45, 1276])
-    expect(p1()?.powerLevel).toBe(1276)
-    expect(powerRowValues()[0]).toBe('1276')
+    expect([g.beauty, g.atk, g.powerLevel]).toEqual([62, 43, 1240])
+    expect(p1()?.powerLevel).toBe(1240)
+    expect(powerRowValues()[0]).toBe('1240')
   })
 
   it('renders Sync Active and From Gallery action buttons', () => {
