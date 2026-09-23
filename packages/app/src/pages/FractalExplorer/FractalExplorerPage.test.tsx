@@ -17,12 +17,15 @@ import type * as PaletteModule from './explorerPalette'
 import type { ExplorerRendererProps } from './ExplorerRenderer'
 import type * as JuliaMarkerModule from './JuliaMarker'
 import type { JuliaMarkerProps } from './JuliaMarker'
+import type { Palette } from '@/flame/colorMap'
 
 const stubs = vi.hoisted(() => ({
   renderers: [] as ExplorerRendererProps[],
   markers: [] as JuliaMarkerProps[],
   /** Runs of the stand-in for each renderer's palette upload. */
   paletteUploads: 0,
+  /** The palette picker's choice, as the settings panel wires it. */
+  selectPalette: undefined as ((palette: Palette) => void) | undefined,
   showToast: vi.fn(),
 }))
 
@@ -62,7 +65,10 @@ vi.mock('@/contexts/ToastContext', () => ({
 
 // The palette picker loads palette files; it is not what these tests are about.
 vi.mock('@/components/PaletteSelector/PaletteSelector', () => ({
-  PaletteSelector: () => null,
+  PaletteSelector: (props: { onSelect: (palette: Palette) => void }) => {
+    stubs.selectPalette = props.onSelect
+    return null
+  },
 }))
 
 // The test runner's own localStorage is not a working Storage.
@@ -155,6 +161,20 @@ describe('FractalExplorerPage palette', () => {
     expect(julia.palette()).toBe(first)
     expect(stubs.paletteUploads).toBe(uploads)
     expect(resolvePalette).toHaveBeenCalledOnce()
+  })
+
+  it('recolours each pane once for a palette picked over a custom one', () => {
+    const saved = saveCustom()
+    open({ ...DEFAULT_LOCATION, split: true, paletteId: saved.id })
+    const { mandelbrot, julia } = splitStubs()
+    const grey = resolvePalette('grayscale', undefined)
+    const uploads = stubs.paletteUploads
+
+    stubs.selectPalette?.(grey)
+
+    expect(mandelbrot.palette()).toBe(grey)
+    expect(julia.palette()).toBe(grey)
+    expect(stubs.paletteUploads - uploads).toBe(2)
   })
 
   it('still follows a link to another palette', () => {

@@ -8,7 +8,7 @@
  * the Mandelbrot pane changes it as you watch.
  */
 import { formatMagnification } from '@chaos-master/core'
-import { createMemo, createSignal, onCleanup, Show } from 'solid-js'
+import { batch, createMemo, createSignal, onCleanup, Show } from 'solid-js'
 import { useToast } from '@/contexts/ToastContext'
 import { ChevronLeft, Settings, SplitView } from '@/icons'
 import { AutoCanvas } from '@/lib/AutoCanvas'
@@ -334,8 +334,12 @@ export function FractalExplorerPage() {
               update({ maxIterations })
             }}
             onPalette={(next) => {
-              setPicked(next)
-              update({ paletteId: next.id })
+              // Together, or the old id is looked up again in between and
+              // both panes recolour twice.
+              batch(() => {
+                setPicked(next)
+                update({ paletteId: next.id })
+              })
             }}
             onPeriod={setPeriod}
             onPhase={setPhase}
