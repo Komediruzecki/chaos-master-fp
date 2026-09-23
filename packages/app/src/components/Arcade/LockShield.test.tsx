@@ -13,14 +13,14 @@
  * Back (the Android button, or the iOS edge swipe on Home) pops the app's
  * back registry, which closed panels and layers under the lock, and with
  * nothing to close it sent the app to the background. Under the screen lock
- * it does nothing at all.
+ * it does nothing at all; on the end card after it, it closes the card.
  *
  * A seat lock (a duel) draws no shield: the viewer is playing, and keeps
  * every key and back.
  */
 import { cleanup, fireEvent, render, screen } from '@solidjs/testing-library'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { notePilotStep, pilot, resetPilot, startPilot } from '@/arcade/pilot'
+import { endPilot, notePilotStep, pilot, resetPilot, startPilot, } from '@/arcade/pilot'
 import { popBack, pushBackHandler } from '@/lib/backStack'
 import { useLifecyclePorts } from '@/lib/lifecycle'
 import { createMockCommandContext } from '@/webmcp/testUtils'
@@ -238,6 +238,25 @@ describe('back under the screen lock', () => {
 
     panel()
     resetPilot()
+    back.press()
+    expect(closed).toEqual(['drawer'])
+    drawer()
+  })
+
+  it('closes the end card after the take, and nothing under it', () => {
+    const back = backButton()
+    const closed: string[] = []
+    render(() => <PilotOverlay ctx={createMockCommandContext()} />)
+    const drawer = pushBackHandler(() => closed.push('drawer'), 'drawer')
+    drive('screen')
+    endPilot('stopped', { title: 'Warm tones' })
+    expect(screen.getByRole('dialog', { name: /Stopped by you/ })).toBeTruthy()
+
+    back.press()
+
+    expect(pilot().phase).toBe('idle')
+    expect(closed).toEqual([])
+    expect(back.minimizeApp).not.toHaveBeenCalled()
     back.press()
     expect(closed).toEqual(['drawer'])
     drawer()

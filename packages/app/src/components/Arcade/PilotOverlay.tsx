@@ -4,6 +4,7 @@ import { finishDuel } from '@/arcade/duelActions'
 import { agentDriving, drivingState, lastPilotSession, pilot, pilotElapsedMs, pilotLog, pilotOwnsKeyboard, resetPilot, } from '@/arcade/pilot'
 import { finishPilot } from '@/arcade/pilotActions'
 import { Robot, Stop } from '@/icons'
+import { createBackLayer } from '@/lib/backStack'
 import { LockShield } from './LockShield'
 import { formatElapsed, reasonLabel, savedLine } from './pilotFormat'
 import ui from './PilotOverlay.module.css'
@@ -135,7 +136,12 @@ export function PilotOverlay(props: {
 
   // Escape on the end card does what "Stay in the editor" does. A modal that
   // ignores Escape is a modal people feel stuck in, and by this point the
-  // take is already saved, so dismissing it costs nothing.
+  // take is already saved, so dismissing it costs nothing. So does back.
+  createBackLayer(
+    createMemo(() => ended() !== undefined),
+    resetPilot,
+    'arcade end card',
+  )
   createEffect(() => {
     if (!ended()) return
     const onKey = (ev: KeyboardEvent) => {
