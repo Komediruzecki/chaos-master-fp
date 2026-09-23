@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
+import { buildBla } from './bla'
 import { panView, zoomViewAt } from './deepZoomView'
+import { BAILOUT } from './perturbation'
+import { computeOrbit } from './referenceOrbit'
 import { backdropMapping, referenceServes, referenceSpecFor, standIn, } from './referencePlan'
 import type { ExplorerTarget, ReferenceState } from './referencePlan'
 
@@ -103,6 +106,47 @@ describe('a stand-in reference', () => {
     const julia = { ...base, kind: 'julia' as const }
     const other = { ...julia, juliaC: { re: '-0.8', im: '0.157' } }
     expect(standIn(referenceFor(julia), other)).toBeUndefined()
+  })
+})
+
+describe('zooming out of a Julia reference', () => {
+  const julia: ExplorerTarget = {
+    ...base,
+    kind: 'julia',
+    view: { centerRe: '0.1', centerIm: '0.2', zoomLog2: 20 },
+  }
+  const out = (t: ExplorerTarget) => ({
+    ...t,
+    view: { ...t.view, zoomLog2: t.view.zoomLog2 - 3 },
+  })
+
+  it('builds the same BLA table whatever reach it is asked for', () => {
+    // No `+ dc` in the recurrence, so the radii bound the delta alone, and
+    // the shader checks that per pixel however far the view is zoomed out.
+    const orbit = computeOrbit({
+      startRe: '0.1',
+      startIm: '0.2',
+      cRe: '-0.8',
+      cIm: '0.156',
+      bits: 80,
+      maxIterations: 5000,
+      escapeRadius: BAILOUT,
+    })
+    const table = (cMaxLog2: number) =>
+      new Uint8Array(buildBla(orbit, { hasDc: false, start: 0, cMaxLog2 }).data)
+    expect(table(-40)).toEqual(table(10))
+  })
+
+  it('keeps serving, with its BLA table, three octaves out', () => {
+    const ref = referenceFor(julia)
+    expect(standIn(ref, out(julia))).toEqual({ useBla: true })
+    expect(referenceServes(ref, out(julia))).toBe(true)
+  })
+
+  it('leaves the Mandelbrot set redoing its reference for the same zoom out', () => {
+    const ref = referenceFor(base)
+    expect(standIn(ref, out(base))).toEqual({ useBla: false })
+    expect(referenceServes(ref, out(base))).toBe(false)
   })
 })
 

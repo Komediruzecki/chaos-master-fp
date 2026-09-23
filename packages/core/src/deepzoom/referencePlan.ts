@@ -5,14 +5,16 @@
  * A reference serves a view while four things hold: it is the same fractal,
  * it was iterated with enough bits for the view's pixel size, it is long
  * enough for the iteration limit, and the view centre is close enough to it
- * that every pixel's offset still fits f32 with sub-pixel accuracy and inside
- * the radius its BLA table was built for. Rebasing makes *any* reference
+ * that every pixel's offset still fits f32 with sub-pixel accuracy and, for
+ * the Mandelbrot set, inside the radius its BLA table was built for. A Julia
+ * table has no such radius: with no `+ dc` term its radii bound the delta
+ * alone, which the shader checks per pixel. Rebasing makes *any* reference
  * correct, so these are about accuracy and speed, never about glitches.
  *
  * A reference that no longer serves can still *stand in* while the next is
  * computed, so a deep zoom keeps sharpening instead of waiting on the
- * worker: with half the guard bits, and without its BLA table once the
- * view has zoomed out past the table's radius.
+ * worker: with half the guard bits, and without its BLA table once a
+ * Mandelbrot view has zoomed out past the table's radius.
  */
 import { centerOffsetPixels, GUARD_BITS, log2PixelSpacing, viewBits, } from './deepZoomView'
 import type { DeepZoomView } from './deepZoomView'
@@ -35,6 +37,7 @@ export interface ReferenceSpec {
   readonly juliaC: ComplexString
   readonly bits: number
   readonly maxIterations: number
+  /** Mandelbrot only: log2 of the largest |dc| its BLA table is valid for. */
   readonly cMaxLog2: number
 }
 
@@ -102,9 +105,10 @@ export function referenceOffset(
 
 /**
  * Whether `ref` can keep rendering `t`, serving or not, and whether with its
- * BLA table. Past the table's radius every step is taken singly, which only
- * costs speed. Never across fractals or Julia constants, for a limit the
- * reference was not iterated to, or for a pan past the offset limit.
+ * BLA table. Past a Mandelbrot table's radius every step is taken singly,
+ * which only costs speed; a Julia table is never outgrown. Never across
+ * fractals or Julia constants, for a limit the reference was not iterated
+ * to, or for a pan past the offset limit.
  */
 export function standIn(
   ref: ReferenceState,
@@ -118,7 +122,7 @@ export function standIn(
   if (t.maxIterations > ref.maxIterations && !ref.complete) return undefined
   const offset = referenceOffset(ref, t)
   if (Math.hypot(offset.x, offset.y) > REFERENCE_OFFSET_LIMIT) return undefined
-  return { useBla: reachLog2(t) <= ref.cMaxLog2 }
+  return { useBla: t.kind === 'julia' || reachLog2(t) <= ref.cMaxLog2 }
 }
 
 export function referenceServes(
