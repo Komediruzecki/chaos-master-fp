@@ -6,12 +6,12 @@
 import { formatMagnification, homeView, JULIA_HOME } from '@chaos-master/core'
 import { createMemo, createSignal, Show } from 'solid-js'
 import { useToast } from '@/contexts/ToastContext'
-import { defaultPalettes } from '@/flame/palettes'
 import { ChevronLeft, Settings } from '@/icons'
 import { AutoCanvas } from '@/lib/AutoCanvas'
 import { downloadBlob } from '@/utils/blob'
 import { ExplorerControls } from './ExplorerControls'
 import { createExplorerLocation } from './explorerLocation'
+import { resolvePalette } from './explorerPalette'
 import { ExplorerRenderer } from './ExplorerRenderer'
 import ui from './FractalExplorerPage.module.css'
 import type { ExplorerGpu } from './explorerGpu'
@@ -28,22 +28,15 @@ const QUALITY: Record<Quality, { pixels: number; samples: number }> = {
   sharp: { pixels: 4_200_000, samples: 16 },
 }
 
-const DEFAULT_PALETTE_ID = 'plasma'
-
-function findPalette(id: string | undefined): Palette {
-  return (
-    defaultPalettes.find((p) => p.id === id) ??
-    defaultPalettes.find((p) => p.id === DEFAULT_PALETTE_ID) ??
-    defaultPalettes[0]!
-  )
-}
-
 export function FractalExplorerPage() {
   const { showToast } = useToast()
   const { location, update, link } = createExplorerLocation()
+  const [picked, setPicked] = createSignal<Palette | undefined>()
   // Read from the location, so a link pasted into this tab brings its
   // palette along with its view.
-  const palette = createMemo(() => findPalette(location().paletteId))
+  const palette = createMemo(() =>
+    resolvePalette(location().paletteId, picked()),
+  )
   const [period, setPeriod] = createSignal(64)
   const [phase, setPhase] = createSignal(0)
   const [relief, setRelief] = createSignal(0.5)
@@ -74,6 +67,7 @@ export function FractalExplorerPage() {
   }))
 
   function selectPalette(next: Palette) {
+    setPicked(next)
     update({ paletteId: next.id })
   }
 
