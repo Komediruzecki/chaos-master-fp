@@ -239,6 +239,25 @@ describe('the replay player and the Glide switches', () => {
     expect(lastFinishedSession()).toBe(recorded)
   })
 
+  it("names the viewer's own switches for an export, whatever the take holds", () => {
+    createRoot((dispose) => {
+      const player = createSessionPlayer(take, makeTarget().target)
+      expect(player.viewerGlideSwitches()).toEqual(VIEWER)
+      player.play()
+      playTo(1)
+      player.pause()
+      expect(switches()).toEqual({ enabled: true, quality: 'full' })
+      expect(player.viewerGlideSwitches()).toEqual(VIEWER)
+      flipAsViewer('glide.setQuality', 'auto')
+      expect(player.viewerGlideSwitches()).toEqual({
+        enabled: false,
+        quality: 'auto',
+      })
+      player.stop()
+      dispose()
+    })
+  })
+
   it('still rebuilds a paused replay after a live edit', () => {
     createRoot((dispose) => {
       const { target, loaded } = makeTarget()

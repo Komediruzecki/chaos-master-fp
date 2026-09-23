@@ -6,6 +6,7 @@ import { vec2f } from 'typegpu/data'
 import { executeReplayCommand, preflightReplayCommand, } from '@/commands/registry'
 import { qualityPresets } from '@/components/Quality/QualityPresets'
 import { planGlide } from '@/flame/glide/plan'
+import { glideFrameQuality, resolveGlideQuality } from '@/flame/glide/quality'
 import { APART_FROM_LIVE_GLIDE } from '@/flame/glide/runtime'
 import { sampleGlide } from '@/flame/glide/sample'
 import { isGlideRefusal } from '@/flame/glide/types'
@@ -13,7 +14,7 @@ import { tryValidateFlame } from '@/flame/schema/flameSchema'
 import { defaultTimelineConfig } from '@/flame/schema/timeline'
 import { deepClone } from '@/utils/clone'
 import { applyTracksToFlame, getUserEndFrame, loopOptsFromConfig, resolveLoopValue, } from '@/utils/timeline'
-import { glideMsForAction } from './glide'
+import { glideMsForAction, glideOptionsByStep } from './glide'
 import { closingHoldMs, stepGapMs } from './player'
 import { createPlayheadPacer } from './playWindowPace'
 import { planPlayWindows } from './playWindows'
@@ -24,7 +25,7 @@ import type { RecordedAction, RecordedSession, SessionViewSnapshot, TransformCol
 import type { SonificationSnapshot } from './sonificationState'
 import type { CommandContext } from '@/commands/types'
 import type { Palette } from '@/flame/colorMap'
-import type { GlidePlan } from '@/flame/glide/types'
+import type { GlidePlan, GlideQualityTier } from '@/flame/glide/types'
 import type { AudioWiringSnapshot } from '@/flame/schema/audioWiring'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 import type { TimelineSnapshot } from '@/flame/schema/timeline'
@@ -80,6 +81,8 @@ export type ReplayVideoSchedule = {
    * seen before the next step arrives.
    */
   glideFrames: number[]
+  /** The tier each glide renders at: the take's own, once its step ran. */
+  glideTiers: GlideQualityTier[]
   /** Whether the take played in the run after each step, and each step's
    *  take time: inside a play window every frame shows its own moment. */
   playing: boolean[]
@@ -448,9 +451,10 @@ export function createReplayVideoSchedule(
   }
   const spec = buildScheduleSpec(playbackSpeed, leadInMs, tailMs)
   // The same number the live player uses, from the same function, for the same
-  // reason the gap rule is shared.
-  const glideMs = session.actions.map((action) =>
-    glideMsForAction(action, glide),
+  // reason the gap rule is shared, at the tier the take has in force there.
+  const stepGlides = glideOptionsByStep(session, glide)
+  const glideMs = session.actions.map((action, index) =>
+    glideMsForAction(action, stepGlides[index]!),
   )
   const playing = planPlayWindows(session.actions).after.map(
     (window) => window !== undefined,
@@ -519,6 +523,7 @@ export function createReplayVideoSchedule(
     actionTimesMs,
     actionFrames,
     glideFrames,
+    glideTiers: stepGlides.map((options) => options.tier),
     playing,
     stepTakeMs: session.actions.map((action) => action.t),
     playbackSpeed: spec.playbackSpeed,
@@ -557,6 +562,17 @@ export function replayStateAtFrame(
   const until = schedule.stepTakeMs[actionIndex + 1] ?? Number.POSITIVE_INFINITY
   const takeMs = Math.min(until, schedule.stepTakeMs[actionIndex]! + ran)
   return { actionIndex, glideT, takeMs }
+}
+
+/** The render quality of one output frame: a glide frame at the tier of the
+ *  step it glides into, every settled frame at all of it. */
+export function replayFrameQuality(
+  schedule: ReplayVideoSchedule,
+  at: ReplayVideoStateAt,
+  quality: number,
+): number {
+  const tier = resolveGlideQuality(schedule.glideTiers[at.actionIndex])
+  return glideFrameQuality(quality, tier, at.glideT)
 }
 
 export function replayActionIndexAtFrame(
