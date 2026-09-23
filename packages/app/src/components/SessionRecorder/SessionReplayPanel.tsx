@@ -182,8 +182,7 @@ export function SessionReplayPanel(props: {
   const interfaceCaptureAvailable = () =>
     props.onExportVideo !== undefined && replayInterfaceCaptureSupported()
 
-  /** Whether the running export has taken the replay over yet: only then is
-   *  a failed or cancelled capture the end of it. */
+  /** Set once the running export takes the replay over (prepareReplay). */
   let exportTookReplay = false
   const prepareLiveReplay = () => {
     exportTookReplay = true
@@ -717,9 +716,8 @@ export function SessionReplayPanel(props: {
                         const result = exportVideo()(request)
                         void Promise.resolve(result)
                           .catch((error: unknown) => {
-                            // A capture that failed or was cancelled ends the
-                            // replay it started, whatever step it reached:
-                            // the playhead and the Glide switches go back.
+                            // A failed or cancelled capture ends the replay it
+                            // took: the playhead and Glide switches go back.
                             if (mode === 'interface' && exportTookReplay) {
                               player.stop()
                             }

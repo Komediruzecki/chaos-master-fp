@@ -24,11 +24,10 @@ type TimelinePlaybackReporter = (
   seatId?: SeatId,
   advanced?: number,
 ) => void
-/** A playing timeline's playhead and the frames it advanced since it started
- *  or last moved, or undefined when it is not playing. */
-type TimelinePlaybackProbe = () =>
-  | { frame: number; advanced: number }
-  | undefined
+/** A playing timeline's playhead and the frames it advanced since it started;
+ *  a probe reads undefined when it is not playing. */
+type PlaybackAt = { frame: number; advanced: number }
+type TimelinePlaybackProbe = () => PlaybackAt | undefined
 
 let reporter: DocumentWriteReporter | undefined
 let transportReporter: TimelineTransportReporter | undefined
@@ -69,9 +68,8 @@ export function notifyTimelineTransport(
  * things to a recording. A seek outside a command is transport the log cannot
  * name; a start or stop is a step it can: `frame` pins where the playhead was,
  * so a replay pauses exactly where the take paused, and `advanced` (on a stop)
- * the frames the playback moved on the way, so it plays there at the pace the
- * take did. Reported only when the playing state actually changes — a Pause
- * with nothing playing is not one.
+ * lets it play there at the take's pace. Reported only when the playing state
+ * actually changes — a Pause with nothing playing is not one.
  */
 export function setTimelinePlaybackReporter(
   fn: TimelinePlaybackReporter,
@@ -90,11 +88,8 @@ export function notifyTimelinePlayback(
 
 const playbackProbes = new Map<SeatId, TimelinePlaybackProbe>()
 
-/**
- * How a take that stops while its timeline plays learns where the playback
- * got to. Keyed by seat: the workspace's timeline and a duel's rival each
- * register their own, and the newest one of a seat wins.
- */
+/** How a take that stops while its timeline plays learns where the playback
+ *  got to, per seat (a duel's rival has its own); a seat's newest wins. */
 export function registerTimelinePlaybackProbe(
   seatId: SeatId,
   probe: TimelinePlaybackProbe,
@@ -105,8 +100,6 @@ export function registerTimelinePlaybackProbe(
   }
 }
 
-export function probeTimelinePlayback(
-  seatId: SeatId,
-): { frame: number; advanced: number } | undefined {
+export function probeTimelinePlayback(seatId: SeatId): PlaybackAt | undefined {
   return playbackProbes.get(seatId)?.()
 }

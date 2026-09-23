@@ -177,8 +177,7 @@ export type ReplayTarget = {
 export type ReplayPlayback = {
   /** The playhead, and the loop and fps it plays by, as they stand now. */
   read: () => PlaybackClock & { frame: number }
-  /** Put the playhead on `frame`, playing with the timeline's own clock off
-   *  so only the replay moves it, or paused. */
+  /** Put the playhead on `frame`, playing on the replay's clock, or paused. */
   hold: (frame: number, playing: boolean) => void
   /** Give the timeline its own clock back, playing or not. */
   release: () => void

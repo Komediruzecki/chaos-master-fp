@@ -1,12 +1,8 @@
 /**
  * A live timeline as a replay paces it: the `playback` a replay target hands
- * the player (recorder/player.ts), shared by the workspace and its tests so
- * both hold the playhead the same way.
- *
- * While the replay plays a window it sets `pacedPlayback`, which keeps the
- * render loop's own clock off the playhead (flame/Flam3.tsx), and moves the
- * playhead itself at the pace the take recorded. Every write is suppressed:
- * the replay's transport is not a step of anything.
+ * the player. While a window plays, `pacedPlayback` keeps the render loop's
+ * clock off the playhead (flame/Flam3.tsx) and the replay moves it itself.
+ * Every write is suppressed: the replay's transport is not a step.
  */
 
 import { batch } from 'solid-js'

@@ -178,11 +178,9 @@ export function closingHoldMs(
  * single owner of cadence, rather than at the call sites, for exactly that
  * reason: see {@link glideMsForAction} for where the number comes from.
  *
- * `playing` says the take's timeline was playing across the gap (a play
- * window, recorder/playWindows.ts). Then the take's own clock wins: the
- * playback advanced over the real gap, so the replay waits exactly that,
- * with no floor, ceiling, hold or glide, and arrives on the frame the take
- * recorded. Speed still divides it.
+ * `playing`: the take's timeline played across the gap (a play window,
+ * recorder/playWindows.ts), so the replay waits the real gap divided by speed,
+ * with no floor, ceiling, hold or glide, and lands on the recorded frame.
  */
 export function stepGapMs(
   previous: RecordedAction | undefined,
@@ -303,11 +301,8 @@ export function createSessionPlayer(
   })
   /** Where a replay Pause stopped the take's clock inside a window. */
   let resumeAt: number | undefined
-  /**
-   * The viewer's Glide switches, held while the replay runs. A take may
-   * switch Glide (`glide.setEnabled`, `glide.setQuality`); the switches follow
-   * the take while it plays and go back to the viewer's when it ends.
-   */
+  /** The viewer's Glide switches, held from the first step until the replay
+   *  ends; meanwhile the take's own steps switch them. */
   let glideLease: GlideSwitches | undefined
 
   function returnGlideSwitches(): void {
@@ -346,13 +341,11 @@ export function createSessionPlayer(
     // animation that happened to be on screen.
     target.settleGlide?.()
     if (preserveBaseline) {
-      // A replay Pause stops the take's clock, and the playback with it, so
-      // Resume carries on from this frame at the same pace.
+      // A replay Pause stops the take's clock here; Resume carries on from it.
       resumeAt = windows.now()
       if (resumeAt !== undefined) windows.holdAt(resumeAt, false)
     } else {
-      // An edit ends the replay: the timeline keeps its own clock from here,
-      // and the viewer gets their Glide switches back.
+      // An edit ends the replay: own clock, the viewer's Glide switches.
       endReplayState()
     }
     windows.stopClock()
@@ -586,8 +579,7 @@ export function createSessionPlayer(
     setIsPlaying(false)
     setIsFinished(true)
     closeBatch()
-    // A take that ended still playing leaves the timeline playing, on its
-    // own clock from here, as the take left it.
+    // A take that ended playing leaves the timeline playing, on its own clock.
     endReplayState()
     options.onFinished?.()
   }
@@ -603,8 +595,7 @@ export function createSessionPlayer(
 
   function scheduleNext() {
     const next = stepIndex() + 1
-    // Inside a window the wait is the take's own time to the next step, from
-    // wherever a Pause stopped its clock.
+    // Inside a window, wait the take's own time from where its clock stopped.
     const from = resumeAt ?? actions[stepIndex()]?.t
     resumeAt = undefined
     const paced =

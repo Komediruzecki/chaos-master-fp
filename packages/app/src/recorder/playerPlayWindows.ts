@@ -1,12 +1,8 @@
 /**
- * The replay player's half of a play window (recorder/playWindows.ts).
- *
- * Across a gap the take spent playing, the player waits the take's own time
- * and runs a take clock: take time at the wall clock's pace, times the replay
- * speed. Every frame it holds the playhead where the shared pace puts it, so
- * the replay plays the window as the take did and arrives on the recorded
- * frame. A target without a playback still waits the take's time; it just has
- * no playhead to hold.
+ * The replay player's half of a play window (recorder/playWindows.ts): across
+ * a gap the take spent playing, wait the take's own time, run a take clock
+ * (wall time times the replay speed) and hold the playhead on every frame
+ * where the shared pace puts it. A target without a playback only waits.
  */
 
 import { createPlayheadPacer } from './playWindowPace'

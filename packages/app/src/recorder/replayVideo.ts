@@ -551,8 +551,7 @@ export function replayStateAtFrame(
   const offset = frameIndex - schedule.actionFrames[actionIndex]!
   const glideT = count <= 0 || offset >= count ? 1 : (offset + 1) / (count + 1)
   if (!schedule.playing[actionIndex]) return { actionIndex, glideT }
-  // A frame inside a play window: the take time it shows, never past the
-  // step that comes next.
+  // Inside a play window: the take time it shows, never past the next step.
   const ran = ((offset * 1000) / schedule.fps) * schedule.playbackSpeed
   const until = schedule.stepTakeMs[actionIndex + 1] ?? Number.POSITIVE_INFINITY
   const takeMs = Math.min(until, schedule.stepTakeMs[actionIndex]! + ran)
@@ -626,8 +625,7 @@ export function createReplayVideoDriver(
   /** The flame each step glides out of, and the plan that does the gliding. */
   const glideSources = new Map<number, FlameDescriptor>()
   const glidePlans = new Map<number, GlidePlan | undefined>()
-  /** The playhead through the take's play windows, from the pace the in-app
-   *  replay uses too (recorder/playWindows.ts). */
+  /** The take's play windows, paced as the in-app replay paces them. */
   const pacer = createPlayheadPacer(session.actions)
   /** The take time the playhead was last paced to: it only walks forward. */
   let pacedTo = Number.NEGATIVE_INFINITY
@@ -1023,8 +1021,7 @@ export function createReplayVideoDriver(
     if (plan === undefined) return settled
     const sampled = sampleGlide(plan, glideT)
     return frameState(target, {
-      // While the take plays, the animation carries on through the glide,
-      // as the live canvas poses the gliding document at the moving frame.
+      // Inside a window the glide is posed at the moving frame, as live.
       flame: pacer.current()
         ? applyTimelinePose(sampled, timeline.snapshot)
         : sampled,

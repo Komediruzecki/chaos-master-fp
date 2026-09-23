@@ -3,14 +3,9 @@
  *
  * A window opens on a Play step and runs until whatever next stops or moves
  * the playhead: the Pause, a seek, another Play, or the end of the take. A
- * replay must play each one at the speed the take played it and arrive on the
- * frame the take recorded, so both the in-app player and the artwork export
- * read their playhead from the same pace (recorder/playWindowPace.ts). One
- * pace, not two.
- *
- * What the take tells us. A Pause records the frames the playback advanced
- * since the window opened (`timeline.setPlaying(false, frame, advanced)`), and
- * a take stopped while playing ends on `setPlaying(true, frame, advanced)`.
+ * stop records the frames the playback advanced (`setPlaying(false, frame,
+ * advanced)`, or `setPlaying(true, ...)` for a take stopped while playing),
+ * and both replays pace a window the same way (recorder/playWindowPace.ts).
  */
 
 import { isAdvanceCount, TIMELINE_PLAYBACK_COMMAND_ID } from './transportStep'
@@ -50,11 +45,7 @@ export type PlayWindowPlan = {
   after: (PlayWindow | undefined)[]
 }
 
-export type PlaybackStep = {
-  playing: boolean
-  frame: number
-  advanced?: number
-}
+type PlaybackStep = { playing: boolean; frame: number; advanced?: number }
 
 const isCount = (value: unknown): value is number =>
   typeof value === 'number' && Number.isInteger(value) && value >= 0
