@@ -521,6 +521,21 @@ describe('the gallery hover preview, and every write of the document', () => {
     }
   })
 
+  it('is not stored by Save for Later', async () => {
+    const { autosave, setOpen, hover } = previewWorkspace()
+    autosave.markLoadedBaseline()
+    setOpen((draft) => {
+      draft.metadata = { ...draft.metadata, name: 'Edited' }
+    })
+    hover()
+
+    await autosave.saveForLater()
+
+    expect(stored().metadata?.name).toBe('Edited')
+    expect(stored().renderSettings.blendFlame).toBeUndefined()
+    expect(autosave.isFlameDirty()).toBe(false)
+  })
+
   it('is not unsaved work on its own', () => {
     {
       const { autosave, hover, open } = previewWorkspace()

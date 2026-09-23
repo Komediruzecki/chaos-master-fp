@@ -9,8 +9,8 @@
  * shortcuts: the viewer is playing the other seat and keeps their keyboard.
  *
  * And two keys that claimed more than they used, lock or no lock: F with a
- * modifier is the browser's (Ctrl+F is find), and I with nothing to keyframe
- * is nobody's.
+ * modifier and I with Ctrl or Cmd are the browser's (Ctrl+F is find), and I
+ * with nothing to keyframe is nobody's, Shift+I included.
  */
 import '@/commands/builtins'
 import { createRoot } from 'solid-js'
@@ -302,6 +302,42 @@ describe('the keyframe keys', () => {
     expect(removeKeyframe).not.toHaveBeenCalled()
     expect(add.defaultPrevented).toBe(false)
     expect(remove.defaultPrevented).toBe(false)
+  })
+
+  // Once I stopped claiming the key with nothing targeted, Shift+I fell
+  // through to a command shortcut nobody could reach before: it set the
+  // skipped iterations to 1.
+  it('Shift+I with nothing targeted changes nothing', () => {
+    const { ctx, addKeyframe } = mount()
+
+    const ev = press('KeyI', 'I', { shiftKey: true })
+
+    expect(ctx.setFlameDescriptor).not.toHaveBeenCalled()
+    expect(ctx.flameDescriptor().renderSettings.skipIters).toBe(20)
+    expect(addKeyframe).not.toHaveBeenCalled()
+    expect(ev.defaultPrevented).toBe(false)
+  })
+
+  it('Shift+I keyframes the targeted parameter, as I does', () => {
+    const { addKeyframe } = mount({ targetedParameter: target })
+
+    expect(press('KeyI', 'I', { shiftKey: true }).defaultPrevented).toBe(true)
+    expect(addKeyframe).toHaveBeenCalledWith('renderSettings.exposure')
+  })
+
+  it.each([
+    { name: 'Ctrl+I', mods: { ctrlKey: true } },
+    { name: 'Cmd+I', mods: { metaKey: true } },
+    { name: 'Ctrl+Alt+I', mods: { ctrlKey: true, altKey: true } },
+    { name: 'Cmd+Alt+I', mods: { metaKey: true, altKey: true } },
+  ])('$name is left to the browser and keyframes nothing', ({ mods }) => {
+    const { addKeyframe, removeKeyframe } = mount({ targetedParameter: target })
+
+    const ev = press('KeyI', 'i', mods)
+
+    expect(addKeyframe).not.toHaveBeenCalled()
+    expect(removeKeyframe).not.toHaveBeenCalled()
+    expect(ev.defaultPrevented).toBe(false)
   })
 })
 

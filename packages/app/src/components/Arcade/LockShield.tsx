@@ -1,14 +1,15 @@
 /**
  * The Arcade screen lock's shield, over everything while the agent drives.
  *
- * It is portalled under `<body>` so the rest of the page can be made inert
- * around it (screenLockInert.ts), and it holds the focus while it is up: no
- * control the viewer had focused keeps the keyboard. When it goes it hands
- * `onRelease` that control, for whoever takes the focus next.
+ * A modal `<dialog>` portalled under `<body>` and held in the browser's top
+ * layer (topLayer.ts): above every other modal, the rest of the page inert,
+ * and the focus in it, so no control the viewer had focused keeps the
+ * keyboard. When it goes it hands `onRelease` that control, for whoever takes
+ * the focus next.
  */
 import { onCleanup, onMount } from 'solid-js'
 import { Portal } from 'solid-js/web'
-import { inertOutside } from './screenLockInert'
+import { holdTopLayer } from './topLayer'
 import type { ParentProps } from 'solid-js'
 
 export function LockShield(
@@ -18,15 +19,14 @@ export function LockShield(
     onRelease: (focusBefore: HTMLElement | undefined) => void
   }>,
 ) {
-  let shield!: HTMLDivElement
+  let shield!: HTMLDialogElement
   onMount(() => {
     const active = document.activeElement
     const focusBefore =
       active instanceof HTMLElement && active !== document.body
         ? active
         : undefined
-    const release = inertOutside(shield)
-    shield.focus({ preventScroll: true })
+    const release = holdTopLayer(shield)
     onCleanup(() => {
       release()
       props.onRelease(focusBefore)
@@ -34,16 +34,18 @@ export function LockShield(
   })
   return (
     <Portal>
-      <div
+      <dialog
         ref={shield}
         class={props.class}
-        role="dialog"
-        aria-modal="true"
         aria-label={props.label}
         tabIndex={-1}
+        // Escape is the pilot's own (PilotOverlay), and nothing else closes it.
+        onCancel={(ev) => {
+          ev.preventDefault()
+        }}
       >
         {props.children}
-      </div>
+      </dialog>
     </Portal>
   )
 }
