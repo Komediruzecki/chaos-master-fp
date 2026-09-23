@@ -79,13 +79,13 @@ backdrop:
 | 80%                                    | 9.30  | 5.39  | 3.64  | 3.85   |
 | 86% (`--la-glass-strong`)              | 11.55 | 6.69  | 4.52  | 4.79   |
 
-Minimum fill for 4.5:1: ink 60%, ink-2 75%, accent 84%, ink-3 86%. Options for panels that
-carry text:
+Minimum fill for 4.5:1: ink 61%, ink-2 76%, accent 85%, ink-3 86% (exactly 60.3, 75.3, 84.3
+and 85.9). Options for panels that carry text:
 
 1. Keep 72%. It fails over bright art.
 2. **Chosen.** A new `--la-glass-panel` at 80%, and inside glass the lowest text tier is
    ink-2 (captions move up from ink-3). This stays closest to today's look. Accent stays
-   out of text on glass, since it needs 84%; use it for fills and edges there.
+   out of text on glass, since it needs 85%; use it for fills and edges there.
 3. 86% everywhere. Every tier passes, but the panel is visibly less see-through.
 
 This also applies to the explorer (single mode, and the phone bottom sheet; in the split view
@@ -110,15 +110,28 @@ Built into the primitive, so no surface can get them wrong:
   nested blur samples only its parent's fill (the parent is a backdrop root), so this is pure
   saving with no visual change. It removes today's explorer stepper buttons, the HUD tooltip and
   the SoftwareVersion menu items as costs.
-- **Both properties are always written.** The build emits `backdrop-filter` unprefixed
-  (`build.target: 'esnext'` gives LightningCSS empty targets), and iOS Safari needs the prefix
-  below 18.
+- **Both properties are always written, `-webkit-` first.** The build's minifier keeps only the
+  later of the two spellings in a rule (`build.target: 'esnext'` gives LightningCSS no browser
+  targets). Phase 0 found 26 rules written standard first, the primitive's own among them, so
+  production shipped them as `-webkit-backdrop-filter` alone: Chrome, Firefox and Android drew
+  every glass surface without its blur, while dev showed it. With `-webkit-` first the build
+  ships the standard spelling (85 declarations, none prefixed); only iOS below 18 goes without,
+  and it has no WebGPU. The guard test requires the order. Keeping both spellings would take
+  browser targets for the CSS build, which changes far more of the output than this.
 - **`@supports not (...)`** falls back to `solid`.
 - **The busy switch.** `:root[data-glass='busy'] .panel` goes `solid`. Sharp moving art behind
   text is worse than an opaque panel. This is the rail sheet's "solid past peek" rule
-  (`TouchSurface/EditorRail.module.css:54-62`) generalised. The attribute is written in one place,
-  from one signal: playback, export, audio modulation or a slider drag, meaning any state where the
-  canvas presents every frame.
+  (`TouchSurface/EditorRail.module.css:54-62`) generalised. The attribute is written in one place
+  (`writeGlassBusy` in `lib/glass.ts`), from one signal (`hooks/useWorkspaceGlassBusy.ts`):
+  playback, an export, audio modulation, or a gesture holding a history preview open (a slider,
+  the camera, a colour or affine drag), meaning any state where the canvas presents every frame.
+  The canvas converging after an edit is not busy. The attribute follows the state only once it
+  has held for 150 ms (`GLASS_BUSY_SETTLE_MS`), in both directions, so a tap does not flash the
+  panels solid.
+- **The setting.** "Glass panels (experimental)", off by default, stored as `chaos-glass-panels`
+  (`glassPanels()` in `lib/glass.ts`). It writes `data-glass-panels='on'` on `<html>` before the
+  first render, and CSS reads it as `:global(:root[data-glass-panels='on'])`. The toggle is in
+  More, then "Settings and more", on touch layouts only.
 - **Reduce Transparency and More Contrast** come free through the tokens.
 - **New tokens:** `--la-glass-panel`, and a smaller `--la-glass-blur-sm` for chips if device
   numbers ask for it. No new literal radii or blur values anywhere else.
@@ -132,7 +145,8 @@ Built into the primitive, so no surface can get them wrong:
   `TouchSurface/TouchSurface`, `TouchSurface/EditorRail`. Also move the unused global `.la-glass`
   class (`lumen.css:269-275`), then delete it.
 - Explorer follow-ups: its 640/641px breakpoint to the app's `PHONE_MAX_WIDTH` 680 (it
-  contradicts `lumen.css:338-343`), and the fill and text tier per (c).
+  contradicts `lumen.css:338-343`), and the fill and text tier per (c). Done; its HUD still
+  overflows sideways at 390px, which phase 1 takes.
 
 **Phase 1: phone and narrow tablet, the rail layout** (M)
 
@@ -221,8 +235,8 @@ Each rule comes from one of the earlier cuts.
 - **iOS, stale swapchain.** WebKit shows stale WebGPU buffers when a canvas is not presented
   every frame (PR #63 fixed the editor with a present pump; the explorer has none). A
   CoreAnimation blur over an idle WebGPU canvas is untested. Check on a device before phase 2.
-- **iOS, web below 18.** It needs `-webkit-backdrop-filter`, which the primitive always writes.
-  The native build targets iOS 26.
+- **iOS, web below 18.** It reads only `-webkit-backdrop-filter`, which the build drops (section
+  3), so it shows no blur. It has no WebGPU either. The native build targets iOS 26.
 - **Android.** Mid-range GPUs are the worst case for blur. The shell bar is already an opaque
   Material bar there (`ShellBar.module.css:221-285`). Default the large panels on Android to
   `flat` or `solid` until measured.
@@ -231,15 +245,21 @@ Each rule comes from one of the earlier cuts.
 
 **In CI**
 
-- **Glass guard test.** It enforces three things:
+- **Glass guard test** (`styles/designSystem/glassBlurs.test.ts`). It enforces three things:
   - Literal `backdrop-filter` declarations outside the primitive can only go down (a ratchet
-    from 59).
-  - Every blur has its `-webkit-` twin.
-  - No module nests its own glass.
+    from 59, pinned exactly).
+  - Every blur has its `-webkit-` twin with the same value, in a stylesheet rule or an inline
+    style object.
+  - In a stylesheet, the `-webkit-` spelling comes first (section 3).
 
-  It reads the tree, so it must be registered in `scripts/always-on-tests.mjs`.
+  A static "no module nests its own glass" check was not built. The primitive's nested rule
+  flattens any glass class inside another at run time, which a static check could not see
+  through anyway (nesting happens across components). A literal blur inside glass is not caught;
+  the ratchet pushes those toward zero. The test reads the tree, so it is registered in
+  `scripts/always-on-tests.mjs`.
 
-- **Contrast test.** The table in (c), computed from `lumen.css`. It checks that every text tier
+- **Contrast test** (`styles/designSystem/glassContrast.test.ts`). The table in (c), computed
+  from `lumen.css`. It checks that every text tier
   allowed on each glass tier meets 4.5:1 over white and over black.
 - **Busy-switch tests.** Unit tests for which states set the busy attribute.
 
