@@ -1,0 +1,137 @@
+/*
+ * Glass: the one place a surface takes its see-through look from
+ * (docs/plans/glass-panels.md, section 3). The fills, the blur, the edge and
+ * the shadow are the --la-glass* tokens in lumen.css; this file decides how
+ * they combine, so that no surface can combine them wrongly.
+ *
+ * THE CLASSES
+ *
+ *   chrome  --la-glass fill (72%), blurred. Small floating chrome whose
+ *           text is ink: pills, icon buttons, toasts.
+ *   panel   --la-glass-panel fill (80%), blurred. Panels and sheets that
+ *           carry text, none of it below ink-2. Goes solid while busy.
+ *   flat    --la-glass fill, no blur. The cheap glass, for glass that is
+ *           nested or that has no artwork behind it.
+ *   solid   --la-glass-solid fill (96%), no blur. What busy and the
+ *           fallback turn a panel into, and usable on its own.
+ *
+ * Each carries --la-glass-edge and --la-glass-shadow and writes both
+ * backdrop-filter and -webkit-backdrop-filter: iOS Safari before 18 reads
+ * only the prefixed one.
+ *
+ * USING THEM. Compose the class into the surface's own, as the first
+ * declaration of a rule whose selector is that one class (composes allows
+ * nothing else):
+ *
+ *     .sheet {
+ *       composes: panel from '@/styles/designSystem/glass.module.css';
+ *       border-radius: var(--la-r-sheet) var(--la-r-sheet) 0 0;
+ *     }
+ *
+ * The element then carries both class names. That was checked with the @/
+ * alias and with a relative path, in the dev server and in the build; the
+ * repo uses the alias. Where the glass is conditional - behind the Glass
+ * panels setting, say - import this module in the component and add the
+ * class there instead, since a composes cannot be switched off. The names
+ * are the same ones:
+ *
+ *     import glass from '@/styles/designSystem/glass.module.css'
+ *     <aside class={ui.deck} classList={{ [glass.panel!]: on() }}>
+ *
+ * Composing copies this file into every module that composes it (that is
+ * how postcss-modules resolves composes), and the minifier then keeps one
+ * copy in a place of its choosing. Everything below is written so that
+ * neither the copies nor their order can change what a surface gets. Keep
+ * url() out of this file: the copies carry no file name to resolve it from,
+ * which is what the build's "did not pass the `from` option" warning is
+ * about.
+ *
+ * OVERRIDING. The classes' own declarations weigh one type selector
+ * (:where() plus :not(html)): as much as the preflight's `button` reset,
+ * which comes first and so loses, and less than any class. A surface
+ * therefore overrides them with a plain declaration in its own rule -
+ * another --la-glass* fill, another shadow, an edge on fewer sides - and
+ * wins in any order. Keep to the tokens. What this file enforces weighs more
+ * than one class and is not undone that way:
+ *
+ *   - Nested glass flattens itself. Any of the four inside any other drops
+ *     its blur and keeps its fill. A blur inside a blur samples its parent's
+ *     fill rather than the artwork (the parent is a backdrop root), so this
+ *     changes nothing on screen and saves a blur on every composited frame.
+ *   - Busy. While <html> carries data-glass="busy", a panel is solid: sharp
+ *     moving art behind text reads worse than an opaque panel. The blur goes
+ *     at once and the fill fades on the panel's background-color
+ *     transition, which is the only transition this file sets. A surface
+ *     that sets its own transition adds background-color to its list, or
+ *     the fill snaps.
+ *   - Fallback. Where neither spelling of backdrop-filter is supported, all
+ *     four are solid.
+ *   - Reduce Transparency and More Contrast reach here through the tokens
+ *     (lumen.css), and need nothing of their own.
+ *
+ * ATTRIBUTES ON <html>, for what a class cannot say:
+ *
+ *   data-glass="busy"       the editor canvas presents every frame: playback,
+ *                           an export, audio modulation, a drag.
+ *   data-glass-panels="on"  the experimental Glass panels setting. Nothing
+ *                           reads it yet. A CSS module reaches it as
+ *                           :global(:root[data-glass-panels='on']).
+ */
+
+/* ---- The classes --------------------------------------------------- */
+
+:where(.chrome, .panel, .flat, .solid):not(html) {
+  border: var(--la-glass-edge);
+  box-shadow: var(--la-glass-shadow);
+}
+
+:where(.chrome):not(html) {
+  background: var(--la-glass);
+  backdrop-filter: var(--la-glass-blur);
+  -webkit-backdrop-filter: var(--la-glass-blur);
+}
+
+:where(.panel):not(html) {
+  background: var(--la-glass-panel);
+  backdrop-filter: var(--la-glass-blur);
+  -webkit-backdrop-filter: var(--la-glass-blur);
+  transition: background-color var(--la-dur-fast) var(--la-ease);
+}
+
+:where(.flat):not(html) {
+  background: var(--la-glass);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+:where(.solid):not(html) {
+  background: var(--la-glass-solid);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* ---- What they enforce ---------------------------------------------- */
+
+/* One blurred layer. Two classes' weight, so a surface cannot put it back. */
+:is(.chrome, .panel, .flat, .solid) :is(.chrome, .panel, .flat, .solid) {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* No transition here: at this weight it would replace the surface's own,
+   and a sheet's height would stop animating whenever the canvas is busy. */
+:root[data-glass='busy'] .panel {
+  background: var(--la-glass-solid);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* Written as two negations joined by `and` rather than `not (a or b)`: the
+   minifier cuts the `or` down to the unprefixed test alone, which holds on
+   iOS Safari before 18 and would turn all of its glass solid. */
+@supports (not (backdrop-filter: blur(1px))) and
+  (not (-webkit-backdrop-filter: blur(1px))) {
+  :root :is(.chrome, .panel, .flat) {
+    background: var(--la-glass-solid);
+  }
+}
