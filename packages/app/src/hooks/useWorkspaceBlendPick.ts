@@ -2,16 +2,31 @@
  * The partner gallery's hover preview, and the pick that commits a partner.
  *
  * The gallery serves five pickers, and what a hover shows depends on which
- * one it is serving: a child of the two flames for a breed, the blend for
- * the rest.
+ * one it is serving: a child of the two flames for a breed, the blend for a
+ * blend or a morph, and nothing at all for Evolve and Diff, which open a view
+ * of the flame and never use a blend (maff's call; the tile's name still
+ * shows over the canvas). A hover that arrives for one picker ends whatever
+ * another left showing, since the picker can change inside the gallery's
+ * clear delay, and Breed must never cross a blend into its parent A.
  *
- * Hovering a tile shows the blend at the default weight by writing the
- * document silently: a hover must not reach the undo stack or the recorder.
- * Leaving the tiles puts back exactly what the document had, an absent weight
- * included, and so does every other way out: the gallery ends its preview
- * however it goes away, when Home or the Arcade covers it and when the page
- * is hidden (BlendFlameGallery), and an Evolve or Diff pick ends it before the
- * view it opens reads the document (WorkspaceSidebar).
+ * Hovering a tile writes the document silently: a hover must not reach the
+ * undo stack or the recorder. Leaving the tiles puts back exactly what the
+ * document had, an absent weight included, and so does every other way out:
+ * the gallery ends its preview however it goes away, when Home or the Arcade
+ * covers it and when the page is hidden (BlendFlameGallery), an Evolve or
+ * Diff pick ends it before the view it opens reads the document
+ * (WorkspaceSidebar), and MainWorkspace ends it before every undo and redo,
+ * so time travel is computed against the document the entry describes.
+ *
+ * Putting back is only right while the document still holds what the
+ * preview wrote. A load, a replay or anything else that replaces the
+ * document under a resting pointer made the old restore write stale fields
+ * over the new document; now the preview is dropped instead, and a hover
+ * that follows starts from the new document.
+ *
+ * Nothing that saves the document may store a preview either: `withoutPreview`
+ * is the document as it is with the hover taken off, which is what autosave
+ * reads (useWorkspaceAutosave).
  *
  * A pick ends the preview first and commits second, inside one batch. The
  * order is the point: the history entry the commit pushes then spans the
@@ -60,9 +75,40 @@ type ReplacedBlend = {
   weight: number | undefined
 }
 
+/** A value as JSON with its keys sorted: the store keeps a partner's keys in
+ *  whatever order its writes left them, so a plain stringify of the same
+ *  flame could differ from the copy that was written. */
+function fingerprint(value: unknown): string {
+  return JSON.stringify(value, (_key, field: unknown) =>
+    field !== null && typeof field === 'object' && !Array.isArray(field)
+      ? Object.fromEntries(
+          Object.entries(field).sort(([a], [b]) => (a < b ? -1 : 1)),
+        )
+      : field,
+  )
+}
+
+/** The fields of a blend preview, as a document holds them. */
+function blendFields(flame: FlameDescriptor): string {
+  const { blendFlame, blendWeight } = unwrap(flame).renderSettings
+  return fingerprint({ blendFlame, blendWeight })
+}
+
+/**
+ * The part of a document a breed preview is recognised by: the child's own
+ * transforms and name. Not its render settings, which the 3D auto-exposure
+ * rewrites under a showing child (useWorkspaceCamera).
+ */
+function breedFields(flame: FlameDescriptor): string {
+  const { transforms, metadata } = unwrap(flame)
+  return fingerprint({ transforms, metadata })
+}
+
 export function useWorkspaceBlendPick(params: UseWorkspaceBlendPickParams) {
   const intent = params.intent ?? (() => 'blend' as const)
   let replaced: ReplacedBlend | undefined
+  /** The blend fields the preview wrote, to recognise them by. */
+  let blendShown: string | undefined
 
   /**
    * The child generated for whichever candidate is hovered, so clicking opens
@@ -74,7 +120,32 @@ export function useWorkspaceBlendPick(params: UseWorkspaceBlendPickParams) {
   )
   /** The workspace flame as it was before a breed preview replaced it. */
   let breedRestore: FlameDescriptor | undefined
+  /** The child the breed preview wrote, to recognise it by. */
+  let breedShown: string | undefined
   let breedTimer: ReturnType<typeof setTimeout> | undefined
+
+  /** The document still shows the blend the preview wrote. */
+  const holdsBlend = () =>
+    blendShown !== undefined && blendFields(params.flame()) === blendShown
+  /** The document still shows the child the breed preview wrote. */
+  const holdsBreed = () =>
+    breedShown !== undefined && breedFields(params.flame()) === breedShown
+
+  /**
+   * Forget a preview the document no longer shows: something replaced it
+   * (a load, a replay), and what it replaced is stale.
+   */
+  function dropStale(): void {
+    if (replaced !== undefined && !holdsBlend()) {
+      replaced = undefined
+      blendShown = undefined
+    }
+    if (breedRestore !== undefined && !holdsBreed()) {
+      breedRestore = undefined
+      breedShown = undefined
+      setBreedChild(undefined)
+    }
+  }
 
   function writeDescriptor(next: FlameDescriptor) {
     const value = deepClone(next)
@@ -86,14 +157,17 @@ export function useWorkspaceBlendPick(params: UseWorkspaceBlendPickParams) {
     })
   }
 
-  /** Put back the flame a breed preview replaced. */
+  /** Put back the flame a breed preview replaced, if the child is still
+   *  what the document shows. */
   function endBreed(): void {
     clearTimeout(breedTimer)
     breedTimer = undefined
+    dropStale()
     setBreedChild(undefined)
     if (breedRestore !== undefined) {
       writeDescriptor(breedRestore)
       breedRestore = undefined
+      breedShown = undefined
     }
   }
 
@@ -114,6 +188,7 @@ export function useWorkspaceBlendPick(params: UseWorkspaceBlendPickParams) {
   function previewBreedChild(flame: FlameDescriptor): void {
     clearTimeout(breedTimer)
     breedTimer = setTimeout(() => {
+      dropStale()
       const parentA = breedRestore ?? unwrap(params.flame())
       const [child] = breedFlames(parentA, flame, {
         count: 1,
@@ -128,22 +203,27 @@ export function useWorkspaceBlendPick(params: UseWorkspaceBlendPickParams) {
       breedRestore ??= deepClone(unwrap(params.flame()))
       setBreedChild(child)
       writeDescriptor(child)
+      breedShown = breedFields(params.flame())
     }, BREED_PREVIEW_DELAY_MS)
   }
 
   /**
-   * The gallery's hover: a child for a breed, the blend for the rest, and
-   * `null` ends it. Ending it ends both, whatever the intent is by then,
-   * since the intent can change under a live preview. The gallery ends what
-   * it started however it is left, closed or not (BlendFlameGallery).
+   * The gallery's hover: a child for a breed, the blend for a blend or a
+   * morph, nothing for Evolve and Diff, and `null` ends it. Each kind ends
+   * the other first: the intent can change inside the gallery's clear delay,
+   * under a preview the last picker left, and a breed that started over a
+   * live blend crossed it into parent A and into every child it showed.
    */
   function preview(flame: FlameDescriptor | null): void {
-    if (flame === null) {
+    const serving = intent()
+    if (flame === null || serving === 'evolve' || serving === 'diff') {
       endBreed()
       endBlend()
-    } else if (intent() === 'breed') {
+    } else if (serving === 'breed') {
+      endBlend()
       previewBreedChild(flame)
     } else {
+      endBreed()
       previewBlend(flame)
     }
   }
@@ -156,6 +236,7 @@ export function useWorkspaceBlendPick(params: UseWorkspaceBlendPickParams) {
     // anyway changed the hovered NAME while the picture stayed put, which reads
     // as a broken preview rather than an unsupported one. Skip it instead.
     if ((flame.renderSettings.dimensions ?? 2) === 3) return
+    dropStale()
     if (replaced === undefined) {
       const { blendFlame, blendWeight } = params.flame().renderSettings
       replaced = {
@@ -167,13 +248,17 @@ export function useWorkspaceBlendPick(params: UseWorkspaceBlendPickParams) {
       draft.renderSettings.blendFlame = deepClone(flame)
       draft.renderSettings.blendWeight = DEFAULT_BLEND_WEIGHT
     })
+    blendShown = blendFields(params.flame())
   }
 
-  /** Put back what the blend preview replaced. Nothing to do without one. */
+  /** Put back what the blend preview replaced, if the document still shows
+   *  the preview. Nothing to do without one. */
   function endBlend(): void {
+    dropStale()
     const restore = replaced
     if (restore === undefined) return
     replaced = undefined
+    blendShown = undefined
     params.setSilently((draft) => {
       if (restore.flame === undefined) delete draft.renderSettings.blendFlame
       else draft.renderSettings.blendFlame = deepClone(restore.flame)
@@ -189,7 +274,7 @@ export function useWorkspaceBlendPick(params: UseWorkspaceBlendPickParams) {
    */
   function commit(run: () => void): void {
     batch(() => {
-      endBlend()
+      end()
       run()
     })
   }
@@ -203,8 +288,30 @@ export function useWorkspaceBlendPick(params: UseWorkspaceBlendPickParams) {
 
   /** End whatever hover preview is showing. */
   function end(): void {
-    preview(null)
+    endBreed()
+    endBlend()
   }
 
-  return { preview, end, endBreed, breedChild, commit, pick }
+  /**
+   * The document as a save should store it: with a hover preview the
+   * document still shows taken off, and the document itself otherwise.
+   * Reads only; the preview stays on screen.
+   */
+  function withoutPreview(): FlameDescriptor {
+    const flame = params.flame()
+    if (breedRestore !== undefined && holdsBreed()) return breedRestore
+    const restore = replaced
+    if (restore === undefined || !holdsBlend()) return flame
+    const saved = deepClone(unwrap(flame))
+    if (restore.flame === undefined) delete saved.renderSettings.blendFlame
+    else
+      saved.renderSettings.blendFlame = deepClone(
+        restore.flame,
+      )
+    if (restore.weight === undefined) delete saved.renderSettings.blendWeight
+    else saved.renderSettings.blendWeight = restore.weight
+    return saved
+  }
+
+  return { preview, end, breedChild, commit, pick, withoutPreview }
 }

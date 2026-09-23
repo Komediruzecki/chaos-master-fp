@@ -510,8 +510,12 @@ export function MainWorkspace(props: AppProps) {
       // document is about to stop.
       onBeforeDocumentWrite: yieldGlideToDocumentWrite,
       // Time travel is a change too, and one computed from the entry's own end
-      // state, so it lands the transition instead of taking it off.
-      onBeforeTimeTravel: settleGlideBeforeTimeTravel,
+      // state, so it lands the transition instead of taking it off. The
+      // gallery's hover preview comes off first for the same reason.
+      onBeforeTimeTravel: () => {
+        settleGlideBeforeTimeTravel()
+        blendPick.end()
+      },
     },
   )
 
@@ -4198,7 +4202,7 @@ export function MainWorkspace(props: AppProps) {
               blendIntent={blendIntent}
               setupMorph={setupMorph}
               breedPreviewChild={blendPick.breedChild}
-              endBreedPreview={blendPick.endBreed}
+              endBreedPreview={blendPick.end}
               _requestModal={_requestModal}
               showToast={showToast}
               executeFlameLoad={executeFlameLoad}
