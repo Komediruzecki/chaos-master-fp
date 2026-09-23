@@ -41,6 +41,9 @@ registerCommand({
         ? 'Animate changes'
         : 'Stop animating changes'
       : undefined,
+  // Neither switch changes a document, so a live flip is no edit: a paused
+  // replay resumes where it paused, and a finished take stays attached.
+  preservesFinishedSession: true,
   execute(ctx, on?: unknown) {
     if (typeof on !== 'boolean') return
     ;(ctx.glideSwitches?.setEnabled ?? setGlideEnabled)(on)
@@ -54,6 +57,7 @@ registerCommand({
     'Choose how much render quality a glide gives up while it moves: "responsive" (fastest), "balanced", "full" (no downshift, so each frame takes longer), or "auto" to follow the render quality preset. A glide always settles at full quality whichever tier is chosen.',
   describe: ([tier]) =>
     typeof tier === 'string' ? `Glide quality: ${tier}` : undefined,
+  preservesFinishedSession: true,
   execute(ctx, tier?: unknown) {
     if (!isGlideQualityPreference(tier)) return
     ;(ctx.glideSwitches?.setQuality ?? setGlideQualityPreference)(tier)
