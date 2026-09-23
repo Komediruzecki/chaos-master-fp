@@ -18,8 +18,10 @@ export function createExplorerLocation() {
 
   createEffect(() => {
     const fragment = formatExplorerHash(location())
-    if (fragment === written) return
+    // A write still pending is stale either way: back where the URL already
+    // is, or superseded by the fragment below.
     clearTimeout(timer)
+    if (fragment === written) return
     timer = setTimeout(() => {
       written = fragment
       const { pathname, search } = window.location
@@ -33,6 +35,8 @@ export function createExplorerLocation() {
 
   const onHashChange = () => {
     if (window.location.hash === written) return
+    // The link that was followed wins over a drag not yet written.
+    clearTimeout(timer)
     const next = parseExplorerHash(window.location.hash)
     written = formatExplorerHash(next)
     setLocation(next)
