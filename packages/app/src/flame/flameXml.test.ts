@@ -609,7 +609,11 @@ describe('exportFlameXml', () => {
     const t = xforms(flame)[0]!
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ;(t as any).variations = {
-      v0: { type: 'custom_abc123', weight: 1, visible: true },
+      v0: {
+        type: 'custom_0c1d2e3f_4a5b_4c6d_8e7f_9a0b1c2d3e4f',
+        weight: 1,
+        visible: true,
+      },
     }
     const xml = exportFlameXml(flame)
     expect(xml).not.toContain('custom')
@@ -622,7 +626,11 @@ describe('exportFlameXml', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ;(t as any).variations = {
       v0: { type: 'sphericalVar', weight: 1, visible: true },
-      v1: { type: 'custom_xyz', weight: 1, visible: true },
+      v1: {
+        type: 'custom_7f6e5d4c_3b2a_4190_8f7e_6d5c4b3a2910',
+        weight: 1,
+        visible: true,
+      },
     }
     const xml = exportFlameXml(flame)
     expect(xml).toContain('spherical="1.000000"')
