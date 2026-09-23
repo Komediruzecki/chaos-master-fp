@@ -291,7 +291,7 @@ GPU).
 | `bigFixed.ts`       | BigInt fixed point: exact decimal parse/format, double conversion  |
 | `deepZoomView.ts`   | Camera: centre strings + `zoomLog2`; pan, zoom-at-pointer, offsets |
 | `referenceOrbit.ts` | Sliced BigInt orbit generator, floatexp output                     |
-| `floatExp.ts`       | Complex/real floatexp in JS, for BLA construction and packing      |
+| `floatExp.ts`       | Floatexp primitives shared by the BLA, the packing and the mirror  |
 | `bla.ts`            | BLA table build (floatexp), level layout, GPU packing              |
 | `perturbation.ts`   | CPU mirror of the GPU kernel with f32 emulation — the test oracle  |
 | `explorerUrl.ts`    | View <-> URL fragment (`#re=..&im=..&z=..`), validated             |

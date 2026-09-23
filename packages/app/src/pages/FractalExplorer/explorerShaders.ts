@@ -15,6 +15,7 @@
  * WGSL-string `tgpu.fn` imported into another file's entry function is not
  * reliably traced. Structs and layouts are shared from here.
  */
+import { EXPONENT_FLOOR } from '@chaos-master/core'
 import { tgpu } from 'typegpu'
 import { arrayOf, atomic, builtin, f32, i32, struct, u32, vec2f, vec2u, vec4f, } from 'typegpu/data'
 
@@ -241,13 +242,16 @@ const pixelDc = tgpu.fn([vec2u], vec2f) /* wgsl */ `
   }
 `.$uses({ layout: iterateLayout })
 
-/** EXPONENT_FLOOR in perturbation.ts: -2^24 keeps every sum inside i32. */
+/** `EXPONENT_FLOOR` in perturbation.ts: -2^24 keeps every sum inside i32. */
+const EXP_FLOOR = tgpu.const(i32, EXPONENT_FLOOR)
+
+/** perturbation.ts `rescale`'s floor; 60 is its `DC_HEADROOM_EXP`. */
 const exponentFloor = tgpu.fn([], i32) /* wgsl */ `
   () -> i32 {
     let U = layout.$.uniforms;
-    return select(-16777216, U.spacingExp - 60, (U.flags & 1u) != 0u);
+    return select(EXP_FLOOR, U.spacingExp - 60, (U.flags & 1u) != 0u);
   }
-`.$uses({ layout: iterateLayout })
+`.$uses({ layout: iterateLayout, EXP_FLOOR })
 
 // ------------------------------------------------------------ init pass
 
@@ -340,8 +344,8 @@ const iteratePixelAt = tgpu.fn([vec2u]) /* wgsl */ `
                   var bd = vec2f(0.0);
                   if (hasDc) { bd = b.b * U.spacingMant; }
                   let nd = feSum(cmul(b.a, dm), b.ae + de, bd, b.be + U.spacingExp, vec2f(0.0), 0, de);
-                  dm = select(nd.m, vec2f(0.0), nd.e < -16777216);
-                  de = max(nd.e, -16777216);
+                  dm = select(nd.m, vec2f(0.0), nd.e < EXP_FLOOR);
+                  de = max(nd.e, EXP_FLOOR);
                 }
                 w = nw.m;
                 e = nw.e;
@@ -370,8 +374,8 @@ const iteratePixelAt = tgpu.fn([vec2u]) /* wgsl */ `
           var cTerm = vec2f(0.0);
           if (hasDc) { cTerm = vec2f(U.spacingMant, 0.0); }
           let nd = feSum(2.0 * cmul(zv, dm), zve + de, cTerm, U.spacingExp, vec2f(0.0), 0, de);
-          dm = select(nd.m, vec2f(0.0), nd.e < -16777216);
-          de = max(nd.e, -16777216);
+          dm = select(nd.m, vec2f(0.0), nd.e < EXP_FLOOR);
+          de = max(nd.e, EXP_FLOOR);
         }
         if (z.e >= -60) {
           let zf = ldx2(z.m, z.e);
@@ -460,6 +464,7 @@ const iteratePixelAt = tgpu.fn([vec2u]) /* wgsl */ `
   }
 `.$uses({
   layout: iterateLayout,
+  EXP_FLOOR,
   pixelDc,
   exponentFloor,
   feSum,

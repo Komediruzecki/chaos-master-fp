@@ -15,6 +15,7 @@
  * 1e-19 and are never formed.
  */
 import { BLA_ENTRY_WORDS } from './bla'
+import { exponentOf } from './floatExp'
 import { ORBIT_ENTRY_WORDS } from './gpuPacking'
 import type { BlaTable } from './bla'
 
@@ -101,15 +102,6 @@ function ldexp2(v: V2, k: number): V2 {
   return [ldexp(v[0], k), ldexp(v[1], k)]
 }
 
-/** The `k` with `|x| * 2^-k` in [0.5, 1). */
-function frexpExp(x: number): number {
-  let k = Math.floor(Math.log2(Math.abs(x))) + 1
-  const m = Math.abs(x) * 2 ** -k
-  if (m >= 1) k += 1
-  else if (m < 0.5) k -= 1
-  return k
-}
-
 function cmul(a: V2, b: V2): V2 {
   return [
     fr(fr(a[0] * b[0]) - fr(a[1] * b[1])),
@@ -143,7 +135,7 @@ function feSum(terms: readonly Term[], fallbackE: number): Term {
   let top = Number.NEGATIVE_INFINITY
   for (const t of terms) {
     const a = maxAbs(t.m)
-    if (a >= MIN_NORMAL) top = Math.max(top, t.e + frexpExp(a))
+    if (a >= MIN_NORMAL) top = Math.max(top, t.e + exponentOf(a))
   }
   if (top === Number.NEGATIVE_INFINITY) return { m: [0, 0], e: fallbackE }
   let sum: V2 = [0, 0]
@@ -186,7 +178,7 @@ function rescale(px: PixelState, p: KernelParams): void {
   if (a < MIN_NORMAL) {
     px.w = [0, 0]
   } else if (a > 2 ** RESCALE_EXP || a < 2 ** -RESCALE_EXP) {
-    const k = frexpExp(a)
+    const k = exponentOf(a)
     px.w = ldexp2(px.w, -k)
     px.e += k
   }
