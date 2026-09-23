@@ -78,7 +78,7 @@ fail until the pinned count is lowered in the same change.
 | Metric                             | Believe it?                   | What it is actually telling you                                                                                                                                                                                                                                                                             |
 | ---------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `source_loc`, `source_files`       | Context, not quality          | Size of the thing. Useful only as a denominator. A refactor that grows LOC is not automatically bad — extracting a function costs a signature and an import.                                                                                                                                                |
-| `mean_file_loc`                    | Weakly                        | Moves too slowly to guide a single change. Useful across a release.                                                                                                                                                                                                                                         |
+| `mean_file_loc`                    | Weakly, and **not gated**     | Moves too slowly to guide a single change. Useful across a release. Reported only since 2026-09-23; see below the table for why.                                                                                                                                                                            |
 | `files_over_500` / `800` / `1200`  | **Yes**                       | The god-file count. This is the metric the 2026-07 refactor strategy was written to move. Buckets rather than a mean because the tail is what hurts: one 4,000-line file costs more than fifty 300-line files.                                                                                              |
 | `largest_file_loc`                 | Weakly                        | The largest file of any kind. Since 2026-09 that is `flame/examples/animations.ts`, 5,713 lines of literal animation presets, so it ratchets a data file and says nothing about code. Still gated; `largest_logic_file_loc` is the one to read.                                                             |
 | `largest_logic_file_loc`           | **Yes**                       | The largest file that is not data: a single number for "how bad is the worst case". Hard to game without genuinely splitting something. Data files are excluded by measurement, not by path; see below the table.                                                                                           |
@@ -89,6 +89,23 @@ fail until the pinned count is lowered in the same change.
 | `missing_header_comment`           | **Yes, and it is actionable** | Files whose first non-blank line is not a comment. This is the ceiling on how useful the generated index can be: a file with no header comment shows as `(no header comment)` in [INDEX.md](INDEX.md), so the map cannot describe it. Unlike most metrics, the fix is mechanical and always an improvement. |
 | `todo_markers`                     | Weakly                        | `TODO`, `FIXME`, `XXX`, `HACK`. A rising count is worth a glance; the absolute number means little.                                                                                                                                                                                                         |
 | `eslint_*` (opt-in, `--with-lint`) | **Yes**                       | Errors must stay zero. Warnings are almost all `complexity`, which is the honest measure of "would a reviewer be able to hold this function in their head". Off by default because a full type-aware lint takes over a minute.                                                                              |
+
+**Why `mean_file_loc` is reported but not gated** (WP3, 2026-09-23). The
+ratchet compared the ROUNDED mean, total lines over files. Two things made it
+worse than useless:
+
+- **It punished deleting dead code.** Removing a small file raises the mean:
+  taking out one 17-line file moves main from 168 to 169 and fails the check.
+  WP2 deleted nine files of about 23 lines each, exactly the change the plan
+  wanted, and the gate would have failed it.
+- **It taught the wrong fix.** Main sat at 168.47 with the failing edge at
+  168.5, half a line away, so pull requests shortened comments to fit (#111
+  did). A comment is not the cost this metric exists to catch.
+
+The thing it was meant to catch, files growing too big, is what the tail
+already measures: `files_over_500` / `800` / `1200` and
+`largest_logic_file_loc`, all still gated. The mean stays in the table, and in
+the baseline, as context.
 
 **What counts as a data file** (for `largest_logic_file_loc`). A file where
 at least 80% of the lines belong to top-level `const`/`let` declarations whose

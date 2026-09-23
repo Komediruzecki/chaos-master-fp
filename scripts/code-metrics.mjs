@@ -237,7 +237,11 @@ const LOWER_IS_BETTER = new Set([
   'files_over_1200',
   'largest_file_loc',
   'largest_logic_file_loc',
-  'mean_file_loc',
+  // Not `mean_file_loc`: reported, never gated (WP3, 2026-09-23). The check
+  // compared a rounded mean that deleting a small dead file RAISES, and it
+  // sat half a line from its edge, so changes were shaving comments to fit.
+  // The tail carries the signal: files_over_* and largest_logic_file_loc.
+  // docs/agent/METRICS.md says more.
   'missing_header_comment',
   'todo_markers',
   'eslint_errors',
