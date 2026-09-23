@@ -99,16 +99,8 @@
   }
 }
 
-.glass {
-  background: var(--la-glass);
-  backdrop-filter: var(--la-glass-blur);
-  -webkit-backdrop-filter: var(--la-glass-blur);
-  border: var(--la-glass-edge);
-  box-shadow: var(--la-glass-shadow);
-}
-
 .paneLabel {
-  composes: glass;
+  composes: chrome from '@/styles/designSystem/glass.module.css';
   position: absolute;
   left: calc(var(--la-safe-left) + var(--la-s-3));
   bottom: calc(var(--la-safe-bottom) + var(--la-s-3));
@@ -125,7 +117,7 @@
 }
 
 .iconButton {
-  composes: glass;
+  composes: chrome from '@/styles/designSystem/glass.module.css';
   display: inline-grid;
   place-items: center;
   flex: none;
@@ -152,7 +144,7 @@
 }
 
 .titleBlock {
-  composes: glass;
+  composes: chrome from '@/styles/designSystem/glass.module.css';
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -173,7 +165,7 @@
 }
 
 .readouts {
-  composes: glass;
+  composes: chrome from '@/styles/designSystem/glass.module.css';
   display: flex;
   gap: var(--la-s-4);
   margin: 0 0 0 auto;
@@ -202,7 +194,7 @@
 }
 
 .panel {
-  composes: glass;
+  composes: chrome from '@/styles/designSystem/glass.module.css';
   position: absolute;
   top: calc(var(--la-safe-top) + var(--la-s-3) + var(--la-tap) + var(--la-s-3));
   right: calc(var(--la-safe-right) + var(--la-s-3));

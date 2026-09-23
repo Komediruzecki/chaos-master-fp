@@ -22,14 +22,12 @@
 }
 
 .sheet {
+  composes: chrome from '@/styles/designSystem/glass.module.css';
   pointer-events: auto;
   display: flex;
   flex-direction: column;
   border-radius: var(--la-r-sheet) var(--la-r-sheet) 0 0;
   background: var(--la-glass-strong);
-  backdrop-filter: var(--la-glass-blur);
-  -webkit-backdrop-filter: var(--la-glass-blur);
-  border: var(--la-glass-edge);
   box-shadow: var(--la-e-sheet);
   box-sizing: border-box;
   overflow: hidden;

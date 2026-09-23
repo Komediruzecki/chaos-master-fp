@@ -1,6 +1,7 @@
 /* Touch Surface Styling - Clean, Dark Glassmorphism, Cross-Browser */
 
 .topHud {
+  composes: chrome from '@/styles/designSystem/glass.module.css';
   position: fixed;
   top: var(--la-hud-top);
   left: 50%;
@@ -15,11 +16,6 @@
   gap: var(--la-s-1);
   padding: 0 var(--la-s-1);
   border-radius: var(--la-r-pill);
-  background: var(--la-glass);
-  backdrop-filter: var(--la-glass-blur);
-  -webkit-backdrop-filter: var(--la-glass-blur);
-  border: var(--la-glass-edge);
-  box-shadow: var(--la-glass-shadow);
   box-sizing: border-box;
   pointer-events: auto;
 }
@@ -99,14 +95,14 @@
   white-space: nowrap;
 }
 
+/* Inside the pill, so the glass rule flattens its blur: the pill is its
+   backdrop root and the blur could only ever sample the pill's own fill. */
 .titleTooltip {
+  composes: chrome from '@/styles/designSystem/glass.module.css';
   position: absolute;
   top: calc(100% + var(--la-s-2));
   left: 0;
   background: var(--la-glass-strong);
-  backdrop-filter: var(--la-glass-blur);
-  -webkit-backdrop-filter: var(--la-glass-blur);
-  border: var(--la-glass-edge);
   border-radius: var(--la-r-sm);
   padding: var(--la-s-2) var(--la-s-3);
   font: var(--la-t-caption);
