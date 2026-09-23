@@ -4,11 +4,12 @@
 //
 //   node --test scripts/check-doc-citations.test.mjs
 import assert from 'node:assert/strict'
-import { execFileSync, spawnSync } from 'node:child_process'
+import { execFileSync, spawn, spawnSync } from 'node:child_process'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { after, describe, it } from 'node:test'
+import { setTimeout as delay } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
 import { blocks, checkCitation, citationsInBlock, isHistoricalPath, parseDocument, parseLines, titleNear, } from './check-doc-citations.mjs'
 
@@ -422,6 +423,43 @@ await describe('the CLI on a git repository', async () => {
     const r = check('doc.md')
     assert.equal(r.status, 0, r.stdout)
     assert.match(r.stdout, /1 pinned/)
+  })
+
+  // A CI runner reads the job's output more slowly than the script writes it.
+  // Once the pipe is full, the writes queue, and process.exit() used to drop
+  // the queue: the red run on the PR that added this script logged 443 of its
+  // 1,360 failures and no summary line.
+  await it('prints every failure and the summary to a pipe that is read late', async () => {
+    const n = 2000
+    writeFileSync(
+      join(dir, 'long.md'),
+      `# Long\n\n${'`a.ts:999` (`beta`) is past the end.\n\n'.repeat(n)}`,
+    )
+    const child = spawn(process.execPath, [SCRIPT, 'long.md'], {
+      cwd: dir,
+      stdio: ['ignore', 'pipe', 'ignore'],
+    })
+    const closed = new Promise((resolve) => child.on('close', resolve))
+    let out = ''
+    let stalled = false
+    child.stdout.setEncoding('utf8')
+    child.stdout.on('data', (chunk) => {
+      out += chunk
+      // Stop reading after the first chunk, as a busy runner does, so the
+      // script's later writes have to wait in its queue.
+      if (!stalled) {
+        stalled = true
+        child.stdout.pause()
+        void delay(500).then(() => child.stdout.resume())
+      }
+    })
+    const status = await closed
+    assert.equal(status, 1)
+    assert.equal(out.match(/^long\.md:\d+: /gm)?.length, n)
+    assert.match(
+      out,
+      new RegExp(`^${n} stale or unverifiable citations: `, 'm'),
+    )
   })
 
   await it('exits 2 when a named document cannot be read', () => {

@@ -743,7 +743,8 @@ function main() {
     console.error(
       `check-doc-citations: cannot run: ${error instanceof Error ? error.message : String(error)}`,
     )
-    process.exit(2)
+    process.exitCode = 2
+    return
   }
   const ms = Math.round(performance.now() - started)
   if (flags.has('--json')) {
@@ -765,7 +766,10 @@ function main() {
         `${report.documents.length} documents, ${report.historical.length} historical documents skipped, ${ms} ms`,
     )
   }
-  process.exit(report.errors.length === 0 ? 0 : 1)
+  // exitCode, not exit(): exit() drops whatever stdout has not flushed yet,
+  // which on a pipe read slower than it is written (a CI runner) was most of
+  // the failure list and the summary line.
+  process.exitCode = report.errors.length === 0 ? 0 : 1
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1])
