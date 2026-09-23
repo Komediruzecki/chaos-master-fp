@@ -53,7 +53,13 @@ function mountCamera(options: { flying?: boolean } = {}) {
   const startPreview = vi.spyOn(history, 'startPreview')
   const surface = document.createElement('div')
   document.body.append(surface)
-  const spherical = createSpherical(0, Math.PI / 2, 4, [0, 0, 0], 1)
+  const spherical = createSpherical(
+    0,
+    Math.PI / 2,
+    4,
+    new Float32Array([0, 0, 0]),
+    1,
+  )
   render(() => (
     <ChangeHistoryContextProvider value={history}>
       <WheelZoomCamera3D
