@@ -206,7 +206,6 @@ export function TabletInspectorDeck(props: TabletInspectorDeckProps) {
             onRedo={props.onRedo}
             canUndo={props.canUndo}
             canRedo={props.canRedo}
-            onSnapshot={props.onSnapshot}
             onPickGallery={props.onPickGallery}
           />
         </div>
