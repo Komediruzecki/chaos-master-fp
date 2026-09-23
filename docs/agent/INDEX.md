@@ -30,7 +30,7 @@ file instead of rediscovering the architecture every session.
 
 | Directory                 | Package name                   | Source files | LOC    |
 | ------------------------- | ------------------------------ | ------------ | ------ |
-| `packages/app`            | `chaos-master`                 | 1082         | 183.7k |
+| `packages/app`            | `chaos-master`                 | 1084         | 184.0k |
 | `packages/landing`        | `@chaos-master/landing`        | 20           | 2.5k   |
 | `packages/core`           | `@chaos-master/core`           | 17           | 1.9k   |
 | `packages/mobile-runtime` | `@chaos-master/mobile-runtime` | 7            | 600    |
@@ -90,11 +90,11 @@ file instead of rediscovering the architecture every session.
 | `TouchSurface`          | [index.ts](../../packages/app/src/components/TouchSurface/index.ts)                                            | 1.8k | _(no header comment)_                                                                                                                        |
 | `LoadFlameModal`        | [LoadFlameModal.tsx](../../packages/app/src/components/LoadFlameModal/LoadFlameModal.tsx)                      | 1.6k | The timeline the animation was authored at, where the source has one (a stored entry, an imported file).                                     |
 | `AffineEditor`          | [AffineEditor.tsx](../../packages/app/src/components/AffineEditor/AffineEditor.tsx)                            | 1.4k | _(no header comment)_                                                                                                                        |
+| `Arcade`                | [ArcadeModePanel.tsx](../../packages/app/src/components/Arcade/ArcadeModePanel.tsx)                            | 1.4k | _(no header comment)_                                                                                                                        |
 | `AudioReactivePanel`    | [AudioReactivePanel.tsx](../../packages/app/src/components/AudioReactivePanel/AudioReactivePanel.tsx)          | 1.4k | Attack time in ms — how fast the value rises (0 = instant).                                                                                  |
 | `ArenaOverlay`          | [ArenaResultsView.tsx](../../packages/app/src/components/ArenaOverlay/ArenaResultsView.tsx)                    | 1.3k | _(no header comment)_                                                                                                                        |
 | `LogoFaviconGenerator`  | [LogoFaviconGenerator.tsx](../../packages/app/src/components/LogoFaviconGenerator/LogoFaviconGenerator.tsx)    | 1.3k | _(no header comment)_                                                                                                                        |
 | `VariationSelector`     | [VariationSelector.tsx](../../packages/app/src/components/VariationSelector/VariationSelector.tsx)             | 1.3k | _(no header comment)_                                                                                                                        |
-| `Arcade`                | [ArcadeModePanel.tsx](../../packages/app/src/components/Arcade/ArcadeModePanel.tsx)                            | 1.2k | _(no header comment)_                                                                                                                        |
 | `ExportJobs`            | [OffscreenAnimationRender.tsx](../../packages/app/src/components/ExportJobs/OffscreenAnimationRender.tsx)      | 1.2k | A read-only Signal whose getter is reactive — interactive cameras are off, so the setter is never called.                                    |
 | `DocumentationModal`    | [DocumentationModal.tsx](../../packages/app/src/components/DocumentationModal/DocumentationModal.tsx)          | 1.1k | Factory mirroring `createShowHelp`: call once during render (so it can read the modal context), returns a launcher for the documentation...  |
 | `Sliders`               | [AngleEditor.tsx](../../packages/app/src/components/Sliders/ParametricEditors/AngleEditor.tsx)                 | 1.0k | _(no header comment)_                                                                                                                        |
@@ -203,17 +203,17 @@ file instead of rediscovering the architecture every session.
 
 #### Workspace hooks (`packages/app/src/hooks/`)
 
-| File                                                                                          | LOC | What it is                                                              |
-| --------------------------------------------------------------------------------------------- | --- | ----------------------------------------------------------------------- |
-| [useWorkspaceReplay.ts](../../packages/app/src/hooks/useWorkspaceReplay.ts)                   | 650 | _(no header comment)_                                                   |
-| [useWorkspaceAutosave.ts](../../packages/app/src/hooks/useWorkspaceAutosave.ts)               | 450 | What one pause write did.                                               |
-| [useWorkspaceTimelineBinding.ts](../../packages/app/src/hooks/useWorkspaceTimelineBinding.ts) | 450 | _(no header comment)_                                                   |
-| [useWorkspaceAnimationGen.ts](../../packages/app/src/hooks/useWorkspaceAnimationGen.ts)       | 250 | _(no header comment)_                                                   |
-| [useWorkspaceCamera.ts](../../packages/app/src/hooks/useWorkspaceCamera.ts)                   | 200 | _(no header comment)_                                                   |
-| [useWorkspaceArena.ts](../../packages/app/src/hooks/useWorkspaceArena.ts)                     | 150 | _(no header comment)_                                                   |
-| [useWorkspaceArtDirector.tsx](../../packages/app/src/hooks/useWorkspaceArtDirector.tsx)       | 150 | _(no header comment)_                                                   |
-| [useWorkspaceShortcuts.ts](../../packages/app/src/hooks/useWorkspaceShortcuts.ts)             | 150 | _(no header comment)_                                                   |
-| [useWorkspaceBlendPick.ts](../../packages/app/src/hooks/useWorkspaceBlendPick.ts)             | 100 | The blend gallery's hover preview, and the pick that commits a partner. |
+| File                                                                                          | LOC | What it is                                                                |
+| --------------------------------------------------------------------------------------------- | --- | ------------------------------------------------------------------------- |
+| [useWorkspaceReplay.ts](../../packages/app/src/hooks/useWorkspaceReplay.ts)                   | 650 | _(no header comment)_                                                     |
+| [useWorkspaceAutosave.ts](../../packages/app/src/hooks/useWorkspaceAutosave.ts)               | 450 | What one pause write did.                                                 |
+| [useWorkspaceTimelineBinding.ts](../../packages/app/src/hooks/useWorkspaceTimelineBinding.ts) | 450 | _(no header comment)_                                                     |
+| [useWorkspaceBlendPick.ts](../../packages/app/src/hooks/useWorkspaceBlendPick.ts)             | 300 | The partner gallery's hover preview, and the pick that commits a partner. |
+| [useWorkspaceAnimationGen.ts](../../packages/app/src/hooks/useWorkspaceAnimationGen.ts)       | 250 | _(no header comment)_                                                     |
+| [useWorkspaceCamera.ts](../../packages/app/src/hooks/useWorkspaceCamera.ts)                   | 200 | _(no header comment)_                                                     |
+| [useWorkspaceArena.ts](../../packages/app/src/hooks/useWorkspaceArena.ts)                     | 150 | _(no header comment)_                                                     |
+| [useWorkspaceArtDirector.tsx](../../packages/app/src/hooks/useWorkspaceArtDirector.tsx)       | 150 | _(no header comment)_                                                     |
+| [useWorkspaceShortcuts.ts](../../packages/app/src/hooks/useWorkspaceShortcuts.ts)             | 150 | _(no header comment)_                                                     |
 
 #### Recorder (`packages/app/src/recorder/`) — deterministic capture and replay
 
@@ -308,7 +308,7 @@ file instead of rediscovering the architecture every session.
 
 | File                                                                        | LOC  | What it is                                               |
 | --------------------------------------------------------------------------- | ---- | -------------------------------------------------------- |
-| [MainWorkspace.tsx](../../packages/app/src/MainWorkspace.tsx)               | 4.7k | _(no header comment)_                                    |
+| [MainWorkspace.tsx](../../packages/app/src/MainWorkspace.tsx)               | 4.6k | _(no header comment)_                                    |
 | [App.tsx](../../packages/app/src/App.tsx)                                   | 500  | _(no header comment)_                                    |
 | [defaults.ts](../../packages/app/src/defaults.ts)                           | 150  | _(no header comment)_                                    |
 | [App.integration.mock.tsx](../../packages/app/src/App.integration.mock.tsx) | 100  | Mock file for App integration tests.                     |
@@ -331,7 +331,7 @@ Grep for the symbol and read the surrounding range instead.
 | File                                                                                                                                                         | LOC  |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- |
 | [packages/app/src/flame/examples/animations.ts](../../packages/app/src/flame/examples/animations.ts)                                                         | 5.7k |
-| [packages/app/src/MainWorkspace.tsx](../../packages/app/src/MainWorkspace.tsx)                                                                               | 4.7k |
+| [packages/app/src/MainWorkspace.tsx](../../packages/app/src/MainWorkspace.tsx)                                                                               | 4.6k |
 | [packages/app/src/pages/Benchmarks/BenchmarksPage.tsx](../../packages/app/src/pages/Benchmarks/BenchmarksPage.tsx)                                           | 2.8k |
 | [packages/app/src/utils/timeline.ts](../../packages/app/src/utils/timeline.ts)                                                                               | 2.2k |
 | [packages/app/src/flame/variations/docs/content.general.ts](../../packages/app/src/flame/variations/docs/content.general.ts)                                 | 1.9k |

@@ -33,6 +33,12 @@ export interface PauseSaveReport {
 
 export interface UseWorkspaceAutosaveParams {
   flameDescriptor: FlameDescriptor
+  /**
+   * The document as every save here stores it: the workspace passes its own
+   * without the gallery's silent hover preview (useWorkspaceBlendPick), which
+   * otherwise put a partner nobody picked into Recents.
+   */
+  savedFlame?: () => FlameDescriptor
   getTracks: () => TimelineTrack[] | undefined
   /**
    * The timeline the flame is being edited at. Part of the document, not of
@@ -84,6 +90,7 @@ export interface UseWorkspaceAutosaveParams {
 export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
   const {
     flameDescriptor,
+    savedFlame = () => flameDescriptor,
     getTracks,
     getConfig,
     agentDriving,
@@ -106,7 +113,7 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
   let refusedNoticeShown = false
   const autosaveSnapshot = () =>
     JSON.stringify({
-      flame: flameDescriptor,
+      flame: savedFlame(),
       tracks: getTracks(),
       config: getConfig(),
     })
@@ -153,7 +160,7 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
   const writeToRecents = (force: boolean): RecentWriteOutcome => {
     const outcome = upsertRecentFlame(
       autosaveSessionId,
-      flameDescriptor,
+      savedFlame(),
       undefined,
       getTracks(),
       getConfig(),

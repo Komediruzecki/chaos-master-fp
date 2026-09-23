@@ -1,4 +1,5 @@
 import { createEffect, createSignal, For, onCleanup, Show } from 'solid-js'
+import { pilotOwnsKeyboard } from '@/arcade/pilot'
 import { VariationPreview } from '@/components/VariationSelector/VariationSelector'
 import { ComputeGate } from '@/contexts/ComputeGateContext'
 import { COMPUTE_GATE_CAPACITY } from '@/defaults'
@@ -77,6 +78,11 @@ export function GalleryGrid(props: {
     if (props.applyOnClick) return
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Enter') return
+      // Heard on the whole document, so the inert page under the Arcade's
+      // screen lock does not stop it: a candidate selected before the agent
+      // took the screen was applied over its take, and the Enter a focused
+      // Stop button needed was prevented.
+      if (pilotOwnsKeyboard()) return
       const target = e.target
       if (
         target instanceof HTMLElement &&
