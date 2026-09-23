@@ -1,3 +1,4 @@
+import { pilotOwnsKeyboard } from '@/arcade/pilot'
 import { executeCommand } from '@/commands/registry'
 import { animationExportRunning } from '@/flame/renderStats'
 import { useShortcutManager } from '@/shortcuts'
@@ -110,6 +111,10 @@ export function useWorkspaceShortcuts(params: UseWorkspaceShortcutsParams) {
       return true
     },
     Space: () => {
+      // The playback is the agent's while it owns the screen: Space started
+      // and stopped the animation of the take the viewer was only watching.
+      // Left unclaimed, so a focused Stop button still gets its Space.
+      if (pilotOwnsKeyboard()) return false
       if (animationExportRunning()) return false
       if (!showTimeline()) return
       if (!animationEnabled()) {
