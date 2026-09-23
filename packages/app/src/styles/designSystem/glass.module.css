@@ -17,11 +17,22 @@
  *
  * Each carries --la-glass-edge and --la-glass-shadow and writes both
  * backdrop-filter and -webkit-backdrop-filter: iOS Safari before 18 reads
- * only the prefixed one. Known issue: the production minifier keeps only
- * the later spelling of a pair, so the build ships these as
- * -webkit-backdrop-filter alone, which Chrome, Firefox and Android ignore.
- * Until the build keeps both, glass from this file is unblurred there in
- * production (not in the dev server). glassBlurs.test.ts has the detail.
+ * only the prefixed one. The -webkit- spelling comes first in every rule,
+ * because the production minifier keeps only the later of the two and the
+ * standard one is what Chrome, Firefox and Android read
+ * (glassBlurs.test.ts holds every stylesheet to that order).
+ *
+ * TEXT ON A PANEL. Nothing below ink-2 reads on an 80% fill over white-hot
+ * art (docs/plans/glass-panels.md, decision c), so a panel sets --la-ink-3
+ * to its ink-2 for everything inside it: a caption written in ink-3 moves
+ * up a tier on glass and keeps its tier on the opaque surfaces it also
+ * sits on. The value is resolved on the panel, so More Contrast's inks
+ * carry through, and it stays while busy turns the panel solid, so text
+ * never changes colour with the canvas. Accent is not remapped: it is also
+ * a fill and an edge, which are allowed on glass. A surface keeps accent
+ * out of its text there itself. Chrome gets no remap: its surfaces raise
+ * their own fill where they carry more than ink (the More list and the
+ * rail sheet at peek are --la-glass-strong, 86%, where ink-3 passes).
  *
  * USING THEM. Compose the class into the surface's own, as the first
  * declaration of a rule whose selector is that one class (composes allows
@@ -107,6 +118,7 @@
   -webkit-backdrop-filter: var(--la-glass-blur);
   backdrop-filter: var(--la-glass-blur);
   transition: background-color var(--la-dur-fast) var(--la-ease);
+  --la-ink-3: var(--la-ink-2);
 }
 
 :where(.flat):not(html) {
