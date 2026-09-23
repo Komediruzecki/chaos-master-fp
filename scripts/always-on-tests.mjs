@@ -68,6 +68,11 @@ export const ALWAYS_ON = [
   // stylesheet alone leaves the test unselected, which is the whole point of
   // the test.
   {
+    file: 'src/mainWorkspaceSize.test.ts',
+    why: 'reads MainWorkspace.tsx to hold its line count to a shrink-only ratchet',
+    genre: 'filesystem',
+  },
+  {
     file: 'src/launchNotice.test.ts',
     why: 'reads App.tsx and App.module.css',
     genre: 'filesystem',
