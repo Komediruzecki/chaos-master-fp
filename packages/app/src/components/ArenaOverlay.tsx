@@ -21,6 +21,7 @@ import { ArenaFighterCard } from './ArenaOverlay/ArenaFighterCard'
 import { BattleLogDrawer, WinnerTrophyCard, } from './ArenaOverlay/ArenaResultsView'
 import { ArenaTopBar } from './ArenaOverlay/ArenaTopBar'
 import { exportChampionCardPng, SCHOOL_COLORS, } from './ArenaOverlay/championCardCanvas'
+import { playClashOnce } from './ArenaOverlay/clashPlayback'
 import loadModalUi from './LoadFlameModal/LoadFlameModal.module.css'
 import type { Component } from 'solid-js'
 import type { ArenaFighterStats, CommandContext } from '@/commands/types'
@@ -248,6 +249,12 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
   let initialDuration: number | null = null
   let initialAnimationEnabled: boolean | null = null
   let wasClashStaged = false
+  /** Gives the viewer's loop setting back; set while a clash owns playback. */
+  let releasePlayback: (() => void) | null = null
+  const releaseClashPlayback = () => {
+    releasePlayback?.()
+    releasePlayback = null
+  }
   const [cachedSimResult, setCachedSimResult] =
     createSignal<SimulateClashResult | null>(null)
 
@@ -289,6 +296,7 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
   }
 
   const restoreWorkspace = () => {
+    releaseClashPlayback()
     if (wasClashStaged && initialFlame) {
       if (timeline) {
         timeline.pause()
@@ -549,10 +557,11 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
     )
     wasClashStaged = true
 
-    // Start timeline playback
+    // Play the rounds once: the viewer's timeline loops by default, which
+    // replayed round 1 under ROUND 3 / 3 after the verdict.
     if (timeline) {
-      timeline.setCurrentFrame(0)
-      timeline.play()
+      releaseClashPlayback()
+      releasePlayback = playClashOnce(timeline)
     }
 
     // Step through rounds with impact VFX sync
@@ -656,6 +665,7 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
 
   const loadFighter = (player: 1 | 2) => {
     clearAllTimers()
+    releaseClashPlayback()
     wasClashStaged = false
     if (props.arena.selectFighter) {
       props.arena.selectFighter(player)
