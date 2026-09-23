@@ -91,6 +91,51 @@ describe('createClashFlame tool', () => {
     expect(transforms['p2_t1_0']!.postAffine.d).toBe(2.5)
   })
 
+  // A transform's colour is an OkLab (a, b) pair. The tint wrote the hue
+  // coordinate into `a` and 1.0 into `b`, so both teams landed in the same
+  // yellow-orange (hues 79.4 / 68.8 deg measured on the GPU).
+  it('tints the two 3D teams in clearly different OkLab hues', () => {
+    const fighter = (name: string) =>
+      ({
+        version: '1',
+        metadata: { name },
+        renderSettings: { exposure: 0.5 },
+        transforms: Object.fromEntries(
+          [0, 1, 2].map((i) => [
+            `t${i}`,
+            {
+              probability: 1,
+              postAffine: { a: 1, e: 1, k: 1 },
+              color: { x: 0.1 * i, y: -0.2 },
+            },
+          ]),
+        ),
+      }) as unknown as FlameDescriptor
+    const { clashFlame } = createClashFlame.execute(
+      { flameA: fighter('A'), flameB: fighter('B'), dimensions: 3 },
+      {},
+    ) as { clashFlame: FlameDescriptor }
+
+    const hues = (prefix: string) =>
+      Object.entries(clashFlame.transforms)
+        .filter(([id]) => id.startsWith(prefix))
+        .map(([, t]) => {
+          const { x, y } = t.color
+          // A real hue, not a blow-out: chroma in the range the editor uses.
+          expect(Math.hypot(x, y)).toBeGreaterThan(0.1)
+          expect(Math.hypot(x, y)).toBeLessThan(0.5)
+          return (Math.atan2(y, x) * 180) / Math.PI
+        })
+    const gap = (p: number, q: number) => {
+      const d = Math.abs(p - q) % 360
+      return d > 180 ? 360 - d : d
+    }
+    const [a, b] = [hues('p1_'), hues('p2_')]
+    for (const hueA of a) {
+      for (const hueB of b) expect(gap(hueA, hueB)).toBeGreaterThan(120)
+    }
+  })
+
   it('calculates power-weighted probability split', async () => {
     const { calculatePowerSplit } = await import('./createClashFlame')
     const flameA = {

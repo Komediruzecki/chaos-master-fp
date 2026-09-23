@@ -44,6 +44,37 @@ function upgradeAffineTo3D(
   }
 }
 
+/**
+ * How far from grey a team tint sits in OkLab: about as saturated as the
+ * editor's own colours, whose randomiser draws `a` and `b` within +-0.4.
+ */
+const TEAM_CHROMA = 0.3
+
+/**
+ * A team's hue, a fraction of a turn, as a transform colour.
+ *
+ * A transform's `color` is an OkLab `(a, b)` pair. The tint used to write the
+ * hue into `a` and 1.0 into `b`, which put both teams in the same
+ * yellow-orange; here the hue is an angle on the (a, b) plane, so the default
+ * 0.15 and 0.65 are amber and blue, half a turn apart.
+ */
+function teamTintColor(hue: number): { x: number; y: number } {
+  const angle = hue * 2 * Math.PI
+  return { x: TEAM_CHROMA * Math.cos(angle), y: TEAM_CHROMA * Math.sin(angle) }
+}
+
+/** A transform colour as stored (an object, or a legacy pair), or grey. */
+function colorOf(raw: unknown): { x: number; y: number } {
+  if (typeof raw === 'object' && raw !== null && 'x' in raw && 'y' in raw) {
+    const { x, y } = raw
+    return { x: Number(x) || 0, y: Number(y) || 0 }
+  }
+  if (Array.isArray(raw)) {
+    return { x: Number(raw[0]) || 0, y: Number(raw[1]) || 0 }
+  }
+  return { x: 0, y: 0 }
+}
+
 function translateTransform3D(
   t: TransformFunction,
   dx: number,
@@ -86,16 +117,13 @@ function translateTransform3D(
   }
 
   if (tintColor !== undefined && tintMode !== 'none') {
-    const rawColor = clone.color as unknown
-    const origColor =
-      typeof rawColor === 'object' && rawColor !== null && 'x' in rawColor
-        ? (rawColor as { x: number; y: number }).x
-        : Array.isArray(rawColor)
-          ? (rawColor[0] ?? 0)
-          : 0
-    const finalHue =
-      tintMode === 'blend' ? (origColor + tintColor) / 2 : tintColor
-    clone.color = { x: finalHue, y: 1.0 }
+    const team = teamTintColor(tintColor)
+    if (tintMode === 'blend') {
+      const own = colorOf(clone.color)
+      clone.color = { x: (own.x + team.x) / 2, y: (own.y + team.y) / 2 }
+    } else {
+      clone.color = team
+    }
   }
 
   return clone
@@ -408,12 +436,12 @@ export const createClashFlame: WebMcpTool = {
       tintA: {
         type: 'number',
         description:
-          'Palette hue coordinate for Player 1 (0.0–1.0). Default is 0.15.',
+          'Team hue for Player 1, as a fraction of the OkLab hue circle (0.0–1.0). Default is 0.15 (amber).',
       },
       tintB: {
         type: 'number',
         description:
-          'Palette hue coordinate for Player 2 (0.0–1.0). Default is 0.65.',
+          'Team hue for Player 2, as a fraction of the OkLab hue circle (0.0–1.0). Default is 0.65 (blue).',
       },
       tint: {
         type: 'string',
