@@ -108,6 +108,31 @@
   }
 }
 
+/* One row does not fit a phone: at 390px it wanted 427px of 366, and the
+   settings button sat off the right edge, out of reach. The readouts take a
+   second row of their own, under the buttons; the ::after is the line break
+   before them, so the first row is the same at every phone width. */
+@media (max-width: 679.98px) {
+  .hud {
+    flex-wrap: wrap;
+    row-gap: var(--la-s-1);
+
+    &::after {
+      content: '';
+      order: 1;
+      flex-basis: 100%;
+    }
+  }
+
+  .titleBlock {
+    margin-right: auto;
+  }
+
+  .readouts {
+    order: 2;
+  }
+}
+
 .paneLabel {
   composes: chrome from '@/styles/designSystem/glass.module.css';
   position: absolute;
