@@ -6,6 +6,7 @@
   "files_over_800": 33,
   "files_over_1200": 16,
   "largest_file_loc": 5713,
+  "largest_logic_file_loc": 4551,
   "test_files": 298,
   "test_cases": 2587,
   "test_file_ratio": 0.267,
