@@ -35,8 +35,9 @@
  * class there instead, since a composes cannot be switched off. The names
  * are the same ones:
  *
+ *     import { glassPanels } from '@/lib/glass'
  *     import glass from '@/styles/designSystem/glass.module.css'
- *     <aside class={ui.deck} classList={{ [glass.panel!]: on() }}>
+ *     <aside class={ui.deck} classList={{ [glass.panel!]: glassPanels() }}>
  *
  * Composing copies this file into every module that composes it (that is
  * how postcss-modules resolves composes), and the minifier then keeps one
@@ -69,13 +70,16 @@
  *   - Reduce Transparency and More Contrast reach here through the tokens
  *     (lumen.css), and need nothing of their own.
  *
- * ATTRIBUTES ON <html>, for what a class cannot say:
+ * ATTRIBUTES ON <html>, for what a class cannot say. lib/glass.ts is the
+ * only writer of either:
  *
  *   data-glass="busy"       the editor canvas presents every frame: playback,
  *                           an export, audio modulation, a drag.
- *   data-glass-panels="on"  the experimental Glass panels setting. Nothing
- *                           reads it yet. A CSS module reaches it as
- *                           :global(:root[data-glass-panels='on']).
+ *   data-glass-panels="on"  the experimental Glass panels setting, off by
+ *                           default, offered in Settings on the touch
+ *                           layouts. Nothing reads it yet. A component reads
+ *                           glassPanels() from lib/glass.ts; a CSS module
+ *                           reaches it as :global(:root[data-glass-panels='on']).
  */
 
 /* ---- The classes --------------------------------------------------- */
