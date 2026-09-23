@@ -610,29 +610,32 @@
   color: var(--la-accent-press);
 }
 
-/* Slide-over Advanced Tools Drawer */
+/* Slide-over Advanced Tools Drawer. The panel is the one glass layer: the
+   dim beside it has no blur, which as a full-screen blur re-ran on every
+   frame the canvas presented, under the panel's own (glass-panels.md,
+   phase 1). */
 .drawerBackdrop {
   position: fixed;
   inset: 0;
   /* As above: without it iOS may not synthesise the click that closes the
      drawer from a tap beside it. */
   cursor: pointer;
-  background: rgba(0, 0, 0, 0.65);
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
+  background: var(--la-scrim-dim);
   z-index: 90;
   animation: fadeIn 0.2s ease forwards;
 }
 
+/* Glass, solid while the canvas is busy. Its subtitles are ink-2, the
+   lowest tier an 80% fill carries. */
 .drawerPanel {
+  composes: panel from '@/styles/designSystem/glass.module.css';
   position: fixed;
   top: 0;
   right: 0;
   bottom: 0;
   width: min(340px, 85vw);
-  background: var(--la-glass-solid);
-  -webkit-backdrop-filter: blur(24px);
-  backdrop-filter: blur(24px);
+  /* An edge only on the side that meets the canvas. */
+  border: 0;
   border-left: 1px solid var(--la-hairline-strong);
   z-index: 95;
   display: flex;
@@ -720,7 +723,7 @@
 
 .drawerCardSubtitle {
   font-size: 0.72rem;
-  color: var(--la-ink-3);
+  color: var(--la-ink-2);
 }
 
 @keyframes fadeIn {
