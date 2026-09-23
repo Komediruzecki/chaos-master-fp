@@ -377,6 +377,18 @@ export function restoreGlideSwitches(switches: GlideSwitches): void {
   setGlideQualityPreference(switches.quality)
 }
 
+/**
+ * The Glide of a command context apart from the workspace: switches of its
+ * own that change nothing, and no runtime. The artwork export, the synthesize
+ * sandbox, a duel seat and the Home portal spread it in, so a Glide step run
+ * there never reaches the viewer's switches, and `glide.toFlame` lands on its
+ * flame in one move rather than animating the live canvas.
+ */
+export const APART_FROM_LIVE_GLIDE = {
+  glideSwitches: { setEnabled: () => {}, setQuality: () => {} },
+  glideRuntime: () => undefined,
+}
+
 /** The tier a caller would get right now, without planning anything. */
 export function currentGlideQuality(qualityPreset?: string): GlideQuality {
   return resolveGlideQuality(glideQualityPreference(), qualityPreset)

@@ -2,8 +2,10 @@ import '@/commands/builtins'
 import { createRoot } from 'solid-js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { executeCommand, executeReplayCommand } from '@/commands/registry'
+import { createPortalDriver } from '@/components/Home/portalScript'
 import { examples } from '@/flame/examples'
 import { createGlideRuntime, glideEnabled, glideQualityPreference, restoreGlideSwitches, setGlideRuntime, } from '@/flame/glide/runtime'
+import { createSeat } from '@/seats/seat'
 import { deepClone } from '@/utils/clone'
 import { createSessionPlayer, MIN_STEP_GAP_MS } from './player'
 import { cancelSessionRecording, getLiveWorkspaceMutationGeneration, lastFinishedSession, startSessionRecording, stopSessionRecording, } from './recorder'
@@ -388,4 +390,48 @@ describe('replay worlds apart from the workspace', () => {
     expect(replaySessionHeadless(take)).toBeDefined()
     expect(switches()).toEqual(VIEWER)
   })
+
+  /** A command context with a canvas of its own and no Glide of its own. */
+  const apart = {
+    'a duel seat': () => {
+      const seat = createSeat('rival', deepClone(examples.example1))
+      return {
+        run: (id: string, ...args: unknown[]) => {
+          executeCommand(id, seat.ctx, ...args)
+        },
+        flame: () => seat.flame(),
+        dispose: () => {
+          seat.dispose()
+        },
+      }
+    },
+    'the Home portal': () =>
+      createRoot((dispose) => {
+        const driver = createPortalDriver(examples.example1)
+        return {
+          run: driver.ctx.executeCommand,
+          flame: () => driver.flame,
+          dispose,
+        }
+      }),
+  }
+
+  it.each(Object.keys(apart) as (keyof typeof apart)[])(
+    'never reaches the live glide or switches through %s',
+    (name) => {
+      const live = watchLiveGlide()
+      const world = apart[name]()
+      world.run('glide.setEnabled', true)
+      world.run('glide.setQuality', 'full')
+      world.run('glide.toFlame', deepClone(examples.example2), 1200)
+      live.dispose()
+      expect(live.calls()).toEqual({ settle: 0, glideFrom: 0, writes: 0 })
+      expect(switches()).toEqual(VIEWER)
+      // The step still lands on its flame, in one move.
+      expect(Object.keys(world.flame().transforms)).toEqual(
+        Object.keys(examples.example2.transforms),
+      )
+      world.dispose()
+    },
+  )
 })

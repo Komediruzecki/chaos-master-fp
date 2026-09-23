@@ -6,6 +6,7 @@ import { vec2f } from 'typegpu/data'
 import { executeReplayCommand, preflightReplayCommand, } from '@/commands/registry'
 import { qualityPresets } from '@/components/Quality/QualityPresets'
 import { planGlide } from '@/flame/glide/plan'
+import { APART_FROM_LIVE_GLIDE } from '@/flame/glide/runtime'
 import { sampleGlide } from '@/flame/glide/sample'
 import { isGlideRefusal } from '@/flame/glide/types'
 import { tryValidateFlame } from '@/flame/schema/flameSchema'
@@ -912,8 +913,7 @@ export function createReplayVideoDriver(
     modal: { open: () => {} },
     // This world's glides come from the export request and its own plans: a
     // take's Glide steps change nothing here, and never the viewer's.
-    glideSwitches: { setEnabled: () => {}, setQuality: () => {} },
-    glideRuntime: () => undefined,
+    ...APART_FROM_LIVE_GLIDE,
   }
 
   function frameState(
