@@ -124,8 +124,14 @@ export interface OpponentArchetype {
    * persisted to Recents so it warns again on every reload. The type alone
    * cannot enforce this (`TransformVariationType` carries a `string & {}`
    * escape hatch), so `arenaArchetypes.test.ts` pins it against the registry.
+   *
+   * The 2D pool. A 3D opponent draws from `allowedVariations3D` instead: the
+   * 3D renderer runs a 2D type as a flat map with z passed through, and the
+   * opponents it produced rendered nearly black.
    */
-  allowedVariations: (TransformVariationType | TransformVariationType3D)[]
+  allowedVariations: TransformVariationType[]
+  /** The same recipe in the 3D registry, for opponents of a 3D flame. */
+  allowedVariations3D: TransformVariationType3D[]
 }
 
 export const ARENA_ARCHETYPES: Record<ArchetypeId, OpponentArchetype> = {
@@ -147,6 +153,14 @@ export const ARENA_ARCHETYPES: Record<ArchetypeId, OpponentArchetype> = {
       'squareVar',
       'crossVar',
     ],
+    allowedVariations3D: [
+      'polar3D',
+      'julia3D',
+      'cylinder3D',
+      'disc3D',
+      'square3D',
+      'cross3D',
+    ],
   },
   chaos_lord: {
     id: 'chaos_lord',
@@ -166,6 +180,16 @@ export const ARENA_ARCHETYPES: Record<ArchetypeId, OpponentArchetype> = {
       'pdjVar',
       'gaussianVar',
     ],
+    allowedVariations3D: [
+      'swirl3D',
+      'spherical3D',
+      'exponential3D',
+      'bubble3D',
+      'bent3D',
+      'waves3D',
+      'pdj3D',
+      'gaussian3D',
+    ],
   },
   spiral_leviathan: {
     id: 'spiral_leviathan',
@@ -184,6 +208,15 @@ export const ARENA_ARCHETYPES: Record<ArchetypeId, OpponentArchetype> = {
       'fisheyeVar',
       'curlVar',
       'wavesVar',
+    ],
+    allowedVariations3D: [
+      'spiral3D',
+      'swirl3D',
+      'rings3D',
+      'eyefish3D',
+      'fisheye3D',
+      'curl3D',
+      'waves3D',
     ],
   },
   quantum_siren: {
@@ -206,6 +239,15 @@ export const ARENA_ARCHETYPES: Record<ArchetypeId, OpponentArchetype> = {
       'cylinderVar',
       'bubbleVar',
     ],
+    allowedVariations3D: [
+      'ex3D',
+      'diamond3D',
+      'handkerchief3D',
+      'heart3D',
+      'starfield3D',
+      'cylinder3D',
+      'bubble3D',
+    ],
   },
   solar_seraph: {
     id: 'solar_seraph',
@@ -226,6 +268,14 @@ export const ARENA_ARCHETYPES: Record<ArchetypeId, OpponentArchetype> = {
       'bubbleVar',
       'cylinderVar',
     ],
+    allowedVariations3D: [
+      'sinusoidal3D',
+      'spherical3D',
+      'linear3D',
+      'hemisphere3D',
+      'cylinder3D',
+      'bubble3D',
+    ],
   },
   void_stalker: {
     id: 'void_stalker',
@@ -243,6 +293,15 @@ export const ARENA_ARCHETYPES: Record<ArchetypeId, OpponentArchetype> = {
       'fisheyeVar',
       'squareVar',
       'crossVar',
+    ],
+    allowedVariations3D: [
+      'spherical3D',
+      'scry3D',
+      'power3D',
+      'eyefish3D',
+      'fisheye3D',
+      'square3D',
+      'cross3D',
     ],
   },
 }
@@ -296,7 +355,10 @@ export function generateArchetypeOpponent(
       maxTransforms: 5,
       minVariations: 1,
       maxVariations: 3,
-      allowedVariations: archetype.allowedVariations,
+      allowedVariations:
+        dims === 3
+          ? archetype.allowedVariations3D
+          : archetype.allowedVariations,
       dimensions: dims,
     },
     {

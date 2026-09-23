@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { initExample3D } from '@/flame/examples/initExample3D'
 import { transformVariations } from '@/flame/variations'
 import { transformVariations3D } from '@/flame/variations3D'
 import { ARCHETYPE_IDS, ARENA_ARCHETYPES, generateArchetypeOpponent, TACTICAL_STANCES, } from './arenaArchetypes'
@@ -89,6 +90,43 @@ describe('arenaArchetypes', () => {
         .map((name) => `${id}: ${name}`),
     )
     expect(unknown).toEqual([])
+  })
+
+  // A 3D opponent drawn from the 2D pool carried 2D variation types, which the
+  // 3D renderer runs as a flat 2D map with z passed through: the opponents
+  // rendered nearly black (lit coverage 0.000-0.024 in the Arcade audit).
+  it('lists, for each dimension, only variation types registered for it', () => {
+    const misfiled = ARCHETYPE_IDS.flatMap((id) => {
+      const arch = ARENA_ARCHETYPES[id]
+      return [
+        ...arch.allowedVariations
+          .filter((name) => !(name in transformVariations))
+          .map((name) => `${id} 2D: ${name}`),
+        ...arch.allowedVariations3D
+          .filter((name) => !(name in transformVariations3D))
+          .map((name) => `${id} 3D: ${name}`),
+      ]
+    })
+    expect(misfiled).toEqual([])
+    for (const id of ARCHETYPE_IDS) {
+      expect(ARENA_ARCHETYPES[id].allowedVariations3D.length).toBeGreaterThan(2)
+    }
+  })
+
+  it('builds a 3D opponent from registered 3D variation types only', () => {
+    for (const id of ARCHETYPE_IDS) {
+      for (const seed of [1, 42, 999]) {
+        const { flame } = generateArchetypeOpponent(initExample3D, id, seed)
+        const types = Object.values(flame.transforms).flatMap((t) =>
+          Object.values(t.variations).map((v) => v.type),
+        )
+        expect(types.length).toBeGreaterThan(0)
+        expect(
+          types.filter((type) => !(type in transformVariations3D)),
+          `${id} seed ${seed}`,
+        ).toEqual([])
+      }
+    }
   })
 
   it('defines tactical stances with distinct stat multipliers', () => {
