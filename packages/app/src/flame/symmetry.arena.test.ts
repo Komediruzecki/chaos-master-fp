@@ -239,6 +239,21 @@ describe('Arena symmetry: the stat sheet per fold', () => {
         [8, 51, 38, 1210],
       ])
     })
+
+    // swirlVar (1) against sphericalVar (0.6), and one linearVar (1) per
+    // symmetry transform.
+    it('school', () => {
+      expect(FOLDS.map((n) => school(FIGHTER_2D_CURVED, n))).toEqual([
+        'Order',
+        'Order',
+        'Order',
+        'Order',
+        'Order',
+        'Order',
+        'Order',
+        'Order',
+      ])
+    })
   })
 
   describe('3D fighter', () => {
@@ -265,6 +280,21 @@ describe('Arena symmetry: the stat sheet per fold', () => {
         [6, 53, 45, 1133],
         [7, 48, 43, 1121],
         [8, 44, 42, 1088],
+      ])
+    })
+
+    // linear3D (1) against spherical3D (0.8), and one linear3D (1) per
+    // symmetry transform.
+    it('school', () => {
+      expect(FOLDS.map((n) => school(FIGHTER_3D, n))).toEqual([
+        'Order',
+        'Order',
+        'Order',
+        'Order',
+        'Order',
+        'Order',
+        'Order',
+        'Order',
       ])
     })
   })

@@ -134,7 +134,7 @@ describe('WebMCP Foundation', () => {
       const t1 = transforms.find((t) => t.id === 't1')
       expect(t1).toBeDefined()
       const variations = t1!.variations as Array<Record<string, unknown>>
-      expect(variations[0]).toEqual({ type: 'linear', weight: 1 })
+      expect(variations[0]).toEqual({ type: 'linearVar', weight: 1 })
     })
   })
 

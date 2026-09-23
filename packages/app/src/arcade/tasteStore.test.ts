@@ -15,7 +15,10 @@ describe('tasteStore', () => {
     expect(features.fitness.composite).toBeGreaterThan(0)
     expect(features.metrics.complexity).toBeGreaterThan(0)
     expect(features.transformCount).toBe(2)
-    expect(Array.isArray(features.variationCategories)).toBe(true)
+    // linearVar and sinusoidalVar, both in the registry's General category.
+    // Empty: the categories are looked up by variation id (v1, v2), which no
+    // registry entry is named.
+    expect(features.variationCategories).toEqual([])
     expect(['warm', 'cool', 'balanced']).toContain(features.paletteTemperature)
   })
 
@@ -87,6 +90,15 @@ describe('tasteStore', () => {
     expect(profile.likeCount).toBe(1)
     expect(profile.dislikeCount).toBe(1)
     expect(profile.summary).toContain('likes symmetry')
+    // The liked and the disliked candidate are the same flame. No category
+    // is learned from either: their categories come back empty (see above).
+    expect([profile.preferredCategories, profile.avoidedCategories]).toEqual([
+      [],
+      [],
+    ])
+    expect(profile.summary).toBe(
+      'likes symmetry ~0/10, complexity ~1.4/10, and balanced palettes.',
+    )
   })
 
   it('keeps ratings from separate Director sessions that reuse generation numbers', () => {

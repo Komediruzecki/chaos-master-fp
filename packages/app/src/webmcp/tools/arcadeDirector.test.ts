@@ -1,6 +1,6 @@
 import '@/commands/builtins'
 import { afterEach, describe, expect, it } from 'vitest'
-import { clearTasteStore, recordCandidateFeedback } from '@/arcade/tasteStore'
+import { clearTasteStore, extractFlameTasteFeatures, recordCandidateFeedback, } from '@/arcade/tasteStore'
 import { clearWebMcpContext, setWebMcpContext } from '@/webmcp/contextBridge'
 import { createMockCommandContext, createTestFlame } from '@/webmcp/testUtils'
 import { directorGetFeedback, directorGetTasteProfile, directorPropose, openArtDirector, } from './arcadeDirector'
@@ -101,13 +101,20 @@ describe('arcade director tools', () => {
       reaction: string
       tags: string[]
       wasSelected: boolean
-      features?: { powerLevel: number }
+      features?: { powerLevel: number; variationCategories: string[] }
     }>
     expect(candidates).toHaveLength(2)
     expect(candidates[0]!.reaction).toBe('like')
     expect(candidates[0]!.tags).toEqual(['+Symmetry', 'Warmer'])
     expect(candidates[0]!.wasSelected).toBe(true)
     expect(candidates[0]!.features?.powerLevel).toBeGreaterThan(0)
+    // What the agent is told about each candidate's variation families. The
+    // candidates hold linearVar and sinusoidalVar (General); the extracted
+    // categories are empty because they are looked up by variation id.
+    expect(candidates.map((c) => c.features?.variationCategories)).toEqual([
+      [],
+      [],
+    ])
 
     expect(candidates[1]!.reaction).toBe('dislike')
     expect(candidates[1]!.wasSelected).toBe(false)
@@ -163,6 +170,31 @@ describe('arcade director tools', () => {
     expect(profile.likeCount).toBe(1)
     expect(profile.preferredPalette).toBe('warm')
     expect(profile.summary).toContain('likes symmetry')
+  })
+
+  // The Director overlay records a rating with the features it extracts from
+  // the rated flame; the profile is what the agent reads back.
+  it('learns variation categories from the flames the viewer rated', async () => {
+    const ctx = createMockCommandContext()
+    setWebMcpContext(ctx)
+    recordCandidateFeedback({
+      generation: 1,
+      candidateIndex: 0,
+      reaction: 'like',
+      tags: [],
+      wasSelected: true,
+      features: extractFlameTasteFeatures(createTestFlame()),
+    })
+
+    const result = await run(directorGetTasteProfile)
+    const profile = result.profile as {
+      preferredCategories: string[]
+      summary: string
+    }
+    expect(profile.preferredCategories).toEqual([])
+    expect(profile.summary).toBe(
+      'likes symmetry ~0/10, complexity ~1.4/10, and balanced palettes.',
+    )
   })
 
   it('keeps one session id across generations and starts a new one on restart', async () => {
