@@ -30,7 +30,7 @@ file instead of rediscovering the architecture every session.
 
 | Directory                 | Package name                   | Source files | LOC    |
 | ------------------------- | ------------------------------ | ------------ | ------ |
-| `packages/app`            | `chaos-master`                 | 1102         | 187.9k |
+| `packages/app`            | `chaos-master`                 | 1103         | 188.2k |
 | `packages/core`           | `@chaos-master/core`           | 26           | 3.6k   |
 | `packages/landing`        | `@chaos-master/landing`        | 20           | 2.5k   |
 | `packages/mobile-runtime` | `@chaos-master/mobile-runtime` | 7            | 600    |
@@ -70,7 +70,7 @@ file instead of rediscovering the architecture every session.
 | --------------- | ----------------------------------------------------------------------- | ----- | --------------------- |
 | `variations`    | [index.ts](../../packages/app/src/flame/variations/parametric/index.ts) | 33.6k | _(no header comment)_ |
 | `examples`      | [index.ts](../../packages/app/src/flame/examples/index.ts)              | 12.7k | _(no header comment)_ |
-| `glide`         | [index.ts](../../packages/app/src/flame/glide/index.ts)                 | 2.8k  | _(no header comment)_ |
+| `glide`         | [index.ts](../../packages/app/src/flame/glide/index.ts)                 | 2.9k  | _(no header comment)_ |
 | `renderDrivers` | [index.ts](../../packages/app/src/flame/renderDrivers/index.ts)         | 400   | _(no header comment)_ |
 | `schema`        | [flameSchema.ts](../../packages/app/src/flame/schema/flameSchema.ts)    | 100   | _(no header comment)_ |
 | `variations3D`  | [index.ts](../../packages/app/src/flame/variations3D/index.ts)          | 50    | _(no header comment)_ |
@@ -175,7 +175,7 @@ file instead of rediscovering the architecture every session.
 
 | Module  | Entry point                                              | LOC  | What it is                                     |
 | ------- | -------------------------------------------------------- | ---- | ---------------------------------------------- |
-| `tools` | [index.ts](../../packages/app/src/webmcp/tools/index.ts) | 5.6k | Barrel export for all WebMCP tool definitions. |
+| `tools` | [index.ts](../../packages/app/src/webmcp/tools/index.ts) | 5.7k | Barrel export for all WebMCP tool definitions. |
 
 #### Core package (`packages/core/src/`) — pure, dependency-free logic
 
@@ -224,7 +224,7 @@ file instead of rediscovering the architecture every session.
 | ---------------------------------------------------------------------------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | [replayVideo.ts](../../packages/app/src/recorder/replayVideo.ts)                   | 1.3k | Register every command a session may contain before building the isolated replay world.                                                      |
 | [recorder.ts](../../packages/app/src/recorder/recorder.ts)                         | 1.2k | _(no header comment)_                                                                                                                        |
-| [player.ts](../../packages/app/src/recorder/player.ts)                             | 700  | _(no header comment)_                                                                                                                        |
+| [player.ts](../../packages/app/src/recorder/player.ts)                             | 750  | _(no header comment)_                                                                                                                        |
 | [focus.ts](../../packages/app/src/recorder/focus.ts)                               | 500  | Follow-cam hints: **what to look at** while a step runs, never **where**.                                                                    |
 | [focusPreparation.ts](../../packages/app/src/recorder/focusPreparation.ts)         | 500  | _(no header comment)_                                                                                                                        |
 | [schema.ts](../../packages/app/src/recorder/schema.ts)                             | 500  | _(no header comment)_                                                                                                                        |
@@ -238,6 +238,7 @@ file instead of rediscovering the architecture every session.
 | [playWindows.ts](../../packages/app/src/recorder/playWindows.ts)                   | 150  | Play windows: the stretches of a take in which its timeline was playing.                                                                     |
 | [sonificationState.ts](../../packages/app/src/recorder/sonificationState.ts)       | 150  | _(no header comment)_                                                                                                                        |
 | [documentWriteHook.ts](../../packages/app/src/recorder/documentWriteHook.ts)       | 100  | A leaf seam between document owners and the recorder.                                                                                        |
+| [glide.ts](../../packages/app/src/recorder/glide.ts)                               | 100  | How long a replayed step's transition lasts.                                                                                                 |
 | [replaySideState.ts](../../packages/app/src/recorder/replaySideState.ts)           | 100  | _(no header comment)_                                                                                                                        |
 | [types.ts](../../packages/app/src/recorder/types.ts)                               | 100  | The session recorder's public types, apart from the module that implements them: what a recording starts from, what a command must expose... |
 
@@ -377,6 +378,7 @@ Grep for the symbol and read the surrounding range instead.
 | `pnpm check`            | `pnpm typecheck && pnpm lint:fix && pnpm fmt:fix && pnpm validate-wgsl`                                                                                                                                                                         |
 | `pnpm docs:index`       | `node scripts/gen-agent-index.mjs`                                                                                                                                                                                                              |
 | `pnpm docs:index:check` | `node scripts/gen-agent-index.mjs --check`                                                                                                                                                                                                      |
+| `pnpm docs:cite`        | `node scripts/check-doc-citations.mjs`                                                                                                                                                                                                          |
 | `pnpm metrics`          | `node scripts/code-metrics.mjs`                                                                                                                                                                                                                 |
 | `pnpm metrics:json`     | `node scripts/code-metrics.mjs --json`                                                                                                                                                                                                          |
 | `pnpm metrics:check`    | `node scripts/code-metrics.mjs --check`                                                                                                                                                                                                         |
@@ -386,9 +388,10 @@ Grep for the symbol and read the surrounding range instead.
 | `pnpm arch:summary`     | `depcruise --config .dependency-cruiser.cjs --output-type err-long packages/app/src packages/core/src`                                                                                                                                          |
 | `pnpm verify:webgpu`    | `node scripts/verify-webgpu-headed.mjs`                                                                                                                                                                                                         |
 | `pnpm test:coverage`    | `pnpm --filter chaos-master exec vitest run --coverage && pnpm --filter @chaos-master/core exec vitest run --coverage`                                                                                                                          |
-| `pnpm test`             | `pnpm --filter @chaos-master/core test && pnpm --filter @chaos-master/mobile-runtime test && pnpm --filter chaos-master exec vitest run && pnpm --filter chaos-master test:scripts`                                                             |
+| `pnpm test`             | `pnpm --filter @chaos-master/core test && pnpm --filter @chaos-master/mobile-runtime test && pnpm --filter chaos-master exec vitest run && pnpm --filter chaos-master test:scripts && pnpm test:scripts`                                        |
+| `pnpm test:scripts`     | `node --test scripts/*.test.mjs`                                                                                                                                                                                                                |
 | `pnpm test:changed`     | `node scripts/test-changed.mjs`                                                                                                                                                                                                                 |
-| `pnpm test:pr`          | `pnpm --filter @chaos-master/core test && pnpm --filter @chaos-master/mobile-runtime test && pnpm test:changed && pnpm --filter chaos-master test:scripts`                                                                                      |
+| `pnpm test:pr`          | `pnpm --filter @chaos-master/core test && pnpm --filter @chaos-master/mobile-runtime test && pnpm test:changed && pnpm --filter chaos-master test:scripts && pnpm test:scripts`                                                                 |
 | `pnpm test:ui`          | `pnpm --filter chaos-master exec vitest --ui`                                                                                                                                                                                                   |
 | `pnpm test:watch`       | `pnpm --filter chaos-master exec vitest`                                                                                                                                                                                                        |
 | `pnpm test:e2e`         | `playwright test`                                                                                                                                                                                                                               |
