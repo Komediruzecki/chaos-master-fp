@@ -30,7 +30,7 @@ file instead of rediscovering the architecture every session.
 
 | Directory                 | Package name                   | Source files | LOC    |
 | ------------------------- | ------------------------------ | ------------ | ------ |
-| `packages/app`            | `chaos-master`                 | 1081         | 183.6k |
+| `packages/app`            | `chaos-master`                 | 1081         | 183.7k |
 | `packages/landing`        | `@chaos-master/landing`        | 20           | 2.5k   |
 | `packages/core`           | `@chaos-master/core`           | 17           | 1.9k   |
 | `packages/mobile-runtime` | `@chaos-master/mobile-runtime` | 7            | 600    |
@@ -118,8 +118,8 @@ file instead of rediscovering the architecture every session.
 | `DataManagement`        | [DataManagement.tsx](../../packages/app/src/components/DataManagement/DataManagement.tsx)                      | 400  | _(no header comment)_                                                                                                                        |
 | `DiscordShareModal`     | [DiscordShareModal.tsx](../../packages/app/src/components/DiscordShareModal/DiscordShareModal.tsx)             | 400  | _(no header comment)_                                                                                                                        |
 | `WorkspaceModalsHost`   | [index.ts](../../packages/app/src/components/WorkspaceModalsHost/index.ts)                                     | 400  | _(no header comment)_                                                                                                                        |
+| `BlendFlameGallery`     | [BlendFlameGallery.tsx](../../packages/app/src/components/BlendFlameGallery/BlendFlameGallery.tsx)             | 350  | _(no header comment)_                                                                                                                        |
 | `SonificationPanel`     | [SonificationPanel.tsx](../../packages/app/src/components/SonificationPanel/SonificationPanel.tsx)             | 350  | _(no header comment)_                                                                                                                        |
-| `BlendFlameGallery`     | [BlendFlameGallery.tsx](../../packages/app/src/components/BlendFlameGallery/BlendFlameGallery.tsx)             | 300  | _(no header comment)_                                                                                                                        |
 | `CanvasViewport`        | [index.ts](../../packages/app/src/components/CanvasViewport/index.ts)                                          | 300  | _(no header comment)_                                                                                                                        |
 | `ErrorHandling`         | [ErrorHandling.tsx](../../packages/app/src/components/ErrorHandling/ErrorHandling.tsx)                         | 300  | _(no header comment)_                                                                                                                        |
 | `WorkspaceBottomBar`    | [index.ts](../../packages/app/src/components/WorkspaceBottomBar/index.ts)                                      | 300  | _(no header comment)_                                                                                                                        |

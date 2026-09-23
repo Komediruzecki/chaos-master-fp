@@ -12,7 +12,6 @@ import { MAX_ACTION_TIMESTAMP_MS, MAX_SESSION_ACTIONS, MAX_SESSION_FILE_BYTES, M
 import { describeTimelinePlayback, TIMELINE_PLAYBACK_COMMAND_ID, } from './transportStep'
 import { createUncapturedLog, describeUnrecordedCommand, describeUnroutedEdit, noteUncapturedStep, uncapturedJsonChars, uncapturedSessionFields, uncapturedStopMessage, } from './uncapturedSteps'
 import type { Accessor, Setter } from 'solid-js'
-import type { PlaybackStep } from './playWindows'
 import type { RecordedAction, RecordedSession, SessionViewSnapshot, UncapturedStep, } from './schema'
 import type { SonificationSnapshot } from './sonificationState'
 import type { UncapturedLog } from './uncapturedSteps'
@@ -443,8 +442,8 @@ function reportDerivedWorkspaceWriteIn(s: StreamState): void {
 function stopIn(s: StreamState): RecordedSession | undefined {
   if (!s.active) return undefined
   // Stopped while playing: end on where the playback got, still playing.
-  const still = drivingSeat() === s.id ? undefined : probeTimelinePlayback(s.id)
-  if (still) logPlayback(s, s.active, { playing: true, ...still })
+  const still = probeTimelinePlayback(s.id)
+  if (still) reportTimelinePlaybackIn(s, true, still.frame, still.advanced)
   // Compact validation is enforced while recording. Pretty-printed downloads
   // and UTF-8 can be slightly larger, so trim only the newest actions until
   // the exact persisted form also fits. Earlier steps remain a valid prefix,
@@ -604,9 +603,16 @@ function recordCommandExecutionIn(
   }
   if (rec && isTopLevel) {
     if (cmd.recordable === false) {
-      s.coalesceAnchors = new Map()
-      s.gestureClaimed = false
-      noteUnnamedWrite(s, rec, describeUnrecordedCommand(cmd.label))
+      // Not a step, and a gap in the take only when it changes something a
+      // replay reproduces. A command that cannot (`preservesFinishedSession`,
+      // the promise the finished session above already relies on) is no event
+      // here at all: an export, or a read of the export queue, leaves the
+      // count and any drag it ran in the middle of as they were.
+      if (cmd.preservesFinishedSession !== true) {
+        s.coalesceAnchors = new Map()
+        s.gestureClaimed = false
+        noteUnnamedWrite(s, rec, describeUnrecordedCommand(cmd.label))
+      }
     } else if (cmd.id === NARRATION_COMMAND_ID && !narrationAsStep()) {
       // The sentence still runs (the live rail shows it); it just waits to
       // caption the step it introduces instead of standing as a step itself.
@@ -904,12 +910,6 @@ function reportTimelinePlaybackIn(
     invalidateLastFinishedSessionIn(s)
     return
   }
-  const count = playing ? undefined : advanced
-  logPlayback(s, rec, { playing, frame, advanced: count })
-}
-
-function logPlayback(s: StreamState, rec: ActiveRecording, step: PlaybackStep) {
-  const { playing, frame, advanced } = step
   s.coalesceAnchors = new Map()
   // The playhead is a whole frame everywhere it is set, and the step's replay
   // policy accepts nothing else; one stray fraction must not make the whole

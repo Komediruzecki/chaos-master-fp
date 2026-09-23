@@ -4,7 +4,10 @@
  * Hovering a tile shows the blend at the default weight by writing the
  * document silently: a hover must not reach the undo stack or the recorder.
  * Leaving the tiles puts back exactly what the document had, an absent weight
- * included.
+ * included, and so does every other way out: the gallery ends its preview
+ * however it goes away, when Home or the Arcade covers it and when the page
+ * is hidden (BlendFlameGallery), and an Evolve or Diff pick ends it before the
+ * view it opens reads the document (WorkspaceSidebar).
  *
  * A pick ends the preview first and commits second, inside one batch. The
  * order is the point: the history entry the commit pushes then spans the

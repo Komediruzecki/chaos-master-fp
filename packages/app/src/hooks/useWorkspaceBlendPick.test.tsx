@@ -61,18 +61,34 @@ function makeWorkspace() {
 type Workspace = ReturnType<typeof makeWorkspace>
 
 /** The gallery with the props WorkspaceSidebar gives it for a blend. */
-function renderGallery(workspace: Workspace) {
+function renderGallery(
+  workspace: Workspace,
+  onPreviewName?: (name: string | null) => void,
+) {
   return render(() => (
     <BlendFlameGallery
       onSelect={(flame) => {
         workspace.blendPick.pick(deepClone(flame))
       }}
       onPreviewBlend={workspace.blendPick.preview}
+      onPreviewName={onPreviewName}
       onClose={() => {
         workspace.blendPick.preview(null)
       }}
     />
   ))
+}
+
+/** The page going to the background: another browser tab, another app. */
+function hidePage(): () => void {
+  Object.defineProperty(document, 'visibilityState', {
+    configurable: true,
+    get: () => 'hidden',
+  })
+  document.dispatchEvent(new Event('visibilitychange'))
+  return () => {
+    Reflect.deleteProperty(document, 'visibilityState')
+  }
 }
 
 function tile(name: string): HTMLElement {
@@ -203,6 +219,50 @@ describe('a blend partner picked in the gallery', () => {
     workspace.blendPick.preview(deepClone(examples.example3))
     workspace.blendPick.preview(null)
     expect(plain(workspace)).toEqual(picked)
+  })
+
+  it('puts the document back when the gallery goes away under the pointer', () => {
+    // Closing the sidebar (F, Ctrl+S), another panel taking its place, the
+    // Home hand-off: all of them remove the gallery while a tile may still be
+    // hovered, and none of them goes through its close button. The pointer
+    // never leaves the tile, so only the gallery going away can end it.
+    const workspace = workspaceRoot()
+    const before = plain(workspace)
+    const names: (string | null)[] = []
+    startSessionRecording(workspace.flame)
+    const { unmount } = renderGallery(workspace, (name) => names.push(name))
+
+    fireEvent.mouseEnter(tile('example2'))
+    expect(workspace.flame.renderSettings.blendWeight).toBe(
+      DEFAULT_BLEND_WEIGHT,
+    )
+    unmount()
+    const session = stopSessionRecording()
+    if (!session) throw new Error('expected a finished take')
+
+    expect(plain(workspace)).toEqual(before)
+    expect(workspace.history.hasUndo()).toBe(false)
+    expect(names.at(-1)).toBeNull()
+    expect(session.unnamedWriteCount).toBe(0)
+    expect(plain(replayInto(session))).toEqual(plain(workspace))
+  })
+
+  it('puts the document back when the page is hidden mid-hover', () => {
+    // A tab switch fires no pointer event at all, and a hidden page is where
+    // the autosave interval and the pagehide flush keep writing the document.
+    const workspace = workspaceRoot()
+    const before = plain(workspace)
+    const { unmount } = renderGallery(workspace)
+    fireEvent.mouseEnter(tile('example2'))
+
+    const showPage = hidePage()
+    try {
+      expect(plain(workspace)).toEqual(before)
+      expect(workspace.history.hasUndo()).toBe(false)
+    } finally {
+      showPage()
+      unmount()
+    }
   })
 
   it('puts back exactly what a hover replaced when the pointer leaves', () => {
