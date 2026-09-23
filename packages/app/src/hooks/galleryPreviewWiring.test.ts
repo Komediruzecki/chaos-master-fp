@@ -14,7 +14,13 @@
  *   document its entry describes, not the document with a hover in it;
  * - in every autosave, which stores the document without the preview;
  * - when a breed pick opens the breed gallery, which reads parent A from the
- *   document and must find no blend a quick switch left in it.
+ *   document and must find no blend a quick switch left in it;
+ * - before every export, share and scripted render, which capture the canvas
+ *   or snapshot the document, so the preview ends first and the pixels, the
+ *   flame they carry and Recents agree (quickExport.test.tsx,
+ *   lazyModals.shareLink.test.ts);
+ * - in Save for Later and the 2D/3D stash, which store the document and read
+ *   it without the preview.
  */
 import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
@@ -70,6 +76,60 @@ function optionOf(name: string, property: string): string {
   return ''
 }
 
+/** The arguments of the one call to `name`, compacted. */
+function argumentsOf(name: string): string[] {
+  const calls = callsTo(name)
+  expect(calls, `expected one call to ${name}`).toHaveLength(1)
+  return calls[0]!.arguments.map(compact)
+}
+
+/** The statements of the one function named `name`: declared, or assigned
+ *  to a variable or an object property of that name. */
+function statementsOf(name: string): string[] {
+  const bodies: ts.Block[] = []
+  const visit = (node: ts.Node) => {
+    let fn: ts.Node | undefined
+    if (ts.isFunctionDeclaration(node) && node.name?.text === name) fn = node
+    if (
+      (ts.isVariableDeclaration(node) || ts.isPropertyAssignment(node)) &&
+      ts.isIdentifier(node.name) &&
+      node.name.text === name
+    ) {
+      fn = node.initializer
+    }
+    if (
+      fn &&
+      (ts.isFunctionDeclaration(fn) || ts.isArrowFunction(fn)) &&
+      fn.body &&
+      ts.isBlock(fn.body)
+    ) {
+      bodies.push(fn.body)
+    }
+    ts.forEachChild(node, visit)
+  }
+  visit(ast)
+  expect(bodies, `expected one function named ${name}`).toHaveLength(1)
+  return bodies[0]!.statements.map(compact)
+}
+
+/** What each assignment to `name` assigns. */
+function assignmentsTo(name: string): string[] {
+  const values: string[] = []
+  const visit = (node: ts.Node) => {
+    if (
+      ts.isBinaryExpression(node) &&
+      node.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+      ts.isIdentifier(node.left) &&
+      node.left.text === name
+    ) {
+      values.push(compact(node.right))
+    }
+    ts.forEachChild(node, visit)
+  }
+  visit(ast)
+  return values
+}
+
 function jsxAttribute(tag: string, attribute: string): string {
   const values: string[] = []
   const visit = (node: ts.Node) => {
@@ -111,5 +171,39 @@ describe('the gallery hover preview in MainWorkspace', () => {
     expect(jsxAttribute('WorkspaceSidebar', 'endBreedPreview')).toBe(
       '{blendPick.end}',
     )
+  })
+
+  it('comes off before the export dialog or a flash export reads the canvas', () => {
+    expect(argumentsOf('createExportPngDialog').at(-1)).toBe('blendPick.end')
+  })
+
+  it('comes off before the share link modal reads the document', () => {
+    expect(argumentsOf('createLazyShareLinkModal')).toContain('blendPick.end')
+  })
+
+  it('comes off before a Discord share freezes the document', () => {
+    expect(statementsOf('shareToDiscord')[0]).toBe('blendPick.end()')
+  })
+
+  it('comes off before a scripted render snapshots the document', () => {
+    expect(statementsOf('renderImage')[0]).toBe('blendPick.end()')
+    expect(statementsOf('renderAnimation')[0]).toBe('blendPick.end()')
+  })
+
+  it('stays out of Save for Later, which the autosave hook makes', () => {
+    // Every Recents write from here goes through useWorkspaceAutosave, which
+    // stores `savedFlame` (useWorkspaceAutosave.test.ts).
+    expect(callsTo('saveRecentFlame').map(compact)).toEqual([])
+  })
+
+  it('stays out of the flame a 2D/3D switch puts aside', () => {
+    const stashed = [
+      ...assignmentsTo('stashedFlame2D'),
+      ...assignmentsTo('stashedFlame3D'),
+    ]
+    expect(stashed).toEqual([
+      'deepClone(blendPick.withoutPreview())',
+      'deepClone(blendPick.withoutPreview())',
+    ])
   })
 })

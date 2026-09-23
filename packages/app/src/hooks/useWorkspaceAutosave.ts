@@ -1,6 +1,6 @@
 import { onCleanup } from 'solid-js'
 import { autosaveIntervalMin, autosaveRecents, saveReminderDismissed, setAutosaveRecents, setSaveReminderDismissed, } from '@/utils/autosaveSettings'
-import { getOldestRecentFlame, MAX_RECENT_FLAMES, upsertRecentFlame, } from '@/utils/recentFlames'
+import { getOldestRecentFlame, MAX_RECENT_FLAMES, saveRecentFlame, upsertRecentFlame, } from '@/utils/recentFlames'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 import type { FlushOutcome } from '@/lib/documentLoad'
 import type { RecentWriteOutcome } from '@/utils/recentFlames'
@@ -66,12 +66,13 @@ export interface UseWorkspaceAutosaveParams {
    * Put "Recents is full - may this replace the oldest flame?" to the user
    * and resolve with their answer.
    *
-   * Taken as a parameter rather than reached for, because only one caller
-   * here is ever allowed to ask: the flush at a document replacement, which
-   * is the last moment the open document's work exists anywhere. The
-   * interval autosave and the two writers for a process that is ending - the
-   * pagehide flush and the pause save - all have answers of their own
-   * (below), and none of them may raise this.
+   * Taken as a parameter rather than reached for, because only two callers
+   * here are ever allowed to ask: the user's own Save for Later, and the
+   * flush at a document replacement, which is the last moment the open
+   * document's work exists anywhere. The interval autosave and the two
+   * writers for a process that is ending - the pagehide flush and the pause
+   * save - all have answers of their own (below), and none of them may raise
+   * this.
    */
   confirmOverwriteOldest: () => Promise<boolean>
   /**
@@ -287,6 +288,47 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
     return true
   }
 
+  /**
+   * The user's own save: the one write allowed to replace a flame they kept,
+   * because it is the one that asks first. It stores `savedFlame`, as every
+   * write here does, so a click inside the gallery's leave delay keeps no
+   * hovered partner. One action for the desktop button and the touch
+   * layouts' menu alike (components/Shell/moreMenuItems.ts).
+   *
+   * Nothing here claims more than happened: `full` is the only outcome worth
+   * asking about, anything else means the write did not land and the
+   * workspace stays dirty so the next boundary tries again.
+   */
+  const saveForLater = async () => {
+    const tracks = getTracks() ?? []
+    const config = getConfig()
+    const saved = (force: boolean) =>
+      saveRecentFlame(savedFlame(), undefined, tracks, force, config)
+    const announce = (replacedOldest: boolean) => {
+      markSavedBaseline()
+      showToast(
+        tracks.length > 0
+          ? `Flame + animation saved${replacedOldest ? ' (replaced oldest)' : ' for later'}`
+          : `Flame saved${replacedOldest ? ' (replaced oldest)' : ' for later'}`,
+      )
+    }
+    const outcome = saved(false)
+    if (outcome === 'saved') {
+      announce(false)
+      return
+    }
+    if (outcome === 'refused') {
+      showToast('Could not save the flame to Recents', 5000)
+      return
+    }
+    if (!(await confirmOverwriteOldest())) return
+    if (saved(true) === 'saved') {
+      announce(true)
+    } else {
+      showToast('Could not save the flame to Recents', 5000)
+    }
+  }
+
   const saveOnPagehide = () => {
     // One of the two automatic paths allowed to evict a kept flame - the
     // other is the pause save below - because they are the ones with nobody
@@ -428,6 +470,7 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
     autosaveNow,
     flushDirtyToRecents,
     prepareDocumentReplacement,
+    saveForLater,
     saveOnPause,
   }
 }

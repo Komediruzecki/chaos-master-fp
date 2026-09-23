@@ -116,7 +116,7 @@ import { hardwareTierToPreset } from './utils/hardwareTier'
 import { compressJsonQueryParam } from './utils/jsonQueryParam'
 import { addRandomizerHistoryEntry, clearRandomizerHistory, loadRandomizerHistoryEntries, MAX_RANDOMIZER_HISTORY_LIMIT, } from './utils/randomizerHistoryDB'
 import { buildReadableIds } from './utils/readableIds'
-import { getOldestRecentFlame, saveRecentFlame } from './utils/recentFlames'
+import { getOldestRecentFlame } from './utils/recentFlames'
 import { storeImportedSession, storeSession } from './utils/sessionsDB'
 import { createShareLink, deriveOgMeta, uploadOgPreview, } from './utils/shareLink'
 import { sum } from './utils/sum'
@@ -1820,6 +1820,7 @@ export function MainWorkspace(props: AppProps) {
     () => timeline.tracks(),
     () => timeline.config(),
     captureOgImageBlob,
+    blendPick.end,
   )
 
   const { showDiscordShareModal } = createLazyDiscordShareModal()
@@ -1940,9 +1941,11 @@ export function MainWorkspace(props: AppProps) {
       () => resolvedBlendWeight(),
       () => audioBuffer(),
       () => audioMapping().mappings,
+      blendPick.end,
     )
 
   async function shareToDiscord() {
+    blendPick.end()
     // Freeze one authored document for the entire flow. The capture callback,
     // share-link shortener and consent modal all resolve asynchronously; using
     // the live store again later could pair flame B with flame A's PNG. What
@@ -2836,10 +2839,10 @@ export function MainWorkspace(props: AppProps) {
 
   // ── Autosave & save-awareness ──────────────────────────────────────────
   const {
-    markSavedBaseline,
     markLoadedBaseline,
     flushDirtyToRecents,
     prepareDocumentReplacement,
+    saveForLater: saveFlameForLater,
     saveOnPause,
   } = useWorkspaceAutosave({
     flameDescriptor,
@@ -2853,49 +2856,6 @@ export function MainWorkspace(props: AppProps) {
     confirmOverwriteOldest,
     confirmDiscardUnsaved,
   })
-
-  /**
-   * The user's own save: the one write allowed to replace a flame they kept,
-   * because it is the one that asks first.
-   *
-   * Named and declared here rather than inline on the desktop button, so the
-   * touch layouts can offer the same action - the restore notice tells the
-   * user to save the flame for later, and on the device that notice is
-   * written for there was nothing to tap (components/Shell/moreMenuItems.ts).
-   *
-   * Nothing here claims more than happened: `full` is the only outcome worth
-   * asking about, anything else means the write did not land and the
-   * workspace stays dirty so the next boundary tries again.
-   */
-  const saveFlameForLater = async () => {
-    const tracks = timeline.tracks()
-    const config = timeline.config()
-    const saved = (force: boolean) =>
-      saveRecentFlame(flameDescriptor, undefined, tracks, force, config)
-    const announce = (replacedOldest: boolean) => {
-      markSavedBaseline()
-      showToast(
-        tracks.length > 0
-          ? `Flame + animation saved${replacedOldest ? ' (replaced oldest)' : ' for later'}`
-          : `Flame saved${replacedOldest ? ' (replaced oldest)' : ' for later'}`,
-      )
-    }
-    const outcome = saved(false)
-    if (outcome === 'saved') {
-      announce(false)
-      return
-    }
-    if (outcome === 'refused') {
-      showToast('Could not save the flame to Recents', 5000)
-      return
-    }
-    if (!(await confirmOverwriteOldest())) return
-    if (saved(true) === 'saved') {
-      announce(true)
-    } else {
-      showToast('Could not save the flame to Recents', 5000)
-    }
-  }
 
   /**
    * Start again from the starter flame. A document replacement like any
@@ -2952,10 +2912,10 @@ export function MainWorkspace(props: AppProps) {
         // dimension; restore the target dimension's own pair so 2D and 3D
         // each keep independent animations.
         if (current === 3) {
-          stashedFlame3D = deepClone(flameDescriptor)
+          stashedFlame3D = deepClone(blendPick.withoutPreview())
           stashedTracks3D = deepClone(timeline.tracks())
         } else {
-          stashedFlame2D = deepClone(flameDescriptor)
+          stashedFlame2D = deepClone(blendPick.withoutPreview())
           stashedTracks2D = deepClone(timeline.tracks())
         }
         // Fly mode only makes sense in 3D.
@@ -3515,6 +3475,7 @@ export function MainWorkspace(props: AppProps) {
     // clicked one produce the same file. See commands/builtins/export.ts.
     exportJobs: {
       renderImage: (request) => {
+        blendPick.end()
         const frame = timeline.currentFrame()
         const flame = deepClone(flameDescriptor)
         const tracks = deepClone(timeline.tracks())
@@ -3546,6 +3507,7 @@ export function MainWorkspace(props: AppProps) {
         })
       },
       renderAnimation: (request) => {
+        blendPick.end()
         const tracks = deepClone(timeline.tracks())
         const config = deepClone(timeline.config())
         const { frameStart, frameEnd } = resolveExportFrameRange(
