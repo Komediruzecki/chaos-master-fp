@@ -1,6 +1,3 @@
-import { MAX_ACTION_TIMESTAMP_MS, MAX_UNCAPTURED_REASON_CHARS, MAX_UNCAPTURED_STEPS, } from './schema'
-import type { RecordedSession, UncapturedStep } from './schema'
-
 /**
  * The steps a take could not record, by name.
  *
@@ -13,6 +10,8 @@ import type { RecordedSession, UncapturedStep } from './schema'
  * it back through {@link summarizeUncapturedSteps}, so they say the same thing
  * in the same words.
  */
+import { MAX_ACTION_TIMESTAMP_MS, MAX_UNCAPTURED_REASON_CHARS, MAX_UNCAPTURED_STEPS, } from './schema'
+import type { RecordedSession, UncapturedStep } from './schema'
 
 /** Shown in place of names for a take recorded before they were saved. */
 export const UNCAPTURED_DETAILS_MISSING =

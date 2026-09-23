@@ -1,3 +1,7 @@
+/**
+ * The saved-recordings list, read against a stubbed store: what each entry
+ * says about the steps its take could not capture.
+ */
 import { render, screen, waitFor } from '@solidjs/testing-library'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ToastProvider } from '@/contexts/ToastContext'
@@ -7,11 +11,6 @@ import { deepClone } from '@/utils/clone'
 import { SessionLibraryPanel } from './SessionLibraryPanel'
 import type { RecordedSession } from '@/recorder/schema'
 import type { StoredSession } from '@/utils/sessionsDB'
-
-/**
- * The saved-recordings list, read against a stubbed store: what each entry
- * says about the steps its take could not capture.
- */
 
 const { loadStoredSessionsMock } = vi.hoisted(() => ({
   loadStoredSessionsMock: vi.fn(),

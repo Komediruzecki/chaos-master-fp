@@ -1,10 +1,3 @@
-import { For, Show } from 'solid-js'
-import { ChevronDown } from '@/icons'
-import { describeExportSkips, summarizeUncapturedSteps, } from '@/recorder/uncapturedSteps'
-import styles from './UncapturedSteps.module.css'
-import type { RecordedAction } from '@/recorder/schema'
-import type { UncapturedSource } from '@/recorder/uncapturedSteps'
-
 /**
  * A take's uncaptured steps, by name.
  *
@@ -15,6 +8,13 @@ import type { UncapturedSource } from '@/recorder/uncapturedSteps'
  * none of them is left with a bare number. A take recorded before names were
  * saved says that instead of a list.
  */
+import { For, Show } from 'solid-js'
+import { ChevronDown } from '@/icons'
+import { describeExportSkips, summarizeUncapturedSteps, } from '@/recorder/uncapturedSteps'
+import styles from './UncapturedSteps.module.css'
+import type { RecordedAction } from '@/recorder/schema'
+import type { UncapturedSource } from '@/recorder/uncapturedSteps'
+
 export function UncapturedSteps(props: {
   session: UncapturedSource
   /** Open over the surrounding content instead of pushing it down: the

@@ -1,11 +1,11 @@
-import { describe, expect, it } from 'vitest'
-import { describeUncapturedStep, summarizeUncapturedSteps, UNCAPTURED_DETAILS_MISSING, } from './uncapturedSteps'
-
 /**
  * How a take's uncaptured steps read wherever they are shown: the recorder
  * controls, the library, the replay panel, the export notice and the console
  * line a stop writes all take their words from here.
  */
+import { describe, expect, it } from 'vitest'
+import { describeUncapturedStep, summarizeUncapturedSteps, UNCAPTURED_DETAILS_MISSING, } from './uncapturedSteps'
+
 describe('uncaptured step names', () => {
   it('reads as the reason and the moment in the take', () => {
     expect(
