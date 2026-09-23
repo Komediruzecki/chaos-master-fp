@@ -312,7 +312,7 @@ describe('every blur', () => {
     ).toEqual([])
   })
 
-  it('is found in the stylesheets and in TSX at all', () => {
+  it('is found in the stylesheets, and the TSX is read at all', () => {
     // Both walks returning nothing would pass the two tests above.
     const pairs = stylesheets.flatMap(({ css }) =>
       blocksOf(css).flatMap((b) => b.declarations),
@@ -320,9 +320,12 @@ describe('every blur', () => {
     expect(pairs.filter((d) => d.property === STANDARD).length).toBeGreaterThan(
       MAX_LITERAL_BLURS,
     )
-    expect(sources.some(({ source }) => source.includes(`'${PREFIXED}'`))).toBe(
-      true,
-    )
+    // The last inline blur went with the tour's scrims (glass-panels.md,
+    // phase 1), so the inline check holds nothing today; the detector is
+    // proved on a fixture below. The walk must still reach the TSX.
+    expect(
+      sources.filter(({ file }) => file.endsWith('.tsx')).length,
+    ).toBeGreaterThan(0)
   })
 })
 
