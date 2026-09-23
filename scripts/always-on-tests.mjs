@@ -108,6 +108,11 @@ export const ALWAYS_ON = [
     genre: 'filesystem',
   },
   {
+    file: 'src/pages/FractalExplorer/FractalExplorerPage.module.test.ts',
+    why: 'reads FractalExplorerPage.module.css with the Slider and PaletteSelector stylesheets whose hooks it sets',
+    genre: 'filesystem',
+  },
+  {
     file: 'src/components/Shell/ShellBar.module.test.ts',
     why: 'reads ShellBar.module.css',
     genre: 'filesystem',

@@ -228,8 +228,21 @@
   }
 }
 
+/* The shared Slider and PaletteSelector are written for the editor's opaque
+   sidebar, in two themes. On this glass, dark in both themes, they take the
+   panel's tiers through the hooks their stylesheets offer: text at ink-2 or
+   ink, never lower, and the dark look's lines in either theme. */
 .panel {
   composes: panel from '@/styles/designSystem/glass.module.css';
+  --slider-ink: var(--la-ink-2);
+  --slider-ink-hover: var(--la-ink);
+  --slider-track-filled: var(--la-ink-4);
+  --slider-track-empty: var(--la-hairline-strong);
+  --palette-ink: var(--la-ink);
+  --palette-ink-2: var(--la-ink-2);
+  --palette-edge: var(--la-hairline);
+  --palette-edge-hover: var(--la-hairline-strong);
+  --palette-edge-selected: var(--la-accent);
   position: absolute;
   top: calc(var(--la-safe-top) + var(--la-s-3) + var(--la-tap) + var(--la-s-3));
   right: calc(var(--la-safe-right) + var(--la-s-3));
