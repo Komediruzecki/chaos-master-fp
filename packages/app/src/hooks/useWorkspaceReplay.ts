@@ -28,6 +28,9 @@ import type { QuickPickState } from '@/stores/workspaceSelectionStore'
 import type { HistoryPreviewOwner } from '@/utils/createStoreHistory'
 import type { TimelineState } from '@/utils/timeline'
 
+/** A replay opens no dialog: see `replayCommandContext`. */
+const REPLAY_MODAL: CommandContext['modal'] = { open: () => {} }
+
 export type ReplaySideState = ReplayNonFlameSideState & {
   flame: FlameDescriptor
 }
@@ -436,6 +439,22 @@ export function useWorkspaceReplay(params: UseWorkspaceReplayParams) {
     }
   }
 
+  /**
+   * The workspace's commands as a replay runs them: its own, but for the
+   * modal. Opening the export dialog is a step a take records (`export.png`,
+   * `export.animation`), and run against the live context it opened the
+   * dialog over the replay, and over the video a full-interface export
+   * captures from this same replay. The step still runs and keeps its place,
+   * spotlight and all; it opens nothing. The artwork export and the
+   * synthesize sandbox keep a no-op modal in their own worlds for the same
+   * reason (recorder/replayVideo.ts, recorder/synthesize/sandbox.ts). Built
+   * per step, so it reads the context as it is then.
+   */
+  const replayCommandContext = (): CommandContext => ({
+    ...cmdContext,
+    modal: REPLAY_MODAL,
+  })
+
   const replayTarget: ReplayTarget = {
     // The replay moves the playhead through a take's play windows at the pace
     // they were recorded at, rather than on the timeline's own clock.
@@ -506,7 +525,7 @@ export function useWorkspaceReplay(params: UseWorkspaceReplayParams) {
         flameDescriptor,
         currentPaletteColors,
       )
-      const accepted = executeReplayCommand(id, cmdContext, ...args)
+      const accepted = executeReplayCommand(id, replayCommandContext(), ...args)
       if (accepted && nextPaletteColors !== currentPaletteColors) {
         view.setPrePaletteColors(nextPaletteColors)
       }
