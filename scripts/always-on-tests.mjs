@@ -38,7 +38,7 @@ export const ALWAYS_ON = [
   // module graph connects them to none of it.
   {
     file: 'src/eagerComputationOrder.test.ts',
-    why: 'walks all of src/ with the TypeScript AST for eager-memo temporal dead zones',
+    why: 'walks all of src/ with the TypeScript AST for eager-memo temporal dead zones, in one file and across the useWorkspace* hook boundary',
     genre: 'filesystem',
   },
   {
