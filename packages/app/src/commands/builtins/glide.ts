@@ -12,8 +12,9 @@
  * the dope sheet someone is authoring in is never disturbed.
  *
  * The two switches write to the context's own `glideSwitches` when it has
- * them: a replay world apart from the workspace keeps a private pair, so
- * exporting or checking a take never changes the viewer's.
+ * them, and `glide.toFlame` animates through its own `glideRuntime`: a replay
+ * world apart from the workspace keeps a private pair and no runtime, so
+ * exporting or checking a take never changes the viewer's switches or canvas.
  */
 
 import { isGlideQualityPreference } from '@/flame/glide/quality'
@@ -88,7 +89,7 @@ registerCommand({
       console.warn('[cmd] glide.toFlame: not a valid flame', descriptor)
       return
     }
-    const runtime = getGlideRuntime()
+    const runtime = (ctx.glideRuntime ?? getGlideRuntime)()
     const ms = glideMsArg(durationMs)
     // Settle anything already in flight FIRST, so this edit lands on a settled
     // document rather than baking a half-interpolated one in — and keep what

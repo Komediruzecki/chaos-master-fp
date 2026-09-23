@@ -5,8 +5,10 @@ import { executeReplayCommand } from '@/commands/registry'
 import { examples } from '@/flame/examples'
 import { glideEnabled, glideQualityPreference, restoreGlideSwitches, } from '@/flame/glide/runtime'
 import { cancelSessionRecording } from '@/recorder/recorder'
+import { timelineReplayPlayback } from '@/recorder/replayPlayback'
 import { SESSION_FORMAT_VERSION } from '@/recorder/schema'
 import { deepClone } from '@/utils/clone'
+import { createTimelineState } from '@/utils/timeline'
 import { setFollowCamEnabled } from './recorderUi'
 import { SessionReplayPanel } from './SessionReplayPanel'
 import type { CommandContext } from '@/commands/types'
@@ -21,7 +23,8 @@ vi.mock('@/recorder/replayInterfaceVideo', () => ({
 /**
  * The full-interface export records the live replay, so the Glide switches a
  * take flips are the viewer's own for as long as it runs. However the export
- * ends, they go back.
+ * ends, they go back; one that ends early inside a play window leaves the
+ * timeline paused where it was.
  */
 
 const VIEWER = { enabled: false, quality: 'balanced' } as const
@@ -49,6 +52,50 @@ function makeTarget(): ReplayTarget {
   }
 }
 
+/** Four seconds of play at 25 fps: a take that is one play window. */
+function makePlayingSession(): RecordedSession {
+  return {
+    ...makeSession(),
+    actions: [
+      { t: 0, id: 'timeline.setPlaying', args: [true, 0] },
+      { t: 4000, id: 'timeline.setPlaying', args: [false, 100, 100] },
+    ],
+  }
+}
+
+/** A workspace-shaped timeline the replay paces through its window. */
+function makeTimelineTarget() {
+  const raw = createTimelineState()
+  raw.setConfig({
+    ...raw.config(),
+    fps: 25,
+    timeScale: 1,
+    autoFps: false,
+    startFrame: 0,
+    endFrame: 600,
+    loop: true,
+  })
+  raw.setAnimationEnabled(true)
+  const ctx = {
+    timeline: {
+      setCurrentFrame: (frame: number) => {
+        raw.goToFrame(frame)
+        return frame
+      },
+      play: raw.play,
+      pause: raw.pause,
+    },
+  } as unknown as CommandContext
+  const target: ReplayTarget = {
+    loadInitial: () => {
+      if (raw.isPlaying()) raw.pause()
+    },
+    execute: (id, args) => executeReplayCommand(id, ctx, ...args),
+    playback: timelineReplayPlayback(raw),
+  }
+  return { raw, target }
+}
+
 const switches = () => ({
   enabled: glideEnabled(),
   quality: glideQualityPreference(),
@@ -59,6 +106,8 @@ function startExport(
   run: (
     request: Extract<ReplayVideoExportRequest, { mode: 'interface' }>,
   ) => Promise<void>,
+  session = makeSession(),
+  target = makeTarget(),
 ) {
   const exportVideo = vi.fn((request: ReplayVideoExportRequest) => {
     if (request.mode !== 'interface') throw new Error('expected interface')
@@ -66,8 +115,8 @@ function startExport(
   })
   const view = render(() => (
     <SessionReplayPanel
-      session={makeSession()}
-      target={makeTarget()}
+      session={session}
+      target={target}
       onExportVideo={exportVideo}
       onClose={() => {}}
     />
@@ -144,6 +193,62 @@ describe('the full-interface export and the Glide switches', () => {
     expect(switches()).toEqual(VIEWER)
     vi.advanceTimersByTime(5000)
     expect(switches()).toEqual(VIEWER)
+    unmount()
+  })
+})
+
+describe('the full-interface export ending inside a play window', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    cancelSessionRecording()
+    setFollowCamEnabled(false)
+  })
+  afterEach(() => {
+    cancelSessionRecording()
+    setFollowCamEnabled(true)
+    vi.useRealTimers()
+  })
+
+  it('pauses the timeline where it is when the export is cancelled', async () => {
+    const { raw, target } = makeTimelineTarget()
+    const controller = new AbortController()
+    const { unmount } = startExport(
+      (request) => {
+        request.prepareReplay()
+        return request.playReplay(controller.signal)
+      },
+      makePlayingSession(),
+      target,
+    )
+    vi.advanceTimersByTime(1500)
+    expect(raw.isPlaying()).toBe(true)
+    controller.abort(new Error('Full-interface recording was cancelled'))
+    await settle()
+    expect(raw.isPlaying()).toBe(false)
+    expect(raw.currentFrame()).toBe(37)
+    unmount()
+  })
+
+  it('pauses the timeline where it is when the capture fails', async () => {
+    const { raw, target } = makeTimelineTarget()
+    let fail: ((error: Error) => void) | undefined
+    const { unmount } = startExport(
+      (request) => {
+        request.prepareReplay()
+        void request.playReplay(new AbortController().signal).catch(() => {})
+        return new Promise<void>((_, reject) => {
+          fail = reject
+        })
+      },
+      makePlayingSession(),
+      target,
+    )
+    vi.advanceTimersByTime(1500)
+    expect(raw.isPlaying()).toBe(true)
+    fail?.(new Error('The encoder gave up'))
+    await settle()
+    expect(raw.isPlaying()).toBe(false)
+    expect(raw.currentFrame()).toBe(37)
     unmount()
   })
 })

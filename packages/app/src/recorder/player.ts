@@ -1,15 +1,14 @@
 import { createSignal } from 'solid-js'
-import { captureGlideSwitches, restoreGlideSwitches, } from '@/flame/glide/runtime'
 import { deepClone } from '@/utils/clone'
 import { glideMsForAction } from './glide'
 import { NARRATION_COMMAND_ID } from './narrationMode'
 import { createPlayerPlayWindows } from './playerPlayWindows'
 import { getLiveWorkspaceMutationGeneration, isSessionRecording, withRecordingSuppressed, } from './recorder'
 import { loadSessionStart } from './replay'
+import { createReplayGlideLease } from './replayGlideLease'
 import type { ReplayGlideOptions } from './glide'
 import type { ReplayTarget } from './replay'
 import type { RecordedAction, RecordedSession } from './schema'
-import type { GlideSwitches } from '@/flame/glide/types'
 
 /**
  * Timed playback of a recorded session (semantic-recorder-plan, M4).
@@ -303,13 +302,7 @@ export function createSessionPlayer(
   let resumeAt: number | undefined
   /** The viewer's Glide switches, held from the first step until the replay
    *  ends; meanwhile the take's own steps switch them. */
-  let glideLease: GlideSwitches | undefined
-
-  function returnGlideSwitches(): void {
-    if (glideLease === undefined) return
-    restoreGlideSwitches(glideLease)
-    glideLease = undefined
-  }
+  const glideLease = createReplayGlideLease()
 
   const speed = () => {
     const value = options.speed?.() ?? 1
@@ -345,8 +338,8 @@ export function createSessionPlayer(
       resumeAt = windows.now()
       if (resumeAt !== undefined) windows.holdAt(resumeAt, false)
     } else {
-      // An edit ends the replay: own clock, the viewer's Glide switches.
-      endReplayState()
+      // An edit ends the replay: paused where it is, the viewer's switches.
+      endReplayState(true)
     }
     windows.stopClock()
     setIsPlaying(false)
@@ -364,7 +357,7 @@ export function createSessionPlayer(
 
   function openBatch() {
     if (batchOpen) return
-    glideLease ??= captureGlideSwitches()
+    glideLease.hold()
     withRecordingSuppressed(() => target.prepare?.())
     target.beginBatch?.(takeOverByUser)
     batchOpen = true
@@ -395,7 +388,7 @@ export function createSessionPlayer(
     setIsFinished(false)
     clearTimer()
     closeBatch()
-    endReplayState()
+    endReplayState(true)
     options.onError?.(message)
     return false
   }
@@ -408,7 +401,7 @@ export function createSessionPlayer(
     setIsFinished(false)
     clearTimer()
     closeBatch()
-    endReplayState()
+    endReplayState(true)
     options.onError?.(message)
     return false
   }
@@ -459,18 +452,18 @@ export function createSessionPlayer(
   function runStep(index: number, prepareUi: boolean): ActionExecution {
     const action = actions[index]!
     windows.holdAt(action.t, true)
-    const result = executeAction(action, prepareUi)
+    const result = glideLease.step(() => executeAction(action, prepareUi))
     if (result.ok) windows.afterStep(index)
     return result
   }
 
   /** The playback is no longer the replay's: its own clock, the viewer's
-   *  Glide switches. */
-  function endReplayState(): void {
+   *  Glide switches. A replay ended early pauses a window where it is. */
+  function endReplayState(early = false): void {
     windows.stopClock()
     resumeAt = undefined
-    windows.release()
-    returnGlideSwitches()
+    windows.release(early)
+    glideLease.release()
   }
 
   /** How long the transition INTO `index` should take. 0 = a cut. */
@@ -522,7 +515,7 @@ export function createSessionPlayer(
     windows.reset()
     resumeAt = undefined
     windows.release()
-    if (glideLease) restoreGlideSwitches(glideLease)
+    glideLease.reset()
 
     // Rebuild the historical prefix silently. Preparing and publishing every
     // intermediate action made a seek through N steps scroll/focus the UI N
@@ -699,7 +692,7 @@ export function createSessionPlayer(
       setIsFinished(false)
       clearTimer()
       closeBatch()
-      endReplayState()
+      endReplayState(true)
     },
     stepIndex,
     currentAction: () => (actionPublished() ? actions[stepIndex()] : undefined),
