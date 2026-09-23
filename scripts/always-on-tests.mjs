@@ -61,6 +61,11 @@ export const ALWAYS_ON = [
     why: 'walks src/, scripts/ and the landing package for <Camera2D> mounts that omit the view rotation',
     genre: 'filesystem',
   },
+  {
+    file: 'src/styles/designSystem/glassBlurs.test.ts',
+    why: 'walks every stylesheet and TSX file under src/ to ratchet literal blurs and pair each backdrop-filter with its -webkit- twin',
+    genre: 'filesystem',
+  },
 
   // Read a non-source file the graph has no edge to.
   {
@@ -80,6 +85,11 @@ export const ALWAYS_ON = [
   {
     file: 'src/launchNotice.test.ts',
     why: 'reads App.tsx and App.module.css',
+    genre: 'filesystem',
+  },
+  {
+    file: 'src/styles/designSystem/glassContrast.test.ts',
+    why: 'reads the ink and glass tokens from lumen.css to measure text contrast on each fill',
     genre: 'filesystem',
   },
   {

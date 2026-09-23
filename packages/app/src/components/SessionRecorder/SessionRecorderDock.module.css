@@ -82,6 +82,7 @@
   font-size: 0.7rem;
   font-weight: 500;
   letter-spacing: 0.04em;
+  -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
   box-shadow: 0 2px 12px oklch(0% 0 0 / 0.4);
   white-space: nowrap;

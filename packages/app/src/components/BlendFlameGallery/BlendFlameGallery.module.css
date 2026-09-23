@@ -199,6 +199,7 @@
     rgba(0, 0, 0, 0.4) 70%,
     transparent 100%
   );
+  -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
   line-height: 1.3;
 }

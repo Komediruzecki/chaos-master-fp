@@ -6,6 +6,7 @@
   align-items: center;
   justify-content: center;
   background: rgba(0, 0, 0, 0.6);
+  -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
   animation: fadeIn 300ms ease-out;
 }
@@ -163,6 +164,7 @@
     rgba(0, 0, 0, 0.35) 70%,
     transparent 100%
   );
+  -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
   line-height: 1.3;
 }

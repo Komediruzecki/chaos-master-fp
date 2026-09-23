@@ -348,6 +348,7 @@
   inset: 0;
   z-index: 100;
   background: rgba(0, 0, 0, 0.35);
+  -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
   display: flex;
   flex-direction: column;
@@ -364,6 +365,7 @@
 
 .exportOverlay {
   background: rgba(0, 0, 0, 0.6);
+  -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
   cursor: default;
 
@@ -1350,6 +1352,7 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
   pointer-events: none;
+  -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
   box-shadow: 0 2px 12px oklch(0% 0 0 / 0.4);
   animation: hoverBadgeIn 0.15s cubic-bezier(0.22, 1, 0.36, 1);

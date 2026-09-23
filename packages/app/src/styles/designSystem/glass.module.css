@@ -17,7 +17,11 @@
  *
  * Each carries --la-glass-edge and --la-glass-shadow and writes both
  * backdrop-filter and -webkit-backdrop-filter: iOS Safari before 18 reads
- * only the prefixed one.
+ * only the prefixed one. Known issue: the production minifier keeps only
+ * the later spelling of a pair, so the build ships these as
+ * -webkit-backdrop-filter alone, which Chrome, Firefox and Android ignore.
+ * Until the build keeps both, glass from this file is unblurred there in
+ * production (not in the dev server). glassBlurs.test.ts has the detail.
  *
  * USING THEM. Compose the class into the surface's own, as the first
  * declaration of a rule whose selector is that one class (composes allows
