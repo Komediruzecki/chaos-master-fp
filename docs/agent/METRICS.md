@@ -59,10 +59,10 @@ writing, now in the change that needs it. Nothing runs the ratchet before CI
 when a change adds or grows a file.
 
 The `health` job, on pushes to main and on a manual `workflow_dispatch`,
-measures the two families a plain `--check` cannot: it runs `pnpm
-test:coverage` (whose app run allows 30 s per test, since instrumented
-whole-tree scans outrun vitest's 5 s default on a CI runner), then `pnpm
-metrics:check --with-lint`, so the six `coverage_*` keys and the four
+measures the two families a plain `--check` cannot: it runs
+`pnpm test:coverage` (whose app run allows 30 s per test, since instrumented
+whole-tree scans outrun vitest's 5 s default on a CI runner), then
+`pnpm metrics:check --with-lint`, so the six `coverage_*` keys and the four
 `eslint_*` keys are compared too. `--check` only compares keys the current run
 produced, and until WP3b nothing in CI produced these, so the coverage floors
 and the lint counts were held by nothing. With `--with-lint`, a lint key the
@@ -75,10 +75,14 @@ same asymmetry once meant `--update` dropped those keys without a word unless a
 coverage run preceded it. Since WP3 (2026-09-23) `--update` refuses to write a
 baseline that would lose a key the old one has: without a coverage run it stops
 and names the six `coverage_*` keys, and without `--with-lint` it names the
-`eslint_*` ones if the baseline carries them. Re-freeze with `pnpm
-test:coverage && pnpm metrics:update`. A metric removed on purpose is named
-explicitly, `pnpm metrics:update --drop=<key>[,<key>]`, and the commit message
-says why.
+`eslint_*` ones if the baseline carries them. Re-freeze with
+`pnpm test:coverage && pnpm metrics:update`, but take the coverage numbers from
+the `health` job's log, not from that local run: CI measures a little lower. On
+2026-09-23 the same commit gave 53.23 / 44.61 / 50.64 (app lines / functions /
+branches) in CI and 53.28 / 44.61 / 50.67 on a workstation, so a baseline
+frozen locally can turn main red with nothing changed. A metric removed on
+purpose is named explicitly, `pnpm metrics:update --drop=<key>[,<key>]`, and
+the commit message says why.
 
 **One ratchet lives outside this script.** `MainWorkspace.tsx` is held to its
 exact line count by `packages/app/src/mainWorkspaceSize.test.ts`, which runs on
