@@ -644,7 +644,10 @@ happened (take time, held to the session's timestamp range) and why, in words a
 person can read: the history entry's own description for an edit made outside
 the commands, the command's label for a command that is not a step, and which
 case an unreplayable undo or redo is (an edit from before recording started,
-nothing left to undo, a history with no journal stamps). A finished session
+nothing left to undo, a history with no journal stamps). A command that changes
+nothing a replay reproduces (`preservesFinishedSession`: every `export.*`
+command) shall count as no uncaptured step and end no coalescing run, while
+one that does, such as `timeline.play`, still counts. A finished session
 shall carry them as `uncapturedSteps`, in order, next to the count, which stays
 for readers that predate the list. The list shall name at most as many steps
 as a take can hold actions and shall never name more steps than the count;
@@ -663,7 +666,8 @@ _(`recorder/uncapturedSteps.ts:20-74`, `:94-148`, `recorder/recorder.ts:213`,
 `components/SessionRecorder/UncapturedSteps.tsx:18-45`; guarded by
 `recorder.test.ts:2073`, `:2106`, `:2120`, `:2133`, `:2152`, `:2181`, `:2193`,
 `uncapturedSteps.test.ts`, `SessionRecorderControls.test.tsx:277`,
-`SessionLibraryPanel.test.tsx:54`, `SessionReplayPanel.test.tsx:255`, `:282`.)_
+`SessionLibraryPanel.test.tsx:54`, `SessionReplayPanel.test.tsx:255`, `:282`,
+and `recorder.test.ts` "an export during a take".)_
 
 ### REQ-RR-042 — An export skips uncaptured steps, and says so before it starts
 
