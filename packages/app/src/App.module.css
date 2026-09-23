@@ -1244,28 +1244,29 @@
   );
 }
 
+/* Chrome glass (docs/plans/glass-panels.md, phase 1), whose text is ink.
+   The desktop's light theme keeps the light toast it had: the glass is
+   dark-only (decision b), and a touch layout is glass in both themes. */
 .toast {
+  composes: chrome from '@/styles/designSystem/glass.module.css';
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 0.4rem 0.7rem;
   border-radius: 10px;
-  background: oklch(22% 0.025 240 / 0.88);
-  border: 1px solid oklch(50% 0.08 240 / 0.55);
-  color: oklch(90% 0.02 240);
+  color: var(--la-ink);
   font-size: 0.74rem;
   font-weight: 500;
   line-height: 1.4;
   pointer-events: none;
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 4px 16px oklch(0% 0 0 / 0.35);
   animation: toast-in 0.18s cubic-bezier(0.22, 1, 0.36, 1);
 
-  [data-theme='light'] & {
+  [data-theme='light'] &:not(.toast-touch) {
     background: oklch(97% 0.008 240 / 0.92);
-    border-color: oklch(65% 0.08 240 / 0.5);
+    border: 1px solid oklch(65% 0.08 240 / 0.5);
     color: oklch(26% 0.05 240);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
     box-shadow: 0 4px 16px oklch(50% 0.04 240 / 0.18);
   }
 }
@@ -1288,9 +1289,11 @@
   flex-shrink: 0;
 }
 
+/* On the glass, an edge and a hairline wash from the --la-* set, and the
+   accent only as an edge. The light desktop toast keeps its own. */
 .toast-btn {
   padding: 0.15rem 0.6rem;
-  border: 1px solid oklch(60% 0.06 240 / 0.45);
+  border: 1px solid var(--la-hairline-strong);
   border-radius: 6px;
   background: transparent;
   color: inherit;
@@ -1302,21 +1305,25 @@
     background 0.15s;
 
   &:hover {
-    border-color: oklch(70% 0.12 240 / 0.85);
-    background: oklch(70% 0.12 240 / 0.16);
+    border-color: var(--la-accent-edge);
+    background: var(--la-hairline);
   }
 
   &:focus-visible {
-    outline: 2px solid oklch(70% 0.12 240 / 0.9);
+    outline: 2px solid var(--la-accent);
     outline-offset: 1px;
   }
 
-  [data-theme='light'] & {
+  [data-theme='light'] .toast:not(.toast-touch) & {
     border-color: oklch(55% 0.06 240 / 0.45);
 
     &:hover {
       border-color: oklch(45% 0.12 240 / 0.8);
       background: oklch(45% 0.12 240 / 0.12);
+    }
+
+    &:focus-visible {
+      outline-color: oklch(70% 0.12 240 / 0.9);
     }
   }
 }
@@ -1333,7 +1340,11 @@
   }
 }
 
+/* Chrome glass, like the toast; the desktop's light theme keeps its light
+   badge. The badge sits in the workspace, so the layout classes above say
+   whether it is on a touch layout. */
 .hover-preview-badge {
+  composes: chrome from '@/styles/designSystem/glass.module.css';
   position: absolute;
   top: 10px;
   left: 50%;
@@ -1344,24 +1355,21 @@
   gap: 0.35rem;
   padding: 0.28rem 0.75rem;
   border-radius: 20px;
-  background: oklch(22% 0.025 240 / 0.88);
-  border: 1px solid oklch(50% 0.08 240 / 0.6);
-  color: oklch(88% 0.04 240);
+  color: var(--la-ink);
   font-size: 0.7rem;
   font-weight: 500;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   pointer-events: none;
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
-  box-shadow: 0 2px 12px oklch(0% 0 0 / 0.4);
   animation: hoverBadgeIn 0.15s cubic-bezier(0.22, 1, 0.36, 1);
   white-space: nowrap;
 
-  [data-theme='light'] & {
+  [data-theme='light'] .layout:not(.phoneLayout, .tabletLayout) & {
     background: oklch(96% 0.01 240 / 0.92);
-    border-color: oklch(65% 0.08 240 / 0.5);
+    border: 1px solid oklch(65% 0.08 240 / 0.5);
     color: oklch(28% 0.06 240);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
     box-shadow: 0 2px 12px oklch(50% 0.04 240 / 0.2);
   }
 }
