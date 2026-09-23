@@ -102,6 +102,32 @@ describe('createInputScrub', () => {
     expect(onScrub.mock.calls).toEqual([[4]])
   })
 
+  it('reports nothing for a wobble up or down mid-scrub', () => {
+    const { input, onScrub } = mount()
+    press(input)
+    moveTo(110)
+    moveTo(110, 'mouse', false, 6)
+    release(110)
+    expect(onScrub.mock.calls).toEqual([[10]])
+  })
+
+  it('does nothing on an element that is not an input', () => {
+    const onStart = vi.fn()
+    const onScrub = vi.fn()
+
+    function Box() {
+      const scrub = createInputScrub({ onStart, onScrub })
+      return <div aria-label="box" onPointerDown={scrub} />
+    }
+    render(() => <Box />)
+    const down = press(screen.getByLabelText('box'))
+    moveTo(160)
+    release(160)
+    expect(down.defaultPrevented).toBe(false)
+    expect(onStart).not.toHaveBeenCalled()
+    expect(onScrub).not.toHaveBeenCalled()
+  })
+
   it('is ten times finer with Shift held', () => {
     const { input, onScrub } = mount()
     press(input)
