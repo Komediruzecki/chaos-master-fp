@@ -131,6 +131,11 @@ export const ALWAYS_ON = [
     genre: 'filesystem',
   },
   {
+    file: 'src/hooks/galleryPreviewWiring.test.ts',
+    why: 'import.meta.glob over MainWorkspace for how it wires the gallery hover preview',
+    genre: 'filesystem',
+  },
+  {
     file: 'src/recorder/uiCoverageRatchet.test.ts',
     why: 'import.meta.glob over the recorder sources',
     genre: 'filesystem',

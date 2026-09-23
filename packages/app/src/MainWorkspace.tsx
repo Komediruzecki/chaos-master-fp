@@ -2843,6 +2843,7 @@ export function MainWorkspace(props: AppProps) {
     saveOnPause,
   } = useWorkspaceAutosave({
     flameDescriptor,
+    savedFlame: blendPick.withoutPreview,
     getTracks: () => timeline.tracks(),
     // The timeline is part of the document: a change to the frame rate or
     // the end frame alone is unsaved work like any other.
