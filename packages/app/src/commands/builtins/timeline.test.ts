@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { examples } from '@/flame/examples'
 import { cancelSessionRecording, startSessionRecording, stopSessionRecording, } from '@/recorder/recorder'
 import { createTimelineState } from '@/utils/timeline'
-import { executeCommand, preflightLiveCommand } from '../registry'
+import { executeCommand, executeReplayCommand, preflightLiveCommand, preflightReplayCommand, } from '../registry'
 import type { CommandContext } from '../types'
 
 /**
@@ -179,6 +179,24 @@ describe('bounded transport, against the real timeline state', () => {
     expect(timeline.isPlaying()).toBe(false)
   })
 
+  it('counts an agent playFor as uncaptured, and records the pause its deadline makes', () => {
+    const { timeline, ctx } = realTransport()
+    startSessionRecording(examples.example1)
+
+    executeCommand('timeline.playFor', ctx, 2)
+    vi.advanceTimersByTime(2000)
+
+    const session = stopSessionRecording()
+    expect(timeline.isPlaying()).toBe(false)
+    expect(session?.unnamedWriteCount).toBe(1)
+    expect(session?.uncapturedSteps?.map(({ reason }) => reason)).toEqual([
+      'Play Timeline For, a command a recording does not replay',
+    ])
+    expect(session?.actions.map(({ id, args }) => [id, ...args])).toEqual([
+      ['timeline.setPlaying', false, timeline.currentFrame()],
+    ])
+  })
+
   it('a stale deadline leaves a playback it did not start alone', () => {
     const { timeline, ctx } = realTransport()
 
@@ -193,5 +211,72 @@ describe('bounded transport, against the real timeline state', () => {
     expect(timeline.isPlaying()).toBe(true)
 
     executeCommand('timeline.stop', ctx)
+  })
+})
+
+/**
+ * The step a recording writes for every Play and Pause (the recorder records
+ * it; see `recorder/timelineActions.test.ts` for the takes themselves). A
+ * session may replay it, because it pins the frame and ends where the take
+ * ended. A live caller may not: `timeline.setPlaying(true, 0)` would be the
+ * unbounded play `timeline.play` is refused for, so scripts keep
+ * `timeline.playFor` and `timeline.stop`.
+ */
+describe('timeline.setPlaying', () => {
+  function realTransport() {
+    const timeline = createTimelineState()
+    timeline.setConfig({ ...timeline.config(), startFrame: 0, endFrame: 48 })
+    const ctx = {
+      timeline: {
+        play: timeline.play,
+        pause: timeline.pause,
+        isPlaying: timeline.isPlaying,
+        setCurrentFrame: (frame: number) => {
+          timeline.goToFrame(frame)
+          return timeline.currentFrame()
+        },
+      },
+    } as unknown as CommandContext
+    return { timeline, ctx }
+  }
+
+  it('replays a play and a pause at the frames they pin', () => {
+    const { timeline, ctx } = realTransport()
+
+    expect(executeReplayCommand('timeline.setPlaying', ctx, true, 7)).toBe(true)
+    expect(timeline.isPlaying()).toBe(true)
+    expect(timeline.currentFrame()).toBe(7)
+
+    expect(executeReplayCommand('timeline.setPlaying', ctx, false, 31)).toBe(
+      true,
+    )
+    expect(timeline.isPlaying()).toBe(false)
+    expect(timeline.currentFrame()).toBe(31)
+  })
+
+  it('accepts exactly a playing flag and a frame from a session', () => {
+    expect(preflightReplayCommand('timeline.setPlaying', [false, 12])).toBe(
+      undefined,
+    )
+    for (const args of [
+      [],
+      [true],
+      ['yes', 3],
+      [true, -1],
+      [true, 1.5],
+      [true, 3, 'extra'],
+    ]) {
+      expect(preflightReplayCommand('timeline.setPlaying', args)).toBeDefined()
+    }
+  })
+
+  it('is refused live, so a script cannot start playback with no end', () => {
+    const { ctx } = realTransport()
+
+    const refused = preflightLiveCommand('timeline.setPlaying', ctx, [true, 0])
+
+    expect(refused).toEqual({
+      error: expect.stringMatching(/timeline\.playFor/) as unknown,
+    })
   })
 })

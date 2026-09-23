@@ -30,7 +30,7 @@ file instead of rediscovering the architecture every session.
 
 | Directory                 | Package name                   | Source files | LOC    |
 | ------------------------- | ------------------------------ | ------------ | ------ |
-| `packages/app`            | `chaos-master`                 | 1072         | 182.0k |
+| `packages/app`            | `chaos-master`                 | 1077         | 182.8k |
 | `packages/landing`        | `@chaos-master/landing`        | 20           | 2.5k   |
 | `packages/core`           | `@chaos-master/core`           | 17           | 1.9k   |
 | `packages/mobile-runtime` | `@chaos-master/mobile-runtime` | 7            | 600    |
@@ -83,7 +83,7 @@ file instead of rediscovering the architecture every session.
 | `Home`                  | [HomeFlame.tsx](../../packages/app/src/components/Home/HomeFlame.tsx)                                          | 4.1k | _(no header comment)_                                                                                                                        |
 | `AudioWiringModal`      | [AudioWiringModal.tsx](../../packages/app/src/components/AudioWiringModal/AudioWiringModal.tsx)                | 4.0k | _(no header comment)_                                                                                                                        |
 | `Duel`                  | [DuelChips.tsx](../../packages/app/src/components/Duel/DuelChips.tsx)                                          | 3.2k | Pointer intent, so a cursor crossing the top edge does not detonate a panel.                                                                 |
-| `SessionRecorder`       | [SessionRecorderDock.tsx](../../packages/app/src/components/SessionRecorder/SessionRecorderDock.tsx)           | 2.7k | _(no header comment)_                                                                                                                        |
+| `SessionRecorder`       | [SessionRecorderDock.tsx](../../packages/app/src/components/SessionRecorder/SessionRecorderDock.tsx)           | 2.9k | _(no header comment)_                                                                                                                        |
 | `WorkspaceSidebar`      | [index.ts](../../packages/app/src/components/WorkspaceSidebar/index.ts)                                        | 2.4k | _(no header comment)_                                                                                                                        |
 | `ExportPngDialog`       | [ExportPngDialog.tsx](../../packages/app/src/components/ExportPngDialog/ExportPngDialog.tsx)                   | 2.1k | _(no header comment)_                                                                                                                        |
 | `FlameRandomizerCard`   | [FlameRandomizerCard.tsx](../../packages/app/src/components/FlameRandomizerCard/FlameRandomizerCard.tsx)       | 2.0k | _(no header comment)_                                                                                                                        |
@@ -203,16 +203,17 @@ file instead of rediscovering the architecture every session.
 
 #### Workspace hooks (`packages/app/src/hooks/`)
 
-| File                                                                                          | LOC | What it is                |
-| --------------------------------------------------------------------------------------------- | --- | ------------------------- |
-| [useWorkspaceReplay.ts](../../packages/app/src/hooks/useWorkspaceReplay.ts)                   | 600 | _(no header comment)_     |
-| [useWorkspaceAutosave.ts](../../packages/app/src/hooks/useWorkspaceAutosave.ts)               | 450 | What one pause write did. |
-| [useWorkspaceTimelineBinding.ts](../../packages/app/src/hooks/useWorkspaceTimelineBinding.ts) | 450 | _(no header comment)_     |
-| [useWorkspaceAnimationGen.ts](../../packages/app/src/hooks/useWorkspaceAnimationGen.ts)       | 250 | _(no header comment)_     |
-| [useWorkspaceCamera.ts](../../packages/app/src/hooks/useWorkspaceCamera.ts)                   | 200 | _(no header comment)_     |
-| [useWorkspaceArena.ts](../../packages/app/src/hooks/useWorkspaceArena.ts)                     | 150 | _(no header comment)_     |
-| [useWorkspaceArtDirector.tsx](../../packages/app/src/hooks/useWorkspaceArtDirector.tsx)       | 150 | _(no header comment)_     |
-| [useWorkspaceShortcuts.ts](../../packages/app/src/hooks/useWorkspaceShortcuts.ts)             | 150 | _(no header comment)_     |
+| File                                                                                          | LOC | What it is                                                              |
+| --------------------------------------------------------------------------------------------- | --- | ----------------------------------------------------------------------- |
+| [useWorkspaceReplay.ts](../../packages/app/src/hooks/useWorkspaceReplay.ts)                   | 600 | _(no header comment)_                                                   |
+| [useWorkspaceAutosave.ts](../../packages/app/src/hooks/useWorkspaceAutosave.ts)               | 450 | What one pause write did.                                               |
+| [useWorkspaceTimelineBinding.ts](../../packages/app/src/hooks/useWorkspaceTimelineBinding.ts) | 450 | _(no header comment)_                                                   |
+| [useWorkspaceAnimationGen.ts](../../packages/app/src/hooks/useWorkspaceAnimationGen.ts)       | 250 | _(no header comment)_                                                   |
+| [useWorkspaceCamera.ts](../../packages/app/src/hooks/useWorkspaceCamera.ts)                   | 200 | _(no header comment)_                                                   |
+| [useWorkspaceArena.ts](../../packages/app/src/hooks/useWorkspaceArena.ts)                     | 150 | _(no header comment)_                                                   |
+| [useWorkspaceArtDirector.tsx](../../packages/app/src/hooks/useWorkspaceArtDirector.tsx)       | 150 | _(no header comment)_                                                   |
+| [useWorkspaceShortcuts.ts](../../packages/app/src/hooks/useWorkspaceShortcuts.ts)             | 150 | _(no header comment)_                                                   |
+| [useWorkspaceBlendPick.ts](../../packages/app/src/hooks/useWorkspaceBlendPick.ts)             | 100 | The blend gallery's hover preview, and the pick that commits a partner. |
 
 #### Recorder (`packages/app/src/recorder/`) — deterministic capture and replay
 
@@ -223,13 +224,15 @@ file instead of rediscovering the architecture every session.
 | [player.ts](../../packages/app/src/recorder/player.ts)                             | 600  | Timed playback of a recorded session (semantic-recorder-plan, M4).                                                                           |
 | [focus.ts](../../packages/app/src/recorder/focus.ts)                               | 500  | Follow-cam hints: **what to look at** while a step runs, never **where**.                                                                    |
 | [focusPreparation.ts](../../packages/app/src/recorder/focusPreparation.ts)         | 500  | UI state that must be ready before the follow-cam resolves an action's DOM target.                                                           |
+| [schema.ts](../../packages/app/src/recorder/schema.ts)                             | 500  | The `.steps.json` session format — version 1.                                                                                                |
 | [replayInterfaceVideo.ts](../../packages/app/src/recorder/replayInterfaceVideo.ts) | 450  | Full-interface capture keeps the viewport aspect ratio, but caps the long edge and pixel count so a 4K/5K monitor cannot create an unboun... |
-| [schema.ts](../../packages/app/src/recorder/schema.ts)                             | 450  | The `.steps.json` session format — version 1.                                                                                                |
 | [timelineActions.ts](../../packages/app/src/recorder/timelineActions.ts)           | 450  | A timeline whose compound edits reach the session recorder.                                                                                  |
 | [replay.ts](../../packages/app/src/recorder/replay.ts)                             | 250  | Whether replay may need browser user activation for generated audio.                                                                         |
 | [snapshotOrigin.ts](../../packages/app/src/recorder/snapshotOrigin.ts)             | 200  | Why a value-pinned snapshot exists.                                                                                                          |
+| [uncapturedSteps.ts](../../packages/app/src/recorder/uncapturedSteps.ts)           | 200  | The steps a take could not record, by name.                                                                                                  |
 | [sonificationState.ts](../../packages/app/src/recorder/sonificationState.ts)       | 150  | Sonification is authored output state, but it is not part of the flame document.                                                             |
 | [replaySideState.ts](../../packages/app/src/recorder/replaySideState.ts)           | 100  | Editor-only state that follow-cam may change while revealing a target.                                                                       |
+| [types.ts](../../packages/app/src/recorder/types.ts)                               | 100  | The session recorder's public types, apart from the module that implements them: what a recording starts from, what a command must expose... |
 
 #### Benchmarks (`packages/app/src/benchmarks/`)
 

@@ -453,6 +453,10 @@ export function useWorkspaceReplay(params: UseWorkspaceReplayParams) {
       presentation.setShowBlendGallery(false)
     },
     loadInitial: (flame: FlameDescriptor) => {
+      // Every take starts paused, so a rebuild (a seek back, a restart) must
+      // not keep playing what a later `timeline.setPlaying` step started.
+      // Rebuilds run suppressed, so this pause is not a step of anything.
+      if (timeline.isPlaying()) timeline.pause()
       view.setPrePaletteColors({})
       setFlameDescriptor(() => deepClone(flame), 'Replay: initial state')
     },

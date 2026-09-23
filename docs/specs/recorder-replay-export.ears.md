@@ -17,6 +17,7 @@ drive a recording, or the PNG/MP4 chunk formats (`utils/flameInPng.ts`,
 **Source:**
 
 - `packages/app/src/recorder/recorder.ts` — per-seat recording streams, command/gesture capture, coalescing, the unnamed-write honesty counter, suppression
+- `packages/app/src/recorder/uncapturedSteps.ts` — the named uncaptured steps a take saves, and the words every panel and the export notice use for them
 - `packages/app/src/recorder/schema.ts` — the `.steps.json` v1 format, every bound, and `validateSession` (ordering, command-id policy, sonification churn)
 - `packages/app/src/recorder/types.ts` — the three start-failure reasons
 - `packages/app/src/recorder/snapshotOrigin.ts` — the closed origin vocabulary behind value-pinned snapshot actions
@@ -29,6 +30,7 @@ drive a recording, or the PNG/MP4 chunk formats (`utils/flameInPng.ts`,
 - `packages/app/src/recorder/replayInterfaceVideo.ts` — real-time full-interface screen capture
 - `packages/app/src/recorder/player.ts` — `stepGapMs` / `closingHoldMs`, shared with the video schedule
 - `packages/app/src/hooks/useWorkspaceReplay.ts` — the live workspace's `ReplayTarget`, side-state capture/restore and video-export dispatch
+- `packages/app/src/hooks/useWorkspaceBlendPick.ts`, `packages/app/src/flame/blend.ts` — the blend gallery's hover preview, the pick it commits, and the default weight both use
 - `packages/app/src/components/ExportPngDialog/ExportPngDialog.tsx` — the export dialog, its two animation paths and the motion-blur control
 - `packages/app/src/components/ExportPngDialog/metadataCommit.ts` — metadata written back through semantic commands
 - `packages/app/src/components/ExportJobs/OffscreenAnimationRender.tsx` — the offscreen/background video render driver
@@ -72,8 +74,8 @@ the ordered, registered-command invocations that transformed it — never the un
 history's patches — so that a log survives a document-schema migration and can be
 edited, parameterized and replayed against a different starting state.
 
-_(`recorder/schema.ts:11-22`, `recorder/recorder.ts:22-48`; guarded by
-`recorder.test.ts:190` "replays a deterministic session into the same
+_(`recorder/schema.ts:11-22`, `recorder/recorder.ts:25-51`; guarded by
+`recorder.test.ts:191` "replays a deterministic session into the same
 document".)_
 
 ### REQ-RR-002 — Only top-level, unsuppressed commands are logged
@@ -84,8 +86,8 @@ not move the live-workspace mutation stamp, and shall not flag the document
 writes that run under it — so a compound command replays through its own
 implementation, and replay machinery never absorbs itself into a live take.
 
-_(`recorder/recorder.ts:592`, `:599-613`, `:905-912`; guarded by
-`recorder.test.ts:1515` "ignores commands and writes inside
+_(`recorder/recorder.ts:594`, `:601-615`, `:974-981`; guarded by
+`recorder.test.ts:1516` "ignores commands and writes inside
 withRecordingSuppressed".)_
 
 ### REQ-RR-003 — Record start snapshots the whole world, or refuses with a reason
@@ -100,9 +102,9 @@ or a recording is already active on that seat, **then** `start` shall return
 `'workspace-not-recordable'` or `'already-recording'` and shall leave no
 recording active.
 
-_(`recorder/recorder.ts:74-88`, `:357-414`, `recorder/types.ts:1-9`,
-`schema.ts:200-231`; guarded by `recorder.test.ts:155`, `:164`, `:177`, and
-`:1769` "carries timeline, audio, sonification, and view state through a round
+_(`recorder/types.ts:17-40`, `recorder/recorder.ts:356-414`,
+`schema.ts:204-235`; guarded by `recorder.test.ts:156`, `:165`, `:178`, and
+`:1770` "carries timeline, audio, sonification, and view state through a round
 trip".)_
 
 ### REQ-RR-004 — The audio file is never captured, only its wiring
@@ -111,7 +113,7 @@ trip".)_
 mapping, the source (`file` or `mic`) and the track _name_ only. Audio bytes,
 decoded buffers and microphone permission shall never enter a session file.
 
-_(`recorder/schema.ts:210-216`, `recorder/replay.ts:33-49`; guarded by
+_(`recorder/schema.ts:214-220`, `recorder/replay.ts:33-49`; guarded by
 `replay.test.ts:86` "never treats a missing recorded file identity as a
 wildcard".)_
 
@@ -125,33 +127,37 @@ entry lands, so a second drag of the same control becomes a second action
 matching the second undo step. A timeline undo push arriving while a flame
 command is running shall not clear those anchors.
 
-_(`recorder/recorder.ts:481-516`, `:547-575`, `:802-818`, `:832-848`; guarded by
-`recorder.test.ts:405`, `:426`, `:445`.)_
+_(`recorder/recorder.ts:483-518`, `:549-577`, `:803-819`, `:833-849`; guarded by
+`recorder.test.ts:406`, `:427`, `:446`.)_
 
 ### REQ-RR-006 — An unclaimed document write raises the honesty counter
 
 **If** a history entry lands on the flame or timeline stack outside any command
 scope and without a gesture that commands already claimed, **then** the recorder
-shall append an unnamed write with its elapsed timestamp, publish the new count,
-and warn — rather than dropping the mutation silently. `unnamedWriteCount` is the
-log's fidelity marker and 0 is the goal state.
+shall append an unnamed write with its elapsed timestamp and a reason naming the
+entry, publish the new count, and warn — rather than dropping the mutation
+silently. `unnamedWriteCount` is the log's fidelity marker and 0 is the goal
+state; REQ-RR-041 is what it saves about each one.
 
-_(`recorder/recorder.ts:802-818`, `:832-848`, `:871-882`, `schema.ts:227-232`;
-guarded by `recorder.test.ts:1356` "attributes command writes, counts direct
+_(`recorder/recorder.ts:803-819`, `:833-849`, `:941-951`, `schema.ts:231-236`;
+guarded by `recorder.test.ts:1357` "attributes command writes, counts direct
 writes as unnamed".)_
 
 ### REQ-RR-007 — A continuous effect earns exactly one fidelity marker per take
 
 **When** a high-frequency unreplayable effect reports itself — audio modulation
-ticks, wall-clock timeline transport — the recorder shall record one unnamed
-write for the first report under that key and ignore every later report with the
-same key for the remainder of the take. **Where** the seat reporting transport is
-the seat an Arcade agent is currently driving, no marker shall be recorded at
-all: the tool's own preview is not a claim that the session reproduces it.
+ticks, a seek or frame step made on the raw timeline outside a command — the
+recorder shall record one unnamed write for the first report under that key and
+ignore every later report with the same key for the remainder of the take. Play
+and Pause are not such an effect: they are steps (REQ-RR-040). **Where** the
+seat reporting transport is the seat an Arcade agent is currently driving, no
+marker shall be recorded at all: the tool's own preview is not a claim that the
+session reproduces it.
 
-_(`recorder/recorder.ts:252-261`, `:757-766`, `:855-869`; guarded by
-`recorder.test.ts:1334` "reports a high-rate unreplayable effect only once per
-take" and `uiCoverageRatchet.test.ts:340`.)_
+_(`recorder/recorder.ts:252-261`, `:759-768`, `:857-871`; guarded by
+`recorder.test.ts:1335` "reports a high-rate unreplayable effect only once per
+take", `recorder.test.ts:1971` "tracks direct timeline seeks without flooding
+the recording" and `uiCoverageRatchet.test.ts:340`.)_
 
 ### REQ-RR-008 — Undo/redo is represented by its result, not the viewer's stacks
 
@@ -163,10 +169,10 @@ than the take's baseline, **then** the recorder shall retract the action it
 logged, count an unnamed write naming the reason, and clear the coalescing
 anchors.
 
-_(`recorder/recorder.ts:686-723`, `:737-748`, `:778-789`; `schema.ts:334-344`
+_(`recorder/recorder.ts:688-725`, `:739-749`, `:779-790`; `schema.ts:364-374`
 refuses imported `history.undo`/`history.redo`. Guarded by
-`recorder.test.ts:346` "records undo as the resulting snapshot so batched replay
-stays faithful" and `:1246` "flags an undo of an edit made BEFORE recording
+`recorder.test.ts:347` "records undo as the resulting snapshot so batched replay
+stays faithful" and `:1247` "flags an undo of an edit made BEFORE recording
 started".)_
 
 ### REQ-RR-009 — A budget overrun degrades to a valid prefix plus one marker
@@ -178,8 +184,8 @@ recorder shall drop that action, record a single deduplicated
 pretty-printed persisted form still does not fit at Stop, it shall trim the
 newest actions one at a time until it does, leaving an earlier valid prefix.
 
-_(`recorder/recorder.ts:252-261`, `:265-326`, `:442-468`, `schema.ts:25-40`;
-guarded by `recorder.test.ts:1554`, `:1566`, `:1581`, `:1595`.)_
+_(`recorder/recorder.ts:251-260`, `:264-325`, `:442-470`, `schema.ts:25-40`;
+guarded by `recorder.test.ts:1555`, `:1567`, `:1582`, `:1596`.)_
 
 ### REQ-RR-010 — A finished session detaches when the workspace diverges
 
@@ -189,8 +195,8 @@ recording is active, the recorder shall clear the last finished session — so a
 export can never embed steps describing a different flame from the one it
 rendered.
 
-_(`recorder/recorder.ts:416-428`, `:593-598`, `:649-656`, `:812-814`, `:843-845`;
-guarded by `recorder.test.ts:1926` "finished-session export association".)_
+_(`recorder/recorder.ts:416-428`, `:595-600`, `:651-658`, `:813-815`, `:844-846`;
+guarded by `recorder.test.ts:1927` "finished-session export association".)_
 
 ### REQ-RR-011 — Compound timeline edits record one value-pinned snapshot
 
@@ -204,9 +210,9 @@ animation rather than re-rolling it. **If** the mutation leaves the serialized
 snapshot unchanged, no action shall be emitted and the last finished session
 shall not be invalidated.
 
-> **Known deviation:** `packages/app/src/MainWorkspace.tsx:2411-2419` passes the
+> **Known deviation:** `packages/app/src/MainWorkspace.tsx:2388-2396` passes the
 > **raw** `timeline` to `useWorkspaceAnimationGen`, not the `recorderTimeline`
-> built at `MainWorkspace.tsx:3084`. `runTimelineSnapshotMutation`
+> built at `MainWorkspace.tsx:3061`. `runTimelineSnapshotMutation`
 > (`recorder/timelineActions.ts:24-33`) finds no `RECORDER_SNAPSHOT_MUTATION`
 > symbol on a raw timeline and falls back to `timeline.runWithSingleUndo`, so
 > Randomize Animation and Smart Animation
@@ -215,7 +221,7 @@ shall not be invalidated.
 > replays without the animation they generated.
 
 _(`recorder/timelineActions.ts:24-33`, `:81-113`, `:374-416`; the facade is
-guarded by `timelineActions.test.ts:256`, `:283` and `:367` — none of which
+guarded by `timelineActions.test.ts:262`, `:289` and `:373` — none of which
 reaches the MainWorkspace wiring above.)_
 
 ### REQ-RR-012 — Paused frame stepping is authored; playing advance is not
@@ -226,9 +232,14 @@ semantic log; **while** it is paused, the same button shall dispatch a
 deterministic `timeline.setCurrentFrame` seek that replays like clicking the
 ruler, wrapping at the configured loop bounds.
 
+A frame the render loop advances while the timeline plays is part of that
+playback, not a seek of its own, so the raw timeline reports neither a transport
+marker nor a step for it (`utils/timeline.ts:1422-1459`).
+
 _(`recorder/timelineActions.ts:193-217`; guarded by
-`timelineActions.test.ts:433` "records paused previous/next buttons as
-deterministic frame actions".)_
+`timelineActions.test.ts:439` "records paused previous/next buttons as
+deterministic frame actions" and `recorder.test.ts:1988` "records direct Play
+and Pause as steps that pin the frame".)_
 
 ### REQ-RR-013 — Action timestamps are non-decreasing
 
@@ -236,7 +247,7 @@ deterministic frame actions".)_
 `validateSession` shall reject the whole session. Equal timestamps are accepted:
 that is how a companion pair says it is one gesture and not two.
 
-_(`recorder/schema.ts:287-296`, `:313-320`; guarded by `recorder.test.ts:1658`
+_(`recorder/schema.ts:308-317`, `:343-350`; guarded by `recorder.test.ts:1659`
 "rejects malformed payloads".)_
 
 ### REQ-RR-014 — Only registry-shaped command ids, never history commands
@@ -247,7 +258,7 @@ _(`recorder/schema.ts:287-296`, `:313-320`; guarded by `recorder.test.ts:1658`
 or `history.redo`, **then** `validateSession` shall reject the whole session
 rather than let an imported file operate on the viewer's own history stacks.
 
-_(`recorder/schema.ts:44-67`, `:334-344`; guarded by `recorder.test.ts:1434`
+_(`recorder/schema.ts:48-71`, `:364-374`; guarded by `recorder.test.ts:1435`
 "accepts bounded symmetry edges and rejects imported history commands".)_
 
 ### REQ-RR-015 — Every session field is bounded before it is retained
@@ -260,8 +271,8 @@ file at most the same in bytes, actions at most 2000, each `t` in
 at most 16 — the last so a hostile zero-gap session cannot force hundreds of
 synchronous Web Audio graph rebuilds on replay.
 
-_(`recorder/schema.ts:25-40`, `:69-108`, `:287-319`; guarded by
-`recorder.test.ts:1658` "rejects malformed payloads" and `:1819` "bounds
+_(`recorder/schema.ts:25-40`, `:73-112`, `:308-349`; guarded by
+`recorder.test.ts:1659` "rejects malformed payloads" and `:1820` "bounds
 synchronous sonification model graph transitions".)_
 
 ### REQ-RR-016 — Untrusted payloads are rejected, not silently normalized
@@ -273,8 +284,8 @@ embedded `initial` does not survive `tryValidateFlame` (which dispatches 2D vs 3
 and migrates older saves), **then** the whole session shall be rejected, rather
 than accepted as a different, quietly repaired session.
 
-_(`recorder/schema.ts:113-171`, `:268-285`, `:321-326`, `:346-348`; guarded for
-the round-trip half by `recorder.test.ts:1637` "round-trips through
+_(`recorder/schema.ts:117-175`, `:289-306`, `:351-356`, `:376-378`; guarded for
+the round-trip half by `recorder.test.ts:1638` "round-trips through
 serialize/parse".)_
 
 ### REQ-RR-017 — Snapshot origins are a closed vocabulary
@@ -301,7 +312,7 @@ close any batch it had opened.
 
 _(`recorder/replay.ts:156-168`, `recorder/replayVideo.ts:483-497`; guarded by
 `player.test.ts:1142` "preflights every action before opening a batch or loading
-state", `replayVideo.test.ts:150`, `recorder.test.ts:1534` and
+state", `replayVideo.test.ts:150`, `recorder.test.ts:1535` and
 `player.test.ts:1117`.)_
 
 ### REQ-RR-019 — A replay is invisible to the recorder and lands as one undo step
@@ -312,7 +323,7 @@ attributes those writes to the replay's own preview owner, and inside
 `withDeferredEffects` so intermediate states never create heavyweight resources —
 and the whole run shall commit as exactly one undoable entry.
 
-_(`recorder/replay.ts:163-189`, `hooks/useWorkspaceReplay.ts:502-567`; guarded by
+_(`recorder/replay.ts:163-189`, `hooks/useWorkspaceReplay.ts:506-571`; guarded by
 `player.test.ts:529` "collapses a whole run into one undo step" and `:346`
 "defers target side effects across an entire seek rebuild".)_
 
@@ -355,7 +366,7 @@ transform that exists in the restored flame and is not a generated `_sym__` row
 (and, for quick-pick, a variation that still exists on it).
 
 _(`recorder/replaySideState.ts:54-88`, `:90-105`,
-`hooks/useWorkspaceReplay.ts:289-364`, `:521-567`; guarded by
+`hooks/useWorkspaceReplay.ts:289-364`, `:525-571`; guarded by
 `replaySideState.test.ts:75`, `:110`, `:128`, `:135`, `:145`, `:152`, `:161`.)_
 
 ### REQ-RR-023 — Palette provenance moves with the replayed document
@@ -369,7 +380,7 @@ the action predates provenance; `flame.removePalette` clears it; and
 empty.
 
 _(`recorder/replayPaletteState.ts:37-68`, `:72-105`,
-`hooks/useWorkspaceReplay.ts:487-500`; guarded by
+`hooks/useWorkspaceReplay.ts:491-504`; guarded by
 `replayPaletteState.test.ts:10`, `:35`, `:66`, `:90`, `:111`, `:144`.)_
 
 ### REQ-RR-024 — The command vocabulary wins over a session's saved hint
@@ -381,7 +392,7 @@ use the session's stored `focus` only where the central table has nothing to say
 record time, a command that declares its own `focus()` shall win over the central
 table.
 
-_(`recorder/focusPreparation.ts:460-478`, `recorder/focus.ts:158-165`, `:466-483`;
+_(`recorder/focusPreparation.ts:460-478`, `recorder/focus.ts:158-165`, `:467-484`;
 guarded by `focusPreparation.test.ts:35`, `:51`, and `focus.test.ts:18`.)_
 
 ### REQ-RR-025 — An unsafe or unresolvable hint changes nothing
@@ -439,20 +450,22 @@ enough to represent the last authored action even when the caller asks for no
 tail.
 
 _(`recorder/replayVideo.ts:388-453`, `recorder/player.ts:135-190`; guarded by
-`replayVideo.test.ts:21`, `:56`, `:70`, `:294`.)_
+`replayVideo.test.ts:21`, `:56`, `:70`, `:306`.)_
 
 ### REQ-RR-029 — Video export refuses takes it cannot reproduce or afford
 
-**If** a take has a non-zero `unnamedWriteCount`, has no actions, references a
-`custom_`-prefixed variation anywhere in its baseline flame or any action's
-arguments, or schedules to more than 300 000 ms, **then** both video export paths
-shall throw a message naming the problem (and, for custom variations, the 1-based
-step) — and shall do so before an encoder is allocated and, for the interface
-path, before the privacy-sensitive screen-share picker is shown.
+**If** a take has no actions, references a `custom_`-prefixed variation anywhere
+in its baseline flame or any action's arguments, or schedules to more than
+300 000 ms, **then** both video export paths shall throw a message naming the
+problem (and, for custom variations, the 1-based step) — and shall do so before
+an encoder is allocated and, for the interface path, before the
+privacy-sensitive screen-share picker is shown. A non-zero `unnamedWriteCount`
+is not such a problem (REQ-RR-042).
 
-_(`recorder/replayVideo.ts:51`, `:302-380`, `:429-436`, `:859-895`,
-`recorder/replayInterfaceVideo.ts:310-323`; guarded by `replayVideo.test.ts:40`,
-`:214`, `:223`, `:234`, `:248`, `:263`.)_
+_(`recorder/replayVideo.ts:57`, `:334-400`, `:404-432`, `:476-482`,
+`:991-1021`, `recorder/replayInterfaceVideo.ts:318-333`; guarded by
+`replayVideo.test.ts:40`, `:235`, `:246`, `:260`, `:275`, and the last sentence
+by `:214`.)_
 
 ### REQ-RR-030 — The artwork driver renders in an isolated world with audio off
 
@@ -505,9 +518,9 @@ capture shall abort with a message naming the actual problem, cancel the encoder
 and stop every track — and the source shall be stopped and the timeout cleared on
 every exit path.
 
-_(`recorder/replayInterfaceVideo.ts:151-197`, `:340-353`, `:379-388`, `:437-445`;
+_(`recorder/replayInterfaceVideo.ts:151-197`, `:339-352`, `:378-387`, `:436-444`;
 guarded by `replayInterfaceVideo.test.ts:113` "captures the ordinary replay after
-the source is active and cleans up" and `:162` "aborts safely when tab sharing
+the source is active and cleans up" and `:191` "aborts safely when tab sharing
 stops before replay completion".)_
 
 ### REQ-RR-034 — The embedded session is snapshotted at export initiation
@@ -597,6 +610,109 @@ _(`utils/animationExport.ts:157-170`, `:224-274`,
 `components/ExportJobs/ExportJobHost.tsx:158-183`, `utils/exportJobs.ts:247-249`,
 `:279-289`.)_
 
+### REQ-RR-040 — Play and Pause are steps that pin the frame
+
+**When** the timeline's playing state changes while a take is recording —
+through Space, the transport buttons, a workspace flow that pauses the raw
+timeline, or a non-looping playback that runs off its end and stops itself —
+the recorder shall append `timeline.setPlaying(playing, frame)` carrying the
+frame playback started or stopped on, and shall count no unnamed write for it.
+A Pause with nothing playing is not a change and shall record nothing. **While**
+a command is running, or recording is suppressed, or the seat is the one an
+Arcade agent drives, the change shall not be recorded. **When** a replay applies
+the step, it shall seek to that frame and then play or pause, so a replay pauses
+exactly where the take paused however long its own paced playback ran; **when**
+a replay rebuilds from the baseline, the workspace target shall pause first,
+because every take starts paused. `execute_command` shall refuse the step live
+(`agentCallable: false`).
+
+_(`utils/timeline.ts:1422-1459`, `:1479-1509`, `recorder/recorder.ts:873-924`,
+`commands/builtins/timeline.ts:503-528`, `commands/registry.ts:589-593`,
+`hooks/useWorkspaceReplay.ts:455-459`; guarded by `timelineActions.test.ts:613`
+"records Space pressed twice as two steps and replays to the paused frame",
+`:656` "pins the frame a playback stops on when it reaches the end by itself",
+`:690` "records a pause that a workspace flow makes on the raw timeline",
+`:717` "leaves the playback of the seat an Arcade agent drives out of its take",
+and `commands/builtins/timeline.test.ts` "timeline.setPlaying".)_
+
+### REQ-RR-041 — Every uncaptured step is saved by name
+
+**When** a take counts an uncaptured step, the recorder shall keep when it
+happened (take time, held to the session's timestamp range) and why, in words a
+person can read: the history entry's own description for an edit made outside
+the commands, the command's label for a command that is not a step, and which
+case an unreplayable undo or redo is (an edit from before recording started,
+nothing left to undo, a history with no journal stamps). A finished session
+shall carry them as `uncapturedSteps`, in order, next to the count, which stays
+for readers that predate the list. The list shall name at most as many steps
+as a take can hold actions and shall never name more steps than the count;
+`validateSession` shall refuse a file that does. While a take records, the
+recorder shall hold no more names than that and count the rest, so a flood of
+unrouted writes moves only the count. **When** the take stops with any, the
+recorder shall write the named list to the console. The recorder
+controls (while recording), each library entry and the replay panel shall open
+the count into the list, each line reading "reason, at m:ss"; **if** a session
+carries a count but no list, **then** they shall say "Details were not saved by
+the version that recorded it."
+
+_(`recorder/uncapturedSteps.ts:20-74`, `:94-148`, `recorder/recorder.ts:213`,
+`:225`, `:467-468`, `:739-749`, `:926-951`, `recorder/schema.ts:273-286`,
+`:338-340`, `:435-441`, `commands/builtins/history.ts:81-92`,
+`components/SessionRecorder/UncapturedSteps.tsx:18-45`; guarded by
+`recorder.test.ts:2073`, `:2106`, `:2120`, `:2133`, `:2152`, `:2181`, `:2193`,
+`uncapturedSteps.test.ts`, `SessionRecorderControls.test.tsx:277`,
+`SessionLibraryPanel.test.tsx:54`, `SessionReplayPanel.test.tsx:255`, `:282`.)_
+
+### REQ-RR-042 — An export skips uncaptured steps, and says so before it starts
+
+**When** the viewer starts a video export of a take with uncaptured steps, the
+replay panel shall first show, in place of starting, how many steps the video
+skips, from which replay step on it may differ from the take (or that its
+finished flame may, or simply that it may when the names were not saved), and
+the named list; the export button shall read "Export anyway" or "Record anyway"
+and the next press shall start the export, on that press's own stack so a
+full-interface capture keeps its user activation. Cancel shall leave nothing
+started. Both export paths shall then run the take the way the in-app replay
+does: the uncaptured steps are not in `actions`, so there is nothing to apply
+for them, and the embedded session keeps their count and names.
+
+_(`components/SessionRecorder/SessionReplayPanel.tsx:678-685`, `:768-776`,
+`components/SessionRecorder/UncapturedSteps.tsx:53-82`,
+`recorder/uncapturedSteps.ts:157-170`, `recorder/replayVideo.ts:998`,
+`recorder/replayInterfaceVideo.ts:324`; guarded by `replayVideo.test.ts:214`,
+`replayInterfaceVideo.test.ts:162`, `SessionReplayPanel.test.tsx:302`,
+`:348`.)_
+
+### REQ-RR-043 — A picked blend partner is recorded with the weight it showed
+
+**When** a partner is picked in the blend gallery, the workspace shall first
+put back what the hover preview replaced, an absent weight included, and then
+run `flame.setBlendFlame(partner, 0.4)`: one step that names the default
+weight the preview showed, so a replay lands on the blend the viewer saw, and
+one history entry that spans the document from before the hover, so one undo
+returns to exactly that, partner and weight. A pick made without a hover (a
+touch, or Enter on a tile) shall record the same step. A morph set up from a
+hovered partner shall put the preview back the same way before
+`flame.setupMorph` runs, and a hover on a later visit to the gallery shall put
+back the pick rather than the document from before it. **When**
+`flame.setBlendFlame` runs without a weight, as an older take or an agent may,
+a document that already has a weight shall keep it, whether or not it had a
+partner, and only a document with no weight shall start at the default; a
+weight it is given shall be held to 0..1 and win. The replay policy shall
+accept the one- and two-argument forms and refuse a weight outside 0..1. The
+creation synthesizer shall name the target's weight on the partner's step, and
+shall treat a missing weight as 0, which is how everything that draws reads it:
+a partner saved without a weight is rebuilt at 0, without a snap. The weight is
+the edited flame's share of the blend: 0 draws the partner alone.
+
+_(`flame/blend.ts:17`, `hooks/useWorkspaceBlendPick.ts:43-99`,
+`commands/builtins/flame/coreCommands.ts:36-75`, `commands/registry.ts:288-296`,
+`recorder/synthesize/atoms.ts:523-556`, `canonical.ts:19-56`,
+`MainWorkspace.tsx:1329-1334`; guarded by `useWorkspaceBlendPick.test.tsx:117`,
+`:155`, `:177`, `:196`, `:208`, `commands/builtins/flame/blend.test.ts:52`,
+`:68`, `:79`, `:88`, `:116`, `:143` and `planCreation.test.ts:209`, `:230`,
+`:252`.)_
+
 ---
 
 ## Coverage gaps
@@ -608,7 +724,7 @@ unguarded.
 
 | ID         | Why it is unguarded                                                                                                                                            |
 | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| REQ-RR-007 | The Arcade-pilot transport exemption (`recorder.ts:862`) has no test of its own; `uiCoverageRatchet.test.ts:340` covers only the non-exempt path.              |
+| REQ-RR-007 | The Arcade-pilot exemption for seeks (`recorder.ts:864`) has no test of its own; the same exemption for Play and Pause is guarded (REQ-RR-040).                |
 | REQ-RR-011 | The facade is tested; the **MainWorkspace wiring** that decides whether the facade is used at all is not — which is exactly how its known deviation shipped.   |
 | REQ-RR-016 | Nothing constructs a prototype-bearing `paletteRestoreColors` and asserts the session is rejected rather than emptied.                                         |
 | REQ-RR-027 | `focusPreparation.test.ts` covers derivation only. Nothing tests `useWorkspaceReplay.ts:365-435`, which applies it — that hook has no test file.               |

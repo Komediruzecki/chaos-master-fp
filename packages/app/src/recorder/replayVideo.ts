@@ -995,11 +995,10 @@ export function createReplayVideoJobSpec(
 ): AnimationJobSpec {
   const session = validateSession(deepClone(inputSession))
   if (!session) throw new Error('The recording is not a valid replay session')
-  if (session.unnamedWriteCount > 0) {
-    throw new Error(
-      `This take has ${session.unnamedWriteCount} uncaptured edit${session.unnamedWriteCount === 1 ? '' : 's'}. Record a clean take before publishing it as video.`,
-    )
-  }
+  // A take with uncaptured steps exports the way it replays: they were never
+  // in `actions`, so there is nothing to apply for them, and the embedded
+  // session keeps their count and names. The replay panel lists them before
+  // an export starts (see recorder/uncapturedSteps.ts).
   if (session.actions.length === 0) {
     throw new Error('This take has no authored steps to publish as video.')
   }

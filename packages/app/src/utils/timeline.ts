@@ -1,5 +1,6 @@
 import { createSignal, getOwner, onCleanup } from 'solid-js'
-import { notifyDocumentWrite, notifyTimelineTransport, } from '@/recorder/documentWriteHook'
+import { notifyDocumentWrite, notifyTimelinePlayback, notifyTimelineTransport, } from '@/recorder/documentWriteHook'
+import { PLAYHEAD_MOVE_REASON } from '@/recorder/transportStep'
 import { applyEasing, catmullRom, clamp } from './easing'
 import { persistentSignal } from './persistentSignal'
 import { clearAllRedos, nextUndoSeq, registerRedoClearer } from './undoJournal'
@@ -1419,7 +1420,10 @@ export function createTimelineState(options: TimelineStateOptions = {}) {
   }
 
   function advanceFrame() {
-    notifyTimelineTransport('Timeline frame transport', seatId)
+    // While playing, this is the render loop stepping the playback a Play
+    // already reported, not a seek of its own. A step while paused is.
+    const playing = isPlaying()
+    if (!playing) notifyTimelineTransport(PLAYHEAD_MOVE_REASON, seatId)
     const cfg = config()
     // Sample the achieved rate between auto-FPS advances (each advance fires
     // when a frame hits target quality). Skip manual stepping (not playing).
@@ -1444,6 +1448,9 @@ export function createTimelineState(options: TimelineStateOptions = {}) {
       if (!cfg.loop) {
         setIsPlaying(false)
         resetFpsMeter()
+        // Nobody pressed anything, and the playback still stopped: a take
+        // has to pin where, or its replay pauses wherever its own clock got.
+        if (playing) notifyTimelinePlayback(false, cfg.startFrame, seatId)
       }
     } else {
       setCurrentFrame(next)
@@ -1452,7 +1459,7 @@ export function createTimelineState(options: TimelineStateOptions = {}) {
   }
 
   function goBackFrame() {
-    notifyTimelineTransport('Timeline frame transport', seatId)
+    notifyTimelineTransport(PLAYHEAD_MOVE_REASON, seatId)
     const cfg = config()
     const prev = currentFrame() - 1
     if (prev < cfg.startFrame) {
@@ -1464,32 +1471,41 @@ export function createTimelineState(options: TimelineStateOptions = {}) {
   }
 
   function goToFrame(frame: number) {
-    notifyTimelineTransport('Timeline frame transport', seatId)
+    notifyTimelineTransport(PLAYHEAD_MOVE_REASON, seatId)
     setCurrentFrame(clamp(frame, config().startFrame, config().endFrame))
     setPreviewHeld(true)
   }
 
+  // Play and Pause report the playing state they leave behind and the frame
+  // it starts or stops on, and only when that state changes (see
+  // `notifyTimelinePlayback`): the recorder turns each into a step.
   function play() {
-    notifyTimelineTransport('Timeline playback transport', seatId)
     const cfg = config()
-    if (!cfg.loop && currentFrame() >= cfg.endFrame) {
+    const wasPlaying = isPlaying()
+    const from = currentFrame()
+    if (!cfg.loop && from >= cfg.endFrame) {
       setCurrentFrame(cfg.startFrame)
     }
     resetFpsMeter()
     setPreviewHeld(true)
     setIsPlaying(true)
+    if (!wasPlaying || currentFrame() !== from) {
+      notifyTimelinePlayback(true, currentFrame(), seatId)
+    }
   }
 
   function pause() {
-    notifyTimelineTransport('Timeline playback transport', seatId)
+    const wasPlaying = isPlaying()
     setIsPlaying(false)
     resetFpsMeter()
+    if (wasPlaying) notifyTimelinePlayback(false, currentFrame(), seatId)
   }
 
   function togglePlay() {
-    notifyTimelineTransport('Timeline playback transport', seatId)
-    setIsPlaying(!isPlaying())
+    const next = !isPlaying()
+    setIsPlaying(next)
     resetFpsMeter()
+    notifyTimelinePlayback(next, currentFrame(), seatId)
   }
 
   function hasAnyKeyframes(parameterPath: string): boolean {
