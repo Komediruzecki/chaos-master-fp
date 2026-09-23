@@ -60,12 +60,14 @@
 // 5. HISTORY. A citation that describes code as it was, not as it is, is
 //    checked against that revision instead of the working tree, where it
 //    cannot drift, so it needs no symbol (one given is still checked):
-//      - inline: a tag or commit right before the path, inside the span or
-//        outside it: `v0.9.11 focus.ts:181-437`, a5c2f26f `x.ts:9`, or
+//      - inline: a commit right before the path, inside the span or outside
+//        it: 84ae0286 `focus.ts:181-437`, `a5c2f26f x.ts:9`, or
 //        `a5c2f26f:packages/app/src/x.ts:9`;
 //      - a region: `<!-- cite-check: pinned <rev> -->` up to the next
 //        `<!-- cite-check: live -->` or the end of the file.
 //    The file must exist at <rev> and every cited line must exist in it.
+//    <rev> is a commit hash. A tag is refused, with the commit it names: the
+//    fork's remote has no tags, so a tag pin that holds here fails in CI.
 //
 // 6. OPT-OUT. A whole document is historical, and not checked at all, when
 //    it is a changelog (file name contains "changelog"), lives under an
@@ -115,8 +117,9 @@ const CITATION = new RegExp(
   'g',
 )
 const CONTINUATION = new RegExp(String.raw`\`:(${LINES_RE})\``, 'g')
-// A revision right before a path pins it: `v0.9.11 a.ts:3`, a5c2f26f `a.ts:3`,
-// `a5c2f26f` `a.ts:3` or `a5c2f26f:a.ts:3`.
+// A revision right before a path pins it: a5c2f26f `a.ts:3`, `a5c2f26f a.ts:3`,
+// `a5c2f26f` `a.ts:3` or `a5c2f26f:a.ts:3`. A tag is read too, so that the
+// check can refuse it by name.
 const PIN_BEFORE =
   /(?:^|[\s(`])(v\d+\.\d+\.\d+(?:-[\w.]+)?|[0-9a-f]{7,40})\^?(?::|`?[ \t]+`?)$/
 const MARKER =
@@ -628,6 +631,7 @@ function revisionTrees(root, revs, wanted) {
       continue
     }
     trees.set(rev, {
+      commit: ok.stdout.toString().trim().slice(0, 8),
       files: gitLines(root, ['ls-tree', '-r', '--name-only', rev]),
       blobs: new Map(),
     })
@@ -661,9 +665,32 @@ function revisionTrees(root, revs, wanted) {
   }
   const result = new Map()
   for (const [rev, t] of trees) {
-    result.set(rev, t && { files: t.files, read: (p) => t.blobs.get(p) ?? [] })
+    result.set(
+      rev,
+      t && {
+        commit: t.commit,
+        files: t.files,
+        read: (p) => t.blobs.get(p) ?? [],
+      },
+    )
   }
   return result
+}
+
+const TAG = /^v\d/
+
+/** The verdict on a pinned citation, given the tree at its revision. */
+function pinnedMessage(c, t) {
+  const at = `${c.path}:${c.lines}`
+  // Tags are not on every clone: the fork's remote has none, so a tag pin
+  // that holds here fails in CI. Only a commit hash pins the same everywhere.
+  if (TAG.test(c.rev))
+    return t
+      ? `${at}: pinned to the tag ${c.rev}; pin to the commit it names, ${t.commit}, since a clone may not have the tag`
+      : `${at}: pinned to the tag ${c.rev}, which this clone does not have; pin to a commit hash`
+  if (!t)
+    return `${at}: pinned revision ${c.rev} is not in this clone (fetch full history)`
+  return checkCitation(c, t, { pinned: true })
 }
 
 export function run(root, docs) {
@@ -711,10 +738,7 @@ export function run(root, docs) {
       let message
       if (c.rev) {
         stats.pinned++
-        const t = trees.get(c.rev)
-        message = t
-          ? checkCitation(c, t, { pinned: true })
-          : `${c.path}:${c.lines}: pinned revision ${c.rev} is not in this clone (fetch full history)`
+        message = pinnedMessage(c, trees.get(c.rev))
       } else {
         message = checkCitation(c, tree, { pinned: false })
       }

@@ -425,6 +425,25 @@ await describe('the CLI on a git repository', async () => {
     assert.match(r.stdout, /1 pinned/)
   })
 
+  // The fork's remote has no tags, so CI's clone has none: a tag pin that
+  // passed here failed there (four in BUGS.md on this PR's first green run).
+  await it('refuses a pin to a tag and names the commit to pin to instead', () => {
+    git('tag', 'v1.0.0', first)
+    writeFileSync(
+      join(dir, 'doc.md'),
+      '# Doc\n\nAt v1.0.0 `a.ts:13` (`beta`) held the answer.\n',
+    )
+    const r = check('doc.md')
+    assert.equal(r.status, 1, r.stdout)
+    assert.match(
+      r.stdout,
+      new RegExp(
+        `^doc\\.md:3: a\\.ts:13: pinned to the tag v1\\.0\\.0; pin to the commit it names, ${first}`,
+        'm',
+      ),
+    )
+  })
+
   // A CI runner reads the job's output more slowly than the script writes it.
   // Once the pipe is full, the writes queue, and process.exit() used to drop
   // the queue: the red run on the PR that added this script logged 443 of its

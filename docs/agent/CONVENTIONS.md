@@ -222,10 +222,13 @@ test title" ``, which passes when the title (or an `it.each` template that
    exactly how the ones this rule was written for went stale.
 5. **History.** A citation of code as it was is pinned to a revision and
    checked there, where it cannot drift, and needs no symbol: write the
-   revision right before it (`` v0.9.11 `focus.ts:181` ``, `` a5c2f26f `x.ts:9` ``),
+   revision right before it (`` 84ae0286 `focus.ts:181` ``, `` a5c2f26f `x.ts:9` ``),
    or wrap a whole region in `<!-- cite-check: pinned <rev> -->` ...
    `<!-- cite-check: live -->`. Use it for audit evidence and superseded
-   requirements; the revision must be reachable from main.
+   requirements; the revision must be reachable from main. Pin to a commit
+   hash, never a tag: the fork's remote has no tags, so CI's clone has none,
+   and the check refuses a tag pin and names its commit (`v0.9.11` is
+   `84ae0286`).
 6. **Whole documents.** Changelogs, anything under `archive/`, and documents
    with a date in the file name (dated plans, reports and audits) describe the
    tree of their day and are not checked. Any other document can say so with
