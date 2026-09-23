@@ -3,11 +3,12 @@
  * Julia point become stubs that record what the page hands them, so the page's
  * own state can be driven and read without a device.
  */
-import { DEFAULT_LOCATION, formatExplorerHash } from '@chaos-master/core'
-import { cleanup, render } from '@solidjs/testing-library'
+import { DEFAULT_LOCATION, formatExplorerHash, JULIA_HOME, MANDELBROT_HOME, } from '@chaos-master/core'
+import { cleanup, fireEvent, render, screen } from '@solidjs/testing-library'
 import { createEffect } from 'solid-js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { addCustomPalette, paletteEntry } from '@/flame/colorMap'
+import { withMode } from './explorerModes'
 import { resolvePalette } from './explorerPalette'
 import { FractalExplorerPage } from './FractalExplorerPage'
 import type { ExplorerLocation } from '@chaos-master/core'
@@ -22,6 +23,7 @@ const stubs = vi.hoisted(() => ({
   markers: [] as JuliaMarkerProps[],
   /** Runs of the stand-in for each renderer's palette upload. */
   paletteUploads: 0,
+  showToast: vi.fn(),
 }))
 
 vi.mock('./ExplorerRenderer', () => ({
@@ -55,7 +57,7 @@ vi.mock('@/lib/AutoCanvas', () => ({
 }))
 
 vi.mock('@/contexts/ToastContext', () => ({
-  useToast: () => ({ showToast: vi.fn() }),
+  useToast: () => ({ showToast: stubs.showToast }),
 }))
 
 // The palette picker loads palette files; it is not what these tests are about.
@@ -87,6 +89,7 @@ beforeEach(() => {
   stubs.renderers.length = 0
   stubs.markers.length = 0
   stubs.paletteUploads = 0
+  stubs.showToast.mockClear()
   vi.mocked(resolvePalette).mockClear()
 })
 
@@ -94,6 +97,7 @@ afterEach(() => {
   cleanup()
   stored.clear()
   vi.unstubAllGlobals()
+  vi.useRealTimers()
   window.history.replaceState(null, '', '/')
 })
 
@@ -105,6 +109,15 @@ function open(location: ExplorerLocation) {
     `/explore${formatExplorerHash(location)}`,
   )
   render(() => <FractalExplorerPage />)
+  // The panel starts open on a wide screen only.
+  const show = screen.queryByRole('button', { name: 'Show settings' })
+  if (show) fireEvent.click(show)
+}
+
+/** The fragment once the page's debounced write has landed. */
+function writtenHash(): string {
+  vi.advanceTimersByTime(1000)
+  return window.location.hash
 }
 
 describe('FractalExplorerPage palette', () => {
@@ -159,5 +172,94 @@ describe('FractalExplorerPage palette', () => {
 
     expect(mandelbrot.palette().id).toBe('grayscale')
     expect(julia.palette().id).toBe('grayscale')
+  })
+})
+
+describe('FractalExplorerPage modes', () => {
+  const DEEP = { centerRe: '-0.7436', centerIm: '0.1318', zoomLog2: 12 }
+
+  beforeEach(() => {
+    vi.useFakeTimers()
+  })
+
+  it('opens the split from the header, and writes it to the link', () => {
+    open(DEFAULT_LOCATION)
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Show the Julia set of a point beside the Mandelbrot set',
+      }),
+    )
+    const julia = stubs.renderers[1]
+    expect(julia?.scene()).toMatchObject({ kind: 'julia', view: JULIA_HOME })
+    expect(writtenHash()).toBe(
+      formatExplorerHash(withMode(DEFAULT_LOCATION, 'split')),
+    )
+  })
+
+  it('switches the fractal from the panel, and writes it to the link', () => {
+    open(DEFAULT_LOCATION)
+    fireEvent.click(screen.getByRole('radio', { name: 'Julia' }))
+    expect(stubs.renderers[0]?.scene()).toMatchObject({
+      kind: 'julia',
+      view: JULIA_HOME,
+    })
+    expect(writtenHash()).toBe(
+      formatExplorerHash(withMode(DEFAULT_LOCATION, 'julia')),
+    )
+  })
+
+  it('leaves the picture alone when the mode it shows is picked', () => {
+    open(DEFAULT_LOCATION)
+    const scene = stubs.renderers[0]?.scene()
+    fireEvent.click(screen.getByRole('radio', { name: 'Mandelbrot' }))
+    expect(stubs.renderers[0]?.scene()).toBe(scene)
+    expect(writtenHash()).toBe(formatExplorerHash(DEFAULT_LOCATION))
+  })
+
+  it('opens the Julia set of the view centre, and goes home', () => {
+    open({ ...DEFAULT_LOCATION, view: DEEP })
+    const main = stubs.renderers[0]
+    fireEvent.click(screen.getByText('Julia set of the view centre'))
+    expect(main?.scene()).toEqual({
+      kind: 'julia',
+      view: JULIA_HOME,
+      juliaC: { re: DEEP.centerRe, im: DEEP.centerIm },
+      maxIterations: DEFAULT_LOCATION.maxIterations,
+    })
+    fireEvent.click(screen.getByRole('radio', { name: 'Mandelbrot' }))
+    main?.setView(DEEP)
+    fireEvent.click(screen.getByText('Home'))
+    expect(main?.scene().view).toEqual(MANDELBROT_HOME)
+  })
+})
+
+describe('FractalExplorerPage link', () => {
+  it('copies a link that reopens the view', async () => {
+    const writeText = vi.fn(() => Promise.resolve())
+    vi.stubGlobal('navigator', { clipboard: { writeText } })
+    const linked = { ...DEFAULT_LOCATION, kind: 'julia' as const }
+    open(linked)
+    fireEvent.click(screen.getByText('Copy link'))
+    await vi.waitFor(() => {
+      expect(stubs.showToast).toHaveBeenCalledOnce()
+    })
+    expect(writeText).toHaveBeenCalledExactlyOnceWith(
+      `${window.location.origin}/explore${formatExplorerHash(linked)}`,
+    )
+    expect(stubs.showToast).toHaveBeenCalledWith(
+      'Link copied: it reopens this exact view.',
+    )
+  })
+
+  it('points to the address bar when the clipboard is out of reach', async () => {
+    const writeText = vi.fn(() => Promise.reject(new Error('denied')))
+    vi.stubGlobal('navigator', { clipboard: { writeText } })
+    open(DEFAULT_LOCATION)
+    fireEvent.click(screen.getByText('Copy link'))
+    await vi.waitFor(() => {
+      expect(stubs.showToast).toHaveBeenCalledExactlyOnceWith(
+        'Could not reach the clipboard. The address bar has the same link.',
+      )
+    })
   })
 })
