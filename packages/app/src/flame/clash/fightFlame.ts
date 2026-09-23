@@ -10,13 +10,19 @@
  * The stage is neutral on purpose: neither fighter brings its palette or its
  * grading, so neither side looks stronger for its author's exposure. Each
  * keeps its own transform colours, turned toward its team's hue.
+ *
+ * Each team also carries one transform of the stage's own, its beam: a map
+ * that lays the fighter's body onto a thin rod from its front to where the
+ * beam ends. Its probability is the beam's strength, 0 outside a beam, so it
+ * changes what is drawn without changing the shader. The map is bounded, so
+ * no walker lands past either end of the rod, wherever it was.
  */
 import { latestSchemaVersion, renderSettingsDefault, } from '../schema/flameSchema'
 import { fighterForm } from './convert2Dto3D'
 import { authoredFraming } from './framing'
-import { composeAffine, fighterFrame, invertAffine, placementAffine, placeTransform, } from './placement'
-import { tintColour } from './tint'
-import type { FlameDescriptor, TransformFunction } from '../schema/flameSchema'
+import { composeAffine, fighterFrame, IDENTITY_AFFINE, invertAffine, placementAffine, placeTransform, } from './placement'
+import { TEAM_COLOUR, tintColour } from './tint'
+import type { FlameDescriptor, TransformFunction, TransformId, VariationId, } from '../schema/flameSchema'
 import type { BoutFrame, FighterPose } from './choreographer'
 import type { FighterForm } from './convert2Dto3D'
 import type { Affine3 } from './placement'
@@ -66,6 +72,86 @@ export const STAGE_SETTINGS: FlameDescriptor['renderSettings'] = {
 
 const prefixOf = (team: Team) => (team === 'A' ? 'a_' : 'b_')
 
+/** The share of a team's steps its beam takes at full strength. */
+export const BEAM_SHARE = 0.15
+/** A beam's thickness, against its fighter's size. */
+const BEAM_WIDTH = 0.1
+/** Where a beam starts: this far out from its fighter's centre, by size. */
+const BEAM_FRONT = 0.3
+
+/**
+ * The id of each team's beam transform, and of its one variation. A fighter's
+ * own ids all start `a_` or `b_`, so no fighter transform can take a beam's.
+ */
+export const beamId = (team: Team) =>
+  `beam_${team.toLowerCase()}` as TransformId
+const BEAM_VARIATION = 'beam' as VariationId
+
+/**
+ * The team's beam for this frame. It maps the fighter's body, about `scale`
+ * around its position, onto a rod along the fight line from the fighter's
+ * front to `beam.to`; the fighter's own maps then pull each point back, so
+ * the rod glows in the fighter's colours. `teamProbability` is the sum of
+ * the fighter's own probabilities, which the beam's share is taken against.
+ *
+ * The map runs through sinusoidal3D: the pre-affine spreads the body over a
+ * quarter turn either side of the fighter's centre, where the sine climbs
+ * from -1 to 1, and the post-affine lays that range along the rod. A linear
+ * map would carry a walker far from the body (one a leak carried into the
+ * other fighter) as far past the rod's ends; the sine folds it back onto the
+ * rod instead. Across the rod the body spans only a twelfth of a turn either
+ * side, where the sine is still nearly straight, so the rod is lit through
+ * its core like the body it carries; spread over the whole quarter turn, the
+ * sine would pile the body onto the rod's two edges and leave it hollow.
+ */
+export function beamTransform(
+  team: Team,
+  pose: FighterPose,
+  teamProbability: number,
+): TransformFunction {
+  const [x, y, z] = pose.placement.position
+  const size = pose.placement.scale > 0 ? pose.placement.scale : 1
+  const toward = Math.sign(pose.beam.to - x) || (team === 'A' ? 1 : -1)
+  const start = x + toward * BEAM_FRONT * size
+  const half = Math.abs(pose.beam.to - start) / 2
+  const middle = (start + pose.beam.to) / 2
+  const turn = Math.PI / 2 / size
+  const turnAcross = Math.PI / 6 / size
+  // The body's edge lands at the beam's width; a stray walker folds back
+  // within twice that.
+  const width = (BEAM_WIDTH * size) / Math.sin(Math.PI / 6)
+  const share = BEAM_SHARE * Math.min(1, Math.max(0, pose.beam.amount))
+  const { hue, chroma } = TEAM_COLOUR[team]
+  return {
+    probability: (teamProbability * share) / (1 - share),
+    preAffine: {
+      ...IDENTITY_AFFINE,
+      a: turn,
+      d: -turn * x,
+      f: turnAcross,
+      h: -turnAcross * y,
+      k: turnAcross,
+      l: -turnAcross * z,
+    },
+    postAffine: {
+      ...IDENTITY_AFFINE,
+      a: half,
+      d: middle,
+      f: width,
+      h: y,
+      k: width,
+      l: z,
+    },
+    color: { x: chroma * Math.cos(hue), y: chroma * Math.sin(hue) },
+    colorSpeed: 0.4,
+    visible: true,
+    team,
+    variations: {
+      [BEAM_VARIATION]: { type: 'sinusoidal3D', weight: 1, visible: true },
+    },
+  }
+}
+
 /** One fighter's transforms for this frame, keyed `a_<id>` or `b_<id>`. */
 export function fighterTransforms(
   fighter: ClashFighter,
@@ -78,6 +164,7 @@ export function fighterTransforms(
   // fallback only guards a degenerate framing.
   const inverse = invertAffine(frame)
   const out: Record<string, TransformFunction> = {}
+  let probability = 0
   for (const [tid, t] of Object.entries(
     fighter.form.transformsAt(pose.morph),
   )) {
@@ -87,7 +174,9 @@ export function fighterTransforms(
       color: tintColour(t.color, team, pose.tint),
       team,
     }
+    if (t.visible) probability += t.probability
   }
+  out[beamId(team)] = beamTransform(team, pose, probability)
   return out
 }
 

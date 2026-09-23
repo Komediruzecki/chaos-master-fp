@@ -28,12 +28,21 @@ import type { Team } from './tint'
 
 export type Beat = 'intro' | 'strike' | 'clash' | 'devour' | 'victory'
 
+/**
+ * A beam a fighter throws along the fight line: its strength (0 for none,
+ * 1 at full) and the x on the fight line where it ends.
+ */
+export type Beam = { amount: number; to: number }
+
+export const NO_BEAM: Beam = { amount: 0, to: 0 }
+
 export type FighterPose = {
   placement: Placement
   /** 0 the flat card, 1 the full 3D form (2D fighters only). */
   morph: number
   /** How far the fighter's hues are pulled to its team colour. */
   tint: number
+  beam: Beam
 }
 
 /** The orbit camera, and how much of the arena it must show. */
@@ -147,10 +156,14 @@ const entranceDelay = (team: Team) => (team === 'A' ? 0 : 0.2)
 /** Each fighter's mark on the fight line, and where it walks on from. */
 const SEPARATION = 1.45
 const ENTRANCE = 4.4
-/** The marks of the beam clash, close enough for the two to touch. */
-const CLASH_MARK = 0.78
-/** How far the winner pushes the contact point through the beam clash. */
-const CLASH_SHOVE = 0.35
+/** The marks of the beam clash, apart enough for the beams to show. */
+const CLASH_MARK = 1.25
+/** How far the winner's beam drives the contact point towards the loser. */
+const BEAM_DRIVE = 0.6
+/** How far the beam pressure pushes the loser back. */
+const CLASH_SHOVE = 0.2
+/** Half the arena width the beam clash frames. */
+const CLASH_HALF_WIDTH = 2.7
 /** Centre distance at which two fighters of scale 1 touch. */
 const CONTACT = 1.1
 /** The strike's dash ends at contact, never short of it. */
@@ -159,14 +172,20 @@ const MORPH_START = 0.5
 const MORPH_END = 2.2
 /** The turn that shows a flat card's depth as it inflates. */
 const INFLATE_TURN = 0.9
-/** Each side's leak in the beam clash, as the design sets it. */
-const BEAM_LEAK = 0.2
+/**
+ * Each side's leak in the beam clash. The design's 0.2 cost a fifth more GPU
+ * time and still read as two flames pressed together; the beams carry the
+ * shot, and the leak only mixes a little colour across. It stays small
+ * because a leaked walker scatters before its own maps pull it home: at 0.1
+ * a julian fighter's scatter reached the frame's edge.
+ */
+const BEAM_LEAK = 0.05
 /** How often the beam clash sways; kept under the 3 flashes a second limit. */
 const SWAY_HZ = 1.2
 /** The winner's share of walkers while the loser is drawn into it. */
-const DEVOUR_SHARE = 0.72
+const DEVOUR_SHARE = 0.62
 /** How much of the loser's walking borrows the winner's maps in the Devour. */
-const SWALLOW_LEAK = 0.5
+const SWALLOW_LEAK = 0.35
 /** Reduced motion: the longest slide (0.2 of the separation) and the flash cap. */
 const SLIDE = 0.2 * 2 * SEPARATION
 const REDUCED_FLASH = 0.15
@@ -186,6 +205,23 @@ function introLooks(story: number) {
   return {
     morph: easeOut((story - MORPH_START) / (MORPH_END - MORPH_START)),
     tint: DEFAULT_TINT * smooth(0.6, 1.4, story),
+  }
+}
+
+/**
+ * The beams, shared by both scripts: in the beam clash both fighters throw
+ * one to the contact point, and in the Devour the loser streams into the
+ * winner.
+ */
+function beamsOf(s: number, winnerX: number, contact: number) {
+  const beaming = smooth(5.4, 5.9, s) * (1 - smooth(7.9, 8.3, s))
+  const stream = smooth(8.4, 8.9, s) * (1 - smooth(9.6, 9.9, s))
+  return {
+    winner: { amount: beaming, to: contact },
+    loser:
+      s < 8.35
+        ? { amount: beaming, to: contact }
+        : { amount: stream, to: winnerX },
   }
 }
 
@@ -217,6 +253,7 @@ const pose = (
   position: Vec3,
   rest: Partial<Omit<Placement, 'position'>>,
   looks: { morph: number; tint: number },
+  beam: Beam = NO_BEAM,
 ): FighterPose => ({
   placement: {
     position,
@@ -226,6 +263,7 @@ const pose = (
     squash: rest.squash ?? 1,
   },
   ...looks,
+  beam,
 })
 
 function fullMotion(s: number, wall: number, winner: Team) {
@@ -244,8 +282,8 @@ function fullMotion(s: number, wall: number, winner: Team) {
   const wind = smooth(2.4, 2.9, s) * (1 - smooth(2.9, 3.15, s))
   const dash = smooth(2.9, 3.15, s) * (1 - smooth(3.35, 3.95, s))
   const knock = smooth(3.15, 3.45, s) * (1 - smooth(3.6, 4.4, s))
-  // Through the beam clash the winner pushes the contact point back.
-  const shove = sl * CLASH_SHOVE * smooth(5.7, 8.2, s)
+  // Through the beam clash the pressure pushes the loser back.
+  const shove = sl * CLASH_SHOVE * smooth(5.9, 8.2, s)
   // Devour: the loser shrinks into the winner, the winner takes the centre.
   const shrink = smooth(8.6, 9.9, s)
   const drawn = smooth(8.8, 9.9, s)
@@ -259,9 +297,12 @@ function fullMotion(s: number, wall: number, winner: Team) {
       approach,
     )
   const winnerX =
-    lerp(stand(winner) + shove, 0, centre) -
-    sw * (DASH_REACH * dash - 0.3 * wind)
+    lerp(stand(winner), 0, centre) - sw * (DASH_REACH * dash - 0.3 * wind)
   const loserX = lerp(stand(loser) + shove + sl * 0.55 * knock, sw * 0.3, drawn)
+  // The beams meet between the two, and the winner's drives the contact
+  // point towards the loser.
+  const contact = (winnerX + loserX) / 2 + sl * BEAM_DRIVE * smooth(5.9, 8.0, s)
+  const beams = beamsOf(s, winnerX, contact)
   const facing = (side: number) => -side * lerp(0.3, 0.55, approach)
   const winnerPose = pose(
     [winnerX, bob(0), 0],
@@ -275,6 +316,7 @@ function fullMotion(s: number, wall: number, winner: Team) {
       squash: 1 + 0.15 * pulse(9.9, 10.4, s),
     },
     looks,
+    beams.winner,
   )
   const loserPose = pose(
     [loserX, bob(1.3), 0],
@@ -285,9 +327,16 @@ function fullMotion(s: number, wall: number, winner: Team) {
       squash: 1 - 0.32 * pulse(3.15, 3.6, s),
     },
     looks,
+    beams.loser,
   )
   const shake = 0.05 * pulse(3.15, 3.45, s)
-  const push = smooth(8.4, 10.2, s)
+  // The camera keeps the two fighters' midpoint in the middle of the frame:
+  // through the strike, to its contact point and back, and from the beam
+  // clash until the loser has been drawn in, so the shoved loser never
+  // leaves the frame. Then it closes on the winner.
+  const follow = smooth(2.6, 3.1, s) * (1 - smooth(3.9, 4.8, s))
+  const close = smooth(9.3, 10.4, s)
+  const track = Math.max(follow, approach) * (1 - close)
   const camera: ClashCamera = {
     // Keeps the fight line across the frame until only the winner is left.
     theta:
@@ -300,11 +349,17 @@ function fullMotion(s: number, wall: number, winner: Team) {
     phi: lerp(1.28, 1.18, smooth(5.0, 6.0, s)),
     fov: 50,
     target: [
-      winnerX * push + shake * Math.sin(wall * 83),
+      ((winnerX + loserX) / 2) * track +
+        winnerX * close +
+        shake * Math.sin(wall * 83),
       shake * Math.cos(wall * 71),
       0,
     ],
-    halfWidth: lerp(lerp(SEPARATION + 1.3, 2.0, approach), 1.5, push),
+    halfWidth: lerp(
+      lerp(SEPARATION + 1.3, CLASH_HALF_WIDTH, approach),
+      1.5,
+      close,
+    ),
     halfHeight: 1.4,
   }
   const exposure = 1 + 0.8 * pulse(3.15, 3.33, s) + 0.8 * pulse(9.9, 10.3, s)
@@ -315,16 +370,20 @@ function reduced(s: number, winner: Team) {
   const loser: Team = winner === 'A' ? 'B' : 'A'
   const looks = introLooks(s)
   // Beats change by cuts: the intro marks, closer marks from the beam clash,
-  // and the centre for the victor. Within a beat the only move is the
-  // strike's short slide in and back.
+  // the two pressed together in the middle for the Devour, and the centre
+  // for the victor. Within a beat the only move is the strike's short slide
+  // in and back.
   const closer = s >= 5.0
+  const drawn = s >= 8.2
   const won = s >= 10.4
   const mark = (team: Team) =>
-    sideOf(team) * (closer ? SEPARATION - 0.5 : SEPARATION)
+    sideOf(team) * (drawn ? CONTACT / 2 : closer ? CLASH_MARK : SEPARATION)
   const lunge = smooth(2.9, 3.15, s) * (1 - smooth(3.6, 4.4, s))
   const winnerX = won ? 0 : mark(winner) - sideOf(winner) * SLIDE * lunge
-  const still = (team: Team, x: number) =>
-    pose([x, 0, 0], { yaw: -sideOf(team) * 0.3 }, looks)
+  // The beams meet in the middle and stay there.
+  const beams = beamsOf(s, winnerX, 0)
+  const still = (team: Team, x: number, beam: Beam) =>
+    pose([x, 0, 0], { yaw: -sideOf(team) * 0.3 }, looks, beam)
   const camera: ClashCamera = {
     theta: 0.25,
     phi: 1.25,
@@ -334,8 +393,8 @@ function reduced(s: number, winner: Team) {
     halfHeight: 1.4,
   }
   return {
-    winnerPose: still(winner, winnerX),
-    loserPose: still(loser, mark(loser)),
+    winnerPose: still(winner, winnerX, beams.winner),
+    loserPose: still(loser, mark(loser), beams.loser),
     camera,
     exposure: 1 + REDUCED_FLASH * (pulse(3.15, 3.33, s) + pulse(9.9, 10.3, s)),
   }
