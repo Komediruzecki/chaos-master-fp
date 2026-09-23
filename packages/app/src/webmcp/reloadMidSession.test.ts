@@ -94,7 +94,9 @@ describe(
       await startAgentDuel(createMockCommandContext())
       const { call, tools } = await reloadPage(createMockCommandContext())
 
-      const started = await call(tools.arcadeStartDuel, { seconds: 60 })
+      const started = await call(tools.arcadeStartDuel, {
+        durationSeconds: 60,
+      })
       expect(started.isError).toBeUndefined()
       // The new session supersedes the interrupted one.
       expect((await call(tools.arcadeStatus)).content[0]!.text).not.toMatch(
