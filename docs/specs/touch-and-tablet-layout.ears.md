@@ -287,7 +287,7 @@ isTablet()}`; `CanvasViewport.tsx:129` (`hideMobileSidebarToggle`) gates the but
 and one row, so the canvas fills the screen under the fixed HUD and bottom rail.
 
 _(`MainWorkspace.tsx:3784` (`railLayout`); `App.module.css:15-19` (`.phoneLayout`). The HUD and rail are
-`position: fixed` with `z-index` 42 and 40 — `TouchSurface.module.css:3-10` (`.topHud`),
+`position: fixed` with `z-index` 42 and 40 — `TouchSurface.module.css:8-20` (`.hudFrame`, around the HUD pill),
 `EditorRail.module.css:5-10` (`.dock`) — so neither consumes grid space.)_
 
 ### REQ-TL-016 — The tablet grid is a canvas/inspector split across the whole band
