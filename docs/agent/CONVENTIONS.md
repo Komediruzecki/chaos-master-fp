@@ -133,8 +133,8 @@ CI is.
 check runs where is in [packages/app/TESTING.md](../../packages/app/TESTING.md).
 
 **Playwright.** Only `tests/*.ci.spec.ts` runs in CI, as the `chromium-ci`
-project (11 specs, 41 tests), and a skip there fails the run unless annotated
-`intentional-skip`. The other 10 specs run only in the local `chromium`
+project (12 specs, 43 tests), and a skip there fails the run unless annotated
+`intentional-skip`. The other 9 specs run only in the local `chromium`
 project and are **effectively unenforced**. A new spec should hold on the
 software adapter CI provides and be named `*.ci.spec.ts`; if it cannot, say so
 in its header comment.

@@ -150,8 +150,8 @@ projects, both on headless Chromium with swiftshader standing in for a GPU:
 
 | Project       | Specs                         | Runs                               | Today              |
 | ------------- | ----------------------------- | ---------------------------------- | ------------------ |
-| `chromium-ci` | `tests/*.ci.spec.ts`          | CI, every push; `pnpm test:e2e:ci` | 11 specs, 41 tests |
-| `chromium`    | every other `tests/*.spec.ts` | only when someone runs it locally  | 10 specs, 50 tests |
+| `chromium-ci` | `tests/*.ci.spec.ts`          | CI, every push; `pnpm test:e2e:ci` | 12 specs, 43 tests |
+| `chromium`    | every other `tests/*.spec.ts` | only when someone runs it locally  | 9 specs, 32 tests  |
 
 **Only `*.ci.spec.ts` runs in CI.** A spec in the `chromium` project is
 effectively unenforced: nothing runs it for you, and several of its tests need

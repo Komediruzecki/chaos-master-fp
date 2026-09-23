@@ -55,8 +55,10 @@ not a gap.
 - `packages/app/src/utils/useAudioReactive.test.ts` — modulation suspension only (one test)
 - `packages/app/src/components/AudioReactivePanel/AudioReactivePanel.test.tsx` —
   `defaultTarget` and `flameTargetKey` round trips
-- `tests/timeline.spec.ts` — end-to-end: the panel renders, frames navigate, keyframes
-  can be added/updated/removed through the UI
+- `tests/timeline.ci.spec.ts` — end-to-end, in CI: the transport steps and seeks the
+  playhead, the Frames field sets the length, play and pause toggle, and one settings
+  change is one undo step. It does not count played frames: they advance in the
+  renderer, which the software adapter can fail to mount.
 - _Gap:_ `AudioWiringModal.tsx` has **no test of any kind** (unit or e2e) — REQ-TA-035
   through REQ-TA-038 are entirely unguarded. `keyframeOnChange.ts` likewise has no test,
   so REQ-TA-020 is unguarded. See **Coverage gaps** at the end for the full list.
@@ -548,18 +550,18 @@ Requirements below have **no test whose assertion goes red when the requirement 
 violated**. Naming a nearby test file would be a false claim of coverage, so they
 are listed instead.
 
-| Requirement             | Why it is unguarded                                                                                                                                                                                    |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| REQ-TA-003              | No test registers a value writer and then calls `addKeyframe` at the current frame. `timelineUndo.test.ts:315-352` "value write-back on undo/redo" exercises the write-back on **undo/redo** only.     |
-| REQ-TA-006              | `relocateKeyframe`'s "destination occupied" guard is never exercised. `recorder/timelineActions.test.ts:478` (`relocateKeyframe`) calls it, but asserts command coalescing, not the guard.             |
-| REQ-TA-012 (strings)    | Array blending is tested; the string/boolean hold path (`utils/timeline.ts:664-667` (`prev`)) is not.                                                                                                  |
-| REQ-TA-013              | Nothing asserts the two easing copies agree, and nothing imports the core copy, so drift is invisible.                                                                                                 |
-| REQ-TA-020              | `keyframeOnChange.ts` has no test file. Neither the Auto-mode "already animated" filter nor the `animationEnabled` gate is covered.                                                                    |
-| REQ-TA-021              | **Actively hidden.** `useWorkspaceTimelineBinding.test.ts:11-12` mocks `isDrivingView` and `hasKeyframeAtFrame` to return `false` unconditionally, so the defective branch never runs in any test.     |
-| REQ-TA-022              | Same mock, same reason.                                                                                                                                                                                |
-| REQ-TA-024              | `isDrivingView` has no unit test; its three-term definition is only exercised through the app.                                                                                                         |
-| REQ-TA-025              | Neither the `previewHeld` latch nor the scrub gesture lifecycle is tested. `tests/timeline.spec.ts:249` "should allow seeking to specific frames" seeks to a frame but asserts only the frame readout. |
-| REQ-TA-026              | The advance **arithmetic** is tested (`utils/timeline.test.ts:435-463` "advanceFrame"); the interval rate, `timeScale` multiplication, the Auto-FPS handoff and the EMA are not.                       |
-| REQ-TA-028              | `getAudioFeatureNormalized` is never called directly by a test, nor are `computeBeats` / `computeOnsetStrengths`. The mapping tests feed hand-built `FrameData` past it.                               |
-| REQ-TA-033              | `useAudioReactive.test.ts` contains exactly one test, for suspension. Nothing covers transport-without-reactivity, seek, or the mic gate.                                                              |
-| REQ-TA-035 – REQ-TA-038 | `AudioWiringModal.tsx` (1643 lines) has **no unit test and no e2e coverage**. Every behaviour of the wiring editor is unguarded.                                                                       |
+| Requirement             | Why it is unguarded                                                                                                                                                                                                                  |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| REQ-TA-003              | No test registers a value writer and then calls `addKeyframe` at the current frame. `timelineUndo.test.ts:315-352` "value write-back on undo/redo" exercises the write-back on **undo/redo** only.                                   |
+| REQ-TA-006              | `relocateKeyframe`'s "destination occupied" guard is never exercised. `recorder/timelineActions.test.ts:478` (`relocateKeyframe`) calls it, but asserts command coalescing, not the guard.                                           |
+| REQ-TA-012 (strings)    | Array blending is tested; the string/boolean hold path (`utils/timeline.ts:664-667` (`prev`)) is not.                                                                                                                                |
+| REQ-TA-013              | Nothing asserts the two easing copies agree, and nothing imports the core copy, so drift is invisible.                                                                                                                               |
+| REQ-TA-020              | `keyframeOnChange.ts` has no test file. Neither the Auto-mode "already animated" filter nor the `animationEnabled` gate is covered.                                                                                                  |
+| REQ-TA-021              | **Actively hidden.** `useWorkspaceTimelineBinding.test.ts:11-12` mocks `isDrivingView` and `hasKeyframeAtFrame` to return `false` unconditionally, so the defective branch never runs in any test.                                   |
+| REQ-TA-022              | Same mock, same reason.                                                                                                                                                                                                              |
+| REQ-TA-024              | `isDrivingView` has no unit test; its three-term definition is only exercised through the app.                                                                                                                                       |
+| REQ-TA-025              | Neither the `previewHeld` latch nor the scrub gesture lifecycle is tested. `tests/timeline.ci.spec.ts:51` "steps and seeks the playhead from the transport bar" seeks with the transport buttons but asserts only the frame readout. |
+| REQ-TA-026              | The advance **arithmetic** is tested (`utils/timeline.test.ts:435-463` "advanceFrame"); the interval rate, `timeScale` multiplication, the Auto-FPS handoff and the EMA are not.                                                     |
+| REQ-TA-028              | `getAudioFeatureNormalized` is never called directly by a test, nor are `computeBeats` / `computeOnsetStrengths`. The mapping tests feed hand-built `FrameData` past it.                                                             |
+| REQ-TA-033              | `useAudioReactive.test.ts` contains exactly one test, for suspension. Nothing covers transport-without-reactivity, seek, or the mic gate.                                                                                            |
+| REQ-TA-035 – REQ-TA-038 | `AudioWiringModal.tsx` (1643 lines) has **no unit test and no e2e coverage**. Every behaviour of the wiring editor is unguarded.                                                                                                     |

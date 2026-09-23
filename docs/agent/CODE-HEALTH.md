@@ -46,15 +46,15 @@ stays green, is in [packages/app/TESTING.md](../../packages/app/TESTING.md).
 
 The full gate, run locally on 2026-09-23 at `9fc08078`. **Everything passes.**
 
-| Step                               | `a5c2f26f` (2026-09-10) | `9fc08078` (2026-09-23)                                         |
-| ---------------------------------- | ----------------------- | --------------------------------------------------------------- |
-| `pnpm lint`                        | 0 errors, 51 warnings   | 0 errors, 79 warnings                                           |
-| `pnpm typecheck`                   | clean                   | clean                                                           |
-| `pnpm fmt`                         | clean                   | clean                                                           |
-| `pnpm validate-wgsl`               | clean                   | clean                                                           |
-| `pnpm test`                        | 228 files, 2,529 tests  | 353 files, **4,029 passed, 12 skipped**, plus 14 script tests   |
-| `pnpm --filter chaos-master build` | succeeds                | succeeds                                                        |
-| `pnpm test:e2e:ci`                 | 8 smoke tests           | 41 tests in 11 `*.ci.spec.ts` files (listed, run in CI on main) |
+| Step                               | `a5c2f26f` (2026-09-10) | `9fc08078` (2026-09-23)                                                                                |
+| ---------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------ |
+| `pnpm lint`                        | 0 errors, 51 warnings   | 0 errors, 79 warnings                                                                                  |
+| `pnpm typecheck`                   | clean                   | clean                                                                                                  |
+| `pnpm fmt`                         | clean                   | clean                                                                                                  |
+| `pnpm validate-wgsl`               | clean                   | clean                                                                                                  |
+| `pnpm test`                        | 228 files, 2,529 tests  | 353 files, **4,029 passed, 12 skipped**, plus 14 script tests                                          |
+| `pnpm --filter chaos-master build` | succeeds                | succeeds                                                                                               |
+| `pnpm test:e2e:ci`                 | 8 smoke tests           | 41 tests in 11 `*.ci.spec.ts` files (listed, run in CI on main); 43 in 12 once the timeline spec joins |
 
 `pnpm test` splits as core 16 files (204 passed, 8 skipped), mobile-runtime 3
 files (23), the app 334 files (3,802 passed, 4 skipped), and the app's

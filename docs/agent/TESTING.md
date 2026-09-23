@@ -152,7 +152,9 @@ Fix those before adding new ones.
 > `chromium` project and remain unenforced.
 
 At `9fc08078` the CI project holds 41 tests in 11 specs and the local project
-50 tests in 10 specs (`playwright test --list`).
+50 tests in 10 specs (`playwright test --list`). The timeline spec then moved
+from the local project to CI as `tests/timeline.ci.spec.ts`, rewritten for the
+timeline the app has now: 43 tests in 12 specs in CI, 32 in 9 locally.
 
 ## 5. Rules for writing a test here
 
