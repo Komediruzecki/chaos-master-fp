@@ -1,7 +1,7 @@
 /**
  * A sideways drag on a text input scrubs it, Shift ten times finer; a press
- * that does not move focuses the input for typing, and an input being
- * edited keeps its caret.
+ * that barely moves, which a finger may do further than a mouse, focuses the
+ * input for typing, and an input being edited keeps its caret.
  */
 import { cleanup, render, screen } from '@solidjs/testing-library'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -71,6 +71,36 @@ describe('createInputScrub', () => {
       expect(document.activeElement).not.toBe(input)
     },
   )
+
+  it('still taps the field when a finger drifts a few pixels sideways', () => {
+    const { input, onStart, onScrub } = mount()
+    press(input, 'touch')
+    moveTo(106, 'touch')
+    release(106, 'touch')
+    expect(onStart).not.toHaveBeenCalled()
+    expect(onScrub).not.toHaveBeenCalled()
+    expect(document.activeElement).toBe(input)
+  })
+
+  it('scrubs a finger past its wider dead zone, counting from the press', () => {
+    const { input, onStart, onScrub } = mount()
+    press(input, 'touch')
+    moveTo(112, 'touch')
+    release(112, 'touch')
+    expect(onStart).toHaveBeenCalledOnce()
+    expect(onScrub.mock.calls).toEqual([[12]])
+  })
+
+  it.each(['mouse', 'pen'])('scrubs a %s from 4 px', (type) => {
+    const { input, onStart, onScrub } = mount()
+    press(input, type)
+    moveTo(103, type)
+    expect(onStart).not.toHaveBeenCalled()
+    moveTo(104, type)
+    release(104, type)
+    expect(onStart).toHaveBeenCalledOnce()
+    expect(onScrub.mock.calls).toEqual([[4]])
+  })
 
   it('is ten times finer with Shift held', () => {
     const { input, onScrub } = mount()

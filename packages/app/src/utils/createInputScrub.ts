@@ -16,6 +16,8 @@ const { abs } = Math
 
 /** CSS px a press may wander and still count as a click. */
 const DEAD_ZONE = 4
+/** A fingertip wanders further on a tap: platforms allow 8 to 10 px. */
+const TOUCH_DEAD_ZONE = 10
 /** Shift's share of a plain drag. */
 const FINE = 0.1
 
@@ -38,6 +40,8 @@ export function createInputScrub(
       // A mouse or pen press would focus the field and start selecting text
       // under the drag. A finger's tap focuses it natively, keyboard and all.
       if (down.pointerType !== 'touch') down.preventDefault()
+      const deadZone =
+        down.pointerType === 'touch' ? TOUCH_DEAD_ZONE : DEAD_ZONE
       let lastX = down.clientX
       let dragging = false
       return {
@@ -45,7 +49,7 @@ export function createInputScrub(
           if (!dragging) {
             const dx = move.clientX - down.clientX
             const dy = move.clientY - down.clientY
-            if (abs(dx) < DEAD_ZONE || abs(dx) <= abs(dy)) return
+            if (abs(dx) < deadZone || abs(dx) <= abs(dy)) return
             dragging = true
             scrub.onStart()
           }
