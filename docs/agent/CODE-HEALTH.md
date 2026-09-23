@@ -139,14 +139,22 @@ two cycles named above arrived afterwards, while `pnpm arch` was not in CI:
 `recorder/types.ts` back to `commands/types.ts` with #105 (2026-09-23). WP1
 (#114) broke both, and WP3 (#116) made the `health` job fail on the next one.
 
-**`core-stays-pure` cannot see an npm package.** `.dependency-cruiser.cjs`
-excludes every path matching `node_modules` from the graph, so the rule's
-`solid-js|typegpu|@webgpu` alternatives never meet a resolved module; only an
-import of `packages/app` could trip it. With that exclude narrowed (a probe
-config, not committed), the same run reports 5 errors: `@chaos-master/core`
-imports `typegpu` in `math/affineTransform.ts`, `math/affineTransform3D.ts` and
-(type-only) `utils/schemaUtil.ts`. It holds no DOM or Solid import. The config
-is not changed here; it is reported as a defect.
+**`core-stays-pure` could not see an npm package until WP3b.**
+`.dependency-cruiser.cjs` excluded every path matching `node_modules` from the
+graph, so the rule's `solid-js|typegpu|@webgpu` alternatives never met a
+resolved module; only an import of `packages/app`, or one that does not resolve
+at all, could trip it. With that exclude narrowed, the same run reported 5
+errors: `@chaos-master/core` imports `typegpu` in `math/affineTransform.ts`,
+`math/affineTransform3D.ts` and (type-only) `utils/schemaUtil.ts`. It holds no
+DOM or Solid import.
+
+Since WP3b (2026-09-23) npm modules stay in the graph as leaves, and core has
+two rules: `core-stays-pure` (Solid, `@webgpu/*`, other workspace packages)
+and `core-declared-deps-only` (nothing outside core's own `dependencies`: no
+dev dependency, no undeclared package, no Node built-in). typegpu is declared,
+so it passes; that call is BUGS.md #33, not the rule's. The graph is then 1,344
+modules and 7,189 dependencies, with no violations; the extra 34 modules are
+npm entry files.
 
 The 8 orphans were `utils/{usePointer,range,randomVec4u,isDefined,getPreferredColorScheme,enumerate}.ts`,
 `contexts/MobileContext.tsx` and `App.integration.mock.tsx`: pre-existing dead
