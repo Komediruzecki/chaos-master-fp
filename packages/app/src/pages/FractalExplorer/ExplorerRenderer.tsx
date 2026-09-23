@@ -13,7 +13,7 @@
  * rather than noise. What happens next is decided by `nextAction`
  * (`explorerSchedule.ts`); this file only carries it out.
  */
-import { backdropMapping, pixelSpacing, referenceOffset, referenceServes, referenceSpecFor, } from '@chaos-master/core'
+import { backdropMapping, pixelSpacing, referenceOffset, referenceServes, referenceSpecFor, standIn, } from '@chaos-master/core'
 import { createEffect, onCleanup } from 'solid-js'
 import { useCanvas } from '@/lib/CanvasContext'
 import { useLiveRootContext } from '@/lib/RootContext'
@@ -209,24 +209,23 @@ export function ExplorerRenderer(props: ExplorerRendererProps) {
     colourSet = true
   })
 
-  /** True when the uploaded reference serves `t`; otherwise asks for one. */
-  function ensureReference(t: ExplorerTarget): boolean {
+  /** Ask for a reference that serves `t`, unless one does or is on its way. */
+  function ensureReference(t: ExplorerTarget) {
     if (reference && referenceServes(reference, t)) {
       // Back inside the current reference: a pending one is no longer
       // wanted, and adopting it late would restart a finished picture.
       requested = undefined
-      return true
+      return
     }
     for (const pending of [requested, refused]) {
-      if (pending && referenceServes({ ...pending, complete: false }, t))
-        return false
+      if (pending && referenceServes({ ...pending, complete: false }, t)) return
     }
     const spec = referenceSpecFor(t)
     if (!referenceServes({ ...spec, complete: false }, t)) {
       // A fresh reference that cannot serve its own view would be asked for
       // again every frame; say so instead.
       error = 'this view is outside what the explorer can render'
-      return false
+      return
     }
     requested = spec
     orbitProgress = 0
@@ -266,7 +265,6 @@ export function ExplorerRenderer(props: ExplorerRendererProps) {
         error = cause instanceof Error ? cause.message : String(cause)
         requested = undefined
       })
-    return false
   }
 
   function restart(t: ExplorerTarget) {
@@ -274,21 +272,23 @@ export function ExplorerRenderer(props: ExplorerRendererProps) {
     // Only a display that was drawn becomes the backdrop (see `restart`).
     if (gpu.displayDrawn()) backdropOf = shown
     const mapping = backdropOf ? backdropMapping(backdropOf, t) : undefined
-    const ready = ensureReference(t) && reference !== undefined
+    ensureReference(t)
+    // A reference on its way out keeps rendering until the next one is in.
+    const use = reference ? standIn(reference, t) : undefined
     const md = max(1, min(t.width, t.height))
     gpu.restart(
       {
         size: grid,
-        centerOffset: ready ? referenceOffset(reference!, t) : { x: 0, y: 0 },
+        centerOffset: use ? referenceOffset(reference!, t) : { x: 0, y: 0 },
         spacing: pixelSpacing(t.view.zoomLog2, md),
         maxIterations: t.maxIterations,
         hasDc: t.kind === 'mandelbrot',
-        useBla: true,
+        useBla: use?.useBla ?? true,
       },
       mapping,
     )
     shown = t
-    iterating = ready
+    iterating = use !== undefined
     samples = 0
     refining = false
     refineDone = false

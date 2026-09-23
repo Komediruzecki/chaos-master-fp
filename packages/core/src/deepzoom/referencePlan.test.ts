@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { panView, zoomViewAt } from './deepZoomView'
-import { backdropMapping, referenceServes, referenceSpecFor, } from './referencePlan'
+import { backdropMapping, referenceServes, referenceSpecFor, standIn, } from './referencePlan'
 import type { ExplorerTarget, ReferenceState } from './referencePlan'
 
 const base: ExplorerTarget = {
@@ -69,6 +69,40 @@ describe('reference reuse', () => {
     expect(referenceServes(referenceFor(base), julia)).toBe(false)
     const other = { ...julia, juliaC: { re: '-0.8', im: '0.157' } }
     expect(referenceServes(referenceFor(julia), other)).toBe(false)
+  })
+})
+
+describe('a stand-in reference', () => {
+  const at = (zoomLog2: number) => ({
+    ...base,
+    view: { ...base.view, zoomLog2 },
+  })
+
+  it('keeps rendering a zoom past its precision, down to half the guard bits', () => {
+    const ref = referenceFor(base)
+    expect(referenceServes(ref, at(40))).toBe(false)
+    expect(standIn(ref, at(40))).toEqual({ useBla: true })
+    expect(standIn(ref, at(59))).toEqual({ useBla: true })
+    expect(standIn(ref, at(62))).toBeUndefined()
+  })
+
+  it('keeps rendering a zoom out past its BLA radius, step by step', () => {
+    expect(standIn(referenceFor(base), at(17))).toEqual({ useBla: false })
+  })
+
+  it('serves wherever the reference itself serves', () => {
+    expect(standIn(referenceFor(base), base)).toEqual({ useBla: true })
+  })
+
+  it('never stands in across fractals, constants, limits or far pans', () => {
+    const ref = referenceFor(base)
+    expect(standIn(ref, { ...base, kind: 'julia' })).toBeUndefined()
+    expect(standIn(ref, { ...base, maxIterations: 5000 })).toBeUndefined()
+    const far = { ...base, view: panView(base.view, 3000, 0, 600) }
+    expect(standIn(ref, far)).toBeUndefined()
+    const julia = { ...base, kind: 'julia' as const }
+    const other = { ...julia, juliaC: { re: '-0.8', im: '0.157' } }
+    expect(standIn(referenceFor(julia), other)).toBeUndefined()
   })
 })
 

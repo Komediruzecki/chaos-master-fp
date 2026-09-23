@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { parseFixed, scaledNumberToFixed } from './bigFixed'
 import { buildBla } from './bla'
-import { pixelSpacing, viewBits } from './deepZoomView'
+import { GUARD_BITS, pixelSpacing, viewBits } from './deepZoomView'
 import { packOrbit, readOrbitEntry } from './gpuPacking'
 import { BAILOUT, renderPixel, STATUS_ESCAPED, STATUS_INTERIOR, } from './perturbation'
 import { computeOrbit } from './referenceOrbit'
+import { STAND_IN_GUARD_BITS } from './referencePlan'
 import type { KernelOrbit, KernelParams } from './perturbation'
 
 /**
@@ -133,9 +134,19 @@ const SAMPLES: [number, number][] = Array.from({ length: 24 }, (_, i) => {
   return [Math.round(r * Math.cos(t)), Math.round(r * Math.sin(t))]
 })
 
-function compare(scene: Scene, useBla: boolean, samples: number) {
-  const bits = viewBits(scene.zoomLog2, SIZE) + 64
-  const params = kernelFor(scene, useBla, bits)
+/**
+ * Each sample against exact iteration with twice the explorer's guard bits.
+ * `guardBits` is how far below the pixel size the reference's own precision
+ * reaches: by default as far as the exact iteration's.
+ */
+function compare(
+  scene: Scene,
+  useBla: boolean,
+  samples: number,
+  guardBits = 2 * GUARD_BITS,
+) {
+  const bits = viewBits(scene.zoomLog2, SIZE) + GUARD_BITS
+  const params = kernelFor(scene, useBla, bits - 2 * GUARD_BITS + guardBits)
   const s = pixelSpacing(scene.zoomLog2, SIZE)
   return SAMPLES.slice(0, samples).map(([dx, dy]) => {
     const truth = exactEscape(scene, dx, dy, bits)
@@ -296,6 +307,10 @@ const scenes: [string, Scene, number][] = [
 describe.each(scenes)('%s', (_name, scene, samples) => {
   it('matches exact iteration with plain perturbation', () => {
     expectAgreement(compare(scene, false, samples))
+  })
+
+  it('matches it with a stand-in reference, 32 bits past the pixel size', () => {
+    expectAgreement(compare(scene, true, samples, STAND_IN_GUARD_BITS))
   })
 
   it('matches exact iteration with bilinear approximation', () => {

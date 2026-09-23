@@ -199,9 +199,12 @@ The GPU has f32 only. Each pixel stores `d = w * 2^e` with `w` an f32 pair and
 - Measured in V8 [research §4]: 0.21 us/iteration at 256 bits, 0.89 at 1024,
   8.8 at 4096. A 1e6-iteration reference costs ~0.4 s at 1e100, ~1 s at
   1e300, ~9 s at 1e1000 — hence a worker, sliced so a moved view cancels it.
-- A reference stays valid while the view centre is within a few screens of it
-  and while it has >= 32 guard bits for the current depth; the old one keeps
-  rendering while a new one is computed.
+- A reference serves while the view centre is within 1024 px of it and it
+  has 64 guard bits for the current depth (it is made with 8 octaves of zoom
+  to spare). Past that, it *stands in* while the next one is computed: down
+  to 32 guard bits (the kernel mirror agrees with exact iteration at 16 and
+  fails at 8), and step by step, without its BLA table, once the view zooms
+  out past the table's radius (`standIn` in `referencePlan.ts`).
 
 ### 4.5 Never crash the GPU
 
@@ -292,6 +295,7 @@ GPU).
 | `bla.ts`            | BLA table build (floatexp), level layout, GPU packing              |
 | `perturbation.ts`   | CPU mirror of the GPU kernel with f32 emulation — the test oracle  |
 | `explorerUrl.ts`    | View <-> URL fragment (`#re=..&im=..&z=..`), validated             |
+| `referencePlan.ts`  | When a reference serves or stands in; backdrop reprojection        |
 
 All colocated tests; the kernel mirror is checked against exact BigInt
 per-pixel iteration at 1e5, 1e25, 1e45 and near a minibrot nucleus, with and

@@ -8,8 +8,13 @@
  * that every pixel's offset still fits f32 with sub-pixel accuracy and inside
  * the radius its BLA table was built for. Rebasing makes *any* reference
  * correct, so these are about accuracy and speed, never about glitches.
+ *
+ * A reference that no longer serves can still *stand in* while the next is
+ * computed, so a deep zoom keeps sharpening instead of waiting on the
+ * worker: with half the guard bits, and without its BLA table once the
+ * view has zoomed out past the table's radius.
  */
-import { centerOffsetPixels, log2PixelSpacing, viewBits } from './deepZoomView'
+import { centerOffsetPixels, GUARD_BITS, log2PixelSpacing, viewBits, } from './deepZoomView'
 import type { DeepZoomView } from './deepZoomView'
 import type { ComplexString } from './explorerUrl'
 import type { FractalKind } from './referenceOrbit'
@@ -50,6 +55,12 @@ const PRECISION_HEADROOM_OCTAVES = 8
 /** Octaves of zoom-out a BLA table allows before it is rebuilt. */
 const RADIUS_HEADROOM_LOG2 = 2
 
+/**
+ * Bits below the pixel size a stand-in's precision must still reach: half
+ * of `GUARD_BITS`. The perturbation tests check exact agreement at this.
+ */
+export const STAND_IN_GUARD_BITS = 32
+
 function minDimension(t: ExplorerTarget): number {
   return Math.max(1, Math.min(t.width, t.height))
 }
@@ -89,17 +100,35 @@ export function referenceOffset(
   return centerOffsetPixels(t.view, ref.reference, minDimension(t))
 }
 
+/**
+ * Whether `ref` can keep rendering `t`, serving or not, and whether with its
+ * BLA table. Past the table's radius every step is taken singly, which only
+ * costs speed. Never across fractals or Julia constants, for a limit the
+ * reference was not iterated to, or for a pan past the offset limit.
+ */
+export function standIn(
+  ref: ReferenceState,
+  t: ExplorerTarget,
+): { useBla: boolean } | undefined {
+  if (ref.kind !== t.kind) return undefined
+  if (t.kind === 'julia' && !sameC(ref.juliaC, t.juliaC)) return undefined
+  const slack = GUARD_BITS - STAND_IN_GUARD_BITS
+  if (viewBits(t.view.zoomLog2, minDimension(t)) - slack > ref.bits)
+    return undefined
+  if (t.maxIterations > ref.maxIterations && !ref.complete) return undefined
+  const offset = referenceOffset(ref, t)
+  if (Math.hypot(offset.x, offset.y) > REFERENCE_OFFSET_LIMIT) return undefined
+  return { useBla: reachLog2(t) <= ref.cMaxLog2 }
+}
+
 export function referenceServes(
   ref: ReferenceState,
   t: ExplorerTarget,
 ): boolean {
-  if (ref.kind !== t.kind) return false
-  if (t.kind === 'julia' && !sameC(ref.juliaC, t.juliaC)) return false
-  if (viewBits(t.view.zoomLog2, minDimension(t)) > ref.bits) return false
-  if (t.maxIterations > ref.maxIterations && !ref.complete) return false
-  if (reachLog2(t) > ref.cMaxLog2) return false
-  const offset = referenceOffset(ref, t)
-  return Math.hypot(offset.x, offset.y) <= REFERENCE_OFFSET_LIMIT
+  return (
+    standIn(ref, t)?.useBla === true &&
+    viewBits(t.view.zoomLog2, minDimension(t)) <= ref.bits
+  )
 }
 
 /**

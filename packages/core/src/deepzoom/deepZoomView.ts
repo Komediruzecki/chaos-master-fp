@@ -44,7 +44,7 @@ export const MIN_ZOOM_LOG2 = -3
 export const MAX_ZOOM_LOG2 = 3320
 
 /** Guard bits kept beyond one pixel, so the reference orbit stays exact. */
-const GUARD_BITS = 64
+export const GUARD_BITS = 64
 
 export function clampZoomLog2(zoomLog2: number): number {
   return Math.min(MAX_ZOOM_LOG2, Math.max(MIN_ZOOM_LOG2, zoomLog2))
