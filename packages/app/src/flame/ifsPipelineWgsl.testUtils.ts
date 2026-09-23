@@ -13,23 +13,28 @@ import { tgpu } from 'typegpu'
 import { legacyRandomOutputSlot, RENDERER_RANDOM_IMPLEMENTATION_IDS, } from '@/shaders/random'
 import { createIFSPipeline } from './ifsPipeline'
 import { createIFSPipeline3D } from './ifsPipeline3D'
-import type { TransformRecord } from './schema/flameSchema'
+import type { FlameDescriptor, TransformRecord } from './schema/flameSchema'
 import type { RendererRandomImplementationId } from '@/shaders/random'
 
 type Captured = Parameters<typeof tgpu.resolve>[0][number]
 
 /**
- * A root that records the compute function instead of compiling it. The
- * pipelines touch the root only to create buffers, bind groups and the
- * pipeline; the shader itself references the bind-group layouts, so resolving
- * the captured function needs no device.
+ * A root that records the compute function instead of compiling it, and every
+ * value written to a buffer it created. The pipelines touch the root only to
+ * create buffers, bind groups and the pipeline; the shader itself references
+ * the bind-group layouts, so resolving the captured function needs no device.
  */
-function mockRoot(capture: (compute: Captured) => void) {
-  const buffer = {
-    $usage: () => buffer,
-    write: () => {},
-    destroy: () => {},
-    buffer: {},
+function mockRoot(capture: (compute: Captured) => void, writes: unknown[]) {
+  const makeBuffer = () => {
+    const buffer = {
+      $usage: () => buffer,
+      write: (value: unknown) => {
+        writes.push(value)
+      },
+      destroy: () => {},
+      buffer: {},
+    }
+    return buffer
   }
   const createComputePipeline = ({ compute }: { compute: Captured }) => {
     capture(compute)
@@ -41,9 +46,9 @@ function mockRoot(capture: (compute: Captured) => void) {
     return pipeline
   }
   return {
-    buffer,
+    buffer: makeBuffer(),
     root: {
-      createBuffer: () => buffer,
+      createBuffer: makeBuffer,
       createBindGroup: () => ({}),
       createComputePipeline,
       with: () => ({ createComputePipeline }),
@@ -58,9 +63,14 @@ export type IfsShaderShape = {
   random?: RendererRandomImplementationId
 }
 
-export function resolveIfsWgsl(shape: IfsShaderShape): string {
+/**
+ * Build a pipeline on the mock root. `wgsl()` resolves its compute shader;
+ * `update` is the pipeline's own, and `writes` collects what it writes.
+ */
+export function buildIfsPipeline(shape: IfsShaderShape) {
   let captured: Captured | undefined
-  const { root, buffer } = mockRoot((compute) => (captured = compute))
+  const writes: unknown[] = []
+  const { root, buffer } = mockRoot((compute) => (captured = compute), writes)
   // The pipelines take a TgpuRoot and typed buffers; the mock stands in for
   // the few members they call.
   const anyRoot = root as unknown as Parameters<typeof createIFSPipeline>[0]
@@ -76,9 +86,10 @@ export function resolveIfsWgsl(shape: IfsShaderShape): string {
   const camera3D = { bindGroup: {} } as unknown as Parameters<
     typeof createIFSPipeline3D
   >[1]
+  let update: (flame: FlameDescriptor) => void = () => {}
   createRoot((dispose) => {
     if (shape.dims === 3) {
-      createIFSPipeline3D(
+      update = createIFSPipeline3D(
         anyRoot,
         camera3D,
         20,
@@ -92,9 +103,9 @@ export function resolveIfsWgsl(shape: IfsShaderShape): string {
         'pointInitUnitSphere',
         16,
         shape.random,
-      )
+      ).update
     } else {
-      createIFSPipeline(
+      update = createIFSPipeline(
         anyRoot,
         camera,
         20,
@@ -109,17 +120,27 @@ export function resolveIfsWgsl(shape: IfsShaderShape): string {
         shape.blendTransforms,
         16,
         shape.random,
-      )
+      ).update
     }
     dispose()
   })
-  if (!captured) throw new Error('the pipeline compiled nothing')
-  return tgpu.resolve([captured], {
-    names: 'strict',
-    config: (config) =>
-      config.with(
-        legacyRandomOutputSlot,
-        shape.random === RENDERER_RANDOM_IMPLEMENTATION_IDS.legacy,
-      ),
-  })
+  const compute = captured
+  if (!compute) throw new Error('the pipeline compiled nothing')
+  return {
+    update,
+    writes,
+    wgsl: () =>
+      tgpu.resolve([compute], {
+        names: 'strict',
+        config: (config) =>
+          config.with(
+            legacyRandomOutputSlot,
+            shape.random === RENDERER_RANDOM_IMPLEMENTATION_IDS.legacy,
+          ),
+      }),
+  }
+}
+
+export function resolveIfsWgsl(shape: IfsShaderShape): string {
+  return buildIfsPipeline(shape).wgsl()
 }

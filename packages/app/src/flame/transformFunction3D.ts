@@ -226,6 +226,49 @@ export function isAffine3D(
   )
 }
 
+/**
+ * Any affine as the 3D kernel's twelve numbers: a 3D one with its missing
+ * fields at the identity's, a 2D one lifted (its translation `c`, `f` into
+ * `d`, `h`, and z passed through unchanged), and none at all the identity.
+ * The 3D pipeline writes a flame's final transform through this, and the
+ * Flame Clash lifts a 2D fighter's affines with it.
+ */
+export function toAffine3D(
+  affine: Record<string, number | undefined> | undefined,
+): AffineParams3D {
+  const ft = affine ?? {}
+  if (isAffine3D(ft)) {
+    return {
+      a: ft.a ?? 1,
+      b: ft.b ?? 0,
+      c: ft.c ?? 0,
+      d: ft.d ?? 0,
+      e: ft.e ?? 0,
+      f: ft.f ?? 1,
+      g: ft.g ?? 0,
+      h: ft.h ?? 0,
+      i: ft.i ?? 0,
+      j: ft.j ?? 0,
+      k: ft.k ?? 1,
+      l: ft.l ?? 0,
+    }
+  }
+  return {
+    a: ft.a ?? 1,
+    b: ft.b ?? 0,
+    c: 0,
+    d: ft.c ?? 0, // Translation X
+    e: ft.d ?? 0,
+    f: ft.e ?? 1,
+    g: 0,
+    h: ft.f ?? 0, // Translation Y
+    i: 0,
+    j: 0,
+    k: 1,
+    l: 0,
+  }
+}
+
 export function extractFlameUniforms3D({
   transforms,
 }: Pick<FlameDescriptor, 'transforms'>) {

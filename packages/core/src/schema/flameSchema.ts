@@ -350,6 +350,19 @@ export const RenderSettings = v.object({
   paletteSpeed: v.optional(v.pipe(v.number(), v.minValue(0)), 0.5),
   blendWeight: v.optional(v.pipe(v.number(), v.minValue(0), v.maxValue(1))),
   blendFlame: v.optional(v.unknown()),
+  /**
+   * The Flame Clash's live uniforms, read only when the transforms carry two
+   * teams (see `team` below and the app's flame/clashTeams.ts): the share of
+   * walkers on team A, and each team's chance per step of borrowing a map of
+   * the other. Absent on every other flame.
+   */
+  clash: v.optional(
+    v.object({
+      split: v.pipe(v.number(), v.minValue(0), v.maxValue(1)),
+      leakA: v.pipe(v.number(), v.minValue(0), v.maxValue(1)),
+      leakB: v.pipe(v.number(), v.minValue(0), v.maxValue(1)),
+    }),
+  ),
   palette: v.optional(
     v.object({
       id: v.string(),
@@ -410,6 +423,12 @@ export function makeFlameDescriptorSchema<
     color: v.object({ x: v.number(), y: v.number() }),
     colorSpeed: v.optional(v.number(), 0.4),
     visible: v.optional(v.boolean(), true),
+    /**
+     * The Flame Clash fighter this transform belongs to. When every transform
+     * names one and both teams are present, the renderer keeps each walker on
+     * its own team's transforms; otherwise it is ignored.
+     */
+    team: v.optional(v.picklist(['A', 'B'])),
     variations: variationRecord,
   })
   const TransformRecord = v.record(TransformId, TransformFunction)

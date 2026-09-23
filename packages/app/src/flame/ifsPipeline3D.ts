@@ -9,9 +9,11 @@ import { DEFAULT_RENDERER_RANDOM_IMPLEMENTATION_ID, legacyRandomOutputSlot, rand
 import { recordEntries, recordKeys } from '@/utils/record'
 import { vramLog } from '@/utils/vramLog'
 import { AffineParams3D, transformAffine3D } from './affineTransform3D'
+import { clashKernel, clashTeamsOf, clashTeamsSignature, clashTeamsUniformEntries, clashTeamValues, } from './clashTeams'
 import { colorInitModeToImplFn } from './colorInitMode'
 import { isPointInitMode3D, pointInitMode3DToImplFn } from './pointInitMode3D'
-import { createFlameWgsl3D, extractFlameUniforms3D, isAffine3D, } from './transformFunction3D'
+import { uniformsForPipeline } from './transformFunction'
+import { createFlameWgsl3D, extractFlameUniforms3D, toAffine3D, } from './transformFunction3D'
 import { AtomicBucket, BUCKET_FIXED_POINT_MULTIPLIER, BUCKET_SATURATION_COUNT, } from './types'
 import { Point3D } from './types3D'
 import type { StorageFlag, TgpuBuffer, TgpuComputeFn, TgpuRoot } from 'typegpu'
@@ -93,7 +95,10 @@ export function createIFSPipeline3D(
   // Cache key contains only what is baked into the generated WGSL: transform
   // ids (struct member names), variation ids/types, loop count and init mode.
   // Uniform values flow through buffers and must not fragment the cache.
+  const clashTeams = clashTeamsOf(transforms)
+  const clashTeamsOn = clashTeams.enabled
   const sig = JSON.stringify({
+    ...clashTeamsSignature(clashTeams),
     insideShaderCount,
     plotsPerChain,
     colorInitType,
@@ -133,9 +138,10 @@ export function createIFSPipeline3D(
     const keys = recordKeys(transforms)
     const FlameUniforms = struct(
       keys.length > 0
-        ? Object.fromEntries(
-            keys.map((tid) => [`flame${tid}`, flames[tid]!.Uniforms]),
-          )
+        ? Object.fromEntries([
+            ...keys.map((tid) => [`flame${tid}`, flames[tid]!.Uniforms]),
+            ...clashTeamsUniformEntries(clashTeams),
+          ])
         : { _dummy: f32 },
     )
 
@@ -177,7 +183,7 @@ export function createIFSPipeline3D(
     const pointInitMode = pointInitMode3DToImplFn[pointInit]
     const colorInitMode = colorInitModeToImplFn[colorInitType]
 
-    const executeRandomFlame = tgpu.fn([Point3D], Point3D) /* wgsl */ `
+    let executeRandomFlame = tgpu.fn([Point3D], Point3D) /* wgsl */ `
       (point: Point3D) -> Point3D {
         let flameIndex = random();
         var probabilitySum = f32(0);
@@ -195,6 +201,10 @@ export function createIFSPipeline3D(
         return point;
       }
     `.$uses({ ...flamesObj, random, layout: bindGroupLayout })
+    // Two fighters: each walker keeps to its own team (flame/clashTeams.ts).
+    const kernel = clashKernel(clashTeams, Point3D, flamesObj, bindGroupLayout)
+    if (kernel) executeRandomFlame = kernel.executeRandomFlame
+    const setClashTeam = kernel?.setClashTeam
 
     const ifsCompute = tgpu.computeFn({
       in: {
@@ -216,6 +226,10 @@ export function createIFSPipeline3D(
       const pointSeed = pointRandomSeeds[pointIndex]!
       const seed = add(pointSeed, hash(pointIndex))
       setSeed(seed)
+      // Resolved away entirely for a flame without teams.
+      if (clashTeamsOn) {
+        setClashTeam!(pointIndex)
+      }
       let point = Point3D()
       // Cold start (after a settle/reset): seed the chain and pay the warmup
       // fuse. Otherwise continue the persisted chain from the last dispatch.
@@ -440,67 +454,11 @@ export function createIFSPipeline3D(
         const uniforms = extractFlameUniforms3D(flameDescriptor)
         // Defensively merge with template so the compiled writer never
         // encounters a missing field when transform counts differ.
-        const safe: Record<string, unknown> = {}
-        for (const key of _uniformKeys) {
-          safe[key] =
-            key in uniforms
-              ? uniforms[key]
-              : {
-                  ...(_templateUniforms[key] as Record<string, unknown>),
-                  probability: 0,
-                }
-        }
+        const safe = uniformsForPipeline(uniforms, _templateUniforms)
+        if (clashTeamsOn) safe.clashTeams = clashTeamValues(flameDescriptor)
         flameUniformsBuffer.write(safe)
       }
-      const ft = flameDescriptor.finalTransform as
-        | Record<string, number | undefined>
-        | undefined
-      finalTransformBuffer.write(
-        ft
-          ? isAffine3D(ft)
-            ? {
-                a: ft.a ?? 1,
-                b: ft.b ?? 0,
-                c: ft.c ?? 0,
-                d: ft.d ?? 0,
-                e: ft.e ?? 0,
-                f: ft.f ?? 1,
-                g: ft.g ?? 0,
-                h: ft.h ?? 0,
-                i: ft.i ?? 0,
-                j: ft.j ?? 0,
-                k: ft.k ?? 1,
-                l: ft.l ?? 0,
-              }
-            : {
-                a: ft.a ?? 1,
-                b: ft.b ?? 0,
-                c: 0,
-                d: ft.c ?? 0, // Translation X
-                e: ft.d ?? 0,
-                f: ft.e ?? 1,
-                g: 0,
-                h: ft.f ?? 0, // Translation Y
-                i: 0,
-                j: 0,
-                k: 1,
-                l: 0,
-              }
-          : {
-              a: 1,
-              b: 0,
-              c: 0,
-              d: 0,
-              e: 0,
-              f: 1,
-              g: 0,
-              h: 0,
-              i: 0,
-              j: 0,
-              k: 1,
-              l: 0,
-            },
-      )
+      finalTransformBuffer.write(toAffine3D(flameDescriptor.finalTransform))
     },
     setStochasticFilterRadius: (radius: number) => {
       stochasticFilterRadiusBuffer.write(radius)
