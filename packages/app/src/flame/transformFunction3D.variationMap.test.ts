@@ -9,7 +9,7 @@
  * (flame/clash/convert2Dto3D.ts) and must never move a row of this table.
  */
 import { describe, expect, it } from 'vitest'
-import { resolveVariationType3D } from './transformFunction3D'
+import { resolveVariationType3D, VARIATION_2D_TO_3D_MAP, } from './transformFunction3D'
 import { transformVariations } from './variations'
 import { transformVariations3D } from './variations3D'
 
@@ -54,5 +54,27 @@ describe('resolveVariationType3D over the registries', () => {
 
   it('resolves an unknown type to nothing', () => {
     expect(resolveVariationType3D('noSuchVariation')).toBeUndefined()
+  })
+})
+
+describe('VARIATION_2D_TO_3D_MAP', () => {
+  it('holds exactly the live entries, each a registered 2D type', () => {
+    expect(VARIATION_2D_TO_3D_MAP).toEqual(LIVE_LEGACY_ANALOGS)
+    for (const type of Object.keys(VARIATION_2D_TO_3D_MAP)) {
+      expect(Object.hasOwn(transformVariations, type)).toBe(true)
+    }
+  })
+
+  it('sends each to a registered 3D type', () => {
+    for (const analog of Object.values(VARIATION_2D_TO_3D_MAP)) {
+      expect(Object.hasOwn(transformVariations3D, analog)).toBe(true)
+    }
+  })
+
+  it('no longer knows the short names validation rewrites', () => {
+    // migrateFlameTypes.ts turns `bubble` into `bubbleVar` before a flame
+    // renders, so the renderer never meets the short name.
+    expect(resolveVariationType3D('bubble')).toBeUndefined()
+    expect(resolveVariationType3D('gaussian')).toBeUndefined()
   })
 })

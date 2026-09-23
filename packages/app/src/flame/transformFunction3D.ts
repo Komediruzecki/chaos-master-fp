@@ -74,60 +74,29 @@ function variationInvocation3D(variationType: string, vid: VariationId) {
   return `${variationType}(vec2f(pre.x, pre.y), VariationInfo(1.0, AffineParams(uniforms.preAffine.a, uniforms.preAffine.b, uniforms.preAffine.d, uniforms.preAffine.e, uniforms.preAffine.f, uniforms.preAffine.h)))`
 }
 
+/**
+ * The registered 2D variations the 3D pipeline replaces with a 3D analog;
+ * every other 2D type renders as itself, lifted with the point's z. This is
+ * how a 2D flame has always rendered in 3D. Each key is a registered 2D type
+ * (transformFunction3D.variationMap.test.ts holds the table to that): a loaded
+ * flame's old short names (`bubble`, `gaussian`, ...) are rewritten to these
+ * by validation (migrateFlameTypes.ts) before it renders. The Flame Clash
+ * converts its 2D fighters by a rule of its own (flame/clash/convert2Dto3D.ts)
+ * and leaves this table alone.
+ */
 export const VARIATION_2D_TO_3D_MAP: Record<string, TransformVariationType3D> =
   {
-    linear: 'linear3D',
-    linearT: 'linear3D',
-    spherical: 'spherical3D',
-    sinusoidal: 'sinusoidal3D',
-    swirl: 'swirl3D',
-    swirl3: 'swirl3D',
-    horseshoe: 'horseshoe3D',
-    polar: 'polar3D',
-    polar2: 'polar3D',
-    nPolar: 'polar3D',
-    handkerchief: 'handkerchief3D',
-    heart: 'heart3D',
-    disc: 'disc3D',
-    spiral: 'spiral3D',
-    diamond: 'diamond3D',
-    ex: 'ex3D',
-    julia: 'julia3D',
-    juliaN: 'julia3D',
-    juliaScope: 'julia3D',
-    bent: 'bent3D',
-    waves: 'waves3D',
-    fisheye: 'fisheye3D',
-    exponential: 'exponential3D',
-    power: 'power3D',
-    rings: 'rings3D',
-    rings2: 'rings3D',
-    eyefish: 'eyefish3D',
-    bubble: 'bubble3D',
     bubbleVar: 'bubble3D',
-    cylinder: 'cylinder3D',
     cylinderVar: 'cylinder3D',
     cylinder2Var: 'cylindrical3D',
-    cylindrical: 'cylindrical3D',
     cylinderApoVar: 'cylinder3D',
-    gaussian: 'gaussian3D',
     gaussianVar: 'gaussian3D',
-    sphere: 'sphere3D',
-    sphereVar: 'sphere3D',
-    blur: 'blur3D',
     blurVar: 'blur3D',
-    square: 'square3D',
     squareVar: 'square3D',
-    scry: 'scry3D',
     scryVar: 'scry3D',
-    cross: 'cross3D',
     crossVar: 'cross3D',
-    curl: 'curl3D',
     curlVar: 'curl3D',
-    pdj: 'pdj3D',
     pdjVar: 'pdj3D',
-    hemisphere: 'hemisphere3D',
-    starfield: 'starfield3D',
   }
 
 export function resolveVariationType3D(type: string): string | undefined {
