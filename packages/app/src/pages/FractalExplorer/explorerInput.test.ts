@@ -1,10 +1,12 @@
 /**
- * Canvas navigation: a drag pans by exactly the pointer's travel, and a pinch
- * pans with the fingers' midpoint and zooms by how far they spread. Every
- * result is compared, digit for digit, with the core's own `panView` and
- * `zoomViewAt`, which is what the explorer promises at any depth.
+ * Canvas navigation: a drag pans by exactly the pointer's travel, a pinch
+ * pans with the fingers' midpoint and zooms by how far they spread, and the
+ * wheel, a double-click and the keyboard zoom or pan by fixed steps. Each
+ * view that comes out is compared, digit for digit, with the core's own
+ * `panView` and `zoomViewAt`, which is what the explorer promises at any
+ * depth.
  */
-import { panView, zoomViewAt } from '@chaos-master/core'
+import { centerOffsetPixels, panView, pointAt, zoomViewAt, } from '@chaos-master/core'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { attachExplorerInput } from './explorerInput'
 import type { DeepZoomView } from '@chaos-master/core'
@@ -62,6 +64,57 @@ function setup() {
 }
 
 describe('a pinch', () => {
+  it('pans with the midpoint and zooms by the spread', () => {
+    const { pointer, view } = setup()
+    pointer('pointerdown', 1, 300, 300)
+    pointer('pointerdown', 2, 500, 300)
+    // The midpoint moves 100 px right and the spread doubles.
+    pointer('pointermove', 2, 700, 300)
+    expect(view()).toEqual(
+      zoomViewAt(
+        panView(START, 200, 0, MIN_DIMENSION),
+        0,
+        -100,
+        MIN_DIMENSION,
+        1,
+      ),
+    )
+  })
+
+  it('keeps the point that was under the midpoint under it', () => {
+    const { pointer, view } = setup()
+    // The midpoint starts at (400, 300), 200 grid px left of the centre and
+    // 100 above it, and ends at (500, 300), 100 straight above it.
+    const held = pointAt(START, -200, -100, MIN_DIMENSION)
+    pointer('pointerdown', 1, 300, 300)
+    pointer('pointerdown', 2, 500, 300)
+    pointer('pointermove', 2, 700, 300)
+    // The centre relative to that point, y up. Each view prints its centre
+    // to its own depth, so the two agree to a far smaller part of a pixel
+    // than the eight bits a printed view keeps, not to the last digit.
+    const offset = centerOffsetPixels(view(), held, MIN_DIMENSION)
+    expect(offset.x).toBeCloseTo(0, 4)
+    expect(offset.y).toBeCloseTo(-100, 4)
+  })
+
+  it('waits for fingers that land on one pixel to spread before zooming', () => {
+    const { pointer, setView, view } = setup()
+    pointer('pointerdown', 1, 400, 300)
+    pointer('pointerdown', 2, 400, 300)
+    pointer('pointermove', 2, 500, 300)
+    expect(setView).not.toHaveBeenCalled()
+    pointer('pointermove', 2, 600, 300)
+    expect(view()).toEqual(
+      zoomViewAt(
+        panView(START, 100, 0, MIN_DIMENSION),
+        0,
+        -100,
+        MIN_DIMENSION,
+        1,
+      ),
+    )
+  })
+
   it('holds the zoom when the fingers meet, and zooms back as they part', () => {
     const { pointer, view } = setup()
     pointer('pointerdown', 1, 300, 300)
@@ -116,4 +169,137 @@ describe('a drag', () => {
       expect(setView).not.toHaveBeenCalled()
     },
   )
+
+  it('does not set the view for a move that goes nowhere', () => {
+    const { pointer, setView } = setup()
+    pointer('pointerdown', 7, 500, 300)
+    pointer('pointermove', 7, 500, 300)
+    expect(setView).not.toHaveBeenCalled()
+  })
+
+  it.each(['pointerup', 'pointercancel'])(
+    'forgets a pointer after %s',
+    (end) => {
+      const { pointer, setView } = setup()
+      pointer('pointerdown', 7, 500, 300)
+      pointer(end, 7, 500, 300)
+      pointer('pointermove', 7, 540, 320)
+      expect(setView).not.toHaveBeenCalled()
+    },
+  )
+})
+
+describe('the wheel', () => {
+  function wheel(
+    element: HTMLElement,
+    deltaY: number,
+    deltaMode = 0,
+  ): WheelEvent {
+    const event = new WheelEvent('wheel', {
+      deltaY,
+      deltaMode,
+      cancelable: true,
+    })
+    // A browser's WheelEvent is a MouseEvent; happy-dom's has no position, so
+    // it gets one: 100 CSS px right of the centre and 50 below it.
+    Object.defineProperties(event, {
+      clientX: { value: 600 },
+      clientY: { value: 400 },
+    })
+    element.dispatchEvent(event)
+    return event
+  }
+
+  it('zooms half an octave a notch, about the pointer, and keeps the page still', () => {
+    const { element, view } = setup()
+    expect(wheel(element, -100).defaultPrevented).toBe(true)
+    expect(view()).toEqual(zoomViewAt(START, 200, 100, MIN_DIMENSION, 0.5))
+  })
+
+  it.each([
+    ['lines', -3, 1, 0.495],
+    ['pages', -0.5, 2, 1],
+    ['pixels, flung', -1e5, 0, 2],
+    ['pixels, flung out', 1e5, 0, -2],
+  ])('zooms a wheel counted in %s', (_, deltaY, deltaMode, octaves) => {
+    const { element, view } = setup()
+    wheel(element, deltaY, deltaMode)
+    expect(view()).toEqual(zoomViewAt(START, 200, 100, MIN_DIMENSION, octaves))
+  })
+})
+
+describe('a double-click', () => {
+  it.each([
+    [false, 1],
+    [true, -1],
+  ])('with Shift %s zooms %i octave about the pointer', (shiftKey, octaves) => {
+    const { element, view } = setup()
+    element.dispatchEvent(
+      new MouseEvent('dblclick', { clientX: 600, clientY: 400, shiftKey }),
+    )
+    expect(view()).toEqual(zoomViewAt(START, 200, 100, MIN_DIMENSION, octaves))
+  })
+})
+
+describe('the keyboard', () => {
+  function key(element: HTMLElement, init: KeyboardEventInit): KeyboardEvent {
+    const event = new KeyboardEvent('keydown', { cancelable: true, ...init })
+    element.dispatchEvent(event)
+    return event
+  }
+
+  // A tenth of the 600 CSS px side, at 2 grid px each.
+  it.each([
+    ['ArrowLeft', 120, 0],
+    ['ArrowRight', -120, 0],
+    ['ArrowUp', 0, 120],
+    ['ArrowDown', 0, -120],
+  ])('pans with %s', (name, dx, dy) => {
+    const { element, view } = setup()
+    expect(key(element, { key: name }).defaultPrevented).toBe(true)
+    expect(view()).toEqual(panView(START, dx, dy, MIN_DIMENSION))
+  })
+
+  it.each([
+    ['+', 1],
+    ['=', 1],
+    ['-', -1],
+    ['_', -1],
+  ])('zooms about the centre with %s', (name, octaves) => {
+    const { element, view } = setup()
+    expect(key(element, { key: name }).defaultPrevented).toBe(true)
+    expect(view()).toEqual(zoomViewAt(START, 0, 0, MIN_DIMENSION, octaves))
+  })
+
+  it.each([
+    ['Ctrl', { ctrlKey: true }],
+    ['Cmd', { metaKey: true }],
+    ['Alt', { altKey: true }],
+  ])('leaves %s with + to the browser', (_, modifier) => {
+    const { element, setView } = setup()
+    expect(key(element, { key: '+', ...modifier }).defaultPrevented).toBe(false)
+    expect(setView).not.toHaveBeenCalled()
+  })
+
+  it('ignores a key it has no use for', () => {
+    const { element, setView } = setup()
+    expect(key(element, { key: 'a' }).defaultPrevented).toBe(false)
+    expect(setView).not.toHaveBeenCalled()
+  })
+})
+
+describe('detaching', () => {
+  it('removes every listener', () => {
+    const { element, pointer, setView } = setup()
+    detach?.()
+    detach = undefined
+    pointer('pointerdown', 7, 500, 300)
+    pointer('pointermove', 7, 540, 320)
+    element.dispatchEvent(
+      new WheelEvent('wheel', { deltaY: -100, cancelable: true }),
+    )
+    element.dispatchEvent(new MouseEvent('dblclick'))
+    element.dispatchEvent(new KeyboardEvent('keydown', { key: '+' }))
+    expect(setView).not.toHaveBeenCalled()
+  })
 })
