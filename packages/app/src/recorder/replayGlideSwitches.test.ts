@@ -3,7 +3,7 @@ import { createRoot } from 'solid-js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { executeCommand, executeReplayCommand } from '@/commands/registry'
 import { examples } from '@/flame/examples'
-import { glideEnabled, glideQualityPreference, restoreGlideSwitches, } from '@/flame/glide/runtime'
+import { createGlideRuntime, glideEnabled, glideQualityPreference, restoreGlideSwitches, setGlideRuntime, } from '@/flame/glide/runtime'
 import { deepClone } from '@/utils/clone'
 import { createSessionPlayer, MIN_STEP_GAP_MS } from './player'
 import { cancelSessionRecording } from './recorder'
@@ -19,7 +19,7 @@ import type { CommandContext } from '@/commands/types'
  * While it replays they follow the take; when the replay ends, however it
  * ends, they are the viewer's again, with any the viewer flipped meanwhile
  * kept as they flipped them. Worlds apart from the workspace (the artwork
- * export, the synthesize sandbox) never touch them at all.
+ * export, the synthesize sandbox) never touch them, nor the live glide.
  */
 
 const VIEWER = { enabled: false, quality: 'balanced' } as const
@@ -249,7 +249,58 @@ describe('the replay player and the Glide switches', () => {
   })
 })
 
+/** A glide into another flame: the step that reaches for a glide runtime. */
+const glideTake = makeSession([
+  { t: 0, id: 'glide.toFlame', args: [deepClone(examples.example2), 1200] },
+])
+
+/** The live canvas's glide runtime, watched: what a replay world must not
+ *  settle, start, or write through. */
+function watchLiveGlide() {
+  const writeFlame = vi.fn()
+  const live = createGlideRuntime({
+    readFlame: () => deepClone(examples.example3),
+    writeFlame,
+    requestFrame: () => 0,
+    cancelFrame: () => {},
+  })
+  const settle = vi.spyOn(live, 'settleForNextChange')
+  const glideFrom = vi.spyOn(live, 'glideFrom')
+  setGlideRuntime(live)
+  const calls = () => ({
+    settle: settle.mock.calls.length,
+    glideFrom: glideFrom.mock.calls.length,
+    writes: writeFlame.mock.calls.length,
+  })
+  const dispose = () => {
+    setGlideRuntime(undefined)
+  }
+  return { calls, dispose }
+}
+
 describe('replay worlds apart from the workspace', () => {
+  it('never reaches the live glide while the artwork export glides into a flame', () => {
+    const live = watchLiveGlide()
+    const driver = createReplayVideoDriver(glideTake)
+    const settled = driver.advanceTo(0).flame
+    // The export still glides, on a plan of its own.
+    const midway = driver.advanceTo(0, 0.5).flame
+    live.dispose()
+    expect(live.calls()).toEqual({ settle: 0, glideFrom: 0, writes: 0 })
+    expect(settled.transforms).toEqual(
+      replaySessionHeadless(glideTake)?.transforms,
+    )
+    expect(midway).not.toEqual(settled)
+  })
+
+  it('never reaches it while the synthesize sandbox checks the take', () => {
+    const live = watchLiveGlide()
+    const flame = replaySessionHeadless(glideTake)
+    live.dispose()
+    expect(live.calls()).toEqual({ settle: 0, glideFrom: 0, writes: 0 })
+    expect(flame?.transforms).toEqual(deepClone(examples.example2).transforms)
+  })
+
   it("leaves the viewer's switches alone while the artwork export replays", () => {
     const driver = createReplayVideoDriver(take)
     driver.advanceTo(take.actions.length - 1)
