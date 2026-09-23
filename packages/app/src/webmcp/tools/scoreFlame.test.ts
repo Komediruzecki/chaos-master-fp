@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { applySymmetryToFlame } from '@/flame/symmetry'
+import { generateVariationId } from '@/flame/transformFunction'
 import { scoreFlame } from './scoreFlame'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 
@@ -26,8 +27,8 @@ describe('scoreFlame tool', () => {
           colorSpeed: 0.6,
           visible: true,
           variations: {
-            linearVar: { type: 'linearVar', weight: 0.5 },
-            juliaVar: { type: 'juliaVar', weight: 0.8 },
+            [generateVariationId()]: { type: 'linearVar', weight: 0.5 },
+            [generateVariationId()]: { type: 'juliaVar', weight: 0.8 },
           },
         },
         t2: {
@@ -38,7 +39,7 @@ describe('scoreFlame tool', () => {
           colorSpeed: 0.9,
           visible: true,
           variations: {
-            sinusoidalVar: { type: 'sinusoidalVar', weight: 1.2 },
+            [generateVariationId()]: { type: 'sinusoidalVar', weight: 1.2 },
           },
         },
       },
@@ -63,7 +64,7 @@ describe('scoreFlame tool', () => {
   })
 
   it('correctly scores symmetry variations and excludes linearVar from chaos', () => {
-    const mk = (key: string) =>
+    const mk = (type: string) =>
       ({
         version: '1.0',
         metadata: { name: 'probe' },
@@ -73,7 +74,7 @@ describe('scoreFlame tool', () => {
             visible: true,
             probability: 1,
             colorSpeed: 0.4,
-            variations: { [key]: { type: key, weight: 1 } },
+            variations: { [generateVariationId()]: { type, weight: 1 } },
           },
         },
       }) as unknown as FlameDescriptor
@@ -131,7 +132,9 @@ describe('scoreFlame tool', () => {
           visible: true,
           probability: 1,
           colorSpeed: 0.4,
-          variations: { linearVar: { type: 'linearVar', weight: 1 } },
+          variations: {
+            [generateVariationId()]: { type: 'linearVar', weight: 1 },
+          },
         },
       },
     } as unknown as FlameDescriptor

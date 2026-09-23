@@ -109,12 +109,13 @@ export const COMBAT_COEFFICIENTS = {
   },
 } as const
 
-const LINEAR_VARIATIONS = new Set([
-  'linearVar',
-  'linearTVar',
-  'linear3D',
-  'linear',
-])
+/*
+ * The school lists below are keyed by registered variation TYPE, and are read
+ * with `variationType()`: a variation's key in `transform.variations` is its
+ * id (a generated UUID in the editor, a descriptive name in the examples),
+ * which never matches a type name.
+ */
+const LINEAR_VARIATIONS = new Set(['linearVar', 'linearTVar', 'linear3D'])
 
 const SYMMETRY_VARIATIONS = new Set([
   'juliaVar',
@@ -172,7 +173,6 @@ const VORTEX_VARIATIONS = new Set([
   'swirl3D',
   'spiral3D',
   'curl3D',
-  'vortexVar',
 ])
 
 const VOID_VARIATIONS = new Set([
@@ -182,7 +182,6 @@ const VOID_VARIATIONS = new Set([
   'inversionVar',
   'hyperbolicVar',
   'popcornVar',
-  'blackHoleVar',
   'spherical3D',
   'sphere3D',
 ])
@@ -194,9 +193,17 @@ const TIDE_VARIATIONS = new Set([
   'gaussianBlurVar',
   'radialBlurVar',
   'rippleVar',
-  'tideVar',
   'sinusoidal3D',
 ])
+
+/**
+ * A variation's registered type, or '' when it has none. The stats read
+ * agent-supplied flames unvalidated (`arena_get_stats`), so a malformed
+ * variation counts as an unknown type rather than throwing.
+ */
+function variationType(variation: { type?: unknown }): string {
+  return typeof variation.type === 'string' ? variation.type : ''
+}
 
 /**
  * Classify dominant school based on variation presence and custom WGSL shaders.
@@ -218,14 +225,15 @@ export function classifySchool(flame: FlameDescriptor): FlameSchool {
     if (customVars && Object.keys(customVars).length > 0) {
       arcaneWeight += 3.0
     }
-    for (const [vName, vData] of Object.entries(t.variations ?? {})) {
+    for (const vData of Object.values(t.variations ?? {})) {
       const w = Math.abs(vData.weight)
-      if (LINEAR_VARIATIONS.has(vName)) orderWeight += w
-      else if (SYMMETRY_VARIATIONS.has(vName)) crystalWeight += w
-      else if (VORTEX_VARIATIONS.has(vName)) vortexWeight += w
-      else if (VOID_VARIATIONS.has(vName)) voidWeight += w
-      else if (TIDE_VARIATIONS.has(vName)) tideWeight += w
-      else if (vName.startsWith('custom_') || vName.includes('custom'))
+      const type = variationType(vData)
+      if (LINEAR_VARIATIONS.has(type)) orderWeight += w
+      else if (SYMMETRY_VARIATIONS.has(type)) crystalWeight += w
+      else if (VORTEX_VARIATIONS.has(type)) vortexWeight += w
+      else if (VOID_VARIATIONS.has(type)) voidWeight += w
+      else if (TIDE_VARIATIONS.has(type)) tideWeight += w
+      else if (type.startsWith('custom_') || type.includes('custom'))
         arcaneWeight += w
       else orderWeight += w * 0.5
     }
@@ -387,16 +395,17 @@ export function calculateGroundedStats(
     )
     rValues.push(r)
 
-    for (const [vName, vData] of Object.entries(t.variations ?? {})) {
+    for (const vData of Object.values(t.variations ?? {})) {
       const w = Math.abs(vData.weight)
+      const type = variationType(vData)
       totalWeight += w
-      if (!LINEAR_VARIATIONS.has(vName)) {
+      if (!LINEAR_VARIATIONS.has(type)) {
         totalNonlinearWeight += w
       }
-      if (SYMMETRY_VARIATIONS.has(vName)) {
+      if (SYMMETRY_VARIATIONS.has(type)) {
         hasSymmetryVars = true
       }
-      distinctVariationFamilies.add(vName.replace(/Var|3D/g, ''))
+      distinctVariationFamilies.add(type.replace(/Var|3D/g, ''))
     }
   }
 

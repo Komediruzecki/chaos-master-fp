@@ -1,11 +1,23 @@
 import { describe, expect, it } from 'vitest'
 import { calculateGroundedStats, classifySchool, getSchoolMultiplier, resolveClashCombat, } from './stats'
+import { generateVariationId } from './transformFunction'
 import type { FlameDescriptor } from './schema/flameSchema'
 
+/**
+ * A custom variation's type, as the editor writes it: `custom_` and the
+ * variation's own id. The variation entry itself gets a generated id.
+ */
+const CUSTOM_TYPE = 'custom_5d0c2a4e_91b7_4f3a_a8e6_0b2f7c9d1e34'
+
+/**
+ * Two transforms carrying one variation of `variationType` each, under ids
+ * the way the editor mints them (`generateVariationId()`), never the type
+ * name: a scorer that looks a variation up by its key sees what it sees on
+ * a real flame.
+ */
 function createDummyFlame(
-  variationName = 'linearVar',
+  variationType = 'linearVar',
   weight = 1.0,
-  isCustom = false,
 ): FlameDescriptor {
   return {
     version: '1.0',
@@ -44,16 +56,9 @@ function createDummyFlame(
         visible: true,
         preAffine: { a: 0.7, b: 0.1, c: -0.1, d: 0.7, e: 0, f: 0 },
         postAffine: { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 },
-        variations: { [variationName]: { type: variationName, weight } },
-        customVariations: isCustom
-          ? {
-              custom1: {
-                name: 'custom_warp',
-                definition: 'fn custom_warp(p: vec2f) -> vec2f { return p; }',
-                weight: 1.0,
-              },
-            }
-          : undefined,
+        variations: {
+          [generateVariationId()]: { type: variationType, weight },
+        },
       },
       t2: {
         probability: 0.5,
@@ -62,7 +67,9 @@ function createDummyFlame(
         visible: true,
         preAffine: { a: -0.1, b: 0.7, c: -0.7, d: -0.1, e: 0, f: 0 },
         postAffine: { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 },
-        variations: { [variationName]: { type: variationName, weight } },
+        variations: {
+          [generateVariationId()]: { type: variationType, weight },
+        },
       },
     },
   } as unknown as FlameDescriptor
@@ -96,8 +103,21 @@ describe('flame/stats', () => {
     })
 
     it('classifies Custom variation as Arcane', () => {
-      const f = createDummyFlame('linearVar', 1.0, true)
+      const f = createDummyFlame(CUSTOM_TYPE, 1.0)
       expect(classifySchool(f)).toBe('Arcane')
+    })
+
+    // arena_get_stats scores an agent's flame unvalidated. A variation with
+    // no type counts like an unknown one (half its weight to Order) instead
+    // of throwing.
+    it('reads a variation with no type as an unknown type', () => {
+      const f = createDummyFlame('juliaVar', 1.0)
+      const first = Object.values(f.transforms)[0]!
+      for (const variation of Object.values(first.variations)) {
+        delete (variation as { type?: string }).type
+      }
+      expect(classifySchool(f)).toBe('Crystal')
+      expect(calculateGroundedStats(f).school).toBe('Crystal')
     })
   })
 

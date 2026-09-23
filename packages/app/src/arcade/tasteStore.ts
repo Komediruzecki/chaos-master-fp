@@ -106,8 +106,10 @@ export function extractFlameTasteFeatures(
 
   for (const t of transforms) {
     if (!t.visible) continue
-    for (const vType of Object.keys(t.variations ?? {})) {
-      const cat = categoryOf(dims, vType)
+    // By type: the key of `t.variations` is the variation's id, which no
+    // registry entry is named.
+    for (const variation of Object.values(t.variations ?? {})) {
+      const cat = categoryOf(dims, variation.type)
       if (cat) {
         categories.add(cat)
       }

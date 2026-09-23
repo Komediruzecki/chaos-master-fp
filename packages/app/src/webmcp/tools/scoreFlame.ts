@@ -4,6 +4,11 @@ import type { WebMcpTool } from '@/webmcp/types'
 
 // Module scope, not per call: the duel HUD scores both flames continuously,
 // and these were being rebuilt every time.
+//
+// Both sets are keyed by registered variation TYPE and read with
+// `variation.type`. A variation's key in `transform.variations` is its id (a
+// generated UUID in the editor), which never matches a type name.
+//
 // Linear variations excluded from chaos accumulator
 const LINEAR = new Set(['linearVar', 'linearTVar'])
 
@@ -92,15 +97,15 @@ export function calculateVariationMetrics(
   for (const t of transforms) {
     if (!t.visible) continue
     colorSpeedSum += Math.abs(t.colorSpeed ?? 0.4)
-    const vars = Object.entries(t.variations || {})
+    const vars = Object.values(t.variations || {})
     variationCount += vars.length
 
-    for (const [vName, vData] of vars) {
-      const weight = Math.abs((vData as { weight: number }).weight)
-      if (!LINEAR.has(vName)) {
+    for (const { type, weight: signedWeight } of vars) {
+      const weight = Math.abs(signedWeight)
+      if (!LINEAR.has(type)) {
         nonLinearWeightSum += weight
       }
-      if (SYMMETRY.has(vName)) {
+      if (SYMMETRY.has(type)) {
         symmetryHits += weight
       }
     }

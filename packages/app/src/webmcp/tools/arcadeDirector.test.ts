@@ -108,12 +108,11 @@ describe('arcade director tools', () => {
     expect(candidates[0]!.tags).toEqual(['+Symmetry', 'Warmer'])
     expect(candidates[0]!.wasSelected).toBe(true)
     expect(candidates[0]!.features?.powerLevel).toBeGreaterThan(0)
-    // What the agent is told about each candidate's variation families. The
-    // candidates hold linearVar and sinusoidalVar (General); the extracted
-    // categories are empty because they are looked up by variation id.
+    // What the agent is told about each candidate's variation families: the
+    // candidates hold linearVar and sinusoidalVar, both General.
     expect(candidates.map((c) => c.features?.variationCategories)).toEqual([
-      [],
-      [],
+      ['general'],
+      ['general'],
     ])
 
     expect(candidates[1]!.reaction).toBe('dislike')
@@ -191,9 +190,9 @@ describe('arcade director tools', () => {
       preferredCategories: string[]
       summary: string
     }
-    expect(profile.preferredCategories).toEqual([])
+    expect(profile.preferredCategories).toEqual(['general'])
     expect(profile.summary).toBe(
-      'likes symmetry ~0/10, complexity ~1.4/10, and balanced palettes.',
+      'Prefers general variations; likes symmetry ~0/10, complexity ~1.4/10, and balanced palettes.',
     )
   })
 
