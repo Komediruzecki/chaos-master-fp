@@ -81,7 +81,8 @@ export type ReplayVideoSchedule = {
    * seen before the next step arrives.
    */
   glideFrames: number[]
-  /** The tier each glide renders at: the take's own, once its step ran. */
+  /** Each glide's length and tier, as the live replay plans it. */
+  glideMs: number[]
   glideTiers: GlideQualityTier[]
   /** Whether the take played in the run after each step, and each step's
    *  take time: inside a play window every frame shows its own moment. */
@@ -523,6 +524,7 @@ export function createReplayVideoSchedule(
     actionTimesMs,
     actionFrames,
     glideFrames,
+    glideMs,
     glideTiers: stepGlides.map((options) => options.tier),
     playing,
     stepTakeMs: session.actions.map((action) => action.t),
@@ -610,6 +612,7 @@ export function replayFramesInStateRun(
 
 export function createReplayVideoDriver(
   inputSession: RecordedSession,
+  glides?: Pick<ReplayVideoSchedule, 'glideMs' | 'glideTiers'>,
 ): ReplayVideoDriver {
   const validatedSession = validateSession(deepClone(inputSession))
   if (!validatedSession) {
@@ -1059,8 +1062,13 @@ export function createReplayVideoDriver(
   ): GlidePlan | undefined {
     if (glidePlans.has(index)) return glidePlans.get(index)
     const from = glideSources.get(index)
+    // Planned as the live runtime plans the step (runtime.ts `start`).
     const planned =
-      from === undefined ? undefined : planGlide(from, settledFlame)
+      from &&
+      planGlide(from, settledFlame, {
+        durationMs: glides?.glideMs[index],
+        quality: glides?.glideTiers[index],
+      })
     const usable =
       planned === undefined || isGlideRefusal(planned) ? undefined : planned
     glidePlans.set(index, usable)

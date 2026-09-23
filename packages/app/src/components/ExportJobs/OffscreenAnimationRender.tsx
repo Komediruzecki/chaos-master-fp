@@ -53,7 +53,7 @@ export function OffscreenAnimationRender(props: { job: AnimationJob }) {
       : undefined
   const replayDriver =
     replaySchedule && job.session
-      ? createReplayVideoDriver(job.session)
+      ? createReplayVideoDriver(job.session, replaySchedule)
       : undefined
   const initialReplayState: ReplayVideoStateAt = replaySchedule
     ? replayStateAtFrame(replaySchedule, 0)

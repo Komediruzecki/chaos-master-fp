@@ -3,17 +3,18 @@ import { createRoot, createSignal } from 'solid-js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { executeCommand, executeReplayCommand } from '@/commands/registry'
 import { examples } from '@/flame/examples'
+import { planGlide } from '@/flame/glide/plan'
 import { GLIDE_QUALITY_TIERS, resolveGlideQuality } from '@/flame/glide/quality'
-import { glideQualityPreference, restoreGlideSwitches, setGlideQualityPreference, } from '@/flame/glide/runtime'
+import { createGlideRuntime, glideQualityPreference, restoreGlideSwitches, setGlideQualityPreference, } from '@/flame/glide/runtime'
 import { deepClone } from '@/utils/clone'
 import { createMockCommandContext } from '@/webmcp/testUtils'
 import { createSessionPlayer } from './player'
-import { createReplayVideoJobSpec, createReplayVideoSchedule, replayFrameQuality, replayStateAtFrame, } from './replayVideo'
+import { createReplayVideoDriver, createReplayVideoJobSpec, createReplayVideoSchedule, replayFrameQuality, replayStateAtFrame, } from './replayVideo'
 import { SESSION_FORMAT_VERSION } from './schema'
 import type { ReplayGlideOptions } from './glide'
 import type { ReplayTarget } from './replay'
 import type { RecordedSession } from './schema'
-import type { GlideQualityTier } from '@/flame/glide/types'
+import type { GlidePlan, GlideQualityTier } from '@/flame/glide/types'
 
 /**
  * A take can switch Glide quality as it goes (`glide.setQuality`, and under
@@ -21,6 +22,24 @@ import type { GlideQualityTier } from '@/flame/glide/types'
  * the artwork export of the same take has to: a glide into step N takes the
  * length, and renders at the quality, of the tier in force once step N ran.
  */
+
+// Every plan either replay makes, with the real planner behind it.
+vi.mock('@/flame/glide/plan', async (importOriginal) => {
+  const actual: { planGlide: typeof planGlide } = await importOriginal()
+  return { ...actual, planGlide: vi.fn(actual.planGlide) }
+})
+const plansMade = () => {
+  const plans = vi
+    .mocked(planGlide)
+    .mock.results.map((result) => result.value as GlidePlan)
+  vi.mocked(planGlide).mockClear()
+  return plans.map(({ durationMs, frames, fps, quality }) => ({
+    durationMs,
+    frames,
+    fps,
+    quality,
+  }))
+}
 
 /** Two seconds apart, so no glide is ever cut short by the run it is in. */
 const take: RecordedSession = {
@@ -96,6 +115,14 @@ function replayLive(flip?: [number, string]) {
     }
     const quality = () =>
       resolveGlideQuality(glideQualityPreference(), preset())
+    // The workspace's runtime, which plans each glide the replay starts.
+    const runtime = createGlideRuntime({
+      readFlame: () => ctx.flameDescriptor(),
+      writeFlame: () => {},
+      qualityPreset: preset,
+      requestFrame: () => 0,
+      cancelFrame: () => {},
+    })
     const ranAt: number[] = []
     const glides: { ms: number; tier: GlideQualityTier }[] = []
     const started = Date.now()
@@ -106,7 +133,10 @@ function replayLive(flip?: [number, string]) {
       loadInitial: () => {},
       loadView: (view) => setPreset(view.qualityPreset),
       readFlame: () => deepClone(examples.example1),
-      glide: (_from, ms) => glides.push({ ms, tier: quality().tier }),
+      glide: (from, ms) => {
+        glides.push({ ms, tier: quality().tier })
+        void runtime.glideFrom(from, { durationMs: ms })
+      },
       execute: (id, args) => {
         ranAt.push(Date.now() - started)
         return executeReplayCommand(id, ctx, ...args)
@@ -172,6 +202,25 @@ describe("the artwork export follows the take's Glide quality", () => {
     expect(schedule.glideFrames).toEqual(live.glides.map((glide) => glide.ms))
     expect(schedule.actionTimesMs).toEqual(live.ranAt)
     expect(schedule.glideTiers).toEqual(TIERS)
+  })
+
+  it('plans each glide with the inputs the live replay plans it with', () => {
+    plansMade()
+    replayLive()
+    const live = plansMade()
+    const schedule = createReplayVideoSchedule(
+      take,
+      1,
+      24,
+      650,
+      1400,
+      exportRequest(),
+    )
+    const driver = createReplayVideoDriver(take, schedule)
+    take.actions.forEach((_, index) => driver.advanceTo(index, 0.5))
+
+    expect(live).toHaveLength(take.actions.length)
+    expect(plansMade()).toEqual(live)
   })
 
   it("renders each glide frame at its step's tier and each settle at full", () => {
