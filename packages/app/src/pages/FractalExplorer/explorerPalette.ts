@@ -19,6 +19,10 @@ export const DEFAULT_PALETTE_ID = 'plasma'
  * id is looked up among the built-in palettes and the custom ones saved in
  * this browser, and an unknown id gets the default. flam3 palettes get a new
  * id each time they load, so a link cannot bring one back.
+ *
+ * A custom palette is parsed from storage on every call, so each call returns
+ * a new object for it. Look one up when the id changes, not on every change
+ * of the location that carries it.
  */
 export function resolvePalette(
   id: string | undefined,

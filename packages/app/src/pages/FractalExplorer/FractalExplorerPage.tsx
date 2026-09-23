@@ -97,10 +97,12 @@ export function FractalExplorerPage() {
   const { location, update, link } = createExplorerLocation()
   const [picked, setPicked] = createSignal<Palette | undefined>()
   // Read from the location, so a link pasted into this tab brings its
-  // palette along with its view.
-  const palette = createMemo(() =>
-    resolvePalette(location().paletteId, picked()),
-  )
+  // palette along with its view. The id has a memo of its own: a custom
+  // palette is parsed from storage into a new object on every lookup, and
+  // each new object recolours both panes, so a pan or a move of the point
+  // must not reach the lookup.
+  const paletteId = createMemo(() => location().paletteId)
+  const palette = createMemo(() => resolvePalette(paletteId(), picked()))
   const [period, setPeriod] = createSignal(64)
   const [phase, setPhase] = createSignal(0)
   const [relief, setRelief] = createSignal(0.5)
