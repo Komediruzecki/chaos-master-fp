@@ -22,7 +22,9 @@ runs everything.
 | The `node --test` suites of the app's and the root scripts | in full                | in full                          |
 | App build, landing build, `pnpm test:e2e:ci`               | yes                    | yes                              |
 | `pnpm docs:cite`, in the `citations` job                   | yes                    | yes                              |
-| `pnpm docs:index:check`, `pnpm metrics:check`, `pnpm arch` | no                     | yes, in the `health` job         |
+| `pnpm arch`, `pnpm metrics:check` (with the per-file caps) | yes, last in `build`   | yes, in `build` and `health`     |
+| `pnpm test:coverage`, `pnpm metrics:check --with-lint`     | no                     | yes, in the `health` job         |
+| `pnpm docs:index:check`                                    | no                     | yes, in the `health` job         |
 
 The scoped run is `pnpm test:pr`, which calls `pnpm test:changed`
 (`scripts/test-changed.mjs`). It runs core and mobile-runtime in full — about

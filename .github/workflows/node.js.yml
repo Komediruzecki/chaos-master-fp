@@ -43,6 +43,7 @@ jobs:
         node-version: ${{ matrix.node-version }}
         
     - name: 📦 Install all dependencies
+      id: install
       run: |
         corepack enable
         pnpm install
@@ -87,6 +88,22 @@ jobs:
     - name: Run CI-safe e2e
       run: pnpm test:e2e:ci
 
+    # The module graph and the metrics ratchet, on pull requests too since
+    # WP3b (2026-09-23): a cycle, an orphan, an impure core import, a bucket
+    # count or a per-file cap that got worse fails the change that did it, not
+    # main after the merge. 2.5 s and 0.9 s. They run last, and whatever
+    # failed above them, so a red step above never hides theirs and theirs
+    # never hides a test. `pnpm arch` needs Node 22, 24 or 26+ (the matrix is
+    # 24) and resolves `@/` through tsconfig.depcruise.json. The coverage and
+    # lint keys are not measured here; the `health` job measures them.
+    - name: Check the module graph for cycles, orphans and core purity
+      if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+      run: pnpm arch
+
+    - name: Check the code metrics ratchet and the per-file caps
+      if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+      run: pnpm metrics:check
+
     - name: 📎 Upload Playwright report
       if: ${{ !cancelled() }}
       uses: actions/upload-artifact@v4
@@ -121,11 +138,13 @@ jobs:
     - name: Check the file:line citations in the docs
       run: node scripts/check-doc-citations.mjs
 
-  # The code-health ratchets, on main and on a manual run only. A pull request
-  # that moves a ratchet is a conversation, not a blocked merge. They sit in
-  # their own job so that a ratchet failure can never hide a test failure in
-  # `build`, and so the branch that fixes a ratchet is obvious from the job
-  # that went red.
+  # The code-health checks that are too slow for every pull request, on main
+  # and on a manual run only: the metrics ratchet with the keys a plain
+  # `pnpm metrics:check` cannot measure, coverage and ESLint. `pnpm arch` and
+  # the plain ratchet also run in `build`, on every pull request (WP3b,
+  # 2026-09-23). They sit in their own job so that a ratchet failure can never
+  # hide a test failure in `build`, and so the branch that fixes a ratchet is
+  # obvious from the job that went red.
   health:
     if: github.event_name != 'pull_request'
 
@@ -150,8 +169,21 @@ jobs:
     - name: Check the generated agent index is current
       run: pnpm docs:index:check
 
-    - name: Check the code metrics ratchet
-      run: pnpm metrics:check
+    # Writes packages/{app,core}/coverage-audit/coverage-summary.json, which
+    # is what gives the six coverage_* keys a value. Without it the ratchet
+    # skips them, and nothing in CI held a coverage floor. The app suite
+    # builds the same program as the build job, so it gets the same heap.
+    - name: Measure coverage
+      run: pnpm test:coverage
+      env:
+        NODE_OPTIONS: --max-old-space-size=6144
+
+    # --with-lint runs the full type-aware ESLint (about a minute) and ratchets
+    # the eslint_* keys: errors, warnings, complexity warnings and the worst
+    # function's complexity. With the coverage summaries above, every key in
+    # docs/agent/code-metrics.baseline.json is measured here.
+    - name: Check the code metrics ratchet, coverage and lint keys included
+      run: pnpm metrics:check --with-lint
 
     # dependency-cruiser over packages/app/src and packages/core/src
     # (.dependency-cruiser.cjs): import cycles, orphan modules and core's
