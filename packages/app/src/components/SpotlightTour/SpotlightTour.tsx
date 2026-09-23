@@ -2,6 +2,8 @@ import { createEffect, createSignal, For, onCleanup, Show } from 'solid-js'
 import { Portal } from 'solid-js/web'
 import { pilotOwnsKeyboard } from '@/arcade/pilot'
 import { useSpotlightTour } from '@/contexts/SpotlightTourContext'
+import { useTheme } from '@/contexts/ThemeContext'
+import { isTouchLayout } from '@/stores/workspaceLayoutStore'
 import { clamp } from '@/utils/easing'
 import ui from './SpotlightTour.module.css'
 import type { TourContext } from './tourTypes'
@@ -15,6 +17,15 @@ const HOLE_PADDING = 8
 
 export function SpotlightTour(props: SpotlightTourProps) {
   const tour = useSpotlightTour()
+  const { theme } = useTheme()
+  /**
+   * The card is glass (the primitive's panel) wherever the app is dark: the
+   * dark theme, and the touch layouts, whose chrome is dark glass in both
+   * themes. The desktop's light theme keeps its light card, since the glass
+   * is dark-only (docs/plans/glass-panels.md, decision b). A class and not a
+   * composes: the panel's busy rule would turn a light card dark.
+   */
+  const glassCard = () => theme() === 'dark' || isTouchLayout()
 
   const [holeRect, setHoleRect] = createSignal({
     x: 0,
@@ -410,9 +421,11 @@ export function SpotlightTour(props: SpotlightTourProps) {
             </defs>
           </svg>
 
-          {/* Blurred backdrop with a hole punched out (4 divs to bypass Chrome mask bug) */}
+          {/* A dim with a hole punched out (4 divs to bypass Chrome mask
+              bug). No blur: the four resize on every step, so a blur of
+              their own re-ran on every frame of the move, under the card
+              that is the tour's one glass layer (glass-panels.md). */}
           {(() => {
-            const blur = tour.activeTour()?.noBlur ? undefined : 'blur(2px)'
             const bg = tour.activeTour()?.noBlur
               ? 'rgba(0, 0, 0, 0.25)'
               : 'rgba(0, 0, 0, 0.4)'
@@ -427,8 +440,6 @@ export function SpotlightTour(props: SpotlightTourProps) {
                     right: 0,
                     height: `${holeRect().y}px`,
                     background: bg,
-                    'backdrop-filter': blur,
-                    '-webkit-backdrop-filter': blur,
                     transition: 'height 300ms ease',
                   }}
                 />
@@ -441,8 +452,6 @@ export function SpotlightTour(props: SpotlightTourProps) {
                     right: 0,
                     bottom: 0,
                     background: bg,
-                    'backdrop-filter': blur,
-                    '-webkit-backdrop-filter': blur,
                     transition: 'top 300ms ease',
                   }}
                 />
@@ -455,8 +464,6 @@ export function SpotlightTour(props: SpotlightTourProps) {
                     width: `${holeRect().x}px`,
                     height: `${holeRect().height}px`,
                     background: bg,
-                    'backdrop-filter': blur,
-                    '-webkit-backdrop-filter': blur,
                     transition:
                       'top 300ms ease, width 300ms ease, height 300ms ease',
                   }}
@@ -470,8 +477,6 @@ export function SpotlightTour(props: SpotlightTourProps) {
                     right: 0,
                     height: `${holeRect().height}px`,
                     background: bg,
-                    'backdrop-filter': blur,
-                    '-webkit-backdrop-filter': blur,
                     transition:
                       'top 300ms ease, left 300ms ease, height 300ms ease',
                   }}
@@ -497,6 +502,7 @@ export function SpotlightTour(props: SpotlightTourProps) {
           <div
             ref={cardRef}
             class={ui.card}
+            classList={{ [ui.glassCard!]: glassCard() }}
             style={cardStyle()}
             role="dialog"
             aria-label={step()?.title}
