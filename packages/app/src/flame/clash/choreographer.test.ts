@@ -3,7 +3,7 @@
  * uniforms, the outcome for either winner, and what reduced motion keeps.
  */
 import { describe, expect, it } from 'vitest'
-import { BOUT_SECONDS, boutCues, boutFrame, HIT_STOPS, storyTime, wallTime, } from './choreographer'
+import { beatCaption, BOUT_SECONDS, boutCues, boutFrame, HIT_STOPS, orbitCamera, storyTime, wallTime, } from './choreographer'
 import { DEFAULT_TINT } from './tint'
 import type { BoutFrame, BoutOptions } from './choreographer'
 
@@ -163,5 +163,35 @@ describe('reduced motion', () => {
     expect(order).toEqual(['intro', 'strike', 'clash', 'devour', 'victory'])
     expect(frames.some((f) => f.leakA > 0.1)).toBe(true)
     expect(frames.at(-1)?.split).toBe(1)
+  })
+})
+
+describe('orbitCamera', () => {
+  const camera = boutFrame(0, full).camera
+  const holds = (aspect: number) => {
+    const { radius, fov } = orbitCamera(camera, aspect)
+    const halfHeight = radius * Math.tan((fov * Math.PI) / 360)
+    return { halfHeight, halfWidth: halfHeight * aspect }
+  }
+
+  it.each([16 / 9, 1, 9 / 19.5])('holds the arena in a %f canvas', (aspect) => {
+    const shown = holds(aspect)
+    expect(shown.halfHeight).toBeGreaterThanOrEqual(camera.halfHeight - 1e-9)
+    expect(shown.halfWidth).toBeGreaterThanOrEqual(camera.halfWidth - 1e-9)
+  })
+
+  it('survives a canvas with no size yet', () => {
+    expect(Number.isFinite(orbitCamera(camera, 0).radius)).toBe(true)
+  })
+})
+
+describe('beatCaption', () => {
+  const names = { A: 'Spiral Galaxy', B: 'Neon' }
+
+  it('names who acts in each beat', () => {
+    expect(beatCaption('intro', names, 'A')).toBe('Spiral Galaxy vs Neon')
+    expect(beatCaption('strike', names, 'B')).toBe('Neon strikes')
+    expect(beatCaption('devour', names, 'A')).toBe('Spiral Galaxy devours Neon')
+    expect(beatCaption('victory', names, 'B')).toBe('Neon wins')
   })
 })

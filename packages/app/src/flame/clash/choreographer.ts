@@ -315,3 +315,44 @@ export function boutFrame(wall: number, options: BoutOptions): BoutFrame {
     camera: staged.camera,
   }
 }
+
+/**
+ * The orbit camera for a canvas of `aspect` (width / height): the radius
+ * that holds the arena's half-width and half-height in the frame.
+ */
+export function orbitCamera(camera: ClashCamera, aspect: number) {
+  const slope = Math.tan((camera.fov * Math.PI) / 360)
+  const wide = Number.isFinite(aspect) && aspect > 0.1 ? aspect : 0.1
+  return {
+    theta: camera.theta,
+    phi: camera.phi,
+    radius: Math.max(
+      camera.halfHeight / slope,
+      camera.halfWidth / (slope * wide),
+    ),
+    target: [...camera.target] as [number, number, number],
+    fov: camera.fov,
+    roll: 0,
+  }
+}
+
+/** What the stage says during `beat`, by the fighters' names. */
+export function beatCaption(
+  beat: Beat,
+  names: Record<Team, string>,
+  winner: Team,
+): string {
+  const loser: Team = winner === 'A' ? 'B' : 'A'
+  switch (beat) {
+    case 'intro':
+      return `${names.A} vs ${names.B}`
+    case 'strike':
+      return `${names[winner]} strikes`
+    case 'clash':
+      return 'Beam clash'
+    case 'devour':
+      return `${names[winner]} devours ${names[loser]}`
+    case 'victory':
+      return `${names[winner]} wins`
+  }
+}
