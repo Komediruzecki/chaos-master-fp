@@ -47,6 +47,11 @@ export const ALWAYS_ON = [
     genre: 'filesystem',
   },
   {
+    file: 'src/lazyBoundaries.test.ts',
+    why: 'walks all of src/ for import() targets that a static import chain from the entry also reaches',
+    genre: 'filesystem',
+  },
+  {
     file: 'src/alwaysOnTestList.test.ts',
     why: 'the guard for this list: walks all of src/ looking for tests that belong on it',
     genre: 'filesystem',
