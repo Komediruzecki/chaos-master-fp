@@ -24,13 +24,15 @@
  * style object, needs a -webkit-backdrop-filter with the same value in the
  * same rule or object, and every -webkit- one needs its standard twin.
  *
- * Either order passes, for now. The build's minifier keeps only the later
- * of the two spellings (LightningCSS with no browser targets). The twins
- * this guard brought in are written -webkit- first, so the build still
- * ships the standard spelling for them, as it did before; the older pairs,
- * glass.module.css's among them, are written the other way and ship only
- * the -webkit- one, which Chrome and Firefox do not read. The order to
- * require, and the build targets that keep both, are the plan's to settle.
+ * -WEBKIT- FIRST. The build's minifier keeps only the later of the two
+ * spellings in a rule (LightningCSS, which build.target 'esnext' gives no
+ * browser targets). A rule written standard first ships the -webkit- one
+ * alone, which Chrome, Firefox and Android do not read: until this guard,
+ * that was every glass surface in production. So a stylesheet writes the
+ * -webkit- spelling first and the standard one after it. Only iOS before
+ * 18 then goes without the blur, and it has no WebGPU to run the editor.
+ * Inline styles are set property by property at run time, never minified,
+ * so their order is free.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
@@ -157,6 +159,25 @@ function twinOffenders(css: string, file: string): string[] {
   return offenders
 }
 
+/** Each blur in a stylesheet written before its -webkit- twin. */
+function orderOffenders(css: string, file: string): string[] {
+  const offenders: string[] = []
+  for (const block of blocksOf(css)) {
+    block.declarations.forEach((d, i) => {
+      if (d.property !== STANDARD) return
+      const twin = block.declarations.findIndex(
+        (t) => t.property === PREFIXED && t.value === d.value,
+      )
+      if (twin > i) {
+        offenders.push(
+          `${file}:${d.line} ${block.selector} { ${STANDARD}: ${d.value} } comes before its ${PREFIXED}`,
+        )
+      }
+    })
+  }
+  return offenders
+}
+
 const isGlassToken = (value: string) => /^var\(--la-glass-[\w-]+\)$/.test(value)
 
 /** The backdrop-filter declarations that write a blur of their own. */
@@ -279,6 +300,12 @@ describe('every blur', () => {
     ).toEqual([])
   })
 
+  it('comes after its -webkit- twin, so the build keeps it', () => {
+    expect(
+      stylesheets.flatMap(({ file, css }) => orderOffenders(css, file)),
+    ).toEqual([])
+  })
+
   it('has its -webkit- twin in the same inline style object', () => {
     expect(
       sources.flatMap(({ file, source }) => inlineTwinOffenders(source, file)),
@@ -319,6 +346,26 @@ describe('the blur detector', () => {
       'x.css:8 .differs { backdrop-filter: blur(5px) } has no -webkit-backdrop-filter: blur(5px)',
       'x.css:8 .differs { -webkit-backdrop-filter: blur(4px) } has no backdrop-filter: blur(4px)',
       'x.css:10 .quoted { backdrop-filter: none } has no -webkit-backdrop-filter: none',
+    ])
+  })
+
+  it('finds a blur written before its -webkit- twin', () => {
+    const css = `
+      .late { backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px) }
+      .first { -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px) }
+      .other {
+        -webkit-backdrop-filter: none;
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+      }
+      .nested {
+        -webkit-backdrop-filter: none;
+        &:hover { backdrop-filter: none; }
+      }
+    `
+    expect(orderOffenders(css, 'x.css')).toEqual([
+      'x.css:2 .late { backdrop-filter: blur(2px) } comes before its -webkit-backdrop-filter',
+      'x.css:6 .other { backdrop-filter: blur(4px) } comes before its -webkit-backdrop-filter',
     ])
   })
 

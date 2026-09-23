@@ -55,8 +55,8 @@
    until the sheet is back at peek. */
 .sheet.opaque {
   background: var(--la-glass-solid);
-  backdrop-filter: none;
   -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 .grabberRow {
