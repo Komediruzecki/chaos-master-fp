@@ -1,7 +1,7 @@
 import '@/commands/builtins'
 import { createRoot, createSignal } from 'solid-js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { executeReplayCommand } from '@/commands/registry'
+import { executeCommand, executeReplayCommand } from '@/commands/registry'
 import { examples } from '@/flame/examples'
 import { GLIDE_QUALITY_TIERS, resolveGlideQuality } from '@/flame/glide/quality'
 import { glideQualityPreference, restoreGlideSwitches, setGlideQualityPreference, } from '@/flame/glide/runtime'
@@ -80,8 +80,9 @@ function exportRequest(): ReplayGlideOptions {
   }
 }
 
-/** Replay the take live at 1x; when each step ran, and each glide into it. */
-function replayLive() {
+/** Replay the take live at 1x; when each step ran, and each glide into it.
+ *  `flip`: the viewer's own live `glide.setQuality`, that many ms in. */
+function replayLive(flip?: [number, string]) {
   return createRoot((dispose) => {
     const [preset, setPreset] = createSignal(VIEWER_PRESET)
     const ctx = createMockCommandContext()
@@ -98,7 +99,10 @@ function replayLive() {
     const ranAt: number[] = []
     const glides: { ms: number; tier: GlideQualityTier }[] = []
     const started = Date.now()
+    let takeOver: (() => void) | undefined
     const target: ReplayTarget = {
+      beginBatch: (onTakeover) => (takeOver = onTakeover),
+      endBatch: () => (takeOver = undefined),
       loadInitial: () => {},
       loadView: (view) => setPreset(view.qualityPreset),
       readFlame: () => deepClone(examples.example1),
@@ -117,6 +121,11 @@ function replayLive() {
       }),
     })
     player.play()
+    if (flip) {
+      vi.advanceTimersByTime(flip[0])
+      const live = { ...ctx, beforeCommand: () => takeOver?.() }
+      executeCommand('glide.setQuality', live, flip[1])
+    }
     vi.runAllTimers()
     dispose()
     return { ranAt, glides }
@@ -138,6 +147,20 @@ describe("the artwork export follows the take's Glide quality", () => {
 
     expect(live.glides.map((glide) => glide.tier)).toEqual(TIERS)
     expect(live.glides.map((glide) => glide.ms)).toEqual(GLIDE_MS)
+  })
+
+  it('glides the next step at a tier the viewer flips while it plays', () => {
+    // Flipped between the first step and the second, which switches no tier:
+    // the take's own glide.setQuality steps still win from where they run.
+    const live = replayLive([1000, 'responsive'])
+
+    expect(live.ranAt).toHaveLength(take.actions.length)
+    expect(live.glides.map((glide) => glide.tier)).toEqual([
+      'full',
+      ...TIERS.slice(1, 6).map(() => 'responsive'),
+      'balanced',
+      'balanced',
+    ])
   })
 
   it('gives the same glide lengths and step times as the live replay', () => {

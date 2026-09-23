@@ -354,6 +354,15 @@ export interface FlameCommand {
    * conservatively treated as replay-state changes.
    */
   preservesFinishedSession?: boolean
+  /**
+   * A switch that changes only how LATER changes appear: not the document,
+   * and nothing on screen now. The two Glide switches are the only ones. A
+   * live run skips `beforeCommand`, so a playing replay plays on and glides
+   * its next step at the new setting, and `execute_command` lets a glide in
+   * flight finish. Every other live command, the export commands included,
+   * hands a playing replay back first.
+   */
+  presentationSwitch?: true
   shortcut?: string
   /**
    * Resolve args to their canonical, replayable form BEFORE recording and

@@ -42,8 +42,10 @@ registerCommand({
         : 'Stop animating changes'
       : undefined,
   // Neither switch changes a document, so a live flip is no edit: a paused
-  // replay resumes where it paused, and a finished take stays attached.
+  // replay resumes where it paused, a playing one plays on, and a finished
+  // take stays attached.
   preservesFinishedSession: true,
+  presentationSwitch: true,
   execute(ctx, on?: unknown) {
     if (typeof on !== 'boolean') return
     ;(ctx.glideSwitches?.setEnabled ?? setGlideEnabled)(on)
@@ -58,6 +60,7 @@ registerCommand({
   describe: ([tier]) =>
     typeof tier === 'string' ? `Glide quality: ${tier}` : undefined,
   preservesFinishedSession: true,
+  presentationSwitch: true,
   execute(ctx, tier?: unknown) {
     if (!isGlideQualityPreference(tier)) return
     ;(ctx.glideSwitches?.setQuality ?? setGlideQualityPreference)(tier)

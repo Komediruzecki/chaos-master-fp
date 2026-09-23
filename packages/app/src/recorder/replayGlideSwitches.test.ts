@@ -315,20 +315,53 @@ describe('the replay player and the Glide switches', () => {
     })
   })
 
-  it('keeps a flip that takes a playing replay over', () => {
-    createRoot((dispose) => {
-      const { target, takeOver } = makeTarget()
-      const player = createSessionPlayer(take, target)
-      player.play()
-      playTo(1)
-      // A live command hands the replay back before it runs.
-      takeOver()
-      flipAsViewer('glide.setQuality', 'responsive')
-      expect(player.isPlaying()).toBe(false)
-      expect(switches()).toEqual({ enabled: false, quality: 'responsive' })
-      dispose()
-    })
-  })
+  // The viewer's live command, wired to the takeover hook the workspace gives
+  // it: any command but a Glide switch hands a playing replay back first.
+  const liveCtx = (takeOver: () => void) =>
+    ({
+      beforeCommand: takeOver,
+      modal: { open: () => {} },
+    }) as unknown as CommandContext
+
+  it.each([
+    ['glide.setQuality', 'auto', { enabled: false, quality: 'auto' }],
+    ['glide.setEnabled', false, VIEWER],
+  ] as const)(
+    'plays on through a live %s, and keeps the flip',
+    (id, value, after) => {
+      createRoot((dispose) => {
+        const { target, takeOver, loaded } = makeTarget()
+        const player = createSessionPlayer(take, target)
+        player.play()
+        playTo(1)
+        executeCommand(id, liveCtx(takeOver), value)
+        expect(player.isPlaying()).toBe(true)
+        vi.advanceTimersByTime(1000)
+        expect(player.stepIndex()).toBe(2)
+        vi.advanceTimersByTime(5000)
+        expect(player.isFinished()).toBe(true)
+        expect(loaded()).toBe(1)
+        expect(switches()).toEqual(after)
+        dispose()
+      })
+    },
+  )
+
+  it.each(['export.png', 'export.animation'])(
+    'still hands a playing replay back to open %s',
+    (id) => {
+      createRoot((dispose) => {
+        const { target, takeOver } = makeTarget()
+        const player = createSessionPlayer(take, target)
+        player.play()
+        playTo(1)
+        executeCommand(id, liveCtx(takeOver))
+        expect(player.isPlaying()).toBe(false)
+        expect(switches()).toEqual(VIEWER)
+        dispose()
+      })
+    },
+  )
 
   it('sets them as the take had them at the step a seek lands on', () => {
     createRoot((dispose) => {
