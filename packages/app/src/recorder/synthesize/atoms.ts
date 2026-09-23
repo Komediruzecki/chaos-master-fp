@@ -523,14 +523,14 @@ function renderAtoms(
   // The partner's own step names the weight, the way a gallery pick records
   // it. A partner set from none starts at the default weight unless its step
   // names one, so a weight step placed before the partner would be undone by
-  // it.
+  // it. The canonical target always has a weight: a missing one is the 0 it
+  // draws at.
   const blendFlame = target.renderSettings.blendFlame
   const blendWeight = target.renderSettings.blendWeight
   if (blendFlame !== undefined) {
     atoms.push({
       id: 'flame.setBlendFlame',
-      args:
-        blendWeight === undefined ? [blendFlame] : [blendFlame, blendWeight],
+      args: [blendFlame, blendWeight],
       key: 'render:blendFlame',
       group: 'render',
       needs: stageKeys,
@@ -538,20 +538,20 @@ function renderAtoms(
       expected: blendFlame,
     })
   }
-  if (blendWeight !== undefined) {
-    atoms.push({
-      id: 'flame.setBlendWeight',
-      args: [blendWeight],
-      key: 'render:blendWeight',
-      group: 'render',
-      // After the partner: its step has usually set this already, so this one
-      // emits nothing, and it still corrects a weight that step did not set.
-      needs:
-        blendFlame === undefined
-          ? stageKeys
-          : [...stageKeys, 'render:blendFlame'],
-      read: (flame) => flame.renderSettings.blendWeight,
-      expected: blendWeight,
-    })
-  }
+  atoms.push({
+    id: 'flame.setBlendWeight',
+    args: [blendWeight],
+    key: 'render:blendWeight',
+    group: 'render',
+    // After the partner: its step has usually set this already, so this one
+    // emits nothing, and it still corrects a weight that step did not set.
+    needs:
+      blendFlame === undefined
+        ? stageKeys
+        : [...stageKeys, 'render:blendFlame'],
+    // Read the way the canonical form reads it, so a document with no weight
+    // already has the 0 a flame without one is given, and no step is added.
+    read: (flame) => flame.renderSettings.blendWeight ?? 0,
+    expected: blendWeight,
+  })
 }
