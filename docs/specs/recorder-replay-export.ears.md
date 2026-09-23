@@ -75,7 +75,7 @@ history's patches — so that a log survives a document-schema migration and can
 edited, parameterized and replayed against a different starting state.
 
 _(`recorder/schema.ts:11-22`, `recorder/recorder.ts:25-51`; guarded by
-`recorder.test.ts:190` "replays a deterministic session into the same
+`recorder.test.ts:191` "replays a deterministic session into the same
 document".)_
 
 ### REQ-RR-002 — Only top-level, unsuppressed commands are logged
@@ -86,8 +86,8 @@ not move the live-workspace mutation stamp, and shall not flag the document
 writes that run under it — so a compound command replays through its own
 implementation, and replay machinery never absorbs itself into a live take.
 
-_(`recorder/recorder.ts:590`, `:597-611`, `:957-964`; guarded by
-`recorder.test.ts:1515` "ignores commands and writes inside
+_(`recorder/recorder.ts:594`, `:601-615`, `:974-981`; guarded by
+`recorder.test.ts:1516` "ignores commands and writes inside
 withRecordingSuppressed".)_
 
 ### REQ-RR-003 — Record start snapshots the whole world, or refuses with a reason
@@ -102,9 +102,9 @@ or a recording is already active on that seat, **then** `start` shall return
 `'workspace-not-recordable'` or `'already-recording'` and shall leave no
 recording active.
 
-_(`recorder/types.ts:17-40`, `recorder/recorder.ts:353-410`,
-`schema.ts:204-235`; guarded by `recorder.test.ts:155`, `:164`, `:177`, and
-`:1769` "carries timeline, audio, sonification, and view state through a round
+_(`recorder/types.ts:17-40`, `recorder/recorder.ts:356-414`,
+`schema.ts:204-235`; guarded by `recorder.test.ts:156`, `:165`, `:178`, and
+`:1770` "carries timeline, audio, sonification, and view state through a round
 trip".)_
 
 ### REQ-RR-004 — The audio file is never captured, only its wiring
@@ -127,8 +127,8 @@ entry lands, so a second drag of the same control becomes a second action
 matching the second undo step. A timeline undo push arriving while a flame
 command is running shall not clear those anchors.
 
-_(`recorder/recorder.ts:479-514`, `:545-573`, `:800-816`, `:830-846`; guarded by
-`recorder.test.ts:405`, `:426`, `:445`.)_
+_(`recorder/recorder.ts:483-518`, `:549-577`, `:803-819`, `:833-849`; guarded by
+`recorder.test.ts:406`, `:427`, `:446`.)_
 
 ### REQ-RR-006 — An unclaimed document write raises the honesty counter
 
@@ -139,8 +139,8 @@ entry, publish the new count, and warn — rather than dropping the mutation
 silently. `unnamedWriteCount` is the log's fidelity marker and 0 is the goal
 state; REQ-RR-041 is what it saves about each one.
 
-_(`recorder/recorder.ts:800-816`, `:830-846`, `:923-934`, `schema.ts:231-236`;
-guarded by `recorder.test.ts:1356` "attributes command writes, counts direct
+_(`recorder/recorder.ts:803-819`, `:833-849`, `:941-951`, `schema.ts:231-236`;
+guarded by `recorder.test.ts:1357` "attributes command writes, counts direct
 writes as unnamed".)_
 
 ### REQ-RR-007 — A continuous effect earns exactly one fidelity marker per take
@@ -154,9 +154,9 @@ seat reporting transport is the seat an Arcade agent is currently driving, no
 marker shall be recorded at all: the tool's own preview is not a claim that the
 session reproduces it.
 
-_(`recorder/recorder.ts:249-258`, `:756-765`, `:854-868`; guarded by
-`recorder.test.ts:1334` "reports a high-rate unreplayable effect only once per
-take", `recorder.test.ts:1970` "tracks direct timeline seeks without flooding
+_(`recorder/recorder.ts:252-261`, `:759-768`, `:857-871`; guarded by
+`recorder.test.ts:1335` "reports a high-rate unreplayable effect only once per
+take", `recorder.test.ts:1971` "tracks direct timeline seeks without flooding
 the recording" and `uiCoverageRatchet.test.ts:340`.)_
 
 ### REQ-RR-008 — Undo/redo is represented by its result, not the viewer's stacks
@@ -169,10 +169,10 @@ than the take's baseline, **then** the recorder shall retract the action it
 logged, count an unnamed write naming the reason, and clear the coalescing
 anchors.
 
-_(`recorder/recorder.ts:684-721`, `:735-746`, `:776-787`; `schema.ts:364-374`
+_(`recorder/recorder.ts:688-725`, `:739-749`, `:779-790`; `schema.ts:364-374`
 refuses imported `history.undo`/`history.redo`. Guarded by
-`recorder.test.ts:346` "records undo as the resulting snapshot so batched replay
-stays faithful" and `:1246` "flags an undo of an edit made BEFORE recording
+`recorder.test.ts:347` "records undo as the resulting snapshot so batched replay
+stays faithful" and `:1247` "flags an undo of an edit made BEFORE recording
 started".)_
 
 ### REQ-RR-009 — A budget overrun degrades to a valid prefix plus one marker
@@ -184,8 +184,8 @@ recorder shall drop that action, record a single deduplicated
 pretty-printed persisted form still does not fit at Stop, it shall trim the
 newest actions one at a time until it does, leaving an earlier valid prefix.
 
-_(`recorder/recorder.ts:248-257`, `:261-322`, `:438-466`, `schema.ts:25-40`;
-guarded by `recorder.test.ts:1554`, `:1566`, `:1581`, `:1595`.)_
+_(`recorder/recorder.ts:251-260`, `:264-325`, `:442-470`, `schema.ts:25-40`;
+guarded by `recorder.test.ts:1555`, `:1567`, `:1582`, `:1596`.)_
 
 ### REQ-RR-010 — A finished session detaches when the workspace diverges
 
@@ -195,8 +195,8 @@ recording is active, the recorder shall clear the last finished session — so a
 export can never embed steps describing a different flame from the one it
 rendered.
 
-_(`recorder/recorder.ts:412-424`, `:591-596`, `:647-654`, `:810-812`, `:841-843`;
-guarded by `recorder.test.ts:1926` "finished-session export association".)_
+_(`recorder/recorder.ts:416-428`, `:595-600`, `:651-658`, `:813-815`, `:844-846`;
+guarded by `recorder.test.ts:1927` "finished-session export association".)_
 
 ### REQ-RR-011 — Compound timeline edits record one value-pinned snapshot
 
@@ -238,7 +238,7 @@ marker nor a step for it (`utils/timeline.ts:1422-1459`).
 
 _(`recorder/timelineActions.ts:193-217`; guarded by
 `timelineActions.test.ts:439` "records paused previous/next buttons as
-deterministic frame actions" and `recorder.test.ts:1987` "records direct Play
+deterministic frame actions" and `recorder.test.ts:1988` "records direct Play
 and Pause as steps that pin the frame".)_
 
 ### REQ-RR-013 — Action timestamps are non-decreasing
@@ -247,7 +247,7 @@ and Pause as steps that pin the frame".)_
 `validateSession` shall reject the whole session. Equal timestamps are accepted:
 that is how a companion pair says it is one gesture and not two.
 
-_(`recorder/schema.ts:308-317`, `:343-350`; guarded by `recorder.test.ts:1658`
+_(`recorder/schema.ts:308-317`, `:343-350`; guarded by `recorder.test.ts:1659`
 "rejects malformed payloads".)_
 
 ### REQ-RR-014 — Only registry-shaped command ids, never history commands
@@ -258,7 +258,7 @@ _(`recorder/schema.ts:308-317`, `:343-350`; guarded by `recorder.test.ts:1658`
 or `history.redo`, **then** `validateSession` shall reject the whole session
 rather than let an imported file operate on the viewer's own history stacks.
 
-_(`recorder/schema.ts:48-71`, `:364-374`; guarded by `recorder.test.ts:1434`
+_(`recorder/schema.ts:48-71`, `:364-374`; guarded by `recorder.test.ts:1435`
 "accepts bounded symmetry edges and rejects imported history commands".)_
 
 ### REQ-RR-015 — Every session field is bounded before it is retained
@@ -272,7 +272,7 @@ at most 16 — the last so a hostile zero-gap session cannot force hundreds of
 synchronous Web Audio graph rebuilds on replay.
 
 _(`recorder/schema.ts:25-40`, `:73-112`, `:308-349`; guarded by
-`recorder.test.ts:1658` "rejects malformed payloads" and `:1819` "bounds
+`recorder.test.ts:1659` "rejects malformed payloads" and `:1820` "bounds
 synchronous sonification model graph transitions".)_
 
 ### REQ-RR-016 — Untrusted payloads are rejected, not silently normalized
@@ -285,7 +285,7 @@ and migrates older saves), **then** the whole session shall be rejected, rather
 than accepted as a different, quietly repaired session.
 
 _(`recorder/schema.ts:117-175`, `:289-306`, `:351-356`, `:376-378`; guarded for
-the round-trip half by `recorder.test.ts:1637` "round-trips through
+the round-trip half by `recorder.test.ts:1638` "round-trips through
 serialize/parse".)_
 
 ### REQ-RR-017 — Snapshot origins are a closed vocabulary
@@ -312,7 +312,7 @@ close any batch it had opened.
 
 _(`recorder/replay.ts:156-168`, `recorder/replayVideo.ts:483-497`; guarded by
 `player.test.ts:1142` "preflights every action before opening a batch or loading
-state", `replayVideo.test.ts:150`, `recorder.test.ts:1534` and
+state", `replayVideo.test.ts:150`, `recorder.test.ts:1535` and
 `player.test.ts:1117`.)_
 
 ### REQ-RR-019 — A replay is invisible to the recorder and lands as one undo step
@@ -626,7 +626,7 @@ a replay rebuilds from the baseline, the workspace target shall pause first,
 because every take starts paused. `execute_command` shall refuse the step live
 (`agentCallable: false`).
 
-_(`utils/timeline.ts:1422-1459`, `:1479-1509`, `recorder/recorder.ts:870-921`,
+_(`utils/timeline.ts:1422-1459`, `:1479-1509`, `recorder/recorder.ts:873-924`,
 `commands/builtins/timeline.ts:503-528`, `commands/registry.ts:589-593`,
 `hooks/useWorkspaceReplay.ts:455-459`; guarded by `timelineActions.test.ts:613`
 "records Space pressed twice as two steps and replays to the paused frame",
@@ -646,18 +646,20 @@ nothing left to undo, a history with no journal stamps). A finished session
 shall carry them as `uncapturedSteps`, in order, next to the count, which stays
 for readers that predate the list. The list shall name at most as many steps
 as a take can hold actions and shall never name more steps than the count;
-`validateSession` shall refuse a file that does. **When** the take stops with
-any, the recorder shall write the named list to the console. The recorder
+`validateSession` shall refuse a file that does. While a take records, the
+recorder shall hold no more names than that and count the rest, so a flood of
+unrouted writes moves only the count. **When** the take stops with any, the
+recorder shall write the named list to the console. The recorder
 controls (while recording), each library entry and the replay panel shall open
 the count into the list, each line reading "reason, at m:ss"; **if** a session
 carries a count but no list, **then** they shall say "Details were not saved by
 the version that recorded it."
 
-_(`recorder/uncapturedSteps.ts:37-74`, `:94-148`, `recorder/recorder.ts:210`,
-`:222`, `:463-464`, `:735-744`, `:923-930`, `recorder/schema.ts:273-286`,
+_(`recorder/uncapturedSteps.ts:20-74`, `:94-148`, `recorder/recorder.ts:213`,
+`:225`, `:467-468`, `:739-749`, `:926-951`, `recorder/schema.ts:273-286`,
 `:338-340`, `:435-441`, `commands/builtins/history.ts:81-92`,
 `components/SessionRecorder/UncapturedSteps.tsx:18-45`; guarded by
-`recorder.test.ts:2072`, `:2105`, `:2119`, `:2132`, `:2151`, `:2163`,
+`recorder.test.ts:2073`, `:2106`, `:2120`, `:2133`, `:2152`, `:2181`, `:2193`,
 `uncapturedSteps.test.ts`, `SessionRecorderControls.test.tsx:277`,
 `SessionLibraryPanel.test.tsx:54`, `SessionReplayPanel.test.tsx:255`, `:282`.)_
 
@@ -698,15 +700,18 @@ a document that already has a weight shall keep it, whether or not it had a
 partner, and only a document with no weight shall start at the default; a
 weight it is given shall be held to 0..1 and win. The replay policy shall
 accept the one- and two-argument forms and refuse a weight outside 0..1. The
-creation synthesizer shall name the target's weight on the partner's step. The
-weight is the edited flame's share of the blend: 0 draws the partner alone.
+creation synthesizer shall name the target's weight on the partner's step, and
+shall treat a missing weight as 0, which is how everything that draws reads it:
+a partner saved without a weight is rebuilt at 0, without a snap. The weight is
+the edited flame's share of the blend: 0 draws the partner alone.
 
 _(`flame/blend.ts:17`, `hooks/useWorkspaceBlendPick.ts:43-99`,
-`commands/builtins/flame/coreCommands.ts:44-71`, `commands/registry.ts:288-296`,
-`recorder/synthesize/atoms.ts:523-557`, `MainWorkspace.tsx:1329-1334`; guarded
-by `useWorkspaceBlendPick.test.tsx:117`, `:155`, `:177`, `:196`, `:208`,
-`commands/builtins/flame/blend.test.ts:46`, `:55`, `:64`, `:83`, `:110` and
-`planCreation.test.ts:209`.)_
+`commands/builtins/flame/coreCommands.ts:36-75`, `commands/registry.ts:288-296`,
+`recorder/synthesize/atoms.ts:523-556`, `canonical.ts:19-56`,
+`MainWorkspace.tsx:1329-1334`; guarded by `useWorkspaceBlendPick.test.tsx:117`,
+`:155`, `:177`, `:196`, `:208`, `commands/builtins/flame/blend.test.ts:52`,
+`:68`, `:79`, `:88`, `:116`, `:143` and `planCreation.test.ts:209`, `:230`,
+`:252`.)_
 
 ---
 
@@ -719,7 +724,7 @@ unguarded.
 
 | ID         | Why it is unguarded                                                                                                                                            |
 | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| REQ-RR-007 | The Arcade-pilot exemption for seeks (`recorder.ts:861`) has no test of its own; the same exemption for Play and Pause is guarded (REQ-RR-040).                |
+| REQ-RR-007 | The Arcade-pilot exemption for seeks (`recorder.ts:864`) has no test of its own; the same exemption for Play and Pause is guarded (REQ-RR-040).                |
 | REQ-RR-011 | The facade is tested; the **MainWorkspace wiring** that decides whether the facade is used at all is not — which is exactly how its known deviation shipped.   |
 | REQ-RR-016 | Nothing constructs a prototype-bearing `paletteRestoreColors` and asserts the session is rejected rather than emptied.                                         |
 | REQ-RR-027 | `focusPreparation.test.ts` covers derivation only. Nothing tests `useWorkspaceReplay.ts:365-435`, which applies it — that hook has no test file.               |
