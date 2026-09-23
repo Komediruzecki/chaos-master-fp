@@ -173,6 +173,10 @@ jobs:
     # is what gives the six coverage_* keys a value. Without it the ratchet
     # skips them, and nothing in CI held a coverage floor. The app suite
     # builds the same program as the build job, so it gets the same heap.
+    # Instrumented, the whole-tree scans run slower: the first run of this step
+    # timed out eagerComputationOrder.test.ts's in-file scan at 5.5 s against
+    # vitest's 5 s default (1.5 s for the whole file without coverage), so
+    # `pnpm test:coverage` gives the app suite a 30 s test timeout.
     - name: Measure coverage
       run: pnpm test:coverage
       env:
