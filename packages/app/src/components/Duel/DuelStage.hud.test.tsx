@@ -7,6 +7,7 @@ import { duelJudge, scoreSheetJudge } from '@/arcade/duelJudge'
 import { resetPilot } from '@/arcade/pilot'
 import { createMockCommandContext, createTestFlame } from '@/webmcp/testUtils'
 import { DuelStage } from './DuelStage'
+import type { v2f } from 'typegpu/data'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 
 // The seats mount WebGPU canvases; the stub prints the score each seat is given,
@@ -52,7 +53,7 @@ describe('DuelStage live score', () => {
         ctx={createMockCommandContext()}
         playerFlame={() => player}
         playerZoom={createSignal(1)}
-        playerPosition={createSignal({ x: 0, y: 0 } as never)}
+        playerPosition={createSignal({ x: 0, y: 0 } as unknown as v2f)}
         playerCamera3D={{} as never}
         quality={1}
         adaptiveFilter={false}

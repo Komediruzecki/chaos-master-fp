@@ -45,7 +45,7 @@ function mountArena() {
   }
   let timeline: Timeline | undefined
   const Probe = () => {
-    timeline = useTimeline()
+    timeline = useTimeline() ?? undefined
     return null
   }
   const [mounted, setMounted] = createSignal(true)
