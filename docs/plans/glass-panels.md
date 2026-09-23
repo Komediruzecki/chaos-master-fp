@@ -2,15 +2,19 @@
 
 Status: decided 2026-09-23 (section 2). Phases 0 to 2 are built on `feat/glass-panels`;
 phases 3 and 4 come later. Drafted from a survey of every panel, menu, dialog and overlay in
-`packages/app/src` at `29866ebb`; line references are from that survey and may have moved.
-Paths below are relative to `packages/app/src`.
+`packages/app/src`. Its line references are pinned to `9fc08078`, the fork main that phase 0
+started from, where every cited file is as the survey read it; the phases have moved them
+since. Paths below are relative to `packages/app/src`.
+
+<!-- cite-check: pinned 9fc08078 -->
 
 Goal: give the other panels, tablet and phone first, the semi-transparent glossy look of the
 explorer's side panel, without losing legibility over bright flames or frame rate on phones.
 
 ## The short version
 
-- The look is already a token set: `--la-glass*` in `styles/designSystem/lumen.css:63-72`. Only
+- The look is already a token set, `--la-glass` and its variants in
+  `styles/designSystem/lumen.css:63-72`. Only
   5 files use it. 35 other files hand-roll 59 blur rules of their own (7 copied recipe families,
   44 of them missing the `-webkit-` twin), so step one is one shared primitive, not new CSS.
 - The design rule written next to those tokens says the opposite of this request: "ONE glass
