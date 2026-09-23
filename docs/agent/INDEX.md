@@ -30,7 +30,7 @@ file instead of rediscovering the architecture every session.
 
 | Directory                 | Package name                   | Source files | LOC    |
 | ------------------------- | ------------------------------ | ------------ | ------ |
-| `packages/app`            | `chaos-master`                 | 1081         | 183.7k |
+| `packages/app`            | `chaos-master`                 | 1081         | 183.6k |
 | `packages/landing`        | `@chaos-master/landing`        | 20           | 2.5k   |
 | `packages/core`           | `@chaos-master/core`           | 17           | 1.9k   |
 | `packages/mobile-runtime` | `@chaos-master/mobile-runtime` | 7            | 600    |
@@ -231,10 +231,10 @@ file instead of rediscovering the architecture every session.
 | [playWindowPace.ts](../../packages/app/src/recorder/playWindowPace.ts)             | 200  | The pace a replay plays a take's play windows at (recorder/playWindows.ts).                                                                  |
 | [snapshotOrigin.ts](../../packages/app/src/recorder/snapshotOrigin.ts)             | 200  | Why a value-pinned snapshot exists.                                                                                                          |
 | [uncapturedSteps.ts](../../packages/app/src/recorder/uncapturedSteps.ts)           | 200  | The steps a take could not record, by name.                                                                                                  |
-| [playerPlayWindows.ts](../../packages/app/src/recorder/playerPlayWindows.ts)       | 150  | The replay player's half of a play window (recorder/playWindows.ts).                                                                         |
 | [playWindows.ts](../../packages/app/src/recorder/playWindows.ts)                   | 150  | Play windows: the stretches of a take in which its timeline was playing.                                                                     |
 | [sonificationState.ts](../../packages/app/src/recorder/sonificationState.ts)       | 150  | Sonification is authored output state, but it is not part of the flame document.                                                             |
 | [documentWriteHook.ts](../../packages/app/src/recorder/documentWriteHook.ts)       | 100  | A leaf seam between document owners and the recorder.                                                                                        |
+| [playerPlayWindows.ts](../../packages/app/src/recorder/playerPlayWindows.ts)       | 100  | The replay player's half of a play window (recorder/playWindows.ts): across a gap the take spent playing, wait the take's own time, run a... |
 | [replaySideState.ts](../../packages/app/src/recorder/replaySideState.ts)           | 100  | Editor-only state that follow-cam may change while revealing a target.                                                                       |
 | [types.ts](../../packages/app/src/recorder/types.ts)                               | 100  | The session recorder's public types, apart from the module that implements them: what a recording starts from, what a command must expose... |
 
