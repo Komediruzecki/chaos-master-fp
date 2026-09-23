@@ -5,6 +5,7 @@
  *
  *   #mandelbrot?re=-0.75&im=0&z=0.4&it=1000&p=<palette id>
  *   #julia?re=0&im=0&z=0&cre=-0.8&cim=0.156&it=1000
+ *   #mandelbrot?re=-0.75&im=0&z=0.4&cre=-0.8&cim=0.156&jre=0&jim=0&jz=0&split=1&it=1000
  *
  * Parsing is forgiving: anything missing or malformed falls back to the
  * default for that field instead of rejecting the whole link.
@@ -26,6 +27,13 @@ export interface ExplorerLocation {
   readonly juliaC: ComplexString
   readonly maxIterations: number
   readonly paletteId: string | undefined
+  /**
+   * The Mandelbrot set and the Julia set of `juliaC` side by side. `view` is
+   * then the Mandelbrot pane's, `juliaView` the Julia pane's, and `kind` is
+   * always 'mandelbrot'.
+   */
+  readonly split: boolean
+  readonly juliaView: DeepZoomView
 }
 
 export const DEFAULT_JULIA_C: ComplexString = { re: '-0.8', im: '0.156' }
@@ -61,6 +69,8 @@ export const DEFAULT_LOCATION: ExplorerLocation = {
   juliaC: DEFAULT_JULIA_C,
   maxIterations: DEFAULT_MAX_ITERATIONS,
   paletteId: undefined,
+  split: false,
+  juliaView: JULIA_HOME,
 }
 
 /**
@@ -87,23 +97,46 @@ function finite(text: string | null): number | undefined {
   return Number.isFinite(value) ? value : undefined
 }
 
+/** A view from three parameters, each falling back to `home` on its own. */
+function parseView(
+  params: URLSearchParams,
+  keys: readonly [re: string, im: string, zoom: string],
+  home: DeepZoomView,
+): DeepZoomView {
+  const zoom = finite(params.get(keys[2]))
+  return {
+    centerRe: explorerDecimal(params.get(keys[0])) ?? home.centerRe,
+    centerIm: explorerDecimal(params.get(keys[1])) ?? home.centerIm,
+    zoomLog2: zoom === undefined ? home.zoomLog2 : clampZoomLog2(zoom),
+  }
+}
+
+function setView(
+  params: URLSearchParams,
+  keys: readonly [re: string, im: string, zoom: string],
+  view: DeepZoomView,
+): void {
+  params.set(keys[0], view.centerRe)
+  params.set(keys[1], view.centerIm)
+  // Four decimals of an octave: finer than a wheel notch, short in a link.
+  params.set(keys[2], String(Math.round(view.zoomLog2 * 1e4) / 1e4))
+}
+
+const VIEW_KEYS = ['re', 'im', 'z'] as const
+const JULIA_VIEW_KEYS = ['jre', 'jim', 'jz'] as const
+
 export function parseExplorerHash(hash: string): ExplorerLocation {
   const body = hash.startsWith('#') ? hash.slice(1) : hash
   const q = body.indexOf('?')
   const head = q < 0 ? body : body.slice(0, q)
   const params = new URLSearchParams(q < 0 ? '' : body.slice(q + 1))
-  const kind: FractalKind = head === 'julia' ? 'julia' : 'mandelbrot'
-  const home = homeView(kind)
-  const zoom = finite(params.get('z'))
+  const split = params.get('split') === '1'
+  const kind: FractalKind = head === 'julia' && !split ? 'julia' : 'mandelbrot'
   const iterations = finite(params.get('it'))
   const palette = params.get('p')
   return {
     kind,
-    view: {
-      centerRe: explorerDecimal(params.get('re')) ?? home.centerRe,
-      centerIm: explorerDecimal(params.get('im')) ?? home.centerIm,
-      zoomLog2: zoom === undefined ? home.zoomLog2 : clampZoomLog2(zoom),
-    },
+    view: parseView(params, VIEW_KEYS, homeView(kind)),
     juliaC: {
       re: explorerDecimal(params.get('cre')) ?? DEFAULT_JULIA_C.re,
       im: explorerDecimal(params.get('cim')) ?? DEFAULT_JULIA_C.im,
@@ -114,20 +147,24 @@ export function parseExplorerHash(hash: string): ExplorerLocation {
         : clampIterations(iterations),
     paletteId:
       palette !== null && /^[\w-]{1,64}$/.test(palette) ? palette : undefined,
+    split,
+    juliaView: parseView(params, JULIA_VIEW_KEYS, JULIA_HOME),
   }
 }
 
 export function formatExplorerHash(location: ExplorerLocation): string {
   const params = new URLSearchParams()
-  params.set('re', location.view.centerRe)
-  params.set('im', location.view.centerIm)
-  // Four decimals of an octave: finer than a wheel notch, short in a link.
-  params.set('z', String(Math.round(location.view.zoomLog2 * 1e4) / 1e4))
-  if (location.kind === 'julia') {
+  const kind = location.split ? 'mandelbrot' : location.kind
+  setView(params, VIEW_KEYS, location.view)
+  if (kind === 'julia' || location.split) {
     params.set('cre', location.juliaC.re)
     params.set('cim', location.juliaC.im)
   }
+  if (location.split) {
+    setView(params, JULIA_VIEW_KEYS, location.juliaView)
+    params.set('split', '1')
+  }
   params.set('it', String(location.maxIterations))
   if (location.paletteId !== undefined) params.set('p', location.paletteId)
-  return `#${location.kind}?${params.toString()}`
+  return `#${kind}?${params.toString()}`
 }

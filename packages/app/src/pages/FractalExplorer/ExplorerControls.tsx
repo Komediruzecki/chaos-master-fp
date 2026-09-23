@@ -8,20 +8,21 @@ import { PaletteSelector } from '@/components/PaletteSelector/PaletteSelector'
 import { Slider } from '@/components/Sliders/Slider'
 import { Copy, DeepZoom, Download, Home, Minus, Plus } from '@/icons'
 import ui from './FractalExplorerPage.module.css'
-import type { ComplexString, ExplorerLocation, FractalKind, } from '@chaos-master/core'
+import type { ComplexString, ExplorerLocation } from '@chaos-master/core'
 import type { ExplorerStatus } from './ExplorerRenderer'
-import type { Quality } from './FractalExplorerPage'
+import type { ExplorerMode, Quality } from './FractalExplorerPage'
 import type { Palette } from '@/flame/colorMap'
 
 export interface ExplorerControlsProps {
   location: ExplorerLocation
+  mode: ExplorerMode
   status: ExplorerStatus | undefined
   palette: Palette
   period: number
   phase: number
   relief: number
   quality: Quality
-  onKind: (kind: FractalKind) => void
+  onMode: (mode: ExplorerMode) => void
   onJuliaC: (c: ComplexString) => void
   onJuliaHere: () => void
   onIterations: (n: number) => void
@@ -35,9 +36,10 @@ export interface ExplorerControlsProps {
   onSave: () => void
 }
 
-const KINDS: { id: FractalKind; label: string }[] = [
+const MODES: { id: ExplorerMode; label: string }[] = [
   { id: 'mandelbrot', label: 'Mandelbrot' },
   { id: 'julia', label: 'Julia' },
+  { id: 'split', label: 'Both' },
 ]
 
 const QUALITIES: { id: Quality; label: string }[] = [
@@ -130,27 +132,13 @@ export function ExplorerControls(props: ExplorerControlsProps) {
       <section class={ui.section}>
         <Segmented
           label="Fractal"
-          options={KINDS}
-          value={props.location.kind}
-          onChange={(kind) => {
-            props.onKind(kind)
+          options={MODES}
+          value={props.mode}
+          onChange={(mode) => {
+            props.onMode(mode)
           }}
         />
-        <Show
-          when={props.location.kind === 'julia'}
-          fallback={
-            <button
-              type="button"
-              class={ui.action}
-              onClick={() => {
-                props.onJuliaHere()
-              }}
-            >
-              <DeepZoom />
-              Julia set of the view centre
-            </button>
-          }
-        >
+        <Show when={props.mode !== 'mandelbrot'}>
           <div class={ui.pair}>
             <DecimalField
               label="c, real"
@@ -167,6 +155,20 @@ export function ExplorerControls(props: ExplorerControlsProps) {
               }}
             />
           </div>
+        </Show>
+        <Show when={props.mode !== 'julia'}>
+          <button
+            type="button"
+            class={ui.action}
+            onClick={() => {
+              props.onJuliaHere()
+            }}
+          >
+            <DeepZoom />
+            {props.mode === 'split'
+              ? 'Move the point to the view centre'
+              : 'Julia set of the view centre'}
+          </button>
         </Show>
       </section>
 
@@ -290,6 +292,9 @@ export function ExplorerControls(props: ExplorerControlsProps) {
         <p class={ui.hint}>
           Drag to pan. Scroll or pinch to zoom. Double-click zooms in, with
           Shift out.
+          {props.mode === 'split'
+            ? ' Drag the ring on the Mandelbrot set, or drag there with the right mouse button, to choose c.'
+            : ''}
         </p>
       </section>
 

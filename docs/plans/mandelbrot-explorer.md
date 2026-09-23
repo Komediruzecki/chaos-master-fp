@@ -314,20 +314,42 @@ without BLA, for both set kinds.
 | `orbitClient.ts`           | Worker requests, stale-result dropping                          |
 | `explorerLocation.ts`      | Location signal kept in step with the URL fragment              |
 | `explorerPalette.ts`       | App palette -> mirrored OkLab (a, b) lookup table               |
+| `JuliaMarker.tsx`          | The split view's point: the Julia constant, dragged on the set  |
 
 Routing: `/explore` (new branch in `index.tsx`, `routing/appPath.ts`, a
 trailing-slash redirect in the Cloudflare worker). Entry points: the desktop
 version menu next to Benchmark Lab, and the shared More menu. View state lives
 in the URL **fragment** (never sent to the server or GA).
 
-Controls as built: Mandelbrot / Julia; "Julia set of the view centre"; the
-Julia constant; iteration limit (halve, double, or type); palette
+Controls as built: Mandelbrot / Julia / Both; "Julia set of the view
+centre"; the Julia constant; iteration limit (halve, double, or type); palette
 (`PaletteSelector`), colour cycle and shift; relief (distance shading);
 quality (pixel budget and supersamples); home; copy link; save PNG. Readout:
 magnification, progress, reference state. Input: wheel zooms at the pointer,
 drag pans, pinch, double-click zooms in (Shift: out), `+`/`-`/arrows. Not
 built yet: automatic iteration limit from depth, a BLA toggle, copy
 coordinates, `r`/`j` shortcuts.
+
+Split view ("Both", or the HUD toggle): the Mandelbrot set beside the Julia
+set of a point, stacked on a portrait screen. The point is a ring on the
+Mandelbrot pane; drag it, move it with the arrow keys, or drag with the
+right mouse button anywhere on the pane, as maff's thesis version did, and
+the Julia pane redraws as it moves.
+
+- Each pane is its own `ExplorerRenderer` with its own worker, and each gets
+  half the pixel budget, so the split costs what one full view does. The
+  Mandelbrot pane's restart key leaves c out, so moving the point never
+  restarts it.
+- The ring works in CSS pixels from the pane centre through the core's
+  `pointAt` and `centerOffsetPixels`, so c is exact at any depth. Off screen,
+  the ring waits at the nearest edge.
+- The link carries both panes: `split=1`, the Mandelbrot view in
+  `re`/`im`/`z`, the point in `cre`/`cim` and the Julia pane's view in
+  `jre`/`jim`/`jz`.
+- Measured in headed Chrome (RDNA 4, 617 x 900 px per pane, 1000
+  iterations): while the point is dragged at 60 Hz, the Julia pane finishes
+  a full pass after 37 of 40 moves, 5-9 ms each, and the Mandelbrot pane
+  takes no steps.
 
 ---
 
@@ -357,8 +379,8 @@ coordinates, `r`/`j` shortcuts.
 
 1. **Minibrot finder**: period from atom domains, Newton on `z_p(c) = 0` in
    BigInt [29]; also the natural reference for interior-heavy views.
-2. **Linked Julia preview**: live `J_c` inset for the `c` under the pointer
-   (maff's thesis did this in WebGL — `~/Documents/root/1-Projects/fractals-final`,
+2. **Linked Julia preview**: built as the split view (§5.2), after maff's
+   thesis version (`~/Documents/root/1-Projects/fractals-final`,
    `js/initJulia&Mandelbrot.js`).
 3. **Buddhabrot in the chaos-game pipeline** (§1.3), and an IIM/MIIM Julia
    example flame (§1.2).

@@ -1,12 +1,16 @@
 /**
  * The deep-zoom explorer page: a full-bleed canvas, a heads-up readout and
- * a settings panel. The picture itself is `ExplorerRenderer`; this file only
+ * a settings panel. The pictures are `ExplorerRenderer`s; this file only
  * owns the state a person can change and how it is shown.
+ *
+ * The split view puts the Julia set of a point beside the Mandelbrot set. A
+ * second renderer draws it, and dragging the point (`JuliaMarker`) across
+ * the Mandelbrot pane changes it as you watch.
  */
-import { formatMagnification, homeView, JULIA_HOME } from '@chaos-master/core'
+import { centerOffsetPixels, formatMagnification, homeView, JULIA_HOME, MANDELBROT_HOME, } from '@chaos-master/core'
 import { createMemo, createSignal, Show } from 'solid-js'
 import { useToast } from '@/contexts/ToastContext'
-import { ChevronLeft, Settings } from '@/icons'
+import { ChevronLeft, Settings, SplitView } from '@/icons'
 import { AutoCanvas } from '@/lib/AutoCanvas'
 import { downloadBlob } from '@/utils/blob'
 import { ExplorerControls } from './ExplorerControls'
@@ -14,12 +18,17 @@ import { createExplorerLocation } from './explorerLocation'
 import { resolvePalette } from './explorerPalette'
 import { ExplorerRenderer } from './ExplorerRenderer'
 import ui from './FractalExplorerPage.module.css'
+import { JuliaMarker, shortComplex } from './JuliaMarker'
+import type { ComplexString, DeepZoomView, FractalKind, } from '@chaos-master/core'
 import type { ExplorerGpu } from './explorerGpu'
-import type { ExplorerStatus } from './ExplorerRenderer'
+import type { ExplorerScene, ExplorerStatus } from './ExplorerRenderer'
 import type { ColourSetup } from './explorerTypes'
 import type { Palette } from '@/flame/colorMap'
 
 export type Quality = 'fast' | 'balanced' | 'sharp'
+
+/** One fractal, or the Mandelbrot set beside the Julia set of a point. */
+export type ExplorerMode = FractalKind | 'split'
 
 /** Render pixels at most, and supersamples per pixel once finished. */
 const QUALITY: Record<Quality, { pixels: number; samples: number }> = {
@@ -27,6 +36,56 @@ const QUALITY: Record<Quality, { pixels: number; samples: number }> = {
   balanced: { pixels: 2_200_000, samples: 8 },
   sharp: { pixels: 4_200_000, samples: 16 },
 }
+
+type ReadDisplay = ExplorerGpu['readDisplay']
+type Shot = NonNullable<Awaited<ReturnType<ReadDisplay>>>
+
+/**
+ * Is the point well inside the square every pane shows around its centre?
+ * The nominal 1000 px cancels out: the test is in units of the smaller pane
+ * dimension, and exact at any depth.
+ */
+function showsPoint(view: DeepZoomView, point: ComplexString): boolean {
+  const offset = centerOffsetPixels(view, point, 1000)
+  return Math.abs(offset.x) < 400 && Math.abs(offset.y) < 400
+}
+
+/** Pictures side by side, or stacked, on one canvas. */
+function drawShots(
+  shots: readonly Shot[],
+  sideBySide: boolean,
+): HTMLCanvasElement | undefined {
+  const widths = shots.map((s) => s.size.width)
+  const heights = shots.map((s) => s.size.height)
+  const sum = (values: number[]) => values.reduce((a, b) => a + b, 0)
+  const canvas = document.createElement('canvas')
+  canvas.width = sideBySide ? sum(widths) : Math.max(...widths)
+  canvas.height = sideBySide ? Math.max(...heights) : sum(heights)
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return undefined
+  let at = 0
+  for (const shot of shots) {
+    const { width, height } = shot.size
+    const image = new ImageData(shot.data, width, height)
+    ctx.putImageData(image, sideBySide ? at : 0, sideBySide ? 0 : at)
+    at += sideBySide ? width : height
+  }
+  return canvas
+}
+
+function ProgressBar(props: { value: number }) {
+  return (
+    <div
+      class={ui.progress}
+      style={{ transform: `scaleX(${props.value})` }}
+      data-done={props.value >= 1 ? '' : undefined}
+      aria-hidden="true"
+    />
+  )
+}
+
+const PAN_HINT =
+  'Drag or use the arrow keys to pan; scroll, pinch or press plus and minus to zoom.'
 
 export function FractalExplorerPage() {
   const { showToast } = useToast()
@@ -46,17 +105,40 @@ export function FractalExplorerPage() {
       window.matchMedia('(min-width: 900px)').matches,
   )
   const [status, setStatus] = createSignal<ExplorerStatus | undefined>()
-  let readDisplay: ExplorerGpu['readDisplay'] | undefined
+  const [juliaStatus, setJuliaStatus] = createSignal<
+    ExplorerStatus | undefined
+  >()
+  const readers: { main?: ReadDisplay; julia?: ReadDisplay } = {}
+  let mainPane: HTMLDivElement | undefined
+  let juliaPane: HTMLDivElement | undefined
 
-  const scene = createMemo(() => {
+  const split = () => location().split
+  const mode = (): ExplorerMode => (split() ? 'split' : location().kind)
+
+  const scene = createMemo<ExplorerScene>(() => {
     const l = location()
     return {
-      kind: l.kind,
+      kind: l.split ? 'mandelbrot' : l.kind,
       view: l.view,
       juliaC: l.juliaC,
       maxIterations: l.maxIterations,
     }
   })
+
+  const juliaScene = createMemo<ExplorerScene>(() => {
+    const l = location()
+    return {
+      kind: 'julia',
+      view: l.juliaView,
+      juliaC: l.juliaC,
+      maxIterations: l.maxIterations,
+    }
+  })
+
+  // Each pane of the split gets half the pixels, so the two together cost
+  // what one full view does.
+  const pixelCap = () => QUALITY[quality()].pixels / (split() ? 2 : 1)
+  const samples = () => QUALITY[quality()].samples
 
   const colour = createMemo<ColourSetup>(() => ({
     period: period(),
@@ -66,9 +148,52 @@ export function FractalExplorerPage() {
     background: [0.05, 0.055, 0.07],
   }))
 
-  function selectPalette(next: Palette) {
-    setPicked(next)
-    update({ paletteId: next.id })
+  function setMode(next: ExplorerMode) {
+    const l = location()
+    if (next === mode()) return
+    if (next === 'split') {
+      update(
+        l.kind === 'julia'
+          ? {
+              split: true,
+              kind: 'mandelbrot',
+              view: MANDELBROT_HOME,
+              juliaView: l.view,
+            }
+          : {
+              split: true,
+              juliaView: JULIA_HOME,
+              // Keep c while it is on screen, or start from the middle.
+              juliaC: showsPoint(l.view, l.juliaC)
+                ? l.juliaC
+                : { re: l.view.centerRe, im: l.view.centerIm },
+            },
+      )
+    } else if (l.split) {
+      // Leaving the split keeps the pane asked for, just as it was.
+      update(
+        next === 'julia'
+          ? { split: false, kind: 'julia', view: l.juliaView }
+          : { split: false },
+      )
+    } else {
+      update({ kind: next, view: homeView(next) })
+    }
+  }
+
+  /** c from the view centre: the Julia set there, or the split's point. */
+  function juliaFromCentre() {
+    const l = location()
+    const juliaC = { re: l.view.centerRe, im: l.view.centerIm }
+    update(l.split ? { juliaC } : { kind: 'julia', juliaC, view: JULIA_HOME })
+  }
+
+  function goHome() {
+    update(
+      split()
+        ? { view: MANDELBROT_HOME, juliaView: JULIA_HOME }
+        : { view: homeView(location().kind) },
+    )
   }
 
   async function copyLink() {
@@ -83,62 +208,102 @@ export function FractalExplorerPage() {
   }
 
   async function savePicture() {
-    const shot = await readDisplay?.()
-    if (!shot) return
-    const canvas = document.createElement('canvas')
-    canvas.width = shot.size.width
-    canvas.height = shot.size.height
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    ctx.putImageData(
-      new ImageData(shot.data, shot.size.width, shot.size.height),
-      0,
-      0,
-    )
-    canvas.toBlob((blob) => {
+    const main = await readers.main?.()
+    if (!main) return
+    const julia = split() ? await readers.julia?.() : undefined
+    // Stacked panes (a portrait screen) save stacked.
+    const sideBySide =
+      !mainPane || !juliaPane || juliaPane.offsetLeft > mainPane.offsetLeft
+    const canvas = drawShots(julia ? [main, julia] : [main], sideBySide)
+    canvas?.toBlob((blob) => {
       if (!blob) return
       const zoom = formatMagnification(location().view.zoomLog2).replace(
         '.',
         '_',
       )
-      downloadBlob(blob, `${location().kind}-x${zoom}.png`)
+      const name = split() ? 'mandelbrot-julia' : location().kind
+      downloadBlob(blob, `${name}-x${zoom}.png`)
     }, 'image/png')
   }
 
   const progress = () => status()?.progress ?? 0
 
   return (
-    <div class={ui.page}>
+    <div
+      class={ui.page}
+      data-split={split() ? '' : undefined}
+      data-panel={panelOpen() ? '' : undefined}
+    >
       <div class={ui.stage}>
-        <AutoCanvas
-          class={ui.canvas}
-          pixelRatio={window.devicePixelRatio || 1}
-          role="application"
-          ariaLabel="Fractal view. Drag or use the arrow keys to pan; scroll, pinch or press plus and minus to zoom."
-        >
-          <ExplorerRenderer
-            scene={scene}
-            setView={(view) => {
-              update({ view })
-            }}
-            colour={colour}
-            palette={palette}
-            pixelCap={() => QUALITY[quality()].pixels}
-            samples={() => QUALITY[quality()].samples}
-            onStatus={setStatus}
-            onReady={(api) => {
-              readDisplay = api.readDisplay
-            }}
-          />
-        </AutoCanvas>
-      </div>
+        <div ref={mainPane} class={ui.pane}>
+          <AutoCanvas
+            class={ui.canvas}
+            pixelRatio={window.devicePixelRatio || 1}
+            role="application"
+            ariaLabel={
+              split()
+                ? `Mandelbrot set. ${PAN_HINT} Move the ring, or drag with the right mouse button, to choose the Julia set beside it.`
+                : `Fractal view. ${PAN_HINT}`
+            }
+          >
+            <ExplorerRenderer
+              scene={scene}
+              setView={(view) => {
+                update({ view })
+              }}
+              colour={colour}
+              palette={palette}
+              pixelCap={pixelCap}
+              samples={samples}
+              onStatus={setStatus}
+              onReady={(api) => {
+                readers.main = api.readDisplay
+              }}
+            />
+            <Show when={split()}>
+              <JuliaMarker
+                view={() => location().view}
+                point={() => location().juliaC}
+                setPoint={(juliaC) => {
+                  update({ juliaC })
+                }}
+              />
+            </Show>
+          </AutoCanvas>
+          <ProgressBar value={progress()} />
+        </div>
 
-      <div
-        class={ui.progress}
-        style={{ transform: `scaleX(${progress()})` }}
-        data-done={progress() >= 1 ? '' : undefined}
-        aria-hidden="true"
-      />
+        <Show when={split()}>
+          <div ref={juliaPane} class={ui.pane}>
+            <AutoCanvas
+              class={ui.canvas}
+              pixelRatio={window.devicePixelRatio || 1}
+              role="application"
+              ariaLabel={`Julia set of the point. ${PAN_HINT}`}
+            >
+              <ExplorerRenderer
+                scene={juliaScene}
+                setView={(juliaView) => {
+                  update({ juliaView })
+                }}
+                colour={colour}
+                palette={palette}
+                pixelCap={pixelCap}
+                samples={samples}
+                onStatus={setJuliaStatus}
+                onReady={(api) => {
+                  readers.julia = api.readDisplay
+                }}
+                debugName="__explorerJuliaDebug"
+              />
+            </AutoCanvas>
+            <ProgressBar value={juliaStatus()?.progress ?? 0} />
+            <p class={ui.paneLabel}>
+              Julia set, c = {shortComplex(location().juliaC)}
+            </p>
+          </div>
+        </Show>
+      </div>
 
       <header class={ui.hud}>
         <a class={ui.iconButton} href="/" aria-label="Back to Chaos Master">
@@ -147,7 +312,11 @@ export function FractalExplorerPage() {
         <div class={ui.titleBlock}>
           <span class={ui.title}>Deep zoom</span>
           <span class={ui.subtitle}>
-            {location().kind === 'julia' ? 'Julia set' : 'Mandelbrot set'}
+            {split()
+              ? 'Mandelbrot and Julia'
+              : location().kind === 'julia'
+                ? 'Julia set'
+                : 'Mandelbrot set'}
           </span>
         </div>
         <dl class={ui.readouts}>
@@ -167,6 +336,17 @@ export function FractalExplorerPage() {
         <button
           type="button"
           class={ui.iconButton}
+          aria-label="Show the Julia set of a point beside the Mandelbrot set"
+          aria-pressed={split()}
+          onClick={() => {
+            setMode(split() ? 'mandelbrot' : 'split')
+          }}
+        >
+          <SplitView />
+        </button>
+        <button
+          type="button"
+          class={ui.iconButton}
           aria-label={panelOpen() ? 'Hide settings' : 'Show settings'}
           aria-expanded={panelOpen()}
           onClick={() => setPanelOpen((open) => !open)}
@@ -179,42 +359,30 @@ export function FractalExplorerPage() {
         <aside class={ui.panel} aria-label="Explorer settings">
           <ExplorerControls
             location={location()}
+            mode={mode()}
             status={status()}
             palette={palette()}
             period={period()}
             phase={phase()}
             relief={relief()}
             quality={quality()}
-            onKind={(kind) => {
-              update({
-                kind,
-                view: kind === 'julia' ? JULIA_HOME : homeView(kind),
-              })
-            }}
+            onMode={setMode}
             onJuliaC={(juliaC) => {
               update({ juliaC })
             }}
-            onJuliaHere={() => {
-              update({
-                kind: 'julia',
-                juliaC: {
-                  re: location().view.centerRe,
-                  im: location().view.centerIm,
-                },
-                view: JULIA_HOME,
-              })
-            }}
+            onJuliaHere={juliaFromCentre}
             onIterations={(maxIterations) => {
               update({ maxIterations })
             }}
-            onPalette={selectPalette}
+            onPalette={(next) => {
+              setPicked(next)
+              update({ paletteId: next.id })
+            }}
             onPeriod={setPeriod}
             onPhase={setPhase}
             onRelief={setRelief}
             onQuality={setQuality}
-            onHome={() => {
-              update({ view: homeView(location().kind) })
-            }}
+            onHome={goHome}
             onCopyLink={() => void copyLink()}
             onSave={() => void savePicture()}
           />

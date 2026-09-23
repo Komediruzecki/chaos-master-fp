@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { JULIA_HOME } from './deepZoomView'
 import { DEFAULT_LOCATION, explorerDecimal, formatExplorerHash, MAX_ITERATIONS, parseExplorerHash, } from './explorerUrl'
 import type { ExplorerLocation } from './explorerUrl'
 
@@ -14,8 +15,48 @@ describe('explorer URL fragment', () => {
       juliaC: { re: '-0.12256116687665', im: '0.74486176661974' },
       maxIterations: 5000,
       paletteId: 'fire-2',
+      split: false,
+      juliaView: JULIA_HOME,
     }
     expect(parseExplorerHash(formatExplorerHash(location))).toEqual(location)
+  })
+
+  it('round-trips a split view, both panes and the point', () => {
+    const location: ExplorerLocation = {
+      kind: 'mandelbrot',
+      view: {
+        centerRe: '-0.743643887037158704752191506114774',
+        centerIm: '0.131825904205311970493132056385139',
+        zoomLog2: 98.5,
+      },
+      juliaC: {
+        re: '-0.743643887037158704752191506114700',
+        im: '0.131825904205311970493132056385100',
+      },
+      maxIterations: 20000,
+      paletteId: undefined,
+      split: true,
+      juliaView: { centerRe: '0.125', centerIm: '-0.5', zoomLog2: 3.25 },
+    }
+    const hash = formatExplorerHash(location)
+    expect(hash).toMatch(/^#mandelbrot\?/)
+    expect(parseExplorerHash(hash)).toEqual(location)
+  })
+
+  it('reads a split link as the Mandelbrot pane, whatever its head says', () => {
+    const parsed = parseExplorerHash('#julia?re=0.25&im=0&z=1&split=1')
+    expect(parsed.split).toBe(true)
+    expect(parsed.kind).toBe('mandelbrot')
+    expect(parsed.view.centerRe).toBe('0.25')
+    expect(parsed.juliaView).toEqual(JULIA_HOME)
+  })
+
+  it('leaves the Julia pane out of a single-view link', () => {
+    const hash = formatExplorerHash({
+      ...DEFAULT_LOCATION,
+      juliaView: { centerRe: '1', centerIm: '1', zoomLog2: 4 },
+    })
+    expect(hash).not.toMatch(/jre=|jz=|split=/)
   })
 
   it('leaves the Julia constant out of a Mandelbrot link', () => {

@@ -55,6 +55,7 @@ import SkipBack from './skip-back.svg'
 import SkipForward from './skip-forward.svg'
 import Sparkle from './sparkle.svg'
 import Speech from './speech.svg'
+import SplitView from './split-view.svg'
 import Star from './star.svg'
 import Stop from './stop.svg'
 import Swords from './swords.svg'
@@ -131,4 +132,5 @@ export {
   TriangleAlert,
   VariationSpiral,
   Speech,
+  SplitView,
 }

@@ -1,4 +1,7 @@
-/* Deep-zoom explorer: a full-bleed canvas under glass HUD and panel. */
+/*
+ * Deep-zoom explorer: a full-bleed canvas under glass HUD and panel, or in
+ * split view two panes, the Mandelbrot set and the Julia set of its point.
+ */
 
 .page {
   position: fixed;
@@ -12,6 +15,39 @@
 .stage {
   position: absolute;
   inset: 0;
+  display: grid;
+}
+
+.page[data-split] .stage {
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  background: var(--la-hairline);
+}
+
+/* A portrait screen stacks the panes. */
+@media (orientation: portrait) {
+  .page[data-split] .stage {
+    grid-template-columns: none;
+    grid-template-rows: 1fr 1fr;
+  }
+}
+
+/* Beside the side panel rather than under it, so the Julia pane stays whole. */
+@media (min-width: 641px) {
+  .page[data-split][data-panel] .stage {
+    right: calc(
+      var(--la-safe-right) + 2 * var(--la-s-3) +
+        min(340px, calc(100vw - 2 * var(--la-s-3)))
+    );
+  }
+}
+
+.pane {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--la-void);
 }
 
 .canvas {
@@ -71,6 +107,23 @@
   box-shadow: var(--la-glass-shadow);
 }
 
+.paneLabel {
+  composes: glass;
+  position: absolute;
+  left: calc(var(--la-safe-left) + var(--la-s-3));
+  bottom: calc(var(--la-safe-bottom) + var(--la-s-3));
+  max-width: calc(100% - 2 * var(--la-s-3));
+  margin: 0;
+  padding: var(--la-s-1) var(--la-s-3);
+  border-radius: var(--la-r-pill);
+  font: var(--la-t-mono);
+  color: var(--la-ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
 .iconButton {
   composes: glass;
   display: inline-grid;
@@ -87,7 +140,8 @@
     height: 20px;
   }
 
-  &:hover {
+  &:hover,
+  &[aria-pressed='true'] {
     color: var(--la-accent);
   }
 

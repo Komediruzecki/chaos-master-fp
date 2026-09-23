@@ -74,16 +74,21 @@ export interface ExplorerRendererProps {
   onReady?: (api: {
     readDisplay: ReturnType<typeof createExplorerGpu>['readDisplay']
   }) => void
+  /** DEV builds: the global the debug handle is published under. */
+  debugName?: string
 }
 
 function targetKey(t: ExplorerTarget): string {
+  // The Mandelbrot set does not depend on c, so moving the split view's
+  // point must not restart its picture.
+  const c = t.kind === 'julia' ? t.juliaC : { re: '', im: '' }
   return [
     t.kind,
     t.view.centerRe,
     t.view.centerIm,
     t.view.zoomLog2,
-    t.juliaC.re,
-    t.juliaC.im,
+    c.re,
+    c.im,
     t.maxIterations,
     t.width,
     t.height,
@@ -464,9 +469,9 @@ export function ExplorerRenderer(props: ExplorerRendererProps) {
   props.onReady?.({ readDisplay: gpu.readDisplay })
 
   if (import.meta.env.DEV) {
-    ;(
-      globalThis as typeof globalThis & { __explorerDebug?: unknown }
-    ).__explorerDebug = {
+    const name = props.debugName ?? '__explorerDebug'
+    const globals = globalThis as unknown as Record<string, unknown>
+    const handle = {
       readPixels: () => gpu.readPixels(),
       readDisplay: () => gpu.readDisplay(),
       grid: () => grid,
@@ -484,9 +489,10 @@ export function ExplorerRenderer(props: ExplorerRendererProps) {
         return { x: o.x + jitter.x, y: o.y + jitter.y }
       },
     }
+    globals[name] = handle
     onCleanup(() => {
-      delete (globalThis as typeof globalThis & { __explorerDebug?: unknown })
-        .__explorerDebug
+      // Another renderer may have published under the same name since.
+      if (globals[name] === handle) delete globals[name]
     })
   }
 

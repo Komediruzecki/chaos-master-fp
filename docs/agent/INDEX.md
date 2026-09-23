@@ -30,8 +30,8 @@ file instead of rediscovering the architecture every session.
 
 | Directory                 | Package name                   | Source files | LOC    |
 | ------------------------- | ------------------------------ | ------------ | ------ |
-| `packages/app`            | `chaos-master`                 | 1095         | 187.1k |
-| `packages/core`           | `@chaos-master/core`           | 26           | 3.6k   |
+| `packages/app`            | `chaos-master`                 | 1096         | 187.4k |
+| `packages/core`           | `@chaos-master/core`           | 26           | 3.7k   |
 | `packages/landing`        | `@chaos-master/landing`        | 20           | 2.5k   |
 | `packages/mobile-runtime` | `@chaos-master/mobile-runtime` | 7            | 600    |
 | `packages/mobile`         | `@chaos-master/mobile`         | 1            | 50     |
@@ -112,9 +112,9 @@ file instead of rediscovering the architecture every session.
 | `WelcomeScreen`         | [WelcomeScreen.tsx](../../packages/app/src/components/WelcomeScreen/WelcomeScreen.tsx)                         | 550  | _(no header comment)_                                                                                                                        |
 | `EvolutionChamber`      | [EvolutionChamber.tsx](../../packages/app/src/components/EvolutionChamber/EvolutionChamber.tsx)                | 500  | _(no header comment)_                                                                                                                        |
 | `AncestryTreeModal`     | [AncestryTreeModal.tsx](../../packages/app/src/components/AncestryTreeModal/AncestryTreeModal.tsx)             | 450  | _(no header comment)_                                                                                                                        |
-| `CustomPaletteEditor`   | [CustomPaletteEditor.tsx](../../packages/app/src/components/CustomPaletteEditor/CustomPaletteEditor.tsx)       | 450  | Interactive custom palette editor.                                                                                                           |
 | `ViewControls`          | [ViewControls.tsx](../../packages/app/src/components/ViewControls/ViewControls.tsx)                            | 450  | _(no header comment)_                                                                                                                        |
 | `BreedGallery`          | [BreedGallery.tsx](../../packages/app/src/components/BreedGallery/BreedGallery.tsx)                            | 400  | _(no header comment)_                                                                                                                        |
+| `CustomPaletteEditor`   | [CustomPaletteEditor.tsx](../../packages/app/src/components/CustomPaletteEditor/CustomPaletteEditor.tsx)       | 400  | Interactive custom palette editor.                                                                                                           |
 | `DataManagement`        | [DataManagement.tsx](../../packages/app/src/components/DataManagement/DataManagement.tsx)                      | 400  | _(no header comment)_                                                                                                                        |
 | `DiscordShareModal`     | [DiscordShareModal.tsx](../../packages/app/src/components/DiscordShareModal/DiscordShareModal.tsx)             | 400  | _(no header comment)_                                                                                                                        |
 | `WorkspaceModalsHost`   | [index.ts](../../packages/app/src/components/WorkspaceModalsHost/index.ts)                                     | 400  | _(no header comment)_                                                                                                                        |
@@ -162,7 +162,7 @@ file instead of rediscovering the architecture every session.
 | Module            | Entry point                                                                                     | LOC  | What it is                                                                                 |
 | ----------------- | ----------------------------------------------------------------------------------------------- | ---- | ------------------------------------------------------------------------------------------ |
 | `Benchmarks`      | [BenchmarksPage.tsx](../../packages/app/src/pages/Benchmarks/BenchmarksPage.tsx)                | 3.7k | _(no header comment)_                                                                      |
-| `FractalExplorer` | [FractalExplorerPage.tsx](../../packages/app/src/pages/FractalExplorer/FractalExplorerPage.tsx) | 3.1k | The deep-zoom explorer page: a full-bleed canvas, a heads-up readout and a settings panel. |
+| `FractalExplorer` | [FractalExplorerPage.tsx](../../packages/app/src/pages/FractalExplorer/FractalExplorerPage.tsx) | 3.4k | The deep-zoom explorer page: a full-bleed canvas, a heads-up readout and a settings panel. |
 
 #### Cloudflare Worker (`packages/app/src/worker/`) — backend routes
 
