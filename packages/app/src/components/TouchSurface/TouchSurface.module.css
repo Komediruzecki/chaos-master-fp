@@ -784,6 +784,12 @@
   background: var(--la-accent-wash);
 }
 
+/* With the Glass panels setting on, this panel sits on glass (the rail's
+   sheet past peek), where accent text falls to 3.85:1 over white-hot art. */
+:global(:root[data-glass-panels='on']) .searchToggleBtn {
+  color: var(--la-ink);
+}
+
 .variationsCarousel {
   display: flex;
   gap: 10px;
