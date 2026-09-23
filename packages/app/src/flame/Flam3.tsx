@@ -10,7 +10,6 @@ import { deepClone } from '@/utils/clone'
 import { createTimestampQuery } from '@/utils/createTimestampQuery'
 import { logTime } from '@/utils/logTime'
 import { exportTickIterations } from '@/utils/motionBlur'
-import { recordEntries } from '@/utils/record'
 import { applyTimelineToFlame } from '@/utils/timeline'
 import { vramTrack } from '@/utils/vramLog'
 import { Camera3DContext } from '../lib/Camera3DContext'
@@ -18,6 +17,7 @@ import { CameraContext } from '../lib/CameraContext'
 import { useCanvas } from '../lib/CanvasContext'
 import { useLiveRootContext } from '../lib/RootContext'
 import { createAdaptiveBlurPipeline } from './adaptiveBlurPipeline'
+import { clashTeamsOf, clashTeamsSignature } from './clashTeams'
 import { ColorGradingUniforms, createColorGradingPipeline, } from './colorGrading'
 import { createDensityEstimationPipeline } from './densityEstimationPipeline'
 import { drawModeToImplFn } from './drawMode'
@@ -25,6 +25,7 @@ import { createIFSPipeline } from './ifsPipeline'
 import { createIFSPipeline3D } from './ifsPipeline3D'
 import { createExportRenderDriver, createInteractiveRenderDriver, EXPORT_COUNT_SIGNAL_INTERVAL_MS, EXPORT_INITIAL_ITERATIONS, EXPORT_PRESENT_INTERVAL_MS, } from './renderDrivers'
 import { backgroundColorDefault, backgroundColorDefaultWhite, } from './schema/flameSchema'
+import { shaderShapeOf } from './shaderShape'
 import { Bucket, BUCKET_FIXED_POINT_MULTIPLIER, FilterParams } from './types'
 import type { v4f } from 'typegpu/data'
 import type { Palette } from './colorMap'
@@ -507,22 +508,9 @@ export function Flam3(props: Flam3Props) {
     const flame = animatedFlame()
     const bf = props.blendFlame
     return JSON.stringify({
-      transforms: recordEntries(flame.transforms).map(([tid, t]) => ({
-        tid,
-        variations: recordEntries(t.variations).map(([vid, v]) => ({
-          vid,
-          type: v.type,
-        })),
-      })),
-      ...(bf && {
-        blendTransforms: recordEntries(bf.transforms).map(([tid, t]) => ({
-          tid,
-          variations: recordEntries(t.variations).map(([vid, v]) => ({
-            vid,
-            type: v.type,
-          })),
-        })),
-      }),
+      ...clashTeamsSignature(clashTeamsOf(flame.transforms)),
+      transforms: shaderShapeOf(flame.transforms),
+      ...(bf && { blendTransforms: shaderShapeOf(bf.transforms) }),
       dimensions: flame.renderSettings.dimensions ?? 2,
       colorInitMode: flame.renderSettings.colorInitMode,
       pointInitMode: flame.renderSettings.pointInitMode,
@@ -807,6 +795,7 @@ export function Flam3(props: Flam3Props) {
       return JSON.stringify({
         dimensions: flame.renderSettings.dimensions ?? 2,
         transforms: flame.transforms,
+        clash: flame.renderSettings.clash,
         finalTransform: flame.finalTransform,
         colorInitMode: flame.renderSettings.colorInitMode,
         pointInitMode: flame.renderSettings.pointInitMode,

@@ -11,6 +11,7 @@ import { AffineParams, transformAffine } from './affineTranform'
 import { clashKernel, clashTeamsOf, clashTeamsSignature, clashTeamsUniformEntries, clashTeamValues, } from './clashTeams'
 import { colorInitModeToImplFn } from './colorInitMode'
 import { isPointInitMode2D, pointInitModeToImplFn } from './pointInitMode'
+import { shaderShapeOf } from './shaderShape'
 import { createFlameWgsl, extractFlameUniforms, uniformsForPipeline, } from './transformFunction'
 import { AtomicBucket, BUCKET_FIXED_POINT_MULTIPLIER, BUCKET_SATURATION_COUNT, Point, } from './types'
 import { getCacheVersion } from './variations/custom'
@@ -120,22 +121,8 @@ export function createIFSPipeline(
     customVariationsVersion: getCacheVersion(),
     colorInitType,
     pointInit,
-    transforms: recordEntries(transforms).map(([tid, tr]) => ({
-      tid,
-      variations: recordEntries(tr.variations).map(([vid, v]) => ({
-        vid,
-        type: v.type,
-      })),
-    })),
-    ...(isBlending && {
-      blendTransforms: recordEntries(blendTransforms).map(([tid, tr]) => ({
-        tid,
-        variations: recordEntries(tr.variations).map(([vid, v]) => ({
-          vid,
-          type: v.type,
-        })),
-      })),
-    }),
+    transforms: shaderShapeOf(transforms),
+    ...(isBlending && { blendTransforms: shaderShapeOf(blendTransforms) }),
   })
   // Slot values are baked into the compiled WGSL. The unresolved TypeGPU
   // definition above can be shared, but the compiled pipeline cannot.
