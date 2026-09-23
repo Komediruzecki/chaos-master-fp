@@ -76,6 +76,12 @@ export function attachExplorerInput(
     }
     const after = pinchState()
     if (!before || !after || before.dist === 0) return
+    if (after.dist === 0) {
+      // Fingers on one pixel have no spread to scale by. Keep the last one
+      // that had a size, so the next move zooms and pans from there.
+      pointers.set(event.pointerId, last)
+      return
+    }
     const panned = panView(
       target.view(),
       (after.mid.x - before.mid.x) * s,
