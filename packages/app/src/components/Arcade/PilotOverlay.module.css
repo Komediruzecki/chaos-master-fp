@@ -21,6 +21,13 @@
   grid-template-columns: 1fr 320px;
 }
 
+/* The shield takes focus when the lock starts, so that nothing behind it keeps
+   the keyboard. Its own frame already marks the whole screen; an outline on
+   top of it would only draw a second border around the viewport. */
+.shield:focus {
+  outline: none;
+}
+
 /* A centred pill, not a full-width strip.
    A strip across the top covered the floating action widget and any control
    the follow-cam might want to spotlight up there, and it did so with an
@@ -196,6 +203,11 @@
   display: grid;
   place-items: center;
   background: rgba(4, 6, 12, 0.6);
+}
+
+/* Takes focus as the lock hands over, for the same reason as the shield. */
+.endBackdrop:focus {
+  outline: none;
 }
 
 .endCard {

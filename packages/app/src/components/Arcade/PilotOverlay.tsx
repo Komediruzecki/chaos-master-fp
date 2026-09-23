@@ -1,4 +1,5 @@
-import { createEffect, createSignal, For, onCleanup, Show } from 'solid-js'
+import { createEffect, createSignal, For, onCleanup, onMount, Show, untrack, } from 'solid-js'
+import { Portal } from 'solid-js/web'
 import { duelActive } from '@/arcade/duel'
 import { finishDuel } from '@/arcade/duelActions'
 import { agentDriving, drivingState, lastPilotSession, pilot, pilotElapsedMs, pilotLog, resetPilot, } from '@/arcade/pilot'
@@ -7,16 +8,47 @@ import { Robot, Stop } from '@/icons'
 import { formatElapsed, reasonLabel, savedLine } from './pilotFormat'
 import ui from './PilotOverlay.module.css'
 import { PilotSpotlight } from './PilotSpotlight'
+import { inertOutside, refocus } from './screenLockInert'
+import type { ParentProps } from 'solid-js'
 import type { CommandContext } from '@/commands/types'
 import type { ReplayFocusPreparationHandler } from '@/recorder/focusPreparation'
 
 const ESC_ARM_MS = 1500
 
 /**
+ * The screen lock's shield, portalled under `<body>` so that everything else
+ * on the page can be made inert around it (screenLockInert.ts). `onHold`
+ * runs once it is on the page and returns what to do when it goes.
+ */
+function LockShield(
+  props: ParentProps<{ onHold: (shield: HTMLElement) => () => void }>,
+) {
+  let shield!: HTMLDivElement
+  onMount(() => {
+    onCleanup(props.onHold(shield))
+  })
+  return (
+    <Portal>
+      <div
+        ref={shield}
+        class={ui.shield}
+        role="dialog"
+        aria-modal="true"
+        aria-label="The agent is driving the editor"
+        tabIndex={-1}
+      >
+        {props.children}
+      </div>
+    </Portal>
+  )
+}
+
+/**
  * Hard lock while an agent drives: a full-screen shield swallows pointer
- * input, the banner says what is happening, and Stop (or Esc twice) ends the
- * take and still saves it. When the pilot ends, the same component shows the
- * end card with Replay / Back to Arcade.
+ * input, the rest of the page is inert so no control keeps the keyboard, the
+ * banner says what is happening, and Stop (or Esc twice) ends the take and
+ * still saves it. When the pilot ends, the same component shows the end card
+ * with Replay / Back to Arcade.
  */
 export function PilotOverlay(props: {
   ctx: CommandContext
@@ -92,6 +124,47 @@ export function PilotOverlay(props: {
     return state
   }
 
+  /**
+   * The control the viewer had focused when the agent took the screen. The
+   * lock moves focus into its own shield, the end card takes it next, and
+   * whichever of them goes last gives it back here.
+   */
+  let focusBeforeLock: HTMLElement | undefined
+
+  const giveFocusBack = () => {
+    const element = focusBeforeLock
+    focusBeforeLock = undefined
+    refocus(element)
+  }
+
+  const holdTheScreen = (shield: HTMLElement) => {
+    const active = document.activeElement
+    if (active instanceof HTMLElement && active !== document.body) {
+      focusBeforeLock = active
+    }
+    const release = inertOutside(shield)
+    shield.focus({ preventScroll: true })
+    return () => {
+      release()
+      // An end card that follows takes the focus itself and gives it back
+      // when it goes; without one, the viewer gets their control back now.
+      if (!untrack(ended)) giveFocusBack()
+    }
+  }
+
+  /**
+   * The end card is a modal: it takes the focus the lock held, so its buttons
+   * are one Tab away and no key lands behind it, and gives it back to the
+   * viewer's control when it goes. A ref runs under the card's own owner, so
+   * both hooks live exactly as long as the card.
+   */
+  const takeFocusUntilDismissed = (card: HTMLDivElement) => {
+    onMount(() => {
+      card.focus({ preventScroll: true })
+    })
+    onCleanup(giveFocusBack)
+  }
+
   // Escape on the end card does what "Stay in the editor" does. A modal that
   // ignores Escape is a modal people feel stuck in, and by this point the
   // take is already saved, so dismissing it costs nothing.
@@ -117,12 +190,7 @@ export function PilotOverlay(props: {
           // duel stage draws that half itself — a full-screen shield here
           // would also lock the viewer out of the seat they are playing.
           <Show when={state().lock === 'screen'}>
-            <div
-              class={ui.shield}
-              role="dialog"
-              aria-modal="true"
-              aria-label="The agent is driving the editor"
-            >
+            <LockShield onHold={holdTheScreen}>
               <div class={ui.banner}>
                 <Robot class={ui.icon} aria-hidden="true" />
                 <div class={ui.titleBlock}>
@@ -166,7 +234,7 @@ export function PilotOverlay(props: {
               <div class={ui.hint}>
                 You are watching. Press Esc twice or Stop to take over.
               </div>
-            </div>
+            </LockShield>
           </Show>
         )}
       </Show>
@@ -180,10 +248,12 @@ export function PilotOverlay(props: {
       <Show when={ended()}>
         {(end) => (
           <div
+            ref={takeFocusUntilDismissed}
             class={ui.endBackdrop}
             role="dialog"
             aria-modal="true"
             aria-label={`${end().title}: ${reasonLabel(end().reason)}`}
+            tabIndex={-1}
           >
             <div class={ui.endCard}>
               <h2 class={ui.endTitle}>{end().title}</h2>
