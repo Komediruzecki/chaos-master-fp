@@ -1,6 +1,6 @@
 import '@/commands/builtins'
 import { batch, createEffect, createMemo, createSignal, lazy, onCleanup, onMount, Show, Suspense, untrack, } from 'solid-js'
-import { createStore, unwrap } from 'solid-js/store'
+import { createStore } from 'solid-js/store'
 import { vec2f } from 'typegpu/data'
 import { fetchBundledTrackBuffer } from '@/arcade/bundledTracks'
 import { agentDriving } from '@/arcade/pilot'
@@ -80,7 +80,6 @@ import { useCompactMode } from './contexts/CompactModeContext'
 import { useTheme } from './contexts/ThemeContext'
 import { TimelineContextProvider } from './contexts/TimelineContext'
 import { DEFAULT_RENDER_INTERVAL_MS, IS_DEV } from './defaults'
-import { breedFlames } from './flame/breedFlame'
 import { example1 } from './flame/examples/example1'
 import { example34 } from './flame/examples/example34'
 import { initExample } from './flame/examples/initExample'
@@ -1349,108 +1348,14 @@ export function MainWorkspace(props: AppProps) {
     showToast('Morph ready — press Play to animate A → B', 3500)
   }
 
-  /**
-   * How long a candidate must stay hovered before its child is rendered.
-   *
-   * Slightly longer than the gallery's own 120ms clear delay: a child has a
-   * different transform structure from its parent, so showing one rebuilds the
-   * IFS pipeline, and sweeping the pointer down a list must not do that once
-   * per tile.
-   */
-  const BREED_PREVIEW_DELAY_MS = 220
-
   const blendPick = useWorkspaceBlendPick({
     flame: () => flameDescriptor,
     setSilently: history.setSilently,
     execute: (id, ...args) => {
       executeCommand(id, cmdContext, ...args)
     },
+    intent: blendIntent,
   })
-
-  /**
-   * The child generated for whichever candidate is hovered, so clicking opens
-   * the gallery on the flame you were actually looking at rather than nine
-   * unrelated ones.
-   */
-  const [breedPreviewChild, setBreedPreviewChild] = createSignal<
-    FlameDescriptor | undefined
-  >(undefined)
-  /** The workspace flame as it was before a breed preview replaced it. */
-  let breedPreviewRestore: FlameDescriptor | undefined
-  let breedPreviewTimer: ReturnType<typeof setTimeout> | undefined
-
-  function writeDescriptor(next: FlameDescriptor) {
-    const value = deepClone(next)
-    history.setSilently((draft) => {
-      draft.version = value.version
-      draft.metadata = value.metadata
-      draft.renderSettings = value.renderSettings
-      draft.transforms = value.transforms
-    })
-  }
-
-  function endBreedPreview() {
-    clearTimeout(breedPreviewTimer)
-    breedPreviewTimer = undefined
-    setBreedPreviewChild(undefined)
-    if (breedPreviewRestore !== undefined) {
-      writeDescriptor(breedPreviewRestore)
-      breedPreviewRestore = undefined
-    }
-  }
-
-  /**
-   * Hovering a candidate while breeding shows an actual CHILD of the two
-   * flames, not a 40% blend of them.
-   *
-   * A blend is the wrong thing to show here twice over: it is not what
-   * breeding produces, and it cannot render at all in 3D — `ifsPipeline3D`
-   * has no blend input, so the old preview changed the hovered NAME while the
-   * picture sat still. A real child works in both dimensions, because
-   * `breedFlames` carries `variations3D`.
-   *
-   * Debounced, and this matters: a child has a different transform STRUCTURE
-   * from its parent, so applying one rebuilds the IFS pipeline. Sweeping the
-   * pointer across a list must not rebuild once per tile.
-   */
-  function previewBreedChild(flame: FlameDescriptor) {
-    clearTimeout(breedPreviewTimer)
-    breedPreviewTimer = setTimeout(() => {
-      const parentA = breedPreviewRestore ?? unwrap(flameDescriptor)
-      const [child] = breedFlames(parentA, flame, {
-        count: 1,
-        crossoverMode: 'uniform',
-        mutationStrength: 0.1,
-      })
-      if (child === undefined) {
-        return
-      }
-      // Snapshot once per hover run, not per tile: the restore target is the
-      // flame the user arrived with, never a previously previewed child.
-      breedPreviewRestore ??= deepClone(unwrap(flameDescriptor))
-      setBreedPreviewChild(child)
-      writeDescriptor(child)
-    }, BREED_PREVIEW_DELAY_MS)
-  }
-
-  /**
-   * The gallery's hover preview: a child for a breed, the blend for the rest.
-   * Ending it ends both, whatever the intent is by then, since the intent can
-   * change under a live preview. The gallery ends what it started however it
-   * is left, closed or not (BlendFlameGallery), which is what used to be an
-   * effect here keyed on `showBlendGallery`: closing the sidebar never changed
-   * that flag, so a child or a blend outlived the gallery that showed it.
-   */
-  function handlePreviewBlend(flame: FlameDescriptor | null) {
-    if (flame === null) {
-      endBreedPreview()
-      blendPick.end()
-    } else if (blendIntent() === 'breed') {
-      previewBreedChild(flame)
-    } else {
-      blendPick.preview(flame)
-    }
-  }
 
   const [hoveredBlendName, setHoveredBlendName] = createSignal<string | null>(
     null,
@@ -3869,7 +3774,7 @@ export function MainWorkspace(props: AppProps) {
       },
       revealSidebar,
       openRandomizerCard,
-      handlePreviewBlend,
+      handlePreviewBlend: blendPick.preview,
       setHoveredBlendName,
       showToast,
       withReplayDeferredEffects,
@@ -4292,8 +4197,8 @@ export function MainWorkspace(props: AppProps) {
               transformInfos={transformInfos}
               blendIntent={blendIntent}
               setupMorph={setupMorph}
-              breedPreviewChild={breedPreviewChild}
-              endBreedPreview={endBreedPreview}
+              breedPreviewChild={blendPick.breedChild}
+              endBreedPreview={blendPick.endBreed}
               _requestModal={_requestModal}
               showToast={showToast}
               executeFlameLoad={executeFlameLoad}
@@ -4303,7 +4208,7 @@ export function MainWorkspace(props: AppProps) {
               openDiffView={openDiffView}
               commitBlendPick={blendPick.pick}
               blendFlame={blendFlame}
-              handlePreviewBlend={handlePreviewBlend}
+              handlePreviewBlend={blendPick.preview}
               setHoveredBlendName={setHoveredBlendName}
               history={history}
               hardwareTier={props.hardwareTier}
