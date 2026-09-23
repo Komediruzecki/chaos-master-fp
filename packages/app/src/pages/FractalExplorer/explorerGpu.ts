@@ -2,7 +2,8 @@
  * GPU resources and command encoding for the explorer.
  *
  * Owns the per-pixel state buffer, the reference orbits and their BLA
- * tables, and the display buffers (`explorerDisplays.ts`). On a view change
+ * tables (`explorerOrbitBuffers.ts`), and the display buffers
+ * (`explorerDisplays.ts`). On a view change
  * the display that was on screen becomes the *backdrop*: pixels that have
  * not finished yet show it, reprojected into the new view, so a zoom or pan
  * answers on the very next frame while the real iteration catches up (the
@@ -19,18 +20,16 @@
 import { arrayOf, atomic, u32, vec2f, vec2u, vec4f } from 'typegpu/data'
 import { colourEntry, presentFragment, presentVertex, } from './explorerColourShaders'
 import { createDisplays, readBack } from './explorerDisplays'
-import { BlaEntry, colourLayout, ColourUniforms, FLAG_DERIVATIVE, FLAG_HAS_DC, FLAG_USE_BLA, initEntry, iterateEntry, iterateLayout, IterateUniforms, OrbitEntry, Pixel, presentLayout, Shade, WORKGROUP, } from './explorerShaders'
-import { layoutOrbitUpload, MAX_BLA_LEVELS } from './orbitUpload'
+import { bindingEntries, createOrbitBuffers, deviceErrors, fittedCapacity, } from './explorerOrbitBuffers'
+import { colourLayout, ColourUniforms, FLAG_DERIVATIVE, FLAG_HAS_DC, FLAG_USE_BLA, initEntry, iterateEntry, iterateLayout, IterateUniforms, Pixel, presentLayout, Shade, WORKGROUP, } from './explorerShaders'
 import type { TgpuBindGroup, TgpuRoot } from 'typegpu'
 import type { BackdropMapping, ColourSetup, GridSize, IterationSetup, StepResult, } from './explorerTypes'
 import type { GpuOrbitSet } from './orbitProtocol'
-import type { OrbitUpload } from './orbitUpload'
 
 const { ceil, max } = Math
 
 export const PALETTE_SIZE = 256
 const PIXEL_BYTES = 32
-const ORBIT_ENTRY_BYTES = 16
 
 export type ExplorerGpu = ReturnType<typeof createExplorerGpu>
 
@@ -41,9 +40,6 @@ export function createExplorerGpu(root: TgpuRoot, format: GPUTextureFormat) {
   const iterateUniforms = root.createBuffer(IterateUniforms).$usage('uniform')
   const colourUniforms = root.createBuffer(ColourUniforms).$usage('uniform')
   const presentSize = root.createBuffer(vec2u).$usage('uniform')
-  const blaLevels = root
-    .createBuffer(arrayOf(vec2u, 2 * MAX_BLA_LEVELS))
-    .$usage('storage')
   const palette = root
     .createBuffer(arrayOf(vec2f, PALETTE_SIZE))
     .$usage('storage')
@@ -59,12 +55,10 @@ export function createExplorerGpu(root: TgpuRoot, format: GPUTextureFormat) {
   // readonly and the writable binding of one dispatch.
   const noBackdrop = root.createBuffer(arrayOf(u32, 1)).$usage('storage')
 
-  let orbitCapacity = 0
-  let orbits = root.createBuffer(arrayOf(OrbitEntry, 1)).$usage('storage')
-  let blaCapacity = 0
-  let bla = root.createBuffer(arrayOf(BlaEntry, 1)).$usage('storage')
+  const orbitBuffers = createOrbitBuffers(root)
 
   let size: GridSize = { width: 0, height: 0 }
+  let pixelCapacity = 0
   let pixels = root.createBuffer(arrayOf(Pixel, 1)).$usage('storage')
   let base = root.createBuffer(arrayOf(Shade, 1)).$usage('storage')
   let accum = root.createBuffer(arrayOf(vec2u, 1)).$usage('storage')
@@ -95,27 +89,11 @@ export function createExplorerGpu(root: TgpuRoot, format: GPUTextureFormat) {
   let baseOffset = { x: 0, y: 0 }
   let sample = 0
   let fromBase = false
-  let orbitInfo: OrbitUpload['info'] = emptyInfo()
-  let hasOrbits = false
-
-  function emptyInfo() {
-    const none = {
-      base: 0,
-      length: 1,
-      blaStart: 0,
-      levelBase: 0,
-      levelCount: 0,
-      minLevel: 0,
-    }
-    return { orbit0: none, orbit1: none }
-  }
 
   function rebuildIterateGroup() {
     iterateGroup = root.createBindGroup(iterateLayout, {
       uniforms: iterateUniforms,
-      orbits,
-      bla,
-      blaLevels,
+      ...orbitBuffers.bindings(),
       pixels,
       counters,
     })
@@ -141,28 +119,23 @@ export function createExplorerGpu(root: TgpuRoot, format: GPUTextureFormat) {
 
   /** The largest pixel grid the state buffers can hold on this device. */
   function maxPixels(): number {
-    const { maxStorageBufferBindingSize, maxBufferSize } = device.limits
-    return Math.floor(
-      Math.min(maxStorageBufferBindingSize, maxBufferSize) / PIXEL_BYTES,
-    )
+    return bindingEntries(device.limits, PIXEL_BYTES)
   }
 
-  /** The most orbit entries, both orbits together, one binding can hold. */
-  function maxOrbitEntries(): number {
-    const { maxStorageBufferBindingSize, maxBufferSize } = device.limits
-    return Math.floor(
-      Math.min(maxStorageBufferBindingSize, maxBufferSize) / ORBIT_ENTRY_BYTES,
-    )
-  }
-
+  /**
+   * Fit the state buffers to a grid. The shaders index them by the grid's
+   * width, so they may be larger: they are kept while the grid fits, which
+   * spares a window being resized a reallocation of every buffer per frame.
+   */
   function resize(grid: GridSize) {
     if (grid.width === size.width && grid.height === size.height) return
     size = grid
+    const needed = max(1, grid.width * grid.height)
+    const count = fittedCapacity(needed, pixelCapacity, maxPixels())
+    if (count === pixelCapacity) return
+    pixelCapacity = count
     pixels.destroy()
-    pixels = root
-      .createBuffer(arrayOf(Pixel, max(1, grid.width * grid.height)))
-      .$usage('storage')
-    const count = max(1, grid.width * grid.height)
+    pixels = root.createBuffer(arrayOf(Pixel, count)).$usage('storage')
     base.destroy()
     base = root.createBuffer(arrayOf(Shade, count)).$usage('storage')
     accum.destroy()
@@ -171,44 +144,11 @@ export function createExplorerGpu(root: TgpuRoot, format: GPUTextureFormat) {
   }
 
   /**
-   * Upload a worker's orbits, concatenated, with level offsets rebased.
-   * Resolves to the device's complaint, if it had one.
+   * Upload a worker's orbits. Resolves to the device's complaint, if it had
+   * one; the renderer then drops that reference.
    */
   function uploadOrbits(set: GpuOrbitSet): Promise<string | undefined> {
-    device.pushErrorScope('out-of-memory')
-    device.pushErrorScope('validation')
-    const upload = layoutOrbitUpload(set)
-    if (upload.orbitEntries > orbitCapacity) {
-      orbits.destroy()
-      orbitCapacity = max(upload.orbitEntries, ceil(orbitCapacity * 1.5))
-      orbits = root
-        .createBuffer(arrayOf(OrbitEntry, orbitCapacity))
-        .$usage('storage')
-    }
-    if (upload.blaEntries > blaCapacity) {
-      bla.destroy()
-      blaCapacity = max(upload.blaEntries, ceil(blaCapacity * 1.5))
-      bla = root.createBuffer(arrayOf(BlaEntry, blaCapacity)).$usage('storage')
-    }
-    for (const { orbit, orbitBase, blaBase } of upload.writes) {
-      device.queue.writeBuffer(root.unwrap(orbits), orbitBase * 16, orbit.data)
-      if (orbit.bla.entryCount > 0) {
-        device.queue.writeBuffer(root.unwrap(bla), blaBase * 32, orbit.bla.data)
-      }
-    }
-    device.queue.writeBuffer(root.unwrap(blaLevels), 0, upload.levels)
-    orbitInfo = upload.info
-    hasOrbits = true
-    rebuildIterateGroup()
-    return popErrors()
-  }
-
-  /** Pop the two scopes `pushErrorScope`d last, as one message. */
-  async function popErrors(): Promise<string | undefined> {
-    const invalid = device.popErrorScope()
-    const memory = device.popErrorScope()
-    const failure = (await invalid) ?? (await memory)
-    return failure?.message
+    return orbitBuffers.upload(set, rebuildIterateGroup)
   }
 
   function writeColourUniforms() {
@@ -261,7 +201,7 @@ export function createExplorerGpu(root: TgpuRoot, format: GPUTextureFormat) {
         (setup.hasDc ? FLAG_HAS_DC : 0) |
         (setup.useBla ? FLAG_USE_BLA : 0) |
         FLAG_DERIVATIVE,
-      ...orbitInfo,
+      ...orbitBuffers.info(),
     })
     presentSize.write(vec2u(size.width, size.height))
     writeColourUniforms()
@@ -350,30 +290,31 @@ export function createExplorerGpu(root: TgpuRoot, format: GPUTextureFormat) {
     budget: number,
     context?: GPUCanvasContext,
   ): Promise<StepResult> {
-    if (!colourGroup || !iterateGroup || !hasOrbits) {
+    if (!colourGroup || !iterateGroup || !orbitBuffers.loaded()) {
       return { active: undefined, gpuMs: 0 }
     }
     iterateUniforms.patch({ stepBudget: budget })
-    device.pushErrorScope('out-of-memory')
-    device.pushErrorScope('validation')
-    const encoder = device.createCommandEncoder({ label: 'explorerStep' })
-    encoder.clearBuffer(countersGpu)
-    const pass = encoder.beginComputePass()
-    iteratePipeline
-      .with(pass)
-      .with(iterateGroup)
-      .dispatchWorkgroups(...groups())
-    pass.end()
+    const group = iterateGroup
     const readBack = !stagingBusy
-    if (readBack) encoder.copyBufferToBuffer(countersGpu, 0, staging, 0, 16)
-    if (context) {
-      fromBase = false
-      writeColourUniforms()
-      encodeColourAndPresent(encoder, context)
-    }
-    const t0 = performance.now()
-    device.queue.submit([encoder.finish()])
-    const errors = popErrors()
+    let t0 = 0
+    const errors = deviceErrors(device, () => {
+      const encoder = device.createCommandEncoder({ label: 'explorerStep' })
+      encoder.clearBuffer(countersGpu)
+      const pass = encoder.beginComputePass()
+      iteratePipeline
+        .with(pass)
+        .with(group)
+        .dispatchWorkgroups(...groups())
+      pass.end()
+      if (readBack) encoder.copyBufferToBuffer(countersGpu, 0, staging, 0, 16)
+      if (context) {
+        fromBase = false
+        writeColourUniforms()
+        encodeColourAndPresent(encoder, context)
+      }
+      t0 = performance.now()
+      device.queue.submit([encoder.finish()])
+    })
     let active: number | undefined
     if (readBack) {
       stagingBusy = true
@@ -444,31 +385,17 @@ export function createExplorerGpu(root: TgpuRoot, format: GPUTextureFormat) {
   }
 
   function destroy() {
-    const owned = [
-      iterateUniforms,
-      colourUniforms,
-      presentSize,
-      blaLevels,
-      palette,
-    ]
-    for (const b of [
-      ...owned,
-      counters,
-      noBackdrop,
-      orbits,
-      bla,
-      pixels,
-      base,
-      accum,
-    ])
+    const owned = [iterateUniforms, colourUniforms, presentSize, palette]
+    for (const b of [...owned, counters, noBackdrop, pixels, base, accum])
       b.destroy()
     displays.destroy()
+    orbitBuffers.destroy()
     staging.destroy()
   }
 
   return {
     maxPixels,
-    maxOrbitEntries,
+    maxOrbitEntries: orbitBuffers.maxOrbitEntries,
     uploadOrbits,
     restart,
     resample,
@@ -482,6 +409,6 @@ export function createExplorerGpu(root: TgpuRoot, format: GPUTextureFormat) {
     readDisplay: displays.read,
     readPixels,
     destroy,
-    hasOrbits: () => hasOrbits,
+    hasOrbits: orbitBuffers.loaded,
   }
 }

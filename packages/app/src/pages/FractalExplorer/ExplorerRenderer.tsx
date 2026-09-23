@@ -20,7 +20,7 @@ import { useLiveRootContext } from '@/lib/RootContext'
 import { createExplorerGpu, PALETTE_SIZE } from './explorerGpu'
 import { attachExplorerInput } from './explorerInput'
 import { paletteLut } from './explorerPalette'
-import { jitterFor, nextAction } from './explorerSchedule'
+import { jitterFor, nextAction, withTimeout } from './explorerSchedule'
 import { createOrbitClient } from './orbitClient'
 import type { ComplexString, DeepZoomView, ExplorerTarget, FractalKind, ReferenceSpec, ReferenceState, } from '@chaos-master/core'
 import type { ColourSetup, GridSize } from './explorerTypes'
@@ -95,27 +95,6 @@ function targetKey(t: ExplorerTarget): string {
   ].join('|')
 }
 
-function withTimeout<T>(
-  promise: Promise<T>,
-  ms: number,
-): Promise<T | undefined> {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      resolve(undefined)
-    }, ms)
-    promise.then(
-      (value) => {
-        clearTimeout(timer)
-        resolve(value)
-      },
-      (error: unknown) => {
-        clearTimeout(timer)
-        reject(error instanceof Error ? error : new Error(String(error)))
-      },
-    )
-  })
-}
-
 export function ExplorerRenderer(props: ExplorerRendererProps) {
   const { root } = useLiveRootContext()
   const { canvas, context, canvasFormat, canvasSize } = useCanvas()
@@ -136,6 +115,8 @@ export function ExplorerRenderer(props: ExplorerRendererProps) {
   let grid: GridSize = { width: 1, height: 1 }
   let reference: ReferenceState | undefined
   let requested: ReferenceSpec | undefined
+  /** A reference the GPU would not take, not asked for again. */
+  let refused: ReferenceSpec | undefined
   let shown: ExplorerTarget | undefined
   /** The view the GPU's backdrop shows, which lags `shown` by a picture. */
   let backdropOf: ExplorerTarget | undefined
@@ -236,8 +217,10 @@ export function ExplorerRenderer(props: ExplorerRendererProps) {
       requested = undefined
       return true
     }
-    if (requested && referenceServes({ ...requested, complete: false }, t))
-      return false
+    for (const pending of [requested, refused]) {
+      if (pending && referenceServes({ ...pending, complete: false }, t))
+        return false
+    }
     const spec = referenceSpecFor(t)
     if (!referenceServes({ ...spec, complete: false }, t)) {
       // A fresh reference that cannot serve its own view would be asked for
@@ -251,16 +234,27 @@ export function ExplorerRenderer(props: ExplorerRendererProps) {
       .request(spec)
       .then((result) => {
         if (!result || requested !== spec) return
-        void gpu.uploadOrbits(result.set).then((message) => {
-          if (message !== undefined)
-            error = `the GPU refused the orbits: ${message}`
-        })
         const { main, critical } = result.set
-        reference = {
+        const adopted = {
           ...spec,
           complete: main.escaped && (critical?.escaped ?? true),
         }
+        const refuse = (cause: unknown) => {
+          // A newer reference has replaced this one already.
+          if (reference !== adopted) return
+          // Nothing iterates against it, and the backdrop stays on screen.
+          refused = spec
+          reference = undefined
+          iterating = false
+          const message = cause instanceof Error ? cause.message : cause
+          error = `the GPU refused the orbits: ${String(message)}`
+        }
+        gpu.uploadOrbits(result.set).then((message) => {
+          if (message !== undefined) refuse(message)
+        }, refuse)
+        reference = adopted
         requested = undefined
+        refused = undefined
         orbitMs = result.ms
         error = undefined
         lastKey = ''

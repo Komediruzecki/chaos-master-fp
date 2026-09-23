@@ -7,6 +7,9 @@
  * the average once complete). A colour change always wins: it is shown at
  * once, from the centre sample if the main pass is done, and abandons any
  * supersample in progress, which would otherwise mix two colourings.
+ *
+ * `withTimeout` bounds a GPU step, whose completion a lost device may never
+ * report.
  */
 
 export interface LoopState {
@@ -64,4 +67,29 @@ export function jitterFor(k: number): { x: number; y: number } {
   const x = (0.5 + k * 0.7548776662466927) % 1
   const y = (0.5 + k * 0.5698402909980532) % 1
   return { x: x - 0.5, y: y - 0.5 }
+}
+
+/**
+ * `promise`, or undefined if it has not settled within `ms`. A rejection is
+ * passed on, as an Error.
+ */
+export function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+): Promise<T | undefined> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      resolve(undefined)
+    }, ms)
+    promise.then(
+      (value) => {
+        clearTimeout(timer)
+        resolve(value)
+      },
+      (error: unknown) => {
+        clearTimeout(timer)
+        reject(error instanceof Error ? error : new Error(String(error)))
+      },
+    )
+  })
 }

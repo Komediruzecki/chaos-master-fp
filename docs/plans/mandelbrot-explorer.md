@@ -305,7 +305,9 @@ without BLA, for both set kinds.
 | `FractalExplorerPage.tsx`  | Layout: full-bleed canvas, HUD, settings panel, save and share  |
 | `ExplorerControls.tsx`     | The settings panel                                              |
 | `ExplorerRenderer.tsx`     | Inside `AutoCanvas`: frame loop, step budget, references, AA    |
-| `explorerGpu.ts`           | GPU buffers, display ping-pong, command encoding, readback      |
+| `explorerGpu.ts`           | Pixel state, display ping-pong, command encoding, readback      |
+| `explorerOrbitBuffers.ts`  | Orbit and BLA buffers, never past one binding; error scopes     |
+| `explorerSchedule.ts`      | The frame loop's next action, as a pure function; step timeout  |
 | `explorerShaders.ts`       | Structs, layouts, the init and iterate passes                   |
 | `explorerColourShaders.ts` | Colouring (gamut map, band limit, accumulation) and present     |
 | `orbitUpload.ts`           | Lays both orbits and their BLA tables out in shared buffers     |

@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { jitterFor, nextAction } from './explorerSchedule'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { jitterFor, nextAction, withTimeout } from './explorerSchedule'
 import type { LoopState } from './explorerSchedule'
 
 const finished: LoopState = {
@@ -96,5 +96,24 @@ describe('jitterFor', () => {
       expect(Math.abs(o.y)).toBeLessThanOrEqual(0.5)
     }
     expect(new Set(offsets.map((o) => `${o.x},${o.y}`)).size).toBe(16)
+  })
+})
+
+describe('withTimeout', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('passes a value on, and gives up on a promise that never settles', async () => {
+    vi.useFakeTimers()
+    await expect(withTimeout(Promise.resolve(3), 100)).resolves.toBe(3)
+    const stuck = withTimeout(new Promise(() => undefined), 100)
+    vi.advanceTimersByTime(100)
+    await expect(stuck).resolves.toBeUndefined()
+  })
+
+  it('passes a rejection on', async () => {
+    const failed = withTimeout(Promise.reject(new Error('lost')), 100)
+    await expect(failed).rejects.toThrow('lost')
   })
 })
