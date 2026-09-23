@@ -38,9 +38,14 @@ function press(input: HTMLElement, type = 'mouse', x = 100): PointerEvent {
   return down
 }
 
-function moveTo(x: number, type = 'mouse', shiftKey = false) {
+function moveTo(x: number, type = 'mouse', shiftKey = false, y = 0) {
   document.dispatchEvent(
-    new PointerEvent('pointermove', { ...pointer(type), clientX: x, shiftKey }),
+    new PointerEvent('pointermove', {
+      ...pointer(type),
+      clientX: x,
+      clientY: y,
+      shiftKey,
+    }),
   )
 }
 
@@ -85,6 +90,26 @@ describe('createInputScrub', () => {
     expect(document.activeElement).toBe(input)
     const field = input as HTMLInputElement
     expect([field.selectionStart, field.selectionEnd]).toEqual([0, 4])
+  })
+
+  it('leaves a mostly vertical drag alone, drift and all', () => {
+    const { input, onStart, onScrub } = mount()
+    press(input, 'touch')
+    moveTo(103, 'touch', false, 12)
+    moveTo(106, 'touch', false, 30)
+    release(106, 'touch')
+    expect(onStart).not.toHaveBeenCalled()
+    expect(onScrub).not.toHaveBeenCalled()
+  })
+
+  it('does not focus the field when the browser takes the gesture to scroll', () => {
+    const { input, onScrub } = mount()
+    press(input, 'touch')
+    document.dispatchEvent(
+      new PointerEvent('pointercancel', { ...pointer('touch'), clientX: 100 }),
+    )
+    expect(document.activeElement).not.toBe(input)
+    expect(onScrub).not.toHaveBeenCalled()
   })
 
   it('keeps a mouse press from selecting text, and leaves a tap to the browser', () => {

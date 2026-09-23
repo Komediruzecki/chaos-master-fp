@@ -5,11 +5,14 @@
  * focuses the input and selects its text, for typing. Shift makes the drag
  * ten times finer.
  *
- * Give the input `touch-action: pan-y`: a finger that moves mostly up or
- * down then still scrolls the panel around it, and only a sideways drag
- * reaches here.
+ * A drag only scrubs once it has gone further sideways than up or down.
+ * Give the input `touch-action: pan-y` too: a finger that moves mostly up
+ * or down then scrolls the panel around it, and the few pixels of drift
+ * before the browser takes the gesture over change nothing.
  */
 import { createDragHandler } from './createDragHandler'
+
+const { abs } = Math
 
 /** CSS px a press may wander and still count as a click. */
 const DEAD_ZONE = 4
@@ -40,6 +43,9 @@ export function createInputScrub(
       return {
         onPointerMove(move) {
           if (!dragging) {
+            const dx = move.clientX - down.clientX
+            const dy = move.clientY - down.clientY
+            if (abs(dx) < DEAD_ZONE || abs(dx) <= abs(dy)) return
             dragging = true
             scrub.onStart()
           }
@@ -49,12 +55,14 @@ export function createInputScrub(
         },
         onDone(up) {
           // A press that did not move is a click: edit the value as text.
-          if (dragging || !up) return
+          // A cancelled one is the browser scrolling the panel instead, and
+          // focusing would pop up a phone's keyboard mid-scroll.
+          if (dragging || up?.type !== 'pointerup') return
           input.focus()
           input.select()
         },
       }
     },
-    { deadZoneRadius: DEAD_ZONE, preventDefault: false },
+    { preventDefault: false },
   )
 }
