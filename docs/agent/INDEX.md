@@ -30,7 +30,7 @@ file instead of rediscovering the architecture every session.
 
 | Directory                 | Package name                   | Source files | LOC    |
 | ------------------------- | ------------------------------ | ------------ | ------ |
-| `packages/app`            | `chaos-master`                 | 1084         | 184.0k |
+| `packages/app`            | `chaos-master`                 | 1084         | 184.1k |
 | `packages/landing`        | `@chaos-master/landing`        | 20           | 2.5k   |
 | `packages/core`           | `@chaos-master/core`           | 17           | 1.9k   |
 | `packages/mobile-runtime` | `@chaos-master/mobile-runtime` | 7            | 600    |
@@ -235,6 +235,7 @@ file instead of rediscovering the architecture every session.
 | [playWindows.ts](../../packages/app/src/recorder/playWindows.ts)                   | 150  | Play windows: the stretches of a take in which its timeline was playing.                                                                     |
 | [sonificationState.ts](../../packages/app/src/recorder/sonificationState.ts)       | 150  | Sonification is authored output state, but it is not part of the flame document.                                                             |
 | [documentWriteHook.ts](../../packages/app/src/recorder/documentWriteHook.ts)       | 100  | A leaf seam between document owners and the recorder.                                                                                        |
+| [glide.ts](../../packages/app/src/recorder/glide.ts)                               | 100  | How long a replayed step's transition lasts.                                                                                                 |
 | [replaySideState.ts](../../packages/app/src/recorder/replaySideState.ts)           | 100  | Editor-only state that follow-cam may change while revealing a target.                                                                       |
 | [types.ts](../../packages/app/src/recorder/types.ts)                               | 100  | The session recorder's public types, apart from the module that implements them: what a recording starts from, what a command must expose... |
 
