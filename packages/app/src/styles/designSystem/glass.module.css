@@ -95,9 +95,11 @@
  *                           converging after an edit never flickers it.
  *   data-glass-panels="on"  the experimental Glass panels setting, off by
  *                           default, offered in Settings on the touch
- *                           layouts. Nothing reads it yet. A component reads
- *                           glassPanels() from lib/glass.ts; a CSS module
- *                           reaches it as :global(:root[data-glass-panels='on']).
+ *                           layouts. It turns the rail sheet into a panel
+ *                           past peek (TouchSurface/EditorRail.tsx).
+ *                           A component reads glassPanels() from
+ *                           lib/glass.ts; a CSS module reaches it as
+ *                           :global(:root[data-glass-panels='on']).
  */
 
 /* ---- The classes --------------------------------------------------- */

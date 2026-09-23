@@ -59,6 +59,31 @@
   backdrop-filter: none;
 }
 
+/* The experimental Glass panels setting (lib/glass.ts) trades that cost for
+   the look: open, the sheet is the primitive's panel instead, glass while the
+   canvas idles and solid while it is busy. Its text keeps to the panel's
+   tiers: the primitive lifts ink-3 to ink-2, and the chip that names the
+   open panel says so with its accent fill rather than accent text. */
+.glassPanel {
+  composes: panel from '@/styles/designSystem/glass.module.css';
+}
+
+.sheet.glassPanel {
+  background: var(--la-glass-panel);
+}
+
+/* The busy switch fades the fill, so it joins the sheet's own list; a drag
+   keeps none. */
+.sheet.glassPanel:not(.dragging) {
+  transition:
+    height var(--la-dur-sheet) var(--la-ease),
+    background-color var(--la-dur-fast) var(--la-ease);
+}
+
+.sheet.glassPanel .chip[aria-selected='true'] {
+  color: var(--la-ink);
+}
+
 .grabberRow {
   height: 24px;
   display: grid;
