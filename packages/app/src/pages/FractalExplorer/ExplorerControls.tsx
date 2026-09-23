@@ -1,0 +1,307 @@
+/**
+ * The explorer's settings panel: which fractal, the Julia constant, the
+ * iteration limit, colouring, render quality, and the view actions.
+ */
+import { clampIterations, explorerDecimal } from '@chaos-master/core'
+import { createSignal, For, Show } from 'solid-js'
+import { PaletteSelector } from '@/components/PaletteSelector/PaletteSelector'
+import { Slider } from '@/components/Sliders/Slider'
+import { Copy, DeepZoom, Download, Home, Minus, Plus } from '@/icons'
+import ui from './FractalExplorerPage.module.css'
+import type { ComplexString, ExplorerLocation, FractalKind, } from '@chaos-master/core'
+import type { ExplorerStatus } from './ExplorerRenderer'
+import type { Quality } from './FractalExplorerPage'
+import type { Palette } from '@/flame/colorMap'
+
+export interface ExplorerControlsProps {
+  location: ExplorerLocation
+  status: ExplorerStatus | undefined
+  palette: Palette
+  period: number
+  phase: number
+  relief: number
+  quality: Quality
+  onKind: (kind: FractalKind) => void
+  onJuliaC: (c: ComplexString) => void
+  onJuliaHere: () => void
+  onIterations: (n: number) => void
+  onPalette: (palette: Palette) => void
+  onPeriod: (period: number) => void
+  onPhase: (phase: number) => void
+  onRelief: (relief: number) => void
+  onQuality: (quality: Quality) => void
+  onHome: () => void
+  onCopyLink: () => void
+  onSave: () => void
+}
+
+const KINDS: { id: FractalKind; label: string }[] = [
+  { id: 'mandelbrot', label: 'Mandelbrot' },
+  { id: 'julia', label: 'Julia' },
+]
+
+const QUALITIES: { id: Quality; label: string }[] = [
+  { id: 'fast', label: 'Fast' },
+  { id: 'balanced', label: 'Balanced' },
+  { id: 'sharp', label: 'Sharp' },
+]
+
+function Segmented<T extends string>(props: {
+  label: string
+  options: { id: T; label: string }[]
+  value: T
+  onChange: (id: T) => void
+}) {
+  return (
+    <div class={ui.segmented} role="radiogroup" aria-label={props.label}>
+      <For each={props.options}>
+        {(option) => (
+          <button
+            type="button"
+            role="radio"
+            aria-checked={props.value === option.id}
+            class={ui.segment}
+            onClick={() => {
+              props.onChange(option.id)
+            }}
+          >
+            {option.label}
+          </button>
+        )}
+      </For>
+    </div>
+  )
+}
+
+/** A decimal field that only commits text that parses. */
+function DecimalField(props: {
+  label: string
+  value: string
+  onCommit: (v: string) => void
+}) {
+  const [draft, setDraft] = createSignal<string | undefined>()
+  const text = () => draft() ?? props.value
+  const valid = () => explorerDecimal(text()) !== undefined
+  return (
+    <label class={ui.field}>
+      <span class={ui.fieldLabel}>{props.label}</span>
+      <input
+        class={ui.input}
+        inputmode="decimal"
+        spellcheck={false}
+        value={text()}
+        aria-invalid={!valid()}
+        onInput={(e) => setDraft(e.currentTarget.value)}
+        onChange={() => {
+          const value = explorerDecimal(text())
+          if (value !== undefined) props.onCommit(value)
+          setDraft(undefined)
+        }}
+      />
+    </label>
+  )
+}
+
+function statusLine(status: ExplorerStatus | undefined): string {
+  if (!status) return 'Starting the GPU'
+  if (status.error) return `Error: ${status.error}`
+  if (status.orbitPending) {
+    return `Computing the reference orbit, ${Math.floor(status.orbitProgress * 100)}%`
+  }
+  const orbit =
+    status.orbitMs === undefined
+      ? ''
+      : `, reference in ${Math.round(status.orbitMs)} ms`
+  const samples =
+    status.sampleTarget > 1
+      ? `, ${status.samples} of ${status.sampleTarget} samples`
+      : ''
+  const cap =
+    status.iterationCap === undefined
+      ? ''
+      : `. This GPU holds orbits of ${status.iterationCap} iterations at most`
+  return `${status.grid.width} x ${status.grid.height} px, ${status.stepBudget} steps per frame${samples}${orbit}${cap}`
+}
+
+export function ExplorerControls(props: ExplorerControlsProps) {
+  const iterations = () => props.location.maxIterations
+  return (
+    <div class={ui.controls}>
+      <section class={ui.section}>
+        <Segmented
+          label="Fractal"
+          options={KINDS}
+          value={props.location.kind}
+          onChange={(kind) => {
+            props.onKind(kind)
+          }}
+        />
+        <Show
+          when={props.location.kind === 'julia'}
+          fallback={
+            <button
+              type="button"
+              class={ui.action}
+              onClick={() => {
+                props.onJuliaHere()
+              }}
+            >
+              <DeepZoom />
+              Julia set of the view centre
+            </button>
+          }
+        >
+          <div class={ui.pair}>
+            <DecimalField
+              label="c, real"
+              value={props.location.juliaC.re}
+              onCommit={(re) => {
+                props.onJuliaC({ ...props.location.juliaC, re })
+              }}
+            />
+            <DecimalField
+              label="c, imaginary"
+              value={props.location.juliaC.im}
+              onCommit={(im) => {
+                props.onJuliaC({ ...props.location.juliaC, im })
+              }}
+            />
+          </div>
+        </Show>
+      </section>
+
+      <section class={ui.section}>
+        <span class={ui.fieldLabel}>Iteration limit</span>
+        <div class={ui.stepper}>
+          <button
+            type="button"
+            class={ui.iconButton}
+            aria-label="Halve the iteration limit"
+            onClick={() => {
+              props.onIterations(clampIterations(iterations() / 2))
+            }}
+          >
+            <Minus />
+          </button>
+          <input
+            class={ui.input}
+            inputmode="numeric"
+            value={iterations()}
+            aria-label="Iteration limit"
+            onChange={(e) => {
+              const n = Number(e.currentTarget.value)
+              if (Number.isFinite(n)) props.onIterations(clampIterations(n))
+              e.currentTarget.value = String(iterations())
+            }}
+          />
+          <button
+            type="button"
+            class={ui.iconButton}
+            aria-label="Double the iteration limit"
+            onClick={() => {
+              props.onIterations(clampIterations(iterations() * 2))
+            }}
+          >
+            <Plus />
+          </button>
+        </div>
+      </section>
+
+      <section class={ui.section}>
+        <Slider
+          label="Colour cycle"
+          value={Math.log2(props.period)}
+          min={1}
+          max={14}
+          step={0.05}
+          formatValue={(v) => `${Math.round(2 ** v)}`}
+          onInput={(v) => {
+            props.onPeriod(2 ** v)
+          }}
+        />
+        <Slider
+          label="Colour shift"
+          value={props.phase}
+          min={0}
+          max={1}
+          step={0.005}
+          onInput={(v) => {
+            props.onPhase(v)
+          }}
+        />
+        <Slider
+          label="Relief"
+          value={props.relief}
+          min={0}
+          max={1}
+          step={0.01}
+          onInput={(v) => {
+            props.onRelief(v)
+          }}
+        />
+      </section>
+
+      <section class={ui.section}>
+        <span class={ui.fieldLabel}>Render quality</span>
+        <Segmented
+          label="Render quality"
+          options={QUALITIES}
+          value={props.quality}
+          onChange={(q) => {
+            props.onQuality(q)
+          }}
+        />
+      </section>
+
+      <section class={ui.section}>
+        <div class={ui.actions}>
+          <button
+            type="button"
+            class={ui.action}
+            onClick={() => {
+              props.onHome()
+            }}
+          >
+            <Home />
+            Home
+          </button>
+          <button
+            type="button"
+            class={ui.action}
+            onClick={() => {
+              props.onCopyLink()
+            }}
+          >
+            <Copy />
+            Copy link
+          </button>
+          <button
+            type="button"
+            class={ui.action}
+            onClick={() => {
+              props.onSave()
+            }}
+          >
+            <Download />
+            Save PNG
+          </button>
+        </div>
+        <p class={ui.status}>{statusLine(props.status)}</p>
+        <p class={ui.hint}>
+          Drag to pan. Scroll or pinch to zoom. Double-click zooms in, with
+          Shift out.
+        </p>
+      </section>
+
+      <section class={ui.section}>
+        <span class={ui.fieldLabel}>Palette</span>
+        <PaletteSelector
+          selectedPaletteId={props.palette.id}
+          onSelect={(p) => {
+            props.onPalette(p)
+          }}
+        />
+      </section>
+    </div>
+  )
+}

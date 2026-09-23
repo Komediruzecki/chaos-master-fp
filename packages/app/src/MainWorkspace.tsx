@@ -100,7 +100,7 @@ import { captureTransformColors, runPaletteRestoreTransition, } from './recorder
 import { snapshotOrigin, snapshotOriginLabel } from './recorder/snapshotOrigin'
 import { applySonificationSnapshot, closeAuthoredSonificationPanel, shouldStopHiddenSonification, SONIFICATION_SNAPSHOT_VERSION, } from './recorder/sonificationState'
 import { createRecorderAwareTimeline, runTimelineSnapshotMutation, } from './recorder/timelineActions'
-import { BENCHMARKS_PATH } from './routing/appPath'
+import { BENCHMARKS_PATH, EXPLORER_PATH } from './routing/appPath'
 import { createAnimationExport } from './utils/animationExport'
 import { applyAudioTargetValues, createAudioAnalyzer, decodeAudioBytes, } from './utils/audioAnalysis'
 import { downloadBlob } from './utils/blob'
@@ -3785,6 +3785,11 @@ export function MainWorkspace(props: AppProps) {
       ? undefined
       : () => {
           window.location.assign(BENCHMARKS_PATH)
+        },
+    onOpenExplorer: IS_NATIVE
+      ? undefined
+      : () => {
+          window.location.assign(EXPLORER_PATH)
         },
     onDesktopLayout: () => {
       setTouchLayoutPreference('desktop')

@@ -13,6 +13,7 @@ import ColourWedge from './colour-wedge.svg'
 import Copy from './copy.svg'
 import Create from './create.svg'
 import Cross from './cross.svg'
+import DeepZoom from './deep-zoom.svg'
 import Discord from './discord.svg'
 import Download from './download.svg'
 import Eye from './eye.svg'
@@ -80,6 +81,7 @@ export {
   Copy,
   Create,
   Cross,
+  DeepZoom,
   Discord,
   Download,
   Eye,

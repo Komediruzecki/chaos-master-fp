@@ -226,9 +226,26 @@ The GPU has f32 only. Each pixel stores `d = w * 2^e` with `w` an f32 pair and
 - Separate colour pass: smooth iteration `nu = n - log2(ln|z| / ln R)` with
   `R = 2^8` [28], cyclic palette from the app's own flame palettes (OkLab a/b;
   lightness from the colour cycle and shading), optional distance-estimate
-  slope shading (`DE_px = 2|z| ln|z| / |D|`). Recolouring never recomputes.
+  slope shading (`DE_px = 2|z| ln|z| / |D|`). Recolouring never re-iterates
+  the picture itself.
 - Render resolution is capped by a pixel budget (state memory is 32 B/pixel),
   with a quality setting; the present pass upsamples to the canvas.
+- **Gamut mapping:** OkLab colours outside sRGB have their chroma reduced by
+  bisection (hue and lightness kept) instead of clipping per channel, which
+  flattens saturated palettes into primaries.
+- **Band limiting:** one colour cycle spans about `P * DE * ln2 / 2` pixels
+  (the smooth count's gradient is `2 / (DE ln 2)` per pixel). Below two
+  pixels the bands alias into noise, so the colour fades to the palette's
+  mean, which is what they average to.
+- **Supersampling:** filaments thinner than a pixel still speckle, because
+  the dwell jumps between neighbouring pixels in a way no per-pixel estimate
+  sees. Once a picture is finished it is refined by jittered passes (R2
+  sequence, 8 on Balanced, 16 on Sharp) averaged in linear light in an
+  accumulation buffer (4 x f16, 8 B/px). The centre sample's shading inputs
+  are kept (16 B/px), so a colour change recolours at once, even
+  mid-refinement, and only the supersamples are recomputed, after 300 ms of
+  quiet. Each supersample starts from the step budget measured at full load,
+  never from the larger one a pass ends on, so no dispatch runs long.
 
 ### 4.7 Measured limits we expect
 
@@ -240,6 +257,25 @@ The GPU has f32 only. Each pixel stores `d = w * 2^e` with `w` an f32 pair and
 
 The clamp (`MAX_ZOOM_LOG2 = 3320`) is a product decision, not a precision
 wall. GMP-in-WASM would move it (§8).
+
+Measured on the branch (1280 x 800, Radeon RDNA 4, headed Chrome, after the
+reference orbit; "refined" is the time to all 8 samples):
+
+| View                        | Iterations | Picture | Refined |
+| --------------------------- | ---------- | ------- | ------- |
+| Home                        | 1 000      | 38 ms   | 146 ms  |
+| Seahorse valley, 1e24       | 20 000     | 114 ms  | 0.76 s  |
+| Seahorse valley, 1e75       | 40 000     | 214 ms  | 1.47 s  |
+| Minibrot nucleus, 1e15      | 30 000     | 105 ms  | 0.68 s  |
+| Rabbit Julia, 1e50          | 2 000      | 31 ms   | 73 ms   |
+| Airplane Julia, 1e30        | 3 000      | 41 ms   | 175 ms  |
+| Mandelbrot, 1e903 and 1e999 | 100 000    | 12 ms   | 31 ms   |
+
+GPU results were compared per pixel against the CPU mirror at every depth
+above (200 samples each, at the supersample's own offset): 1 400 of 1 406
+agree exactly, and the other six differ by one or two iterations, all within
+1/64 of a pixel of the boundary (fused multiply-add and reassociation on the
+GPU).
 
 ---
 
@@ -263,28 +299,35 @@ without BLA, for both set kinds.
 
 ### 5.2 App — `packages/app/src/pages/FractalExplorer/`
 
-| File                      | Contents                                                      |
-| ------------------------- | ------------------------------------------------------------- |
-| `FractalExplorerApp.tsx`  | Providers, copied from `BenchmarksApp`                        |
-| `FractalExplorerPage.tsx` | Layout: full-bleed canvas, control panel, status readout      |
-| `ExplorerRenderer.tsx`    | Inside `AutoCanvas`: buffers, frame loop, budget, readback    |
-| `explorerKernel.ts`       | TypeGPU: iterate + init compute, colour compute, present pass |
-| `explorerInput.ts`        | Wheel, drag, pinch, double-click, keyboard -> view operations |
-| `orbitWorker.ts`          | Web Worker: reference orbits + BLA, cancellable               |
-| `orbitClient.ts`          | Worker requests, stale-result dropping                        |
-| `useExplorerState.ts`     | Signals + URL fragment sync                                   |
+| File                       | Contents                                                        |
+| -------------------------- | --------------------------------------------------------------- |
+| `FractalExplorerApp.tsx`   | Providers, copied from `BenchmarksApp`                          |
+| `FractalExplorerPage.tsx`  | Layout: full-bleed canvas, HUD, settings panel, save and share  |
+| `ExplorerControls.tsx`     | The settings panel                                              |
+| `ExplorerRenderer.tsx`     | Inside `AutoCanvas`: frame loop, step budget, references, AA    |
+| `explorerGpu.ts`           | GPU buffers, display ping-pong, command encoding, readback      |
+| `explorerShaders.ts`       | Structs, layouts, the init and iterate passes                   |
+| `explorerColourShaders.ts` | Colouring (gamut map, band limit, accumulation) and present     |
+| `orbitUpload.ts`           | Lays both orbits and their BLA tables out in shared buffers     |
+| `explorerInput.ts`         | Wheel, drag, pinch, double-click, keyboard -> view operations   |
+| `orbitWorker.ts`           | Web Worker: reference orbits + BLA, cached, superseded requests |
+| `orbitClient.ts`           | Worker requests, stale-result dropping                          |
+| `explorerLocation.ts`      | Location signal kept in step with the URL fragment              |
+| `explorerPalette.ts`       | App palette -> mirrored OkLab (a, b) lookup table               |
 
 Routing: `/explore` (new branch in `index.tsx`, `routing/appPath.ts`, a
 trailing-slash redirect in the Cloudflare worker). Entry points: the desktop
 version menu next to Benchmark Lab, and the shared More menu. View state lives
 in the URL **fragment** (never sent to the server or GA).
 
-Controls: Mandelbrot / Julia; "Julia here" (Mandelbrot centre becomes `c`);
-iterations (auto from depth, or fixed); palette (`PaletteSelector`), colour
-density and phase; distance shading; quality; reset; copy link; copy
-coordinates. Readout: magnification, iterations, progress, reference state.
-Input: wheel zooms at the pointer, drag pans, pinch, double-click zooms 4x,
-`+`/`-`/arrows/`r`/`j`.
+Controls as built: Mandelbrot / Julia; "Julia set of the view centre"; the
+Julia constant; iteration limit (halve, double, or type); palette
+(`PaletteSelector`), colour cycle and shift; relief (distance shading);
+quality (pixel budget and supersamples); home; copy link; save PNG. Readout:
+magnification, progress, reference state. Input: wheel zooms at the pointer,
+drag pans, pinch, double-click zooms in (Shift: out), `+`/`-`/arrows. Not
+built yet: automatic iteration limit from depth, a BLA toggle, copy
+coordinates, `r`/`j` shortcuts.
 
 ---
 
@@ -302,13 +345,13 @@ Input: wheel zooms at the pointer, drag pans, pinch, double-click zooms 4x,
 
 ## 7. Risks
 
-| Risk                                         | Mitigation                                                  |
-| -------------------------------------------- | ----------------------------------------------------------- |
-| BLA radius heuristic lets a bad skip through | Tested against exact iteration; toggle in the UI to compare |
-| Backend flushes / fast-math surprise         | No error-free transforms; comparisons in scaled units       |
-| 32 B/pixel state on 4K screens               | Pixel budget from device limits; quality setting            |
-| Reference orbit slow at 1e1000               | Worker, sliced, cancellable; old reference keeps rendering  |
-| TypeGPU WGSL-string tracing across modules   | Kernel helpers defined in the one module that uses them     |
+| Risk                                         | Mitigation                                                 |
+| -------------------------------------------- | ---------------------------------------------------------- |
+| BLA radius heuristic lets a bad skip through | Tested against exact iteration, CPU mirror and GPU         |
+| Backend flushes / fast-math surprise         | No error-free transforms; comparisons in scaled units      |
+| 32 B/pixel state on 4K screens               | Pixel budget from device limits; quality setting           |
+| Reference orbit slow at 1e1000               | Worker, sliced, cancellable; old reference keeps rendering |
+| TypeGPU WGSL-string tracing across modules   | Kernel helpers defined in the one module that uses them    |
 
 ## 8. Later phases
 

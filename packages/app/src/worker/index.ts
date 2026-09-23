@@ -15,14 +15,14 @@ export const baseHandler = {
     const url = new URL(request.url)
     const { pathname } = url
 
-    // Keep the benchmark route canonical. The Vite build currently uses a
+    // Keep the benchmark and explorer routes canonical. The Vite build uses a
     // relative asset base, so serving index.html at `/benchmarks/` would make
     // its asset URLs resolve under `/benchmarks/assets/`.
     if (
-      pathname === '/benchmarks/' &&
+      (pathname === '/benchmarks/' || pathname === '/explore/') &&
       (request.method === 'GET' || request.method === 'HEAD')
     ) {
-      url.pathname = '/benchmarks'
+      url.pathname = pathname.slice(0, -1)
       return Response.redirect(url.toString(), 308)
     }
 
