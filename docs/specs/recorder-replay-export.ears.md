@@ -694,12 +694,12 @@ hovered partner shall put the preview back the same way before
 `flame.setupMorph` runs, and a hover on a later visit to the gallery shall put
 back the pick rather than the document from before it. **When**
 `flame.setBlendFlame` runs without a weight, as an older take or an agent may,
-a partner set where there was none shall start at the default weight and a
-partner swap shall keep the current weight; a weight it is given shall be held
-to 0..1 and win. The replay policy shall accept the one- and two-argument forms
-and refuse a weight outside 0..1. The creation synthesizer shall name the
-target's weight on the partner's step. The weight is the edited flame's share
-of the blend: 0 draws the partner alone.
+a document that already has a weight shall keep it, whether or not it had a
+partner, and only a document with no weight shall start at the default; a
+weight it is given shall be held to 0..1 and win. The replay policy shall
+accept the one- and two-argument forms and refuse a weight outside 0..1. The
+creation synthesizer shall name the target's weight on the partner's step. The
+weight is the edited flame's share of the blend: 0 draws the partner alone.
 
 _(`flame/blend.ts:17`, `hooks/useWorkspaceBlendPick.ts:43-99`,
 `commands/builtins/flame/coreCommands.ts:44-71`, `commands/registry.ts:288-296`,

@@ -35,19 +35,43 @@ function makeWorld(start: FlameDescriptor) {
   return { flame, history, ctx }
 }
 
-function blended(weight: number): FlameDescriptor {
+function blended(weight: number | undefined): FlameDescriptor {
   const flame = deepClone(examples.example1)
   flame.renderSettings.blendFlame = deepClone(examples.example2)
+  if (weight !== undefined) flame.renderSettings.blendWeight = weight
+  return flame
+}
+
+function weighted(weight: number): FlameDescriptor {
+  const flame = deepClone(examples.example1)
   flame.renderSettings.blendWeight = weight
   return flame
 }
 
 describe('flame.setBlendFlame and its weight', () => {
-  it('gives a blend that starts from none the default weight', () => {
+  it('gives the default weight to a document that has none', () => {
     createRoot((dispose) => {
       const world = makeWorld(examples.example1)
       executeCommand('flame.setBlendFlame', world.ctx, examples.example2)
       expect(world.flame.renderSettings.blendWeight).toBe(DEFAULT_BLEND_WEIGHT)
+      // A partner and still no weight, as an older touch pick left it: a swap
+      // has no weight to keep, so it starts at the default too.
+      const partnerOnly = makeWorld(blended(undefined))
+      executeCommand('flame.setBlendFlame', partnerOnly.ctx, examples.example3)
+      expect(partnerOnly.flame.renderSettings.blendWeight).toBe(
+        DEFAULT_BLEND_WEIGHT,
+      )
+      dispose()
+    })
+  })
+
+  it('keeps a weight the document already has when its first partner names none', () => {
+    createRoot((dispose) => {
+      // An agent that sets the weight first and the partner second.
+      const world = makeWorld(examples.example1)
+      executeCommand('flame.setBlendWeight', world.ctx, 0.7)
+      executeCommand('flame.setBlendFlame', world.ctx, examples.example2)
+      expect(world.flame.renderSettings.blendWeight).toBe(0.7)
       dispose()
     })
   })
@@ -61,8 +85,17 @@ describe('flame.setBlendFlame and its weight', () => {
     })
   })
 
-  it('takes a weight it is given, from none or not', () => {
+  it('lets a weight it is given win, over none or over the one the document has', () => {
     createRoot((dispose) => {
+      const weightFirst = makeWorld(weighted(0.7))
+      executeCommand(
+        'flame.setBlendFlame',
+        weightFirst.ctx,
+        examples.example2,
+        0.25,
+      )
+      expect(weightFirst.flame.renderSettings.blendWeight).toBe(0.25)
+
       const world = makeWorld(examples.example1)
       executeCommand('flame.setBlendFlame', world.ctx, examples.example2, 0.25)
       expect(world.flame.renderSettings.blendWeight).toBe(0.25)

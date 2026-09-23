@@ -207,8 +207,8 @@ describe('planCreation', () => {
   })
 
   it('builds a blend at the weight the target has', () => {
-    // A partner set from none starts at the default weight unless its step
-    // names one, so the partner's own step carries the target's weight.
+    // A partner named without a weight would give a document with none the
+    // default, so the partner's own step carries the target's weight.
     const target = {
       ...twoTransforms,
       renderSettings: {

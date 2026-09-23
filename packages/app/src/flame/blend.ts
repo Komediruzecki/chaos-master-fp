@@ -3,9 +3,9 @@
  *
  * One number with two readers: the blend gallery's hover preview, which
  * shows a partner at this weight and commits its pick at it, and
- * `flame.setBlendFlame`, which gives a blend that starts from none this
- * weight when the caller names none. A replay lands on what the viewer saw
- * only while the two agree.
+ * `flame.setBlendFlame`, which gives it to a document that has no weight yet
+ * when the caller names none. A replay lands on what the viewer saw only
+ * while the two agree.
  */
 
 /**

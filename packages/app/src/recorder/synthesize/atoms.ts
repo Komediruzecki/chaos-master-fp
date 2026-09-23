@@ -521,10 +521,9 @@ function renderAtoms(
   }
 
   // The partner's own step names the weight, the way a gallery pick records
-  // it. A partner set from none starts at the default weight unless its step
-  // names one, so a weight step placed before the partner would be undone by
-  // it. The canonical target always has a weight: a missing one is the 0 it
-  // draws at.
+  // it, so the plan never leans on what a partner named without one gets (a
+  // document with no weight yet would get the default). The canonical target
+  // always has a weight: a missing one is the 0 it draws at.
   const blendFlame = target.renderSettings.blendFlame
   const blendWeight = target.renderSettings.blendWeight
   if (blendFlame !== undefined) {

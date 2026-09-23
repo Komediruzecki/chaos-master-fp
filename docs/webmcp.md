@@ -234,9 +234,9 @@ pnpm test:e2e -- tests/arcade.ci.spec.ts
   `timeline.stop`.
 - `flame.setBlendFlame` takes the partner and an optional weight from 0 to 1,
   the edited flame's share of the blend (0 draws the partner alone). Without
-  the weight, a partner set where there was none gets the default 0.4 and a
-  partner swap keeps the current weight. A pick in the blend gallery always
-  names 0.4.
+  the weight, the document keeps the weight it has, whether or not it had a
+  partner, and one with no weight yet gets the default 0.4. A pick in the blend
+  gallery always names 0.4.
 - A page reload during a session ends it and loses the recorder's in-memory
   take: it was never saved, so nothing appears in the library.
 - Cinema playback is started by `arcade_set_keyframes` itself and is
