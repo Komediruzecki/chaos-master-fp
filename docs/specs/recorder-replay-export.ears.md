@@ -332,7 +332,7 @@ having changed nothing (the video driver throwing with the 1-based step number).
 close any batch it had opened.
 
 _(`recorder/replay.ts:199-203`, `recorder/player.ts:399-425`,
-`recorder/replayVideo.ts:618-623`; guarded by
+`recorder/replayVideo.ts:621-626`; guarded by
 `player.test.ts:1142` "preflights every action before opening a batch or loading
 state", `replayVideo.test.ts:150`, `recorder.test.ts:1535` and
 `player.test.ts:1117`.)_
@@ -475,7 +475,7 @@ shall still advance at least one output frame between them, and the total frame
 count shall always be large enough to represent the last authored action even
 when the caller asks for no tail.
 
-_(`recorder/replayVideo.ts:423-537`, `recorder/player.ts:140-221`; guarded by
+_(`recorder/replayVideo.ts:424-539`, `recorder/player.ts:140-221`; guarded by
 `replayVideo.test.ts:21`, `:56`, `:70`, `:306`, `replayVideoPlayWindows.test.ts:77`
 and `playWindowReplay.test.ts:590` "gives the interface capture the same window
 the player plays".)_
@@ -490,8 +490,8 @@ an encoder is allocated and, for the interface path, before the
 privacy-sensitive screen-share picker is shown. A non-zero `unnamedWriteCount`
 is not such a problem (REQ-RR-042).
 
-_(`recorder/replayVideo.ts:61`, `:353-419`, `:423-451`, `:500-506`,
-`:1086-1116`, `recorder/replayInterfaceVideo.ts:318-333`; guarded by
+_(`recorder/replayVideo.ts:61`, `:354-420`, `:424-452`, `:501-507`,
+`:1094-1124`, `recorder/replayInterfaceVideo.ts:318-333`; guarded by
 `replayVideo.test.ts:40`, `:235`, `:246`, `:260`, `:275`, and the last sentence
 by `:214`.)_
 
@@ -507,8 +507,8 @@ or a frame asks for an earlier moment of the step it has already paced past
 (REQ-RR-045). The plate shall be a fixed 1920×1080 landscape, matching the
 framing the editor authors in.
 
-_(`recorder/replayVideo.ts:37-42`, `:611-1071`, `:758`, `:861`, `:930-932`,
-`:996-1001`; guarded by `replayVideo.test.ts:86` "replays registered commands
+_(`recorder/replayVideo.ts:37-42`, `:613-1079`, `:761`, `:864`, `:933-935`,
+`:999-1004`; guarded by `replayVideo.test.ts:86` "replays registered commands
 in an isolated world without mutating input", `:114`, `:181`,
 `replayVideoPlayWindows.test.ts:124` "renders the same frame for the same
 moment, in any order" and `replayGlideSwitches.test.ts:179`.)_
@@ -521,7 +521,7 @@ and stochastic filters — the offscreen renderer shall re-encode the last
 accumulated artwork frame with an updated caption and progress bar instead of
 waiting for a GPU re-render that would correctly never arrive.
 
-_(`recorder/replayVideo.ts:108-125`,
+_(`recorder/replayVideo.ts:109-126`,
 `components/ExportJobs/OffscreenAnimationRender.tsx:247-335`; the fingerprint is
 guarded by `replayVideo.test.ts:159` "distinguishes visual steps from captions
 that can reuse artwork" — the run loop consuming it is not.)_
@@ -667,7 +667,7 @@ shall refuse the step live (`agentCallable: false`).
 _(`utils/timeline.ts:1437-1473`, `:1493-1527`, `recorder/recorder.ts:442-446`,
 `:883-932`, `recorder/documentWriteHook.ts:89-105`,
 `recorder/transportStep.ts:14-29`, `commands/builtins/timeline.ts:503-532`,
-`commands/registry.ts:589-593`, `hooks/useWorkspaceReplay.ts:481-485`; guarded
+`commands/registry.ts:590-594`, `hooks/useWorkspaceReplay.ts:481-485`; guarded
 by `timelineActions.test.ts:613` "records Space pressed twice as two steps and
 replays to the paused frame", `:659` "pins the frame a playback stops on when
 it reaches the end by itself", `:694` "records a pause that a workspace flow
@@ -723,7 +723,7 @@ for them, and the embedded session keeps their count and names.
 
 _(`components/SessionRecorder/SessionReplayPanel.tsx:681-688`, `:782-790`,
 `components/SessionRecorder/UncapturedSteps.tsx:53-82`,
-`recorder/uncapturedSteps.ts:157-170`, `recorder/replayVideo.ts:1093`,
+`recorder/uncapturedSteps.ts:157-170`, `recorder/replayVideo.ts:1101`,
 `recorder/replayInterfaceVideo.ts:324`; guarded by `replayVideo.test.ts:214`,
 `replayInterfaceVideo.test.ts:162`, `SessionReplayPanel.test.tsx:302`,
 `:348`.)_
@@ -838,7 +838,7 @@ as before. A window of D seconds lasts D / speed seconds of video, so a long
 one can take a take past the 300 s limit (REQ-RR-029), which a faster speed
 fits.
 
-_(`recorder/replayVideo.ts:441-537`, `:546-609`, `:645-657`, `:985-1047`,
+_(`recorder/replayVideo.ts:442-539`, `:548-611`, `:648-660`, `:988-1050`,
 `components/ExportJobs/OffscreenAnimationRender.tsx:64`, `:327`; guarded by
 `replayVideoPlayWindows.test.ts:77`, `:93` "moves the playhead frame by frame
 through the window onto the Pause frame", `:114`, `:124`, `:137`, `:149`,
@@ -863,6 +863,12 @@ declare `preservesFinishedSession` (REQ-RR-010), so a flip made while the replay
 is paused shall leave the live workspace mutation stamp where it was, and
 Resume shall carry on from the paused step rather than rebuild the take from
 its start; a flip shall not detach the last finished take from its document.
+Nor shall a flip take a playing replay over: both switches are
+`presentationSwitch`, so a live run skips `beforeCommand`, the replay plays on
+without a rebuild and glides its next step at the flipped setting, and
+`execute_command` lets a glide in flight finish rather than settle it. Every
+other live command, the export dialog openers and render commands included,
+shall still hand a playing replay back before it runs.
 The full-interface export records that same player, so its switches shall go
 back when the capture succeeds, is cancelled, or fails while the replay runs.
 The artwork export's driver, the
@@ -877,19 +883,24 @@ portal's tours animate through their own `animateValue`.
 
 _(`recorder/replayGlideLease.ts`, `recorder/player.ts:306-308`, `:361-367`,
 `:455-470`, `:520-525`, `:578-585`, `:696-703`,
-`commands/builtins/glide.ts:14-17`, `:44-46`, `:49`, `:60`, `:63`, `:96`,
-`commands/types.ts:308-316`, `:344-356`, `flame/glide/types.ts:181-188`,
+`commands/builtins/glide.ts:14-17`, `:44-47`, `:51`, `:62`, `:66`, `:99`,
+`commands/types.ts:308-316`, `:344-356`, `:357-365`,
+`commands/registry.ts:537-543`, `webmcp/tools/executeCommand.ts:153-164`,
+`flame/glide/types.ts:181-188`,
 `recorder/recorder.ts:597-603`,
-`recorder/replayVideo.ts:930-932`, `recorder/synthesize/sandbox.ts:125-127`,
+`recorder/replayVideo.ts:933-935`, `recorder/synthesize/sandbox.ts:125-127`,
 `seats/seat.ts:279-281`, `components/Home/portalScript.ts:219-221`,
 `components/SessionRecorder/SessionReplayPanel.tsx:185-190`, `:714-729`,
 `flame/glide/runtime.ts:364-390`; guarded by `replayGlideSwitches.test.ts:98`,
 `:111`, `:122`, `:136`, `:149`, `:166` "keeps a switch the viewer flips while
 paused, though the take flips it again", `:187` "resumes a paused replay where
 it paused after a live glide.setQuality", `:212`, `:230`, `:261`, `:281`, `:301`,
-`:318`, `:333`, `:380` "never reaches the live glide while the artwork export
-glides into a flame", `:394`, `:402`, `:408`, `:438` "never reaches the live
-glide or switches through a duel seat" and `SessionReplayPanelGlide.test.tsx:148`,
+`:326` "plays on through a live glide.setQuality, and keeps the flip", `:350`
+"still hands a playing replay back to open export.png", `:366`, `:413` "never reaches the live glide while the artwork export
+glides into a flame", `:427`, `:435`, `:441`, `:471` "never reaches the live
+glide or switches through a duel seat", `replayGlideQuality.test.ts:182` "glides
+the next step at a tier the viewer flips while it plays",
+`executeCommand.test.ts:458` and `SessionReplayPanelGlide.test.tsx:148`,
 `:163`, `:179`.)_
 
 ### REQ-RR-047 — The artwork export glides at the take's own Glide quality
@@ -908,16 +919,21 @@ tier it renders at are the same tier, and the two replays give every step the
 same glide length and the same step times. A take's `glide.setEnabled` step
 shall change neither replay's glides, which follow the replay panel's toggle.
 A job queued before the preference travelled with it shall start at the tier
-it recorded. Two exports of one request shall produce the same job and
+it recorded. The export's driver shall plan each glide with the inputs the live
+runtime plans that step's glide with: the step's glide length and tier from the
+schedule (`glideMs`, `glideTiers`), so both replays straighten, frame and
+downshift a glide alike. Two exports of one request shall produce the same job and
 schedule.
 
-_(`recorder/glide.ts:46-48`, `:71-102`, `recorder/replayVideo.ts:84-85`,
-`:452-458`, `:526`, `:567-576`,
-`components/ExportJobs/OffscreenAnimationRender.tsx:69-85`, `:329`,
+_(`recorder/glide.ts:46-48`, `:71-102`, `recorder/replayVideo.ts:84-86`,
+`:453-459`, `:527-528`, `:569-578`, `:613-616`, `:1059-1076`,
+`flame/glide/runtime.ts:199-203`,
+`components/ExportJobs/OffscreenAnimationRender.tsx:56`, `:69-85`, `:329`,
 `recorder/player.ts:489-501`, `:243`, `:709`, `recorder/replayGlideLease.ts:22-24`,
 `:66-69`, `components/SessionRecorder/SessionReplayPanel.tsx:705-711`; guarded
-by `replayGlideQuality.test.ts:136`, `:143` "gives the same glide lengths and
-step times as the live replay", `:154`, `:180`, `glide.test.ts:114`, `:129`,
+by `replayGlideQuality.test.ts:175`, `:196` "gives the same glide lengths and
+step times as the live replay", `:207` "plans each glide with the inputs the
+live replay plans it with", `:226`, `:252`, `glide.test.ts:114`, `:129`,
 `:149` and `replayGlideSwitches.test.ts:242`.)_
 
 ### REQ-RR-048 — A replay never exports
