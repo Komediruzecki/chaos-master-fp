@@ -206,31 +206,32 @@ export function toAffine3D(
   affine: Record<string, number | undefined> | undefined,
 ): AffineParams3D {
   const ft = affine ?? {}
+  const at = (key: string, missing: number) => ft[key] ?? missing
   if (isAffine3D(ft)) {
     return {
-      a: ft.a ?? 1,
-      b: ft.b ?? 0,
-      c: ft.c ?? 0,
-      d: ft.d ?? 0,
-      e: ft.e ?? 0,
-      f: ft.f ?? 1,
-      g: ft.g ?? 0,
-      h: ft.h ?? 0,
-      i: ft.i ?? 0,
-      j: ft.j ?? 0,
-      k: ft.k ?? 1,
-      l: ft.l ?? 0,
+      a: at('a', 1),
+      b: at('b', 0),
+      c: at('c', 0),
+      d: at('d', 0),
+      e: at('e', 0),
+      f: at('f', 1),
+      g: at('g', 0),
+      h: at('h', 0),
+      i: at('i', 0),
+      j: at('j', 0),
+      k: at('k', 1),
+      l: at('l', 0),
     }
   }
   return {
-    a: ft.a ?? 1,
-    b: ft.b ?? 0,
+    a: at('a', 1),
+    b: at('b', 0),
     c: 0,
-    d: ft.c ?? 0, // Translation X
-    e: ft.d ?? 0,
-    f: ft.e ?? 1,
+    d: at('c', 0), // Translation X
+    e: at('d', 0),
+    f: at('e', 1),
     g: 0,
-    h: ft.f ?? 0, // Translation Y
+    h: at('f', 0), // Translation Y
     i: 0,
     j: 0,
     k: 1,
