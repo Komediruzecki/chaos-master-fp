@@ -14,7 +14,7 @@ import { FractalExplorerPage } from './FractalExplorerPage'
 import type { ExplorerLocation } from '@chaos-master/core'
 import type { ParentProps } from 'solid-js'
 import type * as PaletteModule from './explorerPalette'
-import type { ExplorerRendererProps } from './ExplorerRenderer'
+import type { ExplorerRendererProps, ExplorerStatus } from './ExplorerRenderer'
 import type * as JuliaMarkerModule from './JuliaMarker'
 import type { JuliaMarkerProps } from './JuliaMarker'
 import type { Palette } from '@/flame/colorMap'
@@ -281,5 +281,37 @@ describe('FractalExplorerPage link', () => {
         'Could not reach the clipboard. The address bar has the same link.',
       )
     })
+  })
+})
+
+describe('FractalExplorerPage readouts', () => {
+  const STATUS: ExplorerStatus = {
+    progress: 0.42,
+    orbitPending: false,
+    orbitProgress: 0,
+    orbitMs: 12,
+    grid: { width: 800, height: 600 },
+    stepBudget: 16,
+    samples: 1,
+    sampleTarget: 8,
+    iterationCap: undefined,
+    error: undefined,
+  }
+
+  it('shows how far the picture got, a pending reference, or that it stopped', () => {
+    open(DEFAULT_LOCATION)
+    const report = (change: Partial<ExplorerStatus>) => {
+      stubs.renderers[0]!.onStatus({ ...STATUS, ...change })
+    }
+    const done = () =>
+      screen.getByText('Done', { selector: 'dt' }).nextElementSibling
+        ?.textContent
+
+    report({})
+    expect(done()).toBe('42%')
+    report({ orbitPending: true })
+    expect(done()).toBe('Reference')
+    report({ error: 'the orbit worker failed to start' })
+    expect(done()).toBe('Error')
   })
 })

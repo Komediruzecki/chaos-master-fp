@@ -184,6 +184,12 @@ export function FractalExplorerPage() {
   }
 
   const progress = () => status()?.progress ?? 0
+  /** The heads-up Done readout: why the picture stopped, or how far it got. */
+  const done = () => {
+    if (status()?.error) return 'Error'
+    if (status()?.orbitPending) return 'Reference'
+    return `${Math.floor(progress() * 100)}%`
+  }
 
   return (
     <div
@@ -283,11 +289,7 @@ export function FractalExplorerPage() {
           </div>
           <div>
             <dt>Done</dt>
-            <dd>
-              <Show when={!status()?.orbitPending} fallback="Reference">
-                {Math.floor(progress() * 100)}%
-              </Show>
-            </dd>
+            <dd>{done()}</dd>
           </div>
         </dl>
         <button
