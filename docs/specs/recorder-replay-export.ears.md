@@ -848,7 +848,7 @@ runs, set them back before a rebuild replays the steps up to a seek point, and
 put them back (`restoreGlideSwitches`) when the replay ends, however it ends:
 finished, stopped or closed, a step failing, or the viewer taking the document
 over. A replay Pause shall keep the take's switches until the replay ends.
-**When** the viewer flips a switch themselves during the replay (a shortcut, an
+**When** the viewer flips a switch themselves during the replay (through an
 agent of their own), found as a switch other than the replay last left it, that
 flip shall be kept, each switch on its own: it is their setting from then on,
 the one a rebuild starts from and the one the end puts back, though the take's

@@ -47,7 +47,7 @@ const switches = () => ({
   quality: glideQualityPreference(),
 })
 
-/** The viewer runs a switch command live: a shortcut, or their own agent. */
+/** The viewer runs a switch command live, through their own agent. */
 function flipAsViewer(id: string, value: unknown) {
   executeCommand(id, {} as CommandContext, value)
 }

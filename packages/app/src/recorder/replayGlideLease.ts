@@ -2,8 +2,8 @@
  * The viewer's Glide switches over a workspace replay (REQ-RR-046): held from
  * the first step, set again before a rebuild, handed back when it ends. The
  * take's own steps switch them meanwhile, and that is put back. A switch
- * found other than the replay last left it was flipped by the viewer (a
- * shortcut, their own agent), each switch on its own: that flip is their
+ * found other than the replay last left it was flipped by the viewer (through
+ * their own agent), each switch on its own: that flip is their
  * setting from then on, the one a rebuild starts from and the end restores.
  */
 
