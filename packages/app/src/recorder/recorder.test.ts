@@ -14,8 +14,9 @@ import { createTimelineState } from '@/utils/timeline'
 import { cancelSessionRecording, getLiveWorkspaceMutationGeneration, isSessionRecording, lastFinishedSession, notePreviewStarted, recordedActionCount, recordSyntheticAction, reportDerivedWorkspaceWrite, reportDocumentWrite, reportTimelineWrite, reportUnreplayableOnce, startSessionRecording, stopSessionRecording, uncapturedSteps, unnamedWriteCount, withRecordingSuppressed, } from './recorder'
 import { replaySessionInstant } from './replay'
 import { captureTransformColors, paletteRestoreColorsAfterReplayCommand, runPaletteRestoreTransition, } from './replayPaletteState'
-import { MAX_ACTION_ARGS, MAX_ACTION_TIMESTAMP_MS, MAX_SESSION_ACTIONS, MAX_SESSION_JSON_CHARS, MAX_SONIFICATION_MODEL_TRANSITIONS, parseSession, serializeSession, sessionFilename, validateSession, } from './schema'
+import { MAX_ACTION_ARGS, MAX_ACTION_TIMESTAMP_MS, MAX_SESSION_ACTIONS, MAX_SESSION_JSON_CHARS, MAX_SONIFICATION_MODEL_TRANSITIONS, MAX_UNCAPTURED_STEPS, parseSession, serializeSession, sessionFilename, validateSession, } from './schema'
 import { SONIFICATION_SNAPSHOT_VERSION } from './sonificationState'
+import { summarizeUncapturedSteps } from './uncapturedSteps'
 import type { RecordedSession } from './schema'
 import type { SonificationSnapshot } from './sonificationState'
 import type { CommandContext } from '@/commands/types'
@@ -2146,6 +2147,35 @@ describe('uncaptured steps are named', () => {
     expect(String(warn.mock.calls[0]?.[0])).toContain(
       'Exposure, made outside the recorded commands, at 0:43',
     )
+  })
+
+  it('lists the first 2,000 of a flood of uncaptured steps and counts the rest', () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    startSessionRecording(examples.example1)
+    for (let i = 0; i < MAX_UNCAPTURED_STEPS; i++)
+      reportDocumentWrite('Exposure')
+    const listed = uncapturedSteps()
+    for (let i = 0; i < 500; i++) reportDocumentWrite('Exposure')
+
+    expect(unnamedWriteCount()).toBe(2_500)
+    expect(uncapturedSteps().length).toBe(2_000)
+    // Past the names a file keeps, a write moves the count alone: the list
+    // the recorder controls show is still the same array, not a fresh copy of
+    // 2,000 names for every write.
+    expect(uncapturedSteps() === listed).toBe(true)
+    const live = summarizeUncapturedSteps({
+      unnamedWriteCount: unnamedWriteCount(),
+      uncapturedSteps: uncapturedSteps(),
+    })
+    expect(live.note).toBe('500 more were not listed.')
+
+    const session = stopOrThrow()
+    expect(session.unnamedWriteCount).toBe(2_500)
+    expect(session.uncapturedSteps?.length).toBe(2_000)
+    expect(summarizeUncapturedSteps(session).note).toBe(
+      '500 more were not listed.',
+    )
+    expect(parseSession(serializeSession(session))).toEqual(session)
   })
 
   it('refuses a file that names more uncaptured steps than it counts', () => {

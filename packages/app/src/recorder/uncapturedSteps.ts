@@ -17,37 +17,42 @@ import type { RecordedSession, UncapturedStep } from './schema'
 export const UNCAPTURED_DETAILS_MISSING =
   'Details were not saved by the version that recorded it.'
 
-/** Every uncaptured step of the take being recorded, and what naming them
- *  adds to the compact session JSON the recorder budgets. */
+/** Every uncaptured step of the take being recorded: how many, the ones a
+ *  file keeps by name, and what naming those adds to the compact session JSON
+ *  the recorder budgets. */
 export type UncapturedLog = {
+  /** Every step, named or not: the session's `unnamedWriteCount`. */
+  count: number
+  /** The first {@link MAX_UNCAPTURED_STEPS}, which is all a file keeps. */
   steps: UncapturedStep[]
   /** Compact JSON length of the named steps, commas excluded. */
   jsonChars: number
 }
 
 export function createUncapturedLog(): UncapturedLog {
-  return { steps: [], jsonChars: 0 }
+  return { count: 0, steps: [], jsonChars: 0 }
 }
 
-/** Record one. Every step is counted; only the first
- *  {@link MAX_UNCAPTURED_STEPS} are named in the saved file. The time is held
- *  to the session's timestamp range: the step that says a take ran past its
- *  24-hour limit happens after that limit, and must not be what makes the
- *  whole file unreadable. */
+/** Record one, and say whether it was named. Every step is counted; only the
+ *  first {@link MAX_UNCAPTURED_STEPS} are kept, since that is all a file
+ *  names, so a flood of unrouted writes costs a number each rather than a
+ *  list that grows without end. The time is held to the session's timestamp
+ *  range: the step that says a take ran past its 24-hour limit happens after
+ *  that limit, and must not be what makes the whole file unreadable. */
 export function noteUncapturedStep(
   log: UncapturedLog,
   t: number,
   reason: string,
-): UncapturedStep {
+): boolean {
+  log.count++
+  if (log.steps.length >= MAX_UNCAPTURED_STEPS) return false
   const at = Number.isFinite(t)
     ? Math.min(Math.max(0, t), MAX_ACTION_TIMESTAMP_MS)
     : MAX_ACTION_TIMESTAMP_MS
   const step = { t: at, reason: clipReason(reason) }
   log.steps.push(step)
-  if (log.steps.length <= MAX_UNCAPTURED_STEPS) {
-    log.jsonChars += JSON.stringify(step).length
-  }
-  return step
+  log.jsonChars += JSON.stringify(step).length
+  return true
 }
 
 /** The session fields a log becomes. A clean take carries no list at all,
@@ -55,22 +60,17 @@ export function noteUncapturedStep(
 export function uncapturedSessionFields(
   log: UncapturedLog,
 ): Pick<RecordedSession, 'unnamedWriteCount' | 'uncapturedSteps'> {
-  const count = log.steps.length
-  if (count === 0) return { unnamedWriteCount: 0 }
-  return {
-    unnamedWriteCount: count,
-    uncapturedSteps: log.steps.slice(0, MAX_UNCAPTURED_STEPS),
-  }
+  if (log.count === 0) return { unnamedWriteCount: 0 }
+  return { unnamedWriteCount: log.count, uncapturedSteps: [...log.steps] }
 }
 
 /** What the log adds to a session whose baseline was measured with a count of
  *  0 and no list: the count's extra digits, plus `,"uncapturedSteps":[...]`. */
 export function uncapturedJsonChars(log: UncapturedLog): number {
-  const count = log.steps.length
-  if (count === 0) return 0
-  const named = Math.min(count, MAX_UNCAPTURED_STEPS)
+  if (log.count === 0) return 0
   const field = ',"uncapturedSteps":[]'.length
-  return String(count).length - 1 + field + log.jsonChars + (named - 1)
+  const commas = log.steps.length - 1
+  return String(log.count).length - 1 + field + log.jsonChars + commas
 }
 
 /** Anything that carries a take's count and, when its recorder saved them,

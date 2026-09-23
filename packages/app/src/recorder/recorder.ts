@@ -1,4 +1,4 @@
-import { createSignal } from 'solid-js'
+import { batch, createSignal } from 'solid-js'
 import { drivingSeat } from '@/arcade/pilot'
 import { latestSchemaVersion } from '@/flame/schema/flameSchema'
 import { DEFAULT_SEAT } from '@/seats/seatId'
@@ -121,6 +121,7 @@ type StreamState = {
   actionCount: Accessor<number>
   setActionCount: Setter<number>
   unnamedWriteCount: Accessor<number>
+  setUnnamedWriteCount: Setter<number>
   uncapturedSteps: Accessor<readonly UncapturedStep[]>
   setUncapturedSteps: Setter<readonly UncapturedStep[]>
   lastSession: Accessor<RecordedSession | undefined>
@@ -137,6 +138,7 @@ function streamState(id: SeatId): StreamState {
   if (existing) return existing
   const [isRecording, setIsRecording] = createSignal(false)
   const [actionCount, setActionCount] = createSignal(0)
+  const [unnamedWriteCount, setUnnamedWriteCount] = createSignal(0)
   const [uncapturedSteps, setUncapturedSteps] = createSignal<
     readonly UncapturedStep[]
   >([])
@@ -153,7 +155,8 @@ function streamState(id: SeatId): StreamState {
     setIsRecording,
     actionCount,
     setActionCount,
-    unnamedWriteCount: () => uncapturedSteps().length,
+    unnamedWriteCount,
+    setUnnamedWriteCount,
     uncapturedSteps,
     setUncapturedSteps,
     lastSession,
@@ -402,6 +405,7 @@ function startIn(
   s.pendingNarration = undefined
   s.setActionCount(0)
   s.setUncapturedSteps([])
+  s.setUnnamedWriteCount(0)
   // A finished session describes the flame it was recorded against; once a
   // new recording starts it must not be embedded into anything.
   s.setLastSession(undefined)
@@ -740,8 +744,7 @@ function reportUnreplayableIn(s: StreamState, reason: string): void {
     s.pendingActionIndex = undefined
   }
   s.coalesceAnchors = new Map()
-  noteUncapturedStep(rec.uncaptured, elapsedMs(rec), reason)
-  s.setUncapturedSteps([...rec.uncaptured.steps])
+  noteUncapturedIn(s, rec, reason)
   console.warn('[recorder] Unreplayable during recording:', reason)
 }
 
@@ -920,13 +923,27 @@ function reportTimelinePlaybackIn(
   s.setActionCount(rec.actions.length)
 }
 
+/** Log one uncaptured step and show it. Past the names a file keeps, the
+ *  list does not change, so only the count moves: a flood of unrouted writes
+ *  then costs a number each, not a fresh copy of 2,000 names. */
+function noteUncapturedIn(
+  s: StreamState,
+  rec: ActiveRecording,
+  reason: string,
+): void {
+  const named = noteUncapturedStep(rec.uncaptured, elapsedMs(rec), reason)
+  batch(() => {
+    if (named) s.setUncapturedSteps([...rec.uncaptured.steps])
+    s.setUnnamedWriteCount(rec.uncaptured.count)
+  })
+}
+
 function noteUnnamedWrite(
   s: StreamState,
   rec: ActiveRecording,
   reason: string,
 ): void {
-  noteUncapturedStep(rec.uncaptured, elapsedMs(rec), reason)
-  s.setUncapturedSteps([...rec.uncaptured.steps])
+  noteUncapturedIn(s, rec, reason)
   console.warn(
     '[recorder] Unnamed write during recording — not replayable:',
     reason,

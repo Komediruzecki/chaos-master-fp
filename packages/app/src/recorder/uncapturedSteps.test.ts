@@ -4,7 +4,7 @@
  * line a stop writes all take their words from here.
  */
 import { describe, expect, it } from 'vitest'
-import { describeUncapturedStep, summarizeUncapturedSteps, UNCAPTURED_DETAILS_MISSING, } from './uncapturedSteps'
+import { createUncapturedLog, describeUncapturedStep, noteUncapturedStep, summarizeUncapturedSteps, UNCAPTURED_DETAILS_MISSING, uncapturedJsonChars, uncapturedSessionFields, } from './uncapturedSteps'
 
 describe('uncaptured step names', () => {
   it('reads as the reason and the moment in the take', () => {
@@ -53,6 +53,24 @@ describe('uncaptured step names', () => {
     })
     expect(summary.lines).toEqual(['Exposure, at 0:00'])
     expect(summary.note).toBe('2 more were not listed.')
+  })
+
+  it('adds exactly its own length to the session JSON, a flood included', () => {
+    // The recorder budgets a take's file without serializing it after every
+    // write, so what a log says it adds has to be what it adds, to the
+    // character, past the names a file keeps as well as short of them.
+    for (const steps of [0, 1, 3, 2_500]) {
+      const log = createUncapturedLog()
+      for (let i = 0; i < steps; i++) {
+        noteUncapturedStep(log, i * 1_000, `Edit "${i}"`)
+      }
+      const clean = JSON.stringify({ actions: [], unnamedWriteCount: 0 })
+      const logged = JSON.stringify({
+        actions: [],
+        ...uncapturedSessionFields(log),
+      })
+      expect(logged.length - clean.length).toBe(uncapturedJsonChars(log))
+    }
   })
 
   it('has nothing to say about a clean take', () => {
