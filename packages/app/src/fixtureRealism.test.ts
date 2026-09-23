@@ -31,7 +31,7 @@
 // Each exception below carries its reason, and one that no longer matches
 // anything fails as well.
 import { VARIATION_TYPE_MIGRATIONS } from '@chaos-master/core'
-import { readdirSync, readFileSync, statSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
@@ -129,62 +129,72 @@ const isTestFile = (file: string) =>
   /testUtils\.tsx?$/.test(file) ||
   /\/__fixtures__\//.test(file)
 
+const WEIGHT_KEY = /\bweight\b['"]?\]?\s*[:,}]/
+const TYPE_KEY = /\btype\b['"]?\]?\s*[:,}]/
+/**
+ * A name where a table can hold it: a key (`name:`, `'name':`, `['name']:`)
+ * or a quoted string anywhere but after a colon, which is where an array's
+ * elements are and a property's value (`type: 'linearVar'`) is not.
+ */
+const TABLE_SLOT =
+  /\b([A-Za-z][A-Za-z0-9_]*(?:Var|3D))['"`]?\]?\s*:|(?<!:\s*)['"`]([A-Za-z][A-Za-z0-9_]*(?:Var|3D))['"`]/g
+
 /**
  * Worth parsing: the text can hold a hit. Each test over-approximates its
  * rules, so a file it passes over has none, and parsing only the rest keeps
  * the scan to a few hundred milliseconds.
  */
 function mayMatch(text: string, production: boolean): boolean {
-  // (a), (b): a `weight` and a `type` property.
-  if (/\bweight\b/.test(text) && /\btype\b['"]?\]?\s*[:,}]/.test(text)) {
-    return true
-  }
+  // (a), (b): a `weight` and a `type` property, plain, quoted, computed
+  // or shorthand. Reading `v.weight` is not one.
+  if (WEIGHT_KEY.test(text) && TYPE_KEY.test(text)) return true
   // (c): a quoted variation spelling that is not registered.
   for (const [, name] of text.matchAll(
     /['"`]([a-z][A-Za-z0-9]*Var(?:3D)?)['"`]/g,
   )) {
     if (!registered.has(name!)) return true
   }
-  // (d): two registered names in production code. Every registered name
-  // ends in Var or 3D (pinned below), so this pattern sees them all.
+  // (d): two registered names in production code, where a table holds
+  // them. Every registered name ends in Var or 3D (pinned below), so this
+  // pattern sees them all.
   if (!production) return false
-  const seen = new Set<string>()
-  for (const [, name] of text.matchAll(
-    /\b([A-Za-z][A-Za-z0-9_]*(?:Var|3D))\b/g,
-  )) {
-    if (registered.has(name!)) seen.add(name!)
-    if (seen.size >= 2) return true
+  let slots = 0
+  for (const [, key, element] of text.matchAll(TABLE_SLOT)) {
+    if (registered.has((key ?? element)!) && ++slots >= 2) return true
   }
   return false
 }
 
+/** `as`, `satisfies`, `!`, `<T>` and parentheses: what leaves a value as it is. */
+const isWrapper = (
+  node: ts.Node,
+): node is
+  | ts.ParenthesizedExpression
+  | ts.AsExpression
+  | ts.SatisfiesExpression
+  | ts.NonNullExpression
+  | ts.TypeAssertion =>
+  ts.isParenthesizedExpression(node) ||
+  ts.isAsExpression(node) ||
+  ts.isSatisfiesExpression(node) ||
+  ts.isNonNullExpression(node) ||
+  ts.isTypeAssertionExpression(node)
+
 function unwrap(expression: ts.Expression): ts.Expression {
   let e = expression
-  while (
-    ts.isParenthesizedExpression(e) ||
-    ts.isAsExpression(e) ||
-    ts.isSatisfiesExpression(e) ||
-    ts.isNonNullExpression(e) ||
-    ts.isTypeAssertionExpression(e)
-  ) {
-    e = e.expression
-  }
+  while (isWrapper(e)) e = e.expression
   return e
 }
 
-/** The node an expression's wrappers (`as`, `satisfies`, parentheses) sit in. */
-function outerParent(node: ts.Node): ts.Node {
-  let p = node.parent
-  while (
-    ts.isParenthesizedExpression(p) ||
-    ts.isAsExpression(p) ||
-    ts.isSatisfiesExpression(p) ||
-    ts.isNonNullExpression(p) ||
-    ts.isTypeAssertionExpression(p)
-  ) {
-    p = p.parent
-  }
-  return p
+// The scan parses without parent pointers, which saves a pass over every
+// tree, and hands the helpers below the stack of a node's ancestors instead:
+// `ancestors.at(-1)` is its parent.
+
+/** The node an expression's wrappers sit in. */
+function outerParent(ancestors: readonly ts.Node[]): ts.Node {
+  let i = ancestors.length - 1
+  while (i > 0 && isWrapper(ancestors[i]!)) i--
+  return ancestors[i]!
 }
 
 function staticName(name: ts.PropertyName): string | undefined {
@@ -219,8 +229,9 @@ function reference(e: ts.Expression, source: ts.SourceFile) {
 }
 
 /** The name of the declaration or property a table literal is assigned to. */
-function containerName(node: ts.Node): string {
-  for (let p: ts.Node | undefined = node.parent; p; p = p.parent) {
+function containerName(ancestors: readonly ts.Node[]): string {
+  for (let i = ancestors.length - 1; i >= 0; i--) {
+    const p = ancestors[i]!
     if (
       (ts.isVariableDeclaration(p) ||
         ts.isPropertyAssignment(p) ||
@@ -233,6 +244,16 @@ function containerName(node: ts.Node): string {
   return '(unnamed)'
 }
 
+/**
+ * The name a table member holds: an object's explicit key, or an array's
+ * string element. Only explicit `key: value` pairs: `{ blob, juliaVar }`
+ * lists modules by their variable names, it does not key by variation.
+ */
+function memberName(member: ts.Node): string | undefined {
+  if (ts.isPropertyAssignment(member)) return staticName(member.name)
+  return isStringLike(member) ? member.text : undefined
+}
+
 type Finding = [Rule, string]
 
 /** The `type` and `id` of an object literal that also has a `weight`. */
@@ -241,11 +262,17 @@ function variationParts(node: ts.ObjectLiteralExpression) {
   let id: ts.Expression | undefined
   let weight = false
   for (const p of node.properties) {
-    const [name, value] = ts.isShorthandPropertyAssignment(p)
-      ? [p.name.text, p.name]
-      : ts.isPropertyAssignment(p)
-        ? [staticName(p.name), p.initializer]
-        : [undefined, undefined]
+    let name: string | undefined
+    let value: ts.Expression
+    if (ts.isShorthandPropertyAssignment(p)) {
+      name = p.name.text
+      value = p.name
+    } else if (ts.isPropertyAssignment(p)) {
+      name = staticName(p.name)
+      value = p.initializer
+    } else {
+      continue
+    }
     if (name === 'type') type = value
     else if (name === 'id') id = value
     else if (name === 'weight') weight = true
@@ -326,7 +353,7 @@ function scanSource(file: string, text: string): Hit[] {
       // No rule reads a comment.
       jsDocParsingMode: ts.JSDocParsingMode.ParseNone,
     },
-    true,
+    false,
     file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
   )
   const production = !isTestFile(file)
@@ -344,7 +371,7 @@ function scanSource(file: string, text: string): Hit[] {
   const variationObject = (node: ts.ObjectLiteralExpression) => {
     const parts = variationParts(node)
     if (!parts) return
-    const holder = outerParent(node)
+    const holder = outerParent(ancestors)
     const literal = unwrap(parts.type)
     const typeRef = reference(parts.type, source)
     const findings = isStringLike(literal)
@@ -356,37 +383,29 @@ function scanSource(file: string, text: string): Hit[] {
   }
 
   /** Rule (d): a production table of variation names. */
-  const table = (node: ts.Node, names: { name: string; at: ts.Node }[]) => {
-    if (names.filter(({ name }) => registered.has(name)).length < 2) return
-    const container = containerName(node)
-    for (const { name, at } of names) {
-      if (!isRealType(name)) hit(at, 'd', `${container}: ${name}`)
+  const table = (members: readonly ts.Node[]) => {
+    let known = 0
+    for (const m of members) {
+      const name = memberName(m)
+      if (name !== undefined && registered.has(name)) known++
+    }
+    if (known < 2) return
+    const container = containerName(ancestors)
+    for (const m of members) {
+      const name = memberName(m)
+      if (name !== undefined && !isRealType(name)) {
+        hit(m, 'd', `${container}: ${name}`)
+      }
     }
   }
 
+  const ancestors: ts.Node[] = []
   const visit = (node: ts.Node) => {
     if (ts.isObjectLiteralExpression(node)) {
       variationObject(node)
-      if (production) {
-        // Explicit `key: value` pairs only: `{ blob, juliaVar }` lists
-        // modules by their variable names, it does not key by variation.
-        table(
-          node,
-          node.properties.flatMap((p) => {
-            const name = ts.isPropertyAssignment(p)
-              ? staticName(p.name)
-              : undefined
-            return name === undefined ? [] : [{ name, at: p }]
-          }),
-        )
-      }
-    } else if (ts.isArrayLiteralExpression(node) && production) {
-      table(
-        node,
-        node.elements.flatMap((e) =>
-          isStringLike(e) ? [{ name: e.text, at: e }] : [],
-        ),
-      )
+      if (production) table(node.properties)
+    } else if (ts.isArrayLiteralExpression(node)) {
+      if (production) table(node.elements)
     } else if (
       isStringLike(node) &&
       VARIATION_SPELLING.test(node.text) &&
@@ -394,17 +413,21 @@ function scanSource(file: string, text: string): Hit[] {
     ) {
       hit(node, 'c', node.text)
     }
+    ancestors.push(node)
     ts.forEachChild(node, visit)
+    ancestors.pop()
   }
   visit(source)
   return hits
 }
 
 function sourceFiles(dir: string, acc: string[] = []): string[] {
-  for (const name of readdirSync(dir)) {
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- a directory under ROOTS, in this repo
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const { name } = entry
     if (name === 'node_modules' || name.startsWith('.')) continue
     const full = join(dir, name)
-    if (statSync(full).isDirectory()) sourceFiles(full, acc)
+    if (entry.isDirectory()) sourceFiles(full, acc)
     else if (/\.tsx?$/.test(name) && !name.endsWith('.d.ts')) acc.push(full)
   }
   return acc
@@ -427,6 +450,7 @@ function scanTree() {
   const files = ROOTS.flatMap((root) => sourceFiles(join(REPO, root)))
   const hits = files.flatMap((full) => {
     const file = posix(relative(REPO, full))
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- a file sourceFiles listed
     const text = readFileSync(full, 'utf8')
     return mayMatch(text, !isTestFile(file)) ? scanSource(file, text) : []
   })
@@ -458,8 +482,13 @@ describe('the fixture scan itself', () => {
     expect([...registered].filter((t) => !/(?:Var|3D)$/.test(t))).toEqual([])
   })
 
-  const run = (text: string, file = 'x/fixture.test.ts') =>
-    scanSource(file, text).map((h) => `(${h.rule}) ${h.detail}`)
+  const run = (text: string, file = 'x/fixture.test.ts') => {
+    const hits = scanSource(file, text).map((h) => `(${h.rule}) ${h.detail}`)
+    // The file filter may pass text that holds no hit, and must never skip
+    // text that holds one: the scan parses only what it passes.
+    if (hits.length > 0) expect(mayMatch(text, !isTestFile(file))).toBe(true)
+    return hits
+  }
 
   it('flags a variation keyed by its type, in every spelling', () => {
     expect(
@@ -504,15 +533,12 @@ describe('the fixture scan itself', () => {
   })
 
   it('flags the stray names of a variation table in production code only', () => {
-    const table = `
-      const LINEAR = new Set(['linear', 'linearVar', 'linearTVar'])
-      const TO_3D = { spherical: 'spherical3D', sphericalVar: 'spherical3D', bubbleVar: 'bubble3D' }
-    `
-    expect(run(table, 'x/production.ts')).toEqual([
-      '(d) LINEAR: linear',
-      '(d) TO_3D: spherical',
-    ])
-    expect(run(table, 'x/production.test.ts')).toEqual([])
+    // One table a file, so that each one has to pass the file filter alone.
+    const list = `const LINEAR = new Set(['linear', 'linearVar', 'linearTVar'])`
+    const record = `const TO_3D = { spherical: 'spherical3D', sphericalVar: 'spherical3D', bubbleVar: 'bubble3D' }`
+    expect(run(list, 'x/production.ts')).toEqual(['(d) LINEAR: linear'])
+    expect(run(record, 'x/production.ts')).toEqual(['(d) TO_3D: spherical'])
+    expect(run(`${list}\n${record}`, 'x/production.test.ts')).toEqual([])
   })
 
   it('stays quiet about a realistic flame', () => {
