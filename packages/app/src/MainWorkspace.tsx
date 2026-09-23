@@ -1433,34 +1433,24 @@ export function MainWorkspace(props: AppProps) {
     }, BREED_PREVIEW_DELAY_MS)
   }
 
-  function handlePreviewBlend(flame: FlameDescriptor | null) {
-    if (blendIntent() === 'breed') {
-      if (flame) {
-        previewBreedChild(flame)
-      } else {
-        endBreedPreview()
-      }
-      return
-    }
-    blendPick.preview(flame)
-  }
-
-  /*
-   * The catch-all for the breed preview.
-   *
-   * A preview replaces the workspace flame with a child, so every route out of
-   * the picker has to put it back. The gallery's own `onClose` does, but it is
-   * not the only way out — the hand-off reset, Escape and the sidebar toggles
-   * all clear `showBlendGallery` directly, and any of them would otherwise
-   * leave the child installed as the user's flame with no history entry
-   * explaining where it came from. Keying off the visibility itself covers
-   * every path, present and future.
+  /**
+   * The gallery's hover preview: a child for a breed, the blend for the rest.
+   * Ending it ends both, whatever the intent is by then, since the intent can
+   * change under a live preview. The gallery ends what it started however it
+   * is left, closed or not (BlendFlameGallery), which is what used to be an
+   * effect here keyed on `showBlendGallery`: closing the sidebar never changed
+   * that flag, so a child or a blend outlived the gallery that showed it.
    */
-  createEffect(() => {
-    if (!showBlendGallery()) {
+  function handlePreviewBlend(flame: FlameDescriptor | null) {
+    if (flame === null) {
       endBreedPreview()
+      blendPick.end()
+    } else if (blendIntent() === 'breed') {
+      previewBreedChild(flame)
+    } else {
+      blendPick.preview(flame)
     }
-  })
+  }
 
   const [hoveredBlendName, setHoveredBlendName] = createSignal<string | null>(
     null,
