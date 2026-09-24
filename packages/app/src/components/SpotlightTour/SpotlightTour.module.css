@@ -71,6 +71,9 @@
   animation: cardFade 250ms ease-out;
 }
 
+/* No shadow on the card's glass. The layer's, drawn after the arrow, fell
+   across it: the arrow stood 9 to 16 grey levels darker than the card over
+   the same art. */
 .glassLayer {
   composes: panel from '@/styles/designSystem/glass.module.css';
   position: absolute;
@@ -78,13 +81,13 @@
   z-index: -1;
   border-radius: inherit;
   pointer-events: none;
+  box-shadow: none;
 }
 
 /* Painted before the layer, so its blur reads the art alone. Painted after,
    it read the layer's dark fill under its inner half as well (the clip hides
    that half but the blur still reads it) and frosted darker than the card.
-   The layer's shadow, drawn after it, still darkens it a little. The clip
-   cuts its own shadow away anyway; none spares drawing it. */
+   The clip cuts its own shadow away anyway; none spares drawing it. */
 .glassArrow {
   composes: panel from '@/styles/designSystem/glass.module.css';
   z-index: -2;
@@ -172,6 +175,102 @@
   border-right: none;
   border-top: none;
   clip-path: polygon(0 0, 0 100%, 100% 100%);
+}
+
+/* The layer's edge ran on across the arrow's base: a line as bright as the
+   card's outline between the card and its own arrow (1.37:1 on the card's
+   fill over white-hot art), which made the arrow read as a piece set
+   against the card. The layer masks that stretch of its edge out, 10px to
+   either side of --seam-at on the side data-seam names (SpotlightTour.tsx
+   sets both from the arrow's place), and on glass the arrow keeps a 2px band
+   past its diagonal as well as its outer half, so that stretch shows the
+   arrow's glass rather than the art. At 1px the band left a pixel of art
+   where the card's edge falls between device pixels. The break stops short
+   of the base's ends, 11.31px out: the band narrows toward them, and a
+   break out to 11px left the art showing in the edge between the two. */
+.glassLayer[data-seam='bottom'] {
+  mask:
+    linear-gradient(to top, transparent 1px, black 1px),
+    linear-gradient(
+        to right,
+        black calc(var(--seam-at) - 10px),
+        transparent 0 calc(var(--seam-at) + 10px),
+        black 0
+      )
+      bottom / 100% 1px no-repeat;
+}
+
+.glassLayer[data-seam='top'] {
+  mask:
+    linear-gradient(to bottom, transparent 1px, black 1px),
+    linear-gradient(
+        to right,
+        black calc(var(--seam-at) - 10px),
+        transparent 0 calc(var(--seam-at) + 10px),
+        black 0
+      )
+      top / 100% 1px no-repeat;
+}
+
+.glassLayer[data-seam='right'] {
+  mask:
+    linear-gradient(to left, transparent 1px, black 1px),
+    linear-gradient(
+        to bottom,
+        black calc(var(--seam-at) - 10px),
+        transparent 0 calc(var(--seam-at) + 10px),
+        black 0
+      )
+      right / 1px 100% no-repeat;
+}
+
+.glassLayer[data-seam='left'] {
+  mask:
+    linear-gradient(to right, transparent 1px, black 1px),
+    linear-gradient(
+        to bottom,
+        black calc(var(--seam-at) - 10px),
+        transparent 0 calc(var(--seam-at) + 10px),
+        black 0
+      )
+      left / 1px 100% no-repeat;
+}
+
+/* Each outer half and a 2px band on the card's side of the diagonal: its
+   line moved 2.828px along both axes is 2px off it. Under the layer the band
+   is only in the layer's backdrop, which its blur averages away. */
+.glassCard .arrowTop {
+  clip-path: polygon(
+    100% 0,
+    100% 100%,
+    0 100%,
+    0 calc(100% - 2.828px),
+    calc(100% - 2.828px) 0
+  );
+}
+
+.glassCard .arrowBottom {
+  clip-path: polygon(0 0, 100% 0, 100% 2.828px, 2.828px 100%, 0 100%);
+}
+
+.glassCard .arrowLeft {
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% 100%,
+    calc(100% - 2.828px) 100%,
+    0 2.828px
+  );
+}
+
+.glassCard .arrowRight {
+  clip-path: polygon(
+    0 0,
+    2.828px 0,
+    100% calc(100% - 2.828px),
+    100% 100%,
+    0 100%
+  );
 }
 
 .stepCounter {
