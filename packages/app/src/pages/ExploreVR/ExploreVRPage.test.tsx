@@ -187,7 +187,10 @@ describe('ExploreVRPage scene controls', () => {
     expect(scene().resetKey).toBe(1)
     expect(scene().preset.id).toBe('tide')
     expect(screen.getByText('Scene paused')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Zoom in' }).disabled).toBe(true)
+    expect(
+      screen.getByRole<HTMLButtonElement>('button', { name: 'Zoom in' })
+        .disabled,
+    ).toBe(true)
     click('Resume scene')
     click('Zoom in')
     click('Zoom in')
@@ -209,9 +212,10 @@ describe('ExploreVRPage scene controls', () => {
     expect(screen.getByText('Captured world')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Reload renderer' })).toBeTruthy()
     details()
-    expect(screen.getByRole('button', { name: 'Reset view' }).disabled).toBe(
-      true,
-    )
+    expect(
+      screen.getByRole<HTMLButtonElement>('button', { name: 'Reset view' })
+        .disabled,
+    ).toBe(true)
     click('Keep this discovery')
     expect(screen.getByRole('button', { name: 'Discovered' })).toBeTruthy()
   })
