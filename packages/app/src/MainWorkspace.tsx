@@ -18,7 +18,7 @@ import { startViewTransition } from '@/lib/viewTransition'
 import { recordEntries, recordKeys } from '@/utils/record'
 import ui from './App.module.css'
 import { duelShowing, duelSidebarOpen } from './arcade/duel'
-import { CanvasViewport } from './components/CanvasViewport'
+import { CanvasViewport, drawVisibleCanvas, visibleCanvasAspect, } from './components/CanvasViewport'
 import { DebugOverlay } from './components/DebugOverlay'
 import { Dropzone } from './components/Dropzone/Dropzone'
 import { createExportPngDialog } from './components/ExportPngDialog/ExportPngDialog'
@@ -1912,7 +1912,7 @@ export function MainWorkspace(props: AppProps) {
           `.${ui.canvas}`,
         )
         if (canvas && canvas.clientWidth > 0 && canvas.clientHeight > 0) {
-          return canvas.clientWidth / canvas.clientHeight
+          return visibleCanvasAspect(canvas)
         }
         return window.innerWidth / window.innerHeight
       },
@@ -2122,7 +2122,7 @@ export function MainWorkspace(props: AppProps) {
           offscreen.width = size
           offscreen.height = size
           const ctx = offscreen.getContext('2d')!
-          ctx.drawImage(img, 0, 0, size, size)
+          drawVisibleCanvas(ctx, canvas, img, size, size)
           URL.revokeObjectURL(url)
           resolve(offscreen.toDataURL('image/png'))
         }
