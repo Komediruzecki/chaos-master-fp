@@ -9,20 +9,52 @@ type McpResult = {
   isError?: boolean
 }
 
-/**
- * A reload, as far as module state goes: every module is evaluated again, so
- * the pilot and the duel start idle, while `sessionStorage` is kept.
- */
-async function reloadPage(viewer: CommandContext) {
+/** A fresh page: every module evaluated again, on whatever storage is global. */
+async function loadPage(viewer: CommandContext) {
   vi.resetModules()
   const { wrapTool } = await import('./registerWebMcp')
   const { setWebMcpContext } = await import('./contextBridge')
   const tools = await import('./tools')
+  const session = await import('@/arcade/interruptedSession')
   // The fresh page installs the viewer's own workspace, as MainWorkspace does.
   setWebMcpContext(viewer)
   const call = async (tool: WebMcpTool, args: unknown = {}) =>
     (await wrapTool(tool).execute(args, {})) as McpResult
-  return { call, tools }
+  return { call, tools, session }
+}
+
+/**
+ * A reload, as far as module state goes: the old document is unloaded (its
+ * `pagehide`), every module is evaluated again, so the pilot and the duel
+ * start idle, and `sessionStorage` is kept.
+ */
+async function reloadPage(viewer: CommandContext) {
+  window.dispatchEvent(new Event('pagehide'))
+  return await loadPage(viewer)
+}
+
+/** Duplicate Tab: a second page on a copy of this tab's `sessionStorage`,
+ *  while this page, and whatever session it runs, stays alive. */
+async function duplicateTab(viewer: CommandContext) {
+  const copy = new Map<string, string>()
+  const original = globalThis.sessionStorage
+  for (let i = 0; i < original.length; i++) {
+    const key = original.key(i)!
+    copy.set(key, original.getItem(key)!)
+  }
+  vi.stubGlobal('sessionStorage', {
+    get length() {
+      return copy.size
+    },
+    key: (i: number) => [...copy.keys()][i] ?? null,
+    getItem: (k: string) => copy.get(k) ?? null,
+    setItem: (k: string, v: string) => void copy.set(k, v),
+    removeItem: (k: string) => void copy.delete(k),
+    clear: () => {
+      copy.clear()
+    },
+  })
+  return await loadPage(viewer)
 }
 
 async function startAgentDuel(ctx: CommandContext) {
@@ -44,7 +76,9 @@ describe(
       const { resetPilot } = await import('@/arcade/pilot')
       closeDuelView()
       resetPilot()
+      vi.unstubAllGlobals()
       globalThis.sessionStorage.clear()
+      window.dispatchEvent(new Event('pagehide'))
       vi.resetModules()
     })
 
@@ -112,6 +146,56 @@ describe(
 
       const { call, tools } = await reloadPage(createMockCommandContext())
       expect((await call(tools.getFlame)).isError).toBeUndefined()
+    })
+
+    it('still holds the tools after the agent read arcade_status mid-session', async () => {
+      const first = await loadPage(createMockCommandContext())
+      await first.call(first.tools.arcadeStartDuel, { durationSeconds: 60 })
+      // The agent reads the duel clock, which only arcade_status reports.
+      const status = JSON.parse(
+        (await first.call(first.tools.arcadeStatus)).content[0]!.text,
+      ) as { phase: string }
+      expect(status.phase).toBe('driving')
+
+      const { call, tools } = await reloadPage(createMockCommandContext())
+      const read = await call(tools.getFlame)
+      expect(read.isError).toBe(true)
+      expect(read.content[0]!.text).toMatch(/ended by a page reload/)
+    })
+
+    it('tells the viewer once, and keeps holding the agent until it acknowledges', async () => {
+      await startAgentDuel(createMockCommandContext())
+
+      const one = await reloadPage(createMockCommandContext())
+      await one.session.interruptionChecked()
+      expect(one.session.interruptionAnnouncement()).toMatch(
+        /The reload ended the agent's duel/,
+      )
+
+      // A second reload, with no agent call in between.
+      const two = await reloadPage(createMockCommandContext())
+      await two.session.interruptionChecked()
+      expect(two.session.interruptionAnnouncement()).toBeUndefined()
+      expect((await two.call(two.tools.getFlame)).isError).toBe(true)
+    })
+
+    it('treats Duplicate Tab as a new page, not a reload, while the original tab plays on', async () => {
+      const original = await loadPage(createMockCommandContext())
+      await original.call(original.tools.arcadeStartDuel, {
+        durationSeconds: 60,
+      })
+
+      const copy = await duplicateTab(createMockCommandContext())
+      await copy.session.interruptionChecked()
+      expect(copy.session.interruptionAnnouncement()).toBeUndefined()
+      expect(copy.session.interruptedSession()).toBeUndefined()
+      expect((await copy.call(copy.tools.getFlame)).isError).toBeUndefined()
+
+      // The duplicate dropped its copy of the marker: reloading it later, when
+      // the original's session may be long over, reports nothing.
+      const again = await reloadPage(createMockCommandContext())
+      await again.session.interruptionChecked()
+      expect(again.session.interruptedSession()).toBeUndefined()
     })
   },
 )

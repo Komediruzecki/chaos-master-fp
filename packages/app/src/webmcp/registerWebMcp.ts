@@ -13,7 +13,7 @@
  * is still useful for the dev overlay and Vitest tests.
  */
 
-import { interruptedSession, interruptionMessage, } from '@/arcade/interruptedSession'
+import { interruptedSession, interruptionChecked, interruptionMessage, } from '@/arcade/interruptedSession'
 import { agentDriving } from '@/arcade/pilot'
 import { DEFAULT_SEAT } from '@/seats/seatId'
 import { clearWebMcpContext, setWebMcpContext } from './contextBridge'
@@ -58,7 +58,10 @@ export const wrapTool = (tool: WebMcpTool): WebMcpTool => ({
   execute: async (args: unknown, context: { signal?: AbortSignal }) => {
     // A reload ended the agent's session. Its next call would read or edit
     // the viewer's own flame while it still thinks it plays its seat, so
-    // every tool says so instead, until the agent acknowledges.
+    // every tool says so instead, until the agent acknowledges. The first
+    // call after a load waits for the check that tells a reload from a
+    // duplicated tab (a few hundred milliseconds at most, once).
+    await interruptionChecked()
     const interrupted = interruptedSession()
     if (interrupted && !interruptionAllows(tool.name)) {
       return {

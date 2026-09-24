@@ -69,3 +69,40 @@ test.describe('a reload during an agent duel', () => {
     expect((await call(page, 'get_flame')).isError).toBeUndefined()
   })
 })
+
+test.describe('Duplicate Tab during an agent duel', () => {
+  test('is a new page: no toast, no hold, and the original duel plays on', async ({
+    page,
+    context,
+  }) => {
+    await openEditor(page)
+    const started = await call(page, 'arcade_start_duel', {
+      durationSeconds: 120,
+    })
+    expect(started.isError).toBeUndefined()
+
+    // Duplicate Tab: a second page that starts from a copy of this tab's
+    // sessionStorage, while this one keeps running.
+    const copied = await page.evaluate(() => JSON.stringify(sessionStorage))
+    const copy = await context.newPage()
+    await copy.addInitScript((entries: string) => {
+      if (sessionStorage.length > 0) return
+      for (const [key, value] of Object.entries(
+        JSON.parse(entries) as Record<string, string>,
+      )) {
+        sessionStorage.setItem(key, value)
+      }
+    }, copied)
+    await openEditor(copy)
+
+    const read = await call(copy, 'get_flame')
+    expect(read.isError).toBeUndefined()
+    await expect(
+      copy.getByText("The reload ended the agent's duel."),
+    ).toHaveCount(0)
+    const status = JSON.parse(
+      (await call(page, 'arcade_status')).content[0]!.text,
+    ) as { phase: string }
+    expect(status.phase).toBe('driving')
+  })
+})

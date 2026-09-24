@@ -1,5 +1,5 @@
 import { batch, createEffect, createResource, createSignal, ErrorBoundary, lazy, onCleanup, onMount, Show, Suspense, } from 'solid-js'
-import { interruptedSession, interruptionNotice, } from './arcade/interruptedSession'
+import { interruptionAnnouncement } from './arcade/interruptedSession'
 import { ArcadeHub } from './components/Arcade/ArcadeHub'
 import { AppCrashed, WebgpuNotSupported, } from './components/ErrorHandling/ErrorHandling'
 import { HomeTab } from './components/Home/HomeTab'
@@ -152,10 +152,6 @@ export function Wrappers() {
     if (takePauseSaveFailure()) notices.push(PAUSE_SAVE_REFUSED)
     const evicted = takePauseSaveEviction()
     if (evicted !== undefined) notices.push(evictionNotice(evicted))
-    // A reload that ended an agent's Arcade session: the agent is told on its
-    // next call (arcade/interruptedSession.ts), and so is the viewer, here.
-    const lostSession = interruptedSession()
-    if (lostSession) notices.push(interruptionNotice(lostSession))
     const reopen = reopenTarget(IS_NATIVE)
     if (reopen) {
       // No `enterWorkspace`: the editor is already the tab a launch lands on,
@@ -375,6 +371,10 @@ export function Wrappers() {
                   grid still up and a starter flame one tap away. The toast
                   column sits above the welcome screen's own layer. */}
               <MessageToast message={launchNotice()} />
+              {/* A reload that ended an agent's Arcade session, said once. Its
+                  own toast: it is known only after a check that tells a
+                  reload from a duplicated tab (arcade/interruptedSession.ts). */}
+              <MessageToast message={interruptionAnnouncement() ?? null} />
               <Root
                 adapterOptions={{
                   powerPreference: 'high-performance',
