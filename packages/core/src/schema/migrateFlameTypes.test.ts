@@ -176,10 +176,16 @@ describe('validateFlame', () => {
   })
 
   it('loads a type named like an inherited Object member as the name it is', () => {
-    const out = validateFlame(rawFlame({ type: 'constructor' }))
+    const out = validateFlame(rawFlame({ type: 'toString' }))
     const variation = Object.values(
       Object.values(out.transforms)[0]!.variations,
     )[0]!
-    expect(variation.type).toBe('constructor')
+    expect(variation.type).toBe('toString')
+  })
+
+  it('refuses the names an id may not take, as the schema does', () => {
+    expect(() => validateFlame(rawFlame({ type: 'constructor' }))).toThrow(
+      'This flame cannot be shown',
+    )
   })
 })

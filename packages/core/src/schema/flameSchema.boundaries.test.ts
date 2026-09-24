@@ -216,3 +216,39 @@ describe('validateFlame entity ids', () => {
     expect(errors.length).toBeGreaterThan(0)
   })
 })
+
+// A variation's type is looked up by name in plain-object tables (previews,
+// docs, the renderer's registries), so a type named after an Object member
+// resolves to what every object inherits: the PR #124 review found an audio
+// target writing through Object.prototype that way. Ids already refuse these
+// names; types refuse them too, and every other unknown name still loads as
+// it is written.
+describe('validateFlame variation types', () => {
+  const withType = (type: string) => {
+    const f = flame()
+    const t0 = (f.transforms as Record<string, ReturnType<typeof transform>>)
+      .t0!
+    t0.variations = { v0: { type, weight: 1 } }
+    return f
+  }
+
+  it.each(['__proto__', 'constructor', 'prototype'])(
+    'rejects a variation typed %s',
+    (type) => {
+      const { out, errors } = validate(withType(type))
+      expect(out).toBeUndefined()
+      expect(errors.length).toBeGreaterThan(0)
+    },
+  )
+
+  it('keeps any other unknown name, toString included, as it is written', () => {
+    const types = ['toString', 'hasOwnProperty', 'notARealVariation'].map(
+      (type) => {
+        const { out } = validate(withType(type))
+        const t0 = Object.values(out?.transforms ?? {})[0]
+        return Object.values(t0?.variations ?? {})[0]?.type
+      },
+    )
+    expect(types).toEqual(['toString', 'hasOwnProperty', 'notARealVariation'])
+  })
+})
