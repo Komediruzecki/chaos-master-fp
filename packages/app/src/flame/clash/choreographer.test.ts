@@ -354,16 +354,19 @@ describe('reduced motion', () => {
     )
   })
 
-  it('fades the loser from the Devour cut until it is gone', () => {
-    // Pressed against the winner at full strength, the loser flared.
+  it('halves the loser at the Devour cut, and keeps the rest in sight until the gulp', () => {
+    // Pressed against the winner with all its walkers, the loser flared: its
+    // brightest pixels quadrupled at the cut. Faded from the cut instead, it
+    // was gone before its slide into the winner could show.
     const split = (story: number) => boutFrame(wallTime(story), calm).split
+    expect(split(8.25)).toBeGreaterThan(0.8)
+    expect(split(9.8)).toBeCloseTo(split(8.25), 9)
     let last = split(8.2)
     for (let story = 8.2; story <= 10.3; story += 0.05) {
       const now = split(story)
       expect(now, `at ${story.toFixed(2)}`).toBeGreaterThanOrEqual(last - 1e-12)
       last = now
     }
-    expect(split(9.3)).toBeGreaterThan(0.75)
     expect(split(10.35)).toBe(1)
   })
 

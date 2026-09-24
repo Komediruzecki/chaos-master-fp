@@ -258,9 +258,11 @@ function fightUniforms(s: number, reducedMotion: boolean) {
   const approach = smooth(5.0, 5.7, s)
   // The loser keeps a share it can be seen with while it is drawn in, and
   // loses the rest at the gulp. Reduced motion cuts the loser against the
-  // winner, where at full strength it flared, so it fades from the cut.
+  // winner, where with all its walkers it flared (its brightest pixels went
+  // from 437 to 1849), so the cut also takes half of them: measured, 23.
   const drawnIn = smooth(8.3, 9.3, s)
-  const gone = reducedMotion ? smooth(8.2, 10.3, s) : smooth(9.9, 10.3, s)
+  const halved = reducedMotion && s >= 8.2 ? 0.5 : 0
+  const gone = smooth(9.9, 10.3, s)
   // The struggle sways the walkers between the two, then stops for the
   // winner's surge: from 7.0 the winner only gains. A last swing to the
   // loser as the push slowed read as the loser holding.
@@ -274,7 +276,8 @@ function fightUniforms(s: number, reducedMotion: boolean) {
   // soon as the beams are up.
   const surge = reducedMotion ? smooth(5.2, 5.7, s) : smooth(7.0, 8.2, s)
   const clashShare = 0.5 + sway + (DEVOUR_SHARE - 0.5) * surge
-  const winnerShare = lerp(lerp(clashShare, DEVOUR_SHARE, drawnIn), 1, gone)
+  const devourShare = lerp(clashShare, DEVOUR_SHARE, drawnIn)
+  const winnerShare = lerp(lerp(devourShare, 1, halved), 1, gone)
   const inClinch = approach * (1 - smooth(8.2, 8.6, s))
   const hit = reducedMotion
     ? 0.18 * smooth(2.9, 3.3, s) * (1 - smooth(3.6, 4.6, s))
