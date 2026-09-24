@@ -54,19 +54,19 @@ describe('the symmetry order in the grounded stats', () => {
       }
     }
     expect(rows).toEqual([
-      'Radiant Symmetry (2D) as shipped: order 5, DEF 33, Power 1121',
+      'Radiant Symmetry (2D) as shipped: order 4, DEF 29, Power 1097',
       'Radiant Symmetry (2D) rotational 4 by symmetry.ts: order 4, DEF 29, Power 1093',
       'Radiant Symmetry (2D) rotational 4 by command: order 4, DEF 29, Power 1093',
       'Radiant Symmetry (2D) rotational 4 by command, reloaded: order 4, DEF 29, Power 1093',
       'Radiant Symmetry (2D) rotational 6 by symmetry.ts: order 6, DEF 36, Power 1116',
       'Radiant Symmetry (2D) rotational 6 by command: order 6, DEF 36, Power 1116',
       'Radiant Symmetry (2D) rotational 6 by command, reloaded: order 6, DEF 36, Power 1116',
-      'Radiant Symmetry (2D) dihedral 4 by symmetry.ts: order 5, DEF 33, Power 1105',
-      'Radiant Symmetry (2D) dihedral 4 by command: order 5, DEF 33, Power 1105',
-      'Radiant Symmetry (2D) dihedral 4 by command, reloaded: order 5, DEF 33, Power 1105',
-      'Radiant Symmetry (2D) dihedral 6 by symmetry.ts: order 7, DEF 40, Power 1120',
-      'Radiant Symmetry (2D) dihedral 6 by command: order 7, DEF 40, Power 1120',
-      'Radiant Symmetry (2D) dihedral 6 by command, reloaded: order 7, DEF 40, Power 1120',
+      'Radiant Symmetry (2D) dihedral 4 by symmetry.ts: order 4, DEF 29, Power 1081',
+      'Radiant Symmetry (2D) dihedral 4 by command: order 4, DEF 29, Power 1081',
+      'Radiant Symmetry (2D) dihedral 4 by command, reloaded: order 4, DEF 29, Power 1081',
+      'Radiant Symmetry (2D) dihedral 6 by symmetry.ts: order 6, DEF 36, Power 1096',
+      'Radiant Symmetry (2D) dihedral 6 by command: order 6, DEF 36, Power 1096',
+      'Radiant Symmetry (2D) dihedral 6 by command, reloaded: order 6, DEF 36, Power 1096',
       'Spiral Galaxy (3D) as shipped: order 1, DEF 27, Power 1196',
       'Spiral Galaxy (3D) rotational 4 by symmetry.ts: order 4, DEF 31, Power 1067',
       'Spiral Galaxy (3D) rotational 4 by command: order 4, DEF 31, Power 1067',
@@ -74,12 +74,52 @@ describe('the symmetry order in the grounded stats', () => {
       'Spiral Galaxy (3D) rotational 6 by symmetry.ts: order 6, DEF 36, Power 1132',
       'Spiral Galaxy (3D) rotational 6 by command: order 6, DEF 36, Power 1132',
       'Spiral Galaxy (3D) rotational 6 by command, reloaded: order 6, DEF 36, Power 1132',
-      'Spiral Galaxy (3D) dihedral 4 by symmetry.ts: order 5, DEF 35, Power 1067',
-      'Spiral Galaxy (3D) dihedral 4 by command: order 5, DEF 35, Power 1067',
-      'Spiral Galaxy (3D) dihedral 4 by command, reloaded: order 5, DEF 35, Power 1067',
-      'Spiral Galaxy (3D) dihedral 6 by symmetry.ts: order 7, DEF 40, Power 1136',
-      'Spiral Galaxy (3D) dihedral 6 by command: order 7, DEF 40, Power 1136',
-      'Spiral Galaxy (3D) dihedral 6 by command, reloaded: order 7, DEF 40, Power 1136',
+      'Spiral Galaxy (3D) dihedral 4 by symmetry.ts: order 4, DEF 31, Power 1043',
+      'Spiral Galaxy (3D) dihedral 4 by command: order 4, DEF 31, Power 1043',
+      'Spiral Galaxy (3D) dihedral 4 by command, reloaded: order 4, DEF 31, Power 1043',
+      'Spiral Galaxy (3D) dihedral 6 by symmetry.ts: order 6, DEF 36, Power 1112',
+      'Spiral Galaxy (3D) dihedral 6 by command: order 6, DEF 36, Power 1112',
+      'Spiral Galaxy (3D) dihedral 6 by command, reloaded: order 6, DEF 36, Power 1112',
     ])
+  })
+})
+
+describe('the symmetry order is the fold count of the set', () => {
+  for (const { name, flame } of FLAMES) {
+    for (const source of SOURCES) {
+      it(`${name} by ${source}, folds 1-8`, () => {
+        for (const type of TYPES) {
+          for (let folds = 1; folds <= 8; folds++) {
+            // A 1-fold rotational set is no set: the order comes from the
+            // flame's own transforms then.
+            if (type === 'rotational' && folds === 1) continue
+            const withSet = withSymmetry(flame, type, folds, source)
+            expect([
+              type,
+              folds,
+              calculateGroundedStats(withSet).symmetryOrder,
+            ]).toEqual([type, folds, folds])
+          }
+        }
+      })
+    }
+  }
+
+  it('counts only the visible transforms of the set', () => {
+    const flame = withSymmetry(examples.example26, 'dihedral', 4, 'command')
+    const ids = Object.keys(flame.transforms).filter((tid) =>
+      tid.startsWith('_sym__'),
+    )
+    const hide = (tids: string[]) => {
+      const copy = structuredClone(flame)
+      for (const tid of tids) {
+        copy.transforms[tid as keyof typeof copy.transforms]!.visible = false
+      }
+      return calculateGroundedStats(copy).symmetryOrder
+    }
+    // The mirror is written last: hiding it leaves a 4-fold rotational set.
+    expect(hide([ids[3]!])).toBe(4)
+    // Hiding a rotation leaves two rotations and the mirror: dihedral 3.
+    expect(hide([ids[0]!])).toBe(3)
   })
 })
