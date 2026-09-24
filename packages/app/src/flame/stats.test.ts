@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { deepClone } from '@/utils/clone'
 import { cantorDust, heighwayDragon, kochCurve, mengerSponge, sierpinskiCarpet, sierpinskiTetrahedron, sierpinskiTriangle, } from './examples/classics'
 import { example30 } from './examples/example30'
+import { LINEAR_VARIATIONS, SYMMETRY_VARIATIONS, TIDE_VARIATIONS, VOID_VARIATIONS, VORTEX_VARIATIONS, } from './schoolVariations'
 import { calculateGroundedStats, classifySchool, COMBAT_COEFFICIENTS, getSchoolMultiplier, resolveClashCombat, } from './stats'
 import { generateVariationId } from './transformFunction'
 import { VARIATION_2D_TO_3D_MAP } from './transformFunction3D'
@@ -137,6 +138,22 @@ describe('flame/stats', () => {
           (row) => new Set(row.map((r) => r.split(' ').pop())).size > 1,
         ),
       ).toEqual([])
+    })
+
+    // The checks run in order, so a type on two lists counts for the first
+    // only: spherical3D sat on the symmetry list and on Void's, and read
+    // Crystal where sphericalVar reads Void. The 3D analogs the map adds must
+    // not land on a second list either.
+    it('puts a type on one school list at most', () => {
+      const lists = [
+        LINEAR_VARIATIONS,
+        SYMMETRY_VARIATIONS,
+        VORTEX_VARIATIONS,
+        VOID_VARIATIONS,
+        TIDE_VARIATIONS,
+      ]
+      const types = lists.flatMap((list) => [...list])
+      expect(types.filter((t, i) => types.indexOf(t) !== i)).toEqual([])
     })
 
     it('classifies Sinusoidal / Waves as Tide', () => {

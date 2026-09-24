@@ -558,7 +558,7 @@ file in the `Tests:` block is not the same as being guarded, so these are listed
 - REQ-AA-024 (equal-probability and empty-transform branches) — only the missing-descriptor branch is covered (`flameToolsModular.test.ts:147` "handles missing clashFlame gracefully").
 - REQ-AA-026 — `simulateClash.test.ts:138-174` "detects narrative events across diverse clash scenarios" exercises `Entangled` and `Collapse` only; `Nova`, `Symmetry Lock` and `Chaos Cascade` are unreached.
 - REQ-AA-027 — nothing asserts that `territoryWinner` overrides the HP comparison.
-- REQ-AA-028 (tie-break chain) — `stats.test.ts:390` "deterministically resolves 3 rounds with battle log" checks one deterministic 3-round run; the HP → round-wins → beauty → draw ladder is untested.
+- REQ-AA-028 (tie-break chain) — `stats.test.ts:407` "deterministically resolves 3 rounds with battle log" checks one deterministic 3-round run; the HP → round-wins → beauty → draw ladder is untested.
 - REQ-AA-029, REQ-AA-036, REQ-AA-037, REQ-AA-042 (`rounds`) — the four known deviations. None has a failing test standing behind it.
 - REQ-AA-030 — `webmcp/tools/animateClash.ts` has no test file.
 - REQ-AA-032, REQ-AA-033 — spectator pacing, the VFX timers and the keyboard handler are untested; the `ArenaOverlay.test.tsx:257` "immediately presents the Center Winner Trophy Card upon results state" results test drives `startClash` directly.
