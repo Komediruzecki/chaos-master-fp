@@ -4,7 +4,7 @@ import { DEFAULT_SEAT } from '@/seats/seatId'
 import { deepClone } from '@/utils/clone'
 import { getWebMcpContext, setWebMcpContext, setWebMcpTarget, } from '@/webmcp/contextBridge'
 import { calculateFlameStats } from '@/webmcp/tools/scoreFlame'
-import { duelActive, duelShowing, runningDuel, startDuel, stopDuel, } from './duel'
+import { duel, duelActive, duelShowing, runningDuel, startDuel, stopDuel, } from './duel'
 import { duelJudge } from './duelJudge'
 import { clearDuelResult, duelResult, newDuelId, showDuelResult, } from './duelResult'
 import { qualityRank } from './guard'
@@ -226,15 +226,22 @@ export async function finishDuel(
     session: sessions.player,
   })
   const saved = await saveDuelRecordedTakes(ctx.recorder, sessions, title)
-  presentDuelResult({
-    verdict,
-    reason,
-    playerFlame,
-    rivalNameFallback: state.ready?.title,
-    winnerFlame,
-    durationMs: state.durationMs,
-    savedTakes: saved,
-  })
+  // The save takes time, and in it the agent can start a rematch or the
+  // viewer can close the stage. The card belongs to this duel's result
+  // screen only; over a newer duel it would hide the End button, and
+  // dismissing it would close that duel.
+  const now = duel()
+  if (now.phase === 'result' && now.rival === state.rival) {
+    presentDuelResult({
+      verdict,
+      reason,
+      playerFlame,
+      rivalNameFallback: state.ready?.title,
+      winnerFlame,
+      durationMs: state.durationMs,
+      savedTakes: saved,
+    })
+  }
   return {
     ok: true,
     title,
