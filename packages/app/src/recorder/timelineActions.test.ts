@@ -9,6 +9,7 @@ import { playClashOnce } from '@/components/ArenaOverlay/clashPlayback'
 import { examples } from '@/flame/examples'
 import { deepClone } from '@/utils/clone'
 import { createStoreHistory } from '@/utils/createStoreHistory'
+import { advancePlaybackTick } from '@/utils/playbackTick'
 import { createTimelineState } from '@/utils/timeline'
 import { createSessionPlayer } from './player'
 import { cancelSessionRecording, reportDocumentWrite, startSessionRecording, stopSessionRecording, withRecordingSuppressed, } from './recorder'
@@ -566,7 +567,7 @@ describe('Play and Pause during a recording', () => {
         if (!timeline.isPlaying()) return
         const config = timeline.config()
         const interval = setInterval(() => {
-          for (let i = 0; i < config.timeScale; i++) timeline.advanceFrame()
+          advancePlaybackTick(timeline, config.timeScale)
         }, 1000 / config.fps)
         onCleanup(() => {
           clearInterval(interval)
@@ -813,6 +814,41 @@ describe('Play and Pause during a recording', () => {
       const replay = replayOf(session)
       expect(replay.raw.isPlaying()).toBe(false)
       expect(replay.raw.currentFrame()).toBe(90)
+    })
+
+    // At speeds above 1 a render tick advances several frames. The clash's
+    // pause landed partway through one, and the rest of the tick went on
+    // advancing a paused timeline: recorded seeks to 0, 1, 2, and a playhead
+    // left off the last frame.
+    it('holds the last frame at every viewer speed, with no recorded seek', () => {
+      const missed: string[] = []
+      for (let timeScale = 1; timeScale <= 10; timeScale++) {
+        vi.useFakeTimers()
+        const live = makeTimelineWorld()
+        configure(live, { startFrame: 0, endFrame: 90, loop: true })
+        live.raw.setConfig({ ...live.raw.config(), timeScale })
+        const stopLive = driveRenderLoop(live.facade)
+        startSessionRecording(live.flame, {
+          timeline: snapshotTimeline(live.raw),
+        })
+        const clash = playClashOnce(live.facade)
+        vi.advanceTimersByTime(10_000)
+        clash.finish()
+        const frame = live.raw.currentFrame()
+        clash.release()
+        const session = stopOrThrow()
+        stopLive()
+        vi.useRealTimers()
+        const seeks = session.actions.filter(
+          (a) => a.id === 'timeline.setCurrentFrame',
+        )
+        if (frame !== 90 || seeks.length > 0) {
+          missed.push(
+            `speed ${timeScale}: frame ${frame}, ${seeks.length} seeks`,
+          )
+        }
+      }
+      expect(missed).toEqual([])
     })
   })
 })
