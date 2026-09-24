@@ -1,10 +1,12 @@
 /**
  * A flame picked from a dialog must be the image left on screen, on Apple
- * WebKit too. Closing a dialog runs a view transition, and WebKit snapshots the
- * page on every frame of it; each snapshot presents a WebGPU canvas's swap chain
- * behind the renderer's back. A renderer that reached its quality limit, and
- * went idle, before the transition ended left the previous flame on screen
+ * WebKit too. Closing a dialog ran a view transition, and WebKit snapshots the
+ * page on every frame of one; each snapshot presents a WebGPU canvas's swap
+ * chain behind the renderer's back. A renderer that reached its quality limit,
+ * and went idle, before the transition ended left the previous flame on screen
  * until something drew again (the iOS "shows the old flame until I drag").
+ * Apple WebKit now gets no transition (lib/viewTransition.ts); where one runs
+ * anyway, the render driver presents again once it ends.
  *
  * The canvas and the page's frame loop are models of WebKit's, cited below;
  * the render driver, the frame loop helper and the Modal are the real ones.
@@ -35,6 +37,8 @@ class WebKitCanvas {
   private changed = false
   private queued = false
   private displayBuffer: number | undefined
+  /** Snapshots taken of this canvas: each one presented behind the renderer. */
+  snapshots = 0
 
   /** getCurrentTexture (558-570) and a pass that clears and draws `image`. */
   draw(image: string): void {
@@ -68,6 +72,7 @@ class WebKitCanvas {
    * and presents it without setting the display buffer.
    */
   snapshot(): void {
+    this.snapshots += 1
     if (this.changed) this.prepareForDisplay()
     this.present()
   }
@@ -118,6 +123,7 @@ function createWebKitPage(canvas: WebKitCanvas, withTransitions: boolean) {
     finished: PromiseWithResolvers<undefined>
   }
   let active: Transition | undefined
+  let started = 0
 
   vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
     const id = nextId++
@@ -134,6 +140,7 @@ function createWebKitPage(canvas: WebKitCanvas, withTransitions: boolean) {
       value: (update?: () => unknown) => {
         const finished = Promise.withResolvers<undefined>()
         const ready = Promise.withResolvers<undefined>()
+        started += 1
         active = {
           phase: 'pending',
           framesLeft: TRANSITION_FRAMES,
@@ -207,6 +214,7 @@ function createWebKitPage(canvas: WebKitCanvas, withTransitions: boolean) {
       for (let i = 0; i < count; i++) await frame()
     },
     transitionActive: () => active !== undefined,
+    transitionsStarted: () => started,
   }
 }
 
@@ -327,27 +335,57 @@ async function loadFlameB(withTransitions: boolean) {
   expect(page.transitionActive()).toBe(false)
   // Long after: nothing but a new draw would change the canvas now.
   await page.frames(30)
-  const onScreen = canvas.onScreen()
+  const seen = {
+    onScreen: canvas.onScreen(),
+    transitionsStarted: page.transitionsStarted(),
+    snapshots: canvas.snapshots,
+  }
   disposeRenderer()
-  return onScreen
+  return seen
 }
 
-describe('a flame loaded from a dialog on Apple WebKit', () => {
+/** The engine as utils/platform's isAppleWebKit sees it: navigator.vendor. */
+function onEngine(vendor: string) {
+  vi.spyOn(globalThis.navigator, 'vendor', 'get').mockReturnValue(vendor)
+}
+
+describe('a flame loaded from a dialog, on a canvas that presents like WebKit', () => {
   beforeEach(() => {
     vi.useRealTimers()
   })
   afterEach(() => {
     cleanup()
     vi.unstubAllGlobals()
+    vi.restoreAllMocks()
     Reflect.deleteProperty(document, 'startViewTransition')
   })
 
-  it('is on screen once the dialog has faded out', async () => {
-    expect(await loadFlameB(true)).toBe('B')
+  it('on Apple WebKit, is on screen with no view transition and no snapshot', async () => {
+    onEngine('Apple Computer, Inc.')
+    expect(await loadFlameB(true)).toEqual({
+      onScreen: 'B',
+      transitionsStarted: 0,
+      snapshots: 0,
+    })
+  })
+
+  it('where a view transition runs anyway, is on screen once it has faded out', async () => {
+    // An engine that presents like WebKit's but is not recognised as Apple
+    // WebKit: the transition runs, and the driver presents once it ends.
+    onEngine('')
+    const seen = await loadFlameB(true)
+    expect(seen.transitionsStarted).toBe(1)
+    expect(seen.snapshots).toBeGreaterThan(0)
+    expect(seen.onScreen).toBe('B')
   })
 
   it('is on screen when the browser has no view transitions', async () => {
     // The control: without the snapshots, the last draw is what is shown.
-    expect(await loadFlameB(false)).toBe('B')
+    onEngine('')
+    expect(await loadFlameB(false)).toEqual({
+      onScreen: 'B',
+      transitionsStarted: 0,
+      snapshots: 0,
+    })
   })
 })
