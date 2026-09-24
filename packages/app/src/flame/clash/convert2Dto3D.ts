@@ -4,9 +4,11 @@
  * Only inside the clash, a 2D variation whose name has a 3D twin by the stem
  * rule (`sphericalVar` -> `spherical3D`, neither taking parameters) turns into
  * that twin. Every other 2D variation keeps its 2D function, which the 3D
- * pipeline runs on (x, y) while z passes through. How a saved flame renders is
- * untouched: the renderer's own table, VARIATION_2D_TO_3D_MAP, is not used or
- * changed here.
+ * pipeline runs on (x, y) while z passes through. Each transform of a 2D
+ * fighter is marked `from2D`, so the renderer runs its 2D variations as
+ * themselves and not as the 3D analogs its table, VARIATION_2D_TO_3D_MAP,
+ * gives a saved 2D flame; a variation the 2D pipeline would skip (a 3D type,
+ * an unknown name) is left out. How a saved flame renders is untouched.
  *
  * A converting fighter enters as its flat card (the pre-affine's z row
  * zeroed, so it is exactly its 2D self lying in a plane) and inflates into its
@@ -110,16 +112,40 @@ function native3D(flame: FlameDescriptor): FighterForm {
 }
 
 /**
+ * The variations of a 2D transform its own 2D pipeline draws. That pipeline
+ * skips any other (a 3D type, an unknown name), and so does the fighter.
+ */
+function drawnIn2D(
+  variations: TransformFunction['variations'],
+): TransformFunction['variations'] {
+  return Object.fromEntries(
+    Object.entries(variations).filter(([, v]) =>
+      Object.hasOwn(transformVariations, v.type),
+    ),
+  )
+}
+
+/**
  * How `flame` fights in 3D: a 3D flame as it is, a 2D one converted by the
  * stem rule and inflating from its flat card, or a 2D one that stays a flat
  * card.
  */
 export function fighterForm(flame: FlameDescriptor): FighterForm {
   if (flame.renderSettings.dimensions === 3) return native3D(flame)
+  const lifted = Object.entries(flame.transforms).map(([tid, t]) => ({
+    tid,
+    transform: {
+      ...t,
+      preAffine: toAffine3D(t.preAffine),
+      postAffine: toAffine3D(t.postAffine),
+      variations: drawnIn2D(t.variations),
+      from2D: true as const,
+    },
+  }))
   const twins = new Map<string, string>()
   const kept = new Set<string>()
   let depth = false
-  for (const t of Object.values(flame.transforms)) {
+  for (const { transform: t } of lifted) {
     for (const v of Object.values(t.variations)) {
       const twin = stemTwin3D(v.type)
       if (!twin) {
@@ -132,14 +158,6 @@ export function fighterForm(flame: FlameDescriptor): FighterForm {
   }
   // A flat card keeps every 2D function: with no depth to gain, a twin would
   // change nothing but the cost.
-  const lifted = Object.entries(flame.transforms).map(([tid, t]) => ({
-    tid,
-    transform: {
-      ...t,
-      preAffine: toAffine3D(t.preAffine),
-      postAffine: toAffine3D(t.postAffine),
-    },
-  }))
   return {
     kind: depth ? 'inflates' : 'flatCard',
     converted: depth ? [...twins].map(([from, to]) => `${from} -> ${to}`) : [],

@@ -1,10 +1,10 @@
 /**
- * The Flame Clash fields a fight flame carries: `team` on a transform and
- * `renderSettings.clash`. Only the stage builds a fight flame, and it never
- * validates one. Validation strips both, so no flame that arrives through
- * set_flame, a JSON import, a share link or autosave can switch the renderer
- * to team-locked walkers, and a stray value in them can never make a flame
- * fail to load.
+ * The Flame Clash fields a fight flame carries: `team` and `from2D` on a
+ * transform, and `renderSettings.clash`. Only the stage builds a fight flame,
+ * and it never validates one. Validation strips all three, so no flame that
+ * arrives through set_flame, a JSON import, a share link or autosave can
+ * switch the renderer to team-locked walkers or to a fighter's 2D functions,
+ * and a stray value in them can never make a flame fail to load.
  */
 import { describe, expect, it } from 'vitest'
 import { renderSettingsDefault, tryValidateFlame, validateFlame, } from './flameSchema'
@@ -35,7 +35,7 @@ const flame = (
 })
 
 const fightFields = {
-  a: { team: 'A' },
+  a: { team: 'A', from2D: true },
   b: { team: 'B' },
   clash: { split: 0.8, leakA: 0.2, leakB: 0 },
 }
@@ -44,11 +44,12 @@ function expectNoFightFields(parsed: ReturnType<typeof validateFlame>) {
   expect(parsed.renderSettings).not.toHaveProperty('clash')
   for (const t of Object.values(parsed.transforms)) {
     expect(t).not.toHaveProperty('team')
+    expect(t).not.toHaveProperty('from2D')
   }
 }
 
 describe.each([2, 3] as const)('the %dD flame schema', (dimensions) => {
-  it("strips a fight flame's teams and fight uniforms", () => {
+  it("strips a fight flame's teams, 2D marks and fight uniforms", () => {
     expectNoFightFields(validateFlame(flame(dimensions, fightFields)))
   })
 
@@ -58,7 +59,7 @@ describe.each([2, 3] as const)('the %dD flame schema', (dimensions) => {
 
   it('loads a flame whose fight fields hold stray values, without them', () => {
     const stray = flame(dimensions, {
-      a: { team: 'C' },
+      a: { team: 'C', from2D: 'yes' },
       b: { team: 7 },
       clash: { split: 2, leakA: -1 },
     })

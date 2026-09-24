@@ -461,8 +461,12 @@ const schema3D = makeFlameDescriptorSchema(AffineParams3DSchema)
  * `team` is the fighter the transform belongs to. When every transform names
  * one and both teams are present, the renderer keeps each walker on its own
  * team's transforms (the app's flame/clashTeams.ts).
+ *
+ * `from2D` marks a transform of a 2D fighter. The 3D renderer runs its 2D
+ * variations as their own 2D functions in the plane, never as the 3D analogs
+ * it gives a saved 2D flame's (the app's flame/clash/convert2Dto3D.ts).
  */
-export type FightTransformFields = { team?: 'A' | 'B' }
+export type FightTransformFields = { team?: 'A' | 'B'; from2D?: true }
 
 export const TransformFunction = schema2D.TransformFunction
 export type TransformFunction = v.InferOutput<typeof TransformFunction> &

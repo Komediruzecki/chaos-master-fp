@@ -118,8 +118,22 @@ export const VARIATION_2D_TO_3D_MAP: Record<string, TransformVariationType3D> =
     starfield: 'starfield3D',
   }
 
-export function resolveVariationType3D(type: string): string | undefined {
+/**
+ * The type the 3D pipeline runs for a variation of `type`, or undefined when
+ * it skips the variation: a 3D type as itself, a 2D type through
+ * VARIATION_2D_TO_3D_MAP or else as itself. A transform `from2D`, a Flame
+ * Clash 2D fighter's, bypasses the map: each 2D variation runs its own 2D
+ * function in the plane, and a name only the map knows is skipped, as the 2D
+ * pipeline skips it.
+ */
+export function resolveVariationType3D(
+  type: string,
+  from2D = false,
+): string | undefined {
   if (isVariationType3D(type)) return type
+  if (from2D) {
+    return Object.hasOwn(transformVariations, type) ? type : undefined
+  }
   if (type in VARIATION_2D_TO_3D_MAP) return VARIATION_2D_TO_3D_MAP[type]
   if (type in transformVariations) return type
   return undefined
@@ -127,10 +141,11 @@ export function resolveVariationType3D(type: string): string | undefined {
 
 export function createFlameWgsl3D({
   variations,
-}: Pick<TransformFunction, 'variations'>) {
+  from2D,
+}: Pick<TransformFunction, 'variations' | 'from2D'>) {
   const validRecord: Record<string, { type: string }> = {}
   for (const [vid, v] of Object.entries(variations)) {
-    const resolved = resolveVariationType3D(v.type)
+    const resolved = resolveVariationType3D(v.type, from2D)
     if (!resolved) {
       console.warn(
         `[createFlameWgsl3D] skipping unknown variation type "${v.type}"`,
@@ -276,6 +291,7 @@ export function extractFlameUniforms3D({
           postAffine,
           visible,
           colorSpeed,
+          from2D,
         },
       ]) => {
         const isVisible = visible
@@ -360,7 +376,7 @@ export function extractFlameUniforms3D({
                     | undefined
                   return (
                     vtype !== undefined &&
-                    resolveVariationType3D(vtype) !== undefined
+                    resolveVariationType3D(vtype, from2D) !== undefined
                   )
                 })
                 .map(([vid, variation]) => {
@@ -381,7 +397,7 @@ export function extractFlameUniforms3D({
                   const typed: Record<string, unknown> = {
                     weight: isVarVisible ? rawWeight : 0,
                   }
-                  const variationType = resolveVariationType3D(_type)!
+                  const variationType = resolveVariationType3D(_type, from2D)!
                   let isParametric = false
                   let defaults: Record<string, number> | undefined
 

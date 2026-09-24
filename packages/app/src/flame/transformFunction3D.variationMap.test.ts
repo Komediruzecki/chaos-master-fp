@@ -240,3 +240,26 @@ describe('VARIATION_2D_TO_3D_MAP', () => {
     }
   })
 })
+
+describe('resolveVariationType3D for a transform from a 2D fighter', () => {
+  // The Flame Clash marks each transform of a 2D fighter `from2D`: its 2D
+  // variations run as the fighter's own 2D functions, never as the 3D
+  // analogs this table gives a saved flame (flame/clash/convert2Dto3D.ts).
+  it('resolves every registered 2D type to itself, the live analogs too', () => {
+    for (const type of Object.keys(transformVariations)) {
+      expect(resolveVariationType3D(type, true)).toBe(type)
+    }
+  })
+
+  it('resolves every registered 3D type to itself', () => {
+    for (const type of Object.keys(transformVariations3D)) {
+      expect(resolveVariationType3D(type, true)).toBe(type)
+    }
+  })
+
+  it('resolves an unregistered name to nothing, as the 2D pipeline does', () => {
+    for (const type of ['sphere', 'linearT', 'noSuchVariation']) {
+      expect(resolveVariationType3D(type, true)).toBeUndefined()
+    }
+  })
+})

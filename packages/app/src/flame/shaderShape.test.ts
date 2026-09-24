@@ -44,6 +44,16 @@ describe('shaderShapeOf', () => {
     expect(shape(moved)).toBe(shape(galaxy))
   })
 
+  it('changes when a transform comes from a 2D fighter, and only then', () => {
+    // A Flame Clash fight flame marks a 2D fighter's transforms: the 3D
+    // pipeline then runs their 2D variations as their own 2D functions.
+    const marked = editFirst((t) => {
+      t.from2D = true
+    })
+    expect(shape(marked)).not.toBe(shape(galaxy))
+    expect(shape(galaxy)).not.toContain('from2D')
+  })
+
   it('changes with a variation type', () => {
     const retyped = editFirst((t) => {
       const v = Object.values(t.variations)[0]

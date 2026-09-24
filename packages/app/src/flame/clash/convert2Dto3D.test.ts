@@ -1,12 +1,15 @@
 /**
- * How a fighter takes its 3D form: the stem rule, the flat-card fallback, and
- * the morph that inflates a flat card without changing the compiled shader.
+ * How a fighter takes its 3D form: the stem rule, the flat-card fallback, the
+ * morph that inflates a flat card without changing the compiled shader, and
+ * how the 3D renderer resolves each variation of it.
  */
 import { describe, expect, it } from 'vitest'
 import { examples } from '../examples'
+import { resolveIfsWgsl } from '../ifsPipelineWgsl.testUtils'
 import { shaderShapeOf } from '../shaderShape'
+import { resolveVariationType3D } from '../transformFunction3D'
 import { fighterForm, stemTwin3D, Z_TRANSPARENT_TWINS } from './convert2Dto3D'
-import type { FlameDescriptor, TransformRecord } from '../schema/flameSchema'
+import type { FlameDescriptor, TransformFunction, TransformRecord, } from '../schema/flameSchema'
 
 const shape = (transforms: Record<string, unknown>) =>
   JSON.stringify(shaderShapeOf(transforms as TransformRecord))
@@ -168,5 +171,78 @@ describe('the inflating morph', () => {
       Object.values(fighterForm(flame).transformsAt(0.5))[0]!.variations,
     )
     expect(ids).toEqual(['v', 'v_to3d2', 'v_to3d'])
+  })
+})
+
+/**
+ * Each variation the 3D renderer would swap for another type, as `from ->
+ * to`: it resolves a type the way createFlameWgsl3D does, with the
+ * transform's own mark.
+ */
+function swaps(transforms: Record<string, TransformFunction>) {
+  const out = new Set<string>()
+  for (const t of Object.values(transforms)) {
+    for (const v of Object.values(t.variations)) {
+      const to = resolveVariationType3D(v.type, t.from2D)
+      if (to !== undefined && to !== v.type) out.add(`${v.type} -> ${to}`)
+    }
+  }
+  return [...out]
+}
+
+const examples2D = Object.entries(examples)
+  .filter(([, flame]) => flame.renderSettings.dimensions !== 3)
+  .map(([id]) => id as keyof typeof examples)
+
+describe('how the renderer draws a fighter', () => {
+  it('marks every transform of a 2D fighter as from 2D, at every morph', () => {
+    for (const id of examples2D) {
+      for (const morph of [0, 0.5, 1]) {
+        const marks = Object.values(
+          fighterForm(examples[id]).transformsAt(morph),
+        ).map((t) => t.from2D)
+        expect(marks.every((mark) => mark === true)).toBe(true)
+      }
+    }
+  })
+
+  it.each(examples2D)(
+    '%s draws its own 2D functions at morph 0, no 3D analog in their place',
+    (id) => {
+      expect(swaps(fighterForm(examples[id]).transformsAt(0))).toEqual([])
+    },
+  )
+
+  it('draws a kept 2D function where the renderer would swap in an analog', () => {
+    // example13 keeps curlVar and pdjVar and converts gaussianVar: at morph
+    // 0 all three run their 2D functions; the twin gaussian3D waits at
+    // weight 0, and nothing brings in curl3D or pdj3D.
+    const wgsl = resolveIfsWgsl({
+      transforms: fighterForm(examples.example13).transformsAt(0),
+      dims: 3,
+    })
+    expect(wgsl).toMatch(/\bcurlVar\(/)
+    expect(wgsl).toMatch(/\bpdjVar\(/)
+    expect(wgsl).toMatch(/\bgaussianVar\(/)
+    expect(wgsl).not.toMatch(/\bcurl3D\(/)
+    expect(wgsl).not.toMatch(/\bpdj3D\(/)
+  })
+
+  it('leaves out what its 2D editor skips, a 3D type or an unknown name', () => {
+    const form = fighterForm(flat2D(['juliaNVar', 'sphere3D', 'noSuchName']))
+    const types = Object.values(form.transformsAt(0)).map((t) =>
+      Object.values(t.variations).map((v) => v.type),
+    )
+    expect(types).toEqual([['juliaNVar'], [], []])
+    expect(form.kept).toEqual(['juliaNVar'])
+  })
+
+  it('draws a 3D fighter as its own editor does, analogs included', () => {
+    const flame = structuredClone(examples.example37)
+    Object.values(Object.values(flame.transforms)[0]!.variations)[0]!.type =
+      'bubbleVar'
+    const transforms = fighterForm(flame).transformsAt(0)
+    expect(Object.values(transforms).some((t) => t.from2D)).toBe(false)
+    expect(swaps(transforms)).toEqual(['bubbleVar -> bubble3D'])
   })
 })
