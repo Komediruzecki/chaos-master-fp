@@ -105,7 +105,9 @@ function handleArenaKeyboardNavigation(
  * say. One function for the staging and the title, so the two cannot disagree.
  */
 function clashDimensions(flame: FlameDescriptor | undefined): 2 | 3 {
-  return (flame?.renderSettings.dimensions as 2 | 3 | undefined) ?? 3
+  // A fighter can arrive unvalidated (an agent's flame through the arena's
+  // setters); one with no render settings is staged in 3D, not a crash.
+  return (flame?.renderSettings?.dimensions as 2 | 3 | undefined) ?? 3
 }
 
 export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {

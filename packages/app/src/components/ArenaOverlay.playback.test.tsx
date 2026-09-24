@@ -149,6 +149,24 @@ describe('ArenaOverlay clash playback', () => {
   })
 })
 
+describe('ArenaOverlay with an agent-built fighter', () => {
+  afterEach(() => {
+    cleanup()
+  })
+
+  it('mounts for a player 1 flame with no render settings', () => {
+    const { arena } = mountArena()
+    const bare = createTestFlame() as unknown as Record<string, unknown>
+    delete bare.renderSettings
+    const stats = arena.player1Stats()!
+    arena.setPlayer1Stats({
+      ...stats,
+      flame: bare as unknown as ArenaFighterStats['flame'],
+    })
+    expect(screen.getByRole('heading').textContent).toBe('Flame Clash Arena 3D')
+  })
+})
+
 /** Step as the render loop does, while playing, and well past the end. */
 function runToEnd(timeline: Timeline) {
   const { endFrame } = timeline.config()
