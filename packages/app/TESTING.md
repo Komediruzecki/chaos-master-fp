@@ -146,8 +146,10 @@ pull request: `MainWorkspace.tsx` must have exactly the line count its entry in
 
 `tests/` holds Playwright only: the specs, their helpers (`helpers.ts`,
 `pilotLock.ts`) and a reporter. Nothing in it is a unit test, and all of it is
-type-checked by `pnpm typecheck` through `tests/tsconfig.json`. The config is
-the root `playwright.config.ts`. It builds the app and serves the production
+type-checked by `pnpm typecheck` through `tests/tsconfig.json`. The headed-GPU
+specs in `packages/app/e2e/` are type-checked the same way, through
+`packages/app/e2e/tsconfig.json`. The config is the root `playwright.config.ts`.
+It builds the app and serves the production
 preview (`pnpm --filter chaos-master e2e:serve`, `vite preview --strictPort`
 with a self-signed certificate, on `https://localhost:4273` unless `E2E_PORT`
 says otherwise), then runs one of two projects, both on headless Chromium with

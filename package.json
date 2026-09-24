@@ -13,7 +13,7 @@
     "fmt:fix": "prettier packages --write --log-level warn",
     "lint": "NODE_OPTIONS=\"--max-old-space-size=4096\" eslint",
     "lint:fix": "NODE_OPTIONS=\"--max-old-space-size=4096\" eslint --fix",
-    "typecheck": "pnpm --filter @chaos-master/core typecheck && pnpm --filter @chaos-master/mobile-runtime typecheck && NODE_OPTIONS=\"--max-old-space-size=8192\" tsc --noEmit --project packages/app/tsconfig.json && tsc --noEmit --project tests/tsconfig.json && pnpm --filter @chaos-master/landing check",
+    "typecheck": "pnpm --filter @chaos-master/core typecheck && pnpm --filter @chaos-master/mobile-runtime typecheck && NODE_OPTIONS=\"--max-old-space-size=8192\" tsc --noEmit --project packages/app/tsconfig.json && tsc --noEmit --project tests/tsconfig.json && tsc --noEmit --project packages/app/e2e/tsconfig.json && pnpm --filter @chaos-master/landing check",
     "validate-wgsl": "npx --yes tsx scripts/validate-wgsl-props.ts",
     "check": "pnpm typecheck && pnpm lint:fix && pnpm fmt:fix && pnpm validate-wgsl",
     "docs:index": "node scripts/gen-agent-index.mjs",
