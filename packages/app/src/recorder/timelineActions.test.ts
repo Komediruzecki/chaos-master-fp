@@ -850,5 +850,17 @@ describe('Play and Pause during a recording', () => {
       }
       expect(missed).toEqual([])
     })
+
+    // The stop's count is what paces the window on replay: a clash that
+    // reported 0 frames played over its seconds skewed the take's pace.
+    it('records the frames it played on its stop', () => {
+      const { session } = recordClash(() => {
+        vi.advanceTimersByTime(10_000)
+      })
+      const stops = session.actions
+        .filter((a) => a.id === 'timeline.setPlaying' && a.args[0] === false)
+        .map((a) => a.args)
+      expect(stops).toEqual([[false, 90, 90]])
+    })
   })
 })
