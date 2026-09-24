@@ -208,13 +208,29 @@ Also in phase 1:
 - **Default.** Off, behind the setting, until the device numbers are in.
 - **Known.** Toggling the setting mis-frames the flame for the 300 ms resize debounce (the view
   only). With the setting on, desktop Chrome draws the nav rail's text with greyscale rather
-  than subpixel anti-aliasing.
+  than subpixel anti-aliasing. ProgressBar centres on the viewport, not the visible canvas, and
+  runs 10px over the deck.
 
-**Polish, decided 2026-09-24.** On the floating deck the canvas's edge fade is off while the deck
-floats open (it painted pale bands on the glass in the light theme), controls take an opaque
-fill token of their own instead of a token remap that hid their edges, and a divider drag counts
-as busy. The hover badge centres on the visible part. The tour card drops its glass shadow,
-which darkened its arrow.
+**Polish, built 2026-09-24.** After both phases landed:
+
+- **Control fills.** `--la-control`, `--la-control-strong` and `--la-control-accent` (`lumen.css`)
+  default to today's washes. The floating deck and the rail's glass sheet set them to the
+  explorer panel's opaque surfaces, so a control does not darken and lighten with the art, and
+  its edge stays apart from its fill (a token remap had made them one colour).
+- **Ink on glass.** The selected tab chip, Randomize, the search toggle and a keyframe-targeted
+  slider label write in ink on glass (from 5.31:1, or 3.55 at worst, to 11 and up). ScrubField
+  and the gallery's scrollbar take hooks with today's values as fallbacks (labels 4.43 to
+  14.06:1, the scrollbar 1.00 to 5.45:1).
+- **The canvas under the open deck.** It drops its edge fade, which painted pale bands on the
+  glass in the light theme. The hover badge, the tour's hole and the replay spotlight use the
+  visible part (`visibleClientRect`), and a divider drag counts as busy.
+- **The tour card.** Its glass drops the shadow that darkened the arrow (16 levels on the phone,
+  now 6; 1 or 2 elsewhere), and the card's edge breaks across the arrow's base.
+- **The export tracker and the rail.** The job count reads 5.17:1 in the dark theme, the
+  tracker's typed glyphs are SVG icons, and the rail's shutter fill holds its accent icon at
+  4.79:1 over white art.
+- **Accepted.** On the deck layout the tour's hole stops at the deck, so its card sits over the
+  dimmed deck.
 
 **Phase 3: dialogs and sheets on touch layouts** (M-L)
 
@@ -318,6 +334,9 @@ Each rule comes from one of the earlier cuts.
 - **Output.** Before and after screenshots.
 - **Timing.** The agents' headed browser runs on a hidden workspace at about one frame a second,
   so busy and fade probes need waits of several seconds, and its frame times mean nothing.
+- **The dev debug panel.** It sits fixed over the top right of a desktop page in development
+  builds. Hide it before measuring anything there: the export tracker's buttons read 1.16:1
+  through it.
 
 **On devices (maff)**
 
@@ -344,3 +363,17 @@ Each rule comes from one of the earlier cuts.
   locally. The shared rules would pick those values up inside it.
 - **Undefined variables.** Several modules read `--color-*` and `--accent` variables that are
   never defined, so they show their dark fallbacks in the light theme too.
+- **Found while building phases 1 and 2.**
+  - The tour arrow points 8px before its target's centre: `measureAndPosition` in
+    `SpotlightTour.tsx` subtracts half the arrow, and the stylesheet's -8px margin subtracts it
+    again. A fix must keep `--seam-at` at the arrow's centre.
+  - The touch search input is styled inline with literal whites (`TouchControlSurface.tsx`,
+    around its search field), and `.affineGridWrap` has a literal black wash on glass.
+  - The light desktop export tracker's job count is 3.68:1, and the rail sheet's own vertical
+    scrollbar thumb is about 1.5:1.
+  - Randomize fills its pill edge to edge: the pills have no padding.
+  - The explorer's sliders pass no parameter path, so their keyframe-targeted state never shows.
+  - The desktop export dialog stays modal over the tracker while an export runs, and its Close
+    button does not close it.
+  - `.githooks/pre-commit` runs prettier before `eslint --fix`, so an eslint fix can land
+    unformatted.
