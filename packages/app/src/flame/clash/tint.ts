@@ -9,9 +9,17 @@
  * does, drains chroma on the way and greys out a fighter whose colours sit
  * opposite the team's.
  *
- * The pair is Okabe and Ito's orange and sky blue, which stay apart for the
- * common forms of colour blindness and have near-equal lightness, so neither
- * side looks stronger for its colour.
+ * The pair is Okabe and Ito's vermillion and sky blue, which stay apart for
+ * the common forms of colour blindness. Only their hues and chroma reach the
+ * render; the light comes from density, so neither side looks stronger for
+ * its colour.
+ *
+ * Team A was their orange, #E69F00, until the renders showed it olive where a
+ * fighter is dark. Measured on real-GPU stills at the default tint (PR 125,
+ * round 2): with the orange, 52 to 61 percent of team A's dark pixels had an
+ * OkLab hue of 85 to 130 degrees, olive; with the vermillion, none did, and
+ * their mean hue sat 2 degrees from the team hue on one fighter and 31
+ * degrees toward red on a magenta one.
  */
 
 export type Team = 'A' | 'B'
@@ -28,8 +36,8 @@ type TeamColour = {
 const degrees = (d: number) => (d * Math.PI) / 180
 
 export const TEAM_COLOUR: Record<Team, TeamColour> = {
-  // #E69F00: OkLab L 0.753, hue 76.8 deg.
-  A: { hue: degrees(76.8), chroma: 0.15, css: '#e69f00' },
+  // #D55E00: OkLab L 0.621, hue 47.5 deg.
+  A: { hue: degrees(47.5), chroma: 0.15, css: '#d55e00' },
   // #56B4E9: OkLab L 0.735, hue 236.2 deg.
   B: { hue: degrees(236.2), chroma: 0.15, css: '#56b4e9' },
 }

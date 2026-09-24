@@ -10,6 +10,21 @@ const polar = (hueDeg: number, chroma: number) => ({
   y: chroma * Math.sin((hueDeg * Math.PI) / 180),
 })
 const distance = (a: number, b: number) => Math.abs(wrapAngle(a - b))
+const degrees = (radians: number) => (radians * 180) / Math.PI
+
+/** The OkLab hue of a `#rrggbb` sRGB colour, radians (Ottosson's matrices). */
+function oklabHue(css: string): number {
+  const [r, g, b] = [1, 3, 5].map((i) => {
+    const c = Number.parseInt(css.slice(i, i + 2), 16) / 255
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+  }) as [number, number, number]
+  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b)
+  const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b)
+  const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b)
+  const a = 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s
+  const bb = 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s
+  return Math.atan2(bb, a)
+}
 
 describe('tintColour', () => {
   it('leaves a colour alone at amount 0', () => {
@@ -35,11 +50,14 @@ describe('tintColour', () => {
   })
 
   it('turns the short way round the circle', () => {
-    // Team A sits near 77 deg. A colour at -40 deg (320) is 117 deg away
-    // clockwise; half way must land near 18 deg, not on the far side.
+    // Team A sits near 48 deg. A colour at -40 deg (320) is 88 deg away the
+    // short way, across 0; half way must land near 4 deg, not on the far
+    // side near 184.
     const out = tintColour(polar(-40, 0.1), 'A', 0.5)
-    const deg = (hueOf(out) * 180) / Math.PI
-    expect(deg).toBeCloseTo((-40 + 76.8) / 2, 6)
+    expect(degrees(hueOf(out))).toBeCloseTo(
+      (-40 + degrees(TEAM_COLOUR.A.hue)) / 2,
+      6,
+    )
   })
 
   it('keeps chroma where a straight (a, b) blend would lose it', () => {
@@ -69,8 +87,20 @@ describe('tintColour', () => {
 })
 
 describe('the team pair', () => {
+  it("is Okabe and Ito's vermillion and sky blue", () => {
+    expect(TEAM_COLOUR.A.css).toBe('#d55e00')
+    expect(TEAM_COLOUR.B.css).toBe('#56b4e9')
+  })
+
+  it('turns a fighter to the OkLab hue of its colour on the page', () => {
+    for (const team of ['A', 'B'] as const) {
+      const { hue, css } = TEAM_COLOUR[team]
+      expect(degrees(distance(hue, oklabHue(css)))).toBeLessThan(0.1)
+    }
+  })
+
   it('sits far apart on the hue circle', () => {
     const apart = distance(TEAM_COLOUR.A.hue, TEAM_COLOUR.B.hue)
-    expect((apart * 180) / Math.PI).toBeGreaterThan(150)
+    expect(degrees(apart)).toBeGreaterThan(150)
   })
 })
