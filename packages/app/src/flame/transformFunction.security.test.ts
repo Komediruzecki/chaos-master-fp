@@ -33,11 +33,11 @@ describe('2D transform registry boundary', () => {
   })
 })
 
-// validateFlame keeps an unknown type as it was written, so a loaded 3D flame
-// can carry 'toString'. It refuses 'constructor' and '__proto__' now, but a
-// flame reaches the renderer by other paths too, so the lookups stay own-key.
-// `in` finds such a name on every plain object: the 2D to 3D map resolved
-// 'constructor' to the Object function, and it reached the uniforms.
+// validateFlame refuses a type named after anything an object inherits now
+// ('constructor', 'toString', ...), but a flame reaches the renderer by other
+// paths too, so the lookups stay own-key. `in` finds such a name on every
+// plain object: the 2D to 3D map resolved 'constructor' to the Object
+// function, and it reached the uniforms.
 describe('3D transform registry boundary', () => {
   it('resolves no inherited registry key to a variation', () => {
     const inherited = ['constructor', 'toString', 'hasOwnProperty', '__proto__']

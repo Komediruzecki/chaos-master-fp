@@ -233,14 +233,20 @@ export const VariationId = v.pipe(v.string(), v.brand('VariationId'))
 /**
  * A variation's type is looked up by name in plain-object tables (previews,
  * docs, the registries), where a type named after an Object member resolves to
- * what every object inherits. So the names an id may not take, a type may not
- * take either; any other unknown name still loads as it is written.
+ * what every object inherits. So a type may not take any name Object.prototype
+ * has, read from the engine rather than listed, nor a name an id may not take;
+ * any other unknown name still loads as it is written.
  */
+const FORBIDDEN_VARIATION_TYPES: ReadonlySet<string> = new Set([
+  ...FORBIDDEN_ENTITY_IDS,
+  ...Object.getOwnPropertyNames(Object.prototype),
+])
+
 const VariationType = v.pipe(
   v.string(),
   v.check(
-    (type) => !FORBIDDEN_ENTITY_IDS.has(type),
-    'A variation type cannot be named __proto__, constructor or prototype',
+    (type) => !FORBIDDEN_VARIATION_TYPES.has(type),
+    'A variation type cannot be a name every object inherits, such as toString or __proto__',
   ),
 )
 

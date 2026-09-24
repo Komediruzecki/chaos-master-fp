@@ -175,17 +175,14 @@ describe('validateFlame', () => {
     expect(variation.type).toBe('horseshoeVar')
   })
 
-  it('loads a type named like an inherited Object member as the name it is', () => {
-    const out = validateFlame(rawFlame({ type: 'toString' }))
-    const variation = Object.values(
-      Object.values(out.transforms)[0]!.variations,
-    )[0]!
-    expect(variation.type).toBe('toString')
-  })
-
-  it('refuses the names an id may not take, as the schema does', () => {
-    expect(() => validateFlame(rawFlame({ type: 'constructor' }))).toThrow(
-      'This flame cannot be shown',
-    )
-  })
+  // The migration passes such a name through (above), and the schema refuses
+  // it: a plain-object table looked up by that type would find the member.
+  it.each(['constructor', 'toString'])(
+    'refuses a type named %s, which every object inherits',
+    (type) => {
+      expect(() => validateFlame(rawFlame({ type }))).toThrow(
+        'This flame cannot be shown',
+      )
+    },
+  )
 })

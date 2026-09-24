@@ -4,11 +4,11 @@
 // A real flame keys its variations by generated ids (UUIDs with underscores,
 // `generateVariationId`) and types them with registered names: `validateFlame`
 // rewrites the legacy names on every load (`linear` becomes `linearVar`),
-// refuses `__proto__`, `constructor` and `prototype`, and keeps any other
-// string as it was written. A fixture keyed by its own type
-// names, or typed with a legacy or unknown name, lets a reader that looks at
-// the wrong field pass. The Arena school, the Duel judge and the Art
-// Director's taste all read the id instead of the type behind fixtures like
+// refuses every name an object inherits (`toString`, `__proto__`, ...) and
+// `prototype`, and keeps any other string as it was written. A fixture keyed
+// by its own type names, or typed with a legacy or unknown name, lets a reader
+// that looks at the wrong field pass. The Arena school, the Duel judge and the
+// Art Director's taste all read the id instead of the type behind fixtures like
 // `{ linearVar: { type: 'linearVar' } }` and `{ [name]: { type: name } }`,
 // and #117's symmetry transforms carried the unregistered 'linear' past tests
 // that used it too.
