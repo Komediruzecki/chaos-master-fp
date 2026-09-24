@@ -1,6 +1,7 @@
 // The arena's top bar names the arena it stages and draws its streak with an SVG icon.
 import { cleanup, render, screen } from '@solidjs/testing-library'
 import { afterEach, describe, expect, it } from 'vitest'
+import { WinnerTrophyCard } from './ArenaResultsView'
 import { ArenaTopBar } from './ArenaTopBar'
 import type { ArenaTopBarProps } from './ArenaTopBar'
 
@@ -40,5 +41,33 @@ describe('ArenaTopBar', () => {
     const badge = screen.getByTitle('Current Arena Win Streak')
     expect(badge.querySelector('svg')).not.toBeNull()
     expect(badge.textContent).toBe('Streak: 2 Wins')
+  })
+})
+
+describe('WinnerTrophyCard', () => {
+  afterEach(() => {
+    cleanup()
+  })
+
+  it('draws its streak with the same SVG icon as the top bar', () => {
+    render(() => (
+      <WinnerTrophyCard
+        winner={1}
+        winStreak={3}
+        victorStats={null}
+        victorGrounded={null}
+        victorPreviewFlame={null}
+        previewVersion={0}
+        cachedSimResult={null}
+        exportingCard={false}
+        onNextChallenger={() => {}}
+        onReplay={() => {}}
+        onLoadVictor={() => {}}
+        onExportCard={() => {}}
+      />
+    ))
+    const badge = screen.getByTitle('Current Arena Win Streak')
+    expect(badge.querySelector('svg')).not.toBeNull()
+    expect(badge.textContent).toBe('Streak: 3 Wins')
   })
 })
