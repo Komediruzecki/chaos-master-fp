@@ -82,6 +82,23 @@ describe('audio modulation cannot corrupt the flame', () => {
     ).toBeLessThanOrEqual(max)
   })
 
+  /*
+   * The same projection the timeline and the commands use: the renderer floors
+   * skipIters and reads palettePhase through fract(), so a floor and a wrap
+   * leave the picture as the modulated value drew it.
+   */
+  it('floors skipIters the way the renderer reads it', () => {
+    const f = flame()
+    applyAudioMappingsToFlame(f, LOUD, map('skipIters', [0, 7.9]))
+    expect((f.renderSettings as Record<string, number>).skipIters).toBe(7)
+  })
+
+  it('wraps palettePhase instead of stopping it at the end', () => {
+    const f = flame()
+    applyAudioMappingsToFlame(f, LOUD, map('palettePhase', [0, 1.25]))
+    expect((f.renderSettings as Record<string, number>).palettePhase).toBe(0.25)
+  })
+
   it('keeps skipIters an integer, as the schema demands', () => {
     const f = flame()
     applyAudioMappingsToFlame(f, LOUD, map('skipIters', [0, 7.5]))
