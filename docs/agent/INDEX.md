@@ -30,7 +30,7 @@ file instead of rediscovering the architecture every session.
 
 | Directory                 | Package name                   | Source files | LOC    |
 | ------------------------- | ------------------------------ | ------------ | ------ |
-| `packages/app`            | `chaos-master`                 | 1118         | 190.3k |
+| `packages/app`            | `chaos-master`                 | 1118         | 190.4k |
 | `packages/core`           | `@chaos-master/core`           | 26           | 3.6k   |
 | `packages/landing`        | `@chaos-master/landing`        | 20           | 2.5k   |
 | `packages/mobile-runtime` | `@chaos-master/mobile-runtime` | 7            | 600    |
@@ -71,7 +71,7 @@ file instead of rediscovering the architecture every session.
 | `variations`    | [index.ts](../../packages/app/src/flame/variations/parametric/index.ts) | 33.6k | _(no header comment)_                                                                                                                       |
 | `examples`      | [index.ts](../../packages/app/src/flame/examples/index.ts)              | 12.7k | _(no header comment)_                                                                                                                       |
 | `glide`         | [index.ts](../../packages/app/src/flame/glide/index.ts)                 | 2.9k  | _(no header comment)_                                                                                                                       |
-| `clash`         | [choreographer.ts](../../packages/app/src/flame/clash/choreographer.ts) | 1.2k  | The scripted 12-second bout of the Flame Clash preview: the intro, one hit, a beam clash, the Devour finisher and the victory, as a pure... |
+| `clash`         | [choreographer.ts](../../packages/app/src/flame/clash/choreographer.ts) | 1.3k  | The scripted 12-second bout of the Flame Clash preview: the intro, one hit, a beam clash, the Devour finisher and the victory, as a pure... |
 | `renderDrivers` | [index.ts](../../packages/app/src/flame/renderDrivers/index.ts)         | 400   | _(no header comment)_                                                                                                                       |
 | `schema`        | [flameSchema.ts](../../packages/app/src/flame/schema/flameSchema.ts)    | 100   | _(no header comment)_                                                                                                                       |
 | `variations3D`  | [index.ts](../../packages/app/src/flame/variations3D/index.ts)          | 50    | _(no header comment)_                                                                                                                       |
