@@ -149,3 +149,82 @@ describe('the 2D camera rotation', () => {
     expect(frame(60).y).toBeCloseTo(-1)
   })
 })
+
+describe('the 2D camera view shift', () => {
+  // A 1180 x 820 landscape tablet with the deck floating: the canvas is
+  // 1100 px wide and the deck covers its right 380 (lib/canvasFraming.ts).
+  const WIDE: Camera2DView = { ...VIEW, aspect: 1100 / 820 }
+  const SHIFT = { x: -190 / 550, y: 0 }
+  const shifted = (view: Camera2DView): Camera2DView => ({
+    ...view,
+    shift: SHIFT,
+  })
+
+  it('puts the camera centre where the shift says, in clip units', () => {
+    const panned = { ...WIDE, x: 3, y: -2, rotation: 0.7, zoom: 1.5 }
+    const centre = project(shifted(panned), 3, -2)
+    expect(centre.x).toBeCloseTo(SHIFT.x)
+    expect(centre.y).toBeCloseTo(0)
+  })
+
+  it('moves every point by the same amount, so the picture keeps its scale', () => {
+    const panned = { ...WIDE, x: 0.4, y: 0.1, rotation: -0.3, zoom: 2 }
+    for (const [wx, wy] of [
+      [0, 0],
+      [1.2, -0.7],
+      [-3, 2],
+    ] as const) {
+      const plain = project(panned, wx, wy)
+      const moved = project(shifted(panned), wx, wy)
+      expect(moved.x - plain.x).toBeCloseTo(SHIFT.x)
+      expect(moved.y - plain.y).toBeCloseTo(0)
+    }
+  })
+
+  it('is no shift at all when left out, or zero', () => {
+    const plain = camera2DViewMatrix(WIDE)
+    const zero = camera2DViewMatrix({ ...WIDE, shift: { x: 0, y: 0 } })
+    expect(Array.from(zero)).toEqual(Array.from(plain))
+  })
+
+  it('still knows where the pointer is', () => {
+    const turned = shifted({ ...WIDE, x: 3, y: -2, rotation: 0.7, zoom: 1.5 })
+    const clip = project(turned, 3.4, -1.1)
+    const back = unproject(turned, clip.x, clip.y)
+    expect(back.x).toBeCloseTo(3.4)
+    expect(back.y).toBeCloseTo(-1.1)
+  })
+
+  it('pans the flame as far for the same drag as without it', () => {
+    // WheelZoomCamera2D pans by the world distance between the grab point
+    // and the pointer, both through the inverse: the shift cancels out.
+    const panned = { ...WIDE, x: 1, y: 2, rotation: 0.4, zoom: 1.2 }
+    const drag = (view: Camera2DView) => {
+      const from = unproject(view, -0.5, 0.2)
+      const to = unproject(view, -0.1, -0.3)
+      return { x: to.x - from.x, y: to.y - from.y }
+    }
+    const plain = drag(panned)
+    const moved = drag(shifted(panned))
+    expect(moved.x).toBeCloseTo(plain.x)
+    expect(moved.y).toBeCloseTo(plain.y)
+  })
+
+  it('keeps the point under the pointer still while zooming', () => {
+    // zoomKeepPointInPlace in WheelZoomCamera2D, which knows nothing of the
+    // shift, run against a shifted camera.
+    const before = shifted({ ...WIDE, x: 1, y: 2, rotation: 0.4, zoom: 1.2 })
+    const pointer = { x: -0.6, y: 0.25 }
+    const world = unproject(before, pointer.x, pointer.y)
+    const ratio = before.zoom / (before.zoom * 1.5)
+    const after = {
+      ...before,
+      zoom: before.zoom * 1.5,
+      x: before.x + (world.x - before.x) * (1 - ratio),
+      y: before.y + (world.y - before.y) * (1 - ratio),
+    }
+    const landed = project(after, world.x, world.y)
+    expect(landed.x).toBeCloseTo(pointer.x)
+    expect(landed.y).toBeCloseTo(pointer.y)
+  })
+})

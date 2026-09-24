@@ -6,11 +6,13 @@ import { CAMERA_UNDO_DEBOUNCE_MS } from '@/defaults'
 import { Camera2D } from '@/lib/Camera2D'
 import { useCamera } from '@/lib/CameraContext'
 import { useCanvas } from '@/lib/CanvasContext'
+import { NO_SHIFT } from '@/lib/canvasFraming'
 import { createDragHandler } from '@/utils/createDragHandler'
 import { createPinchHandler } from '@/utils/createPinchHandler'
 import { eventToClip } from '@/utils/eventToClip'
 import type { ParentProps, Setter, Signal } from 'solid-js'
 import type { v2f } from 'typegpu/data'
+import type { ViewShift } from '@/lib/canvasFraming'
 
 const SCROLL_SENSITIVITY = 0.001
 
@@ -22,6 +24,14 @@ type WheelZoomCamera2DProps = {
    * Required for the reason `Camera2D.rotation` is — see its doc comment.
    */
   rotation: () => number
+  /**
+   * The view's framing shift, in clip units (Camera2D.viewShift). The
+   * gestures need nothing of it: a pan moves the flame by the world distance
+   * between two points both mapped through the shifted camera, and a zoom
+   * keeps the world point under the pointer, so both come out the same with
+   * the picture anywhere on the canvas (camera2DView.test.ts).
+   */
+  viewShift?: () => ViewShift
   eventTarget?: HTMLElement
   interactive?: () => boolean
 }
@@ -84,6 +94,10 @@ export function WheelZoomCamera2D(props: ParentProps<WheelZoomCamera2DProps>) {
   const [position, setPosition] = props.position
   const el = createMemo(() => props.eventTarget ?? canvas)
   const changeHistory = useChangeHistory()
+  // An accessor rather than an inline `??` in the JSX below, which Solid
+  // would wrap in a memo of its own (Default3DPreviewCamera in Camera3D.tsx
+  // has the whole story).
+  const viewShift = () => props.viewShift?.() ?? NO_SHIFT
 
   let clipToWorld: (clip: v2f) => v2f | undefined
   let wheelDebounceTimer: ReturnType<typeof setTimeout> | undefined
@@ -250,7 +264,12 @@ export function WheelZoomCamera2D(props: ParentProps<WheelZoomCamera2DProps>) {
   })
 
   return (
-    <Camera2D position={position()} zoom={zoom()} rotation={props.rotation()}>
+    <Camera2D
+      position={position()}
+      zoom={zoom()}
+      rotation={props.rotation()}
+      viewShift={viewShift()}
+    >
       {(() => {
         const { js } = useCamera()
         // steal clipToWorld from the camera
