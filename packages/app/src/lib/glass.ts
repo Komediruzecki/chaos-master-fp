@@ -14,7 +14,10 @@ const [glassPanels, storeGlassPanels] = persistentSignal<boolean>(
  * The experimental Glass panels setting, off by default: the large touch
  * panels that float over the canvas as real glass, where blur costs the most
  * (docs/plans/glass-panels.md, phases 1 and 2). Stored like the touch layout
- * preference. Nothing reads it yet.
+ * preference. Its toggle in Settings (HelpModal/GlassPanelsSetting.tsx), the
+ * rail's sheet (TouchSurface/EditorRail.tsx) and the tablet deck
+ * (TouchSurface/TabletInspectorDeck.tsx) read it here; stylesheets read the
+ * attribute it puts on <html>, which glass.module.css describes.
  */
 export { glassPanels }
 
