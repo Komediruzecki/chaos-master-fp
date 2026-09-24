@@ -92,6 +92,7 @@ describe('IFS compute shaders (golden)', () => {
       for (const [name, path] of Object.entries(FULL_TEXT)) {
         const wgsl = resolved.find((r) => r.name === name)?.wgsl
         if (wgsl === undefined) throw new Error(`no case ${name}`)
+        // eslint-disable-next-line security/detect-non-literal-fs-filename -- a FULL_TEXT fixture path, in this repo
         writeFileSync(path, wgsl)
       }
     })
@@ -118,6 +119,7 @@ describe('IFS compute shaders (golden)', () => {
     'resolves %s to the pinned text',
     (name, path) => {
       const wgsl = resolved.find((r) => r.name === name)?.wgsl
+      // eslint-disable-next-line security/detect-non-literal-fs-filename -- a FULL_TEXT fixture path, in this repo
       expect(wgsl).toBe(readFileSync(path, 'utf8'))
     },
   )

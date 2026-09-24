@@ -478,7 +478,9 @@ export function createIFSPipeline(
       // Two fighters: each walker keeps to its own team (flame/clashTeams.ts).
       const kernel = clashKernel(clashTeams, Point, flamesObj, bindGroupLayout)
       if (kernel) executeRandomFlame = kernel.executeRandomFlame
-      const setClashTeam = kernel?.setClashTeam
+      // Hashes a walker's index for its seed; the team kernel's also deals the
+      // walker its team.
+      const indexHash = kernel?.indexHash ?? hash
 
       const ifsCompute = tgpu.computeFn({
         in: {
@@ -499,12 +501,8 @@ export function createIFSPipeline(
           workgroupIndex * IFS_GROUP_SIZE + localInvocationIndex
         if (pointIndex >= arrayLength(pointRandomSeeds)) return
         const pointSeed = pointRandomSeeds[pointIndex]!
-        const seed = add(pointSeed, hash(pointIndex))
+        const seed = add(pointSeed, indexHash(pointIndex))
         setSeed(seed)
-        // Resolved away entirely for a flame without teams.
-        if (clashTeamsOn) {
-          setClashTeam!(pointIndex)
-        }
         let point = Point()
         // Cold start (after a settle/reset): seed the chain and pay the warmup
         // fuse. Otherwise continue the persisted chain from the last dispatch.

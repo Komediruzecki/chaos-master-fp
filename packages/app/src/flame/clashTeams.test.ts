@@ -133,10 +133,22 @@ describe.each([
   const wgsl = resolveIfsWgsl({ transforms, dims })
 
   it('compiles the team kernel', () => {
-    expect(wgsl).toContain('fn setClashTeam(')
     expect(wgsl).toContain('var<private> clashTeam')
     expect(wgsl).toContain('struct ClashTeamUniforms')
-    expect(wgsl).toMatch(/setClashTeam\(pointIndex\);/)
+    expect(wgsl).toContain('fn clashIndexHash(pointIndex: u32) -> u32')
+  })
+
+  it('deals each walker its team where its index is hashed for its seed', () => {
+    // So the compute entry is the one a flame without teams compiles, with
+    // the team's hash in place of the plain one.
+    const entry = (code: string) => code.slice(code.indexOf('@compute'))
+    const plain = entry(
+      resolveIfsWgsl({ transforms: untagged(transforms), dims }),
+    )
+    expect(plain).toMatch(/\bhash\(pointIndex\)/)
+    expect(entry(wgsl)).toBe(
+      plain.replace(/\bhash\(pointIndex\)/, 'clashIndexHash(pointIndex)'),
+    )
   })
 
   const step = wgsl.slice(wgsl.indexOf('fn executeRandomFlame'))

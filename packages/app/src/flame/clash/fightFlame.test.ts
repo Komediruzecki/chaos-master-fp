@@ -66,7 +66,7 @@ describe('fightFlame', () => {
 
   it('compiles the team kernel for it', () => {
     const wgsl = resolveIfsWgsl({ transforms: flame.transforms, dims: 3 })
-    expect(wgsl).toContain('fn setClashTeam(')
+    expect(wgsl).toContain('fn clashIndexHash(')
   })
 
   it('carries the fight uniforms and the flash', () => {

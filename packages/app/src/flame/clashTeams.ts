@@ -28,6 +28,7 @@
  * at code generation, and ifsPipeline.wgslGolden.test.ts holds them to that
  * byte for byte.
  */
+import { hash } from '@typegpu/noise'
 import { tgpu } from 'typegpu'
 import { f32, struct, u32 } from 'typegpu/data'
 import { random } from '@/shaders/random'
@@ -137,8 +138,10 @@ function teamStep(total: string, ids: readonly string[]) {
 
 /**
  * The team kernel for a pipeline: the chaos-game step that replaces
- * `executeRandomFlame`, and the per-walker team assignment the compute entry
- * calls once, after seeding. Undefined for a flame without teams.
+ * `executeRandomFlame`, and the hash of a walker's index that replaces the
+ * plain `hash` the compute entry seeds the walker with. That hash also deals
+ * the walker its team, so the compute entry is the same for every flame.
+ * Undefined for a flame without teams.
  *
  * `pointType` is the pipeline's Point struct (the header below leaves the
  * types to it); `flames` maps `flame<tid>` to each transform's function, and `layout` is the
@@ -173,13 +176,14 @@ export function clashKernel<P extends AnyWgslData>(
     `
     .$uses({ ...flames, random, layout, clashTeam: clashTeamState })
     .$name('executeRandomFlame')
-  const setClashTeam = tgpu.fn([u32]) /* wgsl */ `
-      (pointIndex: u32) {
+  const indexHash = tgpu.fn([u32], u32) /* wgsl */ `
+      (pointIndex: u32) -> u32 {
         let split = layout.$.flameUniforms.clashTeams.split;
         clashTeam = select(1u, 0u, f32(pointIndex % ${CLASH_TEAM_BLOCK}u) < split * ${CLASH_TEAM_BLOCK}.0);
+        return hash(pointIndex);
       }
     `
-    .$uses({ layout, clashTeam: clashTeamState })
-    .$name('setClashTeam')
-  return { executeRandomFlame, setClashTeam }
+    .$uses({ layout, clashTeam: clashTeamState, hash })
+    .$name('clashIndexHash')
+  return { executeRandomFlame, indexHash }
 }
