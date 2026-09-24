@@ -145,26 +145,37 @@ function compile(schema: SchemaNode): DomainPlan | undefined {
   return undefined
 }
 
-function projectInto(plan: DomainPlan, value: unknown): void {
-  if (typeof value !== 'object' || value === null) return
-  const target = value as Record<string | number, unknown>
-  const visit = (key: string | number, child: DomainPlan) => {
+/**
+ * `value` with every bounded number under `plan` projected.
+ *
+ * An object is projected in place, since the flame being projected is a
+ * per-frame clone or a store draft. An array that has to change is COPIED
+ * instead: a frame's colour can be the very array a keyframe holds, and
+ * clamping it in place would rewrite the keyframe.
+ */
+function projected(plan: DomainPlan, value: unknown): unknown {
+  if (plan.kind === 'number') {
+    return typeof value === 'number' ? projectNumber(value, plan.domain) : value
+  }
+  if (typeof value !== 'object' || value === null) return value
+  const source = value as Record<string | number, unknown>
+  let target = source
+  const children: [string | number, DomainPlan][] =
+    plan.kind === 'fields'
+      ? plan.fields
+      : Object.keys(source).map((key) => [key, plan.plan])
+  for (const [key, child] of children) {
     const current = target[key]
-    if (child.kind !== 'number') {
-      projectInto(child, current)
-      return
-    }
-    if (typeof current !== 'number') return
-    const next = projectNumber(current, child.domain)
+    const next = projected(child, current)
     // Only write what moved: the target may be a store draft, where every
     // write is a change notification.
-    if (!Object.is(next, current)) target[key] = next
+    if (Object.is(next, current)) continue
+    if (target === source && Array.isArray(source)) {
+      target = [...source] as unknown as Record<string | number, unknown>
+    }
+    target[key] = next
   }
-  if (plan.kind === 'fields') {
-    for (const [key, child] of plan.fields) visit(key, child)
-  } else if (plan.kind === 'each') {
-    for (const key of Object.keys(target)) visit(key, plan.plan)
-  }
+  return target
 }
 
 let plans: { flat: DomainPlan; spatial: DomainPlan } | undefined
@@ -186,6 +197,6 @@ export function projectFlameToSchema<T>(flame: T): T {
   const dimensions = (flame as { renderSettings?: { dimensions?: unknown } })
     ?.renderSettings?.dimensions
   const { flat, spatial } = flameDomainPlans()
-  projectInto(dimensions === 3 ? spatial : flat, flame)
+  projected(dimensions === 3 ? spatial : flat, flame)
   return flame
 }

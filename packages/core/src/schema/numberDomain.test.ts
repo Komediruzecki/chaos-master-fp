@@ -1,7 +1,7 @@
 import * as v from 'valibot'
 import { describe, expect, it } from 'vitest'
 import { pureClone } from '../utils/clone'
-import { renderSettingsDefault, validateFlame } from './flameSchema'
+import { FlameDescriptor, FlameDescriptor3D, renderSettingsDefault, validateFlame, } from './flameSchema'
 import { flameDomainPlans, numberDomainOf, projectFlameToSchema, projectNumber, } from './numberDomain'
 import type { DomainPlan, NumberDomain } from './numberDomain'
 
@@ -178,7 +178,7 @@ describe('projectFlameToSchema', () => {
     const byPath = new Map(
       leaves(flat, fixture(2)).map((l) => [l.path.join('.'), l.domain]),
     )
-    expect(byPath.get('renderSettings.skipIters')).toEqual(whole(0, 30))
+    expect(byPath.get('renderSettings.skipIters')).toEqual(whole(0, 50))
     expect(byPath.get('renderSettings.palettePhase')).toEqual(cyclic(0, 1))
   })
 
@@ -215,5 +215,87 @@ describe('projectFlameToSchema', () => {
     const before = pureClone(flame)
     expect(projectFlameToSchema(flame)).toBe(flame)
     expect(flame).toEqual(before)
+  })
+})
+
+/**
+ * Every bounded number anywhere under `schema`, whatever holds it: unions,
+ * variants, intersections, lazy schemas and rest entries included. `compile`
+ * follows objects, tuples, records, arrays and optional wrappers only.
+ */
+function boundedNumbersAnywhere(
+  schema: unknown,
+  path = '',
+  // The schemas on the way here, so a lazy self-reference ends; shared
+  // schemas elsewhere (one colour schema for every channel) still count.
+  ancestors: readonly unknown[] = [],
+): string[] {
+  if (
+    typeof schema !== 'object' ||
+    schema === null ||
+    ancestors.includes(schema)
+  ) {
+    return []
+  }
+  if (numberDomainOf(schema)) return [path]
+  const node = schema as Record<string, unknown>
+  const children: [string, unknown][] = []
+  if (node.entries && typeof node.entries === 'object') {
+    for (const [k, c] of Object.entries(node.entries)) children.push([k, c])
+  }
+  if (Array.isArray(node.items)) {
+    node.items.forEach((c, i) => children.push([String(i), c]))
+  }
+  if (Array.isArray(node.options)) {
+    node.options.forEach((c, i) => children.push([`<option ${i}>`, c]))
+  }
+  for (const key of ['item', 'value', 'wrapped', 'rest'] as const) {
+    if (node[key]) children.push([`<${key}>`, node[key]])
+  }
+  if (typeof node.getter === 'function') {
+    children.push([
+      '<lazy>',
+      (node.getter as (i: unknown) => unknown)(undefined),
+    ])
+  }
+  return children.flatMap(([key, child]) =>
+    boundedNumbersAnywhere(child, path ? `${path}.${key}` : key, [
+      ...ancestors,
+      schema,
+    ]),
+  )
+}
+
+describe('the compiled plan', () => {
+  // A bound placed under a union, variant, intersection or lazy schema would
+  // be skipped by `compile` without a word, and playback would go back to
+  // writing frames that do not validate. This counts them the long way.
+  it.each([
+    ['2D', FlameDescriptor, 'flat'],
+    ['3D', FlameDescriptor3D, 'spatial'],
+  ] as const)(
+    'reaches every bounded number in the %s flame schema',
+    (_label, schema, which) => {
+      const plan = flameDomainPlans()[which]
+      const everywhere = boundedNumbersAnywhere(schema)
+      expect(everywhere.length).toBeGreaterThan(0)
+      expect(planLeafCount(plan), everywhere.join('\n')).toBe(everywhere.length)
+    },
+  )
+
+  it('finds a bound hidden under a union, so the check above can fail', () => {
+    const hidden = v.object({
+      a: v.union([v.string(), v.pipe(v.number(), v.maxValue(1))]),
+    })
+    expect(boundedNumbersAnywhere(hidden)).toEqual(['a.<option 1>'])
+  })
+
+  it('copies an array it has to change instead of rewriting it', () => {
+    const flame = fixture(2)
+    const keyframeValue: [number, number, number] = [1.5, 0, 0]
+    flame.renderSettings.backgroundColor = keyframeValue
+    projectFlameToSchema(flame)
+    expect(flame.renderSettings.backgroundColor).toEqual([1, 0, 0])
+    expect(keyframeValue).toEqual([1.5, 0, 0])
   })
 })

@@ -295,7 +295,7 @@ function writeTimelineValue(
     [
       {
         parameterPath: path,
-        keyframes: [{ frame: 0, value }],
+        keyframes: [{ frame: 0, value: deepClone(value) }],
       },
     ],
     flame,
