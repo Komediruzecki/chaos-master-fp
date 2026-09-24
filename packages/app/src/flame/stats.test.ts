@@ -4,6 +4,8 @@ import { cantorDust, heighwayDragon, kochCurve, mengerSponge, sierpinskiCarpet, 
 import { example30 } from './examples/example30'
 import { calculateGroundedStats, classifySchool, COMBAT_COEFFICIENTS, getSchoolMultiplier, resolveClashCombat, } from './stats'
 import { generateVariationId } from './transformFunction'
+import { VARIATION_2D_TO_3D_MAP } from './transformFunction3D'
+import { isVariationTypeFor } from './variationRegistry'
 import type { FlameDescriptor } from './schema/flameSchema'
 import type { GroundedFlameStats } from './stats'
 
@@ -109,6 +111,32 @@ describe('flame/stats', () => {
         f.renderSettings.dimensions = 3
         expect([type, classifySchool(f)]).toEqual([type, 'Void'])
       }
+    })
+
+    // A 3D flame draws a live row of the 2D-to-3D map's 2D name as its 3D
+    // analog, so a variation counts as what is drawn, and each school holds
+    // the analogs of its 2D entries: bubble3D was on no list, bubbleVar Void.
+    it('classifies each 3D analog in the map as its 2D name', () => {
+      const liveRows = Object.entries(VARIATION_2D_TO_3D_MAP).filter(
+        ([from, to]) =>
+          isVariationTypeFor(2, from) && isVariationTypeFor(3, to),
+      )
+      const as3D = (type: string) => {
+        const f = createDummyFlame(type, 1.0)
+        f.renderSettings.dimensions = 3
+        return classifySchool(f)
+      }
+      const rows = liveRows.map(([from, to]) => [
+        `${from} ${classifySchool(createDummyFlame(from, 1.0))}`,
+        `${from} in 3D ${as3D(from)}`,
+        `${to} in 3D ${as3D(to)}`,
+      ])
+      expect(liveRows.length).toBeGreaterThan(0)
+      expect(
+        rows.filter(
+          (row) => new Set(row.map((r) => r.split(' ').pop())).size > 1,
+        ),
+      ).toEqual([])
     })
 
     it('classifies Sinusoidal / Waves as Tide', () => {
@@ -296,6 +324,19 @@ describe('flame/stats', () => {
     // and 2 in 2D, so the stats derived from it read dimension x 2 / space:
     // a 3D flame that fills its space scores like a 2D flame that fills the
     // plane. The card still shows the dimension itself.
+    // cylinderVar and cylinderApoVar are two variations in 2D, but a 3D
+    // flame draws both as cylinder3D: one family, not two.
+    it('3D: two variations drawn as one 3D variation are one family', () => {
+      const nonlinearity = (second: string) => {
+        const f = createDummyFlame('cylinderVar', 1.0)
+        f.renderSettings.dimensions = 3
+        const t2 = Object.values(f.transforms)[1]!
+        for (const v of Object.values(t2.variations)) v.type = second
+        return calculateGroundedStats(f).nonlinearity
+      }
+      expect(nonlinearity('cylinderApoVar')).toBe(nonlinearity('cylinderVar'))
+    })
+
     it('ATK reads the dimension per space: a filled cube scores as a filled square', () => {
       // The Menger sponge with its seven holes filled: 27 maps at 1/3 fill the
       // cube (D = 3); the carpet with its centre filled: 9 fill the square.

@@ -142,7 +142,7 @@ describe('the bundled examples, as players see them', () => {
         'example30              Crystal 149  40  31 1189  3.00  0.49',
         'example31              Vortex  148  43  30 1244  2.72  0.48',
         'example32              Order   150  45  31 1268  3.00  0.50',
-        'example33              Crystal 159  36  37 1207  2.09  0.59',
+        'example33              Void    159  36  37 1207  2.09  0.59',
         'example34              Crystal 146  41  29 1176  3.00  0.46',
         'example35              Vortex  146  50  29 1332  3.00  0.46',
         'example36              Order   151  44  32 1269  3.00  0.51',

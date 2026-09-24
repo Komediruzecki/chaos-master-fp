@@ -7,6 +7,7 @@
  */
 
 import { scoreFlame as evaluateFlameFitness } from './fitness'
+import { drawnType, LINEAR_VARIATIONS, SYMMETRY_VARIATIONS, TIDE_VARIATIONS, VOID_VARIATIONS, VORTEX_VARIATIONS, } from './schoolVariations'
 import type { FlameDescriptor } from './schema/flameSchema'
 
 export type FlameSchool =
@@ -110,101 +111,6 @@ export const COMBAT_COEFFICIENTS = {
   },
 } as const
 
-/*
- * The school lists below are keyed by registered variation TYPE, and are read
- * with `variationType()`: a variation's key in `transform.variations` is its
- * id (a generated UUID in the editor, a descriptive name in the examples),
- * which never matches a type name. A type sits on one list only: the checks
- * run in order, so a second listing never counts.
- */
-const LINEAR_VARIATIONS = new Set(['linearVar', 'linearTVar', 'linear3D'])
-
-const SYMMETRY_VARIATIONS = new Set([
-  'juliaVar',
-  'juliaNVar',
-  'juliaScopeVar',
-  'kaleidoscopeVar',
-  'ngonVar',
-  'archVar',
-  'cylinderVar',
-  'cylinder2Var',
-  'cylinderApoVar',
-  'polarVar',
-  'polar2Var',
-  'nPolarVar',
-  'symBandG1Var',
-  'symBandG2Var',
-  'symBandG3Var',
-  'symBandG4Var',
-  'symBandG5Var',
-  'symBandG6Var',
-  'symBandG7Var',
-  'symNetG1Var',
-  'symNetG2Var',
-  'symNetG3Var',
-  'symNetG4Var',
-  'symNetG5Var',
-  'symNetG6Var',
-  'symNetG7Var',
-  'symNetG8Var',
-  'symNetG9Var',
-  'symNetG10Var',
-  'symNetG11Var',
-  'symNetG12Var',
-  'symNetG13Var',
-  'symNetG14Var',
-  'symNetG15Var',
-  'symNetG16Var',
-  'symNetG17Var',
-  'postMirrorWfVar',
-  'postAxisSymmetryWfVar',
-  'postPointSymmetryWfVar',
-  'julia3D',
-  'polar3D',
-  'cylinder3D',
-  'cylindrical3D',
-  'hemisphere3D',
-])
-
-const VORTEX_VARIATIONS = new Set([
-  'swirlVar',
-  'spiralVar',
-  'curlVar',
-  'swirl3D',
-  'spiral3D',
-  'curl3D',
-])
-
-const VOID_VARIATIONS = new Set([
-  'sphericalVar',
-  'bubbleVar',
-  'eyefishVar',
-  'inversionVar',
-  'hyperbolicVar',
-  'popcornVar',
-  'spherical3D',
-  'sphere3D',
-])
-
-const TIDE_VARIATIONS = new Set([
-  'sinusoidalVar',
-  'wavesVar',
-  'blurVar',
-  'gaussianBlurVar',
-  'radialBlurVar',
-  'rippleVar',
-  'sinusoidal3D',
-])
-
-/**
- * A variation's registered type, or '' when it has none. The stats read
- * agent-supplied flames unvalidated (`arena_get_stats`), so a malformed
- * variation counts as an unknown type rather than throwing.
- */
-function variationType(variation: { type?: unknown }): string {
-  return typeof variation.type === 'string' ? variation.type : ''
-}
-
 /**
  * Classify dominant school based on variation presence and custom WGSL shaders.
  */
@@ -218,6 +124,7 @@ export function classifySchool(flame: FlameDescriptor): FlameSchool {
 
   const transforms = Object.values(flame.transforms ?? {})
   if (transforms.length === 0) return 'Order'
+  const spaceDim = flame.renderSettings?.dimensions === 3 ? 3 : 2
 
   for (const t of transforms) {
     const customVars = (t as { customVariations?: Record<string, unknown> })
@@ -227,7 +134,7 @@ export function classifySchool(flame: FlameDescriptor): FlameSchool {
     }
     for (const vData of Object.values(t.variations ?? {})) {
       const w = Math.abs(vData.weight)
-      const type = variationType(vData)
+      const type = drawnType(vData, spaceDim)
       if (LINEAR_VARIATIONS.has(type)) orderWeight += w
       else if (SYMMETRY_VARIATIONS.has(type)) crystalWeight += w
       else if (VORTEX_VARIATIONS.has(type)) vortexWeight += w
@@ -534,7 +441,7 @@ export function calculateGroundedStats(
 
     for (const vData of Object.values(t.variations ?? {})) {
       const w = Math.abs(vData.weight)
-      const type = variationType(vData)
+      const type = drawnType(vData, spaceDim)
       totalWeight += w
       if (!LINEAR_VARIATIONS.has(type)) {
         totalNonlinearWeight += w
