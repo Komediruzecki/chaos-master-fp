@@ -1,7 +1,17 @@
-// lib/viewTransition: the update always runs, and every transition that ends,
-// however it ends, is counted exactly once, after it has ended.
+// lib/viewTransition: the update always runs. Apple WebKit, and a browser
+// without the API, get it at once and no transition; elsewhere every
+// transition that ends, however it ends, is counted exactly once, after it has
+// ended.
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { startViewTransition, viewTransitionsSettled } from './viewTransition'
+
+const APPLE = 'Apple Computer, Inc.'
+const GOOGLE = 'Google Inc.'
+
+/** The engine as utils/platform's isAppleWebKit sees it: navigator.vendor. */
+function onEngine(vendor: string) {
+  vi.spyOn(globalThis.navigator, 'vendor', 'get').mockReturnValue(vendor)
+}
 
 function fakeTransitions() {
   const started: {
@@ -37,10 +47,12 @@ const settle = () =>
 describe('startViewTransition', () => {
   afterEach(() => {
     Reflect.deleteProperty(document, 'startViewTransition')
+    vi.restoreAllMocks()
   })
 
   it('runs the update at once where the API is missing', () => {
     Reflect.deleteProperty(document, 'startViewTransition')
+    onEngine(GOOGLE)
     const before = viewTransitionsSettled()
     const update = vi.fn()
     startViewTransition(update)
@@ -49,25 +61,47 @@ describe('startViewTransition', () => {
     expect(viewTransitionsSettled()).toBe(before)
   })
 
-  it('hands the update to the browser and counts the end, not the start', async () => {
+  it('runs the update at once on Apple WebKit, with no transition', async () => {
     const started = fakeTransitions()
+    onEngine(APPLE)
     const before = viewTransitionsSettled()
     const update = vi.fn()
     startViewTransition(update)
-    expect(started).toHaveLength(1)
-    expect(started[0]?.update).toBe(update)
-
-    started[0]?.ready.resolve(undefined)
+    expect(update).toHaveBeenCalledTimes(1)
+    expect(started).toHaveLength(0)
+    // Nothing ran, so nothing ends and nothing is counted.
     await settle()
     expect(viewTransitionsSettled()).toBe(before)
-
-    started[0]?.finished.resolve(undefined)
-    await settle()
-    expect(viewTransitionsSettled()).toBe(before + 1)
   })
+
+  it.each([
+    ['Blink', GOOGLE],
+    ['Gecko', ''],
+  ])(
+    'hands the update to %s and counts the end, not the start',
+    async (_engine, vendor) => {
+      const started = fakeTransitions()
+      onEngine(vendor)
+      const before = viewTransitionsSettled()
+      const update = vi.fn()
+      startViewTransition(update)
+      expect(update).not.toHaveBeenCalled()
+      expect(started).toHaveLength(1)
+      expect(started[0]?.update).toBe(update)
+
+      started[0]?.ready.resolve(undefined)
+      await settle()
+      expect(viewTransitionsSettled()).toBe(before)
+
+      started[0]?.finished.resolve(undefined)
+      await settle()
+      expect(viewTransitionsSettled()).toBe(before + 1)
+    },
+  )
 
   it('counts a transition that was skipped or whose update failed', async () => {
     const started = fakeTransitions()
+    onEngine(GOOGLE)
     const before = viewTransitionsSettled()
     startViewTransition(() => {})
     startViewTransition(() => {})
