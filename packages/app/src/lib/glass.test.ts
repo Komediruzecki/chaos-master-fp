@@ -1,5 +1,5 @@
 /**
- * The Glass panels setting: stored like the touch layout preference, off by
+ * The Glass panels setting: stored like the touch layout preference, on by
  * default, and mirrored onto <html> for the stylesheets.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -36,18 +36,22 @@ describe('the Glass panels setting', () => {
     delete document.documentElement.dataset.glassPanels
   })
 
-  it('is off until someone turns it on, and says nothing on <html>', async () => {
+  it('is on until someone turns it off, and says so on <html>', async () => {
     const glass = await launch()
     glass.applyGlassPanels()
 
-    expect(glass.glassPanels()).toBe(false)
-    expect(document.documentElement.hasAttribute('data-glass-panels')).toBe(
-      false,
+    expect(glass.glassPanels()).toBe(true)
+    expect(document.documentElement.getAttribute('data-glass-panels')).toBe(
+      'on',
     )
+    // The default is not written down, so a later default reaches everyone
+    // who never chose.
+    expect(stored.has(KEY)).toBe(false)
   })
 
   it('writes the attribute and stores the choice when turned on', async () => {
     const glass = await launch()
+    glass.setGlassPanels(false)
     glass.setGlassPanels(true)
 
     expect(glass.glassPanels()).toBe(true)
@@ -79,6 +83,17 @@ describe('the Glass panels setting', () => {
     glass.applyGlassPanels()
     expect(document.documentElement.getAttribute('data-glass-panels')).toBe(
       'on',
+    )
+  })
+
+  it('keeps a stored "off" over the default at the next launch', async () => {
+    stored.set(KEY, 'false')
+    const glass = await launch()
+    glass.applyGlassPanels()
+
+    expect(glass.glassPanels()).toBe(false)
+    expect(document.documentElement.hasAttribute('data-glass-panels')).toBe(
+      false,
     )
   })
 })

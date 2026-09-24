@@ -7,15 +7,17 @@ import { persistentSignal } from '@/utils/persistentSignal'
 
 const [glassPanels, storeGlassPanels] = persistentSignal<boolean>(
   'chaos-glass-panels',
-  false,
+  true,
 )
 
 /**
- * The experimental Glass panels setting, off by default: the large touch
- * panels that float over the canvas as real glass, where blur costs the most
- * (docs/plans/glass-panels.md, phases 1 and 2). Stored like the touch layout
- * preference. Its toggle in Settings (HelpModal/GlassPanelsSetting.tsx), the
- * rail's sheet (TouchSurface/EditorRail.tsx) and the tablet deck
+ * The Glass panels setting, on by default: the large panels that float over
+ * the canvas as real glass, where blur costs the most
+ * (docs/plans/glass-panels.md). Offered in Settings on every layout, for
+ * whoever would rather have the frame rate. Stored like the touch layout
+ * preference, and only once someone changes it, so the default can move.
+ * Its toggle in Settings (HelpModal/GlassPanelsSetting.tsx), the rail's
+ * sheet (TouchSurface/EditorRail.tsx) and the tablet deck
  * (TouchSurface/TabletInspectorDeck.tsx) read it here; stylesheets read the
  * attribute it puts on <html>, which glass.module.css describes.
  */

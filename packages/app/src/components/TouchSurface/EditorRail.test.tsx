@@ -449,16 +449,17 @@ describe('EditorRail', () => {
   })
 
   it('is glass past peek only with the Glass panels setting on', () => {
-    // Off, the open sheet is solid, as it always was.
-    mount()
-    fireEvent.click(screen.getByRole('tab', { name: 'Shape' }))
-    expect(sheet().classList.contains('opaque')).toBe(true)
-    expect(sheet().classList.contains('glassPanel')).toBe(false)
-    cleanup()
-    setRailDetent('peek')
-
-    setGlassPanels(true)
     try {
+      // Off, the open sheet is solid, as it always was.
+      setGlassPanels(false)
+      mount()
+      fireEvent.click(screen.getByRole('tab', { name: 'Shape' }))
+      expect(sheet().classList.contains('opaque')).toBe(true)
+      expect(sheet().classList.contains('glassPanel')).toBe(false)
+      cleanup()
+      setRailDetent('peek')
+
+      setGlassPanels(true)
       mount()
       // Peek is the top bar's kind of glass either way.
       expect(sheet().classList.contains('glassPanel')).toBe(false)
@@ -466,7 +467,8 @@ describe('EditorRail', () => {
       expect(sheet().classList.contains('glassPanel')).toBe(true)
       expect(sheet().classList.contains('opaque')).toBe(false)
     } finally {
-      setGlassPanels(false)
+      // The setting's default.
+      setGlassPanels(true)
     }
   })
 })
