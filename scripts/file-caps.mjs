@@ -11,9 +11,10 @@
 //
 // - growth past a cap fails;
 // - shrinking below a cap also fails, until the cap is lowered in the same
-//   change (as mainWorkspaceSize.test.ts does for MainWorkspace.tsx), so the
-//   file cannot grow back into the slack. `pnpm metrics:caps` lowers every cap
-//   that can go down and changes nothing else;
+//   change, so the file cannot grow back into the slack. `pnpm metrics:caps`
+//   lowers every cap that can go down and changes nothing else.
+//   mainWorkspaceSize.test.ts (G2) reads MainWorkspace.tsx's cap from here and
+//   asks the same on every pull request;
 // - a file at or over CAP_FLOOR with no cap fails: a rename moves its cap to
 //   the new path, a new file that big is split or capped by hand;
 // - a cap for a file that is gone, or has fallen under CAP_FLOOR, fails until

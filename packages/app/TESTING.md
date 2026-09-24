@@ -139,7 +139,8 @@ everything left is green. Others hold the size of the tree
 Run `pnpm test:coverage` before `pnpm metrics:update`: the update refuses to write a baseline that lacks a key
 the old one tracked, and the coverage keys exist only after a coverage run.
 `mainWorkspaceSize.test.ts` is a ratchet of the same kind that runs on every
-pull request: `MainWorkspace.tsx` must have exactly the line count it names.
+pull request: `MainWorkspace.tsx` must have exactly the line count its entry in
+`docs/agent/code-metrics.file-caps.json` names.
 
 ## Browser tests: Playwright
 

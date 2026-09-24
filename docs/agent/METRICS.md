@@ -84,10 +84,13 @@ frozen locally can turn main red with nothing changed. A metric removed on
 purpose is named explicitly, `pnpm metrics:update --drop=<key>[,<key>]`, and
 the commit message says why.
 
-**One ratchet lives outside this script.** `MainWorkspace.tsx` is held to its
-exact line count by `packages/app/src/mainWorkspaceSize.test.ts`, which runs on
-every pull request rather than on main only: more lines fail, and fewer lines
-fail until the pinned count is lowered in the same change.
+**One ratchet also runs outside this script.** `MainWorkspace.tsx` is held to
+its exact line count by `packages/app/src/mainWorkspaceSize.test.ts`, which runs
+in every pull request's scoped suite: more lines fail, and fewer lines fail
+until the count is lowered in the same change. Since WP3b (2026-09-24) that
+test reads the count from MainWorkspace's entry in the per-file caps below,
+and fails if the entry is missing, so the file has one pin and a shrink lowers
+one number.
 
 **Per-file caps** (WP3b, 2026-09-23). The `files_over_*` buckets only notice a
 file that crosses an edge, which left two holes. Growth inside a file already
