@@ -20,10 +20,7 @@ export type FlameSchool =
 export type TacticalStance = 'balanced' | 'resonance' | 'bastion' | 'entropy'
 
 export interface GroundedFlameStats {
-  /**
-   * The Moran similarity dimension, as it is: up to 2 in 2D and 3 in 3D (the
-   * Menger sponge reads 2.73). The stats derived from it read it per space.
-   */
+  /** Moran dimension, as it is: up to 3 in 3D. ATK reads it per space. */
   dimension: number
   stability: number
   entropy: number
@@ -117,10 +114,8 @@ export const COMBAT_COEFFICIENTS = {
  * The school lists below are keyed by registered variation TYPE, and are read
  * with `variationType()`: a variation's key in `transform.variations` is its
  * id (a generated UUID in the editor, a descriptive name in the examples),
- * which never matches a type name. A type sits on one school list only: the
- * checks run in order, so a second listing never counts (spherical3D and
- * sphere3D were on the symmetry list too, and read Crystal where 2D's
- * sphericalVar reads Void).
+ * which never matches a type name. A type sits on one list only: the checks
+ * run in order, so a second listing never counts.
  */
 const LINEAR_VARIATIONS = new Set(['linearVar', 'linearTVar', 'linear3D'])
 
@@ -553,10 +548,8 @@ export function calculateGroundedStats(
 
   // Moran dimension
   const dimension = solveMoranDimension(rValues, spaceDim)
-  // Per space, for what is derived from it (maff, 2026-09-24): a dimension
-  // runs up to 3 in 3D and 2 in 2D, so dimension x 2 / space scores a 3D
-  // flame that fills its space as a 2D flame that fills the plane, and
-  // leaves 2D as it was.
+  // Per space (maff, 2026-09-24): a 3D flame that fills its space scores as
+  // a 2D flame that fills the plane, and 2D stays as it was.
   const dimensionPerSpace = (dimension * 2) / spaceDim
 
   // Stability: 1 - mean spectral norm (clamped 0..1)

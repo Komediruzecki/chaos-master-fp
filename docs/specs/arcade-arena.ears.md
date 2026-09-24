@@ -198,7 +198,7 @@ chance and power level through `COMBAT_COEFFICIENTS`, with beauty taken as
 that fills the plane; the stat block and the cards keep the dimension itself (the Menger
 sponge reads 2.73).
 
-_(`stats.ts:100-114` (`COMBAT_COEFFICIENTS`) (the coefficients), `:432-454` (`solveMoranDimension`), `:490-654` (`calculateGroundedStats`), `:560` (`dimensionPerSpace`) (per space))_
+_(`stats.ts:97-111` (`COMBAT_COEFFICIENTS`) (the coefficients), `:427-449` (`solveMoranDimension`), `:485-647` (`calculateGroundedStats`), `:553` (`dimensionPerSpace`) (per space))_
 
 ### REQ-AA-015 — A transformless flame gets the fallback stat block
 
@@ -207,7 +207,7 @@ fixed block `{ dimension 1.0, stability 0.8, entropy 0.5, nonlinearity 0.3,
 symmetryOrder 1, beauty 50, school 'Order', hp/maxHp 180, atk 45, def 40, critChance
 0.15, powerLevel 500 }` rather than dividing by zero.
 
-_(`stats.ts:496-512` (`transforms`))_
+_(`stats.ts:491-507` (`transforms`))_
 
 ### REQ-AA-016 — Explicit symmetry transforms outrank angle detection
 
@@ -217,7 +217,7 @@ pre-affine rotation angles, returning the largest `k ∈ {8,6,5,4,3,2}` whose `2
 spacing matches within `0.18` rad, and falling back to 2 when symmetry-family variations
 are present and 1 when they are not.
 
-_(`stats.ts:459-485` (`detectRotationalSymmetryOrder`), `:596-602` (`symTransformCount`))_
+_(`stats.ts:454-480` (`detectRotationalSymmetryOrder`), `:589-595` (`symTransformCount`))_
 
 ### REQ-AA-017 — Only visible transforms contribute to grounded stats
 
@@ -225,7 +225,7 @@ _(`stats.ts:459-485` (`detectRotationalSymmetryOrder`), `:596-602` (`symTransfor
 visible, so that an agent-supplied descriptor scores the same as the identical flame
 after schema validation.
 
-> **Known deviation:** `packages/app/src/flame/stats.ts:526` (`visible`) — the loop reads
+> **Known deviation:** `packages/app/src/flame/stats.ts:521` (`visible`) — the loop reads
 > `if (!t.visible) continue`, so every transform of an unvalidated agent-supplied flame
 > is skipped and the fighter falls through to the REQ-AA-015 fallback block. The
 > schema materialises `visible: true` (`packages/core/src/schema/flameSchema.ts:250`)
@@ -244,7 +244,7 @@ flame with no transforms or no positive bucket is `Order` — and `getSchoolMult
 shall return `1.25` on the advantage cycle Vortex > Order > Void > Crystal > Tide >
 Vortex, `0.8` against it, a flat `1.1` when the attacker is Arcane, and `1.0` otherwise.
 
-_(`stats.ts:76-98` (`SCHOOL_ADVANTAGE`), `:216-261` (`classifySchool`); the fighter cards show `+25%` style advantage badges from
+_(`stats.ts:73-95` (`SCHOOL_ADVANTAGE`), `:211-256` (`classifySchool`); the fighter cards show `+25%` style advantage badges from
 the same function, `ArenaOverlay.tsx:186-199` (`p1Advantage`), passed to the cards at `:714` (`p1Advantage`)
 and `:776` (`p2Advantage`) and rendered at `ArenaOverlay/ArenaFighterCard.tsx:313-316` (`advantage`).)_
 
@@ -346,7 +346,7 @@ the round tally alone — more round wins, ties are `draw` — and shall pass th
 `resolveClashCombat` as `territoryWinner`, so the HP battle log narrates the same victor
 the territory scoring chose even where remaining HP would have said otherwise.
 
-_(`simulateClash.ts:156-163` (`determineOverallWinner`), `:346-371` (`simulateRounds`); `stats.ts:776-792` (`draw`) applies the override before
+_(`simulateClash.ts:156-163` (`determineOverallWinner`), `:346-371` (`simulateRounds`); `stats.ts:769-785` (`draw`) applies the override before
 its own HP comparison.)_
 
 ### REQ-AA-028 — Combat resolution is deterministic, stanced, and never zero-damage
@@ -358,7 +358,7 @@ the stance modifiers (`balanced 1.0/1.0/1.0`, `resonance 1.25/0.95/1.0`, `bastio
 ±15% fluctuation and a floor of 12, and — absent a `territoryWinner` — break the match
 by remaining HP, then round wins, then beauty, then `draw`.
 
-_(`stats.ts:659-804` (`resolveClashCombat`); an unknown stance falls back to `balanced`, `:698-699`.)_
+_(`stats.ts:652-797` (`resolveClashCombat`); an unknown stance falls back to `balanced`, `:691-692`.)_
 
 ### REQ-AA-029 — Agent-supplied simulation parameters are bounded
 
