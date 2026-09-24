@@ -10,9 +10,9 @@
    sits over it in the same cell, as the glass primitive's panel, which the
    component adds (glass.module.css; a composes cannot be switched off). It
    is the one blurred layer: nothing inside it blurs again, and it goes solid
-   while the canvas presents every frame. The controls inside keep opaque
-   surfaces, as the explorer's panel's do, and no text inside is lighter
-   than ink-2 (decision c): see the block at the end of this file.
+   while the canvas presents every frame. The controls inside take opaque
+   fills of their own, as the explorer's panel's do, and no text inside is
+   lighter than ink-2 (decision c): see .floating below.
 
    Either way the deck keeps its box, so opening, closing and resizing it
    behave the same in both modes. */
@@ -167,59 +167,24 @@
   border: 0;
   border-left: var(--la-glass-edge);
 
-  /* The controls keep the surfaces they have on the page. The page's fills
-     are translucent ink over --la-surface; here the same mixes are made onto
-     --la-surface itself, so a chip, a row or a button is the colour it is
-     with the setting off and bright art does not show through it. Text on
-     them is not on glass. What this cannot keep is a control's edge drawn in
-     the same token as its fill: on the page the translucent border lies over
-     the fill and reads lighter, here the two are one colour. That wants an
-     opaque fill token in the control's own rules, not a remap here. */
-  --la-hairline: color-mix(in srgb, var(--la-ink) 8%, var(--la-surface));
-  --la-hairline-strong: color-mix(
+  /* The controls fill with the explorer panel's surfaces, through the
+     control tokens their own rules read (lumen.css), so bright art does not
+     show through a chip, a row or a button, and text on one is not on
+     glass. The hairlines stay translucent: a control's edge lies over its
+     fill and reads lighter, as on the page, and the lines on the glass
+     itself, the divider's grip and the header's rule, stay lighter than the
+     glass over bright art. */
+  --la-control: var(--la-surface-2);
+  --la-control-strong: var(--la-surface-3);
+  --la-control-accent: color-mix(
     in srgb,
-    var(--la-ink) 16%,
-    var(--la-surface)
+    var(--la-accent) 14%,
+    var(--la-surface-2)
   );
-  --la-accent-wash: color-mix(in srgb, var(--la-accent) 14%, var(--la-surface));
 
   /* Text on the glass itself, a caption or a section title, keeps to ink-2
      at the least on the panel's 80% fill (decision c, lumen.css). */
   --la-ink-3: var(--la-ink-2);
-}
-
-/* The same mixes at the strengths More Contrast gives the hairlines. */
-@media (prefers-contrast: more) {
-  .floating {
-    --la-hairline: color-mix(in srgb, var(--la-ink) 18%, var(--la-surface));
-    --la-hairline-strong: color-mix(
-      in srgb,
-      var(--la-ink) 32%,
-      var(--la-surface)
-    );
-  }
-}
-
-/* Lines drawn on the glass itself, the divider's grip and the header's rule,
-   keep the translucent ink they have on the page: mixed onto --la-surface
-   like the controls, they are darker than the glass over bright art and
-   vanish into it. The shares are lumen's hairline-strong and hairline. */
-.floating .divider::after {
-  background: color-mix(in srgb, var(--la-ink) 16%, transparent);
-}
-
-.floating .header {
-  border-bottom-color: color-mix(in srgb, var(--la-ink) 8%, transparent);
-}
-
-@media (prefers-contrast: more) {
-  .floating .divider::after {
-    background: color-mix(in srgb, var(--la-ink) 32%, transparent);
-  }
-
-  .floating .header {
-    border-bottom-color: color-mix(in srgb, var(--la-ink) 18%, transparent);
-  }
 }
 
 /* One blurred layer: the deck. A blur inside it would sample the deck's own

@@ -138,6 +138,11 @@ export const ALWAYS_ON = [
     genre: 'filesystem',
   },
   {
+    file: 'src/components/TouchSurface/TouchSurface.module.test.ts',
+    why: 'reads TouchSurface.module.css',
+    genre: 'filesystem',
+  },
+  {
     file: 'src/components/Arcade/pilotOverlayCss.test.ts',
     why: 'reads PilotOverlay.module.css',
     genre: 'filesystem',
