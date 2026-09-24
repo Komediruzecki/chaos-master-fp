@@ -101,10 +101,10 @@ WebGPU buffers consume significant VRAM. When components using `<Flam3>` are hid
 
 ## 3. DOM & UI Conventions
 
-- **View Transitions:** Use `document.startViewTransition` for seamless transitions between major layout shifts (e.g., toggling the sidebar, changing themes).
+- **View Transitions:** Use `startViewTransition` from `@/lib/viewTransition` for seamless transitions between major layout shifts (e.g., toggling the sidebar, changing themes), never `document.startViewTransition` directly: `src/viewTransitionCallers.test.ts` fails on a direct call. The helper runs the update at once, with no transition, on Apple WebKit, where a transition's per-frame snapshots present WebGPU canvases behind the renderer's back, and where the API is missing. Elsewhere it counts each transition's end, so renderers can present again.
 
 ```tsx
-document.startViewTransition(() => {
+startViewTransition(() => {
   setFlameDescriptor((draft) => {
     draft.renderSettings.drawMode = mode
   })
