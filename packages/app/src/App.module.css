@@ -34,6 +34,17 @@
   margin-left: 0;
 }
 
+/* With the experimental Glass panels setting on, the deck floats over the
+   canvas instead of beside it (TabletDeck.module.css): the canvas spans the
+   inspector's column as well, so the art runs on under the glass, and the
+   deck keeps its cell and sits over the canvas in it. Collapsed, the column
+   is empty and the canvas is exactly as wide as it is with the setting off.
+   The camera, not this box, frames the flame in the part the deck leaves
+   visible (lib/canvasFraming.ts). */
+:global(:root[data-glass-panels='on']) .tabletLayout .canvas-container {
+  grid-column-end: inspector;
+}
+
 .canvas-container {
   grid-area: viewport;
   grid-row-end: viewport-controls;
