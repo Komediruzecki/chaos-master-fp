@@ -96,6 +96,14 @@ This also applies to the explorer (single mode, and the phone bottom sheet; in t
 the panel sits over the void, which is fine): its panel moves to `--la-glass-panel`, and its
 pills, whose text is ink-2 on the 72% fill, move their text to ink.
 
+Three rules came out of building it:
+
+- Inside `.panel`, `--la-ink-3` resolves to `--la-ink-2`, so a shared component that writes
+  ink-3 keeps to the panel's floor without knowing it sits on glass.
+- Text on a control's hairline wash inside glass takes ink: the wash drops ink-2 to 4.30:1.
+- A coloured label on glass takes ink and keeps its colour in a fill or an edge, as the
+  explorer's pressed icon button does (an accent edge around an ink glyph).
+
 ## 3. The shared primitive (phase 0 builds it)
 
 `styles/designSystem/glass.module.css`, composed by every glass surface
@@ -152,36 +160,61 @@ Built into the primitive, so no surface can get them wrong:
   contradicts `lumen.css:338-343`), and the fill and text tier per (c). Done; its HUD still
   overflows sideways at 390px, which phase 1 takes.
 
-**Phase 1: phone and narrow tablet, the rail layout** (M)
+**Phase 1: phone and narrow tablet, the rail layout** (M). Built.
 
-| Surface                                                      | Today                                                                                     | Target                                                                                                                           |
-| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| AdvancedToolsDrawer (`TouchSurface.module.css:613-643`)      | 96% fill under a 24px blur: looks solid and still costs                                   | `panel` plus the busy switch. The backdrop becomes `--la-scrim-dim` with no blur of its own. The most visible change on a phone. |
-| MoreMenu under TouchHUD (`TouchHUD.tsx`, `.moreMenuWrapper`) | glass inside the blurred, transformed pill                                                | hosted outside the pill, as ShellBar and NavRail already do                                                                      |
-| HUD title tooltip (`TouchSurface.module.css:103-122`)        | glass on glass                                                                            | flattened by the nested rule                                                                                                     |
-| Rail sheet past peek (`EditorRail.module.css:54-62`)         | solid for cost                                                                            | `panel` while the canvas idles, `solid` while busy. Keep solid if phones cannot hold it.                                         |
-| Toast, hover badge, ProgressBar, ExportJobTracker            | two copied families: "oklch 240" and `rgba(15,15,17,.92)`                                 | `chrome` (a small tint shift, from hue 240 to the ground)                                                                        |
-| SpotlightTour (`SpotlightTour.tsx:411-479`)                  | card blurred over blurred scrims that animate their size, so the blur re-runs every frame | scrims without blur, the card as `panel`                                                                                         |
+| Surface                                                      | Before                                                                                    | Built                                                                                                                                                                                                                                                   |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AdvancedToolsDrawer (`TouchSurface.module.css:613-643`)      | 96% fill under a 24px blur: looks solid and still costs                                   | `panel` plus the busy switch, with one hairline-strong edge. The backdrop is `--la-scrim-dim` with no blur of its own. Ships on.                                                                                                                        |
+| MoreMenu under TouchHUD (`TouchHUD.tsx`, `.moreMenuWrapper`) | glass inside the blurred, transformed pill                                                | The HUD renders a plain fixed frame; the pill (`chrome`) and the menu are siblings in it, so the menu blurs the art itself. The menu sits about 6px further right, in line with the pill's edge.                                                        |
+| HUD title tooltip (`TouchSurface.module.css:103-122`)        | glass on glass                                                                            | `flat`                                                                                                                                                                                                                                                  |
+| Rail sheet past peek (`EditorRail.module.css:54-62`)         | solid for cost                                                                            | `panel` past peek with the setting on, so solid while busy; unchanged with it off                                                                                                                                                                       |
+| Toast, hover badge, ProgressBar, ExportJobTracker            | two copied families: "oklch 240" and `rgba(15,15,17,.92)`                                 | Glass in the dark theme and on touch layouts; the desktop light theme keeps its look. The toast and the badge are `chrome`. ProgressBar and the tracker use `--la-glass-strong` (86%), since they carry three text tiers; their action labels take ink. |
+| SpotlightTour (`SpotlightTour.tsx:411-479`)                  | card blurred over blurred scrims that animate their size, so the blur re-runs every frame | Scrims without blur. The glass sits on a layer behind the card's text and on its arrow, not on the card: a blurred card is a backdrop root, so its arrow could not frost the art. Glass in the dark theme and on touch layouts.                         |
 
-**Phase 2: tablet deck, an experiment behind a setting** (L)
+Also in phase 1:
 
-- **Today.** `TouchSurface/TabletInspectorDeck.tsx` (`TabletDeck.module.css:5-23`) is opaque
+- The explorer's phone HUD wraps its readouts to a second row below 680px, so nothing overflows
+  sideways at 390px.
+- Slider and PaletteSelector take custom-property hooks whose fallbacks are today's values; the
+  explorer's panel sets them, so their text reaches 4.5:1 on its glass.
+- Android (section 6).
+
+**Phase 2: tablet deck, an experiment behind a setting** (L). Built.
+
+- **Before.** `TouchSurface/TabletInspectorDeck.tsx` (`TabletDeck.module.css:5-23`) is opaque
   `--la-surface` in its own grid column. Its header calls it "a page beside the canvas, not
   chrome over it".
-- **Floating the deck.**
-  - The canvas goes full-bleed under the deck (the `.tabletLayout` grid in `App.module.css:1-35`).
-  - The deck becomes absolute on the right as `panel`, with the busy switch.
-  - The flame is framed in the visible area: the camera centre is offset by half the deck width,
-    so the subject is not hidden under it.
-  - The art still glows through the deck, which is the whole look.
+- **Floating the deck, with the setting on.**
+  - The deck keeps its grid cell and the canvas spans under it (`grid-column-end: inspector` on
+    the `.tabletLayout` canvas, `App.module.css:1-35`). Collapsed, the column is empty and the
+    canvas is exactly as wide as with the setting off.
+  - The deck composes `panel`, with the busy switch. NavRail stays opaque.
+  - The art glows through the deck, which is the whole look.
+- **Framing.** A view-only shift in clip space of -f, where f is the share of the canvas width
+  the deck covers (`lib/canvasFraming.ts`). In 2D it is added to the translation of
+  `camera2DViewMatrix`, whose inverse carries it, so pan and zoom-about-the-pointer need nothing.
+  In 3D it is an off-axis shift after the projection, so the vanishing point moves with the
+  picture. The shift reaches the camera matrices and nothing else: never the document, its
+  history, Recents, share links or the server renderer. Every image taken off the canvas is cut
+  to the visible part (`components/CanvasViewport/visibleCanvas.ts`), and an export that sizes
+  the canvas itself gets no shift. Rejected: an oversized, offset canvas, 1480x820 at 1180x820.
 - **Cost.**
-  - The canvas renders the deck's width in extra pixels.
-  - The blur covers about 360x820 CSS px (4x that in device pixels on an iPad) every composited
-    frame while the flame converges.
-  - Busy states go solid.
-- **Default.** Off, behind a "Glass panels" setting, until the phase 2 device numbers are in.
-- **NavRail.** It stays opaque: it is narrow and it is navigation, with nothing worth showing
-  through it.
+  - The canvas renders under the deck: at 1180x820 and dpr 1, 590,400 px with the setting off
+    and 902,000 with it on (+52.8%); at dpr 2, 2,361,600 and 3,608,000. The point budget is
+    unaffected (it reads the height and the zoom).
+  - The blur covers the deck, 380x820 CSS px in landscape, every composited frame while the
+    flame converges. Busy states go solid.
+- **Viewports.** The deck shows at 1180x820 and 1024x1366; 820x1180 is the rail layout.
+- **Default.** Off, behind the setting, until the device numbers are in.
+- **Known.** Toggling the setting mis-frames the flame for the 300 ms resize debounce (the view
+  only). With the setting on, desktop Chrome draws the nav rail's text with greyscale rather
+  than subpixel anti-aliasing.
+
+**Polish, decided 2026-09-24.** On the floating deck the canvas's edge fade is off while the deck
+floats open (it painted pale bands on the glass in the light theme), controls take an opaque
+fill token of their own instead of a token remap that hid their edges, and a divider drag counts
+as busy. The hover badge centres on the visible part. The tour card drops its glass shadow,
+which darkened its arrow.
 
 **Phase 3: dialogs and sheets on touch layouts** (M-L)
 
@@ -229,6 +262,13 @@ Each rule comes from one of the earlier cuts.
 5. Blur only what shows art. No blur over flat backgrounds, and none at 96% fill.
 6. Watch the clips. `overflow: hidden` and `contain: paint` clip glass edges and shadows (the
    EditorRail sheet, TabletDeck, CollapsibleCard, `.canvas-container`).
+7. Anything that sticks out of glass, such as a tooltip arrow, is glass of its own, painted
+   before the body: a blurred element is a backdrop root, so its child cannot frost the art.
+8. A `clip-path` hides part of an element, but its blur still reads the whole box.
+9. An entrance fade on glass fades the children, not the glass, which would be a backdrop root
+   below opacity 1.
+10. A shared control on glass takes custom-property hooks with today's values as fallbacks, and
+    the glass surface sets them. This is the pattern for phase 3's Modal and ExportPngDialog.
 
 ## 6. Platforms
 
@@ -238,20 +278,23 @@ Each rule comes from one of the earlier cuts.
   and sets an attribute on `<html>` that the tokens honour.
 - **iOS, stale swapchain.** WebKit shows stale WebGPU buffers when a canvas is not presented
   every frame (PR #63 fixed the editor with a present pump; the explorer has none). A
-  CoreAnimation blur over an idle WebGPU canvas is untested. Check on a device before phase 2.
+  CoreAnimation blur over an idle WebGPU canvas is untested. Still unchecked: phase 2 ships
+  behind the setting until it is checked on a device.
 - **iOS, web below 18.** It reads only `-webkit-backdrop-filter`, which the build drops (section
   3), so it shows no blur. It has no WebGPU either. The native build targets iOS 26.
 - **Android.** Mid-range GPUs are the worst case for blur. The shell bar is already an opaque
-  Material bar there (`ShellBar.module.css:221-285`). Default the large panels on Android to
-  `flat` or `solid` until measured.
+  Material bar there (`ShellBar.module.css:221-285`). Built in phase 1: `.panel` goes `solid`,
+  not `flat`, unless the setting is on, since ink-2 needs 76% and `flat` is 72% without a blur.
+  It is native only: `data-platform` is written by the native build alone, so Chrome on an
+  Android phone still gets the glass.
 
 ## 7. Verification
 
 **In CI**
 
 - **Glass guard test** (`styles/designSystem/glassBlurs.test.ts`). It enforces three things:
-  - Literal `backdrop-filter` declarations outside the primitive can only go down (a ratchet
-    from 59, pinned exactly).
+  - Literal `backdrop-filter` declarations outside the primitive can only go down (a ratchet,
+    pinned exactly: 59 after phase 0, 57 after phase 1).
   - Every blur has its `-webkit-` twin with the same value, in a stylesheet rule or an inline
     style object.
   - In a stylesheet, the `-webkit-` spelling comes first (section 3).
@@ -269,9 +312,12 @@ Each rule comes from one of the earlier cuts.
 
 **Headed browser, each phase** (standalone script, never `playwright test`)
 
-- **Viewports.** Phone 390x844, tablet 820x1180 and 1180x820.
-- **Conditions.** Light and dark, and a bright flame and a dark one.
+- **Viewports.** Phone 390x844, tablet 820x1180 (the rail layout), and 1180x820 and 1024x1366
+  (the deck).
+- **Conditions.** Light and dark, the setting off and on, and a bright flame and a dark one.
 - **Output.** Before and after screenshots.
+- **Timing.** The agents' headed browser runs on a hidden workspace at about one frame a second,
+  so busy and fade probes need waits of several seconds, and its frame times mean nothing.
 
 **On devices (maff)**
 
