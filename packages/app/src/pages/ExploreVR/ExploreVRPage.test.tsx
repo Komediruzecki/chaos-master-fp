@@ -1,26 +1,43 @@
 /**
- * Desktop atlas user journeys with GPU and star rendering replaced by stubs.
- * Exercises navigation, render controls, links, and persistent discoveries;
- * device output and performance are verified separately in a real browser.
+ * Fullscreen atlas journeys with the spatial stage replaced at its public
+ * boundary. Exercises navigation, optional touring, motion preferences and
+ * persistence; actual camera travel and GPU output need separate verification.
  */
-import { cleanup, fireEvent, render, screen, within, } from '@solidjs/testing-library'
+import { cleanup, fireEvent, render, screen } from '@solidjs/testing-library'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ExploreVRPage } from './ExploreVRPage'
-import type { FlameOrbProps } from './FlameOrb'
+import type { ImmersiveAtlasProps } from './ImmersiveAtlas'
 
-const stubs = vi.hoisted(() => ({ renderers: [] as FlameOrbProps[] }))
+const stubs = vi.hoisted(() => ({ scenes: [] as ImmersiveAtlasProps[] }))
 
-vi.mock('./FlameOrb', () => ({
-  FlameOrb: (props: FlameOrbProps) => {
-    stubs.renderers.push(props)
-    return null
-  },
-}))
+vi.mock('./ImmersiveAtlas', async () => {
+  const { ORB_PRESETS } = await import('./orbPresets')
+  return {
+    ImmersiveAtlas: (props: ImmersiveAtlasProps) => {
+      stubs.scenes.push(props)
+      return (
+        <div>
+          <canvas role="img" aria-label="Live flame controls" tabIndex={0} />
+          {ORB_PRESETS.map((orb) => (
+            <button
+              onClick={() => {
+                props.onSelect(orb)
+              }}
+              aria-label={`Inspect ${orb.name}`}
+              aria-pressed={props.preset.id === orb.id}
+            >
+              {orb.name}
+            </button>
+          ))}
+        </div>
+      )
+    },
+  }
+})
 
-vi.mock('./AtlasStars', () => ({ AtlasStars: () => null }))
-
-// The runner's localStorage is not a working Storage; retain this store across
-// remounts to exercise the same saved-data boundary as reopening the page.
+const LOG_KEY = 'chaos-master-fractal-atlas-discoveries-v1'
+// Retain storage across remounts to exercise reopening the atlas. The runner's
+// default localStorage is not a working Storage implementation.
 const stored = new Map<string, string>()
 const memoryStorage: Storage = {
   getItem: (key) => stored.get(key) ?? null,
@@ -38,16 +55,31 @@ const memoryStorage: Storage = {
     return stored.size
   },
 }
+let motion: MediaQueryList
+let reduced = false
+let hidden = false
 
 beforeEach(() => {
   stored.clear()
-  stubs.renderers.length = 0
+  stubs.scenes.length = 0
+  reduced = false
+  hidden = false
+  const target = new EventTarget()
+  Object.defineProperties(target, {
+    matches: { get: () => reduced },
+    media: { value: '(prefers-reduced-motion: reduce)' },
+  })
+  motion = target as MediaQueryList
   vi.stubGlobal('localStorage', memoryStorage)
+  vi.stubGlobal('matchMedia', () => motion)
+  vi.spyOn(document, 'hidden', 'get').mockImplementation(() => hidden)
+  vi.useFakeTimers()
   window.history.replaceState(null, '', '/explore-vr')
 })
 
 afterEach(() => {
   cleanup()
+  vi.useRealTimers()
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
   window.history.replaceState(null, '', '/')
@@ -58,190 +90,334 @@ function open(hash = '') {
   return render(() => <ExploreVRPage />)
 }
 
-function renderer() {
-  const props = stubs.renderers.at(-1)
-  if (!props) throw new Error('The atlas did not mount its flame renderer')
+function scene() {
+  const props = stubs.scenes.at(-1)
+  if (!props) throw new Error('The atlas did not mount its spatial stage')
   return props
 }
 
-function itineraryWorld(name: string) {
-  return within(
-    screen.getByRole('region', { name: 'Choose a world' }),
-  ).getByRole('button', { name: (label) => label.includes(name) })
+function click(name: string) {
+  fireEvent.click(screen.getByRole('button', { name }))
 }
 
-describe('ExploreVRPage navigation', () => {
-  it('selects the same flame and link from its satellite or itinerary entry', () => {
+function details() {
+  click('Inspect world details')
+}
+
+function setHidden(value: boolean) {
+  hidden = value
+  document.dispatchEvent(new Event('visibilitychange'))
+}
+
+describe('ExploreVRPage navigation and inspection', () => {
+  it('keeps details closed until requested and restores focus when dismissed', () => {
     open('#sol')
+    const inspect = screen.getByRole('button', {
+      name: 'Inspect world details',
+    })
+    expect(inspect.getAttribute('aria-expanded')).toBe('false')
+    expect(
+      screen.queryByRole('complementary', { name: 'World details' }),
+    ).toBeNull()
+    details()
+    expect(
+      screen.getByRole('complementary', { name: 'World details' }),
+    ).toBeTruthy()
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(
+      screen.queryByRole('complementary', { name: 'World details' }),
+    ).toBeNull()
+    expect(document.activeElement).toBe(inspect)
+  })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Inspect Ember' }))
-    const satellitePreset = renderer().preset
-    expect(satellitePreset.id).toBe('ember')
-    expect(window.location.hash).toBe('#ember')
-    expect(screen.getByRole('heading', { name: 'Ember' })).toBeTruthy()
-    expect(itineraryWorld('Ember').getAttribute('aria-pressed')).toBe('true')
-
-    fireEvent.click(screen.getByRole('button', { name: 'Inspect Tide' }))
-    expect(renderer().preset.id).toBe('tide')
-    fireEvent.click(itineraryWorld('Ember'))
-
-    expect(renderer().preset).toBe(satellitePreset)
+  it('selects the same destination from a satellite or route and wraps previous/next', () => {
+    open('#sol')
+    click('Inspect Ember')
+    const ember = scene().preset
     expect(window.location.hash).toBe('#ember')
     expect(screen.getByRole('heading', { name: 'Ember' })).toBeTruthy()
     expect(
       screen
-        .getByRole('button', { name: 'Inspect Ember' })
+        .getByRole('button', { name: 'Travel to Ember' })
         .getAttribute('aria-pressed'),
     ).toBe('true')
-    expect(
-      screen
-        .getByRole('button', { name: 'Inspect Tide' })
-        .getAttribute('aria-pressed'),
-    ).toBe('false')
+    click('Travel to Sol')
+    click('Previous world')
+    expect(scene().preset.id).toBe('irchiinnuss')
+    click('Next world')
+    expect(scene().preset.id).toBe('sol')
+    click('Travel to Ember')
+    expect(scene().preset).toBe(ember)
+    expect(screen.getByText('Selected world: Ember')).toBeTruthy()
   })
 
   it.each(['', '#unknown-world'])(
-    'opens the default world for an empty or unknown link (%s)',
+    'opens the default destination for %s',
     (hash) => {
       open(hash)
-
-      expect(renderer().preset.id).toBe('verdant')
+      expect(scene().preset.id).toBe('verdant')
       expect(screen.getByRole('heading', { name: 'Verdant' })).toBeTruthy()
-      expect(itineraryWorld('Verdant').getAttribute('aria-pressed')).toBe(
-        'true',
-      )
     },
   )
 
-  it('follows changed links and recovers to the default world from an unknown destination', () => {
+  it('follows changed hashes, ends a journey and recovers from unknown destinations', () => {
     open('#sol')
+    click('Start guided journey')
     window.history.replaceState(null, '', '#tide')
     window.dispatchEvent(new HashChangeEvent('hashchange'))
-
-    expect(renderer().preset.id).toBe('tide')
-    expect(screen.getByRole('heading', { name: 'Tide' })).toBeTruthy()
-    expect(itineraryWorld('Tide').getAttribute('aria-pressed')).toBe('true')
-
-    window.history.replaceState(null, '', '#unknown-world')
+    expect(scene().preset.id).toBe('tide')
+    expect(
+      screen.getByRole('button', { name: 'Start guided journey' }),
+    ).toBeTruthy()
+    window.history.replaceState(null, '', '#missing')
     window.dispatchEvent(new HashChangeEvent('hashchange'))
-
-    expect(renderer().preset.id).toBe('verdant')
-    expect(screen.getByRole('heading', { name: 'Verdant' })).toBeTruthy()
-    expect(itineraryWorld('Tide').getAttribute('aria-pressed')).toBe('false')
+    expect(scene().preset.id).toBe('verdant')
+    expect(window.location.hash).toBe('#verdant')
   })
 })
 
-describe('ExploreVRPage render controls', () => {
-  it('pauses and resumes rendering, then resets the same world in a running state', () => {
+describe('ExploreVRPage scene controls', () => {
+  it('preserves pause across selection and reset, until explicitly resumed', () => {
     open('#ember')
-    const flame = renderer()
-    const preset = flame.preset
-
-    fireEvent.click(screen.getByRole('button', { name: 'Pause rendering' }))
-    expect(flame.paused).toBe(true)
-    expect(screen.getByText('Rendering paused')).toBeTruthy()
-    expect(
-      screen
-        .getByRole('button', { name: 'Resume rendering' })
-        .getAttribute('aria-pressed'),
-    ).toBe('true')
-
-    fireEvent.click(screen.getByRole('button', { name: 'Resume rendering' }))
-    expect(flame.paused).toBe(false)
-    expect(
-      screen
-        .getByRole('button', { name: 'Pause rendering' })
-        .getAttribute('aria-pressed'),
-    ).toBe('false')
-
-    fireEvent.click(screen.getByRole('button', { name: 'Pause rendering' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Reset view' }))
-
-    expect(flame.paused).toBe(false)
-    expect(flame.resetKey).toBe(1)
-    expect(flame.preset).toBe(preset)
-    expect(window.location.hash).toBe('#ember')
-    expect(
-      screen.queryByRole('button', { name: 'Resume rendering' }),
-    ).toBeNull()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Reset view' }))
-    expect(flame.resetKey).toBe(2)
+    click('Pause scene')
+    click('Travel to Tide')
+    details()
+    click('Reset view')
+    expect(scene().paused).toBe(true)
+    expect(scene().resetKey).toBe(1)
+    expect(scene().preset.id).toBe('tide')
+    expect(screen.getByText('Scene paused')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Zoom in' }).disabled).toBe(true)
+    click('Resume scene')
+    click('Zoom in')
+    click('Zoom in')
+    click('Zoom out')
+    expect(scene().paused).toBe(false)
+    expect(scene().zoomStep).toBe(1)
   })
 
-  it('starts a newly selected world even when the previous one was paused', () => {
+  it('resets readiness on selection and keeps navigation usable after GPU failure', () => {
     open('#sol')
-    fireEvent.click(screen.getByRole('button', { name: 'Pause rendering' }))
-    fireEvent.click(itineraryWorld('Tide'))
+    scene().onReady()
+    expect(screen.getByText('Live 3D flame')).toBeTruthy()
+    click('Travel to Ember')
+    expect(scene().ready).toBe(false)
+    expect(screen.getByText('Forming the flame…')).toBeTruthy()
+    scene().onError('Adapter unavailable')
+    click('Travel to Tide')
+    expect(screen.getByRole('heading', { name: 'Tide' })).toBeTruthy()
+    expect(screen.getByText('Captured world')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Reload renderer' })).toBeTruthy()
+    details()
+    expect(screen.getByRole('button', { name: 'Reset view' }).disabled).toBe(
+      true,
+    )
+    click('Keep this discovery')
+    expect(screen.getByRole('button', { name: 'Discovered' })).toBeTruthy()
+  })
 
-    expect(renderer().preset.id).toBe('tide')
-    expect(renderer().paused).toBe(false)
-    expect(screen.getByRole('button', { name: 'Pause rendering' })).toBeTruthy()
+  it('uses the initial motion preference and responds to preference changes without starting a tour', () => {
+    reduced = true
+    open('#sol')
+    expect(scene().reducedMotion).toBe(true)
+    reduced = false
+    motion.dispatchEvent(new Event('change'))
+    expect(scene().reducedMotion).toBe(false)
+    reduced = true
+    motion.dispatchEvent(new Event('change'))
+    expect(scene().reducedMotion).toBe(true)
+    vi.advanceTimersByTime(30_000)
+    expect(scene().preset.id).toBe('sol')
+    expect(
+      screen.getByRole('button', { name: 'Start guided journey' }),
+    ).toBeTruthy()
+  })
+
+  it.each([false, true])(
+    'explains fullscreen refusal and leaves navigation working (API present: %s)',
+    async (available) => {
+      open('#sol')
+      Object.defineProperty(screen.getByRole('main'), 'requestFullscreen', {
+        configurable: true,
+        value: available
+          ? () => Promise.reject(new DOMException('Denied', 'NotAllowedError'))
+          : undefined,
+      })
+      click('Enter fullscreen')
+      await Promise.resolve()
+      expect(
+        screen.getByText(
+          available
+            ? 'Fullscreen could not start. You can continue exploring in this window.'
+            : 'Fullscreen is unavailable in this browser. The atlas already fills this window.',
+        ),
+      ).toBeTruthy()
+      click('Next world')
+      expect(scene().preset.id).toBe('verdant')
+    },
+  )
+})
+
+describe('ExploreVRPage guided journey', () => {
+  it('cancels the old dwell when a journey is ended and restarted', () => {
+    open('#sol')
+    click('Start guided journey')
+    vi.advanceTimersByTime(8000)
+    click('End guided journey')
+    vi.advanceTimersByTime(20_000)
+    expect(scene().preset.id).toBe('sol')
+    click('Start guided journey')
+    vi.advanceTimersByTime(8000)
+    click('End guided journey')
+    click('Start guided journey')
+    vi.advanceTimersByTime(8999)
+    expect(scene().preset.id).toBe('sol')
+    vi.advanceTimersByTime(1)
+    expect(scene().preset.id).toBe('verdant')
+  })
+
+  it('starts explicitly, resumes a paused scene and waits nine settled seconds between worlds', () => {
+    open('#sol')
+    vi.advanceTimersByTime(30_000)
+    expect(scene().preset.id).toBe('sol')
+    click('Pause scene')
+    click('Start guided journey')
+    expect(scene().paused).toBe(false)
+    scene().onTravelChange?.(true)
+    vi.advanceTimersByTime(20_000)
+    expect(scene().preset.id).toBe('sol')
+    scene().onTravelChange?.(false)
+    vi.advanceTimersByTime(8999)
+    expect(scene().preset.id).toBe('sol')
+    vi.advanceTimersByTime(1)
+    expect(scene().preset.id).toBe('verdant')
+    expect(
+      screen.getByRole('button', { name: 'End guided journey' }),
+    ).toBeTruthy()
+  })
+
+  it('starts a fresh dwell after pausing or returning from a hidden tab', () => {
+    open('#sol')
+    click('Start guided journey')
+    vi.advanceTimersByTime(8000)
+    click('Pause scene')
+    vi.advanceTimersByTime(30_000)
+    expect(scene().preset.id).toBe('sol')
+    click('Resume scene')
+    vi.advanceTimersByTime(8000)
+    setHidden(true)
+    vi.advanceTimersByTime(30_000)
+    expect(scene().preset.id).toBe('sol')
+    setHidden(false)
+    vi.advanceTimersByTime(8999)
+    expect(scene().preset.id).toBe('sol')
+    vi.advanceTimersByTime(1)
+    expect(scene().preset.id).toBe('verdant')
+  })
+
+  it.each([
+    'satellite',
+    'same destination',
+    'next',
+    'pointer',
+    'keyboard',
+    'wheel',
+    'zoom',
+    'reset',
+  ])('ends the journey after manual %s interaction', (action) => {
+    open('#sol')
+    details()
+    click('Start guided journey')
+    const canvas = screen.getByRole('img', { name: 'Live flame controls' })
+    if (action === 'satellite') click('Inspect Ember')
+    if (action === 'same destination') click('Travel to Sol')
+    if (action === 'next') click('Next world')
+    if (action === 'pointer') fireEvent.pointerDown(canvas)
+    if (action === 'keyboard') fireEvent.keyDown(canvas, { key: 'ArrowRight' })
+    if (action === 'wheel') fireEvent.wheel(canvas, { deltaY: 120 })
+    if (action === 'zoom') click('Zoom in')
+    if (action === 'reset') click('Reset view')
+    const destination = scene().preset.id
+    expect(
+      screen.getByRole('button', { name: 'Start guided journey' }),
+    ).toBeTruthy()
+    vi.advanceTimersByTime(30_000)
+    expect(scene().preset.id).toBe(destination)
+  })
+
+  it('cancels pending work on unmount and restores the original title', () => {
+    const title = document.title
+    const visit = open('#sol')
+    const stage = scene()
+    click('Start guided journey')
+    vi.advanceTimersByTime(8999)
+    visit.unmount()
+    reduced = true
+    motion.dispatchEvent(new Event('change'))
+    window.history.replaceState(null, '', '#tide')
+    window.dispatchEvent(new HashChangeEvent('hashchange'))
+    vi.advanceTimersByTime(30_000)
+    expect(document.title).toBe(title)
+    expect(stage.reducedMotion).toBe(false)
+    expect(stage.preset.id).toBe('sol')
     expect(window.location.hash).toBe('#tide')
   })
 })
 
 describe('ExploreVRPage discoveries', () => {
   it('restores saved worlds after reopening and persists removing a discovery', () => {
-    const firstVisit = open('#sol')
-    fireEvent.click(screen.getByRole('button', { name: 'Keep this discovery' }))
-    fireEvent.click(itineraryWorld('Ember'))
-    fireEvent.click(screen.getByRole('button', { name: 'Keep this discovery' }))
-    expect(screen.getByText('2 / 5 discovered')).toBeTruthy()
-
-    firstVisit.unmount()
-    const nextVisit = open(window.location.hash)
-    expect(screen.getByRole('heading', { name: 'Ember' })).toBeTruthy()
-    expect(
-      screen
-        .getByRole('button', { name: 'Discovered' })
-        .getAttribute('aria-pressed'),
-    ).toBe('true')
-    expect(screen.getByText('2 / 5 discovered')).toBeTruthy()
-    fireEvent.click(itineraryWorld('Sol'))
-    fireEvent.click(screen.getByRole('button', { name: 'Discovered' }))
+    const first = open('#sol')
+    details()
+    click('Keep this discovery')
+    click('Travel to Ember')
+    click('Keep this discovery')
+    expect(screen.getByText('2 of 5 worlds kept')).toBeTruthy()
+    first.unmount()
+    const second = open('#sol')
+    details()
+    click('Discovered')
     expect(screen.getByText('Sol removed from your discoveries.')).toBeTruthy()
-    expect(screen.getByText('1 / 5 discovered')).toBeTruthy()
-
-    nextVisit.unmount()
-    open(window.location.hash)
-    expect(screen.getByRole('heading', { name: 'Sol' })).toBeTruthy()
+    second.unmount()
+    open('#sol')
+    details()
     expect(
       screen.getByRole('button', { name: 'Keep this discovery' }),
     ).toBeTruthy()
-    expect(screen.getByText('1 / 5 discovered')).toBeTruthy()
-    fireEvent.click(itineraryWorld('Ember'))
+    expect(screen.getByText('1 of 5 worlds kept')).toBeTruthy()
+    click('Travel to Ember')
     expect(screen.getByRole('button', { name: 'Discovered' })).toBeTruthy()
   })
 
-  it('keeps discoveries usable for this visit when storage reads and writes are denied', () => {
+  it.each([
+    ['{', 0],
+    ['{}', 0],
+    ['["sol","sol","missing",7]', 1],
+  ])('recovers safely from stored data %s', (value, count) => {
+    stored.set(LOG_KEY, value)
+    open('#sol')
+    expect(screen.getByText(`${count} of 5 worlds kept`)).toBeTruthy()
+  })
+
+  it('keeps discoveries usable for this visit when storage is denied', () => {
     vi.spyOn(memoryStorage, 'getItem').mockImplementation(() => {
-      throw new DOMException('Storage denied', 'SecurityError')
+      throw new DOMException('Denied', 'SecurityError')
     })
     vi.spyOn(memoryStorage, 'setItem').mockImplementation(() => {
-      throw new DOMException('Storage denied', 'SecurityError')
+      throw new DOMException('Denied', 'SecurityError')
     })
     const visit = open('#sol')
-    expect(screen.getByText('0 / 5 discovered')).toBeTruthy()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Keep this discovery' }))
-    expect(screen.getByRole('button', { name: 'Discovered' })).toBeTruthy()
-    expect(screen.getByText('1 / 5 discovered')).toBeTruthy()
+    details()
+    click('Keep this discovery')
     expect(
       screen.getByText(
         'Storage is unavailable. Your discoveries will last for this visit.',
       ),
     ).toBeTruthy()
-
-    fireEvent.click(itineraryWorld('Tide'))
-    fireEvent.click(itineraryWorld('Sol'))
+    click('Travel to Tide')
+    click('Travel to Sol')
     expect(screen.getByRole('button', { name: 'Discovered' })).toBeTruthy()
-
     visit.unmount()
     open('#sol')
-    expect(
-      screen.getByRole('button', { name: 'Keep this discovery' }),
-    ).toBeTruthy()
-    expect(screen.getByText('0 / 5 discovered')).toBeTruthy()
+    expect(screen.getByText('0 of 5 worlds kept')).toBeTruthy()
   })
 })

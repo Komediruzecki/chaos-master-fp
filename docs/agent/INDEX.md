@@ -30,7 +30,7 @@ file instead of rediscovering the architecture every session.
 
 | Directory                 | Package name                   | Source files | LOC    |
 | ------------------------- | ------------------------------ | ------------ | ------ |
-| `packages/app`            | `chaos-master`                 | 1112         | 189.7k |
+| `packages/app`            | `chaos-master`                 | 1113         | 190.4k |
 | `packages/core`           | `@chaos-master/core`           | 27           | 3.8k   |
 | `packages/landing`        | `@chaos-master/landing`        | 20           | 2.5k   |
 | `packages/mobile-runtime` | `@chaos-master/mobile-runtime` | 7            | 600    |
@@ -159,11 +159,11 @@ file instead of rediscovering the architecture every session.
 
 #### Pages (`packages/app/src/pages/`) — route-level shells
 
-| Module            | Entry point                                                                                     | LOC  | What it is                                                                                 |
-| ----------------- | ----------------------------------------------------------------------------------------------- | ---- | ------------------------------------------------------------------------------------------ |
-| `FractalExplorer` | [FractalExplorerPage.tsx](../../packages/app/src/pages/FractalExplorer/FractalExplorerPage.tsx) | 3.8k | The deep-zoom explorer page: a full-bleed canvas, a heads-up readout and a settings panel. |
-| `Benchmarks`      | [BenchmarksPage.tsx](../../packages/app/src/pages/Benchmarks/BenchmarksPage.tsx)                | 3.7k | _(no header comment)_                                                                      |
-| `ExploreVR`       | [ExploreVRPage.tsx](../../packages/app/src/pages/ExploreVR/ExploreVRPage.tsx)                   | 1.0k | THESIS: a celestial atlas whose worlds are living 3D flame specimens.                      |
+| Module            | Entry point                                                                                     | LOC  | What it is                                                                                                                                  |
+| ----------------- | ----------------------------------------------------------------------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `FractalExplorer` | [FractalExplorerPage.tsx](../../packages/app/src/pages/FractalExplorer/FractalExplorerPage.tsx) | 3.8k | The deep-zoom explorer page: a full-bleed canvas, a heads-up readout and a settings panel.                                                  |
+| `Benchmarks`      | [BenchmarksPage.tsx](../../packages/app/src/pages/Benchmarks/BenchmarksPage.tsx)                | 3.7k | _(no header comment)_                                                                                                                       |
+| `ExploreVR`       | [ExploreVRPage.tsx](../../packages/app/src/pages/ExploreVR/ExploreVRPage.tsx)                   | 1.7k | Fullscreen cosmic atlas: the scene leads, and quiet corner instruments reveal inspection, local discoveries and an optional guided passage. |
 
 #### Cloudflare Worker (`packages/app/src/worker/`) — backend routes
 

@@ -1,27 +1,34 @@
-# Fractal atlas — `/explore-vr`
+# Irchiinnuss — immersive desktop atlas
 
-Experience mode. This desktop study extends Lumen Apeiron's dark gallery world:
-an observer in a dim room examines luminous artwork. The black field belongs to
-the flame, while Inter, the existing mark, fine rules, and quiet controls belong
-to the instrument. Preserve the editor's independent theme.
+Experience mode. The observer is inside a cosmic scene with quiet instruments
+at its edges. The user's orbital-atlas concept pins a celestial compass and
+spaced Lumen Apeiron wordmark at top left, Irchiinnuss at bottom left, and
+luminous flame worlds occupying the viewport. The former gallery layout is
+replaced at the user's request. Preserve the editor's independent theme.
 
-The user delegated composition with “surprise me” and selected the earlier
-transparent flame-orb concept as the material reference. The chosen composition
-is an orbital atlas: a large interactive specimen to the right, a sparse
-satellite arrangement around it, a description to the left, and a linear
-selection strip below. The sphere is the focal point, not a dashboard card.
+Use a generated blue-black, silver/cyan and warm amber nebula as the distant
+environment. Perspective-projected stars, orbital paths and world positions
+provide spatial motion above it. The selected world remains a real 3D flame;
+other worlds use the existing captured posters. The environment contains no
+fake UI or flame objects. No solid model or Meshy credit is needed in this slice.
 
-Use `#080a0e` ground, `#f2f3f5` ink, `#b4bcc7` secondary text, and thin subdued
-orbital lines. Preset colors belong to the objects and selected markers. Keep
-buttons legible on solid dark chrome, at least 44px tall, with visible focus.
-On phones the specimen precedes the description and navigation wraps; the page
-scrolls rather than clipping controls. Honor safe areas and reduced motion.
+The signature interaction is an interruptible 1.6-second camera flight on world
+selection. An opt-in journey visits the five worlds with time to resolve each.
+Pause freezes scene motion, the journey and flame computation. Reduced motion
+makes travel immediate. Hidden documents suspend work. Keyboard-accessible
+thumbnail navigation and camera buttons complement spatial picking and dragging.
 
-One selected specimen runs the existing WebGPU 3D flame renderer. Satellite
-posters are captures of those presets, never generated concepts represented as
-runtime output. The concept images remain separate planning artifacts. Canvas
-dragging orbits the specimen; ordinary controls provide camera alternatives.
-Pause stops rendering and the page must remain usable when WebGPU fails.
+The first viewport is entirely the scene, brand, corner wayfinding and thumbnail
+passage. Inspection details are disclosed on demand. Fine off-white/gold rules
+and the existing Inter face keep the instrument restrained. Text sits over dark
+protected areas. On phones keep a fullscreen scene with compact controls and a
+bounded, scrollable inspector. Use 44px targets, safe areas and visible focus.
 
-This is a fictional atlas and desktop prototype, with finite 3D flame detail.
-It does not claim astronomical data, book canon, stereo, or headset support.
+Build order: save backdrop/provenance; implement and test camera projection;
+replace HUD and journey state; integrate the live renderer; verify GPU output,
+interruption/pause, reduced motion, fallback, fullscreen and mobile reachability.
+Save runtime evidence separately from concept art and update the review PR.
+
+This is a monoscopic desktop study with captured neighboring-world billboards.
+It does not claim stereo, tracking, solid-model planets, unlimited zoom, book
+canon or Quest performance.
