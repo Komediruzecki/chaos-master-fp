@@ -95,7 +95,9 @@ Files: rewrite `components/TouchSurface/MobileBottomSurface.tsx`; `TouchHUD.tsx`
 the Home/Snapshot/More trio; `TouchControlSurface.tsx` becomes the sheet body; `TouchSurface.module.css` moves
 every 32 and 34 px target to 44 (48 on Android); `components/SoftwareVersion/SoftwareVersion.tsx` stops
 rendering its own floating button on touch, where it collides with the top bar; `MainWorkspace.tsx` mounts the
-new surface and hooks the camera offset into `effectivePosition`.
+new surface and hands the height the sheet covers to the canvas, which a CSS transform moves up by half of it
+(`--rail-inset` on `.canvas` in `App.module.css`). The pan the table above and the list below describe is that
+move of the canvas, not of the camera: `effectivePosition` and the flame are untouched.
 
 - [x] A detent controller: drag tracks the finger 1:1, no rubber band past large, release springs to the
       nearest detent or to the next one in the direction of travel above 0.5 pt/ms.

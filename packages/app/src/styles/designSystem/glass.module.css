@@ -16,11 +16,12 @@
  *           fallback turn a panel into, and usable on its own.
  *
  * Each carries --la-glass-edge and --la-glass-shadow and writes both
- * backdrop-filter and -webkit-backdrop-filter: iOS Safari before 18 reads
- * only the prefixed one. The -webkit- spelling comes first in every rule,
- * because the production minifier keeps only the later of the two and the
- * standard one is what Chrome, Firefox and Android read
- * (glassBlurs.test.ts holds every stylesheet to that order).
+ * backdrop-filter and -webkit-backdrop-filter, the -webkit- spelling first
+ * (glassBlurs.test.ts holds every stylesheet to that order). The production
+ * minifier keeps only the later of the two, so the build ships the standard
+ * spelling alone, the one Chrome, Firefox, Android and Safari 18 read. iOS
+ * Safari before 18 reads only the prefixed one and so gets its blur in dev
+ * only; it has no WebGPU either, which the canvas behind the glass needs.
  *
  * TEXT ON A PANEL. Nothing below ink-2 reads on an 80% fill over white-hot
  * art (docs/plans/glass-panels.md, decision c), so a panel sets --la-ink-3
@@ -89,15 +90,22 @@
  * only writer of the first two:
  *
  *   data-glass="busy"       the editor canvas presents every frame: playback,
- *                           an export, audio modulation, a drag. Decided in
+ *                           an export, audio modulation, a drag, the tablet
+ *                           deck's divider moving. Decided in
  *                           hooks/useWorkspaceGlassBusy.ts, and only once the
  *                           state has held for 150 ms, so a tap or the canvas
  *                           converging after an edit never flickers it.
  *   data-glass-panels="on"  the experimental Glass panels setting, off by
  *                           default, offered in Settings on the touch
  *                           layouts. It lets the Android rule below keep a
- *                           panel's glass, and it turns the rail sheet into
- *                           a panel past peek (TouchSurface/EditorRail.tsx).
+ *                           panel's glass, it turns the rail sheet into a
+ *                           panel past peek (TouchSurface/EditorRail.tsx),
+ *                           and it floats the tablet deck over the canvas
+ *                           as a panel (TouchSurface/TabletInspectorDeck.tsx;
+ *                           App.module.css runs the canvas under it). The
+ *                           inspector on either keys its glass text, its
+ *                           gallery's scrollbar and its scrub fields on it
+ *                           (TouchSurface.module.css).
  *                           A component reads glassPanels() from
  *                           lib/glass.ts; a CSS module reaches it as
  *                           :global(:root[data-glass-panels='on']).
