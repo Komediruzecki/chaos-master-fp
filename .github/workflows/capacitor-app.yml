@@ -816,6 +816,18 @@ jobs:
           # Lets codesign use the key without an interactive prompt.
           security set-key-partition-list -S apple-tool:,apple: -k "$keychain_password" "$keychain" > /dev/null
           rm -f "$RUNNER_TEMP/cert.p12"
+          # Apple names the certificate after the account holder, and xcodebuild
+          # prints that name on every CodeSign line. The team ID is a secret and
+          # already masked; mask the holder's name before a later step prints it.
+          holder="$(security find-identity -v -p codesigning "$keychain" | awk -F'"' '
+            !found && $2 ~ /^(Apple|iPhone) (Distribution|Development): / {
+              sub(/^[^:]*: /, "", $2); sub(/ \([A-Z0-9]+\)$/, "", $2); print $2; found = 1
+            }' || true)"
+          if [[ -n "$holder" ]]; then
+            echo "::add-mask::$holder"
+          else
+            echo "::warning::No signing identity to mask; its holder's name may appear in this log."
+          fi
 
       # Only an upload talks to App Store Connect, so only an upload gets the key.
       - name: Write App Store Connect API key
@@ -1102,6 +1114,19 @@ jobs:
           # Lets codesign use the key without an interactive prompt.
           security set-key-partition-list -S apple-tool:,apple: -k "$keychain_password" "$keychain" > /dev/null
           rm -f "$RUNNER_TEMP/cert.p12"
+
+          # Apple names the certificate after the account holder, and xcodebuild
+          # prints that name on every CodeSign line. The team ID is a secret and
+          # already masked; mask the holder's name before a later step prints it.
+          holder="$(security find-identity -v -p codesigning "$keychain" | awk -F'"' '
+            !found && $2 ~ /^(Apple|iPhone) (Distribution|Development): / {
+              sub(/^[^:]*: /, "", $2); sub(/ \([A-Z0-9]+\)$/, "", $2); print $2; found = 1
+            }' || true)"
+          if [[ -n "$holder" ]]; then
+            echo "::add-mask::$holder"
+          else
+            echo "::warning::No signing identity to mask; its holder's name may appear in this log."
+          fi
 
           profiles="$HOME/Library/MobileDevice/Provisioning Profiles"
           mkdir -p "$profiles"
