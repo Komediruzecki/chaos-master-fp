@@ -75,11 +75,11 @@ export function createInteractiveRenderDriver(
   // A view transition on Apple WebKit snapshots the page on every frame, and
   // each snapshot presents this canvas's swap chain without choosing what it
   // displays (GPUCanvasContextCocoa::surfaceBufferToImageBuffer, Safari 26 and
-  // iOS 26). A flame picked from a dialog reaches its quality limit inside the
-  // 250 ms fade on a phone; the loop then goes idle, and the canvas was left
-  // showing a buffer drawn before the pick, the previous flame, until a camera
-  // drag drew again. So after every transition, present the current image
-  // once, on the next tick. Harmless elsewhere: the same image again.
+  // iOS 26), which left an idle canvas on an old buffer: the previous flame.
+  // lib/viewTransition runs none there. Should one run anyway, on an engine
+  // that presents that way without being recognised as Apple WebKit, present
+  // the current image once on the tick after it ends. Elsewhere that shows
+  // the same image again.
   createEffect(
     on(
       transitionsSettled,

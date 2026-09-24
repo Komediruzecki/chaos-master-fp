@@ -438,7 +438,7 @@ _(`ArenaOverlay.tsx:610-644` (`finishSimulation`), log panel at
 load, and the workspace facade shall write a deep clone of that fighter's flame into the
 document under the label `Arena: <name>` and surface a confirmation toast.
 
-_(`ArenaOverlay.tsx:674-684` (`loadFighter`), `MainWorkspace.tsx:3267-3277` (`selectFighter`))_
+_(`ArenaOverlay.tsx:674-684` (`loadFighter`), `MainWorkspace.tsx:3257-3267` (`selectFighter`))_
 
 ### REQ-AA-036 — Champion-card export composes a 540×780 PNG from the winner's preview
 
