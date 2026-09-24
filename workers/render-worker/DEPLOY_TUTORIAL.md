@@ -166,25 +166,24 @@ image ships it; Deno is the fallback. See
    Deno-only image (the fallback; no 4K/8K):
 
    ```bash
-   docker build -f workers/render-worker/Dockerfile -t ghcr.io/komediruzecki/chaos-render-worker:0.1.0 .
+   docker build -f workers/render-worker/Dockerfile -t ghcr.io/<owner>/chaos-render-worker:0.1.0 .
    ```
 
    With the Chrome engine, the default renderer (adds Node + Chromium,
    ~500 MB, and enables 4K/8K):
 
    ```bash
-   docker build -f workers/render-worker/Dockerfile --build-arg CHROME_ENGINE=true -t ghcr.io/komediruzecki/chaos-render-worker:0.2.0-chrome .
+   docker build -f workers/render-worker/Dockerfile --build-arg CHROME_ENGINE=true -t ghcr.io/<owner>/chaos-render-worker:0.2.0-chrome .
    ```
 
    ```bash
-   docker push ghcr.io/komediruzecki/chaos-render-worker:0.1.0
+   docker push ghcr.io/<owner>/chaos-render-worker:0.1.0
    ```
 
    A Chrome-enabled image embeds a specific app build, so tag it with the app
    version — the renderer and the bundle ship together.
 
-2. RunPod → Serverless → New Endpoint, from that image. Recommended settings
-   (mirrors the proven mercurypitch endpoint):
+2. RunPod → Serverless → New Endpoint, from that image. Recommended settings:
    - Queue endpoint, **Min/Active workers 0** (scale-to-zero), Max ~3
    - **FlashBoot on** (cold start ~20s → ~2s once cached)
    - Idle timeout 30-60 s; execution timeout 300 s
@@ -234,17 +233,18 @@ GPU description). If those fields are missing, an older image is still serving.
 
 Serverless invoke (`api.runpod.ai/v2/...`) and management
 (`rest.runpod.io/v1/...`) are separate permissions. A management-scoped key
-(e.g. the one used for the RunPod MCP) returns **403** on `/run`, `/status`
+returns **403** on `/run`, `/status`
 **and `/health`**. `tools/cost-matrix.ts` preflights `/health` and names this
 failure explicitly rather than reporting a wall of identical cell errors.
 
 #### Running the cost matrix
 
-Credentials come from Proton Pass, so no key is ever written to disk or to a
-shell history. From `workers/render-worker`:
+The script reads `RUNPOD_API_KEY` and `RUNPOD_ENDPOINT_ID` from the
+environment. Inject them from your secret manager's run wrapper, so no key is
+written to disk or to a shell history. From `workers/render-worker`:
 
 ```bash
-pass-cli run --env-file ~/.dotfiles/personal/irchiinnuss/secrets/chaos-master-runpod.env.tmpl -- deno run --allow-net --allow-env --allow-read --sloppy-imports tools/cost-matrix.ts
+<secret-manager> run -- deno run --allow-net --allow-env --allow-read --sloppy-imports tools/cost-matrix.ts
 ```
 
 Set `MATRIX_ENGINES=deno,chrome` to sweep both renderers. Against a
@@ -273,11 +273,11 @@ deno run --unstable-webgpu --allow-ffi --allow-net --allow-env --allow-read --sl
 
 ### Environment (pod server)
 
-| Variable              | Default | Description                                              |
-| --------------------- | ------- | -------------------------------------------------------- |
-| `PORT`                | `8787`  | Server listen port                                       |
-| `RENDER_WORKER_TOKEN` | unset   | When set, all endpoints require it as a Bearer token     |
-| `RENDER_DEBUG`        | unset   | `1` logs accumulation/postprocess buffer sums per render |
+| Variable              | Default | Description                                                                   |
+| --------------------- | ------- | ----------------------------------------------------------------------------- |
+| `PORT`                | `8787`  | Server listen port                                                            |
+| `RENDER_WORKER_TOKEN` | unset   | Required on any reachable pod: every endpoint then needs it as a Bearer token |
+| `RENDER_DEBUG`        | unset   | `1` logs accumulation/postprocess buffer sums per render                      |
 
 ## Testing
 
@@ -354,5 +354,5 @@ server.ts
 - **Buffer writer**: typegpu's compiled IO writer may error on dynamically-structured flame uniforms; falls back to slower JS writer
 - **No animation**: Single frame only; batch submission not yet implemented
 - **No persistence**: In-memory job store; jobs lost on restart
-- **No auth/rate-limiting**: MVP — all endpoints are open
+- **Auth is opt-in**: the pod server accepts every request unless `RENDER_WORKER_TOKEN` is set, so always set it on a hosted pod. There is no rate limiting
 - **Variation stubs**: The `@/flame/variations` stub only exports types; actual variation function implementations come through `createFlameWgsl` from the real app package

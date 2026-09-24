@@ -18,6 +18,7 @@ echo "3. In RunPod, launch a new Pod using:"
 echo "   - Container Image: <username>/chaos-render-worker:latest"
 echo "   - Exposed Ports: 8787"
 echo "   - Environment Variable: PORT=8787"
+echo "   - Environment Variable: RENDER_WORKER_TOKEN=<long random string> (without it the server is open)"
 echo "------------------------------------------------------------"
 echo ""
 

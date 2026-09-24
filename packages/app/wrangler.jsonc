@@ -202,7 +202,7 @@
       "vars": {
         "ENVIRONMENT": "staging",
         "TURNSTILE_ALLOWED_HOSTNAMES": "staging.lumenapeiron.com",
-        // The staging endpoint (4l7hb69v3wchcn) runs a CHROME_ENGINE=true
+        // The staging endpoint runs a CHROME_ENGINE=true
         // image, so chrome is offered here and is the default engine. Set
         // "false" against a Deno-only endpoint: renders then default to Deno,
         // and chrome submits are rejected rather than silently served by Deno.
