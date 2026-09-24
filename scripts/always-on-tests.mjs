@@ -123,6 +123,11 @@ export const ALWAYS_ON = [
     genre: 'filesystem',
   },
   {
+    file: 'src/components/ExportJobs/ExportJobTracker.module.test.ts',
+    why: 'reads ExportJobTracker.module.css and the blues in colors.css',
+    genre: 'filesystem',
+  },
+  {
     file: 'src/components/TouchSurface/TouchSurface.module.test.ts',
     why: 'reads TouchSurface.module.css and the Duel/ScrubField.module.css whose hooks it sets',
     genre: 'filesystem',
