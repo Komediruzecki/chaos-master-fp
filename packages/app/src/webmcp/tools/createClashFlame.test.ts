@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
+import { initExample3D } from '@/flame/examples/initExample3D'
 import { createClashFlame } from './createClashFlame'
+import { simulateClash } from './simulateClash'
+import type { SimulateClashResult } from './simulateClash'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 
 describe('createClashFlame tool', () => {
@@ -134,6 +137,51 @@ describe('createClashFlame tool', () => {
     for (const hueA of a) {
       for (const hueB of b) expect(gap(hueA, hueB)).toBeGreaterThan(120)
     }
+  })
+
+  // The hue is a fraction of a turn, so the per-transform spread wraps round
+  // the circle: clamped at 0, two of three transforms shared one hue.
+  it('defaults the arena clash to the two team colours', () => {
+    const fighter = initExample3D as FlameDescriptor
+    const sim = simulateClash.execute(
+      { flameA: fighter, flameB: fighter, dimensions: 3, rounds: 1 },
+      {},
+    ) as SimulateClashResult
+    const flame = sim.rounds[0]!.clashFlame
+    const hue = (prefix: string) => {
+      const t = Object.entries(flame.transforms).find(([id]) =>
+        id.startsWith(prefix),
+      )![1]
+      return ((Math.atan2(t.color.y, t.color.x) * 180) / Math.PI + 360) % 360
+    }
+    expect(hue('p1_')).toBeCloseTo(47.51 - 14.4, 0)
+    expect(hue('p2_')).toBeCloseTo(236.18 - 14.4, 0)
+  })
+
+  it('spreads a team hue round the circle, not against 0 or 1', () => {
+    const fighter = {
+      version: '1',
+      metadata: { name: 'A' },
+      renderSettings: { exposure: 0.5 },
+      transforms: Object.fromEntries(
+        [0, 1, 2].map((i) => [
+          `t${i}`,
+          { probability: 1, postAffine: { a: 1, e: 1, k: 1 } },
+        ]),
+      ),
+    } as unknown as FlameDescriptor
+    const { clashFlame } = createClashFlame.execute(
+      { flameA: fighter, flameB: fighter, dimensions: 3, tintA: 0 },
+      {},
+    ) as { clashFlame: FlameDescriptor }
+
+    const turns = Object.entries(clashFlame.transforms)
+      .filter(([id]) => id.startsWith('p1_'))
+      .map(([, t]) => {
+        const turn = Math.atan2(t.color.y, t.color.x) / (2 * Math.PI)
+        return Math.round(((turn + 1) % 1) * 100) / 100
+      })
+    expect(turns).toEqual([0.96, 0, 0.04])
   })
 
   it('calculates power-weighted probability split', async () => {
