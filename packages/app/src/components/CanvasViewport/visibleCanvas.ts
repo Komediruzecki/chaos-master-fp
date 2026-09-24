@@ -1,6 +1,6 @@
 /**
  * The part of the workspace canvas that is on show, for everything that takes
- * an image off it.
+ * an image off it or points at it.
  *
  * With the Glass panels setting on, the canvas runs on under the floating
  * tablet deck and the camera frames the flame in the part the deck leaves
@@ -13,6 +13,9 @@
  *   Discord post) is handed the cut by `captureVisiblePart`;
  * - the randomizer history's thumbnail is drawn by `drawVisibleCanvas`;
  * - the export dialog's "match the viewport" aspect is `visibleCanvasAspect`.
+ *
+ * And the tour and the replay spotlight, which light the canvas up, take its
+ * box from `visibleClientRect`, so neither lights the strip under the deck.
  *
  * The canvas says how much of it is covered in `data-covered-right`, which
  * CanvasViewport keeps equal to the shift its camera draws with, and removes
@@ -114,4 +117,23 @@ export function captureVisiblePart(capture: ExportImageType): ExportImageType {
     )
     capture(copy, info)
   }
+}
+
+/**
+ * The on-show part of `element`'s box, in client px. That is the whole box,
+ * unless `element` is the workspace canvas, or holds it, while chrome covers
+ * part of the canvas: then the box stops where the covered part begins.
+ */
+export function visibleClientRect(element: Element): DOMRect {
+  const box = element.getBoundingClientRect()
+  const canvas =
+    element instanceof HTMLCanvasElement
+      ? element
+      : element.querySelector<HTMLCanvasElement>('canvas[data-covered-right]')
+  const covered = canvas ? coveredRightOf(canvas) : 0
+  if (!canvas || covered <= 0) return box
+  const canvasBox = canvas === element ? box : canvas.getBoundingClientRect()
+  const visibleRight = canvasBox.left + canvasBox.width * (1 - covered)
+  const right = Math.max(box.left, Math.min(box.right, visibleRight))
+  return new DOMRect(box.left, box.top, right - box.left, box.height)
 }

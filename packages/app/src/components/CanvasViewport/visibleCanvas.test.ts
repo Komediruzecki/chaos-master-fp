@@ -7,7 +7,7 @@
  * would have given.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { captureVisiblePart, coveredRightOf, drawVisibleCanvas, visibleCanvasAspect, visibleCanvasRect, } from './visibleCanvas'
+import { captureVisiblePart, coveredRightOf, drawVisibleCanvas, visibleCanvasAspect, visibleCanvasRect, visibleClientRect, } from './visibleCanvas'
 import type { ExportImageInfo } from '@/flame/exportImageType'
 
 /** A 1180 x 820 landscape tablet: a 1100 px canvas under a 380 px deck. */
@@ -183,5 +183,69 @@ describe('captureVisiblePart', () => {
     captureVisiblePart(capture)(workspaceCanvas(1100, 820, COVERED), info)
 
     expect(capture).not.toHaveBeenCalled()
+  })
+})
+
+/** Lays `element` out at a box the test DOM cannot compute. */
+function place(element: Element, left: number, width: number, height = 820) {
+  vi.spyOn(element, 'getBoundingClientRect').mockReturnValue({
+    left,
+    top: 0,
+    right: left + width,
+    bottom: height,
+    width,
+    height,
+    x: left,
+    y: 0,
+    toJSON: () => ({}),
+  })
+}
+
+describe('visibleClientRect', () => {
+  // The tour and the replay spotlight light up the canvas by this box.
+  it('cuts the canvas at the part the deck covers', () => {
+    const canvas = workspaceCanvas(1100, 820, COVERED)
+    place(canvas, 80, 1100)
+
+    expect(visibleClientRect(canvas)).toMatchObject({
+      left: 80,
+      right: 800,
+      width: 720,
+      top: 0,
+      height: 820,
+    })
+  })
+
+  it('cuts a box that holds the canvas at the same place', () => {
+    const container = document.createElement('div')
+    const canvas = workspaceCanvas(1100, 820, COVERED)
+    container.append(canvas)
+    place(container, 80, 1100)
+    place(canvas, 80, 1100)
+
+    expect(visibleClientRect(container)).toMatchObject({
+      left: 80,
+      right: 800,
+      width: 720,
+    })
+  })
+
+  it('is the whole box when nothing covers the canvas', () => {
+    const canvas = workspaceCanvas(1100, 820)
+    place(canvas, 80, 1100)
+
+    expect(visibleClientRect(canvas)).toMatchObject({ left: 80, right: 1180 })
+  })
+
+  it('is the whole box of anything that is not the canvas', () => {
+    const button = document.createElement('button')
+    place(button, 900, 44, 44)
+
+    expect(visibleClientRect(button)).toMatchObject({
+      left: 900,
+      right: 944,
+      width: 44,
+      height: 44,
+    })
   })
 })

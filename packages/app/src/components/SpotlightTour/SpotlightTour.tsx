@@ -1,8 +1,10 @@
-import { createEffect, createSignal, For, onCleanup, Show } from 'solid-js'
+import { createEffect, createSignal, For, on, onCleanup, Show } from 'solid-js'
 import { Portal } from 'solid-js/web'
 import { pilotOwnsKeyboard } from '@/arcade/pilot'
+import { visibleClientRect } from '@/components/CanvasViewport/visibleCanvas'
 import { useSpotlightTour } from '@/contexts/SpotlightTourContext'
 import { useTheme } from '@/contexts/ThemeContext'
+import { trailingCover } from '@/lib/canvasFraming'
 import { isTouchLayout } from '@/stores/workspaceLayoutStore'
 import { clamp } from '@/utils/easing'
 import ui from './SpotlightTour.module.css'
@@ -106,7 +108,9 @@ export function SpotlightTour(props: SpotlightTourProps) {
     // been interacted with yet, e.g. timeline before first resize).
     void (target as HTMLElement).offsetHeight
 
-    const targetRect = target.getBoundingClientRect()
+    // Only the part of the canvas on show: with the Glass panels setting on,
+    // it runs on under the floating tablet deck.
+    const targetRect = visibleClientRect(target)
     const vw = window.innerWidth
     const vh = window.innerHeight
 
@@ -280,6 +284,22 @@ export function SpotlightTour(props: SpotlightTourProps) {
       window.removeEventListener('keydown', onKeyDown)
     })
   })
+
+  // The floating deck opening, closing or being resized changes what is on
+  // show of the canvas, which no resize or scroll reports. The canvas takes
+  // the new share in an effect of its own, so the tour measures after it.
+  createEffect(
+    on(
+      trailingCover,
+      () => {
+        if (tour.isActive())
+          queueMicrotask(() => {
+            measureAndPosition()
+          })
+      },
+      { defer: true },
+    ),
+  )
 
   // Call beforeShow/afterHide hooks on step transitions and reposition spotlight
   let prevStep: { step: ReturnType<typeof step>; index: number } | null = null
