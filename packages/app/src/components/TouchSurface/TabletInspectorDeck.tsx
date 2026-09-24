@@ -2,7 +2,7 @@ import { createEffect, createSignal, onCleanup, Show } from 'solid-js'
 import { executeCommand } from '@/commands/registry'
 import { CameraIcon, GridIcon, Redo, SidebarPanel, Undo } from '@/icons'
 import { workspaceIsVisible } from '@/lib/activeTab'
-import { setTrailingCover } from '@/lib/canvasFraming'
+import { setDeckResizing, setTrailingCover } from '@/lib/canvasFraming'
 import { glassPanels } from '@/lib/glass'
 import { haptic } from '@/lib/haptics'
 import glass from '@/styles/designSystem/glass.module.css'
@@ -85,6 +85,9 @@ export function TabletInspectorDeck(props: TabletInspectorDeckProps) {
    * Dragging the divider: the deck's leading edge follows the finger 1:1, so
    * moving left (a smaller clientX) makes the deck wider. Each gesture keeps
    * its own start point, and a second touch ends it (createDragHandler).
+   * From its first move to its end it says the canvas is resizing, which the
+   * glass busy switch reads: a press that does not move is half of the
+   * double tap that collapses the deck.
    */
   const startDividerDrag = createDragHandler(
     (initEvent) => {
@@ -92,10 +95,12 @@ export function TabletInspectorDeck(props: TabletInspectorDeckProps) {
       const startWidth = width()
       return {
         onPointerMove(event) {
+          setDeckResizing(true)
           const next = startWidth + (startX - event.clientX)
           setWidth(Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, next)))
         },
         onDone() {
+          setDeckResizing(false)
           if (width() !== storedWidth()) setStoredWidth(width())
         },
       }

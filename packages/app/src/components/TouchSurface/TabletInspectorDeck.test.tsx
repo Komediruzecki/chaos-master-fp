@@ -8,7 +8,7 @@
 import '@/commands/builtins'
 import { cleanup, fireEvent, render, screen } from '@solidjs/testing-library'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { trailingCover } from '@/lib/canvasFraming'
+import { deckResizing, trailingCover } from '@/lib/canvasFraming'
 import { setGlassPanels } from '@/lib/glass'
 import { safeRemoveItem } from '@/utils/storage'
 import { createMockCommandContext } from '@/webmcp/testUtils'
@@ -99,6 +99,42 @@ describe('TabletInspectorDeck, with the Glass panels setting', () => {
     expect(trailingCover()).toBe(420)
     fireEvent.pointerUp(divider, { clientX: 860, pointerId: 1 })
     expect(trailingCover()).toBe(420)
+  })
+
+  it.each([true, false])(
+    'says it is resizing the canvas only while the divider moves (glass %s)',
+    (on) => {
+      // Floating, the drag reframes the canvas under the deck; as a page, it
+      // resizes the canvas beside it. Either way the canvas presents every
+      // frame, which the glass busy switch reads (useWorkspaceGlassBusy.ts).
+      // A press that does not move, half of the double tap that collapses
+      // the deck, resizes nothing.
+      setGlassPanels(on)
+      mountDeck()
+
+      const divider = screen.getByTestId('deck-divider')
+      fireEvent.pointerDown(divider, { clientX: 900, pointerId: 1 })
+      expect(deckResizing()).toBe(false)
+      fireEvent.pointerMove(divider, { clientX: 880, pointerId: 1 })
+      expect(deckResizing()).toBe(true)
+      fireEvent.pointerUp(divider, { clientX: 880, pointerId: 1 })
+      expect(deckResizing()).toBe(false)
+    },
+  )
+
+  it('stops resizing when it unmounts mid-drag', () => {
+    // The drag ends with the deck (createDragHandler reports it when the deck
+    // unmounts), so nothing is left saying the canvas resizes.
+    setGlassPanels(true)
+    const { view } = mountDeck()
+
+    const divider = screen.getByTestId('deck-divider')
+    fireEvent.pointerDown(divider, { clientX: 900, pointerId: 1 })
+    fireEvent.pointerMove(divider, { clientX: 880, pointerId: 1 })
+    expect(deckResizing()).toBe(true)
+
+    view.unmount()
+    expect(deckResizing()).toBe(false)
   })
 
   it('collapsed, covers nothing, and the edge tab brings it back', () => {
