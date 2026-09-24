@@ -448,6 +448,23 @@
   gap: 8px;
 }
 
+/* The scrub fields are the Duel's, written in whites for its dark chips.
+   On glass they take this surface's tokens through the hooks they read
+   (Duel/ScrubField.module.css): a control's fill and edge, and ink for
+   their text. Their label, white at 58% over the floating deck's glass,
+   measured 4.43:1 over bright art, and the unit sat at half the value's
+   ink. */
+:global(:root[data-glass-panels='on']) .shapeFieldsGrid {
+  --scrub-fill: var(--la-control);
+  --scrub-fill-hover: var(--la-control-strong);
+  --scrub-edge: var(--la-hairline);
+  --scrub-label: var(--la-ink);
+  --scrub-value: var(--la-ink);
+  --scrub-unit-opacity: 1;
+  --scrub-chevron: var(--la-ink-2);
+  --scrub-chevron-hover: var(--la-ink);
+}
+
 .resetShapeBtn {
   display: inline-flex;
   align-items: center;
