@@ -99,6 +99,17 @@ export const VARIATION_TYPE_MIGRATIONS: Record<string, string> = {
   preBlur: 'preBlurVar',
   preSpherical: 'preSphericalVar',
   preDisc: 'preDiscVar',
+
+  // flam3 names that only the 3D renderer's table knew, each sent to the 3D
+  // analog of the registered name here. Rewritten, they render in 3D exactly
+  // as before and draw in 2D, where they were skipped
+  // (the app's flame/transformFunction3D.variationMap.test.ts).
+  blur: 'blurVar',
+  square: 'squareVar',
+  scry: 'scryVar',
+  cross: 'crossVar',
+  curl: 'curlVar',
+  pdj: 'pdjVar',
 }
 
 function migrateAffine2Dto3D(raw: unknown) {

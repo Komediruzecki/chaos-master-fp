@@ -75,14 +75,22 @@ function variationInvocation3D(variationType: string, vid: VariationId) {
 }
 
 /**
- * The registered 2D variations the 3D pipeline replaces with a 3D analog;
- * every other 2D type renders as itself, lifted with the point's z. This is
- * how a 2D flame has always rendered in 3D. Each key is a registered 2D type
- * (transformFunction3D.variationMap.test.ts holds the table to that): a loaded
- * flame's old short names (`bubble`, `gaussian`, ...) are rewritten to these
- * by validation (migrateFlameTypes.ts) before it renders. The Flame Clash
- * converts its 2D fighters by a rule of its own (flame/clash/convert2Dto3D.ts)
- * and leaves this table alone.
+ * The 2D types the 3D pipeline replaces with a 3D analog; every other 2D type
+ * renders as itself, lifted with the point's z. This is how a 2D flame has
+ * always rendered in 3D. transformFunction3D.variationMap.test.ts holds every
+ * row, and every name main's version of this table knew, to how main
+ * rendered it.
+ *
+ * Two kinds of key:
+ * - Registered 2D types. Validation rewrites a loaded flame's old short
+ *   names for them (`bubble`, `gaussian`, `blur`, ...) before it renders
+ *   (migrateFlameTypes.ts).
+ * - Unregistered names that validation keeps as written, so set_flame, a JSON
+ *   import or a share link can bring one. No registered type renders in 3D
+ *   as these did, so a rewrite would change how such a flame looks.
+ *
+ * The Flame Clash converts its 2D fighters by a rule of its own
+ * (flame/clash/convert2Dto3D.ts) and leaves this table alone.
  */
 export const VARIATION_2D_TO_3D_MAP: Record<string, TransformVariationType3D> =
   {
@@ -97,6 +105,17 @@ export const VARIATION_2D_TO_3D_MAP: Record<string, TransformVariationType3D> =
     crossVar: 'cross3D',
     curlVar: 'curl3D',
     pdjVar: 'pdj3D',
+    // Unregistered: kept as main rendered them.
+    linearT: 'linear3D',
+    swirl3: 'swirl3D',
+    polar2: 'polar3D',
+    nPolar: 'polar3D',
+    ex: 'ex3D',
+    cylindrical: 'cylindrical3D',
+    sphere: 'sphere3D',
+    sphereVar: 'sphere3D',
+    hemisphere: 'hemisphere3D',
+    starfield: 'starfield3D',
   }
 
 export function resolveVariationType3D(type: string): string | undefined {
