@@ -24,6 +24,7 @@ import { exportChampionCardPng, SCHOOL_COLORS, } from './ArenaOverlay/championCa
 import { playClashOnce } from './ArenaOverlay/clashPlayback'
 import loadModalUi from './LoadFlameModal/LoadFlameModal.module.css'
 import type { Component } from 'solid-js'
+import type { ClashPlayback } from './ArenaOverlay/clashPlayback'
 import type { ArenaFighterStats, CommandContext } from '@/commands/types'
 import type { AnimationLoad } from '@/components/LoadFlameModal/LoadFlameModal'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
@@ -258,10 +259,10 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
   let initialAnimationEnabled: boolean | null = null
   let wasClashStaged = false
   /** Gives the viewer's loop setting back; set while a clash owns playback. */
-  let releasePlayback: (() => void) | null = null
+  let clashPlayback: ClashPlayback | null = null
   const releaseClashPlayback = () => {
-    releasePlayback?.()
-    releasePlayback = null
+    clashPlayback?.release()
+    clashPlayback = null
   }
   const [cachedSimResult, setCachedSimResult] =
     createSignal<SimulateClashResult | null>(null)
@@ -569,7 +570,7 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
     // replayed round 1 under ROUND 3 / 3 after the verdict.
     if (timeline) {
       releaseClashPlayback()
-      releasePlayback = playClashOnce(timeline)
+      clashPlayback = playClashOnce(timeline)
     }
 
     // Step through rounds with impact VFX sync
@@ -626,9 +627,9 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
 
   const finishSimulation = (simRes: SimulateClashResult) => {
     clearAllTimers()
-    if (timeline) {
-      timeline.pause()
-    }
+    // Holds the last frame, where the verdict is; a skip gets there too.
+    if (clashPlayback) clashPlayback.finish()
+    else timeline?.pause()
 
     const p1 = props.arena.player1Stats()
     const p2 = props.arena.player2Stats()

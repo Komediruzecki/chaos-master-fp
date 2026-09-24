@@ -1,5 +1,5 @@
 // A staged clash plays its rounds once and holds the last frame; no phantom fourth round.
-import { cleanup, render } from '@solidjs/testing-library'
+import { cleanup, render, screen } from '@solidjs/testing-library'
 import { createSignal } from 'solid-js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { TimelineProvider, useTimeline } from '@/contexts/TimelineContext'
@@ -114,4 +114,45 @@ describe('ArenaOverlay clash playback', () => {
 
     expect(timeline.config().loop).toBe(true)
   })
+
+  it("parks on the last frame when the viewer's timeline was already playing", () => {
+    const { arena, timeline } = mountArena()
+    timeline.play()
+
+    void arena.startClash?.({ stance: 'balanced' })
+    runToEnd(timeline)
+
+    expect(timeline.isPlaying()).toBe(false)
+    expect(timeline.currentFrame()).toBe(timeline.config().endFrame)
+  })
+
+  it('parks when a second clash starts while the first still plays', () => {
+    const { arena, timeline } = mountArena()
+    void arena.startClash?.({ stance: 'balanced' })
+    timeline.advanceFrame()
+    void arena.startClash?.({ stance: 'balanced' })
+    runToEnd(timeline)
+
+    expect(timeline.isPlaying()).toBe(false)
+    expect(timeline.currentFrame()).toBe(timeline.config().endFrame)
+  })
+
+  it('Skip to Results holds the last frame, not the one it skipped from', () => {
+    const { arena, timeline } = mountArena()
+    void arena.startClash?.({ stance: 'balanced' })
+    for (let i = 0; i < 10; i++) timeline.advanceFrame()
+
+    screen.getByRole('button', { name: /Skip to Results/i }).click()
+
+    expect(timeline.isPlaying()).toBe(false)
+    expect(timeline.currentFrame()).toBe(timeline.config().endFrame)
+  })
 })
+
+/** Step as the render loop does, while playing, and well past the end. */
+function runToEnd(timeline: Timeline) {
+  const { endFrame } = timeline.config()
+  for (let i = 0; i < endFrame + 30 && timeline.isPlaying(); i++) {
+    timeline.advanceFrame()
+  }
+}
