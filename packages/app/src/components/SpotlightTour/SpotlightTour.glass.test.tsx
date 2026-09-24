@@ -3,11 +3,12 @@
  *
  * The four scrims around the highlighted element animate their size on
  * every step, so a blur of their own re-ran on every frame of the move, under
- * a card that blurred as well. They are a dim now, and the card is the one
- * glass layer: the primitive's panel in the dark theme and on the touch
- * layouts. The desktop's light theme keeps its light card, as the glass is
- * dark-only (decision b). The test DOM applies no CSS, so this holds the
- * inline styles and the class the stylesheet keys on.
+ * a card that blurred as well. They are a dim now, and the card is glass:
+ * the primitive's panel in the dark theme and on the touch layouts, on a
+ * layer behind its text and on its arrow, each of which frosts the art. The
+ * desktop's light theme keeps its light card, as the glass is dark-only
+ * (decision b). The test DOM applies no CSS, so this holds the inline styles
+ * and the classes the stylesheet keys on.
  */
 import { cleanup, render, screen } from '@solidjs/testing-library'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -61,6 +62,10 @@ function scrims(): HTMLElement[] {
 
 const card = () => screen.getByRole('dialog', { name: 'One' })
 
+/** A direct child of the card carrying the given class. */
+const cardChild = (name: string) =>
+  [...card().children].find((el) => el.classList.contains(name))
+
 afterEach(() => {
   cleanup()
   setTouchLayoutPreference('auto')
@@ -83,11 +88,23 @@ describe('the tour on glass', () => {
     expect(card().classList.contains('glassCard')).toBe(true)
   })
 
+  it('puts the glass on a layer behind the text and on the arrow', () => {
+    mountTour('dark')
+
+    expect(cardChild('glassLayer')?.getAttribute('aria-hidden')).toBe('true')
+    expect(cardChild('arrow')?.classList.contains('glassArrow')).toBe(true)
+    // A blur on the card itself would make it a backdrop root, and the
+    // arrow, its child, could then frost only the card's fill, not the art.
+    expect(card().classList.contains('panel')).toBe(false)
+  })
+
   it('keeps the light card on the desktop in the light theme', () => {
     setTouchLayoutPreference('desktop')
     mountTour('light')
 
     expect(card().classList.contains('glassCard')).toBe(false)
+    expect(cardChild('glassLayer')).toBeUndefined()
+    expect(cardChild('arrow')?.classList.contains('glassArrow')).toBe(false)
   })
 
   it('makes the card glass on a touch layout in the light theme too', () => {

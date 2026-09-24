@@ -22,8 +22,10 @@ export function SpotlightTour(props: SpotlightTourProps) {
    * The card is glass (the primitive's panel) wherever the app is dark: the
    * dark theme, and the touch layouts, whose chrome is dark glass in both
    * themes. The desktop's light theme keeps its light card, since the glass
-   * is dark-only (docs/plans/glass-panels.md, decision b). A class and not a
-   * composes: the panel's busy rule would turn a light card dark.
+   * is dark-only (docs/plans/glass-panels.md, decision b). Classes and not a
+   * composes: the panel's busy rule would turn a light card dark. The panel
+   * goes on a layer behind the text and on the arrow, never on the card, so
+   * the arrow frosts the art too (SpotlightTour.module.css, .glassCard).
    */
   const glassCard = () => theme() === 'dark' || isTouchLayout()
 
@@ -507,9 +509,15 @@ export function SpotlightTour(props: SpotlightTourProps) {
             role="dialog"
             aria-label={step()?.title}
           >
+            <Show when={glassCard()}>
+              <div class={ui.glassLayer} aria-hidden="true" />
+            </Show>
             <div
               class={ui.arrow}
-              classList={{ [arrowClass()]: true }}
+              classList={{
+                [arrowClass()]: true,
+                [ui.glassArrow!]: glassCard(),
+              }}
               style={arrowStyle()}
             />
 

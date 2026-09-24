@@ -108,6 +108,11 @@ export const ALWAYS_ON = [
     genre: 'filesystem',
   },
   {
+    file: 'src/components/SpotlightTour/SpotlightTour.module.test.ts',
+    why: 'reads SpotlightTour.module.css',
+    genre: 'filesystem',
+  },
+  {
     file: 'src/components/TouchSurface/tokens.test.ts',
     why: 'readdirSync over the TouchSurface/ and Shell/ stylesheets',
     genre: 'filesystem',
