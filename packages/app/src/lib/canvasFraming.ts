@@ -140,3 +140,14 @@ const [trailingCover, setTrailingCover] = createSignal(0)
  * it into the camera's shift.
  */
 export { trailingCover, setTrailingCover }
+
+const [deckResizing, setDeckResizing] = createSignal(false)
+
+/**
+ * Whether the tablet inspector deck's divider is being dragged and has moved
+ * (TabletInspectorDeck.tsx). Every step of the drag resizes the canvas beside
+ * the deck, or reframes the one under it while it floats, so the canvas
+ * presents every frame of it, which the glass busy switch reads
+ * (hooks/useWorkspaceGlassBusy.ts). The deck is the only writer.
+ */
+export { deckResizing, setDeckResizing }

@@ -8,6 +8,7 @@ import { createRoot, createSignal } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { setAnimationExportRunning } from '@/flame/renderStats'
+import { setDeckResizing } from '@/lib/canvasFraming'
 import { createStoreHistory } from '@/utils/createStoreHistory'
 import { GLASS_BUSY_SETTLE_MS, isCanvasBusy, useWorkspaceGlassBusy, } from './useWorkspaceGlassBusy'
 
@@ -16,6 +17,7 @@ const IDLE = {
   exporting: false,
   audioModulating: false,
   dragging: false,
+  resizing: false,
 }
 
 const busyAttribute = () => document.documentElement.getAttribute('data-glass')
@@ -25,12 +27,15 @@ describe('isCanvasBusy', () => {
     expect(isCanvasBusy(IDLE)).toBe(false)
   })
 
-  it.each(['playing', 'exporting', 'audioModulating', 'dragging'] as const)(
-    'is busy on %s alone',
-    (state) => {
-      expect(isCanvasBusy({ ...IDLE, [state]: true })).toBe(true)
-    },
-  )
+  it.each([
+    'playing',
+    'exporting',
+    'audioModulating',
+    'dragging',
+    'resizing',
+  ] as const)('is busy on %s alone', (state) => {
+    expect(isCanvasBusy({ ...IDLE, [state]: true })).toBe(true)
+  })
 })
 
 describe('useWorkspaceGlassBusy', () => {
@@ -43,6 +48,7 @@ describe('useWorkspaceGlassBusy', () => {
   afterEach(() => {
     dispose()
     setAnimationExportRunning(false)
+    setDeckResizing(false)
     vi.useRealTimers()
     delete document.documentElement.dataset.glass
   })
@@ -154,6 +160,19 @@ describe('useWorkspaceGlassBusy', () => {
     vi.advanceTimersByTime(GLASS_BUSY_SETTLE_MS)
     expect(busyAttribute()).toBe('busy')
     editor.setAudioModulating(false)
+    vi.advanceTimersByTime(GLASS_BUSY_SETTLE_MS)
+    expect(busyAttribute()).toBeNull()
+  })
+
+  it("is busy while the deck's divider is dragged", () => {
+    // Each step of the drag resizes the canvas beside the deck, or reframes
+    // the one under it, so the canvas presents every frame of it.
+    mount()
+
+    setDeckResizing(true)
+    vi.advanceTimersByTime(GLASS_BUSY_SETTLE_MS)
+    expect(busyAttribute()).toBe('busy')
+    setDeckResizing(false)
     vi.advanceTimersByTime(GLASS_BUSY_SETTLE_MS)
     expect(busyAttribute()).toBeNull()
   })
