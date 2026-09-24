@@ -3,8 +3,9 @@
 //
 // A real flame keys its variations by generated ids (UUIDs with underscores,
 // `generateVariationId`) and types them with registered names: `validateFlame`
-// rewrites the legacy names on every load (`linear` becomes `linearVar`) and
-// keeps any other string as it was written. A fixture keyed by its own type
+// rewrites the legacy names on every load (`linear` becomes `linearVar`),
+// refuses `__proto__`, `constructor` and `prototype`, and keeps any other
+// string as it was written. A fixture keyed by its own type
 // names, or typed with a legacy or unknown name, lets a reader that looks at
 // the wrong field pass. The Arena school, the Duel judge and the Art
 // Director's taste all read the id instead of the type behind fixtures like
@@ -12,7 +13,8 @@
 // and #117's symmetry transforms carried the unregistered 'linear' past tests
 // that used it too.
 //
-// The rules, over the app and core sources and the Playwright specs:
+// The rules, over the app and core sources and the Playwright specs (tests/
+// and packages/app/e2e/):
 //   (a) a `{ type, weight }` object whose type is a string no registry knows:
 //       "legacy" when the migration rewrites it, "unregistered" otherwise.
 //       `custom_<uuid>` is the custom variations' own family.
@@ -30,16 +32,26 @@
 //
 // Each exception below carries its reason, and one that no longer matches
 // anything fails as well.
-import { VARIATION_TYPE_MIGRATIONS } from '@chaos-master/core'
+//
+// The registered names come from the list flame/variationRegistry.test.ts
+// keeps in step with the registries, and the legacy ones from the migration
+// table's own module: importing the registries and the whole core package
+// took most of this file's time.
+import { VARIATION_TYPE_MIGRATIONS } from '@chaos-master/core/schema/migrateFlameTypes'
 import { readdirSync, readFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
-import { variationTypes } from '@/flame/variations'
-import { variationTypes3D } from '@/flame/variations3D'
 
 const REPO = join(import.meta.dirname, '../../..')
-const ROOTS = ['packages/app/src', 'packages/core/src', 'tests']
+const ROOTS = [
+  'packages/app/src',
+  'packages/core/src',
+  'packages/app/e2e',
+  'tests',
+]
+const REGISTERED_NAMES =
+  'packages/app/src/flame/__fixtures__/registeredVariationNames.json'
 
 type Rule = 'a' | 'b' | 'c' | 'd'
 type Hit = { file: string; line: number; rule: Rule; detail: string }
@@ -115,7 +127,10 @@ const EXCEPTIONS: readonly Exception[] = [
   },
 ]
 
-const registered = new Set<string>([...variationTypes, ...variationTypes3D])
+const names = JSON.parse(
+  readFileSync(join(REPO, REGISTERED_NAMES), 'utf8'),
+) as Record<'2D' | '3D', string[]>
+const registered = new Set<string>([...names['2D'], ...names['3D']])
 /** `custom_` and a UUID with underscores, as `generateCustomVariationId` mints it. */
 const CUSTOM_TYPE =
   /^custom_[0-9a-f]{8}_[0-9a-f]{4}_[0-9a-f]{4}_[0-9a-f]{4}_[0-9a-f]{12}$/
