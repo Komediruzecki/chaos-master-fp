@@ -25,6 +25,29 @@ describe('the editor rail stylesheet', () => {
     expect(chip).toMatch(/height:\s*var\(--la-tap\)/)
   })
 
+  it('fills the controls on the glass sheet as the floating deck does', () => {
+    // With the Glass panels setting on, the open sheet is glass. The control
+    // tokens (lumen.css) default to translucent washes, which darken and
+    // lighten row by row with the art behind the sheet; the deck and the
+    // explorer fill their controls with opaque surfaces instead.
+    const rail = declarations('.sheet.glassPanel')
+    const deck = readFileSync(join(__dirname, 'TabletDeck.module.css'), 'utf8')
+    const floating = /^\.floating\s*\{([^}]*)\}/m.exec(deck)?.[1] ?? ''
+    for (const token of [
+      '--la-control',
+      '--la-control-strong',
+      '--la-control-accent',
+    ]) {
+      const value = (block: string) =>
+        new RegExp(`${token}:\\s*([^;]+);`)
+          .exec(block)?.[1]
+          ?.replace(/\s+/g, ' ')
+          .trim()
+      expect(value(rail), token).toBeDefined()
+      expect(value(rail), token).toBe(value(floating))
+    }
+  })
+
   it('gives the shutter a fill its accent icon holds 3:1 on by itself', () => {
     // Ember over --la-glass (72%) is 2.86:1 with white-hot art behind it,
     // under the 3:1 an icon needs (glassContrast.test.ts has the table). The

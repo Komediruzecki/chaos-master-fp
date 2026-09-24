@@ -70,6 +70,18 @@
 
 .sheet.glassPanel {
   background: var(--la-glass-panel);
+
+  /* Its controls fill with the explorer panel's opaque surfaces, as the
+     floating tablet deck's do (TabletDeck.module.css): through the control
+     tokens their own rules read (lumen.css), so a row or a field does not
+     darken and lighten with the art behind the sheet. */
+  --la-control: var(--la-surface-2);
+  --la-control-strong: var(--la-surface-3);
+  --la-control-accent: color-mix(
+    in srgb,
+    var(--la-accent) 14%,
+    var(--la-surface-2)
+  );
 }
 
 /* The busy switch fades the fill, so it joins the sheet's own list; a drag
