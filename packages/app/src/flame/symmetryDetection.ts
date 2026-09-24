@@ -93,15 +93,20 @@ export function affineLayout(affine: AffineLike): AffineLayout {
 
 /**
  * The angle the Symmetry card shows for one rotation transform, in
- * [0, 2 pi).
+ * [0, 2 pi): the rotation about z, read from the terms its layout keeps
+ * `cos` and `sin` in. 2D: `a = cos`, `d = sin`. 3D: `a = cos`, `e = sin`.
  */
 export function symmetryRotationAngle(affine: AffineLike): number {
-  let angle = Math.atan2(affine.d ?? 0, affine.a ?? 1)
+  const sin = has3DLayout(affine) ? affine.e : affine.d
+  let angle = Math.atan2(sin ?? 0, affine.a ?? 1)
   if (angle < 0) angle += 2 * Math.PI
   return angle
 }
 
-/** The preAffine terms the card's angle editor keys for a rotation. */
-export function symmetryRotationTerms(_affine: AffineLike): readonly string[] {
-  return ['a', 'b', 'd', 'e']
+/**
+ * The preAffine terms a rotation about z sets, which the card's angle editor
+ * keys: `a b d e` in the 2D layout, `a b e f` in the 3D layout.
+ */
+export function symmetryRotationTerms(affine: AffineLike): readonly string[] {
+  return has3DLayout(affine) ? ['a', 'b', 'e', 'f'] : ['a', 'b', 'd', 'e']
 }

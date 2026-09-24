@@ -115,14 +115,30 @@ export function applySymmetryToFlame(
 }
 
 /**
- * The preAffine the Symmetry card's angle editor writes for a rotation by
- * `angle` about the origin, with no translation.
+ * A rotation by `angle` about the z axis (the origin in 2D), with no
+ * translation, in the given key layout. The Symmetry card's angle editor
+ * writes it in the layout the transform already has.
  */
 export function symmetryRotationPreAffine(
   angle: number,
-  _layout: AffineLayout,
+  layout: AffineLayout,
 ): Record<string, number> {
   const cos = Math.cos(angle)
   const sin = Math.sin(angle)
-  return { a: cos, b: -sin, c: 0, d: sin, e: cos, f: 0 }
+  return layout === '3D'
+    ? {
+        a: cos,
+        b: -sin,
+        c: 0,
+        d: 0,
+        e: sin,
+        f: cos,
+        g: 0,
+        h: 0,
+        i: 0,
+        j: 0,
+        k: 1,
+        l: 0,
+      }
+    : { a: cos, b: -sin, c: 0, d: sin, e: cos, f: 0 }
 }

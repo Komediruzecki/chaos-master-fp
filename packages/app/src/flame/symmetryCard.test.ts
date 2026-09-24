@@ -77,9 +77,65 @@ describe('the angle editor on a rotation transform', () => {
     expect(rows).toEqual([
       '2D by symmetry.ts: shows 90 180 270; keys a b d e; 45 writes 2D -> 2D, sends x to (0.71, 0.71, 0), shows 45',
       '2D by command: shows 90 180 270; keys a b d e; 45 writes 2D -> 2D, sends x to (0.71, 0.71, 0), shows 45',
-      '3D by symmetry.ts: shows 0 180 180; keys a b d e; 45 writes 3D -> 2D, sends x to (0.71, 0.71, 0), shows 45',
+      '3D by symmetry.ts: shows 90 180 270; keys a b e f; 45 writes 3D -> 3D, sends x to (0.71, 0.71, 0), shows 45',
       '3D by command: shows 90 180 270; keys a b d e; 45 writes 2D -> 2D, sends x to (0.71, 0.71, 0), shows 45',
-      '3D by command, reloaded: shows 0 180 180; keys a b d e; 45 writes 3D -> 2D, sends x to (0.71, 0.71, 0), shows 45',
+      '3D by command, reloaded: shows 90 180 270; keys a b e f; 45 writes 3D -> 3D, sends x to (0.71, 0.71, 0), shows 45',
     ])
   })
+})
+
+describe('the angle editor reads, keys and writes the terms of its layout', () => {
+  for (const { dims, source } of CASES) {
+    it(`${dims}D by ${source}: shows each rotation's own angle, folds 3-8`, () => {
+      for (let folds = 3; folds <= 8; folds++) {
+        const flame = build(dims, 'rotational', folds, source)
+        const shown = symIds(flame).map((tid) =>
+          symmetryRotationAngle(preAffineOf(flame, tid)),
+        )
+        const written = symIds(flame).map(
+          (_, index) => (2 * Math.PI * (index + 1)) / folds,
+        )
+        expect(shown.map((v) => round(v, 9))).toEqual(
+          written.map((v) => round(v, 9)),
+        )
+      }
+    })
+
+    it(`${dims}D by ${source}: keys the terms a rotation changes`, () => {
+      // The terms that differ between two rotations the writer itself wrote.
+      const flame = build(dims, 'rotational', 5, source)
+      const [first, second] = symIds(flame).map((tid) =>
+        preAffineOf(flame, tid),
+      )
+      const changed = Object.keys(first!).filter(
+        (key) => first![key] !== second![key],
+      )
+      expect([...symmetryRotationTerms(first!)].sort()).toEqual(changed.sort())
+    })
+
+    it(`${dims}D by ${source}: a drag keeps the layout and renders the angle it shows`, () => {
+      for (const angle of [0.3, Math.PI / 4, 2, 4, 5.9]) {
+        const { ws, ids } = rotations(dims, source)
+        const tid = ids[0]!
+        const layout = affineLayout(preAffineOf(ws.flame(), tid))
+        dragAngle(ws, tid, angle)
+        const after = preAffineOf(ws.flame(), tid)
+        expect(affineLayout(after)).toBe(layout)
+        expect(round(symmetryRotationAngle(after), 9)).toBe(round(angle, 9))
+        const cos = Math.cos(angle)
+        const sin = Math.sin(angle)
+        expect(
+          renderedPreAffine(ws.flame(), tid).map((row) =>
+            row.map((v) => round(v, 9)),
+          ),
+        ).toEqual(
+          [
+            [cos, -sin, 0, 0],
+            [sin, cos, 0, 0],
+            [0, 0, 1, 0],
+          ].map((row) => row.map((v) => round(v, 9))),
+        )
+      }
+    })
+  }
 })
