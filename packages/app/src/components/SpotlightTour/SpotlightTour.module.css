@@ -2,13 +2,15 @@
  * The spotlight tour: a dim with a hole over what a step is about, and a
  * card that explains it.
  *
- * The card is the tour's one glass layer (docs/plans/glass-panels.md,
- * phase 1): .glassCard, the primitive's panel, wherever the app is dark,
- * which SpotlightTour.tsx decides. On it the text is ink and ink-2, the
- * tiers an 80% fill carries over white-hot art, and the buttons mark
- * themselves with fills, not with coloured text. The desktop's light theme
- * keeps the light card it had, in the `.card:not(.glassCard)` rules at the
- * end: the glass is dark-only (decision b).
+ * The card is the tour's one glass surface (docs/plans/glass-panels.md,
+ * phase 1) wherever the app is dark, which SpotlightTour.tsx decides and
+ * marks with .glassCard. The primitive's panel sits on two children of the
+ * card, .glassLayer behind the text and .glassArrow, not on the card itself
+ * (see .glassCard). On it the text is ink and ink-2, the tiers an 80% fill
+ * carries over white-hot art, and the buttons mark themselves with fills,
+ * not with coloured text. The desktop's light theme keeps the light card it
+ * had, in the `.card:not(.glassCard)` rules at the end: the glass is
+ * dark-only (decision b).
  */
 
 .overlay {
@@ -46,15 +48,47 @@
   color: var(--la-ink);
   pointer-events: auto;
   animation: cardFadeIn 250ms ease-out;
-  /* background-color for the panel's busy switch, which fades the fill. */
   transition:
     top 250ms ease,
-    left 250ms ease,
-    background-color var(--la-dur-fast) var(--la-ease);
+    left 250ms ease;
 }
 
+/* The glass is on the card's layer and arrow, never on the card. A blur on
+   the card made it a backdrop root, so the arrow, its child, could frost
+   only the card's fill: its tip stood darker than the frosted card. Each of
+   the two blurs the art itself. For the same reason the card only rises
+   while its children fade in: below full opacity the card is a backdrop
+   root too, and the frost would snap in at the end of the fade. The card
+   keeps the panel's text contract, ink-3 raised to ink-2, and takes the
+   layer's 1px edge as padding, so its text sits where it did. */
 .glassCard {
+  --la-ink-3: var(--la-ink-2);
+  padding: calc(1.25rem + 1px) calc(1.5rem + 1px);
+  animation-name: cardRise;
+}
+
+.glassCard > * {
+  animation: cardFade 250ms ease-out;
+}
+
+.glassLayer {
   composes: panel from '@/styles/designSystem/glass.module.css';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* Painted before the layer, so its blur reads the art alone. Painted after,
+   it read the layer's dark fill under its inner half as well (the clip hides
+   that half but the blur still reads it) and frosted darker than the card.
+   The layer's shadow, drawn after it, still darkens it a little. The clip
+   cuts its own shadow away anyway; none spares drawing it. */
+.glassArrow {
+  composes: panel from '@/styles/designSystem/glass.module.css';
+  z-index: -2;
+  box-shadow: none;
 }
 
 @keyframes cardFadeIn {
@@ -68,17 +102,40 @@
   }
 }
 
-/* The card's own fill, whichever it is, busy switch and all. Each side
-   keeps only the half of the square that sticks out of the card: on a
-   see-through fill the half over the card would lay the fill twice, a dark
-   notch inside its edge over bright art. */
+@keyframes cardRise {
+  from {
+    transform: translateY(8px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes cardFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* On the light card the arrow takes the card's fill; on glass it is a
+   panel of its own. Each side keeps only the half of the square that sticks
+   out of the card: on a see-through fill the half over the card would lay
+   the fill twice, a dark notch inside its edge over bright art. The glass
+   card has no border of its own (its layer draws it), so the cut falls on
+   the card's outer edge, beside the layer's edge and not over it. */
 .arrow {
   position: absolute;
   width: 16px;
   height: 16px;
-  background: inherit;
   border: var(--la-glass-edge);
   transform: rotate(45deg);
+}
+
+.card:not(.glassCard) .arrow {
+  background: inherit;
 }
 
 .arrowTop {
