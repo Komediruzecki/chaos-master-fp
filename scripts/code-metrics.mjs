@@ -18,6 +18,10 @@
 //                                              # ...unless the key is named
 //   node scripts/code-metrics.mjs --with-lint  # include eslint warning counts
 //                                              # (slow: runs the full lint)
+//   node scripts/code-metrics.mjs --lint-report=<file>
+//                                              # the same keys, read from a
+//                                              # JSON report ESLint already
+//                                              # wrote (CI's build job)
 //   node scripts/code-metrics.mjs --lower-caps # lower every per-file cap that
 //                                              # can go down; never raises one
 //
@@ -210,7 +214,32 @@ for (const [prefix, file] of COVERAGE) {
   m[`${prefix}_branches_pct`] = c.branches.pct
 }
 
-if (has('--with-lint')) {
+// The lint keys come from a fresh ESLint run (--with-lint), or from the JSON
+// report an earlier run wrote (--lint-report=<file>). CI's build job uses the
+// second: its lint step writes the report through
+// scripts/eslint-report-formatter.mjs, so the ratchet costs no second pass.
+const lintReportArg = argv.find((a) => a.startsWith('--lint-report='))
+const lintReport = lintReportArg?.slice('--lint-report='.length)
+const withLint = has('--with-lint') || lintReport !== undefined
+
+function lintFailed(why) {
+  console.error(`${why}; the lint metrics cannot be measured.`)
+  process.exit(2)
+}
+
+let lintResults
+if (lintReport !== undefined) {
+  // A missing, empty or unreadable report is no run, never a clean one.
+  const file = join(ROOT, lintReport)
+  if (!existsSync(file)) lintFailed(`no ESLint report at ${lintReport}`)
+  try {
+    lintResults = JSON.parse(readFileSync(file, 'utf8'))
+  } catch {
+    lintFailed(`${lintReport} is not an ESLint JSON report`)
+  }
+  if (!Array.isArray(lintResults) || lintResults.length === 0)
+    lintFailed(`${lintReport} lists no linted files`)
+} else if (has('--with-lint')) {
   // ESLint exits 1 when it found an error and still prints its full report,
   // so 0 and 1 are both a run to count. Only a crash (2, a signal, or output
   // that is not the JSON report) is no run. This used to catch every non-zero
@@ -223,23 +252,24 @@ if (has('--with-lint')) {
     maxBuffer: 256 * 1024 * 1024,
     env: { ...process.env, NODE_OPTIONS: '--max-old-space-size=6144' },
   })
-  let res
   try {
     if (run.status !== 0 && run.status !== 1) throw new Error()
-    res = JSON.parse(run.stdout)
+    lintResults = JSON.parse(run.stdout)
   } catch {
     const tail = (run.stderr ?? '').slice(-2000)
-    console.error(
+    lintFailed(
       `eslint did not produce a report (exit ${run.status}, signal ` +
-        `${run.signal}); the lint metrics cannot be measured.\n${tail}`,
+        `${run.signal})\n${tail}`,
     )
-    process.exit(2)
   }
+}
+
+if (lintResults !== undefined) {
   let warn = 0,
     err = 0,
     complexity = 0,
     maxComplexity = 0
-  for (const f of res) {
+  for (const f of lintResults) {
     err += f.errorCount
     warn += f.warningCount
     for (const x of f.messages) {
@@ -413,7 +443,7 @@ if (has('--check')) {
   }
   // Asked for the lint keys: every one the baseline tracks must have been
   // measured, or the check would pass on keys it never compared.
-  if (has('--with-lint')) {
+  if (withLint) {
     for (const k of Object.keys(base).filter((x) => x.startsWith('eslint_'))) {
       if (!(k in m)) regressions.push(`${k}: not measured by this run`)
     }

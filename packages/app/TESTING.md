@@ -14,17 +14,17 @@ Counts are from 2026-09-23 at `9fc08078`.
 A pull request runs the CI e2e project plus the tests the branch touched. Main
 runs everything.
 
-| Check                                                      | Pull request           | Push to main, or manual dispatch |
-| ---------------------------------------------------------- | ---------------------- | -------------------------------- |
-| `pnpm lint`, `pnpm typecheck`                              | yes                    | yes                              |
-| `@chaos-master/core` and `@chaos-master/mobile-runtime`    | in full                | in full                          |
-| The app suite (`packages/app`, ~3,800 tests)               | **scoped** (see below) | in full                          |
-| The `node --test` suites of the app's and the root scripts | in full                | in full                          |
-| App build, landing build, `pnpm test:e2e:ci`               | yes                    | yes                              |
-| `pnpm docs:cite`, in the `citations` job                   | yes                    | yes                              |
-| `pnpm arch`, `pnpm metrics:check` (with the per-file caps) | yes, last in `build`   | yes, in `build` and `health`     |
-| `pnpm test:coverage`, `pnpm metrics:check --with-lint`     | no                     | yes, in the `health` job         |
-| `pnpm docs:index:check`                                    | no                     | yes, in the `health` job         |
+| Check                                                           | Pull request           | Push to main, or manual dispatch |
+| --------------------------------------------------------------- | ---------------------- | -------------------------------- |
+| `pnpm lint`, `pnpm typecheck`                                   | yes                    | yes                              |
+| `@chaos-master/core` and `@chaos-master/mobile-runtime`         | in full                | in full                          |
+| The app suite (`packages/app`, ~3,800 tests)                    | **scoped** (see below) | in full                          |
+| The `node --test` suites of the app's and the root scripts      | in full                | in full                          |
+| App build, landing build, `pnpm test:e2e:ci`                    | yes                    | yes                              |
+| `pnpm docs:cite`, in the `citations` job                        | yes                    | yes                              |
+| `pnpm arch`, `pnpm metrics:check` (per-file caps, lint keys)    | yes, last in `build`   | yes, in `build` and `health`     |
+| `pnpm test:coverage`, then `pnpm metrics:check` (coverage keys) | no                     | yes, in the `health` job         |
+| `pnpm docs:index:check`                                         | no                     | yes, in the `health` job         |
 
 The scoped run is `pnpm test:pr`, which calls `pnpm test:changed`
 (`scripts/test-changed.mjs`). It runs core and mobile-runtime in full — about

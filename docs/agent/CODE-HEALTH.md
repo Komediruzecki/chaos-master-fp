@@ -21,14 +21,14 @@ pnpm verify:webgpu    # headed browser pass on real hardware
 **Where they run.** `pnpm arch` and `pnpm metrics:check` run on every pull
 request, as the last steps of the `build` job (since WP3b, 2026-09-23), and run
 even when a step above them failed, so a ratchet failure never masks a test
-failure nor the other way round. The `health` job, on pushes to main and on a
-manual `workflow_dispatch`, runs `pnpm docs:index:check`, `pnpm arch`,
-`pnpm test:coverage` and then `pnpm metrics:check --with-lint`, which is the
-one run that measures every key in the baseline, coverage and ESLint included.
-`pnpm docs:cite` runs on pull requests too, in its own `citations` job, because
-a citation goes stale in the change that moves the code
-([CONVENTIONS.md](CONVENTIONS.md) §9). `pnpm verify:webgpu` is local-only by
-design — see [METRICS.md](METRICS.md) §3.
+failure nor the other way round. The ratchet there includes the four `eslint_*`
+keys, read from the lint step's own report, not from a second ESLint pass. The
+`health` job, on pushes to main and on a manual `workflow_dispatch`, runs
+`pnpm docs:index:check`, `pnpm arch`, `pnpm test:coverage` and then
+`pnpm metrics:check`, which adds the six coverage keys. `pnpm docs:cite` runs
+on pull requests too, in its own `citations` job, because a citation goes stale
+in the change that moves the code ([CONVENTIONS.md](CONVENTIONS.md) §9).
+`pnpm verify:webgpu` is local-only by design — see [METRICS.md](METRICS.md) §3.
 
 `pnpm arch` joined the `health` job in WP3 (#116, 2026-09-23). It stayed out
 while it was red on two import cycles (`flame/mutationOperators.ts <->
