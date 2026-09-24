@@ -8,10 +8,11 @@ import { examples } from '../examples'
 import { resolveIfsWgsl } from '../ifsPipelineWgsl.testUtils'
 import { shaderShapeOf } from '../shaderShape'
 import { extractFlameUniforms3D } from '../transformFunction3D'
-import { BOUT_SECONDS, boutFrame, wallTime } from './choreographer'
-import { BEAM_SHARE, beamId, clashFighter, fightFlame, STAGE_SETTINGS, unfitReason, } from './fightFlame'
+import { BEAM_FRONT, BOUT_SECONDS, boutFrame, wallTime } from './choreographer'
+import { BEAM_FULL_LENGTH, BEAM_SHARE, beamId, clashFighter, fightFlame, STAGE_SETTINGS, unfitReason, } from './fightFlame'
 import { applyAffine } from './placement'
 import type { FlameDescriptor, TransformFunction, TransformId, } from '../schema/flameSchema'
+import type { BoutFrame } from './choreographer'
 import type { Affine3, Vec3 } from './placement'
 
 const galaxy = clashFighter(examples.example37)
@@ -96,7 +97,7 @@ describe('fightFlame', () => {
     expect(numbers).not.toContain('null')
   })
 
-  it('draws no beam outside one, and a beam its share of steps in one', () => {
+  it('draws no beam outside one, and a beam steps in step with its length', () => {
     // The beam's share of all the steps its team's walkers take.
     const share = (f: FlameDescriptor, team: 'A' | 'B') => {
       const steps = Object.values(f.transforms).filter(
@@ -105,10 +106,37 @@ describe('fightFlame', () => {
       const total = steps.reduce((sum, t) => sum + t.probability, 0)
       return f.transforms[beamId(team)]!.probability / total
     }
+    const length = (pose: BoutFrame['a']) => {
+      const x = pose.placement.position[0]
+      const front =
+        x + Math.sign(pose.beam.to - x) * BEAM_FRONT * pose.placement.scale
+      return Math.abs(pose.beam.to - front)
+    }
     expect(share(flame, 'A')).toBe(0)
-    const clash = fightFlame(galaxy, gasket, boutFrame(6.6, options))
-    expect(share(clash, 'A')).toBeCloseTo(BEAM_SHARE, 9)
-    expect(share(clash, 'B')).toBeCloseTo(BEAM_SHARE, 9)
+    // Lit as brightly along its length whether it is long or short: a beam
+    // of unit length takes BEAM_SHARE, a longer one more.
+    const frame = boutFrame(6.6, options)
+    const clash = fightFlame(galaxy, gasket, frame)
+    expect(share(clash, 'A')).toBeCloseTo(BEAM_SHARE * length(frame.a), 9)
+    expect(share(clash, 'B')).toBeCloseTo(BEAM_SHARE * length(frame.b), 9)
+    expect(share(clash, 'A')).toBeGreaterThan(share(clash, 'B'))
+    // Past BEAM_FULL_LENGTH a beam takes no more of its fighter's walkers:
+    // the fighter would be left hollow behind it.
+    const long = boutFrame(wallTime(8.45), options)
+    expect(length(long.a)).toBeGreaterThan(BEAM_FULL_LENGTH)
+    expect(share(fightFlame(galaxy, gasket, long), 'A')).toBeCloseTo(
+      BEAM_SHARE * BEAM_FULL_LENGTH,
+      9,
+    )
+    // Never less than half the share, nor more than that.
+    for (let wall = 0; wall <= BOUT_SECONDS; wall += 0.1) {
+      const f = fightFlame(galaxy, gasket, boutFrame(wall, options))
+      for (const team of ['A', 'B'] as const) {
+        expect(share(f, team)).toBeLessThanOrEqual(
+          BEAM_SHARE * BEAM_FULL_LENGTH + 1e-12,
+        )
+      }
+    }
   })
 
   it('lays a beam from its fighter to the contact point', () => {
@@ -132,6 +160,7 @@ describe('fightFlame', () => {
     const moments = [
       [6.6, 'A'],
       [6.6, 'B'],
+      [8.45, 'A'],
       [9.0, 'B'],
       [9.4, 'B'],
     ] as const

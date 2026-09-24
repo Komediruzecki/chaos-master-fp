@@ -36,6 +36,14 @@ export type Beam = { amount: number; to: number }
 
 export const NO_BEAM: Beam = { amount: 0, to: 0 }
 
+/**
+ * Where a beam starts: this far out from its fighter's centre towards the
+ * other fighter, by the fighter's scale. The script ends the winner's beam at
+ * the loser's front and the loser's stream at the winner's, so neither beam
+ * carries a walker into the other fighter's body.
+ */
+export const BEAM_FRONT = 0.3
+
 export type FighterPose = {
   placement: Placement
   /** 0 the flat card, 1 the full 3D form (2D fighters only). */
@@ -158,8 +166,13 @@ const SEPARATION = 1.45
 const ENTRANCE = 4.4
 /** The marks of the beam clash, apart enough for the beams to show. */
 const CLASH_MARK = 1.25
-/** How far the winner's beam drives the contact point towards the loser. */
-const BEAM_DRIVE = 0.6
+/**
+ * Reduced motion: how far towards the loser the beams meet from the first
+ * frame of the beam clash, and half how far they meet after its one step.
+ * The contact point cannot slide, so the winner's beam is the longer from
+ * the start.
+ */
+const REDUCED_LEAD = 0.3
 /** How far the beam pressure pushes the loser back. */
 const CLASH_SHOVE = 0.2
 /** Half the arena width the beam clash frames. */
@@ -182,8 +195,11 @@ const INFLATE_TURN = 0.9
 const BEAM_LEAK = 0.05
 /** How often the beam clash sways; kept under the 3 flashes a second limit. */
 const SWAY_HZ = 1.2
-/** The winner's share of walkers while the loser is drawn into it. */
-const DEVOUR_SHARE = 0.62
+/**
+ * The winner's share of walkers from its surge in the beam clash to the
+ * gulp. The loser keeps enough to be seen while it is drawn in.
+ */
+const DEVOUR_SHARE = 0.65
 /** How much of the loser's walking borrows the winner's maps in the Devour. */
 const SWALLOW_LEAK = 0.35
 /** Reduced motion: the longest slide (0.2 of the separation) and the flash cap. */
@@ -209,19 +225,31 @@ function introLooks(story: number) {
 }
 
 /**
- * The beams, shared by both scripts: in the beam clash both fighters throw
- * one to the contact point, and in the Devour the loser streams into the
- * winner.
+ * The beams of the full-motion script. In the beam clash both fighters throw
+ * one to the contact point, and the winner's drives it back to the loser's
+ * front as the loser's gives way. The winner's holds there, then hands the
+ * light over to the loser's stream into the winner, the Devour: between the
+ * two there is always a beam lit, and never both at full, since side by side
+ * the stream reads as the loser's beam landing.
+ *
+ * The hand-over is a trade. Each beam's far end sits inside the other
+ * fighter, where the owner's maps fling some of its walkers out as streaks:
+ * a longer hold streaks the winner's walkers, an earlier stream the loser's.
+ * It comes as the loser starts to be drawn in, so the stream reads as the
+ * pull. Measured on a julian loser, handing over 0.2 s earlier streaked
+ * half as much again.
  */
-function beamsOf(s: number, winnerX: number, contact: number) {
-  const beaming = smooth(5.4, 5.9, s) * (1 - smooth(7.9, 8.3, s))
-  const stream = smooth(8.4, 8.9, s) * (1 - smooth(9.6, 9.9, s))
+function beamsOf(s: number, winnerFront: number, contact: number) {
+  const beaming = smooth(5.2, 5.7, s)
+  const handOver = smooth(8.8, 9.2, s)
+  // Out at 8.3 before it turns round, so the turn never shows.
+  const givingWay = beaming * (1 - smooth(7.9, 8.3, s))
   return {
-    winner: { amount: beaming, to: contact },
+    winner: { amount: beaming * (1 - handOver), to: contact },
     loser:
-      s < 8.35
-        ? { amount: beaming, to: contact }
-        : { amount: stream, to: winnerX },
+      s < 8.3
+        ? { amount: givingWay, to: contact }
+        : { amount: handOver * (1 - smooth(9.6, 9.9, s)), to: winnerFront },
   }
 }
 
@@ -229,13 +257,23 @@ function beamsOf(s: number, winnerX: number, contact: number) {
 function fightUniforms(s: number, reducedMotion: boolean) {
   const approach = smooth(5.0, 5.7, s)
   // The loser keeps a share it can be seen with while it is drawn in, and
-  // loses the rest at the gulp.
+  // loses the rest at the gulp. Reduced motion cuts the loser against the
+  // winner, where at full strength it flared, so it fades from the cut.
   const drawnIn = smooth(8.3, 9.3, s)
-  const gone = smooth(9.9, 10.3, s)
+  const gone = reducedMotion ? smooth(8.2, 10.3, s) : smooth(9.9, 10.3, s)
+  // The struggle sways the walkers between the two, then stops for the
+  // winner's surge: from 7.0 the winner only gains. A last swing to the
+  // loser as the push slowed read as the loser holding.
   const sway = reducedMotion
     ? 0
-    : 0.1 * Math.sin(2 * Math.PI * SWAY_HZ * (s - 5.3)) * approach
-  const clashShare = 0.5 + sway + 0.1 * smooth(7.4, 8.2, s)
+    : 0.1 *
+      Math.sin(2 * Math.PI * SWAY_HZ * (s - 5.3)) *
+      approach *
+      (1 - smooth(6.6, 7.0, s))
+  // Reduced motion cannot show the push, so the winner has its walkers as
+  // soon as the beams are up.
+  const surge = reducedMotion ? smooth(5.2, 5.7, s) : smooth(7.0, 8.2, s)
+  const clashShare = 0.5 + sway + (DEVOUR_SHARE - 0.5) * surge
   const winnerShare = lerp(lerp(clashShare, DEVOUR_SHARE, drawnIn), 1, gone)
   const inClinch = approach * (1 - smooth(8.2, 8.6, s))
   const hit = reducedMotion
@@ -299,19 +337,25 @@ function fullMotion(s: number, wall: number, winner: Team) {
   const winnerX =
     lerp(stand(winner), 0, centre) - sw * (DASH_REACH * dash - 0.3 * wind)
   const loserX = lerp(stand(loser) + shove + sl * 0.55 * knock, sw * 0.3, drawn)
+  const winnerScale =
+    lerp(0.75, 1, enter(entranceDelay(winner))) *
+    lerp(1, 1.12, smooth(9.0, 10.2, s))
+  const loserScale =
+    lerp(0.75, 1, enter(entranceDelay(loser))) * lerp(1, 0.35, shrink)
   // The beams meet between the two, and the winner's drives the contact
-  // point towards the loser.
-  const contact = (winnerX + loserX) / 2 + sl * BEAM_DRIVE * smooth(5.9, 8.0, s)
-  const beams = beamsOf(s, winnerX, contact)
+  // point back to the loser's front: slowly as they meet, then faster, and
+  // never stalling, since a push that stops reads as the loser holding.
+  const push = clamp01((s - 5.6) / 2.8) ** 1.3
+  const loserFront = loserX - sl * BEAM_FRONT * loserScale
+  const contact = lerp((winnerX + loserX) / 2, loserFront, push)
+  const beams = beamsOf(s, winnerX - sw * BEAM_FRONT * winnerScale, contact)
   const facing = (side: number) => -side * lerp(0.3, 0.55, approach)
   const winnerPose = pose(
     [winnerX, bob(0), 0],
     {
       yaw: lerp(facing(sw), 0, victory) + turn + 0.5 * Math.max(0, s - 10.4),
       lean: -sw * (0.22 * dash - 0.18 * wind),
-      scale:
-        lerp(0.75, 1, enter(entranceDelay(winner))) *
-        lerp(1, 1.12, smooth(9.0, 10.2, s)),
+      scale: winnerScale,
       // The gulp: stretched at the swallow, settling back.
       squash: 1 + 0.15 * pulse(9.9, 10.4, s),
     },
@@ -323,7 +367,7 @@ function fullMotion(s: number, wall: number, winner: Team) {
     {
       yaw: facing(sl) + turn,
       lean: sl * 0.25 * knock,
-      scale: lerp(0.75, 1, enter(entranceDelay(loser))) * lerp(1, 0.35, shrink),
+      scale: loserScale,
       squash: 1 - 0.32 * pulse(3.15, 3.6, s),
     },
     looks,
@@ -370,18 +414,32 @@ function reduced(s: number, winner: Team) {
   const loser: Team = winner === 'A' ? 'B' : 'A'
   const looks = introLooks(s)
   // Beats change by cuts: the intro marks, closer marks from the beam clash,
-  // the two pressed together in the middle for the Devour, and the centre
-  // for the victor. Within a beat the only move is the strike's short slide
-  // in and back.
+  // the loser pressed against the winner for the Devour, and the centre for
+  // the victor. The winner holds its mark through the Devour cut: cutting
+  // both to the middle read as the loser lunging. Within a beat the only
+  // moves are the strike's short slide in and back and the swallow's.
   const closer = s >= 5.0
   const drawn = s >= 8.2
   const won = s >= 10.4
-  const mark = (team: Team) =>
-    sideOf(team) * (drawn ? CONTACT / 2 : closer ? CLASH_MARK : SEPARATION)
+  const mark = (team: Team) => sideOf(team) * (closer ? CLASH_MARK : SEPARATION)
   const lunge = smooth(2.9, 3.15, s) * (1 - smooth(3.6, 4.4, s))
   const winnerX = won ? 0 : mark(winner) - sideOf(winner) * SLIDE * lunge
-  // The beams meet in the middle and stay there.
-  const beams = beamsOf(s, winnerX, 0)
+  const pressed = drawn ? mark(winner) - sideOf(winner) * CONTACT : mark(loser)
+  // The swallow: the loser slides into the winner as it goes.
+  const loserX = pressed - sideOf(loser) * SLIDE * smooth(9.3, 10.3, s)
+  // The contact point cannot slide, so it steps towards the loser by a cut:
+  // held in one place for the whole clash, it read as a stalemate. Then the
+  // loser's beam fails and the winner's reaches the loser's front rather
+  // than empty space, and the Devour cut ends both: between two fighters
+  // that touch, a beam is only a stub.
+  const failed = s >= 7.9
+  const contact = sideOf(loser) * REDUCED_LEAD * (s < 6.8 ? 1 : 2)
+  const loserFront = loserX - sideOf(loser) * BEAM_FRONT
+  const beaming = drawn ? 0 : smooth(5.2, 5.7, s)
+  const beams = {
+    winner: { amount: beaming, to: failed ? loserFront : contact },
+    loser: { amount: failed ? 0 : beaming, to: contact },
+  }
   const still = (team: Team, x: number, beam: Beam) =>
     pose([x, 0, 0], { yaw: -sideOf(team) * 0.3 }, looks, beam)
   const camera: ClashCamera = {
@@ -394,7 +452,7 @@ function reduced(s: number, winner: Team) {
   }
   return {
     winnerPose: still(winner, winnerX, beams.winner),
-    loserPose: still(loser, mark(loser), beams.loser),
+    loserPose: still(loser, loserX, beams.loser),
     camera,
     exposure: 1 + REDUCED_FLASH * (pulse(3.15, 3.33, s) + pulse(9.9, 10.3, s)),
   }

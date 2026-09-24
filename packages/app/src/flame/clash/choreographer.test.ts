@@ -3,7 +3,7 @@
  * uniforms, the outcome for either winner, and what reduced motion keeps.
  */
 import { describe, expect, it } from 'vitest'
-import { beatCaption, BOUT_SECONDS, boutCues, boutFrame, HIT_STOPS, orbitCamera, storyTime, wallTime, } from './choreographer'
+import { BEAM_FRONT, beatCaption, BOUT_SECONDS, boutCues, boutFrame, HIT_STOPS, orbitCamera, storyTime, wallTime, } from './choreographer'
 import { DEFAULT_TINT } from './tint'
 import type { BoutFrame, BoutOptions } from './choreographer'
 
@@ -163,6 +163,82 @@ describe('a bout', () => {
     expect(boutFrame(wallTime(4.9), full).a.beam.amount).toBe(0)
   })
 
+  it('drives the beam of the winner back to the front of the loser as the clash ends', () => {
+    const f = boutFrame(wallTime(8.45), full)
+    expect(f.a.beam.amount).toBe(1)
+    // Where the loser's own beam started. Driven on into the loser, the
+    // beam put the winner's walkers where the winner's maps fling them out,
+    // up to the edge of the frame.
+    const b = f.b.placement
+    expect(f.a.beam.to).toBeCloseTo(b.position[0] - BEAM_FRONT * b.scale, 9)
+    // The loser's beam gave way before its light streams into the winner.
+    expect(boutFrame(wallTime(8.3), full).b.beam.amount).toBe(0)
+  })
+
+  it('keeps light between the two while they stand apart', () => {
+    // In full motion into the Devour; in reduced motion until its cut
+    // presses the two together.
+    const spans = [
+      [full, 9.5],
+      [calm, 8.15],
+    ] as const
+    for (const [options, until] of spans) {
+      for (let story = 5.8; story <= until; story += 0.02) {
+        const f = boutFrame(wallTime(story), options)
+        const lit = Math.max(f.a.beam.amount, f.b.beam.amount)
+        expect(lit, `at ${story.toFixed(2)}`).toBeGreaterThanOrEqual(0.5)
+      }
+    }
+  })
+
+  it('hands the light from the beam of the winner to the stream, never both at full', () => {
+    // Side by side at full strength, the stream reads as the loser's beam
+    // landing on the winner.
+    for (let story = 8.3; story <= 9.6; story += 0.02) {
+      const f = boutFrame(wallTime(story), full)
+      const both = Math.min(f.a.beam.amount, f.b.beam.amount)
+      expect(both, `at ${story.toFixed(2)}`).toBeLessThanOrEqual(0.5 + 1e-9)
+    }
+    // The winner's beam holds at the loser's front until the loser starts to
+    // be drawn in, and is out once the stream is at full.
+    expect(boutFrame(wallTime(8.5), full).a.beam.amount).toBe(1)
+    expect(boutFrame(wallTime(8.8), full).a.beam.amount).toBe(1)
+    const drawing = boutFrame(wallTime(9.2), full)
+    expect(drawing.a.beam.amount).toBe(0)
+    expect(drawing.b.beam.amount).toBe(1)
+  })
+
+  it('pushes on without a stall from when the beams meet to the break through', () => {
+    const contact = (story: number) =>
+      boutFrame(wallTime(story), full).a.beam.to
+    expect(contact(6.3) - contact(5.9)).toBeGreaterThan(0.1)
+    // Towards B at +x, and never slower than 0.15 a second on the way to the
+    // loser's front at 8.4: a push that stops reads as the loser holding.
+    for (let step = 0; step < 50; step++) {
+      const story = 5.9 + step * 0.05
+      const speed = (contact(story + 0.05) - contact(story)) / 0.05
+      expect(speed, `at ${story.toFixed(2)}`).toBeGreaterThan(0.15)
+    }
+  })
+
+  it('sways the walkers both ways, then gives the winner more and never takes them back', () => {
+    const split = (story: number) => boutFrame(wallTime(story), full).split
+    // The struggle: each side has the upper hand in turn.
+    const struggle: number[] = []
+    for (let story = 5.7; story <= 6.6; story += 0.02)
+      struggle.push(split(story))
+    expect(Math.min(...struggle)).toBeLessThan(0.45)
+    expect(Math.max(...struggle)).toBeGreaterThan(0.55)
+    // Then the winner only gains, until it holds every walker.
+    let last = split(7.0)
+    for (let story = 7.0; story <= 10.4; story += 0.02) {
+      const now = split(story)
+      expect(now, `at ${story.toFixed(2)}`).toBeGreaterThanOrEqual(last - 1e-12)
+      last = now
+    }
+    expect(last).toBe(1)
+  })
+
   it('keeps the loser in sight while it is drawn in, then swallows it', () => {
     const drawn = boutFrame(wallTime(9.5), { ...full, winner: 'B' })
     expect(drawn.beat).toBe('devour')
@@ -172,7 +248,9 @@ describe('a bout', () => {
     expect(drawn.split).toBeGreaterThan(0.3)
     expect(drawn.a.placement.scale).toBeLessThan(0.9)
     expect(drawn.a.beam.amount).toBe(1)
-    expect(drawn.a.beam.to).toBe(drawn.b.placement.position[0])
+    // The stream ends at the winner's front, short of its centre.
+    const b = drawn.b.placement
+    expect(drawn.a.beam.to).toBeCloseTo(b.position[0] - BEAM_FRONT * b.scale, 9)
     const gulped = boutFrame(wallTime(10.35), { ...full, winner: 'B' })
     expect(gulped.split).toBe(0)
     expect(gulped.b.placement.squash).toBeGreaterThan(1)
@@ -245,16 +323,79 @@ describe('reduced motion', () => {
     }
   })
 
-  it('cuts the two together in the middle for the Devour', () => {
+  it('shows the winner ahead from the moment the beams meet', () => {
+    // Nothing may move, so the beam clash is won from its first frame: the
+    // winner's beam is the longer and its side has more walkers.
+    for (let story = 5.7; story < 8.2; story += 0.05) {
+      const f = boutFrame(wallTime(story), calm)
+      const reach = (side: 'a' | 'b') =>
+        Math.abs(f[side].beam.to - f[side].placement.position[0])
+      expect(reach('a') - reach('b'), `at ${story.toFixed(2)}`).toBeGreaterThan(
+        0.5,
+      )
+      expect(f.split, `at ${story.toFixed(2)}`).toBeGreaterThan(0.55)
+    }
+  })
+
+  it('gains on the loser by cuts, and reaches it as its beam fails', () => {
+    const f = (story: number) => boutFrame(wallTime(story), calm)
+    // B, the loser, stands at +x. Held still for the whole clash, the
+    // contact point read as a stalemate; it steps towards B instead.
+    expect(f(6.0).a.beam.to).toBeGreaterThan(0.2)
+    expect(f(7.0).a.beam.to - f(6.0).a.beam.to).toBeGreaterThan(0.2)
+    // Then B's beam fails and A's reaches B's front, not empty space.
+    const through = f(8.0)
+    expect(through.b.beam.amount).toBe(0)
+    const b = through.b.placement
+    expect(through.a.beam.amount).toBe(1)
+    expect(through.a.beam.to).toBeCloseTo(
+      b.position[0] - BEAM_FRONT * b.scale,
+      9,
+    )
+  })
+
+  it('fades the loser from the Devour cut until it is gone', () => {
+    // Pressed against the winner at full strength, the loser flared.
+    const split = (story: number) => boutFrame(wallTime(story), calm).split
+    let last = split(8.2)
+    for (let story = 8.2; story <= 10.3; story += 0.05) {
+      const now = split(story)
+      expect(now, `at ${story.toFixed(2)}`).toBeGreaterThanOrEqual(last - 1e-12)
+      last = now
+    }
+    expect(split(9.3)).toBeGreaterThan(0.75)
+    expect(split(10.35)).toBe(1)
+  })
+
+  it('cuts the loser against the winner for the Devour, the winner holding its mark', () => {
     const f = (story: number) => boutFrame(wallTime(story), calm)
     // A, the winner, on the left; B stands at its clash mark until the cut.
+    // Cutting both to the middle read as the loser lunging.
     expect(f(8.1).b.placement.position[0]).toBeCloseTo(1.25, 9)
-    for (const story of [8.25, 9.0, 10.3]) {
+    for (const story of [8.25, 9.0, 9.3]) {
       const gap =
         f(story).b.placement.position[0] - f(story).a.placement.position[0]
       expect(gap).toBeCloseTo(1.1, 9)
-      expect(f(story).a.placement.position[0]).toBeCloseTo(-0.55, 9)
+      expect(f(story).a.placement.position[0]).toBeCloseTo(-1.25, 9)
     }
+  })
+
+  it('draws no beam once the cut presses the two together', () => {
+    // Between two fighters that touch, a beam is only a stub.
+    const pressed = frames.filter((f) => f.story >= 8.2)
+    expect(pressed.length).toBeGreaterThan(0)
+    for (const f of pressed) {
+      expect(f.a.beam.amount).toBe(0)
+      expect(f.b.beam.amount).toBe(0)
+    }
+  })
+
+  it('slides the loser into the winner as it is swallowed', () => {
+    const gap = (story: number) => {
+      const f = boutFrame(wallTime(story), calm)
+      return f.b.placement.position[0] - f.a.placement.position[0]
+    }
+    expect(gap(10.3)).toBeCloseTo(1.1 - 0.2 * 2 * 1.45, 9)
   })
 
   it('cuts the victor to the centre', () => {

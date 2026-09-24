@@ -18,6 +18,7 @@
  * no walker lands past either end of the rod, wherever it was.
  */
 import { latestSchemaVersion, renderSettingsDefault, } from '../schema/flameSchema'
+import { BEAM_FRONT } from './choreographer'
 import { fighterForm } from './convert2Dto3D'
 import { authoredFraming } from './framing'
 import { composeAffine, fighterFrame, IDENTITY_AFFINE, invertAffine, placementAffine, placeTransform, } from './placement'
@@ -72,12 +73,21 @@ export const STAGE_SETTINGS: FlameDescriptor['renderSettings'] = {
 
 const prefixOf = (team: Team) => (team === 'A' ? 'a_' : 'b_')
 
-/** The share of a team's steps its beam takes at full strength. */
+/**
+ * The share of a team's steps a beam of unit length takes at full strength.
+ * A beam's steps grow with its length, from half this share at length 0.5
+ * to BEAM_FULL_LENGTH times it, so a beam is lit about as brightly along its
+ * length as it grows and the winner's does not dim as it drives the contact
+ * point back.
+ */
 export const BEAM_SHARE = 0.15
+/**
+ * The length past which a beam takes no more of its team's steps. At twice
+ * the share, the winner's body was left hollow behind its longest beam.
+ */
+export const BEAM_FULL_LENGTH = 1.5
 /** A beam's thickness, against its fighter's size. */
 const BEAM_WIDTH = 0.1
-/** Where a beam starts: this far out from its fighter's centre, by size. */
-const BEAM_FRONT = 0.3
 
 /**
  * The id of each team's beam transform, and of its one variation. A fighter's
@@ -120,7 +130,8 @@ export function beamTransform(
   // The body's edge lands at the beam's width; a stray walker folds back
   // within twice that.
   const width = (BEAM_WIDTH * size) / Math.sin(Math.PI / 6)
-  const share = BEAM_SHARE * Math.min(1, Math.max(0, pose.beam.amount))
+  const reach = Math.min(BEAM_FULL_LENGTH, Math.max(0.5, 2 * half))
+  const share = BEAM_SHARE * reach * Math.min(1, Math.max(0, pose.beam.amount))
   const { hue, chroma } = TEAM_COLOUR[team]
   return {
     probability: (teamProbability * share) / (1 - share),
