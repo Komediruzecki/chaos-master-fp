@@ -117,7 +117,10 @@ export const COMBAT_COEFFICIENTS = {
  * The school lists below are keyed by registered variation TYPE, and are read
  * with `variationType()`: a variation's key in `transform.variations` is its
  * id (a generated UUID in the editor, a descriptive name in the examples),
- * which never matches a type name.
+ * which never matches a type name. A type sits on one school list only: the
+ * checks run in order, so a second listing never counts (spherical3D and
+ * sphere3D were on the symmetry list too, and read Crystal where 2D's
+ * sphericalVar reads Void).
  */
 const LINEAR_VARIATIONS = new Set(['linearVar', 'linearTVar', 'linear3D'])
 
@@ -165,8 +168,6 @@ const SYMMETRY_VARIATIONS = new Set([
   'polar3D',
   'cylinder3D',
   'cylindrical3D',
-  'spherical3D',
-  'sphere3D',
   'hemisphere3D',
 ])
 

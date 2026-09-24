@@ -149,12 +149,12 @@ describe('the bundled examples, as players see them', () => {
         'example37              Vortex  154  42  34 1270  2.56  0.54',
         'example38              Vortex  153  43  27 1241  2.50  0.53',
         'example39              Order   150  50  31 1360  3.00  0.50',
-        'example40              Vortex  153  47  33 1325  3.00  0.53',
+        'example40              Vortex  153  47  27 1289  3.00  0.53',
         'example41              Tide    143  44  27 1215  2.88  0.43',
         'example42              Order   157  48  36 1383  2.98  0.57',
         'example43              Crystal 155  47  34 1349  2.65  0.55',
         'example44              Order   146  45  29 1248  3.00  0.46',
-        'example46              Crystal 131  44  19 1123  3.00  0.31',
+        'example46              Void    131  44  16 1105  3.00  0.31',
       ])
     })
   })
@@ -330,11 +330,11 @@ describe('the bundled examples, as players see them', () => {
       // pins:archetype3D
       expect(ARCHETYPE_IDS.map(opponentRow(examples.example30))).toEqual([
         'symmetry_monolith      Crystal 148  46  30 1276   458',
-        'chaos_lord             Crystal 148  47  30 1296   435',
-        'spiral_leviathan       Crystal 148  47  30 1288   435',
-        'quantum_siren          Crystal 148  47  30 1292   435',
-        'solar_seraph           Crystal 148  46  30 1280   450',
-        'void_stalker           Crystal 148  47  30 1292   435',
+        'chaos_lord             Void    148  47  30 1296   435',
+        'spiral_leviathan       Void    148  47  30 1288   435',
+        'quantum_siren          Void    148  47  30 1292   435',
+        'solar_seraph           Void    148  46  30 1280   450',
+        'void_stalker           Void    148  47  30 1292   435',
       ])
     })
   })

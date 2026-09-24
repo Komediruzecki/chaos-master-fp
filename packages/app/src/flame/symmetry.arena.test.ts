@@ -260,7 +260,7 @@ describe('Arena symmetry: the stat sheet per fold', () => {
   describe('3D fighter', () => {
     it('score sheet, symmetry order, HP and DEF', () => {
       expect(FOLDS.map((n) => sheetRow(FIGHTER_3D, n))).toEqual([
-        [1, 900, 1.4, 1.2, 2, 3.5, 2, 164, 40, 39, 1.03, 0.41],
+        [1, 900, 1.4, 1.2, 2, 3.5, 1, 164, 32, 39, 1.03, 0.41],
         [2, 930, 2.1, 1.2, 2.5, 2.8, 2, 153, 33, 38, 3, 0.3],
         [3, 1060, 2.8, 1.2, 3.8, 2.5, 3, 147, 35, 38, 3, 0.25],
         [4, 1206, 3.5, 1.2, 5, 2.3, 4, 144, 39, 39, 3, 0.22],
@@ -273,7 +273,7 @@ describe('Arena symmetry: the stat sheet per fold', () => {
 
     it('beauty, ATK and Power', () => {
       expect(FOLDS.map((n) => powerRow(FIGHTER_3D, n))).toEqual([
-        [1, 62, 31, 1228],
+        [1, 62, 31, 1180],
         [2, 63, 39, 1221],
         [3, 66, 40, 1235],
         [4, 61, 38, 1214],
@@ -355,7 +355,7 @@ describe('Arena symmetry: a clash after C4', () => {
         ['A', 0.907, 0.089],
       ],
       finalScore: { A: 3, B: 0 },
-      combatHp: { A: 84, B: 82 },
+      combatHp: { A: 84, B: 73 },
       combatScore: { A: 2, B: 1 },
     })
   })

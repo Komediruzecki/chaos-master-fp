@@ -101,6 +101,16 @@ describe('flame/stats', () => {
       expect(classifySchool(f)).toBe('Void')
     })
 
+    // spherical3D and sphere3D sat on the Crystal and the Void list, and the
+    // Crystal check comes first, while 2D's sphericalVar is Void.
+    it('classifies the 3D spherical variations as Void, as sphericalVar is', () => {
+      for (const type of ['spherical3D', 'sphere3D']) {
+        const f = createDummyFlame(type, 1.0)
+        f.renderSettings.dimensions = 3
+        expect([type, classifySchool(f)]).toEqual([type, 'Void'])
+      }
+    })
+
     it('classifies Sinusoidal / Waves as Tide', () => {
       const f = createDummyFlame('sinusoidalVar', 1.0)
       expect(classifySchool(f)).toBe('Tide')
