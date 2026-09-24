@@ -8,7 +8,8 @@ import { examples } from '../examples'
 import { resolveIfsWgsl } from '../ifsPipelineWgsl.testUtils'
 import { shaderShapeOf } from '../shaderShape'
 import { resolveVariationType3D } from '../transformFunction3D'
-import { fighterForm, stemTwin3D, Z_TRANSPARENT_TWINS } from './convert2Dto3D'
+import { transformVariations } from '../variations'
+import { fighterForm, stemTwin3D, twin3D, Z_TRANSPARENT_TWINS, } from './convert2Dto3D'
 import type { FlameDescriptor, TransformFunction, TransformRecord, } from '../schema/flameSchema'
 
 const shape = (transforms: Record<string, unknown>) =>
@@ -52,6 +53,36 @@ describe('stemTwin3D', () => {
   ])('leaves %s alone: %s', (type) => {
     expect(stemTwin3D(type)).toBeUndefined()
   })
+})
+
+describe('twin3D', () => {
+  it.each([
+    ['sphericalVar', 'spherical3D'],
+    ['gaussianVar', 'gaussian3D'],
+  ])('is the stem twin where there is one: %s to %s', (from, to) => {
+    expect(twin3D(from)).toBe(to)
+  })
+
+  it.each([
+    ['curlVar', 'curl3D'],
+    ['pdjVar', 'pdj3D'],
+    ['cylinder2Var', 'cylindrical3D'],
+    ['cylinderApoVar', 'cylinder3D'],
+  ])(
+    'is else the analog the 3D renderer has always drawn %s as, %s',
+    (from, to) => {
+      expect(stemTwin3D(from)).toBeUndefined()
+      expect(twin3D(from)).toBe(to)
+      expect(resolveVariationType3D(from)).toBe(to)
+    },
+  )
+
+  it.each(['juliaNVar', 'fanVar', 'spherical3D', 'noSuchVar'])(
+    'is nothing for %s',
+    (type) => {
+      expect(twin3D(type)).toBeUndefined()
+    },
+  )
 })
 
 describe('fighterForm', () => {
@@ -209,23 +240,82 @@ describe('how the renderer draws a fighter', () => {
   it.each(examples2D)(
     '%s draws its own 2D functions at morph 0, no 3D analog in their place',
     (id) => {
-      expect(swaps(fighterForm(examples[id]).transformsAt(0))).toEqual([])
+      const flat = fighterForm(examples[id]).transformsAt(0)
+      expect(swaps(flat)).toEqual([])
+      for (const t of Object.values(flat)) {
+        for (const v of Object.values(t.variations)) {
+          if (!v.visible || v.weight === 0) continue
+          expect(Object.hasOwn(transformVariations, v.type)).toBe(true)
+        }
+      }
     },
   )
 
-  it('draws a kept 2D function where the renderer would swap in an analog', () => {
-    // example13 keeps curlVar and pdjVar and converts gaussianVar: at morph
-    // 0 all three run their 2D functions; the twin gaussian3D waits at
-    // weight 0, and nothing brings in curl3D or pdj3D.
-    const wgsl = resolveIfsWgsl({
-      transforms: fighterForm(examples.example13).transformsAt(0),
-      dims: 3,
-    })
+  const inflating = examples2D.filter(
+    (id) => fighterForm(examples[id]).kind === 'inflates',
+  )
+
+  it.each(inflating)(
+    '%s at morph 1 draws what the 3D renderer draws for it, the stem rule aside',
+    (id) => {
+      // Each weighted variation as [the function drawn, weight, params].
+      type V =
+        TransformFunction['variations'][keyof TransformFunction['variations']]
+      const drawn = (variations: V[], fn: (type: string) => unknown) =>
+        variations
+          .filter((v) => v.visible && v.weight !== 0 && fn(v.type))
+          .map((v) => JSON.stringify([fn(v.type), v.weight, v.params ?? null]))
+          .sort()
+      const fighter = Object.values(fighterForm(examples[id]).transformsAt(1))
+      Object.values(examples[id].transforms).forEach((t, n) => {
+        const got = drawn(Object.values(fighter[n]!.variations), (type) =>
+          resolveVariationType3D(type, true),
+        )
+        const want = drawn(
+          Object.values(t.variations),
+          (type) =>
+            resolveVariationType3D(type) &&
+            (stemTwin3D(type) ?? resolveVariationType3D(type)),
+        )
+        expect(got).toEqual(want)
+      })
+    },
+  )
+
+  it('compiles each kept 2D function beside the analog it inflates into', () => {
+    // example13 has curlVar, pdjVar and gaussianVar: its flat card draws the
+    // three 2D functions, and it inflates into curl3D, pdj3D and gaussian3D,
+    // the 3D forms the renderer draws a saved 2D flame with. One shader
+    // serves every morph.
+    const form = fighterForm(examples.example13)
+    const weighted = (morph: number) =>
+      new Set(
+        Object.values(form.transformsAt(morph)).flatMap((t) =>
+          Object.values(t.variations)
+            .filter((v) => v.weight !== 0)
+            .map((v) => resolveVariationType3D(v.type, t.from2D)),
+        ),
+      )
+    const flat = weighted(0)
+    const full = weighted(1)
+    for (const [from, to] of [
+      ['curlVar', 'curl3D'],
+      ['pdjVar', 'pdj3D'],
+      ['gaussianVar', 'gaussian3D'],
+    ] as const) {
+      expect([flat.has(from), flat.has(to)]).toEqual([true, false])
+      expect([full.has(from), full.has(to)]).toEqual([false, true])
+    }
+    const wgsl = resolveIfsWgsl({ transforms: form.transformsAt(0), dims: 3 })
+    expect(resolveIfsWgsl({ transforms: form.transformsAt(1), dims: 3 })).toBe(
+      wgsl,
+    )
+    // The simple 3D variations compile unnamed; the rest keep their names.
     expect(wgsl).toMatch(/\bcurlVar\(/)
-    expect(wgsl).toMatch(/\bpdjVar\(/)
-    expect(wgsl).toMatch(/\bgaussianVar\(/)
-    expect(wgsl).not.toMatch(/\bcurl3D\(/)
-    expect(wgsl).not.toMatch(/\bpdj3D\(/)
+    expect(wgsl).toMatch(/\bpdj3D\(/)
+    expect(form.converted).toEqual(
+      expect.arrayContaining(['curlVar -> curl3D', 'pdjVar -> pdj3D']),
+    )
   })
 
   it('leaves out what its 2D editor skips, a 3D type or an unknown name', () => {

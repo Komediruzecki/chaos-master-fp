@@ -1,14 +1,16 @@
 /**
  * A 2D fighter entering the 3D clash (design decision D5, option c).
  *
- * Only inside the clash, a 2D variation whose name has a 3D twin by the stem
- * rule (`sphericalVar` -> `spherical3D`, neither taking parameters) turns into
- * that twin. Every other 2D variation keeps its 2D function, which the 3D
+ * Only inside the clash, a 2D variation with a 3D twin turns into that twin:
+ * its twin by the stem rule (`sphericalVar` -> `spherical3D`, neither taking
+ * parameters), or else the analog the 3D renderer has always drawn it as in a
+ * saved 2D flame, from its table VARIATION_2D_TO_3D_MAP (`curlVar` ->
+ * `curl3D`). Every other 2D variation keeps its 2D function, which the 3D
  * pipeline runs on (x, y) while z passes through. Each transform of a 2D
- * fighter is marked `from2D`, so the renderer runs its 2D variations as
- * themselves and not as the 3D analogs its table, VARIATION_2D_TO_3D_MAP,
- * gives a saved 2D flame; a variation the 2D pipeline would skip (a 3D type,
- * an unknown name) is left out. How a saved flame renders is untouched.
+ * fighter is marked `from2D`, so the renderer draws its 2D variations as
+ * themselves, never swapped for their analogs; a variation the 2D pipeline
+ * would skip (a 3D type, an unknown name) is left out. The table is read,
+ * never changed, so how a saved flame renders is untouched.
  *
  * A converting fighter enters as its flat card (the pre-affine's z row
  * zeroed, so it is exactly its 2D self lying in a plane) and inflates into its
@@ -23,7 +25,7 @@
  * the random z it started with and the fighter renders as a smeared slab, the
  * failure the design measured for as-is rendering.
  */
-import { toAffine3D } from '../transformFunction3D'
+import { toAffine3D, VARIATION_2D_TO_3D_MAP } from '../transformFunction3D'
 import { isParametricVariationType, transformVariations } from '../variations'
 import { isParametricVariationType3D, transformVariations3D, } from '../variations3D'
 import type { FlameDescriptor, TransformFunction, VariationId, } from '../schema/flameSchema'
@@ -35,6 +37,7 @@ export const Z_TRANSPARENT_TWINS: ReadonlySet<string> = new Set([
   'swirl3D',
   'cylinder3D',
   'bent3D',
+  'cylindrical3D',
 ])
 
 /** The id a converted variation's 3D twin takes beside it. */
@@ -53,6 +56,22 @@ export function stemTwin3D(type: string): string | undefined {
   const twin = `${type.slice(0, -'Var'.length)}3D`
   if (!Object.hasOwn(transformVariations3D, twin)) return undefined
   return isParametricVariationType3D(twin) ? undefined : twin
+}
+
+/**
+ * The 3D twin a registered 2D variation turns into: its stem twin, or else
+ * the analog the 3D renderer draws it as in a saved 2D flame, or undefined
+ * when it has neither and keeps its 2D function. An analog may take
+ * parameters its 2D variation names differently; the twin is handed the 2D
+ * variation's parameters, which is how the renderer has always drawn it.
+ */
+export function twin3D(type: string): string | undefined {
+  const stem = stemTwin3D(type)
+  if (stem) return stem
+  if (!Object.hasOwn(transformVariations, type)) return undefined
+  return Object.hasOwn(VARIATION_2D_TO_3D_MAP, type)
+    ? VARIATION_2D_TO_3D_MAP[type]
+    : undefined
 }
 
 export type FighterKind = 'native3D' | 'inflates' | 'flatCard'
@@ -147,7 +166,7 @@ export function fighterForm(flame: FlameDescriptor): FighterForm {
   let depth = false
   for (const { transform: t } of lifted) {
     for (const v of Object.values(t.variations)) {
-      const twin = stemTwin3D(v.type)
+      const twin = twin3D(v.type)
       if (!twin) {
         kept.add(v.type)
         continue
@@ -195,7 +214,7 @@ function withTwins(
 ): TransformFunction['variations'] {
   const out: Record<string, Variation> = {}
   for (const [vid, v] of Object.entries(variations)) {
-    const twin = stemTwin3D(v.type)
+    const twin = twin3D(v.type)
     if (!twin) {
       out[vid] = v
       continue
@@ -205,6 +224,7 @@ function withTwins(
       type: twin,
       weight: v.weight * t,
       visible: v.visible,
+      ...(v.params && { params: v.params }),
     }
   }
   return out
