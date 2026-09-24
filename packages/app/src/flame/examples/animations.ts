@@ -397,7 +397,8 @@ const anim2c: AnimationDef = {
       keyframes: [
         { frame: 0, value: 20 },
         { frame: 30, value: 5 },
-        { frame: 60, value: 40 },
+        { frame: 51, value: 30 },
+        { frame: 75, value: 30 },
         { frame: 90, value: 20 },
       ],
     },
@@ -497,7 +498,8 @@ const anim3b: AnimationDef = {
       parameterPath: 'skipIters',
       keyframes: [
         { frame: 0, value: 20 },
-        { frame: 45, value: 35 },
+        { frame: 30, value: 30 },
+        { frame: 60, value: 30 },
         { frame: 90, value: 20 },
       ],
     },
@@ -1445,7 +1447,8 @@ const anim8b: AnimationDef = {
       parameterPath: 'skipIters',
       keyframes: [
         { frame: 0, value: 20 },
-        { frame: 45, value: 40 },
+        { frame: 22, value: 30 },
+        { frame: 68, value: 30 },
         { frame: 90, value: 20 },
       ],
     },
@@ -1836,7 +1839,8 @@ const anim11b: AnimationDef = {
       keyframes: [
         { frame: 0, value: 20 },
         { frame: 30, value: 5 },
-        { frame: 60, value: 45 },
+        { frame: 49, value: 30 },
+        { frame: 78, value: 30 },
         { frame: 90, value: 20 },
       ],
     },
@@ -2445,7 +2449,8 @@ const anim14c: AnimationDef = {
       keyframes: [
         { frame: 0, value: 20 },
         { frame: 30, value: 8 },
-        { frame: 60, value: 35 },
+        { frame: 54, value: 30 },
+        { frame: 70, value: 30 },
         { frame: 90, value: 20 },
       ],
     },
@@ -2697,7 +2702,8 @@ const anim15c: AnimationDef = {
       parameterPath: 'skipIters',
       keyframes: [
         { frame: 0, value: 20 },
-        { frame: 45, value: 40 },
+        { frame: 22, value: 30 },
+        { frame: 68, value: 30 },
         { frame: 90, value: 20 },
       ],
     },
@@ -3187,7 +3193,8 @@ const anim17c: AnimationDef = {
       keyframes: [
         { frame: 0, value: 20 },
         { frame: 30, value: 5 },
-        { frame: 60, value: 40 },
+        { frame: 51, value: 30 },
+        { frame: 75, value: 30 },
         { frame: 90, value: 20 },
       ],
     },
@@ -3338,7 +3345,8 @@ const anim18b: AnimationDef = {
       keyframes: [
         { frame: 0, value: 25 },
         { frame: 25, value: 5 },
-        { frame: 50, value: 50 },
+        { frame: 39, value: 30 },
+        { frame: 62, value: 30 },
         { frame: 75, value: 10 },
         { frame: 90, value: 25 },
       ],
@@ -3872,7 +3880,8 @@ const anim20c: AnimationDef = {
     {
       parameterPath: 'skipIters',
       keyframes: [
-        { frame: 0, value: 40 },
+        { frame: 0, value: 30 },
+        { frame: 10, value: 30 },
         { frame: 25, value: 15 },
         { frame: 50, value: 5 },
         { frame: 75, value: 20 },
@@ -4051,7 +4060,8 @@ const anim21b: AnimationDef = {
       keyframes: [
         { frame: 0, value: 20 },
         { frame: 30, value: 3 },
-        { frame: 60, value: 40 },
+        { frame: 52, value: 30 },
+        { frame: 75, value: 30 },
         { frame: 90, value: 20 },
       ],
     },

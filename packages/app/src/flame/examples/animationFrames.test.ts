@@ -11,11 +11,13 @@
  * a seeded set of random times, under each loop mode, because loop synthesis
  * resolves times the keyframes never name.
  */
+import { flameDomainPlans, projectNumber } from '@chaos-master/core'
 import { describe, expect, it } from 'vitest'
 import { validateFlameWithErrors } from '@/flame/schema/flameSchema'
 import { deepClone } from '@/utils/clone'
 import { applyTracksToFlame, defaultConfig, getUserEndFrame, loopOptsFromConfig, } from '@/utils/timeline'
 import { animationDefs, getAnimationFlame } from './animations'
+import type { DomainPlan, NumberDomain } from '@chaos-master/core'
 import type { AnimationDef } from './animations'
 import type { LoopMode, TimelineConfig } from '@/utils/timeline'
 
@@ -91,5 +93,52 @@ describe('bundled animation frames', () => {
       failures,
       `${failures.length} invalid frames in ${byAnimation.size} animations:\n${summary}\n\nfirst failures:\n${first}`,
     ).toEqual([])
+  })
+})
+
+/** The schema domain a render-setting track writes into, if it has one. */
+function trackDomain(parameterPath: string): DomainPlan | undefined {
+  const { flat } = flameDomainPlans()
+  let plan: DomainPlan | undefined = flat
+  for (const key of ['renderSettings', ...parameterPath.split('.')]) {
+    if (plan?.kind !== 'fields') return undefined
+    plan = plan.fields.find(([k]) => k === key)?.[1]
+  }
+  return plan
+}
+
+function outside(value: unknown, plan: DomainPlan | undefined): boolean {
+  if (!plan) return false
+  const inDomain = (v: unknown, d: NumberDomain) =>
+    typeof v !== 'number' || projectNumber(v, d) === v
+  if (plan.kind === 'number') {
+    return !plan.domain.cyclic && !inDomain(value, plan.domain)
+  }
+  if (plan.kind === 'fields' && Array.isArray(value)) {
+    return plan.fields.some(
+      ([i, item]) =>
+        item.kind === 'number' && !inDomain(value[i as number], item.domain),
+    )
+  }
+  return false
+}
+
+describe('bundled keyframes', () => {
+  // A cyclic field is exempt: palettePhase keyed 0 -> 2 is two turns of the
+  // palette, which no pair of in-range keys can say, and every frame of it
+  // still lands in range. ex11-dark-pulse, ex12-color-refraction,
+  // ex14-hex-drift and ex16-ngon-crystallize key it that way on purpose.
+  it('hold every bounded render setting inside its schema domain', () => {
+    const outOfRange = animationDefs.flatMap((anim) =>
+      anim.tracks.flatMap((track) =>
+        track.keyframes
+          .filter((kf) => outside(kf.value, trackDomain(track.parameterPath)))
+          .map(
+            (kf) =>
+              `${anim.id} ${track.parameterPath} @${kf.frame} = ${String(kf.value)}`,
+          ),
+      ),
+    )
+    expect(outOfRange).toEqual([])
   })
 })
