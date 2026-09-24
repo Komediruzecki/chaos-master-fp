@@ -10,6 +10,8 @@
  * - With the Glass panels setting on, no text is accent: the search toggle,
  *   the selected tab and the Randomize button take ink, and the tab and the
  *   button keep the accent in their fill and edge.
+ * - On glass the variation gallery's scrollbar takes an ink it holds 3:1
+ *   with, where its hairline thumb was about the glass's own colour.
  *
  * Read from disk rather than imported: the test runtime turns a CSS module
  * import into class names. So it is registered in scripts/always-on-tests.mjs.
@@ -117,9 +119,9 @@ describe('the touch inspector stylesheet', () => {
   })
 
   it('writes the selected tab and the Randomize button in ink on glass', () => {
-    // Accent text falls to 3.85:1 on the rail's 80% glass over white-hot
-    // art. The glass rule also outranks the button's own :hover colour: it
-    // adds :root and an attribute to a class.
+    // Accent text falls to 3.85:1 on 80% glass over white-hot art. The
+    // glass rule also outranks the button's own :hover colour: it adds
+    // :root and an attribute to a class.
     const inked = rules(css)
       .filter(([selector]) => selector.startsWith(GLASS_ON))
       .filter(([, body]) => value(body, 'color') === 'var(--la-ink)')
@@ -139,5 +141,22 @@ describe('the touch inspector stylesheet', () => {
     expect(value(rule(css, '.actionPillBtnPrimary'), 'border-color')).toBe(
       'var(--la-accent-edge)',
     )
+  })
+
+  it('draws the gallery scrollbar in ink-3 on glass, the hairline elsewhere', () => {
+    // Chrome draws the thumb from scrollbar-color, Safari from the WebKit
+    // thumb. Glass maps ink-3 to ink-2 (glass.module.css, .panel).
+    expect(value(rule(css, '.variationsCarousel'), 'scrollbar-color')).toBe(
+      'var(--la-hairline-strong) transparent',
+    )
+    expect(
+      value(rule(css, `${GLASS_ON} .variationsCarousel`), 'scrollbar-color'),
+    ).toBe('var(--la-ink-3) transparent')
+    expect(
+      value(
+        rule(css, `${GLASS_ON} .variationsCarousel::-webkit-scrollbar-thumb`),
+        'background',
+      ),
+    ).toBe('var(--la-ink-3)')
   })
 })
