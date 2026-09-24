@@ -277,7 +277,7 @@ wraps the whole panel in `<Show when={props.open}>`.)_
 mobile sidebar-toggle button, because the sidebar it opens is not mounted.
 
 _(`MainWorkspace.tsx:3791` passes `hideMobileSidebarToggle={isPhone() ||
-isTablet()}`; `CanvasViewport.tsx:146` (`hideMobileSidebarToggle`) gates the button on
+isTablet()}`; `CanvasViewport.tsx:174` (`hideMobileSidebarToggle`) gates the button on
 `props.isMobile() && !props.hideMobileSidebarToggle`.)_
 
 ### REQ-TL-015 — The phone grid is one full-bleed viewport cell
@@ -344,7 +344,7 @@ only grid classes and sibling chrome — never the `AutoCanvas` element, its
 device, or its accumulated render.
 
 _(`MainWorkspace.tsx:3798-3934` (`CanvasViewport`) mounts one `CanvasViewport` outside every
-layout gate; `CanvasViewport.tsx:174-183` (`AutoCanvas`) mounts one `AutoCanvas`. The layout
+layout gate; `CanvasViewport.tsx:202-211` (`AutoCanvas`) mounts one `AutoCanvas`. The layout
 reads beside it, `MainWorkspace.tsx:3784` (`railLayout`) and `:3791`
 (`hideMobileSidebarToggle`), only feed a class string and a boolean prop.)_
 
