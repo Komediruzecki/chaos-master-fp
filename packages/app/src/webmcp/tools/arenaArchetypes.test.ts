@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { initExample } from '@/flame/examples/initExample'
 import { initExample3D } from '@/flame/examples/initExample3D'
 import { transformVariations } from '@/flame/variations'
 import { transformVariations3D } from '@/flame/variations3D'
@@ -127,6 +128,52 @@ describe('arenaArchetypes', () => {
         ).toEqual([])
       }
     }
+  })
+
+  // A one-transform base (a fresh project, 2D or 3D) mutated into a
+  // one-transform opponent, which rendered nearly black. Such a base is not
+  // mutated: the opponent is rolled fresh from the archetype's recipe, in
+  // the base's dimension and under its render settings (no camera fitting).
+  it('rolls a fresh opponent from the archetype for a base below two transforms', () => {
+    for (const base of [initExample3D, initExample]) {
+      const dims = base.renderSettings.dimensions ?? 2
+      expect(Object.keys(base.transforms)).toHaveLength(1)
+      for (const id of ARCHETYPE_IDS) {
+        const pool: string[] =
+          dims === 3
+            ? ARENA_ARCHETYPES[id].allowedVariations3D
+            : ARENA_ARCHETYPES[id].allowedVariations
+        for (const seed of [1, 42, 999]) {
+          const label = `${dims}D ${id} seed ${seed}`
+          const { flame } = generateArchetypeOpponent(base, id, seed)
+          const transforms = Object.values(flame.transforms)
+          expect(transforms.length, label).toBeGreaterThanOrEqual(2)
+          expect(transforms.length, label).toBeLessThanOrEqual(5)
+          const types = transforms.flatMap((t) =>
+            Object.values(t.variations).map((v) => v.type),
+          )
+          expect(
+            types.filter((type) => !pool.includes(type)),
+            label,
+          ).toEqual([])
+          expect(flame.renderSettings, label).toEqual({
+            ...base.renderSettings,
+            palettePhase: ARENA_ARCHETYPES[id].paletteHue,
+          })
+          expect(flame.metadata.name, label).toBe(ARENA_ARCHETYPES[id].name)
+        }
+      }
+    }
+    expect(generateArchetypeOpponent(initExample3D, 'chaos_lord', 7)).toEqual(
+      generateArchetypeOpponent(initExample3D, 'chaos_lord', 7),
+    )
+  })
+
+  it('still mutates a base with two transforms or more', () => {
+    const { flame } = generateArchetypeOpponent(baseFlame, 'chaos_lord', 42)
+    expect(Object.keys(flame.transforms)).toEqual(
+      expect.arrayContaining(['t1', 't2']),
+    )
   })
 
   it('defines tactical stances with distinct stat multipliers', () => {

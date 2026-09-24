@@ -1,4 +1,4 @@
-import { mutateFlameSeeded } from '@/flame/randomize'
+import { generateSeededRandomFlame, mutateFlameSeeded } from '@/flame/randomize'
 import { calculateGroundedStats } from '@/flame/stats'
 import { deepClone } from '@/utils/clone'
 import { calculateFlameStats } from '@/webmcp/tools/scoreFlame'
@@ -346,29 +346,38 @@ export function generateArchetypeOpponent(
 
   const current = deepClone(baseFlame)
   const dims = current.renderSettings.dimensions ?? 2
+  const config = {
+    strength: archetype.mutationStrength,
+    minTransforms: 2,
+    maxTransforms: 5,
+    minVariations: 1,
+    maxVariations: 3,
+    allowedVariations:
+      dims === 3 ? archetype.allowedVariations3D : archetype.allowedVariations,
+    dimensions: dims,
+  }
 
-  const mutated = mutateFlameSeeded(
-    current,
-    {
-      strength: archetype.mutationStrength,
-      minTransforms: 2,
-      maxTransforms: 5,
-      minVariations: 1,
-      maxVariations: 3,
-      allowedVariations:
-        dims === 3
-          ? archetype.allowedVariations3D
-          : archetype.allowedVariations,
-      dimensions: dims,
-    },
-    {
-      mutateAffine: true,
-      affineMode: 'smart',
-      mutateVariations: 'all',
-      mutateColors: true,
-    },
-    seed,
-  )
+  // A base below two transforms (a fresh project, 2D or 3D) has too little
+  // structure to mutate into a rival: its opponents rendered nearly black. So
+  // it is rolled fresh from the archetype's recipe instead, and keeps only the
+  // base's render settings, camera and exposure included.
+  const mutated =
+    Object.keys(current.transforms).length < 2
+      ? {
+          ...current,
+          transforms: generateSeededRandomFlame(config, seed).transforms,
+        }
+      : mutateFlameSeeded(
+          current,
+          config,
+          {
+            mutateAffine: true,
+            affineMode: 'smart',
+            mutateVariations: 'all',
+            mutateColors: true,
+          },
+          seed,
+        )
 
   // Ensure metadata and render settings match archetype theme
   mutated.metadata = {
