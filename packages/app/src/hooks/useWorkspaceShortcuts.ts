@@ -2,6 +2,7 @@ import { isThemeChord } from '@/arcade/lockKeyGate'
 import { pilotOwnsKeyboard } from '@/arcade/pilot'
 import { executeCommand } from '@/commands/registry'
 import { animationExportRunning } from '@/flame/renderStats'
+import { startViewTransition } from '@/lib/viewTransition'
 import { useShortcutManager } from '@/shortcuts'
 import { useKeyboardShortcuts } from '@/utils/useKeyboardShortcuts'
 import type { CommandContext } from '@/commands/types'
@@ -63,11 +64,7 @@ export function useWorkspaceShortcuts(params: UseWorkspaceShortcutsParams) {
       // under the screen lock before any listener runs; kept until WP9 takes
       // these checks out one at a time, each with its own test.
       if (pilotOwnsKeyboard()) return false
-      if ('startViewTransition' in document) {
-        document.startViewTransition(toggleSidebarAsAuthoredAction)
-      } else {
-        toggleSidebarAsAuthoredAction()
-      }
+      startViewTransition(toggleSidebarAsAuthoredAction)
       return true
     },
     KeyZ: (ev) => {
@@ -108,11 +105,7 @@ export function useWorkspaceShortcuts(params: UseWorkspaceShortcutsParams) {
       const toggleTheme = () => {
         setTheme(theme() === 'dark' ? 'light' : 'dark')
       }
-      if ('startViewTransition' in document) {
-        document.startViewTransition(toggleTheme)
-      } else {
-        toggleTheme()
-      }
+      startViewTransition(toggleTheme)
       return true
     },
     KeyI: (ev) => {
