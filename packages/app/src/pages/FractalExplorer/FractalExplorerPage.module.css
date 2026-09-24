@@ -236,6 +236,7 @@
   composes: panel from '@/styles/designSystem/glass.module.css';
   --slider-ink: var(--la-ink-2);
   --slider-ink-hover: var(--la-ink);
+  --slider-ink-targeted: var(--la-ink);
   --slider-track-filled: var(--la-ink-4);
   --slider-track-empty: var(--la-hairline-strong);
   --palette-ink: var(--la-ink);

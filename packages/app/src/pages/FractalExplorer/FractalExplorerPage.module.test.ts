@@ -109,4 +109,14 @@ describe('the shared controls on the explorer glass', () => {
     }
     expect(wrong).toEqual([])
   })
+
+  it('writes a targeted slider in ink on the panel, and the accent elsewhere', () => {
+    // A slider the keyboard or a controller has targeted writes its label
+    // in the accent, 3.55:1 at worst on the panel over white-hot art. On the
+    // panel it takes ink; the accent stays in its edge and its wash.
+    expect(CONTROLS['Slider.module.css']).toMatch(
+      /\.label\.targeted span\s*\{[^}]*color:\s*var\(--slider-ink-targeted,\s*var\(--accent-color,\s*#3b82f6\)\);/,
+    )
+    expect(set.get('--slider-ink-targeted')).toBe('var(--la-ink)')
+  })
 })

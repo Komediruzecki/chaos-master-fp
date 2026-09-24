@@ -7,6 +7,8 @@
  *
  *   --slider-ink            the label, the value and the thumb
  *   --slider-ink-hover      the same while hovered or focused
+ *   --slider-ink-targeted   the label and the value of a targeted slider,
+ *                           whose edge and wash stay the accent
  *   --slider-track-filled   the track up to the thumb
  *   --slider-track-empty    the track past it
  *
@@ -57,7 +59,7 @@
 }
 
 .label.targeted span {
-  color: var(--accent-color, #3b82f6);
+  color: var(--slider-ink-targeted, var(--accent-color, #3b82f6));
   font-weight: 500;
 }
 

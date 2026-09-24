@@ -1,11 +1,15 @@
 /**
- * The touch inspector's controls as its stylesheet writes them, which the
- * test DOM does not apply (TouchSurface.module.css).
+ * The touch inspector's controls and text as its stylesheet writes them,
+ * which the test DOM does not apply (TouchSurface.module.css; the text tiers
+ * are docs/plans/glass-panels.md, decision c).
  *
- * Every control fills with a control token (lumen.css): the hairline wash it
- * always had on an opaque surface, and an opaque fill of its own where the
- * floating tablet deck sets one (TabletDeck.module.css). Its edge keeps the
- * hairline, so on the deck the edge and the fill are two colours.
+ * - Every control fills with a control token (lumen.css): the hairline wash
+ *   it always had on an opaque surface, and an opaque fill of its own where
+ *   the floating tablet deck sets one (TabletDeck.module.css). Its edge
+ *   keeps the hairline, so on the deck the edge and the fill are two colours.
+ * - With the Glass panels setting on, no text is accent: the search toggle,
+ *   the selected tab and the Randomize button take ink, and the tab and the
+ *   button keep the accent in their fill and edge.
  *
  * Read from disk rather than imported: the test runtime turns a CSS module
  * import into class names. So it is registered in scripts/always-on-tests.mjs.
@@ -20,6 +24,8 @@ const read = (...path: string[]) =>
     ' ',
   )
 const css = read('TouchSurface.module.css')
+
+const GLASS_ON = ":global(:root[data-glass-panels='on'])"
 
 /** Every rule of a stylesheet as [selector, declarations], spaces folded. */
 function rules(sheet: string): [string, string][] {
@@ -108,5 +114,30 @@ describe('the touch inspector stylesheet', () => {
       )
       .map(([selector]) => selector)
     expect(strays).toEqual([])
+  })
+
+  it('writes the selected tab and the Randomize button in ink on glass', () => {
+    // Accent text falls to 3.85:1 on the rail's 80% glass over white-hot
+    // art. The glass rule also outranks the button's own :hover colour: it
+    // adds :root and an attribute to a class.
+    const inked = rules(css)
+      .filter(([selector]) => selector.startsWith(GLASS_ON))
+      .filter(([, body]) => value(body, 'color') === 'var(--la-ink)')
+      .map(([selector]) => selector)
+      .join(' ')
+    for (const name of [
+      'searchToggleBtn',
+      'tabChipActive',
+      'actionPillBtnPrimary',
+    ]) {
+      expect(inked, name).toMatch(new RegExp(`\\.${name}(?![\\w-])`))
+    }
+    // The accent stays in the fill and the edge.
+    expect(value(rule(css, '.tabChipActive'), 'border-color')).toBe(
+      'var(--la-accent-edge)',
+    )
+    expect(value(rule(css, '.actionPillBtnPrimary'), 'border-color')).toBe(
+      'var(--la-accent-edge)',
+    )
   })
 })
