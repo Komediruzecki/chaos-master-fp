@@ -11,7 +11,7 @@
  * and the classes the stylesheet keys on.
  */
 import { cleanup, render, screen } from '@solidjs/testing-library'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createSpotlightTourState, SpotlightTourContext, } from '@/contexts/SpotlightTourContext'
 import { ThemeContextProvider, useTheme } from '@/contexts/ThemeContext'
 import { setTouchLayoutPreference } from '@/stores/workspaceLayoutStore'
@@ -34,8 +34,8 @@ function ThemeIs(props: { theme: Theme }) {
   return null
 }
 
-function mountTour(theme: Theme = 'dark') {
-  const tour = createSpotlightTourState(() => TOUR)
+function mountTour(theme: Theme = 'dark', guide: TourGuide = TOUR) {
+  const tour = createSpotlightTourState(() => guide)
   const tourContext = {
     finishAllAnimations: () => {},
     snapshotFlame: () => ({}),
@@ -49,7 +49,7 @@ function mountTour(theme: Theme = 'dark') {
       </SpotlightTourContext.Provider>
     </ThemeContextProvider>
   ))
-  tour.startTour(TOUR.id)
+  tour.startTour(guide.id)
   return tour
 }
 
@@ -69,6 +69,7 @@ const cardChild = (name: string) =>
 afterEach(() => {
   cleanup()
   setTouchLayoutPreference('auto')
+  vi.restoreAllMocks()
 })
 
 describe('the tour on glass', () => {
@@ -97,6 +98,43 @@ describe('the tour on glass', () => {
     // arrow, its child, could then frost only the card's fill, not the art.
     expect(card().classList.contains('panel')).toBe(false)
   })
+
+  it.each([
+    { place: 'bottom', seam: 'top', along: 'left' },
+    { place: 'top', seam: 'bottom', along: 'left' },
+    { place: 'left', seam: 'right', along: 'top' },
+    { place: 'right', seam: 'left', along: 'top' },
+  ] as const)(
+    "breaks the layer's edge at the arrow of a card placed $place",
+    ({ place, seam, along }) => {
+      window.innerWidth = 1000
+      window.innerHeight = 800
+      vi.spyOn(document.body, 'getBoundingClientRect').mockReturnValue({
+        left: 400,
+        top: 380,
+        width: 200,
+        height: 40,
+        right: 600,
+        bottom: 420,
+        x: 400,
+        y: 380,
+        toJSON: () => ({}),
+      })
+      const [first, ...rest] = TOUR.steps
+      mountTour('dark', {
+        ...TOUR,
+        steps: [{ ...first!, position: place }, ...rest],
+      })
+      // The tour places its card on a resize as well as on a step.
+      window.dispatchEvent(new Event('resize'))
+
+      const layer = cardChild('glassLayer') as HTMLElement
+      const arrow = cardChild('arrow') as HTMLElement
+      expect(layer.dataset.seam).toBe(seam)
+      expect(arrow.style[along]).toMatch(/px$/)
+      expect(layer.style.getPropertyValue('--seam-at')).toBe(arrow.style[along])
+    },
+  )
 
   it('keeps the light card on the desktop in the light theme', () => {
     setTouchLayoutPreference('desktop')

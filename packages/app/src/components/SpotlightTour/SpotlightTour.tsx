@@ -15,6 +15,18 @@ interface SpotlightTourProps {
 const CARD_PADDING = 16
 const HOLE_PADDING = 8
 
+/**
+ * The edge of a card placed on `side` of its target that carries the arrow:
+ * where the glass layer breaks its own edge for the arrow's base
+ * (SpotlightTour.module.css, .glassLayer[data-seam]).
+ */
+const SEAM_EDGE = {
+  top: 'bottom',
+  bottom: 'top',
+  left: 'right',
+  right: 'left',
+} as const
+
 export function SpotlightTour(props: SpotlightTourProps) {
   const tour = useSpotlightTour()
   const { theme } = useTheme()
@@ -38,7 +50,6 @@ export function SpotlightTour(props: SpotlightTourProps) {
   const [cardStyle, setCardStyle] = createSignal<Record<string, string>>({})
   const [arrowStyle, setArrowStyle] = createSignal<Record<string, string>>({})
   const [arrowClass, setArrowClass] = createSignal('')
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [cardPosition, setCardPosition] = createSignal<
     'top' | 'bottom' | 'left' | 'right'
   >('bottom')
@@ -513,7 +524,14 @@ export function SpotlightTour(props: SpotlightTourProps) {
             aria-label={step()?.title}
           >
             <Show when={glassCard()}>
-              <div class={ui.glassLayer} aria-hidden="true" />
+              {/* The arrow's centre sits at its offset along the edge: its
+                  class also pulls it back by half its width. */}
+              <div
+                class={ui.glassLayer}
+                aria-hidden="true"
+                data-seam={SEAM_EDGE[cardPosition()]}
+                style={{ '--seam-at': arrowStyle().left ?? arrowStyle().top }}
+              />
             </Show>
             <div
               class={ui.arrow}

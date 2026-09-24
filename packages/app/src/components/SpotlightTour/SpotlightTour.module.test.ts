@@ -46,6 +46,35 @@ describe('the tour card stylesheet', () => {
     expect(keyframes('cardFade')).toMatch(/opacity/)
   })
 
+  it('draws no shadow on the layer or the arrow', () => {
+    // The layer's shadow, drawn after the arrow, darkened it below the card.
+    expect(declarations('.glassLayer')).toMatch(/box-shadow:\s*none;/)
+    expect(declarations('.glassArrow')).toMatch(/box-shadow:\s*none;/)
+  })
+
+  it.each(['top', 'bottom', 'left', 'right'])(
+    "breaks the layer's edge for an arrow on its %s side",
+    (side) => {
+      // The edge ran on across the arrow's base, as bright as the outline.
+      // The break stops 10px from the arrow's middle, short of the base's
+      // ends at 11.31px: stopping at 11px left the art showing in a sliver
+      // of the edge there, between the break and the arrow's 2px band.
+      const rule = declarations(`.glassLayer[data-seam='${side}']`)
+      expect(rule).toMatch(/mask:/)
+      expect(rule).toMatch(/var\(--seam-at\) - 10px/)
+      expect(rule).toMatch(/var\(--seam-at\) \+ 10px/)
+    },
+  )
+
+  it.each(['Top', 'Bottom', 'Left', 'Right'])(
+    'lets the glass arrow%s fill the break, 2px past its diagonal',
+    (side) => {
+      expect(declarations(`.glassCard .arrow${side}`)).toMatch(
+        /clip-path:[^;]*2\.828px/,
+      )
+    },
+  )
+
   it("gives the arrow the light card's fill only", () => {
     // Inherited on glass, it would take the card's fill, which is none.
     expect(declarations('.arrow')).not.toMatch(/background/)
