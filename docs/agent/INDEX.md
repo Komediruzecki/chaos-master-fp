@@ -30,7 +30,7 @@ file instead of rediscovering the architecture every session.
 
 | Directory                 | Package name                   | Source files | LOC    |
 | ------------------------- | ------------------------------ | ------------ | ------ |
-| `packages/app`            | `chaos-master`                 | 1103         | 188.2k |
+| `packages/app`            | `chaos-master`                 | 1109         | 189.0k |
 | `packages/core`           | `@chaos-master/core`           | 26           | 3.6k   |
 | `packages/landing`        | `@chaos-master/landing`        | 20           | 2.5k   |
 | `packages/mobile-runtime` | `@chaos-master/mobile-runtime` | 7            | 600    |
@@ -102,12 +102,13 @@ file instead of rediscovering the architecture every session.
 | `BenchmarkModal`        | [BenchmarkModal.tsx](../../packages/app/src/components/BenchmarkModal/BenchmarkModal.tsx)                      | 850  | _(no header comment)_                                                                                                                        |
 | `CustomVariationEditor` | [CustomVariationEditor.tsx](../../packages/app/src/components/CustomVariationEditor/CustomVariationEditor.tsx) | 850  | _(no header comment)_                                                                                                                        |
 | `FloatingActions`       | [FloatingActions.tsx](../../packages/app/src/components/FloatingActions/FloatingActions.tsx)                   | 750  | _(no header comment)_                                                                                                                        |
+| `HelpModal`             | [HelpModal.tsx](../../packages/app/src/components/HelpModal/HelpModal.tsx)                                     | 750  | _(no header comment)_                                                                                                                        |
 | `Migration`             | [Migration.tsx](../../packages/app/src/components/Migration/Migration.tsx)                                     | 750  | _(no header comment)_                                                                                                                        |
-| `HelpModal`             | [HelpModal.tsx](../../packages/app/src/components/HelpModal/HelpModal.tsx)                                     | 700  | _(no header comment)_                                                                                                                        |
+| `SpotlightTour`         | [SpotlightTour.tsx](../../packages/app/src/components/SpotlightTour/SpotlightTour.tsx)                         | 700  | _(no header comment)_                                                                                                                        |
 | `FlameColorEditor`      | [FlameColorEditor.tsx](../../packages/app/src/components/FlameColorEditor/FlameColorEditor.tsx)                | 650  | _(no header comment)_                                                                                                                        |
 | `Shell`                 | [ShellBar.tsx](../../packages/app/src/components/Shell/ShellBar.tsx)                                           | 650  | _(no header comment)_                                                                                                                        |
-| `SpotlightTour`         | [SpotlightTour.tsx](../../packages/app/src/components/SpotlightTour/SpotlightTour.tsx)                         | 650  | _(no header comment)_                                                                                                                        |
 | `WgslEditor`            | [index.ts](../../packages/app/src/components/WgslEditor/index.ts)                                              | 650  | _(no header comment)_                                                                                                                        |
+| `CanvasViewport`        | [index.ts](../../packages/app/src/components/CanvasViewport/index.ts)                                          | 550  | _(no header comment)_                                                                                                                        |
 | `QuickVariationPicker`  | [QuickVariationPicker.tsx](../../packages/app/src/components/QuickVariationPicker/QuickVariationPicker.tsx)    | 550  | _(no header comment)_                                                                                                                        |
 | `WelcomeScreen`         | [WelcomeScreen.tsx](../../packages/app/src/components/WelcomeScreen/WelcomeScreen.tsx)                         | 550  | _(no header comment)_                                                                                                                        |
 | `EvolutionChamber`      | [EvolutionChamber.tsx](../../packages/app/src/components/EvolutionChamber/EvolutionChamber.tsx)                | 500  | _(no header comment)_                                                                                                                        |
@@ -120,7 +121,6 @@ file instead of rediscovering the architecture every session.
 | `WorkspaceModalsHost`   | [index.ts](../../packages/app/src/components/WorkspaceModalsHost/index.ts)                                     | 400  | _(no header comment)_                                                                                                                        |
 | `BlendFlameGallery`     | [BlendFlameGallery.tsx](../../packages/app/src/components/BlendFlameGallery/BlendFlameGallery.tsx)             | 350  | _(no header comment)_                                                                                                                        |
 | `SonificationPanel`     | [SonificationPanel.tsx](../../packages/app/src/components/SonificationPanel/SonificationPanel.tsx)             | 350  | _(no header comment)_                                                                                                                        |
-| `CanvasViewport`        | [index.ts](../../packages/app/src/components/CanvasViewport/index.ts)                                          | 300  | _(no header comment)_                                                                                                                        |
 | `ErrorHandling`         | [ErrorHandling.tsx](../../packages/app/src/components/ErrorHandling/ErrorHandling.tsx)                         | 300  | _(no header comment)_                                                                                                                        |
 | `WorkspaceBottomBar`    | [index.ts](../../packages/app/src/components/WorkspaceBottomBar/index.ts)                                      | 300  | _(no header comment)_                                                                                                                        |
 | `MathEditor`            | [MathEditor.tsx](../../packages/app/src/components/MathEditor/MathEditor.tsx)                                  | 250  | _(no header comment)_                                                                                                                        |
@@ -305,8 +305,8 @@ file instead of rediscovering the architecture every session.
 | [WheelZoomCamera3D.tsx](../../packages/app/src/lib/WheelZoomCamera3D.tsx) | 650 | _(no header comment)_ |
 | [galleryContent.ts](../../packages/app/src/lib/galleryContent.ts)         | 300 | _(no header comment)_ |
 | [pauseSave.ts](../../packages/app/src/lib/pauseSave.ts)                   | 300 | _(no header comment)_ |
+| [WheelZoomCamera2D.tsx](../../packages/app/src/lib/WheelZoomCamera2D.tsx) | 300 | _(no header comment)_ |
 | [WebgpuAdapter.ts](../../packages/app/src/lib/WebgpuAdapter.ts)           | 250 | _(no header comment)_ |
-| [WheelZoomCamera2D.tsx](../../packages/app/src/lib/WheelZoomCamera2D.tsx) | 250 | _(no header comment)_ |
 
 #### Application root (`packages/app/src/*.tsx`)
 
@@ -315,7 +315,7 @@ file instead of rediscovering the architecture every session.
 | [MainWorkspace.tsx](../../packages/app/src/MainWorkspace.tsx) | 4.5k | _(no header comment)_                                    |
 | [App.tsx](../../packages/app/src/App.tsx)                     | 500  | _(no header comment)_                                    |
 | [defaults.ts](../../packages/app/src/defaults.ts)             | 150  | _(no header comment)_                                    |
-| [index.tsx](../../packages/app/src/index.tsx)                 | 50   | @refresh reload \*/                                      |
+| [index.tsx](../../packages/app/src/index.tsx)                 | 100  | @refresh reload \*/                                      |
 | [valibot.ts](../../packages/app/src/valibot.ts)               | 50   | We re-export only things we use to keep the bundle small |
 | [version.ts](../../packages/app/src/version.ts)               | 50   | _(no header comment)_                                    |
 | [vitest.setup.ts](../../packages/app/src/vitest.setup.ts)     | 50   | Vitest test setup file.                                  |
