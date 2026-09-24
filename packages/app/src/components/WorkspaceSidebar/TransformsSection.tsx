@@ -10,7 +10,8 @@ import { AngleEditor } from '@/components/Sliders/ParametricEditors/AngleEditor'
 import { ScrubInput } from '@/components/Sliders/ScrubInput'
 import { Slider } from '@/components/Sliders/Slider'
 import { random01, randomizeVariationParams } from '@/flame/randomize'
-import { isSymmetryMirror } from '@/flame/symmetryDetection'
+import { symmetryRotationPreAffine } from '@/flame/symmetry'
+import { affineLayout, isSymmetryMirror, symmetryRotationAngle, symmetryRotationTerms, } from '@/flame/symmetryDetection'
 import { isAnyParametricVariationType, isVariationType, } from '@/flame/variations'
 import { getNormalizedVariationName, getParamsEditor, } from '@/flame/variations/utils'
 import { Cross, Eye, EyeOff, Plus, Shuffle } from '@/icons'
@@ -617,12 +618,7 @@ export function TransformsSection(props: TransformsSectionProps) {
                     flameDescriptor.transforms[tid as TransformId]!
                   const preAffine = () => transform().preAffine
                   const isReflection = () => isSymmetryMirror(preAffine())
-                  const angle = () => {
-                    const a = preAffine()
-                    let v = Math.atan2(a.d, a.a)
-                    if (v < 0) v += 2 * Math.PI
-                    return v
-                  }
+                  const angle = () => symmetryRotationAngle(preAffine())
                   return (
                     <div
                       class={ui.symItem}
@@ -660,28 +656,21 @@ export function TransformsSection(props: TransformsSectionProps) {
                             mode="inline"
                             value={angle()}
                             dataParameterPath={`transform.${tid}.preAffine.a`}
-                            keyframePaths={[
-                              `transform.${tid}.preAffine.a`,
-                              `transform.${tid}.preAffine.b`,
-                              `transform.${tid}.preAffine.d`,
-                              `transform.${tid}.preAffine.e`,
-                            ]}
+                            keyframePaths={symmetryRotationTerms(
+                              preAffine(),
+                            ).map(
+                              (term) => `transform.${tid}.preAffine.${term}`,
+                            )}
                             setValue={(newAngle) => {
-                              const cos = Math.cos(newAngle)
-                              const sin = Math.sin(newAngle)
                               executeCommand(
                                 'flame.setTransformAffine',
                                 cmdContext,
                                 tid,
                                 'pre',
-                                {
-                                  a: cos,
-                                  b: -sin,
-                                  c: 0,
-                                  d: sin,
-                                  e: cos,
-                                  f: 0,
-                                },
+                                symmetryRotationPreAffine(
+                                  newAngle,
+                                  affineLayout(preAffine()),
+                                ),
                               )
                             }}
                           />

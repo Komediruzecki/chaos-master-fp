@@ -1,6 +1,7 @@
 import { generateTransformId, generateVariationId, } from '@/flame/transformFunction'
 import { defaultLinearType } from '@/flame/variationRegistry'
 import { deepClone } from '@/utils/clone'
+import type { AffineLayout } from './symmetryDetection'
 import type { FlameDescriptor, TransformId } from '@/flame/schema/flameSchema'
 
 /**
@@ -111,4 +112,17 @@ export function applySymmetryToFlame(
   }
 
   return draft
+}
+
+/**
+ * The preAffine the Symmetry card's angle editor writes for a rotation by
+ * `angle` about the origin, with no translation.
+ */
+export function symmetryRotationPreAffine(
+  angle: number,
+  _layout: AffineLayout,
+): Record<string, number> {
+  const cos = Math.cos(angle)
+  const sin = Math.sin(angle)
+  return { a: cos, b: -sin, c: 0, d: sin, e: cos, f: 0 }
 }

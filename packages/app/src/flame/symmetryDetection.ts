@@ -13,6 +13,9 @@ export type SymmetryType = 'rotational' | 'dihedral'
 
 type AffineLike = Readonly<Record<string, number | undefined>>
 
+/** Which key layout an affine uses: `{ a b c / d e f }` or `{ a b c d / e f g h / i j k l }`. */
+export type AffineLayout = '2D' | '3D'
+
 /**
  * True when a preAffine uses the 3D key layout. The same test the 3D renderer
  * makes (`isAffine3D` in transformFunction3D.ts): any of `g`-`l` present.
@@ -81,4 +84,24 @@ export function detectSymmetryFolds(
   return detectSymmetryType(symTransforms) === 'dihedral'
     ? symTransforms.length
     : symTransforms.length + 1
+}
+
+/** The key layout of an affine, decided as `has3DLayout` decides it. */
+export function affineLayout(affine: AffineLike): AffineLayout {
+  return has3DLayout(affine) ? '3D' : '2D'
+}
+
+/**
+ * The angle the Symmetry card shows for one rotation transform, in
+ * [0, 2 pi).
+ */
+export function symmetryRotationAngle(affine: AffineLike): number {
+  let angle = Math.atan2(affine.d ?? 0, affine.a ?? 1)
+  if (angle < 0) angle += 2 * Math.PI
+  return angle
+}
+
+/** The preAffine terms the card's angle editor keys for a rotation. */
+export function symmetryRotationTerms(_affine: AffineLike): readonly string[] {
+  return ['a', 'b', 'd', 'e']
 }
