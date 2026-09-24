@@ -94,6 +94,7 @@
 
 .sheet.glassPanel .chip[aria-selected='true'] {
   color: var(--la-ink);
+  background: var(--la-control-accent);
 }
 
 .grabberRow {

@@ -46,6 +46,12 @@ describe('the editor rail stylesheet', () => {
       expect(value(rail), token).toBeDefined()
       expect(value(rail), token).toBe(value(floating))
     }
+    // The selected chip's own wash is translucent too; on the glass sheet it
+    // takes the opaque accent fill, as the deck's selected tab does.
+    const selected = declarations(
+      ".sheet.glassPanel .chip[aria-selected='true']",
+    )
+    expect(selected).toMatch(/background:\s*var\(--la-control-accent\);/)
   })
 
   it('gives the shutter a fill its accent icon holds 3:1 on by itself', () => {
