@@ -439,7 +439,7 @@ reactivity (and sonification) before swapping the document, because the
 modulation loop writes render settings continuously and would otherwise keep
 driving the incoming flame.
 
-_(`MainWorkspace.tsx:2398-2403` (`setAudioEnabled`))_
+_(`MainWorkspace.tsx:2388-2393` (`setAudioEnabled`))_
 
 ---
 
