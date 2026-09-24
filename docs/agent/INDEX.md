@@ -182,7 +182,7 @@ file instead of rediscovering the architecture every session.
 | Module     | Entry point                                                                              | LOC  | What it is                                                                                       |
 | ---------- | ---------------------------------------------------------------------------------------- | ---- | ------------------------------------------------------------------------------------------------ |
 | `deepzoom` | [deepZoomView.ts](../../packages/core/src/deepzoom/deepZoomView.ts)                      | 1.7k | The deep-zoom camera: a centre with unlimited digits and a magnification held as a power of two. |
-| `schema`   | [flameSchema.ts](../../packages/core/src/schema/flameSchema.ts)                          | 1.3k | _(no header comment)_                                                                            |
+| `schema`   | [flameSchema.ts](../../packages/core/src/schema/flameSchema.ts)                          | 1.4k | _(no header comment)_                                                                            |
 | `diff`     | [fdiff.ts](../../packages/core/src/diff/fdiff.ts)                                        | 300  | _(no header comment)_                                                                            |
 | `math`     | [affine3DView.ts](../../packages/core/src/math/affine3DView.ts)                          | 250  | _(no header comment)_                                                                            |
 | `utils`    | [prettyPrintValibotErrors.ts](../../packages/core/src/utils/prettyPrintValibotErrors.ts) | 100  | _(no header comment)_                                                                            |
