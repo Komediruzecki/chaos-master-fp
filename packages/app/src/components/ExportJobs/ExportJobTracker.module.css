@@ -92,11 +92,22 @@
   color: #fff;
 }
 
+/* The chevron and the dismiss cross are the app's icons (@/icons), drawn
+   in currentColor. Typed as the characters they were, their shape and
+   weight came from whichever font had them. */
 .chevron {
   margin-left: auto;
-  font-size: 0.7rem;
+  display: inline-flex;
   color: var(--tracker-ink-2, var(--color-text-secondary, #999));
   transition: transform 0.15s ease;
+}
+
+.chevron svg,
+.dismiss svg {
+  display: block;
+  width: 0.75rem;
+  height: 0.75rem;
+  stroke-width: 2.5;
 }
 
 .chevronUp {
@@ -142,8 +153,6 @@
   border: none;
   background: none;
   color: var(--tracker-ink-2, var(--color-text-secondary, #888));
-  font-size: 0.7rem;
-  line-height: 1;
   cursor: pointer;
   padding: 0.15rem;
   border-radius: 0.25rem;
