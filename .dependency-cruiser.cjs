@@ -38,9 +38,9 @@ module.exports = {
       // dependency-cruiser reads the package.json closest to the importing
       // file, so for core that is core's own manifest.
       //
-      // typegpu is allowed because it is declared. Whether core should carry
-      // it at all is docs/agent/BUGS.md #33; this rule does not decide that,
-      // and CONVENTIONS.md section 5 asks for no new typegpu import.
+      // typegpu is declared, so this rule lets it through; `core-typegpu-frozen`
+      // below keeps it to the files that import it today. Whether core should
+      // carry it at all is docs/agent/BUGS.md #33.
       name: 'core-declared-deps-only',
       severity: 'error',
       comment:
@@ -63,6 +63,25 @@ module.exports = {
           'undetermined',
         ],
       },
+    },
+    {
+      // docs/agent/BUGS.md #33: core carries a TypeGPU shader function and
+      // pulls typegpu into the Worker's import graph. Until that is settled,
+      // typegpu stays in the three core files that import it today (frozen in
+      // WP3b, 2026-09-24). A fourth file is an error; the fix for #33 shrinks
+      // this list, and nothing should grow it.
+      name: 'core-typegpu-frozen',
+      severity: 'error',
+      comment:
+        'typegpu is frozen to math/affineTransform.ts, ' +
+        'math/affineTransform3D.ts and utils/schemaUtil.ts in core ' +
+        '(docs/agent/BUGS.md #33). Keep new GPU code in the app.',
+      from: {
+        path: '^packages/core/src',
+        pathNot:
+          '^packages/core/src/(math/affineTransform|math/affineTransform3D|utils/schemaUtil)\\.ts$',
+      },
+      to: { path: '(^|/)typegpu(/|$)' },
     },
     {
       // An error, not a warning, since WP2 deleted the last eight orphans

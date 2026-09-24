@@ -113,14 +113,14 @@ WebGPU. Anything that can live there should, because it is the part of the
 tree that is trivially testable: it holds 16 test files against the app's 334,
 and 84.89% line coverage against the app's 53.22%.
 
-`pnpm arch` enforces it with two rules. `core-stays-pure` refuses Solid,
+`pnpm arch` enforces it with three rules. `core-stays-pure` refuses Solid,
 `@webgpu/*` and any other workspace package. `core-declared-deps-only` refuses
 every import that is not one of core's declared `dependencies` (valibot,
 structurajs, typegpu): no dev dependency, no package only the root or the app
-declares, no Node built-in. Core does import `typegpu`, in
-`math/affineTransform.ts`, `math/affineTransform3D.ts` and `utils/schemaUtil.ts`,
-and the rule lets it through because it is declared (BUGS.md #33 is whether it
-should be); see [CODE-HEALTH.md](CODE-HEALTH.md) §3. Do not add another.
+declares, no Node built-in. `core-typegpu-frozen` keeps typegpu to the three
+core files that import it today, `math/affineTransform.ts`,
+`math/affineTransform3D.ts` and `utils/schemaUtil.ts`, until BUGS.md #33 is
+settled; see [CODE-HEALTH.md](CODE-HEALTH.md) §3. A fourth file is an error.
 
 A module in core with a twin in the app is re-exported by the app, not copied
 (`utils/easing.ts`, `utils/record.ts` and `utils/schemaUtil.ts` since #115).

@@ -145,14 +145,15 @@ npm imports now reach the rules. `core-stays-pure` refuses `solid-js`,
 `@webgpu/*` and any other workspace package; `core-declared-deps-only` refuses
 anything that is not in core's own `dependencies`: a dev dependency, a package
 only the root or the app declares, a Node built-in, an import that does not
-resolve. typegpu is declared, so it passes; whether core should carry it is
+resolve. typegpu is declared, so it passes, and `core-typegpu-frozen` keeps it
+to the three files that import it today; whether core should carry it is
 BUGS.md #33. Planted in `packages/core/src/utils/schemaUtil.ts`,
 `@codemirror/search` (a root devDependency, browser-only), `node:fs` and
-`happy-dom` were green on main and are errors now; `solid-js`,
-`@webgpu/types` and an import of `packages/app` were already red, because an
-import that does not resolve keeps its bare name, which the path rule matched.
-The graph grew from 1,310 modules and 5,545 dependencies to 1,344 and 7,189:
-the 34 npm entry files are leaves now, not gaps.
+`happy-dom` were green on main and are errors now; `solid-js`, `@webgpu/types`
+and an import of `packages/app` were already red, because an import that does
+not resolve keeps its bare name, which the path rule matched. The graph grew
+from 1,310 modules and 5,545 dependencies to 1,344 and 7,189: the 34 npm entry
+files are leaves now, not gaps.
 
 ### dependency-cruiser will not run on odd-numbered Node
 

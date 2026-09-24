@@ -150,10 +150,11 @@ errors: `@chaos-master/core` imports `typegpu` in `math/affineTransform.ts`,
 DOM or Solid import.
 
 Since WP3b (2026-09-23) npm modules stay in the graph as leaves, and core has
-two rules: `core-stays-pure` (Solid, `@webgpu/*`, other workspace packages)
-and `core-declared-deps-only` (nothing outside core's own `dependencies`: no
-dev dependency, no undeclared package, no Node built-in). typegpu is declared,
-so it passes; that call is BUGS.md #33, not the rule's. The graph is then 1,344
+two rules: `core-stays-pure` (Solid, `@webgpu/*`, other workspace packages) and
+`core-declared-deps-only` (nothing outside core's own `dependencies`: no dev
+dependency, no undeclared package, no Node built-in). typegpu is declared, so
+it passes that rule, and a third, `core-typegpu-frozen` (2026-09-24), keeps it
+to the three files above until BUGS.md #33 is settled. The graph is then 1,344
 modules and 7,189 dependencies, with no violations; the extra 34 modules are
 npm entry files.
 
