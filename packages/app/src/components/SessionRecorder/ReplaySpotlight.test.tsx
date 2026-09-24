@@ -335,6 +335,41 @@ describe('ReplaySpotlight tracking', () => {
     window.innerHeight = innerHeight
   })
 
+  it('keeps clear only the part of the flame the glass sidebar leaves', () => {
+    const { innerWidth, innerHeight } = window
+    window.innerWidth = 1920
+    window.innerHeight = 1080
+    const canvas = document.createElement('canvas')
+    canvas.dataset.replayRegion = 'canvas'
+    // The wide sidebar over a canvas box that spans the whole window.
+    canvas.dataset.coveredLeft = String(409.6 / 1920)
+    canvas.getBoundingClientRect = () => ({
+      left: 0,
+      top: 0,
+      width: 1920,
+      height: 1080,
+      right: 1920,
+      bottom: 1080,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    })
+    document.body.append(canvas)
+
+    const action: RecordedAction = { t: 0, id: 'flame.setGamma', args: [2.4] }
+    const { unmount } = render(() => (
+      <ReplaySpotlight action={action} finished={false} />
+    ))
+
+    const cutout = document.querySelector('[data-replay-mask-role="canvas"]')
+    expect(Number(cutout?.getAttribute('x'))).toBeCloseTo(409.6, 6)
+    expect(Number(cutout?.getAttribute('width'))).toBeCloseTo(1510.4, 6)
+
+    unmount()
+    window.innerWidth = innerWidth
+    window.innerHeight = innerHeight
+  })
+
   it('remeasures when the deck opens or closes over the canvas', () => {
     // Collapsing the deck changes no box, only the canvas's attribute.
     const canvas = document.createElement('canvas')
@@ -349,7 +384,10 @@ describe('ReplaySpotlight tracking', () => {
     expect(mutationObserver?.observe).toHaveBeenCalledWith(
       document.body,
       expect.objectContaining({
-        attributeFilter: expect.arrayContaining(['data-covered-right']),
+        attributeFilter: expect.arrayContaining([
+          'data-covered-left',
+          'data-covered-right',
+        ]),
       }),
     )
     for (const time of [100, 200, 300, 400]) flushFrame(time)
@@ -357,6 +395,15 @@ describe('ReplaySpotlight tracking', () => {
 
     mutationObserver?.callback(
       [fakeMutation(canvas, 'attributes', [], 'data-covered-right')],
+      mutationObserver as unknown as MutationObserver,
+    )
+    expect(frameCallbacks.size).toBe(1)
+    for (const time of [500, 600, 700, 800]) flushFrame(time)
+    expect(frameCallbacks.size).toBe(0)
+
+    // And the glass sidebar floating over the canvas or not.
+    mutationObserver?.callback(
+      [fakeMutation(canvas, 'attributes', [], 'data-covered-left')],
       mutationObserver as unknown as MutationObserver,
     )
     expect(frameCallbacks.size).toBe(1)

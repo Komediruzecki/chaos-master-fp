@@ -1,15 +1,17 @@
 /**
  * A tour step on the canvas lights up only the part of it on show. With the
  * Glass panels setting on, the canvas runs on under the floating tablet
- * deck, which says how much of it it covers (data-covered-right,
- * CanvasViewport/visibleCanvas.ts): the hole stops where the deck starts,
- * and moves when the deck opens or closes, which resizes nothing.
+ * deck and the glass desktop sidebar, which say how much of it they cover
+ * (data-covered-right and data-covered-left,
+ * CanvasViewport/visibleCanvas.ts): the hole stops where the deck starts and
+ * starts where the sidebar ends, and moves when either opens or closes,
+ * which resizes nothing.
  */
 import { cleanup, render } from '@solidjs/testing-library'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createSpotlightTourState, SpotlightTourContext, } from '@/contexts/SpotlightTourContext'
 import { ThemeContextProvider } from '@/contexts/ThemeContext'
-import { setTrailingCover } from '@/lib/canvasFraming'
+import { setLeadingCover, setTrailingCover } from '@/lib/canvasFraming'
 import { SpotlightTour } from './SpotlightTour'
 import type { TourContext, TourGuide } from './tourTypes'
 
@@ -75,6 +77,7 @@ function hole() {
 
 afterEach(() => {
   setTrailingCover(0)
+  setLeadingCover(0)
   cleanup()
   document.body.replaceChildren()
   vi.restoreAllMocks()
@@ -93,6 +96,32 @@ describe('a tour step on the canvas', () => {
     mountTour()
 
     expect(hole()).toEqual({ x: 80 - PADDING, width: 720 + 2 * PADDING })
+  })
+
+  it('starts where the glass sidebar ends', () => {
+    // 200 px of the 1100 px box under the sidebar's glass.
+    workspace().dataset.coveredLeft = String(200 / 1100)
+    mountTour()
+
+    const { x, width } = hole()
+    expect(x).toBeCloseTo(280 - PADDING, 6)
+    expect(width).toBeCloseTo(900 + 2 * PADDING, 6)
+  })
+
+  it('measures again when the sidebar floats over it or stops', async () => {
+    const canvas = workspace()
+    mountTour()
+    expect(hole().x).toBe(80 - PADDING)
+
+    canvas.dataset.coveredLeft = String(200 / 1100)
+    setLeadingCover(200)
+    await Promise.resolve()
+    expect(hole().x).toBeCloseTo(280 - PADDING, 6)
+
+    delete canvas.dataset.coveredLeft
+    setLeadingCover(0)
+    await Promise.resolve()
+    expect(hole().x).toBe(80 - PADDING)
   })
 
   it('measures again when the deck opens or closes over it', async () => {

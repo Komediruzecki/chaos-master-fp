@@ -1,12 +1,13 @@
 /**
- * The canvas end of the framing beside the floating tablet deck: what the
- * cameras are given, what the canvas says about itself, and what a capture is
- * handed, with the deck over the canvas and without it, and while an export
- * sizes the canvas (useViewFraming.ts).
+ * The canvas end of the framing beside the chrome that floats over it, the
+ * tablet deck at the trailing edge and the glass desktop sidebar at the
+ * leading one: what the cameras are given, what the canvas says about itself,
+ * and what a capture is handed, with chrome over the canvas and without it,
+ * and while an export sizes the canvas (useViewFraming.ts).
  */
 import { createRoot, createSignal } from 'solid-js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { NO_SHIFT, setTrailingCover } from '@/lib/canvasFraming'
+import { NO_SHIFT, NOT_COVERED, setLeadingCover, setTrailingCover, } from '@/lib/canvasFraming'
 import { useViewFraming } from './useViewFraming'
 import type { ExportImageType } from '@/flame/exportImageType'
 import type { ExportDimensions } from '@/utils/exportDimensions'
@@ -42,18 +43,21 @@ function mountFraming() {
 
 /** The 2D context the cut draws into, which the test runtime does not have. */
 function stubDrawing() {
+  const drawImage = vi.fn()
   // `never`, since the spy is typed by getContext's last overload, 'webgpu'.
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(
     () =>
       ({
         globalCompositeOperation: 'source-over',
-        drawImage: () => {},
+        drawImage,
       }) as never,
   )
+  return drawImage
 }
 
 afterEach(() => {
   setTrailingCover(0)
+  setLeadingCover(0)
   vi.restoreAllMocks()
 })
 
@@ -61,8 +65,10 @@ describe('the view framing', () => {
   it('shifts nothing and marks nothing while nothing covers the canvas', () => {
     const { framing, canvas, dispose } = mountFraming()
 
+    expect(framing.covered()).toBe(NOT_COVERED)
     expect(framing.viewShift()).toBe(NO_SHIFT)
     expect(canvas.dataset.coveredRight).toBeUndefined()
+    expect(canvas.dataset.coveredLeft).toBeUndefined()
     dispose()
   })
 
@@ -89,6 +95,38 @@ describe('the view framing', () => {
     setTrailingCover(0)
     expect(framing.viewShift()).toBe(NO_SHIFT)
     expect(canvas.dataset.coveredRight).toBeUndefined()
+    dispose()
+  })
+
+  it('frames the flame beside the sidebar and says how much it covers', () => {
+    const { framing, canvas, dispose } = mountFraming()
+
+    setLeadingCover(200)
+
+    // The centre moves half the sidebar's cover to the right: 100 of the
+    // canvas's 550 half-width, in clip units.
+    expect(framing.viewShift().x).toBeCloseTo(200 / 1100, 6)
+    expect(framing.viewShift().y).toBe(0)
+    expect(Number(canvas.dataset.coveredLeft)).toBeCloseTo(200 / 1100, 6)
+    expect(canvas.dataset.coveredRight).toBeUndefined()
+    dispose()
+  })
+
+  it('frames the flame between both, and marks each edge', () => {
+    const { framing, canvas, dispose } = mountFraming()
+
+    setLeadingCover(200)
+    setTrailingCover(380)
+
+    expect(framing.covered().left).toBeCloseTo(200 / 1100, 6)
+    expect(framing.covered().right).toBeCloseTo(380 / 1100, 6)
+    expect(framing.viewShift().x).toBeCloseTo((200 - 380) / 1100, 6)
+    expect(Number(canvas.dataset.coveredLeft)).toBeCloseTo(200 / 1100, 6)
+    expect(Number(canvas.dataset.coveredRight)).toBeCloseTo(380 / 1100, 6)
+
+    setLeadingCover(0)
+    expect(canvas.dataset.coveredLeft).toBeUndefined()
+    expect(framing.viewShift().x).toBeCloseTo(-380 / 1100, 6)
     dispose()
   })
 
@@ -128,24 +166,54 @@ describe('what a capture is handed', () => {
     dispose()
   })
 
+  it('is the visible part while the sidebar covers some of the canvas', () => {
+    const drawImage = stubDrawing()
+    const { framing, canvas, setOnExportImage, dispose } = mountFraming()
+    const capture = vi.fn()
+    setLeadingCover(200)
+    setOnExportImage(() => capture)
+
+    framing.exportImage()?.(canvas, { finalImageReady: true })
+
+    const handed = capture.mock.calls[0]?.[0] as HTMLCanvasElement
+    expect(handed).not.toBe(canvas)
+    expect([handed.width, handed.height]).toEqual([900, 820])
+    // Cut from where the sidebar's cover ends, not from the canvas's edge.
+    expect(drawImage).toHaveBeenCalledWith(
+      canvas,
+      200,
+      0,
+      900,
+      820,
+      0,
+      0,
+      900,
+      820,
+    )
+    dispose()
+  })
+
   it('is the whole canvas, unshifted, while an export sizes the canvas', () => {
-    // An export renders its own frame at its own size: the deck has no
-    // part in it, so the camera is not shifted and nothing is cut.
+    // An export renders its own frame at its own size: neither the deck nor
+    // the sidebar has a part in it, so the camera is not shifted and nothing
+    // is cut.
     stubDrawing()
     const { framing, canvas, setExportDimensions, setOnExportImage, dispose } =
       mountFraming()
     const capture = vi.fn()
     setTrailingCover(380)
+    setLeadingCover(200)
     setExportDimensions({ width: 1920, height: 1080 })
     setOnExportImage(() => capture)
 
     expect(framing.viewShift()).toBe(NO_SHIFT)
     expect(canvas.dataset.coveredRight).toBeUndefined()
+    expect(canvas.dataset.coveredLeft).toBeUndefined()
     framing.exportImage()?.(canvas, { finalImageReady: true })
     expect(capture).toHaveBeenCalledWith(canvas, { finalImageReady: true })
 
     setExportDimensions(undefined)
-    expect(framing.viewShift().x).toBeCloseTo(-380 / 1100, 6)
+    expect(framing.viewShift().x).toBeCloseTo((200 - 380) / 1100, 6)
     dispose()
   })
 })

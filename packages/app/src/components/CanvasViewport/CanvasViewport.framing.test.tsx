@@ -1,17 +1,20 @@
 /**
- * What the canvas viewport does with the part of the canvas the floating
- * tablet deck covers (lib/canvasFraming.ts), besides the camera's shift.
+ * What the canvas viewport does with the part of the canvas that chrome
+ * floating over it covers (lib/canvasFraming.ts), the tablet deck at the
+ * trailing edge and the glass desktop sidebar at the leading one, besides
+ * the camera's shift.
  *
- * The edge fade goes while the deck floats open: the canvas's trailing rim is
- * under the glass there, and the fade laid a dark band down the deck (a light
- * one in the light theme) that the setting-off page never had. And the box
- * carries the covered share as --covered-right, so the hover badge centres
- * on the part on show instead of on the whole canvas (App.module.css).
+ * The edge fade goes while either floats over the canvas: the canvas's rim is
+ * under the glass there, and the fade laid a dark band down it (a light one
+ * in the light theme) that the setting-off page never had. And the box
+ * carries the covered shares as --covered-left and --covered-right, so the
+ * hover badge centres on the part on show instead of on the whole canvas
+ * (App.module.css).
  */
 import { cleanup, render } from '@solidjs/testing-library'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { examples } from '@/flame/examples'
-import { setTrailingCover } from '@/lib/canvasFraming'
+import { NOT_COVERED, setLeadingCover, setTrailingCover, } from '@/lib/canvasFraming'
 import { CanvasViewport, EDGE_FADE_COLOR, edgeFadeColor, } from './CanvasViewport'
 import type { CanvasViewportProps } from './CanvasViewport'
 
@@ -39,6 +42,8 @@ vi.mock('@/utils/useElementSize', () => ({
 
 /** A 380 px deck over a 1100 px canvas. */
 const COVERED = 380 / 1100
+/** 200 px of the same canvas under the glass sidebar. */
+const COVERED_LEFT = 200 / 1100
 
 const channels = (colour: { x: number; y: number; z: number; w: number }) => [
   colour.x,
@@ -70,24 +75,33 @@ function mountViewport() {
 
 afterEach(() => {
   setTrailingCover(0)
+  setLeadingCover(0)
   cleanup()
 })
 
 describe('the edge fade', () => {
   it("is the theme's beside the sidebar with nothing over the canvas", () => {
-    expect(edgeFadeColor('dark', true, 0)).toBe(EDGE_FADE_COLOR.dark)
-    expect(edgeFadeColor('light', true, 0)).toBe(EDGE_FADE_COLOR.light)
+    expect(edgeFadeColor('dark', true, NOT_COVERED)).toBe(EDGE_FADE_COLOR.dark)
+    expect(edgeFadeColor('light', true, NOT_COVERED)).toBe(
+      EDGE_FADE_COLOR.light,
+    )
   })
 
   it('is off in full screen, as it always was', () => {
-    expect(channels(edgeFadeColor('dark', false, 0))).toEqual([0, 0, 0, 0])
+    expect(channels(edgeFadeColor('dark', false, NOT_COVERED))).toEqual([
+      0, 0, 0, 0,
+    ])
   })
 
   it('is off while the deck floats open over the canvas', () => {
-    expect(channels(edgeFadeColor('dark', true, COVERED))).toEqual([0, 0, 0, 0])
-    expect(channels(edgeFadeColor('light', true, COVERED))).toEqual([
-      0, 0, 0, 0,
-    ])
+    const deck = { left: 0, right: COVERED }
+    expect(channels(edgeFadeColor('dark', true, deck))).toEqual([0, 0, 0, 0])
+    expect(channels(edgeFadeColor('light', true, deck))).toEqual([0, 0, 0, 0])
+  })
+
+  it('is off while the glass sidebar floats over the canvas', () => {
+    const sidebar = { left: COVERED_LEFT, right: 0 }
+    expect(channels(edgeFadeColor('dark', true, sidebar))).toEqual([0, 0, 0, 0])
   })
 })
 
@@ -105,6 +119,18 @@ describe('the covered share on the canvas box', () => {
     const box = mountViewport()
 
     expect(box.style.getPropertyValue('--covered-right')).toBe('')
+  })
+
+  it("carries the sidebar's share at the leading edge", () => {
+    const box = mountViewport()
+
+    setLeadingCover(200)
+    expect(Number(box.style.getPropertyValue('--covered-left'))).toBeCloseTo(
+      COVERED_LEFT,
+    )
+    expect(box.style.getPropertyValue('--covered-right')).toBe('')
+    setLeadingCover(0)
+    expect(box.style.getPropertyValue('--covered-left')).toBe('')
   })
 
   it('follows the deck as it opens and closes', () => {

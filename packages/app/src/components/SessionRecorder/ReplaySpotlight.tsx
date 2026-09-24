@@ -1,6 +1,6 @@
 import { createEffect, createSignal, createUniqueId, For, onCleanup, Show, } from 'solid-js'
 import { Portal } from 'solid-js/web'
-import { visibleClientRect } from '@/components/CanvasViewport/visibleCanvas'
+import { COVERED_ATTRIBUTES, visibleClientRect, } from '@/components/CanvasViewport/visibleCanvas'
 import { focusSelectors, resolveFocusElement, revealFocusElement, } from '@/recorder/focus'
 import styles from './ReplaySpotlight.module.css'
 import type { RecordedAction } from '@/recorder/schema'
@@ -115,9 +115,14 @@ export function ReplaySpotlight(props: {
       if (mutationRoots.has(record.target) || layoutPeers.has(record.target)) {
         return true
       }
-      // The deck opening or closing over the canvas moves no box: the canvas
+      // Chrome opening or closing over the canvas moves no box: the canvas
       // only says how much of it is covered (visibleCanvas.ts).
-      if (record.attributeName === 'data-covered-right') return true
+      if (
+        record.attributeName !== null &&
+        COVERED_ATTRIBUTES.includes(record.attributeName)
+      ) {
+        return true
+      }
 
       const nodes = [...record.addedNodes, ...record.removedNodes]
       if (
@@ -305,7 +310,7 @@ export function ReplaySpotlight(props: {
           'data-tour-target',
           'data-parameter-path',
           'data-replay-region',
-          'data-covered-right',
+          ...COVERED_ATTRIBUTES,
         ],
       })
     }

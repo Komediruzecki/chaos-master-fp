@@ -1,18 +1,29 @@
 /**
- * The framing arithmetic behind the floating tablet deck: how much of the
- * canvas it covers, where the camera's centre goes, and which part of an
- * image of the canvas is the picture (lib/canvasFraming.ts).
+ * The framing arithmetic behind the chrome that floats over the canvas, the
+ * tablet deck at the trailing edge and the glass desktop sidebar at the
+ * leading one: how much of the canvas each covers, where the camera's centre
+ * goes, and which part of an image of the canvas is the picture
+ * (lib/canvasFraming.ts).
  */
 import { mat4x4f } from 'typegpu/data'
 import { describe, expect, it } from 'vitest'
 import { mat4 } from 'wgpu-matrix'
-import { coveredFraction, framingShift, MAX_COVERED_FRACTION, NO_SHIFT, shiftClipTransform, visibleAspect, visibleRegion, } from './canvasFraming'
+import { coveredFraction, framingShift, MAX_COVERED_FRACTION, NO_SHIFT, NOT_COVERED, shiftClipTransform, visibleAspect, visibleRegion, } from './canvasFraming'
+
+/** 1180 x 820 landscape: an 80 px rail, then a canvas 1100 px wide that runs
+ *  under a 380 px deck. */
+const deck = { left: 0, right: coveredFraction(380, 1100) }
+
+/** 1920 x 1080 with the wide sidebar, 26rem: the canvas box spans the whole
+ *  width and the sidebar covers 409.6 px of it, its width less the 0.4rem the
+ *  setting-off canvas already runs under it. That canvas is 1510.4 px wide
+ *  from x 409.6, exactly what is left. */
+const sidebar = { left: coveredFraction(416 - 6.4, 1920), right: 0 }
 
 describe('coveredFraction', () => {
-  it('is the deck width over the canvas width', () => {
-    // 1180 x 820 landscape: an 80 px rail, then a canvas 1100 px wide that
-    // runs under a 380 px deck.
-    expect(coveredFraction(380, 1100)).toBeCloseTo(0.345455, 6)
+  it('is the covered width over the canvas width', () => {
+    expect(deck.right).toBeCloseTo(0.345455, 6)
+    expect(sidebar.left).toBeCloseTo(0.213333, 6)
   })
 
   it('is 0 for no cover and for a canvas not yet laid out', () => {
@@ -29,31 +40,54 @@ describe('coveredFraction', () => {
 })
 
 describe('framingShift', () => {
-  it('puts the centre in the middle of the uncovered part', () => {
-    const shift = framingShift(coveredFraction(380, 1100))
+  it('puts the centre in the middle of what the deck leaves', () => {
+    const shift = framingShift(deck)
     // In pixels: the canvas centre is at 550, the visible part's at 360,
     // 190 px (half the deck) to the left. In clip units that is 190 / 550.
     expect(shift.x).toBeCloseTo(-190 / 550, 6)
     expect(shift.y).toBe(0)
   })
 
+  it('puts the centre in the middle of what the sidebar leaves', () => {
+    const shift = framingShift(sidebar)
+    // The canvas centre is at 960, the visible part's, from 409.6 to 1920,
+    // at 1164.8: 204.8 px to the right, 204.8 / 960 in clip units.
+    expect(shift.x).toBeCloseTo(204.8 / 960, 6)
+    expect(shift.y).toBe(0)
+  })
+
+  it('puts the centre in the middle of what both leave', () => {
+    // 200 px covered on the left and 380 on the right of 1100 leave 200 to
+    // 720, whose middle, 460, is 90 px left of the canvas centre.
+    const shift = framingShift({
+      left: coveredFraction(200, 1100),
+      right: coveredFraction(380, 1100),
+    })
+    expect(shift.x).toBeCloseTo(-90 / 550, 6)
+    expect(shift.y).toBe(0)
+  })
+
   it('is no shift at all when nothing covers the canvas', () => {
-    expect(framingShift(0)).toBe(NO_SHIFT)
-    expect(framingShift(Number.NaN)).toBe(NO_SHIFT)
+    expect(framingShift(NOT_COVERED)).toBe(NO_SHIFT)
+    expect(framingShift({ left: 0, right: Number.NaN })).toBe(NO_SHIFT)
+    expect(framingShift({ left: Number.NaN, right: -1 })).toBe(NO_SHIFT)
+  })
+
+  it('is no shift when both edges cover the same', () => {
+    expect(framingShift({ left: 0.2, right: 0.2 })).toBe(NO_SHIFT)
   })
 })
 
 describe('visibleRegion', () => {
-  it('keeps the uncovered width and the whole height, from the left', () => {
-    const fraction = coveredFraction(380, 1100)
-    expect(visibleRegion(1100, 820, fraction)).toEqual({
+  it('keeps the width the deck leaves and the whole height, from the left', () => {
+    expect(visibleRegion(1100, 820, deck)).toEqual({
       x: 0,
       y: 0,
       width: 720,
       height: 820,
     })
     // An iPad's backing store, at twice the CSS size.
-    expect(visibleRegion(2200, 1640, fraction)).toEqual({
+    expect(visibleRegion(2200, 1640, deck)).toEqual({
       x: 0,
       y: 0,
       width: 1440,
@@ -61,8 +95,38 @@ describe('visibleRegion', () => {
     })
   })
 
+  it('starts where the sidebar ends, and is the setting-off canvas', () => {
+    // The setting-off canvas's backing store is 1510 x 1080 at a pixel ratio
+    // of 1, and 3021 x 2160 at 2 (1510.39 CSS px, rounded).
+    expect(visibleRegion(1920, 1080, sidebar)).toEqual({
+      x: 410,
+      y: 0,
+      width: 1510,
+      height: 1080,
+    })
+    expect(visibleRegion(3840, 2160, sidebar)).toEqual({
+      x: 819,
+      y: 0,
+      width: 3021,
+      height: 2160,
+    })
+  })
+
+  it('keeps what both leave', () => {
+    const both = {
+      left: coveredFraction(200, 1100),
+      right: coveredFraction(380, 1100),
+    }
+    expect(visibleRegion(1100, 820, both)).toEqual({
+      x: 200,
+      y: 0,
+      width: 520,
+      height: 820,
+    })
+  })
+
   it('is the whole image when nothing covers it', () => {
-    expect(visibleRegion(1100, 820, 0)).toEqual({
+    expect(visibleRegion(1100, 820, NOT_COVERED)).toEqual({
       x: 0,
       y: 0,
       width: 1100,
@@ -71,23 +135,51 @@ describe('visibleRegion', () => {
   })
 
   it('keeps at least a pixel, and never more than the image', () => {
-    expect(visibleRegion(3, 3, MAX_COVERED_FRACTION).width).toBe(1)
-    expect(visibleRegion(0, 0, 0.5).width).toBe(0)
+    expect(
+      visibleRegion(3, 3, { left: 0, right: MAX_COVERED_FRACTION }).width,
+    ).toBe(1)
+    const leftmost = visibleRegion(3, 3, {
+      left: MAX_COVERED_FRACTION,
+      right: 0,
+    })
+    expect(leftmost.width).toBe(1)
+    expect(leftmost.x + leftmost.width).toBeLessThanOrEqual(3)
+    expect(visibleRegion(0, 0, { left: 0, right: 0.5 }).width).toBe(0)
+  })
+
+  it('scales both covers down alike when together they would cover too much', () => {
+    // 0.6 and 0.6 are cut to 0.45 each: a tenth of the width, in the middle.
+    const region = visibleRegion(1000, 500, { left: 0.6, right: 0.6 })
+    expect(region).toEqual({ x: 450, y: 0, width: 100, height: 500 })
+    expect(framingShift({ left: 0.6, right: 0.6 })).toBe(NO_SHIFT)
+    const lopsided = { left: 0.8, right: 0.4 }
+    const scale = MAX_COVERED_FRACTION / 1.2
+    expect(framingShift(lopsided).x).toBeCloseTo((0.8 - 0.4) * scale, 6)
+    expect(visibleRegion(1000, 500, lopsided).width).toBe(100)
   })
 })
 
 describe('visibleAspect', () => {
   it('is the aspect of what the deck leaves visible', () => {
     // The setting-off canvas is exactly that part: 720 x 820.
-    expect(visibleAspect(1100, 820, coveredFraction(380, 1100))).toBeCloseTo(
-      720 / 820,
-      6,
-    )
+    expect(visibleAspect(1100, 820, deck)).toBeCloseTo(720 / 820, 6)
+  })
+
+  it('is the aspect of what the sidebar leaves visible', () => {
+    expect(visibleAspect(1920, 1080, sidebar)).toBeCloseTo(1510.4 / 1080, 6)
+  })
+
+  it('is the aspect of what both leave visible', () => {
+    const both = {
+      left: coveredFraction(200, 1100),
+      right: coveredFraction(380, 1100),
+    }
+    expect(visibleAspect(1100, 820, both)).toBeCloseTo(520 / 820, 6)
   })
 
   it('is the canvas aspect when nothing covers it', () => {
-    expect(visibleAspect(1100, 820, 0)).toBeCloseTo(1100 / 820, 6)
-    expect(visibleAspect(1100, 0, 0)).toBe(1)
+    expect(visibleAspect(1100, 820, NOT_COVERED)).toBeCloseTo(1100 / 820, 6)
+    expect(visibleAspect(1100, 0, NOT_COVERED)).toBe(1)
   })
 })
 

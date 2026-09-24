@@ -1,23 +1,35 @@
 /**
- * Images taken off the workspace canvas are cut to the part the floating
- * tablet deck leaves visible, so the view-only framing never leaves the
- * editor: not in a flash export, a share preview, a Discord post, a
- * thumbnail, nor in the aspect the export dialog matches (visibleCanvas.ts).
- * Each cut is the picture the setting-off canvas, exactly that visible part,
- * would have given.
+ * Images taken off the workspace canvas are cut to the part the chrome
+ * floating over it leaves visible - the tablet deck at the trailing edge, the
+ * glass desktop sidebar at the leading one - so the view-only framing never
+ * leaves the editor: not in a flash export, a share preview, a Discord post,
+ * a thumbnail, nor in the aspect the export dialog matches
+ * (visibleCanvas.ts). Each cut is the picture the setting-off canvas, exactly
+ * that visible part, would have given.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { captureVisiblePart, coveredRightOf, drawVisibleCanvas, visibleCanvasAspect, visibleCanvasRect, visibleClientRect, } from './visibleCanvas'
+import { NOT_COVERED } from '@/lib/canvasFraming'
+import { captureVisiblePart, COVERED_ATTRIBUTES, COVERED_LEFT_KEY, COVERED_RIGHT_KEY, coveredOf, drawVisibleCanvas, visibleCanvasAspect, visibleCanvasRect, visibleClientRect, } from './visibleCanvas'
 import type { ExportImageInfo } from '@/flame/exportImageType'
 
 /** A 1180 x 820 landscape tablet: a 1100 px canvas under a 380 px deck. */
 const COVERED = 380 / 1100
 
-function workspaceCanvas(width: number, height: number, covered?: number) {
+/** The same canvas box with 200 px of it under a sidebar at the other edge. */
+const COVERED_LEFT = 200 / 1100
+
+function workspaceCanvas(
+  width: number,
+  height: number,
+  covered?: number,
+  coveredLeft?: number,
+) {
   const canvas = document.createElement('canvas')
   canvas.width = width
   canvas.height = height
   if (covered !== undefined) canvas.dataset.coveredRight = String(covered)
+  if (coveredLeft !== undefined)
+    canvas.dataset.coveredLeft = String(coveredLeft)
   return canvas
 }
 
@@ -41,13 +53,34 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-describe('the covered share a canvas reports', () => {
-  it('reads its attribute, and is 0 without one or with nonsense', () => {
-    expect(coveredRightOf(workspaceCanvas(10, 10, 0.25))).toBe(0.25)
-    expect(coveredRightOf(workspaceCanvas(10, 10))).toBe(0)
+describe('the covered shares a canvas reports', () => {
+  it('names each attribute the same in both spellings', () => {
+    const canvas = document.createElement('canvas')
+    canvas.dataset[COVERED_LEFT_KEY] = '0.1'
+    canvas.dataset[COVERED_RIGHT_KEY] = '0.2'
+    expect(canvas.getAttributeNames().sort()).toEqual(
+      [...COVERED_ATTRIBUTES].sort(),
+    )
+  })
+
+  it('reads its attributes, and is 0 without one or with nonsense', () => {
+    expect(coveredOf(workspaceCanvas(10, 10, 0.25))).toEqual({
+      left: 0,
+      right: 0.25,
+    })
+    expect(coveredOf(workspaceCanvas(10, 10, undefined, 0.2))).toEqual({
+      left: 0.2,
+      right: 0,
+    })
+    expect(coveredOf(workspaceCanvas(10, 10, 0.25, 0.2))).toEqual({
+      left: 0.2,
+      right: 0.25,
+    })
+    expect(coveredOf(workspaceCanvas(10, 10))).toBe(NOT_COVERED)
     const odd = workspaceCanvas(10, 10)
     odd.dataset.coveredRight = 'wide'
-    expect(coveredRightOf(odd)).toBe(0)
+    odd.dataset.coveredLeft = 'narrow'
+    expect(coveredOf(odd)).toBe(NOT_COVERED)
   })
 })
 
@@ -64,6 +97,24 @@ describe('visibleCanvasRect', () => {
     expect(visibleCanvasRect(canvas, { width: 2200, height: 1640 })).toEqual([
       0, 0, 1440, 1640,
     ])
+  })
+
+  it('starts where the sidebar covering the leading edge ends', () => {
+    expect(
+      visibleCanvasRect(workspaceCanvas(1100, 820, undefined, COVERED_LEFT)),
+    ).toEqual([200, 0, 900, 820])
+    expect(
+      visibleCanvasRect(workspaceCanvas(1100, 820, undefined, COVERED_LEFT), {
+        width: 2200,
+        height: 1640,
+      }),
+    ).toEqual([400, 0, 1800, 1640])
+  })
+
+  it('is what both leave when both edges are covered', () => {
+    expect(
+      visibleCanvasRect(workspaceCanvas(1100, 820, COVERED, COVERED_LEFT)),
+    ).toEqual([200, 0, 520, 820])
   })
 
   it('is the whole canvas when nothing covers it', () => {
@@ -88,6 +139,19 @@ describe('drawVisibleCanvas', () => {
 
     expect(drawn).toEqual([[png, 0, 0, 1440, 1640, 0, 0, 128, 128]])
   })
+
+  it('leaves out the part under the sidebar', () => {
+    const drawn: unknown[][] = []
+    const context = {
+      drawImage: (...args: unknown[]) => drawn.push(args),
+    } as unknown as CanvasRenderingContext2D
+    const canvas = workspaceCanvas(2200, 1640, undefined, COVERED_LEFT)
+    const png = workspaceCanvas(2200, 1640)
+
+    drawVisibleCanvas(context, canvas, png, 128, 128)
+
+    expect(drawn).toEqual([[png, 400, 0, 1800, 1640, 0, 0, 128, 128]])
+  })
 })
 
 describe('visibleCanvasAspect', () => {
@@ -104,6 +168,12 @@ describe('visibleCanvasAspect', () => {
       720 / 820,
       6,
     )
+  })
+
+  it('is the aspect of what the sidebar leaves visible', () => {
+    const canvas = laidOut(1100, 820)
+    canvas.dataset.coveredLeft = String(COVERED_LEFT)
+    expect(visibleCanvasAspect(canvas)).toBeCloseTo(900 / 820, 6)
   })
 
   it('is the canvas aspect when nothing covers it', () => {
@@ -143,6 +213,19 @@ describe('captureVisiblePart', () => {
     // The left 720 columns, the part on show, copied pixel for pixel.
     expect(drawn).toEqual([[live, 0, 0, 720, 820, 0, 0, 720, 820]])
     expect(context.globalCompositeOperation).toBe('copy')
+  })
+
+  it('hands over the part beside the sidebar when it covers the leading edge', () => {
+    const { drawn } = recordDrawing()
+    const capture = vi.fn()
+    const live = workspaceCanvas(1100, 820, undefined, COVERED_LEFT)
+
+    captureVisiblePart(capture)(live, info)
+
+    const [handed] = capture.mock.calls[0] as [HTMLCanvasElement]
+    expect([handed.width, handed.height]).toEqual([900, 820])
+    // The right 900 columns, from where the sidebar's cover ends.
+    expect(drawn).toEqual([[live, 200, 0, 900, 820, 0, 0, 900, 820]])
   })
 
   it('reuses one copy from frame to frame', () => {
@@ -228,6 +311,31 @@ describe('visibleClientRect', () => {
       right: 800,
       width: 720,
     })
+  })
+
+  it('starts the box where the sidebar covering the leading edge ends', () => {
+    // A 1920 px canvas box from x 0, the wide sidebar's 409.6 px over it.
+    const canvas = workspaceCanvas(1920, 1080, undefined, 409.6 / 1920)
+    place(canvas, 0, 1920, 1080)
+
+    const box = visibleClientRect(canvas)
+    expect(box.left).toBeCloseTo(409.6, 6)
+    expect(box.right).toBeCloseTo(1920, 6)
+    expect(box.width).toBeCloseTo(1510.4, 6)
+    expect(box.height).toBe(1080)
+  })
+
+  it('cuts both edges when both are covered', () => {
+    const container = document.createElement('div')
+    const canvas = workspaceCanvas(1100, 820, COVERED, COVERED_LEFT)
+    container.append(canvas)
+    place(container, 80, 1100)
+    place(canvas, 80, 1100)
+
+    const box = visibleClientRect(container)
+    expect(box.left).toBeCloseTo(280, 6)
+    expect(box.right).toBeCloseTo(800, 6)
+    expect(box.width).toBeCloseTo(520, 6)
   })
 
   it('is the whole box when nothing covers the canvas', () => {

@@ -28,6 +28,7 @@ import type { TransformVariationType } from '@/flame/variations'
 import type { CustomVariationDef } from '@/flame/variations/custom/types'
 import type { TransformVariationType3D } from '@/flame/variations3D'
 import type { BlendIntent } from '@/hooks/useWorkspaceBlendPick'
+import type { Covered } from '@/lib/canvasFraming'
 import type { ExportDimensions } from '@/utils/exportDimensions'
 
 /** The badge over a hovered partner tile, by what the gallery is picking
@@ -47,18 +48,25 @@ export const EDGE_FADE_COLOR = {
 
 /**
  * What the renderer fades the canvas's rim to: the theme's colour beside the
- * sidebar, and none in full screen or while the floating tablet deck covers
- * part of the canvas (`coveredRight`, useViewFraming.ts). There the rim runs
- * on under the deck's glass, and the fade laid a band down the deck, dark or
- * light with the theme, that the page beside the canvas never had.
+ * sidebar, and none in full screen or while chrome floating over the canvas
+ * covers part of it (`covered`, useViewFraming.ts), the tablet deck or the
+ * glass desktop sidebar. There the rim runs on under the glass, and the fade
+ * laid a band down it, dark or light with the theme, that the page beside
+ * the canvas never had; the canvas is then framed as it is in full screen.
  */
 export function edgeFadeColor(
   theme: 'light' | 'dark',
   showSidebar: boolean,
-  coveredRight: number,
+  covered: Covered,
 ) {
-  return showSidebar && coveredRight === 0 ? EDGE_FADE_COLOR[theme] : vec4f(0)
+  return showSidebar && covered.left === 0 && covered.right === 0
+    ? EDGE_FADE_COLOR[theme]
+    : vec4f(0)
 }
+
+/** A covered share for the box's style: unset rather than 0, like the
+ *  attribute on the canvas itself. */
+const coveredStyle = (share: number) => (share > 0 ? String(share) : undefined)
 
 export interface CanvasViewportProps {
   // Mobile / layout
@@ -128,10 +136,11 @@ export interface CanvasViewportProps {
 }
 
 export function CanvasViewport(props: CanvasViewportProps) {
-  // With the Glass panels setting on, the tablet deck floats over this canvas
-  // and the cameras frame the flame in the part it leaves visible. The shift
-  // is the view's alone: the document's camera, and every image taken off
-  // the canvas, stay what they are with the setting off (useViewFraming.ts).
+  // With the Glass panels setting on, the tablet deck and the desktop sidebar
+  // float over this canvas and the cameras frame the flame in the part they
+  // leave visible. The shift is the view's alone: the document's camera, and
+  // every image taken off the canvas, stay what they are with the setting off
+  // (useViewFraming.ts).
   const [container, setContainer] = createSignal<HTMLDivElement>()
   const [canvas, setCanvas] = createSignal<HTMLCanvasElement>()
   const containerSize = useElementSize(container)
@@ -142,14 +151,8 @@ export function CanvasViewport(props: CanvasViewportProps) {
     onExportImage: () => props.onExportImage(),
   })
   const edgeFade = createMemo(() =>
-    edgeFadeColor(props.theme(), props.showSidebar(), framing.coveredRight()),
+    edgeFadeColor(props.theme(), props.showSidebar(), framing.covered()),
   )
-  // Unset rather than 0 with nothing over the canvas, like the attribute
-  // on the canvas itself.
-  const coveredRightStyle = () => {
-    const covered = framing.coveredRight()
-    return covered > 0 ? String(covered) : undefined
-  }
 
   return (
     // Home and the Arcade cover the editor completely and it stays mounted
@@ -166,7 +169,8 @@ export function CanvasViewport(props: CanvasViewportProps) {
       // The hover badge centres on the part on show (App.module.css).
       style={{
         '--rail-inset': `${props.railInset?.() ?? 0}px`,
-        '--covered-right': coveredRightStyle(),
+        '--covered-left': coveredStyle(framing.covered().left),
+        '--covered-right': coveredStyle(framing.covered().right),
       }}
       inert={!workspaceIsVisible()}
       onClick={props.onCanvasClick}

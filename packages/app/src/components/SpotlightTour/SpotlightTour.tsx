@@ -4,7 +4,7 @@ import { pilotOwnsKeyboard } from '@/arcade/pilot'
 import { visibleClientRect } from '@/components/CanvasViewport/visibleCanvas'
 import { useSpotlightTour } from '@/contexts/SpotlightTourContext'
 import { useTheme } from '@/contexts/ThemeContext'
-import { trailingCover } from '@/lib/canvasFraming'
+import { leadingCover, trailingCover } from '@/lib/canvasFraming'
 import { isTouchLayout } from '@/stores/workspaceLayoutStore'
 import { clamp } from '@/utils/easing'
 import ui from './SpotlightTour.module.css'
@@ -288,12 +288,13 @@ export function SpotlightTour(props: SpotlightTourProps) {
     })
   })
 
-  // The floating deck opening, closing or being resized changes what is on
+  // Chrome floating over the canvas - the tablet deck opening, closing or
+  // being resized, the glass sidebar floating or not - changes what is on
   // show of the canvas, which no resize or scroll reports. The canvas takes
   // the new share in an effect of its own, so the tour measures after it.
   createEffect(
     on(
-      trailingCover,
+      [leadingCover, trailingCover],
       () => {
         if (tour.isActive())
           queueMicrotask(() => {
