@@ -33,15 +33,25 @@ async function reloadPage(viewer: CommandContext) {
   return await loadPage(viewer)
 }
 
-/** Duplicate Tab: a second page on a copy of this tab's `sessionStorage`,
- *  while this page, and whatever session it runs, stays alive. */
-async function duplicateTab(viewer: CommandContext) {
+/** A copy of this tab's `sessionStorage`, as Duplicate Tab takes it. */
+function snapshotStorage(): Map<string, string> {
   const copy = new Map<string, string>()
   const original = globalThis.sessionStorage
   for (let i = 0; i < original.length; i++) {
     const key = original.key(i)!
     copy.set(key, original.getItem(key)!)
   }
+  return copy
+}
+
+/** Duplicate Tab: a second page on a copy of this tab's `sessionStorage`,
+ *  while this page, and whatever session it runs, stays alive. */
+async function duplicateTab(viewer: CommandContext) {
+  return await loadPageOn(snapshotStorage(), viewer)
+}
+
+/** A new page whose `sessionStorage` starts from `copy`. */
+async function loadPageOn(copy: Map<string, string>, viewer: CommandContext) {
   vi.stubGlobal('sessionStorage', {
     get length() {
       return copy.size
@@ -196,6 +206,23 @@ describe(
       const again = await reloadPage(createMockCommandContext())
       await again.session.interruptionChecked()
       expect(again.session.interruptedSession()).toBeUndefined()
+    })
+
+    it('boots where the BroadcastChannel constructor throws, and still tells a reload', async () => {
+      // Firefox throws SecurityError here when storage access is denied.
+      vi.stubGlobal(
+        'BroadcastChannel',
+        vi.fn(function throwsSecurityError() {
+          throw new DOMException('The operation is insecure.', 'SecurityError')
+        }),
+      )
+      const first = await loadPage(createMockCommandContext())
+      await first.call(first.tools.arcadeStartDuel, { durationSeconds: 60 })
+
+      const page = await reloadPage(createMockCommandContext())
+      await page.session.interruptionChecked()
+      expect(page.session.interruptedSession()).toMatchObject({ mode: 'duel' })
+      expect((await page.call(page.tools.getFlame)).isError).toBe(true)
     })
   },
 )

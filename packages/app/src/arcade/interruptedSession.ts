@@ -114,9 +114,25 @@ let runningId: string | undefined
 
 let channel: BroadcastChannel | undefined
 
+/**
+ * A BroadcastChannel, or none where the constructor throws: Firefox throws
+ * SecurityError when storage access is denied. Without one a copied marker
+ * cannot be told from a reload, the same as in a browser that has no
+ * BroadcastChannel at all.
+ */
+function createChannel(): BroadcastChannel | undefined {
+  if (typeof BroadcastChannel === 'undefined') return undefined
+  try {
+    return new BroadcastChannel(CHANNEL_NAME)
+  } catch {
+    return undefined
+  }
+}
+
 function openChannel(): void {
-  if (channel || typeof BroadcastChannel === 'undefined') return
-  channel = new BroadcastChannel(CHANNEL_NAME)
+  if (channel) return
+  channel = createChannel()
+  if (!channel) return
   channel.onmessage = (event: MessageEvent<ChannelMessage>) => {
     const message = event.data
     if (message.type === 'claim?' && message.id === runningId) {
@@ -143,9 +159,9 @@ openChannel()
  * tab can: it is the one way a second document gets this tab's storage.
  */
 function claimedElsewhere(id: string): Promise<boolean> {
-  if (typeof BroadcastChannel === 'undefined') return Promise.resolve(false)
+  const ask = createChannel()
+  if (!ask) return Promise.resolve(false)
   return new Promise((resolve) => {
-    const ask = new BroadcastChannel(CHANNEL_NAME)
     const done = (claimed: boolean) => {
       clearTimeout(timer)
       ask.close()
