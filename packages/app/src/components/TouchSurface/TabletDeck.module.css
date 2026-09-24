@@ -171,7 +171,10 @@
      are translucent ink over --la-surface; here the same mixes are made onto
      --la-surface itself, so a chip, a row or a button is the colour it is
      with the setting off and bright art does not show through it. Text on
-     them is not on glass. */
+     them is not on glass. What this cannot keep is a control's edge drawn in
+     the same token as its fill: on the page the translucent border lies over
+     the fill and reads lighter, here the two are one colour. That wants an
+     opaque fill token in the control's own rules, not a remap here. */
   --la-hairline: color-mix(in srgb, var(--la-ink) 8%, var(--la-surface));
   --la-hairline-strong: color-mix(
     in srgb,
@@ -194,6 +197,28 @@
       var(--la-ink) 32%,
       var(--la-surface)
     );
+  }
+}
+
+/* Lines drawn on the glass itself, the divider's grip and the header's rule,
+   keep the translucent ink they have on the page: mixed onto --la-surface
+   like the controls, they are darker than the glass over bright art and
+   vanish into it. The shares are lumen's hairline-strong and hairline. */
+.floating .divider::after {
+  background: color-mix(in srgb, var(--la-ink) 16%, transparent);
+}
+
+.floating .header {
+  border-bottom-color: color-mix(in srgb, var(--la-ink) 8%, transparent);
+}
+
+@media (prefers-contrast: more) {
+  .floating .divider::after {
+    background: color-mix(in srgb, var(--la-ink) 32%, transparent);
+  }
+
+  .floating .header {
+    border-bottom-color: color-mix(in srgb, var(--la-ink) 18%, transparent);
   }
 }
 
