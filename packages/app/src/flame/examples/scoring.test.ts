@@ -136,25 +136,25 @@ describe('the bundled examples, as players see them', () => {
     it('3D', () => {
       // pins:arena3D
       expect(examples3D.map(arenaRow)).toEqual([
-        'sierpinskiTetrahedron  Order   165  35  33 1197  2.00  0.65',
-        'mengerSponge           Order   177  34  39 1209  2.73  0.77',
-        'initExample3D          Order   130  12  15  632  0.98  0.30',
-        'example30              Crystal 149  46  31 1237  3.00  0.49',
-        'example31              Vortex  148  49  30 1292  2.72  0.48',
-        'example32              Order   150  51  31 1316  3.00  0.50',
-        'example33              Crystal 159  40  37 1239  2.09  0.59',
-        'example34              Crystal 146  47  29 1224  3.00  0.46',
-        'example35              Vortex  146  56  29 1380  3.00  0.46',
-        'example36              Order   151  50  32 1317  3.00  0.51',
-        'example37              Vortex  154  47  34 1310  2.56  0.54',
-        'example38              Vortex  153  48  27 1281  2.50  0.53',
-        'example39              Order   150  56  31 1408  3.00  0.50',
-        'example40              Vortex  153  53  33 1373  3.00  0.53',
-        'example41              Tide    143  50  27 1263  2.88  0.43',
-        'example42              Order   157  54  36 1431  2.98  0.57',
-        'example43              Crystal 155  52  34 1389  2.65  0.55',
-        'example44              Order   146  51  29 1296  3.00  0.46',
-        'example46              Crystal 131  50  19 1171  3.00  0.31',
+        'sierpinskiTetrahedron  Order   165  31  33 1165  2.00  0.65',
+        'mengerSponge           Order   177  28  39 1161  2.73  0.77',
+        'initExample3D          Order   130  10  15  616  0.98  0.30',
+        'example30              Crystal 149  40  31 1189  3.00  0.49',
+        'example31              Vortex  148  43  30 1244  2.72  0.48',
+        'example32              Order   150  45  31 1268  3.00  0.50',
+        'example33              Crystal 159  36  37 1207  2.09  0.59',
+        'example34              Crystal 146  41  29 1176  3.00  0.46',
+        'example35              Vortex  146  50  29 1332  3.00  0.46',
+        'example36              Order   151  44  32 1269  3.00  0.51',
+        'example37              Vortex  154  42  34 1270  2.56  0.54',
+        'example38              Vortex  153  43  27 1241  2.50  0.53',
+        'example39              Order   150  50  31 1360  3.00  0.50',
+        'example40              Vortex  153  47  33 1325  3.00  0.53',
+        'example41              Tide    143  44  27 1215  2.88  0.43',
+        'example42              Order   157  48  36 1383  2.98  0.57',
+        'example43              Crystal 155  47  34 1349  2.65  0.55',
+        'example44              Order   146  45  29 1248  3.00  0.46',
+        'example46              Crystal 131  44  19 1123  3.00  0.31',
       ])
     })
   })
@@ -329,12 +329,12 @@ describe('the bundled examples, as players see them', () => {
     it('from example30 (3D)', () => {
       // pins:archetype3D
       expect(ARCHETYPE_IDS.map(opponentRow(examples.example30))).toEqual([
-        'symmetry_monolith      Crystal 148  52  30 1324   458',
-        'chaos_lord             Crystal 148  53  30 1344   435',
-        'spiral_leviathan       Crystal 148  53  30 1336   435',
-        'quantum_siren          Crystal 148  53  30 1340   435',
-        'solar_seraph           Crystal 148  52  30 1328   450',
-        'void_stalker           Crystal 148  53  30 1340   435',
+        'symmetry_monolith      Crystal 148  46  30 1276   458',
+        'chaos_lord             Crystal 148  47  30 1296   435',
+        'spiral_leviathan       Crystal 148  47  30 1288   435',
+        'quantum_siren          Crystal 148  47  30 1292   435',
+        'solar_seraph           Crystal 148  46  30 1280   450',
+        'void_stalker           Crystal 148  47  30 1292   435',
       ])
     })
   })

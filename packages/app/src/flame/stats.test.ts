@@ -2,9 +2,10 @@ import { describe, expect, it } from 'vitest'
 import { deepClone } from '@/utils/clone'
 import { cantorDust, heighwayDragon, kochCurve, mengerSponge, sierpinskiCarpet, sierpinskiTetrahedron, sierpinskiTriangle, } from './examples/classics'
 import { example30 } from './examples/example30'
-import { calculateGroundedStats, classifySchool, getSchoolMultiplier, resolveClashCombat, } from './stats'
+import { calculateGroundedStats, classifySchool, COMBAT_COEFFICIENTS, getSchoolMultiplier, resolveClashCombat, } from './stats'
 import { generateVariationId } from './transformFunction'
 import type { FlameDescriptor } from './schema/flameSchema'
+import type { GroundedFlameStats } from './stats'
 
 /**
  * A custom variation's type, as the editor writes it: `custom_` and the
@@ -261,6 +262,58 @@ describe('flame/stats', () => {
       const g = calculateGroundedStats(flat)
       expect(g.dimension).toBeCloseTo((3 * Math.log(3)) / Math.log(4), 2)
       expect(g.stability).toBe(0.3)
+    })
+
+    // maff, 2026-09-24: "Normalize by space". A dimension runs up to 3 in 3D
+    // and 2 in 2D, so the stats derived from it read dimension x 2 / space:
+    // a 3D flame that fills its space scores like a 2D flame that fills the
+    // plane. The card still shows the dimension itself.
+    it('ATK reads the dimension per space: a filled cube scores as a filled square', () => {
+      // The Menger sponge with its seven holes filled: 27 maps at 1/3 fill the
+      // cube (D = 3); the carpet with its centre filled: 9 fill the square.
+      const filled = (flame: FlameDescriptor, holes: number[][]) => {
+        const out = deepClone(flame)
+        const [first] = Object.values(out.transforms)
+        holes.forEach((at, index) => {
+          const t = deepClone(first!)
+          const m = t.preAffine as unknown as Record<string, number>
+          const [x, y, z] = at.map((n) => (2 * n) / 3)
+          if (at.length === 3) [m.d, m.h, m.l] = [x!, y!, z!]
+          else [m.c, m.f] = [x!, y!]
+          out.transforms[`hole_${index}` as keyof typeof out.transforms] = t
+        })
+        return out
+      }
+      const cube = calculateGroundedStats(
+        filled(mengerSponge, [
+          [0, 0, 0],
+          [1, 0, 0],
+          [-1, 0, 0],
+          [0, 1, 0],
+          [0, -1, 0],
+          [0, 0, 1],
+          [0, 0, -1],
+        ]),
+      )
+      const square = calculateGroundedStats(filled(sierpinskiCarpet, [[0, 0]]))
+      expect(cube.dimension).toBe(3)
+      expect(square.dimension).toBe(2)
+
+      // ATK = 0.6 (10 D' + 10 nonlinearity) + 0.4 beauty, D' the dimension
+      // per space. Both are linear maps only, so they share the nonlinearity
+      // and differ in beauty alone.
+      const atk = (g: GroundedFlameStats, perSpace: number) =>
+        Math.round(
+          COMBAT_COEFFICIENTS.ATK_GEOMETRIC_WEIGHT *
+            (perSpace * 10 + g.nonlinearity * 10) +
+            COMBAT_COEFFICIENTS.ATK_BEAUTY_WEIGHT * g.beauty,
+        )
+      expect(cube.nonlinearity).toBe(square.nonlinearity)
+      expect(square.atk).toBe(atk(square, 2))
+      expect(cube.atk).toBe(atk(cube, 2))
+      const menger = calculateGroundedStats(mengerSponge)
+      expect(menger.dimension).toBeCloseTo(Math.log(20) / Math.log(3), 2)
+      expect(menger.atk).toBe(atk(menger, (menger.dimension * 2) / 3))
     })
   })
 

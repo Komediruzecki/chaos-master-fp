@@ -20,6 +20,10 @@ export type FlameSchool =
 export type TacticalStance = 'balanced' | 'resonance' | 'bastion' | 'entropy'
 
 export interface GroundedFlameStats {
+  /**
+   * The Moran similarity dimension, as it is: up to 2 in 2D and 3 in 3D (the
+   * Menger sponge reads 2.73). The stats derived from it read it per space.
+   */
   dimension: number
   stability: number
   entropy: number
@@ -545,6 +549,11 @@ export function calculateGroundedStats(
 
   // Moran dimension
   const dimension = solveMoranDimension(rValues, spaceDim)
+  // Per space, for what is derived from it (maff, 2026-09-24): a dimension
+  // runs up to 3 in 3D and 2 in 2D, so dimension x 2 / space scores a 3D
+  // flame that fills its space as a 2D flame that fills the plane, and
+  // leaves 2D as it was.
+  const dimensionPerSpace = (dimension * 2) / spaceDim
 
   // Stability: 1 - mean spectral norm (clamped 0..1)
   const meanSpectral =
@@ -603,7 +612,7 @@ export function calculateGroundedStats(
   )
   const atk = Math.round(
     COMBAT_COEFFICIENTS.ATK_GEOMETRIC_WEIGHT *
-      (dimension * 10 + nonlinearity * 10) +
+      (dimensionPerSpace * 10 + nonlinearity * 10) +
       COMBAT_COEFFICIENTS.ATK_BEAUTY_WEIGHT * beauty,
   )
   const symMultiplier = Math.min(

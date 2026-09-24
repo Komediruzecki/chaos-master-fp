@@ -273,14 +273,14 @@ describe('Arena symmetry: the stat sheet per fold', () => {
 
     it('beauty, ATK and Power', () => {
       expect(FOLDS.map((n) => powerRow(FIGHTER_3D, n))).toEqual([
-        [1, 62, 33, 1244],
-        [2, 63, 45, 1269],
-        [3, 66, 46, 1283],
-        [4, 61, 44, 1262],
-        [5, 58, 42, 1237],
-        [6, 53, 40, 1222],
-        [7, 48, 38, 1198],
-        [8, 44, 37, 1174],
+        [1, 62, 31, 1228],
+        [2, 63, 39, 1221],
+        [3, 66, 40, 1235],
+        [4, 61, 38, 1214],
+        [5, 58, 36, 1189],
+        [6, 53, 34, 1174],
+        [7, 48, 32, 1150],
+        [8, 44, 31, 1126],
       ])
     })
 
@@ -355,7 +355,7 @@ describe('Arena symmetry: a clash after C4', () => {
         ['A', 0.907, 0.089],
       ],
       finalScore: { A: 3, B: 0 },
-      combatHp: { A: 77, B: 63 },
+      combatHp: { A: 84, B: 82 },
       combatScore: { A: 2, B: 1 },
     })
   })
