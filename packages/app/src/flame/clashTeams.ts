@@ -17,6 +17,11 @@
  *   walker's own attractor inside the other fighter as small copies of
  *   itself: a pulse of it reads as a hit.
  *
+ * A team whose probabilities sum to 0 (every map hidden or at probability 0,
+ * which a uniform write can do at any frame) has no map to pick, and its
+ * walkers would sit where they started, drawn as a bright ball. They walk the
+ * other team's maps instead.
+ *
  * Every other flame, including one where only some transforms are tagged,
  * compiles to exactly the shader it compiled to before this existed:
  * `clashTeamsOf` reports it disabled, the pipelines skip every team statement
@@ -100,11 +105,18 @@ export function clashTeamValues(
   }
 }
 
+/** The sum of one team's probabilities, declared as `total`. */
+function teamTotal(total: string, ids: readonly string[]) {
+  return [
+    `var ${total} = f32(0);`,
+    ...ids.map(
+      (tid) => `${total} += layout.$.flameUniforms.flame${tid}.probability;`,
+    ),
+  ].join('\n        ')
+}
+
 /** One team's step: pick a transform by probability among its own. */
-function teamStep(ids: readonly string[]) {
-  const total = ids
-    .map((tid) => `total += layout.$.flameUniforms.flame${tid}.probability;`)
-    .join('\n          ')
+function teamStep(total: string, ids: readonly string[]) {
   const picks = ids
     .map(
       (tid) => /* wgsl */ `{
@@ -117,9 +129,7 @@ function teamStep(ids: readonly string[]) {
     )
     .join('\n          ')
   return /* wgsl */ `{
-          var total = f32(0);
-          ${total}
-          let flameIndex = random() * total;
+          let flameIndex = random() * ${total};
           var probabilitySum = f32(0);
           ${picks}
         }`
@@ -144,13 +154,20 @@ export function clashKernel<P extends AnyWgslData>(
   const executeRandomFlame = tgpu.fn([pointType], pointType) /* wgsl */ `
       (point) {
         let clash = layout.$.flameUniforms.clashTeams;
+        ${teamTotal('totalA', teams.a)}
+        ${teamTotal('totalB', teams.b)}
         var team = clashTeam;
         if (team == 0u) {
           if (random() < clash.leakA) { team = 1u; }
         } else {
           if (random() < clash.leakB) { team = 0u; }
         }
-        if (team == 0u) ${teamStep(teams.a)} else ${teamStep(teams.b)}
+        if (team == 0u && totalA <= 0.0) {
+          team = 1u;
+        } else if (team == 1u && totalB <= 0.0) {
+          team = 0u;
+        }
+        if (team == 0u) ${teamStep('totalA', teams.a)} else ${teamStep('totalB', teams.b)}
         return point;
       }
     `

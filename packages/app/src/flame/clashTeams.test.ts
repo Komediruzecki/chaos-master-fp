@@ -139,17 +139,44 @@ describe.each([
     expect(wgsl).toMatch(/setClashTeam\(pointIndex\);/)
   })
 
+  const step = wgsl.slice(wgsl.indexOf('fn executeRandomFlame'))
+
   it('draws each team only from its own transforms', () => {
-    // The step first decides a leak, then branches on the team: the two
-    // branches are the blocks that open with `var total`.
-    const step = wgsl.slice(wgsl.indexOf('fn executeRandomFlame'))
-    const [, teamA = '', teamB = ''] = step.split(/\{\s*var total = f32\(0\);/)
+    // The step sums each team's probabilities, decides a leak, then branches
+    // on the team: each branch opens with its pick against its team's total.
+    const [, teamA = '', teamB = ''] = step.split(
+      /let flameIndex = random\(\) \* total[AB];/,
+    )
     const picks = (branch: string) =>
       [...branch.matchAll(/let u = flameUniforms\.flame(\w+);/g)].map(
         (m) => m[1],
       )
     expect(picks(teamA)).toEqual(Object.keys(a).map((tid) => `a_${tid}`))
     expect(picks(teamB)).toEqual(Object.keys(b).map((tid) => `b_${tid}`))
+    const summed = (team: 'A' | 'B') =>
+      [
+        ...step.matchAll(
+          /total([AB]) \+= flameUniforms\.flame(\w+)\.probability;/g,
+        ),
+      ]
+        .filter((m) => m[1] === team)
+        .map((m) => m[2])
+    expect(summed('A')).toEqual(picks(teamA))
+    expect(summed('B')).toEqual(picks(teamB))
+  })
+
+  it('walks a team with no live map on the other team', () => {
+    // A team whose probabilities sum to 0 would pick no map, and its walkers
+    // would sit where they started, drawn as a bright ball. After the leak,
+    // before the branch, such a walker changes team.
+    const leak = step.indexOf('clash.leakB')
+    const fallback = step.search(
+      /if \(team == 0u && totalA <= 0\.0\) \{\s*team = 1u;\s*\} else if \(team == 1u && totalB <= 0\.0\) \{\s*team = 0u;\s*\}/,
+    )
+    const branch = step.search(/let flameIndex = random\(\) \* totalA;/)
+    expect(leak).toBeGreaterThan(-1)
+    expect(fallback).toBeGreaterThan(leak)
+    expect(branch).toBeGreaterThan(fallback)
   })
 
   it('compiles the ordinary shader once a tag is missing', () => {
