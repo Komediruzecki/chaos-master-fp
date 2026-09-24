@@ -30,7 +30,7 @@ file instead of rediscovering the architecture every session.
 
 | Directory                 | Package name                   | Source files | LOC    |
 | ------------------------- | ------------------------------ | ------------ | ------ |
-| `packages/app`            | `chaos-master`                 | 1107         | 188.7k |
+| `packages/app`            | `chaos-master`                 | 1112         | 189.7k |
 | `packages/core`           | `@chaos-master/core`           | 27           | 3.8k   |
 | `packages/landing`        | `@chaos-master/landing`        | 20           | 2.5k   |
 | `packages/mobile-runtime` | `@chaos-master/mobile-runtime` | 7            | 600    |
@@ -122,12 +122,12 @@ file instead of rediscovering the architecture every session.
 | `SonificationPanel`     | [SonificationPanel.tsx](../../packages/app/src/components/SonificationPanel/SonificationPanel.tsx)             | 350  | _(no header comment)_                                                                                                                        |
 | `CanvasViewport`        | [index.ts](../../packages/app/src/components/CanvasViewport/index.ts)                                          | 300  | _(no header comment)_                                                                                                                        |
 | `ErrorHandling`         | [ErrorHandling.tsx](../../packages/app/src/components/ErrorHandling/ErrorHandling.tsx)                         | 300  | _(no header comment)_                                                                                                                        |
+| `SoftwareVersion`       | [SoftwareVersion.tsx](../../packages/app/src/components/SoftwareVersion/SoftwareVersion.tsx)                   | 300  | Version menu for studio tools and standalone exploration pages.                                                                              |
 | `WorkspaceBottomBar`    | [index.ts](../../packages/app/src/components/WorkspaceBottomBar/index.ts)                                      | 300  | _(no header comment)_                                                                                                                        |
 | `MathEditor`            | [MathEditor.tsx](../../packages/app/src/components/MathEditor/MathEditor.tsx)                                  | 250  | _(no header comment)_                                                                                                                        |
 | `Modal`                 | [Modal.tsx](../../packages/app/src/components/Modal/Modal.tsx)                                                 | 250  | _(no header comment)_                                                                                                                        |
 | `PaletteSelector`       | [PaletteSelector.tsx](../../packages/app/src/components/PaletteSelector/PaletteSelector.tsx)                   | 250  | _(no header comment)_                                                                                                                        |
 | `ShareLinkModal`        | [ShareLinkModal.tsx](../../packages/app/src/components/ShareLinkModal/ShareLinkModal.tsx)                      | 250  | _(no header comment)_                                                                                                                        |
-| `SoftwareVersion`       | [SoftwareVersion.tsx](../../packages/app/src/components/SoftwareVersion/SoftwareVersion.tsx)                   | 250  | _(no header comment)_                                                                                                                        |
 | `AboutPanel`            | [Changelog.tsx](../../packages/app/src/components/AboutPanel/Changelog.tsx)                                    | 200  | _(no header comment)_                                                                                                                        |
 | `DiffViewModal`         | [DiffViewModal.tsx](../../packages/app/src/components/DiffViewModal/DiffViewModal.tsx)                         | 200  | _(no header comment)_                                                                                                                        |
 | `OrientationGizmo`      | [OrientationGizmo.tsx](../../packages/app/src/components/OrientationGizmo/OrientationGizmo.tsx)                | 200  | _(no header comment)_                                                                                                                        |
@@ -163,6 +163,7 @@ file instead of rediscovering the architecture every session.
 | ----------------- | ----------------------------------------------------------------------------------------------- | ---- | ------------------------------------------------------------------------------------------ |
 | `FractalExplorer` | [FractalExplorerPage.tsx](../../packages/app/src/pages/FractalExplorer/FractalExplorerPage.tsx) | 3.8k | The deep-zoom explorer page: a full-bleed canvas, a heads-up readout and a settings panel. |
 | `Benchmarks`      | [BenchmarksPage.tsx](../../packages/app/src/pages/Benchmarks/BenchmarksPage.tsx)                | 3.7k | _(no header comment)_                                                                      |
+| `ExploreVR`       | [ExploreVRPage.tsx](../../packages/app/src/pages/ExploreVR/ExploreVRPage.tsx)                   | 1.0k | THESIS: a celestial atlas whose worlds are living 3D flame specimens.                      |
 
 #### Cloudflare Worker (`packages/app/src/worker/`) — backend routes
 

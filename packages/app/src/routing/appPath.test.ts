@@ -1,5 +1,6 @@
+// Standalone pages match their exact public and static-host URL spellings.
 import { describe, expect, it } from 'vitest'
-import { isBenchmarksPath, isExplorerPath, PAGE_ROUTES, pageRouteOf, } from './appPath'
+import { isBenchmarksPath, isExplorerPath, isExploreVRPath, PAGE_ROUTES, pageRouteOf, } from './appPath'
 
 describe('isBenchmarksPath', () => {
   it.each(['/benchmarks', '/benchmarks/', '/benchmarks/index.html'])(
@@ -25,12 +26,33 @@ describe('isExplorerPath', () => {
     },
   )
 
-  it.each(['/', '/explorer', '/explore/deep', '/benchmarks'])(
+  it.each(['/', '/explorer', '/explore/deep', '/explore-vr', '/benchmarks'])(
     'does not match %s',
     (pathname) => {
       expect(isExplorerPath(pathname)).toBe(false)
     },
   )
+})
+
+describe('isExploreVRPath', () => {
+  it.each(['/explore-vr', '/explore-vr/', '/explore-vr/index.html'])(
+    'matches %s',
+    (pathname) => {
+      expect(isExploreVRPath(pathname)).toBe(true)
+    },
+  )
+
+  it.each([
+    '/',
+    '/explore',
+    '/explore/',
+    '/explore-vr-preview',
+    '/explore-vr/deep',
+    '/explore-vr//index.html',
+    '/EXPLORE-VR',
+  ])('does not match %s', (pathname) => {
+    expect(isExploreVRPath(pathname)).toBe(false)
+  })
 })
 
 describe('pageRouteOf', () => {

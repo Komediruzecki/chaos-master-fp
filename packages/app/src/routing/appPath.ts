@@ -8,11 +8,17 @@ export const BENCHMARKS_PATH = '/benchmarks'
 
 export const EXPLORER_PATH = '/explore'
 
+export const EXPLORE_VR_PATH = '/explore-vr'
+
 /**
  * The routes served as pages of their own. Renaming a route here renames it
  * everywhere.
  */
-export const PAGE_ROUTES: readonly string[] = [BENCHMARKS_PATH, EXPLORER_PATH]
+export const PAGE_ROUTES: readonly string[] = [
+  BENCHMARKS_PATH,
+  EXPLORER_PATH,
+  EXPLORE_VR_PATH,
+]
 
 /**
  * The page route a path shows, if any. Each route has three spellings: its
@@ -36,4 +42,8 @@ export function isBenchmarksPath(pathname: string): boolean {
 
 export function isExplorerPath(pathname: string): boolean {
   return pageRouteOf(pathname) === EXPLORER_PATH
+}
+
+export function isExploreVRPath(pathname: string): boolean {
+  return pageRouteOf(pathname) === EXPLORE_VR_PATH
 }
