@@ -22,6 +22,7 @@ import { BattleLogDrawer, WinnerTrophyCard, } from './ArenaOverlay/ArenaResultsV
 import { ArenaTopBar } from './ArenaOverlay/ArenaTopBar'
 import { exportChampionCardPng, SCHOOL_COLORS, } from './ArenaOverlay/championCardCanvas'
 import { playClashOnce } from './ArenaOverlay/clashPlayback'
+import { createClashRequests } from './ArenaOverlay/clashRequests'
 import loadModalUi from './LoadFlameModal/LoadFlameModal.module.css'
 import type { Component } from 'solid-js'
 import type { ClashPlayback } from './ArenaOverlay/clashPlayback'
@@ -262,6 +263,7 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
   let wasClashStaged = false
   /** Gives the viewer's loop setting back; set while a clash owns playback. */
   let clashPlayback: ClashPlayback | null = null
+  const clashRequests = createClashRequests()
   const releaseClashPlayback = () => {
     clashPlayback?.release()
     clashPlayback = null
@@ -281,7 +283,9 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
     return id
   }
 
-  const clearAllTimers = () => {
+  // Every stop ends the clash an agent may be awaiting; say why.
+  const clearAllTimers = (reason = 'The clash was stopped.') => {
+    clashRequests.cancel(reason)
     if (activeInterval !== null) {
       clearInterval(activeInterval)
       activeInterval = null
@@ -336,7 +340,7 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
     const base = p1?.flame ?? initialFlame
     if (!base) return
 
-    clearAllTimers()
+    clearAllTimers('The opponent was changed.')
     restoreWorkspace()
     setGameState('idle')
     setWinner(null)
@@ -490,11 +494,12 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
       if (opts?.stance) {
         setStance(opts.stance as TacticalStance)
       }
-      return new Promise((resolve) => {
-        runSimulation((res) => {
-          resolve(res)
-        })
-      })
+      return runSimulation()
+        ? clashRequests.track()
+        : Promise.resolve({
+            cancelled: true,
+            reason: 'The clash could not start: both fighters need a flame.',
+          })
     }
 
     // If P2 is not set, generate an archetype opponent
@@ -505,25 +510,24 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
   })
 
   onCleanup(() => {
-    clearAllTimers()
+    clearAllTimers('The arena was closed.')
     restoreWorkspace()
   })
 
   const handleClose = () => {
-    clearAllTimers()
+    clearAllTimers('The arena was closed.')
     restoreWorkspace()
     props.arena.setOpen(false)
     props.onClose?.()
   }
 
-  const runSimulation = (
-    onComplete?: (simRes: SimulateClashResult) => void,
-  ) => {
+  /** Returns whether a clash started. */
+  const runSimulation = (): boolean => {
     const p1 = props.arena.player1Stats()
     const p2 = props.arena.player2Stats()
-    if (!p1 || !p2 || !p1.flame || !p2.flame) return
+    if (!p1 || !p2 || !p1.flame || !p2.flame) return false
 
-    clearAllTimers()
+    clearAllTimers('A new clash replaced it.')
     captureWorkspace()
 
     setGameState('clashing')
@@ -549,7 +553,7 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
 
     if (!simRes || !simRes.rounds) {
       setGameState('idle')
-      return
+      return false
     }
 
     setCachedSimResult(simRes)
@@ -622,12 +626,13 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
         currentIdx++
       } else {
         finishSimulation(simRes)
-        onComplete?.(simRes)
       }
     }, 1000)
+    return true
   }
 
   const finishSimulation = (simRes: SimulateClashResult) => {
+    clashRequests.complete(simRes)
     clearAllTimers()
     // Holds the last frame, where the verdict is; a skip gets there too.
     if (clashPlayback) clashPlayback.finish()
@@ -675,7 +680,7 @@ export const ArenaOverlay: Component<ArenaOverlayProps> = (props) => {
   }
 
   const loadFighter = (player: 1 | 2) => {
-    clearAllTimers()
+    clearAllTimers('A fighter was reloaded.')
     releaseClashPlayback()
     wasClashStaged = false
     if (props.arena.selectFighter) {
