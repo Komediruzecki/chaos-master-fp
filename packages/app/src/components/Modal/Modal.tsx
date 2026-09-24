@@ -1,6 +1,7 @@
 import { createSignal, For, onCleanup, onMount } from 'solid-js'
 import { Portal } from 'solid-js/web'
 import { pushBackHandler } from '@/lib/backStack'
+import { startViewTransition } from '@/lib/viewTransition'
 import ui from './Modal.module.css'
 import { ModalContext } from './ModalContext'
 import type { ParentProps } from 'solid-js'
@@ -100,21 +101,12 @@ export function Modal(props: ParentProps<ModalProps>) {
             function respond(option: unknown) {
               if (settled) return
               settled = true
-              if ('startViewTransition' in document) {
-                const transition = document.startViewTransition(() => {
-                  resolve(option)
-                  setModalInstances((instances) =>
-                    instances.filter((ins) => ins !== instance),
-                  )
-                })
-                transition.ready.catch(() => {})
-                transition.finished.catch(() => {})
-              } else {
+              startViewTransition(() => {
                 resolve(option)
                 setModalInstances((instances) =>
                   instances.filter((ins) => ins !== instance),
                 )
-              }
+              })
             }
 
             // A dialog is the topmost layer while it is up, so the Android
