@@ -139,7 +139,7 @@ export const ALWAYS_ON = [
   },
   {
     file: 'src/components/TouchSurface/TouchSurface.module.test.ts',
-    why: 'reads TouchSurface.module.css',
+    why: 'reads TouchSurface.module.css and the Duel/ScrubField.module.css whose hooks it sets',
     genre: 'filesystem',
   },
   {

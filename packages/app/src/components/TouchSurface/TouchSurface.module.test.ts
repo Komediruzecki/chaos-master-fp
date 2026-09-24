@@ -12,6 +12,8 @@
  *   button keep the accent in their fill and edge.
  * - On glass the variation gallery's scrollbar takes an ink it holds 3:1
  *   with, where its hairline thumb was about the glass's own colour.
+ * - On glass the scrub fields (Duel/ScrubField.module.css) take this
+ *   surface's tokens through the hooks they read.
  *
  * Read from disk rather than imported: the test runtime turns a CSS module
  * import into class names. So it is registered in scripts/always-on-tests.mjs.
@@ -26,6 +28,7 @@ const read = (...path: string[]) =>
     ' ',
   )
 const css = read('TouchSurface.module.css')
+const scrub = read('..', 'Duel', 'ScrubField.module.css')
 
 const GLASS_ON = ":global(:root[data-glass-panels='on'])"
 
@@ -158,5 +161,48 @@ describe('the touch inspector stylesheet', () => {
         'background',
       ),
     ).toBe('var(--la-ink-3)')
+  })
+})
+
+describe('the scrub fields on the touch inspector', () => {
+  const HOOK = /var\(\s*(--scrub-[\w-]+)\s*([,)])/g
+  const reads = [...scrub.matchAll(HOOK)].map(([, hook, next]) => ({
+    hook: hook!,
+    fallback: next === ',',
+  }))
+  const set = new Map(
+    [
+      ...rule(css, `${GLASS_ON} .shapeFieldsGrid`).matchAll(
+        /(--scrub-[\w-]+):\s*([^;]+)/g,
+      ),
+    ].map(([, hook, setTo]) => [hook!, setTo!.trim()]),
+  )
+
+  it('keep the look they have on the Duel wherever a hook is unset', () => {
+    expect(reads.length).toBeGreaterThan(0)
+    expect(reads.filter(({ fallback }) => !fallback)).toEqual([])
+    // No literal white is left outside a fallback.
+    const bare = scrub.replace(/var\([^()]*(\([^()]*\)[^()]*)*\)/g, '')
+    expect(bare).not.toMatch(/rgba\(255, 255, 255/)
+  })
+
+  it('are handed every hook they read on glass, as tokens', () => {
+    expect([...set.keys()].sort()).toEqual(
+      [...new Set(reads.map(({ hook }) => hook))].sort(),
+    )
+    const wrong = [...set].filter(
+      ([hook, setTo]) =>
+        !/^var\(--la-[\w-]+\)$/.test(setTo) &&
+        !(hook === '--scrub-unit-opacity' && setTo === '1'),
+    )
+    expect(wrong).toEqual([])
+  })
+
+  it('write their text in ink on glass', () => {
+    // Their label, white at 58% over the floating deck's glass, measured
+    // 4.43:1 over bright art.
+    expect(set.get('--scrub-label')).toBe('var(--la-ink)')
+    expect(set.get('--scrub-value')).toBe('var(--la-ink)')
+    expect(set.get('--scrub-unit-opacity')).toBe('1')
   })
 })
