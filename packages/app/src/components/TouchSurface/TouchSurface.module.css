@@ -196,7 +196,7 @@
   padding: 0 var(--la-s-3);
   border-radius: var(--la-r-pill);
   border: 1px solid var(--la-hairline-strong);
-  background: var(--la-hairline);
+  background: var(--la-control);
   color: var(--la-ink-3);
   font-size: 0.78rem;
   font-weight: 600;
@@ -228,7 +228,7 @@
   height: var(--la-tap);
   border-radius: var(--la-r-sm);
   border: 1px solid var(--la-hairline);
-  background: var(--la-hairline);
+  background: var(--la-control);
   color: var(--la-ink-2);
   cursor: pointer;
   padding: 0;
@@ -237,7 +237,7 @@
 }
 
 .iconBtnSmall:hover:not(:disabled) {
-  background: var(--la-hairline-strong);
+  background: var(--la-control-strong);
   color: var(--la-ink);
 }
 
@@ -269,7 +269,7 @@
   min-width: var(--la-tap);
   border-radius: var(--la-r-sm);
   border: 1px solid var(--la-hairline);
-  background: var(--la-hairline);
+  background: var(--la-control);
   color: var(--la-ink-2);
   font: var(--la-t-body-sm);
   cursor: pointer;
@@ -280,7 +280,7 @@
 }
 
 .tabChipActive {
-  background: var(--la-accent-wash);
+  background: var(--la-control-accent);
   color: var(--la-accent);
   border-color: var(--la-accent-edge);
 }
@@ -325,7 +325,7 @@
   justify-content: space-between;
   gap: 6px;
   padding: 6px 10px;
-  background: var(--la-hairline);
+  background: var(--la-control);
   border: 1px solid var(--la-hairline);
   border-radius: 8px;
   overflow: hidden;
@@ -390,7 +390,7 @@
   align-items: center;
   gap: 4px;
   padding: 6px;
-  background: var(--la-hairline);
+  background: var(--la-control);
   border: 1px solid var(--la-hairline);
   border-radius: 8px;
   color: var(--la-ink);
@@ -408,7 +408,7 @@
 }
 
 .quickPickCard:hover {
-  background: var(--la-hairline);
+  background: var(--la-control);
   border-color: var(--la-accent-edge);
 }
 
@@ -456,7 +456,7 @@
   height: var(--la-tap);
   border-radius: var(--la-r-sm);
   border: 1px solid var(--la-hairline);
-  background: var(--la-hairline);
+  background: var(--la-control);
   color: var(--la-ink-2);
   font: var(--la-t-body-sm);
   cursor: pointer;
@@ -464,7 +464,7 @@
 }
 
 .resetShapeBtn:hover {
-  background: var(--la-hairline-strong);
+  background: var(--la-control-strong);
   color: var(--la-ink);
 }
 
@@ -579,7 +579,7 @@
   height: var(--la-tap);
   border-radius: var(--la-r-sm);
   border: 1px solid var(--la-hairline);
-  background: var(--la-hairline);
+  background: var(--la-control);
   color: var(--la-ink);
   font: var(--la-t-body-sm);
   cursor: pointer;
@@ -590,7 +590,7 @@
 }
 
 .actionPillBtn:hover {
-  background: var(--la-hairline-strong);
+  background: var(--la-control-strong);
   color: var(--la-ink);
 }
 
@@ -600,13 +600,13 @@
 }
 
 .actionPillBtnPrimary {
-  background: var(--la-accent-wash);
+  background: var(--la-control-accent);
   border-color: var(--la-accent-edge);
   color: var(--la-accent);
 }
 
 .actionPillBtnPrimary:hover {
-  background: var(--la-accent-wash);
+  background: var(--la-control-accent);
   color: var(--la-accent-press);
 }
 
@@ -782,7 +782,7 @@
 
 .searchToggleBtn:hover,
 .searchToggleBtn:active {
-  background: var(--la-accent-wash);
+  background: var(--la-control-accent);
 }
 
 /* With the Glass panels setting on, these panels sit on glass (the rail's

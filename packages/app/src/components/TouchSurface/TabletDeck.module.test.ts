@@ -1,9 +1,9 @@
 /**
  * The tablet deck's two modes as the stylesheets write them, which the test
  * DOM does not apply: the opaque page by default, and with the Glass panels
- * setting on the glass over a canvas that runs under it, whose controls keep
- * the colours they have on the page (TabletDeck.module.css), and the hover
- * badge centred on what the deck leaves of that canvas (App.module.css).
+ * setting on the glass over a canvas that runs under it, whose controls take
+ * an opaque fill of their own (TabletDeck.module.css), and the hover badge
+ * centred on what the deck leaves of that canvas (App.module.css).
  *
  * Read from disk rather than imported: the test runtime turns a CSS module
  * import, `?raw` included, into class names. So it is registered in
@@ -37,20 +37,10 @@ function token(block: string, name: string): string | undefined {
 }
 
 const lumenRoot = declarations(lumen, ':root')
-const lumenMoreContrast =
-  /@media \(prefers-contrast: more\)\s*\{\s*:root\s*\{([^}]*)\}/.exec(
-    lumen,
-  )?.[1] ?? ''
 const floatingMoreContrast =
   /@media \(prefers-contrast: more\)\s*\{\s*\.floating\s*\{([^}]*)\}/.exec(
     deck,
   )?.[1] ?? ''
-
-/** The ink share of an `rgba(242, 243, 245, a)` hairline, as a percentage. */
-function inkShare(value: string | undefined): number {
-  const alpha = /rgba\(242, 243, 245, ([0-9.]+)\)/.exec(value ?? '')?.[1]
-  return Math.round(Number(alpha) * 100)
-}
 
 /** `share`% of the colour `of`, mixed onto `onto`. */
 const mix = (share: number, of: string, onto = 'var(--la-surface)') =>
@@ -59,11 +49,6 @@ const mix = (share: number, of: string, onto = 'var(--la-surface)') =>
 /** A value with the formatter's line breaks inside brackets taken out. */
 const flat = (value: string | undefined) =>
   value?.replace(/\(\s+/g, '(').replace(/\s+\)/g, ')')
-
-const floatingLinesMoreContrast =
-  /@media \(prefers-contrast: more\)\s*\{\s*\.floating \.divider::after\s*\{([^}]*)\}\s*\.floating \.header\s*\{([^}]*)\}/.exec(
-    deck,
-  )
 
 describe('the tablet deck stylesheet', () => {
   it('fills only the page, so the glass panel shows when it floats', () => {
@@ -76,72 +61,49 @@ describe('the tablet deck stylesheet', () => {
     expect(declarations(deck, '.floating')).not.toMatch(/background/)
   })
 
-  it('keeps the controls the colour they are on the page when floating', () => {
-    // The page's hairline fills are translucent ink over --la-surface. The
-    // floating deck mixes the same share of ink onto --la-surface, so a
-    // chip is opaque and the art does not show through it. Follows lumen.
-    const floating = declarations(deck, '.floating')
+  it('gives the controls an opaque fill of their own when floating', () => {
+    // The controls fill with the control tokens (TouchSurface.module.css).
+    // On the page they are the hairline washes they always were (lumen.css).
+    // Floating, the deck makes them the explorer's opaque fills, so bright
+    // art does not show through a chip and text on one is not on glass.
+    expect(token(lumenRoot, '--la-control')).toBe('var(--la-hairline)')
+    expect(token(lumenRoot, '--la-control-strong')).toBe(
+      'var(--la-hairline-strong)',
+    )
+    expect(token(lumenRoot, '--la-control-accent')).toBe(
+      'var(--la-accent-wash)',
+    )
 
-    expect(flat(token(floating, '--la-hairline'))).toBe(
-      flat(mix(inkShare(token(lumenRoot, '--la-hairline')), '--la-ink')),
-    )
-    expect(flat(token(floating, '--la-hairline-strong'))).toBe(
-      flat(mix(inkShare(token(lumenRoot, '--la-hairline-strong')), '--la-ink')),
-    )
+    const floating = declarations(deck, '.floating')
+    expect(token(floating, '--la-control')).toBe('var(--la-surface-2)')
+    expect(token(floating, '--la-control-strong')).toBe('var(--la-surface-3)')
     const wash = /var\(--la-accent\) ([0-9.]+)%, transparent/.exec(
       token(lumenRoot, '--la-accent-wash') ?? '',
     )?.[1]
-    expect(flat(token(floating, '--la-accent-wash'))).toBe(
-      flat(mix(Number(wash), '--la-accent')),
-    )
-
-    // And at the strengths More Contrast gives the hairlines.
-    expect(flat(token(floatingMoreContrast, '--la-hairline'))).toBe(
-      flat(
-        mix(inkShare(token(lumenMoreContrast, '--la-hairline')), '--la-ink'),
-      ),
-    )
-    expect(flat(token(floatingMoreContrast, '--la-hairline-strong'))).toBe(
-      flat(
-        mix(
-          inkShare(token(lumenMoreContrast, '--la-hairline-strong')),
-          '--la-ink',
-        ),
-      ),
+    expect(flat(token(floating, '--la-control-accent'))).toBe(
+      flat(mix(Number(wash), '--la-accent', 'var(--la-surface-2)')),
     )
   })
 
-  it('keeps the lines on the glass translucent when floating', () => {
-    // The divider's grip and the header's rule sit on the glass, not on a
-    // control. Made opaque like the fills, they are darker than the glass
-    // over bright art and vanish; translucent, they read as on the page.
-    const strong = inkShare(token(lumenRoot, '--la-hairline-strong'))
-    const hairline = inkShare(token(lumenRoot, '--la-hairline'))
-    const grip = declarations(deck, '.floating .divider::after')
-    const rule = declarations(deck, '.floating .header')
-
-    expect(flat(token(grip, 'background'))).toBe(
-      mix(strong, '--la-ink', 'transparent'),
+  it('leaves the hairlines translucent when floating', () => {
+    // Remapped onto --la-surface, as they were, they made a control's edge
+    // the colour of its own fill, and the lines on the glass itself (the
+    // divider's grip, the header's rule) darker than the glass over bright
+    // art, where they vanished.
+    const floating = declarations(deck, '.floating')
+    for (const name of [
+      '--la-hairline',
+      '--la-hairline-strong',
+      '--la-accent-wash',
+    ]) {
+      expect(token(floating, name), name).toBeUndefined()
+      expect(token(floatingMoreContrast, name), name).toBeUndefined()
+    }
+    expect(declarations(deck, '.divider::after')).toMatch(
+      /background:\s*var\(--la-hairline-strong\);/,
     )
-    expect(flat(token(rule, 'border-bottom-color'))).toBe(
-      mix(hairline, '--la-ink', 'transparent'),
-    )
-
-    // And at the strengths More Contrast gives the hairlines.
-    const [, moreGrip, moreRule] = floatingLinesMoreContrast ?? []
-    expect(flat(token(moreGrip ?? '', 'background'))).toBe(
-      mix(
-        inkShare(token(lumenMoreContrast, '--la-hairline-strong')),
-        '--la-ink',
-        'transparent',
-      ),
-    )
-    expect(flat(token(moreRule ?? '', 'border-bottom-color'))).toBe(
-      mix(
-        inkShare(token(lumenMoreContrast, '--la-hairline')),
-        '--la-ink',
-        'transparent',
-      ),
+    expect(declarations(deck, '.header')).toMatch(
+      /border-bottom:\s*1px solid var\(--la-hairline\);/,
     )
   })
 
