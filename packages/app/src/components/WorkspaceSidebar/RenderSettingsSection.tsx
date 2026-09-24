@@ -12,7 +12,6 @@ import { colorInitModeToImplFn } from '@/flame/colorInitMode'
 import { drawModeToImplFn } from '@/flame/drawMode'
 import { pointInitModeToImplFn } from '@/flame/pointInitMode'
 import { pointInitMode3DToImplFn } from '@/flame/pointInitMode3D'
-import { startViewTransition } from '@/lib/viewTransition'
 import { recordKeys } from '@/utils/record'
 import type { Accessor, Setter } from 'solid-js'
 import type { CommandContext } from '@/commands/types'
@@ -373,11 +372,7 @@ export function RenderSettingsSection(props: RenderSettingsSectionProps) {
                   class={ui.select}
                   value={flameDescriptor.renderSettings.drawMode}
                   onChange={(ev) => {
-                    const mode = ev.currentTarget.value
-                    const update = () => {
-                      setRenderSetting('drawMode', mode)
-                    }
-                    startViewTransition(update)
+                    setRenderSetting('drawMode', ev.currentTarget.value)
                   }}
                 >
                   <For each={recordKeys(drawModeToImplFn)}>
@@ -405,11 +400,7 @@ export function RenderSettingsSection(props: RenderSettingsSectionProps) {
                   class={ui.select}
                   value={flameDescriptor.renderSettings.colorInitMode}
                   onChange={(ev) => {
-                    const mode = ev.currentTarget.value
-                    const update = () => {
-                      setRenderSetting('colorInitMode', mode)
-                    }
-                    startViewTransition(update)
+                    setRenderSetting('colorInitMode', ev.currentTarget.value)
                   }}
                 >
                   <For each={recordKeys(colorInitModeToImplFn)}>
@@ -439,11 +430,7 @@ export function RenderSettingsSection(props: RenderSettingsSectionProps) {
                   class={ui.select}
                   value={flameDescriptor.renderSettings.pointInitMode}
                   onChange={(ev) => {
-                    const mode = ev.currentTarget.value
-                    const update = () => {
-                      setRenderSetting('pointInitMode', mode)
-                    }
-                    startViewTransition(update)
+                    setRenderSetting('pointInitMode', ev.currentTarget.value)
                   }}
                 >
                   <For
