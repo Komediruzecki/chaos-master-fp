@@ -24,4 +24,14 @@ describe('the editor rail stylesheet', () => {
     expect(Number(minWidth?.[1])).toBeGreaterThanOrEqual(40)
     expect(chip).toMatch(/height:\s*var\(--la-tap\)/)
   })
+
+  it('gives the shutter a fill its accent icon holds 3:1 on by itself', () => {
+    // Ember over --la-glass (72%) is 2.86:1 with white-hot art behind it,
+    // under the 3:1 an icon needs (glassContrast.test.ts has the table). The
+    // sheet behind the shutter lifted that in place; the shutter's own fill,
+    // --la-glass-strong (86%), now holds 4.79:1 without it.
+    const shutter = declarations('.shutter')
+    expect(shutter).toMatch(/background:\s*var\(--la-glass-strong\);/)
+    expect(shutter).toMatch(/color:\s*var\(--la-accent\);/)
+  })
 })
