@@ -246,8 +246,7 @@ Steps marked **(you)** need the Apple account or the vault; the rest is in the r
 - **Do** export `.p12` files with `openssl pkcs12 -export -legacy`. The OpenSSL 3 default is refused by the macOS keychain, and CI does not say why.
 - **Do** keep one fixed debug keystore, so CI and local APKs can update each other without an uninstall that wipes on-device data.
 - **Do** treat `fetch` status 0 with a body as success for bundled media on iOS. The `capacitor://` handler answers range-less media requests that way.
-- **Do** compile GPU pipelines at init and run animation on wall-clock time. Stutter on first draw and fixed-step clocks under low fps hurt Beside Cue on iPhone.
-- **Don't** copy Beside Cue's `base: './'` reasoning, its hard-coded Test Store key, its first `AudioSession.swift` (the route-change feedback loop), or its README secrets table (out of date).
+- **Do** compile GPU pipelines at init and run animation on wall-clock time, so the first draw does not stutter and animation keeps its speed under low fps on iPhone.
 - **Don't** keep plaintext signing material in a directory. The vault is the only source of truth.
 
 ## 8. Risks and decisions
