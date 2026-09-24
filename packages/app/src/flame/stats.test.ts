@@ -264,6 +264,24 @@ describe('flame/stats', () => {
       expect(g.stability).toBe(0.3)
     })
 
+    // The PR #124 review's probe: an identity map but for one coefficient too
+    // small to square. M^T M then has a nonzero off-diagonal while the spread
+    // of its diagonal, p, underflows to 0, and B = (A - q I) / p divided by 0.
+    it('3D: a coefficient too small to square leaves the stats finite', () => {
+      const f = deepClone(sierpinskiTetrahedron)
+      const first = Object.values(f.transforms)[0]!
+      Object.assign(first.preAffine, {
+        ...{ a: 1, b: 2.5e-162, c: 0 },
+        ...{ e: 0, f: 1, g: 0 },
+        ...{ i: 0, j: 0, k: 1 },
+      })
+      const g = calculateGroundedStats(f)
+      // sigma1 is 1 for that map and 0.5 for the other three: stability
+      // 1 - 0.7 x 0.625 = 0.5625, which rounds to 0.56.
+      expect(g.stability).toBe(0.56)
+      expect([g.hp, g.def, g.powerLevel].every(Number.isFinite)).toBe(true)
+    })
+
     // maff, 2026-09-24: "Normalize by space". A dimension runs up to 3 in 3D
     // and 2 in 2D, so the stats derived from it read dimension x 2 / space:
     // a 3D flame that fills its space scores like a 2D flame that fills the

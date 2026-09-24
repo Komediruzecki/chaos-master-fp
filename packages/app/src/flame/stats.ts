@@ -406,6 +406,9 @@ function largestEigenvalueOfGram(
   const p = Math.sqrt(
     ((a00 - q) ** 2 + (a11 - q) ** 2 + (a22 - q) ** 2 + 2 * offDiagonal) / 6,
   )
+  // An off-diagonal too small to square leaves p at 0 (it underflows), and
+  // B below would divide by it. A is then q I to the last bit.
+  if (!(p > 0)) return Math.max(0, a00, a11, a22)
   // B = (A - q I) / p; its determinant over 2 is cos(3 phi).
   const b00 = (a00 - q) / p
   const b11 = (a11 - q) / p
