@@ -78,7 +78,7 @@ describe('the angle editor on a rotation transform', () => {
       '2D by symmetry.ts: shows 90 180 270; keys a b d e; 45 writes 2D -> 2D, sends x to (0.71, 0.71, 0), shows 45',
       '2D by command: shows 90 180 270; keys a b d e; 45 writes 2D -> 2D, sends x to (0.71, 0.71, 0), shows 45',
       '3D by symmetry.ts: shows 90 180 270; keys a b e f; 45 writes 3D -> 3D, sends x to (0.71, 0.71, 0), shows 45',
-      '3D by command: shows 90 180 270; keys a b d e; 45 writes 2D -> 2D, sends x to (0.71, 0.71, 0), shows 45',
+      '3D by command: shows 90 180 270; keys a b e f; 45 writes 3D -> 3D, sends x to (0.71, 0.71, 0), shows 45',
       '3D by command, reloaded: shows 90 180 270; keys a b e f; 45 writes 3D -> 3D, sends x to (0.71, 0.71, 0), shows 45',
     ])
   })

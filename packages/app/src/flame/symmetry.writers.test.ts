@@ -8,7 +8,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import { affineLayout } from './symmetryDetection'
-import { build, renderedDeterminant, renderedPreAffine, SOURCES, symIds, TYPES, } from './symmetryTestUtils'
+import { build, reload, renderedDeterminant, renderedPreAffine, SOURCES, symIds, TYPES, } from './symmetryTestUtils'
 import type { Dims } from './symmetryTestUtils'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 
@@ -100,7 +100,7 @@ describe('the two symmetry writers', () => {
       '2D rotational 4 by symmetry.ts: 3 transforms, pre 2D, post 2D, linearVar: R90 R180 R270',
       '2D rotational 4 by command: 3 transforms, pre 2D, post 2D, linearVar: R90 R180 R270',
       '2D rotational 4 by command, reloaded: 3 transforms, pre 2D, post 2D, linearVar: R90 R180 R270',
-      '2D dihedral 1 by symmetry.ts: 0 transforms, pre -, post -, -: -',
+      '2D dihedral 1 by symmetry.ts: 1 transforms, pre 2D, post 2D, linearVar: M',
       '2D dihedral 1 by command: 1 transforms, pre 2D, post 2D, linearVar: M',
       '2D dihedral 1 by command, reloaded: 1 transforms, pre 2D, post 2D, linearVar: M',
       '2D dihedral 2 by symmetry.ts: 2 transforms, pre 2D, post 2D, linearVar: R180 M',
@@ -112,20 +112,20 @@ describe('the two symmetry writers', () => {
       '3D rotational 1 by symmetry.ts: 0 transforms, pre -, post -, -: -',
       '3D rotational 1 by command: 0 transforms, pre -, post -, -: -',
       '3D rotational 1 by command, reloaded: 0 transforms, pre -, post -, -: -',
-      '3D rotational 2 by symmetry.ts: 1 transforms, pre 3D, post 2D, linear3D: R180',
-      '3D rotational 2 by command: 1 transforms, pre 2D, post 2D, linear3D: R180',
+      '3D rotational 2 by symmetry.ts: 1 transforms, pre 3D, post 3D, linear3D: R180',
+      '3D rotational 2 by command: 1 transforms, pre 3D, post 3D, linear3D: R180',
       '3D rotational 2 by command, reloaded: 1 transforms, pre 3D, post 3D, linear3D: R180',
-      '3D rotational 4 by symmetry.ts: 3 transforms, pre 3D, post 2D, linear3D: R90 R180 R270',
-      '3D rotational 4 by command: 3 transforms, pre 2D, post 2D, linear3D: R90 R180 R270',
+      '3D rotational 4 by symmetry.ts: 3 transforms, pre 3D, post 3D, linear3D: R90 R180 R270',
+      '3D rotational 4 by command: 3 transforms, pre 3D, post 3D, linear3D: R90 R180 R270',
       '3D rotational 4 by command, reloaded: 3 transforms, pre 3D, post 3D, linear3D: R90 R180 R270',
-      '3D dihedral 1 by symmetry.ts: 0 transforms, pre -, post -, -: -',
-      '3D dihedral 1 by command: 1 transforms, pre 2D, post 2D, linear3D: M',
+      '3D dihedral 1 by symmetry.ts: 1 transforms, pre 3D, post 3D, linear3D: M',
+      '3D dihedral 1 by command: 1 transforms, pre 3D, post 3D, linear3D: M',
       '3D dihedral 1 by command, reloaded: 1 transforms, pre 3D, post 3D, linear3D: M',
-      '3D dihedral 2 by symmetry.ts: 2 transforms, pre 3D, post 2D, linear3D: R180 M',
-      '3D dihedral 2 by command: 2 transforms, pre 2D, post 2D, linear3D: R180 M',
+      '3D dihedral 2 by symmetry.ts: 2 transforms, pre 3D, post 3D, linear3D: R180 M',
+      '3D dihedral 2 by command: 2 transforms, pre 3D, post 3D, linear3D: R180 M',
       '3D dihedral 2 by command, reloaded: 2 transforms, pre 3D, post 3D, linear3D: R180 M',
-      '3D dihedral 4 by symmetry.ts: 4 transforms, pre 3D, post 2D, linear3D: R90 R180 R270 M',
-      '3D dihedral 4 by command: 4 transforms, pre 2D, post 2D, linear3D: R90 R180 R270 M',
+      '3D dihedral 4 by symmetry.ts: 4 transforms, pre 3D, post 3D, linear3D: R90 R180 R270 M',
+      '3D dihedral 4 by command: 4 transforms, pre 3D, post 3D, linear3D: R90 R180 R270 M',
       '3D dihedral 4 by command, reloaded: 4 transforms, pre 3D, post 3D, linear3D: R90 R180 R270 M',
     ])
   })
@@ -141,6 +141,24 @@ describe('the two symmetry writers', () => {
           expect(determinants).toEqual(
             type === 'dihedral' ? [1, 1, 1, -1] : [1, 1, 1],
           )
+        }
+      }
+    }
+  })
+
+  it('writes transforms a save and load leave as they are', () => {
+    for (const dims of [2, 3] as Dims[]) {
+      for (const type of TYPES) {
+        for (const folds of [1, 2, 3, 4, 7]) {
+          for (const source of ['symmetry.ts', 'command'] as const) {
+            const written = build(dims, type, folds, source)
+            const loaded = reload(written)
+            const pick = (flame: FlameDescriptor) =>
+              symIds(flame).map(
+                (tid) => flame.transforms[tid as keyof typeof flame.transforms],
+              )
+            expect(pick(loaded)).toEqual(pick(written))
+          }
         }
       }
     }
