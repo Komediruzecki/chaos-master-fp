@@ -252,4 +252,33 @@ describe('mutateFlame transform bounds', () => {
     // The unseeded path keeps the same promise.
     expect(count(mutateFlame(withTransforms(6), config, adding))).toBe(6)
   })
+
+  // Symmetry copies (`_sym__`) are generated from the user's transforms, and
+  // the transform list does not show them, so the range does not count them.
+  // example26 is one user transform with four copies.
+  const userCount = (flame: FlameDescriptor) =>
+    Object.keys(flame.transforms).filter((tid) => !tid.startsWith('_sym__'))
+      .length
+
+  it('counts only user transforms, not symmetry copies, toward minTransforms', () => {
+    const base = examples.example26
+    expect(userCount(base)).toBe(1)
+    expect(count(base)).toBe(5)
+    for (let seed = 0; seed < 10; seed++) {
+      const mutated = mutateFlameSeeded(base, config, options, seed)
+      expect(userCount(mutated)).toBe(2)
+    }
+  })
+
+  it('does not let symmetry copies use up the room under maxTransforms', () => {
+    const adding = { ...options, addTransformChance: 0.3 }
+    const base = examples.example26
+    let added = 0
+    for (let seed = 0; seed < 40; seed++) {
+      const mutated = mutateFlameSeeded(base, config, adding, seed)
+      expect(userCount(mutated)).toBeLessThanOrEqual(4)
+      if (userCount(mutated) > 2) added++
+    }
+    expect(added).toBeGreaterThan(0)
+  })
 })

@@ -1,4 +1,4 @@
-import { generateSeededRandomFlame, mutateFlameSeeded } from '@/flame/randomize'
+import { generateSeededRandomFlame, mutateFlameSeeded, userTransformCount, } from '@/flame/randomize'
 import { calculateGroundedStats } from '@/flame/stats'
 import { deepClone } from '@/utils/clone'
 import { calculateFlameStats } from '@/webmcp/tools/scoreFlame'
@@ -360,9 +360,11 @@ export function generateArchetypeOpponent(
   // A base below two transforms (a fresh project, 2D or 3D) has too little
   // structure to mutate into a rival: its opponents rendered nearly black. So
   // it is rolled fresh from the archetype's recipe instead, and keeps only the
-  // base's render settings, camera and exposure included.
+  // base's render settings, camera and exposure included. Symmetry copies
+  // do not count, and the roll does not keep them: they mirror the base's
+  // transforms, which the roll replaces.
   const mutated =
-    Object.keys(current.transforms).length < 2
+    userTransformCount(current.transforms) < 2
       ? {
           ...current,
           transforms: generateSeededRandomFlame(config, seed).transforms,

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { examples } from '@/flame/examples'
 import { initExample } from '@/flame/examples/initExample'
 import { initExample3D } from '@/flame/examples/initExample3D'
 import { transformVariations } from '@/flame/variations'
@@ -167,6 +168,26 @@ describe('arenaArchetypes', () => {
     expect(generateArchetypeOpponent(initExample3D, 'chaos_lord', 7)).toEqual(
       generateArchetypeOpponent(initExample3D, 'chaos_lord', 7),
     )
+  })
+
+  // example26 is one user transform and four symmetry copies: to the
+  // transform list, and to the fresh-roll check, that is one transform.
+  it('rolls fresh for a base whose only company is symmetry copies', () => {
+    const base = examples.example26
+    const pool: string[] = ARENA_ARCHETYPES.chaos_lord.allowedVariations
+    for (const seed of [1, 42, 999]) {
+      const { flame } = generateArchetypeOpponent(base, 'chaos_lord', seed)
+      const types = Object.values(flame.transforms).flatMap((t) =>
+        Object.values(t.variations).map((v) => v.type),
+      )
+      expect(
+        types.filter((type) => !pool.includes(type)),
+        `seed ${seed}`,
+      ).toEqual([])
+      expect(
+        Object.keys(flame.transforms).filter((tid) => tid.startsWith('_sym__')),
+      ).toEqual([])
+    }
   })
 
   it('still mutates a base with two transforms or more', () => {
