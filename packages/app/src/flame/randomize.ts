@@ -256,7 +256,17 @@ export function mutateFlame(
       : entriesAfterRemoval
 
   // --- Structural mutation: add transforms ---
-  const addedCount = countStructuralAdditions(rates.addChance)
+  // Kept inside the config's transform range: a flame below `minTransforms`
+  // is topped up to it, and chance additions stop at `maxTransforms`. A flame
+  // already above the range keeps every transform, because mutation varies a
+  // flame and does not prune it. The draw happens either way, so a flame the
+  // range does not touch mutates exactly as it did before.
+  const drawnAdditions = countStructuralAdditions(rates.addChance)
+  const existingCount = Object.keys(transforms).length
+  const addedCount = Math.max(
+    config.minTransforms - existingCount,
+    Math.min(drawnAdditions, Math.max(0, config.maxTransforms - existingCount)),
+  )
 
   for (const [, t] of targetEntries) {
     if (options.mutateAffine) {
