@@ -30,7 +30,7 @@ file instead of rediscovering the architecture every session.
 
 | Directory                 | Package name                   | Source files | LOC    |
 | ------------------------- | ------------------------------ | ------------ | ------ |
-| `packages/app`            | `chaos-master`                 | 1118         | 190.4k |
+| `packages/app`            | `chaos-master`                 | 1118         | 190.5k |
 | `packages/core`           | `@chaos-master/core`           | 26           | 3.6k   |
 | `packages/landing`        | `@chaos-master/landing`        | 20           | 2.5k   |
 | `packages/mobile-runtime` | `@chaos-master/mobile-runtime` | 7            | 600    |
@@ -165,7 +165,7 @@ file instead of rediscovering the architecture every session.
 | ----------------- | ----------------------------------------------------------------------------------------------- | ---- | ------------------------------------------------------------------------------------------ |
 | `FractalExplorer` | [FractalExplorerPage.tsx](../../packages/app/src/pages/FractalExplorer/FractalExplorerPage.tsx) | 3.8k | The deep-zoom explorer page: a full-bleed canvas, a heads-up readout and a settings panel. |
 | `Benchmarks`      | [BenchmarksPage.tsx](../../packages/app/src/pages/Benchmarks/BenchmarksPage.tsx)                | 3.7k | _(no header comment)_                                                                      |
-| `Clash`           | [ClashPage.tsx](../../packages/app/src/pages/Clash/ClashPage.tsx)                               | 350  | The Flame Clash preview page (`/clash`): two fighters, one scripted bout.                  |
+| `Clash`           | [ClashPage.tsx](../../packages/app/src/pages/Clash/ClashPage.tsx)                               | 450  | The Flame Clash preview page (`/clash`): two fighters, one scripted bout.                  |
 
 #### Cloudflare Worker (`packages/app/src/worker/`) — backend routes
 
