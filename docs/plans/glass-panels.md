@@ -1,7 +1,8 @@
 # Glass panels across the app
 
-Status: decided 2026-09-23 (section 2). Phases 0 to 2 are built on `feat/glass-panels`;
-phases 3 and 4 come later. Drafted from a survey of every panel, menu, dialog and overlay in
+Status: decided 2026-09-23 (section 2) and widened 2026-09-24 (decision (d)). Phases 0 to 2
+are built on `feat/glass-panels`, and the Glass panels setting is on by default; phases 3 and
+4 come later. Drafted from a survey of every panel, menu, dialog and overlay in
 `packages/app/src`. Its line references are pinned to `9fc08078`, the fork main that phase 0
 started from, where every cited file is as the survey read it; the phases have moved them
 since. Paths below are relative to `packages/app/src`.
@@ -104,6 +105,13 @@ Three rules came out of building it:
 - A coloured label on glass takes ink and keeps its colour in a fill or an edge, as the
   explorer's pressed icon button does (an accent edge around an ink glyph).
 
+**(d) On by default, and past the touch layouts (2026-09-24).** Having tried the touch
+layouts, maff asked for Glass panels to be on by default, with its toggle kept for whoever
+would rather have the frame rate, and for the same glass on the desktop sidebar and the other
+panels, set in one place rather than copied per surface. This replaces the staging in (a): the
+setting no longer waits for the device numbers, which now decide whether it stays on. The
+light theme keeps its look, per (b): the gate in section 3 leaves it out.
+
 ## 3. The shared primitive (phase 0 builds it)
 
 `styles/designSystem/glass.module.css`, composed by every glass surface
@@ -140,10 +148,21 @@ Built into the primitive, so no surface can get them wrong:
   The canvas converging after an edit is not busy. The attribute follows the state only once it
   has held for 150 ms (`GLASS_BUSY_SETTLE_MS`), in both directions, so a tap does not flash the
   panels solid.
-- **The setting.** "Glass panels (experimental)", off by default, stored as `chaos-glass-panels`
-  (`glassPanels()` in `lib/glass.ts`). It writes `data-glass-panels='on'` on `<html>` before the
-  first render, and CSS reads it as `:global(:root[data-glass-panels='on'])`. The toggle is in
-  More, then "Settings and more", on touch layouts only.
+- **The setting.** "Glass panels", on by default (decision (d)), stored as `chaos-glass-panels`
+  only once someone changes it, so the default can still move (`glassPanels()` in
+  `lib/glass.ts`). It writes `data-glass-panels='on'` on `<html>` before the first render. The
+  toggle is in Settings on every layout: More, then "Settings and more", or the tablet's rail,
+  on touch; the version menu's "Settings and More" on the desktop.
+- **The gate.** `optionalPanel` is the one rule for a large panel that is glass only while
+  the setting applies: `data-glass-panels='on'` on the root and a body that is not in the
+  light theme. Outside the gate it sets nothing, so the surface keeps its own look. Inside, it
+  sets the panel fill and blur, the ink-3 remap and the control fills, and the busy switch,
+  the nested rule and the `@supports` fallback cover it as they cover `panel`. A surface opts
+  in with one `composes:` line, so every optional panel changes in one place.
+- **Controls on glass.** `solidControls` is the one set of opaque control fills on glass: it
+  points `--la-control` and its two siblings at their `-on-glass` tokens in `lumen.css`. The
+  floating deck and the rail's glass sheet compose it, and `optionalPanel` sets the same
+  values. `styles/designSystem/glassGate.test.ts` holds the gate and the two sets equal.
 - **Reduce Transparency and More Contrast** come free through the tokens.
 - **New tokens:** `--la-glass-panel`, and a smaller `--la-glass-blur-sm` for chips if device
   numbers ask for it. No new literal radii or blur values anywhere else.
@@ -205,7 +224,7 @@ Also in phase 1:
   - The blur covers the deck, 380x820 CSS px in landscape, every composited frame while the
     flame converges. Busy states go solid.
 - **Viewports.** The deck shows at 1180x820 and 1024x1366; 820x1180 is the rail layout.
-- **Default.** Off, behind the setting, until the device numbers are in.
+- **Default.** On since 2026-09-24 (decision (d)); the device numbers decide whether it stays.
 - **Known.** Toggling the setting mis-frames the flame for the 300 ms resize debounce (the view
   only). With the setting on, desktop Chrome draws the nav rail's text with greyscale rather
   than subpixel anti-aliasing. ProgressBar centres on the viewport, not the visible canvas, and
@@ -294,8 +313,8 @@ Each rule comes from one of the earlier cuts.
   and sets an attribute on `<html>` that the tokens honour.
 - **iOS, stale swapchain.** WebKit shows stale WebGPU buffers when a canvas is not presented
   every frame (PR #63 fixed the editor with a present pump; the explorer has none). A
-  CoreAnimation blur over an idle WebGPU canvas is untested. Still unchecked: phase 2 ships
-  behind the setting until it is checked on a device.
+  CoreAnimation blur over an idle WebGPU canvas is untested. Still unchecked, and Glass panels
+  is on by default now (decision (d)), so check it on a device before a release.
 - **iOS, web below 18.** It reads only `-webkit-backdrop-filter`, which the build drops (section
   3), so it shows no blur. It has no WebGPU either. The native build targets iOS 26.
 - **Android.** Mid-range GPUs are the worst case for blur. The shell bar is already an opaque
@@ -346,7 +365,8 @@ Each rule comes from one of the earlier cuts.
   - over a converging flame and over an animating one.
 - **Accessibility settings.** Reduce Transparency and Increase Contrast.
 - **The stale-swapchain check** above.
-- **Decision.** These numbers decide the phase 2 default and the phone sheet past peek.
+- **Decision.** These numbers decide whether Glass panels stays on by default (decision (d)),
+  and the phone sheet past peek.
 
 ## 8. Found on the way, out of scope
 
