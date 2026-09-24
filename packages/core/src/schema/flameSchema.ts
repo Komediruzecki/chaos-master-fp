@@ -346,7 +346,17 @@ export const RenderSettings = v.object({
     v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(1)),
     0,
   ),
-  palettePhase: v.optional(v.pipe(v.number(), v.minValue(0), v.maxValue(1)), 0),
+  // Cyclic: the colour grading pass reads the phase through fract() and as a
+  // rotation angle, so 1.25 is 0.25 (see numberDomain.ts).
+  palettePhase: v.optional(
+    v.pipe(
+      v.number(),
+      v.minValue(0),
+      v.maxValue(1),
+      v.metadata({ cyclic: true }),
+    ),
+    0,
+  ),
   paletteSpeed: v.optional(v.pipe(v.number(), v.minValue(0)), 0.5),
   blendWeight: v.optional(v.pipe(v.number(), v.minValue(0), v.maxValue(1))),
   blendFlame: v.optional(v.unknown()),
