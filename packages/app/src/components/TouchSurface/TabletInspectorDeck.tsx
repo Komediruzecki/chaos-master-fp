@@ -1,8 +1,11 @@
-import { createSignal, Show } from 'solid-js'
+import { createEffect, createSignal, onCleanup, Show } from 'solid-js'
 import { executeCommand } from '@/commands/registry'
 import { CameraIcon, GridIcon, Redo, SidebarPanel, Undo } from '@/icons'
 import { workspaceIsVisible } from '@/lib/activeTab'
+import { setTrailingCover } from '@/lib/canvasFraming'
+import { glassPanels } from '@/lib/glass'
 import { haptic } from '@/lib/haptics'
+import glass from '@/styles/designSystem/glass.module.css'
 import { createDragHandler } from '@/utils/createDragHandler'
 import { createLongPress } from '@/utils/createLongPress'
 import { persistentSignal } from '@/utils/persistentSignal'
@@ -39,6 +42,14 @@ function defaultWidth(): number {
   return window.innerWidth > window.innerHeight ? 380 : 360
 }
 
+/**
+ * The tablet's inspector, on the trailing edge of the deck layout. By default
+ * it is a page beside the canvas, opaque, in a grid column of its own. With
+ * the experimental Glass panels setting on it floats over the canvas as
+ * glass instead: the canvas runs on under it, and the deck says how much of
+ * the canvas it covers so the camera frames the flame in the rest
+ * (lib/canvasFraming.ts). Collapsed, it covers nothing either way.
+ */
 export function TabletInspectorDeck(props: TabletInspectorDeckProps) {
   // The live width is a plain signal. The persisted one is read once for the
   // starting width and written once when the divider is let go: serialising
@@ -51,6 +62,17 @@ export function TabletInspectorDeck(props: TabletInspectorDeckProps) {
   const [width, setWidth] = createSignal(storedWidth())
   // Not persisted: a collapsed deck should not be how the app starts.
   const [collapsed, setCollapsed] = createSignal(false)
+
+  // What the open deck covers of the canvas under it, as the divider moves:
+  // its width while it floats, nothing while it is a page beside the canvas.
+  // The camera moves the picture by it and writes nothing to the flame.
+  const floating = () => glassPanels()
+  createEffect(() => {
+    setTrailingCover(floating() && !collapsed() ? width() : 0)
+  })
+  onCleanup(() => {
+    setTrailingCover(0)
+  })
 
   const dispatch = (id: string, ...args: unknown[]) => {
     executeCommand(id, props.ctx, ...args)
@@ -113,6 +135,10 @@ export function TabletInspectorDeck(props: TabletInspectorDeckProps) {
         <button
           type="button"
           class={ui.edgeTab}
+          // Floating, the tab is chrome like the rest of the glass: blurred
+          // art behind the icon, rather than the sharp art that shows
+          // through its fill today.
+          classList={{ [glass.chrome!]: floating() }}
           aria-label="Show inspector"
           inert={!workspaceIsVisible()}
           onClick={toggleCollapsed}
@@ -123,6 +149,11 @@ export function TabletInspectorDeck(props: TabletInspectorDeckProps) {
     >
       <aside
         class={ui.deck}
+        classList={{
+          [ui.page!]: !floating(),
+          [ui.floating!]: floating(),
+          [glass.panel!]: floating(),
+        }}
         aria-label="Tablet Touch Inspector"
         inert={!workspaceIsVisible()}
         style={{ width: `${width()}px` }}

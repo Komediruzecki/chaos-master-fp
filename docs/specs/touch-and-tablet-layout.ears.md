@@ -429,7 +429,7 @@ single auditable command. The More items are the shared list from
 `flame.quickExport` fallback it once had named a command nobody registered.
 
 _(`TouchHUD.tsx:134-137` (`onUndo`), `:151-154` (`onRedo`);
-`TabletInspectorDeck.tsx:163-165` (`onUndo`), `:179-181` (`onRedo`);
+`TabletInspectorDeck.tsx:194-196` (`onUndo`), `:210-212` (`onRedo`);
 `TouchControlSurface.tsx:584-585` (`onMutate`), `:597-598` (`onRandomize`).)_
 
 ### REQ-TL-024 — Popovers dismiss on an outside tap
