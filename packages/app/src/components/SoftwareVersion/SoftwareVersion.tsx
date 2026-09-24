@@ -1,7 +1,8 @@
+// Version menu for studio tools and standalone exploration pages.
 import { createEffect, createSignal, onCleanup, Show } from 'solid-js'
-import { Book, DeepZoom, GridIcon, Info, Menu, SidebarPanel, Star, Zap, } from '@/icons'
+import { Book, DeepZoom, Globe, GridIcon, Info, Menu, SidebarPanel, Star, Zap, } from '@/icons'
 import { setActiveTab } from '@/lib/activeTab'
-import { BENCHMARKS_PATH, EXPLORER_PATH } from '@/routing/appPath'
+import { BENCHMARKS_PATH, EXPLORE_VR_PATH, EXPLORER_PATH, } from '@/routing/appPath'
 import { isTouchLayout as globalIsTouchLayout, setTouchLayoutPreference as globalSetTouchLayoutPref, } from '@/stores/workspaceLayoutStore'
 import { DISPLAY_VERSION } from '@/version'
 import { DebugPanel } from '../Debug/DebugPanel'
@@ -132,6 +133,19 @@ export function SoftwareVersion(props: SoftwareVersionProps) {
         <div class={ui.menuMeta}>
           <span class={ui.menuLabel}>Deep zoom</span>
           <span class={ui.menuSub}>Mandelbrot and Julia explorer</span>
+        </div>
+      </a>
+
+      <a
+        class={ui.menuItem}
+        href={EXPLORE_VR_PATH}
+        aria-label="Open the VR explorer"
+        onClick={() => setOpen(false)}
+      >
+        <Globe class={ui.menuIcon} />
+        <div class={ui.menuMeta}>
+          <span class={ui.menuLabel}>Explore VR</span>
+          <span class={ui.menuSub}>Desktop flame atlas preview</span>
         </div>
       </a>
 

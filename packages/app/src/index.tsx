@@ -5,7 +5,7 @@ import { installLockKeyGate } from './arcade/lockKeyGate'
 import { loadHaptics } from './lib/haptics'
 import { loadLifecycle } from './lib/lifecycle'
 import { IS_NATIVE, nativePlatform } from './lib/platform'
-import { isBenchmarksPath, isExplorerPath } from './routing/appPath'
+import { isBenchmarksPath, isExplorerPath, isExploreVRPath, } from './routing/appPath'
 
 // First, before any other key listener exists, so it hears every key before
 // they do: under the Arcade's screen lock, no key reaches the page.
@@ -72,6 +72,8 @@ const Entry = isBenchmarksPath(pathname)
   : isExplorerPath(pathname)
     ? (await import('./pages/FractalExplorer/FractalExplorerApp'))
         .FractalExplorerApp
-    : (await import('./App')).Wrappers
+    : isExploreVRPath(pathname)
+      ? (await import('./pages/ExploreVR/ExploreVRApp')).ExploreVRApp
+      : (await import('./App')).Wrappers
 
 render(() => <Entry />, root)

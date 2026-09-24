@@ -1,3 +1,4 @@
+// Version menu disclosure, navigation links and host visibility behavior.
 import { cleanup, fireEvent, render, screen } from '@solidjs/testing-library'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import workspaceSource from '../../MainWorkspace.tsx?raw'
@@ -34,6 +35,9 @@ describe('SoftwareVersion component', () => {
     const labLink = screen.getByRole('link', { name: 'Open Benchmark Lab' })
     expect(labLink).toBeTruthy()
     expect(labLink.getAttribute('href')).toBe('/benchmarks')
+
+    const vrLink = screen.getByRole('link', { name: 'Open the VR explorer' })
+    expect(vrLink.getAttribute('href')).toBe('/explore-vr')
 
     const arcadeLink = screen.getByRole('link', { name: 'Open Lumen Arcade' })
     expect(arcadeLink).toBeTruthy()

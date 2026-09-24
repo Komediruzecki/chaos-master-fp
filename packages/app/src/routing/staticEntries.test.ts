@@ -3,7 +3,7 @@
  * at the folder URL a static host redirects to and at the bare route URL.
  */
 import { describe, expect, it } from 'vitest'
-import { BENCHMARKS_PATH, EXPLORER_PATH } from './appPath'
+import { BENCHMARKS_PATH, EXPLORE_VR_PATH, EXPLORER_PATH } from './appPath'
 import { nestedIndexHtml, redirectPageHtml, staticEntryFiles, withPageUrl, } from './staticEntries'
 
 const ORIGIN = 'https://example.test'
@@ -70,12 +70,28 @@ describe('staticEntryFiles', () => {
   const files = staticEntryFiles(BUILT_INDEX)
 
   it('writes the nested page into each page route folder', () => {
-    for (const route of [BENCHMARKS_PATH, EXPLORER_PATH]) {
+    for (const route of [BENCHMARKS_PATH, EXPLORER_PATH, EXPLORE_VR_PATH]) {
       expect(files[`${route.slice(1)}/index.html`]).toBe(
         withPageUrl(nestedIndexHtml(BUILT_INDEX), route),
       )
     }
   })
+
+  it.each(['/explore-vr', '/explore-vr/', '/explore-vr/index.html'])(
+    'loads the root assets with its own canonical URL from %s',
+    (pathname) => {
+      const page = files['explore-vr/index.html'] ?? ''
+      expect(page).toContain(
+        '<link rel="canonical" href="https://lumenapeiron.com/explore-vr" />',
+      )
+      expect(page).toContain(
+        '<meta property="og:url" content="https://lumenapeiron.com/explore-vr" />',
+      )
+      expect(resolveAll(page, `${ORIGIN}${pathname}`)).toEqual(
+        resolveAll(withPageUrl(BUILT_INDEX, '/explore-vr'), `${ORIGIN}/`),
+      )
+    },
+  )
 
   it('names each route, not the home page, as the canonical URL', () => {
     const page = files['explore/index.html'] ?? ''
@@ -98,6 +114,7 @@ describe('staticEntryFiles', () => {
     expect(Object.keys(files).sort()).toEqual([
       'arcade/index.html',
       'benchmarks/index.html',
+      'explore-vr/index.html',
       'explore/index.html',
     ])
   })

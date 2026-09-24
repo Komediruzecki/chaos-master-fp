@@ -267,7 +267,7 @@ actions, and the desktop version pill — and shall mount no TouchSurface
 component except the `AdvancedToolsDrawer`, which is always mounted but renders
 nothing while closed.
 
-_(`MainWorkspace.tsx:3838` (`isPhone`), `:4080` (`isPhone`), `:4380` (`showArena`); `SoftwareVersion.tsx:193-196` (`isTouch`)
+_(`MainWorkspace.tsx:3838` (`isPhone`), `:4080` (`isPhone`), `:4380` (`showArena`); `SoftwareVersion.tsx:209` (`isTouch`)
 selects the desktop trigger from `isTouchLayout()`; `AdvancedToolsDrawer.tsx:128` (`open`)
 wraps the whole panel in `<Show when={props.open}>`.)_
 

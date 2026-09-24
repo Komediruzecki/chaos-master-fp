@@ -1,0 +1,133 @@
+/* The scene owns only projected worlds; the parent places its HUD above it. */
+.scene {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  isolation: isolate;
+  pointer-events: none;
+}
+
+.space {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.world,
+.selected {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  mix-blend-mode: screen;
+}
+
+.posterButton {
+  position: absolute;
+  display: block;
+  width: 100px;
+  height: 100px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #e6edf6;
+  transform: translate(-50%, -50%) scale(var(--world-scale));
+  pointer-events: auto;
+  touch-action: manipulation;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.posterButton img {
+  position: absolute;
+  width: 149.25%;
+  height: 149.25%;
+  max-width: none;
+  left: -24.625%;
+  top: -24.625%;
+  border-radius: 50%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.posterButton:focus-visible {
+  outline: calc(2px / var(--world-scale)) solid var(--world-accent);
+  outline-offset: calc(8px / var(--world-scale));
+}
+
+.label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: #c9d4e3;
+  font: inherit;
+  font-size: 11px;
+  line-height: 1.4;
+  letter-spacing: 0.025em;
+  white-space: nowrap;
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.world:has(.posterButton:hover) .label,
+.world:has(.posterButton:focus-visible) .label {
+  color: white;
+  opacity: 1;
+}
+
+.liveFrame {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 640px;
+  height: 640px;
+  pointer-events: none;
+}
+
+.readyPoster,
+.liveOrb {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+
+.readyPoster {
+  z-index: 1;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.liveOrb {
+  pointer-events: auto;
+}
+
+.liveOrb canvas {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  touch-action: none;
+}
+
+.scene[data-traveling='true'] .world,
+.scene[data-traveling='true'] .selected {
+  will-change: transform;
+}
+
+@media (max-width: 680px) {
+  .label {
+    font-size: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene .world,
+  .scene .selected {
+    will-change: auto;
+  }
+}
