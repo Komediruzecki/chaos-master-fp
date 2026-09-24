@@ -109,8 +109,16 @@ export const interruptedSession = interrupted
  */
 export const interruptionAnnouncement = announcement
 
-/** The id of the session this page is running, for tabs that ask. */
+/** The id of the session this page is running, if one is. */
 let runningId: string | undefined
+
+/**
+ * Every marker id this document wrote, running or ended. A duplicated tab
+ * asks about the id it copied, and the answer has to hold even when this
+ * page's session ended between the duplication and the copy's boot: the copy
+ * must then drop the marker quietly, not report a reload that never happened.
+ */
+const writtenIds = new Set<string>()
 
 let channel: BroadcastChannel | undefined
 
@@ -135,7 +143,7 @@ function openChannel(): void {
   if (!channel) return
   channel.onmessage = (event: MessageEvent<ChannelMessage>) => {
     const message = event.data
-    if (message.type === 'claim?' && message.id === runningId) {
+    if (message.type === 'claim?' && writtenIds.has(message.id)) {
       channel?.postMessage({ type: 'claimed', id: message.id })
     }
   }
@@ -155,8 +163,15 @@ if (typeof window !== 'undefined') {
 openChannel()
 
 /**
- * Whether a live tab still runs the session with this id. Only a duplicated
- * tab can: it is the one way a second document gets this tab's storage.
+ * Whether a live tab wrote the marker with this id. Only the tab this one was
+ * duplicated from can have: it is the one way a second document gets this
+ * tab's storage. A reloaded document has closed its channel by then, so a
+ * real reload gets no answer.
+ *
+ * An answer later than the window counts as none, and the copy then reports
+ * an interruption that did not happen. That needs the original's main thread
+ * blocked for the whole window; waiting longer would delay every reloaded
+ * page's first tool call by the same amount, so the window stays as it is.
  */
 function claimedElsewhere(id: string): Promise<boolean> {
   const ask = createChannel()
@@ -178,18 +193,21 @@ function claimedElsewhere(id: string): Promise<boolean> {
 }
 
 /**
- * Settles what the marker a previous document left means. Runs once, when
- * this module loads: in a fresh page that is before any session can have
- * started, so a marker here is a session a reload ended, or one a duplicated
- * tab copied from a tab that is still running it.
+ * Settles what the marker a previous document left means. The marker is read
+ * once, when this module loads: in a fresh page that is before any session
+ * can have started, so a marker here is a session a reload ended, or one a
+ * duplicated tab copied from the tab that wrote it.
  */
-async function checkMarker(): Promise<void> {
-  const marker = readMarker()
+async function checkMarker(marker: Marker | undefined): Promise<void> {
   if (!marker) return
+  // Asked once the current task is over, so the window starts after the rest
+  // of the app's modules have evaluated rather than running down during it.
+  await new Promise((resolve) => setTimeout(resolve, 0))
   if (await claimedElsewhere(marker.id)) {
     // A duplicate: the session is the other tab's, and this copy of its
     // marker would report a false interruption on this tab's next reload.
-    removeMarker()
+    // A session started here meanwhile wrote its own marker; keep that one.
+    if (readMarker()?.id === marker.id) removeMarker()
     return
   }
   // A session started here while the check ran supersedes the old one.
@@ -201,7 +219,8 @@ async function checkMarker(): Promise<void> {
   }
 }
 
-const checked = checkMarker()
+// Read now, before a session this page starts can overwrite it.
+const checked = checkMarker(readMarker())
 
 /** Resolves once the marker is settled. The tools wait for it, once. */
 export function interruptionChecked(): Promise<void> {
@@ -213,6 +232,7 @@ export function markSessionRunning(session: InterruptedSession): void {
   setInterrupted(undefined)
   runningId =
     globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`
+  writtenIds.add(runningId)
   writeMarker({ ...session, id: runningId })
 }
 

@@ -208,6 +208,23 @@ describe(
       expect(again.session.interruptedSession()).toBeUndefined()
     })
 
+    it('drops a copied marker without a notice when the original ended its session before the copy booted', async () => {
+      const original = await loadPage(createMockCommandContext())
+      await original.call(original.tools.arcadeStartDuel, {
+        durationSeconds: 60,
+      })
+      // Duplicate Tab takes the copy of the storage first...
+      const copyStorage = snapshotStorage()
+      // ...and the original's duel ends through the app before the copy has
+      // booted. The original still knows the marker was its own.
+      original.session.markSessionClosed()
+      const copy = await loadPageOn(copyStorage, createMockCommandContext())
+      await copy.session.interruptionChecked()
+      expect(copy.session.interruptionAnnouncement()).toBeUndefined()
+      expect(copy.session.interruptedSession()).toBeUndefined()
+      expect((await copy.call(copy.tools.getFlame)).isError).toBeUndefined()
+    })
+
     it('boots where the BroadcastChannel constructor throws, and still tells a reload', async () => {
       // Firefox throws SecurityError here when storage access is denied.
       vi.stubGlobal(
