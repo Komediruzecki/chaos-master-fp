@@ -30,7 +30,7 @@ file instead of rediscovering the architecture every session.
 
 | Directory                 | Package name                   | Source files | LOC    |
 | ------------------------- | ------------------------------ | ------------ | ------ |
-| `packages/app`            | `chaos-master`                 | 1111         | 189.4k |
+| `packages/app`            | `chaos-master`                 | 1112         | 189.5k |
 | `packages/core`           | `@chaos-master/core`           | 27           | 3.8k   |
 | `packages/landing`        | `@chaos-master/landing`        | 20           | 2.5k   |
 | `packages/mobile-runtime` | `@chaos-master/mobile-runtime` | 7            | 600    |
@@ -196,9 +196,9 @@ file instead of rediscovering the architecture every session.
 | [topics.ts](../../packages/app/src/arcade/topics.ts)                         | 500 | _(no header comment)_                                                                                             |
 | [animatablePaths.ts](../../packages/app/src/arcade/animatablePaths.ts)       | 350 | _(no header comment)_                                                                                             |
 | [tasteStore.ts](../../packages/app/src/arcade/tasteStore.ts)                 | 350 | Persistent taste profile store and flame feature extraction for Evolutionary Art Director.                        |
+| [interruptedSession.ts](../../packages/app/src/arcade/interruptedSession.ts) | 300 | An Arcade session a page reload cut short, remembered so the agent is told instead of editing the viewer's flame. |
 | [duel.ts](../../packages/app/src/arcade/duel.ts)                             | 250 | _(no header comment)_                                                                                             |
 | [duelActions.ts](../../packages/app/src/arcade/duelActions.ts)               | 250 | _(no header comment)_                                                                                             |
-| [interruptedSession.ts](../../packages/app/src/arcade/interruptedSession.ts) | 250 | An Arcade session a page reload cut short, remembered so the agent is told instead of editing the viewer's flame. |
 | [duelJudge.ts](../../packages/app/src/arcade/duelJudge.ts)                   | 200 | _(no header comment)_                                                                                             |
 | [pilot.ts](../../packages/app/src/arcade/pilot.ts)                           | 200 | _(no header comment)_                                                                                             |
 | [affineControls.ts](../../packages/app/src/arcade/affineControls.ts)         | 150 | _(no header comment)_                                                                                             |
