@@ -36,6 +36,9 @@ function hover(intent: BlendIntent) {
     hoveredCustomVarDef: () => null,
     hoveredBlendName: () => 'Aurora',
     blendIntent: () => intent,
+    // Read by the view framing (useViewFraming.ts) as the viewport mounts.
+    exportDimensions: () => undefined,
+    onExportImage: () => undefined,
   }
   render(() => (
     <CanvasViewport {...(props as unknown as CanvasViewportProps)} />

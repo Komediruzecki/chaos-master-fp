@@ -1,4 +1,4 @@
-import { ErrorBoundary, Show, Suspense } from 'solid-js'
+import { createSignal, ErrorBoundary, Show, Suspense } from 'solid-js'
 import { vec4f } from 'typegpu/data'
 import ui from '@/App.module.css'
 import { duelShowing } from '@/arcade/duel'
@@ -15,6 +15,8 @@ import { workspaceIsVisible } from '@/lib/activeTab'
 import { AutoCanvas } from '@/lib/AutoCanvas'
 import { WheelZoomCamera2D } from '@/lib/WheelZoomCamera2D'
 import { WheelZoomCamera3D } from '@/lib/WheelZoomCamera3D'
+import { useElementSize } from '@/utils/useElementSize'
+import { useViewFraming } from './useViewFraming'
 import type { Accessor, JSXElement, Setter, Signal } from 'solid-js'
 import type { v2f } from 'typegpu/data'
 import type { Vec3 } from 'wgpu-matrix'
@@ -111,6 +113,20 @@ export interface CanvasViewportProps {
 }
 
 export function CanvasViewport(props: CanvasViewportProps) {
+  // With the Glass panels setting on, the tablet deck floats over this canvas
+  // and the cameras frame the flame in the part it leaves visible. The shift
+  // is the view's alone: the document's camera, and every image taken off
+  // the canvas, stay what they are with the setting off (useViewFraming.ts).
+  const [container, setContainer] = createSignal<HTMLDivElement>()
+  const [canvas, setCanvas] = createSignal<HTMLCanvasElement>()
+  const containerSize = useElementSize(container)
+  const framing = useViewFraming({
+    width: () => containerSize()?.width,
+    canvas,
+    exportDimensions: () => props.exportDimensions(),
+    onExportImage: () => props.onExportImage(),
+  })
+
   return (
     // Home and the Arcade cover the editor completely and it stays mounted
     // underneath, so everything in here is behind a full-screen layer: the
@@ -119,6 +135,7 @@ export function CanvasViewport(props: CanvasViewportProps) {
     // tab order and still announced. `inert` takes the subtree out of both
     // without unmounting the canvas or stopping a single frame.
     <div
+      ref={setContainer}
       class={ui.canvasContainer}
       data-tour-target="canvas"
       classList={{ [ui.fullscreen as string]: !props.showSidebar() }}
@@ -155,6 +172,7 @@ export function CanvasViewport(props: CanvasViewportProps) {
         })()}
       </p>
       <AutoCanvas
+        ref={setCanvas}
         class={ui.canvas}
         data-replay-region="canvas"
         role="img"
@@ -203,6 +221,7 @@ export function CanvasViewport(props: CanvasViewportProps) {
                   zoom={[props.effectiveZoom, props.setFlameZoom]}
                   position={[props.effectivePosition, props.setFlamePosition]}
                   rotation={props.effectiveRotation}
+                  viewShift={framing.viewShift}
                   interactive={() =>
                     !props.isPlaying() &&
                     (!animationExportRunning() || cameraDuringExportEnabled())
@@ -221,7 +240,7 @@ export function CanvasViewport(props: CanvasViewportProps) {
                     animationEnabled={props.animationEnabled()}
                     flameDescriptor={props.effectiveFlame()}
                     renderInterval={props.finalRenderInterval()}
-                    onExportImage={props.onExportImage()}
+                    onExportImage={framing.exportImage()}
                     edgeFadeColor={
                       props.showSidebar()
                         ? EDGE_FADE_COLOR[props.theme()]
@@ -247,6 +266,7 @@ export function CanvasViewport(props: CanvasViewportProps) {
                 roll={[props.effectiveRoll, props.setFlameRoll]}
                 flyMode={props.flyMode}
                 flySpeed={props.flySpeed}
+                viewShift={framing.viewShift}
                 // Not while a duel covers this canvas: this camera
                 // listens on `window` for the orbit keys, and the
                 // player's seat binds the same setters to its own
@@ -270,7 +290,7 @@ export function CanvasViewport(props: CanvasViewportProps) {
                   animationEnabled={props.animationEnabled()}
                   flameDescriptor={props.effectiveFlame()}
                   renderInterval={props.finalRenderInterval()}
-                  onExportImage={props.onExportImage()}
+                  onExportImage={framing.exportImage()}
                   edgeFadeColor={
                     props.showSidebar()
                       ? EDGE_FADE_COLOR[props.theme()]
