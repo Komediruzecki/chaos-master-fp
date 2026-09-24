@@ -2,7 +2,8 @@
  * The tablet deck's two modes as the stylesheets write them, which the test
  * DOM does not apply: the opaque page by default, and with the Glass panels
  * setting on the glass over a canvas that runs under it, whose controls keep
- * the colours they have on the page (TabletDeck.module.css).
+ * the colours they have on the page (TabletDeck.module.css), and the hover
+ * badge centred on what the deck leaves of that canvas (App.module.css).
  *
  * Read from disk rather than imported: the test runtime turns a CSS module
  * import, `?raw` included, into class names. So it is registered in
@@ -162,5 +163,16 @@ describe('the tablet layout grid', () => {
     ).toEqual([
       ":global(:root[data-glass-panels='on']) .tabletLayout .canvas-container",
     ])
+  })
+})
+
+describe('the hover badge', () => {
+  it('centres on the part of the canvas the floating deck leaves', () => {
+    // CanvasViewport sets --covered-right on the canvas box while the deck
+    // floats open over it, and leaves it unset otherwise: half of a 1100 px
+    // canvas under a 380 px deck is 360 px, not 550.
+    expect(declarations(app, '.hover-preview-badge')).toMatch(
+      /left:\s*calc\(\(1 - var\(--covered-right, 0\)\) \* 50%\);/,
+    )
   })
 })

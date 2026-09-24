@@ -1353,12 +1353,14 @@
 
 /* Chrome glass, like the toast; the desktop's light theme keeps its light
    badge. The badge sits in the workspace, so the layout classes above say
-   whether it is on a touch layout. */
+   whether it is on a touch layout. It centres on the part of the canvas on
+   show: --covered-right is the share of it the floating tablet deck covers
+   (CanvasViewport.tsx), unset otherwise. */
 .hover-preview-badge {
   composes: chrome from '@/styles/designSystem/glass.module.css';
   position: absolute;
   top: 10px;
-  left: 50%;
+  left: calc((1 - var(--covered-right, 0)) * 50%);
   transform: translateX(-50%);
   z-index: 101;
   display: inline-flex;
