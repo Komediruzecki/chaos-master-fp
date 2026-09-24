@@ -1,4 +1,4 @@
-import { createSignal, ErrorBoundary, Show, Suspense } from 'solid-js'
+import { createMemo, createSignal, ErrorBoundary, Show, Suspense, } from 'solid-js'
 import { vec4f } from 'typegpu/data'
 import ui from '@/App.module.css'
 import { duelShowing } from '@/arcade/duel'
@@ -43,6 +43,21 @@ const HOVER_BADGE: Record<BlendIntent, string> = {
 export const EDGE_FADE_COLOR = {
   light: vec4f(0.96, 0.96, 0.96, 0.7),
   dark: vec4f(0, 0, 0, 0.6),
+}
+
+/**
+ * What the renderer fades the canvas's rim to: the theme's colour beside the
+ * sidebar, and none in full screen or while the floating tablet deck covers
+ * part of the canvas (`coveredRight`, useViewFraming.ts). There the rim runs
+ * on under the deck's glass, and the fade laid a band down the deck, dark or
+ * light with the theme, that the page beside the canvas never had.
+ */
+export function edgeFadeColor(
+  theme: 'light' | 'dark',
+  showSidebar: boolean,
+  coveredRight: number,
+) {
+  return showSidebar && coveredRight === 0 ? EDGE_FADE_COLOR[theme] : vec4f(0)
 }
 
 export interface CanvasViewportProps {
@@ -126,6 +141,15 @@ export function CanvasViewport(props: CanvasViewportProps) {
     exportDimensions: () => props.exportDimensions(),
     onExportImage: () => props.onExportImage(),
   })
+  const edgeFade = createMemo(() =>
+    edgeFadeColor(props.theme(), props.showSidebar(), framing.coveredRight()),
+  )
+  // Unset rather than 0 with nothing over the canvas, like the attribute
+  // on the canvas itself.
+  const coveredRightStyle = () => {
+    const covered = framing.coveredRight()
+    return covered > 0 ? String(covered) : undefined
+  }
 
   return (
     // Home and the Arcade cover the editor completely and it stays mounted
@@ -139,7 +163,11 @@ export function CanvasViewport(props: CanvasViewportProps) {
       class={ui.canvasContainer}
       data-tour-target="canvas"
       classList={{ [ui.fullscreen as string]: !props.showSidebar() }}
-      style={{ '--rail-inset': `${props.railInset?.() ?? 0}px` }}
+      // The hover badge centres on the part on show (App.module.css).
+      style={{
+        '--rail-inset': `${props.railInset?.() ?? 0}px`,
+        '--covered-right': coveredRightStyle(),
+      }}
       inert={!workspaceIsVisible()}
       onClick={props.onCanvasClick}
     >
@@ -241,11 +269,7 @@ export function CanvasViewport(props: CanvasViewportProps) {
                     flameDescriptor={props.effectiveFlame()}
                     renderInterval={props.finalRenderInterval()}
                     onExportImage={framing.exportImage()}
-                    edgeFadeColor={
-                      props.showSidebar()
-                        ? EDGE_FADE_COLOR[props.theme()]
-                        : vec4f(0)
-                    }
+                    edgeFadeColor={edgeFade()}
                     setCurrentQuality={(fn) => setCurrentQuality(() => fn)}
                     setQualityPointCountLimit={(fn) =>
                       setQualityPointCountLimit(() => fn)
@@ -291,11 +315,7 @@ export function CanvasViewport(props: CanvasViewportProps) {
                   flameDescriptor={props.effectiveFlame()}
                   renderInterval={props.finalRenderInterval()}
                   onExportImage={framing.exportImage()}
-                  edgeFadeColor={
-                    props.showSidebar()
-                      ? EDGE_FADE_COLOR[props.theme()]
-                      : vec4f(0)
-                  }
+                  edgeFadeColor={edgeFade()}
                   setCurrentQuality={(fn) => setCurrentQuality(() => fn)}
                   setQualityPointCountLimit={(fn) =>
                     setQualityPointCountLimit(() => fn)

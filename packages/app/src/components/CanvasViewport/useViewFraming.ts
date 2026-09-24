@@ -30,6 +30,11 @@ export interface ViewFramingOptions {
 }
 
 export interface ViewFraming {
+  /**
+   * The share of the canvas's width the floating deck covers, 0 to 1: 0 with
+   * nothing over it, and while an export sizes the canvas.
+   */
+  coveredRight: Accessor<number>
   /** For the cameras' `viewShift`. */
   viewShift: Accessor<ViewShift>
   /** For the renderer's `onExportImage`: the capture, cut to what is on show. */
@@ -60,5 +65,5 @@ export function useViewFraming(options: ViewFramingOptions): ViewFraming {
     return capture && captureVisiblePart(capture)
   })
 
-  return { viewShift, exportImage }
+  return { coveredRight, viewShift, exportImage }
 }
