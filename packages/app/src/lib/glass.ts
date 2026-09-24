@@ -4,6 +4,7 @@
  * writes them, so none can be left on by a surface that forgot to clear it.
  */
 import { persistentSignal } from '@/utils/persistentSignal'
+import type { Theme } from '@/contexts/ThemeContext'
 
 const [glassPanels, storeGlassPanels] = persistentSignal<boolean>(
   'chaos-glass-panels',
@@ -26,6 +27,20 @@ export { glassPanels }
 export function setGlassPanels(on: boolean): void {
   storeGlassPanels(on)
   writeGlassPanels(on)
+}
+
+/**
+ * Whether an optionalPanel is glass in `theme`: the setting is on and the
+ * theme is not light. The same test, in code, as the gate in front of
+ * glass.module.css's optionalPanel, for what a stylesheet cannot decide on its
+ * own, such as the desktop sidebar floating over the canvas and how much of
+ * the canvas the camera frames the flame beside
+ * (WorkspaceSidebar/useSidebarGlass.ts). optionalPanelGlass.test.ts matches
+ * the gate's own selector against this for every setting and theme, so the
+ * two cannot disagree.
+ */
+export function optionalPanelGlass(theme: Theme): boolean {
+  return glassPanels() && theme !== 'light'
 }
 
 /** Puts the stored setting on <html>; index.tsx calls it before the first render. */

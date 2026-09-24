@@ -108,6 +108,11 @@ export const ALWAYS_ON = [
     genre: 'filesystem',
   },
   {
+    file: 'src/lib/optionalPanelGlass.test.ts',
+    why: 'reads the gate selector from glass.module.css and matches it against optionalPanelGlass for every setting and theme',
+    genre: 'filesystem',
+  },
+  {
     file: 'src/styles/designSystem/glassContrast.test.ts',
     why: 'reads the ink and glass tokens from lumen.css to measure text contrast on each fill',
     genre: 'filesystem',
