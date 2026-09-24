@@ -15,6 +15,22 @@
  *   solid   --la-glass-solid fill (96%), no blur. What busy and the
  *           fallback turn a panel into, and usable on its own.
  *
+ *   optionalPanel
+ *           A panel only while the Glass panels setting is on, in the dark
+ *           theme; the surface's own look otherwise. For the large surfaces
+ *           the setting is about (the desktop sidebar, dialogs): one
+ *           composes line, and the setting, the theme, busy, nesting, the
+ *           text tiers and the controls' fills all come with it. It sets no
+ *           edge and no shadow, which a surface's own geometry decides, and
+ *           no transition: a surface that fades its fill lists
+ *           background-color in its own.
+ *   solidControls
+ *           No glass of its own: the controls inside take opaque fills, the
+ *           --la-control*-on-glass values in lumen.css, so bright art does
+ *           not show through a chip, a row or a field. For a glass surface
+ *           the setting switches by class rather than by optionalPanel (the
+ *           tablet deck, the rail's sheet); optionalPanel carries it already.
+ *
  * Each carries --la-glass-edge and --la-glass-shadow and writes both
  * backdrop-filter and -webkit-backdrop-filter, the -webkit- spelling first
  * (glassBlurs.test.ts holds every stylesheet to that order). The production
@@ -95,10 +111,12 @@
  *                           hooks/useWorkspaceGlassBusy.ts, and only once the
  *                           state has held for 150 ms, so a tap or the canvas
  *                           converging after an edit never flickers it.
- *   data-glass-panels="on"  the experimental Glass panels setting, off by
- *                           default, offered in Settings on the touch
- *                           layouts. It lets the Android rule below keep a
- *                           panel's glass, it turns the rail sheet into a
+ *   data-glass-panels="on"  the Glass panels setting, on by default and
+ *                           offered in Settings on every layout, for whoever
+ *                           would rather have the frame rate. It turns every
+ *                           optionalPanel to glass, it lets the Android rule
+ *                           below keep a panel's glass, it turns the rail
+ *                           sheet into a
  *                           panel past peek (TouchSurface/EditorRail.tsx),
  *                           and it floats the tablet deck over the canvas
  *                           as a panel (TouchSurface/TabletInspectorDeck.tsx;
@@ -153,6 +171,32 @@
   backdrop-filter: none;
 }
 
+/* A single class, so a surface can compose it; lumen.css holds the values. */
+.solidControls {
+  --la-control: var(--la-control-on-glass);
+  --la-control-strong: var(--la-control-strong-on-glass);
+  --la-control-accent: var(--la-control-accent-on-glass);
+}
+
+/* ---- The Glass panels setting --------------------------------------- */
+
+/* optionalPanel is glass only under both conditions, and has no declaration
+   of its own otherwise, so with the setting off, or in the light theme whose
+   surfaces keep their light look (glass-panels.md, decision b), the surface
+   is exactly what it was. The weight of the gate (four classes and a type)
+   is what lets the glass win over the surface's own background. */
+:global(:root[data-glass-panels='on'])
+  :global(body:not([data-theme='light']))
+  .optionalPanel {
+  background: var(--la-glass-panel);
+  -webkit-backdrop-filter: var(--la-glass-blur);
+  backdrop-filter: var(--la-glass-blur);
+  --la-ink-3: var(--la-ink-2);
+  --la-control: var(--la-control-on-glass);
+  --la-control-strong: var(--la-control-strong-on-glass);
+  --la-control-accent: var(--la-control-accent-on-glass);
+}
+
 /* ---- What they enforce ---------------------------------------------- */
 
 /* One blurred layer. Two classes' weight, so a surface cannot put it back. */
@@ -161,9 +205,25 @@
   backdrop-filter: none;
 }
 
+/* An optionalPanel inside glass, or glass inside it, keeps one blur too. */
+:global(:root[data-glass-panels='on'])
+  :global(body:not([data-theme='light']))
+  :is(.chrome, .panel, .flat, .solid, .optionalPanel)
+  .optionalPanel,
+:global(:root[data-glass-panels='on'])
+  :global(body:not([data-theme='light']))
+  .optionalPanel
+  :is(.chrome, .panel, .flat, .solid) {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
 /* No transition here: at this weight it would replace the surface's own,
    and a sheet's height would stop animating whenever the canvas is busy. */
-:root[data-glass='busy'] .panel {
+:root[data-glass='busy'] .panel,
+:global(:root[data-glass-panels='on'][data-glass='busy'])
+  :global(body:not([data-theme='light']))
+  .optionalPanel {
   background: var(--la-glass-solid);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
@@ -181,7 +241,10 @@
    iOS Safari before 18 and would turn all of its glass solid. */
 @supports (not (backdrop-filter: blur(1px))) and
   (not (-webkit-backdrop-filter: blur(1px))) {
-  :root :is(.chrome, .panel, .flat) {
+  :root :is(.chrome, .panel, .flat),
+  :global(:root[data-glass-panels='on'])
+    :global(body:not([data-theme='light']))
+    .optionalPanel {
     background: var(--la-glass-solid);
   }
 }

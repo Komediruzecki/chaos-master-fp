@@ -18,6 +18,7 @@ const read = (...path: string[]) =>
 const deck = read('TabletDeck.module.css')
 const app = read('..', '..', 'App.module.css')
 const lumen = read('..', '..', 'styles', 'designSystem', 'lumen.css')
+const glass = read('..', '..', 'styles', 'designSystem', 'glass.module.css')
 
 /** The declarations of the first rule written exactly as `selector`. */
 function declarations(css: string, selector: string): string {
@@ -74,13 +75,28 @@ describe('the tablet deck stylesheet', () => {
       'var(--la-accent-wash)',
     )
 
-    const floating = declarations(deck, '.floating')
-    expect(token(floating, '--la-control')).toBe('var(--la-surface-2)')
-    expect(token(floating, '--la-control-strong')).toBe('var(--la-surface-3)')
+    // It takes them from the primitive, which every glass surface shares.
+    expect(declarations(deck, '.floating')).toMatch(
+      /composes:\s*solidControls from '@\/styles\/designSystem\/glass\.module\.css';/,
+    )
+    const solid = declarations(glass, '.solidControls')
+    expect(token(solid, '--la-control')).toBe('var(--la-control-on-glass)')
+    expect(token(solid, '--la-control-strong')).toBe(
+      'var(--la-control-strong-on-glass)',
+    )
+    expect(token(solid, '--la-control-accent')).toBe(
+      'var(--la-control-accent-on-glass)',
+    )
+    expect(token(lumenRoot, '--la-control-on-glass')).toBe(
+      'var(--la-surface-2)',
+    )
+    expect(token(lumenRoot, '--la-control-strong-on-glass')).toBe(
+      'var(--la-surface-3)',
+    )
     const wash = /var\(--la-accent\) ([0-9.]+)%, transparent/.exec(
       token(lumenRoot, '--la-accent-wash') ?? '',
     )?.[1]
-    expect(flat(token(floating, '--la-control-accent'))).toBe(
+    expect(flat(token(lumenRoot, '--la-control-accent-on-glass'))).toBe(
       flat(mix(Number(wash), '--la-accent', 'var(--la-surface-2)')),
     )
   })

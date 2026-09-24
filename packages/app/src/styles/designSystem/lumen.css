@@ -44,13 +44,22 @@
     0 8px 28px color-mix(in srgb, var(--la-accent) 22%, transparent);
 
   /* A control's fill: a chip, a row, a button, and the accent's when it is
-     selected. On an opaque surface it is the translucent wash; a surface
-     over glass that wants its controls opaque sets these to its own fills
-     (the floating tablet deck, TabletDeck.module.css). A control's edge
-     stays a hairline either way, so edge and fill read as two colours. */
+     selected. On an opaque surface it is the translucent wash. On glass a
+     control fills opaque with the explorer panel's surfaces instead, so
+     bright art does not show through a chip, a row or a field: the glass
+     surface composes solidControls (glass.module.css), which points the
+     three at the -on-glass values. A control's edge stays a hairline either
+     way, so edge and fill read as two colours. */
   --la-control: var(--la-hairline);
   --la-control-strong: var(--la-hairline-strong);
   --la-control-accent: var(--la-accent-wash);
+  --la-control-on-glass: var(--la-surface-2);
+  --la-control-strong-on-glass: var(--la-surface-3);
+  --la-control-accent-on-glass: color-mix(
+    in srgb,
+    var(--la-accent) 14%,
+    var(--la-surface-2)
+  );
 
   --la-brand-paper: #f2f3f5; /* the Deep C band — never tinted */
   --la-brand-ember: #ff7448; /* the four Deep C pills */

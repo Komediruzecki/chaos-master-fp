@@ -163,24 +163,18 @@
 /* ---- Floating: the deck as glass over the canvas -------------------- */
 
 .floating {
+  /* The controls fill with the explorer panel's surfaces, through the
+     control tokens their own rules read, so bright art does not show
+     through a chip, a row or a button, and text on one is not on glass. The
+     hairlines stay translucent: a control's edge lies over its fill and
+     reads lighter, as on the page, and the lines on the glass itself, the
+     divider's grip and the header's rule, stay lighter than the glass over
+     bright art. */
+  composes: solidControls from '@/styles/designSystem/glass.module.css';
+
   /* The primitive edges every side; only the leading one faces the canvas. */
   border: 0;
   border-left: var(--la-glass-edge);
-
-  /* The controls fill with the explorer panel's surfaces, through the
-     control tokens their own rules read (lumen.css), so bright art does not
-     show through a chip, a row or a button, and text on one is not on
-     glass. The hairlines stay translucent: a control's edge lies over its
-     fill and reads lighter, as on the page, and the lines on the glass
-     itself, the divider's grip and the header's rule, stay lighter than the
-     glass over bright art. */
-  --la-control: var(--la-surface-2);
-  --la-control-strong: var(--la-surface-3);
-  --la-control-accent: color-mix(
-    in srgb,
-    var(--la-accent) 14%,
-    var(--la-surface-2)
-  );
 
   /* Text on the glass itself, a caption or a section title, keeps to ink-2
      at the least on the panel's 80% fill (decision c, lumen.css). */

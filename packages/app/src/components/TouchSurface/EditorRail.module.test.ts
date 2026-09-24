@@ -29,23 +29,15 @@ describe('the editor rail stylesheet', () => {
     // With the Glass panels setting on, the open sheet is glass. The control
     // tokens (lumen.css) default to translucent washes, which darken and
     // lighten row by row with the art behind the sheet; the deck and the
-    // explorer fill their controls with opaque surfaces instead.
-    const rail = declarations('.sheet.glassPanel')
+    // explorer fill their controls with opaque surfaces instead, and the
+    // sheet takes them from the same place in the primitive.
+    expect(declarations('.glassPanel')).toMatch(
+      /composes:\s*panel solidControls from '@\/styles\/designSystem\/glass\.module\.css';/,
+    )
     const deck = readFileSync(join(__dirname, 'TabletDeck.module.css'), 'utf8')
-    const floating = /^\.floating\s*\{([^}]*)\}/m.exec(deck)?.[1] ?? ''
-    for (const token of [
-      '--la-control',
-      '--la-control-strong',
-      '--la-control-accent',
-    ]) {
-      const value = (block: string) =>
-        new RegExp(`${token}:\\s*([^;]+);`)
-          .exec(block)?.[1]
-          ?.replace(/\s+/g, ' ')
-          .trim()
-      expect(value(rail), token).toBeDefined()
-      expect(value(rail), token).toBe(value(floating))
-    }
+    expect(deck).toMatch(
+      /^\.floating\s*\{[^}]*composes:\s*solidControls from '@\/styles\/designSystem\/glass\.module\.css';/m,
+    )
     // The selected chip's own wash is translucent too; on the glass sheet it
     // takes the opaque accent fill, as the deck's selected tab does.
     const selected = declarations(
