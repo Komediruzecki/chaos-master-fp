@@ -22,7 +22,7 @@ Wrap `packages/app` in Capacitor as a bundled, offline-capable iOS/iPadOS and An
 
 ## 2. Verdict in brief
 
-- **The app fits Capacitor well.** It is a client-only SPA with a relative asset base (`packages/app/vite.config.ts`). It has no service worker, workers, WASM or `SharedArrayBuffer`, and it routes by fragment. It runs from `capacitor://localhost` (iOS) and `https://localhost` (Android) with no COOP/COEP and no path rewrites.
+- **The app fits Capacitor well.** It is a client-only SPA. It has no service worker, workers, WASM or `SharedArrayBuffer`, and it routes by fragment. It runs from `capacitor://localhost` (iOS) and `https://localhost` (Android) with no COOP/COEP and no path rewrites.
 - **WebGPU inside the WebView is the one gate, and it is unverified on both platforms.**
   - iOS 26 WKWebView: Apple states that WebGPU is on by default.
   - Android System WebView: plausible from WebView 146, on Vulkan-capable Android 12+ devices. Chrome's 121 launch excluded WebView.
