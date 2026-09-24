@@ -6,14 +6,20 @@
  * keeps ink-2 at 5.9:1 over white-hot art even on a card's wash, where
  * ink-3 falls to 4.0:1, so the text is ink and ink-2 only. Each text rule
  * reads --tracker-ink or --tracker-ink-2 and falls back to the grey it had.
- * The desktop's light theme unsets both and keeps the card it had, dark in
- * both themes before (the glass is dark-only, decision b); a touch layout
- * is glass in both.
+ * The coloured text the 92% card carried falls short on the glass too:
+ * the error line takes --tracker-error, the error rose lifted toward ink
+ * (5.0:1 on a card's wash), and the labels on the blue and red buttons
+ * take ink (--export-action-ink, which ExportActions.module.css reads),
+ * their fills and edges keeping the colour. The desktop's light theme
+ * unsets all four and keeps the card it had, dark in both themes before
+ * (the glass is dark-only, decision b); a touch layout is glass in both.
  */
 .tracker {
   composes: chrome from '@/styles/designSystem/glass.module.css';
   --tracker-ink: var(--la-ink);
   --tracker-ink-2: var(--la-ink-2);
+  --tracker-error: color-mix(in srgb, var(--la-error) 70%, var(--la-ink));
+  --export-action-ink: var(--la-ink);
   position: fixed;
   top: 0.75rem;
   right: 0.75rem;
@@ -30,6 +36,8 @@
 [data-theme='light'] .tracker:not(.trackerTouch) {
   --tracker-ink: initial;
   --tracker-ink-2: initial;
+  --tracker-error: initial;
+  --export-action-ink: initial;
   background: rgba(15, 15, 17, 0.92);
   border: 1px solid rgba(255, 255, 255, 0.08);
   -webkit-backdrop-filter: blur(16px);
@@ -242,7 +250,7 @@
   font-weight: 600;
   text-decoration: none;
   background: rgba(59, 130, 246, 0.25);
-  color: #93bbfd;
+  color: var(--export-action-ink, #93bbfd);
   border: 1px solid rgba(59, 130, 246, 0.3);
   transition:
     background 0.15s ease,
@@ -256,5 +264,5 @@
 
 .error {
   font-size: 0.65rem;
-  color: #f87171;
+  color: var(--tracker-error, #f87171);
 }

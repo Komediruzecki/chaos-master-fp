@@ -357,7 +357,7 @@ continue to publish its measured height as `--toast-stack-offset` so toasts
 stack beneath it in both positions.
 
 _(`Toast.tsx:20` (`toastRegionTouch`), `:30` (`toastTouch`) with `App.module.css:1235-1243` (`.toast-region-touch`);
-`ExportJobTracker.tsx:55` (`trackerTouch`) with `ExportJobTracker.module.css:20-26` (`.trackerTouch`); the offset is
+`ExportJobTracker.tsx:55` (`trackerTouch`) with `ExportJobTracker.module.css:50-56` (`.trackerTouch`); the offset is
 written and cleared at `ExportJobTracker.tsx:28-49` (`createEffect`).)_
 
 ### REQ-TL-020 — The bottom rail opens on the tab that was tapped

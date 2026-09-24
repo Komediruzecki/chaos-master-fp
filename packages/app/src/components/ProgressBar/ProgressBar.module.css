@@ -5,15 +5,18 @@
  * --la-glass-strong fill, as it carries three tiers of text: the 86% fill
  * keeps ink-3 at 4.52:1 over white-hot art, where 72% allows ink alone.
  * The text reads the --tier-* properties, so the card's two looks differ in
- * one rule. The desktop's light theme keeps the card it had, dark in both
- * themes before (the glass is dark-only, decision b); a touch layout, which
- * sets .touch, is glass in both.
+ * one rule. The Stop and Cancel labels take ink on the glass
+ * (--export-action-ink, ExportActions.module.css), since their blue and red
+ * fall below 4.5:1 there. The desktop's light theme keeps the card it had,
+ * dark in both themes before (the glass is dark-only, decision b); a touch
+ * layout, which sets .touch, is glass in both.
  */
 .overlay {
   composes: chrome from '@/styles/designSystem/glass.module.css';
   --tier-1: var(--la-ink);
   --tier-2: var(--la-ink-2);
   --tier-3: var(--la-ink-3);
+  --export-action-ink: var(--la-ink);
   position: fixed;
   bottom: 1.5rem;
   left: 50%;
@@ -31,6 +34,7 @@
   --tier-1: var(--color-text, #eee);
   --tier-2: var(--color-text-secondary, #888);
   --tier-3: var(--color-text-secondary, #777);
+  --export-action-ink: initial;
   background: rgba(15, 15, 17, 0.92);
   border: 1px solid rgba(255, 255, 255, 0.08);
   -webkit-backdrop-filter: blur(16px);
