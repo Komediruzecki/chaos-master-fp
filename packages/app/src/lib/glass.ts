@@ -20,7 +20,8 @@ const [glassPanels, storeGlassPanels] = persistentSignal<boolean>(
  * whoever would rather have the frame rate. Stored like the touch layout
  * preference, and only once someone changes it, so the default can move.
  * Only its toggle in Settings (HelpModal/GlassPanelsSetting.tsx) reads it
- * here; everything else asks glassAllowed, below.
+ * here, and glassAllowed beside it for its hint; everything else asks
+ * glassAllowed, below.
  */
 export { glassPanels }
 
