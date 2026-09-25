@@ -38,10 +38,6 @@ function token(block: string, name: string): string | undefined {
 }
 
 const lumenRoot = declarations(lumen, ':root')
-const floatingMoreContrast =
-  /@media \(prefers-contrast: more\)\s*\{\s*\.floating\s*\{([^}]*)\}/.exec(
-    deck,
-  )?.[1] ?? ''
 
 /** `share`% of the colour `of`, mixed onto `onto`. */
 const mix = (share: number, of: string, onto = 'var(--la-surface)') =>
@@ -113,7 +109,8 @@ describe('the tablet deck stylesheet', () => {
       '--la-accent-wash',
     ]) {
       expect(token(floating, name), name).toBeUndefined()
-      expect(token(floatingMoreContrast, name), name).toBeUndefined()
+      // Nor anywhere else in the stylesheet, a More Contrast block included.
+      expect(token(deck, name), name).toBeUndefined()
     }
     expect(declarations(deck, '.divider::after')).toMatch(
       /background:\s*var\(--la-hairline-strong\);/,

@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { mat3 } from 'wgpu-matrix'
 import { applyTracksToFlame } from '@/utils/timeline'
 import { createTestFlame } from '@/webmcp/testUtils'
-import { camera2DViewMatrix } from './camera2DView'
+import { camera2DViewMatrix, zoomedPosition } from './camera2DView'
 import type { Camera2DView } from './camera2DView'
 
 /** Where a world point lands on screen, in clip units (-1..1 is the canvas). */
@@ -211,8 +211,8 @@ describe('the 2D camera view shift', () => {
   })
 
   it('keeps the point under the pointer still while zooming', () => {
-    // zoomKeepPointInPlace in WheelZoomCamera2D, which knows nothing of the
-    // shift, run against a shifted camera.
+    // The zoom WheelZoomCamera2D makes, which knows nothing of the shift,
+    // run against a shifted camera.
     const before = shifted({ ...WIDE, x: 1, y: 2, rotation: 0.4, zoom: 1.2 })
     const pointer = { x: -0.6, y: 0.25 }
     const world = unproject(before, pointer.x, pointer.y)
@@ -220,8 +220,7 @@ describe('the 2D camera view shift', () => {
     const after = {
       ...before,
       zoom: before.zoom * 1.5,
-      x: before.x + (world.x - before.x) * (1 - ratio),
-      y: before.y + (world.y - before.y) * (1 - ratio),
+      ...zoomedPosition(before, world, ratio),
     }
     const landed = project(after, world.x, world.y)
     expect(landed.x).toBeCloseTo(pointer.x)

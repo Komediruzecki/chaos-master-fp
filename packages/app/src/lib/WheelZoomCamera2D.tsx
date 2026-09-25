@@ -4,6 +4,7 @@ import { clamp, sub } from 'typegpu/std'
 import { useChangeHistory } from '@/contexts/ChangeHistoryContext'
 import { CAMERA_UNDO_DEBOUNCE_MS } from '@/defaults'
 import { Camera2D } from '@/lib/Camera2D'
+import { zoomedPosition } from '@/lib/camera2DView'
 import { useCamera } from '@/lib/CameraContext'
 import { useCanvas } from '@/lib/CanvasContext'
 import { NO_SHIFT } from '@/lib/canvasFraming'
@@ -160,9 +161,11 @@ export function WheelZoomCamera2D(props: ParentProps<WheelZoomCamera2DProps>) {
       const actualRatio = oldZoom / newZoom
       if (!Number.isFinite(actualRatio)) return
       setPosition(({ x, y }) => {
-        const nx = x + (world.x - x) * (1 - actualRatio)
-        const ny = y + (world.y - y) * (1 - actualRatio)
-        return vec2f(Number.isFinite(nx) ? nx : x, Number.isFinite(ny) ? ny : y)
+        const next = zoomedPosition({ x, y }, world, actualRatio)
+        return vec2f(
+          Number.isFinite(next.x) ? next.x : x,
+          Number.isFinite(next.y) ? next.y : y,
+        )
       })
     })
   }

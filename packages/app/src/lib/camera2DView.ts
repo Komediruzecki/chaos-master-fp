@@ -62,3 +62,21 @@ export function camera2DViewMatrix({
     vec3f(-sx * (c * x + s * y) + shift.x, sy * (s * x - c * y) + shift.y, 1),
   )
 }
+
+/**
+ * Where the camera's position goes when it zooms by `ratio`, the old zoom
+ * over the new, about the world point `world` under the pointer: towards the
+ * point by 1 - ratio of the way, so the point stays under the pointer. The
+ * view shift takes no part: it moves the finished picture, the point under
+ * the pointer included (camera2DView.test.ts). WheelZoomCamera2D zooms by it.
+ */
+export function zoomedPosition(
+  position: { readonly x: number; readonly y: number },
+  world: { readonly x: number; readonly y: number },
+  ratio: number,
+): { x: number; y: number } {
+  return {
+    x: position.x + (world.x - position.x) * (1 - ratio),
+    y: position.y + (world.y - position.y) * (1 - ratio),
+  }
+}
