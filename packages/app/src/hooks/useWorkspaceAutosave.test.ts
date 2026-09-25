@@ -669,3 +669,87 @@ describe('the auto-save question over a view with its own top bar', () => {
     })
   })
 })
+
+const REMINDER =
+  'Enjoying this flame? Save it for later, export a PNG, or share a link from the actions bar.'
+
+// The save reminder has a button too ("Don't show again"), so it follows the
+// same rule as the question: held while a view with its own top bar covers
+// the editor, and taken down if one opens over it.
+describe('the save reminder over a view with its own top bar', () => {
+  /** Built in a root and driven outside it, as the app runs. The question is
+   *  answered already, so the poll gets as far as the reminder. */
+  const edited = () => {
+    setAutosaveRecents('off')
+    const { ws, dispose } = createRoot((dispose) => ({
+      ws: workspace(),
+      dispose,
+    }))
+    ws.autosave.markLoadedBaseline()
+    ws.setOpen('metadata', 'name', 'Edited')
+    return { ...ws, dispose }
+  }
+  const count = (toasts: string[]) =>
+    toasts.filter((t) => t === REMINDER).length
+
+  it('waits while the Arena is open, and shows back in the editor', () => {
+    vi.useFakeTimers()
+    const { toasts, onScreen, dispose } = edited()
+    setArenaShowing(true)
+    vi.advanceTimersByTime(8 * 60_000)
+    expect(toasts).not.toContain(REMINDER)
+
+    setArenaShowing(false)
+    vi.advanceTimersByTime(30_000)
+    expect(count(toasts)).toBe(1)
+    expect(onScreen()).toContain(REMINDER)
+    dispose()
+  })
+
+  it('waits over the Arcade hub too', () => {
+    vi.useFakeTimers()
+    const { toasts, dispose } = edited()
+    setActiveTab('arcade')
+    vi.advanceTimersByTime(8 * 60_000)
+    expect(toasts).not.toContain(REMINDER)
+
+    setActiveTab('workspace')
+    vi.advanceTimersByTime(30_000)
+    expect(count(toasts)).toBe(1)
+    dispose()
+  })
+
+  it('steps aside when the Arena opens over it, and shows again after', () => {
+    vi.useFakeTimers()
+    const { toasts, onScreen, dispose } = edited()
+    vi.advanceTimersByTime(330_000)
+    expect(onScreen()).toContain(REMINDER)
+
+    setArenaShowing(true)
+    expect(onScreen()).not.toContain(REMINDER)
+    vi.advanceTimersByTime(60_000)
+    expect(count(toasts)).toBe(1)
+
+    setArenaShowing(false)
+    vi.advanceTimersByTime(30_000)
+    expect(onScreen()).toContain(REMINDER)
+    expect(count(toasts)).toBe(2)
+    dispose()
+  })
+
+  it('is not shown again when it had already timed out', () => {
+    vi.useFakeTimers()
+    const { toasts, dispose } = edited()
+    vi.advanceTimersByTime(330_000)
+    expect(count(toasts)).toBe(1)
+    // Its 12 s are over by the next poll.
+    vi.advanceTimersByTime(30_000)
+
+    setArenaShowing(true)
+    vi.advanceTimersByTime(30_000)
+    setArenaShowing(false)
+    vi.advanceTimersByTime(90_000)
+    expect(count(toasts)).toBe(1)
+    dispose()
+  })
+})

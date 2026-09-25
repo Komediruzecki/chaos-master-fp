@@ -1,8 +1,9 @@
 import { onCleanup } from 'solid-js'
 import { useOptionalToast } from '@/contexts/ToastContext'
-import { autosaveIntervalMin, autosaveRecents, saveReminderDismissed, setSaveReminderDismissed, } from '@/utils/autosaveSettings'
+import { autosaveIntervalMin, autosaveRecents } from '@/utils/autosaveSettings'
 import { getOldestRecentFlame, MAX_RECENT_FLAMES, saveRecentFlame, upsertRecentFlame, } from '@/utils/recentFlames'
 import { createAutosaveQuestion } from './autosaveQuestion'
+import { createSaveReminder } from './saveReminder'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 import type { FlushOutcome } from '@/lib/documentLoad'
 import type { RecentWriteOutcome } from '@/utils/recentFlames'
@@ -131,7 +132,6 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
   let autosaveBaseline = autosaveSnapshot()
   let editingSince: number | null = null
   let lastAutosaveAt = 0
-  let reminderShown = false
 
   const isFlameDirty = () => autosaveSnapshot() !== autosaveBaseline
   const markSavedBaseline = () => {
@@ -422,8 +422,9 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
     },
   })
 
+  const reminder = createSaveReminder({ agentDriving, showToast, dismissToast })
+
   const AUTOSAVE_POLL_MS = 30_000
-  const REMINDER_AFTER_MS = 5 * 60_000
   const autosavePoll = setInterval(() => {
     const dirty = isFlameDirty()
     if (dirty && editingSince === null) editingSince = Date.now()
@@ -437,27 +438,8 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
       if (Date.now() - lastAutosaveAt >= intervalMs) autosaveNow()
     }
 
-    if (
-      !reminderShown &&
-      !saveReminderDismissed() &&
-      !agentDriving() &&
-      editingSince !== null &&
-      Date.now() - editingSince >= REMINDER_AFTER_MS
-    ) {
-      const shown = showToast(
-        'Enjoying this flame? Save it for later, export a PNG, or share a link from the actions bar.',
-        12000,
-        [
-          {
-            label: "Don't show again",
-            onClick: () => setSaveReminderDismissed(true),
-          },
-        ],
-      )
-      // Same as the notices above: a muted store shows nothing and returns
-      // -1, and this is the only reminder the run gets.
-      if (shown !== -1) reminderShown = true
-    }
+    // Held like the question while the editor is covered (hooks/saveReminder.ts).
+    reminder.poll(editingSince)
   }, AUTOSAVE_POLL_MS)
 
   onCleanup(() => {
