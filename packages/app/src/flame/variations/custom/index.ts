@@ -1,4 +1,5 @@
 export {
+  customVariationsVersion,
   getCacheVersion,
   getCustomVariationDef,
   getCustomVariations,

@@ -27,6 +27,7 @@ import { createIFSPipeline3D } from './ifsPipeline3D'
 import { createExportRenderDriver, createInteractiveRenderDriver, EXPORT_COUNT_SIGNAL_INTERVAL_MS, EXPORT_INITIAL_ITERATIONS, EXPORT_PRESENT_INTERVAL_MS, } from './renderDrivers'
 import { backgroundColorDefault, backgroundColorDefaultWhite, } from './schema/flameSchema'
 import { Bucket, BUCKET_FIXED_POINT_MULTIPLIER, FilterParams } from './types'
+import { customVariationsVersion } from './variations/custom'
 import type { v4f } from 'typegpu/data'
 import type { Palette } from './colorMap'
 import type { ExportImageType } from './exportImageType'
@@ -508,6 +509,9 @@ export function Flam3(props: Flam3Props) {
     const flame = animatedFlame()
     const bf = props.blendFlame
     return JSON.stringify({
+      // Editing a custom variation keeps its type and changes its code, so
+      // nothing below changes: the version makes the canvas show the edit.
+      customVariationsVersion: customVariationsVersion(),
       transforms: recordEntries(flame.transforms).map(([tid, t]) => ({
         tid,
         variations: recordEntries(t.variations).map(([vid, v]) => ({
