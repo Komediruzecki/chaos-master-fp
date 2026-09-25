@@ -13,6 +13,9 @@ export type SymmetryType = 'rotational' | 'dihedral'
 
 type AffineLike = Readonly<Record<string, number | undefined>>
 
+/** Which key layout an affine uses: `{ a b c / d e f }` or `{ a b c d / e f g h / i j k l }`. */
+export type AffineLayout = '2D' | '3D'
+
 /**
  * True when a preAffine uses the 3D key layout. The same test the 3D renderer
  * makes (`isAffine3D` in transformFunction3D.ts): any of `g`-`l` present.
@@ -34,13 +37,13 @@ function has3DLayout(affine: AffineLike): boolean {
  * as before.
  *
  * - 2D layout `{ a b c / d e f }`, c and f the translation: `a -1, b 0, d 0,
- *   e 1`. This is what `symmetry.ts` writes for a 2D flame, and what the
- *   `flame.applySymmetry` command writes for a 2D and a 3D flame alike.
+ *   e 1`. Both writers (`symmetry.ts` and the `flame.applySymmetry` command,
+ *   which builds its transforms there) write this for a 2D flame.
  * - 3D layout `{ a b c d / e f g h / i j k l }`, d, h and l the translation:
- *   `a -1, b 0, c 0, e 0, f 1, g 0, i 0, j 0, k 1`. This is what `symmetry.ts`
- *   writes for a 3D flame, and what loading a 3D flame turns the 2D-layout
- *   mirror into (`migrateAffine2Dto3D` in core), so a flame saved as dihedral
- *   reads back as dihedral.
+ *   `a -1, b 0, c 0, e 0, f 1, g 0, i 0, j 0, k 1`. Both writers write this
+ *   for a 3D flame. Loading a 3D flame also turns a 2D-layout mirror into it
+ *   (`migrateAffine2Dto3D` in core), so a 3D flame saved before the writers
+ *   became one still reads back as dihedral.
  */
 export function isSymmetryMirror(affine: AffineLike | undefined): boolean {
   if (!affine) return false
@@ -81,4 +84,49 @@ export function detectSymmetryFolds(
   return detectSymmetryType(symTransforms) === 'dihedral'
     ? symTransforms.length
     : symTransforms.length + 1
+}
+
+/** The key layout of an affine, decided as `has3DLayout` decides it. */
+export function affineLayout(affine: AffineLike): AffineLayout {
+  return has3DLayout(affine) ? '3D' : '2D'
+}
+
+/**
+ * The angle the Symmetry card shows for one rotation transform, in
+ * [0, 2 pi): the rotation about z, read from the terms its layout keeps
+ * `cos` and `sin` in. 2D: `a = cos`, `d = sin`. 3D: `a = cos`, `e = sin`.
+ */
+export function symmetryRotationAngle(
+  affine: AffineLike,
+  layout: AffineLayout = affineLayout(affine),
+): number {
+  const sin = layout === '3D' ? affine.e : affine.d
+  let angle = Math.atan2(sin ?? 0, affine.a ?? 1)
+  if (angle < 0) angle += 2 * Math.PI
+  return angle
+}
+
+/**
+ * The preAffine terms a rotation about z sets, which the card's angle editor
+ * keys: `a b d e` in the 2D layout, `a b e f` in the 3D layout.
+ */
+export function symmetryRotationTerms(
+  affine: AffineLike,
+  layout: AffineLayout = affineLayout(affine),
+): readonly string[] {
+  return layout === '3D' ? ['a', 'b', 'e', 'f'] : ['a', 'b', 'd', 'e']
+}
+
+/**
+ * The layout the Symmetry card's angle editor reads, keys and writes a
+ * rotation in: the one the renderer reads that preAffine in. The 2D renderer
+ * reads a-f in the 2D layout and ignores g-l, so a 2D flame is always 2D (a
+ * 12-key rotation there is one only an agent can write). The 3D renderer
+ * reads each affine in its own layout.
+ */
+export function symmetryEditLayout(
+  affine: AffineLike,
+  dimensions: number | undefined,
+): AffineLayout {
+  return dimensions === 3 ? affineLayout(affine) : '2D'
 }
