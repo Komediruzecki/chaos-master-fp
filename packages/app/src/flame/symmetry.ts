@@ -13,7 +13,10 @@ import type { FlameDescriptor, TransformFunction, TransformId, VariationId, } fr
  * 2 pi i / n, and for a dihedral set the x mirror after them.
  */
 
-const IDENTITY: Record<AffineLayout, Record<string, number>> = {
+/** An affine in either key layout: a-f, and g-l in the 3D layout. */
+type AffineTerms = TransformFunction['preAffine']
+
+const IDENTITY: Record<AffineLayout, AffineTerms> = {
   '2D': { a: 1, b: 0, c: 0, d: 0, e: 1, f: 0 },
   '3D': {
     a: 1,
@@ -31,7 +34,7 @@ const IDENTITY: Record<AffineLayout, Record<string, number>> = {
   },
 }
 
-const MIRROR: Record<AffineLayout, Record<string, number>> = {
+const MIRROR: Record<AffineLayout, AffineTerms> = {
   '2D': { a: -1, b: 0, c: 0, d: 0, e: 1, f: 0 },
   '3D': {
     a: -1,
@@ -64,8 +67,8 @@ export function symmetryPreAffines(
   folds: number,
   type: SymmetryType,
   layout: AffineLayout,
-): Record<string, number>[] {
-  const affines: Record<string, number>[] = []
+): AffineTerms[] {
+  const affines: AffineTerms[] = []
   for (let i = 1; i < folds; i++) {
     affines.push(symmetryRotationPreAffine((2 * Math.PI * i) / folds, layout))
   }
@@ -88,7 +91,7 @@ export function symmetryWeight(
 
 /** One generated symmetry transform around `preAffine`. */
 export function symmetryTransform(
-  preAffine: Record<string, number>,
+  preAffine: AffineTerms,
   weight: number,
   layout: AffineLayout,
   variationId: VariationId,
@@ -107,7 +110,7 @@ export function symmetryTransform(
     variations: {
       [variationId]: { type: linear, weight: 1, visible: true },
     },
-  } as unknown as TransformFunction
+  }
 }
 
 /**
@@ -149,7 +152,7 @@ export function applySymmetryToFlame(
 export function symmetryRotationPreAffine(
   angle: number,
   layout: AffineLayout,
-): Record<string, number> {
+): AffineTerms {
   const cos = Math.cos(angle)
   const sin = Math.sin(angle)
   return layout === '3D'
