@@ -30,6 +30,16 @@
  *           not show through a chip, a row or a field. For a glass surface
  *           the setting switches by class rather than by optionalPanel (the
  *           tablet deck, the rail's sheet); optionalPanel carries it already.
+ *   onGlass No glass of its own either: the editor's shared components,
+ *           ControlCard, CollapsibleCard, the Slider and the PaletteSelector,
+ *           are written for the opaque sidebar and read --card-*, --slider-*
+ *           and --palette-* hooks for what they take on glass, each with its
+ *           opaque look as the fallback. This sets every one of them to a
+ *           panel's tiers: text at ink or ink-2 (decision c), the dark look's
+ *           lines, the cards' bodies clear and their headers at the control
+ *           fill. Compose it beside the glass of any surface that holds them
+ *           (the desktop sidebar, the explorer's panel). No other stylesheet
+ *           sets these hooks (glassHooks.test.ts, glassSurfaces.test.ts).
  *
  *   frost   Not glass: a label or a small control laid over a thumbnail
  *           or a preview (a name bar, a frame number, a badge). The
@@ -193,6 +203,28 @@
   --la-control: var(--la-control-on-glass);
   --la-control-strong: var(--la-control-strong-on-glass);
   --la-control-accent: var(--la-control-accent-on-glass);
+}
+
+/* The hooks the shared components read on glass. Low weight, as the four
+   classes are, so a surface's own declaration wins in any order. */
+:where(.onGlass):not(html) {
+  --card-fill: transparent;
+  --card-edge: var(--la-hairline-strong);
+  --card-head: var(--la-control);
+  --card-head-hover: var(--la-control-strong);
+  --card-ink: var(--la-ink-2);
+  --card-head-ink: var(--la-ink-2);
+  --card-head-ink-hover: var(--la-ink);
+  --slider-ink: var(--la-ink-2);
+  --slider-ink-hover: var(--la-ink);
+  --slider-ink-targeted: var(--la-ink);
+  --slider-track-filled: var(--la-ink-4);
+  --slider-track-empty: var(--la-hairline-strong);
+  --palette-ink: var(--la-ink);
+  --palette-ink-2: var(--la-ink-2);
+  --palette-edge: var(--la-hairline);
+  --palette-edge-hover: var(--la-hairline-strong);
+  --palette-edge-selected: var(--la-accent);
 }
 
 /* Not glass, so the glass rules below leave them alone; only the fallback

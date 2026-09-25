@@ -15,6 +15,9 @@
  *   - No stylesheet but lumen.css defines a glass, frost or scrim token, and
  *     the ink remap a panel carries is written outside glass.module.css only
  *     where the glass sits on another element than the text.
+ *   - The hooks the shared components read on glass are set by onGlass
+ *     alone (glassHooks.test.ts holds it to them), so the surfaces that hold
+ *     those components compose it rather than keep a copy of its values.
  *
  * Read from disk rather than imported: the test runtime turns a CSS module
  * import into class names. So it is registered in scripts/always-on-tests.mjs.
@@ -61,11 +64,14 @@ function literalBlurLines(css: string): number[] {
   )
 }
 
-/** Whether `selector`'s own rule composes `primitive` from glass.module.css. */
+/**
+ * Whether `selector`'s own rule composes `primitive` from glass.module.css,
+ * alone or beside others on the same line.
+ */
 function composes(css: string, selector: string, primitive: string): boolean {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   return new RegExp(
-    `(^|\\n)${escaped} \\{\\s*composes: ${primitive} from ${GLASS};`,
+    `(^|\\n)${escaped} \\{\\s*composes: (?:\\w+ )*${primitive}(?: \\w+)* from ${GLASS};`,
   ).test(css)
 }
 
@@ -114,6 +120,10 @@ describe('literal blurs', () => {
 
 /** Each surface that takes its glass from a primitive, by the rule it is in. */
 const SURFACES: [primitive: string, file: string, selector: string][] = [
+  ['optionalPanel', 'App.module.css', '.sidebarGlass'],
+  ['onGlass', 'App.module.css', '.sidebarGlass'],
+  ['panel', 'pages/FractalExplorer/FractalExplorerPage.module.css', '.panel'],
+  ['onGlass', 'pages/FractalExplorer/FractalExplorerPage.module.css', '.panel'],
   [
     'optionalPanel',
     'components/FloatingActions/FloatingActions.module.css',
@@ -218,10 +228,14 @@ describe('the surfaces that take their glass from a primitive', () => {
   })
 
   it('are found by the matcher, which misses a rule that does not compose', () => {
-    const css = `.a {\n  composes: frost from ${GLASS};\n}\n.b {\n  color: red;\n}\n`
+    const css = `.a {\n  composes: frost from ${GLASS};\n}\n.b {\n  color: red;\n}\n.c {\n  composes: optionalPanel onGlass from ${GLASS};\n}\n`
     expect(composes(css, '.a', 'frost')).toBe(true)
     expect(composes(css, '.b', 'frost')).toBe(false)
     expect(composes(css, '.a', 'scrim')).toBe(false)
+    expect(composes(css, '.a', 'frostFade')).toBe(false)
+    expect(composes(css, '.c', 'optionalPanel')).toBe(true)
+    expect(composes(css, '.c', 'onGlass')).toBe(true)
+    expect(composes(css, '.c', 'panel')).toBe(false)
   })
 })
 
@@ -252,5 +266,20 @@ describe('the glass tokens', () => {
       'components/SpotlightTour/SpotlightTour.module.css',
       'components/TouchSurface/TabletDeck.module.css',
     ])
+  })
+})
+
+describe("the shared components' glass hooks", () => {
+  it('are set by onGlass alone', () => {
+    const copies = stylesheets
+      .filter(({ file }) => file !== 'styles/designSystem/glass.module.css')
+      .flatMap(({ file, css }) =>
+        [
+          ...css.matchAll(
+            /(?:^|[;{\s])(--(?:card|slider|palette)-[\w-]*)\s*:/g,
+          ),
+        ].map((m) => `${file}: ${m[1]}`),
+      )
+    expect(copies).toEqual([])
   })
 })

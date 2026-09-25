@@ -8,12 +8,13 @@
  *   - while the sidebar floats (.underSidebar on the canvas box), the box
  *     spans the sidebar's column without the tuck, at the desktop widths
  *     only, and the bottom bar starts where the cover ends;
- *   - the surface is glass by one composes line, the gate's optionalPanel,
- *     and App.module.css writes no copy of the gate;
- *   - the cards, the shared controls and the sidebar's captions read hooks
- *     with their opaque looks as fallbacks, and the glass sidebar sets
- *     exactly the hooks they read, to --la-* tokens, the text ones to ink or
- *     ink-2 (decision c);
+ *   - the surface is glass by one composes line, the gate's optionalPanel
+ *     beside onGlass, which gives the cards and the shared controls their
+ *     glass look (glassHooks.test.ts), and App.module.css writes no copy of
+ *     the gate;
+ *   - the sidebar's own captions read a hook with their opaque look as the
+ *     fallback, and the glass sidebar sets exactly that hook, to ink-2
+ *     (decision c);
  *   - the hover badge centres between both covers, and nothing inside the
  *     sidebar blurs again.
  *
@@ -132,7 +133,7 @@ describe('the canvas box beside the glass sidebar', () => {
 describe('the glass sidebar surface', () => {
   it('is glass by one composes line, the gate its own', () => {
     expect(sidebarGlass.get('composes')).toBe(
-      "optionalPanel from '@/styles/designSystem/glass.module.css'",
+      "optionalPanel onGlass from '@/styles/designSystem/glass.module.css'",
     )
     // The tablet layout's span is the only rule here that reads the setting;
     // the sidebar leaves the gate to glass.module.css.
@@ -160,43 +161,17 @@ describe('the glass sidebar surface', () => {
     expect(sidebar.get('transition')).toBe('transform 200ms ease')
   })
 
-  it.each([
-    {
-      what: 'the cards',
-      files: [
-        ['components', 'ControlCard', 'ControlCard.module.css'],
-        ['components', 'CollapsibleCard', 'CollapsibleCard.module.css'],
-      ],
-      prefixes: ['card'],
-    },
-    {
-      what: 'the shared controls',
-      files: [
-        ['components', 'Sliders', 'Slider.module.css'],
-        ['components', 'PaletteSelector', 'PaletteSelector.module.css'],
-      ],
-      prefixes: ['slider', 'palette'],
-    },
-    {
-      what: "the sidebar's own captions",
-      files: [['App.module.css']],
-      prefixes: ['caption'],
-    },
-  ])('sets exactly the hooks $what read', ({ files, prefixes }) => {
-    const reads = files.flatMap((path) => hookReads(read(...path), prefixes))
+  it("sets exactly the hook the sidebar's own captions read", () => {
+    const reads = hookReads(app, ['caption'])
     expect(reads.length).toBeGreaterThan(0)
     // Every read falls back to the look it had, for everywhere but here.
     expect(reads.filter((r) => !r.fallback)).toEqual([])
     const set = [...sidebarGlass.keys()].filter((name) =>
-      prefixes.some((prefix) => name.startsWith(`--${prefix}-`)),
+      name.startsWith('--caption-'),
     )
     expect(new Set(set)).toEqual(new Set(reads.map((r) => r.name)))
     for (const name of set) {
-      const value = sidebarGlass.get(name)!
-      expect(value, name).toMatch(/^(var\(--la-[\w-]+\)|transparent)$/)
-      if (name.includes('-ink')) {
-        expect(value, name).toMatch(/^var\(--la-ink(-2)?\)$/)
-      }
+      expect(sidebarGlass.get(name), name).toBe('var(--la-ink-2)')
     }
   })
 })

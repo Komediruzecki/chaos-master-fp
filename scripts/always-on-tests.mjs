@@ -114,7 +114,7 @@ export const ALWAYS_ON = [
   },
   {
     file: 'src/components/WorkspaceSidebar/sidebarGlass.module.test.ts',
-    why: 'reads App.module.css with the card, Slider and PaletteSelector stylesheets whose hooks the glass sidebar sets',
+    why: 'reads App.module.css to check the canvas box beside the glass sidebar and the hooks its captions read',
     genre: 'filesystem',
   },
   {
@@ -124,12 +124,12 @@ export const ALWAYS_ON = [
   },
   {
     file: 'src/styles/designSystem/glassSurfaces.test.ts',
-    why: 'reads every stylesheet to check which surfaces compose which glass primitive, where literal blurs may stay, and that no component redefines a glass token',
+    why: 'reads every stylesheet to check which surfaces compose which glass primitive, where literal blurs may stay, and that no component redefines a glass token or a hook onGlass sets',
     genre: 'filesystem',
   },
   {
-    file: 'src/pages/FractalExplorer/FractalExplorerPage.module.test.ts',
-    why: 'reads FractalExplorerPage.module.css with the Slider and PaletteSelector stylesheets whose hooks it sets',
+    file: 'src/styles/designSystem/glassHooks.test.ts',
+    why: 'reads glass.module.css with the card, Slider and PaletteSelector stylesheets whose hooks onGlass sets',
     genre: 'filesystem',
   },
   {

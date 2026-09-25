@@ -338,41 +338,24 @@
    composes is always glass here, and solid while the canvas is busy. Of the
    edge, only the trailing side faces the canvas.
 
-   The cards the sidebar holds (ControlCard, CollapsibleCard), the shared
-   Slider and PaletteSelector, and the sidebar's own captions below (the
-   transforms toolbar's label, the add-transform button, the render
-   settings' group labels) read hooks for what they take on glass, each with
-   its opaque-sidebar look as the fallback, so setting them here reaches the
-   glass sidebar and nothing else. The cards' bodies lie on the glass; their
-   headers, which are controls, take the gate's opaque control fill; and no
-   text on the glass is lighter than ink-2, the least the panel's 80% fill
-   allows over white-hot art (decision c, lumen.css): the captions' neutral
-   greys measured 2.2:1 and 4.0:1 there. The fill fades as busy turns the
-   panel solid and back, beside the transform the sidebar already eases. */
+   The cards the sidebar holds (ControlCard, CollapsibleCard) and the shared
+   Slider and PaletteSelector take their glass look from onGlass: their
+   bodies lie on the glass, the cards' headers, which are controls, take the
+   gate's opaque control fill, and no text is lighter than ink-2, the least
+   the panel's 80% fill allows over white-hot art (decision c, lumen.css).
+   The sidebar's own captions below (the transforms toolbar's label, the
+   add-transform button, the render settings' group labels) read
+   --caption-ink, with their opaque look as the fallback, so setting it here
+   reaches the glass sidebar and nothing else: their neutral greys measured
+   2.2:1 and 4.0:1 there. The fill fades as busy turns the panel solid and
+   back, beside the transform the sidebar already eases. */
 .sidebarGlass {
-  composes: optionalPanel from '@/styles/designSystem/glass.module.css';
+  composes: optionalPanel onGlass from '@/styles/designSystem/glass.module.css';
   border-right: var(--la-glass-edge);
   box-shadow: var(--la-glass-shadow);
   transition:
     transform 200ms ease,
     background-color var(--la-dur-fast) var(--la-ease);
-  --card-fill: transparent;
-  --card-edge: var(--la-hairline-strong);
-  --card-head: var(--la-control);
-  --card-head-hover: var(--la-control-strong);
-  --card-ink: var(--la-ink-2);
-  --card-head-ink: var(--la-ink-2);
-  --card-head-ink-hover: var(--la-ink);
-  --slider-ink: var(--la-ink-2);
-  --slider-ink-hover: var(--la-ink);
-  --slider-ink-targeted: var(--la-ink);
-  --slider-track-filled: var(--la-ink-4);
-  --slider-track-empty: var(--la-hairline-strong);
-  --palette-ink: var(--la-ink);
-  --palette-ink-2: var(--la-ink-2);
-  --palette-edge: var(--la-hairline);
-  --palette-edge-hover: var(--la-hairline-strong);
-  --palette-edge-selected: var(--la-accent);
   --caption-ink: var(--la-ink-2);
 }
 
