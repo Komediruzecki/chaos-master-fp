@@ -243,13 +243,14 @@ Void, Tide and Arcane buckets — a transform carrying any custom WGSL variation
 flat `3.0` to Arcane, an unrecognised variation contributes half weight to Order, and a
 flame with no transforms or no positive bucket is `Order` — reading each variation as the
 type the renderer draws (in 3D, a mapped 2D name as its 3D analog), with each school's
-list holding the 3D analogs of its 2D entries from the live rows of the renderer's
-2D-to-3D map (bubbleVar is Void, and so is bubble3D) — and `getSchoolMultiplier`
-shall return `1.25` on the advantage cycle Vortex > Order > Void > Crystal > Tide >
-Vortex, `0.8` against it, a flat `1.1` when the attacker is Arcane, and `1.0` otherwise.
+list holding the 3D analogs of its 2D entries: the live rows of the renderer's 2D-to-3D
+map (bubbleVar is Void, and so is bubble3D) and the 3D registry's name twins of listed
+2D types (wavesVar is Tide, and so is waves3D) — and `getSchoolMultiplier` shall return
+`1.25` on the advantage cycle Vortex > Order > Void > Crystal > Tide > Vortex, `0.8`
+against it, a flat `1.1` when the attacker is Arcane, and `1.0` otherwise.
 
 _(`stats.ts:74-96` (`SCHOOL_ADVANTAGE`), `:117-163` (`classifySchool`); the lists and the drawn type at
-`flame/schoolVariations.ts:20-28` (`LIVE_2D_TO_3D`), `:113` (`drawnType`); the fighter cards show `+25%` style advantage badges from
+`flame/schoolVariations.ts:22-30` (`LIVE_2D_TO_3D`), `:118` (`drawnType`); the fighter cards show `+25%` style advantage badges from
 the same function, `ArenaOverlay.tsx:186-199` (`p1Advantage`), passed to the cards at `:741` (`p1Advantage`)
 and `:803` (`p2Advantage`) and rendered at `ArenaOverlay/ArenaFighterCard.tsx:313-316` (`advantage`).)_
 
@@ -558,7 +559,7 @@ file in the `Tests:` block is not the same as being guarded, so these are listed
 - REQ-AA-024 (equal-probability and empty-transform branches) — only the missing-descriptor branch is covered (`flameToolsModular.test.ts:178` "handles missing clashFlame gracefully").
 - REQ-AA-026 — `simulateClash.test.ts:138-174` "detects narrative events across diverse clash scenarios" exercises `Entangled` and `Collapse` only; `Nova`, `Symmetry Lock` and `Chaos Cascade` are unreached.
 - REQ-AA-027 — nothing asserts that `territoryWinner` overrides the HP comparison.
-- REQ-AA-028 (tie-break chain) — `stats.test.ts:407` "deterministically resolves 3 rounds with battle log" checks one deterministic 3-round run; the HP → round-wins → beauty → draw ladder is untested.
+- REQ-AA-028 (tie-break chain) — `stats.test.ts:431` "deterministically resolves 3 rounds with battle log" checks one deterministic 3-round run; the HP → round-wins → beauty → draw ladder is untested.
 - REQ-AA-029, REQ-AA-036, REQ-AA-037, REQ-AA-042 (`rounds`) — the four known deviations. None has a failing test standing behind it.
 - REQ-AA-030 — `webmcp/tools/animateClash.ts` has no test file.
 - REQ-AA-032, REQ-AA-033 — spectator pacing, the VFX timers and the keyboard handler are untested; the `ArenaOverlay.test.tsx:257` "immediately presents the Center Winner Trophy Card upon results state" results test drives `startClash` directly.
