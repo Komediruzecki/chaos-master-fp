@@ -49,16 +49,17 @@
   box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
 }
 
+/* A quiet label needs the strong fill: ink-3 holds 4.5:1 over white-hot art
+   there, where the plain chrome fill under a 45% white label gave 2.9:1. */
 [data-theme='dark'] .desktopTrigger {
   border: var(--la-glass-edge);
-  background: var(--la-glass);
-  color: rgba(255, 255, 255, 0.45);
+  background: var(--la-glass-strong);
+  color: var(--la-ink-3);
 }
 
 [data-theme='dark'] .desktopTrigger:hover {
   border-color: rgba(255, 255, 255, 0.15);
-  background: var(--la-glass-strong);
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--la-ink-2);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
