@@ -11,8 +11,8 @@
 //   (every mode), the Arena's archetype opponents, the bundled examples, and
 //   the loaders (.flame JSON through validateFlame, flam3 XML, a share link).
 //
-// A producer that fails today is listed in KNOWN with its reason, and the
-// list fails when an entry stops failing, so it only shrinks.
+// Every producer passes: the last known failures, the 3D archetype opponents
+// built from 2D names, went with #121.
 import { VARIATION_TYPE_MIGRATIONS } from '@chaos-master/core'
 import { describe, expect, it } from 'vitest'
 import { generateDefaults } from '@/commands/builtins/generate'
@@ -34,26 +34,6 @@ import type { FlameDescriptor, TransformId } from './schema/flameSchema'
 import type { Dims } from './variationRegistry'
 
 type Produced = { producer: string; flame: FlameDescriptor }
-
-const D8 =
-  'SCORING-PROPOSAL.md D8, not decided here: the 3D archetype opponents are built from 2D variation names, and render nearly black'
-
-/** What fails today, each with its reason. */
-const KNOWN: Record<string, string> = Object.fromEntries(
-  [
-    'bubbleVar',
-    'crossVar',
-    'cylinderVar',
-    'exVar',
-    'gaussianVar',
-    'polarVar',
-    'sinusoidalVar',
-    'sphericalVar',
-    'spiralVar',
-    'swirlVar',
-    'wavesVar',
-  ].map((type) => [`archetype 3D: ${type} is not a 3D type`, D8]),
-)
 
 const SEEDS = [1, 2, 3, 5, 8, 13, 21, 34]
 const dimsOf = (flame: FlameDescriptor): Dims =>
@@ -209,9 +189,7 @@ describe('what the flame producers write', () => {
         flame: (await decodeSharePayload(goldenShareLink.golden)).flame,
       },
     ]
-    const found = [...new Set(produced.flatMap(findings))].sort()
-    expect(found.filter((f) => !Object.hasOwn(KNOWN, f))).toEqual([])
-    expect(Object.keys(KNOWN).filter((k) => !found.includes(k))).toEqual([])
+    expect([...new Set(produced.flatMap(findings))].sort()).toEqual([])
   })
 
   it('covers every producer with flames of both dimensions', () => {
