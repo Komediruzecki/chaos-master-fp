@@ -35,10 +35,9 @@
   --tier-2: var(--color-text-secondary, #888);
   --tier-3: var(--color-text-secondary, #777);
   --export-action-ink: initial;
+  /* The card it had, on chrome's blur. */
   background: rgba(15, 15, 17, 0.92);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
   box-shadow:
     0 4px 24px rgba(0, 0, 0, 0.5),
     0 1px 2px rgba(0, 0, 0, 0.3);
