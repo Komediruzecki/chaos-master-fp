@@ -157,7 +157,9 @@ Built into the primitive, so no surface can get them wrong:
   Transparency nor More Contrast is asked for. Under either, `lumen.css` turns every glass fill
   solid, so a panel floating over the canvas would hide the canvas it costs; the deck and the
   sidebar keep their places beside it instead. `data-glass-panels` is written from
-  `glassAllowed()`, and follows the two media queries as they change.
+  `glassAllowed()`, and follows the two media queries as they change. The toggle keeps showing
+  the stored choice, and while either preference holds its hint says the panels stay solid
+  because the system asks for it.
 - **The gate.** `optionalPanel` is the one rule for a large panel that is glass only while
   the setting applies: `data-glass-panels='on'` on the root and a body that is not in the
   light theme. Outside the gate it sets nothing, so the surface keeps its own look. Inside, it
@@ -179,10 +181,16 @@ Built into the primitive, so no surface can get them wrong:
   a thumbnail or a preview: a light blur of the picture under it and a Void fill, with no edge,
   no shadow and nothing that flattens it. `scrim` is the layer a blocking screen lays over the
   app. Built in phase 4.
-- **Focus.** The four glass classes give what is inside them the dark theme's focus ring: glass
-  is dark in both themes, and the light theme's ring measured 2.31:1 on a panel over white-hot
-  art, where a focus indicator needs 3:1. The dark ring measures 3.46.
-- **Reduce Transparency and More Contrast** come free through the tokens.
+- **Focus.** The four glass classes and `optionalPanel`'s glass give what is inside them a
+  glass focus ring, `--focus-ring-glass` (`#a5b4fc`, `styles/index.css`). Glass is dark in both
+  themes, and on chrome's 72% fill over white-hot art the theme's rings measured 1.71:1 (light)
+  and 2.56:1 (dark), where a focus indicator needs 3:1. The glass ring measures 3.84 there and
+  more on every other fill. A glass surface that keeps a light fill in the light theme (the
+  desktop's toast, hover badge and version pill) sets the theme's ring back in the rule that
+  sets that fill, and `glassSurfaces.test.ts` fails when one does not.
+- **Reduce Transparency and More Contrast** come free through the tokens. Each replaces every
+  see-through glass and frost token, the frost bar's fade among them, and `glassContrast.test.ts`
+  fails when a new one is left out.
 - **New tokens:** `--la-glass-panel`, and a smaller `--la-glass-blur-sm` for chips if device
   numbers ask for it. Phase 4 added `--la-frost`, `--la-frost-fade`, `--la-frost-blur` and
   `--la-scrim-blur`. No new literal radii or blur values anywhere else.
@@ -220,11 +228,13 @@ Also in phase 1:
 - **The ground under the rail's sheet** (2026-09-25). Opening the sheet moves the canvas up and
   uncovers a strip at the foot of the canvas box, which showed through the glass sheet as the
   page's void: a dark band under any flame whose ground is not black, most of all a paint
-  flame's white. The box now paints the ground the flame is
-  drawn on (`flame/backgroundColor.ts`, which Flam3 reads as well), so the strip reads as more
-  of the flame's background. Framing the flame above the sheet, as the deck and the sidebar
-  frame it beside them, would reframe it at every detent and lose the sheet's smooth move; it
-  is left as a follow-up.
+  flame's white. While the sheet is glass and moves the canvas, the box now paints the ground
+  the flame is drawn on (`flame/backgroundColor.ts`, which Flam3 reads as well), so the strip
+  reads as more of the flame's background, and the canvas drops its edge fade, whose rim ran a
+  pale band across the strip's top edge in the light theme. At peek and under the opaque sheet
+  the box shows the page, exactly as with the setting off. Framing the flame above the sheet,
+  as the deck and the sidebar frame it beside them, would reframe it at every detent and lose
+  the sheet's smooth move; it is left as a follow-up.
 
 **Phase 2: tablet deck, an experiment behind a setting** (L). Built.
 
@@ -435,7 +445,9 @@ Each rule comes from one of the earlier cuts.
 
 - **Glass guard test** (`styles/designSystem/glassBlurs.test.ts`). It enforces three things:
   - Literal `backdrop-filter` declarations outside the primitive can only go down (a ratchet,
-    pinned exactly: 59 after phase 0, 57 after phase 1).
+    pinned exactly: 59 after phase 0, 57 after phase 1). Since the review of 2026-09-25 the
+    `--la-glass-blur` token counts too: written outside the primitive it gets none of what the
+    primitive enforces.
   - Every blur has its `-webkit-` twin with the same value, in a stylesheet rule or an inline
     style object.
   - In a stylesheet, the `-webkit-` spelling comes first (section 3).
@@ -448,11 +460,14 @@ Each rule comes from one of the earlier cuts.
 
 - **Contrast test** (`styles/designSystem/glassContrast.test.ts`). The table in (c), computed
   from `lumen.css`. It checks that every text tier
-  allowed on each glass tier meets 4.5:1 over white and over black, and that the focus ring on
-  glass meets 3:1 on every fill a control sits on.
-- **Where glass is written.** `glassSurfaces.test.ts` (phase 4), `glassHooks.test.ts`
-  (`onGlass`), `glassGate.test.ts` (the gate), and `lib/optionalPanelGlass.test.ts`, which
-  matches the gate's selector against `optionalPanelGlass` for every setting and theme.
+  allowed on each glass tier meets 4.5:1 over white and over black, and that the glass focus
+  ring meets 3:1 on all four fills.
+- **Where glass is written.** `glassSurfaces.test.ts` (phase 4, and since 2026-09-25 the focus
+  ring on the surfaces that keep a light fill, and a busy fade read from every rule of a
+  surface), `glassHooks.test.ts` (`onGlass`), `glassGate.test.ts` (the gate), and
+  `lib/optionalPanelGlass.test.ts`, which matches the gate's selector against
+  `optionalPanelGlass` for every setting and theme. The glass guards read the stylesheets
+  through one reader, `styles/designSystem/testUtils.ts`.
 - **Busy-switch tests.** Unit tests for which states set the busy attribute.
 
 **Headed browser, each phase** (standalone script, never `playwright test`)
