@@ -376,9 +376,13 @@ describe('arcade_get_animatable_paths lists everything the timeline drives', () 
         ...summary.other,
       ].map((entry) => entry.path),
     )
+    // The grammar names the final transform's terms in its own layout: a-f,
+    // or a-l for a 3D one.
     const namedByGrammar = (path: string) =>
       path.startsWith('finalTransform.') &&
-      summary.transformPaths.includes('finalTransform.{a-f}')
+      (summary.transformPaths.includes('finalTransform.{a-l}') ||
+        (summary.transformPaths.includes('finalTransform.{a-f}') &&
+          path.slice('finalTransform.'.length) <= 'f'))
     const missing = buildAnimatableCatalog(flame)
       .filter((entry) => !entry.group.startsWith('Transform '))
       .map((entry) => entry.path)
@@ -464,5 +468,110 @@ describe('arcade_get_animatable_paths lists everything the timeline drives', () 
     setWebMcpContext(createMockCommandContext())
     const summary = (await arcadeGetAnimatablePaths.execute({}, {})) as Summary
     expect(summary.existingTracks).toBeUndefined()
+  })
+})
+
+/**
+ * The paths result describes transform affines by a grammar, not per entry,
+ * so the grammar has to name the layout each transform really has: a-f with
+ * c and f the translation in 2D, a-l with d, h and l the translation in 3D.
+ * A 3D flame can still hold 2D-layout affines (the 3D renderer maps them), so
+ * a transform whose layout differs from the grammar's says so itself.
+ */
+describe('the paths result names each affine layout', () => {
+  afterEach(() => {
+    clearWebMcpContext()
+  })
+
+  const IDENTITY_3D = {
+    a: 1,
+    b: 0,
+    c: 0,
+    d: 0,
+    e: 0,
+    f: 1,
+    g: 0,
+    h: 0,
+    i: 0,
+    j: 0,
+    k: 1,
+    l: 0,
+  }
+
+  type AffineSummary = {
+    transformPaths: string
+    transforms: { id: string; affine?: string }[]
+  }
+
+  const summaryFor = async (flame: FlameDescriptor) => {
+    const ctx = createMockCommandContext()
+    ctx.flameDescriptor = () => flame
+    setWebMcpContext(ctx)
+    return (await arcadeGetAnimatablePaths.execute({}, {})) as AffineSummary
+  }
+
+  function flame3D(layoutOfT2: '2D' | '3D' = '3D') {
+    const flame = createTestFlame()
+    flame.renderSettings.dimensions = 3
+    const transforms = flame.transforms as unknown as Record<
+      string,
+      { preAffine: unknown; postAffine: unknown }
+    >
+    for (const [id, t] of Object.entries(transforms)) {
+      if (id === 't2' && layoutOfT2 === '2D') continue
+      t.preAffine = { ...IDENTITY_3D }
+      t.postAffine = { ...IDENTITY_3D }
+    }
+    return flame
+  }
+
+  it('a 2D flame: a-f, and which of them is the translation', async () => {
+    const summary = await summaryFor(createTestFlame())
+    expect(summary.transformPaths).toContain("{a-f}: x'=ax+by+c, y'=dx+ey+f")
+    expect(summary.transformPaths).toContain('finalTransform.{a-f}')
+    expect(summary.transforms.map((t) => t.affine)).toEqual([
+      undefined,
+      undefined,
+    ])
+  })
+
+  it('a 3D flame: a-l, and which of them is the translation', async () => {
+    const summary = await summaryFor(flame3D())
+    expect(summary.transformPaths).toContain(
+      "{a-l}: x'=ax+by+cz+d, y'=ex+fy+gz+h, z'=ix+jy+kz+l",
+    )
+    expect(summary.transformPaths).toContain('finalTransform.{a-l}')
+    expect(summary.transformPaths).not.toContain('{a-f}')
+  })
+
+  it('a 3D flame holding a 2D-layout affine names both, and marks that transform', async () => {
+    const summary = await summaryFor(flame3D('2D'))
+    expect(summary.transformPaths).toContain('{a-l}')
+    expect(summary.transformPaths).toContain('{a-f}')
+    expect(summary.transforms).toEqual([
+      expect.objectContaining({ id: 't1', affine: undefined }),
+      expect.objectContaining({ id: 't2', affine: '2D' }),
+    ])
+  })
+
+  it('keeps a busy 3D flame inside the same budget as a 2D one', async () => {
+    const flame = flame3D()
+    const template = (flame.transforms as unknown as Record<string, unknown>).t1
+    const busy: Record<string, unknown> = {}
+    for (let index = 1; index <= 8; index++) {
+      const copy = JSON.parse(JSON.stringify(template)) as {
+        variations: Record<string, unknown>
+      }
+      copy.variations = {
+        [`v${index}a`]: { type: 'linear3D', weight: 1 },
+        [`v${index}b`]: { type: 'spherical3D', weight: 0.5 },
+        [`v${index}c`]: { type: 'swirl3D', weight: 0.25 },
+      }
+      busy[`t${index}`] = copy
+    }
+    ;(flame as unknown as { transforms: unknown }).transforms = busy
+    const summary = await summaryFor(flame)
+    expect(summary.transforms).toHaveLength(8)
+    expect(JSON.stringify(summary).length).toBeLessThan(1600)
   })
 })

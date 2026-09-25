@@ -11,13 +11,91 @@ export type CatalogEntry = {
   type: CatalogType
   group: string
   current?: unknown
+  /** What the parameter is, where the path alone does not say: an affine
+   *  term's row and input (`y from x`), or that it is a translation. */
+  description?: string
 }
 
 export const MAX_CINEMA_FRAMES = 1800
 export const MAX_CINEMA_TRACKS = 64
 export const MAX_CINEMA_KEYFRAMES_PER_TRACK = 64
 
-const AFFINE_KEYS = ['a', 'b', 'c', 'd', 'e', 'f'] as const
+export type AffineLayout = '2D' | '3D'
+
+/**
+ * Every term of an affine in each key layout, in key order, and what it is.
+ *
+ * 2D `{ a b c / d e f }`: x' = a x + b y + c, y' = d x + e y + f.
+ * 3D `{ a b c d / e f g h / i j k l }`: x' = a x + b y + c z + d,
+ * y' = e x + f y + g z + h, z' = i x + j y + k z + l.
+ * The same letter is a different term in each: `d` is y-from-x in 2D and the
+ * x translation in 3D.
+ */
+export const AFFINE_TERMS: Record<AffineLayout, Record<string, string>> = {
+  '2D': {
+    a: 'x from x',
+    b: 'x from y',
+    c: 'x translation',
+    d: 'y from x',
+    e: 'y from y',
+    f: 'y translation',
+  },
+  '3D': {
+    a: 'x from x',
+    b: 'x from y',
+    c: 'x from z',
+    d: 'x translation',
+    e: 'y from x',
+    f: 'y from y',
+    g: 'y from z',
+    h: 'y translation',
+    i: 'z from x',
+    j: 'z from y',
+    k: 'z from z',
+    l: 'z translation',
+  },
+}
+
+/**
+ * The key layout an affine is in, decided the way the 3D renderer decides it
+ * (`isAffine3D` in flame/transformFunction3D.ts): any of `g`-`l` present. A 3D
+ * flame can hold 2D-layout affines, which that renderer maps, so the layout
+ * is the affine's own and not the flame's.
+ */
+export function affineLayoutOf(
+  affine: Record<string, unknown> | undefined,
+): AffineLayout {
+  if (!affine) return '2D'
+  return ['g', 'h', 'i', 'j', 'k', 'l'].some((key) => affine[key] !== undefined)
+    ? '3D'
+    : '2D'
+}
+
+function affineEntries(
+  prefix: string,
+  affine: Record<string, unknown> | undefined,
+  layout: AffineLayout,
+  group: string,
+): CatalogEntry[] {
+  return Object.entries(AFFINE_TERMS[layout]).map(([key, description]) => ({
+    path: `${prefix}.${key}`,
+    type: 'number',
+    group,
+    current: affine?.[key],
+    description,
+  }))
+}
+
+/**
+ * The final transform's layout: its own, or, when the flame has none yet, the
+ * one the timeline creates for it (a 3D identity on a 3D flame,
+ * `applyFinalTransformTracks` in utils/timeline.ts).
+ */
+function finalTransformLayout(flame: FlameDescriptor): AffineLayout {
+  const final = flame.finalTransform as Record<string, unknown> | undefined
+  if (final) return affineLayoutOf(final)
+  return flame.renderSettings.dimensions === 3 ? '3D' : '2D'
+}
 
 /**
  * Read the live value behind one `TIMELINE_PARAMETERS` path. The table is
@@ -72,24 +150,40 @@ export function buildAnimatableCatalog(flame: FlameDescriptor): CatalogEntry[] {
   const dead = deadCameraPrefix(flame)
   const entries: CatalogEntry[] = TIMELINE_PARAMETERS.filter(
     (parameter) => !parameter.path.startsWith(dead),
-  ).map((parameter) => ({
-    path: parameter.path,
-    type: parameter.type === 'array' ? 'color' : parameter.type,
-    group: parameter.group,
-    current: renderCurrent(flame, parameter.path),
-  }))
+  ).flatMap((parameter): CatalogEntry[] => {
+    // The table lists the final transform as a-f; the flame's own layout
+    // decides which terms it has and what each one is.
+    if (parameter.path.startsWith('finalTransform.')) {
+      return parameter.path === 'finalTransform.a'
+        ? affineEntries(
+            'finalTransform',
+            flame.finalTransform,
+            finalTransformLayout(flame),
+            parameter.group,
+          )
+        : []
+    }
+    return [
+      {
+        path: parameter.path,
+        type: parameter.type === 'array' ? 'color' : parameter.type,
+        group: parameter.group,
+        current: renderCurrent(flame, parameter.path),
+      },
+    ]
+  })
   for (const [tid, transform] of Object.entries(flame.transforms ?? {})) {
     const group = `Transform ${tid}`
     for (const matrix of ['preAffine', 'postAffine'] as const) {
-      const affine = transform[matrix] as Record<string, number> | undefined
-      for (const key of AFFINE_KEYS) {
-        entries.push({
-          path: `transform.${tid}.${matrix}.${key}`,
-          type: 'number',
+      const affine = transform[matrix] as Record<string, unknown> | undefined
+      entries.push(
+        ...affineEntries(
+          `transform.${tid}.${matrix}`,
+          affine,
+          affineLayoutOf(affine),
           group,
-          current: affine?.[key],
-        })
-      }
+        ),
+      )
     }
     entries.push({
       path: `transform.${tid}.probability`,
@@ -161,6 +255,35 @@ function wrongCameraFamilyError(
     return `"${path}" is the 3D camera and a 2D flame does not render through it. Animate camera.x, camera.y, camera.zoom or camera.rotation instead (rotation is radians; a full turn is 2*PI).`
   }
   return undefined
+}
+
+/**
+ * "Unknown path" is also the wrong thing to say about `preAffine.g` on an
+ * affine in the 2D layout: the term exists in the other layout, and the agent
+ * needs to know which terms this one has and what they are.
+ */
+function wrongAffineLayoutError(
+  byPath: ReadonlyMap<string, CatalogEntry>,
+  path: string,
+): string | undefined {
+  const match = /^(.+)\.([g-l])$/.exec(path)
+  if (!match) return undefined
+  const prefix = match[1]!
+  if (!byPath.has(`${prefix}.f`) || byPath.has(`${prefix}.g`)) return undefined
+  return `"${path}" is not a term of this affine: it is in the 2D layout, a-f (x'=ax+by+c, y'=dx+ey+f; c and f are the translation). g-l exist only on affines in the 3D layout. Call arcade_get_animatable_paths for each transform's layout.`
+}
+
+/** Why a path the catalog does not hold was refused, as specifically as the
+ *  catalog lets it say. */
+function unknownPathError(
+  byPath: ReadonlyMap<string, CatalogEntry>,
+  path: string,
+): string {
+  return (
+    wrongCameraFamilyError(byPath, path) ??
+    wrongAffineLayoutError(byPath, path) ??
+    `Unknown path "${path}". Call arcade_get_animatable_paths for the list.`
+  )
 }
 
 function canonicalPath(
@@ -275,9 +398,7 @@ export function buildTimelineSnapshot(
     if (entry === undefined || path === undefined) {
       return {
         ok: false,
-        error:
-          wrongCameraFamilyError(byPath, track.path) ??
-          `Unknown path "${track.path}". Call arcade_get_animatable_paths for the list.`,
+        error: unknownPathError(byPath, track.path),
       }
     }
     canonical.set(track.path, path)

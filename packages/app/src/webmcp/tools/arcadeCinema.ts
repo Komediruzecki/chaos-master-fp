@@ -9,7 +9,7 @@ import { executeCommand, preflightReplayCommand } from '@/commands/registry'
 import { captureGlideSwitches } from '@/flame/glide/runtime'
 import { withRecordingSuppressed } from '@/recorder/recorder'
 import { getWebMcpContext } from '@/webmcp/contextBridge'
-import type { CatalogEntry } from '@/arcade/animatablePaths'
+import type { AffineLayout, CatalogEntry } from '@/arcade/animatablePaths'
 import type { TimelineTrack } from '@/utils/timeline'
 import type { WebMcpTool } from '@/webmcp/types'
 
@@ -99,10 +99,40 @@ export const arcadeStartCinema: WebMcpTool = {
  *  would blow the ~1.5 KB tool-result budget. */
 const MAX_LISTED_TRANSFORMS = 8
 
+/**
+ * What each affine term is, per key layout, as the equation it appears in: the
+ * constant term of each row is its translation. The same letter is a
+ * different term in each layout (`d` is y-from-x in 2D, the x translation in
+ * 3D), so the grammar names the layout the flame's affines really have.
+ */
+const AFFINE_EQUATIONS: Record<AffineLayout, string> = {
+  '2D': "{a-f}: x'=ax+by+c, y'=dx+ey+f",
+  '3D': "{a-l}: x'=ax+by+cz+d, y'=ex+fy+gz+h, z'=ix+jy+kz+l",
+}
+
 /** Every transform exposes the same paths, so the grammar is stated once
- *  instead of repeated for each one. */
-const TRANSFORM_PATHS =
-  'transform.<id>.{preAffine|postAffine}.{a-f} or .{probability|colorSpeed|color.x|color.y} | finalTransform.{a-f} | <id>.<variationId> = variation weight (no transform. prefix)'
+ *  instead of repeated for each one. `layout` is the flame's; a transform
+ *  whose affines differ says so in its own `affine` field. */
+function transformPathsGrammar(
+  layout: AffineLayout,
+  otherLayoutUsed: boolean,
+  finalLayout: AffineLayout,
+): string {
+  const other: AffineLayout = layout === '3D' ? '2D' : '3D'
+  const terms = otherLayoutUsed
+    ? `${AFFINE_EQUATIONS[layout]}; where a transform says affine "${other}": ${AFFINE_EQUATIONS[other]}`
+    : AFFINE_EQUATIONS[layout]
+  const finalKeys = finalLayout === '3D' ? '{a-l}' : '{a-f}'
+  return `transform.<id>.{preAffine|postAffine}.${terms} | transform.<id>.{probability|colorSpeed|color.x|color.y} | finalTransform.${finalKeys}, same terms | <id>.<variationId> = variation weight (no transform. prefix)`
+}
+
+/** The layout of one catalogued affine: it lists `g` only in the 3D layout. */
+function catalogLayout(
+  byPath: ReadonlySet<string>,
+  prefix: string,
+): AffineLayout {
+  return byPath.has(`${prefix}.g`) ? '3D' : '2D'
+}
 
 /** Groups `summarize` names explicitly. Everything else lands in `other`. */
 const NAMED_GROUPS = new Set([
@@ -162,6 +192,21 @@ function summarize(
     ),
   ]
   const listed = transformIds.slice(0, MAX_LISTED_TRANSFORMS)
+  const paths = new Set(catalog.map((entry) => entry.path))
+  // The flame renders in 3D exactly when the catalog offers the 3D camera.
+  const layout: AffineLayout = paths.has('camera3D.radius') ? '3D' : '2D'
+  /** How a transform's affines differ from the flame's layout, if they do. */
+  const affineNote = (id: string) => {
+    const differing = (['preAffine', 'postAffine'] as const).filter(
+      (matrix) => catalogLayout(paths, `transform.${id}.${matrix}`) !== layout,
+    )
+    const other = layout === '3D' ? '2D' : '3D'
+    if (differing.length === 0) return undefined
+    return differing.length === 2 ? other : `${differing[0]} ${other}`
+  }
+  const otherLayoutUsed = transformIds.some(
+    (id) => affineNote(id) !== undefined,
+  )
   return {
     render: simple('Render'),
     palette: simple('Palette'),
@@ -188,9 +233,14 @@ function summarize(
         type: entry.type === 'number' ? undefined : entry.type,
         current: entry.current,
       })),
-    transformPaths: TRANSFORM_PATHS,
+    transformPaths: transformPathsGrammar(
+      layout,
+      otherLayoutUsed,
+      catalogLayout(paths, 'finalTransform'),
+    ),
     transforms: listed.map((id) => ({
       id,
+      affine: affineNote(id),
       // Keyed by variation id, not the full path: the transform id is right
       // there in `id`, and repeating it in every key is pure budget.
       variations: Object.fromEntries(
@@ -226,7 +276,7 @@ function summarize(
 export const arcadeGetAnimatablePaths: WebMcpTool = {
   name: 'arcade_get_animatable_paths',
   description:
-    'List every parameter path the timeline can keyframe for the current flame (render settings, palette, camera, per-transform affine coefficients, probability, colour, variation weights, final transform) with current values and limits. A path with no "type" is a number; transformPaths gives the per-transform grammar; easing and interpolation names are the enums on arcade_set_keyframes.',
+    'List every parameter path the timeline can keyframe for the current flame (render settings, palette, camera, per-transform affine terms, each affine in its own layout (a-f in 2D, a-l in 3D), probability, colour, variation weights, final transform) with current values and limits. A path with no "type" is a number; transformPaths gives the per-transform grammar and what each affine term is; easing and interpolation names are the enums on arcade_set_keyframes.',
   inputSchema: { type: 'object', properties: {} },
   annotations: { readOnlyHint: true },
   execute: () => {

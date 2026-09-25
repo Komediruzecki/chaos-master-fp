@@ -136,7 +136,10 @@ says nobody watched it arrive, which is what a tab with no
 - **Cinema** — describe a move; the agent reads `arcade_get_animatable_paths`,
   sends tracks to `arcade_set_keyframes` (validated against that catalog and
   applied as one undoable `timeline.loadTimeline`), and playback starts. Saved
-  as `Animation: <title>`.
+  as `Animation: <title>`. The catalog lists each affine in its own layout,
+  a-f for a 2D-layout affine and a-l for a 3D one, and says what each term is
+  (`x from y`, `z translation`); a 3D flame can still hold 2D-layout affines
+  (`arcade/animatablePaths.ts`).
 - **Duel** — you and the agent edit your own flames side by side against one
   clock. `arcade_start_duel` opens the split screen, gives the agent its own
   seat (a real flame with its own history and recorder stream), and points the

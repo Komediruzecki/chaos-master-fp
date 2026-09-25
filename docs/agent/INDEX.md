@@ -30,7 +30,7 @@ file instead of rediscovering the architecture every session.
 
 | Directory                 | Package name                   | Source files | LOC    |
 | ------------------------- | ------------------------------ | ------------ | ------ |
-| `packages/app`            | `chaos-master`                 | 1107         | 188.7k |
+| `packages/app`            | `chaos-master`                 | 1107         | 188.9k |
 | `packages/core`           | `@chaos-master/core`           | 27           | 3.8k   |
 | `packages/landing`        | `@chaos-master/landing`        | 20           | 2.5k   |
 | `packages/mobile-runtime` | `@chaos-master/mobile-runtime` | 7            | 600    |
@@ -192,8 +192,8 @@ file instead of rediscovering the architecture every session.
 
 | File                                                                   | LOC | What it is                                                                                              |
 | ---------------------------------------------------------------------- | --- | ------------------------------------------------------------------------------------------------------- |
+| [animatablePaths.ts](../../packages/app/src/arcade/animatablePaths.ts) | 500 | _(no header comment)_                                                                                   |
 | [topics.ts](../../packages/app/src/arcade/topics.ts)                   | 500 | _(no header comment)_                                                                                   |
-| [animatablePaths.ts](../../packages/app/src/arcade/animatablePaths.ts) | 350 | _(no header comment)_                                                                                   |
 | [tasteStore.ts](../../packages/app/src/arcade/tasteStore.ts)           | 350 | Persistent taste profile store and flame feature extraction for Evolutionary Art Director.              |
 | [duel.ts](../../packages/app/src/arcade/duel.ts)                       | 250 | _(no header comment)_                                                                                   |
 | [duelActions.ts](../../packages/app/src/arcade/duelActions.ts)         | 250 | _(no header comment)_                                                                                   |
