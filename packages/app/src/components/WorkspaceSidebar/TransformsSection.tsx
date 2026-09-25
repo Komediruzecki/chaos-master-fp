@@ -11,7 +11,7 @@ import { ScrubInput } from '@/components/Sliders/ScrubInput'
 import { Slider } from '@/components/Sliders/Slider'
 import { random01, randomizeVariationParams } from '@/flame/randomize'
 import { symmetryRotationPreAffine } from '@/flame/symmetry'
-import { affineLayout, isSymmetryMirror, symmetryRotationAngle, symmetryRotationTerms, } from '@/flame/symmetryDetection'
+import { isSymmetryMirror, symmetryEditLayout, symmetryRotationAngle, symmetryRotationTerms, } from '@/flame/symmetryDetection'
 import { isAnyParametricVariationType, isVariationType, } from '@/flame/variations'
 import { getNormalizedVariationName, getParamsEditor, } from '@/flame/variations/utils'
 import { Cross, Eye, EyeOff, Plus, Shuffle } from '@/icons'
@@ -618,7 +618,14 @@ export function TransformsSection(props: TransformsSectionProps) {
                     flameDescriptor.transforms[tid as TransformId]!
                   const preAffine = () => transform().preAffine
                   const isReflection = () => isSymmetryMirror(preAffine())
-                  const angle = () => symmetryRotationAngle(preAffine())
+                  // The layout the renderer reads this preAffine in.
+                  const layout = () =>
+                    symmetryEditLayout(
+                      preAffine(),
+                      flameDescriptor.renderSettings.dimensions,
+                    )
+                  const angle = () =>
+                    symmetryRotationAngle(preAffine(), layout())
                   return (
                     <div
                       class={ui.symItem}
@@ -658,6 +665,7 @@ export function TransformsSection(props: TransformsSectionProps) {
                             dataParameterPath={`transform.${tid}.preAffine.a`}
                             keyframePaths={symmetryRotationTerms(
                               preAffine(),
+                              layout(),
                             ).map(
                               (term) => `transform.${tid}.preAffine.${term}`,
                             )}
@@ -667,10 +675,7 @@ export function TransformsSection(props: TransformsSectionProps) {
                                 cmdContext,
                                 tid,
                                 'pre',
-                                symmetryRotationPreAffine(
-                                  newAngle,
-                                  affineLayout(preAffine()),
-                                ),
+                                symmetryRotationPreAffine(newAngle, layout()),
                               )
                             }}
                           />

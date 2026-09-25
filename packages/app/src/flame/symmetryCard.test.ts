@@ -2,12 +2,13 @@
  * The Symmetry card's angle editor, one per rotation transform
  * (TransformsSection): it shows `symmetryRotationAngle` of the preAffine,
  * keys `symmetryRotationTerms` when it is dragged, and writes
- * `symmetryRotationPreAffine` through `flame.setTransformAffine`.
+ * `symmetryRotationPreAffine` through `flame.setTransformAffine`, all in the
+ * layout `symmetryEditLayout` gives.
  */
 import { describe, expect, it } from 'vitest'
 import { executeCommand } from '@/commands/registry'
 import { symmetryRotationPreAffine } from './symmetry'
-import { affineLayout, symmetryRotationAngle, symmetryRotationTerms, } from './symmetryDetection'
+import { affineLayout, symmetryEditLayout, symmetryRotationAngle, symmetryRotationTerms, } from './symmetryDetection'
 import { build, renderedPreAffine, SOURCES, symIds, workspace, } from './symmetryTestUtils'
 import type { Dims, Source, Workspace } from './symmetryTestUtils'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
@@ -24,6 +25,14 @@ function preAffineOf(flame: FlameDescriptor, tid: string): Affine {
   return flame.transforms[tid as keyof typeof flame.transforms]!.preAffine
 }
 
+/** The layout the card works in for this transform. */
+function editLayout(flame: FlameDescriptor, tid: string) {
+  return symmetryEditLayout(
+    preAffineOf(flame, tid),
+    flame.renderSettings.dimensions,
+  )
+}
+
 /** The angle editor's `setValue`. */
 function dragAngle(ws: Workspace, tid: string, angle: number) {
   executeCommand(
@@ -31,11 +40,13 @@ function dragAngle(ws: Workspace, tid: string, angle: number) {
     ws.ctx,
     tid,
     'pre',
-    symmetryRotationPreAffine(
-      angle,
-      affineLayout(preAffineOf(ws.flame(), tid)),
-    ),
+    symmetryRotationPreAffine(angle, editLayout(ws.flame(), tid)),
   )
+}
+
+/** What the angle editor shows. */
+function shownAngle(flame: FlameDescriptor, tid: string) {
+  return symmetryRotationAngle(preAffineOf(flame, tid), editLayout(flame, tid))
 }
 
 /** The rotation transforms of a 4-fold rotational set: 90, 180, 270. */
@@ -138,4 +149,73 @@ describe('the angle editor reads, keys and writes the terms of its layout', () =
       }
     })
   }
+})
+
+describe('a 12-key rotation in a 2D flame, which only an agent can write', () => {
+  // The 2D renderer reads a-f in the 2D layout whatever other keys are
+  // there, so the card works in the 2D layout in a 2D flame.
+  function agentWritten() {
+    const ws = workspace(build(2, 'rotational', 4, 'command'))
+    const tid = symIds(ws.flame())[0]!
+    executeCommand(
+      'flame.setTransformAffine',
+      ws.ctx,
+      tid,
+      'pre',
+      symmetryRotationPreAffine(Math.PI / 2, '3D'),
+    )
+    return { ws, tid }
+  }
+
+  it('keys the terms the 2D renderer reads', () => {
+    const { ws, tid } = agentWritten()
+    expect(editLayout(ws.flame(), tid)).toBe('2D')
+    expect(
+      symmetryRotationTerms(
+        preAffineOf(ws.flame(), tid),
+        editLayout(ws.flame(), tid),
+      ),
+    ).toEqual(['a', 'b', 'd', 'e'])
+  })
+
+  it('a drag writes the 2D layout and renders the angle it shows', () => {
+    for (const angle of [0.3, Math.PI / 4, 2, 4, 5.9]) {
+      const { ws, tid } = agentWritten()
+      dragAngle(ws, tid, angle)
+      expect(affineLayout(preAffineOf(ws.flame(), tid))).toBe('2D')
+      expect(round(shownAngle(ws.flame(), tid), 9)).toBe(round(angle, 9))
+      const cos = Math.cos(angle)
+      const sin = Math.sin(angle)
+      expect(
+        renderedPreAffine(ws.flame(), tid).map((row) =>
+          row.map((v) => round(v, 9)),
+        ),
+      ).toEqual(
+        [
+          [cos, -sin, 0, 0],
+          [sin, cos, 0, 0],
+          [0, 0, 1, 0],
+        ].map((row) => row.map((v) => round(v, 9))),
+      )
+    }
+  })
+})
+
+describe('a 3D flame keeps each rotation in its own layout', () => {
+  it('a 2D-layout rotation in a 3D flame is read and written in 2D', () => {
+    const ws = workspace(build(3, 'rotational', 4, 'command'))
+    const tid = symIds(ws.flame())[0]!
+    executeCommand(
+      'flame.setTransformAffine',
+      ws.ctx,
+      tid,
+      'pre',
+      symmetryRotationPreAffine(Math.PI / 2, '2D'),
+    )
+    expect(editLayout(ws.flame(), tid)).toBe('2D')
+    expect(degrees(shownAngle(ws.flame(), tid))).toBe(90)
+    dragAngle(ws, tid, Math.PI / 4)
+    expect(affineLayout(preAffineOf(ws.flame(), tid))).toBe('2D')
+    expect(xAxis(ws.flame(), tid)).toBe('(0.71, 0.71, 0)')
+  })
 })
