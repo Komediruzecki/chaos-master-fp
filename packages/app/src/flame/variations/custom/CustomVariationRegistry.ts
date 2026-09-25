@@ -13,10 +13,10 @@ const CUSTOM_TYPE_PREFIX = 'custom_'
 /**
  * Bumped on every change to the registered custom variations: one created,
  * edited or renamed, duplicated, deleted, restored, loaded, imported from a
- * link or saved from one. A live preview does not bump it. Flam3 reads it
- * reactively, so every open renderer rebuilds its IFS pipeline after a
- * change, except while an export drives it; the pipeline caches read it
- * untracked, as part of their keys.
+ * link or saved from one, always after the change is saved. A live preview
+ * does not bump it. Flam3 reads it reactively, so every open renderer
+ * rebuilds its IFS pipeline after a change, except while an export drives
+ * it; the pipeline caches read it untracked, as part of their keys.
  */
 const [version, setVersion] = createSignal(0)
 
@@ -139,10 +139,12 @@ function register(def: CustomVariationDef, fn?: TgpuFn, skipPersist = false) {
   if (fn) {
     addToGlobal(def, fn)
   }
-  bumpVersion()
+  // Saved before the renderers hear of it: a rebuild that throws must not
+  // lose the change.
   if (!skipPersist) {
     persist()
   }
+  bumpVersion()
 }
 
 function unregister(id: string): boolean {
@@ -150,8 +152,8 @@ function unregister(id: string): boolean {
   if (!record) return false
   delete customVariationRecords[id]
   removeFromGlobal(id)
-  bumpVersion()
   persist()
+  bumpVersion()
   return true
 }
 
@@ -319,8 +321,8 @@ export function loadCustomVariations(): void {
           register(def, compileResult.fn, true)
         }
       }
+      persist() // Save once after loading all, before the renderers hear of it
     })
-    persist() // Save once after loading all
   } catch (err) {
     console.warn(
       '[CustomVariationRegistry] Failed to load custom variations:',
