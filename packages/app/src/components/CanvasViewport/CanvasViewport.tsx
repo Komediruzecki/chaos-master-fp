@@ -7,6 +7,7 @@ import { ExportJobHost } from '@/components/ExportJobs/ExportJobHost'
 import { ExportJobTracker } from '@/components/ExportJobs/ExportJobTracker'
 import { ProgressBar } from '@/components/ProgressBar/ProgressBar'
 import { DEFAULT_POINT_COUNT } from '@/defaults'
+import { cssRgb, flameBackgroundColor } from '@/flame/backgroundColor'
 import { Flam3 } from '@/flame/Flam3'
 import { animationExportRunning, cameraDuringExportEnabled, exportAccumulationFraction, exportQuality, setCurrentQuality, setQualityPointCountLimit, } from '@/flame/renderStats'
 import { getNormalizedVariationName } from '@/flame/variations/utils'
@@ -161,6 +162,11 @@ export function CanvasViewport(props: CanvasViewportProps) {
   // drops the cover while an export sizes the canvas: the layout does not
   // move for an export.
   const underSidebar = () => leadingCover() > 0
+  // The flame's own ground, for the strip of the box the rail's sheet
+  // uncovers when it moves the canvas up (App.module.css, .phoneLayout).
+  const ground = createMemo(() =>
+    cssRgb(flameBackgroundColor(props.effectiveFlame().renderSettings)),
+  )
 
   return (
     // Home and the Arcade cover the editor completely and it stays mounted
@@ -180,6 +186,7 @@ export function CanvasViewport(props: CanvasViewportProps) {
       // The hover badge centres on the part on show (App.module.css).
       style={{
         '--rail-inset': `${props.railInset?.() ?? 0}px`,
+        '--canvas-ground': ground(),
         '--covered-left': coveredStyle(framing.covered().left),
         '--covered-right': coveredStyle(framing.covered().right),
         '--leading-cover': underSidebar() ? `${leadingCover()}px` : undefined,

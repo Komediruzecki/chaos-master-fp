@@ -277,7 +277,7 @@ wraps the whole panel in `<Show when={props.open}>`.)_
 mobile sidebar-toggle button, because the sidebar it opens is not mounted.
 
 _(`MainWorkspace.tsx:3791` passes `hideMobileSidebarToggle={isPhone() ||
-isTablet()}`; `CanvasViewport.tsx:190` (`hideMobileSidebarToggle`) gates the button on
+isTablet()}`; `CanvasViewport.tsx:197` (`hideMobileSidebarToggle`) gates the button on
 `props.isMobile() && !props.hideMobileSidebarToggle`.)_
 
 ### REQ-TL-015 — The phone grid is one full-bleed viewport cell

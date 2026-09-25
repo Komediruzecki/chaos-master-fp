@@ -32,6 +32,7 @@ function hover(intent: BlendIntent) {
     onCanvasClick: () => {},
     onToggleMobileSidebar: () => {},
     flameDescriptor: examples.example1,
+    effectiveFlame: () => examples.example1,
     hoveredVariationType: () => null,
     hoveredCustomVarDef: () => null,
     hoveredBlendName: () => 'Aurora',

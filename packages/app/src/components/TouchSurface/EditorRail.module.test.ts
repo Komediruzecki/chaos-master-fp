@@ -55,4 +55,24 @@ describe('the editor rail stylesheet', () => {
     expect(shutter).toMatch(/background:\s*var\(--la-glass-strong\);/)
     expect(shutter).toMatch(/color:\s*var\(--la-accent\);/)
   })
+
+  it("shows the flame's ground, not the page, where the sheet moves the canvas up", () => {
+    // The open sheet moves the canvas up by half the height it covers
+    // (App.module.css, .canvas), leaving a strip of the canvas box at its
+    // foot. Past peek the sheet is glass with the setting on, so the strip is
+    // on show through it; with no background of its own the box showed the
+    // page there, a pale band across the sheet's lower part in the light
+    // theme. It takes the flame's own ground, which CanvasViewport writes
+    // (CanvasViewport.framing.test.tsx).
+    const app = readFileSync(
+      join(__dirname, '..', '..', 'App.module.css'),
+      'utf8',
+    )
+    expect(app).toMatch(
+      /^\.phoneLayout \.canvas-container\s*\{\s*background:\s*var\(--canvas-ground, var\(--la-void\)\);\s*\}/m,
+    )
+    expect(app).toMatch(
+      /transform:\s*translateY\(calc\(var\(--rail-inset, 0px\) \/ -2\)\)/,
+    )
+  })
 })

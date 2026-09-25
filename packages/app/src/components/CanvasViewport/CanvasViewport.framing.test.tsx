@@ -52,13 +52,14 @@ const channels = (colour: { x: number; y: number; z: number; w: number }) => [
   colour.w,
 ]
 
-function mountViewport() {
+function mountViewport(effectiveFlame = examples.example1) {
   const props = {
     isMobile: () => false,
     showSidebar: () => true,
     onCanvasClick: () => {},
     onToggleMobileSidebar: () => {},
     flameDescriptor: examples.example1,
+    effectiveFlame: () => effectiveFlame,
     hoveredVariationType: () => null,
     hoveredCustomVarDef: () => null,
     hoveredBlendName: () => null,
@@ -142,5 +143,33 @@ describe('the covered share on the canvas box', () => {
     )
     setTrailingCover(0)
     expect(box.style.getPropertyValue('--covered-right')).toBe('')
+  })
+})
+
+describe('the ground under the canvas', () => {
+  // The rail's sheet moves the canvas up and uncovers a strip of the box at
+  // its foot, on show through the glass sheet: the box paints the ground the
+  // flame is drawn on there (App.module.css, .phoneLayout).
+  it('is the ground the flame is drawn on', () => {
+    const light = {
+      ...examples.example1,
+      renderSettings: {
+        ...examples.example1.renderSettings,
+        drawMode: 'light' as const,
+        backgroundColor: undefined,
+      },
+    }
+    expect(mountViewport(light).style.getPropertyValue('--canvas-ground')).toBe(
+      'rgb(0 0 0)',
+    )
+    cleanup()
+
+    const paint = {
+      ...light,
+      renderSettings: { ...light.renderSettings, drawMode: 'paint' as const },
+    }
+    expect(mountViewport(paint).style.getPropertyValue('--canvas-ground')).toBe(
+      'rgb(255 255 255)',
+    )
   })
 })
