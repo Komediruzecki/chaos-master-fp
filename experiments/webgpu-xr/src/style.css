@@ -1,0 +1,289 @@
+/* Quiet diagnostic chrome around the world-space flame, with a mobile panel. */
+:root {
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  color: #e6eeec;
+  background: #060b15;
+  color-scheme: dark;
+  font-synthesis: none;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+main {
+  min-height: 100svh;
+}
+canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+header,
+.intro,
+.controls,
+.diagnostics,
+footer {
+  position: relative;
+  z-index: 1;
+}
+header {
+  padding: 32px 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.brand {
+  font-size: 16px;
+  letter-spacing: 0.16em;
+  text-decoration: none;
+  color: #e9eee9;
+  font-weight: 700;
+}
+.brand span {
+  font-weight: 300;
+}
+.tag,
+.eyebrow,
+footer {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: #b2c8c8;
+}
+.tag {
+  border: 1px solid #38525c;
+  padding: 8px 12px;
+}
+.intro {
+  margin: 42px 42px 26px;
+  pointer-events: none;
+}
+h1 {
+  font-size: clamp(26px, 3vw, 46px);
+  letter-spacing: -0.04em;
+  font-weight: 400;
+  line-height: 1.12;
+  margin: 15px 0;
+}
+.description {
+  font-size: 12px;
+  color: #b8cccf;
+  line-height: 1.8;
+}
+.controls {
+  width: 278px;
+  margin: 0 42px 100px;
+  padding: 20px;
+  background: linear-gradient(130deg, #101d29ee, #0a121be8);
+  border: 1px solid #28414c;
+  border-radius: 4px;
+}
+label {
+  display: block;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #b9ccce;
+  margin-top: 14px;
+}
+label span {
+  float: right;
+  color: #e0e9df;
+}
+select,
+button {
+  font: inherit;
+  color: #dfebe8;
+  background: #15262f;
+  border: 1px solid #3b535f;
+  border-radius: 3px;
+  min-height: 44px;
+  cursor: pointer;
+}
+select {
+  width: 100%;
+  padding: 10px;
+  margin-top: 7px;
+  font-size: 12px;
+}
+button {
+  padding: 9px;
+  font-size: 11px;
+}
+button:disabled,
+select:disabled,
+input:disabled {
+  opacity: 0.48;
+  cursor: default;
+}
+button:hover:enabled {
+  background: #25434b;
+}
+button[aria-pressed='true'] {
+  border-color: #a9d7b6;
+  background: #284738;
+}
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+a:focus-visible {
+  outline: 2px solid #b5eecc;
+  outline-offset: 4px;
+}
+.button-row {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0;
+}
+.button-row button {
+  flex: 1;
+}
+input[type='range'] {
+  display: block;
+  width: 100%;
+  accent-color: #b3d9a2;
+  min-height: 32px;
+  margin: 3px 0;
+}
+.enter {
+  width: 100%;
+  margin-top: 14px;
+  color: #142522;
+  background: #c0d9ae;
+  border-color: #cee4bf;
+  font-weight: 600;
+}
+.enter:hover:enabled {
+  background: #e1ecd1;
+}
+.hint {
+  color: #afc2c8;
+  line-height: 1.65;
+  font-size: 10px;
+  margin-bottom: 0;
+}
+.diagnostics {
+  position: absolute;
+  right: 42px;
+  bottom: 104px;
+  width: 285px;
+  padding: 18px 20px;
+  border-left: 1px solid #44606a;
+  background: #07131cbd;
+}
+.status {
+  font-size: 12px;
+  line-height: 1.7;
+  color: #c7d8da;
+  margin: 14px 0;
+}
+dl {
+  font-size: 11px;
+  line-height: 1.9;
+}
+dl div {
+  display: flex;
+  justify-content: space-between;
+}
+dt {
+  color: #b3c8cc;
+}
+dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.export {
+  width: 100%;
+  background: transparent;
+  font-size: 10px;
+}
+footer {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  padding: 22px 42px;
+  display: flex;
+  justify-content: space-between;
+  background: linear-gradient(0deg, #070e19, transparent);
+  font-size: 9px;
+  pointer-events: none;
+}
+footer i {
+  color: #7aa294;
+  margin: 0 10px;
+  font-style: normal;
+}
+[role='alert'] {
+  color: #ffc9b7;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+  line-height: 1.7;
+}
+@media (min-width: 1500px) {
+  .intro {
+    margin-top: 70px;
+  }
+  .controls {
+    margin-top: 36px;
+  }
+  .diagnostics {
+    bottom: 110px;
+  }
+}
+@media (max-width: 850px) {
+  header {
+    padding: 22px;
+  }
+  .intro {
+    margin: 22px;
+  }
+  .description {
+    max-width: 240px;
+  }
+  .controls {
+    margin: 300px 22px 20px;
+    width: auto;
+    max-width: 440px;
+  }
+  .diagnostics {
+    position: relative;
+    right: auto;
+    bottom: auto;
+    margin: 20px 22px 100px;
+    width: auto;
+    max-width: 440px;
+    background: #0b1821eb;
+  }
+  footer {
+    padding: 20px 22px;
+    gap: 15px;
+  }
+  .tag {
+    font-size: 8px;
+  }
+  h1 {
+    font-size: 30px;
+  }
+  canvas {
+    top: 120px;
+    height: 600px;
+  }
+  .controls .button-row {
+    gap: 12px;
+  }
+  .hint {
+    font-size: 11px;
+  }
+  footer span:last-child {
+    max-width: 155px;
+    text-align: right;
+  }
+  footer {
+    position: relative;
+  }
+  .diagnostics {
+    margin-bottom: 28px;
+  }
+}
