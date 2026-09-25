@@ -1,8 +1,8 @@
 # Glass panels across the app
 
 Status: decided 2026-09-23 (section 2) and widened 2026-09-24 (decision (d)). Phases 0 to 2
-are built on `feat/glass-panels`, and the Glass panels setting is on by default; phases 3 and
-4 come later. Drafted from a survey of every panel, menu, dialog and overlay in
+and 4 are built on `feat/glass-panels`, with the desktop sidebar, and the Glass panels setting
+is on by default. Phase 3, the dialogs, waits on a decision (section 4). Drafted from a survey of every panel, menu, dialog and overlay in
 `packages/app/src`. Its line references are pinned to `9fc08078`, the fork main that phase 0
 started from, where every cited file is as the survey read it; the phases have moved them
 since. Paths below are relative to `packages/app/src`.
@@ -152,7 +152,12 @@ Built into the primitive, so no surface can get them wrong:
   only once someone changes it, so the default can still move (`glassPanels()` in
   `lib/glass.ts`). It writes `data-glass-panels='on'` on `<html>` before the first render. The
   toggle is in Settings on every layout: More, then "Settings and more", or the tablet's rail,
-  on touch; the version menu's "Settings and More" on the desktop.
+  on touch; the version menu's "Settings and More" on the desktop. Only the toggle reads the
+  setting itself. Everything else asks `glassAllowed()`: the setting is on, and neither Reduce
+  Transparency nor More Contrast is asked for. Under either, `lumen.css` turns every glass fill
+  solid, so a panel floating over the canvas would hide the canvas it costs; the deck and the
+  sidebar keep their places beside it instead. `data-glass-panels` is written from
+  `glassAllowed()`, and follows the two media queries as they change.
 - **The gate.** `optionalPanel` is the one rule for a large panel that is glass only while
   the setting applies: `data-glass-panels='on'` on the root and a body that is not in the
   light theme. Outside the gate it sets nothing, so the surface keeps its own look. Inside, it
@@ -163,9 +168,24 @@ Built into the primitive, so no surface can get them wrong:
   points `--la-control` and its two siblings at their `-on-glass` tokens in `lumen.css`. The
   floating deck and the rail's glass sheet compose it, and `optionalPanel` sets the same
   values. `styles/designSystem/glassGate.test.ts` holds the gate and the two sets equal.
+- **Shared components on glass.** `onGlass` is the one set of hooks that the editor's shared
+  components read for their glass look: ControlCard and CollapsibleCard (`--card-*`), Slider
+  (`--slider-*`) and PaletteSelector (`--palette-*`). Each reads its hook with its opaque look as
+  the fallback. The desktop sidebar composes `optionalPanel onGlass` and the explorer's panel
+  `panel onGlass`, so a new surface that holds them takes the same look from one word.
+  `glassHooks.test.ts` holds `onGlass` to exactly the hooks the four read, and
+  `glassSurfaces.test.ts` fails when any other stylesheet sets one.
+- **Not glass, beside it.** `frost` and `frostFade` are for a label or a small control laid over
+  a thumbnail or a preview: a light blur of the picture under it and a Void fill, with no edge,
+  no shadow and nothing that flattens it. `scrim` is the layer a blocking screen lays over the
+  app. Built in phase 4.
+- **Focus.** The four glass classes give what is inside them the dark theme's focus ring: glass
+  is dark in both themes, and the light theme's ring measured 2.31:1 on a panel over white-hot
+  art, where a focus indicator needs 3:1. The dark ring measures 3.46.
 - **Reduce Transparency and More Contrast** come free through the tokens.
 - **New tokens:** `--la-glass-panel`, and a smaller `--la-glass-blur-sm` for chips if device
-  numbers ask for it. No new literal radii or blur values anywhere else.
+  numbers ask for it. Phase 4 added `--la-frost`, `--la-frost-fade`, `--la-frost-blur` and
+  `--la-scrim-blur`. No new literal radii or blur values anywhere else.
 
 ## 4. Surfaces, by phase
 
@@ -197,6 +217,14 @@ Also in phase 1:
 - Slider and PaletteSelector take custom-property hooks whose fallbacks are today's values; the
   explorer's panel sets them, so their text reaches 4.5:1 on its glass.
 - Android (section 6).
+- **The ground under the rail's sheet** (2026-09-25). Opening the sheet moves the canvas up and
+  uncovers a strip at the foot of the canvas box, which showed through the glass sheet as the
+  page's void: a dark band under any flame whose ground is not black, most of all a paint
+  flame's white. The box now paints the ground the flame is
+  drawn on (`flame/backgroundColor.ts`, which Flam3 reads as well), so the strip reads as more
+  of the flame's background. Framing the flame above the sheet, as the deck and the sidebar
+  frame it beside them, would reframe it at every detent and lose the sheet's smooth move; it
+  is left as a follow-up.
 
 **Phase 2: tablet deck, an experiment behind a setting** (L). Built.
 
@@ -270,8 +298,8 @@ while the gate holds, as the deck does at the other edge.
 - **The surface.** One pane, not a pane per card. Glass on each card left raw art in the gutters
   (239 of 255 over white art, against 58 to 61 under one pane) and needed ten blurred layers
   instead of one. The cards, the shared Slider and PaletteSelector, and the sidebar's captions
-  take their glass look through custom-property hooks with their opaque looks as fallbacks.
-  Nothing inside the sidebar blurs again. Three captions measured 2.18:1 and 4.01:1 over white
+  take their glass look from `onGlass` (section 3), and the sidebar's captions from one hook
+  of its own. Nothing inside the sidebar blurs again, and its fill fades as busy turns it solid. Three captions measured 2.18:1 and 4.01:1 over white
   art under the glass; they take ink-2 there, and the dimmest text is now 5.4:1.
 - **Fixed children.** The audio wiring editor rendered in place inside the sidebar, so glass made
   the sidebar its containing block and clipped it to a 415x1080 strip. It renders from the body
@@ -283,7 +311,26 @@ while the gate holds, as the deck does at the other edge.
   (1510 to 1920 px wide); hiding the sidebar and the compact and wide modes do not. A device
   pixel ratio of 2, Safari and Firefox are unchecked.
 
-**Phase 3: dialogs and sheets on touch layouts** (M-L)
+**Phase 3: dialogs and sheets on touch layouts** (M-L). Not built: it waits on a decision.
+
+- **Measured 2026-09-25.** In the export dialog, a stand-in for the frame gallery's hover
+  preview lands where the cursor puts it and overhangs the dialog's edge. With `optionalPanel`
+  on the dialog it lands 258px right and 62px down, wholly outside the dialog, and is clipped
+  away. A Portal cannot take it out: a modal dialog is in the top layer, and everything outside
+  it is inert. CodeMirror's tooltips in the WGSL, math and migration editors switch themselves
+  to absolute positioning in that case, and the dialog's `overflow: auto` would then clip them
+  (read in the source, not exercised).
+- **Decision for maff: how dialogs become glass.**
+  - **A.** Compose `optionalPanel` on `.modal`. This breaks the frame hover preview and clips
+    CodeMirror's tooltips.
+  - **B.** Put a glass layer behind the dialog's content. In a dialog that scrolls as a whole
+    the layer scrolls away, and it needs a change to `Modal.tsx`.
+  - **C, recommended.** A gated modal style: the dialog takes the `--la-glass-panel` fill with no
+    blur of its own, and `::backdrop` takes `--la-scrim-sheet` and `--la-scrim-blur` under the
+    same gate. Nothing inside the dialog moves. The cost is one full-screen blur while any
+    dialog is open, which blurs the whole app behind every dialog: a design call.
+
+  The plan as first written follows.
 
 - **What changes.** The Modal primitive (`Modal/Modal.module.css:1-48`: one class, 32 call sites)
   gets a glass variant, touch layouts only:
@@ -300,7 +347,28 @@ while the gate holds, as the deck does at the other edge.
 - **Candidates.** WelcomeScreen and the crash overlay follow the same pattern: an opaque card over
   a blurred backdrop.
 
-**Phase 4: desktop and the rest, optional** (M)
+**Phase 4: desktop and the rest, optional** (M). Built 2026-09-25: literal blurs went from 57 to
+17, one family per commit, each checked before and after in headed Chrome.
+
+| Family                         | Surfaces                                                                                                                                                                            | Now                                |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| Labels over previews           | the name bars of the blend gallery, the load dialog and the welcome screen; frame numbers, the fitness badge, the export dialog's preview toggles, tile names, the Home plate links | `frostFade`, `frost`               |
+| Nothing behind them            | the node graph's nodes, the tour's light card, the Home rail, the skeleton sidebar                                                                                                  | no blur                            |
+| Controls over previews         | the colour editor's tabs, the compact keyframe diamond, the variation search bar                                                                                                    | `frost`                            |
+| Export cards, light look       | the export tracker and the progress bar                                                                                                                                             | `chrome`'s blur                    |
+| Blocking screens               | the welcome screen's backdrop, the crash overlay                                                                                                                                    | `scrim`                            |
+| Floating pills and bars        | the Arcade pilot's banner and hint, the version pill, the touch menu button, the benchmark pill, the replay caption, the benchmark page's header                                    | `chrome`                           |
+| Desktop panels over the canvas | the floating actions, the pull-up menu, the version menu, the session recorder's bar, library, replay panel and agent rail                                                          | `optionalPanel`, fading while busy |
+| Arena and duel                 | twelve blurs, each marked "Literal on purpose"                                                                                                                                      | their own look                     |
+
+`styles/designSystem/glassSurfaces.test.ts` keeps it there: each surface still composes its
+primitive, a literal blur outside `App.module.css` and the arena and duel fails, and no other
+stylesheet defines a glass, frost or scrim token. Found while building it: the floating actions'
+inactive toggles and handle and the version pill's resting label kept greys from the old look,
+1.3:1 to 2.9:1 on glass, and four of the version menu's rows kept its dark pill boxes. The greys
+take the ink tiers now, and the boxes are gone.
+
+The plan as first written:
 
 - **Fold the remaining copied families onto the primitive.** These are the session recorder
   pills, pilot, arena, duel, SoftwareVersion, FloatingActions and PullUpMenu. The visible change
@@ -309,7 +377,10 @@ while the gate holds, as the deck does at the other edge.
   gradient), the WorkspaceSkeleton sidebar, and FloatingActions in the light theme.
 - **Leave these opaque.** The timeline stays opaque, and so did the desktop sidebar until decision
   (d) (above): they are text-dense,
-  have light-theme looks, and sit in columns beside the canvas.
+  have light-theme looks, and sit in columns beside the canvas. The timeline is docked below the
+  canvas with nothing behind it; if the framing ever puts art under it, it can compose
+  `optionalPanel`. The dialogs stay opaque until phase 3's decision, and the director overlay
+  with them, since it opens as one.
 - **Leave these alone on purpose.** DuelChips' panel and the duel result card are opaque by
   design: "contrast there is not negotiable".
 
@@ -377,7 +448,11 @@ Each rule comes from one of the earlier cuts.
 
 - **Contrast test** (`styles/designSystem/glassContrast.test.ts`). The table in (c), computed
   from `lumen.css`. It checks that every text tier
-  allowed on each glass tier meets 4.5:1 over white and over black.
+  allowed on each glass tier meets 4.5:1 over white and over black, and that the focus ring on
+  glass meets 3:1 on every fill a control sits on.
+- **Where glass is written.** `glassSurfaces.test.ts` (phase 4), `glassHooks.test.ts`
+  (`onGlass`), `glassGate.test.ts` (the gate), and `lib/optionalPanelGlass.test.ts`, which
+  matches the gate's selector against `optionalPanelGlass` for every setting and theme.
 - **Busy-switch tests.** Unit tests for which states set the busy attribute.
 
 **Headed browser, each phase** (standalone script, never `playwright test`)
