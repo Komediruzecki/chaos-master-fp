@@ -30,7 +30,7 @@ file instead of rediscovering the architecture every session.
 
 | Directory                 | Package name                   | Source files | LOC    |
 | ------------------------- | ------------------------------ | ------------ | ------ |
-| `packages/app`            | `chaos-master`                 | 1114         | 189.6k |
+| `packages/app`            | `chaos-master`                 | 1114         | 189.8k |
 | `packages/core`           | `@chaos-master/core`           | 27           | 3.8k   |
 | `packages/landing`        | `@chaos-master/landing`        | 20           | 2.5k   |
 | `packages/mobile-runtime` | `@chaos-master/mobile-runtime` | 7            | 600    |
@@ -191,21 +191,21 @@ file instead of rediscovering the architecture every session.
 
 #### Arcade (`packages/app/src/arcade/`) — arena, director and beats modes
 
-| File                                                                         | LOC | What it is                                                                                                        |
-| ---------------------------------------------------------------------------- | --- | ----------------------------------------------------------------------------------------------------------------- |
-| [topics.ts](../../packages/app/src/arcade/topics.ts)                         | 500 | _(no header comment)_                                                                                             |
-| [animatablePaths.ts](../../packages/app/src/arcade/animatablePaths.ts)       | 350 | _(no header comment)_                                                                                             |
-| [tasteStore.ts](../../packages/app/src/arcade/tasteStore.ts)                 | 350 | Persistent taste profile store and flame feature extraction for Evolutionary Art Director.                        |
-| [interruptedSession.ts](../../packages/app/src/arcade/interruptedSession.ts) | 300 | An Arcade session a page reload cut short, remembered so the agent is told instead of editing the viewer's flame. |
-| [duel.ts](../../packages/app/src/arcade/duel.ts)                             | 250 | _(no header comment)_                                                                                             |
-| [duelActions.ts](../../packages/app/src/arcade/duelActions.ts)               | 250 | _(no header comment)_                                                                                             |
-| [duelJudge.ts](../../packages/app/src/arcade/duelJudge.ts)                   | 200 | _(no header comment)_                                                                                             |
-| [pilot.ts](../../packages/app/src/arcade/pilot.ts)                           | 200 | _(no header comment)_                                                                                             |
-| [affineControls.ts](../../packages/app/src/arcade/affineControls.ts)         | 150 | _(no header comment)_                                                                                             |
-| [commandHints.ts](../../packages/app/src/arcade/commandHints.ts)             | 150 | _(no header comment)_                                                                                             |
-| [lockKeyGate.ts](../../packages/app/src/arcade/lockKeyGate.ts)               | 150 | The screen lock's key gate: while the pilot owns the keyboard, no key listener of the page hears a key.           |
-| [duelHud.ts](../../packages/app/src/arcade/duelHud.ts)                       | 100 | _(no header comment)_                                                                                             |
-| [pilotActions.ts](../../packages/app/src/arcade/pilotActions.ts)             | 100 | _(no header comment)_                                                                                             |
+| File                                                                         | LOC | What it is                                                                                                                         |
+| ---------------------------------------------------------------------------- | --- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| [topics.ts](../../packages/app/src/arcade/topics.ts)                         | 500 | _(no header comment)_                                                                                                              |
+| [animatablePaths.ts](../../packages/app/src/arcade/animatablePaths.ts)       | 350 | _(no header comment)_                                                                                                              |
+| [interruptedSession.ts](../../packages/app/src/arcade/interruptedSession.ts) | 350 | An Arcade session a page reload or a GPU failure cut short, remembered so the agent is told instead of editing the viewer's flame. |
+| [tasteStore.ts](../../packages/app/src/arcade/tasteStore.ts)                 | 350 | Persistent taste profile store and flame feature extraction for Evolutionary Art Director.                                         |
+| [duelActions.ts](../../packages/app/src/arcade/duelActions.ts)               | 300 | _(no header comment)_                                                                                                              |
+| [duel.ts](../../packages/app/src/arcade/duel.ts)                             | 250 | _(no header comment)_                                                                                                              |
+| [duelJudge.ts](../../packages/app/src/arcade/duelJudge.ts)                   | 200 | _(no header comment)_                                                                                                              |
+| [pilot.ts](../../packages/app/src/arcade/pilot.ts)                           | 200 | _(no header comment)_                                                                                                              |
+| [affineControls.ts](../../packages/app/src/arcade/affineControls.ts)         | 150 | _(no header comment)_                                                                                                              |
+| [commandHints.ts](../../packages/app/src/arcade/commandHints.ts)             | 150 | _(no header comment)_                                                                                                              |
+| [lockKeyGate.ts](../../packages/app/src/arcade/lockKeyGate.ts)               | 150 | The screen lock's key gate: while the pilot owns the keyboard, no key listener of the page hears a key.                            |
+| [duelHud.ts](../../packages/app/src/arcade/duelHud.ts)                       | 100 | _(no header comment)_                                                                                                              |
+| [pilotActions.ts](../../packages/app/src/arcade/pilotActions.ts)             | 100 | _(no header comment)_                                                                                                              |
 
 #### Workspace hooks (`packages/app/src/hooks/`)
 
