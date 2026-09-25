@@ -26,6 +26,7 @@
  * it started with and the fighter renders as a smeared slab, the failure the
  * design measured for as-is rendering.
  */
+import { affineLayoutOf } from '@/arcade/affineTerms'
 import { toAffine3D, VARIATION_2D_TO_3D_MAP } from '../transformFunction3D'
 import { isParametricVariationType, transformVariations } from '../variations'
 import { isParametricVariationType3D, transformVariations3D, } from '../variations3D'
@@ -111,14 +112,29 @@ const counts = (transform: TransformFunction, variation: Variation) =>
   variation.visible &&
   variation.weight !== 0
 
+/**
+ * An affine of `flame` as the 3D kernel's twelve numbers, read in the layout
+ * `flame`'s own renderer reads it in (affineLayoutOf): on a 3D flame each in
+ * its own, on a 2D flame always the 2D one, as that renderer ignores g-l.
+ */
+function affine3DOf(
+  flame: FlameDescriptor,
+  affine: Record<string, number | undefined> | undefined,
+): Affine3 {
+  return toAffine3D(
+    affine,
+    affineLayoutOf(affine, flame.renderSettings.dimensions),
+  )
+}
+
 function native3D(flame: FlameDescriptor): FighterForm {
   const transforms = Object.fromEntries(
     Object.entries(flame.transforms).map(([tid, t]) => [
       tid,
       {
         ...t,
-        preAffine: toAffine3D(t.preAffine),
-        postAffine: toAffine3D(t.postAffine),
+        preAffine: affine3DOf(flame, t.preAffine),
+        postAffine: affine3DOf(flame, t.postAffine),
       },
     ]),
   )
@@ -126,7 +142,8 @@ function native3D(flame: FlameDescriptor): FighterForm {
     kind: 'native3D',
     converted: [],
     kept: [],
-    finalTransform: flame.finalTransform && toAffine3D(flame.finalTransform),
+    finalTransform:
+      flame.finalTransform && affine3DOf(flame, flame.finalTransform),
     transformsAt: () => transforms,
   }
 }
@@ -156,8 +173,8 @@ export function fighterForm(flame: FlameDescriptor): FighterForm {
     tid,
     transform: {
       ...t,
-      preAffine: toAffine3D(t.preAffine),
-      postAffine: toAffine3D(t.postAffine),
+      preAffine: affine3DOf(flame, t.preAffine),
+      postAffine: affine3DOf(flame, t.postAffine),
       variations: drawnIn2D(t.variations),
       from2D: true as const,
     },
@@ -182,7 +199,8 @@ export function fighterForm(flame: FlameDescriptor): FighterForm {
     kind: depth ? 'inflates' : 'flatCard',
     converted: depth ? [...twins].map(([from, to]) => `${from} -> ${to}`) : [],
     kept: depth ? [...kept] : [...kept, ...twins.keys()],
-    finalTransform: flame.finalTransform && toAffine3D(flame.finalTransform),
+    finalTransform:
+      flame.finalTransform && affine3DOf(flame, flame.finalTransform),
     transformsAt: (morph) => {
       const t = depth ? clamp01(morph) : 0
       return Object.fromEntries(

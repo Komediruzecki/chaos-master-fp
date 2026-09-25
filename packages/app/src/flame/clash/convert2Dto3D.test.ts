@@ -10,6 +10,7 @@ import { shaderShapeOf } from '../shaderShape'
 import { resolveVariationType3D } from '../transformFunction3D'
 import { transformVariations } from '../variations'
 import { fighterForm, stemTwin3D, twin3D, Z_TRANSPARENT_TWINS, } from './convert2Dto3D'
+import { IDENTITY_AFFINE } from './placement'
 import type { FlameDescriptor, TransformFunction, TransformRecord, } from '../schema/flameSchema'
 
 const shape = (transforms: Record<string, unknown>) =>
@@ -138,6 +139,32 @@ describe('fighterForm', () => {
         expect([pre.i, pre.j, pre.k, pre.l]).toEqual([0, 0, 0, 0])
       }
     }
+  })
+
+  it('lifts the affines of a 2D fighter as its 2D renderer reads them, g-l ignored', () => {
+    // A 2D flame's affine may hold g-l, which the 2D schema keeps and its
+    // renderer ignores (affineLayoutOf, arcade/affineTerms.ts).
+    const flame = flat2D(['sphericalVar'])
+    const [tid, t0] = Object.entries(flame.transforms)[0]!
+    const read = { a: 0.5, b: 0.1, c: 0.2, d: -0.1, e: 0.5, f: 0.3 }
+    const held = { ...read, g: 0.7, h: -0.4, i: 0.6, j: 0.2, k: 0.9, l: 0.8 }
+    t0.preAffine = held
+    t0.postAffine = held
+    flame.finalTransform = held
+    // x' = a x + b y + c and y' = d x + e y + f, in the 3D kernel's rows.
+    const drawn = {
+      ...IDENTITY_AFFINE,
+      a: 0.5,
+      b: 0.1,
+      d: 0.2,
+      e: -0.1,
+      f: 0.5,
+      h: 0.3,
+    }
+    const form = fighterForm(flame)
+    expect(form.transformsAt(1)[tid]!.preAffine).toEqual(drawn)
+    expect(form.transformsAt(1)[tid]!.postAffine).toEqual(drawn)
+    expect(form.finalTransform).toEqual(drawn)
   })
 })
 

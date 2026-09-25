@@ -13,6 +13,7 @@ import { isParametricVariationType3D, isVariationType3D, transformVariations3D, 
 import type { WgslStruct } from 'typegpu/data'
 import type { FlameDescriptor, TransformFunction, VariationId, } from './schema/flameSchema'
 import type { TransformVariationType3D } from './variations3D'
+import type { AffineLayout } from '@/arcade/affineTerms'
 
 const FlameUniformsBase3D = struct({
   probability: f32,
@@ -216,18 +217,22 @@ export function isAffine3D(
 }
 
 /**
- * Any affine as the 3D kernel's twelve numbers: a 3D one with its missing
- * fields at the identity's, a 2D one lifted (its translation `c`, `f` into
- * `d`, `h`, and z passed through unchanged), and none at all the identity.
- * The 3D pipeline writes a flame's final transform through this, and the
- * Flame Clash lifts a 2D fighter's affines with it.
+ * Any affine as the 3D kernel's twelve numbers, read in `layout`: in the 3D
+ * layout with its missing fields at the identity's, in the 2D one lifted (its
+ * translation `c`, `f` into `d`, `h`, and z passed through unchanged), and
+ * none at all as the identity. `layout` defaults to the one the 3D renderer
+ * reads the affine in; a 2D flame's renderer reads every affine in the 2D one
+ * (affineLayoutOf in arcade/affineTerms.ts). The 3D pipeline writes a flame's
+ * final transform through this, and the Flame Clash lifts each fighter's
+ * affines with it.
  */
 export function toAffine3D(
   affine: Record<string, number | undefined> | undefined,
+  layout: AffineLayout = isAffine3D(affine) ? '3D' : '2D',
 ): AffineParams3D {
   const ft = affine ?? {}
   const at = (key: string, missing: number) => ft[key] ?? missing
-  if (isAffine3D(ft)) {
+  if (layout === '3D') {
     return {
       a: at('a', 1),
       b: at('b', 0),

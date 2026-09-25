@@ -62,4 +62,12 @@ describe('toAffine3D', () => {
     expect(toAffine3D(full)).toEqual(full)
     expect(toAffine3D({ l: 2 })).toEqual({ ...IDENTITY, l: 2 })
   })
+
+  it('lifts an affine that holds g-l as a 2D one when told its layout is 2D', () => {
+    const held = { a: 2, b: 3, c: 4, d: 5, e: 6, f: 7, g: 8, h: 9, i: 10 }
+    expect(toAffine3D(held, '2D')).toEqual(
+      toAffine3D({ a: 2, b: 3, c: 4, d: 5, e: 6, f: 7 }),
+    )
+    expect(toAffine3D(held, '3D')).toEqual(toAffine3D(held))
+  })
 })
