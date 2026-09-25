@@ -123,6 +123,11 @@ export const ALWAYS_ON = [
     genre: 'filesystem',
   },
   {
+    file: 'src/styles/designSystem/glassSurfaces.test.ts',
+    why: 'reads every stylesheet to check which surfaces compose which glass primitive, where literal blurs may stay, and that no component redefines a glass token',
+    genre: 'filesystem',
+  },
+  {
     file: 'src/pages/FractalExplorer/FractalExplorerPage.module.test.ts',
     why: 'reads FractalExplorerPage.module.css with the Slider and PaletteSelector stylesheets whose hooks it sets',
     genre: 'filesystem',
