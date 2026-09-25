@@ -913,6 +913,7 @@
 }
 
 .variationTileName {
+  composes: frost from '@/styles/designSystem/glass.module.css';
   position: relative;
   z-index: 2;
   font-size: 0.65rem;
@@ -926,9 +927,6 @@
   text-shadow:
     0 1px 3px rgba(0, 0, 0, 0.9),
     0 0 4px rgba(0, 0, 0, 0.8);
-  background: rgba(0, 0, 0, 0.4);
   padding: 2px 4px;
   border-radius: 4px;
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
 }

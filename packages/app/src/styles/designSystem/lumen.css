@@ -103,6 +103,20 @@
   --la-glass-edge: 1px solid rgba(242, 243, 245, 0.1);
   --la-glass-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
 
+  /* Frost: a label or a small control laid over a thumbnail or a preview,
+     such as a name bar, a frame number or a badge (glass.module.css,
+     frost and frostFade). A light blur of the picture under it and a Void
+     fill; white text on --la-frost holds 6.3:1 over a white-hot picture.
+     It is not glass: no edge, no shadow, and nothing that flattens it. */
+  --la-frost: rgba(8, 10, 14, 0.65);
+  --la-frost-fade: linear-gradient(
+    to top,
+    rgba(8, 10, 14, 0.75) 0%,
+    rgba(8, 10, 14, 0.4) 70%,
+    transparent 100%
+  );
+  --la-frost-blur: blur(4px);
+
   /* Scrims are Void-tinted, not black: a pure-black scrim over a warm
      flame turns the render grey at the edges. */
   --la-scrim-dim: rgba(8, 10, 14, 0.35);
@@ -329,6 +343,8 @@
     --la-glass-panel: var(--la-glass-solid);
     --la-glass-strong: var(--la-glass-solid);
     --la-glass-blur: none;
+    --la-frost: var(--la-scrim-heavy);
+    --la-frost-blur: none;
     --la-scrim-dim: var(--la-scrim-heavy);
   }
 }
@@ -360,6 +376,8 @@
     --la-glass-panel: var(--la-glass-solid);
     --la-glass-strong: var(--la-glass-solid);
     --la-glass-blur: none;
+    --la-frost: var(--la-scrim-heavy);
+    --la-frost-blur: none;
   }
 }
 

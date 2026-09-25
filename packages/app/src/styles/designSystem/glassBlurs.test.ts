@@ -39,7 +39,7 @@ import { join, relative } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 /** The literal blurs in the app's stylesheets today. Only ever lower it. */
-const MAX_LITERAL_BLURS = 57
+const MAX_LITERAL_BLURS = 45
 
 const SRC = join(import.meta.dirname, '..', '..')
 
@@ -278,8 +278,9 @@ describe('literal blurs in the stylesheets', () => {
     expect(
       literalCount,
       `${literalCount} backdrop-filter declarations write a blur of their ` +
-        `own, over the ratchet of ${MAX_LITERAL_BLURS}. Compose chrome, panel ` +
-        "or flat from '@/styles/designSystem/glass.module.css' instead.",
+        `own, over the ratchet of ${MAX_LITERAL_BLURS}. Compose chrome, panel, ` +
+        'flat, or frost for a label over a preview, from ' +
+        "'@/styles/designSystem/glass.module.css' instead.",
     ).toBeLessThanOrEqual(MAX_LITERAL_BLURS)
   })
 

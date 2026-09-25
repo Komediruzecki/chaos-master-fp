@@ -31,8 +31,19 @@
  *           the setting switches by class rather than by optionalPanel (the
  *           tablet deck, the rail's sheet); optionalPanel carries it already.
  *
- * Each carries --la-glass-edge and --la-glass-shadow and writes both
- * backdrop-filter and -webkit-backdrop-filter, the -webkit- spelling first
+ *   frost   Not glass: a label or a small control laid over a thumbnail
+ *           or a preview (a name bar, a frame number, a badge). The
+ *           --la-frost fill and the light --la-frost-blur, no edge, no
+ *           shadow. Nesting, busy and the fallback leave it alone: what it
+ *           blurs is the picture right under it, which a panel around it
+ *           does not change, and it is small.
+ *   frostFade
+ *           frost for a bar across the foot of a thumbnail, its fill
+ *           fading out upwards (--la-frost-fade).
+ *
+ * The four glass classes carry --la-glass-edge and --la-glass-shadow. Every
+ * rule here that sets backdrop-filter writes it in both spellings, the
+ * -webkit- one first
  * (glassBlurs.test.ts holds every stylesheet to that order). The production
  * minifier keeps only the later of the two, so the build ships the standard
  * spelling alone, the one Chrome, Firefox, Android and Safari 18 read. iOS
@@ -176,6 +187,19 @@
   --la-control: var(--la-control-on-glass);
   --la-control-strong: var(--la-control-strong-on-glass);
   --la-control-accent: var(--la-control-accent-on-glass);
+}
+
+/* Not glass, so none of the rules below name them. */
+:where(.frost):not(html) {
+  background: var(--la-frost);
+  -webkit-backdrop-filter: var(--la-frost-blur);
+  backdrop-filter: var(--la-frost-blur);
+}
+
+:where(.frostFade):not(html) {
+  background: var(--la-frost-fade);
+  -webkit-backdrop-filter: var(--la-frost-blur);
+  backdrop-filter: var(--la-frost-blur);
 }
 
 /* ---- The Glass panels setting --------------------------------------- */
