@@ -59,11 +59,11 @@
   backdrop-filter: none;
 }
 
-/* The experimental Glass panels setting (lib/glass.ts) trades that cost for
-   the look: open, the sheet is the primitive's panel instead, glass while the
-   canvas idles and solid while it is busy. Its text keeps to the panel's
-   tiers: the primitive lifts ink-3 to ink-2, and the chip that names the
-   open panel says so with its accent fill rather than accent text. */
+/* Glass panels, on by default (lib/glass.ts, glassAllowed), trade that cost
+   for the look: open, the sheet is the primitive's panel instead, glass
+   while the canvas idles and solid while it is busy. Its text keeps to the
+   panel's tiers: the primitive lifts ink-3 to ink-2, and the chip that names
+   the open panel says so with its accent fill rather than accent text. */
 /* Its controls fill with the explorer panel's opaque surfaces, as the
    floating tablet deck's do (solidControls), so a row or a field does not
    darken and lighten with the art behind the sheet. */

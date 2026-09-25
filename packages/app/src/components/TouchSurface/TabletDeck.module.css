@@ -1,11 +1,13 @@
 /* The tablet inspector deck, in one of two modes. Colour, radius, spacing,
    duration and easing come from the --la-* set only.
 
-   .page, the default: a page beside the canvas, not chrome over it, so it is
-   opaque --la-surface with no glass, in a grid column of its own.
+   .page, while glass panels are off (the setting, or Reduce Transparency or
+   More Contrast; lib/glass.ts, glassAllowed): a page beside the canvas, not
+   chrome over it, so it is opaque --la-surface with no glass, in a grid
+   column of its own.
 
-   .floating, with the experimental Glass panels setting on
-   (docs/plans/glass-panels.md, phase 2): chrome over the canvas. The canvas
+   .floating, while they show, the default (docs/plans/glass-panels.md,
+   phase 2): chrome over the canvas. The canvas
    spans the deck's column too (App.module.css, .tabletLayout) and the deck
    sits over it in the same cell, as the glass primitive's panel, which the
    component adds (glass.module.css; a composes cannot be switched off). It

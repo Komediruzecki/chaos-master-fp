@@ -97,9 +97,9 @@
  * class there instead, since a composes cannot be switched off. The names
  * are the same ones:
  *
- *     import { glassPanels } from '@/lib/glass'
+ *     import { glassAllowed } from '@/lib/glass'
  *     import glass from '@/styles/designSystem/glass.module.css'
- *     <aside class={ui.deck} classList={{ [glass.panel!]: glassPanels() }}>
+ *     <aside class={ui.deck} classList={{ [glass.panel!]: glassAllowed() }}>
  *
  * Composing copies this file into every module that composes it (that is
  * how postcss-modules resolves composes), and the minifier then keeps one
@@ -141,9 +141,12 @@
  *                           hooks/useWorkspaceGlassBusy.ts, and only once the
  *                           state has held for 150 ms, so a tap or the canvas
  *                           converging after an edit never flickers it.
- *   data-glass-panels="on"  the Glass panels setting, on by default and
- *                           offered in Settings on every layout, for whoever
- *                           would rather have the frame rate. It turns every
+ *   data-glass-panels="on"  glass panels show: the Glass panels setting is
+ *                           on, as it is by default (Settings offers it on
+ *                           every layout, for whoever would rather have the
+ *                           frame rate), and neither Reduce Transparency nor
+ *                           More Contrast is asked for, under which lumen.css
+ *                           turns the glass fills solid anyway. It turns every
  *                           optionalPanel to glass, it lets the Android rule
  *                           below keep a panel's glass, it turns the rail
  *                           sheet into a
@@ -154,15 +157,17 @@
  *                           inspector on either keys its glass text, its
  *                           gallery's scrollbar and its scrub fields on it
  *                           (TouchSurface.module.css).
- *                           A component reads glassPanels() from
+ *                           A component reads glassAllowed() from
  *                           lib/glass.ts; a CSS module reaches it as
  *                           :global(:root[data-glass-panels='on']).
  *   data-platform="android" written by index.tsx in the native Android app
  *                           only; the web, Android's browsers included,
  *                           never carries it. Mid-range Android GPUs are the
- *                           worst case for blur, so panels there are solid
- *                           until measured, unless the Glass panels setting
- *                           asks for glass (glass-panels.md, section 6).
+ *                           worst case for blur, so with glass panels off a
+ *                           panel there is solid, where elsewhere it keeps
+ *                           its glass. With them on, the default, it is
+ *                           glass there too, which is not yet measured on a
+ *                           device (glass-panels.md, section 6).
  *                           Solid rather than flat: a panel's ink-2 text
  *                           needs 76% of fill over white-hot art, and flat
  *                           is 72% with the art behind it unblurred.
@@ -302,7 +307,7 @@
   backdrop-filter: none;
 }
 
-/* The native Android app, unless the Glass panels setting asks for glass. */
+/* The native Android app, while glass panels are off. */
 :root[data-platform='android']:not([data-glass-panels='on']) .panel {
   background: var(--la-glass-solid);
   -webkit-backdrop-filter: none;
