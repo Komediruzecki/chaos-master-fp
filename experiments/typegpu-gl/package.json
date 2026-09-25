@@ -1,0 +1,27 @@
+{
+  "name": "@lumen/typegpu-gl-spike",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5186 --strictPort",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "verify": "node scripts/verify.ts"
+  },
+  "dependencies": {
+    "@typegpu/gl": "0.12.4",
+    "@typegpu/noise": "0.12.0",
+    "solid-js": "1.9.15",
+    "typegpu": "0.12.5",
+    "valibot": "1.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "25.6.0",
+    "@webgpu/types": "0.1.69",
+    "playwright": "1.59.1",
+    "typescript": "5.9.3",
+    "unplugin-typegpu": "0.12.3",
+    "vite": "8.3.0",
+    "vite-plugin-solid": "2.11.14"
+  }
+}

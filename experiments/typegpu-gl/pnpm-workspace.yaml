@@ -1,0 +1,3 @@
+# Keep the experimental dependency versions out of the production workspace.
+packages:
+  - '.'

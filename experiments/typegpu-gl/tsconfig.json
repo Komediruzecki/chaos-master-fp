@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "jsx": "preserve",
+    "jsxImportSource": "solid-js",
+    "types": ["@webgpu/types", "vite/client"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["../../packages/app/src/*"],
+      "@chaos-master/core": [
+        "../../packages/core/src/math/affineTransform3D.ts"
+      ],
+      "typegpu": ["node_modules/typegpu/index.d.ts"],
+      "typegpu/*": ["node_modules/typegpu/*"],
+      "@typegpu/noise": ["node_modules/@typegpu/noise/index.d.ts"],
+      "valibot": ["node_modules/valibot/dist/index.d.mts"]
+    }
+  },
+  "include": ["src", "scripts", "vite.config.ts"]
+}
