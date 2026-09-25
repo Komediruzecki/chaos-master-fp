@@ -39,7 +39,7 @@ import { join, relative } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 /** The literal blurs in the app's stylesheets today. Only ever lower it. */
-const MAX_LITERAL_BLURS = 41
+const MAX_LITERAL_BLURS = 38
 
 const SRC = join(import.meta.dirname, '..', '..')
 
