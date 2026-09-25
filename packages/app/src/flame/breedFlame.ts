@@ -4,6 +4,7 @@ import { breedableEntries, inheritSymmetry } from './breedSymmetry'
 import { crossBreedMatchedTypePairs, crossVariationParams, fillRemainingFromUnmatched, getDominantVariationType, groupTransformsByDominantType, } from './crossoverUtils'
 import { random01, randomPerturbation, randomRange } from './randomize'
 import { validateFlame } from './schema/flameSchema'
+import { reweighSymmetryCopies } from './symmetry'
 import { generateTransformId, generateVariationId } from './transformFunction'
 import { transformVariations } from './variations'
 import { isParametricVariationType3D, isVariationType3D, transformVariations3D, } from './variations3D'
@@ -404,8 +405,11 @@ function handleSingleParentBreed(
   return Array.from({ length: count }, () => {
     const child = deepClone(parent)
     mutateFlameLight(child, mutationStrength)
-    // Every user transform is this parent's, so its set is the child's.
-    return inheritSymmetry(validateFlame(child), parent, parent, 1, 0)
+    // The clone already holds the parent's copies as the parent shows them
+    // (the light mutation skips them): only their weight follows the
+    // mutated user transforms.
+    reweighSymmetryCopies(child.transforms)
+    return validateFlame(child)
   })
 }
 

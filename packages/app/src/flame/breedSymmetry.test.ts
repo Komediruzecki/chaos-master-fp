@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { deepClone } from '@/utils/clone'
 import { breedFlames, CROSSOVER_MODES } from './breedFlame'
 import { validateFlame } from './schema/flameSchema'
-import { applySymmetryToFlame, symmetryPreAffines, symmetryRotationPreAffine, symmetryWeight, } from './symmetry'
+import { applySymmetryToFlame, symmetryRotationPreAffine, symmetryWeight, } from './symmetry'
 import { detectSymmetryFolds, detectSymmetryType } from './symmetryDetection'
 import { bases } from './symmetryTestUtils'
 import type { FlameDescriptor, TransformId } from './schema/flameSchema'
@@ -64,13 +64,22 @@ function parent(
   return set ? applySymmetryToFlame(flame, set.folds, set.type) : flame
 }
 
-/** The copies the symmetry writer would give these user transforms. */
-function cleanCopies(flame: FlameDescriptor, set: SymmetrySet) {
-  const userOnly = { ...flame, transforms: Object.fromEntries(users(flame)) }
-  return copies(applySymmetryToFlame(userOnly, set.folds, set.type))
-}
-const affines = (entries: ReturnType<typeof copies>) =>
-  entries.map(([, t]) => JSON.stringify(t.preAffine)).sort()
+/** A flame's copies as the parent shows them: everything but the weight,
+ *  which the child's own transforms decide. */
+/** The copies' preAffines and hidden count, whatever their ids. */
+const look = (flame: FlameDescriptor) => ({
+  preAffines: copies(flame)
+    .map(([, t]) => JSON.stringify(t.preAffine))
+    .sort(),
+  hidden: copies(flame).filter(([, t]) => !t.visible).length,
+})
+const shown = (flame: FlameDescriptor) =>
+  Object.fromEntries(
+    copies(flame).map(([tid, { probability: _weight, ...rest }]) => [
+      tid,
+      rest,
+    ]),
+  )
 
 /** Everything a child must satisfy, whatever its parents were. */
 function expectChild(
@@ -86,12 +95,11 @@ function expectChild(
   const fromA = users(child).filter(([, t]) => t.colorSpeed === A).length
   const fromB = users(child).filter(([, t]) => t.colorSpeed === B).length
   const source = fromA >= fromB ? parentA : parentB
-  const set = setOf(source)
-  expect(setOf(child)).toEqual(set)
-  if (!set) return
-
-  // A clean n-fold set in the child's layout, at the writer's weight.
-  expect(affines(copies(child))).toEqual(affines(cleanCopies(child, set)))
+  // The card shows the source parent's set, and the copies are that
+  // parent's own, as it shows them (angles, hidden copies), at the child's
+  // weight.
+  expect(setOf(child)).toEqual(setOf(source))
+  expect(shown(child)).toEqual(shown(source))
   for (const [, copy] of copies(child)) {
     expect(copy.probability).toBe(symmetryWeight(child.transforms))
   }
@@ -150,23 +158,77 @@ describe('Breed keeps a parent symmetry', () => {
       }
     })
 
-    it(`${dims}D: a parent whose rotation was edited gives a clean set`, () => {
+    it(`${dims}D: a parent whose rotation was edited passes the edit on`, () => {
       const pa = parent(dims, A, 2, ROT4)
       const [editedId] = copies(pa)[0]!
       pa.transforms[editedId as TransformId]!.preAffine =
         symmetryRotationPreAffine(1, dims === 3 ? '3D' : '2D')
       const pb = parent(dims, B, 2)
+      const [tied] = breedFlames(pa, pb, {
+        count: 1,
+        crossoverMode: 'alternate',
+      })
+      expect(look(tied!)).toEqual(look(pa))
+      for (const mode of CROSSOVER_MODES) {
+        for (const child of breedFlames(pa, pb, {
+          count: 6,
+          crossoverMode: mode,
+        })) {
+          expectChild(child, pa, pb)
+        }
+      }
+      // Alternate over 2 + 2 is a tie, so pa's copies, edit included.
       for (const child of breedFlames(pa, pb, {
         count: 3,
         crossoverMode: 'alternate',
       })) {
-        expect(setOf(child)).toEqual(ROT4)
-        expect(affines(copies(child))).toEqual(
-          symmetryPreAffines(4, 'rotational', dims === 3 ? '3D' : '2D')
-            .map((a) => JSON.stringify(a))
-            .sort(),
-        )
+        expect(look(child)).toEqual(look(pa))
+        expect(shown(child)).toEqual(shown(pa))
       }
+    })
+
+    for (const [label, hide] of [
+      ['one copy hidden', (ids: string[]) => ids.slice(0, 1)],
+      ['every copy hidden', (ids: string[]) => ids],
+    ] as const) {
+      it(`${dims}D: a parent with ${label} keeps it hidden in the child`, () => {
+        const pa = parent(dims, A, 2, DIH3)
+        const hidden = hide(copies(pa).map(([tid]) => tid))
+        for (const tid of hidden) {
+          pa.transforms[tid as TransformId]!.visible = false
+        }
+        const pb = parent(dims, B, 2, ROT4)
+        for (const child of breedFlames(pa, pb, {
+          count: 3,
+          crossoverMode: 'alternate',
+        })) {
+          expect(look(child)).toEqual(look(pa))
+          expectChild(child, pa, pb)
+          expect(
+            copies(child)
+              .filter(([, t]) => !t.visible)
+              .map(([tid]) => tid),
+          ).toEqual(hidden)
+        }
+      })
+    }
+
+    it(`${dims}D: a mirror-only parent gives the mirror`, () => {
+      const pa = parent(dims, A, 3, { folds: 1, type: 'dihedral' })
+      const pb = parent(dims, B, 2)
+      for (const mode of CROSSOVER_MODES) {
+        for (const child of breedFlames(pa, pb, {
+          count: 6,
+          crossoverMode: mode,
+        })) {
+          expectChild(child, pa, pb)
+        }
+      }
+      const [child] = breedFlames(pa, pb, {
+        count: 1,
+        crossoverMode: 'alternate',
+      })
+      expect(setOf(child!)).toEqual({ folds: 1, type: 'dihedral' })
     })
 
     it(`${dims}D: a parent with only copies counts as empty`, () => {
@@ -181,14 +243,19 @@ describe('Breed keeps a parent symmetry', () => {
       }
     })
 
-    it(`${dims}D: a single-parent breed keeps the set and leaves the copies clean`, () => {
+    it(`${dims}D: a single-parent breed keeps the copies verbatim`, () => {
       const pa = parent(dims, A, 3, DIH3)
+      const [editedId, edited] = copies(pa)[0]!
+      edited.preAffine = symmetryRotationPreAffine(1, dims === 3 ? '3D' : '2D')
+      pa.transforms[copies(pa)[1]![0] as TransformId]!.visible = false
+      expect(editedId).toMatch(/^_sym__/)
       const empty = { ...parent(dims, B, 1), transforms: {} }
       for (const child of breedFlames(pa, empty, {
         count: 3,
         mutationStrength: 1,
       })) {
         expect(users(child)).toHaveLength(3)
+        expect(look(child)).toEqual(look(pa))
         expectChild(child, pa, empty)
       }
     })
