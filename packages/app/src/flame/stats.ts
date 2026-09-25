@@ -218,9 +218,9 @@ function analyzeLinear2D(aff: AffineRecord): LinearAnalysis {
 }
 
 /**
- * An affine in the 3D layout carries g..l; a 2D one only a..f. The same test
- * as the renderer's `isAffine3D` (transformFunction3D.ts), repeated here so
- * the stats do not import the shader module.
+ * An affine in the 3D layout carries g..l; a 2D one only a..f: the same test
+ * as the renderer's `isAffine3D` (transformFunction3D.ts, which the stats
+ * load anyway, through schoolVariations.ts).
  */
 function isAffine3DLayout(aff: AffineRecord): boolean {
   return ['g', 'h', 'i', 'j', 'k', 'l'].some((key) => aff[key] !== undefined)
