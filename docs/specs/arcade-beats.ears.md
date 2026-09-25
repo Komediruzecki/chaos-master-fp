@@ -413,7 +413,7 @@ playback time — only the per-frame writes into the flame descriptor stop.
 Transport shall additionally not wait on the analysis pass; only modulation
 requires a finished analyzer.
 
-_(`useAudioReactive.ts:137-221` (`mic`), explicitly `:214` (`analyzer`))_
+_(`useAudioReactive.ts:151-235` (`mic`), explicitly `:228` (`analyzer`))_
 
 ### REQ-AB-033 — Microphone capture is gated on reactivity
 
@@ -421,7 +421,7 @@ _(`useAudioReactive.ts:137-221` (`mic`), explicitly `:214` (`analyzer`))_
 reactivity is enabled, so disabling it releases the capture rather than holding
 a live microphone open with nothing to audition.
 
-_(`useAudioReactive.ts:260-264` (`source`))_
+_(`useAudioReactive.ts:274-278` (`source`))_
 
 ### REQ-AB-034 — Replay owns the document exclusively
 
@@ -429,7 +429,7 @@ _(`useAudioReactive.ts:260-264` (`source`))_
 loop shall write nothing into the flame and shall reset its smoothing clock, so
 resuming does not apply one huge accumulated delta.
 
-_(`useAudioReactive.ts:206-217` (`modulationSuspended`), `:267-271` (`modulationSuspended`); guarded by
+_(`useAudioReactive.ts:220-231` (`modulationSuspended`), `:282-286` (`modulationSuspended`); guarded by
 `useAudioReactive.test.ts`)_
 
 ### REQ-AB-035 — Loading a new flame turns reactivity off
@@ -439,7 +439,7 @@ reactivity (and sonification) before swapping the document, because the
 modulation loop writes render settings continuously and would otherwise keep
 driving the incoming flame.
 
-_(`MainWorkspace.tsx:2398-2403` (`setAudioEnabled`))_
+_(`MainWorkspace.tsx:2388-2393` (`setAudioEnabled`))_
 
 ---
 

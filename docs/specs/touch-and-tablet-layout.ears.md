@@ -66,8 +66,7 @@ desktop sidebar, the timeline, the Arena/Arcade overlays, or the export pipeline
   touch-pointer passthrough, drag-suppresses-click, interactive-input exemption
   (REQ-TL-032 … REQ-TL-035); there is no disposal test, so REQ-TL-036 is unguarded
 - `packages/app/src/components/SoftwareVersion/SoftwareVersion.test.tsx` — the
-  desktop/touch menu variants and both directions of the layout switch
-  (REQ-TL-039)
+  desktop menu and its switch to the touch layout (REQ-TL-039)
 - _Gap:_ `Toast.tsx` and `ExportJobTracker.tsx` have **no test file at all**,
   `MainWorkspace.tsx` and `CanvasViewport.tsx` have tests for other concerns
   only (`MainWorkspace.capture.test.ts`, `CanvasViewport.badge.test.tsx`), and no
@@ -203,7 +202,7 @@ that only needs "is this a touch layout" shall read it rather than re-deriving
 the union.
 
 _(`workspaceLayoutStore.ts:202` (`isTouchLayout`); read by `Toast.tsx:20` (`toastRegionTouch`), `:30` (`toastTouch`),
-`ExportJobTracker.tsx:55` (`trackerTouch`), `SoftwareVersion.tsx:31` (`globalIsTouchLayout`), and
+`ExportJobTracker.tsx:55` (`trackerTouch`), and
 `MainWorkspace.tsx:4039` (`isTouchLayout`), `:4049` (`isTouchLayout`), `:4058` (`isTouchLayout`), `:4057` (`isTouchLayout`). Guarded by
 `workspaceLayoutStore.test.ts:215-216` (`isTouchLayout`), `:232-233` (`isTouchLayout`).)_
 
@@ -267,8 +266,9 @@ actions, and the desktop version pill — and shall mount no TouchSurface
 component except the `AdvancedToolsDrawer`, which is always mounted but renders
 nothing while closed.
 
-_(`MainWorkspace.tsx:3838` (`isPhone`), `:4080` (`isPhone`), `:4380` (`showArena`); `SoftwareVersion.tsx:193-196` (`isTouch`)
-selects the desktop trigger from `isTouchLayout()`; `AdvancedToolsDrawer.tsx:128` (`open`)
+_(`MainWorkspace.tsx:3838` (`isPhone`), `:4080` (`isPhone`), `:4380` (`showArena`); `SoftwareVersion.tsx:183` (`hideTrigger`)
+renders only the desktop trigger, and `MainWorkspace.tsx:4500` (`hideVersionTrigger`) hides it
+under `isTouchLayout()`; `AdvancedToolsDrawer.tsx:128` (`open`)
 wraps the whole panel in `<Show when={props.open}>`.)_
 
 ### REQ-TL-014 — No orphaned hamburger under a touch layout
@@ -277,7 +277,7 @@ wraps the whole panel in `<Show when={props.open}>`.)_
 mobile sidebar-toggle button, because the sidebar it opens is not mounted.
 
 _(`MainWorkspace.tsx:3791` passes `hideMobileSidebarToggle={isPhone() ||
-isTablet()}`; `CanvasViewport.tsx:129` (`hideMobileSidebarToggle`) gates the button on
+isTablet()}`; `CanvasViewport.tsx:223` (`hideMobileSidebarToggle`) gates the button on
 `props.isMobile() && !props.hideMobileSidebarToggle`.)_
 
 ### REQ-TL-015 — The phone grid is one full-bleed viewport cell
@@ -287,7 +287,7 @@ isTablet()}`; `CanvasViewport.tsx:129` (`hideMobileSidebarToggle`) gates the but
 and one row, so the canvas fills the screen under the fixed HUD and bottom rail.
 
 _(`MainWorkspace.tsx:3784` (`railLayout`); `App.module.css:15-19` (`.phoneLayout`). The HUD and rail are
-`position: fixed` with `z-index` 42 and 40 — `TouchSurface.module.css:3-10` (`.topHud`),
+`position: fixed` with `z-index` 42 and 40 — `TouchSurface.module.css:8-20` (`.hudFrame`, around the HUD pill),
 `EditorRail.module.css:5-10` (`.dock`) — so neither consumes grid space.)_
 
 ### REQ-TL-016 — The tablet grid is a canvas/inspector split across the whole band
@@ -344,7 +344,7 @@ only grid classes and sibling chrome — never the `AutoCanvas` element, its
 device, or its accumulated render.
 
 _(`MainWorkspace.tsx:3798-3934` (`CanvasViewport`) mounts one `CanvasViewport` outside every
-layout gate; `CanvasViewport.tsx:157-165` (`AutoCanvas`) mounts one `AutoCanvas`. The layout
+layout gate; `CanvasViewport.tsx:251-260` (`AutoCanvas`) mounts one `AutoCanvas`. The layout
 reads beside it, `MainWorkspace.tsx:3784` (`railLayout`) and `:3791`
 (`hideMobileSidebarToggle`), only feed a class string and a boolean prop.)_
 
@@ -356,8 +356,8 @@ cannot cover the tablet inspector deck or the HUD's More menu; the tracker shall
 continue to publish its measured height as `--toast-stack-offset` so toasts
 stack beneath it in both positions.
 
-_(`Toast.tsx:20` (`toastRegionTouch`), `:30` (`toastTouch`) with `App.module.css:1235-1243` (`.toast-region-touch`);
-`ExportJobTracker.tsx:55` (`trackerTouch`) with `ExportJobTracker.module.css:20-26` (`.trackerTouch`); the offset is
+_(`Toast.tsx:20` (`toastRegionTouch`), `:30` (`toastTouch`) with `App.module.css:1312-1320` (`.toast-region-touch`);
+`ExportJobTracker.tsx:55` (`trackerTouch`) with `ExportJobTracker.module.css:50-56` (`.trackerTouch`); the offset is
 written and cleared at `ExportJobTracker.tsx:28-49` (`createEffect`).)_
 
 ### REQ-TL-020 — The bottom rail opens on the tab that was tapped
@@ -429,7 +429,7 @@ single auditable command. The More items are the shared list from
 `flame.quickExport` fallback it once had named a command nobody registered.
 
 _(`TouchHUD.tsx:134-137` (`onUndo`), `:151-154` (`onRedo`);
-`TabletInspectorDeck.tsx:163-165` (`onUndo`), `:179-181` (`onRedo`);
+`TabletInspectorDeck.tsx:194-196` (`onUndo`), `:210-212` (`onRedo`);
 `TouchControlSurface.tsx:584-585` (`onMutate`), `:597-598` (`onRandomize`).)_
 
 ### REQ-TL-024 — Popovers dismiss on an outside tap
@@ -592,11 +592,16 @@ fire — the preference write and toast live in `MainWorkspace`, which has no te
 **Where** the app menu is shown, its first entry shall write the opposite
 preference to the current layout — "Switch to Touch Studio" writing `'touch'`
 from the desktop pill, "Switch to Desktop Layout" writing `'desktop'` from the
-touch hamburger — and shall close the menu in the same click.
+touch layout's tools drawer — and shall close the menu in the same click.
 
-_(`SoftwareVersion.tsx:53-75` (`renderMenuItems`), `:194-259` (`isTouch`); the writer prefers the injected
-`setTouchLayoutPreference` prop and falls back to the module setter at `:32-38` (`setTouchPref`).
-Guarded by `SoftwareVersion.test.tsx:53-58` (`fireEvent`) and `:92-95` (`Desktop`).)_
+_(`SoftwareVersion.tsx:49-65` (`renderMenuItems`); the writer prefers the injected
+`setTouchLayoutPreference` prop and falls back to the module setter at `:28-34` (`setTouchPref`).
+The touch direction is `AdvancedToolsDrawer.tsx:50-62` (`onSwitchToDesktop`), wired to
+`setTouchLayoutPreference('desktop')` at `MainWorkspace.tsx:4019-4020` (`onSwitchToDesktop`).
+Guarded by `SoftwareVersion.test.tsx:52-56` (`fireEvent`) and `TouchSurface.test.tsx:236-237`
+(`onSwitchToDesktop`). SoftwareVersion's touch hamburger, which this requirement named until
+2026-09-25, was removed then: every touch layout hid it through `hideTrigger`, so it never
+rendered.)_
 
 ---
 
