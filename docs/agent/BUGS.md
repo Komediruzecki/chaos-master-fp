@@ -13,6 +13,7 @@ exporter needed fixing twice, and five more from the stage 2 characterization
 net and the motion blur work (2026-09-11) -- those carry their lens and the PR
 that found or fixed them. Finding 64 came later, from maff's report from the
 iOS app (2026-09-23), and is under [Found after the audit](#found-after-the-audit).
+Finding 65 came from the review of #141 (2026-09-25), and is there too.
 
 Every finding below cites a file and a line and was found by reading code, not
 by pattern-matching a linter.
@@ -73,7 +74,8 @@ The findings further down keep the words and line numbers they were found
 with, pinned to `a5c2f26f`; this table is the part that tracks main. Every
 citation in it is checked on every pull request by `pnpm docs:cite`, so a
 change that moves or removes the cited code fails CI until the row is
-updated. Row 64 was added later, with the pull request that finished its fix.
+updated. Row 64 was added later, with the pull request that finished its fix,
+and row 65 with the pull request whose review found it.
 
 | Found as | Findings | Fixed | Open | Refuted |
 | --- | ---: | ---: | ---: | ---: |
@@ -83,7 +85,8 @@ updated. Row 64 was added later, with the pull request that finished its fix.
 | Refuted | 5 | 0 | 0 | 5 |
 | Low, not verified | 21 | 4 | 16 | 1 |
 | Device report | 1 | 1 | 0 | 0 |
-| **All** | **64** | **21** | **37** | **6** |
+| Review report | 1 | 0 | 1 | 0 |
+| **All** | **65** | **21** | **38** | **6** |
 
 4 of the open findings are partly fixed; the row says which part is left.
 "Refuted, still" means the audit's refutation still holds on main.
@@ -154,6 +157,7 @@ updated. Row 64 was added later, with the pull request that finished its fix.
 | 62 | [Present-pump gate lost its comment](#reported-low-severity-not-independently-verified) | low, not verified | open | `packages/app/src/flame/renderDrivers/createInteractiveRenderDriver.ts:72` (`isExportRenderer`); the old comment is in Flam3.tsx before `38130d81` |
 | 63 | [`CompletedRunCard` captures `props.run`](#reported-low-severity-not-independently-verified) | low, not verified | open | `packages/app/src/pages/Benchmarks/BenchmarksPage.tsx:599` (`props.run`); harmless inside its `<For>` today |
 | 64 | [A dialog pick stays hidden on iOS](#a-flame-picked-from-a-dialog-stayed-hidden-behind-the-previous-one-on-ios-until-the-canvas-was-touched) | device report | fixed, #122 (`a37f4b88`, `14545b77`) and #131 (`9895189f`) | `packages/app/src/lib/viewTransition.ts:36` (`isAppleWebKit`), `packages/app/src/flame/renderDrivers/createInteractiveRenderDriver.ts:85` (`transitionsSettled`); test `packages/app/src/flame/renderDrivers/viewTransitionPresent.test.tsx:363` "on Apple WebKit, is on screen with no view transition and no snapshot", test `packages/app/src/flame/renderDrivers/viewTransitionPresent.test.tsx:372` "where a view transition runs anyway, is on screen once it has faded out" |
+| 65 | [IFS pipeline caches never evict](#the-ifs-pipeline-caches-never-drop-an-entry-a-long-lived-canvas-keeps-the-pipelines-of-every-flame-shape-and-custom-variation-change-it-has-drawn) | review report | open | `packages/app/src/flame/ifsPipeline.ts:46` (`pipelineCache`), `:71` (`basePipelineByRoot`), `packages/app/src/flame/ifsPipeline3D.ts:48` (`pipelineCache3D`), `:60` (`basePipeline3DByRoot`). Entries are only ever set: `packages/app/src/flame/ifsPipeline.ts:632` (`pipelineCache`), `:714` (`rootCache`), `packages/app/src/flame/ifsPipeline3D.ts:341` (`pipelineCache3D`), `:419` (`rootCache`) |
 
 ---
 
@@ -941,3 +945,15 @@ Rated low by the finder and so never put through refutation. Check before acting
 **Verification.** `viewTransitionPresent.test.tsx` drives the real Modal and render driver against a model of WebKit's canvas presentation and frame order, and an emulator of the same ran on production builds in real-GPU Chrome. Before #122 the pick ended on the previous flame, or at the high preset on a buffer never drawn. After #122 it ended on the new one, with 16 or 17 snapshot presents during the fade. After #131 no view transition runs on Apple WebKit (`utils/platform.test.ts` covers iOS and macOS Safari and the iOS app's WKWebView), and the pick, the sidebar toggle and the theme switch land with no snapshot and no stale buffer.
 
 **Suggested fix.** Fixed in #122, which presents once after each view transition ends, and #131, which runs none on Apple WebKit.
+
+### The IFS pipeline caches never drop an entry: a long-lived canvas keeps the pipelines of every flame shape and custom-variation change it has drawn
+
+`packages/app/src/flame/ifsPipeline.ts:46` (`pipelineCache`) — **low** · performance · found in the review of #141, 2026-09-25 · present on main at `79996cc2` · lens: code review
+
+**Now:** open. See [Status on main](#status-on-main).
+
+**Evidence.** Each IFS pipeline module keeps two caches, keyed by the shader's signature. `packages/app/src/flame/ifsPipeline.ts:46` (`pipelineCache`) holds the shader definitions for every root, and `:71` (`basePipelineByRoot`) holds a compiled pipeline per signature for each GPU root. `packages/app/src/flame/ifsPipeline3D.ts:48` (`pipelineCache3D`) and `:60` (`basePipeline3DByRoot`) are their 3D twins. Entries are only ever set, never deleted. A root's pipelines go only with the root, so a preview's go when the preview closes, and the workspace canvas's stay for the whole session. The signature holds the transform ids, the variation types, the loop settings and the custom variations' version, so each new flame structure and each custom-variation change adds entries, and the older ones are never reached again.
+
+**How it fails.** Memory grows with the flame shapes a session visits (randomizing, browsing the gallery, arcade rounds) and with custom-variation edits. The shader definitions and the workspace canvas's pipelines are not freed until the page reloads. Since #141 an edit rebuilds every open renderer at once, and the version is in every signature, so each edit adds a pipeline for every open renderer, whether or not its flame uses a custom variation. The growth has not been measured.
+
+**Suggested fix.** Bound the caches, for example least recently used over a few dozen signatures, or drop the entries of an older custom-variations version when the version changes.
