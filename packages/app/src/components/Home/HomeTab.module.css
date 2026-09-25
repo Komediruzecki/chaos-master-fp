@@ -63,9 +63,9 @@
   border-right: 1px solid var(--home-line);
   min-width: 11rem;
   overflow-y: auto;
+  /* No blur: the rail is a column of its own and nothing scrolls behind it,
+     so a blur would only sample the page's still ambient light. */
   background: rgba(8, 10, 14, 0.55);
-  -webkit-backdrop-filter: blur(18px) saturate(130%);
-  backdrop-filter: blur(18px) saturate(130%);
 }
 
 .rail-brand {
