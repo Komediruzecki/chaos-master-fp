@@ -73,7 +73,7 @@ file instead of rediscovering the architecture every session.
 <!-- prettier-ignore-start -->
 | Module | Entry point | What it is |
 |---|---|---|
-| `clash` | [teamTint.ts](../../packages/app/src/flame/clash/teamTint.ts) | A clash team's colour: a hue on the OkLab (a, b) plane, for every transform of that team. |
+| `clash` | [choreographer.ts](../../packages/app/src/flame/clash/choreographer.ts) | The scripted 12-second bout of the Flame Clash preview: the intro, one hit, a beam clash, the Devour finisher and the victory, as a pure... |
 | `examples` | [index.ts](../../packages/app/src/flame/examples/index.ts) | _(no header comment)_ |
 | `glide` | [index.ts](../../packages/app/src/flame/glide/index.ts) | _(no header comment)_ |
 | `renderDrivers` | [index.ts](../../packages/app/src/flame/renderDrivers/index.ts) | _(no header comment)_ |
@@ -101,6 +101,7 @@ file instead of rediscovering the architecture every session.
 | `Button` | [ButtonGroup.tsx](../../packages/app/src/components/Button/ButtonGroup.tsx) | _(no header comment)_ |
 | `CanvasViewport` | [index.ts](../../packages/app/src/components/CanvasViewport/index.ts) | _(no header comment)_ |
 | `Checkbox` | [Checkbox.tsx](../../packages/app/src/components/Checkbox/Checkbox.tsx) | _(no header comment)_ |
+| `ClashStage` | [ClashStage.tsx](../../packages/app/src/components/ClashStage/ClashStage.tsx) | The Flame Clash stage: one scripted bout between two fighters, on a canvas of its own. |
 | `CollapsibleCard` | [CollapsibleCard.tsx](../../packages/app/src/components/CollapsibleCard/CollapsibleCard.tsx) | _(no header comment)_ |
 | `ColorMapSelector` | [ColorMapSelector.tsx](../../packages/app/src/components/ColorMapSelector/ColorMapSelector.tsx) | _(no header comment)_ |
 | `ColorPicker` | [ColorPicker.tsx](../../packages/app/src/components/ColorPicker/ColorPicker.tsx) | _(no header comment)_ |
@@ -172,6 +173,7 @@ file instead of rediscovering the architecture every session.
 | Module | Entry point | What it is |
 |---|---|---|
 | `Benchmarks` | [BenchmarksPage.tsx](../../packages/app/src/pages/Benchmarks/BenchmarksPage.tsx) | _(no header comment)_ |
+| `Clash` | [ClashPage.tsx](../../packages/app/src/pages/Clash/ClashPage.tsx) | The Flame Clash preview page (`/clash`): two fighters, one scripted bout. |
 | `FractalExplorer` | [FractalExplorerPage.tsx](../../packages/app/src/pages/FractalExplorer/FractalExplorerPage.tsx) | The deep-zoom explorer page: a full-bleed canvas, a heads-up readout and a settings panel. |
 <!-- prettier-ignore-end -->
 
