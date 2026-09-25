@@ -14,8 +14,9 @@
 // worse than no tick.
 //
 // So the list polices itself. This walks every app test file, flags the ones
-// of that genre, whether they read the tree themselves or through a testUtils
-// helper they import, and fails unless each is on ALWAYS_ON or on EXEMPT
+// of that genre, whether they read the tree themselves or through a helper
+// they import (a testUtils module, or one under src/test/ such as
+// test/cssModule.ts), and fails unless each is on ALWAYS_ON or on EXEMPT
 // with a written reason. It checks the other direction too: every ALWAYS_ON entry
 // marked `genre: 'filesystem'` must still be flagged, so weakening the
 // detector turns this red instead of silent.
@@ -58,20 +59,34 @@ function testFiles(dir: string, acc: string[] = []): string[] {
   return acc
 }
 
+/** src/test/, the app's shared test helpers: test/cssModule.ts, say. */
+const TEST_HELPERS = join(APP, 'src', 'test')
+
 /**
- * The testUtils helpers a test imports by a relative path, such as
- * styles/designSystem/testUtils.ts, with their source: a read a helper makes
- * is the test's, and gives the module graph no more of an edge to the tree.
+ * The helpers a test imports, with their source: a read a helper makes is
+ * the test's, and gives the module graph no more of an edge to the tree. A
+ * helper is a module named testUtils (webmcp/testUtils.ts) or any module
+ * under src/test/, imported by a relative path or through the `@/` alias,
+ * which is packages/app/src. Other imports are the graph's own edges.
  */
 function helpersOf(full: string, source: string) {
-  return [...source.matchAll(/from\s+['"](\.\.?\/[^'"]*testUtils)['"]/g)].map(
-    (m) => {
-      const base = join(dirname(full), m[1]!)
-      const path = [`${base}.ts`, `${base}.tsx`].find((p) => existsSync(p))
-      if (!path) throw new Error(`${posix(relative(APP, full))}: no ${m[1]}`)
-      return { name: m[1]!, source: readFileSync(path, 'utf8') }
-    },
+  const specifiers = new Set(
+    [...source.matchAll(/from\s+['"]((?:\.\.?|@)\/[^'"]*)['"]/g)].map(
+      (m) => m[1]!,
+    ),
   )
+  return [...specifiers].flatMap((specifier) => {
+    const base = specifier.startsWith('@/')
+      ? join(APP, 'src', specifier.slice(2))
+      : join(dirname(full), specifier)
+    const inTestHelpers = !relative(TEST_HELPERS, base).startsWith('..')
+    if (!/testUtils$/.test(specifier) && !inTestHelpers) return []
+    const path = [`${base}.ts`, `${base}.tsx`, base].find(
+      (p) => existsSync(p) && statSync(p).isFile(),
+    )
+    if (!path) throw new Error(`${posix(relative(APP, full))}: no ${specifier}`)
+    return [{ name: specifier, source: readFileSync(path, 'utf8') }]
+  })
 }
 
 const markersIn = (source: string) =>
@@ -152,5 +167,32 @@ describe('the always-on test list', () => {
     )
 
     expect([...unreasoned, ...both]).toEqual([])
+  })
+})
+
+describe('the detector', () => {
+  // A test file's import, built from parts so that the scan of this very
+  // file does not take it for one of its own.
+  const q = "'"
+  const importing = (specifier: string) =>
+    `import { readCss } from ${q}${specifier}${q}`
+  const test = join(APP, 'src', 'components', 'Shell', 'ShellBar.test.ts')
+  const flags = (specifier: string) =>
+    helpersOf(test, importing(specifier)).flatMap((helper) =>
+      markersIn(helper.source).map((name) => `${name} in ${helper.name}`),
+    )
+
+  it('follows the stylesheet reader through the alias and a relative path', () => {
+    expect(flags('@/test/cssModule')).toContain(
+      'readFileSync in @/test/cssModule',
+    )
+    expect(flags('../../test/cssModule')).toContain(
+      'readFileSync in ../../test/cssModule',
+    )
+  })
+
+  it('leaves an import that is no helper to the module graph', () => {
+    expect(helpersOf(test, importing('@/lib/glass'))).toEqual([])
+    expect(helpersOf(test, importing('./ShellBar'))).toEqual([])
   })
 })

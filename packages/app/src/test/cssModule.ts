@@ -1,18 +1,31 @@
 /**
- * The app's stylesheets as the glass guards read them (glassBlurs.test.ts,
- * glassSurfaces.test.ts): from disk, since the test runtime turns a CSS
- * module import into class names, and cut into blocks with a small reader
- * of their own rather than a CSS parser, which the app does not depend on.
+ * The app's stylesheets as the tests that hold them read them: from disk,
+ * since the test runtime turns a CSS module import (`?raw` included) into
+ * class names, and cut into blocks with a small reader of its own rather
+ * than a CSS parser, which the app does not depend on.
  *
- * Lives beside the guards rather than in one of them because each needs the
- * same reading of a rule: one copy means a nesting form the reader learns
- * reaches every guard at once.
+ * One reader for every such test, the glass guards and the component
+ * `*.module.test.ts` files alike, so a nesting form it learns reaches all of
+ * them at once and each reads a rule the same way:
+ *
+ *   - comments are blanked with their line breaks kept, so a line number or
+ *     an offset in the read text is one in the file;
+ *   - `blockOf` is the text of the first block a header opens, nested
+ *     blocks included; `ownDeclarations` a block's own, nested left out;
+ *   - `declarationsFor` is every declaration any rule applies to a
+ *     selector, in document order, whatever at-rule or nesting it is in.
+ *
+ * A test that reads a file through this module reaches the tree without an
+ * import edge, so it belongs on the always-on list
+ * (scripts/always-on-tests.mjs), and alwaysOnTestList.test.ts follows its
+ * import here to say so.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
+import { expect } from 'vitest'
 
-/** packages/app/src, which every stylesheet's `file` is relative to. */
-export const SRC = join(import.meta.dirname, '..', '..')
+/** packages/app/src, which every path here is relative to. */
+export const SRC = join(import.meta.dirname, '..')
 
 export interface Declaration {
   property: string
@@ -34,6 +47,26 @@ export interface Block {
 }
 
 /**
+ * `css` with every comment blanked: each character but a line break turns
+ * into a space, so offsets and line numbers stay those of the file.
+ */
+export function stripComments(css: string): string {
+  return css.replace(/\/\*[\s\S]*?\*\//g, (comment) =>
+    comment.replace(/[^\n]/g, ' '),
+  )
+}
+
+/** A file under packages/app/src, `/`-separated, with its comments blanked. */
+export function readCss(path: string): string {
+  return stripComments(readFileSync(join(SRC, ...path.split('/')), 'utf8'))
+}
+
+/** `text` with every regular-expression metacharacter escaped. */
+export function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+/**
  * Every block of a stylesheet, each with the declarations written directly
  * in it: a nested rule is a block of its own, so a twin inside `&:hover`
  * does not count for the rule around it. Comments are blanked with their
@@ -42,9 +75,7 @@ export interface Block {
  * declaration of a block may go without its semicolon.
  */
 export function blocksOf(css: string): Block[] {
-  const src = css.replace(/\/\*[\s\S]*?\*\//g, (comment) =>
-    comment.replace(/[^\n]/g, ' '),
-  )
+  const src = stripComments(css)
   const blocks: Block[] = []
   const open: Block[] = []
   let text = ''
@@ -153,6 +184,70 @@ export function subjectOf(selector: string): string {
   return selector
 }
 
+/**
+ * The text between the braces of the first block whose header matches: the
+ * block the first brace at or after the match opens, nested blocks and all.
+ * A string header is matched as written. Comments are blanked first.
+ */
+export function blockOf(css: string, header: RegExp | string): string {
+  const src = stripComments(css)
+  const at =
+    typeof header === 'string' ? src.indexOf(header) : src.search(header)
+  const match = at < 0 ? null : at
+  expect(match, String(header)).not.toBeNull()
+  const open = src.indexOf('{', match!)
+  let depth = 0
+  for (let i = open; open >= 0 && i < src.length; i++) {
+    if (src[i] === '{') depth++
+    if (src[i] === '}') depth--
+    if (depth === 0) return src.slice(open + 1, i)
+  }
+  throw new Error(`unclosed block after ${String(header)}`)
+}
+
+/**
+ * The declarations written directly in a block's text (what blockOf
+ * returns), property to value with spaces folded: nested blocks are left
+ * out, and of a property written twice the last wins, as in the cascade.
+ */
+export function ownDeclarations(block: string): Map<string, string> {
+  const [own] = blocksOf(`{${block}}`)
+  return new Map(own!.declarations.map((d) => [d.property, d.value]))
+}
+
+/**
+ * Every declaration a rule applies to `selector`, as `property: value;`
+ * lines in document order: each rule whose selector list, nesting resolved
+ * and spaces folded, holds `selector` exactly, in any at-rule. Empty when
+ * no rule does.
+ */
+export function declarationsFor(css: string, selector: string): string {
+  const wanted = selector.trim().replace(/\s+/g, ' ')
+  return blocksOf(css)
+    .filter((block) => block.selectors.includes(wanted))
+    .flatMap((block) => block.declarations)
+    .map(({ property, value }) => `${property}: ${value};`)
+    .join('\n')
+}
+
+/**
+ * Every read of a custom-property hook named `--<prefix>-*`, for each of
+ * `prefixes`, with whether the read carries a fallback.
+ */
+export function hookReads(
+  css: string,
+  prefixes: string[],
+): { name: string; fallback: boolean }[] {
+  const hook = new RegExp(
+    String.raw`var\(\s*(--(?:${prefixes.join('|')})-[\w-]+)\s*([,)])`,
+    'g',
+  )
+  return [...css.matchAll(hook)].map(([, name, next]) => ({
+    name: name!,
+    fallback: next === ',',
+  }))
+}
+
 /** Every file under `dir` whose name passes `test`. */
 export function filesUnder(
   dir: string,
@@ -182,9 +277,7 @@ export function readStylesheets(): Stylesheet[] {
     return {
       file: relative(SRC, full).split('\\').join('/'),
       raw,
-      css: raw.replace(/\/\*[\s\S]*?\*\//g, (comment) =>
-        comment.replace(/[^\n]/g, ' '),
-      ),
+      css: stripComments(raw),
     }
   })
 }

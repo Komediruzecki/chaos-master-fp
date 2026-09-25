@@ -21,77 +21,13 @@
  * Read from disk rather than imported: the test runtime turns a CSS module
  * import into class names. So it is registered in scripts/always-on-tests.mjs.
  */
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { blockOf, hookReads, ownDeclarations, readCss } from '@/test/cssModule'
 import { CANVAS_TUCK_REM } from './useSidebarGlass'
 
-const SRC = join(import.meta.dirname, '..', '..')
-
-const read = (...path: string[]) =>
-  readFileSync(join(SRC, ...path), 'utf8').replace(/\/\*[\s\S]*?\*\//g, ' ')
-
-const app = read('App.module.css')
-
-/**
- * The text between the braces of the first block whose header matches: the
- * block the first brace at or after the match opens.
- */
-function blockOf(css: string, header: RegExp): string {
-  const match = header.exec(css)
-  expect(match, String(header)).not.toBeNull()
-  const open = css.indexOf('{', match!.index)
-  let depth = 0
-  for (let i = open; i < css.length; i++) {
-    if (css[i] === '{') depth++
-    if (css[i] === '}') depth--
-    if (depth === 0) return css.slice(open + 1, i)
-  }
-  throw new Error(`unclosed block after ${String(header)}`)
-}
-
-/** The declarations written directly in a block, nested blocks left out. */
-function ownDeclarations(block: string): Map<string, string> {
-  let flat = ''
-  let depth = 0
-  for (const ch of block) {
-    if (ch === '{') depth++
-    else if (ch === '}') {
-      depth--
-      flat += ';'
-    } else if (depth === 0) flat += ch
-  }
-  const out = new Map<string, string>()
-  for (const statement of flat.split(';')) {
-    const colon = statement.indexOf(':')
-    if (colon < 0) continue
-    const property = statement.slice(0, colon).trim()
-    // A nested rule's selector ends up here without its block.
-    if (!/^(--)?[\w-]+$/.test(property)) continue
-    out.set(
-      property,
-      statement
-        .slice(colon + 1)
-        .trim()
-        .replace(/\s+/g, ' '),
-    )
-  }
-  return out
-}
+const app = readCss('App.module.css')
 
 const sidebarGlass = ownDeclarations(blockOf(app, /^\.sidebarGlass\s*\{/m))
-
-/** Every read of a hook named `--<prefix>-*`, with whether it has a fallback. */
-function hookReads(css: string, prefixes: string[]) {
-  const hook = new RegExp(
-    String.raw`var\(\s*(--(?:${prefixes.join('|')})-[\w-]+)\s*([,)])`,
-    'g',
-  )
-  return [...css.matchAll(hook)].map(([, name, next]) => ({
-    name: name!,
-    fallback: next === ',',
-  }))
-}
 
 describe('the canvas box beside the glass sidebar', () => {
   it('drops the same tuck the cover leaves out', () => {

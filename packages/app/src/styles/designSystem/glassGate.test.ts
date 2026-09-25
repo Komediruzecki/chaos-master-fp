@@ -9,62 +9,23 @@
  * Read from disk rather than imported: the test runtime turns a CSS module
  * import into class names. So it is registered in scripts/always-on-tests.mjs.
  */
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { blocksOf, declarationsFor, readCss } from '@/test/cssModule'
 
-const css = readFileSync(
-  join(import.meta.dirname, 'glass.module.css'),
-  'utf8',
-).replace(/\/\*[\s\S]*?\*\//g, '')
+const css = readCss('styles/designSystem/glass.module.css')
 
 const GATE =
   ":global(:root[data-glass-panels='on']) :global(body:not([data-theme='light']))"
 
-/** Every rule as [selector, declarations], selectors with spaces folded. */
-function rules(): [string, string][] {
-  return [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => [
-    m[1]!.replace(/\s+/g, ' ').trim(),
-    m[2]!,
-  ])
-}
-
-/** A selector list split at its own commas, not those inside :is(...). */
-function selectorsOf(list: string): string[] {
-  const out: string[] = []
-  let depth = 0
-  let current = ''
-  for (const ch of list) {
-    if (ch === '(') depth++
-    if (ch === ')') depth--
-    if (ch === ',' && depth === 0) {
-      out.push(current.trim())
-      current = ''
-    } else {
-      current += ch
-    }
-  }
-  out.push(current.trim())
-  return out
-}
-
-/** The declarations of every rule whose selector list includes `selector`. */
-function declarationsFor(selector: string): string {
-  return rules()
-    .filter(([list]) => selectorsOf(list).includes(selector))
-    .map(([, block]) => block)
-    .join('\n')
-}
-
 describe('the optionalPanel gate', () => {
   it('is glass only behind the setting and outside the light theme', () => {
-    const on = declarationsFor(`${GATE} .optionalPanel`)
+    const on = declarationsFor(css, `${GATE} .optionalPanel`)
     expect(on).toMatch(/background:\s*var\(--la-glass-panel\);/)
     expect(on).toMatch(/-webkit-backdrop-filter:\s*var\(--la-glass-blur\);/)
     expect(on).toMatch(/backdrop-filter:\s*var\(--la-glass-blur\);/)
     // Nothing reaches the surface without the gate in front of it.
-    const ungated = rules().filter(([list]) =>
-      selectorsOf(list).some(
+    const ungated = blocksOf(css).filter(({ selectors }) =>
+      selectors.some(
         (s) => s.includes('.optionalPanel') && !s.includes('data-glass-panels'),
       ),
     )
@@ -72,7 +33,7 @@ describe('the optionalPanel gate', () => {
   })
 
   it('gives glass text and controls what they need there', () => {
-    const on = declarationsFor(`${GATE} .optionalPanel`)
+    const on = declarationsFor(css, `${GATE} .optionalPanel`)
     expect(on).toMatch(/--la-ink-3:\s*var\(--la-ink-2\);/)
     expect(on).toMatch(/--la-control:\s*var\(--la-control-on-glass\);/)
     expect(on).toMatch(
@@ -82,7 +43,7 @@ describe('the optionalPanel gate', () => {
       /--la-control-accent:\s*var\(--la-control-accent-on-glass\);/,
     )
     // The same values as solidControls, which the deck and the rail compose.
-    const solid = declarationsFor('.solidControls')
+    const solid = declarationsFor(css, '.solidControls')
     for (const name of [
       '--la-control',
       '--la-control-strong',
@@ -96,6 +57,7 @@ describe('the optionalPanel gate', () => {
 
   it('goes solid while the canvas is busy', () => {
     const busy = declarationsFor(
+      css,
       ":global(:root[data-glass-panels='on'][data-glass='busy']) :global(body:not([data-theme='light'])) .optionalPanel",
     )
     expect(busy).toMatch(/background:\s*var\(--la-glass-solid\);/)
@@ -104,9 +66,11 @@ describe('the optionalPanel gate', () => {
 
   it('keeps one blur when glass nests in it or it nests in glass', () => {
     const inside = declarationsFor(
+      css,
       `${GATE} :is(.chrome, .panel, .flat, .solid, .optionalPanel) .optionalPanel`,
     )
     const around = declarationsFor(
+      css,
       `${GATE} .optionalPanel :is(.chrome, .panel, .flat, .solid)`,
     )
     for (const block of [inside, around]) {
@@ -116,7 +80,7 @@ describe('the optionalPanel gate', () => {
   })
 
   it('leaves the edge, the shadow and the transition to the surface', () => {
-    const on = declarationsFor(`${GATE} .optionalPanel`)
+    const on = declarationsFor(css, `${GATE} .optionalPanel`)
     expect(on).not.toMatch(/(^|[\s;])(border|box-shadow|transition)\s*:/)
   })
 })

@@ -23,9 +23,8 @@
  * optionalPanel's glass give it the glass ring, which styles/index.css
  * defines beside the theme's.
  */
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { blockOf, declarationsFor, ownDeclarations, readCss, } from '@/test/cssModule'
 
 type Rgb = readonly [number, number, number]
 
@@ -86,28 +85,21 @@ const PLAN_OVER_WHITE: Record<number, Record<Text, number>> = {
  * Transparency) or change sizes.
  */
 function rootTokens(css: string): Map<string, string> {
-  const src = css.replace(/\/\*[\s\S]*?\*\//g, ' ')
-  const open = src.indexOf(':root {')
-  const close = src.indexOf('\n}', open)
+  const open = css.indexOf(':root {')
   expect(open, 'lumen.css has a :root block').toBeGreaterThanOrEqual(0)
-  const tokens = new Map<string, string>()
-  for (const [, name, value] of src
-    .slice(open, close)
-    .matchAll(/(--la-[\w-]+)\s*:\s*([^;]+);/g)) {
-    tokens.set(name!, value!.trim())
-  }
-  return tokens
+  return new Map(
+    [...ownDeclarations(blockOf(css, ':root {'))].filter(([name]) =>
+      name.startsWith('--la-'),
+    ),
+  )
 }
 
-const lumen = readFileSync(join(import.meta.dirname, 'lumen.css'), 'utf8')
+const lumen = readCss('styles/designSystem/lumen.css')
 const tokens = rootTokens(lumen)
 
 /** The custom properties lumen.css's `@media <query>` block sets on :root. */
 function mediaTokens(query: string): Set<string> {
-  const src = lumen.replace(/\/\*[\s\S]*?\*\//g, ' ')
-  const open = src.indexOf(`@media ${query} {`)
-  if (open < 0) throw new Error(`lumen.css has no @media ${query} block`)
-  const block = src.slice(open, src.indexOf('\n}', open))
+  const block = blockOf(lumen, `@media ${query} {`)
   return new Set([...block.matchAll(/(--la-[\w-]+)\s*:/g)].map((m) => m[1]!))
 }
 
@@ -261,13 +253,7 @@ describe('Reduce Transparency and More Contrast', () => {
 
 /** A `--name: #rrggbb;` of styles/index.css's first `block` rule. */
 function ringColour(name: string, block = ':root'): Rgb {
-  const index = readFileSync(
-    join(import.meta.dirname, '..', 'index.css'),
-    'utf8',
-  )
-  const open = index.indexOf(`${block} {`)
-  if (open < 0) throw new Error(`index.css has no ${block} rule`)
-  const root = index.slice(open, index.indexOf('\n}', open))
+  const root = blockOf(readCss('styles/index.css'), `${block} {`)
   const hex = new RegExp(
     `${name}:\\s*#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2});`,
     'i',
@@ -280,20 +266,17 @@ function ringColour(name: string, block = ':root'): Rgb {
 
 describe('the focus ring on glass', () => {
   const NON_TEXT = 3
-  const glass = readFileSync(
-    join(import.meta.dirname, 'glass.module.css'),
-    'utf8',
-  ).replace(/\/\*[\s\S]*?\*\//g, ' ')
+  const glass = readCss('styles/designSystem/glass.module.css')
 
   it("is the glass ring on the four glass classes and optionalPanel's glass", () => {
-    const shared =
-      /:where\(\.chrome, \.panel, \.flat, \.solid\):not\(html\)\s*\{([^}]*)\}/.exec(
-        glass,
-      )?.[1] ?? ''
-    const gate =
-      /:global\(body:not\(\[data-theme='light'\]\)\)\s*\.optionalPanel\s*\{([^}]*)\}/.exec(
-        glass,
-      )?.[1] ?? ''
+    const shared = declarationsFor(
+      glass,
+      ':where(.chrome, .panel, .flat, .solid):not(html)',
+    )
+    const gate = declarationsFor(
+      glass,
+      ":global(:root[data-glass-panels='on']) :global(body:not([data-theme='light'])) .optionalPanel",
+    )
     for (const body of [shared, gate]) {
       expect(body).toMatch(/--focus-ring-color:\s*var\(--focus-ring-glass\);/)
     }

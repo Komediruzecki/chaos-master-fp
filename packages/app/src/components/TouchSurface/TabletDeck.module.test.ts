@@ -9,24 +9,13 @@
  * import, `?raw` included, into class names. So it is registered in
  * scripts/always-on-tests.mjs.
  */
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { blockOf, declarationsFor as declarations, readCss, } from '@/test/cssModule'
 
-const read = (...path: string[]) =>
-  readFileSync(join(import.meta.dirname, ...path), 'utf8')
-const deck = read('TabletDeck.module.css')
-const app = read('..', '..', 'App.module.css')
-const lumen = read('..', '..', 'styles', 'designSystem', 'lumen.css')
-const glass = read('..', '..', 'styles', 'designSystem', 'glass.module.css')
-
-/** The declarations of the first rule written exactly as `selector`. */
-function declarations(css: string, selector: string): string {
-  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  return (
-    new RegExp(`^\\s*${escaped}\\s*\\{([^}]*)\\}`, 'm').exec(css)?.[1] ?? ''
-  )
-}
+const deck = readCss('components/TouchSurface/TabletDeck.module.css')
+const app = readCss('App.module.css')
+const lumen = readCss('styles/designSystem/lumen.css')
+const glass = readCss('styles/designSystem/glass.module.css')
 
 /** The value of a custom property in a block of declarations, spaces folded. */
 function token(block: string, name: string): string | undefined {
@@ -37,7 +26,8 @@ function token(block: string, name: string): string | undefined {
     .trim()
 }
 
-const lumenRoot = declarations(lumen, ':root')
+/** lumen.css's first `:root` block, the defaults. */
+const lumenRoot = blockOf(lumen, /^\s*:root\s*\{/m)
 
 /** `share`% of the colour `of`, mixed onto `onto`. */
 const mix = (share: number, of: string, onto = 'var(--la-surface)') =>

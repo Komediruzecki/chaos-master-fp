@@ -1,14 +1,10 @@
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { declarationsFor, readCss } from '@/test/cssModule'
 
 /** The row's arithmetic lives in the stylesheet; the test DOM applies no CSS. */
-const css = readFileSync(join(__dirname, 'EditorRail.module.css'), 'utf8')
+const css = readCss('components/TouchSurface/EditorRail.module.css')
 
-function declarations(selector: string): string {
-  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  return new RegExp(`^${escaped}\\s*\\{([^}]*)\\}`, 'm').exec(css)?.[1] ?? ''
-}
+const declarations = (selector: string) => declarationsFor(css, selector)
 
 describe('the editor rail stylesheet', () => {
   it('lets the chips narrow past the tap token, keeping their height', () => {
@@ -34,7 +30,7 @@ describe('the editor rail stylesheet', () => {
     expect(declarations('.glassPanel')).toMatch(
       /composes:\s*panel solidControls from '@\/styles\/designSystem\/glass\.module\.css';/,
     )
-    const deck = readFileSync(join(__dirname, 'TabletDeck.module.css'), 'utf8')
+    const deck = readCss('components/TouchSurface/TabletDeck.module.css')
     expect(deck).toMatch(
       /^\.floating\s*\{[^}]*composes:\s*solidControls from '@\/styles\/designSystem\/glass\.module\.css';/m,
     )
@@ -66,10 +62,7 @@ describe('the editor rail stylesheet', () => {
     // and writes the flame's ground (CanvasViewport.framing.test.tsx), and
     // only then: at peek and under the opaque sheet the box shows the page,
     // as it did before the setting. So that is the one rule to paint it.
-    const app = readFileSync(
-      join(__dirname, '..', '..', 'App.module.css'),
-      'utf8',
-    ).replace(/\/\*[\s\S]*?\*\//g, '')
+    const app = readCss('App.module.css')
     const painted = [
       ...app.matchAll(/([^{}]*)\{[^{}]*var\(--canvas-ground\b/g),
     ].map((m) => m[1]!.trim())

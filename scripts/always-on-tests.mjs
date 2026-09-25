@@ -257,10 +257,14 @@ export const ALWAYS_ON = [
 /**
  * Tests the guard's detector flags that deliberately do NOT need to run on
  * every pull request -- a test that merely mentions `readFileSync` in a
- * fixture string, say. Empty today, and it should stay hard to add to: an
- * entry here is a promise that the module graph really does reach this test's
- * subject.
+ * fixture string, say. It should stay hard to add to: an entry here is a
+ * promise that the module graph really does reach this test's subject.
  *
  * @type {ReadonlyArray<ExemptEntry>}
  */
-export const EXEMPT = []
+export const EXEMPT = [
+  {
+    file: 'src/test/cssModule.test.ts',
+    why: 'flagged only because it imports test/cssModule.ts, which reads stylesheets for the tests that use it; this test reads no file, holds that module to fixtures written inline, and imports it directly, so the module graph selects it whenever the module changes',
+  },
+]

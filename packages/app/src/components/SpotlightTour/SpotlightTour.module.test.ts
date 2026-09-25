@@ -7,26 +7,15 @@
  * darker than the frosted card over the art. The card fades by its children
  * for the same reason, as below full opacity it is a backdrop root too.
  */
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { blockOf, declarationsFor, readCss } from '@/test/cssModule'
 
-const css = readFileSync(
-  join(__dirname, 'SpotlightTour.module.css'),
-  'utf8',
-).replace(/\/\*[\s\S]*?\*\//g, ' ')
+const css = readCss('components/SpotlightTour/SpotlightTour.module.css')
 
-function declarations(selector: string): string {
-  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  return new RegExp(`^${escaped}\\s*\\{([^}]*)\\}`, 'm').exec(css)?.[1] ?? ''
-}
+const declarations = (selector: string) => declarationsFor(css, selector)
 
-function keyframes(name: string): string {
-  return (
-    new RegExp(`@keyframes ${name}\\s*\\{([\\s\\S]*?)\\n\\}`).exec(css)?.[1] ??
-    ''
-  )
-}
+const keyframes = (name: string) =>
+  blockOf(css, new RegExp(`@keyframes ${name}\\s*\\{`))
 
 const PANEL =
   /composes:\s*panel\s+from\s+'@\/styles\/designSystem\/glass\.module\.css'/

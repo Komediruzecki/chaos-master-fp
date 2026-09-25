@@ -467,7 +467,8 @@ Each rule comes from one of the earlier cuts.
   surface), `glassHooks.test.ts` (`onGlass`), `glassGate.test.ts` (the gate), and
   `lib/optionalPanelGlass.test.ts`, which matches the gate's selector against
   `optionalPanelGlass` for every setting and theme. The glass guards read the stylesheets
-  through one reader, `styles/designSystem/testUtils.ts`.
+  through one reader, `test/cssModule.ts` (it was `styles/designSystem/testUtils.ts` until
+  2026-09-25, when the component stylesheet tests moved onto it too).
 - **Busy-switch tests.** Unit tests for which states set the busy attribute.
 
 **Headed browser, each phase** (standalone script, never `playwright test`)

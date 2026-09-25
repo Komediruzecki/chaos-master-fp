@@ -23,14 +23,8 @@
  * Read from disk rather than imported: the test runtime turns a CSS module
  * import into class names. So it is registered in scripts/always-on-tests.mjs.
  */
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-
-const SRC = join(import.meta.dirname, '..', '..')
-
-const read = (path: string) =>
-  readFileSync(join(SRC, path), 'utf8').replace(/\/\*[\s\S]*?\*\//g, ' ')
+import { blockOf, hookReads, ownDeclarations, readCss as read, } from '@/test/cssModule'
 
 const COMPONENTS = [
   'components/ControlCard/ControlCard.module.css',
@@ -39,26 +33,20 @@ const COMPONENTS = [
   'components/PaletteSelector/PaletteSelector.module.css',
 ]
 
-const HOOK = /var\(\s*(--(?:card|slider|palette)-[\w-]+)\s*([,)])/g
-
 /** Every hook read, with whether that read carries a fallback. */
 const reads = COMPONENTS.flatMap((file) =>
-  [...read(file).matchAll(HOOK)].map(([, hook, next]) => ({
-    file,
-    hook: hook!,
-    fallback: next === ',',
-  })),
+  hookReads(read(file), ['card', 'slider', 'palette']).map(
+    ({ name, fallback }) => ({ file, hook: name, fallback }),
+  ),
 )
 
 const glass = read('styles/designSystem/glass.module.css')
 
-/** The declarations of onGlass's one rule. */
+/** The custom properties onGlass's one rule sets. */
 const onGlass = new Map(
   [
-    ...(
-      /:where\(\.onGlass\):not\(html\)\s*\{([^}]*)\}/.exec(glass)?.[1] ?? ''
-    ).matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g),
-  ].map(([, hook, value]) => [hook!, value!.trim()]),
+    ...ownDeclarations(blockOf(glass, /:where\(\.onGlass\):not\(html\)\s*\{/)),
+  ].filter(([hook]) => hook.startsWith('--')),
 )
 
 describe('onGlass', () => {

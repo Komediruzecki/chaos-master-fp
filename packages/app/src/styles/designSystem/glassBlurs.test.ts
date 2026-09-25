@@ -39,8 +39,8 @@
 import { readFileSync } from 'node:fs'
 import { relative } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { blocksOf, filesUnder, readStylesheets, SRC } from './testUtils'
-import type { Declaration } from './testUtils'
+import { blocksOf, filesUnder, readStylesheets, SRC } from '@/test/cssModule'
+import type { Declaration } from '@/test/cssModule'
 
 /** The literal blurs in the app's stylesheets today. Only ever lower it. */
 const MAX_LITERAL_BLURS = 17

@@ -26,7 +26,7 @@
  * import into class names. So it is registered in scripts/always-on-tests.mjs.
  */
 import { describe, expect, it } from 'vitest'
-import { blocksOf, readStylesheets, subjectOf } from './testUtils'
+import { blocksOf, escapeRegExp, readStylesheets, subjectOf, } from '@/test/cssModule'
 
 const GLASS = "'@/styles/designSystem/glass.module.css'"
 
@@ -51,7 +51,7 @@ function literalBlurLines(css: string): number[] {
 
 /** Whether a compound carries the class `name`, other than in a :not(). */
 function hasClass(compound: string, name: string): boolean {
-  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const escaped = escapeRegExp(name)
   return new RegExp(`\\.${escaped}(?![\\w-])`).test(
     compound.replace(/:not\([^)]*\)/g, ''),
   )
@@ -82,7 +82,7 @@ function declarationsFor(css: string, name: string, properties: RegExp) {
  * alone or beside others on the same line.
  */
 function composes(css: string, selector: string, primitive: string): boolean {
-  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const escaped = escapeRegExp(selector)
   return new RegExp(
     `(^|\\n)${escaped} \\{\\s*composes: (?:\\w+ )*${primitive}(?: \\w+)* from ${GLASS};`,
   ).test(css)

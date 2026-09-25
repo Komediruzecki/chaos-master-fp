@@ -11,25 +11,13 @@
  * Read from disk rather than imported, so it is registered in
  * scripts/always-on-tests.mjs.
  */
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { declarationsFor, readCss } from '@/test/cssModule'
 
-const read = (...path: string[]) =>
-  readFileSync(join(import.meta.dirname, ...path), 'utf8').replace(
-    /\/\*[\s\S]*?\*\//g,
-    ' ',
-  )
-const css = read('ExportJobTracker.module.css')
-const colors = read('..', '..', 'styles', 'designSystem', 'colors.css')
+const css = readCss('components/ExportJobs/ExportJobTracker.module.css')
+const colors = readCss('styles/designSystem/colors.css')
 
-/** The declarations of the first rule written exactly as `selector`. */
-function declarations(selector: string): string {
-  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  return (
-    new RegExp(`^\\s*${escaped}\\s*\\{([^}]*)\\}`, 'm').exec(css)?.[1] ?? ''
-  )
-}
+const declarations = (selector: string) => declarationsFor(css, selector)
 
 /** WCAG contrast of two `#rrggbb` colours. */
 function contrast(a: string, b: string): number {
