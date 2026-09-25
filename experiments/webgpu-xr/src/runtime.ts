@@ -9,7 +9,7 @@ import type { EyeTarget } from './xrTypes'
 
 export class LabRuntime {
   mode: SceneMode = 'cached'
-  paused = false
+  paused = true
   stereo = false
   distance = 2.9
   yaw = 0
@@ -227,13 +227,7 @@ export class LabRuntime {
       this.intervals.push(delta)
       if (this.intervals.length > 180) this.intervals.shift()
     }
-    this.renderer!.render(
-      targets,
-      this.format,
-      this.mode,
-      this.elapsed,
-      !this.paused && visible,
-    )
+    this.renderer!.render(targets, this.format, this.mode, this.elapsed)
     if (time - this.reportedAt > 300) {
       this.reportedAt = time
       this.lastEyes = targets.map(({ color: _color, ...target }) => ({
@@ -309,12 +303,15 @@ export class LabRuntime {
     }
   }
 
-  async readPoints() {
-    return this.renderer?.readPoints()
+  async readPoints(source: 'cached' | 'compute' = 'compute') {
+    return this.renderer?.readPoints(32, source)
   }
-  async stepForTest() {
+  rebuild() {
+    this.renderer?.requestRebuild()
+  }
+  async rebuildForTest() {
     if (!this.paused || this.immersive) throw new Error('Pause desktop first.')
-    await this.renderer?.stepForTest()
+    await this.renderer?.rebuildForTest()
   }
   shader() {
     return this.renderer?.shader()

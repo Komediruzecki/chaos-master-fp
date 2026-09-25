@@ -27,7 +27,7 @@ export function Diagnostics(props: {
           <dd>{props.state?.pointCount?.toLocaleString() ?? '—'}</dd>
         </div>
         <div>
-          <dt>GPU generations</dt>
+          <dt>GPU cloud builds</dt>
           <dd>{props.state?.generation ?? '—'}</dd>
         </div>
         <div>

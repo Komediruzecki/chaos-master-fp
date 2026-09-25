@@ -91,18 +91,19 @@ function Lab() {
           >
             <option value="probe">01 / Geometry probe</option>
             <option value="cached">02 / Cached flame</option>
-            <option value="compute">03 / Live GPU flame</option>
+            <option value="compute">03 / GPU-generated flame</option>
           </select>
         </label>
         <div class="button-row">
           <button
             disabled={!ready()}
+            aria-pressed={!(state()?.paused ?? true)}
             onClick={() => {
               if (runtime) runtime.paused = !runtime.paused
               update()
             }}
           >
-            {state()?.paused ? 'Resume motion' : 'Hold motion'}
+            {state()?.paused ? 'Start rotation' : 'Stop rotation'}
           </button>
           <button
             disabled={cameraDisabled()}
@@ -115,6 +116,13 @@ function Lab() {
             Two-eye preview
           </button>
         </div>
+        <button
+          class="rebuild"
+          disabled={!ready() || mode() !== 'compute'}
+          onClick={() => runtime?.rebuild()}
+        >
+          Rebuild same GPU flame
+        </button>
         <label>
           Distance <span>{distance().toFixed(1)} m</span>
           <input
@@ -162,8 +170,9 @@ function Lab() {
               : 'Enter WebGPU VR'}
         </button>
         <p class="hint">
-          Desktop sliders move the camera. In VR, move your head; trigger or
-          pinch holds motion. No locomotion or audio in this proof.
+          Both flame modes keep their detail while rotating or rebuilding.
+          Sliders move the camera; in VR, move your head and use trigger or
+          pinch to rotate. No audio in this proof.
         </p>
       </section>
       <Diagnostics state={state()} exportReport={exportReport} />

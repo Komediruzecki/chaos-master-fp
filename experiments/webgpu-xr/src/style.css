@@ -140,6 +140,9 @@ a:focus-visible {
 .button-row button {
   flex: 1;
 }
+.rebuild {
+  width: 100%;
+}
 input[type='range'] {
   display: block;
   width: 100%;
@@ -220,6 +223,14 @@ footer i {
   font-size: 11px;
   overflow-wrap: anywhere;
   line-height: 1.7;
+}
+@media (max-height: 900px) and (min-width: 851px) {
+  footer {
+    position: relative;
+  }
+  .controls {
+    margin-bottom: 32px;
+  }
 }
 @media (min-width: 1500px) {
   .intro {

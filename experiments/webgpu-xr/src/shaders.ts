@@ -1,8 +1,8 @@
-// One GPU chaos-game dispatch, followed by world-space splats for every eye.
+// Build a stable GPU cloud on demand, then draw its world-space splats per eye.
 import { d, std, tgpu } from 'typegpu'
 import { advancePoint, advanceSeed } from './flameMath'
+import { BURN_IN, CHAIN_COUNT, FLAME_SEED, initialPoint, POINT_COUNT, SAMPLES_PER_CHAIN, } from './sampling'
 
-export const POINT_COUNT = 32768
 export const STAR_COUNT = 1200
 export const Camera = d.struct({
   view: d.mat4x4f,
@@ -11,7 +11,6 @@ export const Camera = d.struct({
 })
 export const computeLayout = tgpu.bindGroupLayout({
   points: { storage: d.arrayOf(d.vec4f), access: 'mutable' },
-  seeds: { storage: d.arrayOf(d.u32), access: 'mutable' },
 })
 export const renderLayout = tgpu.bindGroupLayout({
   camera: { uniform: Camera },
@@ -24,14 +23,18 @@ export const computeFlame = tgpu.computeFn({
   in: { id: d.builtin.globalInvocationId },
 })((input) => {
   'use gpu'
-  const index = input.id.x
-  if (index >= POINT_COUNT) return
-  const seed = advanceSeed(computeLayout.$.seeds[index])
-  computeLayout.$.seeds[index] = seed
-  computeLayout.$.points[index] = advancePoint(
-    computeLayout.$.points[index],
-    seed,
-  )
+  const chain = input.id.x
+  if (chain >= CHAIN_COUNT) return
+  let seed = d.u32(FLAME_SEED + chain)
+  let point = d.vec4f(initialPoint.$)
+  // Rebuild from the same paths, never from last frame's positions or RNG.
+  for (const step of std.range(-BURN_IN, SAMPLES_PER_CHAIN)) {
+    seed = advanceSeed(seed)
+    point = advancePoint(point, seed)
+    if (step >= 0)
+      computeLayout.$.points[chain * SAMPLES_PER_CHAIN + d.u32(step)] =
+        d.vec4f(point)
+  }
 })
 
 const corners = tgpu.const(d.arrayOf(d.vec2f, 6), [

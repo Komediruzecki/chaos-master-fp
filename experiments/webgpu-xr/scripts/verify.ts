@@ -41,11 +41,22 @@ const report: Record<string, unknown> = {
   errors,
 }
 const read = () => page.evaluate(() => window.__lumenGpuXr!.snapshot())
+// The off-workspace compositor can present an incomplete HUD immediately after
+// a click. Wait for actual presentation opportunities, not an arbitrary sleep.
+const present = (target = page) =>
+  target.evaluate(async () => {
+    for (let i = 0; i < 5; i++)
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => { resolve(); }),
+      )
+  })
 const frames = async (count = 4) => {
   const start = (await read()).submissions ?? 0
   await page.waitForFunction(
     (start) => (window.__lumenGpuXr?.snapshot().submissions ?? 0) >= start,
     start + count,
+    // Hidden Hyprland workspaces can throttle rAF; this is not a benchmark.
+    { timeout: 60000 },
   )
 }
 try {
@@ -53,14 +64,16 @@ try {
     (await page.goto(base, { waitUntil: 'networkidle' }))?.status(),
     200,
   )
-  await page.getByRole('button', { name: 'Hold motion' }).waitFor()
+  await page.getByRole('button', { name: 'Start rotation' }).waitFor()
   await page.waitForFunction(
     () =>
       !document.querySelector<HTMLButtonElement>('.button-row button')
         ?.disabled,
   )
-  await page.getByRole('button', { name: 'Hold motion' }).click()
   if (!production) {
+    await page.waitForFunction(
+      () => window.__lumenGpuXr?.snapshot().eyes.length === 1,
+    )
     const initial = await read()
     report.initial = initial
     assert.equal(initial.ready, true, initial.error)
@@ -81,7 +94,9 @@ try {
     )
     assert.equal(await page.evaluate(() => 'IWER_DEVICE' in window), false)
     await frames()
-    const before = await page.evaluate(() => window.__lumenGpuXr!.readPoints())
+    const before = await page.evaluate(() =>
+      window.__lumenGpuXr!.readPoints('cached'),
+    )
     const stopped = (await read()).elapsed
     await frames(10)
     assert.equal((await read()).elapsed, stopped)
@@ -95,7 +110,7 @@ try {
     assert.equal(moved.generation, initial.generation)
     assert.notDeepEqual(moved.eyes[0].view, initial.eyes[0].view)
     assert.deepEqual(
-      await page.evaluate(() => window.__lumenGpuXr!.readPoints()),
+      await page.evaluate(() => window.__lumenGpuXr!.readPoints('cached')),
       before,
       'Camera movement must not mutate the flame',
     )
@@ -117,23 +132,32 @@ try {
     assert.notDeepEqual(stereo.eyes[0].view, stereo.eyes[1].view)
     await page.screenshot({ path: path.join(out, 'desktop-two-eyes.png') })
     await page.getByLabel('Scene', { exact: true }).selectOption('compute')
-    await page.evaluate(() => window.__lumenGpuXr!.stepForTest())
-    assert.notDeepEqual(
+    await frames()
+    const stablePoints = await page.evaluate(() =>
+      window.__lumenGpuXr!.readPoints(),
+    )
+    assert.ok(
+      stablePoints?.some((point) => Math.hypot(...point.slice(0, 3)) > 0.1),
+    )
+    const stableState = await read()
+    assert.equal(stableState.generation, 1)
+    await page.getByRole('button', { name: 'Rebuild same GPU flame' }).click()
+    await frames()
+    assert.equal((await read()).generation, stableState.generation + 1)
+    assert.deepEqual(
       await page.evaluate(() => window.__lumenGpuXr!.readPoints()),
-      before,
-      'Actual GPU dispatch must change stored particle positions',
+      stablePoints,
     )
     const generation = (await read()).generation!
-    await page.getByRole('button', { name: 'Resume motion' }).click()
-    await page.waitForFunction(
-      (generation) =>
-        (window.__lumenGpuXr?.snapshot().generation ?? 0) > generation + 30,
-      generation,
-      // Hyprland's off-workspace window can throttle rAF to 1 Hz even with
-      // Chromium's background switches. Preserve the 30-step assertion.
-      { timeout: 60000 },
+    await page.getByRole('button', { name: 'Start rotation' }).click()
+    await frames(30)
+    await page.getByRole('button', { name: 'Stop rotation' }).click()
+    assert.ok((await read()).elapsed > stableState.elapsed)
+    assert.equal((await read()).generation, generation)
+    assert.deepEqual(
+      await page.evaluate(() => window.__lumenGpuXr!.readPoints()),
+      stablePoints,
     )
-    await page.getByRole('button', { name: 'Hold motion' }).click()
     report.live = await read()
     assert.equal((await read()).bufferId, initial.bufferId)
     const stoppedGeneration = (await read()).generation
@@ -154,14 +178,32 @@ try {
     console.info(
       'PASS: actual GPU compute, CPU parity, two real texture-array slices and distinct eye uniforms',
     )
-  } else
+  } else {
     assert.equal(
       await page.evaluate(() => '__lumenGpuXr' in window),
       false,
       'Production must not expose debug hooks',
     )
+    await page.getByLabel('Scene', { exact: true }).selectOption('compute')
+    const waitForBuild = (count: number) =>
+      page.waitForFunction(
+        (expected) =>
+          Array.from(document.querySelectorAll('dt')).find(
+            (label) => label.textContent === 'GPU cloud builds',
+          )?.nextElementSibling?.textContent === String(expected),
+        count,
+      )
+    await waitForBuild(1)
+    await page.getByRole('button', { name: 'Rebuild same GPU flame' }).click()
+    await waitForBuild(2)
+    await page.getByRole('button', { name: 'Start rotation' }).click()
+    await page.getByRole('button', { name: 'Stop rotation' }).click()
+    await present()
+    await page.screenshot({ path: path.join(out, 'desktop-compute.png') })
+  }
   await page.getByLabel('Scene', { exact: true }).selectOption('probe')
   if (!production) await frames()
+  else await present()
   await page.screenshot({ path: path.join(out, 'geometry-probe.png') })
   const downloadWait = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Save diagnostic report' }).click()
@@ -198,14 +240,50 @@ try {
     geometry.buttons.every((button) => button.height >= 44),
     'Touch targets must be at least 44px',
   )
-  await mobile.getByRole('button', { name: 'Hold motion' }).tap()
-  await mobile.getByRole('button', { name: 'Resume motion' }).waitFor()
+  await mobile.getByRole('button', { name: 'Start rotation' }).tap()
+  await mobile.getByRole('button', { name: 'Stop rotation' }).waitFor()
+  await present(mobile)
   await mobile.screenshot({
     path: path.join(out, 'mobile.png'),
     fullPage: true,
   })
   report.mobile = geometry
   await mobile.close()
+  for (const viewport of [
+    { width: 1024, height: 768 },
+    { width: 768, height: 1024 },
+  ]) {
+    await page.setViewportSize(viewport)
+    await page.getByLabel('Scene', { exact: true }).selectOption('compute')
+    await page.getByRole('button', { name: 'Rebuild same GPU flame' }).click()
+    const layout = await page.evaluate(() => {
+      const controls = document
+        .querySelector('.controls')!
+        .getBoundingClientRect()
+      const diagnostics = document
+        .querySelector('.diagnostics')!
+        .getBoundingClientRect()
+      const footer = document.querySelector('footer')!.getBoundingClientRect()
+      return {
+        width: window.innerWidth,
+        scroll: document.documentElement.scrollWidth,
+        panelsOverlap:
+          controls.left < diagnostics.right &&
+          controls.right > diagnostics.left &&
+          controls.top < diagnostics.bottom &&
+          controls.bottom > diagnostics.top,
+        footerOverlapsControls: footer.top < controls.bottom,
+      }
+    })
+    assert.ok(layout.scroll <= layout.width)
+    assert.equal(layout.panelsOverlap, false)
+    assert.equal(layout.footerOverlapsControls, false)
+    await present()
+    await page.screenshot({
+      path: path.join(out, `layout-${viewport.width}.png`),
+      fullPage: true,
+    })
+  }
   if (!production) {
     await page.evaluate(() => {
       window.__lumenGpuXr!.loseDeviceForTest()

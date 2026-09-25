@@ -1,8 +1,7 @@
 // Hardware-GPU contracts with synthetic poses/targets; never claims native XR.
-import { d } from 'typegpu'
 import { mat4 } from 'wgpu-matrix'
-import { advancePoint } from '../src/flameMath'
 import { createRenderer } from '../src/renderer'
+import { POINT_COUNT } from '../src/sampling'
 import { collectXrTargets } from '../src/xrTypes'
 import type { GpuXrBinding } from '../src/xrTypes'
 
@@ -24,26 +23,31 @@ export async function verifyGpuContracts() {
   })
   try {
     renderer.prepare('bgra8unorm')
-    const before = await renderer.readPoints()
-    await renderer.stepForTest()
-    const after = await renderer.readPoints()
-    if (![...before.flat(), ...after.flat()].every(Number.isFinite))
-      throw new Error('GPU samples must be finite before and after compute')
+    const empty = await renderer.readPoints(POINT_COUNT)
+    if (!empty.flat().every((value) => value === 0))
+      throw new Error('GPU output must start empty, not as a CPU cloud upload')
+    await renderer.rebuildForTest()
+    const after = await renderer.readPoints(POINT_COUNT)
+    const cached = await renderer.readPoints(POINT_COUNT, 'cached')
+    if (![...cached.flat(), ...after.flat()].every(Number.isFinite))
+      throw new Error('Every cached and GPU sample must be finite')
+    if (!after.some((point) => Math.hypot(...point.slice(0, 3)) > 0.1))
+      throw new Error('Compute must construct the cloud from the empty output')
     let maxError = 0
-    before.forEach((p, i) => {
-      let seed = i + 73129
-      seed ^= seed << 13
-      seed ^= seed >>> 17
-      seed ^= seed << 5
-      const expected = advancePoint(d.vec4f(p[0], p[1], p[2], p[3]), seed >>> 0)
-      const values = [expected.x, expected.y, expected.z, expected.w]
-      values.forEach((value, j) => {
+    cached.forEach((p, i) => {
+      p.forEach((value, j) => {
         maxError = Math.max(maxError, Math.abs(value - after[i][j]))
       })
     })
     if (maxError > 0.0001)
       throw new Error(
-        `GPU step differs from CPU app variation math: ${maxError}`,
+        `GPU cloud differs from CPU app variation math: ${maxError}`,
+      )
+    await renderer.rebuildForTest()
+    const repeated = await renderer.readPoints(POINT_COUNT)
+    if (JSON.stringify(after) !== JSON.stringify(repeated))
+      throw new Error(
+        'Identical flame settings must rebuild identical GPU samples',
       )
     const pose = {
       views: ['left', 'right'].map((eye, i) => {
@@ -76,20 +80,60 @@ export async function verifyGpuContracts() {
       }),
     }
     const targets = collectXrTargets(binding, {} as XRProjectionLayer, pose)
+
+    async function readFrame() {
+      const encoder = device.createCommandEncoder()
+      encoder.copyTextureToBuffer(
+        { texture },
+        { buffer: readback, bytesPerRow: size * 4, rowsPerImage: size },
+        [size, size, 2],
+      )
+      device.queue.submit([encoder.finish()])
+      await readback.mapAsync(GPUMapMode.READ)
+      const bytes = new Uint8Array(readback.getMappedRange()).slice()
+      readback.unmap()
+      return bytes
+    }
     const generationBefore = renderer.stats().generation
-    renderer.render(targets, 'bgra8unorm', 'compute', 0, true)
+    renderer.requestRebuild()
+    renderer.render(targets, 'bgra8unorm', 'compute', 0)
     if (renderer.stats().generation !== generationBefore + 1)
-      throw new Error('Compute must advance once for both eyes')
-    renderer.render(targets, 'bgra8unorm', 'probe', 0, false)
-    const encoder = device.createCommandEncoder()
-    encoder.copyTextureToBuffer(
-      { texture },
-      { buffer: readback, bytesPerRow: size * 4, rowsPerImage: size },
-      [size, size, 2],
+      throw new Error('A requested rebuild must run once for both eyes')
+    const gpuFrame = await readFrame()
+    renderer.render(targets, 'bgra8unorm', 'cached', 0)
+    const cachedFrame = await readFrame()
+    let pixelChannelError = 0
+    let changedChannels = 0
+    gpuFrame.forEach((value, i) => {
+      const difference = Math.abs(value - cachedFrame[i])
+      pixelChannelError += difference
+      if (difference > 1) changedChannels++
+    })
+    const meanPixelError = pixelChannelError / gpuFrame.length
+    const changedChannelFraction = changedChannels / gpuFrame.length
+    if (meanPixelError > 0.1 || changedChannelFraction > 0.005)
+      throw new Error(
+        `Cached/GPU images disagree: ${meanPixelError}, ${changedChannelFraction}`,
+      )
+    // Neither a changed orientation nor another eye redraw needs new samples.
+    for (let frame = 1; frame <= 30; frame++)
+      renderer.render(targets, 'bgra8unorm', 'compute', frame / 10)
+    if (renderer.stats().generation !== generationBefore + 1)
+      throw new Error('Rotation must reuse the built cloud')
+    if (
+      JSON.stringify(after) !==
+      JSON.stringify(await renderer.readPoints(POINT_COUNT))
     )
-    device.queue.submit([encoder.finish()])
-    await readback.mapAsync(GPUMapMode.READ)
-    const bytes = new Uint8Array(readback.getMappedRange())
+      throw new Error('Rendering moved stable samples')
+    renderer.requestRebuild()
+    renderer.render(targets, 'bgra8unorm', 'compute', 0)
+    const rebuiltFrame = await readFrame()
+    if (gpuFrame.some((value, i) => value !== rebuiltFrame[i]))
+      throw new Error(
+        'The same GPU flame/cameras must render identical pixels after rebuild',
+      )
+    renderer.render(targets, 'bgra8unorm', 'probe', 0)
+    const bytes = await readFrame()
     const eyes = [0, 1].map((layer) => {
       let lit = 0
       let xSum = 0
@@ -106,15 +150,19 @@ export async function verifyGpuContracts() {
       throw new Error('One eye texture is empty')
     if (eyes[0].centroidX - eyes[1].centroidX < 2)
       throw new Error('Distinct eye uniforms did not produce parallax')
-    readback.unmap()
     const validation = await device.popErrorScope()
     if (validation) throw new Error(validation.message)
     return {
       kind: 'hardware GPU with synthetic XR targets',
       nativeHeadsetTested: false,
+      comparedPoints: POINT_COUNT,
       maxParityError: maxError,
+      meanPixelChannelError: meanPixelError,
+      changedPixelChannelFraction: changedChannelFraction,
+      repeatBuildExact: true,
+      stableAcross30RotatingFrames: true,
       eyes,
-      computeOncePerStereoFrame: true,
+      computeOncePerRequestedStereoBuild: true,
       format: 'bgra8unorm',
       arrayLayers: 2,
     }

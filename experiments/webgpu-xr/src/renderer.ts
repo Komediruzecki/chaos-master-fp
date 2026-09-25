@@ -1,7 +1,7 @@
 // TypeGPU owns persistent resources; native XR supplies only this frame's targets.
 import { d, tgpu } from 'typegpu'
-import { samplePoints } from '../../typegpu-gl/src/variations'
-import { Camera, computeFlame, computeLayout, fragment, POINT_COUNT, renderLayout, STAR_COUNT, vertex, } from './shaders'
+import { CHAIN_COUNT, POINT_COUNT, sampleCachedPoints } from './sampling'
+import { Camera, computeFlame, computeLayout, fragment, renderLayout, STAR_COUNT, vertex, } from './shaders'
 import type { TgpuRenderPipeline } from 'typegpu'
 import type { EyeTarget } from './xrTypes'
 
@@ -29,28 +29,22 @@ function makeStars() {
 
 export function createRenderer(device: GPUDevice) {
   const root = tgpu.initFromDevice({ device })
-  const initial = samplePoints(POINT_COUNT)
+  const initial = sampleCachedPoints()
   const schema = d.arrayOf(d.vec4f, POINT_COUNT)
   const cached = root
     .createBuffer(schema, initial)
     .$usage('storage')
     .$name('cached flame')
   const live = root
-    .createBuffer(schema, initial)
+    .createBuffer(schema)
     .$usage('storage')
     .$name('persistent live flame')
-  const seeds = root
-    .createBuffer(
-      d.arrayOf(d.u32, POINT_COUNT),
-      Uint32Array.from({ length: POINT_COUNT }, (_, i) => i + 73129),
-    )
-    .$usage('storage')
   const stars = root
     .createBuffer(d.arrayOf(d.vec4f, STAR_COUNT), makeStars())
     .$usage('storage')
   const compute = root
     .createComputePipeline({ compute: computeFlame })
-    .with(root.createBindGroup(computeLayout, { points: live, seeds }))
+    .with(root.createBindGroup(computeLayout, { points: live }))
   const pipelines = new Map<GPUTextureFormat, TgpuRenderPipeline>()
   const eyes = Array.from({ length: 2 }, () => {
     const camera = root.createBuffer(Camera).$usage('uniform')
@@ -66,6 +60,7 @@ export function createRenderer(device: GPUDevice) {
     }
   })
   let generation = 0
+  let rebuildRequested = true
   let submissions = 0
   const bufferId = window.crypto.randomUUID()
   // Compilation is forced during loading, not during the first moving XR frame.
@@ -88,9 +83,10 @@ export function createRenderer(device: GPUDevice) {
     pipelines.set(format, pipeline)
   }
 
-  function step(encoder: GPUCommandEncoder) {
-    compute.with(encoder).dispatchWorkgroups(Math.ceil(POINT_COUNT / 64))
+  function rebuild(encoder: GPUCommandEncoder) {
+    compute.with(encoder).dispatchWorkgroups(Math.ceil(CHAIN_COUNT / 64))
     generation++
+    rebuildRequested = false
   }
   return {
     prepare,
@@ -99,7 +95,6 @@ export function createRenderer(device: GPUDevice) {
       format: GPUTextureFormat,
       mode: SceneMode,
       elapsed: number,
-      advance: boolean,
     ) {
       if (!targets.length) return
       if (targets.length > eyes.length)
@@ -109,7 +104,7 @@ export function createRenderer(device: GPUDevice) {
       const encoder = device.createCommandEncoder({
         label: 'one flame generation, all eyes',
       })
-      if (mode === 'compute' && advance) step(encoder)
+      if (mode === 'compute' && rebuildRequested) rebuild(encoder)
       targets.forEach((target, index) => {
         const eye = eyes[index]
         eye.raw.set(target.view, 0)
@@ -144,18 +139,24 @@ export function createRenderer(device: GPUDevice) {
     },
     stats: () => ({
       generation,
+      sampling: 'stable orbit paths; GPU rebuilds only on demand',
       submissions,
       bufferId,
       pointCount: POINT_COUNT,
       pipelineFormats: [...pipelines.keys()],
     }),
     // Manual, development-only verification. Never called in the frame loop.
-    async readPoints() {
-      return (await live.read()).slice(0, 32).map((p) => [p.x, p.y, p.z, p.w])
+    async readPoints(count = 32, source: 'cached' | 'compute' = 'compute') {
+      return (await (source === 'cached' ? cached : live).read())
+        .slice(0, count)
+        .map((p) => [p.x, p.y, p.z, p.w])
     },
-    async stepForTest() {
+    requestRebuild() {
+      rebuildRequested = true
+    },
+    async rebuildForTest() {
       const encoder = device.createCommandEncoder()
-      step(encoder)
+      rebuild(encoder)
       device.queue.submit([encoder.finish()])
       await device.queue.onSubmittedWorkDone()
     },
