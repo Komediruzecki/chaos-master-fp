@@ -211,20 +211,6 @@
   }
 }
 
-/* The rail's sheet moves the canvas up by half the height it covers (.canvas,
-   below), which leaves a strip of the box at its foot under the sheet. Past
-   peek the sheet is glass while the Glass panels setting applies, and the
-   strip is on show through it: CanvasViewport.tsx then marks the box
-   .underSheet, and the strip is the flame's own ground (--canvas-ground),
-   as if the art ran on, rather than the page, which in the light theme read
-   as a pale band across the sheet's lower part. The canvas drops the fade
-   at its rim meanwhile, which ran a band across the strip's top edge.
-   Otherwise the box shows the page, as it does with the setting off: the
-   opaque sheet hides the strip. */
-.canvas-container.underSheet {
-  background: var(--canvas-ground);
-}
-
 .canvas {
   image-rendering: pixelated;
   /* Prevent iOS text selection / magnifier popup */
@@ -238,7 +224,9 @@
      history, and it reverts when the sheet closes. It rides the canvas
      rather than its container because a transformed container would become
      the containing block for the fixed progress bar and export tracker
-     inside it. */
+     inside it. This is the opaque sheet's way: while the sheet is glass,
+     CanvasViewport.tsx writes 0 here, the canvas runs on under the glass,
+     and the camera frames the flame above the sheet (lib/canvasFraming.ts). */
   transform: translateY(calc(var(--rail-inset, 0px) / -2));
   transition: transform var(--la-dur-sheet) var(--la-ease);
 }

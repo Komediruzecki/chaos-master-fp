@@ -225,16 +225,45 @@ Also in phase 1:
 - Slider and PaletteSelector take custom-property hooks whose fallbacks are today's values; the
   explorer's panel sets them, so their text reaches 4.5:1 on its glass.
 - Android (section 6).
-- **The ground under the rail's sheet** (2026-09-25). Opening the sheet moves the canvas up and
-  uncovers a strip at the foot of the canvas box, which showed through the glass sheet as the
-  page's void: a dark band under any flame whose ground is not black, most of all a paint
-  flame's white. While the sheet is glass and moves the canvas, the box now paints the ground
-  the flame is drawn on (`flame/backgroundColor.ts`, which Flam3 reads as well), so the strip
-  reads as more of the flame's background, and the canvas drops its edge fade, whose rim ran a
-  pale band across the strip's top edge in the light theme. At peek and under the opaque sheet
-  the box shows the page, exactly as with the setting off. Framing the flame above the sheet,
-  as the deck and the sidebar frame it beside them, would reframe it at every detent and lose
-  the sheet's smooth move; it is left as a follow-up.
+- **Framing above the rail's sheet** (2026-09-25).
+  - **Before.** Opening the sheet slid the canvas up by half its covered height
+    (`App.module.css`, `.canvas`). That uncovered a strip at the foot of the canvas box, and the
+    strip showed through the glass sheet with no flame in it. At 390x844 on the large detent the
+    canvas ended at y=521, while the sheet spans y=93 to 836.
+  - **Now.** While the sheet is glass the canvas stays full-bleed, and the flame is framed above
+    the sheet, as the deck and the sidebar frame it beside them. `Covered` gains `bottom`, the
+    sheet's covered height (its detent height less the 96px it covers at peek too) as a share of
+    the canvas height. The shift is b up, and the visible region is the height less b from the
+    top. The canvas's slide writes 0 (`--rail-inset`), and the fill the canvas box painted for
+    the strip is gone with the strip.
+  - **Smooth.** The share follows the sheet's own transition, not its detent. A camera shift
+    cannot be a CSS transition, so `lib/easing.ts` steps it a frame at a time along
+    `cubic-bezier(0.16, 1, 0.3, 1)` over 280ms. That is `--la-ease` over `--la-dur-sheet`, the
+    curve and length the sheet's height takes. `EditorRail.module.test.ts` holds the tokens, the
+    sheet's transition and `SHEET_EASING` together. With reduced motion the share jumps, as the
+    sheet does.
+  - **Peek, and the setting off.** Peek covers nothing, so it frames exactly as before. Wherever
+    `glassAllowed()` fails (the setting off, Reduce Transparency, Increase Contrast), the canvas
+    slides as before and has no bottom cover. Measured at 390x844: the canvas sits at [-137, 707]
+    on medium and [-323, 521] on large, as before. A switch while the sheet is open runs the
+    slide and the shift along the same curve at once. They cancel out, so the flame stays put.
+  - **Measured at 390x844 with the setting on.** The canvas spans [0, 844] on both detents.
+    Medium covers 275px (b=0.3258) and the cut is 390x569. Large covers 647px (b=0.7666) and the
+    cut is 390x197. Screenshots of the part above the sheet line up with the setting-off ones at
+    a vertical offset of 0 px. The central four sixths of the width agree to a mean luminance
+    difference of 0.8 to 3.2 of 255. The outer sixths differ only by the edge fade, which the
+    canvas drops under glass (as under the open deck) and keeps when it slides.
+  - **Captures.** The rule "every image is cut to the part on show" now reaches the sheet. The
+    cut is the part the flame is framed in: the canvas less the sheet's cover above peek, from
+    the top. Below the sheet's top edge it keeps 104px at 390x844, the sheet's height at peek
+    (96px) and the 8px gap under it. Captures keep that band at peek too, and it keeps the flame
+    centred in the image. The shutter's quick export is 390x569 on medium, whose sheet starts at
+    y=465, and 390x197 on large, whose sheet starts at y=93. The setting-off shutter keeps the
+    whole canvas, sheet or no sheet. The shift never reaches the document, its history, Recents,
+    share links, thumbnails or the server renderer. An export that sizes the canvas itself gets
+    no shift.
+  - **Cost.** The canvas's size does not change: it slid before and stays put now, 390x844
+    either way.
 
 **Phase 2: tablet deck, an experiment behind a setting** (L). Built.
 

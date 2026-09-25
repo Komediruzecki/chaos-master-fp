@@ -9,7 +9,7 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { NOT_COVERED } from '@/lib/canvasFraming'
-import { captureVisiblePart, COVERED_ATTRIBUTES, COVERED_LEFT_KEY, COVERED_RIGHT_KEY, coveredOf, drawVisibleCanvas, visibleCanvasAspect, visibleCanvasRect, visibleClientRect, } from './visibleCanvas'
+import { captureVisiblePart, COVERED_ATTRIBUTES, COVERED_BOTTOM_KEY, COVERED_LEFT_KEY, COVERED_RIGHT_KEY, coveredOf, drawVisibleCanvas, visibleCanvasAspect, visibleCanvasRect, visibleClientRect, } from './visibleCanvas'
 import type { ExportImageInfo } from '@/flame/exportImageType'
 
 /** A 1180 x 820 landscape tablet: a 1100 px canvas under a 380 px deck. */
@@ -18,11 +18,16 @@ const COVERED = 380 / 1100
 /** The same canvas box with 200 px of it under a sidebar at the other edge. */
 const COVERED_LEFT = 200 / 1100
 
+/** A 390 x 844 phone: the rail's glass sheet at medium covers 275 px of the
+ *  canvas's foot above the peek it always covers. */
+const COVERED_BOTTOM = 275 / 844
+
 function workspaceCanvas(
   width: number,
   height: number,
   covered?: number,
   coveredLeft?: number,
+  coveredBottom?: number,
 ) {
   const canvas = document.createElement('canvas')
   canvas.width = width
@@ -30,6 +35,8 @@ function workspaceCanvas(
   if (covered !== undefined) canvas.dataset.coveredRight = String(covered)
   if (coveredLeft !== undefined)
     canvas.dataset.coveredLeft = String(coveredLeft)
+  if (coveredBottom !== undefined)
+    canvas.dataset.coveredBottom = String(coveredBottom)
   return canvas
 }
 
@@ -58,6 +65,7 @@ describe('the covered shares a canvas reports', () => {
     const canvas = document.createElement('canvas')
     canvas.dataset[COVERED_LEFT_KEY] = '0.1'
     canvas.dataset[COVERED_RIGHT_KEY] = '0.2'
+    canvas.dataset[COVERED_BOTTOM_KEY] = '0.3'
     expect(canvas.getAttributeNames().sort()).toEqual(
       [...COVERED_ATTRIBUTES].sort(),
     )
@@ -67,19 +75,26 @@ describe('the covered shares a canvas reports', () => {
     expect(coveredOf(workspaceCanvas(10, 10, 0.25))).toEqual({
       left: 0,
       right: 0.25,
+      bottom: 0,
     })
     expect(coveredOf(workspaceCanvas(10, 10, undefined, 0.2))).toEqual({
       left: 0.2,
       right: 0,
+      bottom: 0,
     })
     expect(coveredOf(workspaceCanvas(10, 10, 0.25, 0.2))).toEqual({
       left: 0.2,
       right: 0.25,
+      bottom: 0,
     })
+    expect(
+      coveredOf(workspaceCanvas(10, 10, undefined, undefined, 0.3)),
+    ).toEqual({ left: 0, right: 0, bottom: 0.3 })
     expect(coveredOf(workspaceCanvas(10, 10))).toBe(NOT_COVERED)
     const odd = workspaceCanvas(10, 10)
     odd.dataset.coveredRight = 'wide'
     odd.dataset.coveredLeft = 'narrow'
+    odd.dataset.coveredBottom = 'tall'
     expect(coveredOf(odd)).toBe(NOT_COVERED)
   })
 })
@@ -89,6 +104,18 @@ describe('visibleCanvasRect', () => {
     expect(visibleCanvasRect(workspaceCanvas(1100, 820, COVERED))).toEqual([
       0, 0, 720, 820,
     ])
+  })
+
+  it('keeps the rows above the rail sheet, from the top', () => {
+    // 844 - 275 = 569 CSS px on show, 1707 rows at a pixel ratio of 3.
+    const canvas = workspaceCanvas(
+      1170,
+      2532,
+      undefined,
+      undefined,
+      COVERED_BOTTOM,
+    )
+    expect(visibleCanvasRect(canvas)).toEqual([0, 0, 1170, 1707])
   })
 
   it('measures an image of the canvas by its own size', () => {
@@ -215,6 +242,19 @@ describe('captureVisiblePart', () => {
     expect(context.globalCompositeOperation).toBe('copy')
   })
 
+  it('hands over the rows above the rail sheet when it covers the foot', () => {
+    const { drawn } = recordDrawing()
+    const capture = vi.fn()
+    const live = workspaceCanvas(390, 844, undefined, undefined, COVERED_BOTTOM)
+
+    captureVisiblePart(capture)(live, info)
+
+    const [handed] = capture.mock.calls[0] as [HTMLCanvasElement]
+    expect([handed.width, handed.height]).toEqual([390, 569])
+    // The top 569 rows, which the camera centres the flame in.
+    expect(drawn).toEqual([[live, 0, 0, 390, 569, 0, 0, 390, 569]])
+  })
+
   it('hands over the part beside the sidebar when it covers the leading edge', () => {
     const { drawn } = recordDrawing()
     const capture = vi.fn()
@@ -336,6 +376,25 @@ describe('visibleClientRect', () => {
     expect(box.left).toBeCloseTo(280, 6)
     expect(box.right).toBeCloseTo(800, 6)
     expect(box.width).toBeCloseTo(520, 6)
+  })
+
+  it('ends the box where the rail sheet covering the foot begins', () => {
+    const canvas = workspaceCanvas(
+      390,
+      844,
+      undefined,
+      undefined,
+      COVERED_BOTTOM,
+    )
+    place(canvas, 0, 390, 844)
+
+    expect(visibleClientRect(canvas)).toMatchObject({
+      left: 0,
+      width: 390,
+      top: 0,
+      height: 569,
+      bottom: 569,
+    })
   })
 
   it('is the whole box when nothing covers the canvas', () => {

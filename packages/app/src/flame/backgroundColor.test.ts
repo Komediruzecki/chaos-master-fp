@@ -1,10 +1,9 @@
 /**
  * The ground a flame's art sits on (backgroundColor.ts): what Flam3 clears
- * the canvas to, and what the canvas box shows where the rail's sheet has
- * moved the canvas up.
+ * the canvas to.
  */
 import { describe, expect, it } from 'vitest'
-import { cssRgb, flameBackgroundColor } from './backgroundColor'
+import { flameBackgroundColor } from './backgroundColor'
 import type { FlameDescriptor } from './schema/flameSchema'
 
 type RenderSettings = FlameDescriptor['renderSettings']
@@ -38,12 +37,5 @@ describe('flameBackgroundColor', () => {
         settings({ drawMode: 'paint', backgroundColor: chosen }),
       ),
     ).toEqual(chosen)
-  })
-})
-
-describe('cssRgb', () => {
-  it('writes each channel as a byte, rounded and kept in range', () => {
-    expect(cssRgb([0, 0.5, 1])).toBe('rgb(0 128 255)')
-    expect(cssRgb([-0.5, 1.5, 0.2])).toBe('rgb(0 255 51)')
   })
 })

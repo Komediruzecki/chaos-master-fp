@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { declarationsFor, readCss } from '@/test/cssModule'
+import { SHEET_EASING, SHEET_TRANSITION_MS } from './detents'
 
 /** The row's arithmetic lives in the stylesheet; the test DOM applies no CSS. */
 const css = readCss('components/TouchSurface/EditorRail.module.css')
@@ -52,26 +53,36 @@ describe('the editor rail stylesheet', () => {
     expect(shutter).toMatch(/color:\s*var\(--la-accent\);/)
   })
 
-  it("shows the flame's ground, not the page, where the sheet moves the canvas up", () => {
-    // The open sheet moves the canvas up by half the height it covers
-    // (App.module.css, .canvas), leaving a strip of the canvas box at its
-    // foot. Past peek the sheet is glass while the Glass panels setting
-    // applies, so the strip is on show through it; with no background of its
-    // own the box showed the page there, a pale band across the sheet's lower
-    // part in the light theme. CanvasViewport then marks the box .underSheet
-    // and writes the flame's ground (CanvasViewport.framing.test.tsx), and
-    // only then: at peek and under the opaque sheet the box shows the page,
-    // as it did before the setting. So that is the one rule to paint it.
+  it('slides the canvas only by --rail-inset, which the glass sheet leaves at 0', () => {
+    // Under the opaque sheet the canvas slides up by half the height the
+    // sheet covers, as it did before there was glass. Under the glass sheet
+    // CanvasViewport writes 0 there and the camera frames the flame above
+    // the sheet instead (CanvasViewport.framing.test.tsx), so the canvas
+    // runs on under the glass and no strip of its box is left bare. Nothing
+    // paints that strip any more, and nothing needs to.
     const app = readCss('App.module.css')
-    const painted = [
-      ...app.matchAll(/([^{}]*)\{[^{}]*var\(--canvas-ground\b/g),
-    ].map((m) => m[1]!.trim())
-    expect(painted).toEqual(['.canvas-container.underSheet'])
-    expect(app).toMatch(
-      /\n\.canvas-container\.underSheet\s*\{\s*background:\s*var\(--canvas-ground\);\s*\}/,
-    )
     expect(app).toMatch(
       /transform:\s*translateY\(calc\(var\(--rail-inset, 0px\) \/ -2\)\)/,
+    )
+    expect(app).not.toMatch(/--canvas-ground/)
+  })
+
+  it("keeps the camera's easing to the sheet's own transition", () => {
+    // The camera cannot run a CSS transition, so CanvasViewport eases the
+    // framing along SHEET_TRANSITION_MS and SHEET_EASING. They must be the
+    // sheet's duration and curve, and the opaque sheet's slide's, or the
+    // flame would lag the sheet or run ahead of it.
+    const lumen = readCss('styles/designSystem/lumen.css')
+    const duration = /--la-dur-sheet:\s*([0-9.]+)ms;/.exec(lumen)?.[1]
+    expect(Number(duration)).toBe(SHEET_TRANSITION_MS)
+    const curve = /--la-ease:\s*cubic-bezier\(([^)]*)\);/.exec(lumen)?.[1]
+    expect(curve?.split(',').map(Number)).toEqual([...SHEET_EASING])
+    expect(declarations('.sheet')).toMatch(
+      /transition:\s*height var\(--la-dur-sheet\) var\(--la-ease\);/,
+    )
+    const app = readCss('App.module.css')
+    expect(app).toMatch(
+      /\n\.canvas\s*\{[^}]*transition:\s*transform var\(--la-dur-sheet\) var\(--la-ease\);/,
     )
   })
 })

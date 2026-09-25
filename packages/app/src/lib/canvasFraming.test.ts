@@ -1,9 +1,9 @@
 /**
  * The framing arithmetic behind the chrome that floats over the canvas, the
- * tablet deck at the trailing edge and the glass desktop sidebar at the
- * leading one: how much of the canvas each covers, where the camera's centre
- * goes, and which part of an image of the canvas is the picture
- * (lib/canvasFraming.ts).
+ * tablet deck at the trailing edge, the glass desktop sidebar at the leading
+ * one and the rail's glass sheet at the bottom: how much of the canvas each
+ * covers, where the camera's centre goes, and which part of an image of the
+ * canvas is the picture (lib/canvasFraming.ts).
  */
 import { mat4x4f } from 'typegpu/data'
 import { describe, expect, it } from 'vitest'
@@ -12,13 +12,17 @@ import { coveredFraction, framingShift, MAX_COVERED_FRACTION, NO_SHIFT, NOT_COVE
 
 /** 1180 x 820 landscape: an 80 px rail, then a canvas 1100 px wide that runs
  *  under a 380 px deck. */
-const deck = { left: 0, right: coveredFraction(380, 1100) }
+const deck = { left: 0, right: coveredFraction(380, 1100), bottom: 0 }
 
 /** 1920 x 1080 with the wide sidebar, 26rem: the canvas box spans the whole
  *  width and the sidebar covers 409.6 px of it, its width less the 0.4rem the
  *  setting-off canvas already runs under it. That canvas is 1510.4 px wide
  *  from x 409.6, exactly what is left. */
-const sidebar = { left: coveredFraction(416 - 6.4, 1920), right: 0 }
+const sidebar = { left: coveredFraction(416 - 6.4, 1920), right: 0, bottom: 0 }
+
+/** 390 x 844 phone, the rail's sheet at medium: 44% of the viewport, 371 px,
+ *  less the 96 px it covers at peek as well, over a canvas the full height. */
+const rail = { left: 0, right: 0, bottom: coveredFraction(371 - 96, 844) }
 
 describe('coveredFraction', () => {
   it('is the covered width over the canvas width', () => {
@@ -62,6 +66,7 @@ describe('framingShift', () => {
     const shift = framingShift({
       left: coveredFraction(200, 1100),
       right: coveredFraction(380, 1100),
+      bottom: 0,
     })
     expect(shift.x).toBeCloseTo(-90 / 550, 6)
     expect(shift.y).toBe(0)
@@ -69,12 +74,35 @@ describe('framingShift', () => {
 
   it('is no shift at all when nothing covers the canvas', () => {
     expect(framingShift(NOT_COVERED)).toBe(NO_SHIFT)
-    expect(framingShift({ left: 0, right: Number.NaN })).toBe(NO_SHIFT)
-    expect(framingShift({ left: Number.NaN, right: -1 })).toBe(NO_SHIFT)
+    expect(framingShift({ left: 0, right: Number.NaN, bottom: 0 })).toBe(
+      NO_SHIFT,
+    )
+    expect(framingShift({ left: Number.NaN, right: -1, bottom: 0 })).toBe(
+      NO_SHIFT,
+    )
+  })
+
+  it("raises the centre as far as the setting-off canvas's slide", () => {
+    // With the setting off the canvas slides up by half the 275 px the sheet
+    // covers (App.module.css, .canvas): 137.5 px, which is 137.5 / 422 in
+    // clip units of an 844 px canvas. The shift puts the centre there.
+    const shift = framingShift(rail)
+    expect(shift.x).toBe(0)
+    expect(shift.y).toBeCloseTo(137.5 / 422, 6)
+    expect(shift.y).toBeCloseTo(rail.bottom, 12)
+  })
+
+  it('moves the centre both ways when the sides and the bottom are covered', () => {
+    const shift = framingShift({ ...deck, bottom: rail.bottom })
+    expect(shift.x).toBeCloseTo(-190 / 550, 6)
+    expect(shift.y).toBeCloseTo(rail.bottom, 12)
+    expect(framingShift({ left: 0, right: 0, bottom: Number.NaN })).toBe(
+      NO_SHIFT,
+    )
   })
 
   it('is no shift when both edges cover the same', () => {
-    expect(framingShift({ left: 0.2, right: 0.2 })).toBe(NO_SHIFT)
+    expect(framingShift({ left: 0.2, right: 0.2, bottom: 0 })).toBe(NO_SHIFT)
   })
 })
 
@@ -116,6 +144,7 @@ describe('visibleRegion', () => {
     const both = {
       left: coveredFraction(200, 1100),
       right: coveredFraction(380, 1100),
+      bottom: 0,
     }
     expect(visibleRegion(1100, 820, both)).toEqual({
       x: 200,
@@ -136,23 +165,68 @@ describe('visibleRegion', () => {
 
   it('keeps at least a pixel, and never more than the image', () => {
     expect(
-      visibleRegion(3, 3, { left: 0, right: MAX_COVERED_FRACTION }).width,
+      visibleRegion(3, 3, { left: 0, right: MAX_COVERED_FRACTION, bottom: 0 })
+        .width,
     ).toBe(1)
     const leftmost = visibleRegion(3, 3, {
       left: MAX_COVERED_FRACTION,
       right: 0,
+      bottom: 0,
     })
     expect(leftmost.width).toBe(1)
     expect(leftmost.x + leftmost.width).toBeLessThanOrEqual(3)
-    expect(visibleRegion(0, 0, { left: 0, right: 0.5 }).width).toBe(0)
+    expect(visibleRegion(0, 0, { left: 0, right: 0.5, bottom: 0 }).width).toBe(
+      0,
+    )
+  })
+
+  it('keeps the height the sheet leaves, from the top, and the whole width', () => {
+    expect(visibleRegion(390, 844, rail)).toEqual({
+      x: 0,
+      y: 0,
+      width: 390,
+      height: 569,
+    })
+    // At a pixel ratio of 3.
+    expect(visibleRegion(1170, 2532, rail)).toEqual({
+      x: 0,
+      y: 0,
+      width: 1170,
+      height: 1707,
+    })
+  })
+
+  it('is centred on the flame, a crop of the setting-off picture', () => {
+    // The flame's centre is (1 - shift) / 2 of the way down the canvas: row
+    // 284.5 of 844, the middle of the 569 rows kept. The setting-off picture
+    // has it at row 422, so the cut drops 137.5 rows from its top and as
+    // many from its bottom, and keeps the scale.
+    const centreRow = (844 * (1 - framingShift(rail).y)) / 2
+    expect(centreRow).toBeCloseTo(visibleRegion(390, 844, rail).height / 2, 6)
+  })
+
+  it('stops the bottom short of the whole height, without touching the sides', () => {
+    const region = visibleRegion(1000, 1000, {
+      left: 0.6,
+      right: 0.6,
+      bottom: 0.95,
+    })
+    expect(region).toEqual({ x: 450, y: 0, width: 100, height: 100 })
+    expect(framingShift({ left: 0, right: 0, bottom: 0.95 }).y).toBe(
+      MAX_COVERED_FRACTION,
+    )
   })
 
   it('scales both covers down alike when together they would cover too much', () => {
     // 0.6 and 0.6 are cut to 0.45 each: a tenth of the width, in the middle.
-    const region = visibleRegion(1000, 500, { left: 0.6, right: 0.6 })
+    const region = visibleRegion(1000, 500, {
+      left: 0.6,
+      right: 0.6,
+      bottom: 0,
+    })
     expect(region).toEqual({ x: 450, y: 0, width: 100, height: 500 })
-    expect(framingShift({ left: 0.6, right: 0.6 })).toBe(NO_SHIFT)
-    const lopsided = { left: 0.8, right: 0.4 }
+    expect(framingShift({ left: 0.6, right: 0.6, bottom: 0 })).toBe(NO_SHIFT)
+    const lopsided = { left: 0.8, right: 0.4, bottom: 0 }
     const scale = MAX_COVERED_FRACTION / 1.2
     expect(framingShift(lopsided).x).toBeCloseTo((0.8 - 0.4) * scale, 6)
     expect(visibleRegion(1000, 500, lopsided).width).toBe(100)
@@ -173,8 +247,13 @@ describe('visibleAspect', () => {
     const both = {
       left: coveredFraction(200, 1100),
       right: coveredFraction(380, 1100),
+      bottom: 0,
     }
     expect(visibleAspect(1100, 820, both)).toBeCloseTo(520 / 820, 6)
+  })
+
+  it('is the aspect of what the sheet leaves visible', () => {
+    expect(visibleAspect(390, 844, rail)).toBeCloseTo(390 / 569, 6)
   })
 
   it('is the canvas aspect when nothing covers it', () => {

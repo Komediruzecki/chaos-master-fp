@@ -277,7 +277,7 @@ wraps the whole panel in `<Show when={props.open}>`.)_
 mobile sidebar-toggle button, because the sidebar it opens is not mounted.
 
 _(`MainWorkspace.tsx:3791` passes `hideMobileSidebarToggle={isPhone() ||
-isTablet()}`; `CanvasViewport.tsx:213` (`hideMobileSidebarToggle`) gates the button on
+isTablet()}`; `CanvasViewport.tsx:223` (`hideMobileSidebarToggle`) gates the button on
 `props.isMobile() && !props.hideMobileSidebarToggle`.)_
 
 ### REQ-TL-015 — The phone grid is one full-bleed viewport cell
@@ -344,7 +344,7 @@ only grid classes and sibling chrome — never the `AutoCanvas` element, its
 device, or its accumulated render.
 
 _(`MainWorkspace.tsx:3798-3934` (`CanvasViewport`) mounts one `CanvasViewport` outside every
-layout gate; `CanvasViewport.tsx:234-243` (`AutoCanvas`) mounts one `AutoCanvas`. The layout
+layout gate; `CanvasViewport.tsx:251-260` (`AutoCanvas`) mounts one `AutoCanvas`. The layout
 reads beside it, `MainWorkspace.tsx:3784` (`railLayout`) and `:3791`
 (`hideMobileSidebarToggle`), only feed a class string and a boolean prop.)_
 
@@ -356,7 +356,7 @@ cannot cover the tablet inspector deck or the HUD's More menu; the tracker shall
 continue to publish its measured height as `--toast-stack-offset` so toasts
 stack beneath it in both positions.
 
-_(`Toast.tsx:20` (`toastRegionTouch`), `:30` (`toastTouch`) with `App.module.css:1323-1331` (`.toast-region-touch`);
+_(`Toast.tsx:20` (`toastRegionTouch`), `:30` (`toastTouch`) with `App.module.css:1312-1320` (`.toast-region-touch`);
 `ExportJobTracker.tsx:55` (`trackerTouch`) with `ExportJobTracker.module.css:50-56` (`.trackerTouch`); the offset is
 written and cleared at `ExportJobTracker.tsx:28-49` (`createEffect`).)_
 

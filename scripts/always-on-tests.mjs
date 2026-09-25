@@ -139,7 +139,7 @@ export const ALWAYS_ON = [
   },
   {
     file: 'src/components/TouchSurface/EditorRail.module.test.ts',
-    why: 'reads EditorRail.module.css, and App.module.css for the ground under the sheet',
+    why: "reads EditorRail.module.css, App.module.css for the canvas's slide under the sheet, and lumen.css for the sheet's easing",
     genre: 'filesystem',
   },
   {

@@ -1,7 +1,7 @@
 /**
  * The canvas end of the framing beside the chrome that floats over it, the
- * tablet deck at the trailing edge and the glass desktop sidebar at the
- * leading one: what the cameras are given, what the canvas says about itself,
+ * tablet deck at the trailing edge, the glass desktop sidebar at the leading
+ * one and the rail's glass sheet at the bottom: what the cameras are given, what the canvas says about itself,
  * and what a capture is handed, with chrome over the canvas and without it,
  * and while an export sizes the canvas (useViewFraming.ts).
  */
@@ -15,6 +15,7 @@ import type { ExportDimensions } from '@/utils/exportDimensions'
 /** A 1180 x 820 landscape tablet: the canvas box is 1100 x 820 CSS px. */
 function mountFraming() {
   const [width, setWidth] = createSignal<number | undefined>(1100)
+  const [bottom, setBottom] = createSignal(0)
   const [exportDimensions, setExportDimensions] =
     createSignal<ExportDimensions>()
   const [onExportImage, setOnExportImage] = createSignal<ExportImageType>()
@@ -26,6 +27,8 @@ function mountFraming() {
     dispose = disposeRoot
     return useViewFraming({
       width,
+      height: () => 820,
+      bottom,
       canvas: () => canvas,
       exportDimensions,
       onExportImage,
@@ -35,6 +38,7 @@ function mountFraming() {
     framing,
     canvas,
     setWidth,
+    setBottom,
     setExportDimensions,
     setOnExportImage,
     dispose,
@@ -130,6 +134,25 @@ describe('the view framing', () => {
     dispose()
   })
 
+  it('frames the flame above the rail sheet and says how much it covers', () => {
+    const { framing, canvas, setBottom, dispose } = mountFraming()
+
+    setBottom(205)
+
+    // The centre rises half the 205 px covered: 102.5 of the canvas's 410
+    // half-height, 205 / 820 in clip units.
+    expect(framing.viewShift().x).toBe(0)
+    expect(framing.viewShift().y).toBeCloseTo(205 / 820, 6)
+    expect(Number(canvas.dataset.coveredBottom)).toBeCloseTo(205 / 820, 6)
+    expect(canvas.dataset.coveredLeft).toBeUndefined()
+    expect(canvas.dataset.coveredRight).toBeUndefined()
+
+    setBottom(0)
+    expect(framing.viewShift()).toBe(NO_SHIFT)
+    expect(canvas.dataset.coveredBottom).toBeUndefined()
+    dispose()
+  })
+
   it('waits for the canvas box to be laid out', () => {
     const { framing, setWidth, dispose } = mountFraming()
 
@@ -193,22 +216,45 @@ describe('what a capture is handed', () => {
     dispose()
   })
 
+  it('is the rows above the rail sheet while it covers the foot', () => {
+    stubDrawing()
+    const { framing, canvas, setBottom, setOnExportImage, dispose } =
+      mountFraming()
+    const capture = vi.fn()
+    setBottom(205)
+    setOnExportImage(() => capture)
+
+    framing.exportImage()?.(canvas, { finalImageReady: true })
+
+    const handed = capture.mock.calls[0]?.[0] as HTMLCanvasElement
+    expect([handed.width, handed.height]).toEqual([1100, 615])
+    dispose()
+  })
+
   it('is the whole canvas, unshifted, while an export sizes the canvas', () => {
     // An export renders its own frame at its own size: neither the deck nor
     // the sidebar has a part in it, so the camera is not shifted and nothing
     // is cut.
     stubDrawing()
-    const { framing, canvas, setExportDimensions, setOnExportImage, dispose } =
-      mountFraming()
+    const {
+      framing,
+      canvas,
+      setBottom,
+      setExportDimensions,
+      setOnExportImage,
+      dispose,
+    } = mountFraming()
     const capture = vi.fn()
     setTrailingCover(380)
     setLeadingCover(200)
+    setBottom(205)
     setExportDimensions({ width: 1920, height: 1080 })
     setOnExportImage(() => capture)
 
     expect(framing.viewShift()).toBe(NO_SHIFT)
     expect(canvas.dataset.coveredRight).toBeUndefined()
     expect(canvas.dataset.coveredLeft).toBeUndefined()
+    expect(canvas.dataset.coveredBottom).toBeUndefined()
     framing.exportImage()?.(canvas, { finalImageReady: true })
     expect(capture).toHaveBeenCalledWith(canvas, { finalImageReady: true })
 

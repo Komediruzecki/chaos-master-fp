@@ -1,15 +1,18 @@
 /**
  * CanvasViewport's wiring to what draws the canvas: the cameras take the
- * framing's view shift, and Flam3 takes the export hook cut to the part on
- * show and the edge fade for what covers the canvas, on the 2D path and the
- * 3D one alike. The framing test mocks the canvas away; here it renders,
+ * framing's view shift, beside the deck and the sidebar and above the rail's
+ * glass sheet, and Flam3 takes the export hook cut to the part on show and
+ * the edge fade for what covers the canvas, on the 2D path and the 3D one
+ * alike. The framing test mocks the canvas away; here it renders,
  * with the cameras and Flam3 standing in as probes that keep the props they
  * were given.
  */
 import { cleanup, render } from '@solidjs/testing-library'
+import { createSignal } from 'solid-js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { examples } from '@/flame/examples'
 import { setLeadingCover, setTrailingCover } from '@/lib/canvasFraming'
+import { setGlassPanels } from '@/lib/glass'
 import { CanvasViewport, EDGE_FADE_COLOR } from './CanvasViewport'
 import type { JSXElement } from 'solid-js'
 import type { CanvasViewportProps } from './CanvasViewport'
@@ -77,6 +80,8 @@ vi.mock('@/utils/useElementSize', () => ({
 const COVERED = 380 / 1100
 /** 200 px of it under the glass sidebar. */
 const COVERED_LEFT = 200 / 1100
+/** Px of the 820 px canvas the rail's sheet covers above peek: a quarter. */
+const SHEET = 205
 
 const flat = examples.example1
 const deep = {
@@ -87,10 +92,10 @@ const deep = {
 function mountViewport(
   effectiveFlame: typeof flat = flat,
   capture?: ExportImageType,
-  railInset = 0,
+  railInset: number | (() => number) = 0,
 ) {
   const props = {
-    railInset: () => railInset,
+    railInset: typeof railInset === 'function' ? railInset : () => railInset,
     isMobile: () => false,
     showSidebar: () => true,
     onCanvasClick: () => {},
@@ -114,6 +119,8 @@ function mountViewport(
 afterEach(() => {
   setTrailingCover(0)
   setLeadingCover(0)
+  setGlassPanels(true)
+  vi.unstubAllGlobals()
   cleanup()
   delete seen.camera2D
   delete seen.camera3D
@@ -140,6 +147,46 @@ describe('the cameras', () => {
 
     expect(seen.camera2D).toBeUndefined()
     expect(seen.camera3D?.viewShift().x).toBeCloseTo(-COVERED)
+  })
+
+  it("take the shift that frames the flame above the rail's glass sheet", () => {
+    // Half the 205 px the sheet covers, 102.5 of the canvas's 410 px
+    // half-height: the slide the opaque sheet gives the canvas instead.
+    mountViewport(flat, undefined, SHEET)
+    expect(seen.camera2D?.viewShift()).toEqual({ x: 0, y: 0.25 })
+    cleanup()
+
+    mountViewport(deep, undefined, SHEET)
+    expect(seen.camera3D?.viewShift()).toEqual({ x: 0, y: 0.25 })
+  })
+
+  it("take no shift for the rail's opaque sheet, which slides the canvas", () => {
+    setGlassPanels(false)
+    mountViewport(flat, undefined, SHEET)
+    expect(seen.camera2D?.viewShift()).toEqual({ x: 0, y: 0 })
+  })
+
+  it('move with the sheet to a new detent, not ahead of it', () => {
+    const frames: FrameRequestCallback[] = []
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) =>
+      frames.push(callback),
+    )
+    vi.stubGlobal('cancelAnimationFrame', () => {})
+    const runFrame = (now: number) => {
+      for (const callback of frames.splice(0)) callback(now)
+    }
+    const [railInset, setRailInset] = createSignal(0)
+    mountViewport(flat, undefined, railInset)
+
+    setRailInset(SHEET)
+    expect(seen.camera2D?.viewShift().y).toBe(0)
+    runFrame(0)
+    runFrame(70)
+    const partWay = seen.camera2D?.viewShift().y ?? 0
+    expect(partWay).toBeGreaterThan(0)
+    expect(partWay).toBeLessThan(0.25)
+    runFrame(280)
+    expect(seen.camera2D?.viewShift()).toEqual({ x: 0, y: 0.25 })
   })
 })
 
@@ -177,8 +224,8 @@ describe.each([
     expect([fade?.x, fade?.y, fade?.z, fade?.w]).toEqual([0, 0, 0, 0])
   })
 
-  it("does not fade it while the rail's glass sheet moves the canvas up", () => {
-    mountViewport(flame, undefined, 240)
+  it("does not fade it while the rail's glass sheet covers the canvas's foot", () => {
+    mountViewport(flame, undefined, SHEET)
     const fade = seen.flam3?.edgeFadeColor
     expect([fade?.x, fade?.y, fade?.z, fade?.w]).toEqual([0, 0, 0, 0])
   })

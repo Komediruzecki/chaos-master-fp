@@ -5,9 +5,10 @@ import { duelShowing } from '@/arcade/duel'
 import { Button } from '@/components/Button/Button'
 import { ExportJobHost } from '@/components/ExportJobs/ExportJobHost'
 import { ExportJobTracker } from '@/components/ExportJobs/ExportJobTracker'
+import { usePrefersReducedMotion } from '@/components/Home/homePlayback'
 import { ProgressBar } from '@/components/ProgressBar/ProgressBar'
+import { SHEET_EASING, SHEET_TRANSITION_MS, } from '@/components/TouchSurface/detents'
 import { DEFAULT_POINT_COUNT } from '@/defaults'
-import { cssRgb, flameBackgroundColor } from '@/flame/backgroundColor'
 import { Flam3 } from '@/flame/Flam3'
 import { animationExportRunning, cameraDuringExportEnabled, exportAccumulationFraction, exportQuality, setCurrentQuality, setQualityPointCountLimit, } from '@/flame/renderStats'
 import { getNormalizedVariationName } from '@/flame/variations/utils'
@@ -15,6 +16,7 @@ import { Menu } from '@/icons'
 import { workspaceIsVisible } from '@/lib/activeTab'
 import { AutoCanvas } from '@/lib/AutoCanvas'
 import { leadingCover } from '@/lib/canvasFraming'
+import { createEasedValue, cubicBezier } from '@/lib/easing'
 import { glassAllowed } from '@/lib/glass'
 import { WheelZoomCamera2D } from '@/lib/WheelZoomCamera2D'
 import { WheelZoomCamera3D } from '@/lib/WheelZoomCamera3D'
@@ -52,21 +54,21 @@ export const EDGE_FADE_COLOR = {
 /**
  * What the renderer fades the canvas's rim to: the theme's colour beside the
  * sidebar, and none in full screen or while glass floating over the canvas
- * covers part of it: the tablet deck or the glass desktop sidebar
- * (`covered`, useViewFraming.ts), or the rail's glass sheet (`underSheet`).
- * There the rim runs on under the glass, and the fade laid a band down it,
- * dark or light with the theme, that the page beside the canvas never had;
- * the canvas is then framed as it is in full screen. Under the sheet the
- * band ran across the foot of the canvas the sheet moves up, against the
- * flame's ground the box paints below it.
+ * covers part of it: the tablet deck, the glass desktop sidebar or the rail's
+ * glass sheet (`covered`, useViewFraming.ts). There the rim runs on under the
+ * glass, and the fade laid a band down it, dark or light with the theme, that
+ * the page beside the canvas never had; the canvas is then framed as it is in
+ * full screen.
  */
 export function edgeFadeColor(
   theme: 'light' | 'dark',
   showSidebar: boolean,
   covered: Covered,
-  underSheet: boolean,
 ) {
-  return showSidebar && !underSheet && covered.left === 0 && covered.right === 0
+  return showSidebar &&
+    covered.left === 0 &&
+    covered.right === 0 &&
+    covered.bottom === 0
     ? EDGE_FADE_COLOR[theme]
     : vec4f(0)
 }
@@ -82,7 +84,11 @@ export interface CanvasViewportProps {
   onCanvasClick: () => void
   onToggleMobileSidebar: () => void
   hideMobileSidebarToggle?: boolean
-  /** Px of viewport the editor rail's sheet covers; the canvas pans up by half. */
+  /**
+   * Px of viewport the editor rail's sheet covers above peek. The canvas
+   * slides up by half, or, while the sheet is glass, the camera frames the
+   * flame above it.
+   */
   railInset?: Accessor<number>
 
   // Flame / rendering
@@ -143,32 +149,43 @@ export interface CanvasViewportProps {
 }
 
 export function CanvasViewport(props: CanvasViewportProps) {
-  // With the Glass panels setting on, the tablet deck and the desktop sidebar
-  // float over this canvas and the cameras frame the flame in the part they
-  // leave visible. The shift is the view's alone: the document's camera, and
-  // every image taken off the canvas, stay what they are with the setting off
-  // (useViewFraming.ts).
+  // With the Glass panels setting on, the tablet deck, the desktop sidebar
+  // and the rail's sheet float over this canvas and the cameras frame the
+  // flame in the part they leave visible. The shift is the view's alone: the
+  // document's camera stays what it is with the setting off, and every image
+  // taken off the canvas is cut to the part on show (useViewFraming.ts).
   const [container, setContainer] = createSignal<HTMLDivElement>()
   const [canvas, setCanvas] = createSignal<HTMLCanvasElement>()
   const containerSize = useElementSize(container)
+  // The rail's sheet covers the canvas's foot past peek, and the flame is
+  // kept in view above it one of two ways. While the Glass panels setting
+  // applies, the sheet is glass (TouchSurface/EditorRail.tsx) and the canvas
+  // runs on under it, framed by the camera, the cover easing along the
+  // sheet's own transition as the slide does. Otherwise the opaque sheet
+  // hides the canvas's foot and the canvas slides up by half the cover
+  // (App.module.css, .canvas), as it did before there was glass. A switch
+  // between the two while the sheet is open runs both moves at once, and
+  // they cancel out.
+  const railInset = () => props.railInset?.() ?? 0
+  const sheetCover = createEasedValue(
+    () => (glassAllowed() ? railInset() : 0),
+    {
+      durationMs: SHEET_TRANSITION_MS,
+      easing: cubicBezier(SHEET_EASING),
+      instant: usePrefersReducedMotion(),
+    },
+  )
+  const railSlide = () => (glassAllowed() ? 0 : railInset())
   const framing = useViewFraming({
     width: () => containerSize()?.width,
+    height: () => containerSize()?.height,
+    bottom: sheetCover,
     canvas,
     exportDimensions: () => props.exportDimensions(),
     onExportImage: () => props.onExportImage(),
   })
-  // Past peek the rail's sheet is glass while the Glass panels setting
-  // applies (TouchSurface/EditorRail.tsx), and it moves the canvas up by half
-  // the height it covers (App.module.css, .canvas). The strip of the box the
-  // move uncovers is then on show through the sheet.
-  const underSheet = () => (props.railInset?.() ?? 0) > 0 && glassAllowed()
   const edgeFade = createMemo(() =>
-    edgeFadeColor(
-      props.theme(),
-      props.showSidebar(),
-      framing.covered(),
-      underSheet(),
-    ),
+    edgeFadeColor(props.theme(), props.showSidebar(), framing.covered()),
   )
   // While the glass sidebar floats over the canvas, the box spans the
   // sidebar's column as well (App.module.css, .underSidebar), and the bottom
@@ -177,11 +194,6 @@ export function CanvasViewport(props: CanvasViewportProps) {
   // drops the cover while an export sizes the canvas: the layout does not
   // move for an export.
   const underSidebar = () => leadingCover() > 0
-  // The flame's own ground, for the strip the rail's sheet uncovers
-  // (App.module.css, .underSheet).
-  const ground = createMemo(() =>
-    cssRgb(flameBackgroundColor(props.effectiveFlame().renderSettings)),
-  )
 
   return (
     // Home and the Arcade cover the editor completely and it stays mounted
@@ -197,12 +209,10 @@ export function CanvasViewport(props: CanvasViewportProps) {
       classList={{
         [ui.fullscreen as string]: !props.showSidebar(),
         [ui.underSidebar as string]: underSidebar(),
-        [ui.underSheet as string]: underSheet(),
       }}
       // The hover badge centres on the part on show (App.module.css).
       style={{
-        '--rail-inset': `${props.railInset?.() ?? 0}px`,
-        '--canvas-ground': underSheet() ? ground() : undefined,
+        '--rail-inset': `${railSlide()}px`,
         '--covered-left': coveredStyle(framing.covered().left),
         '--covered-right': coveredStyle(framing.covered().right),
         '--leading-cover': underSidebar() ? `${leadingCover()}px` : undefined,
