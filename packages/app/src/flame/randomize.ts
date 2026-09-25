@@ -14,6 +14,7 @@ import { applyStructuralRemoval, countStructuralAdditions, createRandomMutatedTr
 import { buildRandomVariation, normalizeVariationWeights, pickRandomVariationType, randomizeAffineCoef, randomizeAllColors, } from './randomPrimitives'
 import { createSeededRandomSource, randomRange, withRandomSource, } from './randomSource'
 import { validateFlame } from './schema/flameSchema'
+import { reweighSymmetryCopies } from './symmetry'
 import { generateTransformId, generateVariationId } from './transformFunction'
 import { variationTypes } from './variations'
 import { variationTypes3D } from './variations3D'
@@ -321,8 +322,11 @@ export function mutateFlame(
     ;(mutated.transforms as Record<string, any>)[newTid] = nt
   }
 
-  // Normalize transform probabilities after structural changes.
+  // Normalize transform probabilities after structural changes: the user's
+  // transforms are evened out, and the symmetry copies then get the weight
+  // the symmetry writer gives them, so a Mutate keeps the flame's symmetry.
   normalizeTransformProbabilities(mutated.transforms)
+  reweighSymmetryCopies(mutated.transforms)
 
   return mutated
 }
