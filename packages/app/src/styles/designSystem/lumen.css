@@ -347,6 +347,7 @@
     --la-glass-strong: var(--la-glass-solid);
     --la-glass-blur: none;
     --la-frost: var(--la-scrim-heavy);
+    --la-frost-fade: var(--la-scrim-heavy);
     --la-frost-blur: none;
     --la-scrim-dim: var(--la-scrim-heavy);
     --la-scrim-sheet: var(--la-scrim-heavy);
@@ -382,6 +383,7 @@
     --la-glass-strong: var(--la-glass-solid);
     --la-glass-blur: none;
     --la-frost: var(--la-scrim-heavy);
+    --la-frost-fade: var(--la-scrim-heavy);
     --la-frost-blur: none;
   }
 }

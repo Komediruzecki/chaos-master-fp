@@ -14,6 +14,10 @@
  * color-mix() percentage over the backdrop, mixed in sRGB. The blur is left
  * out, since blurring a white-hot backdrop leaves it white.
  *
+ * Under Reduce Transparency and More Contrast every see-through glass and
+ * frost token is replaced, so that nothing over the canvas or a picture is
+ * left translucent under either: the frost bar's fade once was.
+ *
  * The keyboard focus ring on glass is measured the same way, against the
  * 3:1 a focus indicator needs (WCAG 1.4.11): the glass classes and
  * optionalPanel's glass give it the glass ring, which styles/index.css
@@ -97,6 +101,15 @@ function rootTokens(css: string): Map<string, string> {
 
 const lumen = readFileSync(join(import.meta.dirname, 'lumen.css'), 'utf8')
 const tokens = rootTokens(lumen)
+
+/** The custom properties lumen.css's `@media <query>` block sets on :root. */
+function mediaTokens(query: string): Set<string> {
+  const src = lumen.replace(/\/\*[\s\S]*?\*\//g, ' ')
+  const open = src.indexOf(`@media ${query} {`)
+  if (open < 0) throw new Error(`lumen.css has no @media ${query} block`)
+  const block = src.slice(open, src.indexOf('\n}', open))
+  return new Set([...block.matchAll(/(--la-[\w-]+)\s*:/g)].map((m) => m[1]!))
+}
 
 function token(name: string): string {
   const value = tokens.get(name)
@@ -209,6 +222,40 @@ describe('text on glass', () => {
       if (ratio >= AA) passing.push(`${tenths / 10}%: ${ratio.toFixed(2)}:1`)
     }
     expect(passing).toEqual([])
+  })
+})
+
+describe('Reduce Transparency and More Contrast', () => {
+  // What a surface over the canvas or a picture lets through: the glass
+  // fills and blur, and the frost. --la-glass-solid is what the fills turn
+  // into, and the edge and the shadow are no fill.
+  const seeThrough = [...tokens.keys()].filter((name) =>
+    /^--la-(?:glass|frost)(?!-(?:solid|edge|shadow)$)/.test(name),
+  )
+
+  it('find the see-through tokens', () => {
+    expect(seeThrough).toEqual([
+      '--la-glass',
+      '--la-glass-panel',
+      '--la-glass-strong',
+      '--la-glass-blur',
+      '--la-frost',
+      '--la-frost-fade',
+      '--la-frost-blur',
+    ])
+  })
+
+  it.each([
+    [
+      '(prefers-reduced-transparency: reduce)',
+      ['--la-scrim-dim', '--la-scrim-sheet', '--la-scrim-blur'],
+    ],
+    ['(prefers-contrast: more)', []],
+  ])('%s replaces every one of them', (query, scrims) => {
+    const replaced = mediaTokens(query)
+    expect(
+      [...seeThrough, ...scrims].filter((name) => !replaced.has(name)),
+    ).toEqual([])
   })
 })
 

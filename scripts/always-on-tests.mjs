@@ -119,7 +119,7 @@ export const ALWAYS_ON = [
   },
   {
     file: 'src/styles/designSystem/glassContrast.test.ts',
-    why: 'reads the ink and glass tokens from lumen.css, and the focus ring from index.css and glass.module.css, to measure contrast on each fill',
+    why: 'reads the ink and glass tokens from lumen.css, and the focus ring from index.css and glass.module.css, to measure contrast on each fill and check that Reduce Transparency and More Contrast replace every see-through token',
     genre: 'filesystem',
   },
   {
