@@ -20,8 +20,8 @@ engine itself beyond the tracks the arena writes into it, or `VariationPreview` 
 - `packages/app/src/components/ArenaOverlay.module.css` — full-screen immersion, `isClashing`, shake and shockwave presentation
 - `packages/app/src/MainWorkspace.tsx:3155-3286` (`initialStartClash`) — the arena facade on the command context, `selectFighter`, and the placeholder `startClash`
 - `packages/app/src/commands/types.ts:56-135` — `ArenaFighterStats` and the optional `arena` facade shape
-- `packages/app/src/flame/stats.ts` — grounded stats, school classification, deterministic combat resolution
 - `packages/app/src/flame/schoolVariations.ts` — the variation lists behind the schools, and the type a variation counts as
+- `packages/app/src/flame/stats.ts` — grounded stats, school classification, deterministic combat resolution
 - `packages/app/src/flame/symmetry.ts` — `applySymmetryToFlame`, behind the C1–C8 pills
 - `packages/app/src/flame/flameClashChoreography.ts` — the four-phase kinetic keyframe choreography
 - `packages/app/src/webmcp/tools/arenaArchetypes.ts` — the six archetypes, the four stances, `generateArchetypeOpponent`
