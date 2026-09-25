@@ -141,3 +141,71 @@ describe('Mutate and the symmetry copies of a 4-fold set', () => {
     }
   })
 })
+
+/** A copy as the renderer draws it, less the probability Mutate re-weighs. */
+const geometry = (flame: FlameDescriptor) =>
+  Object.fromEntries(
+    copies(flame).map(([tid, { preAffine, postAffine, color, variations }]) => [
+      tid,
+      { preAffine, postAffine, color, variations },
+    ]),
+  )
+
+const SEEDS = [1, 2, 3, 5, 8, 13]
+
+// A symmetric flame keeps its rotations and its mirror exactly through a
+// Mutate: only the user's transforms change.
+describe('Mutate leaves the symmetry copies as the symmetry writer wrote them', () => {
+  for (const dims of [2, 3] as const) {
+    for (const type of TYPES) {
+      it(`${type}, ${dims}D, no selection, seeds ${SEEDS.join(' ')}`, () => {
+        const flame = symmetric(dims, type, [0.1, 0.2, 0.3])
+        for (const seed of SEEDS) {
+          const mutated = mutateFlameSeeded(
+            flame,
+            configFor(dims),
+            options,
+            seed,
+          )
+          expect(geometry(mutated)).toEqual(geometry(flame))
+          for (const [, copy] of copies(mutated)) {
+            expect(copy.probability).toBe(symmetryWeight(mutated.transforms))
+          }
+        }
+      })
+
+      it(`${type}, ${dims}D: never removes or adds a copy, at any add or remove chance`, () => {
+        const flame = symmetric(dims, type, [2, 3, 1.5])
+        const copyIds = copies(flame).map(([tid]) => tid)
+        for (const seed of SEEDS) {
+          for (const chances of [
+            { removeTransformChance: 1 },
+            { addTransformChance: 0.9 },
+            { removeTransformChance: 0.5, addTransformChance: 0.5 },
+          ]) {
+            const mutated = mutateFlameSeeded(
+              flame,
+              configFor(dims),
+              { ...options, ...chances, mutateVariations: 'all' },
+              seed,
+            )
+            expect(copies(mutated).map(([tid]) => tid)).toEqual(copyIds)
+            expect(geometry(mutated)).toEqual(geometry(flame))
+          }
+        }
+      })
+    }
+  }
+
+  it('leaves a copy alone even when a selection names it', () => {
+    const flame = symmetric(2, 'dihedral', [0.1, 0.2, 0.3])
+    const copyIds = copies(flame).map(([tid]) => tid)
+    const mutated = mutateFlameSeeded(
+      flame,
+      configFor(2),
+      { ...options, selectedTransformIds: ['u0', ...copyIds] },
+      4,
+    )
+    expect(geometry(mutated)).toEqual(geometry(flame))
+  })
+})

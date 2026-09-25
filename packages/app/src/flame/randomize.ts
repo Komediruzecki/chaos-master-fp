@@ -271,10 +271,17 @@ export function mutateFlame(
     if (!survivors.has(tid)) delete (transforms as Record<string, unknown>)[tid]
   }
 
+  // The transforms this pass varies: the user's, never a symmetry copy, even
+  // when a selection names one. A copy is the symmetry writer's rotation or
+  // mirror of the user's transforms; varying its affine, colour or
+  // variations broke the flame's symmetry. Its weight is set below.
+  const userEntries = entriesAfterRemoval.filter(
+    ([tid]) => !isSymmetryCopyId(tid),
+  )
   const targetEntries =
     targetIds && targetIds.length > 0
-      ? entriesAfterRemoval.filter(([tid]) => targetIds.includes(tid))
-      : entriesAfterRemoval
+      ? userEntries.filter(([tid]) => targetIds.includes(tid))
+      : userEntries
 
   // --- Structural mutation: add transforms ---
   // Kept inside the config's transform range: a flame below `minTransforms`
