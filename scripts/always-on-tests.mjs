@@ -113,6 +113,11 @@ export const ALWAYS_ON = [
     genre: 'filesystem',
   },
   {
+    file: 'src/components/WorkspaceSidebar/sidebarGlass.module.test.ts',
+    why: 'reads App.module.css with the card, Slider and PaletteSelector stylesheets whose hooks the glass sidebar sets',
+    genre: 'filesystem',
+  },
+  {
     file: 'src/styles/designSystem/glassContrast.test.ts',
     why: 'reads the ink and glass tokens from lumen.css to measure text contrast on each fill',
     genre: 'filesystem',

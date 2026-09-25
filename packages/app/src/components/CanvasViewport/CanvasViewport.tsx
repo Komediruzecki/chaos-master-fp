@@ -13,6 +13,7 @@ import { getNormalizedVariationName } from '@/flame/variations/utils'
 import { Menu } from '@/icons'
 import { workspaceIsVisible } from '@/lib/activeTab'
 import { AutoCanvas } from '@/lib/AutoCanvas'
+import { leadingCover } from '@/lib/canvasFraming'
 import { WheelZoomCamera2D } from '@/lib/WheelZoomCamera2D'
 import { WheelZoomCamera3D } from '@/lib/WheelZoomCamera3D'
 import { useElementSize } from '@/utils/useElementSize'
@@ -153,6 +154,13 @@ export function CanvasViewport(props: CanvasViewportProps) {
   const edgeFade = createMemo(() =>
     edgeFadeColor(props.theme(), props.showSidebar(), framing.covered()),
   )
+  // While the glass sidebar floats over the canvas, the box spans the
+  // sidebar's column as well (App.module.css, .underSidebar), and the bottom
+  // bar starts where the sidebar's cover ends, where it is with the setting
+  // off. Read from the sidebar's measure rather than from the framing, which
+  // drops the cover while an export sizes the canvas: the layout does not
+  // move for an export.
+  const underSidebar = () => leadingCover() > 0
 
   return (
     // Home and the Arcade cover the editor completely and it stays mounted
@@ -165,12 +173,16 @@ export function CanvasViewport(props: CanvasViewportProps) {
       ref={setContainer}
       class={ui.canvasContainer}
       data-tour-target="canvas"
-      classList={{ [ui.fullscreen as string]: !props.showSidebar() }}
+      classList={{
+        [ui.fullscreen as string]: !props.showSidebar(),
+        [ui.underSidebar as string]: underSidebar(),
+      }}
       // The hover badge centres on the part on show (App.module.css).
       style={{
         '--rail-inset': `${props.railInset?.() ?? 0}px`,
         '--covered-left': coveredStyle(framing.covered().left),
         '--covered-right': coveredStyle(framing.covered().right),
+        '--leading-cover': underSidebar() ? `${leadingCover()}px` : undefined,
       }}
       inert={!workspaceIsVisible()}
       onClick={props.onCanvasClick}

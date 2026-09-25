@@ -45,6 +45,28 @@
   grid-column-end: inspector;
 }
 
+/* The same for the desktop sidebar, which floats over the canvas as glass
+   while the Glass panels setting applies (WorkspaceSidebar/useSidebarGlass.ts
+   decides, and marks the canvas box .underSidebar while it does): the box
+   spans the sidebar's column as well and drops the 0.4rem tuck, and the
+   sidebar keeps its cell and sits over the canvas in it. The bottom bar,
+   which paints above the sidebar, starts where the sidebar's cover ends
+   (--leading-cover, CanvasViewport.tsx), where it sits with the setting off.
+   Hidden, the sidebar covers nothing and the box is the full-screen one. The
+   camera frames the flame in the part the sidebar leaves visible
+   (lib/canvasFraming.ts). Not at the mobile widths, where the sidebar is a
+   drawer and there is no column to span. */
+@media (min-width: 769px) {
+  .canvas-container.underSidebar:not(.fullscreen) {
+    grid-column-start: sidebar;
+    margin-left: 0;
+  }
+
+  .underSidebar > .bottom-bar {
+    left: var(--leading-cover, 0px);
+  }
+}
+
 .canvas-container {
   grid-area: viewport;
   grid-row-end: viewport-controls;
@@ -296,6 +318,59 @@
     z-index: 10009;
     background: var(--color-bg, #04060c);
   }
+}
+
+/* The desktop sidebar while it floats over the canvas as glass: the one
+   blurred layer, as the tablet deck is (TabletDeck.module.css, .floating).
+   WorkspaceSidebar/useSidebarGlass.ts adds it whenever the sidebar floats,
+   except over a duel's stage, and it floats only while the gate in front of
+   optionalPanel holds (lib/glass.ts, optionalPanelGlass), so the primitive it
+   composes is always glass here, and solid while the canvas is busy. Of the
+   edge, only the trailing side faces the canvas.
+
+   The cards the sidebar holds (ControlCard, CollapsibleCard), the shared
+   Slider and PaletteSelector, and the sidebar's own captions below (the
+   transforms toolbar's label, the add-transform button, the render
+   settings' group labels) read hooks for what they take on glass, each with
+   its opaque-sidebar look as the fallback, so setting them here reaches the
+   glass sidebar and nothing else. The cards' bodies lie on the glass; their
+   headers, which are controls, take the gate's opaque control fill; and no
+   text on the glass is lighter than ink-2, the least the panel's 80% fill
+   allows over white-hot art (decision c, lumen.css): the captions' neutral
+   greys measured 2.2:1 and 4.0:1 there. */
+.sidebarGlass {
+  composes: optionalPanel from '@/styles/designSystem/glass.module.css';
+  border-right: var(--la-glass-edge);
+  box-shadow: var(--la-glass-shadow);
+  --card-fill: transparent;
+  --card-edge: var(--la-hairline-strong);
+  --card-head: var(--la-control);
+  --card-head-hover: var(--la-control-strong);
+  --card-ink: var(--la-ink-2);
+  --card-head-ink: var(--la-ink-2);
+  --card-head-ink-hover: var(--la-ink);
+  --slider-ink: var(--la-ink-2);
+  --slider-ink-hover: var(--la-ink);
+  --slider-ink-targeted: var(--la-ink);
+  --slider-track-filled: var(--la-ink-4);
+  --slider-track-empty: var(--la-hairline-strong);
+  --palette-ink: var(--la-ink);
+  --palette-ink-2: var(--la-ink-2);
+  --palette-edge: var(--la-hairline);
+  --palette-edge-hover: var(--la-hairline-strong);
+  --palette-edge-selected: var(--la-accent);
+  --caption-ink: var(--la-ink-2);
+}
+
+/* One blurred layer: the sidebar. A blur inside it samples the sidebar's own
+   fill rather than the art. The overlay that locks the sidebar while the
+   animation plays or renders out would do worse: those are busy states, the
+   sidebar is solid then and no longer the blur's backdrop, so the overlay's
+   blur would take in the canvas under the sidebar and run again on every
+   frame it presents. */
+.sidebar.sidebarGlass * {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 .sidebarScroll {
@@ -614,7 +689,7 @@
 
   [data-theme='dark'] & {
     border-color: var(--neutral-700);
-    color: var(--neutral-400);
+    color: var(--caption-ink, var(--neutral-400));
 
     &:hover {
       color: var(--neutral-200);
@@ -845,7 +920,7 @@
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--neutral-500);
+  color: var(--caption-ink, var(--neutral-500));
 }
 
 .visibility-button {
@@ -1354,13 +1429,17 @@
 /* Chrome glass, like the toast; the desktop's light theme keeps its light
    badge. The badge sits in the workspace, so the layout classes above say
    whether it is on a touch layout. It centres on the part of the canvas on
-   show: --covered-right is the share of it the floating tablet deck covers
-   (CanvasViewport.tsx), unset otherwise. */
+   show: --covered-right is the share of it the floating tablet deck covers,
+   --covered-left the share the glass desktop sidebar covers
+   (CanvasViewport.tsx), each unset otherwise. `left` takes the one and
+   `margin-left` the other, which together put the badge's centre at
+   (1 + left - right) / 2 of the box. */
 .hover-preview-badge {
   composes: chrome from '@/styles/designSystem/glass.module.css';
   position: absolute;
   top: 10px;
   left: calc((1 - var(--covered-right, 0)) * 50%);
+  margin-left: calc(var(--covered-left, 0) * 50%);
   transform: translateX(-50%);
   z-index: 101;
   display: inline-flex;
@@ -1631,7 +1710,7 @@
   user-select: none;
 
   [data-theme='dark'] & {
-    color: var(--neutral-500);
+    color: var(--caption-ink, var(--neutral-500));
   }
 }
 
