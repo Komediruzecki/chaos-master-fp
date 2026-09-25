@@ -81,101 +81,12 @@
   transition: opacity 0.2s ease;
 }
 
-/* Floating touch menu anchored top-left (tablet/mobile only) */
-.touchContainer,
-.versionContainer {
-  position: fixed;
-  left: max(8px, env(safe-area-inset-left));
-  top: max(8px, env(safe-area-inset-top));
-  z-index: 50;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  font-family: inherit;
-}
-
-/* Collapsed Trigger Button (sleek circular hamburger button) */
-.menuTrigger {
-  composes: chrome from '@/styles/designSystem/glass.module.css';
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  border-radius: 50%;
-  background: var(--la-glass-strong);
-  color: #cbd5e1;
-  cursor: pointer;
-  transition: all 0.18s ease;
-  touch-action: manipulation;
-  user-select: none;
-}
-
-.menuTrigger:hover {
-  background: rgba(22, 28, 48, 0.95);
-  border-color: rgba(56, 189, 248, 0.45);
-  color: #38bdf8;
-  transform: scale(1.04);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
-}
-
-.menuTriggerActive {
-  background: rgba(22, 28, 48, 0.98);
-  border-color: #38bdf8;
-  color: #38bdf8;
-  box-shadow: 0 0 14px rgba(56, 189, 248, 0.35);
-}
-
-.triggerIcon {
-  width: 16px;
-  height: 16px;
-  color: inherit;
-  stroke: currentColor;
-  fill: none;
-  flex-shrink: 0;
-}
-
 /* Invisible backdrop to dismiss popover when clicking outside */
 .popoverBackdrop {
   position: fixed;
   inset: 0;
   z-index: 51;
   background: transparent;
-}
-
-/* Downward expanding popover menu */
-.menuPopover {
-  composes: optionalPanel from '@/styles/designSystem/glass.module.css';
-  transition: background-color var(--la-dur-fast) var(--la-ease);
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
-  bottom: auto;
-  z-index: 52;
-  width: 250px;
-  max-width: calc(100vw - 20px);
-  padding: 6px;
-  border-radius: 12px;
-  background: #0d121f;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  contain: paint layout;
-  animation: popoverSlideDown 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-@keyframes popoverSlideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-6px) scale(0.97);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
 }
 
 /* Upward expanding popover menu for desktop bottom-right */

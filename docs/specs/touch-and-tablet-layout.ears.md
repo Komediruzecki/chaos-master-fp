@@ -66,8 +66,7 @@ desktop sidebar, the timeline, the Arena/Arcade overlays, or the export pipeline
   touch-pointer passthrough, drag-suppresses-click, interactive-input exemption
   (REQ-TL-032 … REQ-TL-035); there is no disposal test, so REQ-TL-036 is unguarded
 - `packages/app/src/components/SoftwareVersion/SoftwareVersion.test.tsx` — the
-  desktop/touch menu variants and both directions of the layout switch
-  (REQ-TL-039)
+  desktop menu and its switch to the touch layout (REQ-TL-039)
 - _Gap:_ `Toast.tsx` and `ExportJobTracker.tsx` have **no test file at all**,
   `MainWorkspace.tsx` and `CanvasViewport.tsx` have tests for other concerns
   only (`MainWorkspace.capture.test.ts`, `CanvasViewport.badge.test.tsx`), and no
@@ -203,7 +202,7 @@ that only needs "is this a touch layout" shall read it rather than re-deriving
 the union.
 
 _(`workspaceLayoutStore.ts:202` (`isTouchLayout`); read by `Toast.tsx:20` (`toastRegionTouch`), `:30` (`toastTouch`),
-`ExportJobTracker.tsx:55` (`trackerTouch`), `SoftwareVersion.tsx:31` (`globalIsTouchLayout`), and
+`ExportJobTracker.tsx:55` (`trackerTouch`), and
 `MainWorkspace.tsx:4039` (`isTouchLayout`), `:4049` (`isTouchLayout`), `:4058` (`isTouchLayout`), `:4057` (`isTouchLayout`). Guarded by
 `workspaceLayoutStore.test.ts:215-216` (`isTouchLayout`), `:232-233` (`isTouchLayout`).)_
 
@@ -267,8 +266,9 @@ actions, and the desktop version pill — and shall mount no TouchSurface
 component except the `AdvancedToolsDrawer`, which is always mounted but renders
 nothing while closed.
 
-_(`MainWorkspace.tsx:3838` (`isPhone`), `:4080` (`isPhone`), `:4380` (`showArena`); `SoftwareVersion.tsx:193-196` (`isTouch`)
-selects the desktop trigger from `isTouchLayout()`; `AdvancedToolsDrawer.tsx:128` (`open`)
+_(`MainWorkspace.tsx:3838` (`isPhone`), `:4080` (`isPhone`), `:4380` (`showArena`); `SoftwareVersion.tsx:183` (`hideTrigger`)
+renders only the desktop trigger, and `MainWorkspace.tsx:4500` (`hideVersionTrigger`) hides it
+under `isTouchLayout()`; `AdvancedToolsDrawer.tsx:128` (`open`)
 wraps the whole panel in `<Show when={props.open}>`.)_
 
 ### REQ-TL-014 — No orphaned hamburger under a touch layout
@@ -592,11 +592,16 @@ fire — the preference write and toast live in `MainWorkspace`, which has no te
 **Where** the app menu is shown, its first entry shall write the opposite
 preference to the current layout — "Switch to Touch Studio" writing `'touch'`
 from the desktop pill, "Switch to Desktop Layout" writing `'desktop'` from the
-touch hamburger — and shall close the menu in the same click.
+touch layout's tools drawer — and shall close the menu in the same click.
 
-_(`SoftwareVersion.tsx:53-75` (`renderMenuItems`), `:194-259` (`isTouch`); the writer prefers the injected
-`setTouchLayoutPreference` prop and falls back to the module setter at `:32-38` (`setTouchPref`).
-Guarded by `SoftwareVersion.test.tsx:53-58` (`fireEvent`) and `:92-95` (`Desktop`).)_
+_(`SoftwareVersion.tsx:49-65` (`renderMenuItems`); the writer prefers the injected
+`setTouchLayoutPreference` prop and falls back to the module setter at `:28-34` (`setTouchPref`).
+The touch direction is `AdvancedToolsDrawer.tsx:50-62` (`onSwitchToDesktop`), wired to
+`setTouchLayoutPreference('desktop')` at `MainWorkspace.tsx:4019-4020` (`onSwitchToDesktop`).
+Guarded by `SoftwareVersion.test.tsx:52-56` (`fireEvent`) and `TouchSurface.test.tsx:236-237`
+(`onSwitchToDesktop`). SoftwareVersion's touch hamburger, which this requirement named until
+2026-09-25, was removed then: every touch layout hid it through `hideTrigger`, so it never
+rendered.)_
 
 ---
 

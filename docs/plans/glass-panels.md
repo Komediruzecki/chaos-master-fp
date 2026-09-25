@@ -496,14 +496,21 @@ Each rule comes from one of the earlier cuts.
 ## 8. Found on the way, out of scope
 
 - **Unused code.**
-  - `components/BenchmarkButton/*` and `components/Timeline/TimelineRuler.*` have no users.
+  - Removed on 2026-09-25: `components/BenchmarkButton/*` and `components/Timeline/TimelineRuler.*`,
+    which had no users. The focus-ring guard's light-fill list lost `.benchmark-btn` with them.
+    The ruler was the only caller of `getAllTrackFrames` (`utils/timeline.ts`), which now has
+    only its own tests.
   - These rules in `ArenaOverlay.module.css` have no references: `.header` (241-253),
     `.spectatorTopBar` (1080-1092), `.spectatorHud`, `.spectatorStage`, `.commentaryBox` and
     `.roundsBar`.
 - **Undefined class.** `ArcadeModePanel.tsx:411` and `:470` use `ui.soloDuelButton`, which
   `ArcadeHub.module.css` does not define.
-- **Unreachable branch.** The SoftwareVersion touch branch (`SoftwareVersion.tsx:193-195`) never
-  runs, because `isTouch()` and `hideTrigger` are both `isTouchLayout`.
+- **Unreachable branch.** Removed on 2026-09-25: the SoftwareVersion touch branch never ran,
+  because `isTouch()` and `hideTrigger` were both `isTouchLayout`. The branch, the
+  `isTouchLayout` and `touchLayoutPreference` props only it read, and the rules only it used
+  (`.touchContainer`, `.versionContainer`, `.menuTrigger`, `.menuTriggerActive`, `.triggerIcon`,
+  `.menuPopover` and its keyframes) went together, and the SURFACES table lost its
+  `.menuPopover` entry.
 - **Token name collision.** PopulationSimulator redefines `--la-surface` and `--la-hairline`
   locally. The shared rules would pick those values up inside it.
 - **Undefined variables.** Several modules read `--color-*` and `--accent` variables that are

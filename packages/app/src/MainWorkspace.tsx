@@ -4491,9 +4491,7 @@ export function MainWorkspace(props: AppProps) {
               void showHelp()
             }}
             devCrashTest={devCrashTest}
-            touchLayoutPreference={touchLayoutPreference}
             setTouchLayoutPreference={setTouchLayoutPreference}
-            isTouchLayout={isTouchLayout}
             /* Every touch layout, not just the ones with the rail. Gated on
                `railLayout` this hid on the phone and on a narrow tablet and
                showed on the one layout that also mounts the NavRail: the

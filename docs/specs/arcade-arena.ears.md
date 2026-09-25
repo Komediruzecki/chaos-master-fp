@@ -15,7 +15,7 @@ engine itself beyond the tracks the arena writes into it, or `VariationPreview` 
 **Source:**
 
 - `packages/app/src/hooks/useWorkspaceArena.ts` — arena signals, Player 1 seeding on entry, sidebar/timeline save-and-restore
-- `packages/app/src/components/WorkspaceModalsHost/WorkspaceModalsHost.tsx:96-104` (`showArena`) — the mount gate for the overlay
+- `packages/app/src/components/WorkspaceModalsHost/WorkspaceModalsHost.tsx:92-100` (`showArena`) — the mount gate for the overlay
 - `packages/app/src/components/ArenaOverlay.tsx` — the HUD, fighter slots, spectator pacing, results, champion-card export
 - `packages/app/src/components/ArenaOverlay.module.css` — full-screen immersion, `isClashing`, shake and shockwave presentation
 - `packages/app/src/MainWorkspace.tsx:3155-3286` (`initialStartClash`) — the arena facade on the command context, `selectFighter`, and the placeholder `startClash`
@@ -81,7 +81,7 @@ immediately before entry.
 _(`useWorkspaceArena.ts:40-59` (`preArenaSidebar`) — the effect is `defer: true`, so mounting the workspace
 with the arena closed does not clobber the user's panel state; the overlay itself is
 mounted only under `Show when={props.showArena()}` inside a `Suspense`,
-`WorkspaceModalsHost.tsx:96-104`.)_
+`WorkspaceModalsHost.tsx:92-100`.)_
 
 ### REQ-AA-004 — Fighter previews render inside the arena's own compute gate
 

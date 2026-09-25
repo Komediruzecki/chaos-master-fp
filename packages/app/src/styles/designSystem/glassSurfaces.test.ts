@@ -146,11 +146,6 @@ const SURFACES: [primitive: string, file: string, selector: string][] = [
   [
     'optionalPanel',
     'components/SoftwareVersion/SoftwareVersion.module.css',
-    '.menuPopover',
-  ],
-  [
-    'optionalPanel',
-    'components/SoftwareVersion/SoftwareVersion.module.css',
     '.menuPopoverUp',
   ],
   [
@@ -410,7 +405,6 @@ describe('the focus ring on a glass surface', () => {
     ).toEqual([
       'App.module.css .toast',
       'App.module.css .hover-preview-badge',
-      'components/BenchmarkButton/BenchmarkButton.module.css .benchmark-btn',
       'components/SoftwareVersion/SoftwareVersion.module.css .desktopTrigger',
     ])
   })
