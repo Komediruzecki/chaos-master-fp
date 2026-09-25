@@ -347,11 +347,15 @@
    headers, which are controls, take the gate's opaque control fill; and no
    text on the glass is lighter than ink-2, the least the panel's 80% fill
    allows over white-hot art (decision c, lumen.css): the captions' neutral
-   greys measured 2.2:1 and 4.0:1 there. */
+   greys measured 2.2:1 and 4.0:1 there. The fill fades as busy turns the
+   panel solid and back, beside the transform the sidebar already eases. */
 .sidebarGlass {
   composes: optionalPanel from '@/styles/designSystem/glass.module.css';
   border-right: var(--la-glass-edge);
   box-shadow: var(--la-glass-shadow);
+  transition:
+    transform 200ms ease,
+    background-color var(--la-dur-fast) var(--la-ease);
   --card-fill: transparent;
   --card-edge: var(--la-hairline-strong);
   --card-head: var(--la-control);

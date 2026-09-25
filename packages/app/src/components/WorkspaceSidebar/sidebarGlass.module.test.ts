@@ -149,6 +149,17 @@ describe('the glass sidebar surface', () => {
     expect(inside.get('backdrop-filter')).toBe('none')
   })
 
+  it('fades its fill as busy turns it solid, and keeps easing its transform', () => {
+    // optionalPanel sets no transition, and the sidebar's own eases its
+    // transform only: without background-color there the fill snaps between
+    // the glass and the solid fill whenever playback starts or stops.
+    expect(sidebarGlass.get('transition')).toBe(
+      'transform 200ms ease, background-color var(--la-dur-fast) var(--la-ease)',
+    )
+    const sidebar = ownDeclarations(blockOf(app, /^\.sidebar\s*\{/m))
+    expect(sidebar.get('transition')).toBe('transform 200ms ease')
+  })
+
   it.each([
     {
       what: 'the cards',
