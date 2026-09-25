@@ -10,6 +10,7 @@ import { AngleEditor } from '@/components/Sliders/ParametricEditors/AngleEditor'
 import { ScrubInput } from '@/components/Sliders/ScrubInput'
 import { Slider } from '@/components/Sliders/Slider'
 import { random01, randomizeVariationParams } from '@/flame/randomize'
+import { isSymmetryMirror } from '@/flame/symmetryDetection'
 import { isAnyParametricVariationType, isVariationType, } from '@/flame/variations'
 import { getNormalizedVariationName, getParamsEditor, } from '@/flame/variations/utils'
 import { Cross, Eye, EyeOff, Plus, Shuffle } from '@/icons'
@@ -615,10 +616,7 @@ export function TransformsSection(props: TransformsSectionProps) {
                   const transform = () =>
                     flameDescriptor.transforms[tid as TransformId]!
                   const preAffine = () => transform().preAffine
-                  const isReflection = () => {
-                    const a = preAffine()
-                    return a.a === -1 && a.d === 0 && a.b === 0 && a.e === 1
-                  }
+                  const isReflection = () => isSymmetryMirror(preAffine())
                   const angle = () => {
                     const a = preAffine()
                     let v = Math.atan2(a.d, a.a)

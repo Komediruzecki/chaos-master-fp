@@ -386,7 +386,7 @@ or unmount; only `loadTracks`, `clearAllTracks` and the Home hand-off reset shal
 clear `previewHeld`.
 
 _(`utils/timeline.ts:1437-1505` (`advanceFrame`), `:1710-1711` (`clearAllTracks`), `:1755-1756` (`loadTracks`);
-`useSeekScrubber.ts:11-17` (`finishSeek`), `:33-36` (`finishSeek`), `:68-70` (`onCleanup`); `MainWorkspace.tsx:2410-2416` (`pause`).)_
+`useSeekScrubber.ts:11-17` (`finishSeek`), `:33-36` (`finishSeek`), `:68-70` (`onCleanup`); `MainWorkspace.tsx:2400-2406` (`pause`).)_
 
 ### REQ-TA-026 — Playback advances at the configured rate, or on quality with Auto FPS
 
@@ -422,8 +422,8 @@ capped, `flatness` as computed, `onset` as its rolling-median strength, and
 `beat` as `1` on a detected beat and `0` otherwise. An unrecognised feature name
 shall yield `0`.
 
-_(`audioAnalysis.ts:593-615` (`getAudioFeatureNormalized`), `:101-154` (`getFftBands`); beats at `:183-226` (`computeBeats`) — spectral-flux peaks
-above `mean + 1.5σ` with a 100 ms minimum gap; onsets at `:233-276` (`computeOnsetStrengths`).)_
+_(`audioAnalysis.ts:595-617` (`getAudioFeatureNormalized`), `:103-156` (`getFftBands`); beats at `:185-228` (`computeBeats`) — spectral-flux peaks
+above `mean + 1.5σ` with a 100 ms minimum gap; onsets at `:235-278` (`computeOnsetStrengths`).)_
 
 ### REQ-TA-029 — Attack and release are a one-pole envelope on the normalized feature
 
@@ -435,7 +435,7 @@ falling, falling back to whichever of the two is set when the other is absent.
 unsmoothed. `prev` shall come from the per-target smoothing state, seeded with the
 current value on the first frame so a mapping does not ramp up from zero.
 
-_(`audioAnalysis.ts:689-723` (`computeSmoothedEnvelope`), called from `:921-927` (`smoothed`); guarded by
+_(`audioAnalysis.ts:691-725` (`computeSmoothedEnvelope`), called from `:923-929` (`smoothed`); guarded by
 `audioAnalysisMappings.test.ts:285` "applies attack and release envelope smoothing across consecutive frames".)_
 
 ### REQ-TA-030 — The mapped value is `lo + smoothed × sensitivity × (hi − lo)`
@@ -446,7 +446,7 @@ the span rather than clipping it, so a sensitivity above 1 can carry the value
 past `range[1]`; keeping the result inside the schema is REQ-TA-032's job, not
 this formula's.
 
-_(`audioAnalysis.ts:617-624` (`mappingToVal`), `:932` (`mappingToVal`); guarded by `audioAnalysisMappings.test.ts:82` "scales the output by the mapping sensitivity".)_
+_(`audioAnalysis.ts:619-626` (`mappingToVal`), `:934` (`mappingToVal`); guarded by `audioAnalysisMappings.test.ts:82` "scales the output by the mapping sensitivity".)_
 
 ### REQ-TA-031 — Sub-threshold movement does not re-render
 
@@ -457,7 +457,7 @@ new smoothed value so the envelope keeps advancing. **If** no target changed on 
 frame, the mapper shall leave `flame.renderSettings` referentially untouched, so
 the render loop sees no new work.
 
-_(`audioAnalysis.ts:631` (`DIRTY_THRESHOLD`), `:728-748` (`settleTargetValue`), `:906-936` (`resolveAudioMappingValues`); guarded by
+_(`audioAnalysis.ts:633` (`DIRTY_THRESHOLD`), `:730-750` (`settleTargetValue`), `:908-938` (`resolveAudioMappingValues`); guarded by
 `audioAnalysisMappings.test.ts:338` "skips redundant writes when changes are below the dirty threshold".)_
 
 ### REQ-TA-032 — Audio modulation cannot leave the flame schema-invalid
@@ -473,7 +473,7 @@ Rationale, not decoration: audio modulation writes straight into the live
 descriptor, and one out-of-range `palettePhase` makes that flame permanently
 un-breedable, un-exportable and un-openable in the ancestry tree.
 
-_(`audioAnalysis.ts:651-678` (`RENDER_SETTING_BOUNDS`), `:790-827` (`applyTransformPropertyTarget`), `:776-788` (`applyTransformAffineTarget`), `:830-849` (`applyVariationWeightTarget`); guarded by
+_(`audioAnalysis.ts:653-680` (`RENDER_SETTING_BOUNDS`), `:792-829` (`applyTransformPropertyTarget`), `:778-790` (`applyTransformAffineTarget`), `:832-851` (`applyVariationWeightTarget`); guarded by
 `audioMappingClamp.test.ts:62-128` "keeps a wildly out-of-range palettePhase valid" and `audioAnalysisMappings.test.ts:176` "enforces safe probability lower bound for transform probability target", `:244` "gracefully handles out-of-bounds transform indices".)_
 
 ### REQ-TA-033 — Auditioning a track is not the same as driving the flame
