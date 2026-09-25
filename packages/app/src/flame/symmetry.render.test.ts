@@ -8,9 +8,15 @@
  * For every fold count the command accepts, both types and both dimensions,
  * the uniforms the renderer builds from what each writer writes now equal
  * the uniforms it built from what that writer wrote before: the same
- * matrices, probabilities, colours and variations. The one intended change is
- * a 1-fold dihedral set from applySymmetryToFlame, which is now the mirror
- * alone, as the command always wrote it.
+ * matrices, probabilities, colours and variation weights. So do the variation
+ * types, which pick the shader code and are not in the uniforms. The one
+ * intended change is a 1-fold dihedral set from applySymmetryToFlame, which is
+ * now the mirror alone, as the command always wrote it.
+ *
+ * The bases have one transform of probability 1, and two transforms whose
+ * probabilities sum to 0.6 and to 1.7: a symmetry transform's probability is
+ * the other transforms' total, at least 1, so a base at exactly 1 cannot tell
+ * the floor or the total from a constant.
  */
 import { describe, expect, it } from 'vitest'
 import { MAX_SYMMETRY_FOLDS } from '@/commands/builtins/flame/helpers'
@@ -140,44 +146,81 @@ function withBefore(flame: FlameDescriptor, before: Written[]) {
   return copy
 }
 
-function uniforms(flame: FlameDescriptor) {
-  return flame.renderSettings.dimensions === 3
-    ? extractFlameUniforms3D(flame)
-    : extractFlameUniforms(flame)
+/** What the renderer is given: the uniforms, and each variation's type. */
+function picture(flame: FlameDescriptor) {
+  const types = Object.fromEntries(
+    Object.entries(flame.transforms).map(([tid, t]) => [
+      tid,
+      Object.values(t.variations).map((v) => v.type),
+    ]),
+  )
+  return {
+    uniforms:
+      flame.renderSettings.dimensions === 3
+        ? extractFlameUniforms3D(flame)
+        : extractFlameUniforms(flame),
+    types,
+  }
 }
+
+/** `base` with its one transform repeated, at these probabilities. */
+function spread(base: FlameDescriptor, probabilities: number[]) {
+  const copy = structuredClone(base)
+  const [tid, transform] = Object.entries(copy.transforms)[0]!
+  const transforms: Record<string, unknown> = {}
+  probabilities.forEach((probability, index) => {
+    transforms[`${tid}${index}`] = { ...transform, probability }
+  })
+  copy.transforms = transforms as FlameDescriptor['transforms']
+  return copy
+}
+
+const BASES: { name: string; base: (dims: Dims) => FlameDescriptor }[] = [
+  { name: 'probability 1', base: (dims) => bases[dims] },
+  {
+    name: 'probabilities 0.6',
+    base: (dims) => spread(bases[dims], [0.35, 0.25]),
+  },
+  {
+    name: 'probabilities 1.7',
+    base: (dims) => spread(bases[dims], [0.9, 0.8]),
+  },
+]
 
 describe('the renderer sees what it saw before the writers became one', () => {
   for (const dims of [2, 3] as Dims[]) {
     for (const type of TYPES) {
-      it(`${dims}D ${type}, the command, folds 1-${MAX_SYMMETRY_FOLDS}`, () => {
-        for (let folds = 1; folds <= MAX_SYMMETRY_FOLDS; folds++) {
-          const ws = workspace(bases[dims])
-          executeCommand('flame.applySymmetry', ws.ctx, folds, type)
-          const now = ws.flame()
-          expect(uniforms(now)).toEqual(
-            uniforms(withBefore(now, commandBefore(folds, type))),
-          )
-        }
-      })
-
-      it(`${dims}D ${type}, applySymmetryToFlame, folds 1-${MAX_SYMMETRY_FOLDS}`, () => {
-        for (let folds = 1; folds <= MAX_SYMMETRY_FOLDS; folds++) {
-          const now = applySymmetryToFlame(bases[dims], folds, type)
-          if (folds === 1 && type === 'dihedral') {
-            // The one intended change: D1 is the mirror alone now.
-            expect(symmetryTsBefore(folds, type, dims === 3)).toEqual([])
-            expect(uniforms(now)).toEqual(
-              uniforms(withBefore(now, commandBefore(folds, type))),
+      for (const { name, base } of BASES) {
+        it(`${dims}D ${type}, the command, ${name}, folds 1-${MAX_SYMMETRY_FOLDS}`, () => {
+          for (let folds = 1; folds <= MAX_SYMMETRY_FOLDS; folds++) {
+            const ws = workspace(base(dims))
+            executeCommand('flame.applySymmetry', ws.ctx, folds, type)
+            const now = ws.flame()
+            expect(picture(now)).toEqual(
+              picture(withBefore(now, commandBefore(folds, type))),
             )
-            continue
           }
-          expect(uniforms(now)).toEqual(
-            uniforms(
-              withBefore(now, symmetryTsBefore(folds, type, dims === 3)),
-            ),
-          )
-        }
-      })
+        })
+
+        it(`${dims}D ${type}, applySymmetryToFlame, ${name}, folds 1-${MAX_SYMMETRY_FOLDS}`, () => {
+          for (let folds = 1; folds <= MAX_SYMMETRY_FOLDS; folds++) {
+            const now = applySymmetryToFlame(base(dims), folds, type)
+            if (folds === 1 && type === 'dihedral') {
+              // The one intended change: D1 is the mirror alone now.
+              expect(symmetryTsBefore(folds, type, dims === 3)).toEqual([])
+              expect(picture(now)).toEqual(
+                picture(withBefore(now, commandBefore(folds, type))),
+              )
+              continue
+            }
+            expect(picture(now)).toEqual(
+              picture(
+                withBefore(now, symmetryTsBefore(folds, type, dims === 3)),
+              ),
+            )
+          }
+        })
+      }
     }
   }
 })
