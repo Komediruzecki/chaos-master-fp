@@ -21,7 +21,8 @@ name: Capacitor app
 #                     a PR is built against its own base. No macOS runner.
 #   release tag       The release. Android store artifacts, a signed iOS
 #                     archive uploaded to TestFlight with the tag's version as
-#                     the marketing version, and an ad-hoc IPA.
+#                     the marketing version, and an ad-hoc IPA that is
+#                     exported but never uploaded.
 #   manual run        A release rehearsal that stops short of the store: the
 #                     Android release artifacts, and a signed iOS archive that
 #                     is thrown away. Run from a release tag, it is the release
@@ -818,17 +819,26 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: -k "$keychain_password" "$keychain" > /dev/null
           rm -f "$RUNNER_TEMP/cert.p12"
           # Apple names the certificate after the account holder, and xcodebuild
-          # prints that name on every CodeSign line. The team ID is a secret and
-          # already masked; mask every holder name in this keychain before a
-          # later step can print one. No -v: an untrusted identity is printed
-          # too. A name can itself hold a quote, so it runs from the first
-          # quote to the last. No identity at all means signing cannot work,
-          # so stop here.
-          security find-identity -p codesigning "$keychain" | awk '
+          # prints that name on every CodeSign line, and again shell-escaped
+          # (First\ Last) wherever it dumps a script phase's environment. The
+          # team ID is a secret and already masked; mask every holder name in
+          # this keychain, in both forms, before a later step can print one.
+          # No -v: an untrusted identity is printed too. A name can itself hold
+          # a quote, so it runs from the first quote to the last. No identity
+          # at all means signing cannot work, so stop here.
+          security find-identity -p codesigning "$keychain" | awk -v q="'" '
             /"/ {
               s = $0; sub(/^[^"]*"/, "", s); sub(/"[^"]*$/, "", s)
               sub(/^[^:]*: /, "", s); sub(/ \([^()]*\)$/, "", s)
-              if (s != "") { print "::add-mask::" s; n++ }
+              if (s == "") next
+              print "::add-mask::" s; n++
+              e = ""
+              for (i = 1; i <= length(s); i++) {
+                c = substr(s, i, 1)
+                if (index(" ()\"\\$&;|<>*?!#~`" q, c)) e = e "\\"
+                e = e c
+              }
+              if (e != s) print "::add-mask::" e
             }
             END { if (!n) { print "::error::No signing identity found to mask"; exit 1 } }'
 
@@ -1119,17 +1129,26 @@ jobs:
           rm -f "$RUNNER_TEMP/cert.p12"
 
           # Apple names the certificate after the account holder, and xcodebuild
-          # prints that name on every CodeSign line. The team ID is a secret and
-          # already masked; mask every holder name in this keychain before a
-          # later step can print one. No -v: an untrusted identity is printed
-          # too. A name can itself hold a quote, so it runs from the first
-          # quote to the last. No identity at all means signing cannot work,
-          # so stop here.
-          security find-identity -p codesigning "$keychain" | awk '
+          # prints that name on every CodeSign line, and again shell-escaped
+          # (First\ Last) wherever it dumps a script phase's environment. The
+          # team ID is a secret and already masked; mask every holder name in
+          # this keychain, in both forms, before a later step can print one.
+          # No -v: an untrusted identity is printed too. A name can itself hold
+          # a quote, so it runs from the first quote to the last. No identity
+          # at all means signing cannot work, so stop here.
+          security find-identity -p codesigning "$keychain" | awk -v q="'" '
             /"/ {
               s = $0; sub(/^[^"]*"/, "", s); sub(/"[^"]*$/, "", s)
               sub(/^[^:]*: /, "", s); sub(/ \([^()]*\)$/, "", s)
-              if (s != "") { print "::add-mask::" s; n++ }
+              if (s == "") next
+              print "::add-mask::" s; n++
+              e = ""
+              for (i = 1; i <= length(s); i++) {
+                c = substr(s, i, 1)
+                if (index(" ()\"\\$&;|<>*?!#~`" q, c)) e = e "\\"
+                e = e c
+              }
+              if (e != s) print "::add-mask::" e
             }
             END { if (!n) { print "::error::No signing identity found to mask"; exit 1 } }'
 
