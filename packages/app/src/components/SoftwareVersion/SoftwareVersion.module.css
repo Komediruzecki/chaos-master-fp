@@ -10,15 +10,17 @@
 }
 
 .desktopTrigger {
+  composes: chrome from '@/styles/designSystem/glass.module.css';
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
   padding: 0.3rem 0.6rem 0.3rem 0.5rem;
   border-radius: 999px;
+  /* The light theme keeps its own white pill over chrome's blur; the dark
+     theme's pill is chrome itself, below. */
   border: 1px solid rgba(0, 0, 0, 0.08);
   background: rgba(255, 255, 255, 0.75);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
+  box-shadow: none;
   font-size: 0.8rem;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -48,16 +50,14 @@
 }
 
 [data-theme='dark'] .desktopTrigger {
-  border-color: rgba(255, 255, 255, 0.08);
-  background: rgba(0, 0, 0, 0.5);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
+  border: var(--la-glass-edge);
+  background: var(--la-glass);
   color: rgba(255, 255, 255, 0.45);
 }
 
 [data-theme='dark'] .desktopTrigger:hover {
   border-color: rgba(255, 255, 255, 0.15);
-  background: rgba(0, 0, 0, 0.7);
+  background: var(--la-glass-strong);
   color: rgba(255, 255, 255, 0.7);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
@@ -203,6 +203,7 @@
 
 /* Collapsed Trigger Button (sleek circular hamburger button) */
 .menuTrigger {
+  composes: chrome from '@/styles/designSystem/glass.module.css';
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -210,13 +211,9 @@
   height: 36px;
   padding: 0;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(14, 18, 30, 0.88);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
+  background: var(--la-glass-strong);
   color: #cbd5e1;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
   transition: all 0.18s ease;
   touch-action: manipulation;
   user-select: none;

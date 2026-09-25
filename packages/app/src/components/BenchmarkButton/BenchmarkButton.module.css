@@ -2,6 +2,7 @@
   /* Sits inline in the bottom-right control row (Benchmark · Docs · version),
      anchored by SoftwareVersion's container — so it has no fixed position of its
      own. Sized to match the Docs / About pill height. */
+  composes: chrome from '@/styles/designSystem/glass.module.css';
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -9,10 +10,10 @@
   height: 1.75rem;
   padding: 0;
   border-radius: 999px;
+  /* As the version pill: white in the light theme, chrome in the dark. */
   border: 1px solid rgba(0, 0, 0, 0.08);
   background: rgba(255, 255, 255, 0.75);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
+  box-shadow: none;
 
   color: rgba(0, 0, 0, 0.4);
   cursor: pointer;
@@ -40,15 +41,13 @@
   }
 
   [data-theme='dark'] & {
-    border-color: rgba(255, 255, 255, 0.08);
-    background: rgba(0, 0, 0, 0.5);
-    -webkit-backdrop-filter: blur(8px);
-    backdrop-filter: blur(8px);
+    border: var(--la-glass-edge);
+    background: var(--la-glass);
     color: rgba(255, 255, 255, 0.35);
 
     &:hover {
       border-color: rgba(255, 255, 255, 0.15);
-      background: rgba(0, 0, 0, 0.7);
+      background: var(--la-glass-strong);
       color: oklch(72% 0.16 35);
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     }
