@@ -40,6 +40,12 @@
  *   frostFade
  *           frost for a bar across the foot of a thumbnail, its fill
  *           fading out upwards (--la-frost-fade).
+ *   scrim   Not glass either: the full-screen layer a blocking screen lays
+ *           over the app, such as the welcome screen and the crash screen.
+ *           The --la-scrim-sheet fill and --la-scrim-blur. Reduce
+ *           Transparency makes it the heavy scrim with no blur, and so does
+ *           a browser without backdrop-filter. A screen that must hide more
+ *           of the app sets the --la-scrim-heavy fill itself.
  *
  * The four glass classes carry --la-glass-edge and --la-glass-shadow. Every
  * rule here that sets backdrop-filter writes it in both spellings, the
@@ -189,7 +195,8 @@
   --la-control-accent: var(--la-control-accent-on-glass);
 }
 
-/* Not glass, so none of the rules below name them. */
+/* Not glass, so the glass rules below leave them alone; only the fallback
+   at the end names the scrim. */
 :where(.frost):not(html) {
   background: var(--la-frost);
   -webkit-backdrop-filter: var(--la-frost-blur);
@@ -200,6 +207,12 @@
   background: var(--la-frost-fade);
   -webkit-backdrop-filter: var(--la-frost-blur);
   backdrop-filter: var(--la-frost-blur);
+}
+
+:where(.scrim):not(html) {
+  background: var(--la-scrim-sheet);
+  -webkit-backdrop-filter: var(--la-scrim-blur);
+  backdrop-filter: var(--la-scrim-blur);
 }
 
 /* ---- The Glass panels setting --------------------------------------- */
@@ -270,5 +283,10 @@
     :global(body:not([data-theme='light']))
     .optionalPanel {
     background: var(--la-glass-solid);
+  }
+
+  /* An unblurred 55% scrim leaves the app behind it too sharp to recede. */
+  :root .scrim {
+    background: var(--la-scrim-heavy);
   }
 }

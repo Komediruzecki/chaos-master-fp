@@ -122,6 +122,9 @@
   --la-scrim-dim: rgba(8, 10, 14, 0.35);
   --la-scrim-heavy: rgba(8, 10, 14, 0.8); /* Reduce Transparency substitute */
   --la-scrim-sheet: rgba(8, 10, 14, 0.55); /* behind a modal or sheet */
+  /* What a full-screen scrim does to the app behind it (glass.module.css,
+     scrim). Light enough that the app still reads as the place you are. */
+  --la-scrim-blur: blur(10px);
   --la-scrim-top: linear-gradient(
     to bottom,
     rgba(8, 10, 14, 0.55) 0%,
@@ -346,6 +349,8 @@
     --la-frost: var(--la-scrim-heavy);
     --la-frost-blur: none;
     --la-scrim-dim: var(--la-scrim-heavy);
+    --la-scrim-sheet: var(--la-scrim-heavy);
+    --la-scrim-blur: none;
   }
 }
 
