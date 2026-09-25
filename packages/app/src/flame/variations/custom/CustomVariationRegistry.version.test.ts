@@ -6,7 +6,7 @@
  */
 import { createComputed, createRoot } from 'solid-js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { clearAllCustomVariations, createCustomVariation, customVariationsVersion, deleteCustomVariation, getCacheVersion, importSharedVariations, loadCustomVariations, persistSharedVariations, updateCustomVariation, } from './CustomVariationRegistry'
+import { clearAllCustomVariations, createCustomVariation, customVariationsVersion, deleteCustomVariation, getCacheVersion, importSharedVariations, loadAndImportSharedVariations, loadCustomVariations, persistSharedVariations, updateCustomVariation, } from './CustomVariationRegistry'
 import type { CustomVariationDef } from './types'
 
 const STORAGE_KEY = 'chaos-master-custom-variations'
@@ -121,6 +121,14 @@ describe('the custom variations version', () => {
         persistSharedVariations(ids)
       }),
     ).toBe(1)
+  })
+
+  it('changes once when the library loads and a link imports against it', () => {
+    saveLibrary()
+    const defs = linkDefs()
+    expect(notificationsDuring(() => loadAndImportSharedVariations(defs))).toBe(
+      1,
+    )
   })
 
   it('is saved before anything that follows it runs', () => {

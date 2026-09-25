@@ -13,6 +13,7 @@ export {
   previewCustomVariation,
   collectFlameCustomVariations,
   importSharedVariations,
+  loadAndImportSharedVariations,
   persistSharedVariations,
   remapFlameCustomVariations,
   generateCustomVariationId,

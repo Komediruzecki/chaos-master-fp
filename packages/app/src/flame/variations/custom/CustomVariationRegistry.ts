@@ -506,6 +506,20 @@ export function importSharedVariations(
 }
 
 /**
+ * Load the saved library, then import a link's variations against it, so the
+ * collision checks see the library. One change, so an open renderer rebuilds
+ * once, not once for the load and again for the import.
+ */
+export function loadAndImportSharedVariations(
+  defs: readonly unknown[],
+): SharedImportResult {
+  return batch(() => {
+    loadCustomVariations()
+    return importSharedVariations(defs)
+  })
+}
+
+/**
  * Persist transient (shared) variations into the saved library after the
  * recipient accepts them. Ids not present in the transient set are ignored.
  */
