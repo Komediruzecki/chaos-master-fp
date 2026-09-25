@@ -338,6 +338,7 @@ file instead of rediscovering the architecture every session.
 <!-- prettier-ignore-start -->
 | File | What it is |
 |---|---|
+| [canvasFraming.ts](../../packages/app/src/lib/canvasFraming.ts) | Framing the editor canvas around the chrome that floats over it: which part of the canvas is on show, and the view-only shift that centre... |
 | [galleryContent.ts](../../packages/app/src/lib/galleryContent.ts) | _(no header comment)_ |
 | [pauseSave.ts](../../packages/app/src/lib/pauseSave.ts) | _(no header comment)_ |
 | [WebgpuAdapter.ts](../../packages/app/src/lib/WebgpuAdapter.ts) | _(no header comment)_ |
