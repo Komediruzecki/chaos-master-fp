@@ -14,14 +14,15 @@
 // worse than no tick.
 //
 // So the list polices itself. This walks every app test file, flags the ones
-// of that genre, and fails unless each is on ALWAYS_ON or on EXEMPT with a
-// written reason. It checks the other direction too: every ALWAYS_ON entry
+// of that genre, whether they read the tree themselves or through a testUtils
+// helper they import, and fails unless each is on ALWAYS_ON or on EXEMPT
+// with a written reason. It checks the other direction too: every ALWAYS_ON entry
 // marked `genre: 'filesystem'` must still be flagged, so weakening the
 // detector turns this red instead of silent.
 //
 // This test reads the tree itself, which is why it is on the list it guards.
-import { readdirSync, readFileSync, statSync } from 'node:fs'
-import { join, relative } from 'node:path'
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
+import { dirname, join, relative } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { ALWAYS_ON, EXEMPT } from '../../../scripts/always-on-tests.mjs'
 
@@ -57,13 +58,37 @@ function testFiles(dir: string, acc: string[] = []): string[] {
   return acc
 }
 
-/** Every app test file, with the genre markers found in it. */
+/**
+ * The testUtils helpers a test imports by a relative path, such as
+ * styles/designSystem/testUtils.ts, with their source: a read a helper makes
+ * is the test's, and gives the module graph no more of an edge to the tree.
+ */
+function helpersOf(full: string, source: string) {
+  return [...source.matchAll(/from\s+['"](\.\.?\/[^'"]*testUtils)['"]/g)].map(
+    (m) => {
+      const base = join(dirname(full), m[1]!)
+      const path = [`${base}.ts`, `${base}.tsx`].find((p) => existsSync(p))
+      if (!path) throw new Error(`${posix(relative(APP, full))}: no ${m[1]}`)
+      return { name: m[1]!, source: readFileSync(path, 'utf8') }
+    },
+  )
+}
+
+const markersIn = (source: string) =>
+  GENRE.filter(([re]) => re.test(source)).map(([, name]) => name)
+
+/** Every app test file, with the genre markers found in it or its helpers. */
 const scanned = testFiles(join(APP, 'src'))
   .map((full) => {
     const source = readFileSync(full, 'utf8')
     return {
       file: posix(relative(APP, full)),
-      markers: GENRE.filter(([re]) => re.test(source)).map(([, name]) => name),
+      markers: [
+        ...markersIn(source),
+        ...helpersOf(full, source).flatMap((helper) =>
+          markersIn(helper.source).map((name) => `${name} in ${helper.name}`),
+        ),
+      ],
     }
   })
   .sort((a, b) => a.file.localeCompare(b.file))

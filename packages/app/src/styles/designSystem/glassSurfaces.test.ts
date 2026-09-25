@@ -22,46 +22,56 @@
  * Read from disk rather than imported: the test runtime turns a CSS module
  * import into class names. So it is registered in scripts/always-on-tests.mjs.
  */
-import { readdirSync, readFileSync, statSync } from 'node:fs'
-import { join, relative } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { blocksOf, readStylesheets, subjectOf } from './testUtils'
 
-const SRC = join(import.meta.dirname, '..', '..')
 const GLASS = "'@/styles/designSystem/glass.module.css'"
 
-function filesUnder(dir: string): string[] {
-  return readdirSync(dir).flatMap((name) => {
-    const full = join(dir, name)
-    if (statSync(full).isDirectory()) return filesUnder(full)
-    return name.endsWith('.css') ? [full] : []
-  })
-}
-
-/** Every stylesheet, comments blanked with their line breaks kept. */
-const stylesheets = filesUnder(SRC).map((full) => ({
-  file: relative(SRC, full).split('\\').join('/'),
-  raw: readFileSync(full, 'utf8'),
-  css: readFileSync(full, 'utf8').replace(/\/\*[\s\S]*?\*\//g, (comment) =>
-    comment.replace(/[^\n]/g, ' '),
-  ),
-}))
+const stylesheets = readStylesheets()
 
 const DEFINED_HERE = new Set([
   'styles/designSystem/glass.module.css',
   'styles/designSystem/lumen.css',
 ])
 
-/** The line numbers of the blurs a stylesheet writes with its own value. */
+/**
+ * The line numbers of the blurs a stylesheet writes itself, the glass
+ * token among them: a surface takes that blur by composing the primitive.
+ */
 function literalBlurLines(css: string): number[] {
   return css.split('\n').flatMap((line, i) =>
-    // The spaces sit inside the lookaheads, or they would give back the
-    // one before `none` and pass it.
-    /^\s*backdrop-filter:(?!\s*none\s*;)(?!\s*var\(--la-glass-[\w-]+\)\s*;)/.test(
-      line,
-    )
-      ? [i + 1]
-      : [],
+    // The space sits inside the lookahead, or it would give back the one
+    // before `none` and pass it.
+    /^\s*backdrop-filter:(?!\s*none\s*;)/.test(line) ? [i + 1] : [],
   )
+}
+
+/** Whether a compound carries the class `name`, other than in a :not(). */
+function hasClass(compound: string, name: string): boolean {
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return new RegExp(`\\.${escaped}(?![\\w-])`).test(
+    compound.replace(/:not\([^)]*\)/g, ''),
+  )
+}
+
+/** A compound in no state: `.a:not(.b)`, but not `.a:hover`. */
+const atRest = (compound: string) =>
+  !compound.replace(/:not\([^)]*\)/g, '').includes(':')
+
+/**
+ * Every declaration of `properties` in the rules that style the class
+ * `name`, in any state, theme or nesting.
+ */
+function declarationsFor(css: string, name: string, properties: RegExp) {
+  return blocksOf(css).flatMap((block) => {
+    const subjects = block.selectors
+      .map(subjectOf)
+      .filter((compound) => hasClass(compound, name))
+    if (!subjects.length) return []
+    return block.declarations
+      .filter((d) => properties.test(d.property))
+      .map((d) => ({ ...d, block, atRest: subjects.some(atRest) }))
+  })
 }
 
 /**
@@ -210,21 +220,45 @@ describe('the surfaces that take their glass from a primitive', () => {
   })
 
   it('fade their fill when busy turns a panel solid', () => {
-    // glass.module.css sets no transition on optionalPanel: a surface that
-    // lists its own and leaves background-color out snaps between the
-    // glass and the solid fill mid-playback.
+    // glass.module.css sets no transition on optionalPanel. A surface with
+    // none snaps between the glass and the solid fill mid-playback, and so
+    // does one with any rule, in any state or theme, whose transition
+    // leaves background-color out.
     const snapping = SURFACES.filter(([p]) => p === 'optionalPanel').flatMap(
       ([, file, selector]) => {
-        const { css } = stylesheet(file)
-        const start = css.search(new RegExp(`(^|\\n)\\${selector} \\{`))
-        const body = css.slice(start, css.indexOf('\n}\n', start))
-        const own = /\n {2}transition:([^;]*);/.exec(body)?.[1] ?? ''
-        return /background-color|\ball\b/.test(own)
-          ? []
-          : [`${file} ${selector}`]
+        const lists = declarationsFor(
+          stylesheet(file).css,
+          selector.slice(1),
+          /^transition(-property)?$/,
+        )
+        const fades = (value: string) => /background-color|\ball\b/.test(value)
+        const short = lists
+          .filter((d) => !fades(d.value))
+          .map((d) => `${file}:${d.line} ${selector} ${d.property}: ${d.value}`)
+        return lists.some((d) => d.atRest && fades(d.value))
+          ? short
+          : [
+              `${file} ${selector} has no transition on background-color`,
+              ...short,
+            ]
       },
     )
     expect(snapping).toEqual([])
+  })
+
+  it('fade their fill by every rule, which the reader finds', () => {
+    const css = `.a {\n  transition: background-color 1s;\n  &:hover { transition: transform 1s; }\n}\n[data-theme='dark'] .a:not(.b) { transition: all 1s; }\n.ab { transition: none; }\n.c .a-b { transition: none; }\n`
+    expect(
+      declarationsFor(css, 'a', /^transition$/).map((d) => [
+        d.line,
+        d.value,
+        d.atRest,
+      ]),
+    ).toEqual([
+      [2, 'background-color 1s', true],
+      [3, 'transform 1s', false],
+      [5, 'all 1s', true],
+    ])
   })
 
   it('are found by the matcher, which misses a rule that does not compose', () => {

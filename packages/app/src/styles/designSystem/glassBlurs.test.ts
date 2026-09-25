@@ -4,10 +4,12 @@
  * presents, so where the blurs are, and how they are spelled, matters.
  *
  * A RATCHET ON LITERAL BLURS. A surface takes its glass from
- * glass.module.css, or at least its blur from the --la-glass-blur token. A
- * literal `blur(8px)` in a module is glass that nothing flattens when it
- * nests, that busy never turns solid, and that Reduce Transparency never
- * reaches. Their count may only go down, and is pinned exactly, as
+ * glass.module.css. A blur a module writes itself is glass that nothing
+ * flattens when it nests, that busy never turns solid and that the
+ * fallback never reaches; a literal `blur(8px)` escapes Reduce Transparency
+ * as well. That holds for var(--la-glass-blur) too, so the token counts
+ * like any other value. Their count may only go down, and is pinned
+ * exactly, as
  * mainWorkspaceSize.test.ts pins its line count:
  *
  *   - more than MAX_LITERAL_BLURS fails: compose the primitive instead;
@@ -15,8 +17,8 @@
  *     in the same change, so the slack cannot be spent again unnoticed.
  *
  * Counted: the backdrop-filter declarations in packages/app/src/**\/*.css,
- * outside glass.module.css and lumen.css, whose value is neither `none` nor
- * a --la-glass-* token. Inline styles in TSX are not counted.
+ * outside glass.module.css and lumen.css, whose value is not `none`. Inline
+ * styles in TSX are not counted.
  *
  * A -WEBKIT- TWIN FOR EVERY BLUR. iOS Safari before 18 reads only
  * -webkit-backdrop-filter, so a rule that writes the standard spelling alone
@@ -34,105 +36,20 @@
  * Inline styles are set property by property at run time, never minified,
  * so their order is free.
  */
-import { readdirSync, readFileSync, statSync } from 'node:fs'
-import { join, relative } from 'node:path'
+import { readFileSync } from 'node:fs'
+import { relative } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { blocksOf, filesUnder, readStylesheets, SRC } from './testUtils'
+import type { Declaration } from './testUtils'
 
 /** The literal blurs in the app's stylesheets today. Only ever lower it. */
 const MAX_LITERAL_BLURS = 17
-
-const SRC = join(import.meta.dirname, '..', '..')
 
 /** Where the glass is defined rather than used: exempt from the ratchet. */
 const GLASS_SOURCES = new Set([
   'styles/designSystem/glass.module.css',
   'styles/designSystem/lumen.css',
 ])
-
-interface Declaration {
-  property: string
-  value: string
-  line: number
-}
-
-interface Block {
-  selector: string
-  line: number
-  declarations: Declaration[]
-}
-
-/**
- * Every block of a stylesheet, each with the declarations written directly
- * in it: a nested rule is a block of its own, so a twin inside `&:hover`
- * does not count for the rule around it. Comments are blanked with their
- * line breaks kept, and nothing inside quotes or parentheses - a url(), an
- * @supports test - ends a declaration or opens a block. The last
- * declaration of a block may go without its semicolon.
- */
-function blocksOf(css: string): Block[] {
-  const src = css.replace(/\/\*[\s\S]*?\*\//g, (comment) =>
-    comment.replace(/[^\n]/g, ' '),
-  )
-  const blocks: Block[] = []
-  const open: Block[] = []
-  let text = ''
-  let textLine = 1
-  let line = 1
-  let parens = 0
-  let quote = ''
-
-  const endStatement = () => {
-    const statement = text.trim()
-    const colon = statement.indexOf(':')
-    const block = open.at(-1)
-    if (block && colon > 0) {
-      block.declarations.push({
-        property: statement.slice(0, colon).trim().toLowerCase(),
-        value: statement
-          .slice(colon + 1)
-          .trim()
-          .replace(/\s+/g, ' '),
-        line: textLine,
-      })
-    }
-    text = ''
-  }
-
-  for (let i = 0; i < src.length; i++) {
-    const ch = src[i]!
-    if (ch === '\n') line++
-    if (!text.trim() && ch.trim()) textLine = line
-    if (quote) {
-      text += ch
-      if (ch === quote && src[i - 1] !== '\\') quote = ''
-    } else if (ch === '"' || ch === "'") {
-      quote = ch
-      text += ch
-    } else if (ch === '(' || ch === ')') {
-      parens += ch === '(' ? 1 : -1
-      text += ch
-    } else if (parens > 0) {
-      text += ch
-    } else if (ch === '{') {
-      const block: Block = {
-        selector: text.trim().replace(/\s+/g, ' '),
-        line: textLine,
-        declarations: [],
-      }
-      blocks.push(block)
-      open.push(block)
-      text = ''
-    } else if (ch === '}') {
-      endStatement()
-      open.pop()
-    } else if (ch === ';') {
-      endStatement()
-    } else {
-      text += ch
-    }
-  }
-  return blocks
-}
 
 const STANDARD = 'backdrop-filter'
 const PREFIXED = '-webkit-backdrop-filter'
@@ -178,16 +95,11 @@ function orderOffenders(css: string, file: string): string[] {
   return offenders
 }
 
-const isGlassToken = (value: string) => /^var\(--la-glass-[\w-]+\)$/.test(value)
-
 /** The backdrop-filter declarations that write a blur of their own. */
 function literalBlurs(css: string): Declaration[] {
   return blocksOf(css)
     .flatMap((block) => block.declarations)
-    .filter(
-      (d) =>
-        d.property === STANDARD && d.value !== 'none' && !isGlassToken(d.value),
-    )
+    .filter((d) => d.property === STANDARD && d.value !== 'none')
 }
 
 /**
@@ -244,22 +156,7 @@ function inlineTwinOffenders(source: string, file: string): string[] {
   return offenders
 }
 
-function filesUnder(dir: string, test: (name: string) => boolean): string[] {
-  const out: string[] = []
-  for (const name of readdirSync(dir)) {
-    const full = join(dir, name)
-    if (statSync(full).isDirectory()) out.push(...filesUnder(full, test))
-    else if (test(name)) out.push(full)
-  }
-  return out
-}
-
-const stylesheets = filesUnder(SRC, (name) => name.endsWith('.css')).map(
-  (full) => ({
-    file: relative(SRC, full).split('\\').join('/'),
-    css: readFileSync(full, 'utf8'),
-  }),
-)
+const stylesheets = readStylesheets()
 
 const sources = filesUnder(
   SRC,
@@ -373,7 +270,7 @@ describe('the blur detector', () => {
     ])
   })
 
-  it('counts a blur only when the value is its own', () => {
+  it('counts every blur a stylesheet writes, the glass token too', () => {
     const css = `
       .a { backdrop-filter: blur(8px) saturate(1.2); }
       .b { backdrop-filter: none; }
@@ -383,6 +280,7 @@ describe('the blur detector', () => {
     `
     expect(literalBlurs(css).map((d) => d.value)).toEqual([
       'blur(8px) saturate(1.2)',
+      'var(--la-glass-blur)',
       'var(--la-glass-blur, blur(4px))',
     ])
   })
