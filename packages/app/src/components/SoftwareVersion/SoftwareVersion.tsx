@@ -93,7 +93,7 @@ export function SoftwareVersion(props: SoftwareVersionProps) {
       <div class={ui.menuDivider} />
 
       <a
-        class={`${ui.menuItem} ${ui.arcadePill}`}
+        class={ui.menuItem}
         href="#arcade"
         aria-label="Open Lumen Arcade"
         onClick={(ev) => {
@@ -110,7 +110,7 @@ export function SoftwareVersion(props: SoftwareVersionProps) {
       </a>
 
       <a
-        class={`${ui.menuItem} ${ui.benchmarkLabPill}`}
+        class={ui.menuItem}
         href={BENCHMARKS_PATH}
         aria-label="Open Benchmark Lab"
         onClick={() => setOpen(false)}
@@ -153,7 +153,7 @@ export function SoftwareVersion(props: SoftwareVersionProps) {
 
       <button
         type="button"
-        class={`${ui.menuItem} ${ui.docsPill}`}
+        class={ui.menuItem}
         role="menuitem"
         onClick={() => {
           setOpen(false)
@@ -169,7 +169,7 @@ export function SoftwareVersion(props: SoftwareVersionProps) {
 
       <button
         type="button"
-        class={`${ui.menuItem} ${ui.aboutPill}`}
+        class={ui.menuItem}
         role="menuitem"
         onClick={() => {
           setOpen(false)

@@ -82,7 +82,7 @@ subsequent click retries the import instead of silently doing nothing.
 activated, the menu shall close before the launcher is invoked, so the expanded
 menu is never left behind the dialog.
 
-_(`SoftwareVersion.tsx:154-168` (`docsPill`) and `:170-186` (`aboutPill`) — each handler calls
+_(`SoftwareVersion.tsx:154-168` (`showDocs`) and `:170-186` (`showHelp`) — each handler calls
 `setOpen(false)` before `props.showDocs()` / `props.showHelp()`.)_
 
 ### REQ-DS-004 — The panel opens on Variations with tablist semantics
