@@ -251,6 +251,38 @@ Also in phase 1:
 - **Accepted.** On the deck layout the tour's hole stops at the deck, so its card sits over the
   dimmed deck.
 
+**The desktop sidebar, built 2026-09-25** (decision (d)). It floats over the canvas as glass
+while the gate holds, as the deck does at the other edge.
+
+- **One decision.** `WorkspaceSidebar/useSidebarGlass.ts` decides it. The sidebar floats while
+  it is shown, at a desktop width (from 769px, where it is a column rather than a drawer), and
+  while the gate holds. `optionalPanelGlass` in `lib/glass.ts` is the gate in code, and a test
+  matches it against the stylesheet's selector for every setting and theme, so the two cannot
+  disagree. Over a duel's stage the sidebar keeps its opaque look.
+- **Layout.** The canvas box takes the sidebar's column as well and drops the 0.4rem tuck. The
+  bottom bar starts where the sidebar's cover ends, and the hover badge centres between both
+  covers. Hidden, the sidebar covers nothing.
+- **Framing.** The covered share is a pair, left and right: the shift is l - r, the visible
+  region starts at the leading cover's edge, and `MAX_COVERED_FRACTION` bounds the sum. The
+  sidebar's cover is its width less the 0.4rem tuck, so the part on show is the setting-off
+  canvas box to the pixel: the flame sits where it sits with the setting off, and a quick export
+  is the same 1510x1080 image (0.11% of pixels differ, mean delta 0.32).
+- **The surface.** One pane, not a pane per card. Glass on each card left raw art in the gutters
+  (239 of 255 over white art, against 58 to 61 under one pane) and needed ten blurred layers
+  instead of one. The cards, the shared Slider and PaletteSelector, and the sidebar's captions
+  take their glass look through custom-property hooks with their opaque looks as fallbacks.
+  Nothing inside the sidebar blurs again. Three captions measured 2.18:1 and 4.01:1 over white
+  art under the glass; they take ink-2 there, and the dimmest text is now 5.4:1.
+- **Fixed children.** The audio wiring editor rendered in place inside the sidebar, so glass made
+  the sidebar its containing block and clipped it to a 415x1080 strip. It renders from the body
+  through a Portal now; with the setting off, its backdrop also dims the version-menu button.
+- **Cost at 1920x1080.** The canvas renders 1,630,800 px with the setting off and 2,073,600 with
+  it on for the wide sidebar (+27.2%), and 1,717,200 for the compact one (+20.8%). The blur
+  covers 449,280 CSS px wide and 362,880 compact. It goes solid while busy.
+- **Known.** Turning the setting on or off, or switching the theme, resizes the canvas once
+  (1510 to 1920 px wide); hiding the sidebar and the compact and wide modes do not. A device
+  pixel ratio of 2, Safari and Firefox are unchecked.
+
 **Phase 3: dialogs and sheets on touch layouts** (M-L)
 
 - **What changes.** The Modal primitive (`Modal/Modal.module.css:1-48`: one class, 32 call sites)
@@ -275,7 +307,8 @@ Also in phase 1:
   is small; it is mostly unification.
 - **Remove blur that shows nothing.** This covers the Home section rail (it blurs a static
   gradient), the WorkspaceSkeleton sidebar, and FloatingActions in the light theme.
-- **Leave these opaque.** The desktop sidebar and timeline stay opaque: they are text-dense,
+- **Leave these opaque.** The timeline stays opaque, and so did the desktop sidebar until decision
+  (d) (above): they are text-dense,
   have light-theme looks, and sit in columns beside the canvas.
 - **Leave these alone on purpose.** DuelChips' panel and the duel result card are opaque by
   design: "contrast there is not negotiable".
