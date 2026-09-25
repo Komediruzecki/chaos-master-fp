@@ -59,10 +59,12 @@
    the two blurs the art itself. For the same reason the card only rises
    while its children fade in: below full opacity the card is a backdrop
    root too, and the frost would snap in at the end of the fade. The card
-   keeps the panel's text contract, ink-3 raised to ink-2, and takes the
-   layer's 1px edge as padding, so its text sits where it did. */
+   keeps the panel's text contract, ink-3 raised to ink-2, and the glass
+   focus ring, neither of which reaches it from a sibling layer, and takes
+   the layer's 1px edge as padding, so its text sits where it did. */
 .glassCard {
   --la-ink-3: var(--la-ink-2);
+  --focus-ring-color: var(--focus-ring-glass);
   padding: calc(1.25rem + 1px) calc(1.5rem + 1px);
   animation-name: cardRise;
 }

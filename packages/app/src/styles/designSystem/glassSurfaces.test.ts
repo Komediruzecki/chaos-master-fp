@@ -18,6 +18,9 @@
  *   - The hooks the shared components read on glass are set by onGlass
  *     alone (glassHooks.test.ts holds it to them), so the surfaces that hold
  *     those components compose it rather than keep a copy of its values.
+ *   - A glass surface that keeps a light fill of its own sets the theme's
+ *     focus ring in the rule that sets that fill, and the glass ring again
+ *     in each rule that turns it back to glass (glass.module.css says why).
  *
  * Read from disk rather than imported: the test runtime turns a CSS module
  * import into class names. So it is registered in scripts/always-on-tests.mjs.
@@ -315,5 +318,125 @@ describe("the shared components' glass hooks", () => {
         ].map((m) => `${file}: ${m[1]}`),
       )
     expect(copies).toEqual([])
+  })
+})
+
+const THEME_RING = 'var(--focus-ring-theme)'
+const GLASS_RING = 'var(--focus-ring-glass)'
+
+/** The classes whose own rule composes one of the four glass classes. */
+function glassComposers(css: string): string[] {
+  return [
+    ...css.matchAll(
+      new RegExp(
+        `(?:^|\\n)\\.([\\w-]+) \\{\\s*composes: ([\\w ]+) from ${GLASS};`,
+        'g',
+      ),
+    ),
+  ]
+    .filter((m) => /\b(?:chrome|panel|flat|solid)\b/.test(m[2]!))
+    .map((m) => m[1]!)
+}
+
+/**
+ * Whether a fill is light: a ring on it needs the theme's colour, which
+ * holds 3:1 there, where the glass ring does not. A light colour over half
+ * opaque, or one of the light neutrals.
+ */
+function isLightFill(value: string): boolean {
+  const opaque = (alpha = '1') =>
+    parseFloat(alpha) / (alpha.endsWith('%') ? 100 : 1) >= 0.5
+  const colour = /^(oklch|rgba?)\((.*)\)$/.exec(value)
+  if (colour) {
+    const [channels = '', slashAlpha] = colour[2]!.split('/')
+    const [first = '', second = '', third = '', commaAlpha] = channels
+      .split(/[\s,]+/)
+      .filter(Boolean)
+    const alpha = (slashAlpha ?? commaAlpha)?.trim()
+    return colour[1] === 'oklch'
+      ? parseFloat(first) >= 80 && opaque(alpha)
+      : Math.min(+first, +second, +third) >= 200 && opaque(alpha)
+  }
+  return /#fff\b|#ffffff\b|\bwhite\b|var\(--neutral-(?:50|100|200)\b/i.test(
+    value,
+  )
+}
+
+/**
+ * The fills a glass surface sets at rest, for each surface that sets a
+ * light one, with the ring each rule states.
+ */
+function lightFilledSurfaces(css: string) {
+  return glassComposers(css).flatMap((name) => {
+    const fills = declarationsFor(css, name, /^background(-color)?$/)
+      .filter((d) => d.atRest)
+      .map((d) => ({
+        ...d,
+        ring: d.block.declarations.findLast(
+          (r) => r.property === '--focus-ring-color',
+        )?.value,
+      }))
+    return fills.some((d) => isLightFill(d.value)) ? [{ name, fills }] : []
+  })
+}
+
+/** Each rule of those surfaces whose ring does not match its fill. */
+function ringOffenders(css: string, file: string): string[] {
+  return lightFilledSurfaces(css).flatMap(({ name, fills }) =>
+    fills.flatMap((d) => {
+      const ring = isLightFill(d.value) ? THEME_RING : GLASS_RING
+      return d.ring === ring
+        ? []
+        : [
+            `${file}:${d.line} .${name} background: ${d.value} needs --focus-ring-color: ${ring}`,
+          ]
+    }),
+  )
+}
+
+describe('the focus ring on a glass surface', () => {
+  it("is the theme's on a light fill, and glass's where the rule turns it back", () => {
+    expect(
+      stylesheets.flatMap(({ file, css }) => ringOffenders(css, file)),
+    ).toEqual([])
+  })
+
+  it('is checked on the surfaces that keep a light fill', () => {
+    // The walk finding none would pass the test above.
+    expect(
+      stylesheets.flatMap(({ file, css }) =>
+        lightFilledSurfaces(css).map(({ name }) => `${file} .${name}`),
+      ),
+    ).toEqual([
+      'App.module.css .toast',
+      'App.module.css .hover-preview-badge',
+      'components/BenchmarkButton/BenchmarkButton.module.css .benchmark-btn',
+      'components/SoftwareVersion/SoftwareVersion.module.css .desktopTrigger',
+    ])
+  })
+
+  it('is found wrong by the matcher, which reads fills at rest alone', () => {
+    const css = [
+      '.pill {',
+      `  composes: chrome from ${GLASS};`,
+      '  background: rgba(255, 255, 255, 0.75);',
+      '  &:hover { background: white; }',
+      "  [data-theme='dark'] & { background: var(--la-glass); }",
+      '}',
+      '.toast {',
+      `  composes: chrome from ${GLASS};`,
+      "  [data-theme='light'] &:not(.touch) {",
+      '    background: oklch(97% 0.01 240 / 0.92);',
+      `    --focus-ring-color: ${THEME_RING};`,
+      '  }',
+      '}',
+      `.dim { composes: chrome from ${GLASS}; background: #0008; }`,
+      '.card { background: #fff; }',
+      `.menu {\n  composes: optionalPanel from ${GLASS};\n  background: white;\n}`,
+    ].join('\n')
+    expect(ringOffenders(css, 'x.css')).toEqual([
+      `x.css:3 .pill background: rgba(255, 255, 255, 0.75) needs --focus-ring-color: ${THEME_RING}`,
+      `x.css:5 .pill background: var(--la-glass) needs --focus-ring-color: ${GLASS_RING}`,
+    ])
   })
 })

@@ -14,9 +14,10 @@
  * color-mix() percentage over the backdrop, mixed in sRGB. The blur is left
  * out, since blurring a white-hot backdrop leaves it white.
  *
- * The keyboard focus ring on a control inside a panel is measured the same
- * way, against the 3:1 a focus indicator needs (WCAG 1.4.11): the glass
- * classes give it the dark theme's ring, which styles/index.css defines.
+ * The keyboard focus ring on glass is measured the same way, against the
+ * 3:1 a focus indicator needs (WCAG 1.4.11): the glass classes and
+ * optionalPanel's glass give it the glass ring, which styles/index.css
+ * defines beside the theme's.
  */
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -94,9 +95,8 @@ function rootTokens(css: string): Map<string, string> {
   return tokens
 }
 
-const tokens = rootTokens(
-  readFileSync(join(import.meta.dirname, 'lumen.css'), 'utf8'),
-)
+const lumen = readFileSync(join(import.meta.dirname, 'lumen.css'), 'utf8')
+const tokens = rootTokens(lumen)
 
 function token(name: string): string {
   const value = tokens.get(name)
@@ -212,19 +212,20 @@ describe('text on glass', () => {
   })
 })
 
-/** A `--name: #rrggbb;` of styles/index.css's first :root block. */
-function ringColour(name: string): Rgb {
+/** A `--name: #rrggbb;` of styles/index.css's first `block` rule. */
+function ringColour(name: string, block = ':root'): Rgb {
   const index = readFileSync(
     join(import.meta.dirname, '..', 'index.css'),
     'utf8',
   )
-  const open = index.indexOf(':root {')
+  const open = index.indexOf(`${block} {`)
+  if (open < 0) throw new Error(`index.css has no ${block} rule`)
   const root = index.slice(open, index.indexOf('\n}', open))
   const hex = new RegExp(
     `${name}:\\s*#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2});`,
     'i',
   ).exec(root)
-  if (!hex) throw new Error(`index.css's :root sets no #rrggbb ${name}`)
+  if (!hex) throw new Error(`index.css's ${block} sets no #rrggbb ${name}`)
   return [hex[1]!, hex[2]!, hex[3]!].map((h) =>
     parseInt(h, 16),
   ) as unknown as Rgb
@@ -237,43 +238,44 @@ describe('the focus ring on glass', () => {
     'utf8',
   ).replace(/\/\*[\s\S]*?\*\//g, ' ')
 
-  it("is the dark theme's ring on all four glass classes", () => {
+  it("is the glass ring on the four glass classes and optionalPanel's glass", () => {
     const shared =
       /:where\(\.chrome, \.panel, \.flat, \.solid\):not\(html\)\s*\{([^}]*)\}/.exec(
         glass,
       )?.[1] ?? ''
-    expect(shared).toMatch(/--focus-ring-color:\s*var\(--focus-ring-on-dark\);/)
+    const gate =
+      /:global\(body:not\(\[data-theme='light'\]\)\)\s*\.optionalPanel\s*\{([^}]*)\}/.exec(
+        glass,
+      )?.[1] ?? ''
+    for (const body of [shared, gate]) {
+      expect(body).toMatch(/--focus-ring-color:\s*var\(--focus-ring-glass\);/)
+    }
   })
 
-  // A control that carries text sits in a panel, at 80% or more; a chrome
-  // pill is itself the control, and its ring lies outside it, on the canvas.
-  it.each(['--la-glass-panel', '--la-glass-strong', '--la-glass-solid'])(
-    'reaches 3:1 on %s over white and over black',
-    (fill) => {
-      const percent = fillPercent(fill)
-      const ring = ringColour('--focus-ring-on-dark')
-      for (const backdrop of [WHITE, BLACK]) {
-        expect(
-          contrast(ring, glassOver(percent, backdrop)),
-        ).toBeGreaterThanOrEqual(NON_TEXT)
-      }
-    },
-  )
+  // Controls sit on all four: in a panel, in the touch bar's chrome, and on
+  // a panel busy has turned solid.
+  it.each([
+    '--la-glass',
+    '--la-glass-panel',
+    '--la-glass-strong',
+    '--la-glass-solid',
+  ])('reaches 3:1 on %s over white and over black', (fill) => {
+    const percent = fillPercent(fill)
+    const ring = ringColour('--focus-ring-glass')
+    for (const backdrop of [WHITE, BLACK]) {
+      expect(
+        contrast(ring, glassOver(percent, backdrop)),
+      ).toBeGreaterThanOrEqual(NON_TEXT)
+    }
+  })
 
-  it("would not with the light theme's ring, which is why the classes set it", () => {
-    const ring = ringColour('--focus-ring-color')
+  it("would not with either theme's ring, which is why glass has its own", () => {
+    const chrome = (ring: Rgb) =>
+      twoPlaces(contrast(ring, glassOver(fillPercent('--la-glass'), WHITE)))
+    expect(chrome(ringColour('--focus-ring-theme'))).toBe(1.71)
     expect(
-      twoPlaces(
-        contrast(ring, glassOver(fillPercent('--la-glass-panel'), WHITE)),
-      ),
-    ).toBe(2.31)
-    expect(
-      twoPlaces(
-        contrast(
-          ringColour('--focus-ring-on-dark'),
-          glassOver(fillPercent('--la-glass-panel'), WHITE),
-        ),
-      ),
-    ).toBe(3.46)
+      chrome(ringColour('--focus-ring-theme', "body[data-theme='dark']")),
+    ).toBe(2.56)
+    expect(chrome(ringColour('--focus-ring-glass'))).toBe(3.84)
   })
 })

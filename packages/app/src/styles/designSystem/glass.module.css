@@ -57,17 +57,24 @@
  *           a browser without backdrop-filter. A screen that must hide more
  *           of the app sets the --la-scrim-heavy fill itself.
  *
- * The four glass classes carry --la-glass-edge and --la-glass-shadow, and
- * the dark theme's focus ring (styles/index.css): glass is dark in both
- * themes, and on a panel over white-hot art the light theme's ring measures
- * 2.31:1, under the 3:1 a focus indicator needs, where the dark one's
- * measures 3.46 (glassContrast.test.ts). Every rule here that sets
- * backdrop-filter writes it in both spellings, the -webkit- one first
- * (glassBlurs.test.ts holds every stylesheet to that order). The production
- * minifier keeps only the later of the two, so the build ships the standard
- * spelling alone, the one Chrome, Firefox, Android and Safari 18 read. iOS
- * Safari before 18 reads only the prefixed one and so gets its blur in dev
- * only; it has no WebGPU either, which the canvas behind the glass needs.
+ * The four glass classes carry --la-glass-edge and --la-glass-shadow. They
+ * and optionalPanel's glass also carry the glass focus ring
+ * (styles/index.css). Glass is dark in both themes, and on chrome's 72%
+ * fill over white-hot art the theme's rings measure 1.71:1 (light) and
+ * 2.56:1 (dark), under the 3:1 a focus indicator needs, where the glass
+ * ring measures 3.84 (glassContrast.test.ts). A surface that keeps a light
+ * fill of its own, such as the desktop's light toast, sets
+ * --focus-ring-color back to var(--focus-ring-theme) in the rule that sets
+ * that fill, and to var(--focus-ring-glass) again in a later rule that
+ * turns it to glass (glassSurfaces.test.ts).
+ *
+ * Every rule here that sets backdrop-filter writes it in both spellings,
+ * the -webkit- one first (glassBlurs.test.ts holds every stylesheet to that
+ * order). The production minifier keeps only the later of the two, so the
+ * build ships the standard spelling alone, the one Chrome, Firefox, Android
+ * and Safari 18 read. iOS Safari before 18 reads only the prefixed one and
+ * so gets its blur in dev only; it has no WebGPU either, which the canvas
+ * behind the glass needs.
  *
  * TEXT ON A PANEL. Nothing below ink-2 reads on an 80% fill over white-hot
  * art (docs/plans/glass-panels.md, decision c), so a panel sets --la-ink-3
@@ -178,7 +185,7 @@
 :where(.chrome, .panel, .flat, .solid):not(html) {
   border: var(--la-glass-edge);
   box-shadow: var(--la-glass-shadow);
-  --focus-ring-color: var(--focus-ring-on-dark);
+  --focus-ring-color: var(--focus-ring-glass);
 }
 
 :where(.chrome):not(html) {
@@ -273,6 +280,7 @@
   --la-control: var(--la-control-on-glass);
   --la-control-strong: var(--la-control-strong-on-glass);
   --la-control-accent: var(--la-control-accent-on-glass);
+  --focus-ring-color: var(--focus-ring-glass);
 }
 
 /* ---- What they enforce ---------------------------------------------- */

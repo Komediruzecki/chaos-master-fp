@@ -124,7 +124,7 @@ export const ALWAYS_ON = [
   },
   {
     file: 'src/styles/designSystem/glassSurfaces.test.ts',
-    why: 'reads every stylesheet to check which surfaces compose which glass primitive, where literal blurs may stay, and that no component redefines a glass token or a hook onGlass sets',
+    why: 'reads every stylesheet to check which surfaces compose which glass primitive, where literal blurs may stay, that no component redefines a glass token or a hook onGlass sets, and that a glass surface with a light fill takes the theme focus ring',
     genre: 'filesystem',
   },
   {

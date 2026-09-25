@@ -16,11 +16,12 @@
   gap: 0.35rem;
   padding: 0.3rem 0.6rem 0.3rem 0.5rem;
   border-radius: 999px;
-  /* The light theme keeps its own white pill over chrome's blur; the dark
-     theme's pill is chrome itself, below. */
+  /* The light theme keeps its own white pill over chrome's blur, and the
+     theme's focus ring; the dark theme's pill is chrome itself, below. */
   border: 1px solid rgba(0, 0, 0, 0.08);
   background: rgba(255, 255, 255, 0.75);
   box-shadow: none;
+  --focus-ring-color: var(--focus-ring-theme);
   font-size: 0.8rem;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -55,6 +56,7 @@
   border: var(--la-glass-edge);
   background: var(--la-glass-strong);
   color: var(--la-ink-3);
+  --focus-ring-color: var(--focus-ring-glass);
 }
 
 [data-theme='dark'] .desktopTrigger:hover {

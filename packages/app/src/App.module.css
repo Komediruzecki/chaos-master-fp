@@ -1332,8 +1332,9 @@
 }
 
 /* Chrome glass (docs/plans/glass-panels.md, phase 1), whose text is ink.
-   The desktop's light theme keeps the light toast it had: the glass is
-   dark-only (decision b), and a touch layout is glass in both themes. */
+   The desktop's light theme keeps the light toast it had, and the theme's
+   focus ring with it: the glass is dark-only (decision b), and a touch
+   layout is glass in both themes. */
 .toast {
   composes: chrome from '@/styles/designSystem/glass.module.css';
   display: flex;
@@ -1355,6 +1356,7 @@
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     box-shadow: 0 4px 16px oklch(50% 0.04 240 / 0.18);
+    --focus-ring-color: var(--focus-ring-theme);
   }
 }
 
@@ -1396,21 +1398,12 @@
     background: var(--la-hairline);
   }
 
-  &:focus-visible {
-    outline: 2px solid var(--la-accent);
-    outline-offset: 1px;
-  }
-
   [data-theme='light'] .toast:not(.toast-touch) & {
     border-color: oklch(55% 0.06 240 / 0.45);
 
     &:hover {
       border-color: oklch(45% 0.12 240 / 0.8);
       background: oklch(45% 0.12 240 / 0.12);
-    }
-
-    &:focus-visible {
-      outline-color: oklch(70% 0.12 240 / 0.9);
     }
   }
 }
@@ -1428,13 +1421,13 @@
 }
 
 /* Chrome glass, like the toast; the desktop's light theme keeps its light
-   badge. The badge sits in the workspace, so the layout classes above say
-   whether it is on a touch layout. It centres on the part of the canvas on
-   show: --covered-right is the share of it the floating tablet deck covers,
-   --covered-left the share the glass desktop sidebar covers
-   (CanvasViewport.tsx), each unset otherwise. `left` takes the one and
-   `margin-left` the other, which together put the badge's centre at
-   (1 + left - right) / 2 of the box. */
+   badge, and the theme's focus ring. The badge sits in the workspace, so the
+   layout classes above say whether it is on a touch layout. It centres on
+   the part of the canvas on show: --covered-right is the share of it the
+   floating tablet deck covers, --covered-left the share the glass desktop
+   sidebar covers (CanvasViewport.tsx), each unset otherwise. `left` takes
+   the one and `margin-left` the other, which together put the badge's centre
+   at (1 + left - right) / 2 of the box. */
 .hover-preview-badge {
   composes: chrome from '@/styles/designSystem/glass.module.css';
   position: absolute;
@@ -1464,6 +1457,7 @@
     -webkit-backdrop-filter: blur(6px);
     backdrop-filter: blur(6px);
     box-shadow: 0 2px 12px oklch(50% 0.04 240 / 0.2);
+    --focus-ring-color: var(--focus-ring-theme);
   }
 }
 
