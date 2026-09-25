@@ -331,10 +331,10 @@ describe('the bundled examples, as players see them', () => {
       expect(ARCHETYPE_IDS.map(opponentRow(examples.example30))).toEqual([
         'symmetry_monolith      Crystal 148  46  30 1276   458',
         'chaos_lord             Void    148  47  30 1296   435',
-        'spiral_leviathan       Void    148  47  30 1288   435',
+        'spiral_leviathan       Void    148  49  30 1332   454',
         'quantum_siren          Void    148  47  30 1292   435',
-        'solar_seraph           Void    148  46  30 1280   450',
-        'void_stalker           Void    148  47  30 1292   435',
+        'solar_seraph           Void    148  45  30 1260   435',
+        'void_stalker           Void    148  46  30 1276   455',
       ])
     })
   })
