@@ -11,11 +11,11 @@ const STORAGE_KEY = 'chaos-master-custom-variations'
 const CUSTOM_TYPE_PREFIX = 'custom_'
 
 /**
- * Bumped whenever the code behind a custom variation id changes: one is
- * created, edited, duplicated, deleted, restored, loaded or imported from a
- * link. A live preview does not bump it. Flam3 reads it reactively, so every
- * open renderer rebuilds its IFS pipeline after a change; the pipeline caches
- * read it untracked, as part of their keys.
+ * Bumped on every change to the registered custom variations: one created,
+ * edited or renamed, duplicated, deleted, restored, loaded, imported from a
+ * link or saved from one. A live preview does not bump it. Flam3 reads it
+ * reactively, so every open renderer rebuilds its IFS pipeline after a
+ * change; the pipeline caches read it untracked, as part of their keys.
  */
 const [version, setVersion] = createSignal(0)
 
