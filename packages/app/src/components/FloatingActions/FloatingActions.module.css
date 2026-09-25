@@ -1,4 +1,5 @@
 .widget {
+  composes: optionalPanel from '@/styles/designSystem/glass.module.css';
   position: fixed;
   z-index: 200;
   display: flex;
@@ -10,9 +11,9 @@
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   user-select: none;
-  transition: box-shadow 0.15s;
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
+  transition:
+    box-shadow 0.15s,
+    background-color var(--la-dur-fast) var(--la-ease);
 
   [data-theme='dark'] & {
     background: rgba(30, 30, 30, 0.92);

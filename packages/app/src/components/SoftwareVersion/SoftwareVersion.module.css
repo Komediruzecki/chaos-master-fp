@@ -82,8 +82,6 @@
   border-radius: 999px;
   border: 1px solid rgba(0, 0, 0, 0.08);
   background: rgba(255, 255, 255, 0.75);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
   font-size: 0.8rem;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -148,8 +146,6 @@
 [data-theme='dark'] .layoutPill {
   border-color: rgba(255, 255, 255, 0.08);
   background: rgba(0, 0, 0, 0.5);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
   color: rgba(255, 255, 255, 0.45);
 }
 
@@ -253,6 +249,8 @@
 
 /* Downward expanding popover menu */
 .menuPopover {
+  composes: optionalPanel from '@/styles/designSystem/glass.module.css';
+  transition: background-color var(--la-dur-fast) var(--la-ease);
   position: absolute;
   top: calc(100% + 8px);
   left: 0;
@@ -285,6 +283,8 @@
 
 /* Upward expanding popover menu for desktop bottom-right */
 .menuPopoverUp {
+  composes: optionalPanel from '@/styles/designSystem/glass.module.css';
+  transition: background-color var(--la-dur-fast) var(--la-ease);
   position: absolute;
   bottom: calc(100% + 8px);
   right: 0;
@@ -377,7 +377,7 @@
 
 .menuSub {
   font-size: 0.68rem;
-  color: #94a3b8;
+  color: var(--la-ink-3);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
