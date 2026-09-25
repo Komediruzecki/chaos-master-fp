@@ -21,9 +21,10 @@
  *
  * A fighter stays a flat card when nothing it has would give it depth: when
  * no variation converts, or when every twin it would get passes z through
- * unchanged (linear3D, swirl3D, cylinder3D, bent3D). Then each point keeps
- * the random z it started with and the fighter renders as a smeared slab, the
- * failure the design measured for as-is rendering.
+ * unchanged, as the five in Z_TRANSPARENT_TWINS do (linear3D, swirl3D,
+ * cylinder3D, bent3D and cylindrical3D). Then each point keeps the random z
+ * it started with and the fighter renders as a smeared slab, the failure the
+ * design measured for as-is rendering.
  */
 import { toAffine3D, VARIATION_2D_TO_3D_MAP } from '../transformFunction3D'
 import { isParametricVariationType, transformVariations } from '../variations'
