@@ -130,8 +130,7 @@ and floats the deck over the canvas as glass, the plan's phase 2 (`docs/plans/gl
 deck, the camera frames the flame in the part the deck leaves visible, the controls inside keep their opaque
 surfaces, and the deck goes solid while the canvas presents every frame. Collapsed, the deck covers nothing
 and the flame is framed on the whole canvas, as it is with the setting off. The framing never reaches the
-document, an export or a share link. The default moves to floating only if device frame times say the blur
-holds up.
+document, an export or a share link. Device frame times decide whether the default stays on.
 
 **Acceptance, phone landscape:** the rail rotates to the leading edge as a vertical rail, the HUD collapses to
 three glyphs at the trailing edge, and a detent opens a 320 pt trailing panel rather than a bottom sheet.

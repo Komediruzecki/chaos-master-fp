@@ -354,7 +354,9 @@ Each rule comes from one of the earlier cuts.
   Material bar there (`ShellBar.module.css:221-285`). Built in phase 1: `.panel` goes `solid`,
   not `flat`, unless the setting is on, since ink-2 needs 76% and `flat` is 72% without a blur.
   It is native only: `data-platform` is written by the native build alone, so Chrome on an
-  Android phone still gets the glass.
+  Android phone still gets the glass. With the setting on by default (decision (d)), the native
+  app gets the glass too until someone turns it off; a platform default in `lib/glass.ts` would
+  keep Android solid until its frame times are measured.
 
 ## 7. Verification
 

@@ -43,12 +43,13 @@ function defaultWidth(): number {
 }
 
 /**
- * The tablet's inspector, on the trailing edge of the deck layout. By default
- * it is a page beside the canvas, opaque, in a grid column of its own. With
- * the experimental Glass panels setting on it floats over the canvas as
- * glass instead: the canvas runs on under it, and the deck says how much of
+ * The tablet's inspector, on the trailing edge of the deck layout. While glass
+ * panels show (lib/glass.ts, glassAllowed: the setting, on by default, with
+ * neither Reduce Transparency nor More Contrast asked for), it floats over the
+ * canvas as glass: the canvas runs on under it, and the deck says how much of
  * the canvas it covers so the camera frames the flame in the rest
- * (lib/canvasFraming.ts). Collapsed, it covers nothing either way.
+ * (lib/canvasFraming.ts). Otherwise it is a page beside the canvas, opaque,
+ * in a grid column of its own. Collapsed, it covers nothing either way.
  */
 export function TabletInspectorDeck(props: TabletInspectorDeckProps) {
   // The live width is a plain signal. The persisted one is read once for the
