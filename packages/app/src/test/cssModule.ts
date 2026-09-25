@@ -58,6 +58,7 @@ export function stripComments(css: string): string {
 
 /** A file under packages/app/src, `/`-separated, with its comments blanked. */
 export function readCss(path: string): string {
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- a path under packages/app/src, in this repo
   return stripComments(readFileSync(join(SRC, ...path.split('/')), 'utf8'))
 }
 
@@ -238,6 +239,7 @@ export function hookReads(
   css: string,
   prefixes: string[],
 ): { name: string; fallback: boolean }[] {
+  // eslint-disable-next-line security/detect-non-literal-regexp -- hook prefixes a test passes
   const hook = new RegExp(
     String.raw`var\(\s*(--(?:${prefixes.join('|')})-[\w-]+)\s*([,)])`,
     'g',
@@ -254,8 +256,10 @@ export function filesUnder(
   test: (name: string) => boolean,
 ): string[] {
   const out: string[] = []
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- a directory under packages/app/src, in this repo
   for (const name of readdirSync(dir)) {
     const full = join(dir, name)
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- an entry of that directory
     if (statSync(full).isDirectory()) out.push(...filesUnder(full, test))
     else if (test(name)) out.push(full)
   }
@@ -273,6 +277,7 @@ export interface Stylesheet {
 /** Every stylesheet under packages/app/src. */
 export function readStylesheets(): Stylesheet[] {
   return filesUnder(SRC, (name) => name.endsWith('.css')).map((full) => {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- a stylesheet filesUnder listed
     const raw = readFileSync(full, 'utf8')
     return {
       file: relative(SRC, full).split('\\').join('/'),

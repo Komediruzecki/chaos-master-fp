@@ -20,6 +20,7 @@ const glass = readCss('styles/designSystem/glass.module.css')
 /** The value of a custom property in a block of declarations, spaces folded. */
 function token(block: string, name: string): string | undefined {
   const escaped = name.replace(/[-]/g, '\\-')
+  // eslint-disable-next-line security/detect-non-literal-regexp -- a custom property name this test writes
   return new RegExp(`${escaped}:\\s*([^;]+);`)
     .exec(block)?.[1]
     ?.replace(/\s+/g, ' ')

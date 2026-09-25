@@ -163,6 +163,7 @@ const sources = filesUnder(
   (name) => /\.tsx?$/.test(name) && !/\.test\.tsx?$/.test(name),
 ).map((full) => ({
   file: relative(SRC, full).split('\\').join('/'),
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- a source file filesUnder listed, in this repo
   source: readFileSync(full, 'utf8'),
 }))
 

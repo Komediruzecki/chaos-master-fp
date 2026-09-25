@@ -23,6 +23,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 const read = (...path: string[]) =>
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- a stylesheet beside this test, in this repo
   readFileSync(join(import.meta.dirname, ...path), 'utf8').replace(
     /\/\*[\s\S]*?\*\//g,
     ' ',
@@ -48,6 +49,7 @@ function rule(sheet: string, selector: string): string {
 /** The value `property` takes in a block of declarations. */
 function value(block: string, property: string): string | undefined {
   const escaped = property.replace(/[-]/g, '\\-')
+  // eslint-disable-next-line security/detect-non-literal-regexp -- a property name this test writes
   return new RegExp(`(?:^|;)\\s*${escaped}:\\s*([^;]+)`)
     .exec(block)?.[1]
     ?.trim()
@@ -135,6 +137,7 @@ describe('the touch inspector stylesheet', () => {
       'tabChipActive',
       'actionPillBtnPrimary',
     ]) {
+      // eslint-disable-next-line security/detect-non-literal-regexp -- a class name from the list above
       expect(inked, name).toMatch(new RegExp(`\\.${name}(?![\\w-])`))
     }
     // The accent stays in the fill and the edge.
@@ -182,6 +185,7 @@ describe('the scrub fields on the touch inspector', () => {
     expect(reads.length).toBeGreaterThan(0)
     expect(reads.filter(({ fallback }) => !fallback)).toEqual([])
     // No literal white is left outside a fallback.
+    // eslint-disable-next-line security/detect-unsafe-regex -- [^()] and a parenthesis never overlap, so it cannot backtrack
     const bare = scrub.replace(/var\([^()]*(\([^()]*\)[^()]*)*\)/g, '')
     expect(bare).not.toMatch(/rgba\(255, 255, 255/)
   })

@@ -50,9 +50,11 @@ const GENRE: ReadonlyArray<readonly [RegExp, string]> = [
 const posix = (p: string) => p.split('\\').join('/')
 
 function testFiles(dir: string, acc: string[] = []): string[] {
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- a directory under src/, in this repo
   for (const name of readdirSync(dir)) {
     if (name === 'node_modules' || name.startsWith('.')) continue
     const full = join(dir, name)
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- an entry of that directory
     if (statSync(full).isDirectory()) testFiles(full, acc)
     else if (/\.test\.tsx?$/.test(name)) acc.push(full)
   }
@@ -82,9 +84,11 @@ function helpersOf(full: string, source: string) {
     const inTestHelpers = !relative(TEST_HELPERS, base).startsWith('..')
     if (!/testUtils$/.test(specifier) && !inTestHelpers) return []
     const path = [`${base}.ts`, `${base}.tsx`, base].find(
+      // eslint-disable-next-line security/detect-non-literal-fs-filename -- a helper module a test imports, in this repo
       (p) => existsSync(p) && statSync(p).isFile(),
     )
     if (!path) throw new Error(`${posix(relative(APP, full))}: no ${specifier}`)
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- that helper module
     return [{ name: specifier, source: readFileSync(path, 'utf8') }]
   })
 }
@@ -95,6 +99,7 @@ const markersIn = (source: string) =>
 /** Every app test file, with the genre markers found in it or its helpers. */
 const scanned = testFiles(join(APP, 'src'))
   .map((full) => {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- a test file testFiles listed
     const source = readFileSync(full, 'utf8')
     return {
       file: posix(relative(APP, full)),

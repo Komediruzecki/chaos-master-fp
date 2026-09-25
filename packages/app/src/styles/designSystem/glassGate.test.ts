@@ -50,6 +50,7 @@ describe('the optionalPanel gate', () => {
       '--la-control-accent',
     ]) {
       const value = (block: string) =>
+        // eslint-disable-next-line security/detect-non-literal-regexp -- a custom property name from the list above
         new RegExp(`${name}:\\s*([^;]+);`).exec(block)?.[1]
       expect(value(on), name).toBe(value(solid))
     }

@@ -52,6 +52,7 @@ function literalBlurLines(css: string): number[] {
 /** Whether a compound carries the class `name`, other than in a :not(). */
 function hasClass(compound: string, name: string): boolean {
   const escaped = escapeRegExp(name)
+  // eslint-disable-next-line security/detect-non-literal-regexp -- a class name, escaped
   return new RegExp(`\\.${escaped}(?![\\w-])`).test(
     compound.replace(/:not\([^)]*\)/g, ''),
   )
@@ -83,6 +84,7 @@ function declarationsFor(css: string, name: string, properties: RegExp) {
  */
 function composes(css: string, selector: string, primitive: string): boolean {
   const escaped = escapeRegExp(selector)
+  // eslint-disable-next-line security/detect-non-literal-regexp -- a selector, escaped
   return new RegExp(
     `(^|\\n)${escaped} \\{\\s*composes: (?:\\w+ )*${primitive}(?: \\w+)* from ${GLASS};`,
   ).test(css)

@@ -15,6 +15,7 @@ const css = readCss('components/SpotlightTour/SpotlightTour.module.css')
 const declarations = (selector: string) => declarationsFor(css, selector)
 
 const keyframes = (name: string) =>
+  // eslint-disable-next-line security/detect-non-literal-regexp -- a keyframes name this test writes
   blockOf(css, new RegExp(`@keyframes ${name}\\s*\\{`))
 
 const PANEL =

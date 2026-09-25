@@ -254,6 +254,7 @@ describe('Reduce Transparency and More Contrast', () => {
 /** A `--name: #rrggbb;` of styles/index.css's first `block` rule. */
 function ringColour(name: string, block = ':root'): Rgb {
   const root = blockOf(readCss('styles/index.css'), `${block} {`)
+  // eslint-disable-next-line security/detect-non-literal-regexp -- a custom property name this test writes
   const hex = new RegExp(
     `${name}:\\s*#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2});`,
     'i',

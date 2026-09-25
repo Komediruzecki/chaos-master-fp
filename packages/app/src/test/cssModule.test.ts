@@ -115,6 +115,7 @@ describe('the selector helpers', () => {
     expect(subjectOf("[data-theme='dark'] .a > .b:is(.c .d)")).toBe(
       '.b:is(.c .d)',
     )
+    // eslint-disable-next-line security/detect-non-literal-regexp -- the escaping under test
     expect(new RegExp(escapeRegExp('.a[x]:is(*)')).test('.a[x]:is(*)')).toBe(
       true,
     )
