@@ -3,6 +3,7 @@
  * its type name, so nothing in the flame changes, yet the renderer must
  * rebuild its IFS pipeline with the new code: once per edit, with no
  * structural edit, and not when the saved library loads before it renders.
+ * An export keeps the code it started with until it ends.
  *
  * Flam3 is the real one, on a stand-in GPU root that records the compute
  * function of each IFS pipeline it compiles. Its render loops and its filter
@@ -10,6 +11,7 @@
  * code, and building it is what a rebuild is.
  */
 import { cleanup, render } from '@solidjs/testing-library'
+import { createSignal } from 'solid-js'
 import { tgpu } from 'typegpu'
 import { vec4f } from 'typegpu/data'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -23,8 +25,10 @@ import { examples } from './examples'
 import { Flam3 } from './Flam3'
 import { createIFSPipeline } from './ifsPipeline'
 import { createIFSPipeline3D } from './ifsPipeline3D'
+import { setExportQuality } from './renderStats'
 import { generateVariationId } from './transformFunction'
 import { clearAllCustomVariations, createCustomVariation, deleteCustomVariation, loadCustomVariations, restoreCustomVariation, updateCustomVariation, } from './variations/custom'
+import type { Accessor, ComponentProps } from 'solid-js'
 import type * as ColorGrading from './colorGrading'
 import type * as IfsPipeline from './ifsPipeline'
 import type * as IfsPipeline3D from './ifsPipeline3D'
@@ -141,9 +145,21 @@ function flameUsing(type: string, base: FlameDescriptor): FlameDescriptor {
   }
 }
 
-/** Mounts a Flam3 drawing `flame` on a recording root, as an open canvas. */
-function renderFlame(flame: FlameDescriptor) {
+type ExportProps = Pick<
+  ComponentProps<typeof Flam3>,
+  'exportDriver' | 'isExportRenderer'
+>
+
+/**
+ * Mounts a Flam3 drawing `flame` on a recording root, as an open canvas, or
+ * as an export's canvas with `exportProps`. An accessor plays frames.
+ */
+function renderFlame(
+  flame: FlameDescriptor | Accessor<FlameDescriptor>,
+  exportProps: ExportProps = {},
+) {
   const { root, compiled } = recordingRoot()
+  const current = typeof flame === 'function' ? flame : () => flame
   render(() => (
     <RootContextProvider
       value={{
@@ -170,8 +186,9 @@ function renderFlame(flame: FlameDescriptor) {
               renderInterval={1}
               adaptiveFilterEnabled={true}
               animationEnabled={false}
-              flameDescriptor={flame}
+              flameDescriptor={current()}
               edgeFadeColor={vec4f(0)}
+              {...exportProps}
             />
           </Camera3DContextProvider>
         </CameraContextProvider>
@@ -229,6 +246,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup()
+  setExportQuality(undefined)
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
 })
@@ -281,5 +299,57 @@ describe.each([
     renderFlame(base)
     loadCustomVariations()
     expect(vi.mocked(build)).toHaveBeenCalledTimes(2)
+  })
+
+  it('keeps an export job on its code through an unrelated create and a rename', () => {
+    const made = createCustomVariation('Stretch', BEFORE)
+    if (!made.success) throw new Error(JSON.stringify(made.errors))
+    const compiled = renderFlame(flameUsing(made.def.id, base), {
+      exportDriver: true,
+    })
+    expect(vi.mocked(build)).toHaveBeenCalledTimes(1)
+
+    createCustomVariation('Unrelated', AFTER)
+    updateCustomVariation(made.def.id, BEFORE, 'Stretch, renamed')
+
+    expect(vi.mocked(build)).toHaveBeenCalledTimes(1)
+    expect(wgslOf(compiled.at(-1))).toContain('1.375')
+  })
+
+  it('keeps an animation export on the code it started with through its later frames', () => {
+    const made = createCustomVariation('Stretch', BEFORE)
+    if (!made.success) throw new Error(JSON.stringify(made.errors))
+    const first = flameUsing(made.def.id, base)
+    const [frame, setFrame] = createSignal(first)
+    const compiled = renderFlame(frame, { exportDriver: true })
+
+    updateCustomVariation(made.def.id, AFTER)
+    // The next frame: the same flame, brighter.
+    setFrame({
+      ...first,
+      renderSettings: {
+        ...first.renderSettings,
+        exposure: first.renderSettings.exposure + 0.5,
+      },
+    })
+
+    expect(vi.mocked(build)).toHaveBeenCalledTimes(1)
+    expect(wgslOf(compiled.at(-1))).toContain('1.375')
+  })
+
+  it('takes the edit on the workspace canvas when its export ends', () => {
+    const made = createCustomVariation('Stretch', BEFORE)
+    if (!made.success) throw new Error(JSON.stringify(made.errors))
+    const compiled = renderFlame(flameUsing(made.def.id, base), {
+      isExportRenderer: true,
+    })
+    setExportQuality(1)
+
+    updateCustomVariation(made.def.id, AFTER)
+    expect(vi.mocked(build)).toHaveBeenCalledTimes(1)
+
+    setExportQuality(undefined)
+    expect(vi.mocked(build)).toHaveBeenCalledTimes(2)
+    expect(wgslOf(compiled.at(-1))).toContain('2.625')
   })
 })

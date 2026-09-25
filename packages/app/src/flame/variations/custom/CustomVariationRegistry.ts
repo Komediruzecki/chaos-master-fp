@@ -15,7 +15,8 @@ const CUSTOM_TYPE_PREFIX = 'custom_'
  * edited or renamed, duplicated, deleted, restored, loaded, imported from a
  * link or saved from one. A live preview does not bump it. Flam3 reads it
  * reactively, so every open renderer rebuilds its IFS pipeline after a
- * change; the pipeline caches read it untracked, as part of their keys.
+ * change, except while an export drives it; the pipeline caches read it
+ * untracked, as part of their keys.
  */
 const [version, setVersion] = createSignal(0)
 
