@@ -117,22 +117,46 @@ describe('flame/stats', () => {
     // A 3D flame draws a live row of the 2D-to-3D map's 2D name as its 3D
     // analog, so a variation counts as what is drawn, and each school holds
     // the analogs of its 2D entries: bubble3D was on no list, bubbleVar Void.
-    it('classifies each 3D analog in the map as its 2D name', () => {
+    // The 3D registry also has name twins the map does not list (waves3D for
+    // wavesVar), and a 3D flame built from 3D names uses them: each sits
+    // with its 2D twin too. waves3D read Order while wavesVar read Tide.
+    it('classifies each 3D analog as its 2D name: map rows and name twins', () => {
       const liveRows = Object.entries(VARIATION_2D_TO_3D_MAP).filter(
         ([from, to]) =>
           isVariationTypeFor(2, from) && isVariationTypeFor(3, to),
       )
+      const listed2D = [
+        LINEAR_VARIATIONS,
+        SYMMETRY_VARIATIONS,
+        VORTEX_VARIATIONS,
+        VOID_VARIATIONS,
+        TIDE_VARIATIONS,
+      ]
+        .flatMap((list) => [...list])
+        .filter((type) => type.endsWith('Var') && isVariationTypeFor(2, type))
+      const nameTwins = listed2D
+        .map((type) => [type, type.replace(/Var$/, '3D')] as const)
+        .filter(([, twin]) => isVariationTypeFor(3, twin))
+      const pairs = [
+        ...new Map(
+          [...liveRows, ...nameTwins].map(([from, to]) => [
+            `${from} ${to}`,
+            [from, to] as const,
+          ]),
+        ).values(),
+      ]
       const as3D = (type: string) => {
         const f = createDummyFlame(type, 1.0)
         f.renderSettings.dimensions = 3
         return classifySchool(f)
       }
-      const rows = liveRows.map(([from, to]) => [
+      const rows = pairs.map(([from, to]) => [
         `${from} ${classifySchool(createDummyFlame(from, 1.0))}`,
         `${from} in 3D ${as3D(from)}`,
         `${to} in 3D ${as3D(to)}`,
       ])
       expect(liveRows.length).toBeGreaterThan(0)
+      expect(nameTwins.length).toBeGreaterThan(0)
       expect(
         rows.filter(
           (row) => new Set(row.map((r) => r.split(' ').pop())).size > 1,

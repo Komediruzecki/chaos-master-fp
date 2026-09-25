@@ -14,8 +14,10 @@ import { isVariationTypeFor } from './variationRegistry'
  * generated UUID in the editor, a descriptive name in the examples), which
  * never matches a type name. A type sits on one list only: the checks run in
  * order, so a second listing never counts. Each list also holds the 3D analog
- * of its 2D entries, from the live rows of the renderer's 2D-to-3D map, since
- * a 3D flame draws bubbleVar as bubble3D.
+ * of its 2D entries: from the live rows of the renderer's 2D-to-3D map, since
+ * a 3D flame draws bubbleVar as bubble3D, and by hand for the 3D registry's
+ * name twins the map leaves out (waves3D for wavesVar). stats.test.ts checks
+ * both kinds.
  */
 const LIVE_2D_TO_3D = Object.entries(VARIATION_2D_TO_3D_MAP).filter(
   ([from, to]) => isVariationTypeFor(2, from) && isVariationTypeFor(3, to),
@@ -91,6 +93,8 @@ export const VOID_VARIATIONS = school([
   'popcornVar',
   'spherical3D',
   'sphere3D',
+  'eyefish3D',
+  'popcorn3D',
 ])
 
 export const TIDE_VARIATIONS = school([
@@ -101,6 +105,7 @@ export const TIDE_VARIATIONS = school([
   'radialBlurVar',
   'rippleVar',
   'sinusoidal3D',
+  'waves3D',
 ])
 
 /**
