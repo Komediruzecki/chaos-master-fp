@@ -554,24 +554,119 @@ describe('the paths result names each affine layout', () => {
     ])
   })
 
-  it('keeps a busy 3D flame inside the same budget as a 2D one', async () => {
+  it('a 3D flame with a 2D-layout final transform describes the final in its own terms', async () => {
     const flame = flame3D()
-    const template = (flame.transforms as unknown as Record<string, unknown>).t1
-    const busy: Record<string, unknown> = {}
-    for (let index = 1; index <= 8; index++) {
-      const copy = JSON.parse(JSON.stringify(template)) as {
-        variations: Record<string, unknown>
-      }
-      copy.variations = {
-        [`v${index}a`]: { type: 'linear3D', weight: 1 },
-        [`v${index}b`]: { type: 'spherical3D', weight: 0.5 },
-        [`v${index}c`]: { type: 'swirl3D', weight: 0.25 },
-      }
-      busy[`t${index}`] = copy
-    }
-    ;(flame as unknown as { transforms: unknown }).transforms = busy
+    flame.finalTransform = { a: 1, b: 0, c: 0, d: 0, e: 1, f: 0 }
     const summary = await summaryFor(flame)
-    expect(summary.transforms).toHaveLength(8)
-    expect(JSON.stringify(summary).length).toBeLessThan(1600)
+    expect(summary.transformPaths).toContain('finalTransform.{a-f}')
+    expect(summary.transformPaths).toContain("{a-f}: x'=ax+by+c, y'=dx+ey+f")
   })
+
+  it('a 2D flame switched to 3D: its affines are all 2D-layout, the final the timeline creates is 3D', async () => {
+    const flame = createTestFlame()
+    flame.renderSettings.dimensions = 3
+    const summary = await summaryFor(flame)
+    expect(summary.transformPaths).toContain(
+      "preAffine|postAffine}.{a-f}: x'=ax+by+c, y'=dx+ey+f",
+    )
+    expect(summary.transformPaths).toContain(
+      "finalTransform.{a-l}: x'=ax+by+cz+d",
+    )
+    // Every transform is in the layout the grammar gives first: no notes.
+    expect(summary.transforms.map((t) => t.affine)).toEqual([
+      undefined,
+      undefined,
+    ])
+  })
+
+  const IDENTITY_2D = { a: 1, b: 0, c: 0, d: 0, e: 1, f: 0 }
+
+  /** Eight transforms of three variations each, their affines in the given
+   *  layouts: `layouts(index)` gives transform `index`'s pre and post. */
+  function busyFlame(
+    dims: 2 | 3,
+    layouts: (index: number) => ['2D' | '3D', '2D' | '3D'],
+  ) {
+    const flame = createTestFlame()
+    flame.renderSettings.dimensions = dims
+    const template = (flame.transforms as unknown as Record<string, unknown>).t1
+    const identity = { '2D': IDENTITY_2D, '3D': IDENTITY_3D }
+    const transforms: Record<string, unknown> = {}
+    for (let index = 1; index <= 8; index++) {
+      const [pre, post] = layouts(index)
+      transforms[`t${index}`] = {
+        ...(JSON.parse(JSON.stringify(template)) as object),
+        preAffine: { ...identity[pre] },
+        postAffine: { ...identity[post] },
+        variations: {
+          [`v${index}a`]: { type: 'linear3D', weight: 1 },
+          [`v${index}b`]: { type: 'spherical3D', weight: 0.5 },
+          [`v${index}c`]: { type: 'swirl3D', weight: 0.25 },
+        },
+      }
+    }
+    ;(flame as unknown as { transforms: unknown }).transforms = transforms
+    return flame
+  }
+
+  const sizeOf = async (flame: FlameDescriptor, animated: boolean) => {
+    const ctx = createMockCommandContext()
+    ctx.flameDescriptor = () => flame
+    if (animated) {
+      ctx.timeline.tracks = () =>
+        ['camera3D.theta', 'camera3D.phi', 'camera3D.radius'].map((path) => ({
+          parameterPath: path,
+          keyframes: [
+            { frame: 0, value: 1 },
+            { frame: 90, value: 2 },
+          ],
+        }))
+    }
+    setWebMcpContext(ctx)
+    return JSON.stringify(await arcadeGetAnimatablePaths.execute({}, {})).length
+  }
+
+  // The same budgets as a busy 2D flame (1600, and 1900 when it arrives
+  // animated): the grammar is given in the layout most affines are in, so a
+  // flame whose affines share one layout pays nothing for it, whatever its
+  // dimensions.
+  const ONE_LAYOUT: [string, FlameDescriptor][] = [
+    ['2D flame', busyFlame(2, () => ['2D', '2D'])],
+    ['3D flame, 3D-layout affines', busyFlame(3, () => ['3D', '3D'])],
+    ['2D flame switched to 3D', busyFlame(3, () => ['2D', '2D'])],
+    ['3D flame switched to 2D', busyFlame(2, () => ['3D', '3D'])],
+  ]
+  for (const [name, flame] of ONE_LAYOUT) {
+    it(`${name}: inside the budget of a busy 2D flame`, async () => {
+      expect(await sizeOf(flame, false)).toBeLessThan(1600)
+      expect(await sizeOf(flame, true)).toBeLessThan(1900)
+    })
+  }
+
+  // A 3D flame holding both layouts has to name both: the second equation
+  // (67 chars) and a note on each listed transform in the other layout (at
+  // most 24 chars, "preAffine 2D", times 8). On top of the one-layout budget
+  // that is at most 1600 + 67 + 192 = 1859, so 1900; animated, 2150. Measured:
+  // 1823 / 2059 for every transform mixed, 1687 / 1923 for half, 1645 / 1881
+  // for one.
+  const TWO_LAYOUTS: [string, FlameDescriptor][] = [
+    [
+      'every transform pre 2D-layout, post 3D',
+      busyFlame(3, () => ['2D', '3D']),
+    ],
+    [
+      'half the transforms 2D-layout',
+      busyFlame(3, (i) => (i <= 4 ? ['2D', '2D'] : ['3D', '3D'])),
+    ],
+    [
+      'one transform 2D-layout',
+      busyFlame(3, (i) => (i === 1 ? ['2D', '2D'] : ['3D', '3D'])),
+    ],
+  ]
+  for (const [name, flame] of TWO_LAYOUTS) {
+    it(`3D flame, ${name}: pays only for the second layout`, async () => {
+      expect(await sizeOf(flame, false)).toBeLessThan(1900)
+      expect(await sizeOf(flame, true)).toBeLessThan(2150)
+    })
+  }
 })

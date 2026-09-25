@@ -1,3 +1,4 @@
+import { AFFINE_EQUATIONS } from '@/arcade/affineTerms'
 import { buildAnimatableCatalog, buildTimelineSnapshot, MAX_CINEMA_FRAMES, MAX_CINEMA_KEYFRAMES_PER_TRACK, MAX_CINEMA_TRACKS, } from '@/arcade/animatablePaths'
 import { describeAllowedCommands } from '@/arcade/commandHints'
 import { qualityRank } from '@/arcade/guard'
@@ -9,7 +10,8 @@ import { executeCommand, preflightReplayCommand } from '@/commands/registry'
 import { captureGlideSwitches } from '@/flame/glide/runtime'
 import { withRecordingSuppressed } from '@/recorder/recorder'
 import { getWebMcpContext } from '@/webmcp/contextBridge'
-import type { AffineLayout, CatalogEntry } from '@/arcade/animatablePaths'
+import type { AffineLayout } from '@/arcade/affineTerms'
+import type { CatalogEntry } from '@/arcade/animatablePaths'
 import type { TimelineTrack } from '@/utils/timeline'
 import type { WebMcpTool } from '@/webmcp/types'
 
@@ -100,19 +102,12 @@ export const arcadeStartCinema: WebMcpTool = {
 const MAX_LISTED_TRANSFORMS = 8
 
 /**
- * What each affine term is, per key layout, as the equation it appears in: the
- * constant term of each row is its translation. The same letter is a
- * different term in each layout (`d` is y-from-x in 2D, the x translation in
- * 3D), so the grammar names the layout the flame's affines really have.
+ * The transform grammar, stated once for every transform. `layout` is the one
+ * most of the flame's affines are in, and the grammar gives its equation
+ * first; a transform in the other layout says so in its own `affine` field.
+ * The same letter is a different term in each layout (`d` is y-from-x in 2D,
+ * the x translation in 3D), and the final transform is described in its own.
  */
-const AFFINE_EQUATIONS: Record<AffineLayout, string> = {
-  '2D': "{a-f}: x'=ax+by+c, y'=dx+ey+f",
-  '3D': "{a-l}: x'=ax+by+cz+d, y'=ex+fy+gz+h, z'=ix+jy+kz+l",
-}
-
-/** Every transform exposes the same paths, so the grammar is stated once
- *  instead of repeated for each one. `layout` is the flame's; a transform
- *  whose affines differ says so in its own `affine` field. */
 function transformPathsGrammar(
   layout: AffineLayout,
   otherLayoutUsed: boolean,
@@ -123,7 +118,13 @@ function transformPathsGrammar(
     ? `${AFFINE_EQUATIONS[layout]}; where a transform says affine "${other}": ${AFFINE_EQUATIONS[other]}`
     : AFFINE_EQUATIONS[layout]
   const finalKeys = finalLayout === '3D' ? '{a-l}' : '{a-f}'
-  return `transform.<id>.{preAffine|postAffine}.${terms} | transform.<id>.{probability|colorSpeed|color.x|color.y} | finalTransform.${finalKeys}, same terms | <id>.<variationId> = variation weight (no transform. prefix)`
+  let final = `${finalKeys}, same terms`
+  if (finalLayout !== layout) {
+    final = otherLayoutUsed
+      ? `${finalKeys}, the "${other}" terms`
+      : AFFINE_EQUATIONS[finalLayout]
+  }
+  return `transform.<id>.{preAffine|postAffine}.${terms} | transform.<id>.{probability|colorSpeed|color.x|color.y} | finalTransform.${final} | <id>.<variationId> = variation weight (no transform. prefix)`
 }
 
 /** The layout of one catalogued affine: it lists `g` only in the 3D layout. */
@@ -132,6 +133,26 @@ function catalogLayout(
   prefix: string,
 ): AffineLayout {
   return byPath.has(`${prefix}.g`) ? '3D' : '2D'
+}
+
+/**
+ * The layout most of the listed affines are in, so the fewest transforms need
+ * an `affine` note. A tie goes to the layout the flame renders in: 3D exactly
+ * when the catalog offers the 3D camera.
+ */
+function majorityLayout(
+  paths: ReadonlySet<string>,
+  ids: readonly string[],
+): AffineLayout {
+  let balance = 0
+  for (const id of ids) {
+    for (const matrix of ['preAffine', 'postAffine']) {
+      balance +=
+        catalogLayout(paths, `transform.${id}.${matrix}`) === '3D' ? 1 : -1
+    }
+  }
+  if (balance !== 0) return balance > 0 ? '3D' : '2D'
+  return paths.has('camera3D.radius') ? '3D' : '2D'
 }
 
 /** Groups `summarize` names explicitly. Everything else lands in `other`. */
@@ -193,8 +214,7 @@ function summarize(
   ]
   const listed = transformIds.slice(0, MAX_LISTED_TRANSFORMS)
   const paths = new Set(catalog.map((entry) => entry.path))
-  // The flame renders in 3D exactly when the catalog offers the 3D camera.
-  const layout: AffineLayout = paths.has('camera3D.radius') ? '3D' : '2D'
+  const layout = majorityLayout(paths, listed)
   /** How a transform's affines differ from the flame's layout, if they do. */
   const affineNote = (id: string) => {
     const differing = (['preAffine', 'postAffine'] as const).filter(

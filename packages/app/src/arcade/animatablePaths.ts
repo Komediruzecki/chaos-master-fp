@@ -1,6 +1,8 @@
 import { EasingCurve, KeyframeInterpolation, tryValidateTimelineSnapshot, } from '@/flame/schema/timeline'
 import { TIMELINE_PARAMETERS } from '@/utils/timeline'
 import * as v from '@/valibot'
+import { AFFINE_TERMS, affineLayoutOf } from './affineTerms'
+import type { AffineLayout } from './affineTerms'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 import type { TimelineSnapshot } from '@/flame/schema/timeline'
 import type { TimelineTrack } from '@/utils/timeline'
@@ -20,57 +22,6 @@ export const MAX_CINEMA_FRAMES = 1800
 export const MAX_CINEMA_TRACKS = 64
 export const MAX_CINEMA_KEYFRAMES_PER_TRACK = 64
 
-export type AffineLayout = '2D' | '3D'
-
-/**
- * Every term of an affine in each key layout, in key order, and what it is.
- *
- * 2D `{ a b c / d e f }`: x' = a x + b y + c, y' = d x + e y + f.
- * 3D `{ a b c d / e f g h / i j k l }`: x' = a x + b y + c z + d,
- * y' = e x + f y + g z + h, z' = i x + j y + k z + l.
- * The same letter is a different term in each: `d` is y-from-x in 2D and the
- * x translation in 3D.
- */
-export const AFFINE_TERMS: Record<AffineLayout, Record<string, string>> = {
-  '2D': {
-    a: 'x from x',
-    b: 'x from y',
-    c: 'x translation',
-    d: 'y from x',
-    e: 'y from y',
-    f: 'y translation',
-  },
-  '3D': {
-    a: 'x from x',
-    b: 'x from y',
-    c: 'x from z',
-    d: 'x translation',
-    e: 'y from x',
-    f: 'y from y',
-    g: 'y from z',
-    h: 'y translation',
-    i: 'z from x',
-    j: 'z from y',
-    k: 'z from z',
-    l: 'z translation',
-  },
-}
-
-/**
- * The key layout an affine is in, decided the way the 3D renderer decides it
- * (`isAffine3D` in flame/transformFunction3D.ts): any of `g`-`l` present. A 3D
- * flame can hold 2D-layout affines, which that renderer maps, so the layout
- * is the affine's own and not the flame's.
- */
-export function affineLayoutOf(
-  affine: Record<string, unknown> | undefined,
-): AffineLayout {
-  if (!affine) return '2D'
-  return ['g', 'h', 'i', 'j', 'k', 'l'].some((key) => affine[key] !== undefined)
-    ? '3D'
-    : '2D'
-}
-
 function affineEntries(
   prefix: string,
   affine: Record<string, unknown> | undefined,
@@ -87,14 +38,15 @@ function affineEntries(
 }
 
 /**
- * The final transform's layout: its own, or, when the flame has none yet, the
- * one the timeline creates for it (a 3D identity on a 3D flame,
+ * The final transform's layout, read as any affine's is, or, when the flame
+ * has none yet, the one the timeline creates for it (a 3D identity on a 3D flame,
  * `applyFinalTransformTracks` in utils/timeline.ts).
  */
 function finalTransformLayout(flame: FlameDescriptor): AffineLayout {
   const final = flame.finalTransform as Record<string, unknown> | undefined
-  if (final) return affineLayoutOf(final)
-  return flame.renderSettings.dimensions === 3 ? '3D' : '2D'
+  const dimensions = flame.renderSettings.dimensions
+  if (final) return affineLayoutOf(final, dimensions)
+  return dimensions === 3 ? '3D' : '2D'
 }
 
 /**
@@ -180,7 +132,7 @@ export function buildAnimatableCatalog(flame: FlameDescriptor): CatalogEntry[] {
         ...affineEntries(
           `transform.${tid}.${matrix}`,
           affine,
-          affineLayoutOf(affine),
+          affineLayoutOf(affine, flame.renderSettings.dimensions),
           group,
         ),
       )
@@ -270,7 +222,7 @@ function wrongAffineLayoutError(
   if (!match) return undefined
   const prefix = match[1]!
   if (!byPath.has(`${prefix}.f`) || byPath.has(`${prefix}.g`)) return undefined
-  return `"${path}" is not a term of this affine: it is in the 2D layout, a-f (x'=ax+by+c, y'=dx+ey+f; c and f are the translation). g-l exist only on affines in the 3D layout. Call arcade_get_animatable_paths for each transform's layout.`
+  return `"${path}" is not a term of this affine: it is in the 2D layout, a-f (x'=ax+by+c, y'=dx+ey+f; c and f are the translation). g-l exist only on 3D-layout affines of a 3D flame. Call arcade_get_animatable_paths for each transform's layout.`
 }
 
 /** Why a path the catalog does not hold was refused, as specifically as the

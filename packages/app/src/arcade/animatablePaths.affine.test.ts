@@ -20,6 +20,7 @@ import { transformAffine } from '@/flame/affineTranform'
 import { transformAffine3D } from '@/flame/affineTransform3D'
 import { validateFlame } from '@/flame/schema/flameSchema'
 import { applyTracksToFlame } from '@/utils/timeline'
+import { AFFINE_EQUATIONS, AFFINE_TERMS } from './affineTerms'
 import { buildAnimatableCatalog, buildTimelineSnapshot, } from './animatablePaths'
 import type { CatalogEntry } from './animatablePaths'
 
@@ -93,6 +94,14 @@ function affineEntries(catalog: CatalogEntry[], prefix: string) {
     }))
 }
 
+const track = (path: string, from: number, to: number) => ({
+  path,
+  keyframes: [
+    { frame: 0, value: from },
+    { frame: 30, value: to },
+  ],
+})
+
 function expected(layout: Layout, affine: Record<string, number> | undefined) {
   return KEYS[layout].map((key) => ({
     key,
@@ -144,6 +153,27 @@ describe('the catalog lists each affine in its own layout', () => {
     ).toEqual(expected('2D', f2.finalTransform as Record<string, number>))
   })
 
+  it('a 3D flame switched to 2D: a-f, named as the 2D renderer reads them', () => {
+    // The 2D renderer reads a-f in the 2D layout and ignores g-l, whatever
+    // layout the affine was written in.
+    const f = structuredClone(flame(3, affine3D(0.7)))
+    f.renderSettings.dimensions = 2
+    const catalog = buildAnimatableCatalog(f)
+    for (const matrix of ['preAffine', 'postAffine'] as const) {
+      expect(affineEntries(catalog, `transform.t1.${matrix}.`)).toEqual(
+        expected('2D', t1(f)[matrix] as Record<string, number>),
+      )
+    }
+    expect(affineEntries(catalog, 'finalTransform.')).toEqual(
+      expected('2D', f.finalTransform as Record<string, number>),
+    )
+    const built = buildTimelineSnapshot(
+      { durationFrames: 30, tracks: [track('transform.t1.preAffine.l', 0, 1)] },
+      catalog,
+    )
+    expect(built.ok ? '' : built.error).toContain('2D layout')
+  })
+
   it('a 3D flame without a final transform gets the 3D one the timeline creates', () => {
     const f = flame(3)
     expect(
@@ -152,14 +182,6 @@ describe('the catalog lists each affine in its own layout', () => {
       ),
     ).toEqual(KEYS['3D'].map((key) => [key, termMeaning('3D', key)]))
   })
-})
-
-const track = (path: string, from: number, to: number) => ({
-  path,
-  keyframes: [
-    { frame: 0, value: from },
-    { frame: 30, value: to },
-  ],
 })
 
 describe('agents can keyframe the 3D terms, and the timeline drives them', () => {
@@ -205,4 +227,68 @@ describe('agents can keyframe the 3D terms, and the timeline drives them', () =>
     expect(error).toContain('2D layout')
     expect(error).toContain('a-f')
   })
+})
+
+describe('the timeline keeps a 2D-layout final transform 2D', () => {
+  // A take recorded on a 3D flame, replayed after the flame (or its final
+  // transform) went back to 2D: g-l tracks are there, the final is a-f.
+  const recorded = () => {
+    const built = buildTimelineSnapshot(
+      {
+        durationFrames: 30,
+        tracks: [
+          track('finalTransform.a', 0, 2),
+          track('finalTransform.k', 0, 2),
+        ],
+      },
+      buildAnimatableCatalog(flame(3, affine3D(0.7))),
+    )
+    if (!built.ok) throw new Error(built.error)
+    return built.snapshot.tracks
+  }
+
+  for (const dims of [2, 3] as const) {
+    it(`a ${dims}D flame with a 2D-layout final: a-f move, g-l are not added`, () => {
+      // Set after loading: loading a 3D flame promotes its final to 3D.
+      const f = structuredClone(flame(dims))
+      f.finalTransform = affine2D(0.7) as typeof f.finalTransform
+      applyTracksToFlame(recorded(), f, 15)
+      expect(Object.keys(f.finalTransform!).sort()).toEqual(KEYS['2D'])
+      expect((f.finalTransform as Record<string, number>).a).toBe(1)
+    })
+  }
+})
+
+describe('the equations agents are given say what the renderer does', () => {
+  /** Each term of `"{a-f}: x'=ax+by+c, y'=dx+ey+f"`, as `x from y` / `x translation`. */
+  function readEquations(equations: string): Record<string, string> {
+    const [range, rows] = equations.split(': ')
+    const meanings: Record<string, string> = {}
+    for (const row of rows!.split(', ')) {
+      const [lhs, rhs] = row.split('=')
+      const output = lhs!.replace("'", '')
+      for (const term of rhs!.split('+')) {
+        const [key, input] = [term[0]!, term[1]]
+        meanings[key] = input
+          ? `${output} from ${input}`
+          : `${output} translation`
+      }
+    }
+    const keys = Object.keys(meanings)
+    expect(range).toBe(`{${keys[0]}-${keys.at(-1)}}`)
+    return meanings
+  }
+
+  for (const layout of ['2D', '3D'] as const) {
+    it(`${layout}: every term, as the renderer applies it and as the catalog names it`, () => {
+      const read = readEquations(AFFINE_EQUATIONS[layout])
+      expect(Object.keys(read)).toEqual(KEYS[layout])
+      expect(read).toEqual(
+        Object.fromEntries(
+          KEYS[layout].map((key) => [key, termMeaning(layout, key)]),
+        ),
+      )
+      expect(read).toEqual(AFFINE_TERMS[layout])
+    })
+  }
 })
