@@ -7,12 +7,14 @@ import { agentDriving } from '@/arcade/pilot'
 import { executeCommand } from '@/commands/registry'
 import { useKeyframeTarget } from '@/contexts/KeyframeTargetContext'
 import { useToast } from '@/contexts/ToastContext'
+import { detectSymmetryFolds, detectSymmetryType, } from '@/flame/symmetryDetection'
 import { setActiveTab, workspaceIsVisible } from '@/lib/activeTab'
 import { createBackLayer } from '@/lib/backStack'
 import { SHOWCASE_CONSENT_VERSION } from '@/lib/communityShowcase'
 import { replaceOpenDocument } from '@/lib/documentLoad'
 import { hapticsEnabled, setHapticsEnabled } from '@/lib/haptics'
 import { trackAppInit } from '@/lib/telemetry'
+import { startViewTransition } from '@/lib/viewTransition'
 import { recordEntries, recordKeys } from '@/utils/record'
 import ui from './App.module.css'
 import { duelShowing, duelSidebarOpen } from './arcade/duel'
@@ -813,24 +815,13 @@ export function MainWorkspace(props: AppProps) {
     if (symTransforms().length === 0) setSymmetryCardOpen(true)
   })
 
-  const currentSymType = createMemo(() => {
-    const syms = symTransforms() || []
-    return syms.some(
-      ([, t]) =>
-        t?.preAffine?.a === -1 &&
-        t.preAffine.d === 0 &&
-        t.preAffine.b === 0 &&
-        t.preAffine.e === 1,
-    )
-      ? 'dihedral'
-      : 'rotational'
-  })
-
-  const currentSymFolds = createMemo(() => {
-    const isDihedral = currentSymType() === 'dihedral'
-    const syms = symTransforms() || []
-    return isDihedral ? syms.length : syms.length + 1
-  })
+  const symTransformValues = () => symTransforms().map(([, t]) => t)
+  const currentSymType = createMemo(() =>
+    detectSymmetryType(symTransformValues()),
+  )
+  const currentSymFolds = createMemo(() =>
+    detectSymmetryFolds(symTransformValues()),
+  )
 
   const applySymmetry = (
     n: number,
@@ -4483,11 +4474,7 @@ export function MainWorkspace(props: AppProps) {
               sidebarOpen={showSidebar}
               onToggleSidebar={() => {
                 // Same as the 'F' shortcut, so it works without a keyboard.
-                if ('startViewTransition' in document) {
-                  document.startViewTransition(toggleSidebarAsAuthoredAction)
-                } else {
-                  toggleSidebarAsAuthoredAction()
-                }
+                startViewTransition(toggleSidebarAsAuthoredAction)
               }}
             />
           </Show>

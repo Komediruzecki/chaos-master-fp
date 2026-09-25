@@ -11,7 +11,8 @@
  */
 
 import '@/commands/builtins'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, } from 'vitest'
+import { deleteCustomVariation, getCustomVariationDef, } from '@/flame/variations/custom'
 import { clearWebMcpContext, getWebMcpContext, setWebMcpContext, } from './contextBridge'
 import { MockModelContext } from './mockModelContext'
 import { wrapTool } from './registerWebMcp'
@@ -134,7 +135,7 @@ describe('WebMCP Foundation', () => {
       const t1 = transforms.find((t) => t.id === 't1')
       expect(t1).toBeDefined()
       const variations = t1!.variations as Array<Record<string, unknown>>
-      expect(variations[0]).toEqual({ type: 'linear', weight: 1 })
+      expect(variations[0]).toEqual({ type: 'linearVar', weight: 1 })
     })
   })
 
@@ -503,6 +504,30 @@ describe('WebMCP Foundation', () => {
       })) as { isError?: boolean; error?: string }
       expect(result.isError || Boolean(result.error)).toBe(true)
     })
+
+    it('updates a variation in place: the new code and name, the same id', async () => {
+      const made = (await mockContext.executeTool('create_custom_variation', {
+        name: 'Original',
+        body: 'return vec2f(pos.x * 1.5, pos.y);',
+      })) as { success: boolean; id: string; name: string }
+      expect(made.success).toBe(true)
+      onTestFinished(() => {
+        deleteCustomVariation(made.id)
+      })
+
+      const result = await mockContext.executeTool('create_custom_variation', {
+        updateId: made.id,
+        name: 'Renamed',
+        body: 'return vec2f(pos.x * 2.5, pos.y);',
+      })
+
+      expect(result).toEqual({ success: true, id: made.id, name: 'Renamed' })
+      const def = getCustomVariationDef(made.id)
+      expect({ name: def?.name, wgsl: def?.wgsl }).toEqual({
+        name: 'Renamed',
+        wgsl: 'return vec2f(pos.x * 2.5, pos.y);',
+      })
+    })
   })
 
   describe('score_clash_round', () => {
@@ -577,7 +602,7 @@ describe('WebMCP Foundation', () => {
           color: { x: 0.8, y: 1 },
           colorSpeed: 0.5,
           visible: true,
-          variations: { v0: { type: 'spherical', weight: 1 } },
+          variations: { v0: { type: 'sphericalVar', weight: 1 } },
         },
       } as FlameDescriptor['transforms']
 

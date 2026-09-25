@@ -1,4 +1,5 @@
 import { batch, createEffect, createResource, createSignal, ErrorBoundary, lazy, onCleanup, onMount, Show, Suspense, } from 'solid-js'
+import { interruptionAnnouncement } from './arcade/interruptedSession'
 import { ArcadeHub } from './components/Arcade/ArcadeHub'
 import { AppCrashed, WebgpuNotSupported, } from './components/ErrorHandling/ErrorHandling'
 import { HomeTab } from './components/Home/HomeTab'
@@ -15,7 +16,7 @@ import { ThemeContextProvider } from './contexts/ThemeContext'
 import { ToastProvider, useToast } from './contexts/ToastContext'
 import { IS_DEV } from './defaults'
 import { initAncestry } from './flame/ancestry'
-import { importSharedVariations, loadCustomVariations, remapFlameCustomVariations, } from './flame/variations/custom'
+import { loadAndImportSharedVariations, remapFlameCustomVariations, } from './flame/variations/custom'
 import { activeTab, arcadeMode, setActiveTab, tabFromHash, } from './lib/activeTab'
 import { createBackLayer } from './lib/backStack'
 import { migrateLegacyDraft, reopenTarget, takePauseSaveEviction, takePauseSaveFailure, } from './lib/pauseSave'
@@ -208,9 +209,10 @@ export function Wrappers() {
         // allowlist compiler and registers them transiently (not saved) — the
         // recipient is asked to save them via the consent prompt downstream.
         if (result.customVariations && result.customVariations.length > 0) {
-          // Load the saved library first so collision detection sees it.
-          loadCustomVariations()
-          const imported = importSharedVariations(result.customVariations)
+          // Loads the saved library first so collision detection sees it.
+          const imported = loadAndImportSharedVariations(
+            result.customVariations,
+          )
           const flame = remapFlameCustomVariations(result.flame, imported.remap)
           if (imported.rejected.length > 0) {
             const n = imported.rejected.length
@@ -249,8 +251,7 @@ export function Wrappers() {
     if (cv === null) return undefined
     try {
       const def = await decodeVariationShare(cv)
-      loadCustomVariations()
-      const result = importSharedVariations([def])
+      const result = loadAndImportSharedVariations([def])
       if (result.alreadyOwned.length > 0) {
         return { def: result.alreadyOwned[0]!, alreadyOwned: true }
       }
@@ -370,6 +371,10 @@ export function Wrappers() {
                   grid still up and a starter flame one tap away. The toast
                   column sits above the welcome screen's own layer. */}
               <MessageToast message={launchNotice()} />
+              {/* A reload that ended an agent's Arcade session, said once. Its
+                  own toast: it is known only after a check that tells a
+                  reload from a duplicated tab (arcade/interruptedSession.ts). */}
+              <MessageToast message={interruptionAnnouncement() ?? null} />
               <Root
                 adapterOptions={{
                   powerPreference: 'high-performance',

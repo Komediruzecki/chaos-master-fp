@@ -42,7 +42,12 @@ export const camera3DDefault: {
 }
 
 const _edgeFadeColorDefault: [number, number, number, number] = [0, 0, 0, 0.8]
-const MAX_SKIP_ITERS_VALUE = 30
+/**
+ * Warm-up iterations before a point is plotted. 50, not the 30 the sidebar
+ * once stopped at: ten bundled animations pulse up to 50, and a frame the
+ * schema rejects is a PNG that will not open again (numberDomain.ts).
+ */
+export const MAX_SKIP_ITERS_VALUE = 50
 const MIN_EXPOSURE_VALUE = -8
 const MAX_EXPOSURE_VALUE = 8
 
@@ -244,8 +249,28 @@ export const TransformId = v.pipe(v.string(), v.brand('TransformId'))
 export type VariationId = v.InferOutput<typeof VariationId>
 export const VariationId = v.pipe(v.string(), v.brand('VariationId'))
 
+/**
+ * A variation's type is looked up by name in plain-object tables (previews,
+ * docs, the registries), where a type named after an Object member resolves to
+ * what every object inherits. So a type may not take any name Object.prototype
+ * has, read from the engine rather than listed, nor a name an id may not take;
+ * any other unknown name still loads as it is written.
+ */
+const FORBIDDEN_VARIATION_TYPES: ReadonlySet<string> = new Set([
+  ...FORBIDDEN_ENTITY_IDS,
+  ...Object.getOwnPropertyNames(Object.prototype),
+])
+
+const VariationType = v.pipe(
+  v.string(),
+  v.check(
+    (type) => !FORBIDDEN_VARIATION_TYPES.has(type),
+    'A variation type cannot be a name every object inherits, such as toString or __proto__',
+  ),
+)
+
 export const BaseVariationDescriptor = v.object({
-  type: v.string(),
+  type: VariationType,
   weight: v.number(),
   visible: v.optional(v.boolean(), true),
   params: v.optional(v.record(v.string(), v.number())),
@@ -360,7 +385,17 @@ export const RenderSettings = v.object({
     v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(1)),
     0,
   ),
-  palettePhase: v.optional(v.pipe(v.number(), v.minValue(0), v.maxValue(1)), 0),
+  // Cyclic: the colour grading pass reads the phase through fract() and as a
+  // rotation angle, so 1.25 is 0.25 (see numberDomain.ts).
+  palettePhase: v.optional(
+    v.pipe(
+      v.number(),
+      v.minValue(0),
+      v.maxValue(1),
+      v.metadata({ cyclic: true }),
+    ),
+    0,
+  ),
   paletteSpeed: v.optional(v.pipe(v.number(), v.minValue(0)), 0.5),
   blendWeight: v.optional(v.pipe(v.number(), v.minValue(0), v.maxValue(1))),
   blendFlame: v.optional(v.unknown()),

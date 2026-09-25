@@ -10,6 +10,7 @@ import { deepClone } from '@/utils/clone'
 import { createTimestampQuery } from '@/utils/createTimestampQuery'
 import { logTime } from '@/utils/logTime'
 import { exportTickIterations } from '@/utils/motionBlur'
+import { advancePlaybackTick } from '@/utils/playbackTick'
 import { applyTimelineToFlame } from '@/utils/timeline'
 import { vramTrack } from '@/utils/vramLog'
 import { Camera3DContext } from '../lib/Camera3DContext'
@@ -27,6 +28,7 @@ import { createExportRenderDriver, createInteractiveRenderDriver, EXPORT_COUNT_S
 import { backgroundColorDefault, backgroundColorDefaultWhite, } from './schema/flameSchema'
 import { shaderShapeOf } from './shaderShape'
 import { Bucket, BUCKET_FIXED_POINT_MULTIPLIER, FilterParams } from './types'
+import { customVariationsVersion } from './variations/custom'
 import type { v4f } from 'typegpu/data'
 import type { Palette } from './colorMap'
 import type { ExportImageType } from './exportImageType'
@@ -501,6 +503,18 @@ export function Flam3(props: Flam3Props) {
     'colorGradingMs',
   ])
 
+  // The custom variations' version this renderer's pipeline follows. An
+  // export keeps the code it started with: while the export driver runs, the
+  // version stays where it was when the export began, read without tracking,
+  // so an edit or a rename partway through neither restarts a still nor
+  // changes an animation's later frames. Reading it untracked alone would not
+  // do: every new animation frame re-runs the fingerprint below. The canvas
+  // takes the change when the export ends.
+  const pipelineVariationsVersion = createMemo<number>((atExportStart) => {
+    if (!exportDriverActive()) return customVariationsVersion()
+    return atExportStart ?? untrack(customVariationsVersion)
+  })
+
   // Also returns the flame snapshot so the pipeline creation uses the exact same
   // value — re-reading untrack(animatedFlame) separately can return a different
   // flame when outputTextures() memo re-evaluation causes nested effect flushes.
@@ -509,6 +523,9 @@ export function Flam3(props: Flam3Props) {
     const bf = props.blendFlame
     return JSON.stringify({
       ...clashTeamsSignature(clashTeamsOf(flame.transforms)),
+      // Editing a custom variation keeps its type and changes its code, so
+      // nothing below changes: the version makes the canvas show the edit.
+      customVariationsVersion: pipelineVariationsVersion(),
       transforms: shaderShapeOf(flame.transforms),
       ...(bf && { blendTransforms: shaderShapeOf(bf.transforms) }),
       dimensions: flame.renderSettings.dimensions ?? 2,
@@ -591,9 +608,7 @@ export function Flam3(props: Flam3Props) {
     const cfg = timeline.config()
     const intervalMs = 1000 / cfg.fps
     const intervalId = window.setInterval(() => {
-      for (let i = 0; i < cfg.timeScale; i++) {
-        timeline.advanceFrame()
-      }
+      advancePlaybackTick(timeline, cfg.timeScale)
     }, intervalMs)
 
     onCleanup(() => {

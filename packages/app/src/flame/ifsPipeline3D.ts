@@ -17,6 +17,7 @@ import { uniformsForPipeline } from './transformFunction'
 import { createFlameWgsl3D, extractFlameUniforms3D, toAffine3D, } from './transformFunction3D'
 import { AtomicBucket, BUCKET_FIXED_POINT_MULTIPLIER, BUCKET_SATURATION_COUNT, } from './types'
 import { Point3D } from './types3D'
+import { getCacheVersion } from './variations/custom'
 import type { StorageFlag, TgpuBuffer, TgpuComputeFn, TgpuRoot } from 'typegpu'
 import type { Vec2f, Vec2u, Vec4f, WgslArray } from 'typegpu/data'
 import type { ColorInitMode } from './colorInitMode'
@@ -94,14 +95,17 @@ export function createIFSPipeline3D(
     legacyRandomOutput ? 'legacy-rng' : 'canonical-rng'
   }`
   // Cache key contains only what is baked into the generated WGSL: transform
-  // ids (struct member names), variation ids/types, loop count and init mode.
-  // Uniform values flow through buffers and must not fragment the cache.
+  // ids (struct member names), variation ids/types, loop count and init mode,
+  // and the custom variations' version: editing one in place keeps its type
+  // and changes its code. Uniform values flow through buffers and must not
+  // fragment the cache.
   const clashTeams = clashTeamsOf(transforms)
   const clashTeamsOn = clashTeams.enabled
   const sig = JSON.stringify({
     ...clashTeamsSignature(clashTeams),
     insideShaderCount,
     plotsPerChain,
+    customVariationsVersion: getCacheVersion(),
     colorInitType,
     pointInit,
     transforms: shaderShapeOf(transforms),
