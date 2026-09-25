@@ -300,12 +300,13 @@ export function loadCustomVariations(): void {
     if (!raw) return
     const store = JSON.parse(raw) as Record<string, unknown>
     if (!store?.variations) return
-    const defs = Object.values(store.variations) as CustomVariationDef[]
+    const entries: unknown[] = Object.values(store.variations)
     // One change for the whole library, so an open renderer rebuilds once.
+    // Nothing in it may throw: a throw inside a batch drops the renderers'
+    // pending updates, and they would miss the next edit too.
     batch(() => {
-      for (const def of defs) {
-        if (!def.id || !def.wgsl || !def.name || typeof def.name !== 'string')
-          continue
+      for (const def of entries) {
+        if (!isDefShape(def) || !def.id || !def.wgsl || !def.name) continue
         if (!def.id.startsWith(CUSTOM_TYPE_PREFIX)) continue
         const compileResult = compileCustomVariationCode(def.wgsl)
         if (!compileResult.valid) {
@@ -404,7 +405,8 @@ function findByWgsl(
   return undefined
 }
 
-function isValidSharedDefShape(def: unknown): def is CustomVariationDef {
+/** An object with a string id, name and code: saved, or from a link. */
+function isDefShape(def: unknown): def is CustomVariationDef {
   return (
     !!def &&
     typeof def === 'object' &&
@@ -442,7 +444,7 @@ export function importSharedVariations(
   // One change for the whole link, so an open renderer rebuilds once.
   batch(() => {
     for (const raw of defs) {
-      if (!isValidSharedDefShape(raw)) {
+      if (!isDefShape(raw)) {
         rejected.push({
           name: 'unknown',
           errors: [{ message: 'Malformed custom variation definition' }],

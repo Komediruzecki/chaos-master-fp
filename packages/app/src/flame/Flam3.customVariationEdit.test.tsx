@@ -3,7 +3,8 @@
  * its type name, so nothing in the flame changes, yet the renderer must
  * rebuild its IFS pipeline with the new code: once per edit, with no
  * structural edit, and not when the saved library loads before it renders.
- * An export keeps the code it started with until it ends.
+ * An export keeps the code it started with until it ends, and a saved
+ * library with a broken entry does not stop the next edit from showing.
  *
  * Flam3 is the real one, on a stand-in GPU root that records the compute
  * function of each IFS pipeline it compiles. Its render loops and its filter
@@ -299,6 +300,26 @@ describe.each([
     renderFlame(base)
     loadCustomVariations()
     expect(vi.mocked(build)).toHaveBeenCalledTimes(2)
+  })
+
+  it('still shows the next edit after a saved library with a broken entry loads', () => {
+    const made = createCustomVariation('Stretch', BEFORE)
+    if (!made.success) throw new Error(JSON.stringify(made.errors))
+    localStorage.setItem(
+      'chaos-master-custom-variations',
+      JSON.stringify({
+        version: 1,
+        variations: { [made.def.id]: made.def, custom_broken: null },
+      }),
+    )
+    const compiled = renderFlame(flameUsing(made.def.id, base))
+    loadCustomVariations()
+    const builds = vi.mocked(build).mock.calls.length
+
+    updateCustomVariation(made.def.id, AFTER)
+
+    expect(vi.mocked(build)).toHaveBeenCalledTimes(builds + 1)
+    expect(wgslOf(compiled.at(-1))).toContain('2.625')
   })
 
   it('keeps an export job on its code through an unrelated create and a rename', () => {
