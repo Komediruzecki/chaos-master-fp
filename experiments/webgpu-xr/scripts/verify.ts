@@ -41,13 +41,15 @@ const report: Record<string, unknown> = {
   errors,
 }
 const read = () => page.evaluate(() => window.__lumenGpuXr!.snapshot())
-// The off-workspace compositor can present an incomplete HUD immediately after
-// a click. Wait for actual presentation opportunities, not an arbitrary sleep.
+// Let control changes and GPU draws reach presentation frames before capture.
+// Use frame callbacks rather than an arbitrary wall-clock sleep.
 const present = (target = page) =>
   target.evaluate(async () => {
     for (let i = 0; i < 5; i++)
       await new Promise<void>((resolve) =>
-        requestAnimationFrame(() => { resolve(); }),
+        requestAnimationFrame(() => {
+          resolve()
+        }),
       )
   })
 const frames = async (count = 4) => {
