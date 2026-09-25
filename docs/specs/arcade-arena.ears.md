@@ -20,6 +20,7 @@ engine itself beyond the tracks the arena writes into it, or `VariationPreview` 
 - `packages/app/src/components/ArenaOverlay.module.css` — full-screen immersion, `isClashing`, shake and shockwave presentation
 - `packages/app/src/MainWorkspace.tsx:3155-3286` (`initialStartClash`) — the arena facade on the command context, `selectFighter`, and the placeholder `startClash`
 - `packages/app/src/commands/types.ts:56-135` — `ArenaFighterStats` and the optional `arena` facade shape
+- `packages/app/src/flame/schoolVariations.ts` — the variation lists behind the schools, and the type a variation counts as
 - `packages/app/src/flame/stats.ts` — grounded stats, school classification, deterministic combat resolution
 - `packages/app/src/flame/symmetry.ts` — `applySymmetryToFlame`, behind the C1–C8 pills, and the builders it shares with the `flame.applySymmetry` command
 - `packages/app/src/flame/flameClashChoreography.ts` — the four-phase kinetic keyframe choreography
@@ -88,15 +89,15 @@ The arena overlay shall wrap its entire tree in a `ComputeGate` of
 `COMPUTE_GATE_CAPACITY`, so that the two fighter previews and the winner preview
 cannot starve the workspace renderer of GPU submissions.
 
-_(`ArenaOverlay.tsx:686` (`ComputeGate`), `:809` (`ComputeGate`); the gallery picker re-provides its own `Root`
-because the modal is portalled outside the app root, `:357-365` (`content`).)_
+_(`ArenaOverlay.tsx:712` (`ComputeGate`), `:836` (`ComputeGate`); the gallery picker re-provides its own `Root`
+because the modal is portalled outside the app root, `:373-381` (`content`).)_
 
 ### REQ-AA-005 — A fighterless opponent slot is rerolled to an archetype on mount
 
 **When** the arena overlay mounts and the Player 2 slot has no flame, the overlay shall
 run the reroll path to install a procedurally generated archetype opponent.
 
-_(`ArenaOverlay.tsx:481-485` (`player2Stats`))_
+_(`ArenaOverlay.tsx:497-501` (`player2Stats`))_
 
 ### REQ-AA-006 — Leaving the arena restores the player's own document
 
@@ -106,8 +107,8 @@ document, shall pause the timeline, silently replace the flame with the snapshot
 before the clash, reload the previous tracks, restore the previous duration and
 animation-enabled flag, and reset the playhead to frame 0.
 
-_(`ArenaOverlay.tsx:266-278` (`clearAllTimers`), `:280-289` (`captureWorkspace`),
-`:291-313` (`restoreWorkspace`), `:488-491` (`onCleanup`), `:493-498` (`handleClose`).
+_(`ArenaOverlay.tsx:271-283` (`clearAllTimers`), `:295-304` (`captureWorkspace`),
+`:291-313` (`restoreWorkspace`), `:504-507` (`onCleanup`), `:509-514` (`handleClose`).
 Capture and restore both read the context at `DEFAULT_SEAT` rather than the ambient
 seat, so a duel's rival seat can never receive the restored document.)_
 
@@ -127,7 +128,7 @@ _(`arenaArchetypes.ts:131-248` (`ARENA_ARCHETYPES`) (the six recipes), `:278-333
 base flame, archetype and seed shall produce identical flames; the default seed is
 `Math.floor(Math.random() * 100000)`, so an unseeded call is deliberately fresh.
 
-_(`arenaArchetypes.ts:281` (`seed`), `:291-309` (`mutateFlameSeeded`))_
+_(`arenaArchetypes.ts:340` (`seed`), `:350-371` (`mutateFlameSeeded`))_
 
 ### REQ-AA-009 — Archetype pools name only live registry variations
 
@@ -155,12 +156,12 @@ _(`ArenaOverlay.tsx:315-346` (`handleRerollOpponent`))_
 Opponent, Sync Active and both From Gallery buttons shall be disabled, and the sync,
 gallery and symmetry handlers shall additionally return early if invoked.
 
-_(`ArenaOverlay.tsx:352` (`openGalleryForFighter`), `:401` (`handleSyncActiveFlame`),
-`:430` (`handleApplySymmetry`), and the `disabled` bindings in
+_(`ArenaOverlay.tsx:375` (`openGalleryForFighter`), `:424` (`handleSyncActiveFlame`),
+`:453` (`handleApplySymmetry`), and the `disabled` bindings in
 `ArenaOverlay/ArenaFighterCard.tsx`, all fed by `:229` (`isClashing`): the symmetry pills at
 `:153` (`isClashing`), the stances at `:194` (`isClashing`), Reroll Opponent at `:373` (`isClashing`), Sync Active at
 `:384` (`isClashing`) and From Gallery at `:395` (`isClashing`). Both fighter cards are this one
-component, mounted at `ArenaOverlay.tsx:710` (`ArenaFighterCard`) and `:772` (`ArenaFighterCard`).)_
+component, mounted at `ArenaOverlay.tsx:737` (`ArenaFighterCard`) and `:799` (`ArenaFighterCard`).)_
 
 ### REQ-AA-012 — Either fighter slot can be re-seeded from the editor or the gallery
 
@@ -193,9 +194,12 @@ as `1 - min(0.95, meanSpectralNorm * 0.7)` clamped to `[0.05, 0.98]`; normalised
 entropy of the transform probabilities; nonlinearity as `nonlinearShare * 0.7` plus a
 variation-family bonus capped at `0.3`; and shall then map those onto HP, ATK, DEF, crit
 chance and power level through `COMBAT_COEFFICIENTS`, with beauty taken as
-`round(fitness.composite * 100)`.
+`round(fitness.composite * 100)`. ATK shall read the dimension per space,
+`dimension × 2 / spaceDim`, so that a 3D flame that fills its space scores as a 2D flame
+that fills the plane; the stat block and the cards keep the dimension itself (the Menger
+sponge reads 2.73).
 
-_(`stats.ts:96-110` (`COMBAT_COEFFICIENTS`) (the coefficients), `:274-296` (`solveMoranDimension`), `:332-498` (`calculateGroundedStats`))_
+_(`stats.ts:98-112` (`COMBAT_COEFFICIENTS`) (the coefficients), `:334-356` (`solveMoranDimension`), `:392-554` (`calculateGroundedStats`), `:460` (`dimensionPerSpace`) (per space))_
 
 ### REQ-AA-015 — A transformless flame gets the fallback stat block
 
@@ -204,7 +208,7 @@ fixed block `{ dimension 1.0, stability 0.8, entropy 0.5, nonlinearity 0.3,
 symmetryOrder 1, beauty 50, school 'Order', hp/maxHp 180, atk 45, def 40, critChance
 0.15, powerLevel 500 }` rather than dividing by zero.
 
-_(`stats.ts:338-354` (`transforms`))_
+_(`stats.ts:398-414` (`transforms`))_
 
 ### REQ-AA-016 — Explicit symmetry transforms outrank angle detection
 
@@ -216,7 +220,7 @@ pre-affine rotation angles, returning the largest `k ∈ {8,6,5,4,3,2}` whose `2
 spacing matches within `0.18` rad, and falling back to 2 when symmetry-family variations
 are present and 1 when they are not.
 
-_(`stats.ts:301-327` (`detectRotationalSymmetryOrder`), `:443-449` (`symTransforms`), `symmetryDetection.ts` (`detectSymmetryFolds`))_
+_(`stats.ts:362-388` (`detectRotationalSymmetryOrder`), `:499-505` (`symTransforms`), `symmetryDetection.ts` (`detectSymmetryFolds`))_
 
 ### REQ-AA-017 — Only visible transforms contribute to grounded stats
 
@@ -224,10 +228,10 @@ _(`stats.ts:301-327` (`detectRotationalSymmetryOrder`), `:443-449` (`symTransfor
 visible, so that an agent-supplied descriptor scores the same as the identical flame
 after schema validation.
 
-> **Known deviation:** `packages/app/src/flame/stats.ts:368` (`visible`) — the loop reads
+> **Known deviation:** `packages/app/src/flame/stats.ts:428` (`visible`) — the loop reads
 > `if (!t.visible) continue`, so every transform of an unvalidated agent-supplied flame
 > is skipped and the fighter falls through to the REQ-AA-015 fallback block. The
-> schema materialises `visible: true` (`packages/core/src/schema/flameSchema.ts:236`)
+> schema materialises `visible: true` (`packages/core/src/schema/flameSchema.ts:261`)
 > only for flames that have been through `v.parse`, which `arena_get_stats`,
 > `simulate_clash` and `create_clash_flame` never do for a caller-supplied `flame`.
 > The sibling helper `calculateStructuralSymmetry` in `webmcp/tools/scoreFlame.ts` uses
@@ -239,13 +243,18 @@ after schema validation.
 `classifySchool` shall accumulate absolute variation weight into Order, Crystal, Vortex,
 Void, Tide and Arcane buckets — a transform carrying any custom WGSL variation adds a
 flat `3.0` to Arcane, an unrecognised variation contributes half weight to Order, and a
-flame with no transforms or no positive bucket is `Order` — and `getSchoolMultiplier`
-shall return `1.25` on the advantage cycle Vortex > Order > Void > Crystal > Tide >
-Vortex, `0.8` against it, a flat `1.1` when the attacker is Arcane, and `1.0` otherwise.
+flame with no transforms or no positive bucket is `Order` — reading each variation as the
+type the renderer draws (in 3D, a mapped 2D name as its 3D analog), with each school's
+list holding the 3D analogs of its 2D entries: the live rows of the renderer's 2D-to-3D
+map (bubbleVar is Void, and so is bubble3D) and the 3D registry's name twins of listed
+2D types (wavesVar is Tide, and so is waves3D) — and `getSchoolMultiplier` shall return
+`1.25` on the advantage cycle Vortex > Order > Void > Crystal > Tide > Vortex, `0.8`
+against it, a flat `1.1` when the attacker is Arcane, and `1.0` otherwise.
 
-_(`stats.ts:72-94` (`SCHOOL_ADVANTAGE`), `:204-248` (`classifySchool`); the fighter cards show `+25%` style advantage badges from
-the same function, `ArenaOverlay.tsx:186-199` (`p1Advantage`), passed to the cards at `:714` (`p1Advantage`)
-and `:776` (`p2Advantage`) and rendered at `ArenaOverlay/ArenaFighterCard.tsx:313-316` (`advantage`).)_
+_(`stats.ts:74-96` (`SCHOOL_ADVANTAGE`), `:117-163` (`classifySchool`); the lists and the drawn type at
+`flame/schoolVariations.ts:22-30` (`LIVE_2D_TO_3D`), `:118` (`drawnType`); the fighter cards show `+25%` style advantage badges from
+the same function, `ArenaOverlay.tsx:186-199` (`p1Advantage`), passed to the cards at `:741` (`p1Advantage`)
+and `:803` (`p2Advantage`) and rendered at `ArenaOverlay/ArenaFighterCard.tsx:313-316` (`advantage`).)_
 
 ### REQ-AA-019 — The clash flame stages both fighters under prefixed keys
 
@@ -255,7 +264,7 @@ probability renormalised to `(prob / sumProb) * 2 * split` where `split` is that
 fighter's share of the two power levels — so that downstream attribution by key prefix
 is total and the two teams' total probability reflects their relative power.
 
-_(`createClashFlame.ts:111-137` (`calculatePowerSplit`), `:150-192` (`populate3DTransforms`); `powerA`/`powerB`
+_(`createClashFlame.ts:103-129` (`calculatePowerSplit`), `:142-184` (`populate3DTransforms`); `powerA`/`powerB`
 override the computed power levels when supplied.)_
 
 ### REQ-AA-020 — 3D staging tints and frames the volume; 2D is the default
@@ -268,7 +277,7 @@ with a small per-index spread, and emit an orbital `camera3D` at
 is omitted or 2, it shall translate post-affine `c`/`f` by `∓distance` (default `2.0`),
 apply no tint, and halve the tighter of the two source zooms.
 
-_(`createClashFlame.ts:15-102` (`upgradeAffineTo3D`), `:194-314` (`build3DClashFlame`), defaults at `:351-354` — note `tint`
+_(`createClashFlame.ts:15-102` (`upgradeAffineTo3D`), `:186-306` (`build3DClashFlame`), defaults at `:351-354` — note `tint`
 defaults to `'override'` in 3D and `'none'` in 2D.)_
 
 ### REQ-AA-021 — Both fighter flames are required
@@ -345,7 +354,7 @@ the round tally alone — more round wins, ties are `draw` — and shall pass th
 `resolveClashCombat` as `territoryWinner`, so the HP battle log narrates the same victor
 the territory scoring chose even where remaining HP would have said otherwise.
 
-_(`simulateClash.ts:156-163` (`determineOverallWinner`), `:346-371` (`simulateRounds`); `stats.ts:620-636` (`draw`) applies the override before
+_(`simulateClash.ts:156-163` (`determineOverallWinner`), `:346-371` (`simulateRounds`); `stats.ts:676-692` (`draw`) applies the override before
 its own HP comparison.)_
 
 ### REQ-AA-028 — Combat resolution is deterministic, stanced, and never zero-damage
@@ -357,7 +366,7 @@ the stance modifiers (`balanced 1.0/1.0/1.0`, `resonance 1.25/0.95/1.0`, `bastio
 ±15% fluctuation and a floor of 12, and — absent a `territoryWinner` — break the match
 by remaining HP, then round wins, then beauty, then `draw`.
 
-_(`stats.ts:503-648` (`resolveClashCombat`); an unknown stance falls back to `balanced`, `:542-543`.)_
+_(`stats.ts:559-704` (`resolveClashCombat`); an unknown stance falls back to `balanced`, `:598-599`.)_
 
 ### REQ-AA-029 — Agent-supplied simulation parameters are bounded
 
@@ -408,8 +417,8 @@ label whose text and colour follow the round winner, all through timers register
 they are cancelled together on close. The modal shall additionally carry the
 `isClashing` presentation class for that whole period.
 
-_(`ArenaOverlay.tsx:560-608`, `:254-264` (`registerTimeout`), `:689` (`isClashing`) (the class list);
-the VFX callback re-checks `gameState() !== 'clashing'` before firing, `:580` (`gameState`).)_
+_(`ArenaOverlay.tsx:560-608`, `:274-284` (`registerTimeout`), `:715` (`isClashing`) (the class list);
+the VFX callback re-checks `gameState() !== 'clashing'` before firing, `:604` (`gameState`).)_
 
 ### REQ-AA-033 — Space, R and Escape drive the arena, and Skip fast-forwards it
 
@@ -419,8 +428,8 @@ while idle or in results, and `Escape` as close. **When** Skip to Results is pre
 during a clash, it shall jump the round index to the last round and finish the match
 from the already-computed simulation without re-running it.
 
-_(`ArenaOverlay.tsx:668-687` (`onMount`) (the handler and its input guard, removed on cleanup),
-`:646-652` (`handleSkipClash`, which returns early if there is no cached simulation))_
+_(`ArenaOverlay.tsx:676-695` (`onMount`) (the handler and its input guard, removed on cleanup),
+`:663-669` (`handleSkipClash`, which returns early if there is no cached simulation))_
 
 ### REQ-AA-034 — Win determination, streak, and the battle log
 
@@ -440,7 +449,7 @@ _(`ArenaOverlay.tsx:610-644` (`finishSimulation`), log panel at
 load, and the workspace facade shall write a deep clone of that fighter's flame into the
 document under the label `Arena: <name>` and surface a confirmation toast.
 
-_(`ArenaOverlay.tsx:657-666` (`loadFighter`), `MainWorkspace.tsx:3257-3267` (`selectFighter`))_
+_(`ArenaOverlay.tsx:674-684` (`loadFighter`), `MainWorkspace.tsx:3257-3267` (`selectFighter`))_
 
 ### REQ-AA-036 — Champion-card export composes a 540×780 PNG from the winner's preview
 
@@ -468,7 +477,7 @@ the export succeeds or throws.
 **If** the match ended in a draw, **then** pressing Download Card shall not produce a
 file — `handleExportCard` returns before doing any work.
 
-_(`ArenaOverlay.tsx:214-216` (`handleExportCard`). Note the button itself is not gated on a winner the way
+_(`ArenaOverlay.tsx:223-225` (`handleExportCard`). Note the button itself is not gated on a winner the way
 Load Victor is (`ArenaOverlay/ArenaResultsView.tsx:192-201` (`onExportCard`) vs `:180-190` (`winner`)), so on a draw the control is enabled and
 silently does nothing.)_
 
@@ -503,7 +512,7 @@ available, **then** it shall return an error. The tool shall be annotated
 `readOnlyHint`, as shall `simulate_clash`, `score_clash_round` and `create_clash_flame`.
 
 _(`arenaGetStats.ts:30-56` (`annotations`); annotations at `simulateClash.ts:334-336` (`annotations`),
-`scoreClashRound.ts:336-338` (`annotations`), `createClashFlame.ts:435-437` (`annotations`))_
+`scoreClashRound.ts:336-338` (`annotations`), `createClashFlame.ts:427-429` (`annotations`))_
 
 ### REQ-AA-041 — `arena_commentate` writes into the live HUD
 
@@ -526,8 +535,8 @@ rounds. **If** the flame editor has no active flame, or the HUD has not yet publ
 > **Known deviation:** `packages/app/src/webmcp/tools/arenaStartClash.ts:92-95` (`result`) forwards
 > `rounds: raw.rounds ?? 3` and `packages/app/src/commands/types.ts:130-133` carries it,
 > but the only implementation reads `opts?.stance` alone
-> (`packages/app/src/components/ArenaOverlay.tsx:470-479`) and `runSimulation` hard-codes
-> `rounds: 3` (`ArenaOverlay.tsx:524`) and `framesPerRound: 30` (`:546` (`framesPerRound`)). A
+> (`packages/app/src/components/ArenaOverlay.tsx:486-495`) and `runSimulation` hard-codes
+> `rounds: 3` (`ArenaOverlay.tsx:547`) and `framesPerRound: 30` (`:569` (`framesPerRound`)). A
 > `rounds: 5` request returns a three-round result and a 90-frame timeline with no
 > indication the parameter was dropped, so agent narration about rounds 4 and 5 is
 > fabricated. Tracked in [docs/agent/BUGS.md](../agent/BUGS.md).
@@ -549,10 +558,10 @@ file in the `Tests:` block is not the same as being guarded, so these are listed
 - REQ-AA-005, REQ-AA-006 — `ArenaOverlay.test.tsx` always mounts with a Player 2 already set and never asserts on capture/restore. The document-restore path — the one that can leave a staged clash in the user's flame — has zero coverage.
 - REQ-AA-011 — no test asserts the `disabled` state of any control during a clash.
 - REQ-AA-015, REQ-AA-016 (angle-detection branch), REQ-AA-017 — no test feeds `calculateGroundedStats` a transformless flame, an angle-symmetric flame, or a flame with `visible` absent.
-- REQ-AA-024 (equal-probability and empty-transform branches) — only the missing-descriptor branch is covered (`flameToolsModular.test.ts:147` "handles missing clashFlame gracefully").
+- REQ-AA-024 (equal-probability and empty-transform branches) — only the missing-descriptor branch is covered (`flameToolsModular.test.ts:178` "handles missing clashFlame gracefully").
 - REQ-AA-026 — `simulateClash.test.ts:138-174` "detects narrative events across diverse clash scenarios" exercises `Entangled` and `Collapse` only; `Nova`, `Symmetry Lock` and `Chaos Cascade` are unreached.
 - REQ-AA-027 — nothing asserts that `territoryWinner` overrides the HP comparison.
-- REQ-AA-028 (tie-break chain) — `stats.test.ts:149` "deterministically resolves 3 rounds with battle log" checks one deterministic 3-round run; the HP → round-wins → beauty → draw ladder is untested.
+- REQ-AA-028 (tie-break chain) — `stats.test.ts:431` "deterministically resolves 3 rounds with battle log" checks one deterministic 3-round run; the HP → round-wins → beauty → draw ladder is untested.
 - REQ-AA-029, REQ-AA-036, REQ-AA-037, REQ-AA-042 (`rounds`) — the four known deviations. None has a failing test standing behind it.
 - REQ-AA-030 — `webmcp/tools/animateClash.ts` has no test file.
 - REQ-AA-032, REQ-AA-033 — spectator pacing, the VFX timers and the keyboard handler are untested; the `ArenaOverlay.test.tsx:257` "immediately presents the Center Winner Trophy Card upon results state" results test drives `startClash` directly.

@@ -127,8 +127,8 @@ describe('ArenaOverlay Component', () => {
   it('renders high-contrast top bar HUD strip and fighter cards', () => {
     mountArenaOverlay()
 
-    // Top Bar elements
-    expect(screen.getByText('Flame Clash Arena 3D')).toBeDefined()
+    // Top Bar elements. createTestFlame is 2D, and the title says so.
+    expect(screen.getByText('Flame Clash Arena 2D')).toBeDefined()
     expect(screen.getByText('READY TO CLASH')).toBeDefined()
 
     // Fighter names on both sides
@@ -197,7 +197,7 @@ describe('ArenaOverlay Component', () => {
 
     expect(p1()?.metrics).toEqual({
       complexity: 3.5,
-      chaosLevel: 7.2,
+      chaosLevel: 1.2,
       symmetryScore: 5,
       energyIntensity: 2.3,
     })
@@ -208,9 +208,9 @@ describe('ArenaOverlay Component', () => {
       37,
       'Order',
     ])
-    expect([g.beauty, g.atk, g.powerLevel]).toEqual([62, 43, 1240])
-    expect(p1()?.powerLevel).toBe(1240)
-    expect(powerRowValues()[0]).toBe('1240')
+    expect([g.beauty, g.atk, g.powerLevel]).toEqual([62, 38, 1200])
+    expect(p1()?.powerLevel).toBe(1200)
+    expect(powerRowValues()[0]).toBe('1200')
   })
 
   it('renders Sync Active and From Gallery action buttons', () => {

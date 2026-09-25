@@ -10,7 +10,7 @@
 
 import { deepClone } from '@/utils/clone'
 import { recordEntries } from '@/utils/record'
-import { applyStructuralRemoval, countStructuralAdditions, createRandomMutatedTransform, mutateTransformAffine, mutateTransformColor, mutateTransformVariations, normalizeTransformProbabilities, resolveEffectiveMutationRates, } from './mutationOperators'
+import { applyStructuralRemoval, countStructuralAdditions, createRandomMutatedTransform, isSymmetryCopyId, mutateTransformAffine, mutateTransformColor, mutateTransformVariations, normalizeTransformProbabilities, resolveEffectiveMutationRates, } from './mutationOperators'
 import { buildRandomVariation, normalizeVariationWeights, pickRandomVariationType, randomizeAffineCoef, randomizeAllColors, } from './randomPrimitives'
 import { createSeededRandomSource, randomRange, withRandomSource, } from './randomSource'
 import { validateFlame } from './schema/flameSchema'
@@ -228,6 +228,17 @@ export function generateSeededRandomFlame(
   }
 }
 
+/**
+ * Transforms as the transform list shows them. Symmetry copies (`_sym__` ids)
+ * are generated from the user's transforms, so a transform-count range does
+ * not count them.
+ */
+export function userTransformCount(
+  transforms: FlameDescriptor['transforms'],
+): number {
+  return Object.keys(transforms).filter((tid) => !isSymmetryCopyId(tid)).length
+}
+
 export function mutateFlame(
   flame: FlameDescriptor,
   config: GenerateRandomFlameConfig,
@@ -244,11 +255,20 @@ export function mutateFlame(
   const targetIds = options.selectedTransformIds
 
   // --- Structural mutation: remove transforms ---
+  // Removed from the flame, not only from the transforms this pass varies.
+  // What points at a removed transform is left as it is, as Delete Transform
+  // leaves it: timeline tracks on its paths go inert while it is gone, and
+  // Undo (one Mutate is one history entry) brings them back into effect.
   const entriesAfterRemoval = applyStructuralRemoval(
     allEntries,
     targetIds,
     rates.removeChance,
+    config.minTransforms,
   )
+  const survivors = new Set(entriesAfterRemoval.map(([tid]) => tid))
+  for (const [tid] of allEntries) {
+    if (!survivors.has(tid)) delete (transforms as Record<string, unknown>)[tid]
+  }
 
   const targetEntries =
     targetIds && targetIds.length > 0
@@ -256,7 +276,19 @@ export function mutateFlame(
       : entriesAfterRemoval
 
   // --- Structural mutation: add transforms ---
-  const addedCount = countStructuralAdditions(rates.addChance)
+  // Kept inside the config's transform range: a flame below `minTransforms`
+  // is topped up to it, and chance additions stop at `maxTransforms`. A flame
+  // already above the range is not pruned down to it; only the remove chance
+  // removes transforms. The draw happens either way, so a flame the
+  // range does not touch mutates exactly as it did before. Symmetry copies
+  // are not counted: the range is about the transforms the user sees. The
+  // count is taken after the removals, so a removal makes room for an add.
+  const drawnAdditions = countStructuralAdditions(rates.addChance)
+  const existingCount = userTransformCount(transforms)
+  const addedCount = Math.max(
+    config.minTransforms - existingCount,
+    Math.min(drawnAdditions, Math.max(0, config.maxTransforms - existingCount)),
+  )
 
   for (const [, t] of targetEntries) {
     if (options.mutateAffine) {

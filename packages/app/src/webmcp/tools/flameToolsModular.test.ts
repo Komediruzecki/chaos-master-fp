@@ -1,4 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { clearWebMcpContext, setWebMcpContext } from '@/webmcp/contextBridge'
+import { createMockCommandContext } from '@/webmcp/testUtils'
 import { formatSummarizedMetadata, formatSummarizedRenderSettings, formatSummarizedTransforms, formatTransformSummary, } from './getFlame'
 import { resolveTransformDetail } from './getFlameDetail'
 import { mutateFlame } from './mutateFlame'
@@ -12,7 +14,7 @@ describe('getFlame modular subroutines', () => {
     const t = {
       probability: 0.8,
       variations: {
-        linearVar: { type: 'linearVar', weight: 1.0 },
+        v1: { type: 'linearVar', weight: 1.0 },
       },
       color: { x: 0.2, y: 0.8 },
       colorSpeed: 0.5,
@@ -88,11 +90,11 @@ describe('getFlameDetail modular subroutines', () => {
   const transforms = {
     t_alpha: {
       probability: 0.5,
-      variations: { juliaVar: { type: 'juliaVar', weight: 1 } },
+      variations: { v1: { type: 'juliaVar', weight: 1 } },
     } as unknown as TransformFunction,
     t_beta: {
       probability: 0.8,
-      variations: { sphericalVar: { type: 'sphericalVar', weight: 1 } },
+      variations: { v1: { type: 'sphericalVar', weight: 1 } },
     } as unknown as TransformFunction,
   }
 
@@ -125,9 +127,38 @@ describe('getFlameDetail modular subroutines', () => {
 })
 
 describe('openArena tool execution contract', () => {
+  afterEach(() => {
+    clearWebMcpContext()
+  })
+
   it('returns error when workspace context or arena is not available', () => {
     const res = openArena.execute({}, {}) as { error: string }
     expect(res.error).toBeDefined()
+  })
+
+  it('refuses a fighter flame that is not a flame, and opens nothing', () => {
+    const ctx = createMockCommandContext()
+    const setOpen = vi.fn()
+    const setPlayer1Stats = vi.fn()
+    ctx.arena = {
+      setOpen,
+      setPlayer1Stats,
+      setPlayer2Stats: vi.fn(),
+    } as unknown as NonNullable<typeof ctx.arena>
+    setWebMcpContext(ctx)
+
+    const res = openArena.execute(
+      {
+        player1Stats: {},
+        player2Stats: {},
+        player1Flame: { transforms: { t1: { probability: 'lots' } } },
+      },
+      {},
+    ) as { error?: string }
+
+    expect(res.error).toMatch(/player1Flame/)
+    expect(setOpen).not.toHaveBeenCalled()
+    expect(setPlayer1Stats).not.toHaveBeenCalled()
   })
 })
 
@@ -160,7 +191,7 @@ describe('scoreClashRound tool execution contract', () => {
           colorSpeed: 0.5,
           preAffine: { a: 1, b: 0, c: 0, d: -1, e: 1, f: 0 },
           postAffine: { a: 1, b: 0, c: 0, d: 0, e: 1, f: 0 },
-          variations: { sphericalVar: { type: 'sphericalVar', weight: 1 } },
+          variations: { v1: { type: 'sphericalVar', weight: 1 } },
         },
         p2_t1_0: {
           probability: 1,
@@ -169,7 +200,7 @@ describe('scoreClashRound tool execution contract', () => {
           colorSpeed: 0.5,
           preAffine: { a: 1, b: 0, c: 0, d: 1, e: 1, f: 0 },
           postAffine: { a: 1, b: 0, c: 0, d: 0, e: 1, f: 0 },
-          variations: { polarVar: { type: 'polarVar', weight: 1 } },
+          variations: { v1: { type: 'polarVar', weight: 1 } },
         },
       },
     }
