@@ -34,7 +34,7 @@
 
 import { spawnSync } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync, } from 'node:fs'
-import { extname, join, relative } from 'node:path'
+import { extname, join, relative, resolve } from 'node:path'
 import ts from 'typescript'
 import { atBucketEdge, CAP_FLOOR, capFailures, checkFileCaps, formatCaps, lowerCaps, } from './file-caps.mjs'
 
@@ -215,7 +215,7 @@ for (const [prefix, file] of COVERAGE) {
 }
 
 // The lint keys come from a fresh ESLint run (--with-lint), or from the JSON
-// report an earlier run wrote (--lint-report=<file>). CI's build job uses the
+// report an earlier run wrote (--lint-report=<file>). CI's lint job uses the
 // second: its lint step writes the report through
 // scripts/eslint-report-formatter.mjs, so the ratchet costs no second pass.
 const lintReportArg = argv.find((a) => a.startsWith('--lint-report='))
@@ -230,7 +230,8 @@ function lintFailed(why) {
 let lintResults
 if (lintReport !== undefined) {
   // A missing, empty or unreadable report is no run, never a clean one.
-  const file = join(ROOT, lintReport)
+  // resolve, not join: an absolute path is taken as given.
+  const file = resolve(ROOT, lintReport)
   if (!existsSync(file)) lintFailed(`no ESLint report at ${lintReport}`)
   try {
     lintResults = JSON.parse(readFileSync(file, 'utf8'))
