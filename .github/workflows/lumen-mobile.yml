@@ -21,7 +21,8 @@ name: Lumen Apeiron Mobile
 #                              only if the push touched
 #                              the paths below
 #   push of a mobile-v* tag    the above, plus release     signed archive uploaded to
-#                              AAB and APK                 TestFlight, plus an ad-hoc IPA
+#                              AAB and APK                 TestFlight; an ad-hoc IPA is
+#                                                          exported, never uploaded
 #   workflow_dispatch on a     the above, plus release     signed archive, NOT uploaded: proves
 #   branch                     AAB and APK                 the certificate, the profile and the
 #                                                          device compile

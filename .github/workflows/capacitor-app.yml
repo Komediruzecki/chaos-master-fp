@@ -1138,6 +1138,7 @@ jobs:
           printf '%s' "$PROFILE_BASE64" | base64 --decode > "$profiles/${APP_SLUG}-adhoc.mobileprovision"
 
       - name: Archive and export IPA
+        id: export
         if: env.ADHOC == 'true'
         shell: bash
         env:
@@ -1188,21 +1189,23 @@ jobs:
             -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
             -exportPath "$RUNNER_TEMP/export"
 
-      - name: Upload IPA
-        if: env.ADHOC == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ inputs.app-slug }}-ios-release
-          path: ${{ runner.temp }}/export/*.ipa
-          if-no-files-found: error
-          retention-days: 90
-
+      # The IPA stops here: it is never uploaded. The repository is public, so
+      # anyone signed in to GitHub can download a run's artifacts, and a signed
+      # ad-hoc IPA carries the account holder's name (in the signing
+      # certificate and the profile's TeamName) and the UDID of every
+      # registered device. The mask on the signing step reaches only the log.
+      # Installs come from TestFlight, which the same tag uploads; the export
+      # stays because it proves the ad-hoc profile still signs.
       - name: Report signing state
         if: always()
         shell: bash
+        env:
+          EXPORT_OUTCOME: ${{ steps.export.outcome }}
         run: |
-          if [[ "$ADHOC" == "true" ]]; then
-            echo "Ad-hoc IPA exported: installable on the devices registered in the ad-hoc profile." >> "$GITHUB_STEP_SUMMARY"
+          if [[ "$ADHOC" == "true" && "$EXPORT_OUTCOME" == "success" ]]; then
+            echo "Ad-hoc IPA signed and exported, not uploaded: install from TestFlight." >> "$GITHUB_STEP_SUMMARY"
+          elif [[ "$ADHOC" == "true" ]]; then
+            echo "Ad-hoc IPA not exported: the job stopped before or during the export." >> "$GITHUB_STEP_SUMMARY"
           else
             echo "Simulator build only: no installable IPA on this trigger." >> "$GITHUB_STEP_SUMMARY"
           fi
