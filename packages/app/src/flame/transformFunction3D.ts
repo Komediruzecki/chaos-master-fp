@@ -75,22 +75,17 @@ function variationInvocation3D(variationType: string, vid: VariationId) {
 }
 
 /**
- * The 2D types the 3D pipeline replaces with a 3D analog; every other 2D type
- * renders as itself, lifted with the point's z. This is how a 2D flame has
- * always rendered in 3D. transformFunction3D.variationMap.test.ts holds every
- * row, and every name main's version of this table knew, to how main
- * rendered it.
+ * The registered 2D types the 3D pipeline replaces with a 3D analog; every
+ * other 2D type renders as itself, lifted with the point's z. This is how a
+ * 2D flame has always rendered in 3D.
  *
- * Two kinds of key:
- * - Registered 2D types. Validation rewrites a loaded flame's old short
- *   names for them (`bubble`, `gaussian`, `blur`, ...) before it renders
- *   (migrateFlameTypes.ts).
- * - Unregistered names that validation keeps as written, so set_flame, a JSON
- *   import or a share link can bring one. No registered type renders in 3D
- *   as these did, so a rewrite would change how such a flame looks.
+ * Every key is a registered 2D type and every value a registered 3D type
+ * (flame/variationResolution.test.ts): before v1.0.0 the app keeps no row for
+ * a name it does not produce, so a flame that holds one draws nothing for it.
  *
  * The Flame Clash converts its 2D fighters by a rule of its own
- * (flame/clash/convert2Dto3D.ts) and leaves this table alone.
+ * (flame/clash/convert2Dto3D.ts), which reads the analogs here and never
+ * changes the table.
  */
 export const VARIATION_2D_TO_3D_MAP: Record<string, TransformVariationType3D> =
   {
@@ -105,26 +100,14 @@ export const VARIATION_2D_TO_3D_MAP: Record<string, TransformVariationType3D> =
     crossVar: 'cross3D',
     curlVar: 'curl3D',
     pdjVar: 'pdj3D',
-    // Unregistered: kept as main rendered them.
-    linearT: 'linear3D',
-    swirl3: 'swirl3D',
-    polar2: 'polar3D',
-    nPolar: 'polar3D',
-    ex: 'ex3D',
-    cylindrical: 'cylindrical3D',
-    sphere: 'sphere3D',
-    sphereVar: 'sphere3D',
-    hemisphere: 'hemisphere3D',
-    starfield: 'starfield3D',
   }
 
 /**
  * The type the 3D pipeline runs for a variation of `type`, or undefined when
- * it skips the variation: a 3D type as itself, a 2D type through
- * VARIATION_2D_TO_3D_MAP or else as itself. A transform `from2D`, a Flame
- * Clash 2D fighter's, bypasses the map: each 2D variation runs its own 2D
- * function in the plane, and a name only the map knows is skipped, as the 2D
- * pipeline skips it.
+ * it skips the variation, as it skips any name neither registry holds: a 3D
+ * type as itself, and a 2D type through VARIATION_2D_TO_3D_MAP or else as
+ * itself. A transform `from2D`, a Flame Clash 2D fighter's, bypasses the map:
+ * each 2D variation runs its own 2D function in the plane.
  *
  * Own keys only, as in the 2D path: `in` also finds 'constructor' and the
  * rest of what a plain object inherits. Everything downstream only sees what
@@ -135,14 +118,11 @@ export function resolveVariationType3D(
   from2D = false,
 ): string | undefined {
   if (isVariationType3D(type)) return type
-  if (from2D) {
-    return Object.hasOwn(transformVariations, type) ? type : undefined
-  }
-  if (Object.hasOwn(VARIATION_2D_TO_3D_MAP, type)) {
+  if (!Object.hasOwn(transformVariations, type)) return undefined
+  if (!from2D && Object.hasOwn(VARIATION_2D_TO_3D_MAP, type)) {
     return VARIATION_2D_TO_3D_MAP[type]
   }
-  if (Object.hasOwn(transformVariations, type)) return type
-  return undefined
+  return type
 }
 
 export function createFlameWgsl3D({
