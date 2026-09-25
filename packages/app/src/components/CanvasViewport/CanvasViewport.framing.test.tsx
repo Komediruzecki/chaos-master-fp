@@ -4,17 +4,20 @@
  * trailing edge and the glass desktop sidebar at the leading one, besides
  * the camera's shift.
  *
- * The edge fade goes while either floats over the canvas: the canvas's rim is
- * under the glass there, and the fade laid a dark band down it (a light one
- * in the light theme) that the setting-off page never had. And the box
- * carries the covered shares as --covered-left and --covered-right, so the
- * hover badge centres on the part on show instead of on the whole canvas
- * (App.module.css).
+ * The edge fade goes while either floats over the canvas, or the rail's
+ * glass sheet: the canvas's rim is under the glass there, and the fade laid
+ * a dark band down it (a light one in the light theme) that the setting-off
+ * page never had. The box carries the covered shares as --covered-left and
+ * --covered-right, so the hover badge centres on the part on show instead
+ * of on the whole canvas (App.module.css), and under the rail's glass sheet
+ * it paints the flame's ground where the sheet moves the canvas up.
  */
 import { cleanup, render } from '@solidjs/testing-library'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import ui from '@/App.module.css'
 import { examples } from '@/flame/examples'
 import { NOT_COVERED, setLeadingCover, setTrailingCover, } from '@/lib/canvasFraming'
+import { setGlassPanels } from '@/lib/glass'
 import { CanvasViewport, EDGE_FADE_COLOR, edgeFadeColor, } from './CanvasViewport'
 import type { CanvasViewportProps } from './CanvasViewport'
 
@@ -52,8 +55,9 @@ const channels = (colour: { x: number; y: number; z: number; w: number }) => [
   colour.w,
 ]
 
-function mountViewport(effectiveFlame = examples.example1) {
+function mountViewport(effectiveFlame = examples.example1, railInset = 0) {
   const props = {
+    railInset: () => railInset,
     isMobile: () => false,
     showSidebar: () => true,
     onCanvasClick: () => {},
@@ -77,32 +81,52 @@ function mountViewport(effectiveFlame = examples.example1) {
 afterEach(() => {
   setTrailingCover(0)
   setLeadingCover(0)
+  setGlassPanels(true)
   cleanup()
 })
 
 describe('the edge fade', () => {
   it("is the theme's beside the sidebar with nothing over the canvas", () => {
-    expect(edgeFadeColor('dark', true, NOT_COVERED)).toBe(EDGE_FADE_COLOR.dark)
-    expect(edgeFadeColor('light', true, NOT_COVERED)).toBe(
+    expect(edgeFadeColor('dark', true, NOT_COVERED, false)).toBe(
+      EDGE_FADE_COLOR.dark,
+    )
+    expect(edgeFadeColor('light', true, NOT_COVERED, false)).toBe(
       EDGE_FADE_COLOR.light,
     )
   })
 
   it('is off in full screen, as it always was', () => {
-    expect(channels(edgeFadeColor('dark', false, NOT_COVERED))).toEqual([
+    expect(channels(edgeFadeColor('dark', false, NOT_COVERED, false))).toEqual([
       0, 0, 0, 0,
     ])
   })
 
   it('is off while the deck floats open over the canvas', () => {
     const deck = { left: 0, right: COVERED }
-    expect(channels(edgeFadeColor('dark', true, deck))).toEqual([0, 0, 0, 0])
-    expect(channels(edgeFadeColor('light', true, deck))).toEqual([0, 0, 0, 0])
+    expect(channels(edgeFadeColor('dark', true, deck, false))).toEqual([
+      0, 0, 0, 0,
+    ])
+    expect(channels(edgeFadeColor('light', true, deck, false))).toEqual([
+      0, 0, 0, 0,
+    ])
+  })
+
+  it("is off while the rail's glass sheet moves the canvas up", () => {
+    // The rim of the moved canvas lay across the flame's ground the box
+    // paints below it, a pale band on black in the light theme.
+    expect(channels(edgeFadeColor('light', true, NOT_COVERED, true))).toEqual([
+      0, 0, 0, 0,
+    ])
+    expect(channels(edgeFadeColor('dark', true, NOT_COVERED, true))).toEqual([
+      0, 0, 0, 0,
+    ])
   })
 
   it('is off while the glass sidebar floats over the canvas', () => {
     const sidebar = { left: COVERED_LEFT, right: 0 }
-    expect(channels(edgeFadeColor('dark', true, sidebar))).toEqual([0, 0, 0, 0])
+    expect(channels(edgeFadeColor('dark', true, sidebar, false))).toEqual([
+      0, 0, 0, 0,
+    ])
   })
 })
 
@@ -149,8 +173,10 @@ describe('the covered share on the canvas box', () => {
 describe('the ground under the canvas', () => {
   // The rail's sheet moves the canvas up and uncovers a strip of the box at
   // its foot, on show through the glass sheet: the box paints the ground the
-  // flame is drawn on there (App.module.css, .phoneLayout).
-  it('is the ground the flame is drawn on', () => {
+  // flame is drawn on there (App.module.css, .underSheet).
+  const SHEET = 240
+
+  it('is the ground the flame is drawn on, under the glass sheet', () => {
     const light = {
       ...examples.example1,
       renderSettings: {
@@ -159,17 +185,32 @@ describe('the ground under the canvas', () => {
         backgroundColor: undefined,
       },
     }
-    expect(mountViewport(light).style.getPropertyValue('--canvas-ground')).toBe(
-      'rgb(0 0 0)',
-    )
+    const box = mountViewport(light, SHEET)
+    expect(box.classList.contains(ui.underSheet!)).toBe(true)
+    expect(box.style.getPropertyValue('--canvas-ground')).toBe('rgb(0 0 0)')
     cleanup()
 
     const paint = {
       ...light,
       renderSettings: { ...light.renderSettings, drawMode: 'paint' as const },
     }
-    expect(mountViewport(paint).style.getPropertyValue('--canvas-ground')).toBe(
-      'rgb(255 255 255)',
-    )
+    expect(
+      mountViewport(paint, SHEET).style.getPropertyValue('--canvas-ground'),
+    ).toBe('rgb(255 255 255)')
+  })
+
+  // At peek, and with the sheet opaque, the box shows the page behind it,
+  // as it always did: the gutters of a letterboxed canvas show it too.
+  it('is not painted at peek', () => {
+    const box = mountViewport(examples.example1, 0)
+    expect(box.classList.contains(ui.underSheet!)).toBe(false)
+    expect(box.style.getPropertyValue('--canvas-ground')).toBe('')
+  })
+
+  it('is not painted with the Glass panels setting off', () => {
+    setGlassPanels(false)
+    const box = mountViewport(examples.example1, SHEET)
+    expect(box.classList.contains(ui.underSheet!)).toBe(false)
+    expect(box.style.getPropertyValue('--canvas-ground')).toBe('')
   })
 })

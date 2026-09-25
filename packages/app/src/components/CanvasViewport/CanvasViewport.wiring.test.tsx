@@ -1,9 +1,10 @@
 /**
  * CanvasViewport's wiring to what draws the canvas: the cameras take the
  * framing's view shift, and Flam3 takes the export hook cut to the part on
- * show and the edge fade for what covers the canvas. The framing test mocks
- * the canvas away; here it renders, with the cameras and Flam3 standing in as
- * probes that keep the props they were given.
+ * show and the edge fade for what covers the canvas, on the 2D path and the
+ * 3D one alike. The framing test mocks the canvas away; here it renders,
+ * with the cameras and Flam3 standing in as probes that keep the props they
+ * were given.
  */
 import { cleanup, render } from '@solidjs/testing-library'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -86,8 +87,10 @@ const deep = {
 function mountViewport(
   effectiveFlame: typeof flat = flat,
   capture?: ExportImageType,
+  railInset = 0,
 ) {
   const props = {
+    railInset: () => railInset,
     isMobile: () => false,
     showSidebar: () => true,
     onCanvasClick: () => {},
@@ -140,10 +143,13 @@ describe('the cameras', () => {
   })
 })
 
-describe('Flam3', () => {
+describe.each([
+  ['a flat flame', flat],
+  ['a 3D flame', deep],
+])('Flam3, for %s,', (_, flame) => {
   it('takes the capture through the cut to the part on show', () => {
     const capture = vi.fn<ExportImageType>()
-    mountViewport(flat, capture)
+    mountViewport(flame, capture)
 
     const handed = seen.flam3?.onExportImage
     // Wrapped, not the capture itself, so what leaves the canvas is cut.
@@ -158,15 +164,21 @@ describe('Flam3', () => {
   })
 
   it('takes no capture when nothing waits for one', () => {
-    mountViewport()
+    mountViewport(flame)
     expect(seen.flam3?.onExportImage).toBeUndefined()
   })
 
   it('fades the edge beside the sidebar, and not while the deck covers it', () => {
-    mountViewport()
+    mountViewport(flame)
     expect(seen.flam3?.edgeFadeColor).toBe(EDGE_FADE_COLOR.dark)
 
     setTrailingCover(380)
+    const fade = seen.flam3?.edgeFadeColor
+    expect([fade?.x, fade?.y, fade?.z, fade?.w]).toEqual([0, 0, 0, 0])
+  })
+
+  it("does not fade it while the rail's glass sheet moves the canvas up", () => {
+    mountViewport(flame, undefined, 240)
     const fade = seen.flam3?.edgeFadeColor
     expect([fade?.x, fade?.y, fade?.z, fade?.w]).toEqual([0, 0, 0, 0])
   })

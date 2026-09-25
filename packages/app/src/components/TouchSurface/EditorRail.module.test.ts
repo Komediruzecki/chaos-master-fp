@@ -59,17 +59,23 @@ describe('the editor rail stylesheet', () => {
   it("shows the flame's ground, not the page, where the sheet moves the canvas up", () => {
     // The open sheet moves the canvas up by half the height it covers
     // (App.module.css, .canvas), leaving a strip of the canvas box at its
-    // foot. Past peek the sheet is glass with the setting on, so the strip is
-    // on show through it; with no background of its own the box showed the
-    // page there, a pale band across the sheet's lower part in the light
-    // theme. It takes the flame's own ground, which CanvasViewport writes
-    // (CanvasViewport.framing.test.tsx).
+    // foot. Past peek the sheet is glass while the Glass panels setting
+    // applies, so the strip is on show through it; with no background of its
+    // own the box showed the page there, a pale band across the sheet's lower
+    // part in the light theme. CanvasViewport then marks the box .underSheet
+    // and writes the flame's ground (CanvasViewport.framing.test.tsx), and
+    // only then: at peek and under the opaque sheet the box shows the page,
+    // as it did before the setting. So that is the one rule to paint it.
     const app = readFileSync(
       join(__dirname, '..', '..', 'App.module.css'),
       'utf8',
-    )
+    ).replace(/\/\*[\s\S]*?\*\//g, '')
+    const painted = [
+      ...app.matchAll(/([^{}]*)\{[^{}]*var\(--canvas-ground\b/g),
+    ].map((m) => m[1]!.trim())
+    expect(painted).toEqual(['.canvas-container.underSheet'])
     expect(app).toMatch(
-      /^\.phoneLayout \.canvas-container\s*\{\s*background:\s*var\(--canvas-ground, var\(--la-void\)\);\s*\}/m,
+      /\n\.canvas-container\.underSheet\s*\{\s*background:\s*var\(--canvas-ground\);\s*\}/,
     )
     expect(app).toMatch(
       /transform:\s*translateY\(calc\(var\(--rail-inset, 0px\) \/ -2\)\)/,

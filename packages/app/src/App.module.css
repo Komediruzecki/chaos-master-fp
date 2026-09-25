@@ -213,12 +213,16 @@
 
 /* The rail's sheet moves the canvas up by half the height it covers (.canvas,
    below), which leaves a strip of the box at its foot under the sheet. Past
-   peek the sheet is glass with the Glass panels setting on, so the strip is
-   on show through it: it is the flame's own ground (--canvas-ground,
-   CanvasViewport.tsx), as if the art ran on, rather than the page, which in
-   the light theme read as a pale band across the sheet's lower part. */
-.phoneLayout .canvas-container {
-  background: var(--canvas-ground, var(--la-void));
+   peek the sheet is glass while the Glass panels setting applies, and the
+   strip is on show through it: CanvasViewport.tsx then marks the box
+   .underSheet, and the strip is the flame's own ground (--canvas-ground),
+   as if the art ran on, rather than the page, which in the light theme read
+   as a pale band across the sheet's lower part. The canvas drops the fade
+   at its rim meanwhile, which ran a band across the strip's top edge.
+   Otherwise the box shows the page, as it does with the setting off: the
+   opaque sheet hides the strip. */
+.canvas-container.underSheet {
+  background: var(--canvas-ground);
 }
 
 .canvas {

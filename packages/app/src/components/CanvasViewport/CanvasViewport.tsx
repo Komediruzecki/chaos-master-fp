@@ -15,6 +15,7 @@ import { Menu } from '@/icons'
 import { workspaceIsVisible } from '@/lib/activeTab'
 import { AutoCanvas } from '@/lib/AutoCanvas'
 import { leadingCover } from '@/lib/canvasFraming'
+import { glassAllowed } from '@/lib/glass'
 import { WheelZoomCamera2D } from '@/lib/WheelZoomCamera2D'
 import { WheelZoomCamera3D } from '@/lib/WheelZoomCamera3D'
 import { useElementSize } from '@/utils/useElementSize'
@@ -50,18 +51,22 @@ export const EDGE_FADE_COLOR = {
 
 /**
  * What the renderer fades the canvas's rim to: the theme's colour beside the
- * sidebar, and none in full screen or while chrome floating over the canvas
- * covers part of it (`covered`, useViewFraming.ts), the tablet deck or the
- * glass desktop sidebar. There the rim runs on under the glass, and the fade
- * laid a band down it, dark or light with the theme, that the page beside
- * the canvas never had; the canvas is then framed as it is in full screen.
+ * sidebar, and none in full screen or while glass floating over the canvas
+ * covers part of it: the tablet deck or the glass desktop sidebar
+ * (`covered`, useViewFraming.ts), or the rail's glass sheet (`underSheet`).
+ * There the rim runs on under the glass, and the fade laid a band down it,
+ * dark or light with the theme, that the page beside the canvas never had;
+ * the canvas is then framed as it is in full screen. Under the sheet the
+ * band ran across the foot of the canvas the sheet moves up, against the
+ * flame's ground the box paints below it.
  */
 export function edgeFadeColor(
   theme: 'light' | 'dark',
   showSidebar: boolean,
   covered: Covered,
+  underSheet: boolean,
 ) {
-  return showSidebar && covered.left === 0 && covered.right === 0
+  return showSidebar && !underSheet && covered.left === 0 && covered.right === 0
     ? EDGE_FADE_COLOR[theme]
     : vec4f(0)
 }
@@ -152,8 +157,18 @@ export function CanvasViewport(props: CanvasViewportProps) {
     exportDimensions: () => props.exportDimensions(),
     onExportImage: () => props.onExportImage(),
   })
+  // Past peek the rail's sheet is glass while the Glass panels setting
+  // applies (TouchSurface/EditorRail.tsx), and it moves the canvas up by half
+  // the height it covers (App.module.css, .canvas). The strip of the box the
+  // move uncovers is then on show through the sheet.
+  const underSheet = () => (props.railInset?.() ?? 0) > 0 && glassAllowed()
   const edgeFade = createMemo(() =>
-    edgeFadeColor(props.theme(), props.showSidebar(), framing.covered()),
+    edgeFadeColor(
+      props.theme(),
+      props.showSidebar(),
+      framing.covered(),
+      underSheet(),
+    ),
   )
   // While the glass sidebar floats over the canvas, the box spans the
   // sidebar's column as well (App.module.css, .underSidebar), and the bottom
@@ -162,8 +177,8 @@ export function CanvasViewport(props: CanvasViewportProps) {
   // drops the cover while an export sizes the canvas: the layout does not
   // move for an export.
   const underSidebar = () => leadingCover() > 0
-  // The flame's own ground, for the strip of the box the rail's sheet
-  // uncovers when it moves the canvas up (App.module.css, .phoneLayout).
+  // The flame's own ground, for the strip the rail's sheet uncovers
+  // (App.module.css, .underSheet).
   const ground = createMemo(() =>
     cssRgb(flameBackgroundColor(props.effectiveFlame().renderSettings)),
   )
@@ -182,11 +197,12 @@ export function CanvasViewport(props: CanvasViewportProps) {
       classList={{
         [ui.fullscreen as string]: !props.showSidebar(),
         [ui.underSidebar as string]: underSidebar(),
+        [ui.underSheet as string]: underSheet(),
       }}
       // The hover badge centres on the part on show (App.module.css).
       style={{
         '--rail-inset': `${props.railInset?.() ?? 0}px`,
-        '--canvas-ground': ground(),
+        '--canvas-ground': underSheet() ? ground() : undefined,
         '--covered-left': coveredStyle(framing.covered().left),
         '--covered-right': coveredStyle(framing.covered().right),
         '--leading-cover': underSidebar() ? `${leadingCover()}px` : undefined,
