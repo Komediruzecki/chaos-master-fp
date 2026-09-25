@@ -1,9 +1,11 @@
 import { createRoot, createSignal } from 'solid-js'
 import { createStore, unwrap } from 'solid-js/store'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { setArenaShowing } from '@/arcade/editorCover'
 import { examples } from '@/flame/examples'
 import { parseFlameXml } from '@/flame/flameXml'
-import { setAutosaveRecents, setSaveReminderDismissed, } from '@/utils/autosaveSettings'
+import { setActiveTab } from '@/lib/activeTab'
+import { autosaveRecents, setAutosaveRecents, setSaveReminderDismissed, } from '@/utils/autosaveSettings'
 import { createStoreHistory } from '@/utils/createStoreHistory'
 import { clearRecentFlames, loadRecentFlames, loadRecentFlamesForRewrite, MAX_RECENT_FLAMES, } from '@/utils/recentFlames'
 import { useWorkspaceAutosave } from './useWorkspaceAutosave'
@@ -75,6 +77,7 @@ const workspace = (
   } = {},
 ) => {
   const toasts: string[] = []
+  const shown = new Map<number, string>()
   const [open, setOpen] = createStore<FlameDescriptor>(
     JSON.parse(JSON.stringify(flame)),
   )
@@ -87,15 +90,23 @@ const workspace = (
     showToast: (message) => {
       if (options.muted?.()) return -1
       toasts.push(message)
+      shown.set(nextToastId, message)
       return nextToastId++
+    },
+    dismissToast: (id) => {
+      shown.delete(id)
     },
     confirmOverwriteOldest: options.confirmOverwriteOldest ?? declineOverwrite,
     confirmDiscardUnsaved: options.confirmDiscardUnsaved ?? keepUnsaved,
   })
-  return { autosave, setOpen, toasts }
+  /** The toasts on screen now: shown and not withdrawn. */
+  const onScreen = () => [...shown.values()]
+  return { autosave, setOpen, toasts, onScreen }
 }
 
 afterEach(() => {
+  setArenaShowing(false)
+  setActiveTab('workspace')
   storageRefuses = false
   clearRecentFlames()
   store.clear()
@@ -571,5 +582,90 @@ describe('the gallery hover preview, and every write of the document', () => {
       expect(stored().metadata?.name).toBe('Edited')
       expect(stored().transforms).toEqual(edited.transforms)
     }
+  })
+})
+
+const CONSENT = 'Auto-save your flames to Recents while you edit?'
+
+// On a real GPU the question landed over the Arena and took the click meant
+// for Exit Arena. A view with its own top bar holds the question; the editor
+// gets it as usual once the viewer is back.
+describe('the auto-save question over a view with its own top bar', () => {
+  it('waits while the Arena is open, and is asked back in the editor', () => {
+    vi.useFakeTimers()
+    createRoot((dispose) => {
+      const { autosave, setOpen, toasts } = workspace()
+      autosave.markLoadedBaseline()
+      setOpen('metadata', 'name', 'Edited')
+      setArenaShowing(true)
+
+      vi.advanceTimersByTime(90_000)
+      expect(toasts).not.toContain(CONSENT)
+
+      setArenaShowing(false)
+      vi.advanceTimersByTime(30_000)
+      expect(toasts.filter((t) => t === CONSENT)).toHaveLength(1)
+      dispose()
+    })
+  })
+
+  it('waits over the Arcade hub and over Home too', () => {
+    vi.useFakeTimers()
+    createRoot((dispose) => {
+      const { autosave, setOpen, toasts } = workspace()
+      autosave.markLoadedBaseline()
+      setOpen('metadata', 'name', 'Edited')
+
+      setActiveTab('arcade')
+      vi.advanceTimersByTime(30_000)
+      setActiveTab('home')
+      vi.advanceTimersByTime(30_000)
+      expect(toasts).not.toContain(CONSENT)
+
+      setActiveTab('workspace')
+      vi.advanceTimersByTime(30_000)
+      expect(toasts).toContain(CONSENT)
+      dispose()
+    })
+  })
+
+  it('steps aside when the Arena opens over an unanswered question', () => {
+    vi.useFakeTimers()
+    // Built in a root and driven outside it, as the app runs: the effect
+    // that watches the cover starts once the root has been set up.
+    const { ws, dispose } = createRoot((dispose) => ({
+      ws: workspace(),
+      dispose,
+    }))
+    const { autosave, setOpen, toasts, onScreen } = ws
+    autosave.markLoadedBaseline()
+    setOpen('metadata', 'name', 'Edited')
+    vi.advanceTimersByTime(30_000)
+    expect(onScreen()).toContain(CONSENT)
+
+    setArenaShowing(true)
+    expect(onScreen()).not.toContain(CONSENT)
+    vi.advanceTimersByTime(60_000)
+    expect(onScreen()).not.toContain(CONSENT)
+
+    setArenaShowing(false)
+    vi.advanceTimersByTime(30_000)
+    expect(onScreen()).toContain(CONSENT)
+    expect(toasts.filter((t) => t === CONSENT)).toHaveLength(2)
+    expect(autosaveRecents()).toBe('unset')
+    dispose()
+  })
+
+  it('leaves the answer and its storage alone', () => {
+    vi.useFakeTimers()
+    createRoot((dispose) => {
+      const { autosave, setOpen } = workspace()
+      autosave.markLoadedBaseline()
+      setOpen('metadata', 'name', 'Edited')
+      setArenaShowing(true)
+      vi.advanceTimersByTime(60_000)
+      expect(autosaveRecents()).toBe('unset')
+      dispose()
+    })
   })
 })
