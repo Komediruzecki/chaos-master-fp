@@ -7,8 +7,10 @@
  * uniform buffers and are left out, so a change to them never recompiles.
  *
  * The IFS pipelines key their shader cache on this and Flam3 rebuilds its
- * pipeline when it changes, so all of them read it from here. A Flame Clash
- * flame adds its team partition beside it (clashTeamsSignature).
+ * pipeline when it changes, so all of them read it from here. Beside it, a
+ * Flame Clash flame adds its team partition (clashTeamsSignature), and each of
+ * them adds the custom variations' version: editing a custom variation keeps
+ * its type and changes its code.
  */
 import { recordEntries } from '@/utils/record'
 import type { TransformRecord } from './schema/flameSchema'
