@@ -7,7 +7,7 @@
  * outside the panel.
  */
 import { cleanup, fireEvent, render, screen } from '@solidjs/testing-library'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi, } from 'vitest'
 import { AudioReactivePanel } from './AudioReactivePanel'
 
 // The test runner's own localStorage is not a working Storage, and the
@@ -29,6 +29,13 @@ const memoryStorage: Storage = {
     return stored.size
   },
 }
+
+// The panel loads the editor lazily, as a chunk of its own. Loading it here
+// first keeps its first transform out of findByTitle's one-second wait, which
+// a full test run under load outlasted.
+beforeAll(async () => {
+  await import('../AudioWiringModal/AudioWiringModal')
+})
 
 beforeEach(() => {
   vi.stubGlobal('localStorage', memoryStorage)
