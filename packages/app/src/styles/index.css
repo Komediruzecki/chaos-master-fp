@@ -25,12 +25,14 @@
 
   /* Keyboard-focus ring color: the app's indigo accent (light theme) replaces
      the old violet default so the ring matches the rest of the UI. The dark
-     theme uses a lighter indigo (below) for contrast. */
+     theme uses a lighter indigo (below) for contrast, and so does glass,
+     which is dark in both themes (styles/designSystem/glass.module.css). */
   --focus-ring-color: #6366f1;
+  --focus-ring-on-dark: #818cf8;
 }
 
 body[data-theme='dark'] {
-  --focus-ring-color: #818cf8;
+  --focus-ring-color: var(--focus-ring-on-dark);
 }
 
 body {

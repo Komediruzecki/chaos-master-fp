@@ -57,9 +57,12 @@
  *           a browser without backdrop-filter. A screen that must hide more
  *           of the app sets the --la-scrim-heavy fill itself.
  *
- * The four glass classes carry --la-glass-edge and --la-glass-shadow. Every
- * rule here that sets backdrop-filter writes it in both spellings, the
- * -webkit- one first
+ * The four glass classes carry --la-glass-edge and --la-glass-shadow, and
+ * the dark theme's focus ring (styles/index.css): glass is dark in both
+ * themes, and on a panel over white-hot art the light theme's ring measures
+ * 2.31:1, under the 3:1 a focus indicator needs, where the dark one's
+ * measures 3.46 (glassContrast.test.ts). Every rule here that sets
+ * backdrop-filter writes it in both spellings, the -webkit- one first
  * (glassBlurs.test.ts holds every stylesheet to that order). The production
  * minifier keeps only the later of the two, so the build ships the standard
  * spelling alone, the one Chrome, Firefox, Android and Safari 18 read. iOS
@@ -170,6 +173,7 @@
 :where(.chrome, .panel, .flat, .solid):not(html) {
   border: var(--la-glass-edge);
   box-shadow: var(--la-glass-shadow);
+  --focus-ring-color: var(--focus-ring-on-dark);
 }
 
 :where(.chrome):not(html) {
