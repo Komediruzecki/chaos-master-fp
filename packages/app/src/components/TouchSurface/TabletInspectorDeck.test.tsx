@@ -15,11 +15,13 @@ import { createMockCommandContext } from '@/webmcp/testUtils'
 import { TabletInspectorDeck } from './TabletInspectorDeck'
 
 // The setting as a plain signal: the real one lives in localStorage and on
-// <html>, neither of which this runtime keeps between tests.
+// <html>, neither of which this runtime keeps between tests. With no system
+// preference asking for solid surfaces, glass is allowed exactly when the
+// setting is on.
 vi.mock('@/lib/glass', async () => {
   const { createSignal } = await import('solid-js')
   const [glassPanels, setGlassPanels] = createSignal(false)
-  return { glassPanels, setGlassPanels }
+  return { glassPanels, glassAllowed: glassPanels, setGlassPanels }
 })
 
 const deck = () =>

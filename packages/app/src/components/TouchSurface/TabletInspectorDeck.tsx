@@ -3,7 +3,7 @@ import { executeCommand } from '@/commands/registry'
 import { CameraIcon, GridIcon, Redo, SidebarPanel, Undo } from '@/icons'
 import { workspaceIsVisible } from '@/lib/activeTab'
 import { setDeckResizing, setTrailingCover } from '@/lib/canvasFraming'
-import { glassPanels } from '@/lib/glass'
+import { glassAllowed } from '@/lib/glass'
 import { haptic } from '@/lib/haptics'
 import glass from '@/styles/designSystem/glass.module.css'
 import { createDragHandler } from '@/utils/createDragHandler'
@@ -66,7 +66,7 @@ export function TabletInspectorDeck(props: TabletInspectorDeckProps) {
   // What the open deck covers of the canvas under it, as the divider moves:
   // its width while it floats, nothing while it is a page beside the canvas.
   // The camera moves the picture by it and writes nothing to the flame.
-  const floating = () => glassPanels()
+  const floating = () => glassAllowed()
   createEffect(() => {
     setTrailingCover(floating() && !collapsed() ? width() : 0)
   })
