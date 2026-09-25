@@ -49,7 +49,7 @@ describe('stemTwin3D', () => {
     ['fanVar', 'a twin that takes parameters'],
     ['curlVar', 'a 2D variation that takes parameters'],
     ['spherical3D', 'already 3D'],
-    ['noSuchVar', 'not registered'],
+    ['notAVariation', 'not registered'],
   ])('leaves %s alone: %s', (type) => {
     expect(stemTwin3D(type)).toBeUndefined()
   })
@@ -77,7 +77,7 @@ describe('twin3D', () => {
     },
   )
 
-  it.each(['juliaNVar', 'fanVar', 'spherical3D', 'noSuchVar'])(
+  it.each(['juliaNVar', 'fanVar', 'spherical3D', 'notAVariation'])(
     'is nothing for %s',
     (type) => {
       expect(twin3D(type)).toBeUndefined()
