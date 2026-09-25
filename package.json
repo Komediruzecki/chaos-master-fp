@@ -78,7 +78,7 @@
     "vite-bundle-analyzer": "^1.3.6",
     "vite-plugin-solid": "^2.11.10",
     "vite-plugin-solid-svg": "^0.8.1",
-    "vitest": "^4.0.18"
+    "vitest": "^4.1.11"
   },
   "pnpm": {
     "ignoredBuiltDependencies": [
