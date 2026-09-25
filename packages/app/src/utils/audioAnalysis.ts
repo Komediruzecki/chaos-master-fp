@@ -655,13 +655,13 @@ function heldRenderSetting(
   value: number,
   dimensions: unknown,
 ): number {
-  // NaN would fail validation as surely as an out-of-range number, and can
-  // arrive from a degenerate range.
-  if (!Number.isFinite(value)) return 0
   const path = param === 'zoom' ? ['camera', 'zoom'] : [param]
+  // NaN would fail validation as surely as an out-of-range number, and can
+  // arrive from a degenerate range. Its stand-in, 0, is projected like any
+  // other value: it is below gamma's and contrast's minimum.
   return projectFlameValue(
     ['renderSettings', ...path],
-    value,
+    Number.isFinite(value) ? value : 0,
     dimensions,
   ) as number
 }

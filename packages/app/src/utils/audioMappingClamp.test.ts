@@ -135,6 +135,18 @@ describe('audio modulation cannot corrupt the flame', () => {
     expect(() => validateFlame(f)).not.toThrow()
   })
 
+  // The fallback for a non-finite value is held to the domain too: 0 is below
+  // gamma's minimum of 0.1 and contrast's of 0.01.
+  it.each([
+    ['gamma', 0.1],
+    ['contrast', 0.01],
+  ])('keeps %s valid when its range is degenerate', (param, min) => {
+    const f = flame()
+    applyAudioMappingsToFlame(f, LOUD, map(param, [NaN, NaN]))
+    expect(() => validateFlame(f)).not.toThrow()
+    expect((f.renderSettings as Record<string, number>)[param]).toBe(min)
+  })
+
   it('survives a degenerate range without writing NaN', () => {
     const f = flame()
     applyAudioMappingsToFlame(f, LOUD, map('vibrancy', [NaN, NaN]))
