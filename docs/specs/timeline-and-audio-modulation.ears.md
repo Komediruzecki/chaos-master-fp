@@ -32,7 +32,7 @@ not a gap.
 - `packages/app/src/utils/audioWiringPresets.ts` — render-only and flame-aware presets
 - `packages/app/src/components/AudioWiringModal/AudioWiringModal.tsx` — the wiring editor
   (connect/replace, defaults, its own undo stack, import/export, shortcuts)
-- `packages/app/src/flame/Flam3.tsx:563-615` (`deepClone`), `:1246-1253` (`isAutoFpsReady`) — where the timeline overlay is
+- `packages/app/src/flame/Flam3.tsx:551-603` (`deepClone`), `:1251-1258` (`isAutoFpsReady`) — where the timeline overlay is
   applied to the rendered flame and where playback advances
 - `packages/app/src/components/Timeline/hooks/useSeekScrubber.ts` — scrub gesture
 
@@ -373,7 +373,7 @@ consumer that overlays animated values onto the rendered flame shall gate on tha
 accessor rather than on `isPlaying()` alone — otherwise a frame reached by
 clicking or stepping renders its camera but not its transforms.
 
-_(`utils/timeline.ts:774-775` (`isDrivingView`); consumed at `Flam3.tsx:574-577` (`isActive`).)_
+_(`utils/timeline.ts:774-775` (`isDrivingView`); consumed at `Flam3.tsx:578-581` (`isActive`).)_
 
 ### REQ-TA-025 — A seeked frame outlives the gesture that reached it
 
@@ -386,7 +386,7 @@ or unmount; only `loadTracks`, `clearAllTracks` and the Home hand-off reset shal
 clear `previewHeld`.
 
 _(`utils/timeline.ts:1437-1505` (`advanceFrame`), `:1710-1711` (`clearAllTracks`), `:1755-1756` (`loadTracks`);
-`useSeekScrubber.ts:11-17` (`finishSeek`), `:33-36` (`finishSeek`), `:68-70` (`onCleanup`); `MainWorkspace.tsx:2410-2416` (`pause`).)_
+`useSeekScrubber.ts:11-17` (`finishSeek`), `:33-36` (`finishSeek`), `:68-70` (`onCleanup`); `MainWorkspace.tsx:2400-2406` (`pause`).)_
 
 ### REQ-TA-026 — Playback advances at the configured rate, or on quality with Auto FPS
 
@@ -397,7 +397,7 @@ time the current frame reaches target quality, and the timeline shall report the
 achieved rate as an exponential moving average (`0.8` prior, `0.2` new sample),
 reported as `undefined` whenever playback stops.
 
-_(`Flam3.tsx:591-614` (`createEffect`) and `:1246-1253` (`isAutoFpsReady`); `utils/timeline.ts:1437-1458` (`advanceFrame`), `:758-762` (`resetFpsMeter`).)_
+_(`Flam3.tsx:579-602` (`createEffect`) and `:1251-1258` (`isAutoFpsReady`); `utils/timeline.ts:1437-1458` (`advanceFrame`), `:758-762` (`resetFpsMeter`).)_
 
 ### REQ-TA-027 — Playback without loop stops at the end
 
@@ -422,8 +422,8 @@ capped, `flatness` as computed, `onset` as its rolling-median strength, and
 `beat` as `1` on a detected beat and `0` otherwise. An unrecognised feature name
 shall yield `0`.
 
-_(`audioAnalysis.ts:593-615` (`getAudioFeatureNormalized`), `:101-154` (`getFftBands`); beats at `:183-226` (`computeBeats`) — spectral-flux peaks
-above `mean + 1.5σ` with a 100 ms minimum gap; onsets at `:233-276` (`computeOnsetStrengths`).)_
+_(`audioAnalysis.ts:595-617` (`getAudioFeatureNormalized`), `:103-156` (`getFftBands`); beats at `:185-228` (`computeBeats`) — spectral-flux peaks
+above `mean + 1.5σ` with a 100 ms minimum gap; onsets at `:235-278` (`computeOnsetStrengths`).)_
 
 ### REQ-TA-029 — Attack and release are a one-pole envelope on the normalized feature
 
@@ -435,7 +435,7 @@ falling, falling back to whichever of the two is set when the other is absent.
 unsmoothed. `prev` shall come from the per-target smoothing state, seeded with the
 current value on the first frame so a mapping does not ramp up from zero.
 
-_(`audioAnalysis.ts:689-723` (`computeSmoothedEnvelope`), called from `:919-925` (`smoothed`); guarded by
+_(`audioAnalysis.ts:678-703` (`computeSmoothedEnvelope`), called from `:910-916` (`smoothed`); guarded by
 `audioAnalysisMappings.test.ts:285` "applies attack and release envelope smoothing across consecutive frames".)_
 
 ### REQ-TA-030 — The mapped value is `lo + smoothed × sensitivity × (hi − lo)`
@@ -446,7 +446,7 @@ the span rather than clipping it, so a sensitivity above 1 can carry the value
 past `range[1]`; keeping the result inside the schema is REQ-TA-032's job, not
 this formula's.
 
-_(`audioAnalysis.ts:617-624` (`mappingToVal`), `:930` (`mappingToVal`); guarded by `audioAnalysisMappings.test.ts:82` "scales the output by the mapping sensitivity".)_
+_(`audioAnalysis.ts:619-625` (`mappingToVal`), `:921` (`mappingToVal`); guarded by `audioAnalysisMappings.test.ts:82` "scales the output by the mapping sensitivity".)_
 
 ### REQ-TA-031 — Sub-threshold movement does not re-render
 
@@ -457,14 +457,16 @@ new smoothed value so the envelope keeps advancing. **If** no target changed on 
 frame, the mapper shall leave `flame.renderSettings` referentially untouched, so
 the render loop sees no new work.
 
-_(`audioAnalysis.ts:631` (`DIRTY_THRESHOLD`), `:728-748` (`settleTargetValue`), `:904-934` (`resolveAudioMappingValues`); guarded by
+_(`audioAnalysis.ts:633` (`DIRTY_THRESHOLD`), `:717-737` (`settleTargetValue`), `:895-926` (`resolveAudioMappingValues`); guarded by
 `audioAnalysisMappings.test.ts:338` "skips redundant writes when changes are below the dirty threshold".)_
 
 ### REQ-TA-032 — Audio modulation cannot leave the flame schema-invalid
 
-**When** the mapper writes a render setting, it shall clamp the value to that
-setting's schema bounds, round `skipIters` to an integer, and substitute `0` for
-a non-finite value. **When** it writes a transform probability, it shall clamp to
+**When** the mapper writes a render setting, it shall hold the value to that
+setting's schema domain with the projection the timeline and the commands use
+(`projectFlameValue`): floor an integer setting such as `skipIters` the way the
+renderer reads it, wrap the cyclic `palettePhase`, clamp every other bound, and
+substitute `0` for a non-finite value. **When** it writes a transform probability, it shall clamp to
 a floor of `0.001`, never zero or negative. **If** the target names a transform
 index that does not exist, or a variation type the transform does not carry,
 **then** the write shall be skipped rather than create the missing object.
@@ -473,7 +475,7 @@ Rationale, not decoration: audio modulation writes straight into the live
 descriptor, and one out-of-range `palettePhase` makes that flame permanently
 un-breedable, un-exportable and un-openable in the ancestry tree.
 
-_(`audioAnalysis.ts:651-678` (`RENDER_SETTING_BOUNDS`), `:790-827` (`applyTransformPropertyTarget`), `:776-788` (`applyTransformAffineTarget`), `:830-847` (`applyVariationWeightTarget`); guarded by
+_(`audioAnalysis.ts:653-667` (`heldRenderSetting`), `:779-817` (`applyTransformPropertyTarget`), `:765-777` (`applyTransformAffineTarget`), `:819-839` (`applyVariationWeightTarget`); guarded by
 `audioMappingClamp.test.ts:62-128` "keeps a wildly out-of-range palettePhase valid" and `audioAnalysisMappings.test.ts:176` "enforces safe probability lower bound for transform probability target", `:244` "gracefully handles out-of-bounds transform indices".)_
 
 ### REQ-TA-033 — Auditioning a track is not the same as driving the flame

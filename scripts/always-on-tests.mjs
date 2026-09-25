@@ -57,8 +57,18 @@ export const ALWAYS_ON = [
     genre: 'filesystem',
   },
   {
+    file: 'src/viewTransitionCallers.test.ts',
+    why: 'walks all of src/ for document.startViewTransition calls that bypass lib/viewTransition',
+    genre: 'filesystem',
+  },
+  {
     file: 'src/lib/camera2DRotation.test.ts',
     why: 'walks src/, scripts/ and the landing package for <Camera2D> mounts that omit the view rotation',
+    genre: 'filesystem',
+  },
+  {
+    file: 'src/fixtureRealism.test.ts',
+    why: 'walks the app and core sources and the Playwright specs with the TypeScript AST for flame fixtures and variation tables no real flame matches',
     genre: 'filesystem',
   },
 
@@ -162,6 +172,15 @@ export const ALWAYS_ON = [
   {
     file: 'src/flame/breedFlame.golden.test.ts',
     why: 'golden record of breeding draw order across the flame subsystem',
+    genre: 'filesystem',
+  },
+
+  // Golden record of every IFS compute shader. The graph reaches the modules
+  // that write the shaders, but not the record: a regenerated record alone
+  // would otherwise go unchecked until main.
+  {
+    file: 'src/flame/ifsPipeline.wgslGolden.test.ts',
+    why: 'golden record of every IFS shader, the proof that a flame without clash teams compiles exactly as before; reads its fixtures through node:fs',
     genre: 'filesystem',
   },
 

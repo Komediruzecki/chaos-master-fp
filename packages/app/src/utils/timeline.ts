@@ -11,7 +11,7 @@ interface WindowTimelineState {
   getFrame: () => number
 }
 
-import { MAX_TIMELINE_FRAME, MAX_TIMELINE_PLAYBACK_FPS, MAX_TIMELINE_TIME_SCALE, } from '@chaos-master/core'
+import { MAX_TIMELINE_FRAME, MAX_TIMELINE_PLAYBACK_FPS, MAX_TIMELINE_TIME_SCALE, projectFlameToSchema, } from '@chaos-master/core'
 import type { EasingCurve } from '@chaos-master/core'
 
 export type { EasingCurve }
@@ -1460,8 +1460,11 @@ export function createTimelineState(options: TimelineStateOptions = {}) {
     const next = currentFrame() + 1
     const count = playedFrames() + 1
     const wrapped = next > cfg.endFrame
-    setCurrentFrame(wrapped ? cfg.startFrame : next)
-    if (playing) played = { count, at: currentFrame() }
+    const target = wrapped ? cfg.startFrame : next
+    // Counted before the move: whatever the move sets off (an arena clash
+    // pauses on its last frame) must read this advance in the count.
+    if (playing) played = { count, at: target }
+    setCurrentFrame(target)
     if (wrapped && !cfg.loop) {
       setIsPlaying(false)
       resetFpsMeter()
@@ -2081,7 +2084,6 @@ function applyTransformAndVariationTracks(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const transforms = flame.transforms as Record<string, any>
   for (const [path, track] of trackMap) {
-    if (typeof path !== 'string') continue
     const value = resolveLoopValue(track.keyframes, frame, loop)
     if (value === null || typeof value !== 'number') continue
 
@@ -2089,6 +2091,17 @@ function applyTransformAndVariationTracks(
     applyTransformTrackPath(transforms, parts, value)
   }
 }
+
+const AFFINE_KEYS_2D = ['a', 'b', 'c', 'd', 'e', 'f'] as const
+const AFFINE_KEYS_3D = [
+  ...AFFINE_KEYS_2D,
+  'g',
+  'h',
+  'i',
+  'j',
+  'k',
+  'l',
+] as const
 
 function applyFinalTransformTracks(
   flame: FlameDescriptor,
@@ -2115,24 +2128,18 @@ function applyFinalTransformTracks(
           }
         : { a: 1, b: 0, c: 0, d: 0, e: 1, f: 0 }
   }
-  applyTrackNumber(trackMap, 'finalTransform.a', frame, loop, (v) => {
-    flame.finalTransform!.a = v
-  })
-  applyTrackNumber(trackMap, 'finalTransform.b', frame, loop, (v) => {
-    flame.finalTransform!.b = v
-  })
-  applyTrackNumber(trackMap, 'finalTransform.c', frame, loop, (v) => {
-    flame.finalTransform!.c = v
-  })
-  applyTrackNumber(trackMap, 'finalTransform.d', frame, loop, (v) => {
-    flame.finalTransform!.d = v
-  })
-  applyTrackNumber(trackMap, 'finalTransform.e', frame, loop, (v) => {
-    flame.finalTransform!.e = v
-  })
-  applyTrackNumber(trackMap, 'finalTransform.f', frame, loop, (v) => {
-    flame.finalTransform!.f = v
-  })
+  // The terms the final transform has in its own layout: a-f in 2D, a-l in
+  // 3D. A track on g-l never turns a 2D-layout final transform into a 3D one,
+  // which would change what its a-f mean.
+  const final = flame.finalTransform as Record<string, number>
+  const is3D = ['g', 'h', 'i', 'j', 'k', 'l'].some(
+    (key) => final[key] !== undefined,
+  )
+  for (const key of is3D ? AFFINE_KEYS_3D : AFFINE_KEYS_2D) {
+    applyTrackNumber(trackMap, `finalTransform.${key}`, frame, loop, (v) => {
+      final[key] = v
+    })
+  }
 }
 
 export function applyTracksToFlame(
@@ -2147,6 +2154,7 @@ export function applyTracksToFlame(
   applyRenderSettingTracks(flame, trackMap, frame, loop)
   applyTransformAndVariationTracks(flame, trackMap, frame, loop)
   applyFinalTransformTracks(flame, trackMap, frame, loop)
+  projectFlameToSchema(flame) // a fraction between keys is not a flame
 }
 
 /**

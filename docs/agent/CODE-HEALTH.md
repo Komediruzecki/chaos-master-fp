@@ -18,17 +18,19 @@ pnpm docs:cite        # every file:line citation in the docs still names its sym
 pnpm verify:webgpu    # headed browser pass on real hardware
 ```
 
-**Where they run.** `pnpm arch` and `pnpm metrics:check` run on every pull
-request, as the last steps of the `build` job (since WP3b, 2026-09-23), and run
-even when a step above them failed, so a ratchet failure never masks a test
-failure nor the other way round. The ratchet there includes the four `eslint_*`
-keys, read from the lint step's own report, not from a second ESLint pass. The
-`health` job, on pushes to main and on a manual `workflow_dispatch`, runs
-`pnpm docs:index:check`, `pnpm arch`, `pnpm test:coverage` and then
-`pnpm metrics:check`, which adds the six coverage keys. `pnpm docs:cite` runs
-on pull requests too, in its own `citations` job, because a citation goes stale
-in the change that moves the code ([CONVENTIONS.md](CONVENTIONS.md) §9).
-`pnpm verify:webgpu` is local-only by design — see [METRICS.md](METRICS.md) §3.
+**Where they run.** On every pull request, push to main and manual
+`workflow_dispatch`. The `lint` job ends with
+`pnpm metrics:check --lint-report=eslint-report.json` (since WP3b, 2026-09-23):
+the ratchet with the per-file caps and the four `eslint_*` keys, read from the
+lint step's own report rather than from a second ESLint pass, and run even when
+the lint step failed, so neither hides the other. The `health` job runs
+`pnpm docs:index:check`, `pnpm metrics:check` and `pnpm arch` (on pull requests
+since 2026-09-24), in a job of its own so a ratchet failure can never mask a
+test failure; on main and on a manual run it first runs `pnpm test:coverage`,
+which adds the six coverage keys. `pnpm docs:cite` runs in its own `citations`
+job, because a citation goes stale in the change that moves the code
+([CONVENTIONS.md](CONVENTIONS.md) §9). `pnpm verify:webgpu` is local-only by
+design — see [METRICS.md](METRICS.md) §3.
 
 `pnpm arch` joined the `health` job in WP3 (#116, 2026-09-23). It stayed out
 while it was red on two import cycles (`flame/mutationOperators.ts <->
@@ -277,7 +279,7 @@ shows as undescribed until it opens with one. Header comments are still the
 cheapest large improvement available: `pnpm docs:index` builds the module map
 from them, and 86% of the tree cannot be described in [INDEX.md](INDEX.md) at
 all. `missing_header_comment` is a ratchet, so a new file without one fails
-`pnpm metrics:check` on main.
+`pnpm metrics:check` on its pull request.
 
 ## 9. Where the risk is concentrated
 
