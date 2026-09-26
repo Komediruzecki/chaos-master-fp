@@ -125,6 +125,86 @@ export async function verifyGpuContracts() {
       JSON.stringify(await renderer.readPoints(POINT_COUNT))
     )
       throw new Error('Rendering moved stable samples')
+
+    // A music frame is a pure view of the rest cloud, shared by both eyes.
+    // Advancing audio, pausing it, or choosing the CPU cloud must never drift it.
+    const music = { time: 12.5, energy: 0.7, low: 0.8, mid: 0.45, high: 0.6 }
+    const silentMusic = { time: 12.5, energy: 0, low: 0, mid: 0, high: 0 }
+    const musicGeneration = renderer.stats().generation
+    renderer.render(targets, 'bgra8unorm', 'compute', 0, music, 0.65)
+    const musicGpuFrame = await readFrame()
+    renderer.render(targets, 'bgra8unorm', 'cached', 0, music, 0.65)
+    const musicCachedFrame = await readFrame()
+    const musicEyes = [0, 1].map((layer) => {
+      let totalDifference = 0
+      let changedChannels = 0
+      let reactivePixels = 0
+      const start = layer * size * size * 4
+      const end = start + size * size * 4
+      for (let i = start; i < end; i += 4) {
+        let pixelReacted = false
+        for (let channel = 0; channel < 4; channel++) {
+          const offset = i + channel
+          const difference = Math.abs(
+            musicGpuFrame[offset] - musicCachedFrame[offset],
+          )
+          totalDifference += difference
+          if (difference > 1) changedChannels++
+          if (Math.abs(musicGpuFrame[offset] - gpuFrame[offset]) > 2)
+            pixelReacted = true
+        }
+        if (pixelReacted) reactivePixels++
+      }
+      const meanPixelChannelError = totalDifference / (end - start)
+      const changedPixelChannelFraction = changedChannels / (end - start)
+      if (meanPixelChannelError > 0.1 || changedPixelChannelFraction > 0.005)
+        throw new Error(
+          `Music cached/GPU images disagree in eye ${layer}: ${meanPixelChannelError}, ${changedPixelChannelFraction}`,
+        )
+      if (reactivePixels < 50)
+        throw new Error(`Music must visibly change the flame in eye ${layer}`)
+      return {
+        meanPixelChannelError,
+        changedPixelChannelFraction,
+        reactivePixels,
+      }
+    })
+    renderer.render(targets, 'bgra8unorm', 'compute', 0, music, 0)
+    const stationaryFrame = await readFrame()
+    if (gpuFrame.some((value, i) => value !== stationaryFrame[i]))
+      throw new Error('Zero music strength must preserve the exact silent view')
+    renderer.render(targets, 'bgra8unorm', 'compute', 0, silentMusic, 0.65)
+    const silentFrame = await readFrame()
+    if (gpuFrame.some((value, i) => value !== silentFrame[i]))
+      throw new Error('Silent audio must stay still regardless of audio time')
+    for (let frame = 1; frame <= 30; frame++)
+      renderer.render(
+        targets,
+        'bgra8unorm',
+        'compute',
+        0,
+        { ...music, time: music.time + frame / 10 },
+        0.65,
+      )
+    renderer.render(targets, 'bgra8unorm', 'compute', 0, music, 0.65)
+    const repeatedMusicFrame = await readFrame()
+    if (musicGpuFrame.some((value, i) => value !== repeatedMusicFrame[i]))
+      throw new Error('Replaying a frozen music frame must render exact pixels')
+    renderer.render(targets, 'bgra8unorm', 'cached', 0, music, 0.65)
+    const repeatedCachedMusicFrame = await readFrame()
+    if (
+      musicCachedFrame.some((value, i) => value !== repeatedCachedMusicFrame[i])
+    )
+      throw new Error('Cached music frames must also replay without drift')
+    if (renderer.stats().generation !== musicGeneration)
+      throw new Error('Music rendering must reuse the built cloud')
+    if (
+      JSON.stringify(after) !==
+        JSON.stringify(await renderer.readPoints(POINT_COUNT)) ||
+      JSON.stringify(cached) !==
+        JSON.stringify(await renderer.readPoints(POINT_COUNT, 'cached'))
+    )
+      throw new Error('Music rendering changed immutable rest samples')
     renderer.requestRebuild()
     renderer.render(targets, 'bgra8unorm', 'compute', 0)
     const rebuiltFrame = await readFrame()
@@ -161,6 +241,14 @@ export async function verifyGpuContracts() {
       changedPixelChannelFraction: changedChannelFraction,
       repeatBuildExact: true,
       stableAcross30RotatingFrames: true,
+      music: {
+        eyes: musicEyes,
+        frozenFrameReplaysExactly: true,
+        zeroStrengthMatchesSilenceExactly: true,
+        zeroEnvelopesIgnoreAudioTime: true,
+        restSamplesUnchanged: true,
+        noCloudRegeneration: true,
+      },
       eyes,
       computeOncePerRequestedStereoBuild: true,
       format: 'bgra8unorm',

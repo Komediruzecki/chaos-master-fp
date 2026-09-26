@@ -2,7 +2,8 @@
 
 An isolated SolidJS/TypeGPU proof based on the accepted IWSDK stereo branch.
 It owns its WebGPU device and native WebXR session. No IWER, Three.js renderer,
-WebGL fallback, audio, locomotion, or application-route changes are included.
+WebGL fallback, locomotion, or application-route changes are included. The music
+branch adds one bundled original score and bounded audio-reactive deformation.
 
 ## Run
 
@@ -26,8 +27,14 @@ The server expires after three hours; Ctrl+C stops an interactive restart.
 - **Two-eye preview:** two desktop cameras 63 mm apart. This is not a VR session.
 - **Distance / Orbit:** desktop inspection without emulator keyboard shortcuts.
 - **Start / Stop rotation:** motion is off initially and independent of cloud
-  generation. Native `select` from a controller or hand toggles rotation; native
-  input requires device verification.
+  generation. Native `select` now plays/pauses the soundtrack; native input
+  requires device verification.
+- **Play / Pause / Restart track:** the original 48-second _Irchiinnuss · Arrival_
+  loop starts only after a gesture. Pause freezes its clock and musical shape;
+  rotation is independent. Restart begins a fresh passage from zero.
+- **Mute / Volume:** change listening level after analysis, preserving the dance.
+- **Music motion / Stationary view:** scale the bounded response; stationary
+  sets it to zero and stops rotation. Reduced-motion preference starts at zero.
 - **Save diagnostic report:** capability results, browser/adapter, errors,
   buffer identity, generation, native frame count, eye matrices and viewports.
   The last native sample survives exit. Callback intervals are not GPU timings.
@@ -84,7 +91,7 @@ of development hooks.
 Run the [official barebones sample](https://immersive-web.github.io/webxr-samples/webgpu/vr-barebones.html)
 first, recording exact browser/system versions and any flags. Then test this
 lab in geometry, cached and compute modes: both eyes, leaning/turning, stable
-world anchoring, trigger/pinch rotation, repeated exit/reentry and 10–15 minutes of
+world anchoring, trigger/pinch playback, repeated exit/reentry and 10–15 minutes of
 use. Save reports and human observations. Desktop success cannot close this gate.
 
 The API targets the [August 12, 2026 editor's draft](https://immersive-web.github.io/webxr-webgpu-binding/).
@@ -107,8 +114,40 @@ repeating a GPU build on the tested device reproduces identical values/pixels.
 
 This fixes temporal sample churn, not point density or all raster aliasing. The
 splat size and 32,768-point budget are unchanged. This is a stable GPU-generated
-cloud, not a continuously evolving music simulation. Next, animate coherent
-world-space deformation/palette from smoothed audio parameters while preserving
-sample identity; measure stereo resolution, density and overdraw on Quest before
-choosing production quality settings. The detailed follow-up is in
+cloud with coherent rest-pose deformation, not a changing fractal definition.
+Measure stereo resolution, density and overdraw on Quest before choosing
+production quality settings. The detailed follow-up is in
 `/home/maff/.dotfiles/personal/lumen-meta/16-flame-stability-and-next-steps.md`.
+
+## Musical orb contract
+
+`audio.ts` fetches/decodes the 327 KiB bundled Ogg only on first Play and uses
+Web Audio's clock and analyser. The [score source and provenance](public/audio/README.md)
+are included; no third-party samples are used. The track remains a stereo
+soundtrack. A separate world-positioned motif and headset listener are later
+work; the whole stereo mix does not rotate with the viewer.
+
+Low (40–250 Hz), mid (250–2,000 Hz), high (2,000–8,000 Hz), and RMS energy use
+bounded envelopes with 180 ms attack / 750 ms release. The runtime samples once
+per render frame, before both eyes. The shader derives a gentle breath, twist,
+ripple and emission from each immutable rest point and that shared audio state.
+At full strength: scale is at most 1.09, twist at most 0.12 radians, and the
+vertical ripple contributes at most 0.019075 world metres including scale.
+Strength zero removes every audio geometry and palette effect. There is no
+camera animation, random resampling, or extra per-frame compute dispatch.
+
+Hidden desktop tabs, hidden/blurred XR sessions, session exit and device failure
+pause music; returning never autoplays. Pause preserves the musical frame, and
+separate Stop rotation holds orientation. In XR, trigger/pinch toggles music;
+there is no in-headset settings panel yet. Browser/system interruptions still
+need device verification. The finite short loop is decoded in memory; future
+long personal tracks need a streaming design.
+
+The node suite covers analysis and playback races using audio doubles, plus XR
+lifetime contracts. Standalone hardware verification checks actual track decode,
+nonzero analyser output, pause, mute, restart, stationary view, tab visibility,
+mobile taps, layouts, and both GPU eye images with a frozen music frame. None
+of those desktop checks establishes Quest audio output, comfort or performance.
+
+The next plan and recorded results live in
+`/home/maff/.dotfiles/personal/lumen-meta/17-musical-orb.md`.

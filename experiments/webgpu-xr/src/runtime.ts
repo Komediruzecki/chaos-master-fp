@@ -1,5 +1,6 @@
 // Exactly one frame owner: the desktop window or the native XR session.
 import { mat4 } from 'wgpu-matrix'
+import { OrbAudio, SILENT_MUSIC } from './audio'
 import { acquireDevice } from './capabilities'
 import { NativeXr } from './nativeXr'
 import { createRenderer } from './renderer'
@@ -13,6 +14,10 @@ export class LabRuntime {
   stereo = false
   distance = 2.9
   yaw = 0
+  motionStrength = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ? 0
+    : 0.65
+  readonly audio = new OrbAudio()
   ready = false
   immersive = false
   entering = false
@@ -35,6 +40,7 @@ export class LabRuntime {
   private raf = 0
   private lastTime = 0
   private reportedAt = 0
+  private musicFrame = { ...SILENT_MUSIC }
   private intervals: number[] = []
   private lastEyes: Omit<EyeTarget, 'color'>[] = []
   private lastNativeReport?: ReturnType<LabRuntime['frameReport']>
@@ -46,7 +52,34 @@ export class LabRuntime {
   constructor(
     private canvas: HTMLCanvasElement,
     private changed: () => void,
-  ) {}
+  ) {
+    document.addEventListener('visibilitychange', this.onVisibility)
+  }
+
+  private onVisibility = () => {
+    // XR owns visibility during immersive presentation and its entry transition.
+    if (document.hidden && !this.immersive && !this.entering) this.pauseMusic()
+  }
+
+  async playMusic(restart = false) {
+    if (!this.ready || this.disposed) return
+    const pending = restart ? this.audio.restart() : this.audio.play()
+    this.changed()
+    await pending
+    if (!this.disposed) this.changed()
+  }
+
+  pauseMusic() {
+    this.audio.pause()
+    Object.assign(this.musicFrame, this.audio.sample())
+    this.changed()
+  }
+
+  setMotionStrength(value: number) {
+    this.motionStrength = Math.max(0, Math.min(1, value))
+    if (this.motionStrength === 0) this.paused = true
+    this.changed()
+  }
 
   async init() {
     try {
@@ -105,7 +138,11 @@ export class LabRuntime {
               this.draw(time, targets, visible)
               this.nativeFrames++
             },
+            visibility: (visible) => {
+              if (!visible) this.pauseMusic()
+            },
             end: () => {
+              this.pauseMusic()
               this.immersive = false
               this.format = this.desktopFormat
               this.lastTime = 0
@@ -118,8 +155,8 @@ export class LabRuntime {
             },
             select: () => {
               this.selections++
-              this.paused = !this.paused
-              this.changed()
+              if (this.audio.snapshot().status === 'playing') this.pauseMusic()
+              else void this.playMusic()
             },
             error: (message) => {
               this.error = message
@@ -146,6 +183,7 @@ export class LabRuntime {
     if (this.failed) return
     this.failed = true
     this.ready = false
+    this.audio.pause()
     this.error = message
     this.errors.push(message)
     cancelAnimationFrame(this.raf)
@@ -227,7 +265,17 @@ export class LabRuntime {
       this.intervals.push(delta)
       if (this.intervals.length > 180) this.intervals.shift()
     }
-    this.renderer!.render(targets, this.format, this.mode, this.elapsed)
+    // Sample once before the eye loop; both eyes consume one audio-clock instant.
+    const music = this.audio.sample()
+    Object.assign(this.musicFrame, music)
+    this.renderer!.render(
+      targets,
+      this.format,
+      this.mode,
+      this.elapsed,
+      music,
+      this.motionStrength,
+    )
     if (time - this.reportedAt > 300) {
       this.reportedAt = time
       this.lastEyes = targets.map(({ color: _color, ...target }) => ({
@@ -266,6 +314,9 @@ export class LabRuntime {
     const sorted = [...this.intervals].sort((a, b) => a - b)
     return {
       mode: this.mode,
+      music: this.audio.snapshot(),
+      musicFrame: { ...this.musicFrame },
+      motionStrength: this.motionStrength,
       referenceSpace: this.referenceSpace,
       format: this.format,
       intervalSamples: sorted.length,
@@ -322,6 +373,8 @@ export class LabRuntime {
 
   dispose() {
     this.disposed = true
+    document.removeEventListener('visibilitychange', this.onVisibility)
+    this.audio.dispose()
     cancelAnimationFrame(this.raf)
     this.xr?.dispose()
     this.device?.removeEventListener('uncapturederror', this.onGpuError)

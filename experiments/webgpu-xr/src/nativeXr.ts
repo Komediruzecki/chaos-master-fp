@@ -6,6 +6,7 @@ export interface XrCallbacks {
   start(format: GPUTextureFormat, referenceSpace: string): void
   frame(time: number, targets: EyeTarget[], visible: boolean): void
   end(): void
+  visibility?(visible: boolean): void
   select: () => void
   error(message: string): void
 }
@@ -28,12 +29,16 @@ export class NativeXr {
     this.pending = true
     let session: XRSession | undefined
     let ended = false
+    const visibilityChanged = () => {
+      this.callbacks.visibility?.(session?.visibilityState === 'visible')
+    }
     const finish = () => {
       if (ended) return
       ended = true
       if (session && this.frameId) session.cancelAnimationFrame(this.frameId)
       session?.removeEventListener('select', this.callbacks.select)
       session?.removeEventListener('end', finish)
+      session?.removeEventListener('visibilitychange', visibilityChanged)
       this.frameId = 0
       if (this.session === session) this.session = undefined
       if (!this.disposed) this.callbacks.end()
@@ -46,6 +51,7 @@ export class NativeXr {
       })
       this.session = session
       session.addEventListener('end', finish)
+      session.addEventListener('visibilitychange', visibilityChanged)
       if (this.disposed) {
         await session.end()
         return
@@ -75,6 +81,7 @@ export class NativeXr {
         spaceName = 'local (estimated 1.6 m floor)'
       }
       this.callbacks.start(format, spaceName)
+      visibilityChanged()
       session.addEventListener('select', this.callbacks.select)
       const onFrame: XRFrameRequestCallback = (time, frame) => {
         if (ended || this.disposed || !session) return

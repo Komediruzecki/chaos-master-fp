@@ -8,6 +8,8 @@ export const Camera = d.struct({
   view: d.mat4x4f,
   projection: d.mat4x4f,
   params: d.vec4f,
+  audio: d.vec4f,
+  music: d.vec4f,
 })
 export const computeLayout = tgpu.bindGroupLayout({
   points: { storage: d.arrayOf(d.vec4f), access: 'mutable' },
@@ -80,18 +82,32 @@ export const vertex = tgpu.vertexFn({
   let alpha = d.f32(0.42)
   if (input.instance < POINT_COUNT) {
     const point = renderLayout.$.points[input.instance]
-    const angle = camera.params.x * 0.08
+    // Pure rest-pose deformation: no accumulated displacement or new samples.
+    const strength = std.clamp(camera.music.y, 0, 1)
+    const bands = std.clamp(camera.audio, d.vec4f(0), d.vec4f(1)).mul(strength)
+    const phase = camera.music.x
+    const twist = std.sin(point.y * 2 + phase * 0.45) * bands.z * 0.12
+    const angle = camera.params.x * 0.08 + twist
+    const breath = 1 + bands.y * 0.06 + bands.x * 0.03
+    const ripple =
+      std.sin(point.x * 3 + point.z * 2 + phase * 0.6) * bands.w * 0.025
     const s = std.sin(angle)
     const c = std.cos(angle)
     p = d
-      .vec3f(point.x * c + point.z * s, point.y, -point.x * s + point.z * c)
-      .mul(0.7)
+      .vec3f(
+        point.x * c + point.z * s,
+        point.y + ripple,
+        -point.x * s + point.z * c,
+      )
+      .mul(0.7 * breath)
       .add(d.vec3f(0, 1.6, -2.5))
-    color = std.mix(
-      d.vec3f(0.03, 0.24, 0.42),
-      d.vec3f(0.84, 0.95, 0.38),
-      point.w,
-    )
+    color = std
+      .mix(
+        d.vec3f(0.03, 0.24, 0.42),
+        d.vec3f(0.84, 0.95, 0.38),
+        std.clamp(point.w + bands.z * 0.06, 0, 1),
+      )
+      .mul(1 + bands.x * 0.22 + bands.w * 0.1)
   } else {
     const star = renderLayout.$.stars[input.instance - POINT_COUNT]
     p = d.vec3f(star.xyz)

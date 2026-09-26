@@ -3,6 +3,7 @@ import './style.css'
 import { createSignal, onCleanup, onMount } from 'solid-js'
 import { render } from 'solid-js/web'
 import { Diagnostics } from './Diagnostics'
+import { MusicControls } from './MusicControls'
 import { LabRuntime } from './runtime'
 import type { SceneMode } from './renderer'
 
@@ -59,19 +60,18 @@ function Lab() {
         <a class="brand" href="/">
           LUMEN <span>APEIRON</span>
         </a>
-        <span class="tag">RENDER LAB / 03</span>
+        <span class="tag">RESONANCE LAB / 04</span>
       </header>
       <section class="intro" aria-labelledby="title">
         <p class="eyebrow">IRCHIINNUSS · NATIVE WEBGPU</p>
         <h1 id="title">
           One flame.
-          <br />
-          Two perspectives.
+          <br />A world of sound.
         </h1>
         <p class="description">
-          A shared world of light, computed on the GPU.
+          A stable world of light, breathing with music.
           <br />
-          The first step toward a native Quest journey.
+          Listen, pause, and step closer to its details.
         </p>
       </section>
       <section class="controls" aria-label="Experiment controls">
@@ -172,10 +172,17 @@ function Lab() {
         <p class="hint">
           Both flame modes keep their detail while rotating or rebuilding.
           Sliders move the camera; in VR, move your head and use trigger or
-          pinch to rotate. No audio in this proof.
+          pinch to play or pause music. Rotation is independent.
         </p>
       </section>
-      <Diagnostics state={state()} exportReport={exportReport} />
+      <aside class="side-panel">
+        <MusicControls
+          state={state()}
+          runtime={() => runtime}
+          update={update}
+        />
+        <Diagnostics state={state()} exportReport={exportReport} />
+      </aside>
       <footer>
         <span>
           IRCHIINNUSS <i>/</i> VERDANT STUDY

@@ -4,6 +4,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import process from 'node:process'
 import { chromium } from 'playwright'
+import { verifyMusic } from './verifyMusic'
 import type * as GpuHarness from '../tests/gpuHarness'
 
 const base = process.env.VERIFY_BASE_URL ?? 'https://127.0.0.1:5190/'
@@ -19,10 +20,11 @@ const args = [
   '--disable-backgrounding-occluded-windows',
 ]
 const browser = await chromium.launch({ headless: false, args })
-const page = await browser.newPage({
+const context = await browser.newContext({
   ignoreHTTPSErrors: true,
   viewport: { width: 1440, height: 950 },
 })
+const page = await context.newPage()
 const errors: string[] = []
 page.on('pageerror', (error) => errors.push(String(error)))
 page.on('console', (message) => {
@@ -203,6 +205,7 @@ try {
     await present()
     await page.screenshot({ path: path.join(out, 'desktop-compute.png') })
   }
+  report.music = await verifyMusic(page, production, out)
   await page.getByLabel('Scene', { exact: true }).selectOption('probe')
   if (!production) await frames()
   else await present()
@@ -221,6 +224,7 @@ try {
     viewport: { width: 390, height: 844 },
     isMobile: true,
     hasTouch: true,
+    reducedMotion: 'reduce',
   })
   mobile.on('pageerror', (error) => errors.push(String(error)))
   await mobile.goto(base, { waitUntil: 'networkidle' })
@@ -242,6 +246,18 @@ try {
     geometry.buttons.every((button) => button.height >= 44),
     'Touch targets must be at least 44px',
   )
+  assert.equal(
+    await mobile
+      .getByRole('slider', { name: 'Music motion', exact: true })
+      .inputValue(),
+    '0',
+    'Reduced motion starts stationary',
+  )
+  await mobile.getByRole('button', { name: 'Play music', exact: true }).tap()
+  await mobile.getByRole('button', { name: 'Pause music', exact: true }).tap()
+  await mobile
+    .getByRole('button', { name: 'Stationary view', exact: true })
+    .tap()
   await mobile.getByRole('button', { name: 'Start rotation' }).tap()
   await mobile.getByRole('button', { name: 'Stop rotation' }).waitFor()
   await present(mobile)
@@ -266,6 +282,9 @@ try {
         .querySelector('.diagnostics')!
         .getBoundingClientRect()
       const footer = document.querySelector('footer')!.getBoundingClientRect()
+      const music = document
+        .querySelector('.music-controls')!
+        .getBoundingClientRect()
       return {
         width: window.innerWidth,
         scroll: document.documentElement.scrollWidth,
@@ -275,11 +294,15 @@ try {
           controls.top < diagnostics.bottom &&
           controls.bottom > diagnostics.top,
         footerOverlapsControls: footer.top < controls.bottom,
+        footerOverlapsMusic: footer.top < music.bottom,
+        musicOverlapsDiagnostics: music.bottom > diagnostics.top,
       }
     })
     assert.ok(layout.scroll <= layout.width)
     assert.equal(layout.panelsOverlap, false)
     assert.equal(layout.footerOverlapsControls, false)
+    assert.equal(layout.footerOverlapsMusic, false)
+    assert.equal(layout.musicOverlapsDiagnostics, false)
     await present()
     await page.screenshot({
       path: path.join(out, `layout-${viewport.width}.png`),

@@ -1,8 +1,10 @@
 // TypeGPU owns persistent resources; native XR supplies only this frame's targets.
 import { d, tgpu } from 'typegpu'
+import { SILENT_MUSIC } from './audio'
 import { CHAIN_COUNT, POINT_COUNT, sampleCachedPoints } from './sampling'
 import { Camera, computeFlame, computeLayout, fragment, renderLayout, STAR_COUNT, vertex, } from './shaders'
 import type { TgpuRenderPipeline } from 'typegpu'
+import type { MusicFrame } from './audio'
 import type { EyeTarget } from './xrTypes'
 
 export type SceneMode = 'probe' | 'cached' | 'compute'
@@ -95,6 +97,8 @@ export function createRenderer(device: GPUDevice) {
       format: GPUTextureFormat,
       mode: SceneMode,
       elapsed: number,
+      music: MusicFrame = SILENT_MUSIC,
+      strength = 0.65,
     ) {
       if (!targets.length) return
       if (targets.length > eyes.length)
@@ -110,6 +114,8 @@ export function createRenderer(device: GPUDevice) {
         eye.raw.set(target.view, 0)
         eye.raw.set(target.projection, 16)
         eye.raw.set([elapsed, 0, 0, mode === 'probe' ? 1 : 0], 32)
+        eye.raw.set([music.energy, music.low, music.mid, music.high], 36)
+        eye.raw.set([music.time, strength, 0, 0], 40)
         // Separate buffers avoid both eyes seeing the last queue.writeBuffer.
         eye.camera.write(eye.raw.buffer)
         const pass = encoder.beginRenderPass({

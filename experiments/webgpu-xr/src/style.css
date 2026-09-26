@@ -298,3 +298,92 @@ footer i {
     margin-bottom: 28px;
   }
 }
+
+/* Keep the soundtrack reachable beside the orb without covering its center. */
+.side-panel {
+  position: absolute;
+  z-index: 1;
+  right: 42px;
+  top: 135px;
+  width: 285px;
+}
+.music-controls {
+  padding: 18px 20px;
+  border: 1px solid #38554f;
+  background: linear-gradient(140deg, #152922ed, #09171cee);
+  border-radius: 4px;
+}
+.track-caption {
+  font-size: 11px;
+  color: #c7d8ce;
+  line-height: 1.6;
+}
+.music-controls .button-row {
+  flex-wrap: wrap;
+}
+.music-controls .play {
+  flex-basis: 100%;
+  background: #c0d9ae;
+  color: #142522;
+}
+.music-controls .play:hover:enabled {
+  background: #e1ecd1;
+}
+.transport {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: #bdd2c8;
+}
+.stationary {
+  width: 100%;
+  margin-top: 10px;
+}
+.band-meters {
+  display: flex;
+  gap: 12px;
+}
+.band-meters label {
+  width: 33.333%;
+  text-transform: uppercase;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+meter {
+  display: block;
+  width: 100%;
+  height: 10px;
+  margin-top: 4px;
+  accent-color: #b3d9a2;
+}
+.side-panel .diagnostics {
+  position: relative;
+  right: auto;
+  bottom: auto;
+  width: 100%;
+  margin-top: 16px;
+}
+@media (min-width: 851px) {
+  main {
+    min-height: 1030px;
+  }
+  footer {
+    position: absolute;
+    top: max(970px, calc(100svh - 60px));
+    bottom: auto;
+  }
+}
+@media (max-width: 850px) {
+  .side-panel {
+    position: relative;
+    right: auto;
+    top: auto;
+    width: auto;
+    max-width: 440px;
+    margin: 20px 22px;
+  }
+  .side-panel .diagnostics {
+    margin: 20px 0;
+  }
+}

@@ -304,3 +304,33 @@ await test('local-space fallback offsets the estimated floor and reports the ass
     else delete globals.XRRigidTransform
   }
 })
+
+await test('visibility changes notify audio even when hidden sessions have no frames, and detach on end', async () => {
+  const f = fixture()
+  const seen: boolean[] = []
+  f.callbacks.visibility = (visible) => seen.push(visible)
+  const xr = new NativeXr(f.system, f.Binding, device, f.callbacks)
+  await xr.enter()
+  for (const value of ['visible-blurred', 'hidden', 'visible']) {
+    f.session.visibilityState = value
+    f.session.dispatchEvent(new Event('visibilitychange'))
+  }
+  assert.deepEqual(seen, [true, false, false, true])
+  assert.equal(f.calls.frames, 0)
+  await xr.exit()
+  f.session.dispatchEvent(new Event('visibilitychange'))
+  assert.deepEqual(seen, [true, false, false, true])
+  xr.dispose()
+})
+
+await test('initially hidden native sessions notify audio without waiting for a frame or transition', async () => {
+  const f = fixture()
+  f.session.visibilityState = 'hidden'
+  const seen: boolean[] = []
+  f.callbacks.visibility = (visible) => seen.push(visible)
+  const xr = new NativeXr(f.system, f.Binding, device, f.callbacks)
+  await xr.enter()
+  assert.deepEqual(seen, [false])
+  assert.equal(f.calls.frames, 0)
+  xr.dispose()
+})
