@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["../../packages/app/src/*"],
+      "@chaos-master/core": [
+        "../../packages/core/src/math/affineTransform3D.ts"
+      ],
+      "typegpu": ["node_modules/typegpu/index.js"],
+      "typegpu/data": ["node_modules/typegpu/data/index.js"],
+      "typegpu/std": ["node_modules/typegpu/std/index.js"],
+      "@typegpu/noise": ["node_modules/@typegpu/noise/index.mjs"],
+      "valibot": ["node_modules/valibot/dist/index.mjs"]
+    }
+  }
+}

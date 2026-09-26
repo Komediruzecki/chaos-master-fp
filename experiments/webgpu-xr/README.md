@@ -128,11 +128,18 @@ soundtrack. A separate world-positioned motif and headset listener are later
 work; the whole stereo mix does not rotate with the viewer.
 
 Low (40–250 Hz), mid (250–2,000 Hz), high (2,000–8,000 Hz), and RMS energy use
-bounded envelopes with 180 ms attack / 750 ms release. The runtime samples once
-per render frame, before both eyes. The shader derives a gentle breath, twist,
-ripple and emission from each immutable rest point and that shared audio state.
-At full strength: scale is at most 1.09, twist at most 0.12 radians, and the
-vertical ripple contributes at most 0.019075 world metres including scale.
+bounded envelopes with 180 ms attack / 750 ms release. Fixed soft-knee curves,
+calibrated against all 48 seconds of the score, make each band useful without
+normalizing quiet passages upward. An absolute RMS gate suppresses noise below
+−60 dBFS and eases fully open near −48 dBFS. The calibration is for this bundled
+score, not a general music-analysis or loudness standard.
+
+The runtime samples once per render frame, before both eyes. Bass opens the
+form, mids twist/fold/lift its immutable points, and treble adds local ripples
+and travelling colour. Three deterministic orbital strands add 1,152 splats
+and disappear at zero response. At full strength: radial scaling is at most
+1.2992, twist at most 0.65 radians, and additive vertical ripple/lift at most
+0.13398 world metres. These bounds are not headset-comfort measurements.
 Strength zero removes every audio geometry and palette effect. There is no
 camera animation, random resampling, or extra per-frame compute dispatch.
 
@@ -149,5 +156,17 @@ nonzero analyser output, pause, mute, restart, stationary view, tab visibility,
 mobile taps, layouts, and both GPU eye images with a frozen music frame. None
 of those desktop checks establishes Quest audio output, comfort or performance.
 
-The next plan and recorded results live in
-`/home/maff/.dotfiles/personal/lumen-meta/17-musical-orb.md`.
+The first implementation proved playback and stability but was too subdued in
+the user's audition. Full-score measurement showed median low/mid/high values
+of 0.121/0.116/0.0075. The calibrated values are 0.498/0.489/0.407, with no
+saturation above 0.95 in this score. Shape contracts now test visible movement
+over musical time at representative levels, even with object rotation stopped.
+
+Re-measure the current analysis on a running development server:
+
+```sh
+rtk proxy timeout 120 pnpm --dir /home/maff/.codex/worktrees/webgpu-xr-spike/chaos-master-fp/experiments/webgpu-xr exec tsx scripts/measureAudioResponse.ts
+```
+
+The current plan, research review and recorded results live in
+`/home/maff/.dotfiles/personal/lumen-meta/18-musical-response-and-research.md`.

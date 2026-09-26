@@ -118,8 +118,8 @@ export function MusicControls(props: {
         </For>
       </div>
       <p class="hint">
-        Pause holds the musical shape. Mute keeps it dancing. Stationary view
-        removes the response and stops rotation.
+        Bass opens the form. Mids fold it; treble traces its orbit. Pause holds
+        the shape. Mute keeps it dancing. Stationary view stops all motion.
       </p>
       <Show when={music()?.error}>
         <p role="alert">{music()?.error}</p>

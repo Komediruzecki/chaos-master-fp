@@ -2,7 +2,7 @@
 import { d, tgpu } from 'typegpu'
 import { SILENT_MUSIC } from './audio'
 import { CHAIN_COUNT, POINT_COUNT, sampleCachedPoints } from './sampling'
-import { Camera, computeFlame, computeLayout, fragment, renderLayout, STAR_COUNT, vertex, } from './shaders'
+import { Camera, computeFlame, computeLayout, fragment, renderLayout, RIBBON_COUNT, STAR_COUNT, vertex, } from './shaders'
 import type { TgpuRenderPipeline } from 'typegpu'
 import type { MusicFrame } from './audio'
 import type { EyeTarget } from './xrTypes'
@@ -136,7 +136,7 @@ export function createRenderer(device: GPUDevice) {
           .with(pass)
           .draw(
             mode === 'probe' ? 3 : 6,
-            mode === 'probe' ? 3 : POINT_COUNT + STAR_COUNT,
+            mode === 'probe' ? 3 : POINT_COUNT + STAR_COUNT + RIBBON_COUNT,
           )
         pass.end()
       })
@@ -149,6 +149,7 @@ export function createRenderer(device: GPUDevice) {
       submissions,
       bufferId,
       pointCount: POINT_COUNT,
+      ribbonPoints: RIBBON_COUNT,
       pipelineFormats: [...pipelines.keys()],
     }),
     // Manual, development-only verification. Never called in the frame loop.

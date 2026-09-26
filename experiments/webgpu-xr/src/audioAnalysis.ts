@@ -19,6 +19,18 @@ function unit(value: number) {
   return Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : 0
 }
 
+function softKnee(value: number, halfResponse: number, floor: number) {
+  const audible = Math.max(0, value - floor)
+  return audible / (audible + halfResponse)
+}
+
+function signalPresence(rms: number) {
+  // Absolute -60 dBFS gate, eased in by -48 dBFS. Quiet noise cannot normalize
+  // itself into motion; a quiet musical section retains its lower intensity.
+  const level = unit((rms - 0.001) / 0.003)
+  return level * level * (3 - 2 * level)
+}
+
 export function smoothEnvelope(
   previous: number,
   target: number,
@@ -50,11 +62,15 @@ export class MusicAnalysis {
     let squares = 0
     for (const value of waveform)
       if (Number.isFinite(value)) squares += value * value
-    const energy = Math.sqrt(squares / Math.max(1, waveform.length)) * 3
+    const rms = Math.sqrt(squares / Math.max(1, waveform.length))
+    const presence = signalPresence(rms)
     let low = 0
     let mid = 0
     let high = 0
-    const binHz = sampleRate / (spectrumDb.length * 2)
+    const binHz =
+      Number.isFinite(sampleRate) && sampleRate > 0
+        ? sampleRate / (spectrumDb.length * 2)
+        : 0
     for (let bin = 0; bin < spectrumDb.length; bin++) {
       const frequency = bin * binHz
       const db = spectrumDb[bin]
@@ -64,13 +80,25 @@ export class MusicAnalysis {
       else if (frequency < 2000) mid += power
       else high += power
     }
+    // Fixed soft knees, calibrated against the full original score's measured
+    // RMS-band medians: .0357 / .0360 / .00134 (2048-point Web Audio FFT).
+    // No running gain control: these references do not chase quiet passages.
+    const energy = presence * softKnee(rms, 0.12, 0.001)
     this.frame.time = Math.max(0, Number.isFinite(time) ? time : 0)
     this.frame.energy = smoothEnvelope(this.frame.energy, energy, seconds)
-    this.frame.low = smoothEnvelope(this.frame.low, Math.sqrt(low) * 3, seconds)
-    this.frame.mid = smoothEnvelope(this.frame.mid, Math.sqrt(mid) * 3, seconds)
+    this.frame.low = smoothEnvelope(
+      this.frame.low,
+      presence * softKnee(Math.sqrt(low), 0.04, 0.0001),
+      seconds,
+    )
+    this.frame.mid = smoothEnvelope(
+      this.frame.mid,
+      presence * softKnee(Math.sqrt(mid), 0.04, 0.0001),
+      seconds,
+    )
     this.frame.high = smoothEnvelope(
       this.frame.high,
-      Math.sqrt(high) * 5,
+      presence * softKnee(Math.sqrt(high), 0.002, 0.0001),
       seconds,
     )
     return this.frame

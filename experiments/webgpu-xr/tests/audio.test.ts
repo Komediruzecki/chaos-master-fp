@@ -120,7 +120,10 @@ await test('silent until Play; pause freezes time and envelopes; resume reuses d
   context.currentTime = 1
   const frame = audio.sample()
   assert.equal(frame.time, 1)
-  assert.ok(Math.abs(frame.energy - 0.3 * (1 - Math.exp(-0.25 / 0.18))) < 1e-7)
+  assert.ok(
+    Math.abs(frame.energy - (0.099 / 0.219) * (1 - Math.exp(-0.25 / 0.18))) <
+      1e-7,
+  )
   audio.pause()
   const frozen = { ...frame }
   assert.equal(context.sources[0].stopped, true)
@@ -144,7 +147,7 @@ await test('muting and volume control output after analysis without stopping the
   assert.equal(context.analyser.destination, context.gains[0])
   context.currentTime = 0.18
   const frame = audio.sample()
-  assert.ok(Math.abs(frame.low - 0.3 * (1 - Math.exp(-1))) < 1e-7)
+  assert.ok(Math.abs(frame.low - (0.0999 / 0.1399) * (1 - Math.exp(-1))) < 1e-7)
   assert.equal(frame.time, 0.18)
   audio.setVolume(0.25)
   audio.setMuted(false)
