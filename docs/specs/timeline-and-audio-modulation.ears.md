@@ -28,6 +28,8 @@ not a gap.
   (Auto keyframe, track-changes) every slider calls after applying a value
 - `packages/app/src/utils/audioAnalysis.ts` — FFT bands, beat/onset detection, the
   file and live analyzers, `getAudioFeatureNormalized`, `applyAudioMappingsToFlame`
+- `packages/core/src/audio/` — the pure signal steps the analyzers share: band levels
+  (`bandNormalization.ts`)
 - `packages/app/src/utils/useAudioReactive.ts` — the 30 Hz transport + modulation loop
 - `packages/app/src/utils/audioWiringPresets.ts` — render-only and flame-aware presets
 - `packages/app/src/components/AudioWiringModal/AudioWiringModal.tsx` — the wiring editor
@@ -48,6 +50,10 @@ not a gap.
   trips for render settings, camera, transforms and variations
 - `packages/app/src/utils/audioAnalysisMappings.test.ts` — per-target appliers,
   attack/release envelope, dirty-check
+- `packages/core/src/audio/bandNormalization.test.ts` — band levels in decibels against
+  a track's own range
+- `packages/app/src/utils/audioAnalysis.test.ts` — the file analyzer on synthetic
+  signals: band levels and the raw `rms`
 - `packages/app/src/utils/audioMappingClamp.test.ts` — schema clamping, integer
   `skipIters`, probability floor, degenerate ranges
 - `packages/app/src/utils/audioWiringPresets.test.ts` — preset determinism, targets that
@@ -439,14 +445,26 @@ _(`utils/timeline.ts:1462-1470` (`setIsPlaying`), `:1496-1502` (`play`); guarded
 ### REQ-TA-028 — Every audio feature reaches the mapper as 0-1
 
 The analyzer shall expose thirteen features and normalize each into `[0, 1]`
-before mapping: eight FFT bands (`subBass`…`fullSpectrum`) as their mean bin
-magnitude capped at 1, `rms` capped at 1, `centroid` divided by 20 kHz and
+before mapping: eight FFT bands (`subBass`…`fullSpectrum`) as their level in
+decibels placed on `[0, 1]` against the range that band covers over the whole
+track (its 10th percentile reads 0 and its 98th reads 1, with the zero no more
+than 45 dB below the top and a span of at least 6 dB), `rms` as the raw frame
+level capped at 1 (never normalised like the bands, so wirings made before band
+levels keep their ranges), `centroid` divided by 20 kHz and
 capped, `flatness` as computed, `onset` as its rolling-median strength, and
 `beat` as `1` on a detected beat and `0` otherwise. An unrecognised feature name
 shall yield `0`.
 
-_(`audioMapping.ts:151-173` (`getAudioFeatureNormalized`), `audioAnalysis.ts:102-156` (`getFftBands`); beats at `:184-226` (`computeBeats`) — spectral-flux peaks
-above `mean + 1.5σ` with a 100 ms minimum gap; onsets at `:234-275` (`computeOnsetStrengths`).)_
+_(`audioMapping.ts:151-173` (`getAudioFeatureNormalized`), `audioAnalysis.ts:103-157` (`getFftBands`); beats at `:185-227` (`computeBeats`) — spectral-flux peaks
+above `mean + 1.5σ` with a 100 ms minimum gap; onsets at `:235-276` (`computeOnsetStrengths`).)_
+
+_(Band levels at `bandNormalization.ts:44-49` (`trackBandRange`), put on every frame of
+a file at `audioAnalysis.ts:358` (`normalizeTrackBands`); the raw `rms` at `:329`
+(`computeRms`). Guarded by `bandNormalization.test.ts:36` "reads the 10th percentile
+as 0 and the 98th as 1", `:45` "keeps the zero within 45 dB of the top, so a silent
+intro does not squash the music", `audioAnalysis.test.ts:32` "reads a band from 0 to 1
+over the range it covers in its track" and `:40` "keeps rms as the raw level of the
+frame".)_
 
 ### REQ-TA-029 — Attack and release are a one-pole envelope on the normalized feature
 

@@ -2,6 +2,7 @@
 // live microphone. The mapping stage (audioMapping.ts) and the flame writers
 // (audioTargets.ts) are re-exported from here, so importers keep one path.
 
+import { normalizeTrackBands } from '@chaos-master/core'
 import type { FrameData } from './audioMapping'
 
 export * from './audioMapping'
@@ -322,6 +323,9 @@ export async function createAudioAnalyzer(
       padded,
       sampleRate,
     )
+    // The raw level, never normalised like the bands below: wirings made
+    // before band levels, the research examples among them, set their rms
+    // ranges by it.
     const rms = computeRms(slice)
 
     frame = { bands, rms, centroid, flatness, onsetStrength: 0 }
@@ -346,6 +350,16 @@ export async function createAudioAnalyzer(
   for (let i = 0; i < totalFrames; i++) {
     const frame = frameCache.get(i)
     if (frame) frame.onsetStrength = onsetStrengths[i] ?? 0
+  }
+
+  // Bands leave as levels on [0, 1] against the range each covers in this
+  // track: a raw band is about 0.001 on real music. Beats and onsets above
+  // read the raw magnitudes first.
+  const levels = normalizeTrackBands(
+    Array.from({ length: totalFrames }, (_, i) => getOrComputeFrame(i).bands),
+  )
+  for (let i = 0; i < totalFrames; i++) {
+    getOrComputeFrame(i).bands = levels[i]!
   }
 
   return {
