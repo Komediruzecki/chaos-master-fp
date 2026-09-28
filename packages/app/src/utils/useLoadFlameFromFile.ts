@@ -22,9 +22,11 @@ export type FlameLoadResult = {
 }
 
 /**
- * A JSON file read as a flame: a bare descriptor, a share payload or a Recents
- * record, with whatever animation and wiring it carries. Undefined when the
- * text holds no schema-valid flame, which is what a steps session is.
+ * A JSON file read as a flame: a bare descriptor, a share payload (its
+ * animation and wiring come along) or a Recents record (its flame and wiring;
+ * the record keeps its tracks and timeline at the top level, which only the
+ * Library reads). Undefined when the text holds no schema-valid flame, which
+ * is what a steps session is.
  */
 function readFlameJson(text: string): FlameLoadResult | undefined {
   let raw: unknown
@@ -59,7 +61,10 @@ export function useLoadFlameFromFile() {
     const isJson =
       file.type === 'application/json' || file.name.endsWith('.json')
     if (isJson && file.size > MAX_SESSION_JSON_CHARS) {
-      await alert(`'${file.name}' is too large to load as a steps session.`)
+      // A flame or a steps session: the limit is the same for both.
+      await alert(
+        `'${file.name}' is too large to load: a JSON file may be up to ${MAX_SESSION_JSON_CHARS / (1024 * 1024)} MB.`,
+      )
       return
     }
     if (file.size > MAX_DROPPED_FILE_SIZE) {
