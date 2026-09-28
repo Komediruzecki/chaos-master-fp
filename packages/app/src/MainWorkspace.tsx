@@ -1693,6 +1693,7 @@ export function MainWorkspace(props: AppProps) {
     setPlaybackTime,
     fileAnalyzer,
     replaySuspendsAudioModulation,
+    effectiveFlame,
   )
 
   // Sonification loop: synthesizes audio in real-time from flame structure.

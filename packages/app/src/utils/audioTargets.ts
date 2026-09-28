@@ -4,7 +4,7 @@
 
 import { projectFlameValue } from '@chaos-master/core'
 import { resolveAudioMappingValues } from './audioMapping'
-import type { AudioMappingEntry, AudioTargetValue, FlameTarget, FrameData, MappingSmoothingState, RenderSettingKey, } from './audioMapping'
+import type { AudioMappingEntry, AudioTargetValue, FlameTarget, FrameData, MappingSmoothingState, RenderSettingKey, TransformPropertyKey, } from './audioMapping'
 
 /**
  * A modulated render setting held to the domain the flame schema gives it.
@@ -44,6 +44,91 @@ interface AudioMutationContext {
   rs?: Record<string, unknown>
   camera?: Record<string, unknown>
   txArr?: Record<string, unknown>[]
+}
+
+function finiteNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return typeof value === 'object' && value !== null
+    ? (value as Record<string, unknown>)
+    : undefined
+}
+
+/** The transform a target names, in `flame`'s own transform order. */
+function targetTransform(
+  flame: object,
+  target: Extract<FlameTarget, { transformIdx: number }>,
+): Record<string, unknown> | undefined {
+  const transforms = asRecord((flame as Record<string, unknown>).transforms)
+  if (!transforms) return undefined
+  return asRecord(Object.values(transforms)[target.transformIdx])
+}
+
+function readRenderSetting(
+  flame: object,
+  param: RenderSettingKey,
+): number | undefined {
+  const rs = asRecord((flame as Record<string, unknown>).renderSettings)
+  return param === 'zoom'
+    ? finiteNumber(asRecord(rs?.camera)?.zoom)
+    : finiteNumber(rs?.[param])
+}
+
+function readTransformProperty(
+  tx: Record<string, unknown> | undefined,
+  property: TransformPropertyKey,
+): number | undefined {
+  if (property === 'colorX' || property === 'colorY') {
+    return finiteNumber(
+      asRecord(tx?.color)?.[property === 'colorX' ? 'x' : 'y'],
+    )
+  }
+  return finiteNumber(tx?.[property])
+}
+
+function readVariationWeight(
+  tx: Record<string, unknown> | undefined,
+  variationType: string,
+): number | undefined {
+  const variation = Object.values(asRecord(tx?.variations) ?? {})
+    .map(asRecord)
+    .find((candidate) => candidate?.type === variationType)
+  return finiteNumber(variation?.weight)
+}
+
+/**
+ * The value `target` has in `flame` before any modulation, or `undefined`
+ * where the flame does not carry it. What the comfort governor starts a
+ * target from, so turning audio on eases in from the authored picture.
+ */
+export function readTargetValue(
+  flame: object,
+  target: FlameTarget,
+): number | undefined {
+  switch (target.kind) {
+    case 'renderSetting':
+      return readRenderSetting(flame, target.param)
+    case 'transformAffine': {
+      const matrix = asRecord(targetTransform(flame, target)?.[target.matrix])
+      return finiteNumber(matrix?.[target.param])
+    }
+    case 'transformProperty':
+      return readTransformProperty(
+        targetTransform(flame, target),
+        target.property,
+      )
+    case 'variationWeight':
+      return readVariationWeight(
+        targetTransform(flame, target),
+        target.variationType,
+      )
+    case 'finalAffine': {
+      const final = asRecord((flame as Record<string, unknown>).finalTransform)
+      return finiteNumber(final?.[target.param])
+    }
+  }
 }
 
 function applyRenderSettingTarget(

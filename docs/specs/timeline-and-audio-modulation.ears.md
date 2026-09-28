@@ -386,7 +386,7 @@ or unmount; only `loadTracks`, `clearAllTracks` and the Home hand-off reset shal
 clear `previewHeld`.
 
 _(`utils/timeline.ts:1437-1505` (`advanceFrame`), `:1710-1711` (`clearAllTracks`), `:1755-1756` (`loadTracks`);
-`useSeekScrubber.ts:11-17` (`finishSeek`), `:33-36` (`finishSeek`), `:68-70` (`onCleanup`); `MainWorkspace.tsx:2400-2406` (`pause`).)_
+`useSeekScrubber.ts:11-17` (`finishSeek`), `:33-36` (`finishSeek`), `:68-70` (`onCleanup`); `MainWorkspace.tsx:2401-2407` (`pause`).)_
 
 ### REQ-TA-026 — Playback advances at the configured rate, or on quality with Auto FPS
 
@@ -435,7 +435,7 @@ falling, falling back to whichever of the two is set when the other is absent.
 unsmoothed. `prev` shall come from the per-target smoothing state, seeded with the
 current value on the first frame so a mapping does not ramp up from zero.
 
-_(`audioMapping.ts:151-176` (`computeSmoothedEnvelope`), called from `:246-252` (`smoothed`); guarded by
+_(`audioMapping.ts:186-211` (`computeSmoothedEnvelope`), called from `:308-314` (`smoothed`); guarded by
 `audioAnalysisMappings.test.ts:285` "applies attack and release envelope smoothing across consecutive frames".)_
 
 ### REQ-TA-030 — The mapped value is `lo + smoothed × sensitivity × (hi − lo)`
@@ -446,19 +446,23 @@ the span rather than clipping it, so a sensitivity above 1 can carry the value
 past `range[1]`; keeping the result inside the schema is REQ-TA-032's job, not
 this formula's.
 
-_(`audioMapping.ts:132-138` (`mappingToVal`), `:257` (`mappingToVal`); guarded by `audioAnalysisMappings.test.ts:82` "scales the output by the mapping sensitivity".)_
+_(`audioMapping.ts:132-138` (`mappingToVal`), `:319` (`mappingToVal`); guarded by `audioAnalysisMappings.test.ts:82` "scales the output by the mapping sensitivity".)_
 
 ### REQ-TA-031 — Sub-threshold movement does not re-render
 
-**If** a target's smoothed value has moved less than 0.005 from the value last
-applied to that target, **then** the mapper shall skip writing it, shall keep the
-previously applied value as the comparison baseline, and shall still record the
-new smoothed value so the envelope keeps advancing. **If** no target changed on a
-frame, the mapper shall leave `flame.renderSettings` referentially untouched, so
-the render loop sees no new work.
+**If** a target's smoothed value would move its output by less than 0.2% of the
+mapping's output range (never less than `1e-6`) from the value last applied to
+that target, **then** the mapper shall skip writing it, shall keep the previously
+applied value as the comparison baseline, and shall still record the new smoothed
+value so the envelope keeps advancing. A target whose limited output (REQ-TA-039)
+is still travelling shall count as moved once it has gone that same distance from
+the value last published. **If** no target changed on a frame, the mapper shall
+leave `flame.renderSettings` referentially untouched, so the render loop sees no
+new work.
 
-_(`audioMapping.ts:146` (`DIRTY_THRESHOLD`), `:190-210` (`settleTargetValue`), `:231-262` (`resolveAudioMappingValues`); guarded by
-`audioAnalysisMappings.test.ts:338` "skips redundant writes when changes are below the dirty threshold".)_
+_(`audioMapping.ts:156-159` (`dirtyThreshold`), `:227-249` (`settleTargetValue`), `:252-261` (`outputMoved`), `:284-339` (`resolveAudioMappingValues`); guarded by
+`audioAnalysisMappings.test.ts:338` "skips redundant writes when changes are below the dirty threshold",
+`audioMapping.test.ts:74` "holds a move below 0.2% of the output range" and `:88` "keeps a frame changed while the limited output is still moving".)_
 
 ### REQ-TA-032 — Audio modulation cannot leave the flame schema-invalid
 
@@ -475,7 +479,7 @@ Rationale, not decoration: audio modulation writes straight into the live
 descriptor, and one out-of-range `palettePhase` makes that flame permanently
 un-breedable, un-exportable and un-openable in the ancestry tree.
 
-_(`audioTargets.ts:27-41` (`heldRenderSetting`), `:89-127` (`applyTransformPropertyTarget`), `:75-87` (`applyTransformAffineTarget`), `:129-149` (`applyVariationWeightTarget`); guarded by
+_(`audioTargets.ts:27-41` (`heldRenderSetting`), `:174-212` (`applyTransformPropertyTarget`), `:160-172` (`applyTransformAffineTarget`), `:214-234` (`applyVariationWeightTarget`); guarded by
 `audioMappingClamp.test.ts:62-128` "keeps a wildly out-of-range palettePhase valid" and `audioAnalysisMappings.test.ts:176` "enforces safe probability lower bound for transform probability target", `:244` "gracefully handles out-of-bounds transform indices".)_
 
 ### REQ-TA-033 — Auditioning a track is not the same as driving the flame
@@ -487,8 +491,8 @@ only the modulation step shall wait on both. **Where** the source is the
 microphone, both transport and modulation shall be gated on reactivity being
 enabled, so an idle mic capture is never held open.
 
-_(`useAudioReactive.ts:139-257` (`source`) for file mode — note the analyzer is consulted only
-at `:214` (`analyzer`); `:259-297` (`source`) for mic mode.)_
+_(`useAudioReactive.ts:149-267` (`source`) for file mode — note the analyzer is consulted only
+at `:224` (`analyzer`); `:269-307` (`source`) for mic mode.)_
 
 ### REQ-TA-034 — Replay suspension freezes modulation and its clock
 
@@ -498,7 +502,7 @@ baseline, so the first tick after resuming uses a fresh `dt` rather than chargin
 the envelope for the whole suspended interval. The transport clock shall keep
 advancing.
 
-_(`useAudioReactive.ts:209-217` (`modulationSuspended`), `:267-271` (`modulationSuspended`); guarded by
+_(`useAudioReactive.ts:219-227` (`modulationSuspended`), `:277-281` (`modulationSuspended`); guarded by
 `useAudioReactive.test.ts:37` "freezes both the overlay and smoothing time while replay owns the document".)_
 
 ---
@@ -544,6 +548,27 @@ pending connection → selected wire → close the modal.
 
 _(`AudioWiringModal.tsx:855-915` (`isEditableTarget`).)_
 
+### REQ-TA-039 — Audio-driven motion is held to a comfort preset
+
+**When** a mapping drives a target, the value shown shall pass the comfort
+governor of the active preset, `calm`, `standard` or `intense`: zoom shall move
+no faster than 0.15 / 0.35 / 0.7 e-folds per second, `palettePhase` shall turn no
+faster than 15 / 45 / 120 degrees per second the shorter way round, and a
+brightness setting shall move no faster than 0.3 / 0.6 / 1.5 per second and span
+no more than 0.10 / 0.18 / 0.35 inside any 500 ms (ln units for exposure,
+contrast, gamma and vibrancy; linear for highlight, light and depth colour
+power). Affine coefficients, transform properties and variation weights shall
+move no faster than their preset's caps. A target's first governed frame shall
+start from the value the authored flame shows, the governor shall start over
+whenever the overlay comes down, and a preset change shall apply from the
+current values without a jump. The caps limit parameters, not the measured
+luminance of the rendered frame.
+
+_(`comfortGovernor.ts:187-227` (`createComfortGovernor`), `:126-161` (`advance`), `comfortPresets.ts:78-82` (`COMFORT_CAPS`),
+`audioModulator.ts:28-58` (`createAudioModulator`); guarded by `comfortGovernor.test.ts:30` "holds a 12 Hz square wave on exposure inside the window range",
+`:90` "never turns palettePhase faster than the hue cap", `:151` "switches preset without a jump" and
+`useAudioReactive.test.ts:97` "eases the overlay in from it, and again after the mic restarts".)_
+
 ---
 
 ## Coverage gaps
@@ -565,5 +590,5 @@ are listed instead.
 | REQ-TA-025              | Neither the `previewHeld` latch nor the scrub gesture lifecycle is tested. `tests/timeline.ci.spec.ts:51` "steps and seeks the playhead from the transport bar" seeks with the transport buttons but asserts only the frame readout. |
 | REQ-TA-026              | The advance **arithmetic** is tested (`utils/timeline.test.ts:435-463` "advanceFrame"); the interval rate, `timeScale` multiplication, the Auto-FPS handoff and the EMA are not.                                                     |
 | REQ-TA-028              | `getAudioFeatureNormalized` is never called directly by a test, nor are `computeBeats` / `computeOnsetStrengths`. The mapping tests feed hand-built `FrameData` past it.                                                             |
-| REQ-TA-033              | `useAudioReactive.test.ts` contains exactly one test, for suspension. Nothing covers transport-without-reactivity, seek, or the mic gate.                                                                                            |
+| REQ-TA-033              | `useAudioReactive.test.ts` covers suspension and the mic restart. Nothing covers transport-without-reactivity or seek.                                                                                                               |
 | REQ-TA-035 – REQ-TA-038 | `AudioWiringModal.tsx` (1643 lines) has **no unit test and no e2e coverage**. Every behaviour of the wiring editor is unguarded.                                                                                                     |

@@ -80,12 +80,63 @@ describe('audio modulation suspension', () => {
 
     setSuspended(false)
     vi.advanceTimersByTime(34)
-    // And back up on the very first tick after the suspension. The smoothing
-    // state survived the gap, so this frame settles inside the dirty
-    // threshold and reports no change - which must not be read as "leave the
-    // overlay down" while modulation is plainly running.
+    // And back up on the very first tick after the suspension. The modulator
+    // started over when the overlay came down, and with no authored flame to
+    // ease in from, its first frame is the mapped value again.
     expect(published).toHaveLength(3)
     expect(published[2]).toEqual(firstFrame)
+    dispose()
+  })
+})
+
+describe('the authored flame', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('eases the overlay in from it, and again after the mic restarts', async () => {
+    vi.useFakeTimers()
+    let dispose = () => {}
+    let setEnabled: ((value: boolean) => boolean) | undefined
+    const published: (AudioTargetValue[] | undefined)[] = []
+    createRoot((rootDispose) => {
+      dispose = rootDispose
+      const [enabled, updateEnabled] = createSignal(true)
+      setEnabled = updateEnabled
+      useAudioReactive(
+        enabled,
+        () => undefined,
+        () => mapping,
+        (values) => {
+          published.push(values)
+        },
+        () => mic,
+        () => 'mic',
+        () => false,
+        () => null,
+        () => undefined,
+        () => undefined,
+        () => false,
+        () => ({ renderSettings: { vibrancy: 2 } }),
+      )
+    })
+
+    await Promise.resolve()
+    if (!setEnabled) throw new Error('audio test did not initialize')
+
+    // bass 0.5 maps to vibrancy 1. Standard comfort moves vibrancy 0.02 ln
+    // per 1/30 s, so the first frame is one step down from the authored 2.
+    const eased = 2 * Math.exp(-0.02)
+    vi.advanceTimersByTime(34)
+    expect(published).toHaveLength(1)
+    expect(published[0]![0]!.value).toBeCloseTo(eased, 12)
+
+    setEnabled(false)
+    setEnabled(true)
+    vi.advanceTimersByTime(34)
+    expect(published).toHaveLength(3)
+    expect(published[1]).toBeUndefined()
+    expect(published[2]![0]!.value).toBeCloseTo(eased, 12)
     dispose()
   })
 })

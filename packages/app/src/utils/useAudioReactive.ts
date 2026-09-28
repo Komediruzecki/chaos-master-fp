@@ -1,7 +1,7 @@
 import { createEffect, onCleanup } from 'solid-js'
-import { resolveAudioMappingValues } from './audioAnalysis'
+import { createAudioModulator } from './audioModulator'
 import type { Accessor } from 'solid-js'
-import type { AudioAnalyzer, AudioTargetValue, LiveAudioAnalyzer, MappingSmoothingState, } from './audioAnalysis'
+import type { AudioAnalyzer, AudioTargetValue, LiveAudioAnalyzer, } from './audioAnalysis'
 import type { AudioMapping } from '@/components/AudioReactivePanel/AudioReactivePanel'
 
 /**
@@ -32,6 +32,11 @@ type PublishAudioModulation = (values: AudioTargetValue[] | undefined) => void
  *
  * Shared analyzer:
  * - `fileAnalyzer`: pre-built analyzer shared with waveform panel
+ *
+ * Comfort:
+ * - `baselineFlame`: the flame as authored, before the overlay. Every value
+ *   passes the comfort governor, and a target's first frame eases in from
+ *   its value here rather than cutting to the mapped value.
  */
 export function useAudioReactive(
   audioEnabled: Accessor<boolean>,
@@ -45,6 +50,7 @@ export function useAudioReactive(
   onPlaybackTime: (seconds: number) => void,
   fileAnalyzer: Accessor<AudioAnalyzer | undefined>,
   modulationSuspended: Accessor<boolean> = () => false,
+  baselineFlame: Accessor<object | undefined> = () => undefined,
 ): void {
   // --- Closure-scope mutable state (persists across effect re-runs) ---
   let audioCtx: AudioContext | undefined
@@ -55,7 +61,7 @@ export function useAudioReactive(
   let seekBaseOffset = 0
   let lastSeekTarget: number | null = null
   let paused = false
-  const smoothingState: MappingSmoothingState = new Map()
+  const modulator = createAudioModulator('standard')
   let lastTickTime: number | undefined
   /** Is an overlay up right now? See publishModulation / dropModulation. */
   let modulationPublished = false
@@ -66,10 +72,9 @@ export function useAudioReactive(
    * Publish this frame's values, unless nothing moved and an overlay is
    * already up to hold the previous ones.
    *
-   * The `!modulationPublished` half is not belt-and-braces: the smoothing
-   * state survives a drop, so the first tick after modulation comes back can
-   * settle within the dirty threshold and report no change — and the overlay
-   * would stay down while modulation is plainly on.
+   * With no overlay up, publish regardless: a first frame that happens to
+   * settle within the dirty threshold must still raise the overlay while
+   * modulation is plainly on.
    */
   function publishModulation(values: AudioTargetValue[], changed: boolean) {
     if (!changed && modulationPublished) return
@@ -83,11 +88,16 @@ export function useAudioReactive(
    * are all conditions that hold for thousands of ticks, and republishing
    * `undefined` on each of them would rebuild the derived flame every frame
    * for nothing.
+   *
+   * The modulator starts over with it: the screen now shows the authored
+   * flame, so the next overlay has to ease in from that, not resume from
+   * values nobody can see any more.
    */
   function dropModulation() {
     if (!modulationPublished) return
     modulationPublished = false
     onModulation(undefined)
+    modulator.reset()
   }
 
   function stopSource() {
@@ -123,7 +133,7 @@ export function useAudioReactive(
     void audioCtx?.close()
     audioCtx = undefined
     analyzer = undefined
-    smoothingState.clear()
+    modulator.reset()
     lastTickTime = undefined
     dropModulation()
   }
@@ -231,11 +241,11 @@ export function useAudioReactive(
           const frameData = analyzer.getFrameData(
             wrapped % analyzer.totalFrames,
           )
-          const { values, changed } = resolveAudioMappingValues(
+          const { values, changed } = modulator.step(
             frameData,
             mappings,
-            smoothingState,
             dt,
+            baselineFlame(),
           )
           publishModulation(values, changed)
         } else {
@@ -279,11 +289,11 @@ export function useAudioReactive(
           lastTickTime !== undefined ? (now - lastTickTime) / 1000 : 1 / 30
         lastTickTime = now
         const frameData = mic.getFrameData()
-        const { values, changed } = resolveAudioMappingValues(
+        const { values, changed } = modulator.step(
           frameData,
           mappings,
-          smoothingState,
           dt,
+          baselineFlame(),
         )
         publishModulation(values, changed)
       }, tickMs)

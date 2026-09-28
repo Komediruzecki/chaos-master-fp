@@ -137,13 +137,48 @@ function mappingToVal(
   return lo + normalizedValue * mapping.sensitivity * (hi - lo)
 }
 
-/** Per-mapping smoothing + dirty-check state, keyed by target identity. */
+/**
+ * Per-mapping smoothing and dirty-check state, keyed by target identity.
+ * `lastOutput` is the value last reported in a changed frame, after any
+ * limiter.
+ */
 export type MappingSmoothingState = Map<
   string,
-  { smoothed: number; lastApplied: number }
+  { smoothed: number; lastApplied: number; lastOutput?: number }
 >
 
-const DIRTY_THRESHOLD = 0.005 // 0.5% change threshold
+/**
+ * The smallest move of a target worth a new frame: 0.2% of the mapping's
+ * output range, never below 1e-6. Relative, because one absolute step is a
+ * visible jump on a zoom range of [1, 1.1] and noise on an exposure range of
+ * [0, 10].
+ */
+export function dirtyThreshold(mapping: AudioMappingEntry): number {
+  const [lo, hi] = mapping.range
+  return Math.max(1e-6, 0.002 * Math.abs(hi - lo))
+}
+
+/** How far the mapped output moves when the settled feature goes `from` -> `to`. */
+function outputDelta(
+  mapping: AudioMappingEntry,
+  from: number,
+  to: number,
+): number {
+  const [lo, hi] = mapping.range
+  return Math.abs((to - from) * mapping.sensitivity * (hi - lo))
+}
+
+/**
+ * Holds one mapped value to what the screen may show this frame; the app's
+ * comfort governor. Called once per target per frame, for the mapping that
+ * wins the target (the last one naming it), and on every frame, because a
+ * limiter still catching up moves while its input holds still.
+ */
+export type TargetLimiter = (
+  target: FlameTarget,
+  key: string,
+  value: number,
+) => number
 
 /**
  * Calculates attack/release envelope smoothing for a normalized feature.
@@ -185,28 +220,44 @@ function computeSmoothedEnvelope(
  * question of whether this frame is worth publishing at all.
  *
  * Holding `lastApplied` below the threshold is what keeps a still target
- * still — the smoothed value keeps creeping, the written one does not.
+ * still — the smoothed value keeps creeping, the written one does not. The
+ * threshold is measured on the output (`dirtyThreshold`), not on the
+ * normalised feature.
  */
 function settleTargetValue(
   smoothed: number,
   targetKey: string,
+  mapping: AudioMappingEntry,
   smoothingState: MappingSmoothingState | undefined,
 ): { applied: number; changed: boolean } {
-  const prevApplied = smoothingState?.get(targetKey)?.lastApplied
+  const entry = smoothingState?.get(targetKey)
   if (
-    prevApplied !== undefined &&
-    Math.abs(smoothed - prevApplied) < DIRTY_THRESHOLD
+    entry !== undefined &&
+    outputDelta(mapping, entry.lastApplied, smoothed) < dirtyThreshold(mapping)
   ) {
-    if (smoothingState) {
-      smoothingState.set(targetKey, { smoothed, lastApplied: prevApplied })
-    }
-    return { applied: prevApplied, changed: false }
+    entry.smoothed = smoothed
+    return { applied: entry.lastApplied, changed: false }
   }
 
-  if (smoothingState) {
-    smoothingState.set(targetKey, { smoothed, lastApplied: smoothed })
+  if (entry) {
+    entry.smoothed = smoothed
+    entry.lastApplied = smoothed
+  } else {
+    smoothingState?.set(targetKey, { smoothed, lastApplied: smoothed })
   }
   return { applied: smoothed, changed: true }
+}
+
+/** Has a limited output moved a threshold since the last changed frame? */
+function outputMoved(
+  value: number,
+  mapping: AudioMappingEntry,
+  lastOutput: number | undefined,
+): boolean {
+  return (
+    lastOutput === undefined ||
+    Math.abs(value - lastOutput) >= dirtyThreshold(mapping)
+  )
 }
 
 /** One mapping's settled value for one frame. */
@@ -226,22 +277,33 @@ export type AudioTargetValue = {
  * second time.
  *
  * `changed` is false when every target held still, so the caller can drop the
- * frame instead of publishing one nothing would look different for.
+ * frame instead of publishing one nothing would look different for. With a
+ * `limit`, a target also counts as moved while its limited output is still
+ * travelling toward a value its input settled on earlier.
  */
 export function resolveAudioMappingValues(
   frameData: FrameData & { isBeat: boolean },
-  mappings: AudioMappingEntry[],
+  mappings: readonly AudioMappingEntry[],
   smoothingState?: MappingSmoothingState,
   deltaTime?: number,
+  limit?: TargetLimiter,
 ): { values: AudioTargetValue[]; changed: boolean } {
   const dt = deltaTime ?? 1 / 30
+  const keys = mappings.map((mapping) => flameTargetKey(mapping.target))
+  // A target named twice is written twice and the last write wins, so only
+  // the last mapping for a target is limited: limiting both would step the
+  // limiter twice a frame.
+  const winners = new Map<string, number>()
+  keys.forEach((key, index) => {
+    winners.set(key, index)
+  })
   const values: AudioTargetValue[] = []
   let changed = false
 
-  for (const mapping of mappings) {
+  mappings.forEach((mapping, index) => {
+    const targetKey = keys[index]!
     const raw = getAudioFeatureNormalized(frameData, mapping.audioFeature)
     const clamped = Math.max(0, Math.min(1, raw))
-    const targetKey = flameTargetKey(mapping.target)
 
     const smoothed = computeSmoothedEnvelope(
       clamped,
@@ -250,13 +312,28 @@ export function resolveAudioMappingValues(
       smoothingState,
       dt,
     )
-    const settled = settleTargetValue(smoothed, targetKey, smoothingState)
-    if (settled.changed) changed = true
-    values.push({
-      target: mapping.target,
-      value: mappingToVal(settled.applied, mapping),
+    const settled = settleTargetValue(
+      smoothed,
+      targetKey,
+      mapping,
+      smoothingState,
+    )
+    const mapped = mappingToVal(settled.applied, mapping)
+    const wins = winners.get(targetKey) === index
+    const value =
+      limit && wins ? limit(mapping.target, targetKey, mapped) : mapped
+    const lastOutput = smoothingState?.get(targetKey)?.lastOutput
+    if (settled.changed || (wins && outputMoved(value, mapping, lastOutput))) {
+      changed = true
+    }
+    values.push({ target: mapping.target, value })
+  })
+
+  if (changed && smoothingState) {
+    values.forEach(({ value }, index) => {
+      const entry = smoothingState.get(keys[index]!)
+      if (entry) entry.lastOutput = value
     })
   }
-
   return { values, changed }
 }
