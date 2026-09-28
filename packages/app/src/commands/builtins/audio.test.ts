@@ -211,3 +211,40 @@ describe('audio replay resource identity', () => {
     expect(session?.actions[2]?.args[1]).toBe('0:sensitivity')
   })
 })
+
+describe('a wiring the schema refuses', () => {
+  afterEach(() => {
+    cancelSessionRecording()
+  })
+
+  it('is refused before it is recorded, and the caller hears so', () => {
+    const target = audioContext({ resourceAvailable: true })
+    expect(startSessionRecording(examples.example1)).toEqual({ ok: true })
+    const taken = executeCommand('audio.setMapping', target.ctx, {
+      preset: 'custom',
+      mappings: [
+        {
+          audioFeature: 'treble',
+          target: { kind: 'renderSetting', param: 'exposure' },
+          sensitivity: 1,
+          range: [0, 1],
+        },
+      ],
+    })
+    const session = stopSessionRecording()
+    expect(taken).toBe(false)
+    expect(target.current().mapping).toEqual({ preset: 'custom', mappings: [] })
+    expect(session?.actions).toEqual([])
+  })
+
+  it('reports a wiring that fits as taken', () => {
+    const target = audioContext({ resourceAvailable: true })
+    expect(
+      executeCommand('audio.setMapping', target.ctx, {
+        preset: 'pulse',
+        mappings: [],
+      }),
+    ).toBe(true)
+    expect(target.current().mapping.preset).toBe('pulse')
+  })
+})

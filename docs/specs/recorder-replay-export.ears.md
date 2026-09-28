@@ -668,7 +668,7 @@ shall refuse the step live (`agentCallable: false`).
 _(`utils/timeline.ts:1437-1473` (`advanceFrame`), `:1493-1527` (`play`), `recorder/recorder.ts:442-446` (`stopIn`),
 `:883-932` (`Playback`), `recorder/documentWriteHook.ts:89-105` (`playbackProbes`),
 `recorder/transportStep.ts:14-29` (`TIMELINE_PLAYBACK_COMMAND_ID`), `commands/builtins/timeline.ts:503-532` (`reportTimelinePlaybackIn`),
-`commands/registry.ts:590-594` (`agentCallable`), `hooks/useWorkspaceReplay.ts:476-480` (`loadInitial`); guarded
+`commands/registry.ts:600-604` (`agentCallable`), `hooks/useWorkspaceReplay.ts:476-480` (`loadInitial`); guarded
 by `timelineActions.test.ts:613` "records Space pressed twice as two steps and
 replays to the paused frame", `:659` "pins the frame a playback stops on when
 it reaches the end by itself", `:694` "records a pause that a workspace flow
@@ -884,7 +884,7 @@ _(`recorder/replayGlideLease.ts`, `recorder/player.ts:306-308` (`glideLease`), `
 `:455-470` (`runStep`), `:548-553` (`reset`), `:608-615` (`finish`), `:726-733` (`stop`),
 `commands/builtins/glide.ts:14-17` (`context`), `:44-46` (`preservesFinishedSession`), `:50` (`setGlideEnabled`), `:61-62` (`preservesFinishedSession`), `:65` (`setGlideQualityPreference`), `:98` (`runtime`),
 `commands/types.ts:315-323` (`glideSwitches`), `:351-361` (`reproduces`), `:369-374` (`presentationSwitch`),
-`commands/registry.ts:537-543` (`beforeCommand`), `webmcp/tools/executeCommand.ts:286-295` (`presentationSwitch`),
+`commands/registry.ts:547-553` (`beforeCommand`), `webmcp/tools/executeCommand.ts:286-295` (`presentationSwitch`),
 `flame/glide/types.ts:181-188` (`GlideDriver`),
 `recorder/recorder.ts:597-603` (`isTopLevel`),
 `recorder/replayVideo.ts:932-934` (`APART_FROM_LIVE_GLIDE`), `recorder/synthesize/sandbox.ts:125-127` (`APART_FROM_LIVE_GLIDE`),

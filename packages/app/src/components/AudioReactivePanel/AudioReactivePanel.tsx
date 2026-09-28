@@ -57,7 +57,9 @@ type AudioReactivePanelProps = {
    *  wired against — the buffer itself can never be part of a session. */
   onAudioChange: (buffer: AudioBuffer | undefined, fileName?: string) => void
   audioMapping: Accessor<AudioMapping>
-  onMappingChange: (mapping: AudioMapping) => void
+  /** Returns false when the workspace refused the mapping and nothing
+   *  changed; anything else means it was taken. */
+  onMappingChange: (mapping: AudioMapping) => unknown
   /** End/start the recorder's coalescing window around a continuous wiring
    *  slider. Audio wiring has no flame-history preview to provide this
    *  boundary automatically. */
@@ -1232,12 +1234,9 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
             presets={wiringPresets()}
             featureLevels={liveFeatureLevels()}
             liveAnalyzer={props.liveAnalyzer()}
-            onMappingsChange={(mappings) => {
-              props.onMappingChange({
-                preset: 'custom',
-                mappings,
-              })
-            }}
+            onMappingsChange={(mappings) =>
+              props.onMappingChange({ preset: 'custom', mappings })
+            }
             onMappingGestureBoundary={props.onMappingGestureBoundary}
             onClose={() => setShowWiringModal(false)}
           />

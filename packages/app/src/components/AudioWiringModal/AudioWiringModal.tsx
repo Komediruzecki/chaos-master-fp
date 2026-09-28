@@ -12,6 +12,7 @@ import { AUDIO_SOURCE_GROUPS } from './SourceNode'
 import { TargetGroupCard } from './TargetGroupCard'
 import { AffineCell, buildTargetGroups, TargetCell } from './TargetNode'
 import { wireId, WireOverlay } from './WireOverlay'
+import { parseWiringImport } from './wiringImport'
 import type { AudioFeature, AudioMappingEntry, FlameTarget, LiveAudioAnalyzer, TransformInfo, } from '../../utils/audioAnalysis'
 import type { SourceNodeData } from './SourceNode'
 import type { TargetGroupData } from './TargetNode'
@@ -477,7 +478,9 @@ function mappingsEqual(
 export function AudioWiringModal(props: {
   mappings: AudioMappingEntry[]
   transforms: TransformInfo[]
-  onMappingsChange: (mappings: AudioMappingEntry[]) => void
+  /** Returns false when the workspace refused the mappings and nothing
+   *  changed; anything else means they were taken. */
+  onMappingsChange: (mappings: AudioMappingEntry[]) => unknown
   onMappingGestureBoundary?: () => void
   presets?: Record<string, AudioMappingEntry[]>
   featureLevels?: Record<string, number>
@@ -687,12 +690,12 @@ export function AudioWiringModal(props: {
     props.onMappingsChange(next)
   }
 
-  function saveForUndo() {
+  function saveForUndo(snapshot: AudioMappingEntry[] = props.mappings) {
     setUndoStack((stack) => {
       if (stack.length >= MAX_UNDO) {
         stack = stack.slice(1)
       }
-      return [...stack, props.mappings]
+      return [...stack, snapshot]
     })
     setRedoStack([])
   }
@@ -1007,30 +1010,6 @@ export function AudioWiringModal(props: {
       })
   }
 
-  /** Parse + validate wiring JSON; null when it isn't a mapping array. */
-  function parseWiringJSON(text: string): AudioMappingEntry[] | null {
-    try {
-      const parsed: unknown = JSON.parse(text)
-      if (!Array.isArray(parsed)) return null
-      const valid = parsed.every((entry: unknown) => {
-        if (entry === null || typeof entry !== 'object') return false
-        const e = entry as Record<string, unknown>
-        return (
-          typeof e.audioFeature === 'string' &&
-          e.target !== null &&
-          typeof e.target === 'object' &&
-          typeof (e.target as Record<string, unknown>).kind === 'string' &&
-          typeof e.sensitivity === 'number' &&
-          Array.isArray(e.range) &&
-          e.range.length === 2
-        )
-      })
-      return valid ? (parsed as AudioMappingEntry[]) : null
-    } catch {
-      return null
-    }
-  }
-
   const [importPanel, setImportPanel] = createSignal<{
     text: string
     error: string | null
@@ -1046,7 +1025,7 @@ export function AudioWiringModal(props: {
       let fromClipboard = false
       try {
         const clip = await globalThis.navigator.clipboard.readText()
-        if (clip && parseWiringJSON(clip) !== null) {
+        if (clip && parseWiringImport(clip).ok) {
           text = clip
           fromClipboard = true
         }
@@ -1060,17 +1039,24 @@ export function AudioWiringModal(props: {
   function applyImport() {
     const panel = importPanel()
     if (!panel) return
-    const parsed = parseWiringJSON(panel.text)
-    if (parsed === null) {
+    const result = parseWiringImport(panel.text)
+    if (!result.ok) {
+      setImportPanel({ ...panel, error: result.error })
+      return
+    }
+    const parsed = result.mappings
+    const before = props.mappings
+    if (
+      props.onMappingsChange(adoptImportedWiring(parsed, props.transforms)) ===
+      false
+    ) {
       setImportPanel({
         ...panel,
-        error:
-          'Invalid wiring JSON — expected an array of mapping entries (audioFeature, target, sensitivity, range).',
+        error: 'The workspace did not take this wiring, so nothing changed.',
       })
       return
     }
-    saveForUndo()
-    props.onMappingsChange(adoptImportedWiring(parsed, props.transforms))
+    saveForUndo(before)
     setSelectedWire(null)
     setConnectingFrom(null)
     setImportPanel(null)
@@ -1080,13 +1066,11 @@ export function AudioWiringModal(props: {
     void file.text().then((text) => {
       const panel = importPanel()
       if (!panel) return
+      const result = parseWiringImport(text)
       setImportPanel({
         text,
         fromClipboard: false,
-        error:
-          parseWiringJSON(text) === null
-            ? 'That file does not contain valid wiring JSON.'
-            : null,
+        error: result.ok ? null : result.error,
       })
     })
   }
@@ -1578,7 +1562,9 @@ export function AudioWiringModal(props: {
                 }}
               />
               <Show when={panel().error}>
-                <div class={styles.importError}>{panel().error}</div>
+                <div class={styles.importError} role="alert">
+                  {panel().error}
+                </div>
               </Show>
               <div class={styles.importActions}>
                 <input

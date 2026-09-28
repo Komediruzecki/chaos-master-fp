@@ -460,3 +460,24 @@ describe('command recording is routed by seat', () => {
     player.cancel()
   })
 })
+
+describe('refused commands', () => {
+  it('neither run nor record, and tell the caller', () => {
+    const execute = vi.fn()
+    registerCommand({
+      id: 'test.refuses-no',
+      label: 'Refuses no',
+      description: 'Test-only registry entry',
+      replayable: false,
+      rejectArgs: (_ctx, [answer]) =>
+        answer === 'no' ? 'the answer was no' : undefined,
+      execute,
+    })
+    const ctx = createMockCommandContext()
+    expect(executeCommand('test.refuses-no', ctx, 'no')).toBe(false)
+    expect(execute).not.toHaveBeenCalled()
+    expect(executeCommand('test.refuses-no', ctx, 'yes')).toBe(true)
+    expect(execute).toHaveBeenCalledOnce()
+    expect(executeCommand('test.no-such-command', ctx)).toBe(false)
+  })
+})

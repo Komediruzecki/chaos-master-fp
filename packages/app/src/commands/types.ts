@@ -398,6 +398,14 @@ export interface FlameCommand {
    */
   normalizeArgs?: (ctx: CommandContext, args: unknown[]) => unknown[]
   /**
+   * Refuse THIS invocation before it is recorded or run, from its normalized
+   * args: return a short reason, or undefined to go ahead. For a command whose
+   * caller has to learn that nothing happened, such as wiring the schema
+   * rejects; `executeCommand` then returns false. A refused command records no
+   * step, so a take never holds a step that replays as nothing.
+   */
+  rejectArgs?: (ctx: CommandContext, args: unknown[]) => string | undefined
+  /**
    * Validate untrusted session-file arguments before `normalizeArgs` runs.
    * This seam is intentionally separate from execution validation: a
    * normalizer may allocate ids or arrays, so hostile sizes must be rejected

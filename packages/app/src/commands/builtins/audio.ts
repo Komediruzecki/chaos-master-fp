@@ -107,6 +107,14 @@ registerCommand({
       : undefined
     return key ? [snapshot, key] : [snapshot]
   },
+  // A mapping the schema refuses changes nothing, and the wiring editor's
+  // import has to hear that rather than close as if it had worked.
+  rejectArgs(_ctx, [value]) {
+    if (parseSnapshot(value)) return undefined
+    return v.safeParse(AudioMapping, value).success
+      ? undefined
+      : 'audio mapping is invalid'
+  },
   describe: ([value]) => {
     const mapping = parseSnapshot(value)?.mapping ?? value
     const parsed = v.safeParse(AudioMapping, mapping)

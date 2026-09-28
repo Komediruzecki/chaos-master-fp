@@ -511,8 +511,13 @@ function runCommand(
   cmd: FlameCommand,
   ctx: CommandContext,
   args: unknown[],
-): void {
+): boolean {
   const finalArgs = cmd.normalizeArgs ? cmd.normalizeArgs(ctx, args) : args
+  const refusal = cmd.rejectArgs?.(ctx, finalArgs)
+  if (refusal !== undefined) {
+    console.warn(`[cmd] ${cmd.id} refused: ${refusal}`)
+    return false
+  }
   // The seat decides which log the action lands in. Everything the workspace
   // dispatches carries no seat and therefore lands in the player's, which is
   // what every caller before duels meant.
@@ -523,17 +528,22 @@ function runCommand(
       cmd.execute(ctx, ...finalArgs)
     },
   )
+  return true
 }
 
+/**
+ * Run a command from the app. False when nothing ran: the id is unknown, or
+ * the command refused its arguments (`rejectArgs`).
+ */
 export function executeCommand(
   id: string,
   ctx: CommandContext,
   ...args: unknown[]
-): void {
+): boolean {
   const cmd = commandRegistry.get(id)
   if (!cmd) {
     if (IS_DEV) console.warn(`Command "${id}" not found in registry`)
-    return
+    return false
   }
   // Timed replay can own a long-lived undo preview while it waits between
   // steps. Every live command — including timeline/audio/view-only commands
@@ -542,7 +552,7 @@ export function executeCommand(
   // `executeReplayCommand` intentionally skips this live-dispatch hook.
   if (!cmd.presentationSwitch) ctx.beforeCommand?.()
   if (IS_DEV) console.info('[cmd:execute]', id, 'args:', ...args)
-  runCommand(cmd, ctx, args)
+  return runCommand(cmd, ctx, args)
 }
 
 /** Validate one canonical recorded action without touching workspace state. */

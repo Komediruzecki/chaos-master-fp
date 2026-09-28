@@ -428,13 +428,13 @@ export function WorkspaceSidebar(props: WorkspaceSidebarProps) {
                         audioBuffer={props.audioBuffer}
                         onAudioChange={props.onAudioChange}
                         audioMapping={props.audioMapping}
-                        onMappingChange={(mapping) => {
+                        onMappingChange={(mapping) =>
                           props.transformsSectionProps.executeCommand(
                             'audio.setMapping',
                             props.transformsSectionProps.cmdContext,
                             mapping,
-                          )
-                        }}
+                          ) !== false
+                        }
                         onMappingGestureBoundary={
                           props.breakRecordingCoalescing
                         }

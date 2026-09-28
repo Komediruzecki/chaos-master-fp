@@ -22,7 +22,7 @@ the seam Beats mode touches.
 - `packages/app/src/recorder/replay.ts:39-52` — `canEnableReplayAudio`, the only implementation of that authorization
 - `packages/app/src/MainWorkspace.tsx:3357-3374` (`audio`) — the live facade: signals, and `canEnable` wired to the decoded buffer, track name and live analyzer
 - `packages/app/src/MainWorkspace.tsx:3167-3174` (`adoptAudioBuffer`) — the one writer of the audio buffer and track name, which the audio panel and Beats mode (`loadBundledTrack`, `:3203-3204` (`fetchBundledTrackBuffer`)) both go through
-- `packages/app/src/components/AudioReactivePanel/AudioReactivePanel.tsx:410-458` (`handleFile`) — file decode and microphone acquisition, and their failure paths
+- `packages/app/src/components/AudioReactivePanel/AudioReactivePanel.tsx:412-460` (`handleFile`) — file decode and microphone acquisition, and their failure paths
 - `packages/app/src/utils/useAudioReactive.ts` — what "enabled" actually gates: modulation, not transport
 - `packages/app/src/arcade/topics.ts:305-314` (`BEATS_ALLOWED`), `:345-356` (`beatsPromptCard`) — `BEATS_ALLOWED`, `BEATS_STEP_BUDGET`, the prompt card
 - `packages/app/src/arcade/guard.ts`, `packages/app/src/arcade/pilot.ts`, `packages/app/src/arcade/pilotActions.ts` — allow-list enforcement, step budget, session teardown
@@ -206,7 +206,7 @@ a bad preset is never an error, whereas a bad `mappings` array always is
 (REQ-AB-016).
 
 _(`arcadeBeats.ts:374-375` (`presetParsed`); `AudioPreset` at
-`packages/core/src/schema/audioWiring.ts:98-106`)_
+`packages/core/src/schema/audioWiring.ts:99-107`)_
 
 ### REQ-AB-016 — The mapping grammar is closed, and rejection applies nothing
 
@@ -221,7 +221,7 @@ shall return `Invalid audio mapping structure: <issues joined by "; ">` and
 shall not dispatch a command, count a step or write a note.
 
 _(`arcadeBeats.ts:377-387` (`mappingCandidate`); schema at
-`packages/core/src/schema/audioWiring.ts:7-112` (`AudioFeature`))_
+`packages/core/src/schema/audioWiring.ts:8-120` (`AudioFeature`))_
 
 ### REQ-AB-017 — The applied snapshot asks to be enabled and inherits the live identity
 
@@ -340,7 +340,7 @@ Duel, `ALWAYS_ALLOWED` and the presentation switches): an exact id must be
 registered and a prefix must cover at least one command.
 
 _(`topics.ts:299-313` (`BEATS_ALLOWED`); registered ids at `commands/builtins/audio.ts:92` (`setMapping`),
-`:156` (`setEnabled`), `:189` (`setSource`), `:231` (`applySnapshot`); guarded by `topics.test.ts`, "names only registered
+`:164` (`setEnabled`), `:197` (`setSource`), `:239` (`applySnapshot`); guarded by `topics.test.ts`, "names only registered
 commands, in every Arcade allow-list")_
 
 ### REQ-AB-026 — Ending requires a driving Beats session
@@ -392,7 +392,7 @@ replayed, the wiring shall be restored and reactivity enabled only where the
 viewer has independently supplied the same named file (or already granted a
 live analyzer).
 
-_(`commands/builtins/audio.ts:8-20` (`buffer`), `:231-245` (`applySnapshot`); `recorder/replay.ts:39-77` (`canEnableReplayAudio`))_
+_(`commands/builtins/audio.ts:8-20` (`buffer`), `:239-253` (`applySnapshot`); `recorder/replay.ts:39-77` (`canEnableReplayAudio`))_
 
 ### REQ-AB-031 — Ending leaves the wiring exactly as the session set it
 
@@ -493,7 +493,7 @@ Requirements with no test that goes red when they are violated:
   statements and 17% of branches; its one test covers only modulation
   suspension on the mic path. The file-mode transport/modulation split and the
   mic enable-gate are unexercised.
-- **Decode and microphone failure paths** (`AudioReactivePanel.tsx:410-458` (`handleFile`)) —
+- **Decode and microphone failure paths** (`AudioReactivePanel.tsx:412-460` (`handleFile`)) —
   the panel component is at 3% of statements; `AudioReactivePanel.test.tsx`
   tests only the pure `defaultTarget` and `RENDER_PRESETS` helpers, never
   mounts the component, and never exercises a failed decode or a denied

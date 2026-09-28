@@ -1,4 +1,5 @@
 import * as v from 'valibot'
+import { processValibotErrors } from '../utils/prettyPrintValibotErrors'
 import { isSafeFlameEntityId } from './flameSchema'
 
 /**
@@ -105,11 +106,34 @@ export const AudioPreset = v.picklist([
   'custom',
 ])
 
+/** Every row of a wiring. One flame's wiring holds at most 512. */
+export const AudioMappingEntries = v.pipe(
+  v.array(AudioMappingEntry),
+  v.maxLength(512),
+)
+export type AudioMappingEntries = v.InferOutput<typeof AudioMappingEntries>
+
 export const AudioMapping = v.object({
   preset: AudioPreset,
-  mappings: v.pipe(v.array(AudioMappingEntry), v.maxLength(512)),
+  mappings: AudioMappingEntries,
 })
 export type AudioMapping = v.InferOutput<typeof AudioMapping>
+
+/**
+ * The rows of an imported wiring, or `undefined` with one complaint per
+ * problem handed to `errorCallback`, each naming the row and field it is
+ * about (`3.audioFeature: ...`). The check the commands and the flame apply,
+ * so a wiring the editor accepts is one the workspace takes.
+ */
+export function validateAudioMappingEntriesWithErrors(
+  data: unknown,
+  errorCallback: (err: string) => void,
+): AudioMappingEntries | undefined {
+  const result = v.safeParse(AudioMappingEntries, data)
+  if (result.success) return result.output
+  processValibotErrors(v.flatten(result.issues), errorCallback)
+  return undefined
+}
 
 export const AudioWiringSnapshot = v.object({
   mapping: AudioMapping,

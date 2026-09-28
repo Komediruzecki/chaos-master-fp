@@ -61,8 +61,11 @@ not a gap.
   renderer, which the software adapter can fail to mount.
 - `packages/app/src/components/AudioWiringModal/AudioWiringModal.paste.test.tsx` —
   pasting wiring onto another transform (REQ-TA-040)
-- _Gap:_ nothing else tests `AudioWiringModal.tsx` (unit or e2e) — REQ-TA-035
-  through REQ-TA-038 are entirely unguarded. `keyframeOnChange.ts` likewise has no test,
+- `packages/app/src/components/AudioWiringModal/AudioWiringModal.import.test.tsx` —
+  an import that does not fit, or that the workspace refuses, keeps the panel open
+  (REQ-TA-037)
+- _Gap:_ nothing else tests `AudioWiringModal.tsx` (unit or e2e) — REQ-TA-035,
+  REQ-TA-036 and REQ-TA-038 are entirely unguarded. `keyframeOnChange.ts` likewise has no test,
   so REQ-TA-020 is unguarded. See **Coverage gaps** at the end for the full list.
 
 ---
@@ -521,7 +524,7 @@ a non-blocking replacement toast naming the displaced source for 2.5 s. **If** t
 target is already wired to that same source, **then** the editor shall select the
 existing wire and change nothing.
 
-_(`AudioWiringModal.tsx:640-675` (`doConnect`).)_
+_(`AudioWiringModal.tsx:643-678` (`doConnect`).)_
 
 ### REQ-TA-036 — A new wire is audible by default
 
@@ -530,18 +533,27 @@ _(`AudioWiringModal.tsx:640-675` (`doConnect`).)_
 or `[0.5, 1.5]` **where** the target is camera zoom, for which `[0, 1]` would
 collapse the view.
 
-_(`AudioWiringModal.tsx:35-41` (`NEW_ENTRY_DEFAULTS`), `:659-666` (`isZoom`).)_
+_(`AudioWiringModal.tsx:36-42` (`NEW_ENTRY_DEFAULTS`), `:662-669` (`isZoom`).)_
 
-### REQ-TA-037 — Imported wiring is shape-checked before it is applied
+### REQ-TA-037 — Imported wiring is checked against the wiring schema before it is applied
 
-**If** pasted or loaded wiring JSON is not an array, or any entry lacks a string
-`audioFeature`, an object `target` with a string `kind`, a numeric `sensitivity`
-or a two-element `range`, **then** the editor shall reject the import with an
-explanatory message and leave the current mappings untouched. A valid import
-shall record an undo entry before replacing the mappings.
+**If** pasted or loaded wiring text is not JSON, or does not fit the schema the
+flame and the commands use for wiring rows (`AudioMappingEntries`: at most 512
+rows, each with a known feature, a well-formed target and a finite sensitivity
+and range), **then** the editor shall keep the import panel open with the
+complaints in words, each naming its row and field (the first three, and a
+count of the rest), and leave the current mappings untouched. **If** the
+workspace refuses wiring the editor passed on, **then** the panel shall stay
+open and say that nothing changed. A valid import shall replace the mappings,
+record an undo entry and close the panel. `audio.setMapping` shall refuse a
+mapping the schema rejects before it is recorded, and tell its caller.
 
-_(`AudioWiringModal.tsx:1011-1032` (`parseWiringJSON`), `:1060-1077` (`applyImport`); the editor keeps its own 50-entry
-undo stack at `:500` (`MAX_UNDO`), `:690-718` (`saveForUndo`), cleared of redo on every mutating operation.)_
+_(`wiringImport.ts:14-33` (`parseWiringImport`), `packages/core/src/schema/audioWiring.ts:128-136` (`validateAudioMappingEntriesWithErrors`),
+`AudioWiringModal.tsx:1039-1063` (`applyImport`), `commands/builtins/audio.ts:112-117` (`rejectArgs`), `commands/registry.ts:516-520` (`refusal`); guarded by
+`AudioWiringModal.import.test.tsx:54` "keeps the panel open and says why when a row does not fit",
+`:66` "keeps the panel open when the workspace refuses the wiring" and
+`commands/builtins/audio.test.ts:220` "is refused before it is recorded, and the caller hears so". The editor keeps its own
+50-entry undo stack at `AudioWiringModal.tsx:503` (`MAX_UNDO`), `:693-721` (`saveForUndo`), cleared of redo on every mutating operation.)_
 
 ### REQ-TA-038 — Editor shortcuts never steal keys from a text field
 
@@ -550,7 +562,7 @@ editor shall not handle undo/redo or delete for it. Escape shall unwind exactly
 one layer per press, in the order import panel → pending paste → active drag →
 pending connection → selected wire → close the modal.
 
-_(`AudioWiringModal.tsx:860-920` (`isEditableTarget`).)_
+_(`AudioWiringModal.tsx:863-923` (`isEditableTarget`).)_
 
 ### REQ-TA-039 — Audio-driven motion is held to a comfort preset
 
@@ -614,18 +626,18 @@ Requirements below have **no test whose assertion goes red when the requirement 
 violated**. Naming a nearby test file would be a false claim of coverage, so they
 are listed instead.
 
-| Requirement             | Why it is unguarded                                                                                                                                                                                                                  |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| REQ-TA-003              | No test registers a value writer and then calls `addKeyframe` at the current frame. `timelineUndo.test.ts:315-352` "value write-back on undo/redo" exercises the write-back on **undo/redo** only.                                   |
-| REQ-TA-006              | `relocateKeyframe`'s "destination occupied" guard is never exercised. `recorder/timelineActions.test.ts:478` (`relocateKeyframe`) calls it, but asserts command coalescing, not the guard.                                           |
-| REQ-TA-012 (strings)    | Array blending is tested; the string/boolean hold path (`utils/timeline.ts:664-667` (`prev`)) is not.                                                                                                                                |
-| REQ-TA-013              | Nothing asserts the two easing copies agree, and nothing imports the core copy, so drift is invisible.                                                                                                                               |
-| REQ-TA-020              | `keyframeOnChange.ts` has no test file. Neither the Auto-mode "already animated" filter nor the `animationEnabled` gate is covered.                                                                                                  |
-| REQ-TA-021              | **Actively hidden.** `useWorkspaceTimelineBinding.test.ts:11-12` mocks `isDrivingView` and `hasKeyframeAtFrame` to return `false` unconditionally, so the defective branch never runs in any test.                                   |
-| REQ-TA-022              | Same mock, same reason.                                                                                                                                                                                                              |
-| REQ-TA-024              | `isDrivingView` has no unit test; its three-term definition is only exercised through the app.                                                                                                                                       |
-| REQ-TA-025              | Neither the `previewHeld` latch nor the scrub gesture lifecycle is tested. `tests/timeline.ci.spec.ts:51` "steps and seeks the playhead from the transport bar" seeks with the transport buttons but asserts only the frame readout. |
-| REQ-TA-026              | The advance **arithmetic** is tested (`utils/timeline.test.ts:435-463` "advanceFrame"); the interval rate, `timeScale` multiplication, the Auto-FPS handoff and the EMA are not.                                                     |
-| REQ-TA-028              | `getAudioFeatureNormalized` is never called directly by a test, nor are `computeBeats` / `computeOnsetStrengths`. The mapping tests feed hand-built `FrameData` past it.                                                             |
-| REQ-TA-033              | `useAudioReactive.test.ts` covers suspension and the mic restart. Nothing covers transport-without-reactivity or seek.                                                                                                               |
-| REQ-TA-035 – REQ-TA-038 | `AudioWiringModal.tsx` has **no e2e coverage**, and its one render test pastes wiring (REQ-TA-040). Nothing drives connecting, the new-wire defaults, the import check or the shortcuts.                                             |
+| Requirement                        | Why it is unguarded                                                                                                                                                                                                                  |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| REQ-TA-003                         | No test registers a value writer and then calls `addKeyframe` at the current frame. `timelineUndo.test.ts:315-352` "value write-back on undo/redo" exercises the write-back on **undo/redo** only.                                   |
+| REQ-TA-006                         | `relocateKeyframe`'s "destination occupied" guard is never exercised. `recorder/timelineActions.test.ts:478` (`relocateKeyframe`) calls it, but asserts command coalescing, not the guard.                                           |
+| REQ-TA-012 (strings)               | Array blending is tested; the string/boolean hold path (`utils/timeline.ts:664-667` (`prev`)) is not.                                                                                                                                |
+| REQ-TA-013                         | Nothing asserts the two easing copies agree, and nothing imports the core copy, so drift is invisible.                                                                                                                               |
+| REQ-TA-020                         | `keyframeOnChange.ts` has no test file. Neither the Auto-mode "already animated" filter nor the `animationEnabled` gate is covered.                                                                                                  |
+| REQ-TA-021                         | **Actively hidden.** `useWorkspaceTimelineBinding.test.ts:11-12` mocks `isDrivingView` and `hasKeyframeAtFrame` to return `false` unconditionally, so the defective branch never runs in any test.                                   |
+| REQ-TA-022                         | Same mock, same reason.                                                                                                                                                                                                              |
+| REQ-TA-024                         | `isDrivingView` has no unit test; its three-term definition is only exercised through the app.                                                                                                                                       |
+| REQ-TA-025                         | Neither the `previewHeld` latch nor the scrub gesture lifecycle is tested. `tests/timeline.ci.spec.ts:51` "steps and seeks the playhead from the transport bar" seeks with the transport buttons but asserts only the frame readout. |
+| REQ-TA-026                         | The advance **arithmetic** is tested (`utils/timeline.test.ts:435-463` "advanceFrame"); the interval rate, `timeScale` multiplication, the Auto-FPS handoff and the EMA are not.                                                     |
+| REQ-TA-028                         | `getAudioFeatureNormalized` is never called directly by a test, nor are `computeBeats` / `computeOnsetStrengths`. The mapping tests feed hand-built `FrameData` past it.                                                             |
+| REQ-TA-033                         | `useAudioReactive.test.ts` covers suspension and the mic restart. Nothing covers transport-without-reactivity or seek.                                                                                                               |
+| REQ-TA-035, REQ-TA-036, REQ-TA-038 | `AudioWiringModal.tsx` has **no e2e coverage**, and its two render tests import wiring (REQ-TA-037) and paste it (REQ-TA-040). Nothing drives connecting, the new-wire defaults or the shortcuts.                                    |
