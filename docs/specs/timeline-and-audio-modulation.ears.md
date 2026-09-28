@@ -574,7 +574,7 @@ so the panel shows why. It shall take each spectrum through a Hann window. A ban
 shall read as its level in decibels placed on `[0, 1]` by the rule of a file's
 band (REQ-TA-028) over the last 30 s of audio, with its zero lifted by how far
 noise alone moves a band of its bins (16 dB / n^0.45 for n bins: 16 dB for one
-bin, 5.4 dB for nine, 2.0 dB for 69), so steady room noise and silence read about
+bin, 5.95 dB for nine, 2.38 dB for 69), so steady room noise and silence read about
 0 from the first second and again within seconds of music stopping. Until the
 band has heard 5 s, its zero shall move down from the median to the 10th
 percentile. The levels shall be kept in a histogram of 0.5 dB bins, each weighted
