@@ -10,6 +10,16 @@ export const BEAT_WINDOW_SECONDS = 4
 export const BEAT_MIN_GAP_SECONDS = 0.1
 
 /**
+ * The frames a gap of `seconds` takes at `fps`, rounded up and at least one,
+ * so no two events land closer than the gap: 0.1 s is 3 frames at 24 fps,
+ * not 2 (83 ms). A hair is taken off first, so an exact multiple such as
+ * 0.1 s at 30 fps stays 3 frames despite float rounding.
+ */
+export function gapInFrames(seconds: number, fps: number): number {
+  return Math.max(1, Math.ceil(seconds * fps - 1e-9))
+}
+
+/**
  * Mean plus `sigmas` standard deviations of `signal` over the `halfWidth`
  * values either side of each index, and fewer at the ends.
  */
@@ -44,9 +54,9 @@ export function centredThresholds(
 /**
  * Beats in a whole file: the frames where the band flux peaks above the mean
  * + 1.5σ of the BEAT_WINDOW_SECONDS around it, at least BEAT_MIN_GAP_SECONDS
- * apart. A peak is a frame above the one before and not below the one after,
- * so a beat lands where the attack is, not a frame early where it starts.
- * `fps` is the analyzer's real frame rate.
+ * apart in whole frames (`gapInFrames`). A peak is a frame above the one
+ * before and not below the one after, so a beat lands where the attack is,
+ * not a frame early where it starts. `fps` is the analyzer's real frame rate.
  */
 export function detectBeatFrames(
   flux: ArrayLike<number>,
@@ -54,7 +64,7 @@ export function detectBeatFrames(
 ): Set<number> {
   const halfWidth = Math.max(1, Math.round((BEAT_WINDOW_SECONDS * fps) / 2))
   const thresholds = centredThresholds(flux, halfWidth, 1.5)
-  const minGap = Math.max(1, Math.round(BEAT_MIN_GAP_SECONDS * fps))
+  const minGap = gapInFrames(BEAT_MIN_GAP_SECONDS, fps)
   const beats = new Set<number>()
   let last = -Infinity
   for (let i = 1; i < flux.length; i++) {

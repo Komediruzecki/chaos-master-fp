@@ -46,6 +46,21 @@ describe('detectOnsets', () => {
     expect(onsetFrames(detectOnsets(flux, 60))).toEqual([60, 70])
   })
 
+  it('rounds the 50 ms gap up to whole frames at 24 and 25 fps', () => {
+    // 50 ms is 1.2 frames at 24 fps and 1.25 at 25: the next frame, 42 or
+    // 40 ms on, is too soon for a second onset.
+    const at24 = new Float64Array(96)
+    at24[48] = 0.5
+    at24[49] = 0.5 // 42 ms later: too soon
+    at24[60] = 0.5 // 500 ms after the first
+    expect(onsetFrames(detectOnsets(at24, 24))).toEqual([48, 60])
+    const at25 = new Float64Array(100)
+    at25[50] = 0.5
+    at25[51] = 0.5 // 40 ms later: too soon
+    at25[62] = 0.5 // 480 ms after the first
+    expect(onsetFrames(detectOnsets(at25, 25))).toEqual([50, 62])
+  })
+
   it('finds no onset in silence', () => {
     expect(onsetFrames(detectOnsets(new Float64Array(300), 30))).toEqual([])
   })

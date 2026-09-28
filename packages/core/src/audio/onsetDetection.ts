@@ -5,7 +5,7 @@
 // value is a strength on [0, 1], and 0 between onsets.
 
 import { PEAK_RELEASE_SECONDS, quantileOfSorted } from './bandNormalization'
-import { centredThresholds, createCausalPicker } from './peakPicking'
+import { centredThresholds, createCausalPicker, gapInFrames, } from './peakPicking'
 
 /** The gain inside log(1 + gain * |X|). Puts music's typical bins, 1e-4 to
  *  1e-2 of full scale, on the logarithmic part of the curve. */
@@ -50,9 +50,10 @@ export function logSpectralFlux(
  * Onsets in a whole file, from its flux frame by frame. A frame is an onset
  * when its flux is a local peak that clears the mean + 1.5σ of the
  * ONSET_WINDOW_SECONDS around it by ONSET_MARGIN, at least
- * ONSET_MIN_GAP_SECONDS after the last onset. Flux is measured against the
- * track's loud onsets, its 99th percentile, and an onset's strength is that
- * ratio capped at 1. `fps` is the analyzer's real frame rate.
+ * ONSET_MIN_GAP_SECONDS after the last onset in whole frames (`gapInFrames`).
+ * Flux is measured against the track's loud onsets, its 99th percentile, and
+ * an onset's strength is that ratio capped at 1. `fps` is the analyzer's real
+ * frame rate.
  */
 export function detectOnsets(
   flux: ArrayLike<number>,
@@ -64,7 +65,7 @@ export function detectOnsets(
   const relative = Float64Array.from(flux, (value) => value / scale)
   const halfWidth = Math.max(1, Math.round((ONSET_WINDOW_SECONDS * fps) / 2))
   const thresholds = centredThresholds(relative, halfWidth, 1.5)
-  const minGap = Math.max(1, Math.round(ONSET_MIN_GAP_SECONDS * fps))
+  const minGap = gapInFrames(ONSET_MIN_GAP_SECONDS, fps)
   let last = -Infinity
   for (let i = 1; i < relative.length; i++) {
     const value = relative[i]!

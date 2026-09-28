@@ -56,6 +56,21 @@ describe('detectBeatFrames', () => {
     expect([...detectBeatFrames(at30, 30)]).toEqual([30, 33])
   })
 
+  it('rounds the minimum gap up to whole frames at 24 and 25 fps', () => {
+    // 0.1 s is 2.4 frames at 24 fps: two frames, 83 ms, is too soon; three is not.
+    const at24 = Array.from({ length: 96 }, () => 0)
+    at24[48] = 1
+    at24[50] = 1 // 83 ms later: too soon
+    at24[53] = 1 // 208 ms after the first: a beat
+    expect([...detectBeatFrames(at24, 24)]).toEqual([48, 53])
+    // 2.5 frames at 25 fps: two frames, 80 ms, is too soon; three, 120 ms, is not.
+    const at25 = Array.from({ length: 100 }, () => 0)
+    at25[50] = 1
+    at25[52] = 1 // 80 ms later: too soon
+    at25[55] = 1 // 200 ms after the first: a beat
+    expect([...detectBeatFrames(at25, 25)]).toEqual([50, 55])
+  })
+
   it('marks the frame where the flux peaks, not the first frame that rises', () => {
     const flux = Array.from({ length: 90 }, () => 0)
     flux[30] = 0.5 // the attack starts
