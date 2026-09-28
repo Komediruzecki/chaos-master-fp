@@ -2,7 +2,9 @@
 // target in from the authored value, starts over on reset, and takes a preset
 // change on the next step.
 import { describe, expect, it } from 'vitest'
+import { COMFORT_PRESETS } from '@/comfort/comfortPresets'
 import { createAudioModulator } from './audioModulator'
+import { applyAudioTargetValues } from './audioTargets'
 import { RENDER_PRESETS } from './audioWiringPresets'
 import type { AudioMappingEntry, AudioTargetValue, FlameTarget, FrameData, } from './audioMapping'
 
@@ -103,6 +105,44 @@ describe('createAudioModulator', () => {
     }
     expect({ silent, frames }).toEqual({ silent: 0, frames: 37 })
   })
+
+  it.each(COMFORT_PRESETS)(
+    "turns Pulse's bass row at sensitivity 2 back as soon as the bass drops, on %s",
+    (preset) => {
+      // The row asks vibrancy for up to 4.55 and the schema stops at 3.
+      // Governed out there, the value shown held at 3 until the governor was
+      // back under it: 4.2 s after the bass dropped on Standard. Now the
+      // row's own 160 ms release is all that delays it: the mapped value
+      // falls under 3 on the third quiet frame.
+      const row: AudioMappingEntry = {
+        ...RENDER_PRESETS.pulse[0]!,
+        sensitivity: 2,
+      }
+      const flame = { renderSettings: { vibrancy: 1 } }
+      const bass = (level: number) => ({
+        ...loud,
+        rms: 0,
+        bands: [0, level, 0, 0, 0, 0, 0, 0],
+      })
+      const modulator = createAudioModulator(preset)
+      const shownAt = (level: number) => {
+        const { values } = modulator.step(bass(level), [row], 1 / 30, flame)
+        const copy = structuredClone(flame)
+        applyAudioTargetValues(copy, values)
+        return {
+          governed: values[0]!.value,
+          shown: copy.renderSettings.vibrancy,
+        }
+      }
+      let top = 0
+      for (let frame = 0; frame < 30 * 25; frame++) {
+        top = Math.max(top, shownAt(1).governed)
+      }
+      let frames = 1
+      while (shownAt(0).shown >= 3 && frames < 30 * 30) frames++
+      expect({ top, frames }).toEqual({ top: 3, frames: 3 })
+    },
+  )
 
   it('applies a preset change on the next step', () => {
     const modulator = createAudioModulator('intense')

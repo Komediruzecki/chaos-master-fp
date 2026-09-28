@@ -3,7 +3,7 @@
 // allows; a brightness setting is also held to a peak-to-peak range inside any
 // 500 ms, and zoom to one inside any 5 s. It caps parameters, not the
 // luminance of the rendered frame.
-import { MIN_CAMERA_ZOOM_VALUE, numberDomainOf, RenderSettings, } from '@chaos-master/core'
+import { MAX_CAMERA_ZOOM_VALUE, MIN_CAMERA_ZOOM_VALUE, numberDomainOf, RenderSettings, } from '@chaos-master/core'
 import { COMFORT_CAPS } from './comfortPresets'
 import type { ComfortCaps, ComfortPreset } from './comfortPresets'
 import type { FlameTarget, RenderSettingKey, TransformPropertyKey, } from '@/utils/audioMapping'
@@ -23,22 +23,15 @@ const WINDOW_SLACK_SECONDS = 1e-6
 /** Floor for a transform probability, the one its writer holds it to. */
 export const PROBABILITY_FLOOR = 1e-3
 
-/** The least value the flame schema allows a render setting. */
-function schemaMinimum(param: 'contrast' | 'gamma'): number {
-  const min = numberDomainOf(RenderSettings.entries[param])?.min
-  if (min === undefined || !(min > 0)) {
-    throw new Error(`${param} needs a positive schema minimum`)
-  }
-  return min
-}
-
 /**
- * A target moves in its `space`: linear, or log for a setting that acts by
- * ratio, where it moves in ln units down to `floor` (ln 0 has no slew). The
- * floor is the least value the renderer can show, so the governor never
- * travels through values the writer would clamp away.
+ * A target moves in its `space`, held to `min` and `max`: linear, or log for
+ * a setting that acts by ratio, where it moves in ln units and `min` is above
+ * 0 (ln 0 has no slew). The bounds are what the renderer can show, the flame
+ * schema's range for a render setting, so the governor never travels through
+ * values the writer would clamp away: a row that asks past a bound turns
+ * back the frame its music does.
  */
-type Slew = { space: 'linear' } | { space: 'log'; floor: number }
+type Slew = { space: 'linear' | 'log'; min: number; max: number }
 
 type ComfortRule =
   | { kind: 'free' }
@@ -49,11 +42,44 @@ type ComfortRule =
       window?: { range: number; seconds: number }
     })
 
-const LINEAR: Slew = { space: 'linear' }
-const ZOOM: Slew = { space: 'log', floor: MIN_CAMERA_ZOOM_VALUE }
-const CONTRAST: Slew = { space: 'log', floor: schemaMinimum('contrast') }
-const GAMMA: Slew = { space: 'log', floor: schemaMinimum('gamma') }
-const PROBABILITY: Slew = { space: 'log', floor: PROBABILITY_FLOOR }
+/** The render settings a slew rule governs. */
+type SlewedSetting = Exclude<RenderSettingKey, 'palettePhase' | 'skipIters'>
+
+/** A render setting in `space`, held to the range the flame schema gives it. */
+function schemaSlew(param: SlewedSetting, space: Slew['space']): Slew {
+  const domain =
+    param === 'zoom'
+      ? { min: MIN_CAMERA_ZOOM_VALUE, max: MAX_CAMERA_ZOOM_VALUE }
+      : numberDomainOf(RenderSettings.entries[param])
+  const slew: Slew = {
+    space,
+    min: domain?.min ?? -Infinity,
+    max: domain?.max ?? Infinity,
+  }
+  if (space === 'log' && !(slew.min > 0)) {
+    throw new Error(`${param} needs a positive schema minimum`)
+  }
+  return slew
+}
+
+const RENDER_SLEWS: Record<SlewedSetting, Slew> = {
+  zoom: schemaSlew('zoom', 'log'),
+  contrast: schemaSlew('contrast', 'log'),
+  gamma: schemaSlew('gamma', 'log'),
+  exposure: schemaSlew('exposure', 'linear'),
+  vibrancy: schemaSlew('vibrancy', 'linear'),
+  highlightPower: schemaSlew('highlightPower', 'linear'),
+  lightPower: schemaSlew('lightPower', 'linear'),
+  depthColorPower: schemaSlew('depthColorPower', 'linear'),
+  paletteSpeed: schemaSlew('paletteSpeed', 'linear'),
+}
+
+const LINEAR: Slew = { space: 'linear', min: -Infinity, max: Infinity }
+const PROBABILITY: Slew = {
+  space: 'log',
+  min: PROBABILITY_FLOOR,
+  max: Infinity,
+}
 
 /**
  * A brightness setting, in the space where equal steps look equal on
@@ -81,7 +107,7 @@ function renderRule(param: RenderSettingKey, caps: ComfortCaps): ComfortRule {
       // A speed cap alone lets a slow breath swing as far as the row
       // reaches, so zoom is also held to a range inside any window.
       return {
-        ...ZOOM,
+        ...RENDER_SLEWS.zoom,
         kind: 'slew',
         rate: caps.zoomLogRate,
         window: {
@@ -92,21 +118,23 @@ function renderRule(param: RenderSettingKey, caps: ComfortCaps): ComfortRule {
     case 'palettePhase':
       return { kind: 'wrap', rate: caps.paletteTurnsPerSecond }
     case 'paletteSpeed':
-      return { ...LINEAR, kind: 'slew', rate: caps.paletteSpeedRate }
+      return {
+        ...RENDER_SLEWS.paletteSpeed,
+        kind: 'slew',
+        rate: caps.paletteSpeedRate,
+      }
     case 'skipIters':
       // Warm-up iterations change which points are plotted, not how fast
       // anything on screen moves.
       return { kind: 'free' }
     case 'contrast':
-      return brightnessRule(CONTRAST, caps)
     case 'gamma':
-      return brightnessRule(GAMMA, caps)
     case 'exposure':
     case 'vibrancy':
     case 'highlightPower':
     case 'lightPower':
     case 'depthColorPower':
-      return brightnessRule(LINEAR, caps)
+      return brightnessRule(RENDER_SLEWS[param], caps)
   }
 }
 
@@ -160,20 +188,25 @@ function fract(value: number): number {
   return f >= 1 ? 0 : f
 }
 
+function clamp(value: number, lo: number, hi: number): number {
+  return Math.min(hi, Math.max(lo, value))
+}
+
+/** `value` held to a slew rule's bounds; other rules take it as it is. */
+function held(rule: ComfortRule, value: number): number {
+  return rule.kind === 'slew' ? clamp(value, rule.min, rule.max) : value
+}
+
 function toCoordinate(rule: ComfortRule, value: number): number {
   if (rule.kind === 'wrap') return fract(value)
   if (rule.kind === 'slew' && rule.space === 'log') {
-    return Math.log(Math.max(value, rule.floor))
+    return Math.log(held(rule, value))
   }
-  return value
+  return held(rule, value)
 }
 
 function fromCoordinate(rule: ComfortRule, y: number): number {
   return rule.kind === 'slew' && rule.space === 'log' ? Math.exp(y) : y
-}
-
-function clamp(value: number, lo: number, hi: number): number {
-  return Math.min(hi, Math.max(lo, value))
 }
 
 /** Moves `state` one step of `h` seconds toward coordinate `u`. */
@@ -239,6 +272,11 @@ export type ComfortGovernor = {
    * instead of cutting to the mapped one. Without a seed the first value
    * passes through.
    *
+   * A value or seed past what the renderer can show, the schema's range for
+   * a render setting or the writer's floor for a probability, is taken at
+   * that bound, so a target asked past it turns back the frame it is asked
+   * to.
+   *
    * A non-finite `value` moves nothing: the target shows its last output,
    * or on a first step the seed, and the next finite value eases in from
    * there. Only with neither is there nothing finite to show, and the value
@@ -275,7 +313,7 @@ export function createComfortGovernor(initial: ComfortPreset): ComfortGovernor {
         if (state) return fromCoordinate(rule, state.y)
         const authored = seed?.()
         return authored !== undefined && Number.isFinite(authored)
-          ? authored
+          ? held(rule, authored)
           : value
       }
       const h = clamp(Number.isFinite(dt) ? dt : 0, 0, MAX_STEP_SECONDS)
@@ -287,7 +325,7 @@ export function createComfortGovernor(initial: ComfortPreset): ComfortGovernor {
       if (authored === undefined || !Number.isFinite(authored)) {
         const y = toCoordinate(rule, value)
         states.set(key, { y, t: 0, history: [{ t: 0, y }] })
-        return value
+        return held(rule, value)
       }
       const y = toCoordinate(rule, authored)
       const fresh: TargetState = { y, t: 0, history: [{ t: 0, y }] }

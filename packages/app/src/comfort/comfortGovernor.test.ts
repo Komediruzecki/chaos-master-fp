@@ -274,6 +274,58 @@ describe('the units the renderer shows', () => {
   })
 })
 
+describe('the schema range', () => {
+  // A row can ask past what the schema allows: sensitivity 2 on Pulse's bass
+  // row asks vibrancy for 4.55, and the schema stops at 3. Governed out
+  // there, the value the writer clamped did not move again until the
+  // governor was back inside, seconds after the music dropped. Each setting
+  // starts at its bound, is asked past it for two seconds, then back inside:
+  // it holds at the bound and turns back on the very next frame, one
+  // Standard step at 30 fps.
+  const step = COMFORT_CAPS.standard.brightnessRate / 30
+  const zoomStep = COMFORT_CAPS.standard.zoomLogRate / 30
+  const paletteStep = COMFORT_CAPS.standard.paletteSpeedRate / 30
+  it.each([
+    ['exposure', 8, 20, 0, 8 - step],
+    ['exposure', -8, -20, 0, -8 + step],
+    ['vibrancy', 3, 10, 1, 3 - step],
+    ['vibrancy', 0, -3, 1, step],
+    ['highlightPower', 2, 5, 1, 2 - step],
+    ['highlightPower', 0, -1, 1, step],
+    ['lightPower', 5, 9, 1, 5 - step],
+    ['depthColorPower', 5, 9, 1, 5 - step],
+    ['contrast', 20, 100, 1, 20 * Math.exp(-step)],
+    ['gamma', 8, 50, 1, 8 * Math.exp(-step)],
+    ['zoom', 500, 5000, 1, 500 * Math.exp(-zoomStep)],
+    ['paletteSpeed', 0, -2, 1, paletteStep],
+  ] as const)(
+    'holds %s at its schema bound %d and turns back the next frame',
+    (param, bound, beyond, inside, back) => {
+      const target: FlameTarget = { kind: 'renderSetting', param }
+      const governor = createComfortGovernor('standard')
+      let held = Number.NaN
+      for (let frame = 0; frame < 60; frame++) {
+        held = governor.step(target, param, beyond, 1 / 30, () => bound)
+      }
+      expect(held).toBeCloseTo(bound, 12)
+      expect(governor.step(target, param, inside, 1 / 30)).toBeCloseTo(back, 12)
+    },
+  )
+
+  it('starts an authored value past the schema from the bound', () => {
+    const vibrancy: FlameTarget = { kind: 'renderSetting', param: 'vibrancy' }
+    const governor = createComfortGovernor('standard')
+    expect(
+      governor.step(vibrancy, 'render.vibrancy', 1, 1 / 30, () => 3.5),
+    ).toBeCloseTo(2.98, 12)
+  })
+
+  it('passes a first value with no authored one through held to the schema', () => {
+    const governor = createComfortGovernor('standard')
+    expect(governor.step(exposure, 'render.exposure', 12, 1 / 30)).toBe(8)
+  })
+})
+
 describe('the zoom window', () => {
   // The old Drift row: mids mapped onto zoom [0.85, 1.22], on a flame
   // authored at 1.1. Breathing at 0.1-0.5 Hz is the zoom most likely to make
