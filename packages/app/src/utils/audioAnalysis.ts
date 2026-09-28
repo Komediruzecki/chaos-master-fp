@@ -287,8 +287,13 @@ export async function createAudioAnalyzer(
 
   return {
     getFrameData(frameIndex: number) {
-      const clampedIndex = Math.max(0, Math.min(frameIndex, totalFrames - 1))
-      return { ...frames[clampedIndex]!, isBeat: beatFrames.has(clampedIndex) }
+      // Any index reads a frame: NaN the first, a fraction the frame it is
+      // in, and past either end the frame at that end. A clip shorter than
+      // one frame has its one frame.
+      const index = Number.isNaN(frameIndex)
+        ? 0
+        : Math.max(0, Math.min(Math.floor(frameIndex), frames.length - 1))
+      return { ...frames[index]!, isBeat: beatFrames.has(index) }
     },
     totalFrames,
     duration,

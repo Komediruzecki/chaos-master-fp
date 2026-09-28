@@ -23,6 +23,21 @@ describe('the file analyzer', () => {
     expect(bass(59)).toBe(1)
   })
 
+  it('reads a frame at any index: NaN as the first, a fraction as the frame it is in', async () => {
+    // Shorter than one frame at 30 fps (1470 samples): its one frame.
+    const short = await createAudioAnalyzer(
+      audioBuffer(swellingTone().slice(0, 1000)),
+      30,
+    )
+    expect(short.totalFrames).toBe(0)
+    expect(short.getFrameData(Number.NaN).bands).toHaveLength(8)
+    expect(short.getFrameData(1.5).bands).toHaveLength(8)
+    const analyzer = await createAudioAnalyzer(audioBuffer(swellingTone()), 30)
+    expect(analyzer.getFrameData(Number.NaN)).toEqual(analyzer.getFrameData(0))
+    expect(analyzer.getFrameData(1.5)).toEqual(analyzer.getFrameData(1))
+    expect(analyzer.getFrameData(Infinity)).toEqual(analyzer.getFrameData(59))
+  })
+
   it('keeps rms as the raw level of the frame', async () => {
     const analyzer = await createAudioAnalyzer(audioBuffer(swellingTone()), 30)
     // The last frame, 1.967 s to 2 s, holds the tone at about -20.3 dB: an
