@@ -2,6 +2,7 @@ import { batch } from 'solid-js'
 import { deepClone } from '@/utils/clone'
 import { defaultConfig as defaultTimelineConfig } from '@/utils/timeline'
 import { useLoadFlameFromFile } from '@/utils/useLoadFlameFromFile'
+import type { AudioMapping } from '@/flame/schema/audioWiring'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 import type { RecordedSession } from '@/recorder/schema'
 import type { TimelineConfig, TimelineTrack } from '@/utils/timeline'
@@ -32,6 +33,8 @@ export function useAppDragAndDrop(
      *  practice: a load that says nothing about it leaves the workspace
      *  running the previous flame's frame rate and end frame. */
     config?: TimelineConfig
+    /** The audio wiring the file carried; the workspace makes it current. */
+    audio?: AudioMapping
   }) => void,
   /** Offered the session and source file carried by a dropped artifact. */
   onSessionDropped?: (
@@ -51,6 +54,7 @@ export function useAppDragAndDrop(
       return
     }
     const flame = result.flame
+    const audio = result.audio ? { audio: result.audio } : {}
     // The open document's unsaved work has to be somewhere it survives
     // before the batch below drops it. A no leaves the dropped file
     // unloaded and that work on screen, which is the point of asking - and
@@ -73,6 +77,7 @@ export function useAppDragAndDrop(
           ...(result.animation.config
             ? { config: result.animation.config }
             : {}),
+          ...audio,
         })
       } else {
         // Route through setLoadedAnimation like the LoadFlame modal: clears
@@ -84,6 +89,7 @@ export function useAppDragAndDrop(
           flame: deepClone(flame),
           tracks: [],
           config: defaultTimelineConfig(),
+          ...audio,
         })
       }
     })

@@ -13,7 +13,7 @@
   "packages/app/src/components/FlameRandomizerCard/FlameRandomizerCard.tsx": 1318,
   "packages/app/src/components/Home/HomeFlame.tsx": 1189,
   "packages/app/src/components/Home/HomeTab.tsx": 931,
-  "packages/app/src/components/LoadFlameModal/LoadFlameModal.tsx": 1353,
+  "packages/app/src/components/LoadFlameModal/LoadFlameModal.tsx": 1346,
   "packages/app/src/components/LogoFaviconGenerator/LogoFaviconGenerator.tsx": 1268,
   "packages/app/src/components/PopulationSimulator/PopulationSimulator.tsx": 924,
   "packages/app/src/components/SessionRecorder/SessionReplayPanel.tsx": 846,

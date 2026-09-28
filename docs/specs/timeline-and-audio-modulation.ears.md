@@ -74,6 +74,9 @@ not a gap.
   `packages/app/src/components/LoadFlameModal/flameLoad.test.ts`, `packages/app/src/lib/pauseSave.test.ts`
   and `packages/app/src/lib/workspaceHandoff.test.ts` — the audio wiring a Recents entry
   keeps, and every way an entry opens (REQ-TA-041)
+- `packages/app/src/utils/useLoadFlameFromFile.test.ts`, `packages/app/src/utils/useAppDragAndDrop.test.ts`
+  and `packages/app/src/utils/flameImport.test.ts` — a flame's JSON dropped on the canvas
+  opens as that flame, with its wiring (REQ-TA-041)
 - _Gap:_ nothing else tests `AudioWiringModal.tsx` (unit or e2e) — REQ-TA-035,
   REQ-TA-036 and REQ-TA-038 are entirely unguarded. `keyframeOnChange.ts` likewise has no test,
   so REQ-TA-020 is unguarded. See **Coverage gaps** at the end for the full list.
@@ -651,6 +654,11 @@ stored wiring that does not fit the wiring schema shall be dropped and its
 entry kept, and an entry written before entries carried wiring shall open with
 the workspace's wiring unchanged.
 
+**When** a flame's JSON that carries wiring (the share dialog's Copy JSON) is
+dropped on the canvas or opened from the Library, the workspace shall open the
+flame and make the wiring current the same way. A dropped JSON file shall open
+as a flame when it holds one, and as a steps session only when it does not.
+
 _(`jsonQueryParam.ts:174-191` (`buildSharePayload`), `:294` (`parseAudioWiring`),
 `audioWiringParse.ts:8-14` (`parseAudioWiring`), `lib/audioWiringLoad.ts:13-19` (`restoreLoadedAudioWiring`),
 `MainWorkspace.tsx:3004` (`restoreLoadedAudioWiring`), `ShareLinkModal.tsx:56-59` (`sharedAudioWiring`); guarded by
@@ -669,6 +677,14 @@ _(`recentFlames.ts:128-140` (`readStoredEntry`), `useWorkspaceAutosave.ts:138` (
 `flameLoad.test.ts:35` "carries the audio wiring, even for an entry with no animation",
 `pauseSave.test.ts:520` "reopens it with the audio wiring it was kept with" and
 `workspaceHandoff.test.ts:119` "arrives with the flame, and a later seeding without one clears it".)_
+
+_(`useLoadFlameFromFile.ts:29-46` (`readFlameJson`), `:84` (`readFlameJson`), `flameImport.ts:161` (`parseAudioWiring`),
+`useAppDragAndDrop.ts:57` (`audio`); guarded by
+`useLoadFlameFromFile.test.ts:64` "opens a bare flame descriptor as that flame",
+`:70` "opens a share payload with its animation and audio wiring",
+`:79` "still opens a steps session as a session",
+`useAppDragAndDrop.test.ts:46` "hands the dropped flame its audio wiring" and
+`flameImport.test.ts:159` "drops audio wiring that does not fit, and keeps the flame".)_
 
 ---
 

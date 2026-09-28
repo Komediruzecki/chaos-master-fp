@@ -784,18 +784,11 @@ export function LoadFlameModal(props: LoadFlameModalProps) {
       )
       return
     }
-    // The timeline travels with the flame whether or not there are tracks: a
-    // flame with none still has a frame rate and an end frame, and the
-    // workspace applies what it is handed (MainWorkspace's animation effect).
-    if ((parsed.tracks && parsed.tracks.length > 0) || parsed.config) {
-      props.respond({
-        flame: parsed.flame,
-        tracks: parsed.tracks ?? [],
-        ...(parsed.config ? { config: parsed.config } : {}),
-      })
-      return
-    }
-    props.respond(parsed.flame)
+    // The timeline and the wiring travel with the flame whether or not there
+    // are tracks: a flame with none still has a frame rate and an end frame,
+    // and the workspace applies what it is handed (MainWorkspace's animation
+    // effect).
+    props.respond(flameLoadOf(parsed))
   }
 
   /** Bulk path: store every dropped flame in Recent flames and leave the

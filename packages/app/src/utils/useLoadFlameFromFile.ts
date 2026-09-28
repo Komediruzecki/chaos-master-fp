@@ -1,8 +1,10 @@
 import { useAlert } from '@/components/Modal/useAlert'
 import { MAX_SESSION_JSON_CHARS, parseSession, validateSession, } from '@/recorder/schema'
+import { parseFlameEnvelope } from './flameImport'
 import { extractMetadataFromMp4 } from './flameInMp4'
 import { extractFlameFromPng, extractStepsFromPng } from './flameInPng'
-import type { SharePayload } from './jsonQueryParam'
+import type { TimelineConfig, TimelineTrack } from './timeline'
+import type { AudioMapping } from '@/flame/schema/audioWiring'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 import type { RecordedSession } from '@/recorder/schema'
 
@@ -10,10 +12,37 @@ export type FlameLoadResult = {
   /** Absent when the file was a bare `.steps.json`: there is a session to
    *  replay but no flame to load. */
   flame?: FlameDescriptor
-  animation?: SharePayload['animation']
+  /** The config is absent when the file carried none. */
+  animation?: { tracks: TimelineTrack[]; config?: TimelineConfig }
+  /** The audio wiring a flame's JSON carries (a share payload's Copy JSON). */
+  audio?: AudioMapping
   /** The session that produced this flame, when the PNG carries one — the
    *  caller can then offer to replay how it was made (M5). */
   session?: RecordedSession
+}
+
+/**
+ * A JSON file read as a flame: a bare descriptor, a share payload or a Recents
+ * record, with whatever animation and wiring it carries. Undefined when the
+ * text holds no schema-valid flame, which is what a steps session is.
+ */
+function readFlameJson(text: string): FlameLoadResult | undefined {
+  let raw: unknown
+  try {
+    raw = JSON.parse(text)
+  } catch {
+    return undefined
+  }
+  const parsed = parseFlameEnvelope(raw)
+  if (!parsed) return undefined
+  const { flame, tracks, config, audio } = parsed
+  return {
+    flame,
+    ...(tracks || config
+      ? { animation: { tracks: tracks ?? [], config } }
+      : {}),
+    ...(audio ? { audio } : {}),
+  }
 }
 
 // Flame/animation files carry small embedded metadata; a legitimately large
@@ -44,12 +73,17 @@ export function useLoadFlameFromFile() {
     }
     const arrBuf = new Uint8Array(arrayBuffer)
 
-    // A dropped .steps.json is a session on its own — no flame to load, so
-    // the caller gets one to replay against whatever is open. Validated the
-    // same way as a session from a PNG: unknown format versions and initial
-    // flames that fail the schema are refused.
+    // A JSON file is a flame when it holds one: a descriptor, a share
+    // payload's Copy JSON, a Recents record. Otherwise it is a dropped
+    // .steps.json, a session on its own with no flame to load, so the caller
+    // gets one to replay against whatever is open. Validated the same way as
+    // a session from a PNG: unknown format versions and initial flames that
+    // fail the schema are refused.
     if (isJson) {
-      const session = parseSession(new TextDecoder().decode(arrBuf))
+      const text = new TextDecoder().decode(arrBuf)
+      const flame = readFlameJson(text)
+      if (flame) return flame
+      const session = parseSession(text)
       if (session) return { session }
       await alert(`No valid flame or steps found in '${file.name}'.`)
       return
