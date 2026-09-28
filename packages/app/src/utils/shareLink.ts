@@ -2,6 +2,7 @@ import { trackFlameShortened, trackOgPreviewGenerated } from '@/lib/telemetry'
 import { ShareApi } from './apiClient'
 import { blobToBase64 } from './blob'
 import { encodeJsonQueryParam, encodeSharePayload } from './jsonQueryParam'
+import type { AudioMapping } from '@/flame/schema/audioWiring'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 import type { CustomVariationDef } from '@/flame/variations/custom'
 import type { TimelineConfig, TimelineTrack } from '@/utils/timeline'
@@ -51,11 +52,14 @@ export async function encodeShareUrl(opts: {
   flame: FlameDescriptor
   animation?: ShareAnimation
   customVariations?: CustomVariationDef[]
+  /** Audio wiring rows to send along; the recipient's audio stays off. */
+  audio?: AudioMapping
 }): Promise<{ encoded: string; longUrl: string }> {
   const encoded = await encodeSharePayload(
     opts.flame,
     opts.animation,
     opts.customVariations,
+    opts.audio,
   )
   return { encoded, longUrl: `${globalThis.location.origin}/?flame=${encoded}` }
 }
@@ -82,6 +86,7 @@ export async function createShareLink(opts: {
   flame: FlameDescriptor
   animation?: ShareAnimation
   customVariations?: CustomVariationDef[]
+  audio?: AudioMapping
 }): Promise<ShareLink> {
   const { encoded, longUrl } = await encodeShareUrl(opts)
   const shortUrl = await shortenShareUrl(encoded)

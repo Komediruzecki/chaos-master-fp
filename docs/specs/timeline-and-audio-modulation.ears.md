@@ -64,6 +64,12 @@ not a gap.
 - `packages/app/src/components/AudioWiringModal/AudioWiringModal.import.test.tsx` —
   an import that does not fit, or that the workspace refuses, keeps the panel open
   (REQ-TA-037)
+- `packages/app/src/utils/jsonQueryParam.test.ts` — the audio wiring in a share link:
+  carried, dropped on its own when it does not fit, absent from older links (REQ-TA-041)
+- `packages/app/src/components/ShareLinkModal/ShareLinkModal.test.tsx` — the share
+  dialog's audio wiring switch (REQ-TA-041)
+- `packages/app/src/lib/audioWiringLoad.test.ts` — putting loaded wiring back never
+  switches audio on (REQ-TA-041)
 - _Gap:_ nothing else tests `AudioWiringModal.tsx` (unit or e2e) — REQ-TA-035,
   REQ-TA-036 and REQ-TA-038 are entirely unguarded. `keyframeOnChange.ts` likewise has no test,
   so REQ-TA-020 is unguarded. See **Coverage gaps** at the end for the full list.
@@ -391,7 +397,7 @@ or unmount; only `loadTracks`, `clearAllTracks` and the Home hand-off reset shal
 clear `previewHeld`.
 
 _(`utils/timeline.ts:1437-1505` (`advanceFrame`), `:1710-1711` (`clearAllTracks`), `:1755-1756` (`loadTracks`);
-`useSeekScrubber.ts:11-17` (`finishSeek`), `:33-36` (`finishSeek`), `:68-70` (`onCleanup`); `MainWorkspace.tsx:2388-2394` (`pause`).)_
+`useSeekScrubber.ts:11-17` (`finishSeek`), `:33-36` (`finishSeek`), `:68-70` (`onCleanup`); `MainWorkspace.tsx:2390-2396` (`pause`).)_
 
 ### REQ-TA-026 — Playback advances at the configured rate, or on quality with Auto FPS
 
@@ -617,6 +623,28 @@ _(`audioTargets.ts:66-81` (`targetTransform`), `:87-105` (`targetVariation`), `a
 `:152` "goes inert when its transform or variation is gone", `audioTargetIds.test.ts:130` "takes wiring from another flame by position",
 `AudioReactivePanel.rows.test.tsx:75` "says so when the transform a row drives was deleted" and
 `AudioWiringModal.paste.test.tsx:46` "names the transform the wiring is pasted onto".)_
+
+### Wiring that travels with a flame
+
+### REQ-TA-041 — Audio wiring travels with a flame, and never switches audio on
+
+**When** the share dialog makes a link and the workspace has audio wiring, the
+dialog shall offer to send the wiring along, switched on, and the link shall
+carry the rows only while it is on. **When** a share link that carries wiring
+opens, the workspace shall make that wiring current and leave audio off if it
+was off. **If** the carried wiring does not fit the wiring schema, **then** the
+workspace shall drop the wiring and still open the flame. A link that carries
+no wiring, including every link made before links could, shall leave the
+workspace's wiring as it is.
+
+_(`jsonQueryParam.ts:174-191` (`buildSharePayload`), `:294` (`parseAudioWiring`),
+`audioWiringParse.ts:8-14` (`parseAudioWiring`), `lib/audioWiringLoad.ts:13-19` (`restoreLoadedAudioWiring`),
+`MainWorkspace.tsx:2997` (`restoreLoadedAudioWiring`), `ShareLinkModal.tsx:56-59` (`sharedAudioWiring`); guarded by
+`jsonQueryParam.test.ts:50` "travels with the flame",
+`:58` "is dropped on its own when it does not fit, and the flame still opens",
+`:70` "is absent from a link made before links carried it",
+`ShareLinkModal.test.tsx:96` "sends the wiring along until it is switched off" and
+`lib/audioWiringLoad.test.ts:47` "puts the rows back and leaves audio off".)_
 
 ---
 

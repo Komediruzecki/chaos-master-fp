@@ -9,6 +9,7 @@ import { useKeyframeTarget } from '@/contexts/KeyframeTargetContext'
 import { useToast } from '@/contexts/ToastContext'
 import { detectSymmetryFolds, detectSymmetryType, } from '@/flame/symmetryDetection'
 import { setActiveTab, workspaceIsVisible } from '@/lib/activeTab'
+import { restoreLoadedAudioWiring } from '@/lib/audioWiringLoad'
 import { createBackLayer } from '@/lib/backStack'
 import { SHOWCASE_CONSENT_VERSION } from '@/lib/communityShowcase'
 import { replaceOpenDocument } from '@/lib/documentLoad'
@@ -1792,6 +1793,7 @@ export function MainWorkspace(props: AppProps) {
     () => timeline.config(),
     captureOgImageBlob,
     blendPick.end,
+    () => audioMapping(),
   )
 
   const { showDiscordShareModal } = createLazyDiscordShareModal()
@@ -2992,6 +2994,7 @@ export function MainWorkspace(props: AppProps) {
         timeline.goToFrame(0)
         timeline.play()
       }
+      restoreLoadedAudioWiring(cmdContext, data.audio)
       // A shared link is a fresh starting point for dirty tracking.
       markLoadedBaseline()
     } catch (err) {

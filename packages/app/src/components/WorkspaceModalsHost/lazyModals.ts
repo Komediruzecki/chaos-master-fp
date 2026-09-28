@@ -12,6 +12,7 @@ import type { createShareLinkModal } from '@/components/ShareLinkModal/ShareLink
 import type { createShareVariationLinkModal, createShareVariationLoadModal, } from '@/components/ShareVariationModal/ShareVariationModal'
 import type { Theme } from '@/contexts/ThemeContext'
 import type { Palette } from '@/flame/colorMap'
+import type { AudioMapping } from '@/flame/schema/audioWiring'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 import type { CustomVariationDef } from '@/flame/variations/custom'
 import type { HardwareTier } from '@/utils/hardwareTier'
@@ -167,6 +168,8 @@ export function createLazyShareLinkModal(
   /** Ends the gallery's hover preview, before the modal reads the document
    *  and captures the canvas for the link's preview card. */
   endPreview?: () => void,
+  /** The audio wiring the dialog offers to send along. */
+  getAudioWiring?: () => AudioMapping,
 ) {
   const owner = getOwner()
   let instancePromise: Promise<ReturnType<typeof createShareLinkModal>> | null =
@@ -185,6 +188,7 @@ export function createLazyShareLinkModal(
                   getTracks,
                   getConfig,
                   captureOgImage,
+                  getAudioWiring,
                 ),
               )!,
           )
