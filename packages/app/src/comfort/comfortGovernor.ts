@@ -290,6 +290,8 @@ export type ComfortGovernor = {
     dt: number,
     seed?: () => number | undefined,
   ): number
+  /** The window the current preset holds `target` to, if it has one. */
+  window(target: FlameTarget): { range: number; seconds: number } | undefined
   /** Forgets one target: its next step starts over. */
   forget(key: string): void
   /** Forgets every target: the next step of each starts over. */
@@ -332,6 +334,10 @@ export function createComfortGovernor(initial: ComfortPreset): ComfortGovernor {
       states.set(key, fresh)
       advance(rule, fresh, toCoordinate(rule, value), h)
       return fromCoordinate(rule, fresh.y)
+    },
+    window(target) {
+      const rule = comfortRule(target, COMFORT_CAPS[current])
+      return rule.kind === 'slew' ? rule.window : undefined
     },
     forget(key) {
       states.delete(key)

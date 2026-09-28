@@ -2,7 +2,7 @@
 // target in from the authored value, starts over on reset, and takes a preset
 // change on the next step.
 import { describe, expect, it } from 'vitest'
-import { COMFORT_PRESETS } from '@/comfort/comfortPresets'
+import { COMFORT_CAPS, COMFORT_PRESETS } from '@/comfort/comfortPresets'
 import { createAudioModulator } from './audioModulator'
 import { applyAudioTargetValues } from './audioTargets'
 import { RENDER_PRESETS } from './audioWiringPresets'
@@ -211,7 +211,42 @@ describe('createAudioModulator', () => {
     expect(worstSwing(series, 15)).toBeCloseTo(0.18, 9)
   })
 
-  it('starts over from the authored value once a departed target is home', () => {
+  it.each(
+    COMFORT_PRESETS.flatMap((preset) =>
+      [0, 3, 6].map((after) => [preset, after] as const),
+    ),
+  )(
+    'keeps the window of a target home from its release when it returns, on %s %i frames after',
+    (preset, after) => {
+      // Loud climbs exposure above the authored 2, the row leaves and
+      // exposure is governed home, then the row returns on a quiet frame and
+      // pulls the other way. Forgotten on arrival, the window started over
+      // at 2 and allowed a full range down on top of the range the release
+      // had just come down: 0.30 inside 500 ms on Standard, 0.70 on Intense.
+      const flame = { renderSettings: { exposure: 2 } }
+      const quiet = { ...loud, rms: 0 }
+      const modulator = createAudioModulator(preset)
+      const series = [2]
+      const run = (
+        frame: typeof loud,
+        wiring: AudioMappingEntry[],
+      ): AudioTargetValue[] => {
+        const { values } = modulator.step(frame, wiring, 1 / 30, flame)
+        series.push(shown(values, 'exposure', 2))
+        return values
+      }
+      for (let frame = 0; frame < 30 * 3; frame++) run(loud, [rmsToExposure])
+      let frames = 0
+      while (run(loud, []).length > 0 && frames < 30 * 30) frames++
+      for (let frame = 0; frame < after; frame++) run(loud, [])
+      for (let frame = 0; frame < 30 * 2; frame++) run(quiet, [rmsToExposure])
+      const { brightnessWindowRange } = COMFORT_CAPS[preset]
+      expect(frames).toBeLessThan(30 * 30)
+      expect(worstSwing(series, 15)).toBeCloseTo(brightnessWindowRange, 9)
+    },
+  )
+
+  it('starts over from the authored value once a departed target has rested home for a window', () => {
     const modulator = createAudioModulator('standard')
     for (let frame = 0; frame < 60; frame++) {
       modulator.step(loud, [rmsToExposure], 1 / 30, authored)

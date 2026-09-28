@@ -16,9 +16,11 @@ export type AudioModulator = {
    * A target whose mapping leaves `mappings` stays in the values, governed
    * back to its value in `baseline`, until it is within its mapping's dirty
    * threshold of it; one that returns before then turns round from where it
-   * is on screen. A departing target `baseline` no longer carries leaves at
-   * once: there is nothing to bring it home to. No value comes out that is
-   * not finite.
+   * is on screen. Home, it leaves the values but is still stepped there for
+   * one comfort window, so one that returns inside that window is held to
+   * the outputs its release showed. A departing target `baseline` no longer
+   * carries leaves at once: there is nothing to bring it home to. No value
+   * comes out that is not finite.
    */
   step(
     frame: FrameData & { isBeat: boolean },
@@ -45,8 +47,12 @@ export function analyzerFrameRate(
   return sampleRate / Math.floor(sampleRate / requestedFps)
 }
 
-/** A target the previous step governed, and the dirty threshold of the mapping that won it. */
-type Governed = { target: FlameTarget; threshold: number }
+/**
+ * A target the previous step governed, and the dirty threshold of the
+ * mapping that won it. `rested` is set once a departing target is home and
+ * off the overlay: the seconds it has been stepped there since.
+ */
+type Governed = { target: FlameTarget; threshold: number; rested?: number }
 
 /** How far apart two values of `target` are on screen: palettePhase wraps at 1. */
 function apart(target: FlameTarget, a: number, b: number): number {
@@ -100,19 +106,38 @@ export function createAudioModulator(preset: ComfortPreset): AudioModulator {
       }
       for (const [key, departing] of governed) {
         if (next.has(key)) continue
-        const { target, threshold } = departing
+        const { target, threshold, rested } = departing
         const home = authored(target)
-        const value =
-          home === undefined ? undefined : governor.step(target, key, home, h)
-        if (
-          home === undefined ||
-          value === undefined ||
-          apart(target, value, home) < threshold
-        ) {
-          // Home, or nowhere left to go: the overlay shows the flame's own
-          // value from the next publish on.
+        if (home === undefined) {
+          // Nowhere left to go: gone at once, from the overlay too.
           forget(key)
+          if (rested === undefined) changed = true
+          continue
+        }
+        const value = governor.step(target, key, home, h)
+        if (rested !== undefined) {
+          // Home and off the overlay, it is stepped there until nothing it
+          // showed on the way is left in its window. Forgotten on arrival,
+          // one that came back inside the window started a fresh one, and
+          // could swing a full range on top of the release.
+          const now = rested + h
+          if (now < (governor.window(target)?.seconds ?? 0)) {
+            next.set(key, { target, threshold, rested: now })
+          } else {
+            governor.forget(key)
+          }
+          continue
+        }
+        if (apart(target, value, home) < threshold) {
+          // Home: the overlay shows the flame's own value from the next
+          // publish on, and a return starts a fresh envelope.
+          smoothing.delete(key)
           changed = true
+          if (governor.window(target)) {
+            next.set(key, { target, threshold, rested: 0 })
+          } else {
+            governor.forget(key)
+          }
           continue
         }
         const lastOutput = smoothing.get(key)?.lastOutput
