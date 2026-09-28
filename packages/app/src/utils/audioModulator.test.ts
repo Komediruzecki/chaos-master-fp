@@ -3,7 +3,8 @@
 // change on the next step.
 import { describe, expect, it } from 'vitest'
 import { createAudioModulator } from './audioModulator'
-import type { AudioMappingEntry, FrameData } from './audioMapping'
+import { RENDER_PRESETS } from './audioWiringPresets'
+import type { AudioMappingEntry, AudioTargetValue, FlameTarget, FrameData, } from './audioMapping'
 
 const loud: FrameData & { isBeat: boolean } = {
   bands: [0, 0, 0, 0, 0, 0, 0, 0],
@@ -22,6 +23,32 @@ const rmsToExposure: AudioMappingEntry = {
 }
 
 const authored = { renderSettings: { exposure: 0.2 } }
+
+/**
+ * What the overlay shows for `param` this frame: the value the modulator
+ * wrote, or the authored one where it wrote none.
+ */
+function shown(
+  values: readonly AudioTargetValue[],
+  param: string,
+  fallback: number,
+): number {
+  const written = values.filter(
+    ({ target }) => target.kind === 'renderSetting' && target.param === param,
+  )
+  return written.at(-1)?.value ?? fallback
+}
+
+/** The widest swing between two outputs at most `span` frames apart. */
+function worstSwing(series: readonly number[], span: number): number {
+  let worst = 0
+  for (let i = 0; i < series.length; i++) {
+    for (let j = i + 1; j <= Math.min(series.length - 1, i + span); j++) {
+      worst = Math.max(worst, Math.abs(series[i]! - series[j]!))
+    }
+  }
+  return worst
+}
 
 describe('createAudioModulator', () => {
   it('eases a target in from its authored value', () => {
@@ -82,5 +109,138 @@ describe('createAudioModulator', () => {
     modulator.setPreset('calm')
     const { values } = modulator.step(loud, [rmsToExposure], 1 / 30, authored)
     expect(values[0]!.value).toBeCloseTo(0.21, 12)
+  })
+
+  it('takes a negative step as no time, for the envelope as for the governor', () => {
+    // A rise stepped by minus the attack time divided the envelope by zero
+    // and left NaN in it, and the governor then held the target still for
+    // good.
+    const row: AudioMappingEntry = {
+      ...rmsToExposure,
+      attackMs: 40,
+      releaseMs: 220,
+    }
+    const quiet = { ...loud, rms: 0 }
+    const modulator = createAudioModulator('standard')
+    const at = (frame: typeof loud, dt: number) =>
+      modulator.step(frame, [row], dt, authored).values[0]!.value
+    const first = at(quiet, 1 / 30)
+    const held = at(loud, -0.04)
+    const next = at(loud, 1 / 30)
+    expect(first).toBeCloseTo(0.18, 12)
+    expect(held).toBe(first)
+    expect(next).toBeCloseTo(0.2, 12)
+  })
+
+  it('governs a departing target back to its authored value', () => {
+    // Two seconds of rms 1 on a [0, 4] row climb exposure from 0.2 at
+    // Standard's window rate, 0.18 per 500 ms, to 0.92. With the row gone,
+    // exposure comes home the same way: four drops of 0.18, each nine frames
+    // of 0.02 starting 15 frames apart, so it is home on frame 54. It stays
+    // in the values until then and leaves them on arrival.
+    const modulator = createAudioModulator('standard')
+    const series = [0.2]
+    for (let frame = 0; frame < 60; frame++) {
+      const { values } = modulator.step(loud, [rmsToExposure], 1 / 30, authored)
+      series.push(shown(values, 'exposure', 0.2))
+    }
+    const top = series.at(-1)!
+    let frames = 0
+    let values: AudioTargetValue[] = []
+    do {
+      values = modulator.step(loud, [], 1 / 30, authored).values
+      series.push(shown(values, 'exposure', 0.2))
+      frames++
+    } while (values.length > 0 && frames < 30 * 30)
+    expect(top).toBeCloseTo(0.92, 12)
+    expect(frames).toBe(54)
+    expect(worstSwing(series, 15)).toBeCloseTo(0.18, 9)
+  })
+
+  it('eases a target back in when its mapping returns', () => {
+    // The row leaves for 300 ms and comes back: exposure turns round from
+    // where it is on screen instead of cutting to the authored value and back.
+    const modulator = createAudioModulator('standard')
+    const series = [0.2]
+    const wiring = (frame: number) =>
+      frame < 60 || frame >= 69 ? [rmsToExposure] : []
+    for (let frame = 0; frame < 120; frame++) {
+      const { values } = modulator.step(loud, wiring(frame), 1 / 30, authored)
+      series.push(shown(values, 'exposure', 0.2))
+    }
+    expect(worstSwing(series, 15)).toBeCloseTo(0.18, 9)
+  })
+
+  it('starts over from the authored value once a departed target is home', () => {
+    const modulator = createAudioModulator('standard')
+    for (let frame = 0; frame < 60; frame++) {
+      modulator.step(loud, [rmsToExposure], 1 / 30, authored)
+    }
+    for (let frame = 0; frame < 90; frame++) {
+      modulator.step(loud, [], 1 / 30, authored)
+    }
+    const { values } = modulator.step(loud, [rmsToExposure], 1 / 30, authored)
+    expect(shown(values, 'exposure', Number.NaN)).toBeCloseTo(0.22, 12)
+  })
+
+  it('drops a departing target whose transform is gone at once', () => {
+    const a: FlameTarget = {
+      kind: 'transformAffine',
+      transformIdx: 0,
+      transformId: 't0',
+      matrix: 'preAffine',
+      param: 'a',
+    }
+    const row: AudioMappingEntry = {
+      audioFeature: 'rms',
+      target: a,
+      sensitivity: 1,
+      range: [1, 2],
+    }
+    const flame = { transforms: { t0: { preAffine: { a: 1 } } } }
+    const modulator = createAudioModulator('standard')
+    for (let frame = 0; frame < 30; frame++) {
+      modulator.step(loud, [row], 1 / 30, flame)
+    }
+    const gone = modulator.step(loud, [], 1 / 30, { transforms: {} })
+    const back = modulator.step(loud, [], 1 / 30, flame)
+    expect(gone.values).toEqual([])
+    expect(back.values).toEqual([])
+  })
+
+  it('switches Bloom to Drift and back inside 300 ms without a flash', () => {
+    // Standard, the schema's default exposure 0.25, every feature steady at
+    // 0.8: Bloom holds exposure at 1.64. Drift wires no exposure, so for
+    // 300 ms exposure heads home, and Bloom turns it round from there.
+    const steady: FrameData & { isBeat: boolean } = {
+      bands: [0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8],
+      rms: 0.8,
+      centroid: 0.8 * 20000,
+      flatness: 0.8,
+      onsetStrength: 0.8,
+      isBeat: false,
+    }
+    const flame = {
+      renderSettings: {
+        exposure: 0.25,
+        vibrancy: 1,
+        contrast: 1,
+        palettePhase: 0,
+        paletteSpeed: 1,
+        camera: { zoom: 1 },
+      },
+    }
+    const modulator = createAudioModulator('standard')
+    const series = [0.25]
+    for (let frame = 1; frame <= 30 * 11; frame++) {
+      const wiring =
+        frame > 300 && frame <= 309
+          ? RENDER_PRESETS.drift
+          : RENDER_PRESETS.bloom
+      const { values } = modulator.step(steady, wiring, 1 / 30, flame)
+      series.push(shown(values, 'exposure', 0.25))
+    }
+    expect(series[300]).toBeCloseTo(1.64, 12)
+    expect(worstSwing(series, 15)).toBeCloseTo(0.18, 9)
   })
 })

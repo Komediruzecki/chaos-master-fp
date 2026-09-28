@@ -101,6 +101,24 @@ export function useAudioReactive(
     modulator.reset()
   }
 
+  /**
+   * Publish a stepped frame, or take the overlay down once nothing is left
+   * on it. With every mapping unwired while audio runs, the targets they
+   * drove are still on screen: the modulator governs them home first, and
+   * only an empty frame with nothing wired lets the overlay go.
+   */
+  function settleModulation(
+    wired: number,
+    values: AudioTargetValue[],
+    changed: boolean,
+  ) {
+    if (wired === 0 && values.length === 0) {
+      dropModulation()
+      return
+    }
+    publishModulation(values, changed)
+  }
+
   function stopSource() {
     if (!sourceNode) return
     try {
@@ -240,25 +258,18 @@ export function useAudioReactive(
               analyzer.totalFrames
             : frame
 
-        if (mappings.length > 0) {
-          const now = globalThis.performance.now()
-          const dt =
-            lastTickTime !== undefined ? (now - lastTickTime) / 1000 : 1 / 30
-          lastTickTime = now
-          const frameData = analyzer.getFrameData(
-            wrapped % analyzer.totalFrames,
-          )
-          const { values, changed } = modulator.step(
-            frameData,
-            mappings,
-            dt,
-            baselineFlame(),
-          )
-          publishModulation(values, changed)
-        } else {
-          // Every mapping was unwired while the track kept playing.
-          dropModulation()
-        }
+        const now = globalThis.performance.now()
+        const dt =
+          lastTickTime !== undefined ? (now - lastTickTime) / 1000 : 1 / 30
+        lastTickTime = now
+        const frameData = analyzer.getFrameData(wrapped % analyzer.totalFrames)
+        const { values, changed } = modulator.step(
+          frameData,
+          mappings,
+          dt,
+          baselineFlame(),
+        )
+        settleModulation(mappings.length, values, changed)
       }, tickMs)
 
       onCleanup(() => {
@@ -287,10 +298,6 @@ export function useAudioReactive(
           return
         }
         const mappings = audioMapping().mappings
-        if (mappings.length === 0) {
-          dropModulation()
-          return
-        }
         const now = globalThis.performance.now()
         const dt =
           lastTickTime !== undefined ? (now - lastTickTime) / 1000 : 1 / 30
@@ -302,7 +309,7 @@ export function useAudioReactive(
           dt,
           baselineFlame(),
         )
-        publishModulation(values, changed)
+        settleModulation(mappings.length, values, changed)
       }, tickMs)
 
       onCleanup(() => {

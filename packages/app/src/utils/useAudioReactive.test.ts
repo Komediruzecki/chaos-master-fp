@@ -204,3 +204,63 @@ describe('the comfort preset', () => {
     dispose()
   })
 })
+
+describe('a mapping removed while audio runs', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('governs its target home before the overlay comes down', async () => {
+    vi.useFakeTimers()
+    let dispose = () => {}
+    let setWiring: ((value: AudioMapping) => AudioMapping) | undefined
+    const published: (AudioTargetValue[] | undefined)[] = []
+    createRoot((rootDispose) => {
+      dispose = rootDispose
+      const [wiring, updateWiring] = createSignal(mapping)
+      setWiring = updateWiring
+      useAudioReactive(
+        () => true,
+        () => undefined,
+        wiring,
+        (values) => {
+          published.push(values)
+        },
+        () => mic,
+        () => 'mic',
+        () => false,
+        () => null,
+        () => undefined,
+        () => undefined,
+        () => false,
+        () => ({ renderSettings: { vibrancy: 2 } }),
+      )
+    })
+    await Promise.resolve()
+    if (!setWiring) throw new Error('audio test did not initialize')
+
+    // Two seconds take vibrancy from the authored 2 toward the row's 1 at
+    // Standard's window rate, 0.18 per 500 ms.
+    vi.advanceTimersByTime(2000)
+    const wired = published.length
+    setWiring({ preset: 'custom', mappings: [] })
+    vi.advanceTimersByTime(4000)
+
+    const onScreen = published.map((values) => values?.[0]?.value ?? 2)
+    const steps = onScreen
+      .slice(1)
+      .map((value, i) => Math.abs(value - onScreen[i]!))
+    expect(onScreen[wired - 1]).toBeCloseTo(1.2818, 12)
+    // Home at the rate it left, and only then does the overlay come down.
+    // A frame is published once its move passes the row's dirty threshold,
+    // 0.002, so one publish can carry that much on top of a capped step of
+    // 0.6 a second over a 34 ms tick.
+    expect(published.length - wired).toBe(36)
+    expect(Math.max(...steps)).toBeLessThanOrEqual(0.6 * 0.034 + 0.002)
+    expect(published.at(-1)).toBeUndefined()
+    expect(
+      published.slice(wired, -1).every((values) => values?.length === 1),
+    ).toBe(true)
+    dispose()
+  })
+})

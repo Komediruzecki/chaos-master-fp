@@ -252,6 +252,8 @@ export type ComfortGovernor = {
     dt: number,
     seed?: () => number | undefined,
   ): number
+  /** Forgets one target: its next step starts over. */
+  forget(key: string): void
   /** Forgets every target: the next step of each starts over. */
   reset(): void
 }
@@ -292,6 +294,9 @@ export function createComfortGovernor(initial: ComfortPreset): ComfortGovernor {
       states.set(key, fresh)
       advance(rule, fresh, toCoordinate(rule, value), h)
       return fromCoordinate(rule, fresh.y)
+    },
+    forget(key) {
+      states.delete(key)
     },
     reset() {
       states.clear()
