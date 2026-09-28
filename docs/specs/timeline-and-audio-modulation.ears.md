@@ -29,7 +29,7 @@ not a gap.
 - `packages/app/src/utils/audioAnalysis.ts` — FFT bands, beat/onset detection, the
   file and live analyzers, `getAudioFeatureNormalized`, `applyAudioMappingsToFlame`
 - `packages/core/src/audio/` — the pure signal steps the analyzers share: band levels
-  (`bandNormalization.ts`)
+  (`bandNormalization.ts`) and beat picking (`peakPicking.ts`)
 - `packages/app/src/utils/useAudioReactive.ts` — the 30 Hz transport + modulation loop
 - `packages/app/src/utils/audioWiringPresets.ts` — render-only and flame-aware presets
 - `packages/app/src/components/AudioWiringModal/AudioWiringModal.tsx` — the wiring editor
@@ -52,8 +52,10 @@ not a gap.
   attack/release envelope, dirty-check
 - `packages/core/src/audio/bandNormalization.test.ts` — band levels in decibels against
   a track's own range
+- `packages/core/src/audio/peakPicking.test.ts` — beats against a threshold that
+  follows the music, and a minimum gap held in seconds
 - `packages/app/src/utils/audioAnalysis.test.ts` — the file analyzer on synthetic
-  signals: band levels and the raw `rms`
+  signals: band levels, the raw `rms` and beats
 - `packages/app/src/utils/audioMappingClamp.test.ts` — schema clamping, integer
   `skipIters`, probability floor, degenerate ranges
 - `packages/app/src/utils/audioWiringPresets.test.ts` — preset determinism, targets that
@@ -452,19 +454,27 @@ than 45 dB below the top and a span of at least 6 dB), `rms` as the raw frame
 level capped at 1 (never normalised like the bands, so wirings made before band
 levels keep their ranges), `centroid` divided by 20 kHz and
 capped, `flatness` as computed, `onset` as its rolling-median strength, and
-`beat` as `1` on a detected beat and `0` otherwise. An unrecognised feature name
+`beat` as `1` on a detected beat and `0` otherwise, a beat being a rise of the
+band flux above the mean + 1.5σ of the 4 s around it, at least 0.1 s after the
+last one at the analyzer's real frame rate. An unrecognised feature name
 shall yield `0`.
 
-_(`audioMapping.ts:151-173` (`getAudioFeatureNormalized`), `audioAnalysis.ts:103-157` (`getFftBands`); beats at `:185-227` (`computeBeats`) — spectral-flux peaks
-above `mean + 1.5σ` with a 100 ms minimum gap; onsets at `:235-276` (`computeOnsetStrengths`).)_
+_(`audioMapping.ts:151-173` (`getAudioFeatureNormalized`), `audioAnalysis.ts:103-157` (`getFftBands`); beats at `:187-204` (`computeBeats`), picked by
+`peakPicking.ts:51-70` (`detectBeatFrames`) at the rate `audioAnalysis.ts:325` (`fps`) gives; onsets at `:212-253` (`computeOnsetStrengths`).)_
 
 _(Band levels at `bandNormalization.ts:44-49` (`trackBandRange`), put on every frame of
-a file at `audioAnalysis.ts:358` (`normalizeTrackBands`); the raw `rms` at `:329`
+a file at `audioAnalysis.ts:338` (`normalizeTrackBands`); the raw `rms` at `:306`
 (`computeRms`). Guarded by `bandNormalization.test.ts:36` "reads the 10th percentile
 as 0 and the 98th as 1", `:45` "keeps the zero within 45 dB of the top, so a silent
-intro does not squash the music", `audioAnalysis.test.ts:32` "reads a band from 0 to 1
-over the range it covers in its track" and `:40` "keeps rms as the raw level of the
+intro does not squash the music", `audioAnalysis.test.ts:71` "reads a band from 0 to 1
+over the range it covers in its track" and `:79` "keeps rms as the raw level of the
 frame".)_
+
+_(Beats guarded by `peakPicking.test.ts:37` "keeps the beats of a quiet passage that
+follows a loud one", `:47` "holds the minimum gap at 0.1 s whatever the frame rate",
+`:59` "marks the frame where the flux peaks, not the first frame that rises",
+`audioAnalysis.test.ts:86` "keeps the beats of a quiet passage that follows a loud
+one" and `:103` "holds the minimum gap between beats at 0.1 s at 60 fps".)_
 
 ### REQ-TA-029 — Attack and release are a one-pole envelope on the normalized feature
 

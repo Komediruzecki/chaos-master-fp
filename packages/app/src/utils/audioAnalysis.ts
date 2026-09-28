@@ -2,7 +2,7 @@
 // live microphone. The mapping stage (audioMapping.ts) and the flame writers
 // (audioTargets.ts) are re-exported from here, so importers keep one path.
 
-import { normalizeTrackBands } from '@chaos-master/core'
+import { detectBeatFrames, normalizeTrackBands } from '@chaos-master/core'
 import type { FrameData } from './audioMapping'
 
 export * from './audioMapping'
@@ -182,48 +182,25 @@ export async function decodeAudioFile(file: File): Promise<AudioBuffer> {
 
 // --- Beat detection ---
 
+/** Beats from the rise of the raw bands frame to frame (band flux), picked
+ *  against the music around each frame at the analyzer's real frame rate. */
 function computeBeats(
   totalFrames: number,
   getData: (i: number) => { bands: number[]; rms: number },
+  fps: number,
 ): Set<number> {
-  const beats = new Set<number>()
-  if (totalFrames < 2) return beats
-
-  const flux: number[] = []
-  for (let i = 0; i < totalFrames; i++) {
+  const flux = new Float64Array(totalFrames)
+  for (let i = 1; i < totalFrames; i++) {
     const data = getData(i)
-    if (i === 0) {
-      flux.push(0)
-    } else {
-      const prev = getData(i - 1)
-      let diff = 0
-      for (let b = 0; b < BAND_COUNT; b++) {
-        const d = (data.bands[b] ?? 0) - (prev.bands[b] ?? 0)
-        if (d > 0) diff += d
-      }
-      flux.push(diff)
+    const prev = getData(i - 1)
+    let diff = 0
+    for (let b = 0; b < BAND_COUNT; b++) {
+      const d = (data.bands[b] ?? 0) - (prev.bands[b] ?? 0)
+      if (d > 0) diff += d
     }
+    flux[i] = diff
   }
-
-  const mean = flux.reduce((a, b) => a + b, 0) / flux.length
-  const variance = flux.reduce((a, b) => a + (b - mean) ** 2, 0) / flux.length
-  const threshold = mean + 1.5 * Math.sqrt(variance)
-
-  const minGapFrames = Math.max(1, Math.floor(0.1 * 30))
-  let lastBeatFrame = -minGapFrames
-
-  for (let i = 1; i < flux.length; i++) {
-    if (
-      flux[i]! > threshold &&
-      flux[i]! > flux[i - 1]! &&
-      i - lastBeatFrame >= minGapFrames
-    ) {
-      beats.add(i)
-      lastBeatFrame = i
-    }
-  }
-
-  return beats
+  return detectBeatFrames(flux, fps)
 }
 
 // --- Onset detection ---
@@ -343,7 +320,10 @@ export async function createAudioAnalyzer(
     }
   }
 
-  const beatFrames = computeBeats(totalFrames, getOrComputeFrame)
+  // The real frame rate: a frame is a whole number of samples, so 44.1 kHz at
+  // 24 fps runs at 24.006 frames a second, not 24.
+  const fps = sampleRate / samplesPerFrame
+  const beatFrames = computeBeats(totalFrames, getOrComputeFrame, fps)
 
   // Compute onset strengths and patch into frame cache
   const onsetStrengths = computeOnsetStrengths(totalFrames, getOrComputeFrame)
@@ -380,11 +360,15 @@ function nextPowerOfTwo(n: number): number {
   return p
 }
 
-export function detectBeats(frames: FrameData[]): Set<number> {
-  return computeBeats(frames.length, (i) => {
-    const fd = frames[i]!
-    return { bands: fd.bands, rms: fd.rms }
-  })
+export function detectBeats(frames: FrameData[], fps: number): Set<number> {
+  return computeBeats(
+    frames.length,
+    (i) => {
+      const fd = frames[i]!
+      return { bands: fd.bands, rms: fd.rms }
+    },
+    fps,
+  )
 }
 
 // --- Live microphone analyzer ---
