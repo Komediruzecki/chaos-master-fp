@@ -38,7 +38,8 @@ export type AudioModulator = {
  * The frame rate a file analyzer built for `requestedFps` runs at. A frame is
  * a whole number of samples, so 44.1 kHz asked for 24 fps runs at 24.0065
  * frames a second, and 48 kHz asked for 54 at 54.054. A stream over a file
- * steps its frames at this rate, live and in an export alike.
+ * steps every one of its frames: live one analyzer frame long each, and in
+ * an export sharing the time of the output frame they fall in.
  */
 export function analyzerFrameRate(
   sampleRate: number,
@@ -64,6 +65,13 @@ function apart(target: FlameTarget, a: number, b: number): number {
   return Math.min(turn, 1 - turn)
 }
 
+/**
+ * One frame of a target whose mapping has left: `shown` while it is still on
+ * the overlay, `kept` while it is still governed, and `changed` when the
+ * overlay changes for it.
+ */
+type Release = { shown?: number; kept?: Governed; changed: boolean }
+
 export function createAudioModulator(preset: ComfortPreset): AudioModulator {
   const smoothing: MappingSmoothingState = new Map()
   const governor = createComfortGovernor(preset)
@@ -72,6 +80,61 @@ export function createAudioModulator(preset: ComfortPreset): AudioModulator {
   function forget(key: string): void {
     smoothing.delete(key)
     governor.forget(key)
+  }
+
+  /** Steps `departing` toward `home`, its value in the authored flame. */
+  function release(
+    key: string,
+    departing: Governed,
+    home: number | undefined,
+    h: number,
+  ): Release {
+    const { target, threshold, rested } = departing
+    if (home === undefined) {
+      // Nowhere left to go: gone at once, from the overlay too.
+      forget(key)
+      return { changed: rested === undefined }
+    }
+    const value = governor.step(target, key, home, h)
+    if (rested !== undefined) {
+      // Home and off the overlay, it is stepped there until nothing it
+      // showed on the way is left in its window. Forgotten on arrival, one
+      // that came back inside the window started a fresh one, and could
+      // swing a full range on top of the release.
+      const now = rested + h
+      if (now < (governor.window(target)?.seconds ?? 0)) {
+        return { kept: { target, threshold, rested: now }, changed: false }
+      }
+      governor.forget(key)
+      return { changed: false }
+    }
+    // A home the target cannot show, a probability authored under the
+    // writer's floor or a value past the schema, is reached at the bound.
+    if (apart(target, value, governor.reachable(target, home)) < threshold) {
+      // Home: the overlay shows the flame's own value from the next publish
+      // on, and a return starts a fresh envelope.
+      smoothing.delete(key)
+      if (governor.window(target)) {
+        return { kept: { target, threshold, rested: 0 }, changed: true }
+      }
+      governor.forget(key)
+      return { changed: true }
+    }
+    if (governor.window(target)?.range === 0) {
+      // The preset holds this target still (Calm, zoom) and so can never
+      // govern it home: it cuts to the flame's own value, and a return
+      // starts over from there.
+      forget(key)
+      return { changed: true }
+    }
+    const lastOutput = smoothing.get(key)?.lastOutput
+    return {
+      shown: value,
+      kept: departing,
+      changed:
+        lastOutput === undefined ||
+        apart(target, value, lastOutput) >= threshold,
+    }
   }
 
   return {
@@ -106,61 +169,11 @@ export function createAudioModulator(preset: ComfortPreset): AudioModulator {
       }
       for (const [key, departing] of governed) {
         if (next.has(key)) continue
-        const { target, threshold, rested } = departing
-        const home = authored(target)
-        if (home === undefined) {
-          // Nowhere left to go: gone at once, from the overlay too.
-          forget(key)
-          if (rested === undefined) changed = true
-          continue
-        }
-        const value = governor.step(target, key, home, h)
-        if (rested !== undefined) {
-          // Home and off the overlay, it is stepped there until nothing it
-          // showed on the way is left in its window. Forgotten on arrival,
-          // one that came back inside the window started a fresh one, and
-          // could swing a full range on top of the release.
-          const now = rested + h
-          if (now < (governor.window(target)?.seconds ?? 0)) {
-            next.set(key, { target, threshold, rested: now })
-          } else {
-            governor.forget(key)
-          }
-          continue
-        }
-        // A home the target cannot show, a probability authored under the
-        // writer's floor or a value past the schema, is reached at the bound.
-        if (
-          apart(target, value, governor.reachable(target, home)) < threshold
-        ) {
-          // Home: the overlay shows the flame's own value from the next
-          // publish on, and a return starts a fresh envelope.
-          smoothing.delete(key)
-          changed = true
-          if (governor.window(target)) {
-            next.set(key, { target, threshold, rested: 0 })
-          } else {
-            governor.forget(key)
-          }
-          continue
-        }
-        if (governor.window(target)?.range === 0) {
-          // The preset holds this target still (Calm, zoom) and so can never
-          // govern it home: it cuts to the flame's own value, and a return
-          // starts over from there.
-          forget(key)
-          changed = true
-          continue
-        }
-        const lastOutput = smoothing.get(key)?.lastOutput
-        if (
-          lastOutput === undefined ||
-          apart(target, value, lastOutput) >= threshold
-        ) {
-          changed = true
-        }
-        values.push({ target, value })
-        next.set(key, departing)
+        const { target } = departing
+        const step = release(key, departing, authored(target), h)
+        if (step.changed) changed = true
+        if (step.shown !== undefined) values.push({ target, value: step.shown })
+        if (step.kept) next.set(key, step.kept)
       }
       governed = next
 
