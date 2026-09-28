@@ -8,6 +8,7 @@ import { ALWAYS_ALLOWED, BEATS_ALLOWED, BEATS_STEP_BUDGET, PRESENTATION_SWITCHES
 import { executeCommand } from '@/commands/registry'
 import { captureGlideSwitches } from '@/flame/glide/runtime'
 import { AudioMapping, AudioPreset } from '@/flame/schema/audioWiring'
+import { FLAME_PRESET_IDS, PRESET_DESCRIPTIONS, RENDER_PRESET_IDS, } from '@/utils/audioWiringPresets'
 import * as v from '@/valibot'
 import { getWebMcpContext } from '@/webmcp/contextBridge'
 import type { CommandContext } from '@/commands/types'
@@ -59,33 +60,14 @@ const AUDIO_FEATURE_DESCRIPTIONS = [
   },
 ] as const
 
+// Built from audioWiringPresets.ts, the single source of truth for what each
+// preset actually wires — a hand-written copy here drifted out of sync with
+// the presets themselves (Drift described as affine rotation and translation,
+// which no Drift row has ever driven).
 const AUDIO_PRESET_DESCRIPTIONS = [
-  {
-    id: 'pulse',
-    description: 'Bass-driven scale expansion and exposure breathing',
-  },
-  {
-    id: 'bloom',
-    description: 'Mid-range color blossoming and palette speed sweeps',
-  },
-  {
-    id: 'drift',
-    description: 'Subtle affine rotation and translation floating with melody',
-  },
-  {
-    id: 'structure',
-    description:
-      'Beat-synced transform probability and variation weight shifts',
-  },
-  {
-    id: 'morph',
-    description: 'Energetic geometry morphing between non-linear variations',
-  },
-  {
-    id: 'swarm',
-    description: 'High-frequency particle vibrancy and fast color modulation',
-  },
-] as const
+  ...RENDER_PRESET_IDS,
+  ...FLAME_PRESET_IDS,
+].map((id) => ({ id, description: PRESET_DESCRIPTIONS[id] }))
 
 /**
  * Make sure a decoded track is loaded before a Beats session starts. Without

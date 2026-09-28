@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { MAX_SKIP_ITERS_VALUE } from '@/flame/schema/flameSchema'
-import { flameTargetKey } from './audioAnalysis'
-import { buildFlamePreset, buildPreset, FLAME_PRESET_IDS, randomizeMappings, RENDER_PRESET_IDS, } from './audioWiringPresets'
+import { flameTargetKey, flameTargetPath } from './audioAnalysis'
+import { buildFlamePreset, buildPreset, defaultAudioMapping, FLAME_PRESET_IDS, randomizeMappings, RENDER_PRESET_IDS, RENDER_PRESETS, } from './audioWiringPresets'
 import type { TransformInfo } from './audioAnalysis'
 
 function transforms(count: number, variationsEach = 2): TransformInfo[] {
@@ -215,5 +215,109 @@ describe('preset ranges stay inside the flame schema', () => {
         expect(m.range[1]).toBeLessThanOrEqual(bound[1])
       }
     }
+  })
+})
+
+// zoom is an absolute value, not a relative one: a row driving it walks the
+// render toward the row's own range regardless of what the flame was
+// authored at, and snaps back the moment audio stops. Drift used to carry
+// exactly this row ([1, 1.02]) — a flame authored at 0.36 crept to 0.74 over
+// 180 s of steady audio. No built-in or randomized preset should drive it.
+describe('zoom targets', () => {
+  it('no preset drives the absolute zoom render setting', () => {
+    const rows = [
+      ...RENDER_PRESET_IDS.flatMap((id) => buildPreset(id, [])),
+      ...FLAME_PRESET_IDS.flatMap((id) => buildFlamePreset(id, transforms(4))),
+      ...Array.from({ length: 60 }, (_, seed) =>
+        randomizeMappings(transforms(4), seeded(seed)),
+      ).flat(),
+    ].filter(
+      (m) => m.target.kind === 'renderSetting' && m.target.param === 'zoom',
+    )
+    expect(rows).toEqual([])
+  })
+})
+
+// x' = a x + b y + c, y' = d x + e y + f: `a` and `e` are the diagonal, so a
+// scale drives those two. `d` is a shear term.
+describe('the scale presets drive the affine diagonal', () => {
+  it('swarm scales each transform through a and e', () => {
+    const affine = buildFlamePreset('swarm', transforms(2))
+      .filter((m) => m.target.kind === 'transformAffine')
+      .map((m) => flameTargetPath(m.target))
+    expect(affine).toEqual([
+      'tx.0.preAffine.a',
+      'tx.0.preAffine.e',
+      'tx.1.preAffine.a',
+      'tx.1.preAffine.e',
+    ])
+  })
+
+  it('randomize only ever scales through a and e', () => {
+    const params = new Set<string>()
+    for (let seed = 1; seed <= 300; seed++) {
+      for (const m of randomizeMappings(transforms(4), seeded(seed))) {
+        if (m.target.kind === 'transformAffine') params.add(m.target.param)
+      }
+    }
+    expect([...params].sort()).toEqual(['a', 'e'])
+  })
+})
+
+describe('presets name what they wire by id', () => {
+  it('every transform target carries its transform id, and a weight its variation id', () => {
+    const tf = transforms(3)
+    const built = [
+      ...FLAME_PRESET_IDS.flatMap((id) => buildFlamePreset(id, tf)),
+      ...randomizeMappings(tf, seeded(7)),
+    ]
+    for (const { target } of built) {
+      if (!('transformIdx' in target)) continue
+      expect(target.transformId).toBe(tf[target.transformIdx]!.id)
+      if (target.kind === 'variationWeight') {
+        const variation = tf[target.transformIdx]!.variations.find(
+          (candidate) => candidate.id === target.variationId,
+        )
+        expect(variation?.type).toBe(target.variationType)
+      }
+    }
+  })
+})
+
+// The shader wraps palettePhase at 1, so the old [0, 3.14] default swept the
+// palette about three turns forward and back on every kick.
+describe('the default wiring', () => {
+  it('nudges the palette on a beat instead of cycling it', () => {
+    const beat = RENDER_PRESETS.pulse.find(
+      (m) =>
+        m.audioFeature === 'beat' &&
+        m.target.kind === 'renderSetting' &&
+        m.target.param === 'palettePhase',
+    )
+    expect(beat).toMatchObject({
+      range: [0, 0.12],
+      attackMs: 60,
+      releaseMs: 900,
+    })
+  })
+
+  it('wires colour and the palette, and leaves brightness as authored', () => {
+    expect(
+      RENDER_PRESETS.pulse.map((m) => [
+        m.audioFeature,
+        flameTargetPath(m.target),
+        m.range,
+      ]),
+    ).toEqual([
+      ['bass', 'render.vibrancy', [0.25, 2.4]],
+      ['beat', 'render.palettePhase', [0, 0.12]],
+    ])
+  })
+
+  it('is the pulse preset, as a copy the caller may edit', () => {
+    const mapping = defaultAudioMapping()
+    expect(mapping).toEqual({ preset: 'pulse', mappings: RENDER_PRESETS.pulse })
+    mapping.mappings[0]!.sensitivity = 5
+    expect(RENDER_PRESETS.pulse[0]!.sensitivity).toBe(1)
   })
 })

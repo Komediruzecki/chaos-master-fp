@@ -1,9 +1,11 @@
+import { comfortPreset } from '@/comfort/comfortPreference'
 import { DEBUG_MODE } from '@/defaults'
 import { accumulatedPointCount, forceAnimationExportNow, qualityPointCountLimit, setAnimationExportCancel, setAnimationExportProgress, setAnimationExportRunning, setExportAccumulationFraction, setExportQuality, setForceAnimationExportNow, } from '@/flame/renderStats'
 import { DEFAULT_SHUTTER_ANGLE, subFrameLimit, subFrameOffsets, } from '@/utils/motionBlur'
-import { applyAudioMappingsToFlame, createAudioAnalyzer } from './audioAnalysis'
+import { createAudioAnalyzer } from './audioAnalysis'
 import { createAudioVideoEncoder } from './audioExport'
 import { deepClone } from './clone'
+import { createExportAudioModulation } from './exportAudioModulation'
 import { createMetadataPayload, injectMetadataIntoMp4 } from './flameInMp4'
 import { formatPointCount } from './formatPointCount'
 import { logTime } from './logTime'
@@ -120,6 +122,17 @@ export function createAnimationExport(
       config.audioBuffer && config.audioMapping?.length
         ? await createAudioAnalyzer(config.audioBuffer, config.fps)
         : undefined
+    // Fresh per export and stepped at the export's frame rate: the envelopes
+    // and comfort caps the live preview applies, frame for frame.
+    const audioModulation =
+      audioAnalyzer && config.audioMapping
+        ? createExportAudioModulation(
+            audioAnalyzer,
+            config.audioMapping,
+            config.fps,
+            comfortPreset(),
+          )
+        : undefined
 
     return new Promise<Blob>((resolve, reject) => {
       let frameIndex = 0
@@ -199,16 +212,8 @@ export function createAnimationExport(
           const flameClone = deepClone(baseFlame)
           applyTimelineToFlameAtFrame(timeline, flameClone, subFrame)
 
-          // Apply audio-reactive mappings if configured
-          if (audioAnalyzer && config.audioMapping) {
-            const audioFrame = frameIndex % audioAnalyzer.totalFrames
-            const frameData = audioAnalyzer.getFrameData(audioFrame)
-            applyAudioMappingsToFlame(
-              flameClone,
-              frameData,
-              config.audioMapping,
-            )
-          }
+          // Audio stays on the whole output frame, sub-frames included.
+          audioModulation?.applyTo(flameClone, frameIndex)
 
           // Set flame descriptor to the per-frame clone so Flam3 picks it up
           setFlameDescriptor((draft) => {

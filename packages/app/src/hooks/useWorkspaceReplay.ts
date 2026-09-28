@@ -8,6 +8,7 @@ import { timelineReplayPlayback } from '@/recorder/replayPlayback'
 import { normalizeReplayPresentation, replaySideStateChanged, } from '@/recorder/replaySideState'
 import { createReplayVideoJobSpec, replayVideoFileName, } from '@/recorder/replayVideo'
 import { shouldRevealSonificationAfterReplay } from '@/recorder/sonificationState'
+import { keyLegacyWiring } from '@/utils/audioTargetIds'
 import { downloadBlob } from '@/utils/blob'
 import { deepClone } from '@/utils/clone'
 import { enqueueAnimationJob } from '@/utils/exportJobs'
@@ -285,7 +286,11 @@ export function useWorkspaceReplay(params: UseWorkspaceReplayParams) {
         hasLiveAnalyzer: audio.hasLiveAnalyzer(),
       },
       {
-        setMapping: audio.setMapping,
+        // A session saved before targets carried keys names transforms by
+        // position; they get the keys of what sits there now, like every
+        // other way wiring is set (commands/builtins/audio.ts).
+        setMapping: (mapping) =>
+          audio.setMapping(keyLegacyWiring(mapping, () => flameDescriptor)),
         setSource: audio.setSource,
         setEnabled: audio.setEnabled,
       },
@@ -307,7 +312,6 @@ export function useWorkspaceReplay(params: UseWorkspaceReplayParams) {
     if (state.timeline.previewHeld !== undefined) {
       timeline.setPreviewHeld(state.timeline.previewHeld)
     }
-    applyReplayAudioState(state.audio)
     if (state.view.qualityPreset in qualityPresets) {
       view.setQualityPreset(state.view.qualityPreset as QualityPreset)
     }
@@ -321,6 +325,9 @@ export function useWorkspaceReplay(params: UseWorkspaceReplayParams) {
     view.setShowSidebar(state.view.sidebarOpen)
 
     history.replaceSilently(state.flame)
+    // After the flame: a legacy row is keyed against the flame it is restored
+    // with, not the one on screen before the undo or redo.
+    applyReplayAudioState(state.audio)
 
     const pres = normalizeReplayPresentation(state.presentation, state.flame)
     presentation.setSidebarHidden(pres.sidebarHidden)

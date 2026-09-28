@@ -3,6 +3,7 @@ import { isFlameXmlContent, parseFlameXml, registerImportedFlamePalette, } from 
 import { tryValidateFlame } from '@/flame/schema/flameSchema'
 import { TimelineSnapshotConfig, TimelineTrack } from '@/flame/schema/timeline'
 import * as v from '@/valibot'
+import { parseAudioWiring } from './audioWiringParse'
 import { blobToBase64 } from './blob'
 import { extractFlameFromPng } from './flameInPng'
 import { addHistoryEntries, loadHistoryEntries, MAX_LOGO_HISTORY, } from './logoHistoryDB'
@@ -11,6 +12,7 @@ import { loadRecentFlamesForRewrite, MAX_RECENT_FLAMES, newRecentFlameId, saveRe
 import type { BackupGroups } from './flameBackup'
 import type { RecentFlame } from './recentFlames'
 import type { TimelineConfig } from './timeline'
+import type { AudioMapping } from '@/flame/schema/audioWiring'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 
 /** Effectively "all" — every store is capped well below this. */
@@ -75,6 +77,9 @@ export type ParsedFlame = {
   /** The timeline the animation was authored at: fps, speed, the end frame
    *  and the loop mode. Absent in envelopes written before it was stored. */
   config?: TimelineConfig
+  /** The audio wiring a share payload's JSON carries. Dropped on its own
+   *  when it does not fit the wiring schema. */
+  audio?: AudioMapping
 }
 
 /** Top-level backup folder -> destination store. */
@@ -153,6 +158,8 @@ export function parseFlameEnvelope(raw: unknown): ParsedFlame | undefined {
   if (tracks) parsed.tracks = tracks
   const config = parseConfig(animation?.config)
   if (config) parsed.config = config
+  const audio = parseAudioWiring(envelope.audio)
+  if (audio) parsed.audio = audio
   return parsed
 }
 

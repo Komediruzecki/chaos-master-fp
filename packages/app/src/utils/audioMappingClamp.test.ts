@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { validateFlame } from '@/flame/schema/flameSchema'
-import { applyAudioMappingsToFlame } from './audioAnalysis'
-import type { AudioMappingEntry, FrameData } from './audioAnalysis'
+import { applyAudioTargetValues, resolveAudioMappingValues, } from './audioAnalysis'
+import type { AudioMappingEntry, FrameData, MappingSmoothingState, } from './audioAnalysis'
 
 /** A frame where every feature reads full scale, so mappings hit their max. */
 const LOUD: FrameData & { isBeat: boolean } = {
@@ -19,6 +19,24 @@ const LOUD: FrameData & { isBeat: boolean } = {
   onset: 1,
   isBeat: true,
 } as unknown as FrameData & { isBeat: boolean }
+
+/**
+ * Settles `mappings` for one frame and writes the values into `flame`: the
+ * mapping stage and the writers, without the comfort governor, which has
+ * tests of its own.
+ */
+function settleInto(
+  flame: Record<string, unknown>,
+  frame: FrameData & { isBeat: boolean },
+  mappings: AudioMappingEntry[],
+  smoothing?: MappingSmoothingState,
+  dt?: number,
+): void {
+  applyAudioTargetValues(
+    flame,
+    resolveAudioMappingValues(frame, mappings, smoothing, dt).values,
+  )
+}
 
 function flame() {
   return validateFlame({
@@ -61,7 +79,7 @@ describe('audio modulation cannot corrupt the flame', () => {
    */
   it('keeps a wildly out-of-range palettePhase valid', () => {
     const f = flame()
-    applyAudioMappingsToFlame(f, LOUD, map('palettePhase', [0, 6.28]))
+    settleInto(f, LOUD, map('palettePhase', [0, 6.28]))
     expect(() => validateFlame(f)).not.toThrow()
     const rs = f.renderSettings as Record<string, number>
     expect(rs.palettePhase).toBeLessThanOrEqual(1)
@@ -75,7 +93,7 @@ describe('audio modulation cannot corrupt the flame', () => {
     ['highlightPower', [0, 50] as [number, number], 2],
   ])('clamps %s to its schema maximum', (param, range, max) => {
     const f = flame()
-    applyAudioMappingsToFlame(f, LOUD, map(param, range))
+    settleInto(f, LOUD, map(param, range))
     expect(() => validateFlame(f)).not.toThrow()
     expect(
       (f.renderSettings as Record<string, number>)[param],
@@ -89,19 +107,19 @@ describe('audio modulation cannot corrupt the flame', () => {
    */
   it('floors skipIters the way the renderer reads it', () => {
     const f = flame()
-    applyAudioMappingsToFlame(f, LOUD, map('skipIters', [0, 7.9]))
+    settleInto(f, LOUD, map('skipIters', [0, 7.9]))
     expect((f.renderSettings as Record<string, number>).skipIters).toBe(7)
   })
 
   it('wraps palettePhase instead of stopping it at the end', () => {
     const f = flame()
-    applyAudioMappingsToFlame(f, LOUD, map('palettePhase', [0, 1.25]))
+    settleInto(f, LOUD, map('palettePhase', [0, 1.25]))
     expect((f.renderSettings as Record<string, number>).palettePhase).toBe(0.25)
   })
 
   it('keeps skipIters an integer, as the schema demands', () => {
     const f = flame()
-    applyAudioMappingsToFlame(f, LOUD, map('skipIters', [0, 7.5]))
+    settleInto(f, LOUD, map('skipIters', [0, 7.5]))
     expect(() => validateFlame(f)).not.toThrow()
     expect(
       Number.isInteger((f.renderSettings as Record<string, number>).skipIters),
@@ -116,7 +134,7 @@ describe('audio modulation cannot corrupt the flame', () => {
    */
   it('never drives a transform probability to zero or below', () => {
     const f = flame()
-    applyAudioMappingsToFlame(f, { ...LOUD, rms: 0 }, [
+    settleInto(f, { ...LOUD, rms: 0 }, [
       {
         audioFeature: 'rms',
         target: {
@@ -142,14 +160,14 @@ describe('audio modulation cannot corrupt the flame', () => {
     ['contrast', 0.01],
   ])('keeps %s valid when its range is degenerate', (param, min) => {
     const f = flame()
-    applyAudioMappingsToFlame(f, LOUD, map(param, [NaN, NaN]))
+    settleInto(f, LOUD, map(param, [NaN, NaN]))
     expect(() => validateFlame(f)).not.toThrow()
     expect((f.renderSettings as Record<string, number>)[param]).toBe(min)
   })
 
   it('survives a degenerate range without writing NaN', () => {
     const f = flame()
-    applyAudioMappingsToFlame(f, LOUD, map('vibrancy', [NaN, NaN]))
+    settleInto(f, LOUD, map('vibrancy', [NaN, NaN]))
     expect(() => validateFlame(f)).not.toThrow()
     expect(
       Number.isFinite((f.renderSettings as Record<string, number>).vibrancy),

@@ -10,6 +10,7 @@ import { useLifecyclePorts } from './lifecycle'
 import { installPauseSave, LEGACY_DRAFT_KEY, migrateLegacyDraft, reopenTarget, stopPauseSave, takePauseSaveEviction, takePauseSaveFailure, } from './pauseSave'
 import { createWorkspaceHandoff } from './workspaceHandoff'
 import type { LifecyclePorts } from '@chaos-master/mobile-runtime/lifecycle'
+import type { AudioMapping } from '@/flame/schema/audioWiring'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 import type { TimelineConfig, TimelineTrack } from '@/utils/timeline'
 
@@ -125,7 +126,10 @@ const keepUnsaved = () => Promise.resolve(false)
  * a hand-off lands the flame in one effect and its animation in another, and
  * a pause can fall between the two.
  */
-const workspace = (open: FlameDescriptor = flame) => {
+const workspace = (
+  open: FlameDescriptor = flame,
+  wiring?: () => AudioMapping,
+) => {
   const [flameStore, setOpen] = createStore<FlameDescriptor>(
     JSON.parse(JSON.stringify(open)),
   )
@@ -136,6 +140,7 @@ const workspace = (open: FlameDescriptor = flame) => {
     flameDescriptor: flameStore,
     getTracks: liveTracks,
     getConfig: liveConfig,
+    getAudioMapping: wiring,
     agentDriving: () => false,
     confirmOverwriteOldest: declineOverwrite,
     confirmDiscardUnsaved: keepUnsaved,
@@ -510,6 +515,30 @@ describe('where the next launch lands', () => {
     expect(reopen?.tracks?.[0]?.parameterPath).toBe(tracks[0]?.parameterPath)
     expect(reopen?.config?.fps).toBe(60)
     expect(reopen?.config?.endFrame).toBe(300)
+  })
+
+  it('reopens it with the audio wiring it was kept with', () => {
+    const audio: AudioMapping = {
+      preset: 'custom',
+      mappings: [
+        {
+          audioFeature: 'bass',
+          target: { kind: 'renderSetting', param: 'vibrancy' },
+          sensitivity: 1,
+          range: [0.5, 1.5],
+        },
+      ],
+    }
+    const platform = fakePlatform()
+    createRoot((dispose) => {
+      const { setOpen } = workspace(flame, () => audio)
+      setOpen('metadata', 'name', 'Wired to a song')
+      platform.pause()
+      dispose()
+    })
+    stopPauseSave()
+
+    expect(reopenTarget(true)?.audio).toEqual(audio)
   })
 
   it('keeps pointing at the last write through a pause that wrote nothing', () => {

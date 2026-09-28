@@ -41,3 +41,34 @@ describe('useAppDragAndDrop recording imports', () => {
     expect(onSessionDropped).toHaveBeenCalledWith(droppedSession, sourceFile)
   })
 })
+
+describe('useAppDragAndDrop flame loads', () => {
+  it('hands the dropped flame its audio wiring', async () => {
+    const audio = {
+      preset: 'custom' as const,
+      mappings: [
+        {
+          audioFeature: 'bass' as const,
+          target: {
+            kind: 'renderSetting' as const,
+            param: 'vibrancy' as const,
+          },
+          sensitivity: 1,
+          range: [0.5, 1.5] as [number, number],
+        },
+      ],
+    }
+    loadFlameFromFileMock.mockResolvedValue({
+      flame: deepClone(examples.example1),
+      audio,
+    })
+    const setLoadedAnimation = vi.fn()
+    const onDrop = useAppDragAndDrop({ replace: vi.fn() }, setLoadedAnimation)
+
+    await onDrop(new File(['{}'], 'wired.json'))
+
+    expect(setLoadedAnimation).toHaveBeenCalledWith(
+      expect.objectContaining({ audio }),
+    )
+  })
+})

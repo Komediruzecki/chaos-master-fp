@@ -507,12 +507,24 @@ function replayArgBudgetError(root: unknown): string | undefined {
   return undefined
 }
 
+/** Why `cmd` refuses `args` as normalized, or undefined when it accepts. */
+function refusalOf(
+  cmd: FlameCommand,
+  ctx: CommandContext,
+  finalArgs: unknown[],
+): string | undefined {
+  const refusal = cmd.rejectArgs?.(ctx, finalArgs)
+  if (refusal !== undefined) console.warn(`[cmd] ${cmd.id} refused: ${refusal}`)
+  return refusal
+}
+
 function runCommand(
   cmd: FlameCommand,
   ctx: CommandContext,
   args: unknown[],
-): void {
+): boolean {
   const finalArgs = cmd.normalizeArgs ? cmd.normalizeArgs(ctx, args) : args
+  if (refusalOf(cmd, ctx, finalArgs) !== undefined) return false
   // The seat decides which log the action lands in. Everything the workspace
   // dispatches carries no seat and therefore lands in the player's, which is
   // what every caller before duels meant.
@@ -523,26 +535,40 @@ function runCommand(
       cmd.execute(ctx, ...finalArgs)
     },
   )
+  return true
 }
 
+/**
+ * Run a command from the app. False when nothing ran: the id is unknown, or
+ * the command refused its arguments (`rejectArgs`).
+ */
 export function executeCommand(
   id: string,
   ctx: CommandContext,
   ...args: unknown[]
-): void {
+): boolean {
   const cmd = commandRegistry.get(id)
   if (!cmd) {
     if (IS_DEV) console.warn(`Command "${id}" not found in registry`)
-    return
+    return false
   }
   // Timed replay can own a long-lived undo preview while it waits between
   // steps. Every live command — including timeline/audio/view-only commands
   // that never touch flame history — takes the workspace back before it runs,
   // except a switch that only shapes later changes (`presentationSwitch`).
   // `executeReplayCommand` intentionally skips this live-dispatch hook.
-  if (!cmd.presentationSwitch) ctx.beforeCommand?.()
+  // A command that refuses its arguments changes nothing, so it hands
+  // nothing back either: it is asked before the hook, and asked again after
+  // it by `runCommand`, against the state the hook leaves.
+  if (!cmd.presentationSwitch) {
+    if (cmd.rejectArgs) {
+      const finalArgs = cmd.normalizeArgs ? cmd.normalizeArgs(ctx, args) : args
+      if (refusalOf(cmd, ctx, finalArgs) !== undefined) return false
+    }
+    ctx.beforeCommand?.()
+  }
   if (IS_DEV) console.info('[cmd:execute]', id, 'args:', ...args)
-  runCommand(cmd, ctx, args)
+  return runCommand(cmd, ctx, args)
 }
 
 /** Validate one canonical recorded action without touching workspace state. */

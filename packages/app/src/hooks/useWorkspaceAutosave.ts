@@ -4,6 +4,7 @@ import { autosaveIntervalMin, autosaveRecents } from '@/utils/autosaveSettings'
 import { getOldestRecentFlame, MAX_RECENT_FLAMES, saveRecentFlame, upsertRecentFlame, } from '@/utils/recentFlames'
 import { createAutosaveQuestion } from './autosaveQuestion'
 import { createSaveReminder } from './saveReminder'
+import type { AudioMapping } from '@/flame/schema/audioWiring'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 import type { FlushOutcome } from '@/lib/documentLoad'
 import type { RecentWriteOutcome } from '@/utils/recentFlames'
@@ -52,6 +53,11 @@ export interface UseWorkspaceAutosaveParams {
    * change died with the process.
    */
   getConfig: () => TimelineConfig | undefined
+  /**
+   * The audio wiring the flame is wired with. Recents keeps it with the
+   * flame, so a change to the wiring alone is unsaved work like any other.
+   */
+  getAudioMapping?: () => AudioMapping | undefined
   agentDriving: () => boolean
   /**
    * @returns the toast's id, or -1 when nothing was shown - the store is
@@ -103,6 +109,7 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
     savedFlame = () => flameDescriptor,
     getTracks,
     getConfig,
+    getAudioMapping = () => undefined,
     agentDriving,
     showToast,
     confirmOverwriteOldest,
@@ -128,6 +135,7 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
       flame: savedFlame(),
       tracks: getTracks(),
       config: getConfig(),
+      audio: getAudioMapping(),
     })
   let autosaveBaseline = autosaveSnapshot()
   let editingSince: number | null = null
@@ -168,14 +176,12 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
    * question, and the two writers for a process that is about to end.
    */
   const writeToRecents = (force: boolean): RecentWriteOutcome => {
-    const outcome = upsertRecentFlame(
-      autosaveSessionId,
-      savedFlame(),
-      undefined,
-      getTracks(),
-      getConfig(),
-      force,
-    )
+    const outcome = upsertRecentFlame(autosaveSessionId, savedFlame(), {
+      tracks: getTracks(),
+      config: getConfig(),
+      audio: getAudioMapping(),
+      forceOverwriteOldest: force,
+    })
     if (outcome === 'saved') {
       lastAutosaveAt = Date.now()
       markSavedBaseline()
@@ -311,8 +317,14 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
   const saveForLater = async () => {
     const tracks = getTracks() ?? []
     const config = getConfig()
+    const audio = getAudioMapping()
     const saved = (force: boolean) =>
-      saveRecentFlame(savedFlame(), undefined, tracks, force, config)
+      saveRecentFlame(savedFlame(), {
+        tracks,
+        config,
+        audio,
+        forceOverwriteOldest: force,
+      })
     const announce = (replacedOldest: boolean) => {
       markSavedBaseline()
       showToast(

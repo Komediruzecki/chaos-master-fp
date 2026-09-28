@@ -17,7 +17,8 @@ import ui from './ExportJobHost.module.css'
 import { OffscreenAnimationRender } from './OffscreenAnimationRender'
 import type { Vec3 } from 'wgpu-matrix'
 import type { ExportImageType } from '@/flame/exportImageType'
-import type { ImageJob } from '@/utils/exportJobs'
+import type { ImageJob, ImageJobSpec } from '@/utils/exportJobs'
+import type { RecentWriteOutcome } from '@/utils/recentFlames'
 
 /**
  * Renders the current image export job OFFSCREEN, at its exact dimensions, in a
@@ -67,6 +68,24 @@ export function ExportJobHost() {
       </Show>
     </div>
   )
+}
+
+/**
+ * File a finished image export in Recents, the way every other write there
+ * keeps a flame: with its animation and the audio wiring it was exported
+ * under. Not forced: at the cap this declines rather than dropping the oldest
+ * kept flame for a flame the user exported rather than saved
+ * (utils/recentFlames.ts). `authoredFlame`, never `job.flame`: the rendered
+ * one carries the audio overlay that was on the canvas when Export was
+ * pressed, and filing that would make one frame of a track the flame the user
+ * comes back to.
+ */
+export function saveImageJobToRecents(job: ImageJobSpec): RecentWriteOutcome {
+  return saveRecentFlame(job.authoredFlame, {
+    tracks: job.tracks,
+    config: job.config,
+    audio: job.audio,
+  })
 }
 
 function OffscreenRender(props: { job: ImageJob }) {
@@ -143,23 +162,12 @@ function OffscreenRender(props: { job: ImageJob }) {
         await addFlameDataToPng(encoded, bytes, encodedSteps).arrayBuffer(),
       )
     }
-    // Not forced: at the cap this declines rather than dropping the oldest
-    // kept flame for a flame the user exported rather than saved
-    // (utils/recentFlames.ts). Declining costs nothing WHEN the PNG carries
-    // the flame, because the file is then a copy of it - which is exactly
-    // the condition above, and with "Embed flame" off it does not hold. That
-    // export writes a plain image, so the refused entry was the only record
-    // this flame ever had, and saying nothing loses it without a trace.
-    // `authoredFlame`, never `job.flame`: the rendered one carries the audio
-    // overlay that was on the canvas when Export was pressed, and filing that
-    // would make one frame of a track the flame the user comes back to.
-    const stored = saveRecentFlame(
-      job.authoredFlame,
-      undefined,
-      job.tracks,
-      false,
-      job.config,
-    )
+    // Declining costs nothing WHEN the PNG carries the flame, because the
+    // file is then a copy of it - which is exactly the condition above, and
+    // with "Embed flame" off it does not hold. That export writes a plain
+    // image, so the refused entry was the only record this flame ever had,
+    // and saying nothing loses it without a trace.
+    const stored = saveImageJobToRecents(job)
     if (stored === 'full' && !job.embedFlame) {
       showToast(
         `Recents is full (${MAX_RECENT_FLAMES} flames), so this flame was not added to it - and the PNG carries no flame data. Delete one in Library, or use Save for Later.`,

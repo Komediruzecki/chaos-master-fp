@@ -233,8 +233,10 @@ Three ways to bring a session back:
 - the **Recordings** library,
 - **Open steps** (file picker), or
 - **dropping** a `.steps.json` on the canvas — which loads no flame, just
-  offers the session against whatever is open. Dropping one of our PNGs or
-  MP4s loads the flame _and_ offers its session.
+  offers the session against whatever is open. A dropped `.json` that holds a
+  flame (a descriptor, a share link's Copy JSON, a Recents record) opens as
+  that flame instead. Dropping one of our PNGs or MP4s loads the flame _and_
+  offers its session.
 
 Opening or dropping an external take imports it into **Recordings** before
 replay, so closing the replay never loses the file from the browser library.

@@ -1,10 +1,14 @@
 import { createEffect, createMemo, createSignal, For, Index, lazy, onCleanup, Show, Suspense, } from 'solid-js'
 import { Cross, MusicNote } from '@/icons'
 import { createLiveAnalyzer, decodeAudioFile, getAudioFeatureNormalized, } from '@/utils/audioAnalysis'
+import { envelopeLabel } from '@/utils/audioEnvelope'
+import { reconcileTransformTargets, retargetTransform, } from '@/utils/audioTargetIds'
 import { buildFlamePreset, buildPreset, FLAME_PRESET_IDS, PRESET_DESCRIPTIONS, PRESET_LABELS, randomizeMappings, RENDER_PRESET_IDS, RENDER_PRESETS, } from '@/utils/audioWiringPresets'
 import ui from './AudioReactivePanel.module.css'
 import { computeBeatFrames, drawWaveform } from './audioWaveform'
+import { ComfortPresetControl } from './ComfortPresetControl'
 import { createMappingGestureBoundary } from './mappingGesture'
+import { VariationWeightPills } from './VariationWeightPills'
 import type { Accessor } from 'solid-js'
 import type { AffineKey, AudioAnalyzer, AudioFeature, FlameTarget, LiveAudioAnalyzer, RenderSettingKey, TransformInfo, TransformPropertyKey, } from '@/utils/audioAnalysis'
 import type { WiringPresetId } from '@/utils/audioWiringPresets'
@@ -54,7 +58,9 @@ type AudioReactivePanelProps = {
    *  wired against — the buffer itself can never be part of a session. */
   onAudioChange: (buffer: AudioBuffer | undefined, fileName?: string) => void
   audioMapping: Accessor<AudioMapping>
-  onMappingChange: (mapping: AudioMapping) => void
+  /** Returns false when the workspace refused the mapping and nothing
+   *  changed; anything else means it was taken. */
+  onMappingChange: (mapping: AudioMapping) => unknown
   /** End/start the recorder's coalescing window around a continuous wiring
    *  slider. Audio wiring has no flame-history preview to provide this
    *  boundary automatically. */
@@ -226,50 +232,6 @@ export function defaultTarget(
 const SUPPORTED_AUDIO =
   '.mp3,.wav,.ogg,.flac,audio/mpeg,audio/wav,audio/ogg,audio/flac'
 
-// --- Variation weight pill picker ---
-
-function VariationWeightPills(props: {
-  mapping: ParamMapping
-  transforms: TransformInfo[]
-  onSelect: (variationType: string) => void
-}) {
-  const txIdx =
-    props.mapping.target.kind === 'variationWeight'
-      ? props.mapping.target.transformIdx
-      : 0
-  const info = props.transforms.find((t) => t.index === txIdx)
-  const vars = info?.variations ?? []
-
-  return (
-    <div class={ui.variationPillsRow}>
-      {vars.length === 0 ? (
-        <span class={ui.noVariations}>No variations</span>
-      ) : (
-        <For each={vars}>
-          {(v) => (
-            <button
-              type="button"
-              class={ui.variationPill}
-              classList={{
-                [ui.variationPillActive as string]:
-                  props.mapping.target.kind === 'variationWeight' &&
-                  props.mapping.target.variationType === v.type,
-              }}
-              title={v.type}
-              aria-label={v.type}
-              onClick={() => {
-                props.onSelect(v.type)
-              }}
-            >
-              {v.type}
-            </button>
-          )}
-        </For>
-      )}
-    </div>
-  )
-}
-
 // --- Component ---
 
 export function AudioReactivePanel(props: AudioReactivePanelProps) {
@@ -279,6 +241,11 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
   const [dragOver, setDragOver] = createSignal(false)
   const [loading, setLoading] = createSignal(false)
   const [error, setError] = createSignal<string | null>(null)
+  // The rows and the editor work on targets that name their transform by key
+  // (wiring saved before keys existed gets them here), so an edit writes keys.
+  const mappings = createMemo(() =>
+    reconcileTransformTargets(props.audioMapping().mappings, props.transforms),
+  )
 
   /**
    * What the panel is actually doing right now.
@@ -565,7 +532,7 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
 
   function updateMapping(index: number, updates: Partial<ParamMapping>) {
     const current = props.audioMapping()
-    const next = current.mappings.map((m, i) =>
+    const next = mappings().map((m, i) =>
       i === index ? { ...m, ...updates } : m,
     )
     // Switch to custom when user modifies a preset
@@ -574,17 +541,15 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
   }
 
   function removeMapping(index: number) {
-    const current = props.audioMapping()
-    const next = current.mappings.filter((_, i) => i !== index)
+    const next = mappings().filter((_, i) => i !== index)
     props.onMappingChange({ preset: 'custom', mappings: next })
   }
 
   function addMapping() {
-    const current = props.audioMapping()
     props.onMappingChange({
       preset: 'custom',
       mappings: [
-        ...current.mappings,
+        ...mappings(),
         {
           audioFeature: 'bass',
           target: { kind: 'renderSetting', param: 'vibrancy' },
@@ -827,6 +792,8 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
           </Show>
         </Show>
 
+        <ComfortPresetControl />
+
         {/* Presets — render-only first, then the ones built from THIS flame.
             Split because they answer different questions: the first three work
             anywhere, the second three reach into the loaded flame's transforms
@@ -921,13 +888,26 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
             </button>
           </div>
           <div class={ui.mappingsList} role="list">
-            <Index each={props.audioMapping().mappings}>
+            <Index each={mappings()}>
               {(mapping, index) => {
                 // Narrow-friendly reads: TS re-widens the target union on every
                 // mapping() call, so each helper narrows one snapshot.
                 const transformIdxOf = () => {
                   const t = mapping().target
                   return 'transformIdx' in t ? t.transformIdx : 0
+                }
+                /** The row names a transform this flame no longer has. */
+                const transformDeleted = () => {
+                  const t = mapping().target
+                  return (
+                    'transformIdx' in t &&
+                    t.transformId !== undefined &&
+                    !props.transforms.some((info) => info.id === t.transformId)
+                  )
+                }
+                const onTransform = (target: FlameTarget, idx: number) => {
+                  const info = props.transforms.find((t) => t.index === idx)
+                  return info ? retargetTransform(target, info) : target
                 }
                 const matrixOf = () => {
                   const t = mapping().target
@@ -972,7 +952,10 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
                         onChange={(e) => {
                           const cat = e.currentTarget.value as TargetCategory
                           updateMapping(index, {
-                            target: defaultTarget(cat, transformIdxOf()),
+                            target: onTransform(
+                              defaultTarget(cat, transformIdxOf()),
+                              transformIdxOf(),
+                            ),
                           })
                         }}
                       >
@@ -990,17 +973,19 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
                           <select
                             class={ui.mappingSelect}
                             aria-label="Transform"
-                            value={transformIdxOf()}
+                            value={transformDeleted() ? '' : transformIdxOf()}
                             onChange={(e) => {
                               const ti = parseInt(e.currentTarget.value)
                               updateMapping(index, {
-                                target: {
-                                  ...mapping().target,
-                                  transformIdx: ti,
-                                } as FlameTarget,
+                                target: onTransform(mapping().target, ti),
                               })
                             }}
                           >
+                            <Show when={transformDeleted()}>
+                              <option value="" disabled>
+                                Deleted transform
+                              </option>
+                            </Show>
                             <For each={props.transforms}>
                               {(t) => (
                                 <option value={t.index}>{t.label}</option>
@@ -1044,13 +1029,14 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
                     <div class={ui.mappingBottomRow}>
                       {mapping().target.kind === 'variationWeight' ? (
                         <VariationWeightPills
-                          mapping={mapping()}
+                          target={mapping().target}
                           transforms={props.transforms}
-                          onSelect={(variationType) => {
+                          onSelect={(variation) => {
                             updateMapping(index, {
                               target: {
                                 ...mapping().target,
-                                variationType,
+                                variationType: variation.type,
+                                variationId: variation.id,
                               } as FlameTarget,
                             })
                           }}
@@ -1157,6 +1143,9 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
                         aria-label="Sensitivity"
                       />
                     </div>
+                    <div class={ui.envelopeLabel}>
+                      {envelopeLabel(mapping())}
+                    </div>
                   </div>
                 )
               }}
@@ -1244,17 +1233,14 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
       <Show when={showWiringModal()}>
         <Suspense>
           <AudioWiringModal
-            mappings={props.audioMapping().mappings}
+            mappings={mappings()}
             transforms={props.transforms}
             presets={wiringPresets()}
             featureLevels={liveFeatureLevels()}
             liveAnalyzer={props.liveAnalyzer()}
-            onMappingsChange={(mappings) => {
-              props.onMappingChange({
-                preset: 'custom',
-                mappings,
-              })
-            }}
+            onMappingsChange={(mappings) =>
+              props.onMappingChange({ preset: 'custom', mappings })
+            }
             onMappingGestureBoundary={props.onMappingGestureBoundary}
             onClose={() => setShowWiringModal(false)}
           />

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { validateFlame } from '@/flame/schema/flameSchema'
-import { applyAudioMappingsToFlame } from './audioAnalysis'
+import { applyAudioTargetValues, resolveAudioMappingValues, } from './audioAnalysis'
 import type { AudioMappingEntry, FrameData, MappingSmoothingState, } from './audioAnalysis'
 
 const QUIET_FRAME: FrameData & { isBeat: boolean } = {
@@ -39,6 +39,24 @@ const LOUD_FRAME: FrameData & { isBeat: boolean } = {
   isBeat: true,
 } as unknown as FrameData & { isBeat: boolean }
 
+/**
+ * Settles `mappings` for one frame and writes the values into `flame`: the
+ * mapping stage and the writers, without the comfort governor, which has
+ * tests of its own.
+ */
+function settleInto(
+  flame: Record<string, unknown>,
+  frame: FrameData & { isBeat: boolean },
+  mappings: AudioMappingEntry[],
+  smoothing?: MappingSmoothingState,
+  dt?: number,
+): void {
+  applyAudioTargetValues(
+    flame,
+    resolveAudioMappingValues(frame, mappings, smoothing, dt).values,
+  )
+}
+
 function createSampleFlame() {
   return validateFlame({
     version: '1.0',
@@ -62,7 +80,7 @@ function createSampleFlame() {
   }) as unknown as Record<string, unknown>
 }
 
-describe('applyAudioMappingsToFlame modular target appliers', () => {
+describe('the target writers', () => {
   it('modulates camera zoom correctly', () => {
     const flame = createSampleFlame()
     const mappings: AudioMappingEntry[] = [
@@ -74,7 +92,7 @@ describe('applyAudioMappingsToFlame modular target appliers', () => {
       },
     ]
 
-    applyAudioMappingsToFlame(flame, LOUD_FRAME, mappings)
+    settleInto(flame, LOUD_FRAME, mappings)
     const rs = flame.renderSettings as { camera?: { zoom?: number } }
     expect(rs.camera?.zoom).toBe(5)
   })
@@ -92,7 +110,7 @@ describe('applyAudioMappingsToFlame modular target appliers', () => {
         range: [1, 5],
       },
     ]
-    applyAudioMappingsToFlame(flame, LOUD_FRAME, mappings)
+    settleInto(flame, LOUD_FRAME, mappings)
     const rs = flame.renderSettings as { camera?: { zoom?: number } }
     expect(rs.camera?.zoom).toBe(3)
   })
@@ -124,7 +142,7 @@ describe('applyAudioMappingsToFlame modular target appliers', () => {
       },
     ]
 
-    applyAudioMappingsToFlame(flame, LOUD_FRAME, mappings)
+    settleInto(flame, LOUD_FRAME, mappings)
     const txObj = flame.transforms as Record<
       string,
       {
@@ -164,7 +182,7 @@ describe('applyAudioMappingsToFlame modular target appliers', () => {
       },
     ]
 
-    applyAudioMappingsToFlame(flame, LOUD_FRAME, mappings)
+    settleInto(flame, LOUD_FRAME, mappings)
     const txArr = Object.values(
       flame.transforms as Record<string, Record<string, unknown>>,
     )
@@ -188,7 +206,7 @@ describe('applyAudioMappingsToFlame modular target appliers', () => {
       },
     ]
 
-    applyAudioMappingsToFlame(flame, LOUD_FRAME, mappings)
+    settleInto(flame, LOUD_FRAME, mappings)
     const txArr = Object.values(
       flame.transforms as Record<string, Record<string, unknown>>,
     )
@@ -210,7 +228,7 @@ describe('applyAudioMappingsToFlame modular target appliers', () => {
       },
     ]
 
-    applyAudioMappingsToFlame(flame, LOUD_FRAME, mappings)
+    settleInto(flame, LOUD_FRAME, mappings)
     const txArr = Object.values(
       flame.transforms as Record<string, Record<string, unknown>>,
     )
@@ -236,7 +254,7 @@ describe('applyAudioMappingsToFlame modular target appliers', () => {
       },
     ]
 
-    applyAudioMappingsToFlame(flame, LOUD_FRAME, mappings)
+    settleInto(flame, LOUD_FRAME, mappings)
     const fin = flame.finalTransform as Record<string, number>
     expect(fin.a).toBe(2)
   })
@@ -278,7 +296,7 @@ describe('applyAudioMappingsToFlame modular target appliers', () => {
     ]
 
     expect(() => {
-      applyAudioMappingsToFlame(flame, LOUD_FRAME, mappings)
+      settleInto(flame, LOUD_FRAME, mappings)
     }).not.toThrow()
   })
 
@@ -297,24 +315,12 @@ describe('applyAudioMappingsToFlame modular target appliers', () => {
     ]
 
     // Step 1: Quiet initial frame
-    applyAudioMappingsToFlame(
-      flame,
-      QUIET_FRAME,
-      mappings,
-      smoothingState,
-      1 / 30,
-    )
+    settleInto(flame, QUIET_FRAME, mappings, smoothingState, 1 / 30)
     let state = smoothingState.get('render.exposure')
     expect(state?.smoothed).toBe(0)
 
     // Step 2: Sudden loud frame -> attack phase
-    applyAudioMappingsToFlame(
-      flame,
-      LOUD_FRAME,
-      mappings,
-      smoothingState,
-      1 / 30,
-    )
+    settleInto(flame, LOUD_FRAME, mappings, smoothingState, 1 / 30)
     state = smoothingState.get('render.exposure')
     expect(state).toBeDefined()
     expect(state!.smoothed).toBeGreaterThan(0)
@@ -323,20 +329,13 @@ describe('applyAudioMappingsToFlame modular target appliers', () => {
     const attackSmoothed = state!.smoothed
 
     // Step 3: Return to quiet -> release phase decays towards 0
-    applyAudioMappingsToFlame(
-      flame,
-      QUIET_FRAME,
-      mappings,
-      smoothingState,
-      1 / 30,
-    )
+    settleInto(flame, QUIET_FRAME, mappings, smoothingState, 1 / 30)
     state = smoothingState.get('render.exposure')
     expect(state!.smoothed).toBeLessThan(attackSmoothed)
     expect(state!.smoothed).toBeGreaterThan(0)
   })
 
-  it('skips redundant writes when changes are below the dirty threshold', () => {
-    const flame = createSampleFlame()
+  it('reports no change when a frame moves nothing past the dirty threshold', () => {
     const smoothingState: MappingSmoothingState = new Map()
     const mappings: AudioMappingEntry[] = [
       {
@@ -346,17 +345,9 @@ describe('applyAudioMappingsToFlame modular target appliers', () => {
         range: [0, 1],
       },
     ]
-
-    // Initial frame marks dirty and sets value
-    applyAudioMappingsToFlame(flame, LOUD_FRAME, mappings, smoothingState)
-
-    // Replace renderSettings reference to detect if it gets overwritten
-    const canaryRs = { ...((flame.renderSettings as object) ?? {}) }
-    flame.renderSettings = canaryRs
-
-    // Second identical frame: should be skipped by dirty-check
-    applyAudioMappingsToFlame(flame, LOUD_FRAME, mappings, smoothingState)
-    expect(flame.renderSettings).toBe(canaryRs)
+    const settle = () =>
+      resolveAudioMappingValues(LOUD_FRAME, mappings, smoothingState).changed
+    expect([settle(), settle()]).toEqual([true, false])
   })
 })
 
@@ -385,7 +376,7 @@ describe('a variation-weight target finds its variation by type', () => {
     const flame = createSampleFlame()
     variationsOf(flame).juliaVar = { type: 'sphericalVar', weight: 1 }
     variationsOf(flame).v2 = { type: 'juliaVar', weight: 1 }
-    applyAudioMappingsToFlame(flame, LOUD_FRAME, weightOf('juliaVar'))
+    settleInto(flame, LOUD_FRAME, weightOf('juliaVar'))
     expect(variationsOf(flame).juliaVar!.weight).toBe(1)
     expect(variationsOf(flame).v2!.weight).toBe(3.5)
   })
@@ -401,7 +392,7 @@ describe('a variation-weight target finds its variation by type', () => {
         `{"transforms":{"t0":{"variations":{"v1":{"type":"${type}","weight":1}}}}}`,
       ) as Record<string, unknown>
       try {
-        applyAudioMappingsToFlame(flame, LOUD_FRAME, weightOf(type))
+        settleInto(flame, LOUD_FRAME, weightOf(type))
         expect([type, ...inherited()]).toEqual([type, undefined, undefined])
         expect(variationsOf(flame).v1!.weight).toBe(3.5)
       } finally {

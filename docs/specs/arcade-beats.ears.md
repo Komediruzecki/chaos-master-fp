@@ -20,9 +20,9 @@ the seam Beats mode touches.
 - `packages/app/src/commands/builtins/audio.ts` — `audio.applySnapshot` and the disable-first wiring swap every Beats mapping goes through
 - `packages/app/src/commands/types.ts:207-226` — the `ctx.audio` facade contract, including `canEnable` as a workspace-supplied resource authorization
 - `packages/app/src/recorder/replay.ts:39-52` — `canEnableReplayAudio`, the only implementation of that authorization
-- `packages/app/src/MainWorkspace.tsx:3369-3386` (`audio`) — the live facade: signals, and `canEnable` wired to the decoded buffer, track name and live analyzer
-- `packages/app/src/MainWorkspace.tsx:3179-3186` (`adoptAudioBuffer`) — the one writer of the audio buffer and track name, which the audio panel and Beats mode (`loadBundledTrack`, `:3215-3216` (`fetchBundledTrackBuffer`)) both go through
-- `packages/app/src/components/AudioReactivePanel/AudioReactivePanel.tsx:446-494` (`handleFile`) — file decode and microphone acquisition, and their failure paths
+- `packages/app/src/MainWorkspace.tsx:3367-3384` (`audio`) — the live facade: signals, and `canEnable` wired to the decoded buffer, track name and live analyzer
+- `packages/app/src/MainWorkspace.tsx:3177-3184` (`adoptAudioBuffer`) — the one writer of the audio buffer and track name, which the audio panel and Beats mode (`loadBundledTrack`, `:3213-3214` (`fetchBundledTrackBuffer`)) both go through
+- `packages/app/src/components/AudioReactivePanel/AudioReactivePanel.tsx:413-461` (`handleFile`) — file decode and microphone acquisition, and their failure paths
 - `packages/app/src/utils/useAudioReactive.ts` — what "enabled" actually gates: modulation, not transport
 - `packages/app/src/arcade/topics.ts:305-314` (`BEATS_ALLOWED`), `:345-356` (`beatsPromptCard`) — `BEATS_ALLOWED`, `BEATS_STEP_BUDGET`, the prompt card
 - `packages/app/src/arcade/guard.ts`, `packages/app/src/arcade/pilot.ts`, `packages/app/src/arcade/pilotActions.ts` — allow-list enforcement, step budget, session teardown
@@ -111,7 +111,7 @@ return the "Workspace not ready" error; **if** a context exists but any of the
 "This workspace does not support audio-reactive recording." In neither case
 shall it start a recording or a pilot.
 
-_(`arcadeBeats.ts:145-152` (`execute`))_
+_(`arcadeBeats.ts:127-134` (`execute`))_
 
 ### REQ-AB-007 — One Arcade session at a time, never over a live recording
 
@@ -120,7 +120,7 @@ with "An Arcade session is already active"; **if** the recorder is already
 recording, **then** it shall refuse with "A recording is already running." Both
 refusals leave the existing session and recording untouched.
 
-_(`arcadeBeats.ts:153-162` (`agentDriving`))_
+_(`arcadeBeats.ts:135-144` (`agentDriving`))_
 
 ### REQ-AB-008 — A failed start leaves no orphaned recording
 
@@ -129,7 +129,7 @@ _(`arcadeBeats.ts:153-162` (`agentDriving`))_
 pilot's error, so a refused start cannot leave the dock recording with nobody
 driving.
 
-_(`arcadeBeats.ts:173-193` (`started`))_
+_(`arcadeBeats.ts:155-175` (`started`))_
 
 ### REQ-AB-009 — A started session locks the editor and turns reactivity on
 
@@ -139,7 +139,7 @@ budget of 30, the described allow-list, the resolved `activeTrack` and the four
 workflow tips. The pilot shall be recorded as `mode: 'beats'` with a `'screen'`
 lock on the default seat and the quality preset rank captured at start.
 
-_(`arcadeBeats.ts:180-216` (`briefed`); `BEATS_STEP_BUDGET = 30` at `topics.ts:314`;
+_(`arcadeBeats.ts:162-198` (`briefed`); `BEATS_STEP_BUDGET = 30` at `topics.ts:314`;
 the defaults at `pilot.ts:113-139` (`startPilot`))_
 
 ### REQ-AB-010 — activeTrack is the track that was loaded
@@ -152,8 +152,8 @@ was named, before recording starts. An unknown name, a workspace that cannot
 load tracks, or a failed load shall return an error and start nothing. The tool
 result shall report the track it settled on as `activeTrack`.
 
-_(`arcadeBeats.ts:96-129` (`ensureBeatsTrack`), called at `:170` (`ensureBeatsTrack`) and reported at
-`:203` (`activeTrack`). Until #90 the start loaded nothing and echoed the
+_(`arcadeBeats.ts:78-111` (`ensureBeatsTrack`), called at `:152` (`ensureBeatsTrack`) and reported at
+`:185` (`activeTrack`). Until #90 the start loaded nothing and echoed the
 resolved name only; REQ-AB-005 keeps that deviation, pinned.)_
 
 ### REQ-AB-011 — The catalogue tool is read-only and derived from the live flame
@@ -165,7 +165,7 @@ six affine parameter names, `probability`/`colorSpeed` and its variation types
 with weights, and a `finalAffine` entry **only where** the flame carries a
 final transform.
 
-_(`arcadeBeats.ts:225-267` (`execute`); the target vocabulary the mapping schema actually
+_(`arcadeBeats.ts:207-249` (`execute`); the target vocabulary the mapping schema actually
 accepts is wider — see REQ-AB-016.)_
 
 ### REQ-AB-012 — The catalogue reports the live audio state
@@ -174,11 +174,11 @@ accepts is wider — see REQ-AB-016.)_
 source and enabled flag, so an agent choosing a mapping can tell whether audio
 is loaded and running.
 
-> **Known deviation:** `packages/app/src/webmcp/tools/arcadeBeats.ts:268-272` (`currentTrack`) —
+> **Known deviation:** `packages/app/src/webmcp/tools/arcadeBeats.ts:250-254` (`currentTrack`) —
 > when no track is loaded the tool substitutes `'Ember Drift'` for the absent
 > track name and reports `enabled: true` and `source: 'file'`, which is the same
 > fiction as REQ-AB-005: the agent is told a bundled track is playing when the
-> workspace holds no buffer at all. `arcadeBeats.test.ts:75` (`currentTrack`) asserts this
+> workspace holds no buffer at all. `arcadeBeats.test.ts:76` (`currentTrack`) asserts this
 > fallback, so repairing it turns that assertion red — the test must be updated
 > in the same change.
 
@@ -188,7 +188,7 @@ is loaded and running.
 anything other than `'beats'` — including with no pilot at all — **then** it
 shall refuse, naming `arcade_start_beats` in the error, and apply nothing.
 
-_(`arcadeBeats.ts:356-362` (`state`))_
+_(`arcadeBeats.ts:338-344` (`state`))_
 
 ### REQ-AB-014 — Arguments must be an object
 
@@ -196,7 +196,7 @@ _(`arcadeBeats.ts:356-362` (`state`))_
 **then** it shall return "Arguments must be an object with a mappings array."
 and apply nothing.
 
-_(`arcadeBeats.ts:364-366` (`Arguments`))_
+_(`arcadeBeats.ts:346-348` (`Arguments`))_
 
 ### REQ-AB-015 — An unreadable preset degrades, an unreadable mapping list does not
 
@@ -205,8 +205,8 @@ values, **then** the tool shall silently substitute `'custom'` and continue —
 a bad preset is never an error, whereas a bad `mappings` array always is
 (REQ-AB-016).
 
-_(`arcadeBeats.ts:374-375` (`presetParsed`); `AudioPreset` at
-`packages/core/src/schema/audioWiring.ts:80-88`)_
+_(`arcadeBeats.ts:356-357` (`presetParsed`); `AudioPreset` at
+`packages/core/src/schema/audioWiring.ts:99-107`)_
 
 ### REQ-AB-016 — The mapping grammar is closed, and rejection applies nothing
 
@@ -220,8 +220,8 @@ the array is capped at 512 entries. **If** validation fails, **then** the tool
 shall return `Invalid audio mapping structure: <issues joined by "; ">` and
 shall not dispatch a command, count a step or write a note.
 
-_(`arcadeBeats.ts:377-387` (`mappingCandidate`); schema at
-`packages/core/src/schema/audioWiring.ts:6-94` (`AudioFeature`))_
+_(`arcadeBeats.ts:359-369` (`mappingCandidate`); schema at
+`packages/core/src/schema/audioWiring.ts:8-120` (`AudioFeature`))_
 
 ### REQ-AB-017 — The applied snapshot asks to be enabled and inherits the live identity
 
@@ -231,7 +231,7 @@ and `trackName` — falling back to `'file'` and `'Ember Drift'` respectively.
 The tool shall never invent a resource: `enabled: true` is a request, and
 `canEnable` (REQ-AB-019) is what decides.
 
-_(`arcadeBeats.ts:389-395` (`currentSnapshot`))_
+_(`arcadeBeats.ts:371-377` (`currentSnapshot`))_
 
 ### REQ-AB-018 — Wiring is replaced with reactivity off
 
@@ -240,7 +240,7 @@ reactivity first, then replace the mapping and the source, and only then
 re-enable — so a mapping swap can never transiently drive an unrelated
 resource, and the whole exchange lands as one Solid batch.
 
-_(`commands/builtins/audio.ts:69-84` (`applySnapshot`))_
+_(`commands/builtins/audio.ts:70-87` (`applySnapshot`))_
 
 ### REQ-AB-019 — Reactivity returns only for a resource that is actually present
 
@@ -250,8 +250,8 @@ be re-enabled only when a decoded buffer exists **and** the snapshot's
 track name; **if** it names `source: 'mic'`, only when a live analyzer already
 exists. Otherwise the wiring is applied with reactivity left off.
 
-_(`commands/builtins/audio.ts:74` (`mayEnable`); `recorder/replay.ts:39-52` (`canEnableReplayAudio`); live wiring at
-`MainWorkspace.tsx:3380-3385` (`canEnable`))_
+_(`commands/builtins/audio.ts:75` (`mayEnable`); `recorder/replay.ts:39-52` (`canEnableReplayAudio`); live wiring at
+`MainWorkspace.tsx:3378-3383` (`canEnable`))_
 
 ### REQ-AB-020 — A mapping call that could not enable reactivity says so
 
@@ -292,7 +292,7 @@ step simply goes uncounted (`notePilotStep` returns `-1` and the tool discards
 it). This is unlike the generic `execute_command` tool, which refuses at zero
 budget with `budgetExhaustedMessage`.
 
-_(`arcadeBeats.ts:402-427` (`notePilotStep`); `pilot.ts:149-159` (`notePilotStep`); contrast
+_(`arcadeBeats.ts:384-409` (`notePilotStep`); `pilot.ts:149-159` (`notePilotStep`); contrast
 `webmcp/tools/executeCommand.ts:121-123` (`pilotStepsRemaining`))_
 
 ### REQ-AB-023 — The result reports what landed
@@ -302,7 +302,7 @@ mapping entries accepted, the effective preset (after the `'custom'`
 degradation of REQ-AB-015), the remaining step budget and the rationale it
 narrated.
 
-_(`arcadeBeats.ts:416-429` (`reactive`))_
+_(`arcadeBeats.ts:398-411` (`reactive`))_
 
 ### REQ-AB-024 — The Beats allow-list is what the generic escape hatch enforces
 
@@ -321,7 +321,7 @@ landing any transition in flight (`finishPilot`).
 
 _(`guard.ts:29-73` (`guardCommand`); `topics.ts:305-312` (`BEATS_ALLOWED`), with
 `topics.ts:8-12` (`ALWAYS_ALLOWED`) and `topics.ts:41-44` (`PRESENTATION_SWITCHES`); the list is
-assembled at `arcadeBeats.ts:178-181` (`briefed`); enforcement at
+assembled at `arcadeBeats.ts:160-163` (`briefed`); enforcement at
 `webmcp/tools/executeCommand.ts:115-123` (`driving`). The Beats tools themselves dispatch
 `audio.applySnapshot` and `lesson.note` through `commands/registry`
 directly, bypassing this guard — both are on the list regardless.)_
@@ -339,8 +339,8 @@ mapped. The same check covers every Arcade allow-list (Teach, Cinema, Beats,
 Duel, `ALWAYS_ALLOWED` and the presentation switches): an exact id must be
 registered and a prefix must cover at least one command.
 
-_(`topics.ts:299-313` (`BEATS_ALLOWED`); registered ids at `commands/builtins/audio.ts:92` (`setMapping`),
-`:156` (`setEnabled`), `:189` (`setSource`), `:231` (`applySnapshot`); guarded by `topics.test.ts`, "names only registered
+_(`topics.ts:299-313` (`BEATS_ALLOWED`); registered ids at `commands/builtins/audio.ts:95` (`setMapping`),
+`:167` (`setEnabled`), `:200` (`setSource`), `:242` (`applySnapshot`); guarded by `topics.test.ts`, "names only registered
 commands, in every Arcade allow-list")_
 
 ### REQ-AB-026 — Ending requires a driving Beats session
@@ -349,7 +349,7 @@ commands, in every Arcade allow-list")_
 `drivingState()?.mode` is not `'beats'`, **then** it shall refuse without
 stopping any recorder or clearing any pilot.
 
-_(`arcadeBeats.ts:453-460` (`NOT_READY`))_
+_(`arcadeBeats.ts:435-442` (`NOT_READY`))_
 
 ### REQ-AB-027 — Ending stops, saves and unlocks in one pass
 
@@ -361,7 +361,7 @@ library save and toast the outcome. The title is the caller's, trimmed to 80
 characters, else `Beats: <flame name>`; the summary is the caller's, trimmed to
 400 characters, else "Audio-reactive modulation take".
 
-_(`arcadeBeats.ts:462-483` (`parsedArgs`); `finishPilot` at `pilotActions.ts:61-109`)_
+_(`arcadeBeats.ts:444-465` (`parsedArgs`); `finishPilot` at `pilotActions.ts:61-109`)_
 
 ### REQ-AB-028 — A saved Beats take is named as a lesson
 
@@ -381,7 +381,7 @@ ended pilot shall be marked `saved: false` — while `arcade_end_beats` still
 returns `{ ok: true, message: 'Beats session completed and saved to library.' }`,
 because it does not inspect `finishPilot`'s result.
 
-_(`pilotActions.ts:93-111` (`active`); `arcadeBeats.ts:472-482` (`finishPilot`))_
+_(`pilotActions.ts:93-111` (`active`); `arcadeBeats.ts:454-464` (`finishPilot`))_
 
 ### REQ-AB-030 — A Beats session records wiring, never audio bytes
 
@@ -392,7 +392,7 @@ replayed, the wiring shall be restored and reactivity enabled only where the
 viewer has independently supplied the same named file (or already granted a
 live analyzer).
 
-_(`commands/builtins/audio.ts:8-20` (`buffer`), `:231-245` (`applySnapshot`); `recorder/replay.ts:39-77` (`canEnableReplayAudio`))_
+_(`commands/builtins/audio.ts:9-21` (`buffer`), `:242-256` (`applySnapshot`); `recorder/replay.ts:39-77` (`canEnableReplayAudio`))_
 
 ### REQ-AB-031 — Ending leaves the wiring exactly as the session set it
 
@@ -413,7 +413,7 @@ playback time — only the per-frame writes into the flame descriptor stop.
 Transport shall additionally not wait on the analysis pass; only modulation
 requires a finished analyzer.
 
-_(`useAudioReactive.ts:137-221` (`mic`), explicitly `:214` (`analyzer`))_
+_(`useAudioReactive.ts:178-263` (`mic`), explicitly `:256` (`analyzer`))_
 
 ### REQ-AB-033 — Microphone capture is gated on reactivity
 
@@ -421,7 +421,7 @@ _(`useAudioReactive.ts:137-221` (`mic`), explicitly `:214` (`analyzer`))_
 reactivity is enabled, so disabling it releases the capture rather than holding
 a live microphone open with nothing to audition.
 
-_(`useAudioReactive.ts:260-264` (`source`))_
+_(`useAudioReactive.ts:309-313` (`source`))_
 
 ### REQ-AB-034 — Replay owns the document exclusively
 
@@ -429,7 +429,7 @@ _(`useAudioReactive.ts:260-264` (`source`))_
 loop shall write nothing into the flame and shall reset its smoothing clock, so
 resuming does not apply one huge accumulated delta.
 
-_(`useAudioReactive.ts:206-217` (`modulationSuspended`), `:267-271` (`modulationSuspended`); guarded by
+_(`useAudioReactive.ts:247-260` (`modulationSuspended`), `:316-320` (`modulationSuspended`); guarded by
 `useAudioReactive.test.ts`)_
 
 ### REQ-AB-035 — Loading a new flame turns reactivity off
@@ -439,7 +439,7 @@ reactivity (and sonification) before swapping the document, because the
 modulation loop writes render settings continuously and would otherwise keep
 driving the incoming flame.
 
-_(`MainWorkspace.tsx:2398-2403` (`setAudioEnabled`))_
+_(`MainWorkspace.tsx:2392-2397` (`setAudioEnabled`))_
 
 ---
 
@@ -450,22 +450,22 @@ Requirements with no test that goes red when they are violated:
 - **REQ-AB-002, REQ-AB-003** — `bundledTracks.ts` has no test of its own.
   Since #90 `fetchBundledTrackBuffer` runs from the workspace's
   `loadBundledTrack`, but the tool tests replace that loader with a mock
-  (`arcadeBeats.test.ts:165-181` (`loadBundledTrack`)), so the fetch and the
+  (`arcadeBeats.test.ts:186-202` (`loadBundledTrack`)), so the fetch and the
   decode run in no test. `getBundledTrack` still has no caller.
 - **REQ-AB-005** — the tool side is guarded since #90:
-  `arcadeBeats.test.ts:183` "loads the requested bundled track before recording starts" and the
+  `arcadeBeats.test.ts:204` "loads the requested bundled track before recording starts" and the
   rest of its `track loading` block. The workspace's fetch and decode are not
   (see REQ-AB-002).
 - **REQ-AB-007, REQ-AB-008** — no test starts a second session, starts over a
   running recording, or forces `startPilot` to refuse after `recorder.start()`
   succeeded, so the cancel-on-rollback path is unexercised.
 - **REQ-AB-010** — guarded since #90 by the `track loading` block,
-  `arcadeBeats.test.ts:223` "loads the default track when nothing usable is loaded", `:230`
-  "keeps a track that is already loaded instead of reloading it" and `:239`
+  `arcadeBeats.test.ts:244` "loads the default track when nothing usable is loaded", `:251`
+  "keeps a track that is already loaded instead of reloading it" and `:260`
   "refuses an unknown track and starts nothing".
 - **REQ-AB-014, REQ-AB-015** — the non-object argument branch and the preset
   degradation are both unexercised.
-- **REQ-AB-016** — partly guarded: `arcadeBeats.test.ts:127` "rejects malformed mapping structures with helpful error" covers one invalid
+- **REQ-AB-016** — partly guarded: `arcadeBeats.test.ts:148` "rejects malformed mapping structures with helpful error" covers one invalid
   `audioFeature`. The 512-entry cap, the non-finite `sensitivity`/`range` cases
   and four of the five `FlameTarget` variants are not covered.
 - **REQ-AB-017, REQ-AB-023** — no test inspects the snapshot the tool
@@ -473,7 +473,7 @@ Requirements with no test that goes red when they are violated:
   (`webmcp/testUtils.ts:161` (`canEnable`)), so the mapping test never reaches the real
   authorization. That stub is why the HIGH defect behind REQ-AB-020 shipped
   green; REQ-AB-020 itself is guarded since #90 by
-  `arcadeBeats.test.ts:257` "says whether the mapping actually left reactivity on", which
+  `arcadeBeats.test.ts:278` "says whether the mapping actually left reactivity on", which
   makes `canEnable` refuse.
 - **REQ-AB-021** — the step count is asserted indirectly via `remainingSteps:
 29`; nothing asserts the log line's text or the `lesson.note` dispatch.
@@ -485,7 +485,7 @@ Requirements with no test that goes red when they are violated:
   allowed id once. `arcadeGlideSwitches.test.ts` runs `guardCommand` under a
   real Beats pilot, but only for the presentation switches and `glide.toFlame`;
   nothing checks the rest of the list that way.
-- **REQ-AB-028, REQ-AB-029** — `arcadeBeats.test.ts:148` "ends beats session and lifts lock" asserts only `ok`, the
+- **REQ-AB-028, REQ-AB-029** — `arcadeBeats.test.ts:169` "ends beats session and lifts lock" asserts only `ok`, the
   echoed title and that driving stopped. The `Lesson:` library name and the
   save-failure path are unguarded.
 - **REQ-AB-031** — nothing asserts the post-session audio state.
@@ -493,7 +493,7 @@ Requirements with no test that goes red when they are violated:
   statements and 17% of branches; its one test covers only modulation
   suspension on the mic path. The file-mode transport/modulation split and the
   mic enable-gate are unexercised.
-- **Decode and microphone failure paths** (`AudioReactivePanel.tsx:446-494` (`handleFile`)) —
+- **Decode and microphone failure paths** (`AudioReactivePanel.tsx:413-461` (`handleFile`)) —
   the panel component is at 3% of statements; `AudioReactivePanel.test.tsx`
   tests only the pure `defaultTarget` and `RENDER_PRESETS` helpers, never
   mounts the component, and never exercises a failed decode or a denied

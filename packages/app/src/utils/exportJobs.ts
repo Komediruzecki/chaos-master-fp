@@ -3,6 +3,7 @@ import type { AudioMappingEntry } from './audioAnalysis'
 import type { TimelineConfig, TimelineTrack } from './timeline'
 import type { VideoEncoderConfig } from './videoEncoder'
 import type { Palette } from '@/flame/colorMap'
+import type { AudioMapping } from '@/flame/schema/audioWiring'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 import type { ReplayGlideOptions } from '@/recorder/glide'
 import type { RecordedSession } from '@/recorder/schema'
@@ -66,6 +67,9 @@ export type ImageJobSpec = {
   condenseHidden: boolean
   tracks: TimelineTrack[]
   config: TimelineConfig
+  /** The audio wiring at enqueue time, which Recents keeps with
+   *  `authoredFlame`. Required for the same reason that one is. */
+  audio: AudioMapping | undefined
   /** Recorded session to embed alongside the flame, snapshotted at enqueue time
    *  like everything else here — a recording started while the job renders must
    *  not leak into an image it did not produce. Undefined when there is no

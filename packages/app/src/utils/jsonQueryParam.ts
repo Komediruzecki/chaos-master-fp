@@ -1,7 +1,9 @@
 import { validateFlame } from '@/flame/schema/flameSchema'
+import { parseAudioWiring } from './audioWiringParse'
 import { decodeBase64, encodeBase64 } from './base64'
 import { recordKeys } from './record'
 import { sum } from './sum'
+import type { AudioMapping } from '@/flame/schema/audioWiring'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 import type { CustomVariationDef } from '@/flame/variations/custom'
 import type { TimelineConfig, TimelineTrack } from '@/utils/timeline'
@@ -157,13 +159,24 @@ export interface SharePayload {
    * is re-validated through the allowlist compiler on load — never trusted as-is.
    */
   customVariations?: CustomVariationDef[]
+  /**
+   * The sender's audio wiring: the rows, never the audio. Untrusted like the
+   * rest of the link, so the decoder re-checks it against the wiring schema
+   * and drops it, keeping the flame, when it does not fit.
+   */
+  audio?: AudioMapping
 }
 
-export async function encodeSharePayload(
+/**
+ * What a share link or its Copy JSON carries: the flame, plus each optional
+ * part that has something in it.
+ */
+export function buildSharePayload(
   flame: FlameDescriptor,
   animation?: { tracks: TimelineTrack[]; config: TimelineConfig },
   customVariations?: CustomVariationDef[],
-): Promise<string> {
+  audio?: AudioMapping,
+): SharePayload {
   const payload: SharePayload = { flame }
   if (animation && animation.tracks.length > 0) {
     payload.animation = animation
@@ -171,6 +184,19 @@ export async function encodeSharePayload(
   if (customVariations && customVariations.length > 0) {
     payload.customVariations = customVariations
   }
+  if (audio && audio.mappings.length > 0) {
+    payload.audio = audio
+  }
+  return payload
+}
+
+export async function encodeSharePayload(
+  flame: FlameDescriptor,
+  animation?: { tracks: TimelineTrack[]; config: TimelineConfig },
+  customVariations?: CustomVariationDef[],
+  audio?: AudioMapping,
+): Promise<string> {
+  const payload = buildSharePayload(flame, animation, customVariations, audio)
   const transformKeys = recordKeys(flame.transforms ?? {})
   const firstColor = transformKeys[0]
     ? (
@@ -196,6 +222,7 @@ export async function decodeSharePayload(param: string): Promise<{
   flame: FlameDescriptor
   animation?: SharePayload['animation']
   customVariations?: CustomVariationDef[]
+  audio?: AudioMapping
 }> {
   shareLog('[share:decode] starting decode, param length:', param.length)
   const rawBytes = decodeBase64(param)
@@ -264,6 +291,7 @@ export async function decodeSharePayload(param: string): Promise<{
       customVariations: Array.isArray(raw.customVariations)
         ? (raw.customVariations as CustomVariationDef[])
         : undefined,
+      audio: parseAudioWiring(raw.audio),
     }
   }
   throw new Error(

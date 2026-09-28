@@ -97,7 +97,7 @@ audio reactivity, then replace the mapping and source, and shall re-enable
 reactivity only if `canEnable` accepts the incoming snapshot — so a mapping swap
 can never transiently drive an unrelated resource.
 
-_(`packages/app/src/commands/builtins/audio.ts:69-83` (`applySnapshot`))_
+_(`packages/app/src/commands/builtins/audio.ts:70-86` (`applySnapshot`))_
 
 The trigger is an event, not a state: a command dispatch, a decoded audio
 buffer, a pointerup, a keyframe write. "When the user is scrubbing" is a state —

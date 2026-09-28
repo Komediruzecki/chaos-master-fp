@@ -139,6 +139,32 @@ describe('parseFlameEnvelope', () => {
     expect(parsed?.tracks).toBeUndefined()
   })
 
+  it('reads the audio wiring a share payload carries', () => {
+    const audio = {
+      preset: 'custom',
+      mappings: [
+        {
+          audioFeature: 'bass',
+          target: { kind: 'renderSetting', param: 'vibrancy' },
+          sensitivity: 1,
+          range: [0.5, 1.5],
+        },
+      ],
+    }
+    expect(parseFlameEnvelope({ flame: flame('Wired'), audio })?.audio).toEqual(
+      audio,
+    )
+  })
+
+  it('drops audio wiring that does not fit, and keeps the flame', () => {
+    const parsed = parseFlameEnvelope({
+      flame: flame('Badly wired'),
+      audio: { preset: 'custom', mappings: [{ audioFeature: 'treble' }] },
+    })
+    expect(parsed?.flame.metadata?.name).toBe('Badly wired')
+    expect(parsed?.audio).toBeUndefined()
+  })
+
   it('rejects anything that is not a flame', () => {
     expect(parseFlameEnvelope(null)).toBeUndefined()
     expect(parseFlameEnvelope([flame('In an array')])).toBeUndefined()

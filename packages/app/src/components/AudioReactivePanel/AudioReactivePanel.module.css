@@ -405,6 +405,13 @@
   flex-shrink: 0;
 }
 
+/* The attack and release a row runs at: read-only here, set in the wiring
+   editor. */
+.envelopeLabel {
+  font-size: 10px;
+  color: var(--color-text-muted, #888);
+}
+
 .sensitivitySlider {
   width: 56px;
   flex-shrink: 0;

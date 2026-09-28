@@ -2,12 +2,14 @@ import { createEffect, createMemo, createSignal, onCleanup, Show, } from 'solid-
 import { useToast } from '@/contexts/ToastContext'
 import { exportFlameXml } from '@/flame/flameXml'
 import { collectFlameCustomVariations } from '@/flame/variations/custom'
-import { deriveOgMeta, encodeShareUrl, shortenShareUrl, uploadOgPreview, } from '@/utils/shareLink'
+import { buildSharePayload } from '@/utils/jsonQueryParam'
+import { deriveOgMeta, encodeShareUrl, shortenShareUrl, uploadOgPreview, userAudioWiring, } from '@/utils/shareLink'
 import { Button } from '../Button/Button'
 import { Checkbox } from '../Checkbox/Checkbox'
 import { useRequestModal } from '../Modal/ModalContext'
 import { ModalTitleBar } from '../Modal/ModalTitleBar'
 import ui from './ShareLink.module.css'
+import type { AudioMapping } from '@/flame/schema/audioWiring'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 import type { TimelineConfig, TimelineTrack } from '@/utils/timeline'
 
@@ -25,6 +27,9 @@ type ShareLinkModalProps = {
   tracks: TimelineTrack[]
   config: TimelineConfig
   hasAnimation: boolean
+  /** The workspace's audio wiring, offered to the link when the user made it
+   *  (`userAudioWiring`): it has rows and is not the default. */
+  audioWiring?: AudioMapping
   captureOgImage?: () => Promise<Blob | null>
   respond: () => void
 }
@@ -47,6 +52,14 @@ function ShareLinkModal(props: ShareLinkModalProps) {
     includeCustomVariations() && hasCustomVariations()
       ? customVariations()
       : undefined
+  // Wiring the user made goes along by default: it is rows, not audio, and
+  // the recipient's audio stays off until they switch it on. The untouched
+  // default is not offered at all.
+  const ownWiring = createMemo(() => userAudioWiring(props.audioWiring))
+  const wiringRows = () => ownWiring()?.mappings.length ?? 0
+  const [includeAudioWiring, setIncludeAudioWiring] = createSignal(true)
+  const sharedAudioWiring = () =>
+    includeAudioWiring() ? ownWiring() : undefined
   // The full, self-contained `?flame=` link (carries all data, never expires)
   // and the optional shortened `?s=` link (nicer to share, but expires).
   const [longUrl, setLongUrl] = createSignal('')
@@ -76,6 +89,7 @@ function ShareLinkModal(props: ShareLinkModalProps) {
   createEffect(() => {
     const include = includeAnimation()
     const customVars = sharedCustomVariations()
+    const audio = sharedAudioWiring()
     void (async () => {
       const { encoded, longUrl } = await encodeShareUrl({
         flame: props.flameDescriptor,
@@ -84,6 +98,7 @@ function ShareLinkModal(props: ShareLinkModalProps) {
             ? { tracks: props.tracks, config: props.config }
             : undefined,
         customVariations: customVars,
+        audio,
       })
 
       // Surface the full link immediately so there's always something to copy,
@@ -138,6 +153,18 @@ function ShareLinkModal(props: ShareLinkModalProps) {
             </span>
           </label>
         </Show>
+        <Show when={wiringRows() > 0}>
+          <label class={ui.toggleField}>
+            <Checkbox
+              checked={includeAudioWiring()}
+              onChange={setIncludeAudioWiring}
+            />
+            <span>
+              Include audio wiring ({wiringRows()} row
+              {wiringRows() === 1 ? '' : 's'})
+            </span>
+          </label>
+        </Show>
         <textarea
           class={ui.textarea}
           value={primaryUrl()}
@@ -183,22 +210,19 @@ function ShareLinkModal(props: ShareLinkModalProps) {
         </Show>
         <Button
           onClick={async () => {
-            const customVars = sharedCustomVariations()
-            const withAnimation = includeAnimation() && props.tracks.length > 0
-            const payload =
-              withAnimation || customVars
-                ? {
-                    flame: props.flameDescriptor,
-                    ...(withAnimation && {
-                      animation: {
-                        tracks: props.tracks,
-                        config: props.config,
-                      },
-                    }),
-                    ...(customVars && { customVariations: customVars }),
-                  }
-                : props.flameDescriptor
-            await copyToClipboard(JSON.stringify(payload))
+            const payload = buildSharePayload(
+              props.flameDescriptor,
+              includeAnimation()
+                ? { tracks: props.tracks, config: props.config }
+                : undefined,
+              sharedCustomVariations(),
+              sharedAudioWiring(),
+            )
+            // With nothing alongside it the flame copies bare, as before.
+            const bare = Object.keys(payload).length === 1
+            await copyToClipboard(
+              JSON.stringify(bare ? payload.flame : payload),
+            )
           }}
         >
           Copy JSON
@@ -240,6 +264,7 @@ export function createShareLinkModal(
   getTracks: () => TimelineTrack[],
   getConfig: () => TimelineConfig,
   captureOgImage?: () => Promise<Blob | null>,
+  getAudioWiring?: () => AudioMapping,
 ) {
   const requestModal = useRequestModal()
 
@@ -247,6 +272,7 @@ export function createShareLinkModal(
     const tracks = getTracks()
     const config = getConfig()
     const hasAnimation = tracks.length > 0
+    const audioWiring = getAudioWiring?.()
 
     await requestModal({
       class: ui.container,
@@ -256,6 +282,7 @@ export function createShareLinkModal(
           tracks={tracks}
           config={config}
           hasAnimation={hasAnimation}
+          audioWiring={audioWiring}
           captureOgImage={captureOgImage}
           respond={respond}
         />

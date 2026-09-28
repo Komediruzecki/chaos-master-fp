@@ -55,9 +55,9 @@ import the modal chunk, construct the launcher inside the captured owner via
 `runWithOwner` so it can read the app's modal context, and memoise the resulting
 promise, so that every later invocation reuses the same module and launcher.
 
-_(`lazyModals.ts:37-55` (`createLazyShowDocumentation`); the owner is captured at `:40` (`getOwner`) and re-entered at `:49`
+_(`lazyModals.ts:38-56` (`createLazyShowDocumentation`); the owner is captured at `:41` (`getOwner`) and re-entered at `:50`
 because `createShowDocumentation` calls `useRequestModal` during construction —
-`DocumentationModal.tsx:98` (`requestModal`). `createLazyShowHelp` at `lazyModals.ts:57-101`
+`DocumentationModal.tsx:98` (`requestModal`). `createLazyShowHelp` at `lazyModals.ts:58-102`
 follows the same shape.)_
 
 ### REQ-DS-002 — A failed panel chunk load is recoverable
@@ -67,12 +67,12 @@ hashed chunk after a redeploy, or a dropped connection — **then** the launcher
 shall clear its memoised promise and surface the failure to the user, so that a
 subsequent click retries the import instead of silently doing nothing.
 
-> **Known deviation:** `packages/app/src/components/WorkspaceModalsHost/lazyModals.ts:45-51` (`showDocumentation`)
-> (and `:75-97` (`showHelp`) for Help) — there is no `.catch` and no reset of
+> **Known deviation:** `packages/app/src/components/WorkspaceModalsHost/lazyModals.ts:46-52` (`showDocumentation`)
+> (and `:76-98` (`showHelp`) for Help) — there is no `.catch` and no reset of
 > `instancePromise`, so the rejected promise is cached for the life of the page
 > and every later click resolves to the same rejection. The call sites discard
-> it: `packages/app/src/MainWorkspace.tsx:4492` is `void showDocumentation()`
-> and `:4495` is `void showHelp()`, neither wrapped. The button appears inert
+> it: `packages/app/src/MainWorkspace.tsx:4491` is `void showDocumentation()`
+> and `:4494` is `void showHelp()`, neither wrapped. The button appears inert
 > and only a full reload recovers. Tracked in
 > [docs/agent/BUGS.md](../agent/BUGS.md).
 

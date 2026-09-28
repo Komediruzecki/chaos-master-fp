@@ -460,3 +460,40 @@ describe('command recording is routed by seat', () => {
     player.cancel()
   })
 })
+
+describe('refused commands', () => {
+  it('neither run nor record, and tell the caller', () => {
+    const execute = vi.fn()
+    registerCommand({
+      id: 'test.refuses-no',
+      label: 'Refuses no',
+      description: 'Test-only registry entry',
+      replayable: false,
+      rejectArgs: (_ctx, [answer]) =>
+        answer === 'no' ? 'the answer was no' : undefined,
+      execute,
+    })
+    const ctx = createMockCommandContext()
+    expect(executeCommand('test.refuses-no', ctx, 'no')).toBe(false)
+    expect(execute).not.toHaveBeenCalled()
+    expect(executeCommand('test.refuses-no', ctx, 'yes')).toBe(true)
+    expect(execute).toHaveBeenCalledOnce()
+    expect(executeCommand('test.no-such-command', ctx)).toBe(false)
+  })
+
+  // A refusal changes nothing, so it must not end a timed replay's preview
+  // either: a malformed link or file used to take the workspace back from a
+  // replay while the wiring it carried was thrown away.
+  it('leave a replay preview alone, while an accepted one hands it back', () => {
+    const ctx = { ...createMockCommandContext(), beforeCommand: vi.fn() }
+    expect(executeCommand('audio.setMapping', ctx, { preset: 7 })).toBe(false)
+    expect(ctx.beforeCommand).not.toHaveBeenCalled()
+    expect(
+      executeCommand('audio.setMapping', ctx, {
+        preset: 'custom',
+        mappings: [],
+      }),
+    ).toBe(true)
+    expect(ctx.beforeCommand).toHaveBeenCalledOnce()
+  })
+})

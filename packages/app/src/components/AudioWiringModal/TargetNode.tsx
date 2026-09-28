@@ -93,6 +93,7 @@ export function buildTargetGroups(
           target: {
             kind: 'transformAffine' as const,
             transformIdx: tx.index,
+            transformId: tx.id,
             matrix,
             param,
           },
@@ -111,6 +112,7 @@ export function buildTargetGroups(
         target: {
           kind: 'transformProperty' as const,
           transformIdx: tx.index,
+          transformId: tx.id,
           property: prop,
         },
         label: `${tx.label} / ${prop}`,
@@ -124,7 +126,9 @@ export function buildTargetGroups(
         target: {
           kind: 'variationWeight' as const,
           transformIdx: tx.index,
+          transformId: tx.id,
           variationType: v.type,
+          variationId: v.id,
         },
         label: `${tx.label} / ${v.type} weight`,
         paramLabel: v.type,

@@ -1,4 +1,5 @@
 import { batch, createSignal } from 'solid-js'
+import type { AudioMapping } from '@/flame/schema/audioWiring'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 import type { TimelineConfig, TimelineTrack } from '@/utils/timeline'
 
@@ -11,6 +12,8 @@ export interface WorkspaceSeed {
   readonly tracks?: TimelineTrack[]
   /** The timeline the flame's animation was authored at, if it has one. */
   readonly config?: TimelineConfig
+  /** The audio wiring a kept flame was stored with, if it has any. */
+  readonly audio?: AudioMapping
   /** A Home "Explore" card's curated capability. */
   readonly capability?: string
   /** Whether this also means "take me to the editor". */
@@ -35,6 +38,7 @@ export function createWorkspaceHandoff(input: {
   const [flame, setFlame] = createSignal<FlameDescriptor | undefined>()
   const [tracks, setTracks] = createSignal<TimelineTrack[] | undefined>()
   const [config, setConfig] = createSignal<TimelineConfig | undefined>()
+  const [audio, setAudio] = createSignal<AudioMapping | undefined>()
   const [capability, setCapability] = createSignal<string | undefined>()
 
   /**
@@ -46,6 +50,7 @@ export function createWorkspaceHandoff(input: {
       setFlame(() => next?.flame)
       setTracks(() => next?.tracks)
       setConfig(() => next?.config)
+      setAudio(() => next?.audio)
       setCapability(next?.capability)
       // Picking a flame means "take me to the editor". Forcing the tab keeps
       // a stray #home in the URL from leaving Home over the chosen flame.
@@ -57,6 +62,7 @@ export function createWorkspaceHandoff(input: {
     flame,
     tracks,
     config,
+    audio,
     capability,
     seed,
   }

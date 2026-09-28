@@ -9,6 +9,7 @@ import { useKeyframeTarget } from '@/contexts/KeyframeTargetContext'
 import { useToast } from '@/contexts/ToastContext'
 import { detectSymmetryFolds, detectSymmetryType, } from '@/flame/symmetryDetection'
 import { setActiveTab, workspaceIsVisible } from '@/lib/activeTab'
+import { restoreLoadedAudioWiring } from '@/lib/audioWiringLoad'
 import { createBackLayer } from '@/lib/backStack'
 import { SHOWCASE_CONSENT_VERSION } from '@/lib/communityShowcase'
 import { replaceOpenDocument } from '@/lib/documentLoad'
@@ -105,6 +106,7 @@ import { createRecorderAwareTimeline, runTimelineSnapshotMutation, } from './rec
 import { openBenchmarkLab, openExplorer } from './routing/pageLinks'
 import { createAnimationExport } from './utils/animationExport'
 import { applyAudioTargetValues, createAudioAnalyzer, decodeAudioBytes, } from './utils/audioAnalysis'
+import { defaultAudioMapping } from './utils/audioWiringPresets'
 import { downloadBlob } from './utils/blob'
 import { deepClone } from './utils/clone'
 import { createStoreHistory } from './utils/createStoreHistory'
@@ -182,6 +184,8 @@ export type AppProps = {
    * defaults.
    */
   welcomeConfig?: () => TimelineConfig | undefined
+  /** The audio wiring a seeded Recents flame was kept with. */
+  welcomeAudio?: () => AudioMapping | undefined
   /**
    * One-shot request from a Home "Explore" card: open the tool this flame was
    * curated to demonstrate, not just the flame. The value is the row's
@@ -767,6 +771,7 @@ export function MainWorkspace(props: AppProps) {
         // Load animation tracks if the welcome selection includes them
         const tracks = props.welcomeTracks?.()
         const config = props.welcomeConfig?.()
+        const audio = props.welcomeAudio?.()
         if (IS_DEV) {
           console.info('[welcome] flame selected, tracks:', {
             hasTracks: !!tracks,
@@ -791,6 +796,7 @@ export function MainWorkspace(props: AppProps) {
           timeline.setConfig({ ...timeline.config(), ...config })
         }
         props.resetFlameFromWelcome?.()
+        restoreLoadedAudioWiring(cmdContext, audio)
         // Every hand-off is a fresh starting point for dirty tracking: the
         // flame that arrives here came from somewhere the user can reach it
         // again - the welcome grid, a Home card, the Library - so nothing is
@@ -898,23 +904,9 @@ export function MainWorkspace(props: AppProps) {
     undefined,
   )
   const [audioEnabled, setAudioEnabled] = createSignal(false)
-  const [audioMapping, setAudioMapping] = createSignal<AudioMapping>({
-    preset: 'pulse',
-    mappings: [
-      {
-        audioFeature: 'bass',
-        target: { kind: 'renderSetting', param: 'vibrancy' },
-        sensitivity: 1,
-        range: [0.3, 1.5],
-      },
-      {
-        audioFeature: 'beat',
-        target: { kind: 'renderSetting', param: 'palettePhase' },
-        sensitivity: 1,
-        range: [0, 3.14],
-      },
-    ],
-  })
+  const [audioMapping, setAudioMapping] = createSignal<AudioMapping>(
+    defaultAudioMapping(),
+  )
   /**
    * The frame of modulation the renderer is layering on right now, or
    * `undefined` when nothing is modulating.
@@ -1693,6 +1685,7 @@ export function MainWorkspace(props: AppProps) {
     setPlaybackTime,
     fileAnalyzer,
     replaySuspendsAudioModulation,
+    effectiveFlame,
   )
 
   // Sonification loop: synthesizes audio in real-time from flame structure.
@@ -1804,6 +1797,7 @@ export function MainWorkspace(props: AppProps) {
     () => timeline.config(),
     captureOgImageBlob,
     blendPick.end,
+    () => audioMapping(),
   )
 
   const { showDiscordShareModal } = createLazyDiscordShareModal()
@@ -1923,7 +1917,7 @@ export function MainWorkspace(props: AppProps) {
       () => blendFlame(),
       () => resolvedBlendWeight(),
       () => audioBuffer(),
-      () => audioMapping().mappings,
+      () => audioMapping(),
       blendPick.end,
     )
 
@@ -2778,6 +2772,7 @@ export function MainWorkspace(props: AppProps) {
     }
     // Clear the signal so re-selecting the same animation triggers again
     clearLoadedAnimation()
+    restoreLoadedAudioWiring(cmdContext, anim.audio)
     // A load is a fresh starting point, not an edit — reset dirty tracking.
     markLoadedBaseline()
   })
@@ -2834,6 +2829,8 @@ export function MainWorkspace(props: AppProps) {
     // The timeline is part of the document: a change to the frame rate or
     // the end frame alone is unsaved work like any other.
     getConfig: () => timeline.config(),
+    // So is the wiring: Recents keeps it with the flame.
+    getAudioMapping: () => audioMapping(),
     agentDriving,
     showToast,
     confirmOverwriteOldest,
@@ -3004,6 +3001,7 @@ export function MainWorkspace(props: AppProps) {
         timeline.goToFrame(0)
         timeline.play()
       }
+      restoreLoadedAudioWiring(cmdContext, data.audio)
       // A shared link is a fresh starting point for dirty tracking.
       markLoadedBaseline()
     } catch (err) {
@@ -3487,6 +3485,7 @@ export function MainWorkspace(props: AppProps) {
           condenseHidden: false,
           tracks,
           config,
+          audio: deepClone(audioMapping()),
           session: snapshotExportSession(sessionForExport()),
         })
       },

@@ -15,15 +15,16 @@
  * `highlightPower`, `skipIters` and `gamma`, which barely move the picture —
  * which is why they felt like they did nothing. The visible movers are
  * `vibrancy` (colour intensity), `palettePhase` (hue sweep), `exposure`
- * (brightness), `zoom`, and `contrast`. Everything here sticks to those, and
- * uses ranges wide enough to see from across the room.
+ * (brightness), and `contrast`. Everything here sticks to those, and uses
+ * ranges wide enough to see from across the room.
  *
- * RANGES MUST MATCH flameSchema. Audio modulation writes into the live
- * descriptor, so a range past a schema bound leaves the flame permanently
- * invalid — `palettePhase` is 0-1 (NOT radians, which is what [0, 6.28] here
+ * RANGES MUST MATCH flameSchema. Back when audio modulation wrote the live
+ * descriptor, a range past a schema bound left the flame permanently invalid
+ * — `palettePhase` is 0-1 (NOT radians, which is what [0, 6.28] here
  * assumed), and driving it to 1.589 meant that flame could never be bred,
- * exported or opened in the ancestry tree again. `applyAudioMappingsToFlame`
- * clamps as a backstop; these ranges should not need it.
+ * exported or opened in the ancestry tree again. An export still embeds the
+ * modulated flame, so the writers (`applyAudioTargetValues`) hold every value
+ * to the schema as a backstop; these ranges should not need it.
  */
 import type { AudioFeature, AudioMappingEntry, FlameTarget, TransformInfo, } from './audioAnalysis'
 
@@ -46,9 +47,10 @@ export const PRESET_LABELS: Record<WiringPresetId, string> = {
 }
 
 export const PRESET_DESCRIPTIONS: Record<WiringPresetId, string> = {
-  pulse: 'Bass drives colour intensity, beats sweep the palette.',
+  pulse: 'Bass drives colour intensity, beats nudge the palette.',
   bloom: 'Loudness opens up brightness; highs lift saturation.',
-  drift: 'Mids breathe the zoom while the palette rotates.',
+  drift:
+    'The palette turns with how bright the sound is and speeds up with the high-mids; sub-bass deepens colour.',
   structure:
     "Bands re-weight this flame's transforms — the shape itself moves.",
   morph: "Bands drive this flame's variation weights, warping its geometry.",
@@ -89,12 +91,16 @@ export const RENDER_PRESETS: Record<RenderPresetId, AudioMappingEntry[]> = {
   pulse: [
     // Wide vibrancy swing is the single most legible reaction there is.
     entry('bass', render('vibrancy'), [0.25, 2.4], { releaseMs: 160 }),
-    // A full turn of the palette on every beat, snapped hard.
-    entry('beat', render('palettePhase'), [0, 1], {
-      attackMs: 0,
-      releaseMs: 320,
+    // A beat nudges the palette an eighth of a turn and it eases back. The
+    // phase wraps at 1, so a wider range cycles every colour on every kick.
+    entry('beat', render('palettePhase'), [0, 0.12], {
+      attackMs: 60,
+      releaseMs: 900,
     }),
-    entry('rms', render('exposure'), [0.75, 1.5]),
+    // No exposure row. A row sets exposure outright, and most flames are
+    // authored well under any range that reads as a reaction (the schema's
+    // default is 0.25): the default wiring would brighten a typical flame
+    // several times over, and cut back as far whenever audio stops.
   ],
   bloom: [
     entry('rms', render('exposure'), [0.6, 1.9], { attackMs: 120 }),
@@ -103,11 +109,10 @@ export const RENDER_PRESETS: Record<RenderPresetId, AudioMappingEntry[]> = {
     entry('onset', render('contrast'), [0.9, 1.6], { releaseMs: 140 }),
   ],
   drift: [
-    // Zoom needs a narrow range: past ~1.3x the flame leaves the frame.
-    entry('mid', render('zoom'), [0.85, 1.22], {
-      attackMs: 260,
-      releaseMs: 420,
-    }),
+    // No zoom row. Zoom is an absolute value, not a relative one: a row here
+    // drives it toward the row's own range regardless of what the flame was
+    // authored at, so it slowly walks a flame away from its authored zoom
+    // and snaps back the moment audio stops.
     entry('centroid', render('palettePhase'), [0, 1], { attackMs: 400 }),
     entry('hiMid', render('paletteSpeed'), [0.4, 2.4]),
     entry('subBass', render('vibrancy'), [0.5, 1.6], { attackMs: 180 }),
@@ -161,6 +166,7 @@ export function buildFlamePreset(
           {
             kind: 'transformProperty',
             transformIdx: t.index,
+            transformId: t.id,
             property: 'probability',
           },
           [0.06, 0.55],
@@ -183,7 +189,9 @@ export function buildFlamePreset(
             {
               kind: 'variationWeight',
               transformIdx: t.index,
+              transformId: t.id,
               variationType: variation.type,
+              variationId: variation.id,
             },
             [0, 1.5],
             { attackMs: 70, releaseMs: 260 },
@@ -196,18 +204,19 @@ export function buildFlamePreset(
     return out
   }
 
-  // swarm — scale each transform's pre-affine. `a` and `d` together are a
-  // uniform scale, so driving both from one band grows and shrinks a branch
-  // instead of shearing it.
+  // swarm — scale each transform's pre-affine. `a` and `e` are the diagonal
+  // of x' = a x + b y + c, y' = d x + e y + f, so driving both from one band
+  // grows and shrinks a branch instead of shearing it (`d` is a shear term).
   used.forEach((t, i) => {
     const band = BAND_LADDER[i % BAND_LADDER.length]!
-    for (const param of ['a', 'd'] as const) {
+    for (const param of ['a', 'e'] as const) {
       out.push(
         entry(
           band,
           {
             kind: 'transformAffine',
             transformIdx: t.index,
+            transformId: t.id,
             matrix: 'preAffine',
             param,
           },
@@ -219,6 +228,17 @@ export function buildFlamePreset(
   })
   out.push(entry('beat', render('exposure'), [0.85, 1.45], { releaseMs: 180 }))
   return out
+}
+
+/**
+ * The wiring a new session starts with: the pulse preset, as a copy the
+ * caller may edit.
+ */
+export function defaultAudioMapping(): {
+  preset: WiringPresetId
+  mappings: AudioMappingEntry[]
+} {
+  return { preset: 'pulse', mappings: buildPreset('pulse', []) }
 }
 
 /** Everything a preset id resolves to, whichever kind it is. */
@@ -265,19 +285,23 @@ export function randomizeMappings(
             {
               kind: 'transformProperty',
               transformIdx: t.index,
+              transformId: t.id,
               property: 'probability',
             },
             [0.06, 0.55],
           ),
         )
       } else if (roll < 0.8 && t.variations.length > 0) {
+        const variation = pick(t.variations)
         out.push(
           entry(
             band,
             {
               kind: 'variationWeight',
               transformIdx: t.index,
-              variationType: pick(t.variations).type,
+              transformId: t.id,
+              variationType: variation.type,
+              variationId: variation.id,
             },
             [0, 1.5],
           ),
@@ -289,8 +313,9 @@ export function randomizeMappings(
             {
               kind: 'transformAffine',
               transformIdx: t.index,
+              transformId: t.id,
               matrix: 'preAffine',
-              param: pick(['a', 'd'] as const),
+              param: pick(['a', 'e'] as const),
             },
             [0.62, 1.35],
           ),

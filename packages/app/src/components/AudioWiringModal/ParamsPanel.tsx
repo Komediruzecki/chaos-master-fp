@@ -1,12 +1,10 @@
 import { onCleanup, Show } from 'solid-js'
-import { flameTargetKey } from '../../utils/audioAnalysis'
+import { flameTargetPath } from '../../utils/audioAnalysis'
+import { ATTACK_MAX_MS, effectiveEnvelope, RELEASE_MAX_MS, } from '../../utils/audioEnvelope'
 import { createMappingGestureBoundary } from '../AudioReactivePanel/mappingGesture'
 import styles from './AudioWiringModal.module.css'
 import type { AudioFeature, AudioMappingEntry } from '../../utils/audioAnalysis'
 import type { SourceNodeData } from './SourceNode'
-
-const DEFAULT_ATTACK = 40
-const DEFAULT_RELEASE = 150
 
 export function ParamsPanel(props: {
   entry: AudioMappingEntry | null
@@ -72,14 +70,17 @@ export function ParamsPanel(props: {
           const sourceLabel =
             props.sourceByFeature.get(entry().audioFeature)?.label ??
             entry().audioFeature
-          const targetKey = flameTargetKey(entry().target)
+          const targetPath = flameTargetPath(entry().target)
+          // The times the envelope runs at, never a stand-in: a row that
+          // sets only its release rises at that release too.
+          const envelope = () => effectiveEnvelope(entry())
 
           return (
             <>
               <div class={styles.paramsTitle}>
                 <span class={styles.paramsTitleSource}>{sourceLabel}</span>
                 <span class={styles.paramsTitleArrow}>→</span>
-                <span class={styles.paramsTitleTarget}>{targetKey}</span>
+                <span class={styles.paramsTitleTarget}>{targetPath}</span>
               </div>
               <div class={styles.paramsFields}>
                 {/* Sensitivity */}
@@ -152,10 +153,13 @@ export function ParamsPanel(props: {
                     {...gestureProps}
                     type="range"
                     class={styles.paramsSlider}
+                    aria-label="Attack"
                     min={0}
-                    max={500}
+                    // An imported time past the end widens the slider rather
+                    // than being clamped the moment it is touched.
+                    max={Math.max(ATTACK_MAX_MS, envelope().attackMs)}
                     step={1}
-                    value={entry().attackMs ?? DEFAULT_ATTACK}
+                    value={envelope().attackMs}
                     onInput={(e) => {
                       mappingGesture.begin(e.currentTarget)
                       props.onUpdate({
@@ -164,7 +168,7 @@ export function ParamsPanel(props: {
                     }}
                   />
                   <span class={styles.paramsValue}>
-                    {entry().attackMs ?? DEFAULT_ATTACK}ms
+                    {envelope().attackMs}ms
                   </span>
                 </div>
 
@@ -175,10 +179,11 @@ export function ParamsPanel(props: {
                     {...gestureProps}
                     type="range"
                     class={styles.paramsSlider}
+                    aria-label="Release"
                     min={0}
-                    max={1000}
+                    max={Math.max(RELEASE_MAX_MS, envelope().releaseMs)}
                     step={1}
-                    value={entry().releaseMs ?? DEFAULT_RELEASE}
+                    value={envelope().releaseMs}
                     onInput={(e) => {
                       mappingGesture.begin(e.currentTarget)
                       props.onUpdate({
@@ -187,7 +192,7 @@ export function ParamsPanel(props: {
                     }}
                   />
                   <span class={styles.paramsValue}>
-                    {entry().releaseMs ?? DEFAULT_RELEASE}ms
+                    {envelope().releaseMs}ms
                   </span>
                 </div>
 
