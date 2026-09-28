@@ -81,6 +81,23 @@ describe('detectBeatFrames', () => {
   it('finds no beat in silence', () => {
     expect(detectBeatFrames(new Float64Array(300), 30).size).toBe(0)
   })
+
+  it('needs a beat to clear its threshold by 5% of the loud flux around it', () => {
+    // A steady hiss: every fourth frame a hair up, 1.73 deviations over the
+    // mean, but 3e-5 over the mean + 1.5σ, short of 5% of the loud flux.
+    const hiss = Array.from({ length: 300 }, (_, i) =>
+      i % 4 === 0 ? 0.0062 : 0.0059,
+    )
+    expect(detectBeatFrames(hiss, 30).size).toBe(0)
+  })
+
+  it('finds no beat on a frame where no band stands over its zero', () => {
+    const flux = Array.from({ length: 90 }, () => 0)
+    flux[30] = 1
+    flux[60] = 1
+    const audible = flux.map((_, i) => i !== 30)
+    expect([...detectBeatFrames(flux, 30, audible)]).toEqual([60])
+  })
 })
 
 describe('createCausalPicker', () => {
@@ -130,5 +147,23 @@ describe('createLiveBeatDetector', () => {
     }
     expect(beatTimes(30)).toEqual([1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5])
     expect(beatTimes(60)).toEqual(beatTimes(30))
+  })
+
+  it('needs a beat to clear its threshold by 5% of the loud flux of the last 2 s', () => {
+    // The steady hiss of the file test, heard 30 times a second.
+    const detect = createLiveBeatDetector()
+    const fired = Array.from({ length: 300 }, (_, k) =>
+      detect(k / 30, k % 4 === 0 ? 0.0062 : 0.0059),
+    )
+    expect(fired.filter(Boolean)).toHaveLength(0)
+  })
+
+  it('finds no beat while no band stands over its zero', () => {
+    const detect = createLiveBeatDetector()
+    const beats = Array.from({ length: 90 }, (_, k) => {
+      const spike = k === 30 || k === 60
+      return detect(k / 30, spike ? 1 : 0.01, k !== 30) ? k : -1
+    }).filter((k) => k >= 0)
+    expect(beats).toEqual([60])
   })
 })

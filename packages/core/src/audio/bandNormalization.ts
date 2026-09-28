@@ -51,12 +51,16 @@ export type BandRange = { floorDb: number; spanDb: number }
  * The range one band covers over a whole track. Its 10th percentile reads 0
  * and its 98th reads 1, except that the zero sits no more than BAND_FLOOR_DB
  * below the top, so a silent intro does not squash the music, and the span is
- * at least MIN_BAND_SPAN_DB.
+ * at least MIN_BAND_SPAN_DB. `quietLiftDb` raises the 10th percentile first:
+ * the file's event gate lifts it by how far noise moves the band.
  */
-export function trackBandRange(levelsDb: readonly number[]): BandRange {
+export function trackBandRange(
+  levelsDb: readonly number[],
+  quietLiftDb = 0,
+): BandRange {
   const sorted = [...levelsDb].sort((a, b) => a - b)
   return rangeBetween(
-    quantileOfSorted(sorted, QUIET_QUANTILE),
+    quantileOfSorted(sorted, QUIET_QUANTILE) + quietLiftDb,
     quantileOfSorted(sorted, LOUD_QUANTILE),
   )
 }
@@ -103,6 +107,46 @@ export function normalizeTrackBands(
  */
 export function noiseWobbleDb(binCount: number): number {
   return binCount > 0 ? 16 / binCount ** 0.45 : 0
+}
+
+/** How far over its zero some band must stand, in dB, for a frame to hold a
+ *  beat or an onset. With the zero lifted by `noiseWobbleDb`, steady noise
+ *  stood at most 6.4 dB over it (white, pink and brown noise, FFTs of 1024
+ *  to 4096 at 44.1 and 48 kHz), and 5.8 dB over ten minutes at the live
+ *  FFT of 2048, so it does not get to 9. Music's live beats and onsets stood
+ *  at least 15.9 dB over it, with noise 5 dB under the music and on a
+ *  squashed master alike. */
+export const EVENT_MIN_RISE_DB = 9
+
+/** Whether a frame is audible: some band `riseDb` over its zero by at least
+ *  EVENT_MIN_RISE_DB. Beats and onsets land only on audible frames. */
+export function isAudible(riseDb: readonly number[]): boolean {
+  return riseDb.some((rise) => rise >= EVENT_MIN_RISE_DB)
+}
+
+/**
+ * Which frames of a track are audible (`isAudible`): each band measured
+ * against its zero over the whole track, its quiet level lifted by
+ * `noiseWobbleDb` of its bins, as the live zero is. `frames[i][b]` is band
+ * b's raw amplitude in frame i, and `binCounts[b]` how many FFT bins band b
+ * averages.
+ */
+export function trackAudibleFrames(
+  frames: readonly (readonly number[])[],
+  binCounts: readonly number[],
+): boolean[] {
+  const floorsDb = binCounts.map(
+    (count, b) =>
+      trackBandRange(
+        frames.map((frame) => amplitudeToDb(frame[b] ?? 0)),
+        noiseWobbleDb(count),
+      ).floorDb,
+  )
+  return frames.map((frame) =>
+    isAudible(
+      floorsDb.map((floorDb, b) => amplitudeToDb(frame[b] ?? 0) - floorDb),
+    ),
+  )
 }
 
 /** How much audio a live band is measured against, in seconds. Long enough

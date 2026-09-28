@@ -65,6 +65,14 @@ describe('detectOnsets', () => {
     expect(onsetFrames(detectOnsets(new Float64Array(300), 30))).toEqual([])
   })
 
+  it('finds no onset on a frame where no band stands over its zero', () => {
+    const flux = new Float64Array(90)
+    flux[30] = 0.5
+    flux[60] = 0.5
+    const audible = Array.from(flux, (_, i) => i !== 30)
+    expect(onsetFrames(detectOnsets(flux, 30, audible))).toEqual([60])
+  })
+
   it('finds no onset in a steady hiss', () => {
     // A flux that wobbles by 5% around its level never clears the margin.
     const flux = Float64Array.from({ length: 300 }, (_, i) =>
@@ -140,6 +148,15 @@ describe('createLiveOnsetDetector', () => {
 
   it('finds no onset in silence', () => {
     expect(liveStrengths(30, () => 0)).toEqual([])
+  })
+
+  it('finds no onset while no band stands over its zero', () => {
+    const detect = createLiveOnsetDetector()
+    const onsets = Array.from({ length: 90 }, (_, k) => {
+      const spike = k === 30 || k === 60
+      return detect(k / 30, spike ? 0.5 : 0, k !== 30) > 0 ? k : -1
+    }).filter((k) => k >= 0)
+    expect(onsets).toEqual([60])
   })
 
   it('finds no onset in a steady hiss', () => {

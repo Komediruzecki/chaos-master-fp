@@ -62,12 +62,14 @@ export function logSpectralFlux(
  * ONSET_WINDOW_SECONDS around it by ONSET_MARGIN, at least
  * ONSET_MIN_GAP_SECONDS after the last onset in whole frames (`gapInFrames`).
  * Flux is measured against the track's loud onsets, its 99th percentile, and
- * an onset's strength is that ratio capped at 1. `fps` is the analyzer's real
- * frame rate.
+ * an onset's strength is that ratio capped at 1. An onset lands only on a
+ * frame `audible` holds, when it is given. `fps` is the analyzer's real frame
+ * rate.
  */
 export function detectOnsets(
   flux: ArrayLike<number>,
   fps: number,
+  audible?: ArrayLike<boolean>,
 ): Float32Array {
   const strengths = new Float32Array(flux.length)
   const loud = quantileOfSorted(
@@ -85,7 +87,8 @@ export function detectOnsets(
     const isPeak =
       value >= relative[i - 1]! &&
       (i + 1 === relative.length || value >= relative[i + 1]!)
-    if (isPeak && value > thresholds[i]! + ONSET_MARGIN && i - last >= minGap) {
+    const clears = value > thresholds[i]! + ONSET_MARGIN
+    if (isPeak && clears && (audible?.[i] ?? true) && i - last >= minGap) {
       strengths[i] = Math.min(1, value)
       last = i
     }
@@ -98,11 +101,12 @@ export function detectOnsets(
  * `detectOnsets` with the past only. The loud onsets' flux is the 99th
  * percentile of the last LIVE_ONSET_LOUD_SECONDS, never below
  * ONSET_FLUX_FLOOR, and an onset's strength is its flux against it, capped
- * at 1.
+ * at 1. No onset lands while not `audible`.
  */
 export function createLiveOnsetDetector(): (
   timeSeconds: number,
   flux: number,
+  audible?: boolean,
 ) => number {
   const pick = createCausalPicker({
     windowSeconds: ONSET_WINDOW_SECONDS,
@@ -110,14 +114,14 @@ export function createLiveOnsetDetector(): (
     minGapSeconds: ONSET_MIN_GAP_SECONDS,
   })
   const history = createLevelHistogram(LIVE_ONSET_LOUD_SECONDS)
-  return (timeSeconds, flux) => {
+  return (timeSeconds, flux, audible = true) => {
     history.add(timeSeconds, amplitudeToDb(flux))
     const loudDb = history.quantile(LOUD_ONSET_QUANTILE)
     const loud = Math.max(
       loudDb === undefined ? flux : 10 ** (loudDb / 20),
       ONSET_FLUX_FLOOR,
     )
-    return pick(timeSeconds, flux, ONSET_MARGIN * loud)
+    return pick(timeSeconds, flux, ONSET_MARGIN * loud, audible)
       ? Math.min(1, flux / loud)
       : 0
   }

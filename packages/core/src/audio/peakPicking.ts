@@ -3,11 +3,23 @@
 // beats after a loud one. Every window and gap is in seconds: converted at a
 // file's real frame rate, or measured on the clock a live input is heard on.
 
+import { amplitudeToDb } from './bandNormalization'
+import { createLevelHistogram } from './levelHistogram'
+
 /** How wide the window a beat's threshold is measured over is, in seconds. */
 export const BEAT_WINDOW_SECONDS = 4
 
 /** The least time between two beats, in seconds. */
 export const BEAT_MIN_GAP_SECONDS = 0.1
+
+/** How far past its threshold a beat's flux must reach, as a share of the
+ *  loud flux around it. A steady hiss wobbles past the mean + 1.5σ now and
+ *  then, but not by this. */
+export const BEAT_MARGIN = 0.05
+
+/** Where the loud flux sits among the band flux around a beat: the 99th
+ *  percentile, so one knock is not what the rest is measured against. */
+export const BEAT_LOUD_QUANTILE = 0.99
 
 /**
  * The frames a gap of `seconds` takes at `fps`, rounded up and at least one,
@@ -52,18 +64,63 @@ export function centredThresholds(
 }
 
 /**
+ * The q-quantile of `signal` over the `halfWidth` values either side of each
+ * index, and fewer at the ends.
+ */
+export function centredQuantiles(
+  signal: ArrayLike<number>,
+  halfWidth: number,
+  q: number,
+): Float64Array {
+  const n = signal.length
+  const window: number[] = []
+  /** Where `value` goes in the sorted window. */
+  const rank = (value: number) => {
+    let low = 0
+    let high = window.length
+    while (low < high) {
+      const middle = (low + high) >> 1
+      if (window[middle]! < value) low = middle + 1
+      else high = middle
+    }
+    return low
+  }
+  for (let i = 0; i < Math.min(n, halfWidth + 1); i++) {
+    window.splice(rank(signal[i]!), 0, signal[i]!)
+  }
+  const quantiles = new Float64Array(n)
+  for (let i = 0; i < n; i++) {
+    const at = q * (window.length - 1)
+    const below = Math.floor(at)
+    const above = Math.min(window.length - 1, below + 1)
+    quantiles[i] =
+      window[below]! + (window[above]! - window[below]!) * (at - below)
+    if (i - halfWidth >= 0) window.splice(rank(signal[i - halfWidth]!), 1)
+    if (i + halfWidth + 1 < n) {
+      const entering = signal[i + halfWidth + 1]!
+      window.splice(rank(entering), 0, entering)
+    }
+  }
+  return quantiles
+}
+
+/**
  * Beats in a whole file: the frames where the band flux peaks above the mean
- * + 1.5σ of the BEAT_WINDOW_SECONDS around it, at least BEAT_MIN_GAP_SECONDS
- * apart in whole frames (`gapInFrames`). A peak is a frame above the one
- * before and not below the one after, so a beat lands where the attack is,
- * not a frame early where it starts. `fps` is the analyzer's real frame rate.
+ * + 1.5σ of the BEAT_WINDOW_SECONDS around it by BEAT_MARGIN of the loud
+ * flux there, its 99th percentile, at least BEAT_MIN_GAP_SECONDS apart in
+ * whole frames (`gapInFrames`), and only on a frame `audible` holds, when it
+ * is given. A peak is a frame above the one before and not below the one
+ * after, so a beat lands where the attack is, not a frame early where it
+ * starts. `fps` is the analyzer's real frame rate.
  */
 export function detectBeatFrames(
   flux: ArrayLike<number>,
   fps: number,
+  audible?: ArrayLike<boolean>,
 ): Set<number> {
   const halfWidth = Math.max(1, Math.round((BEAT_WINDOW_SECONDS * fps) / 2))
   const thresholds = centredThresholds(flux, halfWidth, 1.5)
+  const loud = centredQuantiles(flux, halfWidth, BEAT_LOUD_QUANTILE)
   const minGap = gapInFrames(BEAT_MIN_GAP_SECONDS, fps)
   const beats = new Set<number>()
   let last = -Infinity
@@ -71,7 +128,8 @@ export function detectBeatFrames(
     const value = flux[i]!
     const isPeak =
       value > flux[i - 1]! && (i + 1 === flux.length || value >= flux[i + 1]!)
-    if (isPeak && value > thresholds[i]! && i - last >= minGap) {
+    const clears = value > thresholds[i]! + BEAT_MARGIN * loud[i]!
+    if (isPeak && clears && (audible?.[i] ?? true) && i - last >= minGap) {
       beats.add(i)
       last = i
     }
@@ -92,15 +150,21 @@ export type CausalPickerOptions = {
  * it was heard. A value is an event when it rises above the value before it
  * and clears, by `margin`, the mean + `sigmas`·σ of the values of the last
  * `windowSeconds`, itself included (a live input has no future to centre on),
- * at least `minGapSeconds` after the last event.
+ * at least `minGapSeconds` after the last event. Where `allowed` is false no
+ * event lands, but the value still joins the window.
  */
 export function createCausalPicker(
   options: CausalPickerOptions,
-): (timeSeconds: number, value: number, margin?: number) => boolean {
+): (
+  timeSeconds: number,
+  value: number,
+  margin?: number,
+  allowed?: boolean,
+) => boolean {
   const history: { time: number; value: number }[] = []
   let previous = 0
   let lastEvent = -Infinity
-  return (timeSeconds, value, margin = 0) => {
+  return (timeSeconds, value, margin = 0, allowed = true) => {
     history.push({ time: timeSeconds, value })
     while (history[0]!.time < timeSeconds - options.windowSeconds) {
       history.shift()
@@ -116,6 +180,7 @@ export function createCausalPicker(
       Math.max(0, sumOfSquares / history.length - mean * mean),
     )
     const isEvent =
+      allowed &&
       value > previous &&
       value > mean + options.sigmas * deviation + margin &&
       // A hair under the gap, so float rounding of the clock never drops one.
@@ -128,17 +193,25 @@ export function createCausalPicker(
 
 /**
  * Beats in a live input: its band flux, one hop at a time, rising above the
- * mean + 1.5σ of the past half of a file's window (BEAT_WINDOW_SECONDS / 2),
- * at least BEAT_MIN_GAP_SECONDS apart.
+ * mean + 1.5σ of the past half of a file's window (BEAT_WINDOW_SECONDS / 2)
+ * by BEAT_MARGIN of the loud flux over that time, its 99th percentile, at
+ * least BEAT_MIN_GAP_SECONDS apart, and only while `audible`.
  */
 export function createLiveBeatDetector(): (
   timeSeconds: number,
   flux: number,
+  audible?: boolean,
 ) => boolean {
   const pick = createCausalPicker({
     windowSeconds: BEAT_WINDOW_SECONDS / 2,
     sigmas: 1.5,
     minGapSeconds: BEAT_MIN_GAP_SECONDS,
   })
-  return (timeSeconds, flux) => pick(timeSeconds, flux)
+  const history = createLevelHistogram(BEAT_WINDOW_SECONDS / 2)
+  return (timeSeconds, flux, audible = true) => {
+    history.add(timeSeconds, amplitudeToDb(flux))
+    const loudDb = history.quantile(BEAT_LOUD_QUANTILE)
+    const loud = loudDb === undefined ? flux : 10 ** (loudDb / 20)
+    return pick(timeSeconds, flux, BEAT_MARGIN * loud, audible)
+  }
 }

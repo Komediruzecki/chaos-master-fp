@@ -2,7 +2,7 @@
 // synthetic signals (audioAnalysis.testUtils.ts).
 import { describe, expect, it } from 'vitest'
 import { createAudioAnalyzer } from './audioAnalysis'
-import { audioBuffer, clicks, framesWhere, TEST_SAMPLE_RATE, } from './audioAnalysis.testUtils'
+import { addNoise, audioBuffer, clicks, framesWhere, TEST_SAMPLE_RATE, } from './audioAnalysis.testUtils'
 
 /** A 100 Hz tone that swells from -60 dB to -20 dB over two seconds. */
 function swellingTone(): Float32Array<ArrayBuffer> {
@@ -93,5 +93,28 @@ describe('the file analyzer', () => {
         times.map((time) => Math.floor(time * fps)),
       )
     },
+  )
+
+  it.each([-80, -60, -40])(
+    'finds no beat and no onset in a file of room noise at %i dB, at 24, 30 and 60 fps',
+    async (db) => {
+      const room = addNoise(new Float32Array(30 * TEST_SAMPLE_RATE), db, 21)
+      const counts = []
+      for (const fps of [24, 30, 60]) {
+        const analyzer = await createAudioAnalyzer(audioBuffer(room), fps)
+        counts.push({
+          beats: framesWhere(analyzer, (frame) => frame.isBeat).length,
+          onsets: framesWhere(analyzer, (frame) => frame.onsetStrength > 0)
+            .length,
+        })
+      }
+      // At most 0.1 a second of each.
+      expect(counts).toEqual([
+        { beats: 0, onsets: 0 },
+        { beats: 0, onsets: 0 },
+        { beats: 0, onsets: 0 },
+      ])
+    },
+    30_000,
   )
 })

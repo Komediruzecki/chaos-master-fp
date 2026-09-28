@@ -2,7 +2,7 @@
 // live microphone. The mapping stage (audioMapping.ts) and the flame writers
 // (audioTargets.ts) are re-exported from here, so importers keep one path.
 
-import { createLiveBandNormalizer, createLiveBeatDetector, createLiveOnsetDetector, detectBeatFrames, detectOnsets, hannWindow, logSpectralFlux, normalizeTrackBands, } from '@chaos-master/core'
+import { createLiveBandNormalizer, createLiveBeatDetector, createLiveOnsetDetector, detectBeatFrames, detectOnsets, hannWindow, isAudible, logSpectralFlux, normalizeTrackBands, trackAudibleFrames, } from '@chaos-master/core'
 import type { FrameData } from './audioMapping'
 
 export * from './audioMapping'
@@ -201,11 +201,13 @@ export async function decodeAudioFile(file: File): Promise<AudioBuffer> {
 // --- Beat detection ---
 
 /** Beats from the rise of the raw bands frame to frame (band flux), picked
- *  against the music around each frame at the analyzer's real frame rate. */
+ *  against the music around each frame at the analyzer's real frame rate,
+ *  on the frames `audible` holds. */
 function computeBeats(
   totalFrames: number,
   getData: (i: number) => { bands: number[]; rms: number },
   fps: number,
+  audible: readonly boolean[],
 ): Set<number> {
   const flux = new Float64Array(totalFrames)
   for (let i = 1; i < totalFrames; i++) {
@@ -218,7 +220,7 @@ function computeBeats(
     }
     flux[i] = diff
   }
-  return detectBeatFrames(flux, fps)
+  return detectBeatFrames(flux, fps, audible)
 }
 
 // --- Public API ---
@@ -287,8 +289,14 @@ export async function createAudioAnalyzer(
     }
   }
 
-  const beatFrames = computeBeats(totalFrames, (i) => frames[i]!, fps)
-  const onsets = detectOnsets(flux, fps)
+  // Beats and onsets land only where some band stands over the level noise
+  // alone reaches in this track, so a file of room noise holds none.
+  const audible = trackAudibleFrames(
+    frames.map((frame) => frame.bands),
+    bandBinCounts(fftSize / 2, sampleRate),
+  )
+  const beatFrames = computeBeats(totalFrames, (i) => frames[i]!, fps, audible)
+  const onsets = detectOnsets(flux, fps, audible)
   // Bands leave as levels on [0, 1] against the range each covers in this
   // track: a raw band is about 0.001 on real music. The beats above read the
   // raw magnitudes first.
@@ -408,16 +416,20 @@ export function createLiveFrameProcessor(
       previousMags = mags
       previousBands = bands
 
-      const strength = onsets(timeSeconds, flux)
+      const levels = bandLevels.levels(bands, timeSeconds)
+      // Beats and onsets land only while some band stands over the level
+      // noise alone reaches, so a quiet room fires none.
+      const audible = isAudible(bandLevels.riseDb)
+      const strength = onsets(timeSeconds, flux, audible)
       if (strength > 0) {
         onsetStrength = strength
         onsetUntil = timeSeconds + LIVE_EVENT_HOLD_SECONDS
       }
-      if (beats(timeSeconds, bandFlux)) {
+      if (beats(timeSeconds, bandFlux, audible)) {
         beatUntil = timeSeconds + LIVE_EVENT_HOLD_SECONDS
       }
       last = {
-        bands: bandLevels.levels(bands, timeSeconds),
+        bands: levels,
         // The raw level, as the file analyzer keeps it.
         rms: computeRms(timeDomain),
         centroid,

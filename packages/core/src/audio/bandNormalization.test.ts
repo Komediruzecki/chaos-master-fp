@@ -1,7 +1,7 @@
 // Band levels for audio-reactive mapping: decibels placed on [0, 1] against
 // the range each band covers over its own track.
 import { describe, expect, it } from 'vitest'
-import { amplitudeToDb, bandLevel, createLiveBandNormalizer, noiseWobbleDb, normalizeTrackBands, quantileOfSorted, SILENT_DB, trackBandRange, } from './bandNormalization'
+import { amplitudeToDb, bandLevel, createLiveBandNormalizer, isAudible, noiseWobbleDb, normalizeTrackBands, quantileOfSorted, SILENT_DB, trackAudibleFrames, trackBandRange, } from './bandNormalization'
 
 /** The amplitude of a level in dB. */
 const amplitude = (db: number) => 10 ** (db / 20)
@@ -54,6 +54,12 @@ describe('trackBandRange', () => {
     expect(range.spanDb).toBeCloseTo(45, 9)
   })
 
+  it('lifts the quiet level by what it is given, as the file gate does by noise', () => {
+    const range = trackBandRange(RAMP_DB, 5)
+    expect(range.floorDb).toBeCloseTo(-51, 9)
+    expect(range.spanDb).toBeCloseTo(30.2, 9)
+  })
+
   it('stretches a band that never moves over 6 dB, so it reads 0 instead of flickering', () => {
     const range = trackBandRange(Array.from({ length: 50 }, () => -30))
     expect(range).toEqual({ floorDb: -30, spanDb: 6 })
@@ -92,6 +98,41 @@ describe('normalizeTrackBands', () => {
 
   it('returns no frames for no frames', () => {
     expect(normalizeTrackBands([])).toEqual([])
+  })
+})
+
+describe('isAudible', () => {
+  it('holds a frame audible when some band stands 9 dB or more over its zero', () => {
+    expect(isAudible([-3, 8.9, 0])).toBe(false)
+    expect(isAudible([-3, 9, 0])).toBe(true)
+    expect(isAudible([])).toBe(false)
+  })
+})
+
+describe('trackAudibleFrames', () => {
+  it('holds a frame audible when a band stands 9 dB over its quiet level lifted by its noise wobble', () => {
+    // Two bands at -60 dB, of 2 bins and 1 bin. Frame 40 lifts the first
+    // 9.1 dB over its zero, -60 dB plus the 2 bins' wobble; frame 70 lifts it
+    // 8.9 dB; frame 90 lifts the second 9.1 dB over -60 dB plus 1 bin's.
+    const frames = Array.from({ length: 100 }, (_, i) => [
+      amplitude(
+        i === 40
+          ? -60 + noiseWobbleDb(2) + 9.1
+          : i === 70
+            ? -60 + noiseWobbleDb(2) + 8.9
+            : -60,
+      ),
+      amplitude(i === 90 ? -60 + noiseWobbleDb(1) + 9.1 : -60),
+    ])
+    const audible = trackAudibleFrames(frames, [2, 1])
+    expect(audible.flatMap((isAudible, i) => (isAudible ? [i] : []))).toEqual([
+      40, 90,
+    ])
+  })
+
+  it('holds no frame of digital silence audible', () => {
+    const frames = Array.from({ length: 30 }, () => [0, 0])
+    expect(trackAudibleFrames(frames, [2, 1]).some(Boolean)).toBe(false)
   })
 })
 
@@ -138,6 +179,18 @@ describe('createLiveBandNormalizer', () => {
       3,
     )
     expect(levels.get(20 * 30)).toBeCloseTo((-40 - zero) / (-19.52 - zero), 3)
+  })
+
+  it('says how far each band stands over its zero', () => {
+    const bands = createLiveBandNormalizer([93])
+    for (let k = 0; k <= 600; k++) {
+      bands.levels(
+        [amplitude(Math.floor(k / 30) % 2 === 0 ? -20 : -60)],
+        k / 30,
+      )
+    }
+    // At 20 s, -20 dB over the zero at -59.9 dB plus the 93 bins' wobble.
+    expect(bands.riseDb[0]).toBeCloseTo(-20 - (-59.9 + noiseWobbleDb(93)), 3)
   })
 
   it('reads 0 for a band that moves no more than its bins wobble on noise', () => {

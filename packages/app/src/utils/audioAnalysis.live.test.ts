@@ -12,8 +12,12 @@ type Read = { time: number; frame: FrameData & { isBeat: boolean } }
 
 /** The newest FFT_SIZE samples of `samples` heard at `time`, as an
  *  AnalyserNode hands them over. */
-function newest(samples: Float32Array, time: number): Float32Array {
-  const end = Math.round(time * TEST_SAMPLE_RATE)
+function newest(
+  samples: Float32Array,
+  time: number,
+  sampleRate = TEST_SAMPLE_RATE,
+): Float32Array {
+  const end = Math.round(time * sampleRate)
   const window = new Float32Array(FFT_SIZE)
   const from = Math.max(0, end - FFT_SIZE)
   window.set(samples.subarray(from, end), FFT_SIZE - (end - from))
@@ -25,10 +29,11 @@ function poll(
   processor: LiveFrameProcessor,
   samples: Float32Array,
   times: readonly number[],
+  sampleRate = TEST_SAMPLE_RATE,
 ): Read[] {
   return times.map((time) => ({
     time,
-    frame: processor.process(newest(samples, time), time),
+    frame: processor.process(newest(samples, time, sampleRate), time),
   }))
 }
 
@@ -133,19 +138,41 @@ describe('the microphone', () => {
 })
 
 describe('the live frame processor', () => {
-  it.each([30, 60])(
-    'finds an onset and a beat at every click polled %i times a second, and none in silence',
-    (rate) => {
-      const processor = createLiveFrameProcessor(TEST_SAMPLE_RATE, FFT_SIZE)
-      const reads = poll(processor, TRACK, every(rate, 11 * rate))
-      // Each at the first poll after its click.
-      const firstPolls = CLICK_TIMES.map(
-        (time) => Math.round((time + 1 / rate) * 1000) / 1000,
+  it.each([
+    [30, 44100],
+    [60, 44100],
+    [120, 44100],
+    [144, 44100],
+    [30, 48000],
+    [60, 48000],
+    [120, 48000],
+    [144, 48000],
+  ])(
+    'finds an onset and a beat at every click polled %i times a second at %i Hz, and none in silence',
+    (rate, sampleRate) => {
+      const processor = createLiveFrameProcessor(sampleRate, FFT_SIZE)
+      const track = clicks(
+        11,
+        CLICK_TIMES,
+        CLICK_TIMES.map(() => 0.5),
+        sampleRate,
       )
-      expect(rises(reads, (read) => read.frame.onsetStrength > 0)).toEqual(
-        firstPolls,
-      )
-      expect(rises(reads, (read) => read.frame.isBeat)).toEqual(firstPolls)
+      const reads = poll(processor, track, every(rate, 11 * rate), sampleRate)
+      /** Which poll after its click each event first shows at. */
+      const pollsAfter = (times: number[]) =>
+        new Set(
+          times.map((time, c) => Math.round((time - CLICK_TIMES[c]!) * rate)),
+        )
+      const onsets = rises(reads, (read) => read.frame.onsetStrength > 0)
+      const beats = rises(reads, (read) => read.frame.isBeat)
+      expect([onsets.length, beats.length]).toEqual([16, 16])
+      // An onset shows at the first poll after its click. A beat does at 30
+      // and 60 Hz; at 120 and 144 Hz the first poll, 7 or 8 ms after the
+      // click, holds it only in the tapered end of the window, so the rise of
+      // the bands, which a beat is picked from, may not clear the threshold
+      // until the next.
+      expect(pollsAfter(onsets)).toEqual(new Set([1]))
+      expect(pollsAfter(beats)).toEqual(new Set(rate > 60 ? [1, 2] : [1]))
     },
   )
 
@@ -417,4 +444,47 @@ describe('the live band levels', () => {
     // At most 0.1, from 2 s after the burst to the end.
     expect(Math.round(worst * 1000) / 1000).toBe(0.05)
   })
+})
+
+describe('the live events', () => {
+  /** The onsets and beats that first show in `reads`, after the first second. */
+  function eventCounts(reads: readonly Read[]) {
+    const late = reads.filter((read) => read.time > 1)
+    return {
+      onsets: rises(late, (read) => read.frame.onsetStrength > 0).length,
+      beats: rises(late, (read) => read.frame.isBeat).length,
+    }
+  }
+
+  it.each([-80, -60, -40])(
+    'find no onset and no beat in room noise at %i dB, polled by one caller or three',
+    (db) => {
+      const room = addNoise(new Float32Array(31 * TEST_SAMPLE_RATE), db, 21)
+      const modulation = every(30, 30 * 30)
+      const one = poll(
+        createLiveFrameProcessor(TEST_SAMPLE_RATE, FFT_SIZE),
+        room,
+        modulation,
+      )
+      // The modulation loop, the node graph 11 ms after it and the meters.
+      const shared = poll(
+        createLiveFrameProcessor(TEST_SAMPLE_RATE, FFT_SIZE),
+        room,
+        [
+          ...modulation,
+          ...modulation.map((time) => time + 0.011),
+          ...every(20, 30 * 20).map((time) => time + 0.008),
+        ].sort((a, b) => a - b),
+      )
+      const three = modulation.map(
+        (time) => shared.find((read) => read.time === time)!,
+      )
+      // At most 0.1 a second of each.
+      expect([eventCounts(one), eventCounts(three)]).toEqual([
+        { onsets: 0, beats: 0 },
+        { onsets: 0, beats: 0 },
+      ])
+    },
+    30_000,
+  )
 })
