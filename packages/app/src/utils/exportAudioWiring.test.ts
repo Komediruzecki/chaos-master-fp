@@ -7,8 +7,12 @@ import { describe, expect, it } from 'vitest'
 import { createExportAudioModulation } from './exportAudioModulation'
 import type { AudioMappingEntry, FrameData } from './audioMapping'
 
-/** Silence on the first audio frame, full scale on every one after it. */
+/**
+ * Silence on the first audio frame, full scale on every one after it. At
+ * 48 kHz the analyzer's frames are exactly the export's 1/30 s.
+ */
 const analyzer = {
+  sampleRate: 48_000,
   totalFrames: 90,
   getFrameData: (index: number): FrameData & { isBeat: boolean } => ({
     bands: [0, 0, 0, 0, 0, 0, 0, 0],

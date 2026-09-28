@@ -1,19 +1,35 @@
-// Audio modulation for an export: the live modulation step replayed frame by
-// frame at the export's own frame rate from a fresh state, so an export shows
-// the envelopes and comfort caps the preview showed.
+// Audio modulation for an export: the live modulation step replayed over
+// every analyzer frame from a fresh state, each output frame showing the
+// analyzer frame of its own time, so an export shows the envelopes and
+// comfort caps the preview showed.
 import { createAudioModulator } from './audioModulator'
 import { applyAudioTargetValues } from './audioTargets'
 import type { AudioAnalyzer } from './audioAnalysis'
 import type { AudioMappingEntry, AudioTargetValue } from './audioMapping'
 import type { ComfortPreset } from '@/comfort/comfortPresets'
 
+/**
+ * The frame rate a file analyzer built for `requestedFps` runs at. A frame is
+ * a whole number of samples, so 44.1 kHz asked for 24 fps runs at 24.0065
+ * frames a second, and 48 kHz asked for 54 at 54.054.
+ */
+export function analyzerFrameRate(
+  sampleRate: number,
+  requestedFps: number,
+): number {
+  return sampleRate / Math.floor(sampleRate / requestedFps)
+}
+
 export type ExportAudioModulation = {
   /**
    * The values for output frame `outputFrame`, counted from the export's
-   * first frame. Every frame up to it is stepped in order, so asking twice
-   * for one frame (motion blur sub-frames) returns the same values, and
-   * asking for an earlier frame replays from the start. `baseline` is the
-   * flame as authored for that frame: the first frame eases in from it.
+   * first frame: those of the analyzer frame at its time. Every analyzer
+   * frame up to that one is stepped in order, one analyzer frame long each,
+   * as the live file path steps them, so no beat between two output frames
+   * is lost. Asking twice for one frame (motion blur sub-frames) returns the
+   * same values, and asking for an earlier frame replays from the start.
+   * `baseline` is the flame as authored for that frame: the first frame
+   * eases in from it.
    */
   valuesAt(outputFrame: number, baseline?: object): AudioTargetValue[]
   /**
@@ -25,19 +41,29 @@ export type ExportAudioModulation = {
   applyTo(flame: Record<string, unknown>, outputFrame: number): void
 }
 
+/**
+ * `source` is a file analyzer built for `fps`, the export's frame rate, as
+ * both export paths build theirs.
+ */
 export function createExportAudioModulation(
-  source: Pick<AudioAnalyzer, 'getFrameData' | 'totalFrames'>,
+  source: Pick<AudioAnalyzer, 'getFrameData' | 'totalFrames' | 'sampleRate'>,
   mappings: readonly AudioMappingEntry[],
   fps: number,
   preset: ComfortPreset,
 ): ExportAudioModulation {
   const modulator = createAudioModulator(preset)
-  const dt = 1 / fps
+  const analyzerFps = analyzerFrameRate(source.sampleRate, fps)
+  const dt = 1 / analyzerFps
+  /** The next analyzer frame to step, counted from the export's start. */
   let next = 0
   let latest: AudioTargetValue[] = []
 
   function valuesAt(outputFrame: number, baseline?: object) {
-    const wanted = Math.max(0, Math.floor(outputFrame))
+    const frame = Math.max(0, Math.floor(outputFrame))
+    // By time: output frame n shows at n / fps, inside analyzer frame
+    // floor(n / fps * analyzerFps). Multiplying first keeps a whole-frame
+    // ratio exact.
+    const wanted = Math.floor((frame * analyzerFps) / fps)
     if (wanted < next - 1) {
       modulator.reset()
       next = 0
