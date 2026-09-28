@@ -55,9 +55,66 @@ const TRACK = clicks(
   CLICK_TIMES.map(() => 0.5),
 )
 
+/**
+ * A stand-in for the browser's microphone and audio graph: a context in
+ * `state` whose resume() settles as `resume` does, and the calls
+ * createLiveAnalyzer makes on them.
+ */
+function stubMicrophone(state: AudioContextState, resume: () => Promise<void>) {
+  const calls = {
+    resume: vi.fn(resume),
+    stopTrack: vi.fn(),
+    close: vi.fn(() => Promise.resolve()),
+  }
+  const stream = { getTracks: () => [{ stop: calls.stopTrack }] }
+  vi.stubGlobal('navigator', {
+    mediaDevices: { getUserMedia: () => Promise.resolve(stream) },
+  })
+  const node = () => ({ connect: vi.fn(), disconnect: vi.fn() })
+  vi.stubGlobal(
+    'AudioContext',
+    class {
+      sampleRate = 48000
+      currentTime = 0
+      state = state
+      resume = calls.resume
+      close = calls.close
+      createMediaStreamSource = node
+      createAnalyser = () => ({
+        ...node(),
+        fftSize: 2048,
+        smoothingTimeConstant: 0,
+        getFloatTimeDomainData: vi.fn(),
+      })
+    },
+  )
+  return calls
+}
+
 describe('the microphone', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
+  })
+
+  it('starts a suspended audio context, and leaves a running one be', async () => {
+    const suspended = stubMicrophone('suspended', () => Promise.resolve())
+    const analyzer = await createLiveAnalyzer()
+    expect(suspended.resume).toHaveBeenCalledOnce()
+    analyzer.dispose()
+    const running = stubMicrophone('running', () => Promise.resolve())
+    ;(await createLiveAnalyzer()).dispose()
+    expect(running.resume).not.toHaveBeenCalled()
+  })
+
+  it('fails the start when the context will not run, and gives the microphone back', async () => {
+    const calls = stubMicrophone('suspended', () =>
+      Promise.reject(new Error('the context will not start')),
+    )
+    await expect(createLiveAnalyzer()).rejects.toThrow(
+      'the context will not start',
+    )
+    expect(calls.stopTrack).toHaveBeenCalledOnce()
+    expect(calls.close).toHaveBeenCalledOnce()
   })
 
   it('is asked for as music, with the browser call processing off', async () => {

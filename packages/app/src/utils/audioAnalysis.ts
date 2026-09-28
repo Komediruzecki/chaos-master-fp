@@ -422,6 +422,21 @@ export async function createLiveAnalyzer(
   const stream =
     await globalThis.navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS)
   const audioCtx = new AudioContext()
+  // A suspended context delivers no samples and its clock stands still, so
+  // the processor would hand back its first frame forever. Start it; if it
+  // will not run, give the microphone back and fail the start, so the caller
+  // shows why.
+  if (audioCtx.state === 'suspended') {
+    try {
+      await audioCtx.resume()
+    } catch (error) {
+      stream.getTracks().forEach((track) => {
+        track.stop()
+      })
+      void audioCtx.close()
+      throw error
+    }
+  }
   const sampleRate = audioCtx.sampleRate
 
   const source = audioCtx.createMediaStreamSource(stream)
