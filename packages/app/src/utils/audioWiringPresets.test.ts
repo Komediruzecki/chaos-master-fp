@@ -305,6 +305,19 @@ describe('the default wiring', () => {
     })
   })
 
+  it('wires colour and the palette, and leaves brightness as authored', () => {
+    expect(
+      RENDER_PRESETS.pulse.map((m) => [
+        m.audioFeature,
+        flameTargetPath(m.target),
+        m.range,
+      ]),
+    ).toEqual([
+      ['bass', 'render.vibrancy', [0.25, 2.4]],
+      ['beat', 'render.palettePhase', [0, 0.12]],
+    ])
+  })
+
   it('is the pulse preset, as a copy the caller may edit', () => {
     const mapping = defaultAudioMapping()
     expect(mapping).toEqual({ preset: 'pulse', mappings: RENDER_PRESETS.pulse })

@@ -96,7 +96,10 @@ export const RENDER_PRESETS: Record<RenderPresetId, AudioMappingEntry[]> = {
       attackMs: 60,
       releaseMs: 900,
     }),
-    entry('rms', render('exposure'), [0.75, 1.5]),
+    // No exposure row. A row sets exposure outright, and most flames are
+    // authored well under any range that reads as a reaction (the schema's
+    // default is 0.25): the default wiring would brighten a typical flame
+    // several times over, and cut back as far whenever audio stops.
   ],
   bloom: [
     entry('rms', render('exposure'), [0.6, 1.9], { attackMs: 120 }),
