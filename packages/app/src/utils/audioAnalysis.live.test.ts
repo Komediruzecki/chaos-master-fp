@@ -234,6 +234,41 @@ describe('the live frame processor', () => {
     ])
   })
 
+  it('does not let one knock 19 dB over the clicks quieten the onsets 2 s after it', () => {
+    // Clicks every half second for 20 s; in one run, a knock 19 dB louder at
+    // 5.25 s, between two of them.
+    const times = Array.from({ length: 38 }, (_, c) => 1 + 0.5 * c)
+    const plain = clicks(
+      21,
+      times,
+      times.map(() => 0.5),
+    )
+    const knocked = clicks(
+      21,
+      [...times, 5.25],
+      [...times.map(() => 0.5), 0.5 * 10 ** (19 / 20)],
+    )
+    const strengths = (samples: Float32Array) => {
+      const reads = poll(
+        createLiveFrameProcessor(TEST_SAMPLE_RATE, FFT_SIZE),
+        samples,
+        every(30, 21 * 30),
+      )
+      // Each click's onset, at the first poll after it.
+      return times
+        .filter((time) => time >= 7.25)
+        .map(
+          (time) => reads.find((read) => read.time > time)!.frame.onsetStrength,
+        )
+    }
+    const before = strengths(plain)
+    const after = strengths(knocked)
+    expect(before).toHaveLength(25)
+    // At least 0.9 of what each click read without the knock: 0.995.
+    const ratios = after.map((strength, c) => strength / before[c]!)
+    expect(Math.min(...ratios)).toBeCloseTo(0.995, 3)
+  })
+
   it('gives a caller that polls within 5 ms of the last analysis the same frame', () => {
     const processor = createLiveFrameProcessor(TEST_SAMPLE_RATE, FFT_SIZE)
     const first = processor.process(newest(TRACK, 1.01), 1.01)

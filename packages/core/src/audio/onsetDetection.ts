@@ -4,7 +4,8 @@
 // an onset where that flux peaks above a threshold that follows the music; its
 // value is a strength on [0, 1], and 0 between onsets.
 
-import { PEAK_RELEASE_SECONDS, quantileOfSorted } from './bandNormalization'
+import { amplitudeToDb, quantileOfSorted } from './bandNormalization'
+import { createLevelHistogram } from './levelHistogram'
 import { centredThresholds, createCausalPicker, gapInFrames, } from './peakPicking'
 
 /** The gain inside log(1 + gain * |X|). Puts music's typical bins, 1e-4 to
@@ -24,6 +25,15 @@ export const ONSET_MARGIN = 0.05
 /** The least flux the loud onsets are measured against, so the rounding noise
  *  of a silent track is not scaled up into onsets. */
 export const ONSET_FLUX_FLOOR = 1e-4
+
+/** Where the loud onsets' flux sits among all of it: the 99th percentile, so
+ *  a single knock, a hop or two, is not what the rest is measured against. */
+export const LOUD_ONSET_QUANTILE = 0.99
+
+/** How far back a live input's loud onsets are measured, in seconds of audio:
+ *  a knock is a hop or two of these 10 s, so it does not quieten the onsets
+ *  after it, and a loud passage no longer sets the scale 10 s after it ends. */
+export const LIVE_ONSET_LOUD_SECONDS = 10
 
 /**
  * The log spectral flux between two magnitude spectra: the mean over the bins
@@ -60,7 +70,10 @@ export function detectOnsets(
   fps: number,
 ): Float32Array {
   const strengths = new Float32Array(flux.length)
-  const loud = quantileOfSorted(Float64Array.from(flux).sort(), 0.99)
+  const loud = quantileOfSorted(
+    Float64Array.from(flux).sort(),
+    LOUD_ONSET_QUANTILE,
+  )
   const scale = Math.max(loud, ONSET_FLUX_FLOOR)
   const relative = Float64Array.from(flux, (value) => value / scale)
   const halfWidth = Math.max(1, Math.round((ONSET_WINDOW_SECONDS * fps) / 2))
@@ -82,9 +95,10 @@ export function detectOnsets(
 
 /**
  * Onsets in a live input, from its flux one hop at a time: the rule of
- * `detectOnsets` with the past only. The loud onsets' flux is a running peak,
- * up at once and down by a factor of e in PEAK_RELEASE_SECONDS, and an
- * onset's strength is its flux against it.
+ * `detectOnsets` with the past only. The loud onsets' flux is the 99th
+ * percentile of the last LIVE_ONSET_LOUD_SECONDS, never below
+ * ONSET_FLUX_FLOOR, and an onset's strength is its flux against it, capped
+ * at 1.
  */
 export function createLiveOnsetDetector(): (
   timeSeconds: number,
@@ -95,15 +109,13 @@ export function createLiveOnsetDetector(): (
     sigmas: 1.5,
     minGapSeconds: ONSET_MIN_GAP_SECONDS,
   })
-  let loud = ONSET_FLUX_FLOOR
-  let lastTime: number | undefined
+  const history = createLevelHistogram(LIVE_ONSET_LOUD_SECONDS)
   return (timeSeconds, flux) => {
-    const dt = lastTime === undefined ? 0 : Math.max(0, timeSeconds - lastTime)
-    lastTime = timeSeconds
-    loud = Math.max(
-      flux,
+    history.add(timeSeconds, amplitudeToDb(flux))
+    const loudDb = history.quantile(LOUD_ONSET_QUANTILE)
+    const loud = Math.max(
+      loudDb === undefined ? flux : 10 ** (loudDb / 20),
       ONSET_FLUX_FLOOR,
-      loud * Math.exp(-dt / PEAK_RELEASE_SECONDS),
     )
     return pick(timeSeconds, flux, ONSET_MARGIN * loud)
       ? Math.min(1, flux / loud)
