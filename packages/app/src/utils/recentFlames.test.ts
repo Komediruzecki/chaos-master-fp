@@ -195,7 +195,7 @@ describe('loadRecentFlames memo', () => {
   it('reflects a save without an explicit invalidation', () => {
     seed([goodEntry('a')])
     loadRecentFlames()
-    saveRecentFlame(sampleFlame(), 'fresh')
+    saveRecentFlame(sampleFlame(), { name: 'fresh' })
     expect(loadRecentFlames().map((e) => e.name)).toContain('fresh')
   })
 
@@ -312,7 +312,7 @@ describe('loadRecentFlamesForRewrite', () => {
 describe('saveRecentFlame', () => {
   it('prepends the new entry', () => {
     seed([goodEntry('a')])
-    saveRecentFlame(sampleFlame(), 'newest')
+    saveRecentFlame(sampleFlame(), { name: 'newest' })
     expect(loadRecentFlames()[0]!.name).toBe('newest')
   })
 
@@ -325,14 +325,17 @@ describe('saveRecentFlame', () => {
 
   it('stores tracks only when there are keyframes', () => {
     seed([])
-    saveRecentFlame(sampleFlame(), 'no tracks', [])
+    saveRecentFlame(sampleFlame(), { name: 'no tracks', tracks: [] })
     expect(loadRecentFlamesForRewrite()[0]!.tracks).toBeUndefined()
   })
 
   it('stores tracks when there are keyframes, deep-cloned', () => {
     seed([])
     const tracks = [sampleTrack()]
-    saveRecentFlame(sampleFlame(), 'animated', tracks as never)
+    saveRecentFlame(sampleFlame(), {
+      name: 'animated',
+      tracks: tracks as never,
+    })
     const saved = loadRecentFlamesForRewrite()[0]!
     expect(saved.tracks).toHaveLength(1)
     // Cloned, not aliased: editing the caller's tracks must not rewrite history.
@@ -345,7 +348,7 @@ describe('saveRecentFlame', () => {
   it('deep-clones the flame so later edits do not rewrite history', () => {
     seed([])
     const flame = structuredClone(sampleFlame())
-    saveRecentFlame(flame, 'snapshot')
+    saveRecentFlame(flame, { name: 'snapshot' })
     const before = JSON.stringify(loadRecentFlamesForRewrite()[0]!.flame)
     flame.renderSettings.dimensions =
       flame.renderSettings.dimensions === 3 ? 2 : 3
@@ -356,7 +359,7 @@ describe('saveRecentFlame', () => {
   // without the entries the validator rejected.
   it('preserves schema-invalid entries', () => {
     seed([goodEntry('a'), brokenEntry('bad')])
-    saveRecentFlame(sampleFlame(), 'new one')
+    saveRecentFlame(sampleFlame(), { name: 'new one' })
     expect(ids(loadRecentFlamesForRewrite())).toContain('bad')
   })
 
@@ -364,9 +367,12 @@ describe('saveRecentFlame', () => {
     seed(
       Array.from({ length: MAX_RECENT_FLAMES }, (_, i) => brokenEntry(`b${i}`)),
     )
-    expect(saveRecentFlame(sampleFlame(), 'nope', undefined, false)).toBe(
-      'full',
-    )
+    expect(
+      saveRecentFlame(sampleFlame(), {
+        name: 'nope',
+        forceOverwriteOldest: false,
+      }),
+    ).toBe('full')
     expect(loadRecentFlamesForRewrite()).toHaveLength(MAX_RECENT_FLAMES)
   })
 
@@ -375,15 +381,23 @@ describe('saveRecentFlame', () => {
       Array.from({ length: MAX_RECENT_FLAMES }, (_, i) => goodEntry(`g${i}`)),
     )
     const before = localStorage.getItem(STORAGE_KEY)
-    expect(saveRecentFlame(sampleFlame(), 'nope', undefined, false)).toBe(
-      'full',
-    )
+    expect(
+      saveRecentFlame(sampleFlame(), {
+        name: 'nope',
+        forceOverwriteOldest: false,
+      }),
+    ).toBe('full')
     expect(localStorage.getItem(STORAGE_KEY)).toBe(before)
   })
 
   it('stores the timeline it is given', () => {
     seed([])
-    saveRecentFlame(sampleFlame(), 'Saved', [], true, sampleConfig())
+    saveRecentFlame(sampleFlame(), {
+      name: 'Saved',
+      tracks: [],
+      config: sampleConfig(),
+      forceOverwriteOldest: true,
+    })
     expect(loadRecentFlames()[0]!.config).toEqual(sampleConfig())
   })
 
@@ -393,9 +407,11 @@ describe('saveRecentFlame', () => {
     // dropping the config for it took the frame rate and the loop mode with
     // it - the flame came back at 30fps over 90 frames, reported as saved.
     seed([])
-    const outcome = saveRecentFlame(sampleFlame(), 'Long', [], true, {
-      ...sampleConfig(),
-      endFrame: 5000,
+    const outcome = saveRecentFlame(sampleFlame(), {
+      name: 'Long',
+      tracks: [],
+      config: { ...sampleConfig(), endFrame: 5000 },
+      forceOverwriteOldest: true,
     })
     expect(outcome).toBe('saved')
     const stored = loadRecentFlames()[0]!.config!
@@ -410,21 +426,23 @@ describe('saveRecentFlame', () => {
     // the entry. The caller marks the workspace clean on success, so a write
     // that claimed this landed would lose it with nothing left to retry.
     seed([])
-    const outcome = saveRecentFlame(sampleFlame(), 'Broken', [], true, {
-      ...sampleConfig(),
-      fps: 'fast',
-    } as never)
+    const outcome = saveRecentFlame(sampleFlame(), {
+      name: 'Broken',
+      tracks: [],
+      config: { ...sampleConfig(), fps: 'fast' } as never,
+      forceOverwriteOldest: true,
+    })
     expect(loadRecentFlames()[0]!.config).toBeUndefined()
     expect(outcome).toBe('refused')
   })
 
   it('reports what it did, so a caller knows whether to ask', () => {
     seed([])
-    expect(saveRecentFlame(sampleFlame(), 'first')).toBe('saved')
+    expect(saveRecentFlame(sampleFlame(), { name: 'first' })).toBe('saved')
     seed(
       Array.from({ length: MAX_RECENT_FLAMES }, (_, i) => goodEntry(`g${i}`)),
     )
-    expect(saveRecentFlame(sampleFlame(), 'nope')).toBe('full')
+    expect(saveRecentFlame(sampleFlame(), { name: 'nope' })).toBe('full')
   })
 
   it('evicts the oldest when forced, staying at the cap', () => {
@@ -433,9 +451,12 @@ describe('saveRecentFlame', () => {
         goodEntry(`g${i}`, i),
       ),
     )
-    expect(saveRecentFlame(sampleFlame(), 'forced', undefined, true)).toBe(
-      'saved',
-    )
+    expect(
+      saveRecentFlame(sampleFlame(), {
+        name: 'forced',
+        forceOverwriteOldest: true,
+      }),
+    ).toBe('saved')
     const after = loadRecentFlamesForRewrite()
     expect(after).toHaveLength(MAX_RECENT_FLAMES)
     expect(after[0]!.name).toBe('forced')
@@ -452,7 +473,7 @@ describe('saveRecentFlame', () => {
       },
       removeItem: () => {},
     })
-    expect(saveRecentFlame(sampleFlame(), 'doomed')).toBe('refused')
+    expect(saveRecentFlame(sampleFlame(), { name: 'doomed' })).toBe('refused')
   })
 })
 
@@ -517,13 +538,15 @@ describe('getOldestRecentFlame', () => {
 describe('upsertRecentFlame', () => {
   it('inserts a new entry at the front', () => {
     seed([goodEntry('a')])
-    expect(upsertRecentFlame('auto', sampleFlame(), 'Autosaved')).toBe('saved')
+    expect(
+      upsertRecentFlame('auto', sampleFlame(), { name: 'Autosaved' }),
+    ).toBe('saved')
     expect(ids(loadRecentFlamesForRewrite())).toEqual(['auto', 'a'])
   })
 
   it('updates in place by id instead of appending a duplicate', () => {
     seed([goodEntry('a'), goodEntry('auto')])
-    upsertRecentFlame('auto', sampleFlame(), 'Updated')
+    upsertRecentFlame('auto', sampleFlame(), { name: 'Updated' })
     const after = loadRecentFlamesForRewrite()
     expect(ids(after)).toEqual(['auto', 'a'])
     expect(after[0]!.name).toBe('Updated')
@@ -533,7 +556,7 @@ describe('upsertRecentFlame', () => {
     seed(
       Array.from({ length: MAX_RECENT_FLAMES }, (_, i) => goodEntry(`g${i}`)),
     )
-    upsertRecentFlame('auto', sampleFlame(), 'Autosaved')
+    upsertRecentFlame('auto', sampleFlame(), { name: 'Autosaved' })
     expect(loadRecentFlamesForRewrite()).toHaveLength(MAX_RECENT_FLAMES)
   })
 
@@ -550,7 +573,9 @@ describe('upsertRecentFlame', () => {
       ),
     )
     const before = localStorage.getItem(STORAGE_KEY)
-    const outcome = upsertRecentFlame('auto', sampleFlame(), 'Autosaved')
+    const outcome = upsertRecentFlame('auto', sampleFlame(), {
+      name: 'Autosaved',
+    })
     expect(ids(loadRecentFlamesForRewrite())).toContain(
       `g${MAX_RECENT_FLAMES - 1}`,
     )
@@ -567,7 +592,9 @@ describe('upsertRecentFlame', () => {
       ),
       goodEntry('auto', 0),
     ])
-    expect(upsertRecentFlame('auto', sampleFlame(), 'Updated')).toBe('saved')
+    expect(upsertRecentFlame('auto', sampleFlame(), { name: 'Updated' })).toBe(
+      'saved',
+    )
     const after = loadRecentFlamesForRewrite()
     expect(after).toHaveLength(MAX_RECENT_FLAMES)
     expect(after[0]!.name).toBe('Updated')
@@ -575,17 +602,18 @@ describe('upsertRecentFlame', () => {
 
   it('preserves schema-invalid entries', () => {
     seed([brokenEntry('bad')])
-    upsertRecentFlame('auto', sampleFlame(), 'Autosaved')
+    upsertRecentFlame('auto', sampleFlame(), { name: 'Autosaved' })
     expect(ids(loadRecentFlamesForRewrite())).toContain('bad')
   })
 
   it('stores tracks when there are keyframes, and omits empty ones', () => {
     seed([])
-    upsertRecentFlame('auto', sampleFlame(), 'Animated', [
-      sampleTrack(),
-    ] as never)
+    upsertRecentFlame('auto', sampleFlame(), {
+      name: 'Animated',
+      tracks: [sampleTrack()] as never,
+    })
     expect(loadRecentFlamesForRewrite()[0]!.tracks).toHaveLength(1)
-    upsertRecentFlame('auto2', sampleFlame(), 'Plain', [])
+    upsertRecentFlame('auto2', sampleFlame(), { name: 'Plain', tracks: [] })
     expect(loadRecentFlamesForRewrite()[0]!.tracks).toBeUndefined()
   })
 
@@ -596,13 +624,11 @@ describe('upsertRecentFlame', () => {
     // repair, unlike a value merely out of range.
     seed([])
     const { loop: _loop, ...withoutLoop } = sampleConfig()
-    const outcome = upsertRecentFlame(
-      'auto',
-      sampleFlame(),
-      'Broken',
-      [],
-      withoutLoop as never,
-    )
+    const outcome = upsertRecentFlame('auto', sampleFlame(), {
+      name: 'Broken',
+      tracks: [],
+      config: withoutLoop as never,
+    })
     expect(loadRecentFlames()[0]!.config).toBeUndefined()
     expect(outcome).toBe('refused')
   })
@@ -613,9 +639,10 @@ describe('upsertRecentFlame', () => {
     // taking the whole config - and with it the end frame and loop mode -
     // out of the entry.
     seed([])
-    const outcome = upsertRecentFlame('auto', sampleFlame(), 'Slow', [], {
-      ...sampleConfig(),
-      fps: 0,
+    const outcome = upsertRecentFlame('auto', sampleFlame(), {
+      name: 'Slow',
+      tracks: [],
+      config: { ...sampleConfig(), fps: 0 },
     })
     expect(outcome).toBe('saved')
     const stored = loadRecentFlames()[0]!.config!
@@ -628,14 +655,22 @@ describe('upsertRecentFlame', () => {
     // and an end frame, and an entry that dropped this came back at 30fps
     // over 90 frames however it was authored.
     seed([])
-    upsertRecentFlame('auto', sampleFlame(), 'Plain', [], sampleConfig())
+    upsertRecentFlame('auto', sampleFlame(), {
+      name: 'Plain',
+      tracks: [],
+      config: sampleConfig(),
+    })
     expect(loadRecentFlames()[0]!.config).toEqual(sampleConfig())
   })
 
   it('deep-clones the timeline it stores', () => {
     seed([])
     const config = sampleConfig()
-    upsertRecentFlame('auto', sampleFlame(), 'Plain', [], config)
+    upsertRecentFlame('auto', sampleFlame(), {
+      name: 'Plain',
+      tracks: [],
+      config,
+    })
     config.fps = 1
     expect(loadRecentFlames()[0]!.config!.fps).toBe(60)
   })
@@ -652,7 +687,7 @@ describe('upsertRecentFlame', () => {
 
   it('inherits the existing name when none is given', () => {
     seed([])
-    upsertRecentFlame('auto', sampleFlame(), 'Original')
+    upsertRecentFlame('auto', sampleFlame(), { name: 'Original' })
     upsertRecentFlame('auto', sampleFlame())
     expect(loadRecentFlamesForRewrite()[0]!.name).toBe('Original')
   })
@@ -665,7 +700,9 @@ describe('upsertRecentFlame', () => {
       },
       removeItem: () => {},
     })
-    expect(upsertRecentFlame('auto', sampleFlame(), 'doomed')).toBe('refused')
+    expect(upsertRecentFlame('auto', sampleFlame(), { name: 'doomed' })).toBe(
+      'refused',
+    )
   })
 })
 
@@ -726,36 +763,30 @@ describe('formatRecentDate', () => {
 describe('the audio wiring an entry keeps', () => {
   it('comes back with the entry Save for Later stored it in', () => {
     seed([])
-    saveRecentFlame(
-      sampleFlame(),
-      'Wired',
-      [],
-      false,
-      undefined,
-      sampleWiring(),
-    )
+    saveRecentFlame(sampleFlame(), {
+      name: 'Wired',
+      tracks: [],
+      audio: sampleWiring(),
+    })
     expect(loadRecentFlames()[0]!.audio).toEqual(sampleWiring())
   })
 
   it('comes back with the entry an autosave stored it in', () => {
     seed([])
-    upsertRecentFlame(
-      'auto',
-      sampleFlame(),
-      'Wired',
-      [],
-      undefined,
-      false,
-      sampleWiring(),
-    )
+    upsertRecentFlame('auto', sampleFlame(), {
+      name: 'Wired',
+      tracks: [],
+      audio: sampleWiring(),
+    })
     expect(loadRecentFlame('auto')?.audio).toEqual(sampleWiring())
   })
 
   it('is left out when there are no rows to keep', () => {
     seed([])
-    saveRecentFlame(sampleFlame(), 'Unwired', [], false, undefined, {
-      preset: 'custom',
-      mappings: [],
+    saveRecentFlame(sampleFlame(), {
+      name: 'Unwired',
+      tracks: [],
+      audio: { preset: 'custom', mappings: [] },
     })
     expect('audio' in loadRecentFlamesForRewrite()[0]!).toBe(false)
   })

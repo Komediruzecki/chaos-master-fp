@@ -41,9 +41,9 @@ import type { Vec3 } from 'wgpu-matrix'
 import type { ExportMetadataPatch } from './metadataCommit'
 import type { Palette } from '@/flame/colorMap'
 import type { ExportImageType } from '@/flame/exportImageType'
+import type { AudioMapping } from '@/flame/schema/audioWiring'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 import type { AnimationExportConfig } from '@/utils/animationExport'
-import type { AudioMappingEntry } from '@/utils/audioAnalysis'
 import type { ExportAspectKey } from '@/utils/exportDimensions'
 import type { AnimationJobSpec, ImageJobSpec } from '@/utils/exportJobs'
 import type { TimelineConfig, TimelineState, TimelineTrack, } from '@/utils/timeline'
@@ -1006,7 +1006,9 @@ export function createExportPngDialog(
   getBlendFlame?: () => FlameDescriptor | undefined,
   getBlendWeight?: () => number,
   getAudioBuffer?: () => AudioBuffer | undefined,
-  getAudioMapping?: () => AudioMappingEntry[],
+  /** The workspace's audio wiring: its rows drive an animation export, and
+   *  all of it goes to Recents with an exported image's flame. */
+  getAudioMapping?: () => AudioMapping,
   /**
    * Ends the partner gallery's hover preview (useWorkspaceBlendPick). Both
    * exports call it before anything reads the canvas, so a press inside the
@@ -1018,6 +1020,11 @@ export function createExportPngDialog(
   const requestModal = useRequestModal()
   const { showToast } = useToast()
   const [exportModalIsOpen, setExportModalIsOpen] = createSignal(false)
+  /** The wiring as it is now, for Recents; later edits do not reach it. */
+  const audioWiringNow = (): AudioMapping | undefined => {
+    const wiring = getAudioMapping?.()
+    return wiring ? deepClone(wiring) : undefined
+  }
 
   function quickExport() {
     endPreview()
@@ -1096,13 +1103,11 @@ export function createExportPngDialog(
               //
               // The DOCUMENT, never `capturedFlame`. Recents holds the user's
               // work, and one frame of a song is not it.
-              saveRecentFlame(
-                flameDescriptor,
-                undefined,
-                currentTracks,
-                false,
+              saveRecentFlame(flameDescriptor, {
+                tracks: currentTracks,
                 config,
-              )
+                audio: audioWiringNow(),
+              })
               downloadBlob(
                 new Blob([pngBytes], { type: 'image/png' }),
                 'flame.png',
@@ -1305,6 +1310,7 @@ export function createExportPngDialog(
         condenseHidden: condenseHidden(),
         tracks: timeline?.tracks() ?? [],
         config: timeline?.config() ?? defaultTimelineConfig(),
+        audio: audioWiringNow(),
         session: snapshotExportSession(sessionForExport()),
       })
     }
@@ -1350,7 +1356,7 @@ export function createExportPngDialog(
           config: timeline?.config() ?? defaultTimelineConfig(),
           session: sessionSnapshot,
           audioBuffer: getAudioBuffer?.(),
-          audioMapping: getAudioMapping?.(),
+          audioMapping: getAudioMapping?.().mappings,
           ...motionBlurSettings(motionBlurSamples()),
         })
         return
@@ -1373,7 +1379,7 @@ export function createExportPngDialog(
         embedMetadata: embedMetadata(),
         session: sessionSnapshot,
         audioBuffer: audioBuf,
-        audioMapping: getAudioMapping?.(),
+        audioMapping: getAudioMapping?.().mappings,
         ...motionBlurSettings(motionBlurSamples()),
       }
       // The canvas will be obtained from the Flam3 component in App.tsx

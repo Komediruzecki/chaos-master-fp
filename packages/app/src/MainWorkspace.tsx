@@ -1917,7 +1917,7 @@ export function MainWorkspace(props: AppProps) {
       () => blendFlame(),
       () => resolvedBlendWeight(),
       () => audioBuffer(),
-      () => audioMapping().mappings,
+      () => audioMapping(),
       blendPick.end,
     )
 
@@ -3485,6 +3485,7 @@ export function MainWorkspace(props: AppProps) {
           condenseHidden: false,
           tracks,
           config,
+          audio: deepClone(audioMapping()),
           session: snapshotExportSession(sessionForExport()),
         })
       },

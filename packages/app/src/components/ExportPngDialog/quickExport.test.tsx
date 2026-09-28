@@ -8,7 +8,9 @@ import { ModalContext } from '../Modal/ModalContext'
 import { createExportPngDialog } from './ExportPngDialog'
 import type { RequestModalFn } from '../Modal/ModalContext'
 import type { ExportImageType } from '@/flame/exportImageType'
+import type { AudioMapping } from '@/flame/schema/audioWiring'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
+import type { RecentFlameWrite } from '@/utils/recentFlames'
 
 /**
  * The flash export is the one path that both captures the canvas AND files the
@@ -18,9 +20,14 @@ import type { FlameDescriptor } from '@/flame/schema/flameSchema'
  * that produced those pixels while Recents goes on holding the document.
  */
 
-const captured: { payloads: unknown[]; recents: FlameDescriptor[] } = {
+const captured: {
+  payloads: unknown[]
+  recents: FlameDescriptor[]
+  recentWrites: (RecentFlameWrite | undefined)[]
+} = {
   payloads: [],
   recents: [],
+  recentWrites: [],
 }
 
 vi.mock('@/utils/jsonQueryParam', () => ({
@@ -35,8 +42,9 @@ vi.mock('@/utils/flameInPng', () => ({
 }))
 
 vi.mock('@/utils/recentFlames', () => ({
-  saveRecentFlame: (flame: FlameDescriptor) => {
+  saveRecentFlame: (flame: FlameDescriptor, write?: RecentFlameWrite) => {
     captured.recents.push(flame)
+    captured.recentWrites.push(write)
     return 'saved'
   },
 }))
@@ -78,6 +86,7 @@ function mountQuickExport(
   authored: FlameDescriptor,
   rendered: FlameDescriptor,
   endPreview?: () => void,
+  audioWiring?: AudioMapping,
 ) {
   const [onExportImage, setOnExportImage] = createSignal<
     ExportImageType | undefined
@@ -110,7 +119,7 @@ function mountQuickExport(
             undefined,
             undefined,
             undefined,
-            undefined,
+            audioWiring && (() => audioWiring),
             endPreview,
           )
           quickExport = dialog.quickExport
@@ -127,6 +136,7 @@ function mountQuickExport(
 beforeEach(() => {
   captured.payloads = []
   captured.recents = []
+  captured.recentWrites = []
 })
 
 afterEach(() => {
@@ -169,6 +179,37 @@ describe('the flash export', () => {
     // here is the corruption the render-time overlay removed: one frame of a
     // song would become the flame they come back to.
     expect(captured.recents[0]?.renderSettings.exposure).toBe(1)
+  })
+
+  // Autosave, Save for Later and the pause save all keep the wiring with the
+  // flame; an export filing the same flame without it came back unwired.
+  it('files the audio wiring with the flame in Recents', async () => {
+    const wiring: AudioMapping = {
+      preset: 'custom',
+      mappings: [
+        {
+          audioFeature: 'bass',
+          target: { kind: 'renderSetting', param: 'vibrancy' },
+          sensitivity: 0.8,
+          range: [0.5, 1.5],
+        },
+      ],
+    }
+    const { quickExport, onExportImage } = mountQuickExport(
+      authoredFlame(),
+      renderedFlame(),
+      undefined,
+      wiring,
+    )
+
+    quickExport()
+    onExportImage()?.(stubCanvas(), { finalImageReady: true })
+    await vi.waitFor(() => {
+      expect(captured.recents.length).toBe(1)
+    })
+
+    expect(captured.recentWrites[0]?.audio).toEqual(wiring)
+    expect(captured.recentWrites[0]?.forceOverwriteOldest).toBeUndefined()
   })
 })
 

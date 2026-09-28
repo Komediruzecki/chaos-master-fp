@@ -176,15 +176,12 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
    * question, and the two writers for a process that is about to end.
    */
   const writeToRecents = (force: boolean): RecentWriteOutcome => {
-    const outcome = upsertRecentFlame(
-      autosaveSessionId,
-      savedFlame(),
-      undefined,
-      getTracks(),
-      getConfig(),
-      force,
-      getAudioMapping(),
-    )
+    const outcome = upsertRecentFlame(autosaveSessionId, savedFlame(), {
+      tracks: getTracks(),
+      config: getConfig(),
+      audio: getAudioMapping(),
+      forceOverwriteOldest: force,
+    })
     if (outcome === 'saved') {
       lastAutosaveAt = Date.now()
       markSavedBaseline()
@@ -322,7 +319,12 @@ export function useWorkspaceAutosave(params: UseWorkspaceAutosaveParams) {
     const config = getConfig()
     const audio = getAudioMapping()
     const saved = (force: boolean) =>
-      saveRecentFlame(savedFlame(), undefined, tracks, force, config, audio)
+      saveRecentFlame(savedFlame(), {
+        tracks,
+        config,
+        audio,
+        forceOverwriteOldest: force,
+      })
     const announce = (replacedOldest: boolean) => {
       markSavedBaseline()
       showToast(

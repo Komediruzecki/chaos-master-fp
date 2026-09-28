@@ -252,20 +252,37 @@ function landedIntact(id: string, config?: TimelineConfig): boolean {
   return config === undefined || stored.config !== undefined
 }
 
-export function saveRecentFlame(
-  flame: FlameDescriptor,
-  name?: string,
-  tracks?: TimelineTrack[],
+/**
+ * What a Recents write keeps beside the flame, by name: a caller that leaves
+ * one out cannot shift the others into its place, which positional arguments
+ * made easy (a `force` and a `config` next to each other swap silently).
+ */
+export type RecentFlameWrite = {
+  /** Falls back to the flame's own name. */
+  name?: string
+  /** Stored only when there are actual keyframes. */
+  tracks?: TimelineTrack[]
+  config?: TimelineConfig
+  /** The wiring the flame is kept with. Stored only when it has rows. */
+  audio?: AudioMapping
   /**
    * The user's own answer to "may this replace the oldest flame?". Defaults
    * to no: a caller that has not asked must not be able to evict by leaving
-   * an argument out, which is how two export paths were quietly dropping the
-   * oldest entry every time they saved the exported flame.
+   * it out, which is how two export paths were quietly dropping the oldest
+   * entry every time they saved the exported flame.
    */
-  forceOverwriteOldest: boolean = false,
-  config?: TimelineConfig,
-  /** The wiring the flame is kept with. Stored only when it has rows. */
-  audio?: AudioMapping,
+  forceOverwriteOldest?: boolean
+}
+
+export function saveRecentFlame(
+  flame: FlameDescriptor,
+  {
+    name,
+    tracks,
+    config,
+    audio,
+    forceOverwriteOldest = false,
+  }: RecentFlameWrite = {},
 ): RecentWriteOutcome {
   // Read-modify-write: use the structural loader, not the schema one. Rewriting
   // the list from schema-validated entries silently deletes every entry the
@@ -342,20 +359,21 @@ export function loadRecentFlamesForRewrite(): RecentFlame[] {
 export function upsertRecentFlame(
   id: string,
   flame: FlameDescriptor,
-  name?: string,
-  tracks?: TimelineTrack[],
-  config?: TimelineConfig,
   /**
-   * The user's own answer to "may this replace the oldest flame?", the same
-   * one `saveRecentFlame` takes. Defaults to no, so leaving it out cannot
-   * evict anything. Two callers ever set it, and both have the answer: the
-   * flush at a document replacement, which asked (lib/documentLoad.ts), and
-   * the pagehide flush, which has nobody left to ask and a document about to
-   * cease to exist (hooks/useWorkspaceAutosave.ts).
+   * `forceOverwriteOldest` is the same answer `saveRecentFlame` takes, and
+   * defaults to no, so leaving it out cannot evict anything. Two callers ever
+   * set it, and both have the answer: the flush at a document replacement,
+   * which asked (lib/documentLoad.ts), and the pagehide flush, which has
+   * nobody left to ask and a document about to cease to exist
+   * (hooks/useWorkspaceAutosave.ts).
    */
-  forceOverwriteOldest: boolean = false,
-  /** The wiring the flame is kept with. Stored only when it has rows. */
-  audio?: AudioMapping,
+  {
+    name,
+    tracks,
+    config,
+    audio,
+    forceOverwriteOldest = false,
+  }: RecentFlameWrite = {},
 ): RecentWriteOutcome {
   const recent = loadRecentFlamesForRewrite()
   const existing = recent.find((item) => item.id === id)

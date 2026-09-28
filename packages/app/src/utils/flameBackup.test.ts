@@ -40,7 +40,11 @@ describe('the flame backup', () => {
     // The importer reads `animation.config`; writing the tracks without it
     // brought every flame home at the workspace's defaults, 30fps over 90
     // frames, however it was saved.
-    upsertRecentFlame('entry', flame(), 'Animated', [], config)
+    upsertRecentFlame('entry', flame(), {
+      name: 'Animated',
+      tracks: [],
+      config,
+    })
 
     const zip = await buildFlameBackupZip(
       { recents: true, generated: false, logo: false },
@@ -57,7 +61,7 @@ describe('the flame backup', () => {
   })
 
   it('writes no animation for a flame that has neither', async () => {
-    upsertRecentFlame('entry', flame(), 'Plain')
+    upsertRecentFlame('entry', flame(), { name: 'Plain' })
 
     const zip = await buildFlameBackupZip(
       { recents: true, generated: false, logo: false },

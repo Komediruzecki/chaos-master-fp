@@ -270,12 +270,10 @@ export function migrateLegacyDraft(): void {
   // half-formed.
   const draft = parseFlameEnvelope(stored)
   if (draft === undefined) return
-  const outcome = upsertRecentFlame(
-    newRecentFlameId(),
-    draft.flame,
-    undefined,
-    draft.tracks,
-    draft.config,
-  )
+  const outcome = upsertRecentFlame(newRecentFlameId(), draft.flame, {
+    tracks: draft.tracks,
+    config: draft.config,
+    audio: draft.audio,
+  })
   if (outcome === 'saved') safeRemoveItem(LEGACY_DRAFT_KEY)
 }
