@@ -290,7 +290,15 @@ export type ComfortGovernor = {
     dt: number,
     seed?: () => number | undefined,
   ): number
-  /** The window the current preset holds `target` to, if it has one. */
+  /**
+   * `value` as near as `target` can show it: held to its bounds, so a
+   * probability authored under the writer's floor is shown at the floor.
+   */
+  reachable(target: FlameTarget, value: number): number
+  /**
+   * The window the current preset holds `target` to, if it has one. One
+   * with a range of 0 holds the target still.
+   */
   window(target: FlameTarget): { range: number; seconds: number } | undefined
   /** Forgets one target: its next step starts over. */
   forget(key: string): void
@@ -334,6 +342,10 @@ export function createComfortGovernor(initial: ComfortPreset): ComfortGovernor {
       states.set(key, fresh)
       advance(rule, fresh, toCoordinate(rule, value), h)
       return fromCoordinate(rule, fresh.y)
+    },
+    reachable(target, value) {
+      const rule = comfortRule(target, COMFORT_CAPS[current])
+      return fromCoordinate(rule, toCoordinate(rule, value))
     },
     window(target) {
       const rule = comfortRule(target, COMFORT_CAPS[current])

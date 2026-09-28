@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { COMFORT_CAPS, COMFORT_PRESETS } from '@/comfort/comfortPresets'
 import { createAudioModulator } from './audioModulator'
 import { applyAudioTargetValues } from './audioTargets'
-import { RENDER_PRESETS } from './audioWiringPresets'
+import { buildFlamePreset, RENDER_PRESETS } from './audioWiringPresets'
 import type { AudioMappingEntry, AudioTargetValue, FlameTarget, FrameData, } from './audioMapping'
 
 const loud: FrameData & { isBeat: boolean } = {
@@ -245,6 +245,81 @@ describe('createAudioModulator', () => {
       expect(worstSwing(series, 15)).toBeCloseTo(brightnessWindowRange, 9)
     },
   )
+
+  it('ends a zoom release on Calm, which holds zoom still, by cutting to the authored zoom', () => {
+    // A hand-made row moves zoom on Standard, the preset switches to Calm
+    // and the row is removed. Calm allows zoom no swing at all, so it could
+    // never be governed home: the release never ended, and the moved zoom
+    // stayed on screen for good. It now cuts home on its first step, and a
+    // return starts over from there.
+    const row: AudioMappingEntry = {
+      audioFeature: 'rms',
+      target: { kind: 'renderSetting', param: 'zoom' },
+      sensitivity: 1,
+      range: [0.5, 2],
+    }
+    const flame = { renderSettings: { camera: { zoom: 1 } } }
+    const modulator = createAudioModulator('standard')
+    for (let frame = 0; frame < 30 * 12; frame++) {
+      modulator.step(loud, [row], 1 / 30, flame)
+    }
+    modulator.setPreset('calm')
+    const { values: moved } = modulator.step(loud, [row], 1 / 30, flame)
+    let frames = 0
+    let values: AudioTargetValue[] = []
+    do {
+      values = modulator.step(loud, [], 1 / 30, flame).values
+      frames++
+    } while (values.length > 0 && frames < 30 * 60)
+    const { values: back } = modulator.step(loud, [row], 1 / 30, flame)
+    expect(shown(moved, 'zoom', 1)).toBeCloseTo(Math.exp(0.06), 12)
+    expect(frames).toBe(1)
+    expect(shown(back, 'zoom', Number.NaN)).toBeCloseTo(1, 12)
+  })
+
+  it("ends a probability release when the authored weight is under the writer's floor", () => {
+    // Structure moves a transform's probability inside [0.06, 0.55], and
+    // this one is authored at 0. The governor goes no lower than the floor
+    // the writer holds a probability to, 0.001, which is not within the
+    // row's dirty threshold of 0, 0.00098: the release never ended, and
+    // the transform kept that weight while audio played. It ends within
+    // that threshold of the floor instead: 0.55 down to 0.00198 is 5.63
+    // e-folds at 0.6 a second, 282 frames.
+    const [row] = buildFlamePreset('structure', [
+      { id: 't0', index: 0, label: 'T1', variations: [] },
+    ])
+    const flame = { transforms: { t0: { probability: 0 } } }
+    const bass = { ...loud, bands: [0, 1, 0, 0, 0, 0, 0, 0] }
+    const modulator = createAudioModulator('standard')
+    for (let frame = 0; frame < 30 * 12; frame++) {
+      modulator.step(bass, [row!], 1 / 30, flame)
+    }
+    let frames = 0
+    let values: AudioTargetValue[] = []
+    do {
+      values = modulator.step(bass, [], 1 / 30, flame).values
+      frames++
+    } while (values.length > 0 && frames < 30 * 60)
+    expect(frames).toBe(282)
+  })
+
+  it('ends the release of a value authored past the schema at the bound', () => {
+    // Exposure authored at 9, past the schema's 8, is governed no higher
+    // than 8, so a release measured against 9 could never end.
+    const flame = { renderSettings: { exposure: 9 } }
+    const quiet = { ...loud, rms: 0 }
+    const modulator = createAudioModulator('standard')
+    for (let frame = 0; frame < 60; frame++) {
+      modulator.step(quiet, [rmsToExposure], 1 / 30, flame)
+    }
+    let frames = 0
+    let values: AudioTargetValue[] = []
+    do {
+      values = modulator.step(quiet, [], 1 / 30, flame).values
+      frames++
+    } while (values.length > 0 && frames < 30 * 60)
+    expect(frames).toBe(54)
+  })
 
   it('starts over from the authored value once a departed target has rested home for a window', () => {
     const modulator = createAudioModulator('standard')

@@ -128,7 +128,11 @@ export function createAudioModulator(preset: ComfortPreset): AudioModulator {
           }
           continue
         }
-        if (apart(target, value, home) < threshold) {
+        // A home the target cannot show, a probability authored under the
+        // writer's floor or a value past the schema, is reached at the bound.
+        if (
+          apart(target, value, governor.reachable(target, home)) < threshold
+        ) {
           // Home: the overlay shows the flame's own value from the next
           // publish on, and a return starts a fresh envelope.
           smoothing.delete(key)
@@ -138,6 +142,14 @@ export function createAudioModulator(preset: ComfortPreset): AudioModulator {
           } else {
             governor.forget(key)
           }
+          continue
+        }
+        if (governor.window(target)?.range === 0) {
+          // The preset holds this target still (Calm, zoom) and so can never
+          // govern it home: it cuts to the flame's own value, and a return
+          // starts over from there.
+          forget(key)
+          changed = true
           continue
         }
         const lastOutput = smoothing.get(key)?.lastOutput
