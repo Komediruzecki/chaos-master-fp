@@ -240,7 +240,7 @@ reactivity first, then replace the mapping and the source, and only then
 re-enable — so a mapping swap can never transiently drive an unrelated
 resource, and the whole exchange lands as one Solid batch.
 
-_(`commands/builtins/audio.ts:69-84` (`applySnapshot`))_
+_(`commands/builtins/audio.ts:70-87` (`applySnapshot`))_
 
 ### REQ-AB-019 — Reactivity returns only for a resource that is actually present
 
@@ -250,7 +250,7 @@ be re-enabled only when a decoded buffer exists **and** the snapshot's
 track name; **if** it names `source: 'mic'`, only when a live analyzer already
 exists. Otherwise the wiring is applied with reactivity left off.
 
-_(`commands/builtins/audio.ts:74` (`mayEnable`); `recorder/replay.ts:39-52` (`canEnableReplayAudio`); live wiring at
+_(`commands/builtins/audio.ts:75` (`mayEnable`); `recorder/replay.ts:39-52` (`canEnableReplayAudio`); live wiring at
 `MainWorkspace.tsx:3378-3383` (`canEnable`))_
 
 ### REQ-AB-020 — A mapping call that could not enable reactivity says so
@@ -339,8 +339,8 @@ mapped. The same check covers every Arcade allow-list (Teach, Cinema, Beats,
 Duel, `ALWAYS_ALLOWED` and the presentation switches): an exact id must be
 registered and a prefix must cover at least one command.
 
-_(`topics.ts:299-313` (`BEATS_ALLOWED`); registered ids at `commands/builtins/audio.ts:92` (`setMapping`),
-`:164` (`setEnabled`), `:197` (`setSource`), `:239` (`applySnapshot`); guarded by `topics.test.ts`, "names only registered
+_(`topics.ts:299-313` (`BEATS_ALLOWED`); registered ids at `commands/builtins/audio.ts:95` (`setMapping`),
+`:167` (`setEnabled`), `:200` (`setSource`), `:242` (`applySnapshot`); guarded by `topics.test.ts`, "names only registered
 commands, in every Arcade allow-list")_
 
 ### REQ-AB-026 — Ending requires a driving Beats session
@@ -392,7 +392,7 @@ replayed, the wiring shall be restored and reactivity enabled only where the
 viewer has independently supplied the same named file (or already granted a
 live analyzer).
 
-_(`commands/builtins/audio.ts:8-20` (`buffer`), `:239-253` (`applySnapshot`); `recorder/replay.ts:39-77` (`canEnableReplayAudio`))_
+_(`commands/builtins/audio.ts:9-21` (`buffer`), `:242-256` (`applySnapshot`); `recorder/replay.ts:39-77` (`canEnableReplayAudio`))_
 
 ### REQ-AB-031 — Ending leaves the wiring exactly as the session set it
 

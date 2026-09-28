@@ -110,13 +110,17 @@ not a gap.
 - `packages/app/src/utils/jsonQueryParam.test.ts` — the audio wiring in a share link:
   carried, dropped on its own when it does not fit, absent from older links (REQ-TA-041)
 - `packages/app/src/components/ShareLinkModal/ShareLinkModal.test.tsx` — the share
-  dialog's audio wiring switch (REQ-TA-041)
+  dialog's audio wiring switch, and the default wiring it leaves out (REQ-TA-041)
+- `packages/app/src/commands/builtins/audio.test.ts` and
+  `packages/app/src/hooks/useWorkspaceReplay.legacyWiring.test.ts` — legacy wiring stored
+  with keys the moment it is set (REQ-TA-040)
 - `packages/app/src/lib/audioWiringLoad.test.ts` — putting loaded wiring back never
   switches audio on (REQ-TA-041)
 - `packages/app/src/utils/recentFlames.test.ts`, `packages/app/src/hooks/useWorkspaceAutosave.test.ts`,
-  `packages/app/src/components/LoadFlameModal/flameLoad.test.ts`, `packages/app/src/lib/pauseSave.test.ts`
-  and `packages/app/src/lib/workspaceHandoff.test.ts` — the audio wiring a Recents entry
-  keeps, and every way an entry opens (REQ-TA-041)
+  `packages/app/src/components/LoadFlameModal/flameLoad.test.ts`, `packages/app/src/lib/pauseSave.test.ts`,
+  `packages/app/src/lib/workspaceHandoff.test.ts`, `packages/app/src/components/ExportJobs/ExportJobHost.recents.test.ts`
+  and `packages/app/src/components/ExportPngDialog/quickExport.test.tsx` — the audio wiring a
+  Recents entry keeps, the exports' entries included, and every way an entry opens (REQ-TA-041)
 - `packages/app/src/utils/useLoadFlameFromFile.test.ts`, `packages/app/src/utils/useAppDragAndDrop.test.ts`
   and `packages/app/src/utils/flameImport.test.ts` — a flame's JSON dropped on the canvas
   opens as that flame, with its wiring (REQ-TA-041)
@@ -683,13 +687,16 @@ count of the rest), and leave the current mappings untouched. **If** the
 workspace refuses wiring the editor passed on, **then** the panel shall stay
 open and say that nothing changed. A valid import shall replace the mappings,
 record an undo entry and close the panel. `audio.setMapping` shall refuse a
-mapping the schema rejects before it is recorded, and tell its caller.
+mapping the schema rejects before it is recorded, and tell its caller; a
+refused mapping shall change nothing, so it shall not take the workspace back
+from a timed replay either.
 
 _(`wiringImport.ts:14-33` (`parseWiringImport`), `packages/core/src/schema/audioWiring.ts:128-136` (`validateAudioMappingEntriesWithErrors`),
-`AudioWiringModal.tsx:1039-1063` (`applyImport`), `commands/builtins/audio.ts:112-117` (`rejectArgs`), `commands/registry.ts:516-520` (`refusal`); guarded by
+`AudioWiringModal.tsx:1039-1063` (`applyImport`), `commands/builtins/audio.ts:115-120` (`rejectArgs`), `commands/registry.ts:516-520` (`refusal`), `:563-567` (`rejectArgs`); guarded by
 `AudioWiringModal.import.test.tsx:54` "keeps the panel open and says why when a row does not fit",
 `:66` "keeps the panel open when the workspace refuses the wiring" and
-`commands/builtins/audio.test.ts:220` "is refused before it is recorded, and the caller hears so". The editor keeps its own
+`commands/builtins/audio.test.ts:224` "is refused before it is recorded, and the caller hears so" and
+`commands/registry.test.ts:487` "leave a replay preview alone, while an accepted one hands it back". The editor keeps its own
 50-entry undo stack at `AudioWiringModal.tsx:503` (`MAX_UNDO`), `:693-721` (`saveForUndo`), cleared of redo on every mutating operation.)_
 
 ### REQ-TA-038 — Editor shortcuts never steal keys from a text field
@@ -784,19 +791,27 @@ comfort limiter, the editor's wires) shall be keyed the same way, so two
 variations of one type are two targets. **Where** a target carries no key,
 as wiring saved before targets carried them does, it shall resolve by position
 and variation type as before. Presets, Randomize and the wiring editor shall
-write keys, and the panel shall give a legacy target the keys of what sits at
-its position. **If** a key names a transform or a variation the flame no longer
-has, **then** the target shall drive nothing and its row shall say the transform
-was deleted. **When** wiring is pasted onto another transform, it shall name
+write keys. **When** wiring is set (the `audio.setMapping` command, a replayed
+audio snapshot, a session's starting wiring), the workspace shall store each
+legacy target with the keys of what sits at its position in the open flame, so
+the target follows that transform through a reorder; a target that already
+carries keys shall keep them, dangling ones included. **If** a key names a
+transform or a variation the flame no longer has, **then** the target shall
+drive nothing and its row shall say the transform was deleted. **When** wiring is pasted onto another transform, it shall name
 that transform; **when** imported wiring names no transform of the open flame,
 its keys shall be dropped and it shall be placed by position.
 
 _(`audioTargets.ts:66-81` (`targetTransform`), `:87-105` (`targetVariation`), `audioMapping.ts:116-118` (`flameTargetKey`),
-`audioTargetIds.ts:77-89` (`reconcileTransformTargets`), `:97-114` (`retargetTransform`), `:130-145` (`adoptImportedWiring`); guarded by
+`audioTargetIds.ts:78-90` (`reconcileTransformTargets`), `:98-115` (`retargetTransform`), `:131-146` (`adoptImportedWiring`), `:180-190` (`keyLegacyWiring`),
+`commands/builtins/audio.ts:81` (`keyLegacyWiring`), `:161` (`keyLegacyWiring`), `hooks/useWorkspaceReplay.ts:293` (`keyLegacyWiring`); guarded by
 `audioTargets.test.ts:128` "drives two variations of one type separately", `:138` "follows its transform when the flame is reordered",
 `:152` "goes inert when its transform or variation is gone", `audioTargetIds.test.ts:130` "takes wiring from another flame by position",
-`AudioReactivePanel.rows.test.tsx:75` "says so when the transform a row drives was deleted" and
-`AudioWiringModal.paste.test.tsx:46` "names the transform the wiring is pasted onto".)_
+`AudioReactivePanel.rows.test.tsx:75` "says so when the transform a row drives was deleted",
+`AudioWiringModal.paste.test.tsx:46` "names the transform the wiring is pasted onto",
+`commands/builtins/audio.test.ts:310` "follows its transform after a reorder",
+`:319` "goes inert after its transform is deleted, and stays inert when set again",
+`:333` "keys a legacy row inside a replayed snapshot too" and
+`useWorkspaceReplay.legacyWiring.test.ts:12` "gives a legacy row the keys of the transform at its position".)_
 
 ### REQ-TA-042 — The editor shows, and can reach, the envelope a row runs at
 
@@ -819,9 +834,12 @@ _(`audioEnvelope.ts:19-27` (`effectiveEnvelope`), `:10` (`ATTACK_MAX_MS`), `:12`
 
 ### REQ-TA-041 — Audio wiring travels with a flame, and never switches audio on
 
-**When** the share dialog makes a link and the workspace has audio wiring, the
-dialog shall offer to send the wiring along, switched on, and the link shall
-carry the rows only while it is on. **When** a share link that carries wiring
+**When** the share dialog makes a link and the workspace has audio wiring the
+user made (it has rows and differs from the default wiring every workspace
+starts with), the dialog shall offer to send the wiring along, switched on, and
+the link and its Copy JSON shall carry the rows only while it is on. **While**
+the wiring is the default, the dialog shall not offer it, and neither the link
+nor Copy JSON shall carry it. **When** a share link that carries wiring
 opens, the workspace shall make that wiring current and leave audio off if it
 was off. **If** the carried wiring does not fit the wiring schema, **then** the
 workspace shall drop the wiring and still open the flame. A link that carries
@@ -830,7 +848,8 @@ workspace's wiring as it is.
 
 **When** the workspace writes the open flame to Recents (the autosave, Save for
 Later, the flush before another flame opens, the save a native app makes on
-pause), it shall store the audio wiring with it, and a change to the wiring
+pause, an image export from the dialog, the quick export or a script), it
+shall store the audio wiring with it, and a change to the wiring
 alone shall count as unsaved work. **When** a Recents entry that carries wiring
 opens, from the Library, the welcome screen or a cold-start reopen, the
 workspace shall make that wiring current and leave audio off if it was off. A
@@ -841,32 +860,44 @@ the workspace's wiring unchanged.
 **When** a flame's JSON that carries wiring (the share dialog's Copy JSON) is
 dropped on the canvas or opened from the Library, the workspace shall open the
 flame and make the wiring current the same way. A dropped JSON file shall open
-as a flame when it holds one, and as a steps session only when it does not.
+as a flame when it holds one, and as a steps session only when it does not. A
+dropped Recents record shall open as its flame and wiring; the tracks and
+timeline it keeps at its top level are read by the Library only. **If** a
+dropped JSON file is larger than 8 MB, **then** the workspace shall refuse it
+by name without calling it a steps session.
 
 _(`jsonQueryParam.ts:174-191` (`buildSharePayload`), `:294` (`parseAudioWiring`),
 `audioWiringParse.ts:8-14` (`parseAudioWiring`), `lib/audioWiringLoad.ts:13-19` (`restoreLoadedAudioWiring`),
-`MainWorkspace.tsx:3004` (`restoreLoadedAudioWiring`), `ShareLinkModal.tsx:56-59` (`sharedAudioWiring`); guarded by
+`MainWorkspace.tsx:3004` (`restoreLoadedAudioWiring`), `utils/shareLink.ts:33-41` (`userAudioWiring`), `ShareLinkModal.tsx:58-62` (`sharedAudioWiring`); guarded by
 `jsonQueryParam.test.ts:50` "travels with the flame",
 `:58` "is dropped on its own when it does not fit, and the flame still opens",
 `:70` "is absent from a link made before links carried it",
-`ShareLinkModal.test.tsx:96` "sends the wiring along until it is switched off" and
+`ShareLinkModal.test.tsx:101` "sends the wiring along until it is switched off",
+`:123` "sends no wiring, and offers none, while the wiring is the default",
+`:130` "knows the default after the wiring schema has rebuilt it",
+`:139` "copies JSON with the wiring only when the user made it" and
 `lib/audioWiringLoad.test.ts:47` "puts the rows back and leaves audio off".)_
 
 _(`recentFlames.ts:128-140` (`readStoredEntry`), `useWorkspaceAutosave.ts:138` (`getAudioMapping`),
 `flameLoad.ts:34-46` (`flameLoadOf`), `MainWorkspace.tsx:2775` (`restoreLoadedAudioWiring`),
-`:799` (`restoreLoadedAudioWiring`), `pauseSave.ts:226` (`audio`); guarded by
-`recentFlames.test.ts:727` "comes back with the entry Save for Later stored it in",
-`:763` "is dropped when it does not fit, and its entry stays",
+`:799` (`restoreLoadedAudioWiring`), `pauseSave.ts:226` (`audio`), `ExportJobHost.tsx:83-89` (`saveImageJobToRecents`),
+`ExportPngDialog.tsx:1024-1027` (`audioWiringNow`); guarded by
+`recentFlames.test.ts:764` "comes back with the entry Save for Later stored it in",
+`:794` "is dropped when it does not fit, and its entry stays",
+`ExportJobHost.recents.test.ts:69` "keeps the audio wiring it was exported under",
+`quickExport.test.tsx:186` "files the audio wiring with the flame in Recents",
 `useWorkspaceAutosave.test.ts:773` "is unsaved work on its own, and the write stores it",
 `flameLoad.test.ts:35` "carries the audio wiring, even for an entry with no animation",
 `pauseSave.test.ts:520` "reopens it with the audio wiring it was kept with" and
 `workspaceHandoff.test.ts:119` "arrives with the flame, and a later seeding without one clears it".)_
 
-_(`useLoadFlameFromFile.ts:29-46` (`readFlameJson`), `:84` (`readFlameJson`), `flameImport.ts:161` (`parseAudioWiring`),
+_(`useLoadFlameFromFile.ts:31-48` (`readFlameJson`), `:89` (`readFlameJson`), `:63-68` (`MAX_SESSION_JSON_CHARS`), `flameImport.ts:161` (`parseAudioWiring`),
 `useAppDragAndDrop.ts:57` (`audio`); guarded by
 `useLoadFlameFromFile.test.ts:64` "opens a bare flame descriptor as that flame",
 `:70` "opens a share payload with its animation and audio wiring",
 `:79` "still opens a steps session as a session",
+`:98` "says a JSON file is too large without calling it a steps session",
+`:111` "opens a Recents record as its flame and wiring, without its timeline",
 `useAppDragAndDrop.test.ts:46` "hands the dropped flame its audio wiring" and
 `flameImport.test.ts:159` "drops audio wiring that does not fit, and keeps the flame".)_
 
