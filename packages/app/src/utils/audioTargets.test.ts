@@ -167,3 +167,28 @@ describe('targets that carry ids', () => {
     expect(readTargetValue(flame, gone)).toBeUndefined()
   })
 })
+
+describe('variation weights stay finite', () => {
+  it('keeps the authored weight when the settled value is not a number', () => {
+    for (const value of [Number.NaN, Number.POSITIVE_INFINITY]) {
+      const flame = {
+        transforms: {
+          t_only: {
+            variations: { v_only: { type: 'linearVar', weight: 0.7 } },
+          },
+        },
+      }
+      applyAudioTargetValues(flame, [
+        {
+          target: {
+            kind: 'variationWeight',
+            transformIdx: 0,
+            variationType: 'linearVar',
+          },
+          value,
+        },
+      ])
+      expect(flame.transforms.t_only.variations.v_only.weight).toBe(0.7)
+    }
+  })
+})

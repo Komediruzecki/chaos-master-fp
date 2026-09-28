@@ -473,7 +473,9 @@ setting's schema domain with the projection the timeline and the commands use
 (`projectFlameValue`): floor an integer setting such as `skipIters` the way the
 renderer reads it, wrap the cyclic `palettePhase`, clamp every other bound, and
 substitute `0` for a non-finite value. **When** it writes a transform probability, it shall clamp to
-a floor of `0.001`, never zero or negative. **If** the target names a transform
+a floor of `0.001`, never zero or negative. **When** it writes a variation
+weight, it shall write only a finite value and otherwise keep the weight the
+flame has. **If** the target names a transform
 or a variation the flame does not have (REQ-TA-040 says how a target names
 them), **then** the write shall be skipped rather than create the missing object.
 
@@ -481,8 +483,8 @@ Rationale, not decoration: audio modulation writes straight into the live
 descriptor, and one out-of-range `palettePhase` makes that flame permanently
 un-breedable, un-exportable and un-openable in the ancestry tree.
 
-_(`audioTargets.ts:27-41` (`heldRenderSetting`), `:190-227` (`applyTransformPropertyTarget`), `:177-188` (`applyTransformAffineTarget`), `:229-237` (`applyVariationWeightTarget`); guarded by
-`audioMappingClamp.test.ts:62-128` "keeps a wildly out-of-range palettePhase valid" and `audioAnalysisMappings.test.ts:176` "enforces safe probability lower bound for transform probability target", `:244` "gracefully handles out-of-bounds transform indices".)_
+_(`audioTargets.ts:27-41` (`heldRenderSetting`), `:190-227` (`applyTransformPropertyTarget`), `:177-188` (`applyTransformAffineTarget`), `:229-239` (`applyVariationWeightTarget`); guarded by
+`audioMappingClamp.test.ts:62-128` "keeps a wildly out-of-range palettePhase valid" and `audioAnalysisMappings.test.ts:176` "enforces safe probability lower bound for transform probability target", `:244` "gracefully handles out-of-bounds transform indices", `audioTargets.test.ts:172` "keeps the authored weight when the settled value is not a number".)_
 
 ### REQ-TA-033 — Auditioning a track is not the same as driving the flame
 

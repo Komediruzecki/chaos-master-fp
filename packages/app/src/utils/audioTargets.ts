@@ -233,7 +233,9 @@ function applyVariationWeightTarget(
   val: number,
 ): void {
   const variation = targetVariation(targetTransform(flame, tgt, ctx), tgt)
-  if (variation) variation.weight = val
+  // A non-finite weight poisons every point through this transform: keep
+  // the authored one.
+  if (variation && Number.isFinite(val)) variation.weight = val
 }
 
 function applyFinalAffineTarget(
