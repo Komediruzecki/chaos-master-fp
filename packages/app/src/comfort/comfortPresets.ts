@@ -28,7 +28,7 @@ export type ComfortCaps = {
   paletteTurnsPerSecond: number
   /** paletteSpeed per second: the hue cap through the palette index's 0.298 gain at log density 1. */
   paletteSpeedRate: number
-  /** Largest peak-to-peak swing of one brightness setting inside any window (ln units for exposure, contrast, gamma, vibrancy; linear for the rest). */
+  /** Largest peak-to-peak swing of one brightness setting inside any window, in the units the renderer shows: exposure's own (already an ln gain), ln units for contrast and gamma, linear for vibrancy and the powers. */
   brightnessWindowRange: number
   /** The window the range is measured over (rule 2: 500 ms). */
   brightnessWindowSeconds: number

@@ -139,9 +139,9 @@ describe('the authored flame', () => {
     await Promise.resolve()
     if (!setEnabled) throw new Error('audio test did not initialize')
 
-    // bass 0.5 maps to vibrancy 1. Standard comfort moves vibrancy 0.02 ln
-    // per 1/30 s, so the first frame is one step down from the authored 2.
-    const eased = 2 * Math.exp(-0.02)
+    // bass 0.5 maps to vibrancy 1. Standard comfort moves vibrancy 0.6 a
+    // second, so the first 1/30 s frame is 0.02 down from the authored 2.
+    const eased = 1.98
     vi.advanceTimersByTime(34)
     expect(published).toHaveLength(1)
     expect(published[0]![0]!.value).toBeCloseTo(eased, 12)
@@ -193,11 +193,12 @@ describe('the comfort preset', () => {
     vi.advanceTimersByTime(34)
     setComfortPreset('calm')
     vi.advanceTimersByTime(34)
-    // One standard step down from 2 (0.6 ln/s over the first tick's 1/30 s),
-    // then one calm step (0.3 ln/s) over the 33 ms the fake interval took.
+    // One standard step down from 2 (0.6 a second over the first tick's
+    // 1/30 s), then one calm step (0.3 a second) over the 33 ms the fake
+    // interval took.
     expect(published).toHaveLength(2)
     expect(published[1]![0]!.value).toBeCloseTo(
-      2 * Math.exp(-(0.6 / 30 + 0.3 * 0.033)),
+      2 - (0.6 / 30 + 0.3 * 0.033),
       12,
     )
     dispose()

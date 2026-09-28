@@ -2,6 +2,7 @@
 // modulated target slews toward its mapped value no faster than its preset
 // allows, and a brightness setting is also held to a peak-to-peak range inside
 // any window. It caps parameters, not the luminance of the rendered frame.
+import { MIN_CAMERA_ZOOM_VALUE, numberDomainOf, RenderSettings, } from '@chaos-master/core'
 import { COMFORT_CAPS } from './comfortPresets'
 import type { ComfortCaps, ComfortPreset } from './comfortPresets'
 import type { FlameTarget, RenderSettingKey, TransformPropertyKey, } from '@/utils/audioMapping'
@@ -18,50 +19,83 @@ export const MAX_STEP_SECONDS = 0.1
  */
 const WINDOW_SLACK_SECONDS = 1e-6
 
-/** Floor for the log-space settings: ln(0) has no slew. */
-export const LOG_FLOOR = 1e-3
+/** Floor for a transform probability, the one its writer holds it to. */
+export const PROBABILITY_FLOOR = 1e-3
 
-type Space = 'linear' | 'log'
+/** The least value the flame schema allows a render setting. */
+function schemaMinimum(param: 'contrast' | 'gamma'): number {
+  const min = numberDomainOf(RenderSettings.entries[param])?.min
+  if (min === undefined || !(min > 0)) {
+    throw new Error(`${param} needs a positive schema minimum`)
+  }
+  return min
+}
+
+/**
+ * A target moves in its `space`: linear, or log for a setting that acts by
+ * ratio, where it moves in ln units down to `floor` (ln 0 has no slew). The
+ * floor is the least value the renderer can show, so the governor never
+ * travels through values the writer would clamp away.
+ */
+type Slew = { space: 'linear' } | { space: 'log'; floor: number }
 
 type ComfortRule =
   | { kind: 'free' }
   | { kind: 'wrap'; rate: number }
-  | {
+  | (Slew & {
       kind: 'slew'
-      space: Space
       rate: number
       window?: { range: number; seconds: number }
-    }
+    })
 
-const LOG_BRIGHTNESS: ReadonlySet<RenderSettingKey> = new Set([
-  'exposure',
-  'contrast',
-  'gamma',
-  'vibrancy',
-])
+const LINEAR: Slew = { space: 'linear' }
+const ZOOM: Slew = { space: 'log', floor: MIN_CAMERA_ZOOM_VALUE }
+const CONTRAST: Slew = { space: 'log', floor: schemaMinimum('contrast') }
+const GAMMA: Slew = { space: 'log', floor: schemaMinimum('gamma') }
+const PROBABILITY: Slew = { space: 'log', floor: PROBABILITY_FLOOR }
+
+/**
+ * A brightness setting, in the space where equal steps look equal on
+ * screen. Exposure is already the log of a gain (the colour pass multiplies
+ * by 2 exp(exposure)), so it moves linearly in ln-gain units and may be
+ * negative. Vibrancy scales chroma and often rests at 0, like the three
+ * powers. Contrast scales the tone-mapped density and gamma is its
+ * exponent: those two act by ratio.
+ */
+function brightnessRule(slew: Slew, caps: ComfortCaps): ComfortRule {
+  return {
+    ...slew,
+    kind: 'slew',
+    rate: caps.brightnessRate,
+    window: {
+      range: caps.brightnessWindowRange,
+      seconds: caps.brightnessWindowSeconds,
+    },
+  }
+}
 
 function renderRule(param: RenderSettingKey, caps: ComfortCaps): ComfortRule {
   switch (param) {
     case 'zoom':
-      return { kind: 'slew', space: 'log', rate: caps.zoomLogRate }
+      return { ...ZOOM, kind: 'slew', rate: caps.zoomLogRate }
     case 'palettePhase':
       return { kind: 'wrap', rate: caps.paletteTurnsPerSecond }
     case 'paletteSpeed':
-      return { kind: 'slew', space: 'linear', rate: caps.paletteSpeedRate }
+      return { ...LINEAR, kind: 'slew', rate: caps.paletteSpeedRate }
     case 'skipIters':
       // Warm-up iterations change which points are plotted, not how fast
       // anything on screen moves.
       return { kind: 'free' }
-    default:
-      return {
-        kind: 'slew',
-        space: LOG_BRIGHTNESS.has(param) ? 'log' : 'linear',
-        rate: caps.brightnessRate,
-        window: {
-          range: caps.brightnessWindowRange,
-          seconds: caps.brightnessWindowSeconds,
-        },
-      }
+    case 'contrast':
+      return brightnessRule(CONTRAST, caps)
+    case 'gamma':
+      return brightnessRule(GAMMA, caps)
+    case 'exposure':
+    case 'vibrancy':
+    case 'highlightPower':
+    case 'lightPower':
+    case 'depthColorPower':
+      return brightnessRule(LINEAR, caps)
   }
 }
 
@@ -71,12 +105,12 @@ function propertyRule(
 ): ComfortRule {
   switch (property) {
     case 'probability':
-      return { kind: 'slew', space: 'log', rate: caps.probabilityLogRate }
+      return { ...PROBABILITY, kind: 'slew', rate: caps.probabilityLogRate }
     case 'colorX':
     case 'colorY':
-      return { kind: 'slew', space: 'linear', rate: caps.colorRate }
+      return { ...LINEAR, kind: 'slew', rate: caps.colorRate }
     case 'colorSpeed':
-      return { kind: 'slew', space: 'linear', rate: caps.colorSpeedRate }
+      return { ...LINEAR, kind: 'slew', rate: caps.colorSpeedRate }
   }
 }
 
@@ -88,15 +122,15 @@ function comfortRule(target: FlameTarget, caps: ComfortCaps): ComfortRule {
     case 'finalAffine': {
       const offset = target.param === 'c' || target.param === 'f'
       return {
+        ...LINEAR,
         kind: 'slew',
-        space: 'linear',
         rate: offset ? caps.affineOffsetRate : caps.affineLinearRate,
       }
     }
     case 'transformProperty':
       return propertyRule(target.property, caps)
     case 'variationWeight':
-      return { kind: 'slew', space: 'linear', rate: caps.variationWeightRate }
+      return { ...LINEAR, kind: 'slew', rate: caps.variationWeightRate }
   }
 }
 
@@ -118,7 +152,7 @@ function fract(value: number): number {
 function toCoordinate(rule: ComfortRule, value: number): number {
   if (rule.kind === 'wrap') return fract(value)
   if (rule.kind === 'slew' && rule.space === 'log') {
-    return Math.log(Math.max(value, LOG_FLOOR))
+    return Math.log(Math.max(value, rule.floor))
   }
   return value
 }

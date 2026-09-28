@@ -1,6 +1,7 @@
 // Pins the comfort governor: slew caps per target kind, the wrap-aware hue
 // cap, the brightness window, seeding from the authored value, and the
 // behaviour on preset changes, stalls and non-finite input.
+import { numberDomainOf, RenderSettings } from '@chaos-master/core'
 import { describe, expect, it } from 'vitest'
 import { createComfortGovernor, MAX_STEP_SECONDS } from './comfortGovernor'
 import { COMFORT_CAPS, COMFORT_PRESETS } from './comfortPresets'
@@ -95,28 +96,180 @@ describe('the brightness window', () => {
           ),
         )
       }
-      const span = Math.round(brightnessWindowSeconds * fps)
-      let worst = 0
-      for (let i = 0; i < out.length; i++) {
-        for (let j = i + 1; j <= Math.min(out.length - 1, i + span); j++) {
-          worst = Math.max(
-            worst,
-            Math.abs(Math.log(out[i]!) - Math.log(out[j]!)),
-          )
-        }
-      }
-      expect(worst).toBeLessThanOrEqual(brightnessWindowRange + 1e-9)
+      // Exposure is an ln gain already: its own units are the window's.
+      expect(
+        worstSwing(out, Math.round(brightnessWindowSeconds * fps)),
+      ).toBeLessThanOrEqual(brightnessWindowRange + 1e-9)
     }
   })
 
   it('climbs a far target at the window rate, not the slew rate', () => {
-    // Intense slews 1.5 ln/s, but any 0.5 s may only span 0.35: 0.7 ln/s.
+    // Intense slews 1.5 a second, but any 0.5 s may only span 0.35: 0.7 a
+    // second.
     const governor = createComfortGovernor('intense')
     let out = 1
     for (let frame = 0; frame < 64; frame++) {
-      out = governor.step(exposure, 'render.exposure', 100, 1 / 64, () => 1)
+      out = governor.step(exposure, 'render.exposure', 8, 1 / 64, () => 1)
     }
-    expect(out).toBeCloseTo(Math.exp(0.7), 10)
+    expect(out).toBeCloseTo(1.7, 10)
+  })
+})
+
+type BrightnessKey =
+  | 'exposure'
+  | 'vibrancy'
+  | 'contrast'
+  | 'gamma'
+  | 'highlightPower'
+  | 'lightPower'
+  | 'depthColorPower'
+
+/**
+ * Each brightness setting in the units the renderer shows it in, where equal
+ * steps look equal: exposure is already the log of a gain (the colour pass
+ * multiplies by 2 exp(exposure)), vibrancy scales chroma and rests at 0,
+ * contrast scales the tone-mapped density and gamma is its exponent, so
+ * those two act by ratio. The powers are linear blend weights.
+ */
+const RENDERED: Record<BrightnessKey, (value: number) => number> = {
+  exposure: (value) => value,
+  vibrancy: (value) => value,
+  contrast: Math.log,
+  gamma: Math.log,
+  highlightPower: (value) => value,
+  lightPower: (value) => value,
+  depthColorPower: (value) => value,
+}
+
+/** The domain the flame schema gives a render setting. */
+function schemaDomain(param: BrightnessKey): { min: number; max: number } {
+  const domain = numberDomainOf(RenderSettings.entries[param])
+  if (!domain) throw new Error(`${param} has no schema domain`)
+  return domain
+}
+
+/** The widest swing between two outputs at most `seconds` apart. */
+function worstSwingByTime(
+  times: readonly number[],
+  shown: readonly number[],
+  seconds: number,
+): number {
+  let worst = 0
+  for (let i = 0; i < shown.length; i++) {
+    for (let j = i + 1; j < shown.length; j++) {
+      if (times[j]! - times[i]! > seconds + 1e-9) break
+      worst = Math.max(worst, Math.abs(shown[i]! - shown[j]!))
+    }
+  }
+  return worst
+}
+
+describe('the units the renderer shows', () => {
+  it('moves a negative exposure one capped step on its first frame', () => {
+    // example33 is authored at -4.583. A row asking for 1 moves it 0.6 per
+    // second on Standard: 0.02 in the first 1/30 s.
+    const governor = createComfortGovernor('standard')
+    expect(
+      governor.step(exposure, 'render.exposure', 1, 1 / 30, () => -4.583),
+    ).toBeCloseTo(-4.563, 12)
+  })
+
+  it('settles on the negative exposure a row asks for', () => {
+    const governor = createComfortGovernor('standard')
+    let out = 0
+    for (let frame = 0; frame < 30 * 30; frame++) {
+      out = governor.step(exposure, 'render.exposure', -3, 1 / 30, () => 0.25)
+    }
+    expect(out).toBeCloseTo(-3, 12)
+  })
+
+  it('takes a ratio setting down to its schema minimum and straight back', () => {
+    // Contrast acts by ratio, and the schema lets it fall to 0.01. A row
+    // asking for 0 bottoms out there, and the climb back shows on the very
+    // next frame instead of first crossing values the writer clamps away.
+    const contrast: FlameTarget = { kind: 'renderSetting', param: 'contrast' }
+    const governor = createComfortGovernor('standard')
+    let bottom = Number.NaN
+    for (let frame = 0; frame < 30 * 30; frame++) {
+      bottom = governor.step(contrast, 'render.contrast', 0, 1 / 30, () => 1)
+    }
+    const back = governor.step(contrast, 'render.contrast', 1, 1 / 30)
+    expect(bottom).toBeCloseTo(0.01, 12)
+    expect(back).toBeCloseTo(0.01 * Math.exp(0.02), 12)
+  })
+
+  it('holds exposure 8 to the Standard window in exposure units', () => {
+    // A 2 Hz square wave from 8 down to 4.
+    const governor = createComfortGovernor('standard')
+    const out: number[] = []
+    for (let frame = 0; frame < 30 * 20; frame++) {
+      const high = Math.floor(frame / 7.5) % 2 === 0
+      out.push(
+        governor.step(
+          exposure,
+          'render.exposure',
+          high ? 8 : 4,
+          1 / 30,
+          () => 8,
+        ),
+      )
+    }
+    expect(worstSwing(out, 15)).toBeLessThanOrEqual(0.18 + 1e-9)
+  })
+
+  // Random targets and seeds across each setting's schema domain, at steady
+  // and ragged frame rates with stalls: every pair of outputs at most 500 ms
+  // apart differs by no more than the preset's window range, measured in the
+  // units the renderer shows.
+  it.each(
+    COMFORT_PRESETS.flatMap((preset) =>
+      (Object.keys(RENDERED) as BrightnessKey[]).map(
+        (param) => [preset, param] as const,
+      ),
+    ),
+  )('holds %s %s to the window range across its domain', (preset, param) => {
+    const { min, max } = schemaDomain(param)
+    const shownAs = RENDERED[param]
+    const byRatio = shownAs === Math.log
+    const { brightnessWindowRange, brightnessWindowSeconds } =
+      COMFORT_CAPS[preset]
+    const target: FlameTarget = { kind: 'renderSetting', param }
+    const breaches: { run: number; swing: number }[] = []
+    for (let run = 0; run < 12; run++) {
+      const random = lcg(1000 * run + param.length * 31 + preset.length)
+      const draw = () =>
+        byRatio
+          ? Math.exp(Math.log(min) + random() * (Math.log(max) - Math.log(min)))
+          : min + random() * (max - min)
+      const seed = draw()
+      const fps = [24, 30, 60][run % 3]!
+      const ragged = run >= 6
+      const governor = createComfortGovernor(preset)
+      const times: number[] = []
+      const shown: number[] = []
+      let asked = draw()
+      let holdUntil = 0
+      let t = 0
+      for (let frame = 0; frame < fps * 10; frame++) {
+        if (frame >= holdUntil) {
+          asked = draw()
+          holdUntil = frame + Math.floor(random() * fps)
+        }
+        // A ragged clock ticks every 4 to 54 ms and stalls now and then.
+        const dt = !ragged
+          ? 1 / fps
+          : random() < 0.02
+            ? 0.4
+            : 0.004 + random() * 0.05
+        const value = governor.step(target, param, asked, dt, () => seed)
+        t += Math.min(dt, MAX_STEP_SECONDS)
+        times.push(t)
+        shown.push(shownAs(value))
+      }
+      const swing = worstSwingByTime(times, shown, brightnessWindowSeconds)
+      if (swing > brightnessWindowRange + 1e-9) breaches.push({ run, swing })
+    }
+    expect(breaches).toEqual([])
   })
 })
 
@@ -186,7 +339,7 @@ describe('state', () => {
     const governor = createComfortGovernor('standard')
     expect(
       governor.step(exposure, 'render.exposure', 3, 1 / 30, () => 1),
-    ).toBeCloseTo(1.020201, 6)
+    ).toBeCloseTo(1.02, 12)
   })
 
   it('passes the first value through when there is no authored value', () => {
