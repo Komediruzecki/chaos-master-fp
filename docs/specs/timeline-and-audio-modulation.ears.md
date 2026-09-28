@@ -710,7 +710,7 @@ microphone, both transport and modulation shall be gated on reactivity being
 enabled, so an idle mic capture is never held open.
 
 _(`useAudioReactive.ts:180-305` (`source`) for file mode — note the analyzer is consulted only
-at `:256` (`analyzer`); `:307-344` (`source`) for mic mode.)_
+at `:255` (`analyzer`); `:307-344` (`source`) for mic mode.)_
 
 ### REQ-TA-034 — Replay suspension freezes modulation and its clock
 
@@ -722,7 +722,7 @@ fresh `dt`, and the file loop forgets the analyzer frame it stepped last, so the
 first tick after resuming steps the frame under the playhead alone. The transport
 clock shall keep advancing.
 
-_(`useAudioReactive.ts:251-260` (`modulationSuspended`), `:316-320` (`modulationSuspended`); guarded, for the
+_(`useAudioReactive.ts:250-259` (`modulationSuspended`), `:315-319` (`modulationSuspended`); guarded, for the
 microphone, by `useAudioReactive.test.ts:52` "freezes both the overlay and smoothing time while replay owns the document".)_
 
 ---
@@ -809,40 +809,49 @@ music does.
 
 A target's first governed frame shall start from the value the authored flame
 shows. **When** a target's mapping leaves the wiring — a row removed, a preset
-without it, its target switched — the target shall keep being governed back to
-its authored value, or the nearest value it can show, and leave the overlay once
-within its mapping's dirty threshold of it (REQ-TA-031); one that returns before
-then shall turn round from the value on screen. Home, it shall still be governed
-there, off the overlay, for one window of its own, 500 ms for a brightness setting
-and 5 s for zoom, and one that returns inside that window shall be held to the
-outputs its release showed. One the flame no longer carries shall leave at once.
-Only the overlay coming down — audio off, a mic restart, a replay taking the
-document — or a release the preset holds still, zoom on `calm`, may cut to the
-authored value in one frame, and the governor shall start over for what it cut.
-A preset change shall apply from the current values
+without it, its target switched, the last row cleared — the target shall keep
+being governed back to its authored value, or the nearest value it can show, and
+leave the overlay once within its mapping's dirty threshold of it (REQ-TA-031);
+one that returns before then shall turn round from the value on screen. Home, it
+shall stay governed, off the overlay, for one window of its own, 500 ms for a
+brightness setting and 5 s for zoom. Through that window the governor shall
+record the value the authored flame shows, which a timeline or an edit may still
+move, as shown and without caps, and one that returns inside the window shall
+turn round from that value and be held to everything the window showed, its
+release included. The overlay shall stay up, with nothing on it if nothing else
+is, until no target is on its way home or resting there, and only then come
+down. One the flame no longer carries shall leave at once. Only the overlay
+coming down — audio off, a mic restart, a replay taking the document — or a
+release the preset holds still, zoom on `calm`, may cut to the authored value in
+one frame, and the governor shall start over for what it cut. The `calm` cut is
+as large as the zoom the row built up before the switch, up to the row's whole
+span. A preset change shall apply from the current values
 without a jump: each window keeps the outputs already in it and holds them to
 the new range. A step of no time, or of a value that is not finite, shall move
 nothing, and on a target's first step such a value shall show the authored one.
 A stalled tick shall count as 0.1 s at most, so the frame after a stall moves one
 capped 0.1 s step.
 
-_(`comfortGovernor.ts:309-361` (`createComfortGovernor`), `:213-256` (`advance`), `:104-139` (`renderRule`), `:49-75` (`schemaSlew`), `comfortPresets.ts:90-94` (`COMFORT_CAPS`),
-`audioModulator.ts:75-197` (`createAudioModulator`), `:86-138` (`release`); guarded by `comfortGovernor.test.ts:57` "holds a slow square wave inside the window range on %s at %i fps",
+_(`comfortGovernor.ts:342-401` (`createComfortGovernor`), `:240-279` (`advance`), `:224-237` (`record`), `:104-139` (`renderRule`), `:49-75` (`schemaSlew`), `comfortPresets.ts:90-94` (`COMFORT_CAPS`),
+`audioModulator.ts:82-211` (`createAudioModulator`), `:93-149` (`release`), `:202-204` (`idle`), `useAudioReactive.ts:119-125` (`settleModulation`); guarded by `comfortGovernor.test.ts:57` "holds a slow square wave inside the window range on %s at %i fps",
 `:81` "holds a 12 Hz square wave on exposure inside the window range", `:231` "holds %s %s to the window range across its domain",
 `:302` "holds %s at its schema bound %d and turns back the next frame",
 `:346` "holds %s zoom under %s at %i fps to its range inside any 5 s", `:393` "holds zoom at its authored value in Calm",
 `:422` "never turns palettePhase faster than the hue cap", `:495` "moves at most one capped step after a stall",
-`:552` "shows the authored value for a first value of %d, then eases in from it", `:586` "keeps the window through a switch to a wider preset",
-`audioModulator.test.ts:110` "turns Pulse's bass row at sensitivity 2 back as soon as the bass drops, on %s",
-`:175` "governs a departing target back to its authored value", `:200` "eases a target back in when its mapping returns",
-`:219` "keeps the window of a target home from its release when it returns, on %s %i frames after",
-`:254` "keeps the 5 s zoom window of a target home from its release, on %s %i frames after",
-`:288` "ends a zoom release on Calm, which holds zoom still, by cutting to the authored zoom",
-`:319` "ends a probability release when the authored weight is under the writer's floor",
-`:345` "ends the release of a value authored past the schema at the bound",
-`:400` "switches Bloom to Drift and back inside 300 ms without a flash",
-`useAudioReactive.test.ts:112` "eases the overlay in from it, and again after the mic restarts" and
-`:213` "governs its target home before the overlay comes down".)_
+`:518` "starts the next step from a tracked value, which the window holds like an output",
+`:582` "shows the authored value for a first value of %d, then eases in from it", `:616` "keeps the window through a switch to a wider preset",
+`audioModulator.test.ts:132` "turns Pulse's bass row at sensitivity 2 back as soon as the bass drops, on %s",
+`:197` "governs a departing target back to its authored value", `:222` "eases a target back in when its mapping returns",
+`:241` "keeps the window of a target home from its release when it returns, on %s %i frames after",
+`:276` "keeps the 5 s zoom window of a target home from its release, on %s %i frames after",
+`:310` "ends a zoom release on Calm, which holds zoom still, by cutting to the authored zoom",
+`:341` "ends a probability release when the authored weight is under the writer's floor",
+`:367` "ends the release of a value authored past the schema at the bound",
+`:404` "returns on %s from the screen when the authored value moves %i a second through the rest, %i frames after arrival",
+`:480` "switches Bloom to Drift and back inside 300 ms without a flash",
+`useAudioReactive.test.ts:113` "eases the overlay in from it, and again after the mic restarts",
+`:214` "governs its target home before the overlay comes down" and
+`:416` "holds the %s window when the row returns %i frames after its target is home".)_
 
 **While** a file drives the flame, the live loop shall step every analyzer frame the
 playback clock passed since its last tick, each one analyzer frame long, reading the
@@ -855,8 +864,8 @@ the video's own: every comfort window holds in the time the video plays in, a
 preview and an export of the same track agree, and no beat between two frames is
 lost.
 
-_(`useAudioReactive.ts:262-293` (`analyzerFrameRate`), `exportAudioModulation.ts:36-93` (`createExportAudioModulation`),
-`audioModulator.ts:37-49` (`analyzerFrameRate`); guarded by `useAudioReactive.test.ts:307` "still delivers a beat that sits on the frame the tick skipped",
+_(`useAudioReactive.ts:261-292` (`analyzerFrameRate`), `exportAudioModulation.ts:36-93` (`createExportAudioModulation`),
+`audioModulator.ts:44-56` (`analyzerFrameRate`); guarded by `useAudioReactive.test.ts:315` "still delivers a beat that sits on the frame the tick skipped",
 `exportAudioModulation.test.ts:135-140` "steps every analyzer frame up to the one at each output frame's time, at %i fps from %i Hz",
 `:185` "holds the %s windows in video time at %i fps from %i Hz",
 `:233` "hears a real analyzer's music at the output frame of its time" and
