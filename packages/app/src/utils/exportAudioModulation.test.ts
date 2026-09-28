@@ -3,6 +3,7 @@
 // fresh state, with sub-frames and backward seeks answered from the same
 // sequence.
 import { describe, expect, it } from 'vitest'
+import { COMFORT_CAPS, COMFORT_PRESETS } from '@/comfort/comfortPresets'
 import { createAudioAnalyzer } from './audioAnalysis'
 import { createAudioModulator } from './audioModulator'
 import { createExportAudioModulation } from './exportAudioModulation'
@@ -51,6 +52,22 @@ const mappings: AudioMappingEntry[] = [
 
 const authored = {
   renderSettings: { exposure: 1, palettePhase: 0.5, camera: { zoom: 1.2 } },
+}
+
+/** The widest swing between two output frames at most `seconds` apart in the video. */
+function widestInVideoTime(
+  series: readonly number[],
+  fps: number,
+  seconds: number,
+): number {
+  let widest = 0
+  for (let i = 0; i < series.length; i++) {
+    for (let j = i + 1; j < series.length; j++) {
+      if ((j - i) / fps > seconds + 1e-9) break
+      widest = Math.max(widest, Math.abs(series[j]! - series[i]!))
+    }
+  }
+  return widest
 }
 
 describe('createExportAudioModulation', () => {
@@ -146,6 +163,70 @@ describe('createExportAudioModulation', () => {
       }
       expect(worst).toBeLessThan(analyzerFrameSeconds)
       expect(stepped).toEqual(stepped.map((_, index) => index))
+    },
+  )
+
+  // So now and then one output frame steps two analyzer frames. Stepped one
+  // analyzer frame long each, two output frames one window apart in the video
+  // sat one analyzer frame more than a window apart in governed time, and
+  // swung one slew step past the range. The square wave turns every 300
+  // analyzer frames, before either ramp can finish, so both are always
+  // climbing or falling at their window's limit; 200 s hold at least one
+  // double step at each of these rates.
+  it.each(
+    COMFORT_PRESETS.flatMap((preset) =>
+      [
+        [24, 44_100],
+        [55, 44_100],
+        [54, 48_000],
+      ].map(([fps, sampleRate]) => [preset, fps!, sampleRate!] as const),
+    ),
+  )(
+    'holds the %s windows in video time at %i fps from %i Hz',
+    (preset, fps, sampleRate) => {
+      const square = {
+        sampleRate,
+        totalFrames: 1_000_000,
+        getFrameData: (index: number) => ({
+          ...frameAt(0),
+          rms: Math.floor(index / 300) % 2,
+        }),
+      }
+      const rows: AudioMappingEntry[] = [
+        {
+          audioFeature: 'rms',
+          target: { kind: 'renderSetting', param: 'exposure' },
+          sensitivity: 1,
+          range: [-8, 8],
+        },
+        {
+          audioFeature: 'rms',
+          target: { kind: 'renderSetting', param: 'zoom' },
+          sensitivity: 1,
+          range: [0.5, 2],
+        },
+      ]
+      const flame = { renderSettings: { exposure: 0, camera: { zoom: 1 } } }
+      const exported = createExportAudioModulation(square, rows, fps, preset)
+      const exposure: number[] = []
+      const lnZoom: number[] = []
+      for (let frame = 0; frame < fps * 200; frame++) {
+        const values = exported.valuesAt(frame, flame)
+        exposure.push(values[0]!.value)
+        lnZoom.push(Math.log(values[1]!.value))
+      }
+      const caps = COMFORT_CAPS[preset]
+      expect({
+        brightness: widestInVideoTime(
+          exposure,
+          fps,
+          caps.brightnessWindowSeconds,
+        ),
+        zoom: widestInVideoTime(lnZoom, fps, caps.zoomWindowSeconds),
+      }).toEqual({
+        brightness: expect.closeTo(caps.brightnessWindowRange, 9),
+        zoom: expect.closeTo(caps.zoomWindowRange, 9),
+      })
     },
   )
 
