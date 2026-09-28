@@ -308,6 +308,15 @@ file instead of rediscovering the architecture every session.
 | [workspaceSelectionStore.ts](../../packages/app/src/stores/workspaceSelectionStore.ts) | _(no header comment)_ |
 <!-- prettier-ignore-end -->
 
+#### Comfort (`packages/app/src/comfort/`) — caps on audio-driven motion
+
+<!-- prettier-ignore-start -->
+| File | What it is |
+|---|---|
+| [comfortGovernor.ts](../../packages/app/src/comfort/comfortGovernor.ts) | The comfort governor: a feed-forward limiter on audio-driven motion. |
+| [comfortPresets.ts](../../packages/app/src/comfort/comfortPresets.ts) | Comfort presets for audio-reactive motion: the per-second rate caps and the brightness window the comfort governor holds every modulated... |
+<!-- prettier-ignore-end -->
+
 #### Utilities (`packages/app/src/utils/`, 200+ LOC)
 
 <!-- prettier-ignore-start -->

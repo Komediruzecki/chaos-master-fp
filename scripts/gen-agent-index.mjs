@@ -303,6 +303,10 @@ const SECTIONS = {
       `${A}/stores`,
       'Stores (`packages/app/src/stores/`) — global reactive state',
     ),
+    fileTable(
+      `${A}/comfort`,
+      'Comfort (`packages/app/src/comfort/`) — caps on audio-driven motion',
+    ),
     fileTable(`${A}/utils`, 'Utilities (`packages/app/src/utils/`, 200+ LOC)', {
       min: 200,
     }),
