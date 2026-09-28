@@ -246,6 +246,45 @@ describe('createAudioModulator', () => {
     },
   )
 
+  it.each(
+    COMFORT_PRESETS.flatMap((preset) =>
+      [0, 60].map((after) => [preset, after] as const),
+    ),
+  )(
+    'keeps the 5 s zoom window of a target home from its release, on %s %i frames after',
+    (preset, after) => {
+      // As for brightness, over zoom's own window: a hand-made row climbs
+      // zoom, leaves, and returns pulling the other way. Two seconds after
+      // arrival is past any brightness window, and still inside zoom's.
+      const row: AudioMappingEntry = {
+        audioFeature: 'rms',
+        target: { kind: 'renderSetting', param: 'zoom' },
+        sensitivity: 1,
+        range: [0.5, 2],
+      }
+      const flame = { renderSettings: { camera: { zoom: 1 } } }
+      const quiet = { ...loud, rms: 0 }
+      const modulator = createAudioModulator(preset)
+      const lnZoom = [0]
+      const run = (
+        frame: typeof loud,
+        wiring: AudioMappingEntry[],
+      ): AudioTargetValue[] => {
+        const { values } = modulator.step(frame, wiring, 1 / 30, flame)
+        lnZoom.push(Math.log(shown(values, 'zoom', 1)))
+        return values
+      }
+      for (let frame = 0; frame < 30 * 12; frame++) run(loud, [row])
+      let frames = 0
+      while (run(loud, []).length > 0 && frames < 30 * 60) frames++
+      for (let frame = 0; frame < after; frame++) run(loud, [])
+      for (let frame = 0; frame < 30 * 12; frame++) run(quiet, [row])
+      const { zoomWindowRange } = COMFORT_CAPS[preset]
+      expect(frames).toBeLessThan(30 * 60)
+      expect(worstSwing(lnZoom, 150)).toBeCloseTo(zoomWindowRange, 9)
+    },
+  )
+
   it('ends a zoom release on Calm, which holds zoom still, by cutting to the authored zoom', () => {
     // A hand-made row moves zoom on Standard, the preset switches to Calm
     // and the row is removed. Calm allows zoom no swing at all, so it could

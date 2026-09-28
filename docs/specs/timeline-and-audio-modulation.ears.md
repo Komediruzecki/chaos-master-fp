@@ -836,10 +836,11 @@ _(`comfortGovernor.ts:309-361` (`createComfortGovernor`), `:213-256` (`advance`)
 `audioModulator.test.ts:110` "turns Pulse's bass row at sensitivity 2 back as soon as the bass drops, on %s",
 `:175` "governs a departing target back to its authored value", `:200` "eases a target back in when its mapping returns",
 `:219` "keeps the window of a target home from its release when it returns, on %s %i frames after",
-`:249` "ends a zoom release on Calm, which holds zoom still, by cutting to the authored zoom",
-`:280` "ends a probability release when the authored weight is under the writer's floor",
-`:306` "ends the release of a value authored past the schema at the bound",
-`:361` "switches Bloom to Drift and back inside 300 ms without a flash",
+`:254` "keeps the 5 s zoom window of a target home from its release, on %s %i frames after",
+`:288` "ends a zoom release on Calm, which holds zoom still, by cutting to the authored zoom",
+`:319` "ends a probability release when the authored weight is under the writer's floor",
+`:345` "ends the release of a value authored past the schema at the bound",
+`:400` "switches Bloom to Drift and back inside 300 ms without a flash",
 `useAudioReactive.test.ts:112` "eases the overlay in from it, and again after the mic restarts" and
 `:213` "governs its target home before the overlay comes down".)_
 
