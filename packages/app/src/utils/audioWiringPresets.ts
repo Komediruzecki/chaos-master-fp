@@ -46,7 +46,7 @@ export const PRESET_LABELS: Record<WiringPresetId, string> = {
 }
 
 export const PRESET_DESCRIPTIONS: Record<WiringPresetId, string> = {
-  pulse: 'Bass drives colour intensity, beats sweep the palette.',
+  pulse: 'Bass drives colour intensity, beats nudge the palette.',
   bloom: 'Loudness opens up brightness; highs lift saturation.',
   drift: 'Mids breathe the zoom while the palette rotates.',
   structure:
@@ -89,10 +89,11 @@ export const RENDER_PRESETS: Record<RenderPresetId, AudioMappingEntry[]> = {
   pulse: [
     // Wide vibrancy swing is the single most legible reaction there is.
     entry('bass', render('vibrancy'), [0.25, 2.4], { releaseMs: 160 }),
-    // A full turn of the palette on every beat, snapped hard.
-    entry('beat', render('palettePhase'), [0, 1], {
-      attackMs: 0,
-      releaseMs: 320,
+    // A beat nudges the palette an eighth of a turn and it eases back. The
+    // phase wraps at 1, so a wider range cycles every colour on every kick.
+    entry('beat', render('palettePhase'), [0, 0.12], {
+      attackMs: 60,
+      releaseMs: 900,
     }),
     entry('rms', render('exposure'), [0.75, 1.5]),
   ],
@@ -223,6 +224,17 @@ export function buildFlamePreset(
   })
   out.push(entry('beat', render('exposure'), [0.85, 1.45], { releaseMs: 180 }))
   return out
+}
+
+/**
+ * The wiring a new session starts with: the pulse preset, as a copy the
+ * caller may edit.
+ */
+export function defaultAudioMapping(): {
+  preset: WiringPresetId
+  mappings: AudioMappingEntry[]
+} {
+  return { preset: 'pulse', mappings: buildPreset('pulse', []) }
 }
 
 /** Everything a preset id resolves to, whichever kind it is. */

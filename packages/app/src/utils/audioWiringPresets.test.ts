@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { MAX_SKIP_ITERS_VALUE } from '@/flame/schema/flameSchema'
 import { flameTargetKey, flameTargetPath } from './audioAnalysis'
-import { buildFlamePreset, buildPreset, FLAME_PRESET_IDS, randomizeMappings, RENDER_PRESET_IDS, } from './audioWiringPresets'
+import { buildFlamePreset, buildPreset, defaultAudioMapping, FLAME_PRESET_IDS, randomizeMappings, RENDER_PRESET_IDS, RENDER_PRESETS, } from './audioWiringPresets'
 import type { TransformInfo } from './audioAnalysis'
 
 function transforms(count: number, variationsEach = 2): TransformInfo[] {
@@ -261,5 +261,30 @@ describe('presets name what they wire by id', () => {
         expect(variation?.type).toBe(target.variationType)
       }
     }
+  })
+})
+
+// The shader wraps palettePhase at 1, so the old [0, 3.14] default swept the
+// palette about three turns forward and back on every kick.
+describe('the default wiring', () => {
+  it('nudges the palette on a beat instead of cycling it', () => {
+    const beat = RENDER_PRESETS.pulse.find(
+      (m) =>
+        m.audioFeature === 'beat' &&
+        m.target.kind === 'renderSetting' &&
+        m.target.param === 'palettePhase',
+    )
+    expect(beat).toMatchObject({
+      range: [0, 0.12],
+      attackMs: 60,
+      releaseMs: 900,
+    })
+  })
+
+  it('is the pulse preset, as a copy the caller may edit', () => {
+    const mapping = defaultAudioMapping()
+    expect(mapping).toEqual({ preset: 'pulse', mappings: RENDER_PRESETS.pulse })
+    mapping.mappings[0]!.sensitivity = 5
+    expect(RENDER_PRESETS.pulse[0]!.sensitivity).toBe(1)
   })
 })

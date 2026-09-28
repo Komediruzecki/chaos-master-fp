@@ -388,7 +388,7 @@ or unmount; only `loadTracks`, `clearAllTracks` and the Home hand-off reset shal
 clear `previewHeld`.
 
 _(`utils/timeline.ts:1437-1505` (`advanceFrame`), `:1710-1711` (`clearAllTracks`), `:1755-1756` (`loadTracks`);
-`useSeekScrubber.ts:11-17` (`finishSeek`), `:33-36` (`finishSeek`), `:68-70` (`onCleanup`); `MainWorkspace.tsx:2401-2407` (`pause`).)_
+`useSeekScrubber.ts:11-17` (`finishSeek`), `:33-36` (`finishSeek`), `:68-70` (`onCleanup`); `MainWorkspace.tsx:2388-2394` (`pause`).)_
 
 ### REQ-TA-026 — Playback advances at the configured rate, or on quality with Auto FPS
 

@@ -105,6 +105,7 @@ import { createRecorderAwareTimeline, runTimelineSnapshotMutation, } from './rec
 import { openBenchmarkLab, openExplorer } from './routing/pageLinks'
 import { createAnimationExport } from './utils/animationExport'
 import { applyAudioTargetValues, createAudioAnalyzer, decodeAudioBytes, } from './utils/audioAnalysis'
+import { defaultAudioMapping } from './utils/audioWiringPresets'
 import { downloadBlob } from './utils/blob'
 import { deepClone } from './utils/clone'
 import { createStoreHistory } from './utils/createStoreHistory'
@@ -898,23 +899,9 @@ export function MainWorkspace(props: AppProps) {
     undefined,
   )
   const [audioEnabled, setAudioEnabled] = createSignal(false)
-  const [audioMapping, setAudioMapping] = createSignal<AudioMapping>({
-    preset: 'pulse',
-    mappings: [
-      {
-        audioFeature: 'bass',
-        target: { kind: 'renderSetting', param: 'vibrancy' },
-        sensitivity: 1,
-        range: [0.3, 1.5],
-      },
-      {
-        audioFeature: 'beat',
-        target: { kind: 'renderSetting', param: 'palettePhase' },
-        sensitivity: 1,
-        range: [0, 3.14],
-      },
-    ],
-  })
+  const [audioMapping, setAudioMapping] = createSignal<AudioMapping>(
+    defaultAudioMapping(),
+  )
   /**
    * The frame of modulation the renderer is layering on right now, or
    * `undefined` when nothing is modulating.

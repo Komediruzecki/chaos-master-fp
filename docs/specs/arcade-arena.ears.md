@@ -18,7 +18,7 @@ engine itself beyond the tracks the arena writes into it, or `VariationPreview` 
 - `packages/app/src/components/WorkspaceModalsHost/WorkspaceModalsHost.tsx:96-104` (`showArena`) — the mount gate for the overlay
 - `packages/app/src/components/ArenaOverlay.tsx` — the HUD, fighter slots, spectator pacing, results, champion-card export
 - `packages/app/src/components/ArenaOverlay.module.css` — full-screen immersion, `isClashing`, shake and shockwave presentation
-- `packages/app/src/MainWorkspace.tsx:3156-3287` (`initialStartClash`) — the arena facade on the command context, `selectFighter`, and the placeholder `startClash`
+- `packages/app/src/MainWorkspace.tsx:3143-3274` (`initialStartClash`) — the arena facade on the command context, `selectFighter`, and the placeholder `startClash`
 - `packages/app/src/commands/types.ts:56-135` — `ArenaFighterStats` and the optional `arena` facade shape
 - `packages/app/src/flame/schoolVariations.ts` — the variation lists behind the schools, and the type a variation counts as
 - `packages/app/src/flame/stats.ts` — grounded stats, school classification, deterministic combat resolution
@@ -449,7 +449,7 @@ _(`ArenaOverlay.tsx:610-644` (`finishSimulation`), log panel at
 load, and the workspace facade shall write a deep clone of that fighter's flame into the
 document under the label `Arena: <name>` and surface a confirmation toast.
 
-_(`ArenaOverlay.tsx:674-684` (`loadFighter`), `MainWorkspace.tsx:3258-3268` (`selectFighter`))_
+_(`ArenaOverlay.tsx:674-684` (`loadFighter`), `MainWorkspace.tsx:3245-3255` (`selectFighter`))_
 
 ### REQ-AA-036 — Champion-card export composes a 540×780 PNG from the winner's preview
 
@@ -543,7 +543,7 @@ rounds. **If** the flame editor has no active flame, or the HUD has not yet publ
 
 _(Entry from outside the overlay goes through the workspace's placeholder `startClash`,
 which opens the HUD and polls every 50 ms for the real implementation, giving up with
-`{ error: 'Arena clash startup timed out.' }` after 4 s — `MainWorkspace.tsx:3156-3180` (`initialStartClash`).)_
+`{ error: 'Arena clash startup timed out.' }` after 4 s — `MainWorkspace.tsx:3143-3167` (`initialStartClash`).)_
 
 ---
 
