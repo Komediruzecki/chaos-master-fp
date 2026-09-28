@@ -16,9 +16,10 @@ export type AudioModulator = {
    * A target whose mapping leaves `mappings` stays in the values, governed
    * back to its value in `baseline`, until it is within its mapping's dirty
    * threshold of it; one that returns before then turns round from where it
-   * is on screen. Home, it leaves the values but is still stepped there for
-   * one comfort window, so one that returns inside that window is held to
-   * the outputs its release showed. A departing target `baseline` no longer
+   * is on screen. Home, it leaves the values, and for one comfort window
+   * more its authored value is recorded as shown, so one that returns inside
+   * that window turns round from the screen and is held to everything the
+   * window showed, its release included. A departing target `baseline` no longer
    * carries leaves at once: there is nothing to bring it home to. No value
    * comes out that is not finite.
    */
@@ -57,7 +58,7 @@ export function analyzerFrameRate(
 /**
  * A target the previous step governed, and the dirty threshold of the
  * mapping that won it. `rested` is set once a departing target is home and
- * off the overlay: the seconds it has been stepped there since.
+ * off the overlay: the seconds since.
  */
 type Governed = { target: FlameTarget; threshold: number; rested?: number }
 
@@ -101,12 +102,15 @@ export function createAudioModulator(preset: ComfortPreset): AudioModulator {
       forget(key)
       return { changed: rested === undefined }
     }
-    const value = governor.step(target, key, home, h)
     if (rested !== undefined) {
-      // Home and off the overlay, it is stepped there until nothing it
-      // showed on the way is left in its window. Forgotten on arrival, one
-      // that came back inside the window started a fresh one, and could
-      // swing a full range on top of the release.
+      // Home and off the overlay, the target shows the flame's own value,
+      // which a timeline or an edit can still move. The governor records
+      // that as shown, without caps: chased at the caps instead, a return
+      // turned round from a value the screen had long left. It is kept
+      // until nothing it showed on the way is left in its window.
+      // Forgotten on arrival, one that came back inside the window started
+      // a fresh one, and could swing a full range on top of the release.
+      governor.track(target, key, home, h)
       const now = rested + h
       if (now < (governor.window(target)?.seconds ?? 0)) {
         return { kept: { target, threshold, rested: now }, changed: false }
@@ -114,6 +118,7 @@ export function createAudioModulator(preset: ComfortPreset): AudioModulator {
       governor.forget(key)
       return { changed: false }
     }
+    const value = governor.step(target, key, home, h)
     // A home the target cannot show, a probability authored under the
     // writer's floor or a value past the schema, is reached at the bound.
     if (apart(target, value, governor.reachable(target, home)) < threshold) {

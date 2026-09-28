@@ -1,7 +1,7 @@
 // Pins the comfort governor: slew caps per target kind, the wrap-aware hue
-// cap, the brightness and zoom windows, seeding from the authored value, and
-// the behaviour on preset changes, stalls, steps of no time and non-finite
-// input.
+// cap, the brightness and zoom windows, seeding from the authored value,
+// values recorded as shown, and the behaviour on preset changes, stalls,
+// steps of no time and non-finite input.
 import { numberDomainOf, RenderSettings } from '@chaos-master/core'
 import { describe, expect, it } from 'vitest'
 import { createComfortGovernor, MAX_STEP_SECONDS, PROBABILITY_FLOOR, } from './comfortGovernor'
@@ -513,6 +513,36 @@ describe('state', () => {
     governor.step(zoom, 'render.zoom', 1, 1 / 30)
     governor.reset()
     expect(governor.step(zoom, 'render.zoom', 8, 1 / 30)).toBe(8)
+  })
+
+  it('starts the next step from a tracked value, which the window holds like an output', () => {
+    // Exposure eases from the authored 1 to 1.02, then shows 1.5, which the
+    // governor did not choose. The next step starts there and holds: the
+    // window already spans 0.5, past Standard's 0.18. Without a window, the
+    // next step is one capped step from the tracked value.
+    const governor = createComfortGovernor('standard')
+    governor.step(exposure, 'render.exposure', 8, 1 / 30, () => 1)
+    governor.track(exposure, 'render.exposure', 1.5, 1 / 30)
+    const held = governor.step(exposure, 'render.exposure', 8, 1 / 30)
+    governor.step(affineA, 'tx.0.preAffine.a', 1, 1 / 30)
+    governor.track(affineA, 'tx.0.preAffine.a', 5, 1 / 30)
+    const moved = governor.step(affineA, 'tx.0.preAffine.a', 50, 1 / 30)
+    expect(held).toBe(1.5)
+    expect(moved).toBeCloseTo(
+      5 + COMFORT_CAPS.standard.affineLinearRate / 30,
+      12,
+    )
+  })
+
+  it('tracks nothing for a target it does not step yet, a non-finite value or no time', () => {
+    const governor = createComfortGovernor('standard')
+    governor.track(exposure, 'render.exposure', 3, 1 / 30)
+    const first = governor.step(exposure, 'render.exposure', 8, 1 / 30, () => 1)
+    governor.track(exposure, 'render.exposure', Number.NaN, 1 / 30)
+    governor.track(exposure, 'render.exposure', 3, 0)
+    const next = governor.step(exposure, 'render.exposure', 8, 1 / 30)
+    expect(first).toBeCloseTo(1.02, 12)
+    expect(next).toBeCloseTo(1.04, 12)
   })
 })
 

@@ -209,6 +209,33 @@ function fromCoordinate(rule: ComfortRule, y: number): number {
   return rule.kind === 'slew' && rule.space === 'log' ? Math.exp(y) : y
 }
 
+/** Drops the outputs more than `seconds` old; the one exactly that old stays. */
+function evict(state: TargetState, seconds: number): void {
+  const cutoff = state.t - seconds - WINDOW_SLACK_SECONDS
+  while (state.history.length > 0 && state.history[0]!.t < cutoff) {
+    state.history.shift()
+  }
+}
+
+/**
+ * Records coordinate `y` as shown `h` seconds after the previous output,
+ * without caps: a value the viewer saw that the governor did not choose.
+ */
+function record(
+  rule: ComfortRule,
+  state: TargetState,
+  y: number,
+  h: number,
+): void {
+  if (!(h > 0)) return
+  state.t += h
+  state.y = y
+  if (rule.kind === 'slew' && rule.window) {
+    evict(state, rule.window.seconds)
+    state.history.push({ t: state.t, y })
+  }
+}
+
 /** Moves `state` one step of `h` seconds toward coordinate `u`. */
 function advance(
   rule: ComfortRule,
@@ -231,11 +258,7 @@ function advance(
   let next = state.y + clamp(u - state.y, -limit, limit)
   if (rule.window) {
     const { range, seconds } = rule.window
-    // Every output at most `seconds` old stays, the one exactly that old too.
-    const cutoff = state.t - seconds - WINDOW_SLACK_SECONDS
-    while (state.history.length > 0 && state.history[0]!.t < cutoff) {
-      state.history.shift()
-    }
+    evict(state, seconds)
     // Every output still in the window bounds the next one from both sides,
     // so no two outputs inside any window are more than `range` apart.
     let lo = -Infinity
@@ -291,6 +314,16 @@ export type ComfortGovernor = {
     seed?: () => number | undefined,
   ): number
   /**
+   * Records `value` as what `target` showed this frame, `dt` seconds after
+   * its previous step, without caps: a value the viewer saw that the
+   * governor did not choose, such as the authored value of a target resting
+   * off the overlay while a timeline or an edit moves it. The next step
+   * starts from it, and the window holds it like any output. Only a target
+   * the governor already steps records anything, and a non-finite value or
+   * a `dt` that is not a positive number records nothing.
+   */
+  track(target: FlameTarget, key: string, value: number, dt: number): void
+  /**
    * `value` as near as `target` can show it: held to its bounds, so a
    * probability authored under the writer's floor is shown at the floor.
    */
@@ -342,6 +375,13 @@ export function createComfortGovernor(initial: ComfortPreset): ComfortGovernor {
       states.set(key, fresh)
       advance(rule, fresh, toCoordinate(rule, value), h)
       return fromCoordinate(rule, fresh.y)
+    },
+    track(target, key, value, dt) {
+      const rule = comfortRule(target, COMFORT_CAPS[current])
+      const state = states.get(key)
+      if (rule.kind === 'free' || !state || !Number.isFinite(value)) return
+      const h = clamp(Number.isFinite(dt) ? dt : 0, 0, MAX_STEP_SECONDS)
+      record(rule, state, toCoordinate(rule, value), h)
     },
     reachable(target, value) {
       const rule = comfortRule(target, COMFORT_CAPS[current])
