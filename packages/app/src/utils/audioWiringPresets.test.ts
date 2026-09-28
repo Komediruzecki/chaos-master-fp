@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { COMFORT_CAPS } from '@/comfort/comfortPresets'
 import { MAX_SKIP_ITERS_VALUE } from '@/flame/schema/flameSchema'
 import { flameTargetKey, flameTargetPath } from './audioAnalysis'
 import { buildFlamePreset, buildPreset, defaultAudioMapping, FLAME_PRESET_IDS, randomizeMappings, RENDER_PRESET_IDS, RENDER_PRESETS, } from './audioWiringPresets'
@@ -219,11 +218,13 @@ describe('preset ranges stay inside the flame schema', () => {
   })
 })
 
-// Standard, the comfort preset a session starts on, lets zoom span 0.02
-// e-folds inside any 5 s: a wider zoom row promises motion the governor holds
-// back.
-describe('zoom rows', () => {
-  it('span no more than Standard lets zoom move', () => {
+// zoom is an absolute value, not a relative one: a row driving it walks the
+// render toward the row's own range regardless of what the flame was
+// authored at, and snaps back the moment audio stops. Drift used to carry
+// exactly this row ([1, 1.02]) — a flame authored at 0.36 crept to 0.74 over
+// 180 s of steady audio. No built-in or randomized preset should drive it.
+describe('zoom targets', () => {
+  it('no preset drives the absolute zoom render setting', () => {
     const rows = [
       ...RENDER_PRESET_IDS.flatMap((id) => buildPreset(id, [])),
       ...FLAME_PRESET_IDS.flatMap((id) => buildFlamePreset(id, transforms(4))),
@@ -233,12 +234,7 @@ describe('zoom rows', () => {
     ].filter(
       (m) => m.target.kind === 'renderSetting' && m.target.param === 'zoom',
     )
-    expect(rows.map((m) => m.range)).toEqual([[1, 1.02]])
-    for (const { range } of rows) {
-      expect(Math.log(range[1] / range[0])).toBeLessThanOrEqual(
-        COMFORT_CAPS.standard.zoomWindowRange,
-      )
-    }
+    expect(rows).toEqual([])
   })
 })
 

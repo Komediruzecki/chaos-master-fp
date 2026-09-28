@@ -80,7 +80,7 @@ not a gap.
 - `packages/app/src/utils/audioMappingClamp.test.ts` — schema clamping, integer
   `skipIters`, probability floor, degenerate ranges
 - `packages/app/src/utils/audioWiringPresets.test.ts` — preset determinism, targets that
-  exist, ranges inside the schema, zoom rows no wider than Standard can show, and a
+  exist, ranges inside the schema, no preset driving the absolute zoom target, and a
   default wiring that leaves exposure as authored
 - `packages/app/src/utils/useAudioReactive.test.ts` — modulation suspension, easing in
   from the authored flame and again after a mic restart, a preset chosen mid-track, a

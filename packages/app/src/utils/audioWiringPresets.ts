@@ -15,8 +15,8 @@
  * `highlightPower`, `skipIters` and `gamma`, which barely move the picture —
  * which is why they felt like they did nothing. The visible movers are
  * `vibrancy` (colour intensity), `palettePhase` (hue sweep), `exposure`
- * (brightness), `zoom`, and `contrast`. Everything here sticks to those, and
- * uses ranges wide enough to see from across the room.
+ * (brightness), and `contrast`. Everything here sticks to those, and uses
+ * ranges wide enough to see from across the room.
  *
  * RANGES MUST MATCH flameSchema. Back when audio modulation wrote the live
  * descriptor, a range past a schema bound left the flame permanently invalid
@@ -50,7 +50,7 @@ export const PRESET_DESCRIPTIONS: Record<WiringPresetId, string> = {
   pulse: 'Bass drives colour intensity, beats nudge the palette.',
   bloom: 'Loudness opens up brightness; highs lift saturation.',
   drift:
-    'The palette turns with how bright the sound is and sub-bass deepens colour; mids nudge the zoom in slightly.',
+    'The palette turns with how bright the sound is and speeds up with the high-mids; sub-bass deepens colour.',
   structure:
     "Bands re-weight this flame's transforms — the shape itself moves.",
   morph: "Bands drive this flame's variation weights, warping its geometry.",
@@ -109,13 +109,10 @@ export const RENDER_PRESETS: Record<RenderPresetId, AudioMappingEntry[]> = {
     entry('onset', render('contrast'), [0.9, 1.6], { releaseMs: 140 }),
   ],
   drift: [
-    // Standard lets zoom span 0.02 e-folds inside any 5 s and Calm holds it
-    // still, so a wider row would only promise motion the governor holds
-    // back. At rest the row sits at the default zoom of 1.
-    entry('mid', render('zoom'), [1, 1.02], {
-      attackMs: 260,
-      releaseMs: 420,
-    }),
+    // No zoom row. Zoom is an absolute value, not a relative one: a row here
+    // drives it toward the row's own range regardless of what the flame was
+    // authored at, so it slowly walks a flame away from its authored zoom
+    // and snaps back the moment audio stops.
     entry('centroid', render('palettePhase'), [0, 1], { attackMs: 400 }),
     entry('hiMid', render('paletteSpeed'), [0.4, 2.4]),
     entry('subBass', render('vibrancy'), [0.5, 1.6], { attackMs: 180 }),
