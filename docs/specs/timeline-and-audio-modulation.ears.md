@@ -881,7 +881,7 @@ _(`jsonQueryParam.ts:174-191` (`buildSharePayload`), `:294` (`parseAudioWiring`)
 _(`recentFlames.ts:128-140` (`readStoredEntry`), `useWorkspaceAutosave.ts:138` (`getAudioMapping`),
 `flameLoad.ts:34-46` (`flameLoadOf`), `MainWorkspace.tsx:2775` (`restoreLoadedAudioWiring`),
 `:799` (`restoreLoadedAudioWiring`), `pauseSave.ts:226` (`audio`), `ExportJobHost.tsx:83-89` (`saveImageJobToRecents`),
-`ExportPngDialog.tsx:1024-1027` (`audioWiringNow`); guarded by
+`ExportPngDialog.tsx:1103` (`getAudioMapping`), `:1307` (`getAudioMapping`); guarded by
 `recentFlames.test.ts:764` "comes back with the entry Save for Later stored it in",
 `:794` "is dropped when it does not fit, and its entry stays",
 `ExportJobHost.recents.test.ts:69` "keeps the audio wiring it was exported under",

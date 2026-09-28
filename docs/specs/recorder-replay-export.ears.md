@@ -568,7 +568,7 @@ and finalizers, so a recording started while the job renders can never leak into
 file it did not produce.
 
 _(`utils/exportPreferences.ts:17-34` (`setEmbedStepsInExports`),
-`components/ExportPngDialog/ExportPngDialog.tsx:1036` (`sessionSnapshot`), `:1314` (`session`), `:1330` (`sessionSnapshot`),
+`components/ExportPngDialog/ExportPngDialog.tsx:1030` (`sessionSnapshot`), `:1308` (`session`), `:1324` (`sessionSnapshot`),
 `components/ExportJobs/ExportJobHost.tsx:158-163` (`encodedSteps`),
 `utils/animationExport.ts:382-390` (`embedMetadata`); guarded by `exportPreferences.test.ts:22`
 "keeps the initiation-time recording after the current session changes", and by
@@ -583,7 +583,7 @@ gesture is one recorder action and one history entry, and an untouched field is
 never rewritten.
 
 _(`components/ExportPngDialog/metadataCommit.ts:11-28` (`commitChangedExportMetadata`),
-`ExportPngDialog.tsx:1285-1289` (`commitChangedExportMetadata`), `:1320-1324` (`commitChangedExportMetadata`); guarded by
+`ExportPngDialog.tsx:1279-1283` (`commitChangedExportMetadata`), `:1314-1318` (`commitChangedExportMetadata`); guarded by
 `metadataCommit.test.ts`.)_
 
 ### REQ-RR-036 — Motion blur accumulates sub-frames inside one output frame

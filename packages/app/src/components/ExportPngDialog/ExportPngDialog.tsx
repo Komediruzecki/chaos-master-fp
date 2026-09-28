@@ -1006,8 +1006,7 @@ export function createExportPngDialog(
   getBlendFlame?: () => FlameDescriptor | undefined,
   getBlendWeight?: () => number,
   getAudioBuffer?: () => AudioBuffer | undefined,
-  /** The workspace's audio wiring: its rows drive an animation export, and
-   *  all of it goes to Recents with an exported image's flame. */
+  /** The audio wiring: drives an animation export, and goes to Recents. */
   getAudioMapping?: () => AudioMapping,
   /**
    * Ends the partner gallery's hover preview (useWorkspaceBlendPick). Both
@@ -1020,11 +1019,6 @@ export function createExportPngDialog(
   const requestModal = useRequestModal()
   const { showToast } = useToast()
   const [exportModalIsOpen, setExportModalIsOpen] = createSignal(false)
-  /** The wiring as it is now, for Recents; later edits do not reach it. */
-  const audioWiringNow = (): AudioMapping | undefined => {
-    const wiring = getAudioMapping?.()
-    return wiring ? deepClone(wiring) : undefined
-  }
 
   function quickExport() {
     endPreview()
@@ -1106,7 +1100,7 @@ export function createExportPngDialog(
               saveRecentFlame(flameDescriptor, {
                 tracks: currentTracks,
                 config,
-                audio: audioWiringNow(),
+                audio: getAudioMapping?.(),
               })
               downloadBlob(
                 new Blob([pngBytes], { type: 'image/png' }),
@@ -1310,7 +1304,7 @@ export function createExportPngDialog(
         condenseHidden: condenseHidden(),
         tracks: timeline?.tracks() ?? [],
         config: timeline?.config() ?? defaultTimelineConfig(),
-        audio: audioWiringNow(),
+        audio: getAudioMapping?.(),
         session: snapshotExportSession(sessionForExport()),
       })
     }
