@@ -1,6 +1,7 @@
 import '@/commands/builtins'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { agentDriving, drivingState, resetPilot } from '@/arcade/pilot'
+import { FLAME_PRESET_IDS, PRESET_DESCRIPTIONS, RENDER_PRESET_IDS, } from '@/utils/audioWiringPresets'
 import { clearWebMcpContext, setWebMcpContext } from '@/webmcp/contextBridge'
 import { createMockCommandContext, createTestFlame } from '@/webmcp/testUtils'
 import { arcadeEndBeats, arcadeGetAudioCatalog, arcadeSetAudioMapping, arcadeStartBeats, } from './arcadeBeats'
@@ -73,6 +74,26 @@ describe('arcade beats tools', () => {
 
     const currentTrack = catalog.currentTrack as Record<string, unknown>
     expect(currentTrack.name).toBe('Ember Drift')
+  })
+
+  // The catalogue used to carry its own hand-written copy of the preset
+  // descriptions, which drifted out of sync with what the presets actually
+  // wire (e.g. it described Drift as driving affine rotation and translation,
+  // which no Drift row has ever done). Building it from the single source
+  // means the two can never disagree again.
+  it('builds its preset descriptions from audioWiringPresets, not a hand-written copy', async () => {
+    const ctx = createMockCommandContext()
+    ctx.flameDescriptor = () => createTestFlame()
+    setWebMcpContext(ctx)
+
+    const catalog = await run(arcadeGetAudioCatalog, {})
+
+    expect(catalog.presets).toEqual(
+      [...RENDER_PRESET_IDS, ...FLAME_PRESET_IDS].map((id) => ({
+        id,
+        description: PRESET_DESCRIPTIONS[id],
+      })),
+    )
   })
 
   it('refuses set_audio_mapping when beats mode is not driving', async () => {

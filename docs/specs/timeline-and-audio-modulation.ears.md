@@ -587,7 +587,7 @@ the span rather than clipping it, so a sensitivity above 1 can carry the value
 past `range[1]`; keeping the result inside the schema is REQ-TA-032's job, not
 this formula's.
 
-_(`audioMapping.ts:175-181` (`mappingToVal`), `:357` (`mappingToVal`); guarded by `audioAnalysisMappings.test.ts:100` "scales the output by the mapping sensitivity".)_
+_(`audioMapping.ts:175-181` (`mappingToVal`), `:363` (`mappingToVal`); guarded by `audioAnalysisMappings.test.ts:100` "scales the output by the mapping sensitivity".)_
 
 ### REQ-TA-031 — Sub-threshold movement does not re-render
 
