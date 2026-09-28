@@ -5,6 +5,7 @@
 // moves to another transform or arrives from another flame.
 
 import type { AudioMappingEntry, FlameTarget, TransformInfo, TransformTarget, } from './audioMapping'
+import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 
 type WeightTarget = Extract<FlameTarget, { kind: 'variationWeight' }>
 
@@ -142,4 +143,48 @@ export function adoptImportedWiring(
     madeForThisFlame ? mappings : mappings.map(withoutIds),
     transforms,
   )
+}
+
+function hasLegacyTransformTarget(mappings: AudioMappingEntry[]): boolean {
+  return mappings.some(
+    ({ target }) =>
+      isTransformTarget(target) &&
+      (target.transformId === undefined ||
+        (target.kind === 'variationWeight' &&
+          target.variationId === undefined)),
+  )
+}
+
+/** `flame`'s transforms as reconciliation reads them: key, position, variations. */
+function transformsOf(flame: FlameDescriptor): TransformInfo[] {
+  return Object.entries(flame.transforms).map(([id, transform], index) => ({
+    id,
+    index,
+    label: id,
+    variations: Object.entries(transform.variations).map(
+      ([variationId, variation]) => ({ id: variationId, type: variation.type }),
+    ),
+  }))
+}
+
+/**
+ * `wiring` as the workspace stores it for the open flame: a legacy target (a
+ * position only) gets the keys of what sits at its position the moment it is
+ * set, so the overlay follows that transform through a reorder and goes inert
+ * when it is deleted. A target with keys keeps them, dangling ones included:
+ * the panel writes a deleted transform's row back on every edit, and it must
+ * not land on the transform that took its place. Wiring from another flame is
+ * the caller's to adopt (`adoptImportedWiring`) before it gets here. Returns
+ * `wiring` itself, and never reads the flame, when there is nothing to key.
+ */
+export function keyLegacyWiring<T extends { mappings: AudioMappingEntry[] }>(
+  wiring: T,
+  flame: () => FlameDescriptor,
+): T {
+  if (!hasLegacyTransformTarget(wiring.mappings)) return wiring
+  const mappings = reconcileTransformTargets(
+    wiring.mappings,
+    transformsOf(flame()),
+  )
+  return mappings === wiring.mappings ? wiring : { ...wiring, mappings }
 }

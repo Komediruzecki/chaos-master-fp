@@ -1,5 +1,6 @@
 import { batch } from 'solid-js'
 import { AudioMapping, AudioWiringSnapshot } from '@/flame/schema/audioWiring'
+import { keyLegacyWiring } from '@/utils/audioTargetIds'
 import { deepClone } from '@/utils/clone'
 import * as v from '@/valibot'
 import { registerCommand } from '../registry'
@@ -76,7 +77,9 @@ function applySnapshot(ctx: CommandContext, value: unknown): boolean {
     // Disable first so mapping/source replacement can never drive an
     // unrelated resource, even transiently between signal writes.
     audio.setEnabled(false)
-    audio.setMapping(deepClone(snapshot.mapping))
+    audio.setMapping(
+      keyLegacyWiring(deepClone(snapshot.mapping), ctx.flameDescriptor),
+    )
     audio.setSource(snapshot.source)
     if (mayEnable) audio.setEnabled(true)
   })
@@ -155,7 +158,7 @@ registerCommand({
     if (!audio) return
     batch(() => {
       audio.setEnabled(false)
-      audio.setMapping(parsed.output)
+      audio.setMapping(keyLegacyWiring(parsed.output, ctx.flameDescriptor))
     })
   },
 })

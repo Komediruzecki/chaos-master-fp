@@ -8,6 +8,7 @@ import { timelineReplayPlayback } from '@/recorder/replayPlayback'
 import { normalizeReplayPresentation, replaySideStateChanged, } from '@/recorder/replaySideState'
 import { createReplayVideoJobSpec, replayVideoFileName, } from '@/recorder/replayVideo'
 import { shouldRevealSonificationAfterReplay } from '@/recorder/sonificationState'
+import { keyLegacyWiring } from '@/utils/audioTargetIds'
 import { downloadBlob } from '@/utils/blob'
 import { deepClone } from '@/utils/clone'
 import { enqueueAnimationJob } from '@/utils/exportJobs'
@@ -285,7 +286,11 @@ export function useWorkspaceReplay(params: UseWorkspaceReplayParams) {
         hasLiveAnalyzer: audio.hasLiveAnalyzer(),
       },
       {
-        setMapping: audio.setMapping,
+        // A session saved before targets carried keys names transforms by
+        // position; they get the keys of what sits there now, like every
+        // other way wiring is set (commands/builtins/audio.ts).
+        setMapping: (mapping) =>
+          audio.setMapping(keyLegacyWiring(mapping, () => flameDescriptor)),
         setSource: audio.setSource,
         setEnabled: audio.setEnabled,
       },
