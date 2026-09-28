@@ -2,7 +2,7 @@
 // live microphone. The mapping stage (audioMapping.ts) and the flame writers
 // (audioTargets.ts) are re-exported from here, so importers keep one path.
 
-import { detectBeatFrames, normalizeTrackBands } from '@chaos-master/core'
+import { detectBeatFrames, detectOnsets, hannWindow, logSpectralFlux, normalizeTrackBands, } from '@chaos-master/core'
 import type { FrameData } from './audioMapping'
 
 export * from './audioMapping'
@@ -80,24 +80,29 @@ function fft(real: Float64Array, imag: Float64Array): void {
   }
 }
 
-function fftMagnitudeSpectrum(
-  data: Float32Array,
-  _sampleRate: number,
-): { bands: number[]; centroid: number; flatness: number } {
-  const N = data.length
-  const real = new Float64Array(N)
-  for (let i = 0; i < N; i++) real[i] = data[i] ?? 0
-  const imag = new Float64Array(N)
-
-  fft(real, imag)
-
-  const halfSize = N / 2
-  const mags = new Float32Array(halfSize)
-  for (let k = 0; k < halfSize; k++) {
-    mags[k] = Math.sqrt(real[k]! * real[k]! + imag[k]! * imag[k]!) / N
+/**
+ * The magnitude spectrum of the `window.length` samples of `samples` from
+ * index `from`, Hann-windowed. Samples before the start or past the end read
+ * 0. Magnitudes are |X| / N, the scale the bands have always had.
+ */
+function frameSpectrum(
+  samples: Float32Array,
+  from: number,
+  window: Float32Array,
+): Float32Array {
+  const size = window.length
+  const real = new Float64Array(size)
+  const imag = new Float64Array(size)
+  for (let i = 0; i < size; i++) {
+    const at = from + i
+    if (at >= 0 && at < samples.length) real[i] = samples[at]! * window[i]!
   }
-
-  return getFftBands(mags, _sampleRate)
+  fft(real, imag)
+  const mags = new Float32Array(size / 2)
+  for (let k = 0; k < size / 2; k++) {
+    mags[k] = Math.sqrt(real[k]! * real[k]! + imag[k]! * imag[k]!) / size
+  }
+  return mags
 }
 
 function getFftBands(
@@ -203,55 +208,6 @@ function computeBeats(
   return detectBeatFrames(flux, fps)
 }
 
-// --- Onset detection ---
-// Onset strength = positive delta of RMS × centroid, normalized against a
-// rolling median. Produces a 0-1 value per frame; values > 0 indicate an
-// onset transient (drum hit, plosive, sharp attack). The caller applies an
-// exponential decay envelope (50-100ms half-life) to smooth the visual effect.
-
-function computeOnsetStrengths(
-  totalFrames: number,
-  getData: (i: number) => { rms: number; centroid: number },
-): Float32Array {
-  const strengths = new Float32Array(totalFrames)
-  if (totalFrames < 3) return strengths
-
-  // Compute frame-to-frame energy deltas
-  const deltas: number[] = []
-  for (let i = 1; i < totalFrames; i++) {
-    const prev = getData(i - 1)
-    const curr = getData(i)
-    const prevEnergy = prev.rms * Math.max(1, prev.centroid)
-    const currEnergy = curr.rms * Math.max(1, curr.centroid)
-    deltas.push(Math.max(0, currEnergy - prevEnergy))
-  }
-
-  // Rolling median over a window of ~0.5s worth of frames
-  const windowSize = Math.max(3, Math.min(15, Math.floor(deltas.length / 2)))
-  const thresholdFactor = 2.5
-
-  for (let i = 1; i < totalFrames; i++) {
-    const delta = deltas[i - 1]!
-
-    // Compute rolling median of nearby deltas (exclude current)
-    const windowStart = Math.max(0, i - 1 - windowSize)
-    const windowEnd = Math.min(deltas.length - 1, i - 1 + windowSize)
-    const window: number[] = []
-    for (let j = windowStart; j <= windowEnd; j++) {
-      if (j !== i - 1) window.push(deltas[j]!)
-    }
-    window.sort((a, b) => a - b)
-    const median =
-      window.length > 0 ? window[Math.floor(window.length / 2)]! : 0
-
-    if (delta > median * thresholdFactor && median > 1e-8) {
-      strengths[i] = Math.min(1, delta / (median * thresholdFactor * 2))
-    }
-  }
-
-  return strengths
-}
-
 // --- Public API ---
 
 export async function createAudioAnalyzer(
@@ -280,73 +236,59 @@ export async function createAudioAnalyzer(
   const samplesPerFrame = Math.floor(sampleRate / targetFps)
   const totalFrames = Math.floor(length / samplesPerFrame)
   const fftSize = Math.max(256, nextPowerOfTwo(samplesPerFrame))
+  const window = hannWindow(fftSize)
+  // The real frame rate: a frame is a whole number of samples, so 44.1 kHz at
+  // 24 fps runs at 24.006 frames a second, not 24.
+  const fps = sampleRate / samplesPerFrame
 
   onProgress?.(0, totalFrames)
 
-  // Analyze every frame up front — with a proper FFT this is ~1s for a 3min song.
-  const frameCache = new Map<number, FrameData>()
-
-  function getOrComputeFrame(i: number): FrameData {
-    let frame = frameCache.get(i)
-    if (frame) return frame
-
+  // Every frame, in order, up front: about a second for a three-minute song.
+  // A clip shorter than one frame still gets its one frame.
+  const frames: FrameData[] = []
+  const flux = new Float64Array(totalFrames)
+  let previousMags: Float32Array | undefined
+  const BATCH_SIZE = 50
+  for (let i = 0; i < Math.max(1, totalFrames); i++) {
     const start = i * samplesPerFrame
-    const end = Math.min(start + samplesPerFrame, length)
-    const slice = monoData.slice(start, end)
-    const padded = new Float32Array(fftSize)
-    padded.set(slice)
-
-    const { bands, centroid, flatness } = fftMagnitudeSpectrum(
-      padded,
-      sampleRate,
+    const slice = monoData.subarray(
+      start,
+      Math.min(start + samplesPerFrame, length),
     )
+    // The spectrum of the fftSize samples centred on the frame.
+    const from = start + Math.floor(samplesPerFrame / 2) - fftSize / 2
+    const mags = frameSpectrum(monoData, from, window)
+    const { bands, centroid, flatness } = getFftBands(mags, sampleRate)
     // The raw level, never normalised like the bands below: wirings made
     // before band levels, the research examples among them, set their rms
     // ranges by it.
     const rms = computeRms(slice)
-
-    frame = { bands, rms, centroid, flatness, onsetStrength: 0 }
-    frameCache.set(i, frame)
+    frames.push({ bands, rms, centroid, flatness, onsetStrength: 0 })
+    if (previousMags && i < totalFrames) {
+      flux[i] = logSpectralFlux(previousMags, mags)
+    }
+    previousMags = mags
     onProgress?.(i + 1, totalFrames)
-    return frame
-  }
-
-  // Pre-compute all frames in chunks so the UI stays responsive
-  const BATCH_SIZE = 50
-  for (let i = 0; i < totalFrames; i++) {
-    getOrComputeFrame(i)
     if (i % BATCH_SIZE === 0 && i > 0) {
       await new Promise((r) => setTimeout(r, 0))
     }
   }
 
-  // The real frame rate: a frame is a whole number of samples, so 44.1 kHz at
-  // 24 fps runs at 24.006 frames a second, not 24.
-  const fps = sampleRate / samplesPerFrame
-  const beatFrames = computeBeats(totalFrames, getOrComputeFrame, fps)
-
-  // Compute onset strengths and patch into frame cache
-  const onsetStrengths = computeOnsetStrengths(totalFrames, getOrComputeFrame)
-  for (let i = 0; i < totalFrames; i++) {
-    const frame = frameCache.get(i)
-    if (frame) frame.onsetStrength = onsetStrengths[i] ?? 0
-  }
-
+  const beatFrames = computeBeats(totalFrames, (i) => frames[i]!, fps)
+  const onsets = detectOnsets(flux, fps)
   // Bands leave as levels on [0, 1] against the range each covers in this
-  // track: a raw band is about 0.001 on real music. Beats and onsets above
-  // read the raw magnitudes first.
-  const levels = normalizeTrackBands(
-    Array.from({ length: totalFrames }, (_, i) => getOrComputeFrame(i).bands),
-  )
-  for (let i = 0; i < totalFrames; i++) {
-    getOrComputeFrame(i).bands = levels[i]!
-  }
+  // track: a raw band is about 0.001 on real music. The beats above read the
+  // raw magnitudes first.
+  const levels = normalizeTrackBands(frames.map((frame) => frame.bands))
+  frames.forEach((frame, i) => {
+    frame.bands = levels[i]!
+    frame.onsetStrength = onsets[i] ?? 0
+  })
 
   return {
     getFrameData(frameIndex: number) {
       const clampedIndex = Math.max(0, Math.min(frameIndex, totalFrames - 1))
-      const data = getOrComputeFrame(clampedIndex)
-      return { ...data, isBeat: beatFrames.has(clampedIndex) }
+      return { ...frames[clampedIndex]!, isBeat: beatFrames.has(clampedIndex) }
     },
     totalFrames,
     duration,
@@ -437,7 +379,7 @@ export async function createLiveAnalyzer(
   const getFrameData = (): FrameData & { isBeat: boolean } => {
     analyser.getFloatTimeDomainData(timeData)
 
-    // Inline FFT reusing pre-allocated buffers (same algorithm as fftMagnitudeSpectrum).
+    // Inline FFT reusing pre-allocated buffers (frameSpectrum's, without its window).
     for (let i = 0; i < fftSize; i++) fftReal[i] = timeData[i] ?? 0
     fftImag.fill(0)
     fft(fftReal, fftImag)

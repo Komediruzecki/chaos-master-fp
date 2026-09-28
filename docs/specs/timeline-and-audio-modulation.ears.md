@@ -29,7 +29,8 @@ not a gap.
 - `packages/app/src/utils/audioAnalysis.ts` — FFT bands, beat/onset detection, the
   file and live analyzers, `getAudioFeatureNormalized`, `applyAudioMappingsToFlame`
 - `packages/core/src/audio/` — the pure signal steps the analyzers share: band levels
-  (`bandNormalization.ts`) and beat picking (`peakPicking.ts`)
+  (`bandNormalization.ts`), beat picking (`peakPicking.ts`), onsets
+  (`onsetDetection.ts`) and the Hann window (`spectralWindow.ts`)
 - `packages/app/src/utils/useAudioReactive.ts` — the 30 Hz transport + modulation loop
 - `packages/app/src/utils/audioWiringPresets.ts` — render-only and flame-aware presets
 - `packages/app/src/components/AudioWiringModal/AudioWiringModal.tsx` — the wiring editor
@@ -54,8 +55,13 @@ not a gap.
   a track's own range
 - `packages/core/src/audio/peakPicking.test.ts` — beats against a threshold that
   follows the music, and a minimum gap held in seconds
+- `packages/core/src/audio/onsetDetection.test.ts` — the log spectral flux and the
+  onsets picked from it
+- `packages/core/src/audio/spectralWindow.test.ts` — the Hann window
 - `packages/app/src/utils/audioAnalysis.test.ts` — the file analyzer on synthetic
-  signals: band levels, the raw `rms` and beats
+  signals: band levels, the raw `rms`, beats, and onsets on a click track
+- `packages/app/src/utils/audioAnalysis.demoTracks.test.ts` — the onsets of the two
+  bundled demo tracks
 - `packages/app/src/utils/audioMappingClamp.test.ts` — schema clamping, integer
   `skipIters`, probability floor, degenerate ranges
 - `packages/app/src/utils/audioWiringPresets.test.ts` — preset determinism, targets that
@@ -453,28 +459,40 @@ track (its 10th percentile reads 0 and its 98th reads 1, with the zero no more
 than 45 dB below the top and a span of at least 6 dB), `rms` as the raw frame
 level capped at 1 (never normalised like the bands, so wirings made before band
 levels keep their ranges), `centroid` divided by 20 kHz and
-capped, `flatness` as computed, `onset` as its rolling-median strength, and
+capped, `flatness` as computed, `onset` as a strength on the frame an onset
+peaks and `0` between onsets (a peak of the log spectral flux that clears the
+mean + 1.5σ of the second around it, at least 50 ms after the last, its
+strength measured against the track's loud onsets), and
 `beat` as `1` on a detected beat and `0` otherwise, a beat being a rise of the
 band flux above the mean + 1.5σ of the 4 s around it, at least 0.1 s after the
 last one at the analyzer's real frame rate. An unrecognised feature name
 shall yield `0`.
 
-_(`audioMapping.ts:151-173` (`getAudioFeatureNormalized`), `audioAnalysis.ts:103-157` (`getFftBands`); beats at `:187-204` (`computeBeats`), picked by
-`peakPicking.ts:51-70` (`detectBeatFrames`) at the rate `audioAnalysis.ts:325` (`fps`) gives; onsets at `:212-253` (`computeOnsetStrengths`).)_
+_(`audioMapping.ts:151-173` (`getAudioFeatureNormalized`), `audioAnalysis.ts:108-162` (`getFftBands`); beats at `:192-209` (`computeBeats`), picked by
+`peakPicking.ts:51-70` (`detectBeatFrames`) at the rate `audioAnalysis.ts:242` (`fps`) gives; onsets from the flux at `:268`
+(`logSpectralFlux`), picked by `onsetDetection.ts:57-80` (`detectOnsets`). Every frame's
+spectrum is the Hann-windowed `fftSize` samples centred on it, `audioAnalysis.ts:88-106`
+(`frameSpectrum`).)_
 
 _(Band levels at `bandNormalization.ts:44-49` (`trackBandRange`), put on every frame of
-a file at `audioAnalysis.ts:338` (`normalizeTrackBands`); the raw `rms` at `:306`
+a file at `audioAnalysis.ts:282` (`normalizeTrackBands`); the raw `rms` at `:265`
 (`computeRms`). Guarded by `bandNormalization.test.ts:36` "reads the 10th percentile
 as 0 and the 98th as 1", `:45` "keeps the zero within 45 dB of the top, so a silent
-intro does not squash the music", `audioAnalysis.test.ts:71` "reads a band from 0 to 1
-over the range it covers in its track" and `:79` "keeps rms as the raw level of the
+intro does not squash the music", `audioAnalysis.test.ts:18` "reads a band from 0 to 1
+over the range it covers in its track" and `:26` "keeps rms as the raw level of the
 frame".)_
 
 _(Beats guarded by `peakPicking.test.ts:37` "keeps the beats of a quiet passage that
 follows a loud one", `:47` "holds the minimum gap at 0.1 s whatever the frame rate",
 `:59` "marks the frame where the flux peaks, not the first frame that rises",
-`audioAnalysis.test.ts:86` "keeps the beats of a quiet passage that follows a loud
-one" and `:103` "holds the minimum gap between beats at 0.1 s at 60 fps".)_
+`audioAnalysis.test.ts:33` "keeps the beats of a quiet passage that follows a loud
+one" and `:50` "holds the minimum gap between beats at 0.1 s at 60 fps".)_
+
+_(Onsets guarded by `onsetDetection.test.ts:29` "marks the peaks that clear the local
+threshold, strong against the loud onsets", `:49` "finds no onset in silence", `:53`
+"finds no onset in a steady hiss", `audioAnalysis.test.ts:63` "finds an onset at every
+click of a 120 BPM click track at %i fps, %s s off the frame grid, and none in silence"
+and `audioAnalysis.demoTracks.test.ts:44` "%s has %i onsets at 30 fps".)_
 
 ### REQ-TA-029 — Attack and release are a one-pole envelope on the normalized feature
 
@@ -757,6 +775,5 @@ are listed instead.
 | REQ-TA-024                         | `isDrivingView` has no unit test; its three-term definition is only exercised through the app.                                                                                                                                       |
 | REQ-TA-025                         | Neither the `previewHeld` latch nor the scrub gesture lifecycle is tested. `tests/timeline.ci.spec.ts:51` "steps and seeks the playhead from the transport bar" seeks with the transport buttons but asserts only the frame readout. |
 | REQ-TA-026                         | The advance **arithmetic** is tested (`utils/timeline.test.ts:435-463` "advanceFrame"); the interval rate, `timeScale` multiplication, the Auto-FPS handoff and the EMA are not.                                                     |
-| REQ-TA-028                         | `getAudioFeatureNormalized` is never called directly by a test, nor are `computeBeats` / `computeOnsetStrengths`. The mapping tests feed hand-built `FrameData` past it.                                                             |
 | REQ-TA-033                         | `useAudioReactive.test.ts` covers suspension and the mic restart. Nothing covers transport-without-reactivity or seek.                                                                                                               |
 | REQ-TA-035, REQ-TA-036, REQ-TA-038 | `AudioWiringModal.tsx` has **no e2e coverage**, and its two render tests import wiring (REQ-TA-037) and paste it (REQ-TA-040). Nothing drives connecting, the new-wire defaults or the shortcuts.                                    |

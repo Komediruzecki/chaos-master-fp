@@ -83,6 +83,11 @@ export const ALWAYS_ON = [
     why: 'reads docs/webmcp.md through process.cwd(), so it also needs cwd packages/app',
     genre: 'filesystem',
   },
+  {
+    file: 'src/utils/audioAnalysis.demoTracks.test.ts',
+    why: 'reads the demo tracks in public/audio, which no import reaches, and holds the onsets the file analyzer finds in them',
+    genre: 'filesystem',
+  },
 
   // Read a sibling .css or .tsx through the filesystem. Editing the
   // stylesheet alone leaves the test unselected, which is the whole point of
