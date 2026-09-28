@@ -2,7 +2,7 @@
 // runs on the microphone's newest samples, fed synthetic signals here.
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createLiveAnalyzer, createLiveFrameProcessor, MIC_CONSTRAINTS, } from './audioAnalysis'
-import { clicks, TEST_SAMPLE_RATE } from './audioAnalysis.testUtils'
+import { clicks, noise, TEST_SAMPLE_RATE } from './audioAnalysis.testUtils'
 import type { LiveFrameProcessor } from './audioAnalysis'
 import type { FrameData } from './audioMapping'
 
@@ -177,6 +177,63 @@ describe('the live frame processor', () => {
     },
   )
 
+  it('shows the modulation loop every event on a clock that steps, even when its timer is late', () => {
+    // The audio clock as the main thread sees it, in steps of 21.3 ms. The
+    // modulation loop's timer fires every 33 +/- 8 ms, and every seventh tick
+    // 45 ms late besides, as a long task delays it; the meters and the node
+    // graph poll the same input at random times.
+    const uniform = (
+      (next) => () =>
+        (next() + 1) / 2
+    )(noise(3))
+    const clock = (time: number) => Math.floor(time / 0.0213) * 0.0213
+    const polls: { time: number; loop: boolean }[] = []
+    for (let time = 0.033, tick = 1; time < 10.5; tick++) {
+      polls.push({ time, loop: true })
+      time += 0.033 + (uniform() * 2 - 1) * 0.008 + (tick % 7 === 0 ? 0.045 : 0)
+    }
+    for (
+      let time = uniform() * 0.05;
+      time < 10.5;
+      time += 0.001 + uniform() * 0.049
+    ) {
+      polls.push({ time, loop: false })
+    }
+    polls.sort((a, b) => a.time - b.time)
+    const processor = createLiveFrameProcessor(TEST_SAMPLE_RATE, FFT_SIZE)
+    const reads = polls.map((poll) => ({
+      ...poll,
+      frame: processor.process(
+        newest(TRACK, clock(poll.time)),
+        clock(poll.time),
+      ),
+    }))
+    const tests = {
+      onset: (frame: FrameData) => frame.onsetStrength > 0,
+      beat: (frame: FrameData & { isBeat: boolean }) => frame.isBeat,
+    }
+    // Every event, whichever caller found it, and those the loop's next read
+    // after it does not show.
+    const events = Object.entries(tests).map(([name, isOn]) => {
+      const found = reads.filter(
+        (read, k) =>
+          isOn(read.frame) && (k === 0 || !isOn(reads[k - 1]!.frame)),
+      )
+      const unseen = found.filter((event) => {
+        const next = reads.find((read) => read.loop && read.time >= event.time)
+        return next !== undefined && !isOn(next.frame)
+      })
+      return { name, found: found.length, unseen: unseen.map((e) => e.time) }
+    })
+    // Twelve of the sixteen clicks are found: when no poll lands in a step,
+    // two analyses are 43 ms apart, and a click between them sits at the tail
+    // of one window and the head of the next, too faint in both to count.
+    expect(events).toEqual([
+      { name: 'onset', found: 12, unseen: [] },
+      { name: 'beat', found: 12, unseen: [] },
+    ])
+  })
+
   it('gives a caller that polls within 5 ms of the last analysis the same frame', () => {
     const processor = createLiveFrameProcessor(TEST_SAMPLE_RATE, FFT_SIZE)
     const first = processor.process(newest(TRACK, 1.01), 1.01)
@@ -185,7 +242,7 @@ describe('the live frame processor', () => {
     expect(processor.process(newest(TRACK, 1.02), 1.02)).not.toEqual(first)
   })
 
-  it('holds a beat for 50 ms of audio, however often it is polled', () => {
+  it('holds a beat for 100 ms of audio, however often it is polled', () => {
     const polledWithBeat = (rate: number) => {
       const reads = poll(
         createLiveFrameProcessor(TEST_SAMPLE_RATE, FFT_SIZE),
@@ -195,10 +252,10 @@ describe('the live frame processor', () => {
       // The first click, at 1 s, up to the next one.
       return reads.filter((read) => read.time < 1.4 && read.frame.isBeat).length
     }
-    // From the poll that found it until 50 ms later: 1.033 s and 1.067 s at
-    // 30 Hz; 1.017, 1.033 and 1.05 s at 60 Hz.
-    expect(polledWithBeat(30)).toBe(2)
-    expect(polledWithBeat(60)).toBe(3)
+    // From the poll that found it until 100 ms later: 1.033 to 1.1 s at
+    // 30 Hz, three polls; 1.017 to 1.1 s at 60 Hz, six.
+    expect(polledWithBeat(30)).toBe(3)
+    expect(polledWithBeat(60)).toBe(6)
   })
 
   it('reads a band against its own peak: 45 dB under it is 0, half way is 0.5', () => {

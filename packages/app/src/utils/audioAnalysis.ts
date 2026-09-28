@@ -325,11 +325,14 @@ export const MIC_CONSTRAINTS = {
  *  the render loop, share one analysis, and it advances once. */
 export const LIVE_HOP_SECONDS = 0.005
 
-/** How long a live beat or onset stays up once found, on the audio clock. A
- *  caller polling at least every 50 ms sees it, whichever poll found it, and
- *  an envelope takes in a pulse of about the same length at 30 and 60 Hz (67
- *  and 50 ms) instead of one poll's (33 and 17 ms). */
-export const LIVE_EVENT_HOLD_SECONDS = 0.05
+/** How long a live beat or onset stays up once found, on the audio clock.
+ *  The callers share one analysis, so the modulation loop sees an event at
+ *  its first poll after the analysis that found it, if that poll lands
+ *  within the hold: 100 ms covers its 33 ms timer running late, by a step of
+ *  the clock the main thread sees (up to 21 ms) and by a long task besides.
+ *  An envelope takes in a pulse of the same length at 30 and 60 Hz, instead
+ *  of one poll's (33 and 17 ms). */
+export const LIVE_EVENT_HOLD_SECONDS = 0.1
 
 /** Turns the newest samples of a live input into frames. */
 export type LiveFrameProcessor = {
@@ -405,8 +408,10 @@ export function createLiveFrameProcessor(
         rms: computeRms(timeDomain),
         centroid,
         flatness,
-        onsetStrength: timeSeconds < onsetUntil ? onsetStrength : 0,
-        isBeat: timeSeconds < beatUntil,
+        // Up until the hold ends, less a hair, so a poll that lands on its
+        // end sees it over however the clock's float rounds.
+        onsetStrength: timeSeconds < onsetUntil - 1e-9 ? onsetStrength : 0,
+        isBeat: timeSeconds < beatUntil - 1e-9,
       }
       return { ...last }
     },
