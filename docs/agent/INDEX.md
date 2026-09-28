@@ -314,6 +314,7 @@ file instead of rediscovering the architecture every session.
 | File | What it is |
 |---|---|
 | [comfortGovernor.ts](../../packages/app/src/comfort/comfortGovernor.ts) | The comfort governor: a feed-forward limiter on audio-driven motion. |
+| [comfortPreference.ts](../../packages/app/src/comfort/comfortPreference.ts) | The comfort preset in use, remembered across sessions. |
 | [comfortPresets.ts](../../packages/app/src/comfort/comfortPresets.ts) | Comfort presets for audio-reactive motion: the per-second rate caps and the brightness window the comfort governor holds every modulated... |
 <!-- prettier-ignore-end -->
 

@@ -1,4 +1,5 @@
 import { createEffect, onCleanup } from 'solid-js'
+import { comfortPreset } from '@/comfort/comfortPreference'
 import { createAudioModulator } from './audioModulator'
 import type { Accessor } from 'solid-js'
 import type { AudioAnalyzer, AudioTargetValue, LiveAudioAnalyzer, } from './audioAnalysis'
@@ -61,7 +62,7 @@ export function useAudioReactive(
   let seekBaseOffset = 0
   let lastSeekTarget: number | null = null
   let paused = false
-  const modulator = createAudioModulator('standard')
+  const modulator = createAudioModulator(comfortPreset())
   let lastTickTime: number | undefined
   /** Is an overlay up right now? See publishModulation / dropModulation. */
   let modulationPublished = false
@@ -137,6 +138,12 @@ export function useAudioReactive(
     lastTickTime = undefined
     dropModulation()
   }
+
+  // A preset chosen mid-track applies from the next frame, from where every
+  // target is now.
+  createEffect(() => {
+    modulator.setPreset(comfortPreset())
+  })
 
   // ---- main setup/teardown effect ----
 

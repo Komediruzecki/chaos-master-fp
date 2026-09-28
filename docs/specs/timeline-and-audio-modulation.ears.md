@@ -491,8 +491,8 @@ only the modulation step shall wait on both. **Where** the source is the
 microphone, both transport and modulation shall be gated on reactivity being
 enabled, so an idle mic capture is never held open.
 
-_(`useAudioReactive.ts:149-267` (`source`) for file mode — note the analyzer is consulted only
-at `:224` (`analyzer`); `:269-307` (`source`) for mic mode.)_
+_(`useAudioReactive.ts:156-274` (`source`) for file mode — note the analyzer is consulted only
+at `:231` (`analyzer`); `:276-314` (`source`) for mic mode.)_
 
 ### REQ-TA-034 — Replay suspension freezes modulation and its clock
 
@@ -502,8 +502,8 @@ baseline, so the first tick after resuming uses a fresh `dt` rather than chargin
 the envelope for the whole suspended interval. The transport clock shall keep
 advancing.
 
-_(`useAudioReactive.ts:219-227` (`modulationSuspended`), `:277-281` (`modulationSuspended`); guarded by
-`useAudioReactive.test.ts:37` "freezes both the overlay and smoothing time while replay owns the document".)_
+_(`useAudioReactive.ts:226-234` (`modulationSuspended`), `:284-288` (`modulationSuspended`); guarded by
+`useAudioReactive.test.ts:52` "freezes both the overlay and smoothing time while replay owns the document".)_
 
 ---
 
@@ -567,7 +567,16 @@ luminance of the rendered frame.
 _(`comfortGovernor.ts:187-227` (`createComfortGovernor`), `:126-161` (`advance`), `comfortPresets.ts:78-82` (`COMFORT_CAPS`),
 `audioModulator.ts:28-58` (`createAudioModulator`); guarded by `comfortGovernor.test.ts:30` "holds a 12 Hz square wave on exposure inside the window range",
 `:90` "never turns palettePhase faster than the hue cap", `:151` "switches preset without a jump" and
-`useAudioReactive.test.ts:97` "eases the overlay in from it, and again after the mic restarts".)_
+`useAudioReactive.test.ts:112` "eases the overlay in from it, and again after the mic restarts".)_
+
+The preset shall be chosen in the Audio Reactive panel's Comfort control and
+remembered across sessions. With no choice made it shall be `calm` when the
+system asks for reduced motion and `standard` otherwise. A preset chosen while
+audio drives the flame shall apply from the next frame.
+
+_(`comfortPreference.ts:22-27` (`initialComfortPreset`), `:44-47` (`setComfortPreset`); guarded by
+`comfortPreference.test.ts:40` "is calm when the system asks for reduced motion", `:46` "remembers a choice, which wins over the system" and
+`useAudioReactive.test.ts:166` "follows a preset chosen while the overlay runs".)_
 
 ---
 

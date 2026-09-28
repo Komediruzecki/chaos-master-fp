@@ -22,7 +22,7 @@ the seam Beats mode touches.
 - `packages/app/src/recorder/replay.ts:39-52` — `canEnableReplayAudio`, the only implementation of that authorization
 - `packages/app/src/MainWorkspace.tsx:3370-3387` (`audio`) — the live facade: signals, and `canEnable` wired to the decoded buffer, track name and live analyzer
 - `packages/app/src/MainWorkspace.tsx:3180-3187` (`adoptAudioBuffer`) — the one writer of the audio buffer and track name, which the audio panel and Beats mode (`loadBundledTrack`, `:3216-3217` (`fetchBundledTrackBuffer`)) both go through
-- `packages/app/src/components/AudioReactivePanel/AudioReactivePanel.tsx:446-494` (`handleFile`) — file decode and microphone acquisition, and their failure paths
+- `packages/app/src/components/AudioReactivePanel/AudioReactivePanel.tsx:447-495` (`handleFile`) — file decode and microphone acquisition, and their failure paths
 - `packages/app/src/utils/useAudioReactive.ts` — what "enabled" actually gates: modulation, not transport
 - `packages/app/src/arcade/topics.ts:305-314` (`BEATS_ALLOWED`), `:345-356` (`beatsPromptCard`) — `BEATS_ALLOWED`, `BEATS_STEP_BUDGET`, the prompt card
 - `packages/app/src/arcade/guard.ts`, `packages/app/src/arcade/pilot.ts`, `packages/app/src/arcade/pilotActions.ts` — allow-list enforcement, step budget, session teardown
@@ -413,7 +413,7 @@ playback time — only the per-frame writes into the flame descriptor stop.
 Transport shall additionally not wait on the analysis pass; only modulation
 requires a finished analyzer.
 
-_(`useAudioReactive.ts:147-231` (`mic`), explicitly `:224` (`analyzer`))_
+_(`useAudioReactive.ts:154-238` (`mic`), explicitly `:231` (`analyzer`))_
 
 ### REQ-AB-033 — Microphone capture is gated on reactivity
 
@@ -421,7 +421,7 @@ _(`useAudioReactive.ts:147-231` (`mic`), explicitly `:224` (`analyzer`))_
 reactivity is enabled, so disabling it releases the capture rather than holding
 a live microphone open with nothing to audition.
 
-_(`useAudioReactive.ts:270-274` (`source`))_
+_(`useAudioReactive.ts:277-281` (`source`))_
 
 ### REQ-AB-034 — Replay owns the document exclusively
 
@@ -429,7 +429,7 @@ _(`useAudioReactive.ts:270-274` (`source`))_
 loop shall write nothing into the flame and shall reset its smoothing clock, so
 resuming does not apply one huge accumulated delta.
 
-_(`useAudioReactive.ts:216-227` (`modulationSuspended`), `:277-281` (`modulationSuspended`); guarded by
+_(`useAudioReactive.ts:223-234` (`modulationSuspended`), `:284-288` (`modulationSuspended`); guarded by
 `useAudioReactive.test.ts`)_
 
 ### REQ-AB-035 — Loading a new flame turns reactivity off
@@ -493,7 +493,7 @@ Requirements with no test that goes red when they are violated:
   statements and 17% of branches; its one test covers only modulation
   suspension on the mic path. The file-mode transport/modulation split and the
   mic enable-gate are unexercised.
-- **Decode and microphone failure paths** (`AudioReactivePanel.tsx:446-494` (`handleFile`)) —
+- **Decode and microphone failure paths** (`AudioReactivePanel.tsx:447-495` (`handleFile`)) —
   the panel component is at 3% of statements; `AudioReactivePanel.test.tsx`
   tests only the pure `defaultTarget` and `RENDER_PRESETS` helpers, never
   mounts the component, and never exercises a failed decode or a denied

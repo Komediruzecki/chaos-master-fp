@@ -4,6 +4,7 @@ import { createLiveAnalyzer, decodeAudioFile, getAudioFeatureNormalized, } from 
 import { buildFlamePreset, buildPreset, FLAME_PRESET_IDS, PRESET_DESCRIPTIONS, PRESET_LABELS, randomizeMappings, RENDER_PRESET_IDS, RENDER_PRESETS, } from '@/utils/audioWiringPresets'
 import ui from './AudioReactivePanel.module.css'
 import { computeBeatFrames, drawWaveform } from './audioWaveform'
+import { ComfortPresetControl } from './ComfortPresetControl'
 import { createMappingGestureBoundary } from './mappingGesture'
 import type { Accessor } from 'solid-js'
 import type { AffineKey, AudioAnalyzer, AudioFeature, FlameTarget, LiveAudioAnalyzer, RenderSettingKey, TransformInfo, TransformPropertyKey, } from '@/utils/audioAnalysis'
@@ -826,6 +827,8 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
             />
           </Show>
         </Show>
+
+        <ComfortPresetControl />
 
         {/* Presets — render-only first, then the ones built from THIS flame.
             Split because they answer different questions: the first three work

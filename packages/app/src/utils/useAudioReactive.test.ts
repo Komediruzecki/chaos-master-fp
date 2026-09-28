@@ -1,8 +1,23 @@
 import { createRoot, createSignal } from 'solid-js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { reloadComfortPreset, setComfortPreset, } from '@/comfort/comfortPreference'
 import { useAudioReactive } from './useAudioReactive'
 import type { AudioTargetValue, LiveAudioAnalyzer } from './audioAnalysis'
 import type { AudioMapping } from '@/components/AudioReactivePanel/AudioReactivePanel'
+
+// localStorage is not usable in this runtime; the comfort preference lives in
+// an in-memory map.
+const storage = new Map<string, string>()
+vi.mock('@/utils/storage', () => ({
+  safeGetItem: (key: string) => storage.get(key) ?? null,
+  safeSetItem: (key: string, value: string) => {
+    storage.set(key, value)
+    return true
+  },
+  safeRemoveItem: (key: string) => {
+    storage.delete(key)
+  },
+}))
 
 const mapping: AudioMapping = {
   preset: 'custom',
@@ -137,6 +152,54 @@ describe('the authored flame', () => {
     expect(published).toHaveLength(3)
     expect(published[1]).toBeUndefined()
     expect(published[2]![0]!.value).toBeCloseTo(eased, 12)
+    dispose()
+  })
+})
+
+describe('the comfort preset', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+    storage.clear()
+    reloadComfortPreset()
+  })
+
+  it('follows a preset chosen while the overlay runs', async () => {
+    vi.useFakeTimers()
+    storage.clear()
+    reloadComfortPreset()
+    let dispose = () => {}
+    const published: (AudioTargetValue[] | undefined)[] = []
+    createRoot((rootDispose) => {
+      dispose = rootDispose
+      useAudioReactive(
+        () => true,
+        () => undefined,
+        () => mapping,
+        (values) => {
+          published.push(values)
+        },
+        () => mic,
+        () => 'mic',
+        () => false,
+        () => null,
+        () => undefined,
+        () => undefined,
+        () => false,
+        () => ({ renderSettings: { vibrancy: 2 } }),
+      )
+    })
+    await Promise.resolve()
+
+    vi.advanceTimersByTime(34)
+    setComfortPreset('calm')
+    vi.advanceTimersByTime(34)
+    // One standard step down from 2 (0.6 ln/s over the first tick's 1/30 s),
+    // then one calm step (0.3 ln/s) over the 33 ms the fake interval took.
+    expect(published).toHaveLength(2)
+    expect(published[1]![0]!.value).toBeCloseTo(
+      2 * Math.exp(-(0.6 / 30 + 0.3 * 0.033)),
+      12,
+    )
     dispose()
   })
 })
