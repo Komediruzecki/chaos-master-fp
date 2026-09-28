@@ -150,6 +150,49 @@ describe('a target limiter', () => {
   })
 })
 
+// The bug: `clamped` passed a non-finite feature straight through, and once
+// NaN entered the smoothing state, every later frame read it back as `prev`
+// and stayed NaN forever — even long after the feature itself recovered.
+describe('a non-finite feature', () => {
+  const bassToVibrancySmoothed: AudioMappingEntry = {
+    audioFeature: 'bass',
+    target: { kind: 'renderSetting', param: 'vibrancy' },
+    sensitivity: 1,
+    range: [0, 1],
+    attackMs: 100,
+    releaseMs: 100,
+  }
+
+  it('does not freeze the mapping — the next finite frame recovers', () => {
+    const state: MappingSmoothingState = new Map()
+
+    // One bad frame (e.g. a division by zero upstream) reads as silence
+    // instead of poisoning the envelope.
+    const first = resolveAudioMappingValues(
+      frame(NaN),
+      [bassToVibrancySmoothed],
+      state,
+    )
+    expect(first.values[0]!.value).toBe(0)
+
+    // The envelope then eases toward the finite input exactly as it would
+    // have if the first frame had read 0 outright.
+    const second = resolveAudioMappingValues(
+      frame(0.8),
+      [bassToVibrancySmoothed],
+      state,
+    )
+    expect(second.values[0]!.value).toBeCloseTo(0.2, 12)
+
+    const third = resolveAudioMappingValues(
+      frame(0.8),
+      [bassToVibrancySmoothed],
+      state,
+    )
+    expect(third.values[0]!.value).toBeCloseTo(0.35, 12)
+  })
+})
+
 describe('target keys and paths', () => {
   const target: FlameTarget = {
     kind: 'variationWeight',

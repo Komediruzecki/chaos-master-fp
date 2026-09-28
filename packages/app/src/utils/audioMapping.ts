@@ -341,7 +341,11 @@ export function resolveAudioMappingValues(
   mappings.forEach((mapping, index) => {
     const targetKey = keys[index]!
     const raw = getAudioFeatureNormalized(frameData, mapping.audioFeature)
-    const clamped = Math.max(0, Math.min(1, raw))
+    // A non-finite feature (a bad analysis frame) reads as silence for this
+    // frame only. Passing it through would write NaN into the smoothing
+    // state below, and every later frame reads that back as `prev` — once in,
+    // the mapping never recovers even after the feature is finite again.
+    const clamped = Number.isFinite(raw) ? Math.max(0, Math.min(1, raw)) : 0
 
     const smoothed = computeSmoothedEnvelope(
       clamped,
