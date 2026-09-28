@@ -1,6 +1,7 @@
 import { createRoot, createSignal } from 'solid-js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { reloadComfortPreset, setComfortPreset, } from '@/comfort/comfortPreference'
+import { COMFORT_CAPS, COMFORT_PRESETS } from '@/comfort/comfortPresets'
 import { useAudioReactive } from './useAudioReactive'
 import type { AudioAnalyzer, AudioTargetValue, LiveAudioAnalyzer, } from './audioAnalysis'
 import type { AudioMapping } from '@/components/AudioReactivePanel/AudioReactivePanel'
@@ -215,6 +216,7 @@ describe('a mapping removed while audio runs', () => {
     let dispose = () => {}
     let setWiring: ((value: AudioMapping) => AudioMapping) | undefined
     const published: (AudioTargetValue[] | undefined)[] = []
+    const publishedAt: number[] = []
     createRoot((rootDispose) => {
       dispose = rootDispose
       const [wiring, updateWiring] = createSignal(mapping)
@@ -225,6 +227,7 @@ describe('a mapping removed while audio runs', () => {
         wiring,
         (values) => {
           published.push(values)
+          publishedAt.push(globalThis.performance.now())
         },
         () => mic,
         () => 'mic',
@@ -251,16 +254,21 @@ describe('a mapping removed while audio runs', () => {
       .slice(1)
       .map((value, i) => Math.abs(value - onScreen[i]!))
     expect(onScreen[wired - 1]).toBeCloseTo(1.2818, 12)
-    // Home at the rate it left, and only then does the overlay come down.
-    // A frame is published once its move passes the row's dirty threshold,
-    // 0.002, so one publish can carry that much on top of a capped step of
-    // 0.6 a second over a 34 ms tick.
-    expect(published.length - wired).toBe(36)
+    // Home at the rate it left. A frame is published once its move passes
+    // the row's dirty threshold, 0.002, so one publish can carry that much
+    // on top of a capped step of 0.6 a second over a 34 ms tick.
+    expect(published.length - wired).toBe(37)
     expect(Math.max(...steps)).toBeLessThanOrEqual(0.6 * 0.034 + 0.002)
-    expect(published.at(-1)).toBeUndefined()
     expect(
-      published.slice(wired, -1).every((values) => values?.length === 1),
+      published.slice(wired, -2).every((values) => values?.length === 1),
     ).toBe(true)
+    // Home, the overlay stays up with nothing on it for one Standard
+    // brightness window more, while the modulator still holds what the
+    // release showed, and only then comes down: on the first tick of the
+    // fake 33 ms interval to take the rest to 500 ms, the 16th.
+    expect(published.at(-2)).toEqual([])
+    expect(published.at(-1)).toBeUndefined()
+    expect(publishedAt.at(-1)! - publishedAt.at(-2)!).toBe(16 * 33)
     dispose()
   })
 })
@@ -372,4 +380,127 @@ describe('a file played through a late tick', () => {
     expect(skipIters.at(-1)).toBeCloseTo(50 * attack * (1 - release), 9)
     dispose()
   })
+})
+
+/** The widest swing between two frames at most `span` frames apart. */
+function worstSwing(series: readonly number[], span: number): number {
+  let worst = 0
+  for (let i = 0; i < series.length; i++) {
+    for (let j = i + 1; j <= Math.min(series.length - 1, i + span); j++) {
+      worst = Math.max(worst, Math.abs(series[i]! - series[j]!))
+    }
+  }
+  return worst
+}
+
+describe('the last row leaving and coming back', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
+    audioClock = 0
+    storage.clear()
+    reloadComfortPreset()
+  })
+
+  // The only row leaves while loud audio holds exposure above the authored
+  // 2, its target is governed home, and the row comes back on a quiet frame,
+  // pulling the other way, 0, 3 or 6 frames after the target is home. The
+  // hook took the overlay down on that arrival and started the modulator
+  // over, which threw away the window the release had filled: the return
+  // then swung 0.30 inside 500 ms on Standard and 0.60 on Intense.
+  it.each(
+    COMFORT_PRESETS.flatMap((preset) =>
+      [0, 3, 6].map((after) => [preset, after] as const),
+    ),
+  )(
+    'holds the %s window when the row returns %i frames after its target is home',
+    async (preset, after) => {
+      vi.useFakeTimers()
+      vi.stubGlobal('AudioContext', SteppedAudioContext)
+      setComfortPreset(preset)
+      let level = 1
+      // 48 kHz divides into 30 analyzer frames a second: one a tick.
+      const analyzer: AudioAnalyzer = {
+        sampleRate: 48_000,
+        totalFrames: 100_000,
+        duration: 3000,
+        getFrameData: () => ({
+          bands: [0, 0, 0, 0, 0, 0, 0, 0],
+          rms: level,
+          centroid: 0,
+          flatness: 0,
+          onsetStrength: 0,
+          isBeat: false,
+        }),
+      }
+      const row: AudioMapping = {
+        preset: 'custom',
+        mappings: [
+          {
+            audioFeature: 'rms',
+            target: { kind: 'renderSetting', param: 'exposure' },
+            sensitivity: 1,
+            range: [0, 4],
+          },
+        ],
+      }
+      let dispose = () => {}
+      let setWiring: ((value: AudioMapping) => AudioMapping) | undefined
+      const published: (AudioTargetValue[] | undefined)[] = []
+      createRoot((rootDispose) => {
+        dispose = rootDispose
+        const [wiring, updateWiring] = createSignal(row)
+        setWiring = updateWiring
+        useAudioReactive(
+          () => true,
+          () => ({ duration: 3000 }) as AudioBuffer,
+          wiring,
+          (values) => {
+            published.push(values)
+          },
+          () => undefined,
+          () => 'file',
+          () => false,
+          () => null,
+          () => {},
+          () => analyzer,
+          () => false,
+          () => ({ renderSettings: { exposure: 2 } }),
+        )
+      })
+      await Promise.resolve()
+      if (!setWiring) throw new Error('audio test did not initialize')
+
+      const onScreen = [2]
+      let frame = 0
+      /** One analyzer frame; says whether the overlay shows exposure after it. */
+      const tick = () => {
+        frame++
+        audioClock = (frame + 0.5) / 30
+        vi.advanceTimersByTime(34)
+        const shown = published
+          .at(-1)
+          ?.find(
+            ({ target }) =>
+              target.kind === 'renderSetting' && target.param === 'exposure',
+          )
+        onScreen.push(shown?.value ?? 2)
+        return shown !== undefined
+      }
+      for (let i = 0; i < 90; i++) tick()
+      setWiring({ preset: 'custom', mappings: [] })
+      let frames = 0
+      while (tick() && frames < 900) frames++
+      for (let i = 0; i < after; i++) tick()
+      level = 0
+      setWiring(row)
+      for (let i = 0; i < 60; i++) tick()
+      expect(frames).toBeLessThan(900)
+      expect(worstSwing(onScreen, 15)).toBeCloseTo(
+        COMFORT_CAPS[preset].brightnessWindowRange,
+        9,
+      )
+      dispose()
+    },
+  )
 })

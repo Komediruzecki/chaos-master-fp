@@ -91,10 +91,10 @@ export function useAudioReactive(
 
   /**
    * Take the overlay down, once. Edge-triggered because the reasons to be
-   * down — modulation off, no mappings wired, replay owning the document —
-   * are all conditions that hold for thousands of ticks, and republishing
-   * `undefined` on each of them would rebuild the derived flame every frame
-   * for nothing.
+   * down — modulation off, nothing left governed, replay owning the
+   * document — are all conditions that hold for thousands of ticks, and
+   * republishing `undefined` on each of them would rebuild the derived flame
+   * every frame for nothing.
    *
    * The modulator starts over with it: the screen now shows the authored
    * flame, so the next overlay has to ease in from that, not resume from
@@ -108,17 +108,16 @@ export function useAudioReactive(
   }
 
   /**
-   * Publish a stepped frame, or take the overlay down once nothing is left
-   * on it. With every mapping unwired while audio runs, the targets they
-   * drove are still on screen: the modulator governs them home first, and
-   * only an empty frame with nothing wired lets the overlay go.
+   * Publish a stepped frame, or take the overlay down once the modulator
+   * governs nothing. With every mapping unwired while audio runs, the
+   * targets they drove are still on screen: the modulator governs them home,
+   * then keeps each one's comfort window for one window more, off the
+   * overlay. The overlay stays up, empty, until that is done. Taken down and
+   * reset on arrival, a row brought straight back started a fresh window and
+   * could swing a full range on top of the release.
    */
-  function settleModulation(
-    wired: number,
-    values: AudioTargetValue[],
-    changed: boolean,
-  ) {
-    if (wired === 0 && values.length === 0) {
+  function settleModulation(values: AudioTargetValue[], changed: boolean) {
+    if (modulator.idle()) {
       dropModulation()
       return
     }
@@ -290,7 +289,7 @@ export function useAudioReactive(
           values = stepped.values
           changed ||= stepped.changed
         }
-        settleModulation(mappings.length, values, changed)
+        settleModulation(values, changed)
       }, tickMs)
 
       onCleanup(() => {
@@ -330,7 +329,7 @@ export function useAudioReactive(
           dt,
           baselineFlame(),
         )
-        settleModulation(mappings.length, values, changed)
+        settleModulation(values, changed)
       }, tickMs)
 
       onCleanup(() => {

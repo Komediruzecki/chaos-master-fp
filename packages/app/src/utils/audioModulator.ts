@@ -30,6 +30,12 @@ export type AudioModulator = {
   ): { values: AudioTargetValue[]; changed: boolean }
   /** Takes effect on the next step, from where every target is now. */
   setPreset(preset: ComfortPreset): void
+  /**
+   * True when the last step left nothing governed: no mapping's target, and
+   * none still on its way home or resting there. Until then a caller that
+   * resets throws away windows a returning mapping would be held to.
+   */
+  idle(): boolean
   /** Forgets envelopes, the dirty check, the governor and departing targets. */
   reset(): void
 }
@@ -187,6 +193,9 @@ export function createAudioModulator(preset: ComfortPreset): AudioModulator {
     },
     setPreset(preset) {
       governor.setPreset(preset)
+    },
+    idle() {
+      return governed.size === 0
     },
     reset() {
       smoothing.clear()
