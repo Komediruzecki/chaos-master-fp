@@ -2,7 +2,7 @@
 // runs on the microphone's newest samples, fed synthetic signals here.
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createLiveAnalyzer, createLiveFrameProcessor, MIC_CONSTRAINTS, } from './audioAnalysis'
-import { clicks, noise, TEST_SAMPLE_RATE } from './audioAnalysis.testUtils'
+import { addBand, addNoise, clicks, noise, TEST_SAMPLE_RATE, } from './audioAnalysis.testUtils'
 import type { LiveFrameProcessor } from './audioAnalysis'
 import type { FrameData } from './audioMapping'
 
@@ -293,22 +293,128 @@ describe('the live frame processor', () => {
     expect(polledWithBeat(60)).toBe(6)
   })
 
-  it('reads a band against its own peak: 45 dB under it is 0, half way is 0.5', () => {
-    // A 100 Hz tone for a second, then the same tone 22.5 dB quieter.
-    const tone = new Float32Array(2 * TEST_SAMPLE_RATE)
+  it('reads a band from its quiet level, 0, to its loud one, 1', () => {
+    // A 100 Hz tone, a second loud and a second 30 dB quieter by turns for
+    // 20 s, then a second 18 dB over the quiet level.
+    const tone = new Float32Array(21 * TEST_SAMPLE_RATE)
     for (let i = 0; i < tone.length; i++) {
-      const gain = i < TEST_SAMPLE_RATE ? 0.1 : 0.1 * 10 ** (-22.5 / 20)
-      tone[i] = gain * Math.sin((2 * Math.PI * 100 * i) / TEST_SAMPLE_RATE)
+      const second = Math.floor(i / TEST_SAMPLE_RATE)
+      const db = second === 20 ? -12 : second % 2 === 0 ? 0 : -30
+      tone[i] =
+        0.1 *
+        10 ** (db / 20) *
+        Math.sin((2 * Math.PI * 100 * i) / TEST_SAMPLE_RATE)
     }
     const reads = poll(
       createLiveFrameProcessor(TEST_SAMPLE_RATE, FFT_SIZE),
       tone,
-      every(30, 60),
+      every(30, 21 * 30),
     )
     const bass = (time: number) =>
       reads.find((read) => Math.abs(read.time - time) < 1e-9)!.frame.bands[1]
-    // At its peak, less the ripple a low tone has from one window to the next.
-    expect(bass(0.5)).toBeCloseTo(1, 1)
-    expect(bass(1.5)).toBeCloseTo(0.5, 1)
+    // The zero sits at the quiet level plus the 5.95 dB the bass band's nine
+    // bins wobble by on noise, the top at the loud level 30 dB up: 18 dB up
+    // reads (18 - 5.95) / (30 - 5.95), 0.50. The loud level reads a hair
+    // under 1: the top is placed within its 0.5 dB bin by weight.
+    expect(bass(18.5)).toBeCloseTo(0.989, 3)
+    expect(bass(19.5)).toBe(0)
+    expect(bass(20.5)).toBeCloseTo(0.498, 3)
+  })
+})
+
+/** Per band, the mean and 95th percentile of the readings in [from, to). */
+function bandStats(reads: readonly Read[], from: number, to: number) {
+  const inside = reads.filter((read) => read.time >= from && read.time < to)
+  return Array.from({ length: 8 }, (_, band) => {
+    const values = inside
+      .map((read) => read.frame.bands[band]!)
+      .sort((a, b) => a - b)
+    const mean = values.reduce((sum, value) => sum + value, 0) / values.length
+    return { mean, p95: values[Math.floor(0.95 * (values.length - 1))]! }
+  })
+}
+
+/** The worst band's mean and 95th percentile, to two places. */
+function worstBand(stats: readonly { mean: number; p95: number }[]) {
+  const round = (value: number) => Math.round(value * 100) / 100
+  return {
+    mean: round(Math.max(...stats.map((band) => band.mean))),
+    p95: round(Math.max(...stats.map((band) => band.p95))),
+  }
+}
+
+describe('the live band levels', () => {
+  it.each([-80, -70, -60])(
+    'read room noise at %i dB as about 0 in every band, from the first second and still at 120 s',
+    (db) => {
+      const room = addNoise(new Float32Array(122 * TEST_SAMPLE_RATE), db)
+      const reads = poll(
+        createLiveFrameProcessor(TEST_SAMPLE_RATE, FFT_SIZE),
+        room,
+        every(30, 121 * 30),
+      )
+      // At most a mean of 0.15 and a 95th percentile of 0.35, in every band.
+      expect([
+        worstBand(bandStats(reads, 0, 1)),
+        worstBand(bandStats(reads, 120, 121)),
+      ]).toEqual([
+        { mean: 0, p95: 0 },
+        { mean: 0.02, p95: 0 },
+      ])
+    },
+    60_000,
+  )
+
+  it('read about 0 in every band within 5 s of the music stopping, and long after', () => {
+    // A quiet room, -70 dB, and a band playing in it from 10 s to 40 s.
+    const samples = addBand(
+      addNoise(new Float32Array(282 * TEST_SAMPLE_RATE), -70),
+      10,
+      40,
+    )
+    const reads = poll(
+      createLiveFrameProcessor(TEST_SAMPLE_RATE, FFT_SIZE),
+      samples,
+      every(30, 281 * 30),
+    )
+    // At most a mean of 0.15 in every band: the second before 5 s after the
+    // music stops, and the seconds 30, 120 and 240 s after.
+    const worstMeans = [4, 30, 120, 240].map(
+      (after) => worstBand(bandStats(reads, 40 + after, 41 + after)).mean,
+    )
+    expect(worstMeans).toEqual([0, 0.02, 0.02, 0.01])
+  }, 60_000)
+
+  it('keep every band within 0.1 of their reading 2 s after a burst 30 dB over the clicks', () => {
+    // Clicks every half second for 30 s; in one run, 50 ms of noise 30 dB
+    // louder at 10.1 s, between two clicks.
+    const times = Array.from({ length: 58 }, (_, c) => 1 + 0.5 * c)
+    const plain = clicks(
+      31,
+      times,
+      times.map(() => 0.5),
+    )
+    const burst = plain.slice()
+    const next = noise(11)
+    const from = Math.round(10.1 * TEST_SAMPLE_RATE)
+    for (let i = from; i < from + 0.05 * TEST_SAMPLE_RATE; i++) {
+      burst[i] = 0.5 * 10 ** (30 / 20) * next()
+    }
+    const run = (samples: Float32Array) =>
+      poll(
+        createLiveFrameProcessor(TEST_SAMPLE_RATE, FFT_SIZE),
+        samples,
+        every(30, 30 * 30),
+      )
+    const [a, b] = [run(plain), run(burst)]
+    let worst = 0
+    a.forEach((read, k) => {
+      if (read.time < 12.1) return
+      read.frame.bands.forEach((level, band) => {
+        worst = Math.max(worst, Math.abs(level - b[k]!.frame.bands[band]!))
+      })
+    })
+    // At most 0.1, from 2 s after the burst to the end.
+    expect(Math.round(worst * 1000) / 1000).toBe(0.05)
   })
 })

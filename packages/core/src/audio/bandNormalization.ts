@@ -3,7 +3,10 @@
 // moves. In decibels, against the range the band covers, it uses the whole of
 // [0, 1]. A file is measured against its whole track, deterministically, so
 // the live preview of a file and its export agree; a live input, which has no
-// end to look ahead to, against a peak that follows each band.
+// end to look ahead to, against the last 30 s of it, with its zero lifted by
+// how far noise alone moves the band, so a quiet room reads 0.
+
+import { createLevelHistogram } from './levelHistogram'
 
 /** What digital silence reads as, in dB: log10(0) has no value. */
 export const SILENT_DB = -200
@@ -14,6 +17,14 @@ export const BAND_FLOOR_DB = 45
 /** The least span a band is stretched over: a band that barely moves is not
  *  magnified into flicker, and a constant one does not divide by zero. */
 export const MIN_BAND_SPAN_DB = 6
+
+/** Where a band's zero sits among its levels: the 10th percentile, so a quiet
+ *  passage reads 0. */
+export const QUIET_QUANTILE = 0.1
+
+/** Where a band's top sits among its levels: the 98th percentile, so a single
+ *  transient is not what the rest is measured against. */
+export const LOUD_QUANTILE = 0.98
 
 /** An amplitude in decibels (20 log10), with silence held at SILENT_DB. */
 export function amplitudeToDb(amplitude: number): number {
@@ -44,9 +55,18 @@ export type BandRange = { floorDb: number; spanDb: number }
  */
 export function trackBandRange(levelsDb: readonly number[]): BandRange {
   const sorted = [...levelsDb].sort((a, b) => a - b)
-  const top = quantileOfSorted(sorted, 0.98)
-  const floorDb = Math.max(quantileOfSorted(sorted, 0.1), top - BAND_FLOOR_DB)
-  return { floorDb, spanDb: Math.max(top - floorDb, MIN_BAND_SPAN_DB) }
+  return rangeBetween(
+    quantileOfSorted(sorted, QUIET_QUANTILE),
+    quantileOfSorted(sorted, LOUD_QUANTILE),
+  )
+}
+
+/** The range from a band's quiet level to its loud one: the zero at the
+ *  quiet level, but no more than BAND_FLOOR_DB under the loud one, and a
+ *  span of at least MIN_BAND_SPAN_DB. */
+function rangeBetween(quietDb: number, loudDb: number): BandRange {
+  const floorDb = Math.max(quietDb, loudDb - BAND_FLOOR_DB)
+  return { floorDb, spanDb: Math.max(loudDb - floorDb, MIN_BAND_SPAN_DB) }
 }
 
 /** A level in decibels placed on [0, 1] within a band's range. */
@@ -73,42 +93,74 @@ export function normalizeTrackBands(
   )
 }
 
-/** How long a live band's peak takes to fall by a factor of e, 8.7 dB, once
- *  the music gets quieter, in seconds. */
-export const PEAK_RELEASE_SECONDS = 30
+/**
+ * How far, in dB, a band's level moves on steady noise alone, from its 10th
+ * percentile to its 90th, when the band is the mean of `binCount` FFT bins.
+ * The fewer the bins, the more the mean wobbles. Fitted as 16 / n^0.45, it
+ * sits at or above the spread measured on white, pink and brown noise, FFTs
+ * of 1024 to 4096 at 44.1 and 48 kHz: 14.6 dB for 1 bin, 11.1 for 2, 5.4 for
+ * 9, 2.0 for 69 and 0.5 for 650. A band with no bins reads silence: 0.
+ */
+export function noiseWobbleDb(binCount: number): number {
+  return binCount > 0 ? 16 / binCount ** 0.45 : 0
+}
 
-/** The lowest a live band's peak falls to, so digital silence reads 0. */
-export const MIN_PEAK_DB = -100
+/** How much audio a live band is measured against, in seconds. Long enough
+ *  that a 50 ms burst is 0.2% of it, well inside the 2% the top ignores,
+ *  and that the quiet level is the room's rather than a gap between notes;
+ *  short enough to follow a set from its quiet start into its loud middle. */
+export const LIVE_BAND_WINDOW_SECONDS = 30
+
+/** How much audio a live band hears before its zero is its 10th percentile,
+ *  in seconds. Until then the zero moves down from the median: a second of
+ *  levels does not yet say where the quiet ones are, and a zero set too low
+ *  would read the first second of a quiet room as sound. */
+export const LIVE_BAND_SETTLE_SECONDS = 5
 
 /** Live band levels, one call per analysed hop. */
-export type BandPeakNormalizer = {
-  /** Band amplitudes to levels on [0, 1], `dtSeconds` after the last call. */
-  levels(amplitudes: readonly number[], dtSeconds: number): number[]
+export type LiveBandNormalizer = {
+  /** The bands' amplitudes, heard at `timeSeconds` on the audio clock, as
+   *  levels on [0, 1]. */
+  levels(amplitudes: readonly number[], timeSeconds: number): number[]
+  /** How far each band stood over its zero at the last call, in dB. */
+  readonly riseDb: readonly number[]
 }
 
 /**
- * Band levels for a live input, a microphone. Each band follows its own
- * peak, up at once and down by PEAK_RELEASE_SECONDS, never below MIN_PEAK_DB.
- * A level reads 1 at the peak and 0 BAND_FLOOR_DB below it.
+ * Band levels for a live input, a microphone: the rule of `trackBandRange`
+ * over the last LIVE_BAND_WINDOW_SECONDS of each band, with the zero lifted
+ * by `noiseWobbleDb` of the band's bins, so steady noise, which wobbles under
+ * it, reads 0 at once and after music stops. `binCounts[b]` is how many FFT
+ * bins band b averages. Each level counts for the audio time since the last
+ * call, so the range does not depend on how often the input is polled.
  */
-export function createBandPeakNormalizer(): BandPeakNormalizer {
-  const releaseDbPerSecond = (20 * Math.log10(Math.E)) / PEAK_RELEASE_SECONDS
-  const peaksDb: number[] = []
+export function createLiveBandNormalizer(
+  binCounts: readonly number[],
+): LiveBandNormalizer {
+  const histograms = binCounts.map(() =>
+    createLevelHistogram(LIVE_BAND_WINDOW_SECONDS),
+  )
+  const wobblesDb = binCounts.map(noiseWobbleDb)
+  const riseDb = binCounts.map(() => 0)
   return {
-    levels(amplitudes, dtSeconds) {
-      const fall = releaseDbPerSecond * Math.max(0, dtSeconds)
+    riseDb,
+    levels(amplitudes, timeSeconds) {
       return amplitudes.map((amplitude, b) => {
         const levelDb = amplitudeToDb(amplitude)
-        const peakDb = Math.max(
-          levelDb,
-          (peaksDb[b] ?? MIN_PEAK_DB) - fall,
-          MIN_PEAK_DB,
+        const histogram = histograms[b]!
+        histogram.add(timeSeconds, levelDb)
+        const settled = Math.min(
+          1,
+          histogram.seconds() / LIVE_BAND_SETTLE_SECONDS,
         )
-        peaksDb[b] = peakDb
-        return bandLevel(levelDb, {
-          floorDb: peakDb - BAND_FLOOR_DB,
-          spanDb: BAND_FLOOR_DB,
-        })
+        const quietDb =
+          histogram.quantile(0.5 + (QUIET_QUANTILE - 0.5) * settled) ?? levelDb
+        const range = rangeBetween(
+          quietDb + wobblesDb[b]!,
+          histogram.quantile(LOUD_QUANTILE) ?? levelDb,
+        )
+        riseDb[b] = levelDb - range.floorDb
+        return bandLevel(levelDb, range)
       })
     },
   }

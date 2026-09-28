@@ -2,7 +2,7 @@
 // live microphone. The mapping stage (audioMapping.ts) and the flame writers
 // (audioTargets.ts) are re-exported from here, so importers keep one path.
 
-import { createBandPeakNormalizer, createLiveBeatDetector, createLiveOnsetDetector, detectBeatFrames, detectOnsets, hannWindow, logSpectralFlux, normalizeTrackBands, } from '@chaos-master/core'
+import { createLiveBandNormalizer, createLiveBeatDetector, createLiveOnsetDetector, detectBeatFrames, detectOnsets, hannWindow, logSpectralFlux, normalizeTrackBands, } from '@chaos-master/core'
 import type { FrameData } from './audioMapping'
 
 export * from './audioMapping'
@@ -159,6 +159,19 @@ function getFftBands(
       : 0
 
   return { bands, centroid, flatness }
+}
+
+/** How many FFT bins each band averages, of a spectrum of `binCount` bins,
+ *  by the rule `getFftBands` sorts them with. */
+function bandBinCounts(binCount: number, sampleRate: number): number[] {
+  const counts = new Array<number>(BAND_COUNT).fill(0)
+  for (let i = 0; i < binCount; i++) {
+    const freq = (i / binCount) * (sampleRate / 2)
+    BAND_RANGES.forEach(([low, high], b) => {
+      if (freq >= low && freq < high) counts[b]!++
+    })
+  }
+  return counts
 }
 
 function computeRms(data: Float32Array): number {
@@ -346,16 +359,18 @@ export type LiveFrameProcessor = {
 
 /**
  * The live analysis, apart from the browser so it can run on any signal: the
- * file analyzer's spectrum (Hann-windowed), bands against a peak that follows
- * each band, beats and onsets picked from the past only, and every window and
- * gap in seconds on the audio clock rather than in calls.
+ * file analyzer's spectrum (Hann-windowed), bands against the range each
+ * covered over the last 30 s, beats and onsets picked from the past only, and
+ * every window and gap in seconds on the audio clock rather than in calls.
  */
 export function createLiveFrameProcessor(
   sampleRate: number,
   fftSize: number,
 ): LiveFrameProcessor {
   const window = hannWindow(fftSize)
-  const bandLevels = createBandPeakNormalizer()
+  const bandLevels = createLiveBandNormalizer(
+    bandBinCounts(fftSize / 2, sampleRate),
+  )
   const onsets = createLiveOnsetDetector()
   const beats = createLiveBeatDetector()
   let previousMags: Float32Array | undefined
@@ -378,7 +393,6 @@ export function createLiveFrameProcessor(
       if (lastTime !== undefined && timeSeconds - lastTime < LIVE_HOP_SECONDS) {
         return { ...last }
       }
-      const dt = lastTime === undefined ? 0 : timeSeconds - lastTime
       lastTime = timeSeconds
 
       const mags = frameSpectrum(timeDomain, 0, window)
@@ -403,7 +417,7 @@ export function createLiveFrameProcessor(
         beatUntil = timeSeconds + LIVE_EVENT_HOLD_SECONDS
       }
       last = {
-        bands: bandLevels.levels(bands, dt),
+        bands: bandLevels.levels(bands, timeSeconds),
         // The raw level, as the file analyzer keeps it.
         rms: computeRms(timeDomain),
         centroid,

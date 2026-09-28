@@ -1,7 +1,7 @@
 // Band levels for audio-reactive mapping: decibels placed on [0, 1] against
 // the range each band covers over its own track.
 import { describe, expect, it } from 'vitest'
-import { amplitudeToDb, bandLevel, createBandPeakNormalizer, normalizeTrackBands, quantileOfSorted, SILENT_DB, trackBandRange, } from './bandNormalization'
+import { amplitudeToDb, bandLevel, createLiveBandNormalizer, noiseWobbleDb, normalizeTrackBands, quantileOfSorted, SILENT_DB, trackBandRange, } from './bandNormalization'
 
 /** The amplitude of a level in dB. */
 const amplitude = (db: number) => 10 ** (db / 20)
@@ -95,37 +95,108 @@ describe('normalizeTrackBands', () => {
   })
 })
 
-describe('createBandPeakNormalizer', () => {
-  it('reads a band at its own peak as 1 and 45 dB below it as 0', () => {
-    const bands = createBandPeakNormalizer()
-    expect(bands.levels([amplitude(-20)], 0)).toEqual([1])
-    expect(bands.levels([amplitude(-65)], 0)[0]).toBeCloseTo(0, 9)
-    expect(bands.levels([amplitude(-42.5)], 0)[0]).toBeCloseTo(0.5, 9)
+describe('noiseWobbleDb', () => {
+  it('is how far a band of n bins wobbles on noise, from 14.6 dB for one bin down', () => {
+    // At or above the p10 to p90 spread measured on white, pink and brown
+    // noise: 14.6 dB for 1 bin, 5.4 for 9, 2.0 for 69, 0.5 for 650.
+    expect(noiseWobbleDb(1)).toBe(16)
+    expect(noiseWobbleDb(9)).toBeCloseTo(5.95, 2)
+    expect(noiseWobbleDb(69)).toBeCloseTo(2.38, 2)
+    expect(noiseWobbleDb(650)).toBeCloseTo(0.87, 2)
+    expect(noiseWobbleDb(0)).toBe(0)
+  })
+})
+
+describe('createLiveBandNormalizer', () => {
+  /** Feeds `levelDb(time)` to one band of `bins` bins 30 times a second up to
+   *  `seconds`, and returns the reading at each time. */
+  function readings(
+    bins: number,
+    seconds: number,
+    levelDb: (time: number) => number,
+  ): Map<number, number> {
+    const bands = createLiveBandNormalizer([bins])
+    const out = new Map<number, number>()
+    for (let k = 0; k <= seconds * 30; k++) {
+      const time = k / 30
+      out.set(k, bands.levels([amplitude(levelDb(time))], time)[0]!)
+    }
+    return out
+  }
+
+  it('reads a band at its quiet level as 0 and at its loud level as 1', () => {
+    // -60 dB and -20 dB by turns, a second each, for 20 s, and -40 dB once.
+    const levels = readings(93, 20, (time) =>
+      time === 20 ? -40 : Math.floor(time) % 2 === 0 ? -20 : -60,
+    )
+    // The zero is the 10th percentile, in the -60 dB bin at -59.9, plus the
+    // 2.08 dB 93 bins wobble on noise; the top, the 98th, is at -19.52.
+    const zero = -59.9 + noiseWobbleDb(93)
+    expect(levels.get(19 * 30 + 15)).toBe(0)
+    expect(levels.get(18 * 30 + 15)).toBeCloseTo(
+      (-20 - zero) / (-19.52 - zero),
+      3,
+    )
+    expect(levels.get(20 * 30)).toBeCloseTo((-40 - zero) / (-19.52 - zero), 3)
   })
 
-  it('lets a peak fall by a factor of e, 8.7 dB, in 30 s', () => {
-    const bands = createBandPeakNormalizer()
-    bands.levels([amplitude(-20)], 0)
-    // 30 s on, the peak is 20 log10(e) dB lower: -28.69 dB, the zero at -73.69.
-    const fallen = -20 - 20 * Math.log10(Math.E)
-    expect(bands.levels([amplitude(-40)], 30)[0]).toBeCloseTo(
-      (-40 - (fallen - 45)) / 45,
-      9,
+  it('reads 0 for a band that moves no more than its bins wobble on noise', () => {
+    // 10 dB up and down in a band of 2 bins, which noise alone moves 11.7 dB.
+    const levels = readings(2, 20, (time) =>
+      Math.round(time * 30) % 2 === 0 ? -65 : -55,
     )
+    expect(new Set(levels.values())).toEqual(new Set([0]))
+  })
+
+  it('holds its zero at the median until it has heard 5 s', () => {
+    // Levels from -64 to -56 dB in 2 dB steps, round and round.
+    const cycle = (time: number) => -64 + 2 * (Math.round(time * 30) % 5)
+    const levels = readings(1000, 10, (time) =>
+      Math.abs(time - 1) < 1e-9 || Math.abs(time - 9) < 1e-9
+        ? -60.5
+        : cycle(time),
+    )
+    // After a second, -60.5 dB is under the median and reads 0; after 9 s,
+    // with the zero down at the 10th percentile, it reads a third of the way.
+    expect(levels.get(30)).toBe(0)
+    expect(levels.get(270)).toBeCloseTo(0.338, 3)
+  })
+
+  it('forgets a loud passage 30 s after it', () => {
+    // 10 s at -20 dB, then -60 dB, and a -40 dB probe now and then.
+    const probes = [25, 45]
+    const levels = readings(93, 45, (time) =>
+      probes.some((probe) => Math.abs(time - probe) < 1e-9)
+        ? -40
+        : time < 10
+          ? -20
+          : -60,
+    )
+    // 15 s on the loud passage is still the top; 35 s on it is gone, and the
+    // top is the least span, 6 dB, over the zero.
+    expect(levels.get(25 * 30)).toBeCloseTo(0.47, 2)
+    expect(levels.get(45 * 30)).toBe(1)
   })
 
   it('follows each band on its own', () => {
-    const bands = createBandPeakNormalizer()
-    expect(bands.levels([amplitude(-20), amplitude(-60)], 0)).toEqual([1, 1])
-    expect(bands.levels([amplitude(-20), amplitude(-80)], 0.02)[1]).toBeCloseTo(
-      (-80 - (-60 - (0.02 * 20 * Math.log10(Math.E)) / 30 - 45)) / 45,
-      9,
-    )
+    const bands = createLiveBandNormalizer([93, 93])
+    let last: number[] = []
+    for (let k = 0; k <= 600; k++) {
+      const loud = Math.floor(k / 30) % 2 === 0
+      last = bands.levels(
+        [amplitude(loud ? -20 : -60), amplitude(loud ? -60 : -20)],
+        k / 30,
+      )
+    }
+    // At 20 s the first band is loud and the second quiet.
+    expect(last[0]).toBeGreaterThan(0.95)
+    expect(last[1]).toBe(0)
   })
 
-  it('never lets a peak fall below -100 dB, so digital silence reads 0', () => {
-    const bands = createBandPeakNormalizer()
+  it('reads digital silence as 0', () => {
+    const levels = readings(93, 5, () => SILENT_DB)
+    expect(new Set(levels.values())).toEqual(new Set([0]))
+    const bands = createLiveBandNormalizer([93])
     expect(bands.levels([0], 0)).toEqual([0])
-    expect(bands.levels([0], 3600)).toEqual([0])
   })
 })
