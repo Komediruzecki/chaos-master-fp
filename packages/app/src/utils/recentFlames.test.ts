@@ -2,6 +2,7 @@ import { MAX_TIMELINE_FRAME } from '@chaos-master/core'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { examples } from '@/flame/examples'
 import { clearRecentFlames, clearRecentFlamesCache, deleteRecentFlame, formatRecentDate, getOldestRecentFlame, loadRecentFlame, loadRecentFlames, loadRecentFlamesForRewrite, MAX_RECENT_FLAMES, saveRecentFlame, saveRecentFlames, upsertRecentFlame, } from './recentFlames'
+import type { AudioMapping } from '@/flame/schema/audioWiring'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 
 const STORAGE_KEY = 'chaos-master-recent-flames'
@@ -17,6 +18,19 @@ const sampleConfig = () => ({
   loop: false,
   autoFps: false,
   loopMode: 'seamless' as const,
+})
+
+/** Audio wiring as the workspace hands it over: rows, never audio. */
+const sampleWiring = (): AudioMapping => ({
+  preset: 'custom',
+  mappings: [
+    {
+      audioFeature: 'bass',
+      target: { kind: 'renderSetting', param: 'vibrancy' },
+      sensitivity: 1,
+      range: [0.5, 1.5],
+    },
+  ],
 })
 
 /** Minimal timeline track — only its presence and cloning matter here. */
@@ -704,5 +718,65 @@ describe('formatRecentDate', () => {
     expect(formatRecentDate(new Date(2026, 4, 26, 0, 0).getTime())).toBe(
       'Today, 00:00',
     )
+  })
+})
+
+// ── The audio wiring an entry keeps ───────────────────────────────────────
+
+describe('the audio wiring an entry keeps', () => {
+  it('comes back with the entry Save for Later stored it in', () => {
+    seed([])
+    saveRecentFlame(
+      sampleFlame(),
+      'Wired',
+      [],
+      false,
+      undefined,
+      sampleWiring(),
+    )
+    expect(loadRecentFlames()[0]!.audio).toEqual(sampleWiring())
+  })
+
+  it('comes back with the entry an autosave stored it in', () => {
+    seed([])
+    upsertRecentFlame(
+      'auto',
+      sampleFlame(),
+      'Wired',
+      [],
+      undefined,
+      false,
+      sampleWiring(),
+    )
+    expect(loadRecentFlame('auto')?.audio).toEqual(sampleWiring())
+  })
+
+  it('is left out when there are no rows to keep', () => {
+    seed([])
+    saveRecentFlame(sampleFlame(), 'Unwired', [], false, undefined, {
+      preset: 'custom',
+      mappings: [],
+    })
+    expect('audio' in loadRecentFlamesForRewrite()[0]!).toBe(false)
+  })
+
+  it('is dropped when it does not fit, and its entry stays', () => {
+    // A hand-edited backup or an older build. The wiring is the smaller
+    // thing: the flame is still worth opening without it.
+    seed([
+      {
+        ...goodEntry('a'),
+        audio: { preset: 'custom', mappings: [{ audioFeature: 'treble' }] },
+      },
+    ])
+    const entries = loadRecentFlames()
+    expect(ids(entries)).toEqual(['a'])
+    expect(entries[0]!.audio).toBeUndefined()
+    expect(loadRecentFlame('a')?.audio).toBeUndefined()
+  })
+
+  it('is absent from a record written before entries carried it', () => {
+    seed([goodEntry('a')])
+    expect('audio' in loadRecentFlames()[0]!).toBe(false)
   })
 })

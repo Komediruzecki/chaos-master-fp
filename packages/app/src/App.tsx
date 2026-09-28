@@ -161,6 +161,7 @@ export function Wrappers() {
         flame: reopen.flame,
         ...(reopen.tracks ? { tracks: reopen.tracks } : {}),
         ...(reopen.config ? { config: reopen.config } : {}),
+        ...(reopen.audio ? { audio: reopen.audio } : {}),
       })
       notices.push(REOPENED)
     }
@@ -390,6 +391,7 @@ export function Wrappers() {
                         flameFromWelcome={handoff.flame}
                         welcomeTracks={handoff.tracks}
                         welcomeConfig={handoff.config}
+                        welcomeAudio={handoff.audio}
                         capabilityFromHome={handoff.capability}
                         autoOpenBenchmark={benchmarkRequested}
                         autoStartBenchmark={benchmarkAuto}
@@ -460,10 +462,11 @@ export function Wrappers() {
                             setShowWelcome(false)
                           })
                         }}
-                        onSelectFlame={(flame, tracks) => {
+                        onSelectFlame={(flame, tracks, audio) => {
                           seedWorkspace({
                             flame,
                             ...(tracks ? { tracks } : {}),
+                            ...(audio ? { audio } : {}),
                             enterWorkspace: true,
                           })
                         }}

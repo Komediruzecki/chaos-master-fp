@@ -2,6 +2,7 @@ import { createEffect, createRoot } from 'solid-js'
 import { describe, expect, it } from 'vitest'
 import { parseFlameXml } from '@/flame/flameXml'
 import { createWorkspaceHandoff } from './workspaceHandoff'
+import type { AudioMapping } from '@/flame/schema/audioWiring'
 import type { TimelineConfig, TimelineTrack } from '@/utils/timeline'
 
 const flame = parseFlameXml(`<?xml version="1.0" encoding="UTF-8"?>
@@ -99,5 +100,27 @@ describe('the workspace hand-off', () => {
         })
       })
     })
+  })
+})
+
+describe('the audio wiring a hand-off carries', () => {
+  const audio: AudioMapping = {
+    preset: 'swarm',
+    mappings: [
+      {
+        audioFeature: 'mid',
+        target: { kind: 'renderSetting', param: 'exposure' },
+        sensitivity: 1,
+        range: [0.8, 1.2],
+      },
+    ],
+  }
+
+  it('arrives with the flame, and a later seeding without one clears it', () => {
+    const seat = handoff()
+    seat.seed({ flame, audio })
+    expect(seat.audio()).toEqual(audio)
+    seat.seed({ flame })
+    expect(seat.audio()).toBeUndefined()
   })
 })

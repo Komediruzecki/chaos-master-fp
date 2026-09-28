@@ -30,26 +30,19 @@ import { ModalTitleBar } from '../Modal/ModalTitleBar'
 import { useAlert } from '../Modal/useAlert'
 import { VariationPreview } from '../VariationSelector/VariationSelector'
 import { ConfirmDeleteRecentModal, dontAskDeleteRecent, } from './ConfirmDeleteRecentModal'
+import { flameLoadOf } from './flameLoad'
 import ui from './LoadFlameModal.module.css'
 import type { Accessor, JSX } from 'solid-js'
+import type { AnimationLoad } from './flameLoad'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 import type { ChangeHistory } from '@/utils/createStoreHistory'
 import type { AcceptMap } from '@/utils/pickFiles'
 import type { RecentFlame } from '@/utils/recentFlames'
-import type { TimelineConfig, TimelineTrack } from '@/utils/timeline'
+import type { TimelineTrack } from '@/utils/timeline'
 
 const { performance } = globalThis
 
 export const CANCEL = 'cancel'
-
-export type AnimationLoad = {
-  flame: FlameDescriptor
-  tracks: TimelineTrack[]
-  /** The timeline the animation was authored at, where the source has one
-   *  (a stored entry, an imported file). Absent loads keep the workspace's
-   *  defaults. */
-  config?: TimelineConfig
-}
 
 /** Keep one malformed stored/generated flame from taking down the whole modal. */
 function StaticVariationPreview(props: {
@@ -251,11 +244,7 @@ function RecentFlameItem(props: {
   recent: RecentFlame
   trackVisibility: ReturnType<typeof createSharedIntersectionObserver>
   scrolling: Accessor<boolean>
-  onSelect: (
-    flame: FlameDescriptor,
-    tracks?: TimelineTrack[],
-    config?: TimelineConfig,
-  ) => void
+  onSelect: (load: FlameDescriptor | AnimationLoad) => void
   onDelete: (e: MouseEvent | KeyboardEvent, id: string) => void
 }) {
   const hasTracks = () =>
@@ -306,14 +295,7 @@ function RecentFlameItem(props: {
     <button
       class={ui.item}
       onClick={() => {
-        const clone = deepClone(props.recent.flame)
-        props.onSelect(
-          clone,
-          props.recent.tracks ? deepClone(props.recent.tracks) : undefined,
-          // The timeline the entry was stored at. An entry saved at 60fps
-          // over 300 frames came back at 30 over 90 without it.
-          props.recent.config ? deepClone(props.recent.config) : undefined,
-        )
+        props.onSelect(flameLoadOf(props.recent))
       }}
       onMouseEnter={() => {
         setHovered(true)
@@ -1120,19 +1102,8 @@ export function LoadFlameModal(props: LoadFlameModalProps) {
                       recent={recent}
                       trackVisibility={trackTileVisibility}
                       scrolling={galleryScrolling}
-                      onSelect={(flame, tracks, config) => {
-                        // A stored timeline is reason enough to take the
-                        // animation path: a flame with no keyframes still
-                        // has a frame rate and an end frame.
-                        if ((tracks && tracks.length > 0) || config) {
-                          props.respond({
-                            flame,
-                            tracks: tracks ?? [],
-                            ...(config ? { config } : {}),
-                          })
-                        } else {
-                          props.respond(flame)
-                        }
+                      onSelect={(load) => {
+                        props.respond(load)
                       }}
                       onDelete={async (e, id) => {
                         await handleDeleteRecent(e, id)
@@ -1343,6 +1314,7 @@ export function createLoadFlame(
           // not there are tracks. Dropped here, the stored frame rate and
           // end frame were read out of the entry and then thrown away.
           ...(result.config ? { config: result.config } : {}),
+          ...(result.audio ? { audio: result.audio } : {}),
         })
       })
       return result.flame

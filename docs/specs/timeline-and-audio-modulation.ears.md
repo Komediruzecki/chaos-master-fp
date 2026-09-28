@@ -70,6 +70,10 @@ not a gap.
   dialog's audio wiring switch (REQ-TA-041)
 - `packages/app/src/lib/audioWiringLoad.test.ts` — putting loaded wiring back never
   switches audio on (REQ-TA-041)
+- `packages/app/src/utils/recentFlames.test.ts`, `packages/app/src/hooks/useWorkspaceAutosave.test.ts`,
+  `packages/app/src/components/LoadFlameModal/flameLoad.test.ts`, `packages/app/src/lib/pauseSave.test.ts`
+  and `packages/app/src/lib/workspaceHandoff.test.ts` — the audio wiring a Recents entry
+  keeps, and every way an entry opens (REQ-TA-041)
 - _Gap:_ nothing else tests `AudioWiringModal.tsx` (unit or e2e) — REQ-TA-035,
   REQ-TA-036 and REQ-TA-038 are entirely unguarded. `keyframeOnChange.ts` likewise has no test,
   so REQ-TA-020 is unguarded. See **Coverage gaps** at the end for the full list.
@@ -397,7 +401,7 @@ or unmount; only `loadTracks`, `clearAllTracks` and the Home hand-off reset shal
 clear `previewHeld`.
 
 _(`utils/timeline.ts:1437-1505` (`advanceFrame`), `:1710-1711` (`clearAllTracks`), `:1755-1756` (`loadTracks`);
-`useSeekScrubber.ts:11-17` (`finishSeek`), `:33-36` (`finishSeek`), `:68-70` (`onCleanup`); `MainWorkspace.tsx:2390-2396` (`pause`).)_
+`useSeekScrubber.ts:11-17` (`finishSeek`), `:33-36` (`finishSeek`), `:68-70` (`onCleanup`); `MainWorkspace.tsx:2394-2400` (`pause`).)_
 
 ### REQ-TA-026 — Playback advances at the configured rate, or on quality with Auto FPS
 
@@ -637,14 +641,34 @@ workspace shall drop the wiring and still open the flame. A link that carries
 no wiring, including every link made before links could, shall leave the
 workspace's wiring as it is.
 
+**When** the workspace writes the open flame to Recents (the autosave, Save for
+Later, the flush before another flame opens, the save a native app makes on
+pause), it shall store the audio wiring with it, and a change to the wiring
+alone shall count as unsaved work. **When** a Recents entry that carries wiring
+opens, from the Library, the welcome screen or a cold-start reopen, the
+workspace shall make that wiring current and leave audio off if it was off. A
+stored wiring that does not fit the wiring schema shall be dropped and its
+entry kept, and an entry written before entries carried wiring shall open with
+the workspace's wiring unchanged.
+
 _(`jsonQueryParam.ts:174-191` (`buildSharePayload`), `:294` (`parseAudioWiring`),
 `audioWiringParse.ts:8-14` (`parseAudioWiring`), `lib/audioWiringLoad.ts:13-19` (`restoreLoadedAudioWiring`),
-`MainWorkspace.tsx:2997` (`restoreLoadedAudioWiring`), `ShareLinkModal.tsx:56-59` (`sharedAudioWiring`); guarded by
+`MainWorkspace.tsx:3004` (`restoreLoadedAudioWiring`), `ShareLinkModal.tsx:56-59` (`sharedAudioWiring`); guarded by
 `jsonQueryParam.test.ts:50` "travels with the flame",
 `:58` "is dropped on its own when it does not fit, and the flame still opens",
 `:70` "is absent from a link made before links carried it",
 `ShareLinkModal.test.tsx:96` "sends the wiring along until it is switched off" and
 `lib/audioWiringLoad.test.ts:47` "puts the rows back and leaves audio off".)_
+
+_(`recentFlames.ts:128-140` (`readStoredEntry`), `useWorkspaceAutosave.ts:138` (`getAudioMapping`),
+`flameLoad.ts:34-46` (`flameLoadOf`), `MainWorkspace.tsx:2775` (`restoreLoadedAudioWiring`),
+`:799` (`restoreLoadedAudioWiring`), `pauseSave.ts:226` (`audio`); guarded by
+`recentFlames.test.ts:727` "comes back with the entry Save for Later stored it in",
+`:763` "is dropped when it does not fit, and its entry stays",
+`useWorkspaceAutosave.test.ts:773` "is unsaved work on its own, and the write stores it",
+`flameLoad.test.ts:35` "carries the audio wiring, even for an entry with no animation",
+`pauseSave.test.ts:520` "reopens it with the audio wiring it was kept with" and
+`workspaceHandoff.test.ts:119` "arrives with the flame, and a later seeding without one clears it".)_
 
 ---
 

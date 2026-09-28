@@ -760,7 +760,7 @@ the edited flame's share of the blend: 0 draws the partner alone.
 _(`flame/blend.ts:17` (`DEFAULT_BLEND_WEIGHT`), `hooks/useWorkspaceBlendPick.ts:200-300` (`FlameDescriptor`),
 `commands/builtins/flame/coreCommands.ts:36-75` (`history`), `commands/registry.ts:288-296` (`setBlendFlame`),
 `recorder/synthesize/atoms.ts:523-556` (`blendFlame`), `canonical.ts:19-56` (`comparable`),
-`MainWorkspace.tsx:1316-1321` (`setupMorph`), `components/BlendFlameGallery/BlendFlameGallery.tsx`,
+`MainWorkspace.tsx:1320-1325` (`setupMorph`), `components/BlendFlameGallery/BlendFlameGallery.tsx`,
 `components/WorkspaceSidebar/WorkspaceSidebar.tsx` `onSelect`; guarded by
 `WorkspaceSidebar.gallery.test.tsx`, `useWorkspaceBlendPick.test.tsx:152` "commits the weight its preview showed, replays to it, and undoes to the document before the hover",
 `:190` "gives a pick made without a hover, as on a touch screen, the same weight", `:177` (`setBlendFlame`), `:231` "puts back the pick, not the document before it, when a later hover leaves", `:287` "puts back exactly what a hover replaced when the pointer leaves", `commands/builtins/flame/blend.test.ts:52` "gives the default weight to a document that has none",
@@ -1002,7 +1002,7 @@ the load's own writes out of the take, so the take records the Pause (REQ-RR-040
 ahead of the load's timeline snapshot, and its replay shall stop the timeline
 there and run the rest of the take on the stopped playhead, as the viewer saw it.
 
-_(`MainWorkspace.tsx:2699-2702` (`withRecordingSuppressed`); guarded by `MainWorkspace.plainLoad.test.ts:17`
+_(`MainWorkspace.tsx:2703-2706` (`withRecordingSuppressed`); guarded by `MainWorkspace.plainLoad.test.ts:17`
 "stops playback through pause(), before the unrecorded block", `:23` "never stops it through the raw setter, which reports nothing", and
 `playWindowReplay.test.ts:793` "records the Pause, so the replay stops where the
 take did", `:818` "the raw setter it replaces left the replay playing (the bug)".)_

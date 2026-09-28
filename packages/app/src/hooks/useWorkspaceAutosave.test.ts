@@ -11,6 +11,7 @@ import { clearRecentFlames, loadRecentFlames, loadRecentFlamesForRewrite, MAX_RE
 import { useWorkspaceAutosave } from './useWorkspaceAutosave'
 import { BREED_PREVIEW_DELAY_MS, useWorkspaceBlendPick, } from './useWorkspaceBlendPick'
 import type { BlendIntent } from './useWorkspaceBlendPick'
+import type { AudioMapping } from '@/flame/schema/audioWiring'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 
 // Same reason as draft.test.ts: localStorage is not usable in this runtime, so
@@ -74,6 +75,7 @@ const workspace = (
     muted?: () => boolean
     confirmOverwriteOldest?: () => Promise<boolean>
     confirmDiscardUnsaved?: () => Promise<boolean>
+    wiring?: () => AudioMapping
   } = {},
 ) => {
   const toasts: string[] = []
@@ -86,6 +88,7 @@ const workspace = (
     flameDescriptor: open,
     getTracks: () => [],
     getConfig: () => undefined,
+    getAudioMapping: options.wiring,
     agentDriving: () => false,
     showToast: (message) => {
       if (options.muted?.()) return -1
@@ -751,5 +754,45 @@ describe('the save reminder over a view with its own top bar', () => {
     vi.advanceTimersByTime(90_000)
     expect(count(toasts)).toBe(1)
     dispose()
+  })
+})
+
+describe('the audio wiring the open flame is kept with', () => {
+  const wired: AudioMapping = {
+    preset: 'custom',
+    mappings: [
+      {
+        audioFeature: 'beat',
+        target: { kind: 'renderSetting', param: 'palettePhase' },
+        sensitivity: 1,
+        range: [0, 0.12],
+      },
+    ],
+  }
+
+  it('is unsaved work on its own, and the write stores it', () => {
+    createRoot((dispose) => {
+      const [wiring, setWiring] = createSignal<AudioMapping>({
+        preset: 'pulse',
+        mappings: [],
+      })
+      const { autosave } = workspace({ wiring })
+      autosave.markLoadedBaseline()
+      expect(autosave.isFlameDirty()).toBe(false)
+
+      setWiring(wired)
+      expect(autosave.isFlameDirty()).toBe(true)
+      expect(autosave.flushDirtyToRecents()).toBe('saved')
+      expect(loadRecentFlames()[0]!.audio).toEqual(wired)
+      expect(autosave.isFlameDirty()).toBe(false)
+      dispose()
+    })
+  })
+
+  it('goes into Save for Later', async () => {
+    const { autosave } = workspace({ wiring: () => wired })
+    autosave.markLoadedBaseline()
+    await autosave.saveForLater()
+    expect(loadRecentFlames()[0]!.audio).toEqual(wired)
   })
 })

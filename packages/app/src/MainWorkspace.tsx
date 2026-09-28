@@ -184,6 +184,8 @@ export type AppProps = {
    * defaults.
    */
   welcomeConfig?: () => TimelineConfig | undefined
+  /** The audio wiring a seeded Recents flame was kept with. */
+  welcomeAudio?: () => AudioMapping | undefined
   /**
    * One-shot request from a Home "Explore" card: open the tool this flame was
    * curated to demonstrate, not just the flame. The value is the row's
@@ -769,6 +771,7 @@ export function MainWorkspace(props: AppProps) {
         // Load animation tracks if the welcome selection includes them
         const tracks = props.welcomeTracks?.()
         const config = props.welcomeConfig?.()
+        const audio = props.welcomeAudio?.()
         if (IS_DEV) {
           console.info('[welcome] flame selected, tracks:', {
             hasTracks: !!tracks,
@@ -793,6 +796,7 @@ export function MainWorkspace(props: AppProps) {
           timeline.setConfig({ ...timeline.config(), ...config })
         }
         props.resetFlameFromWelcome?.()
+        restoreLoadedAudioWiring(cmdContext, audio)
         // Every hand-off is a fresh starting point for dirty tracking: the
         // flame that arrives here came from somewhere the user can reach it
         // again - the welcome grid, a Home card, the Library - so nothing is
@@ -2768,6 +2772,7 @@ export function MainWorkspace(props: AppProps) {
     }
     // Clear the signal so re-selecting the same animation triggers again
     clearLoadedAnimation()
+    restoreLoadedAudioWiring(cmdContext, anim.audio)
     // A load is a fresh starting point, not an edit — reset dirty tracking.
     markLoadedBaseline()
   })
@@ -2824,6 +2829,8 @@ export function MainWorkspace(props: AppProps) {
     // The timeline is part of the document: a change to the frame rate or
     // the end frame alone is unsaved work like any other.
     getConfig: () => timeline.config(),
+    // So is the wiring: Recents keeps it with the flame.
+    getAudioMapping: () => audioMapping(),
     agentDriving,
     showToast,
     confirmOverwriteOldest,

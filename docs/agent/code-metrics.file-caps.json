@@ -1,5 +1,5 @@
 {
-  "packages/app/src/MainWorkspace.tsx": 4524,
+  "packages/app/src/MainWorkspace.tsx": 4531,
   "packages/app/src/benchmarks/validation.ts": 1175,
   "packages/app/src/commands/builtins/timeline.ts": 800,
   "packages/app/src/components/AffineEditor/AffineEditor.tsx": 1172,
@@ -13,7 +13,7 @@
   "packages/app/src/components/FlameRandomizerCard/FlameRandomizerCard.tsx": 1318,
   "packages/app/src/components/Home/HomeFlame.tsx": 1189,
   "packages/app/src/components/Home/HomeTab.tsx": 931,
-  "packages/app/src/components/LoadFlameModal/LoadFlameModal.tsx": 1381,
+  "packages/app/src/components/LoadFlameModal/LoadFlameModal.tsx": 1353,
   "packages/app/src/components/LogoFaviconGenerator/LogoFaviconGenerator.tsx": 1268,
   "packages/app/src/components/PopulationSimulator/PopulationSimulator.tsx": 924,
   "packages/app/src/components/SessionRecorder/SessionReplayPanel.tsx": 846,

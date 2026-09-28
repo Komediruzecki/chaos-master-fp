@@ -3,6 +3,7 @@ import { parseFlameEnvelope } from '@/utils/flameImport'
 import { loadRecentFlame, newRecentFlameId, upsertRecentFlame, } from '@/utils/recentFlames'
 import { safeGetItem, safeRemoveItem, safeSetItem } from '@/utils/storage'
 import { onAppPause } from './lifecycle'
+import type { AudioMapping } from '@/flame/schema/audioWiring'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 import type { PauseSaveReport } from '@/hooks/useWorkspaceAutosave'
 import type { TimelineConfig, TimelineTrack } from '@/utils/timeline'
@@ -187,6 +188,7 @@ export interface ReopenedFlame {
   readonly flame: FlameDescriptor
   readonly tracks?: TimelineTrack[]
   readonly config?: TimelineConfig
+  readonly audio?: AudioMapping
 }
 
 /**
@@ -221,6 +223,7 @@ export function reopenTarget(native: boolean): ReopenedFlame | undefined {
     flame: deepClone(entry.flame),
     ...(entry.tracks ? { tracks: deepClone(entry.tracks) } : {}),
     ...(entry.config ? { config: deepClone(entry.config) } : {}),
+    ...(entry.audio ? { audio: deepClone(entry.audio) } : {}),
   }
 }
 

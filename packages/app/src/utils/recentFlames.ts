@@ -1,9 +1,11 @@
 import { tryValidateFlame } from '@/flame/schema/flameSchema'
 import { TimelineSnapshotConfig } from '@/flame/schema/timeline'
+import { parseAudioWiring } from '@/utils/audioWiringParse'
 import { deepClone } from '@/utils/clone'
 import { safeGetItem, safeRemoveItem, safeSetItem } from '@/utils/storage'
 import { clampTimelineConfig } from '@/utils/timeline'
 import * as v from '@/valibot'
+import type { AudioMapping } from '@/flame/schema/audioWiring'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 import type { TimelineConfig, TimelineTrack } from '@/utils/timeline'
 
@@ -44,6 +46,13 @@ export type RecentFlame = {
    * optional and why nothing downstream may assume it.
    */
   config?: TimelineConfig
+  /**
+   * The audio wiring the flame was kept with: rows, never audio. Absent when
+   * it had none and in every record written before entries carried it. Read
+   * back through the wiring schema, and dropped on its own, keeping the
+   * entry, when it does not fit.
+   */
+  audio?: AudioMapping
 }
 
 export function newRecentFlameId(): string {
@@ -111,6 +120,25 @@ function parseStoredConfig(raw: unknown): TimelineConfig | undefined {
   })
 }
 
+/**
+ * One structurally valid record, read the way the Library shows it: the flame
+ * must pass its schema or the entry goes; a timeline is repaired or dropped
+ * and a wiring that does not fit is dropped, each keeping the entry.
+ */
+function readStoredEntry(item: RecentFlame): RecentFlame | undefined {
+  const flame = tryValidateFlame(item.flame)
+  if (!flame) return undefined
+  const { config: storedConfig, audio: storedAudio, ...rest } = item
+  const config = parseStoredConfig(storedConfig)
+  const audio = parseAudioWiring(storedAudio)
+  return {
+    ...rest,
+    flame,
+    ...(config ? { config } : {}),
+    ...(audio ? { audio } : {}),
+  }
+}
+
 /** Memo for `loadRecentFlames`, keyed on the exact payload it was built from.
  *
  *  The schema pass costs ~90ms for a full 150-entry list (measured; `JSON.parse`
@@ -164,11 +192,8 @@ export function loadRecentFlames(): RecentFlame[] {
     const parsed = JSON.parse(raw)
     if (!Array.isArray(parsed)) return []
     const entries = parsed.filter(isValidRecentFlame).flatMap((item) => {
-      const flame = tryValidateFlame(item.flame)
-      if (!flame) return []
-      const { config: stored, ...rest } = item
-      const config = parseStoredConfig(stored)
-      return [{ ...rest, flame, ...(config ? { config } : {}) }]
+      const entry = readStoredEntry(item)
+      return entry ? [entry] : []
     })
     if (import.meta.env.DEV) entries.forEach((entry) => deepFreeze(entry))
     validatedCache = { raw, entries }
@@ -202,12 +227,7 @@ export function loadRecentFlame(id: string): RecentFlame | undefined {
     const item = parsed
       .filter(isValidRecentFlame)
       .find((entry) => entry.id === id)
-    if (!item) return undefined
-    const flame = tryValidateFlame(item.flame)
-    if (!flame) return undefined
-    const { config: stored, ...rest } = item
-    const config = parseStoredConfig(stored)
-    return { ...rest, flame, ...(config ? { config } : {}) }
+    return item ? readStoredEntry(item) : undefined
   } catch {
     return undefined
   }
@@ -244,6 +264,8 @@ export function saveRecentFlame(
    */
   forceOverwriteOldest: boolean = false,
   config?: TimelineConfig,
+  /** The wiring the flame is kept with. Stored only when it has rows. */
+  audio?: AudioMapping,
 ): RecentWriteOutcome {
   // Read-modify-write: use the structural loader, not the schema one. Rewriting
   // the list from schema-validated entries silently deletes every entry the
@@ -267,6 +289,7 @@ export function saveRecentFlame(
   // The timeline goes in whether or not there are tracks: it is what says
   // how fast the flame runs and how long it is.
   if (config) entry.config = deepClone(config)
+  if (audio && audio.mappings.length > 0) entry.audio = deepClone(audio)
   const updated = [entry, ...recent].slice(0, MAX_RECENT_FLAMES)
   // Report the real outcome. This used to return `true` unconditionally, so a
   // write that failed on quota or in private mode still told the caller the
@@ -331,6 +354,8 @@ export function upsertRecentFlame(
    * cease to exist (hooks/useWorkspaceAutosave.ts).
    */
   forceOverwriteOldest: boolean = false,
+  /** The wiring the flame is kept with. Stored only when it has rows. */
+  audio?: AudioMapping,
 ): RecentWriteOutcome {
   const recent = loadRecentFlamesForRewrite()
   const existing = recent.find((item) => item.id === id)
@@ -346,6 +371,7 @@ export function upsertRecentFlame(
     entry.tracks = deepClone(tracks)
   }
   if (config) entry.config = deepClone(config)
+  if (audio && audio.mappings.length > 0) entry.audio = deepClone(audio)
   const updated = [entry, ...recent.filter((item) => item.id !== id)].slice(
     0,
     MAX_RECENT_FLAMES,

@@ -19,6 +19,7 @@ import { applyTracksToFlame } from '@/utils/timeline'
 import { useIntersectionObserver } from '@/utils/useIntersectionObserver'
 import { DISPLAY_VERSION } from '@/version'
 import ui from './WelcomeScreen.module.css'
+import type { AudioMapping } from '@/flame/schema/audioWiring'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 import type { HardwareTier } from '@/utils/hardwareTier'
 import type { TimelineTrack } from '@/utils/timeline'
@@ -33,7 +34,12 @@ type WelcomeScreenProps = {
    * switch tabs — see App.tsx.
    */
   onBrowseGallery?: () => void
-  onSelectFlame?: (flame: FlameDescriptor, tracks?: TimelineTrack[]) => void
+  onSelectFlame?: (
+    flame: FlameDescriptor,
+    tracks?: TimelineTrack[],
+    /** The audio wiring a Recents entry was kept with. */
+    audio?: AudioMapping,
+  ) => void
   onStartTour?: (tourId: string) => void
   onShowAbout?: () => void
   hardwareTier?: HardwareTier | null
@@ -46,6 +52,7 @@ type GalleryItem = {
   flame: FlameDescriptor
   tracks?: TimelineTrack[]
   savedAt?: number
+  audio?: AudioMapping
 }
 
 function FlameThumbnail(props: {
@@ -268,6 +275,7 @@ export function WelcomeScreen(props: WelcomeScreenProps) {
     flame: r.flame,
     tracks: r.tracks,
     savedAt: r.savedAt,
+    ...(r.audio ? { audio: r.audio } : {}),
   }))
 
   const [showAllAnimated, setShowAllAnimated] = createSignal(false)
@@ -295,8 +303,12 @@ export function WelcomeScreen(props: WelcomeScreenProps) {
   const visibleStatic = () =>
     showAllStatic() ? staticExamples : staticExamples.slice(0, INITIAL_VISIBLE)
 
-  const handleSelect = (flame: FlameDescriptor, tracks?: TimelineTrack[]) => {
-    props.onSelectFlame?.(flame, tracks)
+  const handleSelect = (
+    flame: FlameDescriptor,
+    tracks?: TimelineTrack[],
+    audio?: AudioMapping,
+  ) => {
+    props.onSelectFlame?.(flame, tracks, audio)
     props.onEnter()
   }
 
@@ -338,7 +350,9 @@ export function WelcomeScreen(props: WelcomeScreenProps) {
                           name={item.name}
                           tracks={item.tracks}
                           savedAt={item.savedAt}
-                          onClickWithTracks={handleSelect}
+                          onClickWithTracks={(flame, tracks) => {
+                            handleSelect(flame, tracks, item.audio)
+                          }}
                         />
                       )}
                     </For>
