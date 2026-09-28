@@ -3,7 +3,7 @@ import { useToast } from '@/contexts/ToastContext'
 import { exportFlameXml } from '@/flame/flameXml'
 import { collectFlameCustomVariations } from '@/flame/variations/custom'
 import { buildSharePayload } from '@/utils/jsonQueryParam'
-import { deriveOgMeta, encodeShareUrl, shortenShareUrl, uploadOgPreview, } from '@/utils/shareLink'
+import { deriveOgMeta, encodeShareUrl, shortenShareUrl, uploadOgPreview, userAudioWiring, } from '@/utils/shareLink'
 import { Button } from '../Button/Button'
 import { Checkbox } from '../Checkbox/Checkbox'
 import { useRequestModal } from '../Modal/ModalContext'
@@ -27,7 +27,8 @@ type ShareLinkModalProps = {
   tracks: TimelineTrack[]
   config: TimelineConfig
   hasAnimation: boolean
-  /** The workspace's audio wiring, offered to the link when it has rows. */
+  /** The workspace's audio wiring, offered to the link when the user made it
+   *  (`userAudioWiring`): it has rows and is not the default. */
   audioWiring?: AudioMapping
   captureOgImage?: () => Promise<Blob | null>
   respond: () => void
@@ -51,12 +52,14 @@ function ShareLinkModal(props: ShareLinkModalProps) {
     includeCustomVariations() && hasCustomVariations()
       ? customVariations()
       : undefined
-  // The audio wiring goes along by default: it is rows, not audio, and the
-  // recipient's audio stays off until they switch it on.
-  const wiringRows = () => props.audioWiring?.mappings.length ?? 0
+  // Wiring the user made goes along by default: it is rows, not audio, and
+  // the recipient's audio stays off until they switch it on. The untouched
+  // default is not offered at all.
+  const ownWiring = createMemo(() => userAudioWiring(props.audioWiring))
+  const wiringRows = () => ownWiring()?.mappings.length ?? 0
   const [includeAudioWiring, setIncludeAudioWiring] = createSignal(true)
   const sharedAudioWiring = () =>
-    includeAudioWiring() && wiringRows() > 0 ? props.audioWiring : undefined
+    includeAudioWiring() ? ownWiring() : undefined
   // The full, self-contained `?flame=` link (carries all data, never expires)
   // and the optional shortened `?s=` link (nicer to share, but expires).
   const [longUrl, setLongUrl] = createSignal('')

@@ -1,13 +1,17 @@
 // Pins the share dialog's audio wiring switch: offered only when the
-// workspace has wiring, on by default, and the link carries the rows only
-// while it is on.
+// workspace has wiring the user made (not the untouched default), on by
+// default, and the link and Copy JSON carry the rows only while it is on.
 import { cleanup, fireEvent, render, screen, waitFor, } from '@solidjs/testing-library'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ToastProvider } from '@/contexts/ToastContext'
 import { examples } from '@/flame/examples'
+import { parseAudioWiring } from '@/utils/audioWiringParse'
+import { defaultAudioMapping } from '@/utils/audioWiringPresets'
+import { deepClone } from '@/utils/clone'
 import { decodeSharePayload } from '@/utils/jsonQueryParam'
 import { Modal } from '../Modal/Modal'
 import { createShareLinkModal } from './ShareLinkModal'
+import type { MockInstance } from 'vitest'
 import type { AudioMapping } from '@/flame/schema/audioWiring'
 import type * as ShareLink from '@/utils/shareLink'
 import type { TimelineConfig } from '@/utils/timeline'
@@ -83,10 +87,11 @@ async function linkedWiring() {
 }
 
 describe('the share dialog and the audio wiring', () => {
+  let writes: MockInstance<Clipboard['writeText']>
   beforeEach(() => {
-    vi.spyOn(globalThis.navigator.clipboard, 'writeText').mockResolvedValue(
-      undefined,
-    )
+    writes = vi
+      .spyOn(globalThis.navigator.clipboard, 'writeText')
+      .mockResolvedValue(undefined)
   })
   afterEach(() => {
     cleanup()
@@ -110,5 +115,44 @@ describe('the share dialog and the audio wiring', () => {
     openShare({ preset: 'custom', mappings: [] })
     expect(await linkedWiring()).toBeUndefined()
     expect(screen.queryByRole('checkbox', { name: /audio wiring/ })).toBeNull()
+  })
+
+  // Every workspace starts with the default wiring, so sending it would put
+  // wiring into every link from users who never opened the audio panel, and
+  // opening one mid-session would swap the recipient's wiring for it.
+  it('sends no wiring, and offers none, while the wiring is the default', async () => {
+    openShare(defaultAudioMapping())
+    await screen.findByDisplayValue(/\?flame=/)
+    expect(await linkedWiring()).toBeUndefined()
+    expect(screen.queryByRole('checkbox', { name: /audio wiring/ })).toBeNull()
+  })
+
+  it('knows the default after the wiring schema has rebuilt it', async () => {
+    // The workspace stores what `audio.setMapping` parsed, whose key order is
+    // the schema's, not the preset table's.
+    const parsed = parseAudioWiring(deepClone(defaultAudioMapping()))!
+    openShare(parsed)
+    await screen.findByDisplayValue(/\?flame=/)
+    expect(await linkedWiring()).toBeUndefined()
+  })
+
+  it('copies JSON with the wiring only when the user made it', async () => {
+    const copiedJson = async () => {
+      writes.mockClear()
+      fireEvent.click(screen.getByRole('button', { name: 'Copy JSON' }))
+      await waitFor(() => {
+        expect(writes).toHaveBeenCalled()
+      })
+      return JSON.parse(writes.mock.calls.at(-1)![0]) as { audio?: unknown }
+    }
+
+    openShare(wiring)
+    await screen.findByDisplayValue(/\?flame=/)
+    expect((await copiedJson()).audio).toEqual(wiring)
+    cleanup()
+
+    openShare(defaultAudioMapping())
+    await screen.findByDisplayValue(/\?flame=/)
+    expect(await copiedJson()).not.toHaveProperty('audio')
   })
 })

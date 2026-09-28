@@ -1,5 +1,7 @@
 import { trackFlameShortened, trackOgPreviewGenerated } from '@/lib/telemetry'
+import { stableStringify } from '@/recorder/synthesize/canonical'
 import { ShareApi } from './apiClient'
+import { defaultAudioMapping } from './audioWiringPresets'
 import { blobToBase64 } from './blob'
 import { encodeJsonQueryParam, encodeSharePayload } from './jsonQueryParam'
 import type { AudioMapping } from '@/flame/schema/audioWiring'
@@ -19,6 +21,22 @@ export async function encodeVariationShareUrl(
 ): Promise<string> {
   const encoded = await encodeJsonQueryParam({ variation: def })
   return `${globalThis.location.origin}/?cv=${encoded}`
+}
+
+/**
+ * `wiring` when it is the user's own: it has rows and is not the default every
+ * workspace starts with. The default goes nowhere, so a link from someone who
+ * never opened the audio panel carries no wiring, and opening it does not
+ * swap the recipient's for the default. Compared by content, whatever the key
+ * order, since the stored wiring is what the wiring schema rebuilt.
+ */
+export function userAudioWiring(
+  wiring: AudioMapping | undefined,
+): AudioMapping | undefined {
+  if (!wiring || wiring.mappings.length === 0) return undefined
+  return stableStringify(wiring) === stableStringify(defaultAudioMapping())
+    ? undefined
+    : wiring
 }
 
 /**
