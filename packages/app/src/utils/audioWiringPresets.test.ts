@@ -217,3 +217,29 @@ describe('preset ranges stay inside the flame schema', () => {
     }
   })
 })
+
+// x' = a x + b y + c, y' = d x + e y + f: `a` and `e` are the diagonal, so a
+// scale drives those two. `d` is a shear term.
+describe('the scale presets drive the affine diagonal', () => {
+  it('swarm scales each transform through a and e', () => {
+    const affine = buildFlamePreset('swarm', transforms(2))
+      .filter((m) => m.target.kind === 'transformAffine')
+      .map((m) => flameTargetKey(m.target))
+    expect(affine).toEqual([
+      'tx.0.preAffine.a',
+      'tx.0.preAffine.e',
+      'tx.1.preAffine.a',
+      'tx.1.preAffine.e',
+    ])
+  })
+
+  it('randomize only ever scales through a and e', () => {
+    const params = new Set<string>()
+    for (let seed = 1; seed <= 300; seed++) {
+      for (const m of randomizeMappings(transforms(4), seeded(seed))) {
+        if (m.target.kind === 'transformAffine') params.add(m.target.param)
+      }
+    }
+    expect([...params].sort()).toEqual(['a', 'e'])
+  })
+})

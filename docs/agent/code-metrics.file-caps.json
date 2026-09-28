@@ -5,7 +5,7 @@
   "packages/app/src/components/AffineEditor/AffineEditor.tsx": 1172,
   "packages/app/src/components/ArenaOverlay.tsx": 839,
   "packages/app/src/components/AudioReactivePanel/AudioReactivePanel.tsx": 1269,
-  "packages/app/src/components/AudioWiringModal/AudioWiringModal.tsx": 1644,
+  "packages/app/src/components/AudioWiringModal/AudioWiringModal.tsx": 1619,
   "packages/app/src/components/AudioWiringModal/NodeGraphView.tsx": 1107,
   "packages/app/src/components/BenchmarkModal/BenchmarkModal.tsx": 862,
   "packages/app/src/components/Duel/DuelChips.tsx": 925,

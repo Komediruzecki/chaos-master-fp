@@ -196,12 +196,12 @@ export function buildFlamePreset(
     return out
   }
 
-  // swarm — scale each transform's pre-affine. `a` and `d` together are a
-  // uniform scale, so driving both from one band grows and shrinks a branch
-  // instead of shearing it.
+  // swarm — scale each transform's pre-affine. `a` and `e` are the diagonal
+  // of x' = a x + b y + c, y' = d x + e y + f, so driving both from one band
+  // grows and shrinks a branch instead of shearing it (`d` is a shear term).
   used.forEach((t, i) => {
     const band = BAND_LADDER[i % BAND_LADDER.length]!
-    for (const param of ['a', 'd'] as const) {
+    for (const param of ['a', 'e'] as const) {
       out.push(
         entry(
           band,
@@ -290,7 +290,7 @@ export function randomizeMappings(
               kind: 'transformAffine',
               transformIdx: t.index,
               matrix: 'preAffine',
-              param: pick(['a', 'd'] as const),
+              param: pick(['a', 'e'] as const),
             },
             [0.62, 1.35],
           ),

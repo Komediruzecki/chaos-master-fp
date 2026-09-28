@@ -517,7 +517,7 @@ a non-blocking replacement toast naming the displaced source for 2.5 s. **If** t
 target is already wired to that same source, **then** the editor shall select the
 existing wire and change nothing.
 
-_(`AudioWiringModal.tsx:638-670` (`doConnect`).)_
+_(`AudioWiringModal.tsx:639-671` (`doConnect`).)_
 
 ### REQ-TA-036 — A new wire is audible by default
 
@@ -526,7 +526,7 @@ _(`AudioWiringModal.tsx:638-670` (`doConnect`).)_
 or `[0.5, 1.5]` **where** the target is camera zoom, for which `[0, 1]` would
 collapse the view.
 
-_(`AudioWiringModal.tsx:33-39` (`NEW_ENTRY_DEFAULTS`), `:654-661` (`isZoom`).)_
+_(`AudioWiringModal.tsx:34-40` (`NEW_ENTRY_DEFAULTS`), `:655-662` (`isZoom`).)_
 
 ### REQ-TA-037 — Imported wiring is shape-checked before it is applied
 
@@ -536,8 +536,8 @@ or a two-element `range`, **then** the editor shall reject the import with an
 explanatory message and leave the current mappings untouched. A valid import
 shall record an undo entry before replacing the mappings.
 
-_(`AudioWiringModal.tsx:1003-1024` (`parseWiringJSON`), `:1052-1069` (`applyImport`); the editor keeps its own 50-entry
-undo stack at `:498` (`MAX_UNDO`), `:685-713` (`saveForUndo`), cleared of redo on every mutating operation.)_
+_(`AudioWiringModal.tsx:1004-1025` (`parseWiringJSON`), `:1053-1070` (`applyImport`); the editor keeps its own 50-entry
+undo stack at `:499` (`MAX_UNDO`), `:686-714` (`saveForUndo`), cleared of redo on every mutating operation.)_
 
 ### REQ-TA-038 — Editor shortcuts never steal keys from a text field
 
@@ -546,7 +546,7 @@ editor shall not handle undo/redo or delete for it. Escape shall unwind exactly
 one layer per press, in the order import panel → pending paste → active drag →
 pending connection → selected wire → close the modal.
 
-_(`AudioWiringModal.tsx:855-915` (`isEditableTarget`).)_
+_(`AudioWiringModal.tsx:856-916` (`isEditableTarget`).)_
 
 ### REQ-TA-039 — Audio-driven motion is held to a comfort preset
 

@@ -5,6 +5,7 @@ import { ConnectingBanner } from './ConnectingBanner'
 import { HeaderBar } from './HeaderBar'
 import { NodeGraphView } from './NodeGraphView'
 import { ParamsPanel } from './ParamsPanel'
+import { transformTargetPool } from './randomTargets'
 import { SourceColumn } from './SourceColumn'
 import { AUDIO_SOURCE_GROUPS } from './SourceNode'
 import { TargetGroupCard } from './TargetGroupCard'
@@ -1096,40 +1097,14 @@ export function AudioWiringModal(props: {
       const pool = [...(RANDOMIZE_TARGET_POOLS[source] ?? [])]
 
       // Add a few transform targets when transforms exist
-      if (props.transforms.length > 0) {
-        const txIdx = Math.floor(Math.random() * props.transforms.length)
+      const transform =
+        props.transforms[Math.floor(Math.random() * props.transforms.length)]
+      if (transform) {
         pool.push(
-          {
-            kind: 'transformAffine' as const,
-            transformIdx: txIdx,
-            matrix: 'preAffine',
-            param: 'a',
-          },
-          {
-            kind: 'transformAffine' as const,
-            transformIdx: txIdx,
-            matrix: 'preAffine',
-            param: 'd',
-          },
-          {
-            kind: 'transformProperty' as const,
-            transformIdx: txIdx,
-            property: 'probability',
-          },
+          ...transformTargetPool(transform, (count) =>
+            Math.floor(Math.random() * count),
+          ),
         )
-        if (props.transforms[txIdx]!.variations.length > 0) {
-          const v =
-            props.transforms[txIdx]!.variations[
-              Math.floor(
-                Math.random() * props.transforms[txIdx]!.variations.length,
-              )
-            ]!
-          pool.push({
-            kind: 'variationWeight' as const,
-            transformIdx: txIdx,
-            variationType: v.type,
-          })
-        }
       }
 
       // Pick 1-2 targets from the pool
