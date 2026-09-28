@@ -2,23 +2,11 @@
 // every analyzer frame from a fresh state, each output frame showing the
 // analyzer frame of its own time, so an export shows the envelopes and
 // comfort caps the preview showed.
-import { createAudioModulator } from './audioModulator'
+import { analyzerFrameRate, createAudioModulator } from './audioModulator'
 import { applyAudioTargetValues } from './audioTargets'
 import type { AudioAnalyzer } from './audioAnalysis'
 import type { AudioMappingEntry, AudioTargetValue } from './audioMapping'
 import type { ComfortPreset } from '@/comfort/comfortPresets'
-
-/**
- * The frame rate a file analyzer built for `requestedFps` runs at. A frame is
- * a whole number of samples, so 44.1 kHz asked for 24 fps runs at 24.0065
- * frames a second, and 48 kHz asked for 54 at 54.054.
- */
-export function analyzerFrameRate(
-  sampleRate: number,
-  requestedFps: number,
-): number {
-  return sampleRate / Math.floor(sampleRate / requestedFps)
-}
 
 export type ExportAudioModulation = {
   /**

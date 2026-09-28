@@ -2,7 +2,7 @@ import { createRoot, createSignal } from 'solid-js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { reloadComfortPreset, setComfortPreset, } from '@/comfort/comfortPreference'
 import { useAudioReactive } from './useAudioReactive'
-import type { AudioTargetValue, LiveAudioAnalyzer } from './audioAnalysis'
+import type { AudioAnalyzer, AudioTargetValue, LiveAudioAnalyzer, } from './audioAnalysis'
 import type { AudioMapping } from '@/components/AudioReactivePanel/AudioReactivePanel'
 
 // localStorage is not usable in this runtime; the comfort preference lives in
@@ -261,6 +261,115 @@ describe('a mapping removed while audio runs', () => {
     expect(
       published.slice(wired, -1).every((values) => values?.length === 1),
     ).toBe(true)
+    dispose()
+  })
+})
+
+/**
+ * An AudioContext whose clock the test sets. The hook reads the playback
+ * position from `currentTime`; everything else is transport it never needs
+ * to hear.
+ */
+let audioClock = 0
+class SteppedAudioContext {
+  readonly destination = {}
+  get currentTime() {
+    return audioClock
+  }
+  createBufferSource() {
+    return {
+      buffer: null as unknown,
+      loop: false,
+      connect: () => {},
+      disconnect: () => {},
+      start: () => {},
+      stop: () => {},
+    }
+  }
+  suspend() {
+    return Promise.resolve()
+  }
+  resume() {
+    return Promise.resolve()
+  }
+  close() {
+    return Promise.resolve()
+  }
+}
+
+describe('a file played through a late tick', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
+    audioClock = 0
+  })
+
+  it('still delivers a beat that sits on the frame the tick skipped', async () => {
+    vi.useFakeTimers()
+    vi.stubGlobal('AudioContext', SteppedAudioContext)
+    // 48 kHz divides into 30 analyzer frames a second; the beat is frame 5.
+    const analyzer: AudioAnalyzer = {
+      sampleRate: 48_000,
+      totalFrames: 300,
+      duration: 10,
+      getFrameData: (index) => ({
+        bands: [0, 0, 0, 0, 0, 0, 0, 0],
+        rms: 0,
+        centroid: 0,
+        flatness: 0,
+        onsetStrength: 0,
+        isBeat: index === 5,
+      }),
+    }
+    const beatToSkipIters: AudioMapping = {
+      preset: 'custom',
+      mappings: [
+        {
+          audioFeature: 'beat',
+          target: { kind: 'renderSetting', param: 'skipIters' },
+          sensitivity: 1,
+          range: [0, 50],
+          attackMs: 1,
+          releaseMs: 1000,
+        },
+      ],
+    }
+    let dispose = () => {}
+    const published: (AudioTargetValue[] | undefined)[] = []
+    createRoot((rootDispose) => {
+      dispose = rootDispose
+      useAudioReactive(
+        () => true,
+        () => ({ duration: 10 }) as AudioBuffer,
+        () => beatToSkipIters,
+        (values) => {
+          published.push(values)
+        },
+        () => undefined,
+        () => 'file',
+        () => false,
+        () => null,
+        () => {},
+        () => analyzer,
+        () => false,
+        () => ({ renderSettings: { skipIters: 0 } }),
+      )
+    })
+    await Promise.resolve()
+
+    // Ticks at frames 3 and 4, then one 70 ms late: frame 6.
+    for (const seconds of [0.1, 0.134, 0.204]) {
+      audioClock = seconds
+      vi.advanceTimersByTime(34)
+    }
+    const skipIters = published.map((values) => values?.[0]?.value)
+    // Each analyzer frame is 1/30 s. The beat's 1 ms attack takes the
+    // envelope 97% of the way up in its own frame, and frame 6's 1000 ms
+    // release lets it fall 1/31 of the way back.
+    const frame = 1 / 30
+    const attack = frame / (0.001 + frame)
+    const release = frame / (1 + frame)
+    expect(skipIters.at(-1)).toBeCloseTo(50 * attack * (1 - release), 9)
     dispose()
   })
 })

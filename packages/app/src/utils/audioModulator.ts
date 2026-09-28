@@ -32,6 +32,19 @@ export type AudioModulator = {
   reset(): void
 }
 
+/**
+ * The frame rate a file analyzer built for `requestedFps` runs at. A frame is
+ * a whole number of samples, so 44.1 kHz asked for 24 fps runs at 24.0065
+ * frames a second, and 48 kHz asked for 54 at 54.054. A stream over a file
+ * steps its frames at this rate, live and in an export alike.
+ */
+export function analyzerFrameRate(
+  sampleRate: number,
+  requestedFps: number,
+): number {
+  return sampleRate / Math.floor(sampleRate / requestedFps)
+}
+
 /** A target the previous step governed, and the dirty threshold of the mapping that won it. */
 type Governed = { target: FlameTarget; threshold: number }
 

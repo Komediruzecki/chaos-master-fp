@@ -1,6 +1,7 @@
 import { createEffect, onCleanup } from 'solid-js'
+import { MAX_STEP_SECONDS } from '@/comfort/comfortGovernor'
 import { comfortPreset } from '@/comfort/comfortPreference'
-import { createAudioModulator } from './audioModulator'
+import { analyzerFrameRate, createAudioModulator } from './audioModulator'
 import type { Accessor } from 'solid-js'
 import type { AudioAnalyzer, AudioTargetValue, LiveAudioAnalyzer, } from './audioAnalysis'
 import type { AudioMapping } from '@/components/AudioReactivePanel/AudioReactivePanel'
@@ -16,6 +17,9 @@ import type { AudioMapping } from '@/components/AudioReactivePanel/AudioReactive
  * stays the user's.
  */
 type PublishAudioModulation = (values: AudioTargetValue[] | undefined) => void
+
+/** The rate the workspace builds its file analyzer for. */
+const FILE_ANALYZER_FPS = 30
 
 /**
  * Audio-reactive effect hook: plays audio through AudioContext and publishes
@@ -64,6 +68,8 @@ export function useAudioReactive(
   let paused = false
   const modulator = createAudioModulator(comfortPreset())
   let lastTickTime: number | undefined
+  /** The analyzer frame file mode stepped last, counted along the playback clock. */
+  let lastAudioFrame: number | undefined
   /** Is an overlay up right now? See publishModulation / dropModulation. */
   let modulationPublished = false
 
@@ -154,6 +160,7 @@ export function useAudioReactive(
     analyzer = undefined
     modulator.reset()
     lastTickTime = undefined
+    lastAudioFrame = undefined
     dropModulation()
   }
 
@@ -242,33 +249,47 @@ export function useAudioReactive(
         // modulation: it needs the toggle AND the finished analysis, and its
         // absence must not stop the clock above from advancing.
         if (modulationSuspended()) {
-          lastTickTime = undefined
+          lastAudioFrame = undefined
           dropModulation()
           return
         }
         if (!enabled || !analyzer) {
+          lastAudioFrame = undefined
           dropModulation()
           return
         }
 
-        const frame = Math.floor(currentTime * 30)
-        const wrapped =
-          analyzer.totalFrames > 0
-            ? ((frame % analyzer.totalFrames) + analyzer.totalFrames) %
-              analyzer.totalFrames
-            : frame
-
-        const now = globalThis.performance.now()
-        const dt =
-          lastTickTime !== undefined ? (now - lastTickTime) / 1000 : 1 / 30
-        lastTickTime = now
-        const frameData = analyzer.getFrameData(wrapped % analyzer.totalFrames)
-        const { values, changed } = modulator.step(
-          frameData,
-          mappings,
-          dt,
-          baselineFlame(),
+        // Every analyzer frame the clock passed since the last tick, each one
+        // analyzer frame long, as the export steps them: a late tick must not
+        // skip the beat on a frame in between. After a stall only the last
+        // MAX_STEP_SECONDS of frames are stepped, the one capped step a stall
+        // is allowed, and a jump back (a seek) steps the new frame alone.
+        const analyzerFps = analyzerFrameRate(
+          analyzer.sampleRate,
+          FILE_ANALYZER_FPS,
         )
+        const frame = Math.floor(currentTime * analyzerFps)
+        if (frame === lastAudioFrame) return
+        const catchUp = Math.max(1, Math.round(MAX_STEP_SECONDS * analyzerFps))
+        const first =
+          lastAudioFrame === undefined || frame < lastAudioFrame
+            ? frame
+            : Math.max(lastAudioFrame + 1, frame - catchUp + 1)
+        lastAudioFrame = frame
+        const total = analyzer.totalFrames
+        let values: AudioTargetValue[] = []
+        let changed = false
+        for (let step = first; step <= frame; step++) {
+          const index = total > 0 ? ((step % total) + total) % total : step
+          const stepped = modulator.step(
+            analyzer.getFrameData(index),
+            mappings,
+            1 / analyzerFps,
+            baselineFlame(),
+          )
+          values = stepped.values
+          changed ||= stepped.changed
+        }
         settleModulation(mappings.length, values, changed)
       }, tickMs)
 
