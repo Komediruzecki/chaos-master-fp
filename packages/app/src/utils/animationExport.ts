@@ -2,7 +2,7 @@ import { comfortPreset } from '@/comfort/comfortPreference'
 import { DEBUG_MODE } from '@/defaults'
 import { accumulatedPointCount, forceAnimationExportNow, qualityPointCountLimit, setAnimationExportCancel, setAnimationExportProgress, setAnimationExportRunning, setExportAccumulationFraction, setExportQuality, setForceAnimationExportNow, } from '@/flame/renderStats'
 import { DEFAULT_SHUTTER_ANGLE, subFrameLimit, subFrameOffsets, } from '@/utils/motionBlur'
-import { applyAudioTargetValues, createAudioAnalyzer } from './audioAnalysis'
+import { createAudioAnalyzer } from './audioAnalysis'
 import { createAudioVideoEncoder } from './audioExport'
 import { deepClone } from './clone'
 import { createExportAudioModulation } from './exportAudioModulation'
@@ -213,12 +213,7 @@ export function createAnimationExport(
           applyTimelineToFlameAtFrame(timeline, flameClone, subFrame)
 
           // Audio stays on the whole output frame, sub-frames included.
-          if (audioModulation) {
-            applyAudioTargetValues(
-              flameClone,
-              audioModulation.valuesAt(frameIndex, flameClone),
-            )
-          }
+          audioModulation?.applyTo(flameClone, frameIndex)
 
           // Set flame descriptor to the per-frame clone so Flam3 picks it up
           setFlameDescriptor((draft) => {

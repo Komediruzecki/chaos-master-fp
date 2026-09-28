@@ -307,12 +307,12 @@ export type AudioTargetValue = {
 /**
  * Settles every mapping for one audio frame, touching no flame at all.
  *
- * Split out of `applyAudioMappingsToFlame` for the live path, which no longer
- * writes the document: it hands these values to a render-time overlay that
- * rebuilds them onto a copy of the authored flame. The envelope state stays
- * here so it advances exactly once per audio frame — an overlay recomputed
- * because the user edited the flame mid-track must not age the envelopes a
- * second time.
+ * The mapping stage of the modulator (`createAudioModulator`), which the live
+ * overlay and both exports share. It writes nothing: the values go to a
+ * render-time overlay, or into an export's copy of the frame, both built on
+ * the authored flame. The envelope state stays here so it advances exactly
+ * once per audio frame — an overlay recomputed because the user edited the
+ * flame mid-track must not age the envelopes a second time.
  *
  * `changed` is false when every target held still, so the caller can drop the
  * frame instead of publishing one nothing would look different for. With a

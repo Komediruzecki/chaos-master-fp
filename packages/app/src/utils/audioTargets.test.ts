@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest'
 import * as analysis from './audioAnalysis'
 import { flameTargetKey, flameTargetPath } from './audioMapping'
-import { applyAudioMappingsToFlame, applyAudioTargetValues, readTargetValue, } from './audioTargets'
+import { applyAudioTargetValues, readTargetValue } from './audioTargets'
 import type { FlameTarget } from './audioMapping'
 
 describe('audioTargets', () => {
@@ -27,7 +27,6 @@ describe('audioTargets', () => {
 
   it('is the module audioAnalysis re-exports', () => {
     expect(analysis.applyAudioTargetValues).toBe(applyAudioTargetValues)
-    expect(analysis.applyAudioMappingsToFlame).toBe(applyAudioMappingsToFlame)
   })
 })
 

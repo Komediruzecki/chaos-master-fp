@@ -3,8 +3,7 @@
 // the flame schema gives it. Never the open document.
 
 import { projectFlameValue } from '@chaos-master/core'
-import { resolveAudioMappingValues } from './audioMapping'
-import type { AudioMappingEntry, AudioTargetValue, FlameTarget, FrameData, MappingSmoothingState, RenderSettingKey, TransformPropertyKey, TransformTarget, } from './audioMapping'
+import type { AudioTargetValue, FlameTarget, RenderSettingKey, TransformPropertyKey, TransformTarget, } from './audioMapping'
 
 /**
  * A modulated render setting held to the domain the flame schema gives it.
@@ -298,43 +297,4 @@ export function applyAudioTargetValues(
     if (ctx.camera) ctx.rs.camera = ctx.camera
     flame.renderSettings = ctx.rs
   }
-}
-
-/**
- * Settles the mappings for one frame and writes them into `flame`.
- *
- * Targets can be render settings, transform affine coefficients, transform
- * scalar properties, variation weights, or final-transform affine params.
- *
- * Supports attack/release envelope smoothing via optional `attackMs` /
- * `releaseMs` on each mapping entry, and leaves the flame untouched when no
- * mapped value has moved beyond a tiny threshold.
- *
- * For callers that own the flame outright — the two export paths, each with a
- * per-frame clone. The live path settles and applies in two steps instead, so
- * no part of it can reach the open document.
- *
- * @param flame - a flame the caller owns, never the document.
- * @param smoothingState - persistent per-target state (smoothed value, last applied).
- * @param deltaTime - seconds since the previous frame (default 1/30).
- */
-export function applyAudioMappingsToFlame(
-  flame: Record<string, unknown>,
-  frameData: FrameData & { isBeat: boolean },
-  mappings: AudioMappingEntry[],
-  smoothingState?: MappingSmoothingState,
-  deltaTime?: number,
-): void {
-  if (mappings.length === 0) return
-  const { values, changed } = resolveAudioMappingValues(
-    frameData,
-    mappings,
-    smoothingState,
-    deltaTime,
-  )
-  // Nothing moved: leave the flame exactly as it was. The offscreen and
-  // main-canvas exports pass no smoothing state, so every frame is a change
-  // for them and this only ever short-circuits a live caller.
-  if (!changed) return
-  applyAudioTargetValues(flame, values)
 }

@@ -18,12 +18,13 @@
  * (brightness), `zoom`, and `contrast`. Everything here sticks to those, and
  * uses ranges wide enough to see from across the room.
  *
- * RANGES MUST MATCH flameSchema. Audio modulation writes into the live
- * descriptor, so a range past a schema bound leaves the flame permanently
- * invalid — `palettePhase` is 0-1 (NOT radians, which is what [0, 6.28] here
+ * RANGES MUST MATCH flameSchema. Back when audio modulation wrote the live
+ * descriptor, a range past a schema bound left the flame permanently invalid
+ * — `palettePhase` is 0-1 (NOT radians, which is what [0, 6.28] here
  * assumed), and driving it to 1.589 meant that flame could never be bred,
- * exported or opened in the ancestry tree again. `applyAudioMappingsToFlame`
- * clamps as a backstop; these ranges should not need it.
+ * exported or opened in the ancestry tree again. An export still embeds the
+ * modulated flame, so the writers (`applyAudioTargetValues`) hold every value
+ * to the schema as a backstop; these ranges should not need it.
  */
 import type { AudioFeature, AudioMappingEntry, FlameTarget, TransformInfo, } from './audioAnalysis'
 

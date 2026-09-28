@@ -8,7 +8,7 @@ import { Root } from '@/lib/Root'
 import { WheelZoomCamera2D } from '@/lib/WheelZoomCamera2D'
 import { WheelZoomCamera3D } from '@/lib/WheelZoomCamera3D'
 import { assertReplayVideoStatePortable, createReplayVideoDriver, createReplayVideoSchedule, drawReplayVideoOverlay, replayFrameQuality, replayFramesInStateRun, replayStateAtFrame, replayVideoVisualFingerprint, } from '@/recorder/replayVideo'
-import { applyAudioTargetValues, createAudioAnalyzer, } from '@/utils/audioAnalysis'
+import { createAudioAnalyzer } from '@/utils/audioAnalysis'
 import { createAudioVideoEncoder } from '@/utils/audioExport'
 import { deepClone } from '@/utils/clone'
 import { createExportAudioModulation } from '@/utils/exportAudioModulation'
@@ -144,10 +144,7 @@ export function OffscreenAnimationRender(props: { job: AnimationJob }) {
   function frameFlame(frame: number, outputFrame: number): FlameDescriptor {
     const clone = deepClone(job.flame)
     applyTracksToFlame(job.tracks, clone, frame, loopOpts)
-    const modulation = audioModulation()
-    if (modulation) {
-      applyAudioTargetValues(clone, modulation.valuesAt(outputFrame, clone))
-    }
+    audioModulation()?.applyTo(clone, outputFrame)
     return clone
   }
 
