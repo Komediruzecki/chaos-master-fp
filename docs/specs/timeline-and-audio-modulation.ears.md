@@ -97,13 +97,16 @@ not a gap.
   target governed home when its mapping is unwired, and a beat on a frame a late file
   tick passed
 - `packages/app/src/comfort/comfortGovernor.test.ts` and `comfortPresets.test.ts` — the
-  comfort caps in the units the renderer shows, the brightness and zoom windows, seeding,
-  preset switches, stalls, steps of no time and non-finite input (REQ-TA-039)
+  comfort caps in the units the renderer shows, the brightness and zoom windows, the
+  schema's bounds, seeding, preset switches, stalls, steps of no time and non-finite
+  input (REQ-TA-039)
 - `packages/app/src/utils/audioModulator.test.ts` — easing in, targets leaving and
-  returning to the wiring, one step length for envelope and governor (REQ-TA-039)
+  returning to the wiring, a return inside the window a release left, releases that end
+  in every case, a row asking past the schema, one step length for envelope and
+  governor (REQ-TA-039)
 - `packages/app/src/utils/exportAudioModulation.test.ts` and `exportAudioWiring.test.ts` —
-  an export's modulation against the live step, frames read by time, and what an export
-  frame carries (REQ-TA-039)
+  an export's modulation against the live step, frames read by time, the comfort windows
+  held in the video's time, and what an export frame carries (REQ-TA-039)
 - `packages/app/src/utils/audioTargets.test.ts` — the writers, by id, and the value they
   keep for one that is not finite (REQ-TA-032)
 - `packages/app/src/components/AudioReactivePanel/AudioReactivePanel.test.tsx` —
@@ -652,8 +655,9 @@ times from `audioEnvelope.ts:19-27` (`effectiveEnvelope`); guarded by
 The mapper shall convert a smoothed feature into a target value as
 `range[0] + smoothed * sensitivity * (range[1] - range[0])`. Sensitivity scales
 the span rather than clipping it, so a sensitivity above 1 can carry the value
-past `range[1]`; keeping the result inside the schema is REQ-TA-032's job, not
-this formula's.
+past `range[1]`; keeping the result inside the schema is the comfort governor's
+job for what it steps (REQ-TA-039) and the writers' for what they write
+(REQ-TA-032), not this formula's.
 
 _(`audioMapping.ts:175-181` (`mappingToVal`), `:363` (`mappingToVal`); guarded by `audioAnalysisMappings.test.ts:100` "scales the output by the mapping sensitivity".)_
 
@@ -783,8 +787,8 @@ governor of the active preset, `calm`, `standard` or `intense`, in the units the
 renderer shows it in:
 
 - zoom shall move no faster than 0.15 / 0.35 / 0.7 e-folds per second and span no
-  more than 0 / 0.02 / 0.05 e-folds inside any 5 s, so on `calm` zoom holds at its
-  authored value;
+  more than 0 / 0.02 / 0.05 e-folds inside any 5 s, so on `calm` audio holds zoom
+  still;
 - `palettePhase` shall turn no faster than 15 / 45 / 120 degrees per second the
   shorter way round;
 - a brightness setting shall move no faster than 0.3 / 0.6 / 1.5 per second and
@@ -797,31 +801,45 @@ renderer shows it in:
 
 A window holds every pair of outputs up to its length apart, the pair exactly one
 window apart included. The caps limit parameters, not the measured luminance of
-the rendered frame.
+the rendered frame. The governor shall take a mapped value, and the authored value
+it starts from, as near as the renderer can show it: inside the schema's range for
+a render setting (zoom's is the camera's) and no lower than `0.001` for a
+transform probability, so a row that asks past a bound turns back the frame its
+music does.
 
 A target's first governed frame shall start from the value the authored flame
 shows. **When** a target's mapping leaves the wiring — a row removed, a preset
 without it, its target switched — the target shall keep being governed back to
-its authored value and leave the overlay once within its mapping's dirty
-threshold of it (REQ-TA-031); one that returns before then shall turn round from
-the value on screen, and one the flame no longer carries shall leave at once.
+its authored value, or the nearest value it can show, and leave the overlay once
+within its mapping's dirty threshold of it (REQ-TA-031); one that returns before
+then shall turn round from the value on screen. Home, it shall still be governed
+there, off the overlay, for one window of its own, 500 ms for a brightness setting
+and 5 s for zoom, and one that returns inside that window shall be held to the
+outputs its release showed. One the flame no longer carries shall leave at once.
 Only the overlay coming down — audio off, a mic restart, a replay taking the
-document — may cut to the authored flame in one frame, and the governor shall
-start over when it does. A preset change shall apply from the current values
+document — or a release the preset holds still, zoom on `calm`, may cut to the
+authored value in one frame, and the governor shall start over for what it cut.
+A preset change shall apply from the current values
 without a jump: each window keeps the outputs already in it and holds them to
 the new range. A step of no time, or of a value that is not finite, shall move
 nothing, and on a target's first step such a value shall show the authored one.
 A stalled tick shall count as 0.1 s at most, so the frame after a stall moves one
 capped 0.1 s step.
 
-_(`comfortGovernor.ts:261-305` (`createComfortGovernor`), `:180-223` (`advance`), `:78-111` (`renderRule`), `comfortPresets.ts:90-94` (`COMFORT_CAPS`),
-`audioModulator.ts:61-147` (`createAudioModulator`); guarded by `comfortGovernor.test.ts:57` "holds a slow square wave inside the window range on %s at %i fps",
-`:81` "holds a 12 Hz square wave on exposure inside the window range", `:234` "holds %s %s to the window range across its domain",
-`:294` "holds %s zoom under %s at %i fps to its range inside any 5 s", `:341` "holds zoom at its authored value in Calm",
-`:370` "never turns palettePhase faster than the hue cap", `:443` "moves at most one capped step after a stall",
-`:500` "shows the authored value for a first value of %d, then eases in from it", `:534` "keeps the window through a switch to a wider preset",
-`audioModulator.test.ts:135` "governs a departing target back to its authored value", `:160` "eases a target back in when its mapping returns",
-`:211` "switches Bloom to Drift and back inside 300 ms without a flash",
+_(`comfortGovernor.ts:309-361` (`createComfortGovernor`), `:213-256` (`advance`), `:104-139` (`renderRule`), `:49-75` (`schemaSlew`), `comfortPresets.ts:90-94` (`COMFORT_CAPS`),
+`audioModulator.ts:75-197` (`createAudioModulator`), `:86-138` (`release`); guarded by `comfortGovernor.test.ts:57` "holds a slow square wave inside the window range on %s at %i fps",
+`:81` "holds a 12 Hz square wave on exposure inside the window range", `:231` "holds %s %s to the window range across its domain",
+`:302` "holds %s at its schema bound %d and turns back the next frame",
+`:346` "holds %s zoom under %s at %i fps to its range inside any 5 s", `:393` "holds zoom at its authored value in Calm",
+`:422` "never turns palettePhase faster than the hue cap", `:495` "moves at most one capped step after a stall",
+`:552` "shows the authored value for a first value of %d, then eases in from it", `:586` "keeps the window through a switch to a wider preset",
+`audioModulator.test.ts:110` "turns Pulse's bass row at sensitivity 2 back as soon as the bass drops, on %s",
+`:175` "governs a departing target back to its authored value", `:200` "eases a target back in when its mapping returns",
+`:219` "keeps the window of a target home from its release when it returns, on %s %i frames after",
+`:249` "ends a zoom release on Calm, which holds zoom still, by cutting to the authored zoom",
+`:280` "ends a probability release when the authored weight is under the writer's floor",
+`:306` "ends the release of a value authored past the schema at the bound",
+`:361` "switches Bloom to Drift and back inside 300 ms without a flash",
 `useAudioReactive.test.ts:112` "eases the overlay in from it, and again after the mic restarts" and
 `:213` "governs its target home before the overlay comes down".)_
 
@@ -830,14 +848,17 @@ playback clock passed since its last tick, each one analyzer frame long, reading
 analyzer at its real rate: a frame is a whole number of samples, so 44.1 kHz asked
 for 24 frames a second runs at 24.0065. After a stall it shall step only the last
 0.1 s of frames, and after a seek back only the frame under the playhead. An export
-shall step its analyzer the same way, and output frame n shall show the analyzer
-frame at n / fps, so a preview and an export of the same track agree and no beat
-between two frames is lost.
+shall step every analyzer frame up to the one at output frame n's time, n / fps,
+and the frames one output frame steps shall share its 1 / fps, so governed time is
+the video's own: every comfort window holds in the time the video plays in, a
+preview and an export of the same track agree, and no beat between two frames is
+lost.
 
-_(`useAudioReactive.ts:262-293` (`analyzerFrameRate`), `exportAudioModulation.ts:36-79` (`createExportAudioModulation`),
-`audioModulator.ts:35-46` (`analyzerFrameRate`); guarded by `useAudioReactive.test.ts:307` "still delivers a beat that sits on the frame the tick skipped",
-`exportAudioModulation.test.ts:118-123` "steps every analyzer frame up to the one at each output frame's time, at %i fps from %i Hz",
-`:152` "hears a real analyzer's music at the output frame of its time" and
+_(`useAudioReactive.ts:262-293` (`analyzerFrameRate`), `exportAudioModulation.ts:36-93` (`createExportAudioModulation`),
+`audioModulator.ts:37-49` (`analyzerFrameRate`); guarded by `useAudioReactive.test.ts:307` "still delivers a beat that sits on the frame the tick skipped",
+`exportAudioModulation.test.ts:135-140` "steps every analyzer frame up to the one at each output frame's time, at %i fps from %i Hz",
+`:185` "holds the %s windows in video time at %i fps from %i Hz",
+`:233` "hears a real analyzer's music at the output frame of its time" and
 `exportAudioWiring.test.ts:45` "carries the eased, governed values, not the mapped ones".)_
 
 The preset shall be chosen in the Audio Reactive panel's Comfort control and
