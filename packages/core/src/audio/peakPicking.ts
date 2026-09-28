@@ -1,7 +1,7 @@
 // Picking events out of a detection function: the frames where a flux rises
 // above a threshold that follows the music, so a quiet passage keeps its
-// beats after a loud one. Every window and gap is in seconds, converted at the
-// caller's real frame rate.
+// beats after a loud one. Every window and gap is in seconds: converted at a
+// file's real frame rate, or measured on the clock a live input is heard on.
 
 /** How wide the window a beat's threshold is measured over is, in seconds. */
 export const BEAT_WINDOW_SECONDS = 4
@@ -67,4 +67,68 @@ export function detectBeatFrames(
     }
   }
   return beats
+}
+
+/** The shape of a live picker: how far back it looks, how high above the
+ *  mean it sets the bar, and how soon it may fire again, all in seconds. */
+export type CausalPickerOptions = {
+  windowSeconds: number
+  sigmas: number
+  minGapSeconds: number
+}
+
+/**
+ * Picks events from values arriving live, one at a time, each with the time
+ * it was heard. A value is an event when it rises above the value before it
+ * and clears, by `margin`, the mean + `sigmas`·σ of the values of the last
+ * `windowSeconds`, itself included (a live input has no future to centre on),
+ * at least `minGapSeconds` after the last event.
+ */
+export function createCausalPicker(
+  options: CausalPickerOptions,
+): (timeSeconds: number, value: number, margin?: number) => boolean {
+  const history: { time: number; value: number }[] = []
+  let previous = 0
+  let lastEvent = -Infinity
+  return (timeSeconds, value, margin = 0) => {
+    history.push({ time: timeSeconds, value })
+    while (history[0]!.time < timeSeconds - options.windowSeconds) {
+      history.shift()
+    }
+    let sum = 0
+    let sumOfSquares = 0
+    for (const entry of history) {
+      sum += entry.value
+      sumOfSquares += entry.value * entry.value
+    }
+    const mean = sum / history.length
+    const deviation = Math.sqrt(
+      Math.max(0, sumOfSquares / history.length - mean * mean),
+    )
+    const isEvent =
+      value > previous &&
+      value > mean + options.sigmas * deviation + margin &&
+      // A hair under the gap, so float rounding of the clock never drops one.
+      timeSeconds - lastEvent >= options.minGapSeconds - 1e-9
+    previous = value
+    if (isEvent) lastEvent = timeSeconds
+    return isEvent
+  }
+}
+
+/**
+ * Beats in a live input: its band flux, one hop at a time, rising above the
+ * mean + 1.5σ of the past half of a file's window (BEAT_WINDOW_SECONDS / 2),
+ * at least BEAT_MIN_GAP_SECONDS apart.
+ */
+export function createLiveBeatDetector(): (
+  timeSeconds: number,
+  flux: number,
+) => boolean {
+  const pick = createCausalPicker({
+    windowSeconds: BEAT_WINDOW_SECONDS / 2,
+    sigmas: 1.5,
+    minGapSeconds: BEAT_MIN_GAP_SECONDS,
+  })
+  return (timeSeconds, flux) => pick(timeSeconds, flux)
 }

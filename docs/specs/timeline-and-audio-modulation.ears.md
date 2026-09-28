@@ -29,7 +29,8 @@ not a gap.
 - `packages/app/src/utils/audioAnalysis.ts` — FFT bands, beat/onset detection, the
   file and live analyzers, `getAudioFeatureNormalized`, `applyAudioMappingsToFlame`
 - `packages/core/src/audio/` — the pure signal steps the analyzers share: band levels
-  (`bandNormalization.ts`), beat picking (`peakPicking.ts`), onsets
+  (`bandNormalization.ts`, against a file's whole track or a live band's peak), beat
+  picking (`peakPicking.ts`, centred for a file, causal for a live input), onsets
   (`onsetDetection.ts`) and the Hann window (`spectralWindow.ts`)
 - `packages/app/src/utils/useAudioReactive.ts` — the 30 Hz transport + modulation loop
 - `packages/app/src/utils/audioWiringPresets.ts` — render-only and flame-aware presets
@@ -52,16 +53,20 @@ not a gap.
 - `packages/app/src/utils/audioAnalysisMappings.test.ts` — per-target appliers,
   attack/release envelope, dirty-check
 - `packages/core/src/audio/bandNormalization.test.ts` — band levels in decibels against
-  a track's own range
+  a track's own range, and against the peak a live band follows
 - `packages/core/src/audio/peakPicking.test.ts` — beats against a threshold that
-  follows the music, and a minimum gap held in seconds
+  follows the music, centred for a file and causal for a live input, and a minimum
+  gap held in seconds
 - `packages/core/src/audio/onsetDetection.test.ts` — the log spectral flux and the
-  onsets picked from it
+  onsets picked from it, for a file and for a live input
 - `packages/core/src/audio/spectralWindow.test.ts` — the Hann window
 - `packages/app/src/utils/audioAnalysis.test.ts` — the file analyzer on synthetic
   signals: band levels, the raw `rms`, beats, and onsets on a click track
 - `packages/app/src/utils/audioAnalysis.demoTracks.test.ts` — the onsets of the two
   bundled demo tracks
+- `packages/app/src/utils/audioAnalysis.live.test.ts` — the microphone request and
+  the live frame processor: onsets and beats on a click track at 30 and 60 polls a
+  second, the three callers that share one input, and band levels against a peak
 - `packages/app/src/utils/audioMappingClamp.test.ts` — schema clamping, integer
   `skipIters`, probability floor, degenerate ranges
 - `packages/app/src/utils/audioWiringPresets.test.ts` — preset determinism, targets that
@@ -466,7 +471,8 @@ strength measured against the track's loud onsets), and
 `beat` as `1` on a detected beat and `0` otherwise, a beat being a rise of the
 band flux above the mean + 1.5σ of the 4 s around it, at least 0.1 s after the
 last one at the analyzer's real frame rate. An unrecognised feature name
-shall yield `0`.
+shall yield `0`. The microphone has no whole track to measure against; REQ-TA-043
+says how it reaches the same `[0, 1]`.
 
 _(`audioMapping.ts:151-173` (`getAudioFeatureNormalized`), `audioAnalysis.ts:108-162` (`getFftBands`); beats at `:192-209` (`computeBeats`), picked by
 `peakPicking.ts:51-70` (`detectBeatFrames`) at the rate `audioAnalysis.ts:242` (`fps`) gives; onsets from the flux at `:268`
@@ -474,10 +480,10 @@ _(`audioMapping.ts:151-173` (`getAudioFeatureNormalized`), `audioAnalysis.ts:108
 spectrum is the Hann-windowed `fftSize` samples centred on it, `audioAnalysis.ts:88-106`
 (`frameSpectrum`).)_
 
-_(Band levels at `bandNormalization.ts:44-49` (`trackBandRange`), put on every frame of
+_(Band levels at `bandNormalization.ts:45-50` (`trackBandRange`), put on every frame of
 a file at `audioAnalysis.ts:282` (`normalizeTrackBands`); the raw `rms` at `:265`
-(`computeRms`). Guarded by `bandNormalization.test.ts:36` "reads the 10th percentile
-as 0 and the 98th as 1", `:45` "keeps the zero within 45 dB of the top, so a silent
+(`computeRms`). Guarded by `bandNormalization.test.ts:39` "reads the 10th percentile
+as 0 and the 98th as 1", `:48` "keeps the zero within 45 dB of the top, so a silent
 intro does not squash the music", `audioAnalysis.test.ts:18` "reads a band from 0 to 1
 over the range it covers in its track" and `:26` "keeps rms as the raw level of the
 frame".)_
@@ -493,6 +499,43 @@ threshold, strong against the loud onsets", `:49` "finds no onset in silence", `
 "finds no onset in a steady hiss", `audioAnalysis.test.ts:63` "finds an onset at every
 click of a 120 BPM click track at %i fps, %s s off the frame grid, and none in silence"
 and `audioAnalysis.demoTracks.test.ts:44` "%s has %i onsets at 30 fps".)_
+
+### REQ-TA-043 — The microphone is heard as music, timed in seconds
+
+**Where** the source is the microphone, the analyzer shall ask for it with echo
+cancellation, noise suppression and automatic gain control off, and shall take
+each spectrum through a Hann window. A band shall read as its level in decibels
+against a peak that follows that band, rising at once to a louder level and
+falling by a factor of e every 30 s: a level at the peak reads 1, and a level
+45 dB below it reads 0. `rms` shall stay the raw level, as it does for a file.
+An onset shall be a rise of the log spectral flux past the mean + 1.5σ of the
+last second, by at least 5% of the loudest flux so far, no sooner than 50 ms
+after the last one; a beat, a rise of the band flux past the mean + 1.5σ of the
+last 2 s, no sooner than 0.1 s after the last one. Every window, gap and hold
+shall be measured in seconds on the audio clock, so what is found does not
+depend on how often the input is polled. A caller polling within 5 ms of audio
+time of the last analysis shall get that analysis again, and a beat or an
+onset, once found, shall stay up for 50 ms of audio time, so the modulation
+loop sees every one while the wiring editor's meters and node graph poll the
+same input.
+
+_(`audioAnalysis.ts:320-326` (`MIC_CONSTRAINTS`), `:332` (`LIVE_HOP_SECONDS`), `:338`
+(`LIVE_EVENT_HOLD_SECONDS`), `:356-420` (`createLiveFrameProcessor`), `:425-461`
+(`createLiveAnalyzer`); `bandNormalization.ts:94-115` (`createBandPeakNormalizer`),
+`peakPicking.ts:87-117` (`createCausalPicker`), `:124-134` (`createLiveBeatDetector`),
+`onsetDetection.ts:88-111` (`createLiveOnsetDetector`).)_
+
+_(Guarded by `audioAnalysis.live.test.ts:63` "is asked for as music, with the browser
+call processing off", `:80` "finds an onset and a beat at every click polled %i
+times a second, and none in silence", `:96` "shows the modulation loop every event
+while the node graph and the meters poll the same input %s s after it", `:123`
+"gives a caller that polls within 5 ms of the last analysis the same frame", `:131`
+"holds a beat for 50 ms of audio, however often it is polled", `:147` "reads a band
+against its own peak: 45 dB under it is 0, half way is 0.5",
+`bandNormalization.test.ts:106` "lets a peak fall by a factor of e, 8.7 dB, in 30
+s", `peakPicking.test.ts:104` "finds the same beats whether it is asked 30 or 60
+times a second" and `onsetDetection.test.ts:72` "measures an onset against the
+loudest flux so far, which fades over 30 s".)_
 
 ### REQ-TA-029 — Attack and release are a one-pole envelope on the normalized feature
 

@@ -1,7 +1,7 @@
 // Onsets from the log spectral flux: strengths on [0, 1] at the peaks that
 // clear a threshold following the music, 0 everywhere else.
 import { describe, expect, it } from 'vitest'
-import { detectOnsets, logSpectralFlux, ONSET_LOG_GAIN } from './onsetDetection'
+import { createLiveOnsetDetector, detectOnsets, logSpectralFlux, ONSET_LOG_GAIN, } from './onsetDetection'
 
 /** Indices of the non-zero entries. */
 function onsetFrames(strengths: Float32Array): number[] {
@@ -56,5 +56,41 @@ describe('detectOnsets', () => {
       i % 2 === 0 ? 0.0059 : 0.0062,
     )
     expect(onsetFrames(detectOnsets(flux, 30))).toEqual([])
+  })
+})
+
+describe('createLiveOnsetDetector', () => {
+  /** The strengths a live detector gives a flux heard `rate` times a second. */
+  function liveStrengths(rate: number, flux: (time: number) => number) {
+    const detect = createLiveOnsetDetector()
+    return Array.from({ length: 10 * rate }, (_, k) => {
+      const time = k / rate
+      return { time, strength: detect(time, flux(time)) }
+    }).filter((entry) => entry.strength > 0)
+  }
+
+  it('measures an onset against the loudest flux so far, which fades over 30 s', () => {
+    const onsets = liveStrengths(30, (time) =>
+      time === 1 ? 0.5 : time === 1.5 ? 0.25 : 0,
+    )
+    expect(onsets.map((entry) => entry.time)).toEqual([1, 1.5])
+    expect(onsets[0]!.strength).toBe(1)
+    // Half a second on, the loudest flux has faded to 0.5 exp(-0.5 / 30).
+    expect(onsets[1]!.strength).toBeCloseTo(
+      0.25 / (0.5 * Math.exp(-0.5 / 30)),
+      6,
+    )
+  })
+
+  it('finds no onset in silence', () => {
+    expect(liveStrengths(30, () => 0)).toEqual([])
+  })
+
+  it('finds no onset in a steady hiss', () => {
+    expect(
+      liveStrengths(30, (time) =>
+        Math.round(time * 30) % 2 === 0 ? 0.0059 : 0.0062,
+      ),
+    ).toEqual([])
   })
 })

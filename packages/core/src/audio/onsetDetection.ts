@@ -4,8 +4,8 @@
 // an onset where that flux peaks above a threshold that follows the music; its
 // value is a strength on [0, 1], and 0 between onsets.
 
-import { quantileOfSorted } from './bandNormalization'
-import { centredThresholds } from './peakPicking'
+import { PEAK_RELEASE_SECONDS, quantileOfSorted } from './bandNormalization'
+import { centredThresholds, createCausalPicker } from './peakPicking'
 
 /** The gain inside log(1 + gain * |X|). Puts music's typical bins, 1e-4 to
  *  1e-2 of full scale, on the logarithmic part of the curve. */
@@ -77,4 +77,35 @@ export function detectOnsets(
     }
   }
   return strengths
+}
+
+/**
+ * Onsets in a live input, from its flux one hop at a time: the rule of
+ * `detectOnsets` with the past only. The loud onsets' flux is a running peak,
+ * up at once and down by a factor of e in PEAK_RELEASE_SECONDS, and an
+ * onset's strength is its flux against it.
+ */
+export function createLiveOnsetDetector(): (
+  timeSeconds: number,
+  flux: number,
+) => number {
+  const pick = createCausalPicker({
+    windowSeconds: ONSET_WINDOW_SECONDS,
+    sigmas: 1.5,
+    minGapSeconds: ONSET_MIN_GAP_SECONDS,
+  })
+  let loud = ONSET_FLUX_FLOOR
+  let lastTime: number | undefined
+  return (timeSeconds, flux) => {
+    const dt = lastTime === undefined ? 0 : Math.max(0, timeSeconds - lastTime)
+    lastTime = timeSeconds
+    loud = Math.max(
+      flux,
+      ONSET_FLUX_FLOOR,
+      loud * Math.exp(-dt / PEAK_RELEASE_SECONDS),
+    )
+    return pick(timeSeconds, flux, ONSET_MARGIN * loud)
+      ? Math.min(1, flux / loud)
+      : 0
+  }
 }

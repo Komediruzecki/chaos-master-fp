@@ -1,7 +1,7 @@
 // Picking beats out of a band flux: a threshold that follows the music, and a
 // minimum gap held in seconds.
 import { describe, expect, it } from 'vitest'
-import { centredThresholds, detectBeatFrames } from './peakPicking'
+import { centredThresholds, createCausalPicker, createLiveBeatDetector, detectBeatFrames, } from './peakPicking'
 
 /** A flux at `fps` with a peak every 0.5 s: `loud` for the first 8 s, then
  *  `quiet`, over a floor of 0.001, 16 s in all. */
@@ -65,5 +65,55 @@ describe('detectBeatFrames', () => {
 
   it('finds no beat in silence', () => {
     expect(detectBeatFrames(new Float64Array(300), 30).size).toBe(0)
+  })
+})
+
+describe('createCausalPicker', () => {
+  const options = { windowSeconds: 1, sigmas: 1.5, minGapSeconds: 0.1 }
+
+  it('fires when a value rises past the mean + 1.5σ of the last second', () => {
+    const pick = createCausalPicker(options)
+    const fired = Array.from({ length: 45 }, (_, k) =>
+      pick(k / 30, k === 30 ? 1 : 0),
+    )
+    expect(fired.flatMap((event, k) => (event ? [k] : []))).toEqual([30])
+  })
+
+  it('needs a value to clear the threshold by the margin it is given', () => {
+    const pick = createCausalPicker(options)
+    for (let k = 0; k < 30; k++) pick(k / 30, k % 2 === 0 ? 0.9 : 1)
+    // The last second holds 0.9 and 1 in turn, and now 1.1: its threshold is
+    // about 1.04, so 1.1 falls short by the margin.
+    expect(pick(1, 1.1, 0.1)).toBe(false)
+    expect(pick(31 / 30, 0.9)).toBe(false)
+    expect(pick(32 / 30, 1.2, 0.1)).toBe(true)
+  })
+
+  it('keeps events at least minGapSeconds apart', () => {
+    const pick = createCausalPicker(options)
+    for (let k = 0; k < 30; k++) pick(k / 60, 0)
+    expect(pick(0.5, 1)).toBe(true)
+    expect(pick(0.55, 0)).toBe(false)
+    expect(pick(0.583, 1)).toBe(false) // 83 ms after the last
+    expect(pick(0.6, 0)).toBe(false)
+    expect(pick(0.65, 1)).toBe(true) // 150 ms after it
+  })
+})
+
+describe('createLiveBeatDetector', () => {
+  it('finds the same beats whether it is asked 30 or 60 times a second', () => {
+    const beatTimes = (rate: number) => {
+      const detect = createLiveBeatDetector()
+      const times: number[] = []
+      for (let k = 0; k < 6 * rate; k++) {
+        const time = k / rate
+        // A flux spike every half second from 1 s on.
+        const spike = time >= 1 && k % (rate / 2) === 0
+        if (detect(time, spike ? 1 : 0.01)) times.push(time)
+      }
+      return times
+    }
+    expect(beatTimes(30)).toEqual([1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5])
+    expect(beatTimes(60)).toEqual(beatTimes(30))
   })
 })

@@ -1,8 +1,9 @@
 // Band levels for audio-reactive mapping. A band's raw level, its mean FFT
 // magnitude, is about 0.001 on real music, so a mapping driven by it barely
-// moves. In decibels, against the range the band covers in its own track, it
-// uses the whole of [0, 1]. Deterministic: a track gives the same levels on
-// every run, so the live preview of a file and its export agree.
+// moves. In decibels, against the range the band covers, it uses the whole of
+// [0, 1]. A file is measured against its whole track, deterministically, so
+// the live preview of a file and its export agree; a live input, which has no
+// end to look ahead to, against a peak that follows each band.
 
 /** What digital silence reads as, in dB: log10(0) has no value. */
 export const SILENT_DB = -200
@@ -70,4 +71,45 @@ export function normalizeTrackBands(
       bandLevel(amplitudeToDb(amplitude), ranges[b]!),
     ),
   )
+}
+
+/** How long a live band's peak takes to fall by a factor of e, 8.7 dB, once
+ *  the music gets quieter, in seconds. */
+export const PEAK_RELEASE_SECONDS = 30
+
+/** The lowest a live band's peak falls to, so digital silence reads 0. */
+export const MIN_PEAK_DB = -100
+
+/** Live band levels, one call per analysed hop. */
+export type BandPeakNormalizer = {
+  /** Band amplitudes to levels on [0, 1], `dtSeconds` after the last call. */
+  levels(amplitudes: readonly number[], dtSeconds: number): number[]
+}
+
+/**
+ * Band levels for a live input, a microphone. Each band follows its own
+ * peak, up at once and down by PEAK_RELEASE_SECONDS, never below MIN_PEAK_DB.
+ * A level reads 1 at the peak and 0 BAND_FLOOR_DB below it.
+ */
+export function createBandPeakNormalizer(): BandPeakNormalizer {
+  const releaseDbPerSecond = (20 * Math.log10(Math.E)) / PEAK_RELEASE_SECONDS
+  const peaksDb: number[] = []
+  return {
+    levels(amplitudes, dtSeconds) {
+      const fall = releaseDbPerSecond * Math.max(0, dtSeconds)
+      return amplitudes.map((amplitude, b) => {
+        const levelDb = amplitudeToDb(amplitude)
+        const peakDb = Math.max(
+          levelDb,
+          (peaksDb[b] ?? MIN_PEAK_DB) - fall,
+          MIN_PEAK_DB,
+        )
+        peaksDb[b] = peakDb
+        return bandLevel(levelDb, {
+          floorDb: peakDb - BAND_FLOOR_DB,
+          spanDb: BAND_FLOOR_DB,
+        })
+      })
+    },
+  }
 }

@@ -2,7 +2,7 @@
 // live microphone. The mapping stage (audioMapping.ts) and the flame writers
 // (audioTargets.ts) are re-exported from here, so importers keep one path.
 
-import { detectBeatFrames, detectOnsets, hannWindow, logSpectralFlux, normalizeTrackBands, } from '@chaos-master/core'
+import { createBandPeakNormalizer, createLiveBeatDetector, createLiveOnsetDetector, detectBeatFrames, detectOnsets, hannWindow, logSpectralFlux, normalizeTrackBands, } from '@chaos-master/core'
 import type { FrameData } from './audioMapping'
 
 export * from './audioMapping'
@@ -315,37 +315,118 @@ export function detectBeats(frames: FrameData[], fps: number): Set<number> {
 
 // --- Live microphone analyzer ---
 
-function detectBeatFromHistory(history: FrameData[]): boolean {
-  if (history.length < 4) return false
-  const fluxes: number[] = []
-  for (let i = 1; i < history.length; i++) {
-    const prev = history[i - 1]!
-    const curr = history[i]!
-    let diff = 0
-    for (let b = 0; b < BAND_COUNT; b++) {
-      const d = (curr.bands[b] ?? 0) - (prev.bands[b] ?? 0)
-      if (d > 0) diff += d
-    }
-    fluxes.push(diff)
-  }
-  const mean = fluxes.reduce((a, b) => a + b, 0) / fluxes.length
-  const variance =
-    fluxes.reduce((a, b) => a + (b - mean) ** 2, 0) / fluxes.length
-  const threshold = mean + 1.5 * Math.sqrt(variance)
-  const latest = fluxes[fluxes.length - 1]!
-  const previous = fluxes.length > 1 ? fluxes[fluxes.length - 2]! : 0
-  return latest > threshold && latest > previous
+/** The microphone as music, not as a call: echo cancellation, noise
+ *  suppression and automatic gain would reshape what the flame hears. */
+export const MIC_CONSTRAINTS = {
+  audio: {
+    echoCancellation: false,
+    noiseSuppression: false,
+    autoGainControl: false,
+  },
+} satisfies MediaStreamConstraints
+
+/** The least audio time between two analyses of the live input. Reads this
+ *  close hold the same samples, give or take one 128-sample render quantum
+ *  (3 ms at 44.1 kHz), so callers polling in one frame, a panel's meters and
+ *  the render loop, share one analysis, and it advances once. */
+export const LIVE_HOP_SECONDS = 0.005
+
+/** How long a live beat or onset stays up once found, on the audio clock. A
+ *  caller polling at least every 50 ms sees it, whichever poll found it, and
+ *  an envelope takes in a pulse of about the same length at 30 and 60 Hz (67
+ *  and 50 ms) instead of one poll's (33 and 17 ms). */
+export const LIVE_EVENT_HOLD_SECONDS = 0.05
+
+/** Turns the newest samples of a live input into frames. */
+export type LiveFrameProcessor = {
+  /** The frame for `timeDomain`, the newest `fftSize` samples, heard at
+   *  `timeSeconds` on the audio clock. */
+  process(
+    timeDomain: Float32Array,
+    timeSeconds: number,
+  ): FrameData & { isBeat: boolean }
 }
 
-/** Creates a real-time audio analyzer from the microphone. Uses Web Audio
- *  AnalyserNode for FFT data, producing FrameData compatible with the
- *  file-based analyzer so the same applyAudioMappingsToFlame works unchanged. */
+/**
+ * The live analysis, apart from the browser so it can run on any signal: the
+ * file analyzer's spectrum (Hann-windowed), bands against a peak that follows
+ * each band, beats and onsets picked from the past only, and every window and
+ * gap in seconds on the audio clock rather than in calls.
+ */
+export function createLiveFrameProcessor(
+  sampleRate: number,
+  fftSize: number,
+): LiveFrameProcessor {
+  const window = hannWindow(fftSize)
+  const bandLevels = createBandPeakNormalizer()
+  const onsets = createLiveOnsetDetector()
+  const beats = createLiveBeatDetector()
+  let previousMags: Float32Array | undefined
+  let previousBands: number[] | undefined
+  let lastTime: number | undefined
+  let last: FrameData & { isBeat: boolean } = {
+    bands: new Array<number>(BAND_COUNT).fill(0),
+    rms: 0,
+    centroid: 0,
+    flatness: 0,
+    onsetStrength: 0,
+    isBeat: false,
+  }
+  let onsetStrength = 0
+  let onsetUntil = -Infinity
+  let beatUntil = -Infinity
+
+  return {
+    process(timeDomain, timeSeconds) {
+      if (lastTime !== undefined && timeSeconds - lastTime < LIVE_HOP_SECONDS) {
+        return { ...last }
+      }
+      const dt = lastTime === undefined ? 0 : timeSeconds - lastTime
+      lastTime = timeSeconds
+
+      const mags = frameSpectrum(timeDomain, 0, window)
+      const { bands, centroid, flatness } = getFftBands(mags, sampleRate)
+      // Band flux and log flux against the last hop; the first hop has none.
+      let bandFlux = 0
+      if (previousBands) {
+        for (let b = 0; b < BAND_COUNT; b++) {
+          bandFlux += Math.max(0, bands[b]! - previousBands[b]!)
+        }
+      }
+      const flux = previousMags ? logSpectralFlux(previousMags, mags) : 0
+      previousMags = mags
+      previousBands = bands
+
+      const strength = onsets(timeSeconds, flux)
+      if (strength > 0) {
+        onsetStrength = strength
+        onsetUntil = timeSeconds + LIVE_EVENT_HOLD_SECONDS
+      }
+      if (beats(timeSeconds, bandFlux)) {
+        beatUntil = timeSeconds + LIVE_EVENT_HOLD_SECONDS
+      }
+      last = {
+        bands: bandLevels.levels(bands, dt),
+        // The raw level, as the file analyzer keeps it.
+        rms: computeRms(timeDomain),
+        centroid,
+        flatness,
+        onsetStrength: timeSeconds < onsetUntil ? onsetStrength : 0,
+        isBeat: timeSeconds < beatUntil,
+      }
+      return { ...last }
+    },
+  }
+}
+
+/** Creates a real-time audio analyzer from the microphone. The browser's
+ *  AnalyserNode hands over the newest samples; createLiveFrameProcessor turns
+ *  them into FrameData the file analyzer's consumers read unchanged. */
 export async function createLiveAnalyzer(
   targetFps: number = 30,
 ): Promise<LiveAudioAnalyzer> {
-  const stream = await globalThis.navigator.mediaDevices.getUserMedia({
-    audio: true,
-  })
+  const stream =
+    await globalThis.navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS)
   const audioCtx = new AudioContext()
   const sampleRate = audioCtx.sampleRate
 
@@ -359,70 +440,14 @@ export async function createLiveAnalyzer(
 
   source.connect(analyser)
 
-  const history: FrameData[] = []
-  const maxHistory = Math.ceil(targetFps * 2)
-  const minGapFrames = Math.max(1, Math.floor(0.1 * targetFps))
-  let lastBeatAt = -minGapFrames
-  let frameCount = 0
-
-  // Onset detection state — tracks recent energy deltas for rolling median.
-  const onsetDeltaHistory: number[] = []
-  const onsetWindowSize = 15
-  let prevOnsetEnergy = 0
-
-  // Pre-allocated FFT buffers reused every frame to avoid GC pressure at 30fps.
-  const fftReal = new Float64Array(fftSize)
-  const fftImag = new Float64Array(fftSize)
-  const fftMags = new Float32Array(fftSize / 2)
+  const processor = createLiveFrameProcessor(sampleRate, fftSize)
   const timeData = new Float32Array(fftSize)
 
-  const getFrameData = (): FrameData & { isBeat: boolean } => {
-    analyser.getFloatTimeDomainData(timeData)
-
-    // Inline FFT reusing pre-allocated buffers (frameSpectrum's, without its window).
-    for (let i = 0; i < fftSize; i++) fftReal[i] = timeData[i] ?? 0
-    fftImag.fill(0)
-    fft(fftReal, fftImag)
-    for (let k = 0; k < fftSize / 2; k++) {
-      fftMags[k] =
-        Math.sqrt(fftReal[k]! * fftReal[k]! + fftImag[k]! * fftImag[k]!) /
-        fftSize
-    }
-    const { bands, centroid, flatness } = getFftBands(fftMags, sampleRate)
-    const rms = computeRms(timeData)
-
-    // Onset strength from frame-to-frame energy delta
-    const energy = rms * Math.max(1, centroid)
-    const delta = Math.max(0, energy - prevOnsetEnergy)
-    prevOnsetEnergy = energy
-
-    onsetDeltaHistory.push(delta)
-    if (onsetDeltaHistory.length > onsetWindowSize) onsetDeltaHistory.shift()
-
-    let onsetStrength = 0
-    if (onsetDeltaHistory.length >= 3) {
-      const sorted = [...onsetDeltaHistory].sort((a, b) => a - b)
-      const median = sorted[Math.floor(sorted.length / 2)]!
-      if (delta > median * 2.5 && median > 1e-8) {
-        onsetStrength = Math.min(1, delta / (median * 5))
-      }
-    }
-
-    const frame: FrameData = { bands, rms, centroid, flatness, onsetStrength }
-
-    history.push(frame)
-    if (history.length > maxHistory) history.shift()
-
-    const isBeatCurrent =
-      frameCount - lastBeatAt >= minGapFrames && detectBeatFromHistory(history)
-    if (isBeatCurrent) lastBeatAt = frameCount
-
-    frameCount++
-    return { ...frame, isBeat: isBeatCurrent }
-  }
-
   return {
-    getFrameData,
+    getFrameData() {
+      analyser.getFloatTimeDomainData(timeData)
+      return processor.process(timeData, audioCtx.currentTime)
+    },
     sampleRate,
     dispose() {
       stream.getTracks().forEach((t) => {

@@ -199,7 +199,7 @@ file instead of rediscovering the architecture every session.
 <!-- prettier-ignore-start -->
 | Module | Entry point | What it is |
 |---|---|---|
-| `audio` | [onsetDetection.ts](../../packages/core/src/audio/onsetDetection.ts) | Onsets: the moments a sound starts, a drum hit, a pluck, a consonant. |
+| `audio` | [peakPicking.ts](../../packages/core/src/audio/peakPicking.ts) | Picking events out of a detection function: the frames where a flux rises above a threshold that follows the music, so a quiet passage ke... |
 | `deepzoom` | [deepZoomView.ts](../../packages/core/src/deepzoom/deepZoomView.ts) | The deep-zoom camera: a centre with unlimited digits and a magnification held as a power of two. |
 | `diff` | [fdiff.ts](../../packages/core/src/diff/fdiff.ts) | _(no header comment)_ |
 | `math` | [affine3DView.ts](../../packages/core/src/math/affine3DView.ts) | _(no header comment)_ |

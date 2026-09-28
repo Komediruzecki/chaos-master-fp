@@ -1,7 +1,10 @@
 // Band levels for audio-reactive mapping: decibels placed on [0, 1] against
 // the range each band covers over its own track.
 import { describe, expect, it } from 'vitest'
-import { amplitudeToDb, bandLevel, normalizeTrackBands, quantileOfSorted, SILENT_DB, trackBandRange, } from './bandNormalization'
+import { amplitudeToDb, bandLevel, createBandPeakNormalizer, normalizeTrackBands, quantileOfSorted, SILENT_DB, trackBandRange, } from './bandNormalization'
+
+/** The amplitude of a level in dB. */
+const amplitude = (db: number) => 10 ** (db / 20)
 
 /** 101 levels, -60 dB to -20 dB in 0.4 dB steps. */
 const RAMP_DB = Array.from({ length: 101 }, (_, i) => -60 + 0.4 * i)
@@ -89,5 +92,40 @@ describe('normalizeTrackBands', () => {
 
   it('returns no frames for no frames', () => {
     expect(normalizeTrackBands([])).toEqual([])
+  })
+})
+
+describe('createBandPeakNormalizer', () => {
+  it('reads a band at its own peak as 1 and 45 dB below it as 0', () => {
+    const bands = createBandPeakNormalizer()
+    expect(bands.levels([amplitude(-20)], 0)).toEqual([1])
+    expect(bands.levels([amplitude(-65)], 0)[0]).toBeCloseTo(0, 9)
+    expect(bands.levels([amplitude(-42.5)], 0)[0]).toBeCloseTo(0.5, 9)
+  })
+
+  it('lets a peak fall by a factor of e, 8.7 dB, in 30 s', () => {
+    const bands = createBandPeakNormalizer()
+    bands.levels([amplitude(-20)], 0)
+    // 30 s on, the peak is 20 log10(e) dB lower: -28.69 dB, the zero at -73.69.
+    const fallen = -20 - 20 * Math.log10(Math.E)
+    expect(bands.levels([amplitude(-40)], 30)[0]).toBeCloseTo(
+      (-40 - (fallen - 45)) / 45,
+      9,
+    )
+  })
+
+  it('follows each band on its own', () => {
+    const bands = createBandPeakNormalizer()
+    expect(bands.levels([amplitude(-20), amplitude(-60)], 0)).toEqual([1, 1])
+    expect(bands.levels([amplitude(-20), amplitude(-80)], 0.02)[1]).toBeCloseTo(
+      (-80 - (-60 - (0.02 * 20 * Math.log10(Math.E)) / 30 - 45)) / 45,
+      9,
+    )
+  })
+
+  it('never lets a peak fall below -100 dB, so digital silence reads 0', () => {
+    const bands = createBandPeakNormalizer()
+    expect(bands.levels([0], 0)).toEqual([0])
+    expect(bands.levels([0], 3600)).toEqual([0])
   })
 })
