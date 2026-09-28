@@ -180,6 +180,9 @@ function applyTransformAffineTarget(
   tgt: Extract<FlameTarget, { kind: 'transformAffine' }>,
   val: number,
 ): void {
+  // A non-finite coefficient sends every point through this transform to
+  // infinity: keep the authored one.
+  if (!Number.isFinite(val)) return
   const tx = targetTransform(flame, tgt, ctx)
   if (!tx) return
   const mat = (tx[tgt.matrix] as Record<string, number> | undefined) ?? {}
@@ -197,6 +200,9 @@ function applyTransformPropertyTarget(
   if (!tx) return
 
   if (tgt.property === 'colorX' || tgt.property === 'colorY') {
+    // A non-finite colour coordinate has no palette colour: keep the
+    // authored one.
+    if (!Number.isFinite(val)) return
     const color = (tx.color as Record<string, number>) ?? { x: 0, y: 0 }
     if (tgt.property === 'colorX') color.x = val
     else color.y = val
@@ -243,6 +249,8 @@ function applyFinalAffineTarget(
   tgt: Extract<FlameTarget, { kind: 'finalAffine' }>,
   val: number,
 ): void {
+  // As for a transform's own affine: keep the authored coefficient.
+  if (!Number.isFinite(val)) return
   const fin = (flame.finalTransform as Record<string, number> | undefined) ?? {}
   fin[tgt.param] = val
   flame.finalTransform = fin

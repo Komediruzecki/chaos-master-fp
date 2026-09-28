@@ -2,8 +2,9 @@
 // write, the schema hold on render settings, and the re-export.
 import { describe, expect, it } from 'vitest'
 import * as analysis from './audioAnalysis'
-import { flameTargetKey } from './audioMapping'
+import { flameTargetKey, flameTargetPath } from './audioMapping'
 import { applyAudioMappingsToFlame, applyAudioTargetValues, readTargetValue, } from './audioTargets'
+import type { FlameTarget } from './audioMapping'
 
 describe('audioTargets', () => {
   it('writes a render setting into the flame it is given', () => {
@@ -190,5 +191,58 @@ describe('variation weights stay finite', () => {
       ])
       expect(flame.transforms.t_only.variations.v_only.weight).toBe(0.7)
     }
+  })
+})
+
+describe('every writer keeps the authored value for a value that is not finite', () => {
+  const authoredFlame = () => ({
+    transforms: {
+      t0: {
+        preAffine: { a: 0.9, b: 0, c: 0.1, d: 0, e: 0.8, f: 0 },
+        postAffine: { a: 1, b: 0, c: 0, d: 0, e: 1, f: 0 },
+        color: { x: 0.3, y: 0.6 },
+      },
+    },
+    finalTransform: { a: 1, b: 0, c: 0.05, d: 0, e: 1, f: 0 },
+  })
+  const targets: FlameTarget[] = [
+    {
+      kind: 'transformAffine',
+      transformIdx: 0,
+      transformId: 't0',
+      matrix: 'preAffine',
+      param: 'a',
+    },
+    {
+      kind: 'transformAffine',
+      transformIdx: 0,
+      transformId: 't0',
+      matrix: 'postAffine',
+      param: 'c',
+    },
+    {
+      kind: 'transformProperty',
+      transformIdx: 0,
+      transformId: 't0',
+      property: 'colorX',
+    },
+    {
+      kind: 'transformProperty',
+      transformIdx: 0,
+      transformId: 't0',
+      property: 'colorY',
+    },
+    { kind: 'finalAffine', param: 'c' },
+  ]
+  const cases = targets.flatMap((target) =>
+    [Number.NaN, Infinity, -Infinity].map(
+      (value) => [flameTargetPath(target), value, target] as const,
+    ),
+  )
+
+  it.each(cases)('%s keeps its authored value for %d', (_, value, target) => {
+    const flame = authoredFlame()
+    applyAudioTargetValues(flame, [{ target, value }])
+    expect(flame).toEqual(authoredFlame())
   })
 })
