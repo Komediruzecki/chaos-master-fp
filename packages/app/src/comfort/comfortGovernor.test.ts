@@ -7,6 +7,10 @@ import { COMFORT_CAPS, COMFORT_PRESETS } from './comfortPresets'
 import type { FlameTarget } from '@/utils/audioMapping'
 
 const exposure: FlameTarget = { kind: 'renderSetting', param: 'exposure' }
+const highlight: FlameTarget = {
+  kind: 'renderSetting',
+  param: 'highlightPower',
+}
 const zoom: FlameTarget = { kind: 'renderSetting', param: 'zoom' }
 const phase: FlameTarget = { kind: 'renderSetting', param: 'palettePhase' }
 const skipIters: FlameTarget = { kind: 'renderSetting', param: 'skipIters' }
@@ -26,7 +30,52 @@ function lcg(seed: number): () => number {
   }
 }
 
+/** The widest swing between two outputs at most `span` frames apart. */
+function worstSwing(out: readonly number[], span: number): number {
+  let worst = 0
+  for (let i = 0; i < out.length; i++) {
+    for (let j = i + 1; j <= Math.min(out.length - 1, i + span); j++) {
+      worst = Math.max(worst, Math.abs(out[i]! - out[j]!))
+    }
+  }
+  return worst
+}
+
+const PRESETS_BY_RATE = COMFORT_PRESETS.flatMap((preset) =>
+  [24, 30, 32, 60, 64].map((fps) => [preset, fps] as const),
+)
+
 describe('the brightness window', () => {
+  // At these rates 500 ms is a whole number of frames, so an output sits
+  // exactly one window before another. Each half period of the square wave
+  // outlasts the window, so the window, not the wave, sets the swing. Time is
+  // summed step by step, and at 60 fps the rounding first costs this wave a
+  // step after more than eight seconds: hence twenty.
+  it.each(PRESETS_BY_RATE)(
+    'holds a slow square wave inside the window range on %s at %i fps',
+    (preset, fps) => {
+      const governor = createComfortGovernor(preset)
+      const { brightnessWindowRange, brightnessWindowSeconds } =
+        COMFORT_CAPS[preset]
+      const out: number[] = []
+      for (let frame = 0; frame < fps * 20; frame++) {
+        const high = Math.floor(frame / (0.8 * fps)) % 2 === 0
+        out.push(
+          governor.step(
+            highlight,
+            'render.highlightPower',
+            high ? 1.8 : 0.2,
+            1 / fps,
+            () => 1,
+          ),
+        )
+      }
+      expect(
+        worstSwing(out, Math.round(brightnessWindowSeconds * fps)),
+      ).toBeLessThanOrEqual(brightnessWindowRange + 1e-9)
+    },
+  )
+
   it('holds a 12 Hz square wave on exposure inside the window range', () => {
     const fps = 60
     for (const preset of COMFORT_PRESETS) {

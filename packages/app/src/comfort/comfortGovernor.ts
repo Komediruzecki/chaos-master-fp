@@ -9,6 +9,15 @@ import type { FlameTarget, RenderSettingKey, TransformPropertyKey, } from '@/uti
 /** A stalled tick (a background tab, a breakpoint) counts as this long at most. */
 export const MAX_STEP_SECONDS = 0.1
 
+/**
+ * How long an output stays in a window past the window's length. Time is a
+ * float sum of step lengths, so an output exactly one window old can read a
+ * hair older than that and leave the window one step early, which lets the
+ * next output go one step past the range. A microsecond is far above that
+ * rounding and far below any frame.
+ */
+const WINDOW_SLACK_SECONDS = 1e-6
+
 /** Floor for the log-space settings: ln(0) has no slew. */
 export const LOG_FLOOR = 1e-3
 
@@ -141,7 +150,8 @@ function advance(
   let next = state.y + clamp(u - state.y, -limit, limit)
   if (rule.window) {
     const { range, seconds } = rule.window
-    const cutoff = state.t - seconds
+    // Every output at most `seconds` old stays, the one exactly that old too.
+    const cutoff = state.t - seconds - WINDOW_SLACK_SECONDS
     while (state.history.length > 0 && state.history[0]!.t < cutoff) {
       state.history.shift()
     }
