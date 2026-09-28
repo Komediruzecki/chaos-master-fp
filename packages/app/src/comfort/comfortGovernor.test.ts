@@ -273,11 +273,88 @@ describe('the units the renderer shows', () => {
   })
 })
 
+describe('the zoom window', () => {
+  // The old Drift row: mids mapped onto zoom [0.85, 1.22], on a flame
+  // authored at 1.1. Breathing at 0.1-0.5 Hz is the zoom most likely to make
+  // a viewer sick, and Calm allows no beat pulse at all.
+  const rowZoom = (level: number) => 0.85 + level * (1.22 - 0.85)
+  const inputs = {
+    'a 0.3 Hz sinusoid': (t: number) =>
+      0.5 + 0.5 * Math.sin(2 * Math.PI * 0.3 * t),
+    'a 2 Hz square wave': (t: number) => (Math.floor(t * 4) % 2 === 0 ? 1 : 0),
+  }
+  const cases = COMFORT_PRESETS.flatMap((preset) =>
+    (Object.keys(inputs) as (keyof typeof inputs)[]).flatMap((input) =>
+      [30, 60].map((fps) => [preset, input, fps] as const),
+    ),
+  )
+
+  it.each(cases)(
+    'holds %s zoom under %s at %i fps to its range inside any 5 s',
+    (preset, input, fps) => {
+      const { zoomLogRate, zoomWindowRange, zoomWindowSeconds } =
+        COMFORT_CAPS[preset]
+      const governor = createComfortGovernor(preset)
+      // The authored zoom is the first thing on screen.
+      const ln = [Math.log(1.1)]
+      for (let frame = 1; frame <= fps * 30; frame++) {
+        const asked = rowZoom(inputs[input](frame / fps))
+        ln.push(
+          Math.log(
+            governor.step(zoom, 'render.zoom', asked, 1 / fps, () => 1.1),
+          ),
+        )
+      }
+      const fastest = Math.max(
+        ...ln.slice(1).map((y, i) => Math.abs(y - ln[i]!)),
+      )
+      expect(fastest).toBeLessThanOrEqual(zoomLogRate / fps + 1e-12)
+      expect(
+        worstSwing(ln, Math.round(zoomWindowSeconds * fps)),
+      ).toBeLessThanOrEqual(zoomWindowRange + 1e-9)
+    },
+  )
+
+  // As the brightness window's slow square wave, at the zoom window's scale:
+  // each half period outlasts 5 s, and two minutes give the summed time room
+  // to round an output exactly one window old to a hair older.
+  it.each(PRESETS_BY_RATE)(
+    'holds a slow square wave on zoom inside its range on %s at %i fps',
+    (preset, fps) => {
+      const { zoomWindowRange, zoomWindowSeconds } = COMFORT_CAPS[preset]
+      const governor = createComfortGovernor(preset)
+      const ln: number[] = []
+      for (let frame = 0; frame < fps * 120; frame++) {
+        const high = Math.floor(frame / (6 * fps)) % 2 === 0
+        const asked = rowZoom(high ? 1 : 0)
+        ln.push(
+          Math.log(governor.step(zoom, 'render.zoom', asked, 1 / fps, () => 1)),
+        )
+      }
+      expect(
+        worstSwing(ln, Math.round(zoomWindowSeconds * fps)),
+      ).toBeLessThanOrEqual(zoomWindowRange + 1e-9)
+    },
+  )
+
+  it('holds zoom at its authored value in Calm', () => {
+    const governor = createComfortGovernor('calm')
+    const out: number[] = []
+    for (let frame = 0; frame < 30 * 20; frame++) {
+      const asked = rowZoom(inputs['a 2 Hz square wave'](frame / 30))
+      out.push(governor.step(zoom, 'render.zoom', asked, 1 / 30, () => 1.1))
+    }
+    expect(Math.min(...out)).toBeCloseTo(1.1, 12)
+    expect(Math.max(...out)).toBeCloseTo(1.1, 12)
+  })
+})
+
 describe('slew caps', () => {
   it('moves zoom by at most its log rate', () => {
+    // One frame at 30 fps: 0.35 / 30 e-folds, inside Standard's 0.02 window.
     const governor = createComfortGovernor('standard')
-    expect(governor.step(zoom, 'render.zoom', 10, 0.1, () => 1)).toBeCloseTo(
-      Math.exp(0.035),
+    expect(governor.step(zoom, 'render.zoom', 10, 1 / 30, () => 1)).toBeCloseTo(
+      Math.exp(0.35 / 30),
       12,
     )
   })
@@ -354,23 +431,20 @@ describe('state', () => {
     const governor = createComfortGovernor('intense')
     let out = 0
     for (let frame = 0; frame < 30; frame++) {
-      out = governor.step(zoom, 'render.zoom', 50, 1 / 30, () => 1)
+      out = governor.step(affineA, 'tx.0.preAffine.a', 50, 1 / 30, () => 1)
     }
     governor.setPreset('calm')
     expect(governor.preset()).toBe('calm')
-    const next = governor.step(zoom, 'render.zoom', 50, 1 / 30)
-    expect(Math.log(next) - Math.log(out)).toBeCloseTo(
-      COMFORT_CAPS.calm.zoomLogRate / 30,
-      12,
-    )
+    const next = governor.step(affineA, 'tx.0.preAffine.a', 50, 1 / 30)
+    expect(next - out).toBeCloseTo(COMFORT_CAPS.calm.affineLinearRate / 30, 12)
   })
 
   it('moves at most one capped step after a stall', () => {
     const governor = createComfortGovernor('standard')
-    governor.step(zoom, 'render.zoom', 1, 1 / 30)
-    const out = governor.step(zoom, 'render.zoom', 1000, 5)
-    expect(Math.log(out)).toBeCloseTo(
-      COMFORT_CAPS.standard.zoomLogRate * MAX_STEP_SECONDS,
+    governor.step(affineA, 'tx.0.preAffine.a', 1, 1 / 30)
+    const out = governor.step(affineA, 'tx.0.preAffine.a', 1000, 5)
+    expect(out - 1).toBeCloseTo(
+      COMFORT_CAPS.standard.affineLinearRate * MAX_STEP_SECONDS,
       12,
     )
   })

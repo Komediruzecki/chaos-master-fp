@@ -48,7 +48,8 @@ export const PRESET_LABELS: Record<WiringPresetId, string> = {
 export const PRESET_DESCRIPTIONS: Record<WiringPresetId, string> = {
   pulse: 'Bass drives colour intensity, beats nudge the palette.',
   bloom: 'Loudness opens up brightness; highs lift saturation.',
-  drift: 'Mids breathe the zoom while the palette rotates.',
+  drift:
+    'The palette turns with how bright the sound is and sub-bass deepens colour; mids nudge the zoom in slightly.',
   structure:
     "Bands re-weight this flame's transforms — the shape itself moves.",
   morph: "Bands drive this flame's variation weights, warping its geometry.",
@@ -104,8 +105,10 @@ export const RENDER_PRESETS: Record<RenderPresetId, AudioMappingEntry[]> = {
     entry('onset', render('contrast'), [0.9, 1.6], { releaseMs: 140 }),
   ],
   drift: [
-    // Zoom needs a narrow range: past ~1.3x the flame leaves the frame.
-    entry('mid', render('zoom'), [0.85, 1.22], {
+    // Standard lets zoom span 0.02 e-folds inside any 5 s and Calm holds it
+    // still, so a wider row would only promise motion the governor holds
+    // back. At rest the row sits at the default zoom of 1.
+    entry('mid', render('zoom'), [1, 1.02], {
       attackMs: 260,
       releaseMs: 420,
     }),

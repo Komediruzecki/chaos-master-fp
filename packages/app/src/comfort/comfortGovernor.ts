@@ -1,7 +1,8 @@
 // The comfort governor: a feed-forward limiter on audio-driven motion. Each
 // modulated target slews toward its mapped value no faster than its preset
-// allows, and a brightness setting is also held to a peak-to-peak range inside
-// any window. It caps parameters, not the luminance of the rendered frame.
+// allows; a brightness setting is also held to a peak-to-peak range inside any
+// 500 ms, and zoom to one inside any 5 s. It caps parameters, not the
+// luminance of the rendered frame.
 import { MIN_CAMERA_ZOOM_VALUE, numberDomainOf, RenderSettings, } from '@chaos-master/core'
 import { COMFORT_CAPS } from './comfortPresets'
 import type { ComfortCaps, ComfortPreset } from './comfortPresets'
@@ -77,7 +78,17 @@ function brightnessRule(slew: Slew, caps: ComfortCaps): ComfortRule {
 function renderRule(param: RenderSettingKey, caps: ComfortCaps): ComfortRule {
   switch (param) {
     case 'zoom':
-      return { ...ZOOM, kind: 'slew', rate: caps.zoomLogRate }
+      // A speed cap alone lets a slow breath swing as far as the row
+      // reaches, so zoom is also held to a range inside any window.
+      return {
+        ...ZOOM,
+        kind: 'slew',
+        rate: caps.zoomLogRate,
+        window: {
+          range: caps.zoomWindowRange,
+          seconds: caps.zoomWindowSeconds,
+        },
+      }
     case 'palettePhase':
       return { kind: 'wrap', rate: caps.paletteTurnsPerSecond }
     case 'paletteSpeed':
@@ -139,7 +150,7 @@ type TargetState = {
   y: number
   /** Seconds this target has been governed. */
   t: number
-  /** Outputs inside the brightness window, oldest first. */
+  /** Outputs inside the rule's window, oldest first. */
   history: { t: number; y: number }[]
 }
 

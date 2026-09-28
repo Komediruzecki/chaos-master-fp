@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { COMFORT_CAPS } from '@/comfort/comfortPresets'
 import { MAX_SKIP_ITERS_VALUE } from '@/flame/schema/flameSchema'
 import { flameTargetKey, flameTargetPath } from './audioAnalysis'
 import { buildFlamePreset, buildPreset, defaultAudioMapping, FLAME_PRESET_IDS, randomizeMappings, RENDER_PRESET_IDS, RENDER_PRESETS, } from './audioWiringPresets'
@@ -214,6 +215,29 @@ describe('preset ranges stay inside the flame schema', () => {
         expect(m.range[0]).toBeGreaterThanOrEqual(bound[0])
         expect(m.range[1]).toBeLessThanOrEqual(bound[1])
       }
+    }
+  })
+})
+
+// Standard, the comfort preset a session starts on, lets zoom span 0.02
+// e-folds inside any 5 s: a wider zoom row promises motion the governor holds
+// back.
+describe('zoom rows', () => {
+  it('span no more than Standard lets zoom move', () => {
+    const rows = [
+      ...RENDER_PRESET_IDS.flatMap((id) => buildPreset(id, [])),
+      ...FLAME_PRESET_IDS.flatMap((id) => buildFlamePreset(id, transforms(4))),
+      ...Array.from({ length: 60 }, (_, seed) =>
+        randomizeMappings(transforms(4), seeded(seed)),
+      ).flat(),
+    ].filter(
+      (m) => m.target.kind === 'renderSetting' && m.target.param === 'zoom',
+    )
+    expect(rows.map((m) => m.range)).toEqual([[1, 1.02]])
+    for (const { range } of rows) {
+      expect(Math.log(range[1] / range[0])).toBeLessThanOrEqual(
+        COMFORT_CAPS.standard.zoomWindowRange,
+      )
     }
   })
 })

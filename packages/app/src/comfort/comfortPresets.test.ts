@@ -1,5 +1,5 @@
 // Pins the comfort presets: the standard caps as numbers, and that every cap
-// grows from calm to standard to intense.
+// but the window lengths grows from calm to standard to intense.
 import { describe, expect, it } from 'vitest'
 import { COMFORT_CAPS, COMFORT_PRESETS } from './comfortPresets'
 import type { ComfortCaps } from './comfortPresets'
@@ -12,6 +12,8 @@ describe('comfort presets', () => {
   it('pins the standard caps', () => {
     const caps = COMFORT_CAPS.standard
     expect(caps.zoomLogRate).toBe(0.35)
+    expect(caps.zoomWindowRange).toBe(0.02)
+    expect(caps.zoomWindowSeconds).toBe(5)
     expect(caps.paletteTurnsPerSecond).toBeCloseTo(45 / 360, 12)
     expect(caps.paletteSpeedRate).toBeCloseTo(0.125 / 0.298, 12)
     expect(caps.brightnessWindowRange).toBe(0.18)
@@ -32,8 +34,10 @@ describe('comfort presets', () => {
         COMFORT_CAPS.calm[key] < COMFORT_CAPS.standard[key] &&
         COMFORT_CAPS.standard[key] < COMFORT_CAPS.intense[key],
     )
-    // The window length is the one shared constant: rule 2 measures over 500 ms.
+    // The window lengths are the shared constants: brightness is measured
+    // over 500 ms and zoom over 5 s, in every preset.
     expect(keys.filter((key) => !growing.includes(key))).toEqual([
+      'zoomWindowSeconds',
       'brightnessWindowSeconds',
     ])
   })

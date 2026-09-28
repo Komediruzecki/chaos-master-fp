@@ -24,6 +24,15 @@ export const COMFORT_PRESET_DESCRIPTIONS: Record<ComfortPreset, string> = {
 export type ComfortCaps = {
   /** |d ln zoom / dt|, e-folds per second (rule 11: 0.15 / 0.35 / 0.7). */
   zoomLogRate: number
+  /**
+   * Largest peak-to-peak swing of ln zoom inside any zoom window. Breathing
+   * at 0.1-0.5 Hz may span 0.01 / 0.02 / 0.05 e-folds and a beat pulse
+   * 0 / 0.03 / 0.06; each preset takes the stricter of its two, so Calm
+   * holds zoom still (0), Standard allows 0.02 and Intense 0.05.
+   */
+  zoomWindowRange: number
+  /** The zoom window: 5 s holds at least half a cycle of any breathing at 0.1 Hz or faster, so it sees the whole peak-to-peak swing. */
+  zoomWindowSeconds: number
   /** palettePhase turns per second, wrap-aware (rule 19: 15 / 45 / 120 degrees per second). */
   paletteTurnsPerSecond: number
   /** paletteSpeed per second: the hue cap through the palette index's 0.298 gain at log density 1. */
@@ -54,6 +63,7 @@ function caps(
   hueDegrees: number,
   rotationDegrees: number,
   zoom: number,
+  zoomWindow: number,
   window: number,
   brightness: number,
   colorSweepSeconds: number,
@@ -61,6 +71,8 @@ function caps(
   const turns = hueDegrees / 360
   return {
     zoomLogRate: zoom,
+    zoomWindowRange: zoomWindow,
+    zoomWindowSeconds: 5,
     paletteTurnsPerSecond: turns,
     paletteSpeedRate: turns / 0.298,
     brightnessWindowRange: window,
@@ -76,7 +88,7 @@ function caps(
 }
 
 export const COMFORT_CAPS: Record<ComfortPreset, ComfortCaps> = {
-  calm: caps(15, 3, 0.15, 0.1, 0.3, 12),
-  standard: caps(45, 10, 0.35, 0.18, 0.6, 4),
-  intense: caps(120, 25, 0.7, 0.35, 1.5, 1.5),
+  calm: caps(15, 3, 0.15, 0, 0.1, 0.3, 12),
+  standard: caps(45, 10, 0.35, 0.02, 0.18, 0.6, 4),
+  intense: caps(120, 25, 0.7, 0.05, 0.35, 1.5, 1.5),
 }
