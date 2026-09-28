@@ -314,8 +314,10 @@ file instead of rediscovering the architecture every session.
 | File | What it is |
 |---|---|
 | [animationExport.ts](../../packages/app/src/utils/animationExport.ts) | _(no header comment)_ |
-| [audioAnalysis.ts](../../packages/app/src/utils/audioAnalysis.ts) | _(no header comment)_ |
+| [audioAnalysis.ts](../../packages/app/src/utils/audioAnalysis.ts) | Audio analysis: FFT bands, beats and onsets for a decoded file and for the live microphone. |
 | [audioExport.ts](../../packages/app/src/utils/audioExport.ts) | _(no header comment)_ |
+| [audioMapping.ts](../../packages/app/src/utils/audioMapping.ts) | The audio mapping stage: turns one analysed audio frame into settled target values (feature, envelope, dirty check) without touching a flame. |
+| [audioTargets.ts](../../packages/app/src/utils/audioTargets.ts) | Flame writers for the audio mapping stage: resolves each FlameTarget in a flame the caller owns and writes the settled value, held to the... |
 | [audioWiringPresets.ts](../../packages/app/src/utils/audioWiringPresets.ts) | What an audio-reactive preset actually wires. |
 | [createStoreHistory.ts](../../packages/app/src/utils/createStoreHistory.ts) | Undo and redo for a Solid store, kept as patches rather than snapshots. |
 | [exportJobs.ts](../../packages/app/src/utils/exportJobs.ts) | _(no header comment)_ |

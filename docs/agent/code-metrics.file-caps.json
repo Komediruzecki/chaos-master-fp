@@ -30,7 +30,6 @@
   "packages/app/src/pages/Benchmarks/BenchmarksPage.tsx": 2790,
   "packages/app/src/recorder/recorder.ts": 1200,
   "packages/app/src/recorder/replayVideo.ts": 1348,
-  "packages/app/src/utils/audioAnalysis.ts": 985,
   "packages/app/src/utils/sonification.ts": 811,
   "packages/app/src/utils/timeline.ts": 2195
 }
