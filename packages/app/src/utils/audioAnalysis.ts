@@ -307,17 +307,6 @@ function nextPowerOfTwo(n: number): number {
   return p
 }
 
-export function detectBeats(frames: FrameData[], fps: number): Set<number> {
-  return computeBeats(
-    frames.length,
-    (i) => {
-      const fd = frames[i]!
-      return { bands: fd.bands, rms: fd.rms }
-    },
-    fps,
-  )
-}
-
 // --- Live microphone analyzer ---
 
 /** The microphone as music, not as a call: echo cancellation, noise
