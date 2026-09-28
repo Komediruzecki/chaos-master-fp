@@ -142,6 +142,11 @@ export const ALWAYS_ON = [
     why: 'reads four SessionRecorder stylesheets',
     genre: 'filesystem',
   },
+  {
+    file: 'src/utils/exportAudioWiring.test.ts',
+    why: 'reads animationExport.ts and OffscreenAnimationRender.tsx to hold both export paths to the live modulation step',
+    genre: 'filesystem',
+  },
 
   // Enumerate a directory at run time, so a new or edited entry in it is
   // invisible to the graph.

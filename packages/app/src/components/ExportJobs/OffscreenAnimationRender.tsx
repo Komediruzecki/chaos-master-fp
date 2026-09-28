@@ -1,5 +1,6 @@
-import { batch, createResource, createSignal, onCleanup, Show } from 'solid-js'
+import { batch, createEffect, createMemo, createResource, createSignal, on, onCleanup, Show, } from 'solid-js'
 import { vec2f, vec4f } from 'typegpu/data'
+import { comfortPreset } from '@/comfort/comfortPreference'
 import { DEFAULT_POINT_COUNT } from '@/defaults'
 import { Flam3 } from '@/flame/Flam3'
 import { AutoCanvas } from '@/lib/AutoCanvas'
@@ -7,9 +8,10 @@ import { Root } from '@/lib/Root'
 import { WheelZoomCamera2D } from '@/lib/WheelZoomCamera2D'
 import { WheelZoomCamera3D } from '@/lib/WheelZoomCamera3D'
 import { assertReplayVideoStatePortable, createReplayVideoDriver, createReplayVideoSchedule, drawReplayVideoOverlay, replayFrameQuality, replayFramesInStateRun, replayStateAtFrame, replayVideoVisualFingerprint, } from '@/recorder/replayVideo'
-import { applyAudioMappingsToFlame, createAudioAnalyzer, } from '@/utils/audioAnalysis'
+import { applyAudioTargetValues, createAudioAnalyzer, } from '@/utils/audioAnalysis'
 import { createAudioVideoEncoder } from '@/utils/audioExport'
 import { deepClone } from '@/utils/clone'
+import { createExportAudioModulation } from '@/utils/exportAudioModulation'
 import { dismissJob, jobExists, setAnimationJobPoints, setAnimationJobProgress, setJobError, setJobResult, } from '@/utils/exportJobs'
 import { createMetadataPayload, injectMetadataIntoMp4, } from '@/utils/flameInMp4'
 import { DEFAULT_SHUTTER_ANGLE, subFrameLimit, subFrameOffsets, } from '@/utils/motionBlur'
@@ -121,16 +123,30 @@ export function OffscreenAnimationRender(props: { job: AnimationJob }) {
     },
   )
 
+  // Read once: a preset changed mid-export must not change the export.
+  const exportPreset = comfortPreset()
+  // Fresh per export and stepped at the export's frame rate, as live.
+  const audioModulation = createMemo(() => {
+    const analyzer = audioAnalyzer()
+    return analyzer && job.audioMapping
+      ? createExportAudioModulation(
+          analyzer,
+          job.audioMapping,
+          job.fps,
+          exportPreset,
+        )
+      : undefined
+  })
+
   /** The flame at timeline `frame`, fractional for a motion blur sub-frame.
-   *  Audio stays on the whole frame, as on the main-canvas path. */
-  function frameFlame(frame: number): FlameDescriptor {
+   *  Audio follows the output frame, `outputFrame`, and stays on the whole
+   *  frame, as on the main-canvas path. */
+  function frameFlame(frame: number, outputFrame: number): FlameDescriptor {
     const clone = deepClone(job.flame)
     applyTracksToFlame(job.tracks, clone, frame, loopOpts)
-    const analyzer = audioAnalyzer()
-    if (analyzer && job.audioMapping) {
-      const audioFrame = Math.floor(frame) % analyzer.totalFrames
-      const frameData = analyzer.getFrameData(audioFrame)
-      applyAudioMappingsToFlame(clone, frameData, job.audioMapping)
+    const modulation = audioModulation()
+    if (modulation) {
+      applyAudioTargetValues(clone, modulation.valuesAt(outputFrame, clone))
     }
     return clone
   }
@@ -149,7 +165,7 @@ export function OffscreenAnimationRender(props: { job: AnimationJob }) {
   }
 
   const [perFrameFlame, setPerFrameFlame] = createSignal<FlameDescriptor>(
-    replayState?.flame ?? frameFlame(job.frameStart),
+    replayState?.flame ?? frameFlame(job.frameStart, 0),
   )
   const [perFrameBlendWeight, setPerFrameBlendWeight] = createSignal(
     replayState?.blendWeight ?? blendWeightAtFrame(job.frameStart),
@@ -452,12 +468,25 @@ export function OffscreenAnimationRender(props: { job: AnimationJob }) {
     const frame = job.frameStart + (frameIndex % totalFrames)
     const t = frame + (subOffsets[subIndex] ?? 0)
     setSubFraction((subIndex + 1) / blurSamples)
-    setPerFrameFlame(frameFlame(t))
+    setPerFrameFlame(frameFlame(t, frameIndex))
     setPerFrameBlendWeight(blendWeightAtFrame(t))
   }
 
+  // The first frame was shown before the analysis finished: show it again
+  // with the modulation. Nothing is captured while the analysis runs.
+  createEffect(
+    on(
+      audioModulation,
+      () => {
+        if (!replaySchedule && frameIndex === 0) showSubFrame(0)
+      },
+      { defer: true },
+    ),
+  )
+
   const handleExport: ExportImageType = (canvas, info) => {
     if (disposed || capturing || finishing || !encoder) return
+    if (audioAnalyzer.loading) return
 
     // Per-frame point progress, so a long single frame still shows movement.
     const now = globalThis.performance.now()
