@@ -22,7 +22,7 @@ the seam Beats mode touches.
 - `packages/app/src/recorder/replay.ts:39-52` — `canEnableReplayAudio`, the only implementation of that authorization
 - `packages/app/src/MainWorkspace.tsx:3367-3384` (`audio`) — the live facade: signals, and `canEnable` wired to the decoded buffer, track name and live analyzer
 - `packages/app/src/MainWorkspace.tsx:3177-3184` (`adoptAudioBuffer`) — the one writer of the audio buffer and track name, which the audio panel and Beats mode (`loadBundledTrack`, `:3213-3214` (`fetchBundledTrackBuffer`)) both go through
-- `packages/app/src/components/AudioReactivePanel/AudioReactivePanel.tsx:412-460` (`handleFile`) — file decode and microphone acquisition, and their failure paths
+- `packages/app/src/components/AudioReactivePanel/AudioReactivePanel.tsx:413-461` (`handleFile`) — file decode and microphone acquisition, and their failure paths
 - `packages/app/src/utils/useAudioReactive.ts` — what "enabled" actually gates: modulation, not transport
 - `packages/app/src/arcade/topics.ts:305-314` (`BEATS_ALLOWED`), `:345-356` (`beatsPromptCard`) — `BEATS_ALLOWED`, `BEATS_STEP_BUDGET`, the prompt card
 - `packages/app/src/arcade/guard.ts`, `packages/app/src/arcade/pilot.ts`, `packages/app/src/arcade/pilotActions.ts` — allow-list enforcement, step budget, session teardown
@@ -493,7 +493,7 @@ Requirements with no test that goes red when they are violated:
   statements and 17% of branches; its one test covers only modulation
   suspension on the mic path. The file-mode transport/modulation split and the
   mic enable-gate are unexercised.
-- **Decode and microphone failure paths** (`AudioReactivePanel.tsx:412-460` (`handleFile`)) —
+- **Decode and microphone failure paths** (`AudioReactivePanel.tsx:413-461` (`handleFile`)) —
   the panel component is at 3% of statements; `AudioReactivePanel.test.tsx`
   tests only the pure `defaultTarget` and `RENDER_PRESETS` helpers, never
   mounts the component, and never exercises a failed decode or a denied

@@ -77,6 +77,11 @@ not a gap.
 - `packages/app/src/utils/useLoadFlameFromFile.test.ts`, `packages/app/src/utils/useAppDragAndDrop.test.ts`
   and `packages/app/src/utils/flameImport.test.ts` — a flame's JSON dropped on the canvas
   opens as that flame, with its wiring (REQ-TA-041)
+- `packages/app/src/utils/audioEnvelope.test.ts`,
+  `packages/app/src/components/AudioWiringModal/ParamsPanel.test.tsx` and
+  `packages/app/src/components/AudioReactivePanel/AudioReactivePanel.envelope.test.tsx` —
+  the attack and release a row runs at, as the editor and the panel rows show them
+  (REQ-TA-042)
 - _Gap:_ nothing else tests `AudioWiringModal.tsx` (unit or e2e) — REQ-TA-035,
   REQ-TA-036 and REQ-TA-038 are entirely unguarded. `keyframeOnChange.ts` likewise has no test,
   so REQ-TA-020 is unguarded. See **Coverage gaps** at the end for the full list.
@@ -440,7 +445,7 @@ capped, `flatness` as computed, `onset` as its rolling-median strength, and
 `beat` as `1` on a detected beat and `0` otherwise. An unrecognised feature name
 shall yield `0`.
 
-_(`audioMapping.ts:149-171` (`getAudioFeatureNormalized`), `audioAnalysis.ts:102-156` (`getFftBands`); beats at `:184-226` (`computeBeats`) — spectral-flux peaks
+_(`audioMapping.ts:151-173` (`getAudioFeatureNormalized`), `audioAnalysis.ts:102-156` (`getFftBands`); beats at `:184-226` (`computeBeats`) — spectral-flux peaks
 above `mean + 1.5σ` with a 100 ms minimum gap; onsets at `:234-275` (`computeOnsetStrengths`).)_
 
 ### REQ-TA-029 — Attack and release are a one-pole envelope on the normalized feature
@@ -453,7 +458,8 @@ falling, falling back to whichever of the two is set when the other is absent.
 unsmoothed. `prev` shall come from the per-target smoothing state, seeded with the
 current value on the first frame so a mapping does not ramp up from zero.
 
-_(`audioMapping.ts:227-252` (`computeSmoothedEnvelope`), called from `:349-355` (`smoothed`); guarded by
+_(`audioMapping.ts:229-249` (`computeSmoothedEnvelope`), called from `:346-352` (`smoothed`), which takes its
+times from `audioEnvelope.ts:19-27` (`effectiveEnvelope`); guarded by
 `audioAnalysisMappings.test.ts:285` "applies attack and release envelope smoothing across consecutive frames".)_
 
 ### REQ-TA-030 — The mapped value is `lo + smoothed × sensitivity × (hi − lo)`
@@ -464,7 +470,7 @@ the span rather than clipping it, so a sensitivity above 1 can carry the value
 past `range[1]`; keeping the result inside the schema is REQ-TA-032's job, not
 this formula's.
 
-_(`audioMapping.ts:173-179` (`mappingToVal`), `:360` (`mappingToVal`); guarded by `audioAnalysisMappings.test.ts:82` "scales the output by the mapping sensitivity".)_
+_(`audioMapping.ts:175-181` (`mappingToVal`), `:357` (`mappingToVal`); guarded by `audioAnalysisMappings.test.ts:82` "scales the output by the mapping sensitivity".)_
 
 ### REQ-TA-031 — Sub-threshold movement does not re-render
 
@@ -478,7 +484,7 @@ the value last published. **If** no target changed on a frame, the mapper shall
 leave `flame.renderSettings` referentially untouched, so the render loop sees no
 new work.
 
-_(`audioMapping.ts:197-200` (`dirtyThreshold`), `:268-290` (`settleTargetValue`), `:293-302` (`outputMoved`), `:325-380` (`resolveAudioMappingValues`); guarded by
+_(`audioMapping.ts:199-202` (`dirtyThreshold`), `:265-287` (`settleTargetValue`), `:290-299` (`outputMoved`), `:322-377` (`resolveAudioMappingValues`); guarded by
 `audioAnalysisMappings.test.ts:338` "skips redundant writes when changes are below the dirty threshold",
 `audioMapping.test.ts:74` "holds a move below 0.2% of the output range" and `:88` "keeps a frame changed while the limited output is still moving".)_
 
@@ -630,6 +636,23 @@ _(`audioTargets.ts:66-81` (`targetTransform`), `:87-105` (`targetVariation`), `a
 `:152` "goes inert when its transform or variation is gone", `audioTargetIds.test.ts:130` "takes wiring from another flame by position",
 `AudioReactivePanel.rows.test.tsx:75` "says so when the transform a row drives was deleted" and
 `AudioWiringModal.paste.test.tsx:46` "names the transform the wiring is pasted onto".)_
+
+### REQ-TA-042 — The editor shows, and can reach, the envelope a row runs at
+
+**Where** a row sets only one of `attackMs` and `releaseMs`, the wiring editor
+and the panel rows shall show the other as the time the envelope uses for it
+(REQ-TA-029), and **where** it sets neither, both as 0 ms. The editor's attack
+slider shall reach 3000 ms and its release slider 6000 ms; **if** a row holds a
+longer time, **then** the slider shall widen to it rather than clamp it when
+touched. Every row in the audio panel shall show its attack and release.
+
+_(`audioEnvelope.ts:19-27` (`effectiveEnvelope`), `:10` (`ATTACK_MAX_MS`), `:12` (`RELEASE_MAX_MS`),
+`ParamsPanel.tsx:160` (`ATTACK_MAX_MS`), `:184` (`RELEASE_MAX_MS`),
+`AudioReactivePanel.tsx:1147` (`envelopeLabel`); guarded by
+`audioEnvelope.test.ts:15` "runs an unset attack at the release, as the envelope does",
+`ParamsPanel.test.tsx:39` "reach a three-second attack and a six-second release",
+`:52` "keep an imported time past their end instead of clamping it" and
+`AudioReactivePanel.envelope.test.tsx:48` "names the attack and release each row runs at".)_
 
 ### Wiring that travels with a flame
 

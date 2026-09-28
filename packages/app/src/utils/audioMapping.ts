@@ -3,6 +3,8 @@
 // Shared by the live overlay and both export paths; audioTargets.ts writes
 // the values into a flame.
 
+import { effectiveEnvelope } from './audioEnvelope'
+
 export type FrameData = {
   bands: number[]
   rms: number
@@ -231,18 +233,13 @@ function computeSmoothedEnvelope(
   smoothingState: MappingSmoothingState | undefined,
   dt: number,
 ): number {
-  const attackMs = mapping.attackMs ?? 0
-  const releaseMs = mapping.releaseMs ?? 0
+  const { attackMs, releaseMs } = effectiveEnvelope(mapping)
   if (attackMs <= 0 && releaseMs <= 0) {
     return clamped
   }
 
   const prev = smoothingState?.get(targetKey)?.smoothed ?? clamped
-  const rising = clamped > prev
-  const tc =
-    (rising
-      ? (mapping.attackMs ?? mapping.releaseMs ?? 0)
-      : (mapping.releaseMs ?? mapping.attackMs ?? 0)) / 1000
+  const tc = (clamped > prev ? attackMs : releaseMs) / 1000
   if (tc <= 0) {
     return clamped
   }

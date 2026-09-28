@@ -1,6 +1,7 @@
 import { createEffect, createMemo, createSignal, For, Index, lazy, onCleanup, Show, Suspense, } from 'solid-js'
 import { Cross, MusicNote } from '@/icons'
 import { createLiveAnalyzer, decodeAudioFile, getAudioFeatureNormalized, } from '@/utils/audioAnalysis'
+import { envelopeLabel } from '@/utils/audioEnvelope'
 import { reconcileTransformTargets, retargetTransform, } from '@/utils/audioTargetIds'
 import { buildFlamePreset, buildPreset, FLAME_PRESET_IDS, PRESET_DESCRIPTIONS, PRESET_LABELS, randomizeMappings, RENDER_PRESET_IDS, RENDER_PRESETS, } from '@/utils/audioWiringPresets'
 import ui from './AudioReactivePanel.module.css'
@@ -1141,6 +1142,9 @@ export function AudioReactivePanel(props: AudioReactivePanelProps) {
                         }}
                         aria-label="Sensitivity"
                       />
+                    </div>
+                    <div class={ui.envelopeLabel}>
+                      {envelopeLabel(mapping())}
                     </div>
                   </div>
                 )
