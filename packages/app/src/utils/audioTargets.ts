@@ -4,7 +4,7 @@
 
 import { projectFlameValue } from '@chaos-master/core'
 import { resolveAudioMappingValues } from './audioMapping'
-import type { AudioMappingEntry, AudioTargetValue, FlameTarget, FrameData, MappingSmoothingState, RenderSettingKey, TransformPropertyKey, } from './audioMapping'
+import type { AudioMappingEntry, AudioTargetValue, FlameTarget, FrameData, MappingSmoothingState, RenderSettingKey, TransformPropertyKey, TransformTarget, } from './audioMapping'
 
 /**
  * A modulated render setting held to the domain the flame schema gives it.
@@ -43,7 +43,8 @@ function heldRenderSetting(
 interface AudioMutationContext {
   rs?: Record<string, unknown>
   camera?: Record<string, unknown>
-  txArr?: Record<string, unknown>[]
+  transforms?: Record<string, unknown>
+  txArr?: unknown[]
 }
 
 function finiteNumber(value: unknown): number | undefined {
@@ -56,14 +57,51 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
     : undefined
 }
 
-/** The transform a target names, in `flame`'s own transform order. */
+/**
+ * The transform a target names: by its key when the target carries one, by
+ * its position in `flame`'s own transform order otherwise. A key the flame no
+ * longer has names nothing, so wiring to a deleted transform goes inert
+ * instead of landing on whichever transform took its place.
+ */
 function targetTransform(
   flame: object,
-  target: Extract<FlameTarget, { transformIdx: number }>,
+  target: TransformTarget,
+  ctx: AudioMutationContext = {},
 ): Record<string, unknown> | undefined {
-  const transforms = asRecord((flame as Record<string, unknown>).transforms)
+  ctx.transforms ??= asRecord((flame as Record<string, unknown>).transforms)
+  const transforms = ctx.transforms
   if (!transforms) return undefined
-  return asRecord(Object.values(transforms)[target.transformIdx])
+  if (target.transformId !== undefined) {
+    return Object.hasOwn(transforms, target.transformId)
+      ? asRecord(transforms[target.transformId])
+      : undefined
+  }
+  ctx.txArr ??= Object.values(transforms)
+  return asRecord(ctx.txArr[target.transformIdx])
+}
+
+/**
+ * The variation a weight target names: by its key when the target carries
+ * one, else the transform's first variation of the target's type.
+ */
+function targetVariation(
+  tx: Record<string, unknown> | undefined,
+  target: Extract<FlameTarget, { kind: 'variationWeight' }>,
+): Record<string, unknown> | undefined {
+  const variations = asRecord(tx?.variations)
+  if (!variations) return undefined
+  if (target.variationId !== undefined) {
+    return Object.hasOwn(variations, target.variationId)
+      ? asRecord(variations[target.variationId])
+      : undefined
+  }
+  // By type only. The key of `variations` is the variation's id: looked up by
+  // the type's name, it found a variation whose id reads like another's type,
+  // and for a type named after an Object member ('__proto__', 'constructor')
+  // it wrote the weight onto the prototype chain of every object.
+  return Object.values(variations)
+    .map(asRecord)
+    .find((candidate) => candidate?.type === target.variationType)
 }
 
 function readRenderSetting(
@@ -88,16 +126,6 @@ function readTransformProperty(
   return finiteNumber(tx?.[property])
 }
 
-function readVariationWeight(
-  tx: Record<string, unknown> | undefined,
-  variationType: string,
-): number | undefined {
-  const variation = Object.values(asRecord(tx?.variations) ?? {})
-    .map(asRecord)
-    .find((candidate) => candidate?.type === variationType)
-  return finiteNumber(variation?.weight)
-}
-
 /**
  * The value `target` has in `flame` before any modulation, or `undefined`
  * where the flame does not carry it. What the comfort governor starts a
@@ -120,9 +148,8 @@ export function readTargetValue(
         target.property,
       )
     case 'variationWeight':
-      return readVariationWeight(
-        targetTransform(flame, target),
-        target.variationType,
+      return finiteNumber(
+        targetVariation(targetTransform(flame, target), target)?.weight,
       )
     case 'finalAffine': {
       const final = asRecord((flame as Record<string, unknown>).finalTransform)
@@ -147,24 +174,13 @@ function applyRenderSettingTarget(
   }
 }
 
-function getOrCreateTransformArray(
-  flame: Record<string, unknown>,
-  ctx: AudioMutationContext,
-): Record<string, unknown>[] {
-  ctx.txArr ??= Object.values(
-    (flame.transforms as Record<string, Record<string, unknown>>) ?? {},
-  )
-  return ctx.txArr
-}
-
 function applyTransformAffineTarget(
   flame: Record<string, unknown>,
   ctx: AudioMutationContext,
   tgt: Extract<FlameTarget, { kind: 'transformAffine' }>,
   val: number,
 ): void {
-  const txArr = getOrCreateTransformArray(flame, ctx)
-  const tx = txArr[tgt.transformIdx]
+  const tx = targetTransform(flame, tgt, ctx)
   if (!tx) return
   const mat = (tx[tgt.matrix] as Record<string, number> | undefined) ?? {}
   mat[tgt.param] = val
@@ -177,8 +193,7 @@ function applyTransformPropertyTarget(
   tgt: Extract<FlameTarget, { kind: 'transformProperty' }>,
   val: number,
 ): void {
-  const txArr = getOrCreateTransformArray(flame, ctx)
-  const tx = txArr[tgt.transformIdx]
+  const tx = targetTransform(flame, tgt, ctx)
   if (!tx) return
 
   if (tgt.property === 'colorX' || tgt.property === 'colorY') {
@@ -217,20 +232,8 @@ function applyVariationWeightTarget(
   tgt: Extract<FlameTarget, { kind: 'variationWeight' }>,
   val: number,
 ): void {
-  const txArr = getOrCreateTransformArray(flame, ctx)
-  const tx = txArr[tgt.transformIdx]
-  if (!tx) return
-  const vars = (tx.variations as Record<string, Record<string, unknown>>) ?? {}
-  // By type only. The key of `variations` is the variation's id: looked up by
-  // the type's name, it found a variation whose id reads like another's type,
-  // and for a type named after an Object member ('__proto__', 'constructor')
-  // it wrote the weight onto the prototype chain of every object.
-  const v = Object.values(vars).find(
-    (candidate) => candidate.type === tgt.variationType,
-  )
-  if (v) {
-    ;(v as Record<string, number>).weight = val
-  }
+  const variation = targetVariation(targetTransform(flame, tgt, ctx), tgt)
+  if (variation) variation.weight = val
 }
 
 function applyFinalAffineTarget(

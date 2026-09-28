@@ -12,18 +12,19 @@ export function transformTargetPool(
   transform: TransformInfo,
   pick: (count: number) => number,
 ): FlameTarget[] {
-  const transformIdx = transform.index
+  const on = { transformIdx: transform.index, transformId: transform.id }
   const pool: FlameTarget[] = [
-    { kind: 'transformAffine', transformIdx, matrix: 'preAffine', param: 'a' },
-    { kind: 'transformAffine', transformIdx, matrix: 'preAffine', param: 'e' },
-    { kind: 'transformProperty', transformIdx, property: 'probability' },
+    { kind: 'transformAffine', ...on, matrix: 'preAffine', param: 'a' },
+    { kind: 'transformAffine', ...on, matrix: 'preAffine', param: 'e' },
+    { kind: 'transformProperty', ...on, property: 'probability' },
   ]
   const variation = transform.variations[pick(transform.variations.length)]
   if (variation) {
     pool.push({
       kind: 'variationWeight',
-      transformIdx,
+      ...on,
       variationType: variation.type,
+      variationId: variation.id,
     })
   }
   return pool

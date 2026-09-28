@@ -1,5 +1,5 @@
 import { createMemo, createSignal, onCleanup, onMount } from 'solid-js'
-import { flameTargetKey } from '../../utils/audioAnalysis'
+import { flameTargetKey, flameTargetPath } from '../../utils/audioAnalysis'
 import styles from './AudioWiringModal.module.css'
 import type { AudioFeature, FlameTarget } from '../../utils/audioAnalysis'
 
@@ -151,7 +151,7 @@ export function WireOverlay(props: {
       const selected = id === props.selectedWire
       const dx = Math.max(60, Math.abs(tgtPos.x - srcPos.x) * 0.5)
       const d = `M ${srcPos.x} ${srcPos.y} C ${srcPos.x + dx} ${srcPos.y}, ${tgtPos.x - dx} ${tgtPos.y}, ${tgtPos.x} ${tgtPos.y}`
-      const tooltip = `${conn.sourceFeature} → ${flameTargetKey(conn.target)}`
+      const tooltip = `${conn.sourceFeature} → ${flameTargetPath(conn.target)}`
       return { id, d, color, selected, tooltip }
     })
   })

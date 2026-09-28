@@ -47,41 +47,82 @@ export type TransformPropertyKey =
   | 'colorY'
   | 'colorSpeed'
 
-/** Encodes the exact target path in a FlameDescriptor to drive from audio. */
+/**
+ * Encodes the exact target path in a FlameDescriptor to drive from audio. A
+ * transform target names its transform by key (`transformId`) and a variation
+ * weight its variation (`variationId`) when it carries them; the id wins over
+ * the position. Wiring saved before targets carried ids has positions and
+ * variation types only, and still resolves by them.
+ */
 export type FlameTarget =
   | { kind: 'renderSetting'; param: RenderSettingKey }
   | {
       kind: 'transformAffine'
       transformIdx: number
+      transformId?: string
       matrix: 'preAffine' | 'postAffine'
       param: AffineKey
     }
   | {
       kind: 'transformProperty'
       transformIdx: number
+      transformId?: string
       property: TransformPropertyKey
     }
   | {
       kind: 'variationWeight'
       transformIdx: number
+      transformId?: string
       variationType: string
+      variationId?: string
     }
   | { kind: 'finalAffine'; param: AffineKey }
 
-/** Stable string key for dirty-check state (keyed by target identity). */
-export function flameTargetKey(target: FlameTarget): string {
+/** The targets that live on one transform. */
+export type TransformTarget = Extract<FlameTarget, { transformIdx: number }>
+
+function transformPart(target: TransformTarget, byId: boolean): string {
+  return byId && target.transformId !== undefined
+    ? `@${target.transformId}`
+    : `${target.transformIdx}`
+}
+
+function targetString(target: FlameTarget, byId: boolean): string {
   switch (target.kind) {
     case 'renderSetting':
       return `render.${target.param}`
     case 'transformAffine':
-      return `tx.${target.transformIdx}.${target.matrix}.${target.param}`
+      return `tx.${transformPart(target, byId)}.${target.matrix}.${target.param}`
     case 'transformProperty':
-      return `tx.${target.transformIdx}.prop.${target.property}`
-    case 'variationWeight':
-      return `tx.${target.transformIdx}.var.${target.variationType}.weight`
+      return `tx.${transformPart(target, byId)}.prop.${target.property}`
+    case 'variationWeight': {
+      const variation =
+        byId && target.variationId !== undefined
+          ? `@${target.variationId}`
+          : target.variationType
+      return `tx.${transformPart(target, byId)}.var.${variation}.weight`
+    }
     case 'finalAffine':
       return `final.${target.param}`
   }
+}
+
+/**
+ * Stable key for per-target state: smoothing, the comfort limiter and the
+ * editor's wires. A target that carries ids is keyed by them, so two
+ * variations of one type keep separate state and state follows a transform
+ * that moves. A target without ids keeps the positional key it always had.
+ */
+export function flameTargetKey(target: FlameTarget): string {
+  return targetString(target, true)
+}
+
+/**
+ * Where a target sits, by position and variation type: the text the editor
+ * shows. Not an identity, so never a key for state.
+ */
+export function flameTargetPath(target: FlameTarget): string {
+  return targetString(target, false)
 }
 
 export type AudioMappingEntry = {

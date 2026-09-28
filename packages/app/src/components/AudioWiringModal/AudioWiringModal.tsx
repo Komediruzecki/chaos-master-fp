@@ -1,5 +1,6 @@
 import { createMemo, createSignal, onCleanup, onMount, Show } from 'solid-js'
-import { flameTargetKey } from '../../utils/audioAnalysis'
+import { flameTargetKey, flameTargetPath } from '../../utils/audioAnalysis'
+import { adoptImportedWiring, retargetTransform, } from '../../utils/audioTargetIds'
 import styles from './AudioWiringModal.module.css'
 import { ConnectingBanner } from './ConnectingBanner'
 import { HeaderBar } from './HeaderBar'
@@ -650,7 +651,10 @@ export function AudioWiringModal(props: {
       const oldLabel = getSourceLabel(existingWire.sourceFeature)
       next = next.filter((m) => flameTargetKey(m.target) !== tgtKey)
       // Show replacement toast
-      setReplaceToast({ sourceLabel: oldLabel, targetKey: tgtKey })
+      setReplaceToast({
+        sourceLabel: oldLabel,
+        targetKey: flameTargetPath(target),
+      })
       setTimeout(() => setReplaceToast(null), 2500)
     }
 
@@ -969,9 +973,12 @@ export function AudioWiringModal(props: {
       setPendingPaste(null)
     }
 
+    // Onto this transform by key as well as position: a copied target still
+    // names the transform it was copied from.
+    const info = props.transforms.find((t) => t.index === transformIdx)
+    if (!info) return
     for (const entry of wiring) {
-      const newTarget = { ...entry.target, transformIdx } as FlameTarget
-      doConnect(entry.audioFeature, newTarget)
+      doConnect(entry.audioFeature, retargetTransform(entry.target, info))
     }
   }
 
@@ -1063,7 +1070,7 @@ export function AudioWiringModal(props: {
       return
     }
     saveForUndo()
-    props.onMappingsChange(parsed)
+    props.onMappingsChange(adoptImportedWiring(parsed, props.transforms))
     setSelectedWire(null)
     setConnectingFrom(null)
     setImportPanel(null)
@@ -1162,7 +1169,7 @@ export function AudioWiringModal(props: {
 
   function getTargetLabel(target: FlameTarget): string {
     return (
-      targetLabelByKey().get(flameTargetKey(target)) ?? flameTargetKey(target)
+      targetLabelByKey().get(flameTargetKey(target)) ?? flameTargetPath(target)
     )
   }
 

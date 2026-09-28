@@ -2,6 +2,7 @@
 // write, the schema hold on render settings, and the re-export.
 import { describe, expect, it } from 'vitest'
 import * as analysis from './audioAnalysis'
+import { flameTargetKey } from './audioMapping'
 import { applyAudioMappingsToFlame, applyAudioTargetValues, readTargetValue, } from './audioTargets'
 
 describe('audioTargets', () => {
@@ -95,5 +96,74 @@ describe('readTargetValue', () => {
       }),
       readTargetValue({}, { kind: 'finalAffine', param: 'a' }),
     ]).toEqual([undefined, undefined, undefined, undefined])
+  })
+})
+
+describe('targets that carry ids', () => {
+  function flameWithTwoLinear() {
+    return {
+      transforms: {
+        t_first: {
+          probability: 0.5,
+          variations: {
+            v_a: { type: 'linearVar', weight: 1 },
+            v_b: { type: 'linearVar', weight: 0.3 },
+          },
+        },
+        t_second: { probability: 0.25, variations: {} },
+      },
+    }
+  }
+  const weightOf = (variationId: string, value: number) => ({
+    target: {
+      kind: 'variationWeight' as const,
+      transformIdx: 0,
+      transformId: 't_first',
+      variationType: 'linearVar',
+      variationId,
+    },
+    value,
+  })
+
+  it('drives two variations of one type separately', () => {
+    const flame = flameWithTwoLinear()
+    applyAudioTargetValues(flame, [weightOf('v_b', 2), weightOf('v_a', 0.5)])
+    expect(flame.transforms.t_first.variations.v_a.weight).toBe(0.5)
+    expect(flame.transforms.t_first.variations.v_b.weight).toBe(2)
+    expect(flameTargetKey(weightOf('v_a', 0).target)).not.toBe(
+      flameTargetKey(weightOf('v_b', 0).target),
+    )
+  })
+
+  it('follows its transform when the flame is reordered', () => {
+    const flame = flameWithTwoLinear()
+    const probability = {
+      kind: 'transformProperty' as const,
+      transformIdx: 0,
+      transformId: 't_second',
+      property: 'probability' as const,
+    }
+    applyAudioTargetValues(flame, [{ target: probability, value: 0.8 }])
+    expect(flame.transforms.t_second.probability).toBe(0.8)
+    expect(flame.transforms.t_first.probability).toBe(0.5)
+    expect(readTargetValue(flame, probability)).toBe(0.8)
+  })
+
+  it('goes inert when its transform or variation is gone', () => {
+    const flame = flameWithTwoLinear()
+    const before = JSON.stringify(flame)
+    const gone = {
+      kind: 'transformAffine' as const,
+      transformIdx: 0,
+      transformId: 't_deleted',
+      matrix: 'preAffine' as const,
+      param: 'a' as const,
+    }
+    applyAudioTargetValues(flame, [
+      { target: gone, value: 3 },
+      weightOf('v_deleted', 3),
+    ])
+    expect(JSON.stringify(flame)).toBe(before)
+    expect(readTargetValue(flame, gone)).toBeUndefined()
   })
 })

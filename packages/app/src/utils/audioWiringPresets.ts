@@ -161,6 +161,7 @@ export function buildFlamePreset(
           {
             kind: 'transformProperty',
             transformIdx: t.index,
+            transformId: t.id,
             property: 'probability',
           },
           [0.06, 0.55],
@@ -183,7 +184,9 @@ export function buildFlamePreset(
             {
               kind: 'variationWeight',
               transformIdx: t.index,
+              transformId: t.id,
               variationType: variation.type,
+              variationId: variation.id,
             },
             [0, 1.5],
             { attackMs: 70, releaseMs: 260 },
@@ -208,6 +211,7 @@ export function buildFlamePreset(
           {
             kind: 'transformAffine',
             transformIdx: t.index,
+            transformId: t.id,
             matrix: 'preAffine',
             param,
           },
@@ -265,19 +269,23 @@ export function randomizeMappings(
             {
               kind: 'transformProperty',
               transformIdx: t.index,
+              transformId: t.id,
               property: 'probability',
             },
             [0.06, 0.55],
           ),
         )
       } else if (roll < 0.8 && t.variations.length > 0) {
+        const variation = pick(t.variations)
         out.push(
           entry(
             band,
             {
               kind: 'variationWeight',
               transformIdx: t.index,
-              variationType: pick(t.variations).type,
+              transformId: t.id,
+              variationType: variation.type,
+              variationId: variation.id,
             },
             [0, 1.5],
           ),
@@ -289,6 +297,7 @@ export function randomizeMappings(
             {
               kind: 'transformAffine',
               transformIdx: t.index,
+              transformId: t.id,
               matrix: 'preAffine',
               param: pick(['a', 'e'] as const),
             },

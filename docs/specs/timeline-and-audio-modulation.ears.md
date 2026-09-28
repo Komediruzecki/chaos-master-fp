@@ -59,7 +59,9 @@ not a gap.
   playhead, the Frames field sets the length, play and pause toggle, and one settings
   change is one undo step. It does not count played frames: they advance in the
   renderer, which the software adapter can fail to mount.
-- _Gap:_ `AudioWiringModal.tsx` has **no test of any kind** (unit or e2e) — REQ-TA-035
+- `packages/app/src/components/AudioWiringModal/AudioWiringModal.paste.test.tsx` —
+  pasting wiring onto another transform (REQ-TA-040)
+- _Gap:_ nothing else tests `AudioWiringModal.tsx` (unit or e2e) — REQ-TA-035
   through REQ-TA-038 are entirely unguarded. `keyframeOnChange.ts` likewise has no test,
   so REQ-TA-020 is unguarded. See **Coverage gaps** at the end for the full list.
 
@@ -422,7 +424,7 @@ capped, `flatness` as computed, `onset` as its rolling-median strength, and
 `beat` as `1` on a detected beat and `0` otherwise. An unrecognised feature name
 shall yield `0`.
 
-_(`audioMapping.ts:108-130` (`getAudioFeatureNormalized`), `audioAnalysis.ts:102-156` (`getFftBands`); beats at `:184-226` (`computeBeats`) — spectral-flux peaks
+_(`audioMapping.ts:149-171` (`getAudioFeatureNormalized`), `audioAnalysis.ts:102-156` (`getFftBands`); beats at `:184-226` (`computeBeats`) — spectral-flux peaks
 above `mean + 1.5σ` with a 100 ms minimum gap; onsets at `:234-275` (`computeOnsetStrengths`).)_
 
 ### REQ-TA-029 — Attack and release are a one-pole envelope on the normalized feature
@@ -435,7 +437,7 @@ falling, falling back to whichever of the two is set when the other is absent.
 unsmoothed. `prev` shall come from the per-target smoothing state, seeded with the
 current value on the first frame so a mapping does not ramp up from zero.
 
-_(`audioMapping.ts:186-211` (`computeSmoothedEnvelope`), called from `:308-314` (`smoothed`); guarded by
+_(`audioMapping.ts:227-252` (`computeSmoothedEnvelope`), called from `:349-355` (`smoothed`); guarded by
 `audioAnalysisMappings.test.ts:285` "applies attack and release envelope smoothing across consecutive frames".)_
 
 ### REQ-TA-030 — The mapped value is `lo + smoothed × sensitivity × (hi − lo)`
@@ -446,7 +448,7 @@ the span rather than clipping it, so a sensitivity above 1 can carry the value
 past `range[1]`; keeping the result inside the schema is REQ-TA-032's job, not
 this formula's.
 
-_(`audioMapping.ts:132-138` (`mappingToVal`), `:319` (`mappingToVal`); guarded by `audioAnalysisMappings.test.ts:82` "scales the output by the mapping sensitivity".)_
+_(`audioMapping.ts:173-179` (`mappingToVal`), `:360` (`mappingToVal`); guarded by `audioAnalysisMappings.test.ts:82` "scales the output by the mapping sensitivity".)_
 
 ### REQ-TA-031 — Sub-threshold movement does not re-render
 
@@ -460,7 +462,7 @@ the value last published. **If** no target changed on a frame, the mapper shall
 leave `flame.renderSettings` referentially untouched, so the render loop sees no
 new work.
 
-_(`audioMapping.ts:156-159` (`dirtyThreshold`), `:227-249` (`settleTargetValue`), `:252-261` (`outputMoved`), `:284-339` (`resolveAudioMappingValues`); guarded by
+_(`audioMapping.ts:197-200` (`dirtyThreshold`), `:268-290` (`settleTargetValue`), `:293-302` (`outputMoved`), `:325-380` (`resolveAudioMappingValues`); guarded by
 `audioAnalysisMappings.test.ts:338` "skips redundant writes when changes are below the dirty threshold",
 `audioMapping.test.ts:74` "holds a move below 0.2% of the output range" and `:88` "keeps a frame changed while the limited output is still moving".)_
 
@@ -472,14 +474,14 @@ setting's schema domain with the projection the timeline and the commands use
 renderer reads it, wrap the cyclic `palettePhase`, clamp every other bound, and
 substitute `0` for a non-finite value. **When** it writes a transform probability, it shall clamp to
 a floor of `0.001`, never zero or negative. **If** the target names a transform
-index that does not exist, or a variation type the transform does not carry,
-**then** the write shall be skipped rather than create the missing object.
+or a variation the flame does not have (REQ-TA-040 says how a target names
+them), **then** the write shall be skipped rather than create the missing object.
 
 Rationale, not decoration: audio modulation writes straight into the live
 descriptor, and one out-of-range `palettePhase` makes that flame permanently
 un-breedable, un-exportable and un-openable in the ancestry tree.
 
-_(`audioTargets.ts:27-41` (`heldRenderSetting`), `:174-212` (`applyTransformPropertyTarget`), `:160-172` (`applyTransformAffineTarget`), `:214-234` (`applyVariationWeightTarget`); guarded by
+_(`audioTargets.ts:27-41` (`heldRenderSetting`), `:190-227` (`applyTransformPropertyTarget`), `:177-188` (`applyTransformAffineTarget`), `:229-237` (`applyVariationWeightTarget`); guarded by
 `audioMappingClamp.test.ts:62-128` "keeps a wildly out-of-range palettePhase valid" and `audioAnalysisMappings.test.ts:176` "enforces safe probability lower bound for transform probability target", `:244` "gracefully handles out-of-bounds transform indices".)_
 
 ### REQ-TA-033 — Auditioning a track is not the same as driving the flame
@@ -517,7 +519,7 @@ a non-blocking replacement toast naming the displaced source for 2.5 s. **If** t
 target is already wired to that same source, **then** the editor shall select the
 existing wire and change nothing.
 
-_(`AudioWiringModal.tsx:639-671` (`doConnect`).)_
+_(`AudioWiringModal.tsx:640-675` (`doConnect`).)_
 
 ### REQ-TA-036 — A new wire is audible by default
 
@@ -526,7 +528,7 @@ _(`AudioWiringModal.tsx:639-671` (`doConnect`).)_
 or `[0.5, 1.5]` **where** the target is camera zoom, for which `[0, 1]` would
 collapse the view.
 
-_(`AudioWiringModal.tsx:34-40` (`NEW_ENTRY_DEFAULTS`), `:655-662` (`isZoom`).)_
+_(`AudioWiringModal.tsx:35-41` (`NEW_ENTRY_DEFAULTS`), `:659-666` (`isZoom`).)_
 
 ### REQ-TA-037 — Imported wiring is shape-checked before it is applied
 
@@ -536,8 +538,8 @@ or a two-element `range`, **then** the editor shall reject the import with an
 explanatory message and leave the current mappings untouched. A valid import
 shall record an undo entry before replacing the mappings.
 
-_(`AudioWiringModal.tsx:1004-1025` (`parseWiringJSON`), `:1053-1070` (`applyImport`); the editor keeps its own 50-entry
-undo stack at `:499` (`MAX_UNDO`), `:686-714` (`saveForUndo`), cleared of redo on every mutating operation.)_
+_(`AudioWiringModal.tsx:1011-1032` (`parseWiringJSON`), `:1060-1077` (`applyImport`); the editor keeps its own 50-entry
+undo stack at `:500` (`MAX_UNDO`), `:690-718` (`saveForUndo`), cleared of redo on every mutating operation.)_
 
 ### REQ-TA-038 — Editor shortcuts never steal keys from a text field
 
@@ -546,7 +548,7 @@ editor shall not handle undo/redo or delete for it. Escape shall unwind exactly
 one layer per press, in the order import panel → pending paste → active drag →
 pending connection → selected wire → close the modal.
 
-_(`AudioWiringModal.tsx:856-916` (`isEditableTarget`).)_
+_(`AudioWiringModal.tsx:860-920` (`isEditableTarget`).)_
 
 ### REQ-TA-039 — Audio-driven motion is held to a comfort preset
 
@@ -578,6 +580,30 @@ _(`comfortPreference.ts:22-27` (`initialComfortPreset`), `:44-47` (`setComfortPr
 `comfortPreference.test.ts:40` "is calm when the system asks for reduced motion", `:46` "remembers a choice, which wins over the system" and
 `useAudioReactive.test.ts:166` "follows a preset chosen while the overlay runs".)_
 
+### REQ-TA-040 — A target keeps pointing at what it was wired to
+
+**Where** a transform target carries its transform's key (`transformId`), the
+mapper shall find the transform by that key and not by `transformIdx`; **where**
+a variation-weight target carries its variation's key (`variationId`), it shall
+find the variation by that key and not by type. Per-target state (smoothing, the
+comfort limiter, the editor's wires) shall be keyed the same way, so two
+variations of one type are two targets. **Where** a target carries no key,
+as wiring saved before targets carried them does, it shall resolve by position
+and variation type as before. Presets, Randomize and the wiring editor shall
+write keys, and the panel shall give a legacy target the keys of what sits at
+its position. **If** a key names a transform or a variation the flame no longer
+has, **then** the target shall drive nothing and its row shall say the transform
+was deleted. **When** wiring is pasted onto another transform, it shall name
+that transform; **when** imported wiring names no transform of the open flame,
+its keys shall be dropped and it shall be placed by position.
+
+_(`audioTargets.ts:66-81` (`targetTransform`), `:87-105` (`targetVariation`), `audioMapping.ts:116-118` (`flameTargetKey`),
+`audioTargetIds.ts:77-89` (`reconcileTransformTargets`), `:97-114` (`retargetTransform`), `:130-145` (`adoptImportedWiring`); guarded by
+`audioTargets.test.ts:128` "drives two variations of one type separately", `:138` "follows its transform when the flame is reordered",
+`:152` "goes inert when its transform or variation is gone", `audioTargetIds.test.ts:130` "takes wiring from another flame by position",
+`AudioReactivePanel.rows.test.tsx:75` "says so when the transform a row drives was deleted" and
+`AudioWiringModal.paste.test.tsx:46` "names the transform the wiring is pasted onto".)_
+
 ---
 
 ## Coverage gaps
@@ -600,4 +626,4 @@ are listed instead.
 | REQ-TA-026              | The advance **arithmetic** is tested (`utils/timeline.test.ts:435-463` "advanceFrame"); the interval rate, `timeScale` multiplication, the Auto-FPS handoff and the EMA are not.                                                     |
 | REQ-TA-028              | `getAudioFeatureNormalized` is never called directly by a test, nor are `computeBeats` / `computeOnsetStrengths`. The mapping tests feed hand-built `FrameData` past it.                                                             |
 | REQ-TA-033              | `useAudioReactive.test.ts` covers suspension and the mic restart. Nothing covers transport-without-reactivity or seek.                                                                                                               |
-| REQ-TA-035 – REQ-TA-038 | `AudioWiringModal.tsx` (1643 lines) has **no unit test and no e2e coverage**. Every behaviour of the wiring editor is unguarded.                                                                                                     |
+| REQ-TA-035 – REQ-TA-038 | `AudioWiringModal.tsx` has **no e2e coverage**, and its one render test pastes wiring (REQ-TA-040). Nothing drives connecting, the new-wire defaults, the import check or the shortcuts.                                             |

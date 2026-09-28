@@ -1,5 +1,5 @@
 import { onCleanup, Show } from 'solid-js'
-import { flameTargetKey } from '../../utils/audioAnalysis'
+import { flameTargetPath } from '../../utils/audioAnalysis'
 import { createMappingGestureBoundary } from '../AudioReactivePanel/mappingGesture'
 import styles from './AudioWiringModal.module.css'
 import type { AudioFeature, AudioMappingEntry } from '../../utils/audioAnalysis'
@@ -72,14 +72,14 @@ export function ParamsPanel(props: {
           const sourceLabel =
             props.sourceByFeature.get(entry().audioFeature)?.label ??
             entry().audioFeature
-          const targetKey = flameTargetKey(entry().target)
+          const targetPath = flameTargetPath(entry().target)
 
           return (
             <>
               <div class={styles.paramsTitle}>
                 <span class={styles.paramsTitleSource}>{sourceLabel}</span>
                 <span class={styles.paramsTitleArrow}>→</span>
-                <span class={styles.paramsTitleTarget}>{targetKey}</span>
+                <span class={styles.paramsTitleTarget}>{targetPath}</span>
               </div>
               <div class={styles.paramsFields}>
                 {/* Sensitivity */}

@@ -19,17 +19,30 @@ describe('transformTargetPool', () => {
       {
         kind: 'transformAffine',
         transformIdx: 2,
+        transformId: 't_example',
         matrix: 'preAffine',
         param: 'a',
       },
       {
         kind: 'transformAffine',
         transformIdx: 2,
+        transformId: 't_example',
         matrix: 'preAffine',
         param: 'e',
       },
-      { kind: 'transformProperty', transformIdx: 2, property: 'probability' },
-      { kind: 'variationWeight', transformIdx: 2, variationType: 'swirlVar' },
+      {
+        kind: 'transformProperty',
+        transformIdx: 2,
+        transformId: 't_example',
+        property: 'probability',
+      },
+      {
+        kind: 'variationWeight',
+        transformIdx: 2,
+        transformId: 't_example',
+        variationType: 'swirlVar',
+        variationId: 'v_second',
+      },
     ])
   })
 

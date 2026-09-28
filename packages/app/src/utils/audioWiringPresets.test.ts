@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { MAX_SKIP_ITERS_VALUE } from '@/flame/schema/flameSchema'
-import { flameTargetKey } from './audioAnalysis'
+import { flameTargetKey, flameTargetPath } from './audioAnalysis'
 import { buildFlamePreset, buildPreset, FLAME_PRESET_IDS, randomizeMappings, RENDER_PRESET_IDS, } from './audioWiringPresets'
 import type { TransformInfo } from './audioAnalysis'
 
@@ -224,7 +224,7 @@ describe('the scale presets drive the affine diagonal', () => {
   it('swarm scales each transform through a and e', () => {
     const affine = buildFlamePreset('swarm', transforms(2))
       .filter((m) => m.target.kind === 'transformAffine')
-      .map((m) => flameTargetKey(m.target))
+      .map((m) => flameTargetPath(m.target))
     expect(affine).toEqual([
       'tx.0.preAffine.a',
       'tx.0.preAffine.e',
@@ -241,5 +241,25 @@ describe('the scale presets drive the affine diagonal', () => {
       }
     }
     expect([...params].sort()).toEqual(['a', 'e'])
+  })
+})
+
+describe('presets name what they wire by id', () => {
+  it('every transform target carries its transform id, and a weight its variation id', () => {
+    const tf = transforms(3)
+    const built = [
+      ...FLAME_PRESET_IDS.flatMap((id) => buildFlamePreset(id, tf)),
+      ...randomizeMappings(tf, seeded(7)),
+    ]
+    for (const { target } of built) {
+      if (!('transformIdx' in target)) continue
+      expect(target.transformId).toBe(tf[target.transformIdx]!.id)
+      if (target.kind === 'variationWeight') {
+        const variation = tf[target.transformIdx]!.variations.find(
+          (candidate) => candidate.id === target.variationId,
+        )
+        expect(variation?.type).toBe(target.variationType)
+      }
+    }
   })
 })

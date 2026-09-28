@@ -1,4 +1,5 @@
 import * as v from 'valibot'
+import { isSafeFlameEntityId } from './flameSchema'
 
 /**
  * Validated shape of the audio-reactive wiring.
@@ -44,23 +45,40 @@ export const TransformPropertyKey = v.picklist([
 
 const TransformIndex = v.pipe(v.number(), v.integer(), v.minValue(0))
 
+/**
+ * A transform or variation named by its key in the flame, so a target keeps
+ * pointing at the same thing when transforms are reordered or deleted. Always
+ * optional: wiring saved before targets carried ids names them by position
+ * (`transformIdx`) and variation type only, and still loads.
+ */
+const EntityId = v.optional(
+  v.pipe(
+    v.string(),
+    v.check((id) => isSafeFlameEntityId(id), 'Expected a flame entity id'),
+  ),
+)
+
 export const FlameTarget = v.variant('kind', [
   v.object({ kind: v.literal('renderSetting'), param: RenderSettingKey }),
   v.object({
     kind: v.literal('transformAffine'),
     transformIdx: TransformIndex,
+    transformId: EntityId,
     matrix: v.picklist(['preAffine', 'postAffine']),
     param: AffineKey,
   }),
   v.object({
     kind: v.literal('transformProperty'),
     transformIdx: TransformIndex,
+    transformId: EntityId,
     property: TransformPropertyKey,
   }),
   v.object({
     kind: v.literal('variationWeight'),
     transformIdx: TransformIndex,
+    transformId: EntityId,
     variationType: v.string(),
+    variationId: EntityId,
   }),
   v.object({ kind: v.literal('finalAffine'), param: AffineKey }),
 ])

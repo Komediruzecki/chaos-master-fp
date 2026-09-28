@@ -2,8 +2,8 @@
 // settles, and the re-export every existing importer still reaches it through.
 import { describe, expect, it } from 'vitest'
 import * as analysis from './audioAnalysis'
-import { dirtyThreshold, flameTargetKey, resolveAudioMappingValues, } from './audioMapping'
-import type { AudioMappingEntry, FrameData, MappingSmoothingState, TargetLimiter, } from './audioMapping'
+import { dirtyThreshold, flameTargetKey, flameTargetPath, resolveAudioMappingValues, } from './audioMapping'
+import type { AudioMappingEntry, FlameTarget, FrameData, MappingSmoothingState, TargetLimiter, } from './audioMapping'
 
 function frame(
   bass: number,
@@ -147,5 +147,23 @@ describe('a target limiter', () => {
     )
     expect(keys).toEqual(['render.exposure'])
     expect(values.map(({ value }) => value)).toEqual([1, 0.5])
+  })
+})
+
+describe('target keys and paths', () => {
+  const target: FlameTarget = {
+    kind: 'variationWeight',
+    transformIdx: 3,
+    transformId: 't_a',
+    variationType: 'linearVar',
+    variationId: 'v_b',
+  }
+
+  it('keys a target by the ids it carries', () => {
+    expect(flameTargetKey(target)).toBe('tx.@t_a.var.@v_b.weight')
+  })
+
+  it('shows a target by position and variation type', () => {
+    expect(flameTargetPath(target)).toBe('tx.3.var.linearVar.weight')
   })
 })
