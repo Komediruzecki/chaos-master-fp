@@ -480,4 +480,20 @@ describe('refused commands', () => {
     expect(execute).toHaveBeenCalledOnce()
     expect(executeCommand('test.no-such-command', ctx)).toBe(false)
   })
+
+  // A refusal changes nothing, so it must not end a timed replay's preview
+  // either: a malformed link or file used to take the workspace back from a
+  // replay while the wiring it carried was thrown away.
+  it('leave a replay preview alone, while an accepted one hands it back', () => {
+    const ctx = { ...createMockCommandContext(), beforeCommand: vi.fn() }
+    expect(executeCommand('audio.setMapping', ctx, { preset: 7 })).toBe(false)
+    expect(ctx.beforeCommand).not.toHaveBeenCalled()
+    expect(
+      executeCommand('audio.setMapping', ctx, {
+        preset: 'custom',
+        mappings: [],
+      }),
+    ).toBe(true)
+    expect(ctx.beforeCommand).toHaveBeenCalledOnce()
+  })
 })
