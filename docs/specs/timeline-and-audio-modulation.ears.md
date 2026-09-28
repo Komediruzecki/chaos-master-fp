@@ -1,8 +1,8 @@
 # Timeline keyframing and audio-reactive modulation — EARS requirements
 
-**Version:** 0.9.11 (`packages/app/package.json`) — describes `main` at PR #83
-(`v0.9.11..a5c2f26f`, 39 commits); the package version has not been bumped since the tag
-**Date:** 2026-09-10
+**Version:** 0.9.13 (`packages/app/package.json`) with the audio-reactive P0 fixes of
+`fix/audio-reactive-p0` on top — the behaviour this describes
+**Date:** 2026-09-28
 **Scope:** The two systems that make a flame move over time — the timeline
 (tracks, keyframes, interpolation, loop synthesis, auto-keyframing, transport)
 and audio-reactive modulation (feature extraction, mapping evaluation,
