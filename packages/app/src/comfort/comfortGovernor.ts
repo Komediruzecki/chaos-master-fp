@@ -183,6 +183,9 @@ function advance(
   u: number,
   h: number,
 ): void {
+  // No time, no motion, and nothing new for a window that forgets outputs
+  // by time.
+  if (!(h > 0)) return
   state.t += h
   if (rule.kind === 'wrap') {
     // The shortest signed turn, in [-0.5, 0.5).
@@ -201,15 +204,19 @@ function advance(
       state.history.shift()
     }
     // Every output still in the window bounds the next one from both sides,
-    // so no two outputs inside any window are more than `range` apart. The
-    // previous output is in the window, so the bounds always hold it.
+    // so no two outputs inside any window are more than `range` apart.
     let lo = -Infinity
     let hi = Infinity
     for (const past of state.history) {
       lo = Math.max(lo, past.y - range)
       hi = Math.min(hi, past.y + range)
     }
-    next = clamp(next, lo, hi)
+    // The previous output is in the window, so the bounds hold it, and the
+    // clamp only ever pulls the next one back toward it. After a switch to a
+    // narrower preset the window can already span more than the new range:
+    // then any move would widen a swing that is too wide already, so the
+    // output holds until the older outputs have left.
+    next = state.y >= lo && state.y <= hi ? clamp(next, lo, hi) : state.y
     state.history.push({ t: state.t, y: next })
   }
   state.y = next
@@ -217,7 +224,11 @@ function advance(
 
 export type ComfortGovernor = {
   preset(): ComfortPreset
-  /** Takes effect on the next step, from where every target is now. */
+  /**
+   * Takes effect on the next step, from where every target is now. A window
+   * keeps the outputs already in it and holds them to the new range, so a
+   * switch inside a window cannot widen what the window shows.
+   */
   setPreset(preset: ComfortPreset): void
   /**
    * The value to show for `target` this frame, given the value its mapping
@@ -227,6 +238,12 @@ export type ComfortGovernor = {
    * without modulation, so turning audio on eases in from the authored value
    * instead of cutting to the mapped one. Without a seed the first value
    * passes through.
+   *
+   * A non-finite `value` moves nothing: the target shows its last output,
+   * or on a first step the seed, and the next finite value eases in from
+   * there. Only with neither is there nothing finite to show, and the value
+   * comes back as it came in. A `dt` that is not a positive number moves
+   * nothing either.
    */
   step(
     target: FlameTarget,
@@ -247,16 +264,17 @@ export function createComfortGovernor(initial: ComfortPreset): ComfortGovernor {
     preset: () => current,
     setPreset(preset) {
       current = preset
-      for (const state of states.values()) {
-        state.history = [{ t: state.t, y: state.y }]
-      }
     },
     step(target, key, value, dt, seed) {
       const rule = comfortRule(target, COMFORT_CAPS[current])
       if (rule.kind === 'free') return value
       const state = states.get(key)
       if (!Number.isFinite(value)) {
-        return state ? fromCoordinate(rule, state.y) : value
+        if (state) return fromCoordinate(rule, state.y)
+        const authored = seed?.()
+        return authored !== undefined && Number.isFinite(authored)
+          ? authored
+          : value
       }
       const h = clamp(Number.isFinite(dt) ? dt : 0, 0, MAX_STEP_SECONDS)
       if (state) {

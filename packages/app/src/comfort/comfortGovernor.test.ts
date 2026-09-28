@@ -1,9 +1,10 @@
 // Pins the comfort governor: slew caps per target kind, the wrap-aware hue
-// cap, the brightness window, seeding from the authored value, and the
-// behaviour on preset changes, stalls and non-finite input.
+// cap, the brightness and zoom windows, seeding from the authored value, and
+// the behaviour on preset changes, stalls, steps of no time and non-finite
+// input.
 import { numberDomainOf, RenderSettings } from '@chaos-master/core'
 import { describe, expect, it } from 'vitest'
-import { createComfortGovernor, MAX_STEP_SECONDS } from './comfortGovernor'
+import { createComfortGovernor, MAX_STEP_SECONDS, PROBABILITY_FLOOR, } from './comfortGovernor'
 import { COMFORT_CAPS, COMFORT_PRESETS } from './comfortPresets'
 import type { FlameTarget } from '@/utils/audioMapping'
 
@@ -460,5 +461,109 @@ describe('state', () => {
     governor.step(zoom, 'render.zoom', 1, 1 / 30)
     governor.reset()
     expect(governor.step(zoom, 'render.zoom', 8, 1 / 30)).toBe(8)
+  })
+})
+
+describe('edge cases', () => {
+  // A step of no time moves nothing, so it must add nothing to a window that
+  // forgets outputs by time: counted as outputs, a run of them grew the window
+  // without bound and made every step slower than the last.
+  it.each([
+    ['zero', 0],
+    ['negative', -0.2],
+    ['NaN', Number.NaN],
+  ])('holds a target through a long run of %s steps', (_, dt) => {
+    const governor = createComfortGovernor('standard')
+    const start = governor.step(
+      exposure,
+      'render.exposure',
+      8,
+      1 / 30,
+      () => 0.25,
+    )
+    const began = globalThis.performance.now()
+    let held = Number.NaN
+    for (let tick = 0; tick < 150_000; tick++) {
+      held = governor.step(exposure, 'render.exposure', 8, dt)
+    }
+    const elapsed = globalThis.performance.now() - began
+    const next = governor.step(exposure, 'render.exposure', 8, 1 / 30)
+    expect(start).toBeCloseTo(0.27, 12)
+    expect(held).toBe(start)
+    expect(next).toBeCloseTo(0.29, 12)
+    // Tens of milliseconds when each step costs the same; tens of seconds
+    // when each one walks every output before it.
+    expect(elapsed).toBeLessThan(2000)
+  })
+
+  it.each([Number.NaN, Infinity, -Infinity])(
+    'shows the authored value for a first value of %d, then eases in from it',
+    (value) => {
+      const governor = createComfortGovernor('standard')
+      expect(
+        governor.step(exposure, 'render.exposure', value, 1 / 30, () => 0.25),
+      ).toBe(0.25)
+      expect(
+        governor.step(exposure, 'render.exposure', 8, 1 / 30, () => 0.25),
+      ).toBeCloseTo(0.27, 12)
+    },
+  )
+
+  it('takes a transform probability down to its floor and straight back', () => {
+    const probability: FlameTarget = {
+      kind: 'transformProperty',
+      transformIdx: 0,
+      property: 'probability',
+    }
+    const governor = createComfortGovernor('intense')
+    let bottom = Number.NaN
+    for (let frame = 0; frame < 30 * 20; frame++) {
+      bottom = governor.step(
+        probability,
+        'tx.0.probability',
+        0,
+        1 / 30,
+        () => 0.5,
+      )
+    }
+    const back = governor.step(probability, 'tx.0.probability', 1, 1 / 30)
+    expect(bottom).toBeCloseTo(PROBABILITY_FLOOR, 12)
+    expect(back).toBeCloseTo(PROBABILITY_FLOOR * Math.exp(1.5 / 30), 12)
+  })
+
+  it('keeps the window through a switch to a wider preset', () => {
+    // Standard climbs 0.18 from the authored 1 and holds; Intense then
+    // allows 0.35 across the same 500 ms, the outputs before the switch
+    // included.
+    const governor = createComfortGovernor('standard')
+    const times = [0]
+    const shown = [1]
+    for (let frame = 1; frame <= 60; frame++) {
+      if (frame === 13) governor.setPreset('intense')
+      shown.push(governor.step(exposure, 'render.exposure', 8, 1 / 30, () => 1))
+      times.push(frame / 30)
+    }
+    expect(worstSwingByTime(times, shown, 0.5)).toBeCloseTo(0.35, 9)
+  })
+
+  it('holds a target after a switch to a narrower preset until its window allows a move', () => {
+    // Intense climbs 0.35 from the authored 1 in seven frames. Standard
+    // allows 0.18: the output holds at 1.35 until every output under 1.17
+    // has left the window, eight frames later, then climbs at Standard's
+    // 0.02 a frame.
+    const governor = createComfortGovernor('intense')
+    for (let frame = 1; frame <= 10; frame++) {
+      governor.step(exposure, 'render.exposure', 8, 1 / 30, () => 1)
+    }
+    governor.setPreset('standard')
+    const after: number[] = []
+    for (let frame = 11; frame <= 60; frame++) {
+      after.push(governor.step(exposure, 'render.exposure', 8, 1 / 30))
+    }
+    expect(after.slice(0, 8).map((value) => value.toFixed(12))).toEqual(
+      Array.from({ length: 8 }, () => (1.35).toFixed(12)),
+    )
+    expect(after[8]).toBeCloseTo(1.37, 12)
+    expect(worstSwing(after, 15)).toBeCloseTo(0.18, 9)
   })
 })
