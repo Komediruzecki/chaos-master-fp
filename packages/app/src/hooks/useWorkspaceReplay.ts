@@ -312,7 +312,6 @@ export function useWorkspaceReplay(params: UseWorkspaceReplayParams) {
     if (state.timeline.previewHeld !== undefined) {
       timeline.setPreviewHeld(state.timeline.previewHeld)
     }
-    applyReplayAudioState(state.audio)
     if (state.view.qualityPreset in qualityPresets) {
       view.setQualityPreset(state.view.qualityPreset as QualityPreset)
     }
@@ -326,6 +325,9 @@ export function useWorkspaceReplay(params: UseWorkspaceReplayParams) {
     view.setShowSidebar(state.view.sidebarOpen)
 
     history.replaceSilently(state.flame)
+    // After the flame: a legacy row is keyed against the flame it is restored
+    // with, not the one on screen before the undo or redo.
+    applyReplayAudioState(state.audio)
 
     const pres = normalizeReplayPresentation(state.presentation, state.flame)
     presentation.setSidebarHidden(pres.sidebarHidden)
