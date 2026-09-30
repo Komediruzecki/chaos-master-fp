@@ -1,5 +1,4 @@
 // Solid controls for an isolated, native-only WebGPU XR capability lab.
-import './style.css'
 import { createSignal, onCleanup, onMount } from 'solid-js'
 import { render } from 'solid-js/web'
 import { Diagnostics } from './Diagnostics'
@@ -193,4 +192,11 @@ function Lab() {
   )
 }
 
-render(() => <Lab />, document.getElementById('root')!)
+if (window.location.pathname.startsWith('/bench')) {
+  const { Bench } = await import('./bench/Bench')
+  document.title = 'Lumen Apeiron · Orb specimen bench'
+  render(() => <Bench />, document.getElementById('root')!)
+} else {
+  await import('./style.css')
+  render(() => <Lab />, document.getElementById('root')!)
+}

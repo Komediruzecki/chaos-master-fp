@@ -170,3 +170,13 @@ rtk proxy timeout 120 pnpm --dir /home/maff/.codex/worktrees/webgpu-xr-spike/cha
 
 The current plan, research review and recorded results live in
 `/home/maff/.dotfiles/personal/lumen-meta/18-musical-response-and-research.md`.
+
+## Desktop orb specimen bench
+
+The separate `feat/orb-specimen-bench` branch adds a `/bench` route beside this
+original `/` lab. It compares three deterministic live fractal recipes, point
+counts, palettes and optional solid rings, with an opaque depth probe and
+downloadable study settings. It starts still and has no audio or XR session.
+The [bench guide](BENCH.md) contains the five-minute review, full restart
+command, rendering boundaries and the next Almanac decision. Its local preview
+uses port 5192 so the earlier lab can remain available on its own port.

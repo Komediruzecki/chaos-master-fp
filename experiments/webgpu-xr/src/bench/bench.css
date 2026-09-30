@@ -1,0 +1,829 @@
+/* Observatory typography and responsive controls around one live specimen. */
+body:has(.orb-bench) {
+  margin: 0;
+}
+.orb-bench {
+  --bench-base: #07111c;
+  --bench-surface: #0e1a25;
+  --bench-ink: #ede8d9;
+  --bench-muted: #a3b4bd;
+  --bench-copper: #b89b73;
+  --bench-teal: #91cec5;
+  --bench-line: #2b3c47;
+  min-height: 100svh;
+  background: var(--bench-base);
+  color: var(--bench-ink);
+  font-family: 'Segoe UI', ui-sans-serif, system-ui, sans-serif;
+  font-synthesis: none;
+  color-scheme: dark;
+  line-height: 1.5;
+}
+.orb-bench *,
+.orb-bench *::before,
+.orb-bench *::after {
+  box-sizing: border-box;
+}
+.orb-bench h1,
+.orb-bench h2,
+.orb-bench p {
+  margin: 0;
+}
+.orb-bench button,
+.orb-bench select,
+.orb-bench input {
+  font: inherit;
+}
+.orb-bench button,
+.orb-bench select,
+.orb-bench input[type='number'] {
+  border: 1px solid var(--bench-line);
+  border-radius: 5px;
+  color: var(--bench-ink);
+  background: var(--bench-surface);
+  min-height: 40px;
+}
+.orb-bench button {
+  cursor: pointer;
+  padding: 9px 12px;
+}
+.orb-bench button:hover:enabled {
+  border-color: var(--bench-copper);
+  background: #172630;
+}
+.orb-bench button:disabled,
+.orb-bench fieldset:disabled {
+  opacity: 0.48;
+}
+.orb-bench button:disabled,
+.orb-bench fieldset:disabled * {
+  cursor: default;
+}
+.orb-bench :is(button, a, input, select, summary, canvas):focus-visible {
+  outline: 2px solid var(--bench-teal);
+  outline-offset: 4px;
+}
+.orb-bench a {
+  color: inherit;
+}
+.orb-bench .bench-header {
+  padding: 26px 34px;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  border-bottom: 1px solid #1d303d;
+}
+.orb-bench .bench-brand {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  text-decoration: none;
+  font-size: 17px;
+  font-weight: 600;
+}
+.orb-bench .bench-brand-secondary {
+  font-weight: 350;
+  color: #bfc9c8;
+}
+.orb-bench .bench-brand-mark {
+  position: relative;
+  display: block;
+  width: 24px;
+  height: 29px;
+  border: 1px solid var(--bench-copper);
+  border-radius: 50%;
+  transform: rotate(35deg);
+}
+.orb-bench .bench-brand-mark::after {
+  content: '';
+  position: absolute;
+  inset: 4px -5px;
+  border: 1px solid var(--bench-teal);
+  border-radius: 50%;
+  transform: rotate(100deg);
+}
+.orb-bench .bench-header-caption {
+  color: var(--bench-muted);
+  font-size: 12px;
+  margin-left: auto;
+}
+.orb-bench .bench-lab-link {
+  color: var(--bench-copper);
+  font-size: 12px;
+  text-underline-offset: 4px;
+}
+.orb-bench .bench-workspace {
+  display: grid;
+  grid-template-columns: 218px minmax(0, 1fr) 252px;
+  gap: 24px;
+  padding: 0 34px;
+}
+.orb-bench .bench-specimens {
+  padding-top: 45px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.orb-bench h1 {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(32px, 3.25vw, 48px);
+  line-height: 1.13;
+  font-weight: 400;
+  letter-spacing: -0.035em;
+}
+.orb-bench .bench-intro {
+  margin-top: 18px;
+  max-width: 25ch;
+  color: var(--bench-muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.orb-bench .bench-section-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #c3cbd0;
+}
+.orb-bench .bench-specimens > .bench-section-title {
+  margin-top: 42px;
+}
+.orb-bench .bench-recipe-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+}
+.orb-bench .bench-recipe {
+  display: flex;
+  align-items: center;
+  text-align: left;
+  gap: 16px;
+  width: 100%;
+  min-height: 78px;
+  padding: 13px 10px;
+  border-color: transparent;
+  background: transparent;
+}
+.orb-bench .bench-recipe[aria-pressed='true'] {
+  background: #152931;
+  border-color: #466b6d;
+}
+.orb-bench .bench-recipe-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.orb-bench .bench-recipe-copy strong {
+  font-size: 14px;
+  font-weight: 550;
+}
+.orb-bench .bench-recipe-copy > span {
+  color: var(--bench-muted);
+  font-size: 11px;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+.orb-bench .bench-recipe-symbol {
+  width: 38px;
+  height: 40px;
+  display: block;
+  flex-shrink: 0;
+  position: relative;
+  color: var(--bench-copper);
+}
+.orb-bench .bench-recipe-symbol i {
+  position: absolute;
+  display: block;
+  inset: 3px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  transform: rotate(25deg) scaleX(0.5);
+}
+.orb-bench .bench-recipe-symbol i:nth-child(2) {
+  transform: rotate(85deg) scaleX(0.5);
+}
+.orb-bench .bench-recipe-symbol i:nth-child(3) {
+  transform: rotate(145deg) scaleX(0.5);
+}
+.orb-bench .bench-recipe-symbol-1 {
+  color: var(--bench-teal);
+}
+.orb-bench .bench-recipe-symbol-1 i {
+  border-radius: 35% 60% 28% 55%;
+}
+.orb-bench .bench-recipe-symbol-2 {
+  color: #b5a6da;
+}
+.orb-bench .bench-recipe-symbol-2 i {
+  border-radius: 15%;
+  transform: rotate(45deg) scale(0.8);
+}
+.orb-bench .bench-recipe-symbol-2 i:nth-child(2) {
+  transform: rotate(45deg) scale(0.5);
+}
+.orb-bench .bench-recipe-symbol-2 i:nth-child(3) {
+  transform: rotate(45deg) scale(0.2);
+}
+.orb-bench .bench-specimen-note {
+  margin: 20px 8px 0;
+  max-width: 26ch;
+  font-size: 11px;
+  color: var(--bench-muted);
+  line-height: 1.7;
+}
+.orb-bench .bench-left-footer {
+  margin-top: auto;
+  padding: 38px 0 28px;
+  font-size: 11px;
+  color: var(--bench-copper);
+}
+.orb-bench .bench-left-footer p {
+  margin-top: 8px;
+  color: var(--bench-muted);
+  max-width: 27ch;
+}
+.orb-bench .bench-stage {
+  position: relative;
+  min-width: 0;
+  min-height: 740px;
+  height: calc(100svh - 160px);
+  isolation: isolate;
+}
+.orb-bench .bench-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: calc(100% - 245px);
+  touch-action: none;
+  cursor: grab;
+}
+.orb-bench .bench-canvas:active {
+  cursor: grabbing;
+}
+.orb-bench .bench-stage-top {
+  position: absolute;
+  top: 34px;
+  left: 14px;
+  right: 14px;
+  display: flex;
+  justify-content: space-between;
+  color: var(--bench-muted);
+  font-size: 11px;
+  pointer-events: none;
+}
+.orb-bench .bench-stage-caption {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 105px;
+  text-align: center;
+  pointer-events: none;
+}
+.orb-bench .bench-stage-caption h2 {
+  font:
+    400 30px/1.2 Georgia,
+    'Times New Roman',
+    serif;
+  letter-spacing: -0.02em;
+  text-shadow: 0 2px 15px #07111c;
+}
+.orb-bench .bench-stage-caption > p {
+  margin: 12px auto 0;
+  max-width: 47ch;
+  font-size: 12px;
+  color: #c2ccce;
+  text-wrap: balance;
+}
+.orb-bench .bench-stage-caption .bench-canvas-help {
+  color: var(--bench-muted);
+  font-size: 10px;
+  max-width: 58ch;
+}
+.orb-bench .bench-camera {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 24px;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  font-size: 11px;
+}
+.orb-bench .bench-camera-poses {
+  display: flex;
+  gap: 4px;
+}
+.orb-bench .bench-camera button {
+  background: #0b1722ed;
+  min-height: 38px;
+  padding: 8px 10px;
+}
+.orb-bench .bench-camera .bench-rotation {
+  border-color: #567777;
+  color: var(--bench-teal);
+}
+.orb-bench .bench-camera .bench-rotation[aria-pressed='true'] {
+  background: #1a383d;
+}
+.orb-bench .bench-inspector {
+  padding: 45px 0 26px;
+  font-size: 12px;
+}
+.orb-bench .bench-fields {
+  padding: 0;
+  border: 0;
+  margin: 21px 0 0;
+  min-width: 0;
+}
+.orb-bench .bench-field {
+  display: block;
+  margin-top: 15px;
+  color: #c3cdd0;
+}
+.orb-bench .bench-field:first-of-type {
+  margin-top: 0;
+}
+.orb-bench .bench-field > span {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+.orb-bench .bench-field select,
+.orb-bench .bench-field input[type='number'] {
+  display: block;
+  width: 100%;
+  margin-top: 7px;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+.orb-bench .bench-field-hint {
+  margin-top: 9px;
+  color: var(--bench-muted);
+  font-size: 10px;
+  line-height: 1.6;
+}
+.orb-bench .bench-palette-group {
+  margin-top: 24px;
+}
+.orb-bench .bench-field-label {
+  display: block;
+  color: #c3cdd0;
+}
+.orb-bench .bench-palettes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 10px;
+}
+.orb-bench .bench-palette {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 4px;
+  font-size: 10px;
+  text-align: center;
+}
+.orb-bench .bench-palette > span {
+  display: block;
+  height: 4px;
+  border-radius: 2px;
+  margin: 0 9px 8px;
+}
+.orb-bench .bench-palette-lagoon > span {
+  background: linear-gradient(90deg, #257696, #90d9c0, #dfc58b);
+}
+.orb-bench .bench-palette-ember > span {
+  background: linear-gradient(90deg, #a65c50, #d89562, #f0dab6);
+}
+.orb-bench .bench-palette-violet > span {
+  background: linear-gradient(90deg, #7466a6, #bd9fdf, #9dd4dc);
+}
+.orb-bench .bench-palette-ivory > span {
+  background: linear-gradient(90deg, #707c86, #e4e1d8);
+}
+.orb-bench .bench-palette[aria-pressed='true'] {
+  border-color: var(--bench-copper);
+  background: #263039;
+}
+.orb-bench .bench-range {
+  margin-top: 22px;
+}
+.orb-bench output {
+  color: var(--bench-ink);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+}
+.orb-bench input[type='range'] {
+  display: block;
+  width: 100%;
+  margin: 8px 0 0;
+  min-height: 30px;
+  accent-color: var(--bench-copper);
+  cursor: pointer;
+}
+.orb-bench .bench-framing {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.orb-bench .bench-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 32px;
+  cursor: pointer;
+}
+.orb-bench .bench-check input {
+  margin: 0;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--bench-teal);
+}
+.orb-bench .bench-advanced {
+  border-top: 1px solid var(--bench-line);
+  margin-top: 20px;
+  padding-top: 13px;
+}
+.orb-bench .bench-advanced summary {
+  cursor: pointer;
+  color: #c3cdd0;
+  min-height: 32px;
+  padding: 4px 0;
+}
+.orb-bench .bench-advanced .bench-field {
+  margin-top: 14px;
+}
+.orb-bench .bench-rebuild {
+  width: 100%;
+  font-size: 11px;
+  margin-top: 14px;
+}
+.orb-bench .bench-save {
+  width: 100%;
+  margin-top: 22px;
+  color: #f2dfc2;
+  border-color: #78674f;
+  background: #2a2824;
+  font-size: 12px;
+}
+.orb-bench .bench-export-note {
+  margin-top: 9px;
+  text-align: center;
+  color: var(--bench-muted);
+  font-size: 10px;
+}
+.orb-bench .bench-footer {
+  display: flex;
+  gap: 26px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 19px 34px;
+  border-top: 1px solid #1d303d;
+  font-size: 11px;
+}
+.orb-bench .bench-footer-place {
+  color: var(--bench-copper);
+  white-space: nowrap;
+}
+.orb-bench .bench-footer-place > span {
+  display: block;
+  color: var(--bench-muted);
+  font-size: 10px;
+  margin-top: 3px;
+}
+.orb-bench .bench-readings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 26px;
+  padding: 0;
+  margin: 0;
+  font-size: 10px;
+}
+.orb-bench .bench-readings > div {
+  display: flex;
+  gap: 8px;
+}
+.orb-bench .bench-readings dt {
+  color: var(--bench-muted);
+}
+.orb-bench .bench-readings dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.orb-bench .bench-footer-status {
+  font-size: 10px;
+  color: var(--bench-muted);
+}
+.orb-bench .bench-loading {
+  position: absolute;
+  top: 40%;
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: var(--bench-muted);
+  font-size: 13px;
+  pointer-events: none;
+}
+.orb-bench .bench-error {
+  position: absolute;
+  inset: 20% 24px auto;
+  padding: 22px;
+  border: 1px solid #a77865;
+  border-radius: 5px;
+  background: #172029;
+}
+.orb-bench .bench-error h2 {
+  font-size: 17px;
+  font-weight: 500;
+}
+.orb-bench .bench-error p {
+  font-size: 12px;
+  color: #e9c4b4;
+  line-height: 1.7;
+  margin-top: 12px;
+  overflow-wrap: anywhere;
+}
+.orb-bench .bench-error button {
+  margin-top: 16px;
+  font-size: 12px;
+}
+.orb-bench .bench-runtime-errors {
+  margin: 16px 34px;
+  color: #e9c4b4;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.orb-bench .bench-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+@media (min-width: 1700px) {
+  .orb-bench .bench-workspace {
+    grid-template-columns: 260px minmax(0, 1fr) 280px;
+    gap: 40px;
+    padding: 0 46px;
+  }
+  .orb-bench .bench-header,
+  .orb-bench .bench-footer {
+    padding-left: 46px;
+    padding-right: 46px;
+  }
+  .orb-bench .bench-intro {
+    max-width: 28ch;
+  }
+}
+@media (max-width: 1140px) {
+  .orb-bench .bench-workspace {
+    grid-template-columns: 178px minmax(0, 1fr) 226px;
+    gap: 16px;
+    padding: 0 22px;
+  }
+  .orb-bench .bench-header,
+  .orb-bench .bench-footer {
+    padding-left: 22px;
+    padding-right: 22px;
+  }
+  .orb-bench .bench-recipe {
+    gap: 8px;
+    padding: 10px 6px;
+  }
+  .orb-bench .bench-recipe-symbol {
+    width: 30px;
+    height: 34px;
+  }
+  .orb-bench .bench-stage-caption {
+    bottom: 132px;
+  }
+  .orb-bench .bench-footer {
+    gap: 16px;
+  }
+  .orb-bench .bench-readings {
+    gap: 14px;
+  }
+}
+@media (max-width: 900px) {
+  .orb-bench .bench-header {
+    padding: 22px;
+  }
+  .orb-bench .bench-header-caption {
+    display: none;
+  }
+  .orb-bench .bench-lab-link {
+    margin-left: auto;
+  }
+  .orb-bench .bench-workspace {
+    grid-template-columns: minmax(0, 1fr) 252px;
+    gap: 22px;
+  }
+  .orb-bench .bench-specimens {
+    grid-column: 1 / -1;
+    padding-top: 26px;
+    display: grid;
+    grid-template-columns: 1fr 1.3fr;
+    column-gap: 28px;
+  }
+  .orb-bench h1 {
+    font-size: 32px;
+  }
+  .orb-bench h1 br {
+    display: none;
+  }
+  .orb-bench .bench-intro {
+    font-size: 12px;
+    margin-top: 10px;
+    max-width: 35ch;
+    grid-column: 1;
+  }
+  .orb-bench .bench-specimens > .bench-section-title {
+    grid-column: 2;
+    grid-row: 1;
+    margin: 0;
+  }
+  .orb-bench .bench-recipe-list {
+    grid-column: 2;
+    grid-row: 2 / 4;
+    flex-direction: row;
+    margin-top: 10px;
+  }
+  .orb-bench .bench-recipe {
+    flex: 1;
+    flex-direction: column;
+    text-align: center;
+    gap: 6px;
+    min-width: 0;
+    padding: 10px 7px;
+  }
+  .orb-bench .bench-recipe-copy strong {
+    font-size: 12px;
+  }
+  .orb-bench .bench-recipe-copy > span {
+    display: none;
+  }
+  .orb-bench .bench-specimen-note {
+    grid-column: 1;
+    margin: 12px 0 0;
+    font-size: 10px;
+    max-width: 35ch;
+  }
+  .orb-bench .bench-left-footer {
+    display: none;
+  }
+  .orb-bench .bench-stage {
+    min-height: 625px;
+    height: 625px;
+  }
+  .orb-bench .bench-inspector {
+    padding-top: 30px;
+  }
+  .orb-bench .bench-footer {
+    flex-wrap: wrap;
+  }
+  .orb-bench .bench-footer-status {
+    width: 100%;
+  }
+}
+@media (max-width: 620px) {
+  .orb-bench .bench-header {
+    padding: 20px;
+    gap: 12px;
+  }
+  .orb-bench .bench-brand {
+    font-size: 15px;
+    gap: 11px;
+  }
+  .orb-bench .bench-brand-mark {
+    width: 20px;
+    height: 25px;
+  }
+  .orb-bench .bench-lab-link {
+    font-size: 11px;
+  }
+  .orb-bench .bench-workspace {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 0 20px;
+  }
+  .orb-bench .bench-specimens {
+    display: block;
+    padding-top: 24px;
+  }
+  .orb-bench h1 {
+    font-size: 33px;
+  }
+  .orb-bench .bench-intro {
+    max-width: 44ch;
+  }
+  .orb-bench .bench-specimens > .bench-section-title {
+    margin-top: 23px;
+  }
+  .orb-bench .bench-recipe-list {
+    flex-direction: row;
+    gap: 8px;
+  }
+  .orb-bench .bench-recipe {
+    min-height: 86px;
+  }
+  .orb-bench .bench-specimen-note {
+    display: none;
+  }
+  .orb-bench .bench-stage {
+    min-height: 590px;
+    height: 590px;
+    margin: 0 -20px;
+  }
+  .orb-bench .bench-stage-top {
+    top: 26px;
+    left: 22px;
+    right: 22px;
+    font-size: 10px;
+  }
+  .orb-bench .bench-stage-caption {
+    bottom: 132px;
+    left: 28px;
+    right: 28px;
+  }
+  .orb-bench .bench-stage-caption h2 {
+    font-size: 28px;
+  }
+  .orb-bench .bench-stage-caption > p {
+    font-size: 11px;
+  }
+  .orb-bench .bench-camera {
+    bottom: 22px;
+    gap: 8px;
+    left: 20px;
+    right: 20px;
+  }
+  .orb-bench .bench-camera-poses {
+    width: 100%;
+    justify-content: center;
+  }
+  .orb-bench .bench-camera button {
+    min-height: 40px;
+  }
+  .orb-bench .bench-inspector {
+    padding: 24px 0 30px;
+    border-top: 1px solid var(--bench-line);
+  }
+  .orb-bench .bench-fields {
+    margin-top: 18px;
+  }
+  .orb-bench .bench-field select,
+  .orb-bench .bench-field input[type='number'] {
+    min-height: 44px;
+    font-size: 14px;
+  }
+  .orb-bench .bench-palettes {
+    gap: 10px;
+  }
+  .orb-bench .bench-palette {
+    padding: 12px 8px;
+    font-size: 12px;
+  }
+  .orb-bench .bench-palette > span {
+    margin-left: 20px;
+    margin-right: 20px;
+  }
+  .orb-bench .bench-framing {
+    flex-direction: row;
+    gap: 24px;
+    margin-top: 18px;
+  }
+  .orb-bench .bench-check {
+    min-height: 44px;
+  }
+  .orb-bench .bench-advanced summary {
+    min-height: 44px;
+    padding-top: 11px;
+  }
+  .orb-bench .bench-save {
+    min-height: 46px;
+  }
+  .orb-bench .bench-footer {
+    padding: 22px 20px;
+    gap: 18px;
+  }
+  .orb-bench .bench-readings {
+    flex-direction: column;
+    gap: 5px;
+    margin-left: auto;
+  }
+  .orb-bench .bench-readings > div {
+    justify-content: space-between;
+    gap: 15px;
+  }
+  .orb-bench .bench-error {
+    inset: 15% 22px auto;
+  }
+}
