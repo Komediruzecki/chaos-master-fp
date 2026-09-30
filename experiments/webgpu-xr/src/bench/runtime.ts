@@ -13,6 +13,7 @@ export class BenchRuntime {
   private context?: GPUCanvasContext
   private renderer?: ReturnType<typeof createBenchRenderer>
   private ready = false
+  private active = true
   private disposed = false
   private error = ''
   private errors: string[] = []
@@ -121,7 +122,7 @@ export class BenchRuntime {
   private frame = (time: number) => {
     if (this.disposed || !this.ready) return
     try {
-      if (!document.hidden) {
+      if (!document.hidden && this.active) {
         const delta = this.previousTime ? time - this.previousTime : 0
         if (delta > 0) {
           this.intervals.push(delta)
@@ -264,6 +265,12 @@ export class BenchRuntime {
     }
     this.changed()
   }
+  /** Retain the specimen while its host shows an entry without a live preview. */
+  setActive(active: boolean) {
+    this.active = active
+    this.previousTime = 0
+    this.changed()
+  }
   resetView() {
     this.setSettings({
       yaw: 0,
@@ -279,6 +286,7 @@ export class BenchRuntime {
     const sorted = [...this.intervals].sort((a, b) => a - b)
     return {
       ready: this.ready,
+      active: this.active,
       error: this.error,
       errors: [...this.errors],
       settings: { ...this.settings },

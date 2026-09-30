@@ -192,7 +192,11 @@ function Lab() {
   )
 }
 
-if (window.location.pathname.startsWith('/bench')) {
+if (window.location.pathname.startsWith('/almanac')) {
+  const { Almanac } = await import('./almanac/Almanac')
+  document.title = 'Lumen Apeiron · Almanac'
+  render(() => <Almanac />, document.getElementById('root')!)
+} else if (window.location.pathname.startsWith('/bench')) {
   const { Bench } = await import('./bench/Bench')
   document.title = 'Lumen Apeiron · Orb specimen bench'
   render(() => <Bench />, document.getElementById('root')!)

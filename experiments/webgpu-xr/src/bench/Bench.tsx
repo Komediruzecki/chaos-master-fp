@@ -72,6 +72,9 @@ export function Bench() {
         <a class="bench-lab-link" href="/">
           Open XR lab
         </a>
+        <a class="bench-lab-link" href="/almanac">
+          Open Almanac
+        </a>
       </header>
 
       <div class="bench-workspace">

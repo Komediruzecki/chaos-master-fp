@@ -180,3 +180,11 @@ downloadable study settings. It starts still and has no audio or XR session.
 The [bench guide](BENCH.md) contains the five-minute review, full restart
 command, rendering boundaries and the next Almanac decision. Its local preview
 uses port 5192 so the earlier lab can remain available on its own port.
+
+## Almanac selection study
+
+Continue at `/almanac` on the same server to select Glasswake or Tideweave,
+inspect the retained live specimen and replay its original motif. Five other
+regions are labeled as previews. The fixed-open book is a desktop interface
+study; its spatial mesh and headset interaction remain future work. See the
+[Almanac guide](ALMANAC.md) for the scope and review sequence.
