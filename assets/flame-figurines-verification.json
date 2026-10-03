@@ -1,0 +1,45 @@
+{
+  "checksPassed": true,
+  "checks": {
+    "pnpm check": "passed; existing repository warnings remain",
+    "focusedVitest": {
+      "files": 5,
+      "passed": 60
+    },
+    "appScriptTests": {
+      "passed": 21
+    },
+    "productionBuild": "passed",
+    "docsIndex": "current",
+    "blenderImport": "six assets passed"
+  },
+  "previousFilesPreserved": 65,
+  "sourceHashesVerified": 11,
+  "assetAndRecipeHashesVerified": 6,
+  "preview": {
+    "productionBuild": true,
+    "gpu": {
+      "vendor": "amd",
+      "architecture": "rdna-4"
+    },
+    "errors": [],
+    "solidOwnerWarnings": [],
+    "interactions": [
+      "tablet: resize, radio taps, pinch, reset",
+      "phone: resize, radio taps, pinch, reset",
+      "All seven designs, both palettes, downloads, keyboard orbit, collection selection restored, drafts preserved"
+    ],
+    "layouts": ["desktop", "tablet", "phone"],
+    "firefoxLayoutOnly": {
+      "width": 390,
+      "scroll": 390
+    },
+    "exportRecipesMatchBrowserDownloads": true,
+    "ownedBrowserWindowsClosed": true
+  },
+  "limitations": [
+    "Native GPU visuals use accumulating flame rendering; GLBs are colored POINTS.",
+    "Firefox verification covers layout and selection, not GPU rendering.",
+    "No foreground performance benchmark or physical fracture validation is implied."
+  ]
+}

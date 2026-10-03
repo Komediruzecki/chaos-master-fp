@@ -1,0 +1,101 @@
+{
+  "loader": "Blender glTF importer",
+  "version": [5, 2, 2],
+  "checksPassed": true,
+  "assets": [
+    {
+      "file": "fractal-flame-aurora-queen-authored.glb",
+      "sha256": "0d1fe0c19ed1acd28b8209e25d0da6f4403c631c0857364059c59e7d2daff9da",
+      "looseVertices": 48000,
+      "triangles": 0,
+      "bounds": {
+        "min": [
+          -0.36785751581192017, 0.011178986169397831, -0.42737364768981934
+        ],
+        "max": [0.47038859128952026, 1.8746700286865234, 0.45078545808792114]
+      },
+      "linearVertexColors": 48000,
+      "importedColorStorage": ["BYTE_COLOR"],
+      "maxColorDifference": 0.0024809837341308594,
+      "materials": ["Aurora queen / authored structural point colour"]
+    },
+    {
+      "file": "fractal-flame-aurora-queen-alternate.glb",
+      "sha256": "64be6711356090091a6e5a1bfc96038cf39f400022ebb01884e4bd0e9fad9f8f",
+      "looseVertices": 48000,
+      "triangles": 0,
+      "bounds": {
+        "min": [
+          -0.36785751581192017, 0.011178986169397831, -0.42737364768981934
+        ],
+        "max": [0.47038859128952026, 1.8746700286865234, 0.45078545808792114]
+      },
+      "linearVertexColors": 48000,
+      "importedColorStorage": ["BYTE_COLOR"],
+      "maxColorDifference": 0.003164350986480713,
+      "materials": ["Aurora queen / alternate structural point colour"]
+    },
+    {
+      "file": "fractal-flame-ember-bishop-authored.glb",
+      "sha256": "18cb88fe4c89a680c34be9e33d2c220da724adcb5629fff08a52d7cc6c8cf0cb",
+      "looseVertices": 48000,
+      "triangles": 0,
+      "bounds": {
+        "min": [
+          -0.33152538537979126, 0.011525638401508331, -0.3773137331008911
+        ],
+        "max": [0.4236356019973755, 1.8725836277008057, 0.3815726637840271]
+      },
+      "linearVertexColors": 48000,
+      "importedColorStorage": ["BYTE_COLOR"],
+      "maxColorDifference": 0.004261016845703125,
+      "materials": ["Ember bishop / authored structural point colour"]
+    },
+    {
+      "file": "fractal-flame-ember-bishop-alternate.glb",
+      "sha256": "0aec188b6bfba3337b9cdec1f581cb2c0d1463251ceac5ebf11b0d8425f8da32",
+      "looseVertices": 48000,
+      "triangles": 0,
+      "bounds": {
+        "min": [
+          -0.33152538537979126, 0.011525638401508331, -0.3773137331008911
+        ],
+        "max": [0.4236356019973755, 1.8725836277008057, 0.3815726637840271]
+      },
+      "linearVertexColors": 48000,
+      "importedColorStorage": ["BYTE_COLOR"],
+      "maxColorDifference": 0.003632783889770508,
+      "materials": ["Ember bishop / alternate structural point colour"]
+    },
+    {
+      "file": "fractal-flame-tidal-knight-authored.glb",
+      "sha256": "1e4904821e7c609407d284f4b93971fafbb0bfa233da18a98825021331089d07",
+      "looseVertices": 48000,
+      "triangles": 0,
+      "bounds": {
+        "min": [-0.3682383894920349, 0.011375951580703259, -0.4128343462944031],
+        "max": [0.6899832487106323, 1.8752208948135376, 0.41605785489082336]
+      },
+      "linearVertexColors": 48000,
+      "importedColorStorage": ["BYTE_COLOR"],
+      "maxColorDifference": 0.0034221410751342773,
+      "materials": ["Tidal knight / authored structural point colour"]
+    },
+    {
+      "file": "fractal-flame-tidal-knight-alternate.glb",
+      "sha256": "e6c24e61c73b68e98d9723a06ba7014521412b4e25d9b0b2b4454295802ef144",
+      "looseVertices": 48000,
+      "triangles": 0,
+      "bounds": {
+        "min": [-0.3682383894920349, 0.011375951580703259, -0.4128343462944031],
+        "max": [0.6899832487106323, 1.8752208948135376, 0.41605785489082336]
+      },
+      "linearVertexColors": 48000,
+      "importedColorStorage": ["BYTE_COLOR"],
+      "maxColorDifference": 0.0029712915420532227,
+      "materials": ["Tidal knight / alternate structural point colour"]
+    }
+  ],
+  "pointPolicy": "POINTS import as colored loose vertices. Use a point renderer; these are not triangle surfaces.",
+  "colorPolicy": "GLBs retain FLOAT32 linear vertex colors. Blender BYTE_COLOR import quantizes through 8-bit sRGB; every imported channel is checked against that explicit transfer function. Live density tone mapping is separate."
+}

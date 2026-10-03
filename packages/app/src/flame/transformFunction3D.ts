@@ -10,6 +10,7 @@ import { isParametricVariationType, transformVariations } from './variations'
 import { VariationInfo } from './variations/simple/types'
 import { VariationInfo3D } from './variations/simple3D/types'
 import { isParametricVariationType3D, isVariationType3D, transformVariations3D, } from './variations3D'
+import { walkGroupProbabilities } from './walkGroups'
 import type { WgslStruct } from 'typegpu/data'
 import type { FlameDescriptor, TransformFunction, VariationId, } from './schema/flameSchema'
 import type { TransformVariationType3D } from './variations3D'
@@ -264,9 +265,13 @@ export function toAffine3D(
   }
 }
 
-export function extractFlameUniforms3D({
-  transforms,
-}: Pick<FlameDescriptor, 'transforms'>) {
+export function extractFlameUniforms3D(
+  { transforms }: Pick<FlameDescriptor, 'transforms'>,
+  independentGroups = false,
+) {
+  const groupedProbabilities = independentGroups
+    ? walkGroupProbabilities(transforms)
+    : undefined
   const visibleTransforms = Object.values(transforms).filter((tr) => tr.visible)
   const totalProbability =
     sum(visibleTransforms.map((tr) => tr.probability)) || 1
@@ -348,10 +353,12 @@ export function extractFlameUniforms3D({
         return [
           `flame${tid}`,
           {
-            probability: isVisible
-              ? (Number.isFinite(probability) ? probability : 0) /
-                totalProbability
-              : 0,
+            probability:
+              groupedProbabilities?.[tid] ??
+              (isVisible
+                ? (Number.isFinite(probability) ? probability : 0) /
+                  totalProbability
+                : 0),
             color: vec2f(
               Number.isFinite(color?.x) ? (color?.x ?? 0) : 0,
               Number.isFinite(color?.y) ? (color?.y ?? 0) : 0,

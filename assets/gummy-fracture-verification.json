@@ -1,0 +1,1076 @@
+{
+  "base": "https://localhost:5199",
+  "samples": [
+    {
+      "name": "intact",
+      "time": 0.016666666666666666,
+      "steps": 2,
+      "vertices": 4602,
+      "interfaces": 2568,
+      "tetrahedra": 7299,
+      "regions": 116,
+      "restVolume": 1.195867953290996,
+      "experiment": "crush",
+      "press": {
+        "height": 1.2,
+        "halfExtent": 1.4
+      },
+      "grip": false,
+      "demo": false,
+      "finite": true,
+      "min": [-0.731126070022583, 0.00903085246682167, -1.2656575441360474],
+      "max": [0.731126070022583, 0.8664540648460388, 1.2649999856948853],
+      "volumeRatio": 0.9999998918778927,
+      "inverted": 0,
+      "invertedVolumeFraction": 0,
+      "floorPenetration": 0,
+      "platePenetration": 0,
+      "broken": 0,
+      "maxDamage": 0,
+      "maxCohesiveForce": 0.02167811126128072,
+      "incompleteFailedPatches": 0,
+      "contactGraphMatches": true,
+      "connectedParts": 1,
+      "largestComponentVolumeFraction": 1,
+      "components": [
+        {
+          "restVolume": 1.1958679383096114,
+          "volumeFraction": 1,
+          "tetrahedronCount": 7299
+        }
+      ]
+    },
+    {
+      "name": "idle",
+      "time": 10.016666666666739,
+      "steps": 1202,
+      "vertices": 4602,
+      "interfaces": 2568,
+      "tetrahedra": 7299,
+      "regions": 116,
+      "restVolume": 1.195867953290996,
+      "experiment": "crush",
+      "press": {
+        "height": 1.2,
+        "halfExtent": 1.4
+      },
+      "grip": false,
+      "demo": false,
+      "finite": true,
+      "min": [-0.7322340607643127, 0.006000000052154064, -1.2837532758712769],
+      "max": [0.7293251156806946, 0.837392270565033, 1.2873910665512085],
+      "volumeRatio": 0.9971645081079865,
+      "inverted": 38,
+      "invertedVolumeFraction": 0.00017845022780192668,
+      "floorPenetration": 0,
+      "platePenetration": 0,
+      "broken": 0,
+      "maxDamage": 0.0693797692656517,
+      "maxCohesiveForce": 2039.5527153165337,
+      "incompleteFailedPatches": 0,
+      "contactGraphMatches": true,
+      "connectedParts": 1,
+      "largestComponentVolumeFraction": 1,
+      "components": [
+        {
+          "restVolume": 1.1958679383096114,
+          "volumeFraction": 1,
+          "tetrahedronCount": 7299
+        }
+      ]
+    },
+    {
+      "name": "compression",
+      "time": 3.033333333333325,
+      "steps": 364,
+      "vertices": 4602,
+      "interfaces": 2568,
+      "tetrahedra": 7299,
+      "regions": 116,
+      "restVolume": 1.195867953290996,
+      "experiment": "crush",
+      "press": {
+        "height": 0.7559616979507873,
+        "halfExtent": 1.4
+      },
+      "grip": false,
+      "demo": true,
+      "finite": true,
+      "min": [-0.730991780757904, 0.006000000052154064, -1.2785425186157227],
+      "max": [0.7304500937461853, 0.7559617161750793, 1.2843728065490723],
+      "volumeRatio": 0.9938957452004711,
+      "inverted": 43,
+      "invertedVolumeFraction": 0.00039257959379191163,
+      "floorPenetration": 0,
+      "platePenetration": 1.8224292075430526e-8,
+      "broken": 0,
+      "maxDamage": 0.0810476765036583,
+      "maxCohesiveForce": 3205.493916886964,
+      "incompleteFailedPatches": 0,
+      "contactGraphMatches": true,
+      "connectedParts": 1,
+      "largestComponentVolumeFraction": 1,
+      "components": [
+        {
+          "restVolume": 1.1958679383096114,
+          "volumeFraction": 1,
+          "tetrahedronCount": 7299
+        }
+      ]
+    },
+    {
+      "name": "crushed",
+      "time": 6.533333333333448,
+      "steps": 784,
+      "vertices": 4602,
+      "interfaces": 2568,
+      "tetrahedra": 7299,
+      "regions": 116,
+      "restVolume": 1.195867953290996,
+      "experiment": "crush",
+      "press": {
+        "height": 0.15,
+        "halfExtent": 1.4
+      },
+      "grip": false,
+      "demo": true,
+      "finite": true,
+      "min": [-0.9647049307823181, 0.006000000052154064, -1.7724171876907349],
+      "max": [0.9451774954795837, 0.31125855445861816, 2.0272536277770996],
+      "volumeRatio": 0.8278271743086609,
+      "inverted": 228,
+      "invertedVolumeFraction": 0.0031529926331908364,
+      "floorPenetration": 0,
+      "platePenetration": 5.960464483090178e-9,
+      "broken": 2060,
+      "maxDamage": 1,
+      "maxCohesiveForce": 7491.490986899496,
+      "incompleteFailedPatches": 0,
+      "contactGraphMatches": true,
+      "connectedParts": 36,
+      "largestComponentVolumeFraction": 0.3955218818283878,
+      "components": [
+        {
+          "restVolume": 0.4729919373784532,
+          "volumeFraction": 0.3955218818283878,
+          "tetrahedronCount": 3344
+        },
+        {
+          "restVolume": 0.0833154765048053,
+          "volumeFraction": 0.06966946251822215,
+          "tetrahedronCount": 659
+        },
+        {
+          "restVolume": 0.07715550919333061,
+          "volumeFraction": 0.06451841940205505,
+          "tetrahedronCount": 347
+        },
+        {
+          "restVolume": 0.048847646105410265,
+          "volumeFraction": 0.04084702377292385,
+          "tetrahedronCount": 334
+        },
+        {
+          "restVolume": 0.042426384496130995,
+          "volumeFraction": 0.03547748303721698,
+          "tetrahedronCount": 127
+        },
+        {
+          "restVolume": 0.041575385433517305,
+          "volumeFraction": 0.03476586678315418,
+          "tetrahedronCount": 246
+        },
+        {
+          "restVolume": 0.03899353285851469,
+          "volumeFraction": 0.03260688877873329,
+          "tetrahedronCount": 201
+        },
+        {
+          "restVolume": 0.03292799954438214,
+          "volumeFraction": 0.027534812573808597,
+          "tetrahedronCount": 72
+        },
+        {
+          "restVolume": 0.032291294369306923,
+          "volumeFraction": 0.027002391597646953,
+          "tetrahedronCount": 285
+        },
+        {
+          "restVolume": 0.026988788990597312,
+          "volumeFraction": 0.02256836906987117,
+          "tetrahedronCount": 72
+        },
+        {
+          "restVolume": 0.024696006302714256,
+          "volumeFraction": 0.020651114986511468,
+          "tetrahedronCount": 54
+        },
+        {
+          "restVolume": 0.02453307711622012,
+          "volumeFraction": 0.02051487152577914,
+          "tetrahedronCount": 148
+        },
+        {
+          "restVolume": 0.024271004858864045,
+          "volumeFraction": 0.0202957233665547,
+          "tetrahedronCount": 74
+        },
+        {
+          "restVolume": 0.02405850194710775,
+          "volumeFraction": 0.02011802572541159,
+          "tetrahedronCount": 70
+        },
+        {
+          "restVolume": 0.023742387237702008,
+          "volumeFraction": 0.01985368657952515,
+          "tetrahedronCount": 76
+        },
+        {
+          "restVolume": 0.019207997908830658,
+          "volumeFraction": 0.016061972474972094,
+          "tetrahedronCount": 42
+        },
+        {
+          "restVolume": 0.018000291556135386,
+          "volumeFraction": 0.015052073042094589,
+          "tetrahedronCount": 96
+        },
+        {
+          "restVolume": 0.01584356514536372,
+          "volumeFraction": 0.013248590950401217,
+          "tetrahedronCount": 141
+        },
+        {
+          "restVolume": 0.0151266429209083,
+          "volumeFraction": 0.012649091455942986,
+          "tetrahedronCount": 81
+        },
+        {
+          "restVolume": 0.015083836649484282,
+          "volumeFraction": 0.012613296306618615,
+          "tetrahedronCount": 137
+        },
+        {
+          "restVolume": 0.014043793648969025,
+          "volumeFraction": 0.011743599104111975,
+          "tetrahedronCount": 118
+        },
+        {
+          "restVolume": 0.01175146745582994,
+          "volumeFraction": 0.009826726747470874,
+          "tetrahedronCount": 104
+        },
+        {
+          "restVolume": 0.010818871133668712,
+          "volumeFraction": 0.009046877825791886,
+          "tetrahedronCount": 86
+        },
+        {
+          "restVolume": 0.009430580869212113,
+          "volumeFraction": 0.007885971826071736,
+          "tetrahedronCount": 82
+        },
+        {
+          "restVolume": 0.008397748672011325,
+          "volumeFraction": 0.007022304389129894,
+          "tetrahedronCount": 64
+        },
+        {
+          "restVolume": 0.008226859241728033,
+          "volumeFraction": 0.006879404471163327,
+          "tetrahedronCount": 83
+        },
+        {
+          "restVolume": 0.006991911091386917,
+          "volumeFraction": 0.005846725100156239,
+          "tetrahedronCount": 64
+        },
+        {
+          "restVolume": 0.002744002079486862,
+          "volumeFraction": 0.002294569485126902,
+          "tetrahedronCount": 6
+        },
+        {
+          "restVolume": 0.002744000765204392,
+          "volumeFraction": 0.002294568386107162,
+          "tetrahedronCount": 6
+        },
+        {
+          "restVolume": 0.0027440007652043876,
+          "volumeFraction": 0.0022945683861071587,
+          "tetrahedronCount": 6
+        },
+        {
+          "restVolume": 0.0027439995969534064,
+          "volumeFraction": 0.00229456740920081,
+          "tetrahedronCount": 6
+        },
+        {
+          "restVolume": 0.0027439995969534064,
+          "volumeFraction": 0.00229456740920081,
+          "tetrahedronCount": 6
+        },
+        {
+          "restVolume": 0.002743999596953402,
+          "volumeFraction": 0.002294567409200806,
+          "tetrahedronCount": 6
+        },
+        {
+          "restVolume": 0.0027439974064826745,
+          "volumeFraction": 0.002294565577501287,
+          "tetrahedronCount": 6
+        },
+        {
+          "restVolume": 0.0026828934468101626,
+          "volumeFraction": 0.0022434696682331755,
+          "tetrahedronCount": 36
+        },
+        {
+          "restVolume": 0.002238546424980605,
+          "volumeFraction": 0.0018719010295943205,
+          "tetrahedronCount": 14
+        }
+      ]
+    },
+    {
+      "name": "released",
+      "time": 8.53333333333349,
+      "steps": 1024,
+      "vertices": 4602,
+      "interfaces": 2568,
+      "tetrahedra": 7299,
+      "regions": 116,
+      "restVolume": 1.195867953290996,
+      "experiment": "crush",
+      "press": {
+        "height": 1.2,
+        "halfExtent": 1.4
+      },
+      "grip": false,
+      "demo": true,
+      "finite": true,
+      "min": [-1.0173360109329224, 0.006000000052154064, -1.769760251045227],
+      "max": [0.9575132131576538, 0.5040802955627441, 2.049039363861084],
+      "volumeRatio": 0.9983544064700121,
+      "inverted": 28,
+      "invertedVolumeFraction": 0.000053722285970976986,
+      "floorPenetration": 0,
+      "platePenetration": 0,
+      "broken": 2129,
+      "maxDamage": 1,
+      "maxCohesiveForce": 1033.7809761331143,
+      "incompleteFailedPatches": 0,
+      "contactGraphMatches": true,
+      "connectedParts": 44,
+      "largestComponentVolumeFraction": 0.3307824589241213,
+      "components": [
+        {
+          "restVolume": 0.39557213718257406,
+          "volumeFraction": 0.3307824589241213,
+          "tetrahedronCount": 2842
+        },
+        {
+          "restVolume": 0.0833154765048053,
+          "volumeFraction": 0.06966946251822208,
+          "tetrahedronCount": 659
+        },
+        {
+          "restVolume": 0.048847646105410265,
+          "volumeFraction": 0.04084702377292381,
+          "tetrahedronCount": 334
+        },
+        {
+          "restVolume": 0.047183991865011224,
+          "volumeFraction": 0.03945585490962052,
+          "tetrahedronCount": 190
+        },
+        {
+          "restVolume": 0.042426384496130995,
+          "volumeFraction": 0.03547748303721694,
+          "tetrahedronCount": 127
+        },
+        {
+          "restVolume": 0.041575385433517305,
+          "volumeFraction": 0.034765866783154145,
+          "tetrahedronCount": 246
+        },
+        {
+          "restVolume": 0.03899353285851469,
+          "volumeFraction": 0.03260688877873326,
+          "tetrahedronCount": 201
+        },
+        {
+          "restVolume": 0.03292799954438214,
+          "volumeFraction": 0.027534812573808572,
+          "tetrahedronCount": 72
+        },
+        {
+          "restVolume": 0.032291294369306923,
+          "volumeFraction": 0.027002391597646926,
+          "tetrahedronCount": 285
+        },
+        {
+          "restVolume": 0.028618170266221928,
+          "volumeFraction": 0.023930878443546456,
+          "tetrahedronCount": 141
+        },
+        {
+          "restVolume": 0.027757939021921713,
+          "volumeFraction": 0.023211542121580865,
+          "tetrahedronCount": 97
+        },
+        {
+          "restVolume": 0.026988788990597312,
+          "volumeFraction": 0.02256836906987115,
+          "tetrahedronCount": 72
+        },
+        {
+          "restVolume": 0.024811798570366635,
+          "volumeFraction": 0.020747941955395702,
+          "tetrahedronCount": 186
+        },
+        {
+          "restVolume": 0.024696006302714256,
+          "volumeFraction": 0.02065111498651145,
+          "tetrahedronCount": 54
+        },
+        {
+          "restVolume": 0.02453307711622012,
+          "volumeFraction": 0.020514871525779122,
+          "tetrahedronCount": 148
+        },
+        {
+          "restVolume": 0.024271004858864045,
+          "volumeFraction": 0.020295723366554684,
+          "tetrahedronCount": 74
+        },
+        {
+          "restVolume": 0.02405850194710775,
+          "volumeFraction": 0.020118025725411572,
+          "tetrahedronCount": 70
+        },
+        {
+          "restVolume": 0.023742387237702008,
+          "volumeFraction": 0.01985368657952513,
+          "tetrahedronCount": 76
+        },
+        {
+          "restVolume": 0.019207997908830658,
+          "volumeFraction": 0.01606197247497208,
+          "tetrahedronCount": 42
+        },
+        {
+          "restVolume": 0.018000291556135386,
+          "volumeFraction": 0.015052073042094575,
+          "tetrahedronCount": 96
+        },
+        {
+          "restVolume": 0.01584356514536372,
+          "volumeFraction": 0.013248590950401205,
+          "tetrahedronCount": 141
+        },
+        {
+          "restVolume": 0.0151266429209083,
+          "volumeFraction": 0.012649091455942974,
+          "tetrahedronCount": 81
+        },
+        {
+          "restVolume": 0.014043793648969025,
+          "volumeFraction": 0.011743599104111964,
+          "tetrahedronCount": 118
+        },
+        {
+          "restVolume": 0.01175146745582994,
+          "volumeFraction": 0.009826726747470866,
+          "tetrahedronCount": 104
+        },
+        {
+          "restVolume": 0.01103038261489764,
+          "volumeFraction": 0.009223746420101634,
+          "tetrahedronCount": 70
+        },
+        {
+          "restVolume": 0.010818871133668712,
+          "volumeFraction": 0.009046877825791878,
+          "tetrahedronCount": 86
+        },
+        {
+          "restVolume": 0.009552505423286114,
+          "volumeFraction": 0.007987926690959522,
+          "tetrahedronCount": 79
+        },
+        {
+          "restVolume": 0.009430580869212113,
+          "volumeFraction": 0.007885971826071727,
+          "tetrahedronCount": 82
+        },
+        {
+          "restVolume": 0.008397748672011325,
+          "volumeFraction": 0.007022304389129888,
+          "tetrahedronCount": 64
+        },
+        {
+          "restVolume": 0.008226859241728033,
+          "volumeFraction": 0.006879404471163321,
+          "tetrahedronCount": 83
+        },
+        {
+          "restVolume": 0.007970464924683235,
+          "volumeFraction": 0.0066650042779386265,
+          "tetrahedronCount": 70
+        },
+        {
+          "restVolume": 0.006991911091386917,
+          "volumeFraction": 0.005846725100156234,
+          "tetrahedronCount": 64
+        },
+        {
+          "restVolume": 0.005849215064010957,
+          "volumeFraction": 0.0048911881292502445,
+          "tetrahedronCount": 79
+        },
+        {
+          "restVolume": 0.005531331226198162,
+          "volumeFraction": 0.004625369615659078,
+          "tetrahedronCount": 58
+        },
+        {
+          "restVolume": 0.002744002079486862,
+          "volumeFraction": 0.0022945694851269,
+          "tetrahedronCount": 6
+        },
+        {
+          "restVolume": 0.002744000765204392,
+          "volumeFraction": 0.00229456838610716,
+          "tetrahedronCount": 6
+        },
+        {
+          "restVolume": 0.0027440007652043876,
+          "volumeFraction": 0.0022945683861071565,
+          "tetrahedronCount": 6
+        },
+        {
+          "restVolume": 0.0027439995969534064,
+          "volumeFraction": 0.0022945674092008077,
+          "tetrahedronCount": 6
+        },
+        {
+          "restVolume": 0.0027439995969534064,
+          "volumeFraction": 0.0022945674092008077,
+          "tetrahedronCount": 6
+        },
+        {
+          "restVolume": 0.002743999596953402,
+          "volumeFraction": 0.002294567409200804,
+          "tetrahedronCount": 6
+        },
+        {
+          "restVolume": 0.0027439974064826745,
+          "volumeFraction": 0.002294565577501285,
+          "tetrahedronCount": 6
+        },
+        {
+          "restVolume": 0.0026828934468101626,
+          "volumeFraction": 0.0022434696682331733,
+          "tetrahedronCount": 36
+        },
+        {
+          "restVolume": 0.002238546424980605,
+          "volumeFraction": 0.0018719010295943188,
+          "tetrahedronCount": 14
+        },
+        {
+          "restVolume": 0.0013533470620972223,
+          "volumeFraction": 0.0011316860488878116,
+          "tetrahedronCount": 16
+        }
+      ]
+    },
+    {
+      "name": "settled",
+      "time": 11.533333333333319,
+      "steps": 1384,
+      "vertices": 4602,
+      "interfaces": 2568,
+      "tetrahedra": 7299,
+      "regions": 116,
+      "restVolume": 1.195867953290996,
+      "experiment": "crush",
+      "press": {
+        "height": 1.2,
+        "halfExtent": 1.4
+      },
+      "grip": false,
+      "demo": false,
+      "finite": true,
+      "min": [-1.014811635017395, 0.006000000052154064, -1.7704471349716187],
+      "max": [0.9596810936927795, 0.5039734840393066, 2.0524191856384277],
+      "volumeRatio": 0.9984410265901411,
+      "inverted": 18,
+      "invertedVolumeFraction": 0.0000334548049520227,
+      "floorPenetration": 0,
+      "platePenetration": 0,
+      "broken": 2129,
+      "maxDamage": 1,
+      "maxCohesiveForce": 907.0244644655625,
+      "incompleteFailedPatches": 0,
+      "contactGraphMatches": true,
+      "connectedParts": 44,
+      "largestComponentVolumeFraction": 0.3307824589241213,
+      "components": [
+        {
+          "restVolume": 0.39557213718257406,
+          "volumeFraction": 0.3307824589241213,
+          "tetrahedronCount": 2842
+        },
+        {
+          "restVolume": 0.0833154765048053,
+          "volumeFraction": 0.06966946251822208,
+          "tetrahedronCount": 659
+        },
+        {
+          "restVolume": 0.048847646105410265,
+          "volumeFraction": 0.04084702377292381,
+          "tetrahedronCount": 334
+        },
+        {
+          "restVolume": 0.047183991865011224,
+          "volumeFraction": 0.03945585490962052,
+          "tetrahedronCount": 190
+        },
+        {
+          "restVolume": 0.042426384496130995,
+          "volumeFraction": 0.03547748303721694,
+          "tetrahedronCount": 127
+        },
+        {
+          "restVolume": 0.041575385433517305,
+          "volumeFraction": 0.034765866783154145,
+          "tetrahedronCount": 246
+        },
+        {
+          "restVolume": 0.03899353285851469,
+          "volumeFraction": 0.03260688877873326,
+          "tetrahedronCount": 201
+        },
+        {
+          "restVolume": 0.03292799954438214,
+          "volumeFraction": 0.027534812573808572,
+          "tetrahedronCount": 72
+        },
+        {
+          "restVolume": 0.032291294369306923,
+          "volumeFraction": 0.027002391597646926,
+          "tetrahedronCount": 285
+        },
+        {
+          "restVolume": 0.028618170266221928,
+          "volumeFraction": 0.023930878443546456,
+          "tetrahedronCount": 141
+        },
+        {
+          "restVolume": 0.027757939021921713,
+          "volumeFraction": 0.023211542121580865,
+          "tetrahedronCount": 97
+        },
+        {
+          "restVolume": 0.026988788990597312,
+          "volumeFraction": 0.02256836906987115,
+          "tetrahedronCount": 72
+        },
+        {
+          "restVolume": 0.024811798570366635,
+          "volumeFraction": 0.020747941955395702,
+          "tetrahedronCount": 186
+        },
+        {
+          "restVolume": 0.024696006302714256,
+          "volumeFraction": 0.02065111498651145,
+          "tetrahedronCount": 54
+        },
+        {
+          "restVolume": 0.02453307711622012,
+          "volumeFraction": 0.020514871525779122,
+          "tetrahedronCount": 148
+        },
+        {
+          "restVolume": 0.024271004858864045,
+          "volumeFraction": 0.020295723366554684,
+          "tetrahedronCount": 74
+        },
+        {
+          "restVolume": 0.02405850194710775,
+          "volumeFraction": 0.020118025725411572,
+          "tetrahedronCount": 70
+        },
+        {
+          "restVolume": 0.023742387237702008,
+          "volumeFraction": 0.01985368657952513,
+          "tetrahedronCount": 76
+        },
+        {
+          "restVolume": 0.019207997908830658,
+          "volumeFraction": 0.01606197247497208,
+          "tetrahedronCount": 42
+        },
+        {
+          "restVolume": 0.018000291556135386,
+          "volumeFraction": 0.015052073042094575,
+          "tetrahedronCount": 96
+        },
+        {
+          "restVolume": 0.01584356514536372,
+          "volumeFraction": 0.013248590950401205,
+          "tetrahedronCount": 141
+        },
+        {
+          "restVolume": 0.0151266429209083,
+          "volumeFraction": 0.012649091455942974,
+          "tetrahedronCount": 81
+        },
+        {
+          "restVolume": 0.014043793648969025,
+          "volumeFraction": 0.011743599104111964,
+          "tetrahedronCount": 118
+        },
+        {
+          "restVolume": 0.01175146745582994,
+          "volumeFraction": 0.009826726747470866,
+          "tetrahedronCount": 104
+        },
+        {
+          "restVolume": 0.01103038261489764,
+          "volumeFraction": 0.009223746420101634,
+          "tetrahedronCount": 70
+        },
+        {
+          "restVolume": 0.010818871133668712,
+          "volumeFraction": 0.009046877825791878,
+          "tetrahedronCount": 86
+        },
+        {
+          "restVolume": 0.009552505423286114,
+          "volumeFraction": 0.007987926690959522,
+          "tetrahedronCount": 79
+        },
+        {
+          "restVolume": 0.009430580869212113,
+          "volumeFraction": 0.007885971826071727,
+          "tetrahedronCount": 82
+        },
+        {
+          "restVolume": 0.008397748672011325,
+          "volumeFraction": 0.007022304389129888,
+          "tetrahedronCount": 64
+        },
+        {
+          "restVolume": 0.008226859241728033,
+          "volumeFraction": 0.006879404471163321,
+          "tetrahedronCount": 83
+        },
+        {
+          "restVolume": 0.007970464924683235,
+          "volumeFraction": 0.0066650042779386265,
+          "tetrahedronCount": 70
+        },
+        {
+          "restVolume": 0.006991911091386917,
+          "volumeFraction": 0.005846725100156234,
+          "tetrahedronCount": 64
+        },
+        {
+          "restVolume": 0.005849215064010957,
+          "volumeFraction": 0.0048911881292502445,
+          "tetrahedronCount": 79
+        },
+        {
+          "restVolume": 0.005531331226198162,
+          "volumeFraction": 0.004625369615659078,
+          "tetrahedronCount": 58
+        },
+        {
+          "restVolume": 0.002744002079486862,
+          "volumeFraction": 0.0022945694851269,
+          "tetrahedronCount": 6
+        },
+        {
+          "restVolume": 0.002744000765204392,
+          "volumeFraction": 0.00229456838610716,
+          "tetrahedronCount": 6
+        },
+        {
+          "restVolume": 0.0027440007652043876,
+          "volumeFraction": 0.0022945683861071565,
+          "tetrahedronCount": 6
+        },
+        {
+          "restVolume": 0.0027439995969534064,
+          "volumeFraction": 0.0022945674092008077,
+          "tetrahedronCount": 6
+        },
+        {
+          "restVolume": 0.0027439995969534064,
+          "volumeFraction": 0.0022945674092008077,
+          "tetrahedronCount": 6
+        },
+        {
+          "restVolume": 0.002743999596953402,
+          "volumeFraction": 0.002294567409200804,
+          "tetrahedronCount": 6
+        },
+        {
+          "restVolume": 0.0027439974064826745,
+          "volumeFraction": 0.002294565577501285,
+          "tetrahedronCount": 6
+        },
+        {
+          "restVolume": 0.0026828934468101626,
+          "volumeFraction": 0.0022434696682331733,
+          "tetrahedronCount": 36
+        },
+        {
+          "restVolume": 0.002238546424980605,
+          "volumeFraction": 0.0018719010295943188,
+          "tetrahedronCount": 14
+        },
+        {
+          "restVolume": 0.0013533470620972223,
+          "volumeFraction": 0.0011316860488878116,
+          "tetrahedronCount": 16
+        }
+      ]
+    },
+    {
+      "name": "tearing-disabled",
+      "time": 11.56666666666665,
+      "steps": 1388,
+      "vertices": 4602,
+      "interfaces": 2568,
+      "tetrahedra": 7299,
+      "regions": 116,
+      "restVolume": 1.195867953290996,
+      "experiment": "crush",
+      "press": {
+        "height": 1.2,
+        "halfExtent": 1.4
+      },
+      "grip": false,
+      "demo": false,
+      "finite": true,
+      "min": [-1.1038129329681396, 0.006000000052154064, -1.2773690223693848],
+      "max": [1.04880690574646, 0.8373926281929016, 1.2682993412017822],
+      "volumeRatio": 0.9971645318606663,
+      "inverted": 38,
+      "invertedVolumeFraction": 0.0001784474152873931,
+      "floorPenetration": 0,
+      "platePenetration": 0,
+      "broken": 0,
+      "maxDamage": 0,
+      "maxCohesiveForce": 2099.253868279864,
+      "incompleteFailedPatches": 0,
+      "contactGraphMatches": true,
+      "connectedParts": 1,
+      "largestComponentVolumeFraction": 1,
+      "components": [
+        {
+          "restVolume": 1.1958679383096114,
+          "volumeFraction": 1,
+          "tetrahedronCount": 7299
+        }
+      ]
+    },
+    {
+      "name": "original-pull",
+      "time": 5.000000000000038,
+      "steps": 600,
+      "vertices": 2410,
+      "interfaces": 212,
+      "tetrahedra": 7299,
+      "regions": 5,
+      "restVolume": 1.195867953290996,
+      "experiment": "pull",
+      "grip": true,
+      "demo": true,
+      "finite": true,
+      "min": [-0.6198258399963379, 0, -0.310863733291626],
+      "max": [1.6967865228652954, 2.5489859580993652, 0.5750112533569336],
+      "volumeRatio": 0.9962766243553732,
+      "inverted": 38,
+      "invertedVolumeFraction": 0.00028843373259828254,
+      "floorPenetration": 0,
+      "platePenetration": 0,
+      "broken": 58,
+      "maxDamage": 1,
+      "maxCohesiveForce": 152.54438444056854,
+      "incompleteFailedPatches": 0,
+      "connectedParts": 2,
+      "largestComponentVolumeFraction": 0.9497569162770403,
+      "components": [
+        {
+          "restVolume": 1.1357838453635232,
+          "volumeFraction": 0.9497569162770403,
+          "tetrahedronCount": 6812
+        },
+        {
+          "restVolume": 0.06008409294609338,
+          "volumeFraction": 0.0502430837229598,
+          "tetrahedronCount": 487
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "failures": [],
+  "timings": [
+    {
+      "steps": 1200,
+      "simulationSeconds": 10,
+      "wallSeconds": 7.664141772999999,
+      "includesFrameCapture": false
+    },
+    {
+      "steps": 360,
+      "simulationSeconds": 3,
+      "wallSeconds": 7.707488443999999,
+      "includesFrameCapture": true
+    },
+    {
+      "steps": 420,
+      "simulationSeconds": 3.5,
+      "wallSeconds": 8.559329408000002,
+      "includesFrameCapture": true
+    },
+    {
+      "steps": 240,
+      "simulationSeconds": 2,
+      "wallSeconds": 4.704691550000003,
+      "includesFrameCapture": true
+    },
+    {
+      "steps": 360,
+      "simulationSeconds": 3,
+      "wallSeconds": 7.4846237389999954,
+      "includesFrameCapture": true
+    },
+    {
+      "steps": 1380,
+      "simulationSeconds": 11.5,
+      "wallSeconds": 8.913942766999993,
+      "includesFrameCapture": false
+    },
+    {
+      "steps": 600,
+      "simulationSeconds": 5,
+      "wallSeconds": 2.668673698999999,
+      "includesFrameCapture": false
+    }
+  ],
+  "placement": {
+    "foregroundUnchanged": true,
+    "clients": [
+      {
+        "class": "agent-browser",
+        "workspace": "special:agents"
+      }
+    ],
+    "hidden": true
+  },
+  "adapter": {
+    "vendor": "amd",
+    "architecture": "rdna-4"
+  },
+  "inputs": {
+    "experiment": "crush",
+    "mouseDisplacement": 1.183103322982788,
+    "keyboard": true,
+    "mouseOrbit": true,
+    "touchDisplacement": 0.8670690059661865,
+    "touchEvents": [
+      {
+        "type": "pointerdown",
+        "pointerId": 2,
+        "pointerType": "touch",
+        "trusted": true
+      },
+      {
+        "type": "pointermove",
+        "pointerId": 2,
+        "pointerType": "touch",
+        "trusted": true
+      },
+      {
+        "type": "pointermove",
+        "pointerId": 2,
+        "pointerType": "touch",
+        "trusted": true
+      },
+      {
+        "type": "pointermove",
+        "pointerId": 2,
+        "pointerType": "touch",
+        "trusted": true
+      },
+      {
+        "type": "pointermove",
+        "pointerId": 2,
+        "pointerType": "touch",
+        "trusted": true
+      },
+      {
+        "type": "pointermove",
+        "pointerId": 2,
+        "pointerType": "touch",
+        "trusted": true
+      },
+      {
+        "type": "pointermove",
+        "pointerId": 2,
+        "pointerType": "touch",
+        "trusted": true
+      },
+      {
+        "type": "pointermove",
+        "pointerId": 2,
+        "pointerType": "touch",
+        "trusted": true
+      },
+      {
+        "type": "pointermove",
+        "pointerId": 2,
+        "pointerType": "touch",
+        "trusted": true
+      },
+      {
+        "type": "pointerup",
+        "pointerId": 2,
+        "pointerType": "touch",
+        "trusted": true
+      },
+      {
+        "type": "pointerdown",
+        "pointerId": 3,
+        "pointerType": "touch",
+        "trusted": true
+      },
+      {
+        "type": "pointercancel",
+        "pointerId": 3,
+        "pointerType": "touch",
+        "trusted": true
+      }
+    ],
+    "touchPinch": true,
+    "tablet": {
+      "viewport": 1024,
+      "content": 1024
+    }
+  },
+  "tablet": {
+    "viewport": 1024,
+    "document": 1024
+  },
+  "phone": {
+    "viewport": 390,
+    "document": 390
+  }
+}

@@ -1,0 +1,78 @@
+{
+  "loader": "Blender glTF importer",
+  "version": [5, 2, 2],
+  "checksPassed": true,
+  "assets": [
+    {
+      "file": "fractal-study-menger-rook-frost.glb",
+      "sha256": "8fe2ceaaf519210fa100f439fb77a668c73d548c83b086fbfe7ed4f73d024a93",
+      "looseVertices": 48000,
+      "triangles": 0,
+      "bounds": {
+        "min": [-0.639998197555542, 5.301099463395076e-6, -0.639979898929596],
+        "max": [0.6399508714675903, 1.799999475479126, 0.6399653553962708]
+      },
+      "materials": ["Menger rook native IFS points / frost"]
+    },
+    {
+      "file": "fractal-study-menger-rook-ember.glb",
+      "sha256": "338e8eccf48f4be96cfcb8dbfbb12db8deaafb9b149723150ff7966d7fa800a0",
+      "looseVertices": 48000,
+      "triangles": 0,
+      "bounds": {
+        "min": [-0.639998197555542, 5.301099463395076e-6, -0.639979898929596],
+        "max": [0.6399508714675903, 1.799999475479126, 0.6399653553962708]
+      },
+      "materials": ["Menger rook native IFS points / ember"]
+    },
+    {
+      "file": "fractal-study-sierpinski-bishop-frost.glb",
+      "sha256": "dc44ae3ffd8f1923b3e6b6bc0c0f473d360e402b3edd08c1024eab4cbfee4d1f",
+      "looseVertices": 48000,
+      "triangles": 0,
+      "bounds": {
+        "min": [
+          -0.605528712272644, 2.0571713776895706e-10, -0.5362063050270081
+        ],
+        "max": [0.61406409740448, 1.7954143285751343, 0.5362944006919861]
+      },
+      "materials": ["Sierpinski bishop native IFS points / frost"]
+    },
+    {
+      "file": "fractal-study-sierpinski-bishop-ember.glb",
+      "sha256": "1d339bd41dcddf34e35d38f98783ab452e914e24389627df6618750bacd9a90a",
+      "looseVertices": 48000,
+      "triangles": 0,
+      "bounds": {
+        "min": [
+          -0.605528712272644, 2.0571713776895706e-10, -0.5362063050270081
+        ],
+        "max": [0.61406409740448, 1.7954143285751343, 0.5362944006919861]
+      },
+      "materials": ["Sierpinski bishop native IFS points / ember"]
+    },
+    {
+      "file": "fractal-study-branching-knight-frost.glb",
+      "sha256": "419e3f6c4b46b3a99a1681b166acbd40e8c7d61ec365a2e02cb5e7afa38f0507",
+      "looseVertices": 48000,
+      "triangles": 0,
+      "bounds": {
+        "min": [-0.5664637684822083, 8.335776328749489e-6, -0.494104266166687],
+        "max": [0.7399818301200867, 1.7924405336380005, 0.5011074542999268]
+      },
+      "materials": ["Branching knight native IFS points / frost"]
+    },
+    {
+      "file": "fractal-study-branching-knight-ember.glb",
+      "sha256": "011e11f577ebe86e4675ca59bd5082453e188b226b7a7e992f3384804a2b8c3a",
+      "looseVertices": 48000,
+      "triangles": 0,
+      "bounds": {
+        "min": [-0.5664637684822083, 8.335776328749489e-6, -0.494104266166687],
+        "max": [0.7399818301200867, 1.7924405336380005, 0.5011074542999268]
+      },
+      "materials": ["Branching knight native IFS points / ember"]
+    }
+  ],
+  "pointPolicy": "POINTS import as loose vertices. Use a point renderer or instance display glyphs to see them; these are not triangle surfaces."
+}

@@ -1,0 +1,326 @@
+{
+  "format": "lumen-fractal-flame-figurines",
+  "version": 1,
+  "sourceHashes": {
+    "packages/app/src/flame/chess/flameFigurines.ts": "77a07a681bde00b13f004c6432ddc59860c28310ff86ca29c89f0cc11e452764",
+    "packages/app/src/flame/chess/flameFigurineCloud.ts": "4fb55efdd3e5d20e7c0b9363b900634defede4ea1cb48686a75c85cc1a13bf0f",
+    "packages/app/scripts/export-flame-figurines.mjs": "2d4afbac2691edecc96724cfba34495448f12a2a8fdf864bdb07f65b6bf65ee2",
+    "packages/app/scripts/flame-figurine-glb.mjs": "c3c0a538e78b278a56c23414464fb22733d4b9cbca65b3987554bd6c7df9771c",
+    "packages/app/scripts/pawn-board-glb.mjs": "d64765585840f824393183b71cb432a5da09603fbd6a281d8f1c863e5ae29836",
+    "packages/app/src/flame/variations/simple3D/index.ts": "d93484ec22410692531c9f8e49a9e77208995c80602421bf76a19b7b3eed36d9",
+    "packages/app/src/flame/constants.ts": "2889fb6ecfb6c5d2753bb68d368bad2ec8c0eb87c18331e198a1ed57b6b163b7",
+    "packages/app/src/flame/clashTeams.ts": "ed428528a8bdd09b514b6aee176fa66b81e8946565f3ff1516e362b6cbc61da0",
+    "packages/app/src/flame/randomSource.ts": "dd188e1139063dfa98e9d30de0c63749e514bfcaaefa6770bdde2933f9e7895a",
+    "packages/core/src/math/affineTransform3D.ts": "c209eadd8a1687d273a3cbcdf97c5127c7b339f42428a313535dd592e4fadffa",
+    "packages/core/src/schema/walkGroups.ts": "1b52c30ea13fa8f8a2ea2173f7506265895d4db7f69e7bd26ffd23624378027b"
+  },
+  "colorPolicy": {
+    "source": "Native transform OkLab a/b recurrence, including colorSpeed and authored vibrancy.",
+    "fixedLightness": 0.78,
+    "conversion": "@typegpu/color oklabToLinearRgb; clamp linear channels into [0,1].",
+    "encoding": "FLOAT32 linear RGBA COLOR_0, alpha=1; white KHR_materials_unlit material.",
+    "difference": "Live GPU grading averages colors per pixel and derives lightness from sample density, exposure and tone mapping. Export colors are structural fixed-lightness previews, not pixel matches."
+  },
+  "assets": [
+    {
+      "file": "fractal-flame-aurora-queen-authored.glb",
+      "recipeFile": "fractal-flame-aurora-queen-authored.json",
+      "studyId": "aurora-queen",
+      "side": "light",
+      "palette": "authored",
+      "sha256": "0d1fe0c19ed1acd28b8209e25d0da6f4403c631c0857364059c59e7d2daff9da",
+      "recipeSha256": "81b183bffb0ab70c22eaf91b02a5cb59b4b1b07ec04ff7deb032efa68aeb22a7",
+      "bytes": 1374300,
+      "points": 48000,
+      "coloredPoints": 48000,
+      "triangles": 0,
+      "bounds": {
+        "min": [
+          -0.36785751581192017, 0.011178986169397831, -0.42737364768981934
+        ],
+        "max": [0.47038859128952026, 1.8746700286865234, 0.45078545808792114]
+      },
+      "colorBounds": {
+        "min": [0, 0.25047942996025085, 0, 1],
+        "max": [1, 0.7205742597579956, 1, 1]
+      },
+      "seed": 1718378861,
+      "burnIn": 48,
+      "components": [
+        {
+          "name": "aurora_roots",
+          "points": 9600
+        },
+        {
+          "name": "aurora_weave_left",
+          "points": 10560
+        },
+        {
+          "name": "aurora_weave_right",
+          "points": 10560
+        },
+        {
+          "name": "aurora_corolla",
+          "points": 14400
+        },
+        {
+          "name": "aurora_crest",
+          "points": 2880
+        }
+      ]
+    },
+    {
+      "file": "fractal-flame-aurora-queen-alternate.glb",
+      "recipeFile": "fractal-flame-aurora-queen-alternate.json",
+      "studyId": "aurora-queen",
+      "side": "dark",
+      "palette": "alternate",
+      "sha256": "64be6711356090091a6e5a1bfc96038cf39f400022ebb01884e4bd0e9fad9f8f",
+      "recipeSha256": "9a8dd11f7e4a745ac227e3102f41e3d93285e051204968fec7fb4115dc696277",
+      "bytes": 1374312,
+      "points": 48000,
+      "coloredPoints": 48000,
+      "triangles": 0,
+      "bounds": {
+        "min": [
+          -0.36785751581192017, 0.011178986169397831, -0.42737364768981934
+        ],
+        "max": [0.47038859128952026, 1.8746700286865234, 0.45078545808792114]
+      },
+      "colorBounds": {
+        "min": [0.06426642835140228, 0.17328962683677673, 0, 1],
+        "max": [1, 0.5874546766281128, 1, 1]
+      },
+      "seed": 1718378861,
+      "burnIn": 48,
+      "components": [
+        {
+          "name": "aurora_roots",
+          "points": 9600
+        },
+        {
+          "name": "aurora_weave_left",
+          "points": 10560
+        },
+        {
+          "name": "aurora_weave_right",
+          "points": 10560
+        },
+        {
+          "name": "aurora_corolla",
+          "points": 14400
+        },
+        {
+          "name": "aurora_crest",
+          "points": 2880
+        }
+      ]
+    },
+    {
+      "file": "fractal-flame-ember-bishop-authored.glb",
+      "recipeFile": "fractal-flame-ember-bishop-authored.json",
+      "studyId": "ember-bishop",
+      "side": "light",
+      "palette": "authored",
+      "sha256": "18cb88fe4c89a680c34be9e33d2c220da724adcb5629fff08a52d7cc6c8cf0cb",
+      "recipeSha256": "dba9187b66a97dfdef0a657e66130078eba9b214dbd3054bc74c1515f1f53576",
+      "bytes": 1373164,
+      "points": 48000,
+      "coloredPoints": 48000,
+      "triangles": 0,
+      "bounds": {
+        "min": [
+          -0.33152538537979126, 0.011525638401508331, -0.3773137331008911
+        ],
+        "max": [0.4236356019973755, 1.8725836277008057, 0.3815726637840271]
+      },
+      "colorBounds": {
+        "min": [1, 0.09250239282846451, 0, 1],
+        "max": [1, 0.3047216236591339, 0.960234522819519, 1]
+      },
+      "seed": 1718378861,
+      "burnIn": 48,
+      "components": [
+        {
+          "name": "ember_roots",
+          "points": 8640
+        },
+        {
+          "name": "ember_mantle",
+          "points": 17280
+        },
+        {
+          "name": "ember_orbit",
+          "points": 3840
+        },
+        {
+          "name": "ember_mitre_left",
+          "points": 9120
+        },
+        {
+          "name": "ember_mitre_right",
+          "points": 9120
+        }
+      ]
+    },
+    {
+      "file": "fractal-flame-ember-bishop-alternate.glb",
+      "recipeFile": "fractal-flame-ember-bishop-alternate.json",
+      "studyId": "ember-bishop",
+      "side": "dark",
+      "palette": "alternate",
+      "sha256": "0aec188b6bfba3337b9cdec1f581cb2c0d1463251ceac5ebf11b0d8425f8da32",
+      "recipeSha256": "7e4c214e0774ba8e225238defaa57ba8fcb86a93ad5435eedb5e7bac70539888",
+      "bytes": 1373232,
+      "points": 48000,
+      "coloredPoints": 48000,
+      "triangles": 0,
+      "bounds": {
+        "min": [
+          -0.33152538537979126, 0.011525638401508331, -0.3773137331008911
+        ],
+        "max": [0.4236356019973755, 1.8725836277008057, 0.3815726637840271]
+      },
+      "colorBounds": {
+        "min": [0, 0.4753294885158539, 0.12028510123491287, 1],
+        "max": [0.008058234117925167, 0.7417716979980469, 1, 1]
+      },
+      "seed": 1718378861,
+      "burnIn": 48,
+      "components": [
+        {
+          "name": "ember_roots",
+          "points": 8640
+        },
+        {
+          "name": "ember_mantle",
+          "points": 17280
+        },
+        {
+          "name": "ember_orbit",
+          "points": 3840
+        },
+        {
+          "name": "ember_mitre_left",
+          "points": 9120
+        },
+        {
+          "name": "ember_mitre_right",
+          "points": 9120
+        }
+      ]
+    },
+    {
+      "file": "fractal-flame-tidal-knight-authored.glb",
+      "recipeFile": "fractal-flame-tidal-knight-authored.json",
+      "studyId": "tidal-knight",
+      "side": "light",
+      "palette": "authored",
+      "sha256": "1e4904821e7c609407d284f4b93971fafbb0bfa233da18a98825021331089d07",
+      "recipeSha256": "f105eb0d9306f045d78b120fd4b7c76ea19ae472a3d3922c7508b3f094e39600",
+      "bytes": 1388132,
+      "points": 48000,
+      "coloredPoints": 48000,
+      "triangles": 0,
+      "bounds": {
+        "min": [-0.3682383894920349, 0.011375951580703259, -0.4128343462944031],
+        "max": [0.6899832487106323, 1.8752208948135376, 0.41605785489082336]
+      },
+      "colorBounds": {
+        "min": [0, 0.14653068780899048, 0.8807979226112366, 1],
+        "max": [1, 0.6829647421836853, 1, 1]
+      },
+      "seed": 1718378861,
+      "burnIn": 48,
+      "components": [
+        {
+          "name": "tidal_roots",
+          "points": 8160
+        },
+        {
+          "name": "tidal_current",
+          "points": 14880
+        },
+        {
+          "name": "tidal_mane",
+          "points": 7200
+        },
+        {
+          "name": "tidal_head",
+          "points": 9600
+        },
+        {
+          "name": "tidal_muzzle",
+          "points": 4320
+        },
+        {
+          "name": "tidal_fin_back",
+          "points": 1920
+        },
+        {
+          "name": "tidal_fin_front",
+          "points": 1920
+        }
+      ]
+    },
+    {
+      "file": "fractal-flame-tidal-knight-alternate.glb",
+      "recipeFile": "fractal-flame-tidal-knight-alternate.json",
+      "studyId": "tidal-knight",
+      "side": "dark",
+      "palette": "alternate",
+      "sha256": "e6c24e61c73b68e98d9723a06ba7014521412b4e25d9b0b2b4454295802ef144",
+      "recipeSha256": "5fbd655bccb7677b575274196ff69af1ce6319326a1bd355988f5b76410ddac2",
+      "bytes": 1388104,
+      "points": 48000,
+      "coloredPoints": 48000,
+      "triangles": 0,
+      "bounds": {
+        "min": [-0.3682383894920349, 0.011375951580703259, -0.4128343462944031],
+        "max": [0.6899832487106323, 1.8752208948135376, 0.41605785489082336]
+      },
+      "colorBounds": {
+        "min": [0, 0.2049255520105362, 0, 1],
+        "max": [1, 0.7318227291107178, 0.18253424763679504, 1]
+      },
+      "seed": 1718378861,
+      "burnIn": 48,
+      "components": [
+        {
+          "name": "tidal_roots",
+          "points": 8160
+        },
+        {
+          "name": "tidal_current",
+          "points": 14880
+        },
+        {
+          "name": "tidal_mane",
+          "points": 7200
+        },
+        {
+          "name": "tidal_head",
+          "points": 9600
+        },
+        {
+          "name": "tidal_muzzle",
+          "points": 4320
+        },
+        {
+          "name": "tidal_fin_back",
+          "points": 1920
+        },
+        {
+          "name": "tidal_fin_front",
+          "points": 1920
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "Finite deterministic CPU samples of the selected native nonlinear maps are glTF POINTS, not reconstructed triangle surfaces. Importers choose point size; Blender imports loose vertices.",
+    "CPU sampling follows native pre-affine, externally weighted variation sum, post-affine and colour recurrence, with independent walkGroup components. CPU trigonometry and GPU Float32 arithmetic are not bit-identical.",
+    "The live /figurines preview uses the accumulating native renderer and descriptors, not the sampled GLBs. Exported fixed-lightness vertex colours do not reproduce density-dependent GPU grading.",
+    "No glass shell, normals, collision solid or fracture animation is embedded. These are nonlinear visual attractor studies; PBR surface materials require a chosen finite-thickness surface."
+  ]
+}

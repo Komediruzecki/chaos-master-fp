@@ -1,0 +1,1178 @@
+{
+  "checkedAt": "2026-09-30T21:15:46.126723+00:00",
+  "checks": {
+    "pnpmCheck": "passed; 0 errors, 80 warnings at full gate; the two new complexity warnings were subsequently eliminated and scoped lint passed",
+    "focusedVitest": {
+      "files": 15,
+      "tests": 180,
+      "passed": true
+    },
+    "generatorAfterExtraction": {
+      "tests": 13,
+      "passed": true
+    },
+    "glbScriptTests": {
+      "tests": 7,
+      "passed": true
+    },
+    "appTypecheckAfterCache": "passed",
+    "productionBuild": "passed",
+    "docsIndex": "passed",
+    "scopedFormatting": "passed",
+    "gitDiffWhitespace": "passed"
+  },
+  "preservation": {
+    "previousAssets": 79,
+    "changed": []
+  },
+  "sourceHashes": {
+    "packages/app/src/flame/chess/blueBranchPawnFlame.ts": "ea708f6ad48f7039e9e9a38e7e2ba908a99b2b905a3fa948773bcd71112c8096",
+    "packages/app/src/flame/chess/pawnFlame.ts": "432c36eafa8e0f88795b155e9e27fd2470f4d55b26ef2abb3cbfbcaef54f4523",
+    "packages/app/src/flame/chess/flameFigurineCloud.ts": "4fb55efdd3e5d20e7c0b9363b900634defede4ea1cb48686a75c85cc1a13bf0f",
+    "packages/app/src/flame/chess/pawnBoardGeometry.ts": "0dc7115d976e871f6e4722ddf5c2b03926dae8a4948fa98d97e17020b1794fb6",
+    "packages/app/src/flame/randomSource.ts": "dd188e1139063dfa98e9d30de0c63749e514bfcaaefa6770bdde2933f9e7895a",
+    "packages/app/src/flame/clashTeams.ts": "ed428528a8bdd09b514b6aee176fa66b81e8946565f3ff1516e362b6cbc61da0",
+    "packages/core/src/schema/walkGroups.ts": "1b52c30ea13fa8f8a2ea2173f7506265895d4db7f69e7bd26ffd23624378027b",
+    "packages/core/src/math/affineTransform3D.ts": "c209eadd8a1687d273a3cbcdf97c5127c7b339f42428a313535dd592e4fadffa",
+    "packages/app/scripts/export-blue-branch-pawn.mjs": "e47ccb8cf1d151f600743d76fcb5a157f59f3339e5533343e4f00c145a6d9861",
+    "packages/app/scripts/pawn-board-glb.mjs": "d64765585840f824393183b71cb432a5da09603fbd6a281d8f1c863e5ae29836",
+    "packages/app/src/components/PawnBoard/PawnBoardScene.tsx": "439acc0df8c5d1152772d6b128e587a361e453b926f56707e79359520f754c32",
+    "packages/app/src/components/PawnBoard/pawnBoardRenderer.ts": "9a6f4fdfcc6240a04fff9c596d38ccd6463569d29d28ff4c16a797985c424c01",
+    "packages/app/src/components/PawnBoard/pawnBoardShaders.ts": "84ffd020502992345ecd8ffe3ff1f282d160fc9e0d90bdf866af169ae4a0045a",
+    "packages/app/src/components/PawnBoard/pawnGlassMaterial.ts": "b7ca388ba5188dbfa29ff3dbdfe6061d6e12f4caa7f39b880ab0cd0642edb04d",
+    "packages/app/src/components/PawnBoard/pawnGlassTargets.ts": "e36ddde772a11ecb4501100adf061e7ec86701995c2b2e11f9974c52269cf680",
+    "packages/app/src/components/PawnBoard/pawnBoardCloud.ts": "1cf944aa0b0d6e692673e2ced6259c70759b1832161f55f1134b979dd4b9bd72",
+    "packages/app/src/components/PawnBoard/pawnBoardMesh.ts": "06c780fca05ffe8f7aff33de03f25cc440de9ecc896df92bc10dc9fc2468f19d",
+    "packages/app/src/components/PawnBoard/pawnBoardMath.ts": "1504949d07e7207ef34ca2587d4b1fa979cc8fefe1ac5d1f43c62e32c820f305",
+    "packages/app/src/pages/PawnBoard/PawnBoardPage.tsx": "897047d297f1401ee4c1bc767d403060c41bb741038aace9cf67ae8c71683c37",
+    "packages/app/src/pages/PawnBoard/PawnBoardPage.module.css": "52d06b53f032c80f063138546a1b99564be076d6671c991c58fa16bf82b10344",
+    "packages/app/src/pages/Figurines/FigurinesPage.tsx": "857e5a727cc94e270e55c1c1566071c2c243995c3559e8a0e9483c4da8ac84d9",
+    "packages/app/src/flame/chess/figurineCollections.ts": "2c9e041e1c59b5fb66b85eaa877c18bd35574d2af854aa606c7b303dbecacb10",
+    "packages/app/scripts/inspect-blue-branch-pawn.py": "afb1f6d5f49667483855d6b721c7b1a40c84910e91914c49eab4e65e066388ed"
+  },
+  "screenshots": {
+    "blue-branch-core.png": "d9fb349058612fc329cdde462b5d6430641e2aeedd3050f71e616fba49e141d7",
+    "blue-branch-shatter.png": "74066d91c3e9dd0f7690d07fde47b08eb99dc741546ade0dde33d98be61076fd",
+    "blue-branch-1024.png": "076565463db37cdc545b9f359c19cbfa68079ee343da33e3022e1b27c64c4591",
+    "blue-branch-390.png": "6d7bbdd1af1a159efb9cbafc105dc445761cfae47917b09a4b7c1d5faefd4422",
+    "blue-branch-board.png": "add3c65c6b4fde3b91b99de1ea7306ba1b0b8460d1f863710412fe2f3bbdbf03",
+    "blue-branch-native.png": "e08816c7bf9c2a593b4f79c108e2bbfb8e5012f47ca3d534b312a07659ed90d4",
+    "blue-branch-ember.png": "f7cc4a3705839b66921742de3c92dae860ba5cefa40fefcc9971b79c85d80460",
+    "blue-branch-glass.png": "eb77c0958db592384db5c1633cd41cdcd0a7b8bd727a37a01c0bec14a2928bfb"
+  },
+  "productionWebGpu": {
+    "base": "https://localhost:5199",
+    "mode": "all",
+    "errors": [],
+    "warnings": [],
+    "shots": [
+      "/tmp/blue-branch-verification/blue-branch-glass.png",
+      "/tmp/blue-branch-verification/blue-branch-core.png",
+      "/tmp/blue-branch-verification/blue-branch-ember.png",
+      "/tmp/blue-branch-verification/blue-branch-orbit.png",
+      "/tmp/blue-branch-verification/blue-branch-board.png",
+      "/tmp/blue-branch-verification/comparison-glass-echo.png",
+      "/tmp/blue-branch-verification/comparison-crystal-lattice.png",
+      "/tmp/blue-branch-verification/comparison-branching-glass.png",
+      "/tmp/blue-branch-verification/blue-branch-touch-core.png"
+    ],
+    "layout": [
+      {
+        "width": 1024,
+        "overflow": false,
+        "buttons": [
+          {
+            "text": "Board",
+            "height": 44,
+            "width": 75.96875,
+            "background": "rgb(21, 26, 35)"
+          },
+          {
+            "text": "Inspect pawn",
+            "height": 44,
+            "width": 129.328125,
+            "background": "rgb(29, 36, 47)"
+          }
+        ],
+        "canvases": 1
+      },
+      {
+        "width": 390,
+        "overflow": false,
+        "buttons": [
+          {
+            "text": "Board",
+            "height": 44,
+            "width": 75.96875,
+            "background": "rgb(21, 26, 35)"
+          },
+          {
+            "text": "Inspect pawn",
+            "height": 44,
+            "width": 129.328125,
+            "background": "rgb(29, 36, 47)"
+          }
+        ],
+        "canvases": 1
+      }
+    ],
+    "foregroundBefore": {
+      "workspace": 2
+    },
+    "navigationMs": 777,
+    "visibility": {
+      "state": "visible",
+      "hidden": false
+    },
+    "adapter": {
+      "vendor": "amd",
+      "architecture": "rdna-4",
+      "description": "",
+      "fallback": false
+    },
+    "windows": [
+      {
+        "class": "agent-browser",
+        "workspace": "special:agents"
+      }
+    ],
+    "foregroundAfter": {
+      "workspace": 2
+    },
+    "specialWorkspaces": [""],
+    "frameIntervals": {
+      "medianMs": 994.0999999999913,
+      "p95Ms": 1006.1000000000058,
+      "samples": 5,
+      "visibility": "visible",
+      "boundedMs": 5000
+    },
+    "cachedInspectionReadyMs": 2982,
+    "touchGlassUnchecked": true,
+    "gpu": {
+      "errors": [],
+      "losses": []
+    },
+    "longTasks": [
+      {
+        "start": 309.19999999552965,
+        "duration": 1720
+      },
+      {
+        "start": 2029.6999999955297,
+        "duration": 74
+      },
+      {
+        "start": 24021.5,
+        "duration": 1709
+      },
+      {
+        "start": 62020.5,
+        "duration": 1188
+      },
+      {
+        "start": 87025.59999999404,
+        "duration": 347
+      },
+      {
+        "start": 97032.29999999702,
+        "duration": 75
+      }
+    ],
+    "passed": true,
+    "runtimeMs": 153388
+  },
+  "nativePreviewWebGpu": {
+    "base": "https://localhost:5199",
+    "mode": "native",
+    "errors": [],
+    "warnings": [],
+    "shots": ["/tmp/blue-branch-verification/blue-branch-native.png"],
+    "layout": [],
+    "foregroundBefore": {
+      "workspace": 2
+    },
+    "navigationMs": 827,
+    "visibility": {
+      "state": "visible",
+      "hidden": false
+    },
+    "adapter": {
+      "vendor": "amd",
+      "architecture": "rdna-4",
+      "description": "",
+      "fallback": false
+    },
+    "windows": [
+      {
+        "class": "agent-browser",
+        "workspace": "special:agents"
+      }
+    ],
+    "foregroundAfter": {
+      "workspace": 2
+    },
+    "specialWorkspaces": [""],
+    "gpu": {
+      "errors": [],
+      "losses": []
+    },
+    "longTasks": [
+      {
+        "start": 1017.7000000029802,
+        "duration": 72
+      }
+    ],
+    "passed": true,
+    "runtimeMs": 15442
+  },
+  "controlledCapture": {
+    "base": "https://localhost:5199",
+    "mode": "capture",
+    "errors": [],
+    "warnings": [],
+    "shots": ["/tmp/blue-branch-verification/blue-branch-shatter.png"],
+    "foregroundBefore": {
+      "workspace": 2
+    },
+    "blankRaf": {
+      "intervals": [
+        16.599999999999994, 5.200000000000003, 975.9000000000001, 6,
+        6.099999999999909, 993.8999999999999, 6.200000000000273
+      ],
+      "samples": 7,
+      "boundedMs": 2500,
+      "visibility": "visible",
+      "url": "about:blank"
+    },
+    "windows": [
+      {
+        "class": "agent-browser",
+        "workspace": "special:agents"
+      }
+    ],
+    "specialWorkspaces": [""],
+    "foregroundAfter": {
+      "workspace": 2
+    },
+    "adapter": {
+      "vendor": "amd",
+      "architecture": "rdna-4",
+      "fallback": false
+    },
+    "clockAnchorMs": 4522.10000000149,
+    "captureAgeSeconds": 0.85,
+    "shardAgeSeconds": 0.45,
+    "clockBeforeShot": {
+      "anchor": 4522.10000000149,
+      "held": 5372.10000000149,
+      "draws": [
+        {
+          "vertices": 3,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 36,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 36,
+          "instances": 64,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 192000,
+          "instances": 8,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 192000,
+          "instances": 8,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 56064,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 18432,
+          "instances": 15,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 18432,
+          "instances": 15,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 3,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 3,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 36,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 36,
+          "instances": 64,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 192000,
+          "instances": 8,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 192000,
+          "instances": 8,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 56064,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 18432,
+          "instances": 15,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 18432,
+          "instances": 15,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 3,
+          "instances": 1,
+          "time": 5372.10000000149
+        }
+      ],
+      "submissions": 2,
+      "lastFrameTime": 5372.10000000149
+    },
+    "clockAfterShot": {
+      "anchor": 4522.10000000149,
+      "held": 5372.10000000149,
+      "draws": [
+        {
+          "vertices": 3,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 36,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 36,
+          "instances": 64,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 192000,
+          "instances": 8,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 192000,
+          "instances": 8,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 56064,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 18432,
+          "instances": 15,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 18432,
+          "instances": 15,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 3,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 3,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 36,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 36,
+          "instances": 64,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 192000,
+          "instances": 8,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 192000,
+          "instances": 8,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 56064,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 18432,
+          "instances": 15,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 18432,
+          "instances": 15,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 3,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 3,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 36,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 36,
+          "instances": 64,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 192000,
+          "instances": 8,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 192000,
+          "instances": 8,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 56064,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 18432,
+          "instances": 15,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 18432,
+          "instances": 15,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 3,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 3,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 36,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 36,
+          "instances": 64,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 192000,
+          "instances": 8,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 192000,
+          "instances": 8,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 56064,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 18432,
+          "instances": 15,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 18432,
+          "instances": 15,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 3,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 3,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 36,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 36,
+          "instances": 64,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 192000,
+          "instances": 8,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 192000,
+          "instances": 8,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 56064,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 18432,
+          "instances": 15,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 18432,
+          "instances": 15,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 3,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 3,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 36,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 36,
+          "instances": 64,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 192000,
+          "instances": 8,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 192000,
+          "instances": 8,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 56064,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 18432,
+          "instances": 15,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 18432,
+          "instances": 15,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 3,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 3,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 36,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 36,
+          "instances": 64,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 192000,
+          "instances": 8,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 192000,
+          "instances": 8,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 56064,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 18432,
+          "instances": 15,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 18432,
+          "instances": 15,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 3,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 3,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 36,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 36,
+          "instances": 64,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 192000,
+          "instances": 8,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 192000,
+          "instances": 8,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 56064,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 18432,
+          "instances": 15,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 18432,
+          "instances": 15,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 3,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 3,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 36,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 36,
+          "instances": 64,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 192000,
+          "instances": 8,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 192000,
+          "instances": 8,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 56064,
+          "instances": 1,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 18432,
+          "instances": 15,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 18432,
+          "instances": 15,
+          "time": 5372.10000000149
+        },
+        {
+          "vertices": 3,
+          "instances": 1,
+          "time": 5372.10000000149
+        }
+      ],
+      "submissions": 9,
+      "lastFrameTime": 5372.10000000149
+    },
+    "gpu": {
+      "errors": [],
+      "losses": []
+    },
+    "passed": true,
+    "runtimeMs": 18783
+  },
+  "firefoxLayoutOnly": {
+    "engine": "Firefox",
+    "scope": "layout only, no WebGPU claim",
+    "layouts": [
+      {
+        "route": "/chess?view=study",
+        "width": 1600,
+        "scrollWidth": 1600,
+        "overflow": false,
+        "canvas": [],
+        "controls": [
+          {
+            "text": "Board",
+            "height": 44,
+            "width": 75.94999694824219,
+            "x": 53
+          },
+          {
+            "text": "Inspect pawn",
+            "height": 44,
+            "width": 129.33334350585938,
+            "x": 136.9499969482422
+          },
+          {
+            "text": "Reset view",
+            "height": 44,
+            "width": 110.78334045410156,
+            "x": 1088.2166748046875
+          },
+          {
+            "text": "Frost",
+            "height": 44,
+            "width": 146,
+            "x": 1268
+          },
+          {
+            "text": "Ember",
+            "height": 44,
+            "width": 146,
+            "x": 1422
+          },
+          {
+            "text": "Branching glass",
+            "height": 44,
+            "width": 146,
+            "x": 1268
+          },
+          {
+            "text": "Crystal lattice",
+            "height": 44,
+            "width": 146,
+            "x": 1422
+          },
+          {
+            "text": "Glass echo",
+            "height": 44,
+            "width": 300,
+            "x": 1268
+          },
+          {
+            "text": "Capture demo",
+            "height": 44,
+            "width": 300,
+            "x": 1268
+          },
+          {
+            "text": "New game",
+            "height": 44,
+            "width": 300,
+            "x": 1268
+          }
+        ]
+      },
+      {
+        "route": "/chess?view=study",
+        "width": 1024,
+        "scrollWidth": 1024,
+        "overflow": false,
+        "canvas": [],
+        "controls": [
+          {
+            "text": "Board",
+            "height": 44,
+            "width": 75.94999694824219,
+            "x": 49
+          },
+          {
+            "text": "Inspect pawn",
+            "height": 44,
+            "width": 129.33334350585938,
+            "x": 132.9499969482422
+          },
+          {
+            "text": "Reset view",
+            "height": 44,
+            "width": 110.78334045410156,
+            "x": 574.2166748046875
+          },
+          {
+            "text": "Frost",
+            "height": 44,
+            "width": 131,
+            "x": 726
+          },
+          {
+            "text": "Ember",
+            "height": 44,
+            "width": 131,
+            "x": 865
+          },
+          {
+            "text": "Branching glass",
+            "height": 44,
+            "width": 131,
+            "x": 726
+          },
+          {
+            "text": "Crystal lattice",
+            "height": 44,
+            "width": 131,
+            "x": 865
+          },
+          {
+            "text": "Glass echo",
+            "height": 44,
+            "width": 270,
+            "x": 726
+          },
+          {
+            "text": "Capture demo",
+            "height": 44,
+            "width": 270,
+            "x": 726
+          },
+          {
+            "text": "New game",
+            "height": 44,
+            "width": 270,
+            "x": 726
+          }
+        ]
+      },
+      {
+        "route": "/chess?view=study",
+        "width": 390,
+        "scrollWidth": 390,
+        "overflow": false,
+        "canvas": [],
+        "controls": [
+          {
+            "text": "Board",
+            "height": 44,
+            "width": 75.94999694824219,
+            "x": 41
+          },
+          {
+            "text": "Inspect pawn",
+            "height": 44,
+            "width": 129.33334350585938,
+            "x": 124.94999694824219
+          },
+          {
+            "text": "Reset view",
+            "height": 44,
+            "width": 110.78334045410156,
+            "x": 246.21665954589844
+          },
+          {
+            "text": "Frost",
+            "height": 44,
+            "width": 171,
+            "x": 20
+          },
+          {
+            "text": "Ember",
+            "height": 44,
+            "width": 171,
+            "x": 199
+          },
+          {
+            "text": "Branching glass",
+            "height": 54,
+            "width": 111.33332824707031,
+            "x": 20
+          },
+          {
+            "text": "Crystal lattice",
+            "height": 54,
+            "width": 111.33334350585938,
+            "x": 139.3333282470703
+          },
+          {
+            "text": "Glass echo",
+            "height": 54,
+            "width": 111.33332824707031,
+            "x": 258.66668701171875
+          },
+          {
+            "text": "Capture demo",
+            "height": 44,
+            "width": 350,
+            "x": 20
+          },
+          {
+            "text": "New game",
+            "height": 44,
+            "width": 350,
+            "x": 20
+          }
+        ]
+      },
+      {
+        "route": "/figurines",
+        "width": 1600,
+        "scrollWidth": 1600,
+        "overflow": false,
+        "canvas": [],
+        "controls": [
+          {
+            "text": "Reset view",
+            "height": 44,
+            "width": 110.78334045410156,
+            "x": 1020.2166748046875
+          },
+          {
+            "text": "Flame experiments",
+            "height": 44,
+            "width": 105.38333129882812,
+            "x": 1220
+          },
+          {
+            "text": "Geometric studies",
+            "height": 44,
+            "width": 99.30000305175781,
+            "x": 1333.38330078125
+          },
+          {
+            "text": "Glass cores",
+            "height": 44,
+            "width": 99.31666564941406,
+            "x": 1440.683349609375
+          },
+          {
+            "text": "Blue branching pawnBranching roots and recursive fern crown",
+            "height": 68,
+            "width": 320,
+            "x": 1220
+          },
+          {
+            "text": "Frost",
+            "height": 44,
+            "width": 156,
+            "x": 1220
+          },
+          {
+            "text": "Ember",
+            "height": 44,
+            "width": 156,
+            "x": 1384
+          },
+          {
+            "text": "Download native JSON",
+            "height": 44,
+            "width": 320,
+            "x": 1220
+          }
+        ]
+      },
+      {
+        "route": "/figurines",
+        "width": 1024,
+        "scrollWidth": 1024,
+        "overflow": false,
+        "canvas": [],
+        "controls": [
+          {
+            "text": "Reset view",
+            "height": 44,
+            "width": 110.78334045410156,
+            "x": 556.2166748046875
+          },
+          {
+            "text": "Flame experiments",
+            "height": 44,
+            "width": 105.38333129882812,
+            "x": 716
+          },
+          {
+            "text": "Geometric studies",
+            "height": 44,
+            "width": 91.7166748046875,
+            "x": 829.38330078125
+          },
+          {
+            "text": "Glass cores",
+            "height": 44,
+            "width": 66.89999389648438,
+            "x": 929.0999755859375
+          },
+          {
+            "text": "Blue branching pawnBranching roots and recursive fern crown",
+            "height": 86,
+            "width": 280,
+            "x": 716
+          },
+          {
+            "text": "Frost",
+            "height": 44,
+            "width": 136,
+            "x": 716
+          },
+          {
+            "text": "Ember",
+            "height": 44,
+            "width": 136,
+            "x": 860
+          },
+          {
+            "text": "Download native JSON",
+            "height": 44,
+            "width": 280,
+            "x": 716
+          }
+        ]
+      },
+      {
+        "route": "/figurines",
+        "width": 390,
+        "scrollWidth": 390,
+        "overflow": false,
+        "canvas": [],
+        "controls": [
+          {
+            "text": "Reset view",
+            "height": 44,
+            "width": 110.78334045410156,
+            "x": 242.21665954589844
+          },
+          {
+            "text": "Flame experiments",
+            "height": 44,
+            "width": 111.33332824707031,
+            "x": 20
+          },
+          {
+            "text": "Geometric studies",
+            "height": 44,
+            "width": 111.33334350585938,
+            "x": 139.3333282470703
+          },
+          {
+            "text": "Glass cores",
+            "height": 44,
+            "width": 111.33332824707031,
+            "x": 258.66668701171875
+          },
+          {
+            "text": "Blue branching pawnBranching roots and recursive fern crown",
+            "height": 68,
+            "width": 350,
+            "x": 20
+          },
+          {
+            "text": "Frost",
+            "height": 44,
+            "width": 171,
+            "x": 20
+          },
+          {
+            "text": "Ember",
+            "height": 44,
+            "width": 171,
+            "x": 199
+          },
+          {
+            "text": "Download native JSON",
+            "height": 44,
+            "width": 350,
+            "x": 20
+          }
+        ]
+      }
+    ],
+    "passed": true
+  },
+  "freshImportReport": "blue-branch-pawn-loader-report.json",
+  "limitations": [
+    "Hidden desktop browser animation callbacks ran at about 1 Hz even with anti-throttle flags; cadence measurements are not real-time GPU performance results.",
+    "Touch drag, pinch, cancellation and UI recovery used desktop emulation, not a physical tablet benchmark.",
+    "Firefox layout fallback was checked; Firefox WebGPU rendering was unavailable.",
+    "The shatter still is an actual rendered frame with a controlled animation clock. It is not evidence of real-time animation cadence.",
+    "The core remains colored native IFS points. The glass is a closed triangle shell; GLB has no embedded capture animation.",
+    "Live thin-wall screen-space refraction is approximate; no mutual glass refraction or traced caustics is claimed."
+  ]
+}

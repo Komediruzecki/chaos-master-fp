@@ -29,6 +29,7 @@ import { createExportRenderDriver, createInteractiveRenderDriver, EXPORT_COUNT_S
 import { shaderShapeOf } from './shaderShape'
 import { Bucket, BUCKET_FIXED_POINT_MULTIPLIER, FilterParams } from './types'
 import { customVariationsVersion } from './variations/custom'
+import { walkGroupsOf, walkGroupsSignature } from './walkGroups'
 import type { v4f } from 'typegpu/data'
 import type { Palette } from './colorMap'
 import type { ExportImageType } from './exportImageType'
@@ -512,6 +513,14 @@ export function Flam3(props: Flam3Props) {
     const bf = props.blendFlame
     return JSON.stringify({
       ...clashTeamsSignature(clashTeamsOf(flame.transforms)),
+      ...walkGroupsSignature(
+        walkGroupsOf(
+          flame.renderSettings.dimensions === 3 &&
+            !clashTeamsOf(flame.transforms).enabled
+            ? flame.transforms
+            : {},
+        ),
+      ),
       // Editing a custom variation keeps its type and changes its code, so
       // nothing below changes: the version makes the canvas show the edit.
       customVariationsVersion: pipelineVariationsVersion(),

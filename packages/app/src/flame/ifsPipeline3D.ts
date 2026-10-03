@@ -18,6 +18,7 @@ import { createFlameWgsl3D, extractFlameUniforms3D, toAffine3D, } from './transf
 import { AtomicBucket, BUCKET_FIXED_POINT_MULTIPLIER, BUCKET_SATURATION_COUNT, } from './types'
 import { Point3D } from './types3D'
 import { getCacheVersion } from './variations/custom'
+import { walkGroupKernel, walkGroupsOf, walkGroupsSignature, } from './walkGroups'
 import type { StorageFlag, TgpuBuffer, TgpuComputeFn, TgpuRoot } from 'typegpu'
 import type { Vec2f, Vec2u, Vec4f, WgslArray } from 'typegpu/data'
 import type { ColorInitMode } from './colorInitMode'
@@ -101,8 +102,12 @@ export function createIFSPipeline3D(
   // fragment the cache.
   const clashTeams = clashTeamsOf(transforms)
   const clashTeamsOn = clashTeams.enabled
+  // Clash owns its existing A/B selection, even when a fighter was built
+  // from a saved component flame. Group metadata must not change a fight.
+  const walkGroups = walkGroupsOf(clashTeamsOn ? {} : transforms)
   const sig = JSON.stringify({
     ...clashTeamsSignature(clashTeams),
+    ...walkGroupsSignature(walkGroups),
     insideShaderCount,
     plotsPerChain,
     customVariationsVersion: getCacheVersion(),
@@ -201,7 +206,9 @@ export function createIFSPipeline3D(
       }
     `.$uses({ ...flamesObj, random, layout: bindGroupLayout })
     // Two fighters: each walker keeps to its own team (flame/clashTeams.ts).
-    const kernel = clashKernel(clashTeams, Point3D, flamesObj, bindGroupLayout)
+    const kernel =
+      clashKernel(clashTeams, Point3D, flamesObj, bindGroupLayout) ??
+      walkGroupKernel(walkGroups, Point3D, flamesObj, bindGroupLayout)
     if (kernel) executeRandomFlame = kernel.executeRandomFlame
     // Hashes a walker's index for its seed; the team kernel's also deals the
     // walker its team.
@@ -355,9 +362,12 @@ export function createIFSPipeline3D(
   // flame descriptor has fewer transforms than the pipeline was built for
   // (avoids "Cannot read properties of undefined (reading 'probability')"
   // in TypeGPU's compiled writer).
-  const _templateUniforms = extractFlameUniforms3D({
-    transforms,
-  }) as Record<string, unknown>
+  const _templateUniforms = extractFlameUniforms3D(
+    {
+      transforms,
+    },
+    walkGroups.enabled,
+  ) as Record<string, unknown>
   const _uniformKeys = Object.keys(_templateUniforms)
 
   const flameUniformsBuffer = root.createBuffer(FlameUniforms).$usage('storage')
@@ -448,7 +458,10 @@ export function createIFSPipeline3D(
         // `{ _dummy }` placeholder, so write its field explicitly.
         flameUniformsBuffer.write({ _dummy: 0 })
       } else {
-        const uniforms = extractFlameUniforms3D(flameDescriptor)
+        const uniforms = extractFlameUniforms3D(
+          flameDescriptor,
+          walkGroups.enabled,
+        )
         // Defensively merge with template so the compiled writer never
         // encounters a missing field when transform counts differ.
         const safe = uniformsForPipeline(uniforms, _templateUniforms)

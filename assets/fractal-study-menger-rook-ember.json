@@ -1,0 +1,4195 @@
+{
+  "format": "lumen-fractal-figurine-study",
+  "version": 1,
+  "studyId": "menger-rook",
+  "side": "dark",
+  "flame": {
+    "version": "1.0",
+    "metadata": {
+      "author": "Lumen Apeiron",
+      "name": "Ember menger rook",
+      "description": "Menger sponge. Square windows recur through the tower, broad pedestal and crown, with four raised lattice battlements."
+    },
+    "renderSettings": {
+      "exposure": 0.15000000000000002,
+      "skipIters": 32,
+      "plotsPerChain": 16,
+      "autoExposure3D": false,
+      "autoExposure3DStrength": 1,
+      "autoExposure3DRefRadius": 5,
+      "autoExposure3DBase": 0,
+      "dimensions": 3,
+      "drawMode": "light",
+      "colorInitMode": "colorInitZero",
+      "pointInitMode": "pointInitUnitBall",
+      "vibrancy": 0.75,
+      "contrast": 1.1,
+      "gamma": 2.2,
+      "depthColorPower": 0.12,
+      "lightDirection": [-0.5, 0.5, -1],
+      "lightPower": 0.3,
+      "highlightPower": 0.65,
+      "densityEstimationQuality": 0.8,
+      "estimatorCurve": 0.5,
+      "paletteMode": 0,
+      "palettePhase": 0,
+      "paletteSpeed": 0.5,
+      "backgroundColor": [0.008, 0.012, 0.025],
+      "camera": {
+        "zoom": 1,
+        "position": [0, 0],
+        "rotation": 0
+      },
+      "camera3D": {
+        "theta": 0,
+        "phi": 1.46,
+        "radius": 4,
+        "target": [0, 0.9, 0],
+        "fov": 45,
+        "roll": 0
+      }
+    },
+    "transforms": {
+      "rook_foot_0": {
+        "probability": 0.01,
+        "walkGroup": "rook_foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": -0.42666666666666675,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": -0.42666666666666675
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_foot_1": {
+        "probability": 0.01,
+        "walkGroup": "rook_foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": -0.42666666666666675,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": 0
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_foot_2": {
+        "probability": 0.01,
+        "walkGroup": "rook_foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": -0.42666666666666675,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": 0.42666666666666675
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_foot_3": {
+        "probability": 0.01,
+        "walkGroup": "rook_foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": -0.42666666666666675,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.07333333333333335,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": -0.42666666666666675
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_foot_4": {
+        "probability": 0.01,
+        "walkGroup": "rook_foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": -0.42666666666666675,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.07333333333333335,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": 0.42666666666666675
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_foot_5": {
+        "probability": 0.01,
+        "walkGroup": "rook_foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": -0.42666666666666675,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.1466666666666667,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": -0.42666666666666675
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_foot_6": {
+        "probability": 0.01,
+        "walkGroup": "rook_foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": -0.42666666666666675,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.1466666666666667,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": 0
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_foot_7": {
+        "probability": 0.01,
+        "walkGroup": "rook_foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": -0.42666666666666675,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.1466666666666667,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": 0.42666666666666675
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_foot_8": {
+        "probability": 0.01,
+        "walkGroup": "rook_foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": -0.42666666666666675
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_foot_9": {
+        "probability": 0.01,
+        "walkGroup": "rook_foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": 0.42666666666666675
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_foot_10": {
+        "probability": 0.01,
+        "walkGroup": "rook_foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.1466666666666667,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": -0.42666666666666675
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_foot_11": {
+        "probability": 0.01,
+        "walkGroup": "rook_foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.1466666666666667,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": 0.42666666666666675
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_foot_12": {
+        "probability": 0.01,
+        "walkGroup": "rook_foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0.42666666666666675,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": -0.42666666666666675
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_foot_13": {
+        "probability": 0.01,
+        "walkGroup": "rook_foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0.42666666666666675,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": 0
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_foot_14": {
+        "probability": 0.01,
+        "walkGroup": "rook_foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0.42666666666666675,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": 0.42666666666666675
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_foot_15": {
+        "probability": 0.01,
+        "walkGroup": "rook_foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0.42666666666666675,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.07333333333333335,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": -0.42666666666666675
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_foot_16": {
+        "probability": 0.01,
+        "walkGroup": "rook_foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0.42666666666666675,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.07333333333333335,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": 0.42666666666666675
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_foot_17": {
+        "probability": 0.01,
+        "walkGroup": "rook_foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0.42666666666666675,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.1466666666666667,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": -0.42666666666666675
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_foot_18": {
+        "probability": 0.01,
+        "walkGroup": "rook_foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0.42666666666666675,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.1466666666666667,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": 0
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_foot_19": {
+        "probability": 0.01,
+        "walkGroup": "rook_foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0.42666666666666675,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.1466666666666667,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": 0.42666666666666675
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_tower_20": {
+        "probability": 0.020999999999999998,
+        "walkGroup": "rook_tower",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": -0.2266666666666667,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.13333333333333333,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": -0.2266666666666667
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_tower_21": {
+        "probability": 0.020999999999999998,
+        "walkGroup": "rook_tower",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": -0.2266666666666667,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.13333333333333333,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": 0
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_tower_22": {
+        "probability": 0.020999999999999998,
+        "walkGroup": "rook_tower",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": -0.2266666666666667,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.13333333333333333,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": 0.2266666666666667
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_tower_23": {
+        "probability": 0.020999999999999998,
+        "walkGroup": "rook_tower",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": -0.2266666666666667,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.56,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": -0.2266666666666667
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_tower_24": {
+        "probability": 0.020999999999999998,
+        "walkGroup": "rook_tower",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": -0.2266666666666667,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.56,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": 0.2266666666666667
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_tower_25": {
+        "probability": 0.020999999999999998,
+        "walkGroup": "rook_tower",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": -0.2266666666666667,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.9866666666666668,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": -0.2266666666666667
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_tower_26": {
+        "probability": 0.020999999999999998,
+        "walkGroup": "rook_tower",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": -0.2266666666666667,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.9866666666666668,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": 0
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_tower_27": {
+        "probability": 0.020999999999999998,
+        "walkGroup": "rook_tower",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": -0.2266666666666667,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.9866666666666668,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": 0.2266666666666667
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_tower_28": {
+        "probability": 0.020999999999999998,
+        "walkGroup": "rook_tower",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.13333333333333333,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": -0.2266666666666667
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_tower_29": {
+        "probability": 0.020999999999999998,
+        "walkGroup": "rook_tower",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.13333333333333333,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": 0.2266666666666667
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_tower_30": {
+        "probability": 0.020999999999999998,
+        "walkGroup": "rook_tower",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.9866666666666668,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": -0.2266666666666667
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_tower_31": {
+        "probability": 0.020999999999999998,
+        "walkGroup": "rook_tower",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.9866666666666668,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": 0.2266666666666667
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_tower_32": {
+        "probability": 0.020999999999999998,
+        "walkGroup": "rook_tower",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0.2266666666666667,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.13333333333333333,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": -0.2266666666666667
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_tower_33": {
+        "probability": 0.020999999999999998,
+        "walkGroup": "rook_tower",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0.2266666666666667,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.13333333333333333,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": 0
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_tower_34": {
+        "probability": 0.020999999999999998,
+        "walkGroup": "rook_tower",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0.2266666666666667,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.13333333333333333,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": 0.2266666666666667
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_tower_35": {
+        "probability": 0.020999999999999998,
+        "walkGroup": "rook_tower",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0.2266666666666667,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.56,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": -0.2266666666666667
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_tower_36": {
+        "probability": 0.020999999999999998,
+        "walkGroup": "rook_tower",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0.2266666666666667,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.56,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": 0.2266666666666667
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_tower_37": {
+        "probability": 0.020999999999999998,
+        "walkGroup": "rook_tower",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0.2266666666666667,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.9866666666666668,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": -0.2266666666666667
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_tower_38": {
+        "probability": 0.020999999999999998,
+        "walkGroup": "rook_tower",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0.2266666666666667,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.9866666666666668,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": 0
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_tower_39": {
+        "probability": 0.020999999999999998,
+        "walkGroup": "rook_tower",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0.2266666666666667,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.9866666666666668,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": 0.2266666666666667
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_crown_40": {
+        "probability": 0.009,
+        "walkGroup": "rook_crown",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": -0.3266666666666667,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.8800000000000001,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": -0.3266666666666667
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_crown_41": {
+        "probability": 0.009,
+        "walkGroup": "rook_crown",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": -0.3266666666666667,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.8800000000000001,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": 0
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_crown_42": {
+        "probability": 0.009,
+        "walkGroup": "rook_crown",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": -0.3266666666666667,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.8800000000000001,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": 0.3266666666666667
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_crown_43": {
+        "probability": 0.009,
+        "walkGroup": "rook_crown",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": -0.3266666666666667,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.9933333333333334,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": -0.3266666666666667
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_crown_44": {
+        "probability": 0.009,
+        "walkGroup": "rook_crown",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": -0.3266666666666667,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.9933333333333334,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": 0.3266666666666667
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_crown_45": {
+        "probability": 0.009,
+        "walkGroup": "rook_crown",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": -0.3266666666666667,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 1.1066666666666667,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": -0.3266666666666667
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_crown_46": {
+        "probability": 0.009,
+        "walkGroup": "rook_crown",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": -0.3266666666666667,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 1.1066666666666667,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": 0
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_crown_47": {
+        "probability": 0.009,
+        "walkGroup": "rook_crown",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": -0.3266666666666667,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 1.1066666666666667,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": 0.3266666666666667
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_crown_48": {
+        "probability": 0.009,
+        "walkGroup": "rook_crown",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.8800000000000001,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": -0.3266666666666667
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_crown_49": {
+        "probability": 0.009,
+        "walkGroup": "rook_crown",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.8800000000000001,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": 0.3266666666666667
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_crown_50": {
+        "probability": 0.009,
+        "walkGroup": "rook_crown",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 1.1066666666666667,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": -0.3266666666666667
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_crown_51": {
+        "probability": 0.009,
+        "walkGroup": "rook_crown",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 1.1066666666666667,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": 0.3266666666666667
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_crown_52": {
+        "probability": 0.009,
+        "walkGroup": "rook_crown",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0.3266666666666667,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.8800000000000001,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": -0.3266666666666667
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_crown_53": {
+        "probability": 0.009,
+        "walkGroup": "rook_crown",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0.3266666666666667,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.8800000000000001,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": 0
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_crown_54": {
+        "probability": 0.009,
+        "walkGroup": "rook_crown",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0.3266666666666667,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.8800000000000001,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": 0.3266666666666667
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_crown_55": {
+        "probability": 0.009,
+        "walkGroup": "rook_crown",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0.3266666666666667,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.9933333333333334,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": -0.3266666666666667
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_crown_56": {
+        "probability": 0.009,
+        "walkGroup": "rook_crown",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0.3266666666666667,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 0.9933333333333334,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": 0.3266666666666667
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_crown_57": {
+        "probability": 0.009,
+        "walkGroup": "rook_crown",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0.3266666666666667,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 1.1066666666666667,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": -0.3266666666666667
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_crown_58": {
+        "probability": 0.009,
+        "walkGroup": "rook_crown",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0.3266666666666667,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 1.1066666666666667,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": 0
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_crown_59": {
+        "probability": 0.009,
+        "walkGroup": "rook_crown",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3333333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0.3266666666666667,
+          "e": 0,
+          "f": 0.3333333333333333,
+          "g": 0,
+          "h": 1.1066666666666667,
+          "i": 0,
+          "j": 0,
+          "k": 0.3333333333333333,
+          "l": 0.3266666666666667
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_battlement_west_back_60": {
+        "probability": 0.00625,
+        "walkGroup": "rook_battlement_west_back",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.44,
+          "b": 0,
+          "c": 0,
+          "d": -0.26880000000000004,
+          "e": 0,
+          "f": 0.44,
+          "g": 0,
+          "h": 0.8512000000000001,
+          "i": 0,
+          "j": 0,
+          "k": 0.44,
+          "l": -0.26880000000000004
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_battlement_west_back_61": {
+        "probability": 0.00625,
+        "walkGroup": "rook_battlement_west_back",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.44,
+          "b": 0,
+          "c": 0,
+          "d": -0.26880000000000004,
+          "e": 0,
+          "f": 0.44,
+          "g": 0,
+          "h": 0.8512000000000001,
+          "i": 0,
+          "j": 0,
+          "k": 0.44,
+          "l": -0.12319999999999999
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_battlement_west_back_62": {
+        "probability": 0.00625,
+        "walkGroup": "rook_battlement_west_back",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.44,
+          "b": 0,
+          "c": 0,
+          "d": -0.26880000000000004,
+          "e": 0,
+          "f": 0.44,
+          "g": 0,
+          "h": 1.008,
+          "i": 0,
+          "j": 0,
+          "k": 0.44,
+          "l": -0.26880000000000004
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_battlement_west_back_63": {
+        "probability": 0.00625,
+        "walkGroup": "rook_battlement_west_back",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.44,
+          "b": 0,
+          "c": 0,
+          "d": -0.26880000000000004,
+          "e": 0,
+          "f": 0.44,
+          "g": 0,
+          "h": 1.008,
+          "i": 0,
+          "j": 0,
+          "k": 0.44,
+          "l": -0.12319999999999999
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_battlement_west_back_64": {
+        "probability": 0.00625,
+        "walkGroup": "rook_battlement_west_back",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.44,
+          "b": 0,
+          "c": 0,
+          "d": -0.12319999999999999,
+          "e": 0,
+          "f": 0.44,
+          "g": 0,
+          "h": 0.8512000000000001,
+          "i": 0,
+          "j": 0,
+          "k": 0.44,
+          "l": -0.26880000000000004
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_battlement_west_back_65": {
+        "probability": 0.00625,
+        "walkGroup": "rook_battlement_west_back",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.44,
+          "b": 0,
+          "c": 0,
+          "d": -0.12319999999999999,
+          "e": 0,
+          "f": 0.44,
+          "g": 0,
+          "h": 0.8512000000000001,
+          "i": 0,
+          "j": 0,
+          "k": 0.44,
+          "l": -0.12319999999999999
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_battlement_west_back_66": {
+        "probability": 0.00625,
+        "walkGroup": "rook_battlement_west_back",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.44,
+          "b": 0,
+          "c": 0,
+          "d": -0.12319999999999999,
+          "e": 0,
+          "f": 0.44,
+          "g": 0,
+          "h": 1.008,
+          "i": 0,
+          "j": 0,
+          "k": 0.44,
+          "l": -0.26880000000000004
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_battlement_west_back_67": {
+        "probability": 0.00625,
+        "walkGroup": "rook_battlement_west_back",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.44,
+          "b": 0,
+          "c": 0,
+          "d": -0.12319999999999999,
+          "e": 0,
+          "f": 0.44,
+          "g": 0,
+          "h": 1.008,
+          "i": 0,
+          "j": 0,
+          "k": 0.44,
+          "l": -0.12319999999999999
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_battlement_west_front_68": {
+        "probability": 0.00625,
+        "walkGroup": "rook_battlement_west_front",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.44,
+          "b": 0,
+          "c": 0,
+          "d": -0.26880000000000004,
+          "e": 0,
+          "f": 0.44,
+          "g": 0,
+          "h": 0.8512000000000001,
+          "i": 0,
+          "j": 0,
+          "k": 0.44,
+          "l": 0.12319999999999999
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_battlement_west_front_69": {
+        "probability": 0.00625,
+        "walkGroup": "rook_battlement_west_front",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.44,
+          "b": 0,
+          "c": 0,
+          "d": -0.26880000000000004,
+          "e": 0,
+          "f": 0.44,
+          "g": 0,
+          "h": 0.8512000000000001,
+          "i": 0,
+          "j": 0,
+          "k": 0.44,
+          "l": 0.26880000000000004
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_battlement_west_front_70": {
+        "probability": 0.00625,
+        "walkGroup": "rook_battlement_west_front",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.44,
+          "b": 0,
+          "c": 0,
+          "d": -0.26880000000000004,
+          "e": 0,
+          "f": 0.44,
+          "g": 0,
+          "h": 1.008,
+          "i": 0,
+          "j": 0,
+          "k": 0.44,
+          "l": 0.12319999999999999
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_battlement_west_front_71": {
+        "probability": 0.00625,
+        "walkGroup": "rook_battlement_west_front",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.44,
+          "b": 0,
+          "c": 0,
+          "d": -0.26880000000000004,
+          "e": 0,
+          "f": 0.44,
+          "g": 0,
+          "h": 1.008,
+          "i": 0,
+          "j": 0,
+          "k": 0.44,
+          "l": 0.26880000000000004
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_battlement_west_front_72": {
+        "probability": 0.00625,
+        "walkGroup": "rook_battlement_west_front",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.44,
+          "b": 0,
+          "c": 0,
+          "d": -0.12319999999999999,
+          "e": 0,
+          "f": 0.44,
+          "g": 0,
+          "h": 0.8512000000000001,
+          "i": 0,
+          "j": 0,
+          "k": 0.44,
+          "l": 0.12319999999999999
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_battlement_west_front_73": {
+        "probability": 0.00625,
+        "walkGroup": "rook_battlement_west_front",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.44,
+          "b": 0,
+          "c": 0,
+          "d": -0.12319999999999999,
+          "e": 0,
+          "f": 0.44,
+          "g": 0,
+          "h": 0.8512000000000001,
+          "i": 0,
+          "j": 0,
+          "k": 0.44,
+          "l": 0.26880000000000004
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_battlement_west_front_74": {
+        "probability": 0.00625,
+        "walkGroup": "rook_battlement_west_front",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.44,
+          "b": 0,
+          "c": 0,
+          "d": -0.12319999999999999,
+          "e": 0,
+          "f": 0.44,
+          "g": 0,
+          "h": 1.008,
+          "i": 0,
+          "j": 0,
+          "k": 0.44,
+          "l": 0.12319999999999999
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_battlement_west_front_75": {
+        "probability": 0.00625,
+        "walkGroup": "rook_battlement_west_front",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.44,
+          "b": 0,
+          "c": 0,
+          "d": -0.12319999999999999,
+          "e": 0,
+          "f": 0.44,
+          "g": 0,
+          "h": 1.008,
+          "i": 0,
+          "j": 0,
+          "k": 0.44,
+          "l": 0.26880000000000004
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_battlement_east_back_76": {
+        "probability": 0.00625,
+        "walkGroup": "rook_battlement_east_back",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.44,
+          "b": 0,
+          "c": 0,
+          "d": 0.12319999999999999,
+          "e": 0,
+          "f": 0.44,
+          "g": 0,
+          "h": 0.8512000000000001,
+          "i": 0,
+          "j": 0,
+          "k": 0.44,
+          "l": -0.26880000000000004
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_battlement_east_back_77": {
+        "probability": 0.00625,
+        "walkGroup": "rook_battlement_east_back",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.44,
+          "b": 0,
+          "c": 0,
+          "d": 0.12319999999999999,
+          "e": 0,
+          "f": 0.44,
+          "g": 0,
+          "h": 0.8512000000000001,
+          "i": 0,
+          "j": 0,
+          "k": 0.44,
+          "l": -0.12319999999999999
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_battlement_east_back_78": {
+        "probability": 0.00625,
+        "walkGroup": "rook_battlement_east_back",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.44,
+          "b": 0,
+          "c": 0,
+          "d": 0.12319999999999999,
+          "e": 0,
+          "f": 0.44,
+          "g": 0,
+          "h": 1.008,
+          "i": 0,
+          "j": 0,
+          "k": 0.44,
+          "l": -0.26880000000000004
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_battlement_east_back_79": {
+        "probability": 0.00625,
+        "walkGroup": "rook_battlement_east_back",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.44,
+          "b": 0,
+          "c": 0,
+          "d": 0.12319999999999999,
+          "e": 0,
+          "f": 0.44,
+          "g": 0,
+          "h": 1.008,
+          "i": 0,
+          "j": 0,
+          "k": 0.44,
+          "l": -0.12319999999999999
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_battlement_east_back_80": {
+        "probability": 0.00625,
+        "walkGroup": "rook_battlement_east_back",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.44,
+          "b": 0,
+          "c": 0,
+          "d": 0.26880000000000004,
+          "e": 0,
+          "f": 0.44,
+          "g": 0,
+          "h": 0.8512000000000001,
+          "i": 0,
+          "j": 0,
+          "k": 0.44,
+          "l": -0.26880000000000004
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_battlement_east_back_81": {
+        "probability": 0.00625,
+        "walkGroup": "rook_battlement_east_back",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.44,
+          "b": 0,
+          "c": 0,
+          "d": 0.26880000000000004,
+          "e": 0,
+          "f": 0.44,
+          "g": 0,
+          "h": 0.8512000000000001,
+          "i": 0,
+          "j": 0,
+          "k": 0.44,
+          "l": -0.12319999999999999
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_battlement_east_back_82": {
+        "probability": 0.00625,
+        "walkGroup": "rook_battlement_east_back",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.44,
+          "b": 0,
+          "c": 0,
+          "d": 0.26880000000000004,
+          "e": 0,
+          "f": 0.44,
+          "g": 0,
+          "h": 1.008,
+          "i": 0,
+          "j": 0,
+          "k": 0.44,
+          "l": -0.26880000000000004
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_battlement_east_back_83": {
+        "probability": 0.00625,
+        "walkGroup": "rook_battlement_east_back",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.44,
+          "b": 0,
+          "c": 0,
+          "d": 0.26880000000000004,
+          "e": 0,
+          "f": 0.44,
+          "g": 0,
+          "h": 1.008,
+          "i": 0,
+          "j": 0,
+          "k": 0.44,
+          "l": -0.12319999999999999
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_battlement_east_front_84": {
+        "probability": 0.00625,
+        "walkGroup": "rook_battlement_east_front",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.44,
+          "b": 0,
+          "c": 0,
+          "d": 0.12319999999999999,
+          "e": 0,
+          "f": 0.44,
+          "g": 0,
+          "h": 0.8512000000000001,
+          "i": 0,
+          "j": 0,
+          "k": 0.44,
+          "l": 0.12319999999999999
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_battlement_east_front_85": {
+        "probability": 0.00625,
+        "walkGroup": "rook_battlement_east_front",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.44,
+          "b": 0,
+          "c": 0,
+          "d": 0.12319999999999999,
+          "e": 0,
+          "f": 0.44,
+          "g": 0,
+          "h": 0.8512000000000001,
+          "i": 0,
+          "j": 0,
+          "k": 0.44,
+          "l": 0.26880000000000004
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_battlement_east_front_86": {
+        "probability": 0.00625,
+        "walkGroup": "rook_battlement_east_front",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.44,
+          "b": 0,
+          "c": 0,
+          "d": 0.12319999999999999,
+          "e": 0,
+          "f": 0.44,
+          "g": 0,
+          "h": 1.008,
+          "i": 0,
+          "j": 0,
+          "k": 0.44,
+          "l": 0.12319999999999999
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_battlement_east_front_87": {
+        "probability": 0.00625,
+        "walkGroup": "rook_battlement_east_front",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.44,
+          "b": 0,
+          "c": 0,
+          "d": 0.12319999999999999,
+          "e": 0,
+          "f": 0.44,
+          "g": 0,
+          "h": 1.008,
+          "i": 0,
+          "j": 0,
+          "k": 0.44,
+          "l": 0.26880000000000004
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_battlement_east_front_88": {
+        "probability": 0.00625,
+        "walkGroup": "rook_battlement_east_front",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.44,
+          "b": 0,
+          "c": 0,
+          "d": 0.26880000000000004,
+          "e": 0,
+          "f": 0.44,
+          "g": 0,
+          "h": 0.8512000000000001,
+          "i": 0,
+          "j": 0,
+          "k": 0.44,
+          "l": 0.12319999999999999
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_battlement_east_front_89": {
+        "probability": 0.00625,
+        "walkGroup": "rook_battlement_east_front",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.44,
+          "b": 0,
+          "c": 0,
+          "d": 0.26880000000000004,
+          "e": 0,
+          "f": 0.44,
+          "g": 0,
+          "h": 0.8512000000000001,
+          "i": 0,
+          "j": 0,
+          "k": 0.44,
+          "l": 0.26880000000000004
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_battlement_east_front_90": {
+        "probability": 0.00625,
+        "walkGroup": "rook_battlement_east_front",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.44,
+          "b": 0,
+          "c": 0,
+          "d": 0.26880000000000004,
+          "e": 0,
+          "f": 0.44,
+          "g": 0,
+          "h": 1.008,
+          "i": 0,
+          "j": 0,
+          "k": 0.44,
+          "l": 0.12319999999999999
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "rook_battlement_east_front_91": {
+        "probability": 0.00625,
+        "walkGroup": "rook_battlement_east_front",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.44,
+          "b": 0,
+          "c": 0,
+          "d": 0.26880000000000004,
+          "e": 0,
+          "f": 0.44,
+          "g": 0,
+          "h": 1.008,
+          "i": 0,
+          "j": 0,
+          "k": 0.44,
+          "l": 0.26880000000000004
+        },
+        "color": {
+          "x": 0.105,
+          "y": 0.095
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      }
+    }
+  }
+}

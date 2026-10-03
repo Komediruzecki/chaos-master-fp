@@ -7,7 +7,7 @@ import { applyGlassPanels } from './lib/glass'
 import { loadHaptics } from './lib/haptics'
 import { loadLifecycle } from './lib/lifecycle'
 import { IS_NATIVE, nativePlatform } from './lib/platform'
-import { isBenchmarksPath, isClashPath, isExplorerPath, } from './routing/appPath'
+import { isBenchmarksPath, isChessPath, isClashPath, isExplorerPath, isFigurinesPath, isGummyPath, isPawnPath, } from './routing/appPath'
 
 // First, before any other key listener exists, so it hears every key before
 // they do: under the Arcade's screen lock, no key reaches the page.
@@ -83,6 +83,14 @@ const Entry = isBenchmarksPath(pathname)
         .FractalExplorerApp
     : isClashPath(pathname)
       ? (await import('./pages/Clash/ClashApp')).ClashApp
-      : (await import('./App')).Wrappers
+      : isPawnPath(pathname)
+        ? (await import('./pages/Pawn/PawnApp')).PawnApp
+        : isChessPath(pathname)
+          ? (await import('./pages/PawnBoard/PawnBoardApp')).PawnBoardApp
+          : isFigurinesPath(pathname)
+            ? (await import('./pages/Figurines/FigurinesApp')).FigurinesApp
+            : isGummyPath(pathname)
+              ? (await import('./pages/GummyBear/GummyBearApp')).GummyBearApp
+              : (await import('./App')).Wrappers
 
 render(() => <Entry />, root)

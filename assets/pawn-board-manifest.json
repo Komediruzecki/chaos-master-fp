@@ -1,0 +1,139 @@
+{
+  "format": "lumen-pawn-board-assets",
+  "version": 1,
+  "units": "metres",
+  "nativeSourceHashes": {
+    "packages/app/src/flame/chess/pawnFlame.ts": "432c36eafa8e0f88795b155e9e27fd2470f4d55b26ef2abb3cbfbcaef54f4523",
+    "packages/app/src/flame/chess/structuralPawnFlame.ts": "502061f6c307d22e5a36f6a0fc8e11c77d05cd05f1781db9d0d9903d7f37205a",
+    "packages/app/src/flame/chess/pawnCloud.ts": "11b8b88d2a6357674f250706042965039a81ee753f26f66eff04d3b72806d78a",
+    "packages/app/src/flame/chess/pawnBoardGeometry.ts": "887be1acc09e5fe1335b69aaf978638fbf1133fd513d966670bed9bd5878d5d3",
+    "packages/core/src/schema/walkGroups.ts": "1b52c30ea13fa8f8a2ea2173f7506265895d4db7f69e7bd26ffd23624378027b",
+    "packages/app/scripts/export-pawn-board-assets.mjs": "41012c47d71711e0e77c7bf9a2f97942e4a8073b7c6c0338982f97dcde562aa5",
+    "packages/app/scripts/pawn-board-glb.mjs": "d64765585840f824393183b71cb432a5da09603fbd6a281d8f1c863e5ae29836"
+  },
+  "assets": [
+    {
+      "file": "fractal-pawn-echo-frost.glb",
+      "bytes": 645592,
+      "sha256": "680f04983b94c9e1906ae7308ab6dd4fa5cf502e91771ba4c19b3847bbe6c39e",
+      "points": 24000,
+      "triangles": 3072,
+      "embeddedTextures": 3,
+      "bounds": {
+        "min": [
+          -0.6700000166893005, 6.705522803684971e-10, -0.6700000166893005
+        ],
+        "max": [0.6700000166893005, 1.8899999856948853, 0.6700000166893005]
+      },
+      "checks": "GLB header/chunks, byte alignment, buffer/accessor ranges, decoded finite data, bounds, normals, materials and texture signatures passed",
+      "form": "echo",
+      "side": "light",
+      "seed": 1885435758,
+      "recipe": {
+        "branchCount": 6,
+        "openness": 0.375,
+        "twist": 0.18,
+        "side": "light"
+      },
+      "topology": "closed glass triangle shell plus native IFS POINTS"
+    },
+    {
+      "file": "fractal-pawn-echo-ember.glb",
+      "bytes": 645428,
+      "sha256": "fdac6b8385a1bd7ad625666aa3685726b1aea38720f0b771edd3aab6302cc8eb",
+      "points": 24000,
+      "triangles": 3072,
+      "embeddedTextures": 3,
+      "bounds": {
+        "min": [
+          -0.6700000166893005, 6.705522803684971e-10, -0.6700000166893005
+        ],
+        "max": [0.6700000166893005, 1.8899999856948853, 0.6700000166893005]
+      },
+      "checks": "GLB header/chunks, byte alignment, buffer/accessor ranges, decoded finite data, bounds, normals, materials and texture signatures passed",
+      "form": "echo",
+      "side": "dark",
+      "seed": 1885435758,
+      "recipe": {
+        "branchCount": 6,
+        "openness": 0.375,
+        "twist": 0.18,
+        "side": "dark"
+      },
+      "topology": "closed glass triangle shell plus native IFS POINTS"
+    },
+    {
+      "file": "fractal-pawn-lattice-frost.glb",
+      "bytes": 663524,
+      "sha256": "0e21e84a223027ee130106f0eef3c2c66873b803bf7d98ca3ff8f2442cd6d08d",
+      "points": 24000,
+      "triangles": 3072,
+      "embeddedTextures": 3,
+      "bounds": {
+        "min": [
+          -0.6700000166893005, 6.705522803684971e-10, -0.6700000166893005
+        ],
+        "max": [0.6700000166893005, 1.8899999856948853, 0.6700000166893005]
+      },
+      "checks": "GLB header/chunks, byte alignment, buffer/accessor ranges, decoded finite data, bounds, normals, materials and texture signatures passed",
+      "form": "lattice",
+      "side": "light",
+      "seed": 1885435758,
+      "recipe": {
+        "branchCount": 6,
+        "openness": 0.55,
+        "twist": 0.18,
+        "side": "light"
+      },
+      "topology": "closed glass triangle shell plus native IFS POINTS"
+    },
+    {
+      "file": "fractal-pawn-lattice-ember.glb",
+      "bytes": 663276,
+      "sha256": "fcaf445f174c63136ba3f1d22a569462ecadeb9853100f8a753bc7082340256b",
+      "points": 24000,
+      "triangles": 3072,
+      "embeddedTextures": 3,
+      "bounds": {
+        "min": [
+          -0.6700000166893005, 6.705522803684971e-10, -0.6700000166893005
+        ],
+        "max": [0.6700000166893005, 1.8899999856948853, 0.6700000166893005]
+      },
+      "checks": "GLB header/chunks, byte alignment, buffer/accessor ranges, decoded finite data, bounds, normals, materials and texture signatures passed",
+      "form": "lattice",
+      "side": "dark",
+      "seed": 1885435758,
+      "recipe": {
+        "branchCount": 6,
+        "openness": 0.55,
+        "twist": 0.18,
+        "side": "dark"
+      },
+      "topology": "closed glass triangle shell plus native IFS POINTS"
+    },
+    {
+      "file": "fractal-pawn-board.glb",
+      "bytes": 100140,
+      "sha256": "6061c6b1e80cb52539372c60bb2c575c5722fa7edb44ef91c48e226063072cbd",
+      "points": 0,
+      "triangles": 780,
+      "embeddedTextures": 3,
+      "bounds": {
+        "min": [-6.630000114440918, 0, -6.630000114440918],
+        "max": [6.630000114440918, 0.5149999856948853, 6.630000114440918]
+      },
+      "checks": "GLB header/chunks, byte alignment, buffer/accessor ranges, decoded finite data, bounds, normals, materials and texture signatures passed",
+      "layout": "8x8",
+      "tileSpacingMetres": 1.6,
+      "tileTopMetres": 0.515,
+      "baseSizeMetres": [13.26, 0.38, 13.26]
+    }
+  ],
+  "limitations": [
+    "Native cores are glTF POINTS, not reconstructed triangle surfaces. Point size and point-material support depend on the importer.",
+    "Optical glass requires KHR_materials_transmission, ior and volume support. A named alpha fallback is bundled for manual substitution.",
+    "GLBs contain intact pawns; the app generates and animates closed glass shards at runtime.",
+    "The live board renderer uses a Fresnel transparency approximation; it does not evaluate these full PBR transmission materials."
+  ]
+}

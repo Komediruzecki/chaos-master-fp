@@ -1,0 +1,977 @@
+{
+  "base": "https://localhost:5199",
+  "samples": [
+    {
+      "name": "squeeze-rest",
+      "time": 0,
+      "steps": 0,
+      "vertices": 2244,
+      "interfaces": 0,
+      "tetrahedra": 7299,
+      "regions": 1,
+      "restVolume": 1.195867953290996,
+      "experiment": "jelly",
+      "materialModel": "neo-hookean",
+      "solverIterations": 24,
+      "protocol": "squeeze",
+      "phase": "settling",
+      "tick": 0,
+      "pose": "laid",
+      "meshOptions": {
+        "fracture": "none",
+        "pinnedFeet": false,
+        "spacing": 0.14
+      },
+      "restBounds": {
+        "min": [-0.731126070022583, 0.011016503907740116, -1.2656575441360474],
+        "max": [0.731126070022583, 0.868439793586731, 1.2649999856948853]
+      },
+      "settings": {
+        "softness": 0.55,
+        "tearing": false,
+        "palette": "marble",
+        "fixedDt": 0.008333333333333333
+      },
+      "press": {
+        "height": 1.118439793586731,
+        "halfExtent": 1.4
+      },
+      "grip": false,
+      "demo": true,
+      "min": [-0.731126070022583, 0.011016503907740116, -1.2656575441360474],
+      "max": [0.731126070022583, 0.868439793586731, 1.2649999856948853],
+      "span": [1.462252140045166, 0.8574232896789908, 2.5306575298309326],
+      "finite": true,
+      "volumeRatio": 0.9999999872054854,
+      "inverted": 0,
+      "invertedVolumeFraction": 0,
+      "edgeStrainRms": 0,
+      "pinnedMovement": 0,
+      "floorPenetration": 0,
+      "pressPenetration": 0,
+      "broken": 0,
+      "connectedParts": 1
+    },
+    {
+      "name": "squeeze-settled",
+      "time": 0.9999999999999989,
+      "steps": 120,
+      "vertices": 2244,
+      "interfaces": 0,
+      "tetrahedra": 7299,
+      "regions": 1,
+      "restVolume": 1.195867953290996,
+      "experiment": "jelly",
+      "materialModel": "neo-hookean",
+      "solverIterations": 24,
+      "protocol": "squeeze",
+      "phase": "loading",
+      "tick": 120,
+      "pose": "laid",
+      "meshOptions": {
+        "fracture": "none",
+        "pinnedFeet": false,
+        "spacing": 0.14
+      },
+      "restBounds": {
+        "min": [-0.731126070022583, 0.011016503907740116, -1.2656575441360474],
+        "max": [0.731126070022583, 0.868439793586731, 1.2649999856948853]
+      },
+      "settings": {
+        "softness": 0.55,
+        "tearing": false,
+        "palette": "marble",
+        "fixedDt": 0.008333333333333333
+      },
+      "press": {
+        "height": 1.118439793586731,
+        "halfExtent": 1.4
+      },
+      "grip": false,
+      "demo": true,
+      "min": [-0.7349215149879456, 0.006000000052154064, -1.274073839187622],
+      "max": [0.7353730797767639, 0.841669499874115, 1.2883379459381104],
+      "span": [1.4702945947647095, 0.8356694998219609, 2.5624117851257324],
+      "finite": true,
+      "volumeRatio": 0.9997729071381918,
+      "inverted": 30,
+      "invertedVolumeFraction": 0.000014874969775557787,
+      "edgeStrainRms": 0.021359787213808858,
+      "pinnedMovement": 0,
+      "floorPenetration": 0,
+      "pressPenetration": 0,
+      "broken": 0,
+      "connectedParts": 1
+    },
+    {
+      "name": "squeeze-loaded",
+      "time": 2.999999999999992,
+      "steps": 360,
+      "vertices": 2244,
+      "interfaces": 0,
+      "tetrahedra": 7299,
+      "regions": 1,
+      "restVolume": 1.195867953290996,
+      "experiment": "jelly",
+      "materialModel": "neo-hookean",
+      "solverIterations": 24,
+      "protocol": "squeeze",
+      "phase": "holding",
+      "tick": 360,
+      "pose": "laid",
+      "meshOptions": {
+        "fracture": "none",
+        "pinnedFeet": false,
+        "spacing": 0.14
+      },
+      "restBounds": {
+        "min": [-0.731126070022583, 0.011016503907740116, -1.2656575441360474],
+        "max": [0.731126070022583, 0.868439793586731, 1.2649999856948853]
+      },
+      "settings": {
+        "softness": 0.55,
+        "tearing": false,
+        "palette": "marble",
+        "fixedDt": 0.008333333333333333
+      },
+      "press": {
+        "height": 0.5254704777151346,
+        "halfExtent": 1.4
+      },
+      "grip": false,
+      "demo": true,
+      "min": [-0.7634572386741638, 0.006000000052154064, -1.393747329711914],
+      "max": [0.7717559337615967, 0.525470495223999, 1.4501534700393677],
+      "span": [1.5352131724357605, 0.519470495171845, 2.8439007997512817],
+      "finite": true,
+      "volumeRatio": 0.9884029903335283,
+      "inverted": 61,
+      "invertedVolumeFraction": 0.0003977554014866227,
+      "edgeStrainRms": 0.11498858543942286,
+      "pinnedMovement": 0,
+      "floorPenetration": 0,
+      "pressPenetration": 1.7508864469384378e-8,
+      "broken": 0,
+      "connectedParts": 1
+    },
+    {
+      "name": "squeeze-held",
+      "time": 6.000000000000088,
+      "steps": 720,
+      "vertices": 2244,
+      "interfaces": 0,
+      "tetrahedra": 7299,
+      "regions": 1,
+      "restVolume": 1.195867953290996,
+      "experiment": "jelly",
+      "materialModel": "neo-hookean",
+      "solverIterations": 24,
+      "protocol": "squeeze",
+      "phase": "releasing",
+      "tick": 720,
+      "pose": "laid",
+      "meshOptions": {
+        "fracture": "none",
+        "pinnedFeet": false,
+        "spacing": 0.14
+      },
+      "restBounds": {
+        "min": [-0.731126070022583, 0.011016503907740116, -1.2656575441360474],
+        "max": [0.731126070022583, 0.868439793586731, 1.2649999856948853]
+      },
+      "settings": {
+        "softness": 0.55,
+        "tearing": false,
+        "palette": "marble",
+        "fixedDt": 0.008333333333333333
+      },
+      "press": {
+        "height": 0.5254704777151346,
+        "halfExtent": 1.4
+      },
+      "grip": false,
+      "demo": true,
+      "min": [-0.9856864213943481, 0.006000000052154064, -1.4168720245361328],
+      "max": [0.9592695236206055, 0.525470495223999, 1.4299087524414062],
+      "span": [1.9449559450149536, 0.519470495171845, 2.846780776977539],
+      "finite": true,
+      "volumeRatio": 0.9897215650291578,
+      "inverted": 59,
+      "invertedVolumeFraction": 0.00032524698982958506,
+      "edgeStrainRms": 0.1133757097578999,
+      "pinnedMovement": 0,
+      "floorPenetration": 0,
+      "pressPenetration": 1.7508864469384378e-8,
+      "broken": 0,
+      "connectedParts": 1
+    },
+    {
+      "name": "squeeze-released",
+      "time": 7.5000000000001625,
+      "steps": 900,
+      "vertices": 2244,
+      "interfaces": 0,
+      "tetrahedra": 7299,
+      "regions": 1,
+      "restVolume": 1.195867953290996,
+      "experiment": "jelly",
+      "materialModel": "neo-hookean",
+      "solverIterations": 24,
+      "protocol": "squeeze",
+      "phase": "recovering",
+      "tick": 900,
+      "pose": "laid",
+      "meshOptions": {
+        "fracture": "none",
+        "pinnedFeet": false,
+        "spacing": 0.14
+      },
+      "restBounds": {
+        "min": [-0.731126070022583, 0.011016503907740116, -1.2656575441360474],
+        "max": [0.731126070022583, 0.868439793586731, 1.2649999856948853]
+      },
+      "settings": {
+        "softness": 0.55,
+        "tearing": false,
+        "palette": "marble",
+        "fixedDt": 0.008333333333333333
+      },
+      "press": {
+        "height": 1.118439793586731,
+        "halfExtent": 1.4
+      },
+      "grip": false,
+      "demo": true,
+      "min": [-1.0544778108596802, 0.006000000052154064, -1.3073155879974365],
+      "max": [1.0105971097946167, 0.8364946842193604, 1.2840641736984253],
+      "span": [2.065074920654297, 0.8304946841672063, 2.591379761695862],
+      "finite": true,
+      "volumeRatio": 0.9998128898640798,
+      "inverted": 37,
+      "invertedVolumeFraction": 0.000023223969859525543,
+      "edgeStrainRms": 0.021182259441662105,
+      "pinnedMovement": 0,
+      "floorPenetration": 0,
+      "pressPenetration": 0,
+      "broken": 0,
+      "connectedParts": 1
+    },
+    {
+      "name": "squeeze-recovered",
+      "time": 11.99999999999996,
+      "steps": 1440,
+      "vertices": 2244,
+      "interfaces": 0,
+      "tetrahedra": 7299,
+      "regions": 1,
+      "restVolume": 1.195867953290996,
+      "experiment": "jelly",
+      "materialModel": "neo-hookean",
+      "solverIterations": 24,
+      "protocol": "squeeze",
+      "phase": "complete",
+      "tick": 1440,
+      "pose": "laid",
+      "meshOptions": {
+        "fracture": "none",
+        "pinnedFeet": false,
+        "spacing": 0.14
+      },
+      "restBounds": {
+        "min": [-0.731126070022583, 0.011016503907740116, -1.2656575441360474],
+        "max": [0.731126070022583, 0.868439793586731, 1.2649999856948853]
+      },
+      "settings": {
+        "softness": 0.55,
+        "tearing": false,
+        "palette": "marble",
+        "fixedDt": 0.008333333333333333
+      },
+      "press": {
+        "height": 1.118439793586731,
+        "halfExtent": 1.4
+      },
+      "grip": false,
+      "demo": false,
+      "min": [-1.2138166427612305, 0.006000000052154064, -1.2121384143829346],
+      "max": [1.1483560800552368, 0.8372499346733093, 1.1950486898422241],
+      "span": [2.3621727228164673, 0.8312499346211553, 2.4071871042251587],
+      "finite": true,
+      "volumeRatio": 0.9997493407869088,
+      "inverted": 31,
+      "invertedVolumeFraction": 0.000019287213624167994,
+      "edgeStrainRms": 0.022044235018845487,
+      "pinnedMovement": 0,
+      "floorPenetration": 0,
+      "pressPenetration": 0,
+      "broken": 0,
+      "connectedParts": 1
+    },
+    {
+      "name": "stretch-rest",
+      "time": 0,
+      "steps": 0,
+      "vertices": 2244,
+      "interfaces": 0,
+      "tetrahedra": 7299,
+      "regions": 1,
+      "restVolume": 1.195867953290996,
+      "experiment": "jelly",
+      "materialModel": "neo-hookean",
+      "solverIterations": 24,
+      "protocol": "stretch",
+      "phase": "settling",
+      "tick": 0,
+      "pose": "upright",
+      "meshOptions": {
+        "fracture": "none",
+        "pinnedFeet": true,
+        "spacing": 0.14,
+        "pinHeight": 0.48
+      },
+      "restBounds": {
+        "min": [-0.731126070022583, 0, -0.348983496427536],
+        "max": [0.731126070022583, 2.5306575298309326, 0.5084397792816162]
+      },
+      "settings": {
+        "softness": 0.55,
+        "tearing": false,
+        "palette": "marble",
+        "fixedDt": 0.008333333333333333
+      },
+      "grip": true,
+      "gripCommand": {
+        "center": [0, 1.9806575298309326, 0.0797281414270401],
+        "target": [0, 1.9806575298309326, 0.0797281414270401],
+        "radius": 0.65
+      },
+      "demo": true,
+      "min": [-0.731126070022583, 0, -0.348983496427536],
+      "max": [0.731126070022583, 2.5306575298309326, 0.5084397792816162],
+      "span": [1.462252140045166, 2.5306575298309326, 0.8574232757091522],
+      "finite": true,
+      "volumeRatio": 0.9999999874723756,
+      "inverted": 0,
+      "invertedVolumeFraction": 0,
+      "edgeStrainRms": 0,
+      "pinnedMovement": 0,
+      "floorPenetration": 0,
+      "pressPenetration": 0,
+      "broken": 0,
+      "connectedParts": 1
+    },
+    {
+      "name": "stretch-settled",
+      "time": 0.9999999999999989,
+      "steps": 120,
+      "vertices": 2244,
+      "interfaces": 0,
+      "tetrahedra": 7299,
+      "regions": 1,
+      "restVolume": 1.195867953290996,
+      "experiment": "jelly",
+      "materialModel": "neo-hookean",
+      "solverIterations": 24,
+      "protocol": "stretch",
+      "phase": "loading",
+      "tick": 120,
+      "pose": "upright",
+      "meshOptions": {
+        "fracture": "none",
+        "pinnedFeet": true,
+        "spacing": 0.14,
+        "pinHeight": 0.48
+      },
+      "restBounds": {
+        "min": [-0.731126070022583, 0, -0.348983496427536],
+        "max": [0.731126070022583, 2.5306575298309326, 0.5084397792816162]
+      },
+      "settings": {
+        "softness": 0.55,
+        "tearing": false,
+        "palette": "marble",
+        "fixedDt": 0.008333333333333333
+      },
+      "grip": true,
+      "gripCommand": {
+        "center": [0, 1.9806575298309326, 0.0797281414270401],
+        "target": [0, 1.9806575298309326, 0.0797281414270401],
+        "radius": 0.65
+      },
+      "demo": true,
+      "min": [-0.7290127277374268, 0, -0.34874317049980164],
+      "max": [0.7303394079208374, 2.535461902618408, 0.5084397792816162],
+      "span": [1.4593521356582642, 2.535461902618408, 0.8571829497814178],
+      "finite": true,
+      "volumeRatio": 1.0000143522295863,
+      "inverted": 24,
+      "invertedVolumeFraction": 0.000008907712503143196,
+      "edgeStrainRms": 0.010669246543728172,
+      "pinnedMovement": 0,
+      "floorPenetration": 0,
+      "pressPenetration": 0,
+      "broken": 0,
+      "connectedParts": 1
+    },
+    {
+      "name": "stretch-loaded",
+      "time": 2.999999999999992,
+      "steps": 360,
+      "vertices": 2244,
+      "interfaces": 0,
+      "tetrahedra": 7299,
+      "regions": 1,
+      "restVolume": 1.195867953290996,
+      "experiment": "jelly",
+      "materialModel": "neo-hookean",
+      "solverIterations": 24,
+      "protocol": "stretch",
+      "phase": "holding",
+      "tick": 360,
+      "pose": "upright",
+      "meshOptions": {
+        "fracture": "none",
+        "pinnedFeet": true,
+        "spacing": 0.14,
+        "pinHeight": 0.48
+      },
+      "restBounds": {
+        "min": [-0.731126070022583, 0, -0.348983496427536],
+        "max": [0.731126070022583, 2.5306575298309326, 0.5084397792816162]
+      },
+      "settings": {
+        "softness": 0.55,
+        "tearing": false,
+        "palette": "marble",
+        "fixedDt": 0.008333333333333333
+      },
+      "grip": true,
+      "gripCommand": {
+        "center": [0, 1.9806575298309326, 0.0797281414270401],
+        "target": [0, 2.613321912288666, 0.0797281414270401],
+        "radius": 0.65
+      },
+      "demo": true,
+      "min": [-0.6543251276016235, 0, -0.3485557734966278],
+      "max": [0.6423823237419128, 3.1662099361419678, 0.5084397792816162],
+      "span": [1.2967074513435364, 3.1662099361419678, 0.856995552778244],
+      "finite": true,
+      "volumeRatio": 1.0045638914721962,
+      "inverted": 76,
+      "invertedVolumeFraction": 0.00023201543323875536,
+      "edgeStrainRms": 0.1847863173598437,
+      "pinnedMovement": 0,
+      "floorPenetration": 0,
+      "pressPenetration": 0,
+      "broken": 0,
+      "connectedParts": 1
+    },
+    {
+      "name": "stretch-held",
+      "time": 6.000000000000088,
+      "steps": 720,
+      "vertices": 2244,
+      "interfaces": 0,
+      "tetrahedra": 7299,
+      "regions": 1,
+      "restVolume": 1.195867953290996,
+      "experiment": "jelly",
+      "materialModel": "neo-hookean",
+      "solverIterations": 24,
+      "protocol": "stretch",
+      "phase": "recovering",
+      "tick": 720,
+      "pose": "upright",
+      "meshOptions": {
+        "fracture": "none",
+        "pinnedFeet": true,
+        "spacing": 0.14,
+        "pinHeight": 0.48
+      },
+      "restBounds": {
+        "min": [-0.731126070022583, 0, -0.348983496427536],
+        "max": [0.731126070022583, 2.5306575298309326, 0.5084397792816162]
+      },
+      "settings": {
+        "softness": 0.55,
+        "tearing": false,
+        "palette": "marble",
+        "fixedDt": 0.008333333333333333
+      },
+      "grip": false,
+      "demo": true,
+      "min": [-0.6537356376647949, 0, -0.3403932452201843],
+      "max": [0.6419308185577393, 3.1696343421936035, 0.5084397792816162],
+      "span": [1.2956664562225342, 3.1696343421936035, 0.8488330245018005],
+      "finite": true,
+      "volumeRatio": 1.0033815170706115,
+      "inverted": 71,
+      "invertedVolumeFraction": 0.00018715983636228667,
+      "edgeStrainRms": 0.1791658432093659,
+      "pinnedMovement": 0,
+      "floorPenetration": 0,
+      "pressPenetration": 0,
+      "broken": 0,
+      "connectedParts": 1
+    },
+    {
+      "name": "stretch-released",
+      "time": 7.5000000000001625,
+      "steps": 900,
+      "vertices": 2244,
+      "interfaces": 0,
+      "tetrahedra": 7299,
+      "regions": 1,
+      "restVolume": 1.195867953290996,
+      "experiment": "jelly",
+      "materialModel": "neo-hookean",
+      "solverIterations": 24,
+      "protocol": "stretch",
+      "phase": "recovering",
+      "tick": 900,
+      "pose": "upright",
+      "meshOptions": {
+        "fracture": "none",
+        "pinnedFeet": true,
+        "spacing": 0.14,
+        "pinHeight": 0.48
+      },
+      "restBounds": {
+        "min": [-0.731126070022583, 0, -0.348983496427536],
+        "max": [0.731126070022583, 2.5306575298309326, 0.5084397792816162]
+      },
+      "settings": {
+        "softness": 0.55,
+        "tearing": false,
+        "palette": "marble",
+        "fixedDt": 0.008333333333333333
+      },
+      "grip": false,
+      "demo": true,
+      "min": [-0.7485692501068115, 0, -0.5225551724433899],
+      "max": [0.7398097515106201, 2.4286813735961914, 0.5084397792816162],
+      "span": [1.4883790016174316, 2.4286813735961914, 1.030994951725006],
+      "finite": true,
+      "volumeRatio": 0.9994221220456647,
+      "inverted": 51,
+      "invertedVolumeFraction": 0.000058244214344512815,
+      "edgeStrainRms": 0.02903049619083945,
+      "pinnedMovement": 0,
+      "floorPenetration": 0,
+      "pressPenetration": 0,
+      "broken": 0,
+      "connectedParts": 1
+    },
+    {
+      "name": "stretch-recovered",
+      "time": 11.99999999999996,
+      "steps": 1440,
+      "vertices": 2244,
+      "interfaces": 0,
+      "tetrahedra": 7299,
+      "regions": 1,
+      "restVolume": 1.195867953290996,
+      "experiment": "jelly",
+      "materialModel": "neo-hookean",
+      "solverIterations": 24,
+      "protocol": "stretch",
+      "phase": "complete",
+      "tick": 1440,
+      "pose": "upright",
+      "meshOptions": {
+        "fracture": "none",
+        "pinnedFeet": true,
+        "spacing": 0.14,
+        "pinHeight": 0.48
+      },
+      "restBounds": {
+        "min": [-0.731126070022583, 0, -0.348983496427536],
+        "max": [0.731126070022583, 2.5306575298309326, 0.5084397792816162]
+      },
+      "settings": {
+        "softness": 0.55,
+        "tearing": false,
+        "palette": "marble",
+        "fixedDt": 0.008333333333333333
+      },
+      "grip": false,
+      "demo": false,
+      "min": [-0.7535914182662964, 0, -0.42178454995155334],
+      "max": [0.7245704531669617, 2.4738411903381348, 0.5084397792816162],
+      "span": [1.478161871433258, 2.4738411903381348, 0.9302243292331696],
+      "finite": true,
+      "volumeRatio": 0.9997148788192834,
+      "inverted": 43,
+      "invertedVolumeFraction": 0.00002613501835777318,
+      "edgeStrainRms": 0.019866637909115168,
+      "pinnedMovement": 0,
+      "floorPenetration": 0,
+      "pressPenetration": 0,
+      "broken": 0,
+      "connectedParts": 1
+    },
+    {
+      "name": "preserved-crush",
+      "time": 11.499999999999988,
+      "steps": 1380,
+      "vertices": 4602,
+      "interfaces": 2568,
+      "tetrahedra": 7299,
+      "regions": 116,
+      "restVolume": 1.195867953290996,
+      "experiment": "crush",
+      "materialModel": "edge-volume",
+      "solverIterations": 16,
+      "protocol": "legacy-crush",
+      "phase": "idle",
+      "tick": 1380,
+      "pose": "laid",
+      "meshOptions": {
+        "fracture": "fine",
+        "pinnedFeet": false,
+        "spacing": 0.14
+      },
+      "restBounds": {
+        "min": [-0.731126070022583, 0.011016503907740116, -1.2656575441360474],
+        "max": [0.731126070022583, 0.868439793586731, 1.2649999856948853]
+      },
+      "settings": {
+        "softness": 0.55,
+        "tearing": true,
+        "palette": "marble",
+        "fixedDt": 0.008333333333333333
+      },
+      "press": {
+        "height": 1.2,
+        "halfExtent": 1.4
+      },
+      "grip": false,
+      "demo": false,
+      "min": [-1.0114549398422241, 0.006000000052154064, -1.741653561592102],
+      "max": [0.9786890745162964, 0.5039623379707336, 2.0528829097747803],
+      "span": [1.9901440143585205, 0.4979623379185796, 3.7945364713668823],
+      "finite": true,
+      "volumeRatio": 0.9983059801370802,
+      "inverted": 22,
+      "invertedVolumeFraction": 0.000042608097077806334,
+      "edgeStrainRms": 0.013153496901734393,
+      "pinnedMovement": 0,
+      "floorPenetration": 0,
+      "pressPenetration": 0,
+      "broken": 2126,
+      "connectedParts": 43
+    },
+    {
+      "name": "preserved-pull",
+      "time": 5.008333333333372,
+      "steps": 601,
+      "vertices": 2410,
+      "interfaces": 212,
+      "tetrahedra": 7299,
+      "regions": 5,
+      "restVolume": 1.195867953290996,
+      "experiment": "pull",
+      "materialModel": "edge-volume",
+      "solverIterations": 5,
+      "protocol": "legacy-pull",
+      "phase": "idle",
+      "tick": 601,
+      "pose": "upright",
+      "meshOptions": {
+        "fracture": "limbs",
+        "pinnedFeet": true,
+        "spacing": 0.14
+      },
+      "restBounds": {
+        "min": [-0.731126070022583, 0, -0.348983496427536],
+        "max": [0.731126070022583, 2.5306575298309326, 0.5084397792816162]
+      },
+      "settings": {
+        "softness": 0.55,
+        "tearing": true,
+        "palette": "marble",
+        "fixedDt": 0.008333333333333333
+      },
+      "grip": true,
+      "gripCommand": {
+        "center": [0.64, 1.24, 0.08],
+        "radius": 0.28,
+        "target": [1.5899999999999999, 1.46, 0.22000000000000003]
+      },
+      "demo": true,
+      "min": [-0.6202653050422668, 0, -0.3108665943145752],
+      "max": [1.696786880493164, 2.548881769180298, 0.5750294327735901],
+      "span": [2.317052185535431, 2.548881769180298, 0.8858960270881653],
+      "finite": true,
+      "volumeRatio": 0.996282417640855,
+      "inverted": 38,
+      "invertedVolumeFraction": 0.0002869285171725979,
+      "edgeStrainRms": 0.028055748012128196,
+      "pinnedMovement": 0,
+      "floorPenetration": 0,
+      "pressPenetration": 0,
+      "broken": 58,
+      "connectedParts": 2
+    }
+  ],
+  "timings": [
+    {
+      "steps": 0,
+      "simulationSeconds": 0,
+      "wallSeconds": 0.000012450000000171713,
+      "includesFrameCapture": true
+    },
+    {
+      "steps": 120,
+      "simulationSeconds": 1,
+      "wallSeconds": 2.163885225,
+      "includesFrameCapture": true
+    },
+    {
+      "steps": 240,
+      "simulationSeconds": 2,
+      "wallSeconds": 3.9811855300000007,
+      "includesFrameCapture": true
+    },
+    {
+      "steps": 360,
+      "simulationSeconds": 3,
+      "wallSeconds": 5.909588703,
+      "includesFrameCapture": true
+    },
+    {
+      "steps": 180,
+      "simulationSeconds": 1.5,
+      "wallSeconds": 2.931281096999999,
+      "includesFrameCapture": true
+    },
+    {
+      "steps": 540,
+      "simulationSeconds": 4.5,
+      "wallSeconds": 8.494724917,
+      "includesFrameCapture": true
+    },
+    {
+      "steps": 0,
+      "simulationSeconds": 0,
+      "wallSeconds": 0.000002939999998488929,
+      "includesFrameCapture": true
+    },
+    {
+      "steps": 120,
+      "simulationSeconds": 1,
+      "wallSeconds": 2.0028734209999968,
+      "includesFrameCapture": true
+    },
+    {
+      "steps": 240,
+      "simulationSeconds": 2,
+      "wallSeconds": 4.034759426000004,
+      "includesFrameCapture": true
+    },
+    {
+      "steps": 360,
+      "simulationSeconds": 3,
+      "wallSeconds": 6.054857328999999,
+      "includesFrameCapture": true
+    },
+    {
+      "steps": 180,
+      "simulationSeconds": 1.5,
+      "wallSeconds": 3.537345619,
+      "includesFrameCapture": true
+    },
+    {
+      "steps": 540,
+      "simulationSeconds": 4.5,
+      "wallSeconds": 8.687311808000006,
+      "includesFrameCapture": true
+    },
+    {
+      "steps": 240,
+      "simulationSeconds": 2,
+      "wallSeconds": 1.5594823670000042,
+      "includesFrameCapture": false
+    },
+    {
+      "steps": 240,
+      "simulationSeconds": 2,
+      "wallSeconds": 1.5214651190000004,
+      "includesFrameCapture": false
+    },
+    {
+      "steps": 1380,
+      "simulationSeconds": 11.5,
+      "wallSeconds": 8.998059569000004,
+      "includesFrameCapture": false
+    },
+    {
+      "steps": 600,
+      "simulationSeconds": 5,
+      "wallSeconds": 2.7534495800000003,
+      "includesFrameCapture": false
+    }
+  ],
+  "errors": [],
+  "warnings": [],
+  "failures": [],
+  "placement": {
+    "before": {
+      "window": "0x55834ebe0150",
+      "workspace": 2,
+      "monitors": [
+        {
+          "id": 0,
+          "special": ""
+        }
+      ]
+    },
+    "after": {
+      "window": "0x55834ebe0150",
+      "workspace": 2,
+      "monitors": [
+        {
+          "id": 0,
+          "special": ""
+        }
+      ]
+    },
+    "clients": [
+      {
+        "class": "agent-browser",
+        "workspace": "special:agents"
+      }
+    ]
+  },
+  "adapter": {
+    "vendor": "amd",
+    "architecture": "rdna-4",
+    "device": "",
+    "fallback": false
+  },
+  "resetRepeatError": 0,
+  "inputs": {
+    "experiment": "jelly",
+    "mouseDisplacement": 0.8373874127864838,
+    "keyboard": true,
+    "mouseOrbit": true,
+    "touchDisplacement": 0.5583856850862503,
+    "touchEvents": [
+      {
+        "type": "pointerdown",
+        "pointerId": 2,
+        "pointerType": "touch",
+        "trusted": true
+      },
+      {
+        "type": "pointermove",
+        "pointerId": 2,
+        "pointerType": "touch",
+        "trusted": true
+      },
+      {
+        "type": "pointermove",
+        "pointerId": 2,
+        "pointerType": "touch",
+        "trusted": true
+      },
+      {
+        "type": "pointermove",
+        "pointerId": 2,
+        "pointerType": "touch",
+        "trusted": true
+      },
+      {
+        "type": "pointermove",
+        "pointerId": 2,
+        "pointerType": "touch",
+        "trusted": true
+      },
+      {
+        "type": "pointermove",
+        "pointerId": 2,
+        "pointerType": "touch",
+        "trusted": true
+      },
+      {
+        "type": "pointermove",
+        "pointerId": 2,
+        "pointerType": "touch",
+        "trusted": true
+      },
+      {
+        "type": "pointermove",
+        "pointerId": 2,
+        "pointerType": "touch",
+        "trusted": true
+      },
+      {
+        "type": "pointermove",
+        "pointerId": 2,
+        "pointerType": "touch",
+        "trusted": true
+      },
+      {
+        "type": "pointerup",
+        "pointerId": 2,
+        "pointerType": "touch",
+        "trusted": true
+      },
+      {
+        "type": "pointerdown",
+        "pointerId": 3,
+        "pointerType": "touch",
+        "trusted": true
+      },
+      {
+        "type": "pointercancel",
+        "pointerId": 3,
+        "pointerType": "touch",
+        "trusted": true
+      }
+    ],
+    "touchPinch": true,
+    "tablet": {
+      "viewport": 1024,
+      "content": 1024
+    }
+  },
+  "tablet": {
+    "viewport": 1024,
+    "document": 1024,
+    "canvasCount": 1,
+    "modelButtons": [
+      {
+        "name": "Continuous jelly",
+        "height": 50.375
+      },
+      {
+        "name": "Fine crush",
+        "height": 50.375
+      },
+      {
+        "name": "Limb pull",
+        "height": 50.375
+      }
+    ]
+  },
+  "phone": {
+    "viewport": 390,
+    "document": 390,
+    "canvasCount": 1,
+    "modelButtons": [
+      {
+        "name": "Continuous jelly",
+        "height": 44
+      },
+      {
+        "name": "Fine crush",
+        "height": 44
+      },
+      {
+        "name": "Limb pull",
+        "height": 44
+      }
+    ]
+  }
+}

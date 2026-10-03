@@ -1,0 +1,60 @@
+{
+  "base": "https://localhost:5200",
+  "samples": [],
+  "timings": [],
+  "errors": [],
+  "warnings": [],
+  "failures": [],
+  "placement": {
+    "before": {
+      "window": "0x55834ebe0150",
+      "workspace": 2,
+      "monitors": [
+        {
+          "id": 0,
+          "special": ""
+        }
+      ]
+    },
+    "after": {
+      "window": "0x55834ebe0150",
+      "workspace": 2,
+      "monitors": [
+        {
+          "id": 0,
+          "special": ""
+        }
+      ]
+    },
+    "clients": [
+      {
+        "class": "agent-browser",
+        "workspace": "special:agents"
+      }
+    ]
+  },
+  "adapter": {
+    "vendor": "amd",
+    "architecture": "rdna-4",
+    "device": "",
+    "fallback": false
+  },
+  "production": {
+    "devHookAbsent": true,
+    "playbackWallSeconds": 12.00101152
+  },
+  "tablet": {
+    "viewport": 1024,
+    "document": 1024,
+    "background": "rgb(41, 103, 133)",
+    "actionHeight": 46,
+    "choices": [50.375, 50.375, 50.375, 54, 54]
+  },
+  "phone": {
+    "viewport": 390,
+    "document": 390,
+    "background": "rgb(41, 103, 133)",
+    "actionHeight": 44,
+    "choices": [44, 44, 44, 44, 44]
+  }
+}

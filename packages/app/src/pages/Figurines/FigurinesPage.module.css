@@ -1,0 +1,37 @@
+/* Study-specific text and navigation; Pawn Forge owns shared control chrome. */
+.navigation {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0 var(--la-s-5);
+  min-width: 0;
+}
+.previewHeader {
+  flex-wrap: wrap;
+}
+.collectionLabel {
+  box-sizing: border-box;
+  padding-inline: var(--la-s-2);
+  text-align: center;
+}
+.details {
+  border-top: 1px solid var(--la-hairline);
+  padding-top: var(--la-s-5);
+}
+.details h2 {
+  margin: 0 0 var(--la-s-3);
+  color: var(--la-ink);
+  font: var(--la-t-body-sm);
+  font-weight: 600;
+}
+.details h3 {
+  margin: var(--la-s-5) 0 var(--la-s-2);
+  font: var(--la-t-label);
+  color: var(--la-ink-3);
+}
+.details p {
+  margin: 0;
+  color: var(--la-ink-2);
+  font: var(--la-t-caption);
+  line-height: 1.6;
+}

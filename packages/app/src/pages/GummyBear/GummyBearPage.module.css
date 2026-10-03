@@ -1,0 +1,471 @@
+/* Warm studio layout and complete control chrome for the isolated gummy study. */
+.page {
+  min-height: 100dvh;
+  background: #edece6;
+  color: #243441;
+  color-scheme: light;
+  font-family: var(--font-sans, sans-serif);
+  padding: 0 3.2vw 32px;
+}
+.header {
+  max-width: 1640px;
+  margin: 0 auto;
+  height: 78px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid #d2d4ce;
+}
+.brand {
+  color: #243441;
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+.header nav {
+  display: flex;
+  gap: 24px;
+  font-size: 12px;
+}
+.header nav a {
+  color: #5d6b72;
+  text-decoration: none;
+}
+.header a:hover {
+  color: #126eac;
+}
+.layout {
+  max-width: 1640px;
+  margin: 30px auto 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 288px;
+  gap: 32px;
+  align-items: start;
+}
+.studio {
+  min-width: 0;
+  border: 1px solid #d5d8d2;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #f4f2e9;
+  box-shadow: 0 12px 36px #344c5510;
+}
+.studioHeader {
+  display: flex;
+  justify-content: space-between;
+  padding: 18px 22px;
+  color: #718087;
+  font-size: 11px;
+  letter-spacing: 0.045em;
+}
+.canvasSlot {
+  width: 100%;
+  height: clamp(520px, calc(100dvh - 242px), 870px);
+  position: relative;
+}
+.studioFooter {
+  min-height: 57px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 22px;
+  border-top: 1px solid #d5d8d280;
+}
+.studioFooter p {
+  margin: 0;
+  color: #66757c;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.textButton {
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  color: #46606e;
+  font-size: 12px;
+  padding: 8px 0 8px 12px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.controls {
+  padding-top: 12px;
+  min-width: 0;
+}
+.eyebrow {
+  margin: 0 0 12px;
+  color: #627781;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+}
+.controls h1 {
+  margin: 0;
+  font-size: clamp(30px, 2.5vw, 39px);
+  line-height: 1.13;
+  letter-spacing: -0.055em;
+  font-weight: 560;
+}
+.intro {
+  margin: 16px 0 20px;
+  color: #68777c;
+  font-size: 13px;
+  line-height: 1.65;
+  max-width: 260px;
+}
+.status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 27px;
+  font-size: 11px;
+  color: #60747f;
+}
+.statusDot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #bd9a60;
+  flex-shrink: 0;
+}
+.statusDot[data-ready='true'] {
+  background: #4b899e;
+}
+.actions {
+  display: grid;
+  gap: 9px;
+  margin: 14px 0 26px;
+}
+.primary,
+.button,
+.segments button {
+  appearance: none;
+  min-height: 44px;
+  font: inherit;
+  font-size: 12px;
+  border: 1px solid #c8d0ce;
+  border-radius: 7px;
+  padding: 10px 13px;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+.primary {
+  background: #296785;
+  color: #fff;
+  border-color: #296785;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 46px;
+}
+.primary:hover {
+  background: #205874;
+}
+.primary span {
+  font-size: 19px;
+  line-height: 1;
+}
+.actionPair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+}
+.studioActions {
+  grid-column: 1 / -1;
+}
+.actions.compactActions {
+  margin: 0;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.9fr);
+  gap: 6px;
+}
+.compactActions .actionPair {
+  gap: 6px;
+}
+.compactActions .primary span,
+.compactActions .button svg {
+  display: none;
+}
+.compactActions .primary,
+.compactActions .button {
+  padding-inline: 8px;
+}
+.button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  background: #f6f5ef;
+  color: #4c6572;
+}
+.button svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+}
+.button:hover,
+.segments button:hover {
+  background: #e4e9e5;
+  border-color: #9baeb3;
+}
+.button[aria-pressed='true'] {
+  border-color: #688e9e;
+  background: #e3ebea;
+}
+.fieldset {
+  margin: 0;
+  padding: 0 0 24px;
+  border: 0;
+  min-width: 0;
+}
+.fieldset legend {
+  width: 100%;
+  font-size: 11px;
+  font-weight: 650;
+  color: #50656d;
+  padding-bottom: 12px;
+}
+.segments {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  padding: 4px;
+  background: #dedfd8;
+  border-radius: 8px;
+}
+.segments button {
+  min-height: 44px;
+  padding: 8px 6px;
+  border-color: transparent;
+  background: transparent;
+  color: #6b7b82;
+}
+.models {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.models button {
+  line-height: 1.35;
+}
+.segments button[aria-pressed='true'] {
+  background: #fbfaf5;
+  color: #2e6177;
+  box-shadow: 0 1px 4px #314e5717;
+}
+.palettes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin: 2px 0 8px;
+}
+.palette {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  padding: 7px 5px;
+  cursor: pointer;
+  color: #6b7b82;
+  font-size: 11px;
+}
+.paletteHelp {
+  margin: 0 0 20px;
+  font-size: 11px;
+  line-height: 1.65;
+  color: #849097;
+}
+.palette[data-active='true'] {
+  border-color: #b2c4cc;
+  background: #f7f8f2;
+  color: #2d627b;
+}
+.palette input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+.palette:has(input:focus-visible) {
+  outline: 2px solid #2d799b;
+  outline-offset: 3px;
+}
+.swatch {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px #00000010;
+}
+.sliderLabel {
+  display: flex;
+  justify-content: space-between;
+  color: #536a75;
+  font-size: 12px;
+}
+.sliderLabel output {
+  color: #71818a;
+  font-variant-numeric: tabular-nums;
+}
+.slider {
+  appearance: auto;
+  accent-color: #427d98;
+  width: 100%;
+  margin: 10px 0 20px;
+  height: 18px;
+  cursor: pointer;
+}
+.check {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12px;
+  color: #536a75;
+  min-height: 30px;
+  cursor: pointer;
+}
+.check input {
+  accent-color: #427d98;
+  width: 15px;
+  height: 15px;
+}
+.note,
+.keys {
+  margin: 9px 0 0;
+  font-size: 11px;
+  line-height: 1.65;
+  color: #849097;
+}
+.keys {
+  border-top: 1px solid #d1d7d1;
+  padding-top: 16px;
+}
+.error {
+  padding: 12px;
+  background: #f9ece5;
+  border: 1px solid #dcb4a0;
+  border-radius: 7px;
+  color: #905e45;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.page button:focus-visible,
+.page a:focus-visible,
+.page input:focus-visible {
+  outline: 2px solid #2d799b;
+  outline-offset: 3px;
+}
+.page button:disabled,
+.fieldset:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+@media (max-width: 1040px) {
+  .page {
+    padding-inline: 22px;
+  }
+  .layout {
+    grid-template-columns: minmax(0, 1fr) 244px;
+    gap: 20px;
+  }
+  .controls h1 {
+    font-size: 30px;
+  }
+  .canvasSlot {
+    height: 560px;
+  }
+  .palettes {
+    gap: 0;
+  }
+}
+@media (max-width: 720px) {
+  .page {
+    padding: 0 14px 28px;
+  }
+  .header {
+    height: 61px;
+  }
+  .header nav {
+    gap: 13px;
+    font-size: 10px;
+  }
+  .brand {
+    font-size: 13px;
+  }
+  .layout {
+    display: flex;
+    flex-direction: column;
+    gap: 23px;
+    margin-top: 18px;
+  }
+  .studio {
+    width: 100%;
+    border-radius: 12px;
+  }
+  .studioHeader {
+    padding: 14px 16px;
+    font-size: 10px;
+  }
+  .canvasSlot {
+    height: min(58dvh, 500px);
+    min-height: 365px;
+  }
+  .studioFooter {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 10px 14px;
+    gap: 9px;
+  }
+  .studioFooter p {
+    font-size: 10px;
+  }
+  .textButton {
+    font-size: 10px;
+    min-height: 44px;
+  }
+  .controls {
+    width: 100%;
+    padding: 0 6px;
+  }
+  .controls h1 {
+    font-size: 31px;
+  }
+  .intro {
+    max-width: none;
+    margin-block: 12px;
+  }
+  .actions {
+    margin-block: 12px 22px;
+  }
+  .primary,
+  .button,
+  .segments button {
+    min-height: 44px;
+  }
+  .palettes {
+    gap: 9px;
+    max-width: 320px;
+  }
+  .palette {
+    min-height: 44px;
+  }
+  .fieldset {
+    padding-bottom: 22px;
+  }
+}
+@media (max-width: 360px) {
+  .compactActions {
+    grid-template-columns: 1fr;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .primary,
+  .button,
+  .segments button {
+    transition: none;
+  }
+}

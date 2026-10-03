@@ -1,0 +1,153 @@
+{
+  "loader": "Blender glTF importer",
+  "version": [5, 2, 2],
+  "checksPassed": true,
+  "assets": [
+    {
+      "file": "fractal-pawn-echo-frost.glb",
+      "sha256": "680f04983b94c9e1906ae7308ab6dd4fa5cf502e91771ba4c19b3847bbe6c39e",
+      "meshObjects": 1,
+      "vertices": 33216,
+      "triangles": 3072,
+      "loosePointVertices": 24000,
+      "bounds": {
+        "min": [
+          -0.6700000166893005, 6.705522803684971e-10, -0.6700000166893005
+        ],
+        "max": [0.6700000166893005, 1.8899999856948853, 0.6700000166893005]
+      },
+      "materials": [
+        {
+          "name": "Frost glass",
+          "ior": 1.4500000476837158,
+          "transmission": 0.9599999785423279,
+          "embeddedImageNodes": 2
+        },
+        {
+          "name": "Frost native IFS points",
+          "ior": null,
+          "transmission": null,
+          "embeddedImageNodes": 0
+        }
+      ]
+    },
+    {
+      "file": "fractal-pawn-echo-ember.glb",
+      "sha256": "fdac6b8385a1bd7ad625666aa3685726b1aea38720f0b771edd3aab6302cc8eb",
+      "meshObjects": 1,
+      "vertices": 33216,
+      "triangles": 3072,
+      "loosePointVertices": 24000,
+      "bounds": {
+        "min": [
+          -0.6700000166893005, 6.705522803684971e-10, -0.6700000166893005
+        ],
+        "max": [0.6700000166893005, 1.8899999856948853, 0.6700000166893005]
+      },
+      "materials": [
+        {
+          "name": "Ember glass",
+          "ior": 1.4500000476837158,
+          "transmission": 0.9599999785423279,
+          "embeddedImageNodes": 2
+        },
+        {
+          "name": "Ember native IFS points",
+          "ior": null,
+          "transmission": null,
+          "embeddedImageNodes": 0
+        }
+      ]
+    },
+    {
+      "file": "fractal-pawn-lattice-frost.glb",
+      "sha256": "0e21e84a223027ee130106f0eef3c2c66873b803bf7d98ca3ff8f2442cd6d08d",
+      "meshObjects": 1,
+      "vertices": 33216,
+      "triangles": 3072,
+      "loosePointVertices": 24000,
+      "bounds": {
+        "min": [
+          -0.6700000166893005, 6.705522803684971e-10, -0.6700000166893005
+        ],
+        "max": [0.6700000166893005, 1.8899999856948853, 0.6700000166893005]
+      },
+      "materials": [
+        {
+          "name": "Frost glass.001",
+          "ior": 1.4500000476837158,
+          "transmission": 0.9599999785423279,
+          "embeddedImageNodes": 2
+        },
+        {
+          "name": "Frost native IFS points.001",
+          "ior": null,
+          "transmission": null,
+          "embeddedImageNodes": 0
+        }
+      ]
+    },
+    {
+      "file": "fractal-pawn-lattice-ember.glb",
+      "sha256": "fcaf445f174c63136ba3f1d22a569462ecadeb9853100f8a753bc7082340256b",
+      "meshObjects": 1,
+      "vertices": 33216,
+      "triangles": 3072,
+      "loosePointVertices": 24000,
+      "bounds": {
+        "min": [
+          -0.6700000166893005, 6.705522803684971e-10, -0.6700000166893005
+        ],
+        "max": [0.6700000166893005, 1.8899999856948853, 0.6700000166893005]
+      },
+      "materials": [
+        {
+          "name": "Ember glass.001",
+          "ior": 1.4500000476837158,
+          "transmission": 0.9599999785423279,
+          "embeddedImageNodes": 2
+        },
+        {
+          "name": "Ember native IFS points.001",
+          "ior": null,
+          "transmission": null,
+          "embeddedImageNodes": 0
+        }
+      ]
+    },
+    {
+      "file": "fractal-pawn-board.glb",
+      "sha256": "6061c6b1e80cb52539372c60bb2c575c5722fa7edb44ef91c48e226063072cbd",
+      "meshObjects": 1,
+      "vertices": 2340,
+      "triangles": 780,
+      "loosePointVertices": 0,
+      "bounds": {
+        "min": [-6.630000114440918, 0.0, -6.630000114440918],
+        "max": [6.630000114440918, 0.5149999856948853, 6.630000114440918]
+      },
+      "materials": [
+        {
+          "name": "Pale tiles",
+          "ior": 1.5,
+          "transmission": 0.0,
+          "embeddedImageNodes": 3
+        },
+        {
+          "name": "Dark tiles",
+          "ior": 1.5,
+          "transmission": 0.0,
+          "embeddedImageNodes": 3
+        },
+        {
+          "name": "Board plinth",
+          "ior": 1.5,
+          "transmission": 0.0,
+          "embeddedImageNodes": 3
+        }
+      ]
+    }
+  ],
+  "pointPolicy": "POINTS import as 24000 loose mesh vertices. Blender does not render loose vertices directly.",
+  "previewPolicy": "Optional inspection renders display those imported POINTS as instanced emissive 0.0035 m sphere glyphs; GLBs remain unchanged."
+}

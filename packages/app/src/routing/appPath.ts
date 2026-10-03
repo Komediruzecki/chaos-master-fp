@@ -14,6 +14,18 @@ export const EXPLORER_PATH = '/explore'
  */
 export const CLASH_PATH = '/clash'
 
+/** The first editable chess piece, isolated from the current editor flame. */
+export const PAWN_PATH = '/pawn'
+
+/** Pawn-only board, isolated from the studio and saved pawn drafts. */
+export const CHESS_PATH = '/chess'
+
+/** Four native IFS silhouette studies, separate from the pawn-only game. */
+export const FIGURINES_PATH = '/figurines'
+
+/** Single gummy bear deformation study, separate from chess and fractal recipes. */
+export const GUMMY_PATH = '/gummy'
+
 /**
  * The routes served as pages of their own. Renaming a route here renames it
  * everywhere.
@@ -22,6 +34,10 @@ export const PAGE_ROUTES: readonly string[] = [
   BENCHMARKS_PATH,
   EXPLORER_PATH,
   CLASH_PATH,
+  PAWN_PATH,
+  CHESS_PATH,
+  FIGURINES_PATH,
+  GUMMY_PATH,
 ]
 
 /**
@@ -50,4 +66,20 @@ export function isExplorerPath(pathname: string): boolean {
 
 export function isClashPath(pathname: string): boolean {
   return pageRouteOf(pathname) === CLASH_PATH
+}
+
+export function isPawnPath(pathname: string): boolean {
+  return pageRouteOf(pathname) === PAWN_PATH
+}
+
+export function isChessPath(pathname: string): boolean {
+  return pageRouteOf(pathname) === CHESS_PATH
+}
+
+export function isFigurinesPath(pathname: string): boolean {
+  return pageRouteOf(pathname) === FIGURINES_PATH
+}
+
+export function isGummyPath(pathname: string): boolean {
+  return pageRouteOf(pathname) === GUMMY_PATH
 }

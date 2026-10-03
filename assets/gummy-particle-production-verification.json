@@ -1,0 +1,58 @@
+{
+  "capturedAt": "2026-10-03T13:42:19.471Z",
+  "base": "https://localhost:5200",
+  "production": true,
+  "quick": false,
+  "restOnly": false,
+  "recordedVideo": false,
+  "samples": [],
+  "timings": [],
+  "errors": [],
+  "warnings": [],
+  "failures": [],
+  "placement": {
+    "before": {
+      "window": "0x55834ebe0150",
+      "workspace": 2,
+      "monitors": [
+        {
+          "id": 0,
+          "special": ""
+        }
+      ]
+    },
+    "after": {
+      "window": "0x55834ebe0150",
+      "workspace": 2,
+      "monitors": [
+        {
+          "id": 0,
+          "special": ""
+        }
+      ]
+    },
+    "clients": [
+      {
+        "class": "agent-browser",
+        "workspace": "special:agents"
+      }
+    ]
+  },
+  "adapter": {
+    "vendor": "amd",
+    "architecture": "rdna-4",
+    "fallback": false
+  },
+  "devHookAbsent": true,
+  "playbackWallSeconds": 12.012182611,
+  "tablet": {
+    "width": 1024,
+    "content": 1024,
+    "choices": [44, 44, 44, 44]
+  },
+  "phone": {
+    "width": 390,
+    "content": 390,
+    "choices": [44, 44, 44, 44]
+  }
+}

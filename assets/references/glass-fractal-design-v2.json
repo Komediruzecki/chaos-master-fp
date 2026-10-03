@@ -1,0 +1,111 @@
+{
+  "title": "Glass enclosures with structural fractal cores",
+  "date": "2026-09-30",
+  "status": "Generated design references. These are not Chaos Master renders or mathematically validated IFS outputs.",
+  "generationMode": "Built-in ChatGPT image generation",
+  "images": [
+    {
+      "file": "glass-fractal-core-directions-v2.png",
+      "description": "Identical glass pawn shells containing branching, folded and porous core directions.",
+      "referenceImages": ["../pawn-board-glb-pbr-inspection.png"],
+      "prompt": "Use case: stylized-concept\nAsset type: concept reference sheet for a real-time fractal chess game, deliberately grounded in a point-attractor renderer.\nPrimary request: Design three spectacular, distinct fractal interiors inside the SAME elegant transparent pawn-shaped enclosure. Show three full pawns side by side, large, equal scale, identical camera, with enough space to inspect each. Landscape sheet, clean charcoal background and dark neutral floor, no text.\nInput image 1: geometry reference only. Preserve the broad circular foot, slender curved stem, modest collar and spherical head of those glass pawns, but discard the checkerboard, frosted glass, milky light and blurry interior. This is a new design sheet.\nShared shell: perfectly plain optically clear glass envelope, about 1.89 m tall relative to its 1.34 m foot diameter, thin restrained edge highlights, subtle refraction, excellent visibility through the center. No metal ornament. The shell supplies the familiar chess silhouette.\nInterior LEFT, branching crown: a cyan and ice-blue three-dimensional recursive branching attractor. Six sparse radial roots gather into three intertwined branching trunks through the neck; the trunks branch into a round open crown with nested fern-like forks. The growth is intrinsically self-similar at three clearly visible scales, with large dark wedge-shaped gaps between branches, smaller branch gaps inside those, then fine granular leaflets. Sparse amber tips. It must look sculptural and strange, not like an ordinary realistic tree.\nInterior CENTER, folded spiral: violet and rose point filaments create two offset recursively folded, angular spiral ribbons, forming a slender open trunk and an almost spherical head made from folded fans. Repeating open triangular bays and stepped folds within folds define its silhouette. Radial cyan root fan at the bottom. Strong empty channels through the head and body, visible depth, no solid ribbon surface.\nInterior RIGHT, porous crown: amber and honey colored recursive tetrahedral cavity structure confined to the head; one coherent porous crown with large triangular windows and smaller windows recursively nested in its struts. This crown rises from a deep copper branching root and forked slender trunk, a different fractal family from its crown. Do not fill the entire pawn with repeated tetrahedra; each body region has a deliberate growth structure.\nRendering language: the interiors are dense finite colored point attractors with extremely fine visible stipple at the edges, brighter where samples converge, crisp branch silhouettes and true black negative spaces. The points may form convincing slender filaments but are never polished solid glass pipes. No fog, smoke, clouds, bloom wash, glossy gold branch meshes, interior crystal jewels, Mandelbulb surface promises, tiny copies of whole chess pieces, or motifs scattered over a pre-existing pawn skin.\nComposition: near-orthographic three-quarter view at slightly above center height, entire feet visible, head and core details prominent; only three pawns in one continuous clean studio composition. The three shells match exactly. Air gap between each core and shell. Controlled white rim light, restrained core emission, fine detail visible against the dark backdrop. Beautiful and arresting through geometry and negative space, technically credible. No labels, watermark, slogans, UI, or extra props."
+    },
+    {
+      "file": "glass-branch-pawn-core-study-v2.png",
+      "description": "Recommended branching direction shown with and without glass, plus a point-detail inset.",
+      "referenceImages": ["glass-fractal-core-directions-v2.png"],
+      "prompt": "Use case: stylized-concept\nAsset type: practical art-direction study for a native IFS point renderer.\nPrimary request: Refine ONLY the cyan branching pawn from the LEFT of the supplied reference image. Make one landscape reference sheet with two large side-by-side views of exactly the SAME fractal interior at the same scale and orientation: LEFT inside its clear glass pawn shell, RIGHT the bare colored point attractor with the shell completely removed. Add one small separated magnified detail inset at the lower right, showing the stippled point construction at a branching junction. No text.\nInput image 1: reference for the left blue pawn's plain glass shell, branching layout and cyan/blue/amber palette. Ignore the other two pawns. Preserve the spherical head, narrow curved stem, broad low circular foot.\nFractal construction: sparse radial branching roots near the foot feed three narrow slightly twisting vertical frond trunks, which open into an approximately spherical crown of recursive fern forks. Give the crown an unusual three-dimensional radial organization, several unequal fork angles and clear windows through it. Every large frond contains scaled smaller fronds, and their leaflets repeat the fork at least once more. The individual branch hierarchy makes the form; no chess-shaped particle fog. The bare core remains slender at the stem and clearly bulbous in the crown while leaving broad black wedges through the head and between its three trunks. Keep an air gap from the glass.\nPractical visual medium: a very dense finite collection of minute colored points is all that forms the interior. Strong evidence of the point construction in the magnified detail and perimeter; point convergence gives clean cyan bright filaments with indigo depth and a few amber tips. Use slender point filaments, tiny stippled fronds, and sharp empty gaps. No continuous metallic rods, opaque branch tubes, faceted crystals, silk membranes, surface mesh or refractive interior skeleton. The recursive geometry should be visible at the overall piece scale as well as up close.\nGlass: clear plain enclosure with a thin white rim reflection, restrained distortion, minimal reflections across the core. The intended real-time look is modest transparency around a point fractal. Do not use spectacular caustics or giant bloom to make it beautiful.\nPresentation: near-orthographic three-quarter front view, black charcoal studio background and matte charcoal ground. Both objects occupy most of the image height, fully visible without crop, ample separation. The bare core gets no invisible shell highlights. The inset is a simple rectangular close-up tile, no magnifying glass, no connector arrows. High-quality precise concept visualization, compelling branching geometry, dark negative spaces, refined proportions. No titles, labels, words, logos, UI, chessboard, smoke, dust cloud, stars, whole miniature pawns or extra objects."
+    }
+  ],
+  "artDirection": {
+    "keep": [
+      "Plain clear glass chess silhouette",
+      "Colored point attractor visible through the enclosure",
+      "Multiple structural families in different body regions",
+      "Existing assets and recipes"
+    ],
+    "improve": [
+      "Large negative spaces that survive the board camera",
+      "Recursive branching visible at three scales",
+      "A sparse stem and crown with an air gap from the shell",
+      "Depth and contrast without filling the core with glow"
+    ],
+    "avoid": [
+      "Tiny complete chess pieces recursively copied inside the pawn",
+      "A smooth pawn volume filled with a fog of samples",
+      "Scattering one motif over a conventional figurine skin",
+      "Treating image-generated lace as an exact mathematical recipe"
+    ]
+  },
+  "feasibility": [
+    {
+      "direction": "Blue branching pawn",
+      "assessment": "Best first implementation target. Existing branching and fern IFS families provide a starting point, but the illustrated connected and twisted branch layout still needs authored transforms and verification.",
+      "sourceFiles": [
+        "packages/app/src/flame/chess/structuralPawnFlame.ts",
+        "packages/app/src/flame/chess/flameFigurines.ts"
+      ]
+    },
+    {
+      "direction": "Amber porous crown",
+      "assessment": "Sierpinski tetrahedral cavities can be constructed with existing linear maps. The generated rounded lace is an artistic interpretation; the exact current family has angular cavities.",
+      "sourceFiles": ["packages/app/src/flame/chess/structuralPawnFlame.ts"]
+    },
+    {
+      "direction": "Purple folded core",
+      "assessment": "Exploration target. Existing swirl and sinusoidal variations do not guarantee these open bays or this topology. Author and validate a low-overlap map system before committing to a matching silhouette.",
+      "sourceFiles": ["packages/app/src/flame/chess/flameFigurines.ts"]
+    }
+  ],
+  "renderingLimits": [
+    "Native figurine previews accumulate point density. The current board uses finite baked point clouds and a separate glass approximation.",
+    "The current board bakes 18,000 points per side for the original and lattice recipes, draws additive point billboards without point depth writes, and uses one tint per side. The new branching prototype needs a recipe adapter and per-sample colors to preserve the proposed interior palette.",
+    "The live board approximates glass with Fresnel transparency; exported pawn GLBs include transmission, IOR and volume material extensions.",
+    "The images show idealized glass reflections and a denser point structure. They do not establish a pixel-for-pixel target for the present live renderer.",
+    "Current core samples do not define solid material, watertight surfaces or physical fracture volumes.",
+    "These concept images add no new live figurines, GLBs or rendering capabilities."
+  ],
+  "recommendedNextSteps": [
+    {
+      "step": 1,
+      "action": "Author one branching pawn recipe without glass.",
+      "construction": "Use a sparse radial branching foot, a narrow cone-invariant branching shaft, and a head cluster of rotated branching or fern IFS components. Keep local recurrence groups independent. Fit the core to the existing shell rather than copying the current wide bishop mantle.",
+      "acceptance": [
+        "Crown, shaft and root structure readable from front, side and oblique views",
+        "Recursive gaps visible both close up and at board distance",
+        "No complete-pawn recursion or surface-scattered motifs",
+        "Sampled bounds and shell cavity containment verified"
+      ]
+    },
+    {
+      "step": 2,
+      "action": "Compare the same recipe in the native preview and on the board.",
+      "construction": "Connect the new recipe to the finite nonlinear point sampler used by the experimental figurines and preserve per-sample colors in the board. Render identical poses with glass on and off, then tune point size, density and exposure for shape readability. Additive accumulation can fill projected gaps, so check the board result directly.",
+      "acceptance": [
+        "Document any appearance difference between accumulated density and finite point sampling",
+        "Preserve large gaps at the intended tablet camera and resolution",
+        "Check frame time on the user's target device before selecting a point budget"
+      ]
+    },
+    {
+      "step": 3,
+      "action": "Refine the glass around the approved core, then extend the family.",
+      "construction": "Keep the existing shell as the first baseline. Treat improved refraction as a separate rendering task if needed. After the pawn works on the board, use a distinct porous or folded family for another piece and compare.",
+      "acceptance": [
+        "Glass edge highlights do not hide the interior",
+        "Different piece types retain distinct core topology",
+        "Keep existing designs available for comparison"
+      ]
+    },
+    {
+      "step": 4,
+      "action": "Revisit fracture after the visible core structure is stable.",
+      "construction": "Keep shell fracture separate. Test coherent core chunks based on IFS ancestry or spatial partitions; finite material thickness and fragment geometry require their own design.",
+      "acceptance": [
+        "Fragments correspond to the visible core before impact",
+        "No claim of physical fracture from a point cloud alone"
+      ]
+    }
+  ],
+  "implementationChanged": false
+}

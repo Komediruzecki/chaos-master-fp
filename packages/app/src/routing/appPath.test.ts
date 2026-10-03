@@ -1,5 +1,6 @@
+/** Standalone routes must match the same three forms on every host. */
 import { describe, expect, it } from 'vitest'
-import { isBenchmarksPath, isClashPath, isExplorerPath, PAGE_ROUTES, pageRouteOf, } from './appPath'
+import { isBenchmarksPath, isChessPath, isClashPath, isExplorerPath, isFigurinesPath, isGummyPath, isPawnPath, PAGE_ROUTES, pageRouteOf, } from './appPath'
 
 describe('isBenchmarksPath', () => {
   it.each(['/benchmarks', '/benchmarks/', '/benchmarks/index.html'])(
@@ -49,6 +50,19 @@ describe('isClashPath', () => {
   )
 })
 
+describe('isPawnPath', () => {
+  it.each(['/pawn', '/pawn/', '/pawn/index.html'])('matches %s', (pathname) => {
+    expect(isPawnPath(pathname)).toBe(true)
+  })
+
+  it.each(['/', '/pawns', '/pawn/forge', '/PAWN', '/clash'])(
+    'does not match %s',
+    (pathname) => {
+      expect(isPawnPath(pathname)).toBe(false)
+    },
+  )
+})
+
 describe('pageRouteOf', () => {
   // A static host serves the build's <route>/index.html by its own name too
   // (routing/staticEntries.ts), and the page there is the route's.
@@ -68,4 +82,49 @@ describe('pageRouteOf', () => {
   ])('names no page route for %s', (pathname) => {
     expect(pageRouteOf(pathname)).toBeUndefined()
   })
+})
+
+describe('isChessPath', () => {
+  it.each(['/chess', '/chess/', '/chess/index.html'])(
+    'matches %s',
+    (pathname) => {
+      expect(isChessPath(pathname)).toBe(true)
+    },
+  )
+  it.each(['/', '/chess/board', '/CHESS', '/pawn', '/chessboards'])(
+    'does not match %s',
+    (pathname) => {
+      expect(isChessPath(pathname)).toBe(false)
+    },
+  )
+})
+
+describe('isFigurinesPath', () => {
+  it.each(['/figurines', '/figurines/', '/figurines/index.html'])(
+    'matches %s',
+    (pathname) => {
+      expect(isFigurinesPath(pathname)).toBe(true)
+    },
+  )
+  it.each(['/', '/figurine', '/figurines/pawn', '/FIGURINES', '/chess'])(
+    'does not match %s',
+    (pathname) => {
+      expect(isFigurinesPath(pathname)).toBe(false)
+    },
+  )
+})
+
+describe('isGummyPath', () => {
+  it.each(['/gummy', '/gummy/', '/gummy/index.html'])(
+    'matches %s',
+    (pathname) => {
+      expect(isGummyPath(pathname)).toBe(true)
+    },
+  )
+  it.each(['/', '/gummies', '/gummy/bear', '/GUMMY', '/chess', '/figurines'])(
+    'does not match %s',
+    (pathname) => {
+      expect(isGummyPath(pathname)).toBe(false)
+    },
+  )
 })

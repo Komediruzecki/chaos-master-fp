@@ -1,0 +1,31 @@
+{
+  "base": "https://localhost:5199",
+  "samples": [],
+  "errors": [],
+  "placement": {
+    "foregroundUnchanged": true,
+    "clients": [
+      {
+        "class": "agent-browser",
+        "workspace": "special:agents"
+      },
+      {
+        "class": "agent-browser",
+        "workspace": "special:agents"
+      }
+    ],
+    "hidden": true
+  },
+  "adapter": {
+    "vendor": "amd",
+    "architecture": "rdna-4",
+    "device": "",
+    "description": ""
+  },
+  "production": {
+    "devHookAbsent": true,
+    "steps": 40,
+    "controlsStyled": true,
+    "overflow": false
+  }
+}

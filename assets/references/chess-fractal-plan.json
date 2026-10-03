@@ -1,0 +1,195 @@
+{
+  "title": "Fractal glass chess",
+  "status": "Revised concept awaiting design selection; planning only",
+  "created_local_date": "2026-09-30",
+  "recommendation": "Hybrid: readable geometric glass skeleton, restrained organic IFS growth, warm clear versus smoked-indigo sides, quiet opaque board",
+  "evidence_scope": "Images are ChatGPT concept art, not current engine renders or generated GLBs",
+  "references": [
+    {
+      "path": "chess-fractal-geometric.png",
+      "direction": "Geometric recursive crystal lattice",
+      "generator": "Built-in ChatGPT image generation",
+      "prompt": "Use case: stylized-concept\nAsset type: concept approval image for FRACTAL GLASS CHESS, a monumental human-scale chess game inside an IFS fractal renderer.\nInput image: previous ivory chess lineup is only the reference for the six recognizable chess identities, balanced height hierarchy and elegant minimal plinth bases. Radically redesign the bodies; do not keep the previous plain porcelain bodies.\nPrimary request: astonishing museum-quality glass chess figurines whose actual geometry is a recursive, self-similar crystal lattice. The outer form remains recognizably a chess piece, but the sculptural body is made of repeating branching glass struts, nested tetrahedral and diamond-shaped openings, smaller motifs inside larger motifs. Visibly fractal SHAPES, not simply a fractal pattern printed on a smooth chess piece.\nComposition: landscape premium design sheet, six complete separate pieces side by side on shared baseline, labeled KING, QUEEN, BISHOP, KNIGHT, ROOK, PAWN underneath. Every piece includes its base. Ample separation, no overlapping figures, long lens almost orthographic three-quarter view, neutral charcoal-gray studio background, thin soft contact shadows. A clean balanced composition filling the image.\nDesign language: smooth low circular obsidian plinths with a single thin champagne-gold band anchor the airy glass bodies. Large structure first, a restrained visible recursive depth of about three levels, open negative spaces, strong readable silhouette, broad structural supports that can plausibly break into glass shards. No chaotic noise, no hair-thin spaghetti, no opaque gold cage. Clear optical crystal with soft pale champagne edges, physically plausible refraction, slight blue refraction in deep sections, impeccable glass thickness, delicate reflections, no plastic.\nSix type motifs: KING tall branching architectural crystal columns culminate in a strong simple recursive glass cross. QUEEN sweeping crystalline branches form an airy five-point crown with smaller repeated prongs. BISHOP a crystal mitre split by one unmistakable diagonal void, internally nested leaf-like crystal branches. KNIGHT an abstract unmistakable horse head and neck built from coarse sweeping faceted glass branches, visible ears and clean muzzle, silhouette extremely readable, nested triangular cavities along neck. ROOK a short strong square crystal tower composed of stacked smaller square apertures, four bold crenellations. PAWN compact translucent nested sphere/octrahedral crystal head over a tapered stem with diamond openings. Heights proportional 1.80,1.65,1.45,1.40,1.25,0.95 meters; bases roughly 0.65 meter diameter.\nLighting: neutral studio key and carefully controlled crisp rim reflections illuminate all glass geometry. Subdued interior luminous fractal veins, very gentle, not neon. Render with realistic material depth, keep contours visible against background.\nMood: majestic, ethereal and architecturally elegant, sophisticated minimalist fractal design rather than jewelry. Capture the wonder of human-size magical chess without copying any movie designs.\nConstraints: exactly these six chess types, all complete, no board, no humans, no logo or watermark, no porcelain, no ornamental engraving, no extra pieces. Clear readable labels only."
+    },
+    {
+      "path": "chess-fractal-organic.png",
+      "direction": "Organic branching glass / IFS filaments",
+      "generator": "Built-in ChatGPT image generation",
+      "prompt": "Use case: stylized-concept\nAsset type: contrasting concept approval image for a human-scale FRACTAL CHESS game made in an IFS flame renderer.\nInput image: crystal lattice chess lineup is a silhouette, proportion and base reference only. Create a distinctly DIFFERENT alternative with organic IFS-generated bodies, not the same angular lattice.\nPrimary request: astonishing six chess sculptures formed from living volumetric fractal filaments, self-similar branching glass ribbons and clustered translucent crystal grains. Each chess piece must have a strongly recognizable outer silhouette, but its body has porous branching voids and tendrils that repeat at smaller scales. Fractal structure changes the entire body; not a plain conventional chess piece with a colorful print. Think elegant natural recursive branching, nested spiral helices, fern-like crystal arms and sparse swirling luminous internal IFS filaments, composed into chess forms.\nComposition: wide premium concept sheet, six complete separate chess pieces on same baseline, ordered KING, QUEEN, BISHOP, KNIGHT, ROOK, PAWN, labels exact in small tasteful typography underneath. Clean near-orthographic three-quarter view, no overlap, all bases visible, relative height rhythm 1.80,1.65,1.45,1.40,1.25,0.95. Quiet dark neutral gallery backdrop. Leave enough negative space between airy silhouettes.\nShared design: low simple dark circular plinth with a single narrow silver band. Bodies primarily frosted transparent glass/crystal branches with small warm luminous cores and subtle cyan/amber point filaments in their cavities. Restrained elegance, no exaggerated flare, no halos that hide edges, no floating unattached blobs. The form should feel generated through a mathematical IFS with coherent asymmetry rather than sculpted baroque decoration.\nSix shape rules: KING's body a branching tree-like crystal taper with a thick distinct cross, smaller branching crosses within; QUEEN a braided porous stem, blooming crown of five upward recursive spiral petals; BISHOP an elongated fractal seedpod/mitre, obvious single diagonal division and nested branch openings; KNIGHT a readable horse head and sweeping neck, branching crystalline ears and muzzle, fractal mane planes, visible void between jaw and neck; ROOK a broad Menger-like tower with nested square openings and four thick battlements; PAWN a compact spherical recursive cloud of glass lobes above a narrow braided branching stem. Shared family but different growth motifs.\nMaterial realism: thick milky glass branches catch soft highlights, wispy internal colored IFS filament points are subordinate to body shapes, realistic pale glass edge scattering. Designed to be readable during play. Minimal precious metal, no gems, no ornate carvings, no dragon heads, no arms/weapons. Not hologram-only and not opaque plastic.\nMood: alien mathematical garden, magical monumental chess, calm extraordinary craftsmanship with a genuinely generative appearance.\nLighting: controlled wide soft side light and gentle rim lights preserve all contours, neutral studio exposure, ground contact shadows.\nConstraints: exactly six whole chess types, no board, no humans, no logo or watermark, no extra pieces. This image is concept art for a future renderer, not a claim of current engine output."
+    },
+    {
+      "path": "chess-fractal-capture.png",
+      "direction": "Approach, fracture, settle capture storyboard",
+      "generator": "Built-in ChatGPT image generation",
+      "prompt": "Use case: stylized-concept\nAsset type: three-frame cinematic capture storyboard for a future human-scale FRACTAL GLASS CHESS video game.\nInput image: previous glass-fractal chess concepts define the exact elegant faceted recursive glass structures and circular dark plinth bases. Use geometric crystal lattice with a small amount of organic internal IFS light.\nPrimary request: show one readable chess capture in THREE sequential horizontal panels with the SAME two piece identities, same camera angle and consistent board, like a beautiful film storyboard. Make the impact feel massive and weighty at human scale, with actual thick glass shards, not just smoke or sparkles.\nScene: dark quiet monumental gallery, human-scale opaque satin obsidian-and-ivory 8x8 chess board with subtle silver edge trim. Sparse out-of-focus remaining pieces in distant background only. Low three-quarter camera at human eye level, neutral material exposure, controlled warm and cool rim light. No people.\nActors: attacking KNIGHT on left, made of clear warm champagne-tinted recursive glass, iconic readable horse head, thick sculptural neck branches, black circular base with subtle silver trim. Captured ROOK on right, made of smoked indigo recursive glass, Menger-like square tower and battlements, same base family. Bases about 0.65 meter across, piece heights about 1.4 and 1.25 meters, squares 1.2 meters. Keep warm vs smoked side distinction clearly visible.\nPanel 1, label 'APPROACH': intact warm knight leaning forward in a controlled short lunge toward the intact indigo rook. Strong anticipation, both fully visible including bases.\nPanel 2, label 'FRACTURE': at the impact moment the rook is visibly splitting into a modest number of large closed-volume indigo crystal shards along its large recursive branching sections. Central glass tower remains recognizable for this frame, cracks propagate from impact. A thin subtle fractal light pulse traces through the breaking branches. Attacker knight remains fully intact. Use realistic shard thickness and visible cut faces. No explosion fire, no confetti, no gore.\nPanel 3, label 'SETTLE': the intact knight stands at the captured rook's former square. Rook has collapsed into large indigo glass fragments landing on the board and a diminishing few tiny IFS light grains, debris bounded near the capture square. Its destroyed base is among debris, no whole rook left standing. Low outward arcs and plausible gravity, not a huge spherical explosion. Distant board remains quiet.\nComposition: landscape triptych of equal panels with subtle separation; roomy consistent framed view, no cropped actors or bases, no repeating unbroken rook in final panel. Small tasteful exact labels at bottom only.\nMood: breathtaking mathematical chess theatre, precision luxury, grounded mass and clean action readability. A generic magical chess scene, no copying movie costumes or existing film props. Photorealistic cinematic concept art with physically convincing glass and fractal voids.\nConstraints: exactly three coherent sequential states of the same capture; no weapons or human limbs on pieces, no characters, no king being captured, no logos or watermark, avoid exaggerated glow that hides fracture structure."
+    }
+  ],
+  "dimensions_m": {
+    "piece_heights": {
+      "king": 1.8,
+      "queen": 1.65,
+      "bishop": 1.45,
+      "knight": 1.4,
+      "rook": 1.25,
+      "pawn": 0.95
+    },
+    "base_diameter": 0.65,
+    "board_square": 1.2,
+    "board_playing_surface": 9.6,
+    "board_outer_width": 10.4,
+    "board_thickness": 0.16,
+    "convention": "Meters, glTF Y up, centered base contact origin"
+  },
+  "role_motifs": [
+    {
+      "role": "king",
+      "motif": "Nested branching cross and stable taper"
+    },
+    {
+      "role": "queen",
+      "motif": "Five-point recursive crown and braided stem"
+    },
+    {
+      "role": "bishop",
+      "motif": "Mitre with pronounced diagonal void"
+    },
+    {
+      "role": "knight",
+      "motif": "Readable horse head with branching ears and coarse neck planes"
+    },
+    {
+      "role": "rook",
+      "motif": "Menger-style square apertures and four bold battlements"
+    },
+    {
+      "role": "pawn",
+      "motif": "Nested spherical or tetrahedral head and simple taper"
+    }
+  ],
+  "product_flow": [
+    "Select role",
+    "Load or create an IFS recipe",
+    "Tune recursion, branching, symmetry and glass appearance within role constraints",
+    "Preview near and at game distance",
+    "Bake a stable figurine and save its editable source",
+    "Assign six templates to a collection",
+    "Play local chess with 32 instances",
+    "Capture triggers deterministic fracture presentation"
+  ],
+  "existing_reuse": [
+    {
+      "file": "packages/app/src/flame/ifsPipeline3D.ts",
+      "capability": "GPU 3D chaos-game sampling",
+      "limit": "Projects plotted samples into a screen-space histogram; chain buffers contain the latest walker positions, not all samples or solid surfaces"
+    },
+    {
+      "file": "packages/app/src/flame/variations/simple3D/index.ts",
+      "capability": "Native 3D variation building blocks"
+    },
+    {
+      "file": "packages/app/src/flame/examples/classics.ts",
+      "capability": "Sierpinski tetrahedron and Menger sponge starting recipes"
+    },
+    {
+      "file": "packages/app/src/flame/clash/choreographer.ts",
+      "capability": "Time-derived animation, hit-stop and reduced-motion pattern"
+    },
+    {
+      "file": "packages/app/src/flame/clash/placement.ts",
+      "capability": "Shape placement pattern",
+      "limit": "Apply piece-space instance transforms after baking to avoid affine-reading variation shape changes"
+    },
+    {
+      "file": "packages/app/src/flame/clashTeams.ts",
+      "capability": "Two independent attractors",
+      "limit": "A/B ownership is not a 32-piece scene; concatenation would blend attractors"
+    },
+    {
+      "file": "packages/app/src/components/ClashStage/ClashStage.tsx",
+      "capability": "Isolated canvas and bounded clock lifecycle"
+    },
+    {
+      "file": "packages/app/src/utils/recentFlames.ts",
+      "capability": "Validated source recipe loading"
+    },
+    {
+      "file": "packages/app/src/utils/sessionsDB.ts",
+      "capability": "IndexedDB persistence pattern"
+    }
+  ],
+  "gaps": [
+    "Role-specific shaping constraints and true 3D creator controls; existing custom variation compiler is vec2 to vec2",
+    "Local sample collection/baking output; current buffers are not an exported sample history",
+    "Stable local bounds, contact base and instance identity for all 32 pieces",
+    "Scene renderer with board geometry, depth/occlusion, transparent mesh materials and picking",
+    "Surface reconstruction or procedural glass geometry, watertight minimum-thickness structures and GLB export",
+    "Chess rules/state, collection schema and saved-match snapshots",
+    "Closed shard geometry, trajectory animation and cleanup"
+  ],
+  "stages": [
+    {
+      "name": "One editable pawn",
+      "work": "Use one native 3D IFS recipe plus a pawn role envelope. Preserve sphere/head and base contacts. Save recipe, custom variation source/version, seed, dimensions and material. Use guided transforms/shape deformation where needed; simple clipping alone cannot make every arbitrary attractor readable.",
+      "acceptance": "Generated shape is visibly recursive and unmistakably a pawn at normal board distance; non-finite and runaway samples are bounded; editor state remains intact."
+    },
+    {
+      "name": "Reusable piece baking and scene proof",
+      "work": "Add a sample-output seam with burn-in and bounded accumulation, normalize in local piece space, cache by source/version/seed/material. Render two baked pieces and a board in one scene; then expand to 32 shared-buffer instances. Keep live IFS editing in the creator.",
+      "acceptance": "Individual pieces remain independent; material sides remain distinguishable; near/far views and glass occlusion costs measured. Seeds support reproducibility within the defined backend; retain baked snapshots rather than assuming bit-identical GPU regeneration."
+    },
+    {
+      "name": "Capture effect proof",
+      "work": "Freeze captured samples, form deterministic coarse clusters, rotate/fall clusters with a short IFS particle fringe, use absolute-time trajectories and bounded cleanup. Prototype pawn or rook capture before all roles.",
+      "acceptance": "Skip, reduced motion, interruption and replay reach the identical board state. Particle fragmentation is labeled honestly and is not yet physical glass fracture."
+    },
+    {
+      "name": "Solid glass and actual shards",
+      "work": "Test one sample-to-density or procedural surface path. Preserve holes and minimum strut thickness, generate closed surfaces, assign transmission/volume glass material, bake cut shard meshes from that same accepted geometry. Use lightweight trajectories before optional rigid-body simulation.",
+      "acceptance": "Fresh exported-GLB inspection proves appearance, base contact, correct internal shard faces, no intact/shard overlap at the swap, and cleanup. Reject surfaces that destroy the accepted fractal silhouette."
+    },
+    {
+      "name": "Six-role collection and local chess",
+      "work": "Expand to king/queen/bishop/knight/rook/pawn templates and two material sides, 32 instances. Separate tested rule state from visuals; support standard castling, en passant, promotion and checkmate. Square-based hit targets ignore fractal voids. Use stable piece IDs and immutable recipe snapshots.",
+      "acceptance": "Kings are never captured; animation cannot change rule outcomes. En passant events carry the victim square, castling moves both pieces, and promotion chooses the correct template."
+    },
+    {
+      "name": "Export and runtime polish",
+      "work": "Deliver 12 standalone piece GLBs and board GLB in assets, optional shard assets, editable recipe sidecars and source lineage. Validate glTF structure and actual embedded textures/extensions, LOD, decoding memory, picking, disposal and full-board hardware performance.",
+      "acceptance": "True glass is checked in a renderer that supports transmission/volume, not by opaque PBR thumbnails. Real WebGPU checks use standalone headed Chrome with --class=agent-browser on hidden special:agents, not SwiftShader Playwright."
+    }
+  ],
+  "capture_timeline_s": [
+    {
+      "start": 0,
+      "end": 0.35,
+      "action": "Approach and restrained anticipation"
+    },
+    {
+      "start": 0.35,
+      "end": 0.43,
+      "action": "Contact and brief hit-stop"
+    },
+    {
+      "start": 0.43,
+      "end": 0.65,
+      "action": "Fractured silhouette separates into larger clusters"
+    },
+    {
+      "start": 0.65,
+      "end": 1.15,
+      "action": "Fragments rotate, fall and scatter with IFS particle fringe"
+    },
+    {
+      "start": 1.15,
+      "end": 1.65,
+      "action": "Debris clears, attacker settles and next-turn input resumes"
+    }
+  ],
+  "rules_contract": "Rules commit capture outcome once. Animation presents that outcome and never chooses a combat winner. Store a transition event/snapshot to allow skip, undo, reduced motion and replay.",
+  "glass_references": [
+    "https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_materials_transmission/README.md",
+    "https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_materials_volume/README.md"
+  ],
+  "meshy_role": "Optional approved static reference meshes or look-development donors. Meshy output does not reconstruct an editable mathematical IFS recipe. No Meshy paid submissions have been made; old plain-piece plan and budget are superseded pending revised design scope.",
+  "changes_this_turn": "Three concept images and this planning record only; no application implementation."
+}

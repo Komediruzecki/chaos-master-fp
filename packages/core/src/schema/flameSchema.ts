@@ -454,6 +454,11 @@ export function makeFlameDescriptorSchema<
   )
   const TransformFunction = v.object({
     probability: v.number(),
+    // Native 3D walkers stay within this component's transforms. Optional so
+    // ordinary flames retain their global chaos game and unchanged JSON.
+    walkGroup: v.optional(
+      v.pipe(v.string(), v.nonEmpty(), v.maxLength(MAX_FLAME_ENTITY_ID_LENGTH)),
+    ),
     preAffine: affine,
     postAffine: affine,
     color: v.object({ x: v.number(), y: v.number() }),

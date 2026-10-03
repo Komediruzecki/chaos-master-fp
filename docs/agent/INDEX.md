@@ -74,6 +74,7 @@ file instead of rediscovering the architecture every session.
 <!-- prettier-ignore-start -->
 | Module | Entry point | What it is |
 |---|---|---|
+| `chess` | [flameFigurines.ts](../../packages/app/src/flame/chess/flameFigurines.ts) | Experimental chess flames: nonlinear recurrences grow woven stems, curled crowns, split flame heads and flowing fins. |
 | `clash` | [choreographer.ts](../../packages/app/src/flame/clash/choreographer.ts) | The scripted 12-second bout of the Flame Clash preview: the intro, one hit, a beam clash, the Devour finisher and the victory, as a pure... |
 | `examples` | [index.ts](../../packages/app/src/flame/examples/index.ts) | _(no header comment)_ |
 | `glide` | [index.ts](../../packages/app/src/flame/glide/index.ts) | _(no header comment)_ |
@@ -125,6 +126,7 @@ file instead of rediscovering the architecture every session.
 | `FlameColorEditor` | [FlameColorEditor.tsx](../../packages/app/src/components/FlameColorEditor/FlameColorEditor.tsx) | _(no header comment)_ |
 | `FlameRandomizerCard` | [FlameRandomizerCard.tsx](../../packages/app/src/components/FlameRandomizerCard/FlameRandomizerCard.tsx) | _(no header comment)_ |
 | `FloatingActions` | [FloatingActions.tsx](../../packages/app/src/components/FloatingActions/FloatingActions.tsx) | _(no header comment)_ |
+| `GummyBear` | [GummyBearScene.tsx](../../packages/app/src/components/GummyBear/GummyBearScene.tsx) | Owned gummy simulation, bounded fixed steps, and current-position pointer grips. |
 | `HelpModal` | [HelpModal.tsx](../../packages/app/src/components/HelpModal/HelpModal.tsx) | _(no header comment)_ |
 | `Home` | [HomeFlame.tsx](../../packages/app/src/components/Home/HomeFlame.tsx) | _(no header comment)_ |
 | `ImportVariationsModal` | [ImportVariationsModal.tsx](../../packages/app/src/components/ImportVariationsModal/ImportVariationsModal.tsx) | _(no header comment)_ |
@@ -136,6 +138,8 @@ file instead of rediscovering the architecture every session.
 | `NativeSaveToasts` | [NativeSaveToasts.tsx](../../packages/app/src/components/NativeSaveToasts/NativeSaveToasts.tsx) | _(no header comment)_ |
 | `OrientationGizmo` | [OrientationGizmo.tsx](../../packages/app/src/components/OrientationGizmo/OrientationGizmo.tsx) | _(no header comment)_ |
 | `PaletteSelector` | [PaletteSelector.tsx](../../packages/app/src/components/PaletteSelector/PaletteSelector.tsx) | _(no header comment)_ |
+| `PawnBoard` | [pawnBoardRenderer.ts](../../packages/app/src/components/PawnBoard/pawnBoardRenderer.ts) | Owned linear-HDR scene with hollow-glass transmission, native coloured cores and shards. |
+| `PawnStage` | [PawnStage.tsx](../../packages/app/src/components/PawnStage/PawnStage.tsx) | An isolated, stationary 3D flame preview with local orbit and zoom controls. |
 | `PopulationSimulator` | [PopulationSimulator.tsx](../../packages/app/src/components/PopulationSimulator/PopulationSimulator.tsx) | _(no header comment)_ |
 | `ProgressBar` | [ProgressBar.tsx](../../packages/app/src/components/ProgressBar/ProgressBar.tsx) | _(no header comment)_ |
 | `PullUpMenu` | [PullUpMenu.tsx](../../packages/app/src/components/PullUpMenu/PullUpMenu.tsx) | _(no header comment)_ |
@@ -174,7 +178,11 @@ file instead of rediscovering the architecture every session.
 |---|---|---|
 | `Benchmarks` | [BenchmarksPage.tsx](../../packages/app/src/pages/Benchmarks/BenchmarksPage.tsx) | _(no header comment)_ |
 | `Clash` | [ClashPage.tsx](../../packages/app/src/pages/Clash/ClashPage.tsx) | The Flame Clash preview page (`/clash`): two fighters, one scripted bout. |
+| `Figurines` | [FigurinesPage.tsx](../../packages/app/src/pages/Figurines/FigurinesPage.tsx) | Native flame and geometric figurine collections in one live stage without draft writes. |
 | `FractalExplorer` | [FractalExplorerPage.tsx](../../packages/app/src/pages/FractalExplorer/FractalExplorerPage.tsx) | The deep-zoom explorer page: a full-bleed canvas, a heads-up readout and a settings panel. |
+| `GummyBear` | [GummyBearPage.tsx](../../packages/app/src/pages/GummyBear/GummyBearPage.tsx) | A single gummy material and deformation study, isolated from the chess and flame documents. |
+| `Pawn` | [PawnPage.tsx](../../packages/app/src/pages/Pawn/PawnPage.tsx) | Live pawn workshop: tune a native 3D IFS and retain an editable recipe. |
+| `PawnBoard` | [PawnBoardPage.tsx](../../packages/app/src/pages/PawnBoard/PawnBoardPage.tsx) | Pawn-race board controls, native square picking and capture animation sequencing. |
 <!-- prettier-ignore-end -->
 
 #### Cloudflare Worker (`packages/app/src/worker/`) — backend routes
