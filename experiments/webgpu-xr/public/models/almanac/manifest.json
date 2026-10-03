@@ -1,0 +1,42 @@
+{
+  "name": "Irchiinnuss fixed-open Almanac",
+  "assetVersion": 1,
+  "authoring": "Authored procedural Blender geometry; no external generated mesh or texture",
+  "blenderVersion": "5.2.2 LTS",
+  "sourceScript": "assets-source/almanac/build_book.py",
+  "sourceBlend": "assets-source/almanac/almanac-book.blend",
+  "runtimeAsset": "public/models/almanac/almanac-book.glb",
+  "sha256": "95ea6dcf07ea89406b4ed0dedc51d2666deddfaf29e391c2fa458f9e60aaed7e",
+  "bytes": 1494408,
+  "triangles": 66332,
+  "materials": [
+    "Leather | midnight",
+    "Paper | blue black",
+    "Page edges | antique gold",
+    "Page seams | bronze",
+    "Brass | polished",
+    "Brass | engraving",
+    "Thread | sea green"
+  ],
+  "textures": [],
+  "coordinates": {
+    "up": "+Y",
+    "front": "+Z",
+    "width": 2.8,
+    "coverDepth": 1.9,
+    "ribbonFront": 1.11,
+    "root": [0, 0, 0]
+  },
+  "anchors": {
+    "OrbDockLeft": [-0.69, 0.67, 0],
+    "OrbDockRight": [0.69, 0.67, 0]
+  },
+  "orbRadius": 0.34,
+  "limitations": [
+    "Fixed spread; no page turning or collision mesh",
+    "Material factors only; no leather grain or roughness maps",
+    "Lettering supplied by runtime"
+  ],
+  "sourceScriptSha256": "3f461822c9d4fa2c6c18906ea13a719561987abab153b115f5baee36d3f2c244",
+  "sourceBlendSha256": "6a9bc4a69a75c14d5ef98268fad46d0fd5948749c8436724ea3e42546219e983"
+}

@@ -1,12 +1,16 @@
 // Exercise the Almanac on a real desktop GPU without the repository's software-adapter runner.
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { mkdir, writeFile } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import process from 'node:process'
 import { chromium } from 'playwright'
+import type { Response } from 'playwright'
 import type { MotifAudio } from '../src/almanac/motifAudio'
 import type { BenchRuntime } from '../src/bench/runtime'
+import type * as BenchGpuHarness from '../tests/benchGpuHarness'
+import type * as BookGpuHarness from '../tests/bookGpuHarness'
 
 const base = process.env.VERIFY_BASE_URL ?? 'https://127.0.0.1:5192/almanac'
 const out = path.resolve(process.env.VERIFY_OUT_DIR ?? 'artifacts/almanac')
@@ -69,6 +73,11 @@ try {
     viewport: { width: 1440, height: 950 },
   })
   const page = await context.newPage()
+  let bookResponse: Response | undefined
+  page.on('response', (response) => {
+    if (new URL(response.url()).pathname === '/models/almanac/almanac-book.glb')
+      bookResponse = response
+  })
   page.on('pageerror', (error) => errors.push(String(error)))
   page.on('console', (message) => {
     if (
@@ -127,8 +136,71 @@ try {
   }
   assert.equal((await gpu()).ready, true, (await gpu()).error)
   assert.ok(!/swiftshader|llvmpipe/i.test((await gpu()).adapter))
+  await page.waitForFunction(
+    () => {
+      const book = window.__almanac?.runtime.snapshot().book
+      return book?.status === 'ready' || book?.status === 'error'
+    },
+    undefined,
+    { timeout: 60000 },
+  )
+  assert.equal((await gpu()).book.status, 'ready', (await gpu()).book.error)
+  assert.equal((await gpu()).scene, 'book')
+  assert.ok(bookResponse, 'The browser must load the actual exported GLB')
+  const delivered = await bookResponse.body()
+  const source = await readFile(
+    new URL('../public/models/almanac/almanac-book.glb', import.meta.url),
+  )
+  const sha256 = (bytes: Uint8Array) =>
+    createHash('sha256').update(bytes).digest('hex')
+  assert.equal(
+    sha256(delivered),
+    sha256(source),
+    'Runtime model differs from the reviewed export',
+  )
   await frames()
   report.adapter = (await gpu()).adapter
+  report.bookAsset = { ...(await gpu()).book, sha256: sha256(delivered) }
+  report.bookDepth = await page.evaluate(async () => {
+    const modulePath = '/tests/bookGpuHarness.ts'
+    const module = (await import(modulePath)) as typeof BookGpuHarness
+    return module.verifyBookDepth()
+  })
+  report.bookPhoneVisibility = await page.evaluate(async () => {
+    const modulePath = '/tests/bookGpuHarness.ts'
+    const module = (await import(modulePath)) as typeof BookGpuHarness
+    return module.verifyBookPhoneVisibility()
+  })
+  report.existingBenchDepth = await page.evaluate(async () => {
+    const modulePath = '/tests/benchGpuHarness.ts'
+    const module = (await import(modulePath)) as typeof BenchGpuHarness
+    return module.verifyBenchGpuContracts()
+  })
+  await page.screenshot({
+    path: path.join(out, 'book-material.png'),
+    fullPage: true,
+  })
+  await page.evaluate(() => {
+    window.__almanac!.runtime.setBookClay(true)
+  })
+  await frames()
+  await page.screenshot({
+    path: path.join(out, 'book-clay.png'),
+    fullPage: true,
+  })
+  await page.evaluate(() => {
+    window.__almanac!.runtime.setSettings({ yaw: 46, pitch: -8, distance: 2.5 })
+  })
+  await frames()
+  await page.screenshot({
+    path: path.join(out, 'book-clay-side.png'),
+    fullPage: true,
+  })
+  await page.evaluate(() => {
+    window.__almanac!.runtime.setBookClay(false)
+    window.__almanac!.runtime.resetView()
+  })
+  await frames()
   assert.equal(
     await page.evaluate(() => window.__almanac!.selectedId),
     'glasswake',
@@ -365,6 +437,84 @@ try {
   )
   report.pendingAudio = { cancelButtonWorks: true, lateStartPrevented: true }
   await pending.close()
+
+  const failedBook = await context.newPage()
+  const assetPattern = '**/models/almanac/almanac-book.glb'
+  await failedBook.route(assetPattern, (route) =>
+    route.fulfill({ status: 503, body: 'Intentional model-load test' }),
+  )
+  await failedBook.goto(base)
+  await failedBook.waitForFunction(
+    () => window.__almanac?.runtime.snapshot().book.status === 'error',
+  )
+  assert.equal(
+    await failedBook.evaluate(() => window.__almanac!.runtime.snapshot().ready),
+    true,
+  )
+  await failedBook.getByText(/model could not load/).waitFor()
+  await failedBook.unroute(assetPattern)
+  await failedBook.getByRole('button', { name: /Retry book/ }).click()
+  await failedBook.waitForFunction(
+    () => window.__almanac?.runtime.snapshot().book.status === 'ready',
+    undefined,
+    { timeout: 60000 },
+  )
+  assert.deepEqual(
+    await failedBook.evaluate(
+      () => window.__almanac!.runtime.snapshot().errors,
+    ),
+    [],
+  )
+  await failedBook.close()
+
+  const disposedBook = await context.newPage()
+  let releaseModel!: () => void
+  const modelGate = new Promise<void>((resolve) => {
+    releaseModel = resolve
+  })
+  let markRequested!: () => void
+  const requested = new Promise<void>((resolve) => {
+    markRequested = resolve
+  })
+  await disposedBook.route(assetPattern, async (route) => {
+    markRequested()
+    await modelGate
+    try {
+      await route.fulfill({
+        status: 200,
+        contentType: 'model/gltf-binary',
+        body: source,
+      })
+    } catch {
+      /* The canceled fetch may already have closed its request. */
+    }
+  })
+  await disposedBook.goto(base, { waitUntil: 'domcontentloaded' })
+  await disposedBook.waitForFunction(
+    () => window.__almanac?.runtime.snapshot().book.status === 'loading',
+  )
+  await requested
+  await disposedBook.evaluate(() => {
+    window.__almanac!.runtime.dispose()
+  })
+  releaseModel()
+  await disposedBook.waitForTimeout(250)
+  const disposedState = await disposedBook.evaluate(() =>
+    window.__almanac!.runtime.snapshot(),
+  )
+  assert.equal(disposedState.ready, false)
+  assert.notEqual(
+    disposedState.book.status,
+    'ready',
+    'A disposed runtime must not install a late model',
+  )
+  assert.deepEqual(disposedState.errors, [])
+  await disposedBook.close()
+  report.bookLoading = {
+    failedRequestVisible: true,
+    retryWorks: true,
+    disposedLoadDoesNotInstall: true,
+  }
 
   await page.goto(new URL('/bench', base).href)
   await page.waitForFunction(

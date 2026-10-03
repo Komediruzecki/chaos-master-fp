@@ -11,6 +11,10 @@ export const View = d.struct({
   low: d.vec4f,
   high: d.vec4f,
   scene: d.vec4f,
+  model: d.vec4f,
+  eye: d.vec4f,
+  leftDock: d.vec4f,
+  rightDock: d.vec4f,
 })
 export const samplingLayout = tgpu.bindGroupLayout({
   config: { uniform: SampleConfig },
@@ -61,10 +65,11 @@ export const cloudVertex = tgpu.vertexFn({
   const camera = sceneLayout.$.camera
   const point = sceneLayout.$.points[input.instance]
   const uv = corners.$[input.vertex]
-  const center = std.mul(camera.view, d.vec4f(point.xyz, 1))
+  const world = point.xyz.mul(camera.model.w).add(camera.model.xyz)
+  const center = std.mul(camera.view, d.vec4f(world, 1))
   const position = std.mul(
     camera.projection,
-    center.add(d.vec4f(uv.mul(camera.display.x), 0, 0)),
+    center.add(d.vec4f(uv.mul(camera.display.x * camera.model.w), 0, 0)),
   )
   const tint = std.smoothstep(
     0.25,
@@ -138,7 +143,13 @@ export const solidVertex = tgpu.vertexFn({
     if (camera.scene.y < 0.5) p = d.vec3f(0)
   }
   return {
-    position: std.mul(camera.projection, std.mul(camera.view, d.vec4f(p, 1))),
+    position: std.mul(
+      camera.projection,
+      std.mul(
+        camera.view,
+        d.vec4f(p.mul(camera.model.w).add(camera.model.xyz), 1),
+      ),
+    ),
     color,
   }
 })

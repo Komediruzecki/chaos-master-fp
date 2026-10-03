@@ -27,6 +27,10 @@ export class BenchRuntime {
   private cachedKey = ''
   private sampling = false
   private pointer?: { id: number; x: number; y: number }
+  private scene: 'specimen' | 'book' = 'specimen'
+  private bookDock: 'left' | 'right' = 'left'
+  private bookInspection = false
+  private bookClay = false
   constructor(
     private canvas: HTMLCanvasElement,
     private changed: () => void,
@@ -73,12 +77,16 @@ export class BenchRuntime {
         if (!this.context)
           throw new Error('Cannot create the WebGPU canvas. Reload to retry.')
         this.context.configure({ device, format, alphaMode: 'opaque' })
-        this.renderer = createBenchRenderer(device, format)
+        this.renderer = createBenchRenderer(device, format, this.changed)
       } finally {
         validation = await device.popErrorScope()
       }
       if (validation) throw new Error(validation.message)
       if (this.disposed) return
+      this.renderer.setBookDock(this.bookDock)
+      this.renderer.setBookInspection(this.bookInspection)
+      this.renderer.setBookClay(this.bookClay)
+      this.renderer.setScene(this.scene)
       this.ready = true
       this.canvas.addEventListener('pointerdown', this.onPointerDown)
       this.canvas.addEventListener('pointermove', this.onPointerMove)
@@ -271,6 +279,29 @@ export class BenchRuntime {
     this.previousTime = 0
     this.changed()
   }
+  setScene(scene: 'specimen' | 'book') {
+    this.scene = scene
+    this.renderer?.setScene(scene)
+    this.changed()
+  }
+  setBookDock(dock: 'left' | 'right') {
+    this.bookDock = dock
+    this.renderer?.setBookDock(dock)
+    this.changed()
+  }
+  setBookInspection(inspecting: boolean) {
+    this.bookInspection = inspecting
+    this.renderer?.setBookInspection(inspecting)
+    this.changed()
+  }
+  setBookClay(clay: boolean) {
+    this.bookClay = clay
+    this.renderer?.setBookClay(clay)
+    this.changed()
+  }
+  retryBook() {
+    this.renderer?.retryBook()
+  }
   resetView() {
     this.setSettings({
       yaw: 0,
@@ -299,6 +330,19 @@ export class BenchRuntime {
           ? 'cached'
           : 'compute',
       generation: 0,
+      scene: this.scene,
+      book: {
+        status: 'idle' as 'idle' | 'loading' | 'ready' | 'error',
+        error: '',
+        dock: this.bookDock,
+        inspecting: this.bookInspection,
+        clay: this.bookClay,
+        triangles: 0,
+        geometryBytes: 0,
+        bytes: 0,
+        materials: [] as string[],
+        draws: 0,
+      },
       ...this.renderer?.stats(),
       pointCount: this.settings.pointCount,
       frameIntervalMs: sorted[Math.floor(sorted.length / 2)] ?? null,
