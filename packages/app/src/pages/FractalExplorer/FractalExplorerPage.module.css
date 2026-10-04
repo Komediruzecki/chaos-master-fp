@@ -9,7 +9,9 @@
  * edges and fills here, never text or a glyph.
  *
  * Under 680px is a phone, as in the app (PHONE_MAX_WIDTH,
- * stores/workspaceLayoutStore.ts): the panel becomes a bottom sheet.
+ * stores/workspaceLayoutStore.ts): the panel becomes a bottom sheet. The
+ * phone rules are `not all and (min-width: 680px)`, the exact complement of
+ * the wider layout's, so no fractional width falls between the two.
  */
 
 .page {
@@ -112,7 +114,7 @@
    settings button sat off the right edge, out of reach. The readouts take a
    second row of their own, under the buttons; the ::after is the line break
    before them, so the first row is the same at every phone width. */
-@media (max-width: 679.98px) {
+@media not all and (min-width: 680px) {
   .hud {
     flex-wrap: wrap;
     row-gap: var(--la-s-1);
@@ -244,7 +246,7 @@
   overscroll-behavior: contain;
 }
 
-@media (max-width: 679.98px) {
+@media not all and (min-width: 680px) {
   .panel {
     top: auto;
     left: calc(var(--la-safe-left) + var(--la-s-3));
