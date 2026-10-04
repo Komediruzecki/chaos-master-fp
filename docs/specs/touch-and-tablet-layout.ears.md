@@ -1,7 +1,7 @@
 # Mobile and tablet responsive layout — EARS requirements
 
-**Version:** 0.9.11 (`packages/app/package.json`) — the version whose shipped behaviour this describes
-**Date:** 2026-09-10
+**Version:** 0.9.13 (`packages/app/package.json`) — the version whose shipped behaviour this describes
+**Date:** 2026-10-04
 **Status (2026-09-23):** partly superseded. The native rail (#95, `fac9214a`)
 and the shell (#96, `68a4ef51`) replaced the media-query classification with
 `classifyLayout`, the phone bottom rail `MobileBottomSurface` with `EditorRail`,
