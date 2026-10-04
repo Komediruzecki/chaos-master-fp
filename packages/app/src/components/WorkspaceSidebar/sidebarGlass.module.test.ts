@@ -56,7 +56,23 @@ describe('the canvas box beside the glass sidebar', () => {
     expect(bar.get('left')).toBe('var(--leading-cover, 0px)')
     // Nowhere else: a span outside the media query would reach the mobile
     // grid, which has no sidebar column.
-    expect(app.match(/\.underSidebar/g)).toHaveLength(2)
+    expect(app.match(/\.underSidebar/g)).toHaveLength(3)
+  })
+
+  it('draws an export that sizes the canvas in the part on show', () => {
+    // Render in background off: the frame has the aspect of the part the
+    // sidebar leaves (visibleCanvasAspect), not of the box spanning its
+    // column, so across the whole box it showed stretched and off centre.
+    // The canvas takes that part only while it runs, where the setting-off
+    // canvas is, and keeps the inline 100% width it is given as its basis.
+    const desktop = blockOf(app, `@media not all and ${SIDEBAR_DRAWER_QUERY} {`)
+    const frame = ownDeclarations(
+      blockOf(desktop, /\.underSidebar\.exporting > \.canvas\s*\{/),
+    )
+    expect(frame.get('margin-left')).toBe('var(--leading-cover, 0px)')
+    expect(frame.get('max-width')).toBe(
+      'calc(100% - var(--leading-cover, 0px))',
+    )
   })
 
   it('centres the hover badge on the part both covers leave', () => {

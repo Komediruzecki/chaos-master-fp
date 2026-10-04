@@ -202,6 +202,11 @@ export function CanvasViewport(props: CanvasViewportProps) {
   // drops the cover while an export sizes the canvas: the layout does not
   // move for an export.
   const underSidebar = () => leadingCover() > 0
+  // An export sizing the canvas itself renders a frame with the aspect of
+  // the part on show, not of the box spanning the sidebar's column: the box
+  // says so, and App.module.css draws the canvas in that part meanwhile.
+  const exportingUnderSidebar = () =>
+    underSidebar() && props.exportDimensions() !== undefined
 
   return (
     // Home and the Arcade cover the editor completely and it stays mounted
@@ -217,6 +222,7 @@ export function CanvasViewport(props: CanvasViewportProps) {
       classList={{
         [ui.fullscreen as string]: !props.showSidebar(),
         [ui.underSidebar as string]: underSidebar(),
+        [ui.exporting as string]: exportingUnderSidebar(),
       }}
       // The hover badge centres on the part on show (App.module.css).
       style={{

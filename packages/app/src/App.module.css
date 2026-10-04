@@ -67,6 +67,18 @@
   .underSidebar > .bottom-bar {
     left: var(--leading-cover, 0px);
   }
+
+  /* An export that sizes the canvas itself (Render in background off)
+     renders a frame with the aspect of the part on show, and across this
+     box, which spans the sidebar's column, it showed stretched and off
+     centre for the whole export. While it runs the canvas takes the part on
+     show only, where the setting-off canvas is. max-width rather than width,
+     since AutoCanvas writes its 100% inline. Only the display changes: the
+     frame's pixels are the export's either way. */
+  .underSidebar.exporting > .canvas {
+    margin-left: var(--leading-cover, 0px);
+    max-width: calc(100% - var(--leading-cover, 0px));
+  }
 }
 
 .canvas-container {

@@ -14,12 +14,14 @@
  * through --rail-inset, and the glass one leaves it where it is.
  */
 import { cleanup, render } from '@solidjs/testing-library'
+import { createSignal } from 'solid-js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { examples } from '@/flame/examples'
 import { NOT_COVERED, setLeadingCover, setTrailingCover, } from '@/lib/canvasFraming'
 import { setGlassPanels } from '@/lib/glass'
 import { CanvasViewport, EDGE_FADE_COLOR, edgeFadeColor, NO_EDGE_FADE, } from './CanvasViewport'
 import type { CanvasViewportProps } from './CanvasViewport'
+import type { ExportDimensions } from '@/utils/exportDimensions'
 
 // The canvas and the export tracker need WebGPU; the box does not.
 vi.mock('@/lib/AutoCanvas', () => ({ AutoCanvas: () => null }))
@@ -55,7 +57,10 @@ const channels = (colour: { x: number; y: number; z: number; w: number }) => [
   colour.w,
 ]
 
-function mountViewport(railInset = 0) {
+function mountViewport(
+  railInset = 0,
+  exportDimensions: () => ExportDimensions | undefined = () => undefined,
+) {
   const props = {
     railInset: () => railInset,
     isMobile: () => false,
@@ -68,7 +73,7 @@ function mountViewport(railInset = 0) {
     hoveredCustomVarDef: () => null,
     hoveredBlendName: () => null,
     blendIntent: () => 'blend',
-    exportDimensions: () => undefined,
+    exportDimensions,
     onExportImage: () => undefined,
     theme: () => 'dark',
   }
@@ -166,6 +171,35 @@ describe('the covered share on the canvas box', () => {
     )
     setTrailingCover(0)
     expect(box.style.getPropertyValue('--covered-right')).toBe('')
+  })
+})
+
+describe('an export that sizes the canvas under the glass sidebar', () => {
+  // Render in background off: the canvas renders the export's own frame,
+  // with the aspect of the part on show, while the box spans the sidebar's
+  // column too. App.module.css draws the canvas in the part on show while
+  // the box says so (sidebarGlass.module.test.ts holds that rule).
+  it('marks the box for as long as it runs', () => {
+    const [dimensions, setDimensions] = createSignal<
+      ExportDimensions | undefined
+    >()
+    setLeadingCover(200)
+    const box = mountViewport(0, dimensions)
+    expect(box.classList.contains('exporting')).toBe(false)
+
+    setDimensions({ width: 1800, height: 1640 })
+    expect(box.classList.contains('exporting')).toBe(true)
+    // The layout does not move: the box still spans the column.
+    expect(box.classList.contains('underSidebar')).toBe(true)
+    expect(box.style.getPropertyValue('--leading-cover')).toBe('200px')
+
+    setDimensions(undefined)
+    expect(box.classList.contains('exporting')).toBe(false)
+  })
+
+  it('leaves the box alone with no glass sidebar over the canvas', () => {
+    const box = mountViewport(0, () => ({ width: 1800, height: 1640 }))
+    expect(box.classList.contains('exporting')).toBe(false)
   })
 })
 
