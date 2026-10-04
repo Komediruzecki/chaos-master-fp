@@ -1,14 +1,16 @@
 /** Experiment replacement must dispose owned GPU state and keep the press command in sync. */
-import { cleanup, render } from '@solidjs/testing-library'
+import { cleanup, fireEvent, render, waitFor } from '@solidjs/testing-library'
 import { createSignal, Show } from 'solid-js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { buildGummyBearMesh } from '@/simulation/gummy/gummyMesh'
 import { GummyBearScene } from './GummyBearScene'
+import * as gummyStudyMath from './gummyStudyMath'
 import type { ParentProps } from 'solid-js'
-import type { GummyExperiment } from './GummyBearScene'
+import type { GummyExperiment, GummyGeometry } from './GummyBearScene'
 import type { GummyFrame } from './gummyRenderer'
 import type { GummyJellyProtocol } from './gummyStudyMath'
 import type { GummyMesh } from '@/simulation/gummy/gummyMesh'
-import type { GummySolver, GummySolverOptions, } from '@/simulation/gummy/gummySolver'
+import type { GummySolver, GummySolverDynamicState, GummySolverOptions, } from '@/simulation/gummy/gummySolver'
 
 type Snapshot = Awaited<ReturnType<GummySolver['readState']>>
 type SolverRecord = {
@@ -17,6 +19,7 @@ type SolverRecord = {
   destroyed: boolean
   inputs: Parameters<GummySolver['step']>[1][]
   nextRead?: Promise<Snapshot>
+  nextDynamic?: Promise<GummySolverDynamicState>
   snapshot: () => Snapshot
 }
 type RendererRecord = {
@@ -101,6 +104,19 @@ vi.mock('@/simulation/gummy/gummySolver', () => ({
         record.inputs.length = 0
       },
       readState: () => record.nextRead ?? Promise.resolve(record.snapshot()),
+      snapshotDynamic: () =>
+        record.nextDynamic ??
+        Promise.resolve({
+          positions: mesh.positions.slice(),
+          previous: mesh.positions.slice(),
+          velocities: new Float32Array(mesh.positions.length),
+          grip: new Float32Array(mesh.positions.length),
+          simulationTime: 0,
+          accumulator: 0,
+          gripKey: '',
+          gripping: false,
+        }),
+      restoreDynamic() {},
       destroy() {
         record.destroyed = true
       },
@@ -167,6 +183,469 @@ afterEach(() => {
 })
 
 describe('owned gummy experiment scene', () => {
+  it.each(['standard', 'fine'] as const)(
+    'keeps the tear pick tolerance and grip footprint fixed for %s geometry',
+    async (geometry) => {
+      const pick = vi.spyOn(gummyStudyMath, 'pickGummyVertex')
+      render(() => (
+        <GummyBearScene
+          experiment="jelly"
+          protocol="tear"
+          geometry={geometry}
+          palette="marble"
+          mode="drag"
+          softness={0.55}
+          tearing={false}
+          paused
+          demoKey={0}
+          resetKey={0}
+        />
+      ))
+      drawFrame(0)
+      const pointer = new Event('pointerdown', { bubbles: true })
+      Object.assign(pointer, {
+        pointerId: 1,
+        button: 0,
+        clientX: 200,
+        clientY: 200,
+      })
+      fixtures.canvas!.dispatchEvent(pointer)
+      await waitFor(() => {
+        expect(pick).toHaveBeenCalledOnce()
+      })
+      expect(pick.mock.calls[0]![2]).toBeCloseTo(0.119)
+      expect(diagnostics().info().gripCommand?.radius).toBe(
+        gummyStudyMath.GUMMY_JELLY_TEAR_GRIP_RADIUS,
+      )
+    },
+  )
+
+  it('replaces geometry safely during an outstanding fracture readback and preserves the chosen material', async () => {
+    const [geometry, setGeometry] = createSignal<GummyGeometry>('standard')
+    const ready: boolean[] = []
+    render(() => (
+      <GummyBearScene
+        experiment="jelly"
+        protocol="tear"
+        geometry={geometry()}
+        palette="candy"
+        mode="drag"
+        softness={0.75}
+        fragility={0.93}
+        tearing
+        paused
+        demoKey={0}
+        resetKey={0}
+        onReady={(value) => ready.push(value)}
+      />
+    ))
+    drawFrame(0)
+    const previous = diagnostics()
+    const current = fixtures.solvers[0]!
+    expect(previous.info()).toMatchObject({
+      geometry: 'standard',
+      meshOptions: { spacing: 0.14 },
+    })
+    let complete!: (state: GummySolverDynamicState) => void
+    current.nextDynamic = new Promise<GummySolverDynamicState>((resolve) => {
+      complete = resolve
+    })
+    const advancing = previous.advanceFrames(6)
+    await Promise.resolve()
+    expect(previous.info().mutationPending).toBe(true)
+    setGeometry('fine')
+    expect(ready.at(-1)).toBe(false)
+    drawFrame(20)
+    expect(ready.at(-1)).toBe(true)
+    expect(fixtures.solvers).toHaveLength(2)
+    expect(current.destroyed).toBe(true)
+    expect(fixtures.renderers[0]!.destroyed).toBe(true)
+    expect(diagnostics()).not.toBe(previous)
+    expect(document.querySelectorAll('canvas')).toHaveLength(1)
+    expect(frames.size).toBe(1)
+    expect(diagnostics().info()).toMatchObject({
+      geometry: 'fine',
+      tick: 0,
+      meshOptions: { spacing: 0.1 },
+      settings: {
+        palette: 'candy',
+        softness: 0.75,
+        fragility: 0.93,
+        tearing: true,
+      },
+    })
+    expect(fixtures.solvers[1]!.mesh.tetrahedra.length).toBeGreaterThan(
+      current.mesh.tetrahedra.length,
+    )
+    complete({
+      positions: current.mesh.positions.slice(),
+      previous: current.mesh.positions.slice(),
+      velocities: new Float32Array(current.mesh.positions.length),
+      grip: new Float32Array(current.mesh.positions.length),
+      simulationTime: 0.05,
+      accumulator: 0,
+      gripKey: '',
+      gripping: false,
+    })
+    await advancing
+    expect(fixtures.solvers).toHaveLength(2)
+    expect(fixtures.solvers[1]!.inputs).toHaveLength(0)
+    expect(diagnostics().info()).toMatchObject({
+      geometry: 'fine',
+      tick: 0,
+      topologyRevision: 0,
+      mutationPending: false,
+    })
+  })
+
+  it('keeps all other protocols and models at standard geometry without remounting on an unused choice', () => {
+    const [geometry, setGeometry] = createSignal<GummyGeometry>('fine')
+    const [protocol, setProtocol] = createSignal<GummyJellyProtocol>('squeeze')
+    const [experiment, setExperiment] = createSignal<GummyExperiment>('jelly')
+    render(() => (
+      <GummyBearScene
+        experiment={experiment()}
+        protocol={protocol()}
+        geometry={geometry()}
+        palette="marble"
+        mode="orbit"
+        softness={0.55}
+        tearing={false}
+        paused
+        demoKey={0}
+        resetKey={0}
+      />
+    ))
+    drawFrame(0)
+    for (const mode of ['squeeze', 'stretch', 'pull', 'crush'] as const) {
+      if (mode === 'squeeze' || mode === 'stretch') setProtocol(mode)
+      else setExperiment(mode)
+      const generation = diagnostics()
+      expect(generation.info()).toMatchObject({
+        geometry: 'standard',
+        meshOptions: { spacing: 0.14 },
+      })
+      const resources = fixtures.solvers.length
+      setGeometry(geometry() === 'fine' ? 'standard' : 'fine')
+      expect(diagnostics()).toBe(generation)
+      expect(fixtures.solvers).toHaveLength(resources)
+    }
+  })
+
+  it('updates manual fragility without resetting GPU resources and keeps replay scoped to comparison protocols', () => {
+    const [fragility, setFragility] = createSignal(0.88)
+    const [protocol, setProtocol] = createSignal<GummyJellyProtocol>('tear')
+    const replay = vi.fn()
+    render(() => (
+      <GummyBearScene
+        experiment="jelly"
+        protocol={protocol()}
+        palette="marble"
+        mode="drag"
+        softness={0.55}
+        fragility={fragility()}
+        tearing={false}
+        paused
+        demoKey={0}
+        resetKey={0}
+        onReplay={replay}
+      />
+    ))
+    drawFrame(0)
+    expect(diagnostics().info().geometry).toBe('standard')
+    expect(diagnostics().info().settings.fragility).toBe(0.88)
+    fireEvent.keyDown(fixtures.canvas!, { key: 'd' })
+    expect(replay).not.toHaveBeenCalled()
+    setFragility(0.95)
+    drawFrame(20)
+    expect(diagnostics().info().settings.fragility).toBe(0.95)
+    expect(fixtures.solvers).toHaveLength(1)
+    expect(fixtures.renderers).toHaveLength(1)
+    setProtocol('stretch')
+    drawFrame(40)
+    expect(diagnostics().info().settings.fragility).toBe(0)
+    fireEvent.keyDown(fixtures.canvas!, { key: 'd' })
+    expect(replay).toHaveBeenCalledOnce()
+  })
+
+  it('applies a waist hold only to tear without changing rest coordinates, normals or shared tetrahedra', () => {
+    const [protocol, setProtocol] = createSignal<GummyJellyProtocol>('tear')
+    const original = buildGummyBearMesh({
+      fracture: 'none',
+      pinnedFeet: true,
+      pinHeight: 0.48,
+      spacing: 0.14,
+    })
+    render(() => (
+      <GummyBearScene
+        experiment="jelly"
+        protocol={protocol()}
+        palette="marble"
+        mode="orbit"
+        softness={0.55}
+        tearing={false}
+        paused
+        demoKey={0}
+        resetKey={0}
+      />
+    ))
+    drawFrame(0)
+    const held = fixtures.solvers[0]!.mesh
+    expect(diagnostics().info().bodyFixture).toEqual({
+      halfWidth: 0.3,
+      minY: 0.85,
+      maxY: 1.2,
+      heldNodes: 135,
+    })
+    expect(held.tetrahedra).toEqual(original.tetrahedra)
+    expect(fixtures.renderers[0]!.mesh.restNormals).toEqual(
+      original.restNormals,
+    )
+    for (let i = 0; i < held.positions.length; i++)
+      if (i % 4 !== 3) expect(held.positions[i]).toBe(original.positions[i])
+    expect(
+      held.positions.filter((_, i) => i % 4 === 3 && held.positions[i] === 0)
+        .length,
+    ).toBe(
+      original.positions.filter(
+        (_, i) => i % 4 === 3 && original.positions[i] === 0,
+      ).length + 135,
+    )
+    setProtocol('stretch')
+    drawFrame(1)
+    expect(diagnostics().info().bodyFixture).toBeUndefined()
+    expect(fixtures.solvers[1]!.mesh.positions).toEqual(original.positions)
+  })
+  it('bounds idle tear rendering and submits no RAF draws while an exact-step readback is pending', async () => {
+    render(() => (
+      <GummyBearScene
+        experiment="jelly"
+        protocol="tear"
+        palette="marble"
+        mode="orbit"
+        softness={0.55}
+        tearing
+        paused
+        demoKey={0}
+        resetKey={0}
+      />
+    ))
+    drawFrame(0)
+    for (let i = 1; i <= 1000; i++) drawFrame(i / 10)
+    const renderer = fixtures.renderers[0]!
+    expect(renderer.frames.length).toBeGreaterThanOrEqual(6)
+    expect(renderer.frames.length).toBeLessThanOrEqual(7)
+    const bounded = renderer.frames.length
+    diagnostics().render()
+    expect(renderer.frames).toHaveLength(bounded + 1)
+
+    const current = fixtures.solvers[0]!
+    let complete!: (state: GummySolverDynamicState) => void
+    current.nextDynamic = new Promise<GummySolverDynamicState>((resolve) => {
+      complete = resolve
+    })
+    const advancing = diagnostics().advanceFrames(6)
+    await Promise.resolve()
+    const beforeReadback = renderer.frames.length
+    for (let i = 1; i <= 200; i++) drawFrame(100 + i)
+    expect(renderer.frames).toHaveLength(beforeReadback)
+    complete({
+      positions: current.mesh.positions.slice(),
+      previous: current.mesh.positions.slice(),
+      velocities: new Float32Array(current.mesh.positions.length),
+      grip: new Float32Array(current.mesh.positions.length),
+      simulationTime: 0.05,
+      accumulator: 0,
+      gripKey: '',
+      gripping: false,
+    })
+    await advancing
+    expect(renderer.frames).toHaveLength(beforeReadback + 1)
+    expect(diagnostics().info().fracturePerformance?.drawsDuringMutation).toBe(
+      1,
+    )
+  })
+  it('retains playing wall time across readback and catches up through the stable eight-tick limit', async () => {
+    render(() => (
+      <GummyBearScene
+        experiment="jelly"
+        protocol="tear"
+        palette="marble"
+        mode="orbit"
+        softness={0.55}
+        tearing
+        paused={false}
+        demoKey={0}
+        resetKey={0}
+      />
+    ))
+    drawFrame(0)
+    const current = fixtures.solvers[0]!
+    let complete!: (state: GummySolverDynamicState) => void
+    current.nextDynamic = new Promise<GummySolverDynamicState>((resolve) => {
+      complete = resolve
+    })
+    const advancing = diagnostics().advanceFrames(6)
+    await Promise.resolve()
+    drawFrame(100)
+    expect(current.inputs).toHaveLength(6)
+    complete({
+      positions: current.mesh.positions.slice(),
+      previous: current.mesh.positions.slice(),
+      velocities: new Float32Array(current.mesh.positions.length),
+      grip: new Float32Array(current.mesh.positions.length),
+      simulationTime: 0.05,
+      accumulator: 0,
+      gripKey: '',
+      gripping: false,
+    })
+    await advancing
+    drawFrame(150)
+    await diagnostics().advanceFrames(0)
+    expect(diagnostics().info().tick).toBe(14)
+    expect(current.inputs).toHaveLength(14)
+  })
+  it('accepts a live grab during fracture readback and queues picking until the simulation is quiescent', async () => {
+    const statuses: string[] = []
+    render(() => (
+      <GummyBearScene
+        experiment="jelly"
+        protocol="tear"
+        palette="marble"
+        mode="drag"
+        softness={0.55}
+        tearing
+        paused
+        demoKey={0}
+        resetKey={0}
+        onStatus={(status) => statuses.push(status)}
+      />
+    ))
+    drawFrame(0)
+    const current = fixtures.solvers[0]!
+    let complete!: (state: GummySolverDynamicState) => void
+    current.nextDynamic = new Promise<GummySolverDynamicState>((resolve) => {
+      complete = resolve
+    })
+    const advancing = diagnostics().advanceFrames(6)
+    await Promise.resolve()
+    expect(diagnostics().info().mutationPending).toBe(true)
+    const pointer = new Event('pointerdown', { bubbles: true })
+    Object.assign(pointer, {
+      pointerId: 1,
+      button: 0,
+      clientX: 200,
+      clientY: 200,
+    })
+    fixtures.canvas!.dispatchEvent(pointer)
+    expect(statuses.at(-1)).toBe('picking')
+    expect(fixtures.canvas!.hasPointerCapture(1)).toBe(true)
+    drawFrame(5000)
+    expect(current.inputs).toHaveLength(6)
+    complete({
+      positions: current.mesh.positions.slice(),
+      previous: current.mesh.positions.slice(),
+      velocities: new Float32Array(current.mesh.positions.length),
+      grip: new Float32Array(current.mesh.positions.length),
+      simulationTime: 0.05,
+      accumulator: 0,
+      gripKey: '',
+      gripping: false,
+    })
+    await advancing
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(diagnostics().info().mutationPending).toBe(false)
+    expect(current.inputs).toHaveLength(6)
+  })
+  it('pauses all tear stepping during assessment and discards readbacks taken before reset', async () => {
+    const [resetKey, setResetKey] = createSignal(0)
+    render(() => (
+      <GummyBearScene
+        experiment="jelly"
+        protocol="tear"
+        palette="marble"
+        mode="drag"
+        softness={0.55}
+        tearing
+        paused
+        demoKey={0}
+        resetKey={resetKey()}
+      />
+    ))
+    drawFrame(0)
+    const current = fixtures.solvers[0]!
+    let complete!: (state: GummySolverDynamicState) => void
+    current.nextDynamic = new Promise<GummySolverDynamicState>((resolve) => {
+      complete = resolve
+    })
+    diagnostics().startDemoPaused()
+    const advancing = diagnostics().advanceFrames(12)
+    await Promise.resolve()
+    expect(diagnostics().info().tick).toBe(6)
+    expect(diagnostics().info().mutationPending).toBe(true)
+    drawFrame(5000)
+    expect(current.inputs).toHaveLength(6)
+    setResetKey(1)
+    complete({
+      positions: current.mesh.positions.slice(),
+      previous: current.mesh.positions.slice(),
+      velocities: new Float32Array(current.mesh.positions.length),
+      grip: new Float32Array(current.mesh.positions.length),
+      simulationTime: 0.05,
+      accumulator: 0,
+      gripping: true,
+      gripKey: 'arm',
+    })
+    await advancing
+    expect(diagnostics().info()).toMatchObject({
+      tick: 0,
+      topologyRevision: 0,
+      mutationPending: false,
+      demo: false,
+    })
+    expect(fixtures.solvers).toHaveLength(1)
+    expect(current.inputs).toHaveLength(0)
+    expect(diagnostics().info().settings.tearing).toBe(true)
+  })
+  it('returns a quiescent tear snapshot with current material topology while leaving disabled material welded', async () => {
+    render(() => (
+      <GummyBearScene
+        experiment="jelly"
+        protocol="tear"
+        palette="marble"
+        mode="drag"
+        softness={0.55}
+        tearing={false}
+        paused
+        demoKey={0}
+        resetKey={0}
+      />
+    ))
+    drawFrame(0)
+    diagnostics().startDemoPaused()
+    await diagnostics().advanceFrames(12)
+    const state = await diagnostics().readState()
+    expect(diagnostics().info()).toMatchObject({
+      tick: 12,
+      protocol: 'tear',
+      topologyRevision: 0,
+      meshOptions: { fracture: 'none', pinHeight: 0.48 },
+    })
+    expect(state.topology?.initialVertexCount).toBe(state.positions.length / 4)
+    expect(state.topology?.tetrahedra).toEqual(
+      fixtures.solvers[0]!.mesh.tetrahedra,
+    )
+    expect(state.topology?.originalNodeIds.length).toBe(
+      state.positions.length / 4,
+    )
+    expect(state.topology?.failedFaces).toEqual([])
+    expect(state.dynamic?.velocities.length).toBe(state.positions.length)
+    expect(state.fragments.connectedParts).toBe(1)
+    expect(fixtures.solvers[0]!.inputs.every((input) => !input.tearing)).toBe(
+      true,
+    )
+  })
   it('starts a paused continuous benchmark at tick zero and submits exact matching squeeze commands', async () => {
     const [paused, setPaused] = createSignal(false)
     render(() => (
@@ -206,7 +685,7 @@ describe('owned gummy experiment scene', () => {
     })
     drawFrame(10000)
     expect(diagnostics().info().tick).toBe(0)
-    diagnostics().advanceFrames(360)
+    await diagnostics().advanceFrames(360)
     const info = diagnostics().info()
     expect(info.tick).toBe(360)
     expect(info.phase).toBe('holding')
@@ -222,14 +701,14 @@ describe('owned gummy experiment scene', () => {
     expect(state.damage).toHaveLength(0)
     expect(state.fragments.connectedParts).toBe(1)
     expect(state.restPositions).toEqual(fixtures.solvers[0]!.mesh.positions)
-    diagnostics().advanceFrames(1080)
+    await diagnostics().advanceFrames(1080)
     expect(diagnostics().info()).toMatchObject({
       tick: 1440,
       phase: 'complete',
       demo: false,
     })
   })
-  it('disposes the squeeze generation when switching to an anchored continuous stretch', () => {
+  it('disposes the squeeze generation when switching to an anchored continuous stretch', async () => {
     const [protocol, setProtocol] = createSignal<GummyJellyProtocol>('squeeze')
     render(() => (
       <GummyBearScene
@@ -261,12 +740,12 @@ describe('owned gummy experiment scene', () => {
       meshOptions: { fracture: 'none', pinnedFeet: true, pinHeight: 0.48 },
     })
     diagnostics().startDemoPaused()
-    diagnostics().advanceFrames(360)
+    await diagnostics().advanceFrames(360)
     expect(diagnostics().info().grip).toBe(true)
     const held = fixtures.solvers[1]!.inputs.at(-1)!
     expect(held.press).toBeUndefined()
     expect(held.grip?.target[1]).toBeGreaterThan(held.grip!.center[1])
-    diagnostics().advanceFrames(360)
+    await diagnostics().advanceFrames(360)
     expect(diagnostics().info().phase).toBe('recovering')
     expect(diagnostics().info().grip).toBe(false)
     expect(fixtures.solvers[1]!.inputs.at(-1)!.grip).toBeUndefined()
@@ -346,7 +825,7 @@ describe('owned gummy experiment scene', () => {
     ))
     drawFrame(0)
     setDemoKey(1)
-    diagnostics().advanceFrames(403)
+    await diagnostics().advanceFrames(403)
     const submitted = fixtures.solvers[0]!.inputs.at(-1)!
     const rendered = fixtures.renderers[0]!.frames.at(-1)!
     expect(submitted.press?.height).toBeCloseTo(0.675)

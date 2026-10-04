@@ -34,6 +34,43 @@ export async function waitForGummyControlsLayout(page) {
   })
 }
 
+export const gummyArmPoint = (page) =>
+  page.evaluate(async () => {
+    const {
+      DEFAULT_GUMMY_CRUSH_ORBIT,
+      DEFAULT_GUMMY_ORBIT,
+      gummyCameraMatrices,
+      layGummyBearBack,
+    } = await import('/src/components/GummyBear/gummyStudyMath.ts')
+    const info = (window.__gummyParticleStudy ?? window.__gummyStudy).info()
+    const experiment =
+      info.pose === 'laid' || info.experiment === 'crush' ? 'crush' : 'pull'
+    const canvas = document.querySelector('[data-testid="gummy-bear-canvas"]')
+    const box = canvas.getBoundingClientRect()
+    const matrix = new Float32Array(16)
+    gummyCameraMatrices(
+      experiment === 'crush' ? DEFAULT_GUMMY_CRUSH_ORBIT : DEFAULT_GUMMY_ORBIT,
+      box.width / box.height,
+      matrix,
+      new Float32Array(16),
+      new Float32Array(3),
+      experiment,
+    )
+    const upright = new Float32Array([0.65, 1.25, 0.13, 1])
+    const posed = experiment === 'crush' ? layGummyBearBack(upright) : upright
+    const p = [posed[0], posed[1], posed[2], 1]
+    const clip = [0, 1, 2, 3].map((row) =>
+      p.reduce(
+        (sum, value, column) => sum + matrix[column * 4 + row] * value,
+        0,
+      ),
+    )
+    return {
+      x: box.x + (box.width * (clip[0] / clip[3] + 1)) / 2,
+      y: box.y + (box.height * (1 - clip[1] / clip[3])) / 2,
+    }
+  })
+
 export async function checkGummyInputs(page, context) {
   const canvas = page.getByTestId('gummy-bear-canvas')
   const button = (name) => page.getByRole('button', { name, exact: true })
@@ -50,44 +87,7 @@ export async function checkGummyInputs(page, context) {
       ;(window.__gummyParticleStudy ?? window.__gummyStudy).render()
     })
   }
-  const armPoint = () =>
-    page.evaluate(async () => {
-      const {
-        DEFAULT_GUMMY_CRUSH_ORBIT,
-        DEFAULT_GUMMY_ORBIT,
-        gummyCameraMatrices,
-        layGummyBearBack,
-      } = await import('/src/components/GummyBear/gummyStudyMath.ts')
-      const info = (window.__gummyParticleStudy ?? window.__gummyStudy).info()
-      const experiment =
-        info.pose === 'laid' || info.experiment === 'crush' ? 'crush' : 'pull'
-      const canvas = document.querySelector('[data-testid="gummy-bear-canvas"]')
-      const box = canvas.getBoundingClientRect()
-      const matrix = new Float32Array(16)
-      gummyCameraMatrices(
-        experiment === 'crush'
-          ? DEFAULT_GUMMY_CRUSH_ORBIT
-          : DEFAULT_GUMMY_ORBIT,
-        box.width / box.height,
-        matrix,
-        new Float32Array(16),
-        new Float32Array(3),
-        experiment,
-      )
-      const upright = new Float32Array([0.65, 1.25, 0.13, 1])
-      const posed = experiment === 'crush' ? layGummyBearBack(upright) : upright
-      const p = [posed[0], posed[1], posed[2], 1]
-      const clip = [0, 1, 2, 3].map((row) =>
-        p.reduce(
-          (sum, value, column) => sum + matrix[column * 4 + row] * value,
-          0,
-        ),
-      )
-      return {
-        x: box.x + (box.width * (clip[0] / clip[3] + 1)) / 2,
-        y: box.y + (box.height * (1 - clip[1] / clip[3])) / 2,
-      }
-    })
+  const armPoint = () => gummyArmPoint(page)
   const expectGrip = (value) =>
     page.waitForFunction(
       (expected) =>
@@ -97,14 +97,20 @@ export async function checkGummyInputs(page, context) {
     )
   const advance = (count) =>
     page.evaluate(async (steps) => {
-      ;(window.__gummyParticleStudy ?? window.__gummyStudy).advanceFrames(steps)
+      await (window.__gummyParticleStudy ?? window.__gummyStudy).advanceFrames(
+        steps,
+      )
       const state = await (
         window.__gummyParticleStudy ?? window.__gummyStudy
       ).readState()
       return Array.from(state.positions)
     }, count)
   const moved = (a, b) =>
-    Math.max(...a.map((value, index) => Math.abs(value - b[index])))
+    Math.max(
+      ...a.map((value, index) =>
+        index % 4 === 3 ? 0 : Math.abs(value - b[index]),
+      ),
+    )
   const result = {
     experiment: await page.evaluate(
       () =>

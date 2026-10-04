@@ -2,9 +2,15 @@
 import { d } from 'typegpu'
 import { GUMMY_CONTACT_BUCKETS, gummyContactComponents, gummyContactGather, gummyContactInsert, gummyContactLayout, gummyContactReset, prepareGummyContacts, } from './gummyContacts'
 import { GUMMY_JELLY_SOLVER_ITERATIONS, gummyJellyMaterial, prepareGummyJellyTets, } from './gummyJelly'
+import { createGummyJellyPlasticity } from './gummyJellyPlasticity'
 import { gummyJellyLayout, GummyJellyTet, gummySolveJellyTets, } from './gummyJellyShaders'
 import { gummyCompletePatches, GummyPatch, GummyPatchFace, gummyPatchLayout, prepareGummyPatches, } from './gummyPatches'
 import { gummyBatchLayout, gummyCaptureGrip, GummyDamage, gummyFinish, gummyGripAndFloor, GummyInterface, gummyInterfaceLayout, gummyNodeLayout, GummyParameters, GummyPositions, gummyPredict, gummySolveInterfaces, gummySolveTets, GummyTet, GummyTetLambda, gummyTetLayout, gummyUpdateDamage, } from './gummySolverShaders'
+import { remapGummyDynamicState } from './gummySolverState'
+import type { JellyPlasticState } from './gummyJellyPlasticity'
+import type { GummySolverDynamicState } from './gummySolverState'
+
+export type { GummySolverDynamicState } from './gummySolverState'
 import type { TgpuRoot } from 'typegpu'
 
 export type GummySolverMesh = {
@@ -25,6 +31,10 @@ export type GummyPress = { height: number; halfExtent: number }
 export type GummySolverOptions = {
   /** Static opt-in keeps the original spring and cohesive experiments unchanged. */
   materialModel?: 'edge-volume' | 'neo-hookean'
+  /** Construction-time convergence budget for Neo-Hookean material only. */
+  jellyIterations?: number
+  /** Internal integration steps per logical 1/120-second tick; ignored by legacy materials. */
+  jellySubsteps?: number
 }
 export type GummyStep = {
   grip?: GummyGrip
@@ -183,6 +193,70 @@ export function gummyMaterial(
   }
 }
 
+/** One reusable packed readback avoids decoding four vec4 arrays during a live topology check. */
+export function createGummyDynamicReadback(
+  device: GPUDevice,
+  sources: readonly [GPUBuffer, GPUBuffer, GPUBuffer, GPUBuffer],
+  vertexCount: number,
+) {
+  const arrayBytes = vertexCount * d.sizeOf(d.vec4f)
+  const staging = device.createBuffer({
+    label: 'Gummy dynamic snapshot',
+    size: arrayBytes * 4,
+    usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+  })
+  let disposed = false
+  let queued: Promise<void> = Promise.resolve()
+
+  function read() {
+    const task = queued.then(async () => {
+      if (disposed) throw new Error('Gummy dynamic readback has been destroyed')
+      const encoder = device.createCommandEncoder({
+        label: 'Gummy dynamic snapshot copy',
+      })
+      for (let i = 0; i < sources.length; i++)
+        encoder.copyBufferToBuffer(
+          sources[i]!,
+          0,
+          staging,
+          i * arrayBytes,
+          arrayBytes,
+        )
+      device.queue.submit([encoder.finish()])
+      await staging.mapAsync(GPUMapMode.READ)
+      try {
+        if (disposed)
+          throw new Error('Gummy dynamic readback has been destroyed')
+        const packed = new Float32Array(staging.getMappedRange())
+        const floats = vertexCount * 4
+        return {
+          positions: packed.slice(0, floats),
+          previous: packed.slice(floats, floats * 2),
+          velocities: packed.slice(floats * 2, floats * 3),
+          grip: packed.slice(floats * 3, floats * 4),
+        }
+      } finally {
+        staging.unmap()
+      }
+    })
+    // Requests share one staging buffer; a failed map must not poison the next request.
+    queued = task.then(
+      () => undefined,
+      () => undefined,
+    )
+    return task
+  }
+
+  return {
+    read,
+    destroy() {
+      if (disposed) return
+      disposed = true
+      staging.destroy()
+    },
+  }
+}
+
 export function createGummySolver(
   root: TgpuRoot,
   device: GPUDevice,
@@ -191,8 +265,27 @@ export function createGummySolver(
 ) {
   if (root.device !== device)
     throw new Error('Gummy solver root and device must match')
+  const jellyIterations =
+    options.jellyIterations ?? GUMMY_JELLY_SOLVER_ITERATIONS
+  if (
+    !Number.isInteger(jellyIterations) ||
+    jellyIterations < 1 ||
+    jellyIterations > 96
+  )
+    throw new RangeError(
+      'Jelly solver iterations must be an integer between 1 and 96',
+    )
+  const jellySubsteps = options.jellySubsteps ?? 1
+  if (
+    !Number.isInteger(jellySubsteps) ||
+    jellySubsteps < 1 ||
+    jellySubsteps > 8
+  )
+    throw new RangeError('Jelly substeps must be an integer between 1 and 8')
   const restTets = prepareGummyTets(mesh)
   const jelly = options.materialModel === 'neo-hookean'
+  const internalSubsteps = jelly ? jellySubsteps : 1
+  const solverDt = GUMMY_FIXED_DT / internalSubsteps
   if (jelly && mesh.interfaces.length)
     throw new Error(
       'Continuous jelly requires an unsegmented mesh without cohesive interfaces',
@@ -227,6 +320,20 @@ export function createGummySolver(
     const grip = own(
       root.createBuffer(GummyPositions(vertexCount)).$usage('storage'),
     )
+    const dynamicReadback = jelly
+      ? own(
+          createGummyDynamicReadback(
+            device,
+            [
+              root.unwrap(positions),
+              root.unwrap(previous),
+              root.unwrap(velocities),
+              root.unwrap(grip),
+            ],
+            vertexCount,
+          ),
+        )
+      : undefined
     const tets = own(
       root
         .createBuffer(d.arrayOf(GummyTet, tetCount), (mapped) => {
@@ -367,11 +474,13 @@ export function createGummySolver(
     const capture = nodePipeline(gummyCaptureGrip)
     const constrainGrip = nodePipeline(gummyGripAndFloor)
     const finish = nodePipeline(gummyFinish)
+    const jellyTetData = jelly ? prepareGummyJellyTets(mesh) : undefined
+    let plasticity: ReturnType<typeof createGummyJellyPlasticity> | undefined
     const jellyTets = jelly
       ? own(
           root
             .createBuffer(d.arrayOf(GummyJellyTet, tetCount), (mapped) => {
-              mapped.write(prepareGummyJellyTets(mesh).buffer)
+              mapped.write(jellyTetData!.buffer)
             })
             .$usage('storage'),
         )
@@ -456,9 +565,7 @@ export function createGummySolver(
     let simulationTime = 0
     let previousPressHeight: number | undefined
     let contactRan = false
-    let solverIterations = jelly
-      ? GUMMY_JELLY_SOLVER_ITERATIONS
-      : GUMMY_SOLVER_ITERATIONS
+    let solverIterations = jelly ? jellyIterations : GUMMY_SOLVER_ITERATIONS
     const uniformData = new ArrayBuffer(d.sizeOf(GummyParameters))
     const f32 = new Float32Array(uniformData)
     const u32 = new Uint32Array(uniformData)
@@ -469,7 +576,7 @@ export function createGummySolver(
         : gummyMaterial(input.softness, input.fractureMode)
       f32.set(
         [
-          GUMMY_FIXED_DT,
+          solverDt,
           material.stretchCompliance,
           material.volumeCompliance,
           material.damping,
@@ -526,7 +633,7 @@ export function createGummySolver(
       writeParameters(input, count)
       contactRan = false
       const iterations = jelly
-        ? GUMMY_JELLY_SOLVER_ITERATIONS
+        ? jellyIterations
         : input.fractureMode === 'tension-shear'
           ? GUMMY_FINE_SOLVER_ITERATIONS
           : GUMMY_SOLVER_ITERATIONS
@@ -545,7 +652,7 @@ export function createGummySolver(
         capture.with(pass).dispatchWorkgroups(Math.ceil(vertexCount / 64))
         pass.end()
       }
-      for (let substep = 0; substep < count; substep++) {
+      for (let substep = 0; substep < count * internalSubsteps; substep++) {
         encoder.clearBuffer(root.unwrap(tetLambda))
         encoder.clearBuffer(root.unwrap(bondLambda))
         const pass = encoder.beginComputePass()
@@ -610,6 +717,7 @@ export function createGummySolver(
     function reset() {
       if (disposed) return
       positions.write(restPositions.buffer)
+      if (plasticity) restorePlasticity()
       const encoder = device.createCommandEncoder({ label: 'Gummy reset' })
       for (const buffer of [
         previous,
@@ -647,8 +755,7 @@ export function createGummySolver(
       for (let id = 0; id < interfaceCount * 3; id++) {
         const value = impulse[id]!
         const force =
-          Math.hypot(value.x, value.y, value.z) /
-          (GUMMY_FIXED_DT * GUMMY_FIXED_DT)
+          Math.hypot(value.x, value.y, value.z) / (solverDt * solverDt)
         const face = Math.floor(id / 3)
         cohesiveForces[face] = Math.max(cohesiveForces[face]!, force)
         maxCohesiveForce = Math.max(maxCohesiveForce, force)
@@ -657,7 +764,8 @@ export function createGummySolver(
         positions: packed,
         materialModel,
         iterations: solverIterations,
-        jellyIterations: jelly ? GUMMY_JELLY_SOLVER_ITERATIONS : undefined,
+        jellyIterations: jelly ? jellyIterations : undefined,
+        jellySubsteps: jelly ? internalSubsteps : undefined,
         damage: Float32Array.from(damaged).slice(0, interfaceCount),
         simulationTime,
         maxCohesiveForce,
@@ -668,10 +776,93 @@ export function createGummySolver(
       }
     }
 
+    async function snapshotDynamic(): Promise<GummySolverDynamicState> {
+      if (disposed) throw new Error('Gummy solver has been destroyed')
+      if (!jelly || interfaceCount)
+        throw new Error('Live topology snapshots require continuous jelly')
+      // Freeze callers' stepping during this snapshot and any matching topology transaction.
+      const metadata = {
+        simulationTime,
+        accumulator,
+        gripKey,
+        gripping,
+        previousPressHeight,
+        jellyPlasticState: plasticity?.snapshot(),
+      }
+      const packed = await dynamicReadback!.read()
+      return {
+        ...metadata,
+        ...packed,
+      }
+    }
+
+    function restoreDynamic(
+      snapshot: GummySolverDynamicState,
+      sourceNodes?: Uint32Array,
+    ) {
+      if (disposed) throw new Error('Gummy solver has been destroyed')
+      if (!jelly || interfaceCount)
+        throw new Error('Live topology restore requires continuous jelly')
+      const restored = remapGummyDynamicState(
+        snapshot,
+        restPositions,
+        sourceNodes,
+      )
+      restorePlasticity(snapshot.jellyPlasticState)
+      positions.write(restored.positions.slice().buffer)
+      previous.write(restored.previous.slice().buffer)
+      velocities.write(restored.velocities.slice().buffer)
+      grip.write(restored.grip.slice().buffer)
+      simulationTime = restored.simulationTime
+      accumulator = restored.accumulator
+      gripKey = restored.gripKey
+      gripping = restored.gripping
+      previousPressHeight = restored.previousPressHeight
+      contactRan = false
+      // XPBD multipliers already reset every substep; no deformation history is discarded.
+      const encoder = device.createCommandEncoder({
+        label: 'Gummy topology constraint reset',
+      })
+      for (const buffer of [tetLambda, bondLambda, damage])
+        encoder.clearBuffer(root.unwrap(buffer))
+      device.queue.submit([encoder.finish()])
+    }
+
     function destroy() {
       if (disposed) return
       disposed = true
       for (const buffer of owned) buffer.destroy()
+    }
+
+    function restorePlasticity(saved?: JellyPlasticState) {
+      if (disposed) throw new Error('Gummy solver has been destroyed')
+      if (!jellyTets || !jellyTetData) {
+        if (saved)
+          throw new Error('Plastic material memory requires continuous jelly')
+        return
+      }
+      if (!saved && !plasticity) return
+      plasticity ??= createGummyJellyPlasticity(mesh)
+      plasticity.restore(saved)
+      plasticity.writeTets(jellyTetData)
+      jellyTets.write(jellyTetData.buffer)
+    }
+
+    function updatePlasticity(
+      livePositions: Float32Array,
+      elapsedSeconds: number,
+      material: { softness: number; fragility?: number },
+    ) {
+      if (disposed) throw new Error('Gummy solver has been destroyed')
+      if (!jellyTets || !jellyTetData)
+        throw new Error('Plastic material memory requires continuous jelly')
+      plasticity ??= createGummyJellyPlasticity(mesh)
+      const result = plasticity.update(livePositions, elapsedSeconds, material)
+      if (result.changedTets) {
+        plasticity.writeTets(jellyTetData)
+        jellyTets.write(jellyTetData.buffer)
+      }
+      return result
     }
     return {
       positions,
@@ -683,10 +874,15 @@ export function createGummySolver(
       get iterations() {
         return solverIterations
       },
-      jellyIterations: jelly ? GUMMY_JELLY_SOLVER_ITERATIONS : undefined,
+      jellyIterations: jelly ? jellyIterations : undefined,
+      jellySubsteps: jelly ? internalSubsteps : undefined,
       step,
       reset,
       readState,
+      snapshotDynamic,
+      restoreDynamic,
+      updatePlasticity,
+      restorePlasticity,
       destroy,
       batches: {
         tetrahedra: tetBatches.length,

@@ -230,7 +230,7 @@ try {
         await ensureGeneration()
         await page.evaluate(
           async (steps) => {
-            window.__gummyStudy.advanceFrames(steps)
+            await window.__gummyStudy.advanceFrames(steps)
             await window.__gummyStudy.readState()
           },
           Math.min(batch, count - step),

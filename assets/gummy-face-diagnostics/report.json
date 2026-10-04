@@ -1,0 +1,37 @@
+{
+  "errors": [],
+  "warnings": [],
+  "placement": {
+    "before": {
+      "window": "0x55834f5e5140",
+      "workspace": 2,
+      "monitors": [
+        {
+          "id": 0,
+          "special": ""
+        }
+      ]
+    },
+    "after": {
+      "window": "0x55834f5e5140",
+      "workspace": 2,
+      "monitors": [
+        {
+          "id": 0,
+          "special": ""
+        }
+      ]
+    },
+    "clients": [
+      {
+        "class": "agent-browser",
+        "workspace": "special:agents"
+      }
+    ]
+  },
+  "adapter": {
+    "vendor": "amd",
+    "architecture": "rdna-4",
+    "fallback": false
+  }
+}

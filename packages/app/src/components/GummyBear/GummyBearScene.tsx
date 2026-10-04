@@ -3,12 +3,16 @@ import { createEffect, createMemo, createSignal, on, onCleanup, Show, untrack, }
 import { AutoCanvas } from '@/lib/AutoCanvas'
 import { useCanvas } from '@/lib/CanvasContext'
 import { useLiveRootContext } from '@/lib/RootContext'
+import { buildGummyJellyMesh } from '@/simulation/gummy/gummyJellyMesh'
 import { buildGummyBearMesh } from '@/simulation/gummy/gummyMesh'
 import { analyzeGummyFragments } from '@/simulation/gummy/gummyPartition'
 import { createGummySolver } from '@/simulation/gummy/gummySolver'
+import { createGummyFractureRuntime } from './gummyFractureRuntime'
 import { createGummyRenderer } from './gummyRenderer'
-import { advanceGummyClock, DEFAULT_GUMMY_CRUSH_ORBIT, DEFAULT_GUMMY_ORBIT, GUMMY_CRUSH_SECONDS, GUMMY_DEMO_SECONDS, GUMMY_JELLY_SECONDS, GUMMY_STEP, gummyCameraMatrices, gummyDemoGrip, gummyDemoPress, gummyDragFrame, gummyDragTarget, gummyJellyCommand, gummyRay, gummyRestBounds, layGummyBearBack, pickGummyVertex, } from './gummyStudyMath'
+import { advanceGummyClock, DEFAULT_GUMMY_CRUSH_ORBIT, DEFAULT_GUMMY_ORBIT, GUMMY_CRUSH_SECONDS, GUMMY_DEMO_SECONDS, GUMMY_JELLY_SECONDS, GUMMY_JELLY_TEAR_BODY_FIXTURE, GUMMY_JELLY_TEAR_GRIP_RADIUS, GUMMY_STEP, gummyCameraMatrices, gummyDemoGrip, gummyDemoPress, gummyDragFrame, gummyDragTarget, gummyJellyCommand, gummyRay, gummyRestBounds, holdGummyTearBody, layGummyBearBack, pickGummyVertex, } from './gummyStudyMath'
 import type { GummyBenchmarkPhase, GummyClock, GummyDragFrame, GummyGrip, GummyJellyProtocol, GummyPress, } from './gummyStudyMath'
+import type { GummyMesh } from '@/simulation/gummy/gummyMesh'
+import type { GummySolverDynamicState } from '@/simulation/gummy/gummySolver'
 
 export type GummyPalette =
   | 'blue'
@@ -19,6 +23,7 @@ export type GummyPalette =
   | 'marble'
 export type GummyInteraction = 'drag' | 'orbit'
 export type GummyExperiment = 'jelly' | 'pull' | 'crush'
+export type GummyGeometry = 'standard' | 'fine'
 export type GummyStudyStatus =
   | 'loading'
   | 'ready'
@@ -36,6 +41,9 @@ export type GummyBearSceneProps = {
   palette: GummyPalette
   mode: GummyInteraction
   softness: number
+  fragility?: number
+  tearResponse?: 'soft' | 'crumble'
+  geometry?: GummyGeometry
   tearing: boolean
   paused: boolean
   demoKey: number
@@ -51,13 +59,17 @@ export type GummyBearSceneProps = {
 }
 
 type GummyDiagnostics = {
-  advanceFrames: (count: number) => void
+  advanceFrames: (count: number) => void | Promise<void>
   startDemoPaused: () => void
   render: () => void
   readState: () => Promise<
     Awaited<ReturnType<ReturnType<typeof createGummySolver>['readState']>> & {
       fragments: ReturnType<typeof analyzeGummyFragments>
       restPositions: Float32Array
+      topology?: ReturnType<
+        ReturnType<typeof createGummyFractureRuntime>['topology']
+      >
+      dynamic?: GummySolverDynamicState
     }
   >
   info: () => {
@@ -69,8 +81,10 @@ type GummyDiagnostics = {
     regions: number
     restVolume: number
     experiment: GummyExperiment
+    geometry: GummyGeometry
     materialModel: 'neo-hookean' | 'edge-volume'
     solverIterations: number
+    solverSubsteps: number
     protocol: GummyJellyProtocol | 'legacy-crush' | 'legacy-pull'
     phase: GummyBenchmarkPhase | 'idle'
     tick: number
@@ -82,8 +96,11 @@ type GummyDiagnostics = {
       spacing: number
     }
     restBounds: ReturnType<typeof gummyRestBounds>
+    bodyFixture?: typeof GUMMY_JELLY_TEAR_BODY_FIXTURE & { heldNodes: number }
     settings: {
       softness: number
+      fragility: number
+      tearResponse: 'soft' | 'crumble'
       tearing: boolean
       palette: GummyPalette
       fixedDt: number
@@ -92,6 +109,16 @@ type GummyDiagnostics = {
     grip: boolean
     gripCommand?: GummyGrip
     demo: boolean
+    mutationPending: boolean
+    topologyRevision: number
+    fractureSamplingTicks: number
+    fracture?: ReturnType<typeof createGummyFractureRuntime>['diagnostics']
+    fracturePerformance?: ReturnType<
+      typeof createGummyFractureRuntime
+    >['profile'] & {
+      draws: number
+      drawsDuringMutation: number
+    }
   }
 }
 declare global {
@@ -105,14 +132,26 @@ export function GummyBearScene(props: GummyBearSceneProps) {
   const configuration = createMemo<{
     experiment: GummyExperiment
     protocol: GummyJellyProtocol
+    geometry: GummyGeometry
   }>(() => {
     const experiment = props.experiment ?? 'jelly'
+    const protocol =
+      experiment === 'jelly' ? (props.protocol ?? 'squeeze') : 'squeeze'
     return {
       experiment,
-      protocol:
-        experiment === 'jelly' ? (props.protocol ?? 'squeeze') : 'squeeze',
+      protocol,
+      geometry:
+        experiment === 'jelly' && protocol === 'tear'
+          ? (props.geometry ?? 'standard')
+          : 'standard',
     }
   })
+  const canvasLabel = createMemo(() =>
+    configuration().experiment === 'jelly' &&
+    configuration().protocol === 'tear'
+      ? 'Interactive gummy bear. Grab and pull to tear. Space pauses, R resets, and arrow keys turn the view.'
+      : 'Interactive gummy bear. D starts the demo, Space pauses, and arrow keys turn the view.',
+  )
   return (
     <div
       style={{ width: '100%', height: '100%', position: 'relative' }}
@@ -124,12 +163,13 @@ export function GummyBearScene(props: GummyBearSceneProps) {
             pixelRatio={1}
             onVisibilityChange={setVisible}
             role="img"
-            ariaLabel="Interactive gummy bear. D starts the demo, Space pauses, and arrow keys turn the view."
+            ariaLabel={canvasLabel()}
           >
             <NativeGummyBear
               {...props}
               experiment={active.experiment}
               protocol={active.protocol}
+              geometry={active.geometry}
               visible={visible()}
             />
           </AutoCanvas>
@@ -146,6 +186,7 @@ function NativeGummyBear(
     visible: boolean
     experiment: GummyExperiment
     protocol: GummyJellyProtocol
+    geometry: GummyGeometry
   },
 ) {
   const { root, device } = useLiveRootContext()
@@ -156,6 +197,7 @@ function NativeGummyBear(
     props.onError?.(undefined)
   })
   const continuous = props.experiment === 'jelly'
+  const tearProtocol = continuous && props.protocol === 'tear'
   const laid =
     props.experiment === 'crush' || (continuous && props.protocol === 'squeeze')
   const meshOptions: {
@@ -170,36 +212,79 @@ function NativeGummyBear(
         ? 'fine'
         : 'limbs',
     pinnedFeet: !laid,
-    spacing: 0.14,
+    spacing: tearProtocol && props.geometry === 'fine' ? 0.1 : 0.14,
   }
-  if (continuous && props.protocol === 'stretch') meshOptions.pinHeight = 0.48
-  const mesh = buildGummyBearMesh(meshOptions)
-  const regions = new Set(mesh.nodeRegions).size
-  const solverMesh = laid
+  if (continuous && (props.protocol === 'stretch' || tearProtocol))
+    meshOptions.pinHeight = 0.48
+  const baseMesh = continuous
+    ? buildGummyJellyMesh(meshOptions)
+    : buildGummyBearMesh(meshOptions)
+  const bodyFixture = tearProtocol
+    ? holdGummyTearBody(baseMesh.positions)
+    : undefined
+  const initialMesh = bodyFixture
+    ? { ...baseMesh, positions: bodyFixture.positions }
+    : baseMesh
+  let mesh = initialMesh
+  let regions = new Set(mesh.nodeRegions).size
+  let solverMesh = laid
     ? { ...mesh, positions: layGummyBearBack(mesh.positions) }
     : mesh
   const restBounds = gummyRestBounds(solverMesh.positions)
   const materialModel = continuous ? 'neo-hookean' : 'edge-volume'
-  const solver = createGummySolver(root, device, solverMesh, { materialModel })
-  let renderer: ReturnType<typeof createGummyRenderer>
-  try {
-    renderer = createGummyRenderer(
-      root,
-      device,
-      context,
-      canvasFormat,
-      mesh,
-      solver,
-    )
-  } catch (error) {
-    solver.destroy()
-    throw error
+
+  function allocatePair(
+    nextMesh: GummyMesh,
+    snapshot?: GummySolverDynamicState,
+    sourceNodes?: Uint32Array,
+  ) {
+    const posedMesh = laid
+      ? { ...nextMesh, positions: layGummyBearBack(nextMesh.positions) }
+      : nextMesh
+    const nextSolver = createGummySolver(root, device, posedMesh, {
+      materialModel,
+      jellyIterations: 24,
+      jellySubsteps: tearProtocol && props.geometry === 'fine' ? 2 : 1,
+    })
+    try {
+      if (snapshot) nextSolver.restoreDynamic(snapshot, sourceNodes)
+      const nextRenderer = createGummyRenderer(
+        root,
+        device,
+        context,
+        canvasFormat,
+        nextMesh,
+        nextSolver,
+      )
+      return { solver: nextSolver, renderer: nextRenderer }
+    } catch (error) {
+      nextSolver.destroy()
+      throw error
+    }
   }
+  const initialPair = allocatePair(mesh)
+  let { solver, renderer } = initialPair
+  const fractureRuntime = tearProtocol
+    ? createGummyFractureRuntime<GummySolverDynamicState, typeof initialPair>(
+        mesh,
+        initialPair,
+        allocatePair,
+        (pair, nextMesh) => {
+          solver = pair.solver
+          renderer = pair.renderer
+          mesh = nextMesh
+          regions = new Set(nextMesh.nodeRegions).size
+          solverMesh = nextMesh
+        },
+      )
+    : undefined
   const settings = createMemo(() => ({
     palette: props.palette,
     mode: props.mode,
     softness: props.softness,
-    tearing: continuous ? false : props.tearing,
+    fragility: tearProtocol ? (props.fragility ?? 0) : 0,
+    tearResponse: props.tearResponse ?? 'crumble',
+    tearing: continuous && !tearProtocol ? false : props.tearing,
     paused: props.paused,
     visible: props.visible,
   }))
@@ -216,6 +301,8 @@ function NativeGummyBear(
     eye = new Float32Array(3)
   let clock: GummyClock = { time: 0, remainder: 0 }
   let steps = 0,
+    draws = 0,
+    drawsDuringMutation = 0,
     raf = 0,
     disposed = false,
     ready = false,
@@ -231,6 +318,11 @@ function NativeGummyBear(
   let dragFrame: GummyDragFrame | undefined
   let dragPointer: number | undefined
   const pointers = new Map<number, Pointer>()
+  let topologyEpoch = 0
+  let advancing: Promise<void> | undefined
+  let lastScheduledDraw = -Infinity
+  let readers = 0
+  const readerWaiters: (() => void)[] = []
 
   function status(value: GummyStudyStatus) {
     untrack(() => props.onStatus?.(value))
@@ -250,9 +342,14 @@ function NativeGummyBear(
 
   function reset(startDemo: boolean) {
     release()
-    solver.reset()
+    topologyEpoch++
+    if (fractureRuntime) fractureRuntime.reset()
+    else solver.reset()
     clock = { time: 0, remainder: 0 }
     steps = 0
+    lastScheduledDraw = -Infinity
+    draws = 0
+    drawsDuringMutation = 0
     failed = false
     demo = startDemo
     press = props.experiment === 'crush' ? gummyDemoPress(0) : undefined
@@ -360,13 +457,13 @@ function NativeGummyBear(
     benchmarkPhase = 'idle'
     status('picking')
     try {
-      const current = await solver.readState()
+      const current = await readQuiescent(() => solver.readState())
       if (disposed || token !== request || !pointers.has(event.pointerId))
         return
       const point = pickGummyVertex(
         ray,
         current.positions,
-        Math.max(0.09, mesh.spacing * 0.85),
+        Math.max(0.09, (tearProtocol ? 0.14 : mesh.spacing) * 0.85),
       )
       if (!point) {
         status('ready')
@@ -377,7 +474,11 @@ function NativeGummyBear(
         status('ready')
         return
       }
-      grip = { center: point, target: [...point], radius: 0.28 }
+      grip = {
+        center: point,
+        target: [...point],
+        radius: tearProtocol ? GUMMY_JELLY_TEAR_GRIP_RADIUS : 0.28,
+      }
       dragPointer = event.pointerId
       const latest = pointers.get(event.pointerId)!
       updateGrip(latest.x, latest.y)
@@ -441,6 +542,10 @@ function NativeGummyBear(
     return event.repeat && [' ', 'd', 'r'].includes(event.key.toLowerCase())
   }
 
+  function replayFromKeyboard() {
+    if (!tearProtocol) props.onReplay?.()
+  }
+
   function keyDown(event: KeyboardEvent) {
     if (event.ctrlKey || event.metaKey || event.altKey) return
     if (repeatedAction(event)) {
@@ -448,7 +553,7 @@ function NativeGummyBear(
       return
     }
     if (event.key === ' ') props.onPauseChange?.(!settings().paused)
-    else if (event.key.toLowerCase() === 'd') props.onReplay?.()
+    else if (event.key.toLowerCase() === 'd') replayFromKeyboard()
     else if (event.key.toLowerCase() === 'r') props.onReset?.()
     else if (event.key === 'ArrowLeft') orbitBy(-18, 0)
     else if (event.key === 'ArrowRight') orbitBy(18, 0)
@@ -503,7 +608,9 @@ function NativeGummyBear(
         benchmarkPhase === 'loading'
           ? props.protocol === 'squeeze'
             ? 'crushing'
-            : 'stretching'
+            : tearProtocol
+              ? 'pulling'
+              : 'stretching'
           : benchmarkPhase === 'holding'
             ? 'holding'
             : benchmarkPhase === 'releasing'
@@ -536,6 +643,8 @@ function NativeGummyBear(
   function draw() {
     const size = camera()
     if (size.width <= 0 || size.height <= 0) return
+    draws++
+    if (advancing || fractureRuntime?.pending) drawsDuringMutation++
     renderer.render({
       width: size.width,
       height: size.height,
@@ -557,6 +666,9 @@ function NativeGummyBear(
     canvas.dataset.regions = String(regions)
     canvas.dataset.pressHeight = press ? String(press.height) : ''
     canvas.dataset.demo = String(demo)
+    canvas.dataset.topologyRevision = String(
+      fractureRuntime?.diagnostics.topologyVersion ?? 0,
+    )
     if (!ready) {
       ready = true
       props.onReady?.(true)
@@ -574,6 +686,79 @@ function NativeGummyBear(
     return undefined
   }
 
+  function drawScheduled(now: number) {
+    if (ready && now - lastScheduledDraw < 1000 / 60) return
+    lastScheduledDraw = now
+    draw()
+  }
+
+  function drawIdleFrame(now: number, busy: boolean, batchWillDraw: boolean) {
+    if (
+      failed ||
+      document.visibilityState === 'hidden' ||
+      (!settings().visible && ready)
+    )
+      return
+    if (!fractureRuntime) draw()
+    else if (!busy && !batchWillDraw) drawScheduled(now)
+  }
+
+  function reportFailure(error: unknown) {
+    if (disposed) return
+    failed = true
+    release()
+    props.onError?.(
+      error instanceof Error
+        ? error.message
+        : 'The gummy simulation could not continue.',
+    )
+  }
+
+  async function readQuiescent<T>(read: () => Promise<T>): Promise<T> {
+    if (!fractureRuntime) return read()
+    while (!disposed) {
+      await advancing
+      await fractureRuntime.pending
+      const token = topologyEpoch
+      readers++
+      try {
+        const value = await read()
+        if (!disposed && token === topologyEpoch) return value
+      } catch (error) {
+        if (!disposed && token === topologyEpoch) throw error
+      } finally {
+        readers--
+        if (!readers) for (const resume of readerWaiters.splice(0)) resume()
+      }
+    }
+    throw new Error('The gummy study was replaced during readback.')
+  }
+
+  function advanceTearFrames(count: number, forceDraw = true): Promise<void> {
+    const token = topologyEpoch
+    const previous = advancing
+    const task = (async () => {
+      await previous
+      for (let i = 0; i < count; i++) {
+        if (readers)
+          await new Promise<void>((resolve) => readerWaiters.push(resolve))
+        if (disposed || failed || token !== topologyEpoch) return
+        simulate()
+        if (steps % 6 === 0)
+          await fractureRuntime!.check(6 * GUMMY_STEP, settings())
+      }
+      if (!disposed && token === topologyEpoch) {
+        if (forceDraw) draw()
+        else drawScheduled(globalThis.performance.now())
+      }
+    })()
+    const tracked = task.finally(() => {
+      if (advancing === tracked) advancing = undefined
+    })
+    advancing = tracked
+    return tracked
+  }
+
   function frame(now: number) {
     if (disposed) return
     const state = settings()
@@ -583,24 +768,23 @@ function NativeGummyBear(
       !state.visible ||
       document.visibilityState === 'hidden' ||
       failed
+    const busy = !!advancing || !!fractureRuntime?.pending || readers > 0
+    if (fractureRuntime && busy && !sleeping) {
+      // Keep elapsed playing time for bounded catch-up after the readback; do not queue renders behind it.
+      raf = requestAnimationFrame(frame)
+      return
+    }
     const advanced = advanceGummyClock(clock, now / 1000, sleeping)
     clock.wall = advanced.clock.wall
     clock.remainder = advanced.clock.remainder
     try {
-      for (let i = 0; i < advanced.steps; i++) simulate()
-      if (
-        !failed &&
-        document.visibilityState !== 'hidden' &&
-        (state.visible || !ready)
-      )
-        draw()
+      if (fractureRuntime) {
+        if (!busy && advanced.steps)
+          void advanceTearFrames(advanced.steps, false).catch(reportFailure)
+      } else for (let i = 0; i < advanced.steps; i++) simulate()
+      drawIdleFrame(now, busy, advanced.steps > 0)
     } catch (error) {
-      failed = true
-      props.onError?.(
-        error instanceof Error
-          ? error.message
-          : 'The gummy simulation could not continue.',
-      )
+      reportFailure(error)
     }
     raf = requestAnimationFrame(frame)
   }
@@ -608,6 +792,7 @@ function NativeGummyBear(
     advanceFrames(count) {
       if (!Number.isInteger(count) || count < 0 || count > 3600)
         throw new RangeError('Diagnostic steps must be between 0 and 3600')
+      if (fractureRuntime) return advanceTearFrames(count)
       for (let i = 0; i < count; i++) simulate()
       draw()
     },
@@ -617,14 +802,20 @@ function NativeGummyBear(
       draw()
     },
     render: draw,
-    readState: async () => {
-      const state = await solver.readState()
-      return {
-        ...state,
-        restPositions: solverMesh.positions.slice(),
-        fragments: analyzeGummyFragments(mesh, state.damage),
-      }
-    },
+    readState: () =>
+      readQuiescent(async () => {
+        const state = await solver.readState()
+        const dynamic = fractureRuntime
+          ? await solver.snapshotDynamic()
+          : undefined
+        return {
+          ...state,
+          restPositions: solverMesh.positions.slice(),
+          fragments: analyzeGummyFragments(mesh, state.damage),
+          topology: fractureRuntime?.topology(),
+          dynamic,
+        }
+      }),
     info: () => ({
       time: clock.time,
       steps,
@@ -634,8 +825,10 @@ function NativeGummyBear(
       regions,
       restVolume: mesh.restVolume,
       experiment: props.experiment,
+      geometry: props.geometry,
       materialModel,
       solverIterations: solver.iterations,
+      solverSubsteps: solver.jellySubsteps ?? 1,
       protocol: continuous
         ? props.protocol
         : props.experiment === 'crush'
@@ -646,8 +839,13 @@ function NativeGummyBear(
       pose: laid ? 'laid' : 'upright',
       meshOptions: { ...meshOptions },
       restBounds: { min: [...restBounds.min], max: [...restBounds.max] },
+      bodyFixture: bodyFixture
+        ? { ...GUMMY_JELLY_TEAR_BODY_FIXTURE, heldNodes: bodyFixture.heldNodes }
+        : undefined,
       settings: {
         softness: settings().softness,
+        fragility: settings().fragility,
+        tearResponse: settings().tearResponse,
         tearing: settings().tearing,
         palette: settings().palette,
         fixedDt: GUMMY_STEP,
@@ -656,6 +854,13 @@ function NativeGummyBear(
       grip: !!currentGrip(),
       gripCommand: currentGrip(),
       demo,
+      mutationPending: !!advancing || !!fractureRuntime?.pending,
+      topologyRevision: fractureRuntime?.diagnostics.topologyVersion ?? 0,
+      fractureSamplingTicks: 6,
+      fracture: fractureRuntime?.diagnostics,
+      fracturePerformance: fractureRuntime
+        ? { ...fractureRuntime.profile, draws, drawsDuringMutation }
+        : undefined,
     }),
   }
   if (import.meta.env.DEV) window.__gummyStudy = diagnostics
@@ -673,11 +878,15 @@ function NativeGummyBear(
   raf = requestAnimationFrame(frame)
   onCleanup(() => {
     disposed = true
+    topologyEpoch++
     release()
     cancelAnimationFrame(raf)
     if (window.__gummyStudy === diagnostics) delete window.__gummyStudy
-    renderer.destroy()
-    solver.destroy()
+    if (fractureRuntime) fractureRuntime.destroy()
+    else {
+      renderer.destroy()
+      solver.destroy()
+    }
     props.onReady?.(false)
     canvas.removeEventListener('pointerdown', pointerDown)
     canvas.removeEventListener('pointermove', pointerMove)

@@ -151,6 +151,36 @@ beforeEach(() =>
 afterEach(() => vi.unstubAllGlobals())
 
 describe('gummy renderer ownership and passes', () => {
+  it('collects the nearest visible component before its matching back exit in runtime fracture', () => {
+    const state = harness()
+    const intact = buildGummyBearMesh({ fracture: 'none' })
+    const renderer = createGummyRenderer(
+      state.root,
+      state.device,
+      state.context,
+      'bgra8unorm',
+      { ...intact, runtimeFracture: true },
+      state.solver,
+    )
+    renderer.render(frame())
+    expect(state.passes).toHaveLength(6)
+    const provenance = state.passes[2]!.descriptor
+    const exits = state.passes[3]!.descriptor
+    expect(provenance.label).toBe('Gummy visible component')
+    const frontView = Array.from(provenance.colorAttachments)[0]!.view
+    expect((frontView as unknown as View).format).toBe('rg16float')
+    const filter = state.groups.find((group) => 'fronts' in group)!
+    expect(filter.fronts).toBe(frontView)
+    expect(exits.depthStencilAttachment?.view).toBe(
+      provenance.depthStencilAttachment?.view,
+    )
+    expect(exits.depthStencilAttachment?.depthLoadOp).toBe('clear')
+    expect(exits.colorAttachments).toHaveLength(2)
+    expect(state.textures).toHaveLength(9)
+    renderer.destroy()
+    for (const texture of state.textures)
+      expect(texture.destroy).toHaveBeenCalledOnce()
+  })
   it('matches all HDR/depth sample counts and caches texture bindings between frames', () => {
     const state = harness()
     const renderer = createGummyRenderer(
@@ -168,6 +198,9 @@ describe('gummy renderer ownership and passes', () => {
     const normalGroup = state.groups.find((group) => 'restNormals' in group)!
     expect(Object.keys(normalGroup)).toHaveLength(8)
     expect(normalGroup.damage).toBe(state.external.damage)
+    const meshGroup = state.groups.find((group) => 'metadata' in group)!
+    expect(Object.keys(meshGroup)).toHaveLength(8)
+    expect(state.buffers).toContain(meshGroup.metadata)
     renderer.render({ ...frame(), palette: 'berry', clay: true })
     expect(state.textures).toHaveLength(8)
     expect(state.groups).toHaveLength(bindingCount)

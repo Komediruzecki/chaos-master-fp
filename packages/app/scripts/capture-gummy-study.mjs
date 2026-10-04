@@ -277,7 +277,7 @@ try {
           const count = Math.min(30, target - current)
           const ms = await page.evaluate(async (steps) => {
             const start = window.performance.now()
-            window.__gummyStudy.advanceFrames(steps)
+            await window.__gummyStudy.advanceFrames(steps)
             await window.__gummyStudy.readState()
             return window.performance.now() - start
           }, count)
@@ -302,7 +302,7 @@ try {
       await click('Pause')
       for (let batch = 0; batch < 20; batch++)
         await page.evaluate(async () => {
-          window.__gummyStudy.advanceFrames(30)
+          await window.__gummyStudy.advanceFrames(30)
           await window.__gummyStudy.readState()
         })
       await sample('tearing-disabled')

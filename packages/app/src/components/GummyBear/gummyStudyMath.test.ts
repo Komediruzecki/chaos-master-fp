@@ -127,6 +127,36 @@ describe('continuous jelly benchmark commands', () => {
       phase: 'complete',
     })
   })
+  it('preloads a local arm patch, pulls laterally, holds, then releases without prescribing deformation', () => {
+    const bounds = {
+      min: [-0.7, 0, -0.4] as GummyVec3,
+      max: [0.7, 2.5, 0.4] as GummyVec3,
+    }
+    for (const tick of [0, 119, 120]) {
+      const command = gummyJellyCommand(tick, 'tear', bounds)
+      expect(command.grip?.center).toEqual([0.64, 1.24, 0.08])
+      expect(command.grip?.target).toEqual(command.grip?.center)
+      expect(command.grip?.radius).toBe(0.2)
+      expect(command.press).toBeUndefined()
+    }
+    const half = gummyJellyCommand(360, 'tear', bounds)
+    expect(half.phase).toBe('loading')
+    expect(half.grip?.target[0]).toBeCloseTo(1.54)
+    expect(half.grip?.target[1]).toBeCloseTo(1.3)
+    expect(half.grip?.target[2]).toBeCloseTo(0.12)
+    const held = gummyJellyCommand(839, 'tear', bounds)
+    expect(held.phase).toBe('holding')
+    expect(held.grip?.target[0]).toBeCloseTo(2.44)
+    expect(gummyJellyCommand(840, 'tear', bounds)).toEqual({
+      phase: 'recovering',
+    })
+    expect(gummyJellyCommand(1440, 'tear', bounds)).toEqual({
+      phase: 'complete',
+    })
+    // Commands carry new tuples; a consumer cannot alter a future replay.
+    held.grip!.center[0] = -100
+    expect(gummyJellyCommand(600, 'tear', bounds).grip?.center[0]).toBe(0.64)
+  })
   it('derives finite bounds without altering masses and rejects invalid ticks or flat poses', () => {
     const positions = new Float32Array([1, 3, -1, 2, -2, 1, 4, 3])
     const saved = positions.slice()

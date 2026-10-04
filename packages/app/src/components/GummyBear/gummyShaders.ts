@@ -1,10 +1,13 @@
 /** GPU normals, filled-body transmission and deformation-driven floor light for the gummy study. */
 import { d, std, tgpu } from 'typegpu'
 import { displayColour } from '@/components/PawnBoard/pawnGlassMaterial'
+import { EXPOSED_TEAR_FACE, EXTERIOR_FACE } from '@/simulation/gummy/gummyMesh'
 import { gummyAbsorptionAtPoint, gummyColourAtPoint, gummyVolumeTransmission, } from './gummyBands'
 import { GUMMY_FLOOR_EXTENT, GUMMY_IOR, gummyEnvironment, gummyFresnel, gummyOpticalPath, gummyTransmission, gummyUnitNormal, } from './gummyMaterial'
 import { gummyBoxHit, gummyPressColour, gummyPressRimHit } from './gummyPress'
+import { gummyBoundedTearPatch, gummyExitTag, gummyMatchingExit, gummyTetInradius, } from './gummyRuntimeSurfaceMath'
 import { gummyCapNormal, gummyCohesiveEdgeFlatten, gummyExposedCapAreaNormal, gummyPnPosition, gummyTransportNormal, } from './gummySurfaceMath'
+import { gummyTearAdjacency, gummyTearBody, gummyTearReflection, } from './gummyTearMaterial'
 
 export const GummyCamera = d.struct({
   viewProjection: d.mat4x4f,
@@ -26,6 +29,7 @@ export const gummyMeshLayout = tgpu.bindGroupLayout({
   corners: { storage: d.arrayOf(d.vec4f) },
   flatEdges: { storage: d.arrayOf(d.vec4u) },
   restPositions: { storage: d.arrayOf(d.vec4f) },
+  metadata: { storage: d.arrayOf(d.vec4u) },
 })
 export const gummyNormalsLayout = tgpu.bindGroupLayout({
   positions: { storage: d.arrayOf(d.vec4f) },
@@ -42,6 +46,9 @@ export const gummySceneLayout = tgpu.bindGroupLayout({
   exits: { texture: d.texture2d(d.f32) },
   restExits: { texture: d.texture2d(d.f32) },
   sampler: { sampler: 'filtering' },
+})
+export const gummyExitFilterLayout = tgpu.bindGroupLayout({
+  fronts: { texture: d.texture2d(d.f32) },
 })
 export const gummyFloorLayout = tgpu.bindGroupLayout({
   light: { texture: d.texture2d(d.f32) },
@@ -95,6 +102,7 @@ export const gummyNormalsCompute = tgpu.computeFn({
   let boundary = d.vec3f(0)
   let fallback = d.vec3f(0)
   let largestArea = d.f32(0)
+  let exposed = d.bool(false)
   for (let offset = d.u32(0); offset < localRange.y; offset++) {
     const pair = gummyNormalsLayout.$.adjacent[localRange.x + offset]!
     const face = gummyNormalsLayout.$.faces[pair.x]!
@@ -114,13 +122,12 @@ export const gummyNormalsCompute = tgpu.computeFn({
       const area = std.length(std.cross(std.sub(b, a), std.sub(c, a)))
       boundary = std.add(boundary, std.mul(transported, area))
     } else {
-      const areaNormal = gummyExposedCapAreaNormal(
-        a,
-        b,
-        c,
-        gummyNormalsLayout.$.damage[face.w]!,
-      )
+      let damage = d.f32(1)
+      if (face.w !== EXPOSED_TEAR_FACE)
+        damage = gummyNormalsLayout.$.damage[face.w]!
+      const areaNormal = gummyExposedCapAreaNormal(a, b, c, damage)
       const area = std.length(areaNormal)
+      if (area > 0) exposed = true
       boundary = std.add(boundary, areaNormal)
       if (area > largestArea) {
         fallback = d.vec3f(areaNormal)
@@ -129,7 +136,29 @@ export const gummyNormalsCompute = tgpu.computeFn({
     }
   }
   const capNormal = gummyUnitNormal(boundary, fallback)
-  gummyNormalsLayout.$.normals[count + id] = d.vec4f(capNormal, 0)
+  let radius = d.f32(0)
+  if (exposed && std.arrayLength(gummyNormalsLayout.$.ranges) >= count * 3) {
+    const tets = gummyNormalsLayout.$.ranges[count * 2 + id]!
+    radius = 1000000
+    for (let offset = d.u32(0); offset < tets.y; offset++) {
+      const first = gummyNormalsLayout.$.adjacent[tets.x + offset * 2]!
+      const second = gummyNormalsLayout.$.adjacent[tets.x + offset * 2 + 1]!
+      radius = std.min(
+        radius,
+        gummyTetInradius(
+          gummyNormalsLayout.$.positions[first.x]!.xyz,
+          gummyNormalsLayout.$.positions[first.y]!.xyz,
+          gummyNormalsLayout.$.positions[second.x]!.xyz,
+          gummyNormalsLayout.$.positions[second.y]!.xyz,
+        ),
+      )
+    }
+    radius = std.max(radius, 0.0000001)
+    // Only vertices of actual opened faces adopt closed-boundary normals.
+    // The smooth original skin away from a crack retains its previous normals.
+    gummyNormalsLayout.$.normals[id] = d.vec4f(capNormal, radius)
+  }
+  gummyNormalsLayout.$.normals[count + id] = d.vec4f(capNormal, radius)
 })
 
 const surfaceOutput = {
@@ -139,6 +168,9 @@ const surfaceOutput = {
   visible: d.f32,
   interior: d.f32,
   rest: d.vec3f,
+  component: d.f32,
+  support: d.f32,
+  torn: d.f32,
 }
 
 /** Traverse all cohesive faces meeting an edge; records follow the face prefix in flatEdges. */
@@ -154,6 +186,7 @@ export const gummyBrokenEdgeFlatten = tgpu.fn(
   for (let visited = d.u32(0); current !== 0 && visited < capacity; visited++) {
     if (current >= capacity) break
     const record = gummyMeshLayout.$.flatEdges[current]!
+    if (record.x === EXTERIOR_FACE) return d.f32(1)
     if (record.x > 0 && record.x <= damageCount) {
       if (gummyCohesiveEdgeFlatten(gummyMeshLayout.$.damage[record.x - 1]!) > 0)
         return d.f32(1)
@@ -171,18 +204,25 @@ const surfaceData = tgpu.fn(
     visible: d.f32,
     interior: d.f32,
     rest: d.vec3f,
+    component: d.f32,
+    support: d.f32,
+    torn: d.f32,
   }),
 )((corner) => {
   'use gpu'
   const sample = gummyMeshLayout.$.corners[corner]!
   const faceId = d.u32(sample.w)
   const face = gummyMeshLayout.$.faces[faceId]!
+  const metadata = gummyMeshLayout.$.metadata[faceId]!
   const a = gummyMeshLayout.$.positions[face.x]!.xyz
   const b = gummyMeshLayout.$.positions[face.y]!.xyz
   const c = gummyMeshLayout.$.positions[face.z]!.xyz
-  const na = gummyMeshLayout.$.normals[face.x]!.xyz
-  const nb = gummyMeshLayout.$.normals[face.y]!.xyz
-  const nc = gummyMeshLayout.$.normals[face.z]!.xyz
+  const normalA = gummyMeshLayout.$.normals[face.x]!
+  const normalB = gummyMeshLayout.$.normals[face.y]!
+  const normalC = gummyMeshLayout.$.normals[face.z]!
+  const na = normalA.xyz
+  const nb = normalB.xyz
+  const nc = normalC.xyz
   const linear = std.add(
     std.add(std.mul(a, sample.x), std.mul(b, sample.y)),
     std.mul(c, sample.z),
@@ -204,19 +244,38 @@ const surfaceData = tgpu.fn(
   )
   let visible = d.f32(1)
   let interior = d.f32(0)
+  let support = d.f32(0)
   if (face.w !== 0xffffffff) {
     interior = 1
     visible = 0
-    if (gummyMeshLayout.$.damage[face.w]! >= 1) visible = 1
+    if (face.w === EXPOSED_TEAR_FACE) visible = 1
+    else if (gummyMeshLayout.$.damage[face.w]! >= 1) visible = 1
     const count = std.arrayLength(gummyMeshLayout.$.positions)
-    const capA = gummyMeshLayout.$.normals[count + face.x]!.xyz
-    const capB = gummyMeshLayout.$.normals[count + face.y]!.xyz
-    const capC = gummyMeshLayout.$.normals[count + face.z]!.xyz
+    const capA = gummyMeshLayout.$.normals[count + face.x]!
+    const capB = gummyMeshLayout.$.normals[count + face.y]!
+    const capC = gummyMeshLayout.$.normals[count + face.z]!
     const average = std.add(
-      std.add(std.mul(capA, sample.x), std.mul(capB, sample.y)),
-      std.mul(capC, sample.z),
+      std.add(std.mul(capA.xyz, sample.x), std.mul(capB.xyz, sample.y)),
+      std.mul(capC.xyz, sample.z),
     )
     normal = gummyCapNormal(average, std.cross(std.sub(b, a), std.sub(c, a)))
+    if (metadata.z > 0) {
+      const bounds = std.min(
+        d.vec3f(capA.w, capB.w, capC.w),
+        d.vec3f(gummyCameraLayout.$.camera.absorption.w / 0.35),
+      )
+      world = gummyBoundedTearPatch(
+        a,
+        b,
+        c,
+        na,
+        nb,
+        nc,
+        sample.xyz,
+        std.mul(bounds, 0.35),
+      )
+      support = std.dot(d.vec3f(capA.w, capB.w, capC.w), sample.xyz) * 2
+    }
   } else {
     const edgeHeads = gummyMeshLayout.$.flatEdges[faceId]!
     const flatEdges = d.vec3f(
@@ -233,8 +292,35 @@ const surfaceData = tgpu.fn(
       gummyCameraLayout.$.camera.absorption.w / std.max(length, 0.000001),
     )
     world = std.add(linear, std.mul(offset, scale))
+    if (metadata.z > 0 && (normalA.w > 0 || normalB.w > 0 || normalC.w > 0)) {
+      let boundA = d.f32(gummyCameraLayout.$.camera.absorption.w)
+      let boundB = d.f32(gummyCameraLayout.$.camera.absorption.w)
+      let boundC = d.f32(gummyCameraLayout.$.camera.absorption.w)
+      if (normalA.w > 0) boundA = std.min(boundA, normalA.w * 0.35)
+      if (normalB.w > 0) boundB = std.min(boundB, normalB.w * 0.35)
+      if (normalC.w > 0) boundC = std.min(boundC, normalC.w * 0.35)
+      world = gummyBoundedTearPatch(
+        a,
+        b,
+        c,
+        na,
+        nb,
+        nc,
+        sample.xyz,
+        d.vec3f(boundA, boundB, boundC),
+      )
+    }
   }
-  return { world, normal, visible, interior, rest }
+  return {
+    world,
+    normal,
+    visible,
+    interior,
+    rest,
+    component: d.f32(metadata.x),
+    support,
+    torn: gummyTearAdjacency(metadata.w, sample.xyz),
+  }
 })
 
 export const gummyVertex = tgpu.vertexFn({
@@ -255,16 +341,60 @@ export const gummyVertex = tgpu.vertexFn({
     visible: surface.visible,
     interior: surface.interior,
     rest: surface.rest,
+    component: surface.component,
+    support: surface.support,
+    torn: surface.torn,
   }
 })
 
 export const gummyExitFragment = tgpu.fragmentFn({
-  in: { world: d.vec3f, visible: d.f32, rest: d.vec3f },
+  in: { world: d.vec3f, visible: d.f32, rest: d.vec3f, component: d.f32 },
   out: { world: d.vec4f, rest: d.vec4f },
 })((input) => {
   'use gpu'
   if (input.visible < 0.5) std.discard()
-  return { world: d.vec4f(input.world, 1), rest: d.vec4f(input.rest, 1) }
+  // Two exact integer lanes retain identity in rgba16float even beyond2048 fragments.
+  const tag = gummyExitTag(input.component)
+  return {
+    world: d.vec4f(input.world, tag.x),
+    rest: d.vec4f(input.rest, tag.y),
+  }
+})
+
+/** Select the nearest visible component before collecting its back surface. */
+export const gummyFrontTagFragment = tgpu.fragmentFn({
+  in: { visible: d.f32, component: d.f32 },
+  out: d.vec4f,
+})((input) => {
+  'use gpu'
+  if (input.visible < 0.5) std.discard()
+  return d.vec4f(gummyExitTag(input.component), 0, 1)
+})
+
+/** Other fragments must not replace this pixel's own back exit and optical thickness. */
+export const gummyRuntimeExitFragment = tgpu.fragmentFn({
+  in: {
+    world: d.vec3f,
+    visible: d.f32,
+    rest: d.vec3f,
+    component: d.f32,
+    pixel: d.builtin.position,
+  },
+  out: { world: d.vec4f, rest: d.vec4f },
+})((input) => {
+  'use gpu'
+  if (input.visible < 0.5) std.discard()
+  const front = std.textureLoad(
+    gummyExitFilterLayout.$.fronts,
+    d.vec2i(input.pixel.xy),
+    0,
+  )
+  if (!gummyMatchingExit(input.component, front.xy, 1)) std.discard()
+  const tag = gummyExitTag(input.component)
+  return {
+    world: d.vec4f(input.world, tag.x),
+    rest: d.vec4f(input.rest, tag.y),
+  }
 })
 
 export const gummyFragment = tgpu.fragmentFn({
@@ -275,10 +405,14 @@ export const gummyFragment = tgpu.fragmentFn({
     interior: d.f32,
     pixel: d.builtin.position,
     rest: d.vec3f,
+    component: d.f32,
+    support: d.f32,
+    torn: d.f32,
   },
   out: d.vec4f,
 })((input) => {
   'use gpu'
+  const geometricArea = std.cross(std.dpdx(input.world), std.dpdy(input.world))
   if (input.visible < 0.5) std.discard()
   const normal = gummyUnitNormal(input.normal, d.vec3f(0, 1, 0))
   const view = std.normalize(
@@ -296,6 +430,19 @@ export const gummyFragment = tgpu.fragmentFn({
     mode,
     gummyCameraLayout.$.camera.colour.xyz,
   )
+  const diagnostic = gummyCameraLayout.$.camera.eye.w
+  if (diagnostic > 0.5 && diagnostic < 1.5) return d.vec4f(dye, 1)
+  if (diagnostic > 1.5 && diagnostic < 2.5) {
+    if (input.interior > 0.5) return d.vec4f(0.01, 0.7, 0.8, 1)
+    return d.vec4f(0.8, 0.025, 0.01, 1)
+  }
+  if (diagnostic > 3.5 && diagnostic < 4.5) {
+    let geometric = gummyUnitNormal(geometricArea, normal)
+    if (std.dot(geometric, view) < 0) geometric = std.neg(geometric)
+    if (std.dot(normal, geometric) < 0) return d.vec4f(1, 0, 1, 1)
+    if (std.dot(normal, view) < 0) return d.vec4f(1, 1, 0, 1)
+    return d.vec4f(0.015, 0.4, 0.02, 1)
+  }
   if (gummyCameraLayout.$.camera.resolution.z > 0.5) {
     const clay = std.mul(dye, 0.3 + 0.7 * noL)
     return d.vec4f(std.add(clay, std.mul(reflected, fresnel * 0.12)), 1)
@@ -313,9 +460,21 @@ export const gummyFragment = tgpu.fragmentFn({
     0,
   )
   let restEnd = d.vec3f(input.rest)
-  if (exitRest.w > 0.5 && rayPath > 0) restEnd = d.vec3f(exitRest.xyz)
+  const matchingExit = gummyMatchingExit(
+    input.component,
+    d.vec2f(exit.w, exitRest.w),
+    rayPath,
+  )
+  if (diagnostic > 4.5 && diagnostic < 5.5) {
+    if (matchingExit) return d.vec4f(0.01, 0.7, 0.02, 1)
+    if (exit.w <= 0) return d.vec4f(0.01, 0.02, 0.8, 1)
+    if (rayPath <= 0) return d.vec4f(0.8, 0.7, 0.01, 1)
+    return d.vec4f(0.8, 0.01, 0.02, 1)
+  }
+  if (matchingExit) restEnd = d.vec3f(exitRest.xyz)
   let thickness = d.f32(0.04)
-  if (exit.w > 0.5 && rayPath > 0) thickness = std.clamp(rayPath, 0.015, 2.4)
+  if (input.support > 0) thickness = std.clamp(input.support, 0.0001, 2.4)
+  if (matchingExit) thickness = std.clamp(rayPath, 0.015, 2.4)
   const inside = std.refract(incident, normal, 1 / GUMMY_IOR)
   // A screen-space approximation: measured body thickness bends a probe through
   // the volume. It cannot reconstruct occluded geometry or multiple ray exits.
@@ -325,6 +484,10 @@ export const gummyFragment = tgpu.fragmentFn({
     std.dot(inside, normal),
     input.interior,
   )
+  if (diagnostic > 5.5 && diagnostic < 6.5) {
+    const grey = std.clamp(path, 0, 1)
+    return d.vec4f(grey, grey, grey, 1)
+  }
   const probe = std.add(input.world, std.mul(inside, path))
   const clip = std.mul(
     gummyCameraLayout.$.camera.viewProjection,
@@ -359,19 +522,33 @@ export const gummyFragment = tgpu.fragmentFn({
     (0.035 + 0.09 * noL + 0.06 * std.pow(1 - noV, 2)) *
       (1 - std.exp(-path * 3)),
   )
-  const body = std.add(transmitted, scattering)
+  let body = std.add(transmitted, scattering)
+  // After a crack, inherited skin and new caps meet on the same thin piece.
+  // Carry its wet surface pigment across that real adjacency instead of giving
+  // the inherited side neutral transmission while its cap remains strongly dyed.
+  // This appearance term leaves untouched bulk optics and optical path unchanged.
+  if (input.interior < 0.5 && input.torn > 0)
+    body = std.mix(body, gummyTearBody(body, dye, noL), input.torn)
   let colour = std.add(std.mul(body, 1 - fresnel), std.mul(reflected, fresnel))
+  if (diagnostic > 2.5 && diagnostic < 3.5) colour = d.vec3f(body)
   if (input.interior > 0.5) {
     // Torn gel has a rough, dyed surface, rather than a polished glass cut.
     // This broad reflection and local scattering are an appearance approximation;
     // transmission above still uses the measured volume and material coordinates.
-    const roughReflection = std.mix(reflected, gummyEnvironment(normal), 0.65)
+    let roughReflection = std.mix(reflected, gummyEnvironment(normal), 0.65)
+    // Runtime cuts have real component metadata. Their rough lobe follows the
+    // reflection ray; legacy cohesive caps retain their original material.
+    let tornBody = std.mix(body, std.mul(dye, 0.5 + 0.5 * noL), 0.7)
+    if (input.component > 0.5) {
+      roughReflection = gummyTearReflection(std.reflect(incident, normal))
+      tornBody = gummyTearBody(body, dye, noL)
+    }
     const roughFresnel = gummyFresnel(0.25 + 0.75 * noV)
-    const tornBody = std.mix(body, std.mul(dye, 0.5 + 0.5 * noL), 0.7)
     colour = std.add(
       std.mul(tornBody, 1 - roughFresnel),
       std.mul(roughReflection, roughFresnel),
     )
+    if (diagnostic > 2.5 && diagnostic < 3.5) colour = d.vec3f(tornBody)
   }
   return d.vec4f(colour, 1)
 })

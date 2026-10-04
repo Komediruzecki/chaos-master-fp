@@ -1,5 +1,5 @@
 /** Cached HDR gummy frame targets with atomic resize allocation and complete rollback. */
-import { gummyDisplayLayout, gummySceneLayout } from './gummyShaders'
+import { gummyDisplayLayout, gummyExitFilterLayout, gummySceneLayout, } from './gummyShaders'
 import type { TgpuRoot } from 'typegpu'
 
 export function createGummyTargets(
@@ -8,6 +8,7 @@ export function createGummyTargets(
   width: number,
   height: number,
   sampler: GPUSampler,
+  runtimeFracture = false,
 ) {
   const textures: GPUTexture[] = []
   const texture = (
@@ -35,6 +36,10 @@ export function createGummyTargets(
     const exits = texture('rgba16float', 1, true)
     const restExits = texture('rgba16float', 1, true)
     const exitDepth = texture('depth24plus')
+    const fronts = runtimeFracture ? texture('rg16float', 1, true) : undefined
+    const exitFilter = fronts
+      ? root.createBindGroup(gummyExitFilterLayout, { fronts })
+      : undefined
     const optical = root.createBindGroup(gummySceneLayout, {
       scene,
       exits,
@@ -54,6 +59,8 @@ export function createGummyTargets(
       exits,
       restExits,
       exitDepth,
+      fronts,
+      exitFilter,
       optical,
       display,
       destroy() {

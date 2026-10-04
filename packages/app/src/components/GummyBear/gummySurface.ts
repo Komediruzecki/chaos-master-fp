@@ -1,10 +1,15 @@
 /** Rest-welded exterior adjacency and exact-node exposed tear-surface adjacency. */
-import { EXTERIOR_FACE } from '@/simulation/gummy/gummyMesh'
+import { EXPOSED_TEAR_FACE, EXTERIOR_FACE } from '@/simulation/gummy/gummyMesh'
+import { prepareRuntimeGummyMetadata } from './gummyRuntimeSurface'
 import type { GummyMesh } from '@/simulation/gummy/gummyMesh'
 
-/** Adjacent faces are welded only at rest; the GPU rejects copies that have separated. */
+/** Legacy rest welding rejects separated copies; runtime cracks use exact shared-node identity. */
 export function prepareGummySurface(
-  mesh: Pick<GummyMesh, 'positions' | 'surface' | 'restNormals' | 'interfaces'>,
+  mesh: Pick<
+    GummyMesh,
+    'positions' | 'surface' | 'restNormals' | 'interfaces' | 'runtimeFracture'
+  > &
+    Partial<Pick<GummyMesh, 'tetrahedra'>>,
 ) {
   const count = mesh.positions.length / 4
   if (
@@ -34,7 +39,9 @@ export function prepareGummySurface(
     )
       throw new Error('Invalid gummy surface position')
     // The tetra mesh duplicates exactly coincident rest vertices at tear seams.
-    const key = `${mesh.positions[o]}:${mesh.positions[o + 1]}:${mesh.positions[o + 2]}`
+    const key = mesh.runtimeFracture
+      ? `node:${id}`
+      : `${mesh.positions[o]}:${mesh.positions[o + 1]}:${mesh.positions[o + 2]}`
     keys.push(key)
     if (!coincident.has(key)) coincident.set(key, [])
   }
@@ -49,7 +56,10 @@ export function prepareGummySurface(
       local[node]!.push({ face, node })
     }
     if (interfaceId !== EXTERIOR_FACE) {
-      if (interfaceId >= mesh.interfaces.length / 8)
+      if (
+        interfaceId !== EXPOSED_TEAR_FACE &&
+        interfaceId >= mesh.interfaces.length / 8
+      )
         throw new Error('Gummy surface interface index out of range')
       const a = mesh.surface[o]!,
         b = mesh.surface[o + 1]!,
@@ -66,9 +76,16 @@ export function prepareGummySurface(
       coincident.get(keys[node]!)!.push({ face, node })
     }
   }
-  // First N ranges weld exterior normals at rest; second N use exact node IDs
-  // for each region's exposed boundary, never welding coincident tear copies.
-  const ranges = new Uint32Array(count * 4)
+  // First N ranges retain legacy rest welding or runtime shared-node identity.
+  // Second N use exact node IDs for exposed boundaries, never welding tear copies.
+  const runtime = mesh.runtimeFracture
+    ? prepareRuntimeGummyMetadata(
+        mesh.positions,
+        mesh.tetrahedra ?? new Uint32Array(),
+        mesh.surface,
+      )
+    : undefined
+  const ranges = new Uint32Array(count * (runtime ? 6 : 4))
   const pairs: number[] = []
   for (let id = 0; id < count; id++) {
     const adjacent = coincident.get(keys[id]!)!
@@ -76,6 +93,13 @@ export function prepareGummySurface(
     ranges[id * 2 + 1] = adjacent.length
     for (const pair of adjacent) pairs.push(pair.face, pair.node)
   }
+  if (runtime)
+    for (let id = 0; id < count; id++) {
+      const tets = runtime.incident[id]!
+      ranges[(count * 2 + id) * 2] = pairs.length / 2
+      ranges[(count * 2 + id) * 2 + 1] = tets.length
+      for (const tet of tets) pairs.push(...tet)
+    }
   for (let id = 0; id < count; id++) {
     const adjacent = local[id]!
     ranges[(count + id) * 2] = pairs.length / 2
@@ -87,7 +111,8 @@ export function prepareGummySurface(
   return {
     ranges,
     adjacent,
-    ...preparePatches(mesh.surface, cutEdges, edgeKey),
+    metadata: runtime?.metadata ?? new Uint32Array(mesh.surface.length),
+    ...preparePatches(mesh.surface, cutEdges, edgeKey, !!runtime),
   }
 }
 
@@ -95,10 +120,12 @@ function preparePatches(
   surface: Uint32Array,
   cutEdges: Map<string, Set<number>>,
   edgeKey: (a: number, b: number) => string,
+  runtime: boolean,
 ) {
   const samples: number[] = []
   // The face prefix stores three list heads (AB, BC, CA). Tail vec4u records
-  // store [interface ID + 1, next head, 0, 0]; head 0 means no tear boundary.
+  // store [interface ID + 1, next head, 0, 0], or EXTERIOR_FACE for permanent
+  // runtime caps; head 0 means no tear boundary.
   // Multiple region interfaces may meet on one rest edge, so a single ID
   // cannot represent every cap that could become visible there.
   const edgeRecords = new Array<number>(surface.length).fill(0)
@@ -112,7 +139,9 @@ function preparePatches(
     const head = edgeRecords.length / 4
     for (let i = 0; i < ids.length; i++) {
       const next = i + 1 < ids.length ? edgeRecords.length / 4 + 1 : 0
-      edgeRecords.push(ids[i]! + 1, next, 0, 0)
+      // A permanent cap uses the reserved maximum word explicitly; never increment an exterior marker.
+      const marker = ids[i] === EXPOSED_TEAR_FACE ? EXTERIOR_FACE : ids[i]! + 1
+      edgeRecords.push(marker, next, 0, 0)
     }
     heads.set(key, head)
     return head
@@ -120,7 +149,7 @@ function preparePatches(
   const emit = (face: number, v: number, w: number) =>
     samples.push(1 - v - w, v, w, face)
   for (let face = 0; face < surface.length / 4; face++) {
-    if (surface[face * 4 + 3] !== EXTERIOR_FACE) {
+    if (surface[face * 4 + 3] !== EXTERIOR_FACE && !runtime) {
       emit(face, 0, 0)
       emit(face, 1, 0)
       emit(face, 0, 1)
@@ -133,8 +162,8 @@ function preparePatches(
     edgeRecords[face * 4] = headFor(edgeKey(a, b))
     edgeRecords[face * 4 + 1] = headFor(edgeKey(b, c))
     edgeRecords[face * 4 + 2] = headFor(edgeKey(c, a))
-    // Two subdivision levels refine only the rendered exterior. Every cubic
-    // patch remains driven by the current simulated triangle and its normals.
+    // Runtime caps share the same subdivision and edge samples as the skin.
+    // Legacy caps remain linear. Every patch follows current simulated nodes.
     const n = 4
     for (let i = 0; i < n; i++)
       for (let j = 0; j < n - i; j++) {

@@ -27,7 +27,7 @@ vi.mock('@/components/GummyBear/GummyBearScene', () => ({
     stubs.scene = props
     createEffect(
       on(
-        () => [props.experiment, props.protocol] as const,
+        () => [props.experiment, props.protocol, props.geometry] as const,
         () => {
           if (!stubs.holdReady) props.onReady?.(true)
         },
@@ -56,6 +56,254 @@ function scene() {
 }
 
 describe('GummyBearPage', () => {
+  it('defaults to fine geometry and resets a changed preset while preserving material choices', () => {
+    render(() => <GummyBearPage />)
+    const fine = screen.getByRole('button', { name: /^Fine$/ })
+    const standard = screen.getByRole('button', { name: 'Standard' })
+    expect(scene().geometry).toBe('fine')
+    expect(fine.getAttribute('aria-pressed')).toBe('true')
+    fireEvent.input(screen.getByRole('slider', { name: /Softness/ }), {
+      target: { value: '0.75' },
+    })
+    fireEvent.input(screen.getByRole('slider', { name: /Fragility/ }), {
+      target: { value: '93' },
+    })
+    fireEvent.click(screen.getByRole('radio', { name: 'Candy' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Allow tearing' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Crumble' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Pause' }))
+    fireEvent.click(fine)
+    expect(scene().paused).toBe(true)
+    expect(scene().resetKey).toBe(1)
+    fireEvent.click(standard)
+    expect(scene().geometry).toBe('standard')
+    expect(scene().paused).toBe(false)
+    expect(scene().demoKey).toBe(0)
+    expect(scene().resetKey).toBe(0)
+    expect(scene().softness).toBe(0.75)
+    expect(scene().fragility).toBe(0.93)
+    expect(scene().tearResponse).toBe('crumble')
+    expect(scene().palette).toBe('candy')
+    expect(scene().tearing).toBe(false)
+    expect(standard.getAttribute('aria-pressed')).toBe('true')
+    expect(fine.getAttribute('aria-pressed')).toBe('false')
+    fireEvent.click(screen.getByRole('button', { name: 'Reset bear' }))
+    expect(scene().geometry).toBe('standard')
+    expect(scene().resetKey).toBe(1)
+    fireEvent.click(standard)
+    expect(scene().resetKey).toBe(1)
+  })
+
+  it('disables geometry changes while loading and retains the preset across comparison modes', () => {
+    render(() => <GummyBearPage />)
+    stubs.holdReady = true
+    fireEvent.click(screen.getByRole('button', { name: 'Standard' }))
+    expect(scene().geometry).toBe('standard')
+    const fine = screen.getByRole('button', { name: /^Fine$/ })
+    expect(fine.closest('fieldset')?.disabled).toBe(true)
+    fireEvent.click(fine)
+    expect(scene().geometry).toBe('standard')
+    stubs.holdReady = false
+    scene().onReady?.(true)
+    fireEvent.click(screen.getByRole('button', { name: 'Squeeze & release' }))
+    expect(screen.queryByRole('group', { name: 'Geometry' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Pull to tear' }))
+    expect(scene().geometry).toBe('standard')
+    for (const model of ['Fine crush', 'Limb pull', 'Particle jelly']) {
+      fireEvent.click(screen.getByRole('button', { name: model }))
+      expect(screen.queryByRole('group', { name: 'Geometry' })).toBeNull()
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'Continuous jelly' }))
+    expect(scene().geometry).toBe('standard')
+    expect(
+      screen
+        .getByRole('button', { name: 'Standard' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true')
+  })
+
+  it('allows a failed Fine scene to recover with Standard while protecting the material controls', () => {
+    render(() => <GummyBearPage />)
+    fireEvent.click(screen.getByRole('radio', { name: 'Candy' }))
+    fireEvent.input(screen.getByRole('slider', { name: /Softness/ }), {
+      target: { value: '0.75' },
+    })
+    scene().onReady?.(false)
+    scene().onError?.('The simulation stopped.')
+    const standard = screen.getByRole('button', { name: 'Standard' })
+    const fine = screen.getByRole('button', { name: /^Fine$/ })
+    const geometryFieldset = standard.closest('fieldset')!
+    const materialFieldset = screen
+      .getByRole('slider', { name: /Softness/ })
+      .closest('fieldset')!
+    expect(geometryFieldset.disabled).toBe(false)
+    expect(materialFieldset.disabled).toBe(true)
+    fireEvent.click(fine)
+    expect(screen.getByRole('alert').textContent).toContain(
+      'The simulation stopped.',
+    )
+    stubs.holdReady = true
+    fireEvent.click(standard)
+    expect(scene().geometry).toBe('standard')
+    expect(scene().palette).toBe('candy')
+    expect(scene().softness).toBe(0.75)
+    expect(scene().tearResponse).toBe('soft')
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(geometryFieldset.disabled).toBe(true)
+    expect(materialFieldset.disabled).toBe(true)
+    fireEvent.click(fine)
+    expect(scene().geometry).toBe('standard')
+    scene().onReady?.(true)
+    expect(geometryFieldset.disabled).toBe(false)
+    expect(materialFieldset.disabled).toBe(false)
+  })
+
+  it('defaults to soft tearing and resets only when the response changes, preserving material choices', () => {
+    render(() => <GummyBearPage />)
+    const soft = screen.getByRole('button', { name: 'Soft tear' })
+    const crumble = screen.getByRole('button', { name: 'Crumble' })
+    expect(scene().tearResponse).toBe('soft')
+    expect(soft.getAttribute('aria-pressed')).toBe('true')
+    expect(crumble.getAttribute('aria-pressed')).toBe('false')
+    fireEvent.click(soft)
+    expect(scene().resetKey).toBe(0)
+    fireEvent.input(screen.getByRole('slider', { name: /Softness/ }), {
+      target: { value: '0.75' },
+    })
+    fireEvent.input(screen.getByRole('slider', { name: /Fragility/ }), {
+      target: { value: '93' },
+    })
+    fireEvent.click(screen.getByRole('radio', { name: 'Candy' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Allow tearing' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Pause' }))
+    fireEvent.click(crumble)
+    expect(scene().tearResponse).toBe('crumble')
+    expect(scene().resetKey).toBe(1)
+    expect(scene().paused).toBe(false)
+    expect(scene().softness).toBe(0.75)
+    expect(scene().fragility).toBe(0.93)
+    expect(scene().palette).toBe('candy')
+    expect(scene().tearing).toBe(false)
+    expect(soft.getAttribute('aria-pressed')).toBe('false')
+    expect(crumble.getAttribute('aria-pressed')).toBe('true')
+    fireEvent.click(crumble)
+    expect(scene().resetKey).toBe(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Reset bear' }))
+    expect(scene().tearResponse).toBe('crumble')
+    expect(scene().resetKey).toBe(2)
+    fireEvent.click(soft)
+    expect(scene().tearResponse).toBe('soft')
+    expect(scene().resetKey).toBe(3)
+  })
+
+  it('shows tear responses only in continuous tear and retains the choice across comparison models', () => {
+    render(() => <GummyBearPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'Crumble' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Squeeze & release' }))
+    expect(screen.queryByRole('group', { name: 'Tear response' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Pull to tear' }))
+    expect(scene().tearResponse).toBe('crumble')
+    expect(
+      screen
+        .getByRole('button', { name: 'Crumble' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true')
+    for (const model of ['Fine crush', 'Limb pull', 'Particle jelly']) {
+      fireEvent.click(screen.getByRole('button', { name: model }))
+      expect(screen.queryByRole('group', { name: 'Tear response' })).toBeNull()
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'Continuous jelly' }))
+    expect(scene().tearResponse).toBe('crumble')
+    expect(scene().protocol).toBe('tear')
+    expect(
+      screen
+        .getByRole('button', { name: 'Crumble' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true')
+  })
+
+  it('places tuning and reset before the lower-priority model comparisons', () => {
+    render(() => <GummyBearPage />)
+    const comparisons = screen.getByRole('group', { name: 'Gummy model' })
+    const fragility = screen.getByRole('slider', { name: /Fragility/ })
+    for (const control of [
+      screen.getByRole('button', { name: 'Reset bear' }),
+      screen.getByRole('group', { name: 'Tear response' }),
+      screen.getByRole('slider', { name: /Softness/ }),
+      fragility,
+    ])
+      expect(
+        control.compareDocumentPosition(comparisons) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).not.toBe(0)
+    expect(
+      screen
+        .getByRole('button', { name: 'Reset bear' })
+        .compareDocumentPosition(fragility) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).not.toBe(0)
+  })
+
+  it('keeps fragility, softness and palette independent across resets and comparison modes', () => {
+    render(() => <GummyBearPage />)
+    const fragility = screen.getByRole<HTMLInputElement>('slider', {
+      name: /Fragility/,
+    })
+    fireEvent.input(fragility, { target: { value: '90' } })
+    fireEvent.input(screen.getByRole('slider', { name: /Softness/ }), {
+      target: { value: '0.75' },
+    })
+    fireEvent.click(screen.getByRole('radio', { name: 'Candy' }))
+    expect(scene().fragility).toBe(0.9)
+    expect(scene().softness).toBe(0.75)
+    expect(scene().palette).toBe('candy')
+    expect(scene().resetKey).toBe(0)
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Allow tearing' }))
+    expect(scene().tearing).toBe(false)
+    fireEvent.click(screen.getByRole('button', { name: 'Reset bear' }))
+    expect(scene().fragility).toBe(0.9)
+    expect(scene().softness).toBe(0.75)
+    expect(scene().palette).toBe('candy')
+    fireEvent.click(screen.getByRole('button', { name: 'Fine crush' }))
+    expect(screen.queryByRole('slider', { name: /Fragility/ })).toBeNull()
+    expect(scene().tearing).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: 'Continuous jelly' }))
+    expect(scene().protocol).toBe('tear')
+    expect(scene().mode).toBe('drag')
+    expect(scene().fragility).toBe(0.9)
+    expect(scene().tearing).toBe(false)
+    expect(
+      screen.getByRole<HTMLInputElement>('slider', { name: /Fragility/ }).value,
+    ).toBe('90')
+  })
+  it('offers a tear load without changing the welded benchmarks or legacy tearing preference', () => {
+    render(() => <GummyBearPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'Pull to tear' }))
+    expect(scene().protocol).toBe('tear')
+    expect(scene().tearing).toBe(true)
+    const checkbox = screen.getByRole<HTMLInputElement>('checkbox', {
+      name: 'Allow tearing',
+    })
+    expect(checkbox.disabled).toBe(false)
+    expect(checkbox.checked).toBe(true)
+    expect(screen.queryByRole('button', { name: 'Demo tear' })).toBeNull()
+    scene().onReplay?.()
+    expect(scene().demoKey).toBe(0)
+    fireEvent.click(checkbox)
+    expect(scene().tearing).toBe(false)
+    fireEvent.click(screen.getByRole('button', { name: 'Stretch & release' }))
+    expect(scene().protocol).toBe('stretch')
+    expect(scene().tearing).toBe(false)
+    expect(checkbox.disabled).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: 'Limb pull' }))
+    expect(scene().tearing).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: 'Continuous jelly' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Pull to tear' }))
+    expect(scene().tearing).toBe(false)
+    expect(checkbox.disabled).toBe(false)
+    expect(scene().demoKey).toBe(0)
+    expect(scene().resetKey).toBe(0)
+    expect(scene().paused).toBe(false)
+  })
   it('adds an isolated particle mode while preserving the incumbent material and replay controls', () => {
     render(() => <GummyBearPage />)
     fireEvent.click(screen.getByRole('radio', { name: 'Lagoon' }))
@@ -112,7 +360,7 @@ describe('GummyBearPage', () => {
         .disabled,
     ).toBe(false)
   })
-  it('places the same demo, pause and reset callbacks beside the canvas on phones', () => {
+  it('places manual pause and reset controls beside the canvas on phones', () => {
     const query = '(max-width: 720px)'
     const original = window.matchMedia.bind(window)
     const compact = {
@@ -131,11 +379,9 @@ describe('GummyBearPage', () => {
     render(() => <GummyBearPage />)
     expect(screen.getByTestId('gummy-studio-actions').hidden).toBe(false)
     expect(screen.getByTestId('gummy-sidebar-actions').hidden).toBe(true)
-    expect(
-      screen.getAllByRole('button', { name: /Demo squeeze/ }),
-    ).toHaveLength(1)
-    fireEvent.click(screen.getByRole('button', { name: /Demo squeeze/ }))
-    expect(scene().demoKey).toBe(1)
+    expect(screen.queryByRole('button', { name: /Demo/ })).toBeNull()
+    expect(scene().mode).toBe('drag')
+    expect(screen.getAllByRole('button', { name: 'Pause' })).toHaveLength(1)
     fireEvent.click(screen.getByRole('button', { name: 'Pause' }))
     expect(scene().paused).toBe(true)
     fireEvent.click(screen.getByRole('button', { name: 'Reset bear' }))
@@ -147,23 +393,24 @@ describe('GummyBearPage', () => {
     ).toContain('Release to let it settle')
   })
 
-  it('starts with continuous marbled jelly and offers explicit pausing and resetting', () => {
+  it('starts with a fragile manual marbled jelly and offers explicit pausing and resetting', () => {
     render(() => <GummyBearPage />)
     expect(scene().palette).toBe('marble')
     expect(scene().experiment).toBe('jelly')
-    expect(scene().protocol).toBe('squeeze')
-    expect(scene().mode).toBe('orbit')
+    expect(scene().protocol).toBe('tear')
+    expect(scene().mode).toBe('drag')
     expect(scene().demoKey).toBe(0)
     expect(scene().softness).toBe(0.55)
-    expect(scene().tearing).toBe(false)
+    expect(scene().fragility).toBe(0.88)
+    expect(scene().tearing).toBe(true)
     const tearing = screen.getByRole<HTMLInputElement>('checkbox', {
       name: 'Allow tearing',
     })
-    expect(tearing.disabled).toBe(true)
-    expect(tearing.checked).toBe(false)
+    expect(tearing.disabled).toBe(false)
+    expect(tearing.checked).toBe(true)
     expect(
       screen.getByText(
-        'This continuous elastic model squashes and stretches. It does not tear.',
+        'Higher fragility breaks connections sooner. Turn tearing off to compare the stretch.',
       ),
     ).toBeTruthy()
     expect(
@@ -173,19 +420,21 @@ describe('GummyBearPage', () => {
     ).toBe('true')
     expect(
       screen.getByRole('status', { name: 'Gummy status' }).textContent,
-    ).toContain('Ready to squeeze')
+    ).toContain('Ready to tear')
+    expect(
+      screen.getByRole<HTMLInputElement>('slider', { name: /Fragility/ }).value,
+    ).toBe('88')
+    expect(screen.queryByRole('button', { name: /Demo/ })).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Pause' }))
     expect(scene().paused).toBe(true)
-    fireEvent.click(screen.getByRole('button', { name: /Demo squeeze/ }))
-    expect(scene().paused).toBe(false)
-    expect(scene().demoKey).toBe(1)
-    expect(screen.getByRole('button', { name: /Replay squeeze/ })).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Reset bear' }))
+    expect(scene().paused).toBe(false)
     expect(scene().resetKey).toBe(1)
-    expect(scene().demoKey).toBe(1)
+    expect(scene().demoKey).toBe(0)
   })
   it('preserves material and legacy tearing choices across all three experiments', () => {
     render(() => <GummyBearPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'Squeeze & release' }))
     fireEvent.click(screen.getByRole('radio', { name: 'Lagoon' }))
     const slider = screen.getByRole<HTMLInputElement>('slider', {
       name: /Softness/,
@@ -234,6 +483,7 @@ describe('GummyBearPage', () => {
   })
   it('resets protocol playback and waits for the new scene while retaining the material', () => {
     render(() => <GummyBearPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'Squeeze & release' }))
     fireEvent.click(screen.getByRole('radio', { name: 'Berry' }))
     fireEvent.input(screen.getByRole('slider', { name: /Softness/ }), {
       target: { value: '0.75' },
@@ -344,8 +594,7 @@ describe('GummyBearPage', () => {
       'The material became unstable.',
     )
     expect(
-      screen.getByRole<HTMLButtonElement>('button', { name: /Demo squeeze/ })
-        .disabled,
+      screen.getByRole<HTMLButtonElement>('button', { name: 'Pause' }).disabled,
     ).toBe(true)
     expect(
       screen.getByRole<HTMLButtonElement>('button', { name: 'Reset bear' })
@@ -360,6 +609,9 @@ describe('GummyBearPage', () => {
     expect(document.title).toBe('Gummy Study · Lumen Apeiron')
     scene().onPauseChange?.(true)
     expect(screen.getByRole('button', { name: 'Resume' })).toBeTruthy()
+    scene().onReplay?.()
+    expect(scene().demoKey).toBe(0)
+    fireEvent.click(screen.getByRole('button', { name: 'Stretch & release' }))
     scene().onReplay?.()
     expect(scene().demoKey).toBe(1)
     scene().onReset?.()

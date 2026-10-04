@@ -2,7 +2,7 @@
 import { d, tgpu } from 'typegpu'
 import { describe, expect, it } from 'vitest'
 import { GUMMY_IOR, GUMMY_MATERIALS, gummyEnvironment, gummyFresnel, gummyOpticalPath, gummyTransmission, gummyUnitNormal, } from './gummyMaterial'
-import { gummyBackgroundFragment, gummyBrokenEdgeFlatten, gummyCausticFragment, gummyCausticVertex, gummyDisplayFragment, gummyExitFragment, gummyFragment, gummyNormalsCompute, gummyShadowFragment, gummyShadowVertex, gummyVertex, } from './gummyShaders'
+import { gummyBackgroundFragment, gummyBrokenEdgeFlatten, gummyCausticFragment, gummyCausticVertex, gummyDisplayFragment, gummyExitFragment, gummyFragment, gummyFrontTagFragment, gummyNormalsCompute, gummyRuntimeExitFragment, gummyShadowFragment, gummyShadowVertex, gummyVertex, } from './gummyShaders'
 
 describe('gummy native shading', () => {
   it('resolves bounded dynamic edge traversal in all surface passes', () => {
@@ -19,6 +19,8 @@ describe('gummy native shading', () => {
   it.each([
     gummyVertex,
     gummyExitFragment,
+    gummyFrontTagFragment,
+    gummyRuntimeExitFragment,
     gummyFragment,
     gummyCausticVertex,
     gummyCausticFragment,

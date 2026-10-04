@@ -2,7 +2,7 @@
 import { common, d } from 'typegpu'
 import { GUMMY_MATERIALS } from './gummyMaterial'
 import { GUMMY_PRESS_THICKNESS } from './gummyPress'
-import { gummyBackgroundFragment, GummyCamera, gummyCameraLayout, gummyCausticFragment, gummyCausticVertex, gummyDisplayFragment, gummyExitFragment, gummyFloorLayout, gummyFragment, gummyMeshLayout, gummyNormalsCompute, gummyNormalsLayout, gummyShadowFragment, gummyShadowVertex, gummyVertex, } from './gummyShaders'
+import { gummyBackgroundFragment, GummyCamera, gummyCameraLayout, gummyCausticFragment, gummyCausticVertex, gummyDisplayFragment, gummyExitFragment, gummyFloorLayout, gummyFragment, gummyFrontTagFragment, gummyMeshLayout, gummyNormalsCompute, gummyNormalsLayout, gummyRuntimeExitFragment, gummyShadowFragment, gummyShadowVertex, gummyVertex, } from './gummyShaders'
 import { prepareGummySurface } from './gummySurface'
 import { createGummyTargets } from './gummyTargets'
 import type { StorageFlag, TgpuBuffer, TgpuRoot } from 'typegpu'
@@ -21,6 +21,7 @@ export type GummyFrame = {
   eye: Float32Array
   palette?: GummyPalette
   clay?: boolean
+  diagnostic?: number
   press?: { height: number; halfExtent: number }
 }
 
@@ -89,6 +90,16 @@ export function createGummyRenderer(
         )
         .$usage('storage'),
     )
+    const metadata = own(
+      root
+        .createBuffer(
+          d.arrayOf(d.vec4u, surface.metadata.length / 4),
+          (buffer) => {
+            buffer.write(surface.metadata.buffer)
+          },
+        )
+        .$usage('storage'),
+    )
     const ranges = own(
       root
         .createBuffer(
@@ -124,6 +135,7 @@ export function createGummyRenderer(
       corners,
       flatEdges,
       restPositions,
+      metadata,
     })
     const normalGroup = root.createBindGroup(gummyNormalsLayout, {
       positions: solver.positions,
@@ -158,12 +170,25 @@ export function createGummyRenderer(
     const exits = root
       .createRenderPipeline({
         vertex: gummyVertex,
-        fragment: gummyExitFragment,
+        fragment: mesh.runtimeFracture
+          ? gummyRuntimeExitFragment
+          : gummyExitFragment,
         targets: {
           world: { format: 'rgba16float' },
           rest: { format: 'rgba16float' },
         },
         primitive: { cullMode: 'front' },
+        depthStencil: depth,
+      })
+      .with(cameraGroup)
+      .with(meshGroup)
+      .withIndexBuffer(indices)
+    const frontTags = root
+      .createRenderPipeline({
+        vertex: gummyVertex,
+        fragment: gummyFrontTagFragment,
+        targets: { format: 'rg16float' },
+        primitive: { cullMode: 'back' },
         depthStencil: depth,
       })
       .with(cameraGroup)
@@ -212,6 +237,7 @@ export function createGummyRenderer(
     root.unwrap(compute)
     root.unwrap(background)
     root.unwrap(exits)
+    if (mesh.runtimeFracture) root.unwrap(frontTags)
     for (const pipeline of [front, shadow, caustic, display])
       root.unwrap(pipeline)
     const sampler = device.createSampler({
@@ -251,7 +277,14 @@ export function createGummyRenderer(
           height = Math.floor(frame.height)
         const key = `${width}:${height}`
         if (key !== sizeKey) {
-          const next = createGummyTargets(root, device, width, height, sampler)
+          const next = createGummyTargets(
+            root,
+            device,
+            width,
+            height,
+            sampler,
+            mesh.runtimeFracture,
+          )
           targets?.destroy()
           targets = next
           sizeKey = key
@@ -259,6 +292,7 @@ export function createGummyRenderer(
         cameraData.set(frame.viewProjection, 0)
         cameraData.set(frame.inverseViewProjection, 16)
         cameraData.set(frame.eye.subarray(0, 3), 32)
+        cameraData[35] = frame.diagnostic ?? 0
         cameraData[36] = width
         cameraData[37] = height
         cameraData[38] = frame.clay ? 1 : 0
@@ -323,6 +357,27 @@ export function createGummyRenderer(
         })
         background.with(floorGroup).with(scene).draw(3)
         scene.end()
+        if (targets!.fronts) {
+          const provenancePass = encoder.beginRenderPass({
+            label: 'Gummy visible component',
+            colorAttachments: [
+              {
+                view: targets!.fronts,
+                clearValue: [0, 0, 0, 0],
+                loadOp: 'clear',
+                storeOp: 'store',
+              },
+            ],
+            depthStencilAttachment: {
+              view: targets!.exitDepth,
+              depthClearValue: 1,
+              depthLoadOp: 'clear',
+              depthStoreOp: 'store',
+            },
+          })
+          frontTags.with(provenancePass).drawIndexed(surface.indices.length)
+          provenancePass.end()
+        }
         const exitPass = encoder.beginRenderPass({
           colorAttachments: [
             {
@@ -345,7 +400,10 @@ export function createGummyRenderer(
             depthStoreOp: 'discard',
           },
         })
-        exits.with(exitPass).drawIndexed(surface.indices.length)
+        const filteredExits = targets!.exitFilter
+          ? exits.with(targets!.exitFilter)
+          : exits
+        filteredExits.with(exitPass).drawIndexed(surface.indices.length)
         exitPass.end()
         const optical = encoder.beginRenderPass({
           colorAttachments: [

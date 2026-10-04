@@ -340,6 +340,12 @@ export const gummyGripAndFloor = tgpu.computeFn({
   gummyNodeLayout.$.positions[id] = d.vec4f(next, p.w)
 })
 
+/** Preserve the original contact retention per 1/120 second under temporal refinement. */
+export const gummyContactRetention = (retention: number, dt: number) => {
+  'use gpu'
+  return std.pow(retention, dt * d.f32(120))
+}
+
 export const gummyFinish = tgpu.computeFn({
   workgroupSize: [64],
   in: { gid: d.builtin.globalInvocationId },
@@ -356,8 +362,9 @@ export const gummyFinish = tgpu.computeFn({
   if (p.w <= 0) velocity = d.vec3f(0)
   if (p.y <= 0.0061) {
     velocity.y = std.max(0, velocity.y)
-    velocity.x *= 0.82
-    velocity.z *= 0.82
+    const retention = gummyContactRetention(0.82, dt)
+    velocity.x *= retention
+    velocity.z *= retention
   }
   const press = gummyNodeLayout.$.params.press
   if (
@@ -367,8 +374,9 @@ export const gummyFinish = tgpu.computeFn({
     p.y >= press.x - 0.0001
   ) {
     velocity.y = std.min(velocity.y, press.w)
-    velocity.x *= 0.85
-    velocity.z *= 0.85
+    const retention = gummyContactRetention(0.85, dt)
+    velocity.x *= retention
+    velocity.z *= retention
   }
   const speed = std.length(velocity)
   velocity = std.mul(velocity, std.min(1, 6 / std.max(speed, 0.000001)))

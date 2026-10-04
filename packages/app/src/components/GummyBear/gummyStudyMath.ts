@@ -9,7 +9,8 @@ export const GUMMY_MAX_STEPS = 8
 export const GUMMY_DEMO_SECONDS = 7.5
 export const GUMMY_CRUSH_SECONDS = 9.6
 export const GUMMY_JELLY_SECONDS = 12
-export type GummyJellyProtocol = 'squeeze' | 'stretch'
+export const GUMMY_JELLY_TEAR_GRIP_RADIUS = 0.2
+export type GummyJellyProtocol = 'squeeze' | 'stretch' | 'tear'
 export type GummyBenchmarkPhase =
   | 'settling'
   | 'loading'
@@ -277,6 +278,37 @@ export function layGummyBearBack(positions: Float32Array): Float32Array {
   return laid
 }
 
+export const GUMMY_JELLY_TEAR_BODY_FIXTURE = Object.freeze({
+  halfWidth: 0.3,
+  minY: 0.85,
+  maxY: 1.2,
+})
+
+/** A second hand holds the waist in the tear study; material coordinates and shared topology stay intact. */
+export function holdGummyTearBody(positions: Float32Array) {
+  if (!positions.length || positions.length % 4)
+    throw new RangeError('The gummy fixture must contain packed xyzw')
+  const held = positions.slice()
+  const width = Math.fround(GUMMY_JELLY_TEAR_BODY_FIXTURE.halfWidth)
+  const low = Math.fround(GUMMY_JELLY_TEAR_BODY_FIXTURE.minY)
+  const high = Math.fround(GUMMY_JELLY_TEAR_BODY_FIXTURE.maxY)
+  let heldNodes = 0
+  for (let i = 0; i < positions.length; i += 4) {
+    const x = positions[i]!,
+      y = positions[i + 1]!,
+      w = positions[i + 3]!
+    if (!Number.isFinite(x + y + positions[i + 2]! + w) || w < 0)
+      throw new RangeError(
+        'The gummy fixture must contain finite positions and non-negative inverse masses',
+      )
+    if (Math.abs(x) <= width && y >= low && y <= high && w > 0) {
+      held[i + 3] = 0
+      heldNodes++
+    }
+  }
+  return { positions: held, heldNodes }
+}
+
 /** Rest bounds describe the actual solver pose, including the laid-back squeeze. */
 export function gummyRestBounds(positions: Float32Array) {
   if (!positions.length || positions.length % 4)
@@ -310,6 +342,24 @@ export function gummyJellyCommand(
   const height = bounds.max[1] - bounds.min[1]
   if (!Number.isFinite(height) || height <= 0)
     throw new RangeError('The jelly benchmark rest height must be positive')
+  if (protocol === 'tear') {
+    if (tick >= 1440) return { phase: 'complete' }
+    if (tick >= 840) return { phase: 'recovering' }
+    const load = smooth((tick - 120) / 480)
+    const center: GummyVec3 = [0.64, 1.24, 0.08]
+    return {
+      phase: tick >= 600 ? 'holding' : tick >= 120 ? 'loading' : 'settling',
+      grip: {
+        center,
+        radius: GUMMY_JELLY_TEAR_GRIP_RADIUS,
+        target: [
+          center[0] + 1.8 * load,
+          center[1] + 0.12 * load,
+          center[2] + 0.08 * load,
+        ],
+      },
+    }
+  }
   let phase: GummyBenchmarkPhase = 'settling'
   if (tick >= 1440) phase = 'complete'
   else if (tick >= 900) phase = 'recovering'

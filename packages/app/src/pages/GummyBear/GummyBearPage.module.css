@@ -45,6 +45,8 @@
   align-items: start;
 }
 .studio {
+  position: sticky;
+  top: 18px;
   min-width: 0;
   border: 1px solid #d5d8d2;
   border-radius: 16px;
@@ -182,6 +184,9 @@
   grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.9fr);
   gap: 6px;
 }
+.actions.manualActions {
+  grid-template-columns: minmax(0, 1fr);
+}
 .compactActions .actionPair {
   gap: 6px;
 }
@@ -266,6 +271,7 @@
   align-items: center;
   gap: 5px;
   min-width: 0;
+  min-height: 44px;
   border: 1px solid transparent;
   border-radius: 7px;
   padding: 7px 5px;
@@ -311,12 +317,18 @@
   color: #71818a;
   font-variant-numeric: tabular-nums;
 }
+.responseControl {
+  margin-bottom: 24px;
+}
+.responseControl > .sliderLabel {
+  margin-bottom: 10px;
+}
 .slider {
   appearance: auto;
   accent-color: #427d98;
   width: 100%;
   margin: 10px 0 20px;
-  height: 18px;
+  height: 44px;
   cursor: pointer;
 }
 .check {
@@ -325,7 +337,7 @@
   gap: 9px;
   font-size: 12px;
   color: #536a75;
-  min-height: 30px;
+  min-height: 44px;
   cursor: pointer;
 }
 .check input {
@@ -403,6 +415,7 @@
     margin-top: 18px;
   }
   .studio {
+    position: static;
     width: 100%;
     border-radius: 12px;
   }
