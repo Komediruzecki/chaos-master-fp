@@ -9,6 +9,7 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { NOT_COVERED } from '@/lib/canvasFraming'
+import { computeExportDimensions } from '@/utils/exportDimensions'
 import { captureVisiblePart, COVERED_ATTRIBUTES, COVERED_BOTTOM_KEY, COVERED_LEFT_KEY, COVERED_RIGHT_KEY, coveredOf, drawVisibleCanvas, visibleCanvasAspect, visibleCanvasRect, visibleClientRect, } from './visibleCanvas'
 import type { ExportImageInfo } from '@/flame/exportImageType'
 
@@ -205,6 +206,26 @@ describe('visibleCanvasAspect', () => {
 
   it('is the canvas aspect when nothing covers it', () => {
     expect(visibleCanvasAspect(laidOut(720, 820))).toBeCloseTo(720 / 820, 6)
+  })
+
+  it("leaves the rail sheet's share out, as the setting-off canvas does", () => {
+    // A 390 x 844 phone with the glass sheet at large: 88% of the viewport
+    // less the 96 px peek covers 646.72 px of the canvas's foot. With the
+    // setting off the canvas keeps its 844 px and slides up under the
+    // opaque sheet, so Auto exports 946 x 2048 there; an aspect folding the
+    // sheet's share gave 2048 x 1036 and a flame about 4.3 times smaller.
+    const canvas = laidOut(390, 844)
+    canvas.dataset.coveredBottom = String((0.88 * 844 - 96) / 844)
+    expect(visibleCanvasAspect(canvas)).toBeCloseTo(390 / 844, 6)
+    expect(
+      computeExportDimensions(2048, 'auto', visibleCanvasAspect(canvas)),
+    ).toEqual({ width: 946, height: 2048 })
+  })
+
+  it('folds the side covers and leaves the sheet out, together', () => {
+    const canvas = laidOut(1100, 820, COVERED)
+    canvas.dataset.coveredBottom = String(COVERED_BOTTOM)
+    expect(visibleCanvasAspect(canvas)).toBeCloseTo(720 / 820, 6)
   })
 })
 

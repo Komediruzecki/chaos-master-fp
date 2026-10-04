@@ -16,7 +16,10 @@
  * - the export-image hook (the flash export, the share link's preview, the
  *   Discord post) is handed the cut by `captureVisiblePart`;
  * - the randomizer history's thumbnail is drawn by `drawVisibleCanvas`;
- * - the export dialog's "match the viewport" aspect is `visibleCanvasAspect`.
+ * - the export dialog's "match the viewport" aspect is `visibleCanvasAspect`,
+ *   which folds the side covers only: an export is rendered whole, at its
+ *   own size, so it matches the setting-off canvas's full height under the
+ *   rail's sheet.
  *
  * And the tour and the replay spotlight, which light the canvas up, take its
  * box from `visibleClientRect`, so neither lights a strip under the chrome.
@@ -102,13 +105,22 @@ export function drawVisibleCanvas(
   context.drawImage(image, sx, sy, sw, sh, 0, 0, width, height)
 }
 
-/** Width over height of what the canvas shows, in CSS px. */
+/**
+ * Width over height of the canvas the setting-off layout would have, in CSS
+ * px: the export dialog's Auto aspect. The side covers are folded, since the
+ * setting-off canvas is exactly the part they leave. The rail sheet's bottom
+ * share is not: with the setting off the canvas keeps its full height and
+ * slides up under the opaque sheet, and an export renders at its own size
+ * with no shift (useViewFraming.ts), so the image Auto gives matches the
+ * setting-off one instead of a strip above the sheet.
+ */
 export function visibleCanvasAspect(canvas: HTMLCanvasElement): number {
-  return visibleAspect(
-    canvas.clientWidth,
-    canvas.clientHeight,
-    coveredOf(canvas),
-  )
+  const { left, right } = coveredOf(canvas)
+  return visibleAspect(canvas.clientWidth, canvas.clientHeight, {
+    left,
+    right,
+    bottom: 0,
+  })
 }
 
 /**
