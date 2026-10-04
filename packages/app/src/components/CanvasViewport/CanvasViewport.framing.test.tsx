@@ -18,7 +18,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { examples } from '@/flame/examples'
 import { NOT_COVERED, setLeadingCover, setTrailingCover, } from '@/lib/canvasFraming'
 import { setGlassPanels } from '@/lib/glass'
-import { CanvasViewport, EDGE_FADE_COLOR, edgeFadeColor, } from './CanvasViewport'
+import { CanvasViewport, EDGE_FADE_COLOR, edgeFadeColor, NO_EDGE_FADE, } from './CanvasViewport'
 import type { CanvasViewportProps } from './CanvasViewport'
 
 // The canvas and the export tracker need WebGPU; the box does not.
@@ -116,6 +116,16 @@ describe('the edge fade', () => {
   it('is off while the glass sidebar floats over the canvas', () => {
     const sidebar = { left: COVERED_LEFT, right: 0, bottom: 0 }
     expect(channels(edgeFadeColor('dark', true, sidebar))).toEqual([0, 0, 0, 0])
+  })
+
+  it('is one value whenever it is off, so a new share writes no uniform', () => {
+    // The memo over it compares by identity: a fresh zero on each change of
+    // the covered shares, which the rail sheet eases every frame, would
+    // rewrite the renderer's uniform each time for the same colour.
+    const sheet = (share: number) => ({ left: 0, right: 0, bottom: share })
+    expect(edgeFadeColor('dark', true, sheet(0.1))).toBe(NO_EDGE_FADE)
+    expect(edgeFadeColor('dark', true, sheet(0.2))).toBe(NO_EDGE_FADE)
+    expect(edgeFadeColor('light', false, NOT_COVERED)).toBe(NO_EDGE_FADE)
   })
 })
 

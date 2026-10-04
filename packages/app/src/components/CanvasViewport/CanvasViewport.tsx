@@ -52,6 +52,14 @@ export const EDGE_FADE_COLOR = {
 }
 
 /**
+ * No fade, as one value: the memo over edgeFadeColor compares by identity,
+ * and the covered shares change every frame while the rail's sheet eases,
+ * so a fresh zero each time would rewrite the renderer's uniform for the
+ * same colour (ClashStage keeps one the same way).
+ */
+export const NO_EDGE_FADE = vec4f(0)
+
+/**
  * What the renderer fades the canvas's rim to: the theme's colour beside the
  * sidebar, and none in full screen or while glass floating over the canvas
  * covers part of it: the tablet deck, the glass desktop sidebar or the rail's
@@ -70,7 +78,7 @@ export function edgeFadeColor(
     covered.right === 0 &&
     covered.bottom === 0
     ? EDGE_FADE_COLOR[theme]
-    : vec4f(0)
+    : NO_EDGE_FADE
 }
 
 /** A covered share for the box's style: unset rather than 0, like the
