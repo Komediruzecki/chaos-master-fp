@@ -267,7 +267,7 @@ describe('FractalExplorerPage link', () => {
       `${window.location.origin}/explore${formatExplorerHash(linked)}`,
     )
     expect(stubs.showToast).toHaveBeenCalledWith(
-      'Link copied: it reopens this exact view.',
+      'Link copied: it reopens this view in these colours.',
     )
   })
 
@@ -281,6 +281,57 @@ describe('FractalExplorerPage link', () => {
         'Could not reach the clipboard. The address bar has the same link.',
       )
     })
+  })
+})
+
+describe('FractalExplorerPage colour', () => {
+  // A slider's name is its label and its value, both inside the <label>.
+  const slider = (label: string) =>
+    screen.getByRole('slider', { name: (name) => name.startsWith(label) })
+
+  beforeEach(() => {
+    vi.useFakeTimers()
+  })
+
+  it('opens a link in its colours', () => {
+    open({
+      ...DEFAULT_LOCATION,
+      colourCycle: 181,
+      colourShift: 0.25,
+      relief: 0.8,
+    })
+    expect(stubs.renderers[0]?.colour()).toMatchObject({
+      period: 181,
+      phase: 0.25,
+      relief: 0.8,
+    })
+    expect(slider('Relief')).toHaveProperty('valueAsNumber', 0.8)
+  })
+
+  it('writes each colour change to the link', () => {
+    open(DEFAULT_LOCATION)
+    fireEvent.input(slider('Colour shift'), { target: { value: '0.25' } })
+    fireEvent.input(slider('Relief'), { target: { value: '0.8' } })
+    expect(stubs.renderers[0]?.colour()).toMatchObject({
+      phase: 0.25,
+      relief: 0.8,
+    })
+    expect(writtenHash()).toBe(
+      formatExplorerHash({
+        ...DEFAULT_LOCATION,
+        colourShift: 0.25,
+        relief: 0.8,
+      }),
+    )
+  })
+
+  it('leaves the colours alone while the view moves', () => {
+    // A new colour object would recolour the picture on every pan.
+    open(DEFAULT_LOCATION)
+    const main = stubs.renderers[0]
+    const colour = main?.colour()
+    main?.setView({ ...MANDELBROT_HOME, zoomLog2: 3 })
+    expect(main?.colour()).toBe(colour)
   })
 })
 
