@@ -14,6 +14,12 @@
  * the wider layout's, so no fractional width falls between the two.
  */
 
+/* The whole page takes a dropped picture (Dropzone draws the highlight). */
+.dropTarget {
+  position: fixed;
+  inset: 0;
+}
+
 .page {
   position: fixed;
   inset: 0;
@@ -169,15 +175,29 @@
   }
 
   /* The edge, not the glyph: accent on the 72% fill is 2.86:1 over white. */
-  &:hover,
+  &:hover:not(:disabled),
   &[aria-pressed='true'] {
     border-color: var(--la-accent);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
   }
 
   &:focus-visible {
     outline: 2px solid var(--la-accent);
     outline-offset: 2px;
   }
+}
+
+/* Undo and redo, under the back button: clear of the panel at every width. */
+.history {
+  position: absolute;
+  top: calc(var(--la-safe-top) + 2 * var(--la-s-3) + var(--la-tap));
+  left: calc(var(--la-safe-left) + var(--la-s-3));
+  display: flex;
+  gap: var(--la-s-2);
 }
 
 .titleBlock {
