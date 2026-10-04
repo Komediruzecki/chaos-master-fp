@@ -351,6 +351,28 @@ export function FractalExplorerPage() {
                   : 'Mandelbrot set'}
             </span>
           </div>
+          <div class={ui.history} role="group" aria-label="Undo and redo">
+            <button
+              type="button"
+              class={ui.iconButton}
+              aria-label="Undo"
+              title="Undo (Ctrl+Z)"
+              disabled={!canUndo()}
+              onClick={undo}
+            >
+              <Undo />
+            </button>
+            <button
+              type="button"
+              class={ui.iconButton}
+              aria-label="Redo"
+              title="Redo (Ctrl+Shift+Z)"
+              disabled={!canRedo()}
+              onClick={redo}
+            >
+              <Redo />
+            </button>
+          </div>
           <dl class={ui.readouts}>
             <div>
               <dt>Zoom</dt>
@@ -382,29 +404,6 @@ export function FractalExplorerPage() {
             <Settings />
           </button>
         </header>
-
-        <div class={ui.history} role="group" aria-label="Undo and redo">
-          <button
-            type="button"
-            class={ui.iconButton}
-            aria-label="Undo"
-            title="Undo (Ctrl+Z)"
-            disabled={!canUndo()}
-            onClick={undo}
-          >
-            <Undo />
-          </button>
-          <button
-            type="button"
-            class={ui.iconButton}
-            aria-label="Redo"
-            title="Redo (Ctrl+Shift+Z)"
-            disabled={!canRedo()}
-            onClick={redo}
-          >
-            <Redo />
-          </button>
-        </div>
 
         <Show when={panelOpen()}>
           <aside class={ui.panel} aria-label="Explorer settings">
