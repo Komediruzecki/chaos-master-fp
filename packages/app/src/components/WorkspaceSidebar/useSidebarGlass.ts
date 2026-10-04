@@ -27,10 +27,11 @@
  * setting off, and an image taken off the canvas is the one the setting-off
  * canvas gives, the same size included. It is measured rather than taken from
  * the compact or wide width, since the sidebar is fluid below 1200 px, and it
- * follows the sidebar as it resizes.
+ * follows the sidebar as it resizes, once each resize settles.
  */
 import { createEffect, createMemo, onCleanup } from 'solid-js'
 import { useTheme } from '@/contexts/ThemeContext'
+import { CANVAS_RESIZE_DEBOUNCE_MS } from '@/defaults'
 import { setLeadingCover } from '@/lib/canvasFraming'
 import { optionalPanelGlass } from '@/lib/glass'
 import type { Accessor } from 'solid-js'
@@ -88,20 +89,29 @@ export function useSidebarGlass(options: SidebarGlassOptions): SidebarGlass {
 
   // Measured at once when the sidebar starts floating, so the canvas box
   // spans the column in the same frame, and again whenever it resizes: the
-  // compact and wide widths, and the fluid width below 1200 px.
+  // compact and wide widths, and the fluid width below 1200 px. A resize
+  // waits for CANVAS_RESIZE_DEBOUNCE_MS of quiet, as the canvas's own size
+  // does (utils/useElementSize.ts): dragging the window's edge resizes the
+  // fluid sidebar every frame, and each new cover would shift the camera
+  // and restart the flame's accumulation, so the cover lands once, with the
+  // canvas's width. Docking clears a resize still waiting.
   createEffect(() => {
     const element = options.element()
     if (!floats() || !element) {
       setLeadingCover(0)
       return
     }
-    const measure = () => {
-      setLeadingCover(sidebarCover(element))
-    }
-    measure()
-    const observer = new ResizeObserver(measure)
+    setLeadingCover(sidebarCover(element))
+    let settle: number | undefined
+    const observer = new ResizeObserver(() => {
+      window.clearTimeout(settle)
+      settle = window.setTimeout(() => {
+        setLeadingCover(sidebarCover(element))
+      }, CANVAS_RESIZE_DEBOUNCE_MS)
+    })
     observer.observe(element, { box: 'border-box' })
     onCleanup(() => {
+      window.clearTimeout(settle)
       observer.disconnect()
     })
   })

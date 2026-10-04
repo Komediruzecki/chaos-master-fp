@@ -10,6 +10,7 @@ import { render } from '@solidjs/testing-library'
 import { createSignal } from 'solid-js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ThemeContextProvider, useTheme } from '@/contexts/ThemeContext'
+import { CANVAS_RESIZE_DEBOUNCE_MS } from '@/defaults'
 import { leadingCover } from '@/lib/canvasFraming'
 import { setGlassPanels } from '@/lib/glass'
 import { CANVAS_TUCK_REM, useSidebarGlass } from './useSidebarGlass'
@@ -84,12 +85,14 @@ function mount(width = 416) {
 }
 
 beforeEach(() => {
+  vi.useFakeTimers()
   FakeResizeObserver.instances = []
   vi.stubGlobal('ResizeObserver', FakeResizeObserver)
   setGlassPanels(true)
 })
 
 afterEach(() => {
+  vi.useRealTimers()
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
   setGlassPanels(true)
@@ -163,10 +166,50 @@ describe('the glass desktop sidebar', () => {
     // 21rem.
     sidebar.resize(336)
     observer.resize()
+    vi.advanceTimersByTime(CANVAS_RESIZE_DEBOUNCE_MS)
     expect(leadingCover()).toBeCloseTo(336 - TUCK_PX, 6)
 
     setShown(false)
     expect(observer.disconnect).toHaveBeenCalled()
+    unmount()
+  })
+
+  it('lands a resize with the canvas, not on every frame of a drag', () => {
+    // Dragging the window's edge below 1200 px resizes the fluid sidebar
+    // every frame. Each new cover would shift the camera and restart the
+    // flame's accumulation, so it waits for the drag to settle, as the
+    // canvas's own size does (useElementSize.ts), and the two land together.
+    const { sidebar, unmount } = mount(400)
+    const observer = FakeResizeObserver.instances.at(-1)!
+
+    for (const width of [396, 390, 384, 378]) {
+      sidebar.resize(width)
+      observer.resize()
+      vi.advanceTimersByTime(16)
+      expect(leadingCover()).toBeCloseTo(400 - TUCK_PX, 6)
+    }
+    vi.advanceTimersByTime(CANVAS_RESIZE_DEBOUNCE_MS - 17)
+    expect(leadingCover()).toBeCloseTo(400 - TUCK_PX, 6)
+    vi.advanceTimersByTime(1)
+    expect(leadingCover()).toBeCloseTo(378 - TUCK_PX, 6)
+    unmount()
+  })
+
+  it('docks at once, and a resize still waiting does not float it again', () => {
+    const { sidebar, setTheme, unmount } = mount(416)
+    const observer = FakeResizeObserver.instances.at(-1)!
+
+    sidebar.resize(336)
+    observer.resize()
+    setTheme('light')
+    expect(leadingCover()).toBe(0)
+    vi.advanceTimersByTime(CANVAS_RESIZE_DEBOUNCE_MS)
+    expect(leadingCover()).toBe(0)
+
+    // Floating again is at once too, so the box spans the column in the
+    // same frame.
+    setTheme('dark')
+    expect(leadingCover()).toBeCloseTo(336 - TUCK_PX, 6)
     unmount()
   })
 
