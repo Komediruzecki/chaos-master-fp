@@ -12,9 +12,12 @@ const css = readCss('components/Shell/ShellBar.module.css')
 /**
  * The declarations of the rules whose selector is exactly `selector`, with
  * whitespace folded - so a selector prettier wrapped over three lines is one
- * string again, which is how the Android rules are written.
+ * string again, which is how the Android rules are written. Top-level rules
+ * only: a declaration moved into an @media block applies only sometimes,
+ * and must fail the guard that pins it.
  */
-const declarations = (selector: string) => declarationsFor(css, selector)
+const declarations = (selector: string) =>
+  declarationsFor(css, selector, { topLevel: true })
 
 describe('the shell bar stylesheet', () => {
   it('lifts the expanded capsule bar over the row beside it', () => {

@@ -104,6 +104,21 @@ describe('declarationsFor', () => {
     expect(declarationsFor(CSS, '.other:is(.x, .y)')).toBe('color: green;')
     expect(declarationsFor(CSS, '.x')).toBe('')
   })
+
+  it('keeps to the rules outside every at-rule when asked to', () => {
+    // A guard that pins a declaration on the rule itself must not pass when
+    // the declaration moves into an @media block, where it applies only
+    // sometimes.
+    const topLevel = { topLevel: true }
+    expect(declarationsFor(CSS, '.card', topLevel)).toBe(
+      'color: red;\nbackground: url("a;b.png");',
+    )
+    expect(declarationsFor(CSS, '.card:hover', topLevel)).toBe('color: blue;')
+    expect(declarationsFor(CSS, '.other:is(.x, .y)', topLevel)).toBe('')
+    const nested = '.a { color: red; @media (hover: hover) { color: blue } }'
+    expect(declarationsFor(nested, '.a')).toBe('color: red;\ncolor: blue;')
+    expect(declarationsFor(nested, '.a', topLevel)).toBe('color: red;')
+  })
 })
 
 describe('the selector helpers', () => {

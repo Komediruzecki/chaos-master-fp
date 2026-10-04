@@ -5,7 +5,9 @@ import { SHEET_EASING, SHEET_TRANSITION_MS } from './detents'
 /** The row's arithmetic lives in the stylesheet; the test DOM applies no CSS. */
 const css = readCss('components/TouchSurface/EditorRail.module.css')
 
-const declarations = (selector: string) => declarationsFor(css, selector)
+/** Top-level rules only: inside an @media block a rule applies sometimes. */
+const declarations = (selector: string) =>
+  declarationsFor(css, selector, { topLevel: true })
 
 describe('the editor rail stylesheet', () => {
   it('lets the chips narrow past the tap token, keeping their height', () => {

@@ -13,7 +13,8 @@
  *   - `blockOf` is the text of the first block a header opens, nested
  *     blocks included; `ownDeclarations` a block's own, nested left out;
  *   - `declarationsFor` is every declaration any rule applies to a
- *     selector, in document order, whatever at-rule or nesting it is in.
+ *     selector, in document order, whatever at-rule or nesting it is in,
+ *     or with `topLevel` only the rules outside every at-rule.
  *
  * A test that reads a file through this module reaches the tree without an
  * import edge, so it belongs on the always-on list
@@ -42,6 +43,11 @@ export interface Block {
    * at-rule applies to its parent's; at the top level, to none.
    */
   selectors: string[]
+  /**
+   * The block is an at-rule, or an at-rule holds it at any depth: its
+   * declarations apply only when that @media, @supports or the like does.
+   */
+  conditional: boolean
   line: number
   declarations: Declaration[]
 }
@@ -119,9 +125,11 @@ export function blocksOf(css: string): Block[] {
       text += ch
     } else if (ch === '{') {
       const selector = text.trim().replace(/\s+/g, ' ')
+      const parent = open.at(-1)
       const block: Block = {
         selector,
-        selectors: resolve(selector, open.at(-1)?.selectors ?? []),
+        selectors: resolve(selector, parent?.selectors ?? []),
+        conditional: isConditional(selector, parent),
         line: textLine,
         declarations: [],
       }
@@ -138,6 +146,11 @@ export function blocksOf(css: string): Block[] {
     }
   }
   return blocks
+}
+
+/** Whether a block opened by `selector` inside `parent` is an at-rule's. */
+function isConditional(selector: string, parent: Block | undefined): boolean {
+  return selector.startsWith('@') || parent?.conditional === true
 }
 
 /** A block's selectors, from its own and its parent's. */
@@ -216,15 +229,29 @@ export function ownDeclarations(block: string): Map<string, string> {
   return new Map(own!.declarations.map((d) => [d.property, d.value]))
 }
 
+export interface DeclarationsForOptions {
+  /**
+   * Only the rules outside every at-rule: what the selector always gets,
+   * for a guard that pins a declaration on the rule itself and must fail
+   * when it moves into an @media block. Off by default.
+   */
+  topLevel?: boolean
+}
+
 /**
  * Every declaration a rule applies to `selector`, as `property: value;`
  * lines in document order: each rule whose selector list, nesting resolved
- * and spaces folded, holds `selector` exactly, in any at-rule. Empty when
- * no rule does.
+ * and spaces folded, holds `selector` exactly, in any at-rule unless
+ * `topLevel` asks for the rules outside them only. Empty when no rule does.
  */
-export function declarationsFor(css: string, selector: string): string {
+export function declarationsFor(
+  css: string,
+  selector: string,
+  { topLevel = false }: DeclarationsForOptions = {},
+): string {
   const wanted = selector.trim().replace(/\s+/g, ' ')
   return blocksOf(css)
+    .filter((block) => !(topLevel && block.conditional))
     .filter((block) => block.selectors.includes(wanted))
     .flatMap((block) => block.declarations)
     .map(({ property, value }) => `${property}: ${value};`)
