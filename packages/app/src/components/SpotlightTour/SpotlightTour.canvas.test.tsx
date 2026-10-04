@@ -1,17 +1,17 @@
 /**
  * A tour step on the canvas lights up only the part of it on show. With the
  * Glass panels setting on, the canvas runs on under the floating tablet
- * deck and the glass desktop sidebar, which say how much of it they cover
- * (data-covered-right and data-covered-left,
- * CanvasViewport/visibleCanvas.ts): the hole stops where the deck starts and
- * starts where the sidebar ends, and moves when either opens or closes,
- * which resizes nothing.
+ * deck, the glass desktop sidebar and the rail's glass sheet, and says how
+ * much of it each covers (data-covered-right, data-covered-left and
+ * data-covered-bottom, CanvasViewport/visibleCanvas.ts): the hole stops
+ * where the deck starts, starts where the sidebar ends and ends where the
+ * sheet begins, and moves when any of them opens, closes or eases, which
+ * resizes nothing. The attribute alone moves it.
  */
 import { cleanup, render } from '@solidjs/testing-library'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createSpotlightTourState, SpotlightTourContext, } from '@/contexts/SpotlightTourContext'
 import { ThemeContextProvider } from '@/contexts/ThemeContext'
-import { setLeadingCover, setTrailingCover } from '@/lib/canvasFraming'
 import { SpotlightTour } from './SpotlightTour'
 import type { TourContext, TourGuide } from './tourTypes'
 
@@ -75,9 +75,19 @@ function hole() {
   }
 }
 
+/** The hole's rows, from the same mask. */
+function holeRows() {
+  const rect = document.querySelector('#spotlight-mask rect[fill="black"]')
+  return {
+    y: Number(rect?.getAttribute('y')),
+    height: Number(rect?.getAttribute('height')),
+  }
+}
+
+/** Until a MutationObserver has seen an attribute change: one microtask. */
+const observed = () => Promise.resolve()
+
 afterEach(() => {
-  setTrailingCover(0)
-  setLeadingCover(0)
   cleanup()
   document.body.replaceChildren()
   vi.restoreAllMocks()
@@ -114,13 +124,11 @@ describe('a tour step on the canvas', () => {
     expect(hole().x).toBe(80 - PADDING)
 
     canvas.dataset.coveredLeft = String(200 / 1100)
-    setLeadingCover(200)
-    await Promise.resolve()
+    await observed()
     expect(hole().x).toBeCloseTo(280 - PADDING, 6)
 
     delete canvas.dataset.coveredLeft
-    setLeadingCover(0)
-    await Promise.resolve()
+    await observed()
     expect(hole().x).toBe(80 - PADDING)
   })
 
@@ -131,13 +139,36 @@ describe('a tour step on the canvas', () => {
 
     // What the canvas does as the deck opens (useViewFraming.ts).
     canvas.dataset.coveredRight = String(COVERED)
-    setTrailingCover(380)
-    await Promise.resolve()
+    await observed()
     expect(hole().width).toBe(720 + 2 * PADDING)
 
     delete canvas.dataset.coveredRight
-    setTrailingCover(0)
-    await Promise.resolve()
+    await observed()
     expect(hole().width).toBe(1100 + 2 * PADDING)
+  })
+
+  it("stops above the rail's glass sheet", () => {
+    // A quarter of the box's 820 px under the sheet past peek.
+    workspace().dataset.coveredBottom = String(0.25)
+    mountTour()
+
+    // The box starts at the top edge, where the hole is clamped.
+    expect(holeRows()).toEqual({ y: 0, height: 615 + 2 * PADDING })
+  })
+
+  it('measures again when the sheet rises or settles over it', async () => {
+    // The sheet's share eases with the sheet and resizes nothing, and no
+    // cover signal carries it: only the canvas's attribute says it moved.
+    const canvas = workspace()
+    mountTour()
+    expect(holeRows().height).toBe(820 + 2 * PADDING)
+
+    canvas.dataset.coveredBottom = String(0.25)
+    await observed()
+    expect(holeRows().height).toBe(615 + 2 * PADDING)
+
+    delete canvas.dataset.coveredBottom
+    await observed()
+    expect(holeRows().height).toBe(820 + 2 * PADDING)
   })
 })

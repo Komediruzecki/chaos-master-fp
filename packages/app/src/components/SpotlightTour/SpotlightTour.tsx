@@ -1,10 +1,9 @@
-import { createEffect, createSignal, For, on, onCleanup, Show } from 'solid-js'
+import { createEffect, createSignal, For, onCleanup, Show } from 'solid-js'
 import { Portal } from 'solid-js/web'
 import { pilotOwnsKeyboard } from '@/arcade/pilot'
-import { visibleClientRect } from '@/components/CanvasViewport/visibleCanvas'
+import { COVERED_ATTRIBUTES, visibleClientRect, } from '@/components/CanvasViewport/visibleCanvas'
 import { useSpotlightTour } from '@/contexts/SpotlightTourContext'
 import { useTheme } from '@/contexts/ThemeContext'
-import { leadingCover, trailingCover } from '@/lib/canvasFraming'
 import { isTouchLayout } from '@/stores/workspaceLayoutStore'
 import { clamp } from '@/utils/easing'
 import ui from './SpotlightTour.module.css'
@@ -109,7 +108,7 @@ export function SpotlightTour(props: SpotlightTourProps) {
     void (target as HTMLElement).offsetHeight
 
     // Only the part of the canvas on show: with the Glass panels setting on,
-    // it runs on under the floating tablet deck.
+    // it runs on under the floating deck, sidebar and rail sheet.
     const targetRect = visibleClientRect(target)
     const vw = window.innerWidth
     const vh = window.innerHeight
@@ -289,21 +288,25 @@ export function SpotlightTour(props: SpotlightTourProps) {
   })
 
   // Chrome floating over the canvas - the tablet deck opening, closing or
-  // being resized, the glass sidebar floating or not - changes what is on
-  // show of the canvas, which no resize or scroll reports. The canvas takes
-  // the new share in an effect of its own, so the tour measures after it.
-  createEffect(
-    on(
-      [leadingCover, trailingCover],
-      () => {
-        if (tour.isActive())
-          queueMicrotask(() => {
-            measureAndPosition()
-          })
-      },
-      { defer: true },
-    ),
-  )
+  // being resized, the glass sidebar floating or not, the rail's glass sheet
+  // rising or settling - changes what is on show of the canvas, which no
+  // resize or scroll reports. The canvas says so in its covered attributes
+  // (CanvasViewport/visibleCanvas.ts), which it writes after taking the new
+  // share, so the tour watches those, as the replay spotlight does.
+  createEffect(() => {
+    if (!tour.isActive()) return
+    const observer = new MutationObserver(() => {
+      measureAndPosition()
+    })
+    observer.observe(document.body, {
+      subtree: true,
+      attributes: true,
+      attributeFilter: [...COVERED_ATTRIBUTES],
+    })
+    onCleanup(() => {
+      observer.disconnect()
+    })
+  })
 
   // Call beforeShow/afterHide hooks on step transitions and reposition spotlight
   let prevStep: { step: ReturnType<typeof step>; index: number } | null = null
