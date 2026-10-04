@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { JULIA_HOME } from './deepZoomView'
-import { DEFAULT_LOCATION, explorerDecimal, formatExplorerHash, MAX_ITERATIONS, parseExplorerHash, } from './explorerUrl'
+import { DEFAULT_COLOUR_CYCLE, DEFAULT_COLOUR_SHIFT, DEFAULT_LOCATION, DEFAULT_RELIEF, explorerDecimal, formatExplorerHash, MAX_COLOUR_CYCLE, MAX_ITERATIONS, MIN_COLOUR_CYCLE, parseExplorerHash, } from './explorerUrl'
 import type { ExplorerLocation } from './explorerUrl'
 
 describe('explorer URL fragment', () => {
@@ -15,6 +15,9 @@ describe('explorer URL fragment', () => {
       juliaC: { re: '-0.12256116687665', im: '0.74486176661974' },
       maxIterations: 5000,
       paletteId: 'fire-2',
+      colourCycle: 181,
+      colourShift: 0.255,
+      relief: 0.73,
       split: false,
       juliaView: JULIA_HOME,
     }
@@ -35,6 +38,9 @@ describe('explorer URL fragment', () => {
       },
       maxIterations: 20000,
       paletteId: undefined,
+      colourCycle: MAX_COLOUR_CYCLE,
+      colourShift: 1,
+      relief: 0,
       split: true,
       juliaView: { centerRe: '0.125', centerIm: '-0.5', zoomLog2: 3.25 },
     }
@@ -67,7 +73,7 @@ describe('explorer URL fragment', () => {
 
   it('falls back field by field on malformed input', () => {
     const parsed = parseExplorerHash(
-      '#julia?re=abc&im=1e-3&z=Infinity&it=-5&p=<script>',
+      '#julia?re=abc&im=1e-3&z=Infinity&it=-5&p=<script>&cycle=abc&shift=&relief=NaN',
     )
     expect(parsed.kind).toBe('julia')
     expect(parsed.view.centerRe).toBe('0')
@@ -75,6 +81,64 @@ describe('explorer URL fragment', () => {
     expect(parsed.view.zoomLog2).toBe(0)
     expect(parsed.maxIterations).toBe(16)
     expect(parsed.paletteId).toBeUndefined()
+    expect(parsed.colourCycle).toBe(DEFAULT_COLOUR_CYCLE)
+    expect(parsed.colourShift).toBe(DEFAULT_COLOUR_SHIFT)
+    expect(parsed.relief).toBe(DEFAULT_RELIEF)
+  })
+
+  it('carries the colour settings, so a link reopens the look as well as the place', () => {
+    // A link written before the colours rode along opens with the defaults,
+    // as every link did then.
+    const older = parseExplorerHash(
+      '#mandelbrot?re=-0.6245720880099235&im=0.4523907982835176&z=28.6&it=4000000&p=official-111',
+    )
+    expect(older).toMatchObject({
+      paletteId: 'official-111',
+      colourCycle: DEFAULT_COLOUR_CYCLE,
+      colourShift: DEFAULT_COLOUR_SHIFT,
+      relief: DEFAULT_RELIEF,
+    })
+    const hash = formatExplorerHash({
+      ...older,
+      colourCycle: 181,
+      colourShift: 0.255,
+      relief: 0.73,
+    })
+    expect(hash).toContain('&p=official-111&cycle=181&shift=0.255&relief=0.73')
+    // At their defaults too, so a link keeps its look if a default changes.
+    expect(formatExplorerHash(DEFAULT_LOCATION)).toContain(
+      '&cycle=64&shift=0&relief=0.5',
+    )
+  })
+
+  it('writes the cycle in whole iterations and the rest without float noise', () => {
+    // The cycle slider moves in steps of a twentieth of an octave, and the
+    // colour pass rounds to whole iterations.
+    const hash = formatExplorerHash({
+      ...DEFAULT_LOCATION,
+      colourCycle: 2 ** 6.05,
+      colourShift: 0.1 + 0.2,
+      relief: 0.7000000000000001,
+    })
+    expect(hash).toContain('&cycle=66&shift=0.3&relief=0.7')
+  })
+
+  it('holds each colour setting to its slider', () => {
+    expect(
+      parseExplorerHash('#mandelbrot?cycle=1e9&shift=2&relief=-1'),
+    ).toMatchObject({
+      colourCycle: MAX_COLOUR_CYCLE,
+      colourShift: 1,
+      relief: 0,
+    })
+    expect(
+      parseExplorerHash('#mandelbrot?cycle=0.5&shift=-3&relief=7'),
+    ).toMatchObject({
+      colourCycle: MIN_COLOUR_CYCLE,
+      colourShift: 0,
+      relief: 1,
+    })
+    expect(parseExplorerHash('#mandelbrot?cycle=99.6').colourCycle).toBe(100)
   })
 
   it('clamps iterations and treats an empty fragment as the default', () => {

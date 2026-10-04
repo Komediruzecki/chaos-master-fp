@@ -14,6 +14,7 @@ import { ChevronLeft, Settings, SplitView } from '@/icons'
 import { AutoCanvas } from '@/lib/AutoCanvas'
 import { downloadBlob } from '@/utils/blob'
 import { ExplorerControls } from './ExplorerControls'
+import { explorerFileName } from './explorerFileName'
 import { createExplorerLocation } from './explorerLocation'
 import { explorerMode, withHome, withJuliaFromCentre, withMode, } from './explorerModes'
 import { resolvePalette } from './explorerPalette'
@@ -91,9 +92,12 @@ export function FractalExplorerPage() {
   // must not reach the lookup.
   const paletteId = createMemo(() => location().paletteId)
   const palette = createMemo(() => resolvePalette(paletteId(), picked()))
-  const [period, setPeriod] = createSignal(64)
-  const [phase, setPhase] = createSignal(0)
-  const [relief, setRelief] = createSignal(0.5)
+  // The colour settings are part of the location too, so a link brings the
+  // look along with the view. A memo each: a pan makes a new location, and
+  // the colour pass must not hear about it.
+  const colourCycle = createMemo(() => location().colourCycle)
+  const colourShift = createMemo(() => location().colourShift)
+  const relief = createMemo(() => location().relief)
   const [quality, setQuality] = createSignal<Quality>('balanced')
   const [panelOpen, setPanelOpen] = createSignal(
     typeof window.matchMedia === 'function' &&
@@ -136,8 +140,8 @@ export function FractalExplorerPage() {
   const samples = () => QUALITY[quality()].samples
 
   const colour = createMemo<ColourSetup>(() => ({
-    period: period(),
-    phase: phase(),
+    period: colourCycle(),
+    phase: colourShift(),
     relief: relief(),
     interior: [0.015, 0.015, 0.02],
     background: [0.05, 0.055, 0.07],
@@ -155,7 +159,7 @@ export function FractalExplorerPage() {
   async function copyLink() {
     try {
       await globalThis.navigator.clipboard.writeText(link())
-      showToast('Link copied: it reopens this exact view.')
+      showToast('Link copied: it reopens this view in these colours.')
     } catch {
       showToast(
         'Could not reach the clipboard. The address bar has the same link.',
@@ -171,14 +175,10 @@ export function FractalExplorerPage() {
     const sideBySide =
       !mainPane || !juliaPane || juliaPane.offsetLeft > mainPane.offsetLeft
     const canvas = drawShots(julia ? [main, julia] : [main], sideBySide)
+    // Named for the moment Save was pressed, not when the encoder finished.
+    const fileName = explorerFileName(location(), new Date())
     canvas?.toBlob((blob) => {
-      if (!blob) return
-      const zoom = formatMagnification(location().view.zoomLog2).replace(
-        '.',
-        '_',
-      )
-      const name = split() ? 'mandelbrot-julia' : location().kind
-      downloadBlob(blob, `${name}-x${zoom}.png`)
+      if (blob) downloadBlob(blob, fileName)
     }, 'image/png')
   }
 
@@ -320,8 +320,8 @@ export function FractalExplorerPage() {
             mode={mode()}
             status={status()}
             palette={palette()}
-            period={period()}
-            phase={phase()}
+            period={colourCycle()}
+            phase={colourShift()}
             relief={relief()}
             quality={quality()}
             onMode={setMode}
@@ -342,9 +342,15 @@ export function FractalExplorerPage() {
                 update({ paletteId: next.id })
               })
             }}
-            onPeriod={setPeriod}
-            onPhase={setPhase}
-            onRelief={setRelief}
+            onPeriod={(colourCycle) => {
+              update({ colourCycle })
+            }}
+            onPhase={(colourShift) => {
+              update({ colourShift })
+            }}
+            onRelief={(relief) => {
+              update({ relief })
+            }}
             onQuality={setQuality}
             onHome={() => {
               go(withHome(location()))

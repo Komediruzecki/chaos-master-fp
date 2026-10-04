@@ -2,7 +2,7 @@
  * The explorer's settings panel: which fractal, the Julia constant, the
  * iteration limit, colouring, render quality, and the view actions.
  */
-import { clampIterations, explorerDecimal } from '@chaos-master/core'
+import { clampIterations, explorerDecimal, MAX_COLOUR_CYCLE, MIN_COLOUR_CYCLE, } from '@chaos-master/core'
 import { createSignal, For, Show } from 'solid-js'
 import { PaletteSelector } from '@/components/PaletteSelector/PaletteSelector'
 import { Slider } from '@/components/Sliders/Slider'
@@ -251,8 +251,8 @@ export function ExplorerControls(props: ExplorerControlsProps) {
         <Slider
           label="Colour cycle"
           value={Math.log2(props.period)}
-          min={1}
-          max={14}
+          min={Math.log2(MIN_COLOUR_CYCLE)}
+          max={Math.log2(MAX_COLOUR_CYCLE)}
           step={0.05}
           formatValue={(v) => `${Math.round(2 ** v)}`}
           onInput={(v) => {
