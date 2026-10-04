@@ -14,6 +14,7 @@ import { ChevronLeft, Settings, SplitView } from '@/icons'
 import { AutoCanvas } from '@/lib/AutoCanvas'
 import { downloadBlob } from '@/utils/blob'
 import { ExplorerControls } from './ExplorerControls'
+import { explorerFileName } from './explorerFileName'
 import { createExplorerLocation } from './explorerLocation'
 import { explorerMode, withHome, withJuliaFromCentre, withMode, } from './explorerModes'
 import { resolvePalette } from './explorerPalette'
@@ -174,14 +175,10 @@ export function FractalExplorerPage() {
     const sideBySide =
       !mainPane || !juliaPane || juliaPane.offsetLeft > mainPane.offsetLeft
     const canvas = drawShots(julia ? [main, julia] : [main], sideBySide)
+    // Named for the moment Save was pressed, not when the encoder finished.
+    const fileName = explorerFileName(location(), new Date())
     canvas?.toBlob((blob) => {
-      if (!blob) return
-      const zoom = formatMagnification(location().view.zoomLog2).replace(
-        '.',
-        '_',
-      )
-      const name = split() ? 'mandelbrot-julia' : location().kind
-      downloadBlob(blob, `${name}-x${zoom}.png`)
+      if (blob) downloadBlob(blob, fileName)
     }, 'image/png')
   }
 
