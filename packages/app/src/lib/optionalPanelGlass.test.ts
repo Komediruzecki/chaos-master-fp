@@ -12,15 +12,11 @@
  * Read from disk rather than imported: the test runtime turns a CSS module
  * import into class names. So it is registered in scripts/always-on-tests.mjs.
  */
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
+import { blocksOf, readCss } from '@/test/cssModule'
 import { glassPanels, optionalPanelGlass, setGlassPanels } from './glass'
 
-const css = readFileSync(
-  join(import.meta.dirname, '..', 'styles', 'designSystem', 'glass.module.css'),
-  'utf8',
-).replace(/\/\*[\s\S]*?\*\//g, '')
+const css = readCss('styles/designSystem/glass.module.css')
 
 /** `:global(x)` unwrapped to `x`, as the build does, parentheses balanced. */
 function unwrapGlobal(selector: string): string {
@@ -51,13 +47,16 @@ function unwrapGlobal(selector: string): string {
  * the rule that gives it the panel fill.
  */
 function gateSelector(): string {
-  const glassRules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].filter(
-    ([, selector, block]) =>
-      /\.optionalPanel\s*$/.test(selector!.trim()) &&
-      /background:\s*var\(--la-glass-panel\)/.test(block!),
+  const glassRules = blocksOf(css).filter(
+    (block) =>
+      /\.optionalPanel$/.test(block.selector) &&
+      block.declarations.some(
+        (d) =>
+          d.property === 'background' && d.value === 'var(--la-glass-panel)',
+      ),
   )
   expect(glassRules).toHaveLength(1)
-  return glassRules[0]![1]!.replace(/\s+/g, ' ').trim()
+  return glassRules[0]!.selector
 }
 
 afterEach(() => {

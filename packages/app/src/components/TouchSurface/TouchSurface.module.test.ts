@@ -18,27 +18,25 @@
  * Read from disk rather than imported: the test runtime turns a CSS module
  * import into class names. So it is registered in scripts/always-on-tests.mjs.
  */
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { blocksOf, hookReads, readCss } from '@/test/cssModule'
 
-const read = (...path: string[]) =>
-  // eslint-disable-next-line security/detect-non-literal-fs-filename -- a stylesheet beside this test, in this repo
-  readFileSync(join(import.meta.dirname, ...path), 'utf8').replace(
-    /\/\*[\s\S]*?\*\//g,
-    ' ',
-  )
-const css = read('TouchSurface.module.css')
-const scrub = read('..', 'Duel', 'ScrubField.module.css')
+const css = readCss('components/TouchSurface/TouchSurface.module.css')
+const scrub = readCss('components/Duel/ScrubField.module.css')
 
 const GLASS_ON = ":global(:root[data-glass-panels='on'])"
 
-/** Every rule of a stylesheet as [selector, declarations], spaces folded. */
+/**
+ * Every rule of a stylesheet as [selector, declarations]: its selector list
+ * with nesting resolved, and its own declarations as `property: value;`.
+ */
 function rules(sheet: string): [string, string][] {
-  return [...sheet.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(([, sel, body]) => [
-    sel!.replace(/\s+/g, ' ').trim(),
-    body!.replace(/\s+/g, ' ').trim(),
-  ])
+  return blocksOf(sheet)
+    .filter((block) => block.selectors.length > 0)
+    .map((block) => [
+      block.selectors.join(', '),
+      block.declarations.map((d) => `${d.property}: ${d.value};`).join(' '),
+    ])
 }
 
 /** The declarations of the rule written exactly as `selector`. */
@@ -168,10 +166,9 @@ describe('the touch inspector stylesheet', () => {
 })
 
 describe('the scrub fields on the touch inspector', () => {
-  const HOOK = /var\(\s*(--scrub-[\w-]+)\s*([,)])/g
-  const reads = [...scrub.matchAll(HOOK)].map(([, hook, next]) => ({
-    hook: hook!,
-    fallback: next === ',',
+  const reads = hookReads(scrub, ['scrub']).map(({ name, fallback }) => ({
+    hook: name,
+    fallback,
   }))
   const set = new Map(
     [
