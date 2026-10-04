@@ -10,7 +10,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { NOT_COVERED } from '@/lib/canvasFraming'
 import { computeExportDimensions } from '@/utils/exportDimensions'
-import { captureVisiblePart, COVERED_ATTRIBUTES, COVERED_BOTTOM_KEY, COVERED_LEFT_KEY, COVERED_RIGHT_KEY, coveredOf, drawVisibleCanvas, visibleCanvasAspect, visibleCanvasRect, visibleClientRect, } from './visibleCanvas'
+import { captureVisiblePart, COVERED_ATTRIBUTES, COVERED_BOTTOM_KEY, COVERED_LEFT_KEY, COVERED_RIGHT_KEY, coveredOf, drawVisibleCanvas, visibleCanvasAspect, visibleCanvasRect, visibleClientRect, visibleThumbnail, } from './visibleCanvas'
 import type { ExportImageInfo } from '@/flame/exportImageType'
 
 /** A 1180 x 820 landscape tablet: a 1100 px canvas under a 380 px deck. */
@@ -59,6 +59,7 @@ function recordDrawing() {
 
 afterEach(() => {
   vi.restoreAllMocks()
+  vi.unstubAllGlobals()
 })
 
 describe('the covered shares a canvas reports', () => {
@@ -101,8 +102,14 @@ describe('the covered shares a canvas reports', () => {
 })
 
 describe('visibleCanvasRect', () => {
+  /** The cut of an image of `canvas`, by the shares the canvas reports. */
+  const rectOf = (
+    canvas: HTMLCanvasElement,
+    image: { readonly width: number; readonly height: number } = canvas,
+  ) => visibleCanvasRect(coveredOf(canvas), image)
+
   it('is the uncovered part of the canvas, in backing-store pixels', () => {
-    expect(visibleCanvasRect(workspaceCanvas(1100, 820, COVERED))).toEqual([
+    expect(rectOf(workspaceCanvas(1100, 820, COVERED))).toEqual([
       0, 0, 720, 820,
     ])
   })
@@ -116,23 +123,23 @@ describe('visibleCanvasRect', () => {
       undefined,
       COVERED_BOTTOM,
     )
-    expect(visibleCanvasRect(canvas)).toEqual([0, 0, 1170, 1707])
+    expect(rectOf(canvas)).toEqual([0, 0, 1170, 1707])
   })
 
   it('measures an image of the canvas by its own size', () => {
     // The thumbnail decodes a PNG of the canvas, and cuts that.
     const canvas = workspaceCanvas(1100, 820, COVERED)
-    expect(visibleCanvasRect(canvas, { width: 2200, height: 1640 })).toEqual([
+    expect(rectOf(canvas, { width: 2200, height: 1640 })).toEqual([
       0, 0, 1440, 1640,
     ])
   })
 
   it('starts where the sidebar covering the leading edge ends', () => {
+    expect(rectOf(workspaceCanvas(1100, 820, undefined, COVERED_LEFT))).toEqual(
+      [200, 0, 900, 820],
+    )
     expect(
-      visibleCanvasRect(workspaceCanvas(1100, 820, undefined, COVERED_LEFT)),
-    ).toEqual([200, 0, 900, 820])
-    expect(
-      visibleCanvasRect(workspaceCanvas(1100, 820, undefined, COVERED_LEFT), {
+      rectOf(workspaceCanvas(1100, 820, undefined, COVERED_LEFT), {
         width: 2200,
         height: 1640,
       }),
@@ -140,15 +147,13 @@ describe('visibleCanvasRect', () => {
   })
 
   it('is what both leave when both edges are covered', () => {
-    expect(
-      visibleCanvasRect(workspaceCanvas(1100, 820, COVERED, COVERED_LEFT)),
-    ).toEqual([200, 0, 520, 820])
+    expect(rectOf(workspaceCanvas(1100, 820, COVERED, COVERED_LEFT))).toEqual([
+      200, 0, 520, 820,
+    ])
   })
 
   it('is the whole canvas when nothing covers it', () => {
-    expect(visibleCanvasRect(workspaceCanvas(720, 820))).toEqual([
-      0, 0, 720, 820,
-    ])
+    expect(rectOf(workspaceCanvas(720, 820))).toEqual([0, 0, 720, 820])
   })
 })
 
@@ -163,7 +168,7 @@ describe('drawVisibleCanvas', () => {
     const canvas = workspaceCanvas(2200, 1640, COVERED)
     const png = workspaceCanvas(2200, 1640)
 
-    drawVisibleCanvas(context, canvas, png, 128, 128)
+    drawVisibleCanvas(context, coveredOf(canvas), png, 128, 128)
 
     expect(drawn).toEqual([[png, 0, 0, 1440, 1640, 0, 0, 128, 128]])
   })
@@ -176,7 +181,7 @@ describe('drawVisibleCanvas', () => {
     const canvas = workspaceCanvas(2200, 1640, undefined, COVERED_LEFT)
     const png = workspaceCanvas(2200, 1640)
 
-    drawVisibleCanvas(context, canvas, png, 128, 128)
+    drawVisibleCanvas(context, coveredOf(canvas), png, 128, 128)
 
     expect(drawn).toEqual([[png, 400, 0, 1800, 1640, 0, 0, 128, 128]])
   })
@@ -226,6 +231,49 @@ describe('visibleCanvasAspect', () => {
     const canvas = laidOut(1100, 820, COVERED)
     canvas.dataset.coveredBottom = String(COVERED_BOTTOM)
     expect(visibleCanvasAspect(canvas)).toBeCloseTo(720 / 820, 6)
+  })
+})
+
+describe('visibleThumbnail', () => {
+  it('cuts by the shares the canvas had when its pixels were taken', async () => {
+    // The randomizer history's thumbnail encodes a PNG of the canvas and
+    // decodes it again before drawing. The sidebar docking in between must
+    // not move the cut onto the strip the deck now covers.
+    const canvas = workspaceCanvas(2200, 1640, undefined, COVERED_LEFT)
+    let encoded: BlobCallback | undefined
+    canvas.toBlob = (callback) => {
+      encoded = callback
+    }
+    class DecodedPng {
+      width = 2200
+      height = 1640
+      onload: (() => void) | null = null
+      onerror: (() => void) | null = null
+      set src(_url: string) {
+        queueMicrotask(() => this.onload?.())
+      }
+    }
+    vi.stubGlobal('Image', DecodedPng)
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:thumbnail')
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
+    const { drawn } = recordDrawing()
+
+    const thumbnail = visibleThumbnail(canvas, 128)
+    delete canvas.dataset.coveredLeft
+    canvas.dataset.coveredRight = String(COVERED)
+    encoded?.(new Blob())
+    await thumbnail
+
+    expect(drawn).toHaveLength(1)
+    expect(drawn[0]!.slice(1)).toEqual([400, 0, 1800, 1640, 0, 0, 128, 128])
+  })
+
+  it('is null when the canvas cannot be encoded', async () => {
+    const canvas = workspaceCanvas(10, 10)
+    canvas.toBlob = (callback) => {
+      callback(null)
+    }
+    expect(await visibleThumbnail(canvas, 128)).toBeNull()
   })
 })
 

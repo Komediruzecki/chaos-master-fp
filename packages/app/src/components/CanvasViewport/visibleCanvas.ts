@@ -15,7 +15,7 @@
  *
  * - the export-image hook (the flash export, the share link's preview, the
  *   Discord post) is handed the cut by `captureVisiblePart`;
- * - the randomizer history's thumbnail is drawn by `drawVisibleCanvas`;
+ * - the randomizer history's thumbnail is `visibleThumbnail`;
  * - the export dialog's "match the viewport" aspect is `visibleCanvasAspect`,
  *   which folds the side covers only: an export is rendered whole, at its
  *   own size, so it matches the setting-off canvas's full height under the
@@ -78,31 +78,69 @@ const isCovered = (covered: Covered) =>
   covered.left > 0 || covered.right > 0 || covered.bottom > 0
 
 /**
- * `[sx, sy, sw, sh]` for `drawImage`: the visible part of an image of
- * `canvas`, in that image's pixels. The image is the canvas itself unless
- * one is given, such as a PNG decoded from it.
+ * `[sx, sy, sw, sh]` for `drawImage`: the part of `image`, an image of the
+ * canvas, that `covered` leaves visible, in that image's pixels.
  */
 export function visibleCanvasRect(
-  canvas: HTMLCanvasElement,
-  image: { readonly width: number; readonly height: number } = canvas,
+  covered: Covered,
+  image: { readonly width: number; readonly height: number },
 ): [number, number, number, number] {
-  const region = visibleRegion(image.width, image.height, coveredOf(canvas))
+  const region = visibleRegion(image.width, image.height, covered)
   return [region.x, region.y, region.width, region.height]
 }
 
 /**
- * Draws the visible part of `image`, an image of `canvas` such as a PNG
- * decoded from it, into `context` at the origin, `width` x `height`.
+ * Draws the part of `image`, an image of the canvas such as a PNG decoded
+ * from it, that `covered` leaves visible into `context` at the origin,
+ * `width` x `height`.
  */
 export function drawVisibleCanvas(
   context: CanvasRenderingContext2D,
-  canvas: HTMLCanvasElement,
+  covered: Covered,
   image: HTMLImageElement | HTMLCanvasElement,
   width: number,
   height: number,
 ): void {
-  const [sx, sy, sw, sh] = visibleCanvasRect(canvas, image)
+  const [sx, sy, sw, sh] = visibleCanvasRect(covered, image)
   context.drawImage(image, sx, sy, sw, sh, 0, 0, width, height)
+}
+
+/**
+ * A `size` x `size` PNG of the visible part of `canvas`, as a data URL, or
+ * null when the canvas cannot be encoded or its PNG decoded. The shares are
+ * read when the pixels are taken, in the same call as `toBlob`: the PNG is
+ * encoded and decoded before it is drawn, and chrome opening or closing
+ * over the canvas meanwhile must not move the cut off the frame it took.
+ */
+export function visibleThumbnail(
+  canvas: HTMLCanvasElement,
+  size: number,
+): Promise<string | null> {
+  const covered = coveredOf(canvas)
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => {
+      if (blob === null) {
+        resolve(null)
+        return
+      }
+      const url = URL.createObjectURL(blob)
+      const img = new Image()
+      img.onload = () => {
+        const offscreen = document.createElement('canvas')
+        offscreen.width = size
+        offscreen.height = size
+        const ctx = offscreen.getContext('2d')!
+        drawVisibleCanvas(ctx, covered, img, size, size)
+        URL.revokeObjectURL(url)
+        resolve(offscreen.toDataURL('image/png'))
+      }
+      img.onerror = () => {
+        URL.revokeObjectURL(url)
+        resolve(null)
+      }
+      img.src = url
+    }, 'image/png')
+  })
 }
 
 /**

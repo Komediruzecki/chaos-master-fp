@@ -18,7 +18,7 @@ import { startViewTransition } from '@/lib/viewTransition'
 import { recordEntries, recordKeys } from '@/utils/record'
 import ui from './App.module.css'
 import { duelShowing, duelSidebarOpen } from './arcade/duel'
-import { CanvasViewport, drawVisibleCanvas, visibleCanvasAspect, } from './components/CanvasViewport'
+import { CanvasViewport, visibleCanvasAspect, visibleThumbnail, } from './components/CanvasViewport'
 import { DebugOverlay } from './components/DebugOverlay'
 import { Dropzone } from './components/Dropzone/Dropzone'
 import { createExportPngDialog } from './components/ExportPngDialog/ExportPngDialog'
@@ -2108,31 +2108,7 @@ export function MainWorkspace(props: AppProps) {
 
   function captureMainThumbnail(size: number): Promise<string | null> {
     const canvas = document.querySelector<HTMLCanvasElement>(`.${ui.canvas}`)
-    if (canvas === null) return Promise.resolve(null)
-    return new Promise((resolve) => {
-      canvas.toBlob((blob) => {
-        if (blob === null) {
-          resolve(null)
-          return
-        }
-        const url = URL.createObjectURL(blob)
-        const img = new Image()
-        img.onload = () => {
-          const offscreen = document.createElement('canvas')
-          offscreen.width = size
-          offscreen.height = size
-          const ctx = offscreen.getContext('2d')!
-          drawVisibleCanvas(ctx, canvas, img, size, size)
-          URL.revokeObjectURL(url)
-          resolve(offscreen.toDataURL('image/png'))
-        }
-        img.onerror = () => {
-          URL.revokeObjectURL(url)
-          resolve(null)
-        }
-        img.src = url
-      }, 'image/png')
-    })
+    return canvas ? visibleThumbnail(canvas, size) : Promise.resolve(null)
   }
 
   type RandomizeSettings = {
