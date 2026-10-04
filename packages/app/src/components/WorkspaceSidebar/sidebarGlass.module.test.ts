@@ -23,7 +23,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import { blockOf, hookReads, ownDeclarations, readCss } from '@/test/cssModule'
-import { CANVAS_TUCK_REM } from './useSidebarGlass'
+import { CANVAS_TUCK_REM, SIDEBAR_DRAWER_QUERY } from './useSidebarGlass'
 
 const app = readCss('App.module.css')
 
@@ -37,10 +37,11 @@ describe('the canvas box beside the glass sidebar', () => {
   })
 
   it('spans the sidebar column while the sidebar floats, at desktop widths', () => {
-    const desktop = blockOf(
-      app,
-      /@media \(min-width: 769px\)\s*\{\s*\.canvas-container\.underSidebar/,
-    )
+    // Exactly where the sidebar is not a drawer: the complement of the query
+    // MainWorkspace reads, so no fractional width between 768 and 769 px
+    // (a zoomed desktop) floats the sidebar without the box spanning it.
+    const desktop = blockOf(app, `@media not all and ${SIDEBAR_DRAWER_QUERY} {`)
+    expect(desktop).toMatch(/^\s*\.canvas-container\.underSidebar/)
     const spans = ownDeclarations(
       blockOf(
         desktop,

@@ -55,8 +55,10 @@
    Hidden, the sidebar covers nothing and the box is the full-screen one. The
    camera frames the flame in the part the sidebar leaves visible
    (lib/canvasFraming.ts). Not at the mobile widths, where the sidebar is a
-   drawer and there is no column to span. */
-@media (min-width: 769px) {
+   drawer and there is no column to span: the query is the exact complement
+   of the one the code reads (SIDEBAR_DRAWER_QUERY), so a fractional width
+   such as 768.5px is on one side of it and not in a gap between two. */
+@media not all and (max-width: 768px) {
   .canvas-container.underSidebar:not(.fullscreen) {
     grid-column-start: sidebar;
     margin-left: 0;

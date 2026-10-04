@@ -33,7 +33,7 @@ import { ShellBar } from './components/Shell/ShellBar'
 import { AdvancedToolsDrawer, EditorRail, TabletInspectorDeck, TouchHUD, } from './components/TouchSurface'
 import { WorkspaceBottomBar } from './components/WorkspaceBottomBar'
 import { createLazyDiscordShareModal, createLazyImportVariationsModal, createLazyLogoFaviconGenerator, createLazyMigrationModal, createLazyShareLinkModal, createLazyShareVariationLinkModal, createLazyShareVariationLoadModal, createLazyShowBenchmark, createLazyShowCustomVariationEditor, createLazyShowDocumentation, createLazyShowHelp, WorkspaceModalsHost, } from './components/WorkspaceModalsHost'
-import { WorkspaceSidebar } from './components/WorkspaceSidebar'
+import { SIDEBAR_DRAWER_QUERY, WorkspaceSidebar, } from './components/WorkspaceSidebar'
 import { useWorkspaceAnimationGen, useWorkspaceArena, useWorkspaceArtDirector, useWorkspaceAutosave, useWorkspaceBlendPick, useWorkspaceCamera, useWorkspaceCommands, useWorkspaceGlassBusy, useWorkspacePalette, useWorkspaceReplay, useWorkspaceShortcuts, useWorkspaceTimelineBinding, } from './hooks'
 import { createWorkspaceExportStore, createWorkspaceLayoutStore, createWorkspaceSelectionStore, isWideLayout, } from './stores'
 import { deckFits, isTouchDevice } from './stores/workspaceLayoutStore'
@@ -426,7 +426,7 @@ export function MainWorkspace(props: AppProps) {
   createEffect(() => {
     // The phone and tablet classes come from the layout store's one resize
     // listener now; this effect only keeps the sidebar's own breakpoint.
-    const mq = window.matchMedia('(max-width: 768px)')
+    const mq = window.matchMedia(SIDEBAR_DRAWER_QUERY)
 
     setIsMobile(mq.matches)
     if (mq.matches || isPhone()) setCompact(true)

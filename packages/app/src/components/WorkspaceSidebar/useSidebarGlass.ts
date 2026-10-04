@@ -42,12 +42,21 @@ import type { Accessor } from 'solid-js'
  */
 export const CANVAS_TUCK_REM = 0.4
 
+/**
+ * The widths at which the sidebar is a drawer over the canvas rather than a
+ * column beside it (MainWorkspace's isMobile). The canvas box spans the
+ * column under exactly its complement, `not all and` this query
+ * (App.module.css, .underSidebar), so the two never disagree, at a
+ * fractional width included. sidebarGlass.module.test.ts holds them so.
+ */
+export const SIDEBAR_DRAWER_QUERY = '(max-width: 768px)'
+
 export interface SidebarGlassOptions {
   /** The sidebar's root element, while it is mounted. */
   element: Accessor<HTMLElement | undefined>
   /** The sidebar is shown, rather than hidden for a full-screen canvas. */
   shown: Accessor<boolean>
-  /** A mobile width (below 769 px), where the sidebar is a drawer. */
+  /** A mobile width (SIDEBAR_DRAWER_QUERY), where the sidebar is a drawer. */
   isMobile: Accessor<boolean>
   /** The sidebar sits over a duel's stage. */
   overDuel: Accessor<boolean>
