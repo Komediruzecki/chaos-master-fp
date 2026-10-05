@@ -3,6 +3,27 @@ import { pickGummyVertex } from './gummyStudyMath'
 import type { GummyBenchmarkPhase, GummyGrip, GummyRay, GummyVec3, } from './gummyStudyMath'
 
 export const PARTICLE_STUDY_TICKS = 1440
+
+/** Bound manual reach without changing the fixed comparison choreography. */
+export function particleGripControls(
+  radius: number | undefined,
+  maxPull: number | undefined,
+  warm: boolean,
+) {
+  const bounded = (
+    value: number | undefined,
+    fallback: number,
+    min: number,
+    max: number,
+  ) =>
+    value !== undefined && Number.isFinite(value)
+      ? Math.max(min, Math.min(max, value))
+      : fallback
+  return {
+    radius: bounded(radius, warm ? 0.22 : 0.28, 0.08, 0.4),
+    maxPull: bounded(maxPull, 1.8, 0.2, 1.8),
+  }
+}
 export const PARTICLE_PULL_HANDLE: Readonly<{
   center: GummyVec3
   radius: number
@@ -46,6 +67,7 @@ export function pickParticleGrip(
   positions: Float32Array,
   restPositions: Float32Array,
   pickRadius: number,
+  space: 'rest' | 'current' = 'rest',
 ): { point: GummyVec3; grip: GummyGrip } | undefined {
   if (positions.length !== restPositions.length || positions.length % 4)
     throw new RangeError(
@@ -63,13 +85,16 @@ export function pickParticleGrip(
       return {
         point,
         grip: {
-          center: [
-            restPositions[i]!,
-            restPositions[i + 1]!,
-            restPositions[i + 2]!,
-          ],
+          center:
+            space === 'current'
+              ? [...point]
+              : [
+                  restPositions[i]!,
+                  restPositions[i + 1]!,
+                  restPositions[i + 2]!,
+                ],
           target: [...point],
-          radius: 0.28,
+          radius: space === 'current' ? 0.22 : 0.28,
         },
       }
     }

@@ -1,6 +1,6 @@
 /** Native particle-support surface: analytic spheres, masked depth smoothing and linear HDR optics. */
 import { d, std, tgpu } from 'typegpu'
-import { gummyAbsorptionAtPoint, gummyColourAtPoint } from './gummyBands'
+import { gummyAbsorptionAtPoint } from './gummyBands'
 import { GUMMY_FLOOR_EXTENT, GUMMY_IOR, gummyEnvironment, gummyFresnel, gummyUnitNormal, } from './gummyMaterial'
 import { gummyCameraLayout } from './gummyShaders'
 import { PARTICLE_GUMMY_FILTER_RADIUS, particleBoundaryNormal, particleDepthWeight, particleKernelDensity, particleMeanDye, particleOpticalScale, particleQuadCorner, particleSmoothChord, particleSphereInterval, } from './particleGummyMath'
@@ -148,7 +148,6 @@ export const particleGummyOpticalFragment = tgpu.fragmentFn({
   in: { pixel: d.builtin.position, centre: d.vec3f, rest: d.vec3f },
   out: {
     optical: d.vec4f,
-    dye: d.vec4f,
     profileFirst: d.vec4f,
     profileSecond: d.vec4f,
   },
@@ -197,11 +196,6 @@ export const particleGummyOpticalFragment = tgpu.fragmentFn({
     camera.colour.w,
     camera.absorption.xyz,
   )
-  const colour = gummyColourAtPoint(
-    input.rest,
-    camera.colour.w,
-    camera.colour.xyz,
-  )
   const start = std.textureLoad(
     particleProfileSourceLayout.$.original,
     d.vec2i(input.pixel.xy),
@@ -228,7 +222,6 @@ export const particleGummyOpticalFragment = tgpu.fragmentFn({
   }
   return {
     optical: d.vec4f(std.mul(absorption, path), path),
-    dye: d.vec4f(std.mul(colour, path), path),
     profileFirst,
     profileSecond,
   }

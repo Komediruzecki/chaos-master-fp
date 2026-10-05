@@ -545,6 +545,9 @@ export function createGummyJellyFracture(initialMesh: GummyMesh) {
       throw new Error('Runtime fracture snapshot must match its live mesh')
     const material = gummyJellyFractureParameters(options.fragility)
     const soft = options.response === 'soft'
+    const fragility = Math.max(0, Math.min(1, options.fragility ?? 0))
+    const plasticLimit = 0.04 + 0.15 * (1 - fragility)
+    const workCapacity = 0.006 + 0.025 * (1 - fragility) ** 2
     if (
       soft &&
       options.plasticStrain &&
@@ -607,7 +610,7 @@ export function createGummyJellyFracture(initialMesh: GummyMesh) {
         face.a,
         normalScratch,
       )
-      const length = Math.hypot(...normal)
+      const length = Math.hypot(normal[0], normal[1], normal[2])
       if (length < 1e-12) continue
       const volumeA = restVolumes[face.tetA]!,
         volumeB = restVolumes[face.tetB]!
@@ -628,8 +631,6 @@ export function createGummyJellyFracture(initialMesh: GummyMesh) {
         peakElasticOpening[id] = Math.max(previousPeak, opening)
         // Disabled or paused loading is observed but never banked for later tearing.
         if (!options.tearing || elapsedSeconds === 0) continue
-        const fragility = Math.max(0, Math.min(1, options.fragility ?? 0))
-        const plasticLimit = 0.04 + 0.15 * (1 - fragility)
         const plasticA = options.plasticStrain![face.tetA]!,
           plasticB = options.plasticStrain![face.tetB]!
         const plastic =
@@ -659,7 +660,6 @@ export function createGummyJellyFracture(initialMesh: GummyMesh) {
         // Preserve the same local graphics-material law at every resolution.
         // This dimensionless work proxy is not calibrated fracture energy;
         // whole-body crack patterns and dissipation can still depend on the mesh.
-        const workCapacity = 0.006 + 0.025 * (1 - fragility) ** 2
         dose = (workIncrement * tensileExcess + saturatedWork) / workCapacity
       } else {
         if (material.propagationOpening < threshold)

@@ -1,6 +1,33 @@
 /** Particle handle timing and deformed-world picking must retain material identity. */
 import { describe, expect, it } from 'vitest'
-import { PARTICLE_PULL_HANDLE, particleStudyCommand, pickParticleGrip, } from './particleStudyMath'
+import { PARTICLE_PULL_HANDLE, particleGripControls, particleStudyCommand, pickParticleGrip, } from './particleStudyMath'
+
+describe('particleGripControls', () => {
+  it('retains the calibrated defaults and uses finite fallback values for both materials', () => {
+    for (const warm of [false, true]) {
+      const expected = { radius: warm ? 0.22 : 0.28, maxPull: 1.8 }
+      for (const invalid of [undefined, NaN, Infinity, -Infinity])
+        expect(particleGripControls(invalid, invalid, warm)).toEqual(expected)
+    }
+  })
+
+  it('bounds manual radius and reach independently without changing fixed choreography', () => {
+    expect(particleGripControls(-5, -5, true)).toEqual({
+      radius: 0.08,
+      maxPull: 0.2,
+    })
+    expect(particleGripControls(5, 5, true)).toEqual({
+      radius: 0.4,
+      maxPull: 1.8,
+    })
+    expect(particleGripControls(0.15, 0.7, false)).toEqual({
+      radius: 0.15,
+      maxPull: 0.7,
+    })
+    expect(particleStudyCommand(600).grip?.radius).toBe(0.28)
+    expect(particleStudyCommand(600).grip?.target[0]).toBeCloseTo(1.84)
+  })
+})
 
 describe('particleStudyCommand', () => {
   it('preloads, pulls over four seconds, holds and completely releases at exact ticks', () => {
@@ -76,5 +103,21 @@ describe('pickParticleGrip', () => {
     expect(() =>
       pickParticleGrip(ray, new Float32Array(3), new Float32Array(3), 0.1),
     ).toThrow(RangeError)
+  })
+  it('selects a local current-space patch when grabbing separated warm jelly', () => {
+    const current = new Float32Array([2, 1, 0, 1])
+    const rest = new Float32Array([0.5, 2, 0, 1])
+    expect(
+      pickParticleGrip(
+        { origin: [2, 1, 4], direction: [0, 0, -1] },
+        current,
+        rest,
+        0.1,
+        'current',
+      ),
+    ).toEqual({
+      point: [2, 1, 0],
+      grip: { center: [2, 1, 0], target: [2, 1, 0], radius: 0.22 },
+    })
   })
 })

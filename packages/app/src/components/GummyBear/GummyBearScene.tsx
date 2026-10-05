@@ -7,9 +7,14 @@ import { buildGummyJellyMesh } from '@/simulation/gummy/gummyJellyMesh'
 import { buildGummyBearMesh } from '@/simulation/gummy/gummyMesh'
 import { analyzeGummyFragments } from '@/simulation/gummy/gummyPartition'
 import { createGummySolver } from '@/simulation/gummy/gummySolver'
+import { createGummySolverPreparationCache } from '@/simulation/gummy/gummySolverPreparation'
+import { bindGummyTouchSurface, createGummyCameraInput, } from './gummyCameraInput'
 import { createGummyFractureRuntime } from './gummyFractureRuntime'
+import { createGummyPointerRenderer } from './gummyPointerRenderer'
 import { createGummyRenderer } from './gummyRenderer'
+import { createGummyRenderResources } from './gummyRenderResources'
 import { advanceGummyClock, DEFAULT_GUMMY_CRUSH_ORBIT, DEFAULT_GUMMY_ORBIT, GUMMY_CRUSH_SECONDS, GUMMY_DEMO_SECONDS, GUMMY_JELLY_SECONDS, GUMMY_JELLY_TEAR_BODY_FIXTURE, GUMMY_JELLY_TEAR_GRIP_RADIUS, GUMMY_STEP, gummyCameraMatrices, gummyDemoGrip, gummyDemoPress, gummyDragFrame, gummyDragTarget, gummyJellyCommand, gummyRay, gummyRestBounds, holdGummyTearBody, layGummyBearBack, pickGummyVertex, } from './gummyStudyMath'
+import type { GummyInteraction } from './gummyCameraInput'
 import type { GummyBenchmarkPhase, GummyClock, GummyDragFrame, GummyGrip, GummyJellyProtocol, GummyPress, } from './gummyStudyMath'
 import type { GummyMesh } from '@/simulation/gummy/gummyMesh'
 import type { GummySolverDynamicState } from '@/simulation/gummy/gummySolver'
@@ -21,9 +26,10 @@ export type GummyPalette =
   | 'candy'
   | 'lagoon'
   | 'marble'
-export type GummyInteraction = 'drag' | 'orbit'
+export type { GummyInteraction } from './gummyCameraInput'
 export type GummyExperiment = 'jelly' | 'pull' | 'crush'
 export type GummyGeometry = 'standard' | 'fine'
+export type GummySurface = 'original' | 'rounded'
 export type GummyStudyStatus =
   | 'loading'
   | 'ready'
@@ -44,11 +50,14 @@ export type GummyBearSceneProps = {
   fragility?: number
   tearResponse?: 'soft' | 'crumble'
   geometry?: GummyGeometry
+  surface?: GummySurface
   tearing: boolean
   paused: boolean
   demoKey: number
   resetKey: number
   resetViewKey?: number
+  recording?: boolean
+  pointerGuide?: boolean
   reducedMotion?: boolean
   onReady?: (ready: boolean) => void
   onStatus?: (status: GummyStudyStatus) => void
@@ -62,6 +71,11 @@ type GummyDiagnostics = {
   advanceFrames: (count: number) => void | Promise<void>
   startDemoPaused: () => void
   render: () => void
+  /** Control corners before PN/isolated-chip patch evaluation, not the final tessellated shell. */
+  readSurfacePositions: () => Promise<{
+    positions: Float32Array
+    restPositions: Float32Array
+  }>
   readState: () => Promise<
     Awaited<ReturnType<ReturnType<typeof createGummySolver>['readState']>> & {
       fragments: ReturnType<typeof analyzeGummyFragments>
@@ -82,6 +96,7 @@ type GummyDiagnostics = {
     restVolume: number
     experiment: GummyExperiment
     geometry: GummyGeometry
+    surface: GummySurface
     materialModel: 'neo-hookean' | 'edge-volume'
     solverIterations: number
     solverSubsteps: number
@@ -149,8 +164,8 @@ export function GummyBearScene(props: GummyBearSceneProps) {
   const canvasLabel = createMemo(() =>
     configuration().experiment === 'jelly' &&
     configuration().protocol === 'tear'
-      ? 'Interactive gummy bear. Grab and pull to tear. Space pauses, R resets, and arrow keys turn the view.'
-      : 'Interactive gummy bear. D starts the demo, Space pauses, and arrow keys turn the view.',
+      ? 'Interactive gummy bear. Grab and pull to tear. Space pauses, R resets, arrow keys turn the view, and Shift plus arrows pans. Two fingers pan and pinch to zoom.'
+      : 'Interactive gummy bear. D starts the demo, Space pauses, arrow keys turn the view, and Shift plus arrows pans. Two fingers pan and pinch to zoom.',
   )
   return (
     <div
@@ -179,8 +194,6 @@ export function GummyBearScene(props: GummyBearSceneProps) {
   )
 }
 
-type Pointer = { x: number; y: number }
-
 function NativeGummyBear(
   props: GummyBearSceneProps & {
     visible: boolean
@@ -191,6 +204,15 @@ function NativeGummyBear(
 ) {
   const { root, device } = useLiveRootContext()
   const { context, canvas, canvasFormat, canvasSize } = useCanvas()
+  const pointerRenderer = createGummyPointerRenderer(
+    root,
+    device,
+    context,
+    canvasFormat,
+  )
+  onCleanup(() => {
+    pointerRenderer.destroy()
+  })
   untrack(() => {
     props.onReady?.(false)
     props.onStatus?.('loading')
@@ -198,6 +220,9 @@ function NativeGummyBear(
   })
   const continuous = props.experiment === 'jelly'
   const tearProtocol = continuous && props.protocol === 'tear'
+  const surface = createMemo<GummySurface>(() =>
+    tearProtocol ? (props.surface ?? 'original') : 'original',
+  )
   const laid =
     props.experiment === 'crush' || (continuous && props.protocol === 'squeeze')
   const meshOptions: {
@@ -232,6 +257,16 @@ function NativeGummyBear(
     : mesh
   const restBounds = gummyRestBounds(solverMesh.positions)
   const materialModel = continuous ? 'neo-hookean' : 'edge-volume'
+  const preparationCache = createGummySolverPreparationCache()
+  const renderResources = createGummyRenderResources(
+    root,
+    device,
+    context,
+    canvasFormat,
+  )
+  onCleanup(() => {
+    renderResources.destroy()
+  })
 
   function allocatePair(
     nextMesh: GummyMesh,
@@ -245,6 +280,8 @@ function NativeGummyBear(
       materialModel,
       jellyIterations: 24,
       jellySubsteps: tearProtocol && props.geometry === 'fine' ? 2 : 1,
+      preparationCache,
+      sourceNodes,
     })
     try {
       if (snapshot) nextSolver.restoreDynamic(snapshot, sourceNodes)
@@ -255,6 +292,7 @@ function NativeGummyBear(
         canvasFormat,
         nextMesh,
         nextSolver,
+        renderResources,
       )
       return { solver: nextSolver, renderer: nextRenderer }
     } catch (error) {
@@ -286,7 +324,7 @@ function NativeGummyBear(
     tearResponse: props.tearResponse ?? 'crumble',
     tearing: continuous && !tearProtocol ? false : props.tearing,
     paused: props.paused,
-    visible: props.visible,
+    visible: props.visible || props.recording === true,
   }))
 
   function defaultOrbit() {
@@ -317,7 +355,6 @@ function NativeGummyBear(
     press = gummyJellyCommand(0, props.protocol, restBounds).press
   let dragFrame: GummyDragFrame | undefined
   let dragPointer: number | undefined
-  const pointers = new Map<number, Pointer>()
   let topologyEpoch = 0
   let advancing: Promise<void> | undefined
   let lastScheduledDraw = -Infinity
@@ -328,16 +365,17 @@ function NativeGummyBear(
     untrack(() => props.onStatus?.(value))
   }
 
-  function release() {
+  function cancelGrip() {
     request++
     picking = false
     grip = undefined
     dragFrame = undefined
     dragPointer = undefined
-    for (const id of pointers.keys())
-      if (canvas.hasPointerCapture(id)) canvas.releasePointerCapture(id)
-    pointers.clear()
     if (!demo) status('ready')
+  }
+
+  function release() {
+    input.cancel()
   }
 
   function reset(startDemo: boolean) {
@@ -389,6 +427,7 @@ function NativeGummyBear(
     on(
       () => props.resetViewKey,
       () => {
+        release()
         orbit = defaultOrbit()
       },
       { defer: true },
@@ -427,15 +466,6 @@ function NativeGummyBear(
     )
   }
 
-  function orbitBy(dx: number, dy: number) {
-    orbit.theta -= dx * 0.005
-    orbit.phi = Math.max(0.4, Math.min(1.53, orbit.phi - dy * 0.005))
-  }
-
-  function zoomBy(factor: number) {
-    orbit.zoom = Math.max(0.65, Math.min(1.8, orbit.zoom * factor))
-  }
-
   function updateGrip(x: number, y: number) {
     if (!grip || !dragFrame) return
     const target = gummyDragTarget(rayAt(x, y), dragFrame)
@@ -457,12 +487,12 @@ function NativeGummyBear(
     benchmarkPhase = 'idle'
     status('picking')
     try {
-      const current = await readQuiescent(() => solver.readState())
-      if (disposed || token !== request || !pointers.has(event.pointerId))
+      const positions = await readQuiescent(() => solver.readPositions())
+      if (disposed || token !== request || !input.pointer(event.pointerId))
         return
       const point = pickGummyVertex(
         ray,
-        current.positions,
+        positions,
         Math.max(0.09, (tearProtocol ? 0.14 : mesh.spacing) * 0.85),
       )
       if (!point) {
@@ -480,7 +510,7 @@ function NativeGummyBear(
         radius: tearProtocol ? GUMMY_JELLY_TEAR_GRIP_RADIUS : 0.28,
       }
       dragPointer = event.pointerId
-      const latest = pointers.get(event.pointerId)!
+      const latest = input.pointer(event.pointerId)!
       updateGrip(latest.x, latest.y)
       status('dragging')
     } catch {
@@ -496,47 +526,20 @@ function NativeGummyBear(
     }
   }
 
-  function pointerDown(event: PointerEvent) {
-    if (event.button !== 0 || failed || !ready || pointers.size >= 2) return
-    if (settings().mode === 'drag' && pointers.size > 0) return
-    pointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
-    canvas.setPointerCapture(event.pointerId)
-    canvas.focus({ preventScroll: true })
-    if (settings().mode === 'drag') void pick(event)
-  }
-
-  function pointerMove(event: PointerEvent) {
-    const previous = pointers.get(event.pointerId)
-    if (!previous) return
-    const other = [...pointers.entries()].find(
-      ([id]) => id !== event.pointerId,
-    )?.[1]
-    if (settings().mode === 'orbit') {
-      if (other) {
-        const before = Math.hypot(previous.x - other.x, previous.y - other.y)
-        const after = Math.hypot(
-          event.clientX - other.x,
-          event.clientY - other.y,
-        )
-        if (before > 0 && after > 0) zoomBy(before / after)
-      } else orbitBy(event.clientX - previous.x, event.clientY - previous.y)
-    } else if (dragPointer === event.pointerId)
-      updateGrip(event.clientX, event.clientY)
-    pointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
-  }
-
-  function pointerEnd(event: PointerEvent) {
-    if (!pointers.has(event.pointerId)) return
-    pointers.delete(event.pointerId)
-    if (dragPointer === event.pointerId || picking) release()
-    if (canvas.hasPointerCapture(event.pointerId))
-      canvas.releasePointerCapture(event.pointerId)
-  }
-
-  function wheel(event: WheelEvent) {
-    event.preventDefault()
-    zoomBy(Math.exp(Math.max(-100, Math.min(100, event.deltaY)) * 0.0015))
-  }
+  const input = createGummyCameraInput({
+    canvas,
+    orbit: () => orbit,
+    mode: () => settings().mode,
+    ready: () => ready && !failed,
+    cancelGrip,
+    pick: (event) => {
+      void pick(event)
+    },
+    moveGrip: (x, y) => {
+      if (dragPointer !== undefined) updateGrip(x, y)
+    },
+    experiment: laid ? 'crush' : 'pull',
+  })
 
   function repeatedAction(event: KeyboardEvent) {
     return event.repeat && [' ', 'd', 'r'].includes(event.key.toLowerCase())
@@ -552,17 +555,17 @@ function NativeGummyBear(
       event.preventDefault()
       return
     }
+    if (input.cameraKey(event)) {
+      event.preventDefault()
+      return
+    }
     if (event.key === ' ') props.onPauseChange?.(!settings().paused)
     else if (event.key.toLowerCase() === 'd') replayFromKeyboard()
     else if (event.key.toLowerCase() === 'r') props.onReset?.()
-    else if (event.key === 'ArrowLeft') orbitBy(-18, 0)
-    else if (event.key === 'ArrowRight') orbitBy(18, 0)
-    else if (event.key === 'ArrowUp') orbitBy(0, -18)
-    else if (event.key === 'ArrowDown') orbitBy(0, 18)
-    else if (event.key === '+' || event.key === '=') zoomBy(1 / 1.12)
-    else if (event.key === '-') zoomBy(1.12)
-    else if (event.key === 'Home') orbit = defaultOrbit()
-    else if (event.key === 'Escape') release()
+    else if (event.key === 'Home') {
+      release()
+      orbit = defaultOrbit()
+    } else if (event.key === 'Escape') release()
     else return
     event.preventDefault()
   }
@@ -640,6 +643,16 @@ function NativeGummyBear(
     }
   }
 
+  function publishMutationState() {
+    if (disposed) return
+    canvas.dataset.mutationPending = String(
+      !!advancing || !!fractureRuntime?.pending,
+    )
+    canvas.dataset.topologyRevision = String(
+      fractureRuntime?.diagnostics.topologyVersion ?? 0,
+    )
+  }
+
   function draw() {
     const size = camera()
     if (size.width <= 0 || size.height <= 0) return
@@ -652,13 +665,25 @@ function NativeGummyBear(
       inverseViewProjection: inverse,
       eye,
       palette: settings().palette,
+      surface: surface(),
       press,
     })
+    const pointer =
+      props.pointerGuide === false
+        ? undefined
+        : input.guide(grip, dragFrame?.point)
+    pointerRenderer.render({ ...size, viewProjection, pointer })
+    canvas.dataset.pointerGuide = pointer
+      ? pointer.active
+        ? 'grab'
+        : 'hover'
+      : 'off'
     canvas.dataset.simTime = clock.time.toFixed(4)
     canvas.dataset.steps = String(steps)
     canvas.dataset.grip = String(!!currentGrip())
     canvas.dataset.experiment = props.experiment
     canvas.dataset.materialModel = materialModel
+    canvas.dataset.surface = surface()
     canvas.dataset.protocol = continuous ? props.protocol : props.experiment
     canvas.dataset.phase = benchmarkPhase
     canvas.dataset.tick = String(steps)
@@ -666,9 +691,7 @@ function NativeGummyBear(
     canvas.dataset.regions = String(regions)
     canvas.dataset.pressHeight = press ? String(press.height) : ''
     canvas.dataset.demo = String(demo)
-    canvas.dataset.topologyRevision = String(
-      fractureRuntime?.diagnostics.topologyVersion ?? 0,
-    )
+    publishMutationState()
     if (!ready) {
       ready = true
       props.onReady?.(true)
@@ -695,6 +718,7 @@ function NativeGummyBear(
   function drawIdleFrame(now: number, busy: boolean, batchWillDraw: boolean) {
     if (
       failed ||
+      picking ||
       document.visibilityState === 'hidden' ||
       (!settings().visible && ready)
     )
@@ -753,9 +777,15 @@ function NativeGummyBear(
       }
     })()
     const tracked = task.finally(() => {
-      if (advancing === tracked) advancing = undefined
+      if (advancing === tracked) {
+        advancing = undefined
+        // A scheduled draw may be throttled. Publish the matching revision
+        // before exposing quiescence, without adding another render.
+        publishMutationState()
+      }
     })
     advancing = tracked
+    publishMutationState()
     return tracked
   }
 
@@ -802,6 +832,8 @@ function NativeGummyBear(
       draw()
     },
     render: draw,
+    readSurfacePositions: () =>
+      readQuiescent(() => renderer.readSurfacePositions()),
     readState: () =>
       readQuiescent(async () => {
         const state = await solver.readState()
@@ -826,6 +858,7 @@ function NativeGummyBear(
       restVolume: mesh.restVolume,
       experiment: props.experiment,
       geometry: props.geometry,
+      surface: surface(),
       materialModel,
       solverIterations: solver.iterations,
       solverSubsteps: solver.jellySubsteps ?? 1,
@@ -866,20 +899,23 @@ function NativeGummyBear(
   if (import.meta.env.DEV) window.__gummyStudy = diagnostics
   canvas.dataset.testid = 'gummy-bear-canvas'
   canvas.tabIndex = 0
-  canvas.style.touchAction = 'none'
+  const releaseTouchSurface = bindGummyTouchSurface(canvas)
   canvas.style.cursor = 'grab'
-  canvas.addEventListener('pointerdown', pointerDown)
-  canvas.addEventListener('pointermove', pointerMove)
-  canvas.addEventListener('pointerup', pointerEnd)
-  canvas.addEventListener('pointercancel', pointerEnd)
-  canvas.addEventListener('lostpointercapture', pointerEnd)
-  canvas.addEventListener('wheel', wheel, { passive: false })
+  canvas.addEventListener('pointerdown', input.pointerDown)
+  canvas.addEventListener('pointermove', input.pointerMove)
+  canvas.addEventListener('pointerleave', input.pointerLeave)
+  canvas.addEventListener('pointerup', input.pointerEnd)
+  canvas.addEventListener('pointercancel', input.pointerEnd)
+  canvas.addEventListener('lostpointercapture', input.pointerEnd)
+  canvas.addEventListener('wheel', input.wheel, { passive: false })
   canvas.addEventListener('keydown', keyDown)
+  canvas.addEventListener('contextmenu', input.contextMenu)
   raf = requestAnimationFrame(frame)
   onCleanup(() => {
     disposed = true
     topologyEpoch++
     release()
+    releaseTouchSurface()
     cancelAnimationFrame(raf)
     if (window.__gummyStudy === diagnostics) delete window.__gummyStudy
     if (fractureRuntime) fractureRuntime.destroy()
@@ -888,13 +924,15 @@ function NativeGummyBear(
       solver.destroy()
     }
     props.onReady?.(false)
-    canvas.removeEventListener('pointerdown', pointerDown)
-    canvas.removeEventListener('pointermove', pointerMove)
-    canvas.removeEventListener('pointerup', pointerEnd)
-    canvas.removeEventListener('pointercancel', pointerEnd)
-    canvas.removeEventListener('lostpointercapture', pointerEnd)
-    canvas.removeEventListener('wheel', wheel)
+    canvas.removeEventListener('pointerdown', input.pointerDown)
+    canvas.removeEventListener('pointermove', input.pointerMove)
+    canvas.removeEventListener('pointerleave', input.pointerLeave)
+    canvas.removeEventListener('pointerup', input.pointerEnd)
+    canvas.removeEventListener('pointercancel', input.pointerEnd)
+    canvas.removeEventListener('lostpointercapture', input.pointerEnd)
+    canvas.removeEventListener('wheel', input.wheel)
     canvas.removeEventListener('keydown', keyDown)
+    canvas.removeEventListener('contextmenu', input.contextMenu)
   })
   return null
 }

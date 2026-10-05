@@ -3,6 +3,9 @@ import { d } from 'typegpu'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { buildGummyBearMesh } from '@/simulation/gummy/gummyMesh'
 import { createGummyRenderer } from './gummyRenderer'
+import { createGummyRenderResources } from './gummyRenderResources'
+import { gummyRoundingCompute } from './gummyRoundedSurfaceShaders'
+import { gummyNormalsCompute } from './gummyShaders'
 import type { TgpuRoot } from 'typegpu'
 import type { GummyFrame, GummyRenderState } from './gummyRenderer'
 
@@ -17,22 +20,28 @@ function harness() {
   const textures: { destroy: ReturnType<typeof vi.fn>; view: View }[] = []
   const passes: Pass[] = []
   const groups: Record<string, unknown>[] = []
+  const computeEvents: unknown[] = []
   let failedAfter = Infinity
-  const pipeline = (config?: Record<string, unknown>, pass?: Pass): object => ({
+  const pipeline = (
+    config?: Record<string, unknown>,
+    pass?: Pass,
+    shader?: unknown,
+  ): object => ({
     with(resource: unknown) {
       if (
         typeof resource === 'object' &&
         resource !== null &&
         'descriptor' in resource
       )
-        return pipeline(config, resource as Pass)
-      return pipeline(config, pass)
+        return pipeline(config, resource as Pass, shader)
+      return pipeline(config, pass, shader)
     },
     withIndexBuffer() {
-      return pipeline(config, pass)
+      return pipeline(config, pass, shader)
     },
     dispatchWorkgroups() {
       expect(config).toBeUndefined()
+      computeEvents.push(shader)
     },
     draw() {
       if (!pass || !config) throw new Error('Draw outside a render pass')
@@ -95,13 +104,20 @@ function harness() {
       groups.push(entries)
       return entries
     },
-    createRenderPipeline: (config: Record<string, unknown>) => pipeline(config),
-    createComputePipeline: () => pipeline(),
+    createRenderPipeline: vi.fn((config: Record<string, unknown>) =>
+      pipeline(config),
+    ),
+    createComputePipeline: vi.fn(({ compute }: { compute: unknown }) =>
+      pipeline(undefined, undefined, compute),
+    ),
     unwrap: vi.fn(),
     '~unstable': {
       createCommandEncoder() {
         return {
-          beginComputePass: () => ({ end: vi.fn() }),
+          beginComputePass: () => {
+            computeEvents.push('begin')
+            return { end: () => computeEvents.push('end') }
+          },
           beginRenderPass(descriptor: GPURenderPassDescriptor) {
             const pass = { descriptor, end: vi.fn() }
             passes.push(pass)
@@ -123,11 +139,16 @@ function harness() {
     context: context as unknown as GPUCanvasContext,
     solver: solver as unknown as GummyRenderState,
     external: solver,
+    pipelineCalls: () => [
+      root.createComputePipeline.mock.calls.length,
+      root.createRenderPipeline.mock.calls.length,
+    ],
     samplerCalls: () => device.createSampler.mock.calls.length,
     buffers,
     textures,
     passes,
     groups,
+    computeEvents,
     failAfter(count: number) {
       failedAfter = count
     },
@@ -151,6 +172,62 @@ beforeEach(() =>
 afterEach(() => vi.unstubAllGlobals())
 
 describe('gummy renderer ownership and passes', () => {
+  it('reuses compiled pipelines and borrowed frame targets across geometry replacements', () => {
+    const state = harness()
+    const resources = createGummyRenderResources(
+      state.root,
+      state.device,
+      state.context,
+      'bgra8unorm',
+    )
+    const first = createGummyRenderer(
+      state.root,
+      state.device,
+      state.context,
+      'bgra8unorm',
+      mesh,
+      state.solver,
+      resources,
+    )
+    first.render(frame())
+    const previous = state.textures.slice()
+    const initialBuffers = state.buffers.slice()
+    const otherSolver = {
+      positions: { destroy: vi.fn() },
+      damage: { destroy: vi.fn() },
+    } as unknown as GummyRenderState
+    const next = createGummyRenderer(
+      state.root,
+      state.device,
+      state.context,
+      'bgra8unorm',
+      mesh,
+      otherSolver,
+      resources,
+    )
+    expect(state.pipelineCalls()).toEqual([2, 7])
+    expect(
+      state.groups
+        .filter((group) => 'restNormals' in group)
+        .map((group) => group.positions),
+    ).toEqual([state.solver.positions, otherSolver.positions])
+    first.destroy()
+    for (const buffer of initialBuffers)
+      expect(buffer.destroy).toHaveBeenCalledOnce()
+    for (const texture of previous)
+      expect(texture.destroy).not.toHaveBeenCalled()
+    next.render(frame())
+    expect(state.textures).toEqual(previous)
+    expect(state.samplerCalls()).toBe(1)
+    next.destroy()
+    for (const texture of previous)
+      expect(texture.destroy).not.toHaveBeenCalled()
+    resources.destroy()
+    resources.destroy()
+    for (const texture of previous)
+      expect(texture.destroy).toHaveBeenCalledOnce()
+  })
+
   it('collects the nearest visible component before its matching back exit in runtime fracture', () => {
     const state = harness()
     const intact = buildGummyBearMesh({ fracture: 'none' })
@@ -163,7 +240,29 @@ describe('gummy renderer ownership and passes', () => {
       state.solver,
     )
     renderer.render(frame())
-    expect(state.passes).toHaveLength(6)
+    expect(state.computeEvents).toEqual([
+      'begin',
+      gummyRoundingCompute,
+      'end',
+      'begin',
+      gummyNormalsCompute,
+      'end',
+    ])
+    const camera = state.buffers[0]!
+    expect(
+      new Float32Array(camera.write.mock.calls.at(-1)![0] as ArrayBuffer)[52],
+    ).toBe(0)
+    renderer.render({ ...frame(), surface: 'rounded' })
+    expect(
+      new Float32Array(camera.write.mock.calls.at(-1)![0] as ArrayBuffer)[52],
+    ).toBe(1)
+    // Appearance switching does not rebuild resources or modify the borrowed solver.
+    expect(state.external.positions.destroy).not.toHaveBeenCalled()
+    renderer.render({ ...frame(), surface: 'original' })
+    expect(
+      new Float32Array(camera.write.mock.calls.at(-1)![0] as ArrayBuffer)[52],
+    ).toBe(0)
+    expect(state.passes).toHaveLength(18)
     const provenance = state.passes[2]!.descriptor
     const exits = state.passes[3]!.descriptor
     expect(provenance.label).toBe('Gummy visible component')

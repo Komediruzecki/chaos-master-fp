@@ -1,0 +1,204 @@
+{
+  "base": "https://localhost:5200",
+  "tearResponse": "soft",
+  "geometry": "fine",
+  "idleProbe": false,
+  "capturePrefix": "gummy-rounded-fine",
+  "samples": [],
+  "timings": [],
+  "errors": [],
+  "warnings": [],
+  "failures": [],
+  "placement": {
+    "before": {
+      "window": "0x55834f657fd0",
+      "workspace": 3,
+      "monitors": [
+        {
+          "id": 0,
+          "special": ""
+        }
+      ]
+    },
+    "after": {
+      "window": "0x55834f657fd0",
+      "workspace": 3,
+      "monitors": [
+        {
+          "id": 0,
+          "special": ""
+        }
+      ]
+    },
+    "clients": [
+      {
+        "class": "agent-browser",
+        "workspace": "special:agents"
+      }
+    ]
+  },
+  "adapter": {
+    "vendor": "amd",
+    "architecture": "rdna-4",
+    "fallback": false
+  },
+  "manualSamples": [],
+  "shortDrags": [],
+  "productionTopologyRevision": "2",
+  "productionSurfaces": [
+    {
+      "surface": "original",
+      "revision": "2"
+    },
+    {
+      "surface": "rounded",
+      "revision": "2"
+    }
+  ],
+  "tablet": {
+    "viewport": 1024,
+    "document": 1024,
+    "canvasCount": 1,
+    "choices": [
+      {
+        "label": "Standard",
+        "height": 44
+      },
+      {
+        "label": "Fine",
+        "height": 44
+      },
+      {
+        "label": "Original",
+        "height": 44
+      },
+      {
+        "label": "Rounded",
+        "height": 44
+      },
+      {
+        "label": "Soft tear",
+        "height": 44
+      },
+      {
+        "label": "Crumble",
+        "height": 44
+      },
+      {
+        "label": "Continuous jelly",
+        "height": 44
+      },
+      {
+        "label": "Particle jelly",
+        "height": 44
+      },
+      {
+        "label": "Fine crush",
+        "height": 44
+      },
+      {
+        "label": "Limb pull",
+        "height": 44
+      },
+      {
+        "label": "Squeeze & release",
+        "height": 54
+      },
+      {
+        "label": "Stretch & release",
+        "height": 54
+      },
+      {
+        "label": "Pull to tear",
+        "height": 44
+      }
+    ],
+    "materialControls": [
+      {
+        "label": "Softness55%",
+        "height": 44
+      },
+      {
+        "label": "Fragility88%",
+        "height": 44
+      },
+      {
+        "label": "Allow tearing",
+        "height": 44
+      }
+    ]
+  },
+  "phone": {
+    "viewport": 390,
+    "document": 390,
+    "canvasCount": 1,
+    "choices": [
+      {
+        "label": "Standard",
+        "height": 44
+      },
+      {
+        "label": "Fine",
+        "height": 44
+      },
+      {
+        "label": "Original",
+        "height": 44
+      },
+      {
+        "label": "Rounded",
+        "height": 44
+      },
+      {
+        "label": "Soft tear",
+        "height": 44
+      },
+      {
+        "label": "Crumble",
+        "height": 44
+      },
+      {
+        "label": "Continuous jelly",
+        "height": 44
+      },
+      {
+        "label": "Particle jelly",
+        "height": 44
+      },
+      {
+        "label": "Fine crush",
+        "height": 44
+      },
+      {
+        "label": "Limb pull",
+        "height": 44
+      },
+      {
+        "label": "Squeeze & release",
+        "height": 44
+      },
+      {
+        "label": "Stretch & release",
+        "height": 44
+      },
+      {
+        "label": "Pull to tear",
+        "height": 44
+      }
+    ],
+    "materialControls": [
+      {
+        "label": "Softness55%",
+        "height": 44
+      },
+      {
+        "label": "Fragility88%",
+        "height": 44
+      },
+      {
+        "label": "Allow tearing",
+        "height": 44
+      }
+    ]
+  }
+}

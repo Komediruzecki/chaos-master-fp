@@ -4,6 +4,7 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { performance } from 'node:perf_hooks'
 import { analyzeRuntimeJelly } from './gummy-jelly-topology-checks.mjs'
+import { checkGummyRoundedSurface } from './gummy-rounded-surface-checks.mjs'
 import { gummyArmPoint } from './gummy-study-input-checks.mjs'
 
 export async function checkGummyManualTearing(
@@ -247,15 +248,59 @@ export async function checkGummyManualTearing(
     )
     await page.mouse.up()
     await freeze()
+    // Pausing stops new ticks; let an already queued fracture update finish.
+    await page.waitForFunction(
+      () =>
+        document.querySelector('[data-testid="gummy-bear-canvas"]').dataset
+          .mutationPending === 'false',
+    )
     result.productionTopologyRevision = await canvas.getAttribute(
       'data-topology-revision',
     )
+    result.productionSurfaces = []
+    for (const surface of ['original', 'rounded']) {
+      await button(surface === 'rounded' ? 'Rounded' : 'Original').click()
+      await page.waitForFunction(
+        (expected) =>
+          document.querySelector('[data-testid="gummy-bear-canvas"]').dataset
+            .surface === expected,
+        surface,
+      )
+      assert.equal(
+        await canvas.getAttribute('data-topology-revision'),
+        result.productionTopologyRevision,
+      )
+      assert.equal(
+        await button('Resume').count(),
+        1,
+        'Surface comparison keeps production paused',
+      )
+      result.productionSurfaces.push({
+        surface,
+        revision: result.productionTopologyRevision,
+      })
+    }
     await screenshot('production-manual')
     return result
   }
   await reset()
   const generation = await page.evaluateHandle(() => window.__gummyStudy)
   const rest = await sample('rest', true)
+  if (process.env.GUMMY_SURFACE_CHECKS === '1')
+    result.surfaces = [
+      await checkGummyRoundedSurface(page, output, prefix, 'intact'),
+    ]
+  if (process.env.GUMMY_SURFACE_ONLY === '1') {
+    assert.equal(process.env.GUMMY_SURFACE_CHECKS, '1')
+    result.surfaceOnly = true
+    await shortPull('surface-review', 100)
+    result.surfaces.push(
+      await checkGummyRoundedSurface(page, output, prefix, 'torn'),
+    )
+    await reset()
+    await sample('reset')
+    return result
+  }
   if (report.idleProbe) {
     let previous = 0
     for (const tick of [6, 12, 30, 60, 120, 300, 600, 1200, 2400, 7200]) {
@@ -355,6 +400,10 @@ export async function checkGummyManualTearing(
   )
   await reset()
   await shortPull('surface-review', 100)
+  if (process.env.GUMMY_SURFACE_CHECKS === '1')
+    result.surfaces.push(
+      await checkGummyRoundedSurface(page, output, prefix, 'torn'),
+    )
   await page.getByRole('radio', { name: 'Blue', exact: true }).check()
   await page.evaluate(() => {
     window.__gummyStudy.render()

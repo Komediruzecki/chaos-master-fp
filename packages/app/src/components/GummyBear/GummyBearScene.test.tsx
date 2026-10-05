@@ -6,7 +6,8 @@ import { buildGummyBearMesh } from '@/simulation/gummy/gummyMesh'
 import { GummyBearScene } from './GummyBearScene'
 import * as gummyStudyMath from './gummyStudyMath'
 import type { ParentProps } from 'solid-js'
-import type { GummyExperiment, GummyGeometry } from './GummyBearScene'
+import type { GummyExperiment, GummyGeometry, GummyInteraction, GummySurface, } from './GummyBearScene'
+import type { GummyPointerFrame } from './gummyPointerRenderer'
 import type { GummyFrame } from './gummyRenderer'
 import type { GummyJellyProtocol } from './gummyStudyMath'
 import type { GummyMesh } from '@/simulation/gummy/gummyMesh'
@@ -19,6 +20,8 @@ type SolverRecord = {
   destroyed: boolean
   inputs: Parameters<GummySolver['step']>[1][]
   nextRead?: Promise<Snapshot>
+  nextPositions?: Promise<Float32Array>
+  positionReads: number
   nextDynamic?: Promise<GummySolverDynamicState>
   snapshot: () => Snapshot
 }
@@ -29,12 +32,21 @@ type RendererRecord = {
 }
 const fixtures = vi.hoisted(() => ({
   canvas: undefined as HTMLCanvasElement | undefined,
+  visibility: undefined as ((visible: boolean) => void) | undefined,
   solvers: [] as SolverRecord[],
   renderers: [] as RendererRecord[],
+  pointerRenderers: [] as { destroyed: boolean; frames: GummyPointerFrame[] }[],
+  drawOrder: [] as string[],
 }))
 
 vi.mock('@/lib/AutoCanvas', () => ({
-  AutoCanvas(props: ParentProps<{ ariaLabel: string }>) {
+  AutoCanvas(
+    props: ParentProps<{
+      ariaLabel: string
+      onVisibilityChange?: (visible: boolean) => void
+    }>,
+  ) {
+    fixtures.visibility = (visible) => props.onVisibilityChange?.(visible)
     const [canvas, setCanvas] = createSignal<HTMLCanvasElement>()
     return (
       <>
@@ -71,6 +83,7 @@ vi.mock('@/lib/RootContext', () => ({
   useLiveRootContext: () => ({ root: {}, device: {} }),
 }))
 vi.mock('@/simulation/gummy/gummySolver', () => ({
+  createGummySolverPreparationCache: () => ({}),
   createGummySolver(
     _root: unknown,
     _device: unknown,
@@ -81,6 +94,7 @@ vi.mock('@/simulation/gummy/gummySolver', () => ({
       mesh,
       materialModel: options?.materialModel ?? 'edge-volume',
       destroyed: false,
+      positionReads: 0,
       inputs: [],
       snapshot: () =>
         ({
@@ -103,7 +117,16 @@ vi.mock('@/simulation/gummy/gummySolver', () => ({
       reset() {
         record.inputs.length = 0
       },
+      readPositions() {
+        record.positionReads++
+        return (
+          record.nextPositions ?? Promise.resolve(record.snapshot().positions)
+        )
+      },
       readState: () => record.nextRead ?? Promise.resolve(record.snapshot()),
+      snapshotAssessment: () =>
+        record.nextDynamic ??
+        Promise.resolve({ positions: mesh.positions.slice() }),
       snapshotDynamic: () =>
         record.nextDynamic ??
         Promise.resolve({
@@ -117,6 +140,26 @@ vi.mock('@/simulation/gummy/gummySolver', () => ({
           gripping: false,
         }),
       restoreDynamic() {},
+      destroy() {
+        record.destroyed = true
+      },
+    }
+  },
+}))
+vi.mock('./gummyRenderResources', () => ({
+  createGummyRenderResources: () => ({ destroy: vi.fn() }),
+}))
+vi.mock('./gummyPointerRenderer', () => ({
+  createGummyPointerRenderer() {
+    const record = { destroyed: false, frames: [] as GummyPointerFrame[] }
+    fixtures.pointerRenderers.push(record)
+    return {
+      render(frame: GummyPointerFrame) {
+        if (record.destroyed)
+          throw new Error('Rendered a destroyed pointer guide')
+        record.frames.push(frame)
+        fixtures.drawOrder.push('pointer')
+      },
       destroy() {
         record.destroyed = true
       },
@@ -137,6 +180,14 @@ vi.mock('./gummyRenderer', () => ({
       render(frame: GummyFrame) {
         if (record.destroyed) throw new Error('Rendered destroyed resources')
         record.frames.push(frame)
+        fixtures.drawOrder.push('scene')
+      },
+      readSurfacePositions() {
+        if (record.destroyed) throw new Error('Read destroyed renderer')
+        return Promise.resolve({
+          positions: mesh.positions.slice(),
+          restPositions: mesh.positions.slice(),
+        })
       },
       destroy() {
         record.destroyed = true
@@ -161,9 +212,32 @@ function diagnostics() {
     throw new Error('The study diagnostics were not mounted')
   return window.__gummyStudy
 }
+
+function cameraPointer(
+  type: string,
+  id: number,
+  x: number,
+  y: number,
+  options: object = {},
+) {
+  const event = new Event(type, { bubbles: true, cancelable: true })
+  Object.assign(event, {
+    pointerId: id,
+    button: 0,
+    clientX: x,
+    clientY: y,
+    pointerType: 'touch',
+    ...options,
+  })
+  fixtures.canvas!.dispatchEvent(event)
+}
+
 beforeEach(() => {
+  fixtures.visibility = undefined
   fixtures.solvers.length = 0
   fixtures.renderers.length = 0
+  fixtures.pointerRenderers.length = 0
+  fixtures.drawOrder.length = 0
   frames.clear()
   nextFrame = 0
   vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
@@ -183,6 +257,393 @@ afterEach(() => {
 })
 
 describe('owned gummy experiment scene', () => {
+  it.each(['pull', 'jelly'] as const)(
+    'uses positions-only touch picking and stops submitting %s frames during the read',
+    async (experiment) => {
+      render(() => (
+        <GummyBearScene
+          experiment={experiment}
+          protocol="tear"
+          palette="marble"
+          mode="drag"
+          softness={0.55}
+          tearing
+          paused
+          demoKey={0}
+          resetKey={0}
+        />
+      ))
+      drawFrame(0)
+      const record = fixtures.solvers[0]!
+      record.nextRead = new Promise(() => {})
+      let finish!: (positions: Float32Array) => void
+      record.nextPositions = new Promise((resolve) => {
+        finish = resolve
+      })
+      const matrix = fixtures.renderers[0]!.frames[0]!.viewProjection
+      const point = [0.64, 1.24, 0.08, 1]
+      const clip = [0, 1, 2, 3].map((row) =>
+        point.reduce(
+          (sum, value, col) => sum + value * matrix[col * 4 + row]!,
+          0,
+        ),
+      )
+      const x = 200 * (clip[0]! / clip[3]! + 1)
+      const y = 200 * (1 - clip[1]! / clip[3]!)
+      const touchStart = new Event('touchstart', {
+        bubbles: true,
+        cancelable: true,
+      })
+      fixtures.canvas!.dispatchEvent(touchStart)
+      expect(touchStart.defaultPrevented).toBe(true)
+      cameraPointer('pointerdown', 7, x, y)
+      const touchMove = new Event('touchmove', {
+        bubbles: true,
+        cancelable: true,
+      })
+      fixtures.canvas!.dispatchEvent(touchMove)
+      expect(touchMove.defaultPrevented).toBe(true)
+      cameraPointer('pointermove', 7, x + 20, y)
+      for (let i = 0; i < 8; i++) await Promise.resolve()
+      drawFrame(20)
+      expect(fixtures.renderers[0]!.frames).toHaveLength(1)
+      expect(fixtures.pointerRenderers[0]!.frames).toHaveLength(1)
+      expect(record.positionReads).toBe(1)
+      finish(record.snapshot().positions)
+      for (let i = 0; i < 8; i++) await Promise.resolve()
+      expect(diagnostics().info().grip).toBe(true)
+      await diagnostics().advanceFrames(1)
+      const first = [...record.inputs.at(-1)!.grip!.target]
+      cameraPointer('pointermove', 7, x + 50, y - 10)
+      await diagnostics().advanceFrames(1)
+      expect(record.inputs.at(-1)!.grip!.target).not.toEqual(first)
+      expect(fixtures.drawOrder.slice(-2)).toEqual(['scene', 'pointer'])
+      expect(
+        fixtures.pointerRenderers[0]!.frames.at(-1)?.pointer,
+      ).toMatchObject({
+        active: true,
+        target: record.inputs.at(-1)!.grip!.target,
+      })
+      cameraPointer('pointerup', 7, x + 50, y - 10)
+      expect(diagnostics().info().grip).toBe(false)
+      expect(fixtures.canvas!.hasPointerCapture(7)).toBe(false)
+    },
+  )
+  it('continues rendering an offscreen canvas only while its recording is active', async () => {
+    const [recording, setRecording] = createSignal(false)
+    render(() => (
+      <GummyBearScene
+        experiment="pull"
+        palette="marble"
+        mode="orbit"
+        softness={0.55}
+        tearing
+        paused={false}
+        recording={recording()}
+        demoKey={0}
+        resetKey={0}
+      />
+    ))
+    drawFrame(0)
+    await Promise.resolve()
+    const renderer = fixtures.renderers[0]!
+    const before = renderer.frames.length
+    fixtures.visibility!(false)
+    drawFrame(20)
+    expect(renderer.frames).toHaveLength(before)
+    expect(fixtures.solvers[0]!.inputs).toHaveLength(0)
+    setRecording(true)
+    drawFrame(40)
+    await Promise.resolve()
+    expect(renderer.frames).toHaveLength(before + 1)
+    expect(fixtures.solvers[0]!.inputs.length).toBe(2)
+    setRecording(false)
+    drawFrame(60)
+    expect(renderer.frames).toHaveLength(before + 1)
+    expect(fixtures.solvers[0]!.inputs).toHaveLength(2)
+  })
+
+  it.each(['pull', 'crush', 'jelly'] as const)(
+    'navigates %s with touch pan, orbit and keyboard, then restores the view without changing physics',
+    (model) => {
+      const [mode, setMode] = createSignal<GummyInteraction>('pan')
+      const [viewKey, setViewKey] = createSignal(0)
+      render(() => (
+        <GummyBearScene
+          experiment={model}
+          protocol="tear"
+          palette="marble"
+          mode={mode()}
+          softness={0.55}
+          tearing
+          paused
+          demoKey={0}
+          resetKey={0}
+          resetViewKey={viewKey()}
+        />
+      ))
+      drawFrame(0)
+      const projection = () => {
+        diagnostics().render()
+        return Array.from(fixtures.renderers[0]!.frames.at(-1)!.viewProjection)
+      }
+      const initial = projection()
+      cameraPointer('pointerdown', 1, 100, 100)
+      cameraPointer('pointermove', 1, 150, 125)
+      expect(projection()).not.toEqual(initial)
+      expect(diagnostics().info().grip).toBe(false)
+      setViewKey(1)
+      expect(fixtures.canvas!.hasPointerCapture(1)).toBe(false)
+      expect(projection()).toEqual(initial)
+      setMode('orbit')
+      cameraPointer('pointerdown', 2, 100, 100)
+      cameraPointer('pointermove', 2, 140, 115)
+      expect(projection()).not.toEqual(initial)
+      cameraPointer('pointerup', 2, 140, 115)
+      fireEvent.keyDown(fixtures.canvas!, { key: 'Home' })
+      expect(projection()).toEqual(initial)
+      fireEvent.keyDown(fixtures.canvas!, { key: 'ArrowRight', shiftKey: true })
+      expect(projection()).not.toEqual(initial)
+      fireEvent.keyDown(fixtures.canvas!, { key: 'Home' })
+      expect(projection()).toEqual(initial)
+      expect(fixtures.solvers[0]!.inputs).toHaveLength(0)
+      expect(fixtures.solvers).toHaveLength(1)
+    },
+  )
+
+  it.each(['mode', 'second-touch'] as const)(
+    'rejects a delayed material pick after a %s camera transition',
+    async (transition) => {
+      const [mode, setMode] = createSignal<GummyInteraction>('drag')
+      const statuses: string[] = []
+      render(() => (
+        <GummyBearScene
+          experiment="pull"
+          palette="marble"
+          mode={mode()}
+          softness={0.55}
+          tearing
+          paused
+          demoKey={0}
+          resetKey={0}
+          onStatus={(status) => statuses.push(status)}
+        />
+      ))
+      drawFrame(0)
+      const record = fixtures.solvers[0]!
+      let finish!: (state: Float32Array) => void
+      record.nextPositions = new Promise((resolve) => {
+        finish = resolve
+      })
+      cameraPointer('pointerdown', 1, 200, 200)
+      expect(statuses.at(-1)).toBe('picking')
+      if (transition === 'mode') setMode('pan')
+      else cameraPointer('pointerdown', 2, 300, 200)
+      expect(statuses.at(-1)).toBe('ready')
+      finish(record.snapshot().positions)
+      await record.nextPositions
+      for (let i = 0; i < 8; i++) await Promise.resolve()
+      expect(diagnostics().info().grip).toBe(false)
+      expect(statuses).not.toContain('dragging')
+      if (transition === 'second-touch') {
+        const before = Array.from(
+          fixtures.renderers[0]!.frames.at(-1)!.viewProjection,
+        )
+        cameraPointer('pointermove', 2, 330, 220)
+        diagnostics().render()
+        expect(
+          Array.from(fixtures.renderers[0]!.frames.at(-1)!.viewProjection),
+        ).not.toEqual(before)
+        cameraPointer('pointerup', 2, 330, 220)
+        cameraPointer('pointermove', 1, 210, 210)
+        expect(diagnostics().info().grip).toBe(false)
+        expect(statuses.filter((status) => status === 'picking')).toHaveLength(
+          1,
+        )
+      } else expect(fixtures.canvas!.hasPointerCapture(1)).toBe(false)
+    },
+  )
+  it('publishes queued mutation and its final revision while paused even when the completion draw is throttled', async () => {
+    const [paused, setPaused] = createSignal(false)
+    const [surface, setSurface] = createSignal<GummySurface>('rounded')
+    vi.spyOn(globalThis.performance, 'now').mockReturnValue(0)
+    render(() => (
+      <GummyBearScene
+        experiment="jelly"
+        protocol="tear"
+        surface={surface()}
+        palette="candy"
+        mode="drag"
+        softness={0.55}
+        fragility={1}
+        tearResponse="crumble"
+        tearing
+        paused={paused()}
+        demoKey={0}
+        resetKey={0}
+      />
+    ))
+    drawFrame(0)
+    const canvas = fixtures.canvas!
+    const current = fixtures.solvers[0]!
+    expect(canvas.dataset.mutationPending).toBe('false')
+    expect(canvas.dataset.topologyRevision).toBe('0')
+    let complete!: (state: GummySolverDynamicState) => void
+    current.nextDynamic = new Promise<GummySolverDynamicState>((resolve) => {
+      complete = resolve
+    })
+    drawFrame(50)
+    // The attribute must change synchronously, before the readback starts.
+    expect(canvas.dataset.mutationPending).toBe('true')
+    await Promise.resolve()
+    expect(diagnostics().info().mutationPending).toBe(true)
+    setPaused(true)
+    drawFrame(60)
+    expect(canvas.dataset.mutationPending).toBe('true')
+    const stretched = current.mesh.positions.slice()
+    for (let node = 0; node < stretched.length; node += 4)
+      stretched[node] = stretched[node]! * 1.8
+    complete({
+      positions: stretched,
+      previous: stretched.slice(),
+      velocities: new Float32Array(stretched.length),
+      grip: new Float32Array(stretched.length),
+      simulationTime: 0.05,
+      accumulator: 0,
+      gripKey: '',
+      gripping: false,
+    })
+    await waitFor(() => {
+      expect(canvas.dataset.mutationPending).toBe('false')
+    })
+    const revision = diagnostics().info().topologyRevision
+    expect(revision).toBeGreaterThan(0)
+    expect(canvas.dataset.topologyRevision).toBe(String(revision))
+    // No completion render was needed to publish the finished revision.
+    const renderer = fixtures.renderers.at(-1)!
+    expect(renderer.frames).toHaveLength(0)
+    setSurface('original')
+    drawFrame(80)
+    expect(renderer.frames.at(-1)?.surface).toBe('original')
+    expect(canvas.dataset.mutationPending).toBe('false')
+    expect(canvas.dataset.topologyRevision).toBe(String(revision))
+    expect(diagnostics().info().topologyRevision).toBe(revision)
+  })
+
+  it('switches the torn surface on a fractured paused bear without resetting or replacing its resources', async () => {
+    const [surface, setSurface] = createSignal<GummySurface>()
+    const ready = vi.fn()
+    const paused = vi.fn()
+    render(() => (
+      <GummyBearScene
+        experiment="jelly"
+        protocol="tear"
+        surface={surface()}
+        palette="candy"
+        mode="drag"
+        softness={0.55}
+        fragility={1}
+        tearResponse="crumble"
+        tearing
+        paused
+        demoKey={0}
+        resetKey={0}
+        onReady={ready}
+        onPauseChange={paused}
+      />
+    ))
+    drawFrame(0)
+    const mounted = diagnostics()
+    expect(mounted.info().surface).toBe('original')
+    const initial = fixtures.solvers[0]!
+    const stretched = initial.mesh.positions.slice()
+    for (let node = 0; node < stretched.length; node += 4)
+      stretched[node] = stretched[node]! * 1.8
+    initial.nextDynamic = Promise.resolve({
+      positions: stretched,
+      previous: stretched.slice(),
+      velocities: new Float32Array(stretched.length),
+      grip: new Float32Array(stretched.length),
+      simulationTime: 0.05,
+      accumulator: 0,
+      gripKey: '',
+      gripping: false,
+    })
+    await mounted.advanceFrames(6)
+    expect(mounted.info().topologyRevision).toBeGreaterThan(0)
+    const before = await mounted.readState()
+    const revision = mounted.info().topologyRevision
+    const currentSolver = fixtures.solvers.at(-1)!
+    const currentRenderer = fixtures.renderers.at(-1)!
+    const allocated = fixtures.solvers.length
+    const surfacePositions = await mounted.readSurfacePositions()
+    expect(surfacePositions.positions).toEqual(currentRenderer.mesh.positions)
+    expect(surfacePositions.restPositions).toEqual(
+      currentRenderer.mesh.positions,
+    )
+    expect(surfacePositions.positions.length).toBeGreaterThan(
+      initial.mesh.positions.length,
+    )
+    ready.mockClear()
+    for (const choice of ['rounded', 'original'] as const) {
+      setSurface(choice)
+      drawFrame(choice === 'rounded' ? 20 : 40)
+      expect(diagnostics()).toBe(mounted)
+      expect(mounted.info()).toMatchObject({
+        surface: choice,
+        tick: 6,
+        topologyRevision: revision,
+      })
+      expect(currentRenderer.frames.at(-1)?.surface).toBe(choice)
+      expect(currentRenderer.frames.at(-1)?.palette).toBe('candy')
+      expect(fixtures.canvas?.dataset.surface).toBe(choice)
+      expect(fixtures.solvers).toHaveLength(allocated)
+      expect(fixtures.renderers).toHaveLength(allocated)
+      expect(currentSolver.destroyed).toBe(false)
+      expect(currentRenderer.destroyed).toBe(false)
+      const after = await mounted.readState()
+      expect(after.topology).toEqual(before.topology)
+      expect(after.positions).toEqual(before.positions)
+    }
+    expect(ready).not.toHaveBeenCalled()
+    expect(paused).not.toHaveBeenCalled()
+  })
+
+  it('keeps other experiments on the original surface without reacting to the unused choice', () => {
+    const [surface, setSurface] = createSignal<GummySurface>('rounded')
+    const [protocol, setProtocol] = createSignal<GummyJellyProtocol>('squeeze')
+    const [experiment, setExperiment] = createSignal<GummyExperiment>('jelly')
+    render(() => (
+      <GummyBearScene
+        experiment={experiment()}
+        protocol={protocol()}
+        surface={surface()}
+        palette="marble"
+        mode="orbit"
+        softness={0.55}
+        tearing={false}
+        paused
+        demoKey={0}
+        resetKey={0}
+      />
+    ))
+    for (const [index, mode] of (
+      ['squeeze', 'stretch', 'pull', 'crush'] as const
+    ).entries()) {
+      if (mode === 'squeeze' || mode === 'stretch') setProtocol(mode)
+      else setExperiment(mode)
+      drawFrame(index * 20)
+      const generation = diagnostics()
+      const resources = fixtures.solvers.length
+      setSurface(surface() === 'rounded' ? 'original' : 'rounded')
+      generation.render()
+      expect(generation.info().surface).toBe('original')
+      expect(fixtures.renderers.at(-1)?.frames.at(-1)?.surface).toBe('original')
+      expect(diagnostics()).toBe(generation)
+      expect(fixtures.solvers).toHaveLength(resources)
+    }
+  })
+
   it.each(['standard', 'fine'] as const)(
     'keeps the tear pick tolerance and grip footprint fixed for %s geometry',
     async (geometry) => {
@@ -805,6 +1266,9 @@ describe('owned gummy experiment scene', () => {
     mounted.unmount()
     expect(fixtures.solvers.every((record) => record.destroyed)).toBe(true)
     expect(fixtures.renderers.every((record) => record.destroyed)).toBe(true)
+    expect(fixtures.pointerRenderers.every((record) => record.destroyed)).toBe(
+      true,
+    )
     expect(frames.size).toBe(0)
     expect(window.__gummyStudy).toBeUndefined()
   })
@@ -863,9 +1327,9 @@ describe('owned gummy experiment scene', () => {
       />
     ))
     drawFrame(0)
-    let complete!: (state: Snapshot) => void
+    let complete!: (state: Float32Array) => void
     const old = fixtures.solvers[0]!
-    old.nextRead = new Promise((resolve) => {
+    old.nextPositions = new Promise((resolve) => {
       complete = resolve
     })
     const pointer = new Event('pointerdown', { bubbles: true })
@@ -878,8 +1342,8 @@ describe('owned gummy experiment scene', () => {
     fixtures.canvas!.dispatchEvent(pointer)
     setExperiment('crush')
     drawFrame(1)
-    complete(old.snapshot())
-    await old.nextRead
+    complete(old.snapshot().positions)
+    await old.nextPositions
     await Promise.resolve()
     expect(old.destroyed).toBe(true)
     expect(diagnostics().info().experiment).toBe('crush')

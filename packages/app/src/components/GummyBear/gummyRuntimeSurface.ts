@@ -1,5 +1,6 @@
 /** Exact shared-node components and incident tetrahedra for runtime fracture rendering. */
 import { EXPOSED_TEAR_FACE } from '@/simulation/gummy/gummyMesh'
+import { prepareGummyRounding } from './gummyRoundedSurface'
 
 type Tet = [number, number, number, number]
 
@@ -39,29 +40,64 @@ export function gummyTearVertexWeights(
   )
 }
 
-const faceKey = (nodes: number[]) => nodes.sort((a, b) => a - b).join(':')
-
 function oppositeSide(
   positions: Float32Array,
-  nodes: number[],
+  first: number,
+  second: number,
+  third: number,
   opposite: number,
 ) {
-  const a = nodes[0]! * 4,
-    b = nodes[1]! * 4,
-    c = nodes[2]! * 4,
+  const a = first * 4,
+    b = second * 4,
+    c = third * 4,
     q = opposite * 4
-  const u = [0, 1, 2].map((axis) => positions[b + axis]! - positions[a + axis]!)
-  const v = [0, 1, 2].map((axis) => positions[c + axis]! - positions[a + axis]!)
-  const n = [
-    u[1]! * v[2]! - u[2]! * v[1]!,
-    u[2]! * v[0]! - u[0]! * v[2]!,
-    u[0]! * v[1]! - u[1]! * v[0]!,
-  ]
-  return n.reduce(
-    (sum, value, axis) =>
-      sum + value * (positions[q + axis]! - positions[a + axis]!),
-    0,
+  const ux = positions[b]! - positions[a]!
+  const uy = positions[b + 1]! - positions[a + 1]!
+  const uz = positions[b + 2]! - positions[a + 2]!
+  const vx = positions[c]! - positions[a]!
+  const vy = positions[c + 1]! - positions[a + 1]!
+  const vz = positions[c + 2]! - positions[a + 2]!
+  return (
+    (uy * vz - uz * vy) * (positions[q]! - positions[a]!) +
+    (uz * vx - ux * vz) * (positions[q + 1]! - positions[a + 1]!) +
+    (ux * vy - uy * vx) * (positions[q + 2]! - positions[a + 2]!)
   )
+}
+
+function validTet(a: number, b: number, c: number, q: number, count: number) {
+  return (
+    a < count &&
+    b < count &&
+    c < count &&
+    q < count &&
+    a !== b &&
+    a !== c &&
+    a !== q &&
+    b !== c &&
+    b !== q &&
+    c !== q
+  )
+}
+
+function inwardOwner(
+  positions: Float32Array,
+  candidates: readonly Tet[],
+  a: number,
+  b: number,
+  c: number,
+) {
+  if (a === b || a === c || b === c) return undefined
+  // The first face node already indexes every possible owner in input order.
+  // Match all three exact IDs; a coincident detached copy is never a candidate.
+  for (const tet of candidates) {
+    if (!tet.includes(b) || !tet.includes(c)) continue
+    for (const node of tet)
+      if (node !== a && node !== b && node !== c) {
+        if (oppositeSide(positions, a, b, c, node) < 0) return node
+        break
+      }
+  }
+  return undefined
 }
 
 export function prepareRuntimeGummyMetadata(
@@ -81,43 +117,45 @@ export function prepareRuntimeGummyMetadata(
     return node
   }
   const incident: Tet[][] = Array.from({ length: count }, () => [])
-  const opposites = new Map<string, number[]>()
   for (let offset = 0; offset < tetrahedra.length; offset += 4) {
-    const tet = Array.from(tetrahedra.subarray(offset, offset + 4)) as Tet
-    if (new Set(tet).size !== 4 || tet.some((node) => node >= count))
+    const a = tetrahedra[offset]!
+    const b = tetrahedra[offset + 1]!
+    const c = tetrahedra[offset + 2]!
+    const q = tetrahedra[offset + 3]!
+    if (!validTet(a, b, c, q, count))
       throw new Error('Invalid runtime gummy tetrahedron')
+    const tet: Tet = [a, b, c, q]
     for (const node of tet) {
       parent[find(node)] = find(tet[0])
       incident[node]!.push(tet)
-    }
-    for (let corner = 0; corner < 4; corner++) {
-      const key = faceKey(tet.filter((_, index) => index !== corner))
-      const list = opposites.get(key) ?? []
-      list.push(tet[corner]!)
-      opposites.set(key, list)
     }
   }
   const components = new Map<number, number>()
   const metadata = new Uint32Array(surface.length)
   const wet = gummyTearVertexWeights(incident, surface)
   for (let offset = 0; offset < surface.length; offset += 4) {
-    const nodes = Array.from(surface.subarray(offset, offset + 3))
-    const component = find(nodes[0]!)
-    if (nodes.some((node) => find(node) !== component))
+    const a = surface[offset]!
+    const b = surface[offset + 1]!
+    const c = surface[offset + 2]!
+    const component = find(a)
+    if (find(b) !== component || find(c) !== component)
       throw new Error('Runtime gummy surface crosses components')
     if (!components.has(component))
       components.set(component, components.size + 1)
-    const candidates = opposites.get(faceKey([...nodes]))
-    const opposite = candidates?.find(
-      (node) => oppositeSide(positions, nodes, node) < 0,
-    )
+    const opposite = inwardOwner(positions, incident[a]!, a, b, c)
     if (opposite === undefined)
       throw new Error('Runtime gummy surface has no inward tetrahedron')
     metadata[offset] = components.get(component)!
     metadata[offset + 1] = opposite + 1
-    metadata[offset + 2] = 1
-    metadata[offset + 3] =
-      wet[nodes[0]!]! | (wet[nodes[1]!]! << 8) | (wet[nodes[2]!]! << 16)
+    metadata[offset + 2] =
+      wet[a]! > 0 &&
+      incident[a]!.length === 1 &&
+      incident[b]!.length === 1 &&
+      incident[c]!.length === 1 &&
+      incident[opposite]!.length === 1
+        ? 2
+        : 1
+    metadata[offset + 3] = wet[a]! | (wet[b]! << 8) | (wet[c]! << 16)
   }
-  return { incident, metadata }
+  return { incident, metadata, rounding: prepareGummyRounding(count, surface) }
 }

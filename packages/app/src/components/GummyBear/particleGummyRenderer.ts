@@ -13,12 +13,14 @@ import type { GummyFrame } from './gummyRenderer'
 export type ParticleGummyRenderState = {
   positions: TgpuBuffer<d.WgslArray<d.Vec4f>> & StorageFlag
   restPositions: Float32Array
+  /** Immutable dye coordinates, independent of geometry for multi-colour contact fixtures. */
+  dyePositions?: Float32Array
   particleCount: number
   spacing: number
 }
 export type ParticleGummyRenderOptions = { raw?: boolean }
 
-function packCamera(
+export function packParticleGummyCamera(
   data: Float32Array,
   frame: GummyFrame,
   format: GPUTextureFormat,
@@ -53,6 +55,7 @@ function packCamera(
   data[49] = frame.press?.halfExtent ?? 0
   data[50] = frame.press ? 1 : 0
   data[51] = GUMMY_PRESS_THICKNESS
+  data[53] = frame.floor === 'chess' ? 1 : 0
 }
 
 export function createParticleGummyRenderer(
@@ -64,6 +67,7 @@ export function createParticleGummyRenderer(
 ) {
   if (root.device !== device)
     throw new Error('Particle gummy renderer root and device must match')
+  const dyePositions = particles.dyePositions ?? particles.restPositions
   if (
     !Number.isInteger(particles.particleCount) ||
     particles.particleCount < 1 ||
@@ -72,6 +76,13 @@ export function createParticleGummyRenderer(
   )
     throw new Error(
       'Particle gummy renderer needs a finite vec4 rest position for each particle',
+    )
+  if (
+    dyePositions.length !== particles.particleCount * 4 ||
+    !dyePositions.every(Number.isFinite)
+  )
+    throw new Error(
+      'Particle gummy renderer needs finite vec4 dye coordinates for each particle',
     )
   const radius = particles.spacing * PARTICLE_GUMMY_RADIUS_SCALE
   const weight = particleVolumeWeight(particles.spacing, radius)
@@ -93,7 +104,7 @@ export function createParticleGummyRenderer(
     const restPositions = own(
       root
         .createBuffer(d.arrayOf(d.vec4f, particles.particleCount), (buffer) => {
-          buffer.write(new Float32Array(particles.restPositions).buffer)
+          buffer.write(new Float32Array(dyePositions).buffer)
         })
         .$usage('storage'),
     )
@@ -130,7 +141,6 @@ export function createParticleGummyRenderer(
         fragment: particleGummyOpticalFragment,
         targets: {
           optical: { format: 'rgba16float', blend: additive },
-          dye: { format: 'rgba16float', blend: additive },
           profileFirst: { format: 'rgba16float', blend: additive },
           profileSecond: { format: 'rgba16float', blend: additive },
         },
@@ -157,7 +167,10 @@ export function createParticleGummyRenderer(
       .createRenderPipeline({
         vertex: particleGummyVertex,
         fragment: particleGummyNormalFragment,
-        targets: { format: 'rgba16float', blend: additive },
+        targets: {
+          normal: { format: 'rgba16float', blend: additive },
+          dye: { format: 'rgba16float', blend: additive },
+        },
       })
       .with(cameraGroup)
       .with(particleGroup)
@@ -271,7 +284,14 @@ export function createParticleGummyRenderer(
           sizeKey = key
         }
         const target = targets!
-        packCamera(cameraData, frame, format, radius, width, height)
+        packParticleGummyCamera(
+          cameraData,
+          frame,
+          format,
+          radius,
+          width,
+          height,
+        )
         camera.write(cameraData.buffer)
         const encoder = root['~unstable'].createCommandEncoder({
           label: 'Particle gummy support frame',
@@ -331,12 +351,6 @@ export function createParticleGummyRenderer(
           colorAttachments: [
             {
               view: target.optical,
-              clearValue: [0, 0, 0, 0],
-              loadOp: 'clear',
-              storeOp: 'store',
-            },
-            {
-              view: target.dye,
               clearValue: [0, 0, 0, 0],
               loadOp: 'clear',
               storeOp: 'store',
@@ -429,6 +443,12 @@ export function createParticleGummyRenderer(
           colorAttachments: [
             {
               view: target.normal,
+              clearValue: [0, 0, 0, 0],
+              loadOp: 'clear',
+              storeOp: 'store',
+            },
+            {
+              view: target.dye,
               clearValue: [0, 0, 0, 0],
               loadOp: 'clear',
               storeOp: 'store',

@@ -16,6 +16,13 @@ const repo = resolve(dirname(fileURLToPath(import.meta.url)), '../../..')
 const output = resolve(repo, 'assets')
 const base = process.env.GUMMY_BASE ?? 'https://localhost:5199'
 const production = process.env.GUMMY_PRODUCTION === '1'
+// Production now exposes manual interaction only; retain this entry point by
+// delegating to the trusted-pointer production check used by the warm study.
+if (production) {
+  const { verifyWarmJelly } = await import('./verify-gummy-warm.mjs')
+  await verifyWarmJelly()
+  process.exit(0)
+}
 const quick = process.env.GUMMY_QUICK === '1'
 const restOnly = process.env.GUMMY_REST_ONLY === '1'
 const record = process.env.GUMMY_VIDEO === '1'
@@ -101,6 +108,7 @@ try {
   await page.waitForSelector('[data-ready="true"]', { timeout: 60000 })
   await click('Particle jelly')
   await page.waitForSelector('[data-ready="true"]', { timeout: 60000 })
+  await click('Elastic jelly')
   if (!production)
     await page.waitForFunction(() => !!window.__gummyParticleStudy)
   const simulation = !production
@@ -252,37 +260,6 @@ try {
       })
     }
     await click('Reset view')
-  } else if (production) {
-    report.devHookAbsent = await page.evaluate(
-      () => !window.__gummyParticleStudy,
-    )
-    assert.ok(report.devHookAbsent)
-    const started = performance.now()
-    await click('Demo tear')
-    await page.waitForFunction(() => {
-      const state = document.querySelector(
-        '[data-testid="gummy-bear-canvas"]',
-      ).dataset
-      return (
-        state.experiment === 'particle' &&
-        state.demo === 'true' &&
-        Number(state.steps) < 1440
-      )
-    })
-    await page.waitForFunction(
-      () =>
-        Number(
-          document.querySelector('[data-testid="gummy-bear-canvas"]').dataset
-            .steps,
-        ) >= 1440,
-      undefined,
-      { timeout: 90000 },
-    )
-    report.playbackWallSeconds = (performance.now() - started) / 1000
-    await freeze()
-    await page.screenshot({
-      path: resolve(output, 'gummy-particle-production.png'),
-    })
   } else {
     await freeze()
     await page.getByLabel('Allow tearing', { exact: true }).check()

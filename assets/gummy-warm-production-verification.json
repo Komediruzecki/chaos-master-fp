@@ -1,0 +1,178 @@
+{
+  "capturedAt": "2026-10-04T12:55:02.687Z",
+  "base": "https://localhost:5198",
+  "production": true,
+  "sourceHashes": {
+    "packages/app/src/simulation/gummy/gummyContacts.ts": "a0eb829a0040c8fa37f3f3b487535a8a05be273cb058058decd1da60b9666e18",
+    "packages/app/src/simulation/gummy/gummyJelly.ts": "2e5d9ebe487b8c6637f3004895064a4e64769c1033836d4176faf0528394f671",
+    "packages/app/src/simulation/gummy/gummyJellyFracture.ts": "3de73b0a235a1e283b3df5f95565a8fa611ca1f43246452a7908a58755689793",
+    "packages/app/src/simulation/gummy/gummyJellyFractureStrain.ts": "e585641be35f2c728f3e26bcc5aff27afa628fc778633c6fa4cd2aa0978d5e0f",
+    "packages/app/src/simulation/gummy/gummyJellyMesh.ts": "fea477a8c3db75674df1289fcb7964880ed3825b7207a7b3147695368eae6031",
+    "packages/app/src/simulation/gummy/gummyJellyPlasticity.ts": "59a42df3a4d131baf5ba9471a391b6dbd3da1db8595ccc0ee784a4d781228247",
+    "packages/app/src/simulation/gummy/gummyJellyShaders.ts": "b4c692f6a9391b7697022e58deb94542fc9f307a34c32107b45d76e949087395",
+    "packages/app/src/simulation/gummy/gummyMaterialMath.ts": "89f3ca748b14a37865628a19ac54632a057b61d791c4c0d388cd63eb74bcede5",
+    "packages/app/src/simulation/gummy/gummyMesh.ts": "21672581ceac96c67802a90ed4cf0ee0c6d5d7628dc53ee78ad8c7f6db4a19cd",
+    "packages/app/src/simulation/gummy/gummyParticleFixtures.ts": "ee8b7b8172d35009a4e18b30530b09010fad4048ff418b3e0c81eebbaa65634f",
+    "packages/app/src/simulation/gummy/gummyParticleMath.ts": "7ca169347f628bf87ea0dfc4de5c37b9e8ebee6432ff669aa8824f3f94449dc3",
+    "packages/app/src/simulation/gummy/gummyParticleShaders.ts": "62c9b5ebe0aff27b4651dcee59df8f513d0fac6349d5f047b00898a81feeb15d",
+    "packages/app/src/simulation/gummy/gummyParticleSolver.ts": "65aad487ba24ae42427ebe22911bebf08341fd2505fc02d00ffe0ca131d02d7f",
+    "packages/app/src/simulation/gummy/gummyPartition.ts": "d817a7dd0aa2d55395a034d52f44e232cc08e8b25bf1074e8885e5e98e82ef09",
+    "packages/app/src/simulation/gummy/gummyPatches.ts": "2f7a67c04b6c327b23702867a59e76ac09b8efec6f959dae3acd5f8d2589aff4",
+    "packages/app/src/simulation/gummy/gummySolver.ts": "ef88dafb74d8f92e1bf52386fcb163a3d940ba15903e6b9962846993af657ffa",
+    "packages/app/src/simulation/gummy/gummySolverPipelines.ts": "cb8a5bfce8a49fc481621c714f54d18cf3475f729c9699ae4ad8cf165c1f5968",
+    "packages/app/src/simulation/gummy/gummySolverPreparation.ts": "bbc19b9b38bfe2789011b8eeeee35e17077e4ad1131e2095d70a879948d0a79d",
+    "packages/app/src/simulation/gummy/gummySolverShaders.ts": "868be4210b7dc6eca7ec249c27df9eedbaf79dd4b74c401b2700868548eafbfc",
+    "packages/app/src/simulation/gummy/gummySolverState.ts": "62149cadd4efff78db876e75472f122054e713fb9c9971958985fd6d722234e1",
+    "packages/app/src/components/GummyBear/GummyBearScene.tsx": "96ecadd468f53726d3066f51a0d7458156b41ea50a5744378fd1ac1e1f296e0f",
+    "packages/app/src/components/GummyBear/ParticleGummyBearScene.tsx": "040d5e7290daeadfa68dab1660d85229b4bef12464c9bc223b79cbca5861bb5b",
+    "packages/app/src/components/GummyBear/gummyBands.ts": "2cf5fe610b0b683b831a6ecca9a6c4b60803b14a805cfd283b1281c24e988177",
+    "packages/app/src/components/GummyBear/gummyFractureRuntime.ts": "96df83b5cc689801066a8fa64bb00514d2600ff1527cb7696c8e5b7923be6325",
+    "packages/app/src/components/GummyBear/gummyMaterial.ts": "9a95f76e700807e70a798256976454f667fea214f63f20d006cfd6b0d3775e63",
+    "packages/app/src/components/GummyBear/gummyPatchSamples.ts": "046a56a7da628b5ea92a24676b5004fee69a0ac7e6c634ddb50bab61d75ae0c7",
+    "packages/app/src/components/GummyBear/gummyPipelines.ts": "e855511b84c9a40f1e92709883e26a54598b9d7c5df8869aa8160e1e289d0511",
+    "packages/app/src/components/GummyBear/gummyPress.ts": "68c7a7f60108d6caeca90caf53ac09f792ba6458b94025939213ce82261af8af",
+    "packages/app/src/components/GummyBear/gummyRenderResources.ts": "ef18c779e3ea010c5c4d6b776f787959c046c817dc9e229d493cbb4e7462560f",
+    "packages/app/src/components/GummyBear/gummyRenderer.ts": "f0296093565cf6c8a43cc9a2e12ad42c935bab259fb3b4e951ea3f6fc50fa287",
+    "packages/app/src/components/GummyBear/gummyRoundedSurface.ts": "01ad3c5aa771175f4aafe79de5c0f72d894d132b7d77f7fcdf44ae376eccb77f",
+    "packages/app/src/components/GummyBear/gummyRoundedSurfaceShaders.ts": "bb62c76a1925cb1193851c143fb3d448b4b35e7233abea7c85722844c28c074c",
+    "packages/app/src/components/GummyBear/gummyRoundedTet.ts": "9c4ed5cc05eab5740a5dc07d4a9309cef21c63651d3eb9642f7fc2b34c4fb1b2",
+    "packages/app/src/components/GummyBear/gummyRuntimeSurface.ts": "0138cafe7674be0a61545a8c28628971e653995a5d0971a4579ecfc7349c712b",
+    "packages/app/src/components/GummyBear/gummyRuntimeSurfaceMath.ts": "f49fb96d5ec5835cf8cf470739bbafa1e24f3176f81505bda3f42e78fe137c44",
+    "packages/app/src/components/GummyBear/gummyShaders.ts": "d647bda991bbf8741a6c46be692b1c460381168dd5e4b8638cece2143efa6a0f",
+    "packages/app/src/components/GummyBear/gummyStudyMath.ts": "77baf9ada601eee9e00bc7bdba81390b994c386f7a222157af471fa04fbd7772",
+    "packages/app/src/components/GummyBear/gummySurface.ts": "648dcb163d31ec289ffe32e6112773d6a21a85d1670f7d503055beeff9857536",
+    "packages/app/src/components/GummyBear/gummySurfaceMath.ts": "c9cbdfbb9dbe635e12f59b331d0f343836a542932ed5f725b9634e8bda324eee",
+    "packages/app/src/components/GummyBear/gummyTargets.ts": "d485cd2da5260e72b564780ee0aa35751f30177bf0c2e5973836370ea67be67f",
+    "packages/app/src/components/GummyBear/gummyTearMaterial.ts": "bfe46643d00f1a7d366fcd75cffa708791a67220b5ffb8545bb41734fe0ee076",
+    "packages/app/src/components/GummyBear/particleGummyMath.ts": "2e7c2a0959d1c91ad3734cc7ca88940415d82770ec596cbd3f7884929645640c",
+    "packages/app/src/components/GummyBear/particleGummyRenderer.ts": "c27c4fb759044ed5cfb352e06f9fd3d351ecd494f4c37ca68bed50178fa08b73",
+    "packages/app/src/components/GummyBear/particleGummyShaders.ts": "72d08a2f82584ba9d6969be4a2ac5f75deff5cdc46660effa4650e38230812d9",
+    "packages/app/src/components/GummyBear/particleGummySurfaceShaders.ts": "7f711518761f3227f48a86d89d26e7f4c5d00a2f991742b6a2b325b8f9445c01",
+    "packages/app/src/components/GummyBear/particleGummyTargets.ts": "42dae3a3cbff05fc971a73ea337dd4ec53e92224424a6468f8c4198190312261",
+    "packages/app/src/components/GummyBear/particleStudyMath.ts": "00d5cbe0c7c668d0f424e9ad9e74a90606e429e20c99b7943ac82be417329de1",
+    "packages/app/src/pages/GummyBear/GummyBearApp.tsx": "d0700e789178125384a83dcfb7732aaeb72ad939fc698b18b900f87e66865362",
+    "packages/app/src/pages/GummyBear/GummyBearPage.module.css": "469b32ae1690d67846ca63bf776341a8fe152887521a5e3b299168a1a73cbc56",
+    "packages/app/src/pages/GummyBear/GummyBearPage.tsx": "dd33ac6f9bb646084c95ad3ad0e7868ef3800d2c6e311924293dc4a228068be2"
+  },
+  "protocol": {
+    "outerDt": 0.008333333333333333,
+    "pullOffsets": [
+      [0.3, 0.04, 0],
+      [0.6, 0.08, 0]
+    ],
+    "fixedStepTimingIncludesReadback": true,
+    "liveSeconds": 5,
+    "video": false
+  },
+  "samples": [],
+  "timings": [],
+  "live": [],
+  "layouts": [
+    {
+      "width": 1024,
+      "height": 768,
+      "viewport": 1024,
+      "content": 1024
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "viewport": 390,
+      "content": 390
+    }
+  ],
+  "errors": [],
+  "warnings": [],
+  "failures": [],
+  "placement": {
+    "before": {
+      "window": "0x55834f657fd0",
+      "workspace": 3,
+      "monitors": [
+        {
+          "id": 0,
+          "special": ""
+        }
+      ]
+    },
+    "after": {
+      "window": "0x55834f657fd0",
+      "workspace": 3,
+      "monitors": [
+        {
+          "id": 0,
+          "special": ""
+        }
+      ]
+    },
+    "clients": [
+      {
+        "class": "agent-browser",
+        "workspace": "special:agents"
+      }
+    ]
+  },
+  "adapter": {
+    "vendor": "amd",
+    "architecture": "rdna-4",
+    "description": "",
+    "fallback": false
+  },
+  "productionMissedPicks": [],
+  "productionMouse": true,
+  "productionTouch": true,
+  "passed": true,
+  "finalSourceHashes": {
+    "packages/app/src/simulation/gummy/gummyContacts.ts": "a0eb829a0040c8fa37f3f3b487535a8a05be273cb058058decd1da60b9666e18",
+    "packages/app/src/simulation/gummy/gummyJelly.ts": "2e5d9ebe487b8c6637f3004895064a4e64769c1033836d4176faf0528394f671",
+    "packages/app/src/simulation/gummy/gummyJellyFracture.ts": "3de73b0a235a1e283b3df5f95565a8fa611ca1f43246452a7908a58755689793",
+    "packages/app/src/simulation/gummy/gummyJellyFractureStrain.ts": "e585641be35f2c728f3e26bcc5aff27afa628fc778633c6fa4cd2aa0978d5e0f",
+    "packages/app/src/simulation/gummy/gummyJellyMesh.ts": "fea477a8c3db75674df1289fcb7964880ed3825b7207a7b3147695368eae6031",
+    "packages/app/src/simulation/gummy/gummyJellyPlasticity.ts": "59a42df3a4d131baf5ba9471a391b6dbd3da1db8595ccc0ee784a4d781228247",
+    "packages/app/src/simulation/gummy/gummyJellyShaders.ts": "b4c692f6a9391b7697022e58deb94542fc9f307a34c32107b45d76e949087395",
+    "packages/app/src/simulation/gummy/gummyMaterialMath.ts": "89f3ca748b14a37865628a19ac54632a057b61d791c4c0d388cd63eb74bcede5",
+    "packages/app/src/simulation/gummy/gummyMesh.ts": "21672581ceac96c67802a90ed4cf0ee0c6d5d7628dc53ee78ad8c7f6db4a19cd",
+    "packages/app/src/simulation/gummy/gummyParticleFixtures.ts": "ee8b7b8172d35009a4e18b30530b09010fad4048ff418b3e0c81eebbaa65634f",
+    "packages/app/src/simulation/gummy/gummyParticleMath.ts": "7ca169347f628bf87ea0dfc4de5c37b9e8ebee6432ff669aa8824f3f94449dc3",
+    "packages/app/src/simulation/gummy/gummyParticleShaders.ts": "62c9b5ebe0aff27b4651dcee59df8f513d0fac6349d5f047b00898a81feeb15d",
+    "packages/app/src/simulation/gummy/gummyParticleSolver.ts": "65aad487ba24ae42427ebe22911bebf08341fd2505fc02d00ffe0ca131d02d7f",
+    "packages/app/src/simulation/gummy/gummyPartition.ts": "d817a7dd0aa2d55395a034d52f44e232cc08e8b25bf1074e8885e5e98e82ef09",
+    "packages/app/src/simulation/gummy/gummyPatches.ts": "2f7a67c04b6c327b23702867a59e76ac09b8efec6f959dae3acd5f8d2589aff4",
+    "packages/app/src/simulation/gummy/gummySolver.ts": "ef88dafb74d8f92e1bf52386fcb163a3d940ba15903e6b9962846993af657ffa",
+    "packages/app/src/simulation/gummy/gummySolverPipelines.ts": "cb8a5bfce8a49fc481621c714f54d18cf3475f729c9699ae4ad8cf165c1f5968",
+    "packages/app/src/simulation/gummy/gummySolverPreparation.ts": "bbc19b9b38bfe2789011b8eeeee35e17077e4ad1131e2095d70a879948d0a79d",
+    "packages/app/src/simulation/gummy/gummySolverShaders.ts": "868be4210b7dc6eca7ec249c27df9eedbaf79dd4b74c401b2700868548eafbfc",
+    "packages/app/src/simulation/gummy/gummySolverState.ts": "62149cadd4efff78db876e75472f122054e713fb9c9971958985fd6d722234e1",
+    "packages/app/src/components/GummyBear/GummyBearScene.tsx": "96ecadd468f53726d3066f51a0d7458156b41ea50a5744378fd1ac1e1f296e0f",
+    "packages/app/src/components/GummyBear/ParticleGummyBearScene.tsx": "040d5e7290daeadfa68dab1660d85229b4bef12464c9bc223b79cbca5861bb5b",
+    "packages/app/src/components/GummyBear/gummyBands.ts": "2cf5fe610b0b683b831a6ecca9a6c4b60803b14a805cfd283b1281c24e988177",
+    "packages/app/src/components/GummyBear/gummyFractureRuntime.ts": "96df83b5cc689801066a8fa64bb00514d2600ff1527cb7696c8e5b7923be6325",
+    "packages/app/src/components/GummyBear/gummyMaterial.ts": "9a95f76e700807e70a798256976454f667fea214f63f20d006cfd6b0d3775e63",
+    "packages/app/src/components/GummyBear/gummyPatchSamples.ts": "046a56a7da628b5ea92a24676b5004fee69a0ac7e6c634ddb50bab61d75ae0c7",
+    "packages/app/src/components/GummyBear/gummyPipelines.ts": "e855511b84c9a40f1e92709883e26a54598b9d7c5df8869aa8160e1e289d0511",
+    "packages/app/src/components/GummyBear/gummyPress.ts": "68c7a7f60108d6caeca90caf53ac09f792ba6458b94025939213ce82261af8af",
+    "packages/app/src/components/GummyBear/gummyRenderResources.ts": "ef18c779e3ea010c5c4d6b776f787959c046c817dc9e229d493cbb4e7462560f",
+    "packages/app/src/components/GummyBear/gummyRenderer.ts": "f0296093565cf6c8a43cc9a2e12ad42c935bab259fb3b4e951ea3f6fc50fa287",
+    "packages/app/src/components/GummyBear/gummyRoundedSurface.ts": "01ad3c5aa771175f4aafe79de5c0f72d894d132b7d77f7fcdf44ae376eccb77f",
+    "packages/app/src/components/GummyBear/gummyRoundedSurfaceShaders.ts": "bb62c76a1925cb1193851c143fb3d448b4b35e7233abea7c85722844c28c074c",
+    "packages/app/src/components/GummyBear/gummyRoundedTet.ts": "9c4ed5cc05eab5740a5dc07d4a9309cef21c63651d3eb9642f7fc2b34c4fb1b2",
+    "packages/app/src/components/GummyBear/gummyRuntimeSurface.ts": "0138cafe7674be0a61545a8c28628971e653995a5d0971a4579ecfc7349c712b",
+    "packages/app/src/components/GummyBear/gummyRuntimeSurfaceMath.ts": "f49fb96d5ec5835cf8cf470739bbafa1e24f3176f81505bda3f42e78fe137c44",
+    "packages/app/src/components/GummyBear/gummyShaders.ts": "d647bda991bbf8741a6c46be692b1c460381168dd5e4b8638cece2143efa6a0f",
+    "packages/app/src/components/GummyBear/gummyStudyMath.ts": "77baf9ada601eee9e00bc7bdba81390b994c386f7a222157af471fa04fbd7772",
+    "packages/app/src/components/GummyBear/gummySurface.ts": "648dcb163d31ec289ffe32e6112773d6a21a85d1670f7d503055beeff9857536",
+    "packages/app/src/components/GummyBear/gummySurfaceMath.ts": "c9cbdfbb9dbe635e12f59b331d0f343836a542932ed5f725b9634e8bda324eee",
+    "packages/app/src/components/GummyBear/gummyTargets.ts": "d485cd2da5260e72b564780ee0aa35751f30177bf0c2e5973836370ea67be67f",
+    "packages/app/src/components/GummyBear/gummyTearMaterial.ts": "bfe46643d00f1a7d366fcd75cffa708791a67220b5ffb8545bb41734fe0ee076",
+    "packages/app/src/components/GummyBear/particleGummyMath.ts": "2e7c2a0959d1c91ad3734cc7ca88940415d82770ec596cbd3f7884929645640c",
+    "packages/app/src/components/GummyBear/particleGummyRenderer.ts": "c27c4fb759044ed5cfb352e06f9fd3d351ecd494f4c37ca68bed50178fa08b73",
+    "packages/app/src/components/GummyBear/particleGummyShaders.ts": "72d08a2f82584ba9d6969be4a2ac5f75deff5cdc46660effa4650e38230812d9",
+    "packages/app/src/components/GummyBear/particleGummySurfaceShaders.ts": "7f711518761f3227f48a86d89d26e7f4c5d00a2f991742b6a2b325b8f9445c01",
+    "packages/app/src/components/GummyBear/particleGummyTargets.ts": "42dae3a3cbff05fc971a73ea337dd4ec53e92224424a6468f8c4198190312261",
+    "packages/app/src/components/GummyBear/particleStudyMath.ts": "00d5cbe0c7c668d0f424e9ad9e74a90606e429e20c99b7943ac82be417329de1",
+    "packages/app/src/pages/GummyBear/GummyBearApp.tsx": "d0700e789178125384a83dcfb7732aaeb72ad939fc698b18b900f87e66865362",
+    "packages/app/src/pages/GummyBear/GummyBearPage.module.css": "469b32ae1690d67846ca63bf776341a8fe152887521a5e3b299168a1a73cbc56",
+    "packages/app/src/pages/GummyBear/GummyBearPage.tsx": "dd33ac6f9bb646084c95ad3ad0e7868ef3800d2c6e311924293dc4a228068be2"
+  },
+  "sourceStable": true
+}

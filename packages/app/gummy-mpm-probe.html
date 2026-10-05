@@ -1,0 +1,99 @@
+<!-- Development-only, on-demand MPM diagnostics for the device running this page. -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Gummy GPU check</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: system-ui, sans-serif;
+        background: #171a20;
+        color: #eef0f5;
+      }
+      body {
+        margin: 0;
+        padding: 24px;
+      }
+      main {
+        max-width: 720px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 1.75rem;
+      }
+      p {
+        line-height: 1.5;
+        color: #c4cad6;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin: 24px 0;
+      }
+      button {
+        min-height: 48px;
+        padding: 10px 18px;
+        border: 1px solid #778394;
+        border-radius: 8px;
+        font: inherit;
+        color: inherit;
+        background: #293442;
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      button:focus-visible,
+      textarea:focus-visible {
+        outline: 3px solid #87c9ff;
+        outline-offset: 3px;
+      }
+      label {
+        display: block;
+        margin-bottom: 8px;
+      }
+      textarea {
+        box-sizing: border-box;
+        width: 100%;
+        min-height: 48vh;
+        padding: 14px;
+        border: 1px solid #596475;
+        border-radius: 8px;
+        font: 13px/1.5 monospace;
+        color: #eef0f5;
+        background: #0f1318;
+        resize: vertical;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Gummy GPU check</h1>
+      <p>
+        Run a short grab test on a separate bear. This checks particle movement
+        and GPU errors on this device. Your open gummy study stays as it is.
+      </p>
+      <p>
+        The check stops after 30 seconds. Keep this page open, then copy the
+        result.
+      </p>
+      <div class="actions">
+        <button id="run" type="button" disabled>Run check</button>
+        <button id="copy" type="button" disabled>Copy result</button>
+      </div>
+      <p id="status" role="status" aria-live="polite">Ready.</p>
+      <label for="result">Diagnostic result</label>
+      <textarea
+        id="result"
+        readonly
+        spellcheck="false"
+        aria-describedby="status"
+      ></textarea>
+    </main>
+    <script type="module" src="/scripts/gummy-mpm-probe.mjs"></script>
+  </body>
+</html>

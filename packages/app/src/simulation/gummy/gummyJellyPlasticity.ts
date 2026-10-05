@@ -1,5 +1,6 @@
 /** Isochoric finite-strain creep: material yields before tearing while original mass, volume and dye stay fixed. */
 import { prepareGummyJellyTets } from './gummyJelly'
+import { writeGummyDeformation, writeGummyRightTensor, } from './gummyMaterialMath'
 import type { GummySolverMesh } from './gummySolver'
 
 /** Effective inverse rest frames, in stable tetrahedron order; rows are tightly packed. */
@@ -82,9 +83,14 @@ function diagonalize(a: Float64Array, v: Float64Array) {
  * This graphics material follows finite-strain plasticity, not measured gummy rheology.
  * References: Irving 2007, section 2.6.3; Bargteil et al. 2007 viscoplastic FEM.
  */
-export function createGummyJellyPlasticity(mesh: GummySolverMesh) {
-  const packed = prepareGummyJellyTets(mesh)
+export function createGummyJellyPlasticity(
+  mesh: GummySolverMesh,
+  preparedRestTets?: Float32Array,
+) {
+  const packed = preparedRestTets ?? prepareGummyJellyTets(mesh)
   const count = mesh.tetrahedra.length / 4
+  if (packed.length !== count * 16)
+    throw new Error('Prepared jelly material must match the tetrahedron count')
   const rest = new Float32Array(count * 9)
   const restDeterminants = new Float64Array(count)
   const regularization = new Float64Array(count)
@@ -130,17 +136,7 @@ export function createGummyJellyPlasticity(mesh: GummySolverMesh) {
   const valid = new Uint8Array(count)
 
   function deformation(positions: Float32Array, tet: number) {
-    const base = tet * 9,
-      origin = mesh.tetrahedra[tet * 4]! * 4
-    f.fill(0)
-    for (let corner = 0; corner < 3; corner++) {
-      const node = mesh.tetrahedra[tet * 4 + corner + 1]! * 4
-      for (let row = 0; row < 3; row++)
-        for (let col = 0; col < 3; col++)
-          f[row * 3 + col]! +=
-            (positions[node + row]! - positions[origin + row]!) *
-            state.gradients[base + corner * 3 + col]!
-    }
+    writeGummyDeformation(positions, mesh.tetrahedra, state.gradients, tet, f)
     return determinant(f)
   }
 
@@ -196,11 +192,7 @@ export function createGummyJellyPlasticity(mesh: GummySolverMesh) {
     for (let tet = 0; tet < count; tet++) {
       const jacobian = deformation(positions, tet)
       if (jacobian < 0.5 || jacobian > 2) continue
-      c.fill(0)
-      for (let row = 0; row < 3; row++)
-        for (let col = 0; col < 3; col++)
-          for (let k = 0; k < 3; k++)
-            c[row * 3 + col]! += f[k * 3 + row]! * f[k * 3 + col]!
+      writeGummyRightTensor(f, c)
       diagonalize(c, v)
       let mean = 0
       for (let axis = 0; axis < 3; axis++) {
@@ -208,7 +200,8 @@ export function createGummyJellyPlasticity(mesh: GummySolverMesh) {
         mean += logs[axis]! / 3
       }
       for (let axis = 0; axis < 3; axis++) logs[axis]! -= mean
-      const equivalent = Math.hypot(...logs) * regularization[tet]!
+      const equivalent =
+        Math.hypot(logs[0]!, logs[1]!, logs[2]!) * regularization[tet]!
       valid[tet] = 1
       principalLogs.set(logs, tet * 3)
       principalVectors.set(v, tet * 9)

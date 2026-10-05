@@ -26,7 +26,9 @@ const geometry = process.env.GUMMY_GEOMETRY ?? 'standard'
 assert.ok(['standard', 'fine'].includes(geometry))
 const idleProbe = process.env.GUMMY_IDLE_PROBE === '1'
 assert.ok(!idleProbe || !production)
-const manualPrefix = `${tearResponse === 'soft' ? 'gummy-soft' : 'gummy-hot'}${geometry === 'fine' ? '-fine' : ''}${idleProbe ? '-idle' : ''}`
+const manualPrefix =
+  process.env.GUMMY_CAPTURE_PREFIX ??
+  `${tearResponse === 'soft' ? 'gummy-soft' : 'gummy-hot'}${geometry === 'fine' ? '-fine' : ''}${idleProbe ? '-idle' : ''}`
 const movie =
   process.env.GUMMY_VIDEO === '1'
     ? mkdtempSync(resolve(tmpdir(), 'gummy-tear-frames-'))
@@ -439,6 +441,8 @@ try {
               'Crumble',
               'Standard',
               'Fine',
+              'Original',
+              'Rounded',
             ].includes(b.textContent.trim()),
           )
           .map((b) => ({

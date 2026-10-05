@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen } from '@solidjs/testing-library'
 import { createEffect, on, onCleanup } from 'solid-js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { GummyBearPage } from './GummyBearPage'
+import { loadGummyPresets } from './gummyPresets'
 import type { GummyBearSceneProps } from '@/components/GummyBear/GummyBearScene'
 import type { ParticleGummyBearSceneProps } from '@/components/GummyBear/ParticleGummyBearScene'
 
@@ -10,14 +11,22 @@ const stubs = vi.hoisted(() => ({
   scene: undefined as GummyBearSceneProps | undefined,
   particleScene: undefined as ParticleGummyBearSceneProps | undefined,
   particleDisposals: 0,
+  activeParticleScenes: 0,
+  maxParticleScenes: 0,
   holdReady: false,
 }))
 vi.mock('@/components/GummyBear/ParticleGummyBearScene', () => ({
   ParticleGummyBearScene: (props: ParticleGummyBearSceneProps) => {
     stubs.particleScene = props
+    stubs.activeParticleScenes++
+    stubs.maxParticleScenes = Math.max(
+      stubs.maxParticleScenes,
+      stubs.activeParticleScenes,
+    )
     if (!stubs.holdReady) props.onReady?.(true)
     onCleanup(() => {
       stubs.particleDisposals++
+      stubs.activeParticleScenes--
     })
     return <div data-testid="mock-particle-scene" />
   },
@@ -37,16 +46,29 @@ vi.mock('@/components/GummyBear/GummyBearScene', () => ({
   },
 }))
 let oldTitle: string
+let oldUrl: string
 beforeEach(() => {
+  const entries = new Map<string, string>()
+  vi.stubGlobal('localStorage', {
+    getItem: (key: string) => entries.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      entries.set(key, value)
+    },
+  })
   oldTitle = document.title
+  oldUrl = window.location.href
   stubs.scene = undefined
   stubs.particleScene = undefined
   stubs.particleDisposals = 0
+  stubs.activeParticleScenes = 0
+  stubs.maxParticleScenes = 0
   stubs.holdReady = false
 })
 afterEach(() => {
   cleanup()
+  vi.unstubAllGlobals()
   document.title = oldTitle
+  window.history.replaceState(null, '', oldUrl)
   vi.restoreAllMocks()
 })
 
@@ -56,6 +78,432 @@ function scene() {
 }
 
 describe('GummyBearPage', () => {
+  it('saves the live bear tuning without resetting and applies every setting to a selected chess piece', () => {
+    window.history.replaceState(null, '', '?experiment=mpm')
+    render(() => <GummyBearPage />)
+    fireEvent.click(screen.getByText('Fine tuning'))
+    for (const [name, value] of [
+      ['Softness', 0.3],
+      ['Fragility', 73],
+      ['Grab radius', 0.14],
+      ['Grab strength', 0.42],
+      ['Maximum pull', 0.65],
+      ['Flow', 0.2],
+      ['Viscosity', 0.8],
+      ['Floor drag', 7],
+      ['Gravity', 0.25],
+    ] as const) {
+      fireEvent.input(screen.getByRole('slider', { name: new RegExp(name) }), {
+        target: { value: String(value) },
+      })
+    }
+    fireEvent.click(screen.getByRole('radio', { name: 'Lagoon' }))
+    for (const name of [/Allow tearing/, /Pin feet to floor/, /Floor caustics/])
+      fireEvent.click(screen.getByRole('checkbox', { name }))
+    fireEvent.click(screen.getByRole('button', { name: 'Presets' }))
+    fireEvent.input(screen.getByRole('textbox', { name: 'Preset name' }), {
+      target: { value: 'Soft capture' },
+    })
+    const resetBeforeSave = stubs.particleScene!.resetKey
+    fireEvent.click(screen.getByRole('button', { name: 'Save as new' }))
+    expect(stubs.particleScene!.resetKey).toBe(resetBeforeSave)
+    expect(loadGummyPresets().presets[0]?.settings).toEqual({
+      palette: 'lagoon',
+      particleMaterial: 'warm',
+      softness: 0.3,
+      fragility: 0.73,
+      tearing: false,
+      pinnedFeet: false,
+      caustics: false,
+      grabRadius: 0.14,
+      maxPull: 0.65,
+      tuning: {
+        grabStrength: 0.42,
+        flow: 0.2,
+        viscosity: 0.8,
+        floorDrag: 7,
+        gravity: 0.25,
+      },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Rook' }))
+    stubs.particleScene!.onReady?.(true)
+    fireEvent.input(screen.getByRole('slider', { name: /Fragility/ }), {
+      target: { value: '10' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Elastic jelly' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Restore tuning' }))
+    fireEvent.click(screen.getByRole('radio', { name: 'Candy' }))
+    fireEvent.input(screen.getByRole('slider', { name: /Softness/ }), {
+      target: { value: '0.9' },
+    })
+    for (const name of [/Allow tearing/, /Pin base to floor/, /Floor caustics/])
+      fireEvent.click(screen.getByRole('checkbox', { name }))
+    fireEvent.click(screen.getByRole('button', { name: 'Pause' }))
+    const resetBeforeApply = stubs.particleScene!.resetKey
+    fireEvent.click(screen.getByRole('button', { name: 'Apply preset' }))
+    const particle = stubs.particleScene!
+    expect(particle.fixture).toBe('rook')
+    expect(particle.resetKey).toBe(resetBeforeApply + 1)
+    expect(particle.paused).toBe(false)
+    for (const [key, value] of Object.entries(
+      loadGummyPresets().presets[0]!.settings,
+    ))
+      expect(particle[key as keyof ParticleGummyBearSceneProps]).toEqual(value)
+  })
+
+  it.each(['pawn', 'rook'] as const)(
+    'opens the %s mould directly with transferable material controls',
+    (fixture) => {
+      window.history.replaceState(null, '', `?experiment=mpm&shape=${fixture}`)
+      render(() => <GummyBearPage />)
+      expect(stubs.particleScene?.fixture).toBe(fixture)
+      expect(stubs.particleScene?.palette).toBe('marble')
+      expect(screen.getByRole('button', { name: 'Reset piece' })).toBeTruthy()
+      expect(
+        screen.getByRole('radiogroup', { name: 'Gummy palette' }),
+      ).toBeTruthy()
+      fireEvent.click(screen.getByText('Fine tuning'))
+      expect(
+        screen.getByRole('checkbox', { name: /Pin base to floor/ }),
+      ).toBeTruthy()
+    },
+  )
+
+  it('carries bear tuning through both chess moulds and back without changing the material', () => {
+    window.history.replaceState(null, '', '?experiment=mpm')
+    render(() => <GummyBearPage />)
+    fireEvent.input(screen.getByRole('slider', { name: /Softness/ }), {
+      target: { value: '0.3' },
+    })
+    fireEvent.click(screen.getByRole('radio', { name: 'Lagoon' }))
+    fireEvent.click(screen.getByText('Fine tuning'))
+    fireEvent.input(screen.getByRole('slider', { name: /Flow/ }), {
+      target: { value: '0.25' },
+    })
+    for (const [label, fixture] of [
+      ['Pawn', 'pawn'],
+      ['Rook', 'rook'],
+      ['Knight', 'knight'],
+      ['Bishop', 'bishop'],
+      ['Queen', 'queen'],
+      ['King', 'king'],
+      ['Bear', 'bear'],
+    ] as const) {
+      fireEvent.click(screen.getByRole('button', { name: label }))
+      const particle = stubs.particleScene!
+      particle.onReady?.(true)
+      expect(particle.fixture).toBe(fixture)
+      expect(particle.softness).toBe(0.3)
+      expect(particle.palette).toBe('lagoon')
+      expect(particle.tuning?.flow).toBe(0.25)
+      expect(new URL(window.location.href).searchParams.get('shape')).toBe(
+        fixture,
+      )
+    }
+  })
+
+  it('keeps the recorded pointer guide choice across simulations without resetting them', () => {
+    render(() => <GummyBearPage />)
+    expect(scene().pointerGuide).toBe(true)
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Pointer guide' }))
+    expect(scene().pointerGuide).toBe(false)
+    expect(scene().resetKey).toBe(0)
+    fireEvent.click(
+      screen.getByRole('button', { name: 'MPM + marching cubes' }),
+    )
+    const particle = stubs.particleScene!
+    expect(particle.pointerGuide).toBe(false)
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Pointer guide' }))
+    expect(particle.pointerGuide).toBe(true)
+    expect(particle.resetKey).toBe(0)
+    expect(stubs.particleScene).toBe(particle)
+  })
+
+  it('applies the short pull preset and restores tuning without losing the current bear or playback', () => {
+    window.history.replaceState(null, '', '?experiment=mpm')
+    render(() => <GummyBearPage />)
+    const particle = stubs.particleScene!
+    fireEvent.click(screen.getByText('Fine tuning'))
+    fireEvent.click(screen.getByRole('button', { name: 'Pause' }))
+    fireEvent.input(screen.getByRole('slider', { name: /Gravity/ }), {
+      target: { value: '0.5' },
+    })
+    fireEvent.input(screen.getByRole('slider', { name: /Viscosity/ }), {
+      target: { value: '0.6' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Short pull preset' }))
+    expect(particle.tuning).toEqual({
+      grabStrength: 0.45,
+      flow: 0.3,
+      gravity: 0.5,
+      viscosity: 0.6,
+      floorDrag: 8,
+    })
+    expect(particle.grabRadius).toBe(0.14)
+    expect(particle.maxPull).toBe(0.65)
+    expect(particle.pinnedFeet).toBe(true)
+    expect(particle.paused).toBe(true)
+    expect(particle.resetKey).toBe(0)
+    expect(stubs.particleScene).toBe(particle)
+    fireEvent.click(screen.getByRole('button', { name: 'Restore tuning' }))
+    expect(particle.tuning).toEqual({
+      grabStrength: 1,
+      flow: 1,
+      gravity: 1,
+      viscosity: 1,
+      floorDrag: 5,
+    })
+    expect(particle.grabRadius).toBe(0.22)
+    expect(particle.maxPull).toBe(1.8)
+    expect(particle.paused).toBe(true)
+    expect(particle.resetKey).toBe(0)
+  })
+
+  it('routes each fine tuning slider live and only offers controls used by the selected material', () => {
+    window.history.replaceState(null, '', '?experiment=particle')
+    render(() => <GummyBearPage />)
+    fireEvent.click(screen.getByText('Fine tuning'))
+    const particle = stubs.particleScene!
+    for (const [name, value] of [
+      ['Grab radius', 0.12],
+      ['Grab strength', 0.42],
+      ['Maximum pull', 0.6],
+      ['Flow', 0.2],
+      ['Viscosity', 0.8],
+      ['Floor drag', 7],
+      ['Gravity', 0.25],
+    ] as const)
+      fireEvent.input(screen.getByRole('slider', { name: new RegExp(name) }), {
+        target: { value: String(value) },
+      })
+    expect(particle.tuning).toEqual({
+      grabStrength: 0.42,
+      flow: 0.2,
+      viscosity: 0.8,
+      floorDrag: 7,
+      gravity: 0.25,
+    })
+    expect(particle.grabRadius).toBe(0.12)
+    expect(particle.maxPull).toBe(0.6)
+    expect(particle.resetKey).toBe(0)
+    fireEvent.click(screen.getByRole('checkbox', { name: /Pin feet to floor/ }))
+    expect(particle.pinnedFeet).toBe(false)
+    fireEvent.click(screen.getByRole('button', { name: 'Restore tuning' }))
+    expect(particle.pinnedFeet).toBe(false)
+    fireEvent.click(screen.getByRole('button', { name: 'Elastic jelly' }))
+    for (const name of ['Flow', 'Viscosity', 'Floor drag'])
+      expect(
+        screen.queryByRole('slider', { name: new RegExp(name) }),
+      ).toBeNull()
+    expect(screen.getByRole('slider', { name: /Gravity/ })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Restore tuning' }))
+    expect(particle.grabRadius).toBe(0.28)
+    fireEvent.click(screen.getByRole('button', { name: 'Two blobs' }))
+    expect(
+      screen.queryByRole('checkbox', { name: /Pin feet to floor/ }),
+    ).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Continuous jelly' }))
+    expect(screen.queryByText('Fine tuning')).toBeNull()
+  })
+
+  it.each([
+    ['mpm', 'marching-cubes', 'MPM + marching cubes'],
+    ['particle', 'screen-space', 'Particle jelly'],
+  ])('opens the %s comparison from its URL', (query, reconstruction, label) => {
+    window.history.replaceState(null, '', `?experiment=${query}`)
+    render(() => <GummyBearPage />)
+    expect(stubs.particleScene?.reconstruction).toBe(reconstruction)
+    expect(stubs.particleScene?.particleMaterial).toBe('warm')
+    expect(stubs.particleScene?.mode).toBe('drag')
+    expect(
+      screen.getByRole('button', { name: label }).getAttribute('aria-pressed'),
+    ).toBe('true')
+    expect(screen.queryByTestId('mock-gummy-scene')).toBeNull()
+  })
+
+  it('keeps the existing default for unknown model links and preserves unrelated URL state on selection', () => {
+    window.history.replaceState(
+      null,
+      '',
+      '?experiment=unknown&keep=example#study',
+    )
+    render(() => <GummyBearPage />)
+    expect(scene().experiment).toBe('jelly')
+    fireEvent.click(
+      screen.getByRole('button', { name: 'MPM + marching cubes' }),
+    )
+    expect(new URL(window.location.href).searchParams.get('experiment')).toBe(
+      'mpm',
+    )
+    expect(new URL(window.location.href).searchParams.get('keep')).toBe(
+      'example',
+    )
+    expect(window.location.hash).toBe('#study')
+  })
+
+  it('disposes each particle comparison before mounting the next, retaining material and fixture choices', () => {
+    render(() => <GummyBearPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'Particle jelly' }))
+    fireEvent.click(screen.getByRole('radio', { name: 'Candy' }))
+    fireEvent.input(screen.getByRole('slider', { name: /Softness/ }), {
+      target: { value: '0.75' },
+    })
+    fireEvent.input(screen.getByRole('slider', { name: /Fragility/ }), {
+      target: { value: '91' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Elastic jelly' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Allow tearing' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Two blobs' }))
+    stubs.particleScene!.onReady?.(true)
+    fireEvent.click(screen.getByRole('button', { name: 'Pause' }))
+    const previous = stubs.particleScene
+    stubs.holdReady = true
+    fireEvent.click(
+      screen.getByRole('button', { name: 'MPM + marching cubes' }),
+    )
+    const next = stubs.particleScene!
+    expect(next).not.toBe(previous)
+    expect(stubs.particleDisposals).toBe(1)
+    expect(stubs.maxParticleScenes).toBe(1)
+    expect(next.reconstruction).toBe('marching-cubes')
+    expect(next.fixture).toBe('blobs')
+    expect(next.palette).toBe('candy')
+    expect(next.particleMaterial).toBe('elastic')
+    expect(next.softness).toBe(0.75)
+    expect(next.fragility).toBe(0.91)
+    expect(next.tearing).toBe(false)
+    expect(next.paused).toBe(false)
+    expect(next.resetKey).toBe(0)
+    expect(next.demoKey).toBe(0)
+    expect(
+      screen.getByRole<HTMLButtonElement>('button', { name: 'Pause' }).disabled,
+    ).toBe(true)
+    expect(
+      screen
+        .getByRole('button', { name: 'Particle jelly' })
+        .getAttribute('aria-pressed'),
+    ).toBe('false')
+    stubs.holdReady = false
+    next.onReady?.(true)
+    fireEvent.click(screen.getByRole('button', { name: 'Reset blobs' }))
+    expect(next.resetKey).toBe(1)
+    fireEvent.click(
+      screen.getByRole('button', { name: 'MPM + marching cubes' }),
+    )
+    expect(stubs.particleScene).toBe(next)
+    expect(next.resetKey).toBe(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Particle jelly' }))
+    expect(stubs.particleDisposals).toBe(2)
+    expect(stubs.maxParticleScenes).toBe(1)
+    expect(stubs.particleScene?.reconstruction).toBe('screen-space')
+    expect(stubs.particleScene?.fixture).toBe('blobs')
+    fireEvent.click(screen.getByRole('button', { name: 'Continuous jelly' }))
+    expect(stubs.particleDisposals).toBe(3)
+    expect(scene().experiment).toBe('jelly')
+    expect(scene().palette).toBe('candy')
+  })
+
+  it('changes floor caustics live only in the marching comparison and retains the choice', () => {
+    render(() => <GummyBearPage />)
+    expect(
+      screen.queryByRole('checkbox', { name: 'Floor caustics' }),
+    ).toBeNull()
+    fireEvent.click(
+      screen.getByRole('button', { name: 'MPM + marching cubes' }),
+    )
+    const mounted = stubs.particleScene!
+    const checkbox = screen.getByRole<HTMLInputElement>('checkbox', {
+      name: 'Floor caustics',
+    })
+    expect(checkbox.checked).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: 'Pause' }))
+    fireEvent.click(checkbox)
+    expect(stubs.particleScene).toBe(mounted)
+    expect(mounted.caustics).toBe(false)
+    expect(mounted.paused).toBe(true)
+    expect(mounted.resetKey).toBe(0)
+    fireEvent.click(screen.getByRole('button', { name: 'Particle jelly' }))
+    expect(
+      screen.queryByRole('checkbox', { name: 'Floor caustics' }),
+    ).toBeNull()
+    fireEvent.click(
+      screen.getByRole('button', { name: 'MPM + marching cubes' }),
+    )
+    expect(stubs.particleScene?.caustics).toBe(false)
+    expect(
+      screen.getByRole<HTMLInputElement>('checkbox', { name: 'Floor caustics' })
+        .checked,
+    ).toBe(false)
+  })
+
+  it('switches torn surface live without remounting, resetting, or changing playback', () => {
+    render(() => <GummyBearPage />)
+    const mounted = scene()
+    const original = screen.getByRole('button', { name: 'Original' })
+    const rounded = screen.getByRole('button', { name: 'Rounded' })
+    expect(scene().surface).toBe('rounded')
+    expect(rounded.getAttribute('aria-pressed')).toBe('true')
+    fireEvent.click(screen.getByRole('radio', { name: 'Candy' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Reset bear' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Pause' }))
+    fireEvent.click(original)
+    expect(scene()).toBe(mounted)
+    expect(scene().surface).toBe('original')
+    expect(scene().paused).toBe(true)
+    expect(scene().resetKey).toBe(1)
+    expect(scene().demoKey).toBe(0)
+    expect(scene().palette).toBe('candy')
+    expect(original.getAttribute('aria-pressed')).toBe('true')
+    expect(rounded.getAttribute('aria-pressed')).toBe('false')
+    fireEvent.click(screen.getByRole('button', { name: 'Resume' }))
+    fireEvent.click(rounded)
+    expect(scene()).toBe(mounted)
+    expect(scene().surface).toBe('rounded')
+    expect(scene().paused).toBe(false)
+    expect(scene().resetKey).toBe(1)
+    expect(scene().demoKey).toBe(0)
+    expect(
+      screen.getByText(
+        'Round torn corners. Switch views without resetting the bear.',
+      ),
+    ).toBeTruthy()
+  })
+
+  it('retains the surface choice across geometry and models and only offers it for manual tear', () => {
+    render(() => <GummyBearPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'Original' }))
+    stubs.holdReady = true
+    fireEvent.click(screen.getByRole('button', { name: 'Standard' }))
+    expect(scene().surface).toBe('original')
+    expect(
+      screen.getByRole('button', { name: 'Rounded' }).closest('fieldset')
+        ?.disabled,
+    ).toBe(true)
+    stubs.holdReady = false
+    scene().onReady?.(true)
+    for (const protocol of ['Squeeze & release', 'Stretch & release']) {
+      fireEvent.click(screen.getByRole('button', { name: protocol }))
+      expect(screen.queryByRole('group', { name: 'Torn surface' })).toBeNull()
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'Pull to tear' }))
+    expect(
+      screen
+        .getByRole('button', { name: 'Original' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true')
+    for (const model of ['Limb pull', 'Fine crush', 'Particle jelly']) {
+      fireEvent.click(screen.getByRole('button', { name: model }))
+      expect(screen.queryByRole('group', { name: 'Torn surface' })).toBeNull()
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'Continuous jelly' }))
+    expect(scene().surface).toBe('original')
+    expect(
+      screen
+        .getByRole('button', { name: 'Original' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true')
+  })
+
   it('defaults to fine geometry and resets a changed preset while preserving material choices', () => {
     render(() => <GummyBearPage />)
     const fine = screen.getByRole('button', { name: /^Fine$/ })
@@ -304,7 +752,7 @@ describe('GummyBearPage', () => {
     expect(scene().resetKey).toBe(0)
     expect(scene().paused).toBe(false)
   })
-  it('adds an isolated particle mode while preserving the incumbent material and replay controls', () => {
+  it('adds an isolated manual particle mode while preserving the incumbent material controls', () => {
     render(() => <GummyBearPage />)
     fireEvent.click(screen.getByRole('radio', { name: 'Lagoon' }))
     fireEvent.input(screen.getByRole('slider', { name: /Softness/ }), {
@@ -324,9 +772,10 @@ describe('GummyBearPage', () => {
         .getAttribute('aria-pressed'),
     ).toBe('true')
     expect(screen.queryByRole('group', { name: 'Jelly protocol' })).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: /Demo tear/ }))
-    expect(particle.demoKey).toBe(1)
-    expect(screen.getByRole('button', { name: /Replay tear/ })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /Demo tear/ })).toBeNull()
+    particle.onReplay?.()
+    expect(particle.demoKey).toBe(0)
+    expect(particle.particleMaterial).toBe('warm')
     fireEvent.click(screen.getByRole('button', { name: 'Pause' }))
     expect(particle.paused).toBe(true)
     fireEvent.click(screen.getByRole('checkbox', { name: 'Allow tearing' }))
@@ -350,15 +799,47 @@ describe('GummyBearPage', () => {
     stubs.holdReady = true
     fireEvent.click(screen.getByRole('button', { name: 'Particle jelly' }))
     expect(
-      screen.getByRole<HTMLButtonElement>('button', { name: /Demo tear/ })
-        .disabled,
+      screen.getByRole<HTMLButtonElement>('button', { name: 'Pause' }).disabled,
     ).toBe(true)
     expect(screen.getByRole('button', { name: 'Fine crush' })).toBeTruthy()
     stubs.particleScene!.onReady?.(true)
     expect(
-      screen.getByRole<HTMLButtonElement>('button', { name: /Demo tear/ })
-        .disabled,
+      screen.getByRole<HTMLButtonElement>('button', { name: 'Pause' }).disabled,
     ).toBe(false)
+  })
+  it('resets material comparisons, retains the palette, and routes contact fixtures to particles only', () => {
+    render(() => <GummyBearPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'Particle jelly' }))
+    const particle = stubs.particleScene!
+    fireEvent.click(screen.getByRole('radio', { name: 'Berry' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Pause' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Elastic jelly' }))
+    expect(particle.particleMaterial).toBe('elastic')
+    expect(particle.resetKey).toBe(1)
+    expect(particle.paused).toBe(false)
+    expect(screen.queryByRole('slider', { name: /Fragility/ })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Warm jelly' }))
+    expect(particle.resetKey).toBe(2)
+    expect(screen.getByRole('slider', { name: /Fragility/ })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Two blobs' }))
+    expect(particle.fixture).toBe('blobs')
+    expect(particle.palette).toBe('berry')
+    expect(
+      screen.queryByRole('radiogroup', { name: 'Gummy palette' }),
+    ).toBeNull()
+    particle.onReady?.(true)
+    fireEvent.click(screen.getByRole('button', { name: 'Reset blobs' }))
+    expect(particle.resetKey).toBe(1)
+    fireEvent.click(screen.getByRole('button', { name: /^Bear$/ }))
+    expect(particle.fixture).toBe('bear')
+    expect(
+      screen.getByRole<HTMLInputElement>('radio', { name: 'Berry' }).checked,
+    ).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: 'Continuous jelly' }))
+    expect(screen.queryByRole('group', { name: 'Particle study' })).toBeNull()
+    expect(
+      screen.queryByRole('group', { name: 'Particle material' }),
+    ).toBeNull()
   })
   it('places manual pause and reset controls beside the canvas on phones', () => {
     const query = '(max-width: 720px)'
@@ -553,7 +1034,10 @@ describe('GummyBearPage', () => {
     expect(scene().softness).toBe(0.8)
     fireEvent.click(screen.getByRole('button', { name: 'Orbit' }))
     expect(scene().mode).toBe('orbit')
-    expect(screen.getByText(/Drag to turn the bear/)).toBeTruthy()
+    expect(screen.getByText(/Drag to turn around the bear/)).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Pan' }))
+    expect(scene().mode).toBe('pan')
+    expect(screen.getByText(/Drag to move the view/)).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Reset view' }))
     expect(scene().resetViewKey).toBe(1)
     expect(scene().resetKey).toBe(0)
@@ -583,7 +1067,7 @@ describe('GummyBearPage', () => {
     }
     expect(
       screen.getByText(
-        'Candy and Lagoon use layers that stretch with the bear. Marble swirls flow with it, too.',
+        'Candy and Lagoon use layers that stretch with the gummy. Marble swirls flow with it, too.',
       ),
     ).toBeTruthy()
   })
@@ -593,6 +1077,23 @@ describe('GummyBearPage', () => {
     expect(screen.getByRole('alert').textContent).toContain(
       'The material became unstable.',
     )
+    const notice = screen.getByRole('button', { name: 'Simulation error' })
+    expect(
+      screen
+        .getByRole('region', { name: 'Gummy bear studio' })
+        .contains(notice),
+    ).toBe(true)
+    expect(
+      screen
+        .getByRole('complementary', { name: 'Gummy controls' })
+        .contains(notice),
+    ).toBe(false)
+    fireEvent.click(notice)
+    expect(
+      screen.getByRole<HTMLTextAreaElement>('textbox', {
+        name: 'Simulation error log',
+      }).value,
+    ).toBe('The material became unstable.')
     expect(
       screen.getByRole<HTMLButtonElement>('button', { name: 'Pause' }).disabled,
     ).toBe(true)
@@ -602,6 +1103,9 @@ describe('GummyBearPage', () => {
     ).toBe(false)
     fireEvent.click(screen.getByRole('button', { name: 'Reset bear' }))
     expect(screen.queryByRole('alert')).toBeNull()
+    expect(
+      screen.queryByRole('button', { name: 'Simulation error' }),
+    ).toBeNull()
     expect(scene().resetKey).toBe(1)
   })
   it('restores the title and carries canvas keyboard callbacks to the same controls', () => {

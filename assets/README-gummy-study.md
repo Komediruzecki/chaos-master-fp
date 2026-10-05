@@ -1,10 +1,318 @@
 # Gummy bear study
 
-Open `/gummy` for four interactive gummy experiments. **Continuous jelly** remains the default. **Particle jelly** adds a separate material-point study. **Fine crush** and **Limb pull** preserve the earlier regional fracture models. The existing glass pawn, fractal figurines and chess board remain available through their original routes.
+## Gummy chess board and repeatable crash
+
+Open `/gummy?view=board` for a standard opening arrangement: 16 pawns,
+4 rooks, 4 knights, 4 bishops, 2 queens and 2 kings. The filled candy moulds
+have a horse-profile knight, slotted bishop, crowned queen and cross-topped king.
+Knights face toward the opposing side; queens occupy their own-colour d-file
+squares. This remains a capture showcase, without turn rules or legal-move
+selection. The original `/chess` showcase and `/gummy` material workbench remain
+available.
+
+Choose **Play crash** to stage one rook and pawn in the centre, lift the rook,
+position it over the pawn, press and
+shear the pawn, then settle on its square. The rook remains there when the
+capture finishes; it no longer retreats. The default sequence lasts six
+simulation seconds. **Replay crash** restores both pieces and repeats it.
+Pause freezes simulation time; **Reset board** restores the opening arrangement
+and Orbit mode without playing it. Impact speed takes effect on the next replay. Use the close view
+to inspect contact, or the full-board view to frame a clip.
+
+**Driven rook** is the default: one deformable pawn and a prescribed rigid
+rook collider that finishes on the captured square.
+
+The optional **Soft contact** comparison runs two GPU MPM bodies with independent particle transfers
+and velocity fields. Nearby particle samples gate contact, including their
+motion over a solver microstep. A contact pass applies equal and opposite
+normal impulses and Coulomb friction before each body updates its particles.
+This prevents empty overlap between background-grid supports from exchanging
+momentum. The rook follows the strike through a moving attachment to its base
+material; its body can stretch, squash and tear. It remains guided over the
+captured square, rather than becoming a freely thrown projectile. The pawn's
+base uses the selected anchoring setting. The other 30 pieces share cached
+meshes and do not run separate simulations.
+
+The soft rook uses the same recipe as the pawn. Hot, high-flow settings can
+stretch or tear its neck during the lift, before collision; base guidance
+does not hold the crown rigid. This mode is a contact/material comparison,
+while Driven rook retains the recognizable attacking silhouette. Switching
+contact modes restores the scene and retains the selected material and camera.
+Both modes use GPU physics with no per-frame CPU readback.
+
+The board starts with **RockGummy** and shares all four starting presets and
+the saved material library with the workbench. Applying a preset resets the
+crash. Fine tuning applies to both active bodies in Soft contact and to the
+pawn in Driven rook; replay from rest to compare settings. Palette changes
+also recolour pieces inheriting the base palette. **Grab pawn** stages the
+active pair in the centre before enabling manual deformation; **Orbit** and **Pan** move the camera. The existing touch gestures
+and canvas recording controls work in this view too.
+
+**Board appearance** controls presentation independently of the material recipe.
+Pieces start at 90% size, adjustable from 85% to 100%. The white-side knights
+start in Amber and bishops in Lagoon; the black-side knights start in Blue and
+bishops in Berry. Tap a piece in Orbit mode, or choose its side/type/original
+square in the accessible selector, then apply any of the six palettes. A ground
+ring marks the selection. Reset one or all colour overrides to restore the
+per-type defaults. Colours and size update live and persist in this browser;
+material preset changes preserve these appearance choices. Changing size cancels
+an active grab so its old world-space handle cannot jump the solver target.
+
+**Render quality** offers Auto, Tablet and High. Auto chooses Tablet for coarse
+pointers or a viewport at most 900 CSS pixels wide, otherwise High. Tablet uses
+0.08-unit surface cells and 512-square floor-light targets; High uses 0.06-unit
+cells for the driven pawn and 1024-square light targets. Soft contact retains
+0.08-unit cells in either setting. Particle counts, material physics, fixed
+substeps and choreography stay identical. Quality changes reset the take and
+stop recording because the renderer resources must be rebuilt.
+
+All six waiting-piece meshes are baked sequentially once, then instanced.
+Their shadows and caustics are cached independently from the moving attacking
+rook and live pawn, including in Driven rook mode. Orbiting and an unchanged
+idle scene reuse the existing light maps; an unchanged idle canvas submits no
+new GPU frame. Recording continues drawing so canvas capture receives frames.
+These caches invalidate on geometry, palette, scale and lighting changes.
+
+The two live marching-cubes surfaces retain their own material coordinates,
+colour, refraction and shadows. Their 0.08-unit reconstruction cells preserve
+isolated droplets at the chosen density threshold while reducing their combined
+surface-buffer budget to about 90 MiB. This is not total GPU memory usage.
+Contact uses particle-sized geometric proxies, not an exact continuous surface
+collision solve; self-contact and persistent sticky bonds remain separate work.
+The independent fields and unilateral momentum exchange follow the approach
+used in [multimaterial MPM contact](https://www.sci.utah.edu/~guilkey/MPMPubs/Bardenhagen-ImprovedContact-01.pdf),
+with particle proximity as this study's contact gate.
+
+The full-set pass has 281 focused tests across board population, all six filled
+moulds, appearance persistence, live scene ownership, lighting, framing and
+input. Full typechecking, formatting, WGSL validation and the production build
+pass. `pnpm check` again reached the repository's 4 GiB ESLint heap limit; the
+same full lint passed with 8 GiB (zero errors, 103 existing warnings). Final
+scoped lint is clean. A regression verifies that appearance changes do not
+recreate the solver and that idle rendering still supplies recording frames.
+
+Native AMD RDNA-4 checks confirm all six silhouettes, finite completed driven
+and soft captures at 90% scale, correct rook placement, unchanged scene identity
+for colour/size edits, and persisted appearance on refresh. The workbench now
+fits each chess mould's padded bounds, including the taller king. A triangle
+crossing below the floor is rejected as a whole in shadow projection, preventing
+an invalid corner from stretching a shadow across the board.
+
+In the matched desktop comparison at a 1003-by-724 canvas, High/Tablet mean
+GPU-completed contact batches took 8.45/7.83 ms; warm batches took 7.94/7.72 ms.
+These modest desktop differences are not a physical-tablet benchmark. The
+comparison preceded the equivalent whole-triangle shadow correction; the final
+High visual run measured 8.84 ms for contact and 8.08 ms for warm batches. Waiting
+lighting regenerated once per shot, with 41 cache hits in the High run. Tablet
+floor-light targets consume 4 MiB versus High's 16 MiB; the solver is identical.
+Reports preserve the harness-only RAF sequencing retries separately from the
+successful checks in `local/gummy-board/full-set/manifest.json`.
+
+The final production bundle passed touch selection, colour reset and appearance
+controls at desktop (1440 by 1000), narrow phone (320 by 568) and tablet
+(768 by 1024) sizes. Controls meet the 44-pixel touch target and avoid horizontal
+overflow. Colour and size survive refresh; changing High to Tablet rebuilds a
+ready scene while preserving appearance. These browser checks reported no GPU
+or console errors. Physical tablet performance and iOS remain device checks.
+
+The earlier capture and contact pass had 108 focused tests, full typechecking,
+WGSL validation and the production build. Repository ESLint exceeds its 4 GiB
+script heap; rerunning the same lint with 8 GiB reports no errors. Native GPU
+runs complete both six-second captures with finite states and no surface-buffer
+overflow or GPU errors. At two seconds, before impact, the pawn differs from
+the independent driven-mode control by only 1.7e-7 units RMS. Repeated contact
+mode changes return to the same live buffer/texture counts. These checks establish
+numerical and resource behaviour, not exact surface contact: the pair impulse
+removes closing velocity but does not separately repair existing interpenetration.
+
+Production checks cover desktop, 320-pixel phone and tablet mode controls,
+scrolling, selected styling and preserved preset settings. A stable desktop take
+finishes automatically when the contact mode changes and downloads a nonempty
+MP4 clip. The recording test immediately after a viewport resize did not
+finish; recording from settled canvas dimensions passed, consistent with the
+recorder's resize-stop guard. The native diagnostic replay passed; a redundant
+production replay lookup expected “Play crash” after the control had correctly
+changed to “Replay crash”. These harness limitations are retained in local
+verification reports rather than reported as complete automated passes.
+
+Reports and still images are kept under `assets/local/gummy-board/` (ignored
+by Git). Native GPU checks use a standalone headed browser. Timing results
+measure submitted work through GPU completion, not display FPS: the hidden
+Hyprland test workspace can pace ordinary animation frames at about one per
+second. Mobile browser emulation does not substitute for a physical iOS run.
+
+The next capture pass should improve transport of the soft attacker: compare a
+gentler approach with an explicitly separate attacker recipe, without silently
+changing the chosen material. Then address persistent overlap and fragment
+contact before adding turn rules and a final recorded capture sequence.
+
+## Chess moulds and reusable material presets
+
+Open `/gummy?experiment=mpm&shape=pawn` or
+`/gummy?experiment=mpm&shape=rook` for the first classic gummy chess moulds.
+Both are filled volumes sampled into the existing GPU MPM solver, with the
+same marching-cubes surface and carried amber/berry/turquoise Marble palette.
+The pawn has small bear ears; the rook has four rounded merlons. A checkerboard
+floor uses the existing board's tile scale. These URLs open the single-piece
+workbench; the populated board is available at `/gummy?view=board`.
+
+In **Shape**, switch between **Bear**, all six chess pieces and **Two blobs**.
+The new pieces also accept `shape=bishop`, `shape=knight`, `shape=queen` or
+`shape=king` in the MPM workbench URL.
+Changing shape resets deformation while retaining material and drag settings.
+**Pin base to floor** anchors only the chess base; turn it off for a free piece.
+
+Tune the bear or a chess piece, open **Presets**, enter a name and choose
+**Save as new**. Saving and copying leave the running simulation untouched.
+Select a saved preset and choose **Apply preset** to reset the current shape
+with those settings. **Update selected** explicitly replaces a saved preset
+with the current sliders. Presets persist in this browser's storage on this
+origin; they do not automatically sync to another device.
+
+The panel also includes four **Starting presets**, available without importing
+or saving anything first. Tap **Low: firm**, **Mid: soft**, **High: mushy** or
+**RockGummy** to apply it and reset the current figure. These starting points
+stay separate from the saved library, so choosing one never overwrites a
+previously saved version, even with the same name. Tune a starting point, give
+it a new name and use **Save as new** to keep a variation.
+
+| Starting preset | Softness | Fragility | Flow | Viscosity |
+| --------------- | -------: | --------: | ---: | --------: |
+| Low: firm       |     0.25 |      0.25 | 0.15 |      0.85 |
+| Mid: soft       |     0.50 |      0.50 | 0.50 |      0.70 |
+| High: mushy     |     0.85 |      0.90 | 1.00 |      0.25 |
+| RockGummy       |     0.65 |      0.70 | 1.00 |      0.61 |
+
+All four use warm marbled jelly, gravity 1, floor drag 8.5, grab strength 0.65,
+grab radius 0.26, maximum pull 0.6, tearing enabled, an anchored base and floor
+caustics. RockGummy preserves the complete user-supplied recipe. The other three
+vary material response while holding the grip and scene controls fixed; high
+flow and fragility favour yielding and tearing rather than guaranteeing longer
+intact strands.
+
+**Copy current** produces versioned JSON to send in chat or transfer to another
+browser. If clipboard access is blocked, the JSON remains selected for manual
+copying. **Import JSON** validates and stages a preset; **Apply preset** then
+uses it. To keep an imported preset locally, apply it and choose **Save as new**.
+The preset includes material type, softness, fragility, tearing, all fine tuning,
+grab radius, maximum pull, anchoring, palette and floor caustics. Shape, model,
+camera, recording and playback are not saved. Invalid, incomplete and out-of-range
+presets are rejected without changing the simulation.
+
+The capture scene reuses this material schema for both deformable pieces in
+Soft contact and for the victim pawn in the preserved Driven rook comparison.
+
+Verification for this addition: 158 focused tests pass, along with typechecking,
+ESLint, formatting, WGSL validation and the production build. Native GPU drags
+move both chess moulds without nonfinite particle states or validation errors.
+The revised pawn is also checked at zero simulated time, with exact rest
+positions and no mesh overflow. Saved-preset refresh, import staging, clipboard
+fallback and transfer between shapes pass in the browser. Production controls
+fit desktop, 320-pixel phone and tablet layouts, including a real emulated-touch
+tap; this does not claim a new physical iOS-device test. Local reports and stills
+are under `assets/local/gummy-chess-presets/` (ignored by Git).
+
+Open `/gummy` for five interactive gummy experiments. **Continuous jelly** remains the default. **Particle jelly** adds a separate material-point study, and **MPM + marching cubes** reconstructs its world-space surface. **Fine crush** and **Limb pull** preserve the earlier regional fracture models. The existing glass pawn, fractal figurines and chess board remain available through their original routes.
 
 **Continuous jelly** now opens in **Pull to tear** with **Grab & pull** selected. Drag the arm a short distance and release to test runtime fracture. This view has no automatic tear animation or Demo button. Its separate squeeze and stretch tests retain their intact material controls. **Particle jelly** provides the alternative material-point pull study. In Fine crush, a visible plate descends, holds, retracts and leaves fragments to settle. Limb pull preserves the original right-arm demonstration with anchored feet. **Reset bear** restores the solid. **Grab & pull** supports a mouse or touch; **Orbit** turns the view and supports pinch zoom. Blue, Amber and Berry use one volume dye. Candy uses amber feet, a green body and pink/cherry head; Lagoon uses amber, turquoise and cobalt layers. **Marble**, the default, follows the selected chess reference with amber and berry jelly crossed by a flowing turquoise ribbon. The colours are attached to undeformed material coordinates, so they move with the body. Softness changes the material's shear response. **Fragility** independently controls how readily local strain creates cracks; the high default is intended to feel like fragile, warm gummy candy. In Crumble, a low setting retains the earlier tough elastic comparison; Soft tear keeps its plastic deformation response at every fragility setting. Reset before comparing settings. Turn off **Allow tearing** and reset to compare the same loading with an undamaged control.
 
-Keyboard, with the canvas focused: Space pauses, R resets, arrow keys orbit, and + / - zoom. D starts a demonstration only in the other comparison views; Continuous tear is manual.
+Keyboard, with the canvas focused: Space pauses, R resets, arrow keys orbit, Shift + arrows pan, Home resets the view, and + / - zoom. D starts a demonstration only in the other comparison views; Continuous tear is manual.
+
+### Camera and recording
+
+Choose **Orbit** to turn around the bear or **Pan** to move the view. Mouse
+shortcuts work from **Grab & pull** too: right-drag orbits, while Shift-drag or
+middle-drag pans. On touch screens, the selected mode works with one finger;
+two fingers pan and pinch to zoom. **Reset view** restores the framing.
+
+Press **Record**, interact with the bear and camera, then **Stop recording**
+and **Download video**. The clip contains the canvas without sidebar controls
+or audio. Recording prefers MP4, with WebM as a browser-dependent fallback,
+at up to 30 fps and the canvas's current resolution. Clips finish automatically
+after two minutes, when leaving the tab, or when changing the model or canvas
+size. Keep the page open until downloading; clips are held in memory. On small
+screens, recording and camera controls sit directly below the canvas.
+
+### Rounded torn surfaces
+
+The Continuous jelly pull view now opens with **Rounded** under **Torn surface**.
+Switch to **Original** to compare the same paused fracture. This control changes
+rendering live: it does not reset the bear, advance its simulation, alter its
+plastic memory or rebuild its fracture topology. Other experiments retain their
+previous rendering. The Fine and Standard meshes remain available independently.
+
+The old PN patches curved triangle interiors but still passed through every
+sharp simulation corner. The new GPU pass applies a convex Loop vertex mask to
+corners of exposed, closed manifold boundary stars. It uses exact shared-node
+identity, never rest-position welding, so coincident detached copies retain
+separate neighbours. Open, pinched and disconnected stars are left unchanged.
+Every corner displacement is capped at 0.3 times the minimum current inradius
+of its incident tetrahedra; collapsed or inverted support freezes that corner.
+The same scalar stencil moves world and material coordinates, retaining the
+colour field. A separate subsequent dispatch computes normals from the adjusted
+boundary before the existing curved patches, exits, shadows and lighting render.
+
+Fully isolated single-tetrahedron chips receive an additional geometric fillet.
+The renderer first insets all four planes by 30% of the current inradius, then
+rounds that inner tetrahedron with a ball of the same radius. Its sampled surface
+stays inside the original physical tetrahedron. Closest-point projection maps
+the original face samples onto this surface, and tetrahedral barycentrics map
+those points back into the fragment's own rest volume for dye. Canonical vertex
+ordering keeps shared edge arithmetic consistent. Rounded uses 8×8 chip patches;
+Original retains its 4×4 index selection. Larger components retain the bounded
+corner relaxation and existing curved patches.
+
+This construction uses the offset/Minkowski-sum definition described in
+[CGAL's 3D geometry documentation](https://doc.cgal.org/latest/Minkowski_sum_3/index.html)
+and closest-point triangle geometry as catalogued in
+[Real-Time Collision Detection](https://realtimecollisiondetection.net/books/rtcd/toc/).
+It is a local rendering construction; no CGAL dependency is added.
+
+This is a bounded render-surface treatment, not physical remeshing, surface
+tension or fragment contact. Physical mass and solver positions are unchanged;
+visible volume is not conserved. An independent regular-tetrahedron fixture
+for the general corner-relaxation path moves each corner 10% toward its centre.
+At 4×4 patch sampling, the original curved shell has volume 4.69965 and the
+relaxed shell 3.62726, compared with physical volume 2.66667. Relaxation reduces
+the already inflated original by about 22.8% in that extreme fixture. The
+isolated-chip fillet replaces that patch with an inscribed surface: its exact
+smooth body retains 91.98% of physical volume; the rendered 8×8 approximation
+retains 87.74%. These are analytic-fixture measurements, not a volume-conservation
+claim for the bear. Thin chips with small support, larger ragged clusters and
+unsafe boundary stars may remain visibly angular.
+
+The live comparison checks intact pixels, full solver-state equality across
+switches, restoration of Original pixels, GPU control-corner displacement, and
+unchanged fracture revision. The diagnostic readback measures relaxed controls
+before the vertex-stage patches and fillets; its displacement does not describe
+the final chip shell. Native screenshots and verification are recorded
+separately from the prior Fine-geometry evidence. No video is generated.
+
+The [rounded native report](gummy-rounded-fine-verification.json) records the
+AMD RDNA 4 run with zero browser errors or warnings. It covers short mouse and
+touch tears, disabled tearing, idle material controls, keyboard/orbit/pinch,
+geometry switching and phone/tablet viewport layouts. On one paused tear,
+Original → Rounded → Original retains the full solver state and fracture
+revision, and restores the Original pixels exactly. The untouched bear is
+pixel-identical in both views. Viewport and emulated-touch checks do not measure
+performance on a physical tablet.
+
+Verification passed the 337-test gummy suite, then all 19 Scene tests after
+adding a queued-fracture/pause regression (338 distinct tests across 36 files).
+The latter checks that production diagnostics publish a matching finished
+revision even when its draw is throttled. Repository typechecking, formatting,
+WGSL validation, the documentation-index check and the production build pass.
+The complete ESLint pass uses an 8 GiB heap to avoid the repository script's
+known 4 GiB exhaustion: zero errors, 95 warnings, with scoped checks after the
+pause-observation fix. No full repository test suite or CI run is claimed.
+
+The [rounded production report](gummy-rounded-fine-production-verification.json)
+confirms a real 45-pixel drag tears the built app without its development hook.
+After any queued update finishes, switching Original/Rounded preserves the
+paused fracture revision. The native adapter reports no browser errors or
+warnings, and phone/tablet viewport controls fit. Owned test browsers and the
+temporary production preview are closed; the separate LAN development server
+remains under its three-hour launch timeout.
 
 ### Fine geometry
 
@@ -133,7 +441,7 @@ Reset clears plastic memory. Native mouse, emulated touch, cancellation, pinch,
 keyboard, comparison models and responsive layouts pass with zero browser
 errors or warnings. This does not establish physical-tablet performance.
 
-Current verification: 318 focused tests in 34 files plus six independent
+Fine-geometry checkpoint verification: 318 focused tests in 34 files plus six independent
 topology tests pass. Full repository typechecking, formatting, WGSL validation,
 documentation-index checks and the production build pass. `pnpm check` still
 exhausts its hardcoded 4 GiB lint heap; its complete ESLint pass succeeds at
@@ -177,7 +485,7 @@ records the GPU, hidden browser placement and zero shader errors/warnings.
 
 The frozen chess/material baseline is `/home/maff/.codex/worktrees/984d/chaos-master-fp` on `feat/chess-material-studies`. Its existing preview remains on port 5198: `/chess` is the board, `/chess?view=study` the glass pawn, `/pawn` the forge and `/figurines` the gallery.
 
-Continue gummy fracture development in `/home/maff/.codex/worktrees/gummy-fracture/chaos-master-fp` on `feat/gummy-fracture`, with its own preview on port 5199. Both worktrees were copied from the same complete working state and retain the chess routes. Commit `a4004a3c` preserves the chess assets, regional fracture models, Continuous jelly controls and Particle jelly checkpoint. Runtime continuous tearing is the next working change on that branch. The earlier verified archive of 229 changed/untracked files and tracked diff remains in `/home/maff/.codex/worktree-snapshots/chess-gummy-2026-10-03-ql4yfr52`.
+Continue gummy fracture development in `/home/maff/.codex/worktrees/gummy-fracture/chaos-master-fp` on `feat/gummy-fracture`, with its own preview on port 5199. Both worktrees were copied from the same complete working state and retain the chess routes. Commit `a4004a3c` preserves the chess assets, regional fracture models, Continuous jelly controls and Particle jelly checkpoint. Commit `058ccdb7` checkpoints continuous tearing, coloured fracture surfaces and Fine geometry; rounded render surfaces are the subsequent working change on that branch. The earlier verified archive of 229 changed/untracked files and tracked diff remains in `/home/maff/.codex/worktree-snapshots/chess-gummy-2026-10-03-ql4yfr52`.
 
 Keep new fracture work in `simulation/gummy`, `components/GummyBear` and `pages/GummyBear`. The only direct chess rendering dependency is `displayColour` from `components/PawnBoard/pawnGlassMaterial.ts`; leave that helper unchanged during gummy development. Later, connect the gummy renderer/solver to the chess capture action through an explicit material mode, preserving the existing glass/fractal mode. Shared routing changes need the existing route tests.
 
@@ -409,16 +717,16 @@ floating point from spatially binned particles; integer atomics only link the
 bins, avoiding quantization of small contributions. Each particle retains its
 deformation gradient and material-space dye. It has no predefined tear faces.
 
-The material uses compressible Neo-Hookean stress. Excessive isochoric principal
+The **Elastic jelly** material uses compressible Neo-Hookean stress. Excessive isochoric principal
 stretch irreversibly reduces shear stiffness while retaining mass and bulk
 resistance. This is an experimental strain-softening law in study units,
 without fracture-energy calibration, a phase field, or a viscoelastic internal
 variable. Disabling **Allow tearing** disables new softening; reset before
 comparing to remove any damage already accumulated.
 
-**Demo tear** applies a local side pull, holds it, releases the handle and lets
-the body recover. The feet are anchored. Material motion comes from the solver;
-the handle trajectory is the only prescribed motion. Numerical guards and
+The preview now uses manual dragging; the development benchmark retains a
+scripted side pull for repeatable comparisons. The feet are anchored. Material
+motion comes from the solver; only the handle is prescribed. Numerical guards and
 domain contacts are exposed in development readback and must be assessed along
 with the visible result.
 
@@ -595,7 +903,116 @@ These are aspirational design references, not renderer screenshots. Their [compl
 
 The visual starting point is [Carolina's gummy demonstration](https://x.com/Cora_Mat/status/2106239215495450993). The research did not establish a public implementation for that exact clip. This study is an independent implementation, informed by [XPBD](https://matthias-research.github.io/pages/publications/XPBD.pdf), [stable Neo-Hookean simulation with XPBD](https://matthias-research.github.io/pages/publications/neohookean.pdf) for the Continuous jelly material, and [Curved PN Triangles](https://alex.vlachos.com/graphics/CurvedPNTriangles.pdf) for the tetrahedral studies' rendered surfaces.
 
-## Next steps, in order
+## Playback performance audit — 2026-10-04
+
+The elastic solver and rendering execute through WebGPU. The native browser
+reported the AMD RDNA-4 adapter with `fallback: false`. Soft tear still performs
+plasticity and fracture assessment on the CPU, after reading dynamic state back
+from the GPU every six ticks (50 ms of simulated time). Rendering waits for that
+transaction. Each topology change also constructs a new solver and renderer.
+
+The [ordinary playback profile](gummy-performance-profile-raw.json) records UI
+playback at a 1440 × 1000 viewport, rather than diagnostic fixed-step captures.
+The browser used the hidden-workspace flags described above and a 1 ms CPU
+sampling profiler. The [instrumented comparison](gummy-performance-profile.json)
+also counts GPU API calls; those wrappers add overhead. Neither report measures
+GPU kernel timestamps or physical display FPS. Readback elapsed time includes
+waiting for queued GPU work. Background desktop load was not controlled.
+
+| Observation                    | Measured evidence                                                                                                   | Consequence                                                                                                     |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| CPU material work              | Fine idle assessment averaged about 26 ms per check in both runs                                                    | This consumes over half the 50 ms simulated interval before GPU waiting and command submission                  |
+| Full replacement after a crack | 19 live splits spent 4,036 ms allocating replacements, about 212 ms each                                            | Repeated mesh preparation, constraint colouring, resource creation and garbage collection cause visible hitches |
+| Many small GPU dispatches      | Fine uses 2,358 solver dispatches per 1/120-second tick: 282,960 per simulated second                               | Serial constraint colours create substantial command and synchronization overhead                               |
+| Standard versus Fine           | Standard soft tear kept pace with real time in both samples; Fine soft tear reached 0.34× and 0.63× before dragging | Fine exposes the current architecture's cost even without new fractures                                         |
+
+In the unwrapped live drag, 1.4 simulated seconds took 7.04 wall seconds, with
+only 22 presented simulation updates. The CPU profile identifies repeated
+constraint colouring, rest-tetrahedron preparation, surface metadata building
+and garbage collection during the splits. Switching intact Fine from Rounded
+to Original did not resolve the slowdown. After pausing the torn model, both
+surface modes submitted about 56 draws per second; this is submission cadence,
+not a GPU completion measurement.
+
+Fine with Crumble selected and tearing disabled scheduled real-time elastic
+steps, but that path performs no periodic readback, so its scheduling rate alone
+does not establish GPU completion throughput. The controls also change material
+behaviour; this is an isolation probe, not a recommended replacement for soft
+tearing. Disabling tearing alone in Soft tear keeps CPU plasticity active.
+
+Prioritize persistent solver/render resources and cached invariant mesh data,
+then move plasticity and fracture-candidate assessment to GPU compute with
+compact asynchronous results. Rework the colour/dispatch schedule with physics
+validation rather than reducing the stabilizing Fine microsteps. Finally,
+reconstruct a shared indexed surface once per frame and reuse it across the
+five geometry passes. Keep Standard available as the immediate faster preview.
+This audit changed no simulation or rendering behaviour.
+
+## Performance improvements — 2026-10-04
+
+The follow-up pass preserves material parameters, mesh density, solver iteration
+counts, Fine microsteps and constraint ordering. It removes repeated work from
+the existing implementation:
+
+- Cache compiled solver/render pipelines per TypeGPU root; bind constraint
+  batches once instead of rebuilding wrappers inside the iteration loop.
+- Reuse scene-owned light/HDR targets across tears. Geometry buffers still
+  change with topology; the first tear also changes the render-target flavour.
+- Replace Map/Set constraint colouring with bitsets while preserving the exact
+  greedy order. Cache pristine rest geometry with validated node ancestry,
+  rest positions and tetrahedron corner identities.
+- Read back positions for material assessment. Transfer the remaining dynamic
+  arrays only after a split is requested, through the same serialized staging
+  buffer. Cancellation, failed transfers and plastic rollback remain covered.
+- Evaluate small material matrices directly and hoist invariant fracture
+  constants. The [CPU comparison](gummy-material-performance.json) checks 512
+  deformation histories and 1,024 tensile tensors against the earlier code;
+  plastic states and tensors match exactly.
+- Share indexed patch samples and find face owners through incident tetrahedra
+  instead of building sorted string keys. Expanded triangles and surface
+  metadata retain their previous values. Fine's intact patch sample buffer is
+  1.65 MiB instead of 5.28 MiB.
+
+The [final ordinary-playback profile](gummy-performance-after.json) uses the
+same native AMD RDNA-4 adapter, viewport, sampling profiler and scripted drag
+as the raw baseline above. It additionally waits for queued GPU work after
+pausing each phase. No build, lint or test process ran during this final sample.
+These are individual desktop samples with uncontrolled background load, not
+controlled GPU benchmarks or physical display FPS. Faster playback also
+progresses farther through the drag and produces more splits.
+
+| Measurement                                           | Before                  | After                  |
+| ----------------------------------------------------- | ----------------------- | ---------------------- |
+| Fine tear replacement allocation, mean                | 212.4 ms over 19 splits | 38.5 ms over 40 splits |
+| Fine soft tear, simulated time / wall time            | 0.199×                  | 0.450×                 |
+| Fine tear presented-update gap, mean / p95            | 318 / 637 ms            | 145 / 277 ms           |
+| Fine intact soft tear, simulated time / wall time     | 0.340×                  | 0.733×                 |
+| Fine intact CPU material assessment, mean             | 26.1 ms                 | 18.3 ms                |
+| Standard intact soft tear, simulated time / wall time | 1.008×                  | 1.010×                 |
+
+The final run reports no browser errors. Fine's elastic-only isolation probe
+advances at 1.007× with an 11.5 ms queue drain after pausing; the tearing sample
+drains in 32.4 ms. Fine soft tear still falls behind real time: every six ticks
+it waits for GPU completion and CPU material assessment. In the final intact
+sample those stages averaged 41.3 ms and 18.3 ms per check. This pass does not
+move plasticity/fracture assessment onto GPU or remove the 48 serial constraint
+colours. Those are the next architectural targets, with the current physics
+and appearance retained as comparison references.
+
+Verification: 366 gummy tests in 41 files pass, full typecheck passes, full
+ESLint passes with 0 errors and 97 warnings using an 8 GiB heap, formatting,
+WGSL-name validation, generated-index check and production build pass. The
+aggregate `pnpm check` initially stopped on two type errors; both were fixed
+and its constituent checks completed. A first native run was rejected because
+formatting changed source during verification. The frozen-source rerun
+[`gummy-performance-final-verification.json`](gummy-performance-final-verification.json)
+passes short mouse/touch tears, idle stability, disabled tearing, stronger
+material, reset and phone/tablet layouts with no errors, warnings or failed
+checks. These are diagnostic stills and fixed-step checks, not a new video or
+evidence of physical-tablet throughput. Both surface modes also run in the
+ordinary-playback profile. Owned test browsers were closed afterward.
+
+## Tetrahedral track plan, retained for comparison
 
 The immediate goal is the feel of fragile, warm gummy candy under direct mouse
 or finger contact. It is a stylized material target, not a claim of measured
@@ -607,17 +1024,20 @@ needs diagnosis.
 1. **Short, responsive crumbling.** Tune fragility separately from softness.
    Verify short drags detach actual volume while the untouched bear stays
    intact. Compare tearing off, tough material and fragile material under
-   identical input. Short manual drags now release real chips. Next, reduce
-   solver/renderer replacement stalls by caching invariant mesh data and
-   reusing GPU resources. Fine now adds twice the surface detail with smaller
-   internal time steps. Reduce its cost and residual surface vibration before
-   increasing the density further.
+   identical input. Short manual drags now release real chips. Caching rest
+   geometry, pipelines and render targets has reduced tear replacement stalls.
+   Next, move material assessment onto GPU with compact asynchronous results
+   and reduce the serial constraint dispatch overhead. Fine adds twice the
+   surface detail with smaller internal time steps. Reduce its remaining cost
+   and residual surface vibration before increasing the density further.
 2. **Continuous gummy surfaces.** Keep dyes attached to the material on new
-   cuts. Round exposed fragment surfaces without closing real crack gaps or
-   changing their simulated mass. Check silhouettes and thin fragments from
-   several views; then investigate adaptive tetrahedra where necks and cracks
-   form. The Fine preset already increases actual physics resolution; adaptive
-   refinement should concentrate further detail where it is needed.
+   cuts. The new Original/Rounded comparison applies bounded corner relaxation
+   and inward fillets on isolated cells without changing simulated mass or
+   fracture connectivity. Thin slivers, larger clusters and pinched boundary
+   stars remain angular, and visible volume changes. Next, investigate adaptive
+   tetrahedra where necks and cracks form. The Fine preset already increases
+   actual physics resolution; adaptive refinement should concentrate further
+   detail where it is needed.
 3. **Stretch, relax and stick.** Soft tear now adds controlled plastic memory
    before fracture. Compare it against Crumble and the intact elastic squeeze
    and stretch tests. Next, refine short ligaments and stress relaxation, then
@@ -638,3 +1058,199 @@ needs diagnosis.
    board integration hold up interactively, stage one piece crushing/eating
    another: approach, compression, tearing, settling and a final hold. Only
    then make the polished animation/reply video.
+
+## Warm particle material and contact study, 4 October 2026
+
+The active comparison is **Particle jelly → Warm jelly**, with the earlier
+**Elastic jelly** response alongside it. All other models remain available.
+The preview uses manual input. The bear keeps its feet held; **Two blobs**
+samples two equally sized free bodies, initially separated, with permanent
+amber and turquoise dye coordinates. Returning to the bear restores its chosen
+palette. Material and fixture changes reset the comparison.
+
+Warm material adds determinant-preserving, objective deviatoric relaxation
+above a yield stretch, gradual strain softening and internal deviatoric viscous
+stress. Damage combines elastic stretch with accumulated equivalent plastic
+strain and one third of accumulated volumetric opening, so yielding does not
+erase the strain history that should weaken a neck. The deviatoric stretch
+composition is exact for aligned monotone uniaxial extension; the opening term
+is an isotropic axial-strain proxy. Their combination is an approximation for
+general or reversing flow. Compression remains
+resistant, while damage reduces tensile bulk pressure as well as shear. A
+tensile plastic return limits elastic expansion to J = 1.35^(1-damage), preserving
+isochoric shape while recording removed log-volume as irreversible opening.
+Fully damaged warm material returns to a zero-pressure elastic state at J = 1.
+These operations represent void opening without deleting particles or their
+rest mass. J then measures elastic volume, not geometric dilation including
+voids. The energy diagnostic uses the matching unilateral volumetric potential;
+plastic opening dissipates stored energy. The 35% initial expansion limit is a
+stylized yield setting, not a measured material constant. Existing numerical
+safety limits remain in force after the constitutive return.
+Fragility controls damage onset and rate;
+softness controls shear resistance and relaxation. Turning tearing off prevents
+new damage while retaining yielding and viscosity. This is a stylized
+viscoplastic model in study units, not a calibrated candy rheology or a
+resolution-independent fracture law.
+
+Manual warm grips capture a local neighbourhood in the current shape, so a new
+grab can pick up fallen jelly without also pulling particles that were close
+in the original mould. The immutable picked anchor preserves pointer movement
+that arrives while the GPU readback is pending. The per-frame simulation stays
+on the GPU; only picking and explicit diagnostics read state back.
+Live playback admits one GPU frame batch at a time and waits for queue
+completion before admitting another. This bounds interaction backlog; the clock
+still caps catch-up after a long stall. Diagnostics expose completed frames
+separately from RAF callbacks, and the benchmark drains queued work before
+claiming a simulation pace.
+
+The surface uses a bounded monotone cubic crossing of the existing density
+samples. This improves small-drop contours without widening kernel support.
+Surface dye is evaluated near the visible interface; optical absorption still
+integrates occupied material along the ray. No additional texture, render pass
+or per-frame readback is required by these changes.
+
+The blob test deliberately separates geometric proximity from adhesion. Shared
+grid velocities can couple nearby material, and density kernels can visually
+join it. There are no persistent adhesive bonds or explicit inter-body contact
+constraints yet. Compare press, release and pull-apart using the original
+material labels before tuning sticking or claiming coalescence.
+
+Next: use this comparison to tune neck thinning and falling shape, then resolve
+contact versus persistent sticking. Increase local surface/particle detail only
+within a measured GPU budget. Add dynamic transmitted-light caustics after the
+surface is stable, then port the selected pawn and rook into the preserved chess
+board. The final capture animation still waits for those interactions.
+
+### Verification and remaining limits
+
+The native AMD RDNA 4 run in
+[`gummy-warm-verification.json`](gummy-warm-verification.json) keeps all 2,445
+bear particles and their rest mass, with zero numerical safeguard activations
+in the tested pulls. Ten untouched simulation seconds produce no damage. A
+1.0-unit lateral pull releases a 41-particle mass and a two-particle fragment;
+after release, 58 particles are separated from the main body. The matched
+0.3/0.6-unit pulls remain connected, so easy short-drag separation is still an
+open target. These are geometric particle-neighbour components, not permanent
+fracture labels.
+
+Warm playback completed about 44 GPU scene frames per second during a five-second
+desktop sample, advancing five simulation seconds. Including the subsequent
+queue drain and diagnostic readback gives 0.95 simulation seconds per wall
+second. This measures completed GPU frame batches, not display presentation or
+physical-tablet performance. At most one live frame batch remains outstanding.
+Trusted touch movement, release/cancel, reset and 390/1024-pixel layouts pass.
+The frozen-source run reports no browser errors or warnings.
+
+The **contact assertion intentionally remains failed**: during the 1.6-unit
+blob press, the nearest differently labelled particles remain 0.350 units apart
+against a 0.152-unit proximity criterion. The second blob already moves before
+geometric contact. This exposes premature shared-grid momentum transfer; it
+does not demonstrate adhesion or merging. The harness completes stability,
+input and performance checks before reporting this failure. Resolve separate
+material velocity fields and geometric contact before adding sticky bonds or
+claiming a successful collision-and-merge test.
+
+391 focused tests, app typechecking and the production build pass. Full
+`pnpm check` passed earlier in this work item; subsequent material changes have
+focused tests, typechecking, formatting and scoped lint checks. Minor silhouette
+speckling remains in the reconstructed surface, separate from the earlier white
+fracture-face bug. No new video was generated.
+
+The final native production run in
+[`gummy-warm-production-verification.json`](gummy-warm-production-verification.json)
+passes mouse dragging, trusted touch/cancel, all material/fixture/model switches
+and phone/tablet-width layouts, with no errors or warnings and no development
+diagnostic hook. It caught a production-only picking failure caused by marking
+a CPU diagnostic energy function as GPU code; that helper now uses ordinary CPU
+arithmetic. The final run confirms a first-attempt grab at the visible bear's
+centre. The physics benchmark above preceded this equivalent CPU-only helper
+fix; all 25 particle tests were rerun afterward. Owned test browsers and the
+temporary production server were closed. The development preview remains open
+on port 5199 for manual comparison.
+
+## MPM with marching cubes comparison
+
+The creator's explanation supplied on 2026-10-04 identifies GPU MPM physics,
+marching-cubes surface reconstruction and real-time caustics. It does not specify
+her constitutive law, damage parameters, grid resolution or lighting algorithm.
+The new **MPM + marching cubes** model at `/gummy?experiment=mpm` follows that
+architecture while preserving every earlier model. The page still defaults to
+the continuous-jelly comparison; the new URL selects warm particle jelly.
+
+The existing particle solver already implements quadratic MLS/APIC transfers
+and a deforming material gradient on the GPU. This example deliberately reuses
+it, including warm yielding, damage and current-position grabbing. The change
+is a world-space particle density field and actual classic marching cubes,
+rather than the earlier screen-space depth reconstruction. The GPU scatters
+compact density and carried dye, extracts cube-edge crossings and writes a
+bounded triangle buffer plus indirect draw count. Meshing runs once per visible
+frame, not per physics microstep. It requires no mesh readback. Explicit
+diagnostics report capacity and overflow; picking still reads particle state.
+
+The surface shades using its density-gradient normals and first front/exit
+interval. Absorption uses carried dye coordinates throughout the material, so
+newly exposed surfaces and detached drops retain their colours. Mesh normals
+also project coloured refracted light onto the floor, with projected-area flux
+concentration and a bounded energy cap. **Floor caustics** toggles that light
+without resetting the simulation. This is a single-interface floor-light
+approximation with a local absorption thickness, not photon tracing or a full
+two-interface optical solution. It omits light self-occlusion and transmission
+of a farther jelly body through the nearest body.
+
+Marching cubes changes the visible boundary, not the material law. It does not
+solve premature shared-grid contact or add adhesive bonds. Compact density
+kernels can visually join particles within their support, and the low density
+threshold preserves tiny detached droplets at the cost of a slightly expanded
+envelope. Classic lookup-table ambiguities remain; this is not a guaranteed
+manifold export mesh. The next physics work is separate contact fields and
+better calibrated yielding/neck thinning, after comparing this surface with
+the preserved screen-space model. Chess modelling follows that comparison.
+
+Primary implementation references:
+
+- [Hu et al., MLS-MPM and CPIC](https://yuanming.taichi.graphics/publication/2018-mlsmpm/)
+  and the [authors' implementation](https://github.com/yuanming-hu/taichi_mpm).
+- [NVIDIA GPU Gems: GPU marching cubes](https://developer.nvidia.com/gpugems/gpugems3/part-i-geometry/chapter-1-generating-complex-procedural-terrains-using-gpu).
+- [Explicit MPM stability analysis](https://www.cs.ucr.edu/~craigs/papers/2022-fourier-mpm/paper.pdf).
+
+The classic cube table is adapted from Three.js under its MIT license,
+retained in `marchingGummyTables.ts`. Native verification lives in
+`packages/app/scripts/verify-gummy-marching.mjs`; it uses trusted drag input,
+checks finite particle states and bounded mesh output, compares floor lighting,
+and measures completed frames without diagnostic readbacks in the timed window.
+
+The native desktop comparison on 2026-10-04 passed without browser or WebGPU
+errors. At the same 1011 by 758 canvas, a three-second sample completed 108
+marching-cubes frames (35.95 fps) and 106 screen-space frames (35.28 fps). Both
+advanced 2.992 seconds of simulation. This short sample shows comparable cost,
+not a general performance guarantee. The surface uses a padded 134-cubed grid,
+91.45 MB of buffers and about 8,064 triangles for the intact 2,445-particle bear.
+Paused camera and palette changes reuse the mesh; particle steps and resets
+invalidate it.
+
+An additional trusted two-unit arm pull separated the main body from three
+smaller groups. The conservative density-support component sizes were
+2,382, 57, 4 and 2 particles. Held and released states remained finite with
+preserved mass, no numerical guards and no mesh overflow. The longer release
+also exercised one expected simulation-wall contact while keeping positions
+and the reconstructed mesh bounded. Tiny drops still have coarse silhouettes
+and pale thin-volume absorption. The material is more opaque than the reference;
+the floor caustics are visible but subtle. These are remaining visual targets.
+
+Native touch swipes reached and activated the bottom control at tablet and
+phone widths without horizontal overflow. Local verification reports and
+stills are retained under `assets/local/gummy-marching/` (ignored by Git).
+Run `GUMMY_STRONG_TEAR=1 GUMMY_SKIP_LIVE=1` with the verifier for the extended
+tear and wall-contact protocol. The ordinary run includes the short live
+performance comparison. No video is generated.
+
+All 273 focused tests, typechecking, formatting, WGSL validation and the
+production build passed. The aggregate `pnpm check` exhausted its hardcoded
+4 GB ESLint heap; its lint step passed when rerun with an 8 GB heap, followed
+by the remaining formatting and shader checks. Repository lint warnings remain.
+
+The native production-browser pass also passed with development diagnostics
+absent: ordinary mouse dragging, caustics and palette controls, all model and
+fixture switches, and tablet/phone touch scrolling. No browser or WebGPU
+warnings or errors were reported. Test browsers and the temporary production
+preview were closed; the LAN development preview remains on port 5199.

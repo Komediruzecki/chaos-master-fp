@@ -1,5 +1,6 @@
 /** Bounded view-ray isodensity reconstruction; absent support is never turned into gel. */
 import { d, std, tgpu } from 'typegpu'
+import { gummyColourAtPoint } from './gummyBands'
 import { gummyCameraLayout } from './gummyShaders'
 import { PARTICLE_GUMMY_DENSITY_ISO, particleDensitySurfaceWithFallback, particleKernelDensity, particleKernelNormal, } from './particleGummyMath'
 import { particleGummyLayout, particleOpaqueLayout, particleProfileSourceLayout, particleRay, } from './particleGummyShaders'
@@ -75,10 +76,10 @@ export const particleGummyFarProfileFragment = tgpu.fragmentFn({
   return profile
 })
 
-/** Add exact compact-kernel gradients at the chosen surface; support boundaries have zero gradient. */
+/** Gather gradients and transported dye at the visible surface, excluding unrelated material behind it. */
 export const particleGummyNormalFragment = tgpu.fragmentFn({
   in: { pixel: d.builtin.position, centre: d.vec3f, rest: d.vec3f },
-  out: d.vec4f,
+  out: { normal: d.vec4f, dye: d.vec4f },
 })((input) => {
   'use gpu'
   const camera = gummyCameraLayout.$.camera
@@ -90,12 +91,18 @@ export const particleGummyNormalFragment = tgpu.fragmentFn({
   if (distance <= 0) std.discard()
   const ray = particleRay(input.pixel.xy)
   const world = std.add(camera.eye.xyz, std.mul(ray, distance))
-  return d.vec4f(
-    particleKernelNormal(
-      std.sub(world, input.centre),
-      particleGummyLayout.$.support.x,
-      particleGummyLayout.$.support.y,
-    ),
-    0,
+  const relative = std.sub(world, input.centre)
+  const radius = particleGummyLayout.$.support.x
+  const weight = particleGummyLayout.$.support.y
+  const density = particleKernelDensity(relative, radius, weight)
+  if (density <= 0) std.discard()
+  const colour = gummyColourAtPoint(
+    input.rest,
+    camera.colour.w,
+    camera.colour.xyz,
   )
+  return {
+    normal: d.vec4f(particleKernelNormal(relative, radius, weight), 0),
+    dye: d.vec4f(std.mul(colour, density), density),
+  }
 })

@@ -1,0 +1,3971 @@
+{
+  "capturedAt": "2026-10-04T13:29:34.861Z",
+  "base": "https://localhost:5198",
+  "expectFailure": false,
+  "cases": [
+    {
+      "width": 1440,
+      "height": 900,
+      "input": "wheel",
+      "initial": {
+        "width": 1440,
+        "contentWidth": 1440,
+        "scrollY": 0,
+        "target": {
+          "text": "Orbit",
+          "x": 1306.171875,
+          "y": 1842.96875,
+          "top": 1820.96875,
+          "bottom": 1864.96875,
+          "width": 137.5,
+          "height": 44,
+          "selected": "false",
+          "reachable": false
+        },
+        "aside": {
+          "x": 1090.921875,
+          "y": 108,
+          "width": 288,
+          "height": 1847.25
+        },
+        "ancestors": [
+          {
+            "tag": "ASIDE",
+            "id": "",
+            "className": "_controls_1ukp0_101",
+            "top": 108,
+            "height": 1847.25,
+            "clientHeight": 1847,
+            "scrollHeight": 1847,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "",
+            "className": "_layout_1ukp0_45",
+            "top": 108,
+            "height": 1847.25,
+            "clientHeight": 1847,
+            "scrollHeight": 1847,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "MAIN",
+            "id": "",
+            "className": "_page_1ukp0_2",
+            "top": 0,
+            "height": 900,
+            "clientHeight": 900,
+            "scrollHeight": 1987,
+            "scrollTop": 0,
+            "overflowY": "auto",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "root",
+            "className": "",
+            "top": 0,
+            "height": 900,
+            "clientHeight": 900,
+            "scrollHeight": 900,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "BODY",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 900,
+            "clientHeight": 900,
+            "scrollHeight": 900,
+            "scrollTop": 0,
+            "overflowY": "hidden",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "HTML",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 900,
+            "clientHeight": 900,
+            "scrollHeight": 900,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          }
+        ]
+      },
+      "gestures": 2,
+      "touchOrigins": [],
+      "final": {
+        "width": 1440,
+        "contentWidth": 1440,
+        "scrollY": 0,
+        "target": {
+          "text": "Orbit",
+          "x": 1306.171875,
+          "y": 802.96875,
+          "top": 780.96875,
+          "bottom": 824.96875,
+          "width": 137.5,
+          "height": 44,
+          "selected": "false",
+          "reachable": true
+        },
+        "aside": {
+          "x": 1090.921875,
+          "y": -932,
+          "width": 288,
+          "height": 1847.25
+        },
+        "ancestors": [
+          {
+            "tag": "ASIDE",
+            "id": "",
+            "className": "_controls_1ukp0_101",
+            "top": -932,
+            "height": 1847.25,
+            "clientHeight": 1847,
+            "scrollHeight": 1847,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "",
+            "className": "_layout_1ukp0_45",
+            "top": -932,
+            "height": 1847.25,
+            "clientHeight": 1847,
+            "scrollHeight": 1847,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "MAIN",
+            "id": "",
+            "className": "_page_1ukp0_2",
+            "top": 0,
+            "height": 900,
+            "clientHeight": 900,
+            "scrollHeight": 1987,
+            "scrollTop": 1040,
+            "overflowY": "auto",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "root",
+            "className": "",
+            "top": 0,
+            "height": 900,
+            "clientHeight": 900,
+            "scrollHeight": 900,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "BODY",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 900,
+            "clientHeight": 900,
+            "scrollHeight": 900,
+            "scrollTop": 0,
+            "overflowY": "hidden",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "HTML",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 900,
+            "clientHeight": 900,
+            "scrollHeight": 900,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          }
+        ]
+      },
+      "events": [
+        {
+          "type": "wheel",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "wheel",
+          "trusted": true,
+          "pointerType": null
+        }
+      ],
+      "clickedLastControl": true
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "input": "touch",
+      "initial": {
+        "width": 1440,
+        "contentWidth": 1440,
+        "scrollY": 0,
+        "target": {
+          "text": "Orbit",
+          "x": 1306.171875,
+          "y": 1842.96875,
+          "top": 1820.96875,
+          "bottom": 1864.96875,
+          "width": 137.5,
+          "height": 44,
+          "selected": "false",
+          "reachable": false
+        },
+        "aside": {
+          "x": 1090.921875,
+          "y": 108,
+          "width": 288,
+          "height": 1847.25
+        },
+        "ancestors": [
+          {
+            "tag": "ASIDE",
+            "id": "",
+            "className": "_controls_1ukp0_101",
+            "top": 108,
+            "height": 1847.25,
+            "clientHeight": 1847,
+            "scrollHeight": 1847,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "",
+            "className": "_layout_1ukp0_45",
+            "top": 108,
+            "height": 1847.25,
+            "clientHeight": 1847,
+            "scrollHeight": 1847,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "MAIN",
+            "id": "",
+            "className": "_page_1ukp0_2",
+            "top": 0,
+            "height": 900,
+            "clientHeight": 900,
+            "scrollHeight": 1987,
+            "scrollTop": 0,
+            "overflowY": "auto",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "root",
+            "className": "",
+            "top": 0,
+            "height": 900,
+            "clientHeight": 900,
+            "scrollHeight": 900,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "BODY",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 900,
+            "clientHeight": 900,
+            "scrollHeight": 900,
+            "scrollTop": 0,
+            "overflowY": "hidden",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "HTML",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 900,
+            "clientHeight": 900,
+            "scrollHeight": 900,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          }
+        ]
+      },
+      "gestures": 3,
+      "touchOrigins": [
+        {
+          "x": 1234.921875,
+          "start": 738,
+          "end": 306,
+          "source": "controls",
+          "tag": "LEGEND",
+          "text": "Material"
+        },
+        {
+          "x": 1234.921875,
+          "start": 738,
+          "end": 306,
+          "source": "controls",
+          "tag": "P",
+          "text": "Higher fragility breaks connections sooner. Turn tearing off to compare the stre"
+        },
+        {
+          "x": 1234.921875,
+          "start": 738,
+          "end": 306,
+          "source": "controls",
+          "tag": "LEGEND",
+          "text": "Jelly action"
+        }
+      ],
+      "final": {
+        "width": 1440,
+        "contentWidth": 1440,
+        "scrollY": 0,
+        "target": {
+          "text": "Orbit",
+          "x": 1306.171875,
+          "y": 755.96875,
+          "top": 733.96875,
+          "bottom": 777.96875,
+          "width": 137.5,
+          "height": 44,
+          "selected": "false",
+          "reachable": true
+        },
+        "aside": {
+          "x": 1090.921875,
+          "y": -979,
+          "width": 288,
+          "height": 1847.25
+        },
+        "ancestors": [
+          {
+            "tag": "ASIDE",
+            "id": "",
+            "className": "_controls_1ukp0_101",
+            "top": -979,
+            "height": 1847.25,
+            "clientHeight": 1847,
+            "scrollHeight": 1847,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "",
+            "className": "_layout_1ukp0_45",
+            "top": -979,
+            "height": 1847.25,
+            "clientHeight": 1847,
+            "scrollHeight": 1847,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "MAIN",
+            "id": "",
+            "className": "_page_1ukp0_2",
+            "top": 0,
+            "height": 900,
+            "clientHeight": 900,
+            "scrollHeight": 1987,
+            "scrollTop": 1087,
+            "overflowY": "auto",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "root",
+            "className": "",
+            "top": 0,
+            "height": 900,
+            "clientHeight": 900,
+            "scrollHeight": 900,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "BODY",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 900,
+            "clientHeight": 900,
+            "scrollHeight": 900,
+            "scrollTop": 0,
+            "overflowY": "hidden",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "HTML",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 900,
+            "clientHeight": 900,
+            "scrollHeight": 900,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          }
+        ]
+      },
+      "events": [
+        {
+          "type": "pointerdown",
+          "trusted": true,
+          "pointerType": "touch"
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "pointerdown",
+          "trusted": true,
+          "pointerType": "touch"
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "pointerdown",
+          "trusted": true,
+          "pointerType": "touch"
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        }
+      ],
+      "clickedLastControl": true
+    },
+    {
+      "width": 1440,
+      "height": 600,
+      "input": "wheel",
+      "initial": {
+        "width": 1440,
+        "contentWidth": 1440,
+        "scrollY": 0,
+        "target": {
+          "text": "Orbit",
+          "x": 1306.171875,
+          "y": 1842.96875,
+          "top": 1820.96875,
+          "bottom": 1864.96875,
+          "width": 137.5,
+          "height": 44,
+          "selected": "false",
+          "reachable": false
+        },
+        "aside": {
+          "x": 1090.921875,
+          "y": 108,
+          "width": 288,
+          "height": 1847.25
+        },
+        "ancestors": [
+          {
+            "tag": "ASIDE",
+            "id": "",
+            "className": "_controls_1ukp0_101",
+            "top": 108,
+            "height": 1847.25,
+            "clientHeight": 1847,
+            "scrollHeight": 1847,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "",
+            "className": "_layout_1ukp0_45",
+            "top": 108,
+            "height": 1847.25,
+            "clientHeight": 1847,
+            "scrollHeight": 1847,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "MAIN",
+            "id": "",
+            "className": "_page_1ukp0_2",
+            "top": 0,
+            "height": 600,
+            "clientHeight": 600,
+            "scrollHeight": 1987,
+            "scrollTop": 0,
+            "overflowY": "auto",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "root",
+            "className": "",
+            "top": 0,
+            "height": 600,
+            "clientHeight": 600,
+            "scrollHeight": 600,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "BODY",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 600,
+            "clientHeight": 600,
+            "scrollHeight": 600,
+            "scrollTop": 0,
+            "overflowY": "hidden",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "HTML",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 600,
+            "clientHeight": 600,
+            "scrollHeight": 600,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          }
+        ]
+      },
+      "gestures": 3,
+      "touchOrigins": [],
+      "final": {
+        "width": 1440,
+        "contentWidth": 1440,
+        "scrollY": 0,
+        "target": {
+          "text": "Orbit",
+          "x": 1306.171875,
+          "y": 455.96875,
+          "top": 433.96875,
+          "bottom": 477.96875,
+          "width": 137.5,
+          "height": 44,
+          "selected": "false",
+          "reachable": true
+        },
+        "aside": {
+          "x": 1090.921875,
+          "y": -1279,
+          "width": 288,
+          "height": 1847.25
+        },
+        "ancestors": [
+          {
+            "tag": "ASIDE",
+            "id": "",
+            "className": "_controls_1ukp0_101",
+            "top": -1279,
+            "height": 1847.25,
+            "clientHeight": 1847,
+            "scrollHeight": 1847,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "",
+            "className": "_layout_1ukp0_45",
+            "top": -1279,
+            "height": 1847.25,
+            "clientHeight": 1847,
+            "scrollHeight": 1847,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "MAIN",
+            "id": "",
+            "className": "_page_1ukp0_2",
+            "top": 0,
+            "height": 600,
+            "clientHeight": 600,
+            "scrollHeight": 1987,
+            "scrollTop": 1387,
+            "overflowY": "auto",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "root",
+            "className": "",
+            "top": 0,
+            "height": 600,
+            "clientHeight": 600,
+            "scrollHeight": 600,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "BODY",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 600,
+            "clientHeight": 600,
+            "scrollHeight": 600,
+            "scrollTop": 0,
+            "overflowY": "hidden",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "HTML",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 600,
+            "clientHeight": 600,
+            "scrollHeight": 600,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          }
+        ]
+      },
+      "events": [
+        {
+          "type": "wheel",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "wheel",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "wheel",
+          "trusted": true,
+          "pointerType": null
+        }
+      ],
+      "clickedLastControl": true
+    },
+    {
+      "width": 1440,
+      "height": 600,
+      "input": "touch",
+      "initial": {
+        "width": 1440,
+        "contentWidth": 1440,
+        "scrollY": 0,
+        "target": {
+          "text": "Orbit",
+          "x": 1306.171875,
+          "y": 1842.96875,
+          "top": 1820.96875,
+          "bottom": 1864.96875,
+          "width": 137.5,
+          "height": 44,
+          "selected": "false",
+          "reachable": false
+        },
+        "aside": {
+          "x": 1090.921875,
+          "y": 108,
+          "width": 288,
+          "height": 1847.25
+        },
+        "ancestors": [
+          {
+            "tag": "ASIDE",
+            "id": "",
+            "className": "_controls_1ukp0_101",
+            "top": 108,
+            "height": 1847.25,
+            "clientHeight": 1847,
+            "scrollHeight": 1847,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "",
+            "className": "_layout_1ukp0_45",
+            "top": 108,
+            "height": 1847.25,
+            "clientHeight": 1847,
+            "scrollHeight": 1847,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "MAIN",
+            "id": "",
+            "className": "_page_1ukp0_2",
+            "top": 0,
+            "height": 600,
+            "clientHeight": 600,
+            "scrollHeight": 1987,
+            "scrollTop": 0,
+            "overflowY": "auto",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "root",
+            "className": "",
+            "top": 0,
+            "height": 600,
+            "clientHeight": 600,
+            "scrollHeight": 600,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "BODY",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 600,
+            "clientHeight": 600,
+            "scrollHeight": 600,
+            "scrollTop": 0,
+            "overflowY": "hidden",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "HTML",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 600,
+            "clientHeight": 600,
+            "scrollHeight": 600,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          }
+        ]
+      },
+      "gestures": 5,
+      "touchOrigins": [
+        {
+          "x": 1234.921875,
+          "start": 491.99999999999994,
+          "end": 203.99999999999994,
+          "source": "controls",
+          "tag": "DIV",
+          "text": "StandardFine"
+        },
+        {
+          "x": 1234.921875,
+          "start": 491.99999999999994,
+          "end": 203.99999999999994,
+          "source": "controls",
+          "tag": "SPAN",
+          "text": "Tear response"
+        },
+        {
+          "x": 1234.921875,
+          "start": 473.99999999999994,
+          "end": 185.99999999999994,
+          "source": "controls",
+          "tag": "LABEL",
+          "text": "Fragility88%"
+        },
+        {
+          "x": 1234.921875,
+          "start": 491.99999999999994,
+          "end": 203.99999999999994,
+          "source": "controls",
+          "tag": "P",
+          "text": "Candy and Lagoon use layers that stretch with the bear. Marble swirls flow with "
+        },
+        {
+          "x": 1234.921875,
+          "start": 491.99999999999994,
+          "end": 203.99999999999994,
+          "source": "controls",
+          "tag": "LEGEND",
+          "text": "Jelly action"
+        }
+      ],
+      "final": {
+        "width": 1440,
+        "contentWidth": 1440,
+        "scrollY": 0,
+        "target": {
+          "text": "Orbit",
+          "x": 1306.171875,
+          "y": 455.96875,
+          "top": 433.96875,
+          "bottom": 477.96875,
+          "width": 137.5,
+          "height": 44,
+          "selected": "false",
+          "reachable": true
+        },
+        "aside": {
+          "x": 1090.921875,
+          "y": -1279,
+          "width": 288,
+          "height": 1847.25
+        },
+        "ancestors": [
+          {
+            "tag": "ASIDE",
+            "id": "",
+            "className": "_controls_1ukp0_101",
+            "top": -1279,
+            "height": 1847.25,
+            "clientHeight": 1847,
+            "scrollHeight": 1847,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "",
+            "className": "_layout_1ukp0_45",
+            "top": -1279,
+            "height": 1847.25,
+            "clientHeight": 1847,
+            "scrollHeight": 1847,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "MAIN",
+            "id": "",
+            "className": "_page_1ukp0_2",
+            "top": 0,
+            "height": 600,
+            "clientHeight": 600,
+            "scrollHeight": 1987,
+            "scrollTop": 1387,
+            "overflowY": "auto",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "root",
+            "className": "",
+            "top": 0,
+            "height": 600,
+            "clientHeight": 600,
+            "scrollHeight": 600,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "BODY",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 600,
+            "clientHeight": 600,
+            "scrollHeight": 600,
+            "scrollTop": 0,
+            "overflowY": "hidden",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "HTML",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 600,
+            "clientHeight": 600,
+            "scrollHeight": 600,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          }
+        ]
+      },
+      "events": [
+        {
+          "type": "pointerdown",
+          "trusted": true,
+          "pointerType": "touch"
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "pointerdown",
+          "trusted": true,
+          "pointerType": "touch"
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "pointerdown",
+          "trusted": true,
+          "pointerType": "touch"
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "pointerdown",
+          "trusted": true,
+          "pointerType": "touch"
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "pointerdown",
+          "trusted": true,
+          "pointerType": "touch"
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        }
+      ],
+      "clickedLastControl": true
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "input": "wheel",
+      "initial": {
+        "width": 1024,
+        "contentWidth": 1024,
+        "scrollY": 0,
+        "target": {
+          "text": "Orbit",
+          "x": 925.25,
+          "y": 1872.984375,
+          "top": 1850.984375,
+          "bottom": 1894.984375,
+          "width": 115.5,
+          "height": 44,
+          "selected": "false",
+          "reachable": false
+        },
+        "aside": {
+          "x": 743,
+          "y": 108,
+          "width": 244,
+          "height": 1877.265625
+        },
+        "ancestors": [
+          {
+            "tag": "ASIDE",
+            "id": "",
+            "className": "_controls_1ukp0_101",
+            "top": 108,
+            "height": 1877.265625,
+            "clientHeight": 1877,
+            "scrollHeight": 1877,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "",
+            "className": "_layout_1ukp0_45",
+            "top": 108,
+            "height": 1877.265625,
+            "clientHeight": 1877,
+            "scrollHeight": 1877,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "MAIN",
+            "id": "",
+            "className": "_page_1ukp0_2",
+            "top": 0,
+            "height": 768,
+            "clientHeight": 768,
+            "scrollHeight": 2017,
+            "scrollTop": 0,
+            "overflowY": "auto",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "root",
+            "className": "",
+            "top": 0,
+            "height": 768,
+            "clientHeight": 768,
+            "scrollHeight": 768,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "BODY",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 768,
+            "clientHeight": 768,
+            "scrollHeight": 768,
+            "scrollTop": 0,
+            "overflowY": "hidden",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "HTML",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 768,
+            "clientHeight": 768,
+            "scrollHeight": 768,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          }
+        ]
+      },
+      "gestures": 3,
+      "touchOrigins": [],
+      "final": {
+        "width": 1024,
+        "contentWidth": 1024,
+        "scrollY": 0,
+        "target": {
+          "text": "Orbit",
+          "x": 925.25,
+          "y": 623.984375,
+          "top": 601.984375,
+          "bottom": 645.984375,
+          "width": 115.5,
+          "height": 44,
+          "selected": "false",
+          "reachable": true
+        },
+        "aside": {
+          "x": 743,
+          "y": -1141,
+          "width": 244,
+          "height": 1877.265625
+        },
+        "ancestors": [
+          {
+            "tag": "ASIDE",
+            "id": "",
+            "className": "_controls_1ukp0_101",
+            "top": -1141,
+            "height": 1877.265625,
+            "clientHeight": 1877,
+            "scrollHeight": 1877,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "",
+            "className": "_layout_1ukp0_45",
+            "top": -1141,
+            "height": 1877.265625,
+            "clientHeight": 1877,
+            "scrollHeight": 1877,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "MAIN",
+            "id": "",
+            "className": "_page_1ukp0_2",
+            "top": 0,
+            "height": 768,
+            "clientHeight": 768,
+            "scrollHeight": 2017,
+            "scrollTop": 1249,
+            "overflowY": "auto",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "root",
+            "className": "",
+            "top": 0,
+            "height": 768,
+            "clientHeight": 768,
+            "scrollHeight": 768,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "BODY",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 768,
+            "clientHeight": 768,
+            "scrollHeight": 768,
+            "scrollTop": 0,
+            "overflowY": "hidden",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "HTML",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 768,
+            "clientHeight": 768,
+            "scrollHeight": 768,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          }
+        ]
+      },
+      "events": [
+        {
+          "type": "wheel",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "wheel",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "wheel",
+          "trusted": true,
+          "pointerType": null
+        }
+      ],
+      "clickedLastControl": true
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "input": "touch",
+      "initial": {
+        "width": 1024,
+        "contentWidth": 1024,
+        "scrollY": 0,
+        "target": {
+          "text": "Orbit",
+          "x": 925.25,
+          "y": 1872.984375,
+          "top": 1850.984375,
+          "bottom": 1894.984375,
+          "width": 115.5,
+          "height": 44,
+          "selected": "false",
+          "reachable": false
+        },
+        "aside": {
+          "x": 743,
+          "y": 108,
+          "width": 244,
+          "height": 1877.265625
+        },
+        "ancestors": [
+          {
+            "tag": "ASIDE",
+            "id": "",
+            "className": "_controls_1ukp0_101",
+            "top": 108,
+            "height": 1877.265625,
+            "clientHeight": 1877,
+            "scrollHeight": 1877,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "",
+            "className": "_layout_1ukp0_45",
+            "top": 108,
+            "height": 1877.265625,
+            "clientHeight": 1877,
+            "scrollHeight": 1877,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "MAIN",
+            "id": "",
+            "className": "_page_1ukp0_2",
+            "top": 0,
+            "height": 768,
+            "clientHeight": 768,
+            "scrollHeight": 2017,
+            "scrollTop": 0,
+            "overflowY": "auto",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "root",
+            "className": "",
+            "top": 0,
+            "height": 768,
+            "clientHeight": 768,
+            "scrollHeight": 768,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "BODY",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 768,
+            "clientHeight": 768,
+            "scrollHeight": 768,
+            "scrollTop": 0,
+            "overflowY": "hidden",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "HTML",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 768,
+            "clientHeight": 768,
+            "scrollHeight": 768,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          }
+        ]
+      },
+      "gestures": 4,
+      "touchOrigins": [
+        {
+          "x": 865,
+          "start": 629.76,
+          "end": 261.12,
+          "source": "controls",
+          "tag": "DIV",
+          "text": "OriginalRounded"
+        },
+        {
+          "x": 865,
+          "start": 629.76,
+          "end": 261.12,
+          "source": "controls",
+          "tag": "FIELDSET",
+          "text": "MaterialTear responseSoft tearCrumbleSoft tear stretches and holds some of the n"
+        },
+        {
+          "x": 865,
+          "start": 629.76,
+          "end": 261.12,
+          "source": "controls",
+          "tag": "P",
+          "text": "Candy and Lagoon use layers that stretch with the bear. Marble swirls flow with "
+        },
+        {
+          "x": 865,
+          "start": 629.76,
+          "end": 261.12,
+          "source": "controls",
+          "tag": "DIV",
+          "text": "Squeeze & releaseStretch & releasePull to tear"
+        }
+      ],
+      "final": {
+        "width": 1024,
+        "contentWidth": 1024,
+        "scrollY": 0,
+        "target": {
+          "text": "Orbit",
+          "x": 925.25,
+          "y": 623.984375,
+          "top": 601.984375,
+          "bottom": 645.984375,
+          "width": 115.5,
+          "height": 44,
+          "selected": "false",
+          "reachable": true
+        },
+        "aside": {
+          "x": 743,
+          "y": -1141,
+          "width": 244,
+          "height": 1877.265625
+        },
+        "ancestors": [
+          {
+            "tag": "ASIDE",
+            "id": "",
+            "className": "_controls_1ukp0_101",
+            "top": -1141,
+            "height": 1877.265625,
+            "clientHeight": 1877,
+            "scrollHeight": 1877,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "",
+            "className": "_layout_1ukp0_45",
+            "top": -1141,
+            "height": 1877.265625,
+            "clientHeight": 1877,
+            "scrollHeight": 1877,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "MAIN",
+            "id": "",
+            "className": "_page_1ukp0_2",
+            "top": 0,
+            "height": 768,
+            "clientHeight": 768,
+            "scrollHeight": 2017,
+            "scrollTop": 1249,
+            "overflowY": "auto",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "root",
+            "className": "",
+            "top": 0,
+            "height": 768,
+            "clientHeight": 768,
+            "scrollHeight": 768,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "BODY",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 768,
+            "clientHeight": 768,
+            "scrollHeight": 768,
+            "scrollTop": 0,
+            "overflowY": "hidden",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "HTML",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 768,
+            "clientHeight": 768,
+            "scrollHeight": 768,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          }
+        ]
+      },
+      "events": [
+        {
+          "type": "pointerdown",
+          "trusted": true,
+          "pointerType": "touch"
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "pointerdown",
+          "trusted": true,
+          "pointerType": "touch"
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "pointerdown",
+          "trusted": true,
+          "pointerType": "touch"
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "pointerdown",
+          "trusted": true,
+          "pointerType": "touch"
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        }
+      ],
+      "clickedLastControl": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "input": "wheel",
+      "initial": {
+        "width": 768,
+        "contentWidth": 768,
+        "scrollY": 0,
+        "target": {
+          "text": "Orbit",
+          "x": 669.25,
+          "y": 1872.984375,
+          "top": 1850.984375,
+          "bottom": 1894.984375,
+          "width": 115.5,
+          "height": 44,
+          "selected": "false",
+          "reachable": false
+        },
+        "aside": {
+          "x": 487,
+          "y": 108,
+          "width": 244,
+          "height": 1877.265625
+        },
+        "ancestors": [
+          {
+            "tag": "ASIDE",
+            "id": "",
+            "className": "_controls_1ukp0_101",
+            "top": 108,
+            "height": 1877.265625,
+            "clientHeight": 1877,
+            "scrollHeight": 1877,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "",
+            "className": "_layout_1ukp0_45",
+            "top": 108,
+            "height": 1877.265625,
+            "clientHeight": 1877,
+            "scrollHeight": 1877,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "MAIN",
+            "id": "",
+            "className": "_page_1ukp0_2",
+            "top": 0,
+            "height": 1024,
+            "clientHeight": 1024,
+            "scrollHeight": 2017,
+            "scrollTop": 0,
+            "overflowY": "auto",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "root",
+            "className": "",
+            "top": 0,
+            "height": 1024,
+            "clientHeight": 1024,
+            "scrollHeight": 1024,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "BODY",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 1024,
+            "clientHeight": 1024,
+            "scrollHeight": 1024,
+            "scrollTop": 0,
+            "overflowY": "hidden",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "HTML",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 1024,
+            "clientHeight": 1024,
+            "scrollHeight": 1024,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          }
+        ]
+      },
+      "gestures": 2,
+      "touchOrigins": [],
+      "final": {
+        "width": 768,
+        "contentWidth": 768,
+        "scrollY": 0,
+        "target": {
+          "text": "Orbit",
+          "x": 669.25,
+          "y": 879.984375,
+          "top": 857.984375,
+          "bottom": 901.984375,
+          "width": 115.5,
+          "height": 44,
+          "selected": "false",
+          "reachable": true
+        },
+        "aside": {
+          "x": 487,
+          "y": -885,
+          "width": 244,
+          "height": 1877.265625
+        },
+        "ancestors": [
+          {
+            "tag": "ASIDE",
+            "id": "",
+            "className": "_controls_1ukp0_101",
+            "top": -885,
+            "height": 1877.265625,
+            "clientHeight": 1877,
+            "scrollHeight": 1877,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "",
+            "className": "_layout_1ukp0_45",
+            "top": -885,
+            "height": 1877.265625,
+            "clientHeight": 1877,
+            "scrollHeight": 1877,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "MAIN",
+            "id": "",
+            "className": "_page_1ukp0_2",
+            "top": 0,
+            "height": 1024,
+            "clientHeight": 1024,
+            "scrollHeight": 2017,
+            "scrollTop": 993,
+            "overflowY": "auto",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "root",
+            "className": "",
+            "top": 0,
+            "height": 1024,
+            "clientHeight": 1024,
+            "scrollHeight": 1024,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "BODY",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 1024,
+            "clientHeight": 1024,
+            "scrollHeight": 1024,
+            "scrollTop": 0,
+            "overflowY": "hidden",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "HTML",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 1024,
+            "clientHeight": 1024,
+            "scrollHeight": 1024,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          }
+        ]
+      },
+      "events": [
+        {
+          "type": "wheel",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "wheel",
+          "trusted": true,
+          "pointerType": null
+        }
+      ],
+      "clickedLastControl": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "input": "touch",
+      "initial": {
+        "width": 768,
+        "contentWidth": 768,
+        "scrollY": 0,
+        "target": {
+          "text": "Orbit",
+          "x": 669.25,
+          "y": 1872.984375,
+          "top": 1850.984375,
+          "bottom": 1894.984375,
+          "width": 115.5,
+          "height": 44,
+          "selected": "false",
+          "reachable": false
+        },
+        "aside": {
+          "x": 487,
+          "y": 108,
+          "width": 244,
+          "height": 1877.265625
+        },
+        "ancestors": [
+          {
+            "tag": "ASIDE",
+            "id": "",
+            "className": "_controls_1ukp0_101",
+            "top": 108,
+            "height": 1877.265625,
+            "clientHeight": 1877,
+            "scrollHeight": 1877,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "",
+            "className": "_layout_1ukp0_45",
+            "top": 108,
+            "height": 1877.265625,
+            "clientHeight": 1877,
+            "scrollHeight": 1877,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "MAIN",
+            "id": "",
+            "className": "_page_1ukp0_2",
+            "top": 0,
+            "height": 1024,
+            "clientHeight": 1024,
+            "scrollHeight": 2017,
+            "scrollTop": 0,
+            "overflowY": "auto",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "root",
+            "className": "",
+            "top": 0,
+            "height": 1024,
+            "clientHeight": 1024,
+            "scrollHeight": 1024,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "BODY",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 1024,
+            "clientHeight": 1024,
+            "scrollHeight": 1024,
+            "scrollTop": 0,
+            "overflowY": "hidden",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "HTML",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 1024,
+            "clientHeight": 1024,
+            "scrollHeight": 1024,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          }
+        ]
+      },
+      "gestures": 2,
+      "touchOrigins": [
+        {
+          "x": 609,
+          "start": 839.68,
+          "end": 348.15999999999997,
+          "source": "controls",
+          "tag": "DIV",
+          "text": "Soft tearCrumble"
+        },
+        {
+          "x": 609,
+          "start": 839.68,
+          "end": 348.15999999999997,
+          "source": "controls",
+          "tag": "LABEL",
+          "text": "Lagoon"
+        }
+      ],
+      "final": {
+        "width": 768,
+        "contentWidth": 768,
+        "scrollY": 0,
+        "target": {
+          "text": "Orbit",
+          "x": 669.25,
+          "y": 919.984375,
+          "top": 897.984375,
+          "bottom": 941.984375,
+          "width": 115.5,
+          "height": 44,
+          "selected": "false",
+          "reachable": true
+        },
+        "aside": {
+          "x": 487,
+          "y": -845,
+          "width": 244,
+          "height": 1877.265625
+        },
+        "ancestors": [
+          {
+            "tag": "ASIDE",
+            "id": "",
+            "className": "_controls_1ukp0_101",
+            "top": -845,
+            "height": 1877.265625,
+            "clientHeight": 1877,
+            "scrollHeight": 1877,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "",
+            "className": "_layout_1ukp0_45",
+            "top": -845,
+            "height": 1877.265625,
+            "clientHeight": 1877,
+            "scrollHeight": 1877,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "MAIN",
+            "id": "",
+            "className": "_page_1ukp0_2",
+            "top": 0,
+            "height": 1024,
+            "clientHeight": 1024,
+            "scrollHeight": 2017,
+            "scrollTop": 953,
+            "overflowY": "auto",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "root",
+            "className": "",
+            "top": 0,
+            "height": 1024,
+            "clientHeight": 1024,
+            "scrollHeight": 1024,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "BODY",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 1024,
+            "clientHeight": 1024,
+            "scrollHeight": 1024,
+            "scrollTop": 0,
+            "overflowY": "hidden",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "HTML",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 1024,
+            "clientHeight": 1024,
+            "scrollHeight": 1024,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          }
+        ]
+      },
+      "events": [
+        {
+          "type": "pointerdown",
+          "trusted": true,
+          "pointerType": "touch"
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "pointerdown",
+          "trusted": true,
+          "pointerType": "touch"
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        }
+      ],
+      "clickedLastControl": true
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "input": "wheel",
+      "initial": {
+        "width": 390,
+        "contentWidth": 390,
+        "scrollY": 0,
+        "target": {
+          "text": "Orbit",
+          "x": 270.5,
+          "y": 2308.75,
+          "top": 2286.75,
+          "bottom": 2330.75,
+          "width": 161,
+          "height": 44,
+          "selected": "false",
+          "reachable": false
+        },
+        "aside": {
+          "x": 14,
+          "y": 754.515625,
+          "width": 347,
+          "height": 1664.515625
+        },
+        "ancestors": [
+          {
+            "tag": "ASIDE",
+            "id": "",
+            "className": "_controls_1ukp0_101",
+            "top": 754.515625,
+            "height": 1664.515625,
+            "clientHeight": 1665,
+            "scrollHeight": 1665,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "",
+            "className": "_layout_1ukp0_45",
+            "top": 79,
+            "height": 2340.03125,
+            "clientHeight": 2340,
+            "scrollHeight": 2340,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "MAIN",
+            "id": "",
+            "className": "_page_1ukp0_2",
+            "top": 0,
+            "height": 844,
+            "clientHeight": 844,
+            "scrollHeight": 2447,
+            "scrollTop": 0,
+            "overflowY": "auto",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "root",
+            "className": "",
+            "top": 0,
+            "height": 844,
+            "clientHeight": 844,
+            "scrollHeight": 844,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "BODY",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 844,
+            "clientHeight": 844,
+            "scrollHeight": 844,
+            "scrollTop": 0,
+            "overflowY": "hidden",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "HTML",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 844,
+            "clientHeight": 844,
+            "scrollHeight": 844,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          }
+        ]
+      },
+      "gestures": 3,
+      "touchOrigins": [],
+      "final": {
+        "width": 390,
+        "contentWidth": 390,
+        "scrollY": 0,
+        "target": {
+          "text": "Orbit",
+          "x": 270.5,
+          "y": 748.75,
+          "top": 726.75,
+          "bottom": 770.75,
+          "width": 161,
+          "height": 44,
+          "selected": "false",
+          "reachable": true
+        },
+        "aside": {
+          "x": 14,
+          "y": -805.484375,
+          "width": 347,
+          "height": 1664.515625
+        },
+        "ancestors": [
+          {
+            "tag": "ASIDE",
+            "id": "",
+            "className": "_controls_1ukp0_101",
+            "top": -805.484375,
+            "height": 1664.515625,
+            "clientHeight": 1665,
+            "scrollHeight": 1665,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "",
+            "className": "_layout_1ukp0_45",
+            "top": -1481,
+            "height": 2340.03125,
+            "clientHeight": 2340,
+            "scrollHeight": 2340,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "MAIN",
+            "id": "",
+            "className": "_page_1ukp0_2",
+            "top": 0,
+            "height": 844,
+            "clientHeight": 844,
+            "scrollHeight": 2447,
+            "scrollTop": 1560,
+            "overflowY": "auto",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "root",
+            "className": "",
+            "top": 0,
+            "height": 844,
+            "clientHeight": 844,
+            "scrollHeight": 844,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "BODY",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 844,
+            "clientHeight": 844,
+            "scrollHeight": 844,
+            "scrollTop": 0,
+            "overflowY": "hidden",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "HTML",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 844,
+            "clientHeight": 844,
+            "scrollHeight": 844,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          }
+        ]
+      },
+      "events": [
+        {
+          "type": "wheel",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "wheel",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "wheel",
+          "trusted": true,
+          "pointerType": null
+        }
+      ],
+      "clickedLastControl": true
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "input": "touch",
+      "initial": {
+        "width": 390,
+        "contentWidth": 390,
+        "scrollY": 0,
+        "target": {
+          "text": "Orbit",
+          "x": 270.5,
+          "y": 2308.75,
+          "top": 2286.75,
+          "bottom": 2330.75,
+          "width": 161,
+          "height": 44,
+          "selected": "false",
+          "reachable": false
+        },
+        "aside": {
+          "x": 14,
+          "y": 754.515625,
+          "width": 347,
+          "height": 1664.515625
+        },
+        "ancestors": [
+          {
+            "tag": "ASIDE",
+            "id": "",
+            "className": "_controls_1ukp0_101",
+            "top": 754.515625,
+            "height": 1664.515625,
+            "clientHeight": 1665,
+            "scrollHeight": 1665,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "",
+            "className": "_layout_1ukp0_45",
+            "top": 79,
+            "height": 2340.03125,
+            "clientHeight": 2340,
+            "scrollHeight": 2340,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "MAIN",
+            "id": "",
+            "className": "_page_1ukp0_2",
+            "top": 0,
+            "height": 844,
+            "clientHeight": 844,
+            "scrollHeight": 2447,
+            "scrollTop": 0,
+            "overflowY": "auto",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "root",
+            "className": "",
+            "top": 0,
+            "height": 844,
+            "clientHeight": 844,
+            "scrollHeight": 844,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "BODY",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 844,
+            "clientHeight": 844,
+            "scrollHeight": 844,
+            "scrollTop": 0,
+            "overflowY": "hidden",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "HTML",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 844,
+            "clientHeight": 844,
+            "scrollHeight": 844,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          }
+        ]
+      },
+      "gestures": 4,
+      "touchOrigins": [
+        {
+          "x": 151.46875,
+          "start": 698.515625,
+          "end": 293.395625,
+          "source": "page-text",
+          "tag": "P",
+          "text": "Body held. Grab an arm or ear, pull a little, then release."
+        },
+        {
+          "x": 187.5,
+          "start": 692.0799999999999,
+          "end": 372.515625,
+          "source": "controls",
+          "tag": "FIELDSET",
+          "text": "GeometryStandardFineFine adds detail to bending and torn edges. It takes more pr"
+        },
+        {
+          "x": 187.5,
+          "start": 692.0799999999999,
+          "end": 286.9599999999999,
+          "source": "controls",
+          "tag": "P",
+          "text": "Soft tear stretches and holds some of the new shape. Crumble breaks quickly into"
+        },
+        {
+          "x": 187.5,
+          "start": 692.0799999999999,
+          "end": 286.9599999999999,
+          "source": "controls",
+          "tag": "P",
+          "text": "Candy and Lagoon use layers that stretch with the bear. Marble swirls flow with "
+        }
+      ],
+      "final": {
+        "width": 390,
+        "contentWidth": 390,
+        "scrollY": 0,
+        "target": {
+          "text": "Orbit",
+          "x": 270.5,
+          "y": 787.75,
+          "top": 765.75,
+          "bottom": 809.75,
+          "width": 161,
+          "height": 44,
+          "selected": "false",
+          "reachable": true
+        },
+        "aside": {
+          "x": 14,
+          "y": -766.484375,
+          "width": 347,
+          "height": 1664.515625
+        },
+        "ancestors": [
+          {
+            "tag": "ASIDE",
+            "id": "",
+            "className": "_controls_1ukp0_101",
+            "top": -766.484375,
+            "height": 1664.515625,
+            "clientHeight": 1665,
+            "scrollHeight": 1665,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "",
+            "className": "_layout_1ukp0_45",
+            "top": -1442,
+            "height": 2340.03125,
+            "clientHeight": 2340,
+            "scrollHeight": 2340,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "MAIN",
+            "id": "",
+            "className": "_page_1ukp0_2",
+            "top": 0,
+            "height": 844,
+            "clientHeight": 844,
+            "scrollHeight": 2447,
+            "scrollTop": 1521,
+            "overflowY": "auto",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "root",
+            "className": "",
+            "top": 0,
+            "height": 844,
+            "clientHeight": 844,
+            "scrollHeight": 844,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "BODY",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 844,
+            "clientHeight": 844,
+            "scrollHeight": 844,
+            "scrollTop": 0,
+            "overflowY": "hidden",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "HTML",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 844,
+            "clientHeight": 844,
+            "scrollHeight": 844,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          }
+        ]
+      },
+      "events": [
+        {
+          "type": "pointerdown",
+          "trusted": true,
+          "pointerType": "touch"
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "pointerdown",
+          "trusted": true,
+          "pointerType": "touch"
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "pointerdown",
+          "trusted": true,
+          "pointerType": "touch"
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "pointerdown",
+          "trusted": true,
+          "pointerType": "touch"
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        }
+      ],
+      "clickedLastControl": true
+    },
+    {
+      "width": 320,
+      "height": 568,
+      "input": "wheel",
+      "initial": {
+        "width": 320,
+        "contentWidth": 320,
+        "scrollY": 0,
+        "target": {
+          "text": "Orbit",
+          "x": 218,
+          "y": 2238.65625,
+          "top": 2216.65625,
+          "bottom": 2260.65625,
+          "width": 126,
+          "height": 44,
+          "selected": "false",
+          "reachable": false
+        },
+        "aside": {
+          "x": 14,
+          "y": 630,
+          "width": 277,
+          "height": 1718.9375
+        },
+        "ancestors": [
+          {
+            "tag": "ASIDE",
+            "id": "",
+            "className": "_controls_1ukp0_101",
+            "top": 630,
+            "height": 1718.9375,
+            "clientHeight": 1719,
+            "scrollHeight": 1719,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "",
+            "className": "_layout_1ukp0_45",
+            "top": 79,
+            "height": 2269.9375,
+            "clientHeight": 2270,
+            "scrollHeight": 2270,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "MAIN",
+            "id": "",
+            "className": "_page_1ukp0_2",
+            "top": 0,
+            "height": 568,
+            "clientHeight": 568,
+            "scrollHeight": 2377,
+            "scrollTop": 0,
+            "overflowY": "auto",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "root",
+            "className": "",
+            "top": 0,
+            "height": 568,
+            "clientHeight": 568,
+            "scrollHeight": 568,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "BODY",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 568,
+            "clientHeight": 568,
+            "scrollHeight": 568,
+            "scrollTop": 0,
+            "overflowY": "hidden",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "HTML",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 568,
+            "clientHeight": 568,
+            "scrollHeight": 568,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          }
+        ]
+      },
+      "gestures": 4,
+      "touchOrigins": [],
+      "final": {
+        "width": 320,
+        "contentWidth": 320,
+        "scrollY": 0,
+        "target": {
+          "text": "Orbit",
+          "x": 218,
+          "y": 429.65625,
+          "top": 407.65625,
+          "bottom": 451.65625,
+          "width": 126,
+          "height": 44,
+          "selected": "false",
+          "reachable": true
+        },
+        "aside": {
+          "x": 14,
+          "y": -1179,
+          "width": 277,
+          "height": 1718.9375
+        },
+        "ancestors": [
+          {
+            "tag": "ASIDE",
+            "id": "",
+            "className": "_controls_1ukp0_101",
+            "top": -1179,
+            "height": 1718.9375,
+            "clientHeight": 1719,
+            "scrollHeight": 1719,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "",
+            "className": "_layout_1ukp0_45",
+            "top": -1730,
+            "height": 2269.9375,
+            "clientHeight": 2270,
+            "scrollHeight": 2270,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "MAIN",
+            "id": "",
+            "className": "_page_1ukp0_2",
+            "top": 0,
+            "height": 568,
+            "clientHeight": 568,
+            "scrollHeight": 2377,
+            "scrollTop": 1809,
+            "overflowY": "auto",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "root",
+            "className": "",
+            "top": 0,
+            "height": 568,
+            "clientHeight": 568,
+            "scrollHeight": 568,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "BODY",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 568,
+            "clientHeight": 568,
+            "scrollHeight": 568,
+            "scrollTop": 0,
+            "overflowY": "hidden",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "HTML",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 568,
+            "clientHeight": 568,
+            "scrollHeight": 568,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          }
+        ]
+      },
+      "events": [
+        {
+          "type": "wheel",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "wheel",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "wheel",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "wheel",
+          "trusted": true,
+          "pointerType": null
+        }
+      ],
+      "clickedLastControl": true
+    },
+    {
+      "width": 320,
+      "height": 568,
+      "input": "touch",
+      "initial": {
+        "width": 320,
+        "contentWidth": 320,
+        "scrollY": 0,
+        "target": {
+          "text": "Orbit",
+          "x": 218,
+          "y": 2238.65625,
+          "top": 2216.65625,
+          "bottom": 2260.65625,
+          "width": 126,
+          "height": 44,
+          "selected": "false",
+          "reachable": false
+        },
+        "aside": {
+          "x": 14,
+          "y": 630,
+          "width": 277,
+          "height": 1718.9375
+        },
+        "ancestors": [
+          {
+            "tag": "ASIDE",
+            "id": "",
+            "className": "_controls_1ukp0_101",
+            "top": 630,
+            "height": 1718.9375,
+            "clientHeight": 1719,
+            "scrollHeight": 1719,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "",
+            "className": "_layout_1ukp0_45",
+            "top": 79,
+            "height": 2269.9375,
+            "clientHeight": 2270,
+            "scrollHeight": 2270,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "MAIN",
+            "id": "",
+            "className": "_page_1ukp0_2",
+            "top": 0,
+            "height": 568,
+            "clientHeight": 568,
+            "scrollHeight": 2377,
+            "scrollTop": 0,
+            "overflowY": "auto",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "root",
+            "className": "",
+            "top": 0,
+            "height": 568,
+            "clientHeight": 568,
+            "scrollHeight": 568,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "BODY",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 568,
+            "clientHeight": 568,
+            "scrollHeight": 568,
+            "scrollTop": 0,
+            "overflowY": "hidden",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "HTML",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 568,
+            "clientHeight": 568,
+            "scrollHeight": 568,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          }
+        ]
+      },
+      "gestures": 8,
+      "touchOrigins": [
+        {
+          "x": 73.4140625,
+          "start": 101.5,
+          "end": 12,
+          "source": "page-text",
+          "tag": "SPAN",
+          "text": "Manual tear / 03"
+        },
+        {
+          "x": 116.46875,
+          "start": 495,
+          "end": 222.36,
+          "source": "page-text",
+          "tag": "P",
+          "text": "Body held. Grab an arm or ear, pull a little, then release."
+        },
+        {
+          "x": 152.5,
+          "start": 465.76,
+          "end": 301,
+          "source": "controls",
+          "tag": "DIV",
+          "text": "Ready to tear"
+        },
+        {
+          "x": 152.5,
+          "start": 465.76,
+          "end": 193.12,
+          "source": "controls",
+          "tag": "P",
+          "text": "Fine adds detail to bending and torn edges. It takes more processing time. Chang"
+        },
+        {
+          "x": 152.5,
+          "start": 465.76,
+          "end": 193.12,
+          "source": "controls",
+          "tag": "P",
+          "text": "Soft tear stretches and holds some of the new shape. Crumble breaks quickly into"
+        },
+        {
+          "x": 152.5,
+          "start": 465.76,
+          "end": 193.12,
+          "source": "controls",
+          "tag": "LABEL",
+          "text": "Allow tearing"
+        },
+        {
+          "x": 152.5,
+          "start": 465.76,
+          "end": 193.12,
+          "source": "controls",
+          "tag": "LEGEND",
+          "text": "Model"
+        },
+        {
+          "x": 152.5,
+          "start": 465.76,
+          "end": 193.12,
+          "source": "controls",
+          "tag": "DIV",
+          "text": "Squeeze & releaseStretch & releasePull to tear"
+        }
+      ],
+      "final": {
+        "width": 320,
+        "contentWidth": 320,
+        "scrollY": 0,
+        "target": {
+          "text": "Orbit",
+          "x": 218,
+          "y": 429.65625,
+          "top": 407.65625,
+          "bottom": 451.65625,
+          "width": 126,
+          "height": 44,
+          "selected": "false",
+          "reachable": true
+        },
+        "aside": {
+          "x": 14,
+          "y": -1179,
+          "width": 277,
+          "height": 1718.9375
+        },
+        "ancestors": [
+          {
+            "tag": "ASIDE",
+            "id": "",
+            "className": "_controls_1ukp0_101",
+            "top": -1179,
+            "height": 1718.9375,
+            "clientHeight": 1719,
+            "scrollHeight": 1719,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "",
+            "className": "_layout_1ukp0_45",
+            "top": -1730,
+            "height": 2269.9375,
+            "clientHeight": 2270,
+            "scrollHeight": 2270,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "MAIN",
+            "id": "",
+            "className": "_page_1ukp0_2",
+            "top": 0,
+            "height": 568,
+            "clientHeight": 568,
+            "scrollHeight": 2377,
+            "scrollTop": 1809,
+            "overflowY": "auto",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "DIV",
+            "id": "root",
+            "className": "",
+            "top": 0,
+            "height": 568,
+            "clientHeight": 568,
+            "scrollHeight": 568,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "BODY",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 568,
+            "clientHeight": 568,
+            "scrollHeight": 568,
+            "scrollTop": 0,
+            "overflowY": "hidden",
+            "position": "static",
+            "touchAction": "auto"
+          },
+          {
+            "tag": "HTML",
+            "id": "",
+            "className": "",
+            "top": 0,
+            "height": 568,
+            "clientHeight": 568,
+            "scrollHeight": 568,
+            "scrollTop": 0,
+            "overflowY": "visible",
+            "position": "static",
+            "touchAction": "auto"
+          }
+        ]
+      },
+      "events": [
+        {
+          "type": "pointerdown",
+          "trusted": true,
+          "pointerType": "touch"
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "pointerdown",
+          "trusted": true,
+          "pointerType": "touch"
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "pointerdown",
+          "trusted": true,
+          "pointerType": "touch"
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "pointerdown",
+          "trusted": true,
+          "pointerType": "touch"
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "pointerdown",
+          "trusted": true,
+          "pointerType": "touch"
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "pointerdown",
+          "trusted": true,
+          "pointerType": "touch"
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "pointerdown",
+          "trusted": true,
+          "pointerType": "touch"
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "pointerdown",
+          "trusted": true,
+          "pointerType": "touch"
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        },
+        {
+          "type": "touchmove",
+          "trusted": true,
+          "pointerType": null
+        }
+      ],
+      "clickedLastControl": true
+    }
+  ],
+  "errors": [],
+  "warnings": [],
+  "failures": [],
+  "placement": {
+    "before": {
+      "window": "0x55834f657fd0",
+      "workspace": 3,
+      "monitors": [
+        {
+          "id": 0,
+          "special": ""
+        }
+      ]
+    },
+    "after": {
+      "window": "0x55834f657fd0",
+      "workspace": 3,
+      "monitors": [
+        {
+          "id": 0,
+          "special": ""
+        }
+      ]
+    },
+    "clients": [
+      {
+        "class": "agent-browser",
+        "workspace": "special:agents"
+      }
+    ]
+  },
+  "passed": true
+}

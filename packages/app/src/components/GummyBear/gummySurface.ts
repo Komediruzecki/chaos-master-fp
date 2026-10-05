@@ -1,5 +1,7 @@
 /** Rest-welded exterior adjacency and exact-node exposed tear-surface adjacency. */
 import { EXPOSED_TEAR_FACE, EXTERIOR_FACE } from '@/simulation/gummy/gummyMesh'
+import { prepareGummyPatchSamples } from './gummyPatchSamples'
+import { gummyRoundingWeight } from './gummyRoundedSurface'
 import { prepareRuntimeGummyMetadata } from './gummyRuntimeSurface'
 import type { GummyMesh } from '@/simulation/gummy/gummyMesh'
 
@@ -85,7 +87,7 @@ export function prepareGummySurface(
         mesh.surface,
       )
     : undefined
-  const ranges = new Uint32Array(count * (runtime ? 6 : 4))
+  const ranges = new Uint32Array(count * (runtime ? 8 : 4))
   const pairs: number[] = []
   for (let id = 0; id < count; id++) {
     const adjacent = coincident.get(keys[id]!)!
@@ -93,6 +95,16 @@ export function prepareGummySurface(
     ranges[id * 2 + 1] = adjacent.length
     for (const pair of adjacent) pairs.push(pair.face, pair.node)
   }
+  if (runtime)
+    for (let id = 0; id < count; id++) {
+      const neighbors = runtime.rounding[id]!
+      ranges[(count * 3 + id) * 2] = pairs.length / 2
+      ranges[(count * 3 + id) * 2 + 1] = neighbors.length
+      const weight = Math.round(
+        gummyRoundingWeight(neighbors.length) * 16777216,
+      )
+      for (const neighbor of neighbors) pairs.push(neighbor, weight)
+    }
   if (runtime)
     for (let id = 0; id < count; id++) {
       const tets = runtime.incident[id]!
@@ -112,7 +124,7 @@ export function prepareGummySurface(
     ranges,
     adjacent,
     metadata: runtime?.metadata ?? new Uint32Array(mesh.surface.length),
-    ...preparePatches(mesh.surface, cutEdges, edgeKey, !!runtime),
+    ...preparePatches(mesh.surface, cutEdges, edgeKey, runtime?.metadata),
   }
 }
 
@@ -120,9 +132,8 @@ function preparePatches(
   surface: Uint32Array,
   cutEdges: Map<string, Set<number>>,
   edgeKey: (a: number, b: number) => string,
-  runtime: boolean,
+  metadata?: Uint32Array,
 ) {
-  const samples: number[] = []
   // The face prefix stores three list heads (AB, BC, CA). Tail vec4u records
   // store [interface ID + 1, next head, 0, 0], or EXTERIOR_FACE for permanent
   // runtime caps; head 0 means no tear boundary.
@@ -146,15 +157,8 @@ function preparePatches(
     heads.set(key, head)
     return head
   }
-  const emit = (face: number, v: number, w: number) =>
-    samples.push(1 - v - w, v, w, face)
   for (let face = 0; face < surface.length / 4; face++) {
-    if (surface[face * 4 + 3] !== EXTERIOR_FACE && !runtime) {
-      emit(face, 0, 0)
-      emit(face, 1, 0)
-      emit(face, 0, 1)
-      continue
-    }
+    if (surface[face * 4 + 3] !== EXTERIOR_FACE && !metadata) continue
     const a = surface[face * 4]!,
       b = surface[face * 4 + 1]!,
       c = surface[face * 4 + 2]!
@@ -162,23 +166,9 @@ function preparePatches(
     edgeRecords[face * 4] = headFor(edgeKey(a, b))
     edgeRecords[face * 4 + 1] = headFor(edgeKey(b, c))
     edgeRecords[face * 4 + 2] = headFor(edgeKey(c, a))
-    // Runtime caps share the same subdivision and edge samples as the skin.
-    // Legacy caps remain linear. Every patch follows current simulated nodes.
-    const n = 4
-    for (let i = 0; i < n; i++)
-      for (let j = 0; j < n - i; j++) {
-        emit(face, i / n, j / n)
-        emit(face, (i + 1) / n, j / n)
-        emit(face, i / n, (j + 1) / n)
-        if (i + j < n - 1) {
-          emit(face, (i + 1) / n, j / n)
-          emit(face, (i + 1) / n, (j + 1) / n)
-          emit(face, i / n, (j + 1) / n)
-        }
-      }
   }
-  const corners = new Float32Array(samples)
-  const indices = new Uint32Array(corners.length / 4)
-  for (let id = 0; id < indices.length; id++) indices[id] = id
-  return { indices, corners, flatEdges: new Uint32Array(edgeRecords) }
+  return {
+    ...prepareGummyPatchSamples(surface, metadata),
+    flatEdges: new Uint32Array(edgeRecords),
+  }
 }

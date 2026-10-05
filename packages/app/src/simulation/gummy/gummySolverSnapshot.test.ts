@@ -115,6 +115,48 @@ it('maps once per four-array snapshot and returns independent packed floats with
   expect(gpu.staging.destroy).toHaveBeenCalledOnce()
 })
 
+it('copies and maps only positions for assessment, retaining full snapshots for later splitting', async () => {
+  const gpu = gpuFixture()
+  const reader = createGummyDynamicReadback(gpu.device, gpu.sources, 2)
+  const assessed = await reader.readPositions()
+  expect(assessed).toEqual(gpu.inputs[0])
+  expect(gpu.copy).toHaveBeenCalledTimes(1)
+  expect(gpu.copy.mock.calls[0]!.slice(3)).toEqual([0, 32])
+  expect(gpu.staging.mapAsync).toHaveBeenLastCalledWith(1, 0, 32)
+  expect(gpu.staging.getMappedRange).toHaveBeenLastCalledWith(0, 32)
+  assessed[0] = 100
+  const full = await reader.read()
+  expect(full.positions).toEqual(gpu.inputs[0])
+  expect(full.previous).toEqual(gpu.inputs[1])
+  expect(full.velocities).toEqual(gpu.inputs[2])
+  expect(full.grip).toEqual(gpu.inputs[3])
+  expect(gpu.copy).toHaveBeenCalledTimes(5)
+  expect(gpu.staging.mapAsync).toHaveBeenLastCalledWith(1, 0, 128)
+  expect(gpu.createBuffer).toHaveBeenCalledOnce()
+  reader.destroy()
+})
+
+it('serializes an assessment and full snapshot through the same staging buffer', async () => {
+  const gpu = gpuFixture()
+  const reader = createGummyDynamicReadback(gpu.device, gpu.sources, 2)
+  let complete!: () => void
+  gpu.deferMap(
+    new Promise<void>((resolve) => {
+      complete = resolve
+    }),
+  )
+  const assessment = reader.readPositions()
+  const full = reader.read()
+  await Promise.resolve()
+  expect(gpu.copy).toHaveBeenCalledTimes(1)
+  complete()
+  expect(await assessment).toEqual(gpu.inputs[0])
+  expect((await full).previous).toEqual(gpu.inputs[1])
+  expect(gpu.copy).toHaveBeenCalledTimes(5)
+  expect(gpu.staging.unmap).toHaveBeenCalledTimes(2)
+  reader.destroy()
+})
+
 it('serializes concurrent requests so a new copy cannot overlap the previous map', async () => {
   const gpu = gpuFixture()
   const reader = createGummyDynamicReadback(gpu.device, gpu.sources, 2)

@@ -32,6 +32,39 @@ export const particleKernelNormal = tgpu.fn(
   return std.mul(relative, (17.5 * weight * density) / (radius * radius))
 })
 
+/** Monotone cubic crossing within two actual bracketing samples; it cannot create an unseen peak. */
+export const particleDensityCrossing = tgpu.fn(
+  [d.vec4f, d.f32],
+  d.f32,
+)((samples, iso) => {
+  'use gpu'
+  const low = samples.y
+  const high = samples.z
+  const delta = high - low
+  if (delta <= 0.000001)
+    return std.clamp((iso - low) / std.max(delta, 0.000001), 0, 1)
+  const before = low - samples.x
+  const after = samples.w - high
+  let slopeLow = d.f32(0)
+  let slopeHigh = d.f32(0)
+  // Harmonic slopes suppress overshoot at extrema and flat compact-support boundaries.
+  if (before > 0) slopeLow = (2 * before * delta) / (before + delta)
+  if (after > 0) slopeHigh = (2 * after * delta) / (after + delta)
+  const cubic = -2 * delta + slopeLow + slopeHigh
+  const quadratic = 3 * delta - 2 * slopeLow - slopeHigh
+  let left = d.f32(0)
+  let right = d.f32(1)
+  // Fixed work, no particle search or additional samples. Worst root bracket is 1/256 sample.
+  for (let iteration = d.u32(0); iteration < 8; iteration++) {
+    const middle = (left + right) * 0.5
+    const value =
+      ((cubic * middle + quadratic) * middle + slopeLow) * middle + low
+    if (value < iso) left = middle
+    else right = middle
+  }
+  return (left + right) * 0.5
+})
+
 /** First sampled density crossing; no crossing leaves the original support pixel empty. */
 export const particleDensitySurface = tgpu.fn(
   [d.f32, d.f32, d.vec4f, d.vec4f, d.f32],
@@ -40,19 +73,23 @@ export const particleDensitySurface = tgpu.fn(
   'use gpu'
   if (start <= 0 || step <= 0 || iso <= 0) return 0
   let previous = d.f32(0)
+  let before = d.f32(0)
   for (let index = d.u32(0); index < 8; index++) {
     let value = d.f32(0)
     if (index < 4) value = first[index]!
     else value = second[index - 4]!
     if (value >= iso) {
       if (index === 0) return start
-      const fraction = std.clamp(
-        (iso - previous) / std.max(value - previous, 0.000001),
-        0,
-        1,
+      let next = d.f32(value)
+      if (index < 3) next = first[index + 1]!
+      else if (index < 7) next = second[index - 3]!
+      const fraction = particleDensityCrossing(
+        d.vec4f(before, previous, value, next),
+        iso,
       )
       return start + (d.f32(index) - 1 + fraction) * step
     }
+    before = previous
     previous = value
   }
   return 0

@@ -1,0 +1,1720 @@
+{
+  "date": "2026-10-04T10:21:06.592Z",
+  "base": "https://localhost:5199/gummy",
+  "viewport": {
+    "width": 1440,
+    "height": 1000
+  },
+  "phases": [
+    {
+      "name": "fine-paused-rounded",
+      "wallMs": 3000.1000000089407,
+      "simulationSeconds": 0,
+      "simulationRate": 0,
+      "frames": {
+        "count": 338,
+        "mean": 8.85887573964497,
+        "p50": 1,
+        "p95": 17.300000000000182,
+        "max": 17.700000000000273
+      },
+      "simulationUpdates": {
+        "count": 0,
+        "mean": 0,
+        "p50": 0,
+        "p95": 0,
+        "max": 0
+      },
+      "longTasks": {
+        "count": 0,
+        "mean": 0,
+        "p50": 0,
+        "p95": 0,
+        "max": 0
+      },
+      "counters": {
+        "GPUDevice.createBuffer": {
+          "calls": 0,
+          "syncMs": 0,
+          "waitMs": 0
+        },
+        "GPUDevice.createComputePipeline": {
+          "calls": 0,
+          "syncMs": 0,
+          "waitMs": 0
+        },
+        "GPUDevice.createRenderPipeline": {
+          "calls": 0,
+          "syncMs": 0,
+          "waitMs": 0
+        },
+        "GPUDevice.createTexture": {
+          "calls": 0,
+          "syncMs": 0,
+          "waitMs": 0
+        },
+        "GPUQueue.writeBuffer": {
+          "calls": 168,
+          "syncMs": 1.7999999523162842,
+          "waitMs": 0
+        },
+        "GPUDevice.createBindGroup": {
+          "calls": 0,
+          "syncMs": 0,
+          "waitMs": 0
+        },
+        "GPUComputePassEncoder.dispatchWorkgroups": {
+          "calls": 336,
+          "syncMs": 0.29999999701976776,
+          "waitMs": 0
+        },
+        "GPUQueue.submit": {
+          "calls": 168,
+          "syncMs": 2.7999999970197678,
+          "waitMs": 0
+        },
+        "GPUBuffer.mapAsync": {
+          "calls": 0,
+          "syncMs": 0,
+          "waitMs": 0
+        }
+      },
+      "startState": {
+        "time": 0.4000000000000004,
+        "steps": 48,
+        "vertices": 4844,
+        "tetrahedra": 16913,
+        "geometry": "fine",
+        "surface": "rounded",
+        "response": "soft",
+        "tearing": true,
+        "revision": 0,
+        "performance": {
+          "checks": 8,
+          "splits": 0,
+          "snapshotMs": 355.60000002384186,
+          "checkpointMs": 1.2999999970197678,
+          "assessMs": 288.5999999791384,
+          "allocateMs": 0,
+          "commitMs": 0,
+          "totalMs": 645.5,
+          "maxCheckMs": 203.59999999403954,
+          "draws": 6,
+          "drawsDuringMutation": 5
+        },
+        "counters": {
+          "GPUDevice.createBuffer": {
+            "calls": 75,
+            "syncMs": 7.500000014901161,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUDevice.createComputePipeline": {
+            "calls": 14,
+            "syncMs": 0,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUDevice.createRenderPipeline": {
+            "calls": 6,
+            "syncMs": 0,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUDevice.createTexture": {
+            "calls": 8,
+            "syncMs": 0,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUQueue.writeBuffer": {
+            "calls": 54,
+            "syncMs": 0.20000000298023224,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUDevice.createBindGroup": {
+            "calls": 56,
+            "syncMs": 0.3999999761581421,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUComputePassEncoder.dispatchWorkgroups": {
+            "calls": 113196,
+            "syncMs": 34.39999993145466,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUQueue.submit": {
+            "calls": 62,
+            "syncMs": 0.7999999821186066,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUBuffer.mapAsync": {
+            "calls": 8,
+            "syncMs": 0.10000000894069672,
+            "waitMs": 352.3999999910593,
+            "maxWaitMs": 131.5
+          }
+        }
+      },
+      "endState": {
+        "time": 0.4000000000000004,
+        "steps": 48,
+        "vertices": 4844,
+        "tetrahedra": 16913,
+        "geometry": "fine",
+        "surface": "rounded",
+        "response": "soft",
+        "tearing": true,
+        "revision": 0,
+        "performance": {
+          "checks": 8,
+          "splits": 0,
+          "snapshotMs": 355.60000002384186,
+          "checkpointMs": 1.2999999970197678,
+          "assessMs": 288.5999999791384,
+          "allocateMs": 0,
+          "commitMs": 0,
+          "totalMs": 645.5,
+          "maxCheckMs": 203.59999999403954,
+          "draws": 174,
+          "drawsDuringMutation": 5
+        },
+        "counters": {
+          "GPUDevice.createBuffer": {
+            "calls": 75,
+            "syncMs": 7.500000014901161,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUDevice.createComputePipeline": {
+            "calls": 14,
+            "syncMs": 0,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUDevice.createRenderPipeline": {
+            "calls": 6,
+            "syncMs": 0,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUDevice.createTexture": {
+            "calls": 8,
+            "syncMs": 0,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUQueue.writeBuffer": {
+            "calls": 222,
+            "syncMs": 1.9999999552965164,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUDevice.createBindGroup": {
+            "calls": 56,
+            "syncMs": 0.3999999761581421,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUComputePassEncoder.dispatchWorkgroups": {
+            "calls": 113532,
+            "syncMs": 34.699999928474426,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUQueue.submit": {
+            "calls": 230,
+            "syncMs": 3.5999999791383743,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUBuffer.mapAsync": {
+            "calls": 8,
+            "syncMs": 0.10000000894069672,
+            "waitMs": 352.3999999910593,
+            "maxWaitMs": 131.5
+          }
+        }
+      },
+      "cpuSelfMs": [
+        {
+          "name": "(idle) :0",
+          "ms": 2913.8549999999946
+        },
+        {
+          "name": "(program) :0",
+          "ms": 162.561
+        },
+        {
+          "name": "draw https://localhost:5199/src/components/GummyBear/GummyBearScene.tsx?t=1791106669414:327",
+          "ms": 8.576
+        },
+        {
+          "name": "beginRenderPass :0",
+          "ms": 4.2490000000000006
+        },
+        {
+          "name": "frame https://localhost:5199/src/components/GummyBear/GummyBearScene.tsx?t=1791106669414:432",
+          "ms": 3.1830000000000003
+        },
+        {
+          "name": "render https://localhost:5199/src/components/GummyBear/gummyRenderer.ts?t=1791105909969:209",
+          "ms": 3.1799999999999997
+        },
+        {
+          "name": "requestAnimationFrame :0",
+          "ms": 3.1740000000000004
+        },
+        {
+          "name": "publishMutationState https://localhost:5199/src/components/GummyBear/GummyBearScene.tsx?t=1791106669414:322",
+          "ms": 2.1260000000000003
+        },
+        {
+          "name": "INTERNAL_beginRenderPass https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6238",
+          "ms": 2.125
+        },
+        {
+          "name": "gummyCameraMatrices https://localhost:5199/src/components/GummyBear/gummyStudyMath.ts:48",
+          "ms": 2.122
+        },
+        {
+          "name": "drawScheduled https://localhost:5199/src/components/GummyBear/GummyBearScene.tsx?t=1791106669414:369",
+          "ms": 2.12
+        },
+        {
+          "name": "setIndexBuffer :0",
+          "ms": 2.1189999999999998
+        },
+        {
+          "name": "writeBuffer :0",
+          "ms": 2.1180000000000003
+        },
+        {
+          "name": "applyBindGroups https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:5983",
+          "ms": 2.113
+        },
+        {
+          "name": "(anonymous) https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:5935",
+          "ms": 1.089
+        },
+        {
+          "name": "drawIdleFrame https://localhost:5199/src/components/GummyBear/GummyBearScene.tsx?t=1791106669414:374",
+          "ms": 1.072
+        },
+        {
+          "name": "#withPriors https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6563",
+          "ms": 1.065
+        },
+        {
+          "name": "(anonymous) :0",
+          "ms": 1.065
+        },
+        {
+          "name": "initSync https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6710",
+          "ms": 1.063
+        },
+        {
+          "name": "frame :11",
+          "ms": 1.063
+        },
+        {
+          "name": "emitRenderDraw https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6063",
+          "ms": 1.063
+        },
+        {
+          "name": "perspective https://localhost:5199/node_modules/.vite/deps/wgpu-matrix.js?v=7807be41:3314",
+          "ms": 1.062
+        },
+        {
+          "name": "scaledCanvasSize https://localhost:5199/src/lib/AutoCanvas.tsx:26",
+          "ms": 1.062
+        },
+        {
+          "name": "(anonymous) https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:5985",
+          "ms": 1.061
+        },
+        {
+          "name": "activeSize https://localhost:5199/src/lib/AutoCanvas.tsx:39",
+          "ms": 1.06
+        }
+      ]
+    },
+    {
+      "name": "fine-idle-rounded",
+      "wallMs": 6033.600000008941,
+      "simulationSeconds": 3.8000000000000504,
+      "simulationRate": 0.6298064173949913,
+      "frames": {
+        "count": 316,
+        "mean": 19.00126582277538,
+        "p50": 17.200000000000728,
+        "p95": 34.30000000000109,
+        "max": 51.100000000000364
+      },
+      "simulationUpdates": {
+        "count": 57,
+        "mean": 105.34035087714071,
+        "p50": 82.10000000000036,
+        "p95": 169.29999999999927,
+        "max": 181.20000000000073
+      },
+      "longTasks": {
+        "count": 0,
+        "mean": 0,
+        "p50": 0,
+        "p95": 0,
+        "max": 0
+      },
+      "counters": {
+        "GPUDevice.createBuffer": {
+          "calls": 0,
+          "syncMs": 0,
+          "waitMs": 0
+        },
+        "GPUDevice.createComputePipeline": {
+          "calls": 0,
+          "syncMs": 0,
+          "waitMs": 0
+        },
+        "GPUDevice.createRenderPipeline": {
+          "calls": 0,
+          "syncMs": 0,
+          "waitMs": 0
+        },
+        "GPUDevice.createTexture": {
+          "calls": 0,
+          "syncMs": 0,
+          "waitMs": 0
+        },
+        "GPUQueue.writeBuffer": {
+          "calls": 513,
+          "syncMs": 2.000000014901161,
+          "waitMs": 0
+        },
+        "GPUDevice.createBindGroup": {
+          "calls": 0,
+          "syncMs": 0,
+          "waitMs": 0
+        },
+        "GPUComputePassEncoder.dispatchWorkgroups": {
+          "calls": 1075362,
+          "syncMs": 318.8999991118908,
+          "waitMs": 0
+        },
+        "GPUQueue.submit": {
+          "calls": 589,
+          "syncMs": 4.400000020861626,
+          "waitMs": 0
+        },
+        "GPUBuffer.mapAsync": {
+          "calls": 76,
+          "syncMs": 2.4999999701976776,
+          "waitMs": 2499.6000000089407
+        }
+      },
+      "startState": {
+        "time": 1.3999999999999975,
+        "steps": 168,
+        "vertices": 4844,
+        "tetrahedra": 16913,
+        "geometry": "fine",
+        "surface": "rounded",
+        "response": "soft",
+        "tearing": true,
+        "revision": 0,
+        "performance": {
+          "checks": 28,
+          "splits": 0,
+          "snapshotMs": 1003.7000000178814,
+          "checkpointMs": 4.100000008940697,
+          "assessMs": 797.299999922514,
+          "allocateMs": 0,
+          "commitMs": 0,
+          "totalMs": 1805.099999949336,
+          "maxCheckMs": 203.59999999403954,
+          "draws": 193,
+          "drawsDuringMutation": 22
+        },
+        "counters": {
+          "GPUDevice.createBuffer": {
+            "calls": 75,
+            "syncMs": 7.500000014901161,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUDevice.createComputePipeline": {
+            "calls": 14,
+            "syncMs": 0,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUDevice.createRenderPipeline": {
+            "calls": 6,
+            "syncMs": 0,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUDevice.createTexture": {
+            "calls": 8,
+            "syncMs": 0,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUQueue.writeBuffer": {
+            "calls": 361,
+            "syncMs": 2.3999999463558197,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUDevice.createBindGroup": {
+            "calls": 56,
+            "syncMs": 0.3999999761581421,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUComputePassEncoder.dispatchWorkgroups": {
+            "calls": 396530,
+            "syncMs": 114.49999967217445,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUQueue.submit": {
+            "calls": 389,
+            "syncMs": 5.999999940395355,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUBuffer.mapAsync": {
+            "calls": 28,
+            "syncMs": 0.30000001192092896,
+            "waitMs": 996.399999961257,
+            "maxWaitMs": 131.5
+          }
+        }
+      },
+      "endState": {
+        "time": 5.200000000000048,
+        "steps": 624,
+        "vertices": 4844,
+        "tetrahedra": 16913,
+        "geometry": "fine",
+        "surface": "rounded",
+        "response": "soft",
+        "tearing": true,
+        "revision": 0,
+        "performance": {
+          "checks": 104,
+          "splits": 0,
+          "snapshotMs": 3515.7000000327826,
+          "checkpointMs": 10.499999985098839,
+          "assessMs": 2770.5999999195337,
+          "allocateMs": 0,
+          "commitMs": 0,
+          "totalMs": 6297.099999919534,
+          "maxCheckMs": 203.59999999403954,
+          "draws": 250,
+          "drawsDuringMutation": 79
+        },
+        "counters": {
+          "GPUDevice.createBuffer": {
+            "calls": 75,
+            "syncMs": 7.500000014901161,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUDevice.createComputePipeline": {
+            "calls": 14,
+            "syncMs": 0,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUDevice.createRenderPipeline": {
+            "calls": 6,
+            "syncMs": 0,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUDevice.createTexture": {
+            "calls": 8,
+            "syncMs": 0,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUQueue.writeBuffer": {
+            "calls": 874,
+            "syncMs": 4.399999961256981,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUDevice.createBindGroup": {
+            "calls": 56,
+            "syncMs": 0.3999999761581421,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUComputePassEncoder.dispatchWorkgroups": {
+            "calls": 1471892,
+            "syncMs": 433.39999878406525,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUQueue.submit": {
+            "calls": 978,
+            "syncMs": 10.399999961256981,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUBuffer.mapAsync": {
+            "calls": 104,
+            "syncMs": 2.7999999821186066,
+            "waitMs": 3495.9999999701977,
+            "maxWaitMs": 131.5
+          }
+        }
+      },
+      "cpuSelfMs": [
+        {
+          "name": "(idle) :0",
+          "ms": 2462.4479999999894
+        },
+        {
+          "name": "update https://localhost:5199/src/simulation/gummy/gummyJellyPlasticity.ts:120",
+          "ms": 570.9250000000005
+        },
+        {
+          "name": "assess https://localhost:5199/src/simulation/gummy/gummyJellyFracture.ts:392",
+          "ms": 453.3510000000002
+        },
+        {
+          "name": "writePositiveTensileStrain https://localhost:5199/src/simulation/gummy/gummyJellyFractureStrain.ts:63",
+          "ms": 422.77600000000047
+        },
+        {
+          "name": "with https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6570",
+          "ms": 394.2210000000003
+        },
+        {
+          "name": "proto.<computed> :6",
+          "ms": 380.6540000000002
+        },
+        {
+          "name": "diagonalize https://localhost:5199/src/simulation/gummy/gummyJellyPlasticity.ts:20",
+          "ms": 328.30199999999996
+        },
+        {
+          "name": "evaluateGummyTensileStrain https://localhost:5199/src/simulation/gummy/gummyJellyFractureStrain.ts:122",
+          "ms": 147.27800000000008
+        },
+        {
+          "name": "(anonymous) https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:5985",
+          "ms": 144.20300000000012
+        },
+        {
+          "name": "now :0",
+          "ms": 112.23500000000004
+        },
+        {
+          "name": "setBindGroup :0",
+          "ms": 98.67299999999997
+        },
+        {
+          "name": "(program) :0",
+          "ms": 92.57000000000001
+        },
+        {
+          "name": "step https://localhost:5199/src/simulation/gummy/gummySolver.ts:381",
+          "ms": 66.70900000000002
+        },
+        {
+          "name": "#execute https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6622",
+          "ms": 58.346999999999994
+        },
+        {
+          "name": "unwrap https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:7616",
+          "ms": 58.315999999999995
+        },
+        {
+          "name": "applyBindGroups https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:5983",
+          "ms": 54.05099999999999
+        },
+        {
+          "name": "gummyNormalTensileOpening https://localhost:5199/src/simulation/gummy/gummyJellyFractureStrain.ts:145",
+          "ms": 47.71199999999999
+        },
+        {
+          "name": "stampComputePipeline https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:5972",
+          "ms": 37.113
+        },
+        {
+          "name": "setPipeline :0",
+          "ms": 37.11
+        },
+        {
+          "name": "dispatchWorkgroups :0",
+          "ms": 28.657
+        },
+        {
+          "name": "(anonymous) https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6026",
+          "ms": 20.085999999999995
+        },
+        {
+          "name": "unwrap https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6731",
+          "ms": 19.078
+        },
+        {
+          "name": "updatePlasticity https://localhost:5199/src/simulation/gummy/gummySolver.ts:550",
+          "ms": 11.653000000000002
+        },
+        {
+          "name": "(garbage collector) :0",
+          "ms": 11.001999999999999
+        },
+        {
+          "name": "emitComputeDispatch https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6076",
+          "ms": 10.606
+        }
+      ]
+    },
+    {
+      "name": "fine-idle-original",
+      "wallMs": 6007.899999991059,
+      "simulationSeconds": 3.6999999999999753,
+      "simulationRate": 0.6158557898775748,
+      "frames": {
+        "count": 315,
+        "mean": 18.941904761876376,
+        "p50": 17.200000000000728,
+        "p95": 34.39999999999782,
+        "max": 34.79999999999927
+      },
+      "simulationUpdates": {
+        "count": 56,
+        "mean": 106.54821428555462,
+        "p50": 82.70000000000073,
+        "p95": 179.39999999999782,
+        "max": 181.10000000000218
+      },
+      "longTasks": {
+        "count": 0,
+        "mean": 0,
+        "p50": 0,
+        "p95": 0,
+        "max": 0
+      },
+      "counters": {
+        "GPUDevice.createBuffer": {
+          "calls": 0,
+          "syncMs": 0,
+          "waitMs": 0
+        },
+        "GPUDevice.createComputePipeline": {
+          "calls": 0,
+          "syncMs": 0,
+          "waitMs": 0
+        },
+        "GPUDevice.createRenderPipeline": {
+          "calls": 0,
+          "syncMs": 0,
+          "waitMs": 0
+        },
+        "GPUDevice.createTexture": {
+          "calls": 0,
+          "syncMs": 0,
+          "waitMs": 0
+        },
+        "GPUQueue.writeBuffer": {
+          "calls": 500,
+          "syncMs": 2,
+          "waitMs": 0
+        },
+        "GPUDevice.createBindGroup": {
+          "calls": 0,
+          "syncMs": 0,
+          "waitMs": 0
+        },
+        "GPUComputePassEncoder.dispatchWorkgroups": {
+          "calls": 1047064,
+          "syncMs": 310.0000004321337,
+          "waitMs": 0
+        },
+        "GPUQueue.submit": {
+          "calls": 574,
+          "syncMs": 6.100000008940697,
+          "waitMs": 0
+        },
+        "GPUBuffer.mapAsync": {
+          "calls": 74,
+          "syncMs": 1.0999999642372131,
+          "waitMs": 2559.299999937415
+        }
+      },
+      "startState": {
+        "time": 6.2500000000001,
+        "steps": 750,
+        "vertices": 4844,
+        "tetrahedra": 16913,
+        "geometry": "fine",
+        "surface": "original",
+        "response": "soft",
+        "tearing": true,
+        "revision": 0,
+        "performance": {
+          "checks": 125,
+          "splits": 0,
+          "snapshotMs": 4287.900000020862,
+          "checkpointMs": 12.19999997317791,
+          "assessMs": 3324.099999934435,
+          "allocateMs": 0,
+          "commitMs": 0,
+          "totalMs": 7624.499999910593,
+          "maxCheckMs": 203.59999999403954,
+          "draws": 270,
+          "drawsDuringMutation": 98
+        },
+        "counters": {
+          "GPUDevice.createBuffer": {
+            "calls": 75,
+            "syncMs": 7.500000014901161,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUDevice.createComputePipeline": {
+            "calls": 14,
+            "syncMs": 0,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUDevice.createRenderPipeline": {
+            "calls": 6,
+            "syncMs": 0,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUDevice.createTexture": {
+            "calls": 8,
+            "syncMs": 0,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUQueue.writeBuffer": {
+            "calls": 1020,
+            "syncMs": 4.499999955296516,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUDevice.createBindGroup": {
+            "calls": 56,
+            "syncMs": 0.3999999761581421,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUComputePassEncoder.dispatchWorkgroups": {
+            "calls": 1769040,
+            "syncMs": 516.7999988049269,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUQueue.submit": {
+            "calls": 1145,
+            "syncMs": 11.89999994635582,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUBuffer.mapAsync": {
+            "calls": 125,
+            "syncMs": 3,
+            "waitMs": 4264.599999979138,
+            "maxWaitMs": 131.5
+          }
+        }
+      },
+      "endState": {
+        "time": 9.950000000000076,
+        "steps": 1194,
+        "vertices": 4844,
+        "tetrahedra": 16913,
+        "geometry": "fine",
+        "surface": "original",
+        "response": "soft",
+        "tearing": true,
+        "revision": 0,
+        "performance": {
+          "checks": 199,
+          "splits": 0,
+          "snapshotMs": 6859.500000014901,
+          "checkpointMs": 19.799999952316284,
+          "assessMs": 5257.199999883771,
+          "allocateMs": 0,
+          "commitMs": 0,
+          "totalMs": 12137.099999845028,
+          "maxCheckMs": 203.59999999403954,
+          "draws": 326,
+          "drawsDuringMutation": 154
+        },
+        "counters": {
+          "GPUDevice.createBuffer": {
+            "calls": 75,
+            "syncMs": 7.500000014901161,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUDevice.createComputePipeline": {
+            "calls": 14,
+            "syncMs": 0,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUDevice.createRenderPipeline": {
+            "calls": 6,
+            "syncMs": 0,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUDevice.createTexture": {
+            "calls": 8,
+            "syncMs": 0,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUQueue.writeBuffer": {
+            "calls": 1520,
+            "syncMs": 6.499999955296516,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUDevice.createBindGroup": {
+            "calls": 56,
+            "syncMs": 0.3999999761581421,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUComputePassEncoder.dispatchWorkgroups": {
+            "calls": 2816104,
+            "syncMs": 826.7999992370605,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUQueue.submit": {
+            "calls": 1719,
+            "syncMs": 17.999999955296516,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUBuffer.mapAsync": {
+            "calls": 199,
+            "syncMs": 4.099999964237213,
+            "waitMs": 6823.8999999165535,
+            "maxWaitMs": 131.5
+          }
+        }
+      },
+      "cpuSelfMs": [
+        {
+          "name": "(idle) :0",
+          "ms": 2511.280999999991
+        },
+        {
+          "name": "update https://localhost:5199/src/simulation/gummy/gummyJellyPlasticity.ts:120",
+          "ms": 545.7610000000008
+        },
+        {
+          "name": "assess https://localhost:5199/src/simulation/gummy/gummyJellyFracture.ts:392",
+          "ms": 449.5120000000007
+        },
+        {
+          "name": "writePositiveTensileStrain https://localhost:5199/src/simulation/gummy/gummyJellyFractureStrain.ts:63",
+          "ms": 438.8760000000004
+        },
+        {
+          "name": "with https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6570",
+          "ms": 350.1280000000002
+        },
+        {
+          "name": "proto.<computed> :6",
+          "ms": 341.4199999999998
+        },
+        {
+          "name": "diagonalize https://localhost:5199/src/simulation/gummy/gummyJellyPlasticity.ts:20",
+          "ms": 332.35200000000066
+        },
+        {
+          "name": "(anonymous) https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:5985",
+          "ms": 163.37199999999999
+        },
+        {
+          "name": "evaluateGummyTensileStrain https://localhost:5199/src/simulation/gummy/gummyJellyFractureStrain.ts:122",
+          "ms": 117.665
+        },
+        {
+          "name": "setBindGroup :0",
+          "ms": 116.588
+        },
+        {
+          "name": "now :0",
+          "ms": 106.09599999999999
+        },
+        {
+          "name": "(program) :0",
+          "ms": 87.45900000000006
+        },
+        {
+          "name": "applyBindGroups https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:5983",
+          "ms": 67.966
+        },
+        {
+          "name": "unwrap https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:7616",
+          "ms": 66.85699999999999
+        },
+        {
+          "name": "step https://localhost:5199/src/simulation/gummy/gummySolver.ts:381",
+          "ms": 66.759
+        },
+        {
+          "name": "#execute https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6622",
+          "ms": 65.718
+        },
+        {
+          "name": "gummyNormalTensileOpening https://localhost:5199/src/simulation/gummy/gummyJellyFractureStrain.ts:145",
+          "ms": 51.934
+        },
+        {
+          "name": "setPipeline :0",
+          "ms": 39.238
+        },
+        {
+          "name": "stampComputePipeline https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:5972",
+          "ms": 30.729999999999997
+        },
+        {
+          "name": "dispatchWorkgroups :0",
+          "ms": 27.557999999999996
+        },
+        {
+          "name": "emitComputeDispatch https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6076",
+          "ms": 15.925000000000004
+        },
+        {
+          "name": "(garbage collector) :0",
+          "ms": 13.796999999999997
+        },
+        {
+          "name": "unwrap https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6731",
+          "ms": 13.781
+        },
+        {
+          "name": "updatePlasticity https://localhost:5199/src/simulation/gummy/gummySolver.ts:550",
+          "ms": 11.673
+        },
+        {
+          "name": "(anonymous) https://localhost:5199/src/components/GummyBear/gummyFractureRuntime.ts:51",
+          "ms": 11.655000000000001
+        }
+      ]
+    },
+    {
+      "name": "fine-gpu-elastic-only",
+      "wallMs": 6000.0999999940395,
+      "simulationSeconds": 6.058333333333503,
+      "simulationRate": 1.0097053938000236,
+      "frames": {
+        "count": 461,
+        "mean": 12.980260303661778,
+        "p50": 15.099999999998545,
+        "p95": 17.599999999998545,
+        "max": 18.599999999998545
+      },
+      "simulationUpdates": {
+        "count": 230,
+        "mean": 25.959130434730785,
+        "p50": 25.600000000002183,
+        "p95": 29.299999999999272,
+        "max": 46.29999999999927
+      },
+      "longTasks": {
+        "count": 0,
+        "mean": 0,
+        "p50": 0,
+        "p95": 0,
+        "max": 0
+      },
+      "counters": {
+        "GPUDevice.createBuffer": {
+          "calls": 0,
+          "syncMs": 0,
+          "waitMs": 0
+        },
+        "GPUDevice.createComputePipeline": {
+          "calls": 0,
+          "syncMs": 0,
+          "waitMs": 0
+        },
+        "GPUDevice.createRenderPipeline": {
+          "calls": 0,
+          "syncMs": 0,
+          "waitMs": 0
+        },
+        "GPUDevice.createTexture": {
+          "calls": 0,
+          "syncMs": 0,
+          "waitMs": 0
+        },
+        "GPUQueue.writeBuffer": {
+          "calls": 957,
+          "syncMs": 4.499999925494194,
+          "waitMs": 0
+        },
+        "GPUDevice.createBindGroup": {
+          "calls": 0,
+          "syncMs": 0,
+          "waitMs": 0
+        },
+        "GPUComputePassEncoder.dispatchWorkgroups": {
+          "calls": 1714726,
+          "syncMs": 571.5000001937151,
+          "waitMs": 0
+        },
+        "GPUQueue.submit": {
+          "calls": 957,
+          "syncMs": 8.099999949336052,
+          "waitMs": 0
+        },
+        "GPUBuffer.mapAsync": {
+          "calls": 0,
+          "syncMs": 0,
+          "waitMs": 0
+        }
+      },
+      "startState": {
+        "time": 1.5333333333333303,
+        "steps": 184,
+        "vertices": 4844,
+        "tetrahedra": 16913,
+        "geometry": "fine",
+        "surface": "original",
+        "response": "crumble",
+        "tearing": false,
+        "revision": 0,
+        "performance": {
+          "checks": 0,
+          "splits": 0,
+          "snapshotMs": 0,
+          "checkpointMs": 0,
+          "assessMs": 0,
+          "allocateMs": 0,
+          "commitMs": 0,
+          "totalMs": 0,
+          "maxCheckMs": 0,
+          "draws": 64,
+          "drawsDuringMutation": 57
+        },
+        "counters": {
+          "GPUDevice.createBuffer": {
+            "calls": 75,
+            "syncMs": 7.500000014901161,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUDevice.createComputePipeline": {
+            "calls": 14,
+            "syncMs": 0,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUDevice.createRenderPipeline": {
+            "calls": 6,
+            "syncMs": 0,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUDevice.createTexture": {
+            "calls": 8,
+            "syncMs": 0,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUQueue.writeBuffer": {
+            "calls": 1778,
+            "syncMs": 7.699999988079071,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUDevice.createBindGroup": {
+            "calls": 56,
+            "syncMs": 0.3999999761581421,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUComputePassEncoder.dispatchWorkgroups": {
+            "calls": 3266612,
+            "syncMs": 971.9999991208315,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUQueue.submit": {
+            "calls": 1977,
+            "syncMs": 20.59999990463257,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUBuffer.mapAsync": {
+            "calls": 200,
+            "syncMs": 4.099999964237213,
+            "waitMs": 6884.499999925494,
+            "maxWaitMs": 131.5
+          }
+        }
+      },
+      "endState": {
+        "time": 7.591666666666834,
+        "steps": 911,
+        "vertices": 4844,
+        "tetrahedra": 16913,
+        "geometry": "fine",
+        "surface": "original",
+        "response": "crumble",
+        "tearing": false,
+        "revision": 0,
+        "performance": {
+          "checks": 0,
+          "splits": 0,
+          "snapshotMs": 0,
+          "checkpointMs": 0,
+          "assessMs": 0,
+          "allocateMs": 0,
+          "commitMs": 0,
+          "totalMs": 0,
+          "maxCheckMs": 0,
+          "draws": 294,
+          "drawsDuringMutation": 287
+        },
+        "counters": {
+          "GPUDevice.createBuffer": {
+            "calls": 75,
+            "syncMs": 7.500000014901161,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUDevice.createComputePipeline": {
+            "calls": 14,
+            "syncMs": 0,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUDevice.createRenderPipeline": {
+            "calls": 6,
+            "syncMs": 0,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUDevice.createTexture": {
+            "calls": 8,
+            "syncMs": 0,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUQueue.writeBuffer": {
+            "calls": 2735,
+            "syncMs": 12.199999913573265,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUDevice.createBindGroup": {
+            "calls": 56,
+            "syncMs": 0.3999999761581421,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUComputePassEncoder.dispatchWorkgroups": {
+            "calls": 4981338,
+            "syncMs": 1543.4999993145466,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUQueue.submit": {
+            "calls": 2934,
+            "syncMs": 28.69999985396862,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUBuffer.mapAsync": {
+            "calls": 200,
+            "syncMs": 4.099999964237213,
+            "waitMs": 6884.499999925494,
+            "maxWaitMs": 131.5
+          }
+        }
+      },
+      "cpuSelfMs": [
+        {
+          "name": "(idle) :0",
+          "ms": 3095.569999999999
+        },
+        {
+          "name": "proto.<computed> :6",
+          "ms": 676.3809999999995
+        },
+        {
+          "name": "with https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6570",
+          "ms": 675.8510000000001
+        },
+        {
+          "name": "(anonymous) https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:5985",
+          "ms": 271.49799999999993
+        },
+        {
+          "name": "now :0",
+          "ms": 201.17900000000014
+        },
+        {
+          "name": "setBindGroup :0",
+          "ms": 175.84200000000004
+        },
+        {
+          "name": "(program) :0",
+          "ms": 136.16899999999995
+        },
+        {
+          "name": "applyBindGroups https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:5983",
+          "ms": 121.02
+        },
+        {
+          "name": "step https://localhost:5199/src/simulation/gummy/gummySolver.ts:381",
+          "ms": 117.43200000000003
+        },
+        {
+          "name": "unwrap https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:7616",
+          "ms": 103.96199999999997
+        },
+        {
+          "name": "#execute https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6622",
+          "ms": 97.45100000000002
+        },
+        {
+          "name": "setPipeline :0",
+          "ms": 80.59000000000002
+        },
+        {
+          "name": "stampComputePipeline https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:5972",
+          "ms": 61.44100000000001
+        },
+        {
+          "name": "dispatchWorkgroups :0",
+          "ms": 59.44499999999999
+        },
+        {
+          "name": "unwrap https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6731",
+          "ms": 27.556
+        },
+        {
+          "name": "(anonymous) https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6026",
+          "ms": 26.579000000000004
+        },
+        {
+          "name": "emitComputeDispatch https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6076",
+          "ms": 25.514999999999997
+        },
+        {
+          "name": "(garbage collector) :0",
+          "ms": 23.398999999999997
+        },
+        {
+          "name": "reportIgnoredPriors https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6057",
+          "ms": 12.716000000000003
+        },
+        {
+          "name": "dispatchWorkgroups https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6608",
+          "ms": 10.611999999999998
+        },
+        {
+          "name": "submit :0",
+          "ms": 7.434
+        },
+        {
+          "name": "publishMutationState https://localhost:5199/src/components/GummyBear/GummyBearScene.tsx?t=1791106669414:322",
+          "ms": 7.264
+        },
+        {
+          "name": "getCurrentTexture :0",
+          "ms": 6.378000000000001
+        },
+        {
+          "name": "initSync https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6710",
+          "ms": 5.319000000000001
+        },
+        {
+          "name": "draw https://localhost:5199/src/components/GummyBear/GummyBearScene.tsx?t=1791106669414:327",
+          "ms": 4.247
+        }
+      ]
+    },
+    {
+      "name": "standard-idle-rounded",
+      "wallMs": 6001,
+      "simulationSeconds": 6.050000000000184,
+      "simulationRate": 1.0081653057824003,
+      "frames": {
+        "count": 452,
+        "mean": 13.266592920347382,
+        "p50": 16.80000000000291,
+        "p95": 17.599999999998545,
+        "max": 17.80000000000291
+      },
+      "simulationUpdates": {
+        "count": 186,
+        "mean": 32.067741935467865,
+        "p50": 27.099999999998545,
+        "p95": 46.099999999998545,
+        "max": 54.79999999999927
+      },
+      "longTasks": {
+        "count": 0,
+        "mean": 0,
+        "p50": 0,
+        "p95": 0,
+        "max": 0
+      },
+      "counters": {
+        "GPUDevice.createBuffer": {
+          "calls": 0,
+          "syncMs": 0,
+          "waitMs": 0
+        },
+        "GPUDevice.createComputePipeline": {
+          "calls": 0,
+          "syncMs": 0,
+          "waitMs": 0
+        },
+        "GPUDevice.createRenderPipeline": {
+          "calls": 0,
+          "syncMs": 0,
+          "waitMs": 0
+        },
+        "GPUDevice.createTexture": {
+          "calls": 0,
+          "syncMs": 0,
+          "waitMs": 0
+        },
+        "GPUQueue.writeBuffer": {
+          "calls": 912,
+          "syncMs": 5.699999988079071,
+          "waitMs": 0
+        },
+        "GPUDevice.createBindGroup": {
+          "calls": 0,
+          "syncMs": 0,
+          "waitMs": 0
+        },
+        "GPUComputePassEncoder.dispatchWorkgroups": {
+          "calls": 856326,
+          "syncMs": 282.49999940395355,
+          "waitMs": 0
+        },
+        "GPUQueue.submit": {
+          "calls": 1033,
+          "syncMs": 9.200000047683716,
+          "waitMs": 0
+        },
+        "GPUBuffer.mapAsync": {
+          "calls": 121,
+          "syncMs": 1.7000000029802322,
+          "waitMs": 866.200000077486
+        }
+      },
+      "startState": {
+        "time": 1.799999999999996,
+        "steps": 216,
+        "vertices": 2244,
+        "tetrahedra": 7299,
+        "geometry": "standard",
+        "surface": "rounded",
+        "response": "soft",
+        "tearing": true,
+        "revision": 0,
+        "performance": {
+          "checks": 36,
+          "splits": 0,
+          "snapshotMs": 294.4000000208616,
+          "checkpointMs": 1.6999999582767487,
+          "assessMs": 437.80000004172325,
+          "allocateMs": 0,
+          "commitMs": 0,
+          "totalMs": 733.9000000208616,
+          "maxCheckMs": 65.29999999701977,
+          "draws": 47,
+          "drawsDuringMutation": 45
+        },
+        "counters": {
+          "GPUDevice.createBuffer": {
+            "calls": 150,
+            "syncMs": 8.900000035762787,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUDevice.createComputePipeline": {
+            "calls": 28,
+            "syncMs": 0.10000000894069672,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUDevice.createRenderPipeline": {
+            "calls": 12,
+            "syncMs": 0,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUDevice.createTexture": {
+            "calls": 16,
+            "syncMs": 0.09999999403953552,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUQueue.writeBuffer": {
+            "calls": 3014,
+            "syncMs": 14.399999901652336,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUDevice.createBindGroup": {
+            "calls": 112,
+            "syncMs": 0.5999999791383743,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUComputePassEncoder.dispatchWorkgroups": {
+            "calls": 5257328,
+            "syncMs": 1627.3999992012978,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUQueue.submit": {
+            "calls": 3248,
+            "syncMs": 31.099999845027924,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUBuffer.mapAsync": {
+            "calls": 236,
+            "syncMs": 4.399999961256981,
+            "waitMs": 7173.799999922514,
+            "maxWaitMs": 131.5
+          }
+        }
+      },
+      "endState": {
+        "time": 7.85000000000018,
+        "steps": 942,
+        "vertices": 2244,
+        "tetrahedra": 7299,
+        "geometry": "standard",
+        "surface": "rounded",
+        "response": "soft",
+        "tearing": true,
+        "revision": 0,
+        "performance": {
+          "checks": 157,
+          "splits": 0,
+          "snapshotMs": 1182.499999910593,
+          "checkpointMs": 6.099999934434891,
+          "assessMs": 1890.0000001043081,
+          "allocateMs": 0,
+          "commitMs": 0,
+          "totalMs": 3078.9999999552965,
+          "maxCheckMs": 65.29999999701977,
+          "draws": 233,
+          "drawsDuringMutation": 231
+        },
+        "counters": {
+          "GPUDevice.createBuffer": {
+            "calls": 150,
+            "syncMs": 8.900000035762787,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUDevice.createComputePipeline": {
+            "calls": 28,
+            "syncMs": 0.10000000894069672,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUDevice.createRenderPipeline": {
+            "calls": 12,
+            "syncMs": 0,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUDevice.createTexture": {
+            "calls": 16,
+            "syncMs": 0.09999999403953552,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUQueue.writeBuffer": {
+            "calls": 3926,
+            "syncMs": 20.099999889731407,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUDevice.createBindGroup": {
+            "calls": 112,
+            "syncMs": 0.5999999791383743,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUComputePassEncoder.dispatchWorkgroups": {
+            "calls": 6113654,
+            "syncMs": 1909.8999986052513,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUQueue.submit": {
+            "calls": 4281,
+            "syncMs": 40.29999989271164,
+            "waitMs": 0,
+            "maxWaitMs": 0
+          },
+          "GPUBuffer.mapAsync": {
+            "calls": 357,
+            "syncMs": 6.099999964237213,
+            "waitMs": 8040,
+            "maxWaitMs": 131.5
+          }
+        }
+      },
+      "cpuSelfMs": [
+        {
+          "name": "(idle) :0",
+          "ms": 3014.9789999999953
+        },
+        {
+          "name": "proto.<computed> :6",
+          "ms": 352.88200000000035
+        },
+        {
+          "name": "writePositiveTensileStrain https://localhost:5199/src/simulation/gummy/gummyJellyFractureStrain.ts:63",
+          "ms": 346.5330000000003
+        },
+        {
+          "name": "update https://localhost:5199/src/simulation/gummy/gummyJellyPlasticity.ts:120",
+          "ms": 329.26200000000017
+        },
+        {
+          "name": "with https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6570",
+          "ms": 303.20099999999996
+        },
+        {
+          "name": "assess https://localhost:5199/src/simulation/gummy/gummyJellyFracture.ts:392",
+          "ms": 259.1820000000001
+        },
+        {
+          "name": "diagonalize https://localhost:5199/src/simulation/gummy/gummyJellyPlasticity.ts:20",
+          "ms": 246.87399999999985
+        },
+        {
+          "name": "(program) :0",
+          "ms": 152.19
+        },
+        {
+          "name": "(anonymous) https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:5985",
+          "ms": 141.74699999999999
+        },
+        {
+          "name": "step https://localhost:5199/src/simulation/gummy/gummySolver.ts:381",
+          "ms": 114.78799999999998
+        },
+        {
+          "name": "deformation https://localhost:5199/src/simulation/gummy/gummyJellyPlasticity.ts:99",
+          "ms": 113.02900000000002
+        },
+        {
+          "name": "now :0",
+          "ms": 110.06300000000002
+        },
+        {
+          "name": "evaluateGummyTensileStrain https://localhost:5199/src/simulation/gummy/gummyJellyFractureStrain.ts:122",
+          "ms": 75.26800000000003
+        },
+        {
+          "name": "setBindGroup :0",
+          "ms": 71.98499999999999
+        },
+        {
+          "name": "unwrap https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:7616",
+          "ms": 57.25399999999999
+        },
+        {
+          "name": "applyBindGroups https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:5983",
+          "ms": 54.206999999999994
+        },
+        {
+          "name": "stampComputePipeline https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:5972",
+          "ms": 38.162000000000006
+        },
+        {
+          "name": "setPipeline :0",
+          "ms": 32.821
+        },
+        {
+          "name": "dispatchWorkgroups :0",
+          "ms": 29.729000000000003
+        },
+        {
+          "name": "copyJellyPlasticState https://localhost:5199/src/simulation/gummy/gummyJellyPlasticity.ts:3",
+          "ms": 24.418999999999997
+        },
+        {
+          "name": "gummyNormalTensileOpening https://localhost:5199/src/simulation/gummy/gummyJellyFractureStrain.ts:145",
+          "ms": 22.246000000000002
+        },
+        {
+          "name": "(anonymous) https://localhost:5199/src/simulation/gummy/gummyJellyFracture.ts:398",
+          "ms": 20.123
+        },
+        {
+          "name": "(garbage collector) :0",
+          "ms": 19.052999999999997
+        },
+        {
+          "name": "unwrap https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6731",
+          "ms": 14.847
+        },
+        {
+          "name": "updatePlasticity https://localhost:5199/src/simulation/gummy/gummySolver.ts:550",
+          "ms": 12.732999999999999
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "placement": {
+    "before": {
+      "window": "0x55834f657fd0",
+      "workspace": 3,
+      "special": [""]
+    },
+    "after": {
+      "window": "0x55834f657fd0",
+      "workspace": 3,
+      "special": [""]
+    },
+    "clients": [
+      {
+        "class": "agent-browser",
+        "workspace": "special:agents"
+      }
+    ]
+  },
+  "adapter": {
+    "vendor": "amd",
+    "architecture": "rdna-4",
+    "fallback": false,
+    "deviceFeatures": ["core-features-and-limits"]
+  },
+  "instrument": true,
+  "notes": [
+    "WebGPU method wrappers add per-call overhead; see separate raw playback run.",
+    "Initial tear-input probe was invalid because Resume was clicked during pointer capture; its three phases were discarded and are being rerun."
+  ]
+}

@@ -1,4 +1,5 @@
 /** Objective, mesh-scale regularized tensile strain for mixed-mode tetrahedral face failure. */
+import { writeGummyDeformation, writeGummyLeftTensor, } from './gummyMaterialMath'
 import type { GummyMesh } from './gummyMesh'
 
 type StrainGeometry = {
@@ -91,14 +92,10 @@ function writePositiveTensileStrain(
   b: Float64Array,
   vectors: Float64Array,
 ) {
-  b.fill(0)
   vectors.fill(0)
   vectors[0] = vectors[4] = vectors[8] = 1
   tensor.fill(0, offset, offset + 6)
-  for (let row = 0; row < 3; row++)
-    for (let col = 0; col < 3; col++)
-      for (let k = 0; k < 3; k++)
-        b[row * 3 + col]! += f[row * 3 + k]! * f[col * 3 + k]!
+  writeGummyLeftTensor(f, b)
   // Symmetric Jacobi eigenvectors are objective, including arbitrary rigid rotations.
   for (let iteration = 0; iteration < 12; iteration++) {
     let p = 0,
@@ -173,16 +170,7 @@ export function evaluateGummyTensileStrain(
   if (output.length !== (tets.length / 4) * 6)
     throw new Error('Tensile workspace must match the tetrahedron count')
   for (let tet = 0; tet < tets.length / 4; tet++) {
-    const origin = tets[tet * 4]! * 4
-    f.fill(0)
-    for (let corner = 0; corner < 3; corner++) {
-      const node = tets[tet * 4 + corner + 1]! * 4
-      for (let row = 0; row < 3; row++)
-        for (let col = 0; col < 3; col++)
-          f[row * 3 + col]! +=
-            (positions[node + row]! - positions[origin + row]!) *
-            geometry.gradients[tet * 9 + corner * 3 + col]!
-    }
+    writeGummyDeformation(positions, tets, geometry.gradients, tet, f)
     writePositiveTensileStrain(
       f,
       geometry.regularization[tet]!,

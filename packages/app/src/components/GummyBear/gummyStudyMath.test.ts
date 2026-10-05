@@ -1,7 +1,57 @@
 /** Independent fixed-time, deformed picking and drag-plane fixtures for the gummy study. */
 import { describe, expect, it } from 'vitest'
-import { advanceGummyClock, GUMMY_STEP, gummyDemoGrip, gummyDemoPress, gummyDragFrame, gummyDragTarget, gummyJellyCommand, gummyRay, gummyRestBounds, intersectGummyDragPlane, layGummyBearBack, pickGummyVertex, } from './gummyStudyMath'
+import { GUMMY_CHESS_MOULDS } from '@/simulation/gummy/gummyChessMoulds'
+import { advanceGummyClock, DEFAULT_GUMMY_ORBIT, GUMMY_STEP, gummyCameraMatrices, gummyCameraRadius, gummyDemoGrip, gummyDemoPress, gummyDragFrame, gummyDragTarget, gummyJellyCommand, gummyRay, gummyRestBounds, intersectGummyDragPlane, layGummyBearBack, pickGummyVertex, } from './gummyStudyMath'
 import type { GummyRay, GummyVec3 } from './gummyStudyMath'
+
+describe('gummy camera framing', () => {
+  it('preserves the bear and crush camera distances and target', () => {
+    const vp = new Float32Array(16),
+      inverse = new Float32Array(16),
+      eye = new Float32Array(3)
+    gummyCameraMatrices(DEFAULT_GUMMY_ORBIT, 1, vp, inverse, eye)
+    expect(Math.hypot(eye[0]!, eye[1]! - 1.32, eye[2]!)).toBeCloseTo(5.1, 6)
+    expect(gummyCameraRadius(DEFAULT_GUMMY_ORBIT, 1)).toBe(5.1)
+    expect(gummyCameraRadius(DEFAULT_GUMMY_ORBIT, 0.5)).toBeCloseTo(7.65, 8)
+    expect(gummyCameraRadius(DEFAULT_GUMMY_ORBIT, 1, 'crush')).toBe(4.5)
+  })
+
+  it.each(Object.entries(GUMMY_CHESS_MOULDS))(
+    'fits the padded %s bounds in portrait, square and landscape views',
+    (_mould, { bounds }) => {
+      const padding = 0.12
+      const framing = { ...bounds, surfacePadding: padding }
+      for (const aspect of [0.4, 1, 1.8])
+        for (const orbit of [
+          DEFAULT_GUMMY_ORBIT,
+          { theta: 1.5, phi: 0.4, zoom: 1 },
+        ]) {
+          const vp = new Float32Array(16),
+            inverse = new Float32Array(16),
+            eye = new Float32Array(3)
+          gummyCameraMatrices(orbit, aspect, vp, inverse, eye, 'pull', framing)
+          for (const x of [bounds.min[0] - padding, bounds.max[0] + padding])
+            for (const y of [bounds.min[1] - padding, bounds.max[1] + padding])
+              for (const z of [
+                bounds.min[2] - padding,
+                bounds.max[2] + padding,
+              ]) {
+                const w = vp[3]! * x + vp[7]! * y + vp[11]! * z + vp[15]!
+                const screenX =
+                  (vp[0]! * x + vp[4]! * y + vp[8]! * z + vp[12]!) / w
+                const screenY =
+                  (vp[1]! * x + vp[5]! * y + vp[9]! * z + vp[13]!) / w
+                const depth =
+                  (vp[2]! * x + vp[6]! * y + vp[10]! * z + vp[14]!) / w
+                expect(Math.abs(screenX)).toBeLessThanOrEqual(0.880001)
+                expect(Math.abs(screenY)).toBeLessThanOrEqual(0.880001)
+                expect(depth).toBeGreaterThan(0)
+                expect(depth).toBeLessThan(1)
+              }
+        }
+    },
+  )
+})
 
 describe('gummy study clock', () => {
   it('advances exact fixed steps and keeps only the remainder', () => {

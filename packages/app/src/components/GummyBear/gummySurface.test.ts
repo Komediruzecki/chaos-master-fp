@@ -61,10 +61,12 @@ describe('gummy exterior adjacency', () => {
       3, 4, 5, 0, 5, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0,
     ])
     expect(data.indices).toHaveLength(2 * 16 * 3 + 3)
-    expect(Array.from(data.indices.slice(-3))).toEqual([96, 97, 98])
-    expect(Array.from(data.corners.slice(-12))).toEqual([
-      1, 0, 0, 2, 0, 1, 0, 2, 0, 0, 1, 2,
-    ])
+    expect(Array.from(data.indices.slice(-3))).toEqual([30, 32, 31])
+    expect(
+      Array.from(data.indices.slice(-3)).flatMap((index) =>
+        Array.from(data.corners.slice(index * 4, index * 4 + 4)),
+      ),
+    ).toEqual([1, 0, 0, 2, 0, 1, 0, 2, 0, 0, 1, 2])
   })
 
   it('retains every interface sharing a rest edge and deduplicates opposite cap faces', () => {

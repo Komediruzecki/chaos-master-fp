@@ -1,0 +1,85 @@
+/* Recording controls own their chrome in the sidebar and compact studio footer. */
+.recording {
+  margin: 0 0 24px;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+  width: 100%;
+}
+.recording legend {
+  padding: 0 0 10px;
+  font-size: 11px;
+  font-weight: 650;
+  color: #50656d;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.recordButton,
+.downloadButton {
+  appearance: none;
+  min-height: 44px;
+  border: 1px solid #296785;
+  border-radius: 7px;
+  padding: 10px 13px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.recordButton {
+  flex: 1;
+  background: #296785;
+  color: #fff;
+}
+.recordButton:hover {
+  background: #205874;
+}
+.recordButton[data-recording='true'] {
+  background: #a62c43;
+  border-color: #a62c43;
+}
+.recordButton[data-recording='true']:hover {
+  background: #8e2036;
+}
+.timer {
+  color: #536a75;
+  font: 12px var(--font-sans, sans-serif);
+  font-variant-numeric: tabular-nums;
+}
+.status {
+  margin: 8px 0 0;
+  color: #68777c;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.status[data-state='error'] {
+  color: #905e45;
+}
+.saved {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+.downloadButton {
+  width: 100%;
+  background: #f6f5ef;
+  color: #4c6572;
+  border-color: #c8d0ce;
+}
+.downloadButton:hover {
+  background: #e4e9e5;
+}
+.saved span {
+  font-size: 11px;
+  color: #68777c;
+}
+.recording button:focus-visible {
+  outline: 2px solid #2d799b;
+  outline-offset: 3px;
+}
+.recording button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}

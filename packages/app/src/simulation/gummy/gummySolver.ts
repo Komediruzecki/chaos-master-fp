@@ -1,8 +1,16 @@
 /** Owned fixed-step WebGPU XPBD tetrahedra with progressive, irreversible cohesive tears. */
 import { d } from 'typegpu'
 import { GUMMY_CONTACT_BUCKETS, gummyContactComponents, gummyContactGather, gummyContactInsert, gummyContactLayout, gummyContactReset, prepareGummyContacts, } from './gummyContacts'
-import { GUMMY_JELLY_SOLVER_ITERATIONS, gummyJellyMaterial, prepareGummyJellyTets, } from './gummyJelly'
+import { GUMMY_JELLY_SOLVER_ITERATIONS, gummyJellyMaterial } from './gummyJelly'
 import { createGummyJellyPlasticity } from './gummyJellyPlasticity'
+import { gummySolverPipeline } from './gummySolverPipelines'
+import { colorGummyConstraints, prepareGummySolverGeometry, } from './gummySolverPreparation'
+import type { GummySolverPreparationCache } from './gummySolverPreparation'
+
+export {
+  colorGummyConstraints,
+  prepareGummyTets,
+} from './gummySolverPreparation'
 import { gummyJellyLayout, GummyJellyTet, gummySolveJellyTets, } from './gummyJellyShaders'
 import { gummyCompletePatches, GummyPatch, GummyPatchFace, gummyPatchLayout, prepareGummyPatches, } from './gummyPatches'
 import { gummyBatchLayout, gummyCaptureGrip, GummyDamage, gummyFinish, gummyGripAndFloor, GummyInterface, gummyInterfaceLayout, gummyNodeLayout, GummyParameters, GummyPositions, gummyPredict, gummySolveInterfaces, gummySolveTets, GummyTet, GummyTetLambda, gummyTetLayout, gummyUpdateDamage, } from './gummySolverShaders'
@@ -35,6 +43,10 @@ export type GummySolverOptions = {
   jellyIterations?: number
   /** Internal integration steps per logical 1/120-second tick; ignored by legacy materials. */
   jellySubsteps?: number
+  /** Scene-owned, validated rest-data reuse across topology-only splits. */
+  preparationCache?: GummySolverPreparationCache
+  /** Maps each new node to the previous mesh node after splitting. */
+  sourceNodes?: Uint32Array
 }
 export type GummyStep = {
   grip?: GummyGrip
@@ -70,114 +82,6 @@ export const GUMMY_FIXED_DT = 1 / 120
 export const GUMMY_SOLVER_ITERATIONS = 5
 export const GUMMY_FINE_SOLVER_ITERATIONS = 16
 const MAX_SUBSTEPS = 6
-const EDGES = [
-  [0, 1],
-  [0, 2],
-  [0, 3],
-  [1, 2],
-  [1, 3],
-  [2, 3],
-] as const
-
-/** Greedy colors include every written node, including pinned nodes: no write/write races. */
-export function colorGummyConstraints(
-  indices: Uint32Array,
-  stride: number,
-  active: number,
-) {
-  if (stride < active || active < 1 || indices.length % stride)
-    throw new Error('Invalid gummy constraint stride')
-  const used = new Map<number, Set<number>>()
-  const batches: number[][] = []
-  for (let id = 0; id < indices.length / stride; id++) {
-    let color = 0
-    while (true) {
-      let conflict = false
-      for (let n = 0; n < active; n++)
-        if (used.get(indices[id * stride + n]!)?.has(color)) conflict = true
-      if (!conflict) break
-      color++
-    }
-    ;(batches[color] ??= []).push(id)
-    for (let n = 0; n < active; n++) {
-      const node = indices[id * stride + n]!
-      const colors = used.get(node) ?? new Set<number>()
-      colors.add(color)
-      used.set(node, colors)
-    }
-  }
-  const order = new Uint32Array(indices.length / stride)
-  let offset = 0
-  const ranges = batches.map((ids) => {
-    order.set(ids, offset)
-    const range = { offset, count: ids.length }
-    offset += ids.length
-    return range
-  })
-  return { order, ranges }
-}
-
-/** Rest geometry is CPU preprocessing; all evolving positions and constraints live on GPU. */
-export function prepareGummyTets(mesh: GummySolverMesh) {
-  validateGummyMesh(mesh)
-  const data = new Float32Array((mesh.tetrahedra.length / 4) * 12)
-  const ids = new Uint32Array(data.buffer)
-  for (let tet = 0; tet < mesh.tetrahedra.length / 4; tet++) {
-    const vertices = Array.from(mesh.tetrahedra.subarray(tet * 4, tet * 4 + 4))
-    ids.set(vertices, tet * 12)
-    for (let edge = 0; edge < EDGES.length; edge++) {
-      const pair = EDGES[edge]!
-      const a = vertices[pair[0]]! * 4,
-        b = vertices[pair[1]]! * 4
-      data[tet * 12 + 4 + edge] = Math.hypot(
-        mesh.positions[a]! - mesh.positions[b]!,
-        mesh.positions[a + 1]! - mesh.positions[b + 1]!,
-        mesh.positions[a + 2]! - mesh.positions[b + 2]!,
-      )
-    }
-    const a = vertices[0]! * 4
-    const e = vertices
-      .slice(1)
-      .map((v) => [
-        mesh.positions[v * 4]! - mesh.positions[a]!,
-        mesh.positions[v * 4 + 1]! - mesh.positions[a + 1]!,
-        mesh.positions[v * 4 + 2]! - mesh.positions[a + 2]!,
-      ])
-    const [b, c, f] = e as [number[], number[], number[]]
-    const volume =
-      (b[0]! * (c[1]! * f[2]! - c[2]! * f[1]!) +
-        b[1]! * (c[2]! * f[0]! - c[0]! * f[2]!) +
-        b[2]! * (c[0]! * f[1]! - c[1]! * f[0]!)) /
-      6
-    if (volume <= 0.0000000000000001)
-      throw new Error('Gummy tets must have positive nonzero rest volume')
-    data[tet * 12 + 10] = volume
-  }
-  return data
-}
-
-function validateGummyMesh(mesh: GummySolverMesh) {
-  if (
-    !mesh.positions.length ||
-    mesh.positions.length % 4 ||
-    !mesh.tetrahedra.length ||
-    mesh.tetrahedra.length % 4 ||
-    mesh.interfaces.length % 8
-  )
-    throw new Error('Invalid gummy mesh buffer lengths')
-  const count = mesh.positions.length / 4
-  for (let i = 0; i < mesh.positions.length; i++)
-    if (
-      !Number.isFinite(mesh.positions[i]) ||
-      (i % 4 === 3 && mesh.positions[i]! < 0)
-    )
-      throw new Error('Invalid gummy position or inverse mass')
-  for (const id of mesh.tetrahedra)
-    if (id >= count) throw new Error('Gummy tet node index out of range')
-  for (let i = 0; i < mesh.interfaces.length; i++)
-    if (i % 8 < 6 && mesh.interfaces[i]! >= count)
-      throw new Error('Gummy interface node index out of range')
-}
 
 export function gummyMaterial(
   softness: number,
@@ -208,35 +112,34 @@ export function createGummyDynamicReadback(
   let disposed = false
   let queued: Promise<void> = Promise.resolve()
 
-  function read() {
+  function queueRead<T>(
+    target: GPUBuffer,
+    count: number,
+    decode: (packed: Float32Array) => T,
+  ) {
     const task = queued.then(async () => {
       if (disposed) throw new Error('Gummy dynamic readback has been destroyed')
       const encoder = device.createCommandEncoder({
         label: 'Gummy dynamic snapshot copy',
       })
-      for (let i = 0; i < sources.length; i++)
+      for (let i = 0; i < count; i++)
         encoder.copyBufferToBuffer(
           sources[i]!,
           0,
-          staging,
+          target,
           i * arrayBytes,
           arrayBytes,
         )
       device.queue.submit([encoder.finish()])
-      await staging.mapAsync(GPUMapMode.READ)
+      await target.mapAsync(GPUMapMode.READ, 0, count * arrayBytes)
       try {
         if (disposed)
           throw new Error('Gummy dynamic readback has been destroyed')
-        const packed = new Float32Array(staging.getMappedRange())
-        const floats = vertexCount * 4
-        return {
-          positions: packed.slice(0, floats),
-          previous: packed.slice(floats, floats * 2),
-          velocities: packed.slice(floats * 2, floats * 3),
-          grip: packed.slice(floats * 3, floats * 4),
-        }
+        return decode(
+          new Float32Array(target.getMappedRange(0, count * arrayBytes)),
+        )
       } finally {
-        staging.unmap()
+        target.unmap()
       }
     })
     // Requests share one staging buffer; a failed map must not poison the next request.
@@ -248,7 +151,20 @@ export function createGummyDynamicReadback(
   }
 
   return {
-    read,
+    read() {
+      return queueRead(staging, sources.length, (packed) => {
+        const floats = vertexCount * 4
+        return {
+          positions: packed.slice(0, floats),
+          previous: packed.slice(floats, floats * 2),
+          velocities: packed.slice(floats * 2, floats * 3),
+          grip: packed.slice(floats * 3, floats * 4),
+        }
+      })
+    },
+    readPositions() {
+      return queueRead(staging, 1, (packed) => packed.slice(0, vertexCount * 4))
+    },
     destroy() {
       if (disposed) return
       disposed = true
@@ -282,8 +198,11 @@ export function createGummySolver(
     jellySubsteps > 8
   )
     throw new RangeError('Jelly substeps must be an integer between 1 and 8')
-  const restTets = prepareGummyTets(mesh)
   const jelly = options.materialModel === 'neo-hookean'
+  const prepared = options.preparationCache
+    ? options.preparationCache.prepare(mesh, jelly, options.sourceNodes)
+    : prepareGummySolverGeometry(mesh, jelly)
+  const restTets = prepared.restTets
   const internalSubsteps = jelly ? jellySubsteps : 1
   const solverDt = GUMMY_FIXED_DT / internalSubsteps
   if (jelly && mesh.interfaces.length)
@@ -401,18 +320,19 @@ export function createGummySolver(
       links: contactLinks,
       labels: contactLabels,
     })
-    const resetContacts = root
-      .createComputePipeline({ compute: gummyContactReset })
-      .with(contactGroup)
-    const contactComponents = root
-      .createComputePipeline({ compute: gummyContactComponents })
-      .with(contactGroup)
-    const insertContacts = root
-      .createComputePipeline({ compute: gummyContactInsert })
-      .with(contactGroup)
-    const gatherContacts = root
-      .createComputePipeline({ compute: gummyContactGather })
-      .with(contactGroup)
+    const resetContacts = gummySolverPipeline(root, gummyContactReset).with(
+      contactGroup,
+    )
+    const contactComponents = gummySolverPipeline(
+      root,
+      gummyContactComponents,
+    ).with(contactGroup)
+    const insertContacts = gummySolverPipeline(root, gummyContactInsert).with(
+      contactGroup,
+    )
+    const gatherContacts = gummySolverPipeline(root, gummyContactGather).with(
+      contactGroup,
+    )
     const patchHeaders = own(
       root
         .createBuffer(
@@ -445,9 +365,10 @@ export function createGummySolver(
       faces: patchFaces,
       damage,
     })
-    const completePatches = root
-      .createComputePipeline({ compute: gummyCompletePatches })
-      .with(patchGroup)
+    const completePatches = gummySolverPipeline(
+      root,
+      gummyCompletePatches,
+    ).with(patchGroup)
     const nodeGroup = root.createBindGroup(gummyNodeLayout, {
       params,
       positions,
@@ -469,12 +390,14 @@ export function createGummySolver(
       multipliers: bondLambda,
     })
     const nodePipeline = (compute: typeof gummyPredict) =>
-      root.createComputePipeline({ compute }).with(nodeGroup)
+      gummySolverPipeline(root, compute).with(nodeGroup)
     const predict = nodePipeline(gummyPredict)
     const capture = nodePipeline(gummyCaptureGrip)
     const constrainGrip = nodePipeline(gummyGripAndFloor)
     const finish = nodePipeline(gummyFinish)
-    const jellyTetData = jelly ? prepareGummyJellyTets(mesh) : undefined
+    // Plasticity writes into jellyTetData; keep pristine rest gradients separate.
+    const jellyRestTets = prepared.jellyTets
+    const jellyTetData = jellyRestTets?.slice()
     let plasticity: ReturnType<typeof createGummyJellyPlasticity> | undefined
     const jellyTets = jelly
       ? own(
@@ -486,7 +409,7 @@ export function createGummySolver(
         )
       : undefined
     const solveTets = jellyTets
-      ? root.createComputePipeline({ compute: gummySolveJellyTets }).with(
+      ? gummySolverPipeline(root, gummySolveJellyTets).with(
           root.createBindGroup(gummyJellyLayout, {
             params,
             positions,
@@ -494,13 +417,14 @@ export function createGummySolver(
             multipliers: tetLambda,
           }),
         )
-      : root.createComputePipeline({ compute: gummySolveTets }).with(tetGroup)
-    const solveInterfaces = root
-      .createComputePipeline({ compute: gummySolveInterfaces })
-      .with(interfaceGroup)
-    const updateDamage = root
-      .createComputePipeline({ compute: gummyUpdateDamage })
-      .with(interfaceGroup)
+      : gummySolverPipeline(root, gummySolveTets).with(tetGroup)
+    const solveInterfaces = gummySolverPipeline(
+      root,
+      gummySolveInterfaces,
+    ).with(interfaceGroup)
+    const updateDamage = gummySolverPipeline(root, gummyUpdateDamage).with(
+      interfaceGroup,
+    )
     const batches = (indices: Uint32Array, stride: number, active: number) => {
       const colored = colorGummyConstraints(indices, stride, active)
       const order = own(
@@ -525,8 +449,14 @@ export function createGummySolver(
         }
       })
     }
-    const tetBatches = batches(mesh.tetrahedra, 4, 4)
-    const interfaceBatches = batches(mesh.interfaces, 8, 6)
+    const tetBatches = batches(mesh.tetrahedra, 4, 4).map((batch) => ({
+      count: Math.ceil(batch.count / 64),
+      pipeline: solveTets.with(batch.group),
+    }))
+    const interfaceBatches = batches(mesh.interfaces, 8, 6).map((batch) => ({
+      count: Math.ceil(batch.count / 64),
+      pipeline: solveInterfaces.with(batch.group),
+    }))
     for (const pipeline of [
       predict,
       capture,
@@ -656,22 +586,23 @@ export function createGummySolver(
         encoder.clearBuffer(root.unwrap(tetLambda))
         encoder.clearBuffer(root.unwrap(bondLambda))
         const pass = encoder.beginComputePass()
+        // Bind the pass once per color and microstep, rather than allocating
+        // two TypeGPU pipeline wrappers and a binding Map on every iteration.
+        const tetPasses = tetBatches.map((batch) => batch.pipeline.with(pass))
+        const interfacePasses = interfaceBatches.map((batch) =>
+          batch.pipeline.with(pass),
+        )
+        const gripPass = constrainGrip.with(pass)
         predict.with(pass).dispatchWorkgroups(Math.ceil(vertexCount / 64))
-        constrainGrip.with(pass).dispatchWorkgroups(Math.ceil(vertexCount / 64))
+        gripPass.dispatchWorkgroups(Math.ceil(vertexCount / 64))
         for (let iteration = 0; iteration < iterations; iteration++) {
-          for (const batch of tetBatches)
-            solveTets
-              .with(pass)
-              .with(batch.group)
-              .dispatchWorkgroups(Math.ceil(batch.count / 64))
-          for (const batch of interfaceBatches)
-            solveInterfaces
-              .with(pass)
-              .with(batch.group)
-              .dispatchWorkgroups(Math.ceil(batch.count / 64))
-          constrainGrip
-            .with(pass)
-            .dispatchWorkgroups(Math.ceil(vertexCount / 64))
+          for (let batch = 0; batch < tetPasses.length; batch++)
+            tetPasses[batch]!.dispatchWorkgroups(tetBatches[batch]!.count)
+          for (let batch = 0; batch < interfacePasses.length; batch++)
+            interfacePasses[batch]!.dispatchWorkgroups(
+              interfaceBatches[batch]!.count,
+            )
+          gripPass.dispatchWorkgroups(Math.ceil(vertexCount / 64))
         }
         // Measure traction after projection: multipliers were cleared at this substep's start.
         if (interfaceCount)
@@ -701,9 +632,7 @@ export function createGummySolver(
           gatherContacts
             .with(pass)
             .dispatchWorkgroups(Math.ceil(vertexCount / 64))
-          constrainGrip
-            .with(pass)
-            .dispatchWorkgroups(Math.ceil(vertexCount / 64))
+          gripPass.dispatchWorkgroups(Math.ceil(vertexCount / 64))
           contactRan = true
         }
         finish.with(pass).dispatchWorkgroups(Math.ceil(vertexCount / 64))
@@ -735,6 +664,23 @@ export function createGummySolver(
       gripKey = ''
       previousPressHeight = undefined
       contactRan = false
+    }
+
+    /** Keep live picking independent from cohesive-force and contact diagnostics. */
+    async function readPositions(): Promise<Float32Array> {
+      if (disposed) throw new Error('Gummy solver has been destroyed')
+      if (dynamicReadback) return dynamicReadback.readPositions()
+      const points = await positions.read()
+      if (disposed) throw new Error('Gummy solver has been destroyed')
+      const packed = new Float32Array(vertexCount * 4)
+      for (let id = 0; id < vertexCount; id++) {
+        const point = points[id]!
+        packed[id * 4] = point.x
+        packed[id * 4 + 1] = point.y
+        packed[id * 4 + 2] = point.z
+        packed[id * 4 + 3] = point.w
+      }
+      return packed
     }
 
     async function readState() {
@@ -774,6 +720,17 @@ export function createGummySolver(
           ? Uint32Array.from(components)
           : undefined,
       }
+    }
+
+    async function snapshotAssessment() {
+      if (disposed) throw new Error('Gummy solver has been destroyed')
+      if (!jelly || interfaceCount)
+        throw new Error('Live topology snapshots require continuous jelly')
+      // As with snapshotDynamic, callers freeze stepping until their material
+      // transaction finishes. Save rollback state before any asynchronous work.
+      const jellyPlasticState = plasticity?.snapshot()
+      const positions = await dynamicReadback!.readPositions()
+      return { positions, jellyPlasticState }
     }
 
     async function snapshotDynamic(): Promise<GummySolverDynamicState> {
@@ -842,7 +799,7 @@ export function createGummySolver(
         return
       }
       if (!saved && !plasticity) return
-      plasticity ??= createGummyJellyPlasticity(mesh)
+      plasticity ??= createGummyJellyPlasticity(mesh, jellyRestTets)
       plasticity.restore(saved)
       plasticity.writeTets(jellyTetData)
       jellyTets.write(jellyTetData.buffer)
@@ -856,7 +813,7 @@ export function createGummySolver(
       if (disposed) throw new Error('Gummy solver has been destroyed')
       if (!jellyTets || !jellyTetData)
         throw new Error('Plastic material memory requires continuous jelly')
-      plasticity ??= createGummyJellyPlasticity(mesh)
+      plasticity ??= createGummyJellyPlasticity(mesh, jellyRestTets)
       const result = plasticity.update(livePositions, elapsedSeconds, material)
       if (result.changedTets) {
         plasticity.writeTets(jellyTetData)
@@ -878,8 +835,10 @@ export function createGummySolver(
       jellySubsteps: jelly ? internalSubsteps : undefined,
       step,
       reset,
+      readPositions,
       readState,
       snapshotDynamic,
+      snapshotAssessment,
       restoreDynamic,
       updatePlasticity,
       restorePlasticity,

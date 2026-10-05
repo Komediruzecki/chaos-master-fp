@@ -1,10 +1,12 @@
 /** GPU normals, filled-body transmission and deformation-driven floor light for the gummy study. */
 import { d, std, tgpu } from 'typegpu'
+import { BOARD_TILE_SIZE } from '@/components/PawnBoard/pawnBoardMath'
 import { displayColour } from '@/components/PawnBoard/pawnGlassMaterial'
 import { EXPOSED_TEAR_FACE, EXTERIOR_FACE } from '@/simulation/gummy/gummyMesh'
 import { gummyAbsorptionAtPoint, gummyColourAtPoint, gummyVolumeTransmission, } from './gummyBands'
 import { GUMMY_FLOOR_EXTENT, GUMMY_IOR, gummyEnvironment, gummyFresnel, gummyOpticalPath, gummyTransmission, gummyUnitNormal, } from './gummyMaterial'
 import { gummyBoxHit, gummyPressColour, gummyPressRimHit } from './gummyPress'
+import { gummyRoundedTetPoint, gummySortedTetIds } from './gummyRoundedTet'
 import { gummyBoundedTearPatch, gummyExitTag, gummyMatchingExit, gummyTetInradius, } from './gummyRuntimeSurfaceMath'
 import { gummyCapNormal, gummyCohesiveEdgeFlatten, gummyExposedCapAreaNormal, gummyPnPosition, gummyTransportNormal, } from './gummySurfaceMath'
 import { gummyTearAdjacency, gummyTearBody, gummyTearReflection, } from './gummyTearMaterial'
@@ -17,6 +19,7 @@ export const GummyCamera = d.struct({
   absorption: d.vec4f,
   colour: d.vec4f,
   press: d.vec4f,
+  surface: d.vec4f,
 })
 export const gummyCameraLayout = tgpu.bindGroupLayout({
   camera: { uniform: GummyCamera },
@@ -59,6 +62,59 @@ export const gummyDisplayLayout = tgpu.bindGroupLayout({
   sampler: { sampler: 'filtering' },
 })
 
+const gummyNormalPosition = tgpu.fn(
+  [d.u32],
+  d.vec3f,
+)((id) => {
+  'use gpu'
+  if (gummyCameraLayout.$.camera.surface.x > 0.5)
+    return d.vec3f(
+      gummyNormalsLayout.$.normals[
+        std.arrayLength(gummyNormalsLayout.$.positions) * 2 + id
+      ]!.xyz,
+    )
+  return d.vec3f(gummyNormalsLayout.$.positions[id]!.xyz)
+})
+const gummyNormalRestPosition = tgpu.fn(
+  [d.u32],
+  d.vec3f,
+)((id) => {
+  'use gpu'
+  if (gummyCameraLayout.$.camera.surface.x > 0.5)
+    return d.vec3f(
+      gummyNormalsLayout.$.normals[
+        std.arrayLength(gummyNormalsLayout.$.positions) * 3 + id
+      ]!.xyz,
+    )
+  return d.vec3f(gummyNormalsLayout.$.restPositions[id]!.xyz)
+})
+const gummySurfacePosition = tgpu.fn(
+  [d.u32],
+  d.vec3f,
+)((id) => {
+  'use gpu'
+  if (gummyCameraLayout.$.camera.surface.x > 0.5)
+    return d.vec3f(
+      gummyMeshLayout.$.normals[
+        std.arrayLength(gummyMeshLayout.$.positions) * 2 + id
+      ]!.xyz,
+    )
+  return d.vec3f(gummyMeshLayout.$.positions[id]!.xyz)
+})
+const gummySurfaceRestPosition = tgpu.fn(
+  [d.u32],
+  d.vec3f,
+)((id) => {
+  'use gpu'
+  if (gummyCameraLayout.$.camera.surface.x > 0.5)
+    return d.vec3f(
+      gummyMeshLayout.$.normals[
+        std.arrayLength(gummyMeshLayout.$.positions) * 3 + id
+      ]!.xyz,
+    )
+  return d.vec3f(gummyMeshLayout.$.restPositions[id]!.xyz)
+})
+
 /** Rest-coincident boundary triangles share normals while their nodes remain together. */
 export const gummyNormalsCompute = tgpu.computeFn({
   workgroupSize: [64],
@@ -67,21 +123,21 @@ export const gummyNormalsCompute = tgpu.computeFn({
   'use gpu'
   const id = input.gid.x
   if (id >= std.arrayLength(gummyNormalsLayout.$.positions)) return
-  const position = gummyNormalsLayout.$.positions[id]!.xyz
+  const position = gummyNormalPosition(id)
   const range = gummyNormalsLayout.$.ranges[id]!
   let sum = d.vec3f(0)
   for (let offset = d.u32(0); offset < range.y; offset++) {
     const pair = gummyNormalsLayout.$.adjacent[range.x + offset]!
-    const near = std.sub(gummyNormalsLayout.$.positions[pair.y]!.xyz, position)
+    const near = std.sub(gummyNormalPosition(pair.y), position)
     // Once fractured copies have separated, they must stop smoothing across the gap.
     if (std.dot(near, near) < 0.001225) {
       const face = gummyNormalsLayout.$.faces[pair.x]!
-      const a = gummyNormalsLayout.$.positions[face.x]!.xyz
-      const b = gummyNormalsLayout.$.positions[face.y]!.xyz
-      const c = gummyNormalsLayout.$.positions[face.z]!.xyz
-      const restA = gummyNormalsLayout.$.restPositions[face.x]!.xyz
-      const restB = gummyNormalsLayout.$.restPositions[face.y]!.xyz
-      const restC = gummyNormalsLayout.$.restPositions[face.z]!.xyz
+      const a = gummyNormalPosition(face.x)
+      const b = gummyNormalPosition(face.y)
+      const c = gummyNormalPosition(face.z)
+      const restA = gummyNormalRestPosition(face.x)
+      const restB = gummyNormalRestPosition(face.y)
+      const restC = gummyNormalRestPosition(face.z)
       const transported = gummyTransportNormal(
         gummyNormalsLayout.$.restNormals[id]!.xyz,
         restA,
@@ -91,8 +147,17 @@ export const gummyNormalsCompute = tgpu.computeFn({
         b,
         c,
       )
-      const area = std.length(std.cross(std.sub(b, a), std.sub(c, a)))
-      sum = std.add(sum, std.mul(transported, area))
+      const areaNormal = std.cross(std.sub(b, a), std.sub(c, a))
+      const count = std.arrayLength(gummyNormalsLayout.$.positions)
+      let weighted = std.mul(transported, std.length(areaNormal))
+      if (
+        gummyCameraLayout.$.camera.surface.x > 0.5 &&
+        (gummyNormalsLayout.$.normals[count * 2 + face.x]!.w > 0 ||
+          gummyNormalsLayout.$.normals[count * 2 + face.y]!.w > 0 ||
+          gummyNormalsLayout.$.normals[count * 2 + face.z]!.w > 0)
+      )
+        weighted = d.vec3f(areaNormal)
+      sum = std.add(sum, weighted)
     }
   }
   const normal = gummyUnitNormal(sum, gummyNormalsLayout.$.restNormals[id]!.xyz)
@@ -106,21 +171,29 @@ export const gummyNormalsCompute = tgpu.computeFn({
   for (let offset = d.u32(0); offset < localRange.y; offset++) {
     const pair = gummyNormalsLayout.$.adjacent[localRange.x + offset]!
     const face = gummyNormalsLayout.$.faces[pair.x]!
-    const a = gummyNormalsLayout.$.positions[face.x]!.xyz
-    const b = gummyNormalsLayout.$.positions[face.y]!.xyz
-    const c = gummyNormalsLayout.$.positions[face.z]!.xyz
+    const a = gummyNormalPosition(face.x)
+    const b = gummyNormalPosition(face.y)
+    const c = gummyNormalPosition(face.z)
     if (face.w === 0xffffffff) {
       const transported = gummyTransportNormal(
         gummyNormalsLayout.$.restNormals[id]!.xyz,
-        gummyNormalsLayout.$.restPositions[face.x]!.xyz,
-        gummyNormalsLayout.$.restPositions[face.y]!.xyz,
-        gummyNormalsLayout.$.restPositions[face.z]!.xyz,
+        gummyNormalRestPosition(face.x),
+        gummyNormalRestPosition(face.y),
+        gummyNormalRestPosition(face.z),
         a,
         b,
         c,
       )
-      const area = std.length(std.cross(std.sub(b, a), std.sub(c, a)))
-      boundary = std.add(boundary, std.mul(transported, area))
+      const areaNormal = std.cross(std.sub(b, a), std.sub(c, a))
+      let weighted = std.mul(transported, std.length(areaNormal))
+      if (
+        gummyCameraLayout.$.camera.surface.x > 0.5 &&
+        (gummyNormalsLayout.$.normals[count * 2 + face.x]!.w > 0 ||
+          gummyNormalsLayout.$.normals[count * 2 + face.y]!.w > 0 ||
+          gummyNormalsLayout.$.normals[count * 2 + face.z]!.w > 0)
+      )
+        weighted = d.vec3f(areaNormal)
+      boundary = std.add(boundary, weighted)
     } else {
       let damage = d.f32(1)
       if (face.w !== EXPOSED_TEAR_FACE)
@@ -214,9 +287,9 @@ const surfaceData = tgpu.fn(
   const faceId = d.u32(sample.w)
   const face = gummyMeshLayout.$.faces[faceId]!
   const metadata = gummyMeshLayout.$.metadata[faceId]!
-  const a = gummyMeshLayout.$.positions[face.x]!.xyz
-  const b = gummyMeshLayout.$.positions[face.y]!.xyz
-  const c = gummyMeshLayout.$.positions[face.z]!.xyz
+  const a = gummySurfacePosition(face.x)
+  const b = gummySurfacePosition(face.y)
+  const c = gummySurfacePosition(face.z)
   const normalA = gummyMeshLayout.$.normals[face.x]!
   const normalB = gummyMeshLayout.$.normals[face.y]!
   const normalC = gummyMeshLayout.$.normals[face.z]!
@@ -227,10 +300,10 @@ const surfaceData = tgpu.fn(
     std.add(std.mul(a, sample.x), std.mul(b, sample.y)),
     std.mul(c, sample.z),
   )
-  const restA = gummyMeshLayout.$.restPositions[face.x]!.xyz
-  const restB = gummyMeshLayout.$.restPositions[face.y]!.xyz
-  const restC = gummyMeshLayout.$.restPositions[face.z]!.xyz
-  const rest = std.add(
+  const restA = gummySurfaceRestPosition(face.x)
+  const restB = gummySurfaceRestPosition(face.y)
+  const restC = gummySurfaceRestPosition(face.z)
+  let rest = std.add(
     std.add(std.mul(restA, sample.x), std.mul(restB, sample.y)),
     std.mul(restC, sample.z),
   )
@@ -308,6 +381,45 @@ const surfaceData = tgpu.fn(
         nc,
         sample.xyz,
         d.vec3f(boundA, boundB, boundC),
+      )
+    }
+  }
+  if (metadata.z === 2 && gummyCameraLayout.$.camera.surface.x > 0.5) {
+    const ids = gummySortedTetIds(d.vec4u(face.xyz, metadata.y - 1))
+    const ta = gummyMeshLayout.$.positions[ids.x]!.xyz
+    const tb = gummyMeshLayout.$.positions[ids.y]!.xyz
+    const tc = gummyMeshLayout.$.positions[ids.z]!.xyz
+    const tq = gummyMeshLayout.$.positions[ids.w]!.xyz
+    const ra = gummyMeshLayout.$.restPositions[ids.x]!.xyz
+    const rb = gummyMeshLayout.$.restPositions[ids.y]!.xyz
+    const rc = gummyMeshLayout.$.restPositions[ids.z]!.xyz
+    const rq = gummyMeshLayout.$.restPositions[ids.w]!.xyz
+    const originalPoint = std.add(
+      std.add(
+        std.mul(gummyMeshLayout.$.positions[face.x]!.xyz, sample.x),
+        std.mul(gummyMeshLayout.$.positions[face.y]!.xyz, sample.y),
+      ),
+      std.mul(gummyMeshLayout.$.positions[face.z]!.xyz, sample.z),
+    )
+    const orientation = std.dot(
+      std.sub(rb, ra),
+      std.cross(std.sub(rc, ra), std.sub(rq, ra)),
+    )
+    const fillet = gummyRoundedTetPoint(
+      ta,
+      tb,
+      tc,
+      tq,
+      originalPoint,
+      orientation,
+    )
+    if (fillet.valid > 0.5) {
+      world = d.vec3f(fillet.position)
+      normal = d.vec3f(fillet.normal)
+      support = fillet.support * 2
+      rest = std.add(
+        std.add(std.mul(ra, fillet.bary.x), std.mul(rb, fillet.bary.y)),
+        std.add(std.mul(rc, fillet.bary.z), std.mul(rq, fillet.bary.w)),
       )
     }
   }
@@ -709,8 +821,23 @@ export const gummyBackgroundFragment = tgpu.fragmentFn({
         light = std.div(light, 9)
       }
       const visibility = 1 - std.clamp(light.w, 0, 0.38)
+      let floorColour = d.vec3f(0.72, 0.65, 0.55)
+      if (gummyCameraLayout.$.camera.surface.y > 0.5) {
+        // Align the inspected piece with a square centre using the board's tile scale.
+        const square = std.floor(
+          std.add(std.div(world.xz, BOARD_TILE_SIZE), d.vec2f(0.5)),
+        )
+        if (square.x >= -4 && square.x < 4 && square.y >= -4 && square.y < 4) {
+          const alternate = std.fract((square.x + square.y) * 0.5) * 2
+          floorColour = std.mix(
+            d.vec3f(0.74, 0.7, 0.61),
+            d.vec3f(0.13, 0.18, 0.2),
+            alternate,
+          )
+        }
+      }
       colour = std.add(
-        std.mul(d.vec3f(0.72, 0.65, 0.55), visibility),
+        std.mul(floorColour, visibility),
         std.min(light.xyz, d.vec3f(0.7)),
       )
     }

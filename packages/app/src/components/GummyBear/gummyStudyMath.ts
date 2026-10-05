@@ -2,8 +2,18 @@
 import { mat4 } from 'wgpu-matrix'
 
 export type GummyVec3 = [number, number, number]
-export type GummyOrbit = { theta: number; phi: number; zoom: number }
+export type GummyOrbit = {
+  theta: number
+  phi: number
+  zoom: number
+  pan?: GummyVec3
+}
 export type GummyGrip = { center: GummyVec3; target: GummyVec3; radius: number }
+export type GummyCameraFraming = {
+  min: readonly [number, number, number]
+  max: readonly [number, number, number]
+  surfacePadding?: number
+}
 export const GUMMY_STEP = 1 / 120
 export const GUMMY_MAX_STEPS = 8
 export const GUMMY_DEMO_SECONDS = 7.5
@@ -72,20 +82,69 @@ export function gummyCameraMatrices(
   inverse: Float32Array,
   eye: Float32Array,
   experiment: 'pull' | 'crush' = 'pull',
+  framing?: GummyCameraFraming,
 ) {
   const fittedAspect = Math.max(0.25, aspect)
   const targetY = experiment === 'crush' ? 0.4 : 1.32
-  const radius =
-    (experiment === 'crush' ? 4.5 : 5.1) *
-    Math.max(1, 0.75 / fittedAspect) *
-    orbit.zoom
-  eye[0] = radius * Math.sin(orbit.phi) * Math.sin(orbit.theta)
-  eye[1] = targetY + radius * Math.cos(orbit.phi)
-  eye[2] = radius * Math.sin(orbit.phi) * Math.cos(orbit.theta)
-  const view = mat4.lookAt(eye, [0, targetY, 0], [0, 1, 0])
+  const radius = gummyCameraRadius(orbit, fittedAspect, experiment, framing)
+  const target = [0, targetY, 0].map(
+    (legacy, axis) =>
+      (framing ? (framing.min[axis]! + framing.max[axis]!) / 2 : legacy) +
+      (orbit.pan?.[axis] ?? 0),
+  )
+  eye[0] = target[0]! + radius * Math.sin(orbit.phi) * Math.sin(orbit.theta)
+  eye[1] = target[1]! + radius * Math.cos(orbit.phi)
+  eye[2] = target[2]! + radius * Math.sin(orbit.phi) * Math.cos(orbit.theta)
+  const view = mat4.lookAt(eye, target, [0, 1, 0])
   const projection = mat4.perspective(Math.PI / 4, fittedAspect, 0.05, 50)
   mat4.mul(projection, view, viewProjection)
   mat4.inverse(viewProjection, inverse)
+}
+
+/** The pan scale and projection share the same responsive camera distance. */
+export function gummyCameraRadius(
+  orbit: GummyOrbit,
+  aspect: number,
+  experiment: 'pull' | 'crush' = 'pull',
+  framing?: GummyCameraFraming,
+) {
+  if (framing) return fittedGummyCameraRadius(orbit, aspect, framing)
+  return (
+    (experiment === 'crush' ? 4.5 : 5.1) *
+    Math.max(1, 0.75 / Math.max(0.25, aspect)) *
+    orbit.zoom
+  )
+}
+
+/** Fit all eight corners with a 12% image margin, including their perspective depth. */
+function fittedGummyCameraRadius(
+  orbit: GummyOrbit,
+  aspect: number,
+  bounds: GummyCameraFraming,
+) {
+  const half = bounds.max.map(
+    (value, axis) =>
+      (value - bounds.min[axis]!) / 2 + (bounds.surfacePadding ?? 0),
+  )
+  const st = Math.sin(orbit.theta),
+    ct = Math.cos(orbit.theta)
+  const sp = Math.sin(orbit.phi),
+    cp = Math.cos(orbit.phi)
+  const tangentY = Math.tan(Math.PI / 8) * 0.88
+  const tangentX = tangentY * Math.max(0.25, aspect)
+  let radius = 0
+  for (const x of [-half[0]!, half[0]!])
+    for (const y of [-half[1]!, half[1]!])
+      for (const z of [-half[2]!, half[2]!]) {
+        const right = x * ct - z * st
+        const up = -x * cp * st + y * sp - z * cp * ct
+        const depth = x * sp * st + y * cp + z * sp * ct
+        radius = Math.max(
+          radius,
+          depth + Math.max(Math.abs(right) / tangentX, Math.abs(up) / tangentY),
+        )
+      }
+  return radius * orbit.zoom
 }
 
 export type GummyRay = { origin: GummyVec3; direction: GummyVec3 }

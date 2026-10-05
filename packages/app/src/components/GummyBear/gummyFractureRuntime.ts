@@ -9,6 +9,7 @@ type DynamicSnapshot = {
 }
 type RuntimePair<Snapshot extends DynamicSnapshot> = {
   solver: {
+    snapshotAssessment: () => Promise<DynamicSnapshot>
     snapshotDynamic: () => Promise<Snapshot>
     reset: () => void
     destroy: () => void
@@ -31,6 +32,9 @@ function emptyProfile() {
     checks: 0,
     splits: 0,
     snapshotMs: 0,
+    assessmentReadMs: 0,
+    transferReadMs: 0,
+    transferReads: 0,
     checkpointMs: 0,
     assessMs: 0,
     allocateMs: 0,
@@ -65,6 +69,10 @@ export function createGummyFractureRuntime<
   function disposePair(value: Pair) {
     value.renderer.destroy()
     value.solver.destroy()
+  }
+
+  function isCurrentGeneration(token: number) {
+    return !disposed && token === generation
   }
 
   function replace(
@@ -105,12 +113,14 @@ export function createGummyFractureRuntime<
     timing.checks++
     const work = (async () => {
       try {
-        const snapshot = await captured.solver.snapshotDynamic()
-        timing.snapshotMs += globalThis.performance.now() - started
-        if (disposed || token !== generation) return
+        const assessment = await captured.solver.snapshotAssessment()
+        const assessmentReadMs = globalThis.performance.now() - started
+        timing.snapshotMs += assessmentReadMs
+        timing.assessmentReadMs += assessmentReadMs
+        if (!isCurrentGeneration(token)) return
         const checkpointStarted = globalThis.performance.now()
         const checkpoint = fracture.checkpoint()
-        const previousPlasticState = snapshot.jellyPlasticState
+        const previousPlasticState = assessment.jellyPlasticState
         timing.checkpointMs += globalThis.performance.now() - checkpointStarted
         try {
           const assessStarted = globalThis.performance.now()
@@ -122,13 +132,12 @@ export function createGummyFractureRuntime<
             throw new Error('Soft tearing requires reversible plastic state')
           const plastic = soft
             ? captured.solver.updatePlasticity?.(
-                snapshot.positions,
+                assessment.positions,
                 elapsedSeconds,
                 settings,
               )
             : undefined
-          if (plastic) snapshot.jellyPlasticState = plastic.state
-          const split = fracture.assess(snapshot.positions, elapsedSeconds, {
+          const split = fracture.assess(assessment.positions, elapsedSeconds, {
             ...settings,
             response: settings.tearResponse,
             plasticStrain: plastic?.equivalentPlasticStrain,
@@ -137,16 +146,30 @@ export function createGummyFractureRuntime<
           })
           timing.assessMs += globalThis.performance.now() - assessStarted
           if (split) {
+            // The caller holds stepping until this transaction finishes. Read
+            // velocity, grip and history only when a replacement needs them.
+            const transferStarted = globalThis.performance.now()
+            timing.transferReads++
+            const snapshot = await captured.solver.snapshotDynamic()
+            const transferReadMs =
+              globalThis.performance.now() - transferStarted
+            timing.snapshotMs += transferReadMs
+            timing.transferReadMs += transferReadMs
+            if (!isCurrentGeneration(token)) return
+            if (plastic) snapshot.jellyPlasticState = plastic.state
             replace(split.mesh, snapshot, split.sourceNodes, timing)
             timing.splits++
           }
         } catch (error) {
+          // Reset/disposal may win while the transfer read is outstanding.
+          // Its new material/topology must not be rewound by this old check.
+          if (!isCurrentGeneration(token)) return
           fracture.restore(checkpoint)
           if (soft) captured.solver.restorePlasticity?.(previousPlasticState)
           throw error
         }
       } catch (error) {
-        if (!disposed && token === generation) throw error
+        if (isCurrentGeneration(token)) throw error
       } finally {
         const elapsed = globalThis.performance.now() - started
         timing.totalMs += elapsed

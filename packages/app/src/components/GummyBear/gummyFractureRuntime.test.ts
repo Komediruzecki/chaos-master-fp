@@ -53,6 +53,10 @@ type Snapshot = {
 function pair(snapshot?: Promise<Snapshot>) {
   return {
     solver: {
+      snapshotAssessment: vi.fn(
+        () =>
+          snapshot ?? Promise.resolve({ positions: mesh.positions.slice() }),
+      ),
       snapshotDynamic: vi.fn(
         () =>
           snapshot ??
@@ -116,6 +120,12 @@ describe('transactional jelly fracture runtime', () => {
     expect(original.solver.destroy).toHaveBeenCalledOnce()
     expect(next.solver.destroy).not.toHaveBeenCalled()
     expect(runtime.pending).toBeUndefined()
+    expect(original.solver.snapshotAssessment).toHaveBeenCalledOnce()
+    expect(original.solver.snapshotDynamic).toHaveBeenCalledOnce()
+    expect(runtime.profile.transferReads).toBe(1)
+    expect(runtime.profile.snapshotMs).toBe(
+      runtime.profile.assessmentReadMs + runtime.profile.transferReadMs,
+    )
     runtime.destroy()
     runtime.destroy()
     expect(next.solver.destroy).toHaveBeenCalledOnce()
@@ -199,6 +209,7 @@ describe('transactional jelly fracture runtime', () => {
     )
     await runtime.check(0.05, { tearing: false, softness: 0.55 })
     expect(original.solver.snapshotDynamic).not.toHaveBeenCalled()
+    expect(original.solver.snapshotAssessment).not.toHaveBeenCalled()
     expect(control.assess).not.toHaveBeenCalled()
     expect(runtime.profile.checks).toBe(0)
     const topology = runtime.topology()
@@ -224,6 +235,11 @@ describe('transactional jelly fracture runtime', () => {
     expect(profile.totalMs).toBeGreaterThanOrEqual(profile.assessMs)
     expect(profile.maxCheckMs).toBe(profile.totalMs)
     expect(profile.allocateMs).toBe(0)
+    expect(profile.transferReads).toBe(0)
+    expect(profile.transferReadMs).toBe(0)
+    expect(profile.snapshotMs).toBe(profile.assessmentReadMs)
+    expect(original.solver.snapshotAssessment).toHaveBeenCalledOnce()
+    expect(original.solver.snapshotDynamic).not.toHaveBeenCalled()
     profile.checks = 100
     expect(runtime.profile.checks).toBe(1)
     runtime.reset()
@@ -293,8 +309,93 @@ describe('transactional jelly fracture runtime', () => {
       }),
     )
     expect(softPair.solver.restorePlasticity).not.toHaveBeenCalled()
+    expect(softPair.solver.snapshotAssessment).toHaveBeenCalledOnce()
+    expect(softPair.solver.snapshotDynamic).not.toHaveBeenCalled()
     runtime.destroy()
   })
+
+  it.each([
+    'failure',
+    'reset-success',
+    'reset-failure',
+    'dispose-success',
+    'dispose-failure',
+  ] as const)(
+    'protects material and topology when the deferred transfer ends with %s',
+    async (outcome) => {
+      const previous = {
+        gradients: new Float32Array(9).fill(1),
+        equivalentPlasticStrain: new Float32Array([0.01]),
+      }
+      const updated = {
+        gradients: new Float32Array(9).fill(2),
+        equivalentPlasticStrain: new Float32Array([0.12]),
+      }
+      const snapshot: Snapshot = {
+        positions: mesh.positions.slice(),
+        velocities: new Float32Array(16).fill(2),
+        time: 4,
+        jellyPlasticState: previous,
+      }
+      let resolve!: (value: Snapshot) => void
+      let reject!: (reason: Error) => void
+      const transfer = new Promise<Snapshot>((complete, fail) => {
+        resolve = complete
+        reject = fail
+      })
+      const original = pair(Promise.resolve(snapshot))
+      const softPair = {
+        ...original,
+        solver: {
+          ...original.solver,
+          snapshotDynamic: vi.fn(() => transfer),
+          updatePlasticity: vi.fn(() => ({
+            state: updated,
+            equivalentPlasticStrain: updated.equivalentPlasticStrain,
+            plasticIncrement: new Float32Array([0.02]),
+          })),
+          restorePlasticity: vi.fn(),
+        },
+      }
+      control.assess.mockReturnValue(split())
+      const checkpoint = { saved: true }
+      control.checkpoint.mockReturnValue(checkpoint)
+      const allocate = vi.fn(() => softPair)
+      const commit = vi.fn()
+      const runtime = createGummyFractureRuntime<Snapshot, typeof softPair>(
+        mesh,
+        softPair,
+        allocate,
+        commit,
+      )
+      const checking = runtime.check(0.05, {
+        tearing: true,
+        softness: 0.55,
+        tearResponse: 'soft',
+      })
+      await Promise.resolve()
+      expect(softPair.solver.updatePlasticity).toHaveBeenCalledOnce()
+      expect(softPair.solver.snapshotDynamic).toHaveBeenCalledOnce()
+      expect(runtime.pending).toBeDefined()
+      if (outcome.startsWith('reset')) runtime.reset()
+      if (outcome.startsWith('dispose')) runtime.destroy()
+      if (outcome.endsWith('failure')) reject(new Error('Transfer failed'))
+      else resolve(snapshot)
+      if (outcome === 'failure') {
+        await expect(checking).rejects.toThrow('Transfer failed')
+        expect(control.restore).toHaveBeenCalledWith(checkpoint)
+        expect(softPair.solver.restorePlasticity).toHaveBeenCalledWith(previous)
+      } else {
+        await expect(checking).resolves.toBeUndefined()
+        expect(control.restore).not.toHaveBeenCalled()
+        expect(softPair.solver.restorePlasticity).not.toHaveBeenCalled()
+      }
+      expect(allocate).not.toHaveBeenCalled()
+      expect(commit).not.toHaveBeenCalled()
+      expect(runtime.pending).toBeUndefined()
+      runtime.destroy()
+    },
+  )
 
   it('transfers updated plastic memory across a split and rolls it back when allocation fails', async () => {
     const previous = {

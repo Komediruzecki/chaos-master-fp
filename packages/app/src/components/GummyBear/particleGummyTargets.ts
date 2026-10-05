@@ -33,7 +33,7 @@ export function createParticleGummyTargets(
     const horizontal = texture('horizontal distance', 'r32float')
     const filtered = texture('filtered distance', 'r32float')
     const optical = texture('additive optical depth', 'rgba16float')
-    const dye = texture('integrated linear dye', 'rgba16float')
+    const dye = texture('surface material dye', 'rgba16float')
     const profileFirst = texture('near density samples', 'rgba16float')
     const profileSecond = texture('far density samples', 'rgba16float')
     const profileFar = texture('deeper density samples', 'rgba16float')

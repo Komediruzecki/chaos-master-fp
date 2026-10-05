@@ -1,12 +1,39 @@
 /** Independent, bounded-domain MLS-MPM particle jelly; legacy tetrahedral studies are untouched. */
 import { d } from 'typegpu'
-import { GUMMY_PARTICLE_GRID_SIZE, GUMMY_PARTICLE_MAX_AFFINE, GUMMY_PARTICLE_MAX_F_NORM, GUMMY_PARTICLE_MAX_SPEED, GUMMY_PARTICLE_OUTER_DT, gummyParticleMaterial, prepareGummyParticles, } from './gummyParticleMath'
-import { gummyParticleCaptureGrip, gummyParticleG2P, GummyParticleGrid, gummyParticleGridUpdate, gummyParticleLayout, gummyParticleP2G, GummyParticleParameters, GummyParticleState, } from './gummyParticleShaders'
+import { GUMMY_PARTICLE_GRID_SIZE, GUMMY_PARTICLE_MAX_AFFINE, GUMMY_PARTICLE_MAX_F_NORM, GUMMY_PARTICLE_MAX_SPEED, GUMMY_PARTICLE_OUTER_DT, gummyParticleMaterial, gummyParticleViscousSpeedLimit, gummyParticleWarmVolumetricEnergy, prepareGummyParticles, } from './gummyParticleMath'
+import { gummyParticleAdvanceTime, gummyParticleCaptureGrip, gummyParticleG2P, GummyParticleGrid, gummyParticleGridUpdate, gummyParticleLayout, gummyParticleP2G, GummyParticleParameters, GummyParticleState, } from './gummyParticleShaders'
+import { normalizeGummyRookCollider } from './gummyRookCollider'
 import { normalizeGummyPress } from './gummySolver'
 import type { TgpuRoot } from 'typegpu'
+import type { GummyParticleMaterialMode, GummyParticleTuning, } from './gummyParticleMath'
+import type { GummyRookCollider } from './gummyRookCollider'
 import type { GummyStep } from './gummySolver'
 
-export type GummyParticleOptions = Parameters<typeof prepareGummyParticles>[0]
+export type GummyParticleStep = GummyStep & {
+  particleMaterial?: GummyParticleMaterialMode
+  /** Current selects a spatial patch of deformed material; rest preserves scripted baseline grips. */
+  gripSpace?: 'rest' | 'current'
+  fragility?: number
+  tuning?: Partial<GummyParticleTuning>
+  /** Prescribed rigid rook; the victim is the only deformable body in this solver. */
+  collider?: GummyRookCollider
+  /** Moving grip attachment, optionally restricted to the original base material. */
+  gripMotion?: {
+    velocity: readonly [number, number, number]
+    baseHeight?: number
+  }
+}
+
+export type GummyParticleOptions = Parameters<
+  typeof prepareGummyParticles
+>[0] & {
+  /** Simulation-space placement; the public rest dye coordinates remain mould-local. */
+  initialOffset?: readonly [number, number, number]
+  gridOrigin?: readonly [number, number, number]
+  gridSize?: number
+  /** Enable independent-grid geometric contact gathers for the pair owner. */
+  pairContact?: boolean
+}
 
 export function createGummyParticleSolver(
   root: TgpuRoot,
@@ -24,8 +51,18 @@ export function createGummyParticleSolver(
     substeps,
     fixedDt,
   } = geometry
-  const gridCount = GUMMY_PARTICLE_GRID_SIZE ** 3
+  const gridSize = options.gridSize ?? GUMMY_PARTICLE_GRID_SIZE
+  if (!Number.isInteger(gridSize) || gridSize < 32 || gridSize > 64)
+    throw new RangeError('Particle grid size must be an integer from 32 to 64')
+  const gridCount = gridSize ** 3
+  const initialOffset = options.initialOffset ?? [0, 0, 0]
+  const gridOrigin = options.gridOrigin ?? geometry.gridOrigin
+  if (![...initialOffset, ...gridOrigin].every(Number.isFinite))
+    throw new RangeError('Particle placement and grid origin must be finite')
   const initialPositions = new Float32Array(restPositions)
+  for (let i = 0; i < initialPositions.length; i += 4)
+    for (let axis = 0; axis < 3; axis++)
+      initialPositions[i + axis]! += initialOffset[axis]!
   const initialStates = new Float32Array(
     (particleCount * d.sizeOf(GummyParticleState)) / 4,
   )
@@ -52,7 +89,7 @@ export function createGummyParticleSolver(
     const rest = own(
       root
         .createBuffer(d.arrayOf(d.vec4f, particleCount), (mapped) => {
-          mapped.write(restPositions.buffer)
+          mapped.write(initialPositions.buffer)
         })
         .$usage('storage'),
     )
@@ -83,6 +120,7 @@ export function createGummyParticleSolver(
     const params = own(
       root.createBuffer(GummyParticleParameters).$usage('uniform'),
     )
+    const clock = own(root.createBuffer(d.arrayOf(d.f32, 1)).$usage('storage'))
     const group = root.createBindGroup(gummyParticleLayout, {
       params,
       positions,
@@ -92,6 +130,7 @@ export function createGummyParticleSolver(
       grip,
       grid,
       gridVelocities,
+      clock,
     })
     const capture = root
       .createComputePipeline({ compute: gummyParticleCaptureGrip })
@@ -105,7 +144,10 @@ export function createGummyParticleSolver(
     const g2p = root
       .createComputePipeline({ compute: gummyParticleG2P })
       .with(group)
-    for (const pipeline of [capture, p2g, gridUpdate, g2p])
+    const advanceTime = root
+      .createComputePipeline({ compute: gummyParticleAdvanceTime })
+      .with(group)
+    for (const pipeline of [capture, p2g, gridUpdate, g2p, advanceTime])
       root.unwrap(pipeline)
     for (const buffer of [
       positions,
@@ -116,6 +158,7 @@ export function createGummyParticleSolver(
       grid,
       gridVelocities,
       params,
+      clock,
     ])
       root.unwrap(buffer)
     const uniform = new ArrayBuffer(d.sizeOf(GummyParticleParameters))
@@ -128,15 +171,30 @@ export function createGummyParticleSolver(
     let previousPressHeight: number | undefined
     let lastMaterial = gummyParticleMaterial(0.55)
 
-    function step(dt: number, input: GummyStep) {
-      if (disposed || !Number.isFinite(dt) || dt <= 0) return 0
+    function prepareStep(dt: number, input: GummyParticleStep) {
+      if (disposed || !Number.isFinite(dt) || dt <= 0) return undefined
+      const collider = normalizeGummyRookCollider(input.collider)
+      if (
+        input.gripMotion &&
+        (!input.gripMotion.velocity.every(Number.isFinite) ||
+          Math.hypot(...input.gripMotion.velocity) > 32 ||
+          !Number.isFinite(input.gripMotion.baseHeight ?? 0) ||
+          (input.gripMotion.baseHeight ?? 0) < 0 ||
+          (input.gripMotion.baseHeight ?? 0) > 0.6)
+      )
+        throw new RangeError('Grip motion must be finite and bounded')
       accumulator = Math.min(6 * GUMMY_PARTICLE_OUTER_DT, accumulator + dt)
       const count = Math.floor(
         (accumulator + 0.000000001) / GUMMY_PARTICLE_OUTER_DT,
       )
-      if (!count) return 0
+      if (!count) return undefined
       accumulator -= count * GUMMY_PARTICLE_OUTER_DT
-      lastMaterial = gummyParticleMaterial(input.softness)
+      lastMaterial = gummyParticleMaterial(
+        input.softness,
+        input.particleMaterial,
+        input.fragility,
+        input.tuning,
+      )
       f32.fill(0)
       f32.set([fixedDt, gridSpacing, geometry.particleVolume, spacing * 0.5], 0)
       f32.set(
@@ -148,8 +206,11 @@ export function createGummyParticleSolver(
         ],
         4,
       )
-      f32.set([...geometry.gridOrigin, geometry.pinHeight], 8)
-      u32.set([particleCount, GUMMY_PARTICLE_GRID_SIZE, gridCount, 0], 12)
+      f32.set([...gridOrigin, geometry.pinHeight], 8)
+      u32.set(
+        [particleCount, gridSize, gridCount, options.pairContact ? 1 : 0],
+        12,
+      )
       if (input.grip) {
         if (
           ![
@@ -189,35 +250,108 @@ export function createGummyParticleSolver(
           GUMMY_PARTICLE_MAX_SPEED,
           GUMMY_PARTICLE_MAX_AFFINE,
           GUMMY_PARTICLE_MAX_F_NORM,
-          9.81,
+          lastMaterial.gravity,
         ],
         28,
       )
+      f32.set(
+        [
+          lastMaterial.mode === 'warm' ? 1 : 0,
+          lastMaterial.relaxationRate,
+          lastMaterial.damageRate,
+          lastMaterial.viscosity,
+        ],
+        32,
+      )
+      f32.set(
+        [
+          input.gripSpace === 'current' ? 1 : 0,
+          lastMaterial.gripStiffness,
+          lastMaterial.gripDamping,
+          lastMaterial.floorDrag,
+        ],
+        36,
+      )
+      f32.set(
+        [
+          lastMaterial.yieldStretch,
+          lastMaterial.damageOnset,
+          lastMaterial.damageComplete,
+          0,
+        ],
+        40,
+      )
+      if (collider) {
+        f32.set([...collider.position, 1], 44)
+        f32.set([...collider.velocity, collider.friction], 48)
+      }
+      if (input.gripMotion)
+        f32.set(
+          [...input.gripMotion.velocity, input.gripMotion.baseHeight ?? 0],
+          52,
+        )
       params.write(uniform)
       const key = input.grip
-        ? `${input.grip.center.join(':')}:${input.grip.radius}`
+        ? `${input.gripSpace ?? 'rest'}:${input.grip.center.join(':')}:${input.grip.radius}:${input.gripMotion?.baseHeight ?? 0}`
         : ''
       const captureGrip = !!key && key !== gripKey
       gripKey = key
-      const encoder = device.createCommandEncoder({
-        label: 'Particle jelly MLS-MPM fixed steps',
-      })
-      if (captureGrip) {
+      return { count, captureGrip, collider: !!collider }
+    }
+
+    type PreparedStep = NonNullable<ReturnType<typeof prepareStep>>
+
+    function encodeSetup(encoder: GPUCommandEncoder, prepared: PreparedStep) {
+      if (prepared.collider) encoder.clearBuffer(root.unwrap(clock))
+      if (prepared.captureGrip) {
         const pass = encoder.beginComputePass()
         capture.with(pass).dispatchWorkgroups(Math.ceil(particleCount / 64))
         pass.end()
       }
-      for (let i = 0; i < count * substeps; i++) {
+    }
+
+    function encodeP2G(encoder: GPUCommandEncoder) {
+      encoder.clearBuffer(root.unwrap(grid))
+      const pass = encoder.beginComputePass()
+      p2g.with(pass).dispatchWorkgroups(Math.ceil(particleCount / 64))
+      pass.end()
+    }
+
+    function encodeGrid(encoder: GPUCommandEncoder) {
+      const pass = encoder.beginComputePass()
+      gridUpdate.with(pass).dispatchWorkgroups(Math.ceil(gridCount / 64))
+      pass.end()
+    }
+
+    function encodeG2P(encoder: GPUCommandEncoder) {
+      const pass = encoder.beginComputePass()
+      g2p.with(pass).dispatchWorkgroups(Math.ceil(particleCount / 64))
+      pass.end()
+    }
+
+    function recordSteps(count: number) {
+      simulationTime += count * GUMMY_PARTICLE_OUTER_DT
+    }
+
+    function step(dt: number, input: GummyParticleStep) {
+      const prepared = prepareStep(dt, input)
+      if (!prepared) return 0
+      const encoder = device.createCommandEncoder({
+        label: 'Particle jelly MLS-MPM fixed steps',
+      })
+      encodeSetup(encoder, prepared)
+      for (let i = 0; i < prepared.count * substeps; i++) {
         encoder.clearBuffer(root.unwrap(grid))
         const pass = encoder.beginComputePass()
         p2g.with(pass).dispatchWorkgroups(Math.ceil(particleCount / 64))
         gridUpdate.with(pass).dispatchWorkgroups(Math.ceil(gridCount / 64))
         g2p.with(pass).dispatchWorkgroups(Math.ceil(particleCount / 64))
+        if (prepared.collider) advanceTime.with(pass).dispatchWorkgroups(1)
         pass.end()
       }
       device.queue.submit([encoder.finish()])
-      simulationTime += count * GUMMY_PARTICLE_OUTER_DT
-      return count
+      recordSteps(prepared.count)
+      return prepared.count
     }
 
     function reset() {
@@ -227,13 +361,29 @@ export function createGummyParticleSolver(
       const encoder = device.createCommandEncoder({
         label: 'Particle jelly reset',
       })
-      for (const buffer of [velocities, grip, grid, gridVelocities])
+      for (const buffer of [velocities, grip, grid, gridVelocities, clock])
         encoder.clearBuffer(root.unwrap(buffer))
       device.queue.submit([encoder.finish()])
       simulationTime = 0
       accumulator = 0
       gripKey = ''
       previousPressHeight = undefined
+    }
+
+    /** Picking needs only current positions, without material diagnostics or other readbacks. */
+    async function readPositions(): Promise<Float32Array> {
+      if (disposed) throw new Error('Particle solver has been destroyed')
+      const points = await positions.read()
+      if (disposed) throw new Error('Particle solver has been destroyed')
+      const packed = new Float32Array(particleCount * 4)
+      for (let id = 0; id < particleCount; id++) {
+        const point = points[id]!
+        packed[id * 4] = point.x
+        packed[id * 4 + 1] = point.y
+        packed[id * 4 + 2] = point.z
+        packed[id * 4 + 3] = point.w
+      }
+      return packed
     }
 
     async function readState() {
@@ -249,6 +399,11 @@ export function createGummyParticleSolver(
       const deformation = new Float32Array(particleCount * 12)
       const damage = new Float32Array(particleCount)
       const peakStretch = new Float32Array(particleCount)
+      const plasticStrain = new Float32Array(particleCount)
+      let maxPlasticStrain = 0
+      const volumetricOpening = new Float32Array(particleCount)
+      let maxVolumetricOpening = 0
+      let cavitationUpdates = 0
       const J = new Float32Array(particleCount)
       let guardActivations = 0
       let speedCaps = 0
@@ -256,6 +411,7 @@ export function createGummyParticleSolver(
       let deformationRejections = 0
       let domainContacts = 0
       let zeroShearUpdates = 0
+      let relaxationUpdates = 0
       let elasticEnergy = 0
       let kineticEnergy = 0
       let gripCount = 0
@@ -288,11 +444,17 @@ export function createGummyParticleSolver(
         )
         const logJ = Math.log(jacobian)
         const mu = lastMaterial.shearModulus * (1 - material.history.x) ** 2
+        const volumetricEnergy =
+          lastMaterial.mode === 'warm'
+            ? gummyParticleWarmVolumetricEnergy(
+                logJ,
+                lastMaterial.bulkModulus,
+                material.history.x,
+              )
+            : (lastMaterial.bulkModulus * logJ * logJ) / 2
         elasticEnergy +=
           geometry.particleVolume *
-          ((mu * (trace - 3)) / 2 -
-            mu * logJ +
-            (lastMaterial.bulkModulus * logJ * logJ) / 2)
+          ((mu * (trace - 3)) / 2 - mu * logJ + volumetricEnergy)
         kineticEnergy +=
           (geometry.particleVolume *
             (velocity.x ** 2 + velocity.y ** 2 + velocity.z ** 2)) /
@@ -300,11 +462,17 @@ export function createGummyParticleSolver(
         J[id] = jacobian
         damage[id] = material.history.x
         peakStretch[id] = material.history.y
+        plasticStrain[id] = material.flow.x
+        maxPlasticStrain = Math.max(maxPlasticStrain, material.flow.x)
+        volumetricOpening[id] = material.flow.y
+        maxVolumetricOpening = Math.max(maxVolumetricOpening, material.flow.y)
+        cavitationUpdates += material.flow.z
         speedCaps += material.history.z
         affineCaps += material.history.w
         deformationRejections += material.diagnostics.x
         domainContacts += material.diagnostics.y
         zeroShearUpdates += material.diagnostics.z
+        relaxationUpdates += material.diagnostics.w
         maxGridSpeed = Math.max(maxGridSpeed, material.transfer.x)
         maxParticleSpeed = Math.max(maxParticleSpeed, velocity.w)
         speedCapImpulse += material.transfer.y
@@ -319,6 +487,11 @@ export function createGummyParticleSolver(
         deformation,
         damage,
         peakStretch,
+        plasticStrain,
+        maxPlasticStrain,
+        volumetricOpening,
+        maxVolumetricOpening,
+        cavitationUpdates,
         J,
         simulationTime,
         particleCount,
@@ -332,6 +505,8 @@ export function createGummyParticleSolver(
         deformationRejections,
         domainContacts,
         zeroShearUpdates,
+        relaxationUpdates,
+        particleMaterial: lastMaterial.mode,
         maxGridSpeed,
         maxParticleSpeed,
         speedCapImpulse,
@@ -345,25 +520,46 @@ export function createGummyParticleSolver(
       materialModel: 'mls-mpm' as const,
       positions,
       restPositions,
+      initialPositions,
       particleCount,
       spacing,
       gridSpacing,
+      gridSize,
       substeps,
       fixedDt,
       restVolume: geometry.restVolume,
       transfer: 'f32-node-gather' as const,
       waveSpeedBound: geometry.waveSpeedBound,
-      nodalSpeedBound: geometry.nodalSpeedBound,
+      get nodalSpeedBound() {
+        return gummyParticleViscousSpeedLimit(
+          fixedDt,
+          gridSpacing,
+          lastMaterial.viscosity,
+          lastMaterial.gravity,
+        )
+      },
       bounds: geometry.bounds,
       gridBounds: {
-        min: [...geometry.gridOrigin],
-        max: geometry.gridOrigin.map(
-          (value) => value + GUMMY_PARTICLE_GRID_SIZE * gridSpacing,
-        ),
+        min: [...gridOrigin],
+        max: gridOrigin.map((value) => value + gridSize * gridSpacing),
       },
       step,
       reset,
+      readPositions,
       readState,
+      /** Split transfers let the pair owner couple independent grids before either body's G2P. */
+      kernels: {
+        prepareStep,
+        encodeSetup,
+        encodeP2G,
+        encodeGrid,
+        encodeG2P,
+        recordSteps,
+        grid,
+        gridVelocities,
+        velocities,
+        states,
+      },
       destroy() {
         if (disposed) return
         disposed = true

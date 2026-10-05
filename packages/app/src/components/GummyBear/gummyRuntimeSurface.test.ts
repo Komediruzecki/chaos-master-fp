@@ -133,7 +133,7 @@ describe('shared-node runtime tear surfaces', () => {
     }
     expect(permanentEdges).toBe(6)
     expect(data.indices).toHaveLength(8 * 48)
-    expect(data.ranges).toHaveLength(positionsCount(mesh) * 6)
+    expect(data.ranges).toHaveLength(positionsCount(mesh) * 8)
     expect(
       Array.from(data.metadata.filter((_, index) => index % 4 === 0)),
     ).toEqual([1, 1, 1, 1, 2, 2, 2, 2])

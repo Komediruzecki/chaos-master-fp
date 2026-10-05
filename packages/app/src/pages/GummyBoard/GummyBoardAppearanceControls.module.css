@@ -1,0 +1,102 @@
+/* Complete control chrome for the appearance panel at desktop and narrow touch widths. */
+.panel {
+  margin: 0 0 24px;
+  border: 1px solid #c5d0cf;
+  border-radius: 8px;
+  background: #f6f5ef;
+  overflow: hidden;
+}
+.panel summary {
+  min-height: 44px;
+  padding: 14px 12px;
+  color: #50656d;
+  font: 600 12px var(--font-sans, sans-serif);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.content {
+  min-width: 0;
+  margin: 0;
+  padding: 0 12px 12px;
+  border: 0;
+}
+.label {
+  display: block;
+  margin: 14px 0 7px;
+  color: #536a75;
+  font-size: 12px;
+}
+.select {
+  appearance: auto;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid #b9c7ca;
+  border-radius: 7px;
+  padding: 8px;
+  background: #fffdf8;
+  color: #4c6572;
+  font: 16px var(--font-sans, sans-serif);
+}
+.actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin: 10px 0;
+}
+.actions button {
+  appearance: none;
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid #c8d0ce;
+  border-radius: 7px;
+  padding: 8px 6px;
+  background: #fffdf8;
+  color: #4c6572;
+  font: 12px/1.35 var(--font-sans, sans-serif);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.actions button:hover {
+  background: #e4e9e5;
+  border-color: #9baeb3;
+}
+.sliderLabel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 16px;
+  color: #536a75;
+  font-size: 12px;
+}
+.sliderLabel output {
+  font-variant-numeric: tabular-nums;
+}
+.slider {
+  width: 100%;
+  height: 44px;
+  margin: 3px 0 0;
+  accent-color: #427d98;
+  cursor: pointer;
+}
+.help,
+.notice {
+  margin: 8px 0 0;
+  color: #73828a;
+  font-size: 11px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.notice {
+  color: #865425;
+}
+.panel :is(button, select, input, summary):focus-visible {
+  outline: 2px solid #2d799b;
+  outline-offset: 2px;
+}
+.content:disabled,
+.panel :is(button, select):disabled {
+  opacity: 0.45;
+  cursor: default;
+}

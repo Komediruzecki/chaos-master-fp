@@ -2,6 +2,7 @@
 import { d, tgpu } from 'typegpu'
 import { describe, expect, it } from 'vitest'
 import { GUMMY_IOR, GUMMY_MATERIALS, gummyEnvironment, gummyFresnel, gummyOpticalPath, gummyTransmission, gummyUnitNormal, } from './gummyMaterial'
+import { gummyRoundingCompute } from './gummyRoundedSurfaceShaders'
 import { gummyBackgroundFragment, gummyBrokenEdgeFlatten, gummyCausticFragment, gummyCausticVertex, gummyDisplayFragment, gummyExitFragment, gummyFragment, gummyFrontTagFragment, gummyNormalsCompute, gummyRuntimeExitFragment, gummyShadowFragment, gummyShadowVertex, gummyVertex, } from './gummyShaders'
 
 describe('gummy native shading', () => {
@@ -29,6 +30,7 @@ describe('gummy native shading', () => {
     gummyBackgroundFragment,
     gummyDisplayFragment,
     gummyNormalsCompute,
+    gummyRoundingCompute,
   ])('resolves each native entrypoint', (shader) => {
     const source = tgpu.resolve([shader], { names: 'strict' })
     expect(source).toMatch(/@(vertex|fragment|compute)/)

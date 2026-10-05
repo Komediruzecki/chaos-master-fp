@@ -1,6 +1,12 @@
 /* Warm studio layout and complete control chrome for the isolated gummy study. */
 .page {
-  min-height: 100dvh;
+  /* The editor locks body scrolling; this standalone page owns its viewport. */
+  height: 100vh;
+  height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
   background: #edece6;
   color: #243441;
   color-scheme: light;
@@ -45,6 +51,10 @@
   align-items: start;
 }
 .studio {
+  /* iOS selection can start on the labels around a held canvas gesture. */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
   position: sticky;
   top: 18px;
   min-width: 0;
@@ -178,6 +188,14 @@
 }
 .studioActions {
   grid-column: 1 / -1;
+}
+.studioTools {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-width: 0;
+}
+.segments.cameraModes {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 .actions.compactActions {
   margin: 0;
@@ -355,15 +373,6 @@
 .keys {
   border-top: 1px solid #d1d7d1;
   padding-top: 16px;
-}
-.error {
-  padding: 12px;
-  background: #f9ece5;
-  border: 1px solid #dcb4a0;
-  border-radius: 7px;
-  color: #905e45;
-  font-size: 12px;
-  line-height: 1.6;
 }
 .page button:focus-visible,
 .page a:focus-visible,

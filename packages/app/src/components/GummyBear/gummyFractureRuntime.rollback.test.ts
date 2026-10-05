@@ -41,6 +41,7 @@ it('retries the same real fracture after allocation failure and resets its commi
   for (let z = 2; z < stretched.length; z += 4) stretched[z]! *= 3
   const pair = () => ({
     solver: {
+      snapshotAssessment: () => Promise.resolve({ positions: stretched }),
       snapshotDynamic: () => Promise.resolve({ positions: stretched }),
       reset: vi.fn(),
       destroy: vi.fn(),

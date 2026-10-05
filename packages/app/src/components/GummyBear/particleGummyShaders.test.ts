@@ -1,7 +1,7 @@
 /** Compile particle GPU passes and independently test support gaps and occupied-volume optics. */
 import { d, tgpu } from 'typegpu'
 import { describe, expect, it } from 'vitest'
-import { PARTICLE_GUMMY_DENSITY_ISO, PARTICLE_GUMMY_RADIUS_SCALE, particleBoundaryNormal, particleDensitySurface, particleDensitySurfaceWithFallback, particleDepthWeight, particleEdgeNormal, particleKernelDensity, particleKernelNormal, particleMeanDye, particleOpticalScale, particleSmoothChord, particleSphereInterval, particleVolumeWeight, } from './particleGummyMath'
+import { PARTICLE_GUMMY_DENSITY_ISO, PARTICLE_GUMMY_RADIUS_SCALE, particleBoundaryNormal, particleDensityCrossing, particleDensitySurface, particleDensitySurfaceWithFallback, particleDepthWeight, particleEdgeNormal, particleKernelDensity, particleKernelNormal, particleMeanDye, particleOpticalScale, particleSmoothChord, particleSphereInterval, particleVolumeWeight, } from './particleGummyMath'
 import { particleGummyComposite, particleGummyDepthFragment, particleGummyFilterHorizontal, particleGummyFilterVertical, particleGummyOpticalFragment, particleGummyShadowFragment, particleGummyShadowVertex, particleGummyVertex, } from './particleGummyShaders'
 import { particleGummyFarProfileFragment, particleGummyNormalFragment, particleGummySurfaceFragment, } from './particleGummySurfaceShaders'
 
@@ -68,7 +68,7 @@ describe('particle gummy native surface', () => {
     )
   })
 
-  it('averages transported dyes by occupied support and keeps empty rays finite', () => {
+  it('averages transported surface dyes and keeps empty support finite', () => {
     const mixture = particleMeanDye(d.vec3f(0.3, 0.5, 0), 0.8)
     expect([mixture.x, mixture.y, mixture.z]).toEqual([0.375, 0.625, 0])
     const scaled = particleMeanDye(d.vec3f(0.6, 1, 0), 1.6)
@@ -79,11 +79,41 @@ describe('particle gummy native surface', () => {
     ])
     const empty = particleMeanDye(d.vec3f(0), 0)
     expect([empty.x, empty.y, empty.z]).toEqual([0, 0, 0])
-    const source = tgpu.resolve([particleGummyOpticalFragment], {
+    const source = tgpu.resolve([particleGummyNormalFragment], {
       names: 'strict',
     })
     expect(source).toContain('gummyColourAtPoint')
+    expect(source).toContain('particleKernelDensity')
     expect(source).toContain('@location(1)')
+    const optical = tgpu.resolve([particleGummyOpticalFragment], {
+      names: 'strict',
+    })
+    expect(optical).toContain('gummyAbsorptionAtPoint')
+    expect(optical).not.toContain('gummyColourAtPoint')
+  })
+
+  it('keeps a foreground surface dye distinct from a different blob behind it', () => {
+    const radius = 0.104,
+      weight = particleVolumeWeight(0.08, radius)
+    const surface = d.vec3f(0, 0, -0.04)
+    const foreground = particleKernelDensity(surface, radius, weight)
+    const background = particleKernelDensity(
+      d.vec3f(surface.x, surface.y, surface.z - 0.5),
+      radius,
+      weight,
+    )
+    const dye = particleMeanDye(
+      d.vec3f(foreground, background, 0),
+      foreground + background,
+    )
+    expect([dye.x, dye.y, dye.z]).toEqual([1, 0, 0])
+    // Actual overlapping kernels at a contact interface may blend their carried dyes.
+    const overlap = particleKernelDensity(d.vec3f(0, 0, 0.04), radius, weight)
+    const touching = particleMeanDye(
+      d.vec3f(foreground, overlap, 0),
+      foreground + overlap,
+    )
+    expect([touching.x, touching.y, touching.z]).toEqual([0.5, 0.5, 0])
   })
 
   it('preserves smooth interior normals and restores a grazing normal at an open edge', () => {
@@ -214,6 +244,56 @@ describe('particle gummy native surface', () => {
         PARTICLE_GUMMY_DENSITY_ISO,
       ),
     ).toBeGreaterThan(0)
+  })
+
+  it('reconstructs small-drop fronts accurately through grazing angles without adding density samples', () => {
+    const spacing = 0.08,
+      radius = spacing * PARTICLE_GUMMY_RADIUS_SCALE,
+      weight = particleVolumeWeight(spacing, radius),
+      iso = PARTICLE_GUMMY_DENSITY_ISO
+    const densityRadius =
+      radius * Math.sqrt(1 - Math.sqrt(iso / ((35 / 8) * weight)))
+    let errorSum = 0
+    for (let index = 0; index < 100; index++) {
+      const impact = (index / 100) * densityRadius
+      const supportFront = 5 - Math.sqrt(radius * radius - impact * impact)
+      const step = (2 * radius) / 7
+      const values = Array.from({ length: 8 }, (_, sample) =>
+        particleKernelDensity(
+          d.vec3f(impact, 0, supportFront + sample * step - 5),
+          radius,
+          weight,
+        ),
+      )
+      const distance = particleDensitySurface(
+        supportFront,
+        step,
+        d.vec4f(values[0]!, values[1]!, values[2]!, values[3]!),
+        d.vec4f(values[4]!, values[5]!, values[6]!, values[7]!),
+        iso,
+      )
+      // Independent analytic isosurface of the normalized quartic kernel.
+      const expected =
+        5 - Math.sqrt(densityRadius * densityRadius - impact * impact)
+      const error = Math.abs(distance - expected)
+      expect(error).toBeLessThan(0.0009)
+      errorSum += error
+    }
+    expect(errorSum / 100).toBeLessThan(0.0004)
+  })
+
+  it('keeps the density root inside its real monotone bracket at a peak or support boundary', () => {
+    for (const samples of [d.vec4f(0, 0, 0.5, 0), d.vec4f(0, 0.2, 0.5, 0.8)]) {
+      let previous = 0
+      for (let index = 1; index < 20; index++) {
+        const iso = samples.y + (samples.z - samples.y) * (index / 20)
+        const root = particleDensityCrossing(samples, iso)
+        expect(root).toBeGreaterThan(previous)
+        expect(root).toBeLessThan(1)
+        previous = root
+      }
+    }
+    expect(particleDensityCrossing(d.vec4f(0), 0)).toBe(0)
   })
 
   it('removes a zero-density support halo and never invents material in a missing pixel', () => {

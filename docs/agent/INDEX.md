@@ -127,6 +127,7 @@ file instead of rediscovering the architecture every session.
 | `FlameRandomizerCard` | [FlameRandomizerCard.tsx](../../packages/app/src/components/FlameRandomizerCard/FlameRandomizerCard.tsx) | _(no header comment)_ |
 | `FloatingActions` | [FloatingActions.tsx](../../packages/app/src/components/FloatingActions/FloatingActions.tsx) | _(no header comment)_ |
 | `GummyBear` | [GummyBearScene.tsx](../../packages/app/src/components/GummyBear/GummyBearScene.tsx) | Owned gummy simulation, bounded fixed steps, and current-position pointer grips. |
+| `GummyBoard` | [GummyBoardScene.tsx](../../packages/app/src/components/GummyBoard/GummyBoardScene.tsx) | A repeatable gummy capture with two-body contact and a preserved driven-rook comparison. |
 | `HelpModal` | [HelpModal.tsx](../../packages/app/src/components/HelpModal/HelpModal.tsx) | _(no header comment)_ |
 | `Home` | [HomeFlame.tsx](../../packages/app/src/components/Home/HomeFlame.tsx) | _(no header comment)_ |
 | `ImportVariationsModal` | [ImportVariationsModal.tsx](../../packages/app/src/components/ImportVariationsModal/ImportVariationsModal.tsx) | _(no header comment)_ |
@@ -181,6 +182,7 @@ file instead of rediscovering the architecture every session.
 | `Figurines` | [FigurinesPage.tsx](../../packages/app/src/pages/Figurines/FigurinesPage.tsx) | Native flame and geometric figurine collections in one live stage without draft writes. |
 | `FractalExplorer` | [FractalExplorerPage.tsx](../../packages/app/src/pages/FractalExplorer/FractalExplorerPage.tsx) | The deep-zoom explorer page: a full-bleed canvas, a heads-up readout and a settings panel. |
 | `GummyBear` | [GummyBearPage.tsx](../../packages/app/src/pages/GummyBear/GummyBearPage.tsx) | A single gummy material and deformation study, isolated from the chess and flame documents. |
+| `GummyBoard` | [GummyBoardPage.tsx](../../packages/app/src/pages/GummyBoard/GummyBoardPage.tsx) | A repeatable rook strike on a gummy pawn, with shared material presets and canvas recording. |
 | `Pawn` | [PawnPage.tsx](../../packages/app/src/pages/Pawn/PawnPage.tsx) | Live pawn workshop: tune a native 3D IFS and retain an editable recipe. |
 | `PawnBoard` | [PawnBoardPage.tsx](../../packages/app/src/pages/PawnBoard/PawnBoardPage.tsx) | Pawn-race board controls, native square picking and capture animation sequencing. |
 <!-- prettier-ignore-end -->
@@ -332,6 +334,7 @@ file instead of rediscovering the architecture every session.
 | [flameInMp4.ts](../../packages/app/src/utils/flameInMp4.ts) | _(no header comment)_ |
 | [flameInPng.ts](../../packages/app/src/utils/flameInPng.ts) | What a saved PNG carries besides its pixels, in zTXt chunks: the flame (`FlameJson`), the recorded session that made it (`FlameSteps`), a... |
 | [jsonQueryParam.ts](../../packages/app/src/utils/jsonQueryParam.ts) | _(no header comment)_ |
+| [liveCanvasRecorder.ts](../../packages/app/src/utils/liveCanvasRecorder.ts) | Own a short, real-time canvas recording without readbacks or a screen-share prompt. |
 | [mathToWgsl.ts](../../packages/app/src/utils/mathToWgsl.ts) | Translate a math-notation expression (LaTeX-like) into a WGSL function body. |
 | [recentFlames.ts](../../packages/app/src/utils/recentFlames.ts) | _(no header comment)_ |
 | [serializeLogArgs.ts](../../packages/app/src/utils/serializeLogArgs.ts) | Caps applied to every serialized console entry. |
@@ -401,6 +404,7 @@ instead. `wc -l` gives the current size.
 | [packages/app/src/flame/variations/utils.ts](../../packages/app/src/flame/variations/utils.ts) |
 | [packages/app/src/MainWorkspace.tsx](../../packages/app/src/MainWorkspace.tsx) |
 | [packages/app/src/pages/Benchmarks/BenchmarksPage.tsx](../../packages/app/src/pages/Benchmarks/BenchmarksPage.tsx) |
+| [packages/app/src/pages/GummyBear/GummyBearPage.tsx](../../packages/app/src/pages/GummyBear/GummyBearPage.tsx) |
 | [packages/app/src/recorder/recorder.ts](../../packages/app/src/recorder/recorder.ts) |
 | [packages/app/src/recorder/replayVideo.ts](../../packages/app/src/recorder/replayVideo.ts) |
 | [packages/app/src/utils/timeline.ts](../../packages/app/src/utils/timeline.ts) |
