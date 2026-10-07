@@ -12,21 +12,26 @@ import { GummyCinemaExport } from './GummyCinemaExport'
 import styles from './GummyCinemaPage.module.css'
 import { createGummyCinemaRecipe, parseGummyCinemaRecipe, } from './gummyCinemaRecipe'
 import { GummyCinemaSection } from './GummyCinemaSection'
+import { readGummyMatchCinemaRecipe } from './gummyMatchSession'
 import type { GummyCinemaRecipe } from './gummyCinemaRecipe'
 import type { GummyBoardShot, GummyBoardShotMotion, } from '@/components/GummyBoard/gummyBoardShots'
 import type { GummyCinemaController } from '@/components/GummyBoard/GummyCinemaScene'
 
 export function GummyCinemaPage() {
   const params = new URLSearchParams(window.location.search)
-  const initial = createGummyCinemaRecipe(
-    GUMMY_BOARD_SHOTS.find((s) => s.id === params.get('shot')),
-  )
+  const handoff =
+    params.get('from') === 'match' ? readGummyMatchCinemaRecipe() : undefined
+  const initial =
+    handoff?.recipe ??
+    createGummyCinemaRecipe(
+      GUMMY_BOARD_SHOTS.find((s) => s.id === params.get('shot')),
+    )
   const [recipe, setRecipe] = createSignal(initial)
   const [draft, setDraft] = createSignal(initial)
   const [ready, setReady] = createSignal(false)
   const [playing, setPlaying] = createSignal(false)
   const [time, setTime] = createSignal(0)
-  const [error, setError] = createSignal<string>()
+  const [error, setError] = createSignal<string | undefined>(handoff?.error)
   const [json, setJson] = createSignal('')
   const [copying, setCopying] = createSignal(false)
   const [copyStatus, setCopyStatus] = createSignal('')
@@ -263,8 +268,8 @@ export function GummyCinemaPage() {
         </button>
       </Show>
       <aside class={styles.sidebar} hidden={clean()}>
-        <a class={styles.back} href="/gummy?view=board">
-          Back to the board
+        <a class={styles.back} href="/gummy?view=match">
+          Play gummy chess
         </a>
         <h1>Gummy cinema</h1>
         <p class={styles.intro}>

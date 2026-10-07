@@ -162,6 +162,45 @@ beforeEach(() => {
 })
 
 describe('two live gummy board surfaces', () => {
+  it('renders a complete waiting board without allocating a live surface and reuses its light while orbiting', async () => {
+    const test = harness()
+    const renderer = await createGummyBoardRenderer(
+      test.root,
+      test.device,
+      test.context,
+      'bgra8unorm',
+    )
+    const pieces: GummyBoardRenderOptions['pieces'] = Array.from(
+      { length: 32 },
+      (_, id) => ({
+        id,
+        mould: id % 2 === 0 ? 'pawn' : 'rook',
+        side: id < 16 ? 0 : 1,
+        position: [id % 8, 0, Math.floor(id / 8)],
+        palette: id < 16 ? 'marble' : 'blue',
+      }),
+    )
+    const settings: GummyBoardRenderOptions = {
+      pieces,
+      victimId: 0,
+      victimPosition: [0, 0, 0],
+    }
+    renderer.render(frame, settings)
+    expect(mocks.surfaces).not.toHaveBeenCalled()
+    expect(test.materialWrites.at(-1)![0]).toBe(6)
+    expect(() => renderer.readSurfaceStats()).toThrow(/no simulated piece/)
+    const draws = test.pipelines[3]!.drawIndirect.mock.calls.length
+    renderer.render({ ...frame, eye: new Float32Array([1, 3, 6]) }, settings)
+    expect(test.pipelines[3]!.drawIndirect).toHaveBeenCalledTimes(draws)
+    expect(renderer.readRenderStats()).toMatchObject({
+      staticLightUpdates: 1,
+      lightCacheHits: 1,
+    })
+    renderer.destroy()
+    expect(test.rest.destroy).toHaveBeenCalledOnce()
+    for (const resource of test.resources)
+      expect(resource.destroy).toHaveBeenCalledOnce()
+  })
   it('allocates glass transport only when enabled and reuses it across live theme changes', async () => {
     const test = harness()
     mocks.surfaces.mockReturnValueOnce(surface())

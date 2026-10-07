@@ -6,6 +6,7 @@ import { GUMMY_BOARD_SHOTS } from '@/components/GummyBoard/gummyBoardShots'
 import { GUMMY_BUILTIN_PRESETS } from '../GummyBear/gummyBuiltinPresets'
 import { GummyCinemaPage } from './GummyCinemaPage'
 import { createGummyCinemaRecipe, parseGummyCinemaRecipe, } from './gummyCinemaRecipe'
+import { GUMMY_MATCH_CINEMA_KEY } from './gummyMatchSession'
 import type { ComponentProps } from 'solid-js'
 import type { GummyCinemaController, GummyCinemaScene, } from '@/components/GummyBoard/GummyCinemaScene'
 import type { LiveCanvasRecordingOptions } from '@/utils/liveCanvasRecorder'
@@ -112,6 +113,16 @@ beforeEach(() => {
     getItem: (key: string) => storage.get(key) ?? null,
     setItem: (key: string, value: string) => storage.set(key, value),
   })
+  const session = new Map<string, string>()
+  vi.stubGlobal('sessionStorage', {
+    getItem: (key: string) => session.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      session.set(key, value)
+    },
+    removeItem: (key: string) => {
+      session.delete(key)
+    },
+  })
   fixtures.scenes.length = 0
   fixtures.order.length = 0
   fixtures.exportControls.length = 0
@@ -159,6 +170,27 @@ function exportRecipe() {
 }
 
 describe('GummyCinemaPage', () => {
+  it('opens a validated match handoff and preserves the same shot after a reload', () => {
+    const recipe = createGummyCinemaRecipe(GUMMY_BOARD_SHOTS[1])
+    recipe.shot.id = 'match-capture-7'
+    recipe.scale = 0.94
+    recipe.material.softness = 0.35
+    window.history.replaceState(null, '', '/gummy?view=cinema&from=match')
+    sessionStorage.setItem(GUMMY_MATCH_CINEMA_KEY, JSON.stringify(recipe))
+    const view = render(() => <GummyCinemaPage />)
+    expect(fixtures.scenes.at(-1)?.shot).toEqual(recipe.shot)
+    expect(fixtures.scenes.at(-1)?.material.softness).toBe(0.35)
+    expect(fixtures.scenes.at(-1)?.scale).toBe(0.94)
+    expect(
+      screen
+        .getByRole('link', { name: 'Play gummy chess' })
+        .getAttribute('href'),
+    ).toBe('/gummy?view=match')
+    view.unmount()
+    render(() => <GummyCinemaPage />)
+    expect(fixtures.scenes.at(-1)?.shot.id).toBe('match-capture-7')
+  })
+
   it('loads a named shot with its exact RockGummy material and keeps the three independent shots available', () => {
     window.history.replaceState(null, '', '/gummy?view=cinema&shot=bishop-rook')
     render(() => <GummyCinemaPage />)

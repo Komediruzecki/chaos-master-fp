@@ -59,6 +59,7 @@ type Props = {
   artStyle: 'classic' | 'sculpted'
   attackerPalette: GummyPalette
   victimPalette: GummyPalette
+  backgroundPalettes?: readonly [GummyPalette, GummyPalette]
   onController: (controller: GummyCinemaController | undefined) => void
   onProgress: (time: number, playing: boolean) => void
   onError: (message: string) => void
@@ -126,9 +127,8 @@ function NativeGummyCinema(
       palette:
         p.id === shot.attacker.id
           ? props.attackerPalette
-          : p.side === 0
-            ? ('berry' as const)
-            : ('blue' as const),
+          : (props.backgroundPalettes?.[p.side] ??
+            (p.side === 0 ? ('berry' as const) : ('blue' as const))),
     }))
   const attacker = pieces.find((p) => p.id === shot.attacker.id)!
 
@@ -357,6 +357,7 @@ function NativeGummyCinema(
     props.onController(controller)
   })
 
+  const preparation = new AbortController()
   void createGummyBoardRenderer(
     root,
     device,
@@ -371,7 +372,11 @@ function NativeGummyCinema(
       cellSize: quality.cellSize,
     },
     undefined,
-    { lightResolution: quality.lightResolution, artStyle: props.artStyle },
+    {
+      lightResolution: quality.lightResolution,
+      artStyle: props.artStyle,
+      signal: preparation.signal,
+    },
   )
     .then(async (created) => {
       initializing = false
@@ -430,6 +435,7 @@ function NativeGummyCinema(
   })
   onCleanup(() => {
     disposed = true
+    preparation.abort()
     playing = false
     cancelAnimationFrame(raf)
     releaseErrors()

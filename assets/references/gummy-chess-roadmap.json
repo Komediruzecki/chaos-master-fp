@@ -1,11 +1,11 @@
 {
-  "title": "Gummy and fractal chess: next milestone decision",
+  "title": "Gummy and fractal chess: approved playable milestone",
   "reviewed_local_date": "2026-10-07",
-  "status": "Proposed priorities for user selection; no feature implementation authorized by this review",
+  "status": "Approved P0 → G1 → G2 → G5 sequence implemented and verified on the working branch. The next review is hands-on local play, followed by measured tablet performance.",
   "objective": "Turn the published gummy chess showcase into a playable local chess experience, retaining the creator and cinema paths.",
-  "horizon": "Next reviewable milestone, with longer-term work visible but not scheduled",
+  "horizon": "Approved P0/G1/G2/G5 delivery, with remaining candidates visible for later prioritization",
   "master_plan": "assets/references/chess-fractal-plan.json",
-  "master_plan_reconciliation": "The 2026-09-30 concept status and initial gap list are historical. Six gummy roles, full board, capture rendering and repeatable cinema delivery now exist. Full local chess and editable IFS role collections remain unfinished.",
+  "master_plan_reconciliation": "The 2026-09-30 concept status and initial gap list are historical. Six gummy roles, full board, capture rendering, repeatable cinema delivery, local legal chess and PGN/Cinema handoff now exist. Editable IFS role collections remain unfinished.",
   "completed": [
     "Six gummy chess moulds and 32-piece presentation",
     "Per-piece palettes, glass and lava board looks",
@@ -16,8 +16,9 @@
   ],
   "preservation": {
     "media": "Current remote metadata verified; 369-file archive had a complete zero-difference download check on 2026-10-06. All four final films also exist under socials/personal/tweet.",
-    "code": "Latest app/runtime/test changes remain local; working branch feat/gummy-fracture has no origin branch or upstream.",
-    "audit_receipt": "/home/maff/agent-out/chaos-master-fp/2026-10-07/remote-audit/audit-174034.json"
+    "code": "Cinema checkpoint c4a08625 and lint-heap fix 0c8c8673 were verified on origin/feat/gummy-fracture. The local-match milestone is verified and follows as a separate commit on that branch; Git identifies its published revision.",
+    "audit_receipt": "/home/maff/agent-out/chaos-master-fp/2026-10-07/remote-audit/audit-174034.json",
+    "checkpoint_commits": ["c4a08625", "0c8c8673"]
   },
   "effort_rubric": {
     "S": "Contained established path plus focused verification",
@@ -38,7 +39,7 @@
   },
   "recommended_order": ["P0", "G1", "G2", "G5"],
   "parallel_discovery": "A bounded G3 tablet measurement pass can proceed alongside the rules seam if the physical device is available. It does not justify speculative solver rewrites.",
-  "first_milestone": "Play a short legal local game, make one gummy capture, skip/replay it, undo it, and continue with identical authoritative board state.",
+  "first_milestone": "Verified: play legal moves, finish a gummy capture, replay/skip it, undo it, and return from PGN/Cinema with the same game and appearance settings.",
   "alternate_objective": {
     "goal": "Produce more promotional shots with less manual assembly",
     "prioritize": ["G4", "G6", "G5"],
@@ -48,39 +49,39 @@
     {
       "id": "P0",
       "title": "Preserve the current code on origin",
-      "current_state": "Pending",
+      "current_state": "Complete: checkpoint c4a08625 and lint follow-up 0c8c8673 committed and pushed to origin/feat/gummy-fracture.",
       "impact": "Prerequisite",
       "effort": "S",
       "confidence": "High",
       "outcome": "Make the working source reproducible separately from the media archive.",
       "dependencies": [],
       "acceptance": [
-        "Review and commit the scoped current work when authorized.",
-        "Push the working branch to origin and verify the remote commit.",
-        "Keep large generated media in the existing archive."
+        "User authorized the recommended sequence and checkpoint preservation.",
+        "Scoped current work committed as c4a08625; lint-heap follow-up committed as 0c8c8673.",
+        "Working branch pushed to origin successfully; large generated media remains in the existing archive."
       ],
-      "uncertainty": "Current source is dirty and the working branch has no origin branch. Planning does not authorize a commit or push."
+      "uncertainty": "Generated media remains in its existing Proton archive; source is preserved separately on origin."
     },
     {
       "id": "G1",
       "title": "Shared chess rules and move receipts",
-      "current_state": "Missing; cinema validates ordinary captures only",
+      "current_state": "Implemented and verified: chess.js 1.4.0 BSD-2-Clause adapter; 35 focused rules/FEN/receipt/PGN tests pass.",
       "impact": "High",
       "effort": "M",
       "confidence": "High",
       "outcome": "Provide one authoritative chess state reusable by the board, replay and cinema.",
       "dependencies": ["P0"],
       "acceptance": [
-        "Choose a maintained rules adapter after a focused dependency review.",
+        "Maintained rules dependency reviewed and exact chess.js 1.4.0 installed in core.",
         "Retain complete FEN state, stable piece IDs and before/after move receipts.",
         "Verify normal moves, king safety, castling, en passant, promotion and terminal states."
       ],
-      "uncertainty": "Current cinema parsing discards castling, en-passant and counters; it cannot become match state unchanged."
+      "uncertainty": "The separate Cinema validator is preserved. Current-position draw claims are implemented; declared-next-move claims and exhaustive geometric dead-position proofs are outside this slice."
     },
     {
       "id": "G2",
       "title": "Playable local gummy chess",
-      "current_state": "Board and capture rendering exist; game loop missing",
+      "current_state": "Implemented and verified at /gummy?view=match: local play, legal destinations, special moves, presets, skip/replay/undo and validated session recovery. Native hardware browser flow passes; physical tablet testing remains separate.",
       "impact": "High",
       "effort": "L",
       "confidence": "Medium",
@@ -93,7 +94,7 @@
         "Special moves have explicit presentation semantics and kings are never captured.",
         "The next player can move after the effect; a move receipt can open in Cinema."
       ],
-      "uncertainty": "UI lifecycle, special moves, appearance identity and undo must agree. Reuse the driven attacker and one simulated victim first."
+      "uncertainty": "The new UI and renderer require final combined checks and hardware review. Physical iOS/tablet behavior and frame cost remain unverified. Only ordinary captures use the crush presentation; special moves have lightweight animations."
     },
     {
       "id": "G3",
@@ -129,7 +130,7 @@
     {
       "id": "G5",
       "title": "PGN to replay and Cinema",
-      "current_state": "No PGN support in audited chess path",
+      "current_state": "Implemented and verified: bounded mainline PGN import/export, history stepping, full setup FEN and reloadable ordinary capture handoff to Cinema.",
       "impact": "Medium",
       "effort": "M",
       "confidence": "Medium",
@@ -140,7 +141,7 @@
         "Select a capture and create a valid Cinema recipe.",
         "State support for variations and special moves explicitly."
       ],
-      "uncertainty": "Depends on the shared rules adapter; scope variations separately. Higher priority if the goal switches back to producing content."
+      "uncertainty": "Comments and side variations are omitted. En-passant and promotion captures remain legal in the match but have no Cinema handoff. External PGN resignation/agreed-draw results remain metadata, while game status and export result are rule-derived."
     },
     {
       "id": "G6",
@@ -237,7 +238,7 @@
     {
       "id": "G12",
       "title": "Online ranked multiplayer",
-      "current_state": "Local complete game missing",
+      "current_state": "Local match implemented and verified; online networking remains unimplemented.",
       "impact": "Low",
       "effort": "XL",
       "confidence": "Low",
@@ -284,11 +285,29 @@
     "docs/gummy-cinema.md",
     "packages/app/src/components/GummyBoard/gummyBoardPosition.ts",
     "packages/app/src/flame/chess/pawnGame.ts",
-    "assets/fractal-fracture-research.md"
+    "assets/fractal-fracture-research.md",
+    "docs/gummy-chess-play.md",
+    "packages/core/src/chess/chessGame.ts",
+    "packages/core/src/chess/chessGame.test.ts",
+    "packages/app/src/pages/GummyBoard/GummyMatchPage.tsx",
+    "packages/app/src/pages/GummyBoard/gummyMatchSession.ts",
+    "packages/app/src/components/GummyBoard/GummyMatchScene.tsx"
   ],
   "method_sources": [
     "https://www.nngroup.com/articles/prioritization-methods/",
     "https://www.intercom.com/blog/rice-simple-prioritization-for-product-managers"
   ],
-  "reusable_skill": "/home/maff/.dotfiles/personal/agentic/skills/impact-effort/SKILL.md"
+  "reusable_skill": "/home/maff/.dotfiles/personal/agentic/skills/impact-effort/SKILL.md",
+  "implementation_in_review": [
+    "G1: pure chess.js 1.4.0 adapter, immutable move receipts, stable piece IDs and complete FEN",
+    "G2: local two-player match at /gummy?view=match, legal selection, special moves, skip/replay/undo and tab-session recovery",
+    "G5: bounded mainline PGN import/export, history stepping and ordinary capture handoff to Cinema"
+  ],
+  "verification": {
+    "core": "35 focused chess adapter tests, core TypeScript and scoped ESLint passed.",
+    "integration": "105 focused app tests pass. Native Chromium on AMD RDNA-4 verified 32-piece idle rendering, touch moves, full capture completion, replay/skip/undo, PGN/Cinema reload and return, and reachable controls at 1440, 834 and 390px widths. No runtime/GPU errors or Solid owner warnings.",
+    "physical_devices": "New playable match has not yet been verified on physical iOS or target tablets; earlier workbench results do not establish this.",
+    "remote_scope": "Only the P0 checkpoint is confirmed pushed here. Do not infer publication of the new match source.",
+    "hardware_receipt": "/home/maff/agent-out/chaos-master-fp/2026-10-07/match-verification/report.json"
+  }
 }

@@ -20,10 +20,12 @@ export async function createGummyBoardRestMeshes(
   device: GPUDevice,
   spacing: number,
   artStyle: GummyChessArtStyle = 'classic',
+  signal?: AbortSignal,
 ) {
   const meshes = new Map<GummyChessMould, GummyBoardRestMesh>()
   try {
     for (const mould of GUMMY_BOARD_MOULDS) {
+      signal?.throwIfAborted()
       const restPositions = new Float32Array(
         sampleGummyChessMould(mould, spacing, undefined, artStyle),
       )
@@ -94,6 +96,7 @@ export async function createGummyBoardRestMeshes(
         positions.destroy()
       }
     }
+    signal?.throwIfAborted()
     let disposed = false
     return {
       meshes,

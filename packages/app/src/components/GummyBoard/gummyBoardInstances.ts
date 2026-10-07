@@ -85,16 +85,17 @@ export function packGummyBoardInstance(
 export function packGummyBoardInstances(
   target: Float32Array,
   pieces: readonly GummyBoardPiece[],
-  victimId: number,
+  victimId?: number,
   secondaryId?: number,
 ) {
-  const activeCount = secondaryId === undefined ? 1 : 2
+  const activeCount =
+    Number(victimId !== undefined) + Number(secondaryId !== undefined)
   const maximumWaiting = GUMMY_BOARD_MAX_PIECES - activeCount
   if (pieces.length > maximumWaiting)
     throw new Error(
       `The gummy board allows ${maximumWaiting} waiting pieces and ${activeCount} simulated pieces`,
     )
-  const ids = new Set([victimId])
+  const ids = new Set<number>(victimId === undefined ? [] : [victimId])
   if (secondaryId !== undefined) {
     if (ids.has(secondaryId))
       throw new Error('Gummy board piece identities must be unique')

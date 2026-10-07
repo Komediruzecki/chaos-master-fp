@@ -68,6 +68,29 @@ const surface = (vertexCount = 18, overflow = false) => ({
 
 beforeEach(() => mocks.surface.mockReset())
 describe('gummy board rest mesh ownership', () => {
+  it('stops baking after a skipped capture and releases the in-flight mesh before starting another', async () => {
+    const test = harness(),
+      abort = new AbortController(),
+      pawn = surface()
+    mocks.surface.mockReturnValue(pawn)
+    test.fence.mockImplementationOnce(() => {
+      abort.abort()
+      return Promise.resolve()
+    })
+    await expect(
+      createGummyBoardRestMeshes(
+        test.root,
+        test.device,
+        0.08,
+        'classic',
+        abort.signal,
+      ),
+    ).rejects.toThrow()
+    expect(mocks.surface).toHaveBeenCalledOnce()
+    expect(pawn.destroy).toHaveBeenCalledOnce()
+    for (const buffer of test.buffers)
+      expect(buffer.destroy).toHaveBeenCalledOnce()
+  })
   it('finishes and releases each bake before allocating the next, retaining exact-size meshes', async () => {
     const test = harness()
     const pawn = surface(18),

@@ -209,6 +209,7 @@ file instead of rediscovering the architecture every session.
 <!-- prettier-ignore-start -->
 | Module | Entry point | What it is |
 |---|---|---|
+| `chess` | [chessRules.ts](../../packages/core/src/chess/chessRules.ts) | Headless legal moves with stable identities and replayable immutable presentation receipts. |
 | `deepzoom` | [deepZoomView.ts](../../packages/core/src/deepzoom/deepZoomView.ts) | The deep-zoom camera: a centre with unlimited digits and a magnification held as a power of two. |
 | `diff` | [fdiff.ts](../../packages/core/src/diff/fdiff.ts) | _(no header comment)_ |
 | `math` | [affine3DView.ts](../../packages/core/src/math/affine3DView.ts) | _(no header comment)_ |
@@ -425,8 +426,8 @@ instead. `wc -l` gives the current size.
 | `pnpm flam3:compat` | `pnpm --filter chaos-master flam3:compat` |
 | `pnpm fmt` | `prettier packages --check` |
 | `pnpm fmt:fix` | `prettier packages --write --log-level warn` |
-| `pnpm lint` | `NODE_OPTIONS="--max-old-space-size=4096" eslint` |
-| `pnpm lint:fix` | `NODE_OPTIONS="--max-old-space-size=4096" eslint --fix` |
+| `pnpm lint` | `NODE_OPTIONS="--max-old-space-size=8192" eslint` |
+| `pnpm lint:fix` | `NODE_OPTIONS="--max-old-space-size=8192" eslint --fix` |
 | `pnpm typecheck` | `pnpm --filter @chaos-master/core typecheck && pnpm --filter @chaos-master/mobile-runtime typecheck && NODE_OPTIONS="--max-old-space-size=8192" tsc --noEmit --project packages/app/tsconfig.json && tsc --noEmit --project tests/tsconfig.json && tsc --noEmit --project packages/app/e2e/tsconfig.json && pnpm --filter @chaos-master/landing check` |
 | `pnpm validate-wgsl` | `npx --yes tsx scripts/validate-wgsl-props.ts` |
 | `pnpm check` | `pnpm typecheck && pnpm lint:fix && pnpm fmt:fix && pnpm validate-wgsl` |

@@ -6,6 +6,24 @@ import type { GummyBoardPiece } from './gummyBoardInstances'
 const buffer = () =>
   new Float32Array(GUMMY_BOARD_MAX_PIECES * GUMMY_BOARD_INSTANCE_FLOATS)
 describe('gummy board instances', () => {
+  it('packs 32 static pieces when no optical identities are reserved for simulation', () => {
+    const pieces: GummyBoardPiece[] = Array.from({ length: 32 }, (_, id) => ({
+      id,
+      mould: 'pawn',
+      position: [0, 0, 0],
+      side: 0,
+    }))
+    expect(packGummyBoardInstances(buffer(), pieces).get('pawn')).toEqual({
+      start: 0,
+      count: 32,
+    })
+    expect(() =>
+      packGummyBoardInstances(buffer(), [...pieces, { ...pieces[0]!, id: 32 }]),
+    ).toThrow(/32/)
+    expect(() =>
+      packGummyBoardInstances(buffer(), [pieces[0]!, pieces[0]!]),
+    ).toThrow(/unique/)
+  })
   it('groups moulds without confusing IDs, sides or world positions', () => {
     const data = buffer()
     const pieces: GummyBoardPiece[] = [

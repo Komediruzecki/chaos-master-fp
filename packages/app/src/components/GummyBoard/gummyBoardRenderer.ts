@@ -60,9 +60,13 @@ export async function createGummyBoardRenderer(
   device: GPUDevice,
   context: GPUCanvasContext,
   format: GPUTextureFormat,
-  particles: GummyBoardParticleState,
+  particles?: GummyBoardParticleState,
   secondaryParticles?: GummyBoardParticleState,
-  quality: { lightResolution?: 512 | 1024; artStyle?: GummyChessArtStyle } = {},
+  quality: {
+    lightResolution?: 512 | 1024
+    artStyle?: GummyChessArtStyle
+    signal?: AbortSignal
+  } = {},
 ) {
   if (root.device !== device)
     throw new Error('Gummy board renderer root and device must match')
@@ -79,11 +83,15 @@ export async function createGummyBoardRenderer(
       await createGummyBoardRestMeshes(
         root,
         device,
-        particles.spacing,
+        particles?.spacing ?? 0.08,
         quality.artStyle,
+        quality.signal,
       ),
     )
-    const surface = own(createMarchingGummySurface(root, device, particles))
+    // Local games keep every waiting piece static. No MPM surface or density grid is allocated.
+    const surface = particles
+      ? own(createMarchingGummySurface(root, device, particles))
+      : undefined
     const secondarySurface = secondaryParticles
       ? own(createMarchingGummySurface(root, device, secondaryParticles))
       : undefined
@@ -156,9 +164,9 @@ export async function createGummyBoardRenderer(
       dynamic: true,
       secondary: false,
     }
-    const sources = [
-      movingSource,
-      {
+    const sources = [movingSource, ...batches.map((batch) => batch.source)]
+    if (surface)
+      sources.push({
         mesh: root.createBindGroup(marchingGummyMeshLayout, {
           vertices: surface.vertices,
         }),
@@ -167,9 +175,7 @@ export async function createGummyBoardRenderer(
         count: 1,
         dynamic: true,
         secondary: false,
-      },
-      ...batches.map((batch) => batch.source),
-    ]
+      })
     if (secondarySurface && secondary)
       sources.push({
         mesh: root.createBindGroup(marchingGummyMeshLayout, {
@@ -392,6 +398,7 @@ export async function createGummyBoardRenderer(
     }
 
     function updateActiveInstances(options: GummyBoardRenderOptions) {
+      if (!surface) return false
       packGummyBoardInstance(
         victim.data,
         0,
@@ -432,7 +439,7 @@ export async function createGummyBoardRenderer(
       let ranges = packGummyBoardInstances(
         instanceData,
         options.pieces,
-        options.victimId,
+        surface ? options.victimId : undefined,
         options.secondary?.id,
       )
       const movingPiece = options.pieces.find(
@@ -442,7 +449,7 @@ export async function createGummyBoardRenderer(
         ranges = packGummyBoardInstances(
           instanceData,
           options.pieces.filter((piece) => piece.id !== options.movingPieceId),
-          options.victimId,
+          surface ? options.victimId : undefined,
           options.secondary?.id,
         )
       let dynamicChanged = updateActiveInstances(options)
@@ -503,7 +510,7 @@ export async function createGummyBoardRenderer(
       }
       for (let index = 0; index < options.pieces.length - movingCount; index++)
         material(instanceData, index * GUMMY_BOARD_INSTANCE_FLOATS)
-      material(victim.data, 0)
+      if (surface) material(victim.data, 0)
       if (movingPiece) material(moving.data, 0)
       if (options.secondary && secondary) material(secondary.data, 0)
       if (options.supportingDensity !== undefined) {
@@ -528,7 +535,10 @@ export async function createGummyBoardRenderer(
       options: GummyBoardRenderOptions,
     ) {
       let changed = false
-      if (options.revision === undefined || options.revision !== lastRevision) {
+      if (
+        surface &&
+        (options.revision === undefined || options.revision !== lastRevision)
+      ) {
         surface.encode(encoder)
         changed = true
         lastRevision = options.revision
@@ -625,7 +635,10 @@ export async function createGummyBoardRenderer(
           ]),
         ),
       }),
-      readSurfaceStats: () => surface.readStats(),
+      readSurfaceStats: () => {
+        if (!surface) throw new Error('This board has no simulated piece.')
+        return surface.readStats()
+      },
       readSecondarySurfaceStats: () =>
         secondarySurface?.readStats() ?? Promise.resolve(undefined),
       render(frame: GummyFrame, options: GummyBoardRenderOptions) {
@@ -662,7 +675,7 @@ export async function createGummyBoardRenderer(
           cameraData,
           frame,
           format,
-          surface.cellSize,
+          surface?.cellSize ?? 0.08,
           width,
           height,
         )

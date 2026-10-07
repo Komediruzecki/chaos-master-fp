@@ -152,6 +152,7 @@ export function GummyBoardPage() {
           Lumen Apeiron
         </a>
         <nav aria-label="Other studies">
+          <a href="/gummy?view=match">Play gummy chess</a>
           <a href="/gummy?view=cinema">Shot studio</a>
           <a href="/gummy?experiment=mpm">Gummy workbench</a>
           <a href="/chess">Glass chess</a>

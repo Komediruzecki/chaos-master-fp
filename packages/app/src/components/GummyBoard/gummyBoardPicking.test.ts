@@ -5,6 +5,26 @@ import { gummyBoardLocalRay, gummyBoardWorldPoint, pickGummyBoardMould, pickGumm
 import { resolveGummyBoardQuality } from './gummyBoardQuality'
 
 describe('piece selection', () => {
+  it('uses the sculpted waist instead of intercepting touches with invisible classic bulk', () => {
+    const rook = {
+      ...createGummyBoardPieces()[0]!,
+      position: [0, 0, 0] as [number, number, number],
+    }
+    const ray = {
+      origin: [0.34, 1.05, 4] as [number, number, number],
+      direction: [0, 0, -1] as [number, number, number],
+    }
+    expect(pickGummyBoardMould(ray, rook, 1)).toBeGreaterThan(0)
+    expect(pickGummyBoardMould(ray, rook, 1, 'sculpted')).toBeUndefined()
+    expect(
+      pickGummyBoardMould(
+        { ...ray, origin: [0.2, 1.05, 4] },
+        rook,
+        1,
+        'sculpted',
+      ),
+    ).toBeGreaterThan(0)
+  })
   it('transforms a scaled world ray back to the exact particle coordinates', () => {
     const point = gummyBoardWorldPoint([0.2, 1.5, -0.3], [0.8, 0, 0.8], 0.9)
     const ray = gummyBoardLocalRay(
