@@ -201,3 +201,7 @@ export const gummyRookContactCorrection = (
   'use gpu'
   return std.mul(contact.xyz, std.clamp(radius - contact.w, 0, maximum))
 }
+
+/** Production defaults retain the exact legacy rook; selected moulds can supply sampled contact. */
+export const gummyColliderContactSlot = tgpu.slot(gummyRookContact)
+export const gummyColliderMayContactSlot = tgpu.slot(gummyRookMayContact)

@@ -1,10 +1,12 @@
 /** Independent, bounded-domain MLS-MPM particle jelly; legacy tetrahedral studies are untouched. */
 import { d } from 'typegpu'
+import { createGummyChessCollider, gummyChessColliderContact, gummyChessColliderMayContact, } from './gummyChessCollider'
 import { GUMMY_PARTICLE_GRID_SIZE, GUMMY_PARTICLE_MAX_AFFINE, GUMMY_PARTICLE_MAX_F_NORM, GUMMY_PARTICLE_MAX_SPEED, GUMMY_PARTICLE_OUTER_DT, gummyParticleMaterial, gummyParticleViscousSpeedLimit, gummyParticleWarmVolumetricEnergy, prepareGummyParticles, } from './gummyParticleMath'
 import { gummyParticleAdvanceTime, gummyParticleCaptureGrip, gummyParticleG2P, GummyParticleGrid, gummyParticleGridUpdate, gummyParticleLayout, gummyParticleP2G, GummyParticleParameters, GummyParticleState, } from './gummyParticleShaders'
-import { normalizeGummyRookCollider } from './gummyRookCollider'
+import { gummyColliderContactSlot, gummyColliderMayContactSlot, normalizeGummyRookCollider, } from './gummyRookCollider'
 import { normalizeGummyPress } from './gummySolver'
 import type { TgpuRoot } from 'typegpu'
+import type { GummyChessMould } from './gummyChessMoulds'
 import type { GummyParticleMaterialMode, GummyParticleTuning, } from './gummyParticleMath'
 import type { GummyRookCollider } from './gummyRookCollider'
 import type { GummyStep } from './gummySolver'
@@ -29,6 +31,9 @@ export type GummyParticleOptions = Parameters<
 >[0] & {
   /** Simulation-space placement; the public rest dye coordinates remain mould-local. */
   initialOffset?: readonly [number, number, number]
+  initialRotationY?: number
+  colliderMould?: GummyChessMould
+  colliderRotationY?: number
   gridOrigin?: readonly [number, number, number]
   gridSize?: number
   /** Enable independent-grid geometric contact gathers for the pair owner. */
@@ -59,10 +64,22 @@ export function createGummyParticleSolver(
   const gridOrigin = options.gridOrigin ?? geometry.gridOrigin
   if (![...initialOffset, ...gridOrigin].every(Number.isFinite))
     throw new RangeError('Particle placement and grid origin must be finite')
+  const initialRotationY = options.initialRotationY ?? 0
+  if (
+    !Number.isFinite(initialRotationY) ||
+    !Number.isFinite(options.colliderRotationY ?? 0)
+  )
+    throw new RangeError('Particle and collider orientations must be finite')
+  const cosine = Math.cos(initialRotationY),
+    sine = Math.sin(initialRotationY)
   const initialPositions = new Float32Array(restPositions)
-  for (let i = 0; i < initialPositions.length; i += 4)
-    for (let axis = 0; axis < 3; axis++)
-      initialPositions[i + axis]! += initialOffset[axis]!
+  for (let i = 0; i < initialPositions.length; i += 4) {
+    const x = restPositions[i]!,
+      z = restPositions[i + 2]!
+    initialPositions[i] = x * cosine + z * sine + initialOffset[0]
+    initialPositions[i + 1]! += initialOffset[1]
+    initialPositions[i + 2] = z * cosine - x * sine + initialOffset[2]
+  }
   const initialStates = new Float32Array(
     (particleCount * d.sizeOf(GummyParticleState)) / 4,
   )
@@ -135,15 +152,39 @@ export function createGummyParticleSolver(
     const capture = root
       .createComputePipeline({ compute: gummyParticleCaptureGrip })
       .with(group)
-    const p2g = root
+    const sampledCollider =
+      options.colliderMould !== undefined &&
+      (options.colliderMould !== 'rook' ||
+        options.artStyle === 'sculpted' ||
+        (options.colliderRotationY ?? 0) !== 0)
+        ? own(
+            createGummyChessCollider(
+              root,
+              device,
+              options.colliderMould,
+              options.colliderRotationY,
+              options.artStyle,
+            ),
+          )
+        : undefined
+    const contactRoot = sampledCollider
+      ? root
+          .with(gummyColliderContactSlot, gummyChessColliderContact)
+          .with(gummyColliderMayContactSlot, gummyChessColliderMayContact)
+      : root
+    let p2g = contactRoot
       .createComputePipeline({ compute: gummyParticleP2G })
       .with(group)
     const gridUpdate = root
       .createComputePipeline({ compute: gummyParticleGridUpdate })
       .with(group)
-    const g2p = root
+    let g2p = contactRoot
       .createComputePipeline({ compute: gummyParticleG2P })
       .with(group)
+    if (sampledCollider) {
+      p2g = p2g.with(sampledCollider.group)
+      g2p = g2p.with(sampledCollider.group)
+    }
     const advanceTime = root
       .createComputePipeline({ compute: gummyParticleAdvanceTime })
       .with(group)

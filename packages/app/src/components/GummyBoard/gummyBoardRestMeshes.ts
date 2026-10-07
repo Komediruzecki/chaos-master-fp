@@ -4,8 +4,9 @@ import { GUMMY_CHESS_MOULDS, sampleGummyChessMould, } from '@/simulation/gummy/g
 import { createMarchingGummySurface } from '../GummyBear/marchingGummySurface'
 import { MarchingGummyVertex } from '../GummyBear/marchingGummySurfaceShaders'
 import { GUMMY_BOARD_MOULDS } from './gummyBoardInstances'
+import { refineGummyBoardRestVertices } from './gummyBoardRestRefinement'
 import type { StorageFlag, TgpuBuffer, TgpuRoot } from 'typegpu'
-import type { GummyChessMould } from '@/simulation/gummy/gummyChessMoulds'
+import type { GummyChessArtStyle, GummyChessMould, } from '@/simulation/gummy/gummyChessMoulds'
 
 export type GummyBoardRestMesh = {
   vertices: TgpuBuffer<d.WgslArray<typeof MarchingGummyVertex>> & StorageFlag
@@ -18,12 +19,13 @@ export async function createGummyBoardRestMeshes(
   root: TgpuRoot,
   device: GPUDevice,
   spacing: number,
+  artStyle: GummyChessArtStyle = 'classic',
 ) {
   const meshes = new Map<GummyChessMould, GummyBoardRestMesh>()
   try {
     for (const mould of GUMMY_BOARD_MOULDS) {
       const restPositions = new Float32Array(
-        sampleGummyChessMould(mould, spacing),
+        sampleGummyChessMould(mould, spacing, undefined, artStyle),
       )
       const positions = root
         .createBuffer(
@@ -68,6 +70,14 @@ export async function createGummyBoardRestMeshes(
         )
         device.queue.submit([copy.finish()])
         await device.queue.onSubmittedWorkDone()
+        if (artStyle === 'sculpted') {
+          const refined = refineGummyBoardRestVertices(
+            await compact.read(),
+            mould,
+            spacing,
+          )
+          compact.write(refined.buffer)
+        }
         const vertices = compact
         meshes.set(mould, {
           vertices,

@@ -50,7 +50,17 @@ beforeEach(() => {
   mocks.start.mockImplementation(
     (_canvas, callbacks: Parameters<typeof startLiveCanvasRecording>[1]) => {
       mocks.callbacks = callbacks
-      return { stop: mocks.stop, dispose: mocks.dispose }
+      return {
+        stop: mocks.stop,
+        dispose: mocks.dispose,
+        capture: {
+          width: 640,
+          height: 480,
+          requestedFrameRate: callbacks.quality === 'standard' ? 30 : 60,
+          requestedBitsPerSecond:
+            callbacks.quality === 'standard' ? 8_000_000 : 12_000_000,
+        },
+      }
     },
   )
 })
@@ -62,7 +72,18 @@ afterEach(() => {
 
 function finish() {
   const blob = new Blob(['encoded frames'], { type: 'video/mp4' })
-  mocks.callbacks!.onComplete({ blob, extension: 'mp4', durationSeconds: 2.9 })
+  mocks.callbacks!.onComplete({
+    blob,
+    extension: 'mp4',
+    durationSeconds: 2.9,
+    capture: {
+      width: 640,
+      height: 480,
+      requestedFrameRate: 60,
+      requestedBitsPerSecond: 12_000_000,
+    },
+    encoderBitsPerSecond: 11_000_000,
+  })
   return blob
 }
 
@@ -71,6 +92,10 @@ describe('Gummy canvas recording controls', () => {
     render(() => <GummyBearPage />)
     fireEvent.click(screen.getByRole('button', { name: 'Record' }))
     expect(mocks.start.mock.calls[0]?.[0]).toBeInstanceOf(HTMLCanvasElement)
+    expect(mocks.callbacks?.quality).toBe('high')
+    expect(screen.getByText(/640 × 480 · 60 fps target/).textContent).toContain(
+      '12.0 Mbps requested',
+    )
     expect(mocks.props?.recording).toBe(true)
     mocks.callbacks!.onElapsed(2.9)
     expect(screen.getByLabelText('Recording time').textContent).toBe('00:02')
@@ -81,6 +106,9 @@ describe('Gummy canvas recording controls', () => {
     )
     expect(mocks.download).not.toHaveBeenCalled()
     const blob = finish()
+    expect(screen.getByText(/640 × 480 · 60 fps target/).textContent).toContain(
+      '11.0 Mbps encoder setting',
+    )
     expect(mocks.props?.recording).toBe(false)
     fireEvent.click(screen.getByRole('button', { name: 'Download video' }))
     expect(mocks.download).toHaveBeenCalledWith(
@@ -93,6 +121,27 @@ describe('Gummy canvas recording controls', () => {
       screen.getByRole<HTMLButtonElement>('button', { name: 'Download video' })
         .disabled,
     ).toBe(true)
+  })
+
+  it('forwards the Standard profile and locks the profile until the clip is finished', () => {
+    render(() => <GummyBearPage />)
+    const quality = screen.getByRole<HTMLSelectElement>('combobox', {
+      name: 'Recording quality',
+    })
+    fireEvent.change(quality, { target: { value: 'standard' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Record' }))
+    expect(mocks.callbacks?.quality).toBe('standard')
+    expect(quality.disabled).toBe(true)
+    expect(screen.getByText(/640 × 480 · 30 fps target/).textContent).toContain(
+      '8.0 Mbps requested',
+    )
+    fireEvent.change(quality, { target: { value: 'high' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Stop recording' }))
+    expect(quality.disabled).toBe(true)
+    finish()
+    expect(quality.disabled).toBe(false)
+    fireEvent.click(screen.getByRole('button', { name: 'Record' }))
+    expect(mocks.callbacks?.quality).toBe('standard')
   })
 
   it('finishes the take when the model replaces its canvas and retains it for downloading', () => {

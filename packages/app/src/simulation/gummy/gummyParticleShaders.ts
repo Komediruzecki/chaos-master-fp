@@ -1,7 +1,7 @@
 /** Three-dimensional MLS/APIC MPM with floating-point node-gather transfers and irreversible strain softening. */
 import { d, std, tgpu } from 'typegpu'
 import { GUMMY_PARTICLE_MAX_J, GUMMY_PARTICLE_MIN_J, gummyParticleCavitatedVolumeState, gummyParticleCavitationReturn, gummyParticleDamage, gummyParticleDamageStretch, gummyParticleDeterminant, gummyParticleFlowStep, gummyParticleGripOffset, gummyParticleIdentity, gummyParticleStress, gummyParticleStretch, gummyParticleViscousSpeedLimit, gummyParticleViscousStress, gummyParticleVolumeState, gummyParticleWarmDamage, gummyParticleWarmStress, gummyParticleWeights, } from './gummyParticleMath'
-import { gummyRookContact, gummyRookContactCorrection, gummyRookContactVelocity, gummyRookMayContact, } from './gummyRookCollider'
+import { gummyColliderContactSlot, gummyColliderMayContactSlot, gummyRookContactCorrection, gummyRookContactVelocity, } from './gummyRookCollider'
 
 export const GummyParticleParameters = d.struct({
   geometry: d.vec4f,
@@ -164,8 +164,8 @@ export const gummyParticleP2G = tgpu.computeFn({
       position,
       currentColliderPosition(gummyParticleLayout.$.clock[0]!),
     )
-    if (gummyRookMayContact(local, params.geometry.w)) {
-      const contact = gummyRookContact(local)
+    if (gummyColliderMayContactSlot.$(local, params.geometry.w)) {
+      const contact = gummyColliderContactSlot.$(local)
       state.contact = d.vec4f(contact.xyz, contact.w - params.geometry.w)
     }
   }
@@ -546,8 +546,8 @@ export const gummyParticleG2P = tgpu.computeFn({
         gummyParticleLayout.$.clock[0]! + params.geometry.x,
       ),
     )
-    if (gummyRookMayContact(local, params.geometry.w)) {
-      const contact = gummyRookContact(local)
+    if (gummyColliderMayContactSlot.$(local, params.geometry.w)) {
+      const contact = gummyColliderContactSlot.$(local)
       position = std.add(
         position,
         gummyRookContactCorrection(

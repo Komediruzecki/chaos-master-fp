@@ -10,7 +10,12 @@ vi.mock('../GummyBear/marchingGummySurface', () => ({
 }))
 
 function harness() {
-  const buffers: { bytes: number; destroy: ReturnType<typeof vi.fn> }[] = []
+  const buffers: {
+    bytes: number
+    destroy: ReturnType<typeof vi.fn>
+    read: ReturnType<typeof vi.fn>
+    write: ReturnType<typeof vi.fn>
+  }[] = []
   const copies: ReturnType<typeof vi.fn>[] = []
   const device = {
     createCommandEncoder: vi.fn(() => {
@@ -29,6 +34,16 @@ function harness() {
       const result = {
         bytes: d.sizeOf(schema),
         destroy: vi.fn(),
+        read: vi.fn(() =>
+          Promise.resolve(
+            Array.from({ length: d.sizeOf(schema) / 48 }, () => ({
+              position: d.vec4f(0.395, 1.995, 0, 1),
+              normal: d.vec4f(1, 0, 0, 0),
+              rest: d.vec4f(0.395, 1.995, 0, 1),
+            })),
+          ),
+        ),
+        write: vi.fn(),
         $usage: () => result,
       }
       buffers.push(result)
@@ -95,9 +110,53 @@ describe('gummy board rest mesh ownership', () => {
     expect(result.meshes.size).toBe(6)
     expect(mocks.surface).toHaveBeenCalledTimes(6)
     expect(test.buffers[1]!.destroy).not.toHaveBeenCalled()
+    for (const buffer of test.buffers) {
+      expect(buffer.read).not.toHaveBeenCalled()
+      expect(buffer.write).not.toHaveBeenCalled()
+    }
     result.destroy()
     result.destroy()
     for (const buffer of test.buffers)
+      expect(buffer.destroy).toHaveBeenCalledOnce()
+  })
+  it('refines only compact sculpted caches once and releases a failed refinement readback', async () => {
+    const test = harness()
+    mocks.surface.mockImplementation(() => surface(18))
+    const result = await createGummyBoardRestMeshes(
+      test.root,
+      test.device,
+      0.08,
+      'sculpted',
+    )
+    for (const [index, buffer] of test.buffers.entries()) {
+      if (index % 2 === 0) {
+        expect(buffer.read).not.toHaveBeenCalled()
+        expect(buffer.write).not.toHaveBeenCalled()
+      } else {
+        expect(buffer.read).toHaveBeenCalledOnce()
+        expect(buffer.write).toHaveBeenCalledOnce()
+      }
+    }
+    expect(
+      new Float32Array(
+        test.buffers[1]!.write.mock.calls[0]![0] as ArrayBuffer,
+      )[0],
+    ).toBeCloseTo(0.37)
+    result.destroy()
+    for (const buffer of test.buffers)
+      expect(buffer.destroy).toHaveBeenCalledOnce()
+
+    const failed = harness()
+    failed.fence.mockImplementationOnce(() => {
+      failed.buffers[1]!.read.mockRejectedValueOnce(
+        new Error('Readback failed'),
+      )
+      return Promise.resolve()
+    })
+    await expect(
+      createGummyBoardRestMeshes(failed.root, failed.device, 0.08, 'sculpted'),
+    ).rejects.toThrow('Readback failed')
+    for (const buffer of failed.buffers)
       expect(buffer.destroy).toHaveBeenCalledOnce()
   })
   it('rejects a truncated bake rather than caching an incomplete visible mould', async () => {

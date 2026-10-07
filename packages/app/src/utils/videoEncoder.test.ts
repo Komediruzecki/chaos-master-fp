@@ -1,8 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { computeReorderDelayUs } from './videoEncoder'
+import { computeReorderDelayUs, getAvcCodecString } from './videoEncoder'
 
 const FPS = 30
 const grid = (i: number, fps = FPS) => Math.round((i * 1e6) / fps)
+
+describe('AVC level selection', () => {
+  it('accounts for macroblocks per second, not just frame dimensions', () => {
+    expect(getAvcCodecString(1920, 1080, 'high', 30)).toBe('avc1.640028')
+    expect(getAvcCodecString(1920, 1080, 'high', 60)).toBe('avc1.64002A')
+    expect(getAvcCodecString(3840, 2160, 'high', 30)).toBe('avc1.640033')
+    expect(getAvcCodecString(2160, 3840, 'high', 60)).toBe('avc1.640034')
+  })
+})
 
 /** Offsets the muxing loop would produce — must never be negative. */
 function compositionOffsets(ptsInDecodeOrder: number[], fps = FPS): number[] {

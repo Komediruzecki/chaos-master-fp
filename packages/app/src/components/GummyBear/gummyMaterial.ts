@@ -50,7 +50,7 @@ export const gummyOpticalPath = tgpu.fn(
   return std.clamp(path, 0.01, 2.4)
 })
 
-const lightCard = tgpu.fn(
+export const lightCard = tgpu.fn(
   [d.vec3f, d.vec3f, d.vec2f],
   d.f32,
 )((direction, centre, size) => {

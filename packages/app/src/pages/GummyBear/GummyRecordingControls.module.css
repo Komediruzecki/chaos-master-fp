@@ -12,6 +12,36 @@
   font-weight: 650;
   color: #50656d;
 }
+.qualityLabel {
+  display: block;
+  margin-bottom: 6px;
+  color: #354f5a;
+  font-size: 12px;
+  font-weight: 600;
+}
+.recording .qualitySelect {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid #a8b7b9;
+  border-radius: 7px;
+  padding: 8px 10px;
+  background: #fffef9;
+  color: #263f4a;
+  font: inherit;
+  font-size: 16px;
+}
+.qualityHelp,
+.captureInfo {
+  margin: 7px 0 12px;
+  color: #52646c;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.captureInfo {
+  margin-bottom: 0;
+  font-variant-numeric: tabular-nums;
+}
 .row {
   display: flex;
   align-items: center;
@@ -33,15 +63,17 @@
   background: #296785;
   color: #fff;
 }
-.recordButton:hover {
+.recording .recordButton:hover:not(:disabled) {
   background: #205874;
+  color: #fff;
 }
 .recordButton[data-recording='true'] {
   background: #a62c43;
   border-color: #a62c43;
 }
-.recordButton[data-recording='true']:hover {
+.recording .recordButton[data-recording='true']:hover:not(:disabled) {
   background: #8e2036;
+  color: #fff;
 }
 .timer {
   color: #536a75;
@@ -68,18 +100,21 @@
   color: #4c6572;
   border-color: #c8d0ce;
 }
-.downloadButton:hover {
+.recording .downloadButton:hover:not(:disabled) {
   background: #e4e9e5;
+  color: #263f4a;
 }
 .saved span {
   font-size: 11px;
   color: #68777c;
 }
-.recording button:focus-visible {
+.recording button:focus-visible,
+.recording select:focus-visible {
   outline: 2px solid #2d799b;
   outline-offset: 3px;
 }
-.recording button:disabled {
+.recording button:disabled,
+.recording select:disabled {
   opacity: 0.45;
   cursor: default;
 }

@@ -2,6 +2,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { GUMMY_BOARD_MOULDS } from './gummyBoardInstances'
 import { createGummyBoardRenderer } from './gummyBoardRenderer'
+import { gummyBoardMaterialLayout } from './gummyBoardShaders'
+import { gummyBoardStageLayout } from './gummyBoardStageShaders'
 import type { TgpuRoot } from 'typegpu'
 import type { GummyBoardParticleState, GummyBoardRenderOptions, } from './gummyBoardRenderer'
 
@@ -23,6 +25,9 @@ vi.mock('../GummyBear/marchingGummyTargets', () => ({
 function harness() {
   const resources: { destroy: ReturnType<typeof vi.fn> }[] = []
   const pipelines: { drawIndirect: ReturnType<typeof vi.fn> }[] = []
+  const textures: GPUTextureDescriptor[] = []
+  const materialWrites: Float32Array[] = []
+  const stageWrites: Float32Array[] = []
   const resource = () => {
     const value = {
       destroy: vi.fn(),
@@ -37,7 +42,10 @@ function harness() {
   const beginRenderPass = vi.fn(() => ({ end: vi.fn() }))
   const device = {
     createSampler: () => ({}),
-    createTexture: resource,
+    createTexture: (descriptor: GPUTextureDescriptor) => {
+      textures.push(descriptor)
+      return resource()
+    },
     createCommandEncoder: () => ({
       beginRenderPass,
       copyTextureToTexture,
@@ -49,7 +57,24 @@ function harness() {
     device,
     with: () => root,
     createBuffer: resource,
-    createBindGroup: () => ({}),
+    createBindGroup: (
+      layout: unknown,
+      bindings: {
+        materials?: { write: ReturnType<typeof vi.fn> }
+        stage?: { write: ReturnType<typeof vi.fn> }
+      },
+    ) => {
+      if (layout === gummyBoardMaterialLayout)
+        bindings.materials!.write.mockImplementation((data: ArrayBuffer) => {
+          // Uploads reuse one CPU buffer; snapshot at submission, just as the GPU does.
+          materialWrites.push(new Float32Array(data.slice(0)))
+        })
+      if (layout === gummyBoardStageLayout)
+        bindings.stage!.write.mockImplementation((data: ArrayBuffer) => {
+          stageWrites.push(new Float32Array(data.slice(0)))
+        })
+      return {}
+    },
     unwrap: (value: unknown) => value,
     createRenderPipeline: () => {
       const pipeline = {
@@ -83,6 +108,9 @@ function harness() {
     copyTextureToTexture,
     beginRenderPass,
     pipelines,
+    textures,
+    materialWrites,
+    stageWrites,
     rest,
     targets,
   }
@@ -134,6 +162,203 @@ beforeEach(() => {
 })
 
 describe('two live gummy board surfaces', () => {
+  it('allocates glass transport only when enabled and reuses it across live theme changes', async () => {
+    const test = harness()
+    mocks.surfaces.mockReturnValueOnce(surface())
+    const renderer = await createGummyBoardRenderer(
+      test.root,
+      test.device,
+      test.context,
+      'bgra8unorm',
+      input(),
+      undefined,
+      { lightResolution: 512 },
+    )
+    const settings = options()
+    delete settings.secondary
+    expect(test.pipelines).toHaveLength(7)
+    expect(test.textures.at(-1)!.size).toEqual([1, 1])
+    const initialTextures = test.textures.length
+    renderer.render(frame, settings)
+    renderer.render(frame, { ...settings, boardTheme: 'lava' })
+    renderer.render(frame, {
+      ...settings,
+      boardTheme: 'glass',
+      caustics: false,
+    })
+    expect(test.textures).toHaveLength(initialTextures)
+    expect(test.pipelines).toHaveLength(7)
+    expect(renderer.readRenderStats().boardLightUpdates).toBe(0)
+    renderer.render(frame, { ...settings, boardTheme: 'glass' })
+    expect(test.textures).toHaveLength(initialTextures + 1)
+    expect(test.textures.at(-1)!.size).toEqual([512, 512])
+    expect(test.pipelines).toHaveLength(8)
+    renderer.render(frame, { ...settings, boardTheme: 'classic' })
+    renderer.render(frame, {
+      ...settings,
+      boardTheme: 'glass',
+      caustics: false,
+    })
+    renderer.render(frame, { ...settings, boardTheme: 'glass' })
+    expect(test.textures).toHaveLength(initialTextures + 1)
+    expect(test.pipelines).toHaveLength(8)
+    expect(renderer.readRenderStats().boardLightUpdates).toBe(1)
+    renderer.destroy()
+    for (const resource of test.resources)
+      expect(resource.destroy).toHaveBeenCalledOnce()
+  })
+  it('caches glass transport across camera/material time and sanitizes molten time independently of physics', async () => {
+    const test = harness(),
+      pawn = surface()
+    mocks.surfaces.mockReturnValueOnce(pawn)
+    const renderer = await createGummyBoardRenderer(
+      test.root,
+      test.device,
+      test.context,
+      'bgra8unorm',
+      input(),
+    )
+    const settings = options()
+    delete settings.secondary
+    renderer.render(frame, settings)
+    expect(renderer.readRenderStats().boardLightUpdates).toBe(0)
+    renderer.render(frame, {
+      ...settings,
+      boardTheme: 'glass',
+      boardTime: 1.25,
+    })
+    expect(renderer.readRenderStats().boardLightUpdates).toBe(1)
+    expect([...test.stageWrites.at(-1)!.slice(4, 7)]).toEqual([1, 1.25, 1])
+    renderer.render(
+      { ...frame, eye: new Float32Array([1, 2, 5]) },
+      { ...settings, boardTheme: 'glass', boardTime: 2 },
+    )
+    renderer.render(frame, { ...settings, boardTheme: 'lava', boardTime: NaN })
+    expect(test.stageWrites.at(-1)![5]).toBe(0)
+    renderer.render(frame, {
+      ...settings,
+      boardTheme: 'glass',
+      boardTime: -5,
+      caustics: false,
+    })
+    expect([...test.stageWrites.at(-1)!.slice(4, 7)]).toEqual([1, 0, 0])
+    expect(renderer.readRenderStats().boardLightUpdates).toBe(1)
+    expect(pawn.encode).toHaveBeenCalledOnce()
+    // A caustics toggle invalidates the existing candy light once; time/camera/theme do not.
+    expect(test.copyTextureToTexture).toHaveBeenCalledTimes(2)
+    renderer.destroy()
+  })
+  it('indexes supporting density by piece identity and leaves both live surfaces and the moving mould unchanged', async () => {
+    const test = harness()
+    mocks.surfaces.mockReturnValueOnce(surface()).mockReturnValueOnce(surface())
+    const renderer = await createGummyBoardRenderer(
+      test.root,
+      test.device,
+      test.context,
+      'bgra8unorm',
+      input(),
+      input(),
+    )
+    const settings: GummyBoardRenderOptions = {
+      ...options(),
+      movingPieceId: 9,
+      victimPalette: 'amber',
+      pieces: [
+        {
+          id: 2047,
+          mould: 'king',
+          position: [0, 0, 0],
+          side: 1,
+          palette: 'blue',
+          scale: 0.9,
+        },
+        {
+          id: 9,
+          mould: 'rook',
+          position: [1, 0, 0],
+          side: 0,
+          palette: 'candy',
+        },
+        {
+          id: 0,
+          mould: 'pawn',
+          position: [2, 0, 0],
+          side: 0,
+          palette: 'berry',
+        },
+      ],
+    }
+    renderer.render(frame, settings)
+    const baseline = test.materialWrites.at(-1)!
+    expect(
+      [...baseline]
+        .filter((_, index) => index % 4 === 3)
+        .every((value) => value === 0),
+    ).toBe(true)
+    expect([...baseline.slice(2047 * 4, 2047 * 4 + 3)]).toEqual([
+      1,
+      1,
+      Math.fround(0.9),
+    ])
+    expect([...baseline.slice(0, 3)]).toEqual([3, 0, 1])
+
+    renderer.render(frame, { ...settings, supportingDensity: 1.8 })
+    const denser = test.materialWrites.at(-1)!
+    expect(
+      [...denser].flatMap((value, index) =>
+        value === baseline[index] ? [] : index,
+      ),
+    ).toEqual([3, 2047 * 4 + 3])
+    expect(denser[3]).toBe(Math.fround(1.8))
+    expect(denser[2047 * 4 + 3]).toBe(Math.fround(1.8))
+    for (const id of [
+      settings.victimId,
+      settings.secondary!.id,
+      settings.movingPieceId!,
+    ])
+      expect([...denser.slice(id * 4, id * 4 + 4)]).toEqual([
+        ...baseline.slice(id * 4, id * 4 + 4),
+      ])
+
+    renderer.render(frame, settings)
+    expect(test.materialWrites.at(-1)).toEqual(baseline)
+    renderer.destroy()
+  })
+  it('changes board materials through one uniform without rebuilding candy or piece lighting', async () => {
+    const test = harness(),
+      pawn = surface()
+    mocks.surfaces.mockReturnValueOnce(pawn)
+    const renderer = await createGummyBoardRenderer(
+      test.root,
+      test.device,
+      test.context,
+      'bgra8unorm',
+      input(),
+    )
+    const settings = options()
+    delete settings.secondary
+    renderer.render(frame, settings)
+    const writeCounts = () =>
+      test.resources.map((resource) =>
+        'write' in resource
+          ? (resource.write as ReturnType<typeof vi.fn>).mock.calls.length
+          : 0,
+      )
+    let previous = writeCounts()
+    const resourceCount = test.resources.length
+    for (const boardTheme of ['glass', 'lava', 'classic'] as const) {
+      renderer.render(frame, { ...settings, boardTheme })
+      const counts = writeCounts()
+      expect(
+        counts.filter((value, index) => value !== (previous[index] ?? 0)),
+      ).toHaveLength(1)
+      previous = counts
+      expect(pawn.encode).toHaveBeenCalledOnce()
+      expect(test.copyTextureToTexture).toHaveBeenCalledOnce()
+      expect(test.resources).toHaveLength(resourceCount + 1)
+    }
+    renderer.destroy()
+  })
   it('uses independent reconstruction inputs and revisions while drawing both in every optical pass', async () => {
     const pawnDestroy = vi.fn(),
       rookDestroy = vi.fn()

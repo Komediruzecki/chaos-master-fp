@@ -1,8 +1,9 @@
 /** Board shader resolution and optical identity/checker alignment regressions. */
 import { d, tgpu } from 'typegpu'
 import { describe, expect, it } from 'vitest'
-import { marchingGummyComposite, marchingGummyMaterialSlot, } from '../GummyBear/marchingGummyRenderShaders'
-import { gummyBoardBackgroundFragment, gummyBoardExitFragment, gummyBoardFrontFragment, gummyBoardLightFragment, gummyBoardLightVertex, gummyBoardMatchingExit, gummyBoardMaterialAt, gummyBoardOptics, gummyBoardShadowFragment, gummyBoardShadowVertex, gummyBoardSquareColour, gummyBoardVertex, gummyBoardWorldPosition, } from './gummyBoardShaders'
+import { marchingGummyArtSlot, marchingGummyComposite, marchingGummyFillSlot, marchingGummyMaterialSlot, } from '../GummyBear/marchingGummyRenderShaders'
+import { gummyBoardBackgroundFragment, gummyBoardExitFragment, gummyBoardFill, gummyBoardFrontFragment, gummyBoardLightFragment, gummyBoardLightVertex, gummyBoardMatchingExit, gummyBoardMaterialAt, gummyBoardOptics, gummyBoardShadowFragment, gummyBoardShadowVertex, gummyBoardSquareColour, gummyBoardVertex, gummyBoardWorldPosition, } from './gummyBoardShaders'
+import { gummyBoardGlassLightFragment, gummyBoardGlassLightVertex, } from './gummyBoardStageShaders'
 
 describe('gummy board optical passes', () => {
   it.each([
@@ -14,6 +15,8 @@ describe('gummy board optical passes', () => {
     gummyBoardShadowFragment,
     gummyBoardShadowVertex,
     gummyBoardBackgroundFragment,
+    gummyBoardGlassLightVertex,
+    gummyBoardGlassLightFragment,
   ])('resolves an instanced GPU entrypoint and its dependencies', (shader) => {
     const source = tgpu.resolve([shader], { names: 'strict' })
     expect(source).toMatch(/@(vertex|fragment)/)
@@ -42,18 +45,26 @@ describe('gummy board optical passes', () => {
         )
       }
   })
-  it('resolves the shared optical composite with per-piece material selection', () => {
-    const source = tgpu.resolve(
-      [
-        tgpu
-          .lazy(() => marchingGummyComposite)
-          .with(marchingGummyMaterialSlot, gummyBoardOptics),
-      ],
-      { names: 'strict' },
-    )
-    expect(source).toContain('gummyBoardMaterialAt')
-    expect(source).toContain('gummyVolumeTransmission')
-  })
+  it.each([false, true])(
+    'resolves the shared optical composite with per-piece material selection (sculpted: %s)',
+    (sculpted) => {
+      const source = tgpu.resolve(
+        [
+          tgpu
+            .lazy(() => marchingGummyComposite)
+            .with(marchingGummyMaterialSlot, gummyBoardOptics)
+            .with(marchingGummyArtSlot, sculpted)
+            .with(marchingGummyFillSlot, gummyBoardFill),
+        ],
+        { names: 'strict' },
+      )
+      expect(source).toContain('gummyBoardMaterialAt')
+      expect(source).toContain('gummyVolumeTransmission')
+      expect(source).toContain('gummyBoardFill')
+      if (sculpted) expect(source).toContain('gummyCinemaEnvironment')
+      else expect(source).not.toContain('gummyCinemaEnvironment')
+    },
+  )
   it('transforms the full silhouette including facing and preserves selected palette coefficients', () => {
     expect([
       ...gummyBoardWorldPosition(

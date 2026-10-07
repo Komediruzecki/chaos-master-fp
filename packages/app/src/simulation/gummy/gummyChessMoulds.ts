@@ -1,6 +1,7 @@
 /** Filled, rounded chess moulds sampled in the jelly solver's existing material coordinates. */
 import { BASE_PROFILE, roundedBox, roundedLathe, smoothUnion, sphere, } from './gummyChessFields'
 import { gummyRoyalChessField } from './gummyRoyalChessMoulds'
+import { gummySculptedChessField } from './gummySculptedChessMoulds'
 import type { Point3, ProfilePoint } from './gummyChessFields'
 
 export type GummyChessMould =
@@ -10,6 +11,7 @@ export type GummyChessMould =
   | 'bishop'
   | 'queen'
   | 'king'
+export type GummyChessArtStyle = 'classic' | 'sculpted'
 
 export const GUMMY_CHESS_MOULDS = {
   pawn: {
@@ -78,7 +80,12 @@ export const GUMMY_ROOK_MERLON_RADIUS = 0.075
 export const GUMMY_ROOK_BLEND = 0.06
 
 /** Negative values describe candy throughout the interior; colour uses these same rest coordinates. */
-export function gummyChessField(point: Point3, mould: GummyChessMould): number {
+export function gummyChessField(
+  point: Point3,
+  mould: GummyChessMould,
+  artStyle: GummyChessArtStyle = 'classic',
+): number {
+  if (artStyle === 'sculpted') return gummySculptedChessField(point, mould)
   if (mould !== 'pawn' && mould !== 'rook')
     return gummyRoyalChessField(point, mould)
   if (mould === 'pawn') {
@@ -109,6 +116,7 @@ export function sampleGummyChessMould(
   mould: GummyChessMould,
   spacing: number,
   pinHeight: number = GUMMY_CHESS_MOULDS[mould].pinHeight,
+  artStyle: GummyChessArtStyle = 'classic',
 ): number[] {
   if (!Number.isFinite(spacing) || spacing < 0.06 || spacing > 0.12)
     throw new RangeError('Particle spacing must be between 0.06 and 0.12')
@@ -135,7 +143,7 @@ export function sampleGummyChessMould(
         const x = (ix + 0.5) * spacing,
           y = (iy + 0.5) * spacing,
           z = (iz + 0.5) * spacing
-        if (gummyChessField([x, y, z], mould) > 0) continue
+        if (gummyChessField([x, y, z], mould, artStyle) > 0) continue
         points.push(x, y, z, y < basePinHeight ? 0 : 1)
       }
   return points

@@ -360,7 +360,17 @@ describe('GummyBoardPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Stop recording' }))
     expect(stubs.stop).toHaveBeenCalledTimes(1)
     const blob = new Blob(['clip'], { type: 'video/mp4' })
-    stubs.recording!.onComplete({ blob, extension: 'mp4', durationSeconds: 8 })
+    stubs.recording!.onComplete({
+      blob,
+      extension: 'mp4',
+      durationSeconds: 8,
+      capture: {
+        width: 640,
+        height: 480,
+        requestedFrameRate: 60,
+        requestedBitsPerSecond: 12_000_000,
+      },
+    })
     expect(scene().recording).toBe(false)
     fireEvent.click(screen.getByRole('button', { name: 'Download video' }))
     expect(stubs.download).toHaveBeenCalledWith(

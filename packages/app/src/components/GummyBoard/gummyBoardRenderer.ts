@@ -1,18 +1,22 @@
 /** One or two deforming candy pieces share the board HDR optics with cached waiting instances. */
 import { common, d } from 'typegpu'
 import { GummyCamera, gummyCameraLayout, gummyDisplayFragment, gummyFloorLayout, } from '../GummyBear/gummyShaders'
-import { marchingGummyComposite, marchingGummyMaterialSlot, marchingGummyMeshLayout, } from '../GummyBear/marchingGummyRenderShaders'
+import { marchingGummyArtSlot, marchingGummyComposite, marchingGummyFillSlot, marchingGummyMaterialSlot, marchingGummyMeshLayout, } from '../GummyBear/marchingGummyRenderShaders'
 import { createMarchingGummySurface } from '../GummyBear/marchingGummySurface'
 import { createMarchingGummyTargets } from '../GummyBear/marchingGummyTargets'
 import { packParticleGummyCamera } from '../GummyBear/particleGummyRenderer'
 import { GUMMY_BOARD_INSTANCE_FLOATS, GUMMY_BOARD_MAX_PIECES, GUMMY_BOARD_MOULDS, packGummyBoardInstance, packGummyBoardInstances, } from './gummyBoardInstances'
 import { createGummyBoardRestMeshes } from './gummyBoardRestMeshes'
-import { gummyBoardBackgroundFragment, gummyBoardExitFragment, gummyBoardExitLayout, gummyBoardFrontFragment, GummyBoardInstance, gummyBoardInstanceLayout, gummyBoardLightFragment, gummyBoardLightVertex, gummyBoardMaterialLayout, gummyBoardOptics, gummyBoardSelectionLayout, gummyBoardShadowFragment, gummyBoardShadowVertex, gummyBoardVertex, } from './gummyBoardShaders'
+import { gummyBoardBackgroundFragment, gummyBoardExitFragment, gummyBoardExitLayout, gummyBoardFill, gummyBoardFrontFragment, GummyBoardInstance, gummyBoardInstanceLayout, gummyBoardLightFragment, gummyBoardLightVertex, gummyBoardMaterialLayout, gummyBoardOptics, gummyBoardShadowFragment, gummyBoardShadowVertex, gummyBoardVertex, } from './gummyBoardShaders'
+import { gummyBoardGlassLightFragment, gummyBoardGlassLightVertex, gummyBoardReceiverLayout, GummyBoardStage, gummyBoardStageLayout, } from './gummyBoardStageShaders'
+import { GUMMY_BOARD_GLASS_LIGHT_GRID, gummyBoardThemeCode, } from './gummyBoardThemes'
 import type { TgpuBindGroup, TgpuRoot } from 'typegpu'
 import type { GummyPalette } from '../GummyBear/gummyMaterial'
 import type { GummyFrame } from '../GummyBear/gummyRenderer'
 import type { MarchingGummyInput } from '../GummyBear/marchingGummySurface'
 import type { GummyBoardPiece } from './gummyBoardInstances'
+import type { GummyBoardTheme } from './gummyBoardThemes'
+import type { GummyChessArtStyle } from '@/simulation/gummy/gummyChessMoulds'
 
 export type { GummyBoardPiece } from './gummyBoardInstances'
 
@@ -41,6 +45,11 @@ export type GummyBoardRenderOptions = {
   selectionPosition?: readonly [number, number, number]
   /** A cached mould whose transform moves; its floor lighting remains separate from waiting pieces. */
   movingPieceId?: number
+  /** Extra absorption for supporting pieces in a directed shot; one preserves normal optics. */
+  supportingDensity?: number
+  boardTheme?: GummyBoardTheme
+  /** Deterministic presentation time; only molten material changes with time. */
+  boardTime?: number
   caustics?: boolean
   /** Particle-state version; camera and lighting changes can reuse the existing mesh. */
   revision?: number
@@ -53,7 +62,7 @@ export async function createGummyBoardRenderer(
   format: GPUTextureFormat,
   particles: GummyBoardParticleState,
   secondaryParticles?: GummyBoardParticleState,
-  quality: { lightResolution?: 512 | 1024 } = {},
+  quality: { lightResolution?: 512 | 1024; artStyle?: GummyChessArtStyle } = {},
 ) {
   if (root.device !== device)
     throw new Error('Gummy board renderer root and device must match')
@@ -67,7 +76,12 @@ export async function createGummyBoardRenderer(
   }
   try {
     const restMeshes = own(
-      await createGummyBoardRestMeshes(root, device, particles.spacing),
+      await createGummyBoardRestMeshes(
+        root,
+        device,
+        particles.spacing,
+        quality.artStyle,
+      ),
     )
     const surface = own(createMarchingGummySurface(root, device, particles))
     const secondarySurface = secondaryParticles
@@ -178,12 +192,10 @@ export async function createGummyBoardRenderer(
     const materialGroup = root.createBindGroup(gummyBoardMaterialLayout, {
       materials,
     })
-    const selection = own(root.createBuffer(d.vec4f).$usage('uniform'))
-    const selectionData = new Float32Array(4)
-    const previousSelection = new Float32Array(4).fill(NaN)
-    const selectionGroup = root.createBindGroup(gummyBoardSelectionLayout, {
-      selection,
-    })
+    const stage = own(root.createBuffer(GummyBoardStage).$usage('uniform'))
+    const stageData = new Float32Array(8)
+    const previousStage = new Float32Array(8).fill(NaN)
+    const stageGroup = root.createBindGroup(gummyBoardStageLayout, { stage })
     const sampler = device.createSampler({
       minFilter: 'linear',
       magFilter: 'linear',
@@ -211,6 +223,20 @@ export async function createGummyBoardRenderer(
     const light = lightTexture.createView()
     const floorGroup = root.createBindGroup(gummyFloorLayout, {
       light,
+      sampler,
+    })
+    const emptyBoardLightTexture = own(
+      device.createTexture({
+        label: 'Gummy board empty receiver light',
+        size: [1, 1],
+        format: 'rgba16float',
+        usage:
+          GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+      }),
+    )
+    let boardLight = emptyBoardLightTexture.createView()
+    let receiverGroup = root.createBindGroup(gummyBoardReceiverLayout, {
+      light: boardLight,
       sampler,
     })
     const depth: GPUDepthStencilState = {
@@ -270,9 +296,11 @@ export async function createGummyBoardRenderer(
       })
       .with(cameraGroup)
       .with(floorGroup)
-      .with(selectionGroup)
+      .with(stageGroup)
     const composite = root
       .with(marchingGummyMaterialSlot, gummyBoardOptics)
+      .with(marchingGummyArtSlot, quality.artStyle === 'sculpted')
+      .with(marchingGummyFillSlot, gummyBoardFill)
       .createRenderPipeline({
         vertex: common.fullScreenTriangle,
         fragment: marchingGummyComposite,
@@ -280,6 +308,7 @@ export async function createGummyBoardRenderer(
       })
       .with(cameraGroup)
       .with(materialGroup)
+      .with(stageGroup)
     const display = root
       .createRenderPipeline({
         vertex: common.fullScreenTriangle,
@@ -304,6 +333,7 @@ export async function createGummyBoardRenderer(
     let lastRevision: number | undefined
     let lastSecondaryRevision: number | undefined
     let lightReady = false
+    let boardLightUpdates = 0
     let staticLightUpdates = 0,
       dynamicLightUpdates = 0,
       staticLightCacheHits = 0,
@@ -329,7 +359,7 @@ export async function createGummyBoardRenderer(
     })
 
     function updateSelection(options: GummyBoardRenderOptions) {
-      selectionData.fill(0)
+      stageData.fill(0)
       const selected = options.pieces.find(
         (piece) => piece.id === options.selectedPieceId,
       )
@@ -348,13 +378,17 @@ export async function createGummyBoardRenderer(
           : options.secondary?.scale) ??
         1
       if (selectedPosition)
-        selectionData.set([
+        stageData.set([
           selectedPosition[0],
           selectedPosition[2],
           0.86 * selectedScale,
           1,
         ])
-      uploadChanged(selection, selectionData, previousSelection)
+      stageData[4] = gummyBoardThemeCode(options.boardTheme)
+      const boardTime = options.boardTime ?? 0
+      stageData[5] = Number.isFinite(boardTime) ? Math.max(0, boardTime) : 0
+      stageData[6] = options.caustics === false ? 0 : 1
+      uploadChanged(stage, stageData, previousStage)
     }
 
     function updateActiveInstances(options: GummyBoardRenderOptions) {
@@ -472,6 +506,16 @@ export async function createGummyBoardRenderer(
       material(victim.data, 0)
       if (movingPiece) material(moving.data, 0)
       if (options.secondary && secondary) material(secondary.data, 0)
+      if (options.supportingDensity !== undefined) {
+        const density = options.supportingDensity
+        if (!Number.isFinite(density) || density < 1 || density > 3)
+          throw new RangeError(
+            'Supporting candy density must be between one and three.',
+          )
+        for (const piece of options.pieces)
+          if (piece.id !== options.movingPieceId)
+            materialData[piece.id * 4 + 3] = density
+      }
       uploadChanged(materials, materialData, previousMaterials)
       updateSelection(options)
       dynamicChanged ||= previousSecondary !== Boolean(options.secondary)
@@ -569,6 +613,7 @@ export async function createGummyBoardRenderer(
     return {
       readRenderStats: () => ({
         lightResolution,
+        boardLightUpdates,
         staticLightUpdates,
         dynamicLightUpdates,
         staticLightCacheHits,
@@ -628,11 +673,48 @@ export async function createGummyBoardRenderer(
         })
         const surfaceChanged = encodeSurfaces(encoder, options)
         encodeLighting(encoder, options, frame.palette, changes, surfaceChanged)
+        // Camera and material animation cannot invalidate static slab transport.
+        if (
+          boardLightUpdates === 0 &&
+          options.boardTheme === 'glass' &&
+          options.caustics !== false
+        ) {
+          const boardCaustics = root.createRenderPipeline({
+            vertex: gummyBoardGlassLightVertex,
+            fragment: gummyBoardGlassLightFragment,
+            targets: { format: 'rgba16float', blend },
+            primitive: { cullMode: 'none' },
+          })
+          root.unwrap(boardCaustics)
+          const boardLightTexture = own(
+            device.createTexture({
+              label: 'Gummy glass board transmitted receiver light',
+              size: [lightResolution, lightResolution],
+              format: 'rgba16float',
+              usage:
+                GPUTextureUsage.RENDER_ATTACHMENT |
+                GPUTextureUsage.TEXTURE_BINDING,
+            }),
+          )
+          boardLight = boardLightTexture.createView()
+          receiverGroup = root.createBindGroup(gummyBoardReceiverLayout, {
+            light: boardLight,
+            sampler,
+          })
+          const boardLightPass = encoder.beginRenderPass({
+            colorAttachments: [colour(boardLight)],
+          })
+          boardCaustics
+            .with(boardLightPass)
+            .draw(GUMMY_BOARD_GLASS_LIGHT_GRID ** 2 * 6)
+          boardLightPass.end()
+          boardLightUpdates++
+        }
         const scenePass = encoder.beginRenderPass({
           colorAttachments: [colour(target.scene)],
           depthStencilAttachment: depthAttachment(target.sceneDepth),
         })
-        background.with(scenePass).draw(3)
+        background.with(receiverGroup).with(scenePass).draw(3)
         scenePass.end()
         const frontPass = encoder.beginRenderPass({
           colorAttachments: [colour(target.front), colour(target.rest)],

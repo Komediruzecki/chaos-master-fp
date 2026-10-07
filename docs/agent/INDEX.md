@@ -341,7 +341,7 @@ file instead of rediscovering the architecture every session.
 | [sonification.ts](../../packages/app/src/utils/sonification.ts) | _(no header comment)_ |
 | [timeline.ts](../../packages/app/src/utils/timeline.ts) | _(no header comment)_ |
 | [useAudioReactive.ts](../../packages/app/src/utils/useAudioReactive.ts) | _(no header comment)_ |
-| [videoEncoder.ts](../../packages/app/src/utils/videoEncoder.ts) | _(no header comment)_ |
+| [videoEncoder.ts](../../packages/app/src/utils/videoEncoder.ts) | Bounded browser video encoding with fixed timestamps and MP4 muxing. |
 <!-- prettier-ignore-end -->
 
 #### Library (`packages/app/src/lib/`, 200+ LOC)

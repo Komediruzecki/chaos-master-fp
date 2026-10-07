@@ -2,6 +2,7 @@
 import { createMemo, createSignal, onCleanup, onMount } from 'solid-js'
 import { downloadBlob } from '@/utils/blob'
 import { startLiveCanvasRecording, supportsLiveCanvasRecording, } from '@/utils/liveCanvasRecorder'
+import type { LiveCanvasCaptureSettings, LiveCanvasRecordingQuality, LiveCanvasRecordingResult, } from '@/utils/liveCanvasRecorder'
 
 export function useGummyRecording() {
   const [state, setState] = createSignal<
@@ -9,14 +10,14 @@ export function useGummyRecording() {
   >('idle')
   const [supported, setSupported] = createSignal(false)
   const [elapsed, setElapsed] = createSignal(0)
+  const [quality, setQuality] = createSignal<LiveCanvasRecordingQuality>('high')
+  const [capture, setCapture] = createSignal<LiveCanvasCaptureSettings>()
   const [error, setError] = createSignal<string>()
-  const [clip, setClip] = createSignal<{
-    blob: Blob
-    filename: string
-    durationSeconds: number
-    extension: 'mp4' | 'webm'
-    reason?: string
-  }>()
+  const [clip, setClip] = createSignal<
+    LiveCanvasRecordingResult & {
+      filename: string
+    }
+  >()
   const busy = createMemo(
     () => state() === 'recording' || state() === 'stopping',
   )
@@ -44,6 +45,7 @@ export function useGummyRecording() {
     const isCurrent = () => !disposed && current === generation
     try {
       session = startLiveCanvasRecording(canvas, {
+        quality: quality(),
         onElapsed: (seconds) => {
           if (isCurrent()) setElapsed(seconds)
         },
@@ -67,6 +69,7 @@ export function useGummyRecording() {
           setState('error')
         },
       })
+      setCapture(session.capture)
       setElapsed(0)
       setState('recording')
     } catch (failure) {
@@ -90,6 +93,11 @@ export function useGummyRecording() {
     state,
     supported,
     elapsed,
+    quality,
+    setQuality(value: LiveCanvasRecordingQuality) {
+      if (!busy()) setQuality(value)
+    },
+    capture,
     error,
     clip,
     busy,

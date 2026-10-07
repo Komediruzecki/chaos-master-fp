@@ -2,6 +2,35 @@
 export const LIVE_CANVAS_RECORDING_MAX_SECONDS = 120
 const MAX_RECORDING_BYTES = 128 * 1024 * 1024
 const FINISH_TIMEOUT_MS = 10_000
+export type LiveCanvasRecordingQuality = 'standard' | 'high'
+
+export type LiveCanvasCaptureSettings = {
+  width: number
+  height: number
+  requestedFrameRate: 30 | 60
+  requestedBitsPerSecond: number
+}
+
+/** Budget detail per captured pixel; these are encoder requests, not guarantees. */
+export function getLiveCanvasCaptureSettings(
+  width: number,
+  height: number,
+  quality: LiveCanvasRecordingQuality = 'high',
+): LiveCanvasCaptureSettings {
+  const high = quality === 'high'
+  const requestedFrameRate = high ? 60 : 30
+  const bitsPerPixel = high ? 0.24 : 0.2
+  const requestedBitsPerSecond = Math.min(
+    high ? 60_000_000 : 30_000_000,
+    Math.max(
+      high ? 12_000_000 : 8_000_000,
+      Math.round(
+        (width * height * requestedFrameRate * bitsPerPixel) / 100_000,
+      ) * 100_000,
+    ),
+  )
+  return { width, height, requestedFrameRate, requestedBitsPerSecond }
+}
 const MIME_TYPES = [
   'video/mp4;codecs=avc1',
   'video/mp4',
@@ -15,10 +44,14 @@ export type LiveCanvasRecordingResult = {
   blob: Blob
   extension: 'mp4' | 'webm'
   durationSeconds: number
+  capture: LiveCanvasCaptureSettings
+  /** Browser-reported encoder setting, not a measured file average. */
+  encoderBitsPerSecond?: number
   reason?: string
 }
 
 export type LiveCanvasRecordingOptions = {
+  quality?: LiveCanvasRecordingQuality
   onComplete: (result: LiveCanvasRecordingResult) => void
   onError: (error: Error) => void
   onElapsed: (seconds: number) => void
@@ -36,7 +69,11 @@ export function supportsLiveCanvasRecording(): boolean {
 export function startLiveCanvasRecording(
   canvas: HTMLCanvasElement,
   options: LiveCanvasRecordingOptions,
-): { stop: (reason?: string) => void; dispose: () => void } {
+): {
+  capture: LiveCanvasCaptureSettings
+  stop: (reason?: string) => void
+  dispose: () => void
+} {
   if (!supportsLiveCanvasRecording()) {
     throw new Error('This browser does not support canvas recording.')
   }
@@ -49,7 +86,8 @@ export function startLiveCanvasRecording(
 
   const width = canvas.width
   const height = canvas.height
-  const stream = canvas.captureStream(30)
+  const capture = getLiveCanvasCaptureSettings(width, height, options.quality)
+  const stream = canvas.captureStream(capture.requestedFrameRate)
   const tracks = stream.getTracks()
   if (!stream.getVideoTracks().length) {
     tracks.forEach((track) => {
@@ -168,6 +206,13 @@ export function startLiveCanvasRecording(
       blob: new Blob(chunks, { type: mimeType }),
       extension,
       durationSeconds,
+      capture,
+      encoderBitsPerSecond:
+        recorder &&
+        Number.isFinite(recorder.videoBitsPerSecond) &&
+        recorder.videoBitsPerSecond > 0
+          ? recorder.videoBitsPerSecond
+          : undefined,
       reason,
     }
     settled = true
@@ -197,7 +242,7 @@ export function startLiveCanvasRecording(
       if (mimeType && !MediaRecorder.isTypeSupported(mimeType)) continue
       const candidate = new MediaRecorder(stream, {
         ...(mimeType ? { mimeType } : {}),
-        videoBitsPerSecond: 8_000_000,
+        videoBitsPerSecond: capture.requestedBitsPerSecond,
       })
       recorder = candidate
       selectedMime = mimeType
@@ -242,6 +287,7 @@ export function startLiveCanvasRecording(
   }, 250)
 
   return {
+    capture,
     stop,
     dispose: () => {
       if (disposed || settled) return

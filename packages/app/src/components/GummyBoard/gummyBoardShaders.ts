@@ -2,13 +2,18 @@
 import { d, std, tgpu } from 'typegpu'
 import { gummyAbsorptionAtPoint } from '../GummyBear/gummyBands'
 import { GUMMY_IOR, GUMMY_MATERIALS, gummyFresnel, gummyTransmission, gummyUnitNormal, } from '../GummyBear/gummyMaterial'
-import { gummyBoxHit } from '../GummyBear/gummyPress'
-import { gummyCameraLayout, gummyFloorLayout } from '../GummyBear/gummyShaders'
+import { gummyCameraLayout } from '../GummyBear/gummyShaders'
 import { marchingGummyFloorProjection, marchingGummyFlux, marchingGummyShadowTriangleProjection, } from '../GummyBear/marchingGummyLight'
 import { MarchingGummyMaterial, marchingGummyMeshLayout, marchingGummyOpaqueLayout, } from '../GummyBear/marchingGummyRenderShaders'
-import { BOARD_TILE_SIZE } from '../PawnBoard/pawnBoardMath'
+import { gummyBoardStageLayout } from './gummyBoardStageShaders'
+import { GUMMY_BOARD_LIGHT_EXTENT } from './gummyBoardThemes'
 
-export const GUMMY_BOARD_LIGHT_EXTENT = 7
+export {
+  gummyBoardBackgroundFragment,
+  gummyBoardSquareColour,
+} from './gummyBoardStageShaders'
+export { GUMMY_BOARD_LIGHT_EXTENT } from './gummyBoardThemes'
+
 export const GummyBoardInstance = d.struct({
   offsetId: d.vec4f,
   /** Dye phase in xyz; uniform geometry scale in w. */
@@ -25,7 +30,7 @@ export const gummyBoardExitLayout = tgpu.bindGroupLayout({
 })
 
 export const gummyBoardMaterialLayout = tgpu.bindGroupLayout({
-  /** Indexed by stable optical identity minus one; palette code, side, scale, reserved. */
+  /** Indexed by stable optical identity minus one; palette code, side, scale, supporting absorption density. */
   materials: { storage: d.arrayOf(d.vec4f) },
 })
 const blueAbsorption = d.vec3f(...GUMMY_MATERIALS.blue.absorption)
@@ -81,11 +86,6 @@ export const gummyBoardWorldPosition = tgpu.fn(
 )((point, offset, scale, rotation) => {
   'use gpu'
   return std.add(std.mul(gummyBoardRotate(point, rotation), scale), offset.xyz)
-})
-
-export const gummyBoardSelectionLayout = tgpu.bindGroupLayout({
-  /** World x/z centre, radius and visibility. */
-  selection: { uniform: d.vec4f },
 })
 
 const varyings = {
@@ -170,107 +170,6 @@ export const gummyBoardExitFragment = tgpu.fragmentFn({
   )
     std.discard()
   return d.vec4f(input.rest, distance)
-})
-
-/** Board edges lie on whole tile boundaries; half-tile offsets are the square centres. */
-export const gummyBoardSquareColour = tgpu.fn(
-  [d.vec2f],
-  d.vec3f,
-)((point) => {
-  'use gpu'
-  const square = std.floor(std.add(std.div(point, BOARD_TILE_SIZE), d.vec2f(4)))
-  const alternate = std.fract((square.x + square.y) * 0.5) * 2
-  return std.mix(d.vec3f(0.76, 0.71, 0.61), d.vec3f(0.12, 0.19, 0.2), alternate)
-})
-
-export const gummyBoardBackgroundFragment = tgpu.fragmentFn({
-  in: { uv: d.vec2f },
-  out: { colour: d.vec4f, depth: d.builtin.fragDepth },
-})((input) => {
-  'use gpu'
-  const camera = gummyCameraLayout.$.camera
-  const far = std.mul(
-    camera.inverseViewProjection,
-    d.vec4f(input.uv.x * 2 - 1, 1 - input.uv.y * 2, 1, 1),
-  )
-  const ray = std.normalize(std.sub(std.div(far.xyz, far.w), camera.eye.xyz))
-  let colour = std.mix(
-    d.vec3f(0.61, 0.57, 0.51),
-    d.vec3f(0.82, 0.79, 0.73),
-    std.smoothstep(-0.2, 0.6, ray.y),
-  )
-  let depth = d.f32(1)
-  let distance = d.f32(-1)
-  let base = d.vec3f(0.64, 0.59, 0.5)
-  let boardTop = d.bool(false)
-  if (ray.y < -0.001) distance = (-0.32 - camera.eye.y) / ray.y
-  const box = gummyBoxHit(
-    camera.eye.xyz,
-    ray,
-    d.vec3f(-6.65, -0.32, -6.65),
-    d.vec3f(6.65, 0, 6.65),
-  )
-  if (box.w >= 0 && (distance < 0 || box.w < distance)) {
-    distance = box.w
-    const point = std.add(camera.eye.xyz, std.mul(ray, distance))
-    base = d.vec3f(0.055, 0.095, 0.1)
-    if (box.y > 0.5) {
-      boardTop = true
-      base = d.vec3f(0.11, 0.16, 0.16)
-      if (std.abs(point.x) < 6.4 && std.abs(point.z) < 6.4)
-        base = gummyBoardSquareColour(point.xz)
-      else if (std.max(std.abs(point.x), std.abs(point.z)) < 6.48)
-        base = d.vec3f(0.43, 0.31, 0.13)
-    }
-  }
-  if (distance > 0) {
-    const world = std.add(camera.eye.xyz, std.mul(ray, distance))
-    const clip = std.mul(camera.viewProjection, d.vec4f(world, 1))
-    depth = std.clamp(clip.z / clip.w, 0, 1)
-    let light = d.vec4f(0)
-    const uv = std.add(
-      std.div(world.xz, 2 * GUMMY_BOARD_LIGHT_EXTENT),
-      d.vec2f(0.5),
-    )
-    if (boardTop && uv.x > 0 && uv.x < 1 && uv.y > 0 && uv.y < 1) {
-      for (const x of std.range(-1, 2)) {
-        for (const y of std.range(-1, 2)) {
-          light = std.add(
-            light,
-            std.textureSampleLevel(
-              gummyFloorLayout.$.light,
-              gummyFloorLayout.$.sampler,
-              std.add(
-                uv,
-                std.div(
-                  d.vec2f(d.f32(x), d.f32(y)),
-                  d.vec2f(std.textureDimensions(gummyFloorLayout.$.light)),
-                ),
-              ),
-              0,
-            ),
-          )
-        }
-      }
-      light = std.div(light, 9)
-    }
-    colour = std.add(
-      std.mul(base, 1 - std.clamp(light.w, 0, 0.45)),
-      std.min(light.xyz, d.vec3f(0.7)),
-    )
-    const selection = gummyBoardSelectionLayout.$.selection
-    if (boardTop && selection.w > 0.5) {
-      const ring =
-        1 -
-        std.smoothstep(
-          0.018,
-          0.038,
-          std.abs(std.length(std.sub(world.xz, selection.xy)) - selection.z),
-        )
-      colour = std.mix(colour, d.vec3f(0.3, 0.9, 0.83), ring * 0.7)
-    }
-  }
-  return { colour: d.vec4f(colour, 1), depth }
 })
 
 const lightOutput = {
@@ -498,9 +397,23 @@ export const gummyBoardOptics = (identity: number) => {
     camera.colour,
   )
   return MarchingGummyMaterial({
-    absorption: material.absorption,
+    absorption: d.vec4f(
+      std.add(
+        material.absorption.xyz,
+        d.vec3f(std.max(0, settings.w - 1) * 0.7),
+      ),
+      material.absorption.w,
+    ),
     colour: material.colour,
     absorptionTint: gummyBoardSideAbsorption(settings.y),
     scale: settings.z,
   })
+}
+
+/** Dark studio boards need a little more fill on the candy, without raising the board or glass exposure. */
+export const gummyBoardFill = () => {
+  'use gpu'
+  let fill = d.f32(1)
+  if (gummyBoardStageLayout.$.stage.material.x > 0.5) fill = 1.35
+  return fill
 }

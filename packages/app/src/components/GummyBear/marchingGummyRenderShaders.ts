@@ -1,5 +1,6 @@
 /** World-space MPM surface optics with the nearest exit, carried dye and smooth field normals. */
 import { d, std, tgpu } from 'typegpu'
+import { gummyCinemaEnvironment } from '../GummyBoard/gummyCinemaMaterial'
 import { gummyColourAtPoint, gummyVolumeTransmission } from './gummyBands'
 import { GUMMY_IOR, gummyEnvironment, gummyFresnel, gummyOpticalPath, gummyUnitNormal, } from './gummyMaterial'
 import { gummyCameraLayout } from './gummyShaders'
@@ -103,6 +104,13 @@ export const marchingGummyMaterialSlot = tgpu.slot<
   })
 })
 
+export const marchingGummyArtSlot = tgpu.slot(false)
+/** Scene lighting can lift candy scattering while transmission and workbench exposure stay unchanged. */
+export const marchingGummyFillSlot = tgpu.slot<() => number>(() => {
+  'use gpu'
+  return d.f32(1)
+})
+
 export const marchingGummyComposite = tgpu.fragmentFn({
   in: { uv: d.vec2f },
   out: d.vec4f,
@@ -151,13 +159,15 @@ export const marchingGummyComposite = tgpu.fragmentFn({
   const noV = std.max(std.dot(std.neg(ray), normal), 0)
   const refracted = std.refract(ray, normal, 1 / GUMMY_IOR)
   const path = gummyOpticalPath(chord, noV, std.dot(refracted, normal), 0)
+  let density = d.f32(1)
+  if (marchingGummyArtSlot.$) density = 0.92
   const transmission = std.pow(
     gummyVolumeTransmission(
       rest,
       exitRest,
       path,
       material.colour.w,
-      material.absorption.xyz,
+      std.mul(material.absorption.xyz, density),
     ),
     material.absorptionTint,
   )
@@ -182,14 +192,37 @@ export const marchingGummyComposite = tgpu.fragmentFn({
     material.colour.w,
     material.colour.xyz,
   )
-  const scatter =
+  let scatter =
     (0.045 + 0.12 * noL + 0.06 * (1 - noV) * (1 - noV)) *
     (1 - std.exp(-path * 3))
-  const body = std.add(std.mul(behind, transmission), std.mul(colour, scatter))
-  const reflection = std.min(
+  if (marchingGummyArtSlot.$) {
+    // A restrained thickness-dependent diffusion approximation keeps thin tears saturated.
+    scatter =
+      (0.04 + 0.13 * noL + 0.085 * std.pow(1 - noV, 2)) *
+      (1 - std.exp(-path * 2.4))
+  }
+  const body = std.add(
+    std.mul(behind, transmission),
+    std.mul(colour, scatter * marchingGummyFillSlot.$()),
+  )
+  let reflection = std.min(
     gummyEnvironment(std.reflect(ray, normal)),
     d.vec3f(5),
   )
+  if (marchingGummyArtSlot.$) {
+    reflection = std.mix(
+      gummyCinemaEnvironment(std.reflect(ray, normal)),
+      gummyCinemaEnvironment(normal),
+      0.065,
+    )
+  }
+  if (marchingGummyArtSlot.$) {
+    // A smooth highlight shoulder retains curvature instead of clipping broad studio cards to white.
+    reflection = std.div(
+      reflection,
+      std.add(d.vec3f(1), std.mul(reflection, 0.7)),
+    )
+  }
   const fresnel = gummyFresnel(noV)
   return d.vec4f(
     std.add(std.mul(body, 1 - fresnel), std.mul(reflection, fresnel)),

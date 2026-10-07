@@ -1,7 +1,7 @@
 /** Jelly study fixture identities and free, separated contact samples. */
 import { GUMMY_CHESS_MOULDS, isGummyChessMould, sampleGummyChessMould, } from './gummyChessMoulds'
 import { gummyBearField } from './gummyMesh'
-import type { GummyChessMould } from './gummyChessMoulds'
+import type { GummyChessArtStyle, GummyChessMould } from './gummyChessMoulds'
 
 export type GummyParticleFixture = 'bear' | 'blobs' | GummyChessMould
 
@@ -10,6 +10,7 @@ export type GummyParticleFixtureOptions = {
   pinnedFeet?: boolean
   pinHeight?: number
   fixture?: GummyParticleFixture
+  artStyle?: GummyChessArtStyle
 }
 
 /** Preserve the original bear lattice exactly when selecting a different study mould. */
@@ -51,7 +52,12 @@ export function sampleGummyParticleFixture(
     pinHeight = Math.min(pinHeight, GUMMY_CHESS_MOULDS[chess].pinHeight)
     return {
       spacing,
-      points: sampleGummyChessMould(chess, spacing, pinHeight),
+      points: sampleGummyChessMould(
+        chess,
+        spacing,
+        pinHeight,
+        options.artStyle,
+      ),
       pinHeight,
     }
   }

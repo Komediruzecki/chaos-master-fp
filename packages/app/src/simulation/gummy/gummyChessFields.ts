@@ -14,7 +14,11 @@ export const BASE_PROFILE: readonly ProfilePoint[] = [
   [0.47, 0.48],
 ]
 /** Signed distance to the revolved polygon, with a small moulded edge radius. */
-export function roundedLathe(point: Point3, profile: readonly ProfilePoint[]) {
+export function roundedLathe(
+  point: Point3,
+  profile: readonly ProfilePoint[],
+  edgeRadius = 0.06,
+) {
   const radial = Math.hypot(point[0], point[2])
   const height = point[1]
   let squared = Infinity
@@ -41,7 +45,7 @@ export function roundedLathe(point: Point3, profile: readonly ProfilePoint[]) {
     )
       inside = !inside
   }
-  return (inside ? -1 : 1) * Math.sqrt(squared) - 0.06
+  return (inside ? -1 : 1) * Math.sqrt(squared) - edgeRadius
 }
 
 export function smoothUnion(a: number, b: number, width: number) {

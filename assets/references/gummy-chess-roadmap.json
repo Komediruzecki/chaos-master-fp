@@ -1,0 +1,294 @@
+{
+  "title": "Gummy and fractal chess: next milestone decision",
+  "reviewed_local_date": "2026-10-07",
+  "status": "Proposed priorities for user selection; no feature implementation authorized by this review",
+  "objective": "Turn the published gummy chess showcase into a playable local chess experience, retaining the creator and cinema paths.",
+  "horizon": "Next reviewable milestone, with longer-term work visible but not scheduled",
+  "master_plan": "assets/references/chess-fractal-plan.json",
+  "master_plan_reconciliation": "The 2026-09-30 concept status and initial gap list are historical. Six gummy roles, full board, capture rendering and repeatable cinema delivery now exist. Full local chess and editable IFS role collections remain unfinished.",
+  "completed": [
+    "Six gummy chess moulds and 32-piece presentation",
+    "Per-piece palettes, glass and lava board looks",
+    "MPM capture presentation with attacker retained on the destination",
+    "Portable shot recipes, fixed-time capture, native full-resolution export",
+    "24-second film and three shorts published by the user",
+    "Final films backed up in Proton archive and tweet folder"
+  ],
+  "preservation": {
+    "media": "Current remote metadata verified; 369-file archive had a complete zero-difference download check on 2026-10-06. All four final films also exist under socials/personal/tweet.",
+    "code": "Latest app/runtime/test changes remain local; working branch feat/gummy-fracture has no origin branch or upstream.",
+    "audit_receipt": "/home/maff/agent-out/chaos-master-fp/2026-10-07/remote-audit/audit-174034.json"
+  },
+  "effort_rubric": {
+    "S": "Contained established path plus focused verification",
+    "M": "Several connected components or one known integration",
+    "L": "Multiple subsystems and substantial state/validation work",
+    "XL": "Research, uncertain architecture or several milestones"
+  },
+  "estimate_scope": "Relative judgments, not calendar promises. Includes integration and verification; target-device profiling is not yet measured.",
+  "matrix_grouping": {
+    "impact": "High goes to higher impact; Medium and Low go to lower immediate impact for the playable-local-chess objective. P0 is a prerequisite outside the feature quadrants.",
+    "effort": "S and M go to lower relative effort; L and XL to higher. Boundary estimates keep their range visible and use the higher band conservatively."
+  },
+  "matrix": {
+    "quick_wins": ["G1", "G3"],
+    "strategic_investments": ["G2", "G7", "G8"],
+    "smaller_extras": ["G4", "G5", "G9", "G10"],
+    "defer_or_scope_first": ["G6", "G11", "G12", "G13", "G14"]
+  },
+  "recommended_order": ["P0", "G1", "G2", "G5"],
+  "parallel_discovery": "A bounded G3 tablet measurement pass can proceed alongside the rules seam if the physical device is available. It does not justify speculative solver rewrites.",
+  "first_milestone": "Play a short legal local game, make one gummy capture, skip/replay it, undo it, and continue with identical authoritative board state.",
+  "alternate_objective": {
+    "goal": "Produce more promotional shots with less manual assembly",
+    "prioritize": ["G4", "G6", "G5"],
+    "note": "The existing image quality and native export are already delivered; prioritization changes with the goal."
+  },
+  "candidates": [
+    {
+      "id": "P0",
+      "title": "Preserve the current code on origin",
+      "current_state": "Pending",
+      "impact": "Prerequisite",
+      "effort": "S",
+      "confidence": "High",
+      "outcome": "Make the working source reproducible separately from the media archive.",
+      "dependencies": [],
+      "acceptance": [
+        "Review and commit the scoped current work when authorized.",
+        "Push the working branch to origin and verify the remote commit.",
+        "Keep large generated media in the existing archive."
+      ],
+      "uncertainty": "Current source is dirty and the working branch has no origin branch. Planning does not authorize a commit or push."
+    },
+    {
+      "id": "G1",
+      "title": "Shared chess rules and move receipts",
+      "current_state": "Missing; cinema validates ordinary captures only",
+      "impact": "High",
+      "effort": "M",
+      "confidence": "High",
+      "outcome": "Provide one authoritative chess state reusable by the board, replay and cinema.",
+      "dependencies": ["P0"],
+      "acceptance": [
+        "Choose a maintained rules adapter after a focused dependency review.",
+        "Retain complete FEN state, stable piece IDs and before/after move receipts.",
+        "Verify normal moves, king safety, castling, en passant, promotion and terminal states."
+      ],
+      "uncertainty": "Current cinema parsing discards castling, en-passant and counters; it cannot become match state unchanged."
+    },
+    {
+      "id": "G2",
+      "title": "Playable local gummy chess",
+      "current_state": "Board and capture rendering exist; game loop missing",
+      "impact": "High",
+      "effort": "L",
+      "confidence": "Medium",
+      "outcome": "Play a short local game, capture a piece, skip or replay the effect, and continue.",
+      "dependencies": ["G1"],
+      "acceptance": [
+        "Legal selection and alternating turns work from a starting position or loaded FEN.",
+        "Rules commit each move once, independently of animation or GPU failure.",
+        "Full playback and Skip reach the identical post-move position; Undo restores the prior position.",
+        "Special moves have explicit presentation semantics and kings are never captured.",
+        "The next player can move after the effect; a move receipt can open in Cinema."
+      ],
+      "uncertainty": "UI lifecycle, special moves, appearance identity and undo must agree. Reuse the driven attacker and one simulated victim first."
+    },
+    {
+      "id": "G3",
+      "title": "Physical tablet performance pass",
+      "current_state": "Auto/Tablet presentation settings already exist",
+      "impact": "High",
+      "effort": "M",
+      "confidence": "Medium",
+      "outcome": "Keep interaction responsive with a measured cost budget.",
+      "dependencies": [],
+      "acceptance": [
+        "Measure solver, surface generation, lighting and recording separately on the actual target tablet.",
+        "Keep a replayable before/after capture with visual quality checks.",
+        "Change the demonstrated bottleneck and expose a low-cost live setting."
+      ],
+      "uncertainty": "A bounded measurement-only first slice is S. Hardware access is required; no speedup is promised before profiling."
+    },
+    {
+      "id": "G4",
+      "title": "Named shot library",
+      "current_state": "Validated import/export recipes already exist",
+      "impact": "Medium",
+      "effort": "S–M",
+      "confidence": "High",
+      "outcome": "Save, name, duplicate and reopen a Cinema recipe without juggling JSON files.",
+      "dependencies": [],
+      "acceptance": [
+        "A saved shot restores position, move, material, colours, board and camera after reload.",
+        "Malformed imports and name conflicts preserve existing saved data."
+      ],
+      "uncertainty": "This first slice excludes a batch queue and continuous multi-move simulation."
+    },
+    {
+      "id": "G5",
+      "title": "PGN to replay and Cinema",
+      "current_state": "No PGN support in audited chess path",
+      "impact": "Medium",
+      "effort": "M",
+      "confidence": "Medium",
+      "outcome": "Turn a real game into selectable capture shots.",
+      "dependencies": ["G1"],
+      "acceptance": [
+        "Import a mainline game and step its positions correctly.",
+        "Select a capture and create a valid Cinema recipe.",
+        "State support for variations and special moves explicitly."
+      ],
+      "uncertainty": "Depends on the shared rules adapter; scope variations separately. Higher priority if the goal switches back to producing content."
+    },
+    {
+      "id": "G6",
+      "title": "Sound in studio and native export",
+      "current_state": "Approved stems and external mixer exist; browser exports are silent",
+      "impact": "Medium",
+      "effort": "M–L",
+      "confidence": "Medium",
+      "outcome": "Hear selected candy sounds in preview and include them in the downloaded movie.",
+      "dependencies": [],
+      "acceptance": [
+        "Preview uses timeline cues with volume and mute controls.",
+        "Export muxes audio against fixed frame timestamps.",
+        "Unsupported browser codecs produce an explicit supported fallback."
+      ],
+      "uncertainty": "Audio timing, seeking and codec capabilities need verification. More paid sound generation is unnecessary for this slice."
+    },
+    {
+      "id": "G7",
+      "title": "Thinner necks and smoother small debris",
+      "current_state": "MPM and marching cubes work; detached masses still look bead-like",
+      "impact": "High",
+      "effort": "L–XL",
+      "confidence": "Low",
+      "outcome": "Improve the material response during separation while keeping a fixed performance budget.",
+      "dependencies": [],
+      "acceptance": [
+        "Compare matched pulls with controlled particle resolution, surface kernel and material settings.",
+        "Separate surface smoothing effects from physical separation changes.",
+        "Check volume loss, stability and frame cost alongside appearance."
+      ],
+      "uncertainty": "Start with a bounded experiment; marching cubes alone cannot change the physical tearing law."
+    },
+    {
+      "id": "G8",
+      "title": "Editable IFS piece collection",
+      "current_state": "Flame studies exist; editable six-role board collection is missing",
+      "impact": "High",
+      "effort": "L",
+      "confidence": "Medium–low",
+      "outcome": "Reconnect the chess game to the original fractal creator goal.",
+      "dependencies": ["G1"],
+      "acceptance": [
+        "First prove one edited pawn saves and reloads with recipe, seed, material, stable bounds and identity.",
+        "Place its immutable baked snapshot on the board and keep game-distance role readability.",
+        "Expand to six role templates only after the pawn path is accepted."
+      ],
+      "uncertainty": "Point-cloud studies are not collision volumes; preserve gummy and glass variants while establishing a separate representation."
+    },
+    {
+      "id": "G9",
+      "title": "Camera and timing controls",
+      "current_state": "Three scripted camera paths and eight-second clock exist",
+      "impact": "Medium",
+      "effort": "M",
+      "confidence": "Medium",
+      "outcome": "Allow a small camera offset, elevation and hold-time adjustment.",
+      "dependencies": [],
+      "acceptance": [
+        "Preserve automatic actor framing as the default.",
+        "Save controls in recipes and update exported timing and audio cues.",
+        "Check portrait and landscape framing at the new limits."
+      ],
+      "uncertainty": "A timing edit affects the capture driver and external audio cues, not only a slider."
+    },
+    {
+      "id": "G10",
+      "title": "Extra palettes and ready-made looks",
+      "current_state": "Per-piece palettes and board finishes already exist",
+      "impact": "Low",
+      "effort": "S",
+      "confidence": "High",
+      "outcome": "Offer a few additional colour combinations using existing material controls.",
+      "dependencies": [],
+      "acceptance": [
+        "Looks preserve side and role readability in normal board views."
+      ],
+      "uncertainty": "Useful for variety; limited improvement to playability or material behavior."
+    },
+    {
+      "id": "G11",
+      "title": "Simulate all 32 pieces continuously",
+      "current_state": "Current cinema simulates only the victim",
+      "impact": "Low",
+      "effort": "XL",
+      "confidence": "Low",
+      "outcome": "Explore a fully soft physical board after a playable game exists.",
+      "dependencies": ["G2", "G3"],
+      "acceptance": [
+        "Define an actual gameplay need and a hardware budget before implementation."
+      ],
+      "uncertainty": "Much higher physics/contact/memory cost without being necessary for legal chess or capture animation."
+    },
+    {
+      "id": "G12",
+      "title": "Online ranked multiplayer",
+      "current_state": "Local complete game missing",
+      "impact": "Low",
+      "effort": "XL",
+      "confidence": "Low",
+      "outcome": "Support remote competitive play after the local state contract is stable.",
+      "dependencies": ["G2"],
+      "acceptance": [
+        "Scope networking, recovery, authoritative state and service ownership separately."
+      ],
+      "uncertainty": "Adds infrastructure and synchronization before the core local game has been accepted."
+    },
+    {
+      "id": "G13",
+      "title": "More accurate piece optics",
+      "current_state": "Glass board refraction and approximate piece caustics exist",
+      "impact": "Medium",
+      "effort": "L",
+      "confidence": "Medium–low",
+      "outcome": "Improve coloured transmission and light occlusion on one frozen glass-board shot.",
+      "dependencies": [],
+      "acceptance": [
+        "Compare thickness and multiple-interval treatment under fixed exposure and geometry.",
+        "Measure the added live rendering cost."
+      ],
+      "uncertainty": "Start with bounded optical improvements; a full path tracer is a separate research/production choice."
+    },
+    {
+      "id": "G14",
+      "title": "Fractal fragments retaining recursive structure",
+      "current_state": "Research proposal; no finite connectivity model proved",
+      "impact": "Medium",
+      "effort": "XL",
+      "confidence": "Low",
+      "outcome": "Prove one Menger rook and a coherent repeatable local fracture.",
+      "dependencies": [],
+      "acceptance": [
+        "Use a finite representation with sample ownership and actual connectivity.",
+        "Keep recursive chunks readable through a repeatable impact."
+      ],
+      "uncertainty": "IFS addresses alone are not physical bonds. This is separate from gummy MPM and should remain an explicit experiment."
+    }
+  ],
+  "evidence": [
+    "assets/README-gummy-study.md",
+    "docs/gummy-cinema.md",
+    "packages/app/src/components/GummyBoard/gummyBoardPosition.ts",
+    "packages/app/src/flame/chess/pawnGame.ts",
+    "assets/fractal-fracture-research.md"
+  ],
+  "method_sources": [
+    "https://www.nngroup.com/articles/prioritization-methods/",
+    "https://www.intercom.com/blog/rice-simple-prioritization-for-product-managers"
+  ],
+  "reusable_skill": "/home/maff/.dotfiles/personal/agentic/skills/impact-effort/SKILL.md"
+}

@@ -4,10 +4,11 @@ import { DEFAULT_GUMMY_PARTICLE_TUNING, GUMMY_PARTICLE_OUTER_DT, gummyParticleVi
 import { GummyParticleParameters } from './gummyParticleShaders'
 import { createGummyParticleSolver } from './gummyParticleSolver'
 import type { d, TgpuRoot } from 'typegpu'
-import type { GummyParticleStep } from './gummyParticleSolver'
+import type { GummyParticleOptions, GummyParticleStep, } from './gummyParticleSolver'
 
-function setup() {
+function setup(options: GummyParticleOptions = {}) {
   const writes: Float32Array[] = []
+  const geometryWrites: Float32Array[] = []
   const device = {
     createCommandEncoder: () => ({
       clearBuffer: () => {},
@@ -24,6 +25,7 @@ function setup() {
         write(data: ArrayBuffer) {
           if (schema === GummyParticleParameters)
             writes.push(new Float32Array(data.slice(0)))
+          else geometryWrites.push(new Float32Array(data.slice(0)))
         },
         $usage: () => buffer,
       }
@@ -43,10 +45,11 @@ function setup() {
   const solver = createGummyParticleSolver(
     root as unknown as TgpuRoot,
     device as unknown as GPUDevice,
-    { spacing: 0.12 },
+    { spacing: 0.12, ...options },
   )
   return {
     solver,
+    geometryWrites,
     write: (input: Partial<GummyParticleStep> = {}) => {
       expect(
         solver.step(GUMMY_PARTICLE_OUTER_DT, {
@@ -62,6 +65,26 @@ function setup() {
 }
 
 describe('particle solver tuning uniforms', () => {
+  it('rotates initial geometry before placement and preserves canonical dye and reset positions', () => {
+    const { solver, geometryWrites } = setup({
+      fixture: 'knight',
+      initialRotationY: Math.PI / 2,
+      initialOffset: [1, 0.2, -2],
+    })
+    const rest = solver.restPositions
+    const initial = geometryWrites[0]!
+    for (let i = 0; i < rest.length; i += 4) {
+      expect(initial[i]).toBeCloseTo(rest[i + 2]! + 1, 5)
+      expect(initial[i + 1]).toBeCloseTo(rest[i + 1]! + 0.2, 5)
+      expect(initial[i + 2]).toBeCloseTo(-rest[i]! - 2, 5)
+      expect(initial[i + 3]).toBe(rest[i + 3])
+    }
+    expect(geometryWrites[1]).toEqual(initial)
+    solver.reset()
+    expect(geometryWrites[3]).toEqual(initial)
+    solver.destroy()
+    expect(() => setup({ initialRotationY: NaN })).toThrow('orientations')
+  })
   it('uploads the optional collider and clears it completely for existing study steps', () => {
     const { solver, write } = setup()
     const baseline = write()

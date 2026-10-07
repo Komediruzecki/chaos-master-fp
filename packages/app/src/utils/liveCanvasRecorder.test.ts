@@ -1,6 +1,6 @@
 /** Recording lifecycle tests pin final chunks, codec fallback, and resource ownership. */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { LIVE_CANVAS_RECORDING_MAX_SECONDS, startLiveCanvasRecording, supportsLiveCanvasRecording, } from './liveCanvasRecorder'
+import { getLiveCanvasCaptureSettings, LIVE_CANVAS_RECORDING_MAX_SECONDS, startLiveCanvasRecording, supportsLiveCanvasRecording, } from './liveCanvasRecorder'
 import type { LiveCanvasRecordingOptions } from './liveCanvasRecorder'
 
 class RecordingTrack extends EventTarget {
@@ -21,6 +21,7 @@ class RecordingRecorder extends EventTarget {
   state: RecordingState = 'inactive'
   mimeType: string
   options: MediaRecorderOptions
+  videoBitsPerSecond = 10_000_000
   start = vi.fn((_timeslice: number) => {
     if (RecordingRecorder.startFailures.has(this.options.mimeType ?? '')) {
       throw new Error('No encoder available')
@@ -60,14 +61,14 @@ let canvas: HTMLCanvasElement
 let track: RecordingTrack
 let capture: ReturnType<typeof vi.fn>
 let callbacks: {
-  [K in keyof Required<LiveCanvasRecordingOptions>]: ReturnType<
-    typeof vi.fn<Required<LiveCanvasRecordingOptions>[K]>
-  >
+  [K in keyof Required<
+    Omit<LiveCanvasRecordingOptions, 'quality'>
+  >]: ReturnType<typeof vi.fn<Required<LiveCanvasRecordingOptions>[K]>>
 }
 let recordings: ReturnType<typeof startLiveCanvasRecording>[]
 
-function start() {
-  const recording = startLiveCanvasRecording(canvas, callbacks)
+function start(quality?: LiveCanvasRecordingOptions['quality']) {
+  const recording = startLiveCanvasRecording(canvas, { ...callbacks, quality })
   recordings.push(recording)
   return recording
 }
@@ -137,13 +138,13 @@ describe('live canvas recording', () => {
     expect(capture).not.toHaveBeenCalled()
   })
 
-  it('records the canvas at 30 fps and waits for the final chunk before completing', async () => {
+  it('requests detailed 60 fps capture and waits for the final chunk before completing', async () => {
     const recording = start()
     const recorder = currentRecorder()
-    expect(capture).toHaveBeenCalledWith(30)
+    expect(capture).toHaveBeenCalledWith(60)
     expect(recorder.options).toEqual({
       mimeType: MP4,
-      videoBitsPerSecond: 8_000_000,
+      videoBitsPerSecond: 13_300_000,
     })
     expect(recorder.start).toHaveBeenCalledWith(1000)
     recorder.data(new Blob(['first'], { type: MP4 }))
@@ -161,11 +162,57 @@ describe('live canvas recording', () => {
     expect(callbacks.onComplete).toHaveBeenCalledTimes(1)
     const result = callbacks.onComplete.mock.calls[0]![0]
     expect(await result.blob.text()).toBe('firstlast')
-    expect(result).toMatchObject({ extension: 'mp4', durationSeconds: 1.25 })
+    expect(result).toMatchObject({
+      extension: 'mp4',
+      durationSeconds: 1.25,
+      capture: {
+        width: 1280,
+        height: 720,
+        requestedFrameRate: 60,
+        requestedBitsPerSecond: 13_300_000,
+      },
+      encoderBitsPerSecond: 10_000_000,
+    })
+    expect(recording.capture).toEqual(result.capture)
     expect(result.blob.type).toBe(MP4.toLowerCase())
     expect(track.stop).toHaveBeenCalledTimes(1)
     expect(vi.getTimerCount()).toBe(0)
   })
+
+  it('retains a lighter 30 fps profile and reports unavailable encoder metadata honestly', () => {
+    const recording = start('standard')
+    const recorder = currentRecorder()
+    recorder.videoBitsPerSecond = 0
+    expect(capture).toHaveBeenCalledWith(30)
+    expect(recorder.options.videoBitsPerSecond).toBe(8_000_000)
+    expect(recording.capture.requestedFrameRate).toBe(30)
+    recorder.data(new Blob(['video']))
+    recorder.finish()
+    expect(
+      callbacks.onComplete.mock.calls[0]![0].encoderBitsPerSecond,
+    ).toBeUndefined()
+    expect(track.stop).toHaveBeenCalledTimes(1)
+  })
+
+  it.each([
+    [640, 480, 'high', 60, 12_000_000],
+    [1920, 1080, 'high', 60, 29_900_000],
+    [1080, 1920, 'high', 60, 29_900_000],
+    [3840, 2160, 'high', 60, 60_000_000],
+    [640, 480, 'standard', 30, 8_000_000],
+    [1920, 1080, 'standard', 30, 12_400_000],
+    [3840, 2160, 'standard', 30, 30_000_000],
+  ] as const)(
+    'budgets %s × %s %s capture by source pixels with bounded memory growth',
+    (width, height, quality, requestedFrameRate, requestedBitsPerSecond) => {
+      expect(getLiveCanvasCaptureSettings(width, height, quality)).toEqual({
+        width,
+        height,
+        requestedFrameRate,
+        requestedBitsPerSecond,
+      })
+    },
+  )
 
   it('falls back after supported MP4 construction and start both fail', () => {
     RecordingRecorder.constructorFailures.add(MP4)
@@ -211,7 +258,9 @@ describe('live canvas recording', () => {
     RecordingRecorder.actualMime = 'video/mp4'
     start()
     expect(RecordingRecorder.attempts).toEqual([''])
-    expect(currentRecorder().options).toEqual({ videoBitsPerSecond: 8_000_000 })
+    expect(currentRecorder().options).toEqual({
+      videoBitsPerSecond: 13_300_000,
+    })
     currentRecorder().data(new Blob(['video']))
     currentRecorder().finish()
     expect(callbacks.onComplete.mock.calls[0]![0].extension).toBe('mp4')
