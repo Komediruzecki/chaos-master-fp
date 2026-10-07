@@ -15,6 +15,7 @@ import type { GummyPalette } from '../GummyBear/gummyMaterial'
 import type { GummyFrame } from '../GummyBear/gummyRenderer'
 import type { MarchingGummyInput } from '../GummyBear/marchingGummySurface'
 import type { GummyBoardPiece } from './gummyBoardInstances'
+import type { GummyBoardRestMeshPool } from './gummyBoardRestMeshPool'
 import type { GummyBoardTheme } from './gummyBoardThemes'
 import type { GummyChessArtStyle } from '@/simulation/gummy/gummyChessMoulds'
 
@@ -66,6 +67,10 @@ export async function createGummyBoardRenderer(
     lightResolution?: 512 | 1024
     artStyle?: GummyChessArtStyle
     signal?: AbortSignal
+    /** A scene owner can share immutable moulds across static play and cinematic captures. */
+    restMeshPool?: GummyBoardRestMeshPool
+    /** Waiting-piece detail is independent of the live victim's particle resolution. */
+    restSpacing?: number
   } = {},
 ) {
   if (root.device !== device)
@@ -80,14 +85,15 @@ export async function createGummyBoardRenderer(
   }
   try {
     const restMeshes = own(
-      await createGummyBoardRestMeshes(
+      await (quality.restMeshPool?.acquire ?? createGummyBoardRestMeshes)(
         root,
         device,
-        particles?.spacing ?? 0.08,
+        quality.restSpacing ?? particles?.spacing ?? 0.08,
         quality.artStyle,
         quality.signal,
       ),
     )
+    quality.signal?.throwIfAborted()
     // Local games keep every waiting piece static. No MPM surface or density grid is allocated.
     const surface = particles
       ? own(createMarchingGummySurface(root, device, particles))

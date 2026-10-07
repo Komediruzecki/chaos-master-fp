@@ -10,9 +10,11 @@ import { resolveGummyBoardQuality } from './gummyBoardQuality'
 import { createGummyBoardRenderer } from './gummyBoardRenderer'
 import { gummyBoardShotCamera } from './gummyBoardShotCamera'
 import { gummyBoardShotPose, gummyBoardShotSimulationTime, gummyBoardShotStep, resolveGummyBoardShot, } from './gummyBoardShots'
+import { gummyMatchShotCamera } from './gummyMatchShotCamera'
 import type { GummyPalette } from '../GummyBear/gummyMaterial'
-import type { GummyVec3 } from '../GummyBear/gummyStudyMath'
+import type { GummyOrbit, GummyVec3 } from '../GummyBear/gummyStudyMath'
 import type { GummyBoardQuality } from './gummyBoardQuality'
+import type { GummyBoardRestMeshPool } from './gummyBoardRestMeshPool'
 import type { GummyBoardShot } from './gummyBoardShots'
 import type { GummyPresetSettings } from '@/pages/GummyBear/gummyPresets'
 
@@ -60,6 +62,9 @@ type Props = {
   attackerPalette: GummyPalette
   victimPalette: GummyPalette
   backgroundPalettes?: readonly [GummyPalette, GummyPalette]
+  /** Match-only resources and camera; standalone studio shots retain their own framing. */
+  restMeshPool?: GummyBoardRestMeshPool
+  matchOrbit?: GummyOrbit
   onController: (controller: GummyCinemaController | undefined) => void
   onProgress: (time: number, playing: boolean) => void
   onError: (message: string) => void
@@ -188,12 +193,10 @@ function NativeGummyCinema(
   async function draw() {
     if (!renderer || disposed) return
     const size = canvasSize()
-    const camera = gummyBoardShotCamera(
-      shot,
-      displayTime,
-      size.width / Math.max(1, size.height),
-      scale,
-    )
+    const aspect = size.width / Math.max(1, size.height)
+    const camera = props.matchOrbit
+      ? gummyMatchShotCamera(shot, displayTime, aspect, scale, props.matchOrbit)
+      : gummyBoardShotCamera(shot, displayTime, aspect, scale)
     attacker.position = gummyBoardShotPose(
       shot,
       simulationTime(),
@@ -221,7 +224,7 @@ function NativeGummyCinema(
         caustics: material.caustics,
         boardTheme: shot.shot.boardTheme,
         boardTime: displayTime,
-        supportingDensity: 1.8,
+        supportingDensity: props.matchOrbit ? 1 : 1.8,
       },
     )
     canvas.dataset.testid = 'gummy-cinema-canvas'
@@ -376,6 +379,8 @@ function NativeGummyCinema(
       lightResolution: quality.lightResolution,
       artStyle: props.artStyle,
       signal: preparation.signal,
+      restMeshPool: props.restMeshPool,
+      restSpacing: props.restMeshPool ? 0.08 : undefined,
     },
   )
     .then(async (created) => {

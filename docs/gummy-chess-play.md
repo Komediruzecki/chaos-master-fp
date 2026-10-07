@@ -26,7 +26,11 @@ remain on the board when the game ends in checkmate.
 
 Ordinary occupied-square captures use the gummy crash presentation. Only the
 victim runs MPM; the attacker follows the prescribed collision motion and finishes
-on the captured square. Other pieces use cached meshes. Castling, en passant,
+on the captured square. Other pieces use cached meshes. The board stays visible while the victim solver
+starts, then the camera eases into the capture and back to the same orbit, pan
+and zoom. The six static piece meshes are baked once per match scene and shared
+with each capture; returning to play keeps the existing board renderer. The
+initial loading message does not return for captures or replay. Castling, en passant,
 promotion and ordinary moves have short move animations. Special captures are
 legal even where the cinematic crush does not yet support their presentation.
 
@@ -184,3 +188,14 @@ throttled to about one frame per second. This is functional verification, not a
 tablet performance measurement. Local reports and screenshots are under
 `/home/maff/agent-out/chaos-master-fp/2026-10-07/match-verification/`; generated
 verification artifacts are excluded from Git.
+
+A follow-up transition check on the same desktop GPU measured capture readiness
+at 160 ms versus 1,159 ms before, and return to the board at 19 ms versus 956 ms.
+These are individual local runs, not a cross-device benchmark. Instrumented GPU
+command labels showed six total rest-mesh bakes across opening and capture, down
+from eighteen; the board canvas remained mounted and no blank-canvas state was
+observed. Replay, Skip during setup and Skip during playback preserved the exact
+FEN. Camera tests cover matching board framing at both ends, including pan/zoom,
+and mesh lease tests cover cancellation, failed setup and scope cleanup. Logs and
+screenshots remain outside the repository in the adjacent `transition-verification/`
+folder under the local verification path above.

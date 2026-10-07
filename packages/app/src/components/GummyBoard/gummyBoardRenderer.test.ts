@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { GUMMY_BOARD_MOULDS } from './gummyBoardInstances'
 import { createGummyBoardRenderer } from './gummyBoardRenderer'
+import { createGummyBoardRestMeshPool } from './gummyBoardRestMeshPool'
 import { gummyBoardMaterialLayout } from './gummyBoardShaders'
 import { gummyBoardStageLayout } from './gummyBoardStageShaders'
 import type { TgpuRoot } from 'typegpu'
@@ -162,6 +163,86 @@ beforeEach(() => {
 })
 
 describe('two live gummy board surfaces', () => {
+  it('releases a failed capture lease without invalidating the visible static board', async () => {
+    const test = harness(),
+      pool = createGummyBoardRestMeshPool()
+    const quality = { restMeshPool: pool, restSpacing: 0.08 }
+    const board = await createGummyBoardRenderer(
+      test.root,
+      test.device,
+      test.context,
+      'bgra8unorm',
+      undefined,
+      undefined,
+      quality,
+    )
+    mocks.surfaces.mockImplementationOnce(() => {
+      throw new Error('Surface allocation failed')
+    })
+    await expect(
+      createGummyBoardRenderer(
+        test.root,
+        test.device,
+        test.context,
+        'bgra8unorm',
+        input(),
+        undefined,
+        quality,
+      ),
+    ).rejects.toThrow('Surface allocation failed')
+    pool.destroy()
+    expect(test.rest.destroy).not.toHaveBeenCalled()
+    board.render(frame, { pieces: [], victimId: 0, victimPosition: [0, 0, 0] })
+    board.destroy()
+    expect(test.rest.destroy).toHaveBeenCalledOnce()
+  })
+  it("shares waiting moulds across static and live scenes without changing the victim resolution or releasing another scene's mesh", async () => {
+    const test = harness(),
+      pool = createGummyBoardRestMeshPool()
+    const quality = {
+      restMeshPool: pool,
+      restSpacing: 0.08,
+      artStyle: 'sculpted' as const,
+    }
+    const board = await createGummyBoardRenderer(
+      test.root,
+      test.device,
+      test.context,
+      'bgra8unorm',
+      undefined,
+      undefined,
+      quality,
+    )
+    const victim = { ...input(), spacing: 0.06 },
+      live = surface()
+    mocks.surfaces.mockReturnValueOnce(live)
+    const capture = await createGummyBoardRenderer(
+      test.root,
+      test.device,
+      test.context,
+      'bgra8unorm',
+      victim,
+      undefined,
+      quality,
+    )
+    expect(mocks.rest).toHaveBeenCalledOnce()
+    expect(mocks.rest).toHaveBeenCalledWith(
+      test.root,
+      test.device,
+      0.08,
+      'sculpted',
+      expect.any(AbortSignal),
+    )
+    expect(mocks.surfaces).toHaveBeenCalledWith(test.root, test.device, victim)
+    capture.destroy()
+    expect(live.destroy).toHaveBeenCalledOnce()
+    expect(test.rest.destroy).not.toHaveBeenCalled()
+    pool.destroy()
+    expect(test.rest.destroy).not.toHaveBeenCalled()
+    board.render(frame, { pieces: [], victimId: 0, victimPosition: [0, 0, 0] })
+    board.destroy()
+    expect(test.rest.destroy).toHaveBeenCalledOnce()
+  })
   it('renders a complete waiting board without allocating a live surface and reuses its light while orbiting', async () => {
     const test = harness()
     const renderer = await createGummyBoardRenderer(

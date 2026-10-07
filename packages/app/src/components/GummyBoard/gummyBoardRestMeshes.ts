@@ -14,6 +14,11 @@ export type GummyBoardRestMesh = {
   destroy(): void
 }
 
+export type GummyBoardRestMeshes = {
+  meshes: ReadonlyMap<GummyChessMould, GummyBoardRestMesh>
+  destroy(): void
+}
+
 /** Sequential baking bounds peak memory; no solver, density grid or readback survives setup. */
 export async function createGummyBoardRestMeshes(
   root: TgpuRoot,
@@ -21,7 +26,7 @@ export async function createGummyBoardRestMeshes(
   spacing: number,
   artStyle: GummyChessArtStyle = 'classic',
   signal?: AbortSignal,
-) {
+): Promise<GummyBoardRestMeshes> {
   const meshes = new Map<GummyChessMould, GummyBoardRestMesh>()
   try {
     for (const mould of GUMMY_BOARD_MOULDS) {
