@@ -401,7 +401,7 @@ describe('GummyCinemaPage', () => {
     window.history.replaceState(null, '', '/gummy?view=cinema&from=match')
     render(() => <GummyCinemaPage />)
     const before = current()
-    expect(before.shot.motion.shearDistance).toBe(0.29)
+    expect(before.shot.motion?.shearDistance).toBe(0.29)
     openSection('Position and move')
     fireEvent.input(screen.getByLabelText('Position (FEN)'), {
       target: { value: '' },
@@ -426,7 +426,7 @@ describe('GummyCinemaPage', () => {
         gummyCaptureMechanicContext(current().shot, current().scale),
       ).motion,
     )
-    expect(current().shot.motion.shearDistance).toBeLessThan(0.29)
+    expect(current().shot.motion?.shearDistance).toBeLessThan(0.29)
     expect(current().material).toEqual(before.material)
     expect(exportRecipe().shot.motion).toEqual(current().shot.motion)
   })
