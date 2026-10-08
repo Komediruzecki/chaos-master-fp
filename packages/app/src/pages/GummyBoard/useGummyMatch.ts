@@ -86,7 +86,7 @@ export function useGummyMatch() {
       const presentation = createGummyMatchCapturePresentation(
         result.receipt,
         appearance(),
-        retained.at(-1),
+        retained,
       )
       batch(() => {
         setCaptures(presentation ? [...retained, presentation] : retained)

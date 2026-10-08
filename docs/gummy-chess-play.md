@@ -48,9 +48,9 @@ promotion and ordinary moves have short move animations. Special captures are
 legal even where the cinematic crush does not yet support their presentation.
 
 Captures now vary between **Press and settle**, **Shoulder sweep** and **Rock and
-shear**. The match chooses once when the move is committed, avoids an immediate
-repeat when compatible alternatives exist, and reduces travel or rotation around
-nearby pieces. A crowded position can use the simpler press. **Game & moves**
+shear**. The match uses all three in a shuffled round, including the original
+straight-down press, before refilling the choices. It avoids immediate repeats
+between rounds and reduces travel or rotation around nearby pieces. A crowded position can use the simpler press. **Game & moves**
 shows the selected capture's motion above its Cinema link. Replaying the move
 uses the same choice and saved material rather than choosing again.
 

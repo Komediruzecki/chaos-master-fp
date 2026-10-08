@@ -103,7 +103,11 @@ regions on the existing slab, not 64 new meshes or recessed collision shapes.
 Every playable square and marker stays on the contact plane. The glass below is
 a neutral substrate with thin coloured insets; the separate lower receiver at
 `GUMMY_BOARD_GLASS_FLOOR` contains transmitted light and no playing-grid texture.
-Restrained surface frost and receiver brightness preserve the optical response.
+The receiver adds only focused excess over the studio illumination, with a soft
+source-rim taper. Ordinary transmission no longer paints a bright rectangular
+carpet. Camera reflections retain the etched micro-bevels; transmitted light uses
+the smooth cast normal as an approximation of frost and broad studio-light
+averaging, so there is no second etched grid visible through the top.
 
 This adds no draw calls, textures, per-frame geometry or uniform layout changes.
 It retains the fixed 96 by 96 light grid and cached receiver transport. It does
@@ -120,7 +124,10 @@ are retained with the glass captures under
 `/home/maff/agent-out/chaos-master-fp/2026-10-08/glass-captures/`. Native Arcade
 selection markers and complete capture framing passed on Glass. All-corner
 touch selection and physical iOS/tablet checks remain open. No gummy-piece
-remeshing was required.
+remeshing was required. The floor follow-up was checked from overhead, grazing
+and near-horizontal cameras, with no GPU errors. Matched Classic and Lava
+control captures are retained alongside the glass views in
+`/home/maff/agent-out/chaos-master-fp/2026-10-08/glass-floor-fix/`.
 
 ## Capture mechanics and reproducible variety (G17)
 
@@ -134,9 +141,11 @@ square:
 | Rock and shear   | Alternate a small turn around the vertical axis while pressing and sweeping | Visible mesh and collider share yaw; contact includes angular velocity |
 
 `gummyCaptureMechanics.ts` chooses once per ordinary committed capture using a
-stable receipt seed. It avoids the preceding mechanic when compatible alternatives
-exist; a cramped position can fall back to Press and settle. Shared mould bounds
-and board occupancy cap travel and yaw before saving the choice. These conservative
+stable receipt seed and a shuffle bag reconstructed from retained captures. Each
+round includes all three mechanics once, with no immediate repeat across rounds;
+a cramped position can fall back to Press and settle. Repeated safety fallbacks
+count once toward the round, so the other motions resume when space opens up.
+Shared mould bounds and board occupancy cap travel and yaw before saving the choice. These conservative
 limits can make the motion subtle on crowded squares. Material and quality remain
 explicit settings, rather than separate selector heuristics.
 
@@ -158,6 +167,13 @@ source/target square or size recalculates clearance using the same mechanic and
 seed; incomplete position input stays editable until valid. Custom and legacy
 motion remains explicit through those edits. No choice is made during drawing or
 replay.
+
+The floor and selection follow-up passes 68 focused tests across board themes,
+grid alignment, capture selection, shot motion, match state and saved sessions.
+The original press retains its late sweep and zero twist. Regression coverage
+checks complete shuffled rounds, repeated safety fallbacks, reload followed by
+more captures, and replay of the saved press. Native Arcade and standalone match
+pages load with HMR enabled and no page, GPU or failed-request errors.
 
 Native Chromium on the desktop AMD GPU ran all three mechanics at Tablet quality
 for the pawn-versus-knight Glass shot. Sampled particle state remained finite,

@@ -41,7 +41,7 @@ function captureSeed(receipt: ChessMoveReceipt) {
 export function createGummyMatchCapturePresentation(
   receipt: ChessMoveReceipt,
   appearance: GummyMatchAppearance,
-  previous?: GummyMatchCapturePresentation,
+  previous: readonly GummyMatchCapturePresentation[] = [],
   legacy = false,
 ): GummyMatchCapturePresentation | undefined {
   const shot = gummyMatchCaptureShot(receipt, appearance.theme)
@@ -50,7 +50,9 @@ export function createGummyMatchCapturePresentation(
     ? undefined
     : chooseGummyCaptureMechanic(
         captureSeed(receipt),
-        previous?.mechanic?.id,
+        previous.flatMap((capture) =>
+          capture.mechanic ? [capture.mechanic.id] : [],
+        ),
         gummyCaptureMechanicContext(shot, appearance.scale),
       )
   return {
@@ -75,7 +77,7 @@ export function createGummyMatchCaptures(
     const presentation = createGummyMatchCapturePresentation(
       receipt,
       appearance,
-      captures.at(-1),
+      captures,
       legacy,
     )
     if (presentation) captures.push(presentation)

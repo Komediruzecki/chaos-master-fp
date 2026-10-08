@@ -4,8 +4,43 @@ import { GUMMY_CHESS_MOULDS } from '@/simulation/gummy/gummyChessMoulds'
 import { GUMMY_BOARD_GRID } from './gummyBoardGrid'
 import { GUMMY_BOARD_SHOTS, gummyBoardShotPose, gummyBoardShotRotation, gummyBoardShotStep, resolveGummyBoardShot, resolveGummyBoardShotMotion, } from './gummyBoardShots'
 import { chooseGummyCaptureMechanic, createGummyCaptureMechanic, GUMMY_CAPTURE_MECHANICS, gummyCaptureMechanicContext, parseGummyCaptureMechanic, } from './gummyCaptureMechanics'
+import type { GummyCaptureMechanicId } from './gummyCaptureMechanics'
 
 describe('physical capture mechanics', () => {
+  it('includes the original press in every seeded three-choice round without repeating at the boundary', () => {
+    for (const seed of [0, 1, 2, 21, 0xffffffff]) {
+      const history: GummyCaptureMechanicId[] = []
+      for (let index = 0; index < 30; index++) {
+        const choice = chooseGummyCaptureMechanic(seed, history)
+        expect(choice).toEqual(chooseGummyCaptureMechanic(seed, [...history]))
+        expect(choice.mechanic.id).not.toBe(history.at(-1))
+        history.push(choice.mechanic.id)
+        if (history.length % 3 === 0) {
+          const round = history.slice(-3)
+          expect(new Set(round).size).toBe(3)
+          expect(round).toContain('press-settle')
+        }
+      }
+    }
+  })
+
+  it('counts repeated safe presses once and resumes the unfinished round when space becomes available', () => {
+    const history: GummyCaptureMechanicId[] = []
+    for (let index = 0; index < 4; index++)
+      history.push(
+        chooseGummyCaptureMechanic(index, history, {
+          maxShearDistance: 0,
+          maxTwistAngle: 0,
+        }).mechanic.id,
+      )
+    expect(history).toEqual(Array(4).fill('press-settle'))
+    for (let index = 0; index < 2; index++)
+      history.push(chooseGummyCaptureMechanic(index, history).mechanic.id)
+    expect(new Set(history.slice(-3)).size).toBe(3)
+    const choice = chooseGummyCaptureMechanic(5, history)
+    expect(choice.mechanic.id).not.toBe(history.at(-1))
+  })
+
   it('limits a corner capture against the board edge even with no nearby pieces', () => {
     const base = {
       ...GUMMY_BOARD_SHOTS[0]!,

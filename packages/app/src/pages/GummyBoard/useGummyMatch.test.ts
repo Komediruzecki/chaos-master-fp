@@ -27,6 +27,44 @@ function matchAtCapture() {
 }
 
 describe('saved capture presentation', () => {
+  it('keeps the original straight press in the rotation across imported captures, reload and new moves', () => {
+    const { result: initial } = renderHook(useGummyMatch)
+    expect(initial.importPgn('1. e4 d5 2. exd5 Qxd5 *')).toBe(true)
+    initial.seek(4)
+    const firstTwo = structuredClone(loadGummyMatchSession().session!.captures!)
+    const { result: match } = renderHook(useGummyMatch)
+    for (const [from, to] of [
+      ['b1', 'c3'],
+      ['d5', 'e5'],
+      ['f1', 'e2'],
+      ['c8', 'g4'],
+      ['g1', 'f3'],
+      ['g4', 'f3'],
+      ['g2', 'f3'],
+    ] as const) {
+      match.commit({ from, to })
+      expect(match.error()).toBe('')
+      match.finishAnimation()
+    }
+    const saved = loadGummyMatchSession().session!
+    expect(saved.captures).toHaveLength(4)
+    expect(saved.captures!.slice(0, 2)).toEqual(firstTwo)
+    const ids = saved.captures!.map((capture) => capture.mechanic!.id)
+    expect(new Set(ids.slice(0, 3)).size).toBe(3)
+    expect(ids.slice(0, 3)).toContain('press-settle')
+    expect(ids[3]).not.toBe(ids[2])
+    const press = saved.captures!.find(
+      (capture) => capture.mechanic!.id === 'press-settle',
+    )!
+    expect(press.motion.shearOnset).toBe(1)
+    expect(press.motion.contactHold).toBe(0)
+    expect(press.motion.twistAngle).toBeUndefined()
+    const { result: replay } = renderHook(useGummyMatch)
+    replay.seek(press.ply)
+    replay.replay()
+    expect(replay.activePresentation()).toEqual(press)
+  })
+
   it('keeps the chosen motion and material through skip, replay, reload and Cinema handoff', () => {
     const match = matchAtCapture()
     const original = structuredClone(match.currentPresentation()!)

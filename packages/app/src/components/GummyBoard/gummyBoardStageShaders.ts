@@ -192,8 +192,8 @@ const gummyBoardGlassSupportMaterial = tgpu.fn(
   )
 })
 
-/** Both directions share the same lightly cast surface; this is a shading-normal approximation. */
-export const gummyBoardGlassNormal = tgpu.fn(
+/** Smooth cast surface shared by camera rays and area-averaged transmitted light. */
+const gummyBoardGlassCastNormal = tgpu.fn(
   [d.vec3f, d.vec3f],
   d.vec3f,
 )((point, normal) => {
@@ -202,17 +202,22 @@ export const gummyBoardGlassNormal = tgpu.fn(
   const grain = perlin2d.sampleWithGradient(
     std.add(std.mul(point.xz, 1.15), d.vec2f(4.7, 8.3)),
   )
-  const inset = gummyBoardGlassInset(point.xz)
   return std.normalize(
-    std.add(
-      normal,
-      d.vec3f(
-        grain.y * 0.008 + inset.bevel.x,
-        0,
-        grain.z * 0.008 + inset.bevel.y,
-      ),
-    ),
+    std.add(normal, d.vec3f(grain.y * 0.008, 0, grain.z * 0.008)),
   )
+})
+
+/** Etched micro-bevels remain sharp in reflections; their transmitted pattern
+ * averages out beneath the frosted insets and broad studio lights. */
+export const gummyBoardGlassNormal = tgpu.fn(
+  [d.vec3f, d.vec3f],
+  d.vec3f,
+)((point, normal) => {
+  'use gpu'
+  const cast = gummyBoardGlassCastNormal(point, normal)
+  if (normal.y < 0.99) return cast
+  const inset = gummyBoardGlassInset(point.xz)
+  return std.normalize(std.add(cast, d.vec3f(inset.bevel.x, 0, inset.bevel.y)))
 })
 
 export const GummyBoardGlassPath = d.struct({
@@ -288,7 +293,7 @@ const gummyBoardGlassLightRay = tgpu.fn(
   const point = std.add(origin, std.mul(incident, entry.w))
   const path = gummyBoardGlassPath(
     point,
-    gummyBoardGlassNormal(point, entry.xyz),
+    gummyBoardGlassCastNormal(point, entry.xyz),
     incident,
   )
   if (path.valid < 0.5 || path.direction.y >= -0.05) return result
@@ -301,6 +306,24 @@ const gummyBoardGlassLightRay = tgpu.fn(
   )
   result.energy = d.vec3f(path.transmission)
   return result
+})
+
+/** Only focused excess belongs over the studio's existing illumination. Fade the
+ * unresolved slab rim instead of drawing its projection as a second board. */
+export const gummyBoardGlassFocus = tgpu.fn(
+  [d.f32, d.vec2f],
+  d.f32,
+)((gain, source) => {
+  'use gpu'
+  const edge = std.max(std.abs(source.x), std.abs(source.y))
+  const interior =
+    1 -
+    std.smoothstep(
+      GUMMY_BOARD_GRID.halfExtent - 0.3,
+      GUMMY_BOARD_SLAB.halfExtent - 0.15,
+      edge,
+    )
+  return std.min(std.max(gain - 1, 0), 3) * interior
 })
 
 /** Static board-only two-interface transport. Piece caustics retain their existing approximation. */
@@ -346,7 +369,10 @@ export const gummyBoardGlassLightVertex = tgpu.vertexFn({
   if (ra.floor.w * rb.floor.w * rc.floor.w > 0.5 && area > 0.000001)
     gain = std.min(incoming / area, 10)
   else clip = d.vec4f(2, 2, 2, 1)
-  return { position: clip, energy: std.mul(ray.energy, gain * 1.55) }
+  return {
+    position: clip,
+    energy: std.mul(ray.energy, gummyBoardGlassFocus(gain, ray.source.xz)),
+  }
 })
 export const gummyBoardGlassLightFragment = tgpu.fragmentFn({
   in: { energy: d.vec3f },

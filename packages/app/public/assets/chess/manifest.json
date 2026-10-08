@@ -34,7 +34,8 @@
       "phi": 0.67,
       "zoom": 0.96
     },
-    "glassSurface": "64 flush clear/frosted glass material insets at the y=0 piece contact plane; etched seams share the picking grid."
+    "glassSurface": "64 flush clear/frosted glass material insets at the y=0 piece contact plane; etched seams share the picking grid.",
+    "glassLighting": "Only focused excess transmission reaches the continuous studio floor; no rectangular slab footprint or etched-grid projection beneath the insets."
   },
   "caustics": true,
   "provenance": "Captured from the application WebGPU renderer. These are runtime materials and shapes, not concept images."

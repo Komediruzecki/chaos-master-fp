@@ -1,11 +1,32 @@
 /** Theme codes and the analytic slab preserve board geometry and finite grazing hits. */
 import { d, tgpu } from 'typegpu'
 import { describe, expect, it } from 'vitest'
-import { gummyBoardBevelHit, gummyBoardGlassSupportHit, gummyBoardLavaSite, gummyBoardStageLighting, gummyBoardStageMaterial, gummyBoardStudioFloor, gummyBoardTileColour, } from './gummyBoardStageShaders'
+import { gummyBoardBevelHit, gummyBoardGlassFocus, gummyBoardGlassSupportHit, gummyBoardLavaSite, gummyBoardStageLighting, gummyBoardStageMaterial, gummyBoardStudioFloor, gummyBoardTileColour, } from './gummyBoardStageShaders'
 import { GUMMY_BOARD_GLASS_FLOOR, gummyBoardThemeCode, } from './gummyBoardThemes'
 import type { GummyBoardTheme } from './gummyBoardThemes'
 
 describe('gummy board stage themes', () => {
+  it('does not paint an unfocused rectangular light patch or a second slab rim on the floor', () => {
+    for (const gain of [0, 0.7, 1])
+      expect(gummyBoardGlassFocus(gain, d.vec2f(0))).toBe(0)
+    expect(gummyBoardGlassFocus(2, d.vec2f(0))).toBe(1)
+    expect(gummyBoardGlassFocus(100, d.vec2f(0))).toBe(3)
+    for (const source of [
+      d.vec2f(6.3, 0),
+      d.vec2f(-6.3, 0),
+      d.vec2f(0, 6.3),
+      d.vec2f(0, -6.3),
+    ])
+      expect(gummyBoardGlassFocus(2, source)).toBeCloseTo(0.5, 5)
+    for (const source of [
+      d.vec2f(6.5, 0),
+      d.vec2f(-6.5, 0),
+      d.vec2f(0, 6.65),
+      d.vec2f(0, -6.65),
+    ])
+      expect(gummyBoardGlassFocus(10, source)).toBe(0)
+  })
+
   it('mixes both cell coordinates so lava sites cannot form a rectangular grid', () => {
     const origin = gummyBoardLavaSite(d.vec2f(0, 0))
     const row = gummyBoardLavaSite(d.vec2f(0, 1))

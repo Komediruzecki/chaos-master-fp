@@ -107,10 +107,24 @@ export function createGummyCaptureMechanic(
   return { mechanic, motion: resolveGummyBoardShotMotion(motion) }
 }
 
-/** Selection happens once per receipt; callers persist both the tag and the resolved motion. */
+/** Reconstruct a shuffle bag from saved choices so each round includes every mechanic.
+ * Repeated safety fallbacks count once; replay never invokes this selection function.
+ */
+function remainingMechanics(history: readonly GummyCaptureMechanicId[]) {
+  const used = new Set<GummyCaptureMechanicId>()
+  for (const id of history) {
+    used.add(id)
+    if (used.size === GUMMY_CAPTURE_MECHANICS.length) used.clear()
+  }
+  return GUMMY_CAPTURE_MECHANICS.map(({ id }) => id).filter(
+    (id) => !used.has(id) && id !== history.at(-1),
+  )
+}
+
+/** Seeded order, without starvation or immediate repeats. Persist the resolved result once per receipt. */
 export function chooseGummyCaptureMechanic(
   seed: number,
-  previousId?: GummyCaptureMechanicId,
+  previous: GummyCaptureMechanicId | readonly GummyCaptureMechanicId[] = [],
   context: GummyCaptureMechanicContext = {},
 ) {
   parseGummyCaptureMechanic({ version: 1, id: 'press-settle', seed })
@@ -119,9 +133,7 @@ export function chooseGummyCaptureMechanic(
     cap(context.maxTwistAngle, 0.35) < 0.005
   const ids = cramped
     ? ['press-settle' as const]
-    : GUMMY_CAPTURE_MECHANICS.map(({ id }) => id).filter(
-        (id) => id !== previousId,
-      )
+    : remainingMechanics(typeof previous === 'string' ? [previous] : previous)
   return createGummyCaptureMechanic(
     ids[mixedSeed(seed) % ids.length]!,
     seed,
