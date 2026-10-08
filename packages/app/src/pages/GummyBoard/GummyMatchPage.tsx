@@ -1,10 +1,12 @@
 /** Local legal chess with a reviewable move history and a capture handoff to the shot studio. */
-import { createMemo, createSignal, For, onCleanup, onMount, Show, } from 'solid-js'
+import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show, } from 'solid-js'
 import { GummyMatchScene } from '@/components/GummyBoard/GummyMatchScene'
 import { ChevronLeft, ChevronRight, Reset, SkipBack, SkipForward, Undo, } from '@/icons'
 import styles from './GummyMatchPage.module.css'
+import { GummyMatchResult } from './GummyMatchResult'
 import { GummyMatchSidebar } from './GummyMatchSidebar'
 import { useGummyMatch } from './useGummyMatch'
+import type { ChessPosition } from '@chaos-master/core/chess/chessGame'
 
 export function GummyMatchPage() {
   const match = useGummyMatch()
@@ -15,8 +17,16 @@ export function GummyMatchPage() {
   const [ready, setReady] = createSignal(false)
   const [sceneError, setSceneError] = createSignal('')
   const [sceneKey, setSceneKey] = createSignal(1)
+  const [dismissedResult, setDismissedResult] = createSignal<ChessPosition>()
+  let resultButton: HTMLButtonElement | undefined
+  let heading: HTMLHeadingElement | undefined
   const busy = createMemo(() => !!match.receipt())
   const unavailable = createMemo(() => busy() || !ready() || !!sceneError())
+  const finished = createMemo(() => match.position().status !== 'active')
+  const resultVisible = createMemo(
+    () =>
+      finished() && !unavailable() && dismissedResult() !== match.position(),
+  )
   const side = createMemo(() =>
     match.position().turn === 'w' ? 'White' : 'Black',
   )
@@ -59,6 +69,11 @@ export function GummyMatchPage() {
     return `Tap a ${side().toLowerCase()} piece, then its destination. Drag the board to orbit.`
   })
 
+  createEffect(() => {
+    // Leaving the final position makes its result available when revisited.
+    if (!finished()) setDismissedResult(undefined)
+  })
+
   onMount(() => {
     const title = document.title
     document.title = 'Play gummy chess | Lumen Apeiron'
@@ -69,6 +84,11 @@ export function GummyMatchPage() {
 
   function selectSquare(square: string) {
     if (!unavailable()) match.selectSquare(square)
+  }
+
+  function reviewResult() {
+    setDismissedResult(match.position())
+    resultButton?.focus({ preventScroll: true })
   }
 
   return (
@@ -92,13 +112,18 @@ export function GummyMatchPage() {
           <div class={styles.boardHeader}>
             <div>
               <p class={styles.eyebrow}>Local two-player</p>
-              <h1>Gummy chess</h1>
+              <h1 ref={heading} tabIndex={-1}>
+                Gummy chess
+              </h1>
             </div>
             <p class={styles.turn} role="status" aria-live="polite">
               {status()}
             </p>
           </div>
-          <div class={styles.canvasSlot}>
+          <div
+            class={styles.canvasSlot}
+            classList={{ [styles.resultOpen!]: resultVisible() }}
+          >
             <Show when={sceneKey()} keyed>
               {(_key) => (
                 <GummyMatchScene
@@ -120,11 +145,37 @@ export function GummyMatchPage() {
             <Show when={!ready() && !sceneError()}>
               <p class={styles.loading}>Preparing the board…</p>
             </Show>
+            <Show when={resultVisible()}>
+              <GummyMatchResult
+                position={match.position()}
+                explanation={status()}
+                onReview={reviewResult}
+                onNewGame={() => {
+                  match.newGame()
+                  heading?.focus({ preventScroll: true })
+                }}
+              />
+            </Show>
           </div>
           <div class={styles.boardFooter}>
-            <p class={styles.hint} aria-live="polite">
-              {selectionHint()}
-            </p>
+            <div class={styles.hintRow}>
+              <p class={styles.hint} aria-live="polite">
+                {selectionHint()}
+              </p>
+              <Show when={finished() && !resultVisible()}>
+                <button
+                  ref={resultButton}
+                  class={styles.textButton}
+                  type="button"
+                  disabled={unavailable()}
+                  onClick={() => {
+                    setDismissedResult(undefined)
+                  }}
+                >
+                  Show result
+                </button>
+              </Show>
+            </div>
             <Show when={match.promotion()} keyed>
               {(moves) => (
                 <div

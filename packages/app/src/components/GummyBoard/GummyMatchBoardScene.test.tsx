@@ -143,6 +143,20 @@ afterEach(() => {
 })
 
 describe('persistent match board camera input', () => {
+  it('does not redraw an idle board but redraws a camera change once', async () => {
+    mount()
+    await frame()
+    const renderer = fixture.renderers[0]!
+    expect(renderer.render).toHaveBeenCalledOnce()
+    for (let i = 0; i < 10; i++) await frame()
+    expect(renderer.render).toHaveBeenCalledOnce()
+    wheel(-50)
+    await frame()
+    expect(renderer.render).toHaveBeenCalledTimes(2)
+    await frame()
+    expect(renderer.render).toHaveBeenCalledTimes(2)
+  })
+
   it('blocks wheel changes during a capture, then resumes zoom on the same panned board', async () => {
     const app = mount()
     await frame()

@@ -1,5 +1,5 @@
 /** Legal match controls retain one authoritative move while animation, history and cinema change views. */
-import { cleanup, fireEvent, render, screen, waitFor, } from '@solidjs/testing-library'
+import { cleanup, fireEvent, render, screen, waitFor, within, } from '@solidjs/testing-library'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { GummyMatchPage } from './GummyMatchPage'
 import { GUMMY_MATCH_CINEMA_KEY, GUMMY_MATCH_SESSION_KEY, loadGummyMatchSession, } from './gummyMatchSession'
@@ -274,6 +274,70 @@ describe('GummyMatchPage', () => {
     expect(scene().receipt).toBeUndefined()
   })
 
+  it('waits for a mating capture to finish before showing the result over the board', () => {
+    render(() => <GummyMatchPage />)
+    importPgn('[SetUp "1"]\n[FEN "7k/7r/6K1/7Q/8/8/8/8 w - - 0 1"]\n\n*')
+    play('h5', 'h7')
+    expect(scene().receipt?.san).toBe('Qxh7#')
+    expect(scene().receipt?.kind).toBe('capture')
+    expect(screen.queryByRole('dialog')).toBeNull()
+    scene().onComplete(scene().receipt!)
+    const result = screen.getByRole('dialog', { name: 'White wins' })
+    expect(within(result).getByText('Checkmate')).toBeTruthy()
+    expect(
+      result.closest('[aria-label="Playable gummy chess board"]'),
+    ).toBeTruthy()
+    expect(
+      within(result).getByRole('button', { name: 'Review board' }),
+    ).toBeTruthy()
+  })
+
+  it('supports keyboard dismissal, reopening and a fresh game without resetting the material', async () => {
+    render(() => <GummyMatchPage />)
+    importPgn('1. f3 e5 2. g4 Qh4# 0-1')
+    fireEvent.click(screen.getByRole('button', { name: 'Latest position' }))
+    const result = screen.getByRole('dialog', { name: 'Black wins' })
+    const review = within(result).getByRole('button', { name: 'Review board' })
+    await waitFor(() => {
+      expect(document.activeElement).toBe(review)
+    })
+    const finishedFen = scene().position.fen
+    fireEvent.keyDown(review, { key: 'Escape' })
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(scene().position.fen).toBe(finishedFen)
+    const reopen = screen.getByRole('button', { name: 'Show result' })
+    expect(document.activeElement).toBe(reopen)
+    fireEvent.click(screen.getByRole('button', { name: 'Replay move' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    skip()
+    expect(screen.queryByRole('dialog')).toBeNull()
+    fireEvent.click(reopen)
+    const reopened = screen.getByRole('dialog', { name: 'Black wins' })
+    const material = scene().settings
+    fireEvent.click(within(reopened).getByRole('button', { name: 'New game' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.getByText('White to move')).toBeTruthy()
+    expect(screen.getByText('Move 0 of 0')).toBeTruthy()
+    expect(scene().position.pieces).toHaveLength(32)
+    expect(scene().settings).toBe(material)
+  })
+
+  it('removes the result during history review and waits for the board to be ready', () => {
+    render(() => <GummyMatchPage />)
+    importPgn('1. f3 e5 2. g4 Qh4# 0-1')
+    scene().onReady?.(false)
+    fireEvent.click(screen.getByRole('button', { name: 'Latest position' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    scene().onReady?.(true)
+    expect(screen.getByRole('dialog', { name: 'Black wins' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Review board' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Previous move' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Show result' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Latest position' }))
+    expect(screen.getByRole('dialog', { name: 'Black wins' })).toBeTruthy()
+  })
+
   it('offers a draw claim when available and preserves the claimed result', () => {
     render(() => <GummyMatchPage />)
     importPgn('1. Nf3 Nf6 2. Ng1 Ng8 3. Nf3 Nf6 4. Ng1 Ng8 *')
@@ -282,6 +346,7 @@ describe('GummyMatchPage', () => {
       screen.getByRole('button', { name: 'Claim draw: threefold repetition' }),
     )
     expect(screen.getByText('Draw by threefold repetition')).toBeTruthy()
+    expect(screen.getByRole('dialog', { name: 'Draw' })).toBeTruthy()
     expect(loadGummyMatchSession().session?.game.position.status).toBe('draw')
   })
 

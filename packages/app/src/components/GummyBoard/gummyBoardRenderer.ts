@@ -667,10 +667,17 @@ export async function createGummyBoardRenderer(
             height,
             sampler,
           )
-          const nextExit = root.createBindGroup(gummyBoardExitLayout, {
-            front: next.front,
-            rest: next.rest,
-          })
+          let nextExit: TgpuBindGroup<typeof gummyBoardExitLayout.entries>
+          try {
+            nextExit = root.createBindGroup(gummyBoardExitLayout, {
+              front: next.front,
+              rest: next.rest,
+            })
+          } catch (error) {
+            // Keep the previous frame usable if replacing its attachments fails.
+            next.destroy()
+            throw error
+          }
           targets?.destroy()
           targets = next
           exitSource = nextExit

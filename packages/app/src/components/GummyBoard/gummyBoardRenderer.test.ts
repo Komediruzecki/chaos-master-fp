@@ -163,6 +163,107 @@ beforeEach(() => {
 })
 
 describe('two live gummy board surfaces', () => {
+  it('releases failed resize attachments and retains the previous frame until a replacement succeeds', async () => {
+    const test = harness()
+    const failedTargets = { destroy: vi.fn() },
+      retryTargets = { destroy: vi.fn() }
+    mocks.targets
+      .mockReturnValueOnce(test.targets)
+      .mockReturnValueOnce(failedTargets)
+      .mockReturnValueOnce(retryTargets)
+    const renderer = await createGummyBoardRenderer(
+      test.root,
+      test.device,
+      test.context,
+      'bgra8unorm',
+    )
+    const settings = {
+      pieces: [],
+      victimId: 0,
+      victimPosition: [0, 0, 0] as const,
+    }
+    renderer.render(frame, settings)
+    vi.spyOn(test.root, 'createBindGroup').mockImplementationOnce(() => {
+      throw new Error('Exit attachments unavailable')
+    })
+    expect(() => {
+      renderer.render({ ...frame, width: 200 }, settings)
+    }).toThrow('Exit attachments unavailable')
+    expect(failedTargets.destroy).toHaveBeenCalledOnce()
+    expect(test.targets.destroy).not.toHaveBeenCalled()
+    renderer.render(frame, settings)
+    expect(mocks.targets).toHaveBeenCalledTimes(2)
+    renderer.render({ ...frame, width: 200 }, settings)
+    expect(test.targets.destroy).toHaveBeenCalledOnce()
+    expect(retryTargets.destroy).not.toHaveBeenCalled()
+    renderer.destroy()
+    expect(retryTargets.destroy).toHaveBeenCalledOnce()
+    expect(failedTargets.destroy).toHaveBeenCalledOnce()
+    for (const resource of test.resources)
+      expect(resource.destroy).toHaveBeenCalledOnce()
+  })
+
+  it('returns to the same owned resources after repeated captures, including glass lighting and resized surfaces', async () => {
+    const test = harness(),
+      pool = createGummyBoardRestMeshPool()
+    const quality = { restMeshPool: pool, restSpacing: 0.08 }
+    const board = await createGummyBoardRenderer(
+      test.root,
+      test.device,
+      test.context,
+      'bgra8unorm',
+      undefined,
+      undefined,
+      quality,
+    )
+    const waiting = {
+      pieces: [],
+      victimId: 0,
+      victimPosition: [0, 0, 0] as const,
+    }
+    board.render(frame, waiting)
+    const waitingResources = [...test.resources]
+    for (let capture = 0; capture < 4; capture++) {
+      const live = surface()
+      mocks.surfaces.mockReturnValueOnce(live)
+      const firstTargets = { destroy: vi.fn() },
+        resizedTargets = { destroy: vi.fn() }
+      mocks.targets
+        .mockReturnValueOnce(firstTargets)
+        .mockReturnValueOnce(resizedTargets)
+      const renderer = await createGummyBoardRenderer(
+        test.root,
+        test.device,
+        test.context,
+        'bgra8unorm',
+        input(),
+        undefined,
+        quality,
+      )
+      const settings = { ...waiting, boardTheme: 'glass' as const }
+      renderer.render(frame, settings)
+      renderer.render({ ...frame, width: 200 }, settings)
+      renderer.destroy()
+      renderer.destroy()
+      expect(live.destroy).toHaveBeenCalledOnce()
+      expect(firstTargets.destroy).toHaveBeenCalledOnce()
+      expect(resizedTargets.destroy).toHaveBeenCalledOnce()
+      expect(
+        test.resources.filter(
+          (resource) => !resource.destroy.mock.calls.length,
+        ),
+      ).toEqual(waitingResources)
+      expect(test.rest.destroy).not.toHaveBeenCalled()
+      board.render(frame, waiting)
+    }
+    expect(mocks.rest).toHaveBeenCalledOnce()
+    board.destroy()
+    pool.destroy()
+    expect(test.rest.destroy).toHaveBeenCalledOnce()
+    for (const resource of test.resources)
+      expect(resource.destroy).toHaveBeenCalledOnce()
+  })
+
   it('releases a failed capture lease without invalidating the visible static board', async () => {
     const test = harness(),
       pool = createGummyBoardRestMeshPool()

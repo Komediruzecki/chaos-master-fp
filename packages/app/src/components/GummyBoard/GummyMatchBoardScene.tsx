@@ -92,9 +92,10 @@ function NativeMatchScene(
     pending = false
   let raf = 0,
     frames = 0,
-    previousState = '',
+    previousView = '',
     previousTime = 0,
     elapsed = 0
+  let previousState: ReturnType<typeof state> | undefined
   let previousReceipt: ChessMoveReceipt | undefined
   let completedReceipt: ChessMoveReceipt | undefined
   const orbit = props.orbit
@@ -253,23 +254,25 @@ function NativeMatchScene(
       completedReceipt = undefined
       elapsed = 0
       previousTime = now
-      previousState = ''
+      previousState = undefined
     }
     const visible = props.visible && document.visibilityState !== 'hidden'
     if (renderer && !failed && visible && s.receipt)
       elapsed += Math.max(0, Math.min(0.05, (now - previousTime) / 1000))
     if (renderer && !failed && !pending && visible) {
       const progress = Math.min(1, elapsed / 0.55)
+      // State is an owned memo. Compare its identity instead of serializing
+      // all 32 pieces and material settings on every idle animation frame.
       const key = JSON.stringify([
-        s,
         orbit,
         canvasSize(),
         s.receipt ? progress : 0,
       ])
-      if (key !== previousState) {
+      if (s !== previousState || key !== previousView) {
         try {
           draw(progress)
-          previousState = key
+          previousState = s
+          previousView = key
           pending = true
           void device.queue
             .onSubmittedWorkDone()

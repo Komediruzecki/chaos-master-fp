@@ -1,7 +1,8 @@
 {
   "title": "Gummy and fractal chess: approved playable milestone",
-  "reviewed_local_date": "2026-10-07",
-  "status": "Approved P0 → G1 → G2 → G5 sequence implemented and verified on the working branch. The next review is hands-on local play, followed by measured tablet performance.",
+  "reviewed_local_date": "2026-10-08",
+  "status": "Approved P0 → G1 → G2 → G5 sequence published on the working branch; the user completed a game through checkmate. Result presentation, capture readiness and bounded resource use are verified. A measured tablet pass and Arcade entry are next.",
+  "arcade_integration_plan": "docs/gummy-chess-arcade-plan.md",
   "objective": "Turn the published gummy chess showcase into a playable local chess experience, retaining the creator and cinema paths.",
   "horizon": "Approved P0/G1/G2/G5 delivery, with remaining candidates visible for later prioritization",
   "master_plan": "assets/references/chess-fractal-plan.json",
@@ -16,9 +17,9 @@
   ],
   "preservation": {
     "media": "Current remote metadata verified; 369-file archive had a complete zero-difference download check on 2026-10-06. All four final films also exist under socials/personal/tweet.",
-    "code": "Cinema checkpoint c4a08625 and lint-heap fix 0c8c8673 were verified on origin/feat/gummy-fracture. The local-match milestone is verified and follows as a separate commit on that branch; Git identifies its published revision.",
+    "code": "Cinema checkpoint c4a08625, local-match milestone 30edbcd7 and retained-board transition f8ce5d62 are published on origin/feat/gummy-fracture. The remote tip was verified at f8ce5d62 before the 2026-10-08 fixes; Git identifies subsequent published revisions.",
     "audit_receipt": "/home/maff/agent-out/chaos-master-fp/2026-10-07/remote-audit/audit-174034.json",
-    "checkpoint_commits": ["c4a08625", "0c8c8673"]
+    "checkpoint_commits": ["c4a08625", "0c8c8673", "30edbcd7", "f8ce5d62"]
   },
   "effort_rubric": {
     "S": "Contained established path plus focused verification",
@@ -39,7 +40,7 @@
   },
   "recommended_order": ["P0", "G1", "G2", "G5"],
   "parallel_discovery": "A bounded G3 tablet measurement pass can proceed alongside the rules seam if the physical device is available. It does not justify speculative solver rewrites.",
-  "first_milestone": "Verified: play legal moves, finish a gummy capture, replay/skip it, undo it, and return from PGN/Cinema with the same game and appearance settings.",
+  "first_milestone": "Verified: play legal moves, finish a gummy capture, replay/skip it, undo it, and return from PGN/Cinema with the same game and appearance settings. User-tested through checkmate.",
   "alternate_objective": {
     "goal": "Produce more promotional shots with less manual assembly",
     "prioritize": ["G4", "G6", "G5"],
@@ -94,7 +95,7 @@
         "Special moves have explicit presentation semantics and kings are never captured.",
         "The next player can move after the effect; a move receipt can open in Cinema."
       ],
-      "uncertainty": "The new UI and renderer require final combined checks and hardware review. Physical iOS/tablet behavior and frame cost remain unverified. Only ordinary captures use the crush presentation; special moves have lightweight animations."
+      "uncertainty": "Physical iOS/tablet frame cost remains unmeasured. The user completed a game through checkmate; automated GPU verification is on desktop hardware. Only ordinary captures use the crush presentation; special moves have lightweight animations."
     },
     {
       "id": "G3",
@@ -304,10 +305,11 @@
     "G5: bounded mainline PGN import/export, history stepping and ordinary capture handoff to Cinema"
   ],
   "verification": {
+    "match_polish_2026_10_08": "61 focused app tests and pnpm check pass. Native GPU checks verified seven full capture/replay cycles with stable live resources and zero idle GPU submissions, real frames before cinematic visibility, both Skip paths, and the result overlay at four touch-capable viewport sizes. Evidence: /home/maff/agent-out/chaos-master-fp/2026-10-08/match-audit/.",
     "core": "35 focused chess adapter tests, core TypeScript and scoped ESLint passed.",
     "integration": "105 focused app tests pass. Native Chromium on AMD RDNA-4 verified 32-piece idle rendering, touch moves, full capture completion, replay/skip/undo, PGN/Cinema reload and return, and reachable controls at 1440, 834 and 390px widths. No runtime/GPU errors or Solid owner warnings.",
     "physical_devices": "New playable match has not yet been verified on physical iOS or target tablets; earlier workbench results do not establish this.",
-    "remote_scope": "Only the P0 checkpoint is confirmed pushed here. Do not infer publication of the new match source.",
+    "remote_scope": "The working branch was confirmed at f8ce5d62 on origin on 2026-10-08, including the playable match and retained-board capture transition. No production deployment or merge is implied.",
     "hardware_receipt": "/home/maff/agent-out/chaos-master-fp/2026-10-07/match-verification/report.json"
   }
 }

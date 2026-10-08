@@ -24,6 +24,11 @@ asks you to choose a queen, rook, bishop or knight. Castling moves both the king
 and rook; en passant removes the pawn from its actual captured square. Kings
 remain on the board when the game ends in checkmate.
 
+After the final animation, a result card appears over the board with the winner
+and score (or the reason for a draw). **Review board** or Escape dismisses it;
+**Show result** brings it back. **New game** starts again with the current board
+and material settings. The result card does not cover an unfinished capture.
+
 Ordinary occupied-square captures use the gummy crash presentation. Only the
 victim runs MPM; the attacker follows the prescribed collision motion and finishes
 on the captured square. Other pieces use cached meshes. The board stays visible while the victim solver
@@ -199,3 +204,36 @@ FEN. Camera tests cover matching board framing at both ends, including pan/zoom,
 and mesh lease tests cover cancellation, failed setup and scope cleanup. Logs and
 screenshots remain outside the repository in the adjacent `transition-verification/`
 folder under the local verification path above.
+
+On 2026-10-08 a native Chromium trace reproduced a capture handoff defect: a
+cached cinematic reported ready before AutoCanvas's initial resize debounce
+completed. Its renderer skipped the zero-sized frame, exposing the final board
+for about 187 ms before the first real cinematic draw. Readiness now requires a
+positive-sized frame and its GPU completion fence, with a size recheck; playback
+does not advance during that initial wait. Tests cover delayed sizing, resize
+during GPU work and Skip before sizing completes.
+
+The resource audit repeated seven full captures. After the first ordinary move,
+live application-created resources settled at 23 buffers (7,665,760 bytes) and
+11 textures (36,987,072 estimated bytes) between every capture, with zero idle
+GPU submissions and no growth in animation callbacks. These counts exclude
+browser-owned swapchains, pipeline caches and driver overhead, and do not claim
+to measure total VRAM. A one-time 64-byte allocation belonged to the static
+board's moving instance and indirect draw, not an accumulating capture leak.
+Canvas cleanup now explicitly unconfigures each completed shot, and failed
+resize attachment setup releases its partial allocation. The idle board also
+compares memoized state identity instead of serializing every piece each frame.
+Local traces live under
+`/home/maff/agent-out/chaos-master-fp/2026-10-08/match-audit/`.
+
+The fixed browser run verified seven full captures/replays, Skip during setup
+and playback, and result-card actions at 1440×1050, 834×1112, 390×844 and 844×390.
+Every cinematic had acquired its first real presentation texture before becoming
+visible; no final-position pre-flash samples or GPU/runtime errors occurred.
+The combined focused app pass has 61 passing tests, including queued initial
+resizes, result dismissal and fresh games. `pnpm check` and the agent index check
+passed. Physical-device frame cost remains a separate check.
+
+The user has also completed a full local game through checkmate. The proposed
+next integration is [Chess in Lumen Arcade](gummy-chess-arcade-plan.md), followed
+by saved material/shape collections and one editable fractal pawn.

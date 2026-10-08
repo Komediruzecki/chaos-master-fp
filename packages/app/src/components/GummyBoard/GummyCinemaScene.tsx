@@ -191,8 +191,11 @@ function NativeGummyCinema(
   }
 
   async function draw() {
-    if (!renderer || disposed) return
+    if (!renderer || disposed) return false
     const size = canvasSize()
+    // AutoCanvas debounces its initial size. A cached renderer can be ready
+    // earlier, but rendering a zero-sized frame is a no-op, not a first frame.
+    if (size.width < 1 || size.height < 1) return false
     const aspect = size.width / Math.max(1, size.height)
     const camera = props.matchOrbit
       ? gummyMatchShotCamera(shot, displayTime, aspect, scale, props.matchOrbit)
@@ -232,25 +235,46 @@ function NativeGummyCinema(
     canvas.dataset.shot = shot.shot.id
     await device.queue.onSubmittedWorkDone()
     if (!disposed && failure) throw new Error(failure)
+    const currentSize = canvasSize()
+    return (
+      !disposed &&
+      currentSize.width === size.width &&
+      currentSize.height === size.height
+    )
   }
 
-  function enqueue(action: () => Promise<void>) {
+  function enqueue<T>(action: () => Promise<T>) {
     pendingActions++
     const pending = queue
       .then(async () => {
         if (disposed) throw new Error('This shot has been replaced.')
-        await action()
+        return await action()
       })
       .finally(() => {
         pendingActions--
       })
-    queue = pending.catch(() => {})
+    queue = pending.then(
+      () => {},
+      () => {},
+    )
     return pending
   }
 
-  function serialize(action: () => Promise<void>) {
+  function serialize(action: () => Promise<unknown>) {
     playing = false
-    return enqueue(action)
+    return enqueue(async () => {
+      await action()
+    })
+  }
+
+  async function refreshCanvas() {
+    const rendered = await enqueue(draw)
+    if (disposed || ready || !rendered || pendingActions) return
+    ready = true
+    // Notify outside the render queue so the match can start playback now.
+    untrack(() => {
+      props.onReady(true)
+    })
   }
 
   async function seek(frame: number, fps: number) {
@@ -391,12 +415,7 @@ function NativeGummyCinema(
         return
       }
       renderer = created
-      await enqueue(draw)
-      if (disposed) return
-      ready = true
-      untrack(() => {
-        props.onReady(true)
-      })
+      await refreshCanvas()
     })
     .catch((error: unknown) => {
       initializing = false
@@ -436,7 +455,7 @@ function NativeGummyCinema(
   })
   createEffect(() => {
     canvasSize()
-    if (ready) void enqueue(draw).catch(fail)
+    if (renderer) void refreshCanvas().catch(fail)
   })
   onCleanup(() => {
     disposed = true
@@ -446,6 +465,8 @@ function NativeGummyCinema(
     releaseErrors()
     renderer?.destroy()
     if (!initializing) solver.destroy()
+    // Release this shot's presentation textures without waiting for canvas GC.
+    context.unconfigure()
     props.onController(undefined)
   })
   return null
