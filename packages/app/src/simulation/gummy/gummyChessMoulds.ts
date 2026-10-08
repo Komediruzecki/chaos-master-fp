@@ -1,7 +1,9 @@
 /** Filled, rounded chess moulds sampled in the jelly solver's existing material coordinates. */
+import { authoredPawnField, sampleAuthoredPawn } from './gummyAuthoredPawn'
 import { BASE_PROFILE, roundedBox, roundedLathe, smoothUnion, sphere, } from './gummyChessFields'
 import { gummyRoyalChessField } from './gummyRoyalChessMoulds'
 import { gummySculptedChessField } from './gummySculptedChessMoulds'
+import type { GummyAuthoredPawn } from './gummyAuthoredPawn'
 import type { Point3, ProfilePoint } from './gummyChessFields'
 
 export type GummyChessMould =
@@ -84,7 +86,10 @@ export function gummyChessField(
   point: Point3,
   mould: GummyChessMould,
   artStyle: GummyChessArtStyle = 'classic',
+  authoredPawn?: GummyAuthoredPawn,
 ): number {
+  if (mould === 'pawn' && authoredPawn)
+    return authoredPawnField(point, authoredPawn)
   if (artStyle === 'sculpted') return gummySculptedChessField(point, mould)
   if (mould !== 'pawn' && mould !== 'rook')
     return gummyRoyalChessField(point, mould)
@@ -117,6 +122,7 @@ export function sampleGummyChessMould(
   spacing: number,
   pinHeight: number = GUMMY_CHESS_MOULDS[mould].pinHeight,
   artStyle: GummyChessArtStyle = 'classic',
+  authoredPawn?: GummyAuthoredPawn,
 ): number[] {
   if (!Number.isFinite(spacing) || spacing < 0.06 || spacing > 0.12)
     throw new RangeError('Particle spacing must be between 0.06 and 0.12')
@@ -124,6 +130,8 @@ export function sampleGummyChessMould(
     throw new RangeError('Particle pin height must be between zero and 0.6')
   const { bounds } = GUMMY_CHESS_MOULDS[mould]
   const basePinHeight = Math.min(pinHeight, GUMMY_CHESS_MOULDS[mould].pinHeight)
+  if (mould === 'pawn' && authoredPawn)
+    return sampleAuthoredPawn(authoredPawn, spacing, basePinHeight)
   const points: number[] = []
   for (
     let iy = Math.floor(bounds.min[1] / spacing);

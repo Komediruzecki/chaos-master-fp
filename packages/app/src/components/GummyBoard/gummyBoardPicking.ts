@@ -1,7 +1,9 @@
 /** Pick coloured board pieces in world space, including scaled and rotated moulds. */
+import { createAuthoredPawnField } from '@/simulation/gummy/gummyAuthoredPawn'
 import { GUMMY_CHESS_MOULDS, gummyChessField, } from '@/simulation/gummy/gummyChessMoulds'
 import type { GummyBoardPiece } from './gummyBoardChoreography'
 import type { GummyRay, GummyVec3 } from '@/components/GummyBear/gummyStudyMath'
+import type { GummyAuthoredPawn } from '@/simulation/gummy/gummyAuthoredPawn'
 import type { GummyChessArtStyle } from '@/simulation/gummy/gummyChessMoulds'
 
 export function gummyBoardLocalRay(
@@ -39,6 +41,7 @@ export function pickGummyBoardMould(
   piece: GummyBoardPiece,
   scale: number,
   artStyle: GummyChessArtStyle = 'classic',
+  authoredPawn?: GummyAuthoredPawn,
 ) {
   const local = gummyBoardLocalRay(ray, piece.position, scale, piece.rotationY)
   const bounds = GUMMY_CHESS_MOULDS[piece.mould].bounds
@@ -57,11 +60,15 @@ export function pickGummyBoardMould(
     far = Math.min(far, Math.max(a, b))
   }
   if (far < near) return undefined
+  const field =
+    piece.mould === 'pawn' && authoredPawn
+      ? createAuthoredPawnField(authoredPawn)
+      : (point: GummyVec3) => gummyChessField(point, piece.mould, artStyle)
   for (let t = near; t <= far; t += 0.025) {
     const point = local.origin.map(
       (v, k) => v + local.direction[k]! * t,
     ) as GummyVec3
-    if (gummyChessField(point, piece.mould, artStyle) <= 0) return t * scale
+    if (field(point) <= 0) return t * scale
   }
   return undefined
 }

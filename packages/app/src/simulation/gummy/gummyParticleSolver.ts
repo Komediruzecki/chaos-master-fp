@@ -164,6 +164,7 @@ export function createGummyParticleSolver(
               options.colliderMould,
               options.colliderRotationY,
               options.artStyle,
+              options.authoredPawn,
             ),
           )
         : undefined

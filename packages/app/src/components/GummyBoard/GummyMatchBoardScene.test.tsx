@@ -4,11 +4,13 @@ import { cleanup, render } from '@solidjs/testing-library'
 import { createSignal, Show } from 'solid-js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { GUMMY_BUILTIN_PRESETS } from '@/pages/GummyBear/gummyBuiltinPresets'
+import { createGummyAuthoredPawn } from '@/simulation/gummy/gummyAuthoredPawn'
 import { initialGummyBoardOrbit } from './gummyBoardCamera'
 import { createGummyBoardRestMeshPool } from './gummyBoardRestMeshPool'
 import { GummyMatchBoardScene } from './GummyMatchBoardScene'
 import type { ParentProps } from 'solid-js'
 import type { GummyOrbit } from '@/components/GummyBear/gummyStudyMath'
+import type { GummyAuthoredPawn } from '@/simulation/gummy/gummyAuthoredPawn'
 
 const fixture = vi.hoisted(() => ({
   unconfigure: vi.fn(),
@@ -87,6 +89,7 @@ function mount() {
   }
   const [locked, setLocked] = createSignal(false)
   const [quality, setQuality] = createSignal<'high' | 'tablet'>('high')
+  const [authoredPawn, setAuthoredPawn] = createSignal<GummyAuthoredPawn>()
   const ready = vi.fn()
   const restMeshPool = createGummyBoardRestMeshPool()
   const view = render(() => (
@@ -98,6 +101,7 @@ function mount() {
       legalSquares={[]}
       settings={GUMMY_BUILTIN_PRESETS[0]!.preset.settings}
       quality={quality()}
+      authoredPawn={authoredPawn()}
       scale={0.9}
       theme="glass"
       onSquare={() => {}}
@@ -106,7 +110,7 @@ function mount() {
       onReady={ready}
     />
   ))
-  return { view, orbit, setLocked, setQuality, ready }
+  return { view, orbit, setLocked, setQuality, setAuthoredPawn, ready }
 }
 
 function wheel(deltaY: number) {
@@ -146,6 +150,38 @@ afterEach(() => {
 })
 
 describe('persistent match board camera input', () => {
+  it('replaces shape resources only when geometry changes while preserving the configured canvas and camera', async () => {
+    const app = mount()
+    await frame()
+    const canvas = fixture.canvas
+    wheel(-50)
+    const zoom = app.orbit.zoom
+    const pawn = createGummyAuthoredPawn({ openness: 0.4 })
+    app.setAuthoredPawn(pawn)
+    await frame()
+    expect(fixture.renderers).toHaveLength(2)
+    expect(fixture.renderers[0]!.destroy).toHaveBeenCalledOnce()
+    app.setAuthoredPawn({ ...pawn, name: 'Renamed pawn' })
+    await frame()
+    expect(fixture.renderers).toHaveLength(2)
+    app.setAuthoredPawn(createGummyAuthoredPawn({ openness: 0.7 }))
+    await frame()
+    expect(fixture.renderers).toHaveLength(3)
+    expect(fixture.renderers[1]!.destroy).toHaveBeenCalledOnce()
+    app.setAuthoredPawn(undefined)
+    await frame()
+    expect(fixture.renderers).toHaveLength(4)
+    expect(fixture.renderers[2]!.destroy).toHaveBeenCalledOnce()
+    expect(fixture.canvas).toBe(canvas)
+    expect(app.orbit.zoom).toBe(zoom)
+    expect(app.orbit.pan).toEqual([0.3, 0.1, -0.4])
+    expect(fixture.unconfigure).not.toHaveBeenCalled()
+    app.view.unmount()
+    expect(fixture.renderers[3]!.destroy).toHaveBeenCalledOnce()
+    expect(fixture.unconfigure).toHaveBeenCalledOnce()
+    expect(frames.size).toBe(0)
+  })
+
   it('keeps presentation configured through quality changes and releases it when leaving chess', async () => {
     const app = mount()
     await frame()

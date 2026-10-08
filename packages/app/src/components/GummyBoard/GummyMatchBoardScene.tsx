@@ -3,6 +3,7 @@ import { createEffect, createMemo, createSignal, For, onCleanup, Show, untrack, 
 import { AutoCanvas } from '@/lib/AutoCanvas'
 import { useCanvas } from '@/lib/CanvasContext'
 import { useLiveRootContext } from '@/lib/RootContext'
+import { gummyAuthoredPawnKey } from '@/simulation/gummy/gummyAuthoredPawn'
 import { bindGummyTouchSurface, createGummyCameraInput, } from '../GummyBear/gummyCameraInput'
 import { bindGummyGpuErrors } from '../GummyBear/gummyGpuErrors'
 import { gummyRay } from '../GummyBear/gummyStudyMath'
@@ -36,6 +37,9 @@ export function GummyMatchBoardScene(props: GummyMatchBoardSceneProps) {
         window.matchMedia('(pointer: coarse), (max-width: 900px)').matches,
     ),
   )
+  const rendererKey = createMemo(
+    () => `${quality().name}:${gummyAuthoredPawnKey(props.authoredPawn)}`,
+  )
   return (
     <div class={styles.scene}>
       <AutoCanvas
@@ -45,11 +49,11 @@ export function GummyMatchBoardScene(props: GummyMatchBoardSceneProps) {
         ariaLabel="Gummy chess board. Tap your piece, then a marked destination. Drag to orbit and use two fingers to pan."
       >
         <MatchCanvasLifetime>
-          <Show when={quality()} keyed>
-            {(resolved) => (
+          <Show when={rendererKey()} keyed>
+            {(_key) => (
               <NativeMatchScene
                 {...props}
-                renderQuality={resolved}
+                renderQuality={quality()}
                 visible={visible()}
                 onMarkers={setMarkers}
               />
@@ -196,6 +200,7 @@ function NativeMatchScene(
       signal: preparation.signal,
       restMeshPool: props.restMeshPool,
       restSpacing: 0.08,
+      authoredPawn: props.authoredPawn,
     },
   )
     .then((created) => {
@@ -333,7 +338,13 @@ function NativeMatchScene(
     let distance = Infinity,
       square: string | undefined
     for (const piece of pieces) {
-      const hit = pickGummyBoardMould(ray, piece, props.scale, 'sculpted')
+      const hit = pickGummyBoardMould(
+        ray,
+        piece,
+        props.scale,
+        'sculpted',
+        props.authoredPawn,
+      )
       if (hit !== undefined && hit < distance) {
         distance = hit
         square = piece.square

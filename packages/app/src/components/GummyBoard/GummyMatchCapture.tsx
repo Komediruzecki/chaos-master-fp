@@ -39,6 +39,7 @@ export function GummyMatchCapture(
       scale={props.scale}
       quality={props.quality}
       artStyle="sculpted"
+      authoredPawn={props.authoredPawn}
       attackerPalette={attackerPalette}
       victimPalette={victimPalette}
       backgroundPalettes={palettes}

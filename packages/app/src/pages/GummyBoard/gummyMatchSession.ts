@@ -147,6 +147,7 @@ export function createGummyMatchCinemaRecipe(
     quality: GummyBoardQuality
     scale: number
     theme: GummyBoardTheme
+    authoredPawn?: GummyMatchAppearance['authoredPawn']
   },
   presentation?: GummyMatchCapturePresentation,
 ): GummyCinemaRecipe {
@@ -179,6 +180,7 @@ export function createGummyMatchCinemaRecipe(
     quality: look.quality,
     attackerPalette: attacker.color === 'w' ? palettes[0] : palettes[1],
     victimPalette: receipt.captured!.color === 'w' ? palettes[0] : palettes[1],
+    authoredPawn: look.authoredPawn,
   })
 }
 

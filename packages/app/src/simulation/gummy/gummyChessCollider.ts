@@ -2,6 +2,7 @@
 import { d, std, tgpu } from 'typegpu'
 import { bakeGummyChessColliderField } from './gummyChessColliderField'
 import type { TgpuBuffer, TgpuRoot } from 'typegpu'
+import type { GummyAuthoredPawn } from './gummyAuthoredPawn'
 import type { GummyChessArtStyle, GummyChessMould } from './gummyChessMoulds'
 
 const GummyChessColliderParameters = d.struct({
@@ -107,10 +108,11 @@ export function createGummyChessCollider(
   mould: GummyChessMould,
   rotationY = 0,
   artStyle: GummyChessArtStyle = 'classic',
+  authoredPawn?: GummyAuthoredPawn,
 ) {
   if (!Number.isFinite(rotationY))
     throw new RangeError('Collider orientation must be finite')
-  const field = bakeGummyChessColliderField(mould, artStyle)
+  const field = bakeGummyChessColliderField(mould, artStyle, authoredPawn)
   const texture = device.createTexture({
     label: `Gummy ${mould} contact field`,
     dimension: '3d',

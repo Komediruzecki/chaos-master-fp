@@ -6,12 +6,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { GUMMY_BUILTIN_PRESETS } from '@/pages/GummyBear/gummyBuiltinPresets'
 import { defaultGummyMatchAppearance } from '@/pages/GummyBoard/gummyMatchAppearance'
 import { createGummyMatchCapturePresentation } from '@/pages/GummyBoard/gummyMatchCaptures'
+import { createGummyAuthoredPawn } from '@/simulation/gummy/gummyAuthoredPawn'
 import { GummyMatchScene } from './GummyMatchScene'
 import type { ChessMoveReceipt } from '@chaos-master/core/chess/chessGame'
 import type { ComponentProps } from 'solid-js'
 import type { GummyMatchBoardScene } from './GummyMatchBoardScene'
 import type { GummyMatchCapture } from './GummyMatchCapture'
 import type { GummyMatchCapturePresentation } from '@/pages/GummyBoard/gummyMatchCaptures'
+import type { GummyAuthoredPawn } from '@/simulation/gummy/gummyAuthoredPawn'
 
 const fixture = vi.hoisted(() => ({
   boards: [] as ComponentProps<typeof GummyMatchBoardScene>[],
@@ -40,7 +42,10 @@ vi.mock('./GummyMatchCapture', () => ({
 const game = createChessGame('6k1/pp3ppp/4p3/3n4/4P3/8/PP3PPP/6K1 w - - 0 24')
 const receipt = applyChessMove(game, { from: 'e4', to: 'd5' }).receipt
 
-function setup(presentation?: GummyMatchCapturePresentation) {
+function setup(
+  presentation?: GummyMatchCapturePresentation,
+  authoredPawn?: GummyAuthoredPawn,
+) {
   const [current, setCurrent] = createSignal<ChessMoveReceipt>()
   const [position, setPosition] = createSignal(game.position)
   const ready = vi.fn()
@@ -55,6 +60,7 @@ function setup(presentation?: GummyMatchCapturePresentation) {
       quality="high"
       scale={0.9}
       theme="glass"
+      authoredPawn={authoredPawn}
       onSquare={() => {}}
       onComplete={() => {}}
       onError={() => {}}
@@ -82,6 +88,29 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('persistent match capture transition', () => {
+  it('uses the saved pawn or its saved absence instead of the live collection', () => {
+    const live = createGummyAuthoredPawn({ openness: 0.8 })
+    const look = {
+      ...defaultGummyMatchAppearance(),
+      authoredPawn: createGummyAuthoredPawn({ openness: 0.4 }),
+    }
+    const saved = createGummyMatchCapturePresentation(receipt, look)!
+    const first = setup(saved, live)
+    first.start()
+    expect(fixture.boards[0]!.authoredPawn).toEqual(live)
+    expect(fixture.captures[0]!.authoredPawn).toEqual(
+      saved.appearance.authoredPawn,
+    )
+    first.unmount()
+    const old = createGummyMatchCapturePresentation(
+      receipt,
+      defaultGummyMatchAppearance(),
+    )!
+    const second = setup(old, live)
+    second.start()
+    expect(fixture.captures[1]!.authoredPawn).toBeUndefined()
+  })
+
   it('uses the historical material and choreography for the capture layer', () => {
     const look = {
       ...defaultGummyMatchAppearance(),

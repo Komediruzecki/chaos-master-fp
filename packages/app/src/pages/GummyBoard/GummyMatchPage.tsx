@@ -171,6 +171,7 @@ export function GummyMatchPage(props: { onBackToArcade?: () => void } = {}) {
                   quality={quality()}
                   scale={scale()}
                   theme={theme()}
+                  authoredPawn={match.appearance().authoredPawn}
                   onSquare={selectSquare}
                   onComplete={match.finishAnimation}
                   onReady={setReady}

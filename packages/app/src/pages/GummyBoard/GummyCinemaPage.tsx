@@ -16,6 +16,7 @@ import styles from './GummyCinemaPage.module.css'
 import { createGummyCinemaRecipe, parseGummyCinemaRecipe, } from './gummyCinemaRecipe'
 import { GummyCinemaSection } from './GummyCinemaSection'
 import { readGummyMatchCinemaRecipe } from './gummyMatchSession'
+import { GummyPawnSelectionControls } from './GummyPawnSelectionControls'
 import type { GummyCinemaRecipe } from './gummyCinemaRecipe'
 import type { GummyBoardShot, GummyBoardShotMotion, } from '@/components/GummyBoard/gummyBoardShots'
 import type { GummyCaptureMechanicId } from '@/components/GummyBoard/gummyCaptureMechanics'
@@ -261,6 +262,7 @@ export function GummyCinemaPage() {
               artStyle={value.artStyle}
               attackerPalette={value.attackerPalette}
               victimPalette={value.victimPalette}
+              authoredPawn={value.authoredPawn}
               onController={receiveController}
               onReady={receiveReady}
               onError={receiveError}
@@ -391,6 +393,14 @@ export function GummyCinemaPage() {
               <option value="sculpted">Sculpted candy</option>
               <option value="classic">Original moulds</option>
             </select>
+            <GummyPawnSelectionControls
+              value={draft().authoredPawn}
+              disabled={busy()}
+              tone="light"
+              onChange={(authoredPawn) =>
+                setDraft((r) => ({ ...r, version: 3, authoredPawn }))
+              }
+            />
             <label for="cinema-board">Board finish</label>
             <select
               id="cinema-board"

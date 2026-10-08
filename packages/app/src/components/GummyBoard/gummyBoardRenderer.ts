@@ -17,6 +17,7 @@ import type { MarchingGummyInput } from '../GummyBear/marchingGummySurface'
 import type { GummyBoardPiece } from './gummyBoardInstances'
 import type { GummyBoardRestMeshPool } from './gummyBoardRestMeshPool'
 import type { GummyBoardTheme } from './gummyBoardThemes'
+import type { GummyAuthoredPawn } from '@/simulation/gummy/gummyAuthoredPawn'
 import type { GummyChessArtStyle } from '@/simulation/gummy/gummyChessMoulds'
 
 export type { GummyBoardPiece } from './gummyBoardInstances'
@@ -66,6 +67,7 @@ export async function createGummyBoardRenderer(
   quality: {
     lightResolution?: 512 | 1024
     artStyle?: GummyChessArtStyle
+    authoredPawn?: GummyAuthoredPawn
     signal?: AbortSignal
     /** A scene owner can share immutable moulds across static play and cinematic captures. */
     restMeshPool?: GummyBoardRestMeshPool
@@ -91,6 +93,7 @@ export async function createGummyBoardRenderer(
         quality.restSpacing ?? particles?.spacing ?? 0.08,
         quality.artStyle,
         quality.signal,
+        quality.authoredPawn,
       ),
     )
     quality.signal?.throwIfAborted()

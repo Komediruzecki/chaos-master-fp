@@ -1,7 +1,9 @@
 /** Match-owned mould cache: share compact meshes across scenes without retaining a global GPU cache. */
+import { gummyAuthoredPawnKey } from '@/simulation/gummy/gummyAuthoredPawn'
 import { createGummyBoardRestMeshes } from './gummyBoardRestMeshes'
 import type { TgpuRoot } from 'typegpu'
 import type { GummyBoardRestMeshes } from './gummyBoardRestMeshes'
+import type { GummyAuthoredPawn } from '@/simulation/gummy/gummyAuthoredPawn'
 import type { GummyChessArtStyle } from '@/simulation/gummy/gummyChessMoulds'
 
 type Entry = {
@@ -80,6 +82,7 @@ export function createGummyBoardRestMeshPool() {
       spacing: number,
       artStyle: GummyChessArtStyle = 'classic',
       signal?: AbortSignal,
+      authoredPawn?: GummyAuthoredPawn,
     ): Promise<GummyBoardRestMeshes> {
       signal?.throwIfAborted()
       if (disposed) throw new Error('Gummy board mesh pool is closed')
@@ -87,7 +90,7 @@ export function createGummyBoardRestMeshPool() {
         throw new Error('Gummy board mesh pool root and device must match')
       const entries = roots.get(root) ?? new Map<string, Entry>()
       roots.set(root, entries)
-      const key = `${artStyle}:${spacing}`
+      const key = `${artStyle}:${spacing}:${gummyAuthoredPawnKey(authoredPawn)}`
       let entry = entries.get(key)
       if (!entry) {
         const controller = new AbortController()
@@ -102,6 +105,7 @@ export function createGummyBoardRestMeshPool() {
             spacing,
             artStyle,
             controller.signal,
+            authoredPawn,
           ).then(
             (resource) => {
               next.resource = resource
@@ -117,8 +121,27 @@ export function createGummyBoardRestMeshPool() {
         entries.set(key, next)
         entry = next
       }
+      // Preserve active capture leases; retain at most two idle look variants.
+      const prune = () => {
+        const idle = [...entries.entries()].filter(
+          ([, item]) => !item.borrowers,
+        )
+        for (const [oldKey, old] of idle.slice(
+          0,
+          Math.max(0, idle.length - 2),
+        )) {
+          entries.delete(oldKey)
+          old.retired = true
+          old.controller.abort()
+          destroyUnused(old)
+        }
+      }
       const borrowed = entry
       borrowed.borrowers++
+      // Refresh insertion order for least-recently-used idle eviction.
+      entries.delete(key)
+      entries.set(key, borrowed)
+      prune()
       let released = false
       const release = () => {
         if (released) return
@@ -130,6 +153,7 @@ export function createGummyBoardRestMeshPool() {
           borrowed.controller.abort()
         }
         destroyUnused(borrowed)
+        prune()
       }
       return borrow(borrowed, signal, release)
     },

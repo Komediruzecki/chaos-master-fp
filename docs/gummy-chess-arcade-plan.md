@@ -207,6 +207,61 @@ GPUs. After that gate, the next feature milestone is G8's one authored fractal p
 through edit, save, board placement, capture and Cinema. Friend sessions remain
 planned; no network play is implemented by this pass.
 
+## First authored pawn (G8)
+
+Implemented on 2026-10-08. The first trial uses a finite-thickness structural IFS pawn with the
+existing gummy MPM material. It is a single-role comparison: the other five
+roles keep their approved gummy shapes. The original echo and lattice studies
+remain available. Glass transparency is deferred at the user's request; its
+rigid fracture and optical pass remain separate from this soft-body trial.
+
+Pawn Forge can save up to eight named local pawn snapshots. Chess can select the
+built-in lattice trial or a saved pawn, and open it for editing. Each snapshot
+pins the generator/bake version, parameter recipe, seed and physical thickness.
+The native IFS is sampled deterministically, thickened into a bounded distance
+field and resampled into equal-volume material cells. It does not treat the
+nonuniform density of IFS points as physical mass.
+
+One field supplies the resting mesh, capture particles, pointer picking and
+attacker contact. The authored pawn stays within the existing conservative pawn
+bounds used by camera framing and capture clearance. Static waiting pieces use
+cached compact meshes; only the active victim uses MPM. Changing shape rebuilds
+the renderer while keeping the orbit. The match cache preserves active leases
+and retains at most two unused variants; the CPU volume cache also holds two.
+
+Captures store their own validated shape snapshot. Editing or removing a library
+entry cannot change an old capture, and Cinema imports the recorded shape. Old
+sessions and shots without an authored pawn keep the original gummy shape.
+Saved shapes live in this browser; the Cinema JSON includes the complete snapshot
+for transfer. This pass does not add cloud library sync or friend sessions.
+
+Native Chromium on the desktop AMD GPU verified Forge save, reload and editing,
+saved-shape selection, and switching between classic and authored pawns at a
+390px viewport without horizontal overflow. An Arcade match played e2-e4, d7-d5
+and e4xd5, replayed the capture, reloaded and opened that capture in Cinema with
+the same authored snapshot. The sampled 2,947-particle victim state stayed finite.
+Tracked live GPU resources settled at 62 after both capture and replay, with no
+runtime or GPU errors. These are application resource counts, not total driver
+memory or physical-tablet performance measurements. Screenshots and receipts are
+under `/home/maff/agent-out/chaos-master-fp/2026-10-08/authored-pawn/`.
+
+The final focused run passed 301 tests across 22 files, including strict snapshot
+validation, connected material sampling, cache eviction, immutable replay,
+Forge draft isolation and the old pawn designs. Typecheck, lint, formatting,
+WGSL validation, production build and agent-index checks pass. The first
+`pnpm check` stopped at a new affine-field narrowing error; it was fixed, then
+typecheck and all remaining stages passed separately.
+
+The material radius deliberately joins thin recursive branches into a connected
+body at every supported particle spacing. That also fills small openings: the
+playable shape currently reads as a lobed crown over a solid stem and squared
+foot, while the Forge source preview retains finer IFS structure. Do not present
+this first trial as a finished high-detail fractal collection.
+
+Acceptance still requires a visual review of this first solid pawn before a
+six-role fractal set. Compare branch readability, resolved openings and the
+capture result on a physical tablet, then tune the design or its material.
+
 ## Private friend session architecture
 
 The current Worker serves static assets and bounded APIs for sharing and gallery

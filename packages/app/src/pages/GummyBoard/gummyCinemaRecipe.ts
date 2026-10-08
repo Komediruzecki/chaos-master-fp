@@ -1,6 +1,7 @@
 /** Portable shot recipes keep position, camera and material together without changing saved gummy presets. */
 import { GUMMY_BOARD_ORIGINAL_MOTION, GUMMY_BOARD_SHOTS, resolveGummyBoardShot, resolveGummyBoardShotMotion, } from '@/components/GummyBoard/gummyBoardShots'
 import { parseGummyCaptureMechanic } from '@/components/GummyBoard/gummyCaptureMechanics'
+import { validateGummyAuthoredPawn } from '@/simulation/gummy/gummyAuthoredPawn'
 import { GUMMY_BUILTIN_PRESETS } from '../GummyBear/gummyBuiltinPresets'
 import { createGummyPreset } from '../GummyBear/gummyPresets'
 import { GUMMY_BOARD_PALETTES } from './gummyBoardAppearance'
@@ -8,6 +9,7 @@ import type { GummyPresetSettings } from '../GummyBear/gummyPresets'
 import type { GummyPalette } from '@/components/GummyBear/gummyMaterial'
 import type { GummyBoardQuality } from '@/components/GummyBoard/gummyBoardQuality'
 import type { GummyBoardShot, GummyBoardShotMotion, } from '@/components/GummyBoard/gummyBoardShots'
+import type { GummyAuthoredPawn } from '@/simulation/gummy/gummyAuthoredPawn'
 
 export type GummyCinemaRecipe = {
   format: 'gummy-cinema-shot'
@@ -19,6 +21,7 @@ export type GummyCinemaRecipe = {
   artStyle: 'classic' | 'sculpted'
   attackerPalette: GummyPalette
   victimPalette: GummyPalette
+  authoredPawn?: GummyAuthoredPawn
 }
 
 export function createGummyCinemaRecipe(
@@ -68,6 +71,11 @@ export function parseGummyCinemaRecipe(value: unknown): GummyCinemaRecipe {
   if (!raw || typeof raw !== 'object')
     throw new Error('Paste a shot recipe object.')
   const r = raw as Record<string, unknown>
+  const authoredPawn = validateGummyAuthoredPawn(r.authoredPawn)
+  if (r.authoredPawn !== undefined && !authoredPawn)
+    throw new Error('Invalid authored pawn snapshot.')
+  if (authoredPawn && r.version !== 3)
+    throw new Error('Use a version 3 recipe for an authored pawn.')
   if (
     r.format !== 'gummy-cinema-shot' ||
     (r.version !== 1 && r.version !== 2 && r.version !== 3) ||
@@ -127,5 +135,6 @@ export function parseGummyCinemaRecipe(value: unknown): GummyCinemaRecipe {
     artStyle: r.artStyle === 'classic' ? 'classic' : 'sculpted',
     attackerPalette: (r.attackerPalette ?? 'amber') as GummyPalette,
     victimPalette: (r.victimPalette ?? 'blue') as GummyPalette,
+    ...(authoredPawn ? { authoredPawn } : {}),
   }
 }

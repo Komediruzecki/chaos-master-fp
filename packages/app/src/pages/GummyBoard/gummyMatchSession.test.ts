@@ -2,6 +2,7 @@
 import { applyChessMove, createChessGame, importChessPgn, } from '@chaos-master/core/chess/chessGame'
 import { describe, expect, it } from 'vitest'
 import { GUMMY_BUILTIN_PRESETS } from '../GummyBear/gummyBuiltinPresets'
+import { defaultGummyMatchAppearance } from './gummyMatchAppearance'
 import { createGummyMatchCinemaRecipe, GUMMY_MATCH_CINEMA_KEY, GUMMY_MATCH_SESSION_KEY, gummyMatchCinemaReason, loadGummyMatchSession, readGummyMatchCinemaRecipe, saveGummyMatchCinemaRecipe, saveGummyMatchSession, } from './gummyMatchSession'
 
 function storage() {
@@ -25,6 +26,25 @@ const options = {
 }
 
 describe('gummy match session', () => {
+  it.each([null, {}, { format: 'gummy-authored-pawn', version: 9 }])(
+    'restores legal moves while rejecting a malformed authored collection %s',
+    (authoredPawn) => {
+      const store = storage()
+      const value = JSON.stringify({
+        version: 2,
+        pgn: '1. e4 *',
+        cursor: 1,
+        appearance: { ...defaultGummyMatchAppearance(), authoredPawn },
+      })
+      store.setItem(GUMMY_MATCH_SESSION_KEY, value)
+      const restored = loadGummyMatchSession(store)
+      expect(restored.session?.game.history[0]?.san).toBe('e4')
+      expect(restored.session?.appearance).toBeUndefined()
+      expect(restored.error).toContain('board settings were invalid')
+      expect(store.getItem(GUMMY_MATCH_SESSION_KEY)).toBe(value)
+    },
+  )
+
   it('preserves a valid game while rejecting corrupted board settings', () => {
     const store = storage()
     store.setItem(

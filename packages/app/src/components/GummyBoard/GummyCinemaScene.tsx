@@ -17,6 +17,7 @@ import type { GummyBoardQuality } from './gummyBoardQuality'
 import type { GummyBoardRestMeshPool } from './gummyBoardRestMeshPool'
 import type { GummyBoardShot } from './gummyBoardShots'
 import type { GummyPresetSettings } from '@/pages/GummyBear/gummyPresets'
+import type { GummyAuthoredPawn } from '@/simulation/gummy/gummyAuthoredPawn'
 
 export type GummyCinemaController = {
   info(): {
@@ -34,6 +35,7 @@ export type GummyCinemaController = {
     material: GummyPresetSettings
     attackerPalette: GummyPalette
     victimPalette: GummyPalette
+    authoredPawn?: GummyAuthoredPawn
   }
   resetPaused(): Promise<void>
   seekFrame(frame: number, fps?: number): Promise<void>
@@ -61,6 +63,7 @@ type Props = {
   artStyle: 'classic' | 'sculpted'
   attackerPalette: GummyPalette
   victimPalette: GummyPalette
+  authoredPawn?: GummyAuthoredPawn
   backgroundPalettes?: readonly [GummyPalette, GummyPalette]
   /** Match-only resources and camera; standalone studio shots retain their own framing. */
   restMeshPool?: GummyBoardRestMeshPool
@@ -109,6 +112,7 @@ function NativeGummyCinema(
     colliderMould: shot.attacker.mould,
     colliderRotationY: shot.attacker.rotationY,
     artStyle: props.artStyle,
+    authoredPawn: props.authoredPawn,
   })
   let renderer: Awaited<ReturnType<typeof createGummyBoardRenderer>> | undefined
   let initializing = true,
@@ -314,6 +318,7 @@ function NativeGummyCinema(
       material,
       attackerPalette: props.attackerPalette,
       victimPalette: props.victimPalette,
+      authoredPawn: props.authoredPawn,
     }),
     resetPaused: () =>
       serialize(async () => {
@@ -410,6 +415,7 @@ function NativeGummyCinema(
       signal: preparation.signal,
       restMeshPool: props.restMeshPool,
       restSpacing: props.restMeshPool ? 0.08 : undefined,
+      authoredPawn: props.authoredPawn,
     },
   )
     .then(async (created) => {

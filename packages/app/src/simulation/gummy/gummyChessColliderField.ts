@@ -1,5 +1,7 @@
 /** Bounded contact-volume bake from the same implicit mould used for visible candy geometry. */
+import { createAuthoredPawnField } from './gummyAuthoredPawn'
 import { GUMMY_CHESS_MOULDS, gummyChessField, isGummyChessMould, } from './gummyChessMoulds'
+import type { GummyAuthoredPawn } from './gummyAuthoredPawn'
 import type { GummyChessArtStyle, GummyChessMould } from './gummyChessMoulds'
 
 export const GUMMY_COLLIDER_CELL_SIZE = 0.04
@@ -8,9 +10,18 @@ export const GUMMY_COLLIDER_CELL_SIZE = 0.04
 export function bakeGummyChessColliderField(
   mould: GummyChessMould,
   artStyle: GummyChessArtStyle = 'classic',
+  authoredPawn?: GummyAuthoredPawn,
 ) {
   if (!isGummyChessMould(mould))
     throw new RangeError('Unknown gummy collider mould')
+  const authoredField =
+    mould === 'pawn' && authoredPawn
+      ? createAuthoredPawnField(authoredPawn)
+      : undefined
+  const sample =
+    authoredField ??
+    ((point: readonly [number, number, number]) =>
+      gummyChessField(point, mould, artStyle))
   const step = GUMMY_COLLIDER_CELL_SIZE
   const padding = 0.16
   const bounds = GUMMY_CHESS_MOULDS[mould].bounds
@@ -29,11 +40,11 @@ export function bakeGummyChessColliderField(
   for (let z = 0; z < nz; z++)
     for (let y = 0; y < ny; y++)
       for (let x = 0; x < nx; x++)
-        values[at(x, y, z) + 3] = gummyChessField(
-          [origin[0] + x * step, origin[1] + y * step, origin[2] + z * step],
-          mould,
-          artStyle,
-        )
+        values[at(x, y, z) + 3] = sample([
+          origin[0] + x * step,
+          origin[1] + y * step,
+          origin[2] + z * step,
+        ])
   for (let z = 0; z < nz; z++)
     for (let y = 0; y < ny; y++)
       for (let x = 0; x < nx; x++) {

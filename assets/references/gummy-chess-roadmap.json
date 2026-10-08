@@ -186,7 +186,7 @@
     {
       "id": "G8",
       "title": "Editable IFS piece collection",
-      "current_state": "Flame studies exist; editable six-role board collection is missing",
+      "current_state": "First authored pawn trial implemented: bounded finite-thickness structural IFS, eight-entry local recipe library, shared mesh/MPM/contact volume and immutable capture/Cinema snapshots. Native GPU checks cover edit/save/reopen, placement, capture/replay/reload, Cinema handoff and bounded resources. Thickening softens fine structure; the six-role collection awaits first-pawn visual and physical-device acceptance.",
       "impact": "High",
       "effort": "L",
       "confidence": "Medium\u2013low",
@@ -307,7 +307,7 @@
     {
       "id": "G16",
       "title": "Aligned inset glass chess board",
-      "current_state": "Implemented: shared CPU/GPU contact grid, 64 flush frosted/tinted material insets and etched bevel shading at y=0, neutral glass substrate and a separate caustic receiver without a second playing grid. The floor follow-up removes the unfocused rectangular light footprint and etched-grid transmission; native overhead, grazing and near-horizontal views pass. 67 focused tests pass; native Chromium top/grazing captures show alignment with no shader errors. Live final integration and physical-device checks remain separate.",
+      "current_state": "Implemented: shared CPU/GPU contact grid, 64 flush frosted/tinted material insets and etched bevel shading at y=0, neutral glass substrate and a separate caustic receiver without a second playing grid. Glass transparency needs a later optical pass, deferred by the user. The floor follow-up removes the unfocused rectangular light footprint and etched-grid transmission; native overhead, grazing and near-horizontal views pass. 67 focused tests pass; native Chromium top/grazing captures show alignment with no shader errors. Live final integration and physical-device checks remain separate.",
       "impact": "High",
       "effort": "M",
       "confidence": "Medium",

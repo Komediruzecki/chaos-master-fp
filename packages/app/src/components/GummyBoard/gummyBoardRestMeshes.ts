@@ -6,6 +6,7 @@ import { MarchingGummyVertex } from '../GummyBear/marchingGummySurfaceShaders'
 import { GUMMY_BOARD_MOULDS } from './gummyBoardInstances'
 import { refineGummyBoardRestVertices } from './gummyBoardRestRefinement'
 import type { StorageFlag, TgpuBuffer, TgpuRoot } from 'typegpu'
+import type { GummyAuthoredPawn } from '@/simulation/gummy/gummyAuthoredPawn'
 import type { GummyChessArtStyle, GummyChessMould, } from '@/simulation/gummy/gummyChessMoulds'
 
 export type GummyBoardRestMesh = {
@@ -26,13 +27,20 @@ export async function createGummyBoardRestMeshes(
   spacing: number,
   artStyle: GummyChessArtStyle = 'classic',
   signal?: AbortSignal,
+  authoredPawn?: GummyAuthoredPawn,
 ): Promise<GummyBoardRestMeshes> {
   const meshes = new Map<GummyChessMould, GummyBoardRestMesh>()
   try {
     for (const mould of GUMMY_BOARD_MOULDS) {
       signal?.throwIfAborted()
       const restPositions = new Float32Array(
-        sampleGummyChessMould(mould, spacing, undefined, artStyle),
+        sampleGummyChessMould(
+          mould,
+          spacing,
+          undefined,
+          artStyle,
+          authoredPawn,
+        ),
       )
       const positions = root
         .createBuffer(
@@ -77,7 +85,7 @@ export async function createGummyBoardRestMeshes(
         )
         device.queue.submit([copy.finish()])
         await device.queue.onSubmittedWorkDone()
-        if (artStyle === 'sculpted') {
+        if (artStyle === 'sculpted' && !(mould === 'pawn' && authoredPawn)) {
           const refined = refineGummyBoardRestVertices(
             await compact.read(),
             mould,

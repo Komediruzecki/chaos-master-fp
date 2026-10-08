@@ -4,6 +4,7 @@ import { onCleanup } from 'solid-js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { GUMMY_BOARD_SHOTS } from '@/components/GummyBoard/gummyBoardShots'
 import { createGummyCaptureMechanic, gummyCaptureMechanicContext, } from '@/components/GummyBoard/gummyCaptureMechanics'
+import { createGummyAuthoredPawn } from '@/simulation/gummy/gummyAuthoredPawn'
 import { GUMMY_BUILTIN_PRESETS } from '../GummyBear/gummyBuiltinPresets'
 import { GummyCinemaPage } from './GummyCinemaPage'
 import { createGummyCinemaRecipe, parseGummyCinemaRecipe, } from './gummyCinemaRecipe'
@@ -171,6 +172,31 @@ function exportRecipe() {
 }
 
 describe('GummyCinemaPage', () => {
+  it('retains a captured pawn snapshot until an explicit staged shape change is applied', () => {
+    const recipe = createGummyCinemaRecipe(GUMMY_BOARD_SHOTS[1])
+    recipe.authoredPawn = createGummyAuthoredPawn(
+      { openness: 0.4 },
+      'Saved lattice',
+    )
+    window.history.replaceState(null, '', '/gummy?view=cinema&from=match')
+    sessionStorage.setItem(GUMMY_MATCH_CINEMA_KEY, JSON.stringify(recipe))
+    render(() => <GummyCinemaPage />)
+    expect(current().authoredPawn).toEqual(recipe.authoredPawn)
+    expect(exportRecipe().authoredPawn).toEqual(recipe.authoredPawn)
+    openSection('Pieces and board')
+    expect(
+      screen.getByRole('combobox', { name: 'Shape for both sides' })
+        .textContent,
+    ).toContain('Saved lattice')
+    change('Shape for both sides', 'classic')
+    expect(fixtures.scenes).toHaveLength(1)
+    expect(current().authoredPawn).toEqual(recipe.authoredPawn)
+    apply()
+    expect(fixtures.scenes).toHaveLength(2)
+    expect(current().authoredPawn).toBeUndefined()
+    expect(exportRecipe().authoredPawn).toBeUndefined()
+  })
+
   it('opens a validated match handoff and preserves the same shot after a reload', () => {
     const recipe = createGummyCinemaRecipe(GUMMY_BOARD_SHOTS[1])
     recipe.shot.id = 'match-capture-7'

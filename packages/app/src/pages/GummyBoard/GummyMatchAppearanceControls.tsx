@@ -3,6 +3,7 @@ import { GummyPresetControls } from '../GummyBear/GummyPresetControls'
 import { createGummyPreset } from '../GummyBear/gummyPresets'
 import { GummyMatchLookCards } from './GummyMatchLookCards'
 import styles from './GummyMatchPage.module.css'
+import { GummyPawnSelectionControls } from './GummyPawnSelectionControls'
 import type { GummyPresetSettings } from '../GummyBear/gummyPresets'
 import type { useGummyMatch } from './useGummyMatch'
 import type { GummyBoardQuality } from '@/components/GummyBoard/gummyBoardQuality'
@@ -38,6 +39,13 @@ export function GummyMatchAppearanceControls(props: {
           if (!props.busy) setSettings({ ...settings(), palette })
         }}
         onTheme={setTheme}
+      />
+      <GummyPawnSelectionControls
+        value={props.match.appearance().authoredPawn}
+        disabled={props.busy}
+        onChange={(authoredPawn) => {
+          if (!props.busy) props.match.updateAppearance({ authoredPawn })
+        }}
       />
       <details class={styles.section}>
         <summary>Board and material</summary>

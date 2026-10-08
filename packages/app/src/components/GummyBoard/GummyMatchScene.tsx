@@ -11,6 +11,7 @@ import type { GummyBoardQuality } from './gummyBoardQuality'
 import type { GummyBoardTheme } from './gummyBoardThemes'
 import type { GummyPresetSettings } from '@/pages/GummyBear/gummyPresets'
 import type { GummyMatchCapturePresentation } from '@/pages/GummyBoard/gummyMatchCaptures'
+import type { GummyAuthoredPawn } from '@/simulation/gummy/gummyAuthoredPawn'
 
 export type GummyMatchSceneProps = {
   position: ChessPosition
@@ -22,6 +23,7 @@ export type GummyMatchSceneProps = {
   quality: GummyBoardQuality
   scale: number
   theme: GummyBoardTheme
+  authoredPawn?: GummyAuthoredPawn
   onSquare: (square: string) => void
   onComplete: (receipt: ChessMoveReceipt) => void
   onError: (message: string) => void
@@ -38,6 +40,7 @@ export function GummyMatchScene(props: GummyMatchSceneProps) {
     'legalSquares',
   ])
   const restMeshPool = createGummyBoardRestMeshPool()
+  const [, captureProps] = splitProps(props, ['authoredPawn'])
   const orbit = initialGummyBoardOrbit('board')
   const [visibleReceipt, setVisibleReceipt] = createSignal<ChessMoveReceipt>()
   const [opacity, setOpacity] = createSignal(1)
@@ -58,6 +61,10 @@ export function GummyMatchScene(props: GummyMatchSceneProps) {
           settings: appearance?.settings ?? props.settings,
           scale: appearance?.scale ?? props.scale,
           quality: appearance?.quality ?? props.quality,
+          // An older capture without an override must retain its original gummy pawn.
+          authoredPawn: appearance
+            ? appearance.authoredPawn
+            : props.authoredPawn,
         }
       : undefined
   })
@@ -97,11 +104,12 @@ export function GummyMatchScene(props: GummyMatchSceneProps) {
             aria-hidden={!captureVisible()}
           >
             <GummyMatchCapture
-              {...props}
+              {...captureProps}
               receipt={current.receipt}
               settings={current.settings}
               scale={current.scale}
               quality={current.quality}
+              authoredPawn={current.authoredPawn}
               shot={current.shot}
               restMeshPool={restMeshPool}
               orbit={orbit}

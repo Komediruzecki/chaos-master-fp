@@ -3,10 +3,14 @@ import { cleanup, render } from '@solidjs/testing-library'
 import { createSignal } from 'solid-js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { GUMMY_BUILTIN_PRESETS } from '@/pages/GummyBear/gummyBuiltinPresets'
+import { createGummyAuthoredPawn } from '@/simulation/gummy/gummyAuthoredPawn'
+import { createGummyParticleSolver } from '@/simulation/gummy/gummyParticleSolver'
+import { createGummyBoardRenderer } from './gummyBoardRenderer'
 import { GUMMY_BOARD_SHOTS } from './gummyBoardShots'
 import { GummyCinemaScene } from './GummyCinemaScene'
 import type { ParentProps } from 'solid-js'
 import type { GummyCinemaController } from './GummyCinemaScene'
+import type { GummyAuthoredPawn } from '@/simulation/gummy/gummyAuthoredPawn'
 
 const fixture = vi.hoisted(() => ({
   size: undefined as (() => { width: number; height: number }) | undefined,
@@ -40,21 +44,22 @@ vi.mock('../GummyBear/gummyGpuErrors', () => ({
   bindGummyGpuErrors: () => () => {},
 }))
 vi.mock('@/simulation/gummy/gummyParticleSolver', () => ({
-  createGummyParticleSolver: () => ({
+  createGummyParticleSolver: vi.fn(() => ({
     destroy: fixture.solverDestroyed,
     positions: {},
     restPositions: new Float32Array(),
     particleCount: 1,
     spacing: 0.08,
     gridBounds: {},
-  }),
+  })),
 }))
 vi.mock('./gummyBoardRenderer', () => ({
-  createGummyBoardRenderer: () =>
+  createGummyBoardRenderer: vi.fn(() =>
     Promise.resolve({
       render: fixture.render,
       destroy: fixture.rendererDestroyed,
     }),
+  ),
 }))
 
 async function settle() {
@@ -62,7 +67,7 @@ async function settle() {
   for (let i = 0; i < 20; i++) await Promise.resolve()
 }
 
-function mount() {
+function mount(authoredPawn?: GummyAuthoredPawn) {
   const [size, setSize] = createSignal({ width: 0, height: 0 })
   fixture.size = size
   let controller: GummyCinemaController | undefined
@@ -80,6 +85,7 @@ function mount() {
       artStyle="sculpted"
       attackerPalette="marble"
       victimPalette="blue"
+      authoredPawn={authoredPawn}
       onController={(value) => {
         controller = value
       }}
@@ -88,7 +94,7 @@ function mount() {
       onError={error}
     />
   ))
-  return { view, ready, progress, error, setSize }
+  return { view, ready, progress, error, setSize, controller: () => controller }
 }
 
 beforeEach(() => {
@@ -107,6 +113,24 @@ afterEach(() => {
 })
 
 describe('cinematic first frame and canvas lifetime', () => {
+  it('uses the same authored shape for capture physics, waiting pieces, and the exported scene description', async () => {
+    const pawn = createGummyAuthoredPawn({ openness: 0.4 })
+    const app = mount(pawn)
+    await settle()
+    expect(
+      vi.mocked(createGummyParticleSolver).mock.calls[0]?.[2],
+    ).toMatchObject({
+      authoredPawn: pawn,
+    })
+    expect(
+      vi.mocked(createGummyBoardRenderer).mock.calls[0]?.[6],
+    ).toMatchObject({
+      authoredPawn: pawn,
+    })
+    expect(app.controller()?.info().authoredPawn).toEqual(pawn)
+    expect(app.error).not.toHaveBeenCalled()
+  })
+
   it('keeps the before-board visible while initial canvas sizing is delayed, then starts after its first GPU fence', async () => {
     const app = mount()
     await settle()

@@ -1,0 +1,66 @@
+/* Shared form uses an explicit tone so it remains legible in match and studio rails. */
+.panel {
+  --pawn-ink: #f2f4f7;
+  --pawn-muted: #b0bdcf;
+  --pawn-line: #ffffff26;
+  --pawn-fill: #0b121c;
+  margin: 16px 0;
+  border: 1px solid var(--pawn-line);
+  border-radius: 12px;
+  color: var(--pawn-ink);
+  min-width: 0;
+}
+.panel[data-tone='light'] {
+  --pawn-ink: #2d211f;
+  --pawn-muted: #705c58;
+  --pawn-line: #38231f30;
+  --pawn-fill: #fffaf5;
+}
+.panel summary {
+  padding: 14px;
+  min-height: 44px;
+  box-sizing: border-box;
+  font-weight: 600;
+  cursor: pointer;
+}
+.body {
+  display: grid;
+  gap: 10px;
+  padding: 0 14px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  min-width: 0;
+}
+.body select {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 8px;
+  color: var(--pawn-ink);
+  background: var(--pawn-fill);
+  border: 1px solid var(--pawn-line);
+  border-radius: 7px;
+  font: inherit;
+}
+.body p {
+  margin: 0;
+  color: var(--pawn-muted);
+}
+.body a {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--pawn-ink);
+  text-underline-offset: 4px;
+}
+.panel summary:focus-visible,
+.body a:focus-visible,
+.body select:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+.body select:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}

@@ -1,5 +1,6 @@
 /** Shared mould lifetime checks across simultaneous scenes, skipped captures and device changes. */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createGummyAuthoredPawn } from '@/simulation/gummy/gummyAuthoredPawn'
 import { createGummyBoardRestMeshPool } from './gummyBoardRestMeshPool'
 import type { TgpuRoot } from 'typegpu'
 import type { GummyBoardRestMeshes } from './gummyBoardRestMeshes'
@@ -156,5 +157,49 @@ describe('match-owned gummy mould pool', () => {
     for (const lease of leases) lease.destroy()
     pool.destroy()
     for (const mesh of meshes) expect(mesh.destroy).toHaveBeenCalledOnce()
+  })
+  it('shares renamed recipes, separates edits and evicts idle designs without destroying active leases', async () => {
+    const { root, device } = deviceRoot()
+    const pool = createGummyBoardRestMeshPool()
+    const meshes = Array.from({ length: 5 }, resource)
+    for (const mesh of meshes) mocks.bake.mockResolvedValueOnce(mesh)
+    const source = createGummyAuthoredPawn()
+    const active = await pool.acquire(
+      root,
+      device,
+      0.08,
+      'sculpted',
+      undefined,
+      source,
+    )
+    const renamed = await pool.acquire(
+      root,
+      device,
+      0.08,
+      'sculpted',
+      undefined,
+      { ...source, name: 'Renamed' },
+    )
+    expect(mocks.bake).toHaveBeenCalledOnce()
+    renamed.destroy()
+    for (const twist of [0.1, 0.4, 0.7]) {
+      const lease = await pool.acquire(
+        root,
+        device,
+        0.08,
+        'sculpted',
+        undefined,
+        { ...source, recipe: { ...source.recipe, twist } },
+      )
+      lease.destroy()
+    }
+    expect(meshes[0]!.destroy).not.toHaveBeenCalled()
+    expect(meshes[1]!.destroy).toHaveBeenCalledOnce()
+    expect(meshes[2]!.destroy).not.toHaveBeenCalled()
+    expect(meshes[3]!.destroy).not.toHaveBeenCalled()
+    active.destroy()
+    pool.destroy()
+    for (const mesh of meshes.slice(0, 4))
+      expect(mesh.destroy).toHaveBeenCalledOnce()
   })
 })

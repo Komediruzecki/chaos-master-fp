@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest'
 import { GUMMY_BOARD_SHOTS } from '@/components/GummyBoard/gummyBoardShots'
 import { createGummyCaptureMechanic } from '@/components/GummyBoard/gummyCaptureMechanics'
+import { createGummyAuthoredPawn } from '@/simulation/gummy/gummyAuthoredPawn'
 import { createGummyCinemaRecipe, parseGummyCinemaRecipe, } from './gummyCinemaRecipe'
 
 export const ROCK_GUMMY_SETTINGS = {
@@ -24,6 +25,33 @@ export const ROCK_GUMMY_SETTINGS = {
 } as const
 
 describe('gummy cinema recipes', () => {
+  it('round-trips an authored pawn as an independent shape snapshot', () => {
+    const recipe = {
+      ...createGummyCinemaRecipe(),
+      authoredPawn: createGummyAuthoredPawn({ openness: 0.4 }, 'Lattice study'),
+    }
+    const decoded = parseGummyCinemaRecipe(JSON.stringify(recipe))
+    expect(decoded).toEqual(recipe)
+    expect(decoded.authoredPawn).not.toBe(recipe.authoredPawn)
+    expect(decoded.authoredPawn!.recipe).not.toBe(recipe.authoredPawn.recipe)
+    decoded.authoredPawn!.recipe.openness = 0.7
+    expect(recipe.authoredPawn.recipe.openness).toBe(0.4)
+    expect(() => parseGummyCinemaRecipe({ ...recipe, version: 2 })).toThrow(
+      /version 3/,
+    )
+  })
+
+  it.each([
+    null,
+    {},
+    { format: 'unknown', version: 1 },
+    { ...createGummyAuthoredPawn(), version: 2 },
+  ])('rejects an invalid authored pawn snapshot %j', (authoredPawn) => {
+    expect(() =>
+      parseGummyCinemaRecipe({ ...createGummyCinemaRecipe(), authoredPawn }),
+    ).toThrow(/authored pawn/)
+  })
+
   it('round-trips every RockGummy setting with the complete shot configuration', () => {
     const recipe = createGummyCinemaRecipe(GUMMY_BOARD_SHOTS[1])
     expect(recipe.material).toEqual(ROCK_GUMMY_SETTINGS)

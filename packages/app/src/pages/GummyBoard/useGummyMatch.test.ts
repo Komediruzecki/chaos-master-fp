@@ -2,6 +2,7 @@
 import { cleanup, renderHook } from '@solidjs/testing-library'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { GUMMY_BOARD_EARLY_SHEAR_MOTION } from '@/components/GummyBoard/gummyBoardShots'
+import { createGummyAuthoredPawn } from '@/simulation/gummy/gummyAuthoredPawn'
 import { createGummyMatchCinemaRecipe, GUMMY_MATCH_SESSION_KEY, loadGummyMatchSession, } from './gummyMatchSession'
 import { useGummyMatch } from './useGummyMatch'
 
@@ -27,6 +28,56 @@ function matchAtCapture() {
 }
 
 describe('saved capture presentation', () => {
+  it('pins the authored pawn at capture time through editing, reload and Cinema', () => {
+    const { result: match } = renderHook(useGummyMatch)
+    const source = createGummyAuthoredPawn({ openness: 0.4 }, 'First lattice')
+    match.updateAppearance({ authoredPawn: source })
+    expect(match.importPgn(line)).toBe(true)
+    match.seek(3)
+    const stored = structuredClone(match.currentPresentation()!)
+    expect(stored.appearance.authoredPawn).toEqual(source)
+    expect(match.currentPresentation()!.appearance.authoredPawn).not.toBe(
+      source,
+    )
+    expect(
+      match.currentPresentation()!.appearance.authoredPawn!.recipe,
+    ).not.toBe(source.recipe)
+    source.recipe.openness = 0.7
+    match.updateAppearance({
+      authoredPawn: createGummyAuthoredPawn({ openness: 0.8 }, 'Next lattice'),
+    })
+    match.replay()
+    expect(match.activePresentation()).toEqual(stored)
+    match.finishAnimation()
+    const { result: restored } = renderHook(useGummyMatch)
+    expect(restored.appearance().authoredPawn!.recipe.openness).toBe(0.8)
+    expect(restored.currentPresentation()).toEqual(stored)
+    const recipe = createGummyMatchCinemaRecipe(
+      restored.currentMove()!,
+      restored.appearance(),
+      restored.currentPresentation(),
+    )
+    expect(recipe.authoredPawn).toEqual(stored.appearance.authoredPawn)
+    recipe.authoredPawn!.recipe.openness = 0.6
+    expect(restored.currentPresentation()).toEqual(stored)
+    restored.updateAppearance({ authoredPawn: undefined })
+    expect(
+      loadGummyMatchSession().session!.appearance!.authoredPawn,
+    ).toBeUndefined()
+    expect(loadGummyMatchSession().session!.captures![0]).toEqual(stored)
+  })
+
+  it('does not add a new authored pawn to an older gummy capture', () => {
+    const match = matchAtCapture()
+    match.updateAppearance({ authoredPawn: createGummyAuthoredPawn() })
+    const recipe = createGummyMatchCinemaRecipe(
+      match.currentMove()!,
+      match.appearance(),
+      match.currentPresentation(),
+    )
+    expect(recipe.authoredPawn).toBeUndefined()
+  })
+
   it('keeps the original straight press in the rotation across imported captures, reload and new moves', () => {
     const { result: initial } = renderHook(useGummyMatch)
     expect(initial.importPgn('1. e4 d5 2. exd5 Qxd5 *')).toBe(true)

@@ -2,29 +2,21 @@
 import { createMemo, createSignal, onCleanup, onMount } from 'solid-js'
 import { PawnStage } from '@/components/PawnStage/PawnStage'
 import { useToast } from '@/contexts/ToastContext'
-import { DEFAULT_PAWN_RECIPE, normalizePawnRecipe, PAWN_RECIPE_LIMITS, } from '@/flame/chess/pawnFlame'
-import { DEFAULT_STRUCTURAL_PAWN_RECIPE } from '@/flame/chess/structuralPawnFlame'
+import { PAWN_RECIPE_LIMITS } from '@/flame/chess/pawnFlame'
+import { validateGummyAuthoredPawn } from '@/simulation/gummy/gummyAuthoredPawn'
 import { downloadBlob } from '@/utils/blob'
 import { encodeSharePayload } from '@/utils/jsonQueryParam'
-import { persistentSignal } from '@/utils/persistentSignal'
-import { buildPawnDesignFlame, createPawnDesign, createPawnDesignDraft, restorePawnDesignDraft, serializePawnDesignExport, } from './pawnDesign'
-import { readLegacyPawnDraft } from './pawnDesignStorage'
+import { PawnChessSaveControls } from './PawnChessSaveControls'
+import { serializePawnDesignExport } from './pawnDesign'
 import styles from './PawnPage.module.css'
-import type { PawnDesign, PawnForm } from './pawnDesign'
+import { usePawnForgeDesign } from './usePawnForgeDesign'
+import type { PawnForm } from './pawnDesign'
 import type { PawnRenderStatus } from '@/components/PawnStage/PawnStage'
-import type { PawnRecipe } from '@/flame/chess/pawnFlame'
 
 export function PawnPage() {
   const { showToast } = useToast()
-  const legacyDraft = readLegacyPawnDraft()
-  const [design, setDesign] = persistentSignal<PawnDesign, unknown>(
-    'pawn-forge-experiments',
-    createPawnDesign(legacyDraft),
-    {
-      serialize: createPawnDesignDraft,
-      deserialize: (raw) => restorePawnDesignDraft(raw, legacyDraft),
-    },
-  )
+  const forge = usePawnForgeDesign()
+  const { form, recipe, flame, updateRecipe } = forge
   const [resetViewKey, setResetViewKey] = createSignal(0)
   const [openingEditor, setOpeningEditor] = createSignal(false)
   const [renderStatus, setRenderStatus] = createSignal<PawnRenderStatus>({
@@ -32,9 +24,6 @@ export function PawnPage() {
     progress: 0,
     ready: false,
   })
-  const form = createMemo(() => design().selected)
-  const recipe = createMemo(() => design().recipes[form()])
-  const flame = createMemo(() => buildPawnDesignFlame(form(), recipe()))
   const twistDegrees = createMemo(() =>
     Math.round((recipe().twist * 180) / Math.PI),
   )
@@ -58,38 +47,39 @@ export function PawnPage() {
     })
   })
 
-  function updateRecipe(patch: Partial<PawnRecipe>) {
-    setDesign((current) => ({
-      ...current,
-      recipes: {
-        ...current.recipes,
-        [current.selected]: normalizePawnRecipe({
-          ...current.recipes[current.selected],
-          ...patch,
-        }),
-      },
-    }))
-  }
-
   function selectForm(selected: PawnForm) {
-    setDesign((current) => ({ ...current, selected }))
+    forge.selectForm(selected)
     setResetViewKey((key) => key + 1)
   }
 
   function resetShape() {
-    updateRecipe(
-      form() === 'echo' ? DEFAULT_PAWN_RECIPE : DEFAULT_STRUCTURAL_PAWN_RECIPE,
-    )
+    forge.resetShape()
     setResetViewKey((key) => key + 1)
   }
 
   function downloadRecipe() {
     const current = recipe()
+    const pawn = forge.authoredActive()
+      ? validateGummyAuthoredPawn(forge.chessPawn())
+      : undefined
+    if (forge.authoredActive() && !pawn) {
+      showToast('Give the pawn a valid name before downloading its recipe.')
+      return
+    }
     downloadBlob(
-      new Blob([serializePawnDesignExport(form(), current)], {
-        type: 'application/json',
-      }),
-      `fractal-pawn-${form()}-${current.side}.json`,
+      new Blob(
+        [
+          pawn
+            ? JSON.stringify(pawn, null, 2)
+            : serializePawnDesignExport(form(), current),
+        ],
+        {
+          type: 'application/json',
+        },
+      ),
+      forge.authoredActive()
+        ? 'gummy-fractal-pawn.json'
+        : `fractal-pawn-${form()}-${current.side}.json`,
     )
   }
 
@@ -121,9 +111,15 @@ export function PawnPage() {
         <section class={styles.preview} aria-label="Pawn preview">
           <div class={styles.previewHeader}>
             <span class={styles.eyebrow}>
-              {form() === 'echo' ? 'Glass echo' : 'Crystal lattice'}
+              {form() === 'echo'
+                ? 'Glass echo'
+                : forge.authoredActive()
+                  ? 'Gummy lattice source'
+                  : 'Crystal lattice'}
             </span>
-            <span class={styles.scale}>1.8 m</span>
+            <span class={styles.scale}>
+              {forge.authoredActive() ? 'Source preview' : '1.8 m'}
+            </span>
           </div>
           <PawnStage
             flame={flame()}
@@ -154,9 +150,11 @@ export function PawnPage() {
             <p class={styles.eyebrow}>Pawn forge</p>
             <h1 id="pawn-title">Shape a fractal pawn.</h1>
             <p class={styles.description}>
-              {form() === 'echo'
-                ? 'The original pawn: a rounded body with smaller pawns repeating inside it.'
-                : 'A branching stem and a faceted head. Cavities repeat through the structure as you look closer.'}
+              {forge.authoredActive()
+                ? 'A playable version of the lattice with wider branches and open spaces. Your original Forge drafts stay separate.'
+                : form() === 'echo'
+                  ? 'The original pawn: a rounded body with smaller pawns repeating inside it.'
+                  : 'A branching stem and a faceted head. Cavities repeat through the structure as you look closer.'}
             </p>
           </div>
 
@@ -300,9 +298,20 @@ export function PawnPage() {
             </span>
           </label>
 
+          <PawnChessSaveControls
+            pawn={forge.chessPawn()}
+            isLattice={form() === 'lattice'}
+            savedKey={forge.savedKey()}
+            editing={forge.hasAuthoredEdit()}
+            openError={forge.openError}
+            onEdit={forge.updateMetadata}
+            onSaved={forge.saved}
+            onRemoved={forge.removed}
+            onRestoreDraft={forge.restoreDraft}
+          />
           <div class={styles.actions}>
             <a class={styles.boardLink} href="/chess">
-              Play pawn board
+              Open original glass pawn board
             </a>
             <a class={styles.boardLink} href="/figurines">
               Compare figurine studies
@@ -333,8 +342,8 @@ export function PawnPage() {
             </button>
           </div>
           <p class={styles.note}>
-            Each form keeps its own controls. Play the pawn board to try your
-            saved shape inside glass and capture another piece.
+            The original glass pawn board uses your Forge drafts. Gummy Chess
+            uses the saved copies above.
           </p>
         </section>
       </div>
