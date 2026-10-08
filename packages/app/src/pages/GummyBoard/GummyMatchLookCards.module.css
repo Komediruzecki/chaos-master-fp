@@ -1,0 +1,111 @@
+/* Large static previews keep the live match as the only GPU scene in the collection picker. */
+.section {
+  padding: 0 0 22px;
+}
+.section h2 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+.section p {
+  margin: 0 0 14px;
+  color: var(--la-ink-2);
+  font-size: 12px;
+  line-height: 1.55;
+}
+.section .note {
+  margin: 12px 0 0;
+  font-size: 11px;
+}
+.cards {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+.card {
+  appearance: none;
+  display: block;
+  padding: 0;
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--la-hairline-strong);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--la-control);
+  text-align: left;
+  color: var(--la-ink);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.image {
+  display: block;
+  position: relative;
+  width: 100%;
+  padding-bottom: 62.5%;
+  min-height: 100px;
+  overflow: hidden;
+  background: var(--la-void);
+}
+.image img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.caption {
+  display: grid;
+  gap: 4px;
+  padding: 11px 13px 13px;
+}
+.caption strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+.caption > span {
+  color: var(--la-ink-2);
+  font-size: 11px;
+  line-height: 1.4;
+}
+.check {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--la-ink);
+  color: var(--la-void);
+  opacity: 0;
+}
+.check svg {
+  width: 15px;
+  height: 15px;
+}
+.card[aria-pressed='true'] {
+  border-color: var(--la-accent);
+  box-shadow: 0 0 0 1px var(--la-accent);
+}
+.card[aria-pressed='true'] .check {
+  opacity: 1;
+}
+.card:hover:not(:disabled) {
+  border-color: var(--la-ink-2);
+  background: var(--la-control-strong);
+}
+.card:focus-visible {
+  outline: 2px solid var(--focus-ring-color);
+  outline-offset: 3px;
+}
+.card:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+@media (min-width: 560px) and (max-width: 899px) {
+  .cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

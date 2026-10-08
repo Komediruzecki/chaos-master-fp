@@ -18,6 +18,9 @@ export type ArcadeMode =
   | 'director'
   | 'arena'
 
+/** Human-playable worlds share navigation, but never become agent tool modes. */
+export type ArcadeDestination = ArcadeMode | 'chess'
+
 /**
  * The tab lives in the URL fragment (`#home`, `#arcade`, `#arcade=teach`)
  * rather than in storage, so a reload keeps you where you were and the address
@@ -29,7 +32,8 @@ export type ArcadeMode =
  */
 const HOME_HASH = '#home'
 const ARCADE_HASH = '#arcade'
-const ARCADE_MODES: readonly ArcadeMode[] = [
+const ARCADE_MODES: readonly ArcadeDestination[] = [
+  'chess',
   'teach',
   'cinema',
   'duel',
@@ -52,18 +56,18 @@ export function tabFromHash(
 
 export function arcadeModeFromHash(
   fragment: string = globalThis.location?.hash ?? '',
-): ArcadeMode | undefined {
+): ArcadeDestination | undefined {
   const match = /^#arcade=([a-z]+)$/.exec(fragment)
   const mode = match?.[1]
-  return ARCADE_MODES.includes(mode as ArcadeMode)
-    ? (mode as ArcadeMode)
+  return ARCADE_MODES.includes(mode as ArcadeDestination)
+    ? (mode as ArcadeDestination)
     : undefined
 }
 
 const [activeTab, setActiveTabSignal] = createSignal<AppTab>(tabFromHash())
-const [arcadeMode, setArcadeModeSignal] = createSignal<ArcadeMode | undefined>(
-  arcadeModeFromHash(),
-)
+const [arcadeMode, setArcadeModeSignal] = createSignal<
+  ArcadeDestination | undefined
+>(arcadeModeFromHash())
 
 export { activeTab, arcadeMode }
 
@@ -73,13 +77,13 @@ export { activeTab, arcadeMode }
 let shown = globalThis.location?.hash ?? ''
 export const shownFragment = (): string => shown
 
-function hashFor(tab: AppTab, mode?: ArcadeMode): string {
+function hashFor(tab: AppTab, mode?: ArcadeDestination): string {
   if (tab === 'home') return HOME_HASH
   if (tab === 'arcade') return mode ? `${ARCADE_HASH}=${mode}` : ARCADE_HASH
   return ''
 }
 
-export function setActiveTab(tab: AppTab, mode?: ArcadeMode): void {
+export function setActiveTab(tab: AppTab, mode?: ArcadeDestination): void {
   setActiveTabSignal(tab)
   setArcadeModeSignal(tab === 'arcade' ? mode : undefined)
   shown = hashFor(tab, mode)

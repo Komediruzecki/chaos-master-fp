@@ -1,5 +1,6 @@
 /** Board-scoped game result with keyboard dismissal and an explicit return to review. */
 import { createMemo, createUniqueId, onMount } from 'solid-js'
+import { createBackLayer } from '@/lib/backStack'
 import styles from './GummyMatchPage.module.css'
 import type { ChessPosition } from '@chaos-master/core/chess/chessGame'
 
@@ -19,6 +20,13 @@ export function GummyMatchResult(props: {
     checkmate() ? (props.position.winner === 'w' ? '1–0' : '0–1') : '½–½',
   )
   let reviewButton: HTMLButtonElement | undefined
+  createBackLayer(
+    () => true,
+    () => {
+      props.onReview()
+    },
+    'chess-result',
+  )
 
   onMount(() => reviewButton?.focus({ preventScroll: true }))
 
@@ -32,6 +40,7 @@ export function GummyMatchResult(props: {
         onKeyDown={(event) => {
           if (event.key !== 'Escape') return
           event.preventDefault()
+          event.stopPropagation()
           props.onReview()
         }}
       >

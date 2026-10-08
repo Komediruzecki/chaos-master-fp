@@ -1,14 +1,22 @@
 # Play gummy chess
 
-Open `/gummy?view=match` for a local two-player game. Both players use the same
-browser. The crash study remains at `/gummy?view=board`, the material workbench
-at `/gummy?experiment=mpm`, and the shot studio at `/gummy?view=cinema`.
+Open **Arcade → Chess**, or `/#arcade=chess`, for a local two-player game. Both
+players use the same browser. Chess opens inside Arcade without an agent
+connection; **Lumen Arcade** returns to the hub while retaining the editor
+document and the saved match in the same tab.
+
+The standalone match remains at `/gummy?view=match`. The crash study is at
+`/gummy?view=board`, the material workbench at `/gummy?experiment=mpm`, and the
+shot studio at `/gummy?view=cinema`.
 
 This match flow is implemented and verified on the working branch. The focused
 rules, rendering and UI tests pass. A native Chromium run on AMD RDNA-4 verified
 touch selection, full capture playback, Skip/replay/undo, PGN/Cinema round-trips
 and responsive controls at desktop, tablet and phone viewport sizes. The new
 match page has not yet been tested on a physical iOS device.
+The new Arcade shell and selection cards are verified in native Chromium;
+Firefox production layout checks pass. Physical iOS and tablet checks of
+this latest UI remain separate.
 
 ## Make a move
 
@@ -54,6 +62,13 @@ if needed, then use **Reload board**. Animation completion is never the authorit
 for whose turn it is or which pieces remain.
 
 ## Choose the material and board
+
+The sidebar shows large preview cards for **Marble**, **Lagoon** and **Candy**
+piece colours, followed by **Classic**, **Glass** and **Lava** boards. Choose a
+card to apply that look. The piece cards share the six existing gummy shapes;
+they change the colour palette while retaining the current material physics.
+Their images come from the actual WebGPU renderer and do not run additional
+preview simulations.
 
 Open **Board and material** to choose Classic, Glass or Lava; Auto, Tablet or High
 render quality; and a piece size from 85% to 100%. The initial match uses Classic,
@@ -165,16 +180,18 @@ The adapter owns stable identity, immutable receipts, FEN preservation and the
 claimable-versus-automatic draw distinction. Its rule interpretation follows
 [FIDE Laws of Chess, articles 9.2, 9.3 and 9.6](https://handbook.fide.com/chapter/e012023).
 
-| Responsibility               | Source                                                                                    |
-| ---------------------------- | ----------------------------------------------------------------------------------------- |
-| Public pure API              | `packages/core/src/chess/chessGame.ts`                                                    |
-| Types and immutable receipts | `packages/core/src/chess/chessTypes.ts`                                                   |
-| Legal state and outcomes     | `packages/core/src/chess/chessRules.ts`                                                   |
-| PGN boundary                 | `packages/core/src/chess/chessPgn.ts`                                                     |
-| Rule regression coverage     | `packages/core/src/chess/chessGame.test.ts`                                               |
-| Match controls and state     | `packages/app/src/pages/GummyBoard/GummyMatchPage.tsx`, `useGummyMatch.ts`                |
-| Session and Cinema handoff   | `packages/app/src/pages/GummyBoard/gummyMatchSession.ts`                                  |
-| Renderer and move poses      | `packages/app/src/components/GummyBoard/GummyMatchScene.tsx`, `gummyMatchPresentation.ts` |
+| Responsibility               | Source                                                                                                        |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Public pure API              | `packages/core/src/chess/chessGame.ts`                                                                        |
+| Types and immutable receipts | `packages/core/src/chess/chessTypes.ts`                                                                       |
+| Legal state and outcomes     | `packages/core/src/chess/chessRules.ts`                                                                       |
+| PGN boundary                 | `packages/core/src/chess/chessPgn.ts`                                                                         |
+| Rule regression coverage     | `packages/core/src/chess/chessGame.test.ts`                                                                   |
+| Match controls and state     | `packages/app/src/pages/GummyBoard/GummyMatchPage.tsx`, `useGummyMatch.ts`                                    |
+| Session and Cinema handoff   | `packages/app/src/pages/GummyBoard/gummyMatchSession.ts`                                                      |
+| Renderer and move poses      | `packages/app/src/components/GummyBoard/GummyMatchScene.tsx`, `gummyMatchPresentation.ts`                     |
+| Embedded Arcade entry        | `packages/app/src/components/Arcade/ArcadeHub.tsx`, `packages/app/src/lib/activeTab.ts`                       |
+| Appearance cards and images  | `packages/app/src/pages/GummyBoard/GummyMatchLookCards.tsx`, `packages/app/public/assets/chess/manifest.json` |
 
 The 35 focused core tests cover identity, full FEN, legal captures, pinned pieces,
 castling, en passant, promotion, undo/branching, terminal outcomes, draw claims,
@@ -234,6 +251,42 @@ The combined focused app pass has 61 passing tests, including queued initial
 resizes, result dismissal and fresh games. `pnpm check` and the agent index check
 passed. Physical-device frame cost remains a separate check.
 
-The user has also completed a full local game through checkmate. The proposed
-next integration is [Chess in Lumen Arcade](gummy-chess-arcade-plan.md), followed
-by saved material/shape collections and one editable fractal pawn.
+The user has also completed a full local game through checkmate. Chess now mounts
+lazily inside Arcade. Editor shortcuts, secondary GPU loops and the main animation
+loop are gated during play; explicit exports continue independently. Leaving the
+world releases the match renderer and unconfigures its canvas, while a quality
+change preserves the active canvas configuration.
+
+The Arcade integration pass on 2026-10-08 passed 124 distinct focused tests across
+shortcuts, canvases, navigation, the match and presets, plus typechecking. The
+initial `pnpm check` reached five test-style lint failures; they were fixed,
+scoped ESLint passed, and the remaining formatting and WGSL validation commands
+passed. The production build passed. The original compound check was not rerun
+as a single command.
+
+Native headed Chromium on AMD RDNA-4 retained the selected looks and `e2-e4`
+position through three world exits and re-entries. Tracked live GPU resources
+settled at 24 after each exit, compared with 80 in the startup sample before
+lazy cleanup, and a 1.2-second idle observation recorded zero GPU submissions.
+There were no runtime/GPU errors or owner warnings. This does not measure browser
+swapchains, driver caches or total system GPU memory.
+
+Actual CDP touch card selection passed at 834×1112, 390×844 and 844×390, with a
+desktop check at 1440px. Production Chromium screenshots were inspected at all
+four sizes. Hiding the controls returns to the top of the board; safe-area
+padding keeps the panel reachable. Firefox production layout checks at 1440×1050
+and 390×844 passed selected/rendered cards, loaded images, no horizontal overflow,
+the standalone host and zero page errors; screenshots were inspected. This is
+layout evidence, not physical-GPU proof. Physical iOS and tablet testing of this
+latest interface is still open.
+Evidence lives outside the repository in
+`/home/maff/agent-out/chaos-master-fp/2026-10-08/arcade-chess/`.
+
+The metrics gate still reports the rebased branch's existing debt: 86 files over
+500 lines, 40 over 800 and eight file-cap failures, matching the pre-Arcade state.
+No baseline was relaxed. Extracting the affine-grid theme reduced that file's cap
+from 1,172 to 1,154 lines.
+
+The [Arcade integration plan](gummy-chess-arcade-plan.md) tracks the next work:
+an aligned inset-glass playing surface, varied capture mechanics, authored
+fractal collections and private friend sessions.

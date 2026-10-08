@@ -11,6 +11,7 @@ import { cleanup, render } from '@solidjs/testing-library'
 import { createSignal } from 'solid-js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { examples } from '@/flame/examples'
+import { setActiveTab } from '@/lib/activeTab'
 import { setLeadingCover, setTrailingCover } from '@/lib/canvasFraming'
 import { setGlassPanels } from '@/lib/glass'
 import { CanvasViewport, EDGE_FADE_COLOR } from './CanvasViewport'
@@ -29,6 +30,7 @@ interface Seen {
   camera2D?: CameraProps
   camera3D?: CameraProps
   flam3?: {
+    animationEnabled: boolean
     onExportImage?: ExportImageType
     edgeFadeColor: { x: number; y: number; z: number; w: number }
   }
@@ -110,6 +112,7 @@ function mountViewport(
     onExportImage: () => capture,
     theme: () => 'dark',
     canvasPixelRatio: () => 1,
+    animationEnabled: () => true,
   }
   render(() => (
     <CanvasViewport {...(props as unknown as CanvasViewportProps)} />
@@ -117,6 +120,7 @@ function mountViewport(
 }
 
 afterEach(() => {
+  setActiveTab('workspace')
   setTrailingCover(0)
   setLeadingCover(0)
   setGlassPanels(true)
@@ -194,6 +198,20 @@ describe.each([
   ['a flat flame', flat],
   ['a 3D flame', deep],
 ])('Flam3, for %s,', (_, flame) => {
+  it('pauses its timeline driver under chess and resumes it on return', () => {
+    mountViewport(flame)
+    expect(seen.flam3?.animationEnabled).toBe(true)
+    setActiveTab('arcade', 'chess')
+    expect(seen.flam3?.animationEnabled).toBe(false)
+    setActiveTab('workspace')
+    expect(seen.flam3?.animationEnabled).toBe(true)
+  })
+
+  it('keeps an exporting timeline enabled while chess is open', () => {
+    setActiveTab('arcade', 'chess')
+    mountViewport(flame, vi.fn<ExportImageType>())
+    expect(seen.flam3?.animationEnabled).toBe(true)
+  })
   it('takes the capture through the cut to the part on show', () => {
     const capture = vi.fn<ExportImageType>()
     mountViewport(flame, capture)

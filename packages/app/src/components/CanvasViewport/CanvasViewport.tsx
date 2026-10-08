@@ -157,6 +157,13 @@ export interface CanvasViewportProps {
 }
 
 export function CanvasViewport(props: CanvasViewportProps) {
+  // Keep the editor's playing state, but pause its frame timer while a world
+  // covers it. Captures still need their timeline while exporting offscreen.
+  const canvasAnimationEnabled = createMemo(
+    () =>
+      props.animationEnabled() &&
+      (workspaceIsVisible() || !!props.onExportImage()),
+  )
   // With the Glass panels setting on, the tablet deck, the desktop sidebar
   // and the rail's sheet float over this canvas and the cameras frame the
   // flame in the part they leave visible. The shift is the view's alone: the
@@ -328,7 +335,7 @@ export function CanvasViewport(props: CanvasViewportProps) {
                     accumulationFraction={exportAccumulationFraction()}
                     adaptiveFilterEnabled={props.adaptiveFilterEnabled()}
                     stochasticFilterEnabled={props.stochasticFilterEnabled()}
-                    animationEnabled={props.animationEnabled()}
+                    animationEnabled={canvasAnimationEnabled()}
                     flameDescriptor={props.effectiveFlame()}
                     renderInterval={props.finalRenderInterval()}
                     onExportImage={framing.exportImage()}
@@ -374,7 +381,7 @@ export function CanvasViewport(props: CanvasViewportProps) {
                   isExportRenderer
                   accumulationFraction={exportAccumulationFraction()}
                   adaptiveFilterEnabled={props.adaptiveFilterEnabled()}
-                  animationEnabled={props.animationEnabled()}
+                  animationEnabled={canvasAnimationEnabled()}
                   flameDescriptor={props.effectiveFlame()}
                   renderInterval={props.finalRenderInterval()}
                   onExportImage={framing.exportImage()}

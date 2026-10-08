@@ -8,7 +8,7 @@ import { GummyMatchSidebar } from './GummyMatchSidebar'
 import { useGummyMatch } from './useGummyMatch'
 import type { ChessPosition } from '@chaos-master/core/chess/chessGame'
 
-export function GummyMatchPage() {
+export function GummyMatchPage(props: { onBackToArcade?: () => void } = {}) {
   const match = useGummyMatch()
   const settings = () => match.appearance().settings
   const theme = () => match.appearance().theme
@@ -18,6 +18,9 @@ export function GummyMatchPage() {
   const [sceneError, setSceneError] = createSignal('')
   const [sceneKey, setSceneKey] = createSignal(1)
   const [dismissedResult, setDismissedResult] = createSignal<ChessPosition>()
+  const [controlsOpen, setControlsOpen] = createSignal(true)
+  let page: HTMLElement | undefined
+  let controlsButton: HTMLButtonElement | undefined
   let resultButton: HTMLButtonElement | undefined
   let heading: HTMLHeadingElement | undefined
   const busy = createMemo(() => !!match.receipt())
@@ -76,7 +79,7 @@ export function GummyMatchPage() {
 
   onMount(() => {
     const title = document.title
-    document.title = 'Play gummy chess | Lumen Apeiron'
+    document.title = 'Chess | Lumen Apeiron Arcade'
     onCleanup(() => {
       document.title = title
     })
@@ -91,17 +94,49 @@ export function GummyMatchPage() {
     resultButton?.focus({ preventScroll: true })
   }
 
+  function showControls(open: boolean) {
+    setControlsOpen(open)
+    if (!window.matchMedia?.('(max-width: 899px)').matches) return
+    if (open)
+      document
+        .getElementById('chess-controls')
+        ?.scrollIntoView({ block: 'start' })
+    else if (page) page.scrollTop = 0
+  }
+
   return (
-    <main class={styles.page}>
+    <main
+      ref={page}
+      class={styles.page}
+      data-controls={controlsOpen() ? '' : undefined}
+    >
       <header class={styles.header}>
-        <a class={styles.brand} href="/">
-          Lumen Apeiron
+        <a
+          class={styles.brand}
+          href="/#arcade"
+          onClick={(event) => {
+            if (props.onBackToArcade) {
+              event.preventDefault()
+              props.onBackToArcade()
+            }
+          }}
+        >
+          <ChevronLeft aria-hidden="true" />
+          <span>Lumen Arcade</span>
         </a>
-        <nav aria-label="Gummy studies">
-          <a href="/gummy?view=cinema">Shot studio</a>
-          <a href="/gummy?view=board">Crash study</a>
-          <a href="/gummy?experiment=mpm">Workbench</a>
-        </nav>
+        <span class={styles.headerTitle}>Chess</span>
+        <button
+          ref={controlsButton}
+          type="button"
+          class={styles.button}
+          aria-expanded={controlsOpen()}
+          aria-controls="chess-controls"
+          onClick={() => {
+            showControls(!controlsOpen())
+          }}
+        >
+          {controlsOpen() ? 'Hide controls' : 'Show controls'}
+        </button>
       </header>
       <div class={styles.layout}>
         <section
@@ -376,7 +411,15 @@ export function GummyMatchPage() {
             </details>
           </div>
         </section>
-        <GummyMatchSidebar match={match} busy={busy()} />
+        <GummyMatchSidebar
+          match={match}
+          busy={busy()}
+          hidden={!controlsOpen()}
+          onClose={() => {
+            showControls(false)
+            controlsButton?.focus({ preventScroll: true })
+          }}
+        />
       </div>
     </main>
   )

@@ -12,6 +12,7 @@ import { useTimeline } from '@/contexts/TimelineContext'
 import { ensure3DAffine, project3D as projectIso } from '@/flame/affine3DView'
 import { randomizeAffineCoef } from '@/flame/randomize'
 import { ArrowRightToBox, BoxArrowRight, GridIcon, ListIcon, Sparkle, } from '@/icons'
+import { workspaceIsVisible } from '@/lib/activeTab'
 import { AutoCanvas } from '@/lib/AutoCanvas'
 import { useCamera } from '@/lib/CameraContext'
 import { useCanvas } from '@/lib/CanvasContext'
@@ -27,6 +28,7 @@ import { createSelectedLastEntries } from '@/utils/selectedLastEntries'
 import { useIntersectionObserver } from '@/utils/useIntersectionObserver'
 import { handleColor } from '../FlameColorEditor/FlameColorEditor'
 import ui from './AffineEditor.module.css'
+import { AXIS_GRAY, BACKGROUND_COLOR, MAJOR_TICK_GRAY, MINOR_TICK_GRAY, } from './affineGridTheme'
 import { AffineListEditor } from './AffineListEditor'
 import listUi from './AffineListEditor.module.css'
 import type { v2f } from 'typegpu/data'
@@ -34,26 +36,6 @@ import type { AffineParams } from '@/flame/affineTranform'
 import type { TransformRecord } from '@/flame/schema/flameSchema'
 import type { ReplayAffineMode, ReplayAffineTab, } from '@/recorder/focusPreparation'
 import type { HistorySetter } from '@/utils/createStoreHistory'
-
-const BACKGROUND_COLOR = {
-  light: 1,
-  dark: 0.02,
-}
-
-const AXIS_GRAY = {
-  light: 0.72,
-  dark: 0.3,
-}
-
-const MAJOR_TICK_GRAY = {
-  light: 0.85,
-  dark: 0.13,
-}
-
-const MINOR_TICK_GRAY = {
-  light: 0.95,
-  dark: 0.05,
-}
 
 const triangle = (x: number) => {
   'use gpu'
@@ -179,7 +161,7 @@ function Grid(props: { isVisible: () => boolean }) {
       },
       () => (props.isVisible() ? 0 : Infinity),
       undefined,
-      () => !gpuReady(),
+      () => !gpuReady() || !workspaceIsVisible(),
     )
   })
   return null

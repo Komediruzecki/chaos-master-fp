@@ -13,6 +13,7 @@ import { createGummyBoardRenderer } from './gummyBoardRenderer'
 import { gummyMatchFloorSquare, gummyMatchMoveFrame, gummyMatchPieces, gummyMatchSquareMarker, } from './gummyMatchPresentation'
 import styles from './GummyMatchScene.module.css'
 import type { ChessMoveReceipt } from '@chaos-master/core/chess/chessGame'
+import type { ParentProps } from 'solid-js'
 import type { GummyOrbit } from '../GummyBear/gummyStudyMath'
 import type { GummyBoardRestMeshPool } from './gummyBoardRestMeshPool'
 import type { GummyMatchSceneProps } from './GummyMatchScene'
@@ -43,16 +44,18 @@ export function GummyMatchBoardScene(props: GummyMatchBoardSceneProps) {
         role="img"
         ariaLabel="Gummy chess board. Tap your piece, then a marked destination. Drag to orbit and use two fingers to pan."
       >
-        <Show when={quality()} keyed>
-          {(resolved) => (
-            <NativeMatchScene
-              {...props}
-              renderQuality={resolved}
-              visible={visible()}
-              onMarkers={setMarkers}
-            />
-          )}
-        </Show>
+        <MatchCanvasLifetime>
+          <Show when={quality()} keyed>
+            {(resolved) => (
+              <NativeMatchScene
+                {...props}
+                renderQuality={resolved}
+                visible={visible()}
+                onMarkers={setMarkers}
+              />
+            )}
+          </Show>
+        </MatchCanvasLifetime>
       </AutoCanvas>
       <div class={styles.destinations}>
         <For each={markers()}>
@@ -74,6 +77,15 @@ export function GummyMatchBoardScene(props: GummyMatchBoardSceneProps) {
       </div>
     </div>
   )
+}
+
+/** Release presentation storage on leaving chess, not on a quality-only renderer swap. */
+function MatchCanvasLifetime(props: ParentProps) {
+  const { context } = useCanvas()
+  onCleanup(() => {
+    context.unconfigure()
+  })
+  return <>{props.children}</>
 }
 
 function NativeMatchScene(

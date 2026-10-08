@@ -336,7 +336,7 @@ export function Wrappers() {
   createBackLayer(
     () => activeTab() === 'arcade',
     () => {
-      setActiveTab('workspace')
+      setActiveTab(arcadeMode() === 'chess' ? 'arcade' : 'workspace')
     },
     'arcade',
   )

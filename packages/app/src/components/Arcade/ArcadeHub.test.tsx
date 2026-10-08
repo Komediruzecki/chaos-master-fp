@@ -1,9 +1,55 @@
-import { cleanup, fireEvent, render, screen } from '@solidjs/testing-library'
+import { cleanup, fireEvent, render, screen, waitFor, } from '@solidjs/testing-library'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { setActiveTab } from '@/lib/activeTab'
 import { ArcadeHub } from './ArcadeHub'
 
+vi.mock('@/pages/GummyBoard/GummyMatchPage', () => ({
+  GummyMatchPage: (props: { onBackToArcade: () => void }) => (
+    <section aria-label="Chess world">
+      <button onClick={props.onBackToArcade}>Back to Arcade</button>
+    </section>
+  ),
+}))
+
 describe('the Arcade hub', () => {
-  afterEach(cleanup)
+  afterEach(() => {
+    cleanup()
+    setActiveTab('workspace')
+  })
+
+  it('opens chess without an agent connection and returns to the hub', async () => {
+    setActiveTab('arcade')
+    render(() => <ArcadeHub onBackToEditor={vi.fn()} />)
+    fireEvent.click(screen.getByTestId('arcade-chess'))
+    await waitFor(() => {
+      expect(screen.getByRole('region', { name: 'Chess world' })).toBeTruthy()
+    })
+    expect(window.location.hash).toBe('#arcade=chess')
+    expect(screen.queryByRole('heading', { name: 'Lumen Arcade' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Arcade' }))
+    expect(window.location.hash).toBe('#arcade')
+    expect(screen.getByRole('heading', { name: 'Lumen Arcade' })).toBeTruthy()
+    expect(screen.queryByRole('region', { name: 'Chess world' })).toBeNull()
+  })
+
+  it('opens a direct chess fragment without mounting the mode panel', async () => {
+    setActiveTab('arcade', 'chess')
+    render(() => <ArcadeHub onBackToEditor={vi.fn()} />)
+    await waitFor(() => {
+      expect(screen.getByRole('region', { name: 'Chess world' })).toBeTruthy()
+    })
+    expect(screen.queryByTestId('arcade-card')).toBeNull()
+    const consumed = new KeyboardEvent('keydown', {
+      key: 'Escape',
+      bubbles: true,
+      cancelable: true,
+    })
+    consumed.preventDefault()
+    document.dispatchEvent(consumed)
+    expect(window.location.hash).toBe('#arcade=chess')
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(window.location.hash).toBe('#arcade')
+  })
 
   it('offers a way out that does not need scrolling', () => {
     // The footer button sits below the whole card grid. Escape covers a

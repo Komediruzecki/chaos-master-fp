@@ -41,6 +41,7 @@ function hover(intent: BlendIntent) {
     // viewport mounts.
     exportDimensions: () => undefined,
     onExportImage: () => undefined,
+    animationEnabled: () => false,
     theme: () => 'dark',
   }
   render(() => (

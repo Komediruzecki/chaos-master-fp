@@ -1,6 +1,7 @@
 /** Legal match controls retain one authoritative move while animation, history and cinema change views. */
 import { cleanup, fireEvent, render, screen, waitFor, within, } from '@solidjs/testing-library'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { popBack, pushBackHandler } from '@/lib/backStack'
 import { GummyMatchPage } from './GummyMatchPage'
 import { GUMMY_MATCH_CINEMA_KEY, GUMMY_MATCH_SESSION_KEY, loadGummyMatchSession, } from './gummyMatchSession'
 import type { GummyMatchSceneProps } from '@/components/GummyBoard/GummyMatchScene'
@@ -57,6 +58,7 @@ function skip() {
 }
 
 function importPgn(text: string) {
+  fireEvent.click(screen.getByRole('tab', { name: 'Game & moves' }))
   const details = screen.getByText('Import or copy PGN').closest('details')!
   details.open = true
   fireEvent(details, new Event('toggle'))
@@ -67,6 +69,92 @@ function importPgn(text: string) {
 }
 
 describe('GummyMatchPage', () => {
+  it('applies collection cards without changing the game or its material tuning and restores the choice', () => {
+    const view = render(() => <GummyMatchPage />)
+    play('e2', 'e4')
+    skip()
+    const details = screen.getByText('Board and material').closest('details')!
+    details.open = true
+    fireEvent(details, new Event('toggle'))
+    fireEvent.click(screen.getByRole('button', { name: 'Presets' }))
+    fireEvent.click(screen.getByRole('button', { name: 'High: mushy' }))
+    const previousSettings = scene().settings
+    const previousPosition = scene().position
+    fireEvent.click(screen.getByRole('button', { name: 'Lagoon collection' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Glass board' }))
+    expect(scene().settings).toEqual({ ...previousSettings, palette: 'lagoon' })
+    expect(scene().settings.tuning).toBe(previousSettings.tuning)
+    expect(scene().position).toBe(previousPosition)
+    expect(scene().receipt).toBeUndefined()
+    expect(scene().theme).toBe('glass')
+    expect(
+      screen
+        .getByRole('button', { name: 'Lagoon collection' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true')
+    expect(
+      screen
+        .getByRole('button', { name: 'Glass board' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true')
+    view.unmount()
+    render(() => <GummyMatchPage />)
+    expect(scene().settings).toEqual({ ...previousSettings, palette: 'lagoon' })
+    expect(scene().theme).toBe('glass')
+    expect(scene().position.fen).toBe(previousPosition.fen)
+    expect(screen.getByText('Move 1 of 1')).toBeTruthy()
+  })
+
+  it('locks look cards during a move and keeps the same scene across sidebar tabs and hiding', () => {
+    render(() => <GummyMatchPage />)
+    const initialScene = scene()
+    play('e2', 'e4')
+    const saved = sessionStorage.getItem(GUMMY_MATCH_SESSION_KEY)
+    const collection = screen.getByRole<HTMLButtonElement>('button', {
+      name: 'Candy collection',
+    })
+    expect(collection.disabled).toBe(true)
+    fireEvent.click(collection)
+    expect(sessionStorage.getItem(GUMMY_MATCH_SESSION_KEY)).toBe(saved)
+    skip()
+    expect(collection.disabled).toBe(false)
+    fireEvent.keyDown(screen.getByRole('tab', { name: 'Pieces & board' }), {
+      key: 'ArrowRight',
+    })
+    expect(
+      screen
+        .getByRole('tab', { name: 'Game & moves' })
+        .getAttribute('aria-selected'),
+    ).toBe('true')
+    expect(screen.getByRole('table', { name: 'Move history' })).toBeTruthy()
+    fireEvent.click(
+      screen.getAllByRole('button', { name: 'Hide controls' })[0]!,
+    )
+    expect(
+      screen.queryByRole('complementary', { name: 'Match controls' }),
+    ).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Show controls' }))
+    expect(
+      screen.getByRole('complementary', { name: 'Match controls' }),
+    ).toBeTruthy()
+    expect(
+      screen
+        .getByRole('tab', { name: 'Game & moves' })
+        .getAttribute('aria-selected'),
+    ).toBe('true')
+    expect(scene()).toBe(initialScene)
+    expect(screen.getByText('Move 1 of 1')).toBeTruthy()
+  })
+
+  it('returns through the embedded Arcade callback and exposes a standalone destination', () => {
+    const back = vi.fn()
+    render(() => <GummyMatchPage onBackToArcade={back} />)
+    const link = screen.getByRole('link', { name: 'Lumen Arcade' })
+    expect(link.getAttribute('href')).toBe('/#arcade')
+    expect(fireEvent.click(link)).toBe(false)
+    expect(back).toHaveBeenCalledOnce()
+  })
+
   it('restores the material, board finish, quality and scale with the reviewed game', () => {
     const view = render(() => <GummyMatchPage />)
     play('e2', 'e4')
@@ -214,6 +302,7 @@ describe('GummyMatchPage', () => {
 
   it('locks material and new-game controls during animation while leaving Skip available', () => {
     render(() => <GummyMatchPage />)
+    fireEvent.click(screen.getByRole('tab', { name: 'Game & moves' }))
     play('e2', 'e4')
     expect(
       screen.getByLabelText('Render quality').closest('fieldset')?.disabled,
@@ -259,6 +348,7 @@ describe('GummyMatchPage', () => {
     expect(
       scene().position.pieces.find((piece) => piece.square === 'd5')?.color,
     ).toBe('w')
+    fireEvent.click(screen.getByRole('tab', { name: 'Game & moves' }))
     expect(screen.getByRole('button', { name: 'Qxd5' })).toBeTruthy()
   })
 
@@ -272,6 +362,24 @@ describe('GummyMatchPage', () => {
     ).toBe(true)
     play('e2', 'e4')
     expect(scene().receipt).toBeUndefined()
+  })
+
+  it('dismisses the result before the Arcade world on native back', () => {
+    const leaveWorld = vi.fn()
+    const removeWorld = pushBackHandler(leaveWorld, 'arcade-chess')
+    try {
+      render(() => <GummyMatchPage />)
+      importPgn('1. f3 e5 2. g4 Qh4# 0-1')
+      fireEvent.click(screen.getByRole('button', { name: 'Latest position' }))
+      expect(screen.getByRole('dialog', { name: 'Black wins' })).toBeTruthy()
+      expect(popBack()).toBe(true)
+      expect(screen.queryByRole('dialog')).toBeNull()
+      expect(leaveWorld).not.toHaveBeenCalled()
+      expect(popBack()).toBe(true)
+      expect(leaveWorld).toHaveBeenCalledOnce()
+    } finally {
+      removeWorld()
+    }
   })
 
   it('waits for a mating capture to finish before showing the result over the board', () => {

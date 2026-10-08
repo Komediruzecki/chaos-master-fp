@@ -11,6 +11,7 @@ import type { ParentProps } from 'solid-js'
 import type { GummyOrbit } from '@/components/GummyBear/gummyStudyMath'
 
 const fixture = vi.hoisted(() => ({
+  unconfigure: vi.fn(),
   canvas: undefined as HTMLCanvasElement | undefined,
   device: undefined as EventTarget | undefined,
   renderers: [] as {
@@ -47,7 +48,7 @@ vi.mock('@/lib/AutoCanvas', () => ({
 vi.mock('@/lib/CanvasContext', () => ({
   useCanvas: () => ({
     canvas: fixture.canvas,
-    context: {},
+    context: { unconfigure: fixture.unconfigure },
     canvasFormat: 'bgra8unorm',
     canvasSize: () => ({ width: 800, height: 600 }),
   }),
@@ -85,6 +86,7 @@ function mount() {
     pan: [0.3, 0.1, -0.4],
   }
   const [locked, setLocked] = createSignal(false)
+  const [quality, setQuality] = createSignal<'high' | 'tablet'>('high')
   const ready = vi.fn()
   const restMeshPool = createGummyBoardRestMeshPool()
   const view = render(() => (
@@ -95,7 +97,7 @@ function mount() {
       restMeshPool={restMeshPool}
       legalSquares={[]}
       settings={GUMMY_BUILTIN_PRESETS[0]!.preset.settings}
-      quality="high"
+      quality={quality()}
       scale={0.9}
       theme="glass"
       onSquare={() => {}}
@@ -104,7 +106,7 @@ function mount() {
       onReady={ready}
     />
   ))
-  return { view, orbit, setLocked, ready }
+  return { view, orbit, setLocked, setQuality, ready }
 }
 
 function wheel(deltaY: number) {
@@ -127,6 +129,7 @@ function pointer(type: string, id: number, x: number) {
 }
 
 beforeEach(() => {
+  fixture.unconfigure.mockClear()
   fixture.device = new EventTarget()
   fixture.renderers = []
   frames = new Map()
@@ -143,6 +146,20 @@ afterEach(() => {
 })
 
 describe('persistent match board camera input', () => {
+  it('keeps presentation configured through quality changes and releases it when leaving chess', async () => {
+    const app = mount()
+    await frame()
+    app.setQuality('tablet')
+    await frame()
+    expect(fixture.renderers).toHaveLength(2)
+    expect(fixture.renderers[0]!.destroy).toHaveBeenCalledOnce()
+    expect(fixture.unconfigure).not.toHaveBeenCalled()
+    app.view.unmount()
+    expect(fixture.renderers[1]!.destroy).toHaveBeenCalledOnce()
+    expect(fixture.unconfigure).toHaveBeenCalledOnce()
+    expect(frames.size).toBe(0)
+  })
+
   it('does not redraw an idle board but redraws a camera change once', async () => {
     mount()
     await frame()

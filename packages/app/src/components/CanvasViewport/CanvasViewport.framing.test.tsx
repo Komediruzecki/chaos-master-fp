@@ -75,6 +75,7 @@ function mountViewport(
     blendIntent: () => 'blend',
     exportDimensions,
     onExportImage: () => undefined,
+    animationEnabled: () => false,
     theme: () => 'dark',
   }
   const { container } = render(() => (

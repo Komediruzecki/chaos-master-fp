@@ -250,7 +250,7 @@ file instead of rediscovering the architecture every session.
 | [useWorkspaceBlendPick.ts](../../packages/app/src/hooks/useWorkspaceBlendPick.ts) | The partner gallery's hover preview, and the pick that commits a partner. |
 | [useWorkspaceCamera.ts](../../packages/app/src/hooks/useWorkspaceCamera.ts) | _(no header comment)_ |
 | [useWorkspaceReplay.ts](../../packages/app/src/hooks/useWorkspaceReplay.ts) | _(no header comment)_ |
-| [useWorkspaceShortcuts.ts](../../packages/app/src/hooks/useWorkspaceShortcuts.ts) | _(no header comment)_ |
+| [useWorkspaceShortcuts.ts](../../packages/app/src/hooks/useWorkspaceShortcuts.ts) | Editor shortcuts act only while the workspace is visible; the shared theme chord stays global. |
 | [useWorkspaceTimelineBinding.ts](../../packages/app/src/hooks/useWorkspaceTimelineBinding.ts) | _(no header comment)_ |
 <!-- prettier-ignore-end -->
 

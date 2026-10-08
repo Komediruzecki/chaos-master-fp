@@ -1,10 +1,10 @@
 {
   "title": "Gummy and fractal chess: approved playable milestone",
   "reviewed_local_date": "2026-10-08",
-  "status": "Approved P0 → G1 → G2 → G5 sequence published on the working branch; the user completed a game through checkmate. Result presentation, capture readiness and bounded resource use are verified. A measured tablet pass and Arcade entry are next.",
+  "status": "Local chess and the checkmate overlay are user-tested. Embedded Arcade Chess and its visual selection sidebar are implemented and verified in native Chromium. Firefox production layout checks pass; physical-device checks remain separate. Glass board alignment, capture mechanics, authored collections and private friend sessions remain planned followups.",
   "arcade_integration_plan": "docs/gummy-chess-arcade-plan.md",
   "objective": "Turn the published gummy chess showcase into a playable local chess experience, retaining the creator and cinema paths.",
-  "horizon": "Approved P0/G1/G2/G5 delivery, with remaining candidates visible for later prioritization",
+  "horizon": "Arcade integration now, then board and capture polish, reusable collections and private friend sessions; physical tablet profiling remains parallel.",
   "master_plan": "assets/references/chess-fractal-plan.json",
   "master_plan_reconciliation": "The 2026-09-30 concept status and initial gap list are historical. Six gummy roles, full board, capture rendering, repeatable cinema delivery, local legal chess and PGN/Cinema handoff now exist. Editable IFS role collections remain unfinished.",
   "completed": [
@@ -13,13 +13,18 @@
     "MPM capture presentation with attacker retained on the destination",
     "Portable shot recipes, fixed-time capture, native full-resolution export",
     "24-second film and three shorts published by the user",
-    "Final films backed up in Proton archive and tweet folder"
+    "Final films backed up in Proton archive and tweet folder",
+    "Local legal chess with result overlay, verified by the user through checkmate",
+    "Capture readiness fixed and seven repeated captures verified with stable live GPU buffers/textures",
+    "Embedded Arcade Chess with large piece-palette and board cards captured from the actual WebGPU renderer"
   ],
   "preservation": {
     "media": "Current remote metadata verified; 369-file archive had a complete zero-difference download check on 2026-10-06. All four final films also exist under socials/personal/tweet.",
-    "code": "Cinema checkpoint c4a08625, local-match milestone 30edbcd7 and retained-board transition f8ce5d62 are published on origin/feat/gummy-fracture. The remote tip was verified at f8ce5d62 before the 2026-10-08 fixes; Git identifies subsequent published revisions.",
+    "code": "The local-match and cinema milestones were pushed to origin/feat/gummy-fracture. On 2026-10-08 the working branch rebased cleanly onto fork origin/main at 9d8a0c7c; the checkpoint hashes below record their original pre-rebase revisions.",
     "audit_receipt": "/home/maff/agent-out/chaos-master-fp/2026-10-07/remote-audit/audit-174034.json",
-    "checkpoint_commits": ["c4a08625", "0c8c8673", "30edbcd7", "f8ce5d62"]
+    "checkpoint_commits": ["c4a08625", "0c8c8673", "30edbcd7", "f8ce5d62"],
+    "rebase_base": "9d8a0c7c",
+    "rebase_scope": "Eight feature commits replayed cleanly; 127 commits behind fork main became zero. Future upstream merges still require a fresh fetch and comparison."
   },
   "effort_rubric": {
     "S": "Contained established path plus focused verification",
@@ -33,14 +38,14 @@
     "effort": "S and M go to lower relative effort; L and XL to higher. Boundary estimates keep their range visible and use the higher band conservatively."
   },
   "matrix": {
-    "quick_wins": ["G1", "G3"],
-    "strategic_investments": ["G2", "G7", "G8"],
+    "quick_wins": ["G1", "G3", "G15", "G16", "G17"],
+    "strategic_investments": ["G2", "G7", "G8", "G18"],
     "smaller_extras": ["G4", "G5", "G9", "G10"],
     "defer_or_scope_first": ["G6", "G11", "G12", "G13", "G14"]
   },
-  "recommended_order": ["P0", "G1", "G2", "G5"],
-  "parallel_discovery": "A bounded G3 tablet measurement pass can proceed alongside the rules seam if the physical device is available. It does not justify speculative solver rewrites.",
-  "first_milestone": "Verified: play legal moves, finish a gummy capture, replay/skip it, undo it, and return from PGN/Cinema with the same game and appearance settings. User-tested through checkmate.",
+  "recommended_order": ["G15", "G16", "G17", "G8", "G18"],
+  "parallel_discovery": "G3 physical tablet measurement proceeds alongside Arcade work when the target device is available. It is not a prerequisite for linking the already playable local match, and does not justify speculative solver rewrites.",
+  "first_milestone": "Enter Chess from Arcade, choose a piece-set look and board from large visual cards, play the existing local match, and return with editor and match state preserved.",
   "alternate_objective": {
     "goal": "Produce more promotional shots with less manual assembly",
     "prioritize": ["G4", "G6", "G5"],
@@ -239,16 +244,16 @@
     {
       "id": "G12",
       "title": "Online ranked multiplayer",
-      "current_state": "Local match implemented and verified; online networking remains unimplemented.",
+      "current_state": "Local play is complete; private invitation sessions are planned separately as G18. Ranked competition remains deferred.",
       "impact": "Low",
       "effort": "XL",
       "confidence": "Low",
       "outcome": "Support remote competitive play after the local state contract is stable.",
-      "dependencies": ["G2"],
+      "dependencies": ["G2", "G18"],
       "acceptance": [
         "Scope networking, recovery, authoritative state and service ownership separately."
       ],
-      "uncertainty": "Adds infrastructure and synchronization before the core local game has been accepted."
+      "uncertainty": "Ranking, accounts, clocks, anti-abuse and matchmaking add a separate competitive-service scope beyond private friend invitations."
     },
     {
       "id": "G13",
@@ -258,12 +263,12 @@
       "effort": "L",
       "confidence": "Medium–low",
       "outcome": "Improve coloured transmission and light occlusion on one frozen glass-board shot.",
-      "dependencies": [],
+      "dependencies": ["G16"],
       "acceptance": [
         "Compare thickness and multiple-interval treatment under fixed exposure and geometry.",
         "Measure the added live rendering cost."
       ],
-      "uncertainty": "Start with bounded optical improvements; a full path tracer is a separate research/production choice."
+      "uncertainty": "First repair the physical glass playing surface in G16. Then compare bounded optical improvements; a full path tracer remains separate."
     },
     {
       "id": "G14",
@@ -279,6 +284,78 @@
         "Keep recursive chunks readable through a repeatable impact."
       ],
       "uncertainty": "IFS addresses alone are not physical bonds. This is separate from gummy MPM and should remain an explicit experiment."
+    },
+    {
+      "id": "G15",
+      "title": "Arcade Chess entry and visual setup sidebar",
+      "current_state": "Implemented and Chromium-verified: ArcadeHub lazily mounts ChessWorld at #arcade=chess, with an explicit return callback, scrolling glass sidebar, Marble/Lagoon/Candy palette cards and Classic/Glass/Lava board cards. Three exit/re-entry cycles retained the move and saved looks; Firefox production layouts pass at desktop and phone sizes; physical devices remain untested.",
+      "impact": "High",
+      "effort": "M",
+      "confidence": "High",
+      "outcome": "Enter Chess without an agent connection and choose its look using a full board view with large piece-set and board cards.",
+      "dependencies": ["G2"],
+      "acceptance": [
+        "Arcade opens Chess directly and provides a clear return path while preserving the editor document and current match.",
+        "Sidebar follows the deep-zoom glass-panel treatment, with independent scrolling and reachable desktop/tablet/phone controls.",
+        "Large app-rendered piece-set and board cards show explicit selected states and apply the chosen look; distinguish palette looks from new geometry.",
+        "Card previews do not mount hidden simulations; navigation keeps active GPU work and resource ownership bounded."
+      ],
+      "uncertainty": "All three palette looks share the current six gummy moulds. Editor shortcuts and GPU/animation loops are gated while explicit exports continue. Native Chromium observed stable resources and zero idle GPU submissions; this is not a total-VRAM or physical-tablet performance measurement. Friend sessions and authored fractal shapes remain followups."
+    },
+    {
+      "id": "G16",
+      "title": "Aligned inset glass chess board",
+      "current_state": "User reports the playing squares appear below and offset from the glass. Planned after Arcade entry; exact visual cause is not yet reproduced.",
+      "impact": "High",
+      "effort": "M",
+      "confidence": "Medium",
+      "outcome": "Render one glass chess board whose clear and tinted or frosted insets align with picking, piece placement and highlights.",
+      "dependencies": ["G15"],
+      "acceptance": [
+        "Define square size, origin, parity, bounds and contact height once for rendering and picking.",
+        "All 64 playable insets share the top contact plane; lower floor is a caustic receiver without a second playing grid.",
+        "Top and grazing views, corner selections, orbit/zoom and capture framing show aligned squares, markers and piece bases.",
+        "Compare Classic and Lava and measure the glass pass cost to catch regressions."
+      ],
+      "uncertainty": "Refraction, grid placement and highlight height must be isolated under a fixed camera before implementation."
+    },
+    {
+      "id": "G17",
+      "title": "Varied capture mechanics with seeded selection",
+      "current_state": "Current Cinema recipes store shear timing and sweep motion. Three distinct bounded mechanics are planned.",
+      "impact": "High",
+      "effort": "M",
+      "confidence": "Medium",
+      "outcome": "Alternate press-and-settle, shoulder-sweep and rock-and-shear captures while preserving the destination square and replayable shots.",
+      "dependencies": ["G1", "G2"],
+      "acceptance": [
+        "Version each mechanic and validate its motion limits, role bounds and material compatibility.",
+        "Choose once per capture with a seed, avoiding immediate repeats where compatible alternatives exist; persist the resolved motion alongside the chess receipt.",
+        "Replay, reload, export and future peers reuse the recorded choice; Cinema retains a fixed-mechanic override.",
+        "Collider and rendered transforms agree, including angular contact; full play, Skip, failure and Undo preserve the legal position.",
+        "Verify early smear/tear, neighbouring piece clearance and bounded frame/memory cost for matched material presets."
+      ],
+      "uncertainty": "A seed reproduces choreography, not bit-identical particle states across GPUs. Rotational contact may require a separate collider extension before rock-and-shear can ship."
+    },
+    {
+      "id": "G18",
+      "title": "Private share-link friend sessions",
+      "current_state": "Requested as a later phase. Current Worker has no chess room or WebSocket authority; architecture planned only.",
+      "impact": "High",
+      "effort": "L",
+      "confidence": "Medium",
+      "outcome": "After choosing pieces and a board, create an invitation and play a private two-seat match with another person.",
+      "dependencies": ["G1", "G2", "G15"],
+      "acceptance": [
+        "A server-owned room validates seat ownership and legal moves through the shared pure chess rules; hosting and deployment scope are reviewed separately.",
+        "Unique command IDs and expected revisions make duplicate/stale submissions safe; accepted receipts form an ordered move log.",
+        "Expiring invitations are separate from per-seat resume credentials; room IDs alone cannot authorize moves.",
+        "Pin board/collection manifests and capture mechanic/version/seed; physics, camera and recording remain local with independent quality tiers.",
+        "Reconnect restores a bounded snapshot and subsequent receipts without repeating a move; slow rendering cannot block authoritative state.",
+        "Two network clients pass illegal/duplicate/concurrent moves, disconnect/rejoin, reload, expired invitation, seat impersonation and final-result agreement.",
+        "First release is private and untimed, with explicit resign/draw/reconnect behavior and room lifetime/resource budgets."
+      ],
+      "uncertainty": "Proposed Cloudflare room authority needs later platform/cost validation. Accounts, ranking, clocks, spectators and matchmaking are beyond this first scope."
     }
   ],
   "evidence": [
@@ -292,7 +369,16 @@
     "packages/core/src/chess/chessGame.test.ts",
     "packages/app/src/pages/GummyBoard/GummyMatchPage.tsx",
     "packages/app/src/pages/GummyBoard/gummyMatchSession.ts",
-    "packages/app/src/components/GummyBoard/GummyMatchScene.tsx"
+    "packages/app/src/components/GummyBoard/GummyMatchScene.tsx",
+    "docs/gummy-chess-arcade-plan.md",
+    "packages/app/src/components/GummyBoard/gummyBoardStageShaders.ts",
+    "packages/app/src/components/GummyBoard/gummyBoardShots.ts",
+    "packages/app/src/pages/GummyBoard/gummyCinemaRecipe.ts",
+    "packages/app/src/worker/index.ts",
+    "packages/app/wrangler.jsonc",
+    "packages/app/src/components/Arcade/ArcadeHub.tsx",
+    "packages/app/src/pages/GummyBoard/GummyMatchLookCards.tsx",
+    "packages/app/public/assets/chess/manifest.json"
   ],
   "method_sources": [
     "https://www.nngroup.com/articles/prioritization-methods/",
@@ -302,14 +388,19 @@
   "implementation_in_review": [
     "G1: pure chess.js 1.4.0 adapter, immutable move receipts, stable piece IDs and complete FEN",
     "G2: local two-player match at /gummy?view=match, legal selection, special moves, skip/replay/undo and tab-session recovery",
-    "G5: bounded mainline PGN import/export, history stepping and ordinary capture handoff to Cinema"
+    "G5: bounded mainline PGN import/export, history stepping and ordinary capture handoff to Cinema",
+    "G15: embedded ChessWorld, glass sidebar and real-rendered static preview cards complete; Chromium and focused checks pass, Firefox production layouts pass, physical devices untested"
   ],
   "verification": {
     "match_polish_2026_10_08": "61 focused app tests and pnpm check pass. Native GPU checks verified seven full capture/replay cycles with stable live resources and zero idle GPU submissions, real frames before cinematic visibility, both Skip paths, and the result overlay at four touch-capable viewport sizes. Evidence: /home/maff/agent-out/chaos-master-fp/2026-10-08/match-audit/.",
     "core": "35 focused chess adapter tests, core TypeScript and scoped ESLint passed.",
     "integration": "105 focused app tests pass. Native Chromium on AMD RDNA-4 verified 32-piece idle rendering, touch moves, full capture completion, replay/skip/undo, PGN/Cinema reload and return, and reachable controls at 1440, 834 and 390px widths. No runtime/GPU errors or Solid owner warnings.",
     "physical_devices": "New playable match has not yet been verified on physical iOS or target tablets; earlier workbench results do not establish this.",
-    "remote_scope": "The working branch was confirmed at f8ce5d62 on origin on 2026-10-08, including the playable match and retained-board capture transition. No production deployment or merge is implied.",
-    "hardware_receipt": "/home/maff/agent-out/chaos-master-fp/2026-10-07/match-verification/report.json"
-  }
+    "remote_scope": "Pre-rebase working branch was pushed through 09c9980b. The clean local rebase onto fork main is recorded separately; publication of rewritten history and this integration must be verified at handoff. No production deployment or merge is implied.",
+    "hardware_receipt": "/home/maff/agent-out/chaos-master-fp/2026-10-07/match-verification/report.json",
+    "rebase_2026_10_08": "Clean rebase onto origin/main 9d8a0c7c: eight feature commits replayed with no merge conflicts. Post-rebase focused checks and production build passed; existing code-health metric debt remains unchanged.",
+    "arcade_integration_2026_10_08": "124 distinct focused tests passed across shortcuts, canvases, navigation, match and presets; typecheck passed. Initial pnpm check stopped at five test-style lint errors, fixed with scoped ESLint; remaining formatting and validate-wgsl passed. Production build passed. Native headed AMD RDNA-4 Chromium retained saved looks and e2-e4 through three exits/re-entries, with zero idle GPU submissions over 1.2s and live tracked resources settled at 24 after each exit (startup 80 before lazy cleanup). No runtime/GPU errors or owner warnings. Actual CDP touch selections passed at 834x1112, 390x844 and 844x390 plus desktop 1440; production Chromium screenshots inspected at four sizes. Firefox production layout checks at 1440x1050 and 390x844 passed selected/rendered cards, loaded images, no overflow, standalone host and zero page errors; screenshots inspected. Firefox is layout evidence, not physical-GPU proof. Receipts: production.json and production-firefox.json. Physical iOS/tablet UI untested. Evidence: /home/maff/agent-out/chaos-master-fp/2026-10-08/arcade-chess/.",
+    "metrics_2026_10_08": "Existing debt unchanged versus pre-Arcade rebased HEAD: 86 files above 500 lines, 40 above 800 and eight file-cap failures. No baseline relaxed. Affine-grid theme extracted and its cap lowered from 1172 to 1154."
+  },
+  "completed_sequence": ["P0", "G1", "G2", "G5"]
 }

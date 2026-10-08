@@ -11,10 +11,10 @@
   appearance: none;
   min-height: 44px;
   padding: 10px 12px;
-  border: 1px solid #c8d0ce;
+  border: 1px solid var(--gummy-preset-edge, #c8d0ce);
   border-radius: 7px;
-  background: #f6f5ef;
-  color: #4c6572;
+  background: var(--gummy-preset-fill, #f6f5ef);
+  color: var(--gummy-preset-ink, #4c6572);
   font: inherit;
   font-size: 12px;
   line-height: 1.4;
@@ -64,30 +64,30 @@
   line-height: 1.5;
 }
 .primary {
-  background: #296785;
-  color: #fff;
-  border-color: #296785;
+  background: var(--gummy-preset-primary, #296785);
+  color: var(--gummy-preset-primary-ink, #fff);
+  border-color: var(--gummy-preset-primary, #296785);
   margin: 2px 0 6px;
 }
 .primary:hover {
-  background: #205874;
+  background: var(--gummy-preset-primary, #205874);
 }
 .toggle:hover,
 .button:hover,
 .delete:hover {
-  background: #e4e9e5;
+  background: var(--gummy-preset-hover, #e4e9e5);
 }
 .delete {
   justify-self: start;
   border-color: transparent;
   background: transparent;
-  color: #91594d;
+  color: var(--gummy-preset-muted, #91594d);
 }
 .label {
   margin: 0;
   display: grid;
   gap: 6px;
-  color: #50656d;
+  color: var(--gummy-preset-muted, #50656d);
   font-size: 12px;
   font-weight: 600;
 }
@@ -98,10 +98,10 @@
   min-width: 0;
   min-height: 44px;
   padding: 10px;
-  border: 1px solid #b8c5c5;
+  border: 1px solid var(--gummy-preset-edge, #b8c5c5);
   border-radius: 6px;
-  background: #fffdf7;
-  color: #354e59;
+  background: var(--gummy-preset-fill, #fffdf7);
+  color: var(--gummy-preset-ink, #354e59);
   font: inherit;
   font-size: 16px;
 }
@@ -117,7 +117,7 @@
 .help,
 .status {
   margin: 0;
-  color: #68777c;
+  color: var(--gummy-preset-muted, #68777c);
   font-size: 11px;
   line-height: 1.6;
   overflow-wrap: anywhere;
@@ -128,7 +128,7 @@
 .presets button:focus-visible,
 .input:focus-visible,
 .json:focus-visible {
-  outline: 2px solid #2d799b;
+  outline: 2px solid var(--gummy-preset-focus, #2d799b);
   outline-offset: 3px;
 }
 .presets button:disabled {

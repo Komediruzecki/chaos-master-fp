@@ -1,0 +1,40 @@
+{
+  "kind": "renderer-captured-chess-catalog",
+  "version": 1,
+  "renderer": "components/GummyBoard/gummyBoardRenderer.ts",
+  "artStyle": "sculpted",
+  "restSpacing": 0.065,
+  "lightResolution": 1024,
+  "width": 960,
+  "height": 600,
+  "collection": {
+    "palettes": ["marble", "lagoon", "candy"],
+    "roles": ["pawn", "rook", "knight", "bishop", "queen", "king"],
+    "positions": [
+      [-2.1, 0, 1.45],
+      [0.0, 0, 1.45],
+      [2.1, 0, 1.45],
+      [-2.1, 0, -1.35],
+      [0.0, 0, -1.35],
+      [2.1, 0, -1.35]
+    ],
+    "scale": 0.94,
+    "eye": [3.8, 4.7, 9.1],
+    "target": [0, 1.4, 0],
+    "boardTheme": "classic"
+  },
+  "board": {
+    "themes": ["classic", "glass", "lava"],
+    "position": "starting",
+    "tileSize": 1.6,
+    "scale": 0.9,
+    "palettes": ["marble", "blue"],
+    "orbit": {
+      "theta": 0.38,
+      "phi": 0.67,
+      "zoom": 0.96
+    }
+  },
+  "caustics": true,
+  "provenance": "Captured from the application WebGPU renderer. These are runtime materials and shapes, not concept images."
+}
