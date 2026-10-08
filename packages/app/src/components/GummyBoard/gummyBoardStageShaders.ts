@@ -1,11 +1,14 @@
 /** Beveled glass transport and a recessed molten/crust material on the shared chess slab. */
 import { hash, perlin2d, rotl, scrambleSeed2, u32To01F32 } from '@typegpu/noise'
 import { d, std, tgpu } from 'typegpu'
-import { gummyEnvironment, gummyFresnel, gummyTransmission, } from '../GummyBear/gummyMaterial'
+import { gummyEnvironment, gummyFresnel } from '../GummyBear/gummyMaterial'
 import { gummyBoxHit } from '../GummyBear/gummyPress'
 import { gummyCameraLayout, gummyFloorLayout } from '../GummyBear/gummyShaders'
-import { BOARD_TILE_SIZE } from '../PawnBoard/pawnBoardMath'
+import { GUMMY_BOARD_GRID, GUMMY_BOARD_SLAB } from './gummyBoardGrid'
+import { gummyBoardGlassInset, gummyBoardGlassTransmission, gummyBoardGridContains, gummyBoardSquareParity, } from './gummyBoardGridShaders'
 import { GUMMY_BOARD_GLASS_FLOOR, GUMMY_BOARD_GLASS_LIGHT_GRID, GUMMY_BOARD_LIGHT_EXTENT, GUMMY_BOARD_RECEIVER_EXTENT, } from './gummyBoardThemes'
+
+export { gummyBoardSquareParity } from './gummyBoardGridShaders'
 
 export const GummyBoardStage = d.struct({
   /** World x/z centre, radius and visibility. */
@@ -21,15 +24,6 @@ export const gummyBoardReceiverLayout = tgpu.bindGroupLayout({
   sampler: { sampler: 'filtering' },
 })
 
-/** Board edges lie on tile boundaries; the same parity applies to every material. */
-export const gummyBoardSquareParity = tgpu.fn(
-  [d.vec2f],
-  d.f32,
-)((point) => {
-  'use gpu'
-  const square = std.floor(std.add(std.div(point, BOARD_TILE_SIZE), d.vec2f(4)))
-  return std.fract((square.x + square.y) * 0.5) * 2
-})
 export const gummyBoardSquareColour = tgpu.fn(
   [d.vec2f],
   d.vec3f,
@@ -97,16 +91,36 @@ export const gummyBoardStageLighting = tgpu.fn(
 
 // Half-space n·p <= w. The bevel stays outside all 64 playable squares.
 const slabPlanes = tgpu.const(d.arrayOf(d.vec4f, 10), [
-  d.vec4f(1, 0, 0, 6.65),
-  d.vec4f(-1, 0, 0, 6.65),
-  d.vec4f(0, 1, 0, 0),
-  d.vec4f(0, -1, 0, 0.32),
-  d.vec4f(0, 0, 1, 6.65),
-  d.vec4f(0, 0, -1, 6.65),
-  d.vec4f(1, 1, 0, 6.57),
-  d.vec4f(-1, 1, 0, 6.57),
-  d.vec4f(0, 1, 1, 6.57),
-  d.vec4f(0, 1, -1, 6.57),
+  d.vec4f(1, 0, 0, GUMMY_BOARD_SLAB.halfExtent),
+  d.vec4f(-1, 0, 0, GUMMY_BOARD_SLAB.halfExtent),
+  d.vec4f(0, 1, 0, GUMMY_BOARD_GRID.top),
+  d.vec4f(0, -1, 0, -GUMMY_BOARD_SLAB.bottom),
+  d.vec4f(0, 0, 1, GUMMY_BOARD_SLAB.halfExtent),
+  d.vec4f(0, 0, -1, GUMMY_BOARD_SLAB.halfExtent),
+  d.vec4f(
+    1,
+    1,
+    0,
+    GUMMY_BOARD_SLAB.halfExtent - GUMMY_BOARD_SLAB.bevel + GUMMY_BOARD_GRID.top,
+  ),
+  d.vec4f(
+    -1,
+    1,
+    0,
+    GUMMY_BOARD_SLAB.halfExtent - GUMMY_BOARD_SLAB.bevel + GUMMY_BOARD_GRID.top,
+  ),
+  d.vec4f(
+    0,
+    1,
+    1,
+    GUMMY_BOARD_SLAB.halfExtent - GUMMY_BOARD_SLAB.bevel + GUMMY_BOARD_GRID.top,
+  ),
+  d.vec4f(
+    0,
+    1,
+    -1,
+    GUMMY_BOARD_SLAB.halfExtent - GUMMY_BOARD_SLAB.bevel + GUMMY_BOARD_GRID.top,
+  ),
 ])
 /** Exact convex clipping avoids a per-pixel ray-march and handles parallel/inside rays. */
 export const gummyBoardBevelHit = tgpu.fn(
@@ -157,7 +171,7 @@ export const gummyBoardGlassSupportHit = tgpu.fn(
       origin,
       ray,
       d.vec3f(centre.x - 0.19, GUMMY_BOARD_GLASS_FLOOR, centre.y - 0.19),
-      d.vec3f(centre.x + 0.19, -0.32, centre.y + 0.19),
+      d.vec3f(centre.x + 0.19, GUMMY_BOARD_SLAB.bottom, centre.y + 0.19),
     )
     if (hit.w >= 0 && (nearest.w < 0 || hit.w < nearest.w))
       nearest = d.vec4f(hit)
@@ -188,8 +202,16 @@ export const gummyBoardGlassNormal = tgpu.fn(
   const grain = perlin2d.sampleWithGradient(
     std.add(std.mul(point.xz, 1.15), d.vec2f(4.7, 8.3)),
   )
+  const inset = gummyBoardGlassInset(point.xz)
   return std.normalize(
-    std.add(normal, d.vec3f(grain.y * 0.018, 0, grain.z * 0.018)),
+    std.add(
+      normal,
+      d.vec3f(
+        grain.y * 0.008 + inset.bevel.x,
+        0,
+        grain.z * 0.008 + inset.bevel.y,
+      ),
+    ),
   )
 })
 
@@ -224,13 +246,8 @@ export const gummyBoardGlassPath = tgpu.fn(
   // A zero vector denotes total internal reflection; never project it to a receiver.
   if (std.dot(outgoing, outgoing) < 0.5) return result
   result.direction = d.vec3f(outgoing)
-  const tint = std.mix(
-    d.vec3f(0.22, 0.045, 0.065),
-    d.vec3f(2.8, 1.05, 0.72),
-    gummyBoardSquareParity(point.xz),
-  )
   result.transmission = std.mul(
-    gummyTransmission(tint, result.length),
+    gummyBoardGlassTransmission(point, normal, result.length),
     (1 - gummyFresnel(std.max(0, std.dot(std.neg(incident), normal)))) *
       (1 - gummyFresnel(std.max(0, std.dot(inside, hit.xyz)))),
   )
@@ -258,7 +275,7 @@ const gummyBoardGlassLightRay = tgpu.fn(
       std.mul(std.max(std.sub(edge, 0.8), d.vec2f(0)), 2.5),
     ),
   )
-  const source = d.vec3f(horizontal.x, 0, horizontal.y)
+  const source = d.vec3f(horizontal.x, GUMMY_BOARD_GRID.top, horizontal.y)
   const result = GummyBoardLightRay({
     source,
     floor: d.vec4f(0),
@@ -373,7 +390,7 @@ const gummyBoardGlassReceiver = tgpu.fn(
     light = std.mul(light, 0.08)
   return std.add(
     gummyBoardStudioFloor(point, 1),
-    std.mul(light, d.vec3f(0.115, 0.11, 0.105)),
+    std.mul(light, d.vec3f(0.045, 0.043, 0.041)),
   )
 })
 
@@ -475,7 +492,7 @@ export const gummyBoardLavaMaterial = tgpu.fn(
         0,
       )
   let base = d.vec3f(0.022, 0.028, 0.031)
-  if (normal.y > 0.99 && std.max(std.abs(point.x), std.abs(point.z)) < 6.4)
+  if (normal.y > 0.99 && gummyBoardGridContains(point.xz))
     base = std.mix(
       d.vec3f(0.105, 0.074, 0.052),
       base,
@@ -534,8 +551,10 @@ export const gummyBoardStageMaterial = tgpu.fn(
   if (theme < 0.5) {
     if (top) {
       base = d.vec3f(0.11, 0.16, 0.16)
-      if (edge < 6.4) base = gummyBoardSquareColour(point.xz)
-      else if (edge < 6.48) base = d.vec3f(0.43, 0.31, 0.13)
+      if (gummyBoardGridContains(point.xz))
+        base = gummyBoardSquareColour(point.xz)
+      else if (edge < GUMMY_BOARD_GRID.halfExtent + GUMMY_BOARD_SLAB.bevel)
+        base = d.vec3f(0.43, 0.31, 0.13)
     }
     return base
   }
@@ -561,10 +580,33 @@ export const gummyBoardStageMaterial = tgpu.fn(
   }
   const fresnel = gummyFresnel(std.max(0, std.dot(std.neg(ray), surfaceNormal)))
   if (path.valid < 0.5) return d.vec3f(reflection)
-  return std.add(
+  let glass = std.add(
     std.mul(behind, path.transmission),
     std.mul(reflection, fresnel),
   )
+  if (top && gummyBoardGridContains(point.xz)) {
+    const inset = gummyBoardGlassInset(point.xz)
+    // Frost is a local surface response: its square boundaries stay at y=0
+    // while transmitted light can move independently on the lower receiver.
+    const diffuse =
+      0.55 +
+      0.45 *
+        std.max(
+          std.dot(surfaceNormal, std.normalize(d.vec3f(-0.42, 0.87, 0.26))),
+          0,
+        )
+    glass = std.mix(
+      glass,
+      std.mul(inset.colour, diffuse),
+      inset.frost * (1 - fresnel),
+    )
+    glass = std.mix(
+      glass,
+      std.add(std.mul(reflection, 0.075), d.vec3f(0.008, 0.019, 0.021)),
+      inset.seam * 0.72,
+    )
+  }
+  return glass
 })
 
 export const gummyBoardBackgroundFragment = tgpu.fragmentFn({
@@ -598,14 +640,22 @@ export const gummyBoardBackgroundFragment = tgpu.fragmentFn({
   let distance = d.f32(-1)
   let boardTop = d.bool(false)
   let boardHit = d.bool(false)
-  let floorHeight = d.f32(-0.32)
+  let floorHeight = d.f32(GUMMY_BOARD_SLAB.bottom)
   if (theme > 0.5 && theme < 1.5) floorHeight = GUMMY_BOARD_GLASS_FLOOR
   if (ray.y < -0.001) distance = (floorHeight - camera.eye.y) / ray.y
   let box = gummyBoxHit(
     camera.eye.xyz,
     ray,
-    d.vec3f(-6.65, -0.32, -6.65),
-    d.vec3f(6.65, 0, 6.65),
+    d.vec3f(
+      -GUMMY_BOARD_SLAB.halfExtent,
+      GUMMY_BOARD_SLAB.bottom,
+      -GUMMY_BOARD_SLAB.halfExtent,
+    ),
+    d.vec3f(
+      GUMMY_BOARD_SLAB.halfExtent,
+      GUMMY_BOARD_GRID.top,
+      GUMMY_BOARD_SLAB.halfExtent,
+    ),
   )
   if (theme > 0.5) box = gummyBoardBevelHit(camera.eye.xyz, ray)
   if (box.w >= 0 && (distance < 0 || box.w < distance)) {

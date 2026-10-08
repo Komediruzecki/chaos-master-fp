@@ -1,10 +1,10 @@
 {
   "title": "Gummy and fractal chess: approved playable milestone",
   "reviewed_local_date": "2026-10-08",
-  "status": "Local chess and the checkmate overlay are user-tested. Embedded Arcade Chess and its visual selection sidebar are implemented and verified in native Chromium. Firefox production layout checks pass; physical-device checks remain separate. Glass board alignment, capture mechanics, authored collections and private friend sessions remain planned followups.",
+  "status": "Local chess and the checkmate overlay are user-tested. Embedded Arcade Chess, aligned glass insets and three saved capture mechanics are implemented. Native desktop GPU checks cover glass views and all three motions; physical iOS/tablet timing and angular-contact acceptance remain open. Authored collections and private friend sessions remain planned.",
   "arcade_integration_plan": "docs/gummy-chess-arcade-plan.md",
   "objective": "Turn the published gummy chess showcase into a playable local chess experience, retaining the creator and cinema paths.",
-  "horizon": "Arcade integration now, then board and capture polish, reusable collections and private friend sessions; physical tablet profiling remains parallel.",
+  "horizon": "Validate board and capture changes on physical tablets; next introduce one authored fractal pawn and saved collections, then private friend sessions.",
   "master_plan": "assets/references/chess-fractal-plan.json",
   "master_plan_reconciliation": "The 2026-09-30 concept status and initial gap list are historical. Six gummy roles, full board, capture rendering, repeatable cinema delivery, local legal chess and PGN/Cinema handoff now exist. Editable IFS role collections remain unfinished.",
   "completed": [
@@ -16,7 +16,9 @@
     "Final films backed up in Proton archive and tweet folder",
     "Local legal chess with result overlay, verified by the user through checkmate",
     "Capture readiness fixed and seven repeated captures verified with stable live GPU buffers/textures",
-    "Embedded Arcade Chess with large piece-palette and board cards captured from the actual WebGPU renderer"
+    "Embedded Arcade Chess with large piece-palette and board cards captured from the actual WebGPU renderer",
+    "Aligned glass playing insets, piece placement and picking share the y=0 contact grid",
+    "Three seeded capture motions saved with each move and reusable in Cinema"
   ],
   "preservation": {
     "media": "Current remote metadata verified; 369-file archive had a complete zero-difference download check on 2026-10-06. All four final films also exist under socials/personal/tweet.",
@@ -43,9 +45,9 @@
     "smaller_extras": ["G4", "G5", "G9", "G10"],
     "defer_or_scope_first": ["G6", "G11", "G12", "G13", "G14"]
   },
-  "recommended_order": ["G15", "G16", "G17", "G8", "G18"],
-  "parallel_discovery": "G3 physical tablet measurement proceeds alongside Arcade work when the target device is available. It is not a prerequisite for linking the already playable local match, and does not justify speculative solver rewrites.",
-  "first_milestone": "Enter Chess from Arcade, choose a piece-set look and board from large visual cards, play the existing local match, and return with editor and match state preserved.",
+  "recommended_order": ["G3", "G8", "G18"],
+  "parallel_discovery": "G3 physical tablet measurement can proceed alongside the G8 authored-pawn work when the target device is available. Profile the new angular contact before expanding mechanics; do not infer device performance from desktop Tablet quality.",
+  "first_milestone": "G15-G17 implementation delivered for review. Next acceptance: target-device capture timing and angular contact. Next feature: one authored fractal pawn through edit, save, reopen, board placement and Cinema.",
   "alternate_objective": {
     "goal": "Produce more promotional shots with less manual assembly",
     "prioritize": ["G4", "G6", "G5"],
@@ -123,7 +125,7 @@
       "title": "Named shot library",
       "current_state": "Validated import/export recipes already exist",
       "impact": "Medium",
-      "effort": "S–M",
+      "effort": "S\u2013M",
       "confidence": "High",
       "outcome": "Save, name, duplicate and reopen a Cinema recipe without juggling JSON files.",
       "dependencies": [],
@@ -154,7 +156,7 @@
       "title": "Sound in studio and native export",
       "current_state": "Approved stems and external mixer exist; browser exports are silent",
       "impact": "Medium",
-      "effort": "M–L",
+      "effort": "M\u2013L",
       "confidence": "Medium",
       "outcome": "Hear selected candy sounds in preview and include them in the downloaded movie.",
       "dependencies": [],
@@ -170,7 +172,7 @@
       "title": "Thinner necks and smoother small debris",
       "current_state": "MPM and marching cubes work; detached masses still look bead-like",
       "impact": "High",
-      "effort": "L–XL",
+      "effort": "L\u2013XL",
       "confidence": "Low",
       "outcome": "Improve the material response during separation while keeping a fixed performance budget.",
       "dependencies": [],
@@ -187,7 +189,7 @@
       "current_state": "Flame studies exist; editable six-role board collection is missing",
       "impact": "High",
       "effort": "L",
-      "confidence": "Medium–low",
+      "confidence": "Medium\u2013low",
       "outcome": "Reconnect the chess game to the original fractal creator goal.",
       "dependencies": ["G1"],
       "acceptance": [
@@ -261,7 +263,7 @@
       "current_state": "Glass board refraction and approximate piece caustics exist",
       "impact": "Medium",
       "effort": "L",
-      "confidence": "Medium–low",
+      "confidence": "Medium\u2013low",
       "outcome": "Improve coloured transmission and light occlusion on one frozen glass-board shot.",
       "dependencies": ["G16"],
       "acceptance": [
@@ -305,7 +307,7 @@
     {
       "id": "G16",
       "title": "Aligned inset glass chess board",
-      "current_state": "User reports the playing squares appear below and offset from the glass. Planned after Arcade entry; exact visual cause is not yet reproduced.",
+      "current_state": "Implemented: shared CPU/GPU contact grid, 64 flush frosted/tinted material insets and etched bevel shading at y=0, neutral glass substrate and a separate caustic receiver without a second playing grid. 67 focused tests pass; native Chromium top/grazing captures show alignment with no shader errors. Live final integration and physical-device checks remain separate.",
       "impact": "High",
       "effort": "M",
       "confidence": "Medium",
@@ -317,25 +319,26 @@
         "Top and grazing views, corner selections, orbit/zoom and capture framing show aligned squares, markers and piece bases.",
         "Compare Classic and Lava and measure the glass pass cost to catch regressions."
       ],
-      "uncertainty": "Refraction, grid placement and highlight height must be isolated under a fixed camera before implementation."
+      "uncertainty": "Insets are analytic surface materials on the shared flat slab, not separate meshes or recessed collision shapes. No extra draw calls, textures or per-frame geometry; shader arithmetic increased modestly, so physical-tablet timing still needs measurement. Native Arcade markers/capture framing pass; all-corner touch selection remains open."
     },
     {
       "id": "G17",
       "title": "Varied capture mechanics with seeded selection",
-      "current_state": "Current Cinema recipes store shear timing and sweep motion. Three distinct bounded mechanics are planned.",
+      "current_state": "Implemented: seeded Press and settle, Shoulder sweep and Rock and shear, occupancy-bounded travel/yaw, matched collider angular contact, saved match appearance/motion and fixed Cinema choices. Native desktop AMD checks passed all three at Tablet quality on the Glass pawn-knight shot; Studio controls passed at 1440/834/390px. Physical iOS/tablet acceptance remains open.",
       "impact": "High",
       "effort": "M",
       "confidence": "Medium",
       "outcome": "Alternate press-and-settle, shoulder-sweep and rock-and-shear captures while preserving the destination square and replayable shots.",
       "dependencies": ["G1", "G2"],
       "acceptance": [
-        "Version each mechanic and validate its motion limits, role bounds and material compatibility.",
-        "Choose once per capture with a seed, avoiding immediate repeats where compatible alternatives exist; persist the resolved motion alongside the chess receipt.",
-        "Replay, reload, export and future peers reuse the recorded choice; Cinema retains a fixed-mechanic override.",
-        "Collider and rendered transforms agree, including angular contact; full play, Skip, failure and Undo preserve the legal position.",
-        "Verify early smear/tear, neighbouring piece clearance and bounded frame/memory cost for matched material presets."
+        "Implemented: versioned mechanic IDs and explicit bounded motion; conservative mould footprints and occupancy limit lateral travel and yaw.",
+        "Implemented: choose once from a receipt seed with no immediate repeat where compatible alternatives exist; session v2 saves resolved motion and a deep appearance snapshot.",
+        "Verified by focused tests: replay, reload, Cinema handoff, Undo, branching and historical draw claims preserve the chosen effect or remove its orphaned envelope. Version 1 sessions retain legacy early-shear motion.",
+        "Implemented and tested: Studio fixed choices stage until Apply; recipe schema v3 preserves explicit motion and provenance, accepts v1/v2 legacy imports and never regenerates imported motion from metadata.",
+        "Native desktop AMD run: all three mechanics at Tablet quality retained finite sampled particle state, no marching-cubes overflow or dropped vertices, no errors/warnings and the target-square landing. Receipt: /home/maff/agent-out/chaos-master-fp/2026-10-08/glass-captures/capture-native.json.",
+        "Remaining: physical iOS/tablet angular-contact and performance checks, plus matched early-smear/tear and resource comparisons across more roles, presets and crowded boards."
       ],
-      "uncertainty": "A seed reproduces choreography, not bit-identical particle states across GPUs. Rotational contact may require a separate collider extension before rock-and-shear can ship."
+      "uncertainty": "A seed reproduces choreography, not bit-identical particle states across GPUs. Crowded positions deliberately reduce motion. Desktop Tablet quality is not physical-device proof, and the tested pawn-knight shot does not establish visual separation or cost for every role/material pairing. Next feature milestone after device acceptance is G8's one authored pawn; friend networking remains G18 planning."
     },
     {
       "id": "G18",
@@ -389,18 +392,22 @@
     "G1: pure chess.js 1.4.0 adapter, immutable move receipts, stable piece IDs and complete FEN",
     "G2: local two-player match at /gummy?view=match, legal selection, special moves, skip/replay/undo and tab-session recovery",
     "G5: bounded mainline PGN import/export, history stepping and ordinary capture handoff to Cinema",
-    "G15: embedded ChessWorld, glass sidebar and real-rendered static preview cards complete; Chromium and focused checks pass, Firefox production layouts pass, physical devices untested"
+    "G15: embedded ChessWorld, glass sidebar and real-rendered static preview cards complete; Chromium and focused checks pass, Firefox production layouts pass, physical devices untested",
+    "G16: analytic glass insets share placement/picking/contact grid; no extra render passes or resources",
+    "G17: seeded motion catalog, angular collider response, saved capture snapshots and editable Studio choices"
   ],
   "verification": {
     "match_polish_2026_10_08": "61 focused app tests and pnpm check pass. Native GPU checks verified seven full capture/replay cycles with stable live resources and zero idle GPU submissions, real frames before cinematic visibility, both Skip paths, and the result overlay at four touch-capable viewport sizes. Evidence: /home/maff/agent-out/chaos-master-fp/2026-10-08/match-audit/.",
     "core": "35 focused chess adapter tests, core TypeScript and scoped ESLint passed.",
     "integration": "105 focused app tests pass. Native Chromium on AMD RDNA-4 verified 32-piece idle rendering, touch moves, full capture completion, replay/skip/undo, PGN/Cinema reload and return, and reachable controls at 1440, 834 and 390px widths. No runtime/GPU errors or Solid owner warnings.",
     "physical_devices": "New playable match has not yet been verified on physical iOS or target tablets; earlier workbench results do not establish this.",
-    "remote_scope": "Pre-rebase working branch was pushed through 09c9980b. The clean local rebase onto fork main is recorded separately; publication of rewritten history and this integration must be verified at handoff. No production deployment or merge is implied.",
+    "remote_scope": "Arcade checkpoint f7e65779 was pushed after the clean rebase onto fork main 9d8a0c7c. This glass/capture pass remains on origin/feat/gummy-fracture; verify publication at handoff. No production deployment or merge is implied.",
     "hardware_receipt": "/home/maff/agent-out/chaos-master-fp/2026-10-07/match-verification/report.json",
     "rebase_2026_10_08": "Clean rebase onto origin/main 9d8a0c7c: eight feature commits replayed with no merge conflicts. Post-rebase focused checks and production build passed; existing code-health metric debt remains unchanged.",
     "arcade_integration_2026_10_08": "124 distinct focused tests passed across shortcuts, canvases, navigation, match and presets; typecheck passed. Initial pnpm check stopped at five test-style lint errors, fixed with scoped ESLint; remaining formatting and validate-wgsl passed. Production build passed. Native headed AMD RDNA-4 Chromium retained saved looks and e2-e4 through three exits/re-entries, with zero idle GPU submissions over 1.2s and live tracked resources settled at 24 after each exit (startup 80 before lazy cleanup). No runtime/GPU errors or owner warnings. Actual CDP touch selections passed at 834x1112, 390x844 and 844x390 plus desktop 1440; production Chromium screenshots inspected at four sizes. Firefox production layout checks at 1440x1050 and 390x844 passed selected/rendered cards, loaded images, no overflow, standalone host and zero page errors; screenshots inspected. Firefox is layout evidence, not physical-GPU proof. Receipts: production.json and production-firefox.json. Physical iOS/tablet UI untested. Evidence: /home/maff/agent-out/chaos-master-fp/2026-10-08/arcade-chess/.",
-    "metrics_2026_10_08": "Existing debt unchanged versus pre-Arcade rebased HEAD: 86 files above 500 lines, 40 above 800 and eight file-cap failures. No baseline relaxed. Affine-grid theme extracted and its cap lowered from 1172 to 1154."
+    "metrics_2026_10_08": "Existing debt unchanged versus pre-Arcade rebased HEAD: 86 files above 500 lines, 40 above 800 and eight file-cap failures. No baseline relaxed. Affine-grid theme extracted and its cap lowered from 1172 to 1154.",
+    "glass_captures_2026_10_08": "211 focused tests across 17 files, pnpm check, production build and docs:index:check pass. Native AMD Chromium verified final overhead/grazing glass alignment and all three capture mechanics at Tablet quality without errors, nonfinite sampled particle states or marching-cubes overflow. Studio layouts passed at 1440/834/390px. Arcade played e2-e4 d7-d5 e4xd5 with Rock and shear, replayed, reloaded and handed the same saved motion/look to Cinema: target d5 retained; no runtime/GPU errors; tracked live resources57 after each capture/replay. Hidden browser frame pacing required disable-gpu-vsync/disable-frame-rate-limit; app timing unchanged. Physical iOS/tablet checks remain open. Evidence: /home/maff/agent-out/chaos-master-fp/2026-10-08/glass-captures/.",
+    "code_health_glass_captures": "Existing code-health debt remains: 86 files above 500 lines; extracting Cinema controls reduced files above 800 from 40 to 39 and cap failures from eight to seven. No baseline relaxed. Node24 dependency-cruiser reports the same 11 pre-existing cycles; the newly introduced type dependency cycle was removed."
   },
   "completed_sequence": ["P0", "G1", "G2", "G5"]
 }

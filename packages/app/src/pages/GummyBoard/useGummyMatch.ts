@@ -1,6 +1,7 @@
 /** Keep legal game state separate from a skippable presentation of the last move. */
 import { applyChessMove, claimChessDraw, createChessGame, importChessPgn, legalChessMoves, seekChessGame, undoChessMove, } from '@chaos-master/core/chess/chessGame'
 import { batch, createMemo, createSignal } from 'solid-js'
+import { createGummyMatchCapturePresentation, createGummyMatchCaptures, matchesGummyCapture, } from './gummyMatchCaptures'
 import { defaultGummyMatchAppearance, loadGummyMatchSession, saveGummyMatchSession, } from './gummyMatchSession'
 import type { ChessDrawClaim, ChessGame, ChessMoveInput, ChessMoveReceipt, ChessSquare, } from '@chaos-master/core/chess/chessGame'
 import type { GummyMatchAppearance } from './gummyMatchSession'
@@ -14,6 +15,7 @@ export function useGummyMatch() {
   const [appearance, setAppearance] = createSignal(
     restored.session?.appearance ?? defaultGummyMatchAppearance(),
   )
+  const [captures, setCaptures] = createSignal(restored.session?.captures ?? [])
   const [headers, setHeaders] = createSignal<Record<string, string>>(
     restored.session?.headers ?? {},
   )
@@ -36,6 +38,18 @@ export function useGummyMatch() {
     ...new Set(legalMoves().map((move) => move.to)),
   ])
   const currentMove = createMemo(() => game().history[cursor() - 1])
+  const currentPresentation = createMemo(() => {
+    const move = currentMove()
+    return move
+      ? captures().find((entry) => matchesGummyCapture(entry, move))
+      : undefined
+  })
+  const activePresentation = createMemo(() => {
+    const move = receipt()
+    return move
+      ? captures().find((entry) => matchesGummyCapture(entry, move))
+      : undefined
+  })
   const reviewing = createMemo(() => cursor() < game().history.length)
 
   function persist(next = game(), ply = cursor(), nextHeaders = headers()) {
@@ -45,6 +59,7 @@ export function useGummyMatch() {
         cursor: ply,
         headers: nextHeaders,
         appearance: appearance(),
+        captures: captures(),
       })
       setNotice('')
       return true
@@ -65,7 +80,16 @@ export function useGummyMatch() {
     if (receipt()) return
     try {
       const result = applyChessMove(current(), move)
+      const retained = captures().filter(
+        (entry) => entry.ply < result.receipt.ply,
+      )
+      const presentation = createGummyMatchCapturePresentation(
+        result.receipt,
+        appearance(),
+        retained.at(-1),
+      )
       batch(() => {
+        setCaptures(presentation ? [...retained, presentation] : retained)
         setGame(result.game)
         setCursor(result.game.history.length)
         setReceipt(result.receipt)
@@ -132,6 +156,9 @@ export function useGummyMatch() {
     const next = undoChessMove(current())
     batch(() => {
       setGame(next)
+      setCaptures((entries) =>
+        entries.filter((entry) => entry.ply <= next.history.length),
+      )
       setCursor(next.history.length)
       clearSelection()
       setError('')
@@ -142,6 +169,7 @@ export function useGummyMatch() {
   function replace(next: ChessGame, nextHeaders: Record<string, string>) {
     batch(() => {
       setGame(next)
+      setCaptures(createGummyMatchCaptures(next, appearance()))
       setCursor(0)
       setHeaders(nextHeaders)
       clearSelection()
@@ -169,8 +197,14 @@ export function useGummyMatch() {
   function claim(reason: ChessDrawClaim) {
     if (receipt()) return
     try {
-      setGame(claimChessDraw(current(), reason))
-      clearSelection()
+      const claimed = claimChessDraw(current(), reason)
+      batch(() => {
+        setGame(claimed)
+        setCaptures((entries) =>
+          entries.filter((entry) => entry.ply <= claimed.history.length),
+        )
+        clearSelection()
+      })
       persist()
     } catch (cause) {
       setError(
@@ -196,6 +230,8 @@ export function useGummyMatch() {
     receipt,
     promotion,
     currentMove,
+    currentPresentation,
+    activePresentation,
     reviewing,
     notice,
     error,

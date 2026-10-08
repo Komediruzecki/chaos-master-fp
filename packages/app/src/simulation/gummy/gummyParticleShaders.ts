@@ -1,7 +1,7 @@
 /** Three-dimensional MLS/APIC MPM with floating-point node-gather transfers and irreversible strain softening. */
 import { d, std, tgpu } from 'typegpu'
 import { GUMMY_PARTICLE_MAX_J, GUMMY_PARTICLE_MIN_J, gummyParticleCavitatedVolumeState, gummyParticleCavitationReturn, gummyParticleDamage, gummyParticleDamageStretch, gummyParticleDeterminant, gummyParticleFlowStep, gummyParticleGripOffset, gummyParticleIdentity, gummyParticleStress, gummyParticleStretch, gummyParticleViscousSpeedLimit, gummyParticleViscousStress, gummyParticleVolumeState, gummyParticleWarmDamage, gummyParticleWarmStress, gummyParticleWeights, } from './gummyParticleMath'
-import { gummyColliderContactSlot, gummyColliderMayContactSlot, gummyRookContactCorrection, gummyRookContactVelocity, } from './gummyRookCollider'
+import { gummyColliderContactSlot, gummyColliderMayContactSlot, gummyColliderRotateY, gummyColliderSurfaceVelocity, gummyRookContactCorrection, gummyRookContactVelocity, } from './gummyRookCollider'
 
 export const GummyParticleParameters = d.struct({
   geometry: d.vec4f,
@@ -24,6 +24,8 @@ export const GummyParticleParameters = d.struct({
   colliderVelocity: d.vec4f,
   /** Moving grip target velocity and optional base-only capture height. */
   gripMotion: d.vec4f,
+  /** Initial delta yaw, angular velocity about Y, reserved. Appended to preserve existing offsets. */
+  colliderRotation: d.vec4f,
 })
 export const GummyParticleState = d.struct({
   deformation: d.mat3x3f,
@@ -76,6 +78,22 @@ const currentColliderPosition = (elapsed: number) => {
   return std.add(
     params.colliderPosition.xyz,
     std.mul(params.colliderVelocity.xyz, elapsed),
+  )
+}
+
+const currentColliderAngle = (elapsed: number) => {
+  'use gpu'
+  const rotation = gummyParticleLayout.$.params.colliderRotation
+  return rotation.x + rotation.y * elapsed
+}
+
+const currentColliderVelocity = (point: d.v3f, elapsed: number) => {
+  'use gpu'
+  const params = gummyParticleLayout.$.params
+  return gummyColliderSurfaceVelocity(
+    params.colliderVelocity.xyz,
+    std.sub(point, currentColliderPosition(elapsed)),
+    params.colliderRotation.y,
   )
 }
 
@@ -160,13 +178,20 @@ export const gummyParticleP2G = tgpu.computeFn({
   const grip = gummyParticleLayout.$.grip[gid.x]!
   state.contact = d.vec4f(0, 0, 0, 1000000)
   if (params.colliderPosition.w > 0) {
-    const local = std.sub(
-      position,
-      currentColliderPosition(gummyParticleLayout.$.clock[0]!),
+    const angle = currentColliderAngle(gummyParticleLayout.$.clock[0]!)
+    const local = gummyColliderRotateY(
+      std.sub(
+        position,
+        currentColliderPosition(gummyParticleLayout.$.clock[0]!),
+      ),
+      -angle,
     )
     if (gummyColliderMayContactSlot.$(local, params.geometry.w)) {
       const contact = gummyColliderContactSlot.$(local)
-      state.contact = d.vec4f(contact.xyz, contact.w - params.geometry.w)
+      state.contact = d.vec4f(
+        gummyColliderRotateY(contact.xyz, angle),
+        contact.w - params.geometry.w,
+      )
     }
   }
   // External grip impulses pass through the grid so F sees the same motion as particles.
@@ -348,7 +373,7 @@ export const gummyParticleGridUpdate = tgpu.computeFn({
     )
       velocity = gummyRookContactVelocity(
         velocity,
-        params.colliderVelocity.xyz,
+        currentColliderVelocity(point, gummyParticleLayout.$.clock[0]!),
         std.normalize(contactNormal),
         0,
         params.colliderVelocity.w,
@@ -540,14 +565,18 @@ export const gummyParticleG2P = tgpu.computeFn({
   }
   let position = std.add(oldPosition, std.mul(velocity, params.geometry.x))
   if (params.colliderPosition.w > 0 && rest.w > 0) {
-    const local = std.sub(
-      position,
-      currentColliderPosition(
-        gummyParticleLayout.$.clock[0]! + params.geometry.x,
-      ),
+    const elapsed = gummyParticleLayout.$.clock[0]! + params.geometry.x
+    const angle = currentColliderAngle(elapsed)
+    const local = gummyColliderRotateY(
+      std.sub(position, currentColliderPosition(elapsed)),
+      -angle,
     )
     if (gummyColliderMayContactSlot.$(local, params.geometry.w)) {
-      const contact = gummyColliderContactSlot.$(local)
+      const localContact = gummyColliderContactSlot.$(local)
+      const contact = d.vec4f(
+        gummyColliderRotateY(localContact.xyz, angle),
+        localContact.w,
+      )
       position = std.add(
         position,
         gummyRookContactCorrection(
@@ -558,7 +587,7 @@ export const gummyParticleG2P = tgpu.computeFn({
       )
       velocity = gummyRookContactVelocity(
         velocity,
-        params.colliderVelocity.xyz,
+        currentColliderVelocity(position, elapsed),
         contact.xyz,
         contact.w - params.geometry.w,
         params.colliderVelocity.w,

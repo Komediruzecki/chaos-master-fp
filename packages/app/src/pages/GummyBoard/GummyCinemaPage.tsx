@@ -1,6 +1,7 @@
 /** Shot studio with legal capture positions, portable recipes and repeatable camera playback. */
 import { createMemo, createSignal, For, onCleanup, Show } from 'solid-js'
-import { GUMMY_BOARD_EARLY_SHEAR_MOTION, GUMMY_BOARD_MOTION_RANGES, GUMMY_BOARD_ORIGINAL_MOTION, GUMMY_BOARD_SHOTS, } from '@/components/GummyBoard/gummyBoardShots'
+import { GUMMY_BOARD_SHOTS } from '@/components/GummyBoard/gummyBoardShots'
+import { createGummyCaptureMechanic, gummyCaptureMechanicContext, } from '@/components/GummyBoard/gummyCaptureMechanics'
 import { GummyCinemaScene } from '@/components/GummyBoard/GummyCinemaScene'
 import { Check, Copy } from '@/icons'
 import { GUMMY_BUILTIN_PRESETS } from '../GummyBear/gummyBuiltinPresets'
@@ -8,13 +9,16 @@ import { GummyPresetControls } from '../GummyBear/GummyPresetControls'
 import { GummyRecordingControls } from '../GummyBear/GummyRecordingControls'
 import { useGummyRecording } from '../GummyBear/useGummyRecording'
 import { GUMMY_BOARD_PALETTES } from './gummyBoardAppearance'
+import { updateGummyCinemaCaptureContext } from './gummyCinemaDraft'
 import { GummyCinemaExport } from './GummyCinemaExport'
+import { GummyCinemaMotionControls } from './GummyCinemaMotionControls'
 import styles from './GummyCinemaPage.module.css'
 import { createGummyCinemaRecipe, parseGummyCinemaRecipe, } from './gummyCinemaRecipe'
 import { GummyCinemaSection } from './GummyCinemaSection'
 import { readGummyMatchCinemaRecipe } from './gummyMatchSession'
 import type { GummyCinemaRecipe } from './gummyCinemaRecipe'
 import type { GummyBoardShot, GummyBoardShotMotion, } from '@/components/GummyBoard/gummyBoardShots'
+import type { GummyCaptureMechanicId } from '@/components/GummyBoard/gummyCaptureMechanics'
 import type { GummyCinemaController } from '@/components/GummyBoard/GummyCinemaScene'
 
 export function GummyCinemaPage() {
@@ -169,11 +173,31 @@ export function GummyCinemaPage() {
     key: 'fen' | 'from' | 'to' | 'boardTheme' | 'cameraStyle',
     value: string,
   ) {
-    setDraft((r) => ({ ...r, shot: { ...r.shot, [key]: value } }))
+    setDraft((r) =>
+      key === 'fen' || key === 'from' || key === 'to'
+        ? updateGummyCinemaCaptureContext(r, { [key]: value })
+        : { ...r, shot: { ...r.shot, [key]: value } },
+    )
   }
 
   function updateMotion(motion: Readonly<GummyBoardShotMotion>) {
-    setDraft((r) => ({ ...r, shot: { ...r.shot, motion: { ...motion } } }))
+    setDraft((r) => ({
+      ...r,
+      shot: { ...r.shot, mechanic: undefined, motion: { ...motion } },
+    }))
+  }
+
+  function updateMechanic(id: GummyCaptureMechanicId) {
+    try {
+      const selection = createGummyCaptureMechanic(
+        id,
+        draft().shot.mechanic?.seed ?? 0,
+        gummyCaptureMechanicContext(draft().shot, draft().scale),
+      )
+      setDraft((r) => ({ ...r, version: 3, shot: { ...r.shot, ...selection } }))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    }
   }
 
   function showRecipe() {
@@ -444,10 +468,11 @@ export function GummyCinemaPage() {
               step="0.01"
               value={draft().scale}
               onInput={(e) =>
-                setDraft((r) => ({
-                  ...r,
-                  scale: Number(e.currentTarget.value),
-                }))
+                setDraft((r) =>
+                  updateGummyCinemaCaptureContext(r, {
+                    scale: Number(e.currentTarget.value),
+                  }),
+                )
               }
             />
           </GummyCinemaSection>
@@ -488,112 +513,16 @@ export function GummyCinemaPage() {
             title="Capture motion"
             {...sectionProps('motion')}
           >
-            <p id="cinema-shear-help" class={styles.help}>
-              Press and peel pauses halfway down for a sideways sweep. Original
-              motion sweeps after the full press. Apply the settings to replay
-              your choice.
-            </p>
-            <div class={styles.playback} role="group" aria-label="Shot motion">
-              <button
-                class={styles.button}
-                type="button"
-                aria-pressed={
-                  draft().shot.motion.shearOnset ===
-                    GUMMY_BOARD_ORIGINAL_MOTION.shearOnset &&
-                  draft().shot.motion.shearDistance ===
-                    GUMMY_BOARD_ORIGINAL_MOTION.shearDistance &&
-                  (draft().shot.motion.contactHold ?? 0) ===
-                    GUMMY_BOARD_ORIGINAL_MOTION.contactHold
-                }
-                onClick={() => {
-                  updateMotion(GUMMY_BOARD_ORIGINAL_MOTION)
-                }}
-              >
-                Original motion
-              </button>
-              <button
-                class={styles.button}
-                type="button"
-                aria-pressed={
-                  draft().shot.motion.shearOnset ===
-                    GUMMY_BOARD_EARLY_SHEAR_MOTION.shearOnset &&
-                  draft().shot.motion.shearDistance ===
-                    GUMMY_BOARD_EARLY_SHEAR_MOTION.shearDistance &&
-                  (draft().shot.motion.contactHold ?? 0) ===
-                    GUMMY_BOARD_EARLY_SHEAR_MOTION.contactHold
-                }
-                onClick={() => {
-                  updateMotion(GUMMY_BOARD_EARLY_SHEAR_MOTION)
-                }}
-              >
-                Press and peel
-              </button>
-            </div>
-            <GummyCinemaSection
-              title="Crush and shear"
-              {...sectionProps('shear')}
-              compact
-            >
-              <label for="cinema-shear-onset">
-                Shear onset: {Math.round(draft().shot.motion.shearOnset * 100)}%
-              </label>
-              <input
-                id="cinema-shear-onset"
-                aria-describedby="cinema-shear-help"
-                type="range"
-                min={GUMMY_BOARD_MOTION_RANGES.shearOnset.min}
-                max={GUMMY_BOARD_MOTION_RANGES.shearOnset.max}
-                step="0.05"
-                value={draft().shot.motion.shearOnset}
-                onInput={(e) => {
-                  updateMotion({
-                    ...draft().shot.motion,
-                    shearOnset: Number(e.currentTarget.value),
-                  })
-                }}
-              />
-              <label for="cinema-shear-distance">
-                Sideways travel: {draft().shot.motion.shearDistance.toFixed(2)}
-              </label>
-              <input
-                id="cinema-shear-distance"
-                type="range"
-                min={GUMMY_BOARD_MOTION_RANGES.shearDistance.min}
-                max={GUMMY_BOARD_MOTION_RANGES.shearDistance.max}
-                step="0.02"
-                value={draft().shot.motion.shearDistance}
-                onInput={(e) => {
-                  updateMotion({
-                    ...draft().shot.motion,
-                    shearDistance: Number(e.currentTarget.value),
-                  })
-                }}
-              />
-              <label for="cinema-contact-hold">
-                Mid-press hold:{' '}
-                {(draft().shot.motion.contactHold ?? 0).toFixed(2)} s
-              </label>
-              <input
-                id="cinema-contact-hold"
-                type="range"
-                min={GUMMY_BOARD_MOTION_RANGES.contactHold.min}
-                max={GUMMY_BOARD_MOTION_RANGES.contactHold.max}
-                step="0.05"
-                value={draft().shot.motion.contactHold ?? 0}
-                onInput={(e) => {
-                  updateMotion({
-                    ...draft().shot.motion,
-                    contactHold: Number(e.currentTarget.value),
-                  })
-                }}
-              />
-              <p class={styles.help}>
-                Onset runs from the original press start (0%) to the original
-                late sweep (100%). Travel scales with piece size. The hold
-                pauses halfway down while sideways motion continues. Apply the
-                settings to replay the motion.
-              </p>
-            </GummyCinemaSection>
+            <GummyCinemaMotionControls
+              motion={draft().shot.motion}
+              mechanic={draft().shot.mechanic}
+              onMotion={updateMotion}
+              onMechanic={updateMechanic}
+              advancedOpen={sections().shear}
+              onAdvancedToggle={(open) => {
+                sectionProps('shear').onToggle(open)
+              }}
+            />
           </GummyCinemaSection>
           <GummyCinemaSection
             title="Position and move"

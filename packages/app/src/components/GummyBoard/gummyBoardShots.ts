@@ -5,58 +5,17 @@ import type { GummyBoardPhase } from './gummyBoardChoreography'
 import type { GummyVec3 } from '@/components/GummyBear/gummyStudyMath'
 
 export { gummyBoardSquare, parseGummyBoardFen } from './gummyBoardPosition'
-export type GummyBoardShotMotion = {
-  /** Fraction of the crush and pause before the sweep: zero starts at descent, one preserves the original timing. */
-  shearOnset: number
-  /** Sideways travel in local piece units, scaled with the actors. */
-  shearDistance: number
-  /** Seconds held halfway through the downward press; missing preserves older recipes. */
-  contactHold?: number
-}
-
-export const GUMMY_BOARD_ORIGINAL_MOTION: Readonly<GummyBoardShotMotion> =
-  Object.freeze({ shearOnset: 1, shearDistance: 0.18, contactHold: 0 })
-export const GUMMY_BOARD_EARLY_SHEAR_MOTION: Readonly<GummyBoardShotMotion> =
-  Object.freeze({ shearOnset: 0.35, shearDistance: 1.1, contactHold: 0.35 })
-export const GUMMY_BOARD_MOTION_RANGES = {
-  shearOnset: { min: 0, max: 1 },
-  shearDistance: { min: 0, max: 1.2 },
-  contactHold: { min: 0, max: 0.6 },
-} as const
-
-export function resolveGummyBoardShotMotion(
-  value: unknown = GUMMY_BOARD_ORIGINAL_MOTION,
-): Required<GummyBoardShotMotion> {
-  if (!value || typeof value !== 'object' || Array.isArray(value))
-    throw new Error('Shot motion needs a shear onset and distance.')
-  const motion = value as Record<string, unknown>
-  for (const key of ['shearOnset', 'shearDistance'] as const) {
-    const number = motion[key]
-    const { min, max } = GUMMY_BOARD_MOTION_RANGES[key]
-    if (
-      typeof number !== 'number' ||
-      !Number.isFinite(number) ||
-      number < min ||
-      number > max
-    )
-      throw new Error(
-        `${key === 'shearOnset' ? 'Shear onset' : 'Shear distance'} must be between ${min} and ${max}.`,
-      )
-  }
-  const contactHold = motion.contactHold === undefined ? 0 : motion.contactHold
-  if (
-    typeof contactHold !== 'number' ||
-    !Number.isFinite(contactHold) ||
-    contactHold < 0 ||
-    contactHold > GUMMY_BOARD_MOTION_RANGES.contactHold.max
-  )
-    throw new Error('The mid-press hold must be between 0 and 0.6 seconds.')
-  return {
-    shearOnset: motion.shearOnset as number,
-    shearDistance: motion.shearDistance as number,
-    contactHold,
-  }
-}
+export {
+  GUMMY_BOARD_ORIGINAL_MOTION,
+  GUMMY_BOARD_EARLY_SHEAR_MOTION,
+  GUMMY_BOARD_MOTION_RANGES,
+  resolveGummyBoardShotMotion,
+} from './gummyCaptureMotion'
+export type { GummyBoardShotMotion } from './gummyCaptureMotion'
+import { parseGummyCaptureMechanic } from './gummyCaptureMechanics'
+import { GUMMY_BOARD_ORIGINAL_MOTION, resolveGummyBoardShotMotion, } from './gummyCaptureMotion'
+import type { GummyCaptureMechanic } from './gummyCaptureMechanics'
+import type { GummyBoardShotMotion } from './gummyCaptureMotion'
 
 export type GummyBoardShot = {
   id: string
@@ -68,6 +27,7 @@ export type GummyBoardShot = {
   presetId: string
   cameraStyle: 'arc' | 'diagonal' | 'hero'
   motion?: GummyBoardShotMotion
+  mechanic?: GummyCaptureMechanic
 }
 
 /** These are independent composed positions, not a recorded or historical game. */
@@ -108,6 +68,7 @@ export const GUMMY_BOARD_SHOT_SIMULATION_DURATION = 6
 
 export function resolveGummyBoardShot(shot: GummyBoardShot) {
   const motion = resolveGummyBoardShotMotion(shot.motion)
+  if (shot.mechanic) parseGummyCaptureMechanic(shot.mechanic)
   const position = parseGummyBoardFen(shot.fen)
   const { attacker, victim } = validateGummyBoardCapture(
     position,
@@ -146,7 +107,9 @@ function applyShotShear(
     time < 2.3 ||
     (motion.contactHold === 0 &&
       motion.shearOnset === GUMMY_BOARD_ORIGINAL_MOTION.shearOnset &&
-      motion.shearDistance === GUMMY_BOARD_ORIGINAL_MOTION.shearDistance)
+      motion.shearDistance === GUMMY_BOARD_ORIGINAL_MOTION.shearDistance &&
+      (motion.shearSign ?? 1) === 1 &&
+      !motion.twistAngle)
   )
     return position
   const start = 2.3 + 1.2 * motion.shearOnset
@@ -155,10 +118,57 @@ function applyShotShear(
     time < returnStart
       ? smooth((time - start) / 0.4)
       : 1 - smooth((time - returnStart) / 0.4)
-  const dx = target[0] - source[0]
-  const dz = target[2] - source[2]
-  const distance = (motion.shearDistance * scale * blend) / Math.hypot(dx, dz)
+  const travelX = target[0] - source[0]
+  const travelZ = target[2] - source[2]
+  const rocking = (motion.twistAngle ?? 0) > 0
+  const dx = rocking ? -travelZ : travelX
+  const dz = rocking ? travelX : travelZ
+  const envelope = rocking
+    ? rockEnvelope(time, motion.contactHold, motion.shearOnset)
+    : blend
+  const distance =
+    (motion.shearDistance * scale * envelope * (motion.shearSign ?? 1)) /
+    Math.hypot(dx, dz)
   return [target[0] + dx * distance, position[1], target[2] + dz * distance]
+}
+
+/** Alternating, eased contact turns end at the exact saved heading. */
+function rockEnvelope(time: number, hold: number, onset: number) {
+  const knots = [
+    [2.3 + 0.4 * onset, 0],
+    [2.8 + hold / 2 + 0.2 * onset, 1],
+    [3.4 + hold + 0.1 * onset, -0.7],
+    [3.9 + hold, 0.3],
+    [4.3 + hold, 0],
+  ] as const
+  if (!Number.isFinite(time) || time <= knots[0][0]) return 0
+  for (let i = 1; i < knots.length; i++) {
+    const previous = knots[i - 1]!,
+      next = knots[i]!
+    if (time < next[0])
+      return (
+        previous[1] +
+        (next[1] - previous[1]) *
+          smooth((time - previous[0]) / (next[0] - previous[0]))
+      )
+  }
+  return 0
+}
+
+/** Delta yaw relative to the mould's baked board orientation, shared by render and contact. */
+export function gummyBoardShotRotation(
+  resolved: ResolvedGummyBoardShot,
+  simulationTime: number,
+) {
+  const angle =
+    (resolved.motion.twistAngle ?? 0) *
+    (resolved.motion.shearSign ?? 1) *
+    rockEnvelope(
+      simulationTime,
+      resolved.motion.contactHold,
+      resolved.motion.shearOnset,
+    )
+  return angle === 0 ? 0 : angle
 }
 
 /** Short velocity ramps leave enough travel time for the longest legal diagonal at 85% scale. */
@@ -309,6 +319,11 @@ export function gummyBoardShotStep(
     velocity: start.position.map(
       (value, axis) => (end.position[axis]! - value) / dt,
     ) as GummyVec3,
+    rotationY: gummyBoardShotRotation(resolved, time),
+    angularVelocityY:
+      (gummyBoardShotRotation(resolved, time + dt) -
+        gummyBoardShotRotation(resolved, time)) /
+      dt,
     friction: 0.45,
   }
 }

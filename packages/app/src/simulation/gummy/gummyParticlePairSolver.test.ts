@@ -123,7 +123,9 @@ describe('particle pair ownership', () => {
     const pawn = new Float32Array(uniforms[0]!.data),
       rook = new Float32Array(uniforms[1]!.data)
     expect([...pawn.slice(0, 11)]).toEqual([...rook.slice(0, 11)])
-    expect([...pawn.slice(52)]).toEqual([0, 0, 0, 0])
+    expect([...pawn.slice(52, 56)]).toEqual([0, 0, 0, 0])
+    expect([...pawn.slice(56)]).toEqual([0, 0, 0, 0])
+    expect([...rook.slice(56)]).toEqual([0, 0, 0, 0])
     expect(rook[53]).toBe(1)
     expect(rook[55]).toBeCloseTo(0.36)
     expect(positions.write.mock.calls.length).toBe(positionWrites)

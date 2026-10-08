@@ -4,11 +4,14 @@ import { cleanup, render } from '@solidjs/testing-library'
 import { createSignal, onCleanup } from 'solid-js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { GUMMY_BUILTIN_PRESETS } from '@/pages/GummyBear/gummyBuiltinPresets'
+import { defaultGummyMatchAppearance } from '@/pages/GummyBoard/gummyMatchAppearance'
+import { createGummyMatchCapturePresentation } from '@/pages/GummyBoard/gummyMatchCaptures'
 import { GummyMatchScene } from './GummyMatchScene'
 import type { ChessMoveReceipt } from '@chaos-master/core/chess/chessGame'
 import type { ComponentProps } from 'solid-js'
 import type { GummyMatchBoardScene } from './GummyMatchBoardScene'
 import type { GummyMatchCapture } from './GummyMatchCapture'
+import type { GummyMatchCapturePresentation } from '@/pages/GummyBoard/gummyMatchCaptures'
 
 const fixture = vi.hoisted(() => ({
   boards: [] as ComponentProps<typeof GummyMatchBoardScene>[],
@@ -37,7 +40,7 @@ vi.mock('./GummyMatchCapture', () => ({
 const game = createChessGame('6k1/pp3ppp/4p3/3n4/4P3/8/PP3PPP/6K1 w - - 0 24')
 const receipt = applyChessMove(game, { from: 'e4', to: 'd5' }).receipt
 
-function setup() {
+function setup(presentation?: GummyMatchCapturePresentation) {
   const [current, setCurrent] = createSignal<ChessMoveReceipt>()
   const [position, setPosition] = createSignal(game.position)
   const ready = vi.fn()
@@ -45,6 +48,7 @@ function setup() {
     <GummyMatchScene
       position={position()}
       receipt={current()}
+      presentation={presentation}
       legalSquares={['d5']}
       selectedSquare="e4"
       settings={GUMMY_BUILTIN_PRESETS[0]!.preset.settings}
@@ -78,6 +82,25 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('persistent match capture transition', () => {
+  it('uses the historical material and choreography for the capture layer', () => {
+    const look = {
+      ...defaultGummyMatchAppearance(),
+      scale: 0.95,
+      quality: 'tablet' as const,
+      theme: 'lava' as const,
+    }
+    const presentation = createGummyMatchCapturePresentation(receipt, look)!
+    const view = setup(presentation)
+    view.start()
+    const capture = fixture.captures[0]!
+    expect(capture.settings).toEqual(look.settings)
+    expect(capture.scale).toBe(0.95)
+    expect(capture.quality).toBe('tablet')
+    expect(capture.shot.boardTheme).toBe('lava')
+    expect(capture.shot.motion).toEqual(presentation.motion)
+    expect(capture.shot.mechanic).toEqual(presentation.mechanic)
+  })
+
   it('keeps the original board visible until the cinematic has a completed frame', () => {
     const view = setup()
     const board = view.getByTestId('board')

@@ -2,7 +2,13 @@
 import { exportChessPgn, importChessPgn, } from '@chaos-master/core/chess/chessGame'
 import { GUMMY_BOARD_EARLY_SHEAR_MOTION } from '@/components/GummyBoard/gummyBoardShots'
 import { gummyMatchPalettes } from '@/components/GummyBoard/gummyMatchPresentation'
-import { GUMMY_BUILTIN_PRESETS } from '../GummyBear/gummyBuiltinPresets'
+import { defaultGummyMatchAppearance, validateGummyMatchAppearance, } from './gummyMatchAppearance'
+import { createGummyMatchCaptures, matchesGummyCapture, parseGummyMatchCaptures, } from './gummyMatchCaptures'
+import type { GummyMatchAppearance } from './gummyMatchAppearance'
+import type { GummyMatchCapturePresentation } from './gummyMatchCaptures'
+
+export { defaultGummyMatchAppearance } from './gummyMatchAppearance'
+export type { GummyMatchAppearance } from './gummyMatchAppearance'
 import { createGummyPreset } from '../GummyBear/gummyPresets'
 import { createGummyCinemaRecipe, parseGummyCinemaRecipe, } from './gummyCinemaRecipe'
 import type { ChessGame, ChessMoveReceipt, } from '@chaos-master/core/chess/chessGame'
@@ -14,52 +20,12 @@ import type { GummyBoardTheme } from '@/components/GummyBoard/gummyBoardThemes'
 export const GUMMY_MATCH_SESSION_KEY = 'gummy-match-session-v1'
 export const GUMMY_MATCH_CINEMA_KEY = 'gummy-match-cinema-v1'
 type SessionStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
-export type GummyMatchAppearance = {
-  settings: GummyPresetSettings
-  quality: GummyBoardQuality
-  scale: number
-  theme: GummyBoardTheme
-}
 export type GummyMatchSession = {
   game: ChessGame
   cursor: number
   headers: Record<string, string>
   appearance?: GummyMatchAppearance
-}
-
-export function defaultGummyMatchAppearance(): GummyMatchAppearance {
-  const preset = GUMMY_BUILTIN_PRESETS.find((item) => item.id === 'rockgummy')!
-  return {
-    settings: createGummyPreset(preset.preset.name, preset.preset.settings)
-      .settings,
-    quality: 'auto',
-    scale: 0.9,
-    theme: 'classic',
-  }
-}
-
-function validateAppearance(value: unknown): GummyMatchAppearance {
-  if (!value || typeof value !== 'object' || Array.isArray(value))
-    throw new Error('Invalid match appearance.')
-  const appearance = value as Record<string, unknown>
-  if (
-    !['auto', 'tablet', 'high'].includes(appearance.quality as string) ||
-    !['classic', 'glass', 'lava'].includes(appearance.theme as string) ||
-    typeof appearance.scale !== 'number' ||
-    !Number.isFinite(appearance.scale) ||
-    appearance.scale < 0.85 ||
-    appearance.scale > 1
-  )
-    throw new Error('Invalid match appearance.')
-  return {
-    settings: createGummyPreset(
-      'Match material',
-      appearance.settings as GummyPresetSettings,
-    ).settings,
-    quality: appearance.quality as GummyBoardQuality,
-    scale: appearance.scale,
-    theme: appearance.theme as GummyBoardTheme,
-  }
+  captures?: GummyMatchCapturePresentation[]
 }
 
 export function loadGummyMatchSession(storage?: SessionStorage): {
@@ -71,13 +37,14 @@ export function loadGummyMatchSession(storage?: SessionStorage): {
       GUMMY_MATCH_SESSION_KEY,
     )
     if (!json) return {}
-    if (json.length > 150_000) throw new Error('The saved match is too large.')
+    if (json.length > 1_000_000)
+      throw new Error('The saved match is too large.')
     const value: unknown = JSON.parse(json)
     if (!value || typeof value !== 'object')
       throw new Error('Invalid saved match.')
     const data = value as Record<string, unknown>
     if (
-      data.version !== 1 ||
+      (data.version !== 1 && data.version !== 2) ||
       typeof data.pgn !== 'string' ||
       !Number.isInteger(data.cursor)
     )
@@ -87,18 +54,46 @@ export function loadGummyMatchSession(storage?: SessionStorage): {
     if (cursor < 0 || cursor > imported.game.history.length)
       throw new Error('Invalid saved match position.')
     const session: GummyMatchSession = { ...imported, cursor }
+    const notices: string[] = []
     if (data.appearance !== undefined) {
       try {
-        session.appearance = validateAppearance(data.appearance)
+        session.appearance = validateGummyMatchAppearance(data.appearance)
       } catch {
-        return {
-          session,
-          error:
-            'The game was restored, but its board settings were invalid. Default materials are shown.',
-        }
+        notices.push(
+          'The game was restored, but its board settings were invalid. Default materials are shown.',
+        )
       }
     }
-    return { session }
+    const appearance = session.appearance ?? defaultGummyMatchAppearance()
+    if (data.version === 2) {
+      try {
+        const captures = parseGummyMatchCaptures(data.captures, imported.game)
+        // Missing entries use the previous motion, rather than choosing a new effect on reload.
+        session.captures = createGummyMatchCaptures(
+          imported.game,
+          appearance,
+          true,
+        ).map(
+          (fallback) =>
+            captures.find((entry) => entry.ply === fallback.ply) ?? fallback,
+        )
+      } catch {
+        session.captures = createGummyMatchCaptures(
+          imported.game,
+          appearance,
+          true,
+        )
+        notices.push(
+          'The game was restored, but its saved capture effects were invalid. Earlier capture motion is available.',
+        )
+      }
+    } else
+      session.captures = createGummyMatchCaptures(
+        imported.game,
+        appearance,
+        true,
+      )
+    return { session, ...(notices.length ? { error: notices.join(' ') } : {}) }
   } catch {
     return {
       error: 'The saved match could not be restored. A new board is ready.',
@@ -113,11 +108,20 @@ export function saveGummyMatchSession(
   ;(storage ?? globalThis.sessionStorage).setItem(
     GUMMY_MATCH_SESSION_KEY,
     JSON.stringify({
-      version: 1,
+      version: 2,
       pgn: exportChessPgn(session.game, session.headers),
       cursor: session.cursor,
+      captures: parseGummyMatchCaptures(
+        session.captures ??
+          createGummyMatchCaptures(
+            session.game,
+            session.appearance ?? defaultGummyMatchAppearance(),
+            true,
+          ),
+        session.game,
+      ),
       appearance: session.appearance
-        ? validateAppearance(session.appearance)
+        ? validateGummyMatchAppearance(session.appearance)
         : undefined,
     }),
   )
@@ -144,13 +148,17 @@ export function createGummyMatchCinemaRecipe(
     scale: number
     theme: GummyBoardTheme
   },
+  presentation?: GummyMatchCapturePresentation,
 ): GummyCinemaRecipe {
   const reason = gummyMatchCinemaReason(receipt)
   if (reason) throw new Error(reason)
+  if (presentation && !matchesGummyCapture(presentation, receipt))
+    throw new Error('The saved effect belongs to another capture.')
+  const look = presentation?.appearance ?? options
   const attacker = receipt.before.pieces.find(
     (piece) => piece.id === receipt.pieceId,
   )!
-  const palettes = gummyMatchPalettes(options.settings.palette)
+  const palettes = gummyMatchPalettes(look.settings.palette)
   const title = `${attacker.role[0]!.toUpperCase()}${attacker.role.slice(1)} takes ${receipt.captured!.role}`
   const recipe = createGummyCinemaRecipe({
     id: `match-capture-${receipt.ply}`,
@@ -158,16 +166,17 @@ export function createGummyMatchCinemaRecipe(
     fen: receipt.before.fen,
     from: receipt.from,
     to: receipt.to,
-    boardTheme: options.theme,
+    boardTheme: look.theme,
     presetId: 'rockgummy',
     cameraStyle: 'arc',
-    motion: { ...GUMMY_BOARD_EARLY_SHEAR_MOTION },
+    motion: presentation?.motion ?? { ...GUMMY_BOARD_EARLY_SHEAR_MOTION },
+    ...(presentation?.mechanic ? { mechanic: presentation.mechanic } : {}),
   })
   return parseGummyCinemaRecipe({
     ...recipe,
-    material: createGummyPreset('Match material', options.settings).settings,
-    scale: options.scale,
-    quality: options.quality,
+    material: createGummyPreset('Match material', look.settings).settings,
+    scale: look.scale,
+    quality: look.quality,
     attackerPalette: attacker.color === 'w' ? palettes[0] : palettes[1],
     victimPalette: receipt.captured!.color === 'w' ? palettes[0] : palettes[1],
   })

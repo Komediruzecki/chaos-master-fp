@@ -537,6 +537,8 @@ async function verify() {
                   diagnostics: d.vec4f(),
                   transfer: d.vec4f(),
                   links: d.vec4u(),
+                  flow: d.vec4f(),
+                  contact: d.vec4f(0, 0, 0, 1000000),
                 },
               ])
               .$usage('storage'),
@@ -563,6 +565,13 @@ async function verify() {
                 gripTarget: d.vec4f(),
                 press: d.vec4f(),
                 limits: d.vec4f(6, 60, 6, 0),
+                rheology: d.vec4f(),
+                interaction: d.vec4f(),
+                fracture: d.vec4f(),
+                colliderPosition: d.vec4f(),
+                colliderVelocity: d.vec4f(),
+                gripMotion: d.vec4f(),
+                colliderRotation: d.vec4f(),
               })
               .$usage('uniform'),
           )
@@ -575,6 +584,9 @@ async function verify() {
             grip,
             grid,
             gridVelocities,
+            clock: own(
+              root.createBuffer(d.arrayOf(d.f32, 1), [0]).$usage('storage'),
+            ),
           })
           const pipelines = [
             gummyParticleP2G,

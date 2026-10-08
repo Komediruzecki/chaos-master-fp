@@ -1,5 +1,6 @@
 /** Portable shot recipes keep position, camera and material together without changing saved gummy presets. */
 import { GUMMY_BOARD_ORIGINAL_MOTION, GUMMY_BOARD_SHOTS, resolveGummyBoardShot, resolveGummyBoardShotMotion, } from '@/components/GummyBoard/gummyBoardShots'
+import { parseGummyCaptureMechanic } from '@/components/GummyBoard/gummyCaptureMechanics'
 import { GUMMY_BUILTIN_PRESETS } from '../GummyBear/gummyBuiltinPresets'
 import { createGummyPreset } from '../GummyBear/gummyPresets'
 import { GUMMY_BOARD_PALETTES } from './gummyBoardAppearance'
@@ -10,7 +11,7 @@ import type { GummyBoardShot, GummyBoardShotMotion, } from '@/components/GummyBo
 
 export type GummyCinemaRecipe = {
   format: 'gummy-cinema-shot'
-  version: 2
+  version: 2 | 3
   shot: GummyBoardShot & { motion: GummyBoardShotMotion }
   material: GummyPresetSettings
   scale: number
@@ -28,7 +29,7 @@ export function createGummyCinemaRecipe(
     GUMMY_BUILTIN_PRESETS[0]!
   return {
     format: 'gummy-cinema-shot',
-    version: 2,
+    version: 3,
     shot: { ...shot, motion: resolveGummyBoardShotMotion(shot.motion) },
     material: createGummyPreset(preset.preset.name, preset.preset.settings)
       .settings,
@@ -40,6 +41,28 @@ export function createGummyCinemaRecipe(
   }
 }
 
+function parseRecipeMotion(version: 1 | 2 | 3, s: Record<string, unknown>) {
+  if (version === 1 && s.motion !== undefined)
+    throw new Error('Use a version 2 recipe for shear settings.')
+  if (version !== 1 && s.motion === undefined)
+    throw new Error(
+      `A version ${String(version)} recipe needs explicit shot motion.`,
+    )
+  const motion = resolveGummyBoardShotMotion(
+    version === 1 ? GUMMY_BOARD_ORIGINAL_MOTION : s.motion,
+  )
+  if (
+    version !== 3 &&
+    (s.mechanic !== undefined ||
+      motion.shearSign !== undefined ||
+      motion.twistAngle !== undefined)
+  )
+    throw new Error('Use a version 3 recipe for capture mechanics.')
+  const mechanic =
+    s.mechanic === undefined ? undefined : parseGummyCaptureMechanic(s.mechanic)
+  return { motion, mechanic }
+}
+
 export function parseGummyCinemaRecipe(value: unknown): GummyCinemaRecipe {
   const raw: unknown = typeof value === 'string' ? JSON.parse(value) : value
   if (!raw || typeof raw !== 'object')
@@ -47,20 +70,14 @@ export function parseGummyCinemaRecipe(value: unknown): GummyCinemaRecipe {
   const r = raw as Record<string, unknown>
   if (
     r.format !== 'gummy-cinema-shot' ||
-    (r.version !== 1 && r.version !== 2) ||
+    (r.version !== 1 && r.version !== 2 && r.version !== 3) ||
     !r.shot ||
     typeof r.shot !== 'object' ||
     Array.isArray(r.shot)
   )
-    throw new Error('Expected a version 1 or 2 gummy cinema shot.')
+    throw new Error('Expected a version 1, 2 or 3 gummy cinema shot.')
   const s = r.shot as Record<string, unknown>
-  if (r.version === 1 && s.motion !== undefined)
-    throw new Error('Use a version 2 recipe for shear settings.')
-  if (r.version === 2 && s.motion === undefined)
-    throw new Error('A version 2 recipe needs explicit shot motion.')
-  const motion = resolveGummyBoardShotMotion(
-    r.version === 1 ? GUMMY_BOARD_ORIGINAL_MOTION : s.motion,
-  )
+  const { motion, mechanic } = parseRecipeMotion(r.version, s)
   for (const key of ['id', 'title', 'fen', 'from', 'to', 'presetId'])
     if (typeof s[key] !== 'string' || s[key].length > 200)
       throw new Error(`Invalid shot ${key}.`)
@@ -88,7 +105,11 @@ export function parseGummyCinemaRecipe(value: unknown): GummyCinemaRecipe {
     r.scale > 1
   )
     throw new Error('Piece size must be between 85% and 100%.')
-  const shot = { ...s, motion } as GummyBoardShot & {
+  const shot = {
+    ...s,
+    motion,
+    ...(mechanic ? { mechanic } : {}),
+  } as GummyBoardShot & {
     motion: GummyBoardShotMotion
   }
   resolveGummyBoardShot(shot)
@@ -98,7 +119,7 @@ export function parseGummyCinemaRecipe(value: unknown): GummyCinemaRecipe {
   ).settings
   return {
     format: 'gummy-cinema-shot',
-    version: 2,
+    version: r.version === 3 ? 3 : 2,
     shot: { ...shot },
     material,
     scale: r.scale,

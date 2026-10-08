@@ -10,10 +10,12 @@ import type { ChessMoveReceipt, ChessPosition, } from '@chaos-master/core/chess/
 import type { GummyBoardQuality } from './gummyBoardQuality'
 import type { GummyBoardTheme } from './gummyBoardThemes'
 import type { GummyPresetSettings } from '@/pages/GummyBear/gummyPresets'
+import type { GummyMatchCapturePresentation } from '@/pages/GummyBoard/gummyMatchCaptures'
 
 export type GummyMatchSceneProps = {
   position: ChessPosition
   receipt?: ChessMoveReceipt
+  presentation?: GummyMatchCapturePresentation
   selectedSquare?: string
   legalSquares: readonly string[]
   settings: GummyPresetSettings
@@ -31,6 +33,7 @@ export function GummyMatchScene(props: GummyMatchSceneProps) {
   const [, shared] = splitProps(props, [
     'position',
     'receipt',
+    'presentation',
     'selectedSquare',
     'legalSquares',
   ])
@@ -40,8 +43,23 @@ export function GummyMatchScene(props: GummyMatchSceneProps) {
   const [opacity, setOpacity] = createSignal(1)
   const capture = createMemo(() => {
     const receipt = props.receipt
-    const shot = receipt && gummyMatchCaptureShot(receipt, props.theme)
-    return receipt && shot ? { receipt, shot } : undefined
+    const shot =
+      receipt &&
+      gummyMatchCaptureShot(
+        receipt,
+        props.presentation?.appearance.theme ?? props.theme,
+        props.presentation,
+      )
+    const appearance = props.presentation?.appearance
+    return receipt && shot
+      ? {
+          receipt,
+          shot,
+          settings: appearance?.settings ?? props.settings,
+          scale: appearance?.scale ?? props.scale,
+          quality: appearance?.quality ?? props.quality,
+        }
+      : undefined
   })
   const captureVisible = createMemo(() => {
     const current = capture()
@@ -81,6 +99,9 @@ export function GummyMatchScene(props: GummyMatchSceneProps) {
             <GummyMatchCapture
               {...props}
               receipt={current.receipt}
+              settings={current.settings}
+              scale={current.scale}
+              quality={current.quality}
               shot={current.shot}
               restMeshPool={restMeshPool}
               orbit={orbit}

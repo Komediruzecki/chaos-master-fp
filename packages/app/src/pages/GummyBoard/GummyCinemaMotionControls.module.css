@@ -1,0 +1,46 @@
+/* Mechanic controls own their chrome inside the studio's shared shot fieldset. */
+.choices {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  margin: 10px 0;
+}
+.choice {
+  appearance: none;
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  min-height: 64px;
+  padding: 12px;
+  border: 1px solid #b8c5c5;
+  border-radius: 7px;
+  background: #f6f5ef;
+  color: #345969;
+  text-align: left;
+  font: 12px/1.5 var(--font-sans, sans-serif);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.choice strong {
+  font-size: 13px;
+  font-weight: 650;
+}
+.choice span {
+  color: #506873;
+  font-size: 11px;
+}
+.choice:hover {
+  background: #e4e9e5;
+}
+.choice[aria-pressed='true'] {
+  background: #e1eceb;
+  border-color: #2c657e;
+  box-shadow: inset 3px 0 #2c657e;
+}
+.choice:focus-visible {
+  outline: 2px solid #2d799b;
+  outline-offset: 3px;
+}
+.choice:disabled {
+  cursor: default;
+}

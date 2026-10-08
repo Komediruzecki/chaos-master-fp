@@ -1,5 +1,5 @@
 /** A simulation-time capture leaves the attacking rook on its opponent's square. */
-import { BOARD_TILE_SIZE } from '@/components/PawnBoard/pawnBoardMath'
+import { gummyBoardGridCentre } from './gummyBoardGrid'
 import type { GummyPalette } from '@/components/GummyBear/gummyMaterial'
 import type { GummyVec3 } from '@/components/GummyBear/gummyStudyMath'
 import type { GummyChessMould } from '@/simulation/gummy/gummyChessMoulds'
@@ -42,11 +42,7 @@ export function createGummyBoardPieces(): GummyBoardPiece[] {
   for (const rank of [0, 1, 6, 7])
     for (let file = 0; file < 8; file++) {
       const id = pieces.length + 1
-      const position: GummyVec3 = [
-        (file - 3.5) * BOARD_TILE_SIZE,
-        0,
-        (3.5 - rank) * BOARD_TILE_SIZE,
-      ]
+      const position = gummyBoardGridCentre(file, rank)
       const mould = rank === 1 || rank === 6 ? 'pawn' : backRank[file]!
       pieces.push({
         id,

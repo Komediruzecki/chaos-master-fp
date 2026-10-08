@@ -1,5 +1,5 @@
 /** Rule receipts become render poses; animation never changes the committed chess game. */
-import { BOARD_TILE_SIZE } from '@/components/PawnBoard/pawnBoardMath'
+import { GUMMY_BOARD_GRID, gummyBoardGridSquare } from './gummyBoardGrid'
 import { gummyBoardSquare } from './gummyBoardPosition'
 import { GUMMY_BOARD_EARLY_SHEAR_MOTION, resolveGummyBoardShot, } from './gummyBoardShots'
 import type { ChessMoveReceipt, ChessPosition, } from '@chaos-master/core/chess/chessGame'
@@ -44,6 +44,7 @@ export function gummyMatchPieces(
 export function gummyMatchCaptureShot(
   receipt: ChessMoveReceipt,
   theme: GummyBoardTheme,
+  presentation?: Pick<GummyBoardShot, 'motion' | 'mechanic'>,
 ): GummyBoardShot | undefined {
   if (
     !receipt.captured ||
@@ -60,7 +61,8 @@ export function gummyMatchCaptureShot(
     boardTheme: theme,
     presetId: 'mid',
     cameraStyle: 'arc',
-    motion: { ...GUMMY_BOARD_EARLY_SHEAR_MOTION },
+    motion: presentation?.motion ?? { ...GUMMY_BOARD_EARLY_SHEAR_MOTION },
+    ...(presentation?.mechanic ? { mechanic: presentation.mechanic } : {}),
   }
   try {
     resolveGummyBoardShot(shot)
@@ -110,20 +112,17 @@ export function gummyMatchMoveFrame(
 /** Intersect the actual board plane so empty legal destinations can be tapped. */
 export function gummyMatchFloorSquare(ray: GummyRay) {
   if (Math.abs(ray.direction[1]) < 1e-8) return undefined
-  const distance = -ray.origin[1] / ray.direction[1]
+  const distance = (GUMMY_BOARD_GRID.top - ray.origin[1]) / ray.direction[1]
   if (distance < 0) return undefined
   const x = ray.origin[0] + ray.direction[0] * distance
   const z = ray.origin[2] + ray.direction[2] * distance
-  const file = Math.floor(x / BOARD_TILE_SIZE + 4)
-  const rank = Math.floor(4 - z / BOARD_TILE_SIZE)
-  if (file < 0 || file > 7 || rank < 0 || rank > 7) return undefined
-  return `${'abcdefgh'[file]}${rank + 1}`
+  return gummyBoardGridSquare(x, z)
 }
 
 /** Percentage positions let accessible destination buttons track the orbiting board. */
 export function gummyMatchSquareMarker(square: string, vp: Float32Array) {
   const [x, , z] = gummyBoardSquare(square).position
-  const y = 0.06
+  const y = GUMMY_BOARD_GRID.top
   const w = vp[3]! * x + vp[7]! * y + vp[11]! * z + vp[15]!
   if (w <= 0) return undefined
   const px = (vp[0]! * x + vp[4]! * y + vp[8]! * z + vp[12]!) / w

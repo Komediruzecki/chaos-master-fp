@@ -325,6 +325,7 @@ export function createGummyParticleSolver(
       if (collider) {
         f32.set([...collider.position, 1], 44)
         f32.set([...collider.velocity, collider.friction], 48)
+        f32.set([collider.rotationY, collider.angularVelocityY, 0, 0], 56)
       }
       if (input.gripMotion)
         f32.set(

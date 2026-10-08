@@ -47,6 +47,13 @@ initial loading message does not return for captures or replay. Castling, en pas
 promotion and ordinary moves have short move animations. Special captures are
 legal even where the cinematic crush does not yet support their presentation.
 
+Captures now vary between **Press and settle**, **Shoulder sweep** and **Rock and
+shear**. The match chooses once when the move is committed, avoids an immediate
+repeat when compatible alternatives exist, and reduces travel or rotation around
+nearby pieces. A crowded position can use the simpler press. **Game & moves**
+shows the selected capture's motion above its Cinema link. Replaying the move
+uses the same choice and saved material rather than choosing again.
+
 The rules commit each move once, before its animation starts:
 
 - **Skip animation** finishes on the same committed position.
@@ -76,27 +83,41 @@ Auto, 90% size and the user's RockGummy material.
 
 The shared preset controls offer **Low: firm**, **Mid: soft**, **High: mushy** and
 **RockGummy**, plus saved and imported material presets. Tune a material in the
-workbench, copy its preset JSON, then import and apply it here. Capture playback
-uses the chosen softness, fragility, flow, viscosity and other material settings.
+workbench, copy its preset JSON, then import and apply it here. Each capture
+records the chosen softness, fragility, flow, viscosity and other material settings
+when each capture is played. Later changes apply to future captures; replaying an
+earlier move retains its saved look and motion. Open that capture in Cinema to
+compare a different material or mechanic.
 The white side uses the preset palette; the black side uses blue, or marbled
 candy when white uses blue. Individual-piece palette editing remains in the crash study.
 Settings cannot change during a move presentation.
 
 ## Save, import and review a game
 
-The match saves its validated PGN, history cursor and material/board settings in
-`sessionStorage`. Reloading or visiting the shot studio in the same browser tab
+The match saves its validated PGN, history cursor, current material/board settings
+and each capture's resolved motion and appearance in `sessionStorage`. Reloading
+or visiting the shot studio in the same browser tab
 restores that session. This is tab-local storage, not an account backup or device
 sync. Copy PGN before closing the tab if you need a portable game. When storage is
 blocked, the page reports that the match can continue for the current visit.
 PGN carries moves and setup; material settings travel separately through presets
 or shot recipes.
 
+Session version 2 stores the capture snapshots. Earlier version 1 sessions keep
+their original Press and peel motion on recovery; they do not receive newly
+selected effects. Invalid saved effect data produces a notice and falls back to
+that earlier motion while retaining the legal game. Saved effects are matched to
+the move's ply, pre-move FEN and notation before reuse. Undo, a new continuation,
+or a draw claim from an earlier position removes effects belonging to discarded
+future moves.
+
 Open **Import or copy PGN**, paste one game and choose **Import game**. Validation
 must succeed before it replaces the current game. An imported timeline opens at
 its initial position; use the arrows or move history to review it. **Copy PGN**
 exports the full retained timeline, even while reviewing an earlier position.
 If clipboard access is blocked, the text is selected for manual copying.
+PGN imports assign repeatable capture choices using the current material and
+board settings, because PGN does not contain the original appearance history.
 
 A short capture example:
 
@@ -135,10 +156,12 @@ error instead of partially applying a game.
 
 Select a completed capture in the move history, then choose **Open in Cinema**.
 An ordinary occupied-square capture becomes a validated shot recipe containing
-its before-position FEN, source/destination, current material, actor palettes,
-board finish, size and render quality. It starts with the arc camera, sculpted
-pieces and Press and peel motion. The studio can then change those choices,
-preview, record or export using its existing controls; see
+its before-position FEN, source/destination and saved capture-time material,
+actor palettes, board finish, size, render quality and motion. It starts with the
+arc camera and sculpted pieces. New shot recipes use schema v3; earlier v1/v2
+recipes retain their motion semantics when imported. In Cinema, choose a fixed
+mechanic or tune the existing motion, then **Apply shot settings** to preview,
+record or export; see
 [gummy-cinema.md](gummy-cinema.md).
 
 En-passant and promotion captures currently show an explanation instead of
@@ -287,6 +310,15 @@ The metrics gate still reports the rebased branch's existing debt: 86 files over
 No baseline was relaxed. Extracting the affine-grid theme reduced that file's cap
 from 1,172 to 1,154 lines.
 
-The [Arcade integration plan](gummy-chess-arcade-plan.md) tracks the next work:
-an aligned inset-glass playing surface, varied capture mechanics, authored
-fractal collections and private friend sessions.
+The [Arcade integration plan](gummy-chess-arcade-plan.md) records the implemented
+glass surface and varied capture mechanics. All three mechanics passed the Glass
+pawn-knight native desktop run at Tablet quality, with finite sampled state,
+no surface overflow or dropped vertices, no errors/warnings and a target-square
+landing. Studio controls passed at 1440, 834 and 390px widths. Evidence is in
+`/home/maff/agent-out/chaos-master-fp/2026-10-08/glass-captures/capture-native.json`.
+
+The next acceptance work is physical iOS/tablet testing of the new angular
+contact, performance measurement and broader role/material comparisons. Then
+prove one authored fractal pawn through editing, saving, playing and Cinema
+before expanding the collection. Private friend sessions remain a later planned
+phase; this match still runs locally with both players in one browser.

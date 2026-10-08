@@ -9,7 +9,7 @@ import { GUMMY_STEP } from '../GummyBear/gummyStudyMath'
 import { resolveGummyBoardQuality } from './gummyBoardQuality'
 import { createGummyBoardRenderer } from './gummyBoardRenderer'
 import { gummyBoardShotCamera } from './gummyBoardShotCamera'
-import { gummyBoardShotPose, gummyBoardShotSimulationTime, gummyBoardShotStep, resolveGummyBoardShot, } from './gummyBoardShots'
+import { gummyBoardShotPose, gummyBoardShotRotation, gummyBoardShotSimulationTime, gummyBoardShotStep, resolveGummyBoardShot, } from './gummyBoardShots'
 import { gummyMatchShotCamera } from './gummyMatchShotCamera'
 import type { GummyPalette } from '../GummyBear/gummyMaterial'
 import type { GummyOrbit, GummyVec3 } from '../GummyBear/gummyStudyMath'
@@ -183,6 +183,8 @@ function NativeGummyCinema(
           ) as GummyVec3,
           velocity: world.velocity.map((v) => v / scale) as GummyVec3,
           friction: world.friction,
+          rotationY: world.rotationY,
+          angularVelocityY: world.angularVelocityY,
         },
       })
       ticks++
@@ -200,6 +202,9 @@ function NativeGummyCinema(
     const camera = props.matchOrbit
       ? gummyMatchShotCamera(shot, displayTime, aspect, scale, props.matchOrbit)
       : gummyBoardShotCamera(shot, displayTime, aspect, scale)
+    attacker.rotationY =
+      (shot.attacker.rotationY ?? 0) +
+      gummyBoardShotRotation(shot, simulationTime())
     attacker.position = gummyBoardShotPose(
       shot,
       simulationTime(),

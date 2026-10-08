@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor, } from '@solidjs/testing-l
 import { onCleanup } from 'solid-js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { GUMMY_BOARD_SHOTS } from '@/components/GummyBoard/gummyBoardShots'
+import { createGummyCaptureMechanic, gummyCaptureMechanicContext, } from '@/components/GummyBoard/gummyCaptureMechanics'
 import { GUMMY_BUILTIN_PRESETS } from '../GummyBear/gummyBuiltinPresets'
 import { GummyCinemaPage } from './GummyCinemaPage'
 import { createGummyCinemaRecipe, parseGummyCinemaRecipe, } from './gummyCinemaRecipe'
@@ -296,7 +297,7 @@ describe('GummyCinemaPage', () => {
     })
     expect(current().material).toEqual(material)
     expect(exportRecipe()).toMatchObject({
-      version: 2,
+      version: 3,
       shot: {
         motion: { shearOnset: 0.35, shearDistance: 0.42, contactHold: 0.35 },
       },
@@ -309,6 +310,125 @@ describe('GummyCinemaPage', () => {
       contactHold: 0,
     })
     expect(current().material).toEqual(material)
+  })
+
+  it.each([
+    ['press-settle', 'Press and settle'],
+    ['shoulder-sweep', 'Shoulder sweep'],
+    ['rock-shear', 'Rock and shear'],
+  ] as const)(
+    'stages the fixed %s mechanic and exports its exact motion without changing material',
+    (id, title) => {
+      render(() => <GummyCinemaPage />)
+      const before = current()
+      const material = structuredClone(before.material)
+      const selected = createGummyCaptureMechanic(
+        id,
+        0,
+        gummyCaptureMechanicContext(before.shot, before.scale),
+      )
+      const button = screen.getByRole('button', { name: title })
+      fireEvent.click(button)
+      expect(button.getAttribute('aria-pressed')).toBe('true')
+      expect(fixtures.scenes).toHaveLength(1)
+      expect(current()).toBe(before)
+      apply()
+      expect(fixtures.scenes).toHaveLength(2)
+      expect(current().shot.mechanic).toEqual(selected.mechanic)
+      expect(current().shot.motion).toEqual(selected.motion)
+      expect(current().material).toEqual(material)
+      const exported = exportRecipe()
+      expect(exported.version).toBe(3)
+      expect(exported.shot.mechanic).toEqual(selected.mechanic)
+      expect(exported.shot.motion).toEqual(selected.motion)
+      fireEvent.click(screen.getByRole('button', { name: 'Play shot' }))
+      expect(current().shot.motion).toEqual(selected.motion)
+      expect(fixtures.scenes).toHaveLength(2)
+    },
+  )
+
+  it('keeps the imported seed for fixed choices and clears provenance when tuning motion', () => {
+    const recipe = createGummyCinemaRecipe()
+    const selected = createGummyCaptureMechanic(
+      'rock-shear',
+      73,
+      gummyCaptureMechanicContext(recipe.shot, recipe.scale),
+    )
+    recipe.shot = { ...recipe.shot, ...selected }
+    sessionStorage.setItem(GUMMY_MATCH_CINEMA_KEY, JSON.stringify(recipe))
+    window.history.replaceState(null, '', '/gummy?view=cinema&from=match')
+    render(() => <GummyCinemaPage />)
+    expect(
+      screen
+        .getByRole('button', { name: 'Rock and shear' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true')
+    fireEvent.click(screen.getByRole('button', { name: 'Shoulder sweep' }))
+    apply()
+    expect(current().shot.mechanic?.seed).toBe(73)
+    fireEvent.click(screen.getByRole('button', { name: 'Rock and shear' }))
+    apply()
+    openSection('Crush and shear')
+    fireEvent.input(screen.getByRole('slider', { name: /Sideways travel/ }), {
+      target: { value: '0.42' },
+    })
+    expect(
+      screen
+        .getByRole('button', { name: 'Rock and shear' })
+        .getAttribute('aria-pressed'),
+    ).toBe('false')
+    expect(
+      screen.getByText(/Custom motion. The recipe keeps your exact settings/),
+    ).toBeTruthy()
+    apply()
+    expect(current().shot.mechanic).toBeUndefined()
+    expect(current().shot.motion).toEqual({
+      ...selected.motion,
+      shearDistance: 0.42,
+    })
+    expect(exportRecipe().shot.motion).toEqual({
+      ...selected.motion,
+      shearDistance: 0.42,
+    })
+  })
+
+  it('rebinds fixed motion when draft size or position changes and keeps the live scene until Apply', () => {
+    const recipe = createGummyCinemaRecipe()
+    recipe.shot.fen = '7k/8/8/3n4/4P3/8/8/K7 w - - 0 1'
+    Object.assign(recipe.shot, createGummyCaptureMechanic('rock-shear', 73))
+    recipe.shot.motion.shearDistance = 0.29
+    sessionStorage.setItem(GUMMY_MATCH_CINEMA_KEY, JSON.stringify(recipe))
+    window.history.replaceState(null, '', '/gummy?view=cinema&from=match')
+    render(() => <GummyCinemaPage />)
+    const before = current()
+    expect(before.shot.motion.shearDistance).toBe(0.29)
+    openSection('Position and move')
+    fireEvent.input(screen.getByLabelText('Position (FEN)'), {
+      target: { value: '' },
+    })
+    apply()
+    expect(screen.getByRole('alert')).toBeTruthy()
+    expect(current()).toBe(before)
+    fireEvent.input(screen.getByLabelText('Position (FEN)'), {
+      target: { value: GUMMY_BOARD_SHOTS[0]!.fen },
+    })
+    fireEvent.input(screen.getByRole('slider', { name: /Piece size/ }), {
+      target: { value: '1' },
+    })
+    expect(fixtures.scenes).toHaveLength(1)
+    apply()
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(current().shot.mechanic).toEqual(recipe.shot.mechanic)
+    expect(current().shot.motion).toEqual(
+      createGummyCaptureMechanic(
+        'rock-shear',
+        73,
+        gummyCaptureMechanicContext(current().shot, current().scale),
+      ).motion,
+    )
+    expect(current().shot.motion.shearDistance).toBeLessThan(0.29)
+    expect(current().material).toEqual(before.material)
+    expect(exportRecipe().shot.motion).toEqual(current().shot.motion)
   })
 
   it.each(['position', 'capture'] as const)(
@@ -325,6 +445,9 @@ describe('GummyCinemaPage', () => {
           value: kind === 'position' ? '8/8/8/8/8/8/8/8 w - - 0 1' : 'e5',
         },
       })
+      fireEvent.click(screen.getByRole('button', { name: 'Shoulder sweep' }))
+      expect(screen.getByRole('alert')).toBeTruthy()
+      expect(fixtures.scenes).toHaveLength(1)
       apply()
       expect(screen.getByRole('alert').textContent).toMatch(
         kind === 'position' ? /king/ : /occupied destination/,

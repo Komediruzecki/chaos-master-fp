@@ -3,9 +3,46 @@ import { d, std, tgpu } from 'typegpu'
 import { describe, expect, it } from 'vitest'
 import { gummyChessField } from './gummyChessMoulds'
 import { gummyParticleAdvanceTime, gummyParticleG2P, gummyParticleGridUpdate, gummyParticleP2G, } from './gummyParticleShaders'
-import { gummyRookContact, gummyRookContactCorrection, gummyRookContactVelocity, gummyRookMayContact, normalizeGummyRookCollider, } from './gummyRookCollider'
+import { gummyColliderRotateY, gummyColliderSurfaceVelocity, gummyRookContact, gummyRookContactCorrection, gummyRookContactVelocity, gummyRookMayContact, normalizeGummyRookCollider, } from './gummyRookCollider'
 
 describe('prescribed rook collider', () => {
+  it('transforms contact points and normals with the visible yaw and transfers the local surface velocity', () => {
+    const point = d.vec3f(0.6, 2.3, -0.2)
+    const localContact = gummyRookContact(point)
+    const angle = 0.24
+    const worldPoint = gummyColliderRotateY(point, angle)
+    const recovered = gummyColliderRotateY(worldPoint, -angle)
+    for (let axis = 0; axis < 3; axis++)
+      expect(recovered[axis]).toBeCloseTo(point[axis]!, 6)
+    const contact = gummyRookContact(recovered)
+    expect(contact.w).toBeCloseTo(localContact.w, 6)
+    const normal = gummyColliderRotateY(contact.xyz, angle)
+    expect(std.length(normal)).toBeCloseTo(1, 6)
+    const linear = d.vec3f(0.1, -0.2, 0.3),
+      omega = 0.8,
+      dt = 0.002
+    const velocity = gummyColliderSurfaceVelocity(linear, worldPoint, omega)
+    const next = gummyColliderRotateY(point, angle + omega * dt)
+    const previous = gummyColliderRotateY(point, angle - omega * dt)
+    for (let axis = 0; axis < 3; axis++)
+      expect(velocity[axis]).toBeCloseTo(
+        (next[axis]! - previous[axis]!) / (2 * dt) + linear[axis]!,
+        4,
+      )
+    const config = {
+      position: [0, 0, 0] as const,
+      velocity: [0, 0, 0] as const,
+    }
+    expect(normalizeGummyRookCollider(config)?.angularVelocityY).toBe(0)
+    for (const update of [
+      { rotationY: NaN },
+      { angularVelocityY: Infinity },
+      { angularVelocityY: -4.01 },
+    ])
+      expect(() =>
+        normalizeGummyRookCollider({ ...config, ...update }),
+      ).toThrow('yaw')
+  })
   it('rejects separated material cheaply without discarding any sampled exact contact', () => {
     for (const radius of [0.03, 0.04, 0.06])
       for (let y = -0.18; y < 2.8; y += 0.11)

@@ -65,6 +65,23 @@ function setup(options: GummyParticleOptions = {}) {
 }
 
 describe('particle solver tuning uniforms', () => {
+  it('appends rotating collider data without shifting the legacy uniform fields and clears it on release', () => {
+    const { solver, write } = setup()
+    const active = write({
+      collider: {
+        position: [1, 2, 3],
+        velocity: [0, -1, 0],
+        rotationY: 0.24,
+        angularVelocityY: -0.6,
+      },
+    })
+    expect(active.length).toBe(60)
+    expect([...active.slice(44, 48)]).toEqual([1, 2, 3, 1])
+    expect(active[56]).toBeCloseTo(0.24)
+    expect(active[57]).toBeCloseTo(-0.6)
+    expect([...write().slice(56, 60)]).toEqual([0, 0, 0, 0])
+    solver.destroy()
+  })
   it('rotates initial geometry before placement and preserves canonical dye and reset positions', () => {
     const { solver, geometryWrites } = setup({
       fixture: 'knight',

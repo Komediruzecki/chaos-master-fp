@@ -93,14 +93,57 @@ checks described below. Sampled opening and ending captions passed visual
 review; human audio audition remains pending. V1 results below remain the
 completed earlier reference set.
 
+## Repeatable capture mechanics and recipe schema v3
+
+**Capture motion** now offers three fixed choices: **Press and settle** for the
+original late sweep, **Shoulder sweep** for an earlier sideways push and hold,
+and **Rock and shear** for a small alternating turn while pressing. The collider
+turns with the visible attacker and includes angular contact velocity. Selecting
+a choice keeps the material settings; **Apply shot settings** rebuilds the shot
+with the staged motion. Neighbouring pieces limit the travel and turn angle, so
+the same choice can use a smaller gesture on a crowded board.
+
+New recipes use schema version 3. `shot.motion` remains authoritative; optional
+`shot.mechanic` records `{ version: 1, id, seed }`. The motion contract adds
+optional `shearSign` (`-1` or `1`) and `twistAngle` (0–0.35 radians). Importing a
+recipe never regenerates its explicit parameters from the name or seed. Fixed
+choices retain an imported seed. If you edit the position, source/target square
+or size, their motion is bounded again for that new context using the same
+mechanic and seed. Incomplete position edits stay writable until valid. Custom
+and legacy motion is preserved when its context changes. Changing the advanced motion sliders clears
+the mechanic label and keeps the exact edited motion, including its turn angle.
+The earlier **Original motion** and **Press and peel** controls remain available.
+
+Schema v1 imports keep original motion and normalize to v2. Schema v2 imports
+retain their explicit trajectory; missing `contactHold` becomes zero and absent
+angular fields remain absent. New mechanic metadata or angular fields require
+v3. These schema versions are independent of the historical v1/v2/v3 film output
+folders described in this guide; existing approved film recipes remain usable.
+
+A match handoff now brings its saved capture-time motion and appearance, including
+material, palette, board, scale and quality. Changing the live match's look later
+does not rewrite that shot. A PGN import has no material history, so its captures
+receive the current match settings and deterministic choices when imported.
+
+On 2026-10-08, native Chromium on the desktop AMD GPU ran all three choices for
+the Glass pawn-knight shot at Tablet quality. Sampled particle state was finite,
+the surface stayed within capacity, no vertices were dropped, and no errors or
+warnings were recorded. The attacker finished on the target square. Evidence:
+`/home/maff/agent-out/chaos-master-fp/2026-10-08/glass-captures/capture-native.json`.
+Studio controls and overflow checks passed at 1440, 834 and 390px widths. Physical
+iOS/tablet verification of the new angular contact and broader role/material
+comparisons are still open; a desktop run at Tablet quality does not measure a
+tablet's performance.
+
 ## Stage and reuse a shot
 
 1. Pick a capture. The three presets are independent composed chess positions,
    not a historical match or a consecutive game.
 2. Choose a piece design, board finish, attacker/victim colours, camera, material,
-   size and quality. Choose **Original motion** or **Press and peel**, then open
-   **Crush and shear** to adjust onset, travel and the mid-press hold. Changes stay
-   in the draft until **Apply shot settings**.
+   size and quality. Choose **Press and settle**, **Shoulder sweep** or **Rock and
+   shear**; the earlier **Original motion** and **Press and peel** remain available.
+   Open **Crush and shear** to adjust onset, travel and the mid-press hold. Changes
+   stay in the draft until **Apply shot settings**.
 3. Use **Position and move** for a custom FEN and source/target square. The tool
    checks move geometry, clear sliding paths, side to move and king safety.
    Capturing a king, castling, en passant and promotion are not supported.

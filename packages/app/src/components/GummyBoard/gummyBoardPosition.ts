@@ -1,5 +1,5 @@
 /** FEN positions and occupied-square captures for the cinematic chess studies. */
-import { BOARD_TILE_SIZE } from '@/components/PawnBoard/pawnBoardMath'
+import { gummyBoardGridCentre } from './gummyBoardGrid'
 import type { GummyBoardPiece } from './gummyBoardChoreography'
 import type { GummyVec3 } from '@/components/GummyBear/gummyStudyMath'
 import type { GummyChessMould } from '@/simulation/gummy/gummyChessMoulds'
@@ -29,11 +29,7 @@ export function gummyBoardSquare(square: string): {
   return {
     file,
     rank,
-    position: [
-      (file - 3.5) * BOARD_TILE_SIZE,
-      0,
-      (3.5 - rank) * BOARD_TILE_SIZE,
-    ],
+    position: gummyBoardGridCentre(file, rank),
   }
 }
 

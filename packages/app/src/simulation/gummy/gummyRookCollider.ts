@@ -7,6 +7,10 @@ export type GummyRookCollider = {
   position: readonly [number, number, number]
   /** Prescribed linear velocity in simulation units/second. */
   velocity: readonly [number, number, number]
+  /** Delta yaw relative to the sampled mould orientation, in radians. */
+  rotationY?: number
+  /** Prescribed angular velocity in radians/second. */
+  angularVelocityY?: number
   friction?: number
 }
 
@@ -23,13 +27,45 @@ export function normalizeGummyRookCollider(collider?: GummyRookCollider) {
       'Rook collider speed must not exceed 32 units per second',
     )
   const friction = collider.friction ?? 0.35
+  const rotationY = collider.rotationY ?? 0
+  const angularVelocityY = collider.angularVelocityY ?? 0
+  if (
+    !Number.isFinite(rotationY) ||
+    !Number.isFinite(angularVelocityY) ||
+    Math.abs(angularVelocityY) > 4
+  )
+    throw new RangeError(
+      'Collider yaw must be finite and turn at most 4 radians per second',
+    )
   if (!Number.isFinite(friction))
     throw new RangeError('Rook collider friction must be finite')
   return {
     position: collider.position,
     velocity: collider.velocity,
+    rotationY,
+    angularVelocityY,
     friction: Math.max(0, Math.min(1, friction)),
   }
+}
+
+/** Same Y rotation convention as the visible board instances. Negative angle maps into the field. */
+export const gummyColliderRotateY = (point: d.v3f, angle: number) => {
+  'use gpu'
+  if (angle === 0) return d.vec3f(point)
+  const c = std.cos(angle)
+  const s = std.sin(angle)
+  return d.vec3f(point.x * c + point.z * s, point.y, point.z * c - point.x * s)
+}
+
+/** Rigid surface velocity includes omega cross radius, so yaw really shears the jelly. */
+export const gummyColliderSurfaceVelocity = (
+  linear: d.v3f,
+  offset: d.v3f,
+  angularY: number,
+) => {
+  'use gpu'
+  if (angularY === 0) return d.vec3f(linear)
+  return std.add(linear, d.vec3f(angularY * offset.z, 0, -angularY * offset.x))
 }
 
 const profilePoint = tgpu.comptime((index: number) => {

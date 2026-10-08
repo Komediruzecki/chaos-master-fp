@@ -164,6 +164,7 @@ export function GummyMatchPage(props: { onBackToArcade?: () => void } = {}) {
                 <GummyMatchScene
                   position={match.position()}
                   receipt={match.receipt()}
+                  presentation={match.activePresentation()}
                   selectedSquare={match.selectedSquare()}
                   legalSquares={match.legalSquares()}
                   settings={settings()}

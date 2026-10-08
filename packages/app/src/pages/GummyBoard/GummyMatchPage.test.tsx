@@ -69,6 +69,26 @@ function importPgn(text: string) {
 }
 
 describe('GummyMatchPage', () => {
+  it('opens a restored version-one capture without mechanic metadata and keeps its replay available', () => {
+    sessionStorage.setItem(
+      GUMMY_MATCH_SESSION_KEY,
+      JSON.stringify({ version: 1, pgn: '1. e4 d5 2. exd5 *', cursor: 3 }),
+    )
+    render(() => <GummyMatchPage />)
+    fireEvent.click(screen.getByRole('tab', { name: 'Game & moves' }))
+    expect(screen.getByRole('table', { name: 'Move history' })).toBeTruthy()
+    expect(screen.getByText('Move 3 of 3')).toBeTruthy()
+    expect(screen.queryByText(/Capture motion:/)).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Replay move' }))
+    expect(scene().receipt?.san).toBe('exd5')
+    expect(scene().presentation?.mechanic).toBeUndefined()
+    expect(scene().presentation?.motion).toEqual({
+      shearOnset: 0.35,
+      shearDistance: 1.1,
+      contactHold: 0.35,
+    })
+  })
+
   it('applies collection cards without changing the game or its material tuning and restores the choice', () => {
     const view = render(() => <GummyMatchPage />)
     play('e2', 'e4')

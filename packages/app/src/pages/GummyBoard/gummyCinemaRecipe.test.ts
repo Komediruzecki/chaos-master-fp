@@ -1,6 +1,7 @@
 /** Portable cinema recipes preserve exact materials and reject invalid positions before application. */
 import { describe, expect, it } from 'vitest'
 import { GUMMY_BOARD_SHOTS } from '@/components/GummyBoard/gummyBoardShots'
+import { createGummyCaptureMechanic } from '@/components/GummyBoard/gummyCaptureMechanics'
 import { createGummyCinemaRecipe, parseGummyCinemaRecipe, } from './gummyCinemaRecipe'
 
 export const ROCK_GUMMY_SETTINGS = {
@@ -34,7 +35,7 @@ describe('gummy cinema recipes', () => {
     expect(decoded.shot).not.toBe(recipe.shot)
     expect(decoded.shot.motion).not.toBe(recipe.shot.motion)
     expect(decoded).toMatchObject({
-      version: 2,
+      version: 3,
       shot: { motion: { shearOnset: 1, shearDistance: 0.18 } },
     })
     decoded.material.tuning.flow = 0.3
@@ -93,6 +94,7 @@ describe('gummy cinema recipes', () => {
 
   it('round-trips explicit version-two early motion without mutating the recipe or built-in shot', () => {
     const recipe = createGummyCinemaRecipe(GUMMY_BOARD_SHOTS[1])
+    recipe.version = 2
     recipe.shot.motion = {
       shearOnset: 0.35,
       shearDistance: 0.42,
@@ -169,7 +171,7 @@ describe('gummy cinema recipes', () => {
     { artStyle: 'unknown' },
     { attackerPalette: 'green' },
     { victimPalette: 'silver' },
-    { version: 3 },
+    { version: 4 },
     { format: 'different' },
     { material: {} },
   ])('rejects invalid recipe fields %j', (fields) => {
@@ -189,5 +191,65 @@ describe('gummy cinema recipes', () => {
         material: { ...recipe.material, tuning: incomplete },
       }),
     ).toThrow(/Fine tuning/)
+  })
+
+  it('keeps version-three mechanic provenance while preserving explicit tuned motion', () => {
+    const source = createGummyCinemaRecipe()
+    const selected = createGummyCaptureMechanic('rock-shear', 42)
+    const recipe = {
+      ...source,
+      shot: {
+        ...source.shot,
+        ...selected,
+        motion: { ...selected.motion, shearDistance: 0.27, twistAngle: 0.08 },
+      },
+    }
+    const decoded = parseGummyCinemaRecipe(JSON.stringify(recipe))
+    expect(decoded.version).toBe(3)
+    expect(decoded.shot.mechanic).toEqual({
+      version: 1,
+      id: 'rock-shear',
+      seed: 42,
+    })
+    expect(decoded.shot.motion.shearDistance).toBe(0.27)
+    expect(decoded.shot.motion.twistAngle).toBe(0.08)
+    expect(decoded.shot.mechanic).not.toBe(recipe.shot.mechanic)
+    expect(decoded.shot.motion).not.toBe(recipe.shot.motion)
+    expect(parseGummyCinemaRecipe(JSON.stringify(decoded))).toEqual(decoded)
+  })
+
+  it('rejects new capture fields in old recipes instead of silently ignoring them', () => {
+    const source = createGummyCinemaRecipe()
+    const selection = createGummyCaptureMechanic('shoulder-sweep', 7)
+    expect(() =>
+      parseGummyCinemaRecipe({
+        ...source,
+        version: 2,
+        shot: { ...source.shot, ...selection },
+      }),
+    ).toThrow(/version 3/)
+    expect(() =>
+      parseGummyCinemaRecipe({
+        ...source,
+        version: 2,
+        shot: {
+          ...source.shot,
+          motion: { ...source.shot.motion, twistAngle: 0.08 },
+        },
+      }),
+    ).toThrow(/version 3/)
+  })
+
+  it.each([
+    null,
+    {},
+    { version: 2, id: 'rock-shear', seed: 1 },
+    { version: 1, id: 'unknown', seed: 1 },
+    { version: 1, id: 'rock-shear', seed: -1 },
+  ])('rejects invalid mechanic metadata %j', (mechanic) => {
+    const source = createGummyCinemaRecipe()
+    expect(() =>
+      parseGummyCinemaRecipe({ ...source, shot: { ...source.shot, mechanic } }),
+    ).toThrow()
   })
 })

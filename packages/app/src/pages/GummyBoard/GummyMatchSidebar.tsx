@@ -1,6 +1,7 @@
 /** Move history, PGN exchange and validated capture handoff for a local match. */
 import { exportChessPgn } from '@chaos-master/core/chess/chessGame'
 import { createMemo, createSignal, For, onCleanup, Show } from 'solid-js'
+import { GUMMY_CAPTURE_MECHANICS } from '@/components/GummyBoard/gummyCaptureMechanics'
 import { Copy, Film } from '@/icons'
 import { GummyMatchAppearanceControls } from './GummyMatchAppearanceControls'
 import styles from './GummyMatchPage.module.css'
@@ -26,6 +27,10 @@ export function GummyMatchSidebar(props: {
   const cinemaReason = createMemo(() =>
     gummyMatchCinemaReason(props.match.currentMove()),
   )
+  const captureMechanic = createMemo(() => {
+    const id = props.match.currentPresentation()?.mechanic?.id
+    return GUMMY_CAPTURE_MECHANICS.find((item) => item.id === id)
+  })
   const historyRows = createMemo(() => {
     const rows: { number: number; white?: number; black?: number }[] = []
     props.match.game().history.forEach((move, index) => {
@@ -90,9 +95,11 @@ export function GummyMatchSidebar(props: {
       return
     }
     try {
-      const recipe = createGummyMatchCinemaRecipe(props.match.currentMove()!, {
-        ...props.match.appearance(),
-      })
+      const recipe = createGummyMatchCinemaRecipe(
+        props.match.currentMove()!,
+        { ...props.match.appearance() },
+        props.match.currentPresentation(),
+      )
       if (!props.match.persist()) {
         event.preventDefault()
         setHandoffError(
@@ -283,9 +290,17 @@ export function GummyMatchSidebar(props: {
             aria-labelledby="match-cinema-title"
           >
             <h2 id="match-cinema-title">Make a capture shot</h2>
+            <Show when={captureMechanic()} keyed>
+              {(mechanic) => (
+                <p class={styles.help}>
+                  Capture motion: <strong>{mechanic.title}</strong>. Replay
+                  keeps this motion; choose another in Cinema.
+                </p>
+              )}
+            </Show>
             <p class={styles.help}>
               {cinemaReason() ??
-                `${props.match.currentMove()!.san} is ready for the shot studio. Your material and board settings go with it.`}
+                `${props.match.currentMove()!.san} is ready for the shot studio. Open the capture in Cinema to tune its look and motion.`}
             </p>
             <a
               class={styles.primary}

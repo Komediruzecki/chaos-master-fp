@@ -4,7 +4,8 @@ Integration plan, reviewed 2026-10-08. The user approved Arcade integration and
 confirmed the checkmate overlay. The embedded Arcade entry and visual selection
 sidebar are implemented and verified in native Chromium. Firefox production
 layout checks pass; physical-device verification remains separate. The
-followups below remain planned until their acceptance evidence is recorded.
+glass and capture implementations below are ready for review; physical-device
+acceptance and the later collection/network phases remain open.
 
 The user has played the local match through checkmate and published the Cinema
 film. Keep that working game, its PGN history, material presets and shot pipeline
@@ -87,57 +88,108 @@ create a session, copy its invitation and show whether the second seat is occupi
 Do not expose a share control that copies a local-only match and claims it is an
 online game.
 
-## Glass board followup
+## Glass playing surface (G16)
 
-The user reports squares visually below and offset from the glass slab. Current
-rendering separates the slab's top contact plane at `y=0` from the lower caustic
-receiver at `GUMMY_BOARD_GLASS_FLOOR`. The reported mismatch still needs a fixed
-camera reproduction; these distinct layers make their coordinates worth auditing.
+Implemented on 2026-10-08. The slab already contacted pieces at `y=0`, but the
+projected colour below it dominated the image and the top had no distinct inset
+edges. `gummyBoardGrid.ts` now owns square size, centre/orientation, bounds and
+contact height. Piece placement, CPU picking, GPU square parity and legal-move
+marker projection use that shared description. The slab and rim derive their
+bounds from it as well.
 
-Build one glass board with clear and tinted or frosted square insets. Define
-square size, origin, parity, top height and playable bounds in one shared board
-description. Derive both rendered insets and square picking/highlights from it.
-Keep the 64 square tops coplanar with the pieces' contact plane and use small
-bevels or shallow insets that preserve that contact. The lower receiver remains
-a surface for transmitted light, with no duplicate playing grid beneath it.
+The top now carries 64 flush material insets with alternating clear/frosted and
+tinted glass, narrow etched seams and bevel shading. These are analytic material
+regions on the existing slab, not 64 new meshes or recessed collision shapes.
+Every playable square and marker stays on the contact plane. The glass below is
+a neutral substrate with thin coloured insets; the separate lower receiver at
+`GUMMY_BOARD_GLASS_FLOOR` contains transmitted light and no playing-grid texture.
+Restrained surface frost and receiver brightness preserve the optical response.
 
-Acceptance: top and grazing views agree with all four corner squares; legal-move
-markers sit on the square surface; piece bases stay centred; selected-square and
-capture framing align after orbit/zoom; caustics remain visible at bounded cost.
-Compare Classic and Lava under the same camera to catch coordinate regressions.
-This is a board-material pass; it does not require remeshing the gummy pieces.
+This adds no draw calls, textures, per-frame geometry or uniform layout changes.
+It retains the fixed 96 by 96 light grid and cached receiver transport. It does
+add bounded per-fragment material arithmetic; physical-tablet timing remains to
+be measured rather than inferred from unchanged draw counts.
 
-## Capture mechanics and reproducible variety
+Verification: 67 focused tests pass across the shared grid, board themes, shader
+resolution, FEN placement, receipt presentation and choreography. Tests cover all
+64 square interiors, all four corner rays including grazing angles, marker
+projection at `y=0`, rim rejection and restrained transmitted colour contrast.
+Native Chromium compiled the shaders without GPU errors; overhead and grazing
+captures show aligned surfaces and piece bases. Matched Classic and Lava controls
+are retained with the glass captures under
+`/home/maff/agent-out/chaos-master-fp/2026-10-08/glass-captures/`. Native Arcade
+selection markers and complete capture framing passed on Glass. All-corner
+touch selection and physical iOS/tablet checks remain open. No gummy-piece
+remeshing was required.
 
-Start with three explicit mechanics, each retaining the attacker on the captured
+## Capture mechanics and reproducible variety (G17)
+
+Implemented on 2026-10-08. Three mechanics retain the attacker on the captured
 square:
 
-| Mechanic         | Contact and material response                                                      | Boundaries                                                             |
-| ---------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| Press and settle | Existing vertical compression, a short pause, then settle                          | Preserve as the comparison and fallback                                |
-| Shoulder sweep   | Make contact before full compression, push sideways to smear and tear, then centre | Limit lateral travel to protect neighbouring pieces and camera framing |
-| Rock and shear   | Offset contact followed by a small alternating roll/turn and downward press        | Collider and visible mesh must share the same rotation and velocity    |
+| Mechanic         | Contact and material response                                               | Bounds                                                                 |
+| ---------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Press and settle | Existing vertical compression, a short late sweep, then settle              | Original motion template, reduced when neighbours limit travel         |
+| Shoulder sweep   | Start the sideways push early, hold partway down, then return to the square | Conservative piece footprints bound lateral travel                     |
+| Rock and shear   | Alternate a small turn around the vertical axis while pressing and sweeping | Visible mesh and collider share yaw; contact includes angular velocity |
 
-The current shot motion contract already has shear timing and sweep parameters in
-`gummyBoardShots.ts`, and version 2 Cinema recipes store explicit motion. Extend
-that seam with versioned mechanic IDs and bounded parameters. Angular movement
-must first be supported by the collider; rendering a tilt while colliding with an
-upright piece would give misleading contact.
+`gummyCaptureMechanics.ts` chooses once per ordinary committed capture using a
+stable receipt seed. It avoids the preceding mechanic when compatible alternatives
+exist; a cramped position can fall back to Press and settle. Shared mould bounds
+and board occupancy cap travel and yaw before saving the choice. These conservative
+limits can make the motion subtle on crowded squares. Material and quality remain
+explicit settings, rather than separate selector heuristics.
 
-Choose a mechanic once per committed capture from those compatible with the
-attacker/victim bounds, material and quality tier. Store a presentation envelope
-alongside the immutable chess receipt: mechanic/version, seed, resolved motion
-parameters, material snapshot and appearance references. Use a seeded choice
-with a no-immediate-repeat rule where enough compatible variants exist. Replay,
-reload, Cinema export and remote peers reuse the stored choice; no new random
-choice is made during drawing or replay. Allow a fixed mechanic override in the
-studio for comparison and recording.
+The session v2 presentation envelope stores mechanic/version/seed, resolved motion
+and a deep appearance snapshot beside the immutable chess receipt. Ply, pre-move
+FEN and move notation identify the receipt on reload. Replay and Cinema handoff
+retain the captured material, palette, board, scale and quality even if the live
+board settings later change. Branching, Undo and a draw claim from history remove
+orphaned future effects. Version 1 sessions migrate with their original early-shear
+motion; invalid effect data falls back while preserving the legal game.
 
-The seed makes the choreography repeatable; cross-device GPU particle physics
-is not promised to be bit-identical. Every variant must preserve the same legal
-after-position through full playback, Skip, failure and Undo. Verify early
-material contact, neighbour clearance, piece height/role combinations, visible
-tearing before full squash, and frame/resource cost with matched presets.
+Cinema offers fixed **Press and settle**, **Shoulder sweep** and **Rock and shear**
+choices. **Apply shot settings** stages the selected motion without changing the
+material. New recipes use schema v3 with optional provenance and explicit motion;
+v1/v2 imports retain their earlier motion semantics. Manual motion edits clear the
+mechanic label and preserve the edited parameters. Loading or replaying a recipe
+never recomputes motion from its label or seed. Editing a fixed choice's position,
+source/target square or size recalculates clearance using the same mechanic and
+seed; incomplete position input stays editable until valid. Custom and legacy
+motion remains explicit through those edits. No choice is made during drawing or
+replay.
+
+Native Chromium on the desktop AMD GPU ran all three mechanics at Tablet quality
+for the pawn-versus-knight Glass shot. Sampled particle state remained finite,
+marching cubes reported no overflow or dropped vertices, and the run recorded no
+errors or warnings. The attacker finished on the target square. The receipt is
+`/home/maff/agent-out/chaos-master-fp/2026-10-08/glass-captures/capture-native.json`.
+Studio controls and horizontal overflow checks passed at 1440, 834 and 390px widths.
+The final focused run passed 211 tests across 17 files, including saved choices,
+migration, replay, branching, draw claims, corner clearance and the fixed Studio
+controls. `pnpm check`, the production build and agent-index check pass.
+
+A native Arcade run played e2-e4, d7-d5 and e4xd5 with Rock and shear, then
+replayed, reloaded and opened the same capture in Cinema. Motion and appearance
+stayed identical; the pawn retained d5, no GPU/runtime errors occurred, and live
+tracked buffers/textures settled at 57 after both capture and replay. The receipt
+is `glass-captures/match-final.json`. Hidden test-browser frame pacing needed
+`--disable-gpu-vsync` and `--disable-frame-rate-limit`; no app timing was changed.
+This resource count is an ownership check, not a measurement of total driver memory.
+
+Existing repository health debt remains: the file-size ratchet is red, though
+this extraction reduces files above 800 lines from 40 to 39. The architecture
+check reports 11 pre-existing dependency cycles; this pass adds none. No
+baseline or check was weakened.
+
+The next acceptance gate is physical iOS/tablet testing of the new angular contact,
+plus matched visual and timing comparisons across more role pairs, material presets
+and crowded positions. Desktop Tablet quality does not establish mobile performance;
+finite-state checks do not prove realistic fracture or visually distinct tearing in
+every pairing. The seed reproduces choreography, not bit-identical particles across
+GPUs. After that gate, the next feature milestone is G8's one authored fractal pawn
+through edit, save, board placement, capture and Cinema. Friend sessions remain
+planned; no network play is implemented by this pass.
 
 ## Private friend session architecture
 
