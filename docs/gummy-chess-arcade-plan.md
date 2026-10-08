@@ -262,6 +262,74 @@ Acceptance still requires a visual review of this first solid pawn before a
 six-role fractal set. Compare branch readability, resolved openings and the
 capture result on a physical tablet, then tune the design or its material.
 
+### Shape review and editor-to-piece inspection
+
+The user's first review found the default solid pawn too lumpy. Inspection of
+the conversion confirms two causes: it selects head facets by their position
+in an icosahedron face list, which does not guarantee rotational symmetry, and
+the uniform material radius fills the source's smaller gaps. The later particle
+surface reconstruction smooths it further. Increasing visual resolution alone
+does not recover openings already removed by the volume bake. Keep saved v1
+snapshots unchanged; an improved generator needs a new version and explicit
+selection rather than silently altering existing games or films.
+
+The Forge preview currently shows the native attractor, not the playable solid.
+Its fixed viewport layout now keeps that preview visible while the controls
+scroll. The shared Figurine studies page uses the same layout. The next geometry
+task is to make this comparison honest before expanding the collection:
+
+1. Offer **Fractal source** and **Playable surface** views in the Forge, using
+   the board's actual bake, palette and selected quality. Keep one active preview
+   renderer, debounce expensive bakes, and show when a result is still updating.
+2. Build a balanced crown with deliberately large openings. Separate the crown's
+   feature thickness from the supporting stem and base, then prove connected
+   material at tablet spacing. Lowering one global radius can disconnect the
+   structure before it produces a useful fine-detail silhouette.
+3. Compare the geometric Menger rook and Sierpinski bishop as solid candidates,
+   and the blue branching pawn as an enclosed core. Keep the Aurora queen,
+   Ember bishop and Tidal knight as native flame studies until a suitable
+   physical representation is demonstrated.
+
+The main editor handoff is currently one-way: Forge's **Open in editor** sends
+the generated full flame, but the local chess library stores only the fixed pawn
+recipe. It cannot reconstruct arbitrary edits to transforms or variations.
+The proposed **Inspect as chess piece** action should provide the reverse path:
+
+- Snapshot the validated full flame and required custom-variation definitions,
+  preserve the editor draft, and open a separate inspection view. A snapshot
+  must not change when the original editor document is edited later.
+- Let the user choose a role, orient the source, fit its height and base to one
+  board square, and orbit the result with a recognizable neighbouring piece for
+  scale. Keep this framing separate from the original source transforms.
+- Show the original fractal and a representation choice: **Enclosed fractal**
+  retains the delicate inner structure, while **Solid material** shows the actual
+  physical conversion. Enclosure optics can remain a later glass pass.
+- Gate solid conversion by supported 3D features. The current pawn sampler only
+  implements `linear3D` and `blur3D`; the nonlinear study sampler adds a small
+  named set. Neither accepts all editor layers, custom maps or variation types.
+  Preserve and inspect unsupported sources without pretending they are playable
+  solids. Use the native renderer for source inspection rather than extending
+  the limited CPU sampler into an inaccurate substitute for the whole engine.
+- Save a versioned source-plus-adapter snapshot containing source identity,
+  fitted transform, bake version/seed, thickness and material settings. Confirm
+  finite bounds, occupied volume, connected material, stable base and readable
+  feature size at the selected quality before enabling solid play. Captures and
+  Cinema must retain that exact snapshot independently of later library edits.
+
+This inspection action is planned, not implemented by the layout fix. It is the
+next bridge from the general editor to chess; a full six-role collection should
+follow visual acceptance of that bridge and one improved pawn.
+
+Layout verification reproduced the old page-scroll failure, then passed 24
+production-page cases across Chromium and Firefox, both Forge and Figurine
+studies, and six viewport sizes from 320×568 to 1440×900 including landscape.
+Checks cover a stationary visible preview, reachable final controls, no outer
+page overflow, keyboard slider input and Chromium touch scrolling. Chromium used
+the native AMD GPU; Firefox was a layout check. Physical iOS remains a separate
+owner check. The 15 focused tests, `pnpm check`, production build and index check
+pass. Evidence is under
+`/home/maff/agent-out/chaos-master-fp/2026-10-08/forge-layout/`.
+
 ## Private friend session architecture
 
 The current Worker serves static assets and bounded APIs for sharing and gallery
