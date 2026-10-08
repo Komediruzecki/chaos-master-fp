@@ -74,7 +74,7 @@ file instead of rediscovering the architecture every session.
 <!-- prettier-ignore-start -->
 | Module | Entry point | What it is |
 |---|---|---|
-| `chess` | [flameFigurines.ts](../../packages/app/src/flame/chess/flameFigurines.ts) | Experimental chess flames: nonlinear recurrences grow woven stems, curled crowns, split flame heads and flowing fins. |
+| `chess` | [chessCandidate.ts](../../packages/app/src/flame/chess/chessCandidate.ts) | Immutable native-flame snapshots and a separate, inspection-only chess placement. |
 | `clash` | [choreographer.ts](../../packages/app/src/flame/clash/choreographer.ts) | The scripted 12-second bout of the Flame Clash preview: the intro, one hit, a beam clash, the Devour finisher and the victory, as a pure... |
 | `examples` | [index.ts](../../packages/app/src/flame/examples/index.ts) | _(no header comment)_ |
 | `glide` | [index.ts](../../packages/app/src/flame/glide/index.ts) | _(no header comment)_ |
@@ -140,7 +140,7 @@ file instead of rediscovering the architecture every session.
 | `OrientationGizmo` | [OrientationGizmo.tsx](../../packages/app/src/components/OrientationGizmo/OrientationGizmo.tsx) | _(no header comment)_ |
 | `PaletteSelector` | [PaletteSelector.tsx](../../packages/app/src/components/PaletteSelector/PaletteSelector.tsx) | _(no header comment)_ |
 | `PawnBoard` | [pawnBoardRenderer.ts](../../packages/app/src/components/PawnBoard/pawnBoardRenderer.ts) | Owned linear-HDR scene with hollow-glass transmission, native coloured cores and shards. |
-| `PawnStage` | [PawnStage.tsx](../../packages/app/src/components/PawnStage/PawnStage.tsx) | An isolated, stationary 3D flame preview with local orbit and zoom controls. |
+| `PawnStage` | [PawnStage.tsx](../../packages/app/src/components/PawnStage/PawnStage.tsx) | An isolated native flame preview with 3D orbit or 2D pan and local zoom. |
 | `PopulationSimulator` | [PopulationSimulator.tsx](../../packages/app/src/components/PopulationSimulator/PopulationSimulator.tsx) | _(no header comment)_ |
 | `ProgressBar` | [ProgressBar.tsx](../../packages/app/src/components/ProgressBar/ProgressBar.tsx) | _(no header comment)_ |
 | `PullUpMenu` | [PullUpMenu.tsx](../../packages/app/src/components/PullUpMenu/PullUpMenu.tsx) | _(no header comment)_ |
@@ -178,6 +178,7 @@ file instead of rediscovering the architecture every session.
 | Module | Entry point | What it is |
 |---|---|---|
 | `Benchmarks` | [BenchmarksPage.tsx](../../packages/app/src/pages/Benchmarks/BenchmarksPage.tsx) | _(no header comment)_ |
+| `ChessForge` | [ChessForgePage.tsx](../../packages/app/src/pages/ChessForge/ChessForgePage.tsx) | Native editor snapshots can be fitted and saved without claiming a verified solid. |
 | `Clash` | [ClashPage.tsx](../../packages/app/src/pages/Clash/ClashPage.tsx) | The Flame Clash preview page (`/clash`): two fighters, one scripted bout. |
 | `Figurines` | [FigurinesPage.tsx](../../packages/app/src/pages/Figurines/FigurinesPage.tsx) | Native flame and geometric figurine collections in one live stage without draft writes. |
 | `FractalExplorer` | [FractalExplorerPage.tsx](../../packages/app/src/pages/FractalExplorer/FractalExplorerPage.tsx) | The deep-zoom explorer page: a full-bleed canvas, a heads-up readout and a settings panel. |
@@ -249,6 +250,7 @@ file instead of rediscovering the architecture every session.
 | [useWorkspaceAutosave.ts](../../packages/app/src/hooks/useWorkspaceAutosave.ts) | _(no header comment)_ |
 | [useWorkspaceBlendPick.ts](../../packages/app/src/hooks/useWorkspaceBlendPick.ts) | The partner gallery's hover preview, and the pick that commits a partner. |
 | [useWorkspaceCamera.ts](../../packages/app/src/hooks/useWorkspaceCamera.ts) | _(no header comment)_ |
+| [useWorkspaceQuery.ts](../../packages/app/src/hooks/useWorkspaceQuery.ts) | Loads editor startup documents, with an inspection return taking precedence over stale share links. |
 | [useWorkspaceReplay.ts](../../packages/app/src/hooks/useWorkspaceReplay.ts) | _(no header comment)_ |
 | [useWorkspaceShortcuts.ts](../../packages/app/src/hooks/useWorkspaceShortcuts.ts) | Editor shortcuts act only while the workspace is visible; the shared theme chord stays global. |
 | [useWorkspaceTimelineBinding.ts](../../packages/app/src/hooks/useWorkspaceTimelineBinding.ts) | _(no header comment)_ |

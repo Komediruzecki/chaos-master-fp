@@ -17,6 +17,9 @@ export const CLASH_PATH = '/clash'
 /** The first editable chess piece, isolated from the current editor flame. */
 export const PAWN_PATH = '/pawn'
 
+/** Inspect an independent editor snapshot before adapting it into a chess piece. */
+export const CHESS_FORGE_PATH = '/chess-forge'
+
 /** Pawn-only board, isolated from the studio and saved pawn drafts. */
 export const CHESS_PATH = '/chess'
 
@@ -35,6 +38,7 @@ export const PAGE_ROUTES: readonly string[] = [
   EXPLORER_PATH,
   CLASH_PATH,
   PAWN_PATH,
+  CHESS_FORGE_PATH,
   CHESS_PATH,
   FIGURINES_PATH,
   GUMMY_PATH,
@@ -70,6 +74,10 @@ export function isClashPath(pathname: string): boolean {
 
 export function isPawnPath(pathname: string): boolean {
   return pageRouteOf(pathname) === PAWN_PATH
+}
+
+export function isChessForgePath(pathname: string): boolean {
+  return pageRouteOf(pathname) === CHESS_FORGE_PATH
 }
 
 export function isChessPath(pathname: string): boolean {

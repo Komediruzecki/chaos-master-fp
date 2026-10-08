@@ -15,6 +15,7 @@ const selectionChanged = vi.spyOn(haptic, 'selectionChanged')
 
 /** Everything MainWorkspace can offer the editor's shells. */
 const HANDLERS: MoreMenuHandlers = {
+  onInspectChess: vi.fn(),
   onOpenExportModal: vi.fn(),
   onShare: vi.fn(),
   onOpenDrawer: vi.fn(),
@@ -113,6 +114,7 @@ describe('NavRail', () => {
     // Pinned, because "both surfaces build the same list" is true of two
     // calls to one function whatever that function returns.
     expect(railList).toEqual([
+      'Inspect for chess',
       'Export options',
       'Share link',
       'Advanced tools',
@@ -151,6 +153,15 @@ describe('NavRail', () => {
     expect(moreLabels()).toEqual(['Lumen Arcade'])
     screen.getByText('Lumen Arcade').click()
     expect(activeTab()).toBe('arcade')
+  })
+
+  it('opens chess inspection from the tablet rail and closes the menu', () => {
+    const inspect = vi.fn()
+    mount('create', { onInspectChess: inspect })
+    moreLabels()
+    screen.getByRole('menuitem', { name: 'Inspect for chess' }).click()
+    expect(inspect).toHaveBeenCalledOnce()
+    expect(screen.queryByRole('menu')).toBeNull()
   })
 
   it('runs what was chosen, and closes from the backdrop and from back', () => {

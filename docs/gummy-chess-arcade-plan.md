@@ -327,35 +327,74 @@ physical representation is demonstrated. Fine IFS voids below the finite
 material and reconstruction scale still disappear; the source view must not
 be presented as a promise of identical physical detail.
 
-The main editor handoff is currently one-way: Forge's **Open in editor** sends
-the generated full flame, but the local chess library stores only the fixed pawn
-recipe. It cannot reconstruct arbitrary edits to transforms or variations.
-The proposed **Inspect as chess piece** action should provide the reverse path:
+### General editor to chess inspection
 
-- Snapshot the validated full flame and required custom-variation definitions,
-  preserve the editor draft, and open a separate inspection view. A snapshot
-  must not change when the original editor document is edited later.
-- Let the user choose a role, orient the source, fit its height and base to one
-  board square, and orbit the result with a recognizable neighbouring piece for
-  scale. Keep this framing separate from the original source transforms.
-- Show the original fractal and a representation choice: **Enclosed fractal**
-  retains the delicate inner structure, while **Solid material** shows the actual
-  physical conversion. Enclosure optics can remain a later glass pass.
+The editor now offers **Inspect for chess** from desktop actions and the shared
+More menu on phone/tablet. `/chess-forge` owns a separate native preview, so the
+editor renderer is disposed during inspection. The return handoff retains the
+original editor document and timeline separately from the candidate's fit.
+
+Implemented in this pass:
+
+- A versioned `chess-piece-candidate` snapshot keeps the full validated flame,
+  hidden maps, layer definitions, stored blends and required custom formulas.
+  Missing formulas and non-finite or over-budget documents fail explicitly.
+- Native custom formulas receive owned preview registrations. Later edits to the
+  user's formula library do not change a saved candidate; outgoing previews
+  release those registrations.
+- Choose any of the six chess roles. For 3D sources, rotate, scale and position
+  the output after its existing final affine, without rewriting the IFS maps.
+  A projected 1.6-unit board square and 1.8-unit height guide follow the actual
+  orbit camera. They are visual references, not measured geometry bounds.
+- Switch between original source framing and inspection fit. Flat sources stay
+  2D and retain their camera, palette and one native 2D blend; they are not
+  coerced into a different 3D variation. Layers, 3D blends and nested blends
+  remain in the snapshot, with a visible notice that their composition is not
+  shown by this preview.
+- Save up to eight independent local candidates, reopen them, download/import
+  JSON, or remove a saved copy while retaining the open draft. The draft survives
+  reload; switching sources protects changes not yet in the saved library.
+  New editor snapshots wait in a tab-local incoming slot and use the same
+  Save & open / Replace draft / Keep editing chooser. Accepting a replacement
+  writes it successfully before consuming the handoff. Existing corrupt
+  library/draft data is preserved rather than overwritten.
+- Start directly from the existing lattice pawn, Menger rook, Sierpinski bishop
+  or branching knight. This inspector does not modify the playable pawn library.
+
+Verification: 166 focused tests, typecheck, lint, formatting, WGSL validation,
+production build and agent-index checks pass. Native-GPU Chromium verifies the
+production editor → inspector → editor round trip, unchanged source/timeline,
+saving the previous fit before opening another candidate, and genuine 2D source
+rendering. Production layout checks cover five sizes from 320×568 to 1440×900 in
+Chromium and Firefox: the preview stays fixed, the final controls are reachable,
+and the document does not overflow. Firefox is layout-only; physical iOS remains
+an owner check. Evidence is under
+`/home/maff/agent-out/chaos-master-fp/2026-10-08/candidate-inspector/`.
+
+The pre-existing branch metrics failures remain: 86 files above 500 lines,
+39 above 800, and the same seven per-file violations as the preceding HEAD.
+This pass adds no new bucket crossings. Query loading and More-menu handlers
+are extracted into owned modules; MainWorkspace's reduced 4490-line cap is
+ratcheted down. The baseline and existing violations are not waived.
+
+Next physical-representation gates:
+
+- Compare the Menger rook and Sierpinski bishop with finite material thickness.
+  Keep an enclosed-core option for delicate sources, with glass optics later.
 - Gate solid conversion by supported 3D features. The current pawn sampler only
   implements `linear3D` and `blur3D`; the nonlinear study sampler adds a small
   named set. Neither accepts all editor layers, custom maps or variation types.
-  Preserve and inspect unsupported sources without pretending they are playable
-  solids. Use the native renderer for source inspection rather than extending
-  the limited CPU sampler into an inaccurate substitute for the whole engine.
-- Save a versioned source-plus-adapter snapshot containing source identity,
-  fitted transform, bake version/seed, thickness and material settings. Confirm
-  finite bounds, occupied volume, connected material, stable base and readable
-  feature size at the selected quality before enabling solid play. Captures and
-  Cinema must retain that exact snapshot independently of later library edits.
-
-This inspection action is planned, not implemented by the layout fix. It is the
-next bridge from the general editor to chess; a full six-role collection should
-follow visual acceptance of that bridge and one improved pawn.
+  Preserve unsupported sources for native inspection without presenting them as
+  playable solids.
+- Add a recognizable neighbouring piece for scale, plus measured finite bounds,
+  occupied and connected volume, stable base and minimum feature checks at the
+  selected quality. The current sizing guide does not satisfy these gates.
+- Extend the candidate with a versioned bake adapter, seed, thickness and
+  material settings only after those checks pass. Captures and Cinema must retain
+  that exact playable snapshot independently of later library edits.
+- Present both **Enclosed fractal** and **Solid material** once each representation
+  can display its actual output. A full six-role collection follows visual
+  acceptance of this bridge and the next rook/bishop comparison.
 
 Layout verification reproduced the old page-scroll failure, then passed 24
 production-page cases across Chromium and Firefox, both Forge and Figurine

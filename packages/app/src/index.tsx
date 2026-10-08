@@ -7,7 +7,7 @@ import { applyGlassPanels } from './lib/glass'
 import { loadHaptics } from './lib/haptics'
 import { loadLifecycle } from './lib/lifecycle'
 import { IS_NATIVE, nativePlatform } from './lib/platform'
-import { isBenchmarksPath, isChessPath, isClashPath, isExplorerPath, isFigurinesPath, isGummyPath, isPawnPath, } from './routing/appPath'
+import { isBenchmarksPath, isChessForgePath, isChessPath, isClashPath, isExplorerPath, isFigurinesPath, isGummyPath, isPawnPath, } from './routing/appPath'
 
 // First, before any other key listener exists, so it hears every key before
 // they do: under the Arcade's screen lock, no key reaches the page.
@@ -91,6 +91,9 @@ const Entry = isBenchmarksPath(pathname)
             ? (await import('./pages/Figurines/FigurinesApp')).FigurinesApp
             : isGummyPath(pathname)
               ? (await import('./pages/GummyBear/GummyBearApp')).GummyBearApp
-              : (await import('./App')).Wrappers
+              : isChessForgePath(pathname)
+                ? (await import('./pages/ChessForge/ChessForgeApp'))
+                    .ChessForgeApp
+                : (await import('./App')).Wrappers
 
 render(() => <Entry />, root)

@@ -1,4 +1,4 @@
-import { Book, Bookmark, DeepZoom, Download, GaugeMax, Info, Menu, Share, SidebarPanel, Zap, } from '@/icons'
+import { Book, Bookmark, DeepZoom, Download, GaugeMax, GridIcon, Info, Menu, Share, SidebarPanel, Zap, } from '@/icons'
 import { setActiveTab } from '@/lib/activeTab'
 import type { Component } from 'solid-js'
 
@@ -28,6 +28,7 @@ export interface MoreMenuHandlers {
    *  launch shows when Recents could not take a restored flame tells the
    *  user to make it, and on a touch layout there was nothing to tap. */
   onSaveForLater?: () => void
+  onInspectChess?: () => void
   onOpenExportModal?: () => void
   onShare?: () => void
   onOpenDrawer?: () => void
@@ -55,6 +56,11 @@ export function buildMoreMenu(
     run: (() => void) | undefined
   }[] = [
     { label: 'Save for later', Icon: Bookmark, run: handlers.onSaveForLater },
+    {
+      label: 'Inspect for chess',
+      Icon: GridIcon,
+      run: handlers.onInspectChess,
+    },
     {
       label: 'Export options',
       Icon: Download,

@@ -1,17 +1,21 @@
 /**
- * An isolated, stationary 3D flame preview with local orbit and zoom controls.
+ * An isolated native flame preview with 3D orbit or 2D pan and local zoom.
  * The stage renders its supplied recipe without changing the editor document;
  * its camera belongs to the stage and follows the recipe's authored framing.
  */
-import { batch, createEffect, createMemo, createSignal, createUniqueId, on, onCleanup, } from 'solid-js'
-import { vec4f } from 'typegpu/data'
+import { batch, createEffect, createMemo, createSignal, createUniqueId, on, onCleanup, Show, } from 'solid-js'
+import { vec2f, vec4f } from 'typegpu/data'
 import { ComputeGate } from '@/contexts/ComputeGateContext'
 import { Flam3 } from '@/flame/Flam3'
 import { camera3DDefault } from '@/flame/schema/flameSchema'
 import { AutoCanvas } from '@/lib/AutoCanvas'
+import { Camera2D } from '@/lib/Camera2D'
 import { Default3DPreviewCamera } from '@/lib/Camera3D'
 import { useCanvas } from '@/lib/CanvasContext'
+import { PawnFitGuide } from './PawnFitGuide'
 import ui from './PawnStage.module.css'
+import type { PawnFitGuideSize } from './PawnFitGuide'
+import type { Palette } from '@/flame/colorMap'
 import type { Camera3DObj, FlameDescriptor } from '@/flame/schema/flameSchema'
 
 export type PawnRenderStatus = {
@@ -23,6 +27,13 @@ export type PawnRenderStatus = {
 
 export type PawnStageProps = {
   flame: FlameDescriptor
+  /** Validated companion; dimensions must match the source flame. */
+  blendFlame?: FlameDescriptor
+  blendWeight?: number
+  /** Inspection framing, kept separate from the source's authored camera. */
+  camera3D?: Camera3DObj
+  /** World-space reference only; does not establish solid geometry or fit. */
+  fitGuide?: PawnFitGuideSize
   renderScale?: number
   pointCountPerBatch?: number
   /** Increment to restore the recipe's camera without remounting the renderer. */
@@ -46,19 +57,45 @@ export function PawnStage(props: PawnStageProps) {
   const [thetaOffset, setThetaOffset] = createSignal(0)
   const [phiOffset, setPhiOffset] = createSignal(0)
   const [zoom, setZoom] = createSignal(1)
+  const [pan, setPan] = createSignal({ x: 0, y: 0 })
+  const is3D = createMemo(() => props.flame.renderSettings.dimensions === 3)
+  const authoredCamera = createMemo(
+    () =>
+      props.camera3D ?? props.flame.renderSettings.camera3D ?? camera3DDefault,
+  )
+  const camera2D = createMemo(() => {
+    const authored = props.flame.renderSettings.camera
+    return {
+      position: vec2f(
+        authored.position[0] + pan().x,
+        authored.position[1] + pan().y,
+      ),
+      zoom: authored.zoom / zoom(),
+      rotation: authored.rotation ?? 0,
+    }
+  })
+  const instructions = createMemo(() =>
+    is3D()
+      ? 'Drag to orbit. Scroll or pinch to zoom. Arrow keys rotate, plus and minus zoom, and Home resets the view.'
+      : 'Drag to pan. Scroll or pinch to zoom. Arrow keys pan, plus and minus zoom, and Home resets the view.',
+  )
   const renderScale = createMemo(() => props.renderScale ?? 1)
   const pointCountPerBatch = createMemo(
     () => props.pointCountPerBatch ?? 250000,
   )
   const label = createMemo(
-    () => props.ariaLabel ?? 'Fractal pawn in three dimensions',
+    () =>
+      props.ariaLabel ??
+      (is3D()
+        ? 'Fractal pawn in three dimensions'
+        : 'Fractal source in two dimensions'),
   )
   const camera = createMemo<Camera3DObj>(() => {
-    const authored = props.flame.renderSettings.camera3D ?? camera3DDefault
+    const authored = authoredCamera()
     return {
       ...authored,
       theta: authored.theta + thetaOffset(),
-      phi: Math.min(Math.PI - 0.15, Math.max(0.15, authored.phi + phiOffset())),
+      phi: authored.phi + phiOffset(),
       radius: authored.radius * zoom(),
     }
   })
@@ -68,15 +105,26 @@ export function PawnStage(props: PawnStageProps) {
       setThetaOffset(0)
       setPhiOffset(0)
       setZoom(1)
+      setPan({ x: 0, y: 0 })
     })
   }
   createEffect(on(() => props.resetViewKey, resetView, { defer: true }))
 
   const orbit = (dx: number, dy: number) => {
+    if (!is3D()) {
+      const view = camera2D()
+      const units = 2 / (Math.max(1, canvas()?.clientHeight ?? 1) * view.zoom)
+      const c = Math.cos(view.rotation)
+      const s = Math.sin(view.rotation)
+      setPan((position) => ({
+        x: position.x - units * (c * dx + s * dy),
+        y: position.y + units * (c * dy - s * dx),
+      }))
+      return
+    }
     batch(() => {
       setThetaOffset((theta) => theta - dx * ORBIT_STEP)
-      const authoredPhi =
-        props.flame.renderSettings.camera3D?.phi ?? camera3DDefault.phi
+      const authoredPhi = authoredCamera().phi
       setPhiOffset(
         (phi) =>
           Math.min(
@@ -193,8 +241,7 @@ export function PawnStage(props: PawnStageProps) {
       data-testid="pawn-stage"
     >
       <p id={descriptionId} class={ui.description}>
-        Drag to orbit. Scroll or pinch to zoom. Arrow keys rotate, plus and
-        minus zoom, and Home resets the view.
+        {instructions()}
       </p>
       <ComputeGate capacity={1}>
         <AutoCanvas
@@ -208,6 +255,10 @@ export function PawnStage(props: PawnStageProps) {
           <PawnScene
             flame={props.flame}
             camera={camera()}
+            camera2D={camera2D()}
+            blendFlame={props.blendFlame}
+            blendWeight={props.blendWeight}
+            fitGuide={props.fitGuide}
             pointCountPerBatch={pointCountPerBatch()}
             onStatusChange={props.onStatusChange}
           />
@@ -220,6 +271,14 @@ export function PawnStage(props: PawnStageProps) {
 type PawnSceneProps = {
   flame: FlameDescriptor
   camera: Camera3DObj
+  camera2D: {
+    position: ReturnType<typeof vec2f>
+    zoom: number
+    rotation: number
+  }
+  blendFlame?: FlameDescriptor
+  blendWeight?: number
+  fitGuide?: PawnFitGuideSize
   pointCountPerBatch: number
   onStatusChange?: (status: PawnRenderStatus) => void
 }
@@ -245,7 +304,13 @@ function PawnScene(props: PawnSceneProps) {
   }
   createEffect(
     on(
-      () => [props.flame, fittedCamera()],
+      () => [
+        props.flame,
+        props.blendFlame,
+        props.blendWeight,
+        fittedCamera(),
+        props.camera2D,
+      ],
       () => {
         reportedPercent = -1
         reportCount(0)
@@ -253,20 +318,70 @@ function PawnScene(props: PawnSceneProps) {
     ),
   )
   return (
-    <Default3DPreviewCamera camera3D={fittedCamera()}>
-      <Flam3
-        quality={0.97}
-        pointCountPerBatch={props.pointCountPerBatch}
-        renderInterval={1}
-        adaptiveFilterEnabled={true}
-        animationEnabled={false}
-        flameDescriptor={props.flame}
-        edgeFadeColor={NO_EDGE_FADE}
-        setQualityPointCountLimit={(readLimit) => {
-          pointLimit = readLimit
-        }}
-        onAccumulatedPointCount={reportCount}
-      />
-    </Default3DPreviewCamera>
+    <Show
+      when={props.flame.renderSettings.dimensions === 3}
+      fallback={
+        <Camera2D
+          position={props.camera2D.position}
+          zoom={props.camera2D.zoom}
+          rotation={props.camera2D.rotation}
+        >
+          <PawnFlame
+            {...props}
+            setPointLimit={(readLimit) => {
+              pointLimit = readLimit
+            }}
+            reportCount={reportCount}
+          />
+        </Camera2D>
+      }
+    >
+      <Default3DPreviewCamera camera3D={fittedCamera()}>
+        <PawnFlame
+          {...props}
+          setPointLimit={(readLimit) => {
+            pointLimit = readLimit
+          }}
+          reportCount={reportCount}
+        />
+        <Show when={props.fitGuide} keyed>
+          {(size) => <PawnFitGuide size={size} />}
+        </Show>
+      </Default3DPreviewCamera>
+    </Show>
+  )
+}
+
+function PawnFlame(
+  props: PawnSceneProps & {
+    setPointLimit: (readLimit: () => number) => void
+    reportCount: (pointCount: number) => void
+  },
+) {
+  const palette = createMemo<Palette | undefined>(() => {
+    const stored = props.flame.renderSettings.palette
+    return stored
+      ? {
+          ...stored,
+          entries: stored.entries.map((entry) => ({ ...entry })),
+          source: 'imported',
+        }
+      : undefined
+  })
+  return (
+    <Flam3
+      quality={0.97}
+      pointCountPerBatch={props.pointCountPerBatch}
+      renderInterval={1}
+      adaptiveFilterEnabled={true}
+      animationEnabled={false}
+      flameDescriptor={props.flame}
+      edgeFadeColor={NO_EDGE_FADE}
+      palette={palette}
+      blendFlame={props.blendFlame}
+      blendWeight={props.blendWeight}
+      setQualityPointCountLimit={props.setPointLimit}
+      onAccumulatedPointCount={props.reportCount}
+    />
   )
 }
