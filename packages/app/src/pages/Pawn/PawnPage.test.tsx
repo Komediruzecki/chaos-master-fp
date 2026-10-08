@@ -1,19 +1,40 @@
 /** Forge save/edit/reload keeps original experiments and saved chess snapshots independent. */
 import { cleanup, fireEvent, render, screen } from '@solidjs/testing-library'
+import { onCleanup } from 'solid-js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { buildGummyAuthoredPawnFlame, createGummyAuthoredPawn, gummyAuthoredPawnKey, } from '@/simulation/gummy/gummyAuthoredPawn'
 import { gummyPawnForgeUrl, loadGummyPawnLibrary, prepareGummyPawnEdit, readGummyPawnForForge, saveGummyPawnSnapshot, } from './gummyPawnLibrary'
 import { buildPawnDesignFlame, createPawnDesign, createPawnDesignDraft, restorePawnDesignDraft, } from './pawnDesign'
 import { PawnPage } from './PawnPage'
 import type { PawnStageProps } from '@/components/PawnStage/PawnStage'
+import type { GummyAuthoredPawn } from '@/simulation/gummy/gummyAuthoredPawn'
 
 const fixtures = vi.hoisted(() => ({
   stage: undefined as PawnStageProps | undefined,
+  surface: undefined as
+    | { pawn: GummyAuthoredPawn; palette?: string; quality?: string }
+    | undefined,
+  sources: 0,
+  surfaces: 0,
 }))
 vi.mock('@/components/PawnStage/PawnStage', () => ({
   PawnStage: (props: PawnStageProps) => {
     fixtures.stage = props
+    fixtures.sources++
+    onCleanup(() => fixtures.sources--)
     return <div aria-label="Mock source preview" />
+  },
+}))
+vi.mock('@/components/PawnStage/PlayablePawnStage', () => ({
+  PlayablePawnStage: (props: {
+    pawn: GummyAuthoredPawn
+    palette?: string
+    quality?: string
+  }) => {
+    fixtures.surface = props
+    fixtures.surfaces++
+    onCleanup(() => fixtures.surfaces--)
+    return <div aria-label="Mock playable surface" />
   },
 }))
 vi.mock('@/contexts/ToastContext', () => ({
@@ -32,6 +53,9 @@ beforeEach(() => {
     },
   })
   fixtures.stage = undefined
+  fixtures.surface = undefined
+  fixtures.sources = 0
+  fixtures.surfaces = 0
 })
 afterEach(() => {
   cleanup()
@@ -59,7 +83,7 @@ describe('Forge chess-pawn library', () => {
     const saved = loadGummyPawnLibrary().pawns[0]!
     expect(saved.name).toBe('My lattice')
     expect(saved.recipe.openness).toBe(0.54)
-    expect(fixtures.stage?.flame).toEqual(buildGummyAuthoredPawnFlame(saved))
+    expect(fixtures.surface?.pawn).toEqual(saved)
     expect(
       screen.getByText(
         'My lattice saved. Choose it under Pawn shape in Chess.',
@@ -72,6 +96,8 @@ describe('Forge chess-pawn library', () => {
     expect(
       screen.getByLabelText<HTMLInputElement>('Saved pawn name').value,
     ).toBe('My lattice')
+    expect(fixtures.surface?.pawn).toEqual(saved)
+    fireEvent.click(screen.getByRole('radio', { name: 'Fractal source' }))
     expect(fixtures.stage?.flame).toEqual(buildGummyAuthoredPawnFlame(saved))
     input(/^Openness/, '78')
     const previewBeforeRename = fixtures.stage?.flame
@@ -177,5 +203,71 @@ describe('Forge chess-pawn library', () => {
       'Give this pawn a name',
     )
     expect(loadGummyPawnLibrary().pawns).toEqual([])
+  })
+  it('mounts one representation at a time and previews material without changing the saved shape', () => {
+    const pawn = createGummyAuthoredPawn({}, 'Comparison')
+    saveGummyPawnSnapshot(pawn)
+    window.history.replaceState(null, '', prepareGummyPawnEdit(pawn))
+    const mounted = render(() => <PawnPage />)
+    expect([fixtures.sources, fixtures.surfaces]).toEqual([0, 1])
+    fireEvent.change(screen.getByLabelText('Preview palette'), {
+      target: { value: 'blue' },
+    })
+    fireEvent.change(screen.getByLabelText('Preview lighting'), {
+      target: { value: 'tablet' },
+    })
+    expect(fixtures.surface?.palette).toBe('blue')
+    expect(fixtures.surface?.quality).toBe('tablet')
+    for (let i = 0; i < 3; i++) {
+      fireEvent.click(screen.getByRole('radio', { name: 'Fractal source' }))
+      expect([fixtures.sources, fixtures.surfaces]).toEqual([1, 0])
+      fireEvent.click(screen.getByRole('radio', { name: 'Playable surface' }))
+      expect([fixtures.sources, fixtures.surfaces]).toEqual([0, 1])
+    }
+    expect(loadGummyPawnLibrary().pawns).toEqual([pawn])
+    mounted.unmount()
+    expect([fixtures.sources, fixtures.surfaces]).toEqual([0, 0])
+  })
+  it('opens legacy pawns unchanged and only replaces a saved version on explicit update', () => {
+    const pawn = createGummyAuthoredPawn({}, 'Legacy shape', 1)
+    saveGummyPawnSnapshot(pawn)
+    window.history.replaceState(null, '', prepareGummyPawnEdit(pawn))
+    render(() => <PawnPage />)
+    expect(fixtures.surface?.pawn).toEqual(pawn)
+    fireEvent.click(screen.getByRole('radio', { name: 'Fractal source' }))
+    expect(fixtures.stage?.flame).toEqual(buildGummyAuthoredPawnFlame(pawn))
+    fireEvent.change(screen.getByLabelText('Shape version'), {
+      target: { value: '2' },
+    })
+    expect(fixtures.stage?.flame).toEqual(
+      buildGummyAuthoredPawnFlame({ ...pawn, version: 2 }),
+    )
+    expect(loadGummyPawnLibrary().pawns).toEqual([pawn])
+    fireEvent.click(screen.getByRole('button', { name: 'Update saved pawn' }))
+    expect(loadGummyPawnLibrary().pawns).toEqual([{ ...pawn, version: 2 }])
+  })
+  it('inspects a Forge draft without writing the library or replacing the original source', () => {
+    const design = createPawnDesign()
+    design.selected = 'lattice'
+    localStorage.setItem(
+      draftKey,
+      JSON.stringify(createPawnDesignDraft(design)),
+    )
+    render(() => <PawnPage />)
+    const before = localStorage.getItem(draftKey)
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Inspect playable pawn' }),
+    )
+    expect([fixtures.sources, fixtures.surfaces]).toEqual([0, 1])
+    input(/^Openness/, '76')
+    expect(fixtures.surface?.pawn.recipe.openness).toBe(0.76)
+    expect(loadGummyPawnLibrary().pawns).toEqual([])
+    expect(localStorage.getItem(draftKey)).toBe(before)
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Return to Forge draft' }),
+    )
+    expect(fixtures.stage?.flame).toEqual(
+      buildPawnDesignFlame('lattice', design.recipes.lattice),
+    )
   })
 })

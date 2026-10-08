@@ -46,10 +46,14 @@ export function usePawnForgeDesign() {
     recipe: { ...recipe() },
   }))
   const thickness = createMemo(() => metadata().thickness)
+  const version = createMemo(() => metadata().version)
+  const seed = createMemo(() => metadata().seed)
   const flame = createMemo(() =>
     authoredActive()
       ? buildGummyAuthoredPawnFlame({
           ...createGummyAuthoredPawn(recipe()),
+          version: version(),
+          seed: seed(),
           thickness: thickness(),
         })
       : buildPawnDesignFlame(form(), recipe()),
@@ -102,6 +106,14 @@ export function usePawnForgeDesign() {
       setAuthoredActive(true)
     })
   }
+
+  function inspectForChess() {
+    const pawn = chessPawn()
+    batch(() => {
+      setAuthored({ ...pawn, recipe: { ...pawn.recipe } })
+      setAuthoredActive(true)
+    })
+  }
   return {
     form,
     recipe,
@@ -113,6 +125,10 @@ export function usePawnForgeDesign() {
     selectForm,
     restoreDraft,
     saved,
+    inspectForChess,
+    selectGenerator: (selected: GummyAuthoredPawn['version']) => {
+      setMetadata((current) => ({ ...current, version: selected }))
+    },
     openError: opened.error,
     hasAuthoredEdit: () => !!authored(),
     updateMetadata: (
@@ -123,9 +139,12 @@ export function usePawnForgeDesign() {
     },
     resetShape: () => {
       updateRecipe(
-        form() === 'echo'
-          ? DEFAULT_PAWN_RECIPE
-          : DEFAULT_STRUCTURAL_PAWN_RECIPE,
+        authoredActive()
+          ? createGummyAuthoredPawn({}, metadata().name, metadata().version)
+              .recipe
+          : form() === 'echo'
+            ? DEFAULT_PAWN_RECIPE
+            : DEFAULT_STRUCTURAL_PAWN_RECIPE,
       )
     },
   }

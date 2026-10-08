@@ -10,6 +10,7 @@ export function PawnChessSaveControls(props: {
   isLattice: boolean
   savedKey?: string
   editing: boolean
+  onInspect: () => void
   openError?: string
   onEdit: (
     patch: Partial<Pick<GummyAuthoredPawn, 'name' | 'thickness'>>,
@@ -77,10 +78,7 @@ export function PawnChessSaveControls(props: {
   return (
     <section class={styles.panel} aria-labelledby="pawn-chess-save-title">
       <h2 id="pawn-chess-save-title">Use in gummy chess</h2>
-      <p>
-        A playable lattice with thicker branches and open spaces. Chess uses
-        gummy material and your chosen palette.
-      </p>
+      <p>Save this shape for the board. Existing games keep their own copy.</p>
       <Show when={props.openError}>
         <p role="alert">{props.openError}</p>
       </Show>
@@ -88,6 +86,11 @@ export function PawnChessSaveControls(props: {
         <p>Switch to Crystal lattice to save a gummy chess pawn.</p>
       </Show>
       <fieldset disabled={!props.isLattice}>
+        <Show when={!props.editing}>
+          <button type="button" onClick={props.onInspect}>
+            Inspect playable pawn
+          </button>
+        </Show>
         <label for="pawn-chess-name">Saved pawn name</label>
         <input
           id="pawn-chess-name"
@@ -113,8 +116,8 @@ export function PawnChessSaveControls(props: {
           }}
         />
         <p>
-          The preview shows the fractal source. Chess fills out the branches to
-          this thickness.
+          Thickness adds material around the fractal. Use Playable surface to
+          judge which openings remain.
         </p>
         <button
           class={styles.primary}

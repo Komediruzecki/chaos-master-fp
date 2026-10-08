@@ -290,6 +290,27 @@
   color: var(--la-ink-3);
   line-height: 1.5;
 }
+.selectField {
+  display: grid;
+  gap: var(--la-s-2);
+  margin-top: var(--la-s-4);
+  color: var(--la-ink-2);
+}
+.selectField select {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--la-tap);
+  padding: var(--la-s-2) var(--la-s-3);
+  border: 1px solid var(--la-hairline-strong);
+  border-radius: var(--la-r-sm);
+  background: var(--la-surface);
+  color: var(--la-ink);
+  font: inherit;
+}
+.selectField select:focus-visible {
+  outline: 2px solid var(--la-accent);
+  outline-offset: 3px;
+}
 @media (max-width: 1050px) {
   .workshop {
     grid-template-columns: minmax(0, 1fr) 280px;

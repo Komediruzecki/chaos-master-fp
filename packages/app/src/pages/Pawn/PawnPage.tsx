@@ -1,6 +1,7 @@
 /** Live pawn workshop: tune a native 3D IFS and retain an editable recipe. */
-import { createMemo, createSignal, onCleanup, onMount } from 'solid-js'
+import { createMemo, createSignal, onCleanup, onMount, Show } from 'solid-js'
 import { PawnStage } from '@/components/PawnStage/PawnStage'
+import { PlayablePawnStage } from '@/components/PawnStage/PlayablePawnStage'
 import { useToast } from '@/contexts/ToastContext'
 import { PAWN_RECIPE_LIMITS } from '@/flame/chess/pawnFlame'
 import { validateGummyAuthoredPawn } from '@/simulation/gummy/gummyAuthoredPawn'
@@ -9,9 +10,13 @@ import { encodeSharePayload } from '@/utils/jsonQueryParam'
 import { PawnChessSaveControls } from './PawnChessSaveControls'
 import { serializePawnDesignExport } from './pawnDesign'
 import styles from './PawnPage.module.css'
+import { PawnPreviewControls } from './PawnPreviewControls'
 import { usePawnForgeDesign } from './usePawnForgeDesign'
 import type { PawnForm } from './pawnDesign'
+import type { GummyPalette } from '@/components/GummyBear/gummyMaterial'
+import type { GummyBoardQuality } from '@/components/GummyBoard/gummyBoardQuality'
 import type { PawnRenderStatus } from '@/components/PawnStage/PawnStage'
+import type { PlayablePawnStatus } from '@/components/PawnStage/PlayablePawnStage'
 
 export function PawnPage() {
   const { showToast } = useToast()
@@ -19,6 +24,19 @@ export function PawnPage() {
   const { form, recipe, flame, updateRecipe } = forge
   const [resetViewKey, setResetViewKey] = createSignal(0)
   const [openingEditor, setOpeningEditor] = createSignal(false)
+  const [previewView, setPreviewView] = createSignal<'surface' | 'source'>(
+    'surface',
+  )
+  const [previewPalette, setPreviewPalette] =
+    createSignal<GummyPalette>('marble')
+  const [previewQuality, setPreviewQuality] =
+    createSignal<GummyBoardQuality>('auto')
+  const [surfaceStatus, setSurfaceStatus] = createSignal<PlayablePawnStatus>({
+    ready: false,
+  })
+  const showSurface = createMemo(
+    () => forge.authoredActive() && previewView() === 'surface',
+  )
   const [renderStatus, setRenderStatus] = createSignal<PawnRenderStatus>({
     pointCount: 0,
     progress: 0,
@@ -27,7 +45,21 @@ export function PawnPage() {
   const twistDegrees = createMemo(() =>
     Math.round((recipe().twist * 180) / Math.PI),
   )
+  const statusLabel = createMemo(() => {
+    if (!showSurface())
+      return renderStatus().ready ? 'Preview settled' : 'Growing the pawn'
+    const status = surfaceStatus()
+    return (
+      status.message ?? (status.ready ? 'Surface ready' : 'Building surface…')
+    )
+  })
   const sampleLabel = createMemo(() => {
+    if (showSurface()) {
+      const vertices = surfaceStatus().vertexCount
+      return vertices
+        ? `${Math.round(vertices / 3).toLocaleString()} triangles`
+        : ''
+    }
     const count = renderStatus().pointCount
     return count >= 1_000_000
       ? `${(count / 1_000_000).toFixed(1)}M samples`
@@ -114,19 +146,38 @@ export function PawnPage() {
               {form() === 'echo'
                 ? 'Glass echo'
                 : forge.authoredActive()
-                  ? 'Gummy lattice source'
+                  ? forge.chessPawn().version === 2
+                    ? 'Open crown'
+                    : 'Original lattice'
                   : 'Crystal lattice'}
             </span>
             <span class={styles.scale}>
-              {forge.authoredActive() ? 'Source preview' : '1.8 m'}
+              {forge.authoredActive()
+                ? showSurface()
+                  ? 'Playable surface'
+                  : 'Fractal source'
+                : '1.8 m'}
             </span>
           </div>
-          <PawnStage
-            flame={flame()}
-            resetViewKey={resetViewKey()}
-            ariaLabel="Interactive three dimensional fractal pawn"
-            onStatusChange={setRenderStatus}
-          />
+          <Show
+            when={showSurface()}
+            fallback={
+              <PawnStage
+                flame={flame()}
+                resetViewKey={resetViewKey()}
+                ariaLabel="Interactive three dimensional fractal pawn"
+                onStatusChange={setRenderStatus}
+              />
+            }
+          >
+            <PlayablePawnStage
+              pawn={forge.chessPawn()}
+              palette={previewPalette()}
+              quality={previewQuality()}
+              resetKey={resetViewKey()}
+              onStatus={setSurfaceStatus}
+            />
+          </Show>
           <div class={styles.previewFooter}>
             <p>Drag to orbit. Scroll or pinch to zoom.</p>
             <button
@@ -138,9 +189,7 @@ export function PawnPage() {
             </button>
           </div>
           <div class={styles.renderLine}>
-            <span>
-              {renderStatus().ready ? 'Preview settled' : 'Growing the pawn'}
-            </span>
+            <span>{statusLabel()}</span>
             <span>{sampleLabel()}</span>
           </div>
         </section>
@@ -151,12 +200,25 @@ export function PawnPage() {
             <h1 id="pawn-title">Shape a fractal pawn.</h1>
             <p class={styles.description}>
               {forge.authoredActive()
-                ? 'A playable version of the lattice with wider branches and open spaces. Your original Forge drafts stay separate.'
+                ? 'Compare the fractal with its solid gummy shape. Tune the openings, orbit the result, then save it for your board.'
                 : form() === 'echo'
                   ? 'The original pawn: a rounded body with smaller pawns repeating inside it.'
                   : 'A branching stem and a faceted head. Cavities repeat through the structure as you look closer.'}
             </p>
           </div>
+
+          <Show when={forge.authoredActive()}>
+            <PawnPreviewControls
+              view={previewView()}
+              version={forge.chessPawn().version}
+              palette={previewPalette()}
+              quality={previewQuality()}
+              onView={setPreviewView}
+              onVersion={forge.selectGenerator}
+              onPalette={setPreviewPalette}
+              onQuality={setPreviewQuality}
+            />
+          </Show>
 
           <fieldset class={styles.formField}>
             <legend>Choose a form</legend>
@@ -228,10 +290,14 @@ export function PawnPage() {
 
           <label class={styles.sliderField} for="pawn-symmetry">
             <span class={styles.fieldTitle}>
-              Symmetry{' '}
+              {forge.authoredActive() && forge.chessPawn().version === 1
+                ? 'Branches'
+                : 'Symmetry'}{' '}
               <output>
                 {recipe().branchCount}
-                {form() === 'echo' ? ' branches' : ' branch pairs'}
+                {forge.authoredActive() || form() === 'echo'
+                  ? ' branches'
+                  : ' branch pairs'}
               </output>
             </span>
             <input
@@ -303,6 +369,7 @@ export function PawnPage() {
             isLattice={form() === 'lattice'}
             savedKey={forge.savedKey()}
             editing={forge.hasAuthoredEdit()}
+            onInspect={forge.inspectForChess}
             openError={forge.openError}
             onEdit={forge.updateMetadata}
             onSaved={forge.saved}

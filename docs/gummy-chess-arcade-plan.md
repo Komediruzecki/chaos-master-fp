@@ -273,22 +273,59 @@ does not recover openings already removed by the volume bake. Keep saved v1
 snapshots unchanged; an improved generator needs a new version and explicit
 selection rather than silently altering existing games or films.
 
-The Forge preview currently shows the native attractor, not the playable solid.
-Its fixed viewport layout now keeps that preview visible while the controls
-scroll. The shared Figurine studies page uses the same layout. The next geometry
-task is to make this comparison honest before expanding the collection:
+The Forge now offers **Fractal source** and **Playable surface** for authored
+chess pawns. Opening an authored pawn starts with the actual board surface.
+An original Forge draft can enter this comparison through **Inspect playable
+pawn** without saving or overwriting that draft. The fixed viewport keeps the
+preview visible while the controls scroll; Figurine studies shares that layout.
 
-1. Offer **Fractal source** and **Playable surface** views in the Forge, using
-   the board's actual bake, palette and selected quality. Keep one active preview
-   renderer, debounce expensive bakes, and show when a result is still updating.
-2. Build a balanced crown with deliberately large openings. Separate the crown's
-   feature thickness from the supporting stem and base, then prove connected
-   material at tablet spacing. Lowering one global radius can disconnect the
-   structure before it produces a useful fine-detail silhouette.
-3. Compare the geometric Menger rook and Sierpinski bishop as solid candidates,
-   and the blue branching pawn as an enclosed core. Keep the Aurora queen,
-   Ember bishop and Tidal knight as native flame studies until a suitable
-   physical representation is demonstrated.
+The surface view uses the board's existing resting-mesh bake at spacing 0.08,
+piece scale 0.9, board illumination and gummy optics. Its palette and lighting
+selectors affect inspection only; Chess retains its own appearance settings.
+No particle solver runs in this view. Only the pawn mould is baked, slider
+changes coalesce for 240 ms, obsolete preparations abort and finish releasing
+their buffers before a replacement begins, and unchanged/hidden views submit
+no draw work. Switching to source unmounts the solid renderer and vice versa.
+
+**Open crown** is the new v2 geometry option. Its crown uses a complete
+rotational arrangement of connected Koch-curve bows around a hollow centre,
+with thinner material above the supporting stem and base. The default uses four
+bows and openness 0.65. Shared marching-density tests retain a through-opening
+at both resting-board spacing 0.08 and coarse particle spacing 0.12; connectivity
+checks cover every supported branch count. This is finite material built around
+a fractal source, so sub-particle features still merge. **Original lattice** remains available as v1. Source
+and occupied-material regression digests pin the old output, while validation,
+cache keys, saves, matches and Cinema retain each snapshot's explicit version.
+The old `chessPawn=trial` link still opens v1; new-pawn links open
+`chessPawn=crown`. Selecting another version edits the current draft only; a
+saved library entry changes only through an explicit save/update.
+
+Native Chromium verified the revised crown's visible opening, source/surface
+switching, palette changes, shape edits and touch orbit on the desktop AMD GPU.
+The preview stayed fixed while reaching the lowest controls at desktop, tablet,
+phone and landscape sizes (320px minimum width). A real Arcade e4xd5 capture
+with the v2 pawn replayed, survived reload and opened in Cinema with its exact
+snapshot; all 2,319 sampled victim particles stayed finite. Live application
+GPU resources returned to 62 after both capture and replay, with no GPU or
+runtime errors. These checks do not substitute for physical iOS/tablet review.
+Evidence is under `/home/maff/agent-out/chaos-master-fp/2026-10-08/forge-surface/`.
+
+Verification: 152 focused tests, typecheck, lint, formatting, WGSL validation,
+production build and agent-index checks pass. The production bundle passed the
+same native-GPU preview checks; Firefox passed the fixed-preview layout checks.
+The branch-wide `metrics:check` remains red: its 500/800-line buckets and seven
+per-file violations also fail on the preceding committed HEAD. This pass adds
+no new bucket crossings, though pawn-only baking grows the already oversized
+board renderer from 806 to 823 measured lines. Before a fork PR, split the large
+gummy modules and resolve the existing Flam3 cap violation. Keep the baseline
+and caps unchanged until that cleanup is reviewed.
+
+The next geometry comparison is the Menger rook and Sierpinski bishop as solid
+candidates, and the blue branching pawn as an enclosed core. Keep the Aurora
+queen, Ember bishop and Tidal knight as native flame studies until a suitable
+physical representation is demonstrated. Fine IFS voids below the finite
+material and reconstruction scale still disappear; the source view must not
+be presented as a promise of identical physical detail.
 
 The main editor handoff is currently one-way: Forge's **Open in editor** sends
 the generated full flame, but the local chess library stores only the fixed pawn

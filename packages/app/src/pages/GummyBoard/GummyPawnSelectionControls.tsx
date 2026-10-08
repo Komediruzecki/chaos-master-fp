@@ -12,7 +12,8 @@ export function GummyPawnSelectionControls(props: {
   tone?: 'dark' | 'light'
 }) {
   const id = createUniqueId()
-  const trial = createGummyAuthoredPawn(undefined, 'Crystal lattice')
+  const trial = createGummyAuthoredPawn(undefined, 'Crystal lattice', 1)
+  const crown = createGummyAuthoredPawn(undefined, 'Open crown', 2)
   const [library, setLibrary] = createSignal(loadGummyPawnLibrary())
   const [error, setError] = createSignal('')
   const key = createMemo(() => gummyAuthoredPawnKey(props.value))
@@ -26,7 +27,9 @@ export function GummyPawnSelectionControls(props: {
         ? key()
         : key() === gummyAuthoredPawnKey(trial)
           ? 'trial'
-          : 'current',
+          : key() === gummyAuthoredPawnKey(crown)
+            ? 'crown'
+            : 'current',
   )
   const refresh = () => setLibrary(loadGummyPawnLibrary())
   onMount(() => {
@@ -45,7 +48,11 @@ export function GummyPawnSelectionControls(props: {
       const pawn =
         value === 'trial'
           ? trial
-          : library().pawns.find((item) => gummyAuthoredPawnKey(item) === value)
+          : value === 'crown'
+            ? crown
+            : library().pawns.find(
+                (item) => gummyAuthoredPawnKey(item) === value,
+              )
       if (pawn) props.onChange(validateGummyAuthoredPawn(pawn))
     }
   }
@@ -63,7 +70,8 @@ export function GummyPawnSelectionControls(props: {
           }}
         >
           <option value="classic">Classic gummy</option>
-          <option value="trial">Crystal lattice trial</option>
+          <option value="crown">Open crown</option>
+          <option value="trial">Original crystal lattice</option>
           <For each={library().pawns}>
             {(pawn) => (
               <option value={gummyAuthoredPawnKey(pawn)}>{pawn.name}</option>

@@ -68,6 +68,27 @@ const surface = (vertexCount = 18, overflow = false) => ({
 
 beforeEach(() => mocks.surface.mockReset())
 describe('gummy board rest mesh ownership', () => {
+  it('bakes only requested unique moulds for isolated inspection', async () => {
+    const test = harness(),
+      pawn = surface(24)
+    mocks.surface.mockReturnValue(pawn)
+    const result = await createGummyBoardRestMeshes(
+      test.root,
+      test.device,
+      0.08,
+      'classic',
+      undefined,
+      undefined,
+      ['pawn', 'pawn'],
+    )
+    expect([...result.meshes.keys()]).toEqual(['pawn'])
+    expect(mocks.surface).toHaveBeenCalledOnce()
+    expect(test.buffers).toHaveLength(2)
+    expect(pawn.destroy).toHaveBeenCalledOnce()
+    result.destroy()
+    for (const buffer of test.buffers)
+      expect(buffer.destroy).toHaveBeenCalledOnce()
+  })
   it('stops baking after a skipped capture and releases the in-flight mesh before starting another', async () => {
     const test = harness(),
       abort = new AbortController(),

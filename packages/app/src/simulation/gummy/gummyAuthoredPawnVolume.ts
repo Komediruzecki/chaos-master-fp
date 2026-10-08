@@ -51,14 +51,18 @@ export function bakeAuthoredPawnVolume(
   recipe: PawnRecipe,
   seed: number,
   radius: number,
+  version: 1 | 2 = 1,
 ) {
   const [nx, ny, nz] = SIZE
   const values = new Float32Array(nx * ny * nz).fill(FAR)
-  const cloud = samplePawnCloud(buildAuthoredPawnFlame(recipe, radius), {
-    count: 24_000,
-    burnIn: 64,
-    seed,
-  })
+  const cloud = samplePawnCloud(
+    buildAuthoredPawnFlame(recipe, radius, version),
+    {
+      count: 24_000,
+      burnIn: 64,
+      seed,
+    },
+  )
   for (let i = 0; i < cloud.points.length; i += 4) {
     // Source affines carry the fixed frame; never refit random sample extrema.
     const point = [cloud.points[i]!, cloud.points[i + 1]!, cloud.points[i + 2]!]
@@ -77,8 +81,15 @@ export function bakeAuthoredPawnVolume(
     for (let x = 0; x < nx; x++) line(x + nx * ny * z, nx, ny)
   for (let y = 0; y < ny; y++)
     for (let x = 0; x < nx; x++) line(x + nx * y, nx * ny, nz)
-  for (let i = 0; i < values.length; i++)
-    values[i] = Math.sqrt(values[i]!) * CELL - radius
+  for (let i = 0; i < values.length; i++) {
+    // Crown material is thinner than the structural radius; blend above the collar
+    // so its connection stays thick without filling the meridian openings.
+    const y = ORIGIN[1] + (Math.floor(i / nx) % ny) * CELL
+    const blend = version === 2 ? Math.max(0, Math.min(1, (y - 1.6) / 0.2)) : 0
+    values[i] =
+      Math.sqrt(values[i]!) * CELL -
+      (radius + (Math.max(0.09, radius * 0.6) - radius) * blend)
+  }
 
   return (point: Point): number => {
     const coordinates = point.map((v, axis) => (v - ORIGIN[axis]!) / CELL)

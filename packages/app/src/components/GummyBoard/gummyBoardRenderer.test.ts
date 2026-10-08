@@ -163,6 +163,47 @@ beforeEach(() => {
 })
 
 describe('two live gummy board surfaces', () => {
+  it('uses an isolated pawn bake without allocating live surfaces or unrelated mould batches', async () => {
+    const test = harness()
+    for (const mould of GUMMY_BOARD_MOULDS)
+      if (mould !== 'pawn') test.rest.meshes.delete(mould)
+    const renderer = await createGummyBoardRenderer(
+      test.root,
+      test.device,
+      test.context,
+      'bgra8unorm',
+      undefined,
+      undefined,
+      { moulds: ['pawn'], restSpacing: 0.08, artStyle: 'sculpted' },
+    )
+    expect(mocks.rest).toHaveBeenCalledWith(
+      test.root,
+      test.device,
+      0.08,
+      'sculpted',
+      undefined,
+      undefined,
+      ['pawn'],
+    )
+    expect(mocks.surfaces).not.toHaveBeenCalled()
+    const settings: GummyBoardRenderOptions = {
+      pieces: [{ id: 0, mould: 'pawn', position: [0.8, 0, 0.8], side: 0 }],
+      victimId: 0,
+      victimPosition: [0, 0, 0],
+    }
+    renderer.render(frame, settings)
+    expect(renderer.readRenderStats().restVertexCounts).toEqual({ pawn: 12 })
+    expect(() => {
+      renderer.render(frame, {
+        ...settings,
+        pieces: [{ ...settings.pieces[0]!, mould: 'rook' }],
+      })
+    }).toThrow('The piece mould was not prepared')
+    renderer.destroy()
+    expect(test.rest.destroy).toHaveBeenCalledOnce()
+    for (const resource of test.resources)
+      expect(resource.destroy).toHaveBeenCalledOnce()
+  })
   it('releases failed resize attachments and retains the previous frame until a replacement succeeds', async () => {
     const test = harness()
     const failedTargets = { destroy: vi.fn() },
@@ -333,6 +374,7 @@ describe('two live gummy board surfaces', () => {
       0.08,
       'sculpted',
       expect.any(AbortSignal),
+      undefined,
     )
     expect(mocks.surfaces).toHaveBeenCalledWith(test.root, test.device, victim)
     capture.destroy()

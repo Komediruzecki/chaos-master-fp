@@ -28,10 +28,11 @@ export async function createGummyBoardRestMeshes(
   artStyle: GummyChessArtStyle = 'classic',
   signal?: AbortSignal,
   authoredPawn?: GummyAuthoredPawn,
+  moulds: readonly GummyChessMould[] = GUMMY_BOARD_MOULDS,
 ): Promise<GummyBoardRestMeshes> {
   const meshes = new Map<GummyChessMould, GummyBoardRestMesh>()
   try {
-    for (const mould of GUMMY_BOARD_MOULDS) {
+    for (const mould of new Set(moulds)) {
       signal?.throwIfAborted()
       const restPositions = new Float32Array(
         sampleGummyChessMould(

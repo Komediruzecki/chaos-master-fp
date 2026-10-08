@@ -18,7 +18,7 @@ import type { GummyBoardPiece } from './gummyBoardInstances'
 import type { GummyBoardRestMeshPool } from './gummyBoardRestMeshPool'
 import type { GummyBoardTheme } from './gummyBoardThemes'
 import type { GummyAuthoredPawn } from '@/simulation/gummy/gummyAuthoredPawn'
-import type { GummyChessArtStyle } from '@/simulation/gummy/gummyChessMoulds'
+import type { GummyChessArtStyle, GummyChessMould, } from '@/simulation/gummy/gummyChessMoulds'
 
 export type { GummyBoardPiece } from './gummyBoardInstances'
 
@@ -73,6 +73,8 @@ export async function createGummyBoardRenderer(
     restMeshPool?: GummyBoardRestMeshPool
     /** Waiting-piece detail is independent of the live victim's particle resolution. */
     restSpacing?: number
+    /** Isolated piece inspection bakes only the requested moulds, without a match-wide pool. */
+    moulds?: readonly GummyChessMould[]
   } = {},
 ) {
   if (root.device !== device)
@@ -86,15 +88,28 @@ export async function createGummyBoardRenderer(
     return resource
   }
   try {
+    const moulds = [...new Set(quality.moulds ?? GUMMY_BOARD_MOULDS)]
+    if (!moulds.length)
+      throw new Error('The board renderer needs at least one mould')
     const restMeshes = own(
-      await (quality.restMeshPool?.acquire ?? createGummyBoardRestMeshes)(
-        root,
-        device,
-        quality.restSpacing ?? particles?.spacing ?? 0.08,
-        quality.artStyle,
-        quality.signal,
-        quality.authoredPawn,
-      ),
+      await (quality.moulds
+        ? createGummyBoardRestMeshes(
+            root,
+            device,
+            quality.restSpacing ?? particles?.spacing ?? 0.08,
+            quality.artStyle,
+            quality.signal,
+            quality.authoredPawn,
+            moulds,
+          )
+        : (quality.restMeshPool?.acquire ?? createGummyBoardRestMeshes)(
+            root,
+            device,
+            quality.restSpacing ?? particles?.spacing ?? 0.08,
+            quality.artStyle,
+            quality.signal,
+            quality.authoredPawn,
+          )),
     )
     quality.signal?.throwIfAborted()
     // Local games keep every waiting piece static. No MPM surface or density grid is allocated.
@@ -138,7 +153,7 @@ export async function createGummyBoardRenderer(
     }
     const victim = makeInstances(1)
     const secondary = secondarySurface ? makeInstances(1) : undefined
-    const batches = GUMMY_BOARD_MOULDS.map((mould) => {
+    const batches = moulds.map((mould) => {
       const mesh = restMeshes.meshes.get(mould)!
       const instances = makeInstances(GUMMY_BOARD_MAX_PIECES)
       const indirect = own(
@@ -441,6 +456,8 @@ export async function createGummyBoardRenderer(
     }
 
     function updateInstances(options: GummyBoardRenderOptions) {
+      if (options.pieces.some((piece) => !moulds.includes(piece.mould)))
+        throw new Error('The piece mould was not prepared for this renderer')
       if (options.secondary && !secondarySurface)
         throw new Error(
           'A second gummy surface must be supplied when creating the board renderer',

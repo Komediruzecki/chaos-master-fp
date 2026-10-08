@@ -35,8 +35,10 @@ describe('shared gummy pawn selection', () => {
     ))
     choose('trial')
     expect(value()).toEqual(
-      createGummyAuthoredPawn(undefined, 'Crystal lattice'),
+      createGummyAuthoredPawn(undefined, 'Crystal lattice', 1),
     )
+    choose('crown')
+    expect(value()).toEqual(createGummyAuthoredPawn(undefined, 'Open crown', 2))
     choose(gummyAuthoredPawnKey(saved))
     expect(value()).toEqual(saved)
     expect(value()).not.toBe(saved)

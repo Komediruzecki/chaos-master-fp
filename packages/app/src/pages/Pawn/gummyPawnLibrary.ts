@@ -121,7 +121,7 @@ export function removeGummyPawnSnapshot(
 export function gummyPawnForgeUrl(pawn?: GummyAuthoredPawn) {
   return pawn
     ? `/pawn?${new URLSearchParams({ chessPawn: gummyAuthoredPawnKey(pawn) }).toString()}`
-    : '/pawn?chessPawn=trial'
+    : '/pawn?chessPawn=crown'
 }
 
 /** Retain the exact selected snapshot even if its library entry was renamed or removed. */
@@ -145,7 +145,9 @@ export function readGummyPawnForForge(
     if (params.getAll('chessPawn').length !== 1 || !key || key.length > 256)
       throw new Error('Invalid pawn reference.')
     if (key === 'trial')
-      return { pawn: createGummyAuthoredPawn(undefined, 'Crystal lattice') }
+      return { pawn: createGummyAuthoredPawn(undefined, 'Crystal lattice', 1) }
+    if (key === 'crown')
+      return { pawn: createGummyAuthoredPawn(undefined, 'Open crown', 2) }
     const store = storage ?? localStorage
     const draft = store.getItem(GUMMY_PAWN_EDIT_KEY)
     if (draft && draft.length <= JSON_LIMIT) {

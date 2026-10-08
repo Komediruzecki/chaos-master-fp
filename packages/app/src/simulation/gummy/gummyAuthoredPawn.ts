@@ -7,11 +7,11 @@ import type { PawnRecipe } from '@/flame/chess/pawnFlame'
 
 export type GummyAuthoredPawn = {
   format: 'gummy-authored-pawn'
-  version: 1
+  version: 1 | 2
   name: string
   recipe: PawnRecipe
   seed: number
-  /** Material dilation radius in pawn-local units, not rendering point size. */
+  /** Structural dilation radius in pawn-local units; v2 uses a thinner crown. */
   thickness: number
 }
 
@@ -27,15 +27,17 @@ const volumes = new Map<string, ReturnType<typeof bakeAuthoredPawnVolume>>()
 export function createGummyAuthoredPawn(
   recipe: Partial<PawnRecipe> = {},
   name = 'Lattice pawn',
+  version: GummyAuthoredPawn['version'] = 2,
 ): GummyAuthoredPawn {
   return {
     format: 'gummy-authored-pawn',
-    version: 1,
+    version,
     name: validName(name.trim().slice(0, 64))
       ? name.trim().slice(0, 64)
       : 'Lattice pawn',
     recipe: normalizePawnRecipe({
       ...DEFAULT_STRUCTURAL_PAWN_RECIPE,
+      ...(version === 2 ? { branchCount: 4, openness: 0.65 } : {}),
       ...recipe,
     }),
     seed: 0x7061776e,
@@ -43,9 +45,13 @@ export function createGummyAuthoredPawn(
   }
 }
 
-/** Editable native IFS source uses the same selected facets and frame as the material bake. */
+/** Editable native IFS source shares its versioned geometry and frame with the material bake. */
 export function buildGummyAuthoredPawnFlame(snapshot: GummyAuthoredPawn) {
-  return buildAuthoredPawnFlame(snapshot.recipe, snapshot.thickness)
+  return buildAuthoredPawnFlame(
+    snapshot.recipe,
+    snapshot.thickness,
+    snapshot.version,
+  )
 }
 
 function record(value: unknown): Record<string, unknown> | undefined {
@@ -95,7 +101,7 @@ export function validateGummyAuthoredPawn(
       (key) => !['branchCount', 'openness', 'twist', 'side'].includes(key),
     ) ||
     raw.format !== 'gummy-authored-pawn' ||
-    raw.version !== 1 ||
+    (raw.version !== 1 && raw.version !== 2) ||
     !validName(raw.name) ||
     !range(raw.seed, 0, 0xffffffff) ||
     !Number.isInteger(raw.seed) ||
@@ -121,7 +127,7 @@ export function validateGummyAuthoredPawn(
     return undefined
   return {
     format: 'gummy-authored-pawn',
-    version: 1,
+    version: raw.version,
     name: raw.name,
     seed: raw.seed,
     thickness: raw.thickness,
@@ -139,7 +145,7 @@ export function gummyAuthoredPawnKey(snapshot?: GummyAuthoredPawn): string {
   if (!snapshot) return ''
   return JSON.stringify([
     'gummy-authored-pawn',
-    1,
+    snapshot.version,
     snapshot.recipe.branchCount,
     snapshot.recipe.openness,
     snapshot.recipe.twist,
@@ -158,6 +164,7 @@ export function createAuthoredPawnField(snapshot: GummyAuthoredPawn) {
       snapshot.recipe,
       snapshot.seed,
       snapshot.thickness,
+      snapshot.version,
     )
     if (volumes.size === 2) volumes.delete(volumes.keys().next().value!)
   } else volumes.delete(key)

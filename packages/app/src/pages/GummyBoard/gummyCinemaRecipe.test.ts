@@ -25,27 +25,34 @@ export const ROCK_GUMMY_SETTINGS = {
 } as const
 
 describe('gummy cinema recipes', () => {
-  it('round-trips an authored pawn as an independent shape snapshot', () => {
-    const recipe = {
-      ...createGummyCinemaRecipe(),
-      authoredPawn: createGummyAuthoredPawn({ openness: 0.4 }, 'Lattice study'),
-    }
-    const decoded = parseGummyCinemaRecipe(JSON.stringify(recipe))
-    expect(decoded).toEqual(recipe)
-    expect(decoded.authoredPawn).not.toBe(recipe.authoredPawn)
-    expect(decoded.authoredPawn!.recipe).not.toBe(recipe.authoredPawn.recipe)
-    decoded.authoredPawn!.recipe.openness = 0.7
-    expect(recipe.authoredPawn.recipe.openness).toBe(0.4)
-    expect(() => parseGummyCinemaRecipe({ ...recipe, version: 2 })).toThrow(
-      /version 3/,
-    )
-  })
+  it.each([1, 2] as const)(
+    'round-trips a v%i authored pawn as an independent shape snapshot',
+    (version) => {
+      const recipe = {
+        ...createGummyCinemaRecipe(),
+        authoredPawn: createGummyAuthoredPawn(
+          { openness: 0.4 },
+          'Lattice study',
+          version,
+        ),
+      }
+      const decoded = parseGummyCinemaRecipe(JSON.stringify(recipe))
+      expect(decoded).toEqual(recipe)
+      expect(decoded.authoredPawn).not.toBe(recipe.authoredPawn)
+      expect(decoded.authoredPawn!.recipe).not.toBe(recipe.authoredPawn.recipe)
+      decoded.authoredPawn!.recipe.openness = 0.7
+      expect(recipe.authoredPawn.recipe.openness).toBe(0.4)
+      expect(() => parseGummyCinemaRecipe({ ...recipe, version: 2 })).toThrow(
+        /version 3/,
+      )
+    },
+  )
 
   it.each([
     null,
     {},
     { format: 'unknown', version: 1 },
-    { ...createGummyAuthoredPawn(), version: 2 },
+    { ...createGummyAuthoredPawn(), version: 3 },
   ])('rejects an invalid authored pawn snapshot %j', (authoredPawn) => {
     expect(() =>
       parseGummyCinemaRecipe({ ...createGummyCinemaRecipe(), authoredPawn }),

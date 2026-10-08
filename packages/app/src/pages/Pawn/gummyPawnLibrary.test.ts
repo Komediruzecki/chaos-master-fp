@@ -18,6 +18,25 @@ beforeEach(() => {
 })
 
 describe('local gummy pawn library', () => {
+  it('keeps both generation versions distinct and preserves the old trial link', () => {
+    const legacy = createGummyAuthoredPawn({}, 'Original', 1)
+    const crown = createGummyAuthoredPawn({}, 'Crown', 2)
+    saveGummyPawnSnapshot(legacy, undefined, storage)
+    saveGummyPawnSnapshot(crown, undefined, storage)
+    expect(loadGummyPawnLibrary(storage).pawns).toEqual([legacy, crown])
+    expect(
+      readGummyPawnForForge('?chessPawn=trial', storage).pawn?.version,
+    ).toBe(1)
+    expect(
+      readGummyPawnForForge(query(gummyPawnForgeUrl()), storage).pawn?.version,
+    ).toBe(2)
+    expect(
+      readGummyPawnForForge(
+        query(prepareGummyPawnEdit(legacy, storage)),
+        storage,
+      ).pawn,
+    ).toEqual(legacy)
+  })
   it('saves cloned snapshots and rereads independent copies', () => {
     const original = pawn()
     const saved = saveGummyPawnSnapshot(original, undefined, storage)
