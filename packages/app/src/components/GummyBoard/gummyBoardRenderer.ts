@@ -5,8 +5,8 @@ import { marchingGummyArtSlot, marchingGummyComposite, marchingGummyFillSlot, ma
 import { createMarchingGummySurface } from '../GummyBear/marchingGummySurface'
 import { createMarchingGummyTargets } from '../GummyBear/marchingGummyTargets'
 import { packParticleGummyCamera } from '../GummyBear/particleGummyRenderer'
-import { GUMMY_BOARD_INSTANCE_FLOATS, GUMMY_BOARD_MAX_PIECES, GUMMY_BOARD_MOULDS, packGummyBoardInstance, packGummyBoardInstances, } from './gummyBoardInstances'
-import { createGummyBoardRestMeshes } from './gummyBoardRestMeshes'
+import { GUMMY_BOARD_INSTANCE_FLOATS, GUMMY_BOARD_MAX_PIECES, packGummyBoardInstance, packGummyBoardInstances, } from './gummyBoardInstances'
+import { prepareGummyBoardMeshes } from './gummyBoardMeshPreparation'
 import { gummyBoardBackgroundFragment, gummyBoardExitFragment, gummyBoardExitLayout, gummyBoardFill, gummyBoardFrontFragment, GummyBoardInstance, gummyBoardInstanceLayout, gummyBoardLightFragment, gummyBoardLightVertex, gummyBoardMaterialLayout, gummyBoardOptics, gummyBoardShadowFragment, gummyBoardShadowVertex, gummyBoardVertex, } from './gummyBoardShaders'
 import { gummyBoardGlassLightFragment, gummyBoardGlassLightVertex, gummyBoardReceiverLayout, GummyBoardStage, gummyBoardStageLayout, } from './gummyBoardStageShaders'
 import { GUMMY_BOARD_GLASS_LIGHT_GRID, gummyBoardThemeCode, } from './gummyBoardThemes'
@@ -15,10 +15,8 @@ import type { GummyPalette } from '../GummyBear/gummyMaterial'
 import type { GummyFrame } from '../GummyBear/gummyRenderer'
 import type { MarchingGummyInput } from '../GummyBear/marchingGummySurface'
 import type { GummyBoardPiece } from './gummyBoardInstances'
-import type { GummyBoardRestMeshPool } from './gummyBoardRestMeshPool'
+import type { GummyBoardMeshQuality } from './gummyBoardMeshPreparation'
 import type { GummyBoardTheme } from './gummyBoardThemes'
-import type { GummyAuthoredPawn } from '@/simulation/gummy/gummyAuthoredPawn'
-import type { GummyChessArtStyle, GummyChessMould, } from '@/simulation/gummy/gummyChessMoulds'
 
 export type { GummyBoardPiece } from './gummyBoardInstances'
 
@@ -64,18 +62,7 @@ export async function createGummyBoardRenderer(
   format: GPUTextureFormat,
   particles?: GummyBoardParticleState,
   secondaryParticles?: GummyBoardParticleState,
-  quality: {
-    lightResolution?: 512 | 1024
-    artStyle?: GummyChessArtStyle
-    authoredPawn?: GummyAuthoredPawn
-    signal?: AbortSignal
-    /** A scene owner can share immutable moulds across static play and cinematic captures. */
-    restMeshPool?: GummyBoardRestMeshPool
-    /** Waiting-piece detail is independent of the live victim's particle resolution. */
-    restSpacing?: number
-    /** Isolated piece inspection bakes only the requested moulds, without a match-wide pool. */
-    moulds?: readonly GummyChessMould[]
-  } = {},
+  quality: GummyBoardMeshQuality = {},
 ) {
   if (root.device !== device)
     throw new Error('Gummy board renderer root and device must match')
@@ -88,29 +75,14 @@ export async function createGummyBoardRenderer(
     return resource
   }
   try {
-    const moulds = [...new Set(quality.moulds ?? GUMMY_BOARD_MOULDS)]
-    if (!moulds.length)
-      throw new Error('The board renderer needs at least one mould')
-    const restMeshes = own(
-      await (quality.moulds
-        ? createGummyBoardRestMeshes(
-            root,
-            device,
-            quality.restSpacing ?? particles?.spacing ?? 0.08,
-            quality.artStyle,
-            quality.signal,
-            quality.authoredPawn,
-            moulds,
-          )
-        : (quality.restMeshPool?.acquire ?? createGummyBoardRestMeshes)(
-            root,
-            device,
-            quality.restSpacing ?? particles?.spacing ?? 0.08,
-            quality.artStyle,
-            quality.signal,
-            quality.authoredPawn,
-          )),
+    const prepared = await prepareGummyBoardMeshes(
+      root,
+      device,
+      quality,
+      particles?.spacing,
     )
+    const moulds = prepared.moulds
+    const restMeshes = own(prepared.meshes)
     quality.signal?.throwIfAborted()
     // Local games keep every waiting piece static. No MPM surface or density grid is allocated.
     const surface = particles

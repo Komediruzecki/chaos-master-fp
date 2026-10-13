@@ -377,25 +377,6 @@ This pass adds no new bucket crossings. Query loading and More-menu handlers
 are extracted into owned modules; MainWorkspace's reduced 4490-line cap is
 ratcheted down. The baseline and existing violations are not waived.
 
-Next physical-representation gates:
-
-- Compare the Menger rook and Sierpinski bishop with finite material thickness.
-  Keep an enclosed-core option for delicate sources, with glass optics later.
-- Gate solid conversion by supported 3D features. The current pawn sampler only
-  implements `linear3D` and `blur3D`; the nonlinear study sampler adds a small
-  named set. Neither accepts all editor layers, custom maps or variation types.
-  Preserve unsupported sources for native inspection without presenting them as
-  playable solids.
-- Add a recognizable neighbouring piece for scale, plus measured finite bounds,
-  occupied and connected volume, stable base and minimum feature checks at the
-  selected quality. The current sizing guide does not satisfy these gates.
-- Extend the candidate with a versioned bake adapter, seed, thickness and
-  material settings only after those checks pass. Captures and Cinema must retain
-  that exact playable snapshot independently of later library edits.
-- Present both **Enclosed fractal** and **Solid material** once each representation
-  can display its actual output. A full six-role collection follows visual
-  acceptance of this bridge and the next rook/bishop comparison.
-
 Layout verification reproduced the old page-scroll failure, then passed 24
 production-page cases across Chromium and Firefox, both Forge and Figurine
 studies, and six viewport sizes from 320×568 to 1440×900 including landscape.
@@ -405,6 +386,135 @@ the native AMD GPU; Firefox was a layout check. Physical iOS remains a separate
 owner check. The 15 focused tests, `pnpm check`, production build and index check
 pass. Evidence is under
 `/home/maff/agent-out/chaos-master-fp/2026-10-08/forge-layout/`.
+
+### Finite material inspection
+
+The next bridge is implemented for inspection of the Menger rook and Sierpinski
+bishop. These candidates are not selectable as playable pieces, and this pass
+does not change the existing authored pawn library, match snapshots or Cinema
+captures. The earlier source definitions and candidate v1 format remain intact.
+
+Candidate v2 can retain an optional solid request:
+`{ adapter: 'affine-ifs-volume', version: 1, seed, thickness, spacing }`.
+Thickness is in world metres, bounded to 0.025–0.18; spacing is 0.04, 0.06 or
+0.08 metres. Defaults are seed 42, thickness 0.05 and spacing 0.04. The full
+source snapshot remains beside this request. Conversion applies its existing
+final affine and the explicit candidate placement exactly, without replacing
+the source by its name, recentering it or changing its IFS maps. Material is
+clipped at the board plane `y=0`; a source extending below that plane produces a
+warning rather than an automatic lift.
+
+Adapter v1 uses 120,000 deterministic source samples with 64 burn-in steps and
+a 0.0125-metre distance grid. Quantized source sites supply a Euclidean distance
+transform; the requested thickness produces a finite field, which is resampled
+into equal-volume cells on the selected uniform lattice. Nonuniform IFS point
+density does not become material mass. The distance-grid site quantization alone
+can move a sampled site by up to 0.01083 metres, and finite sampling does not
+certify every point of the ideal attractor.
+
+Eligibility is deliberately narrow: native 3D sources using the unit-ball
+initialization, positive visible map probabilities and active `linear3D`
+variations with native affine pre/post transforms. Each composed source map must
+pass the adapter's Euclidean contraction bound. Custom formulas, nonlinear
+variations, layers, stored blends and runtime Clash fail explicitly; some valid
+affine systems that contract only in another metric also fail this bound.
+Unsupported sources remain available for native inspection. The adapter caps
+the distance grid at eight million cells and the material body at 80,000 cells;
+the grid cap permits approximately 32 MiB of retained float data, with additional
+temporary sampling and transform workspace.
+
+The CPU bake runs in a dedicated Worker after a 250 ms debounce. Changing or
+hiding the inspection terminates obsolete work, and stale results cannot replace
+the current body. The Worker transfers its material positions without the field
+closure. The surface uses the existing board marching-cubes resting-mesh path,
+gummy optics and illumination, with no particle solver running. Both the
+candidate and the neighbouring classic pawn display at piece scale 0.9; the
+candidate uses its requested cell spacing while the classic pawn retains 0.08.
+Measured candidate bounds frame the view. Surface quality remains subject to the
+existing 96 MiB and 300,000-vertex per-body limits.
+
+Default diagnostics below describe the unscaled material body at thickness
+0.05 and spacing 0.04, before the preview's 0.9 display scale:
+
+| Candidate         | Material cells | Face-connected components | Rest volume | Ground cells | Ground area | COM over support hull |
+| ----------------- | -------------- | ------------------------- | ----------- | ------------ | ----------- | --------------------- |
+| Menger rook       | 23,472         | 1                         | 1.502208 m³ | 1,079        | 1.7264 m²   | Yes                   |
+| Sierpinski bishop | 3,662          | 1                         | 0.234368 m³ | 720          | 1.1520 m²   | Yes                   |
+
+Occupied rook bounds are `[-0.68, 0, -0.68]` to `[0.68, 1.84, 0.68]`; bishop
+bounds are `[-0.64, 0, -0.60]` to `[0.64, 1.84, 0.60]`. Connectivity uses shared
+cell faces, not diagonal contact. Ground area and the projected centre of mass
+over the support hull are static diagnostics; they do not establish deformable
+stability or fracture behaviour. On the measured CPU host, these default bakes
+took approximately 0.52 seconds for the rook and 0.20 seconds for the bishop.
+These are bake timings, not browser frame-rate or mobile performance claims.
+
+A thinner bishop at thickness 0.025 and spacing 0.04 retains one face-connected
+component, 2,068 cells, 0.132352 m³ of material and 0.8496 m² of ground support,
+with its centre of mass still over the support hull. This is a useful visual
+comparison, not an accepted playable preset. Thickness 0.035 and 0.04 likewise
+remain connected, with 2,721 and 3,024 cells respectively.
+
+The surface reconstruction still closes some openings that the finite field
+retains. At the thinner bishop's mitre test point, the field has 0.01860 metres
+of clearance, but the existing compact particle kernel produces density 0.3010
+against isovalue 0.095. Its support radius is 1.8 times particle spacing: 0.072
+metres at spacing 0.04. The kernel can therefore fill a visible gap even when the
+distance field marks it empty. Sparse opening-risk probes report this kernel
+risk; they do not certify the interpolated marching-cubes mesh or all source
+openings. A finer visual mesh cannot recover voids already removed by material
+thickness or the particle kernel.
+
+Eleven focused adapter tests pass. They cover exact distance-transform fixtures,
+seeded material counts, source and placement preservation, feature rejection,
+configuration validation, face connectivity, base-support fixtures and parity
+with the existing surface density kernel.
+
+Final verification: 175 focused tests pass across the candidate contract,
+persistence, Worker, inspector, source sampling, affine placement, shared stage,
+rest-mesh ownership and camera math. Typecheck, lint (zero errors; existing
+warnings remain), formatting, WGSL validation, production build and agent-index
+checks pass. The initial typecheck caught a saved-library selector reference and
+three test option types; these were fixed. An existing renderer test was updated
+to include the new optional geometry argument.
+
+The production build rendered both candidates on native Chromium with the AMD
+RDNA 4 adapter (not a fallback), with no captured GPU or runtime errors. Checks
+cover coarse/fine sampling, the thinner bishop, genuine touch orbit, saving v2
+settings and reopening a saved rook. The preview remains fixed while the final
+controls are reachable at 1440×900, 834×1112, 390×844, 320×568 and 568×320. The
+same five layout cases pass in Firefox; its headless runtime reports unavailable
+WebGPU, so it provides no rendering evidence. Physical iOS/tablet rendering
+remains an owner check. Evidence is under
+`/home/maff/agent-out/chaos-master-fp/2026-10-13/solid-inspector/`.
+
+The existing branch metrics gate remains red: 86 files above 500 lines against
+baseline 69, and 38 above 800 against 33, plus six existing per-file violations.
+Those six files are unchanged from the preceding HEAD. This pass introduces no
+new bucket crossings and reduces the board renderer from 823 to 795 measured
+lines; no baseline or file cap has been weakened.
+
+Next physical-representation gates:
+
+- Compare source and actual reconstructed surface at the selected thickness and
+  spacing. Resolve or explicitly accept the bishop's closed mitre gap, and verify
+  important openings in the final mesh rather than relying on sparse field or
+  kernel probes. Keep source edits and surface changes explicit.
+- Obtain visual acceptance of recognizable rook and bishop silhouettes beside
+  the classic pawn. Measure the chosen body's bounds, face connectivity, base
+  support and final mesh budget, then check physical-tablet rendering and later
+  deformable contact. Static diagnostics are not this acceptance gate.
+- After acceptance, define immutable playable snapshots for each promoted role,
+  including the complete source, placement, adapter version, seed, thickness and
+  sampling policy. Rest meshes, mass cells and collision fields must use the same
+  body, with board footprint and capture-clearance checks before integration.
+- Extend match reload, replay and Cinema to retain each captured role's exact
+  promoted snapshot independently of later library edits. Review snapshot and
+  session size budgets before adding multi-role captures.
+- Keep an enclosed-core route for delicate fractals as a separate representation.
+  Native nonlinear studies do not become solids through this adapter. A full
+  six-role collection follows acceptance of these inspected bodies and the
+  enclosed-core comparison.
 
 ## Private friend session architecture
 

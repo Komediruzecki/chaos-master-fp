@@ -184,6 +184,7 @@ describe('two live gummy board surfaces', () => {
       undefined,
       undefined,
       ['pawn'],
+      undefined,
     )
     expect(mocks.surfaces).not.toHaveBeenCalled()
     const settings: GummyBoardRenderOptions = {

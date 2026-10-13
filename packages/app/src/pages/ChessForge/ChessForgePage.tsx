@@ -1,18 +1,21 @@
 /** Native editor snapshots can be fitted and saved without claiming a verified solid. */
-import { createMemo, createSignal, For, onCleanup, onMount, Show, } from 'solid-js'
+import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show, } from 'solid-js'
 import { BOARD_TILE_SIZE } from '@/components/PawnBoard/pawnBoardMath'
+import { CandidateSolidStage } from '@/components/PawnStage/CandidateSolidStage'
 import { PawnStage } from '@/components/PawnStage/PawnStage'
-import { CHESS_CANDIDATE_ROLES } from '@/flame/chess/chessCandidate'
+import { CHESS_CANDIDATE_ROLES, CHESS_CANDIDATE_SOLID_DEFAULT, } from '@/flame/chess/chessCandidate'
 import { getChessEditorReturnUrl } from '@/flame/chess/chessEditorReturn'
-import { FIGURINE_STUDIES } from '@/flame/chess/figurineStudies'
 import { tryValidateFlame } from '@/flame/schema/flameSchema'
 import styles from '../Pawn/PawnPage.module.css'
 import { CandidatePlacementControls } from './CandidatePlacementControls'
+import { CandidateSolidControls } from './CandidateSolidControls'
+import { CandidateSourceControls } from './CandidateSourceControls'
 import ui from './ChessForgePage.module.css'
+import { useCandidateSolid } from './useCandidateSolid'
 import { useChessCandidate } from './useChessCandidate'
+import type { GummyPalette } from '@/components/GummyBear/gummyMaterial'
 import type { PawnRenderStatus } from '@/components/PawnStage/PawnStage'
 import type { ChessCandidateRole } from '@/flame/chess/chessCandidate'
-import type { FigurineStudyId } from '@/flame/chess/figurineStudies'
 import type { Camera3DObj } from '@/flame/schema/flameSchema'
 
 const INSPECTION_CAMERA: Camera3DObj = {
@@ -28,11 +31,27 @@ const FIT_GUIDE = { squareSize: BOARD_TILE_SIZE, height: 1.8 }
 export function ChessForgePage() {
   const forge = useChessCandidate()
   const editorReturnUrl = getChessEditorReturnUrl()
-  let importInput: HTMLInputElement | undefined
   const [status, setStatus] = createSignal<PawnRenderStatus>({
     pointCount: 0,
     progress: 0,
     ready: false,
+  })
+  const [surfaceStatus, setSurfaceStatus] = createSignal<{
+    ready: boolean
+    message?: string
+    vertexCount?: number
+  }>({ ready: false })
+  const [palette, setPalette] = createSignal<GummyPalette>('blue')
+  const solidRole = createMemo(() => {
+    const role = forge.candidate()?.role
+    return role === 'rook' || role === 'bishop' ? role : undefined
+  })
+  const solidActive = createMemo(
+    () => forge.view() === 'solid' && !!solidRole(),
+  )
+  const solid = useCandidateSolid(forge.candidate, solidActive)
+  createEffect(() => {
+    if (forge.view() === 'solid' && !solidRole()) forge.setView('fit')
   })
   const is3D = createMemo(
     () => forge.candidate()?.source.flame.renderSettings.dimensions === 3,
@@ -57,13 +76,21 @@ export function ChessForgePage() {
     () => (forge.candidate()?.source.flame.layers?.length ?? 0) > 0,
   )
   const statusLabel = createMemo(() =>
-    forge.sourceError()
-      ? 'Preview unavailable'
-      : !forge.flame()
-        ? 'Choose a source'
-        : status().ready
-          ? 'Preview settled'
-          : 'Rendering source…',
+    solidActive()
+      ? solid.busy()
+        ? 'Building solid…'
+        : solid.error()
+          ? 'Solid unavailable'
+          : surfaceStatus().ready
+            ? 'Solid surface ready'
+            : (surfaceStatus().message ?? 'Preparing surface…')
+      : forge.sourceError()
+        ? 'Preview unavailable'
+        : !forge.flame()
+          ? 'Choose a source'
+          : status().ready
+            ? 'Preview settled'
+            : 'Rendering source…',
   )
   const sampleLabel = createMemo(
     () => `${Math.round(status().pointCount / 1000).toLocaleString()}K samples`,
@@ -98,41 +125,77 @@ export function ChessForgePage() {
               {forge.candidate()?.name || 'Your next piece'}
             </span>
             <span class={styles.scale}>
-              {fitted() ? 'Inspection fit' : 'Fractal source'}
+              {solidActive()
+                ? 'Solid surface · 0.9×'
+                : fitted()
+                  ? 'Inspection fit'
+                  : 'Fractal source'}
             </span>
           </div>
           <Show
-            when={forge.flame()}
+            when={!solidActive()}
             fallback={
-              <div class={ui.empty}>
-                <strong>
-                  {forge.sourceError()
-                    ? 'Could not render this source.'
-                    : forge.candidate()
-                      ? 'Loading source…'
-                      : 'Start with a fractal.'}
-                </strong>
-                <p>
-                  {forge.sourceError() ||
-                    (forge.candidate()
-                      ? 'Preparing its saved formulas.'
-                      : 'Choose a study, open a saved candidate, or use Inspect for chess in the editor’s More menu.')}
-                </p>
-              </div>
+              <Show
+                when={solid.data()}
+                fallback={
+                  <div class={ui.empty}>
+                    <strong>
+                      {solid.error() || 'Building a finite solid…'}
+                    </strong>
+                    <p>
+                      {solid.error()
+                        ? 'Fractal source and Inspection fit are still available.'
+                        : 'Your preview will appear here with a neighbouring pawn.'}
+                    </p>
+                  </div>
+                }
+              >
+                {(data) => (
+                  <CandidateSolidStage
+                    source={data()}
+                    geometryKey={data().geometryKey}
+                    mould={solidRole()!}
+                    palette={palette()}
+                    resetKey={forge.resetKey()}
+                    onStatus={setSurfaceStatus}
+                  />
+                )}
+              </Show>
             }
           >
-            {(flame) => (
-              <PawnStage
-                flame={flame()}
-                camera3D={camera()}
-                fitGuide={guide()}
-                blendFlame={blend()}
-                blendWeight={blendWeight()}
-                resetViewKey={forge.resetKey()}
-                ariaLabel="Interactive chess candidate"
-                onStatusChange={setStatus}
-              />
-            )}
+            <Show
+              when={forge.flame()}
+              fallback={
+                <div class={ui.empty}>
+                  <strong>
+                    {forge.sourceError()
+                      ? 'Could not render this source.'
+                      : forge.candidate()
+                        ? 'Loading source…'
+                        : 'Start with a fractal.'}
+                  </strong>
+                  <p>
+                    {forge.sourceError() ||
+                      (forge.candidate()
+                        ? 'Preparing its saved formulas.'
+                        : 'Choose a study, open a saved candidate, or use Inspect for chess in the editor’s More menu.')}
+                  </p>
+                </div>
+              }
+            >
+              {(flame) => (
+                <PawnStage
+                  flame={flame()}
+                  camera3D={camera()}
+                  fitGuide={guide()}
+                  blendFlame={blend()}
+                  blendWeight={blendWeight()}
+                  resetViewKey={forge.resetKey()}
+                  ariaLabel="Interactive chess candidate"
+                  onStatusChange={setStatus}
+                />
+              )}
+            </Show>
           </Show>
           <div class={styles.previewFooter}>
             <p>
@@ -150,7 +213,15 @@ export function ChessForgePage() {
           </div>
           <div class={styles.renderLine}>
             <span>{statusLabel()}</span>
-            <span>{forge.flame() ? sampleLabel() : ''}</span>
+            <span>
+              {solidActive()
+                ? surfaceStatus().ready && !solid.busy()
+                  ? `${Math.round((surfaceStatus().vertexCount ?? 0) / 3).toLocaleString()} triangles`
+                  : ''
+                : forge.flame()
+                  ? sampleLabel()
+                  : ''}
+            </span>
           </div>
         </section>
         <section class={styles.controls} aria-labelledby="candidate-title">
@@ -163,114 +234,7 @@ export function ChessForgePage() {
               copy.
             </p>
           </div>
-          <Show when={forge.notice()}>
-            <p role="status" class={ui.notice}>
-              {forge.notice()}
-            </p>
-          </Show>
-          <Show when={forge.pending()}>
-            {(next) => (
-              <div
-                class={ui.notice}
-                role="group"
-                aria-label="Replace inspection draft"
-              >
-                <strong>Open {next().name}?</strong>
-                <p>Your current draft has changes outside the saved library.</p>
-                <div class={ui.confirmActions}>
-                  <button
-                    type="button"
-                    class={styles.primaryButton}
-                    onClick={() => {
-                      forge.replace(true)
-                    }}
-                  >
-                    Save & open
-                  </button>
-                  <button
-                    type="button"
-                    class={styles.secondaryButton}
-                    onClick={() => {
-                      forge.replace(false)
-                    }}
-                  >
-                    Replace draft
-                  </button>
-                  <button
-                    type="button"
-                    class={styles.quietButton}
-                    onClick={forge.cancelReplace}
-                  >
-                    Keep editing
-                  </button>
-                </div>
-              </div>
-            )}
-          </Show>
-          <details open class={ui.section}>
-            <summary>Source & library</summary>
-            <label class={styles.selectField}>
-              Start from a study
-              <select
-                aria-label="Start from a study"
-                value=""
-                onChange={(event) => {
-                  if (event.currentTarget.value)
-                    forge.study(event.currentTarget.value as FigurineStudyId)
-                  event.currentTarget.value = ''
-                }}
-              >
-                <option value="">Choose a fractal study…</option>
-                <For each={FIGURINE_STUDIES}>
-                  {(study) => <option value={study.id}>{study.name}</option>}
-                </For>
-              </select>
-            </label>
-            <Show when={forge.saved().length > 0}>
-              <label class={styles.selectField}>
-                Saved candidates
-                <select
-                  aria-label="Saved candidates"
-                  value=""
-                  onChange={(event) => {
-                    const selected = forge
-                      .saved()
-                      .find((item) => item.id === event.currentTarget.value)
-                    if (selected) forge.select(structuredClone(selected))
-                    event.currentTarget.value = ''
-                  }}
-                >
-                  <option value="">Open a saved candidate…</option>
-                  <For each={forge.saved()}>
-                    {(item) => (
-                      <option value={item.id}>
-                        {item.name} · {item.role}
-                      </option>
-                    )}
-                  </For>
-                </select>
-              </label>
-            </Show>
-            <input
-              ref={importInput}
-              hidden
-              type="file"
-              accept=".json,application/json"
-              aria-label="Candidate file"
-              onChange={(event) => {
-                const file = event.currentTarget.files?.[0]
-                if (file) void forge.importFile(file)
-                event.currentTarget.value = ''
-              }}
-            />
-            <button
-              type="button"
-              class={styles.secondaryButton}
-              onClick={() => importInput?.click()}
-            >
-              Import candidate
-            </button>
-          </details>
+          <CandidateSourceControls forge={forge} />
           <Show when={forge.candidate()}>
             {(candidate) => (
               <>
@@ -318,14 +282,20 @@ export function ChessForgePage() {
                   <fieldset class={ui.viewField}>
                     <legend>Preview</legend>
                     <div class={styles.sideOptions}>
-                      <For each={['source', 'fit'] as const}>
+                      <For each={['source', 'fit', 'solid'] as const}>
                         {(view) => (
                           <label class={styles.sideOption}>
                             <input
                               type="radio"
                               name="candidate-view"
                               checked={forge.view() === view}
+                              disabled={view === 'solid' && !solidRole()}
                               onChange={() => {
+                                if (view === 'solid' && !candidate().solid)
+                                  forge.update({
+                                    version: 2,
+                                    solid: { ...CHESS_CANDIDATE_SOLID_DEFAULT },
+                                  })
                                 forge.setView(view)
                                 forge.resetView()
                               }}
@@ -333,13 +303,35 @@ export function ChessForgePage() {
                             <span>
                               {view === 'source'
                                 ? 'Fractal source'
-                                : 'Inspection fit'}
+                                : view === 'fit'
+                                  ? 'Inspection fit'
+                                  : 'Solid surface'}
                             </span>
                           </label>
                         )}
                       </For>
                     </div>
                   </fieldset>
+                  <Show when={!solidRole()}>
+                    <p class={styles.note}>
+                      Solid inspection currently supports rook and bishop roles.
+                    </p>
+                  </Show>
+                  <Show when={solidActive() && candidate().solid}>
+                    {(settings) => (
+                      <CandidateSolidControls
+                        settings={settings()}
+                        onChange={(solid) => {
+                          forge.update({ version: 2, solid })
+                        }}
+                        palette={palette()}
+                        onPalette={setPalette}
+                        report={solid.data()?.report}
+                        busy={solid.busy()}
+                        error={solid.error()}
+                      />
+                    )}
+                  </Show>
                   <details open class={ui.section}>
                     <summary>Orientation & fit</summary>
                     <p class={styles.note}>
@@ -386,11 +378,12 @@ export function ChessForgePage() {
                   </Show>
                 </details>
                 <div class={ui.readiness}>
-                  <strong>Before solid conversion</strong>
+                  <strong>Inspection candidate</strong>
                   <p>
-                    Solid conversion comes next. This guide does not measure
-                    bounds, connected volume or a stable base. Candidates stay
-                    out of playable sets until those checks pass.
+                    Rooks and bishops can be compared as finite solids. Review
+                    their openings and support before a physics trial.
+                    Candidates stay separate from playable sets; your existing
+                    pieces are preserved.
                   </p>
                 </div>
                 <div class={styles.actions}>

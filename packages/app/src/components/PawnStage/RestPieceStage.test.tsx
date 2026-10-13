@@ -3,6 +3,7 @@ import { cleanup, render } from '@solidjs/testing-library'
 import { createSignal, Show } from 'solid-js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createGummyAuthoredPawn, validateGummyAuthoredPawn, } from '@/simulation/gummy/gummyAuthoredPawn'
+import { CandidateSolidStage } from './CandidateSolidStage'
 import { PlayablePawnStage } from './PlayablePawnStage'
 import type { ParentProps } from 'solid-js'
 import type { GummyPalette } from '../GummyBear/gummyMaterial'
@@ -156,6 +157,62 @@ describe('playable pawn preview', () => {
     expect(live.destroy).toHaveBeenCalledOnce()
     expect(fixture.unconfigure).toHaveBeenCalledOnce()
     expect(frames.size).toBe(0)
+  })
+
+  it('replaces a candidate mould during a pending bake and reports only the final geometry', async () => {
+    let finish!: (value: unknown) => void
+    const obsolete = renderer()
+    const latest = {
+      ...renderer(),
+      readRenderStats: () => ({ restVertexCounts: { bishop: 456 } }),
+    }
+    fixture.create.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve
+        }),
+    )
+    fixture.create.mockResolvedValueOnce(latest)
+    const source = {
+      restPositions: new Float32Array([0, 0.2, 0, 1]),
+      bounds: { min: [-0.5, 0, -0.5], max: [0.5, 1.8, 0.5] },
+      spacing: 0.04,
+    }
+    const [mould, setMould] = createSignal<'rook' | 'bishop'>('rook')
+    const [palette, setPalette] = createSignal<GummyPalette>('blue')
+    const status = vi.fn()
+    render(() => (
+      <CandidateSolidStage
+        source={source}
+        geometryKey="same-source"
+        mould={mould()}
+        palette={palette()}
+        onStatus={status}
+      />
+    ))
+    await vi.advanceTimersByTimeAsync(240)
+    const signal = fixture.create.mock.calls[0]![6].signal as AbortSignal
+    setMould('bishop')
+    await vi.advanceTimersByTimeAsync(240)
+    expect(signal.aborted).toBe(true)
+    expect(fixture.create).toHaveBeenCalledOnce()
+    finish(obsolete)
+    await vi.advanceTimersByTimeAsync(0)
+    expect(obsolete.destroy).toHaveBeenCalledOnce()
+    expect(fixture.create.mock.calls[1]![6]).toMatchObject({
+      moulds: ['bishop', 'pawn'],
+      restSources: { bishop: source },
+    })
+    await frame()
+    expect(obsolete.render).not.toHaveBeenCalled()
+    expect(latest.render.mock.calls[0]![1].pieces[0].mould).toBe('bishop')
+    expect(status).toHaveBeenLastCalledWith({ ready: true, vertexCount: 456 })
+    setPalette('berry')
+    await vi.advanceTimersByTimeAsync(300)
+    await frame()
+    expect(fixture.create).toHaveBeenCalledTimes(2)
+    expect(latest.render.mock.lastCall![1].pieces[0].palette).toBe('berry')
+    expect(latest.render).toHaveBeenCalledTimes(2)
   })
 
   it('coalesces rapid edits and serializes in-flight aborted preparations', async () => {

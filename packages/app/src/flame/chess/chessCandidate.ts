@@ -1,12 +1,25 @@
 /** Immutable native-flame snapshots and a separate, inspection-only chess placement. */
-import { composeAffine, IDENTITY_AFFINE } from '../clash/placement'
 import { flameComplexityError, MAX_FLAME_TRANSFORMS, MAX_FLAME_VARIATIONS, validateFlame, } from '../schema/flameSchema'
-import { toAffine3D } from '../transformFunction3D'
 import { collectFlameCustomVariations } from '../variations/custom/CustomVariationRegistry'
 import { MAX_CUSTOM_WGSL_LENGTH } from '../variations/custom/runtimeCompiler'
-import type { Affine3 } from '../clash/placement'
+import { validateChessCandidateSolid } from './chessCandidateSolid'
+import { CHESS_CANDIDATE_JSON_LIMIT, cloneChessCandidateData, } from './chessCandidateSource'
 import type { FlameDescriptor, TransformFunction } from '../schema/flameSchema'
 import type { CustomVariationDef } from '../variations/custom/types'
+import type { ChessCandidateSolid } from './chessCandidateSolid'
+
+export {
+  CHESS_CANDIDATE_SOLID_DEFAULT,
+  CHESS_CANDIDATE_SOLID_MIN_THICKNESS,
+  CHESS_CANDIDATE_SOLID_MAX_THICKNESS,
+  CHESS_CANDIDATE_SOLID_SPACINGS,
+} from './chessCandidateSolid'
+export type { ChessCandidateSolid } from './chessCandidateSolid'
+export {
+  CHESS_CANDIDATE_JSON_LIMIT,
+  candidateRenderFlame,
+  chessCandidatePlacementAffine,
+} from './chessCandidateSource'
 
 export type ChessCandidateRole =
   | 'pawn'
@@ -15,13 +28,16 @@ export type ChessCandidateRole =
   | 'bishop'
   | 'queen'
   | 'king'
+
 export type ChessCandidate = {
   format: 'chess-piece-candidate'
-  version: 1
+  version: 1 | 2
   id: string
   name: string
   role: ChessCandidateRole
   source: { flame: FlameDescriptor; customVariations: CustomVariationDef[] }
+  /** Only version 2 may carry a finite-solid request. Native source data stays unchanged. */
+  solid?: ChessCandidateSolid
   placement: {
     /** Radians, applied about X, then Y, then Z in the source coordinate system. */
     rotation: [number, number, number]
@@ -30,7 +46,6 @@ export type ChessCandidate = {
   }
 }
 
-export const CHESS_CANDIDATE_JSON_LIMIT = 512 * 1024
 export const CHESS_CANDIDATE_ROLES: readonly ChessCandidateRole[] = [
   'pawn',
   'rook',
@@ -49,53 +64,6 @@ function record(value: unknown, label: string): RecordValue {
   if (!value || typeof value !== 'object' || Array.isArray(value))
     throw new Error(`${label} must be an object.`)
   return value as RecordValue
-}
-
-/** Clone proxies/plain data without silently converting Infinity to null as JSON does. */
-function cloneData(
-  value: unknown,
-  seen = new Set<object>(),
-  depth = 0,
-  budget = { nodes: 0, text: 0 },
-): unknown {
-  if (++budget.nodes > 100_000 || depth > 64)
-    throw new Error('This chess source is too complex to inspect.')
-  if (typeof value === 'number' && !Number.isFinite(value))
-    throw new Error('Chess source settings must contain finite numbers.')
-  if (typeof value === 'string') {
-    budget.text += value.length
-    if (budget.text > CHESS_CANDIDATE_JSON_LIMIT)
-      throw new Error('This chess source is too large to inspect.')
-  }
-  if (
-    value === null ||
-    value === undefined ||
-    ['string', 'number', 'boolean'].includes(typeof value)
-  )
-    return value
-  if (typeof value !== 'object')
-    throw new Error('Chess sources must contain plain data.')
-  if (seen.has(value))
-    throw new Error('Chess sources cannot contain circular references.')
-  const prototype = Object.getPrototypeOf(value)
-  if (
-    !Array.isArray(value) &&
-    prototype !== Object.prototype &&
-    prototype !== null
-  )
-    throw new Error('Chess sources must contain plain objects.')
-  seen.add(value)
-  const output = Array.isArray(value)
-    ? value.map((item) => cloneData(item, seen, depth + 1, budget))
-    : Object.fromEntries(
-        Object.entries(value).map(([key, item]) => {
-          if (['__proto__', 'constructor', 'prototype'].includes(key))
-            throw new Error('Chess source contains an unsafe property name.')
-          return [key, cloneData(item, seen, depth + 1, budget)]
-        }),
-      )
-  seen.delete(value)
-  return output
 }
 
 function validateSource(value: unknown): FlameDescriptor {
@@ -142,7 +110,7 @@ function validateSource(value: unknown): FlameDescriptor {
       flame.renderSettings.blendFlame = visit(blend, depth + 1)
     return flame
   }
-  return visit(cloneData(value), 0)
+  return visit(cloneChessCandidateData(value), 0)
 }
 
 /** Visit all stored maps, including hidden layers and nested blends, without dropping source data. */
@@ -247,8 +215,17 @@ function triple(
 /** Validation returns new owned data; imports cannot mutate an editor draft or a saved candidate. */
 export function validateChessCandidate(value: unknown): ChessCandidate {
   const data = record(value, 'Chess candidate')
-  if (data.format !== 'chess-piece-candidate' || data.version !== 1)
+  if (
+    data.format !== 'chess-piece-candidate' ||
+    (data.version !== 1 && data.version !== 2)
+  )
     throw new Error('This chess candidate format or version is not supported.')
+  if (data.version === 1 && data.solid !== undefined)
+    throw new Error('Finite solid settings require chess candidate version 2.')
+  const solid =
+    data.solid === undefined
+      ? undefined
+      : validateChessCandidateSolid(data.solid)
   if (typeof data.id !== 'string' || !SAFE_ID.test(data.id))
     throw new Error('This chess candidate has an invalid ID.')
   if (
@@ -260,7 +237,7 @@ export function validateChessCandidate(value: unknown): ChessCandidate {
   const source = record(data.source, 'Chess source')
   const flame = validateSource(source.flame)
   const customVariations = validateDefinitions(
-    cloneData(source.customVariations),
+    cloneChessCandidateData(source.customVariations),
     flame,
   )
   const placement = record(data.placement, 'Chess placement')
@@ -275,11 +252,12 @@ export function validateChessCandidate(value: unknown): ChessCandidate {
     throw new Error('Inspection scale must be between 0.01 and 100.')
   const result: ChessCandidate = {
     format: 'chess-piece-candidate',
-    version: 1,
+    version: data.version,
     id: data.id,
     name: data.name,
     role: data.role as ChessCandidateRole,
     source: { flame, customVariations },
+    ...(solid === undefined ? {} : { solid }),
     placement: {
       rotation: triple(placement.rotation, 'Rotation', Math.PI * 2),
       scale: placement.scale,
@@ -329,56 +307,4 @@ export function parseChessCandidate(text: string): ChessCandidate {
   if (text.length > CHESS_CANDIDATE_JSON_LIMIT)
     throw new Error('This chess candidate file is too large.')
   return validateChessCandidate(JSON.parse(text) as unknown)
-}
-
-/** Uniform scale, X then Y then Z rotation, followed by translation; all independent of the source IFS. */
-export function chessCandidatePlacementAffine(
-  placement: ChessCandidate['placement'],
-): Affine3 {
-  const [x, y, z] = placement.rotation
-  const [sx, cx, sy, cy, sz, cz] = [
-    Math.sin(x),
-    Math.cos(x),
-    Math.sin(y),
-    Math.cos(y),
-    Math.sin(z),
-    Math.cos(z),
-  ]
-  const rotateX = { ...IDENTITY_AFFINE, f: cx, g: -sx, j: sx, k: cx }
-  const rotateY = { ...IDENTITY_AFFINE, a: cy, c: sy, i: -sy, k: cy }
-  const rotateZ = { ...IDENTITY_AFFINE, a: cz, b: -sz, e: sz, f: cz }
-  const [d, h, l] = placement.offset
-  return composeAffine(
-    {
-      ...IDENTITY_AFFINE,
-      a: placement.scale,
-      f: placement.scale,
-      k: placement.scale,
-      d,
-      h,
-      l,
-    },
-    composeAffine(rotateZ, composeAffine(rotateY, rotateX)),
-  )
-}
-
-/** Place native 3D output after its authored final affine. Flat sources retain their exact 2D interpretation. */
-export function candidateRenderFlame(
-  candidate: ChessCandidate,
-  sourceOverride?: FlameDescriptor,
-): FlameDescriptor {
-  const flame = cloneData(
-    sourceOverride ?? candidate.source.flame,
-  ) as FlameDescriptor
-  const place = (source: FlameDescriptor) => {
-    if (source.renderSettings.dimensions === 3)
-      source.finalTransform = composeAffine(
-        chessCandidatePlacementAffine(candidate.placement),
-        toAffine3D(source.finalTransform),
-      )
-    const blend = source.renderSettings.blendFlame
-    if (blend !== undefined) place(blend as FlameDescriptor)
-  }
-  place(flame)
-  return flame
 }

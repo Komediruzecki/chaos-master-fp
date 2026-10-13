@@ -83,7 +83,12 @@ export function gummyCameraMatrices(
   eye: Float32Array,
   experiment: 'pull' | 'crush' = 'pull',
   framing?: GummyCameraFraming,
+  farPlane = 50,
 ) {
+  if (!Number.isFinite(farPlane) || farPlane <= 0.05)
+    throw new RangeError(
+      'The gummy camera far plane must be finite and beyond the near plane',
+    )
   const fittedAspect = Math.max(0.25, aspect)
   const targetY = experiment === 'crush' ? 0.4 : 1.32
   const radius = gummyCameraRadius(orbit, fittedAspect, experiment, framing)
@@ -96,7 +101,7 @@ export function gummyCameraMatrices(
   eye[1] = target[1]! + radius * Math.cos(orbit.phi)
   eye[2] = target[2]! + radius * Math.sin(orbit.phi) * Math.cos(orbit.theta)
   const view = mat4.lookAt(eye, target, [0, 1, 0])
-  const projection = mat4.perspective(Math.PI / 4, fittedAspect, 0.05, 50)
+  const projection = mat4.perspective(Math.PI / 4, fittedAspect, 0.05, farPlane)
   mat4.mul(projection, view, viewProjection)
   mat4.inverse(viewProjection, inverse)
 }

@@ -89,6 +89,61 @@ describe('gummy board rest mesh ownership', () => {
     for (const buffer of test.buffers)
       expect(buffer.destroy).toHaveBeenCalledOnce()
   })
+  it('uses the candidate sample spacing and bounds without reshaping it to the regular sculpted mould', async () => {
+    const test = harness()
+    mocks.surface.mockImplementation(() => surface(18))
+    const source = {
+      restPositions: new Float32Array([0, 0.3, 0, 1]),
+      bounds: { min: [-0.1, 0.2, -0.1], max: [0.1, 0.4, 0.1] },
+      spacing: 0.04,
+    }
+    const result = await createGummyBoardRestMeshes(
+      test.root,
+      test.device,
+      0.08,
+      'sculpted',
+      undefined,
+      undefined,
+      ['rook', 'pawn'],
+      { rook: source },
+    )
+    expect(mocks.surface.mock.calls[0]![2]).toMatchObject({
+      restPositions: source.restPositions,
+      gridBounds: source.bounds,
+      spacing: 0.04,
+      particleCount: 1,
+    })
+    expect(mocks.surface.mock.calls[1]![2].spacing).toBe(0.08)
+    expect(test.buffers[1]!.read).not.toHaveBeenCalled()
+    expect(test.buffers[1]!.write).not.toHaveBeenCalled()
+    expect(test.buffers[3]!.read).toHaveBeenCalledOnce()
+    result.destroy()
+    for (const buffer of test.buffers)
+      expect(buffer.destroy).toHaveBeenCalledOnce()
+  })
+  it('rejects invalid candidate samples before allocating a GPU buffer', async () => {
+    const test = harness()
+    await expect(
+      createGummyBoardRestMeshes(
+        test.root,
+        test.device,
+        0.08,
+        'classic',
+        undefined,
+        undefined,
+        ['rook'],
+        {
+          rook: {
+            restPositions: new Float32Array([NaN, 0, 0, 1]),
+            bounds: { min: [-1, 0, -1], max: [1, 1, 1] },
+            spacing: 0.04,
+          },
+        },
+      ),
+    ).rejects.toThrow(/finite packed/)
+    expect(test.buffers).toHaveLength(0)
+    expect(mocks.surface).not.toHaveBeenCalled()
+  })
   it('stops baking after a skipped capture and releases the in-flight mesh before starting another', async () => {
     const test = harness(),
       abort = new AbortController(),

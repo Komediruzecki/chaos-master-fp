@@ -1,11 +1,12 @@
 /** Bake shared candy moulds on the GPU once, then retain only compact render meshes. */
 import { d } from 'typegpu'
-import { GUMMY_CHESS_MOULDS, sampleGummyChessMould, } from '@/simulation/gummy/gummyChessMoulds'
 import { createMarchingGummySurface } from '../GummyBear/marchingGummySurface'
 import { MarchingGummyVertex } from '../GummyBear/marchingGummySurfaceShaders'
 import { GUMMY_BOARD_MOULDS } from './gummyBoardInstances'
 import { refineGummyBoardRestVertices } from './gummyBoardRestRefinement'
+import { resolveGummyBoardRestSource } from './gummyBoardRestSources'
 import type { StorageFlag, TgpuBuffer, TgpuRoot } from 'typegpu'
+import type { GummyBoardRestSources } from './gummyBoardRestSources'
 import type { GummyAuthoredPawn } from '@/simulation/gummy/gummyAuthoredPawn'
 import type { GummyChessArtStyle, GummyChessMould, } from '@/simulation/gummy/gummyChessMoulds'
 
@@ -29,20 +30,20 @@ export async function createGummyBoardRestMeshes(
   signal?: AbortSignal,
   authoredPawn?: GummyAuthoredPawn,
   moulds: readonly GummyChessMould[] = GUMMY_BOARD_MOULDS,
+  restSources?: GummyBoardRestSources,
 ): Promise<GummyBoardRestMeshes> {
   const meshes = new Map<GummyChessMould, GummyBoardRestMesh>()
   try {
     for (const mould of new Set(moulds)) {
       signal?.throwIfAborted()
-      const restPositions = new Float32Array(
-        sampleGummyChessMould(
-          mould,
-          spacing,
-          undefined,
-          artStyle,
-          authoredPawn,
-        ),
+      const source = resolveGummyBoardRestSource(
+        mould,
+        spacing,
+        artStyle,
+        authoredPawn,
+        restSources,
       )
+      const restPositions = source.restPositions
       const positions = root
         .createBuffer(
           d.arrayOf(d.vec4f, restPositions.length / 4),
@@ -58,8 +59,8 @@ export async function createGummyBoardRestMeshes(
           positions,
           restPositions,
           particleCount: restPositions.length / 4,
-          spacing,
-          gridBounds: GUMMY_CHESS_MOULDS[mould].bounds,
+          spacing: source.spacing,
+          gridBounds: source.bounds,
         })
         const bake = device.createCommandEncoder({
           label: `Gummy board ${mould} rest bake`,
@@ -86,7 +87,7 @@ export async function createGummyBoardRestMeshes(
         )
         device.queue.submit([copy.finish()])
         await device.queue.onSubmittedWorkDone()
-        if (artStyle === 'sculpted' && !(mould === 'pawn' && authoredPawn)) {
+        if (source.refine) {
           const refined = refineGummyBoardRestVertices(
             await compact.read(),
             mould,

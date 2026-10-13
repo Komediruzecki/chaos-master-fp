@@ -1,7 +1,7 @@
 /** Incoming editor candidates never replace the persistent draft before a choice. */
 import { beforeEach, describe, expect, it } from 'vitest'
 import { examples } from '../examples'
-import { createChessCandidate } from './chessCandidate'
+import { CHESS_CANDIDATE_SOLID_DEFAULT, createChessCandidate, validateChessCandidate, } from './chessCandidate'
 import { CHESS_CANDIDATE_HANDOFF_KEY, clearChessCandidateHandoff, loadChessCandidateHandoff, saveChessCandidateHandoff, } from './chessCandidateHandoff'
 import { CHESS_CANDIDATE_DRAFT_KEY } from './chessCandidateStorage'
 
@@ -11,6 +11,19 @@ beforeEach(() => {
 })
 
 describe('incoming chess candidate handoff', () => {
+  it('retains a version 2 solid request and its original native source in an owned tab-local snapshot', () => {
+    const candidate = validateChessCandidate({
+      ...createChessCandidate(examples.example1),
+      version: 2,
+      solid: { ...CHESS_CANDIDATE_SOLID_DEFAULT, seed: 0, spacing: 0.06 },
+    })
+    const expected = JSON.parse(JSON.stringify(candidate)) as unknown
+    saveChessCandidateHandoff(candidate)
+    candidate.solid!.thickness = 0.18
+    candidate.source.flame.metadata.name = 'Edited after handoff'
+    expect(loadChessCandidateHandoff().candidate).toEqual(expected)
+  })
+
   it('queues a copy in this tab without touching the existing persistent draft', () => {
     localStorage.setItem(CHESS_CANDIDATE_DRAFT_KEY, 'existing draft bytes')
     const candidate = createChessCandidate(examples.example1, 'Incoming source')

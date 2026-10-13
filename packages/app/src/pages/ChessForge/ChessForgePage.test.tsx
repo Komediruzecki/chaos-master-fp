@@ -20,6 +20,9 @@ vi.mock('@/components/PawnStage/PawnStage', () => ({
     return <div data-testid="native-candidate" />
   },
 }))
+vi.mock('@/components/PawnStage/CandidateSolidStage', () => ({
+  CandidateSolidStage: () => <div data-testid="solid-candidate" />,
+}))
 vi.mock('@/flame/chess/chessCandidateVariations', () => ({
   createChessCandidateVariations: (
     candidate: ReturnType<typeof createChessCandidate>,
@@ -44,6 +47,49 @@ afterEach(() => {
 })
 
 describe('Chess piece inspector', () => {
+  it('saves finite material settings and returns to fitted artwork when the role cannot show solids', async () => {
+    const view = render(() => <ChessForgePage />)
+    fireEvent.change(view.getByLabelText('Start from a study'), {
+      target: { value: 'menger-rook' },
+    })
+    await view.findByTestId('native-candidate')
+    fireEvent.click(view.getByRole('radio', { name: 'Solid surface' }))
+    expect(view.queryByTestId('native-candidate')).toBeNull()
+    expect(
+      view.getByRole('slider', { name: 'Material thickness' }),
+    ).toBeTruthy()
+    fireEvent.input(view.getByRole('slider', { name: 'Material thickness' }), {
+      target: { value: '0.065' },
+    })
+    fireEvent.change(view.getByLabelText('Material sampling'), {
+      target: { value: '0.08' },
+    })
+    fireEvent.click(view.getByRole('button', { name: 'Save candidate' }))
+    const stored = loadChessCandidateLibrary().candidates[0]!
+    expect(stored.version).toBe(2)
+    expect(stored.solid).toMatchObject({ thickness: 0.065, spacing: 0.08 })
+    expect(stored.source.flame).toEqual(buildFigurineStudy('menger-rook'))
+    fireEvent.change(view.getByLabelText('Saved candidates'), {
+      target: { value: stored.id },
+    })
+    expect(loadChessCandidateDraft().candidate).toEqual(stored)
+    fireEvent.change(view.getByLabelText('Chess role'), {
+      target: { value: 'knight' },
+    })
+    expect(
+      view.getByRole<HTMLInputElement>('radio', { name: 'Inspection fit' })
+        .checked,
+    ).toBe(true)
+    expect(
+      view.getByRole<HTMLInputElement>('radio', { name: 'Solid surface' })
+        .disabled,
+    ).toBe(true)
+    expect(
+      view.queryByRole('slider', { name: 'Material thickness' }),
+    ).toBeNull()
+    expect(preview.props?.fitGuide?.squareSize).toBe(1.6)
+    expect(view.getByTestId('native-candidate')).toBeTruthy()
+  })
   it('opens a fresh editor handoff and keeps it as the new inspection draft', async () => {
     const incoming = createChessCandidate(
       buildFigurineStudy('menger-rook'),

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { applyAffine, IDENTITY_AFFINE } from '../clash/placement'
 import { renderSettingsDefault, validateFlame } from '../schema/flameSchema'
 import { createCustomVariation, deleteCustomVariation, importSharedVariations, updateCustomVariation, } from '../variations/custom/CustomVariationRegistry'
-import { candidateRenderFlame, CHESS_CANDIDATE_JSON_LIMIT, chessCandidatePlacementAffine, createChessCandidate, forEachChessCandidateTransform, parseChessCandidate, serializeChessCandidate, validateChessCandidate, } from './chessCandidate'
+import { candidateRenderFlame, CHESS_CANDIDATE_JSON_LIMIT, CHESS_CANDIDATE_SOLID_DEFAULT, chessCandidatePlacementAffine, createChessCandidate, forEachChessCandidateTransform, parseChessCandidate, serializeChessCandidate, validateChessCandidate, } from './chessCandidate'
 import type { FlameDescriptor, TransformId, VariationId, } from '../schema/flameSchema'
 
 const ROOT = 'root' as TransformId
@@ -201,7 +201,7 @@ describe('chess candidate native source snapshots', () => {
 
   it('rejects corrupt adapters, unsupported envelopes and oversized JSON without coercion', () => {
     const candidate = createChessCandidate(nativeFlame())
-    expect(() => validateChessCandidate({ ...candidate, version: 2 })).toThrow(
+    expect(() => validateChessCandidate({ ...candidate, version: 3 })).toThrow(
       'not supported',
     )
     expect(() =>
@@ -298,4 +298,125 @@ describe('chess candidate native source snapshots', () => {
     )
     expect(types).toEqual(['linear3D', 'curl3D', 'swirl3D'])
   })
+})
+
+describe('versioned finite solid requests', () => {
+  it('keeps existing version 1 snapshots unchanged and requires an explicit version upgrade', () => {
+    const candidate = createChessCandidate(nativeFlame())
+    const original = serializeChessCandidate(candidate)
+    expect(candidate.version).toBe(1)
+    expect(candidate).not.toHaveProperty('solid')
+    expect(serializeChessCandidate(parseChessCandidate(original))).toBe(
+      original,
+    )
+    expect(() =>
+      validateChessCandidate({
+        ...candidate,
+        solid: CHESS_CANDIDATE_SOLID_DEFAULT,
+      }),
+    ).toThrow('require chess candidate version 2')
+    expect(serializeChessCandidate(candidate)).toBe(original)
+  })
+
+  it('round trips version 2 settings without changing the source or sharing configuration data', () => {
+    const candidate = createChessCandidate(nativeFlame())
+    const solid = { ...CHESS_CANDIDATE_SOLID_DEFAULT }
+    const upgraded = validateChessCandidate({ ...candidate, version: 2, solid })
+    const restored = parseChessCandidate(serializeChessCandidate(upgraded))
+    expect(restored).toEqual(upgraded)
+    expect(restored.solid).toEqual(solid)
+    expect(restored.source).toEqual(candidate.source)
+    expect(candidate).not.toHaveProperty('solid')
+    solid.thickness = 0.18
+    expect(restored.solid?.thickness).toBe(0.05)
+    expect(upgraded.solid?.thickness).toBe(0.05)
+    const withoutSolid = validateChessCandidate({ ...candidate, version: 2 })
+    expect(withoutSolid.version).toBe(2)
+    expect(withoutSolid).not.toHaveProperty('solid')
+    expect(parseChessCandidate(serializeChessCandidate(withoutSolid))).toEqual(
+      withoutSolid,
+    )
+  })
+
+  it('preserves unsupported native sources for inspection without claiming a playable solid', () => {
+    const candidate = createChessCandidate(nativeFlame('swirl3D'))
+    candidate.source.flame.renderSettings.blendFlame = nativeFlame()
+    const request = validateChessCandidate({
+      ...candidate,
+      version: 2,
+      solid: CHESS_CANDIDATE_SOLID_DEFAULT,
+    })
+    expect(request.source).toEqual(candidate.source)
+    expect(request).not.toHaveProperty('playable')
+    expect(candidateRenderFlame(request)).toEqual(
+      candidateRenderFlame(candidate),
+    )
+  })
+
+  it('accepts exact thickness and seed limits and every supported particle spacing', () => {
+    const candidate = createChessCandidate(nativeFlame())
+    for (const thickness of [0.025, 0.18]) {
+      for (const seed of [0, 0xffffffff]) {
+        for (const spacing of [0.04, 0.06, 0.08]) {
+          const solid = {
+            ...CHESS_CANDIDATE_SOLID_DEFAULT,
+            thickness,
+            seed,
+            spacing,
+          }
+          expect(
+            validateChessCandidate({ ...candidate, version: 2, solid }).solid,
+          ).toEqual(solid)
+        }
+      }
+    }
+  })
+
+  it.each([
+    ['unknown adapter', { adapter: 'unknown' }],
+    ['unknown adapter version', { version: 2 }],
+    ['string adapter version', { version: '1' }],
+    ['negative seed', { seed: -1 }],
+    ['fractional seed', { seed: 0.5 }],
+    ['oversized seed', { seed: 0x100000000 }],
+    ['string seed', { seed: '42' }],
+    ['non-finite seed', { seed: Infinity }],
+    ['thin shell', { thickness: 0.0249 }],
+    ['thick shell', { thickness: 0.1801 }],
+    ['non-finite thickness', { thickness: NaN }],
+    ['string thickness', { thickness: '0.05' }],
+    ['missing thickness', { thickness: undefined }],
+    ['too fine spacing', { spacing: 0.02 }],
+    ['unknown spacing', { spacing: 0.05 }],
+    ['too coarse spacing', { spacing: 0.12 }],
+    ['string spacing', { spacing: '0.04' }],
+    ['missing spacing', { spacing: undefined }],
+    ['untrusted approval', { playable: true }],
+    ['unsupported option', { sampleCount: 1_000_000 }],
+  ])(
+    'rejects %s without coercing or dropping settings',
+    (_label, overrides) => {
+      const candidate = createChessCandidate(nativeFlame())
+      expect(() =>
+        validateChessCandidate({
+          ...candidate,
+          version: 2,
+          solid: { ...CHESS_CANDIDATE_SOLID_DEFAULT, ...overrides },
+        }),
+      ).toThrow()
+    },
+  )
+
+  it.each([null, [], 1, 'default'])(
+    'rejects malformed settings %s',
+    (solid) => {
+      expect(() =>
+        validateChessCandidate({
+          ...createChessCandidate(nativeFlame()),
+          version: 2,
+          solid,
+        }),
+      ).toThrow('must be an object')
+    },
+  )
 })

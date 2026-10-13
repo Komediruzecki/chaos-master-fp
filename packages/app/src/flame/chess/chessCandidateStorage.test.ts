@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { validateFlame } from '../schema/flameSchema'
-import { createChessCandidate } from './chessCandidate'
+import { CHESS_CANDIDATE_SOLID_DEFAULT, createChessCandidate, validateChessCandidate, } from './chessCandidate'
 import { CHESS_CANDIDATE_DRAFT_KEY, CHESS_CANDIDATE_LIBRARY_KEY, loadChessCandidateDraft, loadChessCandidateLibrary, removeChessCandidate, saveChessCandidate, saveChessCandidateDraft, } from './chessCandidateStorage'
 
 function storage() {
@@ -92,6 +92,54 @@ describe('chess candidate storage', () => {
         .filter((item) => item.id !== updated.id)
         .map((item) => item.id),
     )
+  })
+
+  it('stores version 1 and version 2 together without upgrading old entries or losing the solid request', () => {
+    const store = storage()
+    const legacy = candidate('Native study')
+    const solid = validateChessCandidate({
+      ...candidate('Finite study'),
+      version: 2,
+      solid: {
+        ...CHESS_CANDIDATE_SOLID_DEFAULT,
+        spacing: 0.08,
+        seed: 0xffffffff,
+      },
+    })
+    const expected = JSON.parse(JSON.stringify(solid)) as unknown
+    saveChessCandidate(legacy, store)
+    saveChessCandidate(solid, store)
+    saveChessCandidateDraft(solid, store)
+    solid.solid!.thickness = 0.18
+    expect(loadChessCandidateDraft(store).candidate).toEqual(expected)
+    expect(loadChessCandidateLibrary(store).candidates).toEqual([
+      legacy,
+      expected,
+    ])
+    expect(loadChessCandidateLibrary(store).candidates[0]).not.toHaveProperty(
+      'solid',
+    )
+    saveChessCandidateDraft(legacy, store)
+    expect(loadChessCandidateDraft(store).candidate).toEqual(legacy)
+    expect(loadChessCandidateLibrary(store).candidates[1]).toEqual(expected)
+  })
+
+  it('keeps saved version 2 data intact when an imported solid request is invalid', () => {
+    const store = storage()
+    const solid = validateChessCandidate({
+      ...candidate(),
+      version: 2,
+      solid: CHESS_CANDIDATE_SOLID_DEFAULT,
+    })
+    saveChessCandidate(solid, store)
+    saveChessCandidateDraft(solid, store)
+    const library = store.getItem(CHESS_CANDIDATE_LIBRARY_KEY)
+    const draft = store.getItem(CHESS_CANDIDATE_DRAFT_KEY)
+    solid.solid!.thickness = 0
+    expect(() => saveChessCandidate(solid, store)).toThrow('thickness')
+    expect(() => saveChessCandidateDraft(solid, store)).toThrow('thickness')
+    expect(store.getItem(CHESS_CANDIDATE_LIBRARY_KEY)).toBe(library)
+    expect(store.getItem(CHESS_CANDIDATE_DRAFT_KEY)).toBe(draft)
   })
 
   it('refuses any rewrite of unreadable library and draft data', () => {

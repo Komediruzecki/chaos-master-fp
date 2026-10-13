@@ -27,7 +27,7 @@ export function useChessCandidate() {
   const [draftStatus, setDraftStatus] = createSignal('')
   const [source, setSource] = createSignal<FlameDescriptor>()
   const [sourceError, setSourceError] = createSignal('')
-  const [view, setView] = createSignal<'source' | 'fit'>('fit')
+  const [view, setView] = createSignal<'source' | 'fit' | 'solid'>('fit')
   const [resetKey, setResetKey] = createSignal(0)
   const [pending, setPending] = createSignal<ChessCandidate>()
   // on() tracks the signal read by its dependency function; it does not compare

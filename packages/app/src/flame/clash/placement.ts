@@ -14,7 +14,7 @@
  * transform's affine coefficients as parameters, and placing rewrites those,
  * so a fighter that uses them bends a little differently while placed.
  */
-import { toAffine3D } from '../transformFunction3D'
+import { toAffine3D } from '../affine3D'
 
 /** A 3D affine map: rows (a b c | d), (e f g | h), (i j k | l). */
 export type Affine3 = ReturnType<typeof toAffine3D>
