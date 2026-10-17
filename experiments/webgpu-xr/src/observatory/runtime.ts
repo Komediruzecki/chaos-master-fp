@@ -1,7 +1,7 @@
 // Desktop canvas, camera and trace input lifecycle for the observatory scene.
 import { createObservatoryRenderer } from './renderer'
-import { clamp, copyTrace, EMPTY_TRACE, projectPoint, QUIET_MUSIC, traceAtCanvas, traceWorld, WORLD_PLACEMENTS, } from './scene'
-import type { CameraState, MusicFrame, ObservatoryFrame, ObservatoryOptions, ObservatorySnapshot, ObservatoryView, TracePoint, TracePresentation, WorldId, } from './scene'
+import { clamp, copyTrace, EMPTY_GLASSWAKE, EMPTY_TRACE, projectPoint, QUIET_MUSIC, traceAtCanvas, traceWorld, WORLD_PLACEMENTS, } from './scene'
+import type { CameraState, GlasswakePresentation, MusicFrame, ObservatoryFrame, ObservatoryOptions, ObservatorySnapshot, ObservatoryView, TracePoint, TracePresentation, WorldId, } from './scene'
 
 export class ObservatoryRuntime {
   private device?: GPUDevice
@@ -24,6 +24,7 @@ export class ObservatoryRuntime {
     .matches
   private clay = false
   private trace: TracePresentation = copyTrace(EMPTY_TRACE)
+  private glasswake: GlasswakePresentation = { ...EMPTY_GLASSWAKE }
   private music: MusicFrame = { ...QUIET_MUSIC }
   private instructionNote: number | null = null
   private camera: CameraState = { yaw: 0, pitch: 0, distance: 1 }
@@ -173,6 +174,8 @@ export class ObservatoryRuntime {
           instructionNote: this.instructionNote,
           clay: this.clay,
           trace: this.trace,
+          glasswake: this.glasswake,
+          motion: this.motion,
         }
         this.renderer!.render(
           this.context!.getCurrentTexture().createView(),
@@ -209,6 +212,7 @@ export class ObservatoryRuntime {
     if (
       !this.ready ||
       !this.active ||
+      this.view === 'glasswake' ||
       this.pointer ||
       !event.isPrimary ||
       event.button !== 0
@@ -327,7 +331,8 @@ export class ObservatoryRuntime {
   }
 
   private onWheel = (event: WheelEvent) => {
-    if (!this.ready || this.view === 'trace') return
+    if (!this.ready || this.view === 'trace' || this.view === 'glasswake')
+      return
     event.preventDefault()
     this.camera.distance = clamp(
       this.camera.distance + Math.sign(event.deltaY) * 0.07,
@@ -337,7 +342,8 @@ export class ObservatoryRuntime {
   }
 
   private onKey = (event: KeyboardEvent) => {
-    if (!this.ready || this.view === 'trace') return
+    if (!this.ready || this.view === 'trace' || this.view === 'glasswake')
+      return
     if (event.key === 'ArrowLeft') this.camera.yaw -= 0.06
     else if (event.key === 'ArrowRight') this.camera.yaw += 0.06
     else if (event.key === 'ArrowUp') this.camera.pitch += 0.04
@@ -359,7 +365,7 @@ export class ObservatoryRuntime {
     this.options.changed()
   }
   setView(view: ObservatoryView) {
-    if (!['overview', 'inspect', 'trace'].includes(view)) return
+    if (!['overview', 'inspect', 'trace', 'glasswake'].includes(view)) return
     if (this.pointer?.tracing)
       this.options.input({ kind: 'trace', phase: 'cancel', point: null })
     this.releasePointer()
@@ -388,6 +394,17 @@ export class ObservatoryRuntime {
   setTrace(state: TracePresentation) {
     this.trace = copyTrace(state)
     this.options.changed()
+  }
+  setGlasswake(state: GlasswakePresentation) {
+    this.glasswake = {
+      time: Number.isFinite(state.time) ? Math.max(0, state.time) : 0,
+      charge: Number.isFinite(state.charge) ? clamp(state.charge, 0, 1) : 0,
+      accepted: clamp(Math.trunc(state.accepted) || 0, 0, 3),
+      holding: state.holding,
+      burstTimes: state.burstTimes
+        .slice(0, 3)
+        .map((value) => (Number.isFinite(value) ? value : -10)),
+    }
   }
   resetCamera() {
     this.camera = { yaw: 0, pitch: 0, distance: 1 }
@@ -418,6 +435,7 @@ export class ObservatoryRuntime {
       drawCalls: 0,
       triangles: 0,
       bridgeProgress: 0,
+      renderedShards: 0,
       livePoints: 0,
       bufferBytes: 0,
       width: 0,
@@ -440,6 +458,11 @@ export class ObservatoryRuntime {
         music: { ...this.music },
         instructionNote: this.instructionNote,
         bridgeProgress: stats.bridgeProgress,
+        glasswake: {
+          ...this.glasswake,
+          burstTimes: [...this.glasswake.burstTimes],
+          renderedShards: stats.renderedShards,
+        },
       },
       frame: {
         submissions: stats.submissions,

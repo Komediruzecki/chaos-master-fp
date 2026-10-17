@@ -5,8 +5,9 @@ import { parseBookGlb } from '../almanac/bookAsset'
 import { ALMANAC_WORLDS, settingsForWorld } from '../almanac/catalog'
 import { SAMPLE_STEPS } from '../bench/recipes'
 import { cloudFragment, constructSpecimen, fullScreenVertex, resolveLayout, SampleConfig, samplingLayout, sceneLayout, View, } from '../bench/shaders'
+import { createGlasswakePass } from './glasswakePass'
 import { beamMatrix, createModelPass, primitiveGeometry } from './modelPass'
-import { clamp, OBSERVATORY_ASSETS, sceneCamera, traceWorld, WORLD_PLACEMENTS, } from './scene'
+import { clamp, EMPTY_GLASSWAKE, GLASSWAKE_CENTER, OBSERVATORY_ASSETS, sceneCamera, traceWorld, WORLD_PLACEMENTS, } from './scene'
 import { Model, modelLayout, orbVertex, Sky, skyFragment, skyLayout, toneMapFragment, } from './shaders'
 import { createWorldOrnaments } from './worldOrnaments'
 import type { TgpuBindGroup } from 'typegpu'
@@ -118,6 +119,8 @@ export function createObservatoryRenderer(
         .with(root.createBindGroup(samplingLayout, { config: sample, points })),
     }
   })
+  let glass: ReturnType<typeof createGlasswakePass> | undefined
+  let renderedShards = 0
   let disposed = false
   let generated = false
   let generations = 0
@@ -294,6 +297,9 @@ export function createObservatoryRenderer(
   ) {
     if (disposed) return
     resize(w, h)
+    const glassMode = frame.view === 'glasswake'
+    if (glassMode) glass ??= createGlasswakePass(root, camera)
+    renderedShards = 0
     projectedCamera = sceneCamera(frame, w / h)
     const { eye, view, projection, inverse, fov } = projectedCamera
     cameraRaw.set(view, 0)
@@ -345,20 +351,31 @@ export function createObservatoryRenderer(
     drawCalls = 1
     triangles = 1
     skyPipeline.with(pass).draw(3)
-    drawModel(pass, loaded.get('bay'), 'bay', identity)
-    drawModel(
-      pass,
-      loaded.get('book'),
-      'book',
-      transform([0, 0.91, -0.1], 0.65),
-    )
-    drawModel(pass, loaded.get('landing'), 'landing', transform([0, 0, -10]))
-    drawModel(
-      pass,
-      loaded.get('relic'),
-      'relic',
-      transform([0, 0.1, -10], 1.5, frame.time * 0.08),
-    )
+    if (!glassMode) {
+      // Close encounter framing would put narrow views beneath the bay's overhead beam.
+      drawModel(pass, loaded.get('bay'), 'bay', identity)
+      drawModel(
+        pass,
+        loaded.get('book'),
+        'book',
+        transform([0, 0.91, -0.1], 0.65),
+      )
+      drawModel(pass, loaded.get('landing'), 'landing', transform([0, 0, -10]))
+      drawModel(
+        pass,
+        loaded.get('relic'),
+        'relic',
+        transform([0, 0.1, -10], 1.5, frame.time * 0.08),
+      )
+    } else {
+      drawModel(
+        pass,
+        loaded.get('landing'),
+        'glasswake-plinth',
+        transform([0, 0.04, -4.6], 0.65),
+        [1, 0.87, 0.64, 0.06],
+      )
+    }
     const wanted =
       clamp(
         frame.trace.acceptedSegments / Math.max(1, frame.trace.segmentCount),
@@ -373,7 +390,7 @@ export function createObservatoryRenderer(
     lastBridgeTarget = wanted
     for (let i = 0; i < 5; i++) {
       const reveal = clamp(bridgeProgress - i, 0, 1)
-      if (reveal > 0)
+      if (reveal > 0 && !glassMode)
         drawModel(
           pass,
           loaded.get('bridge'),
@@ -382,36 +399,41 @@ export function createObservatoryRenderer(
           [0.65 + reveal * 0.35, 0.75 + reveal * 0.25, 1, (1 - reveal) * 0.25],
         )
     }
-    // A distant destination reads as an instrument, without claiming finished temple lore.
-    drawModel(
-      pass,
-      ring,
-      'arrival-ring',
-      transform([0, 1, -10], 1.15, frame.time * 0.03, Math.PI / 2),
-      [0.7, 0.75, 1, 0.2],
-    )
-    worlds.forEach((world) => {
-      const position = world.config.center
-      const selected = frame.selectedWorld === world.id
-      const time = frame.time
-      const glasswake = world.id === 'glasswake'
-      const matrix = transform(
-        position,
-        world.config.scale,
-        glasswake ? Math.sin(time * 0.11) * 0.1 : -time * 0.045,
-        glasswake ? 0.06 : Math.sin(time * 0.13) * 0.07,
+    if (!glassMode) {
+      // A distant destination reads as an instrument, without claiming finished temple lore.
+      drawModel(
+        pass,
+        ring,
+        'arrival-ring',
+        transform([0, 1, -10], 1.15, frame.time * 0.03, Math.PI / 2),
+        [0.7, 0.75, 1, 0.2],
       )
-      if (glasswake) mat4.rotateZ(matrix, time * 0.025, matrix)
-      drawModel(pass, world.ornaments, `${world.id}-ornaments`, matrix, [
-        1,
-        1,
-        1,
-        selected ? 0.09 : 0.035,
-      ])
-    })
-    drawTrace(pass, frame)
+      worlds.forEach((world) => {
+        const position = world.config.center
+        const selected = frame.selectedWorld === world.id
+        const time = frame.time
+        const glasswake = world.id === 'glasswake'
+        const matrix = transform(
+          position,
+          world.config.scale,
+          glasswake ? Math.sin(time * 0.11) * 0.1 : -time * 0.045,
+          glasswake ? 0.06 : Math.sin(time * 0.13) * 0.07,
+        )
+        if (glasswake) mat4.rotateZ(matrix, time * 0.025, matrix)
+        drawModel(pass, world.ornaments, `${world.id}-ornaments`, matrix, [
+          1,
+          1,
+          1,
+          selected ? 0.09 : 0.035,
+        ])
+      })
+      drawTrace(pass, frame)
+    }
     worlds.forEach((world) => {
-      const { center, scale, low, high } = world.config
+      if (glassMode && world.id !== 'glasswake') return
+      const { low, high } = world.config
+      const center = glassMode ? GLASSWAKE_CENTER : world.config.center
+      const scale = glassMode ? 0.65 : world.config.scale
       const selected = world.id === frame.selectedWorld
       const depthAt = -(
         view[2] * center[0] +
@@ -453,6 +475,22 @@ export function createObservatoryRenderer(
       drawCalls++
       triangles += POINTS * 2
     })
+    if (glassMode && glass) {
+      glass.draw(
+        pass,
+        {
+          ...(frame.glasswake ?? EMPTY_GLASSWAKE),
+          center: GLASSWAKE_CENTER,
+          motion: frame.motion ?? true,
+          clay: frame.clay,
+        },
+        eye,
+      )
+      const stats = glass.stats()
+      renderedShards = stats.visibleShards
+      drawCalls += stats.drawCalls
+      triangles += stats.triangles
+    }
     pass.end()
     const final = encoder.beginRenderPass({
       colorAttachments: [{ view: color, loadOp: 'clear', storeOp: 'store' }],
@@ -476,8 +514,10 @@ export function createObservatoryRenderer(
       drawCalls,
       triangles,
       bridgeProgress,
+      renderedShards,
       livePoints: POINTS * worlds.length,
       bufferBytes:
+        (glass?.stats().bytes ?? 0) +
         d.sizeOf(View) +
         d.sizeOf(Sky) +
         worlds.length *
@@ -514,6 +554,7 @@ export function createObservatoryRenderer(
       ])
         model.dispose()
       loaded.clear()
+      glass?.dispose()
       hdr?.destroy()
       msaa?.destroy()
       depth?.destroy()

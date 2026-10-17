@@ -1,0 +1,173 @@
+/* A spatial pitch rail leaves the crystal exposed and the score-free controls at the edge. */
+.glasswake-instrument {
+  position: absolute;
+  z-index: 1;
+  top: 17%;
+  left: 25%;
+  width: 50%;
+  height: 43%;
+  touch-action: none;
+  user-select: none;
+  cursor: ns-resize;
+  border-left: 1px solid #d8bb8340;
+  outline-offset: 14px;
+}
+.glasswake-instrument:focus-visible {
+  outline: 1px solid var(--obs-brass);
+}
+.glasswake-instrument[aria-disabled='true'] {
+  cursor: default;
+}
+.glasswake-instrument.is-complete {
+  border-color: transparent;
+}
+.glasswake-range-top,
+.glasswake-range-bottom {
+  position: absolute;
+  left: -30px;
+  font-size: 10px;
+  color: var(--obs-muted);
+}
+.glasswake-range-top {
+  top: -18px;
+}
+.glasswake-range-bottom {
+  bottom: -20px;
+}
+.glasswake-target {
+  position: absolute;
+  inset-inline: 0;
+  border-top: 1px dashed #d8bb835c;
+  pointer-events: none;
+}
+.glasswake-target > span {
+  position: absolute;
+  right: calc(100% + 16px);
+  top: -13px;
+  color: var(--obs-brass);
+  font:
+    20px/1.2 Georgia,
+    serif;
+}
+.glasswake-pitch {
+  position: absolute;
+  left: -5px;
+  width: 11px;
+  height: 11px;
+  border: 1px solid #fff5;
+  border-radius: 50%;
+  background: var(--obs-text);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+.is-holding .glasswake-pitch {
+  box-shadow: 0 0 18px #ffdd99;
+}
+.is-armed .glasswake-target {
+  border-color: #fff4c8;
+}
+.glasswake-resonance {
+  position: absolute;
+  top: calc(100% + 30px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 150px;
+  text-align: center;
+  color: var(--obs-brass);
+  font:
+    italic 16px/1.4 Georgia,
+    serif;
+  pointer-events: none;
+}
+.glasswake-charge {
+  display: block;
+  height: 2px;
+  margin-top: 10px;
+  background: #d8bb832b;
+}
+.glasswake-charge i {
+  display: block;
+  height: 100%;
+  background: #fff0bd;
+  transform-origin: left;
+}
+.glasswake-seals {
+  gap: 24px !important;
+  margin-bottom: 12px;
+}
+.glasswake-seals > span {
+  display: grid;
+  gap: 2px;
+  color: #a6b8bc;
+  font:
+    18px/1.3 Georgia,
+    serif;
+}
+.glasswake-seals small {
+  font:
+    10px/1.3 system-ui,
+    sans-serif;
+}
+.glasswake-seals .is-next {
+  color: var(--obs-brass);
+}
+.glasswake-seals .is-open {
+  color: var(--obs-water);
+}
+@media (max-width: 850px) {
+  .glasswake-instrument {
+    left: 20%;
+    width: 60%;
+    top: 16%;
+    height: 35%;
+  }
+  .glasswake-seals {
+    gap: 22px !important;
+    margin-bottom: 8px;
+  }
+}
+@media (max-width: 560px) {
+  .glasswake-instrument {
+    left: 19%;
+    width: 70%;
+    top: 17%;
+    height: 31%;
+  }
+  .glasswake-resonance {
+    top: calc(100% + 20px);
+    font-size: 14px;
+  }
+  .glasswake-bottom {
+    gap: 8px;
+  }
+  .glasswake-bottom h1 {
+    font-size: 29px;
+  }
+  .glasswake-bottom .observatory-exercise-actions > p {
+    max-width: 340px;
+  }
+}
+@media (max-height: 560px) and (min-width: 561px) {
+  .glasswake-instrument {
+    left: 33%;
+    width: 34%;
+    top: 20%;
+    height: 30%;
+  }
+  .glasswake-resonance {
+    top: calc(100% + 10px);
+    font-size: 12px;
+  }
+  .glasswake-charge {
+    margin-top: 4px;
+  }
+  .glasswake-seals {
+    margin-bottom: 3px;
+  }
+  .glasswake-seals > span {
+    font-size: 14px;
+  }
+  .glasswake-bottom .observatory-exercise-actions {
+    max-width: 440px;
+  }
+}

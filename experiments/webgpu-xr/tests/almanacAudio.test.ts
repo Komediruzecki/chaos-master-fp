@@ -181,6 +181,7 @@ await test('silent construction; explicit Play schedules notes through the volum
     activeNote: null,
     level: 0,
     trace: { active: false, pending: false, midi: null, accentMidi: null },
+    effect: { active: false, pending: false, midi: null },
   })
   await audio.play(glass)
   assert.equal(calls().contexts, 1)
@@ -639,4 +640,267 @@ await test('disposing during a trace unlock prevents delayed nodes and further n
     midi: null,
     accentMidi: null,
   })
+})
+
+await test('glass release uses six bounded partials through the existing volume and analyser', async (t) => {
+  const { audio, context, calls } = fixture()
+  t.after(() => {
+    audio.dispose()
+  })
+  audio.setVolume(0.3)
+  assert.equal(calls().contexts, 0)
+  await audio.shatter(60)
+  assert.equal(calls().contexts, 1)
+  assert.equal(context.oscillators.length, 6)
+  assert.deepEqual(audio.snapshot().effect, {
+    active: true,
+    pending: false,
+    midi: 60,
+  })
+  assert.equal(audio.snapshot().playing, false)
+  assert.equal(audio.snapshot().trace.active, false)
+  assert.equal(audio.snapshot().loading, false)
+  assert.equal(context.gains[0].gain.value, 0.3)
+  assert.equal(context.gains[0].destination, context.analyser)
+  assert.equal(context.analyser.destination, context.destination)
+  assert.ok(
+    context.gains
+      .slice(1)
+      .every((gain) => gain.destination === context.gains[0]),
+  )
+  const peaks = context.gains
+    .slice(1)
+    .map((gain) => Math.max(...gain.gain.values))
+  assert.ok(peaks.every((peak) => peak > 0 && peak <= 0.03))
+  assert.ok(peaks.reduce((sum, peak) => sum + peak, 0) < 0.1)
+  assert.ok(
+    context.oscillators.every(
+      (voice) =>
+        voice.type === 'sine' && voice.startAt >= 0.025 && voice.stopAt <= 1.2,
+    ),
+  )
+  const frequencies = context.oscillators.map((voice) => voice.frequency.value)
+  assert.ok(Math.abs(frequencies[0] - 261.6255653005986) < 1e-10)
+  assert.ok(
+    frequencies.every(
+      (frequency, i) =>
+        Number.isFinite(frequency) &&
+        (i === 0 || frequency > frequencies[i - 1]),
+    ),
+  )
+  assert.ok(audio.snapshot().level > 0)
+  audio.setVolume(0)
+  assert.equal(context.gains[0].gain.value, 0)
+  assert.equal(audio.snapshot().volume, 0)
+})
+
+await test('glass cue, instrument and motif replace each other without overlapping starts', async (t) => {
+  const { audio, context, calls } = fixture()
+  t.after(() => {
+    audio.dispose()
+  })
+  await audio.startTrace(60)
+  const instrument = context.oscillators[0]
+  context.currentTime = 1
+  await audio.shatter(60)
+  assert.equal(instrument.stopAt, 1.012)
+  assert.equal(audio.snapshot().trace.active, false)
+  const firstCue = context.oscillators.slice(1)
+  assert.ok(firstCue.every((voice) => voice.startAt >= 1.025))
+  // The instrument's eventual end callback must not erase the newer cue.
+  instrument.onended?.()
+  assert.equal(audio.snapshot().effect.active, true)
+  audio.stopTrace()
+  assert.equal(audio.snapshot().effect.active, true)
+  context.currentTime = 1.2
+  await audio.shatter(64)
+  assert.ok(firstCue.every((voice) => voice.stopAt === 1.212))
+  const secondCue = context.oscillators.slice(7)
+  for (const voice of firstCue) voice.onended?.()
+  assert.equal(audio.snapshot().effect.midi, 64)
+  context.currentTime = 2
+  await audio.startTrace(67)
+  assert.ok(secondCue.every((voice) => voice.stopAt === 2.012))
+  assert.equal(audio.snapshot().effect.active, false)
+  await audio.shatter(67)
+  const lastCue = context.oscillators.slice(-6)
+  context.currentTime = 3
+  await audio.play(glass)
+  assert.ok(lastCue.every((voice) => voice.stopAt === 3.012))
+  assert.equal(audio.snapshot().effect.active, false)
+  assert.equal(audio.snapshot().motifId, glass.id)
+  assert.equal(calls().contexts, 1)
+})
+
+await test('natural glass completion releases all nodes and clears the effect meter', async (t) => {
+  const { audio, context } = fixture()
+  t.after(() => {
+    audio.dispose()
+  })
+  await audio.shatter(67)
+  const endings = [...context.oscillators].sort((a, b) => a.stopAt - b.stopAt)
+  for (const voice of endings.slice(0, -1)) {
+    context.currentTime = voice.stopAt
+    voice.onended?.()
+    assert.equal(audio.snapshot().effect.active, true)
+  }
+  context.currentTime = endings.at(-1)!.stopAt
+  endings.at(-1)!.onended?.()
+  assert.deepEqual(audio.snapshot().effect, {
+    active: false,
+    pending: false,
+    midi: null,
+  })
+  assert.equal(audio.snapshot().level, 0)
+  assert.ok(
+    context.oscillators.every(
+      (voice) => voice.disconnected && voice.onended === null,
+    ),
+  )
+  assert.ok(context.gains.slice(1).every((gain) => gain.disconnected))
+})
+
+await test('stop, hide, suspension and dispose cancel glass unlocks without delayed playback', async (t) => {
+  for (const interruption of ['stop', 'hide', 'suspend', 'dispose'] as const) {
+    await t.test(interruption, async (t) => {
+      const { audio, context, visibility, calls } = fixture()
+      t.after(() => {
+        audio.dispose()
+      })
+      let unlock!: () => void
+      context.resume = () =>
+        new Promise<void>((resolve) => {
+          unlock = resolve
+        })
+      const pending = audio.shatter(60)
+      assert.deepEqual(audio.snapshot().effect, {
+        active: false,
+        pending: true,
+        midi: 60,
+      })
+      if (interruption === 'stop') audio.stop()
+      else if (interruption === 'hide') {
+        visibility.hidden = true
+        visibility.dispatchEvent(new Event('visibilitychange'))
+      } else if (interruption === 'suspend')
+        context.dispatchEvent(new Event('statechange'))
+      else audio.dispose()
+      const changes = calls().changes
+      unlock()
+      await pending
+      assert.equal(calls().changes, changes)
+      assert.equal(context.oscillators.length, 0)
+      assert.equal(audio.snapshot().loading, false)
+      assert.deepEqual(audio.snapshot().effect, {
+        active: false,
+        pending: false,
+        midi: null,
+      })
+      visibility.hidden = false
+      visibility.dispatchEvent(new Event('visibilitychange'))
+      assert.equal(context.oscillators.length, 0)
+    })
+  }
+})
+
+await test('a newer instrument or motif wins when a glass unlock resolves late', async (t) => {
+  for (const replacement of ['instrument', 'motif'] as const) {
+    await t.test(replacement, async (t) => {
+      const { audio, context } = fixture()
+      t.after(() => {
+        audio.dispose()
+      })
+      let unlock!: () => void
+      context.resume = () =>
+        new Promise<void>((resolve) => {
+          unlock = resolve
+        })
+      const pending = audio.shatter(60)
+      context.resume = () => {
+        context.state = 'running'
+        return Promise.resolve()
+      }
+      if (replacement === 'instrument') await audio.startTrace(64)
+      else await audio.play(tide)
+      const count = context.oscillators.length
+      unlock()
+      await pending
+      assert.equal(context.oscillators.length, count)
+      assert.equal(audio.snapshot().effect.active, false)
+      assert.equal(audio.snapshot().effect.pending, false)
+      if (replacement === 'instrument')
+        assert.equal(audio.snapshot().trace.midi, 64)
+      else assert.equal(audio.snapshot().motifId, tide.id)
+    })
+  }
+})
+
+await test('active glass tails stop on hidden tabs and disposal leaves no live nodes or callbacks', async (t) => {
+  const { audio, context, visibility, calls } = fixture()
+  t.after(() => {
+    audio.dispose()
+  })
+  await audio.shatter(60)
+  context.currentTime = 0.2
+  visibility.hidden = true
+  visibility.dispatchEvent(new Event('visibilitychange'))
+  assert.ok(
+    context.oscillators.every(
+      (voice) => Math.abs(voice.stopAt - 0.212) < 1e-10,
+    ),
+  )
+  assert.equal(audio.snapshot().effect.active, false)
+  visibility.hidden = false
+  visibility.dispatchEvent(new Event('visibilitychange'))
+  assert.equal(context.oscillators.length, 6)
+  await audio.shatter(64)
+  audio.dispose()
+  const changes = calls().changes
+  assert.equal(context.state, 'closed')
+  assert.ok(
+    context.oscillators.every(
+      (voice) => voice.disconnected && voice.onended === null,
+    ),
+  )
+  assert.ok(context.gains.every((gain) => gain.disconnected))
+  assert.equal(context.analyser.disconnected, true)
+  await audio.shatter(67)
+  assert.equal(calls().changes, changes)
+  assert.deepEqual(audio.snapshot().effect, {
+    active: false,
+    pending: false,
+    midi: null,
+  })
+})
+
+await test('invalid or failed glass cues schedule nothing and explicit retry succeeds', async (t) => {
+  const { audio, context, calls } = fixture()
+  t.after(() => {
+    audio.dispose()
+  })
+  for (const midi of [NaN, Infinity, 23, 97]) {
+    await audio.shatter(midi)
+    assert.equal(calls().contexts, 0)
+    assert.match(audio.snapshot().error ?? '', /playable pitch/)
+    assert.equal(audio.snapshot().effect.pending, false)
+  }
+  context.resume = () => Promise.reject(new Error('Audio device unavailable.'))
+  await audio.shatter(60)
+  assert.equal(audio.snapshot().error, 'Audio device unavailable.')
+  assert.equal(context.oscillators.length, 0)
+  assert.equal(audio.snapshot().loading, false)
+  context.resume = () => {
+    context.state = 'running'
+    return Promise.resolve()
+  }
+  await audio.shatter(64)
+  assert.equal(audio.snapshot().error, null)
+  assert.equal(audio.snapshot().effect.active, true)
+  assert.equal(context.oscillators.length, 6)
+  context.state = 'suspended'
+  context.dispatchEvent(new Event('statechange'))
+  assert.equal(audio.snapshot().effect.active, false)
+  context.state = 'running'
+  context.dispatchEvent(new Event('statechange'))
+  assert.equal(context.oscillators.length, 6)
 })

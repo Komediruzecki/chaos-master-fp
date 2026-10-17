@@ -189,10 +189,12 @@ regions are labeled as previews. The fixed-open book is an authored Blender
 mesh sharing depth with the live orbs. Headset interaction remains future work. See the
 [Almanac guide](ALMANAC.md) for the scope and review sequence.
 
-## Observatory and melody bridge
+## Observatory encounters
 
 Continue at `/observatory` for the authored terrace, two live world studies,
-orbital motion, and Tideweave's guided four-note trace. Correct input grows
-actual bridge geometry; pointer and keyboard use the same forgiving judge.
+orbital motion, Tideweave's guided four-note trace and Glasswake's crystal seals.
+Trace a melody to grow the bridge, or hold and release C/E/G to shatter the glass
+around Aureole. Pointer and keyboard use the same forgiving judges. Released
+seals survive returning to the worlds until Rebuild seals or a page reload.
 The [observatory guide](OBSERVATORY.md) records controls, asset sources,
 verification and the remaining headset boundary.

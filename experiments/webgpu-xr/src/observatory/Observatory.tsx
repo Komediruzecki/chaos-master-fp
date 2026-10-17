@@ -4,6 +4,7 @@ import { createMemo, createSignal, For, onCleanup, onMount, Show, } from 'solid-
 import { ALMANAC_WORLDS } from '../almanac/catalog'
 import { MotifAudio } from '../almanac/motifAudio'
 import { beginTrace, BRIDGE_MOTIF, BRIDGE_NOTE_NAMES, BRIDGE_TARGET, createEncounter, endTrace, moveTrace, traceHint, } from './encounter'
+import { GlasswakeEncounter } from './GlasswakeEncounter'
 import { ObservatoryRuntime } from './runtime'
 import { pitchForTraceHeight } from './traceAudio'
 import type { EncounterState, TracePoint } from './encounter'
@@ -26,6 +27,9 @@ export function Observatory() {
   const [worldId, setWorldId] = createSignal<WorldId>('glasswake')
   const [view, setView] = createSignal<ObservatoryView>('overview')
   const [atlasOpen, setAtlasOpen] = createSignal(false)
+  const [glasswake, setGlasswake] = createSignal(false)
+  const [glassCollected, setGlassCollected] = createSignal(false)
+  const [glassProgress, setGlassProgress] = createSignal(0)
   const [exercise, setExercise] = createSignal(false)
   const [stage, setStage] = createSignal<ExerciseStage>('listen')
   const [encounter, setEncounter] = createSignal(createEncounter())
@@ -38,6 +42,7 @@ export function Observatory() {
     () => studies.find((entry) => entry.id === worldId())!,
   )
   const ready = createMemo(() => Boolean(state()?.ready))
+  const glassBlocked = createMemo(() => atlasOpen() || !ready())
   const cursorProjection = createMemo(() => {
     state()
     return runtime?.projectTrace(cursor())
@@ -78,6 +83,7 @@ export function Observatory() {
   function selectWorld(id: WorldId) {
     stopKeyboard()
     setExercise(false)
+    setGlasswake(false)
     audio?.stop()
     setWorldId(id)
     setView('overview')
@@ -90,6 +96,7 @@ export function Observatory() {
   function leaveCrossing() {
     stopKeyboard()
     setExercise(false)
+    setGlasswake(false)
     audio?.stop()
     setEncounter(endTrace(encounter()))
     setView('overview')
@@ -103,6 +110,17 @@ export function Observatory() {
     setEncounter(endTrace(encounter()))
     setStage('listen')
     void audio?.play(BRIDGE_MOTIF)
+    presentTrace()
+  }
+
+  function openGlasswake() {
+    audio?.stop()
+    stopKeyboard()
+    setExercise(false)
+    setAtlasOpen(false)
+    setGlasswake(true)
+    setView('glasswake')
+    runtime?.setView('glasswake')
     presentTrace()
   }
 
@@ -248,18 +266,25 @@ export function Observatory() {
 
   function keyDown(event: KeyboardEvent) {
     if (event.key === 'Escape') {
-      if (atlasOpen() || exercise() || view() === 'inspect') {
+      if (atlasOpen() || exercise() || glasswake() || view() === 'inspect') {
         event.preventDefault()
         event.stopPropagation()
       }
       if (atlasOpen()) closeAtlas()
       else if (exercise()) leaveCrossing()
-      else if (view() === 'inspect') {
+      else if (glasswake()) {
+        setGlasswake(false)
+        audio?.stop()
+        setView('overview')
+        runtime?.setView('overview')
+        canvas.focus({ preventScroll: true })
+      } else if (view() === 'inspect') {
         setView('overview')
         runtime?.setView('overview')
       }
       return
     }
+    if (glasswake()) return
     if (
       event.target !== canvas ||
       !exercise() ||
@@ -316,7 +341,13 @@ export function Observatory() {
       music: () => {
         const snapshot = audio?.snapshot()
         return snapshot
-          ? { ...snapshot, playing: snapshot.playing || snapshot.trace.active }
+          ? {
+              ...snapshot,
+              playing:
+                snapshot.playing ||
+                snapshot.trace.active ||
+                snapshot.effect.active,
+            }
           : {
               playing: false,
               level: 0,
@@ -375,7 +406,7 @@ export function Observatory() {
   return (
     <main
       class="observatory"
-      classList={{ 'is-exercise': exercise() }}
+      classList={{ 'is-exercise': exercise() || glasswake() }}
       data-world={worldId()}
       onKeyDown={keyDown}
     >
@@ -527,246 +558,284 @@ export function Observatory() {
         </div>
       </Show>
 
-      <div class="observatory-bottom">
-        <section
-          class="observatory-world-copy"
-          aria-labelledby="observatory-title"
-        >
-          <p class="observatory-place">Irchiinnuss</p>
-          <h1 id="observatory-title">
-            {exercise()
-              ? stage() === 'complete'
-                ? 'Crossing grown'
-                : 'Grow a crossing'
-              : world().name}
-          </h1>
+      <Show when={glasswake() && runtime && audio}>
+        <GlasswakeEncounter
+          initialAccepted={glassProgress()}
+          onProgress={setGlassProgress}
+          runtime={runtime!}
+          audio={audio!}
+          sound={sound()}
+          blocked={glassBlocked()}
+          motion={motion()}
+          onMotion={() => {
+            const next = !motion()
+            setMotion(next)
+            runtime?.setMotion(next)
+          }}
+          onLeave={() => {
+            setGlasswake(false)
+            audio?.stop()
+            setView('overview')
+            runtime?.setView('overview')
+            canvas.focus({ preventScroll: true })
+          }}
+          onCollected={() => setGlassCollected(true)}
+        />
+      </Show>
+      <Show when={!glasswake()}>
+        <div class="observatory-bottom">
+          <section
+            class="observatory-world-copy"
+            aria-labelledby="observatory-title"
+          >
+            <p class="observatory-place">Irchiinnuss</p>
+            <h1 id="observatory-title">
+              {exercise()
+                ? stage() === 'complete'
+                  ? 'Crossing grown'
+                  : 'Grow a crossing'
+                : world().name}
+            </h1>
+            <Show
+              when={!exercise()}
+              fallback={
+                <>
+                  <p class="observatory-exercise-help" role="status">
+                    {stage() === 'listen'
+                      ? 'Play the four notes, then trace their shape.'
+                      : stage() === 'listening'
+                        ? 'Listen: D, F, B, A. Then follow their shape.'
+                        : traceHint(encounter())}
+                  </p>
+                  <p class="observatory-guidance">
+                    {stage() === 'complete'
+                      ? 'Collected for this visit. Return whenever you want to play again.'
+                      : 'Guided tracing. No pitch or rhythm score.'}
+                  </p>
+                </>
+              }
+            >
+              <p>
+                {world().tonic} {world().mode}{' '}
+                <span class="observatory-copy-divider" />{' '}
+                {worldId() === 'glasswake'
+                  ? 'Six petals, a crystal crown and a glass motif.'
+                  : 'Five curling fronds and a Dorian motif.'}
+              </p>
+              <p class="observatory-guidance">
+                {worldId() === 'glasswake'
+                  ? glassCollected()
+                    ? 'First light collected for this visit.'
+                    : 'Hear, hold and release three notes to open the glass.'
+                  : collected()
+                    ? 'Melody crossing collected for this visit.'
+                    : 'Follow four notes to grow a crossing.'}
+              </p>
+            </Show>
+          </section>
+
           <Show
             when={!exercise()}
             fallback={
-              <>
-                <p class="observatory-exercise-help" role="status">
-                  {stage() === 'listen'
-                    ? 'Play the four notes, then trace their shape.'
-                    : stage() === 'listening'
-                      ? 'Listen: D, F, B, A. Then follow their shape.'
-                      : traceHint(encounter())}
+              <section
+                class="observatory-exercise-actions"
+                aria-label="Melody crossing controls"
+              >
+                <span class="observatory-bridge-progress">
+                  {encounter().accepted} / 4 notes
+                </span>
+                <div>
+                  <button
+                    type="button"
+                    class="observatory-action"
+                    disabled={!ready()}
+                    onClick={() => {
+                      if (
+                        sound()?.playing ||
+                        (sound()?.loading && sound()?.motifId)
+                      ) {
+                        audio?.stop()
+                        setStage('listen')
+                        presentTrace()
+                      } else playPhrase()
+                    }}
+                  >
+                    {sound()?.playing || (sound()?.loading && sound()?.motifId)
+                      ? 'Stop phrase'
+                      : 'Replay phrase'}
+                  </button>
+                  <Show when={stage() === 'answer'}>
+                    <button type="button" onClick={useKeyboard}>
+                      Use keyboard
+                    </button>
+                  </Show>
+                  <Show when={stage() === 'listen'}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        audio?.stop()
+                        setTraceSound(false)
+                        setStage('answer')
+                        presentTrace()
+                      }}
+                    >
+                      Trace without sound
+                    </button>
+                  </Show>
+                  <Show when={encounter().accepted > 0}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        audio?.stop()
+                        stopKeyboard()
+                        setEncounter(createEncounter())
+                        setStage('answer')
+                        setCursor(BRIDGE_TARGET[0])
+                        presentTrace()
+                      }}
+                    >
+                      Start again
+                    </button>
+                  </Show>
+                  <button type="button" onClick={leaveCrossing}>
+                    Return to worlds
+                  </button>
+                </div>
+                <p id="observatory-trace-help">
+                  {keyboard()
+                    ? 'Enter holds or lifts. Arrows move and change pitch. Esc returns.'
+                    : traceSound()
+                      ? 'Height changes pitch. Release to pause. Esc returns.'
+                      : 'Press and drag through each note. Lift to pause. Esc returns.'}
                 </p>
-                <p class="observatory-guidance">
-                  {stage() === 'complete'
-                    ? 'Collected for this visit. Return whenever you want to play again.'
-                    : 'Guided tracing. No pitch or rhythm score.'}
-                </p>
-              </>
+              </section>
             }
           >
-            <p>
-              {world().tonic} {world().mode}{' '}
-              <span class="observatory-copy-divider" />{' '}
-              {worldId() === 'glasswake'
-                ? 'Six petals, a crystal crown and a glass motif.'
-                : 'Five curling fronds and a Dorian motif.'}
-            </p>
-            <p class="observatory-guidance">
-              {worldId() === 'glasswake'
-                ? 'World study. Its shattering encounter is still to come.'
-                : collected()
-                  ? 'Melody crossing collected for this visit.'
-                  : 'Follow four notes to grow a crossing.'}
-            </p>
-          </Show>
-        </section>
-
-        <Show
-          when={!exercise()}
-          fallback={
             <section
-              class="observatory-exercise-actions"
-              aria-label="Melody crossing controls"
+              class="observatory-world-actions"
+              aria-label="World controls"
             >
-              <span class="observatory-bridge-progress">
-                {encounter().accepted} / 4 notes
-              </span>
-              <div>
+              <div
+                class="observatory-world-switch"
+                role="group"
+                aria-label="Choose a world"
+              >
+                <For each={studies}>
+                  {(entry) => (
+                    <button
+                      type="button"
+                      aria-pressed={worldId() === entry.id}
+                      onClick={() => {
+                        selectWorld(entry.id as WorldId)
+                      }}
+                    >
+                      {entry.name}
+                    </button>
+                  )}
+                </For>
+              </div>
+              <div class="observatory-primary-actions">
                 <button
                   type="button"
                   class="observatory-action"
                   disabled={!ready()}
                   onClick={() => {
-                    if (
-                      sound()?.playing ||
-                      (sound()?.loading && sound()?.motifId)
-                    ) {
-                      audio?.stop()
-                      setStage('listen')
-                      presentTrace()
-                    } else playPhrase()
+                    if (sound()?.playing || sound()?.loading) audio?.stop()
+                    else if (world().motif) void audio?.play(world().motif!)
                   }}
                 >
-                  {sound()?.playing || (sound()?.loading && sound()?.motifId)
-                    ? 'Stop phrase'
-                    : 'Replay phrase'}
+                  {sound()?.playing || sound()?.loading
+                    ? 'Stop motif'
+                    : 'Hear this world'}
                 </button>
-                <Show when={stage() === 'answer'}>
-                  <button type="button" onClick={useKeyboard}>
-                    Use keyboard
-                  </button>
-                </Show>
-                <Show when={stage() === 'listen'}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      audio?.stop()
-                      setTraceSound(false)
-                      setStage('answer')
-                      presentTrace()
-                    }}
-                  >
-                    Trace without sound
-                  </button>
-                </Show>
-                <Show when={encounter().accepted > 0}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      audio?.stop()
-                      stopKeyboard()
-                      setEncounter(createEncounter())
-                      setStage('answer')
-                      setCursor(BRIDGE_TARGET[0])
-                      presentTrace()
-                    }}
-                  >
-                    Start again
-                  </button>
-                </Show>
-                <button type="button" onClick={leaveCrossing}>
-                  Return to worlds
-                </button>
-              </div>
-              <p id="observatory-trace-help">
-                {keyboard()
-                  ? 'Enter holds or lifts. Arrows move and change pitch. Esc returns.'
-                  : traceSound()
-                    ? 'Height changes pitch. Release to pause. Esc returns.'
-                    : 'Press and drag through each note. Lift to pause. Esc returns.'}
-              </p>
-            </section>
-          }
-        >
-          <section
-            class="observatory-world-actions"
-            aria-label="World controls"
-          >
-            <div
-              class="observatory-world-switch"
-              role="group"
-              aria-label="Choose a world"
-            >
-              <For each={studies}>
-                {(entry) => (
-                  <button
-                    type="button"
-                    aria-pressed={worldId() === entry.id}
-                    onClick={() => {
-                      selectWorld(entry.id as WorldId)
-                    }}
-                  >
-                    {entry.name}
-                  </button>
-                )}
-              </For>
-            </div>
-            <div class="observatory-primary-actions">
-              <button
-                type="button"
-                class="observatory-action"
-                disabled={!ready()}
-                onClick={() => {
-                  if (sound()?.playing || sound()?.loading) audio?.stop()
-                  else if (world().motif) void audio?.play(world().motif!)
-                }}
-              >
-                {sound()?.playing || sound()?.loading
-                  ? 'Stop motif'
-                  : 'Hear this world'}
-              </button>
-              <button
-                type="button"
-                disabled={!ready()}
-                onClick={() => {
-                  const next = view() === 'inspect' ? 'overview' : 'inspect'
-                  setView(next)
-                  runtime?.setView(next)
-                }}
-              >
-                {view() === 'inspect' ? 'Widen view' : 'Inspect orb'}
-              </button>
-              <Show when={worldId() === 'tideweave'}>
                 <button
                   type="button"
-                  class="observatory-action"
                   disabled={!ready()}
-                  onClick={openCrossing}
+                  onClick={() => {
+                    const next = view() === 'inspect' ? 'overview' : 'inspect'
+                    setView(next)
+                    runtime?.setView(next)
+                  }}
                 >
-                  Trace a melody
+                  {view() === 'inspect' ? 'Widen view' : 'Inspect orb'}
+                </button>
+                <Show when={worldId() === 'glasswake'}>
+                  <button
+                    type="button"
+                    class="observatory-action"
+                    disabled={!ready()}
+                    onClick={openGlasswake}
+                  >
+                    Wake the glass
+                  </button>
+                </Show>
+                <Show when={worldId() === 'tideweave'}>
+                  <button
+                    type="button"
+                    class="observatory-action"
+                    disabled={!ready()}
+                    onClick={openCrossing}
+                  >
+                    Trace a melody
+                  </button>
+                </Show>
+              </div>
+            </section>
+          </Show>
+
+          <footer class="observatory-footer">
+            <span>Desktop study. Headset testing is still ahead.</span>
+            <div class="observatory-sound-controls">
+              <label>
+                Volume{' '}
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value={sound()?.volume ?? 0.55}
+                  onInput={(event) =>
+                    audio?.setVolume(event.currentTarget.valueAsNumber)
+                  }
+                />
+              </label>
+              <Show when={exercise()}>
+                <button
+                  type="button"
+                  aria-pressed={!traceSound()}
+                  onClick={() => {
+                    audio?.stopTrace()
+                    setTraceSound(!traceSound())
+                  }}
+                >
+                  {traceSound() ? 'Mute trace' : 'Trace sound'}
+                </button>
+              </Show>
+              <button
+                type="button"
+                aria-pressed={!motion()}
+                onClick={() => {
+                  const next = !motion()
+                  setMotion(next)
+                  runtime?.setMotion(next)
+                }}
+              >
+                {motion() ? 'Pause motion' : 'Resume motion'}
+              </button>
+              <Show when={!exercise()}>
+                <button type="button" onClick={() => runtime?.resetCamera()}>
+                  Reset view
                 </button>
               </Show>
             </div>
-          </section>
-        </Show>
-
-        <footer class="observatory-footer">
-          <span>Desktop study. Headset testing is still ahead.</span>
-          <div class="observatory-sound-controls">
-            <label>
-              Volume{' '}
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.05"
-                value={sound()?.volume ?? 0.55}
-                onInput={(event) =>
-                  audio?.setVolume(event.currentTarget.valueAsNumber)
-                }
-              />
-            </label>
-            <Show when={exercise()}>
-              <button
-                type="button"
-                aria-pressed={!traceSound()}
-                onClick={() => {
-                  audio?.stopTrace()
-                  setTraceSound(!traceSound())
-                }}
-              >
-                {traceSound() ? 'Mute trace' : 'Trace sound'}
-              </button>
-            </Show>
-            <button
-              type="button"
-              aria-pressed={!motion()}
-              onClick={() => {
-                const next = !motion()
-                setMotion(next)
-                runtime?.setMotion(next)
-              }}
-            >
-              {motion() ? 'Pause motion' : 'Resume motion'}
-            </button>
-            <Show when={!exercise()}>
-              <button type="button" onClick={() => runtime?.resetCamera()}>
-                Reset view
-              </button>
-            </Show>
-          </div>
-        </footer>
-        <Show when={sound()?.error}>
-          <p class="observatory-audio-error" role="alert">
-            {sound()?.error}
-          </p>
-        </Show>
-      </div>
+          </footer>
+          <Show when={sound()?.error}>
+            <p class="observatory-audio-error" role="alert">
+              {sound()?.error}
+            </p>
+          </Show>
+        </div>
+      </Show>
     </main>
   )
 }

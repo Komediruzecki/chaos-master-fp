@@ -19,6 +19,7 @@ assert.ok(
 const out = path.resolve(process.env.VERIFY_OUT_DIR)
 await mkdir(out, { recursive: true })
 const errors: string[] = []
+let browserProcessId: number | undefined
 const report: Record<string, unknown> = {
   testedAt: new Date().toISOString(),
   base,
@@ -37,9 +38,15 @@ const desktop = () => {
       ],
     ),
     clients: get('clients').map(
-      (c: { address: string; class: string; workspace: { name: string } }) => ({
+      (c: {
+        address: string
+        class: string
+        pid: number
+        workspace: { name: string }
+      }) => ({
         address: c.address,
         class: c.class,
+        pid: c.pid,
         workspace: c.workspace.name,
       }),
     ),
@@ -62,8 +69,7 @@ const browser = await chromium.launch({
 const checkPlacement = () => {
   const current = desktop()
   const owned = current.clients.filter(
-    (c: { address: string }) =>
-      !before.clients.some((b: { address: string }) => b.address === c.address),
+    (c: { pid: number }) => c.pid === browserProcessId,
   )
   assert.ok(owned.length > 0)
   assert.ok(
@@ -72,12 +78,18 @@ const checkPlacement = () => {
         c.class === 'agent-browser' && c.workspace === 'special:agents',
     ),
   )
-  assert.equal(current.active, before.active)
-  assert.equal(current.workspace, before.workspace)
+  assert.ok(
+    !owned.some((c: { address: string }) => c.address === current.active),
+  )
   assert.deepEqual(current.special, before.special)
   report.browserPlacement = {
     hiddenAgentWorkspace: true,
-    foregroundUnchanged: true,
+    ownedProcessId: browserProcessId,
+    ownedWindows: owned,
+    foregroundUnchanged:
+      current.active === before.active &&
+      current.workspace === before.workspace,
+    note: 'The owned browser must stay hidden and unfocused. User changes between other foreground applications do not fail this check.',
   }
 }
 const state = (page: Page) =>
@@ -202,6 +214,16 @@ const move = async (
   })
 }
 try {
+  const browserSession = await browser.newBrowserCDPSession()
+  const processes = await browserSession.send('SystemInfo.getProcessInfo')
+  browserProcessId = processes.processInfo.find(
+    (process) => process.type === 'browser',
+  )?.id
+  assert.ok(
+    browserProcessId,
+    'Chromium must expose its browser process for workspace ownership checks',
+  )
+  await browserSession.detach()
   report.browserVersion = browser.version()
   const context = await browser.newContext({
     ignoreHTTPSErrors: true,

@@ -4,9 +4,25 @@ import { WORLD_VISUALS } from '../almanac/worldIdentity'
 
 export type Vec3 = readonly [number, number, number]
 export type WorldId = 'glasswake' | 'tideweave'
-export type ObservatoryView = 'overview' | 'inspect' | 'trace'
+export type ObservatoryView = 'overview' | 'inspect' | 'trace' | 'glasswake'
 /** Normalized trace coordinates: time increases right, pitch increases upward (v decreases). */
 export type TracePoint = readonly [number, number]
+
+export interface GlasswakePresentation {
+  time: number
+  charge: number
+  accepted: number
+  holding: boolean
+  burstTimes: readonly number[]
+}
+export const GLASSWAKE_CENTER: Vec3 = [0, 1.45, -4.6]
+export const EMPTY_GLASSWAKE: GlasswakePresentation = {
+  time: 0,
+  charge: 0,
+  accepted: 0,
+  holding: false,
+  burstTimes: [],
+}
 
 export interface MusicFrame {
   playing: boolean
@@ -68,6 +84,7 @@ export interface ObservatorySnapshot {
     music: MusicFrame
     instructionNote: number | null
     bridgeProgress: number
+    glasswake: GlasswakePresentation & { renderedShards: number }
   }
   frame: {
     submissions: number
@@ -99,6 +116,8 @@ export interface ObservatoryFrame {
   instructionNote: number | null
   clay: boolean
   trace: TracePresentation
+  glasswake?: GlasswakePresentation
+  motion?: boolean
 }
 
 export const WORLD_PLACEMENTS = {
@@ -251,6 +270,19 @@ export function sceneCamera(frame: ObservatoryFrame, aspect: number) {
     // Fit the authored corona as well as the core, including narrow screens.
     distance = world.scale * 4.4 * Math.max(1, 0.95 / aspect)
     basePitch = 0.08
+  } else if (frame.view === 'glasswake') {
+    target = [
+      0,
+      aspect < 0.8 ? 0.25 : aspect < 1.1 ? 0.78 : aspect > 1.9 ? 0.48 : 0.92,
+      GLASSWAKE_CENTER[2],
+    ]
+    distance = 4.25
+    basePitch = 0.03
+    fov =
+      2 *
+      Math.atan(
+        Math.tan(0.9 / 2) * Math.max(1, 1.12 / aspect, aspect > 1.9 ? 1.6 : 1),
+      )
   } else if (frame.view === 'trace') {
     // Work from the bridge mouth, ahead of the lectern. Widen portrait FOV
     // instead of retreating behind the book, which would cover the bridge.
@@ -264,9 +296,10 @@ export function sceneCamera(frame: ObservatoryFrame, aspect: number) {
           Math.max(1, 1.05 / aspect, aspect > 1.9 ? 1.65 : 1),
       )
   } else distance *= Math.max(1, 0.9 / aspect)
-  const yaw = frame.view === 'trace' ? 0 : frame.camera.yaw
-  const pitch = basePitch + (frame.view === 'trace' ? 0 : frame.camera.pitch)
-  distance *= frame.view === 'trace' ? 1 : frame.camera.distance
+  const fixed = frame.view === 'trace' || frame.view === 'glasswake'
+  const yaw = fixed ? 0 : frame.camera.yaw
+  const pitch = basePitch + (fixed ? 0 : frame.camera.pitch)
+  distance *= fixed ? 1 : frame.camera.distance
   const eye: Vec3 = [
     target[0] + Math.sin(yaw) * Math.cos(pitch) * distance,
     target[1] + Math.sin(pitch) * distance,

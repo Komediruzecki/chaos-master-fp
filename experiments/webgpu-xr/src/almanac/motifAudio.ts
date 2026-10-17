@@ -1,4 +1,4 @@
-// Motif auditions and live tracing share one audio owner, volume path and cancellable unlock.
+// Motifs, tracing and glass release cues share one audio owner and cancellable unlock.
 import type { AlmanacMotif } from './catalog'
 
 export interface MotifAudioSnapshot {
@@ -15,6 +15,11 @@ export interface MotifAudioSnapshot {
     pending: boolean
     midi: number | null
     accentMidi: number | null
+  }
+  effect: {
+    active: boolean
+    pending: boolean
+    midi: number | null
   }
 }
 
@@ -38,6 +43,15 @@ const TRACE_ATTACK = 0.025
 const TRACE_GLIDE = 0.025
 const TRACE_GAIN = 0.045
 const ACCENT_GAIN = 0.065
+// Six inharmonic sine partials suggest glass without a noise burst or sharp attack.
+const GLASS_PARTIALS = [
+  [1, 0.03, 1.15],
+  [1.479, 0.022, 0.96],
+  [2.093, 0.016, 0.78],
+  [2.779, 0.012, 0.64],
+  [4.091, 0.008, 0.48],
+  [5.431, 0.005, 0.35],
+] as const
 const midiFrequency = (midi: number) => 440 * 2 ** ((midi - 69) / 12)
 const validMidi = (midi: number) =>
   Number.isFinite(midi) && midi >= 24 && midi <= 96
@@ -65,6 +79,9 @@ export class MotifAudio {
   private traceMidi: number | null = null
   private traceAccentMidi: number | null = null
   private traceStartsAt = 0
+  private effectVoices = new Set<Voice>()
+  private effectPending = false
+  private effectMidi: number | null = null
   private visibility: AudioOptions['visibility']
 
   constructor(
@@ -89,7 +106,9 @@ export class MotifAudio {
       (this.playing ||
         this.traceRequested ||
         this.traceVoice ||
-        this.traceAccent) &&
+        this.traceAccent ||
+        this.effectPending ||
+        this.effectVoices.size > 0) &&
       this.context?.state !== 'running'
     )
       this.stop()
@@ -226,6 +245,8 @@ export class MotifAudio {
     voice.oscillator.disconnect()
     voice.gain.disconnect()
     this.voices.delete(voice)
+    const wasEffect = this.effectVoices.delete(voice)
+    if (!this.effectVoices.size && !this.effectPending) this.effectMidi = null
     const wasTrace = voice === this.traceVoice || voice === this.traceAccent
     if (voice === this.traceVoice) this.traceVoice = null
     if (voice === this.traceAccent) {
@@ -234,7 +255,66 @@ export class MotifAudio {
     }
     if (!this.traceVoice && !this.traceAccent && !this.traceRequested)
       this.traceMidi = null
-    if (wasTrace && !this.disposed) this.changed()
+    if ((wasTrace || wasEffect) && !this.disposed) this.changed()
+  }
+
+  /** An explicit earned release replaces the instrument with one bounded glass cue. */
+  async shatter(midi: number): Promise<void> {
+    if (this.disposed) return
+    this.stop()
+    const generation = ++this.generation
+    this.effectPending = true
+    this.effectMidi = midi
+    this.loading = true
+    this.changed()
+    try {
+      if (!validMidi(midi)) throw new Error('This seal has no playable pitch.')
+      const context = this.setup()
+      await context.resume()
+      if (
+        this.disposed ||
+        generation !== this.generation ||
+        !this.effectPending
+      )
+        return
+      if (this.visibility?.hidden) {
+        this.stop()
+        return
+      }
+      if (context.state !== 'running')
+        throw new Error('Audio is suspended. Release another seal to retry.')
+      const start = context.currentTime + START_DELAY
+      GLASS_PARTIALS.forEach(([ratio, peak, duration], index) => {
+        const oscillator = context.createOscillator()
+        const gain = context.createGain()
+        const voice = { oscillator, gain }
+        this.voices.add(voice)
+        this.effectVoices.add(voice)
+        const at = start + index * 0.003
+        const end = at + duration
+        oscillator.type = 'sine'
+        oscillator.frequency.setValueAtTime(midiFrequency(midi) * ratio, at)
+        oscillator.connect(gain)
+        gain.connect(this.output!)
+        gain.gain.setValueAtTime(0, at)
+        gain.gain.linearRampToValueAtTime(peak, at + 0.008)
+        gain.gain.exponentialRampToValueAtTime(0.0001, end - 0.04)
+        gain.gain.linearRampToValueAtTime(0, end)
+        oscillator.onended = () => {
+          this.releaseVoice(voice)
+        }
+        oscillator.start(at)
+        oscillator.stop(end + 0.01)
+      })
+      this.effectPending = false
+      this.loading = false
+      this.changed()
+    } catch (error) {
+      if (this.disposed || generation !== this.generation) return
+      this.stop()
+      this.error = error instanceof Error ? error.message : String(error)
+      this.changed()
+    }
   }
 
   /** Called only from an explicit pointer press or keyboard drawing gesture. */
@@ -412,6 +492,9 @@ export class MotifAudio {
     this.traceAccent = null
     this.traceMidi = null
     this.traceAccentMidi = null
+    this.effectPending = false
+    this.effectMidi = null
+    this.effectVoices.clear()
     for (const voice of this.voices) this.fadeVoice(voice)
     this.changed()
   }
@@ -444,7 +527,12 @@ export class MotifAudio {
       )
       activeNote = index === -1 ? null : index
     }
-    if (this.playing || this.traceVoice || this.traceAccent) {
+    if (
+      this.playing ||
+      this.traceVoice ||
+      this.traceAccent ||
+      this.effectVoices.size > 0
+    ) {
       this.analyser?.getFloatTimeDomainData(this.waveform)
       level = Math.min(
         1,
@@ -469,6 +557,11 @@ export class MotifAudio {
         pending: this.traceRequested && this.loading,
         midi: this.traceMidi,
         accentMidi: this.traceAccentMidi,
+      },
+      effect: {
+        active: this.effectVoices.size > 0,
+        pending: this.effectPending,
+        midi: this.effectMidi,
       },
     }
   }

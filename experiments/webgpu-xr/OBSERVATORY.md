@@ -1,7 +1,8 @@
 # Irchiinnuss observatory
 
 The `/observatory` route joins the Blender Almanac to a small authored place,
-two retained WebGPU fractal worlds, and a guided melody-tracing encounter.
+two retained WebGPU fractal worlds, a guided melody trace and a Glasswake
+resonance encounter.
 This is a desktop study. It does not enter WebXR or replace the original XR lab.
 
 ## Run and inspect
@@ -27,6 +28,15 @@ hours; Ctrl+C stops an interactive run.
 5. Keyboard alternative: choose Use keyboard, Enter to hold, arrow keys to move
    the tracer (two arrows can move diagonally), Enter to lift. The same judge
    evaluates both inputs. Escape returns.
+6. Choose Glasswake and Wake the glass. Hear C4, drag vertically to its line,
+   hold until the seal resonates, then release to shatter it. Continue with E4
+   and G4. Early release lets you retry; it never removes an opened seal.
+   Keyboard: Up/Down tune by a quarter-semitone, Enter holds/releases;
+   Home/End select the bottom/top of the octave. Escape returns.
+7. Glasswake keeps released seals when you return to the worlds during this
+   visit. Rebuild seals starts again. Mute instrument silences held notes and
+   fracture cues; Hear note remains an explicit reference audition. Volume
+   affects all sound. Pause motion opens seals immediately without flying shards.
 
 The visible guide is intentional. This is practice following a melodic contour,
 not a singing, pitch-recognition or rhythm assessment. There is no penalty for
@@ -53,8 +63,14 @@ Almanac collectible. The five other constellations are proposed destinations.
   screen-fixed image.
 - Opaque meshes write shared depth; point sprites test it. Point-centre depth
   is an approximation, with no volumetric self-occlusion or dynamic shadows.
-- Only opaque material factors are supported: no texture maps, transparent
-  materials, skins, morphs, skeletal animation or general PBR/IBL claims.
+- Imported GLBs support opaque material factors: no texture maps, skins,
+  morphs, skeletal animation or general PBR/IBL claims.
+- Glasswake adds its own translucent pass: three curved petals, 48 closed
+  triangular-prism shards, 384 solid triangles and 59,904 GPU buffer bytes.
+  Geometry uploads once. Per-shard depth sorting, Fresnel highlights and
+  premultiplied alpha approximate glass; there is no physical refraction.
+  A release adds a bounded 1.4-second tumble/fade and delayed glints, at most
+  two draws and 480 triangles. Reduced motion skips this movement.
 
 Editable Blender files and reproducible scripts are in
 [`assets-source/observatory`](assets-source/observatory/README.md).
@@ -66,8 +82,8 @@ hashes and provider task are in
 [`celestial-seed.manifest.json`](public/models/observatory/celestial-seed.manifest.json).
 One preview cost 20 credits; no paid texture/refinement stage was used.
 
-The scene uses one `MotifAudio` owner for both auditions and the live trace
-instrument. Starting either stops the other. Pointer and keyboard feed the same
+The scene uses one `MotifAudio` owner for auditions, live instruments and the
+Glasswake fracture cue. Starting another activity stops the previous one. Pointer and keyboard feed the same
 ordered judge and vertical pitch map. An earned note receives an accent only
 when progress advances; lifting, invalid movement, blur, hidden state, reset,
 leaving and disposal stop the instrument. A pending audio unlock cannot start
@@ -79,6 +95,14 @@ Returning requires deliberate playback. Failed models can be retried; a lost
 GPU produces a reload action. The runtime owns and destroys its GPU device,
 including shared resources, when disposed.
 
+Glasswake requires 0.9 seconds within 0.4 semitones of the target; frames over
+50 ms award no hold time. Once armed, a deliberate release opens exactly one
+seal. Blur, hidden state, pointer cancellation, atlas entry and leaving cancel
+the hold and pending sound without awarding progress. A 1.5-second interval
+lets each fracture finish before the next hold. This remains a guided
+instrument, not microphone input or a singing score. Its six synthesized
+inharmonic partials share the same output gain and analyser as other sound.
+
 ## Verification
 
 From this experiment:
@@ -88,6 +112,7 @@ rtk proxy timeout 180 pnpm test
 rtk proxy timeout 90 pnpm typecheck
 rtk proxy timeout 120 pnpm build
 rtk proxy env VERIFY_OUT_DIR=/absolute/allocated/evidence VERIFY_BASE_URL=https://127.0.0.1:5192 timeout 600 pnpm exec tsx scripts/verifyObservatory.ts
+rtk proxy env VERIFY_OUT_DIR=/absolute/allocated/glasswake-evidence VERIFY_BASE_URL=https://127.0.0.1:5192 timeout 600 pnpm exec tsx scripts/verifyGlasswake.ts
 ```
 
 The browser script is standalone, headed, and checks the real adapter. It uses
@@ -112,5 +137,6 @@ sustained headset performance.
 
 The current master sequence and implementation evidence are documented in
 `/home/maff/.dotfiles/personal/lumen-meta/26-desktop-observatory-master-plan.md`
-and `28-world-identity-and-trace-instrument.md`. Document 27 records the
+and `29-glasswake-desktop-encounter.md`. Document 28 records world identity and
+trace sound. Document 27 records the
 preceding foundation milestone.
