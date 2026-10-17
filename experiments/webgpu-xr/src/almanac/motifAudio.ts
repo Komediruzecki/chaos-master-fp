@@ -1,4 +1,4 @@
-// Explicit one-shot motif auditions, with one playback owner and cancellation across audio unlocks.
+// Motif auditions and live tracing share one audio owner, volume path and cancellable unlock.
 import type { AlmanacMotif } from './catalog'
 
 export interface MotifAudioSnapshot {
@@ -10,6 +10,12 @@ export interface MotifAudioSnapshot {
   volume: number
   activeNote: number | null
   level: number
+  trace: {
+    active: boolean
+    pending: boolean
+    midi: number | null
+    accentMidi: number | null
+  }
 }
 
 interface AudioOptions {
@@ -28,6 +34,13 @@ interface Voice {
 const RELEASE = 0.18
 const STOP_FADE = 0.012
 const START_DELAY = 0.025
+const TRACE_ATTACK = 0.025
+const TRACE_GLIDE = 0.025
+const TRACE_GAIN = 0.045
+const ACCENT_GAIN = 0.065
+const midiFrequency = (midi: number) => 440 * 2 ** ((midi - 69) / 12)
+const validMidi = (midi: number) =>
+  Number.isFinite(midi) && midi >= 24 && midi <= 96
 
 export class MotifAudio {
   private context: AudioContext | null = null
@@ -46,6 +59,12 @@ export class MotifAudio {
   private endsAt = 0
   private generation = 0
   private disposed = false
+  private traceRequested = false
+  private traceVoice: Voice | null = null
+  private traceAccent: Voice | null = null
+  private traceMidi: number | null = null
+  private traceAccentMidi: number | null = null
+  private traceStartsAt = 0
   private visibility: AudioOptions['visibility']
 
   constructor(
@@ -66,7 +85,14 @@ export class MotifAudio {
   }
 
   private contextChanged = () => {
-    if (this.playing && this.context?.state !== 'running') this.stop()
+    if (
+      (this.playing ||
+        this.traceRequested ||
+        this.traceVoice ||
+        this.traceAccent) &&
+      this.context?.state !== 'running'
+    )
+      this.stop()
   }
 
   private setup() {
@@ -200,6 +226,162 @@ export class MotifAudio {
     voice.oscillator.disconnect()
     voice.gain.disconnect()
     this.voices.delete(voice)
+    const wasTrace = voice === this.traceVoice || voice === this.traceAccent
+    if (voice === this.traceVoice) this.traceVoice = null
+    if (voice === this.traceAccent) {
+      this.traceAccent = null
+      this.traceAccentMidi = null
+    }
+    if (!this.traceVoice && !this.traceAccent && !this.traceRequested)
+      this.traceMidi = null
+    if (wasTrace && !this.disposed) this.changed()
+  }
+
+  /** Called only from an explicit pointer press or keyboard drawing gesture. */
+  async startTrace(midi: number, earnedMidi?: number): Promise<void> {
+    if (this.disposed) return
+    this.stop()
+    const generation = ++this.generation
+    this.traceRequested = true
+    this.traceMidi = midi
+    this.traceAccentMidi = earnedMidi ?? null
+    this.loading = true
+    this.changed()
+    try {
+      if (
+        !validMidi(midi) ||
+        (earnedMidi !== undefined && !validMidi(earnedMidi))
+      )
+        throw new Error('This trace has no playable pitch.')
+      const context = this.setup()
+      await context.resume()
+      if (
+        this.disposed ||
+        generation !== this.generation ||
+        !this.traceRequested
+      )
+        return
+      if (this.visibility?.hidden) {
+        this.stop()
+        return
+      }
+      if (context.state !== 'running')
+        throw new Error('Audio is suspended. Start a new trace to retry.')
+      const oscillator = context.createOscillator()
+      const gain = context.createGain()
+      const voice = { oscillator, gain }
+      this.traceVoice = voice
+      this.voices.add(voice)
+      const start = context.currentTime + START_DELAY
+      this.traceStartsAt = start
+      oscillator.type = 'triangle'
+      oscillator.frequency.setValueAtTime(
+        midiFrequency(this.traceMidi ?? midi),
+        start,
+      )
+      oscillator.connect(gain)
+      gain.connect(this.output!)
+      gain.gain.setValueAtTime(0, start)
+      gain.gain.linearRampToValueAtTime(TRACE_GAIN, start + TRACE_ATTACK)
+      oscillator.onended = () => {
+        this.releaseVoice(voice)
+      }
+      oscillator.start(start)
+      this.loading = false
+      if (this.traceAccentMidi !== null)
+        this.accentTrace(this.traceAccentMidi, start)
+      this.changed()
+    } catch (error) {
+      if (this.disposed || generation !== this.generation) return
+      this.stop()
+      this.error = error instanceof Error ? error.message : String(error)
+      this.changed()
+    }
+  }
+
+  /** Movement never starts audio; a cancelled gesture requires a fresh startTrace. */
+  updateTrace(midi: number, earnedMidi?: number) {
+    if (this.disposed || !this.traceRequested) return
+    if (
+      !validMidi(midi) ||
+      (earnedMidi !== undefined && !validMidi(earnedMidi))
+    ) {
+      this.stopTrace()
+      return
+    }
+    this.traceMidi = midi
+    if (earnedMidi !== undefined) this.traceAccentMidi = earnedMidi
+    if (this.context && this.traceVoice) {
+      const at = Math.max(this.context.currentTime, this.traceStartsAt)
+      this.traceVoice.oscillator.frequency.setTargetAtTime(
+        midiFrequency(midi),
+        at,
+        TRACE_GLIDE,
+      )
+      if (earnedMidi !== undefined) this.accentTrace(earnedMidi, at)
+    }
+    this.changed()
+  }
+
+  private accentTrace(midi: number, start = this.context?.currentTime ?? 0) {
+    if (!this.context || !this.output) return
+    if (this.traceAccent) this.fadeVoice(this.traceAccent)
+    const oscillator = this.context.createOscillator()
+    const gain = this.context.createGain()
+    const voice = { oscillator, gain }
+    this.traceAccent = voice
+    this.traceAccentMidi = midi
+    this.voices.add(voice)
+    oscillator.type = 'sine'
+    oscillator.frequency.setValueAtTime(midiFrequency(midi), start)
+    oscillator.connect(gain)
+    gain.connect(this.output)
+    gain.gain.setValueAtTime(0, start)
+    gain.gain.linearRampToValueAtTime(ACCENT_GAIN, start + 0.008)
+    gain.gain.exponentialRampToValueAtTime(0.001, start + 0.18)
+    gain.gain.linearRampToValueAtTime(0, start + 0.23)
+    oscillator.onended = () => {
+      this.releaseVoice(voice)
+    }
+    oscillator.start(start)
+    oscillator.stop(start + 0.24)
+  }
+
+  /** Completion leaves one short confirmation; lift, blur or stop still cancels it. */
+  finishTrace(earnedMidi: number) {
+    if (!validMidi(earnedMidi)) {
+      this.stopTrace()
+      return
+    }
+    if (!this.traceVoice || !this.context || !this.traceRequested) {
+      this.stopTrace()
+      return
+    }
+    this.updateTrace(earnedMidi, earnedMidi)
+    this.traceRequested = false
+    this.fadeVoice(this.traceVoice, 0.08)
+    this.changed()
+  }
+
+  stopTrace() {
+    if (this.traceRequested || this.traceVoice || this.traceAccent) this.stop()
+  }
+
+  private fadeVoice(voice: Voice, duration = STOP_FADE) {
+    const now = this.context?.currentTime ?? 0
+    const envelope = voice.gain.gain
+    if (typeof envelope.cancelAndHoldAtTime === 'function')
+      envelope.cancelAndHoldAtTime(now)
+    else {
+      const held = envelope.value
+      envelope.cancelScheduledValues(now)
+      envelope.setValueAtTime(held, now)
+    }
+    envelope.linearRampToValueAtTime(0, now + duration)
+    voice.oscillator.onended = () => {
+      this.releaseVoice(voice)
+    }
+    voice.oscillator.stop(now + duration)
   }
 
   private clearTimer() {
@@ -225,22 +407,12 @@ export class MotifAudio {
     this.motif = null
     this.progress = 0
     this.error = null
-    const now = this.context?.currentTime ?? 0
-    for (const voice of this.voices) {
-      const envelope = voice.gain.gain
-      if (typeof envelope.cancelAndHoldAtTime === 'function')
-        envelope.cancelAndHoldAtTime(now)
-      else {
-        const held = envelope.value
-        envelope.cancelScheduledValues(now)
-        envelope.setValueAtTime(held, now)
-      }
-      envelope.linearRampToValueAtTime(0, now + STOP_FADE)
-      voice.oscillator.onended = () => {
-        this.releaseVoice(voice)
-      }
-      voice.oscillator.stop(now + STOP_FADE)
-    }
+    this.traceRequested = false
+    this.traceVoice = null
+    this.traceAccent = null
+    this.traceMidi = null
+    this.traceAccentMidi = null
+    for (const voice of this.voices) this.fadeVoice(voice)
     this.changed()
   }
 
@@ -271,6 +443,8 @@ export class MotifAudio {
         (note) => beat >= note.beat && beat < note.beat + note.duration,
       )
       activeNote = index === -1 ? null : index
+    }
+    if (this.playing || this.traceVoice || this.traceAccent) {
       this.analyser?.getFloatTimeDomainData(this.waveform)
       level = Math.min(
         1,
@@ -290,6 +464,12 @@ export class MotifAudio {
       volume: this.volume,
       activeNote,
       level,
+      trace: {
+        active: Boolean(this.traceVoice || this.traceAccent),
+        pending: this.traceRequested && this.loading,
+        midi: this.traceMidi,
+        accentMidi: this.traceAccentMidi,
+      },
     }
   }
 

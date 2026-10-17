@@ -8,13 +8,15 @@ class Param {
   value = 1
   values: number[] = []
   cancelledAt: number[] = []
+  targets: { value: number; at?: number; timeConstant?: number }[] = []
   setValueAtTime(value: number) {
     this.value = value
     this.values.push(value)
   }
-  setTargetAtTime(value: number) {
+  setTargetAtTime(value: number, at?: number, timeConstant?: number) {
     this.value = value
     this.values.push(value)
+    this.targets.push({ value, at, timeConstant })
   }
   linearRampToValueAtTime(value: number) {
     this.value = value
@@ -178,6 +180,7 @@ await test('silent construction; explicit Play schedules notes through the volum
     volume: 0.55,
     activeNote: null,
     level: 0,
+    trace: { active: false, pending: false, midi: null, accentMidi: null },
   })
   await audio.play(glass)
   assert.equal(calls().contexts, 1)
@@ -393,4 +396,247 @@ await test('dispose during unlock cannot create notes or emit further updates', 
   assert.equal(context.state, 'closed')
   assert.equal(calls().changes, changes)
   assert.equal(context.analyser.disconnected, true)
+})
+
+await test('trace movement needs an explicit start and shares the volume and analyser path', async (t) => {
+  const { audio, context, calls } = fixture()
+  t.after(() => {
+    audio.dispose()
+  })
+  audio.updateTrace(69, 69)
+  audio.finishTrace(69)
+  assert.equal(calls().contexts, 0)
+  await audio.startTrace(62, 62)
+  assert.equal(calls().contexts, 1)
+  assert.equal(context.oscillators.length, 2)
+  assert.deepEqual(audio.snapshot().trace, {
+    active: true,
+    pending: false,
+    midi: 62,
+    accentMidi: 62,
+  })
+  assert.equal(audio.snapshot().playing, false)
+  assert.equal(audio.snapshot().motifId, null)
+  assert.equal(context.oscillators[0].type, 'triangle')
+  assert.equal(context.oscillators[1].type, 'sine')
+  assert.equal(context.oscillators[0].startAt, 0.025)
+  assert.equal(context.oscillators[1].startAt, 0.025)
+  assert.equal(context.gains[1].destination, context.gains[0])
+  assert.equal(context.gains[2].destination, context.gains[0])
+  assert.ok(
+    context.gains
+      .slice(1)
+      .every((gain) => Math.max(...gain.gain.values) <= 0.065),
+  )
+  context.currentTime = 0.1
+  audio.updateTrace(65.5, 65)
+  const frequency = context.oscillators[0].frequency.targets.at(-1)!
+  assert.ok(Math.abs(frequency.value - 440 * 2 ** ((65.5 - 69) / 12)) < 1e-10)
+  assert.equal(frequency.at, 0.1)
+  assert.equal(frequency.timeConstant, 0.025)
+  assert.ok(
+    Math.abs(
+      context.oscillators[2].frequency.value - 440 * 2 ** ((65 - 69) / 12),
+    ) < 1e-10,
+  )
+  assert.ok(Math.abs(audio.snapshot().level - 0.16) < 1e-7)
+  audio.setVolume(0)
+  assert.equal(context.gains[0].gain.value, 0)
+  assert.equal(audio.snapshot().volume, 0)
+  audio.stopTrace()
+  assert.equal(audio.snapshot().trace.active, false)
+  assert.equal(audio.snapshot().level, 0)
+  assert.ok(context.oscillators.every((voice) => voice.stopAt === 0.112))
+})
+
+await test('motifs and tracing cancel each other with one context and non-overlapping starts', async (t) => {
+  const { audio, context, calls } = fixture()
+  t.after(() => {
+    audio.dispose()
+  })
+  await audio.play(glass)
+  const motifVoices = [...context.oscillators]
+  context.currentTime = 1
+  await audio.startTrace(62, 62)
+  assert.ok(motifVoices.every((voice) => voice.stopAt === 1.012))
+  const traceVoices = context.oscillators.slice(16)
+  assert.ok(traceVoices.every((voice) => voice.startAt === 1.025))
+  assert.equal(audio.snapshot().playing, false)
+  context.currentTime = 2
+  await audio.play(tide)
+  assert.ok(traceVoices.every((voice) => voice.stopAt === 2.012))
+  assert.equal(audio.snapshot().trace.active, false)
+  assert.equal(audio.snapshot().motifId, tide.id)
+  assert.equal(calls().contexts, 1)
+})
+
+await test('lifting or hiding during trace unlock cannot play a delayed tone or restart on movement', async (t) => {
+  for (const interruption of ['lift', 'hide'] as const) {
+    await t.test(interruption, async (t) => {
+      const { audio, context, visibility } = fixture()
+      t.after(() => {
+        audio.dispose()
+      })
+      let unlock!: () => void
+      context.resume = () =>
+        new Promise<void>((resolve) => {
+          unlock = () => {
+            context.state = 'running'
+            resolve()
+          }
+        })
+      const pending = audio.startTrace(62, 62)
+      assert.equal(audio.snapshot().trace.pending, true)
+      audio.updateTrace(71, 71)
+      if (interruption === 'lift') audio.stopTrace()
+      else {
+        visibility.hidden = true
+        visibility.dispatchEvent(new Event('visibilitychange'))
+      }
+      unlock()
+      await pending
+      visibility.hidden = false
+      visibility.dispatchEvent(new Event('visibilitychange'))
+      audio.updateTrace(65, 65)
+      assert.equal(context.oscillators.length, 0)
+      assert.deepEqual(audio.snapshot().trace, {
+        active: false,
+        pending: false,
+        midi: null,
+        accentMidi: null,
+      })
+    })
+  }
+})
+
+await test('a pending trace starts at the latest cursor pitch after unlock', async (t) => {
+  const { audio, context } = fixture()
+  t.after(() => {
+    audio.dispose()
+  })
+  let unlock!: () => void
+  context.resume = () =>
+    new Promise<void>((resolve) => {
+      unlock = () => {
+        context.state = 'running'
+        resolve()
+      }
+    })
+  const pending = audio.startTrace(62, 62)
+  audio.updateTrace(71, 71)
+  unlock()
+  await pending
+  assert.ok(
+    context.oscillators.every(
+      (voice) =>
+        Math.abs(voice.frequency.value - 440 * 2 ** ((71 - 69) / 12)) < 1e-10,
+    ),
+  )
+  assert.equal(audio.snapshot().trace.midi, 71)
+  audio.updateTrace(69)
+  assert.equal(context.oscillators[0].frequency.targets.at(-1)?.at, 0.025)
+})
+
+await test('completion has a bounded exact-pitch accent and interruption cancels its tail', async (t) => {
+  const { audio, context } = fixture()
+  t.after(() => {
+    audio.dispose()
+  })
+  await audio.startTrace(71)
+  context.currentTime = 0.5
+  audio.finishTrace(69)
+  assert.equal(context.oscillators[0].stopAt, 0.58)
+  assert.equal(context.oscillators[1].frequency.value, 440)
+  assert.equal(context.oscillators[1].stopAt, 0.74)
+  audio.updateTrace(62)
+  assert.equal(audio.snapshot().trace.midi, 69)
+  audio.stopTrace()
+  assert.ok(context.oscillators.every((voice) => voice.stopAt === 0.512))
+  assert.equal(audio.snapshot().trace.active, false)
+})
+
+await test('platform suspension and disposal stop trace voices without automatic recovery', async (t) => {
+  const { audio, context, calls } = fixture()
+  t.after(() => {
+    audio.dispose()
+  })
+  await audio.startTrace(65, 65)
+  context.state = 'suspended'
+  context.dispatchEvent(new Event('statechange'))
+  assert.equal(audio.snapshot().trace.active, false)
+  context.state = 'running'
+  context.dispatchEvent(new Event('statechange'))
+  audio.updateTrace(69)
+  assert.equal(context.oscillators.length, 2)
+  await audio.startTrace(69)
+  audio.dispose()
+  assert.equal(context.state, 'closed')
+  assert.ok(context.oscillators.every((voice) => voice.disconnected))
+  const changes = calls().changes
+  await audio.startTrace(62)
+  assert.equal(calls().changes, changes)
+  assert.equal(audio.snapshot().trace.active, false)
+})
+
+await test('invalid pitches cannot schedule or continue tracing audio', async (t) => {
+  const { audio, context } = fixture()
+  t.after(() => {
+    audio.dispose()
+  })
+  await audio.startTrace(NaN)
+  assert.equal(context.oscillators.length, 0)
+  assert.match(audio.snapshot().error ?? '', /playable pitch/)
+  await audio.startTrace(62)
+  audio.updateTrace(Infinity)
+  assert.equal(audio.snapshot().trace.active, false)
+  audio.finishTrace(NaN)
+  assert.equal(audio.snapshot().trace.active, false)
+})
+
+await test('a failed trace unlock needs a fresh gesture before explicit retry succeeds', async (t) => {
+  const { audio, context } = fixture()
+  t.after(() => {
+    audio.dispose()
+  })
+  context.resume = () => Promise.reject(new Error('Audio device unavailable.'))
+  await audio.startTrace(62, 62)
+  assert.equal(audio.snapshot().error, 'Audio device unavailable.')
+  assert.equal(audio.snapshot().trace.pending, false)
+  assert.equal(context.oscillators.length, 0)
+  context.resume = () => {
+    context.state = 'running'
+    return Promise.resolve()
+  }
+  audio.updateTrace(65)
+  assert.equal(context.oscillators.length, 0)
+  await audio.startTrace(65, 65)
+  assert.equal(audio.snapshot().error, null)
+  assert.equal(audio.snapshot().trace.active, true)
+  assert.equal(context.oscillators.length, 2)
+})
+
+await test('disposing during a trace unlock prevents delayed nodes and further notifications', async () => {
+  const { audio, context, calls } = fixture()
+  let unlock!: () => void
+  context.resume = () =>
+    new Promise<void>((resolve) => {
+      unlock = resolve
+    })
+  const pending = audio.startTrace(62, 62)
+  audio.dispose()
+  const changes = calls().changes
+  unlock()
+  await pending
+  audio.updateTrace(71, 71)
+  audio.finishTrace(69)
+  await audio.startTrace(62)
+  assert.equal(context.oscillators.length, 0)
+  assert.equal(context.state, 'closed')
+  assert.equal(calls().changes, changes)
+  assert.deepEqual(audio.snapshot().trace, {
+    active: false,
+    pending: false,
+    midi: null,
+    accentMidi: null,
+  })
 })

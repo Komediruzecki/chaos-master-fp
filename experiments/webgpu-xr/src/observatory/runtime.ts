@@ -288,12 +288,13 @@ export class ObservatoryRuntime {
       const camera = this.renderer?.camera()
       if (camera) {
         const [x, y] = this.normalizedPointer(event)
-        // The bounded planet study uses projected sphere bounds, not mesh ray picking.
+        // Include the authored corona in these approximate projected bounds.
+        // This is a selection affordance, not a collision or mesh ray-picking claim.
         const hit = Object.entries(WORLD_PLACEMENTS)
           .map(([worldId, world]) => {
             const center = projectPoint(camera.viewProjection, world.center)
             const edge = projectPoint(camera.viewProjection, [
-              world.center[0] + world.scale,
+              world.center[0] + world.scale * 1.5,
               world.center[1],
               world.center[2],
             ])

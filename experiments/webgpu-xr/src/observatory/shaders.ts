@@ -1,6 +1,7 @@
 // Model transforms, retained-point motion and a camera-correct procedural sky.
 import { d, std, tgpu } from 'typegpu'
 import { bookLayout } from '../almanac/bookShaders'
+import { worldPoint } from '../almanac/worldComposition'
 import { resolveLayout, sceneLayout } from '../bench/shaders'
 
 export const Model = d.struct({
@@ -69,17 +70,21 @@ export const orbVertex = tgpu.vertexFn({
   const camera = sceneLayout.$.camera
   const model = modelLayout.$.model
   const point = sceneLayout.$.points[input.instance]
+  const core = worldPoint(point.xyz, input.instance, d.u32(model.motion.w))
   const phase = model.motion.x
   const energy = model.motion.y
-  const twist = std.sin(point.y * 2.4 + phase * 0.65) * energy * 0.45
+  const fluid = std.select(d.f32(0), d.f32(1), model.motion.w > 1.5)
+  // The crystallized world breathes radially; the reef carries a traveling curl.
+  const twist =
+    std.sin(core.y * 2.4 + phase * 0.65) * (energy * 0.2 + fluid * 0.07)
   const c = std.cos(twist)
   const s = std.sin(twist)
   const breath = 1 + energy * 0.13
   const local = d.vec3f(
-    (point.x * c + point.z * s) * breath,
-    point.y * (1 - energy * 0.05) +
-      std.sin(point.x * 2.5 + phase) * energy * 0.045,
-    (-point.x * s + point.z * c) * breath,
+    (core.x * c + core.z * s) * breath,
+    core.y * (1 - energy * 0.05) +
+      std.sin(core.x * 2.5 + phase) * energy * 0.045,
+    (-core.x * s + core.z * c) * breath,
   )
   const world = std.mul(model.matrix, d.vec4f(local, 1))
   const center = std.mul(camera.view, world)
@@ -149,6 +154,18 @@ export const skyFragment = tgpu.fragmentFn({
         .mix(d.vec3f(0.13, 0.3, 0.5), d.vec3f(0.48, 0.17, 0.4), folds)
         .mul(haze),
     )
+  // A world-space halo gives each specimen its own light, without blurring the points.
+  const leftRadius =
+    sky.left.w / std.max(std.length(sky.left.xyz.sub(sky.eye.xyz)), 0.1)
+  const rightRadius =
+    sky.right.w / std.max(std.length(sky.right.xyz.sub(sky.eye.xyz)), 0.1)
+  const warmDistance = leftGap / std.max(leftRadius, 0.001)
+  const coolDistance = rightGap / std.max(rightRadius, 0.001)
+  const warmHalo = std.exp(-warmDistance * warmDistance * 1.3) * 0.025
+  const coolHalo = std.exp(-coolDistance * coolDistance * 1.15) * 0.034
+  color = color
+    .add(d.vec3f(1, 0.48, 0.14).mul(warmHalo))
+    .add(d.vec3f(0.06, 0.58, 0.8).mul(coolHalo))
   for (const scale of std.range(2)) {
     const frequency = 125 + d.f32(scale) * 115
     const p = ray.mul(frequency)

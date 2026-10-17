@@ -4,6 +4,7 @@ import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
+import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
 import { BRIDGE_TARGET } from '../src/observatory/encounter'
 import { OBSERVATORY_ASSETS } from '../src/observatory/scene'
@@ -85,6 +86,63 @@ const audio = (page: Page) =>
   page.evaluate(() => window.__observatory!.audio.snapshot())
 const encounter = (page: Page) =>
   page.evaluate(() => window.__observatory!.encounter)
+type SoundSnapshot = Awaited<ReturnType<typeof audio>>
+// Poll outside the page: keyboard verification controls page timers, while Web Audio
+// keeps real time. This also avoids relying on RAF in the hidden agent workspace.
+const waitAudio = async (
+  page: Page,
+  predicate: (sound: SoundSnapshot) => boolean,
+  reason: string,
+) => {
+  const deadline = Date.now() + 5000
+  let sound = await audio(page)
+  while (!predicate(sound) && Date.now() < deadline) {
+    await delay(100)
+    sound = await audio(page)
+  }
+  assert.ok(predicate(sound), `${reason}: ${JSON.stringify(sound)}`)
+  assert.equal(sound.error, null)
+  return sound
+}
+const traceAudible = (page: Page, midi: number, tolerance = 0.025) =>
+  waitAudio(
+    page,
+    (sound) =>
+      sound.trace.active &&
+      !sound.trace.pending &&
+      !sound.playing &&
+      sound.trace.midi !== null &&
+      Math.abs(sound.trace.midi - midi) <= tolerance &&
+      sound.level > 0.001,
+    `Trace must produce a measured signal near commanded MIDI ${midi}`,
+  )
+const traceSilent = (page: Page) =>
+  waitAudio(
+    page,
+    (sound) =>
+      !sound.trace.active &&
+      !sound.trace.pending &&
+      sound.trace.midi === null &&
+      sound.level === 0 &&
+      !sound.playing,
+    'Trace must stop and stay stopped',
+  )
+const accent = (sound: SoundSnapshot, midi: number) => {
+  // The 240 ms confirmation may finish before a slow browser round trip returns.
+  assert.ok(sound.trace.accentMidi === null || sound.trace.accentMidi === midi)
+  return { expectedMidi: midi, observedMidi: sound.trace.accentMidi }
+}
+const setVolume = async (page: Page, value: number) => {
+  // Dispatch the real range control's input handler without stealing focus from
+  // a held trace. Clicking the range would itself correctly interrupt the trace.
+  await page
+    .getByRole('slider', { name: 'Volume' })
+    .evaluate((element, volume) => {
+      const input = element as HTMLInputElement
+      input.value = String(volume)
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    }, value)
+}
 const fingerprints = (page: Page) =>
   page.evaluate(async () => {
     const hashes: Record<string, string> = {}
@@ -226,23 +284,41 @@ try {
   await page.mouse.down()
   await page.mouse.up()
   assert.equal((await encounter(page)).accepted, 0)
+  await traceSilent(page)
   await move(page, BRIDGE_TARGET[0])
   await page.mouse.down()
+  const pointerD = await traceAudible(page, 62)
+  const firstAccent = accent(pointerD, 62)
   await move(page, BRIDGE_TARGET[3])
+  await traceSilent(page)
   await page.mouse.up()
   assert.equal((await encounter(page)).accepted, 1)
   // A genuine continuous pointer trace earns two notes, survives a lift, and resumes.
   await move(page, BRIDGE_TARGET[0])
   await page.mouse.down()
+  await traceAudible(page, 62)
   await move(page, BRIDGE_TARGET[1], 20)
+  const pointerF = await traceAudible(page, 65)
+  const secondAccent = accent(pointerF, 65)
   await page.mouse.up()
+  await traceSilent(page)
   assert.equal((await encounter(page)).accepted, 2)
   await capture(page, '04-bridge-half')
   await move(page, BRIDGE_TARGET[1])
   await page.mouse.down()
+  await traceAudible(page, 65)
+  await move(page, [0.5, 0.36], 12)
+  const pointerRising = await traceAudible(page, 68 + 1 / 3)
   await move(page, BRIDGE_TARGET[2], 24)
+  const pointerB = await traceAudible(page, 71)
+  const thirdAccent = accent(pointerB, 71)
+  await move(page, [0.755, 0.24], 12)
+  const pointerFalling = await traceAudible(page, 70)
   await move(page, BRIDGE_TARGET[3], 24)
+  const pointerEnd = await audio(page)
+  const finalAccent = accent(pointerEnd, 69)
   await page.mouse.up()
+  await traceSilent(page)
   assert.equal((await encounter(page)).accepted, 4)
   await frames(page)
   assert.equal((await state(page)).visual.bridgeProgress, 5)
@@ -253,7 +329,83 @@ try {
     retryPreservesProgress: true,
     completed: true,
   }
+  report.traceAudioPointer = {
+    evidence:
+      'Levels are measured from the shared analyser. MIDI is the commanded oscillator pitch, not an independent frequency estimate.',
+    firstNote: pointerD,
+    secondNote: pointerF,
+    rising: pointerRising,
+    peak: pointerB,
+    falling: pointerFalling,
+    completion: pointerEnd,
+    accents: [firstAccent, secondAccent, thirdAccent, finalAccent],
+    liftStopped: true,
+    invalidJumpStopped: true,
+    skippedStartSilent: true,
+  }
   console.info('Pointer completion and retry passed')
+  // Volume is measured after the shared output gain while the trace stays held.
+  await button(page, 'Start again').click()
+  await traceSilent(page)
+  await move(page, BRIDGE_TARGET[0])
+  await page.mouse.down()
+  await traceAudible(page, 62)
+  await setVolume(page, 0)
+  const zeroVolume = await waitAudio(
+    page,
+    (sound) =>
+      sound.volume === 0 && sound.trace.active && sound.level < 0.00001,
+    'Zero volume must silence the measured signal without ending the held trace',
+  )
+  await setVolume(page, 0.55)
+  await traceAudible(page, 62)
+  await page.mouse.up()
+  await traceSilent(page)
+  await button(page, 'Mute trace').click()
+  await move(page, BRIDGE_TARGET[0])
+  await page.mouse.down()
+  await traceSilent(page)
+  await page.mouse.up()
+  await button(page, 'Trace sound').click()
+  await traceSilent(page)
+  await move(page, BRIDGE_TARGET[0])
+  await page.mouse.down()
+  await traceAudible(page, 62)
+  await page.evaluate(() => window.dispatchEvent(new Event('blur')))
+  await traceSilent(page)
+  assert.equal((await encounter(page)).drawing, false)
+  await page.mouse.up()
+  await move(page, BRIDGE_TARGET[0])
+  await page.mouse.down()
+  await traceAudible(page, 62)
+  // Handler proof is explicit here; the existing native visibility probe below
+  // separately reports whether this automation surface can really hide a tab.
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      value: true,
+    })
+    document.dispatchEvent(new Event('visibilitychange'))
+  })
+  await traceSilent(page)
+  assert.equal((await encounter(page)).drawing, false)
+  await page.evaluate(() => {
+    Reflect.deleteProperty(document, 'hidden')
+    document.dispatchEvent(new Event('visibilitychange'))
+  })
+  await page.mouse.up()
+  await traceSilent(page)
+  await move(page, BRIDGE_TARGET[1], 20)
+  await traceSilent(page)
+  report.traceAudioControls = {
+    zeroVolume,
+    restoredVolumeAudible: true,
+    mutePreventsTraceAudio: true,
+    unmuteNeedsNewGesture: true,
+    blurHandlerStopsTrace: true,
+    simulatedHiddenStopsTrace: true,
+    resumeAndMovementDoNotRestartAudio: true,
+  }
   // Drive the same judge with actual key events. No state injection or completion hook.
   await button(page, 'Start again').click()
   await button(page, 'Use keyboard').click()
@@ -265,6 +417,15 @@ try {
     'Controlled 32 ms frames; real key events and real WebGPU'
   await page.keyboard.press('Enter')
   assert.equal((await encounter(page)).accepted, 1)
+  const keyboardD = await traceAudible(page, 62)
+  await page.keyboard.press('Enter')
+  await traceSilent(page)
+  await page.keyboard.press('Enter')
+  await traceAudible(page, 62)
+  let previousMidi = 62
+  let keyboardRose = false
+  let keyboardFell = false
+  const keyboardNotes: SoundSnapshot[] = []
   for (const target of BRIDGE_TARGET.slice(1)) {
     const deadline = Date.now() + 90000
     while (Date.now() < deadline) {
@@ -289,6 +450,12 @@ try {
       for (const key of keys) await page.keyboard.down(key)
       await page.clock.runFor(32)
       for (const key of keys) await page.keyboard.up(key)
+      const tracedSound = await audio(page)
+      if (tracedSound.trace.midi !== null && (await encounter(page)).drawing) {
+        keyboardRose ||= tracedSound.trace.midi > previousMidi + 0.005
+        keyboardFell ||= tracedSound.trace.midi < previousMidi - 0.005
+        previousMidi = tracedSound.trace.midi
+      }
       assert.equal(
         (await encounter(page)).drawing ||
           (await encounter(page)).accepted === 4,
@@ -296,16 +463,50 @@ try {
         JSON.stringify(await encounter(page)),
       )
     }
+    if ((await encounter(page)).accepted < 4)
+      keyboardNotes.push(
+        await traceAudible(page, target === BRIDGE_TARGET[1] ? 65 : 71, 0.3),
+      )
   }
   assert.equal(
     (await encounter(page)).accepted,
     4,
     'Actual keyboard trace must complete',
   )
+  assert.equal(
+    keyboardRose,
+    true,
+    'Held upward arrows must raise the trace pitch',
+  )
+  assert.equal(
+    keyboardFell,
+    true,
+    'Held downward arrows must lower the trace pitch',
+  )
+  await traceSilent(page)
   await page.clock.resume()
   report.keyboard = { completed: true }
+  report.traceAudioKeyboard = {
+    firstNote: keyboardD,
+    intermediateNotes: keyboardNotes,
+    upwardAndDownwardPitch: true,
+    enterLiftStopped: true,
+    completionTailEnded: true,
+  }
   console.info('Keyboard completion passed')
+  await button(page, 'Start again').click()
+  await button(page, 'Use keyboard').click()
+  await page.keyboard.press('Enter')
+  await traceAudible(page, 62)
+  await button(page, 'Start again').click()
+  await traceSilent(page)
+  assert.equal((await encounter(page)).accepted, 0)
+  await button(page, 'Use keyboard').click()
+  await page.keyboard.press('Enter')
+  await traceAudible(page, 62)
   await button(page, 'Return to worlds').click()
+  await traceSilent(page)
+  report.traceAudioResetAndLeave = { resetStopped: true, leaveStopped: true }
   await button(page, 'Hear this world').click()
   await page.waitForFunction(
     () => window.__observatory!.audio.snapshot().playing,

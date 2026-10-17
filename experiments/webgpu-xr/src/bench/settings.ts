@@ -1,5 +1,6 @@
 // Serializable specimen identity and presentation, independent of GPU objects.
 import { BENCH_RECIPES } from './recipes'
+import type { WorldVisualId } from '../almanac/worldIdentity'
 
 export interface BenchSettings {
   recipe: number
@@ -7,6 +8,8 @@ export interface BenchSettings {
   seed: number
   source: 'compute' | 'cached'
   palette: 'lagoon' | 'ember' | 'violet' | 'ivory'
+  /** Explicit Almanac presentation; absent on the raw specimen bench. */
+  worldVisual?: WorldVisualId
   exposure: number
   pointSize: number
   yaw: number
@@ -53,6 +56,11 @@ export function normalizeSettings(settings: BenchSettings): BenchSettings {
     palette: ['lagoon', 'ember', 'violet', 'ivory'].includes(settings.palette)
       ? settings.palette
       : defaults.palette,
+    worldVisual:
+      settings.worldVisual === 'glasswake' ||
+      settings.worldVisual === 'tideweave'
+        ? settings.worldVisual
+        : undefined,
     exposure: bounded(settings.exposure, defaults.exposure, 0.3, 2),
     pointSize: bounded(settings.pointSize, defaults.pointSize, 0.001, 0.008),
     yaw: bounded(settings.yaw, defaults.yaw, -360, 360),

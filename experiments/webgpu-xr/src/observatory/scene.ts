@@ -1,5 +1,6 @@
 // Shared desktop observatory coordinates, presentation records and input projection.
 import { mat4 } from 'wgpu-matrix'
+import { WORLD_VISUALS } from '../almanac/worldIdentity'
 
 export type Vec3 = readonly [number, number, number]
 export type WorldId = 'glasswake' | 'tideweave'
@@ -103,17 +104,13 @@ export interface ObservatoryFrame {
 export const WORLD_PLACEMENTS = {
   glasswake: {
     center: [-2.8, 3, -5.8] as Vec3,
-    recipe: 0,
     scale: 1.55,
-    low: [0.004, 0.36, 0.43] as Vec3,
-    high: [1, 0.52, 0.12] as Vec3,
+    ...WORLD_VISUALS.glasswake,
   },
   tideweave: {
     center: [2.8, 3, -5.8] as Vec3,
-    recipe: 1,
-    scale: 1.2,
-    low: [0.018, 0.12, 0.38] as Vec3,
-    high: [0.22, 0.86, 0.58] as Vec3,
+    scale: 1.3,
+    ...WORLD_VISUALS.tideweave,
   },
 } as const
 
@@ -250,8 +247,9 @@ export function sceneCamera(frame: ObservatoryFrame, aspect: number) {
   let basePitch = Math.atan2(0.8, 9.3)
   let fov = Math.PI / 3.5
   if (frame.view === 'inspect') {
-    target = world.center
-    distance = 4.5
+    target = [world.center[0], world.center[1] - 0.22, world.center[2]]
+    // Fit the authored corona as well as the core, including narrow screens.
+    distance = world.scale * 4.4 * Math.max(1, 0.95 / aspect)
     basePitch = 0.08
   } else if (frame.view === 'trace') {
     // Work from the bridge mouth, ahead of the lectern. Widen portrait FOV

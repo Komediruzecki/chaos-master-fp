@@ -2,11 +2,13 @@
 import { d, tgpu } from 'typegpu'
 import { mat4 } from 'wgpu-matrix'
 import { parseBookGlb } from '../almanac/bookAsset'
+import { ALMANAC_WORLDS, settingsForWorld } from '../almanac/catalog'
 import { SAMPLE_STEPS } from '../bench/recipes'
 import { cloudFragment, constructSpecimen, fullScreenVertex, resolveLayout, SampleConfig, samplingLayout, sceneLayout, View, } from '../bench/shaders'
 import { beamMatrix, createModelPass, primitiveGeometry } from './modelPass'
 import { clamp, OBSERVATORY_ASSETS, sceneCamera, traceWorld, WORLD_PLACEMENTS, } from './scene'
 import { Model, modelLayout, orbVertex, Sky, skyFragment, skyLayout, toneMapFragment, } from './shaders'
+import { createWorldOrnaments } from './worldOrnaments'
 import type { TgpuBindGroup } from 'typegpu'
 import type { AssetStatus, ObservatoryFrame, Vec3, WorldId } from './scene'
 
@@ -84,16 +86,25 @@ export function createObservatoryRenderer(
   }))
   const requests = new Map<string, AbortController>()
   const worlds = Object.entries(WORLD_PLACEMENTS).map(([id, config]) => {
+    const catalogWorld = ALMANAC_WORLDS.find((world) => world.id === id)
+    const settings = catalogWorld && settingsForWorld(catalogWorld)
+    if (settings?.recipe === undefined || settings.seed === undefined)
+      throw new Error(`No specimen identity for ${id}.`)
     const points = root
       .createBuffer(d.arrayOf(d.vec4f, POINTS))
       .$usage('storage')
     const sample = root.createBuffer(SampleConfig).$usage('uniform')
-    sample.write({ values: d.vec4u(config.recipe, POINTS, 73129, 0) })
+    sample.write({ values: d.vec4u(settings.recipe, POINTS, settings.seed, 0) })
     const view = root.createBuffer(View).$usage('uniform')
     const model = root.createBuffer(Model).$usage('uniform')
     return {
       id: id as WorldId,
       config,
+      ornaments: createModelPass(
+        root,
+        camera,
+        createWorldOrnaments(id as WorldId),
+      ),
       points,
       sample,
       view,
@@ -295,8 +306,14 @@ export function createObservatoryRenderer(
     skyRaw.set(inverse, 0)
     skyRaw.set([...eye, 0], 16)
     skyRaw.set([w, h, 0, 0], 20)
-    skyRaw.set([...WORLD_PLACEMENTS.glasswake.center, 0], 24)
-    skyRaw.set([...WORLD_PLACEMENTS.tideweave.center, 0], 28)
+    skyRaw.set(
+      [...WORLD_PLACEMENTS.glasswake.center, WORLD_PLACEMENTS.glasswake.scale],
+      24,
+    )
+    skyRaw.set(
+      [...WORLD_PLACEMENTS.tideweave.center, WORLD_PLACEMENTS.tideweave.scale],
+      28,
+    )
     sky.write(skyRaw.buffer)
     const encoder = device.createCommandEncoder()
     if (!generated) {
@@ -373,46 +390,24 @@ export function createObservatoryRenderer(
       transform([0, 1, -10], 1.15, frame.time * 0.03, Math.PI / 2),
       [0.7, 0.75, 1, 0.2],
     )
-    worlds.forEach((world, worldIndex) => {
+    worlds.forEach((world) => {
       const position = world.config.center
       const selected = frame.selectedWorld === world.id
       const time = frame.time
       const glasswake = world.id === 'glasswake'
-      const rings = glasswake ? 2 : 1
-      for (let i = 0; i < rings; i++) {
-        const radius = world.config.scale * (glasswake ? 1.04 + i * 0.09 : 1.42)
-        const tilt = glasswake ? 0.24 + i * 0.13 : 0.64
-        const tint = glasswake
-          ? [1, 0.85, 0.55, selected ? 0.04 : 0]
-          : [0.24, 1, 0.85, selected ? 0.06 : 0.02]
-        drawModel(
-          pass,
-          ring,
-          `${world.id}-ring-${i}`,
-          transform(position, radius, time * 0.025 * (i === 0 ? 1 : -1), tilt),
-          tint,
-        )
-      }
-      for (let i = 0; i < 3; i++) {
-        const angle = (i * Math.PI * 2) / 3 + time * (0.08 + worldIndex * 0.015)
-        const radius = (glasswake ? 2 : 1.85) + i * 0.12
-        const lift = glasswake
-          ? Math.sin(angle) * 0.32
-          : Math.sin(angle) * 0.65 + (i - 1) * 0.3
-        const p: Vec3 = [
-          position[0] + Math.cos(angle) * radius,
-          position[1] + lift,
-          position[2] +
-            Math.sin(angle) * radius * (glasswake ? 1 : 0.7 + i * 0.2),
-        ]
-        drawModel(
-          pass,
-          sphere,
-          `${world.id}-moon-${i}`,
-          transform(p, 0.07 + i * 0.02, time * 0.15),
-          selected ? [0.65, 0.85, 1, 0.08] : [0.38, 0.65, 0.48, 0.04],
-        )
-      }
+      const matrix = transform(
+        position,
+        world.config.scale,
+        glasswake ? Math.sin(time * 0.11) * 0.1 : -time * 0.045,
+        glasswake ? 0.06 : Math.sin(time * 0.13) * 0.07,
+      )
+      if (glasswake) mat4.rotateZ(matrix, time * 0.025, matrix)
+      drawModel(pass, world.ornaments, `${world.id}-ornaments`, matrix, [
+        1,
+        1,
+        1,
+        selected ? 0.09 : 0.035,
+      ])
     })
     drawTrace(pass, frame)
     worlds.forEach((world) => {
@@ -434,17 +429,23 @@ export function createObservatoryRenderer(
       world.raw.set([...low, 0], 36)
       world.raw.set([...high, 0], 40)
       world.view.write(world.raw.buffer)
-      world.modelRaw.set(
-        transform(
-          center,
-          scale,
-          frame.time * 0.035 * (world.id === 'glasswake' ? 1 : -1),
-        ),
-        0,
+      const glasswake = world.id === 'glasswake'
+      const coreMatrix = transform(
+        center,
+        scale,
+        glasswake ? Math.sin(frame.time * 0.11) * 0.1 : -frame.time * 0.045,
+        glasswake ? 0.06 : Math.sin(frame.time * 0.13) * 0.07,
       )
+      if (glasswake) mat4.rotateZ(coreMatrix, frame.time * 0.025, coreMatrix)
+      world.modelRaw.set(coreMatrix, 0)
       world.modelRaw.set([1, 1, 1, 0], 16)
       world.modelRaw.set(
-        [frame.time, selected ? frame.music.level : 0, scale, 0],
+        [
+          frame.time,
+          selected ? frame.music.level : 0,
+          scale,
+          world.config.style,
+        ],
         20,
       )
       world.model.write(world.modelRaw.buffer)
@@ -484,10 +485,13 @@ export function createObservatoryRenderer(
             d.sizeOf(SampleConfig) +
             d.sizeOf(View) +
             d.sizeOf(Model)) +
-        [...loaded.values(), sphere, ring, beam].reduce(
-          (sum, model) => sum + model.bytes,
-          0,
-        ),
+        [
+          ...loaded.values(),
+          ...worlds.map((world) => world.ornaments),
+          sphere,
+          ring,
+          beam,
+        ].reduce((sum, model) => sum + model.bytes, 0),
       width,
       height,
     }),
@@ -501,7 +505,13 @@ export function createObservatoryRenderer(
       disposed = true
       for (const request of requests.values()) request.abort()
       requests.clear()
-      for (const model of [...loaded.values(), sphere, ring, beam])
+      for (const model of [
+        ...loaded.values(),
+        ...worlds.map((world) => world.ornaments),
+        sphere,
+        ring,
+        beam,
+      ])
         model.dispose()
       loaded.clear()
       hdr?.destroy()

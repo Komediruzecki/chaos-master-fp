@@ -1,5 +1,6 @@
 // Stable IFS samples, solid framing and HDR splats sharing one camera and depth.
 import { d, std, tgpu } from 'typegpu'
+import { worldPoint } from '../almanac/worldComposition'
 import { advanceSeed } from '../flameMath'
 import { advanceSpecimen, BURN_IN, SAMPLE_STEPS } from './recipes'
 
@@ -65,7 +66,8 @@ export const cloudVertex = tgpu.vertexFn({
   const camera = sceneLayout.$.camera
   const point = sceneLayout.$.points[input.instance]
   const uv = corners.$[input.vertex]
-  const world = point.xyz.mul(camera.model.w).add(camera.model.xyz)
+  const local = worldPoint(point.xyz, input.instance, d.u32(camera.scene.w))
+  const world = local.mul(camera.model.w).add(camera.model.xyz)
   const center = std.mul(camera.view, d.vec4f(world, 1))
   const position = std.mul(
     camera.projection,
@@ -114,13 +116,20 @@ export const solidVertex = tgpu.vertexFn({
     const a = (d.f32(d.u32(tile / 8)) + corner.x) * ((Math.PI * 2) / 192)
     const b = (d.f32(tile % 8) + corner.y) * ((Math.PI * 2) / 8)
     const tube = 0.0045
-    const radius = 1.18 + d.f32(input.instance) * 0.12
+    let radius = 1.18 + d.f32(input.instance) * 0.12
+    let tilt = 0.32 + d.f32(input.instance) * 0.58
+    if (camera.scene.w === 1) {
+      radius = 0.98 + d.f32(input.instance) * 0.12
+      tilt = 0.22 + d.f32(input.instance) * 0.16
+    } else if (camera.scene.w === 2) {
+      radius = d.f32(1.13)
+      tilt = d.f32(0.64)
+    }
     const q = d.vec3f(
       std.cos(a) * (radius + std.cos(b) * tube),
       std.sin(b) * tube,
       std.sin(a) * (radius + std.cos(b) * tube),
     )
-    const tilt = 0.32 + d.f32(input.instance) * 0.58
     p = d.vec3f(
       q.x,
       q.y * std.cos(tilt) - q.z * std.sin(tilt),
@@ -131,6 +140,8 @@ export const solidVertex = tgpu.vertexFn({
       0.6 * std.max(d.f32(0), std.sin(b + 0.8)) +
       0.25 * std.pow(std.max(d.f32(0), std.cos(a - 0.8)), 12)
     color = d.vec3f(0.62, 0.36, 0.12).mul(light)
+    if (camera.scene.w === 1) color = d.vec3f(0.86, 0.67, 0.34).mul(light)
+    else if (camera.scene.w === 2) color = d.vec3f(0.06, 0.43, 0.4).mul(light)
     if (camera.scene.x < 0.5) p = d.vec3f(0)
   } else {
     // A real opaque plane is sufficient to reveal front/inside/behind ordering.

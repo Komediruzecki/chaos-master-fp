@@ -3,6 +3,8 @@ import { d, tgpu } from 'typegpu'
 import { mat4 } from 'wgpu-matrix'
 import { loadBookGeometry } from '../almanac/bookAsset'
 import { createBookPass } from '../almanac/bookPass'
+import { ALMANAC_WORLDS, settingsForWorld } from '../almanac/catalog'
+import { WORLD_VISUALS } from '../almanac/worldIdentity'
 import { SAMPLE_STEPS } from './recipes'
 import { cloudFragment, cloudVertex, constructSpecimen, fullScreenVertex, resolveFragment, resolveLayout, SampleConfig, samplingLayout, sceneLayout, solidFragment, solidVertex, View, } from './shaders'
 import type { TgpuBindGroup } from 'typegpu'
@@ -26,6 +28,15 @@ const palettes = {
     [0.74, 0.78, 0.8],
     [0.74, 0.78, 0.8],
   ],
+}
+
+function bookSpecimen(dock: 'left' | 'right') {
+  const id = dock === 'left' ? 'glasswake' : 'tideweave'
+  const world = ALMANAC_WORLDS.find((entry) => entry.id === id)
+  const settings = world ? settingsForWorld(world) : undefined
+  if (!settings || settings.recipe === undefined || settings.seed === undefined)
+    throw new Error(`The Almanac study ${id} has no supported specimen.`)
+  return { ...settings, recipe: settings.recipe, seed: settings.seed }
 }
 
 export function createBenchRenderer(
@@ -264,6 +275,15 @@ export function createBenchRenderer(
       generation++
     }
     const isBook = scene === 'book'
+    const visual = settings.worldVisual
+      ? WORLD_VISUALS[settings.worldVisual]
+      : undefined
+    const other = isBook
+      ? bookSpecimen(book.dock === 'left' ? 'right' : 'left')
+      : undefined
+    const otherVisual = other?.worldVisual
+      ? WORLD_VISUALS[other.worldVisual]
+      : undefined
     const dock = book.dock === 'left' ? leftDock : rightDock
     const otherDock = book.dock === 'left' ? rightDock : leftDock
     const yaw = ((settings.yaw + (isBook ? -8 : 0)) * Math.PI) / 180
@@ -322,8 +342,8 @@ export function createBenchRenderer(
     const gain =
       (131072 / settings.pointCount) * Math.pow(0.003 / pointSize, 2) * 0.48
     raw.set([pointSize, settings.exposure, gain, Number(settings.stars)], 32)
-    raw.set([...palettes[settings.palette][0], 0], 36)
-    raw.set([...palettes[settings.palette][1], 0], 40)
+    raw.set([...(visual?.low ?? palettes[settings.palette][0]), 0], 36)
+    raw.set([...(visual?.high ?? palettes[settings.palette][1]), 0], 40)
     const barZ =
       settings.depthProbe === 'front'
         ? 1.4
@@ -331,7 +351,12 @@ export function createBenchRenderer(
           ? -1.4
           : 0
     raw.set(
-      [Number(settings.rings), Number(settings.depthProbe !== 'off'), barZ, 0],
+      [
+        Number(settings.rings),
+        Number(settings.depthProbe !== 'off'),
+        barZ,
+        visual?.style ?? 0,
+      ],
       44,
     )
     raw.set(isBook ? [...dock, 0.34] : [0, 0, 0, 1], 48)
@@ -339,13 +364,12 @@ export function createBenchRenderer(
     raw.set([...leftDock, 0], 56)
     raw.set([...rightDock, 0], 60)
     camera.write(raw.buffer)
-    if (isBook) {
+    if (other) {
       partner ??= createPartner()
-      const otherRecipe = book.dock === 'left' ? 1 : 0
-      const partnerKey = `${otherRecipe}:${settings.pointCount}:73129`
+      const partnerKey = `${other.recipe}:${settings.pointCount}:${other.seed}`
       if (partnerIdentity !== partnerKey) {
         partner.sampleConfig.write({
-          values: d.vec4u(otherRecipe, settings.pointCount, 73129, 0),
+          values: d.vec4u(other.recipe, settings.pointCount, other.seed, 0),
         })
         partner.compute
           .with(encoder)
@@ -355,8 +379,10 @@ export function createBenchRenderer(
         partnerIdentity = partnerKey
       }
       raw.set([...otherDock, 0.34], 48)
-      raw.set([...palettes.lagoon[0], 0], 36)
-      raw.set([...palettes.lagoon[1], 0], 40)
+      const otherPalette = palettes[other.palette ?? 'lagoon']
+      raw.set([...(otherVisual?.low ?? otherPalette[0]), 0], 36)
+      raw.set([...(otherVisual?.high ?? otherPalette[1]), 0], 40)
+      raw.set([Number(other.rings), 0, 0, otherVisual?.style ?? 0], 44)
       partnerCamera.write(raw.buffer)
     }
     const pass = encoder.beginRenderPass({
@@ -389,15 +415,15 @@ export function createBenchRenderer(
       solidPipeline
         .with(group)
         .with(pass)
-        .draw(192 * 8 * 6, 2)
+        .draw(192 * 8 * 6, visual?.style === 2 ? 1 : 2)
     if (settings.depthProbe !== 'off')
       solidPipeline.with(group).with(pass).draw(6, 1, 0, 2)
     if (isBook && partner) {
-      if (settings.rings)
+      if (other?.rings)
         solidPipeline
           .with(partner.group)
           .with(pass)
-          .draw(192 * 8 * 6, 2)
+          .draw(192 * 8 * 6, otherVisual?.style === 2 ? 1 : 2)
     }
     cloudPipeline.with(group).with(pass).draw(6, settings.pointCount)
     if (isBook && partner)

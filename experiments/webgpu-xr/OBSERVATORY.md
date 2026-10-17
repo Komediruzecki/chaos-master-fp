@@ -21,7 +21,9 @@ hours; Ctrl+C stops an interactive run.
 3. Inspect the orb, then widen the view. The separate Almanac route remains
    available through the header.
 4. Choose Tideweave and Trace a melody. Hear D–F–B–A, then drag through the four
-   visible notes in order. Lift to pause; resume from the last earned note.
+   visible notes in order. Height plays a continuous pitch; each reached note gets
+   a short accent. Lift to pause; resume from the last earned note. Mute trace
+   leaves the guide and judging available. The main volume also affects tracing.
 5. Keyboard alternative: choose Use keyboard, Enter to hold, arrow keys to move
    the tracer (two arrows can move diagonally), Enter to lift. The same judge
    evaluates both inputs. Escape returns.
@@ -35,11 +37,16 @@ Almanac collectible. The five other constellations are proposed destinations.
 
 - One device, HDR/depth pass and camera own the complete scene.
 - Two 131,072-point buffers are constructed once from bounded recipes and seed 73129. Motion transforms/deforms retained samples; it does not resample them.
-- Glasswake uses Aureole; Tideweave's branching form is still a specimen study.
-  The scene palette/composition is local to this study. Consolidating it with
-  the Almanac's world identity record is the next art milestone.
-- World satellites and rings are authored opaque primitives. Bridge pieces are
-  repeated static meshes with independent transforms, not GPU-instanced draws.
+- Glasswake preserves Aureole's coordinates, with an ivory/amber palette and
+  six faceted spires in a broken corona. Tideweave bends the original Thicket
+  samples into five curling fronds around an ovoid, with teal/cobalt currents.
+  This is an authored deformation of retained samples, not a new fractal equation.
+- `almanac/worldIdentity.ts` shares core composition and palette between the
+  Almanac and observatory. The raw specimen bench keeps its original presentation.
+  Scene-specific framing differs: the book retains its smaller orbital mounts.
+- `observatory/worldOrnaments.ts` builds one merged opaque ornament mesh per
+  world. These are real faceted surfaces, not transparent/refractive glass.
+  Bridge pieces remain repeated static draws, not GPU-instanced geometry.
 - The camera makes deliberate view cuts. No automatic flights, walking,
   collision, book page turning or animated docking is implemented.
 - Sky directions derive from the camera inverse matrix. Stars are not a
@@ -59,7 +66,13 @@ hashes and provider task are in
 [`celestial-seed.manifest.json`](public/models/observatory/celestial-seed.manifest.json).
 One preview cost 20 credits; no paid texture/refinement stage was used.
 
-The scene uses one `MotifAudio` owner. Motion pause and reduced motion freeze
+The scene uses one `MotifAudio` owner for both auditions and the live trace
+instrument. Starting either stops the other. Pointer and keyboard feed the same
+ordered judge and vertical pitch map. An earned note receives an accent only
+when progress advances; lifting, invalid movement, blur, hidden state, reset,
+leaving and disposal stop the instrument. A pending audio unlock cannot start
+a tone after cancellation. The trace has no microphone, pitch detector or
+spatial audio. Motion pause and reduced motion freeze
 world transforms and deformation, while instructional note color can still
 follow playback. A hidden tab stops audio and cancels an active trace.
 Returning requires deliberate playback. Failed models can be retried; a lost
@@ -99,4 +112,5 @@ sustained headset performance.
 
 The current master sequence and implementation evidence are documented in
 `/home/maff/.dotfiles/personal/lumen-meta/26-desktop-observatory-master-plan.md`
-and `27-observatory-implementation-and-review.md`.
+and `28-world-identity-and-trace-instrument.md`. Document 27 records the
+preceding foundation milestone.

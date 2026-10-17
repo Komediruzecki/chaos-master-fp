@@ -5,7 +5,8 @@ import { ALMANAC_WORLDS } from '../almanac/catalog'
 import { MotifAudio } from '../almanac/motifAudio'
 import { beginTrace, BRIDGE_MOTIF, BRIDGE_NOTE_NAMES, BRIDGE_TARGET, createEncounter, endTrace, moveTrace, traceHint, } from './encounter'
 import { ObservatoryRuntime } from './runtime'
-import type { TracePoint } from './encounter'
+import { pitchForTraceHeight } from './traceAudio'
+import type { EncounterState, TracePoint } from './encounter'
 import type { ObservatoryInput, ObservatorySnapshot, ObservatoryView, WorldId, } from './scene'
 
 type ExerciseStage = 'listen' | 'listening' | 'answer' | 'complete'
@@ -32,6 +33,7 @@ export function Observatory() {
   const [keyboard, setKeyboard] = createSignal(false)
   const [cursor, setCursor] = createSignal<TracePoint>(BRIDGE_TARGET[0])
   const [collected, setCollected] = createSignal(false)
+  const [traceSound, setTraceSound] = createSignal(true)
   const world = createMemo(
     () => studies.find((entry) => entry.id === worldId())!,
   )
@@ -114,6 +116,11 @@ export function Observatory() {
   }
 
   function acceptInput(event: ObservatoryInput) {
+    if (
+      event.kind === 'trace' &&
+      (event.phase === 'end' || event.phase === 'cancel')
+    )
+      audio?.stopTrace()
     if (document.hidden || atlasOpen() || !ready()) return
     if (event.kind === 'world') {
       selectWorld(event.worldId)
@@ -122,6 +129,7 @@ export function Observatory() {
     if (!exercise() || stage() !== 'answer') return
     stopKeyboard()
     setKeyboard(false)
+    const before = encounter()
     if (event.phase === 'end' || event.phase === 'cancel')
       setEncounter(endTrace(encounter()))
     else if (event.point) {
@@ -131,7 +139,38 @@ export function Observatory() {
           : moveTrace(encounter(), event.point),
       )
     } else setEncounter(endTrace(encounter(), 'outside'))
+    syncTraceSound(before, event.point, event.phase === 'start')
     finishInput()
+  }
+
+  function syncTraceSound(
+    before: EncounterState,
+    point: TracePoint | null,
+    start = false,
+  ) {
+    const next = encounter()
+    if (!traceSound()) {
+      audio?.stopTrace()
+      return
+    }
+    if (
+      next.accepted === BRIDGE_TARGET.length &&
+      next.accepted > before.accepted
+    ) {
+      audio?.finishTrace(BRIDGE_MOTIF.notes.at(-1)!.midi)
+      return
+    }
+    const midi = point ? pitchForTraceHeight(point[1]) : null
+    if (!next.drawing || midi === null) {
+      audio?.stopTrace()
+      return
+    }
+    const earnedMidi =
+      next.accepted > before.accepted
+        ? BRIDGE_MOTIF.notes[next.accepted - 1].midi
+        : undefined
+    if (start) void audio?.startTrace(midi, earnedMidi)
+    else audio?.updateTrace(midi, earnedMidi)
   }
 
   function finishInput() {
@@ -145,6 +184,7 @@ export function Observatory() {
   function useKeyboard() {
     if (!ready() || document.hidden) return
     stopKeyboard()
+    audio?.stopTrace()
     setKeyboard(true)
     setEncounter(endTrace(encounter()))
     setCursor(BRIDGE_TARGET[Math.max(0, encounter().accepted - 1)])
@@ -160,6 +200,7 @@ export function Observatory() {
 
   function interruptInput() {
     stopKeyboard()
+    audio?.stopTrace()
     setEncounter(endTrace(encounter()))
     // Toggling activity releases a captured pointer without changing the view.
     runtime?.setActive(false)
@@ -198,7 +239,9 @@ export function Observatory() {
       Math.max(0, Math.min(1, cursor()[1] + dy * delta)),
     ]
     setCursor(next)
+    const before = encounter()
     if (encounter().drawing) setEncounter(moveTrace(encounter(), next))
+    syncTraceSound(before, next)
     finishInput()
     keyboardFrame = requestAnimationFrame(moveKeyboard)
   }
@@ -236,12 +279,15 @@ export function Observatory() {
     event.stopPropagation()
     if (!keyboard()) useKeyboard()
     if (event.key === 'Enter') {
-      if (!event.repeat)
+      if (!event.repeat) {
+        const before = encounter()
         setEncounter(
           encounter().drawing
             ? endTrace(encounter())
             : beginTrace(encounter(), cursor()),
         )
+        syncTraceSound(before, cursor(), !before.drawing)
+      }
     } else {
       heldKeys.add(event.key)
       if (!keyboardFrame) {
@@ -261,18 +307,23 @@ export function Observatory() {
           setState(next)
           if (next.error) {
             stopKeyboard()
+            audio?.stopTrace()
             setEncounter(endTrace(encounter()))
           }
         }
       },
       input: acceptInput,
-      music: () =>
-        audio?.snapshot() ?? {
-          playing: false,
-          level: 0,
-          activeNote: null,
-          progress: 0,
-        },
+      music: () => {
+        const snapshot = audio?.snapshot()
+        return snapshot
+          ? { ...snapshot, playing: snapshot.playing || snapshot.trace.active }
+          : {
+              playing: false,
+              level: 0,
+              activeNote: null,
+              progress: 0,
+            }
+      },
     })
     const preference = window.matchMedia('(prefers-reduced-motion: reduce)')
     const reduceMotion = () => {
@@ -512,8 +563,8 @@ export function Observatory() {
               {world().tonic} {world().mode}{' '}
               <span class="observatory-copy-divider" />{' '}
               {worldId() === 'glasswake'
-                ? 'Petals of light and a glass motif.'
-                : 'Folded fronds and a Dorian motif.'}
+                ? 'Six petals, a crystal crown and a glass motif.'
+                : 'Five curling fronds and a Dorian motif.'}
             </p>
             <p class="observatory-guidance">
               {worldId() === 'glasswake'
@@ -541,14 +592,17 @@ export function Observatory() {
                   class="observatory-action"
                   disabled={!ready()}
                   onClick={() => {
-                    if (sound()?.playing || sound()?.loading) {
+                    if (
+                      sound()?.playing ||
+                      (sound()?.loading && sound()?.motifId)
+                    ) {
                       audio?.stop()
                       setStage('listen')
                       presentTrace()
                     } else playPhrase()
                   }}
                 >
-                  {sound()?.playing || sound()?.loading
+                  {sound()?.playing || (sound()?.loading && sound()?.motifId)
                     ? 'Stop phrase'
                     : 'Replay phrase'}
                 </button>
@@ -562,6 +616,7 @@ export function Observatory() {
                     type="button"
                     onClick={() => {
                       audio?.stop()
+                      setTraceSound(false)
                       setStage('answer')
                       presentTrace()
                     }}
@@ -590,8 +645,10 @@ export function Observatory() {
               </div>
               <p id="observatory-trace-help">
                 {keyboard()
-                  ? 'Enter holds or lifts. Arrow keys move. Esc returns.'
-                  : 'Press and drag through each note. Lift to pause. Esc returns.'}
+                  ? 'Enter holds or lifts. Arrows move and change pitch. Esc returns.'
+                  : traceSound()
+                    ? 'Height changes pitch. Release to pause. Esc returns.'
+                    : 'Press and drag through each note. Lift to pause. Esc returns.'}
               </p>
             </section>
           }
@@ -674,6 +731,18 @@ export function Observatory() {
                 }
               />
             </label>
+            <Show when={exercise()}>
+              <button
+                type="button"
+                aria-pressed={!traceSound()}
+                onClick={() => {
+                  audio?.stopTrace()
+                  setTraceSound(!traceSound())
+                }}
+              >
+                {traceSound() ? 'Mute trace' : 'Trace sound'}
+              </button>
+            </Show>
             <button
               type="button"
               aria-pressed={!motion()}

@@ -1,6 +1,7 @@
 // World identities keep the book, supported fractal recipes and original motifs separate.
 import { BENCH_RECIPES } from '../bench/recipes'
 import type { BenchSettings } from '../bench/settings'
+import type { WorldVisualId } from './worldIdentity'
 
 export interface SpecimenDescriptor {
   kind: 'bench-recipe'
@@ -8,6 +9,7 @@ export interface SpecimenDescriptor {
   recipeId: (typeof BENCH_RECIPES)[number]['id']
   seed: number
   palette: BenchSettings['palette']
+  visual?: WorldVisualId
   rings: boolean
 }
 
@@ -60,6 +62,7 @@ export const ALMANAC_WORLDS: readonly AlmanacWorld[] = [
       recipeId: 'rosette',
       seed: 73129,
       palette: 'lagoon',
+      visual: 'glasswake',
       rings: true,
     },
     motif: {
@@ -77,7 +80,7 @@ export const ALMANAC_WORLDS: readonly AlmanacWorld[] = [
     tonic: 'D',
     mode: 'Dorian',
     summary:
-      'Thicket branches into a folded frond. A reed motif reaches for Dorian’s raised sixth. The form is still a study.',
+      'Five Thicket fronds curl around a hollow seed. A reed motif reaches for Dorian’s raised sixth.',
     status: 'study',
     specimen: {
       kind: 'bench-recipe',
@@ -85,6 +88,7 @@ export const ALMANAC_WORLDS: readonly AlmanacWorld[] = [
       recipeId: 'branching',
       seed: 73129,
       palette: 'lagoon',
+      visual: 'tideweave',
       rings: true,
     },
     motif: {
@@ -163,6 +167,7 @@ export function settingsForWorld(
     recipe: recipe.index,
     seed: specimen.seed,
     palette: specimen.palette,
+    worldVisual: specimen.visual,
     rings: specimen.rings,
     rotation: false,
     source: 'compute',

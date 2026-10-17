@@ -1,7 +1,8 @@
 // Projecting the trace and reversing pointer rays must agree at every supported layout.
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { copyTrace, EMPTY_TRACE, projectPoint, QUIET_MUSIC, sceneCamera, traceAtCanvas, traceWorld, } from '../src/observatory/scene'
+import { copyTrace, EMPTY_TRACE, projectPoint, QUIET_MUSIC, sceneCamera, traceAtCanvas, traceWorld, WORLD_PLACEMENTS, } from '../src/observatory/scene'
+import { createWorldOrnaments } from '../src/observatory/worldOrnaments'
 import type { ObservatoryFrame, TracePoint } from '../src/observatory/scene'
 
 const frame: ObservatoryFrame = {
@@ -49,6 +50,34 @@ await test('higher pitches rise in world and projected coordinates without rever
   assert.ok(high.x > low.x)
   assert.ok(high.y < low.y)
   assert.ok(traceWorld(targets[2])[1] > traceWorld(targets[0])[1])
+})
+
+await test('inspection fits both authored frames on desktop and narrow screens', () => {
+  for (const selectedWorld of ['glasswake', 'tideweave'] as const) {
+    const world = WORLD_PLACEMENTS[selectedWorld]
+    const geometry = createWorldOrnaments(selectedWorld)
+    for (const aspect of [1440 / 950, 820 / 900, 390 / 844, 844 / 390]) {
+      const camera = sceneCamera(
+        { ...frame, view: 'inspect', selectedWorld },
+        aspect,
+      )
+      for (let vertex = 0; vertex < geometry.vertices.length; vertex += 16) {
+        const screen = projectPoint(camera.viewProjection, [
+          world.center[0] + geometry.vertices[vertex] * world.scale,
+          world.center[1] + geometry.vertices[vertex + 1] * world.scale,
+          world.center[2] + geometry.vertices[vertex + 2] * world.scale,
+        ])
+        assert.ok(
+          screen.visible,
+          `${selectedWorld} ornament clipped at aspect ${aspect}`,
+        )
+        assert.ok(
+          screen.y > 0.06 && screen.y < 0.85,
+          'ornament should fit between the main header and footer',
+        )
+      }
+    }
+  }
 })
 
 await test('pointer rays outside the plane are rejected rather than converted into an edge answer', () => {
