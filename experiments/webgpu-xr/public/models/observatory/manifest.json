@@ -1,0 +1,84 @@
+{
+  "name": "Irchiinnuss observatory terrace kit",
+  "assetVersion": 1,
+  "blenderVersion": "5.2.2 LTS",
+  "authoring": "Authored Blender geometry; no provider mesh or textures",
+  "sourceScriptSha256": "2854bcb0fa412b7df7bf9c394e18a25bfef44745bdd31d464daf076bedec183f",
+  "sourceBlendSha256": "01b124e73ae1bee121dcf0de79e8dd238f2e0a1af521581544e533f257b6f653",
+  "coordinates": {
+    "up": "+Y",
+    "forward": "-Z",
+    "floorTop": 0,
+    "units": "metre-oriented study units"
+  },
+  "materials": [
+    "Basalt | blue",
+    "Slate | inset",
+    "Brass | muted",
+    "Brass | bright",
+    "Enamel | tide"
+  ],
+  "textures": [],
+  "assets": [
+    {
+      "file": "observation-bay.glb",
+      "root": "ObservationBay",
+      "bytes": 447376,
+      "sha256": "f4e7090972da194f5b4bd2bc3f3e4d9e06a8295a9c482c3290990d7fcc847769",
+      "triangles": 16390,
+      "materialGroups": 5,
+      "anchors": {
+        "BookMount": [0, 0.85, -0.1],
+        "BridgeMouth": [0, 0, -3.7],
+        "WorldLeft": [-2.8, 3, -5.8],
+        "WorldRight": [2.8, 3, -5.8]
+      }
+    },
+    {
+      "file": "bridge-segment.glb",
+      "root": "BridgeSegment",
+      "bytes": 19532,
+      "sha256": "42ae4397a8cbeda6d9cf616032a75c0b1b0517cc66cb6105919acbc60719104c",
+      "triangles": 352,
+      "materialGroups": 5,
+      "anchors": {
+        "Entry": [0, 0, 0.5],
+        "Exit": [0, 0, -0.5]
+      }
+    },
+    {
+      "file": "far-landing.glb",
+      "root": "FarLanding",
+      "bytes": 117344,
+      "sha256": "2bb507b3b7aa2c9da0a023e9fae2ad084d0ae633495112558604d97db2e84647",
+      "triangles": 3580,
+      "materialGroups": 5,
+      "anchors": {
+        "RelicMount": [0, 0.1, 0]
+      }
+    }
+  ],
+  "placement": {
+    "bay": [0, 0, 0],
+    "bridgeSegmentCentres": [
+      [0, 0, -4.2],
+      [0, 0, -5.2],
+      [0, 0, -6.2],
+      [0, 0, -7.2],
+      [0, 0, -8.2]
+    ],
+    "farLanding": [0, 0, -10],
+    "bridgeFootprint": [1.6, 1.0],
+    "bridgeSlabThickness": 0.19,
+    "bridgeWalkplaneY": 0,
+    "landingRadius": 1.35,
+    "camera": [0, 2.2, 5.8],
+    "cameraTarget": [0, 1.4, -3.5]
+  },
+  "limitations": [
+    "Opaque factor materials only, no surface texture bakes",
+    "Render meshes, no collision or traversal implementation",
+    "GLB carries no animation; runtime places bridge and worlds",
+    "Studio lighting does not certify browser or headset appearance"
+  ]
+}

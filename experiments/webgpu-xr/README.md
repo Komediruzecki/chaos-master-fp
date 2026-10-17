@@ -185,6 +185,14 @@ uses port 5192 so the earlier lab can remain available on its own port.
 
 Continue at `/almanac` on the same server to select Glasswake or Tideweave,
 inspect the retained live specimen and replay its original motif. Five other
-regions are labeled as previews. The fixed-open book is a desktop interface
-study; its spatial mesh and headset interaction remain future work. See the
+regions are labeled as previews. The fixed-open book is an authored Blender
+mesh sharing depth with the live orbs. Headset interaction remains future work. See the
 [Almanac guide](ALMANAC.md) for the scope and review sequence.
+
+## Observatory and melody bridge
+
+Continue at `/observatory` for the authored terrace, two live world studies,
+orbital motion, and Tideweave's guided four-note trace. Correct input grows
+actual bridge geometry; pointer and keyboard use the same forgiving judge.
+The [observatory guide](OBSERVATORY.md) records controls, asset sources,
+verification and the remaining headset boundary.

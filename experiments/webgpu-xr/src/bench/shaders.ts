@@ -36,7 +36,7 @@ export const constructSpecimen = tgpu.computeFn({
   'use gpu'
   const config = samplingLayout.$.config.values
   const chain = input.id.x
-  if (chain >= config.y / SAMPLE_STEPS) return
+  if (chain >= d.u32(config.y / SAMPLE_STEPS)) return
   let seed = d.u32(config.z + chain)
   let point = d.vec4f(0.17, -0.23, 0.31, 0)
   for (const step of std.range(-BURN_IN, SAMPLE_STEPS)) {

@@ -1,0 +1,36 @@
+{
+  "name": "Celestial seed relic",
+  "assetVersion": 1,
+  "provider": "Meshy text-to-3d preview",
+  "providerTaskId": "01a14734-8023-71cb-9b11-96d1d797e726",
+  "providerCredits": 20,
+  "sourceGlbSha256": "2f4881e3b186ff477b5c73fafcd901caa9596e3cfa1a891fb89587a0411dadd3",
+  "sourceTriangles": 100666,
+  "runtimeTriangles": 14000,
+  "runtimeBytes": 253364,
+  "runtimeSha256": "04ab2322a0f7e55817bb280b43d6ad70bde03459833e629aea5944ad76f61b7d",
+  "sourceBlendSha256": "edb3924fd85a05e7c36cdf480ed4118dbea4877d2b95fce82f4a6c51c83e3a3f",
+  "sourceScriptSha256": "b9d7089801d1169275b488ed0f921cf5fc2d90e0008d79191936af89d8611664",
+  "blenderVersion": "5.2.2 LTS",
+  "coordinates": {
+    "up": "+Y",
+    "height": 1.0,
+    "baseY": 0,
+    "centredXZ": true,
+    "root": "CelestialSeed"
+  },
+  "materials": ["Relic | patinated teal bronze"],
+  "textures": [],
+  "derivative": "Untextured donor normalized and Blender Collapse reduced; one authored opaque factor material",
+  "preservedFeatures": [
+    "Tapering seed silhouette",
+    "Broad spiral blade",
+    "Open negative spaces through the middle"
+  ],
+  "limitations": [
+    "Decorative render asset, no collision or skeletal animation",
+    "Pointed base needs a mount or deliberate floating placement",
+    "Material factors are not texture bakes or a weathered surface treatment",
+    "Desktop and headset visual acceptance remain separate from Blender inspection"
+  ]
+}
