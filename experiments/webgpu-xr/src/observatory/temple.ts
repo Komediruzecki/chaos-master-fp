@@ -81,12 +81,106 @@ const PALE: Material = {
   emission: 0.12,
 }
 
-// The mesh stores actual closed rectangular solids with flat face normals. All
-// stretches happen before upload, so the existing shader needs no normal-matrix change.
+/** Closed cuboids with real edge bevels; their outer bounds stay fixed. */
+function boxFaces(half: Point, bevel: number): number[][][] {
+  const inset = half.map((value) => value - bevel)
+  const faces: number[][][] = []
+  for (let axis = 0; axis < 3; axis++) {
+    const u = (axis + 1) % 3
+    const v = (axis + 2) % 3
+    for (const sign of [-1, 1])
+      faces.push(
+        [
+          [-1, -1],
+          [1, -1],
+          [1, 1],
+          [-1, 1],
+        ].map(([x, y]) => {
+          const point = [0, 0, 0]
+          point[axis] = sign * half[axis]
+          point[u] = x * inset[u]
+          point[v] = y * inset[v]
+          return point
+        }),
+      )
+    if (bevel === 0) continue
+    // Each long edge joins two inset faces with a single flat chamfer.
+    for (const su of [-1, 1])
+      for (const sv of [-1, 1])
+        faces.push(
+          [
+            [-1, 0],
+            [1, 0],
+            [1, 1],
+            [-1, 1],
+          ].map(([end, side]) => {
+            const point = [0, 0, 0]
+            point[axis] = end * inset[axis]
+            point[u] = su * (side ? inset[u] : half[u])
+            point[v] = sv * (side ? half[v] : inset[v])
+            return point
+          }),
+        )
+  }
+  if (bevel > 0)
+    for (const x of [-1, 1])
+      for (const y of [-1, 1])
+        for (const z of [-1, 1])
+          faces.push(
+            [0, 1, 2].map((corner) =>
+              [x, y, z].map(
+                (sign, axis) =>
+                  sign * (axis === corner ? half[axis] : inset[axis]),
+              ),
+            ),
+          )
+  return faces
+}
+
+// Every beam is a closed solid with flat face normals. Stone receives a modest
+// all-edge bevel; the thin inlays keep their crisp rectangular cross sections.
+// All stretches happen before upload, so normals need no runtime inverse matrix.
 class TempleMesh {
   private vertices: number[] = []
   private indices: number[] = []
   private materials = new Set<string>()
+
+  private face(points: number[][], center: number[], material: Material) {
+    const a = points[1].map((value, index) => value - points[0][index])
+    const b = points[2].map((value, index) => value - points[0][index])
+    let n = [
+      a[1] * b[2] - a[2] * b[1],
+      a[2] * b[0] - a[0] * b[2],
+      a[0] * b[1] - a[1] * b[0],
+    ]
+    if (
+      n.reduce(
+        (sum, value, axis) => sum + value * (points[0][axis] - center[axis]),
+        0,
+      ) < 0
+    ) {
+      points = [...points].reverse()
+      n = n.map((value) => -value)
+    }
+    const normalLength = Math.hypot(...n)
+    n = n.map((value) => value / normalLength)
+    const first = this.vertices.length / 16
+    for (const point of points)
+      this.vertices.push(
+        ...point,
+        1,
+        ...n,
+        0,
+        ...material.color,
+        1,
+        material.metal,
+        material.roughness,
+        material.emission,
+        1,
+      )
+    for (let index = 1; index < points.length - 1; index++)
+      this.indices.push(first, first + index, first + index + 1)
+  }
 
   beam(
     from: Point,
@@ -107,70 +201,19 @@ class TempleMesh {
       tangent[2] * u[0] - tangent[0] * u[2],
       tangent[0] * u[1] - tangent[1] * u[0],
     ]
-    const corners = [from, to].flatMap((point) =>
-      [
-        [-1, -1],
-        [1, -1],
-        [1, 1],
-        [-1, 1],
-      ].map(([x, y]) =>
-        point.map(
-          (value, axis) =>
-            value + (u[axis] * x * width) / 2 + (v[axis] * y * depth) / 2,
-        ),
-      ),
-    )
     const center = from.map((value, index) => (value + to[index]) / 2)
-    for (const face of [
-      [0, 1, 2, 3],
-      [4, 7, 6, 5],
-      [0, 4, 5, 1],
-      [1, 5, 6, 2],
-      [2, 6, 7, 3],
-      [3, 7, 4, 0],
-    ]) {
-      let points = face.map((index) => corners[index])
-      const a = points[1].map((value, index) => value - points[0][index])
-      const b = points[2].map((value, index) => value - points[0][index])
-      let n = [
-        a[1] * b[2] - a[2] * b[1],
-        a[2] * b[0] - a[0] * b[2],
-        a[0] * b[1] - a[1] * b[0],
-      ]
-      if (
-        n.reduce(
-          (sum, value, axis) => sum + value * (points[0][axis] - center[axis]),
-          0,
-        ) < 0
-      ) {
-        points = points.reverse()
-        n = n.map((value) => -value)
-      }
-      const normalLength = Math.hypot(...n)
-      n = n.map((value) => value / normalLength)
-      const first = this.vertices.length / 16
-      for (const point of points)
-        this.vertices.push(
-          ...point,
-          1,
-          ...n,
-          0,
-          ...material.color,
-          1,
-          material.metal,
-          material.roughness,
-          material.emission,
-          1,
-        )
-      this.indices.push(
-        first,
-        first + 1,
-        first + 2,
-        first,
-        first + 2,
-        first + 3,
+    const bevel = material === STONE ? Math.min(width, depth, length) * 0.14 : 0
+    for (const face of boxFaces([width / 2, depth / 2, length / 2], bevel))
+      this.face(
+        face.map(([x, y, z]) =>
+          center.map(
+            (value, axis) =>
+              value + u[axis] * x + v[axis] * y + tangent[axis] * z,
+          ),
+        ),
+        center,
+        material,
       )
-    }
     this.materials.add(
       material === GOLD
         ? 'Glasswake gold'

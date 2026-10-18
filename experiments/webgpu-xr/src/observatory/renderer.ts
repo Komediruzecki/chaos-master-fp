@@ -10,6 +10,7 @@ import { beamMatrix, createModelPass, primitiveGeometry } from './modelPass'
 import { clamp, EMPTY_GLASSWAKE, GLASSWAKE_CENTER, OBSERVATORY_ASSETS, sceneCamera, traceWorld, WORLD_PLACEMENTS, } from './scene'
 import { Model, modelLayout, orbVertex, Sky, skyFragment, skyLayout, toneMapFragment, } from './shaders'
 import { EMPTY_TEMPLE, EMPTY_TEMPLE_STATS, TEMPLE_WORLD_PLACEMENTS, } from './temple'
+import { createTempleAtmosphere } from './templeAtmosphere'
 import { createTemplePass } from './templePass'
 import { createWorldOrnaments } from './worldOrnaments'
 import type { TgpuBindGroup } from 'typegpu'
@@ -123,6 +124,7 @@ export function createObservatoryRenderer(
   })
   let glass: ReturnType<typeof createGlasswakePass> | undefined
   let temple: ReturnType<typeof createTemplePass> | undefined
+  let templeAtmosphere: ReturnType<typeof createTempleAtmosphere> | undefined
   let templeStats = { ...EMPTY_TEMPLE_STATS }
   let renderedShards = 0
   let disposed = false
@@ -306,7 +308,10 @@ export function createObservatoryRenderer(
     const worldPlacements = templeMode
       ? TEMPLE_WORLD_PLACEMENTS
       : WORLD_PLACEMENTS
-    if (templeMode) temple ??= createTemplePass(root, camera)
+    if (templeMode) {
+      temple ??= createTemplePass(root, camera)
+      templeAtmosphere ??= createTempleAtmosphere(root, camera)
+    }
     templeStats = { ...EMPTY_TEMPLE_STATS }
     if (glassMode) glass ??= createGlasswakePass(root, camera)
     renderedShards = 0
@@ -361,6 +366,18 @@ export function createObservatoryRenderer(
     drawCalls = 1
     triangles = 1
     skyPipeline.with(pass).draw(3)
+    if (
+      templeMode &&
+      !frame.clay &&
+      templeAtmosphere?.draw(
+        pass,
+        frame.temple ?? EMPTY_TEMPLE,
+        frame.motion ?? true,
+      )
+    ) {
+      drawCalls++
+      triangles += 2
+    }
     if (!glassMode && !templeMode) {
       // Close encounter framing would put narrow views beneath the bay's overhead beam.
       drawModel(pass, loaded.get('bay'), 'bay', identity)
@@ -540,6 +557,7 @@ export function createObservatoryRenderer(
       bufferBytes:
         (glass?.stats().bytes ?? 0) +
         (temple?.bytes ?? 0) +
+        (templeAtmosphere?.bytes ?? 0) +
         d.sizeOf(View) +
         d.sizeOf(Sky) +
         worlds.length *
@@ -578,6 +596,7 @@ export function createObservatoryRenderer(
       loaded.clear()
       glass?.dispose()
       temple?.dispose()
+      templeAtmosphere?.dispose()
       hdr?.destroy()
       msaa?.destroy()
       depth?.destroy()

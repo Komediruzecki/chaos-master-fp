@@ -58,8 +58,68 @@ await test('temple meshes have finite outward face normals, real thickness and b
     totalTriangles += geometry.triangles
     totalBytes += geometry.bytes
   }
-  assert.ok(totalTriangles < 3000, `${totalTriangles} temple triangles`)
-  assert.ok(totalBytes < 300_000, `${totalBytes} temple mesh bytes`)
+  assert.ok(totalTriangles < 3500, `${totalTriangles} temple triangles`)
+  assert.ok(totalBytes < 450_000, `${totalBytes} temple mesh bytes`)
+})
+
+await test('each stone beam is closed, consistently wound and faces outward', () => {
+  for (const { id, geometry } of createTempleParts()) {
+    const stoneFaces = Array.from(
+      { length: geometry.triangles },
+      (_, index) => index,
+    ).filter(
+      (index) => geometry.vertices[geometry.indices[index * 3] * 16 + 12] < 0.2,
+    )
+    const edges = new Map<string, { triangle: number; direction: number }[]>()
+    const parents = stoneFaces.map((_, index) => index)
+    const volumes: number[] = []
+    const root = (index: number): number => {
+      while (parents[index] !== index) index = parents[index]
+      return index
+    }
+    for (const [triangle, face] of stoneFaces.entries()) {
+      const points = Array.from(
+        geometry.indices.slice(face * 3, face * 3 + 3),
+        (index) =>
+          Array.from(geometry.vertices.slice(index * 16, index * 16 + 3)),
+      )
+      // Weld across hard-normal seams at a precision below the smallest bevel.
+      const keys = points.map((point) =>
+        point.map((value) => value.toFixed(5)).join(','),
+      )
+      for (let corner = 0; corner < 3; corner++) {
+        const from = keys[corner]
+        const to = keys[(corner + 1) % 3]
+        const key = [from, to].sort().join('|')
+        const uses = edges.get(key) ?? []
+        uses.push({ triangle, direction: from < to ? 1 : -1 })
+        edges.set(key, uses)
+      }
+      const [a, b, c] = points
+      volumes.push(
+        (a[0] * (b[1] * c[2] - b[2] * c[1]) +
+          a[1] * (b[2] * c[0] - b[0] * c[2]) +
+          a[2] * (b[0] * c[1] - b[1] * c[0])) /
+          6,
+      )
+    }
+    for (const uses of edges.values()) {
+      assert.equal(uses.length, 2, `${id} has an open or non-manifold edge`)
+      assert.equal(
+        uses[0].direction + uses[1].direction,
+        0,
+        `${id} has inconsistent winding`,
+      )
+      parents[root(uses[1].triangle)] = root(uses[0].triangle)
+    }
+    const components = new Map<number, number>()
+    for (const [index, volume] of volumes.entries()) {
+      const component = root(index)
+      components.set(component, (components.get(component) ?? 0) + volume)
+    }
+    for (const volume of components.values())
+      assert.ok(volume > 1e-7, `${id} contains an inward-facing or flat solid`)
+  }
 })
 
 await test('both worlds contribute distinct geometry and returned meshes are caller owned', () => {

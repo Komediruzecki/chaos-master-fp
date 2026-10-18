@@ -96,8 +96,21 @@ The existing renderer adds a procedural stepped threshold, paired pointed
 arches, radial gold and branching teal marks, seven crown marks and a shared
 seal between the retained fractal worlds. The framing is stationary. Motion
 off presents the architecture in place, with musical color cues and a final
-lit seal. The lit seal requires the completed passage. This is a temple teaser;
+lit seal. Its light grows through the cadence and reaches full strength at the
+completed passage. This is a temple teaser;
 there is no third playable region or forced camera travel.
+
+The temple has real chamfers on 29 stone beams, derivative-filtered mineral
+grain and veins, and directional highlights on gold and teal inlays. Its two
+lights rise with the authored musical sections. A bounded world-space veil
+behind the arch adds curved light curtains, an aureole and a narrow final shaft.
+It shares the existing HDR/depth pass: one extra draw, two triangles and 32 bytes
+of atmosphere uniforms. Temple lighting adds one shared 16-byte uniform.
+The architecture and connections total 2,884 triangles and 418,608 mesh bytes.
+This is analytic lighting and atmosphere, without texture maps, shadow maps,
+physical volumetric scattering or another GPU owner. Clay mode omits the veil.
+Stop freezes the light envelope and veil; motion-off fixes its drift while
+musical color cues remain available.
 
 Stop holds the partial formation while ordinary idle orb motion follows the
 motion setting. Replay resets the passage. Opening Guide, the Almanac or atlas,
@@ -176,6 +189,7 @@ rtk proxy env VERIFY_OUT_DIR=/absolute/allocated/evidence VERIFY_BASE_URL=https:
 rtk proxy env VERIFY_OUT_DIR=/absolute/allocated/glasswake-evidence VERIFY_BASE_URL=https://127.0.0.1:5192 timeout 600 pnpm exec tsx scripts/verifyGlasswake.ts
 rtk proxy env VERIFY_OUT_DIR=/absolute/allocated/journey-evidence VERIFY_BASE_URL=https://127.0.0.1:5192 timeout 600 pnpm exec tsx scripts/verifyJourney.ts
 rtk proxy env VERIFY_OUT_DIR=/absolute/allocated/temple-evidence VERIFY_EARNED_SAVE=/absolute/path/to/genuinely-earned-save.json VERIFY_BASE_URL=https://127.0.0.1:5192 timeout 600 pnpm exec tsx scripts/verifyTemple.ts
+rtk proxy env VERIFY_OUT_DIR=/absolute/allocated/temple-lookdev VERIFY_EARNED_SAVE=/absolute/path/to/genuinely-earned-save.json VERIFY_BASE_URL=https://127.0.0.1:5192 timeout 180 pnpm exec tsx scripts/verifyTemplePolish.ts
 ```
 
 The temple check requires a valid two-page save produced by the journey check.
@@ -183,6 +197,11 @@ It verifies restored-page access rather than earning both pages again. To check
 the production build, run the same script against the preview server with
 `VERIFY_BUILT_UI=1`; that path uses the emitted UI without development diagnostics.
 The default development check also records the real scene and shared audio.
+The separate polish check captures matched camera/time/progress samples through
+development-only renderer controls, retaining the overview HUD. Those frames
+compare materials; they do not establish ending UI behavior or performance.
+Its motion-off check also requires identical rendered pixels across 480 ms of
+controlled frames, stable buffers and no fractal regeneration.
 
 The browser script is standalone, headed, and checks the real adapter. It uses
 the required hidden `agent-browser` workspace and keeps its own browser hidden
@@ -211,5 +230,6 @@ trace sound. Document 27 records the
 preceding foundation milestone.
 Document 32 records the connected journey, earned pages, save contract and its
 verification. Document 33 records the arranged two-world ending, procedural
-temple reveal and desktop evidence. The next milestone is one focused material
-or visual refinement after listening and art review.
+temple reveal and desktop evidence. Document 34 records the temple's material,
+bevel and atmospheric-light polish, with matched views and resource accounting.
+The next art review is the complete passage at normal volume and with motion off.

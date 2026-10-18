@@ -3,14 +3,21 @@ import { d } from 'typegpu'
 import { mat4 } from 'wgpu-matrix'
 import { bookFragment, bookLayout, bookVertexLayout, } from '../almanac/bookShaders'
 import { Model, modelLayout, modelVertex } from './shaders'
-import type { TgpuBuffer, TgpuRoot, UniformFlag } from 'typegpu'
+import type { TgpuBindGroup, TgpuBuffer, TgpuRoot, UniformFlag } from 'typegpu'
 import type { BookGeometry } from '../almanac/bookAsset'
 import type { View } from '../bench/shaders'
+
+/** An optional material changes shading without changing mesh, camera or instance ownership. */
+export interface ModelMaterial {
+  fragment: typeof bookFragment
+  bindGroup: TgpuBindGroup
+}
 
 export function createModelPass(
   root: TgpuRoot,
   camera: TgpuBuffer<typeof View> & UniformFlag,
   geometry: BookGeometry,
+  material?: ModelMaterial,
 ) {
   const buffers: { destroy(): void }[] = []
   try {
@@ -26,11 +33,11 @@ export function createModelPass(
     buffers.push(indices)
     vertices.write(geometry.vertices.buffer)
     indices.write(geometry.indices.buffer)
-    const pipeline = root
+    let pipeline = root
       .createRenderPipeline({
         attribs: { ...bookVertexLayout.attrib },
         vertex: modelVertex,
-        fragment: bookFragment,
+        fragment: material?.fragment ?? bookFragment,
         targets: { format: 'rgba16float' },
         primitive: { topology: 'triangle-list', cullMode: 'back' },
         multisample: { count: 4 },
@@ -43,6 +50,7 @@ export function createModelPass(
       .with(root.createBindGroup(bookLayout, { camera }))
       .with(bookVertexLayout, vertices)
       .withIndexBuffer(indices)
+    if (material) pipeline = pipeline.with(material.bindGroup)
     const instances = new Map<string, ReturnType<typeof createInstance>>()
 
     function createInstance() {
