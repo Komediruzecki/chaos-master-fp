@@ -2,7 +2,7 @@
 
 The `/observatory` route joins the Blender Almanac to a small authored place,
 two retained WebGPU fractal worlds, a guided melody trace and a Glasswake
-resonance encounter.
+resonance encounter, with a shared saved Almanac.
 This is a desktop study. It does not enter WebXR or replace the original XR lab.
 
 ## Run and inspect
@@ -15,33 +15,61 @@ Open <https://127.0.0.1:5192/observatory>. Trust the local development certifica
 if prompted. The strict port fails if occupied. The server expires after three
 hours; Ctrl+C stops an interactive run.
 
-1. Drag the view, scroll closer, or focus the canvas and use arrow keys and +/-.
+1. On a first visit, try the optional pitch ribbon or hear a reference note.
+   Choose either world, or skip the introduction. Guide opens it again.
+   Sound starts only through an explicit action.
+2. Drag the view, scroll closer, or focus the canvas and use arrow keys and +/-.
    Choose Glasswake or Tideweave through the controls or their visible bounds.
-2. Hear the world's motif. Playback needs a gesture; selecting another world
+3. Hear the world's motif. Playback needs a gesture; selecting another world
    stops it. Volume affects output. Pause motion holds the automatic scene.
-3. Inspect the orb, then widen the view. The separate Almanac route remains
-   available through the header.
-4. Choose Tideweave and Trace a melody. Hear D–F–B–A, then drag through the four
+4. Inspect the orb, then widen the view. Almanac opens the collected pages over
+   the live scene; Open the book leads to the separate Blender book route.
+5. Choose Tideweave and Trace a melody. Hear D–F–B–A, then drag through the four
    visible notes in order. Height plays a continuous pitch; each reached note gets
    a short accent. Lift to pause; resume from the last earned note. Mute trace
    leaves the guide and judging available. The main volume also affects tracing.
-5. Keyboard alternative: choose Use keyboard, Enter to hold, arrow keys to move
+6. Keyboard alternative: choose Use keyboard, Enter to hold, arrow keys to move
    the tracer (two arrows can move diagonally), Enter to lift. The same judge
    evaluates both inputs. Escape returns.
-6. Choose Glasswake and Wake the glass. Hear C4, drag vertically to its line,
+7. Choose Glasswake and Wake the glass. Hear C4, drag vertically to its line,
    hold until the seal resonates, then release to shatter it. Continue with E4
    and G4. Early release lets you retry; it never removes an opened seal.
    Keyboard: Up/Down tune by a quarter-semitone, Enter holds/releases;
    Home/End select the bottom/top of the octave. Escape returns.
-7. Glasswake keeps released seals when you return to the worlds during this
-   visit. Rebuild seals starts again. Mute instrument silences held notes and
+8. Glasswake keeps partial released seals when you return to the worlds during
+   this visit. Rebuild seals starts again. Mute instrument silences held notes and
    fracture cues; Hear note remains an explicit reference audition. Volume
    affects all sound. Pause motion opens seals immediately without flying shards.
+9. Completing either encounter immediately earns its page. Open earned page
+   replays the motif or leads to the other world. Once earned, Play again starts
+   a fresh attempt without removing the page. A reload restores completed pages
+   and last selection; sound stays stopped.
 
 The visible guide is intentional. This is practice following a melodic contour,
 not a singing, pitch-recognition or rhythm assessment. There is no penalty for
-retrying. The earned crossing lasts for this page session; it is not a durable
-Almanac collectible. The five other constellations are proposed destinations.
+retrying. Partial holds/notes remain local to the visit; only completed pages,
+discoveries, last selection and the introduction preference are saved. The five
+other constellations are proposed destinations.
+
+## Saved journey
+
+`journey/progress.ts` owns a bounded, versioned localStorage record under
+`lumen-observatory-journey`. Each earned page records its world, recipe, seed,
+palette, motif and completed activity version. The saved activity means either
+three seals opened or four notes traced; it is not a singing score. The
+component-owned `useJourney` hook supplies both routes and imports storage
+updates without restarting audio or changing the active encounter.
+
+Storage errors keep the current visit playable and show a temporary-progress
+notice. Invalid or unsupported-version saves are preserved without overwriting
+them. The store merges previously saved awards before writing, preventing an
+ordinary stale tab from removing another tab's page. Simultaneous localStorage
+writes are not atomic. There is no account sync, export, device transfer or
+automatic migration from an unknown schema.
+
+The save belongs to this browser and origin (scheme, hostname and port).
+`localhost:5192` and `127.0.0.1:5192` have different storage. Clearing site data
+removes progress. Use the same address for a continuous visit.
 
 ## Render and asset contract
 
@@ -113,6 +141,7 @@ rtk proxy timeout 90 pnpm typecheck
 rtk proxy timeout 120 pnpm build
 rtk proxy env VERIFY_OUT_DIR=/absolute/allocated/evidence VERIFY_BASE_URL=https://127.0.0.1:5192 timeout 600 pnpm exec tsx scripts/verifyObservatory.ts
 rtk proxy env VERIFY_OUT_DIR=/absolute/allocated/glasswake-evidence VERIFY_BASE_URL=https://127.0.0.1:5192 timeout 600 pnpm exec tsx scripts/verifyGlasswake.ts
+rtk proxy env VERIFY_OUT_DIR=/absolute/allocated/journey-evidence VERIFY_BASE_URL=https://127.0.0.1:5192 timeout 600 pnpm exec tsx scripts/verifyJourney.ts
 ```
 
 The browser script is standalone, headed, and checks the real adapter. It uses
@@ -140,3 +169,5 @@ The current master sequence and implementation evidence are documented in
 and `29-glasswake-desktop-encounter.md`. Document 28 records world identity and
 trace sound. Document 27 records the
 preceding foundation milestone.
+Document 32 records the connected journey, earned pages, save contract and its
+verification. The arranged temple response remains the next milestone.

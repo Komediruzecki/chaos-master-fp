@@ -129,6 +129,15 @@ body:has(.observatory) {
   min-height: 44px;
   padding-block: 12px;
 }
+.observatory-page-count {
+  margin-left: 6px;
+  color: var(--obs-brass);
+  font-variant-numeric: tabular-nums;
+}
+.observatory-footer > .journey-save-status {
+  max-width: 46ch;
+  font-size: inherit;
+}
 .observatory-bottom {
   position: absolute;
   z-index: 2;

@@ -100,6 +100,53 @@ body:has(.almanac) {
 .almanac-bench-link {
   font-size: 11px;
 }
+.almanac-return-worlds {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  padding-inline: 12px;
+  border: 1px solid var(--alm-line);
+  border-radius: 3px;
+  text-decoration: none;
+}
+.almanac-return-worlds:hover {
+  border-color: var(--alm-brass);
+}
+.almanac-world-copy .almanac-earned-mark {
+  display: block;
+  color: var(--alm-brass);
+  font-size: 10px;
+  margin-top: 3px;
+}
+.almanac-collection-state {
+  border-left: 2px solid #7d989d;
+  padding-left: 12px;
+  margin: 14px 0;
+  color: var(--alm-muted);
+  font-size: 11px;
+}
+.almanac-collection-state[data-page-status='earned'] {
+  border-color: var(--alm-brass);
+}
+.almanac-collection-state strong {
+  display: block;
+  font-weight: 550;
+  color: #d1dcdb;
+}
+.almanac-collection-state[data-page-status='earned'] strong {
+  color: #e3ca91;
+}
+.almanac-collection-state p {
+  margin: 3px 0;
+  color: #cbd4d3;
+}
+.almanac-collection-state > span {
+  display: block;
+  font-size: 10px;
+}
+.almanac-footer .journey-save-status {
+  max-width: 70ch;
+}
 .almanac-scene-toolbar {
   min-height: 88px;
   display: grid;

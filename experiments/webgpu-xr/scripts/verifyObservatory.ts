@@ -237,6 +237,7 @@ try {
   })
   assert.equal((await page.goto(`${base}/observatory`))?.status(), 200)
   await ready(page)
+  await button(page, 'Skip introduction').click()
   checkPlacement()
   const initial = await state(page)
   assert.ok(!/swiftshader|llvmpipe/i.test(initial.adapter), initial.adapter)
@@ -342,6 +343,10 @@ try {
   await page.mouse.up()
   await traceSilent(page)
   assert.equal((await encounter(page)).accepted, 4)
+  const earnedPage = await page.evaluate(
+    () => window.__observatory!.journey.progress.worlds.tideweave.completion,
+  )
+  assert.equal(earnedPage?.activity.id, 'tideweave-trace')
   await frames(page)
   assert.equal((await state(page)).visual.bridgeProgress, 5)
   await capture(page, '05-bridge-complete')
@@ -598,7 +603,16 @@ try {
     { width: 844, height: 390 },
   ]) {
     await page.setViewportSize(size)
-    await button(page, 'Trace a melody').click()
+    await button(page, 'Play again').click()
+    assert.equal((await encounter(page)).accepted, 0)
+    assert.deepEqual(
+      await page.evaluate(
+        () =>
+          window.__observatory!.journey.progress.worlds.tideweave.completion,
+      ),
+      earnedPage,
+      'Starting another trace must keep the earned Almanac page',
+    )
     if (await button(page, 'Stop phrase').isVisible())
       await button(page, 'Stop phrase').click()
     await button(page, 'Trace without sound').click()

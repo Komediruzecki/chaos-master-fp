@@ -3,6 +3,9 @@ import './almanac.css'
 import { createMemo, createSignal, For, onCleanup, onMount, Show, } from 'solid-js'
 import { BENCH_RECIPES } from '../bench/recipes'
 import { BenchRuntime, DEFAULT_BENCH_SETTINGS } from '../bench/runtime'
+import { journeyPageStatus, JourneySaveStatus } from '../journey/JourneyPanels'
+import { isJourneyWorldId } from '../journey/progress'
+import { useJourney } from '../journey/useJourney'
 import { ALMANAC_WORLDS, settingsForWorld } from './catalog'
 import { MotifAudio } from './motifAudio'
 import type { BenchSettings } from '../bench/runtime'
@@ -17,16 +20,47 @@ export function Almanac() {
   let returnButton!: HTMLButtonElement
   let runtime: BenchRuntime | undefined
   let audio: MotifAudio | undefined
+  const journey = useJourney()
   const savedViews = new Map<string, BenchSettings>()
-  const [selectedId, setSelectedId] = createSignal(ALMANAC_WORLDS[0].id)
+  const [selectedId, setSelectedId] = createSignal<string>(
+    journey.snapshot().progress.lastSelectedWorld,
+  )
   const [inspecting, setInspecting] = createSignal(false)
   const [clay, setClay] = createSignal(false)
   const [state, setState] = createSignal<ReturnType<BenchRuntime['snapshot']>>()
   const [sound, setSound] = createSignal<ReturnType<MotifAudio['snapshot']>>()
-  const world = createMemo(
-    () =>
+  const completion = createMemo(() => {
+    const id = selectedId()
+    return isJourneyWorldId(id)
+      ? journey.snapshot().progress.worlds[id].completion
+      : null
+  })
+  const pageStatus = createMemo(() => {
+    const id = selectedId()
+    return isJourneyWorldId(id)
+      ? journeyPageStatus(journey.snapshot().progress, id)
+      : 'preview'
+  })
+  const world = createMemo<AlmanacWorld>(() => {
+    const entry =
       ALMANAC_WORLDS.find((item) => item.id === selectedId()) ??
-      ALMANAC_WORLDS[0],
+      ALMANAC_WORLDS[0]
+    const page = completion()
+    return page
+      ? {
+          ...entry,
+          name: page.name,
+          tonic: page.tonic,
+          mode: page.mode,
+          specimen: page.specimen,
+          motif: page.motif,
+        }
+      : entry
+  })
+  const returnWorld = createMemo(() =>
+    isJourneyWorldId(selectedId())
+      ? selectedId()
+      : journey.snapshot().progress.lastSelectedWorld,
   )
   const hasSpecimen = createMemo(() => Boolean(world().specimen))
   const ready = createMemo(
@@ -60,7 +94,8 @@ export function Almanac() {
       savedViews.set(selectedId(), runtime.snapshot().settings)
     audio?.stop()
     setSelectedId(entry.id)
-    const next = savedViews.get(entry.id) ?? settingsForWorld(entry)
+    if (isJourneyWorldId(entry.id)) journey.store.selectWorld(entry.id)
+    const next = savedViews.get(entry.id) ?? settingsForWorld(world())
     runtime?.setActive(Boolean(next))
     if (next) {
       runtime?.setBookDock(entry.id === 'tideweave' ? 'right' : 'left')
@@ -95,7 +130,7 @@ export function Almanac() {
     audio = new MotifAudio(updateSound)
     updateSound()
     runtime.setScene('book')
-    runtime.setBookDock('left')
+    runtime.setBookDock(world().id === 'tideweave' ? 'right' : 'left')
     runtime.setSettings({ ...settingsForWorld(world()), stars: true })
     void runtime.init()
     const onKey = (event: KeyboardEvent) => {
@@ -130,6 +165,7 @@ export function Almanac() {
       class="almanac"
       classList={{ 'is-inspecting': inspecting() }}
       data-world={selectedId()}
+      data-page-status={pageStatus()}
     >
       <header class="almanac-header">
         <a
@@ -143,8 +179,11 @@ export function Almanac() {
           </span>
         </a>
         <span class="almanac-header-place">Book of seven constellations</span>
-        <a class="almanac-bench-link" href="/bench">
-          Orb bench
+        <a
+          class="almanac-bench-link almanac-return-worlds"
+          href={`/observatory?world=${returnWorld()}`}
+        >
+          Return to worlds
         </a>
       </header>
 
@@ -182,6 +221,14 @@ export function Almanac() {
                     <span>
                       {entry.tonic} {entry.mode}
                     </span>
+                    <Show
+                      when={
+                        isJourneyWorldId(entry.id) &&
+                        journey.snapshot().progress.worlds[entry.id].completion
+                      }
+                    >
+                      <span class="almanac-earned-mark">Page earned</span>
+                    </Show>
                   </span>
                 </button>
               )}
@@ -355,6 +402,32 @@ export function Almanac() {
               {world().status === 'preview' ? ' (proposed)' : ''}
             </span>
           </div>
+          <Show when={hasSpecimen()}>
+            <div
+              class="almanac-collection-state"
+              data-page-status={pageStatus()}
+            >
+              <strong>
+                {completion()
+                  ? 'Page earned'
+                  : pageStatus() === 'discovered'
+                    ? 'World discovered'
+                    : 'Not yet visited'}
+              </strong>
+              <p>
+                {completion()
+                  ? completion()!.activity.id === 'glasswake-seals'
+                    ? 'Opened three seals'
+                    : 'Traced four notes'
+                  : world().id === 'glasswake'
+                    ? 'Open three seals in Glasswake to earn this page.'
+                    : 'Trace four notes in Tideweave to earn this page.'}
+              </p>
+              <Show when={completion()}>
+                <span>Encounter completed. No singing score.</span>
+              </Show>
+            </div>
+          </Show>
           <p>{world().summary}</p>
           <Show when={world().id === 'tideweave'}>
             <p class="almanac-provisional">
@@ -500,7 +573,7 @@ export function Almanac() {
       </section>
       <footer class="almanac-footer">
         <span>Irchiinnuss</span>
-        <p>Live fractals. Original motifs. A book taking shape.</p>
+        <JourneySaveStatus persistence={journey.snapshot().persistence} />
         <a href="/bench">Compare orb recipes</a>
       </footer>
     </main>

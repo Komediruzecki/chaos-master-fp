@@ -1,14 +1,17 @@
 // Desktop resonance instrument: a deliberate release opens one seal; interruption never does.
 import './glasswake.css'
 import { createEffect, createMemo, createSignal, For, on, onCleanup, onMount, Show, } from 'solid-js'
+import { JourneySaveStatus } from '../journey/JourneyPanels'
 import { advanceGlassHold, beginGlassHold, cancelGlassHold, createGlasswakeEncounter, GLASS_NOTES, releaseGlassHold, updateGlassPitch, } from './glasswakeEncounter'
 import type { MotifAudio, MotifAudioSnapshot } from '../almanac/motifAudio'
+import type { JourneyPersistence } from '../journey/progress'
 import type { ObservatoryRuntime } from './runtime'
 
 interface Props {
   audio: MotifAudio
   runtime: ObservatoryRuntime
   sound: MotifAudioSnapshot | undefined
+  persistence: JourneyPersistence
   blocked: boolean
   motion: boolean
   initialAccepted: number
@@ -16,6 +19,7 @@ interface Props {
   onMotion(): void
   onLeave(): void
   onCollected(): void
+  onOpenPage(): void
 }
 
 export function GlasswakeEncounter(props: Props) {
@@ -40,8 +44,7 @@ export function GlasswakeEncounter(props: Props) {
   const targetHeight = createMemo(() => 8 + ((72 - target().midi) / 12) * 84)
   const pitchHeight = createMemo(() => 8 + ((72 - state().pitch) / 12) * 84)
   const hint = createMemo(() => {
-    if (complete())
-      return 'Three seals opened. The first light is yours for this visit.'
+    if (complete()) return 'Three seals opened. Your Glasswake page is earned.'
     if (cooling()) return 'Let the glass fall. The next seal is waiting.'
     if (state().armed) return 'Ready. Release to shatter the seal.'
     if (state().holding)
@@ -351,7 +354,7 @@ export function GlasswakeEncounter(props: Props) {
           <p role="status">{hint()}</p>
           <p class="observatory-guidance">
             {complete()
-              ? 'Aureole collected for this visit.'
+              ? 'First light is in your Almanac. Play again whenever you want.'
               : 'A guided pitch instrument. No microphone or singing score.'}
           </p>
         </section>
@@ -384,6 +387,17 @@ export function GlasswakeEncounter(props: Props) {
             </For>
           </div>
           <div>
+            <Show when={complete()}>
+              <button
+                type="button"
+                class="observatory-action"
+                onClick={() => {
+                  props.onOpenPage()
+                }}
+              >
+                Open earned page
+              </button>
+            </Show>
             <Show when={!complete()}>
               <button
                 class="observatory-action"
@@ -423,7 +437,7 @@ export function GlasswakeEncounter(props: Props) {
           </p>
         </section>
         <footer class="observatory-footer">
-          <span>Desktop encounter. Headset testing is still ahead.</span>
+          <JourneySaveStatus persistence={props.persistence} />
           <div class="observatory-sound-controls">
             <label>
               Volume{' '}

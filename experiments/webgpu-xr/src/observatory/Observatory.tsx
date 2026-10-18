@@ -3,6 +3,9 @@ import './observatory.css'
 import { createMemo, createSignal, For, onCleanup, onMount, Show, } from 'solid-js'
 import { ALMANAC_WORLDS } from '../almanac/catalog'
 import { MotifAudio } from '../almanac/motifAudio'
+import { JourneyAlmanac, JourneyIntro, JourneyReceipt, JourneySaveStatus, } from '../journey/JourneyPanels'
+import { getEarnedPages, isJourneyWorldId } from '../journey/progress'
+import { useJourney } from '../journey/useJourney'
 import { beginTrace, BRIDGE_MOTIF, BRIDGE_NOTE_NAMES, BRIDGE_TARGET, createEncounter, endTrace, moveTrace, traceHint, } from './encounter'
 import { GlasswakeEncounter } from './GlasswakeEncounter'
 import { ObservatoryRuntime } from './runtime'
@@ -15,6 +18,13 @@ const studies = ALMANAC_WORLDS.filter((world) => world.status === 'study')
 const previews = ALMANAC_WORLDS.filter((world) => world.status === 'preview')
 
 export function Observatory() {
+  const journey = useJourney()
+  const requestedWorld = new URLSearchParams(window.location.search).get(
+    'world',
+  )
+  const initialWorld = isJourneyWorldId(requestedWorld)
+    ? requestedWorld
+    : journey.snapshot().progress.lastSelectedWorld
   let canvas!: HTMLCanvasElement
   let atlasToggle!: HTMLButtonElement
   let runtime: ObservatoryRuntime | undefined
@@ -24,11 +34,13 @@ export function Observatory() {
   let keyboardTime = 0
   const [state, setState] = createSignal<ObservatorySnapshot>()
   const [sound, setSound] = createSignal<ReturnType<MotifAudio['snapshot']>>()
-  const [worldId, setWorldId] = createSignal<WorldId>('glasswake')
+  const [worldId, setWorldId] = createSignal<WorldId>(initialWorld)
   const [view, setView] = createSignal<ObservatoryView>('overview')
   const [atlasOpen, setAtlasOpen] = createSignal(false)
   const [glasswake, setGlasswake] = createSignal(false)
-  const [glassCollected, setGlassCollected] = createSignal(false)
+  const glassCollected = createMemo(() =>
+    Boolean(journey.snapshot().progress.worlds.glasswake.completion),
+  )
   const [glassProgress, setGlassProgress] = createSignal(0)
   const [exercise, setExercise] = createSignal(false)
   const [stage, setStage] = createSignal<ExerciseStage>('listen')
@@ -36,13 +48,34 @@ export function Observatory() {
   const [motion, setMotion] = createSignal(true)
   const [keyboard, setKeyboard] = createSignal(false)
   const [cursor, setCursor] = createSignal<TracePoint>(BRIDGE_TARGET[0])
-  const [collected, setCollected] = createSignal(false)
+  const collected = createMemo(() =>
+    Boolean(journey.snapshot().progress.worlds.tideweave.completion),
+  )
   const [traceSound, setTraceSound] = createSignal(true)
+  const [panel, setPanel] = createSignal<
+    'intro' | 'almanac' | 'receipt' | null
+  >(null)
+  const [receiptWorld, setReceiptWorld] = createSignal<WorldId>('glasswake')
+  const earnedPages = createMemo(
+    () => getEarnedPages(journey.snapshot().progress).length,
+  )
   const world = createMemo(
     () => studies.find((entry) => entry.id === worldId())!,
   )
   const ready = createMemo(() => Boolean(state()?.ready))
-  const glassBlocked = createMemo(() => atlasOpen() || !ready())
+  const glassBlocked = createMemo(
+    () => atlasOpen() || panel() !== null || !ready(),
+  )
+  const playingWorldId = createMemo(
+    () =>
+      studies.find(
+        (entry) =>
+          sound()?.playing &&
+          sound()?.motifId ===
+            (journey.snapshot().progress.worlds[entry.id as WorldId].completion
+              ?.motif.id ?? entry.motif?.id),
+      )?.id as WorldId | undefined,
+  )
   const cursorProjection = createMemo(() => {
     state()
     return runtime?.projectTrace(cursor())
@@ -88,6 +121,10 @@ export function Observatory() {
     setWorldId(id)
     setView('overview')
     setAtlasOpen(false)
+    journey.store.discoverWorld(id)
+    const url = new URL(window.location.href)
+    url.searchParams.set('world', id)
+    window.history.replaceState(null, '', url)
     runtime?.selectWorld(id)
     runtime?.setView('overview')
     presentTrace()
@@ -118,6 +155,8 @@ export function Observatory() {
     stopKeyboard()
     setExercise(false)
     setAtlasOpen(false)
+    journey.store.discoverWorld('glasswake')
+    if (glassCollected()) setGlassProgress(0)
     setGlasswake(true)
     setView('glasswake')
     runtime?.setView('glasswake')
@@ -125,6 +164,8 @@ export function Observatory() {
   }
 
   function openCrossing() {
+    journey.store.discoverWorld('tideweave')
+    if (collected()) setEncounter(createEncounter())
     setAtlasOpen(false)
     setExercise(true)
     setView('trace')
@@ -139,7 +180,7 @@ export function Observatory() {
       (event.phase === 'end' || event.phase === 'cancel')
     )
       audio?.stopTrace()
-    if (document.hidden || atlasOpen() || !ready()) return
+    if (document.hidden || atlasOpen() || panel() !== null || !ready()) return
     if (event.kind === 'world') {
       selectWorld(event.worldId)
       return
@@ -194,7 +235,7 @@ export function Observatory() {
   function finishInput() {
     if (encounter().accepted === BRIDGE_TARGET.length) {
       setStage('complete')
-      setCollected(true)
+      if (!collected()) journey.store.completeWorld('tideweave')
     }
     presentTrace()
   }
@@ -233,6 +274,56 @@ export function Observatory() {
     })
   }
 
+  function openPanel(next: 'intro' | 'almanac' | 'receipt', id = worldId()) {
+    interruptInput()
+    audio?.stop()
+    setAtlasOpen(false)
+    setReceiptWorld(id)
+    setPanel(next)
+  }
+
+  function closePanel() {
+    audio?.stop()
+    if (panel() === 'intro') journey.store.completeOnboarding()
+    setPanel(null)
+  }
+
+  function visitWorld(id: WorldId) {
+    closePanel()
+    selectWorld(id)
+    queueMicrotask(() => {
+      canvas.focus({ preventScroll: true })
+    })
+  }
+
+  function playPageMotif(id: WorldId) {
+    const motif =
+      journey.snapshot().progress.worlds[id].completion?.motif ??
+      studies.find((entry) => entry.id === id)?.motif
+    if (!motif) return
+    if ((sound()?.playing || sound()?.loading) && sound()?.motifId === motif.id)
+      audio?.stop()
+    else void audio?.play(motif)
+  }
+
+  function practiceNote(midi: number | null) {
+    if (midi === null) audio?.stopTrace()
+    else if (sound()?.trace.active || sound()?.trace.pending)
+      audio?.updateTrace(midi)
+    else void audio?.startTrace(midi)
+  }
+
+  function hearIntroductionNote() {
+    void audio?.play({
+      id: 'journey-first-note',
+      tonic: 'C',
+      mode: 'Ionian',
+      tempo: 90,
+      timbre: 'glass',
+      notes: [{ midi: 60, beat: 0, duration: 1.3 }],
+    })
+  }
+
   function moveKeyboard(time: number) {
     keyboardFrame = 0
     if (
@@ -241,6 +332,7 @@ export function Observatory() {
       !ready() ||
       document.hidden ||
       atlasOpen() ||
+      panel() !== null ||
       stage() !== 'answer' ||
       document.activeElement !== canvas
     )
@@ -265,6 +357,7 @@ export function Observatory() {
   }
 
   function keyDown(event: KeyboardEvent) {
+    if (panel() !== null) return
     if (event.key === 'Escape') {
       if (atlasOpen() || exercise() || glasswake() || view() === 'inspect') {
         event.preventDefault()
@@ -356,6 +449,9 @@ export function Observatory() {
             }
       },
     })
+    runtime.selectWorld(initialWorld)
+    if (!journey.snapshot().progress.onboardingCompleted) setPanel('intro')
+    else journey.store.selectWorld(initialWorld)
     const preference = window.matchMedia('(prefers-reduced-motion: reduce)')
     const reduceMotion = () => {
       if (preference.matches) {
@@ -387,6 +483,9 @@ export function Observatory() {
         },
         get exerciseStage() {
           return stage()
+        },
+        get journey() {
+          return journey.snapshot()
         },
       }
     onCleanup(() => {
@@ -441,7 +540,24 @@ export function Observatory() {
           >
             Seven constellations
           </button>
-          <a href="/almanac">Almanac</a>
+          <button
+            type="button"
+            onClick={() => {
+              openPanel('intro')
+            }}
+          >
+            Guide
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              openPanel('almanac')
+            }}
+            aria-label={`Almanac, ${earnedPages()} of 2 pages earned`}
+          >
+            Almanac{' '}
+            <span class="observatory-page-count">{earnedPages()} / 2</span>
+          </button>
         </nav>
       </header>
 
@@ -565,6 +681,7 @@ export function Observatory() {
           runtime={runtime!}
           audio={audio!}
           sound={sound()}
+          persistence={journey.snapshot().persistence}
           blocked={glassBlocked()}
           motion={motion()}
           onMotion={() => {
@@ -579,7 +696,10 @@ export function Observatory() {
             runtime?.setView('overview')
             canvas.focus({ preventScroll: true })
           }}
-          onCollected={() => setGlassCollected(true)}
+          onCollected={() => journey.store.completeWorld('glasswake')}
+          onOpenPage={() => {
+            openPanel('receipt', 'glasswake')
+          }}
         />
       </Show>
       <Show when={!glasswake()}>
@@ -609,7 +729,7 @@ export function Observatory() {
                   </p>
                   <p class="observatory-guidance">
                     {stage() === 'complete'
-                      ? 'Collected for this visit. Return whenever you want to play again.'
+                      ? 'Four notes traced. Your Tideweave page is earned.'
                       : 'Guided tracing. No pitch or rhythm score.'}
                   </p>
                 </>
@@ -625,10 +745,10 @@ export function Observatory() {
               <p class="observatory-guidance">
                 {worldId() === 'glasswake'
                   ? glassCollected()
-                    ? 'First light collected for this visit.'
+                    ? 'First light earned. Your Glasswake page is in the Almanac.'
                     : 'Hear, hold and release three notes to open the glass.'
                   : collected()
-                    ? 'Melody crossing collected for this visit.'
+                    ? 'Melody crossing earned. Your Tideweave page is in the Almanac.'
                     : 'Follow four notes to grow a crossing.'}
               </p>
             </Show>
@@ -645,6 +765,17 @@ export function Observatory() {
                   {encounter().accepted} / 4 notes
                 </span>
                 <div>
+                  <Show when={stage() === 'complete'}>
+                    <button
+                      type="button"
+                      class="observatory-action"
+                      onClick={() => {
+                        openPanel('receipt', 'tideweave')
+                      }}
+                    >
+                      Open earned page
+                    </button>
+                  </Show>
                   <button
                     type="button"
                     class="observatory-action"
@@ -766,7 +897,7 @@ export function Observatory() {
                     disabled={!ready()}
                     onClick={openGlasswake}
                   >
-                    Wake the glass
+                    {glassCollected() ? 'Play again' : 'Wake the glass'}
                   </button>
                 </Show>
                 <Show when={worldId() === 'tideweave'}>
@@ -776,7 +907,7 @@ export function Observatory() {
                     disabled={!ready()}
                     onClick={openCrossing}
                   >
-                    Trace a melody
+                    {collected() ? 'Play again' : 'Trace a melody'}
                   </button>
                 </Show>
               </div>
@@ -784,7 +915,7 @@ export function Observatory() {
           </Show>
 
           <footer class="observatory-footer">
-            <span>Desktop study. Headset testing is still ahead.</span>
+            <JourneySaveStatus persistence={journey.snapshot().persistence} />
             <div class="observatory-sound-controls">
               <label>
                 Volume{' '}
@@ -836,6 +967,40 @@ export function Observatory() {
           </Show>
         </div>
       </Show>
+      <Show when={panel() === 'intro'}>
+        <JourneyIntro
+          ready={ready()}
+          onClose={closePanel}
+          onBegin={visitWorld}
+          onHearNote={hearIntroductionNote}
+          onPracticeNote={practiceNote}
+          audioStatus={sound()?.error ?? undefined}
+        />
+      </Show>
+      <Show when={panel() === 'almanac'}>
+        <JourneyAlmanac
+          progress={journey.snapshot().progress}
+          persistence={journey.snapshot().persistence}
+          onClose={closePanel}
+          onVisit={visitWorld}
+          onPlayMotif={playPageMotif}
+          playingWorldId={playingWorldId()}
+        />
+      </Show>
+      <Show when={panel() === 'receipt'}>
+        <JourneyReceipt
+          worldId={receiptWorld()}
+          progress={journey.snapshot().progress}
+          persistence={journey.snapshot().persistence}
+          onClose={closePanel}
+          onVisit={visitWorld}
+          onOpenAlmanac={() => {
+            openPanel('almanac')
+          }}
+          onPlayMotif={playPageMotif}
+          playingWorldId={playingWorldId()}
+        />
+      </Show>
     </main>
   )
 }
@@ -847,6 +1012,9 @@ declare global {
       audio: MotifAudio
       readonly encounter: ReturnType<typeof createEncounter>
       readonly exerciseStage: ExerciseStage
+      readonly journey: ReturnType<
+        ReturnType<typeof useJourney>['store']['read']
+      >
     }
   }
 }

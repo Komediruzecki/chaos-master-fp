@@ -9,6 +9,12 @@ from the September 30 interaction study.
 The work stays on `feat/orb-specimen-bench`. `/bench` retains the specimen
 comparison; `/` retains the separate music and experimental XR proof.
 
+The connected [observatory journey](OBSERVATORY.md) now earns and saves a page
+for each completed encounter. This book reads the same local save, restores
+last selection and plays the earned page's recorded motif/specimen identity.
+Return to worlds opens that destination's overview. Merely inspecting a page
+does not complete its encounter. Partial attempt state is not persisted.
+
 ## Open the study
 
 ```sh
@@ -111,8 +117,9 @@ The phone framebuffer regression changes only the selected orb's palette:
 2,242 pixels respond with the footprint floor, versus zero when it is removed.
 
 No Quest, stereo, physical hand interaction or headset performance result is
-implied. No microphone, singing assessment, collection persistence, page turns
-or game launch is implemented here.
+implied. Microphone assessment and page turns remain future work. The October 18
+journey update adds collection persistence and a return link to the encounters;
+its checks are recorded separately in document 32 of the planning pack.
 
 The [planning record](/home/maff/.dotfiles/personal/lumen-meta/25-blender-almanac-book.md)
 tracks the user's feedback and this bounded asset study. Dotfiles Git operations

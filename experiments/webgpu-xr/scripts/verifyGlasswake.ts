@@ -346,6 +346,7 @@ async function verify() {
   )
   checkPlacement()
   report.adapter = initial.adapter
+  await button(page, 'Skip introduction').click()
   await button(page, 'Wake the glass').click()
   await instrument(page).waitFor()
   assert.equal((await scene(page)).view, 'glasswake')
@@ -569,19 +570,36 @@ async function verify() {
   )
   await capture(page, '04-three-seals-open')
   report.pointerReleases = pointerReleases
+  const earnedPage = await page.evaluate(
+    () => window.__observatory!.journey.progress.worlds.glasswake.completion,
+  )
+  assert.equal(earnedPage?.activity.id, 'glasswake-seals')
   await button(page, 'Return to worlds').click()
   await silent(page)
-  await button(page, 'Wake the glass').click()
+  // Replay starts a fresh encounter while the completed Almanac page remains earned.
+  await button(page, 'Play again').click()
   await advance(page, 64)
-  await noAward(page, 3)
-  assert.equal((await scene(page)).visual.glasswake.renderedShards, 0)
+  await noAward(page)
+  await silent(page)
+  assert.equal(
+    (await scene(page)).visual.glasswake.renderedShards,
+    GLASSWAKE_SHARD_COUNT,
+  )
   assert.ok(
     await page
-      .getByRole('heading', { name: 'First light, released', exact: true })
+      .getByRole('heading', { name: 'Wake the glass', exact: true })
       .isVisible(),
   )
-  report.completedVisitRestoration = {
-    staysCompleteUntilRebuild: true,
+  assert.deepEqual(
+    await page.evaluate(
+      () => window.__observatory!.journey.progress.worlds.glasswake.completion,
+    ),
+    earnedPage,
+    'Starting another encounter must keep the earned Almanac page',
+  )
+  report.completedReplay = {
+    freshEncounter: true,
+    earnedPagePreserved: true,
     noAudioRestart: true,
   }
 
@@ -815,7 +833,7 @@ async function verify() {
     true,
   )
   assert.equal((await scene(page)).view, 'overview')
-  await button(page, 'Wake the glass').click()
+  await button(page, 'Play again').click()
   await silent(page)
   assert.equal((await glass(page)).holding, false)
   assert.equal((await glass(page)).accepted, 0)
