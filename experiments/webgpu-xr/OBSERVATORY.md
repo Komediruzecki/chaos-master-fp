@@ -44,6 +44,11 @@ hours; Ctrl+C stops an interactive run.
    replays the motif or leads to the other world. Once earned, Play again starts
    a fresh attempt without removing the page. A reload restores completed pages
    and last selection; sound stays stopped.
+10. Once both pages are earned, choose Open temple signal in the world controls
+    or Almanac. Listen together plays an original 27-second passage: Glasswake
+    calls, Tideweave answers, then glass and reed meet at the temple threshold.
+    Stop ending silences it immediately and holds the formation. Replay ending
+    starts from the first note. Return to worlds or Escape leaves the scene.
 
 The visible guide is intentional. This is practice following a melodic contour,
 not a singing, pitch-recognition or rhythm assessment. There is no penalty for
@@ -70,6 +75,34 @@ automatic migration from an unknown schema.
 The save belongs to this browser and origin (scheme, hostname and port).
 `localhost:5192` and `127.0.0.1:5192` have different storage. Clearing site data
 removes progress. Use the same address for a continuous visit.
+
+## Two-world ending
+
+Both earned pages make the ending available, including pages restored from
+this browser's saved Almanac. Opening it does not start audio. The ending is a
+transient performance, with no extra ownership flag or save migration. Reload
+returns to the selected world with the pages intact and sound stopped.
+
+`journey/templeScore.ts` contains the original 26.68-second arrangement at 72 BPM.
+It preserves the complete pitches and rhythm of each world's original motif,
+then uses controlled overlapping glass and reed voices and a D/A cadence. This
+is an authored score built from the established motifs, not a generative remix
+of altered localStorage data. The saved page motifs remain unchanged.
+`MotifAudio.playArrangement()` uses the same context, output volume and
+cancellation as the encounters. Audio-clock progress drives section cues and
+the reveal; rendering speed cannot finish the music early.
+
+The existing renderer adds a procedural stepped threshold, paired pointed
+arches, radial gold and branching teal marks, seven crown marks and a shared
+seal between the retained fractal worlds. The framing is stationary. Motion
+off presents the architecture in place, with musical color cues and a final
+lit seal. The lit seal requires the completed passage. This is a temple teaser;
+there is no third playable region or forced camera travel.
+
+Stop holds the partial formation while ordinary idle orb motion follows the
+motion setting. Replay resets the passage. Opening Guide, the Almanac or atlas,
+leaving the view, hiding the tab, a lost GPU or disposal cancels playback and any
+pending audio start. Returning never restarts it automatically.
 
 ## Render and asset contract
 
@@ -142,11 +175,18 @@ rtk proxy timeout 120 pnpm build
 rtk proxy env VERIFY_OUT_DIR=/absolute/allocated/evidence VERIFY_BASE_URL=https://127.0.0.1:5192 timeout 600 pnpm exec tsx scripts/verifyObservatory.ts
 rtk proxy env VERIFY_OUT_DIR=/absolute/allocated/glasswake-evidence VERIFY_BASE_URL=https://127.0.0.1:5192 timeout 600 pnpm exec tsx scripts/verifyGlasswake.ts
 rtk proxy env VERIFY_OUT_DIR=/absolute/allocated/journey-evidence VERIFY_BASE_URL=https://127.0.0.1:5192 timeout 600 pnpm exec tsx scripts/verifyJourney.ts
+rtk proxy env VERIFY_OUT_DIR=/absolute/allocated/temple-evidence VERIFY_EARNED_SAVE=/absolute/path/to/genuinely-earned-save.json VERIFY_BASE_URL=https://127.0.0.1:5192 timeout 600 pnpm exec tsx scripts/verifyTemple.ts
 ```
 
+The temple check requires a valid two-page save produced by the journey check.
+It verifies restored-page access rather than earning both pages again. To check
+the production build, run the same script against the preview server with
+`VERIFY_BUILT_UI=1`; that path uses the emitted UI without development diagnostics.
+The default development check also records the real scene and shared audio.
+
 The browser script is standalone, headed, and checks the real adapter. It uses
-the required hidden `agent-browser` workspace and checks that the foreground
-does not change. Do not run the repository's SwiftShader Playwright test runner
+the required hidden `agent-browser` workspace and keeps its own browser hidden
+and unfocused. Do not run the repository's SwiftShader Playwright test runner
 as a substitute for WebGPU proof.
 
 The local hidden compositor schedules animation frames at roughly 1 Hz even
@@ -170,4 +210,6 @@ and `29-glasswake-desktop-encounter.md`. Document 28 records world identity and
 trace sound. Document 27 records the
 preceding foundation milestone.
 Document 32 records the connected journey, earned pages, save contract and its
-verification. The arranged temple response remains the next milestone.
+verification. Document 33 records the arranged two-world ending, procedural
+temple reveal and desktop evidence. The next milestone is one focused material
+or visual refinement after listening and art review.

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { ALMANAC_WORLDS, settingsForWorld } from '../src/almanac/catalog'
 import { MotifAudio } from '../src/almanac/motifAudio'
+import { TEMPLE_DURATION_SECONDS, TEMPLE_SCORE, } from '../src/journey/templeScore'
 
 class Param {
   value = 1
@@ -903,4 +904,177 @@ await test('invalid or failed glass cues schedule nothing and explicit retry suc
   context.state = 'running'
   context.dispatchEvent(new Event('statechange'))
   assert.equal(context.oscillators.length, 6)
+})
+
+await test('the temple duet uses one transport with per-note timbre and gain, and finishes only at the last release', async (t) => {
+  const { audio, context, calls } = fixture()
+  t.after(() => {
+    audio.dispose()
+  })
+  await audio.playArrangement(TEMPLE_SCORE)
+  assert.equal(calls().contexts, 1)
+  assert.equal(context.oscillators.length, TEMPLE_SCORE.notes.length * 2)
+  for (const [index, note] of TEMPLE_SCORE.notes.entries()) {
+    const [first, partial] = context.oscillators.slice(index * 2, index * 2 + 2)
+    const expectedStart = 0.025 + (note.beat * 60) / TEMPLE_SCORE.tempo
+    const expectedEnd =
+      expectedStart + (note.duration * 60) / TEMPLE_SCORE.tempo + 0.18
+    assert.ok(Math.abs(first.startAt - expectedStart) < 1e-10)
+    assert.ok(Math.abs(first.stopAt - expectedEnd) < 1e-10)
+    assert.equal(first.type, note.timbre === 'reed' ? 'triangle' : 'sine')
+    assert.equal(partial.type, 'sine')
+    assert.equal(context.gains[index * 2 + 1].destination, context.gains[0])
+    const weight = note.timbre === 'reed' ? 0.9 : 0.82
+    assert.ok(
+      Math.abs(
+        Math.max(...context.gains[index * 2 + 1].gain.values) -
+          0.11 * weight * note.gain,
+      ) < 1e-10,
+    )
+  }
+  context.currentTime = 0.025 + TEMPLE_DURATION_SECONDS / 2
+  assert.ok(Math.abs(audio.snapshot().progress - 0.5) < 1e-10)
+  assert.equal(audio.snapshot().motifId, TEMPLE_SCORE.id)
+  const endings = [...context.oscillators].sort((a, b) => a.stopAt - b.stopAt)
+  for (const voice of endings) {
+    context.currentTime = voice.stopAt
+    voice.onended?.()
+    if (voice.stopAt < 0.025 + TEMPLE_DURATION_SECONDS - 0.001)
+      assert.equal(audio.snapshot().playing, true)
+  }
+  const finished = audio.snapshot()
+  assert.equal(finished.playing, false)
+  assert.equal(finished.loading, false)
+  assert.equal(finished.error, null)
+  assert.equal(finished.motifId, TEMPLE_SCORE.id)
+  assert.equal(finished.progress, 1)
+  assert.equal(finished.level, 0)
+  assert.ok(
+    context.oscillators.every(
+      (voice) => voice.disconnected && voice.onended === null,
+    ),
+  )
+  audio.stop()
+  assert.equal(audio.snapshot().progress, 0)
+  assert.equal(audio.snapshot().motifId, null)
+})
+
+await test('a cancelled temple unlock never starts late or reports natural completion', async (t) => {
+  for (const interruption of ['stop', 'hide', 'suspend', 'dispose'] as const) {
+    await t.test(interruption, async (t) => {
+      const { audio, context, visibility, calls } = fixture()
+      t.after(() => {
+        audio.dispose()
+      })
+      let unlock!: () => void
+      context.resume = () =>
+        new Promise<void>((resolve) => {
+          unlock = () => {
+            context.state = 'running'
+            resolve()
+          }
+        })
+      const pending = audio.playArrangement(TEMPLE_SCORE)
+      assert.equal(audio.snapshot().loading, true)
+      if (interruption === 'stop') audio.stop()
+      else if (interruption === 'hide') {
+        visibility.hidden = true
+        visibility.dispatchEvent(new Event('visibilitychange'))
+      } else if (interruption === 'suspend')
+        context.dispatchEvent(new Event('statechange'))
+      else audio.dispose()
+      const changes = calls().changes
+      unlock()
+      await pending
+      assert.equal(calls().changes, changes)
+      assert.equal(context.oscillators.length, 0)
+      assert.equal(audio.snapshot().loading, false)
+      assert.equal(audio.snapshot().progress, 0)
+      assert.equal(audio.snapshot().motifId, null)
+    })
+  }
+})
+
+await test('temple playback replaces the old instrument, and a new motif cancels every future duet voice', async (t) => {
+  const { audio, context, visibility, calls } = fixture()
+  t.after(() => {
+    audio.dispose()
+  })
+  await audio.startTrace(62)
+  const instrument = context.oscillators[0]
+  context.currentTime = 1
+  await audio.playArrangement(TEMPLE_SCORE)
+  assert.equal(instrument.stopAt, 1.012)
+  assert.equal(audio.snapshot().trace.active, false)
+  const duet = context.oscillators.slice(1)
+  context.currentTime = 2
+  await audio.play(glass)
+  assert.ok(duet.every((voice) => voice.stopAt === 2.012))
+  assert.equal(audio.snapshot().motifId, glass.id)
+  await audio.playArrangement(TEMPLE_SCORE)
+  const replay = context.oscillators.slice(-TEMPLE_SCORE.notes.length * 2)
+  visibility.hidden = true
+  visibility.dispatchEvent(new Event('visibilitychange'))
+  assert.ok(replay.every((voice) => voice.stopAt === 2.012))
+  assert.equal(audio.snapshot().progress, 0)
+  assert.equal(audio.snapshot().motifId, null)
+  assert.equal(calls().contexts, 1)
+})
+
+await test('the transport copies an arrangement before unlocking and rejects invalid orchestration', async (t) => {
+  const { audio, context, calls } = fixture()
+  t.after(() => {
+    audio.dispose()
+  })
+  for (const gain of [0, -1, 1.01, NaN, Infinity]) {
+    await audio.playArrangement({
+      ...TEMPLE_SCORE,
+      notes: [{ ...TEMPLE_SCORE.notes[0], gain }],
+    })
+    assert.match(audio.snapshot().error ?? '', /playable score/)
+    assert.equal(calls().contexts, 0)
+  }
+  const arrangement = {
+    ...TEMPLE_SCORE,
+    notes: TEMPLE_SCORE.notes.map((note) => ({ ...note })),
+  }
+  let unlock!: () => void
+  context.resume = () =>
+    new Promise<void>((resolve) => {
+      unlock = () => {
+        context.state = 'running'
+        resolve()
+      }
+    })
+  const pending = audio.playArrangement(arrangement)
+  arrangement.notes[0].midi = 84
+  arrangement.notes[0].gain = 1
+  unlock()
+  await pending
+  assert.ok(
+    Math.abs(context.oscillators[0].frequency.value - 261.6255653005986) <
+      1e-10,
+  )
+  assert.ok(Math.max(...context.gains[1].gain.values) < 0.08)
+})
+
+await test('failed temple audio leaves a retryable error without a finished passage', async (t) => {
+  const { audio, context } = fixture()
+  t.after(() => {
+    audio.dispose()
+  })
+  context.resume = () => Promise.reject(new Error('Audio device unavailable.'))
+  await audio.playArrangement(TEMPLE_SCORE)
+  assert.equal(audio.snapshot().error, 'Audio device unavailable.')
+  assert.equal(audio.snapshot().progress, 0)
+  assert.equal(audio.snapshot().motifId, null)
+  assert.equal(context.oscillators.length, 0)
+  context.resume = () => {
+    context.state = 'running'
+    return Promise.resolve()
+  }
+  await audio.playArrangement(TEMPLE_SCORE)
+  assert.equal(audio.snapshot().error, null)
+  assert.equal(audio.snapshot().playing, true)
+  assert.equal(context.oscillators.length, 58)
 })

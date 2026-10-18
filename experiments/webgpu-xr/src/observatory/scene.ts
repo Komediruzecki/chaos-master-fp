@@ -1,10 +1,19 @@
 // Shared desktop observatory coordinates, presentation records and input projection.
 import { mat4 } from 'wgpu-matrix'
 import { WORLD_VISUALS } from '../almanac/worldIdentity'
+import type { TemplePresentation, TempleStats } from './temple'
+
+export { EMPTY_TEMPLE } from './temple'
+export type { TemplePresentation } from './temple'
 
 export type Vec3 = readonly [number, number, number]
 export type WorldId = 'glasswake' | 'tideweave'
-export type ObservatoryView = 'overview' | 'inspect' | 'trace' | 'glasswake'
+export type ObservatoryView =
+  | 'overview'
+  | 'inspect'
+  | 'trace'
+  | 'glasswake'
+  | 'temple'
 /** Normalized trace coordinates: time increases right, pitch increases upward (v decreases). */
 export type TracePoint = readonly [number, number]
 
@@ -85,6 +94,7 @@ export interface ObservatorySnapshot {
     instructionNote: number | null
     bridgeProgress: number
     glasswake: GlasswakePresentation & { renderedShards: number }
+    temple: TemplePresentation & TempleStats
   }
   frame: {
     submissions: number
@@ -117,6 +127,7 @@ export interface ObservatoryFrame {
   clay: boolean
   trace: TracePresentation
   glasswake?: GlasswakePresentation
+  temple?: TemplePresentation
   motion?: boolean
 }
 
@@ -270,6 +281,16 @@ export function sceneCamera(frame: ObservatoryFrame, aspect: number) {
     // Fit the authored corona as well as the core, including narrow screens.
     distance = world.scale * 4.4 * Math.max(1, 0.95 / aspect)
     basePitch = 0.08
+  } else if (frame.view === 'temple') {
+    // A deliberate cut to a static stage; the score never moves the viewer.
+    target = [0, aspect < 0.8 ? 1.3 : 1.9, -12]
+    distance = 9.8
+    basePitch = 0.045
+    fov =
+      2 *
+      Math.atan(
+        Math.tan(0.9 / 2) * Math.max(1, 1.35 / aspect, aspect > 1.9 ? 1.25 : 1),
+      )
   } else if (frame.view === 'glasswake') {
     target = [
       0,
@@ -296,7 +317,10 @@ export function sceneCamera(frame: ObservatoryFrame, aspect: number) {
           Math.max(1, 1.05 / aspect, aspect > 1.9 ? 1.65 : 1),
       )
   } else distance *= Math.max(1, 0.9 / aspect)
-  const fixed = frame.view === 'trace' || frame.view === 'glasswake'
+  const fixed =
+    frame.view === 'trace' ||
+    frame.view === 'glasswake' ||
+    frame.view === 'temple'
   const yaw = fixed ? 0 : frame.camera.yaw
   const pitch = basePitch + (fixed ? 0 : frame.camera.pitch)
   distance *= fixed ? 1 : frame.camera.distance

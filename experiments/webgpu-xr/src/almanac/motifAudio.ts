@@ -1,4 +1,6 @@
 // Motifs, tracing and glass release cues share one audio owner and cancellable unlock.
+import { SCORE_RELEASE_SECONDS } from '../journey/templeScore'
+import type { MotifArrangement } from '../journey/templeScore'
 import type { AlmanacMotif } from './catalog'
 
 export interface MotifAudioSnapshot {
@@ -36,7 +38,6 @@ interface Voice {
   gain: GainNode
 }
 
-const RELEASE = 0.18
 const STOP_FADE = 0.012
 const START_DELAY = 0.025
 const TRACE_ATTACK = 0.025
@@ -63,7 +64,7 @@ export class MotifAudio {
   private waveform = new Float32Array(256)
   private voices = new Set<Voice>()
   private timer: ReturnType<typeof setInterval> | null = null
-  private motif: AlmanacMotif | null = null
+  private motif: MotifArrangement | null = null
   private playing = false
   private loading = false
   private volume = 0.55
@@ -104,6 +105,7 @@ export class MotifAudio {
   private contextChanged = () => {
     if (
       (this.playing ||
+        this.loading ||
         this.traceRequested ||
         this.traceVoice ||
         this.traceAccent ||
@@ -128,7 +130,27 @@ export class MotifAudio {
     return context
   }
 
-  async play(motif: AlmanacMotif): Promise<void> {
+  play(motif: AlmanacMotif): Promise<void> {
+    return this.playScore({
+      id: motif.id,
+      tempo: motif.tempo,
+      notes: motif.notes.map((note) => ({
+        ...note,
+        timbre: motif.timbre,
+        gain: 1,
+      })),
+    })
+  }
+
+  /** An explicit gesture starts one passage through the existing audio owner. */
+  playArrangement(arrangement: MotifArrangement): Promise<void> {
+    return this.playScore({
+      ...arrangement,
+      notes: arrangement.notes.map((note) => ({ ...note })),
+    })
+  }
+
+  private async playScore(motif: MotifArrangement): Promise<void> {
     if (this.disposed) return
     this.stop()
     const generation = ++this.generation
@@ -153,7 +175,11 @@ export class MotifAudio {
             note.beat > 64 ||
             !Number.isFinite(note.duration) ||
             note.duration <= 0 ||
-            note.duration > 8,
+            note.duration > 8 ||
+            (note.timbre !== 'glass' && note.timbre !== 'reed') ||
+            !Number.isFinite(note.gain) ||
+            note.gain <= 0 ||
+            note.gain > 1,
         )
       )
         throw new Error('This motif has no playable score.')
@@ -176,13 +202,13 @@ export class MotifAudio {
             (note) => (note.beat + note.duration) * beatSeconds,
           ),
         ) +
-        RELEASE
+        SCORE_RELEASE_SECONDS
       motif.notes.forEach((note) => {
         const start = this.startedAt + note.beat * beatSeconds
         const end = start + note.duration * beatSeconds
         const frequency = 440 * 2 ** ((note.midi - 69) / 12)
         const partials =
-          motif.timbre === 'glass'
+          note.timbre === 'glass'
             ? [
                 [1, 0.82],
                 [2.76, 0.18],
@@ -197,21 +223,21 @@ export class MotifAudio {
           const voice = { oscillator, gain }
           this.voices.add(voice)
           oscillator.type =
-            motif.timbre === 'reed' && index === 0 ? 'triangle' : 'sine'
+            note.timbre === 'reed' && index === 0 ? 'triangle' : 'sine'
           oscillator.frequency.setValueAtTime(frequency * ratio, start)
           oscillator.connect(gain)
           gain.connect(this.output!)
-          const peak = 0.11 * weight
+          const peak = 0.11 * weight * note.gain
           gain.gain.setValueAtTime(0, start)
           gain.gain.linearRampToValueAtTime(
             peak,
-            start + (motif.timbre === 'glass' ? 0.007 : 0.045),
+            start + (note.timbre === 'glass' ? 0.007 : 0.045),
           )
           gain.gain.exponentialRampToValueAtTime(
-            peak * (motif.timbre === 'glass' ? 0.12 : 0.6),
+            peak * (note.timbre === 'glass' ? 0.12 : 0.6),
             end,
           )
-          gain.gain.linearRampToValueAtTime(0, end + RELEASE)
+          gain.gain.linearRampToValueAtTime(0, end + SCORE_RELEASE_SECONDS)
           oscillator.onended = () => {
             this.releaseVoice(voice)
             if (
@@ -222,7 +248,7 @@ export class MotifAudio {
               this.finish()
           }
           oscillator.start(start)
-          oscillator.stop(end + RELEASE)
+          oscillator.stop(end + SCORE_RELEASE_SECONDS)
         })
       })
       this.loading = false

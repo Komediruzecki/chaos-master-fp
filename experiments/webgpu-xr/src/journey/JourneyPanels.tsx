@@ -238,6 +238,25 @@ interface CollectionProps {
   onVisit: (world: JourneyWorldId) => void
   onPlayMotif: (world: JourneyWorldId) => void
   playingWorldId?: JourneyWorldId | null
+  onOpenEnding: () => void
+}
+
+function TempleInvitation(props: { onOpen: () => void }) {
+  return (
+    <section class="journey-temple-invitation" aria-label="The temple signal">
+      <p>
+        <strong>The two pages answer each other.</strong>Hear Glasswake and
+        Tideweave meet in one passage, and follow their signal to the temple.
+      </p>
+      <button
+        type="button"
+        class="journey-button journey-button-primary"
+        onClick={props.onOpen}
+      >
+        Open temple signal
+      </button>
+    </section>
+  )
 }
 
 export function JourneyAlmanac(props: CollectionProps) {
@@ -253,7 +272,7 @@ export function JourneyAlmanac(props: CollectionProps) {
     >
       <p class="journey-lead">
         {earned() === 2
-          ? 'Both musical forms are recorded. Return to either world and play again.'
+          ? 'Both musical forms are recorded. Their shared signal is ready to hear.'
           : 'Visit each world, hear its motif and complete its encounter to earn a page.'}
       </p>
       <div class="journey-pages">
@@ -317,6 +336,9 @@ export function JourneyAlmanac(props: CollectionProps) {
           )}
         </For>
       </div>
+      <Show when={earned() === 2}>
+        <TempleInvitation onOpen={props.onOpenEnding} />
+      </Show>
       <footer class="journey-dialog-footer journey-collection-footer">
         <div>
           <p>{earned()} / 2 pages earned. Replaying keeps your pages.</p>
@@ -390,6 +412,9 @@ export function JourneyReceipt(
           Open Almanac
         </button>
       </div>
+      <Show when={both()}>
+        <TempleInvitation onOpen={props.onOpenEnding} />
+      </Show>
       <footer class="journey-dialog-footer">
         <p>
           This records the encounter you completed. It is not a singing score.

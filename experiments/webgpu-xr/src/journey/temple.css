@@ -1,0 +1,227 @@
+/* A compact score and listening dock leave the temple silhouette visible. */
+.temple-ending {
+  position: absolute;
+  z-index: 2;
+  inset: auto 0 0;
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(300px, 450px);
+  gap: 20px 48px;
+  align-items: end;
+  padding: 24px clamp(18px, 3vw, 48px) 15px;
+  background: linear-gradient(transparent, #030a10c9 24%, #030a10f2);
+  pointer-events: none;
+}
+.temple-ending :is(button, input, label) {
+  pointer-events: auto;
+}
+.temple-copy {
+  max-width: 480px;
+}
+.temple-status {
+  margin: 0;
+  color: var(--obs-muted);
+  max-width: 47ch;
+  min-height: 3em;
+  font-size: 13px;
+}
+.temple-caption {
+  margin: 8px 0 0;
+  color: var(--obs-brass);
+  font-size: 11px;
+}
+.temple-score {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  list-style: none;
+  padding: 0;
+  margin: 0 0 10px;
+  gap: 4px;
+}
+.temple-score li {
+  padding: 10px 4px;
+  border-top: 1px solid var(--obs-line);
+  color: var(--obs-muted);
+  font-size: 11px;
+}
+.temple-score li small {
+  display: block;
+  margin-top: 3px;
+  font-size: 9px;
+  opacity: 0.75;
+}
+.temple-score li.is-current,
+.temple-score li.is-past {
+  border-color: var(--obs-brass);
+  color: var(--obs-brass);
+}
+.temple-score li[data-tone='tideweave'].is-current,
+.temple-score li[data-tone='tideweave'].is-past {
+  border-color: var(--obs-water);
+  color: var(--obs-water);
+}
+.temple-score li.is-current {
+  background: #c2d5c610;
+}
+.temple-time {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  color: var(--obs-muted);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.temple-time progress {
+  flex: 1;
+  width: 100%;
+  height: 3px;
+  border: 0;
+  background: #a4c4c426;
+  color: var(--obs-brass);
+  accent-color: var(--obs-brass);
+}
+.temple-time progress::-webkit-progress-bar {
+  background: #a4c4c426;
+}
+.temple-time progress::-webkit-progress-value {
+  background: linear-gradient(90deg, var(--obs-brass), var(--obs-water));
+}
+.temple-time progress::-moz-progress-bar {
+  background: var(--obs-brass);
+}
+.temple-time span {
+  white-space: nowrap;
+}
+.temple-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+  align-items: center;
+}
+.temple-actions .observatory-action {
+  min-width: 150px;
+}
+.temple-footer {
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--obs-line);
+  padding-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 10px;
+}
+.temple-footer .journey-save-status {
+  max-width: 50ch;
+  font-size: 10px;
+  margin: 0;
+}
+.temple-error {
+  color: #ffd6b0;
+  margin: 0;
+  grid-column: 1 / -1;
+}
+.journey-temple-invitation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-top: 22px;
+  padding: 18px 0;
+  border-block: 1px solid #a4c4c43b;
+}
+.journey-temple-invitation p {
+  margin: 0;
+  max-width: 45ch;
+}
+.journey-temple-invitation strong {
+  display: block;
+  margin-bottom: 5px;
+  color: #e7d2a5;
+  font-family: Georgia, serif;
+  font-size: 20px;
+  font-weight: 400;
+}
+@media (max-width: 800px) {
+  .temple-ending {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding-top: 35px;
+  }
+  .temple-copy {
+    max-width: 100%;
+  }
+  .temple-status {
+    min-height: 0;
+  }
+  .temple-transport {
+    max-width: 100%;
+  }
+  .temple-actions {
+    margin-top: 10px;
+  }
+  .temple-score {
+    margin-bottom: 4px;
+  }
+  .temple-footer {
+    gap: 6px;
+  }
+}
+@media (max-width: 560px) {
+  .temple-ending h1 {
+    font-size: 30px;
+    margin-bottom: 8px;
+  }
+  .temple-status {
+    font-size: 11px;
+  }
+  .temple-caption {
+    font-size: 10px;
+  }
+  .temple-footer {
+    flex-direction: column-reverse;
+    align-items: flex-start;
+  }
+  .temple-footer .journey-save-status {
+    font-size: 9px;
+  }
+  .temple-ending .observatory-place {
+    font-size: 12px;
+  }
+  .journey-temple-invitation {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+@media (max-height: 560px) and (min-width: 561px) {
+  .temple-ending {
+    grid-template-columns: minmax(180px, 1fr) minmax(290px, 390px);
+    gap: 4px 24px;
+    padding: 16px 24px 4px;
+  }
+  .temple-ending h1 {
+    font-size: 25px;
+    margin-bottom: 5px;
+  }
+  .temple-ending .observatory-place {
+    font-size: 11px;
+  }
+  .temple-status {
+    min-height: 0;
+    font-size: 11px;
+  }
+  .temple-caption {
+    display: none;
+  }
+  .temple-score {
+    margin: 0;
+  }
+  .temple-score li {
+    padding-block: 4px;
+  }
+  .temple-actions {
+    margin-top: 5px;
+  }
+  .temple-footer {
+    padding-top: 0;
+  }
+}

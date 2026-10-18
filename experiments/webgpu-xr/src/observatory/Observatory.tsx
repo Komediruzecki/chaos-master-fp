@@ -5,7 +5,9 @@ import { ALMANAC_WORLDS } from '../almanac/catalog'
 import { MotifAudio } from '../almanac/motifAudio'
 import { JourneyAlmanac, JourneyIntro, JourneyReceipt, JourneySaveStatus, } from '../journey/JourneyPanels'
 import { getEarnedPages, isJourneyWorldId } from '../journey/progress'
+import { TempleEnding } from '../journey/TempleEnding'
 import { useJourney } from '../journey/useJourney'
+import { useTempleEnding } from '../journey/useTempleEnding'
 import { beginTrace, BRIDGE_MOTIF, BRIDGE_NOTE_NAMES, BRIDGE_TARGET, createEncounter, endTrace, moveTrace, traceHint, } from './encounter'
 import { GlasswakeEncounter } from './GlasswakeEncounter'
 import { ObservatoryRuntime } from './runtime'
@@ -63,6 +65,29 @@ export function Observatory() {
     () => studies.find((entry) => entry.id === worldId())!,
   )
   const ready = createMemo(() => Boolean(state()?.ready))
+  const ending = useTempleEnding({
+    eligible: () => earnedPages() === 2,
+    ready,
+    audio: () => audio,
+    present: (value) => runtime?.setTemple(value),
+    enter: () => {
+      closePanel()
+      interruptInput()
+      setExercise(false)
+      setGlasswake(false)
+      setAtlasOpen(false)
+      setView('temple')
+      runtime?.setView('temple')
+      presentTrace()
+    },
+    leave: () => {
+      setView('overview')
+      runtime?.setView('overview')
+      queueMicrotask(() => {
+        canvas.focus({ preventScroll: true })
+      })
+    },
+  })
   const glassBlocked = createMemo(
     () => atlasOpen() || panel() !== null || !ready(),
   )
@@ -102,6 +127,7 @@ export function Observatory() {
     if (!audio) return
     const next = audio.snapshot()
     setSound(next)
+    ending.update(next)
     if (exercise()) {
       if (next.playing && next.motifId === BRIDGE_MOTIF.id)
         setStage('listening')
@@ -114,6 +140,7 @@ export function Observatory() {
   }
 
   function selectWorld(id: WorldId) {
+    ending.close()
     stopKeyboard()
     setExercise(false)
     setGlasswake(false)
@@ -275,6 +302,7 @@ export function Observatory() {
   }
 
   function openPanel(next: 'intro' | 'almanac' | 'receipt', id = worldId()) {
+    ending.close()
     interruptInput()
     audio?.stop()
     setAtlasOpen(false)
@@ -359,6 +387,12 @@ export function Observatory() {
   function keyDown(event: KeyboardEvent) {
     if (panel() !== null) return
     if (event.key === 'Escape') {
+      if (ending.active()) {
+        event.preventDefault()
+        event.stopPropagation()
+        ending.close()
+        return
+      }
       if (atlasOpen() || exercise() || glasswake() || view() === 'inspect') {
         event.preventDefault()
         event.stopPropagation()
@@ -425,6 +459,7 @@ export function Observatory() {
           setState(next)
           if (next.error) {
             stopKeyboard()
+            ending.stop()
             audio?.stopTrace()
             setEncounter(endTrace(encounter()))
           }
@@ -505,7 +540,10 @@ export function Observatory() {
   return (
     <main
       class="observatory"
-      classList={{ 'is-exercise': exercise() || glasswake() }}
+      classList={{
+        'is-exercise': exercise() || glasswake(),
+        'is-temple': ending.active(),
+      }}
       data-world={worldId()}
       onKeyDown={keyDown}
     >
@@ -515,9 +553,11 @@ export function Observatory() {
         tabIndex={0}
         aria-describedby={exercise() ? 'observatory-trace-help' : undefined}
         aria-label={
-          exercise()
-            ? 'Tideweave melody ribbon. Use keyboard controls below, or drag through the notes.'
-            : 'Irchiinnuss observatory. Drag to turn the view and scroll to move closer.'
+          ending.active()
+            ? 'Irchiinnuss temple threshold. Listen to the two worlds with the controls below.'
+            : exercise()
+              ? 'Tideweave melody ribbon. Use keyboard controls below, or drag through the notes.'
+              : 'Irchiinnuss observatory. Drag to turn the view and scroll to move closer.'
         }
       />
       <div class="observatory-shade" aria-hidden="true" />
@@ -533,6 +573,7 @@ export function Observatory() {
             aria-expanded={atlasOpen()}
             aria-controls="observatory-atlas"
             onClick={() => {
+              ending.close()
               interruptInput()
               if (atlasOpen()) closeAtlas()
               else setAtlasOpen(true)
@@ -702,7 +743,7 @@ export function Observatory() {
           }}
         />
       </Show>
-      <Show when={!glasswake()}>
+      <Show when={!glasswake() && !ending.active()}>
         <div class="observatory-bottom">
           <section
             class="observatory-world-copy"
@@ -910,6 +951,16 @@ export function Observatory() {
                     {collected() ? 'Play again' : 'Trace a melody'}
                   </button>
                 </Show>
+                <Show when={earnedPages() === 2}>
+                  <button
+                    type="button"
+                    class="observatory-action"
+                    disabled={!ready()}
+                    onClick={ending.open}
+                  >
+                    Open temple signal
+                  </button>
+                </Show>
               </div>
             </section>
           </Show>
@@ -967,6 +1018,26 @@ export function Observatory() {
           </Show>
         </div>
       </Show>
+      <Show when={ending.active()}>
+        <TempleEnding
+          phase={ending.phase()}
+          progress={ending.progress()}
+          ready={ready()}
+          motion={motion()}
+          volume={sound()?.volume ?? 0.55}
+          error={sound()?.error}
+          persistence={journey.snapshot().persistence}
+          onPlay={ending.play}
+          onStop={ending.stop}
+          onLeave={ending.close}
+          onMotion={() => {
+            const next = !motion()
+            setMotion(next)
+            runtime?.setMotion(next)
+          }}
+          onVolume={(value) => audio?.setVolume(value)}
+        />
+      </Show>
       <Show when={panel() === 'intro'}>
         <JourneyIntro
           ready={ready()}
@@ -985,6 +1056,7 @@ export function Observatory() {
           onVisit={visitWorld}
           onPlayMotif={playPageMotif}
           playingWorldId={playingWorldId()}
+          onOpenEnding={ending.open}
         />
       </Show>
       <Show when={panel() === 'receipt'}>
@@ -999,6 +1071,7 @@ export function Observatory() {
           }}
           onPlayMotif={playPageMotif}
           playingWorldId={playingWorldId()}
+          onOpenEnding={ending.open}
         />
       </Show>
     </main>

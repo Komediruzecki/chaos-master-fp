@@ -1,7 +1,9 @@
 // Desktop canvas, camera and trace input lifecycle for the observatory scene.
 import { createObservatoryRenderer } from './renderer'
 import { clamp, copyTrace, EMPTY_GLASSWAKE, EMPTY_TRACE, projectPoint, QUIET_MUSIC, traceAtCanvas, traceWorld, WORLD_PLACEMENTS, } from './scene'
+import { copyTemple, EMPTY_TEMPLE, EMPTY_TEMPLE_STATS } from './temple'
 import type { CameraState, GlasswakePresentation, MusicFrame, ObservatoryFrame, ObservatoryOptions, ObservatorySnapshot, ObservatoryView, TracePoint, TracePresentation, WorldId, } from './scene'
+import type { TemplePresentation } from './temple'
 
 export class ObservatoryRuntime {
   private device?: GPUDevice
@@ -25,6 +27,7 @@ export class ObservatoryRuntime {
   private clay = false
   private trace: TracePresentation = copyTrace(EMPTY_TRACE)
   private glasswake: GlasswakePresentation = { ...EMPTY_GLASSWAKE }
+  private temple: TemplePresentation = { ...EMPTY_TEMPLE }
   private music: MusicFrame = { ...QUIET_MUSIC }
   private instructionNote: number | null = null
   private camera: CameraState = { yaw: 0, pitch: 0, distance: 1 }
@@ -175,6 +178,7 @@ export class ObservatoryRuntime {
           clay: this.clay,
           trace: this.trace,
           glasswake: this.glasswake,
+          temple: this.temple,
           motion: this.motion,
         }
         this.renderer!.render(
@@ -213,6 +217,7 @@ export class ObservatoryRuntime {
       !this.ready ||
       !this.active ||
       this.view === 'glasswake' ||
+      this.view === 'temple' ||
       this.pointer ||
       !event.isPrimary ||
       event.button !== 0
@@ -331,7 +336,12 @@ export class ObservatoryRuntime {
   }
 
   private onWheel = (event: WheelEvent) => {
-    if (!this.ready || this.view === 'trace' || this.view === 'glasswake')
+    if (
+      !this.ready ||
+      this.view === 'trace' ||
+      this.view === 'glasswake' ||
+      this.view === 'temple'
+    )
       return
     event.preventDefault()
     this.camera.distance = clamp(
@@ -342,7 +352,12 @@ export class ObservatoryRuntime {
   }
 
   private onKey = (event: KeyboardEvent) => {
-    if (!this.ready || this.view === 'trace' || this.view === 'glasswake')
+    if (
+      !this.ready ||
+      this.view === 'trace' ||
+      this.view === 'glasswake' ||
+      this.view === 'temple'
+    )
       return
     if (event.key === 'ArrowLeft') this.camera.yaw -= 0.06
     else if (event.key === 'ArrowRight') this.camera.yaw += 0.06
@@ -365,7 +380,8 @@ export class ObservatoryRuntime {
     this.options.changed()
   }
   setView(view: ObservatoryView) {
-    if (!['overview', 'inspect', 'trace', 'glasswake'].includes(view)) return
+    if (!['overview', 'inspect', 'trace', 'glasswake', 'temple'].includes(view))
+      return
     if (this.pointer?.tracing)
       this.options.input({ kind: 'trace', phase: 'cancel', point: null })
     this.releasePointer()
@@ -406,6 +422,9 @@ export class ObservatoryRuntime {
         .map((value) => (Number.isFinite(value) ? value : -10)),
     }
   }
+  setTemple(state: TemplePresentation) {
+    this.temple = copyTemple(state)
+  }
   resetCamera() {
     this.camera = { yaw: 0, pitch: 0, distance: 1 }
     this.options.changed()
@@ -436,6 +455,7 @@ export class ObservatoryRuntime {
       triangles: 0,
       bridgeProgress: 0,
       renderedShards: 0,
+      temple: { ...EMPTY_TEMPLE_STATS },
       livePoints: 0,
       bufferBytes: 0,
       width: 0,
@@ -458,6 +478,7 @@ export class ObservatoryRuntime {
         music: { ...this.music },
         instructionNote: this.instructionNote,
         bridgeProgress: stats.bridgeProgress,
+        temple: { ...this.temple, ...stats.temple },
         glasswake: {
           ...this.glasswake,
           burstTimes: [...this.glasswake.burstTimes],

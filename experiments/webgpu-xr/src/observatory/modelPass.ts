@@ -72,7 +72,7 @@ export function createModelPass(
         pass: GPURenderPassEncoder,
         id: string,
         matrix: ArrayLike<number>,
-        tint: readonly number[] = [1, 1, 1, 0],
+        tint: ArrayLike<number> = [1, 1, 1, 0],
       ) {
         let instance = instances.get(id)
         if (!instance) {

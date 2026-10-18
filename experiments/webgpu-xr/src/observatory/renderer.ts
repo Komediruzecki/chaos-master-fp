@@ -9,6 +9,8 @@ import { createGlasswakePass } from './glasswakePass'
 import { beamMatrix, createModelPass, primitiveGeometry } from './modelPass'
 import { clamp, EMPTY_GLASSWAKE, GLASSWAKE_CENTER, OBSERVATORY_ASSETS, sceneCamera, traceWorld, WORLD_PLACEMENTS, } from './scene'
 import { Model, modelLayout, orbVertex, Sky, skyFragment, skyLayout, toneMapFragment, } from './shaders'
+import { EMPTY_TEMPLE, EMPTY_TEMPLE_STATS, TEMPLE_WORLD_PLACEMENTS, } from './temple'
+import { createTemplePass } from './templePass'
 import { createWorldOrnaments } from './worldOrnaments'
 import type { TgpuBindGroup } from 'typegpu'
 import type { AssetStatus, ObservatoryFrame, Vec3, WorldId } from './scene'
@@ -120,6 +122,8 @@ export function createObservatoryRenderer(
     }
   })
   let glass: ReturnType<typeof createGlasswakePass> | undefined
+  let temple: ReturnType<typeof createTemplePass> | undefined
+  let templeStats = { ...EMPTY_TEMPLE_STATS }
   let renderedShards = 0
   let disposed = false
   let generated = false
@@ -298,6 +302,12 @@ export function createObservatoryRenderer(
     if (disposed) return
     resize(w, h)
     const glassMode = frame.view === 'glasswake'
+    const templeMode = frame.view === 'temple'
+    const worldPlacements = templeMode
+      ? TEMPLE_WORLD_PLACEMENTS
+      : WORLD_PLACEMENTS
+    if (templeMode) temple ??= createTemplePass(root, camera)
+    templeStats = { ...EMPTY_TEMPLE_STATS }
     if (glassMode) glass ??= createGlasswakePass(root, camera)
     renderedShards = 0
     projectedCamera = sceneCamera(frame, w / h)
@@ -306,18 +316,18 @@ export function createObservatoryRenderer(
     cameraRaw.set(projection, 16)
     cameraRaw.set([0.003, 1.05, 0.48, 0], 32)
     cameraRaw.set([...eye, Number(frame.clay)], 52)
-    cameraRaw.set([...WORLD_PLACEMENTS.glasswake.center, 0], 56)
-    cameraRaw.set([...WORLD_PLACEMENTS.tideweave.center, 0], 60)
+    cameraRaw.set([...worldPlacements.glasswake.center, 0], 56)
+    cameraRaw.set([...worldPlacements.tideweave.center, 0], 60)
     camera.write(cameraRaw.buffer)
     skyRaw.set(inverse, 0)
     skyRaw.set([...eye, 0], 16)
     skyRaw.set([w, h, 0, 0], 20)
     skyRaw.set(
-      [...WORLD_PLACEMENTS.glasswake.center, WORLD_PLACEMENTS.glasswake.scale],
+      [...worldPlacements.glasswake.center, worldPlacements.glasswake.scale],
       24,
     )
     skyRaw.set(
-      [...WORLD_PLACEMENTS.tideweave.center, WORLD_PLACEMENTS.tideweave.scale],
+      [...worldPlacements.tideweave.center, worldPlacements.tideweave.scale],
       28,
     )
     sky.write(skyRaw.buffer)
@@ -351,7 +361,7 @@ export function createObservatoryRenderer(
     drawCalls = 1
     triangles = 1
     skyPipeline.with(pass).draw(3)
-    if (!glassMode) {
+    if (!glassMode && !templeMode) {
       // Close encounter framing would put narrow views beneath the bay's overhead beam.
       drawModel(pass, loaded.get('bay'), 'bay', identity)
       drawModel(
@@ -367,7 +377,7 @@ export function createObservatoryRenderer(
         'relic',
         transform([0, 0.1, -10], 1.5, frame.time * 0.08),
       )
-    } else {
+    } else if (glassMode) {
       drawModel(
         pass,
         loaded.get('landing'),
@@ -390,7 +400,7 @@ export function createObservatoryRenderer(
     lastBridgeTarget = wanted
     for (let i = 0; i < 5; i++) {
       const reveal = clamp(bridgeProgress - i, 0, 1)
-      if (reveal > 0 && !glassMode)
+      if (reveal > 0 && !glassMode && !templeMode)
         drawModel(
           pass,
           loaded.get('bridge'),
@@ -399,7 +409,7 @@ export function createObservatoryRenderer(
           [0.65 + reveal * 0.35, 0.75 + reveal * 0.25, 1, (1 - reveal) * 0.25],
         )
     }
-    if (!glassMode) {
+    if (!glassMode && !templeMode) {
       // A distant destination reads as an instrument, without claiming finished temple lore.
       drawModel(
         pass,
@@ -408,14 +418,17 @@ export function createObservatoryRenderer(
         transform([0, 1, -10], 1.15, frame.time * 0.03, Math.PI / 2),
         [0.7, 0.75, 1, 0.2],
       )
+    }
+    if (!glassMode) {
       worlds.forEach((world) => {
-        const position = world.config.center
+        const placement = worldPlacements[world.id]
+        const position = placement.center
         const selected = frame.selectedWorld === world.id
         const time = frame.time
         const glasswake = world.id === 'glasswake'
         const matrix = transform(
           position,
-          world.config.scale,
+          placement.scale,
           glasswake ? Math.sin(time * 0.11) * 0.1 : -time * 0.045,
           glasswake ? 0.06 : Math.sin(time * 0.13) * 0.07,
         )
@@ -432,8 +445,9 @@ export function createObservatoryRenderer(
     worlds.forEach((world) => {
       if (glassMode && world.id !== 'glasswake') return
       const { low, high } = world.config
-      const center = glassMode ? GLASSWAKE_CENTER : world.config.center
-      const scale = glassMode ? 0.65 : world.config.scale
+      const placement = worldPlacements[world.id]
+      const center = glassMode ? GLASSWAKE_CENTER : placement.center
+      const scale = glassMode ? 0.65 : placement.scale
       const selected = world.id === frame.selectedWorld
       const depthAt = -(
         view[2] * center[0] +
@@ -464,7 +478,7 @@ export function createObservatoryRenderer(
       world.modelRaw.set(
         [
           frame.time,
-          selected ? frame.music.level : 0,
+          templeMode || selected ? frame.music.level : 0,
           scale,
           world.config.style,
         ],
@@ -475,6 +489,12 @@ export function createObservatoryRenderer(
       drawCalls++
       triangles += POINTS * 2
     })
+    if (templeMode && temple) {
+      temple.draw(pass, frame.temple ?? EMPTY_TEMPLE, frame.motion ?? true)
+      templeStats = temple.stats()
+      drawCalls += templeStats.renderedParts + templeStats.connectionSegments
+      triangles += templeStats.visibleTriangles
+    }
     if (glassMode && glass) {
       glass.draw(
         pass,
@@ -515,9 +535,11 @@ export function createObservatoryRenderer(
       triangles,
       bridgeProgress,
       renderedShards,
+      temple: { ...templeStats },
       livePoints: POINTS * worlds.length,
       bufferBytes:
         (glass?.stats().bytes ?? 0) +
+        (temple?.bytes ?? 0) +
         d.sizeOf(View) +
         d.sizeOf(Sky) +
         worlds.length *
@@ -555,6 +577,7 @@ export function createObservatoryRenderer(
         model.dispose()
       loaded.clear()
       glass?.dispose()
+      temple?.dispose()
       hdr?.destroy()
       msaa?.destroy()
       depth?.destroy()
