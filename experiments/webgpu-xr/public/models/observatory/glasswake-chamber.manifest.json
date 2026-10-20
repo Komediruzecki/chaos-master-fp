@@ -1,0 +1,61 @@
+{
+  "name": "Glasswake Caldera and tone star",
+  "assetVersion": 1,
+  "blenderVersion": "5.2.2 LTS",
+  "layoutSeed": 73129,
+  "authoring": "Authored closed Blender solids; no provider geometry or image textures",
+  "sourceScriptSha256": "385fda9bcdacafef8766a2392fa67ed2d02f5e93973045f3c5ce18223bb1164e",
+  "helperScriptSha256": "2854bcb0fa412b7df7bf9c394e18a25bfef44745bdd31d464daf076bedec183f",
+  "sourceBlendSha256": "ec53fdcf7defd27a36d534ca9b4f554c72ea313053f9131d10fc80063af58f0a",
+  "assets": [
+    {
+      "file": "glasswake-chamber.glb",
+      "bytes": 504536,
+      "sha256": "d41438150aa721208bee48cf62fd75a78b643ce40ad31c5716131b7688caea82",
+      "triangles": 6836,
+      "sourceMeshObjects": 192
+    },
+    {
+      "file": "glasswake-tone-star.glb",
+      "bytes": 4048,
+      "sha256": "c7791cd249054f705c35eb6077d5d221ae9d4dce06a10bd70e53a433ee3f1be3",
+      "triangles": 48,
+      "sourceMeshObjects": 1
+    }
+  ],
+  "materials": [
+    "Obsidian | gloss",
+    "Obsidian | worn",
+    "Porcelain | bone",
+    "Glass | frost"
+  ],
+  "textures": [],
+  "anchors": {
+    "SealCenter": [0, 1.45, 0],
+    "ToneStar.C": [0, 2.36, 0.15],
+    "ToneStar.E": [-0.7880831174438392, 0.995, 0.15],
+    "ToneStar.G": [0.7880831174438392, 0.995, 0.15],
+    "ListenerMark": [0, 0, 1.9]
+  },
+  "coordinates": {
+    "up": "+Y",
+    "origin": "floor below seal",
+    "worldPlacement": [0, 0, -4.6]
+  },
+  "protectedShardVolumeWorld": {
+    "min": [-1.45, 0.14, -5.35],
+    "max": [1.45, 2.85, -4.05]
+  },
+  "toneStar": {
+    "height": 0.17,
+    "radius": 0.05,
+    "axis": "+Y",
+    "origin": "centre"
+  },
+  "limitations": [
+    "Opaque factors only; no textures, refraction, collision or traversal",
+    "Stage appears only in the Glasswake encounter",
+    "Studio lighting and proxy solids are evidence, not runtime appearance",
+    "Physical headset reach, scale, comfort and performance remain untested"
+  ]
+}

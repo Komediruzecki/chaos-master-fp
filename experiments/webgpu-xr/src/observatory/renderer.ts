@@ -5,9 +5,11 @@ import { parseBookGlb } from '../almanac/bookAsset'
 import { ALMANAC_WORLDS, settingsForWorld } from '../almanac/catalog'
 import { SAMPLE_STEPS } from '../bench/recipes'
 import { cloudFragment, constructSpecimen, fullScreenVertex, resolveLayout, SampleConfig, samplingLayout, sceneLayout, View, } from '../bench/shaders'
+import { toneStarMatrix, toneStarTint } from './glasswakeChamber'
+import { createGlasswakeChamberMaterial } from './glasswakeChamberMaterial'
 import { createGlasswakePass } from './glasswakePass'
 import { beamMatrix, createModelPass, primitiveGeometry } from './modelPass'
-import { clamp, EMPTY_GLASSWAKE, GLASSWAKE_CENTER, OBSERVATORY_ASSETS, sceneCamera, traceWorld, WORLD_PLACEMENTS, } from './scene'
+import { clamp, EMPTY_GLASSWAKE, GLASSWAKE_CENTER, GLASSWAKE_CHAMBER_ORIGIN, OBSERVATORY_ASSETS, sceneCamera, traceWorld, WORLD_PLACEMENTS, } from './scene'
 import { Model, modelLayout, orbVertex, Sky, skyFragment, skyLayout, toneMapFragment, } from './shaders'
 import { EMPTY_TEMPLE, EMPTY_TEMPLE_STATS, TEMPLE_WORLD_PLACEMENTS, } from './temple'
 import { createTempleAtmosphere } from './templeAtmosphere'
@@ -123,6 +125,11 @@ export function createObservatoryRenderer(
     }
   })
   let glass: ReturnType<typeof createGlasswakePass> | undefined
+  let chamberMaterial:
+    | ReturnType<typeof createGlasswakeChamberMaterial>
+    | undefined
+  const chamberMatrix = transform(GLASSWAKE_CHAMBER_ORIGIN)
+  const toneStarMatrices = [0, 1, 2].map(toneStarMatrix)
   let temple: ReturnType<typeof createTemplePass> | undefined
   let templeAtmosphere: ReturnType<typeof createTempleAtmosphere> | undefined
   let templeStats = { ...EMPTY_TEMPLE_STATS }
@@ -146,6 +153,12 @@ export function createObservatoryRenderer(
   let bridgeProgress = 0
   let lastBridgeTarget = 0
   let previousTime = 0
+
+  function assetMaterial(id: string) {
+    if (id !== 'glasswake-chamber') return undefined
+    chamberMaterial ??= createGlasswakeChamberMaterial(root)
+    return chamberMaterial.material
+  }
 
   async function loadAssets() {
     await Promise.all(
@@ -174,7 +187,12 @@ export function createObservatoryRenderer(
           let validation: GPUError | null = null
           try {
             try {
-              model = createModelPass(root, camera, geometry)
+              model = createModelPass(
+                root,
+                camera,
+                geometry,
+                assetMaterial(asset.id),
+              )
             } finally {
               validation = await device.popErrorScope()
             }
@@ -395,13 +413,30 @@ export function createObservatoryRenderer(
         transform([0, 0.1, -10], 1.5, frame.time * 0.08),
       )
     } else if (glassMode) {
-      drawModel(
-        pass,
-        loaded.get('landing'),
-        'glasswake-plinth',
-        transform([0, 0.04, -4.6], 0.65),
-        [1, 0.87, 0.64, 0.06],
-      )
+      const presentation = frame.glasswake ?? EMPTY_GLASSWAKE
+      const chamber = loaded.get('glasswake-chamber')
+      if (chamber) {
+        chamberMaterial?.update(presentation, frame.motion ?? true)
+        drawModel(pass, chamber, 'glasswake-chamber', chamberMatrix)
+      } else {
+        // Preserve a playable landing while the optional chamber loads or retries.
+        drawModel(
+          pass,
+          loaded.get('landing'),
+          'glasswake-plinth',
+          transform([0, 0.04, -4.6], 0.65),
+          [1, 0.87, 0.64, 0.06],
+        )
+      }
+      toneStarMatrices.forEach((matrix, group) => {
+        drawModel(
+          pass,
+          loaded.get('glasswake-tone-star'),
+          `glasswake-tone-star-${group}`,
+          matrix,
+          toneStarTint(group, presentation, frame.motion ?? true, frame.clay),
+        )
+      })
     }
     const wanted =
       clamp(
@@ -556,6 +591,7 @@ export function createObservatoryRenderer(
       livePoints: POINTS * worlds.length,
       bufferBytes:
         (glass?.stats().bytes ?? 0) +
+        (chamberMaterial?.bytes ?? 0) +
         (temple?.bytes ?? 0) +
         (templeAtmosphere?.bytes ?? 0) +
         d.sizeOf(View) +
@@ -595,6 +631,7 @@ export function createObservatoryRenderer(
         model.dispose()
       loaded.clear()
       glass?.dispose()
+      chamberMaterial?.dispose()
       temple?.dispose()
       templeAtmosphere?.dispose()
       hdr?.destroy()

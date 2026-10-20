@@ -40,6 +40,8 @@ hours; Ctrl+C stops an interactive run.
    this visit. Rebuild seals starts again. Mute instrument silences held notes and
    fracture cues; Hear note remains an explicit reference audition. Volume
    affects all sound. Pause motion opens seals immediately without flying shards.
+   Three small crystal stars remain at the opened seals. Their light grows after
+   each release, while the surrounding obsidian caldera warms with progress.
 9. Completing either encounter immediately earns its page. Open earned page
    replays the motif or leads to the other world. Once earned, Play again starts
    a fresh attempt without removing the page. A reload restores completed pages
@@ -145,11 +147,24 @@ pending audio start. Returning never restarts it automatically.
   premultiplied alpha approximate glass; there is no physical refraction.
   A release adds a bounded 1.4-second tumble/fade and delayed glints, at most
   two draws and 480 triangles. Reduced motion skips this movement.
+- The Glasswake caldera is an authored opaque Blender island: 6,836 triangles,
+  real beveled hexagonal columns, three listener slabs and a recessed porcelain
+  sounding flower. Its analytic material uses one shared 16-byte uniform for
+  progress-linked warmth; cool grazing light keeps the dark silhouette readable.
+  The separate 48-triangle crystal is drawn at three fixed petal anchors.
+  Opening seals changes light, not their position. The fade follows the existing
+  encounter clock; reduced motion settles it immediately. These additions use
+  the existing depth pass, without textures, shadows, physical refraction or
+  further fractal sampling. Missing models leave the old landing playable and
+  can be retried without resetting progress.
 
 Editable Blender files and reproducible scripts are in
 [`assets-source/observatory`](assets-source/observatory/README.md).
 The three authored GLBs are observation bay (16,390 triangles), bridge section
 (352), and far landing (3,580). The reused book has 66,332 triangles.
+The caldera and crystal add two authored GLBs; their source/export hashes,
+material factors, bounds and anchors are recorded in
+[`glasswake-chamber.manifest.json`](public/models/observatory/glasswake-chamber.manifest.json).
 The Meshy seed donor was reduced from 100,666 to 14,000 triangles in Blender.
 Its original geometry is retained in the editable source; runtime metadata,
 hashes and provider task are in

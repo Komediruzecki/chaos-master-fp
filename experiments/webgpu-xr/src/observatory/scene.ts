@@ -25,6 +25,7 @@ export interface GlasswakePresentation {
   burstTimes: readonly number[]
 }
 export const GLASSWAKE_CENTER: Vec3 = [0, 1.45, -4.6]
+export const GLASSWAKE_CHAMBER_ORIGIN: Vec3 = [0, 0, GLASSWAKE_CENTER[2]]
 export const EMPTY_GLASSWAKE: GlasswakePresentation = {
   time: 0,
   charge: 0,
@@ -150,6 +151,11 @@ export const OBSERVATORY_ASSETS = [
   { id: 'bridge', url: '/models/observatory/bridge-segment.glb' },
   { id: 'landing', url: '/models/observatory/far-landing.glb' },
   { id: 'relic', url: '/models/observatory/celestial-seed.glb' },
+  { id: 'glasswake-chamber', url: '/models/observatory/glasswake-chamber.glb' },
+  {
+    id: 'glasswake-tone-star',
+    url: '/models/observatory/glasswake-tone-star.glb',
+  },
 ] as const
 
 export const EMPTY_TRACE: TracePresentation = {

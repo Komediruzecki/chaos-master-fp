@@ -5,7 +5,10 @@ export const GLASSWAKE_VERTICES_PER_SHARD = 24
 export const GLASSWAKE_VERTEX_FLOATS = 12
 export const GLASSWAKE_INSTANCE_FLOATS = 24
 export const GLASSWAKE_BURST_SECONDS = 1.4
-const sealTints: readonly GlassPoint[] = [
+export const GLASSWAKE_PETAL_RADIUS = 0.91
+export const glasswakePetalAngle = (group: number) =>
+  Math.PI / 2 + (group * Math.PI * 2) / 3
+export const GLASSWAKE_SEAL_TINTS: readonly GlassPoint[] = [
   [0.62, 0.86, 1],
   [1, 0.83, 0.55],
   [0.62, 1, 0.85],
@@ -143,9 +146,9 @@ export function createGlasswakeGeometry(): GlasswakeGeometry {
 
   for (let group = 0; group < 3; group++) {
     const point = (u: number, side: number): GlassPoint => {
-      const angle = Math.PI / 2 + (group * Math.PI * 2) / 3 + (u - 0.5) * 1.54
+      const angle = glasswakePetalAngle(group) + (u - 0.5) * 1.54
       const width = 0.06 + 0.16 * Math.sin(Math.PI * u)
-      const radius = 0.91 + side * width
+      const radius = GLASSWAKE_PETAL_RADIUS + side * width
       return [
         Math.cos(angle) * radius,
         Math.sin(angle) * radius,
@@ -235,7 +238,7 @@ export function writeGlasswakeInstance(
   target[offset + 14] =
     frame.center[2] + shard.center[2] + shard.velocity[2] * travel
   target[offset + 15] = 1
-  const tint = sealTints[shard.group]
+  const tint = GLASSWAKE_SEAL_TINTS[shard.group]
   target[offset + 16] = tint[0]
   target[offset + 17] = tint[1]
   target[offset + 18] = tint[2]
