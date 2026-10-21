@@ -1,6 +1,7 @@
 // Desktop canvas, camera and trace input lifecycle for the observatory scene.
 import { EMPTY_BOOK_AWARDS } from '../almanac/bookAwards'
 import { EMPTY_BOOK_DETAIL } from '../almanac/bookDetailData'
+import { EMPTY_SURFACE_DETAIL } from '../materials/surfaceData'
 import { createObservatoryRenderer } from './renderer'
 import { clamp, copyTrace, EMPTY_GLASSWAKE, EMPTY_TRACE, projectPoint, QUIET_MUSIC, traceAtCanvas, traceWorld, WORLD_PLACEMENTS, } from './scene'
 import { copyTemple, EMPTY_TEMPLE, EMPTY_TEMPLE_STATS } from './temple'
@@ -459,6 +460,7 @@ export class ObservatoryRuntime {
     const stats = this.renderer?.stats() ?? {
       assets: [],
       bookDetail: { ...EMPTY_BOOK_DETAIL },
+      sceneDetail: { ...EMPTY_SURFACE_DETAIL },
       submissions: 0,
       generations: 0,
       drawCalls: 0,
@@ -483,6 +485,7 @@ export class ObservatoryRuntime {
       clay: this.clay,
       assets: stats.assets,
       bookDetail: stats.bookDetail,
+      sceneDetail: stats.sceneDetail,
       traceAnchors: this.trace.target.map((point) => this.projectTrace(point)),
       visual: {
         bookAwards: { ...this.bookAwards },

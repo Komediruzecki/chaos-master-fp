@@ -1,13 +1,15 @@
 // Upload each factor-material mesh once, with a reusable uniform per scene instance.
 import { d } from 'typegpu'
 import { mat4 } from 'wgpu-matrix'
-import { bookDetailedSlot, bookDetailSlot, texturedBookSurface, } from '../almanac/bookDetailShader'
+import { bookBindingSlot, bookDetailedSlot, bookDetailSlot, surfaceFinishSlot, surfaceKindSlot, texturedBookSurface, } from '../almanac/bookDetailShader'
 import { bookFragment, bookLayout, bookVertexLayout, } from '../almanac/bookShaders'
 import { Model, modelLayout, modelVertex } from './shaders'
 import type { TgpuBindGroup, TgpuBuffer, TgpuRoot, UniformFlag } from 'typegpu'
 import type { BookGeometry } from '../almanac/bookAsset'
-import type { BookDetailResources } from '../almanac/bookDetailResources'
+import type { SurfaceFinish } from '../almanac/bookDetailShader'
+import type { bookSurfaceKind } from '../almanac/bookSurface'
 import type { View } from '../bench/shaders'
+import type { SurfaceResources } from '../materials/surfaceResources'
 
 /** An optional material changes shading without changing mesh, camera or instance ownership. */
 export interface ModelMaterial {
@@ -15,12 +17,19 @@ export interface ModelMaterial {
   bindGroup: TgpuBindGroup
 }
 
+export interface ModelDetails {
+  resources: SurfaceResources
+  /** Omitted for the accepted Almanac finish; architectural profiles disable its binding gutter. */
+  finish?: ReturnType<typeof SurfaceFinish>
+  kind?: typeof bookSurfaceKind
+}
+
 export function createModelPass(
   root: TgpuRoot,
   camera: TgpuBuffer<typeof View> & UniformFlag,
   geometry: BookGeometry,
   material?: ModelMaterial,
-  detail?: BookDetailResources,
+  detail?: ModelDetails,
 ) {
   const buffers: { destroy(): void }[] = []
   try {
@@ -36,11 +45,17 @@ export function createModelPass(
     buffers.push(indices)
     vertices.write(geometry.vertices.buffer)
     indices.write(geometry.indices.buffer)
-    const shaderRoot = detail
+    let shaderRoot = detail
       ? root
           .with(bookDetailSlot, texturedBookSurface)
           .with(bookDetailedSlot, true)
       : root
+    if (detail?.finish) {
+      shaderRoot = shaderRoot
+        .with(surfaceFinishSlot, detail.finish)
+        .with(bookBindingSlot, false)
+    }
+    if (detail?.kind) shaderRoot = shaderRoot.with(surfaceKindSlot, detail.kind)
     let pipeline = shaderRoot
       .createRenderPipeline({
         attribs: { ...bookVertexLayout.attrib },
@@ -98,7 +113,7 @@ export function createModelPass(
         instance.raw.set(matrix, 0)
         instance.raw.set(tint, 16)
         instance.uniform.write(instance.raw.buffer)
-        const bound = detail ? pipeline.with(detail.group) : pipeline
+        const bound = detail ? pipeline.with(detail.resources.group) : pipeline
         bound
           .with(instance.group)
           .with(pass)

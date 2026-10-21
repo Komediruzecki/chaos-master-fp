@@ -8,11 +8,13 @@ import { createBookDetailResources } from '../almanac/bookDetailResources'
 import { ALMANAC_WORLDS, settingsForWorld } from '../almanac/catalog'
 import { SAMPLE_STEPS } from '../bench/recipes'
 import { cloudFragment, constructSpecimen, fullScreenVertex, resolveLayout, SampleConfig, samplingLayout, sceneLayout, View, } from '../bench/shaders'
+import { createSurfaceResources, EMPTY_SURFACE_DETAIL, } from '../materials/surfaceResources'
 import { toneStarMatrix, toneStarTint } from './glasswakeChamber'
 import { createGlasswakeChamberMaterial } from './glasswakeChamberMaterial'
 import { createGlasswakePass } from './glasswakePass'
 import { beamMatrix, createModelPass, primitiveGeometry } from './modelPass'
 import { clamp, EMPTY_GLASSWAKE, GLASSWAKE_CENTER, GLASSWAKE_CHAMBER_ORIGIN, OBSERVATORY_ASSETS, sceneCamera, traceWorld, WORLD_PLACEMENTS, } from './scene'
+import { OBSERVATORY_FINISH, SCENE_DETAIL_URL, sceneSurfaceKind, } from './sceneSurface'
 import { Model, modelLayout, orbVertex, Sky, skyFragment, skyLayout, toneMapFragment, } from './shaders'
 import { EMPTY_TEMPLE, EMPTY_TEMPLE_STATS, TEMPLE_WORLD_PLACEMENTS, } from './temple'
 import { createTempleAtmosphere } from './templeAtmosphere'
@@ -129,6 +131,7 @@ export function createObservatoryRenderer(
   })
   let glass: ReturnType<typeof createGlasswakePass> | undefined
   let bookDetail: ReturnType<typeof createBookDetailResources> | undefined
+  let sceneDetail: ReturnType<typeof createSurfaceResources> | undefined
   let chamberMaterial:
     | ReturnType<typeof createGlasswakeChamberMaterial>
     | undefined
@@ -165,8 +168,18 @@ export function createObservatoryRenderer(
     return chamberMaterial.material
   }
 
+  function architecturalDetails() {
+    sceneDetail ??= createSurfaceResources(root, changed, {
+      url: SCENE_DETAIL_URL,
+      label: 'Observatory',
+    })
+    void sceneDetail.load()
+    return sceneDetail
+  }
+
   async function loadAssets() {
     void bookDetail?.load()
+    void sceneDetail?.load()
     await Promise.all(
       OBSERVATORY_ASSETS.map(async (asset) => {
         const state = assetStates.find(
@@ -194,6 +207,12 @@ export function createObservatoryRenderer(
           try {
             try {
               const isBook = asset.id === 'book' || asset.id.startsWith('book-')
+              const isArchitecture = [
+                'bay',
+                'bridge',
+                'landing',
+                'relic',
+              ].includes(asset.id)
               if (isBook) {
                 bookDetail ??= createBookDetailResources(root, changed)
                 void bookDetail.load()
@@ -203,7 +222,15 @@ export function createObservatoryRenderer(
                 camera,
                 geometry,
                 assetMaterial(asset.id),
-                isBook ? bookDetail : undefined,
+                isBook && bookDetail
+                  ? { resources: bookDetail }
+                  : isArchitecture
+                    ? {
+                        resources: architecturalDetails(),
+                        finish: OBSERVATORY_FINISH,
+                        kind: sceneSurfaceKind,
+                      }
+                    : undefined,
               )
             } finally {
               validation = await device.popErrorScope()
@@ -339,7 +366,7 @@ export function createObservatoryRenderer(
       ? TEMPLE_WORLD_PLACEMENTS
       : WORLD_PLACEMENTS
     if (templeMode) {
-      temple ??= createTemplePass(root, camera)
+      temple ??= createTemplePass(root, camera, architecturalDetails())
       templeAtmosphere ??= createTempleAtmosphere(root, camera)
     }
     templeStats = { ...EMPTY_TEMPLE_STATS }
@@ -597,6 +624,7 @@ export function createObservatoryRenderer(
     camera: () => projectedCamera,
     stats: () => ({
       bookDetail: bookDetail?.snapshot() ?? { ...EMPTY_BOOK_DETAIL },
+      sceneDetail: sceneDetail?.snapshot() ?? { ...EMPTY_SURFACE_DETAIL },
       assets: assetStates.map((asset) => ({ ...asset })),
       submissions,
       generations,
@@ -648,6 +676,7 @@ export function createObservatoryRenderer(
         model.dispose()
       loaded.clear()
       bookDetail?.dispose()
+      sceneDetail?.dispose()
       glass?.dispose()
       chamberMaterial?.dispose()
       temple?.dispose()

@@ -2,15 +2,18 @@
 import { d } from 'typegpu'
 import { mat4 } from 'wgpu-matrix'
 import { createModelPass } from './modelPass'
+import { sceneSurfaceKind, TEMPLE_FINISH } from './sceneSurface'
 import { createTempleConnections, createTempleParts, EMPTY_TEMPLE_STATS, TEMPLE_CENTER, templePartVisible, } from './temple'
 import { templeFragment, TempleLighting, templeLighting, templeMaterialLayout, } from './templeMaterial'
 import type { TgpuBuffer, TgpuRoot, UniformFlag } from 'typegpu'
 import type { View } from '../bench/shaders'
+import type { SurfaceResources } from '../materials/surfaceResources'
 import type { TemplePresentation, TempleStats } from './temple'
 
 export function createTemplePass(
   root: TgpuRoot,
   camera: TgpuBuffer<typeof View> & UniformFlag,
+  detail?: SurfaceResources,
 ) {
   const lighting = root.createBuffer(TempleLighting).$usage('uniform')
   const retained: ReturnType<typeof createModelPass>[] = []
@@ -18,7 +21,19 @@ export function createTemplePass(
     const bindGroup = root.createBindGroup(templeMaterialLayout, { lighting })
     const material = { fragment: templeFragment, bindGroup }
     const upload = (geometry: Parameters<typeof createModelPass>[2]) => {
-      const model = createModelPass(root, camera, geometry, material)
+      const model = createModelPass(
+        root,
+        camera,
+        geometry,
+        material,
+        detail
+          ? {
+              resources: detail,
+              finish: TEMPLE_FINISH,
+              kind: sceneSurfaceKind,
+            }
+          : undefined,
+      )
       retained.push(model)
       return model
     }

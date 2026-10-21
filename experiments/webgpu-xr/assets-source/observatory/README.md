@@ -1,6 +1,6 @@
 # Observatory asset kit
 
-This is the authored environment kit for the desktop observatory. The terrace has a bevelled stone slab, separated radial floor sectors, a low raised rim, sweeping rails and structural ribs, seven survey markers and an Almanac lectern. The bridge is a separate repeatable tile; the far landing is a separate platform. Broad silhouettes, actual inlaid geometry and five opaque materials per module carry the appearance in the current factor-material renderer.
+This is the authored environment kit for the desktop observatory. The terrace has a bevelled stone slab, separated radial floor sectors, a low raised rim, sweeping rails and structural ribs, seven survey markers and an Almanac lectern. The bridge is a separate repeatable tile; the far landing is a separate platform. Broad silhouettes, actual inlaid geometry and five opaque materials per module establish the base appearance. The separate surface-data study below adds optional architectural detail.
 
 Version 2 gives only the observation bay the Night Almanac architecture palette: black basalt, charcoal floor insets, blackened bronze rails, satin silver trim and bone enamel markers. Separate `Bay | …` materials keep bridge and landing factors unchanged. Their exported files, the celestial seed, and both Glasswake assets remain byte-identical to the previous delivery. The editable kit source includes the complete arrangement.
 
@@ -15,7 +15,7 @@ The visual direction comes from `personal/lumen-meta/concepts/08-seven-constella
 | Same source                                     | `far-landing.glb`     | Destination pedestal and relic mount |
 | `prepare_relic.py`, `celestial-seed.blend`      | `celestial-seed.glb`  | Reduced Meshy decorative seed        |
 
-Runtime files live in `../../public/models/observatory/`. `manifest.json` describes the authored kit, coordinates and placements. `celestial-seed.manifest.json` records the provider lineage and derivative. Both record hashes and Blender version. No texture, decoder, skeletal animation or external buffer is required.
+Runtime files live in `../../public/models/observatory/`. `manifest.json` describes the authored kit, coordinates and placements. `celestial-seed.manifest.json` records the provider lineage and derivative. Both record hashes and Blender version. The base meshes require no texture, decoder, skeletal animation or external buffer; the optional surface bundle is separate.
 
 | Runtime module  | Triangles | GLB bytes | Current loader geometry bytes |
 | --------------- | --------: | --------: | ----------------------------: |
@@ -70,7 +70,105 @@ The geometry screen reports no non-finite, zero-area or opposing-normal flags. T
 
 All four final repository GLBs also pass the application's actual `parseBookGlb` loader. Its parsed bounds confirm a bridge width of 1.6 and a seed base at Y = 0 with height 1.0. The manifest and named nodes carry placement information; the current book parser only extracts its original two book dock anchors, so the observatory uses the placement manifest explicitly.
 
-The materials are factors, not baked stone, patina or roughness textures. The Blender studio has area lighting and shadows that the current application renderer may not reproduce. Real browser inspection and headset acceptance remain separate gates.
+The GLB materials contain factors rather than baked stone, patina or roughness textures. The optional surface fields below are not embedded in those exports. The Blender studio has area lighting and shadows that the application renderer may not reproduce. Real browser inspection and headset acceptance remain separate gates.
+
+## Observatory and temple surface fields
+
+`build_surfaces.py` authors a separate three-layer linear data bundle for the
+architectural material pass. It does not regenerate or modify any geometry,
+Blender file, GLB palette, light envelope, game state or Almanac texture. The
+existing resource catalog was considered; custom procedural fields fit this
+renderer and the accepted architecture without introducing external assets.
+
+| Layer                 | Authored character                                                                      | Initial material mapping                                         |
+| --------------------- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| 0: mineral stone      | Quiet mineral strata, fine grains and small pores                                       | Bay basalt; bridge and landing basalt/slate; temple stone        |
+| 1: worked dark finish | Shallow polishing marks, small pores and finely worked surface variation                | Bay charcoal inset                                               |
+| 2: aged metal         | Directional machining, sparse polishing scratches and restrained tonal/roughness patina | Bay bronze; bridge/landing brass; teal-bronze relic; temple gold |
+
+These are deterministic procedural maps, not photographs, scans, provider
+textures or AI image-model output. Patina is encoded as monochrome surface
+variation; the data adds no green tint, rust colour or painted lighting. The
+existing base palette remains authoritative. Bone enamel, satin silver, tide
+enamel and the temple's pale/teal detail can remain smooth. Glasswake's caldera
+and tone-star materials are outside this asset pass.
+
+### Existing factors, inventoried before integration
+
+Values below are the authored linear RGB/metalness/roughness, before runtime
+lighting or colour grading. GLB floats are rounded to their source precision;
+an omitted glTF metallic factor means 1, not 0. The temple is procedural source
+geometry in `src/observatory/temple.ts`, not a Blender export.
+
+| Material                    | Linear RGB          | Metalness | Roughness | Emission scalar |
+| --------------------------- | ------------------- | --------: | --------: | --------------: |
+| Bay black basalt            | 0.026, 0.026, 0.026 |         0 |      0.82 |               0 |
+| Bay charcoal inset          | 0.043, 0.043, 0.043 |         0 |      0.72 |               0 |
+| Bay blackened bronze        | 0.20, 0.15, 0.11    |         1 |      0.42 |               0 |
+| Bay satin silver            | 0.90, 0.89, 0.86    |         1 |      0.36 |               0 |
+| Bay bone enamel             | 0.60, 0.56, 0.48    |         0 |      0.62 |               0 |
+| Bridge/landing blue basalt  | 0.039, 0.064, 0.083 |      0.03 |      0.77 |               0 |
+| Bridge/landing slate inset  | 0.052, 0.112, 0.121 |      0.03 |      0.64 |               0 |
+| Bridge/landing muted brass  | 0.24, 0.145, 0.063  |      0.78 |      0.46 |               0 |
+| Bridge/landing bright brass | 0.55, 0.33, 0.115   |      0.86 |      0.31 |               0 |
+| Bridge/landing tide enamel  | 0.17, 0.47, 0.44    |      0.03 |      0.39 |               0 |
+| Relic patinated teal bronze | 0.064, 0.21, 0.19   |      0.60 |      0.38 |               0 |
+| Temple STONE                | 0.24, 0.30, 0.38    |      0.12 |      0.54 |            0.04 |
+| Temple EDGE                 | 0.65, 0.68, 0.63    |      0.32 |      0.30 |            0.02 |
+| Temple GOLD                 | 0.92, 0.58, 0.19    |      0.65 |      0.28 |            0.18 |
+| Temple TEAL                 | 0.13, 0.66, 0.59    |      0.32 |      0.30 |            0.18 |
+| Temple PALE                 | 0.72, 0.88, 0.81    |      0.38 |      0.30 |            0.12 |
+
+### Reproduce and upload
+
+Run from the repository root with Python, NumPy and Pillow:
+
+```sh
+rtk proxy timeout 120 python3 experiments/webgpu-xr/assets-source/observatory/build_surfaces.py --evidence-dir /absolute/path/to/registered-run/evidence/observatory-surfaces
+```
+
+Optional `--runtime-dir /absolute/path/to/registered-run/scratch/reproduction`
+allows a second generation without touching the shipping bundle. The generator
+reuses the unchanged Almanac authoring utilities for periodic noise, linear
+encoding and mips. Its manifest records both recipe hashes and dependency
+versions, so that relationship is explicit.
+
+The shipping asset is
+`public/models/observatory/surfaces/observatory-surfaces-v1.bin`, with a sibling
+manifest. Its format matches the Almanac `LMSURF01` contract: 32-byte header,
+512 × 512, three layers, ten mips, four channels. Payload order is layer-major,
+then mip-major from 512 to 1, then tightly packed row-major RGBA8. Total file
+size is **4,194,332 bytes**; nominal GPU texel storage is **4,194,300 bytes**.
+
+R is height, G roughness **variation**, and B albedo **variation**, all centred
+on 0.5. G and B are not absolute material factors. A is constant 255 and carries
+no AO/contact shadow. Upload as `rgba8unorm`, never an sRGB format. Mips are
+linear 2 × 2 area averages. Inspection PNGs and the channel/repeat contact sheet
+go only to the registered evidence directory; the runtime does not decode them.
+
+Every field is periodic. A cyclic translation places the repeat origin at a
+representative gradient instead of a rare strong machining line. This does not
+patch border pixels or remove any detail. The receipt compares wrap gradients
+with interior gradients in all three channels.
+
+Starting scale suggestions are 1.35 study units per stone repeat on the bay,
+0.85 for temple stone, 0.32 for the dark finish and 0.24 for metal machining.
+These are artistic calibration values in the existing metre-oriented study
+scene, not a headset scale measurement or fixed shader requirement. The runtime
+may adjust them at its actual camera distance. Keep broad mineral structure
+restrained and manufactured grain shallow; do not enlarge the grain to disguise
+an unsuitable camera or mip setting.
+
+The [integration study](../../docs/scene-material-pilot.md#mapping-and-calibration)
+records the current runtime calibration. Browser review increased temple stone
+repeat to 1.4 and strengthened colour/roughness variation after the initial
+fine-grain response proved too subtle at the normal camera distance. The
+manifest retains the initial authoring recommendations; the bundle is unchanged.
+
+The asset recipe proves reproducible data, not the actual scene finish. Matched
+runtime views, fallback/retry, resource disposal, book preservation and Quest
+performance remain separate integration checks. No browser acceptance is
+claimed by this source document.
 
 ## Meshy lineage
 

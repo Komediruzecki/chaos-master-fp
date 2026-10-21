@@ -1,8 +1,7 @@
 // Authored factor materials with filtered local grain and analytic studio reflections.
 import { d, std, tgpu } from 'typegpu'
 import { View } from '../bench/shaders'
-import { bookDetailedSlot, bookDetailSlot } from './bookDetailShader'
-import { bookSurfaceKind } from './bookSurface'
+import { bookBindingSlot, bookDetailedSlot, bookDetailSlot, surfaceKindSlot, } from './bookDetailShader'
 
 export const BookVertex = d.struct({
   position: d.vec4f,
@@ -89,7 +88,7 @@ export const bookFragment = tgpu.fragmentFn({
   let metal = input.surface.x
   let rough = std.clamp(input.surface.y, 0.08, 0.98)
   const clay = camera.eye.w > 0.5
-  const kind = bookSurfaceKind(input.color.rgb, input.surface)
+  const kind = surfaceKindSlot.$(input.color.rgb, input.surface)
   // Model-local coordinates keep grain fixed on the book in either scene.
   const local = input.local
   if (!bookDetailedSlot.$) {
@@ -116,7 +115,7 @@ export const bookFragment = tgpu.fragmentFn({
       rough = std.clamp(rough + burnish * weight * 0.045, 0.08, 0.98)
     }
   }
-  if (kind === 1) {
+  if (bookBindingSlot.$ && kind === 1) {
     // The binding is centred on local X=0 in both exported GLBs and scene instances.
     albedo = albedo.mul(
       std.mix(0.55, 1, std.smoothstep(0, 0.03, std.abs(local.x))),

@@ -1,5 +1,6 @@
 // Mineral stone, metal inlays and two score-led lights share the existing model vertex contract.
 import { d, std, tgpu } from 'typegpu'
+import { bookDetailedSlot, bookDetailSlot, surfaceKindSlot, } from '../almanac/bookDetailShader'
 import { bookLayout } from '../almanac/bookShaders'
 import { TEMPLE_DURATION_SECONDS, TEMPLE_SCORE, TEMPLE_SECTIONS, } from '../journey/templeScore'
 import type { TemplePresentation } from './temple'
@@ -90,36 +91,51 @@ export const templeFragment = tgpu.fragmentFn({
   const toEye = std.normalize(camera.eye.xyz.sub(input.world))
   const metal = input.surface.x
   const stone = 1 - std.smoothstep(0.18, 0.28, metal)
-  const roughness = std.clamp(input.surface.y + stone * 0.12, 0.22, 0.92)
-  const local = input.world.add(d.vec3f(0, 0, 12))
-
-  // Stable world-space mineral layers and grain. Derivative filtering removes
-  // detail before its frequency becomes subpixel, including narrow viewports.
-  const grainCoordinates = local.mul(64)
-  const grainFootprint = std.max(
-    std.length(std.dpdx(grainCoordinates)),
-    std.length(std.dpdy(grainCoordinates)),
-  )
-  const grain =
-    std.sin(grainCoordinates.x + grainCoordinates.y * 0.7) *
-    std.sin(grainCoordinates.z * 0.83 - grainCoordinates.y)
-  const grainWeight = (1 - std.smoothstep(0.35, 1.8, grainFootprint)) * 0.045
-  const veinCoordinate =
-    std.dot(local, d.vec3f(1.8, 2.3, 3.1)) +
-    std.sin(local.y * 2.1 + local.z) * 0.7 +
-    std.sin(local.x * 4.2 - local.y) * 0.23
-  const veinFootprint =
-    std.abs(std.dpdx(veinCoordinate)) + std.abs(std.dpdy(veinCoordinate))
-  const vein =
-    (1 -
-      std.smoothstep(
-        0.035,
-        0.13 + veinFootprint,
-        std.abs(std.sin(veinCoordinate)),
-      )) *
-    (1 - std.smoothstep(0.2, 0.9, veinFootprint))
+  let roughness = std.clamp(input.surface.y + stone * 0.12, 0.22, 0.92)
+  const inheritedFill = 0.035 + std.max(d.f32(0), normal.y) * 0.16
   let albedo = input.color.rgb.mul(1 - stone * 0.38)
-  albedo = albedo.mul(1 + stone * (grain * grainWeight + vein * 0.22))
+  if (!bookDetailedSlot.$) {
+    const local = input.world.add(d.vec3f(0, 0, 12))
+
+    // Stable world-space mineral layers and grain. Derivative filtering removes
+    // detail before its frequency becomes subpixel, including narrow viewports.
+    const grainCoordinates = local.mul(64)
+    const grainFootprint = std.max(
+      std.length(std.dpdx(grainCoordinates)),
+      std.length(std.dpdy(grainCoordinates)),
+    )
+    const grain =
+      std.sin(grainCoordinates.x + grainCoordinates.y * 0.7) *
+      std.sin(grainCoordinates.z * 0.83 - grainCoordinates.y)
+    const grainWeight = (1 - std.smoothstep(0.35, 1.8, grainFootprint)) * 0.045
+    const veinCoordinate =
+      std.dot(local, d.vec3f(1.8, 2.3, 3.1)) +
+      std.sin(local.y * 2.1 + local.z) * 0.7 +
+      std.sin(local.x * 4.2 - local.y) * 0.23
+    const veinFootprint =
+      std.abs(std.dpdx(veinCoordinate)) + std.abs(std.dpdy(veinCoordinate))
+    const vein =
+      (1 -
+        std.smoothstep(
+          0.035,
+          0.13 + veinFootprint,
+          std.abs(std.sin(veinCoordinate)),
+        )) *
+      (1 - std.smoothstep(0.2, 0.9, veinFootprint))
+    albedo = albedo.mul(1 + stone * (grain * grainWeight + vein * 0.22))
+  }
+  const detail = bookDetailSlot.$(
+    input.local,
+    input.world,
+    normal,
+    albedo,
+    roughness,
+    surfaceKindSlot.$(input.color.rgb, input.surface),
+    d.u32(camera.eye.w > 0.5),
+  )
+  normal = d.vec3f(detail.normal)
+  albedo = d.vec3f(detail.albedo)
+  roughness = detail.rough
 
   const hemisphere = 0.055 + 0.075 * std.max(d.f32(0), normal.y)
   let color = albedo.mul(d.vec3f(0.36, 0.5, 0.7)).mul(hemisphere)
@@ -169,12 +185,15 @@ export const templeFragment = tgpu.fragmentFn({
   color = color.add(
     albedo
       .mul(d.vec3f(0.5, 0.71, 0.86))
-      .mul((metal * skyReflection + grazing * 0.035) * (0.4 + levels.z * 0.6)),
+      .mul(
+        (metal * skyReflection + grazing * 0.035) *
+          (0.4 + levels.z * 0.6) *
+          detail.environment,
+      ),
   )
 
   // modelVertex adds fill for the other worlds. Remove it here: mineral stone
   // must be lit by its surfaces, while authored inlays can carry the score light.
-  const inheritedFill = 0.035 + std.max(d.f32(0), normal.y) * 0.16
   const emission = std.max(d.f32(0), input.surface.z - inheritedFill)
   const teal = std.smoothstep(0.04, 0.25, input.color.g - input.color.r)
   const motifLight = std.mix(levels.x, levels.y, teal)

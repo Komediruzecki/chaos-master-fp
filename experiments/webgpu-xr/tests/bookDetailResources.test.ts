@@ -1,7 +1,9 @@
 // Surface loading keeps a usable fallback across GPU failures, retries and teardown races.
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { createBookDetailResources } from '../src/almanac/bookDetailResources'
+import { BOOK_DETAIL_URL } from '../src/almanac/bookDetailData'
+import { bookDetailLayout, createBookDetailResources, } from '../src/almanac/bookDetailResources'
+import { createSurfaceResources, surfaceDetailLayout, } from '../src/materials/surfaceResources'
 import type { TgpuRoot } from 'typegpu'
 
 type Failure =
@@ -393,4 +395,83 @@ await test('fallback initialization failure releases its partially created textu
       failure,
     )
   }
+})
+
+await test('an alternate surface source has its own retry, error label and lifetime beside the book', async (t) => {
+  const url = '/models/test/observatory-surfaces.bin'
+  const requested: string[] = []
+  const responses = [
+    new Response(null, { status: 404 }),
+    new Response(new Uint8Array(64)),
+    new Response(bundle()),
+  ]
+  t.mock.method(globalThis, 'fetch', (input: RequestInfo | URL) => {
+    const source =
+      typeof input === 'string'
+        ? input
+        : input instanceof URL
+          ? input.href
+          : input.url
+    requested.push(source)
+    if (source === BOOK_DETAIL_URL)
+      return Promise.resolve(new Response(bundle()))
+    assert.equal(source, url, 'the alternate loader must use its own source')
+    const response = responses.shift()
+    assert.ok(response, 'unexpected extra surface request')
+    return Promise.resolve(response)
+  })
+  const probe = gpuProbe()
+  const book = createBookDetailResources(probe.root, () => {})
+  const scene = createSurfaceResources(probe.root, () => {}, {
+    url,
+    label: 'Observatory',
+  })
+  t.after(() => {
+    book.dispose()
+    scene.dispose()
+  })
+  assert.equal(
+    bookDetailLayout,
+    surfaceDetailLayout,
+    'the compatibility export must retain the same binding layout',
+  )
+  assert.notEqual(
+    book.group,
+    scene.group,
+    'independent sources cannot share a mutable texture binding',
+  )
+  const sceneFallback = scene.group
+  await book.load()
+  const readyBook = book.group
+  const bookSnapshot = book.snapshot()
+  for (const message of [
+    'Observatory surface request failed (HTTP 404).',
+    'The observatory surface bundle has an unexpected size.',
+  ]) {
+    await scene.load()
+    assert.equal(scene.snapshot().status, 'error')
+    assert.equal(scene.snapshot().error, message)
+    assert.equal(scene.group, sceneFallback)
+    assert.equal(book.group, readyBook)
+    assert.deepEqual(book.snapshot(), bookSnapshot)
+  }
+  await scene.load()
+  assert.equal(scene.snapshot().status, 'ready')
+  assert.equal(scene.snapshot().uploads, 1)
+  assert.equal(scene.snapshot().textureBytes, 4_194_300)
+  assert.notEqual(scene.group, sceneFallback)
+  scene.dispose()
+  scene.dispose()
+  assert.equal(book.group, readyBook)
+  assert.deepEqual(book.snapshot(), bookSnapshot)
+  assert.deepEqual(
+    probe.state.textures.map((texture) => texture.destroyed),
+    [1, 1, 0, 1],
+  )
+  book.dispose()
+  assert.deepEqual(
+    probe.state.textures.map((texture) => texture.destroyed),
+    [1, 1, 1, 1],
+  )
+  assert.deepEqual(requested, [BOOK_DETAIL_URL, url, url, url])
 })

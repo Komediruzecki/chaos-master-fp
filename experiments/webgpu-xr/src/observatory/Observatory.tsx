@@ -655,7 +655,8 @@ export function Observatory() {
         when={
           ready() &&
           (state()?.assets.some((asset) => asset.status === 'error') ||
-            state()?.bookDetail.status === 'error')
+            state()?.bookDetail.status === 'error' ||
+            state()?.sceneDetail.status === 'error')
         }
       >
         <div class="observatory-asset-error" role="alert">
