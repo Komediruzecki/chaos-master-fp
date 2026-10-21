@@ -3,6 +3,8 @@ import { d, tgpu } from 'typegpu'
 import { mat4 } from 'wgpu-matrix'
 import { loadBookGeometry } from '../almanac/bookAsset'
 import { BOOK_RELIEFS, EMPTY_BOOK_AWARDS } from '../almanac/bookAwards'
+import { EMPTY_BOOK_DETAIL } from '../almanac/bookDetailData'
+import { createBookDetailResources } from '../almanac/bookDetailResources'
 import { createBookPass } from '../almanac/bookPass'
 import { ALMANAC_WORLDS, settingsForWorld } from '../almanac/catalog'
 import { WORLD_VISUALS } from '../almanac/worldIdentity'
@@ -144,6 +146,7 @@ export function createBenchRenderer(
     draws: 0,
   }
   let bookPass: ReturnType<typeof createBookPass> | undefined
+  let bookDetail: ReturnType<typeof createBookDetailResources> | undefined
   let reliefPasses: (ReturnType<typeof createBookPass> | undefined)[] = []
   let bookRequest: AbortController | undefined
   let disposed = false
@@ -203,7 +206,9 @@ export function createBenchRenderer(
       try {
         let validation: GPUError | null
         try {
-          candidate = createBookPass(root, camera, geometry, 4)
+          bookDetail ??= createBookDetailResources(root, changed)
+          void bookDetail.load()
+          candidate = createBookPass(root, camera, geometry, 4, bookDetail)
         } finally {
           validation = await device.popErrorScope()
         }
@@ -563,6 +568,7 @@ export function createBenchRenderer(
       scene,
       book: {
         ...book,
+        detail: bookDetail?.snapshot() ?? { ...EMPTY_BOOK_DETAIL },
         awards: { ...book.awards },
         materials: [...book.materials],
         anchors: { left: [...leftDock], right: [...rightDock] },
@@ -582,6 +588,7 @@ export function createBenchRenderer(
       bookRequest?.abort()
       bookPass?.dispose()
       reliefPasses.forEach((relief) => relief?.dispose())
+      bookDetail?.dispose()
       hdr?.destroy()
       multisampledHdr?.destroy()
       depth?.destroy()

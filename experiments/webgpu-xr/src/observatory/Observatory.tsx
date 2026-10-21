@@ -653,11 +653,13 @@ export function Observatory() {
       </Show>
       <Show
         when={
-          ready() && state()?.assets.some((asset) => asset.status === 'error')
+          ready() &&
+          (state()?.assets.some((asset) => asset.status === 'error') ||
+            state()?.bookDetail.status === 'error')
         }
       >
         <div class="observatory-asset-error" role="alert">
-          Some objects could not load.{' '}
+          Some objects or surface details could not load.{' '}
           <button type="button" onClick={() => runtime?.retryAssets()}>
             Retry objects
           </button>

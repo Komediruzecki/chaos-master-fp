@@ -1,10 +1,12 @@
 // Upload each factor-material mesh once, with a reusable uniform per scene instance.
 import { d } from 'typegpu'
 import { mat4 } from 'wgpu-matrix'
+import { bookDetailedSlot, bookDetailSlot, texturedBookSurface, } from '../almanac/bookDetailShader'
 import { bookFragment, bookLayout, bookVertexLayout, } from '../almanac/bookShaders'
 import { Model, modelLayout, modelVertex } from './shaders'
 import type { TgpuBindGroup, TgpuBuffer, TgpuRoot, UniformFlag } from 'typegpu'
 import type { BookGeometry } from '../almanac/bookAsset'
+import type { BookDetailResources } from '../almanac/bookDetailResources'
 import type { View } from '../bench/shaders'
 
 /** An optional material changes shading without changing mesh, camera or instance ownership. */
@@ -18,6 +20,7 @@ export function createModelPass(
   camera: TgpuBuffer<typeof View> & UniformFlag,
   geometry: BookGeometry,
   material?: ModelMaterial,
+  detail?: BookDetailResources,
 ) {
   const buffers: { destroy(): void }[] = []
   try {
@@ -33,7 +36,12 @@ export function createModelPass(
     buffers.push(indices)
     vertices.write(geometry.vertices.buffer)
     indices.write(geometry.indices.buffer)
-    let pipeline = root
+    const shaderRoot = detail
+      ? root
+          .with(bookDetailSlot, texturedBookSurface)
+          .with(bookDetailedSlot, true)
+      : root
+    let pipeline = shaderRoot
       .createRenderPipeline({
         attribs: { ...bookVertexLayout.attrib },
         vertex: modelVertex,
@@ -90,7 +98,8 @@ export function createModelPass(
         instance.raw.set(matrix, 0)
         instance.raw.set(tint, 16)
         instance.uniform.write(instance.raw.buffer)
-        pipeline
+        const bound = detail ? pipeline.with(detail.group) : pipeline
+        bound
           .with(instance.group)
           .with(pass)
           .drawIndexed(geometry.indices.length)

@@ -1,15 +1,18 @@
 // Upload the exported book once and draw it into the existing scene render pass.
 import { d } from 'typegpu'
+import { bookDetailedSlot, bookDetailSlot, texturedBookSurface, } from './bookDetailShader'
 import { bookFragment, bookLayout, bookVertex, bookVertexLayout, } from './bookShaders'
 import type { TgpuBuffer, TgpuRoot, UniformFlag } from 'typegpu'
 import type { View } from '../bench/shaders'
 import type { BookGeometry } from './bookAsset'
+import type { BookDetailResources } from './bookDetailResources'
 
 export function createBookPass(
   root: TgpuRoot,
   camera: TgpuBuffer<typeof View> & UniformFlag,
   geometry: BookGeometry,
   sampleCount = 1,
+  detail?: BookDetailResources,
 ) {
   const resources: { destroy(): void }[] = []
   try {
@@ -25,7 +28,12 @@ export function createBookPass(
     resources.push(indices)
     vertices.write(geometry.vertices.buffer)
     indices.write(geometry.indices.buffer)
-    const pipeline = root
+    const shaderRoot = detail
+      ? root
+          .with(bookDetailSlot, texturedBookSurface)
+          .with(bookDetailedSlot, true)
+      : root
+    const pipeline = shaderRoot
       .createRenderPipeline({
         attribs: { ...bookVertexLayout.attrib },
         vertex: bookVertex,
@@ -45,7 +53,8 @@ export function createBookPass(
     root.unwrap(pipeline)
     return {
       draw(pass: GPURenderPassEncoder) {
-        pipeline.with(pass).drawIndexed(geometry.indices.length)
+        const bound = detail ? pipeline.with(detail.group) : pipeline
+        bound.with(pass).drawIndexed(geometry.indices.length)
       },
       dispose() {
         resources.forEach((resource) => {

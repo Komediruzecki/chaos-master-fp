@@ -1,6 +1,7 @@
 // Authored factor materials with filtered local grain and analytic studio reflections.
 import { d, std, tgpu } from 'typegpu'
 import { View } from '../bench/shaders'
+import { bookDetailedSlot, bookDetailSlot } from './bookDetailShader'
 import { bookSurfaceKind } from './bookSurface'
 
 export const BookVertex = d.struct({
@@ -91,37 +92,53 @@ export const bookFragment = tgpu.fragmentFn({
   const kind = bookSurfaceKind(input.color.rgb, input.surface)
   // Model-local coordinates keep grain fixed on the book in either scene.
   const local = input.local
-  const pixelSize = std.max(
-    std.length(std.dpdx(local)),
-    std.length(std.dpdy(local)),
-  )
-  const fineWeight = 1 - std.smoothstep(0.0003, 0.0006, pixelSize)
-  const broadWeight = 1 - std.smoothstep(0.006, 0.012, pixelSize)
-  const fibers = std.sin(local.x * 5235.99 + std.sin(local.z * 3100))
-  const bands = std.sin(local.z * 261.8 + std.sin(local.x * 71) * 0.5)
+  if (!bookDetailedSlot.$) {
+    const pixelSize = std.max(
+      std.length(std.dpdx(local)),
+      std.length(std.dpdy(local)),
+    )
+    const fineWeight = 1 - std.smoothstep(0.0003, 0.0006, pixelSize)
+    const broadWeight = 1 - std.smoothstep(0.006, 0.012, pixelSize)
+    const fibers = std.sin(local.x * 5235.99 + std.sin(local.z * 3100))
+    const bands = std.sin(local.z * 261.8 + std.sin(local.x * 71) * 0.5)
+    if (kind === 1) {
+      const grain = fibers * fineWeight * 0.55 + bands * broadWeight * 0.45
+      albedo = albedo.mul(1 + grain * 0.04)
+      rough = std.clamp(rough + grain * 0.06, 0.08, 0.98)
+    } else if (kind === 2) {
+      const pebbles = std.sin(local.x * 4188.79) * std.sin(local.z * 4188.79)
+      const weight = 1 - std.smoothstep(0.000375, 0.00075, pixelSize)
+      albedo = albedo.mul(1 + pebbles * weight * 0.05)
+      rough = std.clamp(rough + pebbles * weight * 0.065, 0.08, 0.98)
+    } else if (kind === 3) {
+      const burnish = std.sin(local.x * 785.4 + std.sin(local.z * 440))
+      const weight = 1 - std.smoothstep(0.002, 0.004, pixelSize)
+      rough = std.clamp(rough + burnish * weight * 0.045, 0.08, 0.98)
+    }
+  }
   if (kind === 1) {
-    const grain = fibers * fineWeight * 0.55 + bands * broadWeight * 0.45
-    albedo = albedo.mul(1 + grain * 0.04)
-    rough = std.clamp(rough + grain * 0.06, 0.08, 0.98)
     // The binding is centred on local X=0 in both exported GLBs and scene instances.
     albedo = albedo.mul(
       std.mix(0.55, 1, std.smoothstep(0, 0.03, std.abs(local.x))),
     )
-  } else if (kind === 2) {
-    const pebbles = std.sin(local.x * 4188.79) * std.sin(local.z * 4188.79)
-    const weight = 1 - std.smoothstep(0.000375, 0.00075, pixelSize)
-    albedo = albedo.mul(1 + pebbles * weight * 0.05)
-    rough = std.clamp(rough + pebbles * weight * 0.065, 0.08, 0.98)
-  } else if (kind === 3) {
-    const burnish = std.sin(local.x * 785.4 + std.sin(local.z * 440))
-    const weight = 1 - std.smoothstep(0.002, 0.004, pixelSize)
-    rough = std.clamp(rough + burnish * weight * 0.045, 0.08, 0.98)
   }
   if (clay) {
     albedo = d.vec3f(0.32, 0.34, 0.36)
     metal = d.f32(0)
     rough = d.f32(0.75)
   }
+  const detail = bookDetailSlot.$(
+    input.local,
+    input.world,
+    normal,
+    albedo,
+    rough,
+    kind,
+    d.u32(clay),
+  )
+  normal = d.vec3f(detail.normal)
+  albedo = d.vec3f(detail.albedo)
+  rough = detail.rough
   const hemisphere = std.mix(
     d.vec3f(0.075, 0.062, 0.05),
     d.vec3f(0.19, 0.21, 0.25),
@@ -192,7 +209,7 @@ export const bookFragment = tgpu.fragmentFn({
       .sub(f0)
       .mul(std.pow(1 - std.clamp(std.dot(normal, toEye), 0, 1), 5)),
   )
-  color = color.add(environment.mul(fresnel))
+  color = color.add(environment.mul(fresnel).mul(detail.environment))
   if (!clay) {
     const leftDelta = camera.leftDock.xyz.sub(input.world)
     const rightDelta = camera.rightDock.xyz.sub(input.world)

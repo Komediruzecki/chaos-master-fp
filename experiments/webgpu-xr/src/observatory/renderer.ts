@@ -3,6 +3,8 @@ import { d, tgpu } from 'typegpu'
 import { mat4 } from 'wgpu-matrix'
 import { parseBookGlb } from '../almanac/bookAsset'
 import { BOOK_RELIEFS } from '../almanac/bookAwards'
+import { EMPTY_BOOK_DETAIL } from '../almanac/bookDetailData'
+import { createBookDetailResources } from '../almanac/bookDetailResources'
 import { ALMANAC_WORLDS, settingsForWorld } from '../almanac/catalog'
 import { SAMPLE_STEPS } from '../bench/recipes'
 import { cloudFragment, constructSpecimen, fullScreenVertex, resolveLayout, SampleConfig, samplingLayout, sceneLayout, View, } from '../bench/shaders'
@@ -126,6 +128,7 @@ export function createObservatoryRenderer(
     }
   })
   let glass: ReturnType<typeof createGlasswakePass> | undefined
+  let bookDetail: ReturnType<typeof createBookDetailResources> | undefined
   let chamberMaterial:
     | ReturnType<typeof createGlasswakeChamberMaterial>
     | undefined
@@ -163,6 +166,7 @@ export function createObservatoryRenderer(
   }
 
   async function loadAssets() {
+    void bookDetail?.load()
     await Promise.all(
       OBSERVATORY_ASSETS.map(async (asset) => {
         const state = assetStates.find(
@@ -189,11 +193,17 @@ export function createObservatoryRenderer(
           let validation: GPUError | null = null
           try {
             try {
+              const isBook = asset.id === 'book' || asset.id.startsWith('book-')
+              if (isBook) {
+                bookDetail ??= createBookDetailResources(root, changed)
+                void bookDetail.load()
+              }
               model = createModelPass(
                 root,
                 camera,
                 geometry,
                 assetMaterial(asset.id),
+                isBook ? bookDetail : undefined,
               )
             } finally {
               validation = await device.popErrorScope()
@@ -586,6 +596,7 @@ export function createObservatoryRenderer(
     loadAssets,
     camera: () => projectedCamera,
     stats: () => ({
+      bookDetail: bookDetail?.snapshot() ?? { ...EMPTY_BOOK_DETAIL },
       assets: assetStates.map((asset) => ({ ...asset })),
       submissions,
       generations,
@@ -636,6 +647,7 @@ export function createObservatoryRenderer(
       ])
         model.dispose()
       loaded.clear()
+      bookDetail?.dispose()
       glass?.dispose()
       chamberMaterial?.dispose()
       temple?.dispose()

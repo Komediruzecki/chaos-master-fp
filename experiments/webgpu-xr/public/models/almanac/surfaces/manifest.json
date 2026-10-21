@@ -1,0 +1,265 @@
+{
+  "schemaVersion": 1,
+  "asset": "almanac-surfaces-v1.bin",
+  "sha256": "4091f74a1e30f7b2c9793c40ca1c0dc36080d62b3734066a9c29d0bfd8cf21ce",
+  "bytes": 4194332,
+  "payloadBytes": 4194300,
+  "authoring": "Deterministic procedural authoring; no scans, photographs, AI image models or external assets.",
+  "generator": "assets-source/almanac/build_surfaces.py",
+  "generatorSha256": "e76ea89296968b034b12da92788fcdfcd7225a31c795f06e984e474c61daf352",
+  "generatorDependencies": {
+    "numpy": "2.5.4",
+    "pillow": "13.0.0"
+  },
+  "format": "LMSURF01 / 32-byte little-endian header / layer-major / mip-major / row-major tightly packed RGBA8",
+  "colorSpace": "linear data; upload as rgba8unorm, never rgba8unorm-srgb",
+  "width": 512,
+  "height": 512,
+  "layerCount": 3,
+  "mipCount": 10,
+  "channels": {
+    "r": "height centred on 0.5",
+    "g": "roughness control centred on 0.5",
+    "b": "albedo variation centred on 0.5",
+    "a": "constant 255; reserved, not ambient occlusion"
+  },
+  "intendedRepeatPeriodMm": 48,
+  "mipFilter": "2x2 arithmetic area average of linear uint8 channels with integer round-to-nearest",
+  "addressMode": "repeat",
+  "layers": [
+    {
+      "index": 0,
+      "name": "paper",
+      "seed": 41021,
+      "description": "Black rag paper: short irregular fibres, fine pulp and broad quiet mottling.",
+      "mips": [
+        {
+          "level": 0,
+          "width": 512,
+          "height": 512,
+          "offset": 32,
+          "bytes": 1048576
+        },
+        {
+          "level": 1,
+          "width": 256,
+          "height": 256,
+          "offset": 1048608,
+          "bytes": 262144
+        },
+        {
+          "level": 2,
+          "width": 128,
+          "height": 128,
+          "offset": 1310752,
+          "bytes": 65536
+        },
+        {
+          "level": 3,
+          "width": 64,
+          "height": 64,
+          "offset": 1376288,
+          "bytes": 16384
+        },
+        {
+          "level": 4,
+          "width": 32,
+          "height": 32,
+          "offset": 1392672,
+          "bytes": 4096
+        },
+        {
+          "level": 5,
+          "width": 16,
+          "height": 16,
+          "offset": 1396768,
+          "bytes": 1024
+        },
+        {
+          "level": 6,
+          "width": 8,
+          "height": 8,
+          "offset": 1397792,
+          "bytes": 256
+        },
+        {
+          "level": 7,
+          "width": 4,
+          "height": 4,
+          "offset": 1398048,
+          "bytes": 64
+        },
+        {
+          "level": 8,
+          "width": 2,
+          "height": 2,
+          "offset": 1398112,
+          "bytes": 16
+        },
+        {
+          "level": 9,
+          "width": 1,
+          "height": 1,
+          "offset": 1398128,
+          "bytes": 4
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "name": "leather",
+      "seed": 51021,
+      "description": "Tobacco-black leather: warped irregular pebbles, softened creases and pores.",
+      "mips": [
+        {
+          "level": 0,
+          "width": 512,
+          "height": 512,
+          "offset": 1398132,
+          "bytes": 1048576
+        },
+        {
+          "level": 1,
+          "width": 256,
+          "height": 256,
+          "offset": 2446708,
+          "bytes": 262144
+        },
+        {
+          "level": 2,
+          "width": 128,
+          "height": 128,
+          "offset": 2708852,
+          "bytes": 65536
+        },
+        {
+          "level": 3,
+          "width": 64,
+          "height": 64,
+          "offset": 2774388,
+          "bytes": 16384
+        },
+        {
+          "level": 4,
+          "width": 32,
+          "height": 32,
+          "offset": 2790772,
+          "bytes": 4096
+        },
+        {
+          "level": 5,
+          "width": 16,
+          "height": 16,
+          "offset": 2794868,
+          "bytes": 1024
+        },
+        {
+          "level": 6,
+          "width": 8,
+          "height": 8,
+          "offset": 2795892,
+          "bytes": 256
+        },
+        {
+          "level": 7,
+          "width": 4,
+          "height": 4,
+          "offset": 2796148,
+          "bytes": 64
+        },
+        {
+          "level": 8,
+          "width": 2,
+          "height": 2,
+          "offset": 2796212,
+          "bytes": 16
+        },
+        {
+          "level": 9,
+          "width": 1,
+          "height": 1,
+          "offset": 2796228,
+          "bytes": 4
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "name": "metal",
+      "seed": 61021,
+      "description": "Polished metal: fine longitudinal brushing and sparse burnishing scratches.",
+      "mips": [
+        {
+          "level": 0,
+          "width": 512,
+          "height": 512,
+          "offset": 2796232,
+          "bytes": 1048576
+        },
+        {
+          "level": 1,
+          "width": 256,
+          "height": 256,
+          "offset": 3844808,
+          "bytes": 262144
+        },
+        {
+          "level": 2,
+          "width": 128,
+          "height": 128,
+          "offset": 4106952,
+          "bytes": 65536
+        },
+        {
+          "level": 3,
+          "width": 64,
+          "height": 64,
+          "offset": 4172488,
+          "bytes": 16384
+        },
+        {
+          "level": 4,
+          "width": 32,
+          "height": 32,
+          "offset": 4188872,
+          "bytes": 4096
+        },
+        {
+          "level": 5,
+          "width": 16,
+          "height": 16,
+          "offset": 4192968,
+          "bytes": 1024
+        },
+        {
+          "level": 6,
+          "width": 8,
+          "height": 8,
+          "offset": 4193992,
+          "bytes": 256
+        },
+        {
+          "level": 7,
+          "width": 4,
+          "height": 4,
+          "offset": 4194248,
+          "bytes": 64
+        },
+        {
+          "level": 8,
+          "width": 2,
+          "height": 2,
+          "offset": 4194312,
+          "bytes": 16
+        },
+        {
+          "level": 9,
+          "width": 1,
+          "height": 1,
+          "offset": 4194328,
+          "bytes": 4
+        }
+      ]
+    }
+  ]
+}

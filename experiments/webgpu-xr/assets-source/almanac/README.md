@@ -51,3 +51,84 @@ The first render had a solid-looking gold page block because the folio strokes s
 The final GLB was reimported into Blender and inspected in the final and oblique renders. The local `glb_inventory.py` report has no dependency, attribute or extension-required flags. `glb_geometry_audit.py` reports no non-finite, zero-area or opposing-normal flags. These checks do not measure browser rendering cost, headset performance or artistic acceptance in the actual Almanac camera. The application verification owns those checks.
 
 The first delivery has a fixed spread, no page-turn rig, collision or leather-grain textures. The binding and bookmark are deliberately thin surfaces; this is a render asset rather than a watertight physical-printing solid.
+
+## Surface detail bundle
+
+`build_surfaces.py` authors three independent, repeating detail fields for black
+rag paper, tobacco-black pebbled leather and polished brushed metal. These are
+deterministic procedural materials, not scans or photographs. They add fine
+surface information without changing the Blender geometry, authored palette,
+earned relief identity or save data. They remain separate runtime resources; the
+GLBs and Blender material factors do not embed these maps.
+
+The paper has short irregular fibres in fine pulp with restrained broad mottling.
+Leather uses randomly distributed, warped pebble cells with softened creases and
+small pores. Metal has fine directional brushing and sparse polishing scratches,
+without dirt, rust or painted highlights. These fields describe surface variation;
+actual reflections and normal strength belong to the runtime material shader.
+
+Generate the shipping bundle and inspection PNGs from the repository root:
+
+```sh
+rtk proxy timeout 120 python3 experiments/webgpu-xr/assets-source/almanac/build_surfaces.py --evidence-dir /absolute/path/to/registered-run/evidence/almanac-surfaces
+```
+
+The recipe uses Python, NumPy and Pillow. The manifest records the precise
+generator hash, dependency versions, seeds and output hash. `--runtime-dir` may
+point to an absolute scratch directory for an independent reproducibility check.
+PNG files and the diagnostic contact sheet are inspection output only and are not
+served by the app. They contain numeric linear data, not photographic colour.
+
+### Binary contract
+
+The runtime asset is `public/models/almanac/surfaces/almanac-surfaces-v1.bin`.
+It is 4,194,332 bytes: a 32-byte header followed by 4,194,300 bytes of tightly
+packed RGBA8 data. No image decoding or colour conversion is required.
+
+| Byte offset | Field                                          |
+| ----------- | ---------------------------------------------- |
+| 0–7         | Eight ASCII bytes `LMSURF01`                   |
+| 8           | Little-endian uint32 width: 512                |
+| 12          | Little-endian uint32 height: 512               |
+| 16          | Little-endian uint32 layers: 3                 |
+| 20          | Little-endian uint32 mip levels: 10            |
+| 24          | Little-endian uint32 channels: 4               |
+| 28          | Little-endian uint32 payload length: 4,194,300 |
+
+Payload order is layer-major: paper, leather, then metal. Each layer contains
+row-major mips from 512 × 512 down to 1 × 1, with no padding. The manifest gives
+every absolute file offset and byte length. Mips use arithmetic area averaging in
+linear space, with integer round-to-nearest. Upload as `rgba8unorm`; using an sRGB
+format changes the intended data and is incorrect.
+
+| Channel | Meaning                                                               |
+| ------- | --------------------------------------------------------------------- |
+| R       | Height, centred on 0.5; derive a shallow surface normal               |
+| G       | Roughness control, centred on 0.5                                     |
+| B       | Albedo variation, centred on 0.5                                      |
+| A       | Constant 255, reserved; no ambient occlusion or unique relief shadows |
+
+The intended physical repeating period is 48 mm. The GLB uses authoring units,
+not metres: a 2.8-unit spread representing a 280 mm book needs a 0.48-unit repeat,
+not a 0.048-unit repeat. The runtime must document its chosen physical scale.
+Metal brushing follows texture U. Every authoring operation uses
+periodic boundaries; the final pixel does not duplicate the first pixel because
+it samples the neighbouring point of a continuous repeating field. Diagnostic
+seam gradients are compared with interior gradients, and the 2 × 2 contact sheet
+exposes the wrap boundaries. The asset tests check the complete mip inventory,
+hashes, alpha, neutral mean, area averaging and border continuity. These data
+checks do not replace matched runtime camera review or headset verification.
+
+### Isolated Blender material study
+
+`preview_surfaces.py` creates a separate three-sample studio scene using the
+inspection images as non-colour data. It packs those images into a new `.blend`
+inside the registered output run. It does not open, modify or replace the book
+source. The sample geometry uses metres, with a true 48 mm repeat. Left to right:
+paper, leather and gold metal. Its Cycles lighting is an authoring reference;
+the browser uses a different material implementation and must be reviewed
+independently.
+
+```sh
+rtk proxy timeout 300 /usr/bin/blender --background --threads 4 --python experiments/webgpu-xr/assets-source/almanac/preview_surfaces.py -- --evidence-dir /absolute/path/to/registered-run/evidence/almanac-surfaces --deliverables-dir /absolute/path/to/registered-run/deliverables/almanac-surfaces
+```

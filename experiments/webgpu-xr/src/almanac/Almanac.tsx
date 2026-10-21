@@ -306,12 +306,15 @@ export function Almanac() {
               </div>
             </Show>
             <Show
-              when={hasSpecimen() && state()?.book.reliefStatus === 'error'}
+              when={
+                hasSpecimen() &&
+                (state()?.book.reliefStatus === 'error' ||
+                  state()?.book.detail.status === 'error')
+              }
             >
               <div class="almanac-detail-error" role="status">
                 <p>
-                  Raised page details could not load. Your progress is
-                  unchanged.
+                  Some book details could not load. Your progress is unchanged.
                 </p>
                 <button
                   class="lx-secondary"

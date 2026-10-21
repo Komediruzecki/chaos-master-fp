@@ -1,5 +1,6 @@
 // Desktop-only specimen lifecycle and camera input; the existing XR lab is separate.
 import { EMPTY_BOOK_AWARDS } from '../almanac/bookAwards'
+import { EMPTY_BOOK_DETAIL } from '../almanac/bookDetailData'
 import { BENCH_RECIPES } from './recipes'
 import { createBenchRenderer } from './renderer'
 import { DEFAULT_BENCH_SETTINGS, normalizeSettings } from './settings'
@@ -341,6 +342,7 @@ export class BenchRuntime {
       generation: 0,
       scene: this.scene,
       book: {
+        detail: { ...EMPTY_BOOK_DETAIL },
         status: 'idle' as 'idle' | 'loading' | 'ready' | 'error',
         error: '',
         reliefStatus: 'idle' as 'idle' | 'loading' | 'ready' | 'error',

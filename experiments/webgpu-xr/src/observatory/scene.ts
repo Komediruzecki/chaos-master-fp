@@ -3,6 +3,7 @@ import { mat4 } from 'wgpu-matrix'
 import { BOOK_RELIEFS } from '../almanac/bookAwards'
 import { WORLD_VISUALS } from '../almanac/worldIdentity'
 import type { BookAwards } from '../almanac/bookAwards'
+import type { BookDetailSnapshot } from '../almanac/bookDetailData'
 import type { TemplePresentation, TempleStats } from './temple'
 
 export { EMPTY_TEMPLE } from './temple'
@@ -80,6 +81,7 @@ export interface AssetStatus {
 }
 
 export interface ObservatorySnapshot {
+  bookDetail: BookDetailSnapshot
   ready: boolean
   active: boolean
   error: string
