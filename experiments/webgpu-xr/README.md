@@ -198,3 +198,9 @@ around Aureole. Pointer and keyboard use the same forgiving judges. Released
 seals survive returning to the worlds until Rebuild seals or a page reload.
 The [observatory guide](OBSERVATORY.md) records controls, asset sources,
 verification and the remaining headset boundary.
+
+Tideweave's trace view now has its own authored mineral-reed crossing, four
+porcelain note instruments, earned bridge inlays and a short D-centred musical
+resolution. It stages the same retained fractal above the far landing. The
+[crossing study](docs/tideweave-crossing.md) records the asset, motion and audio
+contracts and the separate desktop/headset verification gates.

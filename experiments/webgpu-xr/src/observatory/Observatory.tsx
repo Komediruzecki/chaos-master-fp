@@ -11,6 +11,7 @@ import { TempleEnding } from '../journey/TempleEnding'
 import { useJourney } from '../journey/useJourney'
 import { useTempleEnding } from '../journey/useTempleEnding'
 import { Icon, LogoMark } from '../theme/Icon'
+import { BRIDGE_RESOLUTION } from './bridgeScore'
 import { beginTrace, BRIDGE_MOTIF, BRIDGE_NOTE_NAMES, BRIDGE_TARGET, createEncounter, endTrace, moveTrace, traceHint, } from './encounter'
 import { GlasswakeEncounter } from './GlasswakeEncounter'
 import { ObservatoryRuntime } from './runtime'
@@ -208,7 +209,8 @@ export function Observatory() {
   function acceptInput(event: ObservatoryInput) {
     if (
       event.kind === 'trace' &&
-      (event.phase === 'end' || event.phase === 'cancel')
+      (event.phase === 'cancel' ||
+        (event.phase === 'end' && stage() !== 'complete'))
     )
       audio?.stopTrace()
     if (document.hidden || atlasOpen() || panel() !== null || !ready()) return
@@ -247,7 +249,7 @@ export function Observatory() {
       next.accepted === BRIDGE_TARGET.length &&
       next.accepted > before.accepted
     ) {
-      audio?.finishTrace(BRIDGE_MOTIF.notes.at(-1)!.midi)
+      audio?.finishTrace(BRIDGE_MOTIF.notes.at(-1)!.midi, BRIDGE_RESOLUTION)
       return
     }
     const midi = point ? pitchForTraceHeight(point[1]) : null

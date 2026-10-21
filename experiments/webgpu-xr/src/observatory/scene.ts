@@ -168,6 +168,18 @@ export const OBSERVATORY_ASSETS = [
     id: 'glasswake-tone-star',
     url: '/models/observatory/glasswake-tone-star.glb',
   },
+  {
+    id: 'tideweave-crossing',
+    url: '/models/observatory/tideweave-crossing.glb',
+  },
+  {
+    id: 'tideweave-resonator',
+    url: '/models/observatory/tideweave-resonator.glb',
+  },
+  {
+    id: 'tideweave-bridge-weave',
+    url: '/models/observatory/tideweave-bridge-weave.glb',
+  },
 ] as const
 
 export const EMPTY_TRACE: TracePresentation = {

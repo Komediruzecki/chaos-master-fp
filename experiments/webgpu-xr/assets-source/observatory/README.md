@@ -187,6 +187,45 @@ and distribution rights remain a separate release/provenance check.
 
 Originals, fresh-import renders, clay comparisons and audit reports are preserved in the registered 2026-10-17 Lumen Meta output run. Runtime screenshots and user art approval belong to the application milestone; this source document does not mark those gates passed.
 
+## Tideweave crossing
+
+`build_tideweave_crossing.py` and `tideweave-crossing.blend` provide a separate
+encounter kit: two banks of branching mineral reeds, porcelain tines, bronze
+tension strings and an arrival fan. The source also contains the reusable note
+resonator and bridge weave, hidden from the default environment view. All three
+exports are opaque, factor-only GLBs with material-batched closed geometry.
+
+| Runtime file                 | Triangles | Material groups |   Bytes |
+| ---------------------------- | --------: | --------------: | ------: |
+| `tideweave-crossing.glb`     |    14,160 |               4 | 282,452 |
+| `tideweave-resonator.glb`    |       956 |               3 |  20,688 |
+| `tideweave-bridge-weave.glb` |     1,712 |               2 |  33,572 |
+
+The environment is placed at identity in runtime coordinates. The resonator
+origin is its centre, with its long axis along +Y. The weave shares the
+existing bridge segment's local origin and appears only with an earned module.
+The manifest records all source/export hashes, bounds, attachments and protected
+trace clearance. No new provider assets or Meshy credits are used.
+
+Allocate an admitted output run and set `TIDEWEAVE_RUN` to its absolute path:
+
+```sh
+rtk proxy timeout 1200 /usr/bin/blender --background --threads 8 \
+  --python /home/maff/.codex/worktrees/orb-specimen-bench/chaos-master-fp/experiments/webgpu-xr/assets-source/observatory/build_tideweave_crossing.py -- \
+  --source-dir "$TIDEWEAVE_RUN/deliverables/tideweave/source" \
+  --runtime-dir "$TIDEWEAVE_RUN/deliverables/tideweave/runtime" \
+  --evidence-dir "$TIDEWEAVE_RUN/evidence/tideweave-assets"
+```
+
+`--no-render` exports without the inspection images. The full recipe renders
+the source and independently imported GLBs from matching cameras, clay views
+and close reusable-part studies. The current export has no flagged primitives
+in the geometry screen; all five focused asset tests pass. Fresh-import factor
+renders differ from source by at most one 8-bit channel step. These checks
+establish source/export agreement, not real-world scale, collision, headset
+appearance or performance. See the [runtime crossing study](../../docs/tideweave-crossing.md)
+for presentation, audio and desktop evidence.
+
 ## Glasswake Caldera
 
 `build_glasswake_chamber.py` authors a separate open-sky encounter stage.

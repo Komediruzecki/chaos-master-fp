@@ -19,6 +19,7 @@ import { Model, modelLayout, orbVertex, Sky, skyFragment, skyLayout, toneMapFrag
 import { EMPTY_TEMPLE, EMPTY_TEMPLE_STATS, TEMPLE_WORLD_PLACEMENTS, } from './temple'
 import { createTempleAtmosphere } from './templeAtmosphere'
 import { createTemplePass } from './templePass'
+import { createTideweavePresentation, earnedBridgeSpans, nextBridgeReveal, TIDEWEAVE_STAGE_PLACEMENTS, } from './tideweave'
 import { createWorldOrnaments } from './worldOrnaments'
 import type { TgpuBindGroup } from 'typegpu'
 import type { AssetStatus, ObservatoryFrame, Vec3, WorldId } from './scene'
@@ -161,6 +162,7 @@ export function createObservatoryRenderer(
   let bridgeProgress = 0
   let lastBridgeTarget = 0
   let previousTime = 0
+  const tideweave = createTideweavePresentation()
 
   function assetMaterial(id: string) {
     if (id !== 'glasswake-chamber') return undefined
@@ -212,6 +214,9 @@ export function createObservatoryRenderer(
                 'bridge',
                 'landing',
                 'relic',
+                'tideweave-crossing',
+                'tideweave-resonator',
+                'tideweave-bridge-weave',
               ].includes(asset.id)
               if (isBook) {
                 bookDetail ??= createBookDetailResources(root, changed)
@@ -299,7 +304,7 @@ export function createObservatoryRenderer(
     model: ReturnType<typeof createModelPass> | undefined,
     id: string,
     matrix: ArrayLike<number>,
-    tint?: readonly number[],
+    tint?: ArrayLike<number>,
   ) {
     if (!model) return
     model.draw(pass, id, matrix, tint)
@@ -362,9 +367,12 @@ export function createObservatoryRenderer(
     resize(w, h)
     const glassMode = frame.view === 'glasswake'
     const templeMode = frame.view === 'temple'
+    const tideweaveMode = frame.view === 'trace'
     const worldPlacements = templeMode
       ? TEMPLE_WORLD_PLACEMENTS
-      : WORLD_PLACEMENTS
+      : tideweaveMode
+        ? TIDEWEAVE_STAGE_PLACEMENTS
+        : WORLD_PLACEMENTS
     if (templeMode) {
       temple ??= createTemplePass(root, camera, architecturalDetails())
       templeAtmosphere ??= createTempleAtmosphere(root, camera)
@@ -435,7 +443,7 @@ export function createObservatoryRenderer(
       drawCalls++
       triangles += 2
     }
-    if (!glassMode && !templeMode) {
+    if (!glassMode && !templeMode && !tideweaveMode) {
       // Close encounter framing would put narrow views beneath the bay's overhead beam.
       drawModel(pass, loaded.get('bay'), 'bay', identity)
       drawModel(pass, loaded.get('book'), 'book', bookMatrix)
@@ -480,19 +488,32 @@ export function createObservatoryRenderer(
           toneStarTint(group, presentation, frame.motion ?? true, frame.clay),
         )
       })
+    } else if (tideweaveMode) {
+      const crossing = loaded.get('tideweave-crossing')
+      if (crossing) drawModel(pass, crossing, 'tideweave-crossing', identity)
+      drawModel(
+        pass,
+        loaded.get('landing'),
+        'tideweave-landing',
+        transform([0, 0, -10]),
+      )
     }
-    const wanted =
-      clamp(
-        frame.trace.acceptedSegments / Math.max(1, frame.trace.segmentCount),
-        0,
-        1,
-      ) * 5
+    const wanted = earnedBridgeSpans(
+      frame.trace.acceptedSegments,
+      frame.trace.segmentCount,
+    )
     const delta = clamp(frame.time - previousTime, 0, 0.05)
     previousTime = frame.time
-    if (wanted < bridgeProgress || (delta === 0 && wanted !== lastBridgeTarget))
-      bridgeProgress = wanted
-    else bridgeProgress = Math.min(wanted, bridgeProgress + delta * 2.5)
+    if (delta === 0 && wanted !== lastBridgeTarget) bridgeProgress = wanted
+    else
+      bridgeProgress = nextBridgeReveal(
+        bridgeProgress,
+        wanted,
+        delta,
+        frame.motion !== false,
+      )
     lastBridgeTarget = wanted
+    tideweave.update(frame, bridgeProgress)
     for (let i = 0; i < 5; i++) {
       const reveal = clamp(bridgeProgress - i, 0, 1)
       if (reveal > 0 && !glassMode && !templeMode)
@@ -503,8 +524,29 @@ export function createObservatoryRenderer(
           transform([0, -0.42 * (1 - reveal), -4.2 - i], 1),
           [0.65 + reveal * 0.35, 0.75 + reveal * 0.25, 1, (1 - reveal) * 0.25],
         )
+      if (reveal > 0 && tideweaveMode) {
+        const span = tideweave.spans[i]
+        drawModel(
+          pass,
+          loaded.get('tideweave-bridge-weave'),
+          `tideweave-weave-${i}`,
+          span.matrix,
+          span.tint,
+        )
+      }
     }
-    if (!glassMode && !templeMode) {
+    if (tideweaveMode) {
+      tideweave.stations.forEach((station, index) => {
+        drawModel(
+          pass,
+          loaded.get('tideweave-resonator'),
+          `tideweave-resonator-${index}`,
+          station.matrix,
+          station.tint,
+        )
+      })
+    }
+    if (!glassMode && !templeMode && !tideweaveMode) {
       // A distant destination reads as an instrument, without claiming finished temple lore.
       drawModel(
         pass,
@@ -516,6 +558,7 @@ export function createObservatoryRenderer(
     }
     if (!glassMode) {
       worlds.forEach((world) => {
+        if (tideweaveMode && world.id !== 'tideweave') return
         const placement = worldPlacements[world.id]
         const position = placement.center
         const selected = frame.selectedWorld === world.id
@@ -539,6 +582,7 @@ export function createObservatoryRenderer(
     }
     worlds.forEach((world) => {
       if (glassMode && world.id !== 'glasswake') return
+      if (tideweaveMode && world.id !== 'tideweave') return
       const { low, high } = world.config
       const placement = worldPlacements[world.id]
       const center = glassMode ? GLASSWAKE_CENTER : placement.center

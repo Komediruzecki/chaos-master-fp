@@ -20,6 +20,7 @@ const out = path.resolve(process.env.VERIFY_OUT_DIR)
 await mkdir(out, { recursive: true })
 const errors: string[] = []
 let browserProcessId: number | undefined
+let activePage: Page | undefined
 const report: Record<string, unknown> = {
   testedAt: new Date().toISOString(),
   base,
@@ -231,6 +232,7 @@ try {
     viewport: { width: 1440, height: 950 },
   })
   const page = await context.newPage()
+  activePage = page
   page.on('pageerror', (e) => errors.push(String(e)))
   page.on('console', (m) => {
     if (m.type() === 'error' || m.type() === 'warning') errors.push(m.text())
@@ -337,10 +339,56 @@ try {
   const thirdAccent = accent(pointerB, 71)
   await move(page, [0.755, 0.24], 12)
   const pointerFalling = await traceAudible(page, 70)
-  await move(page, BRIDGE_TARGET[3], 24)
-  const pointerEnd = await audio(page)
-  const finalAccent = accent(pointerEnd, 69)
+  // Observe inside the input events: hidden-window mouse interpolation can take
+  // longer than the whole coda after first entering the final target's radius.
+  const eventProof = await page.evaluateHandle(() => {
+    const proof = {
+      completion: null as SoundSnapshot | null,
+      released: null as SoundSnapshot | null,
+      completedAt: 0,
+      releasedAt: 0,
+    }
+    const canvas = document.querySelector('canvas')!
+    // Array callbacks avoid tsx's inferred-name helper inside serialized code.
+    const listeners = [
+      () => {
+        queueMicrotask(() => {
+          if (window.__observatory!.exerciseStage === 'complete') {
+            proof.completion = window.__observatory!.audio.snapshot()
+            proof.completedAt = window.performance.now()
+          }
+        })
+      },
+    ]
+    canvas.addEventListener('pointermove', listeners[0])
+    canvas.addEventListener(
+      'pointerup',
+      () => {
+        queueMicrotask(() => {
+          proof.released = window.__observatory!.audio.snapshot()
+          proof.releasedAt = window.performance.now()
+          canvas.removeEventListener('pointermove', listeners[0])
+        })
+      },
+      { once: true },
+    )
+    return proof
+  })
+  // This final step is <0.18 in trace coordinates and follows the same path.
+  await move(page, BRIDGE_TARGET[3])
   await page.mouse.up()
+  const releaseProof = await eventProof.jsonValue()
+  await eventProof.dispose()
+  const pointerEnd = releaseProof.completion
+  const resolutionAfterLift = releaseProof.released
+  assert.ok(pointerEnd?.trace.active, JSON.stringify(releaseProof))
+  assert.ok(
+    resolutionAfterLift?.trace.active &&
+      resolutionAfterLift.level > 0.001 &&
+      !resolutionAfterLift.playing,
+    `Successful release must preserve the earned resolution: ${JSON.stringify(releaseProof)}`,
+  )
+  const finalAccent = accent(pointerEnd, 69)
   await traceSilent(page)
   assert.equal((await encounter(page)).accepted, 4)
   const earnedPage = await page.evaluate(
@@ -365,6 +413,9 @@ try {
     peak: pointerB,
     falling: pointerFalling,
     completion: pointerEnd,
+    resolutionAfterLift,
+    releaseProof,
+    completionResponseSurvivesNormalLift: true,
     accents: [firstAccent, secondAccent, thirdAccent, finalAccent],
     liftStopped: true,
     invalidJumpStopped: true,
@@ -717,6 +768,19 @@ try {
   report.status = 'failed'
   report.errors = errors
   report.failure = String(error)
+  if (activePage && !activePage.isClosed()) {
+    try {
+      report.failureState = await activePage.evaluate(() => ({
+        scene: window.__observatory?.runtime.snapshot(),
+        audio: window.__observatory?.audio.snapshot(),
+        stage: window.__observatory?.exerciseStage,
+        hidden: document.hidden,
+      }))
+      await activePage.screenshot({ path: path.join(out, 'failure.png') })
+    } catch (diagnosticError) {
+      report.diagnosticFailure = String(diagnosticError)
+    }
+  }
   throw error
 } finally {
   await writeFile(
