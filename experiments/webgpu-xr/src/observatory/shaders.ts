@@ -24,6 +24,7 @@ export const modelVertex = tgpu.vertexFn({
   out: {
     position: d.builtin.position,
     world: d.vec3f,
+    local: d.vec3f,
     normal: d.vec3f,
     color: d.vec4f,
     surface: d.vec4f,
@@ -43,6 +44,7 @@ export const modelVertex = tgpu.vertexFn({
       std.mul(bookLayout.$.camera.view, world),
     ),
     world: world.xyz,
+    local: input.position.xyz,
     normal,
     color: d.vec4f(input.color.rgb.mul(model.tint.rgb), input.color.a),
     surface: d.vec4f(
@@ -148,10 +150,10 @@ export const skyFragment = tgpu.fragmentFn({
     std.smoothstep(0.07, 0.26, leftGap) * std.smoothstep(0.07, 0.23, rightGap)
   const haze = belt * (0.22 + std.pow(folds, 2) * 0.78) * 0.105 * clearings
   let color = d
-    .vec3f(0.0015, 0.003, 0.009)
+    .vec3f(0.0014, 0.0017, 0.0025)
     .add(
       std
-        .mix(d.vec3f(0.13, 0.3, 0.5), d.vec3f(0.48, 0.17, 0.4), folds)
+        .mix(d.vec3f(0.08, 0.085, 0.1), d.vec3f(0.12, 0.13, 0.15), folds)
         .mul(haze),
     )
   // A world-space halo gives each specimen its own light, without blurring the points.

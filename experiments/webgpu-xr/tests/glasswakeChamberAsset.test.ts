@@ -18,6 +18,11 @@ interface AssetRecord {
 interface ChamberManifest {
   sourceScriptSha256: string
   helperScriptSha256: string
+  compatibleHelper?: {
+    sha256: string
+    functions: string[]
+    verification: string
+  }
   sourceBlendSha256: string
   assets: AssetRecord[]
   anchors: Record<string, number[]>
@@ -233,10 +238,18 @@ await test('exported named anchors, authored manifest and runtime world position
   close(manifest.anchors.ListenerMark, [0, 0, 1.9])
 })
 
-await test('manifest hashes identify the committed Blender source and both build recipes', async () => {
+await test('manifest hashes identify the Blender source, generation recipe and compatible helper', async () => {
+  if (manifest.compatibleHelper) {
+    assert.deepEqual(manifest.compatibleHelper.functions, ['bp', 'aim'])
+    assert.match(manifest.compatibleHelper.verification, /not regenerated/)
+    assert.match(manifest.helperScriptSha256, /^[a-f0-9]{64}$/)
+  }
   for (const [file, expected] of [
     ['build_glasswake_chamber.py', manifest.sourceScriptSha256],
-    ['build_observatory.py', manifest.helperScriptSha256],
+    [
+      'build_observatory.py',
+      manifest.compatibleHelper?.sha256 ?? manifest.helperScriptSha256,
+    ],
     ['glasswake-chamber.blend', manifest.sourceBlendSha256],
   ])
     assert.equal(

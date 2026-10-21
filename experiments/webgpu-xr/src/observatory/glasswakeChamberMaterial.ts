@@ -42,6 +42,7 @@ const chamberSurfaceLight = tgpu.fn(
 export const glasswakeChamberFragment = tgpu.fragmentFn({
   in: {
     world: d.vec3f,
+    local: d.vec3f,
     normal: d.vec3f,
     color: d.vec4f,
     surface: d.vec4f,

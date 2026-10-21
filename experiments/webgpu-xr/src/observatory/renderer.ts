@@ -2,6 +2,7 @@
 import { d, tgpu } from 'typegpu'
 import { mat4 } from 'wgpu-matrix'
 import { parseBookGlb } from '../almanac/bookAsset'
+import { BOOK_RELIEFS } from '../almanac/bookAwards'
 import { ALMANAC_WORLDS, settingsForWorld } from '../almanac/catalog'
 import { SAMPLE_STEPS } from '../bench/recipes'
 import { cloudFragment, constructSpecimen, fullScreenVertex, resolveLayout, SampleConfig, samplingLayout, sceneLayout, View, } from '../bench/shaders'
@@ -129,6 +130,7 @@ export function createObservatoryRenderer(
     | ReturnType<typeof createGlasswakeChamberMaterial>
     | undefined
   const chamberMatrix = transform(GLASSWAKE_CHAMBER_ORIGIN)
+  const bookMatrix = transform([0, 0.91, -0.1], 0.65)
   const toneStarMatrices = [0, 1, 2].map(toneStarMatrix)
   let temple: ReturnType<typeof createTemplePass> | undefined
   let templeAtmosphere: ReturnType<typeof createTempleAtmosphere> | undefined
@@ -399,12 +401,16 @@ export function createObservatoryRenderer(
     if (!glassMode && !templeMode) {
       // Close encounter framing would put narrow views beneath the bay's overhead beam.
       drawModel(pass, loaded.get('bay'), 'bay', identity)
-      drawModel(
-        pass,
-        loaded.get('book'),
-        'book',
-        transform([0, 0.91, -0.1], 0.65),
-      )
+      drawModel(pass, loaded.get('book'), 'book', bookMatrix)
+      for (const relief of BOOK_RELIEFS) {
+        if (loaded.has('book') && frame.bookAwards?.[relief.id])
+          drawModel(
+            pass,
+            loaded.get(`book-${relief.id}`),
+            `book-${relief.id}`,
+            bookMatrix,
+          )
+      }
       drawModel(pass, loaded.get('landing'), 'landing', transform([0, 0, -10]))
       drawModel(
         pass,

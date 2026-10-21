@@ -1,6 +1,8 @@
 // Shared desktop observatory coordinates, presentation records and input projection.
 import { mat4 } from 'wgpu-matrix'
+import { BOOK_RELIEFS } from '../almanac/bookAwards'
 import { WORLD_VISUALS } from '../almanac/worldIdentity'
+import type { BookAwards } from '../almanac/bookAwards'
 import type { TemplePresentation, TempleStats } from './temple'
 
 export { EMPTY_TEMPLE } from './temple'
@@ -90,6 +92,7 @@ export interface ObservatorySnapshot {
   assets: AssetStatus[]
   traceAnchors: ProjectedPoint[]
   visual: {
+    bookAwards: BookAwards
     time: number
     music: MusicFrame
     instructionNote: number | null
@@ -119,6 +122,7 @@ export interface CameraState {
 }
 
 export interface ObservatoryFrame {
+  bookAwards?: BookAwards
   selectedWorld: WorldId
   view: ObservatoryView
   camera: CameraState
@@ -148,6 +152,10 @@ export const WORLD_PLACEMENTS = {
 export const OBSERVATORY_ASSETS = [
   { id: 'bay', url: '/models/observatory/observation-bay.glb' },
   { id: 'book', url: '/models/almanac/almanac-book.glb' },
+  ...BOOK_RELIEFS.map((relief) => ({
+    id: `book-${relief.id}`,
+    url: relief.url,
+  })),
   { id: 'bridge', url: '/models/observatory/bridge-segment.glb' },
   { id: 'landing', url: '/models/observatory/far-landing.glb' },
   { id: 'relic', url: '/models/observatory/celestial-seed.glb' },

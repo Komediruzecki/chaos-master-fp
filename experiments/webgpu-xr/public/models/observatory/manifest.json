@@ -1,10 +1,11 @@
 {
   "name": "Irchiinnuss observatory terrace kit",
-  "assetVersion": 1,
+  "assetVersion": 2,
+  "palette": "Night Almanac observation bay; bridge and far landing retain original materials",
   "blenderVersion": "5.2.2 LTS",
   "authoring": "Authored Blender geometry; no provider mesh or textures",
-  "sourceScriptSha256": "2854bcb0fa412b7df7bf9c394e18a25bfef44745bdd31d464daf076bedec183f",
-  "sourceBlendSha256": "01b124e73ae1bee121dcf0de79e8dd238f2e0a1af521581544e533f257b6f653",
+  "sourceScriptSha256": "1e11e4bef983b550da96cf95ae7e79d0f2eba31c20f34f7e346dbefbd6ac78e7",
+  "sourceBlendSha256": "1f849337f07189a15a2ee415f191668aeb782026bd4753e67ccc898b4538e973",
   "coordinates": {
     "up": "+Y",
     "forward": "-Z",
@@ -16,15 +17,20 @@
     "Slate | inset",
     "Brass | muted",
     "Brass | bright",
-    "Enamel | tide"
+    "Enamel | tide",
+    "Bay | black basalt",
+    "Bay | charcoal inset",
+    "Bay | blackened bronze",
+    "Bay | satin silver",
+    "Bay | bone enamel"
   ],
   "textures": [],
   "assets": [
     {
       "file": "observation-bay.glb",
       "root": "ObservationBay",
-      "bytes": 447376,
-      "sha256": "f4e7090972da194f5b4bd2bc3f3e4d9e06a8295a9c482c3290990d7fcc847769",
+      "bytes": 447332,
+      "sha256": "7ab1b601c3dfff574d36dc96db5f27d970016b8eb04a531648c7b9c0f8e394f1",
       "triangles": 16390,
       "materialGroups": 5,
       "anchors": {

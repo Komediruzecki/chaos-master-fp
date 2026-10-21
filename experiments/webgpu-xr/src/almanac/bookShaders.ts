@@ -1,6 +1,7 @@
-// Factor-material lighting for the authored book, sharing the flame HDR/depth pass.
+// Authored factor materials with filtered local grain and analytic studio reflections.
 import { d, std, tgpu } from 'typegpu'
 import { View } from '../bench/shaders'
+import { bookSurfaceKind } from './bookSurface'
 
 export const BookVertex = d.struct({
   position: d.vec4f,
@@ -16,6 +17,7 @@ export const bookVertex = tgpu.vertexFn({
   out: {
     position: d.builtin.position,
     world: d.vec3f,
+    local: d.vec3f,
     normal: d.vec3f,
     color: d.vec4f,
     surface: d.vec4f,
@@ -28,6 +30,7 @@ export const bookVertex = tgpu.vertexFn({
       std.mul(bookLayout.$.camera.view, input.position),
     ),
     world: input.position.xyz,
+    local: input.position.xyz,
     normal: input.normal.xyz,
     color: input.color,
     surface: input.surface,
@@ -68,6 +71,7 @@ const illuminate = tgpu.fn(
 export const bookFragment = tgpu.fragmentFn({
   in: {
     world: d.vec3f,
+    local: d.vec3f,
     normal: d.vec3f,
     color: d.vec4f,
     surface: d.vec4f,
@@ -82,68 +86,113 @@ export const bookFragment = tgpu.fragmentFn({
   const toEye = std.normalize(camera.eye.xyz.sub(input.world))
   let albedo = d.vec3f(input.color.rgb)
   let metal = input.surface.x
-  let rough = std.clamp(input.surface.y, 0.18, 0.98)
+  let rough = std.clamp(input.surface.y, 0.08, 0.98)
   const clay = camera.eye.w > 0.5
+  const kind = bookSurfaceKind(input.color.rgb, input.surface)
+  // Model-local coordinates keep grain fixed on the book in either scene.
+  const local = input.local
+  const pixelSize = std.max(
+    std.length(std.dpdx(local)),
+    std.length(std.dpdy(local)),
+  )
+  const fineWeight = 1 - std.smoothstep(0.0003, 0.0006, pixelSize)
+  const broadWeight = 1 - std.smoothstep(0.006, 0.012, pixelSize)
+  const fibers = std.sin(local.x * 5235.99 + std.sin(local.z * 3100))
+  const bands = std.sin(local.z * 261.8 + std.sin(local.x * 71) * 0.5)
+  if (kind === 1) {
+    const grain = fibers * fineWeight * 0.55 + bands * broadWeight * 0.45
+    albedo = albedo.mul(1 + grain * 0.04)
+    rough = std.clamp(rough + grain * 0.06, 0.08, 0.98)
+    // The binding is centred on local X=0 in both exported GLBs and scene instances.
+    albedo = albedo.mul(
+      std.mix(0.55, 1, std.smoothstep(0, 0.03, std.abs(local.x))),
+    )
+  } else if (kind === 2) {
+    const pebbles = std.sin(local.x * 4188.79) * std.sin(local.z * 4188.79)
+    const weight = 1 - std.smoothstep(0.000375, 0.00075, pixelSize)
+    albedo = albedo.mul(1 + pebbles * weight * 0.05)
+    rough = std.clamp(rough + pebbles * weight * 0.065, 0.08, 0.98)
+  } else if (kind === 3) {
+    const burnish = std.sin(local.x * 785.4 + std.sin(local.z * 440))
+    const weight = 1 - std.smoothstep(0.002, 0.004, pixelSize)
+    rough = std.clamp(rough + burnish * weight * 0.045, 0.08, 0.98)
+  }
   if (clay) {
     albedo = d.vec3f(0.32, 0.34, 0.36)
     metal = d.f32(0)
     rough = d.f32(0.75)
   }
-  // Small material variation, filtered by pixel footprint to avoid distant shimmer.
-  const grainCoordinates = input.world.mul(190)
-  const footprint = std.max(
-    std.length(std.dpdx(grainCoordinates)),
-    std.length(std.dpdy(grainCoordinates)),
+  const hemisphere = std.mix(
+    d.vec3f(0.075, 0.062, 0.05),
+    d.vec3f(0.19, 0.21, 0.25),
+    normal.y * 0.5 + 0.5,
   )
-  const grain =
-    std.sin(grainCoordinates.x * 1.9 + std.sin(grainCoordinates.z * 2.7)) *
-    std.sin(grainCoordinates.z * 1.3 + grainCoordinates.y)
-  const grainWeight =
-    (1 - std.smoothstep(0.3, 1.7, footprint)) * (1 - metal) * 0.07
-  albedo = albedo.mul(1 + grain * grainWeight)
-  const hemisphere = 0.045 + 0.07 * std.max(d.f32(0), normal.y)
-  let color = albedo
-    .mul(d.vec3f(0.55, 0.7, 0.93))
-    .mul(hemisphere * (1 - metal * 0.6))
+  let color = albedo.mul(hemisphere).mul(1 - metal * 0.8)
   color = color.add(
     illuminate(
       normal,
       toEye,
-      std.normalize(d.vec3f(-0.65, 0.42, 0.6)),
+      std.normalize(d.vec3f(-0.62, 0.62, 0.48)),
       albedo,
       metal,
       rough,
       input.surface.w,
-      d.vec3f(2.9, 2.15, 1.6),
+      d.vec3f(3.7, 3.219, 2.664),
     ),
   )
   color = color.add(
     illuminate(
       normal,
       toEye,
-      std.normalize(d.vec3f(0.6, 0.65, -0.6)),
+      std.normalize(d.vec3f(0.7, 0.45, 0.3)),
       albedo,
       metal,
       rough,
       input.surface.w,
-      d.vec3f(0.3, 0.68, 1.1),
+      d.vec3f(0.47, 0.58, 0.666),
     ),
   )
-  // Broad analytic studio reflection keeps rough gold legible without an IBL map.
+  color = color.add(
+    illuminate(
+      normal,
+      toEye,
+      std.normalize(d.vec3f(0.15, 0.82, -0.57)),
+      albedo,
+      metal,
+      rough,
+      input.surface.w,
+      d.vec3f(1.1, 1.2, 1.295),
+    ),
+  )
+  // Formula-based softboxes, not an environment texture. Rough surfaces broaden the lobes.
   const reflected = std.reflect(toEye.mul(-1), normal)
-  const warmReflection =
-    0.09 +
-    0.42 *
-      std.pow(
-        std.max(
-          d.f32(0),
-          std.dot(reflected, std.normalize(d.vec3f(-0.4, 0.8, 0.4))),
-        ),
-        3,
-      )
-  color = color.add(
-    albedo.mul(d.vec3f(1, 0.8, 0.5)).mul(metal * warmReflection),
+  const spread = rough * rough
+  const warmBox = std.pow(
+    std.max(
+      d.f32(0),
+      std.dot(reflected, std.normalize(d.vec3f(-0.4, 0.85, 0.35))),
+    ),
+    std.mix(72, 3, spread),
   )
+  const coolStrip = std.pow(
+    std.max(
+      d.f32(0),
+      std.dot(reflected, std.normalize(d.vec3f(0.85, 0.5, -0.1))),
+    ),
+    std.mix(140, 5, spread),
+  )
+  const environment = d
+    .vec3f(std.mix(0.01, 0.04, reflected.y * 0.5 + 0.5))
+    .add(d.vec3f(1, 0.87, 0.72).mul(warmBox * (1.1 - spread * 0.6)))
+    .add(d.vec3f(0.65, 0.78, 1).mul(coolStrip * (0.75 - spread * 0.4)))
+  const f0 = std.mix(d.vec3f(0.04 * input.surface.w), albedo, metal)
+  const fresnel = f0.add(
+    d
+      .vec3f(1)
+      .sub(f0)
+      .mul(std.pow(1 - std.clamp(std.dot(normal, toEye), 0, 1), 5)),
+  )
+  color = color.add(environment.mul(fresnel))
   if (!clay) {
     const leftDelta = camera.leftDock.xyz.sub(input.world)
     const rightDelta = camera.rightDock.xyz.sub(input.world)
@@ -158,7 +207,7 @@ export const bookFragment = tgpu.fragmentFn({
         metal,
         rough,
         input.surface.w,
-        d.vec3f(0.2, 2.3, 3.1).mul(leftGlow),
+        d.vec3f(2.4, 1.65, 0.65).mul(leftGlow),
       ),
     )
     color = color.add(
@@ -170,7 +219,7 @@ export const bookFragment = tgpu.fragmentFn({
         metal,
         rough,
         input.surface.w,
-        d.vec3f(1.1, 1.9, 1.55).mul(rightGlow),
+        d.vec3f(0.4, 1.9, 1.4).mul(rightGlow),
       ),
     )
     color = color.add(albedo.mul(input.surface.z))

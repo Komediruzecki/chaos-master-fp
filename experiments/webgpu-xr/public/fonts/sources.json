@@ -1,0 +1,43 @@
+{
+  "retrieved": "2026-10-21",
+  "license": "SIL Open Font License 1.1",
+  "files": [
+    {
+      "file": "newsreader-italic-latin.woff2",
+      "source": "https://fonts.gstatic.com/s/newsreader/v26/cY9CfjOCX1hbuyalUrK439vCjohC.woff2",
+      "cssSource": "https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..500;1,6..72,400..500&display=swap",
+      "style": "italic",
+      "weight": "400 500",
+      "bytes": 146872,
+      "sha256": "5dfcd10d24af8c82927ba57f7983dd997f7b200594c09c35a1b1ed9fc4597506"
+    },
+    {
+      "file": "newsreader-roman-latin.woff2",
+      "source": "https://fonts.gstatic.com/s/newsreader/v26/cY9AfjOCX1hbuyalUrK4397yjA.woff2",
+      "cssSource": "https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..500;1,6..72,400..500&display=swap",
+      "style": "normal",
+      "weight": "400 500",
+      "bytes": 132000,
+      "sha256": "6e4f2958c3a7c4a80acde4e5a679abe7e01bc1e30b92be3c7a8b696ef401d101"
+    },
+    {
+      "file": "ibmplexsans-variable-latin.woff2",
+      "source": "https://fonts.gstatic.com/s/ibmplexsans/v23/zYXzKVElMYYaJe8bpLHnCwDKr932-G7dytD-Dmu1syxeKYY.woff2",
+      "cssSource": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap",
+      "style": "normal",
+      "weight": "400 600",
+      "bytes": 45712,
+      "sha256": "e2291e842cf5af167122a22881a740c7f2dda7716f1e8cd76680264f4a859470",
+      "verification": "Fontconfig reports a variable font with Regular, Medium and SemiBold named instances."
+    },
+    {
+      "file": "notomusic-symbols.woff2",
+      "source": "https://fonts.gstatic.com/l/font?kit=pe0rMIiSN5pO63htf1sxItKICTzz3rax-GHiTzk&skey=a1f7640827c2d625&v=v21",
+      "cssSource": "https://fonts.googleapis.com/css2?family=Noto+Music&text=%F0%9D%84%9E%E2%99%AD%E2%99%AF&display=swap",
+      "style": "normal",
+      "weight": "400",
+      "bytes": 3192,
+      "sha256": "31f7ebb4b9098a96fca0fefa8130b077fe70a3caf265b43bdea9d18dc78daae4"
+    }
+  ]
+}

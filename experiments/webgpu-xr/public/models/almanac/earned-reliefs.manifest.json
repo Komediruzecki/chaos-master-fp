@@ -1,0 +1,72 @@
+{
+  "name": "Earned Almanac page reliefs",
+  "assetVersion": 2,
+  "blenderVersion": "5.2.2 LTS",
+  "sourceScriptSha256": "adec85c40c4a974a0a14516d9a93ba2a857944f1b9ae0b031cedaed4d8ffb0e8",
+  "bookRecipeSha256": "5a871383fec1fdc0b70e651b70ca5173869aae1db42ff863b05562261cfaeba7",
+  "sourceBlendSha256": "2fa51e404615d0e90f4c0b4b12153d91bdedeadea61965f2cd3f5307a8b97f1d",
+  "assets": [
+    {
+      "file": "glasswake-earned.glb",
+      "sha256": "66df22dd986be493053fa0e9333c8898213f6225b5323f90192465fc5839852c",
+      "bytes": 46680,
+      "triangles": 626,
+      "sourceMeshObjects": 9
+    },
+    {
+      "file": "tideweave-earned.glb",
+      "sha256": "37346288aad6bc5489ceca3ea82b6d2c49fc5c2c6bd3911cc7eb34acf463e7c1",
+      "bytes": 42308,
+      "triangles": 536,
+      "sourceMeshObjects": 8
+    }
+  ],
+  "materials": [
+    "Relief | night enamel",
+    "Relief | satin silver",
+    "Relief | burnished gold",
+    "Relief | verdigris glass"
+  ],
+  "textures": [],
+  "palette": "Night Almanac: gold Glasswake stars, verdigris Tideweave gems and silver path",
+  "coordinates": {
+    "up": "+Y",
+    "origin": "AlmanacBook origin; no independent transform",
+    "surfaceOffsetRange": [0.009, 0.068],
+    "glasswakeBoundsXZ": [-1.15, -0.23, 0.49, 0.75],
+    "tideweaveBoundsXZ": [0.23, 1.15, 0.49, 0.75]
+  },
+  "anchors": {
+    "glasswake": {
+      "C": [-0.99, 0.2862103603370477, 0.62],
+      "E": [-0.69, 0.3260274822671708, 0.62],
+      "G": [-0.39, 0.306054963159054, 0.62]
+    },
+    "tideweave": {
+      "D": [0.34040000000000004, 0.29436913036631907, 0.6928],
+      "F": [0.5704, 0.32620194334579544, 0.6355999999999999],
+      "B": [0.8096, 0.31737689866462504, 0.5316],
+      "A": [1.0396, 0.2766503884752041, 0.5732]
+    }
+  },
+  "notes": {
+    "glasswake": ["C", "E", "G"],
+    "tideweave": ["D", "F", "B", "A"]
+  },
+  "tideweaveTraceTarget": [
+    [0.12, 0.78],
+    [0.37, 0.56],
+    [0.63, 0.16],
+    [0.88, 0.32]
+  ],
+  "tideweaveMapping": {
+    "x": "0.23 + u * 0.92",
+    "z": "0.49 + v * 0.26"
+  },
+  "visibility": "Draw a world relief only when that world has a saved completion; no partial award",
+  "limitations": [
+    "Opaque factor materials; no image textures, refraction or animation",
+    "No collision or interaction geometry",
+    "Desktop authored scale; headset scale and performance untested"
+  ]
+}

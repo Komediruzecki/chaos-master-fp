@@ -13,7 +13,6 @@ from mathutils import Vector
 HERE = Path(__file__).resolve().parent
 EXPERIMENT = HERE.parents[1]
 OUTPUT = EXPERIMENT / "public/models/almanac"
-EVIDENCE = EXPERIMENT.parents[1] / "webgpu-verify-out/book-asset"
 TAU = math.tau
 GROUPS = {}
 MATERIALS = {}
@@ -25,7 +24,7 @@ def blender_point(point):
     return (x, -z, y)
 
 
-def material(name, color, metallic, roughness):
+def material(name, color, metallic, roughness, specular=1):
     mat = bpy.data.materials.new(name)
     mat.diffuse_color = (*color, 1)
     mat.use_backface_culling = True
@@ -34,8 +33,8 @@ def material(name, color, metallic, roughness):
     bsdf.inputs["Base Color"].default_value = (*color, 1)
     bsdf.inputs["Metallic"].default_value = metallic
     bsdf.inputs["Roughness"].default_value = roughness
-    if metallic < 0.05:
-        bsdf.inputs["Specular IOR Level"].default_value = 0.18
+    # glTF exports twice Blender's IOR-level control as KHR_materials_specular.specularFactor.
+    bsdf.inputs["Specular IOR Level"].default_value = specular / 2
     MATERIALS[name] = mat
     GROUPS[name] = ([], [], [])
     return mat
@@ -148,23 +147,23 @@ def rounded_border(side, x0, x1, z0, z1, radius=0.05):
     return dense
 
 
-def star(x, z, size, mat="Brass | engraving"):
+def star(x, z, size, mat="Ink | bone engraving"):
     for angle in (0, math.pi / 2):
         page_line(mat, [(x + size * math.cos(angle) * k, z + size * math.sin(angle) * k) for k in (-1, 0, 1)], 0.0012)
     points = [(x + size * 0.28 * math.cos(TAU * i / 12), z + size * 0.28 * math.sin(TAU * i / 12)) for i in range(12)]
-    page_line("Brass | polished", points, 0.0013, closed=True)
+    page_line("Ink | bone highlight", points, 0.0013, closed=True)
 
 
 def book_geometry():
     for side in (-1, 1):
         # Leather wrapped boards and a separated page block produce a readable silhouette.
-        surface_volume(side, "Leather | midnight", "Leather | midnight",
+        surface_volume(side, "Leather | tobacco black", "Leather | tobacco black",
                        lambda x, z: lower_height(x, z) - 0.009,
                        lambda x, z: lower_height(x, z) - 0.071,
                        width=1.4, depth=0.95, nx=40)
-        surface_volume(side, "Paper | blue black", "Page edges | antique gold", page_height, lower_height)
+        surface_volume(side, "Paper | night black", "Page edges | gilt", page_height, lower_height)
         # An individual top leaf with a small rolled edge and double gilded folio edge.
-        for inset, radius, mat in [(0.0, 0.0022, "Brass | polished"), (0.014, 0.001, "Brass | engraving")]:
+        for inset, radius, mat in [(0.0, 0.0022, "Ink | bone highlight"), (0.014, 0.001, "Ink | bone engraving")]:
             border = rounded_border(side, 0.044 + inset, 1.323 - inset, -0.873 + inset, 0.873 - inset, 0.027)
             page_line(mat, border, radius, offset=0.0012, closed=True)
 
@@ -181,12 +180,12 @@ def book_geometry():
 
         # Leather piping sits outside the page block and follows each curved board.
         border = rounded_border(side, 0.05, 1.38, -0.926, 0.926, 0.04)
-        tube("Brass | engraving", [(x, lower_height(x, z) - 0.015, z) for x, z in border], 0.006, sides=6, closed=True)
+        tube("Ink | bone engraving", [(x, lower_height(x, z) - 0.015, z) for x, z in border], 0.006, sides=6, closed=True)
         border = rounded_border(side, 0.064, 1.345, -0.907, 0.907, 0.04)
-        tube("Leather | midnight", [(x, lower_height(x, z) - 0.003, z) for x, z in border], 0.008, sides=6, closed=True)
+        tube("Leather | tobacco black", [(x, lower_height(x, z) - 0.003, z) for x, z in border], 0.008, sides=6, closed=True)
 
         # An etched double rectangular frame; all strokes are shaped to the paper curvature.
-        for inset, mat, radius in [(0, "Brass | polished", 0.0022), (0.025, "Brass | engraving", 0.0013)]:
+        for inset, mat, radius in [(0, "Ink | bone highlight", 0.0022), (0.025, "Ink | bone engraving", 0.0013)]:
             page_line(mat, rounded_border(side, 0.11 + inset, 1.25 - inset, -0.792 + inset, 0.792 - inset, 0.05), radius, closed=True)
 
         # Four corner cartouches use interlocking spirals and pointed leaf ribs.
@@ -205,7 +204,7 @@ def book_geometry():
                         x = anchor_x + inward_x * (0.08 * scale + r * math.cos(angle))
                         z = anchor_z + inward_z * (0.08 * scale + r * math.sin(angle))
                         coords.append((side * x, z))
-                    page_line("Brass | polished", coords, 0.0015)
+                    page_line("Ink | bone highlight", coords, 0.0015)
                 for leaf in range(3):
                     a = (leaf + 1) * math.pi / 8
                     length = 0.18
@@ -222,16 +221,16 @@ def book_geometry():
                         dx = length * t * math.cos(a) - cross * math.sin(a)
                         dz = length * t * math.sin(a) + cross * math.cos(a)
                         coords.append((side * (anchor_x + inward_x * dx), anchor_z + inward_z * dz))
-                    page_line("Brass | engraving", coords, 0.0013, closed=True)
+                    page_line("Ink | bone engraving", coords, 0.0013, closed=True)
 
         # Page-mounted celestial instrument dial, under the live fractal dock.
         cx = side * 0.69
-        for rx, rz, mat in [(0.41, 0.41, "Brass | engraving"), (0.445, 0.445, "Brass | polished"), (0.47, 0.47, "Brass | engraving")]:
+        for rx, rz, mat in [(0.41, 0.41, "Ink | bone engraving"), (0.445, 0.445, "Ink | bone highlight"), (0.47, 0.47, "Ink | bone engraving")]:
             page_line(mat, [(cx + rx * math.cos(TAU * i / 100), rz * math.sin(TAU * i / 100)) for i in range(100)], 0.0014, closed=True)
         for i in range(48):
             angle = TAU * i / 48
             r0 = 0.434 if i % 4 == 0 else 0.447
-            page_line("Brass | polished", [(cx + r * math.cos(angle), r * math.sin(angle)) for r in (r0, 0.465)], 0.0011)
+            page_line("Ink | bone highlight", [(cx + r * math.cos(angle), r * math.sin(angle)) for r in (r0, 0.465)], 0.0011)
         # Distinct orbital rosettes printed as recessed-looking low-relief fine metal.
         for angle in ((0, 0.65, 1.3) if side < 0 else (0.35, 1.2, 2.05)):
             coords = []
@@ -239,21 +238,21 @@ def book_geometry():
                 t = TAU * i / 96
                 u, v = 0.36 * math.cos(t), 0.15 * math.sin(t)
                 coords.append((cx + u * math.cos(angle) - v * math.sin(angle), u * math.sin(angle) + v * math.cos(angle)))
-            page_line("Brass | engraving", coords, 0.0009, closed=True)
+            page_line("Ink | bone engraving", coords, 0.0009, closed=True)
         # Seven small star charts and a lower inscription rule leave room for runtime labels.
         for i in range(7):
             x = side * (0.34 + i * 0.113)
             star(x, -0.637, 0.012 if i in (0, 6) else 0.009)
-        page_line("Brass | engraving", [(side * (0.36 + i * 0.036), 0.657) for i in range(20)], 0.0012)
-        star(side * 0.69, 0.657, 0.016, "Brass | polished")
+        page_line("Ink | bone engraving", [(side * (0.36 + i * 0.036), 0.657) for i in range(20)], 0.0012)
+        star(side * 0.69, 0.657, 0.016, "Ink | bone highlight")
 
         # Applied cover corner guards are solid, hand-shaped pieces beyond the page perimeter.
         for front in (-1, 1):
             coords = [(side * 1.255, front * 0.938), (side * 1.377, front * 0.938),
                       (side * 1.389, front * 0.925), (side * 1.389, front * 0.8)]
-            tube("Brass | polished", [(x, lower_height(x, z) - 0.005, z) for x, z in coords], 0.011, sides=8)
+            tube("Ink | bone highlight", [(x, lower_height(x, z) - 0.005, z) for x, z in coords], 0.011, sides=8)
             diagonal = [(side * (1.28 + i * 0.098 / 20), front * (0.933 - i * 0.112 / 20)) for i in range(21)]
-            tube("Brass | engraving", [(x, lower_height(x, z) - 0.006, z) for x, z in diagonal], 0.006, sides=6)
+            tube("Ink | bone engraving", [(x, lower_height(x, z) - 0.006, z) for x, z in diagonal], 0.006, sides=6)
 
     # A flexible, rounded binding spans the two boards below the deep exposed gutter.
     vertices, faces = [], []
@@ -268,12 +267,12 @@ def book_geometry():
         for ix in range(16):
             a = iz * 17 + ix
             faces.append((a, a + 17, a + 18, a + 1))
-    geometry("Leather | midnight", vertices, faces)
+    geometry("Leather | tobacco black", vertices, faces)
     # Binding thread bridges make the dark central valley unmistakably a real book.
     for z in (-0.868, 0.868):
         for i in range(15):
             x = -0.045 + i * 0.006
-            mat = "Brass | engraving" if i % 2 else "Thread | sea green"
+            mat = "Ink | bone engraving" if i % 2 else "Thread | rubric silk"
             tube(mat, [(x - 0.002, 0.072, z - 0.006), (x, 0.082, z), (x + 0.002, 0.066, z + 0.006)], 0.003, sides=5)
     # A narrow ribbon drops naturally from the gutter at the fore-edge.
     vertices, faces = [], []
@@ -285,14 +284,14 @@ def book_geometry():
         vertices.extend([(x - 0.023, y, z), (x + 0.023, y, z)])
     for i in range(12):
         faces.append((i * 2, i * 2 + 2, i * 2 + 3, i * 2 + 1))
-    geometry("Thread | sea green", vertices, faces)
+    geometry("Thread | rubric silk", vertices, faces)
 
 
 def create_asset_objects():
     objects = []
     root = bpy.data.objects.new("AlmanacBook", None)
     bpy.context.collection.objects.link(root)
-    root["asset_version"] = 1
+    root["asset_version"] = 2
     root["design_units"] = "metre-equivalent scene units; 2.8 wide"
     for name, (vertices, faces, smoothing) in GROUPS.items():
         mesh = bpy.data.meshes.new(name)
@@ -336,8 +335,8 @@ def setup_studio():
     scene.render.engine = 'CYCLES'
     scene.cycles.samples = 40
     scene.cycles.use_denoising = True
-    scene.render.resolution_x = 1600
-    scene.render.resolution_y = 1100
+    scene.render.resolution_x = 1000
+    scene.render.resolution_y = 688
     scene.render.resolution_percentage = 100
     scene.render.image_settings.file_format = 'PNG'
     scene.world.color = (0.035, 0.035, 0.035)
@@ -388,18 +387,22 @@ def render(path):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--no-render', action='store_true')
+    parser.add_argument('--evidence-dir', required=True, type=Path)
     args = parser.parse_args(sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else [])
+    if not args.evidence_dir.is_absolute():
+        parser.error('--evidence-dir must be an absolute admitted run path.')
     OUTPUT.mkdir(parents=True, exist_ok=True)
-    EVIDENCE.mkdir(parents=True, exist_ok=True)
+    args.evidence_dir.mkdir(parents=True, exist_ok=True)
     bpy.ops.object.select_all(action='SELECT')
     bpy.ops.object.delete(use_global=False)
-    material("Leather | midnight", (0.012, 0.018, 0.022), 0.02, 0.64)
-    material("Paper | blue black", (0.009, 0.016, 0.021), 0.02, 0.9)
-    material("Page edges | antique gold", (0.24, 0.14, 0.052), 0.45, 0.65)
+    bpy.context.preferences.filepaths.save_version = 0
+    material("Leather | tobacco black", (0.030, 0.022, 0.018), 0, 0.58, 0.45)
+    material("Paper | night black", (0.030, 0.029, 0.032), 0, 0.86, 0.35)
+    material("Page edges | gilt", (0.95, 0.74, 0.40), 1, 0.34)
     material("Page seams | bronze", (0.055, 0.032, 0.018), 0.2, 0.78)
-    material("Brass | polished", (0.67, 0.39, 0.12), 0.87, 0.26)
-    material("Brass | engraving", (0.28, 0.17, 0.066), 0.68, 0.45)
-    material("Thread | sea green", (0.008, 0.051, 0.055), 0.03, 0.82)
+    material("Ink | bone highlight", (0.60, 0.56, 0.48), 0, 0.62, 0.50)
+    material("Ink | bone engraving", (0.60, 0.56, 0.48), 0, 0.62, 0.50)
+    material("Thread | rubric silk", (0.40, 0.045, 0.025), 0, 0.40, 0.70)
     book_geometry()
     root, objects = create_asset_objects()
     bpy.ops.object.select_all(action='DESELECT')
@@ -415,7 +418,7 @@ def main():
     bpy.ops.wm.save_as_mainfile(filepath=str(HERE / 'almanac-book.blend'), compress=True)
     manifest = {
         "name": "Irchiinnuss fixed-open Almanac",
-        "assetVersion": 1,
+        "assetVersion": 2,
         "authoring": "Authored procedural Blender geometry; no external generated mesh or texture",
         "blenderVersion": bpy.app.version_string,
         "sourceScript": "assets-source/almanac/build_book.py",
@@ -427,6 +430,7 @@ def main():
         "bytes": glb.stat().st_size,
         "triangles": sum(len(obj.data.polygons) for obj in objects if obj.type == 'MESH'),
         "materials": list(MATERIALS),
+        "palette": "Night Almanac: black paper, bone ink, rubric silk and gilt page edges",
         "textures": [],
         "coordinates": {"up": "+Y", "front": "+Z", "width": 2.8, "coverDepth": 1.9, "ribbonFront": 1.11, "root": [0, 0, 0]},
         "anchors": {"OrbDockLeft": [-0.69, 0.67, 0], "OrbDockRight": [0.69, 0.67, 0]},
@@ -435,24 +439,24 @@ def main():
     }
     (OUTPUT / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
     if not args.no_render:
-        render(EVIDENCE / 'source-final.png')
+        render(args.evidence_dir / 'source-final.png')
         clay = bpy.data.materials.new('Neutral clay audit')
         clay.diffuse_color = (0.38, 0.38, 0.38, 1)
         clay.use_nodes = True
         clay.node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value = clay.diffuse_color
         clay.node_tree.nodes['Principled BSDF'].inputs['Roughness'].default_value = 0.7
         bpy.context.view_layer.material_override = clay
-        render(EVIDENCE / 'source-clay.png')
+        render(args.evidence_dir / 'source-clay.png')
         bpy.context.view_layer.material_override = None
         # Delete authoring asset and import the delivery GLB; lights/camera remain identical.
         for obj in [root, *objects]:
             bpy.data.objects.remove(obj, do_unlink=True)
         bpy.ops.import_scene.gltf(filepath=str(glb))
-        render(EVIDENCE / 'export-final.png')
+        render(args.evidence_dir / 'export-final.png')
         camera = bpy.context.scene.camera
         camera.location = blender_point((2.6, 0.95, 3.5))
         aim(camera, (0, 0.08, 0))
-        render(EVIDENCE / 'export-side.png')
+        render(args.evidence_dir / 'export-side.png')
     print(json.dumps(manifest, indent=2))
 
 

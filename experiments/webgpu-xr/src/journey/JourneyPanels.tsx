@@ -1,7 +1,10 @@
 // Folio overlays connect the two playable worlds without replacing their live scene.
+import '../theme/lumen.css'
 import './journey.css'
 import { createMemo, createSignal, For, onCleanup, onMount, Show, } from 'solid-js'
 import { ALMANAC_WORLDS } from '../almanac/catalog'
+import { Icon } from '../theme/Icon'
+import { PageGlyph } from '../theme/PageGlyph'
 import type { JSX } from 'solid-js'
 import type { JourneyPersistence, JourneyProgress, JourneyWorldId, } from './progress'
 
@@ -50,6 +53,8 @@ export function JourneySaveStatus(props: { persistence: JourneyPersistence }) {
 function FolioDialog(props: {
   panel: 'intro' | 'almanac' | 'receipt'
   title: string
+  caption?: string
+  worldId?: JourneyWorldId
   closeLabel: string
   onClose: () => void
   children: JSX.Element
@@ -74,6 +79,7 @@ function FolioDialog(props: {
       ref={dialog}
       class="journey-dialog"
       data-panel={props.panel}
+      data-world={props.worldId}
       aria-labelledby={`journey-${props.panel}-title`}
       onCancel={(event) => {
         event.preventDefault()
@@ -82,15 +88,25 @@ function FolioDialog(props: {
     >
       <header class="journey-dialog-heading">
         <div>
-          <span class="journey-location">Irchiinnuss</span>
+          <span class="journey-location">
+            {props.panel === 'intro'
+              ? 'First visit'
+              : props.panel === 'receipt'
+                ? 'Page earned'
+                : 'Collected music'}
+          </span>
           <h2 id={`journey-${props.panel}-title`}>{props.title}</h2>
+          <Show when={props.caption}>
+            <p class="journey-dialog-caption">{props.caption}</p>
+          </Show>
         </div>
         <button
-          class="journey-button journey-dismiss"
+          class="journey-button journey-dismiss lx-tertiary"
           type="button"
           onClick={props.onClose}
         >
-          {props.closeLabel}
+          <Icon name="close" />
+          <span>{props.closeLabel}</span>
         </button>
       </header>
       {props.children}
@@ -141,6 +157,7 @@ export function JourneyIntro(props: {
           aria-labelledby="journey-practice-title"
         >
           <div class="journey-practice-copy">
+            <p class="journey-step">01 · Listen</p>
             <h3 id="journey-practice-title">Try a note</h3>
             <p>
               Move the slider to raise or lower the pitch. Let go to stop. Arrow
@@ -192,6 +209,9 @@ export function JourneyIntro(props: {
           <For each={WORLD_IDS}>
             {(id) => (
               <section class="journey-intro-world" data-world={id}>
+                <p class="journey-step">
+                  {id === 'glasswake' ? '02 · Release' : '03 · Trace'}
+                </p>
                 <h3>
                   {worldFor(id).name}
                   <span>
@@ -204,7 +224,12 @@ export function JourneyIntro(props: {
                     : 'Hear four notes, then trace their shape to grow a crossing.'}
                 </p>
                 <button
-                  class="journey-button journey-button-primary"
+                  class="journey-button"
+                  classList={{
+                    'journey-button-primary': id === 'glasswake',
+                    'lx-primary': id === 'glasswake',
+                    'lx-secondary': id === 'tideweave',
+                  }}
                   type="button"
                   disabled={!props.ready}
                   onClick={() => {
@@ -241,7 +266,7 @@ interface CollectionProps {
   onOpenEnding: () => void
 }
 
-function TempleInvitation(props: { onOpen: () => void }) {
+function TempleInvitation(props: { onOpen: () => void; primary?: boolean }) {
   return (
     <section class="journey-temple-invitation" aria-label="The temple signal">
       <p>
@@ -250,7 +275,12 @@ function TempleInvitation(props: { onOpen: () => void }) {
       </p>
       <button
         type="button"
-        class="journey-button journey-button-primary"
+        class="journey-button"
+        classList={{
+          'journey-button-primary': props.primary !== false,
+          'lx-primary': props.primary !== false,
+          'lx-secondary': props.primary === false,
+        }}
         onClick={props.onOpen}
       >
         Open temple signal
@@ -267,6 +297,7 @@ export function JourneyAlmanac(props: CollectionProps) {
     <FolioDialog
       panel="almanac"
       title="Your Almanac"
+      caption={`${earned()} of 2 pages earned`}
       closeLabel="Close Almanac"
       onClose={props.onClose}
     >
@@ -283,6 +314,10 @@ export function JourneyAlmanac(props: CollectionProps) {
               data-world={id}
               data-status={journeyPageStatus(props.progress, id)}
             >
+              <PageGlyph
+                world={id}
+                earned={Boolean(props.progress.worlds[id].completion)}
+              />
               <div class="journey-page-index">
                 <span>{id === 'glasswake' ? 'I' : 'II'}</span>
                 <span>
@@ -312,18 +347,19 @@ export function JourneyAlmanac(props: CollectionProps) {
               </p>
               <div class="journey-page-actions">
                 <button
-                  class="journey-button"
+                  class="journey-button lx-secondary"
                   type="button"
                   onClick={() => {
                     props.onPlayMotif(id)
                   }}
                 >
+                  <Icon name={props.playingWorldId === id ? 'stop' : 'play'} />
                   {props.playingWorldId === id
                     ? 'Stop motif'
                     : `Play ${worldFor(id).name} motif`}
                 </button>
                 <button
-                  class="journey-button journey-button-primary"
+                  class="journey-button lx-tertiary"
                   type="button"
                   onClick={() => {
                     props.onVisit(id)
@@ -341,10 +377,11 @@ export function JourneyAlmanac(props: CollectionProps) {
       </Show>
       <footer class="journey-dialog-footer journey-collection-footer">
         <div>
-          <p>{earned()} / 2 pages earned. Replaying keeps your pages.</p>
+          <p>Replaying keeps your pages.</p>
           <JourneySaveStatus persistence={props.persistence} />
         </div>
-        <a class="journey-button" href="/almanac">
+        <a class="journey-button lx-secondary" href="/almanac">
+          <Icon name="book" />
           Open the book
         </a>
       </footer>
@@ -368,11 +405,13 @@ export function JourneyReceipt(
   return (
     <FolioDialog
       panel="receipt"
+      worldId={props.worldId}
       title={`${world().name} added to your Almanac`}
       closeLabel="Close page"
       onClose={props.onClose}
     >
       <div class="journey-receipt" data-world={props.worldId}>
+        <PageGlyph world={props.worldId} earned={true} />
         <p class="journey-receipt-activity">{activityFor(props.worldId)}</p>
         <p>
           {both()
@@ -396,7 +435,7 @@ export function JourneyReceipt(
       </div>
       <div class="journey-receipt-actions">
         <button
-          class="journey-button journey-button-primary"
+          class="journey-button lx-tertiary"
           type="button"
           onClick={() => {
             props.onVisit(other())
@@ -405,7 +444,7 @@ export function JourneyReceipt(
           Continue to {worldFor(other()).name}
         </button>
         <button
-          class="journey-button"
+          class="journey-button journey-button-primary lx-primary"
           type="button"
           onClick={props.onOpenAlmanac}
         >
@@ -413,7 +452,7 @@ export function JourneyReceipt(
         </button>
       </div>
       <Show when={both()}>
-        <TempleInvitation onOpen={props.onOpenEnding} />
+        <TempleInvitation onOpen={props.onOpenEnding} primary={false} />
       </Show>
       <footer class="journey-dialog-footer">
         <p>

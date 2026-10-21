@@ -1,6 +1,7 @@
 // The ending keeps its listening controls at the edge of the existing 3D scene.
 import './temple.css'
 import { createMemo, For, onMount, Show } from 'solid-js'
+import { Icon } from '../theme/Icon'
 import { JourneySaveStatus } from './JourneyPanels'
 import { TEMPLE_DURATION_SECONDS, templeCue } from './templeScore'
 import type { JourneyPersistence } from './progress'
@@ -115,20 +116,21 @@ export function TempleEnding(props: {
           <button
             ref={listen}
             type="button"
-            class="observatory-action"
+            class="observatory-action lx-primary"
             disabled={!props.ready && !busy()}
             onClick={() => {
               if (busy()) props.onStop()
               else props.onPlay()
             }}
           >
+            <Icon name={busy() ? 'stop' : 'play'} />
             {busy()
               ? 'Stop ending'
               : props.phase === 'ready'
                 ? 'Listen together'
                 : 'Replay ending'}
           </button>
-          <button type="button" onClick={props.onLeave}>
+          <button class="lx-tertiary" type="button" onClick={props.onLeave}>
             Return to worlds
           </button>
         </div>

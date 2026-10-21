@@ -57,5 +57,10 @@
     "Stage appears only in the Glasswake encounter",
     "Studio lighting and proxy solids are evidence, not runtime appearance",
     "Physical headset reach, scale, comfort and performance remain untested"
-  ]
+  ],
+  "compatibleHelper": {
+    "sha256": "1e11e4bef983b550da96cf95ae7e79d0f2eba31c20f34f7e346dbefbd6ac78e7",
+    "functions": ["bp", "aim"],
+    "verification": "Function ASTs are identical to the original generation helper. Chamber source and both GLBs were not regenerated."
+  }
 }

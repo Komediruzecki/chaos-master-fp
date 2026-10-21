@@ -1,7 +1,9 @@
 // Desktop canvas, camera and trace input lifecycle for the observatory scene.
+import { EMPTY_BOOK_AWARDS } from '../almanac/bookAwards'
 import { createObservatoryRenderer } from './renderer'
 import { clamp, copyTrace, EMPTY_GLASSWAKE, EMPTY_TRACE, projectPoint, QUIET_MUSIC, traceAtCanvas, traceWorld, WORLD_PLACEMENTS, } from './scene'
 import { copyTemple, EMPTY_TEMPLE, EMPTY_TEMPLE_STATS } from './temple'
+import type { BookAwards } from '../almanac/bookAwards'
 import type { CameraState, GlasswakePresentation, MusicFrame, ObservatoryFrame, ObservatoryOptions, ObservatorySnapshot, ObservatoryView, TracePoint, TracePresentation, WorldId, } from './scene'
 import type { TemplePresentation } from './temple'
 
@@ -25,6 +27,7 @@ export class ObservatoryRuntime {
   private motion = !window.matchMedia('(prefers-reduced-motion: reduce)')
     .matches
   private clay = false
+  private bookAwards: BookAwards = { ...EMPTY_BOOK_AWARDS }
   private trace: TracePresentation = copyTrace(EMPTY_TRACE)
   private glasswake: GlasswakePresentation = { ...EMPTY_GLASSWAKE }
   private temple: TemplePresentation = { ...EMPTY_TEMPLE }
@@ -169,6 +172,7 @@ export class ObservatoryRuntime {
           this.canvas.height = height
         }
         const frame: ObservatoryFrame = {
+          bookAwards: this.bookAwards,
           selectedWorld: this.selectedWorld,
           view: this.view,
           camera: this.camera,
@@ -397,6 +401,10 @@ export class ObservatoryRuntime {
     this.clay = enabled
     this.options.changed()
   }
+  setBookAwards(awards: BookAwards) {
+    this.bookAwards = { ...awards }
+    this.options.changed()
+  }
   setActive(active: boolean) {
     this.active = active
     this.previousTime = 0
@@ -474,6 +482,7 @@ export class ObservatoryRuntime {
       assets: stats.assets,
       traceAnchors: this.trace.target.map((point) => this.projectTrace(point)),
       visual: {
+        bookAwards: { ...this.bookAwards },
         time: this.time,
         music: { ...this.music },
         instructionNote: this.instructionNote,

@@ -195,7 +195,17 @@ export const resolveFragment = tgpu.fragmentFn({
   const hdr = sample.rgb
   const mapped = d.vec3f(1).sub(std.exp(hdr.mul(-camera.display.y)))
   let sky = d.vec3f(7 / 255, 17 / 255, 28 / 255)
-  if (camera.display.w > 0.5 && sample.a < 0.5) {
+  if (camera.leftDock.w > 0.5) {
+    const dimensions = std.textureDimensions(resolveLayout.$.image)
+    const uv = input.position.xy.div(d.vec2f(dimensions))
+    const radial = std.clamp(1 - std.length(uv.sub(d.vec2f(0.5))) * 1.4, 0, 1)
+    sky = std.mix(
+      d.vec3f(7 / 255, 8 / 255, 10 / 255),
+      d.vec3f(20 / 255, 21 / 255, 26 / 255),
+      radial,
+    )
+  }
+  if (camera.display.w > 0.5 && camera.leftDock.w < 0.5 && sample.a < 0.5) {
     // Stationary screen-space atmosphere only; it is never depth-test evidence.
     const cell = std.floor(input.position.xy.mul(0.11))
     const hash = std.fract(

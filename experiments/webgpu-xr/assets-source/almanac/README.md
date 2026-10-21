@@ -14,12 +14,12 @@ The visual direction comes from `personal/lumen-meta/concepts/12-almanac-temple-
 Run from the repository root. The process is isolated from any open Blender window and has a 15-minute limit:
 
 ```sh
-rtk proxy timeout 900 /usr/bin/blender --background --threads 8 --python experiments/webgpu-xr/assets-source/almanac/build_book.py
+rtk proxy timeout 900 /usr/bin/blender --background --threads 4 --python experiments/webgpu-xr/assets-source/almanac/build_book.py -- --evidence-dir /absolute/path/to/task-output/book
 ```
 
-Append `-- --no-render` to regenerate only the Blender source, GLB and manifest. The script replaces those generated files. Blender may create a `.blend1` backup when an existing source is overwritten; that backup is not a runtime or source deliverable.
+Append `--no-render` to regenerate only the Blender source, GLB and manifest. The script replaces those generated files and disables Blender backup creation.
 
-The complete command also writes these local review images to `webgpu-verify-out/book-asset/`:
+The complete command also writes these local review images to the required absolute evidence directory:
 
 - `source-final.png`: source mesh with the authored materials.
 - `source-clay.png`: the same geometry/camera/light with a neutral clay override.
@@ -32,7 +32,15 @@ The GLB uses +Y up and +Z toward the front edge. The origin is at the book's cen
 
 `OrbDockLeft` is `[-0.69, 0.67, 0]`; `OrbDockRight` is `[0.69, 0.67, 0]`. A fractal radius around 0.34 leaves air between the orb and the curved page. `PageLabelLeft` and `PageLabelRight` give lower-page label positions. All four are named empty nodes parented to `AlmanacBook`.
 
-Meshes are merged by material: seven mesh primitives and seven potential draw calls per view, before scene-level passes. The export contains 66,332 triangles, 33,997 exported vertices, 1,494,408 bytes and no textures, skins or animations. `POSITION`, `NORMAL` and `TEXCOORD_0` are present. Metallic/roughness material factors provide the base appearance; optional `KHR_materials_specular` reduces the paper, leather and ribbon sheen. Normals use backface culling rather than relying on double-sided rendering to hide errors.
+Meshes are merged by material: seven mesh primitives and seven potential draw calls per view, before scene-level passes. The export contains 66,332 triangles, 33,997 exported vertices, 1,494,412 bytes and no textures, skins or animations. `POSITION`, `NORMAL` and `TEXCOORD_0` are present. Metallic/roughness material factors provide the base appearance; optional `KHR_materials_specular` controls paper, leather, ink and ribbon sheen. Normals use backface culling rather than relying on double-sided rendering to hide errors.
+
+Version 2 authors the Night Almanac palette directly into the Blender materials: near-black paper, bone ink, gilt page edges, tobacco-black leather and a rubric ribbon. Bronze folio seams retain their earlier factors. Runtime procedural grain and scene lighting are separate from these authored values; the source contains no baked texture maps.
+
+## Earned page reliefs
+
+`build_book_reliefs.py` produces `almanac-page-reliefs.blend`, `glasswake-earned.glb`, `tideweave-earned.glb` and `earned-reliefs.manifest.json`. Run it with absolute `--source-dir`, `--runtime-dir` and `--evidence-dir` arguments. It imports the base recipe's paper height function, so regenerate it after changing `build_book.py` even when only materials changed.
+
+The two standalone, opaque assets share the base book's exact root transform. Glasswake adds three faceted gold C–E–G stars in silver settings. Tideweave adds four verdigris D–F–B–A gems along the completed encounter's silver melody trace. Both use a near-black curved plaque with smooth analytic surface normals and sharp silver chamfers. They occupy the lower paper strips, leaving the existing charts and orb docks clear. The combined geometry is 1,162 triangles; no images, animation or texture dependencies are included. Earned visibility belongs to the runtime save state.
 
 UVs are planar inspection coordinates for this factor-only version. They are not a packed unwrap suitable for detailed leather or page-edge texture bakes. Any future bake needs a deliberate UV layout and fresh texture/runtime verification.
 

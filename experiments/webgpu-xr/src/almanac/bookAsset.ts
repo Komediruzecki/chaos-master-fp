@@ -348,8 +348,11 @@ export function parseBookGlb(bytes: ArrayBuffer): BookGeometry {
   }
 }
 
-export async function loadBookGeometry(signal: AbortSignal) {
-  const response = await fetch('/models/almanac/almanac-book.glb', { signal })
+export async function loadBookGeometry(
+  signal: AbortSignal,
+  url = '/models/almanac/almanac-book.glb',
+) {
+  const response = await fetch(url, { signal })
   if (!response.ok)
     throw new Error(
       `The Almanac model could not load (HTTP ${response.status}).`,

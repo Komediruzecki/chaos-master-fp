@@ -1,6 +1,8 @@
 // Full-screen desktop observatory joins two live worlds to one forgiving spatial melody exercise.
+import '../theme/lumen.css'
 import './observatory.css'
-import { createMemo, createSignal, For, onCleanup, onMount, Show, } from 'solid-js'
+import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show, untrack, } from 'solid-js'
+import { earnedBookAwards } from '../almanac/bookAwards'
 import { ALMANAC_WORLDS } from '../almanac/catalog'
 import { MotifAudio } from '../almanac/motifAudio'
 import { JourneyAlmanac, JourneyIntro, JourneyReceipt, JourneySaveStatus, } from '../journey/JourneyPanels'
@@ -8,6 +10,7 @@ import { getEarnedPages, isJourneyWorldId } from '../journey/progress'
 import { TempleEnding } from '../journey/TempleEnding'
 import { useJourney } from '../journey/useJourney'
 import { useTempleEnding } from '../journey/useTempleEnding'
+import { Icon, LogoMark } from '../theme/Icon'
 import { beginTrace, BRIDGE_MOTIF, BRIDGE_NOTE_NAMES, BRIDGE_TARGET, createEncounter, endTrace, moveTrace, traceHint, } from './encounter'
 import { GlasswakeEncounter } from './GlasswakeEncounter'
 import { ObservatoryRuntime } from './runtime'
@@ -29,6 +32,7 @@ export function Observatory() {
     : journey.snapshot().progress.lastSelectedWorld
   let canvas!: HTMLCanvasElement
   let atlasToggle!: HTMLButtonElement
+  let atlasDialog: HTMLDialogElement | undefined
   let runtime: ObservatoryRuntime | undefined
   let audio: MotifAudio | undefined
   const heldKeys = new Set<string>()
@@ -295,6 +299,7 @@ export function Observatory() {
   }
 
   function closeAtlas() {
+    atlasDialog?.close()
     setAtlasOpen(false)
     queueMicrotask(() => {
       atlasToggle.focus({ preventScroll: true })
@@ -450,6 +455,11 @@ export function Observatory() {
     finishInput()
   }
 
+  createEffect(() => {
+    const awards = earnedBookAwards(journey.snapshot().progress)
+    untrack(() => runtime?.setBookAwards(awards))
+  })
+
   onMount(() => {
     audio = new MotifAudio(updateSound)
     runtime = new ObservatoryRuntime(canvas, {
@@ -484,6 +494,7 @@ export function Observatory() {
             }
       },
     })
+    runtime.setBookAwards(earnedBookAwards(journey.snapshot().progress))
     runtime.selectWorld(initialWorld)
     if (!journey.snapshot().progress.onboardingCompleted) setPanel('intro')
     else journey.store.selectWorld(initialWorld)
@@ -562,16 +573,22 @@ export function Observatory() {
       />
       <div class="observatory-shade" aria-hidden="true" />
       <header class="observatory-header">
-        <a class="observatory-brand" href="/almanac">
-          <span aria-hidden="true" class="observatory-brand-mark" />
+        <a
+          class="observatory-brand"
+          href="/almanac"
+          aria-label="Lumen Apeiron Almanac"
+        >
+          <LogoMark />
           <span>Lumen Apeiron</span>
         </a>
+        <span class="observatory-location">Irchiinnuss</span>
         <nav aria-label="Observatory navigation">
           <button
             ref={atlasToggle}
             type="button"
             aria-expanded={atlasOpen()}
             aria-controls="observatory-atlas"
+            aria-label="Seven constellations"
             onClick={() => {
               ending.close()
               interruptInput()
@@ -579,15 +596,18 @@ export function Observatory() {
               else setAtlasOpen(true)
             }}
           >
-            Seven constellations
+            <Icon name="globe" />
+            <span class="observatory-nav-label">Atlas</span>
           </button>
           <button
             type="button"
             onClick={() => {
               openPanel('intro')
             }}
+            aria-label="Guide"
           >
-            Guide
+            <Icon name="guide" />
+            <span class="observatory-nav-label">Guide</span>
           </button>
           <button
             type="button"
@@ -596,8 +616,18 @@ export function Observatory() {
             }}
             aria-label={`Almanac, ${earnedPages()} of 2 pages earned`}
           >
-            Almanac{' '}
-            <span class="observatory-page-count">{earnedPages()} / 2</span>
+            <Icon name="book" />
+            <span class="observatory-nav-label">Almanac</span>
+            <span class="observatory-page-count" aria-hidden="true">
+              <i
+                data-world="glasswake"
+                classList={{ 'is-earned': glassCollected() }}
+              />
+              <i
+                data-world="tideweave"
+                classList={{ 'is-earned': collected() }}
+              />
+            </span>
           </button>
         </nav>
       </header>
@@ -635,7 +665,17 @@ export function Observatory() {
       </Show>
 
       <Show when={atlasOpen()}>
-        <aside
+        <dialog
+          ref={(element) => {
+            atlasDialog = element
+            queueMicrotask(() => {
+              if (element.isConnected && !element.open) element.showModal()
+            })
+          }}
+          onCancel={(event) => {
+            event.preventDefault()
+            closeAtlas()
+          }}
           id="observatory-atlas"
           class="observatory-atlas"
           aria-label="Seven constellations"
@@ -646,39 +686,55 @@ export function Observatory() {
               Close
             </button>
           </div>
-          <p>Two worlds taking shape. Five directions still to explore.</p>
+          <p class="lx-label">Playable worlds</p>
           <For each={studies}>
             {(entry) => (
               <button
                 type="button"
                 class="observatory-atlas-world"
+                data-world={entry.id}
                 onClick={() => {
+                  atlasDialog?.close()
                   selectWorld(entry.id as WorldId)
+                  queueMicrotask(() => {
+                    canvas.focus({ preventScroll: true })
+                  })
                 }}
               >
+                <Icon name={entry.id === 'glasswake' ? 'star' : 'music'} />
                 <strong>{entry.name}</strong>
-                <span>
+                <span class="observatory-atlas-mode">
                   {entry.tonic} {entry.mode}
                 </span>
-                <span>Open world study</span>
+                <span class="observatory-atlas-status">
+                  {journey.snapshot().progress.worlds[entry.id as WorldId]
+                    .completion
+                    ? 'Page earned'
+                    : 'Not yet earned'}
+                </span>
+                <span class="observatory-atlas-visit">
+                  Visit <Icon name="right" />
+                </span>
               </button>
             )}
           </For>
+          <p class="observatory-atlas-preview-label">
+            Previews · not playable in this build
+          </p>
           <For each={previews}>
             {(entry) => (
               <div class="observatory-atlas-proposal">
                 <div>
                   <strong>{entry.name}</strong>
-                  <span>Proposed</span>
+                  <span>Preview</span>
                 </div>
                 <span>
                   {entry.tonic} {entry.mode}
                 </span>
-                <p>{entry.summary}</p>
               </div>
             )}
           </For>
-        </aside>
+        </dialog>
       </Show>
 
       <Show when={exercise()}>
@@ -745,11 +801,40 @@ export function Observatory() {
       </Show>
       <Show when={!glasswake() && !ending.active()}>
         <div class="observatory-bottom">
+          <Show when={!exercise()}>
+            <div
+              class="observatory-world-switch"
+              role="group"
+              aria-label="Choose a world"
+            >
+              <For each={studies}>
+                {(entry) => (
+                  <button
+                    type="button"
+                    aria-pressed={worldId() === entry.id}
+                    data-world={entry.id}
+                    onClick={() => {
+                      selectWorld(entry.id as WorldId)
+                    }}
+                  >
+                    <Icon name={entry.id === 'glasswake' ? 'star' : 'music'} />
+                    {entry.name}
+                  </button>
+                )}
+              </For>
+            </div>
+          </Show>
           <section
             class="observatory-world-copy"
             aria-labelledby="observatory-title"
           >
-            <p class="observatory-place">Irchiinnuss</p>
+            <p class="observatory-place">
+              {exercise()
+                ? 'Tideweave · melody crossing'
+                : worldId() === 'glasswake'
+                  ? 'World I'
+                  : 'World II'}
+            </p>
             <h1 id="observatory-title">
               {exercise()
                 ? stage() === 'complete'
@@ -776,9 +861,10 @@ export function Observatory() {
                 </>
               }
             >
-              <p>
-                {world().tonic} {world().mode}{' '}
-                <span class="observatory-copy-divider" />{' '}
+              <p class="observatory-world-mode">
+                {world().tonic} {world().mode}
+              </p>
+              <p class="observatory-world-description">
                 {worldId() === 'glasswake'
                   ? 'Six petals, a crystal crown and a glass motif.'
                   : 'Five curling fronds and a Dorian motif.'}
@@ -803,13 +889,27 @@ export function Observatory() {
                 aria-label="Melody crossing controls"
               >
                 <span class="observatory-bridge-progress">
-                  {encounter().accepted} / 4 notes
+                  <span
+                    class="observatory-progress-segments"
+                    aria-hidden="true"
+                  >
+                    <For each={BRIDGE_TARGET}>
+                      {(_, index) => (
+                        <i
+                          classList={{
+                            'is-earned': index() < encounter().accepted,
+                          }}
+                        />
+                      )}
+                    </For>
+                  </span>
+                  {encounter().accepted} of 4 notes
                 </span>
                 <div>
                   <Show when={stage() === 'complete'}>
                     <button
                       type="button"
-                      class="observatory-action"
+                      class="observatory-action lx-primary"
                       onClick={() => {
                         openPanel('receipt', 'tideweave')
                       }}
@@ -820,6 +920,10 @@ export function Observatory() {
                   <button
                     type="button"
                     class="observatory-action"
+                    classList={{
+                      'lx-primary': stage() !== 'complete',
+                      'lx-secondary': stage() === 'complete',
+                    }}
                     disabled={!ready()}
                     onClick={() => {
                       if (
@@ -887,29 +991,22 @@ export function Observatory() {
               class="observatory-world-actions"
               aria-label="World controls"
             >
-              <div
-                class="observatory-world-switch"
-                role="group"
-                aria-label="Choose a world"
-              >
-                <For each={studies}>
-                  {(entry) => (
-                    <button
-                      type="button"
-                      aria-pressed={worldId() === entry.id}
-                      onClick={() => {
-                        selectWorld(entry.id as WorldId)
-                      }}
-                    >
-                      {entry.name}
-                    </button>
-                  )}
-                </For>
-              </div>
               <div class="observatory-primary-actions">
                 <button
                   type="button"
                   class="observatory-action"
+                  classList={{
+                    'lx-primary':
+                      earnedPages() !== 2 &&
+                      (worldId() === 'glasswake'
+                        ? glassCollected()
+                        : collected()),
+                    'lx-secondary':
+                      earnedPages() === 2 ||
+                      !(worldId() === 'glasswake'
+                        ? glassCollected()
+                        : collected()),
+                  }}
                   disabled={!ready()}
                   onClick={() => {
                     if (sound()?.playing || sound()?.loading) audio?.stop()
@@ -922,6 +1019,7 @@ export function Observatory() {
                 </button>
                 <button
                   type="button"
+                  class="lx-secondary"
                   disabled={!ready()}
                   onClick={() => {
                     const next = view() === 'inspect' ? 'overview' : 'inspect'
@@ -935,6 +1033,10 @@ export function Observatory() {
                   <button
                     type="button"
                     class="observatory-action"
+                    classList={{
+                      'lx-primary': !glassCollected(),
+                      'lx-tertiary': glassCollected(),
+                    }}
                     disabled={!ready()}
                     onClick={openGlasswake}
                   >
@@ -945,6 +1047,10 @@ export function Observatory() {
                   <button
                     type="button"
                     class="observatory-action"
+                    classList={{
+                      'lx-primary': !collected(),
+                      'lx-tertiary': collected(),
+                    }}
                     disabled={!ready()}
                     onClick={openCrossing}
                   >
@@ -954,7 +1060,7 @@ export function Observatory() {
                 <Show when={earnedPages() === 2}>
                   <button
                     type="button"
-                    class="observatory-action"
+                    class="observatory-action lx-primary"
                     disabled={!ready()}
                     onClick={ending.open}
                   >

@@ -2,12 +2,15 @@
 import { d, tgpu } from 'typegpu'
 import { mat4 } from 'wgpu-matrix'
 import { loadBookGeometry } from '../almanac/bookAsset'
+import { BOOK_RELIEFS, EMPTY_BOOK_AWARDS } from '../almanac/bookAwards'
 import { createBookPass } from '../almanac/bookPass'
 import { ALMANAC_WORLDS, settingsForWorld } from '../almanac/catalog'
 import { WORLD_VISUALS } from '../almanac/worldIdentity'
 import { SAMPLE_STEPS } from './recipes'
 import { cloudFragment, cloudVertex, constructSpecimen, fullScreenVertex, resolveFragment, resolveLayout, SampleConfig, samplingLayout, sceneLayout, solidFragment, solidVertex, View, } from './shaders'
 import type { TgpuBindGroup } from 'typegpu'
+import type { BookGeometry } from '../almanac/bookAsset'
+import type { BookAwards } from '../almanac/bookAwards'
 import type { BenchSettings } from './settings'
 
 const MAX_POINTS = 524288
@@ -127,9 +130,13 @@ export function createBenchRenderer(
   const book = {
     status: 'idle' as 'idle' | 'loading' | 'ready' | 'error',
     error: '',
+    reliefStatus: 'idle' as 'idle' | 'loading' | 'ready' | 'error',
+    reliefError: '',
     dock: 'left' as 'left' | 'right',
     inspecting: false,
     clay: false,
+    awards: { ...EMPTY_BOOK_AWARDS },
+    reliefTriangles: 0,
     triangles: 0,
     geometryBytes: 0,
     bytes: 0,
@@ -137,6 +144,7 @@ export function createBenchRenderer(
     draws: 0,
   }
   let bookPass: ReturnType<typeof createBookPass> | undefined
+  let reliefPasses: (ReturnType<typeof createBookPass> | undefined)[] = []
   let bookRequest: AbortController | undefined
   let disposed = false
   let partner: ReturnType<typeof createPartner> | undefined
@@ -163,52 +171,112 @@ export function createBenchRenderer(
     }
   }
 
+  function updateBookDraws() {
+    book.draws =
+      (bookPass ? 1 : 0) +
+      BOOK_RELIEFS.filter(
+        (relief, index) => book.awards[relief.id] && reliefPasses[index],
+      ).length
+  }
+
   async function loadBook() {
     bookRequest?.abort()
     const request = new AbortController()
     bookRequest = request
     book.status = 'loading'
     book.error = ''
+    book.reliefStatus = 'loading'
+    book.reliefError = ''
     changed()
+    const stale = () =>
+      disposed || bookRequest !== request || request.signal.aborted
+    // Optional details never withhold the base book, including on a slow connection.
+    const reliefLoads = Promise.allSettled(
+      BOOK_RELIEFS.map((relief) =>
+        loadBookGeometry(request.signal, relief.url),
+      ),
+    )
+
+    async function upload(geometry: BookGeometry) {
+      device.pushErrorScope('validation')
+      let candidate: ReturnType<typeof createBookPass> | undefined
+      try {
+        let validation: GPUError | null
+        try {
+          candidate = createBookPass(root, camera, geometry, 4)
+        } finally {
+          validation = await device.popErrorScope()
+        }
+        if (validation) throw new Error(validation.message)
+        if (stale()) {
+          candidate.dispose()
+          return undefined
+        }
+        return candidate
+      } catch (error) {
+        candidate?.dispose()
+        throw error
+      }
+    }
     try {
       const geometry = await loadBookGeometry(request.signal)
-      if (disposed || bookRequest !== request) return
+      if (stale()) return
       if (!geometry.anchors.OrbDockLeft || !geometry.anchors.OrbDockRight)
         throw new Error(
           'The Almanac model is missing its orb attachment points.',
         )
-      device.pushErrorScope('validation')
-      let loaded: ReturnType<typeof createBookPass> | undefined
-      let validation: GPUError | null = null
-      try {
-        loaded = createBookPass(root, camera, geometry, 4)
-      } finally {
-        validation = await device.popErrorScope()
-      }
-      if (disposed || bookRequest !== request) {
-        loaded?.dispose()
-        return
-      }
-      if (validation) {
-        loaded?.dispose()
-        throw new Error(validation.message)
-      }
+      const loaded = await upload(geometry)
+      if (!loaded) return
       bookPass?.dispose()
+      reliefPasses.forEach((relief) => relief?.dispose())
+      reliefPasses = []
       bookPass = loaded
       leftDock = geometry.anchors.OrbDockLeft
       rightDock = geometry.anchors.OrbDockRight
       book.status = 'ready'
       book.triangles = geometry.triangles
+      book.reliefTriangles = 0
       book.geometryBytes =
         geometry.vertices.byteLength + geometry.indices.byteLength
       book.bytes = geometry.bytes
-      book.materials = geometry.materials
-      book.draws = 1
+      book.materials = [...geometry.materials]
+      updateBookDraws()
+      changed()
+      const reliefs = await reliefLoads
+      if (stale()) return
+      const failures: string[] = []
+      for (let index = 0; index < reliefs.length; index++) {
+        const result = reliefs[index]
+        if (result.status === 'rejected') {
+          failures.push(`${BOOK_RELIEFS[index].id}: ${String(result.reason)}`)
+          continue
+        }
+        try {
+          const relief = await upload(result.value)
+          if (!relief) return
+          reliefPasses[index] = relief
+          book.reliefTriangles += result.value.triangles
+          book.geometryBytes +=
+            result.value.vertices.byteLength + result.value.indices.byteLength
+          book.bytes += result.value.bytes
+          book.materials = [
+            ...new Set([...book.materials, ...result.value.materials]),
+          ]
+        } catch (error) {
+          if (stale()) return
+          failures.push(`${BOOK_RELIEFS[index].id}: ${String(error)}`)
+        }
+      }
+      book.reliefStatus = failures.length ? 'error' : 'ready'
+      book.reliefError = failures.join('; ')
+      updateBookDraws()
       changed()
     } catch (error) {
-      if (disposed || bookRequest !== request || request.signal.aborted) return
+      if (stale()) return
+      request.abort()
       book.status = 'error'
       book.error = error instanceof Error ? error.message : String(error)
+      book.reliefStatus = 'idle'
       changed()
     }
   }
@@ -291,7 +359,7 @@ export function createBenchRenderer(
       ((isBook
         ? Math.max(
             -75,
-            Math.min(85, settings.pitch + (book.inspecting ? 12 : 35)),
+            Math.min(85, settings.pitch + (book.inspecting ? 12 : 50)),
           )
         : settings.pitch) *
         Math.PI) /
@@ -301,9 +369,13 @@ export function createBenchRenderer(
       (isBook
         ? book.inspecting
           ? 0.38
-          : 1.05 * Math.max(1, 1.3 / (width / height))
+          : 1.15 * Math.max(1, 1.3 / (width / height))
         : 1)
-    const target = isBook ? (book.inspecting ? dock : [0, 0.25, 0]) : [0, 0, 0]
+    const target = isBook
+      ? book.inspecting
+        ? dock
+        : [dock[0] * 0.18, 0.25, 0]
+      : [0, 0, 0]
     const eye = [
       target[0] + Math.sin(yaw) * Math.cos(pitch) * distance,
       target[1] + Math.sin(pitch) * distance,
@@ -361,7 +433,7 @@ export function createBenchRenderer(
     )
     raw.set(isBook ? [...dock, 0.34] : [0, 0, 0, 1], 48)
     raw.set([...eye, Number(book.clay && isBook)], 52)
-    raw.set([...leftDock, 0], 56)
+    raw.set([...leftDock, Number(isBook)], 56)
     raw.set([...rightDock, 0], 60)
     camera.write(raw.buffer)
     if (other) {
@@ -410,7 +482,12 @@ export function createBenchRenderer(
       ]
     const solidPipeline = isBook ? bookSolid : solid
     const cloudPipeline = isBook ? bookCloud : cloud
-    if (isBook) bookPass?.draw(pass)
+    if (isBook) {
+      bookPass?.draw(pass)
+      BOOK_RELIEFS.forEach((relief, index) => {
+        if (book.awards[relief.id]) reliefPasses[index]?.draw(pass)
+      })
+    }
     if (settings.rings)
       solidPipeline
         .with(group)
@@ -453,8 +530,17 @@ export function createBenchRenderer(
     setBookClay(clay: boolean) {
       book.clay = clay
     },
+    setBookAwards(awards: BookAwards) {
+      book.awards = { ...awards }
+      updateBookDraws()
+    },
     retryBook() {
-      if (!disposed && book.status !== 'loading') void loadBook()
+      if (
+        !disposed &&
+        book.status !== 'loading' &&
+        book.reliefStatus !== 'loading'
+      )
+        void loadBook()
     },
     setCachedData(key: string, data: Float32Array) {
       device.queue.writeBuffer(
@@ -477,6 +563,7 @@ export function createBenchRenderer(
       scene,
       book: {
         ...book,
+        awards: { ...book.awards },
         materials: [...book.materials],
         anchors: { left: [...leftDock], right: [...rightDock] },
       },
@@ -494,6 +581,7 @@ export function createBenchRenderer(
       disposed = true
       bookRequest?.abort()
       bookPass?.dispose()
+      reliefPasses.forEach((relief) => relief?.dispose())
       hdr?.destroy()
       multisampledHdr?.destroy()
       depth?.destroy()

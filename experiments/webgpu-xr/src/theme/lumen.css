@@ -1,0 +1,196 @@
+/* THESIS: A black-paper star atlas makes the music and earned objects visible.
+ * OWN-WORLD: Bone type, rubric navigation, gold Glasswake and verdigris Tideweave.
+ * STORY: Hear a form, shape it, record it. One filled action advances each view.
+ * FIRST VIEWPORT: The live object leads, with readable controls at its edges.
+ * FORM: Night Almanac, two inks; owner-delegated design consultation, no random seed.
+ */
+@import './fonts.css';
+
+:where(.observatory, .almanac, .journey-dialog) {
+  --lx-night: #08090c;
+  --lx-ink-1: #0e1014;
+  --lx-ink-2: #161920;
+  --lx-ink-3: #20242c;
+  --lx-rule: #2a2f38;
+  --lx-rule-strong: #5e646e;
+  --lx-bone: #ece7dc;
+  --lx-bone-2: #b9b4aa;
+  --lx-bone-3: #8e8a82;
+  --lx-rubric: #e0644a;
+  --lx-gilt: #e0c489;
+  --lx-verdigris: #74b8a4;
+  --lx-alert: #f3b3a2;
+  --lx-alert-bg: #2a1612;
+  --lx-scrim: rgb(8 9 12 / 88%);
+  --lx-backdrop: rgb(4 5 7 / 74%);
+  --lx-serif: 'Newsreader', Georgia, serif;
+  --lx-sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --lx-1: 4px;
+  --lx-2: 8px;
+  --lx-3: 12px;
+  --lx-4: 16px;
+  --lx-5: 24px;
+  --lx-6: 32px;
+  --lx-7: 48px;
+  --lx-gutter: clamp(16px, 3.3vw, 48px);
+  --lx-header: 64px;
+  --lx-r1: 2px;
+  --lx-r2: 4px;
+  --lx-shadow-1: 0 8px 24px rgb(0 0 0 / 35%);
+  --lx-shadow-2: 0 24px 80px rgb(0 0 0 / 60%);
+  --lx-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --lx-t1: 160ms;
+  --lx-t2: 240ms;
+  font-optical-sizing: auto;
+}
+:where(.observatory, .almanac, .journey-dialog)
+  :is(.lx-primary, .lx-secondary, .lx-tertiary) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid transparent;
+  border-radius: var(--lx-r1);
+  font: 500 14px/1.35 var(--lx-sans);
+  text-decoration: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    background-color var(--lx-t1) var(--lx-ease),
+    border-color var(--lx-t1) var(--lx-ease),
+    color var(--lx-t1) var(--lx-ease);
+}
+:where(.observatory, .almanac, .journey-dialog) .lx-primary {
+  color: var(--lx-ink-1);
+  background: var(--lx-bone);
+  border-color: var(--lx-bone);
+}
+:where(.observatory, .almanac, .journey-dialog) .lx-primary:hover {
+  color: var(--lx-night);
+  background: #fffaf0;
+  border-color: #fffaf0;
+}
+:where(.observatory, .almanac, .journey-dialog) .lx-secondary {
+  color: var(--lx-bone);
+  background: var(--lx-scrim);
+  border-color: var(--lx-rule-strong);
+}
+:where(.observatory, .almanac, .journey-dialog) .lx-secondary:hover {
+  background: var(--lx-ink-3);
+  border-color: var(--lx-bone-2);
+}
+:where(.observatory, .almanac, .journey-dialog) .lx-tertiary {
+  color: var(--lx-bone-2);
+  background: transparent;
+}
+:where(.observatory, .almanac, .journey-dialog) .lx-tertiary:hover {
+  color: var(--lx-bone);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+:where(.observatory, .almanac, .journey-dialog)
+  :is(button, a, input, canvas):focus-visible {
+  outline: 2px solid var(--lx-bone);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 6px var(--lx-night);
+}
+:where(.observatory, .almanac, .journey-dialog) :is(button, input):disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.lx-icon {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  background: currentColor;
+  mask-image: var(--lx-icon);
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  mask-position: center;
+}
+.lx-logo-mark {
+  display: block;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+}
+.lx-label {
+  color: var(--lx-bone-3);
+  font: 600 13px/1.4 var(--lx-sans);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.lx-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.lx-page-glyph {
+  display: block;
+  width: 200px;
+  max-width: 100%;
+  height: 64px;
+  color: var(--lx-gilt);
+}
+.lx-page-glyph[data-world='tideweave'] {
+  color: var(--lx-verdigris);
+}
+.lx-page-glyph[data-earned='false'] {
+  color: var(--lx-bone-3);
+}
+.lx-page-glyph .glyph-form {
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 1.5px;
+}
+.lx-page-glyph[data-earned='false'] .glyph-form {
+  fill: none;
+  stroke-dasharray: 3 3;
+}
+.lx-page-glyph .glyph-facet {
+  fill: none;
+  stroke: var(--lx-night);
+  stroke-width: 1px;
+  opacity: 0.6;
+}
+.lx-page-glyph[data-earned='false'] .glyph-facet {
+  opacity: 0;
+}
+.lx-page-glyph .glyph-path {
+  fill: none;
+  stroke: var(--lx-bone-2);
+  stroke-width: 1.5px;
+}
+.lx-page-glyph .glyph-rule {
+  stroke: var(--lx-rubric);
+  stroke-width: 1px;
+  opacity: 0.7;
+}
+.lx-page-glyph[data-earned='false'] :is(.glyph-rule, .glyph-path) {
+  stroke: var(--lx-bone-3);
+  stroke-dasharray: 3 3;
+}
+@media (max-width: 599px) {
+  :where(.observatory, .almanac, .journey-dialog) {
+    --lx-header: 56px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :where(.observatory, .almanac, .journey-dialog) *,
+  :where(.observatory, .almanac, .journey-dialog) *::before,
+  :where(.observatory, .almanac, .journey-dialog) *::after {
+    transition: none;
+    animation: none;
+    scroll-behavior: auto;
+  }
+}

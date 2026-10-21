@@ -266,7 +266,7 @@ def studio():
     scene.render.engine = 'CYCLES'
     scene.cycles.samples = 24
     scene.cycles.use_denoising = True
-    scene.render.resolution_x, scene.render.resolution_y = 1400, 1000
+    scene.render.resolution_x, scene.render.resolution_y = 980, 700
     scene.render.resolution_percentage = 100
     scene.render.image_settings.file_format = 'PNG'
     scene.world.use_nodes = True
@@ -305,6 +305,8 @@ def main():
     parser.add_argument('--runtime-dir', required=True, type=Path)
     parser.add_argument('--evidence-dir', required=True, type=Path)
     parser.add_argument('--no-render', action='store_true')
+    parser.add_argument('--only', choices=['observation-bay', 'bridge-segment', 'far-landing'],
+                        help='Re-export only this module; retain existing other GLBs in the kit manifest')
     args = parser.parse_args(sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else [])
     for directory in (args.source_dir, args.runtime_dir, args.evidence_dir):
         directory.mkdir(parents=True, exist_ok=True)
@@ -316,6 +318,11 @@ def main():
     material('Brass | muted', (0.24, 0.145, 0.063), 0.78, 0.46)
     material('Brass | bright', (0.55, 0.33, 0.115), 0.86, 0.31)
     material('Enamel | tide', (0.17, 0.47, 0.44), 0.03, 0.39)
+    material('Bay | black basalt', (0.026, 0.026, 0.026), 0, 0.82)
+    material('Bay | charcoal inset', (0.043, 0.043, 0.043), 0, 0.72)
+    material('Bay | blackened bronze', (0.20, 0.15, 0.11), 1, 0.42)
+    material('Bay | satin silver', (0.90, 0.89, 0.86), 1, 0.36)
+    material('Bay | bone enamel', (0.60, 0.56, 0.48), 0, 0.62)
     assets = [
         ('observation-bay', 'ObservationBay', bay,
          {'BookMount': [0, 0.85, -0.1], 'BridgeMouth': [0, 0, -3.7],
@@ -330,6 +337,17 @@ def main():
     for slug, name, build, anchors in assets:
         GROUPS.clear()
         build()
+        if slug == 'observation-bay':
+            # Scope the monochrome arrival architecture to the bay. The route and
+            # landing keep their existing authored materials and exported files.
+            palette = {'Basalt | blue': 'Bay | black basalt',
+                       'Slate | inset': 'Bay | charcoal inset',
+                       'Brass | muted': 'Bay | blackened bronze',
+                       'Brass | bright': 'Bay | satin silver',
+                       'Enamel | tide': 'Bay | bone enamel'}
+            groups = {palette.get(name, name): value for name, value in GROUPS.items()}
+            GROUPS.clear()
+            GROUPS.update(groups)
         root, objects = make_objects(name, anchors)
         roots.append(root)
         all_objects.extend(objects)
@@ -337,10 +355,13 @@ def main():
         for obj in objects:
             obj.select_set(True)
         path = args.runtime_dir / (slug + '.glb')
-        bpy.ops.export_scene.gltf(filepath=str(path), export_format='GLB', use_selection=True,
-                                  export_yup=True, export_apply=True, export_extras=True,
-                                  export_animations=False, export_cameras=False, export_lights=False,
-                                  export_materials='EXPORT', export_normals=True, export_texcoords=False)
+        if not args.only or args.only == slug:
+            bpy.ops.export_scene.gltf(filepath=str(path), export_format='GLB', use_selection=True,
+                                      export_yup=True, export_apply=True, export_extras=True,
+                                      export_animations=False, export_cameras=False, export_lights=False,
+                                      export_materials='EXPORT', export_normals=True, export_texcoords=False)
+        elif not path.is_file():
+            raise RuntimeError(f'Selective export requires existing kit module: {path}')
         records.append({'file': path.name, 'root': name, 'bytes': path.stat().st_size,
                         'sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
                         'triangles': sum(len(o.data.polygons) for o in objects if o.type == 'MESH'),
@@ -362,7 +383,8 @@ def main():
     studio()
     source = args.source_dir / 'observatory-kit.blend'
     bpy.ops.wm.save_as_mainfile(filepath=str(source), compress=True)
-    manifest = {'name': 'Irchiinnuss observatory terrace kit', 'assetVersion': 1,
+    manifest = {'name': 'Irchiinnuss observatory terrace kit', 'assetVersion': 2,
+                'palette': 'Night Almanac observation bay; bridge and far landing retain original materials',
                 'blenderVersion': bpy.app.version_string, 'authoring': 'Authored Blender geometry; no provider mesh or textures',
                 'sourceScriptSha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                 'sourceBlendSha256': hashlib.sha256(source.read_bytes()).hexdigest(),

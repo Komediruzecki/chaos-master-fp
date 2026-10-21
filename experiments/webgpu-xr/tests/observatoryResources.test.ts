@@ -1,6 +1,7 @@
 // Partial model setup must release every buffer before an asset can be retried.
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
+import { createBookPass } from '../src/almanac/bookPass'
 import { createModelPass, primitiveGeometry, } from '../src/observatory/modelPass'
 
 type Failure =
@@ -95,6 +96,35 @@ await test('failed model setup releases buffers across allocation, upload, bindi
       failure,
     )
   }
+})
+
+await test('book and relief setup release partial uploads and allow idempotent disposal', () => {
+  for (const failure of [
+    'second-buffer',
+    'vertex-upload',
+    'index-upload',
+    'pipeline',
+    'camera-binding',
+    'unwrap',
+  ] as const) {
+    const probe = resourceProbe(failure)
+    assert.throws(
+      () => createBookPass(probe.root, camera, geometry, 4),
+      new RegExp(failure),
+    )
+    assert.ok(
+      probe.buffers.every((buffer) => buffer.destroyed === 1),
+      failure,
+    )
+  }
+  const probe = resourceProbe(null)
+  const book = createBookPass(probe.root, camera, geometry, 4)
+  book.dispose()
+  book.dispose()
+  assert.deepEqual(
+    probe.buffers.map((buffer) => buffer.destroyed),
+    [1, 1],
+  )
 })
 
 await test('failed instance binding releases its new uniform while model geometry remains reusable', () => {

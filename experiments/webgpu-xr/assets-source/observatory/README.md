@@ -1,6 +1,8 @@
 # Observatory asset kit
 
-This is the first authored environment kit for the desktop observatory. The terrace has a bevelled stone slab, separated radial floor sectors, a low raised rim, sweeping rails and structural ribs, seven survey markers and an Almanac lectern. The bridge is a separate repeatable tile; the far landing is a separate platform. Broad silhouettes, actual inlaid geometry and five opaque materials carry the appearance in the current factor-material renderer.
+This is the authored environment kit for the desktop observatory. The terrace has a bevelled stone slab, separated radial floor sectors, a low raised rim, sweeping rails and structural ribs, seven survey markers and an Almanac lectern. The bridge is a separate repeatable tile; the far landing is a separate platform. Broad silhouettes, actual inlaid geometry and five opaque materials per module carry the appearance in the current factor-material renderer.
+
+Version 2 gives only the observation bay the Night Almanac architecture palette: black basalt, charcoal floor insets, blackened bronze rails, satin silver trim and bone enamel markers. Separate `Bay | …` materials keep bridge and landing factors unchanged. Their exported files, the celestial seed, and both Glasswake assets remain byte-identical to the previous delivery. The editable kit source includes the complete arrangement.
 
 The visual direction comes from `personal/lumen-meta/concepts/08-seven-constellations.png` and `12-almanac-temple-teaser.png` in dotfiles. Those are concept images, not evidence of the shipping scene. The geometry intentionally leaves the sky and the live fractals unobstructed.
 
@@ -17,7 +19,7 @@ Runtime files live in `../../public/models/observatory/`. `manifest.json` descri
 
 | Runtime module  | Triangles | GLB bytes | Current loader geometry bytes |
 | --------------- | --------: | --------: | ----------------------------: |
-| Observation bay |    16,390 |   447,376 |                     1,112,904 |
+| Observation bay |    16,390 |   447,332 |                     1,112,904 |
 | Bridge tile     |       352 |    19,532 |                        37,120 |
 | Far landing     |     3,580 |   117,344 |                       284,880 |
 | Celestial seed  |    14,000 |   253,364 |                       616,000 |
@@ -55,6 +57,8 @@ rtk proxy timeout 600 /usr/bin/blender --background --threads 8 \
 Run from the repository root, with `OBSERVATORY_RUN` set to the exact registered run path. The relic recipe takes the same three arguments plus `--donor /absolute/path/to/celestial-seed-original.glb`. It asserts that the donor has no image textures, normalizes the dense source, reduces to 14,000 triangles with Blender Collapse, re-normalizes the derivative after reduction, and assigns one deliberate opaque teal-bronze material. No provider generation call or credit spending is part of either script.
 
 Append `--no-render` to regenerate source and export only. Inspect fresh exports before copying reviewed source and runtime files back to the repository. The scripts disable Blender backup copies within their isolated process.
+
+For a scoped palette revision, `build_observatory.py --only observation-bay` exports the bay and rebuilds the complete editable source/manifest while retaining existing bridge and landing GLBs. Those sibling files must already exist in `--runtime-dir`; the option fails if they are missing. Omit `--only` for a complete reproducible kit export.
 
 ## Production findings
 
@@ -109,8 +113,11 @@ object and material counts do not describe runtime draw calls.
 
 `glasswake-chamber.manifest.json` records the deterministic layout seed, Blender
 version, both script hashes, packed source hash, GLB hashes and attachment
-positions. The old terrace recipe is imported only for coordinate/camera
-helpers and remains unchanged.
+positions. The terrace recipe is imported only for the `bp` and `aim`
+coordinate/camera helpers. Its Night Almanac revision leaves those two function
+ASTs identical. The chamber manifest retains the original generation helper hash
+and records the current compatible helper separately; the chamber source and
+GLBs were not regenerated for that palette revision.
 
 ### Placement and material contract
 

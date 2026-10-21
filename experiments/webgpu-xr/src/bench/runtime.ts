@@ -1,7 +1,9 @@
 // Desktop-only specimen lifecycle and camera input; the existing XR lab is separate.
+import { EMPTY_BOOK_AWARDS } from '../almanac/bookAwards'
 import { BENCH_RECIPES } from './recipes'
 import { createBenchRenderer } from './renderer'
 import { DEFAULT_BENCH_SETTINGS, normalizeSettings } from './settings'
+import type { BookAwards } from '../almanac/bookAwards'
 import type { BenchSettings } from './settings'
 
 export { DEFAULT_BENCH_SETTINGS } from './settings'
@@ -31,6 +33,7 @@ export class BenchRuntime {
   private bookDock: 'left' | 'right' = 'left'
   private bookInspection = false
   private bookClay = false
+  private bookAwards: BookAwards = { ...EMPTY_BOOK_AWARDS }
   constructor(
     private canvas: HTMLCanvasElement,
     private changed: () => void,
@@ -86,6 +89,7 @@ export class BenchRuntime {
       this.renderer.setBookDock(this.bookDock)
       this.renderer.setBookInspection(this.bookInspection)
       this.renderer.setBookClay(this.bookClay)
+      this.renderer.setBookAwards(this.bookAwards)
       this.renderer.setScene(this.scene)
       this.ready = true
       this.canvas.addEventListener('pointerdown', this.onPointerDown)
@@ -299,6 +303,11 @@ export class BenchRuntime {
     this.renderer?.setBookClay(clay)
     this.changed()
   }
+  setBookAwards(awards: BookAwards) {
+    this.bookAwards = { ...awards }
+    this.renderer?.setBookAwards(this.bookAwards)
+    this.changed()
+  }
   retryBook() {
     this.renderer?.retryBook()
   }
@@ -334,9 +343,13 @@ export class BenchRuntime {
       book: {
         status: 'idle' as 'idle' | 'loading' | 'ready' | 'error',
         error: '',
+        reliefStatus: 'idle' as 'idle' | 'loading' | 'ready' | 'error',
+        reliefError: '',
         dock: this.bookDock,
         inspecting: this.bookInspection,
         clay: this.bookClay,
+        awards: { ...this.bookAwards },
+        reliefTriangles: 0,
         triangles: 0,
         geometryBytes: 0,
         bytes: 0,

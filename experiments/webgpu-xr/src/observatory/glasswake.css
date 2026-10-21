@@ -1,19 +1,35 @@
-/* A spatial pitch rail leaves the crystal exposed and the score-free controls at the edge. */
+/* A pitch rail keeps the crystal exposed; three engraved chips record the released notes. */
+.glasswake-topline {
+  position: absolute;
+  inset: calc(var(--lx-header) + 16px) var(--lx-gutter) auto;
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  pointer-events: none;
+  color: var(--lx-bone-2);
+}
+.glasswake-topline > span {
+  color: var(--lx-gilt);
+  font: 600 13px/1.5 var(--lx-sans);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.glasswake-topline p {
+  margin: 0;
+  font-size: 16px;
+}
 .glasswake-instrument {
   position: absolute;
   z-index: 1;
-  top: 17%;
+  top: 19%;
   left: 25%;
   width: 50%;
-  height: 43%;
+  height: 38%;
   touch-action: none;
   user-select: none;
   cursor: ns-resize;
-  border-left: 1px solid #d8bb8340;
+  border-left: 1px solid var(--lx-rule-strong);
   outline-offset: 14px;
-}
-.glasswake-instrument:focus-visible {
-  outline: 1px solid var(--obs-brass);
 }
 .glasswake-instrument[aria-disabled='true'] {
   cursor: default;
@@ -24,148 +40,186 @@
 .glasswake-range-top,
 .glasswake-range-bottom {
   position: absolute;
-  left: -30px;
-  font-size: 10px;
-  color: var(--obs-muted);
+  left: -34px;
+  font-size: 13px;
+  color: var(--lx-bone-2);
 }
 .glasswake-range-top {
-  top: -18px;
+  top: -20px;
 }
 .glasswake-range-bottom {
-  bottom: -20px;
+  bottom: -22px;
 }
 .glasswake-target {
   position: absolute;
   inset-inline: 0;
-  border-top: 1px dashed #d8bb835c;
+  border-top: 1px dashed #e0c48988;
   pointer-events: none;
 }
 .glasswake-target > span {
   position: absolute;
   right: calc(100% + 16px);
-  top: -13px;
-  color: var(--obs-brass);
-  font:
-    20px/1.2 Georgia,
-    serif;
+  top: -15px;
+  color: var(--lx-gilt);
+  font: 400 24px/1.2 var(--lx-serif);
 }
 .glasswake-pitch {
   position: absolute;
-  left: -5px;
-  width: 11px;
-  height: 11px;
-  border: 1px solid #fff5;
+  left: -6px;
+  width: 13px;
+  height: 13px;
+  border: 2px solid var(--lx-night);
   border-radius: 50%;
-  background: var(--obs-text);
+  background: var(--lx-bone);
   transform: translateY(-50%);
   pointer-events: none;
 }
 .is-holding .glasswake-pitch {
-  box-shadow: 0 0 18px #ffdd99;
+  background: var(--lx-gilt);
+  box-shadow: 0 0 0 4px #e0c48944;
 }
 .is-armed .glasswake-target {
-  border-color: #fff4c8;
+  border-color: var(--lx-gilt);
+  border-top-style: solid;
 }
 .glasswake-resonance {
   position: absolute;
-  top: calc(100% + 30px);
+  top: calc(100% + 28px);
   left: 50%;
   transform: translateX(-50%);
-  width: 150px;
+  width: 180px;
   text-align: center;
-  color: var(--obs-brass);
-  font:
-    italic 16px/1.4 Georgia,
-    serif;
+  color: var(--lx-gilt);
+  font: italic 18px/1.4 var(--lx-serif);
   pointer-events: none;
 }
 .glasswake-charge {
   display: block;
-  height: 2px;
-  margin-top: 10px;
-  background: #d8bb832b;
+  height: 3px;
+  margin-top: 8px;
+  background: var(--lx-rule);
 }
 .glasswake-charge i {
   display: block;
   height: 100%;
-  background: #fff0bd;
+  background: var(--lx-gilt);
   transform-origin: left;
 }
-.glasswake-seals {
-  gap: 24px !important;
-  margin-bottom: 12px;
+.observatory-exercise-actions > .glasswake-seals {
+  gap: 8px;
+  margin-bottom: 16px;
 }
 .glasswake-seals > span {
   display: grid;
   gap: 2px;
-  color: #a6b8bc;
-  font:
-    18px/1.3 Georgia,
-    serif;
+  min-width: 64px;
+  min-height: 64px;
+  padding: 7px 10px;
+  border: 1px solid var(--lx-rule-strong);
+  border-radius: var(--lx-r1);
+  color: var(--lx-bone-2);
+  text-align: center;
+}
+.glasswake-seal-note {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  font: 400 24px/1.2 var(--lx-serif);
+}
+.glasswake-seal-note .lx-icon {
+  width: 16px;
+  height: 16px;
 }
 .glasswake-seals small {
-  font:
-    10px/1.3 system-ui,
-    sans-serif;
+  font: 400 13px/1.3 var(--lx-sans);
 }
 .glasswake-seals .is-next {
-  color: var(--obs-brass);
+  color: var(--lx-gilt);
+  border-color: var(--lx-gilt);
+}
+.glasswake-seals .is-held {
+  color: var(--lx-night);
+  background: var(--lx-gilt);
 }
 .glasswake-seals .is-open {
-  color: var(--obs-water);
+  color: var(--lx-gilt);
+  border-color: var(--lx-gilt);
+  background: #e0c48914;
 }
-@media (max-width: 850px) {
+@media (max-width: 1023px) {
   .glasswake-instrument {
     left: 20%;
     width: 60%;
-    top: 16%;
-    height: 35%;
+    top: 20%;
+    height: 28%;
   }
-  .glasswake-seals {
-    gap: 22px !important;
-    margin-bottom: 8px;
+  .glasswake-topline {
+    gap: 12px;
+  }
+  .glasswake-topline p {
+    max-width: 32ch;
+    text-align: right;
+    font-size: 14px;
+  }
+  .observatory-exercise-actions > .glasswake-seals {
+    margin-bottom: 10px;
   }
 }
-@media (max-width: 560px) {
+@media (max-width: 599px) {
+  .glasswake-topline {
+    inset: calc(var(--lx-header) + 12px) 16px auto;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .glasswake-topline p {
+    text-align: left;
+    max-width: none;
+  }
   .glasswake-instrument {
     left: 19%;
     width: 70%;
-    top: 17%;
-    height: 31%;
+    top: 23%;
+    height: 22%;
   }
   .glasswake-resonance {
-    top: calc(100% + 20px);
-    font-size: 14px;
+    top: calc(100% + 22px);
+    font-size: 17px;
   }
   .glasswake-bottom {
     gap: 8px;
-  }
-  .glasswake-bottom h1 {
-    font-size: 29px;
   }
   .glasswake-bottom .observatory-exercise-actions > p {
     max-width: 340px;
   }
 }
-@media (max-height: 560px) and (min-width: 561px) {
+@media (max-height: 560px) and (min-width: 600px) {
+  .glasswake-topline {
+    inset-block-start: 64px;
+  }
+  .glasswake-topline p {
+    font-size: 13px;
+  }
   .glasswake-instrument {
     left: 33%;
     width: 34%;
-    top: 20%;
-    height: 30%;
+    top: 25%;
+    height: 22%;
   }
   .glasswake-resonance {
-    top: calc(100% + 10px);
-    font-size: 12px;
+    top: calc(100% + 12px);
+    font-size: 17px;
   }
   .glasswake-charge {
     margin-top: 4px;
   }
-  .glasswake-seals {
-    margin-bottom: 3px;
-  }
   .glasswake-seals > span {
-    font-size: 14px;
+    min-height: 56px;
+    min-width: 56px;
+    padding: 4px 8px;
+  }
+  .observatory-exercise-actions > .glasswake-seals {
+    margin-bottom: 4px;
   }
   .glasswake-bottom .observatory-exercise-actions {
     max-width: 440px;

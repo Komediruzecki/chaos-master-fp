@@ -11,47 +11,53 @@ export function createBookPass(
   geometry: BookGeometry,
   sampleCount = 1,
 ) {
-  const vertices = root
-    .createBuffer(
-      bookVertexLayout.schemaForCount(geometry.vertices.length / 16),
-    )
-    .$usage('vertex')
-  const indices = root
-    .createBuffer(d.arrayOf(d.u32, geometry.indices.length))
-    .$usage('index')
-  vertices.write(geometry.vertices.buffer)
-  indices.write(geometry.indices.buffer)
-  const pipeline = root
-    .createRenderPipeline({
-      attribs: { ...bookVertexLayout.attrib },
-      vertex: bookVertex,
-      fragment: bookFragment,
-      targets: { format: 'rgba16float' },
-      primitive: { topology: 'triangle-list', cullMode: 'back' },
-      multisample: { count: sampleCount },
-      depthStencil: {
-        format: 'depth24plus',
-        depthWriteEnabled: true,
-        depthCompare: 'less',
-      },
-    })
-    .with(root.createBindGroup(bookLayout, { camera }))
-    .with(bookVertexLayout, vertices)
-    .withIndexBuffer(indices)
+  const resources: { destroy(): void }[] = []
   try {
+    const vertices = root
+      .createBuffer(
+        bookVertexLayout.schemaForCount(geometry.vertices.length / 16),
+      )
+      .$usage('vertex')
+    resources.push(vertices)
+    const indices = root
+      .createBuffer(d.arrayOf(d.u32, geometry.indices.length))
+      .$usage('index')
+    resources.push(indices)
+    vertices.write(geometry.vertices.buffer)
+    indices.write(geometry.indices.buffer)
+    const pipeline = root
+      .createRenderPipeline({
+        attribs: { ...bookVertexLayout.attrib },
+        vertex: bookVertex,
+        fragment: bookFragment,
+        targets: { format: 'rgba16float' },
+        primitive: { topology: 'triangle-list', cullMode: 'back' },
+        multisample: { count: sampleCount },
+        depthStencil: {
+          format: 'depth24plus',
+          depthWriteEnabled: true,
+          depthCompare: 'less',
+        },
+      })
+      .with(root.createBindGroup(bookLayout, { camera }))
+      .with(bookVertexLayout, vertices)
+      .withIndexBuffer(indices)
     root.unwrap(pipeline)
+    return {
+      draw(pass: GPURenderPassEncoder) {
+        pipeline.with(pass).drawIndexed(geometry.indices.length)
+      },
+      dispose() {
+        resources.forEach((resource) => {
+          resource.destroy()
+        })
+        resources.length = 0
+      },
+    }
   } catch (error) {
-    vertices.destroy()
-    indices.destroy()
+    resources.forEach((resource) => {
+      resource.destroy()
+    })
     throw error
-  }
-  return {
-    draw(pass: GPURenderPassEncoder) {
-      pipeline.with(pass).drawIndexed(geometry.indices.length)
-    },
-    dispose() {
-      vertices.destroy()
-      indices.destroy()
-    },
   }
 }

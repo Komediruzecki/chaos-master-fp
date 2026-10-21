@@ -2,6 +2,7 @@
 import './glasswake.css'
 import { createEffect, createMemo, createSignal, For, on, onCleanup, onMount, Show, } from 'solid-js'
 import { JourneySaveStatus } from '../journey/JourneyPanels'
+import { Icon } from '../theme/Icon'
 import { advanceGlassHold, beginGlassHold, cancelGlassHold, createGlasswakeEncounter, GLASS_NOTES, releaseGlassHold, updateGlassPitch, } from './glasswakeEncounter'
 import type { MotifAudio, MotifAudioSnapshot } from '../almanac/motifAudio'
 import type { JourneyPersistence } from '../journey/progress'
@@ -259,6 +260,18 @@ export function GlasswakeEncounter(props: Props) {
 
   return (
     <>
+      <div class="glasswake-topline">
+        <span>
+          {complete()
+            ? 'Three seals opened'
+            : `Seal ${Math.min(3, state().accepted + 1)} of 3`}
+        </span>
+        <p>
+          {complete()
+            ? 'The chord is yours to keep.'
+            : 'Find the note. Hold until it answers, then release.'}
+        </p>
+      </div>
       <div
         ref={pad}
         class="glasswake-instrument"
@@ -351,7 +364,9 @@ export function GlasswakeEncounter(props: Props) {
           <h1 id="glasswake-title">
             {complete() ? 'First light, released' : 'Wake the glass'}
           </h1>
-          <p role="status">{hint()}</p>
+          <p role="status" aria-live="polite">
+            {hint()}
+          </p>
           <p class="observatory-guidance">
             {complete()
               ? 'First light is in your Almanac. Play again whenever you want.'
@@ -372,9 +387,15 @@ export function GlasswakeEncounter(props: Props) {
                   classList={{
                     'is-open': index() < state().accepted,
                     'is-next': index() === state().accepted,
+                    'is-held': index() === state().accepted && state().holding,
                   }}
                 >
-                  {note.name}
+                  <span class="glasswake-seal-note">
+                    {note.name}
+                    <Show when={index() < state().accepted}>
+                      <Icon name="check" />
+                    </Show>
+                  </span>
                   <small>
                     {index() < state().accepted
                       ? 'open'
@@ -390,7 +411,7 @@ export function GlasswakeEncounter(props: Props) {
             <Show when={complete()}>
               <button
                 type="button"
-                class="observatory-action"
+                class="observatory-action lx-primary"
                 onClick={() => {
                   props.onOpenPage()
                 }}
@@ -400,7 +421,7 @@ export function GlasswakeEncounter(props: Props) {
             </Show>
             <Show when={!complete()}>
               <button
-                class="observatory-action"
+                class="observatory-action lx-secondary"
                 type="button"
                 onClick={hearNote}
                 disabled={props.blocked || cooling()}
