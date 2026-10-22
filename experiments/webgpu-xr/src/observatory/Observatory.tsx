@@ -149,7 +149,7 @@ export function Observatory() {
     stopKeyboard()
     setExercise(false)
     setGlasswake(false)
-    audio?.stop()
+    audio?.stopInstrument()
     setWorldId(id)
     setAtlasOpen(false)
     journey.store.discoverWorld(id)
@@ -161,8 +161,12 @@ export function Observatory() {
   }
 
   function goToView(next: ObservatoryView, id = worldId()) {
+    const previous = runtime?.snapshot()
+    const changed = previous?.view !== next || previous?.selectedWorld !== id
     setView(next)
     runtime?.navigate(next, id)
+    if (next === 'temple') audio?.stopAmbience()
+    else audio?.changeAmbience(id, changed)
     // Disabling the departing button can move focus to body. Keep Escape available.
     canvas.focus({ preventScroll: true })
   }
@@ -171,7 +175,7 @@ export function Observatory() {
     stopKeyboard()
     setExercise(false)
     setGlasswake(false)
-    audio?.stop()
+    audio?.stopInstrument()
     setEncounter(endTrace(encounter()))
     goToView('overview')
     presentTrace()
@@ -187,7 +191,7 @@ export function Observatory() {
   }
 
   function openGlasswake() {
-    audio?.stop()
+    audio?.stopInstrument()
     stopKeyboard()
     setExercise(false)
     setAtlasOpen(false)
@@ -302,7 +306,7 @@ export function Observatory() {
   }
 
   function interruptInput() {
-    if (runtime?.snapshot().passage.active) audio?.stop()
+    audio?.stop()
     releaseInput()
     // Window/modal interruption settles travel; moving focus within the scene does not.
     runtime?.setActive(false)
@@ -346,7 +350,7 @@ export function Observatory() {
       studies.find((entry) => entry.id === id)?.motif
     if (!motif) return
     if ((sound()?.playing || sound()?.loading) && sound()?.motifId === motif.id)
-      audio?.stop()
+      audio?.stopInstrument()
     else void audio?.play(motif)
   }
 
@@ -419,7 +423,7 @@ export function Observatory() {
       else if (exercise()) leaveCrossing()
       else if (glasswake()) {
         setGlasswake(false)
-        audio?.stop()
+        audio?.stopInstrument()
         goToView('overview')
         canvas.focus({ preventScroll: true })
       } else if (view() === 'inspect') {
@@ -604,6 +608,32 @@ export function Observatory() {
         </a>
         <span class="observatory-location">Irchiinnuss</span>
         <nav aria-label="Observatory navigation">
+          <button
+            type="button"
+            class="observatory-ambience"
+            aria-label={
+              sound()?.ambience.enabled ? 'Mute ambience' : 'Enable ambience'
+            }
+            aria-pressed={sound()?.ambience.enabled ?? false}
+            disabled={
+              !state()?.ready ||
+              Boolean(state()?.error) ||
+              ending.active() ||
+              panel() !== null ||
+              atlasOpen()
+            }
+            title={
+              sound()?.ambience.enabled
+                ? 'Mute ambient sound and travel cues'
+                : `Hear ${worldId() === 'glasswake' ? 'the Glasswake glass chamber' : 'the Tideweave reed current'}. Stops when you leave the window.`
+            }
+            onClick={() => {
+              void audio?.setAmbience(worldId(), !sound()?.ambience.enabled)
+            }}
+          >
+            <Icon name="music" />
+            <span class="observatory-nav-label">Ambience</span>
+          </button>
           <button
             ref={atlasToggle}
             type="button"
@@ -812,7 +842,7 @@ export function Observatory() {
           }}
           onLeave={() => {
             setGlasswake(false)
-            audio?.stop()
+            audio?.stopInstrument()
             goToView('overview')
             canvas.focus({ preventScroll: true })
           }}
@@ -953,7 +983,7 @@ export function Observatory() {
                         sound()?.playing ||
                         (sound()?.loading && sound()?.motifId)
                       ) {
-                        audio?.stop()
+                        audio?.stopInstrument()
                         setStage('listen')
                         presentTrace()
                       } else playPhrase()
@@ -972,7 +1002,7 @@ export function Observatory() {
                     <button
                       type="button"
                       onClick={() => {
-                        audio?.stop()
+                        audio?.stopInstrument()
                         setTraceSound(false)
                         setStage('answer')
                         presentTrace()
@@ -985,7 +1015,7 @@ export function Observatory() {
                     <button
                       type="button"
                       onClick={() => {
-                        audio?.stop()
+                        audio?.stopInstrument()
                         stopKeyboard()
                         setEncounter(createEncounter())
                         setStage('answer')
@@ -1032,7 +1062,8 @@ export function Observatory() {
                   }}
                   disabled={!ready()}
                   onClick={() => {
-                    if (sound()?.playing || sound()?.loading) audio?.stop()
+                    if (sound()?.playing || sound()?.loading)
+                      audio?.stopInstrument()
                     else if (world().motif) void audio?.play(world().motif!)
                   }}
                 >

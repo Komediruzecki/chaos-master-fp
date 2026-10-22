@@ -41,7 +41,7 @@ const report: Record<string, unknown> = {
   eligibilityEvidence:
     'Saved pages restored from an earlier genuine keyboard-gameplay receipt. This run does not re-earn the pages.',
   timing:
-    'Hardware WebGPU with controlled 32 ms requestAnimationFrame steps to avoid hidden-workspace throttling. Web Audio runs in real time. No frame-rate claim.',
+    'Hardware WebGPU with controlled 32 ms requestAnimationFrame steps to avoid hidden-workspace throttling. The clock resumes only while capturing stills, then pauses again. Web Audio runs in real time. No frame-rate claim.',
   audioEvidence:
     'Actual shared AudioContext output is measured and optionally recorded by a test-only parallel tap. No microphone, generated replacement track, or listening-quality claim.',
   stopTiming:
@@ -299,7 +299,17 @@ async function capture(page: Page, name: string) {
     (await scene(page)).frame.submissions > beforeFrame,
     'Screenshot must follow a real GPU submission',
   )
-  await page.screenshot({ path: path.join(out, `${name}.png`), timeout: 15000 })
+  // The same resized-surface capture boundary is exercised by verifyJourney.
+  await page.clock.resume()
+  try {
+    await page.screenshot({
+      path: path.join(out, `${name}.png`),
+      timeout: 15000,
+    })
+  } finally {
+    const now = await page.evaluate(() => Date.now())
+    await page.clock.pauseAt(new Date(now + 100))
+  }
 }
 
 interface CaptureWindow extends Window {

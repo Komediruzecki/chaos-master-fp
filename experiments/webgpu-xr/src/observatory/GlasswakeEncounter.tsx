@@ -78,7 +78,7 @@ export function GlasswakeEncounter(props: Props) {
   function cancel() {
     releasePointer()
     setState(cancelGlassHold(state()))
-    props.audio.stop()
+    props.audio.stopInstrument()
     previous = 0
     present()
   }
@@ -92,7 +92,7 @@ export function GlasswakeEncounter(props: Props) {
       state().holding
     )
       return false
-    props.audio.stop()
+    props.audio.stopInstrument()
     setState(beginGlassHold(state(), midi))
     previous = 0
     if (!muted()) void props.audio.startTrace(state().pitch)
@@ -111,7 +111,7 @@ export function GlasswakeEncounter(props: Props) {
     const note = target().midi
     releasePointer()
     setState(releaseGlassHold(state()))
-    props.audio.stop()
+    props.audio.stopInstrument()
     if (state().accepted > before) {
       setBursts((times) => {
         const next = [...times]

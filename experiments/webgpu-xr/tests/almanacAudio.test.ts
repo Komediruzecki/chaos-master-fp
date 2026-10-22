@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { ALMANAC_WORLDS, settingsForWorld } from '../src/almanac/catalog'
 import { MotifAudio } from '../src/almanac/motifAudio'
+import { AMBIENCE_CUE_SECONDS, WORLD_AMBIENCE, } from '../src/almanac/worldAmbience'
 import { TEMPLE_DURATION_SECONDS, TEMPLE_SCORE, } from '../src/journey/templeScore'
 import { BRIDGE_RESOLUTION } from '../src/observatory/bridgeScore'
 
@@ -120,6 +121,299 @@ function fixture() {
 const glass = ALMANAC_WORLDS[0].motif!
 const tide = ALMANAC_WORLDS[1].motif!
 
+function finishAudioTails(context: Context, at: number) {
+  context.currentTime = at
+  for (const voice of [...context.oscillators])
+    if (voice.stopAt >= 0 && voice.stopAt <= at) voice.onended?.()
+}
+
+await test('ambience stays silent until an explicit enable and bypasses the teaching meter through one shared master', async (t) => {
+  const { audio, context, calls } = fixture()
+  t.after(() => {
+    audio.dispose()
+  })
+  audio.changeAmbience('tideweave', true)
+  assert.equal(calls().contexts, 0)
+  assert.equal(context.oscillators.length, 0)
+  let resumes = 0
+  context.resume = () => {
+    resumes++
+    context.state = 'running'
+    return Promise.resolve()
+  }
+  const pending = audio.setAmbience('glasswake', true)
+  assert.equal(calls().contexts, 1)
+  assert.equal(resumes, 1)
+  assert.equal(audio.snapshot().ambience.pending, true)
+  await pending
+  assert.equal(context.oscillators.length, 7)
+  assert.deepEqual(audio.snapshot().ambience, {
+    enabled: true,
+    active: true,
+    pending: false,
+    worldId: 'glasswake',
+    cueActive: false,
+    ducked: false,
+  })
+  assert.equal(context.analyser.destination, context.gains[0])
+  assert.equal(context.gains[2].destination, context.gains[0])
+  assert.equal(context.gains[0].destination, context.destination)
+  assert.equal(audio.snapshot().playing, false)
+  assert.equal(audio.snapshot().activeNote, null)
+  assert.equal(audio.snapshot().progress, 0)
+  assert.equal(audio.snapshot().level, 0)
+  audio.setVolume(0)
+  assert.equal(context.gains[0].gain.value, 0)
+  assert.equal(audio.snapshot().ambience.active, true)
+  await audio.setAmbience('glasswake', true)
+  assert.equal(resumes, 1)
+  assert.equal(calls().contexts, 1)
+  assert.equal(context.oscillators.length, 7)
+})
+
+await test('world recipes have distinct octave ranges and bounded steady and cue gains', () => {
+  const glass = WORLD_AMBIENCE.glasswake
+  const tide = WORLD_AMBIENCE.tideweave
+  assert.deepEqual(
+    glass.tones.map((tone) => tone.midi),
+    [60, 72, 76, 79, 83, 88],
+  )
+  assert.deepEqual(
+    tide.tones.map((tone) => tone.midi),
+    [38, 45, 50, 53, 59, 69],
+  )
+  assert.ok(glass.tones.every((tone) => tone.type === 'sine'))
+  assert.equal(tide.tones.filter((tone) => tone.type === 'triangle').length, 2)
+  assert.ok(tide.tones.some((tone) => tone.midi === 59))
+  assert.ok(glass.breathingHz < tide.breathingHz)
+  for (const recipe of [glass, tide]) {
+    assert.equal(recipe.tones.length, 6)
+    assert.ok(recipe.tones.reduce((sum, tone) => sum + tone.gain, 0) <= 0.035)
+  }
+  assert.ok(AMBIENCE_CUE_SECONDS < 0.6)
+})
+
+await test('world changes retune one bank, replace bounded cue tails and never unlock audio', async (t) => {
+  const { audio, context, calls } = fixture()
+  t.after(() => {
+    audio.dispose()
+  })
+  await audio.setAmbience('glasswake', true)
+  context.resume = () => {
+    throw new Error('Navigation must not resume audio.')
+  }
+  const bank = [...context.oscillators]
+  audio.changeAmbience('tideweave', true)
+  assert.equal(calls().contexts, 1)
+  assert.equal(context.oscillators.length, 10)
+  assert.equal(audio.snapshot().ambience.worldId, 'tideweave')
+  assert.equal(audio.snapshot().ambience.cueActive, true)
+  assert.equal(bank[1].type, 'triangle')
+  assert.equal(
+    bank[1].frequency.targets.at(-1)?.value,
+    440 * 2 ** ((38 - 69) / 12),
+  )
+  const firstCue = context.oscillators.slice(7)
+  assert.ok(firstCue.every((voice) => voice.stopAt <= 0.6))
+  audio.changeAmbience('glasswake', true)
+  const secondCue = context.oscillators.slice(10)
+  assert.ok(firstCue.every((voice) => voice.stopAt === 0.03))
+  audio.changeAmbience('tideweave', true)
+  assert.ok(firstCue.every((voice) => voice.disconnected))
+  assert.ok(secondCue.every((voice) => voice.stopAt === 0.03))
+  assert.equal(bank.filter((voice) => voice.stopAt === -1).length, 7)
+  finishAudioTails(context, 0.7)
+  assert.equal(audio.snapshot().ambience.cueActive, false)
+  assert.equal(audio.snapshot().level, 0)
+  audio.changeAmbience('tideweave')
+  assert.equal(context.oscillators.length, 16)
+})
+
+await test('instrument transport preserves and ducks ambience until its final tail releases', async (t) => {
+  const { audio, context } = fixture()
+  t.after(() => {
+    audio.dispose()
+  })
+  await audio.setAmbience('glasswake', true)
+  const bank = [...context.oscillators]
+  await audio.startTrace(60)
+  assert.equal(audio.snapshot().ambience.ducked, true)
+  assert.equal(context.gains[2].gain.targets.at(-1)?.value, 0.18)
+  assert.ok(audio.snapshot().level > 0)
+  audio.setVolume(0)
+  assert.equal(audio.snapshot().level, 0)
+  assert.equal(audio.snapshot().trace.active, true)
+  audio.stopTrace()
+  finishAudioTails(context, 0.02)
+  assert.equal(audio.snapshot().ambience.ducked, false)
+  assert.equal(context.gains[2].gain.targets.at(-1)?.value, 1)
+  await audio.play(glass)
+  assert.equal(audio.snapshot().ambience.ducked, true)
+  audio.stopInstrument()
+  finishAudioTails(context, 0.04)
+  assert.equal(audio.snapshot().ambience.ducked, false)
+  await audio.shatter(67)
+  assert.equal(audio.snapshot().ambience.ducked, true)
+  audio.stopInstrument()
+  finishAudioTails(context, 0.06)
+  assert.equal(audio.snapshot().ambience.active, true)
+  assert.equal(audio.snapshot().ambience.ducked, false)
+  assert.ok(bank.every((voice) => voice.stopAt === -1))
+})
+
+await test('mute and rapid re-enable have short owned tails and at most one retiring bank', async (t) => {
+  const { audio, context } = fixture()
+  t.after(() => {
+    audio.dispose()
+  })
+  await audio.setAmbience('glasswake', true)
+  const first = [...context.oscillators]
+  audio.stopAmbience()
+  assert.equal(audio.snapshot().ambience.enabled, false)
+  assert.equal(audio.snapshot().ambience.active, false)
+  assert.ok(first.every((voice) => voice.stopAt === 0.045))
+  await audio.setAmbience('tideweave', true)
+  const second = context.oscillators.slice(7)
+  audio.stopAmbience()
+  assert.ok(first.every((voice) => voice.disconnected))
+  assert.ok(second.every((voice) => voice.stopAt === 0.045))
+  finishAudioTails(context, 0.05)
+  assert.ok(second.every((voice) => voice.disconnected))
+  audio.changeAmbience('glasswake', true)
+  assert.equal(context.oscillators.length, 14)
+})
+
+await test('ambience pending unlock is cancelled by stop, mute, hide, suspension or disposal without late playback', async (t) => {
+  for (const interruption of [
+    'stop',
+    'mute',
+    'hide',
+    'suspend',
+    'dispose',
+  ] as const) {
+    await t.test(interruption, async (t) => {
+      const { audio, context, visibility, calls } = fixture()
+      t.after(() => {
+        audio.dispose()
+      })
+      let unlock!: () => void
+      context.resume = () =>
+        new Promise<void>((resolve) => {
+          unlock = () => {
+            context.state = 'running'
+            resolve()
+          }
+        })
+      const pending = audio.setAmbience('glasswake', true)
+      audio.changeAmbience('tideweave', true)
+      if (interruption === 'stop') audio.stop()
+      else if (interruption === 'mute') audio.stopAmbience()
+      else if (interruption === 'hide') {
+        visibility.hidden = true
+        visibility.dispatchEvent(new Event('visibilitychange'))
+      } else if (interruption === 'suspend')
+        context.dispatchEvent(new Event('statechange'))
+      else audio.dispose()
+      const changes = calls().changes
+      unlock()
+      await pending
+      assert.equal(calls().changes, changes)
+      assert.equal(context.oscillators.length, 0)
+      assert.equal(audio.snapshot().ambience.enabled, false)
+      visibility.hidden = false
+      context.dispatchEvent(new Event('statechange'))
+      audio.changeAmbience('glasswake', true)
+      assert.equal(context.oscillators.length, 0)
+    })
+  }
+})
+
+await test('active ambience is destroyed on hidden or suspended contexts and does not restart', async (t) => {
+  for (const interruption of ['hide', 'suspend'] as const) {
+    await t.test(interruption, async (t) => {
+      const { audio, context, visibility } = fixture()
+      t.after(() => {
+        audio.dispose()
+      })
+      await audio.setAmbience('glasswake', true)
+      audio.changeAmbience('tideweave', true)
+      if (interruption === 'hide') {
+        visibility.hidden = true
+        visibility.dispatchEvent(new Event('visibilitychange'))
+        finishAudioTails(context, 0.08)
+      } else {
+        context.state = 'suspended'
+        context.dispatchEvent(new Event('statechange'))
+      }
+      assert.ok(context.oscillators.every((voice) => voice.disconnected))
+      assert.equal(audio.snapshot().ambience.enabled, false)
+      assert.equal(audio.snapshot().ambience.cueActive, false)
+      context.state = 'running'
+      visibility.hidden = false
+      context.dispatchEvent(new Event('statechange'))
+      visibility.dispatchEvent(new Event('visibilitychange'))
+      const count = context.oscillators.length
+      audio.changeAmbience('glasswake', true)
+      assert.equal(context.oscillators.length, count)
+      assert.equal(audio.snapshot().ambience.active, false)
+    })
+  }
+})
+
+await test('a deferred ambience enable uses the latest world without another unlock or a late transition cue', async (t) => {
+  const { audio, context } = fixture()
+  t.after(() => {
+    audio.dispose()
+  })
+  let unlock!: () => void
+  let resumes = 0
+  context.resume = () => {
+    resumes++
+    return new Promise<void>((resolve) => {
+      unlock = () => {
+        context.state = 'running'
+        resolve()
+      }
+    })
+  }
+  const pending = audio.setAmbience('glasswake', true)
+  audio.changeAmbience('tideweave', true)
+  await audio.setAmbience('tideweave', true)
+  assert.equal(resumes, 1)
+  audio.stopInstrument()
+  unlock()
+  await pending
+  assert.equal(audio.snapshot().ambience.worldId, 'tideweave')
+  assert.equal(audio.snapshot().ambience.active, true)
+  assert.equal(audio.snapshot().ambience.cueActive, false)
+  assert.equal(context.oscillators.length, 7)
+  assert.equal(
+    context.oscillators[1].frequency.value,
+    440 * 2 ** ((38 - 69) / 12),
+  )
+})
+
+await test('ambient mute leaves the teaching instrument intact while global stop silences and revokes both', async (t) => {
+  const { audio, context } = fixture()
+  t.after(() => {
+    audio.dispose()
+  })
+  await audio.setAmbience('glasswake', true)
+  await audio.startTrace(60)
+  const instrument = context.oscillators.at(-1)!
+  audio.stopAmbience()
+  assert.equal(audio.snapshot().trace.active, true)
+  assert.equal(instrument.stopAt, -1)
+  await audio.setAmbience('tideweave', true)
+  assert.equal(audio.snapshot().ambience.ducked, true)
+  audio.stop()
+  assert.equal(audio.snapshot().trace.active, false)
+  assert.equal(audio.snapshot().ambience.enabled, false)
+  assert.equal(audio.snapshot().level, 0)
+  finishAudioTails(context, 0.08)
+  assert.ok(context.oscillators.every((voice) => voice.disconnected))
+})
+
 await test('two studies resolve stable recipes and five previews cannot silently use the last orb', () => {
   assert.equal(new Set(ALMANAC_WORLDS.map((world) => world.id)).size, 7)
   assert.deepEqual(
@@ -184,6 +478,14 @@ await test('silent construction; explicit Play schedules notes through the volum
     level: 0,
     trace: { active: false, pending: false, midi: null, accentMidi: null },
     effect: { active: false, pending: false, midi: null },
+    ambience: {
+      enabled: false,
+      active: false,
+      pending: false,
+      worldId: null,
+      cueActive: false,
+      ducked: false,
+    },
   })
   await audio.play(glass)
   assert.equal(calls().contexts, 1)
@@ -194,9 +496,9 @@ await test('silent construction; explicit Play schedules notes through the volum
       1e-10,
   )
   assert.equal(context.oscillators[0].type, 'sine')
-  assert.equal(context.gains[1].destination, context.gains[0])
-  assert.equal(context.gains[0].destination, context.analyser)
-  assert.equal(context.analyser.destination, context.destination)
+  assert.equal(context.gains[1].destination, context.analyser)
+  assert.equal(context.gains[0].destination, context.destination)
+  assert.equal(context.analyser.destination, context.gains[0])
   assert.ok(
     context.gains
       .slice(1)
@@ -210,7 +512,8 @@ await test('silent construction; explicit Play schedules notes through the volum
   assert.ok(
     Math.abs(snapshot.progress - 1.5 / ((8.6 * 60) / 84 + 0.18)) < 1e-10,
   )
-  assert.ok(Math.abs(snapshot.level - 0.16) < 1e-7)
+  // The instrument meter precedes the shared master, so its RMS includes master volume.
+  assert.ok(Math.abs(snapshot.level - 0.088) < 1e-7)
 })
 
 await test('switching cancels every old note before the next motif starts; stop resets activity', async (t) => {
@@ -513,8 +816,8 @@ await test('trace movement needs an explicit start and shares the volume and ana
   assert.equal(context.oscillators[1].type, 'sine')
   assert.equal(context.oscillators[0].startAt, 0.025)
   assert.equal(context.oscillators[1].startAt, 0.025)
-  assert.equal(context.gains[1].destination, context.gains[0])
-  assert.equal(context.gains[2].destination, context.gains[0])
+  assert.equal(context.gains[1].destination, context.analyser)
+  assert.equal(context.gains[2].destination, context.analyser)
   assert.ok(
     context.gains
       .slice(1)
@@ -531,7 +834,7 @@ await test('trace movement needs an explicit start and shares the volume and ana
       context.oscillators[3].frequency.value - 440 * 2 ** ((65 - 69) / 12),
     ) < 1e-10,
   )
-  assert.ok(Math.abs(audio.snapshot().level - 0.16) < 1e-7)
+  assert.ok(Math.abs(audio.snapshot().level - 0.088) < 1e-7)
   audio.setVolume(0)
   assert.equal(context.gains[0].gain.value, 0)
   assert.equal(audio.snapshot().volume, 0)
@@ -700,7 +1003,7 @@ await test('the earned bridge answer resolves to D in under a second without sta
   assert.ok(
     context.gains
       .slice(2)
-      .every((gain) => gain.destination === context.gains[0]),
+      .every((gain) => gain.destination === context.analyser),
   )
   assert.equal(audio.snapshot().playing, false)
   assert.equal(audio.snapshot().motifId, null)
@@ -896,12 +1199,12 @@ await test('glass release uses six bounded partials through the existing volume 
   assert.equal(audio.snapshot().trace.active, false)
   assert.equal(audio.snapshot().loading, false)
   assert.equal(context.gains[0].gain.value, 0.3)
-  assert.equal(context.gains[0].destination, context.analyser)
-  assert.equal(context.analyser.destination, context.destination)
+  assert.equal(context.gains[0].destination, context.destination)
+  assert.equal(context.analyser.destination, context.gains[0])
   assert.ok(
     context.gains
       .slice(1)
-      .every((gain) => gain.destination === context.gains[0]),
+      .every((gain) => gain.destination === context.analyser),
   )
   const peaks = context.gains
     .slice(1)
@@ -1157,7 +1460,7 @@ await test('the temple duet uses one transport with per-note timbre and gain, an
     assert.ok(Math.abs(first.stopAt - expectedEnd) < 1e-10)
     assert.equal(first.type, note.timbre === 'reed' ? 'triangle' : 'sine')
     assert.equal(partial.type, 'sine')
-    assert.equal(context.gains[index * 2 + 1].destination, context.gains[0])
+    assert.equal(context.gains[index * 2 + 1].destination, context.analyser)
     const weight = note.timbre === 'reed' ? 0.9 : 0.82
     assert.ok(
       Math.abs(

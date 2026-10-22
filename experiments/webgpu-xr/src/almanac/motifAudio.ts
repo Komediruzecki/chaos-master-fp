@@ -1,7 +1,9 @@
 // Motifs, tracing and glass release cues share one audio owner and cancellable unlock.
 import { SCORE_RELEASE_SECONDS } from '../journey/templeScore'
+import { createWorldAmbience } from './worldAmbience'
 import type { MotifArrangement } from '../journey/templeScore'
 import type { AlmanacMotif } from './catalog'
+import type { AmbienceWorldId } from './worldAmbience'
 
 export interface MotifAudioSnapshot {
   playing: boolean
@@ -22,6 +24,14 @@ export interface MotifAudioSnapshot {
     active: boolean
     pending: boolean
     midi: number | null
+  }
+  ambience: {
+    enabled: boolean
+    active: boolean
+    pending: boolean
+    worldId: AmbienceWorldId | null
+    cueActive: boolean
+    ducked: boolean
   }
 }
 
@@ -94,6 +104,12 @@ export class MotifAudio {
   private effectVoices = new Set<Voice>()
   private effectPending = false
   private effectMidi: number | null = null
+  private ambience: ReturnType<typeof createWorldAmbience> | null = null
+  private retiringAmbience: ReturnType<typeof createWorldAmbience> | null = null
+  private ambienceEnabled = false
+  private ambiencePending = false
+  private ambienceWorld: AmbienceWorldId | null = null
+  private ambienceGeneration = 0
   private visibility: AudioOptions['visibility']
 
   constructor(
@@ -121,7 +137,9 @@ export class MotifAudio {
         this.traceVoice ||
         this.traceCues.size > 0 ||
         this.effectPending ||
-        this.effectVoices.size > 0) &&
+        this.effectVoices.size > 0 ||
+        this.ambienceEnabled ||
+        this.ambiencePending) &&
       this.context?.state !== 'running'
     )
       this.stop()
@@ -135,10 +153,91 @@ export class MotifAudio {
     this.output.gain.value = this.volume
     this.analyser = context.createAnalyser()
     this.analyser.fftSize = this.waveform.length
-    this.output.connect(this.analyser)
-    this.analyser.connect(context.destination)
+    // The shared master follows the musical meter; ambience bypasses that meter.
+    this.analyser.connect(this.output)
+    this.output.connect(context.destination)
     context.addEventListener('statechange', this.contextChanged)
     return context
+  }
+
+  /** Only an explicit sound gesture may create or resume the shared context. */
+  async setAmbience(worldId: AmbienceWorldId, enabled: boolean): Promise<void> {
+    if (this.disposed) return
+    if (!enabled) {
+      this.stopAmbience()
+      return
+    }
+    this.ambienceWorld = worldId
+    if (this.ambienceEnabled && (this.ambience || this.ambiencePending)) {
+      this.changeAmbience(worldId)
+      return
+    }
+    this.ambienceEnabled = true
+    this.ambiencePending = true
+    const generation = ++this.ambienceGeneration
+    this.error = null
+    this.changed()
+    try {
+      if (this.visibility?.hidden) {
+        this.stopAmbience()
+        return
+      }
+      const context = this.setup()
+      await context.resume()
+      if (this.disposed || generation !== this.ambienceGeneration) return
+      if (this.visibility?.hidden) {
+        this.stopAmbience()
+        return
+      }
+      if (context.state !== 'running')
+        throw new Error('Audio is suspended. Enable ambience to retry.')
+      this.ambience = createWorldAmbience(
+        context,
+        this.output!,
+        this.ambienceWorld,
+        this.changed,
+      )
+      this.ambiencePending = false
+      this.refreshAmbienceDuck()
+      this.changed()
+    } catch (error) {
+      if (this.disposed || generation !== this.ambienceGeneration) return
+      this.stopAmbience()
+      this.error = error instanceof Error ? error.message : String(error)
+      this.changed()
+    }
+  }
+
+  /** Navigation may reshape an opted-in soundscape, but cannot unlock sound. */
+  changeAmbience(worldId: AmbienceWorldId, cue = false) {
+    if (this.disposed || !this.ambienceEnabled) return
+    this.ambienceWorld = worldId
+    if (this.context?.state !== 'running' || this.visibility?.hidden) return
+    this.ambience?.setWorld(worldId)
+    if (cue) this.ambience?.cue()
+    else this.ambience?.stopCue()
+    this.changed()
+  }
+
+  stopAmbience() {
+    if (this.disposed) return
+    ++this.ambienceGeneration
+    this.retiringAmbience?.dispose(true)
+    this.retiringAmbience = this.ambience
+    this.ambience?.dispose()
+    this.ambience = null
+    this.ambienceEnabled = false
+    this.ambiencePending = false
+    this.ambienceWorld = null
+    this.changed()
+  }
+
+  private refreshAmbienceDuck() {
+    this.ambience?.setDucked(
+      Boolean(
+        this.playing || this.loading || this.traceRequested || this.voices.size,
+      ),
+    )
   }
 
   /** Unlock now; a bounded lead-in can let the destination settle before its phrase. */
@@ -170,11 +269,12 @@ export class MotifAudio {
     leadInSeconds = 0,
   ): Promise<void> {
     if (this.disposed) return
-    this.stop()
+    this.stopInstrument()
     const generation = ++this.generation
     this.motif = motif
     this.loading = true
     this.error = null
+    this.refreshAmbienceDuck()
     this.changed()
     try {
       if (
@@ -247,7 +347,7 @@ export class MotifAudio {
             note.timbre === 'reed' && index === 0 ? 'triangle' : 'sine'
           oscillator.frequency.setValueAtTime(frequency * ratio, start)
           oscillator.connect(gain)
-          gain.connect(this.output!)
+          gain.connect(this.analyser!)
           const peak = 0.11 * weight * note.gain
           gain.gain.setValueAtTime(0, start)
           gain.gain.linearRampToValueAtTime(
@@ -281,7 +381,7 @@ export class MotifAudio {
       this.changed()
     } catch (error) {
       if (this.disposed || generation !== this.generation) return
-      this.stop()
+      this.stopInstrument()
       this.error = error instanceof Error ? error.message : String(error)
       this.changed()
     }
@@ -300,17 +400,20 @@ export class MotifAudio {
     if (wasCue && !this.traceCues.size) this.traceAccentMidi = null
     if (!this.traceVoice && !this.traceCues.size && !this.traceRequested)
       this.traceMidi = null
-    if ((wasTrace || wasEffect) && !this.disposed) this.changed()
+    this.refreshAmbienceDuck()
+    if ((wasTrace || wasEffect || this.ambience) && !this.disposed)
+      this.changed()
   }
 
   /** An explicit earned release replaces the instrument with one bounded glass cue. */
   async shatter(midi: number): Promise<void> {
     if (this.disposed) return
-    this.stop()
+    this.stopInstrument()
     const generation = ++this.generation
     this.effectPending = true
     this.effectMidi = midi
     this.loading = true
+    this.refreshAmbienceDuck()
     this.changed()
     try {
       if (!validMidi(midi)) throw new Error('This seal has no playable pitch.')
@@ -340,7 +443,7 @@ export class MotifAudio {
         oscillator.type = 'sine'
         oscillator.frequency.setValueAtTime(midiFrequency(midi) * ratio, at)
         oscillator.connect(gain)
-        gain.connect(this.output!)
+        gain.connect(this.analyser!)
         gain.gain.setValueAtTime(0, at)
         gain.gain.linearRampToValueAtTime(peak, at + 0.008)
         gain.gain.exponentialRampToValueAtTime(0.0001, end - 0.04)
@@ -356,7 +459,7 @@ export class MotifAudio {
       this.changed()
     } catch (error) {
       if (this.disposed || generation !== this.generation) return
-      this.stop()
+      this.stopInstrument()
       this.error = error instanceof Error ? error.message : String(error)
       this.changed()
     }
@@ -365,12 +468,13 @@ export class MotifAudio {
   /** Called only from an explicit pointer press or keyboard drawing gesture. */
   async startTrace(midi: number, earnedMidi?: number): Promise<void> {
     if (this.disposed) return
-    this.stop()
+    this.stopInstrument()
     const generation = ++this.generation
     this.traceRequested = true
     this.traceMidi = midi
     this.traceAccentMidi = earnedMidi ?? null
     this.loading = true
+    this.refreshAmbienceDuck()
     this.changed()
     try {
       if (
@@ -405,7 +509,7 @@ export class MotifAudio {
         start,
       )
       oscillator.connect(gain)
-      gain.connect(this.output!)
+      gain.connect(this.analyser!)
       gain.gain.setValueAtTime(0, start)
       gain.gain.linearRampToValueAtTime(TRACE_GAIN, start + TRACE_ATTACK)
       oscillator.onended = () => {
@@ -418,7 +522,7 @@ export class MotifAudio {
       this.changed()
     } catch (error) {
       if (this.disposed || generation !== this.generation) return
-      this.stop()
+      this.stopInstrument()
       this.error = error instanceof Error ? error.message : String(error)
       this.changed()
     }
@@ -476,7 +580,7 @@ export class MotifAudio {
     oscillator.type = 'sine'
     oscillator.frequency.setValueAtTime(frequency, start)
     oscillator.connect(gain)
-    gain.connect(this.output)
+    gain.connect(this.analyser!)
     gain.gain.setValueAtTime(0, start)
     gain.gain.linearRampToValueAtTime(peak, start + 0.012)
     gain.gain.exponentialRampToValueAtTime(0.0001, start + duration - 0.04)
@@ -537,7 +641,7 @@ export class MotifAudio {
 
   stopTrace() {
     if (this.traceRequested || this.traceVoice || this.traceCues.size)
-      this.stop()
+      this.stopInstrument()
   }
 
   private fadeVoice(voice: Voice, duration = STOP_FADE) {
@@ -568,10 +672,12 @@ export class MotifAudio {
     this.loading = false
     this.progress = 1
     this.clearTimer()
+    this.refreshAmbienceDuck()
     this.changed()
   }
 
-  stop() {
+  /** Encounter release and replay silence the instrument without revoking ambience. */
+  stopInstrument() {
     if (this.disposed) return
     ++this.generation
     this.clearTimer()
@@ -589,7 +695,15 @@ export class MotifAudio {
     this.effectMidi = null
     this.effectVoices.clear()
     for (const voice of this.voices) this.fadeVoice(voice)
+    this.refreshAmbienceDuck()
     this.changed()
+  }
+
+  /** Emergency, hidden-tab and modal stop always revoke the ambient session too. */
+  stop() {
+    if (this.disposed) return
+    this.stopInstrument()
+    this.stopAmbience()
   }
 
   setVolume(value: number) {
@@ -630,6 +744,7 @@ export class MotifAudio {
       level = Math.min(
         1,
         8 *
+          this.volume *
           Math.sqrt(
             this.waveform.reduce((sum, sample) => sum + sample * sample, 0) /
               this.waveform.length,
@@ -656,12 +771,22 @@ export class MotifAudio {
         pending: this.effectPending,
         midi: this.effectMidi,
       },
+      ambience: {
+        enabled: this.ambienceEnabled,
+        active: Boolean(this.ambience && this.context?.state === 'running'),
+        pending: this.ambiencePending,
+        worldId: this.ambienceWorld,
+        cueActive: this.ambience?.snapshot().cueActive ?? false,
+        ducked: this.ambience?.snapshot().ducked ?? false,
+      },
     }
   }
 
   dispose() {
     if (this.disposed) return
     this.stop()
+    this.retiringAmbience?.dispose(true)
+    this.retiringAmbience = null
     this.disposed = true
     this.visibility?.removeEventListener(
       'visibilitychange',

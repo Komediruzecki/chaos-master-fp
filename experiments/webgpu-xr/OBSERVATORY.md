@@ -58,6 +58,21 @@ retrying. Partial holds/notes remain local to the visit; only completed pages,
 discoveries, last selection and the introduction preference are saved. The five
 other constellations are proposed destinations.
 
+## Optional world soundscapes
+
+An opt-in desktop ambience layer passes development and emitted-build browser
+soundscape checks.
+Its [soundscape contract](docs/world-soundscapes.md) records Glasswake's C-Ionian
+glass/chamber identity, Tideweave's D-Dorian reeds/current, explicit enable/mute
+controls and a separate environmental bus inside the existing shared audio
+context. Foreground teaching notes remain distinct from background sound;
+entering the temple clears ambience. All 246 experiment tests and the focused
+76-test audio suite pass, alongside the repository check, final experiment
+typecheck and scoped lint. Real controls, master volume, analyser isolation,
+bounded sources and narrow layouts have desktop proof. The linked document
+records the measurements and passing connected journey/temple regressions.
+It does not establish Quest spatial audio or subjective listening acceptance.
+
 ## Saved journey
 
 `journey/progress.ts` owns a bounded, versioned localStorage record under
@@ -175,8 +190,10 @@ hashes and provider task are in
 [`celestial-seed.manifest.json`](public/models/observatory/celestial-seed.manifest.json).
 One preview cost 20 credits; no paid texture/refinement stage was used.
 
-The scene uses one `MotifAudio` owner for auditions, live instruments and the
-Glasswake fracture cue. Starting another activity stops the previous one. Pointer and keyboard feed the same
+The scene uses one `MotifAudio` owner for auditions, live instruments, the
+Glasswake fracture cue and optional ambience. Starting another foreground
+activity replaces the previous foreground instrument; an enabled background
+bed remains and ducks beneath it. Pointer and keyboard feed the same
 ordered judge and vertical pitch map. An earned note receives an accent only
 when progress advances; lifting, invalid movement, blur, hidden state, reset,
 leaving and disposal stop the instrument. A pending audio unlock cannot start

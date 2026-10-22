@@ -163,6 +163,11 @@ body:has(.observatory) {
 .observatory-header nav button {
   padding-inline: 12px;
 }
+.observatory-header .observatory-ambience[aria-pressed='true'] {
+  color: var(--obs-world);
+  background: var(--lx-ink-3);
+  border-color: var(--lx-rule-strong);
+}
 .observatory-page-count {
   display: inline-flex;
   gap: 4px;

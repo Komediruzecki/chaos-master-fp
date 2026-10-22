@@ -25,7 +25,7 @@ const report: Record<string, unknown> = {
   base,
   nativeHeadsetTested: false,
   timing:
-    'Real mouse, keyboard and CDP touch input on hardware WebGPU. Controlled 32 ms RAF steps avoid hidden-window throttling; Web Audio runs in real time. This is functional desktop proof, not a performance measurement.',
+    'Real mouse, keyboard and CDP touch input on hardware WebGPU. Controlled 32 ms RAF steps avoid hidden-window throttling; the clock resumes only while capturing stills, then pauses again. Web Audio runs in real time. This is functional desktop proof, not a performance measurement.',
   audioEvidence:
     'Silence is observed from the shared audio owner after all transports stop. Pitch values are commanded MIDI, not measured singing accuracy or a listening-quality assessment.',
 }
@@ -250,7 +250,17 @@ async function capture(page: Page, name: string) {
       'A capture must follow an actual WebGPU submission',
     )
   }
-  await page.screenshot({ path: path.join(out, `${name}.png`), timeout: 15000 })
+  // Chromium can stall a resized surface capture while Playwright's clock is paused.
+  // Keep input assertions controlled, but let the compositor complete the still.
+  await page.clock.resume()
+  try {
+    await page.screenshot({
+      path: path.join(out, `${name}.png`),
+      timeout: 15000,
+    })
+  } finally {
+    await pause(page)
+  }
 }
 
 async function hitTarget(control: Locator) {
