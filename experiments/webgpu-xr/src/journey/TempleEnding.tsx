@@ -1,6 +1,6 @@
 // The ending keeps its listening controls at the edge of the existing 3D scene.
 import './temple.css'
-import { createMemo, For, onMount, Show } from 'solid-js'
+import { createEffect, createMemo, For, Show } from 'solid-js'
 import { Icon } from '../theme/Icon'
 import { JourneySaveStatus } from './JourneyPanels'
 import { TEMPLE_DURATION_SECONDS, templeCue } from './templeScore'
@@ -54,9 +54,17 @@ export function TempleEnding(props: {
           ? 'Two forms meet. Their notes draw a path between the stars.'
           : 'A shared seal takes shape at the temple threshold.'
   })
-  onMount(() => {
+  createEffect(() => {
+    if (!props.ready) return
     queueMicrotask(() => {
-      listen.focus({ preventScroll: true })
+      // Wait for the instrument to arrive, without taking focus from navigation.
+      if (
+        listen?.isConnected &&
+        props.ready &&
+        (document.activeElement === document.body ||
+          document.activeElement?.classList.contains('observatory-canvas'))
+      )
+        listen.focus({ preventScroll: true })
     })
   })
   return (

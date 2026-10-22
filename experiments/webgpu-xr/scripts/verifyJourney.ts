@@ -8,6 +8,7 @@ import { chromium } from 'playwright'
 import { JOURNEY_STORAGE_KEY, parseJourneyProgress, } from '../src/journey/progress'
 import { BRIDGE_TARGET } from '../src/observatory/encounter'
 import { GLASS_NOTES } from '../src/observatory/glasswakeEncounter'
+import { PASSAGE_DURATION_MS } from '../src/observatory/passage'
 import type { BrowserContext, Locator, Page } from 'playwright'
 import type { JourneyProgress } from '../src/journey/progress'
 
@@ -76,6 +77,7 @@ const browser = await chromium.launch({
     '--disable-renderer-backgrounding',
     '--disable-backgrounding-occluded-windows',
     ...(process.env.VERIFY_X11 === '1' ? ['--ozone-platform=x11'] : []),
+    ...(process.env.VERIFY_WAYLAND === '1' ? ['--ozone-platform=wayland'] : []),
   ],
 })
 
@@ -160,6 +162,16 @@ async function advance(page: Page, milliseconds: number) {
     await page.clock.runFor(Math.min(32, milliseconds - elapsed))
 }
 
+async function arrive(page: Page) {
+  if ((await scene(page)).passage.active)
+    await advance(page, PASSAGE_DURATION_MS + 32)
+  assert.equal(
+    (await scene(page)).passage.active,
+    false,
+    'The instrument must be stationary before input',
+  )
+}
+
 const silent = (page: Page) =>
   poll(
     () => sound(page),
@@ -202,6 +214,11 @@ async function ready(page: Page) {
 
 async function observe(context: BrowserContext) {
   const page = await context.newPage()
+  const cdp = await context.newCDPSession(page)
+  await cdp.send('Emulation.setFocusEmulationEnabled', { enabled: true })
+  await cdp.detach()
+  report.focus =
+    'CDP focus emulation keeps the hidden automation surface active; native tab visibility is not established.'
   page.setDefaultTimeout(10000)
   page.on('pageerror', (error) => errors.push(String(error)))
   page.on('console', (message) => {
@@ -271,6 +288,7 @@ async function hitTarget(control: Locator) {
 }
 
 async function finishGlass(page: Page) {
+  await arrive(page)
   await button(page, 'Use keyboard').click()
   await page.keyboard.press('Home')
   let currentMidi = 60
@@ -293,6 +311,7 @@ async function finishGlass(page: Page) {
 }
 
 async function finishBridge(page: Page) {
+  await arrive(page)
   if (await button(page, 'Stop phrase').isVisible())
     await button(page, 'Stop phrase').click()
   if (await button(page, 'Trace without sound').isVisible())
@@ -612,6 +631,7 @@ async function verify() {
   console.info('Onboarding, responsive controls and touch passed')
 
   await button(page, 'Wake the glass').click()
+  await arrive(page)
   await button(page, 'Use keyboard').click()
   await page.keyboard.press('Home')
   await page.keyboard.press('Enter')
@@ -620,6 +640,7 @@ async function verify() {
   await page.keyboard.press('Escape')
   assert.equal((await saved(page))?.worlds.glasswake.completion, null)
   await silent(page)
+  await arrive(page)
   await button(page, 'Wake the glass').click()
   await finishGlass(page)
   const onePage = await saved(page)
@@ -655,6 +676,7 @@ async function verify() {
   )
   await button(page, 'Open earned page').click()
   await button(page, 'Continue to Tideweave').click()
+  await arrive(page)
   assert.equal((await scene(page)).selectedWorld, 'tideweave')
   await silent(page)
   report.glasswake = {
@@ -707,6 +729,7 @@ async function verify() {
   console.info('Tideweave, both earned pages and motif replay passed')
 
   await button(page, 'Visit Glasswake').click()
+  await arrive(page)
   await button(page, 'Play again').click()
   assert.equal((await glass(page)).accepted, 0)
   assert.deepEqual(

@@ -2,10 +2,12 @@
 import { EMPTY_BOOK_AWARDS } from '../almanac/bookAwards'
 import { EMPTY_BOOK_DETAIL } from '../almanac/bookDetailData'
 import { EMPTY_SURFACE_DETAIL } from '../materials/surfaceData'
+import { ScenePassage } from './passage'
 import { createObservatoryRenderer } from './renderer'
 import { clamp, copyTrace, EMPTY_GLASSWAKE, EMPTY_TRACE, projectPoint, QUIET_MUSIC, traceAtCanvas, traceWorld, WORLD_PLACEMENTS, } from './scene'
 import { copyTemple, EMPTY_TEMPLE, EMPTY_TEMPLE_STATS } from './temple'
 import type { BookAwards } from '../almanac/bookAwards'
+import type { PassageSnapshot } from './passage'
 import type { CameraState, GlasswakePresentation, MusicFrame, ObservatoryFrame, ObservatoryOptions, ObservatorySnapshot, ObservatoryView, TracePoint, TracePresentation, WorldId, } from './scene'
 import type { TemplePresentation } from './temple'
 
@@ -26,6 +28,9 @@ export class ObservatoryRuntime {
   private intervals: number[] = []
   private selectedWorld: WorldId = 'glasswake'
   private view: ObservatoryView = 'overview'
+  private passage = new ScenePassage({ view: 'overview', worldId: 'glasswake' })
+  private departureCamera: CameraState = { yaw: 0, pitch: 0, distance: 1 }
+  private lastFrame?: ObservatoryFrame
   private motion = !window.matchMedia('(prefers-reduced-motion: reduce)')
     .matches
   private clay = false
@@ -127,6 +132,7 @@ export class ObservatoryRuntime {
     this.error = message
     this.errors.push(message)
     this.ready = false
+    this.passage.finish()
     this.releaseGpu()
     this.options.changed()
   }
@@ -148,6 +154,9 @@ export class ObservatoryRuntime {
       if (!document.hidden && this.active) {
         const elapsed = this.previousTime ? now - this.previousTime : 0
         this.previousTime = now
+        const wasPassing = this.passage.read(now).active
+        this.passage.advance(now)
+        const passage = this.passage.read(now)
         if (elapsed > 0) {
           this.intervals.push(elapsed)
           if (this.intervals.length > 180) this.intervals.shift()
@@ -173,27 +182,14 @@ export class ObservatoryRuntime {
           this.canvas.width = width
           this.canvas.height = height
         }
-        const frame: ObservatoryFrame = {
-          bookAwards: this.bookAwards,
-          selectedWorld: this.selectedWorld,
-          view: this.view,
-          camera: this.camera,
-          time: this.time,
-          music: this.music,
-          instructionNote: this.instructionNote,
-          clay: this.clay,
-          trace: this.trace,
-          glasswake: this.glasswake,
-          temple: this.temple,
-          motion: this.motion,
-        }
+        const frame = this.sceneFrame(passage)
         this.renderer!.render(
           this.context!.getCurrentTexture().createView(),
           width,
           height,
           frame,
         )
-        if (now - this.reportedAt > 100) {
+        if (wasPassing || now - this.reportedAt > 100) {
           this.reportedAt = now
           this.options.changed()
         }
@@ -202,6 +198,34 @@ export class ObservatoryRuntime {
     } catch (error) {
       this.fail(error instanceof Error ? error.message : String(error))
     }
+  }
+
+  private sceneFrame(passage: PassageSnapshot): ObservatoryFrame {
+    let frame: ObservatoryFrame = {
+      bookAwards: this.bookAwards,
+      selectedWorld: passage.scene.worldId,
+      view: passage.scene.view,
+      camera:
+        passage.phase === 'departing' ? this.departureCamera : this.camera,
+      arrival: passage.arrival,
+      time: this.time,
+      music: this.music,
+      instructionNote: this.instructionNote,
+      clay: this.clay,
+      trace: this.trace,
+      glasswake: this.glasswake,
+      temple: this.temple,
+      motion: this.motion,
+    }
+    // Keep the departing set intact even when its encounter has just unmounted.
+    if (passage.phase === 'departing' && this.lastFrame)
+      frame = {
+        ...this.lastFrame,
+        time: this.time,
+        camera: this.departureCamera,
+      }
+    this.lastFrame = frame
+    return frame
   }
 
   private normalizedPointer(event: PointerEvent) {
@@ -222,6 +246,7 @@ export class ObservatoryRuntime {
     if (
       !this.ready ||
       !this.active ||
+      this.passage.read(window.performance.now()).active ||
       this.view === 'glasswake' ||
       this.view === 'temple' ||
       this.pointer ||
@@ -344,6 +369,8 @@ export class ObservatoryRuntime {
   private onWheel = (event: WheelEvent) => {
     if (
       !this.ready ||
+      !this.active ||
+      this.passage.read(window.performance.now()).active ||
       this.view === 'trace' ||
       this.view === 'glasswake' ||
       this.view === 'temple'
@@ -360,6 +387,8 @@ export class ObservatoryRuntime {
   private onKey = (event: KeyboardEvent) => {
     if (
       !this.ready ||
+      !this.active ||
+      this.passage.read(window.performance.now()).active ||
       this.view === 'trace' ||
       this.view === 'glasswake' ||
       this.view === 'temple'
@@ -382,20 +411,37 @@ export class ObservatoryRuntime {
 
   selectWorld(worldId: WorldId) {
     if (!(worldId in WORLD_PLACEMENTS)) return
-    this.selectedWorld = worldId
-    this.options.changed()
+    this.navigate(this.view, worldId)
   }
   setView(view: ObservatoryView) {
+    this.navigate(view)
+  }
+  navigate(view: ObservatoryView, worldId = this.selectedWorld) {
     if (!['overview', 'inspect', 'trace', 'glasswake', 'temple'].includes(view))
       return
+    if (!(worldId in WORLD_PLACEMENTS)) return
     if (this.pointer?.tracing)
       this.options.input({ kind: 'trace', phase: 'cancel', point: null })
     this.releasePointer()
+    const now = window.performance.now()
+    if (this.passage.read(now).phase !== 'departing')
+      this.departureCamera = { ...this.camera }
+    this.passage.request(
+      { view, worldId },
+      now,
+      this.ready && this.active && this.motion && !document.hidden,
+    )
+    this.selectedWorld = worldId
     this.view = view
     this.resetCamera()
   }
+  finishPassage() {
+    this.passage.finish()
+    this.options.changed()
+  }
   setMotion(enabled: boolean) {
     this.motion = enabled
+    if (!enabled) this.passage.finish()
     this.previousTime = 0
     this.options.changed()
   }
@@ -411,11 +457,15 @@ export class ObservatoryRuntime {
     this.active = active
     this.previousTime = 0
     if (!active) {
-      if (this.pointer?.tracing)
-        this.options.input({ kind: 'trace', phase: 'cancel', point: null })
-      this.releasePointer()
+      this.passage.finish()
+      this.cancelInput()
     }
     this.options.changed()
+  }
+  cancelInput() {
+    if (this.pointer?.tracing)
+      this.options.input({ kind: 'trace', phase: 'cancel', point: null })
+    this.releasePointer()
   }
   setTrace(state: TracePresentation) {
     this.trace = copyTrace(state)
@@ -481,6 +531,7 @@ export class ObservatoryRuntime {
       adapter: this.adapter,
       selectedWorld: this.selectedWorld,
       view: this.view,
+      passage: this.passage.read(window.performance.now()),
       motion: this.motion,
       clay: this.clay,
       assets: stats.assets,

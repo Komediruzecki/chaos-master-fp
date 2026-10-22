@@ -133,8 +133,12 @@ pending audio start. Returning never restarts it automatically.
 - `observatory/worldOrnaments.ts` builds one merged opaque ornament mesh per
   world. These are real faceted surfaces, not transparent/refractive glass.
   Bridge pieces remain repeated static draws, not GPU-instanced geometry.
-- The camera makes deliberate view cuts. No automatic flights, walking,
-  collision, book page turning or animated docking is implemented.
+- A shared 180 ms departure and 460 ms arrival threshold masks deliberate
+  scene cuts, followed by a bounded 3.5% destination-camera settle. Instrument
+  input waits for arrival; motion pause, reduced motion, window blur and hidden state settle
+  the latest destination. No long flights, walking, collision, book page turning
+  or animated docking is implemented. See [scene passages](docs/journey-passages.md)
+  for the implementation contract and current verification status.
 - Sky directions derive from the camera inverse matrix. Stars are not a
   screen-fixed image.
 - Opaque meshes write shared depth; point sprites test it. Point-centre depth

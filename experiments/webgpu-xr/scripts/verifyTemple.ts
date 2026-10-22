@@ -6,6 +6,7 @@ import path from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
 import { JOURNEY_STORAGE_KEY, parseJourneyProgress, } from '../src/journey/progress'
+import { PASSAGE_DURATION_MS } from '../src/observatory/passage'
 import type { BrowserContext, Locator, Page } from 'playwright'
 
 const base = process.env.VERIFY_BASE_URL ?? 'https://127.0.0.1:5192'
@@ -94,6 +95,7 @@ const browser = await chromium.launch({
     '--disable-renderer-backgrounding',
     '--disable-backgrounding-occluded-windows',
     ...(process.env.VERIFY_X11 === '1' ? ['--ozone-platform=x11'] : []),
+    ...(process.env.VERIFY_WAYLAND === '1' ? ['--ozone-platform=wayland'] : []),
   ],
 })
 
@@ -196,6 +198,11 @@ async function open(context: BrowserContext) {
   const page = await context.newPage()
   activePage = page
   page.setDefaultTimeout(10000)
+  const cdp = await context.newCDPSession(page)
+  await cdp.send('Emulation.setFocusEmulationEnabled', { enabled: true })
+  await cdp.detach()
+  report.focus =
+    'CDP focus emulation keeps the hidden automation surface active; native tab visibility is not established.'
   page.on('pageerror', (error) => errors.push(String(error)))
   page.on('console', (message) => {
     if (message.type() === 'error' || message.type() === 'warning')
@@ -445,8 +452,11 @@ async function rememberFailure() {
 }
 
 async function openEnding(page: Page) {
+  if ((await scene(page)).passage.active)
+    await advance(page, PASSAGE_DURATION_MS + 32)
   await button(page, 'Open temple signal').click()
-  await advance(page)
+  await advance(page, PASSAGE_DURATION_MS + 32)
+  assert.equal((await scene(page)).passage.active, false)
   assert.equal(await ending(page).getAttribute('data-phase'), 'ready')
   assert.equal((await scene(page)).view, 'temple')
   assert.equal((await scene(page)).visual.temple.active, true)
@@ -455,6 +465,8 @@ async function openEnding(page: Page) {
 }
 
 async function startEnding(page: Page, name = 'Listen together') {
+  if ((await scene(page)).passage.active)
+    await advance(page, PASSAGE_DURATION_MS + 32)
   await button(page, name).click()
   return poll(
     page,

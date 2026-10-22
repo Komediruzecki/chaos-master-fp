@@ -5,6 +5,7 @@ import { WORLD_VISUALS } from '../almanac/worldIdentity'
 import type { BookAwards } from '../almanac/bookAwards'
 import type { BookDetailSnapshot } from '../almanac/bookDetailData'
 import type { SurfaceSnapshot } from '../materials/surfaceData'
+import type { PassageSnapshot } from './passage'
 import type { TemplePresentation, TempleStats } from './temple'
 
 export { EMPTY_TEMPLE } from './temple'
@@ -91,6 +92,7 @@ export interface ObservatorySnapshot {
   adapter: string
   selectedWorld: WorldId
   view: ObservatoryView
+  passage: PassageSnapshot
   motion: boolean
   clay: boolean
   assets: AssetStatus[]
@@ -130,6 +132,7 @@ export interface ObservatoryFrame {
   selectedWorld: WorldId
   view: ObservatoryView
   camera: CameraState
+  arrival?: number
   time: number
   music: MusicFrame
   instructionNote: number | null
@@ -312,7 +315,7 @@ export function sceneCamera(frame: ObservatoryFrame, aspect: number) {
     distance = world.scale * 4.4 * Math.max(1, 0.95 / aspect)
     basePitch = 0.08
   } else if (frame.view === 'temple') {
-    // A deliberate cut to a static stage; the score never moves the viewer.
+    // The score never moves the viewer; only the covered navigation can settle.
     target = [0, aspect < 0.8 ? 1.3 : 1.9, -12]
     distance = 9.8
     basePitch = 0.045
@@ -354,6 +357,7 @@ export function sceneCamera(frame: ObservatoryFrame, aspect: number) {
   const yaw = fixed ? 0 : frame.camera.yaw
   const pitch = basePitch + (fixed ? 0 : frame.camera.pitch)
   distance *= fixed ? 1 : frame.camera.distance
+  distance *= 1 + 0.035 * clamp(frame.arrival ?? 0, 0, 1)
   const eye: Vec3 = [
     target[0] + Math.sin(yaw) * Math.cos(pitch) * distance,
     target[1] + Math.sin(pitch) * distance,

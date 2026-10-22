@@ -141,16 +141,20 @@ export class MotifAudio {
     return context
   }
 
-  play(motif: AlmanacMotif): Promise<void> {
-    return this.playScore({
-      id: motif.id,
-      tempo: motif.tempo,
-      notes: motif.notes.map((note) => ({
-        ...note,
-        timbre: motif.timbre,
-        gain: 1,
-      })),
-    })
+  /** Unlock now; a bounded lead-in can let the destination settle before its phrase. */
+  play(motif: AlmanacMotif, leadInSeconds = 0): Promise<void> {
+    return this.playScore(
+      {
+        id: motif.id,
+        tempo: motif.tempo,
+        notes: motif.notes.map((note) => ({
+          ...note,
+          timbre: motif.timbre,
+          gain: 1,
+        })),
+      },
+      leadInSeconds,
+    )
   }
 
   /** An explicit gesture starts one passage through the existing audio owner. */
@@ -161,7 +165,10 @@ export class MotifAudio {
     })
   }
 
-  private async playScore(motif: MotifArrangement): Promise<void> {
+  private async playScore(
+    motif: MotifArrangement,
+    leadInSeconds = 0,
+  ): Promise<void> {
     if (this.disposed) return
     this.stop()
     const generation = ++this.generation
@@ -205,7 +212,10 @@ export class MotifAudio {
       if (context.state !== 'running')
         throw new Error('Audio is suspended. Press Play to retry.')
       const beatSeconds = 60 / motif.tempo
-      this.startedAt = context.currentTime + START_DELAY
+      const leadIn = Number.isFinite(leadInSeconds)
+        ? Math.max(0, Math.min(0.8, leadInSeconds))
+        : 0
+      this.startedAt = context.currentTime + START_DELAY + leadIn
       this.endsAt =
         this.startedAt +
         Math.max(

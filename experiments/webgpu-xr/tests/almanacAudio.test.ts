@@ -236,6 +236,95 @@ await test('switching cancels every old note before the next motif starts; stop 
   )
 })
 
+await test('a motif lead-in unlocks in the gesture and starts its audio-clock progress at the delayed first note', async (t) => {
+  const { audio, context, calls } = fixture()
+  t.after(() => {
+    audio.dispose()
+  })
+  let resumed = false
+  context.resume = () => {
+    resumed = true
+    context.state = 'running'
+    return Promise.resolve()
+  }
+  context.currentTime = 4
+  const pending = audio.play(tide, 0.64)
+  assert.equal(calls().contexts, 1)
+  assert.equal(resumed, true)
+  await pending
+  const firstStart = 4 + 0.025 + 0.64
+  assert.equal(context.oscillators[0].startAt, firstStart)
+  for (const [index, note] of tide.notes.entries())
+    assert.equal(
+      context.oscillators[index * 2].startAt,
+      firstStart + (note.beat * 60) / tide.tempo,
+    )
+  context.currentTime = firstStart - 0.001
+  assert.equal(audio.snapshot().playing, true)
+  assert.equal(audio.snapshot().progress, 0)
+  assert.equal(audio.snapshot().activeNote, null)
+  context.currentTime = firstStart
+  assert.equal(audio.snapshot().progress, 0)
+  assert.equal(audio.snapshot().activeNote, 0)
+  context.currentTime = firstStart + 0.1
+  assert.ok(audio.snapshot().progress > 0)
+  assert.equal(audio.snapshot().activeNote, 0)
+})
+
+await test('motif lead-ins clamp to a finite maximum without changing the default delay', async (t) => {
+  const cases = [
+    [undefined, 0],
+    [-0.5, 0],
+    [NaN, 0],
+    [Infinity, 0],
+    [-Infinity, 0],
+    [3, 0.8],
+  ] as const
+  for (const [leadIn, expected] of cases) {
+    const { audio, context } = fixture()
+    t.after(() => {
+      audio.dispose()
+    })
+    await audio.play(tide, leadIn)
+    assert.equal(context.oscillators[0].startAt, 0.025 + expected)
+  }
+})
+
+await test('interrupting a scheduled lead-in cancels its future notes and never resumes on return', async (t) => {
+  for (const interruption of ['stop', 'hide', 'suspend', 'dispose'] as const) {
+    await t.test(interruption, async (t) => {
+      const { audio, context, visibility } = fixture()
+      t.after(() => {
+        audio.dispose()
+      })
+      await audio.play(tide, 0.64)
+      context.currentTime = 0.1
+      const scheduled = [...context.oscillators]
+      assert.ok(scheduled.every((voice) => voice.startAt > context.currentTime))
+      if (interruption === 'stop') audio.stop()
+      else if (interruption === 'hide') {
+        visibility.hidden = true
+        visibility.dispatchEvent(new Event('visibilitychange'))
+      } else if (interruption === 'suspend') {
+        context.state = 'suspended'
+        context.dispatchEvent(new Event('statechange'))
+      } else audio.dispose()
+      assert.ok(scheduled.every((voice) => voice.stopAt === 0.112))
+      for (const voice of scheduled) voice.onended?.()
+      assert.ok(scheduled.every((voice) => voice.disconnected))
+      visibility.hidden = false
+      context.state = 'running'
+      visibility.dispatchEvent(new Event('visibilitychange'))
+      context.dispatchEvent(new Event('statechange'))
+      context.currentTime = 20
+      assert.equal(audio.snapshot().playing, false)
+      assert.equal(audio.snapshot().progress, 0)
+      assert.equal(audio.snapshot().motifId, null)
+      assert.equal(context.oscillators.length, scheduled.length)
+    })
+  }
+})
+
 await test('a slow audio unlock cannot start a superseded motif', async (t) => {
   const { audio, context } = fixture()
   t.after(() => {

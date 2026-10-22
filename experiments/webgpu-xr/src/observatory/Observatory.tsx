@@ -14,6 +14,7 @@ import { Icon, LogoMark } from '../theme/Icon'
 import { BRIDGE_RESOLUTION } from './bridgeScore'
 import { beginTrace, BRIDGE_MOTIF, BRIDGE_NOTE_NAMES, BRIDGE_TARGET, createEncounter, endTrace, moveTrace, traceHint, } from './encounter'
 import { GlasswakeEncounter } from './GlasswakeEncounter'
+import { PassageThreshold } from './PassageThreshold'
 import { ObservatoryRuntime } from './runtime'
 import { pitchForTraceHeight } from './traceAudio'
 import type { EncounterState, TracePoint } from './encounter'
@@ -69,7 +70,8 @@ export function Observatory() {
   const world = createMemo(
     () => studies.find((entry) => entry.id === worldId())!,
   )
-  const ready = createMemo(() => Boolean(state()?.ready))
+  const passing = createMemo(() => Boolean(state()?.passage.active))
+  const ready = createMemo(() => Boolean(state()?.ready) && !passing())
   const ending = useTempleEnding({
     eligible: () => earnedPages() === 2,
     ready,
@@ -81,13 +83,11 @@ export function Observatory() {
       setExercise(false)
       setGlasswake(false)
       setAtlasOpen(false)
-      setView('temple')
-      runtime?.setView('temple')
+      goToView('temple')
       presentTrace()
     },
     leave: () => {
-      setView('overview')
-      runtime?.setView('overview')
+      goToView('overview')
       queueMicrotask(() => {
         canvas.focus({ preventScroll: true })
       })
@@ -151,15 +151,20 @@ export function Observatory() {
     setGlasswake(false)
     audio?.stop()
     setWorldId(id)
-    setView('overview')
     setAtlasOpen(false)
     journey.store.discoverWorld(id)
     const url = new URL(window.location.href)
     url.searchParams.set('world', id)
     window.history.replaceState(null, '', url)
-    runtime?.selectWorld(id)
-    runtime?.setView('overview')
+    goToView('overview', id)
     presentTrace()
+  }
+
+  function goToView(next: ObservatoryView, id = worldId()) {
+    setView(next)
+    runtime?.navigate(next, id)
+    // Disabling the departing button can move focus to body. Keep Escape available.
+    canvas.focus({ preventScroll: true })
   }
 
   function leaveCrossing() {
@@ -168,17 +173,16 @@ export function Observatory() {
     setGlasswake(false)
     audio?.stop()
     setEncounter(endTrace(encounter()))
-    setView('overview')
-    runtime?.setView('overview')
+    goToView('overview')
     presentTrace()
     canvas.focus({ preventScroll: true })
   }
 
-  function playPhrase() {
+  function playPhrase(leadInSeconds = 0) {
     stopKeyboard()
     setEncounter(endTrace(encounter()))
     setStage('listen')
-    void audio?.play(BRIDGE_MOTIF)
+    void audio?.play(BRIDGE_MOTIF, leadInSeconds)
     presentTrace()
   }
 
@@ -190,8 +194,7 @@ export function Observatory() {
     journey.store.discoverWorld('glasswake')
     if (glassCollected()) setGlassProgress(0)
     setGlasswake(true)
-    setView('glasswake')
-    runtime?.setView('glasswake')
+    goToView('glasswake')
     presentTrace()
   }
 
@@ -200,10 +203,10 @@ export function Observatory() {
     if (collected()) setEncounter(createEncounter())
     setAtlasOpen(false)
     setExercise(true)
-    setView('trace')
     setKeyboard(false)
-    runtime?.setView('trace')
-    playPhrase()
+    goToView('trace')
+    // Unlock audio in this gesture, but let the first teaching note wait for arrival.
+    playPhrase((runtime?.snapshot().passage.remainingMs ?? 0) / 1000)
   }
 
   function acceptInput(event: ObservatoryInput) {
@@ -290,14 +293,20 @@ export function Observatory() {
     keyboardFrame = 0
   }
 
-  function interruptInput() {
+  function releaseInput() {
     stopKeyboard()
     audio?.stopTrace()
     setEncounter(endTrace(encounter()))
-    // Toggling activity releases a captured pointer without changing the view.
+    runtime?.cancelInput()
+    presentTrace()
+  }
+
+  function interruptInput() {
+    if (runtime?.snapshot().passage.active) audio?.stop()
+    releaseInput()
+    // Window/modal interruption settles travel; moving focus within the scene does not.
     runtime?.setActive(false)
     if (!document.hidden) runtime?.setActive(true)
-    presentTrace()
   }
 
   function closeAtlas() {
@@ -343,12 +352,14 @@ export function Observatory() {
 
   function practiceNote(midi: number | null) {
     if (midi === null) audio?.stopTrace()
+    else if (!ready()) return
     else if (sound()?.trace.active || sound()?.trace.pending)
       audio?.updateTrace(midi)
     else void audio?.startTrace(midi)
   }
 
   function hearIntroductionNote() {
+    if (!ready()) return
     void audio?.play({
       id: 'journey-first-note',
       tonic: 'C',
@@ -409,12 +420,10 @@ export function Observatory() {
       else if (glasswake()) {
         setGlasswake(false)
         audio?.stop()
-        setView('overview')
-        runtime?.setView('overview')
+        goToView('overview')
         canvas.focus({ preventScroll: true })
       } else if (view() === 'inspect') {
-        setView('overview')
-        runtime?.setView('overview')
+        goToView('overview')
       }
       return
     }
@@ -472,7 +481,7 @@ export function Observatory() {
           if (next.error) {
             stopKeyboard()
             ending.stop()
-            audio?.stopTrace()
+            audio?.stop()
             setEncounter(endTrace(encounter()))
           }
         }
@@ -517,7 +526,7 @@ export function Observatory() {
     window.addEventListener('keyup', releaseKey)
     window.addEventListener('blur', interruptInput)
     document.addEventListener('visibilitychange', visibility)
-    canvas.addEventListener('blur', interruptInput)
+    canvas.addEventListener('blur', releaseInput)
     canvas.addEventListener('keydown', keyDown, true)
     updateSound()
     presentTrace()
@@ -541,7 +550,7 @@ export function Observatory() {
       window.removeEventListener('keyup', releaseKey)
       window.removeEventListener('blur', interruptInput)
       document.removeEventListener('visibilitychange', visibility)
-      canvas.removeEventListener('blur', interruptInput)
+      canvas.removeEventListener('blur', releaseInput)
       canvas.removeEventListener('keydown', keyDown, true)
       stopKeyboard()
       audio?.dispose()
@@ -558,12 +567,21 @@ export function Observatory() {
         'is-temple': ending.active(),
       }}
       data-world={worldId()}
+      data-passage={state()?.passage.phase ?? 'idle'}
+      style={{
+        '--passage-content': passing()
+          ? state()?.passage.phase === 'arriving'
+            ? 1 - (state()?.passage.opacity ?? 0)
+            : 0
+          : 1,
+      }}
       onKeyDown={keyDown}
     >
       <canvas
         ref={canvas}
         class="observatory-canvas"
         tabIndex={0}
+        aria-busy={passing()}
         aria-describedby={exercise() ? 'observatory-trace-help' : undefined}
         aria-label={
           ending.active()
@@ -574,6 +592,7 @@ export function Observatory() {
         }
       />
       <div class="observatory-shade" aria-hidden="true" />
+      <PassageThreshold passage={state()?.passage} />
       <header class="observatory-header">
         <a
           class="observatory-brand"
@@ -634,7 +653,7 @@ export function Observatory() {
         </nav>
       </header>
 
-      <Show when={!ready() && !state()?.error}>
+      <Show when={!state()?.ready && !state()?.error}>
         <div class="observatory-loading" role="status">
           Opening the observatory…
         </div>
@@ -794,8 +813,7 @@ export function Observatory() {
           onLeave={() => {
             setGlasswake(false)
             audio?.stop()
-            setView('overview')
-            runtime?.setView('overview')
+            goToView('overview')
             canvas.focus({ preventScroll: true })
           }}
           onCollected={() => journey.store.completeWorld('glasswake')}
@@ -1028,8 +1046,7 @@ export function Observatory() {
                   disabled={!ready()}
                   onClick={() => {
                     const next = view() === 'inspect' ? 'overview' : 'inspect'
-                    setView(next)
-                    runtime?.setView(next)
+                    goToView(next)
                   }}
                 >
                   {view() === 'inspect' ? 'Widen view' : 'Inspect orb'}
