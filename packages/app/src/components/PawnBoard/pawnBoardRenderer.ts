@@ -2,12 +2,13 @@
 import { common, d } from 'typegpu'
 import { buildPawnShellFragments, buildPawnShellGeometry, } from '@/flame/chess/pawnBoardGeometry'
 import { createPawnBoardCloud } from './pawnBoardCloud'
+import { createPawnBoardGlassVariants } from './pawnBoardGlassVariants'
 import { BOARD_TILE_SIZE, squareWorld } from './pawnBoardMath'
 import { cube } from './pawnBoardMesh'
 import { backgroundFragment, BoardCameraUniform, boardFragment, cameraLayout, cloudFragment, cloudVertex, displayFragment, fragmentLayout, fragmentVertex, glassExitFragment, glassFragment, instanceLayout, meshLayout, meshVertex, shardFragment, } from './pawnBoardShaders'
 import { createPawnBoardVariants } from './pawnBoardVariants'
 import { createPawnGlassTargets } from './pawnGlassTargets'
-import type { TgpuRoot } from 'typegpu'
+import type { TgpuRenderPass, TgpuRenderPipeline, TgpuRoot } from 'typegpu'
 import type { PawnSide } from '@/flame/chess/pawnFlame'
 import type { Square } from '@/flame/chess/pawnGame'
 
@@ -18,6 +19,8 @@ export type BoardPawnInstance = {
   age: number
   /** An uploaded study cloud; omitted keeps the original side-based pawn. */
   cloudKey?: string
+  /** An explicitly uploaded hollow envelope, independent of the native cloud. */
+  glassKey?: string
   /** Uniform local-space scale, leaving the board position unchanged. */
   scale?: number
   /** Optional linear RGB tint for restrained variation between repeated shapes. */
@@ -91,7 +94,7 @@ function fillPieceInstances(
       )
     // Study clouds have their own shape; the legacy enclosure is a pawn.
     if (piece.cloudKey !== undefined) continue
-    if (piece.age < 0) {
+    if (piece.age < 0 && piece.glassKey === undefined) {
       writeInstance(shellData, shellCount, piece)
       shellData[shellCount * 12 + 10] = shellCount + 1
       const centre = 28 + shellCount * 4
@@ -280,8 +283,6 @@ export function createPawnBoardRenderer(
         multisample: { count: 4 },
       })
       .with(cameraGroup)
-      .with(meshLayout, shellMesh)
-      .with(instanceLayout, shells)
     const exitsPipeline = root
       .createRenderPipeline({
         attribs: { ...meshLayout.attrib, ...instanceLayout.attrib },
@@ -292,8 +293,6 @@ export function createPawnBoardRenderer(
         depthStencil: { ...depth, depthWriteEnabled: true },
       })
       .with(cameraGroup)
-      .with(meshLayout, shellMesh)
-      .with(instanceLayout, shells)
     const shardPipeline = root
       .createRenderPipeline({
         attribs: { ...fragmentLayout.attrib, ...instanceLayout.attrib },
@@ -361,6 +360,7 @@ export function createPawnBoardRenderer(
       variantPointPipeline,
       writeInstance,
     )
+    const glassVariants = createPawnBoardGlassVariants(root, writeInstance)
     const sampler = device.createSampler({
       minFilter: 'linear',
       magFilter: 'linear',
@@ -386,6 +386,20 @@ export function createPawnBoardRenderer(
       }
     }
 
+    function drawGlassShells(
+      pass: TgpuRenderPass,
+      pipeline: TgpuRenderPipeline,
+      count: number,
+    ) {
+      if (count)
+        pipeline
+          .with(meshLayout, shellMesh)
+          .with(instanceLayout, shells)
+          .with(pass)
+          .draw(shellGeometry.vertices.length / 6, count)
+      glassVariants.draw(pass, pipeline)
+    }
+
     return {
       setCloud(side: PawnSide, points: Float32Array, colors?: Float32Array) {
         if (disposed) return
@@ -405,6 +419,13 @@ export function createPawnBoardRenderer(
       },
       clearVariantClouds: () => {
         variants.clear()
+      },
+      /** At most three shared study envelopes; replacement is transactional. */
+      setVariantGlass(key: string, vertices: Float32Array, radius: number) {
+        if (!disposed) glassVariants.set(key, vertices, radius)
+      },
+      clearVariantGlass: () => {
+        glassVariants.clear()
       },
       render(frame: BoardFrame) {
         if (disposed || frame.width < 1 || frame.height < 1) return
@@ -436,12 +457,18 @@ export function createPawnBoardRenderer(
           emberData,
           cameraData,
         )
+        const studyShellCount = glassVariants.prepare(
+          frame.pieces,
+          cameraData,
+          shellCount,
+        )
         cameraData[25] = frame.mutedBoard ? 1 : 0
         camera.write(cameraData.buffer)
         shells.write(shellData.buffer)
         frost.write(frostData.buffer)
         ember.write(emberData.buffer)
         variants.write()
+        glassVariants.write()
         if (frame.shards) {
           writeInstance(shardData, 0, frame.shards)
           shards.write(shardData.buffer)
@@ -491,7 +518,8 @@ export function createPawnBoardRenderer(
         variants.draw(pass)
         if (frame.shards) shardPipeline.with(pass).draw(fragmentCount, 1)
         pass.end()
-        const showGlass = frame.showGlass !== false && shellCount > 0
+        const showGlass =
+          frame.showGlass !== false && shellCount + studyShellCount > 0
         if (showGlass) {
           const exits = encoder.beginRenderPass({
             colorAttachments: [
@@ -509,9 +537,7 @@ export function createPawnBoardRenderer(
               depthStoreOp: 'discard',
             },
           })
-          exitsPipeline
-            .with(exits)
-            .draw(shellGeometry.vertices.length / 6, shellCount)
+          drawGlassShells(exits, exitsPipeline, shellCount)
           exits.end()
         }
         const optical = encoder.beginRenderPass({
@@ -529,11 +555,10 @@ export function createPawnBoardRenderer(
             depthStoreOp: 'discard',
           },
         })
-        if (showGlass)
-          frontGlass
-            .with(targets!.glass)
-            .with(optical)
-            .draw(shellGeometry.vertices.length / 6, shellCount)
+        if (showGlass) {
+          const glass = frontGlass.with(targets!.glass)
+          drawGlassShells(optical, glass, shellCount)
+        }
         optical.end()
         const display = encoder.beginRenderPass({
           colorAttachments: [
@@ -550,6 +575,7 @@ export function createPawnBoardRenderer(
         for (const cloud of clouds.values()) cloud.destroy()
         clouds.clear()
         variants.clear()
+        glassVariants.clear()
         targets?.destroy()
         for (const resource of owned) resource.destroy()
       },

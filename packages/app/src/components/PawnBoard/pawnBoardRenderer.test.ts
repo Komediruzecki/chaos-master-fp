@@ -26,6 +26,7 @@ function harness() {
   const bindings: { entries: Record<string, unknown> }[] = []
   let failBinding = false
   let failTexture = false
+  let buffersUntilFailure = Infinity
   const pipeline = (
     config: GPURenderPipelineDescriptor,
     pass?: Pass,
@@ -71,6 +72,10 @@ function harness() {
   })
   const root = {
     createBuffer(_schema: unknown, initial?: unknown) {
+      if (buffersUntilFailure-- === 0) {
+        buffersUntilFailure = Infinity
+        throw new Error('buffer allocation failed')
+      }
       const buffer = {
         destroy: vi.fn(),
         write: vi.fn(),
@@ -145,11 +150,17 @@ function harness() {
     failTexture() {
       failTexture = true
     },
+    failBufferAfter(count: number) {
+      buffersUntilFailure = count
+    },
   }
 }
 
 const points = new Float32Array([0, 0.9, 0, 1])
 const colours = new Float32Array([0.02, 0.18, 0.65, 1])
+const glassTriangle = new Float32Array([
+  0, 0, 0, 0, 0, 1, 0.4, 0, 0, 0, 0, 1, 0, 0.4, 0, 0, 0, 1,
+])
 const frame = (): BoardFrame => ({
   width: 320,
   height: 240,
@@ -354,6 +365,237 @@ describe('fractal board variant clouds', () => {
     renderer.destroy()
     for (const buffer of state.buffers)
       expect(buffer.destroy).toHaveBeenCalledOnce()
+  })
+})
+
+describe('fractal study glass envelopes', () => {
+  function setup() {
+    const state = harness()
+    const renderer = createPawnBoardRenderer(
+      state.root,
+      state.device,
+      state.context,
+      'bgra8unorm',
+    )
+    return { state, renderer }
+  }
+
+  it('draws the same cloud with or without its envelope and shares optical passes with legacy pawns', () => {
+    const { state, renderer } = setup()
+    renderer.setCloud('light', points, colours)
+    renderer.setVariantCloud('fern', 'light', points, colours)
+    renderer.setVariantGlass('fern-lens', glassTriangle, 0.7)
+    const envelopeInstances = state.buffers.at(-1)!
+    const base = frame().pieces[0]!
+    renderer.render({
+      ...frame(),
+      pieces: [
+        base,
+        { ...base, cloudKey: 'fern', position: [1.6, 0.09, 0] },
+        {
+          ...base,
+          cloudKey: 'fern',
+          glassKey: 'fern-lens',
+          position: [3.2, 0.09, 0],
+          scale: 0.9,
+        },
+        {
+          ...base,
+          cloudKey: 'fern',
+          glassKey: 'fern-lens',
+          position: [4.8, 0.09, 0],
+          scale: 0.8,
+        },
+      ],
+    })
+    expect(state.passes).toHaveLength(4)
+    expect(
+      cloudDraws(state).map(({ vertices, instances }) => [vertices, instances]),
+    ).toEqual([
+      [6, 1],
+      [6, 3],
+    ])
+    expect(
+      state.draws
+        .filter((draw) => draw.bound.includes(envelopeInstances))
+        .map(({ vertices, instances }) => [vertices, instances]),
+    ).toEqual([
+      [3, 2],
+      [3, 2],
+    ])
+    const data = new Float32Array(
+      envelopeInstances.write.mock.calls[0]![0] as ArrayBuffer,
+    )
+    expect([data[10], data[22]]).toEqual([2, 3])
+    const camera = new Float32Array(
+      state.buffers[0]!.write.mock.calls.at(-1)![0] as ArrayBuffer,
+    )
+    expect(camera[24]).toBe(3)
+    expect(Array.from(camera.subarray(28, 32))).toEqual([
+      0,
+      Math.fround(0.09),
+      0,
+      Math.fround(0.67),
+    ])
+    expect(Array.from(camera.subarray(32, 36))).toEqual([
+      Math.fround(3.2),
+      Math.fround(0.09),
+      0,
+      Math.fround(0.63),
+    ])
+    expect(Array.from(camera.subarray(36, 40))).toEqual([
+      Math.fround(4.8),
+      Math.fround(0.09),
+      0,
+      Math.fround(0.56),
+    ])
+    renderer.destroy()
+  })
+
+  it('changes pure, enclosed and hidden views without allocating, retaining only current instances', () => {
+    const { state, renderer } = setup()
+    renderer.setVariantCloud('fern', 'light', points, colours)
+    renderer.setVariantGlass('fern-lens', glassTriangle, 0.7)
+    const envelopeInstances = state.buffers.at(-1)!
+    const base = { ...frame().pieces[0]!, cloudKey: 'fern' }
+    renderer.render({
+      ...frame(),
+      pieces: [{ ...base, glassKey: 'fern-lens' }],
+    })
+    const counts = [
+      state.buffers.length,
+      state.textures.length,
+      state.bindings.length,
+    ]
+    for (const appearance of ['pure', 'glass', 'hidden', 'pure']) {
+      state.draws.length = 0
+      state.passes.length = 0
+      renderer.render({
+        ...frame(),
+        showGlass: appearance !== 'hidden',
+        pieces: [
+          {
+            ...base,
+            glassKey: appearance === 'pure' ? undefined : 'fern-lens',
+          },
+        ],
+      })
+      expect([
+        state.buffers.length,
+        state.textures.length,
+        state.bindings.length,
+      ]).toEqual(counts)
+      expect(
+        cloudDraws(state).map(({ vertices, instances }) => [
+          vertices,
+          instances,
+        ]),
+      ).toEqual([[6, 1]])
+      expect(
+        state.draws.filter((draw) => draw.bound.includes(envelopeInstances)),
+      ).toHaveLength(appearance === 'glass' ? 2 : 0)
+      expect(state.passes).toHaveLength(appearance === 'glass' ? 4 : 3)
+    }
+    renderer.destroy()
+  })
+
+  it('bounds shared shell slots and releases replacement, clear and destroy allocations exactly once', () => {
+    const { state, renderer } = setup()
+    const fixedCount = state.buffers.length
+    for (const key of ['fern', 'bishop', 'rook'])
+      renderer.setVariantGlass(key, glassTriangle, 0.7)
+    const allocated = state.buffers.length
+    expect(() => {
+      renderer.setVariantGlass('fourth', glassTriangle, 0.7)
+    }).toThrow('variant glass capacity')
+    expect(state.buffers).toHaveLength(allocated)
+    renderer.setVariantGlass('fern', glassTriangle, 0.75)
+    for (const buffer of state.buffers.slice(fixedCount, fixedCount + 2))
+      expect(buffer.destroy).toHaveBeenCalledOnce()
+    renderer.clearVariantGlass()
+    renderer.clearVariantGlass()
+    for (const buffer of state.buffers.slice(fixedCount))
+      expect(buffer.destroy).toHaveBeenCalledOnce()
+    renderer.destroy()
+    renderer.destroy()
+    renderer.setVariantGlass('disposed', glassTriangle, 0.7)
+    expect(state.buffers).toHaveLength(allocated + 2)
+    for (const buffer of state.buffers)
+      expect(buffer.destroy).toHaveBeenCalledOnce()
+  })
+
+  it('rejects invalid meshes before allocating and preserves the prior mesh after failed replacement', () => {
+    const { state, renderer } = setup()
+    const fixedCount = state.buffers.length
+    for (const vertices of [
+      new Float32Array(),
+      glassTriangle.subarray(0, 12),
+      new Float32Array(18).fill(NaN),
+      new Float32Array(18),
+      new Float32Array(120_003 * 6),
+    ])
+      expect(() => {
+        renderer.setVariantGlass('invalid', vertices, 0.7)
+      }).toThrow()
+    for (const radius of [NaN, Infinity, 0, -1])
+      expect(() => {
+        renderer.setVariantGlass('invalid', glassTriangle, radius)
+      }).toThrow('radius')
+    expect(() => {
+      renderer.setVariantGlass(' ', glassTriangle, 0.7)
+    }).toThrow('nonempty')
+    expect(state.buffers).toHaveLength(fixedCount)
+    renderer.setVariantGlass('fern', glassTriangle, 0.7)
+    const original = state.buffers.slice(fixedCount)
+    state.failBufferAfter(1)
+    expect(() => {
+      renderer.setVariantGlass('fern', glassTriangle, 0.8)
+    }).toThrow('buffer allocation failed')
+    expect(state.buffers.at(-1)!.destroy).toHaveBeenCalledOnce()
+    for (const buffer of original) expect(buffer.destroy).not.toHaveBeenCalled()
+    renderer.render({
+      ...frame(),
+      pieces: [{ ...frame().pieces[0]!, glassKey: 'fern' }],
+    })
+    expect(
+      state.draws.filter((draw) => draw.bound.includes(original[1]!)),
+    ).toHaveLength(2)
+    renderer.destroy()
+    for (const buffer of state.buffers)
+      expect(buffer.destroy).toHaveBeenCalledOnce()
+  })
+
+  it('uses distinct IDs through the 32-piece limit and rejects missing shells', () => {
+    const { state, renderer } = setup()
+    renderer.setVariantGlass('fern', glassTriangle, 0.7)
+    const instanceBuffer = state.buffers.at(-1)!
+    const base = frame().pieces[0]!
+    const pieces = [
+      base,
+      ...Array.from({ length: 31 }, () => ({ ...base, glassKey: 'fern' })),
+    ]
+    renderer.render({ ...frame(), pieces })
+    const data = new Float32Array(
+      instanceBuffer.write.mock.calls[0]![0] as ArrayBuffer,
+    )
+    expect(
+      Array.from({ length: 31 }, (_, index) => data[index * 12 + 10]),
+    ).toEqual(Array.from({ length: 31 }, (_, index) => index + 2))
+    expect(
+      new Float32Array(
+        state.buffers[0]!.write.mock.calls.at(-1)![0] as ArrayBuffer,
+      )[24],
+    ).toBe(32)
+    expect(() => {
+      renderer.render({ ...frame(), pieces: [...pieces, base] })
+    }).toThrow('instance capacity')
+    expect(() => {
+      renderer.render({
+        ...frame(),
+        pieces: [{ ...base, glassKey: 'missing' }],
+      })
+    }).toThrow('Missing board variant glass')
+    renderer.destroy()
   })
 })
 

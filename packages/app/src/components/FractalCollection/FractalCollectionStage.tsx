@@ -1,19 +1,24 @@
 /** A single native WebGPU scene with event-driven rendering for complete fractal collections. */
-import { createEffect, createMemo, createSignal, on, onCleanup } from 'solid-js'
+import { createEffect, createMemo, createSignal, For, on, onCleanup, } from 'solid-js'
+import { buildFractalStudyGlass, getFractalStudyGlassRole, } from '@/flame/chess/fractalStudyGlass'
 import { AutoCanvas } from '@/lib/AutoCanvas'
 import { useCanvas } from '@/lib/CanvasContext'
 import { useLiveRootContext } from '@/lib/RootContext'
 import { DEFAULT_BOARD_CAMERA, pickBoardSquare, } from '../PawnBoard/pawnBoardMath'
 import { createPawnBoardRenderer } from '../PawnBoard/pawnBoardRenderer'
-import { collectionCameraMatrices, pickCollectionInstance, } from './collectionStageCamera'
+import { collectionCameraMatrices, collectionComparisonLabels, pickCollectionInstance, } from './collectionStageCamera'
 import { collectionInstances } from './collectionStageLayout'
+import ui from './FractalCollectionStage.module.css'
 import type { CollectionCloud } from './collectionCloudWorker'
-import type { CollectionCamera, CollectionView } from './collectionStageLayout'
+import type { CollectionComparisonLabel } from './collectionStageCamera'
+import type { CollectionCamera, CollectionEnclosure, CollectionView, } from './collectionStageLayout'
 import type { ChessCandidateRole } from '@/flame/chess/chessCandidate'
 import type { PawnSide } from '@/flame/chess/pawnFlame'
 
 type Props = {
   clouds: CollectionCloud[]
+  collectionId: string
+  enclosure: CollectionEnclosure
   view: CollectionView
   role: ChessCandidateRole
   side: PawnSide
@@ -26,6 +31,7 @@ type Props = {
 
 export function FractalCollectionStage(props: Props) {
   const [visible, setVisible] = createSignal(true)
+  const [labels, setLabels] = createSignal<CollectionComparisonLabel[]>([])
   return (
     <div
       style={{ position: 'relative', 'min-height': '0', overflow: 'hidden' }}
@@ -37,20 +43,39 @@ export function FractalCollectionStage(props: Props) {
         pixelRatio={1}
         onVisibilityChange={setVisible}
       >
-        <NativeCollection {...props} visible={visible()} />
+        <NativeCollection {...props} visible={visible()} onLabels={setLabels} />
       </AutoCanvas>
+      <For each={labels()}>
+        {(label) => (
+          <span
+            class={ui.specimenLabel}
+            style={{ left: `${label.x * 100}%`, top: `${label.y * 100}%` }}
+          >
+            {label.text}
+          </span>
+        )}
+      </For>
     </div>
   )
 }
 
 type Pointer = { x: number; y: number; originX: number; originY: number }
 
-function NativeCollection(props: Props & { visible: boolean }) {
+function NativeCollection(
+  props: Props & {
+    visible: boolean
+    onLabels: (labels: CollectionComparisonLabel[]) => void
+  },
+) {
   const { root, device } = useLiveRootContext()
   const { canvas, context, canvasFormat, canvasSize } = useCanvas()
   const renderer = createPawnBoardRenderer(root, device, context, canvasFormat)
   const instances = createMemo(() =>
-    collectionInstances(props.view, props.role, props.side, props.variation),
+    collectionInstances(props.view, props.role, props.side, props.variation, {
+      role: getFractalStudyGlassRole(props.collectionId),
+      key: props.collectionId,
+      enclosure: props.enclosure,
+    }),
   )
   const [loaded, setLoaded] = createSignal(false)
   const viewProjection = new Float32Array(16),
@@ -93,6 +118,9 @@ function NativeCollection(props: Props & { visible: boolean }) {
       eye,
       view,
       projection,
+      props.enclosure === 'both' &&
+        (props.view === 'lineup' ||
+          props.role === getFractalStudyGlassRole(props.collectionId)),
     )
     return size
   }
@@ -109,10 +137,18 @@ function NativeCollection(props: Props & { visible: boolean }) {
       eye,
       pieces: loaded() ? instances() : [],
       legal: [],
-      showGlass: false,
+      showGlass: props.enclosure !== 'pure',
       mutedBoard: true,
       inspection: props.view !== 'board',
     })
+    props.onLabels(
+      loaded() &&
+        props.view === 'solo' &&
+        props.enclosure === 'both' &&
+        instances().length === 2
+        ? collectionComparisonLabels(viewProjection, instances(), props.clouds)
+        : [],
+    )
     if (loaded() && !reportedReady) {
       reportedReady = true
       props.onReady(true)
@@ -127,6 +163,7 @@ function NativeCollection(props: Props & { visible: boolean }) {
       () => props.clouds,
       (clouds) => {
         renderer.clearVariantClouds()
+        renderer.clearVariantGlass()
         setLoaded(false)
         reportedReady = false
         props.onReady(false)
@@ -137,6 +174,28 @@ function NativeCollection(props: Props & { visible: boolean }) {
             cloud.points,
             cloud.colors,
           )
+        const glassRole = getFractalStudyGlassRole(props.collectionId)
+        const shellClouds = clouds.filter(
+          (cloud) =>
+            cloud.key === `${glassRole}:light` ||
+            cloud.key === `${glassRole}:dark`,
+        )
+        if (glassRole && shellClouds.length) {
+          const points = new Float32Array(
+            shellClouds.reduce((sum, cloud) => sum + cloud.points.length, 0),
+          )
+          let offset = 0
+          for (const cloud of shellClouds) {
+            points.set(cloud.points, offset)
+            offset += cloud.points.length
+          }
+          const shell = buildFractalStudyGlass(props.collectionId, points)
+          renderer.setVariantGlass(
+            props.collectionId,
+            shell.vertices,
+            shell.radius,
+          )
+        }
         setLoaded(clouds.length > 0)
         invalidate()
       },

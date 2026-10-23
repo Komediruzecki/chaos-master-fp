@@ -1,6 +1,6 @@
 /** Full-height crowns and near-side selection remain usable across portrait and wide canvases. */
 import { describe, expect, it } from 'vitest'
-import { collectionCameraMatrices, pickCollectionInstance, } from './collectionStageCamera'
+import { collectionCameraMatrices, collectionComparisonLabels, pickCollectionInstance, } from './collectionStageCamera'
 import { collectionInstances } from './collectionStageLayout'
 import type { CollectionCloud } from './collectionCloudWorker'
 
@@ -48,6 +48,41 @@ describe('collection camera framing', () => {
         }
     },
   )
+  it.each([0.4, 1.5])('fits glass comparison pairs at aspect %s', (aspect) => {
+    for (const mode of ['solo', 'lineup'] as const) {
+      const vp = new Float32Array(16)
+      collectionCameraMatrices(
+        mode,
+        { theta: 0.38, phi: 1.18, zoom: 1 },
+        aspect,
+        vp,
+        new Float32Array(16),
+        new Float32Array(3),
+        new Float32Array(16),
+        new Float32Array(16),
+        true,
+      )
+      const pieces = collectionInstances(mode, 'knight', 'light', false, {
+        role: 'knight',
+        key: 'fern',
+        enclosure: 'both',
+      })
+      for (const piece of pieces)
+        for (const dx of [-0.7, 0.7])
+          for (const dy of [0, 2.5]) {
+            const [x, y] = project(
+              [
+                piece.position[0] + dx,
+                piece.position[1] + dy,
+                piece.position[2],
+              ],
+              vp,
+            )
+            expect(Math.abs(x)).toBeLessThan(0.91)
+            expect(Math.abs(y)).toBeLessThan(0.91)
+          }
+    }
+  })
   it('selects the visible sampled crown before the floor or a further piece', () => {
     const vp = new Float32Array(16),
       inverse = new Float32Array(16)
@@ -111,5 +146,64 @@ describe('collection camera framing', () => {
     expect(
       pickCollectionInstance(x, y, inverse, pieces, clouds),
     ).toBeUndefined()
+  })
+})
+
+describe('projected comparison labels', () => {
+  const pieces = collectionInstances('solo', 'knight', 'light', false, {
+    role: 'knight',
+    key: 'fern',
+    enclosure: 'both',
+  })
+  const clouds: CollectionCloud[] = [
+    {
+      key: 'knight:light',
+      side: 'light',
+      points: new Float32Array(),
+      colors: new Float32Array(),
+      bounds: { min: [-0.5, 0, -0.5], max: [0.5, 1.8, 0.5] },
+    },
+  ]
+
+  it('keeps labels attached to their specimens when the camera reverses their order', () => {
+    const vp = new Float32Array(16)
+    const labelsAt = (theta: number) => {
+      collectionCameraMatrices(
+        'solo',
+        { theta, phi: 1.18, zoom: 1 },
+        1.5,
+        vp,
+        new Float32Array(16),
+        new Float32Array(3),
+        new Float32Array(16),
+        new Float32Array(16),
+        true,
+      )
+      return collectionComparisonLabels(vp, pieces, clouds)
+    }
+    const front = labelsAt(0),
+      rear = labelsAt(Math.PI)
+    expect(front.map((label) => label.text)).toEqual([
+      'Pure fractal',
+      'Inside glass',
+    ])
+    expect(rear.map((label) => label.text)).toEqual([
+      'Pure fractal',
+      'Inside glass',
+    ])
+    expect(front[0]!.x).toBeLessThan(front[1]!.x)
+    expect(rear[0]!.x).toBeGreaterThan(rear[1]!.x)
+    expect(front.every((label) => label.y > 0 && label.y < 1)).toBe(true)
+  })
+
+  it('hides labels without clouds, behind the camera or outside the viewport', () => {
+    const vp = new Float32Array(16)
+    vp[0] = vp[5] = vp[10] = 1
+    vp[15] = -1
+    expect(collectionComparisonLabels(vp, pieces, clouds)).toEqual([])
+    vp[15] = 1
+    vp[12] = 100
+    expect(collectionComparisonLabels(vp, pieces, clouds)).toEqual([])
+    expect(collectionComparisonLabels(vp, pieces, [])).toEqual([])
   })
 })

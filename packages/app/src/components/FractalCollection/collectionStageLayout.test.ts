@@ -61,4 +61,93 @@ describe('collectionInstances', () => {
     expect(solo[0]!.cloudKey).toBe('knight:light')
     expect(solo[0]!.position).toEqual([0, 0.09, 0])
   })
+
+  it.each(['rook', 'knight', 'bishop'] as const)(
+    'keeps a same-colour pure/glass %s pair on each side of the complete board',
+    (role) => {
+      const pieces = collectionInstances('board', role, 'light', true, {
+        role,
+        key: 'study',
+        enclosure: 'both',
+      })
+      expect(pieces).toHaveLength(32)
+      for (const side of ['light', 'dark'] as const) {
+        const pair = pieces.filter(
+          (piece) => piece.role === role && piece.side === side,
+        )
+        expect(pair).toHaveLength(2)
+        expect(pair[0]!.glassKey).toBeUndefined()
+        expect(pair[1]!.glassKey).toBe('study')
+        expect(pair[0]!.cloudKey).toBe(pair[1]!.cloudKey)
+        expect(pair[0]!.colorMultiplier).toEqual(pair[1]!.colorMultiplier)
+        expect(pair[0]!.square!.file).toBeLessThan(4)
+        expect(pair[1]!.square!.file).toBeGreaterThanOrEqual(4)
+      }
+      expect(pieces.filter((piece) => piece.glassKey)).toHaveLength(2)
+    },
+  )
+
+  it('encloses only the supported role and restores the exact pure layout', () => {
+    const baseline = collectionInstances('board', 'rook', 'dark', true)
+    const pure = collectionInstances('board', 'rook', 'dark', true, {
+      role: 'rook',
+      key: 'study',
+      enclosure: 'pure',
+    })
+    expect(pure).toEqual(baseline)
+    const glass = collectionInstances('board', 'rook', 'dark', true, {
+      role: 'rook',
+      key: 'study',
+      enclosure: 'glass',
+    })
+    expect(
+      glass.filter((piece) => piece.glassKey).map((piece) => piece.role),
+    ).toEqual(['rook', 'rook', 'rook', 'rook'])
+    expect(glass.map((piece) => piece.colorMultiplier)).toEqual(
+      baseline.map((piece) => piece.colorMultiplier),
+    )
+    expect(glass.map((piece) => piece.position)).toEqual(
+      baseline.map((piece) => piece.position),
+    )
+  })
+
+  it('pairs the supported solo specimen and inserts a matching adjacent lineup copy', () => {
+    const settings = { role: 'knight', key: 'fern', enclosure: 'both' } as const
+    const solo = collectionInstances('solo', 'knight', 'dark', true, settings)
+    expect(solo.map((piece) => piece.position)).toEqual([
+      [-0.85, 0.09, 0],
+      [0.85, 0.09, 0],
+    ])
+    expect(solo.map((piece) => piece.glassKey)).toEqual([undefined, 'fern'])
+    expect(solo[0]!.colorMultiplier).toEqual(solo[1]!.colorMultiplier)
+    const lineup = collectionInstances(
+      'lineup',
+      'knight',
+      'dark',
+      true,
+      settings,
+    )
+    expect(lineup.map((piece) => piece.role)).toEqual([
+      'pawn',
+      'rook',
+      'knight',
+      'knight',
+      'bishop',
+      'queen',
+      'king',
+    ])
+    expect(lineup.map((piece) => piece.glassKey)).toEqual([
+      undefined,
+      undefined,
+      undefined,
+      'fern',
+      undefined,
+      undefined,
+      undefined,
+    ])
+    expect(lineup[2]!.colorMultiplier).toEqual(lineup[3]!.colorMultiplier)
+    expect(
+      collectionInstances('solo', 'pawn', 'light', false, settings),
+    ).toHaveLength(1)
+  })
 })

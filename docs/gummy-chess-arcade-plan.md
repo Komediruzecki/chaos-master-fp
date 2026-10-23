@@ -564,6 +564,48 @@ Next sequence:
 This art pass changes the order of visual exploration; it does not waive the
 physical-representation gates above.
 
+### Glass shortlist comparison (2026-10-23)
+
+The owner selected Bent frond (Wild Canopy knight), Split current (Tidal Relics
+bishop) and Window tower (Lattice Court rook) for an enclosure study. Each now
+has a separate fitted hollow glass shell. The native flame and sampled core stay
+unchanged; this does not replace the pure versions or convert them into material
+solids.
+
+The collection page adds Pure, Glass and Both. Both keeps the complete board and
+encloses the selected role on files e–h, leaving its matching a–d partner pure.
+Each comparison pair shares its palette and optional tint. Close-up and lineup
+views also place the pure and enclosed versions beside each other. Preview links
+retain the enclosure choice, while older links still open pure fractals. Native
+JSON downloads and Forge handoffs continue to carry only the original flame.
+
+Shell fitting happens once when a collection or detail level changes. The glass
+uses the existing transmission and reflection passes, with shared geometry and
+bounded instance buffers; presentation toggles do not rebuild clouds or allocate
+GPU buffers. The current fitting step runs on the main thread. Moving that work
+into the existing worker is a possible tablet follow-up if load-time profiling
+shows a noticeable pause.
+
+The envelopes use rounded caps and locally bounded profiles. Geometry checks
+verify containment against the emitted inner triangles, closed surfaces and
+outward/inward normals. Production-sized sample checks also keep each shell
+inside its 1.6-unit square at the board's 0.9 scale, with widths below 1.5 times
+the core.
+
+Validation: 46 focused tests, the repository check and production build passed.
+Native AMD WebGPU captures verify the paired studies and complete boards;
+the original glass-pawn route also renders correctly. Resource probes show
+allocation-free enclosure toggles and stable live buffers across collection
+changes. Chrome and Firefox layout checks cover desktop and phone widths;
+Firefox coverage is layout-only. A later extended probe hit its external time
+limit after the resource checks passed; the final shape and legacy-render
+checks completed separately without browser or GPU errors.
+
+Next: choose which of these forms benefits from glass, then inspect a finite
+material representation for one approved role before adding it to capture
+physics. Physical-device acceptance and final art selection remain separate
+from desktop rendering checks.
+
 ## Private friend session architecture
 
 The current Worker serves static assets and bounded APIs for sharing and gallery

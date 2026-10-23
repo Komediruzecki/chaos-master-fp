@@ -9,8 +9,9 @@ import { CHESS_FORGE_PATH } from '@/routing/appPath'
 import { downloadBlob } from '@/utils/blob'
 import base from '../Pawn/PawnPage.module.css'
 import ui from './ChessCollectionsPage.module.css'
+import { CollectionGlassControls } from './CollectionGlassControls'
 import { collectionPreviewSearch, readCollectionPreviewSearch, } from './collectionPreviewLocation'
-import type { CollectionCamera, CollectionQuality, CollectionView, } from '@/components/FractalCollection/collectionStageLayout'
+import type { CollectionCamera, CollectionEnclosure, CollectionQuality, CollectionView, } from '@/components/FractalCollection/collectionStageLayout'
 import type { ChessCandidateRole } from '@/flame/chess/chessCandidate'
 import type { PawnSide } from '@/flame/chess/pawnFlame'
 
@@ -29,6 +30,9 @@ export function ChessCollectionsPage() {
   const [camera, setCamera] = createSignal<CollectionCamera>(initial.camera)
   const [quality, setQuality] = createSignal<CollectionQuality>(initial.quality)
   const [variation, setVariation] = createSignal(initial.variation)
+  const [enclosure, setEnclosure] = createSignal<CollectionEnclosure>(
+    initial.enclosure,
+  )
   const [resetKey, setResetKey] = createSignal(0)
   const [ready, setReady] = createSignal(false)
   const [notice, setNotice] = createSignal('')
@@ -60,6 +64,7 @@ export function ChessCollectionsPage() {
     camera: camera(),
     quality: quality(),
     variation: variation(),
+    enclosure: enclosure(),
   }))
   createEffect(() => {
     const search = collectionPreviewSearch(selection(), window.location.search)
@@ -151,13 +156,17 @@ export function ChessCollectionsPage() {
               {view() === 'board'
                 ? '32 pieces'
                 : view() === 'lineup'
-                  ? 'Six roles'
+                  ? enclosure() === 'both'
+                    ? 'Six roles + glass study'
+                    : 'Six roles'
                   : selected().name}
             </span>
           </div>
           <div class={ui.stage}>
             <FractalCollectionStage
               clouds={built.clouds()}
+              collectionId={collectionId()}
+              enclosure={enclosure()}
               view={view()}
               role={role()}
               side={side()}
@@ -172,6 +181,12 @@ export function ChessCollectionsPage() {
                 })
               }}
             />
+            <Show when={enclosure() === 'both' && view() !== 'solo'}>
+              <div class={ui.comparisonLegend}>
+                <span>{view() === 'board' ? 'a–d · Pure' : 'Pure'}</span>
+                <span>{view() === 'board' ? 'e–h · Glass' : 'Glass'}</span>
+              </div>
+            </Show>
             <Show when={built.busy() || built.error()}>
               <div class={ui.stageNotice} role="status">
                 <span>{built.error() || 'Growing the collection…'}</span>
@@ -232,6 +247,19 @@ export function ChessCollectionsPage() {
               together, then look closer at one.
             </p>
           </div>
+          <CollectionGlassControls
+            collectionId={collectionId()}
+            role={role()}
+            view={view()}
+            enclosure={enclosure()}
+            onEnclosure={setEnclosure}
+            onStudy={(id, nextRole) => {
+              batch(() => {
+                selectCollection(id)
+                setRole(nextRole)
+              })
+            }}
+          />
           <fieldset class={ui.field}>
             <legend>Collection</legend>
             <div class={ui.collections}>

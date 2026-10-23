@@ -13,9 +13,19 @@ export function collectionCameraMatrices(
   eye: Float32Array,
   view: Float32Array,
   projection: Float32Array,
+  comparisonPair = false,
 ) {
   const targetY = mode === 'board' ? 0.7 : 1.25
-  const extentX = mode === 'board' ? 6.63 : mode === 'lineup' ? 5.5 : 0.85
+  const extentX =
+    mode === 'board'
+      ? 6.63
+      : mode === 'lineup'
+        ? comparisonPair
+          ? 6.45
+          : 5.5
+        : comparisonPair
+          ? 1.7
+          : 0.85
   const extentZ = mode === 'board' ? 6.63 : 0.85
   const minY = mode === 'board' ? -0.455 : 0
   const fittedAspect = Math.max(0.25, aspect)
@@ -95,4 +105,59 @@ export function pickCollectionInstance(
     }
   }
   return result
+}
+
+export type CollectionComparisonLabel = {
+  text: string
+  x: number
+  y: number
+}
+
+/** Anchor each label above its projected specimen, including after orbiting behind the pair. */
+export function collectionComparisonLabels(
+  viewProjection: Float32Array,
+  instances: readonly CollectionInstance[],
+  clouds: readonly CollectionCloud[],
+): CollectionComparisonLabel[] {
+  return instances.flatMap((piece) => {
+    const bounds = clouds.find((cloud) => cloud.key === piece.cloudKey)?.bounds
+    if (!bounds) return []
+    let left = Infinity,
+      right = -Infinity,
+      top = Infinity
+    const scale = piece.scale ?? 1
+    for (const bx of [bounds.min[0] - 0.12, bounds.max[0] + 0.12])
+      for (const by of [bounds.min[1], bounds.max[1] + 0.18])
+        for (const bz of [bounds.min[2] - 0.12, bounds.max[2] + 0.12]) {
+          const x = bx * scale + piece.position[0]
+          const y = by * scale + piece.position[1]
+          const z = bz * scale + piece.position[2]
+          const w =
+            x * viewProjection[3]! +
+            y * viewProjection[7]! +
+            z * viewProjection[11]! +
+            viewProjection[15]!
+          if (w <= 0) return []
+          const sx =
+            (x * viewProjection[0]! +
+              y * viewProjection[4]! +
+              z * viewProjection[8]! +
+              viewProjection[12]!) /
+            w
+          const sy =
+            (x * viewProjection[1]! +
+              y * viewProjection[5]! +
+              z * viewProjection[9]! +
+              viewProjection[13]!) /
+            w
+          left = Math.min(left, sx)
+          right = Math.max(right, sx)
+          top = Math.min(top, (1 - sy) / 2)
+        }
+    const x = (1 + (left + right) / 2) / 2
+    if (x < 0.04 || x > 0.96 || top < 0.04 || top > 0.96) return []
+    return [
+      { text: piece.glassKey ? 'Inside glass' : 'Pure fractal', x, y: top },
+    ]
+  })
 }

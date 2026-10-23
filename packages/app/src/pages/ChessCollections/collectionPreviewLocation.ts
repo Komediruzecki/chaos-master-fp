@@ -1,6 +1,6 @@
 /** Bounded, copyable art-study selections without touching game or editor storage. */
 import { CHESS_CANDIDATE_ROLES } from '@/flame/chess/chessCandidate'
-import type { CollectionCamera, CollectionQuality, CollectionView, } from '@/components/FractalCollection/collectionStageLayout'
+import type { CollectionCamera, CollectionEnclosure, CollectionQuality, CollectionView, } from '@/components/FractalCollection/collectionStageLayout'
 import type { ChessCandidateRole } from '@/flame/chess/chessCandidate'
 import type { PawnSide } from '@/flame/chess/pawnFlame'
 
@@ -12,6 +12,7 @@ export type CollectionPreviewSelection = {
   camera: CollectionCamera
   quality: CollectionQuality
   variation: boolean
+  enclosure: CollectionEnclosure
 }
 
 function choice<T extends string>(
@@ -43,6 +44,11 @@ export function readCollectionPreviewSearch(
     ),
     quality: choice(params.get('quality'), ['normal', 'high'], 'normal'),
     variation: params.get('variation') === '1',
+    enclosure: choice(
+      params.get('enclosure'),
+      ['pure', 'glass', 'both'],
+      'pure',
+    ),
   }
 }
 
@@ -58,6 +64,7 @@ export function collectionPreviewSearch(
     'view',
     'camera',
     'quality',
+    'enclosure',
   ] as const)
     params.set(key, selection[key])
   if (selection.variation) params.set('variation', '1')
