@@ -4,11 +4,20 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { popBack, pushBackHandler } from '@/lib/backStack'
 import { GummyMatchPage } from './GummyMatchPage'
 import { GUMMY_MATCH_CINEMA_KEY, GUMMY_MATCH_SESSION_KEY, loadGummyMatchSession, } from './gummyMatchSession'
+import type { NativeFractalMatchSceneProps } from '@/components/FractalCollection/NativeFractalMatchScene'
 import type { GummyMatchSceneProps } from '@/components/GummyBoard/GummyMatchScene'
 
 const stubs = vi.hoisted(() => ({
   scene: undefined as GummyMatchSceneProps | undefined,
+  nativeScene: undefined as NativeFractalMatchSceneProps | undefined,
   copy: vi.fn(),
+}))
+vi.mock('@/components/FractalCollection/NativeFractalMatchScene', () => ({
+  NativeFractalMatchScene: (props: NativeFractalMatchSceneProps) => {
+    stubs.nativeScene = props
+    props.onReady?.(true)
+    return <canvas data-testid="native-match-canvas" />
+  },
 }))
 vi.mock('@/components/GummyBoard/GummyMatchScene', () => ({
   GummyMatchScene: (props: GummyMatchSceneProps) => {
@@ -37,6 +46,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   stubs.copy.mockResolvedValue(undefined)
   stubs.scene = undefined
+  stubs.nativeScene = undefined
 })
 afterEach(() => {
   cleanup()
@@ -69,6 +79,55 @@ function importPgn(text: string) {
 }
 
 describe('GummyMatchPage', () => {
+  it('keeps a failed native renderer recoverable when changing collection', () => {
+    render(() => <GummyMatchPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'Fractals' }))
+    stubs.nativeScene!.onError('Native renderer failed')
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Tidal Relics collection' }),
+    )
+    expect(screen.getByText('Native renderer failed')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Reload board' })).toBeTruthy()
+    stubs.nativeScene!.onReady?.(true)
+    expect(screen.queryByText('Native renderer failed')).toBeNull()
+  })
+  it('plays and replays the same legal capture using the selected native collection and enclosure', () => {
+    render(() => <GummyMatchPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'Fractals' }))
+    expect(screen.queryByTestId('gummy-match-canvas')).toBeNull()
+    expect(stubs.nativeScene?.collectionId).toBe('wild-canopy')
+    const native = () => stubs.nativeScene!
+    for (const [from, to] of [
+      ['e2', 'e4'],
+      ['d7', 'd5'],
+      ['e4', 'd5'],
+    ]) {
+      native().onSquare(from!)
+      native().onSquare(to!)
+      expect(native().receipt).toBeDefined()
+      skip()
+    }
+    const capturedFen = native().position.fen
+    fireEvent.click(screen.getByRole('button', { name: 'Glass study' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Replay move' }))
+    expect(native().enclosure).toBe('glass')
+    expect(native().receipt?.san).toBe('exd5')
+    const oldReceipt = native().receipt!
+    skip()
+    fireEvent.click(screen.getByRole('button', { name: 'Pure fractals' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Replay move' }))
+    native().onComplete(oldReceipt)
+    expect(native().receipt).toBeDefined()
+    expect(native().enclosure).toBe('pure')
+    skip()
+    expect(native().position.fen).toBe(capturedFen)
+    fireEvent.click(screen.getByRole('button', { name: 'Undo move' }))
+    expect(native().position.pieces).toHaveLength(32)
+    fireEvent.click(screen.getByRole('button', { name: 'Gummy' }))
+    expect(screen.queryByTestId('native-match-canvas')).toBeNull()
+    expect(screen.getByTestId('gummy-match-canvas')).toBeTruthy()
+    expect(scene().position.pieces).toHaveLength(32)
+  })
   it('opens a restored version-one capture without mechanic metadata and keeps its replay available', () => {
     sessionStorage.setItem(
       GUMMY_MATCH_SESSION_KEY,

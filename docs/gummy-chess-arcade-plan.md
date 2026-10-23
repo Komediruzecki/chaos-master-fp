@@ -606,6 +606,59 @@ material representation for one approved role before adding it to capture
 physics. Physical-device acceptance and final art selection remain separate
 from desktop rendering checks.
 
+### Playable native collections (2026-10-23)
+
+All three six-role collections are selectable in the existing Arcade chess
+match and at `/gummy?view=match`. The family selector retains the gummy sets.
+Pure and Glass study use the same native point clouds; the glass option encloses
+only the approved knight, bishop or rook for that collection. Static cards show
+sampled native silhouettes and do not create additional GPU scenes.
+
+The match stores a validated version-one native collection selection with its
+appearance. Preview handoffs retain the saved game and consume their URL choice
+once, so later reloads restore the player's latest selection. Replay uses the
+currently selected native collection and enclosure for direct comparisons; the
+original capture snapshot remains unchanged. Gummy replays keep their existing
+snapshot behavior.
+
+Native captures disperse the victim's own coloured points and break its actual
+glass envelope into bounded GPU-animated clusters. The attacker finishes on the
+legal destination. One renderer retains its immutable uploads across captures;
+idle frames stop. Skip, replay, castling, en-passant and promotion remain driven
+by the same legal before/after receipts.
+
+This is a visual particle response, not a validated continuous material solver.
+Finite-solid occupancy and connected fracture remain separate research gates.
+Native matches currently use the classic native board; gummy board finishes stay
+saved. Cinema export rejects native captures until it has a compatible adapter.
+
+Verification: 127 focused tests passed across the native match, glass renderer,
+worker lifecycle, look controls and persisted legal sessions. The full local
+check, final typecheck, production build, agent index and documentation citations
+pass. Native AMD Chromium verified all three role-specific captures, pure/glass
+replay, skip, undo, reload, return from gummy rendering, and the embedded Arcade.
+After warm-up, captures and enclosure switches allocated no buffers; idle draws
+stopped. These application-owned buffer counts do not measure driver memory.
+
+A real-GPU probe caught redundant point uploads when an enclosure-only change
+replaced the parent appearance object. A memoized sampling key now preserves the
+worker and clouds unless collection or sampling quality changes. The regression
+failed before the fix and passes after it. Desktop, tablet-width and phone-width
+cards pass Chromium and Firefox layout checks. Chromium touch emulation selects
+the enclosure; physical iOS acceptance remains outstanding. Some initial probe
+assertions assumed a single card column or an on-screen canvas while scrolling;
+corrected layout and UI probes completed without browser or GPU errors.
+
+The cumulative feature branch is still a draft for merge: its code-health ratchet
+has 86 files above 500 lines and 38 above 800, with six cap failures, and its
+architecture check reports 14 import cycles. Both issues were verified against
+revision `22380940` before this playable integration; no checks were relaxed.
+The 31 stale documentation citations found during PR preparation were repaired.
+
+Next: review all three sets in pure/glass captures on the physical tablet, choose
+the strongest silhouettes, then add a native recording adapter and profile shell
+construction before expanding materials or introducing private friend rooms.
+
 ## Private friend session architecture
 
 The current Worker serves static assets and bounded APIs for sharing and gallery

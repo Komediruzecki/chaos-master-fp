@@ -25,7 +25,10 @@ export function GummyMatchSidebar(props: {
   let railScroll: HTMLDivElement | undefined
   let disposed = false
   const cinemaReason = createMemo(() =>
-    gummyMatchCinemaReason(props.match.currentMove()),
+    props.match.appearance().nativeCollection ||
+    props.match.currentPresentation()?.appearance.nativeCollection
+      ? 'Native fractal captures play on this board. Cinema export currently supports gummy pieces.'
+      : gummyMatchCinemaReason(props.match.currentMove()),
   )
   const captureMechanic = createMemo(() => {
     const id = props.match.currentPresentation()?.mechanic?.id
@@ -290,7 +293,12 @@ export function GummyMatchSidebar(props: {
             aria-labelledby="match-cinema-title"
           >
             <h2 id="match-cinema-title">Make a capture shot</h2>
-            <Show when={captureMechanic()} keyed>
+            <Show
+              when={
+                !props.match.appearance().nativeCollection && captureMechanic()
+              }
+              keyed
+            >
               {(mechanic) => (
                 <p class={styles.help}>
                   Capture motion: <strong>{mechanic.title}</strong>. Replay
@@ -371,11 +379,13 @@ export function GummyMatchSidebar(props: {
               </p>
             </fieldset>
           </details>
-          <nav class={styles.studies} aria-label="Gummy studies">
-            <a href="/gummy?view=cinema">Shot studio</a>
-            <a href="/gummy?view=board">Crash study</a>
-            <a href="/gummy?experiment=mpm">Workbench</a>
-          </nav>
+          <Show when={!props.match.appearance().nativeCollection}>
+            <nav class={styles.studies} aria-label="Gummy studies">
+              <a href="/gummy?view=cinema">Shot studio</a>
+              <a href="/gummy?view=board">Crash study</a>
+              <a href="/gummy?experiment=mpm">Workbench</a>
+            </nav>
+          </Show>
         </div>
         <Show when={props.match.error()}>
           <p class={styles.error} role="alert">

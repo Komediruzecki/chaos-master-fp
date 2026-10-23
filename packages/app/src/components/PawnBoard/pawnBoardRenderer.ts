@@ -5,7 +5,7 @@ import { createPawnBoardCloud } from './pawnBoardCloud'
 import { createPawnBoardGlassVariants } from './pawnBoardGlassVariants'
 import { BOARD_TILE_SIZE, squareWorld } from './pawnBoardMath'
 import { cube } from './pawnBoardMesh'
-import { backgroundFragment, BoardCameraUniform, boardFragment, cameraLayout, cloudFragment, cloudVertex, displayFragment, fragmentLayout, fragmentVertex, glassExitFragment, glassFragment, instanceLayout, meshLayout, meshVertex, shardFragment, } from './pawnBoardShaders'
+import { backgroundFragment, BoardCameraUniform, boardFragment, cameraLayout, cloudFragment, cloudVertex, displayFragment, fragmentLayout, fragmentVertex, glassExitFragment, glassFragment, instanceLayout, meshLayout, meshVertex, shardFragment, variantGlassFragmentVertex, } from './pawnBoardShaders'
 import { createPawnBoardVariants } from './pawnBoardVariants'
 import { createPawnGlassTargets } from './pawnGlassTargets'
 import type { TgpuRenderPass, TgpuRenderPipeline, TgpuRoot } from 'typegpu'
@@ -21,6 +21,8 @@ export type BoardPawnInstance = {
   cloudKey?: string
   /** An explicitly uploaded hollow envelope, independent of the native cloud. */
   glassKey?: string
+  /** Seconds since envelope fracture; omitted or negative keeps the shell intact. */
+  glassAge?: number
   /** Uniform local-space scale, leaving the board position unchanged. */
   scale?: number
   /** Optional linear RGB tint for restrained variation between repeated shapes. */
@@ -293,17 +295,20 @@ export function createPawnBoardRenderer(
         depthStencil: { ...depth, depthWriteEnabled: true },
       })
       .with(cameraGroup)
-    const shardPipeline = root
-      .createRenderPipeline({
-        attribs: { ...fragmentLayout.attrib, ...instanceLayout.attrib },
-        vertex: fragmentVertex,
-        fragment: shardFragment,
-        targets: { format: 'rgba16float', blend },
-        primitive: { cullMode: 'none' },
-        depthStencil: { ...depth, depthWriteEnabled: false },
-        multisample: { count: 4 },
-      })
-      .with(cameraGroup)
+    const createShardPipeline = (vertex: typeof fragmentVertex) =>
+      root
+        .createRenderPipeline({
+          attribs: { ...fragmentLayout.attrib, ...instanceLayout.attrib },
+          vertex,
+          fragment: shardFragment,
+          targets: { format: 'rgba16float', blend },
+          primitive: { cullMode: 'none' },
+          depthStencil: { ...depth, depthWriteEnabled: false },
+          multisample: { count: 4 },
+        })
+        .with(cameraGroup)
+    const variantShardPipeline = createShardPipeline(variantGlassFragmentVertex)
+    const shardPipeline = createShardPipeline(fragmentVertex)
       .with(fragmentLayout, fragmentMesh)
       .with(instanceLayout, shards)
     const createPointPipeline = (pointBlend: GPUBlendState) =>
@@ -348,6 +353,7 @@ export function createPawnBoardRenderer(
       exitsPipeline,
       frontGlass,
       shardPipeline,
+      variantShardPipeline,
       pointPipeline,
       variantPointPipeline,
       backgroundPipeline,
@@ -517,6 +523,11 @@ export function createPawnBoardRenderer(
           darkCloud.pipeline.with(pass).draw(darkCloud.count * 6, emberCount)
         variants.draw(pass)
         if (frame.shards) shardPipeline.with(pass).draw(fragmentCount, 1)
+        glassVariants.drawFragments(
+          pass,
+          variantShardPipeline,
+          frame.showGlass !== false,
+        )
         pass.end()
         const showGlass =
           frame.showGlass !== false && shellCount + studyShellCount > 0

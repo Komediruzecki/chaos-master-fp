@@ -26,6 +26,27 @@ const options = {
 }
 
 describe('gummy match session', () => {
+  it('rejects native collection exports instead of replacing the captured shape with a gummy mould', () => {
+    const receipt = importChessPgn('1. e4 d5 2. exd5 *').game.history[2]!
+    const nativeCollection = {
+      version: 1 as const,
+      id: 'wild-canopy' as const,
+      enclosure: 'glass' as const,
+    }
+    expect(() =>
+      createGummyMatchCinemaRecipe(receipt, { ...options, nativeCollection }),
+    ).toThrow('Native fractal captures')
+    expect(() =>
+      createGummyMatchCinemaRecipe(receipt, options, {
+        version: 1,
+        ply: receipt.ply,
+        beforeFen: receipt.before.fen,
+        lan: receipt.lan,
+        motion: { shearOnset: 0.35, shearDistance: 1.1, contactHold: 0.35 },
+        appearance: { ...options, nativeCollection },
+      }),
+    ).toThrow('Native fractal captures')
+  })
   it.each([null, {}, { format: 'gummy-authored-pawn', version: 9 }])(
     'restores legal moves while rejecting a malformed authored collection %s',
     (authoredPawn) => {

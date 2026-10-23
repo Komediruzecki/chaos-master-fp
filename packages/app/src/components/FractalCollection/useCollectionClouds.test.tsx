@@ -1,6 +1,6 @@
 /** Switching collections cancels sampling and ignores late replies without retaining old geometry. */
 import { cleanup, render } from '@solidjs/testing-library'
-import { createSignal } from 'solid-js'
+import { createEffect, createSignal } from 'solid-js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useCollectionClouds } from './useCollectionClouds'
 import type { CollectionCloud, CollectionCloudReply, } from './collectionCloudWorker'
@@ -50,6 +50,68 @@ describe('useCollectionClouds', () => {
     })
     return { state, setId, setQuality, dispose: view.unmount }
   }
+
+  it('retains a job and its uploaded clouds when parent appearance objects change without changing sampling', () => {
+    const [appearance, setAppearance] = createSignal<{
+      collection: { id: string; enclosure: string }
+      quality: CollectionQuality
+      scale: number
+    }>({
+      collection: { id: 'wild-canopy', enclosure: 'pure' },
+      quality: 'normal',
+      scale: 0.9,
+    })
+    const upload = vi.fn()
+    let state!: ReturnType<typeof useCollectionClouds>
+    render(() => {
+      state = useCollectionClouds(
+        () => appearance().collection.id,
+        () => appearance().quality,
+      )
+      createEffect(() => {
+        if (state.clouds().length) upload(state.clouds())
+      })
+      return null
+    })
+    const worker = TestWorker.all[0]!
+    setAppearance((previous) => ({
+      ...previous,
+      collection: { ...previous.collection, enclosure: 'glass' },
+    }))
+    expect(TestWorker.all).toHaveLength(1)
+    expect(worker.terminate).not.toHaveBeenCalled()
+    expect(state.busy()).toBe(true)
+    const sampled = [cloud('knight:light')]
+    worker.reply({ clouds: sampled })
+    expect(upload).toHaveBeenCalledExactlyOnceWith(sampled)
+
+    setAppearance((previous) => ({
+      ...previous,
+      collection: { ...previous.collection, enclosure: 'pure' },
+      scale: 0.95,
+    }))
+    expect(TestWorker.all).toHaveLength(1)
+    expect(state.clouds()).toBe(sampled)
+    expect(state.busy()).toBe(false)
+    expect(upload).toHaveBeenCalledOnce()
+
+    setAppearance((previous) => ({
+      ...previous,
+      collection: { ...previous.collection, id: 'tidal-relics' },
+    }))
+    expect(TestWorker.all).toHaveLength(2)
+    expect(TestWorker.all[1]!.postMessage).toHaveBeenCalledWith({
+      count: 24_000,
+      collectionId: 'tidal-relics',
+    })
+    setAppearance((previous) => ({ ...previous, quality: 'high' }))
+    expect(TestWorker.all).toHaveLength(3)
+    expect(TestWorker.all[1]!.terminate).toHaveBeenCalledOnce()
+    expect(TestWorker.all[2]!.postMessage).toHaveBeenCalledWith({
+      count: 60_000,
+      collectionId: 'tidal-relics',
+    })
+  })
 
   it('runs source construction in the worker and drops stale replies after switching', () => {
     const { state, setId, dispose } = mount()

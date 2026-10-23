@@ -510,7 +510,7 @@ describe('fractal study glass envelopes', () => {
     }).toThrow('variant glass capacity')
     expect(state.buffers).toHaveLength(allocated)
     renderer.setVariantGlass('fern', glassTriangle, 0.75)
-    for (const buffer of state.buffers.slice(fixedCount, fixedCount + 2))
+    for (const buffer of state.buffers.slice(fixedCount, fixedCount + 4))
       expect(buffer.destroy).toHaveBeenCalledOnce()
     renderer.clearVariantGlass()
     renderer.clearVariantGlass()
@@ -519,7 +519,7 @@ describe('fractal study glass envelopes', () => {
     renderer.destroy()
     renderer.destroy()
     renderer.setVariantGlass('disposed', glassTriangle, 0.7)
-    expect(state.buffers).toHaveLength(allocated + 2)
+    expect(state.buffers).toHaveLength(allocated + 4)
     for (const buffer of state.buffers)
       expect(buffer.destroy).toHaveBeenCalledOnce()
   })
@@ -547,18 +547,23 @@ describe('fractal study glass envelopes', () => {
     expect(state.buffers).toHaveLength(fixedCount)
     renderer.setVariantGlass('fern', glassTriangle, 0.7)
     const original = state.buffers.slice(fixedCount)
-    state.failBufferAfter(1)
-    expect(() => {
-      renderer.setVariantGlass('fern', glassTriangle, 0.8)
-    }).toThrow('buffer allocation failed')
-    expect(state.buffers.at(-1)!.destroy).toHaveBeenCalledOnce()
+    for (const completedAllocations of [0, 1, 2, 3]) {
+      const before = state.buffers.length
+      state.failBufferAfter(completedAllocations)
+      expect(() => {
+        renderer.setVariantGlass('fern', glassTriangle, 0.8)
+      }).toThrow('buffer allocation failed')
+      expect(state.buffers.length - before).toBe(completedAllocations)
+      for (const buffer of state.buffers.slice(before))
+        expect(buffer.destroy).toHaveBeenCalledOnce()
+    }
     for (const buffer of original) expect(buffer.destroy).not.toHaveBeenCalled()
     renderer.render({
       ...frame(),
       pieces: [{ ...frame().pieces[0]!, glassKey: 'fern' }],
     })
     expect(
-      state.draws.filter((draw) => draw.bound.includes(original[1]!)),
+      state.draws.filter((draw) => draw.bound.includes(original[3]!)),
     ).toHaveLength(2)
     renderer.destroy()
     for (const buffer of state.buffers)
@@ -595,6 +600,132 @@ describe('fractal study glass envelopes', () => {
         pieces: [{ ...base, glassKey: 'missing' }],
       })
     }).toThrow('Missing board variant glass')
+    renderer.destroy()
+  })
+
+  it('batches exact shell fragments independently of point age and keeps only intact shells in optics', () => {
+    const { state, renderer } = setup()
+    renderer.setVariantCloud('fern', 'light', points, colours)
+    renderer.setVariantGlass('lens', glassTriangle, 0.7)
+    const [mesh, fragments, fragmentInstances, intactInstances] =
+      state.buffers.slice(-4)
+    const base = { ...frame().pieces[0]!, cloudKey: 'fern', glassKey: 'lens' }
+    renderer.render({
+      ...frame(),
+      pieces: [
+        { ...base, age: 0.8 },
+        {
+          ...base,
+          age: -1,
+          glassAge: 0.4,
+          position: [1.6, 0.09, 0],
+          scale: 0.9,
+          colorMultiplier: [0.6, 0.8, 1],
+        },
+        { ...base, age: 0.7, glassAge: 0.7 },
+        { ...base, age: 1.7, glassAge: 1.7 },
+      ],
+    })
+    expect(
+      state.draws
+        .filter((draw) => draw.bound.includes(mesh))
+        .map((draw) => draw.instances),
+    ).toEqual([1, 1])
+    expect(
+      state.draws
+        .filter((draw) => draw.bound.includes(fragments))
+        .map((draw) => [draw.vertices, draw.instances]),
+    ).toEqual([[3, 2]])
+    expect(
+      new Float32Array(
+        intactInstances!.write.mock.calls[0]![0] as ArrayBuffer,
+      )[10],
+    ).toBe(1)
+    const data = new Float32Array(
+      fragmentInstances!.write.mock.calls[0]![0] as ArrayBuffer,
+    )
+    expect(Array.from(data.subarray(0, 9))).toEqual(
+      [1.6, 0.09, 0, 0.9, 0.6, 0.8, 1, 1, 0.4].map(Math.fround),
+    )
+    expect(data[20]).toBeCloseTo(0.7)
+    expect(
+      new Float32Array(
+        state.buffers[0]!.write.mock.calls.at(-1)![0] as ArrayBuffer,
+      )[24],
+    ).toBe(1)
+    renderer.destroy()
+  })
+
+  it('reuses all resources through fracture, expiry and reset, and hides fragments with glass', () => {
+    const { state, renderer } = setup()
+    renderer.setVariantCloud('fern', 'light', points, colours)
+    renderer.setVariantGlass('lens', glassTriangle, 0.7)
+    const [mesh, fragments] = state.buffers.slice(-4)
+    const base = { ...frame().pieces[0]!, cloudKey: 'fern', glassKey: 'lens' }
+    renderer.render({ ...frame(), pieces: [base] })
+    const counts = [
+      state.buffers.length,
+      state.textures.length,
+      state.bindings.length,
+    ]
+    for (const [glassAge, showGlass, intact, fractured] of [
+      [0, true, false, true],
+      [0.8, true, false, true],
+      [1.69, true, false, true],
+      [1.7, true, false, false],
+      [-1, true, true, false],
+      [0.3, false, false, false],
+    ] as const) {
+      state.draws.length = 0
+      renderer.render({
+        ...frame(),
+        showGlass,
+        pieces: [{ ...base, glassAge }],
+      })
+      expect([
+        state.buffers.length,
+        state.textures.length,
+        state.bindings.length,
+      ]).toEqual(counts)
+      expect(
+        state.draws.filter((draw) => draw.bound.includes(mesh)),
+      ).toHaveLength(intact ? 2 : 0)
+      expect(
+        state.draws.filter((draw) => draw.bound.includes(fragments)),
+      ).toHaveLength(fractured ? 1 : 0)
+    }
+    for (const glassAge of [NaN, Infinity, -Infinity])
+      expect(() => {
+        renderer.render({ ...frame(), pieces: [{ ...base, glassAge }] })
+      }).toThrow('fracture age must be finite')
+    renderer.destroy()
+    for (const buffer of state.buffers)
+      expect(buffer.destroy).toHaveBeenCalledOnce()
+  })
+
+  it('packs all 32 fractured pieces into one bounded shell batch', () => {
+    const { state, renderer } = setup()
+    renderer.setVariantGlass('lens', glassTriangle, 0.7)
+    const fragmentInstances = state.buffers.at(-2)!
+    const base = { ...frame().pieces[0]!, glassKey: 'lens', glassAge: 0.2 }
+    renderer.render({
+      ...frame(),
+      pieces: Array.from({ length: 32 }, (_, index) => ({
+        ...base,
+        position: [index, 0.09, 0] as const,
+      })),
+    })
+    expect(
+      state.draws
+        .filter((draw) => draw.bound.includes(fragmentInstances))
+        .map((draw) => draw.instances),
+    ).toEqual([32])
+    const data = new Float32Array(
+      fragmentInstances.write.mock.calls[0]![0] as ArrayBuffer,
+    )
+    expect(data.length).toBe(32 * 12)
+    expect(data[31 * 12]).toBe(31)
+    expect(data[31 * 12 + 8]).toBeCloseTo(0.2)
     renderer.destroy()
   })
 })

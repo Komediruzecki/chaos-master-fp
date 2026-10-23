@@ -350,43 +350,56 @@ const rotate = tgpu.fn(
   return d.vec3f(cz * y.x - sz * y.y, sz * y.x + cz * y.y, y.z)
 })
 
-export const fragmentVertex = tgpu.vertexFn({
-  in: {
-    vertex: d.vec3f,
-    normal: d.vec3f,
-    centroid: d.vec3f,
-    velocity: d.vec3f,
-    angular: d.vec3f,
-    offset: d.vec4f,
-    tint: d.vec4f,
-    effect: d.vec4f,
-  },
-  out: meshOutput,
-})((input) => {
-  'use gpu'
-  const age = std.max(input.effect.x, 0)
-  const spinAge = (1 - std.exp(-age * 0.6)) / 0.6
-  const angles = std.mul(input.angular, spinAge)
-  const centre = std.add(input.centroid, std.mul(input.velocity, spinAge))
-  centre.y = std.max(
-    input.centroid.y + input.velocity.y * age - 4.9 * age * age,
-    0.08,
-  )
-  const world = std.add(
-    std.mul(std.add(rotate(input.vertex, angles), centre), input.offset.w),
-    input.offset.xyz,
-  )
-  const fade = 1 - std.smoothstep(1.2, 1.7, age)
-  return {
-    position: std.mul(cameraLayout.$.camera.viewProjection, d.vec4f(world, 1)),
-    world,
-    surfaceNormal: rotate(input.normal, angles),
-    local: input.vertex,
-    colour: d.vec4f(input.tint.xyz, input.tint.w * fade * 1.55),
-    highlight: age,
-    objectId: 0,
-  }
-})
+export const GLASS_FRAGMENT_DURATION = 1.7
+
+const createFragmentVertex = (preserveRestPose: boolean) =>
+  tgpu.vertexFn({
+    in: {
+      vertex: d.vec3f,
+      normal: d.vec3f,
+      centroid: d.vec3f,
+      velocity: d.vec3f,
+      angular: d.vec3f,
+      offset: d.vec4f,
+      tint: d.vec4f,
+      effect: d.vec4f,
+    },
+    out: meshOutput,
+  })((input) => {
+    'use gpu'
+    const age = std.max(input.effect.x, 0)
+    const spinAge = (1 - std.exp(-age * 0.6)) / 0.6
+    const angles = std.mul(input.angular, spinAge)
+    const centre = std.add(input.centroid, std.mul(input.velocity, spinAge))
+    let floor = d.f32(0.08)
+    // Native envelopes have a lower foot than the original pawn shell. At impact
+    // every uploaded triangle must reassemble at its exact original position.
+    if (preserveRestPose) floor = std.min(input.centroid.y, floor)
+    centre.y = std.max(
+      input.centroid.y + input.velocity.y * age - 4.9 * age * age,
+      floor,
+    )
+    const world = std.add(
+      std.mul(std.add(rotate(input.vertex, angles), centre), input.offset.w),
+      input.offset.xyz,
+    )
+    const fade = 1 - std.smoothstep(1.2, GLASS_FRAGMENT_DURATION, age)
+    return {
+      position: std.mul(
+        cameraLayout.$.camera.viewProjection,
+        d.vec4f(world, 1),
+      ),
+      world,
+      surfaceNormal: rotate(input.normal, angles),
+      local: input.vertex,
+      colour: d.vec4f(input.tint.xyz, input.tint.w * fade * 1.55),
+      highlight: age,
+      objectId: 0,
+    }
+  })
+
+export const fragmentVertex = createFragmentVertex(false)
+export const variantGlassFragmentVertex = createFragmentVertex(true)
 
 const corners = tgpu.const(d.arrayOf(d.vec2f, 6), [
   d.vec2f(-1, -1),

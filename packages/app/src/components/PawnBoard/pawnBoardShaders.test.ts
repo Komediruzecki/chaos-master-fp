@@ -1,7 +1,7 @@
 /** Exercise the actual shader compiler before a scene ever reaches a GPU. */
 import { d, tgpu } from 'typegpu'
 import { describe, expect, it } from 'vitest'
-import { backgroundFragment, boardFragment, cloudFragment, cloudVertex, displayFragment, fragmentVertex, glassExitFragment, glassFragment, meshVertex, shardFragment, } from './pawnBoardShaders'
+import { backgroundFragment, boardFragment, cloudFragment, cloudVertex, displayFragment, fragmentVertex, glassExitFragment, glassFragment, meshVertex, shardFragment, variantGlassFragmentVertex, } from './pawnBoardShaders'
 import { dielectricF0, dielectricFresnel, displayColour, glassAttenuation, studioEnvironment, } from './pawnGlassMaterial'
 
 describe('native pawn board shaders', () => {
@@ -14,6 +14,7 @@ describe('native pawn board shaders', () => {
     displayFragment,
     shardFragment,
     fragmentVertex,
+    variantGlassFragmentVertex,
     cloudVertex,
     cloudFragment,
   ])('resolves each native entrypoint', (shader) => {

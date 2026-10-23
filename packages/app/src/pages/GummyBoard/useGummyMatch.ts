@@ -1,20 +1,23 @@
 /** Keep legal game state separate from a skippable presentation of the last move. */
 import { applyChessMove, claimChessDraw, createChessGame, importChessPgn, legalChessMoves, seekChessGame, undoChessMove, } from '@chaos-master/core/chess/chessGame'
-import { batch, createMemo, createSignal } from 'solid-js'
+import { batch, createMemo, createSignal, onMount } from 'solid-js'
 import { createGummyMatchCapturePresentation, createGummyMatchCaptures, matchesGummyCapture, } from './gummyMatchCaptures'
 import { defaultGummyMatchAppearance, loadGummyMatchSession, saveGummyMatchSession, } from './gummyMatchSession'
+import { consumeNativeMatchSelection } from './nativeMatchLocation'
 import type { ChessDrawClaim, ChessGame, ChessMoveInput, ChessMoveReceipt, ChessSquare, } from '@chaos-master/core/chess/chessGame'
 import type { GummyMatchAppearance } from './gummyMatchSession'
 
 export function useGummyMatch() {
   const restored = loadGummyMatchSession()
+  const requestedCollection = consumeNativeMatchSelection()
   const [game, setGame] = createSignal(
     restored.session?.game ?? createChessGame(),
   )
   const [cursor, setCursor] = createSignal(restored.session?.cursor ?? 0)
-  const [appearance, setAppearance] = createSignal(
-    restored.session?.appearance ?? defaultGummyMatchAppearance(),
-  )
+  const [appearance, setAppearance] = createSignal({
+    ...(restored.session?.appearance ?? defaultGummyMatchAppearance()),
+    ...(requestedCollection ? { nativeCollection: requestedCollection } : {}),
+  })
   const [captures, setCaptures] = createSignal(restored.session?.captures ?? [])
   const [headers, setHeaders] = createSignal<Record<string, string>>(
     restored.session?.headers ?? {},
@@ -75,6 +78,10 @@ export function useGummyMatch() {
     setSelectedSquare(undefined)
     setPromotion(undefined)
   }
+
+  onMount(() => {
+    if (requestedCollection) persist()
+  })
 
   function commit(move: ChessMoveInput) {
     if (receipt()) return

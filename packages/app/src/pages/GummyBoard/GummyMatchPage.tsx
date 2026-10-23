@@ -1,6 +1,7 @@
 /** Local legal chess with a reviewable move history and a capture handoff to the shot studio. */
 import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show, } from 'solid-js'
-import { GummyMatchScene } from '@/components/GummyBoard/GummyMatchScene'
+import { ChessMatchScene } from '@/components/FractalCollection/ChessMatchScene'
+import { FRACTAL_CHESS_COLLECTIONS } from '@/flame/chess/fractalChessCollections'
 import { ChevronLeft, ChevronRight, Reset, SkipBack, SkipForward, Undo, } from '@/icons'
 import styles from './GummyMatchPage.module.css'
 import { GummyMatchResult } from './GummyMatchResult'
@@ -10,6 +11,11 @@ import type { ChessPosition } from '@chaos-master/core/chess/chessGame'
 
 export function GummyMatchPage(props: { onBackToArcade?: () => void } = {}) {
   const match = useGummyMatch()
+  const nativeCollection = createMemo(() =>
+    FRACTAL_CHESS_COLLECTIONS.find(
+      (collection) => collection.id === match.appearance().nativeCollection?.id,
+    ),
+  )
   const settings = () => match.appearance().settings
   const theme = () => match.appearance().theme
   const quality = () => match.appearance().quality
@@ -141,14 +147,18 @@ export function GummyMatchPage(props: { onBackToArcade?: () => void } = {}) {
       <div class={styles.layout}>
         <section
           class={styles.board}
-          aria-label="Playable gummy chess board"
+          aria-label={
+            nativeCollection()
+              ? 'Playable fractal chess board'
+              : 'Playable gummy chess board'
+          }
           data-ready={ready()}
         >
           <div class={styles.boardHeader}>
             <div>
               <p class={styles.eyebrow}>Local two-player</p>
               <h1 ref={heading} tabIndex={-1}>
-                Gummy chess
+                {nativeCollection()?.name ?? 'Gummy chess'}
               </h1>
             </div>
             <p class={styles.turn} role="status" aria-live="polite">
@@ -161,7 +171,8 @@ export function GummyMatchPage(props: { onBackToArcade?: () => void } = {}) {
           >
             <Show when={sceneKey()} keyed>
               {(_key) => (
-                <GummyMatchScene
+                <ChessMatchScene
+                  nativeCollection={match.appearance().nativeCollection}
                   position={match.position()}
                   receipt={match.receipt()}
                   presentation={match.activePresentation()}

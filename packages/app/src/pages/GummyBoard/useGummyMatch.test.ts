@@ -28,6 +28,39 @@ function matchAtCapture() {
 }
 
 describe('saved capture presentation', () => {
+  it('applies a preview handoff to the saved match, then persists pure/glass comparison without rewriting the capture', () => {
+    const originalUrl = window.location.href
+    try {
+      const prior = matchAtCapture()
+      const beforeFen = prior.position().fen
+      const beforeCapture = structuredClone(prior.currentPresentation())
+      window.history.replaceState(
+        null,
+        '',
+        '/gummy?view=match&collection=wild-canopy&enclosure=glass',
+      )
+      const { result: match } = renderHook(useGummyMatch)
+      expect(match.position().fen).toBe(beforeFen)
+      expect(match.appearance().nativeCollection).toEqual({
+        version: 1,
+        id: 'wild-canopy',
+        enclosure: 'glass',
+      })
+      match.updateAppearance({
+        nativeCollection: { version: 1, id: 'wild-canopy', enclosure: 'pure' },
+      })
+      match.replay()
+      expect(match.activePresentation()).toEqual(beforeCapture)
+      expect(match.appearance().nativeCollection?.enclosure).toBe('pure')
+      match.finishAnimation()
+      const { result: restored } = renderHook(useGummyMatch)
+      expect(restored.position().fen).toBe(beforeFen)
+      expect(restored.appearance().nativeCollection?.enclosure).toBe('pure')
+      expect(restored.currentPresentation()).toEqual(beforeCapture)
+    } finally {
+      window.history.replaceState(null, '', originalUrl)
+    }
+  })
   it('pins the authored pawn at capture time through editing, reload and Cinema', () => {
     const { result: match } = renderHook(useGummyMatch)
     const source = createGummyAuthoredPawn({ openness: 0.4 }, 'First lattice')

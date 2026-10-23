@@ -7,9 +7,14 @@ import type { FlameDescriptor } from '../schema/flameSchema'
 import type { ChessCandidateRole } from './chessCandidate'
 import type { PawnSide } from './pawnFlame'
 
+export type FractalChessCollectionId =
+  | 'lattice-court'
+  | 'tidal-relics'
+  | 'wild-canopy'
+
 type Piece = { role: ChessCandidateRole; name: string; description: string }
 type Collection = {
-  id: string
+  id: FractalChessCollectionId
   name: string
   description: string
   accent: string

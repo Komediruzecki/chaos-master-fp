@@ -386,6 +386,14 @@ export function ChessCollectionsPage() {
             </label>
           </details>
           <div class={base.actions}>
+            <a
+              class={`${base.primaryButton} ${ui.playLink}`}
+              href={`/gummy?view=match&collection=${collection().id}&enclosure=${enclosure() === 'pure' ? 'pure' : 'glass'}`}
+            >
+              {enclosure() === 'pure'
+                ? 'Play this collection'
+                : 'Play with glass'}
+            </a>
             <button class={base.primaryButton} type="button" onClick={inspect}>
               Inspect this piece in Forge
             </button>

@@ -148,9 +148,14 @@ export function createGummyMatchCinemaRecipe(
     scale: number
     theme: GummyBoardTheme
     authoredPawn?: GummyMatchAppearance['authoredPawn']
+    nativeCollection?: GummyMatchAppearance['nativeCollection']
   },
   presentation?: GummyMatchCapturePresentation,
 ): GummyCinemaRecipe {
+  if (options.nativeCollection || presentation?.appearance.nativeCollection)
+    throw new Error(
+      'Native fractal captures play on the chess board. The gummy shot studio cannot render this collection yet.',
+    )
   const reason = gummyMatchCinemaReason(receipt)
   if (reason) throw new Error(reason)
   if (presentation && !matchesGummyCapture(presentation, receipt))

@@ -311,3 +311,11 @@
     grid-template-rows: minmax(0, 1fr);
   }
 }
+
+.playLink {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  text-decoration: none;
+}
