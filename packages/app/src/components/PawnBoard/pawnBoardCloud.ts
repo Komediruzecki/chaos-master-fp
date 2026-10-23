@@ -9,6 +9,7 @@ export function createPawnBoardCloud(
   side: PawnSide,
   points: Float32Array,
   colors?: Float32Array,
+  profile: 'enclosed' | 'collection' = 'enclosed',
 ) {
   if (
     points.length === 0 ||
@@ -55,10 +56,13 @@ export function createPawnBoardCloud(
     const settings = ownCloud(
       root
         .createBuffer(d.vec4f, [
-          colors ? 0.11 * Math.min(1, 32_000 / count) : 0.22,
-          2.85,
+          colors
+            ? (profile === 'collection' ? 0.36 : 0.11) *
+              Math.min(1, 32_000 / count)
+            : 0.22,
+          profile === 'collection' ? 2.2 : 2.85,
           colors ? 1 : 0,
-          0,
+          profile === 'collection' ? 1.6 : 0,
         ])
         .$usage('uniform'),
     )

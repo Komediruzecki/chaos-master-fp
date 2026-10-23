@@ -126,6 +126,7 @@ file instead of rediscovering the architecture every session.
 | `FlameColorEditor` | [FlameColorEditor.tsx](../../packages/app/src/components/FlameColorEditor/FlameColorEditor.tsx) | _(no header comment)_ |
 | `FlameRandomizerCard` | [FlameRandomizerCard.tsx](../../packages/app/src/components/FlameRandomizerCard/FlameRandomizerCard.tsx) | _(no header comment)_ |
 | `FloatingActions` | [FloatingActions.tsx](../../packages/app/src/components/FloatingActions/FloatingActions.tsx) | _(no header comment)_ |
+| `FractalCollection` | [FractalCollectionStage.tsx](../../packages/app/src/components/FractalCollection/FractalCollectionStage.tsx) | A single native WebGPU scene with event-driven rendering for complete fractal collections. |
 | `GummyBear` | [GummyBearScene.tsx](../../packages/app/src/components/GummyBear/GummyBearScene.tsx) | Owned gummy simulation, bounded fixed steps, and current-position pointer grips. |
 | `GummyBoard` | [GummyBoardScene.tsx](../../packages/app/src/components/GummyBoard/GummyBoardScene.tsx) | A repeatable gummy capture with two-body contact and a preserved driven-rook comparison. |
 | `HelpModal` | [HelpModal.tsx](../../packages/app/src/components/HelpModal/HelpModal.tsx) | _(no header comment)_ |
@@ -178,6 +179,7 @@ file instead of rediscovering the architecture every session.
 | Module | Entry point | What it is |
 |---|---|---|
 | `Benchmarks` | [BenchmarksPage.tsx](../../packages/app/src/pages/Benchmarks/BenchmarksPage.tsx) | _(no header comment)_ |
+| `ChessCollections` | [ChessCollectionsPage.tsx](../../packages/app/src/pages/ChessCollections/ChessCollectionsPage.tsx) | Compare complete fractal chess collections on one board before promoting a playable set. |
 | `ChessForge` | [ChessForgePage.tsx](../../packages/app/src/pages/ChessForge/ChessForgePage.tsx) | Native editor snapshots can be fitted and saved without claiming a verified solid. |
 | `Clash` | [ClashPage.tsx](../../packages/app/src/pages/Clash/ClashPage.tsx) | The Flame Clash preview page (`/clash`): two fighters, one scripted bout. |
 | `Figurines` | [FigurinesPage.tsx](../../packages/app/src/pages/Figurines/FigurinesPage.tsx) | Native flame and geometric figurine collections in one live stage without draft writes. |

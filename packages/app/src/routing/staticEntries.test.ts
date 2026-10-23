@@ -98,6 +98,7 @@ describe('staticEntryFiles', () => {
     expect(Object.keys(files).sort()).toEqual([
       'arcade/index.html',
       'benchmarks/index.html',
+      'chess-collections/index.html',
       'chess-forge/index.html',
       'chess/index.html',
       'clash/index.html',

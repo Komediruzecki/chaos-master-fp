@@ -20,6 +20,9 @@ export const PAWN_PATH = '/pawn'
 /** Inspect an independent editor snapshot before adapting it into a chess piece. */
 export const CHESS_FORGE_PATH = '/chess-forge'
 
+/** Complete native fractal collections, displayed together before playable promotion. */
+export const CHESS_COLLECTIONS_PATH = '/chess-collections'
+
 /** Pawn-only board, isolated from the studio and saved pawn drafts. */
 export const CHESS_PATH = '/chess'
 
@@ -39,6 +42,7 @@ export const PAGE_ROUTES: readonly string[] = [
   CLASH_PATH,
   PAWN_PATH,
   CHESS_FORGE_PATH,
+  CHESS_COLLECTIONS_PATH,
   CHESS_PATH,
   FIGURINES_PATH,
   GUMMY_PATH,
@@ -78,6 +82,10 @@ export function isPawnPath(pathname: string): boolean {
 
 export function isChessForgePath(pathname: string): boolean {
   return pageRouteOf(pathname) === CHESS_FORGE_PATH
+}
+
+export function isChessCollectionsPath(pathname: string): boolean {
+  return pageRouteOf(pathname) === CHESS_COLLECTIONS_PATH
 }
 
 export function isChessPath(pathname: string): boolean {

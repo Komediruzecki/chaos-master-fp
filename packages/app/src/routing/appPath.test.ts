@@ -1,6 +1,22 @@
 /** Standalone routes must match the same three forms on every host. */
 import { describe, expect, it } from 'vitest'
-import { isBenchmarksPath, isChessPath, isClashPath, isExplorerPath, isFigurinesPath, isGummyPath, isPawnPath, PAGE_ROUTES, pageRouteOf, } from './appPath'
+import { isBenchmarksPath, isChessCollectionsPath, isChessPath, isClashPath, isExplorerPath, isFigurinesPath, isGummyPath, isPawnPath, PAGE_ROUTES, pageRouteOf, } from './appPath'
+
+describe('isChessCollectionsPath', () => {
+  it.each([
+    '/chess-collections',
+    '/chess-collections/',
+    '/chess-collections/index.html',
+  ])('matches %s', (pathname) => {
+    expect(isChessCollectionsPath(pathname)).toBe(true)
+  })
+  it.each(['/chess-collections/pawn', '/chess', '/chess-forge'])(
+    'keeps %s separate',
+    (pathname) => {
+      expect(isChessCollectionsPath(pathname)).toBe(false)
+    },
+  )
+})
 
 describe('isBenchmarksPath', () => {
   it.each(['/benchmarks', '/benchmarks/', '/benchmarks/index.html'])(

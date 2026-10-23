@@ -106,6 +106,9 @@ export function FigurinesPage() {
           Lumen Apeiron
         </a>
         <nav class={styles.navigation} aria-label="Fractal chess">
+          <a class={ui.brand} href="/chess-collections">
+            Full collections
+          </a>
           <a class={ui.brand} href="/pawn">
             Pawn Forge
           </a>

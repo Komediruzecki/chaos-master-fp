@@ -117,6 +117,12 @@ export const boardFragment = tgpu.fragmentFn({
     roughness = 0.65
     specularWeight = 0.2
     reflectionWeight = 0.1
+  } else if (cameraLayout.$.camera.scene.y > 0.5) {
+    // A quiet checker surface lets the native recurrence carry the contrast.
+    baseColour = std.mul(baseColour, 0.18)
+    roughness = 0.82
+    specularWeight = 0.08
+    reflectionWeight = 0.04
   }
   const specular = boardSpecular(normal, view, light, roughness)
   const fresnel = dielectricFresnel(std.max(std.dot(normal, view), 0), 1.5)
@@ -263,7 +269,10 @@ export const backgroundFragment = tgpu.fragmentFn({
   'use gpu'
   const centre = std.sub(input.uv, d.vec2f(0.5, 0.42))
   const halo = std.exp(-std.dot(centre, centre) * 4)
-  if (cameraLayout.$.camera.resolution.z > 0.5)
+  if (
+    cameraLayout.$.camera.resolution.z > 0.5 ||
+    cameraLayout.$.camera.scene.y > 0.5
+  )
     return d.vec4f(
       std.mix(
         d.vec3f(0.0025, 0.0025, 0.0028),
@@ -364,7 +373,7 @@ export const fragmentVertex = tgpu.vertexFn({
     0.08,
   )
   const world = std.add(
-    std.add(rotate(input.vertex, angles), centre),
+    std.mul(std.add(rotate(input.vertex, angles), centre), input.offset.w),
     input.offset.xyz,
   )
   const fade = 1 - std.smoothstep(1.2, 1.7, age)
@@ -402,6 +411,7 @@ export const cloudVertex = tgpu.vertexFn({
   let point = cloudLayout.$.points[id]!.xyz
   let alpha = cloudLayout.$.settings.x
   let size = d.f32(1.15)
+  if (cloudLayout.$.settings.w > 0) size = cloudLayout.$.settings.w
   if (input.effect.x >= 0) {
     const age = input.effect.x
     point = std.add(point, std.mul(cloudLayout.$.velocity[id]!.xyz, age))
@@ -410,7 +420,7 @@ export const cloudVertex = tgpu.vertexFn({
       (0.5 + 0.3 * std.exp(-age * 7)) * (1 - std.smoothstep(0.75, 1.6, age))
     size = 2.2
   }
-  const world = std.add(point, input.offset.xyz)
+  const world = std.add(std.mul(point, input.offset.w), input.offset.xyz)
   const clip = std.mul(cameraLayout.$.camera.viewProjection, d.vec4f(world, 1))
   if (cloudLayout.$.settings.z > 0.5) {
     // Fixed-pixel splats accumulate quadratically with distance. Compensate
@@ -419,12 +429,17 @@ export const cloudVertex = tgpu.vertexFn({
     alpha *= std.clamp(distanceScale * distanceScale, 0.02, 4)
     if (input.effect.x >= 0) alpha *= cloudLayout.$.settings.x / 0.22
   }
+  // Collection clouds use alpha compositing. Bound their coverage so dense
+  // regions retain native colour instead of growing into additive white cores.
+  if (cloudLayout.$.settings.w > 0) alpha = std.min(alpha, 0.85)
   clip.x += (uv.x * size * clip.w) / cameraLayout.$.camera.resolution.x
   clip.y += (uv.y * size * clip.w) / cameraLayout.$.camera.resolution.y
   const storedColour = cloudLayout.$.colors[id]!
   let colour = std.mul(input.tint.xyz, 1.8)
-  if (storedColour.w > 0)
+  if (storedColour.w > 0) {
     colour = std.mul(storedColour.xyz, cloudLayout.$.settings.y)
+    if (input.effect.w > 0.5) colour = std.mul(colour, input.tint.xyz)
+  }
   return {
     position: clip,
     uv,

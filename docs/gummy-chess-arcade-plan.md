@@ -516,6 +516,54 @@ Next physical-representation gates:
   six-role collection follows acceptance of these inspected bodies and the
   enclosed-core comparison.
 
+## Fractal collection art pass (2026-10-23)
+
+The owner requested broader visual exploration before promoting more physical
+bodies. `/chess-collections` now provides three six-role studies: Lattice Court,
+Tidal Relics and Wild Canopy. Each role uses a different native IFS recurrence;
+matching roles reuse geometry, while opponents use separate structural palettes.
+Optional small tint differences do not alter the source geometry.
+
+The comparison page has a complete 32-piece board, a six-role lineup, a close-up,
+orbit/zoom and reproducible preview links. It exports native flame JSON and hands
+a selected source to Forge without replacing existing saved candidates. It uses
+one event-driven WebGPU canvas, twelve bounded role/side clouds, and a cancellable
+worker for source fitting and sampling. This page does not add capture physics or
+promote a new set into an active match.
+
+The focused source checks cover all 18 shapes with independent sample seeds,
+finite points, board footprint and height, opposite-side geometry parity and
+native JSON round trips. Sampled bounds are evidence for these recipes, not a
+general mathematical bound for arbitrary imported flames. Beauty and board-scale
+readability require visual review separately from these checks.
+
+The visual review favoured the fern knight, cleft-leaf bishop, split-current
+bishop and tetrahedral pawn. The subsequent pass opened the lattice rook's
+windows, joined the crowns around a common stem and gave the tidal king a
+vertical screw recurrence. These remain candidates for owner selection; no
+collection is marked as an accepted final art set.
+
+Local checks passed: 55 source tests, focused renderer/worker/layout/route tests,
+TypeScript, lint, formatting, WGSL validation and the production build. The
+repository metrics ratchet still reports existing branch debt in unrelated
+oversized modules; this pass does not add a new size-bucket regression.
+
+Next sequence:
+
+1. Review the collections on a board and shortlist six forms. Keep native sources
+   intact; choose the role silhouettes, palettes and negative spaces first.
+2. Compare each favourite as an enclosed fractal core and, where supported, an
+   explicit finite solid. Check important openings in the actual reconstructed
+   surface. A visual point cloud alone is not a connected material body.
+3. Promote one approved role through immutable snapshot, rest mesh, mass cells,
+   collision, match reload and capture replay. Expand the role set only after
+   this representation survives that complete path.
+4. Measure the chosen set on a physical tablet, then revisit shared friend rooms
+   and placement of the chess table in the fractal world.
+
+This art pass changes the order of visual exploration; it does not waive the
+physical-representation gates above.
+
 ## Private friend session architecture
 
 The current Worker serves static assets and bounded APIs for sharing and gallery
@@ -590,9 +638,9 @@ Keep static waiting pieces cached and simulate only the active capture. Gummy
 response should remain MPM with a reconstructed surface; glass needs a distinct
 fracture treatment. Changing colours alone should never select the physics.
 
-No additional artistic guidance is needed for Arcade entry. Before producing a
-new fractal collection, show a single pawn next to the approved classic gummy
-silhouette and glass-enclosed studies. The useful art decision is whether the
+The collection art preview now provides a broad visual comparison. Before
+promoting its first playable piece, show the selected pawn next to the approved
+classic gummy silhouette and glass-enclosed studies. The useful art decision is whether the
 first set is a glass shell with an authored fractal interior, or a solid fractal
 body with visible recursive structure. Keep both as options in the plan; prove
 one selected representation through the complete creator-to-play path first.

@@ -5,6 +5,7 @@ import { createPawnBoardCloud } from './pawnBoardCloud'
 import { BOARD_TILE_SIZE, squareWorld } from './pawnBoardMath'
 import { cube } from './pawnBoardMesh'
 import { backgroundFragment, BoardCameraUniform, boardFragment, cameraLayout, cloudFragment, cloudVertex, displayFragment, fragmentLayout, fragmentVertex, glassExitFragment, glassFragment, instanceLayout, meshLayout, meshVertex, shardFragment, } from './pawnBoardShaders'
+import { createPawnBoardVariants } from './pawnBoardVariants'
 import { createPawnGlassTargets } from './pawnGlassTargets'
 import type { TgpuRoot } from 'typegpu'
 import type { PawnSide } from '@/flame/chess/pawnFlame'
@@ -15,6 +16,12 @@ export type BoardPawnInstance = {
   side: PawnSide
   selected: boolean
   age: number
+  /** An uploaded study cloud; omitted keeps the original side-based pawn. */
+  cloudKey?: string
+  /** Uniform local-space scale, leaving the board position unchanged. */
+  scale?: number
+  /** Optional linear RGB tint for restrained variation between repeated shapes. */
+  colorMultiplier?: readonly [number, number, number]
 }
 export type BoardFrame = {
   width: number
@@ -27,6 +34,8 @@ export type BoardFrame = {
   legal: readonly Square[]
   showGlass?: boolean
   inspection?: boolean
+  /** Matte low-contrast checkers for native fractal collection studies. */
+  mutedBoard?: boolean
 }
 const CAPACITY = 32
 const FROST = [0.3, 0.82, 0.92] as const
@@ -38,11 +47,12 @@ function writeInstance(
   instance: BoardPawnInstance,
 ) {
   const o = index * 12
-  const colour = instance.side === 'light' ? FROST : EMBER
+  const colour =
+    instance.colorMultiplier ?? (instance.side === 'light' ? FROST : EMBER)
   data[o] = instance.position[0]
   data[o + 1] = instance.position[1]
   data[o + 2] = instance.position[2]
-  data[o + 3] = 1
+  data[o + 3] = instance.scale ?? 1
   data[o + 4] = colour[0]
   data[o + 5] = colour[1]
   data[o + 6] = colour[2]
@@ -50,7 +60,7 @@ function writeInstance(
   data[o + 8] = instance.age
   data[o + 9] = instance.selected ? 1 : 0
   data[o + 10] = 0
-  data[o + 11] = 0
+  data[o + 11] = instance.colorMultiplier ? 1 : 0
 }
 
 function fillPieceInstances(
@@ -66,6 +76,21 @@ function fillPieceInstances(
     frostCount = 0,
     emberCount = 0
   for (const piece of pieces) {
+    const scale = piece.scale ?? 1
+    if (!Number.isFinite(scale) || scale <= 0)
+      throw new Error('Board piece scale must be finite and positive')
+    if (
+      piece.colorMultiplier &&
+      (piece.colorMultiplier.length !== 3 ||
+        !piece.colorMultiplier.every(
+          (value) => Number.isFinite(value) && value >= 0,
+        ))
+    )
+      throw new Error(
+        'Board piece colour multiplier must be finite nonnegative RGB',
+      )
+    // Study clouds have their own shape; the legacy enclosure is a pawn.
+    if (piece.cloudKey !== undefined) continue
     if (piece.age < 0) {
       writeInstance(shellData, shellCount, piece)
       shellData[shellCount * 12 + 10] = shellCount + 1
@@ -73,7 +98,7 @@ function fillPieceInstances(
       cameraData[centre] = piece.position[0]
       cameraData[centre + 1] = piece.position[1]
       cameraData[centre + 2] = piece.position[2]
-      cameraData[centre + 3] = 0.67
+      cameraData[centre + 3] = 0.67 * scale
       shellCount++
     }
     if (piece.side === 'light') writeInstance(frostData, frostCount++, piece)
@@ -282,27 +307,23 @@ export function createPawnBoardRenderer(
       .with(cameraGroup)
       .with(fragmentLayout, fragmentMesh)
       .with(instanceLayout, shards)
-    const pointPipeline = root
-      .createRenderPipeline({
-        attribs: instanceLayout.attrib,
-        vertex: cloudVertex,
-        fragment: cloudFragment,
-        targets: {
-          format: 'rgba16float',
-          blend: {
-            color: {
-              srcFactor: 'src-alpha',
-              dstFactor: 'one',
-              operation: 'add',
-            },
-            alpha: { srcFactor: 'zero', dstFactor: 'one', operation: 'add' },
-          },
-        },
-        primitive: { cullMode: 'none' },
-        depthStencil: { ...depth, depthWriteEnabled: false },
-        multisample: { count: 4 },
-      })
-      .with(cameraGroup)
+    const createPointPipeline = (pointBlend: GPUBlendState) =>
+      root
+        .createRenderPipeline({
+          attribs: instanceLayout.attrib,
+          vertex: cloudVertex,
+          fragment: cloudFragment,
+          targets: { format: 'rgba16float', blend: pointBlend },
+          primitive: { cullMode: 'none' },
+          depthStencil: { ...depth, depthWriteEnabled: false },
+          multisample: { count: 4 },
+        })
+        .with(cameraGroup)
+    const pointPipeline = createPointPipeline({
+      color: { srcFactor: 'src-alpha', dstFactor: 'one', operation: 'add' },
+      alpha: { srcFactor: 'zero', dstFactor: 'one', operation: 'add' },
+    })
+    const variantPointPipeline = createPointPipeline(blend)
     const backgroundPipeline = root
       .createRenderPipeline({
         vertex: common.fullScreenTriangle,
@@ -329,11 +350,17 @@ export function createPawnBoardRenderer(
       frontGlass,
       shardPipeline,
       pointPipeline,
+      variantPointPipeline,
       backgroundPipeline,
       displayPipeline,
     ])
       root.unwrap(pipeline)
     const clouds = new Map<PawnSide, ReturnType<typeof uploadCloud>>()
+    const variants = createPawnBoardVariants(
+      root,
+      variantPointPipeline,
+      writeInstance,
+    )
     const sampler = device.createSampler({
       minFilter: 'linear',
       magFilter: 'linear',
@@ -366,8 +393,22 @@ export function createPawnBoardRenderer(
         clouds.get(side)?.destroy()
         clouds.set(side, next)
       },
+      /** Up to six roles for each side. Replacement commits only after upload. */
+      setVariantCloud(
+        key: string,
+        side: PawnSide,
+        points: Float32Array,
+        colors?: Float32Array,
+      ) {
+        if (disposed) return
+        variants.set(key, side, points, colors)
+      },
+      clearVariantClouds: () => {
+        variants.clear()
+      },
       render(frame: BoardFrame) {
         if (disposed || frame.width < 1 || frame.height < 1) return
+        variants.prepare(frame.pieces)
         const key = `${frame.width}:${frame.height}`
         if (key !== sizeKey) {
           const next = createPawnGlassTargets(
@@ -395,10 +436,12 @@ export function createPawnBoardRenderer(
           emberData,
           cameraData,
         )
+        cameraData[25] = frame.mutedBoard ? 1 : 0
         camera.write(cameraData.buffer)
         shells.write(shellData.buffer)
         frost.write(frostData.buffer)
         ember.write(emberData.buffer)
+        variants.write()
         if (frame.shards) {
           writeInstance(shardData, 0, frame.shards)
           shards.write(shardData.buffer)
@@ -445,6 +488,7 @@ export function createPawnBoardRenderer(
           lightCloud.pipeline.with(pass).draw(lightCloud.count * 6, frostCount)
         if (darkCloud && emberCount)
           darkCloud.pipeline.with(pass).draw(darkCloud.count * 6, emberCount)
+        variants.draw(pass)
         if (frame.shards) shardPipeline.with(pass).draw(fragmentCount, 1)
         pass.end()
         const showGlass = frame.showGlass !== false && shellCount > 0
@@ -505,6 +549,7 @@ export function createPawnBoardRenderer(
         disposed = true
         for (const cloud of clouds.values()) cloud.destroy()
         clouds.clear()
+        variants.clear()
         targets?.destroy()
         for (const resource of owned) resource.destroy()
       },

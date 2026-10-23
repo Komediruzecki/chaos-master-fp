@@ -233,6 +233,15 @@ export function ChessForgePage() {
               Your source and custom formulas travel together in an independent
               copy.
             </p>
+            <a
+              class={styles.boardLink}
+              href="/chess-collections"
+              onClick={(event) => {
+                if (!forge.saveDraftBeforeLeaving()) event.preventDefault()
+              }}
+            >
+              Explore full fractal collections
+            </a>
           </div>
           <CandidateSourceControls forge={forge} />
           <Show when={forge.candidate()}>
