@@ -20,6 +20,7 @@ type TimelineProps = Partial<
 function renderFloatingActions(
   initiallyCollapsed = false,
   timeline: TimelineProps = {},
+  onInspectChess?: () => void,
 ) {
   const [collapsed, setCollapsed] = createSignal(initiallyCollapsed)
   const noop = vi.fn()
@@ -30,6 +31,7 @@ function renderFloatingActions(
       onNewFlame={noop}
       onLoadFlame={noop}
       onSaveForLater={noop}
+      onInspectChess={onInspectChess}
       onRender={noop}
       onQuickExport={noop}
       onShareLink={noop}
@@ -64,6 +66,24 @@ function renderFloatingActions(
   ))
   return { ...result, collapsed }
 }
+
+describe('FloatingActions chess inspection', () => {
+  it('opens inspection from the desktop action when the host offers it', () => {
+    const inspect = vi.fn()
+    const { unmount } = renderFloatingActions(false, {}, inspect)
+    fireEvent.click(screen.getByRole('button', { name: 'Inspect for chess' }))
+    expect(inspect).toHaveBeenCalledOnce()
+    unmount()
+  })
+
+  it('does not offer an unavailable inspection route', () => {
+    const { unmount } = renderFloatingActions()
+    expect(
+      screen.queryByRole('button', { name: 'Inspect for chess' }),
+    ).toBeNull()
+    unmount()
+  })
+})
 
 describe('FloatingActions controlled collapse', () => {
   it('mounts replay-focus targets again when expanded', () => {

@@ -1,0 +1,101 @@
+{
+  "format": "lumen-fractal-figurine-studies",
+  "version": 1,
+  "sourceHashes": {
+    "packages/app/src/flame/chess/figurineStudies.ts": "970dc65fb3a49e177db48c83948f11a02c2e6def94d78f4d96a33af602b2eca4",
+    "packages/app/src/flame/chess/pawnCloud.ts": "11b8b88d2a6357674f250706042965039a81ee753f26f66eff04d3b72806d78a",
+    "packages/app/scripts/export-figurine-studies.mjs": "d1f36c158dfee9591d465fb017080e7fbd48fb7887412ab6274f6d2a4acc3cb0",
+    "packages/app/scripts/pawn-board-glb.mjs": "d64765585840f824393183b71cb432a5da09603fbd6a281d8f1c863e5ae29836"
+  },
+  "assets": [
+    {
+      "file": "fractal-study-menger-rook-frost.glb",
+      "recipeFile": "fractal-study-menger-rook-frost.json",
+      "sha256": "8fe2ceaaf519210fa100f439fb77a668c73d548c83b086fbfe7ed4f73d024a93",
+      "bytes": 621172,
+      "points": 48000,
+      "triangles": 0,
+      "bounds": {
+        "min": [
+          -0.639998197555542, 0.000005301099463395076, -0.639979898929596
+        ],
+        "max": [0.6399508714675903, 1.799999475479126, 0.6399653553962708]
+      }
+    },
+    {
+      "file": "fractal-study-menger-rook-ember.glb",
+      "recipeFile": "fractal-study-menger-rook-ember.json",
+      "sha256": "338e8eccf48f4be96cfcb8dbfbb12db8deaafb9b149723150ff7966d7fa800a0",
+      "bytes": 620996,
+      "points": 48000,
+      "triangles": 0,
+      "bounds": {
+        "min": [
+          -0.639998197555542, 0.000005301099463395076, -0.639979898929596
+        ],
+        "max": [0.6399508714675903, 1.799999475479126, 0.6399653553962708]
+      }
+    },
+    {
+      "file": "fractal-study-sierpinski-bishop-frost.glb",
+      "recipeFile": "fractal-study-sierpinski-bishop-frost.json",
+      "sha256": "dc44ae3ffd8f1923b3e6b6bc0c0f473d360e402b3edd08c1024eab4cbfee4d1f",
+      "bytes": 593604,
+      "points": 48000,
+      "triangles": 0,
+      "bounds": {
+        "min": [
+          -0.605528712272644, 2.0571713776895706e-10, -0.5362063050270081
+        ],
+        "max": [0.61406409740448, 1.7954143285751343, 0.5362944006919861]
+      }
+    },
+    {
+      "file": "fractal-study-sierpinski-bishop-ember.glb",
+      "recipeFile": "fractal-study-sierpinski-bishop-ember.json",
+      "sha256": "1d339bd41dcddf34e35d38f98783ab452e914e24389627df6618750bacd9a90a",
+      "bytes": 593524,
+      "points": 48000,
+      "triangles": 0,
+      "bounds": {
+        "min": [
+          -0.605528712272644, 2.0571713776895706e-10, -0.5362063050270081
+        ],
+        "max": [0.61406409740448, 1.7954143285751343, 0.5362944006919861]
+      }
+    },
+    {
+      "file": "fractal-study-branching-knight-frost.glb",
+      "recipeFile": "fractal-study-branching-knight-frost.json",
+      "sha256": "419e3f6c4b46b3a99a1681b166acbd40e8c7d61ec365a2e02cb5e7afa38f0507",
+      "bytes": 593592,
+      "points": 48000,
+      "triangles": 0,
+      "bounds": {
+        "min": [
+          -0.5664637684822083, 0.000008335776328749489, -0.494104266166687
+        ],
+        "max": [0.7399818301200867, 1.7924405336380005, 0.5011074542999268]
+      }
+    },
+    {
+      "file": "fractal-study-branching-knight-ember.glb",
+      "recipeFile": "fractal-study-branching-knight-ember.json",
+      "sha256": "011e11f577ebe86e4675ca59bd5082453e188b226b7a7e992f3384804a2b8c3a",
+      "bytes": 593520,
+      "points": 48000,
+      "triangles": 0,
+      "bounds": {
+        "min": [
+          -0.5664637684822083, 0.000008335776328749489, -0.494104266166687
+        ],
+        "max": [0.7399818301200867, 1.7924405336380005, 0.5011074542999268]
+      }
+    }
+  ],
+  "limitations": [
+    "These comparison assets contain finite samples of native IFS attractors as glTF POINTS. Importers choose point size; Blender imports them as loose vertices.",
+    "The live comparison uses the native accumulating IFS renderer, not these sampled GLBs.",
+    "These studies have no glass envelope, triangle surface, collision body or fracture animation. PBR surface textures require a chosen finite-thickness surface; the existing pawn PBR assets remain available."
+  ]
+}

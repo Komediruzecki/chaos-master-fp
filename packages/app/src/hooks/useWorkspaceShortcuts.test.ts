@@ -18,6 +18,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { resetPilot, startPilot } from '@/arcade/pilot'
 import { executeCommand } from '@/commands/registry'
 import { examples } from '@/flame/examples'
+import { setActiveTab } from '@/lib/activeTab'
 import { cancelSessionRecording, startSessionRecording, stopSessionRecording, } from '@/recorder/recorder'
 import { createRecorderAwareTimeline } from '@/recorder/timelineActions'
 import { createTimelineState } from '@/utils/timeline'
@@ -436,5 +437,63 @@ describe('the sidebar and theme keys while no frame has been drawn', () => {
 
     press('KeyD', 'd', { ctrlKey: true })
     expect(theme()).toBe('dark')
+  })
+})
+
+describe('workspace shortcuts under another surface', () => {
+  afterEach(() => {
+    disposeHook?.()
+    disposeHook = undefined
+    setActiveTab('workspace')
+    resetPilot()
+  })
+
+  it.each(['home', 'arcade', 'chess'] as const)(
+    'leaves the hidden editor unchanged while %s owns the screen',
+    (surface) => {
+      const { ctx, timeline, toggleSidebar, addKeyframe, removeKeyframe } =
+        mount({
+          canUndo: true,
+          canRedo: true,
+          targetedParameter: () => 'renderSettings.exposure',
+        })
+      if (surface === 'chess') setActiveTab('arcade', 'chess')
+      else setActiveTab(surface)
+
+      const keys = [
+        press('KeyF', 'f'),
+        press('KeyZ', 'z', { ctrlKey: true }),
+        press('KeyY', 'y', { ctrlKey: true }),
+        press('KeyI', 'i'),
+        press('KeyI', 'i', { altKey: true }),
+        pressSpace(),
+        // A command-registry shortcut uses a separate document listener.
+        press('KeyS', 's', { ctrlKey: true }),
+      ]
+
+      expect(keys.every((key) => !key.defaultPrevented)).toBe(true)
+      expect(toggleSidebar).not.toHaveBeenCalled()
+      expect(ctx.sidebar.setOpen).not.toHaveBeenCalled()
+      expect(ctx.history?.undo).not.toHaveBeenCalled()
+      expect(ctx.history?.redo).not.toHaveBeenCalled()
+      expect(addKeyframe).not.toHaveBeenCalled()
+      expect(removeKeyframe).not.toHaveBeenCalled()
+      expect(timeline.isPlaying()).toBe(false)
+
+      setActiveTab('workspace')
+      expect(press('KeyF', 'f').defaultPrevented).toBe(true)
+      expect(press('KeyS', 's', { ctrlKey: true }).defaultPrevented).toBe(true)
+      expect(toggleSidebar).toHaveBeenCalledTimes(1)
+      expect(ctx.sidebar.setOpen).toHaveBeenCalledTimes(1)
+    },
+  )
+
+  it('keeps the shared theme chord available in chess', () => {
+    const [theme, setTheme] = createSignal<Theme>('dark')
+    mount({ theme, setTheme })
+    setActiveTab('arcade', 'chess')
+
+    expect(press('KeyD', 'd', { ctrlKey: true }).defaultPrevented).toBe(true)
+    expect(theme()).toBe('light')
   })
 })

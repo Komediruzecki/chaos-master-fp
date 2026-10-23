@@ -1,3 +1,4 @@
+/** Bounded browser video encoding with fixed timestamps and MP4 muxing. */
 import { ArrayBufferTarget, Muxer } from 'mp4-muxer'
 
 export type VideoEncoderConfig = {
@@ -31,12 +32,14 @@ export function getAvcCodecString(
   width: number,
   height: number,
   profile: AvcProfile = 'high',
+  fps = 30,
 ): string {
   // Macroblock-aligned coded area determines the required AVC level.
   // Each macroblock is 16x16, so coded dimensions are ceil(w/16)*16.
   const codedWidth = Math.ceil(width / 16) * 16
   const codedHeight = Math.ceil(height / 16) * 16
-  const codedArea = codedWidth * codedHeight
+  const macroblocks = (codedWidth * codedHeight) / 256
+  const blocksPerSecond = macroblocks * fps
 
   // AVC levels and their MaxFS (max frame size in macroblocks = pixels/256):
   //   3.1:  3,600 MBs =   921,600 px
@@ -44,14 +47,19 @@ export function getAvcCodecString(
   //   4.2:  8,704 MBs = 2,228,224 px
   //   5.0: 22,080 MBs = 5,652,480 px
   //   5.1: 36,864 MBs = 9,437,184 px
-  let level = '33' // Level 5.1 (max 9,437,184 px)
-  if (codedArea <= 921600)
-    level = '1f' // Level 3.1
-  else if (codedArea <= 2097152)
-    level = '28' // Level 4.0
-  else if (codedArea <= 2228224)
-    level = '2A' // Level 4.2
-  else if (codedArea <= 5652480) level = '32' // Level 5.0
+  // Frame rate matters too: 1080p60 needs 4.2, and 4K60 needs 5.2.
+  const limits = [
+    ['1f', 3600, 108000],
+    ['28', 8192, 245760],
+    ['2A', 8704, 522240],
+    ['32', 22080, 589824],
+    ['33', 36864, 983040],
+    ['34', 36864, 2073600],
+  ] as const
+  const level =
+    limits.find(
+      ([, frame, second]) => macroblocks <= frame && blocksPerSecond <= second,
+    )?.[0] ?? '34'
   return `avc1.${AVC_PROFILE_PREFIX[profile]}${level}`
 }
 
@@ -222,15 +230,19 @@ function createWebCodecsPipeline(
     }
   }
 
+  const checkError = () => {
+    if (asyncError) throw asyncError
+  }
+
   const encode = async (frame: VideoFrame, frameIndex: number) => {
     if (cancelled) {
-      if (asyncError) throw asyncError
+      checkError()
       return
     }
     initEncoder()
     await waitForQueueDrain()
     if (cancelled) {
-      if (asyncError) throw asyncError
+      checkError()
       return
     }
     const keyFrame = frameIndex === 0 || frameIndex % keyFrameInterval === 0
@@ -239,19 +251,19 @@ function createWebCodecsPipeline(
       framesEncoded++
     } catch (e) {
       console.error('VideoEncoder encode error:', e)
+      asyncError = e instanceof Error ? e : new Error(String(e))
       cancelled = true
       try {
         encoder?.close()
       } catch {
         /* already closed */
       }
+      throw asyncError
     }
   }
 
   const finalize = async (): Promise<EncodeResult> => {
-    if (asyncError) {
-      throw asyncError
-    }
+    checkError()
     if (cancelled && framesEncoded === 0) {
       throw new Error('VideoEncoder failed before encoding any frames')
     }
@@ -259,6 +271,9 @@ function createWebCodecsPipeline(
       if (!cancelled && encoder) {
         await encoder.flush()
       }
+      checkError()
+      if (pendingChunks.length !== framesEncoded || framesEncoded === 0)
+        throw new Error('VideoEncoder did not produce every requested frame')
 
       // Mux all buffered chunks: DTS from decode order on the frame grid,
       // PTS uniformly delayed so composition offsets are never negative.
@@ -458,6 +473,7 @@ export async function createVideoEncoder(config: VideoEncoderConfig): Promise<{
               config.width,
               config.height,
               profile,
+              config.fps,
             ),
           })
         }
@@ -501,13 +517,14 @@ export async function createVideoEncoder(config: VideoEncoderConfig): Promise<{
       encodeFrame: async (bitmap, frameIndex) => {
         const duration = Math.round(1e6 / config.fps)
         const timestamp = Math.round((frameIndex * 1e6) / config.fps)
-        const frame = new VideoFrame(bitmap, { timestamp, duration })
+        let frame: VideoFrame | undefined
         try {
+          frame = new VideoFrame(bitmap, { timestamp, duration })
           // Applies encoder backpressure: resolves once the encode queue has
           // room, keeping memory bounded when frames are produced quickly.
           await pipeline.encode(frame, frameIndex)
         } finally {
-          frame.close()
+          frame?.close()
           bitmap.close()
         }
       },

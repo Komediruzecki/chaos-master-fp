@@ -1,0 +1,161 @@
+{
+  "capturedAt": "2026-10-03T13:27:38.409Z",
+  "base": "https://localhost:5199",
+  "production": false,
+  "quick": false,
+  "restOnly": true,
+  "recordedVideo": false,
+  "samples": [
+    {
+      "name": "rest",
+      "experiment": "particle",
+      "pose": "upright",
+      "materialModel": "mls-mpm",
+      "protocol": "lateral-pull",
+      "phase": "settling",
+      "time": 0,
+      "steps": 0,
+      "tick": 0,
+      "particleCount": 2445,
+      "spacing": 0.08,
+      "gridSpacing": 0.16,
+      "restVolume": 1.2518400000000003,
+      "gridBounds": {
+        "min": [-3.84, -0.32, -3.84],
+        "max": [3.84, 7.359999999999999, 3.84]
+      },
+      "substeps": 29,
+      "restBounds": {
+        "min": [-0.6800000071525574, 0.03999999910593033, -0.2800000011920929],
+        "max": [0.6800000071525574, 2.5199999809265137, 0.4399999976158142]
+      },
+      "grip": true,
+      "gripCommand": {
+        "center": [0.64, 1.24, 0.08],
+        "radius": 0.28,
+        "target": [0.64, 1.24, 0.08]
+      },
+      "demo": true,
+      "settings": {
+        "softness": 0.55,
+        "tearing": true,
+        "palette": "marble",
+        "fixedDt": 0.008333333333333333
+      },
+      "simulationTime": 0,
+      "totalMass": 1.2518400000000003,
+      "elasticEnergy": 0,
+      "kineticEnergy": 0,
+      "guardActivations": 0,
+      "speedCaps": 0,
+      "affineCaps": 0,
+      "deformationRejections": 0,
+      "domainContacts": 0,
+      "zeroShearUpdates": 0,
+      "maxGridSpeed": 0,
+      "maxParticleSpeed": 0,
+      "speedCapImpulse": 0,
+      "particleSpeedCaps": 0,
+      "gridSpeedCaps": 0,
+      "gripCount": 0,
+      "gravitationalEnergy": 15.046662714535222,
+      "totalEnergy": 15.046662714535222,
+      "finite": true,
+      "pinnedCount": 457,
+      "min": [-0.6800000071525574, 0.03999999910593033, -0.2800000011920929],
+      "max": [0.6800000071525574, 2.5199999809265137, 0.4399999976158142],
+      "span": [1.3600000143051147, 2.4799999818205833, 0.7199999988079071],
+      "pinMovement": 0,
+      "maxDisplacement": 0,
+      "freeDisplacementRms": 0,
+      "connectivityRadius": 0.152,
+      "components": [2445],
+      "componentDetails": [
+        {
+          "count": 2445,
+          "pinned": 457,
+          "free": 1988
+        }
+      ],
+      "damageMax": 0,
+      "damaged": 0,
+      "meanDamage": 0,
+      "meanJ": 1,
+      "minJ": 1,
+      "maxJ": 1,
+      "materialRegions": [
+        {
+          "name": "feet",
+          "count": 457,
+          "damaged": 0,
+          "peakStretch": 1
+        },
+        {
+          "name": "ankles",
+          "count": 300,
+          "damaged": 0,
+          "peakStretch": 1
+        },
+        {
+          "name": "body-arm",
+          "count": 946,
+          "damaged": 0,
+          "peakStretch": 1
+        },
+        {
+          "name": "head",
+          "count": 742,
+          "damaged": 0,
+          "peakStretch": 1
+        }
+      ]
+    }
+  ],
+  "timings": [],
+  "errors": [],
+  "warnings": [],
+  "failures": [],
+  "placement": {
+    "before": {
+      "window": "0x55834ebe0150",
+      "workspace": 2,
+      "monitors": [
+        {
+          "id": 0,
+          "special": ""
+        }
+      ]
+    },
+    "after": {
+      "window": "0x55834ebe0150",
+      "workspace": 2,
+      "monitors": [
+        {
+          "id": 0,
+          "special": ""
+        }
+      ]
+    },
+    "clients": [
+      {
+        "class": "agent-browser",
+        "workspace": "special:agents"
+      }
+    ]
+  },
+  "adapter": {
+    "vendor": "amd",
+    "architecture": "rdna-4",
+    "fallback": false
+  },
+  "tablet": {
+    "width": 1024,
+    "content": 1024,
+    "choices": [44, 44, 44, 44]
+  },
+  "phone": {
+    "width": 390,
+    "content": 390,
+    "choices": [44, 44, 44, 44]
+  }
+}

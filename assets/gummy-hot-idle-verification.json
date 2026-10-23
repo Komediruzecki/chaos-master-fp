@@ -1,0 +1,155 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-10-03T17:31:54.057Z",
+  "purpose": "Bounded idle endurance checks for continuous jelly at high fragility.",
+  "law": {
+    "version": "edge-local-process-zone-1",
+    "description": "Intact nucleation opening 1.4 - 0.1f; edge-neighbour process-zone opening subtracts 0.19(1-(1-f)^2). Nucleation history rate is 3+117f; propagation rate is (3+117f)(1+4f). Only facets sharing an original material edge with a previously failed facet enter the process zone. Positive spectral tensile opening and finite accumulated history remain required. This is a mesh-scale fracture heuristic, not calibrated fracture energy or temperature."
+  },
+  "configuration": {
+    "materialModel": "neo-hookean",
+    "solverIterations": 24,
+    "fixedDt": 0.008333333333333333,
+    "assessmentIntervalSeconds": 0.05,
+    "spacing": 0.14,
+    "initialVertices": 2244,
+    "tetrahedra": 7299,
+    "pinnedFeetHeight": 0.48,
+    "waistFixture": {
+      "halfWidth": 0.3,
+      "minY": 0.85,
+      "maxY": 1.2
+    },
+    "gravity": true,
+    "grip": false,
+    "press": false
+  },
+  "checks": [
+    {
+      "softness": 0.55,
+      "durationSeconds": 60,
+      "assessmentCount": 1200,
+      "method": "Final fracture law replayed against all positions of a captured, unbroken native WebGPU solver trajectory. No topology change occurred; identical unbroken physics therefore applies.",
+      "controls": [
+        {
+          "fragility": 0.88,
+          "opening": 1.3119999999999998,
+          "propagationOpening": 1.1247359999999997,
+          "rate": 105.96,
+          "propagationRate": 478.9391999999999,
+          "peakEquivalentOpening": 1.2903605916646288,
+          "failedFaces": 0,
+          "topologyRevisions": 0,
+          "mechanicalComponents": 1,
+          "nucleationOverstressObserved": false
+        },
+        {
+          "fragility": 1,
+          "opening": 1.2999999999999998,
+          "propagationOpening": 1.1099999999999999,
+          "rate": 120,
+          "propagationRate": 600,
+          "peakEquivalentOpening": 1.2903605916646288,
+          "failedFaces": 0,
+          "topologyRevisions": 0,
+          "mechanicalComponents": 1,
+          "nucleationOverstressObserved": false
+        }
+      ],
+      "adapter": {
+        "vendor": "amd",
+        "architecture": "rdna-4"
+      },
+      "placement": {
+        "before": {
+          "window": "0x55834ebe0150",
+          "workspace": 2,
+          "monitors": [
+            {
+              "id": 0,
+              "special": ""
+            }
+          ]
+        },
+        "after": {
+          "window": "0x55834ebe0150",
+          "workspace": 2,
+          "monitors": [
+            {
+              "id": 0,
+              "special": ""
+            }
+          ]
+        },
+        "clients": [
+          {
+            "class": "agent-browser",
+            "workspace": "special:agents"
+          }
+        ]
+      },
+      "errors": [],
+      "gpuErrors": [],
+      "localDiagnosticPath": "/tmp/gummy-hot-idle-60s.json"
+    },
+    {
+      "softness": 1,
+      "durationSeconds": 60,
+      "assessmentCount": 1200,
+      "method": "Native WebGPU solver and fracture controller evaluated together. Subsequent propagation-rate-only increase cannot activate without a failed nucleation facet; nucleation parameters are unchanged.",
+      "controls": [
+        {
+          "fragility": 1,
+          "opening": 1.2999999999999998,
+          "propagationOpening": 1.1099999999999999,
+          "rate": 120,
+          "propagationRate": 600,
+          "peakEquivalentOpening": 1.1897443185082224,
+          "failedFaces": 0,
+          "topologyRevisions": 0,
+          "mechanicalComponents": 1,
+          "firstFailureSeconds": null,
+          "nucleationOverstressObserved": false
+        }
+      ],
+      "adapter": {
+        "vendor": "amd",
+        "architecture": "rdna-4"
+      },
+      "placement": {
+        "before": {
+          "workspace": 9,
+          "monitors": [
+            {
+              "id": 0,
+              "special": ""
+            }
+          ]
+        },
+        "after": {
+          "workspace": 9,
+          "monitors": [
+            {
+              "id": 0,
+              "special": ""
+            }
+          ]
+        },
+        "clients": [
+          {
+            "class": "agent-browser",
+            "workspace": "special:agents"
+          }
+        ]
+      },
+      "errors": [],
+      "gpuErrors": [],
+      "localDiagnosticPath": "/tmp/gummy-hot-softness1.json"
+    }
+  ],
+  "limitations": [
+    "Tests cover 60 seconds at softness 0.55 and 1 with the documented waist/feet fixture, not every softness or arbitrary support condition.",
+    "All sampled openings remained below the final uncracked nucleation threshold, giving zero nucleation dose rather than merely a delayed failure. This is bounded trajectory evidence, not a proof for unlimited simulation time.",
+    "Raw trajectory paths are local temporary diagnostics and are not required repository assets."
+  ]
+}

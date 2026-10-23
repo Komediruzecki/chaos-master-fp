@@ -1,0 +1,187 @@
+{
+  "format": "lumen-native-blue-branching-pawns",
+  "version": 1,
+  "sourceHashes": {
+    "packages/app/src/flame/chess/blueBranchPawnFlame.ts": "ea708f6ad48f7039e9e9a38e7e2ba908a99b2b905a3fa948773bcd71112c8096",
+    "packages/app/src/flame/chess/pawnFlame.ts": "432c36eafa8e0f88795b155e9e27fd2470f4d55b26ef2abb3cbfbcaef54f4523",
+    "packages/app/src/flame/chess/flameFigurineCloud.ts": "4fb55efdd3e5d20e7c0b9363b900634defede4ea1cb48686a75c85cc1a13bf0f",
+    "packages/app/src/flame/chess/pawnBoardGeometry.ts": "0dc7115d976e871f6e4722ddf5c2b03926dae8a4948fa98d97e17020b1794fb6",
+    "packages/app/src/flame/randomSource.ts": "dd188e1139063dfa98e9d30de0c63749e514bfcaaefa6770bdde2933f9e7895a",
+    "packages/app/src/flame/clashTeams.ts": "ed428528a8bdd09b514b6aee176fa66b81e8946565f3ff1516e362b6cbc61da0",
+    "packages/core/src/schema/walkGroups.ts": "1b52c30ea13fa8f8a2ea2173f7506265895d4db7f69e7bd26ffd23624378027b",
+    "packages/core/src/math/affineTransform3D.ts": "c209eadd8a1687d273a3cbcdf97c5127c7b339f42428a313535dd592e4fadffa",
+    "packages/app/scripts/export-blue-branch-pawn.mjs": "e47ccb8cf1d151f600743d76fcb5a157f59f3339e5533343e4f00c145a6d9861",
+    "packages/app/scripts/pawn-board-glb.mjs": "d64765585840f824393183b71cb432a5da09603fbd6a281d8f1c863e5ae29836"
+  },
+  "colorPolicy": {
+    "source": "Native transform OkLab a/b recurrence, including colorSpeed and authored vibrancy.",
+    "fixedLightness": 0.65,
+    "encoding": "FLOAT32 linear RGBA COLOR_0, alpha=1; white KHR_materials_unlit point material.",
+    "conversion": "@typegpu/color oklabToLinearRgb; clamp out-of-gamut linear channels into [0,1].",
+    "difference": "Live preview lightness is density/exposure dependent. Exported structural point colours use a fixed lightness and are not pixel matches."
+  },
+  "units": "metres",
+  "yUp": true,
+  "baseOnY": 0,
+  "shell": {
+    "radialSegments": 64,
+    "smoothNormals": true,
+    "topMetres": 1.8899999993294478,
+    "wallThicknessMetres": 0.018,
+    "ior": 1.5,
+    "transmission": 1,
+    "roughnessFactor": 0.055,
+    "microNormalScale": 0.025
+  },
+  "textures": {
+    "embedded": true,
+    "count": 3,
+    "size": [128, 128],
+    "maps": [
+      "base-color (sRGB)",
+      "occlusion/roughness/metallic (linear)",
+      "tangent-space normal (linear)"
+    ],
+    "note": "ORM green multiplies roughnessFactor; metal remains zero. Fine micro-normal variation is deliberately minimal."
+  },
+  "runtimeFracture": {
+    "embeddedAnimation": false,
+    "generator": "buildPawnShellFragments",
+    "radialSegments": 64,
+    "profileBands": 25,
+    "closedShardCount": 1600
+  },
+  "assets": [
+    {
+      "file": "fractal-pawn-blue-branch-frost.glb",
+      "recipeFile": "fractal-pawn-blue-branch-frost.json",
+      "side": "light",
+      "sha256": "77f2bb931d709eaff377c8dcd339c96722d568b82eec21a9ede75339cadb9001",
+      "recipeSha256": "7335c5a5f6ee86b66d3ab2e135d0d2fe01fe32aa835e5d235fab0c2ef030a681",
+      "bytes": 3442764,
+      "nativePoints": 100000,
+      "triangles": 6144,
+      "bounds": {
+        "min": [-0.6700000166893005, 0, -0.6700000166893005],
+        "max": [0.6700000166893005, 1.8899999856948853, 0.6700000166893005]
+      },
+      "nativeCoreBounds": {
+        "min": [
+          -0.4464712142944336, 0.000051646424253704026, -0.4216584861278534
+        ],
+        "max": [0.4801596701145172, 1.7616028785705566, 0.36740463972091675]
+      },
+      "seed": 1651275109,
+      "burnIn": 96,
+      "embeddedTextures": 3,
+      "components": [
+        {
+          "name": "blue_head",
+          "points": 44000
+        },
+        {
+          "name": "blue_stalk_0",
+          "points": 12000
+        },
+        {
+          "name": "blue_stalk_1",
+          "points": 12000
+        },
+        {
+          "name": "blue_stalk_2",
+          "points": 12000
+        },
+        {
+          "name": "blue_root_spine",
+          "points": 1200
+        },
+        {
+          "name": "blue_root_frond_0",
+          "points": 4700
+        },
+        {
+          "name": "blue_root_frond_1",
+          "points": 4700
+        },
+        {
+          "name": "blue_root_frond_2",
+          "points": 4700
+        },
+        {
+          "name": "blue_root_frond_3",
+          "points": 4700
+        }
+      ],
+      "checks": "Reparsed GLB/chunks/alignment/accessors/bounds/finite data/unit normals/materials/PNG signatures and every saved linear COLOR_0 value."
+    },
+    {
+      "file": "fractal-pawn-blue-branch-ember.glb",
+      "recipeFile": "fractal-pawn-blue-branch-ember.json",
+      "side": "dark",
+      "sha256": "20fe18cc4298f44f4661cd492a05dc07e5af13dbdf4a90a11495716071911d78",
+      "recipeSha256": "64a757a598aa08baa3f15646d552b88a7a9a445cf7b2e35003a83ac80189d777",
+      "bytes": 3442704,
+      "nativePoints": 100000,
+      "triangles": 6144,
+      "bounds": {
+        "min": [-0.6700000166893005, 0, -0.6700000166893005],
+        "max": [0.6700000166893005, 1.8899999856948853, 0.6700000166893005]
+      },
+      "nativeCoreBounds": {
+        "min": [
+          -0.4464712142944336, 0.000051646424253704026, -0.4216584861278534
+        ],
+        "max": [0.4801596701145172, 1.7616028785705566, 0.36740463972091675]
+      },
+      "seed": 1651275109,
+      "burnIn": 96,
+      "embeddedTextures": 3,
+      "components": [
+        {
+          "name": "blue_head",
+          "points": 44000
+        },
+        {
+          "name": "blue_stalk_0",
+          "points": 12000
+        },
+        {
+          "name": "blue_stalk_1",
+          "points": 12000
+        },
+        {
+          "name": "blue_stalk_2",
+          "points": 12000
+        },
+        {
+          "name": "blue_root_spine",
+          "points": 1200
+        },
+        {
+          "name": "blue_root_frond_0",
+          "points": 4700
+        },
+        {
+          "name": "blue_root_frond_1",
+          "points": 4700
+        },
+        {
+          "name": "blue_root_frond_2",
+          "points": 4700
+        },
+        {
+          "name": "blue_root_frond_3",
+          "points": 4700
+        }
+      ],
+      "checks": "Reparsed GLB/chunks/alignment/accessors/bounds/finite data/unit normals/materials/PNG signatures and every saved linear COLOR_0 value."
+    }
+  ],
+  "limitations": [
+    "The core is 100,000 deterministic native affine IFS POINTS with linear vertex colours, not a solid branching triangle mesh. Importers choose point size; Blender imports loose vertices.",
+    "The smooth closed hollow shell is a real triangle mesh. KHR_materials_transmission/ior/volume depend on viewer support, illumination and transparency policy; unsupported viewers may display opaque glass.",
+    "Portable glass material extensions approximate the live screen-space two-wall absorption shader. Mutual glass refraction, exact multiple internal reflections and lighting-dependent caustics are not reproduced.",
+    "Sampling uses the native affine/color recurrence and fixed component masses; CPU and GPU arithmetic are not bit-identical. Fixed-lightness export colours differ from density-based native preview grading.",
+    "No fracture animation, collision or shard meshes are embedded. The live game generates 1600 closed glass shards from the same authored 64-segment grid."
+  ]
+}

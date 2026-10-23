@@ -1,7 +1,9 @@
+/** Editor shortcuts act only while the workspace is visible; the shared theme chord stays global. */
 import { isThemeChord } from '@/arcade/lockKeyGate'
 import { pilotOwnsKeyboard } from '@/arcade/pilot'
 import { executeCommand } from '@/commands/registry'
 import { animationExportRunning } from '@/flame/renderStats'
+import { workspaceIsVisible } from '@/lib/activeTab'
 import { useShortcutManager } from '@/shortcuts'
 import { useKeyboardShortcuts } from '@/utils/useKeyboardShortcuts'
 import type { CommandContext } from '@/commands/types'
@@ -49,12 +51,14 @@ export function useWorkspaceShortcuts(params: UseWorkspaceShortcutsParams) {
 
   useKeyboardShortcuts({
     Escape: () => {
+      if (!workspaceIsVisible()) return false
       if (sidebarDiffView()) {
         closeSidebarDiff()
         return true
       }
     },
     KeyF: (ev) => {
+      if (!workspaceIsVisible()) return false
       // Only a bare F is the sidebar's. With a modifier the key belongs to the
       // browser, and claiming it took Ctrl/Cmd+F, find, away from the page.
       if (ev.ctrlKey || ev.metaKey || ev.altKey || ev.shiftKey) return false
@@ -70,6 +74,7 @@ export function useWorkspaceShortcuts(params: UseWorkspaceShortcutsParams) {
       return true
     },
     KeyZ: (ev) => {
+      if (!workspaceIsVisible()) return false
       // Undo would rewind the take the agent is making, and record the
       // rewind into it as a step of its own.
       // Redundant since the key gate (arcade/lockKeyGate.ts) swallows every key
@@ -89,6 +94,7 @@ export function useWorkspaceShortcuts(params: UseWorkspaceShortcutsParams) {
       }
     },
     KeyY: (ev) => {
+      if (!workspaceIsVisible()) return false
       // Redundant since the key gate (arcade/lockKeyGate.ts) swallows every key
       // under the screen lock before any listener runs; kept until WP9 takes
       // these checks out one at a time, each with its own test.
@@ -108,6 +114,7 @@ export function useWorkspaceShortcuts(params: UseWorkspaceShortcutsParams) {
       return true
     },
     KeyI: (ev) => {
+      if (!workspaceIsVisible()) return false
       // Ctrl/Cmd+I is the browser's, as Ctrl/Cmd+F is. Alt+I removes a key.
       if (ev.ctrlKey || ev.metaKey) return false
       // A keyframe is an edit of the take the agent is making.
@@ -128,6 +135,7 @@ export function useWorkspaceShortcuts(params: UseWorkspaceShortcutsParams) {
       return true
     },
     Space: (ev) => {
+      if (!workspaceIsVisible()) return false
       // The playback is the agent's while it owns the screen: Space started
       // and stopped the animation of the take the viewer was only watching.
       // Nothing after this hears it either (the audio panel toggles its track

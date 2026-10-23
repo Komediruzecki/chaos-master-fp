@@ -1,0 +1,321 @@
+/* One fixed stage beside a scrolling collection shelf; no live GPU card thumbnails. */
+.page {
+  background: var(--la-void);
+}
+.workshop {
+  max-width: 1800px;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: clamp(16px, 2.4vw, 40px);
+}
+.preview {
+  background: var(--la-surface);
+}
+.stage {
+  position: relative;
+  min-height: 0;
+  display: grid;
+}
+.stageNotice {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  padding: 24px;
+  text-align: center;
+}
+.stageNotice span {
+  border: 1px solid var(--la-hairline);
+  border-radius: 12px;
+  padding: 14px 20px;
+  background: var(--la-surface-2);
+  color: var(--la-ink-2);
+}
+.previewFooter {
+  min-width: 0;
+  padding: 8px 12px;
+}
+.previewFooter > button {
+  flex-shrink: 0;
+}
+.roleStrip {
+  display: flex;
+  gap: 5px;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--la-hairline-strong) transparent;
+}
+.roleStrip button {
+  flex: 1 0 60px;
+  min-height: var(--la-tap);
+  padding: 8px 6px;
+  border: 1px solid var(--la-hairline-strong);
+  border-radius: 7px;
+  background: var(--la-surface);
+  color: var(--la-ink-2);
+  font: var(--la-t-caption);
+  cursor: pointer;
+}
+.roleStrip button:hover,
+.roleStrip button[aria-pressed='true'] {
+  border-color: var(--la-accent);
+  background: var(--la-surface-2);
+  color: var(--la-ink);
+}
+.controls {
+  padding-right: 14px;
+  scrollbar-gutter: stable;
+}
+.intro {
+  margin-bottom: 24px;
+}
+.intro h1 {
+  font-size: clamp(28px, 2.6vw, 36px);
+}
+.field {
+  border: 0;
+  padding: 0;
+  margin: 0 0 24px;
+  min-width: 0;
+}
+.field legend {
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.collections {
+  display: grid;
+  gap: 10px;
+}
+.collectionCard {
+  display: flex;
+  align-items: flex-start;
+  text-align: left;
+  gap: 14px;
+  width: 100%;
+  padding: 18px 16px;
+  min-height: 104px;
+  border: 1px solid var(--la-hairline-strong);
+  border-radius: 12px;
+  background: var(--la-surface);
+  color: var(--la-ink);
+  cursor: pointer;
+  font: inherit;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+.collectionCard:hover {
+  background: var(--la-surface-2);
+  border-color: var(--collection-accent);
+}
+.collectionCard[aria-pressed='true'] {
+  background: var(--la-surface-2);
+  border-color: var(--collection-accent);
+  box-shadow: inset 3px 0 var(--collection-accent);
+}
+.collectionNumber {
+  color: var(--collection-accent);
+  font: var(--la-t-mono);
+  padding-top: 4px;
+}
+.collectionCopy {
+  display: grid;
+  gap: 6px;
+}
+.collectionCopy strong {
+  font-size: 18px;
+  line-height: 1.25;
+  font-weight: 500;
+}
+.collectionCopy > span {
+  color: var(--la-ink-2);
+  font: var(--la-t-caption);
+  line-height: 1.5;
+}
+.collectionCopy small {
+  color: var(--collection-accent);
+  font: var(--la-t-caption);
+}
+.segmented {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+}
+.segmented button,
+.roles button,
+.studies button {
+  flex: 1;
+  min-height: var(--la-tap);
+  padding: 8px;
+  border: 1px solid var(--la-hairline-strong);
+  border-radius: 7px;
+  background: var(--la-surface);
+  color: var(--la-ink-2);
+  font: inherit;
+  cursor: pointer;
+}
+.segmented button:hover,
+.roles button:hover,
+.studies button:hover {
+  background: var(--la-surface-2);
+  color: var(--la-ink);
+}
+.segmented button[aria-pressed='true'],
+.roles button[aria-pressed='true'],
+.studies button[aria-pressed='true'] {
+  border-color: var(--la-accent);
+  background: var(--la-surface-2);
+  color: var(--la-ink);
+}
+.roles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.roles button,
+.studies button {
+  text-align: left;
+  padding: 12px;
+  display: grid;
+  gap: 5px;
+}
+.roles small,
+.studies small {
+  color: var(--la-ink-3);
+  font: var(--la-t-caption);
+  line-height: 1.3;
+}
+.studies {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.studies button {
+  width: 100%;
+}
+.glassCaption {
+  margin: 10px 0 0;
+  color: var(--la-ink-2);
+  font: var(--la-t-caption);
+  line-height: 1.5;
+}
+.comparisonLegend {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.comparisonLegend span {
+  padding: 6px 10px;
+  border: 1px solid var(--la-hairline-strong);
+  border-radius: 20px;
+  background: var(--la-surface-2);
+  color: var(--la-ink-2);
+  font: var(--la-t-caption);
+}
+.selected {
+  padding: 18px;
+  background: var(--la-surface-2);
+  border: 1px solid var(--la-hairline);
+  border-radius: 12px;
+  margin-bottom: 24px;
+  display: grid;
+  gap: 12px;
+}
+.selected h2 {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 500;
+}
+.selected p {
+  margin: 0;
+  color: var(--la-ink-2);
+  line-height: 1.6;
+}
+.section {
+  padding-block: 16px;
+  border-block: 1px solid var(--la-hairline);
+}
+.section summary {
+  cursor: pointer;
+  min-height: var(--la-tap);
+  font-weight: 600;
+}
+.section[open] summary {
+  margin-bottom: 6px;
+}
+.toggle {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-height: var(--la-tap);
+  margin-top: 14px;
+  color: var(--la-ink-2);
+  cursor: pointer;
+}
+.toggle input {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: var(--la-accent);
+}
+.notice {
+  color: var(--la-accent);
+  line-height: 1.5;
+}
+.previous {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--la-tap);
+  margin-top: 10px;
+  color: var(--la-ink-2);
+  text-underline-offset: 4px;
+}
+.collectionCard:focus-visible,
+.segmented button:focus-visible,
+.roles button:focus-visible,
+.studies button:focus-visible,
+.roleStrip button:focus-visible,
+.section summary:focus-visible,
+.toggle input:focus-visible,
+.previous:focus-visible {
+  outline: 2px solid var(--la-accent);
+  outline-offset: 3px;
+}
+@media (max-width: 1050px) {
+  .workshop {
+    grid-template-columns: minmax(0, 1fr) 300px;
+  }
+}
+@media (max-width: 740px) {
+  .workshop {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(220px, 46%) minmax(0, 1fr);
+  }
+  .intro h1 {
+    font-size: 28px;
+  }
+  .collectionCard {
+    min-height: 104px;
+  }
+}
+@media (max-width: 740px) and (orientation: landscape) {
+  .workshop {
+    grid-template-columns: minmax(0, 1fr) minmax(250px, 0.8fr);
+    grid-template-rows: minmax(0, 1fr);
+  }
+}
+
+.playLink {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  text-decoration: none;
+}

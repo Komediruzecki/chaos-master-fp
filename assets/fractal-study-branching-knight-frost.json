@@ -1,0 +1,1675 @@
+{
+  "format": "lumen-fractal-figurine-study",
+  "version": 1,
+  "studyId": "branching-knight",
+  "side": "light",
+  "flame": {
+    "version": "1.0",
+    "metadata": {
+      "author": "Lumen Apeiron",
+      "name": "Frost branching knight",
+      "description": "Contracting branching tree. A leaning recursive neck carries a faceted horse head, projecting lattice muzzle and two pointed ears."
+    },
+    "renderSettings": {
+      "exposure": 0.25,
+      "skipIters": 32,
+      "plotsPerChain": 16,
+      "autoExposure3D": false,
+      "autoExposure3DStrength": 1,
+      "autoExposure3DRefRadius": 5,
+      "autoExposure3DBase": 0,
+      "dimensions": 3,
+      "drawMode": "light",
+      "colorInitMode": "colorInitZero",
+      "pointInitMode": "pointInitUnitBall",
+      "vibrancy": 0.75,
+      "contrast": 1.1,
+      "gamma": 2.2,
+      "depthColorPower": 0.12,
+      "lightDirection": [-0.5, 0.5, -1],
+      "lightPower": 0.3,
+      "highlightPower": 0.65,
+      "densityEstimationQuality": 0.8,
+      "estimatorCurve": 0.5,
+      "paletteMode": 0,
+      "palettePhase": 0,
+      "paletteSpeed": 0.5,
+      "backgroundColor": [0.008, 0.012, 0.025],
+      "camera": {
+        "zoom": 1,
+        "position": [0, 0],
+        "rotation": 0
+      },
+      "camera3D": {
+        "theta": 0.45,
+        "phi": 1.25,
+        "radius": 4,
+        "target": [0, 0.9, 0],
+        "fov": 45,
+        "roll": 0
+      }
+    },
+    "transforms": {
+      "knight_foot_0": {
+        "probability": 0.0225,
+        "walkGroup": "knight_foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.42,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 0.42,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 0.42,
+          "l": 0
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "knight_foot_1": {
+        "probability": 0.0225,
+        "walkGroup": "knight_foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.42,
+          "b": 0,
+          "c": 0,
+          "d": -0.09860000000000002,
+          "e": 0,
+          "f": 0.42,
+          "g": 0,
+          "h": 0.1044,
+          "i": 0,
+          "j": 0,
+          "k": 0.42,
+          "l": 0
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "knight_foot_2": {
+        "probability": 0.0225,
+        "walkGroup": "knight_foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.42,
+          "b": 0,
+          "c": 0,
+          "d": 0.33640000000000003,
+          "e": 0,
+          "f": 0.42,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 0.42,
+          "l": 0
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "knight_foot_3": {
+        "probability": 0.0225,
+        "walkGroup": "knight_foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.42,
+          "b": 0,
+          "c": 0,
+          "d": 0.16820000000000004,
+          "e": 0,
+          "f": 0.42,
+          "g": 0,
+          "h": 0.1044,
+          "i": 0,
+          "j": 0,
+          "k": 0.42,
+          "l": 0.29133094583308516
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "knight_foot_4": {
+        "probability": 0.0225,
+        "walkGroup": "knight_foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.42,
+          "b": 0,
+          "c": 0,
+          "d": -0.16819999999999993,
+          "e": 0,
+          "f": 0.42,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 0.42,
+          "l": 0.29133094583308516
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "knight_foot_5": {
+        "probability": 0.0225,
+        "walkGroup": "knight_foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.42,
+          "b": 0,
+          "c": 0,
+          "d": -0.33640000000000003,
+          "e": 0,
+          "f": 0.42,
+          "g": 0,
+          "h": 0.1044,
+          "i": 0,
+          "j": 0,
+          "k": 0.42,
+          "l": 4.119711832331696e-17
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "knight_foot_6": {
+        "probability": 0.0225,
+        "walkGroup": "knight_foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.42,
+          "b": 0,
+          "c": 0,
+          "d": -0.16820000000000018,
+          "e": 0,
+          "f": 0.42,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 0.42,
+          "l": -0.2913309458330851
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "knight_foot_7": {
+        "probability": 0.0225,
+        "walkGroup": "knight_foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.42,
+          "b": 0,
+          "c": 0,
+          "d": 0.16820000000000004,
+          "e": 0,
+          "f": 0.42,
+          "g": 0,
+          "h": 0.1044,
+          "i": 0,
+          "j": 0,
+          "k": 0.42,
+          "l": -0.29133094583308516
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "knight_neck_8": {
+        "probability": 0.06,
+        "walkGroup": "knight_neck",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.12,
+          "b": 0.096,
+          "c": 0,
+          "d": -0.16688,
+          "e": 0,
+          "f": 0.45,
+          "g": 0,
+          "h": 0.09899999999999999,
+          "i": 0,
+          "j": 0,
+          "k": 0.12,
+          "l": 0
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "knight_neck_9": {
+        "probability": 0.08000000000000002,
+        "walkGroup": "knight_neck",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.52,
+          "b": 0.034909090909090904,
+          "c": 0,
+          "d": 0.027316363636363628,
+          "e": 0,
+          "f": 0.64,
+          "g": 0,
+          "h": 0.4608000000000001,
+          "i": 0,
+          "j": 0,
+          "k": 0.52,
+          "l": 0
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "knight_neck_10": {
+        "probability": 0.065,
+        "walkGroup": "knight_neck",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.20298092797842354,
+          "b": 0.09759044892604693,
+          "c": 0,
+          "d": -0.19865952305035653,
+          "e": -0.4784620875223533,
+          "f": 0.4813588698096109,
+          "g": 0,
+          "h": 0.43001684855547007,
+          "i": 0,
+          "j": 0,
+          "k": 0.34,
+          "l": -0.07
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "knight_neck_11": {
+        "probability": 0.065,
+        "walkGroup": "knight_neck",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.20298092797842354,
+          "b": 0.09759044892604693,
+          "c": 0,
+          "d": -0.19865952305035653,
+          "e": -0.4784620875223533,
+          "f": 0.4813588698096109,
+          "g": 0,
+          "h": 0.43001684855547007,
+          "i": 0,
+          "j": 0,
+          "k": 0.34,
+          "l": 0.07
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "knight_neck_12": {
+        "probability": 0.065,
+        "walkGroup": "knight_neck",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.4813588698096109,
+          "b": -0.09759044892604693,
+          "c": 0,
+          "d": 0.21819728867432234,
+          "e": 0.4784620875223533,
+          "f": 0.20298092797842354,
+          "g": 0,
+          "h": 0.6428019878426839,
+          "i": 0,
+          "j": 0,
+          "k": 0.34,
+          "l": -0.07
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "knight_neck_13": {
+        "probability": 0.065,
+        "walkGroup": "knight_neck",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.4813588698096109,
+          "b": -0.09759044892604693,
+          "c": 0,
+          "d": 0.21819728867432234,
+          "e": 0.4784620875223533,
+          "f": 0.20298092797842354,
+          "g": 0,
+          "h": 0.6428019878426839,
+          "i": 0,
+          "j": 0,
+          "k": 0.34,
+          "l": 0.07
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "knight_head_14": {
+        "probability": 0.03,
+        "walkGroup": "knight_head",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.49,
+          "b": 0,
+          "c": 0,
+          "d": -0.020400000000000005,
+          "e": 0,
+          "f": 0.49,
+          "g": 0,
+          "h": 0.7343999999999999,
+          "i": 0,
+          "j": 0,
+          "k": 0.49,
+          "l": 0
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "knight_head_15": {
+        "probability": 0.03,
+        "walkGroup": "knight_head",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.49,
+          "b": 0,
+          "c": 0,
+          "d": 0.21420000000000003,
+          "e": 0,
+          "f": 0.49,
+          "g": 0,
+          "h": 0.7343999999999999,
+          "i": 0,
+          "j": 0,
+          "k": 0.49,
+          "l": 0
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "knight_head_16": {
+        "probability": 0.03,
+        "walkGroup": "knight_head",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.49,
+          "b": 0,
+          "c": 0,
+          "d": 0.0765,
+          "e": 0,
+          "f": 0.49,
+          "g": 0,
+          "h": 0.6528,
+          "i": 0,
+          "j": 0,
+          "k": 0.49,
+          "l": 0
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "knight_head_17": {
+        "probability": 0.03,
+        "walkGroup": "knight_head",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.49,
+          "b": 0,
+          "c": 0,
+          "d": 0.0969,
+          "e": 0,
+          "f": 0.49,
+          "g": 0,
+          "h": 0.8568,
+          "i": 0,
+          "j": 0,
+          "k": 0.49,
+          "l": 0
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "knight_head_18": {
+        "probability": 0.03,
+        "walkGroup": "knight_head",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.49,
+          "b": 0,
+          "c": 0,
+          "d": 0.0969,
+          "e": 0,
+          "f": 0.49,
+          "g": 0,
+          "h": 0.7343999999999999,
+          "i": 0,
+          "j": 0,
+          "k": 0.49,
+          "l": -0.1071
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "knight_head_19": {
+        "probability": 0.03,
+        "walkGroup": "knight_head",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.49,
+          "b": 0,
+          "c": 0,
+          "d": 0.0969,
+          "e": 0,
+          "f": 0.49,
+          "g": 0,
+          "h": 0.7343999999999999,
+          "i": 0,
+          "j": 0,
+          "k": 0.49,
+          "l": 0.1071
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "knight_muzzle_20": {
+        "probability": 0.02,
+        "walkGroup": "knight_muzzle",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.44,
+          "b": 0,
+          "c": 0,
+          "d": 0.15680000000000002,
+          "e": 0,
+          "f": 0.44,
+          "g": 0,
+          "h": 0.6944,
+          "i": 0,
+          "j": 0,
+          "k": 0.44,
+          "l": -0.08960000000000001
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "knight_muzzle_21": {
+        "probability": 0.02,
+        "walkGroup": "knight_muzzle",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.44,
+          "b": 0,
+          "c": 0,
+          "d": 0.15680000000000002,
+          "e": 0,
+          "f": 0.44,
+          "g": 0,
+          "h": 0.6944,
+          "i": 0,
+          "j": 0,
+          "k": 0.44,
+          "l": 0.08960000000000001
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "knight_muzzle_22": {
+        "probability": 0.02,
+        "walkGroup": "knight_muzzle",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.44,
+          "b": 0,
+          "c": 0,
+          "d": 0.23520000000000002,
+          "e": 0,
+          "f": 0.44,
+          "g": 0,
+          "h": 0.8064,
+          "i": 0,
+          "j": 0,
+          "k": 0.44,
+          "l": 0
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "knight_muzzle_23": {
+        "probability": 0.02,
+        "walkGroup": "knight_muzzle",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.44,
+          "b": 0,
+          "c": 0,
+          "d": 0.15680000000000002,
+          "e": 0,
+          "f": 0.44,
+          "g": 0,
+          "h": 0.8008000000000001,
+          "i": 0,
+          "j": 0,
+          "k": 0.44,
+          "l": 0.08960000000000001
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "knight_muzzle_24": {
+        "probability": 0.02,
+        "walkGroup": "knight_muzzle",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.44,
+          "b": 0,
+          "c": 0,
+          "d": 0.41440000000000005,
+          "e": 0,
+          "f": 0.44,
+          "g": 0,
+          "h": 0.6944,
+          "i": 0,
+          "j": 0,
+          "k": 0.44,
+          "l": -0.08960000000000001
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "knight_muzzle_25": {
+        "probability": 0.02,
+        "walkGroup": "knight_muzzle",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.44,
+          "b": 0,
+          "c": 0,
+          "d": 0.41440000000000005,
+          "e": 0,
+          "f": 0.44,
+          "g": 0,
+          "h": 0.6944,
+          "i": 0,
+          "j": 0,
+          "k": 0.44,
+          "l": 0.08960000000000001
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "knight_muzzle_26": {
+        "probability": 0.02,
+        "walkGroup": "knight_muzzle",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.44,
+          "b": 0,
+          "c": 0,
+          "d": 0.41440000000000005,
+          "e": 0,
+          "f": 0.44,
+          "g": 0,
+          "h": 0.8008000000000001,
+          "i": 0,
+          "j": 0,
+          "k": 0.44,
+          "l": -0.08960000000000001
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "knight_muzzle_27": {
+        "probability": 0.02,
+        "walkGroup": "knight_muzzle",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.44,
+          "b": 0,
+          "c": 0,
+          "d": 0.41440000000000005,
+          "e": 0,
+          "f": 0.44,
+          "g": 0,
+          "h": 0.8008000000000001,
+          "i": 0,
+          "j": 0,
+          "k": 0.44,
+          "l": 0.08960000000000001
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "knight_ear_back_28": {
+        "probability": 0.01,
+        "walkGroup": "knight_ear_back",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.5,
+          "b": 0,
+          "c": 0,
+          "d": 0.035,
+          "e": 0,
+          "f": 0.5,
+          "g": 0,
+          "h": 0.9,
+          "i": 0,
+          "j": 0,
+          "k": 0.5,
+          "l": -0.055
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "knight_ear_back_29": {
+        "probability": 0.01,
+        "walkGroup": "knight_ear_back",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.5,
+          "b": 0,
+          "c": 0,
+          "d": -0.01,
+          "e": 0,
+          "f": 0.5,
+          "g": 0,
+          "h": 0.77,
+          "i": 0,
+          "j": 0,
+          "k": 0.5,
+          "l": -0.085
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "knight_ear_back_30": {
+        "probability": 0.01,
+        "walkGroup": "knight_ear_back",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.5,
+          "b": 0,
+          "c": 0,
+          "d": 0.1,
+          "e": 0,
+          "f": 0.5,
+          "g": 0,
+          "h": 0.77,
+          "i": 0,
+          "j": 0,
+          "k": 0.5,
+          "l": -0.085
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "knight_ear_back_31": {
+        "probability": 0.01,
+        "walkGroup": "knight_ear_back",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.5,
+          "b": 0,
+          "c": 0,
+          "d": 0.095,
+          "e": 0,
+          "f": 0.5,
+          "g": 0,
+          "h": 0.7812,
+          "i": 0,
+          "j": 0,
+          "k": 0.5,
+          "l": -0.05145
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "knight_ear_front_32": {
+        "probability": 0.01,
+        "walkGroup": "knight_ear_front",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.5,
+          "b": 0,
+          "c": 0,
+          "d": 0.035,
+          "e": 0,
+          "f": 0.5,
+          "g": 0,
+          "h": 0.9,
+          "i": 0,
+          "j": 0,
+          "k": 0.5,
+          "l": 0.055
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "knight_ear_front_33": {
+        "probability": 0.01,
+        "walkGroup": "knight_ear_front",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.5,
+          "b": 0,
+          "c": 0,
+          "d": -0.01,
+          "e": 0,
+          "f": 0.5,
+          "g": 0,
+          "h": 0.77,
+          "i": 0,
+          "j": 0,
+          "k": 0.5,
+          "l": 0.085
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "knight_ear_front_34": {
+        "probability": 0.01,
+        "walkGroup": "knight_ear_front",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.5,
+          "b": 0,
+          "c": 0,
+          "d": 0.1,
+          "e": 0,
+          "f": 0.5,
+          "g": 0,
+          "h": 0.77,
+          "i": 0,
+          "j": 0,
+          "k": 0.5,
+          "l": 0.085
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "knight_ear_front_35": {
+        "probability": 0.01,
+        "walkGroup": "knight_ear_front",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.5,
+          "b": 0,
+          "c": 0,
+          "d": 0.095,
+          "e": 0,
+          "f": 0.5,
+          "g": 0,
+          "h": 0.7812,
+          "i": 0,
+          "j": 0,
+          "k": 0.5,
+          "l": 0.05145
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      }
+    }
+  }
+}

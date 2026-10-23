@@ -20,8 +20,9 @@ const RAW_SOURCES = import.meta.glob(
 /**
  * Bump this deliberately when an extraction adds a file. The file is covered
  * either way; the count makes the widening visible in review instead of silent.
+ * Includes the chess inspection handoff and startup-query extraction hooks.
  */
-const EXPECTED_SOURCE_COUNT = 20
+const EXPECTED_SOURCE_COUNT = 22
 
 const sources = Object.entries(RAW_SOURCES).map(([relative, text]) => ({
   path: relative.replace(/^\.\.\//, 'src/'),

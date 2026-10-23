@@ -1,0 +1,797 @@
+# Chess in Lumen Apeiron
+
+Integration plan, reviewed 2026-10-08. The user approved Arcade integration and
+confirmed the checkmate overlay. The embedded Arcade entry and visual selection
+sidebar are implemented and verified in native Chromium. Firefox production
+layout checks pass; physical-device verification remains separate. The
+glass and capture implementations below are ready for review; physical-device
+acceptance and the later collection/network phases remain open.
+
+The user has played the local match through checkmate and published the Cinema
+film. Keep that working game, its PGN history, material presets and shot pipeline
+as the foundation. Chess fits in **Lumen Arcade** as a directly playable game,
+with the fractal editor feeding its piece collections and Cinema recording its
+captures.
+
+## Recommended sequence
+
+| Step                                                       | Benefit                                                                                  | Relative effort                  | Acceptance before expanding                                                                                                                               |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Add Chess to Arcade with a visual setup sidebar         | Make the game discoverable and its collections enjoyable to choose                       | Medium                           | Open without an agent connection; large piece-set and board cards apply the chosen look; preserve editor and match state on return; bound active GPU work |
+| 2. Repair the glass playing surface                        | Put the squares, pieces and selection on one physical board                              | Medium                           | Inset glass squares share the picking grid at all tested camera angles; floor caustics stay on their separate receiver                                    |
+| 3. Add capture motion variants                             | Vary the contact, smear and finish across a game                                         | Medium                           | Three bounded mechanics preserve the destination square; recorded seeds replay the same choreography                                                      |
+| 4. Introduce saved piece collections and one authored pawn | Connect IFS creation to a game and its films                                             | Medium to large                  | Edit, save, reopen, place, capture and film one pawn; cached geometry and side/role readability fit the measured budget before expanding to six roles     |
+| 5. Add private friend sessions                             | Invite a second player after choosing the collection and board                           | Large                            | Two clients converge on authoritative chess state through duplicate moves, disconnect, rejoin and different rendering speeds                              |
+| 6. Expand material-specific effects and world placement    | Give glass and fractal pieces their own response, then place the game in a fractal scene | Large, with research uncertainty | Matched captures show coherent separation and bounded cost; world camera/picking use the same match controller                                            |
+
+The local playability pass is complete: the user has played through checkmate,
+and desktop checks cover result controls, capture handoffs and bounded resources.
+Physical tablet profiling remains a parallel acceptance task. Keep the fully
+soft 32-piece board and ranked competition outside the private-friend milestone.
+
+The working branch was rebased cleanly onto fork `origin/main` at `9d8a0c7c`
+before this integration pass. That records the current base only; a future
+upstream merge needs another fetch and comparison before claiming compatibility.
+
+## Fit with the current app
+
+`components/Arcade/ArcadeHub.tsx` now offers Chess alongside the six agent-led
+modes. `lib/activeTab.ts` handles `#arcade=chess`, and the hub lazily imports the
+existing `GummyMatchPage` as `ChessWorld`. It renders the match inside Arcade
+without an agent connection. The standalone `/gummy?view=match` route remains
+available for direct testing and the existing Cinema workflow.
+
+The `onBackToArcade` callback returns to the hub without replacing the app.
+`MainWorkspace` stays mounted, preserving the editor document, while the existing
+tab-local match session restores the game on re-entry. Editor shortcuts,
+secondary GPU loops and the main animation loop are gated while Chess is active;
+an explicitly running export retains its own work. That means entering Chess
+does not cancel an export, and performance measurements should record whether
+one is active.
+
+The match renderer owns its resources and the match canvas is unconfigured when
+the world is torn down. A quality change rebuilds the relevant renderer resources
+without unconfiguring the still-live canvas. Navigation and quality changes have
+different ownership boundaries. The native verification below measures repeated
+world exits and idle GPU submissions; it does not measure total driver memory.
+
+Keep the material workbench and Cinema as adjacent tools. A collection opens in
+the editor to change its pieces, in Chess to play, and in Cinema to film a saved
+move receipt. PGN stays portable and independent of material recipes.
+
+## Chess world entry and selection
+
+The implemented match shell follows the deep-zoom explorer's full canvas and
+glass-panel treatment, using the shared glass tokens from fork main. The board
+stays visible behind an independently scrolling sidebar with reachable controls
+on smaller viewports.
+
+Large **Marble**, **Lagoon** and **Candy** cards select colour looks for the six
+existing gummy moulds. **Classic**, **Glass** and **Lava** cards select board
+finishes. The chosen card has an explicit selected state; material physics
+remains controlled by the existing preset section. These are palette choices,
+with future authored shape collections covered separately below. Existing
+per-piece palette editing remains in the crash study.
+
+All six preview images are real static WebGPU captures from the application,
+stored under `packages/app/public/assets/chess/`. Their manifest records the
+renderer, shapes, material settings and camera used for the captures. Cards show
+all six roles or a complete starting board without allocating a preview scene.
+A later live preview should mount only for the selected or visible card and have an explicit
+resource owner. A grid of offscreen simulations would undo the bounded-resource
+work. Check sidebar scrolling, focus, keyboard selection, selected contrast and
+safe-area controls in desktop, tablet and phone layouts.
+
+Keep local play immediately available. A future **Play with a friend** action
+belongs after set and board selection, once a real room service exists. It should
+create a session, copy its invitation and show whether the second seat is occupied.
+Do not expose a share control that copies a local-only match and claims it is an
+online game.
+
+## Glass playing surface (G16)
+
+Implemented on 2026-10-08. The slab already contacted pieces at `y=0`, but the
+projected colour below it dominated the image and the top had no distinct inset
+edges. `gummyBoardGrid.ts` now owns square size, centre/orientation, bounds and
+contact height. Piece placement, CPU picking, GPU square parity and legal-move
+marker projection use that shared description. The slab and rim derive their
+bounds from it as well.
+
+The top now carries 64 flush material insets with alternating clear/frosted and
+tinted glass, narrow etched seams and bevel shading. These are analytic material
+regions on the existing slab, not 64 new meshes or recessed collision shapes.
+Every playable square and marker stays on the contact plane. The glass below is
+a neutral substrate with thin coloured insets; the separate lower receiver at
+`GUMMY_BOARD_GLASS_FLOOR` contains transmitted light and no playing-grid texture.
+The receiver adds only focused excess over the studio illumination, with a soft
+source-rim taper. Ordinary transmission no longer paints a bright rectangular
+carpet. Camera reflections retain the etched micro-bevels; transmitted light uses
+the smooth cast normal as an approximation of frost and broad studio-light
+averaging, so there is no second etched grid visible through the top.
+
+This adds no draw calls, textures, per-frame geometry or uniform layout changes.
+It retains the fixed 96 by 96 light grid and cached receiver transport. It does
+add bounded per-fragment material arithmetic; physical-tablet timing remains to
+be measured rather than inferred from unchanged draw counts.
+
+Verification: 67 focused tests pass across the shared grid, board themes, shader
+resolution, FEN placement, receipt presentation and choreography. Tests cover all
+64 square interiors, all four corner rays including grazing angles, marker
+projection at `y=0`, rim rejection and restrained transmitted colour contrast.
+Native Chromium compiled the shaders without GPU errors; overhead and grazing
+captures show aligned surfaces and piece bases. Matched Classic and Lava controls
+are retained with the glass captures under
+`/home/maff/agent-out/chaos-master-fp/2026-10-08/glass-captures/`. Native Arcade
+selection markers and complete capture framing passed on Glass. All-corner
+touch selection and physical iOS/tablet checks remain open. No gummy-piece
+remeshing was required. The floor follow-up was checked from overhead, grazing
+and near-horizontal cameras, with no GPU errors. Matched Classic and Lava
+control captures are retained alongside the glass views in
+`/home/maff/agent-out/chaos-master-fp/2026-10-08/glass-floor-fix/`.
+
+## Capture mechanics and reproducible variety (G17)
+
+Implemented on 2026-10-08. Three mechanics retain the attacker on the captured
+square:
+
+| Mechanic         | Contact and material response                                               | Bounds                                                                 |
+| ---------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Press and settle | Existing vertical compression, a short late sweep, then settle              | Original motion template, reduced when neighbours limit travel         |
+| Shoulder sweep   | Start the sideways push early, hold partway down, then return to the square | Conservative piece footprints bound lateral travel                     |
+| Rock and shear   | Alternate a small turn around the vertical axis while pressing and sweeping | Visible mesh and collider share yaw; contact includes angular velocity |
+
+`gummyCaptureMechanics.ts` chooses once per ordinary committed capture using a
+stable receipt seed and a shuffle bag reconstructed from retained captures. Each
+round includes all three mechanics once, with no immediate repeat across rounds;
+a cramped position can fall back to Press and settle. Repeated safety fallbacks
+count once toward the round, so the other motions resume when space opens up.
+Shared mould bounds and board occupancy cap travel and yaw before saving the choice. These conservative
+limits can make the motion subtle on crowded squares. Material and quality remain
+explicit settings, rather than separate selector heuristics.
+
+The session v2 presentation envelope stores mechanic/version/seed, resolved motion
+and a deep appearance snapshot beside the immutable chess receipt. Ply, pre-move
+FEN and move notation identify the receipt on reload. Replay and Cinema handoff
+retain the captured material, palette, board, scale and quality even if the live
+board settings later change. Branching, Undo and a draw claim from history remove
+orphaned future effects. Version 1 sessions migrate with their original early-shear
+motion; invalid effect data falls back while preserving the legal game.
+
+Cinema offers fixed **Press and settle**, **Shoulder sweep** and **Rock and shear**
+choices. **Apply shot settings** stages the selected motion without changing the
+material. New recipes use schema v3 with optional provenance and explicit motion;
+v1/v2 imports retain their earlier motion semantics. Manual motion edits clear the
+mechanic label and preserve the edited parameters. Loading or replaying a recipe
+never recomputes motion from its label or seed. Editing a fixed choice's position,
+source/target square or size recalculates clearance using the same mechanic and
+seed; incomplete position input stays editable until valid. Custom and legacy
+motion remains explicit through those edits. No choice is made during drawing or
+replay.
+
+The floor and selection follow-up passes 68 focused tests across board themes,
+grid alignment, capture selection, shot motion, match state and saved sessions.
+The original press retains its late sweep and zero twist. Regression coverage
+checks complete shuffled rounds, repeated safety fallbacks, reload followed by
+more captures, and replay of the saved press. Native Arcade and standalone match
+pages load with HMR enabled and no page, GPU or failed-request errors.
+
+Native Chromium on the desktop AMD GPU ran all three mechanics at Tablet quality
+for the pawn-versus-knight Glass shot. Sampled particle state remained finite,
+marching cubes reported no overflow or dropped vertices, and the run recorded no
+errors or warnings. The attacker finished on the target square. The receipt is
+`/home/maff/agent-out/chaos-master-fp/2026-10-08/glass-captures/capture-native.json`.
+Studio controls and horizontal overflow checks passed at 1440, 834 and 390px widths.
+The final focused run passed 211 tests across 17 files, including saved choices,
+migration, replay, branching, draw claims, corner clearance and the fixed Studio
+controls. `pnpm check`, the production build and agent-index check pass.
+
+A native Arcade run played e2-e4, d7-d5 and e4xd5 with Rock and shear, then
+replayed, reloaded and opened the same capture in Cinema. Motion and appearance
+stayed identical; the pawn retained d5, no GPU/runtime errors occurred, and live
+tracked buffers/textures settled at 57 after both capture and replay. The receipt
+is `glass-captures/match-final.json`. Hidden test-browser frame pacing needed
+`--disable-gpu-vsync` and `--disable-frame-rate-limit`; no app timing was changed.
+This resource count is an ownership check, not a measurement of total driver memory.
+
+Existing repository health debt remains: the file-size ratchet is red, though
+this extraction reduces files above 800 lines from 40 to 39. The architecture
+check reports 11 pre-existing dependency cycles; this pass adds none. No
+baseline or check was weakened.
+
+The next acceptance gate is physical iOS/tablet testing of the new angular contact,
+plus matched visual and timing comparisons across more role pairs, material presets
+and crowded positions. Desktop Tablet quality does not establish mobile performance;
+finite-state checks do not prove realistic fracture or visually distinct tearing in
+every pairing. The seed reproduces choreography, not bit-identical particles across
+GPUs. After that gate, the next feature milestone is G8's one authored fractal pawn
+through edit, save, board placement, capture and Cinema. Friend sessions remain
+planned; no network play is implemented by this pass.
+
+## First authored pawn (G8)
+
+Implemented on 2026-10-08. The first trial uses a finite-thickness structural IFS pawn with the
+existing gummy MPM material. It is a single-role comparison: the other five
+roles keep their approved gummy shapes. The original echo and lattice studies
+remain available. Glass transparency is deferred at the user's request; its
+rigid fracture and optical pass remain separate from this soft-body trial.
+
+Pawn Forge can save up to eight named local pawn snapshots. Chess can select the
+built-in lattice trial or a saved pawn, and open it for editing. Each snapshot
+pins the generator/bake version, parameter recipe, seed and physical thickness.
+The native IFS is sampled deterministically, thickened into a bounded distance
+field and resampled into equal-volume material cells. It does not treat the
+nonuniform density of IFS points as physical mass.
+
+One field supplies the resting mesh, capture particles, pointer picking and
+attacker contact. The authored pawn stays within the existing conservative pawn
+bounds used by camera framing and capture clearance. Static waiting pieces use
+cached compact meshes; only the active victim uses MPM. Changing shape rebuilds
+the renderer while keeping the orbit. The match cache preserves active leases
+and retains at most two unused variants; the CPU volume cache also holds two.
+
+Captures store their own validated shape snapshot. Editing or removing a library
+entry cannot change an old capture, and Cinema imports the recorded shape. Old
+sessions and shots without an authored pawn keep the original gummy shape.
+Saved shapes live in this browser; the Cinema JSON includes the complete snapshot
+for transfer. This pass does not add cloud library sync or friend sessions.
+
+Native Chromium on the desktop AMD GPU verified Forge save, reload and editing,
+saved-shape selection, and switching between classic and authored pawns at a
+390px viewport without horizontal overflow. An Arcade match played e2-e4, d7-d5
+and e4xd5, replayed the capture, reloaded and opened that capture in Cinema with
+the same authored snapshot. The sampled 2,947-particle victim state stayed finite.
+Tracked live GPU resources settled at 62 after both capture and replay, with no
+runtime or GPU errors. These are application resource counts, not total driver
+memory or physical-tablet performance measurements. Screenshots and receipts are
+under `/home/maff/agent-out/chaos-master-fp/2026-10-08/authored-pawn/`.
+
+The final focused run passed 301 tests across 22 files, including strict snapshot
+validation, connected material sampling, cache eviction, immutable replay,
+Forge draft isolation and the old pawn designs. Typecheck, lint, formatting,
+WGSL validation, production build and agent-index checks pass. The first
+`pnpm check` stopped at a new affine-field narrowing error; it was fixed, then
+typecheck and all remaining stages passed separately.
+
+The material radius deliberately joins thin recursive branches into a connected
+body at every supported particle spacing. That also fills small openings: the
+playable shape currently reads as a lobed crown over a solid stem and squared
+foot, while the Forge source preview retains finer IFS structure. Do not present
+this first trial as a finished high-detail fractal collection.
+
+Acceptance still requires a visual review of this first solid pawn before a
+six-role fractal set. Compare branch readability, resolved openings and the
+capture result on a physical tablet, then tune the design or its material.
+
+### Shape review and editor-to-piece inspection
+
+The user's first review found the default solid pawn too lumpy. Inspection of
+the conversion confirms two causes: it selects head facets by their position
+in an icosahedron face list, which does not guarantee rotational symmetry, and
+the uniform material radius fills the source's smaller gaps. The later particle
+surface reconstruction smooths it further. Increasing visual resolution alone
+does not recover openings already removed by the volume bake. Keep saved v1
+snapshots unchanged; an improved generator needs a new version and explicit
+selection rather than silently altering existing games or films.
+
+The Forge now offers **Fractal source** and **Playable surface** for authored
+chess pawns. Opening an authored pawn starts with the actual board surface.
+An original Forge draft can enter this comparison through **Inspect playable
+pawn** without saving or overwriting that draft. The fixed viewport keeps the
+preview visible while the controls scroll; Figurine studies shares that layout.
+
+The surface view uses the board's existing resting-mesh bake at spacing 0.08,
+piece scale 0.9, board illumination and gummy optics. Its palette and lighting
+selectors affect inspection only; Chess retains its own appearance settings.
+No particle solver runs in this view. Only the pawn mould is baked, slider
+changes coalesce for 240 ms, obsolete preparations abort and finish releasing
+their buffers before a replacement begins, and unchanged/hidden views submit
+no draw work. Switching to source unmounts the solid renderer and vice versa.
+
+**Open crown** is the new v2 geometry option. Its crown uses a complete
+rotational arrangement of connected Koch-curve bows around a hollow centre,
+with thinner material above the supporting stem and base. The default uses four
+bows and openness 0.65. Shared marching-density tests retain a through-opening
+at both resting-board spacing 0.08 and coarse particle spacing 0.12; connectivity
+checks cover every supported branch count. This is finite material built around
+a fractal source, so sub-particle features still merge. **Original lattice** remains available as v1. Source
+and occupied-material regression digests pin the old output, while validation,
+cache keys, saves, matches and Cinema retain each snapshot's explicit version.
+The old `chessPawn=trial` link still opens v1; new-pawn links open
+`chessPawn=crown`. Selecting another version edits the current draft only; a
+saved library entry changes only through an explicit save/update.
+
+Native Chromium verified the revised crown's visible opening, source/surface
+switching, palette changes, shape edits and touch orbit on the desktop AMD GPU.
+The preview stayed fixed while reaching the lowest controls at desktop, tablet,
+phone and landscape sizes (320px minimum width). A real Arcade e4xd5 capture
+with the v2 pawn replayed, survived reload and opened in Cinema with its exact
+snapshot; all 2,319 sampled victim particles stayed finite. Live application
+GPU resources returned to 62 after both capture and replay, with no GPU or
+runtime errors. These checks do not substitute for physical iOS/tablet review.
+Evidence is under `/home/maff/agent-out/chaos-master-fp/2026-10-08/forge-surface/`.
+
+Verification: 152 focused tests, typecheck, lint, formatting, WGSL validation,
+production build and agent-index checks pass. The production bundle passed the
+same native-GPU preview checks; Firefox passed the fixed-preview layout checks.
+The branch-wide `metrics:check` remains red: its 500/800-line buckets and seven
+per-file violations also fail on the preceding committed HEAD. This pass adds
+no new bucket crossings, though pawn-only baking grows the already oversized
+board renderer from 806 to 823 measured lines. Before a fork PR, split the large
+gummy modules and resolve the existing Flam3 cap violation. Keep the baseline
+and caps unchanged until that cleanup is reviewed.
+
+The next geometry comparison is the Menger rook and Sierpinski bishop as solid
+candidates, and the blue branching pawn as an enclosed core. Keep the Aurora
+queen, Ember bishop and Tidal knight as native flame studies until a suitable
+physical representation is demonstrated. Fine IFS voids below the finite
+material and reconstruction scale still disappear; the source view must not
+be presented as a promise of identical physical detail.
+
+### General editor to chess inspection
+
+The editor now offers **Inspect for chess** from desktop actions and the shared
+More menu on phone/tablet. `/chess-forge` owns a separate native preview, so the
+editor renderer is disposed during inspection. The return handoff retains the
+original editor document and timeline separately from the candidate's fit.
+
+Implemented in this pass:
+
+- A versioned `chess-piece-candidate` snapshot keeps the full validated flame,
+  hidden maps, layer definitions, stored blends and required custom formulas.
+  Missing formulas and non-finite or over-budget documents fail explicitly.
+- Native custom formulas receive owned preview registrations. Later edits to the
+  user's formula library do not change a saved candidate; outgoing previews
+  release those registrations.
+- Choose any of the six chess roles. For 3D sources, rotate, scale and position
+  the output after its existing final affine, without rewriting the IFS maps.
+  A projected 1.6-unit board square and 1.8-unit height guide follow the actual
+  orbit camera. They are visual references, not measured geometry bounds.
+- Switch between original source framing and inspection fit. Flat sources stay
+  2D and retain their camera, palette and one native 2D blend; they are not
+  coerced into a different 3D variation. Layers, 3D blends and nested blends
+  remain in the snapshot, with a visible notice that their composition is not
+  shown by this preview.
+- Save up to eight independent local candidates, reopen them, download/import
+  JSON, or remove a saved copy while retaining the open draft. The draft survives
+  reload; switching sources protects changes not yet in the saved library.
+  New editor snapshots wait in a tab-local incoming slot and use the same
+  Save & open / Replace draft / Keep editing chooser. Accepting a replacement
+  writes it successfully before consuming the handoff. Existing corrupt
+  library/draft data is preserved rather than overwritten.
+- Start directly from the existing lattice pawn, Menger rook, Sierpinski bishop
+  or branching knight. This inspector does not modify the playable pawn library.
+
+Verification: 166 focused tests, typecheck, lint, formatting, WGSL validation,
+production build and agent-index checks pass. Native-GPU Chromium verifies the
+production editor → inspector → editor round trip, unchanged source/timeline,
+saving the previous fit before opening another candidate, and genuine 2D source
+rendering. Production layout checks cover five sizes from 320×568 to 1440×900 in
+Chromium and Firefox: the preview stays fixed, the final controls are reachable,
+and the document does not overflow. Firefox is layout-only; physical iOS remains
+an owner check. Evidence is under
+`/home/maff/agent-out/chaos-master-fp/2026-10-08/candidate-inspector/`.
+
+The pre-existing branch metrics failures remain: 86 files above 500 lines,
+39 above 800, and the same seven per-file violations as the preceding HEAD.
+This pass adds no new bucket crossings. Query loading and More-menu handlers
+are extracted into owned modules; MainWorkspace's reduced 4490-line cap is
+ratcheted down. The baseline and existing violations are not waived.
+
+Layout verification reproduced the old page-scroll failure, then passed 24
+production-page cases across Chromium and Firefox, both Forge and Figurine
+studies, and six viewport sizes from 320×568 to 1440×900 including landscape.
+Checks cover a stationary visible preview, reachable final controls, no outer
+page overflow, keyboard slider input and Chromium touch scrolling. Chromium used
+the native AMD GPU; Firefox was a layout check. Physical iOS remains a separate
+owner check. The 15 focused tests, `pnpm check`, production build and index check
+pass. Evidence is under
+`/home/maff/agent-out/chaos-master-fp/2026-10-08/forge-layout/`.
+
+### Finite material inspection
+
+The next bridge is implemented for inspection of the Menger rook and Sierpinski
+bishop. These candidates are not selectable as playable pieces, and this pass
+does not change the existing authored pawn library, match snapshots or Cinema
+captures. The earlier source definitions and candidate v1 format remain intact.
+
+Candidate v2 can retain an optional solid request:
+`{ adapter: 'affine-ifs-volume', version: 1, seed, thickness, spacing }`.
+Thickness is in world metres, bounded to 0.025–0.18; spacing is 0.04, 0.06 or
+0.08 metres. Defaults are seed 42, thickness 0.05 and spacing 0.04. The full
+source snapshot remains beside this request. Conversion applies its existing
+final affine and the explicit candidate placement exactly, without replacing
+the source by its name, recentering it or changing its IFS maps. Material is
+clipped at the board plane `y=0`; a source extending below that plane produces a
+warning rather than an automatic lift.
+
+Adapter v1 uses 120,000 deterministic source samples with 64 burn-in steps and
+a 0.0125-metre distance grid. Quantized source sites supply a Euclidean distance
+transform; the requested thickness produces a finite field, which is resampled
+into equal-volume cells on the selected uniform lattice. Nonuniform IFS point
+density does not become material mass. The distance-grid site quantization alone
+can move a sampled site by up to 0.01083 metres, and finite sampling does not
+certify every point of the ideal attractor.
+
+Eligibility is deliberately narrow: native 3D sources using the unit-ball
+initialization, positive visible map probabilities and active `linear3D`
+variations with native affine pre/post transforms. Each composed source map must
+pass the adapter's Euclidean contraction bound. Custom formulas, nonlinear
+variations, layers, stored blends and runtime Clash fail explicitly; some valid
+affine systems that contract only in another metric also fail this bound.
+Unsupported sources remain available for native inspection. The adapter caps
+the distance grid at eight million cells and the material body at 80,000 cells;
+the grid cap permits approximately 32 MiB of retained float data, with additional
+temporary sampling and transform workspace.
+
+The CPU bake runs in a dedicated Worker after a 250 ms debounce. Changing or
+hiding the inspection terminates obsolete work, and stale results cannot replace
+the current body. The Worker transfers its material positions without the field
+closure. The surface uses the existing board marching-cubes resting-mesh path,
+gummy optics and illumination, with no particle solver running. Both the
+candidate and the neighbouring classic pawn display at piece scale 0.9; the
+candidate uses its requested cell spacing while the classic pawn retains 0.08.
+Measured candidate bounds frame the view. Surface quality remains subject to the
+existing 96 MiB and 300,000-vertex per-body limits.
+
+Default diagnostics below describe the unscaled material body at thickness
+0.05 and spacing 0.04, before the preview's 0.9 display scale:
+
+| Candidate         | Material cells | Face-connected components | Rest volume | Ground cells | Ground area | COM over support hull |
+| ----------------- | -------------- | ------------------------- | ----------- | ------------ | ----------- | --------------------- |
+| Menger rook       | 23,472         | 1                         | 1.502208 m³ | 1,079        | 1.7264 m²   | Yes                   |
+| Sierpinski bishop | 3,662          | 1                         | 0.234368 m³ | 720          | 1.1520 m²   | Yes                   |
+
+Occupied rook bounds are `[-0.68, 0, -0.68]` to `[0.68, 1.84, 0.68]`; bishop
+bounds are `[-0.64, 0, -0.60]` to `[0.64, 1.84, 0.60]`. Connectivity uses shared
+cell faces, not diagonal contact. Ground area and the projected centre of mass
+over the support hull are static diagnostics; they do not establish deformable
+stability or fracture behaviour. On the measured CPU host, these default bakes
+took approximately 0.52 seconds for the rook and 0.20 seconds for the bishop.
+These are bake timings, not browser frame-rate or mobile performance claims.
+
+A thinner bishop at thickness 0.025 and spacing 0.04 retains one face-connected
+component, 2,068 cells, 0.132352 m³ of material and 0.8496 m² of ground support,
+with its centre of mass still over the support hull. This is a useful visual
+comparison, not an accepted playable preset. Thickness 0.035 and 0.04 likewise
+remain connected, with 2,721 and 3,024 cells respectively.
+
+The surface reconstruction still closes some openings that the finite field
+retains. At the thinner bishop's mitre test point, the field has 0.01860 metres
+of clearance, but the existing compact particle kernel produces density 0.3010
+against isovalue 0.095. Its support radius is 1.8 times particle spacing: 0.072
+metres at spacing 0.04. The kernel can therefore fill a visible gap even when the
+distance field marks it empty. Sparse opening-risk probes report this kernel
+risk; they do not certify the interpolated marching-cubes mesh or all source
+openings. A finer visual mesh cannot recover voids already removed by material
+thickness or the particle kernel.
+
+Eleven focused adapter tests pass. They cover exact distance-transform fixtures,
+seeded material counts, source and placement preservation, feature rejection,
+configuration validation, face connectivity, base-support fixtures and parity
+with the existing surface density kernel.
+
+Final verification: 175 focused tests pass across the candidate contract,
+persistence, Worker, inspector, source sampling, affine placement, shared stage,
+rest-mesh ownership and camera math. Typecheck, lint (zero errors; existing
+warnings remain), formatting, WGSL validation, production build and agent-index
+checks pass. The initial typecheck caught a saved-library selector reference and
+three test option types; these were fixed. An existing renderer test was updated
+to include the new optional geometry argument.
+
+The production build rendered both candidates on native Chromium with the AMD
+RDNA 4 adapter (not a fallback), with no captured GPU or runtime errors. Checks
+cover coarse/fine sampling, the thinner bishop, genuine touch orbit, saving v2
+settings and reopening a saved rook. The preview remains fixed while the final
+controls are reachable at 1440×900, 834×1112, 390×844, 320×568 and 568×320. The
+same five layout cases pass in Firefox; its headless runtime reports unavailable
+WebGPU, so it provides no rendering evidence. Physical iOS/tablet rendering
+remains an owner check. Evidence is under
+`/home/maff/agent-out/chaos-master-fp/2026-10-13/solid-inspector/`.
+
+The existing branch metrics gate remains red: 86 files above 500 lines against
+baseline 69, and 38 above 800 against 33, plus six existing per-file violations.
+Those six files are unchanged from the preceding HEAD. This pass introduces no
+new bucket crossings and reduces the board renderer from 823 to 795 measured
+lines; no baseline or file cap has been weakened.
+
+Next physical-representation gates:
+
+- Compare source and actual reconstructed surface at the selected thickness and
+  spacing. Resolve or explicitly accept the bishop's closed mitre gap, and verify
+  important openings in the final mesh rather than relying on sparse field or
+  kernel probes. Keep source edits and surface changes explicit.
+- Obtain visual acceptance of recognizable rook and bishop silhouettes beside
+  the classic pawn. Measure the chosen body's bounds, face connectivity, base
+  support and final mesh budget, then check physical-tablet rendering and later
+  deformable contact. Static diagnostics are not this acceptance gate.
+- After acceptance, define immutable playable snapshots for each promoted role,
+  including the complete source, placement, adapter version, seed, thickness and
+  sampling policy. Rest meshes, mass cells and collision fields must use the same
+  body, with board footprint and capture-clearance checks before integration.
+- Extend match reload, replay and Cinema to retain each captured role's exact
+  promoted snapshot independently of later library edits. Review snapshot and
+  session size budgets before adding multi-role captures.
+- Keep an enclosed-core route for delicate fractals as a separate representation.
+  Native nonlinear studies do not become solids through this adapter. A full
+  six-role collection follows acceptance of these inspected bodies and the
+  enclosed-core comparison.
+
+## Fractal collection art pass (2026-10-23)
+
+The owner requested broader visual exploration before promoting more physical
+bodies. `/chess-collections` now provides three six-role studies: Lattice Court,
+Tidal Relics and Wild Canopy. Each role uses a different native IFS recurrence;
+matching roles reuse geometry, while opponents use separate structural palettes.
+Optional small tint differences do not alter the source geometry.
+
+The comparison page has a complete 32-piece board, a six-role lineup, a close-up,
+orbit/zoom and reproducible preview links. It exports native flame JSON and hands
+a selected source to Forge without replacing existing saved candidates. It uses
+one event-driven WebGPU canvas, twelve bounded role/side clouds, and a cancellable
+worker for source fitting and sampling. This page does not add capture physics or
+promote a new set into an active match.
+
+The focused source checks cover all 18 shapes with independent sample seeds,
+finite points, board footprint and height, opposite-side geometry parity and
+native JSON round trips. Sampled bounds are evidence for these recipes, not a
+general mathematical bound for arbitrary imported flames. Beauty and board-scale
+readability require visual review separately from these checks.
+
+The visual review favoured the fern knight, cleft-leaf bishop, split-current
+bishop and tetrahedral pawn. The subsequent pass opened the lattice rook's
+windows, joined the crowns around a common stem and gave the tidal king a
+vertical screw recurrence. These remain candidates for owner selection; no
+collection is marked as an accepted final art set.
+
+Local checks passed: 55 source tests, focused renderer/worker/layout/route tests,
+TypeScript, lint, formatting, WGSL validation and the production build. The
+repository metrics ratchet still reports existing branch debt in unrelated
+oversized modules; this pass does not add a new size-bucket regression.
+
+Next sequence:
+
+1. Review the collections on a board and shortlist six forms. Keep native sources
+   intact; choose the role silhouettes, palettes and negative spaces first.
+2. Compare each favourite as an enclosed fractal core and, where supported, an
+   explicit finite solid. Check important openings in the actual reconstructed
+   surface. A visual point cloud alone is not a connected material body.
+3. Promote one approved role through immutable snapshot, rest mesh, mass cells,
+   collision, match reload and capture replay. Expand the role set only after
+   this representation survives that complete path.
+4. Measure the chosen set on a physical tablet, then revisit shared friend rooms
+   and placement of the chess table in the fractal world.
+
+This art pass changes the order of visual exploration; it does not waive the
+physical-representation gates above.
+
+### Glass shortlist comparison (2026-10-23)
+
+The owner selected Bent frond (Wild Canopy knight), Split current (Tidal Relics
+bishop) and Window tower (Lattice Court rook) for an enclosure study. Each now
+has a separate fitted hollow glass shell. The native flame and sampled core stay
+unchanged; this does not replace the pure versions or convert them into material
+solids.
+
+The collection page adds Pure, Glass and Both. Both keeps the complete board and
+encloses the selected role on files e–h, leaving its matching a–d partner pure.
+Each comparison pair shares its palette and optional tint. Close-up and lineup
+views also place the pure and enclosed versions beside each other. Preview links
+retain the enclosure choice, while older links still open pure fractals. Native
+JSON downloads and Forge handoffs continue to carry only the original flame.
+
+Shell fitting happens once when a collection or detail level changes. The glass
+uses the existing transmission and reflection passes, with shared geometry and
+bounded instance buffers; presentation toggles do not rebuild clouds or allocate
+GPU buffers. The current fitting step runs on the main thread. Moving that work
+into the existing worker is a possible tablet follow-up if load-time profiling
+shows a noticeable pause.
+
+The envelopes use rounded caps and locally bounded profiles. Geometry checks
+verify containment against the emitted inner triangles, closed surfaces and
+outward/inward normals. Production-sized sample checks also keep each shell
+inside its 1.6-unit square at the board's 0.9 scale, with widths below 1.5 times
+the core.
+
+Validation: 46 focused tests, the repository check and production build passed.
+Native AMD WebGPU captures verify the paired studies and complete boards;
+the original glass-pawn route also renders correctly. Resource probes show
+allocation-free enclosure toggles and stable live buffers across collection
+changes. Chrome and Firefox layout checks cover desktop and phone widths;
+Firefox coverage is layout-only. A later extended probe hit its external time
+limit after the resource checks passed; the final shape and legacy-render
+checks completed separately without browser or GPU errors.
+
+Next: choose which of these forms benefits from glass, then inspect a finite
+material representation for one approved role before adding it to capture
+physics. Physical-device acceptance and final art selection remain separate
+from desktop rendering checks.
+
+### Playable native collections (2026-10-23)
+
+All three six-role collections are selectable in the existing Arcade chess
+match and at `/gummy?view=match`. The family selector retains the gummy sets.
+Pure and Glass study use the same native point clouds; the glass option encloses
+only the approved knight, bishop or rook for that collection. Static cards show
+sampled native silhouettes and do not create additional GPU scenes.
+
+The match stores a validated version-one native collection selection with its
+appearance. Preview handoffs retain the saved game and consume their URL choice
+once, so later reloads restore the player's latest selection. Replay uses the
+currently selected native collection and enclosure for direct comparisons; the
+original capture snapshot remains unchanged. Gummy replays keep their existing
+snapshot behavior.
+
+Native captures disperse the victim's own coloured points and break its actual
+glass envelope into bounded GPU-animated clusters. The attacker finishes on the
+legal destination. One renderer retains its immutable uploads across captures;
+idle frames stop. Skip, replay, castling, en-passant and promotion remain driven
+by the same legal before/after receipts.
+
+This is a visual particle response, not a validated continuous material solver.
+Finite-solid occupancy and connected fracture remain separate research gates.
+Native matches currently use the classic native board; gummy board finishes stay
+saved. Cinema export rejects native captures until it has a compatible adapter.
+
+Verification: 127 focused tests passed across the native match, glass renderer,
+worker lifecycle, look controls and persisted legal sessions. The full local
+check, final typecheck, production build, agent index and documentation citations
+pass. Native AMD Chromium verified all three role-specific captures, pure/glass
+replay, skip, undo, reload, return from gummy rendering, and the embedded Arcade.
+After warm-up, captures and enclosure switches allocated no buffers; idle draws
+stopped. These application-owned buffer counts do not measure driver memory.
+
+A real-GPU probe caught redundant point uploads when an enclosure-only change
+replaced the parent appearance object. A memoized sampling key now preserves the
+worker and clouds unless collection or sampling quality changes. The regression
+failed before the fix and passes after it. Desktop, tablet-width and phone-width
+cards pass Chromium and Firefox layout checks. Chromium touch emulation selects
+the enclosure; physical iOS acceptance remains outstanding. Some initial probe
+assertions assumed a single card column or an on-screen canvas while scrolling;
+corrected layout and UI probes completed without browser or GPU errors.
+
+The cumulative branch entered review with 86 files above 500 lines, 38 above
+800, six cap failures and 14 import cycles. The October 23 cleanup separates
+scene ownership, input, resource creation, material packing, shader passes and
+simulation kernels into focused modules. Shared types and GPU layouts now live
+in leaf contracts, while existing public imports remain available. The size
+counts are back to 69 and 33, every file cap passes, and the architecture audit
+reports no dependency violations. No baseline or limit was raised; the Flam3
+cap was tightened to its smaller implementation.
+
+The shared input controller has regression coverage for release during a GPU
+pick, stale completion after a newer gesture, touch navigation cancellation and
+disposal. Native AMD verification passed all three pure/glass capture flows,
+Arcade integration, idle rendering and buffer reuse. Marching-cubes and particle
+jelly interaction passed, including finite rest/drag/release surfaces and a real
+pointer drag. A bishop-versus-rook Cinema capture rendered before, during and
+after contact without browser or GPU errors. These checks do not replace
+physical iOS/tablet acceptance. The PR stays open for that review before merge.
+The stale documentation citations found during preparation were repaired.
+
+Next: review all three sets in pure/glass captures on the physical tablet, choose
+the strongest silhouettes, then add a native recording adapter and profile shell
+construction before expanding materials or introducing private friend rooms.
+
+## Private friend session architecture
+
+The current Worker serves static assets and bounded APIs for sharing and gallery
+content. `worker/index.ts`, `worker/types.ts` and `wrangler.jsonc` have no chess
+room or WebSocket authority. The existing short-link store is for share payloads;
+it cannot establish turn ownership or serialize competing chess moves.
+
+Propose one server-owned room per match, implemented as a Cloudflare Durable
+Object if it meets the deployment and cost review. The existing pure chess rules
+package should validate moves on that authority as well as local play. Treat the
+transport and room hosting choice as a later implementation decision; no remote
+service is provisioned or deployed by this Arcade pass.
+
+The room contract should carry:
+
+- A versioned room ID, initial FEN, ordered move log, current revision and result.
+- Independent credentials for each seat, an expiring invitation to join the open
+  seat, and explicit reconnect/resume credentials. A room ID or viewer link alone
+  must not authorize a move. Scope, expiry, revocation and storage of these
+  credentials need review before public access; keep them out of logs and previews.
+- Validated moves containing a unique command ID and expected room revision.
+  Accept each command once, enforce turn/seat ownership, reject stale or illegal
+  moves, and return the authoritative receipt and next revision.
+- A pinned collection/board manifest and material settings selected in the lobby,
+  plus the resolved capture presentation envelope. Asset references must use
+  validated bounded recipes or approved storage, never arbitrary remote scripts.
+- A bounded reconnect snapshot and receipts after the client's last revision.
+  Reload and duplicate socket messages must neither repeat a move nor lose history.
+
+Physics, lighting, camera and recording remain client-local. Send moves and
+presentation recipes rather than particle positions or video. Different quality
+tiers and Skip may change visual timing without changing the room's position.
+Separate the authoritative position from the currently presented receipt, so a
+slow capture queues or skips toward the latest revision safely. Neither player
+should need to wait for the other player's GPU animation to finish.
+
+Start with a private, unranked, untimed match with two seats. Add explicit resign,
+draw offer/acceptance and reconnect states. Establish room lifetime, abandoned
+room cleanup, rate limits and deployment budgets before opening invitations to
+the public. Clocks, spectators, accounts and matchmaking are later decisions.
+
+Acceptance requires two independent clients over an actual network: legal and
+illegal moves, simultaneous submissions, duplicate/reordered delivery, stale
+revision recovery, reload, sleep/wake, disconnect/rejoin, an expired invitation,
+seat impersonation rejection and final-result agreement. Repeat with one slow or
+non-rendering client; game correctness must not depend on WebGPU availability.
+
+## Collection and rendering boundary
+
+The rules in `packages/core/src/chess/` remain independent of rendering.
+Before/after move receipts are authoritative; a skipped, replayed or failed
+effect always reaches the same legal position. The proposed collection record
+should contain:
+
+- Version and stable collection identity, with six role slots.
+- Shape recipe/source, deterministic seed, orientation, normalized bounds and a
+  cached display mesh or point representation at explicit detail levels.
+- Side palettes and optical settings, separate from mechanical response.
+- Capture adapter and its parameters: gummy MPM, rigid glass fracture, or a
+  bounded fractal-fragment experiment.
+- Collision/occupancy representation where needed, validated separately from
+  visual geometry. Preserve the editable source when baking a display asset.
+
+Existing Figurine studies and Pawn Forge are the starting sources for IFS roles.
+An arbitrary flame point cloud does not automatically define a solid volume or
+physical connectivity. For a glass-enclosed fractal piece, the shell can provide
+the collision and fracture body while the inner flame retains its authored
+appearance. For a solid fractal body, prove occupancy/meshing and chunk ownership
+on one pawn or Menger rook before building a general fracture adapter.
+
+Keep static waiting pieces cached and simulate only the active capture. Gummy
+response should remain MPM with a reconstructed surface; glass needs a distinct
+fracture treatment. Changing colours alone should never select the physics.
+
+The collection art preview now provides a broad visual comparison. Before
+promoting its first playable piece, show the selected pawn next to the approved
+classic gummy silhouette and glass-enclosed studies. The useful art decision is whether the
+first set is a glass shell with an authored fractal interior, or a solid fractal
+body with visible recursive structure. Keep both as options in the plan; prove
+one selected representation through the complete creator-to-play path first.
+
+## Verification and later world placement
+
+On 2026-10-08, 124 distinct focused tests passed across navigation, editor
+shortcuts, canvases, the match and presets. Typechecking passed. The initial
+`pnpm check` stopped at five test-style lint errors; those were fixed and scoped
+ESLint passed, then the remaining formatting and WGSL validation steps passed.
+The production build passed. This records the completed checks, rather than
+claiming the original compound command completed in one run.
+
+Native headed Chromium on AMD RDNA-4 verified saved looks and the `e2-e4` position
+through three exits and re-entries. Live application-created resources settled at
+24 after every world exit, down from the startup sample of 80 before lazy cleanup.
+The idle observation recorded zero GPU submissions over 1.2 seconds. There were
+no runtime/GPU errors or owner warnings. These counts concern tracked application
+resources; browser swapchains, driver caches and other applications are excluded.
+
+Actual CDP touch input selected cards at 834×1112, 390×844 and 844×390, alongside
+the desktop 1440px check. Production Chromium screenshots at all four sizes were
+inspected; controls can be hidden to return to the top of the board, and safe-area
+padding keeps the panel reachable. Firefox production layout checks at 1440×1050
+and 390×844 verified rendered and selected cards, loaded images, no horizontal
+overflow, the standalone host and zero page errors. Its screenshots were inspected;
+this is layout verification, not physical-GPU proof. Native evidence and the
+`production.json` and `production-firefox.json` receipts are outside the repository at
+`/home/maff/agent-out/chaos-master-fp/2026-10-08/arcade-chess/`.
+
+Code-health metrics retain pre-existing rebased-branch debt: the pre-Arcade state
+and current work both report 86 files over 500 lines, 40 over 800 and eight file-cap
+failures. No baseline was relaxed. The affine-grid theme was extracted and its
+file cap reduced from 1,172 to 1,154 lines.
+
+Measure several captures on the physical tablet with other heavy apps closed, including
+solver, surface and lighting cost. A stable desktop resource audit does not
+establish tablet performance or total driver memory use.
+
+After the collection contract works, the same match controller can host a chess
+table in a fractal environment. Camera, picking and scene lighting would adapt
+to that world, while rules, collections and move receipts remain shared. That
+is a later presentation layer, not a prerequisite for the Arcade game.
+
+Related: [play guide](gummy-chess-play.md), [Cinema](gummy-cinema.md), and the
+[feature priority matrix](../assets/references/gummy-chess-roadmap.json).

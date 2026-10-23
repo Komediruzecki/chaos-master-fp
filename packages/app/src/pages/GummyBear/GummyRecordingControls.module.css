@@ -1,0 +1,120 @@
+/* Recording controls own their chrome in the sidebar and compact studio footer. */
+.recording {
+  margin: 0 0 24px;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+  width: 100%;
+}
+.recording legend {
+  padding: 0 0 10px;
+  font-size: 11px;
+  font-weight: 650;
+  color: #50656d;
+}
+.qualityLabel {
+  display: block;
+  margin-bottom: 6px;
+  color: #354f5a;
+  font-size: 12px;
+  font-weight: 600;
+}
+.recording .qualitySelect {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid #a8b7b9;
+  border-radius: 7px;
+  padding: 8px 10px;
+  background: #fffef9;
+  color: #263f4a;
+  font: inherit;
+  font-size: 16px;
+}
+.qualityHelp,
+.captureInfo {
+  margin: 7px 0 12px;
+  color: #52646c;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.captureInfo {
+  margin-bottom: 0;
+  font-variant-numeric: tabular-nums;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.recordButton,
+.downloadButton {
+  appearance: none;
+  min-height: 44px;
+  border: 1px solid #296785;
+  border-radius: 7px;
+  padding: 10px 13px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.recordButton {
+  flex: 1;
+  background: #296785;
+  color: #fff;
+}
+.recording .recordButton:hover:not(:disabled) {
+  background: #205874;
+  color: #fff;
+}
+.recordButton[data-recording='true'] {
+  background: #a62c43;
+  border-color: #a62c43;
+}
+.recording .recordButton[data-recording='true']:hover:not(:disabled) {
+  background: #8e2036;
+  color: #fff;
+}
+.timer {
+  color: #536a75;
+  font: 12px var(--font-sans, sans-serif);
+  font-variant-numeric: tabular-nums;
+}
+.status {
+  margin: 8px 0 0;
+  color: #68777c;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.status[data-state='error'] {
+  color: #905e45;
+}
+.saved {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+.downloadButton {
+  width: 100%;
+  background: #f6f5ef;
+  color: #4c6572;
+  border-color: #c8d0ce;
+}
+.recording .downloadButton:hover:not(:disabled) {
+  background: #e4e9e5;
+  color: #263f4a;
+}
+.saved span {
+  font-size: 11px;
+  color: #68777c;
+}
+.recording button:focus-visible,
+.recording select:focus-visible {
+  outline: 2px solid #2d799b;
+  outline-offset: 3px;
+}
+.recording button:disabled,
+.recording select:disabled {
+  opacity: 0.45;
+  cursor: default;
+}

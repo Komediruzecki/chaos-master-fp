@@ -1,0 +1,113 @@
+{
+  "base": "https://localhost:5200",
+  "samples": [],
+  "timings": [],
+  "errors": [],
+  "warnings": [],
+  "failures": [],
+  "placement": {
+    "before": {
+      "window": "0x55834ebe0150",
+      "workspace": 2,
+      "monitors": [
+        {
+          "id": 0,
+          "special": ""
+        }
+      ]
+    },
+    "after": {
+      "window": "0x55834ebe0150",
+      "workspace": 2,
+      "monitors": [
+        {
+          "id": 0,
+          "special": ""
+        }
+      ]
+    },
+    "clients": [
+      {
+        "class": "agent-browser",
+        "workspace": "special:agents"
+      }
+    ]
+  },
+  "adapter": {
+    "vendor": "amd",
+    "architecture": "rdna-4",
+    "fallback": false
+  },
+  "playbackWallSeconds": 15.282453248999998,
+  "productionTopologyRevision": "69",
+  "tablet": {
+    "viewport": 1024,
+    "document": 1024,
+    "canvasCount": 1,
+    "choices": [
+      {
+        "label": "Continuous jelly",
+        "height": 44
+      },
+      {
+        "label": "Particle jelly",
+        "height": 44
+      },
+      {
+        "label": "Fine crush",
+        "height": 44
+      },
+      {
+        "label": "Limb pull",
+        "height": 44
+      },
+      {
+        "label": "Squeeze & release",
+        "height": 54
+      },
+      {
+        "label": "Stretch & release",
+        "height": 54
+      },
+      {
+        "label": "Pull to tear",
+        "height": 44
+      }
+    ]
+  },
+  "phone": {
+    "viewport": 390,
+    "document": 390,
+    "canvasCount": 1,
+    "choices": [
+      {
+        "label": "Continuous jelly",
+        "height": 44
+      },
+      {
+        "label": "Particle jelly",
+        "height": 44
+      },
+      {
+        "label": "Fine crush",
+        "height": 44
+      },
+      {
+        "label": "Limb pull",
+        "height": 44
+      },
+      {
+        "label": "Squeeze & release",
+        "height": 44
+      },
+      {
+        "label": "Stretch & release",
+        "height": 44
+      },
+      {
+        "label": "Pull to tear",
+        "height": 44
+      }
+    ]
+  }
+}

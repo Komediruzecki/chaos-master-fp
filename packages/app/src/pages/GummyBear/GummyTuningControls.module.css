@@ -1,0 +1,123 @@
+/* Fine tuning owns its controls and touch targets in every gummy sidebar layout. */
+.tuning {
+  width: 100%;
+  min-width: 0;
+  margin: 0 0 24px;
+  border-top: 1px solid #d4d9d5;
+  border-bottom: 1px solid #d4d9d5;
+  color: #4c6572;
+}
+.summary {
+  min-height: 44px;
+  padding: 12px 0;
+  box-sizing: border-box;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.summary::marker {
+  color: #296785;
+}
+.content {
+  padding: 0 0 14px;
+}
+.intro,
+.help {
+  margin: 0;
+  color: #68777c;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.intro {
+  margin-bottom: 16px;
+}
+.group {
+  min-width: 0;
+  margin: 0 0 18px;
+  padding: 0;
+  border: 0;
+}
+.group legend {
+  padding: 0 0 10px;
+  color: #50656d;
+  font-size: 11px;
+  font-weight: 650;
+}
+.control + .control {
+  margin-top: 12px;
+}
+.label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  color: #4c6572;
+  font-size: 12px;
+}
+.label output {
+  flex-shrink: 0;
+  color: #296785;
+  font-variant-numeric: tabular-nums;
+}
+.range {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
+  accent-color: #296785;
+  cursor: pointer;
+}
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  margin-top: 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.checkbox input {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: #296785;
+}
+.checkbox small {
+  display: block;
+  margin-top: 3px;
+  color: #68777c;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.actions {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.actions button {
+  appearance: none;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 13px;
+  border: 1px solid #c8d0ce;
+  border-radius: 7px;
+  background: #f6f5ef;
+  color: #4c6572;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.actions button:hover:not(:disabled) {
+  background: #e4e9e5;
+}
+.tuning :is(summary, input, button):focus-visible {
+  outline: 2px solid #2d799b;
+  outline-offset: 3px;
+}
+.tuning :is(input, button):disabled {
+  opacity: 0.45;
+  cursor: default;
+}

@@ -1,0 +1,1485 @@
+{
+  "date": "2026-10-04T10:23:14.462Z",
+  "instrument": false,
+  "base": "https://localhost:5199/gummy",
+  "viewport": {
+    "width": 1440,
+    "height": 1000
+  },
+  "phases": [
+    {
+      "name": "fine-paused-rounded",
+      "wallMs": 3000.0999999940395,
+      "simulationSeconds": 0,
+      "simulationRate": 0,
+      "frames": {
+        "count": 333,
+        "mean": 8.965765765738917,
+        "p50": 2.099999999999909,
+        "p95": 17.40000000000009,
+        "max": 19.700000000000045
+      },
+      "simulationUpdates": {
+        "count": 0,
+        "mean": 0,
+        "p50": 0,
+        "p95": 0,
+        "max": 0
+      },
+      "longTasks": {
+        "count": 0,
+        "mean": 0,
+        "p50": 0,
+        "p95": 0,
+        "max": 0
+      },
+      "counters": {},
+      "startState": {
+        "time": 0.4000000000000004,
+        "steps": 48,
+        "vertices": 4844,
+        "tetrahedra": 16913,
+        "geometry": "fine",
+        "surface": "rounded",
+        "response": "soft",
+        "tearing": true,
+        "revision": 0,
+        "performance": {
+          "checks": 8,
+          "splits": 0,
+          "snapshotMs": 406,
+          "checkpointMs": 1.2999999672174454,
+          "assessMs": 274.60000002384186,
+          "allocateMs": 0,
+          "commitMs": 0,
+          "totalMs": 682,
+          "maxCheckMs": 210.79999999701977,
+          "draws": 6,
+          "drawsDuringMutation": 5
+        },
+        "counters": {}
+      },
+      "endState": {
+        "time": 0.4000000000000004,
+        "steps": 48,
+        "vertices": 4844,
+        "tetrahedra": 16913,
+        "geometry": "fine",
+        "surface": "rounded",
+        "response": "soft",
+        "tearing": true,
+        "revision": 0,
+        "performance": {
+          "checks": 8,
+          "splits": 0,
+          "snapshotMs": 406,
+          "checkpointMs": 1.2999999672174454,
+          "assessMs": 274.60000002384186,
+          "allocateMs": 0,
+          "commitMs": 0,
+          "totalMs": 682,
+          "maxCheckMs": 210.79999999701977,
+          "draws": 172,
+          "drawsDuringMutation": 5
+        },
+        "counters": {}
+      },
+      "cpuSelfMs": [
+        {
+          "name": "(idle) :0",
+          "ms": 2903.442999999996
+        },
+        {
+          "name": "(program) :0",
+          "ms": 191.28699999999998
+        },
+        {
+          "name": "draw https://localhost:5199/src/components/GummyBear/GummyBearScene.tsx?t=1791106669414:327",
+          "ms": 7.435
+        },
+        {
+          "name": "submit :0",
+          "ms": 4.26
+        },
+        {
+          "name": "render https://localhost:5199/src/components/GummyBear/gummyRenderer.ts?t=1791105909969:209",
+          "ms": 4.231
+        },
+        {
+          "name": "INTERNAL_beginRenderPass https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6238",
+          "ms": 3.202
+        },
+        {
+          "name": "beginRenderPass :0",
+          "ms": 3.192
+        },
+        {
+          "name": "drawIdleFrame https://localhost:5199/src/components/GummyBear/GummyBearScene.tsx?t=1791106669414:374",
+          "ms": 3.1790000000000003
+        },
+        {
+          "name": "scaledCanvasSize https://localhost:5199/src/lib/AutoCanvas.tsx:26",
+          "ms": 3.1710000000000003
+        },
+        {
+          "name": "requestAnimationFrame :0",
+          "ms": 2.291
+        },
+        {
+          "name": "camera https://localhost:5199/src/components/GummyBear/GummyBearScene.tsx?t=1791106669414:149",
+          "ms": 2.156
+        },
+        {
+          "name": "frame https://localhost:5199/src/components/GummyBear/GummyBearScene.tsx?t=1791106669414:432",
+          "ms": 2.1260000000000003
+        },
+        {
+          "name": "with https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:7041",
+          "ms": 2.113
+        },
+        {
+          "name": "applyBindGroups https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:5983",
+          "ms": 1.078
+        },
+        {
+          "name": "frame :11",
+          "ms": 1.069
+        },
+        {
+          "name": "getCurrentTexture :0",
+          "ms": 1.068
+        },
+        {
+          "name": "beginComputePass :0",
+          "ms": 1.065
+        },
+        {
+          "name": "writeBuffer :0",
+          "ms": 1.064
+        },
+        {
+          "name": "evaluate :296",
+          "ms": 1.063
+        },
+        {
+          "name": "INTERNAL_createCommandEncoder https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6366",
+          "ms": 1.063
+        },
+        {
+          "name": "(anonymous) https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6240",
+          "ms": 1.061
+        },
+        {
+          "name": "readSignal https://localhost:5199/node_modules/.vite/deps/solid-js.js?v=142dcd20:601",
+          "ms": 1.061
+        },
+        {
+          "name": "gummyCameraMatrices https://localhost:5199/src/components/GummyBear/gummyStudyMath.ts:48",
+          "ms": 1.061
+        },
+        {
+          "name": "stampComputePipeline https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:5972",
+          "ms": 1.06
+        },
+        {
+          "name": "materialize https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:3228",
+          "ms": 1.06
+        }
+      ]
+    },
+    {
+      "name": "fine-idle-rounded",
+      "wallMs": 6032.9000000059605,
+      "simulationSeconds": 2.0499999999999927,
+      "simulationRate": 0.33980341129439695,
+      "frames": {
+        "count": 350,
+        "mean": 17.145714285714284,
+        "p50": 17.200000000000728,
+        "p95": 17.69999999999891,
+        "max": 34.70000000000073
+      },
+      "simulationUpdates": {
+        "count": 32,
+        "mean": 187.53125,
+        "p50": 114.09999999999854,
+        "p95": 639.8999999999996,
+        "max": 716.1000000000004
+      },
+      "longTasks": {
+        "count": 0,
+        "mean": 0,
+        "p50": 0,
+        "p95": 0,
+        "max": 0
+      },
+      "counters": {},
+      "startState": {
+        "time": 0.9499999999999991,
+        "steps": 114,
+        "vertices": 4844,
+        "tetrahedra": 16913,
+        "geometry": "fine",
+        "surface": "rounded",
+        "response": "soft",
+        "tearing": true,
+        "revision": 0,
+        "performance": {
+          "checks": 19,
+          "splits": 0,
+          "snapshotMs": 1284.1999999582767,
+          "checkpointMs": 1.9999999850988388,
+          "assessMs": 522.1000000089407,
+          "allocateMs": 0,
+          "commitMs": 0,
+          "totalMs": 1808.399999961257,
+          "maxCheckMs": 322.19999998807907,
+          "draws": 184,
+          "drawsDuringMutation": 14
+        },
+        "counters": {}
+      },
+      "endState": {
+        "time": 2.999999999999992,
+        "steps": 360,
+        "vertices": 4844,
+        "tetrahedra": 16913,
+        "geometry": "fine",
+        "surface": "rounded",
+        "response": "soft",
+        "tearing": true,
+        "revision": 0,
+        "performance": {
+          "checks": 60,
+          "splits": 0,
+          "snapshotMs": 5848.099999949336,
+          "checkpointMs": 5.399999961256981,
+          "assessMs": 1590.400000050664,
+          "allocateMs": 0,
+          "commitMs": 0,
+          "totalMs": 7443.999999970198,
+          "maxCheckMs": 873.6000000089407,
+          "draws": 216,
+          "drawsDuringMutation": 46
+        },
+        "counters": {}
+      },
+      "cpuSelfMs": [
+        {
+          "name": "(idle) :0",
+          "ms": 4270.94100000002
+        },
+        {
+          "name": "update https://localhost:5199/src/simulation/gummy/gummyJellyPlasticity.ts:120",
+          "ms": 313.506
+        },
+        {
+          "name": "writePositiveTensileStrain https://localhost:5199/src/simulation/gummy/gummyJellyFractureStrain.ts:63",
+          "ms": 240.88199999999986
+        },
+        {
+          "name": "with https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6570",
+          "ms": 207.34399999999994
+        },
+        {
+          "name": "diagonalize https://localhost:5199/src/simulation/gummy/gummyJellyPlasticity.ts:20",
+          "ms": 187.05199999999996
+        },
+        {
+          "name": "assess https://localhost:5199/src/simulation/gummy/gummyJellyFracture.ts:392",
+          "ms": 185.73899999999995
+        },
+        {
+          "name": "(anonymous) https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:5985",
+          "ms": 88.14800000000004
+        },
+        {
+          "name": "evaluateGummyTensileStrain https://localhost:5199/src/simulation/gummy/gummyJellyFractureStrain.ts:122",
+          "ms": 78.52800000000002
+        },
+        {
+          "name": "(program) :0",
+          "ms": 76.05900000000001
+        },
+        {
+          "name": "setBindGroup :0",
+          "ms": 56.919999999999995
+        },
+        {
+          "name": "step https://localhost:5199/src/simulation/gummy/gummySolver.ts:381",
+          "ms": 51.49500000000002
+        },
+        {
+          "name": "emitComputeDispatch https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6076",
+          "ms": 43.20600000000001
+        },
+        {
+          "name": "unwrap https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:7616",
+          "ms": 38.393
+        },
+        {
+          "name": "applyBindGroups https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:5983",
+          "ms": 27.162
+        },
+        {
+          "name": "gummyNormalTensileOpening https://localhost:5199/src/simulation/gummy/gummyJellyFractureStrain.ts:145",
+          "ms": 26.560000000000002
+        },
+        {
+          "name": "(garbage collector) :0",
+          "ms": 19.807
+        },
+        {
+          "name": "setPipeline :0",
+          "ms": 15.923
+        },
+        {
+          "name": "#execute https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6622",
+          "ms": 15.741999999999997
+        },
+        {
+          "name": "stampComputePipeline https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:5972",
+          "ms": 14.828999999999999
+        },
+        {
+          "name": "initSync https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6710",
+          "ms": 12.791
+        },
+        {
+          "name": "dispatchWorkgroups :0",
+          "ms": 11.667000000000002
+        },
+        {
+          "name": "(anonymous) https://localhost:5199/src/simulation/gummy/gummyJellyFracture.ts:398",
+          "ms": 9.553999999999998
+        },
+        {
+          "name": "copyJellyPlasticState https://localhost:5199/src/simulation/gummy/gummyJellyPlasticity.ts:3",
+          "ms": 8.757
+        },
+        {
+          "name": "(anonymous) https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6609",
+          "ms": 7.498000000000001
+        },
+        {
+          "name": "updatePlasticity https://localhost:5199/src/simulation/gummy/gummySolver.ts:550",
+          "ms": 7.439000000000001
+        }
+      ]
+    },
+    {
+      "name": "fine-idle-original",
+      "wallMs": 6000.0999999940395,
+      "simulationSeconds": 1.6000000000000476,
+      "simulationRate": 0.2666622222965679,
+      "frames": {
+        "count": 348,
+        "mean": 17.207183908020287,
+        "p50": 17.200000000000728,
+        "p95": 17.599999999998545,
+        "max": 34.80000000000109
+      },
+      "simulationUpdates": {
+        "count": 25,
+        "mean": 237.85599999964236,
+        "p50": 120.3999999910593,
+        "p95": 640.5,
+        "max": 2209
+      },
+      "longTasks": {
+        "count": 0,
+        "mean": 0,
+        "p50": 0,
+        "p95": 0,
+        "max": 0
+      },
+      "counters": {},
+      "startState": {
+        "time": 3.3999999999999906,
+        "steps": 408,
+        "vertices": 4844,
+        "tetrahedra": 16913,
+        "geometry": "fine",
+        "surface": "original",
+        "response": "soft",
+        "tearing": true,
+        "revision": 0,
+        "performance": {
+          "checks": 68,
+          "splits": 0,
+          "snapshotMs": 7325.799999967217,
+          "checkpointMs": 6.0999999195337296,
+          "assessMs": 1789.6000000536442,
+          "allocateMs": 0,
+          "commitMs": 0,
+          "totalMs": 9121.699999943376,
+          "maxCheckMs": 1175.5,
+          "draws": 225,
+          "drawsDuringMutation": 54
+        },
+        "counters": {}
+      },
+      "endState": {
+        "time": 5.000000000000038,
+        "steps": 600,
+        "vertices": 4844,
+        "tetrahedra": 16913,
+        "geometry": "fine",
+        "surface": "original",
+        "response": "soft",
+        "tearing": true,
+        "revision": 0,
+        "performance": {
+          "checks": 100,
+          "splits": 0,
+          "snapshotMs": 11969.799999952316,
+          "checkpointMs": 9.09999993443489,
+          "assessMs": 2621.7000000476837,
+          "allocateMs": 0,
+          "commitMs": 0,
+          "totalMs": 14600.899999946356,
+          "maxCheckMs": 2079.2999999970198,
+          "draws": 250,
+          "drawsDuringMutation": 79
+        },
+        "counters": {}
+      },
+      "cpuSelfMs": [
+        {
+          "name": "(idle) :0",
+          "ms": 4621.5910000000085
+        },
+        {
+          "name": "update https://localhost:5199/src/simulation/gummy/gummyJellyPlasticity.ts:120",
+          "ms": 264.945
+        },
+        {
+          "name": "writePositiveTensileStrain https://localhost:5199/src/simulation/gummy/gummyJellyFractureStrain.ts:63",
+          "ms": 203.74399999999997
+        },
+        {
+          "name": "with https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6570",
+          "ms": 159.32799999999995
+        },
+        {
+          "name": "assess https://localhost:5199/src/simulation/gummy/gummyJellyFracture.ts:392",
+          "ms": 142.21100000000004
+        },
+        {
+          "name": "diagonalize https://localhost:5199/src/simulation/gummy/gummyJellyPlasticity.ts:20",
+          "ms": 137.81199999999998
+        },
+        {
+          "name": "(program) :0",
+          "ms": 120.52900000000004
+        },
+        {
+          "name": "(anonymous) https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:5985",
+          "ms": 75.88900000000001
+        },
+        {
+          "name": "evaluateGummyTensileStrain https://localhost:5199/src/simulation/gummy/gummyJellyFractureStrain.ts:122",
+          "ms": 56.197999999999986
+        },
+        {
+          "name": "emitComputeDispatch https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6076",
+          "ms": 41.696999999999996
+        },
+        {
+          "name": "setBindGroup :0",
+          "ms": 40.760000000000005
+        },
+        {
+          "name": "step https://localhost:5199/src/simulation/gummy/gummySolver.ts:381",
+          "ms": 35.361
+        },
+        {
+          "name": "unwrap https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:7616",
+          "ms": 24.875
+        },
+        {
+          "name": "gummyNormalTensileOpening https://localhost:5199/src/simulation/gummy/gummyJellyFractureStrain.ts:145",
+          "ms": 23.287000000000003
+        },
+        {
+          "name": "setPipeline :0",
+          "ms": 18.466
+        },
+        {
+          "name": "stampComputePipeline https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:5972",
+          "ms": 17.180999999999997
+        },
+        {
+          "name": "applyBindGroups https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:5983",
+          "ms": 16.968
+        },
+        {
+          "name": "#execute https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6622",
+          "ms": 13.440000000000001
+        },
+        {
+          "name": "dispatchWorkgroups :0",
+          "ms": 13.291999999999998
+        },
+        {
+          "name": "initSync https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6710",
+          "ms": 11.413
+        },
+        {
+          "name": "(anonymous) https://localhost:5199/src/simulation/gummy/gummyJellyFracture.ts:398",
+          "ms": 10.591
+        },
+        {
+          "name": "(garbage collector) :0",
+          "ms": 9.578999999999999
+        },
+        {
+          "name": "(anonymous) https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6609",
+          "ms": 7.499
+        },
+        {
+          "name": "updatePlasticity https://localhost:5199/src/simulation/gummy/gummySolver.ts:550",
+          "ms": 7.390000000000001
+        },
+        {
+          "name": "(anonymous) https://localhost:5199/src/components/GummyBear/gummyFractureRuntime.ts:51",
+          "ms": 6.364
+        }
+      ]
+    },
+    {
+      "name": "fine-gpu-elastic-only",
+      "wallMs": 6000,
+      "simulationSeconds": 6.041666666666836,
+      "simulationRate": 1.0069444444444726,
+      "frames": {
+        "count": 502,
+        "mean": 11.919521912338725,
+        "p50": 16.700000000000728,
+        "p95": 17.600000000002183,
+        "max": 17.80000000000291
+      },
+      "simulationUpdates": {
+        "count": 250,
+        "mean": 23.899999999976163,
+        "p50": 23.600000000002183,
+        "p95": 26.399999999997817,
+        "max": 34.900000000001455
+      },
+      "longTasks": {
+        "count": 0,
+        "mean": 0,
+        "p50": 0,
+        "p95": 0,
+        "max": 0
+      },
+      "counters": {},
+      "startState": {
+        "time": 1.524999999999997,
+        "steps": 183,
+        "vertices": 4844,
+        "tetrahedra": 16913,
+        "geometry": "fine",
+        "surface": "original",
+        "response": "crumble",
+        "tearing": false,
+        "revision": 0,
+        "performance": {
+          "checks": 0,
+          "splits": 0,
+          "snapshotMs": 0,
+          "checkpointMs": 0,
+          "assessMs": 0,
+          "allocateMs": 0,
+          "commitMs": 0,
+          "totalMs": 0,
+          "maxCheckMs": 0,
+          "draws": 68,
+          "drawsDuringMutation": 60
+        },
+        "counters": {}
+      },
+      "endState": {
+        "time": 7.5666666666668325,
+        "steps": 908,
+        "vertices": 4844,
+        "tetrahedra": 16913,
+        "geometry": "fine",
+        "surface": "original",
+        "response": "crumble",
+        "tearing": false,
+        "revision": 0,
+        "performance": {
+          "checks": 0,
+          "splits": 0,
+          "snapshotMs": 0,
+          "checkpointMs": 0,
+          "assessMs": 0,
+          "allocateMs": 0,
+          "commitMs": 0,
+          "totalMs": 0,
+          "maxCheckMs": 0,
+          "draws": 318,
+          "drawsDuringMutation": 310
+        },
+        "counters": {}
+      },
+      "cpuSelfMs": [
+        {
+          "name": "(idle) :0",
+          "ms": 3829.789000000001
+        },
+        {
+          "name": "with https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6570",
+          "ms": 661.855
+        },
+        {
+          "name": "(anonymous) https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:5985",
+          "ms": 300.988
+        },
+        {
+          "name": "setBindGroup :0",
+          "ms": 194.02999999999994
+        },
+        {
+          "name": "step https://localhost:5199/src/simulation/gummy/gummySolver.ts:381",
+          "ms": 182.88499999999996
+        },
+        {
+          "name": "emitComputeDispatch https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6076",
+          "ms": 137.96499999999995
+        },
+        {
+          "name": "unwrap https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:7616",
+          "ms": 119.50400000000005
+        },
+        {
+          "name": "(program) :0",
+          "ms": 111.166
+        },
+        {
+          "name": "applyBindGroups https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:5983",
+          "ms": 94.60600000000001
+        },
+        {
+          "name": "setPipeline :0",
+          "ms": 68.64099999999999
+        },
+        {
+          "name": "stampComputePipeline https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:5972",
+          "ms": 57.98800000000001
+        },
+        {
+          "name": "dispatchWorkgroups :0",
+          "ms": 41.403999999999996
+        },
+        {
+          "name": "#execute https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6622",
+          "ms": 38.643
+        },
+        {
+          "name": "initSync https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6710",
+          "ms": 33.48599999999999
+        },
+        {
+          "name": "(garbage collector) :0",
+          "ms": 26.856
+        },
+        {
+          "name": "(anonymous) https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6609",
+          "ms": 25.331999999999994
+        },
+        {
+          "name": "frame https://localhost:5199/src/components/GummyBear/GummyBearScene.tsx?t=1791106669414:432",
+          "ms": 21.115000000000002
+        },
+        {
+          "name": "draw https://localhost:5199/src/components/GummyBear/GummyBearScene.tsx?t=1791106669414:327",
+          "ms": 11.65
+        },
+        {
+          "name": "reportIgnoredPriors https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6057",
+          "ms": 10.566
+        },
+        {
+          "name": "simulate https://localhost:5199/src/components/GummyBear/GummyBearScene.tsx?t=1791106669414:286",
+          "ms": 9.564
+        },
+        {
+          "name": "submit :0",
+          "ms": 8.468
+        },
+        {
+          "name": "dispatchWorkgroups https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6608",
+          "ms": 7.433
+        },
+        {
+          "name": "getCurrentTexture :0",
+          "ms": 7.334
+        },
+        {
+          "name": "publishMutationState https://localhost:5199/src/components/GummyBear/GummyBearScene.tsx?t=1791106669414:322",
+          "ms": 6.285
+        },
+        {
+          "name": "requestAnimationFrame :0",
+          "ms": 5.226999999999999
+        }
+      ]
+    },
+    {
+      "name": "standard-idle-rounded",
+      "wallMs": 6000.100000008941,
+      "simulationSeconds": 6.050000000000184,
+      "simulationRate": 1.0083165280563937,
+      "frames": {
+        "count": 449,
+        "mean": 13.347216035628103,
+        "p50": 16.900000000001455,
+        "p95": 17.69999999999709,
+        "max": 17.799999999995634
+      },
+      "simulationUpdates": {
+        "count": 181,
+        "mean": 32.99337016572939,
+        "p50": 30.099999999998545,
+        "p95": 46.900000000001455,
+        "max": 54.30000000000291
+      },
+      "longTasks": {
+        "count": 0,
+        "mean": 0,
+        "p50": 0,
+        "p95": 0,
+        "max": 0
+      },
+      "counters": {},
+      "startState": {
+        "time": 1.799999999999996,
+        "steps": 216,
+        "vertices": 2244,
+        "tetrahedra": 7299,
+        "geometry": "standard",
+        "surface": "rounded",
+        "response": "soft",
+        "tearing": true,
+        "revision": 0,
+        "performance": {
+          "checks": 36,
+          "splits": 0,
+          "snapshotMs": 338.10000002384186,
+          "checkpointMs": 1.899999976158142,
+          "assessMs": 471.0999999642372,
+          "allocateMs": 0,
+          "commitMs": 0,
+          "totalMs": 811.1999999582767,
+          "maxCheckMs": 66.09999999403954,
+          "draws": 49,
+          "drawsDuringMutation": 47
+        },
+        "counters": {}
+      },
+      "endState": {
+        "time": 7.85000000000018,
+        "steps": 942,
+        "vertices": 2244,
+        "tetrahedra": 7299,
+        "geometry": "standard",
+        "surface": "rounded",
+        "response": "soft",
+        "tearing": true,
+        "revision": 0,
+        "performance": {
+          "checks": 157,
+          "splits": 0,
+          "snapshotMs": 1320.4999999552965,
+          "checkpointMs": 10.599999949336052,
+          "assessMs": 2001.5999999791384,
+          "allocateMs": 0,
+          "commitMs": 0,
+          "totalMs": 3333.4999998658895,
+          "maxCheckMs": 66.09999999403954,
+          "draws": 230,
+          "drawsDuringMutation": 228
+        },
+        "counters": {}
+      },
+      "cpuSelfMs": [
+        {
+          "name": "(idle) :0",
+          "ms": 3241.0419999999967
+        },
+        {
+          "name": "writePositiveTensileStrain https://localhost:5199/src/simulation/gummy/gummyJellyFractureStrain.ts:63",
+          "ms": 375.6850000000002
+        },
+        {
+          "name": "with https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6570",
+          "ms": 351.0389999999997
+        },
+        {
+          "name": "update https://localhost:5199/src/simulation/gummy/gummyJellyPlasticity.ts:120",
+          "ms": 315.5930000000001
+        },
+        {
+          "name": "diagonalize https://localhost:5199/src/simulation/gummy/gummyJellyPlasticity.ts:20",
+          "ms": 263.9259999999999
+        },
+        {
+          "name": "assess https://localhost:5199/src/simulation/gummy/gummyJellyFracture.ts:392",
+          "ms": 262.84500000000014
+        },
+        {
+          "name": "(anonymous) https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:5985",
+          "ms": 149.24900000000008
+        },
+        {
+          "name": "(program) :0",
+          "ms": 137.86800000000005
+        },
+        {
+          "name": "deformation https://localhost:5199/src/simulation/gummy/gummyJellyPlasticity.ts:99",
+          "ms": 122.17400000000008
+        },
+        {
+          "name": "setBindGroup :0",
+          "ms": 95.49499999999996
+        },
+        {
+          "name": "evaluateGummyTensileStrain https://localhost:5199/src/simulation/gummy/gummyJellyFractureStrain.ts:122",
+          "ms": 94.36300000000003
+        },
+        {
+          "name": "emitComputeDispatch https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6076",
+          "ms": 75.04299999999999
+        },
+        {
+          "name": "step https://localhost:5199/src/simulation/gummy/gummySolver.ts:381",
+          "ms": 67.36100000000002
+        },
+        {
+          "name": "unwrap https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:7616",
+          "ms": 64.84300000000003
+        },
+        {
+          "name": "gummyNormalTensileOpening https://localhost:5199/src/simulation/gummy/gummyJellyFractureStrain.ts:145",
+          "ms": 41.43299999999999
+        },
+        {
+          "name": "stampComputePipeline https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:5972",
+          "ms": 36.402
+        },
+        {
+          "name": "applyBindGroups https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:5983",
+          "ms": 33.940000000000005
+        },
+        {
+          "name": "setPipeline :0",
+          "ms": 32.095000000000006
+        },
+        {
+          "name": "(anonymous) https://localhost:5199/src/simulation/gummy/gummyJellyFracture.ts:398",
+          "ms": 23.412
+        },
+        {
+          "name": "#execute https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6622",
+          "ms": 22.347
+        },
+        {
+          "name": "copyJellyPlasticState https://localhost:5199/src/simulation/gummy/gummyJellyPlasticity.ts:3",
+          "ms": 21.287999999999997
+        },
+        {
+          "name": "dispatchWorkgroups :0",
+          "ms": 20.156
+        },
+        {
+          "name": "(garbage collector) :0",
+          "ms": 19.633999999999997
+        },
+        {
+          "name": "initSync https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6710",
+          "ms": 19.423
+        },
+        {
+          "name": "(anonymous) https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6026",
+          "ms": 18.651
+        }
+      ]
+    },
+    {
+      "name": "fine-tearing-rounded",
+      "wallMs": 7039.0999999940395,
+      "simulationSeconds": 1.3999999999999966,
+      "simulationRate": 0.19888906252236535,
+      "frames": {
+        "count": 274,
+        "mean": 25.572262773700864,
+        "p50": 0.4000000000014552,
+        "p95": 256.40000000000146,
+        "max": 362.90000000000146
+      },
+      "simulationUpdates": {
+        "count": 22,
+        "mean": 318.490909090638,
+        "p50": 317.3999999999942,
+        "p95": 637.4000000000015,
+        "max": 833.9000000000015
+      },
+      "longTasks": {
+        "count": 0,
+        "mean": 0,
+        "p50": 0,
+        "p95": 0,
+        "max": 0
+      },
+      "counters": {},
+      "startState": {
+        "time": 0.24999999999999997,
+        "steps": 30,
+        "vertices": 4844,
+        "tetrahedra": 16913,
+        "geometry": "fine",
+        "surface": "rounded",
+        "response": "soft",
+        "tearing": true,
+        "revision": 0,
+        "performance": {
+          "checks": 5,
+          "splits": 0,
+          "snapshotMs": 144.90000002086163,
+          "checkpointMs": 1.0999999940395355,
+          "assessMs": 169.1000000089407,
+          "allocateMs": 0,
+          "commitMs": 0,
+          "totalMs": 315.10000002384186,
+          "maxCheckMs": 111.70000000298023,
+          "draws": 5,
+          "drawsDuringMutation": 3
+        },
+        "counters": {}
+      },
+      "endState": {
+        "time": 1.6499999999999966,
+        "steps": 198,
+        "vertices": 5317,
+        "tetrahedra": 16913,
+        "geometry": "fine",
+        "surface": "rounded",
+        "response": "soft",
+        "tearing": true,
+        "revision": 19,
+        "performance": {
+          "checks": 33,
+          "splits": 19,
+          "snapshotMs": 1296.2000000327826,
+          "checkpointMs": 5.200000002980232,
+          "assessMs": 1500.3999999910593,
+          "allocateMs": 4036.400000035763,
+          "commitMs": 2.600000023841858,
+          "totalMs": 6841.400000065565,
+          "maxCheckMs": 441,
+          "draws": 27,
+          "drawsDuringMutation": 25
+        },
+        "counters": {}
+      },
+      "cpuSelfMs": [
+        {
+          "name": "(idle) :0",
+          "ms": 971.0699999999994
+        },
+        {
+          "name": "colorGummyConstraints https://localhost:5199/src/simulation/gummy/gummySolver.ts:30",
+          "ms": 520.7010000000004
+        },
+        {
+          "name": "prepareRuntimeGummyMetadata https://localhost:5199/src/components/GummyBear/gummyRuntimeSurface.ts?t=1791105909854:52",
+          "ms": 431.8500000000005
+        },
+        {
+          "name": "prepareGummyJellyTets https://localhost:5199/src/simulation/gummy/gummyJelly.ts:17",
+          "ms": 404.6450000000004
+        },
+        {
+          "name": "(anonymous) https://localhost:5199/src/simulation/gummy/gummyJelly.ts:24",
+          "ms": 354.29600000000005
+        },
+        {
+          "name": "(garbage collector) :0",
+          "ms": 295.44199999999967
+        },
+        {
+          "name": "update https://localhost:5199/src/simulation/gummy/gummyJellyPlasticity.ts:120",
+          "ms": 215.85900000000072
+        },
+        {
+          "name": "faceKey https://localhost:5199/src/components/GummyBear/gummyRuntimeSurface.ts?t=1791105909854:32",
+          "ms": 213.143
+        },
+        {
+          "name": "split https://localhost:5199/src/simulation/gummy/gummyJellyFracture.ts:290",
+          "ms": 207.81399999999982
+        },
+        {
+          "name": "emit https://localhost:5199/src/components/GummyBear/gummySurface.ts?t=1791105909854:125",
+          "ms": 197.26700000000002
+        },
+        {
+          "name": "prepareGummyTets https://localhost:5199/src/simulation/gummy/gummySolver.ts:68",
+          "ms": 182.41999999999996
+        },
+        {
+          "name": "preparePatches https://localhost:5199/src/components/GummyBear/gummySurface.ts?t=1791105909854:98",
+          "ms": 172.945
+        },
+        {
+          "name": "writePositiveTensileStrain https://localhost:5199/src/simulation/gummy/gummyJellyFractureStrain.ts:63",
+          "ms": 170.38599999999997
+        },
+        {
+          "name": "assess https://localhost:5199/src/simulation/gummy/gummyJellyFracture.ts:392",
+          "ms": 154.88499999999996
+        },
+        {
+          "name": "with https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6570",
+          "ms": 153.389
+        },
+        {
+          "name": "prepareGummySurface https://localhost:5199/src/components/GummyBear/gummySurface.ts?t=1791105909854:6",
+          "ms": 148.526
+        },
+        {
+          "name": "diagonalize https://localhost:5199/src/simulation/gummy/gummyJellyPlasticity.ts:20",
+          "ms": 127.32500000000005
+        },
+        {
+          "name": "(program) :0",
+          "ms": 121.09600000000012
+        },
+        {
+          "name": "(anonymous) https://localhost:5199/src/simulation/gummy/gummyJelly.ts:26",
+          "ms": 104.90600000000006
+        },
+        {
+          "name": "headFor https://localhost:5199/src/components/GummyBear/gummySurface.ts?t=1791105909854:109",
+          "ms": 76.211
+        },
+        {
+          "name": "edgeKey https://localhost:5199/src/components/GummyBear/gummySurface.ts?t=1791105909854:13",
+          "ms": 65.664
+        },
+        {
+          "name": "createBuffer :0",
+          "ms": 58.03400000000001
+        },
+        {
+          "name": "mechanicalComponents https://localhost:5199/src/simulation/gummy/gummyJellyFracture.ts:115",
+          "ms": 57.243
+        },
+        {
+          "name": "unionFind https://localhost:5199/src/simulation/gummy/gummyJellyFracture.ts:51",
+          "ms": 57.20299999999998
+        },
+        {
+          "name": "(anonymous) https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:5985",
+          "ms": 57.017
+        }
+      ]
+    },
+    {
+      "name": "fine-torn-paused-rounded",
+      "wallMs": 3000.0999999940395,
+      "simulationSeconds": 0,
+      "simulationRate": 0,
+      "frames": {
+        "count": 337,
+        "mean": 8.878338278905217,
+        "p50": 1.0999999999985448,
+        "p95": 17.30000000000291,
+        "max": 17.80000000000291
+      },
+      "simulationUpdates": {
+        "count": 0,
+        "mean": 0,
+        "p50": 0,
+        "p95": 0,
+        "max": 0
+      },
+      "longTasks": {
+        "count": 0,
+        "mean": 0,
+        "p50": 0,
+        "p95": 0,
+        "max": 0
+      },
+      "counters": {},
+      "startState": {
+        "time": 1.6999999999999964,
+        "steps": 204,
+        "vertices": 5320,
+        "tetrahedra": 16913,
+        "geometry": "fine",
+        "surface": "rounded",
+        "response": "soft",
+        "tearing": true,
+        "revision": 20,
+        "performance": {
+          "checks": 34,
+          "splits": 20,
+          "snapshotMs": 1380.400000050664,
+          "checkpointMs": 5.700000002980232,
+          "assessMs": 1569.199999988079,
+          "allocateMs": 4242.600000023842,
+          "commitMs": 2.80000002682209,
+          "totalMs": 7201.300000071526,
+          "maxCheckMs": 441,
+          "draws": 29,
+          "drawsDuringMutation": 26
+        },
+        "counters": {}
+      },
+      "endState": {
+        "time": 1.6999999999999964,
+        "steps": 204,
+        "vertices": 5320,
+        "tetrahedra": 16913,
+        "geometry": "fine",
+        "surface": "rounded",
+        "response": "soft",
+        "tearing": true,
+        "revision": 20,
+        "performance": {
+          "checks": 34,
+          "splits": 20,
+          "snapshotMs": 1380.400000050664,
+          "checkpointMs": 5.700000002980232,
+          "assessMs": 1569.199999988079,
+          "allocateMs": 4242.600000023842,
+          "commitMs": 2.80000002682209,
+          "totalMs": 7201.300000071526,
+          "maxCheckMs": 441,
+          "draws": 197,
+          "drawsDuringMutation": 26
+        },
+        "counters": {}
+      },
+      "cpuSelfMs": [
+        {
+          "name": "(idle) :0",
+          "ms": 2914.271999999993
+        },
+        {
+          "name": "(program) :0",
+          "ms": 130.02500000000006
+        },
+        {
+          "name": "getCurrentTexture :0",
+          "ms": 4.2379999999999995
+        },
+        {
+          "name": "render https://localhost:5199/src/components/GummyBear/gummyRenderer.ts?t=1791105909969:209",
+          "ms": 3.183
+        },
+        {
+          "name": "frame https://localhost:5199/src/components/GummyBear/GummyBearScene.tsx?t=1791106669414:432",
+          "ms": 3.179
+        },
+        {
+          "name": "publishMutationState https://localhost:5199/src/components/GummyBear/GummyBearScene.tsx?t=1791106669414:322",
+          "ms": 2.1239999999999997
+        },
+        {
+          "name": "beginRenderPass :0",
+          "ms": 2.12
+        },
+        {
+          "name": "writeBuffer :0",
+          "ms": 2.117
+        },
+        {
+          "name": "submit :0",
+          "ms": 2.114
+        },
+        {
+          "name": "applyBindGroups https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:5983",
+          "ms": 2.0949999999999998
+        },
+        {
+          "name": "emitComputeDispatch https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6076",
+          "ms": 1.475
+        },
+        {
+          "name": "attachmentAspects https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6200",
+          "ms": 1.063
+        },
+        {
+          "name": "draw https://localhost:5199/src/components/GummyBear/GummyBearScene.tsx?t=1791106669414:327",
+          "ms": 1.063
+        },
+        {
+          "name": "INTERNAL_beginComputePass https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6149",
+          "ms": 1.061
+        },
+        {
+          "name": "resolveSources https://localhost:5199/node_modules/.vite/deps/solid-js.js?v=142dcd20:1232",
+          "ms": 1.059
+        },
+        {
+          "name": "initSync https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6710",
+          "ms": 1.058
+        },
+        {
+          "name": "gummyCameraMatrices https://localhost:5199/src/components/GummyBear/gummyStudyMath.ts:48",
+          "ms": 1.058
+        },
+        {
+          "name": "end :0",
+          "ms": 1.058
+        },
+        {
+          "name": "calculateOffsets https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:2895",
+          "ms": 1.058
+        },
+        {
+          "name": "(anonymous) https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:5985",
+          "ms": 1.058
+        },
+        {
+          "name": "perspective https://localhost:5199/node_modules/.vite/deps/wgpu-matrix.js?v=7807be41:3314",
+          "ms": 1.056
+        },
+        {
+          "name": "createView :0",
+          "ms": 1.055
+        },
+        {
+          "name": "unwrapAttachmentView https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6134",
+          "ms": 1.055
+        },
+        {
+          "name": "emitRenderDraw https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6063",
+          "ms": 1.055
+        },
+        {
+          "name": "get layout https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:4385",
+          "ms": 1.055
+        }
+      ]
+    },
+    {
+      "name": "fine-torn-paused-original",
+      "wallMs": 3000,
+      "simulationSeconds": 0,
+      "simulationRate": 0,
+      "frames": {
+        "count": 963,
+        "mean": 3.108203530630344,
+        "p50": 0.2999999999956344,
+        "p95": 17.200000000004366,
+        "max": 24
+      },
+      "simulationUpdates": {
+        "count": 0,
+        "mean": 0,
+        "p50": 0,
+        "p95": 0,
+        "max": 0
+      },
+      "longTasks": {
+        "count": 0,
+        "mean": 0,
+        "p50": 0,
+        "p95": 0,
+        "max": 0
+      },
+      "counters": {},
+      "startState": {
+        "time": 1.6999999999999964,
+        "steps": 204,
+        "vertices": 5320,
+        "tetrahedra": 16913,
+        "geometry": "fine",
+        "surface": "original",
+        "response": "soft",
+        "tearing": true,
+        "revision": 20,
+        "performance": {
+          "checks": 34,
+          "splits": 20,
+          "snapshotMs": 1380.400000050664,
+          "checkpointMs": 5.700000002980232,
+          "assessMs": 1569.199999988079,
+          "allocateMs": 4242.600000023842,
+          "commitMs": 2.80000002682209,
+          "totalMs": 7201.300000071526,
+          "maxCheckMs": 441,
+          "draws": 201,
+          "drawsDuringMutation": 26
+        },
+        "counters": {}
+      },
+      "endState": {
+        "time": 1.6999999999999964,
+        "steps": 204,
+        "vertices": 5320,
+        "tetrahedra": 16913,
+        "geometry": "fine",
+        "surface": "original",
+        "response": "soft",
+        "tearing": true,
+        "revision": 20,
+        "performance": {
+          "checks": 34,
+          "splits": 20,
+          "snapshotMs": 1380.400000050664,
+          "checkpointMs": 5.700000002980232,
+          "assessMs": 1569.199999988079,
+          "allocateMs": 4242.600000023842,
+          "commitMs": 2.80000002682209,
+          "totalMs": 7201.300000071526,
+          "maxCheckMs": 441,
+          "draws": 369,
+          "drawsDuringMutation": 26
+        },
+        "counters": {}
+      },
+      "cpuSelfMs": [
+        {
+          "name": "(idle) :0",
+          "ms": 2811.908999999994
+        },
+        {
+          "name": "(program) :0",
+          "ms": 228.17499999999995
+        },
+        {
+          "name": "draw https://localhost:5199/src/components/GummyBear/GummyBearScene.tsx?t=1791106669414:327",
+          "ms": 7.381
+        },
+        {
+          "name": "INTERNAL_beginRenderPass https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6238",
+          "ms": 4.226
+        },
+        {
+          "name": "frame :11",
+          "ms": 3.186
+        },
+        {
+          "name": "render https://localhost:5199/src/components/GummyBear/gummyRenderer.ts?t=1791105909969:209",
+          "ms": 3.173
+        },
+        {
+          "name": "requestAnimationFrame :0",
+          "ms": 2.1239999999999997
+        },
+        {
+          "name": "drawScheduled https://localhost:5199/src/components/GummyBear/GummyBearScene.tsx?t=1791106669414:369",
+          "ms": 2.121
+        },
+        {
+          "name": "createView :0",
+          "ms": 2.121
+        },
+        {
+          "name": "beginRenderPass :0",
+          "ms": 2.121
+        },
+        {
+          "name": "#withPriors https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:7034",
+          "ms": 2.12
+        },
+        {
+          "name": "setPipeline :0",
+          "ms": 1.069
+        },
+        {
+          "name": "TgpuCommandEncoderImpl https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6375",
+          "ms": 1.063
+        },
+        {
+          "name": "writeBuffer :0",
+          "ms": 1.063
+        },
+        {
+          "name": "stampRenderPipeline https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:5958",
+          "ms": 1.062
+        },
+        {
+          "name": "beginComputePass :0",
+          "ms": 1.06
+        },
+        {
+          "name": "drawIdleFrame https://localhost:5199/src/components/GummyBear/GummyBearScene.tsx?t=1791106669414:374",
+          "ms": 1.058
+        },
+        {
+          "name": "with https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:7041",
+          "ms": 1.058
+        },
+        {
+          "name": "submit :0",
+          "ms": 1.058
+        },
+        {
+          "name": "isGPUBuffer https://localhost:5199/node_modules/.vite/deps/dist-eIZjrJRC.js?v=c2b930c1:749",
+          "ms": 1.056
+        },
+        {
+          "name": "unwrap https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:7616",
+          "ms": 1.056
+        },
+        {
+          "name": "#withPriors https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:6563",
+          "ms": 1.055
+        },
+        {
+          "name": "calculateOffsets https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:2895",
+          "ms": 1.054
+        },
+        {
+          "name": "withIndexBuffer https://localhost:5199/node_modules/.vite/deps/typegpu-BZyw2kda.js?v=c2b930c1:7089",
+          "ms": 1.054
+        },
+        {
+          "name": "lookAt https://localhost:5199/node_modules/.vite/deps/wgpu-matrix.js?v=7807be41:3599",
+          "ms": 1.053
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "placement": {
+    "before": {
+      "window": "0x55834f657fd0",
+      "workspace": 3,
+      "special": [""]
+    },
+    "after": {
+      "window": "0x55834f657fd0",
+      "workspace": 3,
+      "special": [""]
+    },
+    "clients": [
+      {
+        "class": "agent-browser",
+        "workspace": "special:agents"
+      }
+    ]
+  },
+  "adapter": {
+    "vendor": "amd",
+    "architecture": "rdna-4",
+    "fallback": false,
+    "deviceFeatures": ["core-features-and-limits"]
+  },
+  "notes": [
+    "Ordinary UI playback; no fixed-step diagnostic advancement during the measured windows.",
+    "Raw disables per-call GPU API wrappers but retains a 1 ms CDP CPU sampling profiler.",
+    "Hidden headful browser with vsync/frame cap disabled; RAF and draw counts are not physical display FPS.",
+    "Snapshot elapsed time includes queued GPU execution and synchronization, not just transfer.",
+    "Background desktop load was not controlled. The two runs are diagnostic samples, not a stable hardware benchmark.",
+    "GPU-only elastic simulation rate measures scheduled progress; no queue completion fence was timed.",
+    "Fine tear probe was resumed before pointer capture and asserted positive simulation progress and topology revision."
+  ]
+}

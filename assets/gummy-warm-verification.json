@@ -1,0 +1,3963 @@
+{
+  "capturedAt": "2026-10-04T12:47:02.568Z",
+  "base": "https://localhost:5199",
+  "production": false,
+  "sourceHashes": {
+    "packages/app/src/simulation/gummy/gummyContacts.ts": "a0eb829a0040c8fa37f3f3b487535a8a05be273cb058058decd1da60b9666e18",
+    "packages/app/src/simulation/gummy/gummyJelly.ts": "2e5d9ebe487b8c6637f3004895064a4e64769c1033836d4176faf0528394f671",
+    "packages/app/src/simulation/gummy/gummyJellyFracture.ts": "3de73b0a235a1e283b3df5f95565a8fa611ca1f43246452a7908a58755689793",
+    "packages/app/src/simulation/gummy/gummyJellyFractureStrain.ts": "e585641be35f2c728f3e26bcc5aff27afa628fc778633c6fa4cd2aa0978d5e0f",
+    "packages/app/src/simulation/gummy/gummyJellyMesh.ts": "fea477a8c3db75674df1289fcb7964880ed3825b7207a7b3147695368eae6031",
+    "packages/app/src/simulation/gummy/gummyJellyPlasticity.ts": "59a42df3a4d131baf5ba9471a391b6dbd3da1db8595ccc0ee784a4d781228247",
+    "packages/app/src/simulation/gummy/gummyJellyShaders.ts": "b4c692f6a9391b7697022e58deb94542fc9f307a34c32107b45d76e949087395",
+    "packages/app/src/simulation/gummy/gummyMaterialMath.ts": "89f3ca748b14a37865628a19ac54632a057b61d791c4c0d388cd63eb74bcede5",
+    "packages/app/src/simulation/gummy/gummyMesh.ts": "21672581ceac96c67802a90ed4cf0ee0c6d5d7628dc53ee78ad8c7f6db4a19cd",
+    "packages/app/src/simulation/gummy/gummyParticleFixtures.ts": "ee8b7b8172d35009a4e18b30530b09010fad4048ff418b3e0c81eebbaa65634f",
+    "packages/app/src/simulation/gummy/gummyParticleMath.ts": "39f37cc661e10feb93168baf3ec60e5287e273598e4500623a061e6214287313",
+    "packages/app/src/simulation/gummy/gummyParticleShaders.ts": "62c9b5ebe0aff27b4651dcee59df8f513d0fac6349d5f047b00898a81feeb15d",
+    "packages/app/src/simulation/gummy/gummyParticleSolver.ts": "65aad487ba24ae42427ebe22911bebf08341fd2505fc02d00ffe0ca131d02d7f",
+    "packages/app/src/simulation/gummy/gummyPartition.ts": "d817a7dd0aa2d55395a034d52f44e232cc08e8b25bf1074e8885e5e98e82ef09",
+    "packages/app/src/simulation/gummy/gummyPatches.ts": "2f7a67c04b6c327b23702867a59e76ac09b8efec6f959dae3acd5f8d2589aff4",
+    "packages/app/src/simulation/gummy/gummySolver.ts": "ef88dafb74d8f92e1bf52386fcb163a3d940ba15903e6b9962846993af657ffa",
+    "packages/app/src/simulation/gummy/gummySolverPipelines.ts": "cb8a5bfce8a49fc481621c714f54d18cf3475f729c9699ae4ad8cf165c1f5968",
+    "packages/app/src/simulation/gummy/gummySolverPreparation.ts": "bbc19b9b38bfe2789011b8eeeee35e17077e4ad1131e2095d70a879948d0a79d",
+    "packages/app/src/simulation/gummy/gummySolverShaders.ts": "868be4210b7dc6eca7ec249c27df9eedbaf79dd4b74c401b2700868548eafbfc",
+    "packages/app/src/simulation/gummy/gummySolverState.ts": "62149cadd4efff78db876e75472f122054e713fb9c9971958985fd6d722234e1",
+    "packages/app/src/components/GummyBear/GummyBearScene.tsx": "96ecadd468f53726d3066f51a0d7458156b41ea50a5744378fd1ac1e1f296e0f",
+    "packages/app/src/components/GummyBear/ParticleGummyBearScene.tsx": "040d5e7290daeadfa68dab1660d85229b4bef12464c9bc223b79cbca5861bb5b",
+    "packages/app/src/components/GummyBear/gummyBands.ts": "2cf5fe610b0b683b831a6ecca9a6c4b60803b14a805cfd283b1281c24e988177",
+    "packages/app/src/components/GummyBear/gummyFractureRuntime.ts": "96df83b5cc689801066a8fa64bb00514d2600ff1527cb7696c8e5b7923be6325",
+    "packages/app/src/components/GummyBear/gummyMaterial.ts": "9a95f76e700807e70a798256976454f667fea214f63f20d006cfd6b0d3775e63",
+    "packages/app/src/components/GummyBear/gummyPatchSamples.ts": "046a56a7da628b5ea92a24676b5004fee69a0ac7e6c634ddb50bab61d75ae0c7",
+    "packages/app/src/components/GummyBear/gummyPipelines.ts": "e855511b84c9a40f1e92709883e26a54598b9d7c5df8869aa8160e1e289d0511",
+    "packages/app/src/components/GummyBear/gummyPress.ts": "68c7a7f60108d6caeca90caf53ac09f792ba6458b94025939213ce82261af8af",
+    "packages/app/src/components/GummyBear/gummyRenderResources.ts": "ef18c779e3ea010c5c4d6b776f787959c046c817dc9e229d493cbb4e7462560f",
+    "packages/app/src/components/GummyBear/gummyRenderer.ts": "f0296093565cf6c8a43cc9a2e12ad42c935bab259fb3b4e951ea3f6fc50fa287",
+    "packages/app/src/components/GummyBear/gummyRoundedSurface.ts": "01ad3c5aa771175f4aafe79de5c0f72d894d132b7d77f7fcdf44ae376eccb77f",
+    "packages/app/src/components/GummyBear/gummyRoundedSurfaceShaders.ts": "bb62c76a1925cb1193851c143fb3d448b4b35e7233abea7c85722844c28c074c",
+    "packages/app/src/components/GummyBear/gummyRoundedTet.ts": "9c4ed5cc05eab5740a5dc07d4a9309cef21c63651d3eb9642f7fc2b34c4fb1b2",
+    "packages/app/src/components/GummyBear/gummyRuntimeSurface.ts": "0138cafe7674be0a61545a8c28628971e653995a5d0971a4579ecfc7349c712b",
+    "packages/app/src/components/GummyBear/gummyRuntimeSurfaceMath.ts": "f49fb96d5ec5835cf8cf470739bbafa1e24f3176f81505bda3f42e78fe137c44",
+    "packages/app/src/components/GummyBear/gummyShaders.ts": "d647bda991bbf8741a6c46be692b1c460381168dd5e4b8638cece2143efa6a0f",
+    "packages/app/src/components/GummyBear/gummyStudyMath.ts": "77baf9ada601eee9e00bc7bdba81390b994c386f7a222157af471fa04fbd7772",
+    "packages/app/src/components/GummyBear/gummySurface.ts": "648dcb163d31ec289ffe32e6112773d6a21a85d1670f7d503055beeff9857536",
+    "packages/app/src/components/GummyBear/gummySurfaceMath.ts": "c9cbdfbb9dbe635e12f59b331d0f343836a542932ed5f725b9634e8bda324eee",
+    "packages/app/src/components/GummyBear/gummyTargets.ts": "d485cd2da5260e72b564780ee0aa35751f30177bf0c2e5973836370ea67be67f",
+    "packages/app/src/components/GummyBear/gummyTearMaterial.ts": "bfe46643d00f1a7d366fcd75cffa708791a67220b5ffb8545bb41734fe0ee076",
+    "packages/app/src/components/GummyBear/particleGummyMath.ts": "2e7c2a0959d1c91ad3734cc7ca88940415d82770ec596cbd3f7884929645640c",
+    "packages/app/src/components/GummyBear/particleGummyRenderer.ts": "c27c4fb759044ed5cfb352e06f9fd3d351ecd494f4c37ca68bed50178fa08b73",
+    "packages/app/src/components/GummyBear/particleGummyShaders.ts": "72d08a2f82584ba9d6969be4a2ac5f75deff5cdc46660effa4650e38230812d9",
+    "packages/app/src/components/GummyBear/particleGummySurfaceShaders.ts": "7f711518761f3227f48a86d89d26e7f4c5d00a2f991742b6a2b325b8f9445c01",
+    "packages/app/src/components/GummyBear/particleGummyTargets.ts": "42dae3a3cbff05fc971a73ea337dd4ec53e92224424a6468f8c4198190312261",
+    "packages/app/src/components/GummyBear/particleStudyMath.ts": "00d5cbe0c7c668d0f424e9ad9e74a90606e429e20c99b7943ac82be417329de1",
+    "packages/app/src/pages/GummyBear/GummyBearApp.tsx": "d0700e789178125384a83dcfb7732aaeb72ad939fc698b18b900f87e66865362",
+    "packages/app/src/pages/GummyBear/GummyBearPage.module.css": "469b32ae1690d67846ca63bf776341a8fe152887521a5e3b299168a1a73cbc56",
+    "packages/app/src/pages/GummyBear/GummyBearPage.tsx": "dd33ac6f9bb646084c95ad3ad0e7868ef3800d2c6e311924293dc4a228068be2"
+  },
+  "protocol": {
+    "outerDt": 0.008333333333333333,
+    "pullOffsets": [
+      [0.3, 0.04, 0],
+      [0.6, 0.08, 0]
+    ],
+    "fixedStepTimingIncludesReadback": true,
+    "liveSeconds": 5,
+    "video": false
+  },
+  "samples": [
+    {
+      "name": "elastic-settled",
+      "info": {
+        "experiment": "particle",
+        "fixture": "bear",
+        "pose": "upright",
+        "materialModel": "mls-mpm",
+        "protocol": "lateral-pull",
+        "phase": "idle",
+        "time": 1,
+        "steps": 120,
+        "tick": 120,
+        "particleCount": 2445,
+        "spacing": 0.08,
+        "gridSpacing": 0.16,
+        "restVolume": 1.2518400000000003,
+        "gridBounds": {
+          "min": [-3.84, -0.32, -3.84],
+          "max": [3.84, 7.359999999999999, 3.84]
+        },
+        "substeps": 29,
+        "restBounds": {
+          "min": [
+            -0.6800000071525574, 0.03999999910593033, -0.2800000011920929
+          ],
+          "max": [0.6800000071525574, 2.5199999809265137, 0.4399999976158142]
+        },
+        "grip": false,
+        "demo": false,
+        "submittedFrames": 23,
+        "completedFrames": 23,
+        "gpuPending": false,
+        "settings": {
+          "softness": 0.55,
+          "tearing": true,
+          "palette": "marble",
+          "fixedDt": 0.008333333333333333,
+          "particleMaterial": "elastic",
+          "fragility": 0.88
+        }
+      },
+      "maxPlasticStrain": 0,
+      "maxVolumetricOpening": 0,
+      "cavitationUpdates": 0,
+      "simulationTime": 0.9999999999999989,
+      "particleCount": 2445,
+      "totalMass": 1.2518400000000003,
+      "restVolume": 1.2518400000000003,
+      "elasticEnergy": 0.08974009129592436,
+      "kineticEnergy": 0.008439905569397088,
+      "guardActivations": 0,
+      "speedCaps": 0,
+      "affineCaps": 0,
+      "deformationRejections": 0,
+      "domainContacts": 0,
+      "zeroShearUpdates": 0,
+      "relaxationUpdates": 0,
+      "particleMaterial": "elastic",
+      "maxGridSpeed": 0.6691211462020874,
+      "maxParticleSpeed": 0.659456729888916,
+      "speedCapImpulse": 0,
+      "particleSpeedCaps": 0,
+      "gridSpeedCaps": 0,
+      "gripCount": 0,
+      "gravitationalEnergy": 14.8573391970163,
+      "totalEnergy": 14.95551919388162,
+      "finite": true,
+      "pinnedCount": 457,
+      "min": [-0.6852021217346191, 0.03999999910593033, -0.2894020080566406],
+      "max": [0.6852021217346191, 2.4886696338653564, 0.4399999976158142],
+      "span": [1.3704042434692383, 2.448669634759426, 0.7294020056724548],
+      "pinMovement": 0,
+      "maxDisplacement": 0.03365877863572693,
+      "freeDisplacementRms": 0.0222000538763792,
+      "connectivityRadius": 0.152,
+      "components": [2445],
+      "componentDetails": [
+        {
+          "count": 2445,
+          "pinned": 457,
+          "free": 1988
+        }
+      ],
+      "damageMax": 0,
+      "damaged": 0,
+      "meanDamage": 0,
+      "meanJ": 0.9974145273001891,
+      "minJ": 0.9697254300117493,
+      "maxJ": 1.0036041736602783,
+      "materialRegions": [
+        {
+          "name": "feet",
+          "count": 457,
+          "damaged": 0,
+          "peakStretch": 1
+        },
+        {
+          "name": "ankles",
+          "count": 300,
+          "damaged": 0,
+          "peakStretch": 1.0360978841781616
+        },
+        {
+          "name": "body-arm",
+          "count": 946,
+          "damaged": 0,
+          "peakStretch": 1.0292644500732422
+        },
+        {
+          "name": "head",
+          "count": 742,
+          "damaged": 0,
+          "peakStretch": 1.021659016609192
+        }
+      ],
+      "stretchDistribution": {
+        "p50": 1.0104206800460815,
+        "p90": 1.026780128479004,
+        "p99": 1.029738426208496,
+        "p100": 1.0360978841781616
+      }
+    },
+    {
+      "name": "elastic-short-pull",
+      "info": {
+        "experiment": "particle",
+        "fixture": "bear",
+        "pose": "upright",
+        "materialModel": "mls-mpm",
+        "protocol": "lateral-pull",
+        "phase": "idle",
+        "time": 1.4083333333333332,
+        "steps": 169,
+        "tick": 169,
+        "particleCount": 2445,
+        "spacing": 0.08,
+        "gridSpacing": 0.16,
+        "restVolume": 1.2518400000000003,
+        "gridBounds": {
+          "min": [-3.84, -0.32, -3.84],
+          "max": [3.84, 7.359999999999999, 3.84]
+        },
+        "substeps": 29,
+        "restBounds": {
+          "min": [
+            -0.6800000071525574, 0.03999999910593033, -0.2800000011920929
+          ],
+          "max": [0.6800000071525574, 2.5199999809265137, 0.4399999976158142]
+        },
+        "grip": true,
+        "gripCommand": {
+          "center": [
+            0.6000000238418579, 1.3200000524520874, 0.20000000298023224
+          ],
+          "target": [0.8978723672380251, 1.3381400792409308, 0.181983125139058],
+          "radius": 0.28
+        },
+        "demo": false,
+        "submittedFrames": 93,
+        "completedFrames": 92,
+        "gpuPending": true,
+        "settings": {
+          "softness": 0.55,
+          "tearing": true,
+          "palette": "marble",
+          "fixedDt": 0.008333333333333333,
+          "particleMaterial": "elastic",
+          "fragility": 0.88
+        }
+      },
+      "maxPlasticStrain": 0,
+      "maxVolumetricOpening": 0,
+      "cavitationUpdates": 0,
+      "simulationTime": 1.4083333333333308,
+      "particleCount": 2445,
+      "totalMass": 1.2518400000000003,
+      "restVolume": 1.2518400000000003,
+      "elasticEnergy": 0.9145892040956977,
+      "kineticEnergy": 0.20162556847531812,
+      "guardActivations": 0,
+      "speedCaps": 0,
+      "affineCaps": 0,
+      "deformationRejections": 0,
+      "domainContacts": 0,
+      "zeroShearUpdates": 0,
+      "relaxationUpdates": 0,
+      "particleMaterial": "elastic",
+      "maxGridSpeed": 1.499200463294983,
+      "maxParticleSpeed": 1.324863314628601,
+      "speedCapImpulse": 0,
+      "particleSpeedCaps": 0,
+      "gridSpeedCaps": 0,
+      "gripCount": 72,
+      "gravitationalEnergy": 14.846453922461247,
+      "totalEnergy": 15.962668695032264,
+      "finite": true,
+      "pinnedCount": 457,
+      "min": [-0.6136603951454163, 0.03999999910593033, -0.28941965103149414],
+      "max": [0.8496041297912598, 2.5137038230895996, 0.44741758704185486],
+      "span": [1.463264524936676, 2.4737038239836693, 0.736837238073349],
+      "pinMovement": 0,
+      "maxDisplacement": 0.22578406404286822,
+      "freeDisplacementRms": 0.13568884383010998,
+      "connectivityRadius": 0.152,
+      "components": [2445],
+      "componentDetails": [
+        {
+          "count": 2445,
+          "pinned": 457,
+          "free": 1988
+        }
+      ],
+      "damageMax": 0,
+      "damaged": 0,
+      "meanDamage": 0,
+      "meanJ": 1.0007077365321373,
+      "minJ": 0.9259525537490845,
+      "maxJ": 1.0815943479537964,
+      "materialRegions": [
+        {
+          "name": "feet",
+          "count": 457,
+          "damaged": 0,
+          "peakStretch": 1
+        },
+        {
+          "name": "ankles",
+          "count": 300,
+          "damaged": 0,
+          "peakStretch": 1.1345326900482178
+        },
+        {
+          "name": "body-arm",
+          "count": 946,
+          "damaged": 0,
+          "peakStretch": 1.1813938617706299
+        },
+        {
+          "name": "head",
+          "count": 742,
+          "damaged": 0,
+          "peakStretch": 1.0314867496490479
+        }
+      ],
+      "stretchDistribution": {
+        "p50": 1.0135380029678345,
+        "p90": 1.0867308378219604,
+        "p99": 1.1334679126739502,
+        "p100": 1.1813938617706299
+      },
+      "capturedPatch": {
+        "count": 72,
+        "maxMovement": 0.18378026437198502
+      }
+    },
+    {
+      "name": "elastic-extended-pull",
+      "info": {
+        "experiment": "particle",
+        "fixture": "bear",
+        "pose": "upright",
+        "materialModel": "mls-mpm",
+        "protocol": "lateral-pull",
+        "phase": "idle",
+        "time": 1.8083333333333333,
+        "steps": 217,
+        "tick": 217,
+        "particleCount": 2445,
+        "spacing": 0.08,
+        "gridSpacing": 0.16,
+        "restVolume": 1.2518400000000003,
+        "gridBounds": {
+          "min": [-3.84, -0.32, -3.84],
+          "max": [3.84, 7.359999999999999, 3.84]
+        },
+        "substeps": 29,
+        "restBounds": {
+          "min": [
+            -0.6800000071525574, 0.03999999910593033, -0.2800000011920929
+          ],
+          "max": [0.6800000071525574, 2.5199999809265137, 0.4399999976158142]
+        },
+        "grip": true,
+        "gripCommand": {
+          "center": [
+            0.6000000238418579, 1.3200000524520874, 0.20000000298023224
+          ],
+          "target": [
+            1.1926717625648235, 1.3727399236220017, 0.1679153498645487
+          ],
+          "radius": 0.28
+        },
+        "demo": false,
+        "submittedFrames": 211,
+        "completedFrames": 210,
+        "gpuPending": true,
+        "settings": {
+          "softness": 0.55,
+          "tearing": true,
+          "palette": "marble",
+          "fixedDt": 0.008333333333333333,
+          "particleMaterial": "elastic",
+          "fragility": 0.88
+        }
+      },
+      "maxPlasticStrain": 0,
+      "maxVolumetricOpening": 0,
+      "cavitationUpdates": 0,
+      "simulationTime": 1.8083333333333294,
+      "particleCount": 2445,
+      "totalMass": 1.2518400000000003,
+      "restVolume": 1.2518400000000003,
+      "elasticEnergy": 3.7472452182404425,
+      "kineticEnergy": 0.02108323300921936,
+      "guardActivations": 0,
+      "speedCaps": 0,
+      "affineCaps": 0,
+      "deformationRejections": 0,
+      "domainContacts": 0,
+      "zeroShearUpdates": 0,
+      "relaxationUpdates": 0,
+      "particleMaterial": "elastic",
+      "maxGridSpeed": 1.4992722272872925,
+      "maxParticleSpeed": 1.325846791267395,
+      "speedCapImpulse": 0,
+      "particleSpeedCaps": 0,
+      "gridSpeedCaps": 0,
+      "gripCount": 72,
+      "gravitationalEnergy": 14.783967497351078,
+      "totalEnergy": 18.55229594860074,
+      "finite": true,
+      "pinnedCount": 457,
+      "min": [-0.5199999809265137, 0.03999999910593033, -0.28782033920288086],
+      "max": [1.0296050310134888, 2.554198741912842, 0.45785290002822876],
+      "span": [1.5496050119400024, 2.5141987428069115, 0.7456732392311096],
+      "pinMovement": 0,
+      "maxDisplacement": 0.5635609985731472,
+      "freeDisplacementRms": 0.3157673500289908,
+      "connectivityRadius": 0.152,
+      "components": [2445],
+      "componentDetails": [
+        {
+          "count": 2445,
+          "pinned": 457,
+          "free": 1988
+        }
+      ],
+      "damageMax": 0,
+      "damaged": 0,
+      "meanDamage": 0,
+      "meanJ": 1.0047029545702086,
+      "minJ": 0.8796350955963135,
+      "maxJ": 1.2381718158721924,
+      "materialRegions": [
+        {
+          "name": "feet",
+          "count": 457,
+          "damaged": 0,
+          "peakStretch": 1
+        },
+        {
+          "name": "ankles",
+          "count": 300,
+          "damaged": 0,
+          "peakStretch": 1.3624768257141113
+        },
+        {
+          "name": "body-arm",
+          "count": 946,
+          "damaged": 0,
+          "peakStretch": 1.4158763885498047
+        },
+        {
+          "name": "head",
+          "count": 742,
+          "damaged": 0,
+          "peakStretch": 1.055741786956787
+        }
+      ],
+      "stretchDistribution": {
+        "p50": 1.0150821208953857,
+        "p90": 1.1920138597488403,
+        "p99": 1.296073317527771,
+        "p100": 1.4158763885498047
+      },
+      "capturedPatch": {
+        "count": 72,
+        "maxMovement": 0.3700854091267205
+      }
+    },
+    {
+      "name": "elastic-released",
+      "info": {
+        "experiment": "particle",
+        "fixture": "bear",
+        "pose": "upright",
+        "materialModel": "mls-mpm",
+        "protocol": "lateral-pull",
+        "phase": "idle",
+        "time": 3.308333333333333,
+        "steps": 397,
+        "tick": 397,
+        "particleCount": 2445,
+        "spacing": 0.08,
+        "gridSpacing": 0.16,
+        "restVolume": 1.2518400000000003,
+        "gridBounds": {
+          "min": [-3.84, -0.32, -3.84],
+          "max": [3.84, 7.359999999999999, 3.84]
+        },
+        "substeps": 29,
+        "restBounds": {
+          "min": [
+            -0.6800000071525574, 0.03999999910593033, -0.2800000011920929
+          ],
+          "max": [0.6800000071525574, 2.5199999809265137, 0.4399999976158142]
+        },
+        "grip": false,
+        "demo": false,
+        "submittedFrames": 241,
+        "completedFrames": 241,
+        "gpuPending": false,
+        "settings": {
+          "softness": 0.55,
+          "tearing": true,
+          "palette": "marble",
+          "fixedDt": 0.008333333333333333,
+          "particleMaterial": "elastic",
+          "fragility": 0.88
+        }
+      },
+      "maxPlasticStrain": 0,
+      "maxVolumetricOpening": 0,
+      "cavitationUpdates": 0,
+      "simulationTime": 3.3083333333333242,
+      "particleCount": 2445,
+      "totalMass": 1.2518400000000003,
+      "restVolume": 1.2518400000000003,
+      "elasticEnergy": 0.37969898505687866,
+      "kineticEnergy": 0.00669184854566027,
+      "guardActivations": 0,
+      "speedCaps": 0,
+      "affineCaps": 0,
+      "deformationRejections": 0,
+      "domainContacts": 0,
+      "zeroShearUpdates": 0,
+      "relaxationUpdates": 0,
+      "particleMaterial": "elastic",
+      "maxGridSpeed": 9.407332420349121,
+      "maxParticleSpeed": 6.2608723640441895,
+      "speedCapImpulse": 0,
+      "particleSpeedCaps": 0,
+      "gridSpeedCaps": 0,
+      "gripCount": 0,
+      "gravitationalEnergy": 14.79651506874207,
+      "totalEnergy": 15.182905902344608,
+      "finite": true,
+      "pinnedCount": 457,
+      "min": [-0.6419780850410461, 0.03999999910593033, -0.30645209550857544],
+      "max": [0.7939865589141846, 2.550196886062622, 0.4399999976158142],
+      "span": [1.4359646439552307, 2.5101968869566917, 0.7464520931243896],
+      "pinMovement": 0,
+      "maxDisplacement": 0.32624892777395387,
+      "freeDisplacementRms": 0.1443158023359577,
+      "connectivityRadius": 0.152,
+      "components": [2445],
+      "componentDetails": [
+        {
+          "count": 2445,
+          "pinned": 457,
+          "free": 1988
+        }
+      ],
+      "damageMax": 0,
+      "damaged": 0,
+      "meanDamage": 0,
+      "meanJ": 0.9974612061718978,
+      "minJ": 0.8895511031150818,
+      "maxJ": 1.061704158782959,
+      "materialRegions": [
+        {
+          "name": "feet",
+          "count": 457,
+          "damaged": 0,
+          "peakStretch": 1
+        },
+        {
+          "name": "ankles",
+          "count": 300,
+          "damaged": 0,
+          "peakStretch": 1.380064845085144
+        },
+        {
+          "name": "body-arm",
+          "count": 946,
+          "damaged": 0,
+          "peakStretch": 1.4158763885498047
+        },
+        {
+          "name": "head",
+          "count": 742,
+          "damaged": 0,
+          "peakStretch": 1.1186038255691528
+        }
+      ],
+      "stretchDistribution": {
+        "p50": 1.0451444387435913,
+        "p90": 1.1949436664581299,
+        "p99": 1.2984338998794556,
+        "p100": 1.4158763885498047
+      },
+      "capturedPatch": {
+        "count": 72,
+        "maxMovement": 0.11522413409528744
+      }
+    },
+    {
+      "name": "warm-idle-10s",
+      "info": {
+        "experiment": "particle",
+        "fixture": "bear",
+        "pose": "upright",
+        "materialModel": "mls-mpm",
+        "protocol": "lateral-pull",
+        "phase": "idle",
+        "time": 10,
+        "steps": 1200,
+        "tick": 1200,
+        "particleCount": 2445,
+        "spacing": 0.08,
+        "gridSpacing": 0.16,
+        "restVolume": 1.2518400000000003,
+        "gridBounds": {
+          "min": [-3.84, -0.32, -3.84],
+          "max": [3.84, 7.359999999999999, 3.84]
+        },
+        "substeps": 29,
+        "restBounds": {
+          "min": [
+            -0.6800000071525574, 0.03999999910593033, -0.2800000011920929
+          ],
+          "max": [0.6800000071525574, 2.5199999809265137, 0.4399999976158142]
+        },
+        "grip": false,
+        "demo": false,
+        "submittedFrames": 379,
+        "completedFrames": 379,
+        "gpuPending": false,
+        "settings": {
+          "softness": 0.55,
+          "tearing": true,
+          "palette": "marble",
+          "fixedDt": 0.008333333333333333,
+          "particleMaterial": "warm",
+          "fragility": 0.88
+        }
+      },
+      "maxPlasticStrain": 0,
+      "maxVolumetricOpening": 0,
+      "cavitationUpdates": 0,
+      "simulationTime": 10.000000000000073,
+      "particleCount": 2445,
+      "totalMass": 1.2518400000000003,
+      "restVolume": 1.2518400000000003,
+      "elasticEnergy": 0.1374767828798406,
+      "kineticEnergy": 1.4976143713987432e-7,
+      "guardActivations": 0,
+      "speedCaps": 0,
+      "affineCaps": 0,
+      "deformationRejections": 0,
+      "domainContacts": 0,
+      "zeroShearUpdates": 0,
+      "relaxationUpdates": 0,
+      "particleMaterial": "warm",
+      "maxGridSpeed": 0.7357487678527832,
+      "maxParticleSpeed": 0.7304517030715942,
+      "speedCapImpulse": 0,
+      "particleSpeedCaps": 0,
+      "gridSpeedCaps": 0,
+      "gripCount": 0,
+      "gravitationalEnergy": 14.771513415846867,
+      "totalEnergy": 14.908990348488144,
+      "finite": true,
+      "pinnedCount": 457,
+      "min": [-0.6882594227790833, 0.03999999910593033, -0.31066450476646423],
+      "max": [0.6882588863372803, 2.474440813064575, 0.4399999976158142],
+      "span": [1.3765183091163635, 2.434440813958645, 0.7506645023822784],
+      "pinMovement": 0,
+      "maxDisplacement": 0.060429983514960664,
+      "freeDisplacementRms": 0.03610852157542539,
+      "connectivityRadius": 0.152,
+      "components": [2445],
+      "componentDetails": [
+        {
+          "count": 2445,
+          "pinned": 457,
+          "free": 1988
+        }
+      ],
+      "damageMax": 0,
+      "damaged": 0,
+      "meanDamage": 0,
+      "meanJ": 0.9972321549563807,
+      "minJ": 0.9581626057624817,
+      "maxJ": 1.004948616027832,
+      "materialRegions": [
+        {
+          "name": "feet",
+          "count": 457,
+          "damaged": 0,
+          "peakStretch": 1
+        },
+        {
+          "name": "ankles",
+          "count": 300,
+          "damaged": 0,
+          "peakStretch": 1.0460426807403564
+        },
+        {
+          "name": "body-arm",
+          "count": 946,
+          "damaged": 0,
+          "peakStretch": 1.0399510860443115
+        },
+        {
+          "name": "head",
+          "count": 742,
+          "damaged": 0,
+          "peakStretch": 1.0271790027618408
+        }
+      ],
+      "stretchDistribution": {
+        "p50": 1.0142022371292114,
+        "p90": 1.0363167524337769,
+        "p99": 1.0396608114242554,
+        "p100": 1.0460426807403564
+      }
+    },
+    {
+      "name": "warm-settled",
+      "info": {
+        "experiment": "particle",
+        "fixture": "bear",
+        "pose": "upright",
+        "materialModel": "mls-mpm",
+        "protocol": "lateral-pull",
+        "phase": "idle",
+        "time": 1,
+        "steps": 120,
+        "tick": 120,
+        "particleCount": 2445,
+        "spacing": 0.08,
+        "gridSpacing": 0.16,
+        "restVolume": 1.2518400000000003,
+        "gridBounds": {
+          "min": [-3.84, -0.32, -3.84],
+          "max": [3.84, 7.359999999999999, 3.84]
+        },
+        "substeps": 29,
+        "restBounds": {
+          "min": [
+            -0.6800000071525574, 0.03999999910593033, -0.2800000011920929
+          ],
+          "max": [0.6800000071525574, 2.5199999809265137, 0.4399999976158142]
+        },
+        "grip": false,
+        "demo": false,
+        "submittedFrames": 410,
+        "completedFrames": 410,
+        "gpuPending": false,
+        "settings": {
+          "softness": 0.55,
+          "tearing": true,
+          "palette": "marble",
+          "fixedDt": 0.008333333333333333,
+          "particleMaterial": "warm",
+          "fragility": 0.88
+        }
+      },
+      "maxPlasticStrain": 0,
+      "maxVolumetricOpening": 0,
+      "cavitationUpdates": 0,
+      "simulationTime": 0.9999999999999989,
+      "particleCount": 2445,
+      "totalMass": 1.2518400000000003,
+      "restVolume": 1.2518400000000003,
+      "elasticEnergy": 0.1277135837331853,
+      "kineticEnergy": 0.005983724490049053,
+      "guardActivations": 0,
+      "speedCaps": 0,
+      "affineCaps": 0,
+      "deformationRejections": 0,
+      "domainContacts": 0,
+      "zeroShearUpdates": 0,
+      "relaxationUpdates": 0,
+      "particleMaterial": "warm",
+      "maxGridSpeed": 0.7357487678527832,
+      "maxParticleSpeed": 0.7304517030715942,
+      "speedCapImpulse": 0,
+      "particleSpeedCaps": 0,
+      "gridSpeedCaps": 0,
+      "gripCount": 0,
+      "gravitationalEnergy": 14.782577751941533,
+      "totalEnergy": 14.916275060164768,
+      "finite": true,
+      "pinnedCount": 457,
+      "min": [-0.6877531409263611, 0.03999999910593033, -0.29407382011413574],
+      "max": [0.6877531409263611, 2.476269245147705, 0.4399999976158142],
+      "span": [1.3755062818527222, 2.4362692460417747, 0.73407381772995],
+      "pinMovement": 0,
+      "maxDisplacement": 0.04800079295378798,
+      "freeDisplacementRms": 0.03114256470631605,
+      "connectivityRadius": 0.152,
+      "components": [2445],
+      "componentDetails": [
+        {
+          "count": 2445,
+          "pinned": 457,
+          "free": 1988
+        }
+      ],
+      "damageMax": 0,
+      "damaged": 0,
+      "meanDamage": 0,
+      "meanJ": 0.9974034059023321,
+      "minJ": 0.9622882008552551,
+      "maxJ": 1.005313754081726,
+      "materialRegions": [
+        {
+          "name": "feet",
+          "count": 457,
+          "damaged": 0,
+          "peakStretch": 1
+        },
+        {
+          "name": "ankles",
+          "count": 300,
+          "damaged": 0,
+          "peakStretch": 1.0460426807403564
+        },
+        {
+          "name": "body-arm",
+          "count": 946,
+          "damaged": 0,
+          "peakStretch": 1.039951205253601
+        },
+        {
+          "name": "head",
+          "count": 742,
+          "damaged": 0,
+          "peakStretch": 1.0271788835525513
+        }
+      ],
+      "stretchDistribution": {
+        "p50": 1.0142022371292114,
+        "p90": 1.0363008975982666,
+        "p99": 1.0396608114242554,
+        "p100": 1.0460426807403564
+      }
+    },
+    {
+      "name": "warm-short-pull",
+      "info": {
+        "experiment": "particle",
+        "fixture": "bear",
+        "pose": "upright",
+        "materialModel": "mls-mpm",
+        "protocol": "lateral-pull",
+        "phase": "idle",
+        "time": 1.4083333333333332,
+        "steps": 169,
+        "tick": 169,
+        "particleCount": 2445,
+        "spacing": 0.08,
+        "gridSpacing": 0.16,
+        "restVolume": 1.2518400000000003,
+        "gridBounds": {
+          "min": [-3.84, -0.32, -3.84],
+          "max": [3.84, 7.359999999999999, 3.84]
+        },
+        "substeps": 29,
+        "restBounds": {
+          "min": [
+            -0.6800000071525574, 0.03999999910593033, -0.2800000011920929
+          ],
+          "max": [0.6800000071525574, 2.5199999809265137, 0.4399999976158142]
+        },
+        "grip": true,
+        "gripCommand": {
+          "center": [
+            0.6069628000259399, 1.2976670265197754, 0.19494761526584625
+          ],
+          "target": [0.900157261395845, 1.332078484956067, 0.18095643352615554],
+          "radius": 0.22
+        },
+        "demo": false,
+        "submittedFrames": 567,
+        "completedFrames": 566,
+        "gpuPending": true,
+        "settings": {
+          "softness": 0.55,
+          "tearing": true,
+          "palette": "marble",
+          "fixedDt": 0.008333333333333333,
+          "particleMaterial": "warm",
+          "fragility": 0.88
+        }
+      },
+      "maxPlasticStrain": 0.013090762309730053,
+      "maxVolumetricOpening": 0,
+      "cavitationUpdates": 0,
+      "simulationTime": 1.4083333333333308,
+      "particleCount": 2445,
+      "totalMass": 1.2518400000000003,
+      "restVolume": 1.2518400000000003,
+      "elasticEnergy": 0.3296468683711588,
+      "kineticEnergy": 0.07330228447227696,
+      "guardActivations": 0,
+      "speedCaps": 0,
+      "affineCaps": 0,
+      "deformationRejections": 0,
+      "domainContacts": 0,
+      "zeroShearUpdates": 0,
+      "relaxationUpdates": 6337,
+      "particleMaterial": "warm",
+      "maxGridSpeed": 0.8507178425788879,
+      "maxParticleSpeed": 0.7782391905784607,
+      "speedCapImpulse": 0,
+      "particleSpeedCaps": 0,
+      "gridSpeedCaps": 0,
+      "gripCount": 39,
+      "gravitationalEnergy": 14.797180422232366,
+      "totalEnergy": 15.2001295750758,
+      "finite": true,
+      "pinnedCount": 457,
+      "min": [-0.6471959352493286, 0.03999999910593033, -0.29936841130256653],
+      "max": [0.7927358746528625, 2.4875741004943848, 0.4399999976158142],
+      "span": [1.4399318099021912, 2.4475741013884544, 0.7393684089183807],
+      "pinMovement": 0,
+      "maxDisplacement": 0.13927282238038774,
+      "freeDisplacementRms": 0.07773733110670301,
+      "connectivityRadius": 0.152,
+      "components": [2445],
+      "componentDetails": [
+        {
+          "count": 2445,
+          "pinned": 457,
+          "free": 1988
+        }
+      ],
+      "damageMax": 0,
+      "damaged": 0,
+      "meanDamage": 0,
+      "meanJ": 0.9990589476558085,
+      "minJ": 0.9360081553459167,
+      "maxJ": 1.026634693145752,
+      "materialRegions": [
+        {
+          "name": "feet",
+          "count": 457,
+          "damaged": 0,
+          "peakStretch": 1
+        },
+        {
+          "name": "ankles",
+          "count": 300,
+          "damaged": 0,
+          "peakStretch": 1.079924464225769
+        },
+        {
+          "name": "body-arm",
+          "count": 946,
+          "damaged": 0,
+          "peakStretch": 1.1157170534133911
+        },
+        {
+          "name": "head",
+          "count": 742,
+          "damaged": 0,
+          "peakStretch": 1.0316981077194214
+        }
+      ],
+      "stretchDistribution": {
+        "p50": 1.0160351991653442,
+        "p90": 1.0530661344528198,
+        "p99": 1.0961439609527588,
+        "p100": 1.1157170534133911
+      },
+      "capturedPatch": {
+        "count": 39,
+        "maxMovement": 0.1259822993007143
+      }
+    },
+    {
+      "name": "warm-extended-pull",
+      "info": {
+        "experiment": "particle",
+        "fixture": "bear",
+        "pose": "upright",
+        "materialModel": "mls-mpm",
+        "protocol": "lateral-pull",
+        "phase": "idle",
+        "time": 1.8083333333333333,
+        "steps": 217,
+        "tick": 217,
+        "particleCount": 2445,
+        "spacing": 0.08,
+        "gridSpacing": 0.16,
+        "restVolume": 1.2518400000000003,
+        "gridBounds": {
+          "min": [-3.84, -0.32, -3.84],
+          "max": [3.84, 7.359999999999999, 3.84]
+        },
+        "substeps": 29,
+        "restBounds": {
+          "min": [
+            -0.6800000071525574, 0.03999999910593033, -0.2800000011920929
+          ],
+          "max": [0.6800000071525574, 2.5199999809265137, 0.4399999976158142]
+        },
+        "grip": true,
+        "gripCommand": {
+          "center": [
+            0.6069628000259399, 1.2976670265197754, 0.19494761526584625
+          ],
+          "target": [
+            1.195131048693054, 1.3666987972727345, 0.16688033629750265
+          ],
+          "radius": 0.22
+        },
+        "demo": false,
+        "submittedFrames": 688,
+        "completedFrames": 687,
+        "gpuPending": true,
+        "settings": {
+          "softness": 0.55,
+          "tearing": true,
+          "palette": "marble",
+          "fixedDt": 0.008333333333333333,
+          "particleMaterial": "warm",
+          "fragility": 0.88
+        }
+      },
+      "maxPlasticStrain": 0.2688837945461273,
+      "maxVolumetricOpening": 0.26720255613327026,
+      "cavitationUpdates": 3158,
+      "simulationTime": 1.8083333333333294,
+      "particleCount": 2445,
+      "totalMass": 1.2518400000000003,
+      "restVolume": 1.2518400000000003,
+      "elasticEnergy": 1.000620216946181,
+      "kineticEnergy": 0.08282027995256054,
+      "guardActivations": 0,
+      "speedCaps": 0,
+      "affineCaps": 0,
+      "deformationRejections": 0,
+      "domainContacts": 0,
+      "zeroShearUpdates": 0,
+      "relaxationUpdates": 316911,
+      "particleMaterial": "warm",
+      "maxGridSpeed": 1.694707989692688,
+      "maxParticleSpeed": 1.3341898918151855,
+      "speedCapImpulse": 0,
+      "particleSpeedCaps": 0,
+      "gridSpeedCaps": 0,
+      "gripCount": 39,
+      "gravitationalEnergy": 14.676800983563542,
+      "totalEnergy": 15.760241480462284,
+      "finite": true,
+      "pinnedCount": 457,
+      "min": [-0.5722351670265198, 0.03999999910593033, -0.2873859703540802],
+      "max": [0.9743159413337708, 2.5351438522338867, 0.453175812959671],
+      "span": [1.5465511083602905, 2.4951438531279564, 0.7405617833137512],
+      "pinMovement": 0,
+      "maxDisplacement": 0.47807899503181456,
+      "freeDisplacementRms": 0.24980132487114767,
+      "connectivityRadius": 0.152,
+      "components": [2445],
+      "componentDetails": [
+        {
+          "count": 2445,
+          "pinned": 457,
+          "free": 1988
+        }
+      ],
+      "damageMax": 0.964722216129303,
+      "damaged": 28,
+      "meanDamage": 0.013562394847124052,
+      "meanJ": 1.001239329929976,
+      "minJ": 0.8948482275009155,
+      "maxJ": 1.1404980421066284,
+      "materialRegions": [
+        {
+          "name": "feet",
+          "count": 457,
+          "damaged": 0,
+          "peakStretch": 1
+        },
+        {
+          "name": "ankles",
+          "count": 300,
+          "damaged": 0,
+          "peakStretch": 1.1317301988601685
+        },
+        {
+          "name": "body-arm",
+          "count": 946,
+          "damaged": 28,
+          "peakStretch": 1.3459422588348389
+        },
+        {
+          "name": "head",
+          "count": 742,
+          "damaged": 0,
+          "peakStretch": 1.058364748954773
+        }
+      ],
+      "stretchDistribution": {
+        "p50": 1.018133521080017,
+        "p90": 1.107656717300415,
+        "p99": 1.2372586727142334,
+        "p100": 1.3459422588348389
+      },
+      "capturedPatch": {
+        "count": 39,
+        "maxMovement": 0.35375593477443207
+      }
+    },
+    {
+      "name": "warm-released",
+      "info": {
+        "experiment": "particle",
+        "fixture": "bear",
+        "pose": "upright",
+        "materialModel": "mls-mpm",
+        "protocol": "lateral-pull",
+        "phase": "idle",
+        "time": 3.308333333333333,
+        "steps": 397,
+        "tick": 397,
+        "particleCount": 2445,
+        "spacing": 0.08,
+        "gridSpacing": 0.16,
+        "restVolume": 1.2518400000000003,
+        "gridBounds": {
+          "min": [-3.84, -0.32, -3.84],
+          "max": [3.84, 7.359999999999999, 3.84]
+        },
+        "substeps": 29,
+        "restBounds": {
+          "min": [
+            -0.6800000071525574, 0.03999999910593033, -0.2800000011920929
+          ],
+          "max": [0.6800000071525574, 2.5199999809265137, 0.4399999976158142]
+        },
+        "grip": false,
+        "demo": false,
+        "submittedFrames": 717,
+        "completedFrames": 717,
+        "gpuPending": false,
+        "settings": {
+          "softness": 0.55,
+          "tearing": true,
+          "palette": "marble",
+          "fixedDt": 0.008333333333333333,
+          "particleMaterial": "warm",
+          "fragility": 0.88
+        }
+      },
+      "maxPlasticStrain": 0.3477382957935333,
+      "maxVolumetricOpening": 0.3168652355670929,
+      "cavitationUpdates": 19633,
+      "simulationTime": 3.3083333333333242,
+      "particleCount": 2445,
+      "totalMass": 1.2518400000000003,
+      "restVolume": 1.2518400000000003,
+      "elasticEnergy": 0.14822021202942343,
+      "kineticEnergy": 0.0558422489148715,
+      "guardActivations": 0,
+      "speedCaps": 0,
+      "affineCaps": 0,
+      "deformationRejections": 0,
+      "domainContacts": 0,
+      "zeroShearUpdates": 45629,
+      "relaxationUpdates": 418590,
+      "particleMaterial": "warm",
+      "maxGridSpeed": 3.444464683532715,
+      "maxParticleSpeed": 2.56475830078125,
+      "speedCapImpulse": 0,
+      "particleSpeedCaps": 0,
+      "gridSpeedCaps": 0,
+      "gripCount": 0,
+      "gravitationalEnergy": 14.759370962907719,
+      "totalEnergy": 14.963433423852013,
+      "finite": true,
+      "pinnedCount": 457,
+      "min": [-0.6722705960273743, 0.03999999910593033, -0.2913152575492859],
+      "max": [0.7543506026268005, 2.4945597648620605, 0.4461878836154938],
+      "span": [1.4266211986541748, 2.45455976575613, 0.7375031411647797],
+      "pinMovement": 0,
+      "maxDisplacement": 0.11829843541373108,
+      "freeDisplacementRms": 0.05667009662227415,
+      "connectivityRadius": 0.152,
+      "components": [2445],
+      "componentDetails": [
+        {
+          "count": 2445,
+          "pinned": 457,
+          "free": 1988
+        }
+      ],
+      "damageMax": 1,
+      "damaged": 33,
+      "meanDamage": 0.015980117873934056,
+      "meanJ": 0.9975535680911293,
+      "minJ": 0.9585534930229187,
+      "maxJ": 1.0507278442382812,
+      "materialRegions": [
+        {
+          "name": "feet",
+          "count": 457,
+          "damaged": 0,
+          "peakStretch": 1
+        },
+        {
+          "name": "ankles",
+          "count": 300,
+          "damaged": 0,
+          "peakStretch": 1.1317301988601685
+        },
+        {
+          "name": "body-arm",
+          "count": 946,
+          "damaged": 33,
+          "peakStretch": 1.347621202468872
+        },
+        {
+          "name": "head",
+          "count": 742,
+          "damaged": 0,
+          "peakStretch": 1.0750224590301514
+        }
+      ],
+      "stretchDistribution": {
+        "p50": 1.0302802324295044,
+        "p90": 1.1083619594573975,
+        "p99": 1.2374340295791626,
+        "p100": 1.347621202468872
+      },
+      "capturedPatch": {
+        "count": 39,
+        "maxMovement": 0.09303221647360503
+      }
+    },
+    {
+      "name": "warm-long-pull",
+      "info": {
+        "experiment": "particle",
+        "fixture": "bear",
+        "pose": "upright",
+        "materialModel": "mls-mpm",
+        "protocol": "lateral-pull",
+        "phase": "idle",
+        "time": 1.8083333333333333,
+        "steps": 217,
+        "tick": 217,
+        "particleCount": 2445,
+        "spacing": 0.08,
+        "gridSpacing": 0.16,
+        "restVolume": 1.2518400000000003,
+        "gridBounds": {
+          "min": [-3.84, -0.32, -3.84],
+          "max": [3.84, 7.359999999999999, 3.84]
+        },
+        "substeps": 29,
+        "restBounds": {
+          "min": [
+            -0.6800000071525574, 0.03999999910593033, -0.2800000011920929
+          ],
+          "max": [0.6800000071525574, 2.5199999809265137, 0.4399999976158142]
+        },
+        "grip": true,
+        "gripCommand": {
+          "center": [
+            0.6069628000259399, 1.2976670265197754, 0.19494761526584625
+          ],
+          "target": [
+            1.589205925271965, 1.3835052098339007, 0.15795171939480923
+          ],
+          "radius": 0.22
+        },
+        "demo": false,
+        "submittedFrames": 799,
+        "completedFrames": 799,
+        "gpuPending": false,
+        "settings": {
+          "softness": 0.55,
+          "tearing": true,
+          "palette": "marble",
+          "fixedDt": 0.008333333333333333,
+          "particleMaterial": "warm",
+          "fragility": 0.88
+        }
+      },
+      "maxPlasticStrain": 1.0700982809066772,
+      "maxVolumetricOpening": 2.6382639408111572,
+      "cavitationUpdates": 82689,
+      "simulationTime": 1.8083333333333294,
+      "particleCount": 2445,
+      "totalMass": 1.2518400000000003,
+      "restVolume": 1.2518400000000003,
+      "elasticEnergy": 0.8586548467434636,
+      "kineticEnergy": 0.08007816301641102,
+      "guardActivations": 0,
+      "speedCaps": 0,
+      "affineCaps": 0,
+      "deformationRejections": 0,
+      "domainContacts": 0,
+      "zeroShearUpdates": 3344,
+      "relaxationUpdates": 599578,
+      "particleMaterial": "warm",
+      "maxGridSpeed": 5.840127944946289,
+      "maxParticleSpeed": 4.607015132904053,
+      "speedCapImpulse": 0,
+      "particleSpeedCaps": 0,
+      "gridSpeedCaps": 0,
+      "gripCount": 39,
+      "gravitationalEnergy": 14.40874069779694,
+      "totalEnergy": 15.347473707556814,
+      "finite": true,
+      "pinnedCount": 457,
+      "min": [-0.5700868368148804, 0.03999999910593033, -0.29586637020111084],
+      "max": [1.676453709602356, 2.528764009475708, 0.47626793384552],
+      "span": [2.2465405464172363, 2.4887640103697777, 0.7721343040466309],
+      "pinMovement": 0,
+      "maxDisplacement": 1.0751196377261396,
+      "freeDisplacementRms": 0.38334362420601376,
+      "connectivityRadius": 0.152,
+      "components": [2402, 41, 2],
+      "componentDetails": [
+        {
+          "count": 2402,
+          "pinned": 457,
+          "free": 1945
+        },
+        {
+          "count": 41,
+          "pinned": 0,
+          "free": 41
+        },
+        {
+          "count": 2,
+          "pinned": 0,
+          "free": 2
+        }
+      ],
+      "damageMax": 1,
+      "damaged": 131,
+      "meanDamage": 0.05585129967558923,
+      "meanJ": 0.9981433932035247,
+      "minJ": 0.866998553276062,
+      "maxJ": 1.1887925863265991,
+      "materialRegions": [
+        {
+          "name": "feet",
+          "count": 457,
+          "damaged": 0,
+          "peakStretch": 1
+        },
+        {
+          "name": "ankles",
+          "count": 300,
+          "damaged": 0,
+          "peakStretch": 1.1503409147262573
+        },
+        {
+          "name": "body-arm",
+          "count": 946,
+          "damaged": 131,
+          "peakStretch": 2.0607542991638184
+        },
+        {
+          "name": "head",
+          "count": 742,
+          "damaged": 0,
+          "peakStretch": 1.133789300918579
+        }
+      ],
+      "stretchDistribution": {
+        "p50": 1.0315942764282227,
+        "p90": 1.1248698234558105,
+        "p99": 1.7926185131072998,
+        "p100": 2.0607542991638184
+      },
+      "capturedPatch": {
+        "count": 39,
+        "maxMovement": 1.0701574118213217
+      }
+    },
+    {
+      "name": "warm-long-released",
+      "info": {
+        "experiment": "particle",
+        "fixture": "bear",
+        "pose": "upright",
+        "materialModel": "mls-mpm",
+        "protocol": "lateral-pull",
+        "phase": "idle",
+        "time": 3.308333333333333,
+        "steps": 397,
+        "tick": 397,
+        "particleCount": 2445,
+        "spacing": 0.08,
+        "gridSpacing": 0.16,
+        "restVolume": 1.2518400000000003,
+        "gridBounds": {
+          "min": [-3.84, -0.32, -3.84],
+          "max": [3.84, 7.359999999999999, 3.84]
+        },
+        "substeps": 29,
+        "restBounds": {
+          "min": [
+            -0.6800000071525574, 0.03999999910593033, -0.2800000011920929
+          ],
+          "max": [0.6800000071525574, 2.5199999809265137, 0.4399999976158142]
+        },
+        "grip": false,
+        "demo": false,
+        "submittedFrames": 944,
+        "completedFrames": 944,
+        "gpuPending": false,
+        "settings": {
+          "softness": 0.55,
+          "tearing": true,
+          "palette": "marble",
+          "fixedDt": 0.008333333333333333,
+          "particleMaterial": "warm",
+          "fragility": 0.88
+        }
+      },
+      "maxPlasticStrain": 1.1357243061065674,
+      "maxVolumetricOpening": 4.440942764282227,
+      "cavitationUpdates": 514046,
+      "simulationTime": 3.3083333333333242,
+      "particleCount": 2445,
+      "totalMass": 1.2518400000000003,
+      "restVolume": 1.2518400000000003,
+      "elasticEnergy": 0.17263984039043512,
+      "kineticEnergy": 0.04578562464340735,
+      "guardActivations": 0,
+      "speedCaps": 0,
+      "affineCaps": 0,
+      "deformationRejections": 0,
+      "domainContacts": 0,
+      "zeroShearUpdates": 601326,
+      "relaxationUpdates": 734718,
+      "particleMaterial": "warm",
+      "maxGridSpeed": 5.840127944946289,
+      "maxParticleSpeed": 4.607015132904053,
+      "speedCapImpulse": 0,
+      "particleSpeedCaps": 0,
+      "gridSpeedCaps": 0,
+      "gripCount": 0,
+      "gravitationalEnergy": 14.426666518853935,
+      "totalEnergy": 14.645091983887777,
+      "finite": true,
+      "pinnedCount": 457,
+      "min": [-0.6665005683898926, 0.03999999910593033, -0.4486648142337799],
+      "max": [2.3562216758728027, 2.5018310546875, 0.44233906269073486],
+      "span": [3.0227222442626953, 2.4618310555815697, 0.8910038769245148],
+      "pinMovement": 0,
+      "maxDisplacement": 2.1750563632716005,
+      "freeDisplacementRms": 0.2948910993448537,
+      "connectivityRadius": 0.152,
+      "components": [
+        2387, 20, 4, 3, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1
+      ],
+      "componentDetails": [
+        {
+          "count": 2387,
+          "pinned": 457,
+          "free": 1930
+        },
+        {
+          "count": 20,
+          "pinned": 0,
+          "free": 20
+        },
+        {
+          "count": 4,
+          "pinned": 0,
+          "free": 4
+        },
+        {
+          "count": 3,
+          "pinned": 0,
+          "free": 3
+        },
+        {
+          "count": 2,
+          "pinned": 0,
+          "free": 2
+        },
+        {
+          "count": 2,
+          "pinned": 0,
+          "free": 2
+        },
+        {
+          "count": 2,
+          "pinned": 0,
+          "free": 2
+        },
+        {
+          "count": 2,
+          "pinned": 0,
+          "free": 2
+        },
+        {
+          "count": 2,
+          "pinned": 0,
+          "free": 2
+        },
+        {
+          "count": 2,
+          "pinned": 0,
+          "free": 2
+        },
+        {
+          "count": 2,
+          "pinned": 0,
+          "free": 2
+        },
+        {
+          "count": 2,
+          "pinned": 0,
+          "free": 2
+        },
+        {
+          "count": 1,
+          "pinned": 0,
+          "free": 1
+        },
+        {
+          "count": 1,
+          "pinned": 0,
+          "free": 1
+        },
+        {
+          "count": 1,
+          "pinned": 0,
+          "free": 1
+        },
+        {
+          "count": 1,
+          "pinned": 0,
+          "free": 1
+        },
+        {
+          "count": 1,
+          "pinned": 0,
+          "free": 1
+        },
+        {
+          "count": 1,
+          "pinned": 0,
+          "free": 1
+        },
+        {
+          "count": 1,
+          "pinned": 0,
+          "free": 1
+        },
+        {
+          "count": 1,
+          "pinned": 0,
+          "free": 1
+        },
+        {
+          "count": 1,
+          "pinned": 0,
+          "free": 1
+        },
+        {
+          "count": 1,
+          "pinned": 0,
+          "free": 1
+        },
+        {
+          "count": 1,
+          "pinned": 0,
+          "free": 1
+        },
+        {
+          "count": 1,
+          "pinned": 0,
+          "free": 1
+        },
+        {
+          "count": 1,
+          "pinned": 0,
+          "free": 1
+        },
+        {
+          "count": 1,
+          "pinned": 0,
+          "free": 1
+        },
+        {
+          "count": 1,
+          "pinned": 0,
+          "free": 1
+        }
+      ],
+      "damageMax": 1,
+      "damaged": 134,
+      "meanDamage": 0.05775233395996574,
+      "meanJ": 0.9976218546338852,
+      "minJ": 0.9547263383865356,
+      "maxJ": 1.091266393661499,
+      "materialRegions": [
+        {
+          "name": "feet",
+          "count": 457,
+          "damaged": 0,
+          "peakStretch": 1
+        },
+        {
+          "name": "ankles",
+          "count": 300,
+          "damaged": 0,
+          "peakStretch": 1.1503409147262573
+        },
+        {
+          "name": "body-arm",
+          "count": 946,
+          "damaged": 134,
+          "peakStretch": 2.0607542991638184
+        },
+        {
+          "name": "head",
+          "count": 742,
+          "damaged": 0,
+          "peakStretch": 1.133789300918579
+        }
+      ],
+      "stretchDistribution": {
+        "p50": 1.034674048423767,
+        "p90": 1.125131368637085,
+        "p99": 1.7926185131072998,
+        "p100": 2.0607542991638184
+      },
+      "capturedPatch": {
+        "count": 39,
+        "maxMovement": 2.1562668114827583
+      }
+    },
+    {
+      "name": "blobs-settled",
+      "info": {
+        "experiment": "particle",
+        "fixture": "blobs",
+        "pose": "upright",
+        "materialModel": "mls-mpm",
+        "protocol": "lateral-pull",
+        "phase": "idle",
+        "time": 1,
+        "steps": 120,
+        "tick": 120,
+        "particleCount": 1220,
+        "spacing": 0.08,
+        "gridSpacing": 0.16,
+        "restVolume": 0.6246400000000001,
+        "gridBounds": {
+          "min": [-3.84, -0.32, -3.84],
+          "max": [3.84, 7.359999999999999, 3.84]
+        },
+        "substeps": 29,
+        "restBounds": {
+          "min": [
+            -1.0800000429153442, 0.20000000298023224, -0.36000001430511475
+          ],
+          "max": [1.0800000429153442, 0.9200000166893005, 0.36000001430511475]
+        },
+        "grip": false,
+        "demo": false,
+        "submittedFrames": 17,
+        "completedFrames": 17,
+        "gpuPending": false,
+        "settings": {
+          "softness": 0.55,
+          "tearing": true,
+          "palette": "marble",
+          "fixedDt": 0.008333333333333333,
+          "particleMaterial": "warm",
+          "fragility": 0.88
+        }
+      },
+      "maxPlasticStrain": 0.0017787553369998932,
+      "maxVolumetricOpening": 0,
+      "cavitationUpdates": 0,
+      "simulationTime": 0.9999999999999989,
+      "particleCount": 1220,
+      "totalMass": 0.6246400000000001,
+      "restVolume": 0.6246400000000001,
+      "elasticEnergy": 0.10125979979720702,
+      "kineticEnergy": 0.00004710738581133995,
+      "guardActivations": 0,
+      "speedCaps": 0,
+      "affineCaps": 0,
+      "deformationRejections": 0,
+      "domainContacts": 0,
+      "zeroShearUpdates": 0,
+      "relaxationUpdates": 5465,
+      "particleMaterial": "warm",
+      "maxGridSpeed": 0.6903499364852905,
+      "maxParticleSpeed": 0.6871241331100464,
+      "speedCapImpulse": 0,
+      "particleSpeedCaps": 0,
+      "gridSpeedCaps": 0,
+      "gripCount": 0,
+      "gravitationalEnergy": 3.067549621229554,
+      "totalEnergy": 3.1688565284125723,
+      "finite": true,
+      "pinnedCount": 0,
+      "min": [-1.0845274925231934, 0.15205484628677368, -0.3617369830608368],
+      "max": [1.0845274925231934, 0.8716613054275513, 0.3617369830608368],
+      "span": [2.1690549850463867, 0.7196064591407776, 0.7234739661216736],
+      "pinMovement": 0,
+      "maxDisplacement": 0.06209794218536463,
+      "freeDisplacementRms": 0.051445233857463094,
+      "connectivityRadius": 0.152,
+      "components": [610, 610],
+      "componentDetails": [
+        {
+          "count": 610,
+          "pinned": 0,
+          "free": 610
+        },
+        {
+          "count": 610,
+          "pinned": 0,
+          "free": 610
+        }
+      ],
+      "damageMax": 0,
+      "damaged": 0,
+      "meanDamage": 0,
+      "meanJ": 0.9982704513385647,
+      "minJ": 0.9526821970939636,
+      "maxJ": 1.0216834545135498,
+      "materialRegions": [
+        {
+          "name": "feet",
+          "count": 460,
+          "damaged": 0,
+          "peakStretch": 1.094256043434143
+        },
+        {
+          "name": "ankles",
+          "count": 724,
+          "damaged": 0,
+          "peakStretch": 1.0136598348617554
+        },
+        {
+          "name": "body-arm",
+          "count": 36,
+          "damaged": 0,
+          "peakStretch": 1.0030466318130493
+        },
+        {
+          "name": "head",
+          "count": 0,
+          "damaged": 0,
+          "peakStretch": 1
+        }
+      ],
+      "contact": {
+        "labels": [
+          {
+            "count": 610,
+            "centroid": [
+              -0.7026115135579812, 0.5006022360481199, -1.3417152107739058e-8
+            ]
+          },
+          {
+            "count": 610,
+            "centroid": [
+              0.7026115112617367, 0.500602264873317, 3.1023729042928725e-8
+            ]
+          }
+        ],
+        "minimumCrossLabelDistance": 0.7073814570903888,
+        "nearContactCounts": [0, 0],
+        "contactRadius": 0.152,
+        "interpretation": "Geometric proximity and labelled motion; this does not demonstrate a persistent adhesive bond."
+      },
+      "stretchDistribution": {
+        "p50": 1.0095232725143433,
+        "p90": 1.0344352722167969,
+        "p99": 1.0919902324676514,
+        "p100": 1.094256043434143
+      }
+    },
+    {
+      "name": "blobs-pressed",
+      "info": {
+        "experiment": "particle",
+        "fixture": "blobs",
+        "pose": "upright",
+        "materialModel": "mls-mpm",
+        "protocol": "lateral-pull",
+        "phase": "idle",
+        "time": 2.908333333333333,
+        "steps": 349,
+        "tick": 349,
+        "particleCount": 1220,
+        "spacing": 0.08,
+        "gridSpacing": 0.16,
+        "restVolume": 0.6246400000000001,
+        "gridBounds": {
+          "min": [-3.84, -0.32, -3.84],
+          "max": [3.84, 7.359999999999999, 3.84]
+        },
+        "substeps": 29,
+        "restBounds": {
+          "min": [
+            -1.0800000429153442, 0.20000000298023224, -0.36000001430511475
+          ],
+          "max": [1.0800000429153442, 0.9200000166893005, 0.36000001430511475]
+        },
+        "grip": true,
+        "gripCommand": {
+          "center": [
+            -0.6036086082458496, 0.6310051083564758, 0.36079105734825134
+          ],
+          "target": [
+            0.8883867137632757, 0.48324854701617603, 0.015574043810144822
+          ],
+          "radius": 0.22
+        },
+        "demo": false,
+        "submittedFrames": 101,
+        "completedFrames": 101,
+        "gpuPending": false,
+        "settings": {
+          "softness": 0.55,
+          "tearing": true,
+          "palette": "marble",
+          "fixedDt": 0.008333333333333333,
+          "particleMaterial": "warm",
+          "fragility": 0.88
+        }
+      },
+      "maxPlasticStrain": 0.2843036651611328,
+      "maxVolumetricOpening": 0,
+      "cavitationUpdates": 0,
+      "simulationTime": 2.9083333333333257,
+      "particleCount": 1220,
+      "totalMass": 0.6246400000000001,
+      "restVolume": 0.6246400000000001,
+      "elasticEnergy": 0.14871075252631558,
+      "kineticEnergy": 0.16094992844197822,
+      "guardActivations": 0,
+      "speedCaps": 0,
+      "affineCaps": 0,
+      "deformationRejections": 0,
+      "domainContacts": 0,
+      "zeroShearUpdates": 319,
+      "relaxationUpdates": 73779,
+      "particleMaterial": "warm",
+      "maxGridSpeed": 2.374556541442871,
+      "maxParticleSpeed": 1.6756267547607422,
+      "speedCapImpulse": 0,
+      "particleSpeedCaps": 0,
+      "gridSpeedCaps": 0,
+      "gripCount": 39,
+      "gravitationalEnergy": 3.001603888661271,
+      "totalEnergy": 3.311264569629565,
+      "finite": true,
+      "pinnedCount": 0,
+      "min": [0.44376498460769653, 0.1026659682393074, -0.8095123767852783],
+      "max": [2.285029888153076, 0.8811834454536438, 0.30774152278900146],
+      "span": [1.8412649035453796, 0.7785174772143364, 1.1172538995742798],
+      "pinMovement": 0,
+      "maxDisplacement": 1.6857648329973538,
+      "freeDisplacementRms": 1.4152817840367429,
+      "connectivityRadius": 0.152,
+      "components": [610, 610],
+      "componentDetails": [
+        {
+          "count": 610,
+          "pinned": 0,
+          "free": 610
+        },
+        {
+          "count": 610,
+          "pinned": 0,
+          "free": 610
+        }
+      ],
+      "damageMax": 1,
+      "damaged": 3,
+      "meanDamage": 0.0028924576919067834,
+      "meanJ": 0.9981490601281651,
+      "minJ": 0.9313948154449463,
+      "maxJ": 1.0304527282714844,
+      "materialRegions": [
+        {
+          "name": "feet",
+          "count": 460,
+          "damaged": 3,
+          "peakStretch": 1.1150633096694946
+        },
+        {
+          "name": "ankles",
+          "count": 724,
+          "damaged": 0,
+          "peakStretch": 1.1215745210647583
+        },
+        {
+          "name": "body-arm",
+          "count": 36,
+          "damaged": 0,
+          "peakStretch": 1.014986276626587
+        },
+        {
+          "name": "head",
+          "count": 0,
+          "damaged": 0,
+          "peakStretch": 1
+        }
+      ],
+      "contact": {
+        "labels": [
+          {
+            "count": 610,
+            "centroid": [
+              0.8468206972860899, 0.48256723507017385, -0.39913494146054945
+            ]
+          },
+          {
+            "count": 610,
+            "centroid": [
+              1.8954569824406358, 0.4971135180993158, -0.059595999333121985
+            ]
+          }
+        ],
+        "minimumCrossLabelDistance": 0.3502424765791845,
+        "nearContactCounts": [0, 0],
+        "contactRadius": 0.152,
+        "interpretation": "Geometric proximity and labelled motion; this does not demonstrate a persistent adhesive bond."
+      },
+      "stretchDistribution": {
+        "p50": 1.0163508653640747,
+        "p90": 1.0367376804351807,
+        "p99": 1.098035216331482,
+        "p100": 1.1215745210647583
+      },
+      "capturedPatch": {
+        "count": 39,
+        "maxMovement": 1.563578126755809
+      }
+    },
+    {
+      "name": "blobs-released",
+      "info": {
+        "experiment": "particle",
+        "fixture": "blobs",
+        "pose": "upright",
+        "materialModel": "mls-mpm",
+        "protocol": "lateral-pull",
+        "phase": "idle",
+        "time": 3.908333333333333,
+        "steps": 469,
+        "tick": 469,
+        "particleCount": 1220,
+        "spacing": 0.08,
+        "gridSpacing": 0.16,
+        "restVolume": 0.6246400000000001,
+        "gridBounds": {
+          "min": [-3.84, -0.32, -3.84],
+          "max": [3.84, 7.359999999999999, 3.84]
+        },
+        "substeps": 29,
+        "restBounds": {
+          "min": [
+            -1.0800000429153442, 0.20000000298023224, -0.36000001430511475
+          ],
+          "max": [1.0800000429153442, 0.9200000166893005, 0.36000001430511475]
+        },
+        "grip": false,
+        "demo": false,
+        "submittedFrames": 163,
+        "completedFrames": 163,
+        "gpuPending": false,
+        "settings": {
+          "softness": 0.55,
+          "tearing": true,
+          "palette": "marble",
+          "fixedDt": 0.008333333333333333,
+          "particleMaterial": "warm",
+          "fragility": 0.88
+        }
+      },
+      "maxPlasticStrain": 0.2843036651611328,
+      "maxVolumetricOpening": 0,
+      "cavitationUpdates": 0,
+      "simulationTime": 3.908333333333322,
+      "particleCount": 1220,
+      "totalMass": 0.6246400000000001,
+      "restVolume": 0.6246400000000001,
+      "elasticEnergy": 0.11902506589647066,
+      "kineticEnergy": 0.06946667988779963,
+      "guardActivations": 0,
+      "speedCaps": 0,
+      "affineCaps": 0,
+      "deformationRejections": 0,
+      "domainContacts": 0,
+      "zeroShearUpdates": 3799,
+      "relaxationUpdates": 90003,
+      "particleMaterial": "warm",
+      "maxGridSpeed": 2.374556541442871,
+      "maxParticleSpeed": 1.6756267547607422,
+      "speedCapImpulse": 0,
+      "particleSpeedCaps": 0,
+      "gridSpeedCaps": 0,
+      "gripCount": 0,
+      "gravitationalEnergy": 3.012134495439263,
+      "totalEnergy": 3.2006262412235333,
+      "finite": true,
+      "pinnedCount": 0,
+      "min": [0.8608853220939636, 0.10871808975934982, -0.8947868943214417],
+      "max": [2.7342259883880615, 0.8830646872520447, 0.5074278116226196],
+      "span": [1.873340666294098, 0.7743465974926949, 1.4022147059440613],
+      "pinMovement": 0,
+      "maxDisplacement": 2.664919453289288,
+      "freeDisplacementRms": 1.8776979515082988,
+      "connectivityRadius": 0.152,
+      "components": [610, 610],
+      "componentDetails": [
+        {
+          "count": 610,
+          "pinned": 0,
+          "free": 610
+        },
+        {
+          "count": 610,
+          "pinned": 0,
+          "free": 610
+        }
+      ],
+      "damageMax": 1,
+      "damaged": 4,
+      "meanDamage": 0.003014636012061392,
+      "meanJ": 0.9981468595442224,
+      "minJ": 0.9339953064918518,
+      "maxJ": 1.0239492654800415,
+      "materialRegions": [
+        {
+          "name": "feet",
+          "count": 460,
+          "damaged": 4,
+          "peakStretch": 1.1150633096694946
+        },
+        {
+          "name": "ankles",
+          "count": 724,
+          "damaged": 0,
+          "peakStretch": 1.1215745210647583
+        },
+        {
+          "name": "body-arm",
+          "count": 36,
+          "damaged": 0,
+          "peakStretch": 1.014986276626587
+        },
+        {
+          "name": "head",
+          "count": 0,
+          "damaged": 0,
+          "peakStretch": 1
+        }
+      ],
+      "contact": {
+        "labels": [
+          {
+            "count": 610,
+            "centroid": [
+              1.257630451292288, 0.48624853121696926, -0.49173050984495975
+            ]
+          },
+          {
+            "count": 610,
+            "centroid": [
+              2.34416407444438, 0.4968692620025306, 0.10895713885436664
+            ]
+          }
+        ],
+        "minimumCrossLabelDistance": 0.4700245749350002,
+        "nearContactCounts": [0, 0],
+        "contactRadius": 0.152,
+        "interpretation": "Geometric proximity and labelled motion; this does not demonstrate a persistent adhesive bond."
+      },
+      "stretchDistribution": {
+        "p50": 1.0163803100585938,
+        "p90": 1.0367376804351807,
+        "p99": 1.098035216331482,
+        "p100": 1.1215745210647583
+      },
+      "capturedPatch": {
+        "count": 39,
+        "maxMovement": 1.9740016528478497
+      }
+    },
+    {
+      "name": "blobs-pulled",
+      "info": {
+        "experiment": "particle",
+        "fixture": "blobs",
+        "pose": "upright",
+        "materialModel": "mls-mpm",
+        "protocol": "lateral-pull",
+        "phase": "idle",
+        "time": 4.716666666666667,
+        "steps": 566,
+        "tick": 566,
+        "particleCount": 1220,
+        "spacing": 0.08,
+        "gridSpacing": 0.16,
+        "restVolume": 0.6246400000000001,
+        "gridBounds": {
+          "min": [-3.84, -0.32, -3.84],
+          "max": [3.84, 7.359999999999999, 3.84]
+        },
+        "substeps": 29,
+        "restBounds": {
+          "min": [
+            -1.0800000429153442, 0.20000000298023224, -0.36000001430511475
+          ],
+          "max": [1.0800000429153442, 0.9200000166893005, 0.36000001430511475]
+        },
+        "grip": true,
+        "gripCommand": {
+          "center": [
+            1.2380248308181763, 0.6747428774833679, -0.1183663085103035
+          ],
+          "target": [
+            0.489106517500266, 0.7612325786590217, -0.2447972128803384
+          ],
+          "radius": 0.22
+        },
+        "demo": false,
+        "submittedFrames": 209,
+        "completedFrames": 208,
+        "gpuPending": true,
+        "settings": {
+          "softness": 0.55,
+          "tearing": true,
+          "palette": "marble",
+          "fixedDt": 0.008333333333333333,
+          "particleMaterial": "warm",
+          "fragility": 0.88
+        }
+      },
+      "maxPlasticStrain": 0.2843036651611328,
+      "maxVolumetricOpening": 0,
+      "cavitationUpdates": 0,
+      "simulationTime": 4.716666666666691,
+      "particleCount": 1220,
+      "totalMass": 0.6246400000000001,
+      "restVolume": 0.6246400000000001,
+      "elasticEnergy": 0.11493394561117139,
+      "kineticEnergy": 0.17981649708453537,
+      "guardActivations": 0,
+      "speedCaps": 0,
+      "affineCaps": 0,
+      "deformationRejections": 0,
+      "domainContacts": 0,
+      "zeroShearUpdates": 6612,
+      "relaxationUpdates": 96482,
+      "particleMaterial": "warm",
+      "maxGridSpeed": 2.374556541442871,
+      "maxParticleSpeed": 1.6756267547607422,
+      "speedCapImpulse": 0,
+      "particleSpeedCaps": 0,
+      "gridSpeedCaps": 0,
+      "gripCount": 34,
+      "gravitationalEnergy": 3.041977694275361,
+      "totalEnergy": 3.3367281369710677,
+      "finite": true,
+      "pinnedCount": 0,
+      "min": [0.38999438285827637, 0.10940263420343399, -0.760091245174408],
+      "max": [2.9746546745300293, 0.8840639591217041, 0.5748159289360046],
+      "span": [2.584660291671753, 0.7746613249182701, 1.3349071741104126],
+      "pinMovement": 0,
+      "maxDisplacement": 2.5011771634520716,
+      "freeDisplacementRms": 1.7784979340338969,
+      "connectivityRadius": 0.152,
+      "components": [610, 610],
+      "componentDetails": [
+        {
+          "count": 610,
+          "pinned": 0,
+          "free": 610
+        },
+        {
+          "count": 610,
+          "pinned": 0,
+          "free": 610
+        }
+      ],
+      "damageMax": 1,
+      "damaged": 4,
+      "meanDamage": 0.0032283082266612987,
+      "meanJ": 0.9981844023114345,
+      "minJ": 0.9245449304580688,
+      "maxJ": 1.0233395099639893,
+      "materialRegions": [
+        {
+          "name": "feet",
+          "count": 460,
+          "damaged": 4,
+          "peakStretch": 1.1150633096694946
+        },
+        {
+          "name": "ankles",
+          "count": 724,
+          "damaged": 0,
+          "peakStretch": 1.1215745210647583
+        },
+        {
+          "name": "body-arm",
+          "count": 36,
+          "damaged": 0,
+          "peakStretch": 1.0173804759979248
+        },
+        {
+          "name": "head",
+          "count": 0,
+          "damaged": 0,
+          "peakStretch": 1
+        }
+      ],
+      "contact": {
+        "labels": [
+          {
+            "count": 610,
+            "centroid": [
+              0.7625612342455348, 0.496047468288023, -0.3523019480407323
+            ]
+          },
+          {
+            "count": 610,
+            "centroid": [
+              2.589922360904881, 0.49681071993268905, 0.205325330983939
+            ]
+          }
+        ],
+        "minimumCrossLabelDistance": 1.1171118608971857,
+        "nearContactCounts": [0, 0],
+        "contactRadius": 0.152,
+        "interpretation": "Geometric proximity and labelled motion; this does not demonstrate a persistent adhesive bond."
+      },
+      "stretchDistribution": {
+        "p50": 1.0177333354949951,
+        "p90": 1.036759853363037,
+        "p99": 1.0992310047149658,
+        "p100": 1.1215745210647583
+      },
+      "capturedPatch": {
+        "count": 34,
+        "maxMovement": 0.9017679929319268
+      }
+    },
+    {
+      "name": "blobs-final",
+      "info": {
+        "experiment": "particle",
+        "fixture": "blobs",
+        "pose": "upright",
+        "materialModel": "mls-mpm",
+        "protocol": "lateral-pull",
+        "phase": "idle",
+        "time": 5.716666666666667,
+        "steps": 686,
+        "tick": 686,
+        "particleCount": 1220,
+        "spacing": 0.08,
+        "gridSpacing": 0.16,
+        "restVolume": 0.6246400000000001,
+        "gridBounds": {
+          "min": [-3.84, -0.32, -3.84],
+          "max": [3.84, 7.359999999999999, 3.84]
+        },
+        "substeps": 29,
+        "restBounds": {
+          "min": [
+            -1.0800000429153442, 0.20000000298023224, -0.36000001430511475
+          ],
+          "max": [1.0800000429153442, 0.9200000166893005, 0.36000001430511475]
+        },
+        "grip": false,
+        "demo": false,
+        "submittedFrames": 271,
+        "completedFrames": 271,
+        "gpuPending": false,
+        "settings": {
+          "softness": 0.55,
+          "tearing": true,
+          "palette": "marble",
+          "fixedDt": 0.008333333333333333,
+          "particleMaterial": "warm",
+          "fragility": 0.88
+        }
+      },
+      "maxPlasticStrain": 0.2843036651611328,
+      "maxVolumetricOpening": 0.0009602189529687166,
+      "cavitationUpdates": 48,
+      "simulationTime": 5.7166666666667405,
+      "particleCount": 1220,
+      "totalMass": 0.6246400000000001,
+      "restVolume": 0.6246400000000001,
+      "elasticEnergy": 0.11790376121885571,
+      "kineticEnergy": 0.0810865759263793,
+      "guardActivations": 0,
+      "speedCaps": 0,
+      "affineCaps": 0,
+      "deformationRejections": 0,
+      "domainContacts": 0,
+      "zeroShearUpdates": 10092,
+      "relaxationUpdates": 110668,
+      "particleMaterial": "warm",
+      "maxGridSpeed": 2.374556541442871,
+      "maxParticleSpeed": 1.6756267547607422,
+      "speedCapImpulse": 0,
+      "particleSpeedCaps": 0,
+      "gridSpeedCaps": 0,
+      "gripCount": 0,
+      "gravitationalEnergy": 3.007882834089547,
+      "totalEnergy": 3.206873171234782,
+      "finite": true,
+      "pinnedCount": 0,
+      "min": [-0.43505680561065674, 0.105265311896801, -0.8148295283317566],
+      "max": [3.197784423828125, 0.8807195425033569, 0.6816923022270203],
+      "span": [3.6328412294387817, 0.7754542306065559, 1.4965218305587769],
+      "pinMovement": 0,
+      "maxDisplacement": 2.832375717889216,
+      "freeDisplacementRms": 1.6729848354509895,
+      "connectivityRadius": 0.152,
+      "components": [610, 610],
+      "componentDetails": [
+        {
+          "count": 610,
+          "pinned": 0,
+          "free": 610
+        },
+        {
+          "count": 610,
+          "pinned": 0,
+          "free": 610
+        }
+      ],
+      "damageMax": 1,
+      "damaged": 4,
+      "meanDamage": 0.003668811253165124,
+      "meanJ": 0.9981147362071959,
+      "minJ": 0.9346453547477722,
+      "maxJ": 1.0248291492462158,
+      "materialRegions": [
+        {
+          "name": "feet",
+          "count": 460,
+          "damaged": 4,
+          "peakStretch": 1.1150633096694946
+        },
+        {
+          "name": "ankles",
+          "count": 724,
+          "damaged": 0,
+          "peakStretch": 1.1215745210647583
+        },
+        {
+          "name": "body-arm",
+          "count": 36,
+          "damaged": 0,
+          "peakStretch": 1.0173804759979248
+        },
+        {
+          "name": "head",
+          "count": 0,
+          "damaged": 0,
+          "peakStretch": 1
+        }
+      ],
+      "contact": {
+        "labels": [
+          {
+            "count": 610,
+            "centroid": [
+              -0.07248312515033921, 0.48495157362251984, -0.41077240779079865
+            ]
+          },
+          {
+            "count": 610,
+            "centroid": [
+              2.8049129677600546, 0.4967785378948587, 0.28972025315886074
+            ]
+          }
+        ],
+        "minimumCrossLabelDistance": 2.1457497809974178,
+        "nearContactCounts": [0, 0],
+        "contactRadius": 0.152,
+        "interpretation": "Geometric proximity and labelled motion; this does not demonstrate a persistent adhesive bond."
+      },
+      "stretchDistribution": {
+        "p50": 1.0177333354949951,
+        "p90": 1.0374277830123901,
+        "p99": 1.100466012954712,
+        "p100": 1.1215745210647583
+      },
+      "capturedPatch": {
+        "count": 34,
+        "maxMovement": 1.779022875214927
+      }
+    },
+    {
+      "name": "elastic-live-final",
+      "info": {
+        "experiment": "particle",
+        "fixture": "bear",
+        "pose": "upright",
+        "materialModel": "mls-mpm",
+        "protocol": "lateral-pull",
+        "phase": "idle",
+        "time": 5.983333333333333,
+        "steps": 718,
+        "tick": 718,
+        "particleCount": 2445,
+        "spacing": 0.08,
+        "gridSpacing": 0.16,
+        "restVolume": 1.2518400000000003,
+        "gridBounds": {
+          "min": [-3.84, -0.32, -3.84],
+          "max": [3.84, 7.359999999999999, 3.84]
+        },
+        "substeps": 29,
+        "restBounds": {
+          "min": [
+            -0.6800000071525574, 0.03999999910593033, -0.2800000011920929
+          ],
+          "max": [0.6800000071525574, 2.5199999809265137, 0.4399999976158142]
+        },
+        "grip": false,
+        "demo": false,
+        "submittedFrames": 208,
+        "completedFrames": 207,
+        "gpuPending": true,
+        "settings": {
+          "softness": 0.55,
+          "tearing": true,
+          "palette": "marble",
+          "fixedDt": 0.008333333333333333,
+          "particleMaterial": "elastic",
+          "fragility": 0.88
+        }
+      },
+      "maxPlasticStrain": 0,
+      "maxVolumetricOpening": 0,
+      "cavitationUpdates": 0,
+      "simulationTime": 5.98333333333342,
+      "particleCount": 2445,
+      "totalMass": 1.2518400000000003,
+      "restVolume": 1.2518400000000003,
+      "elasticEnergy": 0.09948036840377165,
+      "kineticEnergy": 5.144372074700993e-9,
+      "guardActivations": 0,
+      "speedCaps": 0,
+      "affineCaps": 0,
+      "deformationRejections": 0,
+      "domainContacts": 0,
+      "zeroShearUpdates": 0,
+      "relaxationUpdates": 0,
+      "particleMaterial": "elastic",
+      "maxGridSpeed": 0.6691210269927979,
+      "maxParticleSpeed": 0.6594569087028503,
+      "speedCapImpulse": 0,
+      "particleSpeedCaps": 0,
+      "gridSpeedCaps": 0,
+      "gripCount": 72,
+      "gravitationalEnergy": 14.846377512057499,
+      "totalEnergy": 14.945857885605642,
+      "finite": true,
+      "pinnedCount": 457,
+      "min": [-0.6858135461807251, 0.03999999910593033, -0.29181593656539917],
+      "max": [0.6854255199432373, 2.487154483795166, 0.4399999976158142],
+      "span": [1.3712390661239624, 2.4471544846892357, 0.7318159341812134],
+      "pinMovement": 0,
+      "maxDisplacement": 0.03693026949588741,
+      "freeDisplacementRms": 0.02377605329288759,
+      "connectivityRadius": 0.152,
+      "components": [2445],
+      "componentDetails": [
+        {
+          "count": 2445,
+          "pinned": 457,
+          "free": 1988
+        }
+      ],
+      "damageMax": 0,
+      "damaged": 0,
+      "meanDamage": 0,
+      "meanJ": 0.9974016839984979,
+      "minJ": 0.9663154482841492,
+      "maxJ": 1.0049024820327759,
+      "materialRegions": [
+        {
+          "name": "feet",
+          "count": 457,
+          "damaged": 0,
+          "peakStretch": 1
+        },
+        {
+          "name": "ankles",
+          "count": 300,
+          "damaged": 0,
+          "peakStretch": 1.0360976457595825
+        },
+        {
+          "name": "body-arm",
+          "count": 946,
+          "damaged": 0,
+          "peakStretch": 1.0292644500732422
+        },
+        {
+          "name": "head",
+          "count": 742,
+          "damaged": 0,
+          "peakStretch": 1.021659016609192
+        }
+      ],
+      "stretchDistribution": {
+        "p50": 1.010420799255371,
+        "p90": 1.026780128479004,
+        "p99": 1.029738426208496,
+        "p100": 1.0360976457595825
+      },
+      "capturedPatch": {
+        "count": 72,
+        "maxMovement": 0.0008768513232429276
+      }
+    },
+    {
+      "name": "warm-live-final",
+      "info": {
+        "experiment": "particle",
+        "fixture": "bear",
+        "pose": "upright",
+        "materialModel": "mls-mpm",
+        "protocol": "lateral-pull",
+        "phase": "idle",
+        "time": 6,
+        "steps": 720,
+        "tick": 720,
+        "particleCount": 2445,
+        "spacing": 0.08,
+        "gridSpacing": 0.16,
+        "restVolume": 1.2518400000000003,
+        "gridBounds": {
+          "min": [-3.84, -0.32, -3.84],
+          "max": [3.84, 7.359999999999999, 3.84]
+        },
+        "substeps": 29,
+        "restBounds": {
+          "min": [
+            -0.6800000071525574, 0.03999999910593033, -0.2800000011920929
+          ],
+          "max": [0.6800000071525574, 2.5199999809265137, 0.4399999976158142]
+        },
+        "grip": false,
+        "demo": false,
+        "submittedFrames": 481,
+        "completedFrames": 480,
+        "gpuPending": true,
+        "settings": {
+          "softness": 0.55,
+          "tearing": true,
+          "palette": "marble",
+          "fixedDt": 0.008333333333333333,
+          "particleMaterial": "warm",
+          "fragility": 0.88
+        }
+      },
+      "maxPlasticStrain": 0.2958150804042816,
+      "maxVolumetricOpening": 1.4433610439300537,
+      "cavitationUpdates": 255018,
+      "simulationTime": 6.000000000000088,
+      "particleCount": 2445,
+      "totalMass": 1.2518400000000003,
+      "restVolume": 1.2518400000000003,
+      "elasticEnergy": 0.24996083892061954,
+      "kineticEnergy": 0.00032537976099506074,
+      "guardActivations": 0,
+      "speedCaps": 0,
+      "affineCaps": 0,
+      "deformationRejections": 0,
+      "domainContacts": 0,
+      "zeroShearUpdates": 212714,
+      "relaxationUpdates": 891413,
+      "particleMaterial": "warm",
+      "maxGridSpeed": 2.9908764362335205,
+      "maxParticleSpeed": 2.1089367866516113,
+      "speedCapImpulse": 0,
+      "particleSpeedCaps": 0,
+      "gridSpeedCaps": 0,
+      "gripCount": 39,
+      "gravitationalEnergy": 14.760926379602054,
+      "totalEnergy": 15.011212598283668,
+      "finite": true,
+      "pinnedCount": 457,
+      "min": [-0.6630547642707825, 0.03999999910593033, -0.2860132157802582],
+      "max": [0.9100498557090759, 2.504070281982422, 0.46556729078292847],
+      "span": [1.5731046199798584, 2.4640702828764915, 0.7515805065631866],
+      "pinMovement": 0,
+      "maxDisplacement": 0.34052062232519836,
+      "freeDisplacementRms": 0.08706624685171545,
+      "connectivityRadius": 0.152,
+      "components": [2445],
+      "componentDetails": [
+        {
+          "count": 2445,
+          "pinned": 457,
+          "free": 1988
+        }
+      ],
+      "damageMax": 1,
+      "damaged": 49,
+      "meanDamage": 0.02190987035189446,
+      "meanJ": 0.9980068899858705,
+      "minJ": 0.9397099018096924,
+      "maxJ": 1.1580525636672974,
+      "materialRegions": [
+        {
+          "name": "feet",
+          "count": 457,
+          "damaged": 0,
+          "peakStretch": 1
+        },
+        {
+          "name": "ankles",
+          "count": 300,
+          "damaged": 0,
+          "peakStretch": 1.1054737567901611
+        },
+        {
+          "name": "body-arm",
+          "count": 946,
+          "damaged": 49,
+          "peakStretch": 1.1455234289169312
+        },
+        {
+          "name": "head",
+          "count": 742,
+          "damaged": 0,
+          "peakStretch": 1.0574697256088257
+        }
+      ],
+      "stretchDistribution": {
+        "p50": 1.0199460983276367,
+        "p90": 1.0782666206359863,
+        "p99": 1.123594045639038,
+        "p100": 1.1455234289169312
+      },
+      "capturedPatch": {
+        "count": 39,
+        "maxMovement": 0.3347775643681184
+      }
+    }
+  ],
+  "timings": [
+    {
+      "steps": 120,
+      "simulationSeconds": 1,
+      "wallSeconds": 0.9093987860000002
+    },
+    {
+      "steps": 1,
+      "simulationSeconds": 0.008333333333333333,
+      "wallSeconds": 0.05841560100000015
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.06458473099999992
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.061616981000000126
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.06155417099999977
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.0718546349999997
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.06835223399999996
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.0658391959999999
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.06431340999999975
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.06540199300000041
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.06961650800000006
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.06191323300000022
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.0655143449999996
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.06160045199999968
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.06839189400000031
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.06962364800000069
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.0639571300000007
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.06317022600000019
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.06490252200000032
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.07577070800000002
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.06958416699999997
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.07832869699999992
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.07170797500000026
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.0707569510000003
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.06944553700000052
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.06293855600000006
+    },
+    {
+      "steps": 180,
+      "simulationSeconds": 1.5,
+      "wallSeconds": 1.6186317840000002
+    },
+    {
+      "steps": 1200,
+      "simulationSeconds": 10,
+      "wallSeconds": 9.56820857
+    },
+    {
+      "steps": 120,
+      "simulationSeconds": 1,
+      "wallSeconds": 0.9768372500000005
+    },
+    {
+      "steps": 1,
+      "simulationSeconds": 0.008333333333333333,
+      "wallSeconds": 0.04650770199999897
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.05908059300000241
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.06280027499999778
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.06030003700000088
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.0593342330000014
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.06667226800000207
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.06359797700000126
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.07453661300000021
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.06836553300000014
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.06213685299999997
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.0644871009999988
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.068727304
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.07107522199999948
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.06529692299999806
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.06828550299999915
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.06715444899999784
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.07280643799999961
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.06897879499999908
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.06469556100000046
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.07129290300000139
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.06596711499999947
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.06708303900000101
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.06507351199999903
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.06329521699999896
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.07093717200000174
+    },
+    {
+      "steps": 180,
+      "simulationSeconds": 1.5,
+      "wallSeconds": 1.4629880830000002
+    },
+    {
+      "steps": 120,
+      "simulationSeconds": 1,
+      "wallSeconds": 0.9849743429999981
+    },
+    {
+      "steps": 1,
+      "simulationSeconds": 0.008333333333333333,
+      "wallSeconds": 0.04615164000000004
+    },
+    {
+      "steps": 8,
+      "simulationSeconds": 0.06666666666666667,
+      "wallSeconds": 0.0824262680000029
+    },
+    {
+      "steps": 8,
+      "simulationSeconds": 0.06666666666666667,
+      "wallSeconds": 0.08330673199999729
+    },
+    {
+      "steps": 8,
+      "simulationSeconds": 0.06666666666666667,
+      "wallSeconds": 0.09793934900000022
+    },
+    {
+      "steps": 8,
+      "simulationSeconds": 0.06666666666666667,
+      "wallSeconds": 0.10189083300000129
+    },
+    {
+      "steps": 8,
+      "simulationSeconds": 0.06666666666666667,
+      "wallSeconds": 0.0898054230000016
+    },
+    {
+      "steps": 8,
+      "simulationSeconds": 0.06666666666666667,
+      "wallSeconds": 0.10357641800000056
+    },
+    {
+      "steps": 8,
+      "simulationSeconds": 0.06666666666666667,
+      "wallSeconds": 0.08982772300000215
+    },
+    {
+      "steps": 8,
+      "simulationSeconds": 0.06666666666666667,
+      "wallSeconds": 0.09077258599999914
+    },
+    {
+      "steps": 8,
+      "simulationSeconds": 0.06666666666666667,
+      "wallSeconds": 0.0923012920000001
+    },
+    {
+      "steps": 8,
+      "simulationSeconds": 0.06666666666666667,
+      "wallSeconds": 0.09325316399999792
+    },
+    {
+      "steps": 8,
+      "simulationSeconds": 0.06666666666666667,
+      "wallSeconds": 0.0869261639999968
+    },
+    {
+      "steps": 8,
+      "simulationSeconds": 0.06666666666666667,
+      "wallSeconds": 0.08919978099999935
+    },
+    {
+      "steps": 180,
+      "simulationSeconds": 1.5,
+      "wallSeconds": 1.601348189999997
+    },
+    {
+      "steps": 120,
+      "simulationSeconds": 1,
+      "wallSeconds": 0.7669637289999955
+    },
+    {
+      "steps": 1,
+      "simulationSeconds": 0.008333333333333333,
+      "wallSeconds": 0.0269370179999969
+    },
+    {
+      "steps": 16,
+      "simulationSeconds": 0.13333333333333333,
+      "wallSeconds": 0.10620566600000166
+    },
+    {
+      "steps": 16,
+      "simulationSeconds": 0.13333333333333333,
+      "wallSeconds": 0.11511139499999991
+    },
+    {
+      "steps": 16,
+      "simulationSeconds": 0.13333333333333333,
+      "wallSeconds": 0.1189305680000034
+    },
+    {
+      "steps": 16,
+      "simulationSeconds": 0.13333333333333333,
+      "wallSeconds": 0.12128697599999577
+    },
+    {
+      "steps": 16,
+      "simulationSeconds": 0.13333333333333333,
+      "wallSeconds": 0.12344214199999988
+    },
+    {
+      "steps": 16,
+      "simulationSeconds": 0.13333333333333333,
+      "wallSeconds": 0.11952369899999758
+    },
+    {
+      "steps": 16,
+      "simulationSeconds": 0.13333333333333333,
+      "wallSeconds": 0.12277460000000429
+    },
+    {
+      "steps": 16,
+      "simulationSeconds": 0.13333333333333333,
+      "wallSeconds": 0.12142476600000372
+    },
+    {
+      "steps": 16,
+      "simulationSeconds": 0.13333333333333333,
+      "wallSeconds": 0.12063853299999755
+    },
+    {
+      "steps": 16,
+      "simulationSeconds": 0.13333333333333333,
+      "wallSeconds": 0.11852857599999697
+    },
+    {
+      "steps": 16,
+      "simulationSeconds": 0.13333333333333333,
+      "wallSeconds": 0.11608866899999702
+    },
+    {
+      "steps": 16,
+      "simulationSeconds": 0.13333333333333333,
+      "wallSeconds": 0.11551841600000626
+    },
+    {
+      "steps": 36,
+      "simulationSeconds": 0.3,
+      "wallSeconds": 0.23724778299999888
+    },
+    {
+      "steps": 120,
+      "simulationSeconds": 1,
+      "wallSeconds": 0.7573490069999971
+    },
+    {
+      "steps": 1,
+      "simulationSeconds": 0.008333333333333333,
+      "wallSeconds": 0.02689777799999865
+    },
+    {
+      "steps": 8,
+      "simulationSeconds": 0.06666666666666667,
+      "wallSeconds": 0.06123507000000245
+    },
+    {
+      "steps": 8,
+      "simulationSeconds": 0.06666666666666667,
+      "wallSeconds": 0.06153689000000304
+    },
+    {
+      "steps": 8,
+      "simulationSeconds": 0.06666666666666667,
+      "wallSeconds": 0.0615160509999987
+    },
+    {
+      "steps": 8,
+      "simulationSeconds": 0.06666666666666667,
+      "wallSeconds": 0.06303062499999942
+    },
+    {
+      "steps": 8,
+      "simulationSeconds": 0.06666666666666667,
+      "wallSeconds": 0.06313088599999901
+    },
+    {
+      "steps": 8,
+      "simulationSeconds": 0.06666666666666667,
+      "wallSeconds": 0.05900402200000099
+    },
+    {
+      "steps": 8,
+      "simulationSeconds": 0.06666666666666667,
+      "wallSeconds": 0.058823622000003524
+    },
+    {
+      "steps": 8,
+      "simulationSeconds": 0.06666666666666667,
+      "wallSeconds": 0.060227536000005785
+    },
+    {
+      "steps": 8,
+      "simulationSeconds": 0.06666666666666667,
+      "wallSeconds": 0.059690424000000346
+    },
+    {
+      "steps": 8,
+      "simulationSeconds": 0.06666666666666667,
+      "wallSeconds": 0.07149556199999643
+    },
+    {
+      "steps": 8,
+      "simulationSeconds": 0.06666666666666667,
+      "wallSeconds": 0.06983074800000032
+    },
+    {
+      "steps": 8,
+      "simulationSeconds": 0.06666666666666667,
+      "wallSeconds": 0.06041294699999707
+    },
+    {
+      "steps": 120,
+      "simulationSeconds": 1,
+      "wallSeconds": 0.6986910350000035
+    },
+    {
+      "steps": 120,
+      "simulationSeconds": 1,
+      "wallSeconds": 0.8876328199999989
+    },
+    {
+      "steps": 120,
+      "simulationSeconds": 1,
+      "wallSeconds": 0.706653277999998
+    },
+    {
+      "steps": 1,
+      "simulationSeconds": 0.008333333333333333,
+      "wallSeconds": 0.0478692960000044
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.06724801899999874
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.05666568499999994
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.056936594999999215
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.0656468240000031
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.062200151999997615
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.06431679900000017
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.06863854300000094
+    },
+    {
+      "steps": 4,
+      "simulationSeconds": 0.03333333333333333,
+      "wallSeconds": 0.06646721699999762
+    }
+  ],
+  "live": [
+    {
+      "material": "elastic",
+      "wallSeconds": 5.010199999994038,
+      "simulationSeconds": 4.983333333333333,
+      "simulationPace": 0.9946376059517112,
+      "submittedFrames": 156,
+      "completedFrames": 155,
+      "completedGpuFps": 30.936888746993024,
+      "pendingGpuFrames": true,
+      "frames": 437,
+      "rafFps": 87.22206698345775,
+      "p50FrameMs": 17.19999999999709,
+      "p95FrameMs": 17.400000000001455,
+      "includesReadback": false,
+      "queueDrainWallSeconds": 0.24389256300000126,
+      "completedSimulationPace": 0.9484669852282896,
+      "frameTimingMeaning": "RAF callback cadence is not presented FPS. completedGpuFps counts GPU-completed scene frames."
+    },
+    {
+      "material": "warm",
+      "wallSeconds": 5.001499999997017,
+      "simulationSeconds": 5,
+      "simulationPace": 0.9997000899736044,
+      "submittedFrames": 218,
+      "completedFrames": 218,
+      "completedGpuFps": 43.58692392284915,
+      "pendingGpuFrames": true,
+      "frames": 495,
+      "rafFps": 98.97030890738684,
+      "p50FrameMs": 17.099999999998545,
+      "p95FrameMs": 17.39999999999418,
+      "includesReadback": false,
+      "queueDrainWallSeconds": 0.2414331039999961,
+      "completedSimulationPace": 0.9536646569433034,
+      "frameTimingMeaning": "RAF callback cadence is not presented FPS. completedGpuFps counts GPU-completed scene frames."
+    }
+  ],
+  "layouts": [
+    {
+      "width": 1024,
+      "height": 768,
+      "viewport": 1024,
+      "content": 1024,
+      "choices": [
+        {
+          "name": "Warm jelly",
+          "height": 44,
+          "selected": "true",
+          "background": "rgb(251, 250, 245)"
+        },
+        {
+          "name": "Elastic jelly",
+          "height": 44,
+          "selected": "false",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "name": "Bear",
+          "height": 44,
+          "selected": "true",
+          "background": "rgb(251, 250, 245)"
+        },
+        {
+          "name": "Two blobs",
+          "height": 44,
+          "selected": "false",
+          "background": "rgba(0, 0, 0, 0)"
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "viewport": 390,
+      "content": 390,
+      "choices": [
+        {
+          "name": "Warm jelly",
+          "height": 44,
+          "selected": "true",
+          "background": "rgb(251, 250, 245)"
+        },
+        {
+          "name": "Elastic jelly",
+          "height": 44,
+          "selected": "false",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "name": "Bear",
+          "height": 44,
+          "selected": "true",
+          "background": "rgb(251, 250, 245)"
+        },
+        {
+          "name": "Two blobs",
+          "height": 44,
+          "selected": "false",
+          "background": "rgba(0, 0, 0, 0)"
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "warnings": [],
+  "failures": [
+    "AssertionError [ERR_ASSERTION]: The pressing interaction must bring the two labelled materials into geometric contact; stability and input checks completed independently"
+  ],
+  "placement": {
+    "before": {
+      "window": "0x55834f657fd0",
+      "workspace": 3,
+      "monitors": [
+        {
+          "id": 0,
+          "special": ""
+        }
+      ]
+    },
+    "after": {
+      "window": "0x55834f657fd0",
+      "workspace": 3,
+      "monitors": [
+        {
+          "id": 0,
+          "special": ""
+        }
+      ]
+    },
+    "clients": [
+      {
+        "class": "agent-browser",
+        "workspace": "special:agents"
+      }
+    ]
+  },
+  "adapter": {
+    "vendor": "amd",
+    "architecture": "rdna-4",
+    "description": "",
+    "fallback": false
+  },
+  "longPull": {
+    "offset": [1, 0.1, 0],
+    "held": {
+      "name": "warm-long-pull",
+      "info": {
+        "experiment": "particle",
+        "fixture": "bear",
+        "pose": "upright",
+        "materialModel": "mls-mpm",
+        "protocol": "lateral-pull",
+        "phase": "idle",
+        "time": 1.8083333333333333,
+        "steps": 217,
+        "tick": 217,
+        "particleCount": 2445,
+        "spacing": 0.08,
+        "gridSpacing": 0.16,
+        "restVolume": 1.2518400000000003,
+        "gridBounds": {
+          "min": [-3.84, -0.32, -3.84],
+          "max": [3.84, 7.359999999999999, 3.84]
+        },
+        "substeps": 29,
+        "restBounds": {
+          "min": [
+            -0.6800000071525574, 0.03999999910593033, -0.2800000011920929
+          ],
+          "max": [0.6800000071525574, 2.5199999809265137, 0.4399999976158142]
+        },
+        "grip": true,
+        "gripCommand": {
+          "center": [
+            0.6069628000259399, 1.2976670265197754, 0.19494761526584625
+          ],
+          "target": [
+            1.589205925271965, 1.3835052098339007, 0.15795171939480923
+          ],
+          "radius": 0.22
+        },
+        "demo": false,
+        "submittedFrames": 799,
+        "completedFrames": 799,
+        "gpuPending": false,
+        "settings": {
+          "softness": 0.55,
+          "tearing": true,
+          "palette": "marble",
+          "fixedDt": 0.008333333333333333,
+          "particleMaterial": "warm",
+          "fragility": 0.88
+        }
+      },
+      "maxPlasticStrain": 1.0700982809066772,
+      "maxVolumetricOpening": 2.6382639408111572,
+      "cavitationUpdates": 82689,
+      "simulationTime": 1.8083333333333294,
+      "particleCount": 2445,
+      "totalMass": 1.2518400000000003,
+      "restVolume": 1.2518400000000003,
+      "elasticEnergy": 0.8586548467434636,
+      "kineticEnergy": 0.08007816301641102,
+      "guardActivations": 0,
+      "speedCaps": 0,
+      "affineCaps": 0,
+      "deformationRejections": 0,
+      "domainContacts": 0,
+      "zeroShearUpdates": 3344,
+      "relaxationUpdates": 599578,
+      "particleMaterial": "warm",
+      "maxGridSpeed": 5.840127944946289,
+      "maxParticleSpeed": 4.607015132904053,
+      "speedCapImpulse": 0,
+      "particleSpeedCaps": 0,
+      "gridSpeedCaps": 0,
+      "gripCount": 39,
+      "gravitationalEnergy": 14.40874069779694,
+      "totalEnergy": 15.347473707556814,
+      "finite": true,
+      "pinnedCount": 457,
+      "min": [-0.5700868368148804, 0.03999999910593033, -0.29586637020111084],
+      "max": [1.676453709602356, 2.528764009475708, 0.47626793384552],
+      "span": [2.2465405464172363, 2.4887640103697777, 0.7721343040466309],
+      "pinMovement": 0,
+      "maxDisplacement": 1.0751196377261396,
+      "freeDisplacementRms": 0.38334362420601376,
+      "connectivityRadius": 0.152,
+      "components": [2402, 41, 2],
+      "componentDetails": [
+        {
+          "count": 2402,
+          "pinned": 457,
+          "free": 1945
+        },
+        {
+          "count": 41,
+          "pinned": 0,
+          "free": 41
+        },
+        {
+          "count": 2,
+          "pinned": 0,
+          "free": 2
+        }
+      ],
+      "damageMax": 1,
+      "damaged": 131,
+      "meanDamage": 0.05585129967558923,
+      "meanJ": 0.9981433932035247,
+      "minJ": 0.866998553276062,
+      "maxJ": 1.1887925863265991,
+      "materialRegions": [
+        {
+          "name": "feet",
+          "count": 457,
+          "damaged": 0,
+          "peakStretch": 1
+        },
+        {
+          "name": "ankles",
+          "count": 300,
+          "damaged": 0,
+          "peakStretch": 1.1503409147262573
+        },
+        {
+          "name": "body-arm",
+          "count": 946,
+          "damaged": 131,
+          "peakStretch": 2.0607542991638184
+        },
+        {
+          "name": "head",
+          "count": 742,
+          "damaged": 0,
+          "peakStretch": 1.133789300918579
+        }
+      ],
+      "stretchDistribution": {
+        "p50": 1.0315942764282227,
+        "p90": 1.1248698234558105,
+        "p99": 1.7926185131072998,
+        "p100": 2.0607542991638184
+      },
+      "capturedPatch": {
+        "count": 39,
+        "maxMovement": 1.0701574118213217
+      }
+    },
+    "released": {
+      "name": "warm-long-released",
+      "info": {
+        "experiment": "particle",
+        "fixture": "bear",
+        "pose": "upright",
+        "materialModel": "mls-mpm",
+        "protocol": "lateral-pull",
+        "phase": "idle",
+        "time": 3.308333333333333,
+        "steps": 397,
+        "tick": 397,
+        "particleCount": 2445,
+        "spacing": 0.08,
+        "gridSpacing": 0.16,
+        "restVolume": 1.2518400000000003,
+        "gridBounds": {
+          "min": [-3.84, -0.32, -3.84],
+          "max": [3.84, 7.359999999999999, 3.84]
+        },
+        "substeps": 29,
+        "restBounds": {
+          "min": [
+            -0.6800000071525574, 0.03999999910593033, -0.2800000011920929
+          ],
+          "max": [0.6800000071525574, 2.5199999809265137, 0.4399999976158142]
+        },
+        "grip": false,
+        "demo": false,
+        "submittedFrames": 944,
+        "completedFrames": 944,
+        "gpuPending": false,
+        "settings": {
+          "softness": 0.55,
+          "tearing": true,
+          "palette": "marble",
+          "fixedDt": 0.008333333333333333,
+          "particleMaterial": "warm",
+          "fragility": 0.88
+        }
+      },
+      "maxPlasticStrain": 1.1357243061065674,
+      "maxVolumetricOpening": 4.440942764282227,
+      "cavitationUpdates": 514046,
+      "simulationTime": 3.3083333333333242,
+      "particleCount": 2445,
+      "totalMass": 1.2518400000000003,
+      "restVolume": 1.2518400000000003,
+      "elasticEnergy": 0.17263984039043512,
+      "kineticEnergy": 0.04578562464340735,
+      "guardActivations": 0,
+      "speedCaps": 0,
+      "affineCaps": 0,
+      "deformationRejections": 0,
+      "domainContacts": 0,
+      "zeroShearUpdates": 601326,
+      "relaxationUpdates": 734718,
+      "particleMaterial": "warm",
+      "maxGridSpeed": 5.840127944946289,
+      "maxParticleSpeed": 4.607015132904053,
+      "speedCapImpulse": 0,
+      "particleSpeedCaps": 0,
+      "gridSpeedCaps": 0,
+      "gripCount": 0,
+      "gravitationalEnergy": 14.426666518853935,
+      "totalEnergy": 14.645091983887777,
+      "finite": true,
+      "pinnedCount": 457,
+      "min": [-0.6665005683898926, 0.03999999910593033, -0.4486648142337799],
+      "max": [2.3562216758728027, 2.5018310546875, 0.44233906269073486],
+      "span": [3.0227222442626953, 2.4618310555815697, 0.8910038769245148],
+      "pinMovement": 0,
+      "maxDisplacement": 2.1750563632716005,
+      "freeDisplacementRms": 0.2948910993448537,
+      "connectivityRadius": 0.152,
+      "components": [
+        2387, 20, 4, 3, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1
+      ],
+      "componentDetails": [
+        {
+          "count": 2387,
+          "pinned": 457,
+          "free": 1930
+        },
+        {
+          "count": 20,
+          "pinned": 0,
+          "free": 20
+        },
+        {
+          "count": 4,
+          "pinned": 0,
+          "free": 4
+        },
+        {
+          "count": 3,
+          "pinned": 0,
+          "free": 3
+        },
+        {
+          "count": 2,
+          "pinned": 0,
+          "free": 2
+        },
+        {
+          "count": 2,
+          "pinned": 0,
+          "free": 2
+        },
+        {
+          "count": 2,
+          "pinned": 0,
+          "free": 2
+        },
+        {
+          "count": 2,
+          "pinned": 0,
+          "free": 2
+        },
+        {
+          "count": 2,
+          "pinned": 0,
+          "free": 2
+        },
+        {
+          "count": 2,
+          "pinned": 0,
+          "free": 2
+        },
+        {
+          "count": 2,
+          "pinned": 0,
+          "free": 2
+        },
+        {
+          "count": 2,
+          "pinned": 0,
+          "free": 2
+        },
+        {
+          "count": 1,
+          "pinned": 0,
+          "free": 1
+        },
+        {
+          "count": 1,
+          "pinned": 0,
+          "free": 1
+        },
+        {
+          "count": 1,
+          "pinned": 0,
+          "free": 1
+        },
+        {
+          "count": 1,
+          "pinned": 0,
+          "free": 1
+        },
+        {
+          "count": 1,
+          "pinned": 0,
+          "free": 1
+        },
+        {
+          "count": 1,
+          "pinned": 0,
+          "free": 1
+        },
+        {
+          "count": 1,
+          "pinned": 0,
+          "free": 1
+        },
+        {
+          "count": 1,
+          "pinned": 0,
+          "free": 1
+        },
+        {
+          "count": 1,
+          "pinned": 0,
+          "free": 1
+        },
+        {
+          "count": 1,
+          "pinned": 0,
+          "free": 1
+        },
+        {
+          "count": 1,
+          "pinned": 0,
+          "free": 1
+        },
+        {
+          "count": 1,
+          "pinned": 0,
+          "free": 1
+        },
+        {
+          "count": 1,
+          "pinned": 0,
+          "free": 1
+        },
+        {
+          "count": 1,
+          "pinned": 0,
+          "free": 1
+        },
+        {
+          "count": 1,
+          "pinned": 0,
+          "free": 1
+        }
+      ],
+      "damageMax": 1,
+      "damaged": 134,
+      "meanDamage": 0.05775233395996574,
+      "meanJ": 0.9976218546338852,
+      "minJ": 0.9547263383865356,
+      "maxJ": 1.091266393661499,
+      "materialRegions": [
+        {
+          "name": "feet",
+          "count": 457,
+          "damaged": 0,
+          "peakStretch": 1
+        },
+        {
+          "name": "ankles",
+          "count": 300,
+          "damaged": 0,
+          "peakStretch": 1.1503409147262573
+        },
+        {
+          "name": "body-arm",
+          "count": 946,
+          "damaged": 134,
+          "peakStretch": 2.0607542991638184
+        },
+        {
+          "name": "head",
+          "count": 742,
+          "damaged": 0,
+          "peakStretch": 1.133789300918579
+        }
+      ],
+      "stretchDistribution": {
+        "p50": 1.034674048423767,
+        "p90": 1.125131368637085,
+        "p99": 1.7926185131072998,
+        "p100": 2.0607542991638184
+      },
+      "capturedPatch": {
+        "count": 39,
+        "maxMovement": 2.1562668114827583
+      }
+    }
+  },
+  "comparison": {
+    "short": {
+      "warmMeanDamage": 0,
+      "elasticMeanDamage": 0,
+      "warmFreeRms": 0.07773733110670301,
+      "elasticFreeRms": 0.13568884383010998,
+      "warmComponents": [2445],
+      "elasticComponents": [2445]
+    },
+    "stretched": {
+      "warmMeanDamage": 0.013562394847124052,
+      "elasticMeanDamage": 0,
+      "warmFreeRms": 0.24980132487114767,
+      "elasticFreeRms": 0.3157673500289908,
+      "warmComponents": [2445],
+      "elasticComponents": [2445]
+    },
+    "released": {
+      "warmMeanDamage": 0.015980117873934056,
+      "elasticMeanDamage": 0,
+      "warmFreeRms": 0.05667009662227415,
+      "elasticFreeRms": 0.1443158023359577,
+      "warmComponents": [2445],
+      "elasticComponents": [2445]
+    }
+  },
+  "contact": {
+    "initial": {
+      "labels": [
+        {
+          "count": 610,
+          "centroid": [
+            -0.7026115135579812, 0.5006022360481199, -1.3417152107739058e-8
+          ]
+        },
+        {
+          "count": 610,
+          "centroid": [
+            0.7026115112617367, 0.500602264873317, 3.1023729042928725e-8
+          ]
+        }
+      ],
+      "minimumCrossLabelDistance": 0.7073814570903888,
+      "nearContactCounts": [0, 0],
+      "contactRadius": 0.152,
+      "interpretation": "Geometric proximity and labelled motion; this does not demonstrate a persistent adhesive bond."
+    },
+    "pressed": {
+      "labels": [
+        {
+          "count": 610,
+          "centroid": [
+            0.8468206972860899, 0.48256723507017385, -0.39913494146054945
+          ]
+        },
+        {
+          "count": 610,
+          "centroid": [
+            1.8954569824406358, 0.4971135180993158, -0.059595999333121985
+          ]
+        }
+      ],
+      "minimumCrossLabelDistance": 0.3502424765791845,
+      "nearContactCounts": [0, 0],
+      "contactRadius": 0.152,
+      "interpretation": "Geometric proximity and labelled motion; this does not demonstrate a persistent adhesive bond."
+    },
+    "released": {
+      "labels": [
+        {
+          "count": 610,
+          "centroid": [
+            1.257630451292288, 0.48624853121696926, -0.49173050984495975
+          ]
+        },
+        {
+          "count": 610,
+          "centroid": [
+            2.34416407444438, 0.4968692620025306, 0.10895713885436664
+          ]
+        }
+      ],
+      "minimumCrossLabelDistance": 0.4700245749350002,
+      "nearContactCounts": [0, 0],
+      "contactRadius": 0.152,
+      "interpretation": "Geometric proximity and labelled motion; this does not demonstrate a persistent adhesive bond."
+    },
+    "pulled": {
+      "labels": [
+        {
+          "count": 610,
+          "centroid": [
+            0.7625612342455348, 0.496047468288023, -0.3523019480407323
+          ]
+        },
+        {
+          "count": 610,
+          "centroid": [
+            2.589922360904881, 0.49681071993268905, 0.205325330983939
+          ]
+        }
+      ],
+      "minimumCrossLabelDistance": 1.1171118608971857,
+      "nearContactCounts": [0, 0],
+      "contactRadius": 0.152,
+      "interpretation": "Geometric proximity and labelled motion; this does not demonstrate a persistent adhesive bond."
+    },
+    "final": {
+      "labels": [
+        {
+          "count": 610,
+          "centroid": [
+            -0.07248312515033921, 0.48495157362251984, -0.41077240779079865
+          ]
+        },
+        {
+          "count": 610,
+          "centroid": [
+            2.8049129677600546, 0.4967785378948587, 0.28972025315886074
+          ]
+        }
+      ],
+      "minimumCrossLabelDistance": 2.1457497809974178,
+      "nearContactCounts": [0, 0],
+      "contactRadius": 0.152,
+      "interpretation": "Geometric proximity and labelled motion; this does not demonstrate a persistent adhesive bond."
+    },
+    "reached": false
+  },
+  "touch": {
+    "displacement": 0.07846790552139282,
+    "events": [
+      {
+        "type": "pointerdown",
+        "pointerType": "touch",
+        "trusted": true
+      },
+      {
+        "type": "pointerup",
+        "pointerType": "touch",
+        "trusted": true
+      },
+      {
+        "type": "pointerdown",
+        "pointerType": "touch",
+        "trusted": true
+      },
+      {
+        "type": "pointercancel",
+        "pointerType": "touch",
+        "trusted": true
+      }
+    ]
+  },
+  "stabilityAndInputsPassed": true,
+  "finalSourceHashes": {
+    "packages/app/src/simulation/gummy/gummyContacts.ts": "a0eb829a0040c8fa37f3f3b487535a8a05be273cb058058decd1da60b9666e18",
+    "packages/app/src/simulation/gummy/gummyJelly.ts": "2e5d9ebe487b8c6637f3004895064a4e64769c1033836d4176faf0528394f671",
+    "packages/app/src/simulation/gummy/gummyJellyFracture.ts": "3de73b0a235a1e283b3df5f95565a8fa611ca1f43246452a7908a58755689793",
+    "packages/app/src/simulation/gummy/gummyJellyFractureStrain.ts": "e585641be35f2c728f3e26bcc5aff27afa628fc778633c6fa4cd2aa0978d5e0f",
+    "packages/app/src/simulation/gummy/gummyJellyMesh.ts": "fea477a8c3db75674df1289fcb7964880ed3825b7207a7b3147695368eae6031",
+    "packages/app/src/simulation/gummy/gummyJellyPlasticity.ts": "59a42df3a4d131baf5ba9471a391b6dbd3da1db8595ccc0ee784a4d781228247",
+    "packages/app/src/simulation/gummy/gummyJellyShaders.ts": "b4c692f6a9391b7697022e58deb94542fc9f307a34c32107b45d76e949087395",
+    "packages/app/src/simulation/gummy/gummyMaterialMath.ts": "89f3ca748b14a37865628a19ac54632a057b61d791c4c0d388cd63eb74bcede5",
+    "packages/app/src/simulation/gummy/gummyMesh.ts": "21672581ceac96c67802a90ed4cf0ee0c6d5d7628dc53ee78ad8c7f6db4a19cd",
+    "packages/app/src/simulation/gummy/gummyParticleFixtures.ts": "ee8b7b8172d35009a4e18b30530b09010fad4048ff418b3e0c81eebbaa65634f",
+    "packages/app/src/simulation/gummy/gummyParticleMath.ts": "39f37cc661e10feb93168baf3ec60e5287e273598e4500623a061e6214287313",
+    "packages/app/src/simulation/gummy/gummyParticleShaders.ts": "62c9b5ebe0aff27b4651dcee59df8f513d0fac6349d5f047b00898a81feeb15d",
+    "packages/app/src/simulation/gummy/gummyParticleSolver.ts": "65aad487ba24ae42427ebe22911bebf08341fd2505fc02d00ffe0ca131d02d7f",
+    "packages/app/src/simulation/gummy/gummyPartition.ts": "d817a7dd0aa2d55395a034d52f44e232cc08e8b25bf1074e8885e5e98e82ef09",
+    "packages/app/src/simulation/gummy/gummyPatches.ts": "2f7a67c04b6c327b23702867a59e76ac09b8efec6f959dae3acd5f8d2589aff4",
+    "packages/app/src/simulation/gummy/gummySolver.ts": "ef88dafb74d8f92e1bf52386fcb163a3d940ba15903e6b9962846993af657ffa",
+    "packages/app/src/simulation/gummy/gummySolverPipelines.ts": "cb8a5bfce8a49fc481621c714f54d18cf3475f729c9699ae4ad8cf165c1f5968",
+    "packages/app/src/simulation/gummy/gummySolverPreparation.ts": "bbc19b9b38bfe2789011b8eeeee35e17077e4ad1131e2095d70a879948d0a79d",
+    "packages/app/src/simulation/gummy/gummySolverShaders.ts": "868be4210b7dc6eca7ec249c27df9eedbaf79dd4b74c401b2700868548eafbfc",
+    "packages/app/src/simulation/gummy/gummySolverState.ts": "62149cadd4efff78db876e75472f122054e713fb9c9971958985fd6d722234e1",
+    "packages/app/src/components/GummyBear/GummyBearScene.tsx": "96ecadd468f53726d3066f51a0d7458156b41ea50a5744378fd1ac1e1f296e0f",
+    "packages/app/src/components/GummyBear/ParticleGummyBearScene.tsx": "040d5e7290daeadfa68dab1660d85229b4bef12464c9bc223b79cbca5861bb5b",
+    "packages/app/src/components/GummyBear/gummyBands.ts": "2cf5fe610b0b683b831a6ecca9a6c4b60803b14a805cfd283b1281c24e988177",
+    "packages/app/src/components/GummyBear/gummyFractureRuntime.ts": "96df83b5cc689801066a8fa64bb00514d2600ff1527cb7696c8e5b7923be6325",
+    "packages/app/src/components/GummyBear/gummyMaterial.ts": "9a95f76e700807e70a798256976454f667fea214f63f20d006cfd6b0d3775e63",
+    "packages/app/src/components/GummyBear/gummyPatchSamples.ts": "046a56a7da628b5ea92a24676b5004fee69a0ac7e6c634ddb50bab61d75ae0c7",
+    "packages/app/src/components/GummyBear/gummyPipelines.ts": "e855511b84c9a40f1e92709883e26a54598b9d7c5df8869aa8160e1e289d0511",
+    "packages/app/src/components/GummyBear/gummyPress.ts": "68c7a7f60108d6caeca90caf53ac09f792ba6458b94025939213ce82261af8af",
+    "packages/app/src/components/GummyBear/gummyRenderResources.ts": "ef18c779e3ea010c5c4d6b776f787959c046c817dc9e229d493cbb4e7462560f",
+    "packages/app/src/components/GummyBear/gummyRenderer.ts": "f0296093565cf6c8a43cc9a2e12ad42c935bab259fb3b4e951ea3f6fc50fa287",
+    "packages/app/src/components/GummyBear/gummyRoundedSurface.ts": "01ad3c5aa771175f4aafe79de5c0f72d894d132b7d77f7fcdf44ae376eccb77f",
+    "packages/app/src/components/GummyBear/gummyRoundedSurfaceShaders.ts": "bb62c76a1925cb1193851c143fb3d448b4b35e7233abea7c85722844c28c074c",
+    "packages/app/src/components/GummyBear/gummyRoundedTet.ts": "9c4ed5cc05eab5740a5dc07d4a9309cef21c63651d3eb9642f7fc2b34c4fb1b2",
+    "packages/app/src/components/GummyBear/gummyRuntimeSurface.ts": "0138cafe7674be0a61545a8c28628971e653995a5d0971a4579ecfc7349c712b",
+    "packages/app/src/components/GummyBear/gummyRuntimeSurfaceMath.ts": "f49fb96d5ec5835cf8cf470739bbafa1e24f3176f81505bda3f42e78fe137c44",
+    "packages/app/src/components/GummyBear/gummyShaders.ts": "d647bda991bbf8741a6c46be692b1c460381168dd5e4b8638cece2143efa6a0f",
+    "packages/app/src/components/GummyBear/gummyStudyMath.ts": "77baf9ada601eee9e00bc7bdba81390b994c386f7a222157af471fa04fbd7772",
+    "packages/app/src/components/GummyBear/gummySurface.ts": "648dcb163d31ec289ffe32e6112773d6a21a85d1670f7d503055beeff9857536",
+    "packages/app/src/components/GummyBear/gummySurfaceMath.ts": "c9cbdfbb9dbe635e12f59b331d0f343836a542932ed5f725b9634e8bda324eee",
+    "packages/app/src/components/GummyBear/gummyTargets.ts": "d485cd2da5260e72b564780ee0aa35751f30177bf0c2e5973836370ea67be67f",
+    "packages/app/src/components/GummyBear/gummyTearMaterial.ts": "bfe46643d00f1a7d366fcd75cffa708791a67220b5ffb8545bb41734fe0ee076",
+    "packages/app/src/components/GummyBear/particleGummyMath.ts": "2e7c2a0959d1c91ad3734cc7ca88940415d82770ec596cbd3f7884929645640c",
+    "packages/app/src/components/GummyBear/particleGummyRenderer.ts": "c27c4fb759044ed5cfb352e06f9fd3d351ecd494f4c37ca68bed50178fa08b73",
+    "packages/app/src/components/GummyBear/particleGummyShaders.ts": "72d08a2f82584ba9d6969be4a2ac5f75deff5cdc46660effa4650e38230812d9",
+    "packages/app/src/components/GummyBear/particleGummySurfaceShaders.ts": "7f711518761f3227f48a86d89d26e7f4c5d00a2f991742b6a2b325b8f9445c01",
+    "packages/app/src/components/GummyBear/particleGummyTargets.ts": "42dae3a3cbff05fc971a73ea337dd4ec53e92224424a6468f8c4198190312261",
+    "packages/app/src/components/GummyBear/particleStudyMath.ts": "00d5cbe0c7c668d0f424e9ad9e74a90606e429e20c99b7943ac82be417329de1",
+    "packages/app/src/pages/GummyBear/GummyBearApp.tsx": "d0700e789178125384a83dcfb7732aaeb72ad939fc698b18b900f87e66865362",
+    "packages/app/src/pages/GummyBear/GummyBearPage.module.css": "469b32ae1690d67846ca63bf776341a8fe152887521a5e3b299168a1a73cbc56",
+    "packages/app/src/pages/GummyBear/GummyBearPage.tsx": "dd33ac6f9bb646084c95ad3ad0e7868ef3800d2c6e311924293dc4a228068be2"
+  },
+  "sourceStable": true
+}

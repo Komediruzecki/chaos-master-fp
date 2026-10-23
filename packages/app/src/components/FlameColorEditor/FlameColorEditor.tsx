@@ -9,6 +9,7 @@ import { useChangeHistory } from '@/contexts/ChangeHistoryContext'
 import { useTheme } from '@/contexts/ThemeContext'
 import { useTimeline } from '@/contexts/TimelineContext'
 import { PI } from '@/flame/constants'
+import { workspaceIsVisible } from '@/lib/activeTab'
 import { AutoCanvas } from '@/lib/AutoCanvas'
 import { useCamera } from '@/lib/CameraContext'
 import { useCanvas } from '@/lib/CanvasContext'
@@ -138,7 +139,7 @@ function Gradient(props: { isVisible: () => boolean }) {
       },
       () => (props.isVisible() ? 0 : Infinity),
       undefined,
-      () => !gpuReady(),
+      () => !gpuReady() || !workspaceIsVisible(),
     )
   })
   return null

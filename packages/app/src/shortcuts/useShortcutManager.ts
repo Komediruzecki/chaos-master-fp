@@ -1,6 +1,8 @@
+/** Dispatch the editor's command shortcuts only while its workspace owns the screen. */
 import { createEffect, onCleanup } from 'solid-js'
 import { pilotOwnsKeyboard } from '@/arcade/pilot'
 import { executeCommand, getAllCommands } from '@/commands/registry'
+import { workspaceIsVisible } from '@/lib/activeTab'
 import { letBrowserHandleActiveInput } from './activeInputGuard'
 import { matchesShortcut, parseShortcut } from './shortcutParser'
 import type { CommandContext } from '@/commands/types'
@@ -21,6 +23,7 @@ export function useShortcutManager(ctx: CommandContext) {
     if (bindings.size === 0) return
 
     function onKeydown(ev: KeyboardEvent) {
+      if (!workspaceIsVisible()) return
       // The pilot owns the keyboard only while it owns the screen: the lock
       // would be theatre if Ctrl+E still opened an export or Ctrl+Z rewound
       // the take. A seat lock is the opposite case — the viewer is editing

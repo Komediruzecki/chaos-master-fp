@@ -1,0 +1,41 @@
+{
+  "base": "https://127.0.0.1:5200",
+  "samples": [],
+  "errors": [],
+  "warnings": [],
+  "placement": {
+    "foregroundUnchanged": true,
+    "clients": [
+      {
+        "class": "agent-browser",
+        "workspace": "special:agents"
+      }
+    ],
+    "hidden": true
+  },
+  "adapter": {
+    "vendor": "amd",
+    "architecture": "rdna-4",
+    "device": "",
+    "description": ""
+  },
+  "productionPlaybackWallSeconds": 9.613602707999998,
+  "production": {
+    "devHookAbsent": true,
+    "steps": 1152,
+    "controlsStyled": true,
+    "overflow": false
+  },
+  "tablet": {
+    "visibleDemoButtons": 1,
+    "height": 46,
+    "background": "rgb(41, 103, 133)",
+    "overflow": false
+  },
+  "phone": {
+    "visibleDemoButtons": 1,
+    "height": 44,
+    "background": "rgb(41, 103, 133)",
+    "overflow": false
+  }
+}
