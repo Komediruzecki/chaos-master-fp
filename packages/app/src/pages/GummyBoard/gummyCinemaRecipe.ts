@@ -66,16 +66,19 @@ function parseRecipeMotion(version: 1 | 2 | 3, s: Record<string, unknown>) {
   return { motion, mechanic }
 }
 
-export function parseGummyCinemaRecipe(value: unknown): GummyCinemaRecipe {
-  const raw: unknown = typeof value === 'string' ? JSON.parse(value) : value
-  if (!raw || typeof raw !== 'object')
-    throw new Error('Paste a shot recipe object.')
-  const r = raw as Record<string, unknown>
+function parseAuthoredPawn(r: Record<string, unknown>) {
   const authoredPawn = validateGummyAuthoredPawn(r.authoredPawn)
   if (r.authoredPawn !== undefined && !authoredPawn)
     throw new Error('Invalid authored pawn snapshot.')
   if (authoredPawn && r.version !== 3)
     throw new Error('Use a version 3 recipe for an authored pawn.')
+  return authoredPawn
+}
+
+function parseRecipeEnvelope(r: Record<string, unknown>): {
+  version: 1 | 2 | 3
+  shot: Record<string, unknown>
+} {
   if (
     r.format !== 'gummy-cinema-shot' ||
     (r.version !== 1 && r.version !== 2 && r.version !== 3) ||
@@ -84,8 +87,11 @@ export function parseGummyCinemaRecipe(value: unknown): GummyCinemaRecipe {
     Array.isArray(r.shot)
   )
     throw new Error('Expected a version 1, 2 or 3 gummy cinema shot.')
-  const s = r.shot as Record<string, unknown>
-  const { motion, mechanic } = parseRecipeMotion(r.version, s)
+  return { version: r.version, shot: r.shot as Record<string, unknown> }
+}
+
+function parseRecipeShot(version: 1 | 2 | 3, s: Record<string, unknown>) {
+  const { motion, mechanic } = parseRecipeMotion(version, s)
   for (const key of ['id', 'title', 'fen', 'from', 'to', 'presetId'])
     if (typeof s[key] !== 'string' || s[key].length > 200)
       throw new Error(`Invalid shot ${key}.`)
@@ -93,6 +99,15 @@ export function parseGummyCinemaRecipe(value: unknown): GummyCinemaRecipe {
     throw new Error('Choose Classic, Glass or Lava for the board.')
   if (!['arc', 'diagonal', 'hero'].includes(s.cameraStyle as string))
     throw new Error('Choose an arc, diagonal or hero camera.')
+  const shot = {
+    ...s,
+    motion,
+    ...(mechanic ? { mechanic } : {}),
+  } as GummyBoardShot & { motion: GummyBoardShotMotion }
+  return shot
+}
+
+function parseRecipeAppearance(r: Record<string, unknown>) {
   if (!['auto', 'tablet', 'high'].includes(r.quality as string))
     throw new Error('Choose Auto, Tablet or High quality.')
   if (
@@ -113,13 +128,25 @@ export function parseGummyCinemaRecipe(value: unknown): GummyCinemaRecipe {
     r.scale > 1
   )
     throw new Error('Piece size must be between 85% and 100%.')
-  const shot = {
-    ...s,
-    motion,
-    ...(mechanic ? { mechanic } : {}),
-  } as GummyBoardShot & {
-    motion: GummyBoardShotMotion
+  return {
+    scale: r.scale,
+    quality: r.quality as GummyBoardQuality,
+    artStyle:
+      r.artStyle === 'classic' ? ('classic' as const) : ('sculpted' as const),
+    attackerPalette: (r.attackerPalette ?? 'amber') as GummyPalette,
+    victimPalette: (r.victimPalette ?? 'blue') as GummyPalette,
   }
+}
+
+export function parseGummyCinemaRecipe(value: unknown): GummyCinemaRecipe {
+  const raw: unknown = typeof value === 'string' ? JSON.parse(value) : value
+  if (!raw || typeof raw !== 'object')
+    throw new Error('Paste a shot recipe object.')
+  const r = raw as Record<string, unknown>
+  const authoredPawn = parseAuthoredPawn(r)
+  const envelope = parseRecipeEnvelope(r)
+  const shot = parseRecipeShot(envelope.version, envelope.shot)
+  const appearance = parseRecipeAppearance(r)
   resolveGummyBoardShot(shot)
   const material = createGummyPreset(
     'Shot material',
@@ -127,14 +154,10 @@ export function parseGummyCinemaRecipe(value: unknown): GummyCinemaRecipe {
   ).settings
   return {
     format: 'gummy-cinema-shot',
-    version: r.version === 3 ? 3 : 2,
+    version: envelope.version === 3 ? 3 : 2,
     shot: { ...shot },
     material,
-    scale: r.scale,
-    quality: r.quality as GummyBoardQuality,
-    artStyle: r.artStyle === 'classic' ? 'classic' : 'sculpted',
-    attackerPalette: (r.attackerPalette ?? 'amber') as GummyPalette,
-    victimPalette: (r.victimPalette ?? 'blue') as GummyPalette,
+    ...appearance,
     ...(authoredPawn ? { authoredPawn } : {}),
   }
 }

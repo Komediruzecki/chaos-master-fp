@@ -19,7 +19,7 @@
   "packages/app/src/components/SessionRecorder/SessionReplayPanel.tsx": 846,
   "packages/app/src/components/Timeline/presets.ts": 940,
   "packages/app/src/components/VariationSelector/VariationSelector.tsx": 1335,
-  "packages/app/src/flame/Flam3.tsx": 1326,
+  "packages/app/src/flame/Flam3.tsx": 1275,
   "packages/app/src/flame/examples/animations.ts": 5713,
   "packages/app/src/flame/flameXml.ts": 997,
   "packages/app/src/flame/variations/docs/content.general.ts": 1894,

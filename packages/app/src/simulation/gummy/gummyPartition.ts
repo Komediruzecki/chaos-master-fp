@@ -1,5 +1,5 @@
 /** Deterministic, manifold whole-cell fracture regions and damage-based volume connectivity. */
-import type { GummyMesh, GummyVec3 } from './gummyMesh'
+import type { GummyMesh, GummyVec3 } from './gummyMeshContracts'
 
 type Tet = readonly [number, number, number, number]
 type Face = readonly [number, number, number]
@@ -68,24 +68,9 @@ export function isManifoldGummyBoundary(faces: Iterable<Face>) {
   return true
 }
 
-/** Cells follow a distributed, warped Voronoi assignment; a merge is accepted only if the closed boundary remains manifold. */
-export function partitionGummyCells(
-  tetrahedra: readonly Tet[],
-  cellIds: readonly number[],
-  centers: ReadonlyMap<number, GummyVec3>,
-  tetrahedronVolumes: readonly number[],
-  desiredCount = 96,
-): Uint32Array {
-  if (
-    tetrahedra.length !== cellIds.length ||
-    tetrahedra.length !== tetrahedronVolumes.length ||
-    tetrahedronVolumes.some(
-      (volume) => !Number.isFinite(volume) || volume <= 0,
-    ) ||
-    !Number.isInteger(desiredCount) ||
-    desiredCount < 1
-  )
-    throw new RangeError('Invalid gummy partition input')
+type CellGroup = { center: GummyVec3; boundary: Set<number>; volume: number }
+
+function buildCellTopology(tetrahedra: readonly Tet[]) {
   const faces: Face[] = []
   const faceIds = new Map<string, number>()
   const owners: number[][] = []
@@ -121,10 +106,19 @@ export function partitionGummyCells(
       neighbors[faceOwners[1]!]!.push(faceOwners[0]!)
     }
 
+  return { faces, tetFaces, neighbors }
+}
+
+function buildCellGroups(
+  tetrahedra: readonly Tet[],
+  cellIds: readonly number[],
+  centers: ReadonlyMap<number, GummyVec3>,
+  tetrahedronVolumes: readonly number[],
+  { faces, tetFaces, neighbors }: ReturnType<typeof buildCellTopology>,
+) {
   // A clipped cell can have more than one face-connected part. Never tie those parts through a point alone.
   const membership = new Int32Array(tetrahedra.length).fill(-1)
-  const groups: { center: GummyVec3; boundary: Set<number>; volume: number }[] =
-    []
+  const groups: CellGroup[] = []
   for (let tet = 0; tet < tetrahedra.length; tet++) {
     if (membership[tet] !== -1) continue
     const center = centers.get(cellIds[tet]!)
@@ -150,8 +144,10 @@ export function partitionGummyCells(
       throw new Error('A clipped gummy cell has a non-manifold boundary')
     groups.push({ center, boundary, volume })
   }
-  if (!groups.length) return new Uint32Array()
+  return { groups, membership }
+}
 
+function seedGummyRegions(groups: readonly CellGroup[], desiredCount: number) {
   const warped = groups.map(({ center: [x, y, z] }) => [
     x + 0.055 * Math.sin(4.3 * y + 2.1 * z),
     y + 0.045 * Math.sin(5.2 * x - 3.3 * z),
@@ -182,8 +178,15 @@ export function partitionGummyCells(
     }
     return label
   })
+  return { nearest, labels }
+}
+
+function partitionNeighborPairs(
+  neighbors: readonly number[][],
+  membership: Int32Array,
+) {
   const pairs = new Map<string, [number, number]>()
-  for (let tet = 0; tet < tetrahedra.length; tet++)
+  for (let tet = 0; tet < neighbors.length; tet++)
     for (const adjacent of neighbors[tet]!) {
       const a = membership[tet]!,
         b = membership[adjacent]!
@@ -194,6 +197,17 @@ export function partitionGummyCells(
         ])
     }
   const adjacentPairs = [...pairs.values()]
+  return adjacentPairs
+}
+
+function mergePartitionGroups(
+  groups: CellGroup[],
+  faces: readonly Face[],
+  adjacentPairs: [number, number][],
+  labels: readonly number[],
+  nearest: readonly number[],
+  minimumVolume: number,
+) {
   const joins = adjacentPairs
     .filter(([a, b]) => labels[a] === labels[b])
     .sort(
@@ -230,10 +244,6 @@ export function partitionGummyCells(
   }
   // Do not turn a tiny clipped exterior cell into an independent grain. Prefer the
   // neighboring region sharing the most faces, subject to the same manifold test.
-  const minimumVolume =
-    (tetrahedronVolumes.reduce((sum, volume) => sum + volume, 0) /
-      desiredCount) *
-    0.05
   const orderedGroups = groups
     .map((_, i) => i)
     .sort((a, b) => groups[a]!.volume - groups[b]!.volume || a - b)
@@ -258,6 +268,51 @@ export function partitionGummyCells(
     ))
       if (merge(current, neighbor)) break
   }
+  return sets
+}
+
+/** Cells follow a distributed, warped Voronoi assignment; a merge is accepted only if the closed boundary remains manifold. */
+export function partitionGummyCells(
+  tetrahedra: readonly Tet[],
+  cellIds: readonly number[],
+  centers: ReadonlyMap<number, GummyVec3>,
+  tetrahedronVolumes: readonly number[],
+  desiredCount = 96,
+): Uint32Array {
+  if (
+    tetrahedra.length !== cellIds.length ||
+    tetrahedra.length !== tetrahedronVolumes.length ||
+    tetrahedronVolumes.some(
+      (volume) => !Number.isFinite(volume) || volume <= 0,
+    ) ||
+    !Number.isInteger(desiredCount) ||
+    desiredCount < 1
+  )
+    throw new RangeError('Invalid gummy partition input')
+  const topology = buildCellTopology(tetrahedra)
+  const { groups, membership } = buildCellGroups(
+    tetrahedra,
+    cellIds,
+    centers,
+    tetrahedronVolumes,
+    topology,
+  )
+  if (!groups.length) return new Uint32Array()
+
+  const { nearest, labels } = seedGummyRegions(groups, desiredCount)
+  const adjacentPairs = partitionNeighborPairs(topology.neighbors, membership)
+  const minimumVolume =
+    (tetrahedronVolumes.reduce((sum, volume) => sum + volume, 0) /
+      desiredCount) *
+    0.05
+  const sets = mergePartitionGroups(
+    groups,
+    topology.faces,
+    adjacentPairs,
+    labels,
+    nearest,
+    minimumVolume,
+  )
   const dense = new Map<number, number>()
   return new Uint32Array(
     [...membership].map((group) => {

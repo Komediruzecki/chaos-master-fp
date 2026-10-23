@@ -6,7 +6,7 @@ import type { GummyOrbit } from '../GummyBear/gummyStudyMath'
 import type { GummyBoardRestMeshPool } from './gummyBoardRestMeshPool'
 import type { GummyBoardShot } from './gummyBoardShots'
 import type { GummyCinemaController } from './GummyCinemaScene'
-import type { GummyMatchSceneProps } from './GummyMatchScene'
+import type { GummyMatchSceneProps } from './gummyMatchContracts'
 
 export function GummyMatchCapture(
   props: GummyMatchSceneProps & {

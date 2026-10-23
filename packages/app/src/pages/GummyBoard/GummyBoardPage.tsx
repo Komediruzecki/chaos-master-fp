@@ -2,16 +2,15 @@
 import { batch, createMemo, createSignal, For, onCleanup, onMount, Show, } from 'solid-js'
 import { GummyBoardScene } from '@/components/GummyBoard/GummyBoardScene'
 import { Pause, PlayPause, Reset } from '@/icons'
-import { DEFAULT_GUMMY_PARTICLE_TUNING } from '@/simulation/gummy/gummyParticleTuning'
 import { GUMMY_BUILTIN_PRESETS } from '../GummyBear/gummyBuiltinPresets'
 import { GummyErrorNotice } from '../GummyBear/GummyErrorNotice'
 import { GummyPresetControls } from '../GummyBear/GummyPresetControls'
 import { createGummyPreset } from '../GummyBear/gummyPresets'
 import { GummyRecordingControls } from '../GummyBear/GummyRecordingControls'
-import { GummyTuningControls } from '../GummyBear/GummyTuningControls'
 import { useGummyRecording } from '../GummyBear/useGummyRecording'
-import { GUMMY_BOARD_PALETTES, loadGummyBoardAppearance, saveGummyBoardAppearance, } from './gummyBoardAppearance'
+import { loadGummyBoardAppearance, saveGummyBoardAppearance, } from './gummyBoardAppearance'
 import { GummyBoardAppearanceControls } from './GummyBoardAppearanceControls'
+import { GummyBoardMaterialControls } from './GummyBoardMaterialControls'
 import styles from './GummyBoardPage.module.css'
 import type { GummyPresetSettings } from '../GummyBear/gummyPresets'
 import type { GummyBoardAppearance } from './gummyBoardAppearance'
@@ -387,136 +386,15 @@ export function GummyBoardPage() {
             </p>
           </fieldset>
 
-          <fieldset class={styles.fieldset} disabled={unavailable()}>
-            <legend>
-              {softContact() ? 'Piece material' : 'Pawn material'}
-            </legend>
-            <div
-              class={styles.segments}
-              role="group"
-              aria-label="Particle material"
-            >
-              <button
-                type="button"
-                aria-pressed={warm()}
-                onClick={() => {
-                  setMaterial('warm')
-                }}
-              >
-                Warm gummy
-              </button>
-              <button
-                type="button"
-                aria-pressed={!warm()}
-                onClick={() => {
-                  setMaterial('elastic')
-                }}
-              >
-                Elastic jelly
-              </button>
-            </div>
-            <label class={styles.sliderLabel} for="gummy-board-softness">
-              Softness<output>{Math.round(settings().softness * 100)}%</output>
-            </label>
-            <input
-              id="gummy-board-softness"
-              class={styles.slider}
-              type="range"
-              min="0"
-              max="1"
-              step="0.05"
-              value={settings().softness}
-              onInput={(event) => {
-                updateSettings({ softness: Number(event.currentTarget.value) })
-              }}
-            />
-            <label class={styles.sliderLabel} for="gummy-board-fragility">
-              Fragility
-              <output>{Math.round(settings().fragility * 100)}%</output>
-            </label>
-            <input
-              id="gummy-board-fragility"
-              class={styles.slider}
-              type="range"
-              min="0"
-              max="100"
-              step="1"
-              value={settings().fragility * 100}
-              onInput={(event) => {
-                updateSettings({
-                  fragility: Number(event.currentTarget.value) / 100,
-                })
-              }}
-            />
-            <label class={styles.check}>
-              <input
-                type="checkbox"
-                checked={settings().tearing}
-                onChange={(event) => {
-                  updateSettings({ tearing: event.currentTarget.checked })
-                }}
-              />
-              Allow tearing
-            </label>
-            <label class={styles.check}>
-              <input
-                type="checkbox"
-                checked={settings().caustics}
-                onChange={(event) => {
-                  updateSettings({ caustics: event.currentTarget.checked })
-                }}
-              />
-              Floor caustics
-            </label>
-            <label class={styles.selectLabel} for="gummy-board-palette">
-              Base palette
-            </label>
-            <select
-              id="gummy-board-palette"
-              class={styles.select}
-              value={settings().palette}
-              onChange={(event) => {
-                updateSettings({
-                  palette: event.currentTarget
-                    .value as GummyPresetSettings['palette'],
-                })
-              }}
-            >
-              <For each={GUMMY_BOARD_PALETTES}>
-                {([value, name]) => <option value={value}>{name}</option>}
-              </For>
-            </select>
-          </fieldset>
-
-          <GummyTuningControls
-            tuning={settings().tuning}
-            onTuningChange={(patch) =>
-              setSettings((current) => ({
-                ...current,
-                tuning: { ...current.tuning, ...patch },
-              }))
-            }
-            grabRadius={settings().grabRadius}
-            onGrabRadius={(value) => {
-              updateSettings({ grabRadius: value })
-            }}
-            maxPull={settings().maxPull}
-            onMaxPull={(value) => {
-              updateSettings({ maxPull: value })
-            }}
-            pinnedFeet={settings().pinnedFeet}
-            onPinnedFeet={setPinnedFeet}
-            warm={warm()}
-            bear
-            chessPiece
-            disabled={unavailable()}
-            onReset={() => {
-              updateSettings({
-                tuning: { ...DEFAULT_GUMMY_PARTICLE_TUNING },
-                grabRadius: warm() ? 0.22 : 0.28,
-                maxPull: 1.8,
-              })
-            }}
+          <GummyBoardMaterialControls
+            settings={settings}
+            setSettings={setSettings}
+            unavailable={unavailable}
+            softContact={softContact}
+            warm={warm}
+            setMaterial={setMaterial}
+            updateSettings={updateSettings}
+            setPinnedFeet={setPinnedFeet}
           />
           <p class={styles.help}>
             Pin base holds the pawn to its square. The rook is guided through

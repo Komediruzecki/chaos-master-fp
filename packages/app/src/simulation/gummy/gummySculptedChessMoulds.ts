@@ -1,7 +1,7 @@
 /** Compact candy moulds with turned rings, clear crowns and a sculpted horse, alongside the preserved classic set. */
 import { roundedBox, roundedLathe, smoothUnion, sphere, } from './gummyChessFields'
 import type { Point3, ProfilePoint } from './gummyChessFields'
-import type { GummyChessMould } from './gummyChessMoulds'
+import type { GummyChessMould } from './gummyChessMouldTypes'
 
 // Two low beads frame an inset waist; broad changes survive particle reconstruction.
 const FOOT: readonly ProfilePoint[] = [

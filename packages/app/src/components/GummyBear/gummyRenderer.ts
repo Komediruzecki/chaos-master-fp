@@ -29,6 +29,48 @@ export type GummyFrame = {
   press?: { height: number; halfExtent: number }
 }
 
+/** Pack the immutable camera layout without mixing material choices into draw orchestration. */
+function packGummyFrame(
+  cameraData: Float32Array,
+  frame: GummyFrame,
+  format: GPUTextureFormat,
+  spacing: number,
+  rounded: boolean,
+  width: number,
+  height: number,
+) {
+  cameraData.set(frame.viewProjection, 0)
+  cameraData.set(frame.inverseViewProjection, 16)
+  cameraData.set(frame.eye.subarray(0, 3), 32)
+  cameraData[35] = frame.diagnostic ?? 0
+  cameraData[36] = width
+  cameraData[37] = height
+  cameraData[38] = frame.clay ? 1 : 0
+  cameraData[39] = format.endsWith('-srgb') ? 0 : 1
+  const palette = frame.palette ?? 'blue'
+  const solid =
+    palette === 'blue' || palette === 'amber' || palette === 'berry'
+      ? palette
+      : 'blue'
+  const material = GUMMY_MATERIALS[solid]
+  cameraData.set(material.absorption, 40)
+  cameraData[43] = spacing * 0.45
+  cameraData.set(material.colour, 44)
+  cameraData[47] =
+    palette === 'candy'
+      ? 1
+      : palette === 'lagoon'
+        ? 2
+        : palette === 'marble'
+          ? 3
+          : 0
+  cameraData[48] = frame.press?.height ?? 0
+  cameraData[49] = frame.press?.halfExtent ?? 0
+  cameraData[50] = frame.press ? 1 : 0
+  cameraData[51] = GUMMY_PRESS_THICKNESS
+  cameraData[52] = rounded ? 1 : 0
+}
+
 export function createGummyRenderer(
   root: TgpuRoot,
   device: GPUDevice,
@@ -214,36 +256,15 @@ export function createGummyRenderer(
         const width = Math.floor(frame.width),
           height = Math.floor(frame.height)
         const targets = resources.targets(width, height, !!mesh.runtimeFracture)
-        cameraData.set(frame.viewProjection, 0)
-        cameraData.set(frame.inverseViewProjection, 16)
-        cameraData.set(frame.eye.subarray(0, 3), 32)
-        cameraData[35] = frame.diagnostic ?? 0
-        cameraData[36] = width
-        cameraData[37] = height
-        cameraData[38] = frame.clay ? 1 : 0
-        cameraData[39] = format.endsWith('-srgb') ? 0 : 1
-        const palette = frame.palette ?? 'blue'
-        const solid =
-          palette === 'blue' || palette === 'amber' || palette === 'berry'
-            ? palette
-            : 'blue'
-        const material = GUMMY_MATERIALS[solid]
-        cameraData.set(material.absorption, 40)
-        cameraData[43] = mesh.spacing * 0.45
-        cameraData.set(material.colour, 44)
-        cameraData[47] =
-          palette === 'candy'
-            ? 1
-            : palette === 'lagoon'
-              ? 2
-              : palette === 'marble'
-                ? 3
-                : 0
-        cameraData[48] = frame.press?.height ?? 0
-        cameraData[49] = frame.press?.halfExtent ?? 0
-        cameraData[50] = frame.press ? 1 : 0
-        cameraData[51] = GUMMY_PRESS_THICKNESS
-        cameraData[52] = rounded ? 1 : 0
+        packGummyFrame(
+          cameraData,
+          frame,
+          format,
+          mesh.spacing,
+          rounded,
+          width,
+          height,
+        )
         camera.write(cameraData.buffer)
         const encoder = root['~unstable'].createCommandEncoder({
           label: 'Gummy filled body frame',

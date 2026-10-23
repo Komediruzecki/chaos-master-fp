@@ -1,6 +1,6 @@
 /** Exact-order constraint coloring and reusable rest geometry for topology-only node splits. */
 import { prepareGummyJellyTets } from './gummyJelly'
-import type { GummySolverMesh } from './gummySolver'
+import type { GummySolverMesh } from './gummySolverContracts'
 
 const EDGES = [
   [0, 1],
@@ -10,6 +10,23 @@ const EDGES = [
   [1, 3],
   [2, 3],
 ] as const
+
+function findOverflowColor(
+  indices: Uint32Array,
+  id: number,
+  stride: number,
+  active: number,
+  overflow: Map<number, Set<number>>,
+) {
+  let color = 64
+  while (true) {
+    let conflict = false
+    for (let n = 0; n < active; n++)
+      if (overflow.get(indices[id * stride + n]!)?.has(color)) conflict = true
+    if (!conflict) return color
+    color++
+  }
+}
 
 /** Greedy colors include every written node, including pinned nodes: no write/write races. */
 export function colorGummyConstraints(
@@ -45,14 +62,7 @@ export function colorGummyConstraints(
         ? 63 - Math.clz32(freeHigh & -freeHigh)
         : 64
     if (color === 64)
-      while (true) {
-        let conflict = false
-        for (let n = 0; n < active; n++)
-          if (overflow.get(indices[id * stride + n]!)?.has(color))
-            conflict = true
-        if (!conflict) break
-        color++
-      }
+      color = findOverflowColor(indices, id, stride, active, overflow)
     ;(batches[color] ??= []).push(id)
     for (let n = 0; n < active; n++) {
       const node = indices[id * stride + n]!
@@ -148,49 +158,47 @@ export function prepareGummySolverGeometry(
   }
 }
 
+type PreparedGummyGeometry = {
+  positions: Float32Array
+  tetrahedra: Uint32Array
+  prepared: ReturnType<typeof prepareGummySolverGeometry>
+}
+
+function canReuseGeometry(
+  previous: PreparedGummyGeometry | undefined,
+  mesh: GummySolverMesh,
+  jelly: boolean,
+  sourceNodes: Uint32Array | undefined,
+) {
+  if (
+    !previous ||
+    !sourceNodes ||
+    sourceNodes.length * 4 !== mesh.positions.length ||
+    previous.tetrahedra.length !== mesh.tetrahedra.length ||
+    (jelly && !previous.prepared.jellyTets)
+  )
+    return false
+  // Validate ancestry rather than equating coincident positions: a merge is not a split.
+  for (let node = 0; node < sourceNodes.length; node++) {
+    const source = sourceNodes[node]! * 4
+    if (source >= previous.positions.length) return false
+    for (let axis = 0; axis < 3; axis++)
+      if (mesh.positions[node * 4 + axis] !== previous.positions[source + axis])
+        return false
+  }
+  for (let corner = 0; corner < mesh.tetrahedra.length; corner++)
+    if (sourceNodes[mesh.tetrahedra[corner]!] !== previous.tetrahedra[corner])
+      return false
+  return true
+}
+
 /** A cache belongs to one scene, so its previous rest state cannot outlive that scene. */
 export function createGummySolverPreparationCache() {
-  let previous:
-    | {
-        positions: Float32Array
-        tetrahedra: Uint32Array
-        prepared: ReturnType<typeof prepareGummySolverGeometry>
-      }
-    | undefined
+  let previous: PreparedGummyGeometry | undefined
   return {
     prepare(mesh: GummySolverMesh, jelly: boolean, sourceNodes?: Uint32Array) {
       validateGummyMesh(mesh)
-      let reusable =
-        !!previous &&
-        !!sourceNodes &&
-        sourceNodes.length * 4 === mesh.positions.length &&
-        previous.tetrahedra.length === mesh.tetrahedra.length &&
-        (!jelly || !!previous.prepared.jellyTets)
-      if (reusable && previous && sourceNodes) {
-        // Validate ancestry rather than equating coincident positions: merging
-        // previously independent nodes must never be mistaken for a split.
-        for (let node = 0; node < sourceNodes.length && reusable; node++) {
-          const source = sourceNodes[node]! * 4
-          if (source >= previous.positions.length) reusable = false
-          else
-            for (let axis = 0; axis < 3; axis++)
-              if (
-                mesh.positions[node * 4 + axis] !==
-                previous.positions[source + axis]
-              )
-                reusable = false
-        }
-        for (
-          let corner = 0;
-          corner < mesh.tetrahedra.length && reusable;
-          corner++
-        )
-          if (
-            sourceNodes[mesh.tetrahedra[corner]!] !==
-            previous.tetrahedra[corner]
-          )
-            reusable = false
-      }
+      const reusable = canReuseGeometry(previous, mesh, jelly, sourceNodes)
       const prepared =
         reusable && previous
           ? {

@@ -44,16 +44,13 @@ function disjointSets(count) {
   }
 }
 
-/** Face connectivity alone misses point/edge ties. Measure both and inspect the actual exposed boundary. */
-export function analyzeRuntimeJelly(state, initialTopology) {
-  const topology = state.topology
-  assert.ok(topology, 'Snapshot must include current topology')
-  const p = Array.from(state.positions)
-  const rest = Array.from(topology.restPositions)
-  const tets = Array.from(topology.tetrahedra)
-  const surface = Array.from(topology.surface)
-  const original = Array.from(topology.originalNodeIds)
-  const normals = Array.from(topology.restNormals)
+function analyzeOriginalMaterial(
+  tets,
+  original,
+  rest,
+  normals,
+  initialTopology,
+) {
   let originalMaterialMismatch = 0
   let materialCornerMismatches = 0
   if (initialTopology) {
@@ -79,16 +76,10 @@ export function analyzeRuntimeJelly(state, initialTopology) {
       }
     }
   }
-  const velocities = Array.from(
-    state.dynamic?.velocities ?? state.velocities ?? [],
-  )
-  const count = p.length / 4
-  assert.equal(p.length, rest.length)
-  assert.equal(normals.length, rest.length)
-  assert.equal(original.length, count)
-  assert.equal(tets.length % 4, 0)
-  assert.equal(surface.length % 4, 0)
-  assert.ok(tets.every((id) => Number.isInteger(id) && id >= 0 && id < count))
+  return { originalMaterialMismatch, materialCornerMismatches }
+}
+
+function analyzeTetrahedra(p, rest, tets) {
   const tetCount = tets.length / 4
   const mechanical = disjointSets(tetCount)
   const faceConnected = disjointSets(tetCount)
@@ -129,8 +120,22 @@ export function analyzeRuntimeJelly(state, initialTopology) {
       edgeStrain += (v0 * strain * strain) / 6
     }
   }
+  return {
+    tetCount,
+    mechanical,
+    faceConnected,
+    faces,
+    tetVolumes,
+    restVolume,
+    signedVolume,
+    invertedVolume,
+    edgeStrain,
+  }
+}
+
+function measureComponents(tets, tetVolumes, mechanical, p, velocities) {
   const components = new Map()
-  for (let i = 0; i < tetCount; i++) {
+  for (let i = 0; i < tets.length / 4; i++) {
     const root = mechanical.find(i)
     const c = components.get(root) ?? {
       tetCount: 0,
@@ -173,6 +178,10 @@ export function analyzeRuntimeJelly(state, initialTopology) {
       }
     })
     .sort((a, b) => b.restVolume - a.restVolume)
+  return measured
+}
+
+function analyzeBoundary(surface, count, faces, rest, original) {
   const drawnFaces = new Map()
   const caps = new Map()
   const surfaceEdges = new Map()
@@ -210,12 +219,20 @@ export function analyzeRuntimeJelly(state, initialTopology) {
       surfaceEdges.set(ek, edge)
     }
   }
+  return { drawnFaces, caps, surfaceEdges, orientationErrors }
+}
+
+function compareBoundaryFaces(faces, drawnFaces) {
   let missingBoundaryFaces = 0,
     extraSurfaceFaces = 0
   for (const [k, face] of faces)
     if (face.count === 1 && drawnFaces.get(k) !== 1) missingBoundaryFaces++
   for (const [k, drawn] of drawnFaces)
     if (faces.get(k)?.count !== 1 || drawn !== 1) extraSurfaceFaces++
+  return { missingBoundaryFaces, extraSurfaceFaces }
+}
+
+function countInvalidCapPairs(caps) {
   let invalidCapPairs = 0
   for (const pair of caps.values()) {
     if (pair.length !== 2) {
@@ -226,6 +243,10 @@ export function analyzeRuntimeJelly(state, initialTopology) {
     const index = b.indexOf(a[0])
     if (b[(index + 1) % 3] !== a[2]) invalidCapPairs++
   }
+  return invalidCapPairs
+}
+
+function measureParticles(p, rest, original) {
   const min = [Infinity, Infinity, Infinity],
     max = [-Infinity, -Infinity, -Infinity]
   let pinnedMovement = 0,
@@ -235,7 +256,7 @@ export function analyzeRuntimeJelly(state, initialTopology) {
     freeRms = 0,
     freeCount = 0
   const originalRest = new Map()
-  for (let id = 0; id < count; id++) {
+  for (let id = 0; id < p.length / 4; id++) {
     const xyz = point(p, id),
       xyz0 = point(rest, id)
     for (let a = 0; a < 3; a++) {
@@ -254,6 +275,80 @@ export function analyzeRuntimeJelly(state, initialTopology) {
     if (previous) dyeMismatch = Math.max(dyeMismatch, distance(previous, xyz0))
     else originalRest.set(original[id], xyz0)
   }
+  return {
+    min,
+    max,
+    pinnedMovement,
+    floorPenetration,
+    mass,
+    dyeMismatch,
+    freeRms,
+    freeCount,
+  }
+}
+
+/** Face connectivity alone misses point/edge ties. Measure both and inspect the actual exposed boundary. */
+export function analyzeRuntimeJelly(state, initialTopology) {
+  const topology = state.topology
+  assert.ok(topology, 'Snapshot must include current topology')
+  const p = Array.from(state.positions)
+  const rest = Array.from(topology.restPositions)
+  const tets = Array.from(topology.tetrahedra)
+  const surface = Array.from(topology.surface)
+  const original = Array.from(topology.originalNodeIds)
+  const normals = Array.from(topology.restNormals)
+  const velocities = Array.from(
+    state.dynamic?.velocities ?? state.velocities ?? [],
+  )
+  const count = p.length / 4
+  assert.equal(p.length, rest.length)
+  assert.equal(normals.length, rest.length)
+  assert.equal(original.length, count)
+  assert.equal(tets.length % 4, 0)
+  assert.equal(surface.length % 4, 0)
+  assert.ok(tets.every((id) => Number.isInteger(id) && id >= 0 && id < count))
+  const { originalMaterialMismatch, materialCornerMismatches } =
+    analyzeOriginalMaterial(tets, original, rest, normals, initialTopology)
+  const {
+    tetCount,
+    mechanical,
+    faceConnected,
+    faces,
+    tetVolumes,
+    restVolume,
+    signedVolume,
+    invertedVolume,
+    edgeStrain,
+  } = analyzeTetrahedra(p, rest, tets)
+  const measured = measureComponents(
+    tets,
+    tetVolumes,
+    mechanical,
+    p,
+    velocities,
+  )
+  const { drawnFaces, caps, surfaceEdges, orientationErrors } = analyzeBoundary(
+    surface,
+    count,
+    faces,
+    rest,
+    original,
+  )
+  const { missingBoundaryFaces, extraSurfaceFaces } = compareBoundaryFaces(
+    faces,
+    drawnFaces,
+  )
+  const invalidCapPairs = countInvalidCapPairs(caps)
+  const {
+    min,
+    max,
+    pinnedMovement,
+    floorPenetration,
+    mass,
+    dyeMismatch,
+    freeRms,
+    freeCount,
+  } = measureParticles(p, rest, original)
   return {
     finite: [...p, ...rest, ...normals, ...velocities].every(Number.isFinite),
     vertexCount: count,

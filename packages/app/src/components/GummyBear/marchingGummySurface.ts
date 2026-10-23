@@ -17,13 +17,8 @@ export type MarchingGummyInput = {
   maxVertices?: number
 }
 
-export function createMarchingGummySurface(
-  root: TgpuRoot,
-  device: GPUDevice,
-  input: MarchingGummyInput,
-) {
-  if (root.device !== device)
-    throw new Error('Marching-cubes root and device must match')
+/** Validate surface capacity and dye bounds before allocating any GPU resources. */
+function prepareMarchingDomain(input: MarchingGummyInput) {
   const { spacing, particleCount } = input
   if (
     !Number.isFinite(spacing) ||
@@ -78,6 +73,41 @@ export function createMarchingGummySurface(
   const dyeRange = dyeMax.map((value, axis) =>
     Math.max(0.000001, value - dyeMin[axis]!),
   )
+  return {
+    particleCount,
+    radius,
+    volumeWeight,
+    cellSize,
+    isoLevel,
+    gridBounds,
+    grid,
+    bytes,
+    dye,
+    dyeMin,
+    dyeRange,
+  }
+}
+
+export function createMarchingGummySurface(
+  root: TgpuRoot,
+  device: GPUDevice,
+  input: MarchingGummyInput,
+) {
+  if (root.device !== device)
+    throw new Error('Marching-cubes root and device must match')
+  const {
+    particleCount,
+    radius,
+    volumeWeight,
+    cellSize,
+    isoLevel,
+    gridBounds,
+    grid,
+    bytes,
+    dye,
+    dyeMin,
+    dyeRange,
+  } = prepareMarchingDomain(input)
   const owned: { destroy(): void }[] = []
   const own = <T extends { destroy(): void }>(resource: T): T => {
     owned.push(resource)

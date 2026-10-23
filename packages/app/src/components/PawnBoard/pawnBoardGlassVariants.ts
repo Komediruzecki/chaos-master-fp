@@ -1,7 +1,7 @@
 /** Bounded hollow-shell meshes, batched instances and shared optical passes for art studies. */
 import { fragmentLayout, GLASS_FRAGMENT_DURATION, instanceLayout, meshLayout, } from './pawnBoardShaders'
 import type { TgpuRenderPass, TgpuRenderPipeline, TgpuRoot } from 'typegpu'
-import type { BoardPawnInstance } from './pawnBoardRenderer'
+import type { BoardPawnInstance } from './pawnBoardTypes'
 
 const SHELL_CAPACITY = 3
 const INSTANCE_CAPACITY = 32

@@ -7,6 +7,92 @@ import { analyzeRuntimeJelly } from './gummy-jelly-topology-checks.mjs'
 import { checkGummyRoundedSurface } from './gummy-rounded-surface-checks.mjs'
 import { gummyArmPoint } from './gummy-study-input-checks.mjs'
 
+async function checkProductionManualTearing({
+  page,
+  canvas,
+  reset,
+  freeze,
+  button,
+  screenshot,
+  result,
+}) {
+  assert.equal(await page.evaluate(() => window.__gummyStudy), undefined)
+  // Production has no diagnostic hook. Project the known arm location through
+  // the documented default studio camera, then use actual pointer input.
+  await reset()
+  const box = await canvas.boundingBox()
+  const phi = 1.27,
+    theta = 0.14
+  const p = [0.65, -0.07, 0.13]
+  const dot = (a, b) => a.reduce((sum, value, i) => sum + value * b[i], 0)
+  const depth =
+    5.1 -
+    dot(p, [
+      Math.sin(phi) * Math.sin(theta),
+      Math.cos(phi),
+      Math.sin(phi) * Math.cos(theta),
+    ])
+  const scale = box.height / (2 * Math.tan(Math.PI / 8) * depth)
+  const x =
+    box.x +
+    box.width / 2 +
+    scale * dot(p, [Math.cos(theta), 0, -Math.sin(theta)])
+  const y =
+    box.y +
+    box.height / 2 -
+    scale *
+      dot(p, [
+        -Math.cos(phi) * Math.sin(theta),
+        Math.sin(phi),
+        -Math.cos(phi) * Math.cos(theta),
+      ])
+  await page.mouse.move(x, y)
+  await page.mouse.down()
+  await page.mouse.move(x + 45, y - 9, { steps: 12 })
+  await page.waitForFunction(
+    () =>
+      Number(
+        document.querySelector('[data-testid="gummy-bear-canvas"]').dataset
+          .topologyRevision,
+      ) > 0,
+  )
+  await page.mouse.up()
+  await freeze()
+  // Pausing stops new ticks; let an already queued fracture update finish.
+  await page.waitForFunction(
+    () =>
+      document.querySelector('[data-testid="gummy-bear-canvas"]').dataset
+        .mutationPending === 'false',
+  )
+  result.productionTopologyRevision = await canvas.getAttribute(
+    'data-topology-revision',
+  )
+  result.productionSurfaces = []
+  for (const surface of ['original', 'rounded']) {
+    await button(surface === 'rounded' ? 'Rounded' : 'Original').click()
+    await page.waitForFunction(
+      (expected) =>
+        document.querySelector('[data-testid="gummy-bear-canvas"]').dataset
+          .surface === expected,
+      surface,
+    )
+    assert.equal(
+      await canvas.getAttribute('data-topology-revision'),
+      result.productionTopologyRevision,
+    )
+    assert.equal(
+      await button('Resume').count(),
+      1,
+      'Surface comparison keeps production paused',
+    )
+    result.productionSurfaces.push({
+      surface,
+      revision: result.productionTopologyRevision,
+    })
+  }
+  await screenshot('production-manual')
+}
+
 export async function checkGummyManualTearing(
   page,
   context,
@@ -206,81 +292,15 @@ export async function checkGummyManualTearing(
     'Continuous tear is manual-first',
   )
   if (production) {
-    assert.equal(await page.evaluate(() => window.__gummyStudy), undefined)
-    // Production has no diagnostic hook. Project the known arm location through
-    // the documented default studio camera, then use actual pointer input.
-    await reset()
-    const box = await canvas.boundingBox()
-    const phi = 1.27,
-      theta = 0.14
-    const p = [0.65, -0.07, 0.13]
-    const dot = (a, b) => a.reduce((sum, value, i) => sum + value * b[i], 0)
-    const depth =
-      5.1 -
-      dot(p, [
-        Math.sin(phi) * Math.sin(theta),
-        Math.cos(phi),
-        Math.sin(phi) * Math.cos(theta),
-      ])
-    const scale = box.height / (2 * Math.tan(Math.PI / 8) * depth)
-    const x =
-      box.x +
-      box.width / 2 +
-      scale * dot(p, [Math.cos(theta), 0, -Math.sin(theta)])
-    const y =
-      box.y +
-      box.height / 2 -
-      scale *
-        dot(p, [
-          -Math.cos(phi) * Math.sin(theta),
-          Math.sin(phi),
-          -Math.cos(phi) * Math.cos(theta),
-        ])
-    await page.mouse.move(x, y)
-    await page.mouse.down()
-    await page.mouse.move(x + 45, y - 9, { steps: 12 })
-    await page.waitForFunction(
-      () =>
-        Number(
-          document.querySelector('[data-testid="gummy-bear-canvas"]').dataset
-            .topologyRevision,
-        ) > 0,
-    )
-    await page.mouse.up()
-    await freeze()
-    // Pausing stops new ticks; let an already queued fracture update finish.
-    await page.waitForFunction(
-      () =>
-        document.querySelector('[data-testid="gummy-bear-canvas"]').dataset
-          .mutationPending === 'false',
-    )
-    result.productionTopologyRevision = await canvas.getAttribute(
-      'data-topology-revision',
-    )
-    result.productionSurfaces = []
-    for (const surface of ['original', 'rounded']) {
-      await button(surface === 'rounded' ? 'Rounded' : 'Original').click()
-      await page.waitForFunction(
-        (expected) =>
-          document.querySelector('[data-testid="gummy-bear-canvas"]').dataset
-            .surface === expected,
-        surface,
-      )
-      assert.equal(
-        await canvas.getAttribute('data-topology-revision'),
-        result.productionTopologyRevision,
-      )
-      assert.equal(
-        await button('Resume').count(),
-        1,
-        'Surface comparison keeps production paused',
-      )
-      result.productionSurfaces.push({
-        surface,
-        revision: result.productionTopologyRevision,
-      })
-    }
-    await screenshot('production-manual')
+    await checkProductionManualTearing({
+      page,
+      canvas,
+      reset,
+      freeze,
+      button,
+      screenshot,
+      result,
+    })
     return result
   }
   await reset()

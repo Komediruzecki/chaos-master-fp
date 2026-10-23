@@ -17,7 +17,7 @@ import type { ChessMoveReceipt } from '@chaos-master/core/chess/chessGame'
 import type { ParentProps } from 'solid-js'
 import type { GummyOrbit } from '../GummyBear/gummyStudyMath'
 import type { GummyBoardRestMeshPool } from './gummyBoardRestMeshPool'
-import type { GummyMatchSceneProps } from './GummyMatchScene'
+import type { GummyMatchSceneProps } from './gummyMatchContracts'
 
 type GummyMatchBoardSceneProps = GummyMatchSceneProps & {
   restMeshPool: GummyBoardRestMeshPool

@@ -5,14 +5,70 @@ import { gummyRoundingWeight } from './gummyRoundedSurface'
 import { prepareRuntimeGummyMetadata } from './gummyRuntimeSurface'
 import type { GummyMesh } from '@/simulation/gummy/gummyMesh'
 
+type GummySurfaceMesh = Pick<
+  GummyMesh,
+  'positions' | 'surface' | 'restNormals' | 'interfaces' | 'runtimeFracture'
+> &
+  Partial<Pick<GummyMesh, 'tetrahedra'>>
+
 /** Legacy rest welding rejects separated copies; runtime cracks use exact shared-node identity. */
-export function prepareGummySurface(
-  mesh: Pick<
-    GummyMesh,
-    'positions' | 'surface' | 'restNormals' | 'interfaces' | 'runtimeFracture'
-  > &
-    Partial<Pick<GummyMesh, 'tetrahedra'>>,
-) {
+export function prepareGummySurface(mesh: GummySurfaceMesh) {
+  const count = validateSurface(mesh)
+  const { keys, coincident, local, cutEdges, edgeKey } = surfaceAdjacency(
+    mesh,
+    count,
+  )
+  // First N ranges retain legacy rest welding or runtime shared-node identity.
+  // Second N use exact node IDs for exposed boundaries, never welding tear copies.
+  const runtime = mesh.runtimeFracture
+    ? prepareRuntimeGummyMetadata(
+        mesh.positions,
+        mesh.tetrahedra ?? new Uint32Array(),
+        mesh.surface,
+      )
+    : undefined
+  const ranges = new Uint32Array(count * (runtime ? 8 : 4))
+  const pairs: number[] = []
+  for (let id = 0; id < count; id++) {
+    const adjacent = coincident.get(keys[id]!)!
+    ranges[id * 2] = pairs.length / 2
+    ranges[id * 2 + 1] = adjacent.length
+    for (const pair of adjacent) pairs.push(pair.face, pair.node)
+  }
+  if (runtime)
+    for (let id = 0; id < count; id++) {
+      const neighbors = runtime.rounding[id]!
+      ranges[(count * 3 + id) * 2] = pairs.length / 2
+      ranges[(count * 3 + id) * 2 + 1] = neighbors.length
+      const weight = Math.round(
+        gummyRoundingWeight(neighbors.length) * 16777216,
+      )
+      for (const neighbor of neighbors) pairs.push(neighbor, weight)
+    }
+  if (runtime)
+    for (let id = 0; id < count; id++) {
+      const tets = runtime.incident[id]!
+      ranges[(count * 2 + id) * 2] = pairs.length / 2
+      ranges[(count * 2 + id) * 2 + 1] = tets.length
+      for (const tet of tets) pairs.push(...tet)
+    }
+  for (let id = 0; id < count; id++) {
+    const adjacent = local[id]!
+    ranges[(count + id) * 2] = pairs.length / 2
+    ranges[(count + id) * 2 + 1] = adjacent.length
+    for (const pair of adjacent) pairs.push(pair.face, pair.node)
+  }
+  // Storage bindings must be non-empty even for an entirely interior node set.
+  const adjacent = new Uint32Array(pairs.length ? pairs : [0, 0])
+  return {
+    ranges,
+    adjacent,
+    metadata: runtime?.metadata ?? new Uint32Array(mesh.surface.length),
+    ...preparePatches(mesh.surface, cutEdges, edgeKey, runtime?.metadata),
+  }
+}
+
+function validateSurface(mesh: GummySurfaceMesh) {
   const count = mesh.positions.length / 4
   if (
     !count ||
@@ -23,6 +79,10 @@ export function prepareGummySurface(
     mesh.restNormals.length !== mesh.positions.length
   )
     throw new Error('Invalid gummy surface buffer lengths')
+  return count
+}
+
+function surfaceAdjacency(mesh: GummySurfaceMesh, count: number) {
   const keys: string[] = []
   const coincident = new Map<string, { face: number; node: number }[]>()
   const local: { face: number; node: number }[][] = Array.from(
@@ -78,54 +138,7 @@ export function prepareGummySurface(
       coincident.get(keys[node]!)!.push({ face, node })
     }
   }
-  // First N ranges retain legacy rest welding or runtime shared-node identity.
-  // Second N use exact node IDs for exposed boundaries, never welding tear copies.
-  const runtime = mesh.runtimeFracture
-    ? prepareRuntimeGummyMetadata(
-        mesh.positions,
-        mesh.tetrahedra ?? new Uint32Array(),
-        mesh.surface,
-      )
-    : undefined
-  const ranges = new Uint32Array(count * (runtime ? 8 : 4))
-  const pairs: number[] = []
-  for (let id = 0; id < count; id++) {
-    const adjacent = coincident.get(keys[id]!)!
-    ranges[id * 2] = pairs.length / 2
-    ranges[id * 2 + 1] = adjacent.length
-    for (const pair of adjacent) pairs.push(pair.face, pair.node)
-  }
-  if (runtime)
-    for (let id = 0; id < count; id++) {
-      const neighbors = runtime.rounding[id]!
-      ranges[(count * 3 + id) * 2] = pairs.length / 2
-      ranges[(count * 3 + id) * 2 + 1] = neighbors.length
-      const weight = Math.round(
-        gummyRoundingWeight(neighbors.length) * 16777216,
-      )
-      for (const neighbor of neighbors) pairs.push(neighbor, weight)
-    }
-  if (runtime)
-    for (let id = 0; id < count; id++) {
-      const tets = runtime.incident[id]!
-      ranges[(count * 2 + id) * 2] = pairs.length / 2
-      ranges[(count * 2 + id) * 2 + 1] = tets.length
-      for (const tet of tets) pairs.push(...tet)
-    }
-  for (let id = 0; id < count; id++) {
-    const adjacent = local[id]!
-    ranges[(count + id) * 2] = pairs.length / 2
-    ranges[(count + id) * 2 + 1] = adjacent.length
-    for (const pair of adjacent) pairs.push(pair.face, pair.node)
-  }
-  // Storage bindings must be non-empty even for an entirely interior node set.
-  const adjacent = new Uint32Array(pairs.length ? pairs : [0, 0])
-  return {
-    ranges,
-    adjacent,
-    metadata: runtime?.metadata ?? new Uint32Array(mesh.surface.length),
-    ...preparePatches(mesh.surface, cutEdges, edgeKey, runtime?.metadata),
-  }
+  return { keys, coincident, local, cutEdges, edgeKey }
 }
 
 function preparePatches(

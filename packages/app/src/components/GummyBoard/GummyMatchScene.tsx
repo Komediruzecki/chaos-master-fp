@@ -6,29 +6,10 @@ import { GummyMatchBoardScene } from './GummyMatchBoardScene'
 import { GummyMatchCapture } from './GummyMatchCapture'
 import { gummyMatchCaptureShot } from './gummyMatchPresentation'
 import styles from './GummyMatchScene.module.css'
-import type { ChessMoveReceipt, ChessPosition, } from '@chaos-master/core/chess/chessGame'
-import type { GummyBoardQuality } from './gummyBoardQuality'
-import type { GummyBoardTheme } from './gummyBoardThemes'
-import type { GummyPresetSettings } from '@/pages/GummyBear/gummyPresets'
-import type { GummyMatchCapturePresentation } from '@/pages/GummyBoard/gummyMatchCaptures'
-import type { GummyAuthoredPawn } from '@/simulation/gummy/gummyAuthoredPawn'
+import type { ChessMoveReceipt } from '@chaos-master/core/chess/chessGame'
+import type { GummyMatchSceneProps } from './gummyMatchContracts'
 
-export type GummyMatchSceneProps = {
-  position: ChessPosition
-  receipt?: ChessMoveReceipt
-  presentation?: GummyMatchCapturePresentation
-  selectedSquare?: string
-  legalSquares: readonly string[]
-  settings: GummyPresetSettings
-  quality: GummyBoardQuality
-  scale: number
-  theme: GummyBoardTheme
-  authoredPawn?: GummyAuthoredPawn
-  onSquare: (square: string) => void
-  onComplete: (receipt: ChessMoveReceipt) => void
-  onError: (message: string) => void
-  onReady?: (ready: boolean) => void
-}
+export type { GummyMatchSceneProps } from './gummyMatchContracts'
 
 export function GummyMatchScene(props: GummyMatchSceneProps) {
   // Solid mergeProps treats undefined as fallback, so omit animated fields from the shared spread.

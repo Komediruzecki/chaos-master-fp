@@ -1,7 +1,7 @@
 /** Isochoric finite-strain creep: material yields before tearing while original mass, volume and dye stay fixed. */
 import { prepareGummyJellyTets } from './gummyJelly'
 import { writeGummyDeformation, writeGummyRightTensor, } from './gummyMaterialMath'
-import type { GummySolverMesh } from './gummySolver'
+import type { GummySolverMesh } from './gummySolverContracts'
 
 /** Effective inverse rest frames, in stable tetrahedron order; rows are tightly packed. */
 export type JellyPlasticState = {
@@ -169,20 +169,7 @@ export function createGummyJellyPlasticity(
     state = copyJellyPlasticState(saved)
   }
 
-  function update(
-    positions: Float32Array,
-    elapsedSeconds: number,
-    options: { softness: number; fragility?: number },
-  ) {
-    if (
-      positions.length !== mesh.positions.length ||
-      positions.some((x) => !Number.isFinite(x)) ||
-      !Number.isFinite(elapsedSeconds) ||
-      elapsedSeconds < 0
-    )
-      throw new Error('Invalid jelly plasticity update')
-    const material = gummyJellyPlasticMaterial(options.softness)
-    const plasticIncrement = new Float32Array(count)
+  function measureElasticPatches(positions: Float32Array) {
     // A volume-weighted patch uses the same deviatoric Hencky strain as the
     // local return. A Frobenius energy would amplify a strongly distorted small
     // neighbour far more than the logarithmic material law and falsely yield
@@ -210,6 +197,23 @@ export function createGummyJellyPlasticity(
       for (let corner = 0; corner < 4; corner++)
         nodalEnergy[mesh.tetrahedra[tet * 4 + corner]!]! += energy
     }
+  }
+
+  function update(
+    positions: Float32Array,
+    elapsedSeconds: number,
+    options: { softness: number; fragility?: number },
+  ) {
+    if (
+      positions.length !== mesh.positions.length ||
+      positions.some((x) => !Number.isFinite(x)) ||
+      !Number.isFinite(elapsedSeconds) ||
+      elapsedSeconds < 0
+    )
+      throw new Error('Invalid jelly plasticity update')
+    const material = gummyJellyPlasticMaterial(options.softness)
+    const plasticIncrement = new Float32Array(count)
+    measureElasticPatches(positions)
     let changedTets = 0,
       maxPlasticStrain = 0
     for (let tet = 0; tet < count; tet++) {

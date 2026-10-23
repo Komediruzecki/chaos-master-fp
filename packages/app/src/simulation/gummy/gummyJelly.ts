@@ -1,5 +1,5 @@
 /** Rest-state continuum geometry and study-unit elasticity for the unsegmented jelly comparison. */
-import type { GummySolverMesh } from './gummySolver'
+import type { GummySolverMesh } from './gummySolverContracts'
 
 export const GUMMY_JELLY_SOLVER_ITERATIONS = 24
 

@@ -15,6 +15,20 @@ export type GummySolverDynamicState = {
   jellyPlasticState?: JellyPlasticState
 }
 
+function validSnapshotClock(snapshot: GummySolverDynamicState) {
+  return !(
+    !Number.isFinite(snapshot.simulationTime) ||
+    snapshot.simulationTime < 0 ||
+    !Number.isFinite(snapshot.accumulator) ||
+    snapshot.accumulator < -1e-8 ||
+    snapshot.accumulator > 0.05 + 1e-8 ||
+    typeof snapshot.gripKey !== 'string' ||
+    typeof snapshot.gripping !== 'boolean' ||
+    (snapshot.previousPressHeight !== undefined &&
+      !Number.isFinite(snapshot.previousPressHeight))
+  )
+}
+
 /** Coincident clones inherit velocity and grip history; partitioned masses preserve parent inertia. */
 export function remapGummyDynamicState(
   snapshot: GummySolverDynamicState,
@@ -42,15 +56,7 @@ export function remapGummyDynamicState(
       (value, index) =>
         !Number.isFinite(value) || (index % 4 === 3 && value < 0),
     ) ||
-    !Number.isFinite(snapshot.simulationTime) ||
-    snapshot.simulationTime < 0 ||
-    !Number.isFinite(snapshot.accumulator) ||
-    snapshot.accumulator < -1e-8 ||
-    snapshot.accumulator > 0.05 + 1e-8 ||
-    typeof snapshot.gripKey !== 'string' ||
-    typeof snapshot.gripping !== 'boolean' ||
-    (snapshot.previousPressHeight !== undefined &&
-      !Number.isFinite(snapshot.previousPressHeight))
+    !validSnapshotClock(snapshot)
   )
     throw new Error('Invalid gummy live-state snapshot')
   const sources =

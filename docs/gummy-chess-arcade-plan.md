@@ -649,11 +649,24 @@ the enclosure; physical iOS acceptance remains outstanding. Some initial probe
 assertions assumed a single card column or an on-screen canvas while scrolling;
 corrected layout and UI probes completed without browser or GPU errors.
 
-The cumulative feature branch is still a draft for merge: its code-health ratchet
-has 86 files above 500 lines and 38 above 800, with six cap failures, and its
-architecture check reports 14 import cycles. Both issues were verified against
-revision `22380940` before this playable integration; no checks were relaxed.
-The 31 stale documentation citations found during PR preparation were repaired.
+The cumulative branch entered review with 86 files above 500 lines, 38 above
+800, six cap failures and 14 import cycles. The October 23 cleanup separates
+scene ownership, input, resource creation, material packing, shader passes and
+simulation kernels into focused modules. Shared types and GPU layouts now live
+in leaf contracts, while existing public imports remain available. The size
+counts are back to 69 and 33, every file cap passes, and the architecture audit
+reports no dependency violations. No baseline or limit was raised; the Flam3
+cap was tightened to its smaller implementation.
+
+The shared input controller has regression coverage for release during a GPU
+pick, stale completion after a newer gesture, touch navigation cancellation and
+disposal. Native AMD verification passed all three pure/glass capture flows,
+Arcade integration, idle rendering and buffer reuse. Marching-cubes and particle
+jelly interaction passed, including finite rest/drag/release surfaces and a real
+pointer drag. A bishop-versus-rook Cinema capture rendered before, during and
+after contact without browser or GPU errors. These checks do not replace
+physical iOS/tablet acceptance. The PR stays open for that review before merge.
+The stale documentation citations found during preparation were repaired.
 
 Next: review all three sets in pure/glass captures on the physical tablet, choose
 the strongest silhouettes, then add a native recording adapter and profile shell

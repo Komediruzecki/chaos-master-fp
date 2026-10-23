@@ -3,7 +3,7 @@ import { toAffine3D } from '../affine3D'
 import { composeAffine, IDENTITY_AFFINE } from '../clash/placement'
 import type { Affine3 } from '../clash/placement'
 import type { FlameDescriptor } from '../schema/flameSchema'
-import type { ChessCandidate } from './chessCandidate'
+import type { ChessCandidate } from './chessCandidateTypes'
 
 export const CHESS_CANDIDATE_JSON_LIMIT = 512 * 1024
 

@@ -128,7 +128,7 @@ file instead of rediscovering the architecture every session.
 | `FloatingActions` | [FloatingActions.tsx](../../packages/app/src/components/FloatingActions/FloatingActions.tsx) | _(no header comment)_ |
 | `FractalCollection` | [FractalCollectionStage.tsx](../../packages/app/src/components/FractalCollection/FractalCollectionStage.tsx) | A single native WebGPU scene with event-driven rendering for complete fractal collections. |
 | `GummyBear` | [GummyBearScene.tsx](../../packages/app/src/components/GummyBear/GummyBearScene.tsx) | Owned gummy simulation, bounded fixed steps, and current-position pointer grips. |
-| `GummyBoard` | [GummyBoardScene.tsx](../../packages/app/src/components/GummyBoard/GummyBoardScene.tsx) | A repeatable gummy capture with two-body contact and a preserved driven-rook comparison. |
+| `GummyBoard` | [gummyBoardShaders.ts](../../packages/app/src/components/GummyBoard/gummyBoardShaders.ts) | Instanced candy optics and an opaque chess stage sharing one front/exit lighting pipeline. |
 | `HelpModal` | [HelpModal.tsx](../../packages/app/src/components/HelpModal/HelpModal.tsx) | _(no header comment)_ |
 | `Home` | [HomeFlame.tsx](../../packages/app/src/components/Home/HomeFlame.tsx) | _(no header comment)_ |
 | `ImportVariationsModal` | [ImportVariationsModal.tsx](../../packages/app/src/components/ImportVariationsModal/ImportVariationsModal.tsx) | _(no header comment)_ |
@@ -409,7 +409,6 @@ instead. `wc -l` gives the current size.
 | [packages/app/src/flame/variations/utils.ts](../../packages/app/src/flame/variations/utils.ts) |
 | [packages/app/src/MainWorkspace.tsx](../../packages/app/src/MainWorkspace.tsx) |
 | [packages/app/src/pages/Benchmarks/BenchmarksPage.tsx](../../packages/app/src/pages/Benchmarks/BenchmarksPage.tsx) |
-| [packages/app/src/pages/GummyBear/GummyBearPage.tsx](../../packages/app/src/pages/GummyBear/GummyBearPage.tsx) |
 | [packages/app/src/recorder/recorder.ts](../../packages/app/src/recorder/recorder.ts) |
 | [packages/app/src/recorder/replayVideo.ts](../../packages/app/src/recorder/replayVideo.ts) |
 | [packages/app/src/utils/timeline.ts](../../packages/app/src/utils/timeline.ts) |

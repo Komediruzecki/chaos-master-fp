@@ -5,15 +5,12 @@ import { gummyRoyalChessField } from './gummyRoyalChessMoulds'
 import { gummySculptedChessField } from './gummySculptedChessMoulds'
 import type { GummyAuthoredPawn } from './gummyAuthoredPawn'
 import type { Point3, ProfilePoint } from './gummyChessFields'
+import type { GummyChessArtStyle, GummyChessMould, } from './gummyChessMouldTypes'
 
-export type GummyChessMould =
-  | 'pawn'
-  | 'rook'
-  | 'knight'
-  | 'bishop'
-  | 'queen'
-  | 'king'
-export type GummyChessArtStyle = 'classic' | 'sculpted'
+export type {
+  GummyChessMould,
+  GummyChessArtStyle,
+} from './gummyChessMouldTypes'
 
 export const GUMMY_CHESS_MOULDS = {
   pawn: {

@@ -2,7 +2,7 @@
 import { createPawnBoardCloud } from './pawnBoardCloud'
 import { instanceLayout } from './pawnBoardShaders'
 import type { TgpuRenderPass, TgpuRenderPipeline, TgpuRoot } from 'typegpu'
-import type { BoardPawnInstance } from './pawnBoardRenderer'
+import type { BoardPawnInstance } from './pawnBoardTypes'
 import type { PawnSide } from '@/flame/chess/pawnFlame'
 
 const INSTANCE_CAPACITY = 32
