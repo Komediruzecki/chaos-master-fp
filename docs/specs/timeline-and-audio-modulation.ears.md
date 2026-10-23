@@ -373,7 +373,7 @@ consumer that overlays animated values onto the rendered flame shall gate on tha
 accessor rather than on `isPlaying()` alone — otherwise a frame reached by
 clicking or stepping renders its camera but not its transforms.
 
-_(`utils/timeline.ts:774-775` (`isDrivingView`); consumed at `Flam3.tsx:567-570` (`isActive`).)_
+_(`utils/timeline.ts:774-775` (`isDrivingView`); consumed at `Flam3.tsx:577-580` (`isActive`).)_
 
 ### REQ-TA-025 — A seeked frame outlives the gesture that reached it
 
