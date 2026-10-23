@@ -44,14 +44,16 @@ describe('prescribed rook collider', () => {
       ).toThrow('yaw')
   })
   it('rejects separated material cheaply without discarding any sampled exact contact', () => {
-    for (const radius of [0.03, 0.04, 0.06])
-      for (let y = -0.18; y < 2.8; y += 0.11)
-        for (let x = -1; x <= 1; x += 0.09)
-          for (const z of [-0.84, -0.48, 0, 0.39, 0.83]) {
-            const point = d.vec3f(x, y, z)
-            if (gummyRookContact(point).w <= radius)
+    for (let y = -0.18; y < 2.8; y += 0.11)
+      for (let x = -1; x <= 1; x += 0.09)
+        for (const z of [-0.84, -0.48, 0, 0.39, 0.83]) {
+          const point = d.vec3f(x, y, z)
+          // Exact geometry is independent of radius; retain every broad-phase case.
+          const distance = gummyRookContact(point).w
+          for (const radius of [0.03, 0.04, 0.06])
+            if (distance <= radius)
               expect(gummyRookMayContact(point, radius)).toBe(true)
-          }
+        }
     expect(gummyRookMayContact(d.vec3f(3.2, 1, 0), 0.06)).toBe(false)
     expect(gummyRookMayContact(d.vec3f(0, -0.5, 0), 0.06)).toBe(false)
     expect(gummyRookMayContact(d.vec3f(0, 2.8, 0), 0.06)).toBe(false)

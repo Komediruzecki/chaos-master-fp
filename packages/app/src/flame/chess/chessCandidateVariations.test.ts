@@ -79,12 +79,12 @@ describe('owned chess candidate custom rendering', () => {
     if (!created.success) throw new Error('Could not create test variation')
     const candidate = createChessCandidate(flameWith([created.def.id]))
     candidate.source.flame.transforms[ROOT]!.variations[V1] = {
-      type: 'custom_candidate_invalid',
+      type: 'custom_00000000_0000_4000_8000_000000000001',
       weight: 1,
       visible: true,
     }
     candidate.source.customVariations.push({
-      id: 'custom_candidate_invalid',
+      id: 'custom_00000000_0000_4000_8000_000000000001',
       name: 'Invalid code',
       wgsl: 'return textureSample(pos);',
       createdAt: 0,
