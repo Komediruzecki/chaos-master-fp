@@ -4,7 +4,7 @@ import { downloadBlob } from '@/utils/blob'
 import { startLiveCanvasRecording, supportsLiveCanvasRecording, } from '@/utils/liveCanvasRecorder'
 import type { LiveCanvasCaptureSettings, LiveCanvasRecordingQuality, LiveCanvasRecordingResult, } from '@/utils/liveCanvasRecorder'
 
-export function useGummyRecording() {
+export function useGummyRecording(filenamePrefix = 'gummy') {
   const [state, setState] = createSignal<
     'idle' | 'recording' | 'stopping' | 'ready' | 'error'
   >('idle')
@@ -57,7 +57,7 @@ export function useGummyRecording() {
           session = undefined
           setClip({
             ...result,
-            filename: `gummy-${timestamp}.${result.extension}`,
+            filename: `${filenamePrefix}-${timestamp}.${result.extension}`,
           })
           setElapsed(result.durationSeconds)
           setState('ready')

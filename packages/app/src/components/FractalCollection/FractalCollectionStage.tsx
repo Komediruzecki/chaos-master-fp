@@ -1,6 +1,6 @@
 /** A single native WebGPU scene with event-driven rendering for complete fractal collections. */
 import { createEffect, createMemo, createSignal, For, on, onCleanup, } from 'solid-js'
-import { buildFractalStudyGlass, getFractalStudyGlassRole, } from '@/flame/chess/fractalStudyGlass'
+import { getFractalStudyGlassRole } from '@/flame/chess/fractalStudyGlass'
 import { AutoCanvas } from '@/lib/AutoCanvas'
 import { useCanvas } from '@/lib/CanvasContext'
 import { useLiveRootContext } from '@/lib/RootContext'
@@ -13,10 +13,12 @@ import type { CollectionCloud } from './collectionCloudWorker'
 import type { CollectionComparisonLabel } from './collectionStageCamera'
 import type { CollectionCamera, CollectionEnclosure, CollectionView, } from './collectionStageLayout'
 import type { ChessCandidateRole } from '@/flame/chess/chessCandidate'
+import type { FractalStudyGlass } from '@/flame/chess/fractalStudyGlass'
 import type { PawnSide } from '@/flame/chess/pawnFlame'
 
 type Props = {
   clouds: CollectionCloud[]
+  shell?: FractalStudyGlass
   collectionId: string
   enclosure: CollectionEnclosure
   view: CollectionView
@@ -174,22 +176,8 @@ function NativeCollection(
             cloud.points,
             cloud.colors,
           )
-        const glassRole = getFractalStudyGlassRole(props.collectionId)
-        const shellClouds = clouds.filter(
-          (cloud) =>
-            cloud.key === `${glassRole}:light` ||
-            cloud.key === `${glassRole}:dark`,
-        )
-        if (glassRole && shellClouds.length) {
-          const points = new Float32Array(
-            shellClouds.reduce((sum, cloud) => sum + cloud.points.length, 0),
-          )
-          let offset = 0
-          for (const cloud of shellClouds) {
-            points.set(cloud.points, offset)
-            offset += cloud.points.length
-          }
-          const shell = buildFractalStudyGlass(props.collectionId, points)
+        const shell = props.shell
+        if (shell) {
           renderer.setVariantGlass(
             props.collectionId,
             shell.vertices,

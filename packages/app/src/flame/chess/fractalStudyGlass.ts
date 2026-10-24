@@ -3,6 +3,7 @@ import type { ChessCandidateRole } from './chessCandidate'
 
 type Vec3 = readonly [number, number, number]
 type Ring = { x: number; y: number; z: number; radius: number }
+export type FractalStudyGlass = { vertices: Float32Array; radius: number }
 
 const RADIAL_SEGMENTS = 48
 const PROFILE_RINGS = 14
@@ -89,13 +90,13 @@ function fittedProfile(
     )
     // A sample is enclosed at BOTH ends of its vertical band. Convexity then
     // encloses it in every interpolated cross-section, including mesh facets.
+    // Both rings share the silhouette centre, so evaluate the support planes
+    // once per sample instead of repeating the 48-edge scan for each end.
+    const radius =
+      ringScale(points[n]! - middleX, points[n + 2]! - middleZ, shape) + padding
     for (const index of [band, band + 1]) {
       const ring = rings[index]!
-      ring.radius = Math.max(
-        ring.radius,
-        ringScale(points[n]! - ring.x, points[n + 2]! - ring.z, shape) +
-          padding,
-      )
+      ring.radius = Math.max(ring.radius, radius)
     }
   }
   // Smooth only outward and locally. Dividing a global amplitude by a narrow
@@ -231,7 +232,7 @@ function surface(
 export function buildFractalStudyGlass(
   collectionId: string,
   points: Float32Array,
-): { vertices: Float32Array; radius: number } {
+): FractalStudyGlass {
   const role = getFractalStudyGlassRole(collectionId)
   if (role === undefined) throw new RangeError('Unknown glass study collection')
   const { min, max } = boundsOf(points)

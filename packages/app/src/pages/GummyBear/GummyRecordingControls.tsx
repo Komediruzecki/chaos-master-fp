@@ -14,6 +14,7 @@ export function GummyRecordingControls(props: {
   recording: GummyRecording
   ready: boolean
   onStart: () => void
+  recordingMessage?: string
 }) {
   const qualityId = createUniqueId()
   return (
@@ -90,7 +91,8 @@ export function GummyRecordingControls(props: {
           (!props.recording.supported()
             ? 'Canvas recording is unavailable in this browser.'
             : props.recording.state() === 'recording'
-              ? 'Recording the canvas. Play with the gummy and move the camera.'
+              ? (props.recordingMessage ??
+                'Recording the canvas. Play with the gummy and move the camera.')
               : props.recording.state() === 'stopping'
                 ? 'Finishing your video…'
                 : props.recording.state() === 'ready'

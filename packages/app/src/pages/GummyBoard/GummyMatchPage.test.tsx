@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { popBack, pushBackHandler } from '@/lib/backStack'
 import { GummyMatchPage } from './GummyMatchPage'
 import { GUMMY_MATCH_CINEMA_KEY, GUMMY_MATCH_SESSION_KEY, loadGummyMatchSession, } from './gummyMatchSession'
+import { NATIVE_CINEMA_KEY, readNativeCinemaRecipe, } from './nativeCinemaSession'
 import type { NativeFractalMatchSceneProps } from '@/components/FractalCollection/NativeFractalMatchScene'
 import type { GummyMatchSceneProps } from '@/components/GummyBoard/GummyMatchScene'
 
@@ -79,6 +80,67 @@ function importPgn(text: string) {
 }
 
 describe('GummyMatchPage', () => {
+  it('opens the current native comparison in Cinema without rewriting the original capture look', () => {
+    render(() => <GummyMatchPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'Fractals' }))
+    for (const [from, to] of [
+      ['e2', 'e4'],
+      ['d7', 'd5'],
+      ['e4', 'd5'],
+    ]) {
+      stubs.nativeScene!.onSquare(from!)
+      stubs.nativeScene!.onSquare(to!)
+      skip()
+    }
+    const savedCapture = loadGummyMatchSession().session?.captures?.[0]
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Tidal Relics collection' }),
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Glass study' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Game & moves' }))
+    const link = screen.getByRole<HTMLAnchorElement>('link', {
+      name: 'Open in Cinema',
+    })
+    expect(link.getAttribute('href')).toBe(
+      '/gummy?view=cinema&renderer=native&from=match',
+    )
+    expect(link.getAttribute('aria-disabled')).toBe('false')
+    fireEvent.click(link)
+    expect(readNativeCinemaRecipe().recipe).toMatchObject({
+      from: 'e4',
+      to: 'd5',
+      nativeCollection: { id: 'tidal-relics', enclosure: 'glass' },
+    })
+    expect(loadGummyMatchSession().session?.captures?.[0]).toEqual(savedCapture)
+    expect(sessionStorage.getItem(GUMMY_MATCH_CINEMA_KEY)).toBeNull()
+    fireEvent.click(screen.getByRole('tab', { name: 'Pieces & board' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Gummy' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Game & moves' }))
+    expect(
+      screen.getByText(/This capture was played with fractals/),
+    ).toBeTruthy()
+    expect(fireEvent.click(link)).toBe(false)
+  })
+
+  it('guards native Cinema navigation when match persistence fails', () => {
+    render(() => <GummyMatchPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'Fractals' }))
+    importPgn('1. e4 d5 2. exd5 *')
+    fireEvent.click(screen.getByRole('button', { name: 'Latest position' }))
+    const original = sessionStorage.setItem.bind(sessionStorage)
+    vi.spyOn(sessionStorage, 'setItem').mockImplementation(
+      (key: string, value: string) => {
+        if (key === GUMMY_MATCH_SESSION_KEY) throw new Error('Match quota')
+        original(key, value)
+      },
+    )
+    expect(
+      fireEvent.click(screen.getByRole('link', { name: 'Open in Cinema' })),
+    ).toBe(false)
+    expect(screen.getByText(/The match could not be saved/)).toBeTruthy()
+    expect(sessionStorage.getItem(NATIVE_CINEMA_KEY)).toBeNull()
+  })
+
   it('keeps a failed native renderer recoverable when changing collection', () => {
     render(() => <GummyMatchPage />)
     fireEvent.click(screen.getByRole('button', { name: 'Fractals' }))

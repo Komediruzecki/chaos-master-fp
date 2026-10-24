@@ -6,6 +6,8 @@ import { Copy, Film } from '@/icons'
 import { GummyMatchAppearanceControls } from './GummyMatchAppearanceControls'
 import styles from './GummyMatchPage.module.css'
 import { createGummyMatchCinemaRecipe, gummyMatchCinemaReason, saveGummyMatchCinemaRecipe, } from './gummyMatchSession'
+import { createNativeCinemaRecipe, nativeCinemaReason, } from './nativeCinemaRecipe'
+import { saveNativeCinemaRecipe } from './nativeCinemaSession'
 import type { useGummyMatch } from './useGummyMatch'
 
 export function GummyMatchSidebar(props: {
@@ -24,11 +26,19 @@ export function GummyMatchSidebar(props: {
   let pgnInput: HTMLTextAreaElement | undefined
   let railScroll: HTMLDivElement | undefined
   let disposed = false
-  const cinemaReason = createMemo(() =>
-    props.match.appearance().nativeCollection ||
-    props.match.currentPresentation()?.appearance.nativeCollection
-      ? 'Native fractal captures play on this board. Cinema export currently supports gummy pieces.'
-      : gummyMatchCinemaReason(props.match.currentMove()),
+  const nativeCollection = createMemo(
+    () => props.match.appearance().nativeCollection,
+  )
+  const cinemaReason = createMemo(() => {
+    if (nativeCollection()) return nativeCinemaReason(props.match.currentMove())
+    if (props.match.currentPresentation()?.appearance.nativeCollection)
+      return 'This capture was played with fractals. Choose a fractal collection to open it in Cinema.'
+    return gummyMatchCinemaReason(props.match.currentMove())
+  })
+  const cinemaHref = createMemo(() =>
+    nativeCollection()
+      ? '/gummy?view=cinema&renderer=native&from=match'
+      : '/gummy?view=cinema&from=match',
   )
   const captureMechanic = createMemo(() => {
     const id = props.match.currentPresentation()?.mechanic?.id
@@ -98,11 +108,17 @@ export function GummyMatchSidebar(props: {
       return
     }
     try {
-      const recipe = createGummyMatchCinemaRecipe(
-        props.match.currentMove()!,
-        { ...props.match.appearance() },
-        props.match.currentPresentation(),
-      )
+      const selection = nativeCollection()
+      const recipe = selection
+        ? createNativeCinemaRecipe(props.match.currentMove()!, {
+            nativeCollection: selection,
+            scale: props.match.appearance().scale,
+          })
+        : createGummyMatchCinemaRecipe(
+            props.match.currentMove()!,
+            { ...props.match.appearance() },
+            props.match.currentPresentation(),
+          )
       if (!props.match.persist()) {
         event.preventDefault()
         setHandoffError(
@@ -110,7 +126,9 @@ export function GummyMatchSidebar(props: {
         )
         return
       }
-      saveGummyMatchCinemaRecipe(recipe)
+      if (recipe.format === 'native-chess-cinema-shot')
+        saveNativeCinemaRecipe(recipe)
+      else saveGummyMatchCinemaRecipe(recipe)
       setHandoffError('')
     } catch (cause) {
       event.preventDefault()
@@ -312,7 +330,7 @@ export function GummyMatchSidebar(props: {
             </p>
             <a
               class={styles.primary}
-              href="/gummy?view=cinema&from=match"
+              href={cinemaHref()}
               aria-disabled={props.busy || !!cinemaReason()}
               onClick={openCinema}
             >

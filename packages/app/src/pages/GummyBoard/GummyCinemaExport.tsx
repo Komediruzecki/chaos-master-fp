@@ -4,14 +4,15 @@ import { downloadBlob } from '@/utils/blob'
 import { exportGummyCinema, gummyCinemaExportPlan, supportsGummyCinemaExport, } from './gummyCinemaExport'
 import styles from './GummyCinemaExport.module.css'
 import type { GummyCinemaExportSettings } from './gummyCinemaExport'
-import type { GummyCinemaController } from '@/components/GummyBoard/GummyCinemaScene'
+import type { CinemaExportController } from '@/components/GummyBoard/cinemaPlaybackController'
 
 export function GummyCinemaExport(props: {
-  controller: () => GummyCinemaController | undefined
+  controller: () => CinemaExportController | undefined
   ready: boolean
   disabled: boolean
   portrait: boolean
   onBusy: (busy: boolean) => void
+  filenamePrefix?: string
 }) {
   const [resolution, setResolution] =
     createSignal<GummyCinemaExportSettings['resolution']>(1080)
@@ -92,7 +93,7 @@ export function GummyCinemaExport(props: {
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
       setClip({
         blob: result.blob,
-        filename: `gummy-cinema-${result.width}x${result.height}-${result.fps}fps-${timestamp}.mp4`,
+        filename: `${props.filenamePrefix ?? 'gummy-cinema'}-${result.width}x${result.height}-${result.fps}fps-${timestamp}.mp4`,
         description: `${result.width} × ${result.height} · ${result.fps} fps · ${result.durationSeconds.toFixed(1)} s · ${(result.blob.size / 1024 / 1024).toFixed(1)} MB`,
       })
       setStatus('MP4 ready. Every frame rendered.')

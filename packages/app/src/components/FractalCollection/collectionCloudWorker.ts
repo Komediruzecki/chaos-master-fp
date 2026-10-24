@@ -1,6 +1,8 @@
-/** Sample complete native flame roles off the UI thread and transfer only render arrays. */
+/** Sample native roles and fit their shared glass off the UI thread, transferring render arrays. */
 import { sampleFlameFigurineCloud } from '@/flame/chess/flameFigurineCloud'
 import { buildFractalChessFlame, getFractalChessCollection, } from '@/flame/chess/fractalChessCollections'
+import { buildFractalStudyGlass, getFractalStudyGlassRole, } from '@/flame/chess/fractalStudyGlass'
+import type { FractalStudyGlass } from '@/flame/chess/fractalStudyGlass'
 import type { PawnSide } from '@/flame/chess/pawnFlame'
 
 export type CollectionCloudRequest = {
@@ -18,7 +20,7 @@ export type CollectionCloud = {
   }
 }
 export type CollectionCloudReply =
-  | { clouds: CollectionCloud[] }
+  | { clouds: CollectionCloud[]; shell?: FractalStudyGlass }
   | { error: string }
 
 globalThis.self.onmessage = (event: MessageEvent<CollectionCloudRequest>) => {
@@ -44,12 +46,37 @@ globalThis.self.onmessage = (event: MessageEvent<CollectionCloudRequest>) => {
         }
       }),
     )
-    globalThis.self.postMessage({ clouds } satisfies CollectionCloudReply, {
-      transfer: clouds.flatMap((cloud) => [
-        cloud.points.buffer,
-        cloud.colors.buffer,
-      ]),
-    })
+    const glassRole = getFractalStudyGlassRole(event.data.collectionId)
+    const shellClouds = clouds.filter(
+      (cloud) =>
+        cloud.key === `${glassRole}:light` || cloud.key === `${glassRole}:dark`,
+    )
+    let shell: FractalStudyGlass | undefined
+    if (glassRole && shellClouds.length) {
+      // Fit both sides together exactly as the board does. The envelope can be
+      // reused for pure/glass comparisons without resampling or a second job.
+      const points = new Float32Array(
+        shellClouds.reduce((sum, cloud) => sum + cloud.points.length, 0),
+      )
+      let offset = 0
+      for (const cloud of shellClouds) {
+        points.set(cloud.points, offset)
+        offset += cloud.points.length
+      }
+      shell = buildFractalStudyGlass(event.data.collectionId, points)
+    }
+    globalThis.self.postMessage(
+      { clouds, shell } satisfies CollectionCloudReply,
+      {
+        transfer: [
+          ...clouds.flatMap((cloud) => [
+            cloud.points.buffer,
+            cloud.colors.buffer,
+          ]),
+          ...(shell ? [shell.vertices.buffer] : []),
+        ],
+      },
+    )
   } catch (error) {
     globalThis.self.postMessage({
       error:

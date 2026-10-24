@@ -1,6 +1,6 @@
 /** Render a complete cinema take on a fixed frame grid, independent of preview speed. */
 import { createVideoEncoder } from '@/utils/videoEncoder'
-import type { GummyCinemaController } from '@/components/GummyBoard/GummyCinemaScene'
+import type { CinemaExportController } from '@/components/GummyBoard/cinemaPlaybackController'
 
 export type GummyCinemaExportSettings = {
   resolution: 720 | 1080 | 2160
@@ -37,17 +37,7 @@ export function supportsGummyCinemaExport() {
   )
 }
 
-type ExportController = Pick<
-  GummyCinemaController,
-  | 'info'
-  | 'pause'
-  | 'resetPaused'
-  | 'seekFrame'
-  | 'setCaptureSize'
-  | 'captureFrame'
->
-
-function readyExportSource(scene: ExportController) {
+function readyExportSource(scene: CinemaExportController) {
   const info = scene.info()
   if (!info.ready || info.error)
     throw new Error(info.error ?? 'Wait for the shot to finish loading.')
@@ -63,7 +53,7 @@ function readyExportSource(scene: ExportController) {
 }
 
 export async function exportGummyCinema(options: {
-  controller: ExportController
+  controller: CinemaExportController
   settings: GummyCinemaExportSettings
   signal: AbortSignal
   onProgress: (frames: number, total: number) => void

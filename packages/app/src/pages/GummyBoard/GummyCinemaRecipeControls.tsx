@@ -2,10 +2,9 @@
 import { createSignal, onCleanup, Show } from 'solid-js'
 import { Check, Copy } from '@/icons'
 import styles from './GummyCinemaPage.module.css'
-import type { GummyCinemaRecipe } from './gummyCinemaRecipe'
 
 export function GummyCinemaRecipeControls(props: {
-  recipe: GummyCinemaRecipe
+  recipe: object
   busy: boolean
   onApply: (value: unknown) => void
 }) {

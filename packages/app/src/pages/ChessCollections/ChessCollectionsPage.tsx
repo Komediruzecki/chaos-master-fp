@@ -165,6 +165,7 @@ export function ChessCollectionsPage() {
           <div class={ui.stage}>
             <FractalCollectionStage
               clouds={built.clouds()}
+              shell={built.shell()}
               collectionId={collectionId()}
               enclosure={enclosure()}
               view={view()}

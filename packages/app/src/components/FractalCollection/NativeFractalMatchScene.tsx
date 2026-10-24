@@ -1,7 +1,6 @@
 /** One persistent native cloud renderer presents legal play, capture dispersal and glass fracture. */
 import { createEffect, createMemo, createSignal, For, on, onCleanup, untrack, } from 'solid-js'
 import { mat4 } from 'wgpu-matrix'
-import { buildFractalStudyGlass, getFractalStudyGlassRole, } from '@/flame/chess/fractalStudyGlass'
 import { AutoCanvas } from '@/lib/AutoCanvas'
 import { useCanvas } from '@/lib/CanvasContext'
 import { useLiveRootContext } from '@/lib/RootContext'
@@ -17,6 +16,7 @@ import type { ChessMoveReceipt, ChessPosition, } from '@chaos-master/core/chess/
 import type { GummyOrbit } from '../GummyBear/gummyStudyMath'
 import type { CollectionCloud } from './collectionCloudWorker'
 import type { NativeFractalMatchLook } from './nativeFractalMatchFrame'
+import type { FractalStudyGlass } from '@/flame/chess/fractalStudyGlass'
 
 export type NativeFractalMatchSceneProps = NativeFractalMatchLook & {
   position: ChessPosition
@@ -55,6 +55,7 @@ export function NativeFractalMatchScene(props: NativeFractalMatchSceneProps) {
         <NativeMatchCanvas
           {...props}
           clouds={source.clouds()}
+          shell={source.shell()}
           visible={visible()}
           onMarkers={setMarkers}
         />
@@ -84,6 +85,7 @@ export function NativeFractalMatchScene(props: NativeFractalMatchSceneProps) {
 function NativeMatchCanvas(
   props: NativeFractalMatchSceneProps & {
     clouds: CollectionCloud[]
+    shell?: FractalStudyGlass
     visible: boolean
     onMarkers(markers: Marker[]): void
   },
@@ -292,21 +294,8 @@ function NativeMatchCanvas(
               cloud.points,
               cloud.colors,
             )
-          const role = getFractalStudyGlassRole(props.collectionId)
-          const shells = clouds.filter(
-            (cloud) =>
-              cloud.key === `${role}:light` || cloud.key === `${role}:dark`,
-          )
-          if (role && shells.length) {
-            const points = new Float32Array(
-              shells.reduce((sum, cloud) => sum + cloud.points.length, 0),
-            )
-            let offset = 0
-            for (const cloud of shells) {
-              points.set(cloud.points, offset)
-              offset += cloud.points.length
-            }
-            const shell = buildFractalStudyGlass(props.collectionId, points)
+          const shell = props.shell
+          if (shell) {
             renderer.setVariantGlass(
               props.collectionId,
               shell.vertices,

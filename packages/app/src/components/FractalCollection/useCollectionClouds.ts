@@ -1,13 +1,15 @@
-/** A single cancellable worker and twelve role clouds bound collection preview memory. */
-import { createEffect, createMemo, createSignal, on, onCleanup } from 'solid-js'
+/** One cancellable worker retains only the current twelve clouds and shared fitted glass. */
+import { batch, createEffect, createMemo, createSignal, on, onCleanup, } from 'solid-js'
 import type { CollectionCloud, CollectionCloudReply, CollectionCloudRequest, } from './collectionCloudWorker'
 import type { CollectionQuality } from './collectionStageLayout'
+import type { FractalStudyGlass } from '@/flame/chess/fractalStudyGlass'
 
 export function useCollectionClouds(
   id: () => string,
   quality: () => CollectionQuality,
 ) {
   const [clouds, setClouds] = createSignal<CollectionCloud[]>([])
+  const [shell, setShell] = createSignal<FractalStudyGlass>()
   const [busy, setBusy] = createSignal(true)
   const [error, setError] = createSignal('')
   // Parent appearance objects also change for glass and scale. Only sampling
@@ -18,6 +20,7 @@ export function useCollectionClouds(
       setBusy(true)
       setError('')
       setClouds([])
+      setShell(undefined)
       let worker: Worker | undefined
       let disposed = false
       let completed = false
@@ -43,7 +46,13 @@ export function useCollectionClouds(
           if (disposed || completed) return
           completed = true
           if ('error' in event.data) setError(event.data.error)
-          else setClouds(event.data.clouds)
+          else {
+            const result = event.data
+            batch(() => {
+              setShell(result.shell)
+              setClouds(result.clouds)
+            })
+          }
           setBusy(false)
           clearTimeout(timeout)
           worker?.terminate()
@@ -72,5 +81,5 @@ export function useCollectionClouds(
       })
     }),
   )
-  return { clouds, busy, error }
+  return { clouds, shell, busy, error }
 }

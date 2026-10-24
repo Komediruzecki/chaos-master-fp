@@ -3,6 +3,7 @@ import { StandalonePage } from '@/components/StandalonePage/StandalonePage'
 import { GummyBoardPage } from '../GummyBoard/GummyBoardPage'
 import { GummyCinemaPage } from '../GummyBoard/GummyCinemaPage'
 import { GummyMatchPage } from '../GummyBoard/GummyMatchPage'
+import { NativeChessCinemaPage } from '../GummyBoard/NativeChessCinemaPage'
 import { GummyBearPage } from './GummyBearPage'
 
 export function GummyBearApp() {
@@ -12,12 +13,18 @@ export function GummyBearApp() {
     new URLSearchParams(window.location.search).get('view') === 'cinema'
   const match =
     new URLSearchParams(window.location.search).get('view') === 'match'
+  const nativeCinema =
+    new URLSearchParams(window.location.search).get('renderer') === 'native'
   return (
     <StandalonePage>
       {match ? (
         <GummyMatchPage />
       ) : cinema ? (
-        <GummyCinemaPage />
+        nativeCinema ? (
+          <NativeChessCinemaPage />
+        ) : (
+          <GummyCinemaPage />
+        )
       ) : board ? (
         <GummyBoardPage />
       ) : (

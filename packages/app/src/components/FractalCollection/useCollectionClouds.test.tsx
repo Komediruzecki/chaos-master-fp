@@ -136,6 +136,39 @@ describe('useCollectionClouds', () => {
     expect(next.terminate).toHaveBeenCalled()
   })
 
+  it('publishes matching clouds and glass together, retains them, and discards a cancelled shell', () => {
+    const [id, setId] = createSignal('wild-canopy')
+    const [quality, setQuality] = createSignal<CollectionQuality>('normal')
+    const observed = vi.fn()
+    let state!: ReturnType<typeof useCollectionClouds>
+    render(() => {
+      state = useCollectionClouds(id, quality)
+      createEffect(() => observed(state.clouds(), state.shell()))
+      return null
+    })
+    const glass = { vertices: new Float32Array([1, 2, 3]), radius: 0.7 }
+    const first = TestWorker.all[0]!
+    setId('tidal-relics')
+    first.reply({ clouds: [cloud('old')], shell: glass })
+    expect(state.shell()).toBeUndefined()
+    expect(state.clouds()).toEqual([])
+    observed.mockClear()
+    const sampled = [cloud('bishop:light')]
+    TestWorker.all[1]!.reply({ clouds: sampled, shell: glass })
+    expect(observed).toHaveBeenCalledExactlyOnceWith(sampled, glass)
+    expect(state.shell()).toBe(glass)
+    setId('tidal-relics')
+    expect(TestWorker.all).toHaveLength(2)
+    expect(state.shell()).toBe(glass)
+    setQuality('high')
+    expect(state.clouds()).toEqual([])
+    expect(state.shell()).toBeUndefined()
+    TestWorker.all[2]!.reply({ error: 'Could not fit glass' })
+    expect(state.busy()).toBe(false)
+    expect(state.error()).toBe('Could not fit glass')
+    expect(state.shell()).toBeUndefined()
+  })
+
   it('cancels an unfinished job on quality changes and owns the current job until unmount', () => {
     const { state, setQuality, dispose } = mount()
     const old = TestWorker.all[0]!

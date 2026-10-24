@@ -9,6 +9,7 @@ import type { ChessMoveReceipt, ChessPosition, } from '@chaos-master/core/chess/
 import type { ParentProps } from 'solid-js'
 import type { BoardFrame } from '../PawnBoard/pawnBoardRenderer'
 import type { CollectionCloud } from './collectionCloudWorker'
+import type { FractalStudyGlass } from '@/flame/chess/fractalStudyGlass'
 
 const fixture = vi.hoisted(() => ({
   canvas: undefined as HTMLCanvasElement | undefined,
@@ -22,6 +23,10 @@ const fixture = vi.hoisted(() => ({
   clearClouds: vi.fn(),
   clearGlass: vi.fn(),
   clouds: [] as CollectionCloud[],
+  shell: undefined as FractalStudyGlass | undefined,
+  source: undefined as
+    | (() => { clouds: CollectionCloud[]; shell?: FractalStudyGlass })
+    | undefined,
 }))
 
 vi.mock('@/lib/AutoCanvas', () => ({
@@ -72,14 +77,11 @@ vi.mock('../PawnBoard/pawnBoardRenderer', () => ({
 }))
 vi.mock('./useCollectionClouds', () => ({
   useCollectionClouds: () => ({
-    clouds: () => fixture.clouds,
+    clouds: () => (fixture.source ? fixture.source().clouds : fixture.clouds),
+    shell: () => (fixture.source ? fixture.source().shell : fixture.shell),
     busy: () => false,
     error: () => '',
   }),
-}))
-vi.mock('@/flame/chess/fractalStudyGlass', () => ({
-  getFractalStudyGlassRole: () => 'knight',
-  buildFractalStudyGlass: () => ({ vertices: new Float32Array(18), radius: 1 }),
 }))
 
 let frames = new Map<number, FrameRequestCallback>()
@@ -135,6 +137,8 @@ beforeEach(() => {
   vi.clearAllMocks()
   fixture.device = new EventTarget()
   fixture.fence = undefined
+  fixture.shell = { vertices: new Float32Array(18).fill(0.25), radius: 0.73 }
+  fixture.source = undefined
   fixture.clouds = [
     'pawn',
     'rook',
@@ -213,6 +217,11 @@ describe('native match scene lifecycle', () => {
     expect(frames.size).toBe(0)
     expect(fixture.setCloud).toHaveBeenCalledTimes(12)
     expect(fixture.setGlass).toHaveBeenCalledOnce()
+    expect(fixture.setGlass).toHaveBeenCalledWith(
+      'wild-canopy',
+      fixture.shell!.vertices,
+      fixture.shell!.radius,
+    )
     app.setEnclosure('glass')
     await frame()
     expect(fixture.render).toHaveBeenCalledTimes(2)
@@ -224,6 +233,46 @@ describe('native match scene lifecycle', () => {
     expect(frames.size).toBe(0)
     app.app.getByRole('button', { name: 'Move to e4' }).click()
     expect(app.select).toHaveBeenCalledExactlyOnceWith('e4')
+  })
+
+  it('uploads one matching worker batch unchanged and clears old glass before a source reload', async () => {
+    const [source, setSource] = createSignal<{
+      clouds: CollectionCloud[]
+      shell?: FractalStudyGlass
+    }>({ clouds: [] })
+    fixture.source = source
+    const app = mount()
+    await frame()
+    expect(fixture.render).not.toHaveBeenCalled()
+    expect(app.ready).toHaveBeenLastCalledWith(false)
+    setSource({ clouds: fixture.clouds, shell: fixture.shell })
+    await frame()
+    expect(fixture.setGlass).toHaveBeenCalledExactlyOnceWith(
+      'wild-canopy',
+      fixture.shell!.vertices,
+      fixture.shell!.radius,
+    )
+    expect(fixture.render).toHaveBeenCalledOnce()
+    for (let index = 0; index < fixture.clouds.length; index++) {
+      const cloud = fixture.clouds[index]!
+      const upload = fixture.setCloud.mock.calls[index]!
+      expect(upload).toEqual([
+        cloud.key,
+        cloud.side,
+        cloud.points,
+        cloud.colors,
+      ])
+      expect(upload[2]).toBe(cloud.points)
+      expect(upload[3]).toBe(cloud.colors)
+    }
+    expect(fixture.setGlass.mock.calls[0]![1]).toBe(fixture.shell!.vertices)
+    const clearCount = fixture.clearGlass.mock.calls.length
+    setSource({ clouds: [] })
+    await frame()
+    expect(fixture.clearGlass).toHaveBeenCalledTimes(clearCount + 1)
+    expect(fixture.render).toHaveBeenCalledOnce()
+    expect(app.ready).toHaveBeenLastCalledWith(false)
+    expect(app.error).not.toHaveBeenCalled()
   })
 
   it('presents the before frame and completes the exact legal after position only once', async () => {

@@ -252,6 +252,7 @@ export function createPawnBoardRenderer(
     let sizeKey = ''
     let targets: ReturnType<typeof createPawnGlassTargets> | undefined
     let disposed = false
+    const displayTarget = (output?: GPUTextureView) => output ?? context
 
     function uploadCloud(
       side: PawnSide,
@@ -309,7 +310,7 @@ export function createPawnBoardRenderer(
       clearVariantGlass: () => {
         glassVariants.clear()
       },
-      render(frame: BoardFrame) {
+      render(frame: BoardFrame, output?: GPUTextureView) {
         if (disposed || frame.width < 1 || frame.height < 1) return
         variants.prepare(frame.pieces)
         const key = `${frame.width}:${frame.height}`
@@ -449,7 +450,7 @@ export function createPawnBoardRenderer(
         optical.end()
         const display = encoder.beginRenderPass({
           colorAttachments: [
-            { view: context, loadOp: 'clear', storeOp: 'store' },
+            { view: displayTarget(output), loadOp: 'clear', storeOp: 'store' },
           ],
         })
         displayPipeline.with(targets!.display).with(display).draw(3)

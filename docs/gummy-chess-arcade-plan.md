@@ -582,9 +582,8 @@ JSON downloads and Forge handoffs continue to carry only the original flame.
 Shell fitting happens once when a collection or detail level changes. The glass
 uses the existing transmission and reflection passes, with shared geometry and
 bounded instance buffers; presentation toggles do not rebuild clouds or allocate
-GPU buffers. The current fitting step runs on the main thread. Moving that work
-into the existing worker is a possible tablet follow-up if load-time profiling
-shows a noticeable pause.
+GPU buffers. The October 25 follow-up moves this fitting step into the existing
+cancellable collection worker; profiling and transfer details are recorded below.
 
 The envelopes use rounded caps and locally bounded profiles. Geometry checks
 verify containment against the emitted inner triangles, closed surfaces and
@@ -630,7 +629,7 @@ by the same legal before/after receipts.
 This is a visual particle response, not a validated continuous material solver.
 Finite-solid occupancy and connected fracture remain separate research gates.
 Native matches currently use the classic native board; gummy board finishes stay
-saved. Cinema export rejects native captures until it has a compatible adapter.
+saved. Native Cinema support was added in the October 25 follow-up below.
 
 Verification: 127 focused tests passed across the native match, glass renderer,
 worker lifecycle, look controls and persisted legal sessions. The full local
@@ -668,9 +667,76 @@ after contact without browser or GPU errors. These checks do not replace
 physical iOS/tablet acceptance. The PR stays open for that review before merge.
 The stale documentation citations found during preparation were repaired.
 
-Next: review all three sets in pure/glass captures on the physical tablet, choose
-the strongest silhouettes, then add a native recording adapter and profile shell
-construction before expanding materials or introducing private friend rooms.
+### Native Cinema and shell construction (2026-10-25)
+
+Native captures now open their own Cinema renderer through the match's
+**Open in Cinema** action. `/gummy?view=cinema&renderer=native` also offers fern
+knight, split-current bishop and window rook capture studies. The studio keeps
+the existing shared recording, full-resolution MP4 export, recipe copying and
+independently scrolling controls. It does not instantiate a gummy particle
+solver for a native collection.
+
+The version-one `native-chess-cinema-shot` recipe stores the pre-move FEN, source,
+destination, optional promotion, collection/enclosure, scale, detail and camera.
+The parser reconstructs a legal capture rather than trusting serialized receipts.
+The current pure/glass comparison is sent to Cinema without rewriting the
+historical match snapshot. Native recipes use their own bounded session-storage
+key, preserving existing gummy recipes. Invalid or missing handoffs show an error
+and wait for an explicit study selection instead of silently opening another
+capture. En-passant and capture promotions retain their legal outcomes.
+
+A six-second deterministic timeline holds the opening, slows the impact and
+holds the final square. Arc, diagonal and hero cameras fit the sampled actors,
+their complete travel and visible dispersal envelope for landscape and portrait.
+Seeks, resets, resize and frame snapshots share one serialized renderer queue.
+Clouds and glass stay uploaded for a take; paused and hidden previews stop
+requesting animation frames. Native full-quality export uses the same fixed-size
+frame encoder and preview restoration as gummy Cinema. Exported clips contain
+only canvas pixels, without captions or audio added by the sidebar.
+
+Shell construction profiling measured 28.7–32.7 ms for combined 24k-per-side
+samples and 55.0–57.9 ms for 60k-per-side samples on this desktop's Node runtime.
+Removing the repeated support scan reduced those ranges to 15.9–18.2 ms and
+26.7–26.9 ms. All six complete mesh hashes and radii remained identical. The
+worker transfers one shared 331,776-byte shell with the twelve clouds; collection
+and detail changes cancel the old worker and retain only the current result.
+Both preview and match consume that transferred shell. This removes the shell
+fit from the UI thread; it is not a measured tablet FPS claim. Initial cloud
+sampling remains a separate cost, and applying another studio recipe currently
+rebuilds the take.
+
+Native AMD Chromium verification passes all three pure/glass capture studies,
+legal final squares, exact repeated-frame pixel hashes, buffer reuse and idle
+submission stopping. Export produces all 180 frames at 1280×720/30 fps and
+restores preview time. Match → Cinema → reload → match preserves the selected
+collection, enclosure and legal position. Existing gummy Cinema and collection
+inspection also load without browser or GPU validation errors. Phone/tablet
+widths keep a separate scrolling control rail, and touch framing works in
+Chromium emulation; physical devices still need owner acceptance.
+
+The hardware probe exposed black exported glass frames when the compositor
+recycled the presentation canvas before snapshotting. Native export now renders
+to a reusable output texture and reads aligned rows from a reusable staging
+buffer, including BGRA conversion. Repeated glass and pure exports are identical
+after intervening seeks. Resize/restore/disposal releases the capture resources;
+focused tests cover padding, channel order, allocation failure and stale reads.
+Local preparation passes with the existing 78 lint warnings, no errors, no size
+ratchet regression, no dependency violations and 1,789 valid doc citations.
+
+Next phases, in order:
+
+1. Physical tablet/iOS review of all three collections in pure/glass play and
+   Cinema. Select the strongest silhouettes and inspect bright glass fragments
+   in close views. Keep the PR open for this acceptance.
+2. Reuse the bounded collection result across studio appearance/camera edits,
+   then profile complete collection sampling on the target tablet. Preserve
+   cancellation and avoid retaining multiple inactive GPU scenes.
+3. Build a connected finite-solid representation for one approved role. Validate
+   occupancy, thin features, collision and fracture before claiming material
+   tearing for the native clouds. Keep the current visual breakup selectable.
+4. Continue the private friend-session architecture below, then place the
+   approved material sets within the Arcade world. Room authority and hosting
+   still need an implementation/deployment decision.
 
 ## Private friend session architecture
 
