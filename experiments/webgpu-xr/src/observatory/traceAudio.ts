@@ -1,13 +1,30 @@
 // Pitch follows ribbon height exactly at each authored note, independently of scoring or input device.
-import { BRIDGE_MOTIF, BRIDGE_TARGET } from './encounter'
+import { BRIDGE_PHRASES, FIRST_BRIDGE_PHRASE } from './bridgePhrases'
+import type { BridgePhrase } from './bridgePhrases'
 
-const pitches = BRIDGE_TARGET.map((point, index) => ({
-  height: point[1],
-  midi: BRIDGE_MOTIF.notes[index].midi,
-})).sort((a, b) => a.height - b.height)
+function pitchMap(phrase: BridgePhrase) {
+  return phrase.target
+    .map((point, index) => ({
+      height: point[1],
+      midi: phrase.motif.notes[index].midi,
+    }))
+    .sort((a, b) => a.height - b.height)
+}
 
-export function pitchForTraceHeight(value: number): number | null {
+const maps = new WeakMap(
+  BRIDGE_PHRASES.map((phrase) => [phrase, pitchMap(phrase)]),
+)
+
+export function pitchForTraceHeight(
+  value: number,
+  phrase: BridgePhrase = FIRST_BRIDGE_PHRASE,
+): number | null {
   if (!Number.isFinite(value)) return null
+  let pitches = maps.get(phrase)
+  if (!pitches) {
+    pitches = pitchMap(phrase)
+    maps.set(phrase, pitches)
+  }
   if (value <= pitches[0].height) return pitches[0].midi
   for (let index = 1; index < pitches.length; index++) {
     const lower = pitches[index - 1]

@@ -1,16 +1,27 @@
 // Spatial response tests exercise missed segments, interruption and completion independently of rendering.
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { beginTrace, BRIDGE_TARGET, createEncounter, endTrace, moveTrace, } from '../src/observatory/encounter'
+import { BRIDGE_PHRASES, FIRST_BRIDGE_PHRASE, } from '../src/observatory/bridgePhrases'
+import { beginTrace, BRIDGE_TARGET, createEncounter, endTrace, moveTrace, traceHint, } from '../src/observatory/encounter'
+import type { BridgePhrase } from '../src/observatory/bridgePhrases'
 import type { EncounterState, TracePoint } from '../src/observatory/encounter'
 
-function follow(state: EncounterState, from: TracePoint, to: TracePoint) {
+function follow(
+  state: EncounterState,
+  from: TracePoint,
+  to: TracePoint,
+  phrase: BridgePhrase = FIRST_BRIDGE_PHRASE,
+) {
   let next = state
   for (let step = 1; step <= 12; step++) {
-    next = moveTrace(next, [
-      from[0] + ((to[0] - from[0]) * step) / 12,
-      from[1] + ((to[1] - from[1]) * step) / 12,
-    ])
+    next = moveTrace(
+      next,
+      [
+        from[0] + ((to[0] - from[0]) * step) / 12,
+        from[1] + ((to[1] - from[1]) * step) / 12,
+      ],
+      phrase,
+    )
   }
   return next
 }
@@ -77,4 +88,62 @@ void test('completed bridges remain complete through later input', () => {
   assert.equal(beginTrace(state, BRIDGE_TARGET[0]), state)
   assert.equal(moveTrace(state, [NaN, Infinity]), state)
   assert.equal(endTrace(state).accepted, 4)
+})
+
+for (const phrase of BRIDGE_PHRASES) {
+  void test(`${phrase.title} accepts its own contour and resumes only from its last earned note`, () => {
+    let state = beginTrace(createEncounter(), phrase.target[0], phrase)
+    state = follow(state, phrase.target[0], phrase.target[1], phrase)
+    assert.equal(state.accepted, 2)
+    const interrupted = endTrace(state, undefined, phrase)
+    assert.equal(interrupted.drawing, false)
+    assert.deepEqual(interrupted.response, phrase.target.slice(0, 2))
+    assert.equal(
+      beginTrace(interrupted, phrase.target[0], phrase).drawing,
+      false,
+    )
+    assert.ok(traceHint(interrupted, phrase).includes(phrase.noteNames[1]))
+    state = beginTrace(interrupted, phrase.target[1], phrase)
+    for (let index = 2; index < phrase.target.length; index++)
+      state = follow(
+        state,
+        phrase.target[index - 1],
+        phrase.target[index],
+        phrase,
+      )
+    assert.equal(state.accepted, 4)
+    assert.equal(state.hint, 'complete')
+    assert.equal(state.drawing, false)
+    assert.deepEqual(endTrace(state, undefined, phrase).response, phrase.target)
+  })
+
+  void test(`${phrase.title} rejects skipped notes and invalid movement without erasing progress`, () => {
+    assert.equal(
+      beginTrace(createEncounter(), phrase.target[2], phrase).accepted,
+      0,
+    )
+    const begun = beginTrace(createEncounter(), phrase.target[0], phrase)
+    for (const point of [phrase.target[3], [NaN, 0], [-1, 0.5]] as const) {
+      const rejected = moveTrace(begun, point, phrase)
+      assert.equal(rejected.accepted, 1)
+      assert.equal(rejected.drawing, false)
+      assert.deepEqual(rejected.response, phrase.target.slice(0, 1))
+    }
+  })
+}
+
+void test('replaying the old contour does not complete a different selected phrase', () => {
+  const turning = BRIDGE_PHRASES[1]
+  const begun = beginTrace(createEncounter(), turning.target[0], turning)
+  const rejected = follow(begun, BRIDGE_TARGET[0], BRIDGE_TARGET[1], turning)
+  assert.equal(rejected.accepted, 1)
+  assert.equal(rejected.drawing, false)
+  assert.equal(rejected.hint, 'rejoin')
+  assert.deepEqual(rejected.response, turning.target.slice(0, 1))
+  const homeward = BRIDGE_PHRASES[2]
+  assert.equal(
+    beginTrace(createEncounter(), BRIDGE_TARGET[0], homeward).accepted,
+    0,
+  )
+  assert.ok(traceHint(createEncounter(), homeward).startsWith('Press on B'))
 })

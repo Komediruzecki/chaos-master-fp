@@ -1,5 +1,6 @@
 // Ordered spatial tracing preserves completed notes while rejecting jumps and missed path sections.
-import type { AlmanacMotif } from '../almanac/catalog'
+import { FIRST_BRIDGE_PHRASE } from './bridgePhrases'
+import type { BridgePhrase } from './bridgePhrases'
 
 export type TracePoint = readonly [number, number]
 export type TraceHint =
@@ -18,27 +19,9 @@ export interface EncounterState {
   hint: TraceHint
 }
 
-export const BRIDGE_TARGET: readonly TracePoint[] = [
-  [0.12, 0.78],
-  [0.37, 0.56],
-  [0.63, 0.16],
-  [0.88, 0.32],
-]
-
-export const BRIDGE_NOTE_NAMES = ['D', 'F', 'B', 'A'] as const
-
-export const BRIDGE_MOTIF: AlmanacMotif = {
-  id: 'tideweave-bridge-four',
-  tonic: 'D',
-  mode: 'Dorian',
-  tempo: 82,
-  timbre: 'reed',
-  notes: [62, 65, 71, 69].map((midi, beat) => ({
-    midi,
-    beat,
-    duration: beat === 3 ? 1.35 : 0.72,
-  })),
-}
+export const BRIDGE_TARGET = FIRST_BRIDGE_PHRASE.target
+export const BRIDGE_NOTE_NAMES = FIRST_BRIDGE_PHRASE.noteNames
+export const BRIDGE_MOTIF = FIRST_BRIDGE_PHRASE.motif
 
 const TARGET_RADIUS = 0.065
 const PATH_RADIUS = 0.1
@@ -82,14 +65,15 @@ function distanceToPath(point: TracePoint, from: TracePoint, to: TracePoint) {
 export function endTrace(
   state: EncounterState,
   hint?: TraceHint,
+  phrase: BridgePhrase = FIRST_BRIDGE_PHRASE,
 ): EncounterState {
   return {
     ...state,
     drawing: false,
     last: null,
-    response: BRIDGE_TARGET.slice(0, state.accepted),
+    response: phrase.target.slice(0, state.accepted),
     hint:
-      state.accepted === BRIDGE_TARGET.length
+      state.accepted === phrase.target.length
         ? 'complete'
         : (hint ?? (state.accepted ? 'rejoin' : 'start')),
   }
@@ -98,17 +82,19 @@ export function endTrace(
 export function beginTrace(
   state: EncounterState,
   point: TracePoint,
+  phrase: BridgePhrase = FIRST_BRIDGE_PHRASE,
 ): EncounterState {
-  if (state.accepted === BRIDGE_TARGET.length) return state
-  if (!isTracePoint(point)) return endTrace(state, 'outside')
-  const anchor = BRIDGE_TARGET[Math.max(0, state.accepted - 1)]
-  if (distance(point, anchor) > TARGET_RADIUS) return endTrace(state, 'rejoin')
+  if (state.accepted === phrase.target.length) return state
+  if (!isTracePoint(point)) return endTrace(state, 'outside', phrase)
+  const anchor = phrase.target[Math.max(0, state.accepted - 1)]
+  if (distance(point, anchor) > TARGET_RADIUS)
+    return endTrace(state, 'rejoin', phrase)
   const accepted = Math.max(1, state.accepted)
   return {
     accepted,
     drawing: true,
     last: point,
-    response: [...BRIDGE_TARGET.slice(0, accepted), point],
+    response: [...phrase.target.slice(0, accepted), point],
     hint: 'continue',
   }
 }
@@ -116,18 +102,20 @@ export function beginTrace(
 export function moveTrace(
   state: EncounterState,
   point: TracePoint,
+  phrase: BridgePhrase = FIRST_BRIDGE_PHRASE,
 ): EncounterState {
-  if (!state.drawing || !state.last || state.accepted === BRIDGE_TARGET.length)
+  if (!state.drawing || !state.last || state.accepted === phrase.target.length)
     return state
-  if (!isTracePoint(point)) return endTrace(state, 'outside')
-  if (distance(state.last, point) > MAX_STEP) return endTrace(state, 'gap')
-  const from = BRIDGE_TARGET[state.accepted - 1]
-  const target = BRIDGE_TARGET[state.accepted]
+  if (!isTracePoint(point)) return endTrace(state, 'outside', phrase)
+  if (distance(state.last, point) > MAX_STEP)
+    return endTrace(state, 'gap', phrase)
+  const from = phrase.target[state.accepted - 1]
+  const target = phrase.target[state.accepted]
   if (distanceToPath(point, from, target) > PATH_RADIUS)
-    return endTrace(state, 'rejoin')
+    return endTrace(state, 'rejoin', phrase)
   const accepted =
     state.accepted + (distance(point, target) <= TARGET_RADIUS ? 1 : 0)
-  const complete = accepted === BRIDGE_TARGET.length
+  const complete = accepted === phrase.target.length
   return {
     accepted,
     drawing: !complete,
@@ -137,15 +125,18 @@ export function moveTrace(
   }
 }
 
-export function traceHint(state: EncounterState): string {
+export function traceHint(
+  state: EncounterState,
+  phrase: BridgePhrase = FIRST_BRIDGE_PHRASE,
+): string {
   if (state.hint === 'complete') return 'The crossing is yours.'
   if (state.hint === 'outside')
     return 'Keep your trace inside the four-note ribbon.'
   if (state.hint === 'gap')
     return 'Move a little slower. Your bridge is still here.'
   if (state.hint === 'rejoin')
-    return `Start again at ${BRIDGE_NOTE_NAMES[Math.max(0, state.accepted - 1)]}. Your bridge is still here.`
+    return `Start again at ${phrase.noteNames[Math.max(0, state.accepted - 1)]}. Your bridge is still here.`
   if (state.hint === 'continue')
-    return `Follow the ribbon to ${BRIDGE_NOTE_NAMES[state.accepted]}.`
-  return 'Press on D, then trace the rising and falling notes.'
+    return `Follow the ribbon to ${phrase.noteNames[state.accepted]}.`
+  return `Press on ${phrase.noteNames[0]}, then trace the rising and falling notes.`
 }

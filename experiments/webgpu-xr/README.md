@@ -204,3 +204,11 @@ porcelain note instruments, earned bridge inlays and a short D-centred musical
 resolution. It stages the same retained fractal above the far landing. The
 [crossing study](docs/tideweave-crossing.md) records the asset, motion and audio
 contracts and the separate desktop/headset verification gates.
+
+After earning Tideweave's page, the crossing offers three authored practice
+phrases: First crossing (D–F–B–A), Turning tide (D–A–F–B), and Homeward
+(B–A–F–D). Selecting a phrase moves the note instruments and ribbon, resets the
+current attempt and waits for Replay phrase. It does not start sound or change
+the earned page's original motif. Re-entering the crossing starts with First
+crossing. See [the living score](docs/tideweave-reprises.md) for the contract
+and desktop verification.

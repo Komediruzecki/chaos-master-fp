@@ -538,6 +538,39 @@ body:has(.observatory) {
   color: var(--lx-bone-2);
   margin: 8px 0 0;
 }
+.observatory-phrases {
+  margin-bottom: 4px;
+}
+.observatory-phrases > button {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--lx-rule-strong);
+  background: var(--lx-night);
+  color: var(--lx-bone-2);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.observatory-phrases > button[aria-pressed='true'] {
+  border-color: var(--lx-verdigris);
+  color: var(--lx-bone);
+  box-shadow: inset 0 -2px var(--lx-verdigris);
+}
+.observatory-phrases > button:hover:not(:disabled) {
+  color: var(--lx-bone);
+  border-color: var(--lx-bone-2);
+}
+.observatory-phrases > button:focus-visible {
+  outline: 2px solid var(--lx-bone);
+  outline-offset: 3px;
+}
+.observatory-phrases > button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.observatory-exercise-actions > .observatory-phrase-description {
+  margin: 4px 0 12px;
+}
 @media (min-width: 1024px) and (max-width: 1300px) {
   .observatory-location {
     display: none;

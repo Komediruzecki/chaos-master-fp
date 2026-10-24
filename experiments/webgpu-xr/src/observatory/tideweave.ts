@@ -41,7 +41,7 @@ export function nextBridgeReveal(
 
 export function createTideweavePresentation() {
   const stations = BRIDGE_TARGET.map((point) => {
-    const anchor = traceWorld(point)
+    const anchor = [...traceWorld(point)]
     return {
       ...stationary(),
       anchor,
@@ -55,6 +55,7 @@ export function createTideweavePresentation() {
     reveal: 0,
   }))
   const bursts = new Float64Array(NOTE_COUNT).fill(-Infinity)
+  const targets = BRIDGE_TARGET.map((point) => [...point])
   let acceptedBefore = 0
   let wasActive = false
 
@@ -69,10 +70,24 @@ export function createTideweavePresentation() {
       )
       const time = Number.isFinite(frame.time) ? frame.time : 0
       const moving = frame.motion !== false
-      if (accepted < acceptedBefore || !active || !wasActive)
+      let targetChanged = false
+      stations.forEach((station, index) => {
+        const point = frame.trace.target[index] ?? BRIDGE_TARGET[index]
+        const previous = targets[index]
+        if (point[0] === previous[0] && point[1] === previous[1]) return
+        const anchor = traceWorld(point)
+        previous[0] = point[0]
+        previous[1] = point[1]
+        for (let axis = 0; axis < 3; axis++) station.anchor[axis] = anchor[axis]
+        station.position[0] = anchor[0]
+        station.position[1] = anchor[1] - 0.12
+        station.position[2] = anchor[2] - 0.09
+        targetChanged = true
+      })
+      if (targetChanged || accepted < acceptedBefore || !active || !wasActive)
         bursts.fill(-Infinity)
       // Entering an existing partial attempt does not replay earned-note motion.
-      if (active && wasActive && accepted > acceptedBefore) {
+      if (active && wasActive && !targetChanged && accepted > acceptedBefore) {
         for (let index = acceptedBefore; index < accepted; index++)
           bursts[index] = time
       }

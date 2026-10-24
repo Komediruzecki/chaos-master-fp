@@ -11,12 +11,14 @@ import { TempleEnding } from '../journey/TempleEnding'
 import { useJourney } from '../journey/useJourney'
 import { useTempleEnding } from '../journey/useTempleEnding'
 import { Icon, LogoMark } from '../theme/Icon'
-import { BRIDGE_RESOLUTION } from './bridgeScore'
-import { beginTrace, BRIDGE_MOTIF, BRIDGE_NOTE_NAMES, BRIDGE_TARGET, createEncounter, endTrace, moveTrace, traceHint, } from './encounter'
+import { BRIDGE_PHRASES, FIRST_BRIDGE_PHRASE } from './bridgePhrases'
+import { bridgeResolutionFor } from './bridgeScore'
+import { beginTrace, createEncounter, endTrace, moveTrace, traceHint, } from './encounter'
 import { GlasswakeEncounter } from './GlasswakeEncounter'
 import { PassageThreshold } from './PassageThreshold'
 import { ObservatoryRuntime } from './runtime'
 import { pitchForTraceHeight } from './traceAudio'
+import type { BridgePhrase } from './bridgePhrases'
 import type { EncounterState, TracePoint } from './encounter'
 import type { ObservatoryInput, ObservatorySnapshot, ObservatoryView, WorldId, } from './scene'
 
@@ -52,10 +54,11 @@ export function Observatory() {
   const [glassProgress, setGlassProgress] = createSignal(0)
   const [exercise, setExercise] = createSignal(false)
   const [stage, setStage] = createSignal<ExerciseStage>('listen')
+  const [phrase, setPhrase] = createSignal(FIRST_BRIDGE_PHRASE)
   const [encounter, setEncounter] = createSignal(createEncounter())
   const [motion, setMotion] = createSignal(true)
   const [keyboard, setKeyboard] = createSignal(false)
-  const [cursor, setCursor] = createSignal<TracePoint>(BRIDGE_TARGET[0])
+  const [cursor, setCursor] = createSignal<TracePoint>(phrase().target[0])
   const collected = createMemo(() =>
     Boolean(journey.snapshot().progress.worlds.tideweave.completion),
   )
@@ -121,10 +124,10 @@ export function Observatory() {
             : stage() === 'complete'
               ? 'complete'
               : 'answer',
-      target: BRIDGE_TARGET,
+      target: phrase().target,
       response: encounter().response,
       acceptedSegments: encounter().accepted,
-      segmentCount: BRIDGE_TARGET.length,
+      segmentCount: phrase().target.length,
     })
   }
 
@@ -134,10 +137,14 @@ export function Observatory() {
     setSound(next)
     ending.update(next)
     if (exercise()) {
-      if (next.playing && next.motifId === BRIDGE_MOTIF.id)
+      if (next.playing && next.motifId === phrase().motif.id)
         setStage('listening')
       else if (!next.playing && next.progress === 1)
-        setStage(encounter().accepted === 4 ? 'complete' : 'answer')
+        setStage(
+          encounter().accepted === phrase().target.length
+            ? 'complete'
+            : 'answer',
+        )
       else if (!next.playing && !next.loading && stage() === 'listening')
         setStage('listen')
       presentTrace()
@@ -176,7 +183,7 @@ export function Observatory() {
     setExercise(false)
     setGlasswake(false)
     audio?.stopInstrument()
-    setEncounter(endTrace(encounter()))
+    setEncounter(endTrace(encounter(), undefined, phrase()))
     goToView('overview')
     presentTrace()
     canvas.focus({ preventScroll: true })
@@ -184,9 +191,9 @@ export function Observatory() {
 
   function playPhrase(leadInSeconds = 0) {
     stopKeyboard()
-    setEncounter(endTrace(encounter()))
+    setEncounter(endTrace(encounter(), undefined, phrase()))
     setStage('listen')
-    void audio?.play(BRIDGE_MOTIF, leadInSeconds)
+    void audio?.play(phrase().motif, leadInSeconds)
     presentTrace()
   }
 
@@ -203,6 +210,9 @@ export function Observatory() {
   }
 
   function openCrossing() {
+    audio?.stopInstrument()
+    setPhrase(FIRST_BRIDGE_PHRASE)
+    setCursor(FIRST_BRIDGE_PHRASE.target[0])
     journey.store.discoverWorld('tideweave')
     if (collected()) setEncounter(createEncounter())
     setAtlasOpen(false)
@@ -211,6 +221,19 @@ export function Observatory() {
     goToView('trace')
     // Unlock audio in this gesture, but let the first teaching note wait for arrival.
     playPhrase((runtime?.snapshot().passage.remainingMs ?? 0) / 1000)
+  }
+
+  function choosePhrase(next: BridgePhrase) {
+    if (!collected() || !exercise() || !ready() || document.hidden) return
+    stopKeyboard()
+    runtime?.cancelInput()
+    audio?.stopInstrument()
+    setPhrase(next)
+    setEncounter(createEncounter())
+    setCursor(next.target[0])
+    setKeyboard(false)
+    setStage('listen')
+    presentTrace()
   }
 
   function acceptInput(event: ObservatoryInput) {
@@ -230,14 +253,14 @@ export function Observatory() {
     setKeyboard(false)
     const before = encounter()
     if (event.phase === 'end' || event.phase === 'cancel')
-      setEncounter(endTrace(encounter()))
+      setEncounter(endTrace(encounter(), undefined, phrase()))
     else if (event.point) {
       setEncounter(
         event.phase === 'start'
-          ? beginTrace(encounter(), event.point)
-          : moveTrace(encounter(), event.point),
+          ? beginTrace(encounter(), event.point, phrase())
+          : moveTrace(encounter(), event.point, phrase()),
       )
-    } else setEncounter(endTrace(encounter(), 'outside'))
+    } else setEncounter(endTrace(encounter(), 'outside', phrase()))
     syncTraceSound(before, event.point, event.phase === 'start')
     finishInput()
   }
@@ -253,27 +276,30 @@ export function Observatory() {
       return
     }
     if (
-      next.accepted === BRIDGE_TARGET.length &&
+      next.accepted === phrase().target.length &&
       next.accepted > before.accepted
     ) {
-      audio?.finishTrace(BRIDGE_MOTIF.notes.at(-1)!.midi, BRIDGE_RESOLUTION)
+      audio?.finishTrace(
+        phrase().motif.notes.at(-1)!.midi,
+        bridgeResolutionFor(phrase()),
+      )
       return
     }
-    const midi = point ? pitchForTraceHeight(point[1]) : null
+    const midi = point ? pitchForTraceHeight(point[1], phrase()) : null
     if (!next.drawing || midi === null) {
       audio?.stopTrace()
       return
     }
     const earnedMidi =
       next.accepted > before.accepted
-        ? BRIDGE_MOTIF.notes[next.accepted - 1].midi
+        ? phrase().motif.notes[next.accepted - 1].midi
         : undefined
     if (start) void audio?.startTrace(midi, earnedMidi)
     else audio?.updateTrace(midi, earnedMidi)
   }
 
   function finishInput() {
-    if (encounter().accepted === BRIDGE_TARGET.length) {
+    if (encounter().accepted === phrase().target.length) {
       setStage('complete')
       if (!collected()) journey.store.completeWorld('tideweave')
     }
@@ -285,8 +311,8 @@ export function Observatory() {
     stopKeyboard()
     audio?.stopTrace()
     setKeyboard(true)
-    setEncounter(endTrace(encounter()))
-    setCursor(BRIDGE_TARGET[Math.max(0, encounter().accepted - 1)])
+    setEncounter(endTrace(encounter(), undefined, phrase()))
+    setCursor(phrase().target[Math.max(0, encounter().accepted - 1)])
     canvas.focus({ preventScroll: true })
     presentTrace()
   }
@@ -300,7 +326,7 @@ export function Observatory() {
   function releaseInput() {
     stopKeyboard()
     audio?.stopTrace()
-    setEncounter(endTrace(encounter()))
+    setEncounter(endTrace(encounter(), undefined, phrase()))
     runtime?.cancelInput()
     presentTrace()
   }
@@ -400,7 +426,8 @@ export function Observatory() {
     ]
     setCursor(next)
     const before = encounter()
-    if (encounter().drawing) setEncounter(moveTrace(encounter(), next))
+    if (encounter().drawing)
+      setEncounter(moveTrace(encounter(), next, phrase()))
     syncTraceSound(before, next)
     finishInput()
     keyboardFrame = requestAnimationFrame(moveKeyboard)
@@ -455,8 +482,8 @@ export function Observatory() {
         const before = encounter()
         setEncounter(
           encounter().drawing
-            ? endTrace(encounter())
-            : beginTrace(encounter(), cursor()),
+            ? endTrace(encounter(), undefined, phrase())
+            : beginTrace(encounter(), cursor(), phrase()),
         )
         syncTraceSound(before, cursor(), !before.drawing)
       }
@@ -486,7 +513,7 @@ export function Observatory() {
             stopKeyboard()
             ending.stop()
             audio?.stop()
-            setEncounter(endTrace(encounter()))
+            setEncounter(endTrace(encounter(), undefined, phrase()))
           }
         }
       },
@@ -541,6 +568,12 @@ export function Observatory() {
         audio,
         get encounter() {
           return encounter()
+        },
+        get phrase() {
+          return phrase()
+        },
+        get cursor() {
+          return cursor()
         },
         get exerciseStage() {
           return stage()
@@ -808,7 +841,7 @@ export function Observatory() {
                   top: `${anchor.y * 100}%`,
                 }}
               >
-                {BRIDGE_NOTE_NAMES[index()]}
+                {phrase().noteNames[index()]}
               </span>
             )}
           </For>
@@ -883,7 +916,7 @@ export function Observatory() {
           >
             <p class="observatory-place">
               {exercise()
-                ? 'Tideweave · melody crossing'
+                ? `Tideweave · ${phrase().title}`
                 : worldId() === 'glasswake'
                   ? 'World I'
                   : 'World II'}
@@ -903,12 +936,14 @@ export function Observatory() {
                     {stage() === 'listen'
                       ? 'Play the four notes, then trace their shape.'
                       : stage() === 'listening'
-                        ? 'Listen: D, F, B, A. Then follow their shape.'
-                        : traceHint(encounter())}
+                        ? `Listen: ${phrase().noteNames.join(', ')}. Then follow their shape.`
+                        : traceHint(encounter(), phrase())}
                   </p>
                   <p class="observatory-guidance">
                     {stage() === 'complete'
-                      ? 'Four notes traced. Your Tideweave page is earned.'
+                      ? phrase().id === FIRST_BRIDGE_PHRASE.id
+                        ? 'Four notes traced. Your Tideweave page is earned.'
+                        : `${phrase().title} traced. Your Almanac page keeps its first melody.`
                       : 'Guided tracing. No pitch or rhythm score.'}
                   </p>
                 </>
@@ -941,12 +976,37 @@ export function Observatory() {
                 class="observatory-exercise-actions"
                 aria-label="Melody crossing controls"
               >
+                <Show when={collected()}>
+                  <div
+                    class="observatory-phrases"
+                    role="group"
+                    aria-label="Practice phrases"
+                  >
+                    <For each={BRIDGE_PHRASES}>
+                      {(entry) => (
+                        <button
+                          type="button"
+                          aria-pressed={phrase().id === entry.id}
+                          disabled={!ready()}
+                          onClick={() => {
+                            choosePhrase(entry)
+                          }}
+                        >
+                          {entry.title}
+                        </button>
+                      )}
+                    </For>
+                  </div>
+                  <p class="observatory-phrase-description">
+                    {phrase().description}
+                  </p>
+                </Show>
                 <span class="observatory-bridge-progress">
                   <span
                     class="observatory-progress-segments"
                     aria-hidden="true"
                   >
-                    <For each={BRIDGE_TARGET}>
+                    <For each={phrase().target}>
                       {(_, index) => (
                         <i
                           classList={{
@@ -1019,7 +1079,7 @@ export function Observatory() {
                         stopKeyboard()
                         setEncounter(createEncounter())
                         setStage('answer')
-                        setCursor(BRIDGE_TARGET[0])
+                        setCursor(phrase().target[0])
                         presentTrace()
                       }}
                     >
@@ -1243,6 +1303,8 @@ declare global {
       runtime: ObservatoryRuntime
       audio: MotifAudio
       readonly encounter: ReturnType<typeof createEncounter>
+      readonly phrase: BridgePhrase
+      readonly cursor: TracePoint
       readonly exerciseStage: ExerciseStage
       readonly journey: ReturnType<
         ReturnType<typeof useJourney>['store']['read']

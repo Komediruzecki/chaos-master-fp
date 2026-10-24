@@ -1,7 +1,8 @@
 // Musical progress, motion-off completion and retained poses keep the crossing honest.
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { EMPTY_TRACE, QUIET_MUSIC } from '../src/observatory/scene'
+import { BRIDGE_PHRASES } from '../src/observatory/bridgePhrases'
+import { EMPTY_TRACE, QUIET_MUSIC, traceWorld } from '../src/observatory/scene'
 import { createTideweavePresentation, earnedBridgeSpans, nextBridgeReveal, } from '../src/observatory/tideweave'
 import type { ObservatoryFrame } from '../src/observatory/scene'
 
@@ -84,4 +85,74 @@ await test('motion-off instruction can change color while all note transforms st
   )
   assert.notDeepEqual(Array.from(presentation.stations[2].tint), before)
   assert.ok(presentation.spans.every((span) => span.reveal === 0))
+})
+
+await test('changing a phrase relocates four existing resonators without replacing retained render data', () => {
+  const presentation = createTideweavePresentation()
+  const stations = presentation.stations.map((station) => ({ ...station }))
+  const spans = presentation.spans.map((span) => ({ ...span }))
+  for (const phrase of [...BRIDGE_PHRASES, BRIDGE_PHRASES[0]]) {
+    const changed = {
+      ...frame,
+      motion: false,
+      time: 20,
+      trace: { ...frame.trace, target: phrase.target, acceptedSegments: 2 },
+    }
+    presentation.update(changed, 2.5)
+    assert.equal(presentation.stations.length, 4)
+    assert.equal(presentation.spans.length, 5)
+    presentation.stations.forEach((station, index) => {
+      const world = traceWorld(phrase.target[index])
+      assert.deepEqual(station.anchor, world)
+      assert.deepEqual(station.position, [
+        world[0],
+        world[1] - 0.12,
+        world[2] - 0.09,
+      ])
+      assert.ok(Math.abs(station.matrix[12] - world[0]) < 1e-6)
+      assert.ok(Math.abs(station.matrix[13] - (world[1] - 0.12)) < 1e-6)
+      for (const key of ['anchor', 'position', 'matrix', 'tint'] as const)
+        assert.equal(station[key], stations[index][key])
+    })
+    const positions = presentation.stations.map((station) =>
+      Array.from(station.matrix),
+    )
+    presentation.update({ ...changed, time: 100 }, 2.5)
+    assert.deepEqual(
+      presentation.stations.map((station) => Array.from(station.matrix)),
+      positions,
+    )
+    presentation.spans.forEach((span, index) => {
+      assert.equal(span.matrix, spans[index].matrix)
+      assert.equal(span.tint, spans[index].tint)
+    })
+  }
+})
+
+await test('changing a phrase cannot transfer an earned-note pulse to its new station positions', () => {
+  const presentation = createTideweavePresentation()
+  const initial = {
+    ...frame,
+    trace: { ...frame.trace, target: BRIDGE_PHRASES[0].target },
+  }
+  presentation.update(initial, 0)
+  presentation.update(
+    { ...initial, time: 1, trace: { ...initial.trace, acceptedSegments: 1 } },
+    1.25,
+  )
+  presentation.update(
+    {
+      ...initial,
+      time: 1.2,
+      trace: {
+        ...initial.trace,
+        target: BRIDGE_PHRASES[2].target,
+        acceptedSegments: 1,
+      },
+    },
+    1.25,
+  )
+  const station = presentation.stations[0]
+  assert.ok(Math.abs(station.matrix[13] - station.position[1]) < 1e-6)
+  assert.ok(Math.abs(station.tint[3] - 0.18) < 1e-6)
 })
