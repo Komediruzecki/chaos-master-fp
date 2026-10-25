@@ -74,6 +74,7 @@ file instead of rediscovering the architecture every session.
 <!-- prettier-ignore-start -->
 | Module | Entry point | What it is |
 |---|---|---|
+| `chess` | [chessCandidate.ts](../../packages/app/src/flame/chess/chessCandidate.ts) | Immutable native-flame snapshots and a separate, inspection-only chess placement. |
 | `clash` | [choreographer.ts](../../packages/app/src/flame/clash/choreographer.ts) | The scripted 12-second bout of the Flame Clash preview: the intro, one hit, a beam clash, the Devour finisher and the victory, as a pure... |
 | `examples` | [index.ts](../../packages/app/src/flame/examples/index.ts) | _(no header comment)_ |
 | `glide` | [index.ts](../../packages/app/src/flame/glide/index.ts) | _(no header comment)_ |
@@ -125,6 +126,9 @@ file instead of rediscovering the architecture every session.
 | `FlameColorEditor` | [FlameColorEditor.tsx](../../packages/app/src/components/FlameColorEditor/FlameColorEditor.tsx) | _(no header comment)_ |
 | `FlameRandomizerCard` | [FlameRandomizerCard.tsx](../../packages/app/src/components/FlameRandomizerCard/FlameRandomizerCard.tsx) | _(no header comment)_ |
 | `FloatingActions` | [FloatingActions.tsx](../../packages/app/src/components/FloatingActions/FloatingActions.tsx) | _(no header comment)_ |
+| `FractalCollection` | [FractalCollectionStage.tsx](../../packages/app/src/components/FractalCollection/FractalCollectionStage.tsx) | A single native WebGPU scene with event-driven rendering for complete fractal collections. |
+| `GummyBear` | [GummyBearScene.tsx](../../packages/app/src/components/GummyBear/GummyBearScene.tsx) | Owned gummy simulation, bounded fixed steps, and current-position pointer grips. |
+| `GummyBoard` | [gummyBoardShaders.ts](../../packages/app/src/components/GummyBoard/gummyBoardShaders.ts) | Instanced candy optics and an opaque chess stage sharing one front/exit lighting pipeline. |
 | `HelpModal` | [HelpModal.tsx](../../packages/app/src/components/HelpModal/HelpModal.tsx) | _(no header comment)_ |
 | `Home` | [HomeFlame.tsx](../../packages/app/src/components/Home/HomeFlame.tsx) | _(no header comment)_ |
 | `ImportVariationsModal` | [ImportVariationsModal.tsx](../../packages/app/src/components/ImportVariationsModal/ImportVariationsModal.tsx) | _(no header comment)_ |
@@ -136,6 +140,8 @@ file instead of rediscovering the architecture every session.
 | `NativeSaveToasts` | [NativeSaveToasts.tsx](../../packages/app/src/components/NativeSaveToasts/NativeSaveToasts.tsx) | _(no header comment)_ |
 | `OrientationGizmo` | [OrientationGizmo.tsx](../../packages/app/src/components/OrientationGizmo/OrientationGizmo.tsx) | _(no header comment)_ |
 | `PaletteSelector` | [PaletteSelector.tsx](../../packages/app/src/components/PaletteSelector/PaletteSelector.tsx) | _(no header comment)_ |
+| `PawnBoard` | [pawnBoardRenderer.ts](../../packages/app/src/components/PawnBoard/pawnBoardRenderer.ts) | Owned linear-HDR scene with hollow-glass transmission, native coloured cores and shards. |
+| `PawnStage` | [PawnStage.tsx](../../packages/app/src/components/PawnStage/PawnStage.tsx) | An isolated native flame preview with 3D orbit or 2D pan and local zoom. |
 | `PopulationSimulator` | [PopulationSimulator.tsx](../../packages/app/src/components/PopulationSimulator/PopulationSimulator.tsx) | _(no header comment)_ |
 | `ProgressBar` | [ProgressBar.tsx](../../packages/app/src/components/ProgressBar/ProgressBar.tsx) | _(no header comment)_ |
 | `PullUpMenu` | [PullUpMenu.tsx](../../packages/app/src/components/PullUpMenu/PullUpMenu.tsx) | _(no header comment)_ |
@@ -173,8 +179,15 @@ file instead of rediscovering the architecture every session.
 | Module | Entry point | What it is |
 |---|---|---|
 | `Benchmarks` | [BenchmarksPage.tsx](../../packages/app/src/pages/Benchmarks/BenchmarksPage.tsx) | _(no header comment)_ |
+| `ChessCollections` | [ChessCollectionsPage.tsx](../../packages/app/src/pages/ChessCollections/ChessCollectionsPage.tsx) | Compare complete fractal chess collections on one board before promoting a playable set. |
+| `ChessForge` | [ChessForgePage.tsx](../../packages/app/src/pages/ChessForge/ChessForgePage.tsx) | Native editor snapshots can be fitted and saved without claiming a verified solid. |
 | `Clash` | [ClashPage.tsx](../../packages/app/src/pages/Clash/ClashPage.tsx) | The Flame Clash preview page (`/clash`): two fighters, one scripted bout. |
+| `Figurines` | [FigurinesPage.tsx](../../packages/app/src/pages/Figurines/FigurinesPage.tsx) | Native flame and geometric figurine collections in one live stage without draft writes. |
 | `FractalExplorer` | [FractalExplorerPage.tsx](../../packages/app/src/pages/FractalExplorer/FractalExplorerPage.tsx) | The deep-zoom explorer page: a full-bleed canvas, a heads-up readout and a settings panel. |
+| `GummyBear` | [GummyBearPage.tsx](../../packages/app/src/pages/GummyBear/GummyBearPage.tsx) | A single gummy material and deformation study, isolated from the chess and flame documents. |
+| `GummyBoard` | [GummyBoardPage.tsx](../../packages/app/src/pages/GummyBoard/GummyBoardPage.tsx) | A repeatable rook strike on a gummy pawn, with shared material presets and canvas recording. |
+| `Pawn` | [PawnPage.tsx](../../packages/app/src/pages/Pawn/PawnPage.tsx) | Live pawn workshop: tune a native 3D IFS and retain an editable recipe. |
+| `PawnBoard` | [PawnBoardPage.tsx](../../packages/app/src/pages/PawnBoard/PawnBoardPage.tsx) | Pawn-race board controls, native square picking and capture animation sequencing. |
 <!-- prettier-ignore-end -->
 
 #### Cloudflare Worker (`packages/app/src/worker/`) — backend routes
@@ -199,6 +212,7 @@ file instead of rediscovering the architecture every session.
 <!-- prettier-ignore-start -->
 | Module | Entry point | What it is |
 |---|---|---|
+| `chess` | [chessRules.ts](../../packages/core/src/chess/chessRules.ts) | Headless legal moves with stable identities and replayable immutable presentation receipts. |
 | `deepzoom` | [deepZoomView.ts](../../packages/core/src/deepzoom/deepZoomView.ts) | The deep-zoom camera: a centre with unlimited digits and a magnification held as a power of two. |
 | `diff` | [fdiff.ts](../../packages/core/src/diff/fdiff.ts) | _(no header comment)_ |
 | `math` | [affine3DView.ts](../../packages/core/src/math/affine3DView.ts) | _(no header comment)_ |
@@ -238,8 +252,9 @@ file instead of rediscovering the architecture every session.
 | [useWorkspaceAutosave.ts](../../packages/app/src/hooks/useWorkspaceAutosave.ts) | _(no header comment)_ |
 | [useWorkspaceBlendPick.ts](../../packages/app/src/hooks/useWorkspaceBlendPick.ts) | The partner gallery's hover preview, and the pick that commits a partner. |
 | [useWorkspaceCamera.ts](../../packages/app/src/hooks/useWorkspaceCamera.ts) | _(no header comment)_ |
+| [useWorkspaceQuery.ts](../../packages/app/src/hooks/useWorkspaceQuery.ts) | Loads editor startup documents, with an inspection return taking precedence over stale share links. |
 | [useWorkspaceReplay.ts](../../packages/app/src/hooks/useWorkspaceReplay.ts) | _(no header comment)_ |
-| [useWorkspaceShortcuts.ts](../../packages/app/src/hooks/useWorkspaceShortcuts.ts) | _(no header comment)_ |
+| [useWorkspaceShortcuts.ts](../../packages/app/src/hooks/useWorkspaceShortcuts.ts) | Editor shortcuts act only while the workspace is visible; the shared theme chord stays global. |
 | [useWorkspaceTimelineBinding.ts](../../packages/app/src/hooks/useWorkspaceTimelineBinding.ts) | _(no header comment)_ |
 <!-- prettier-ignore-end -->
 
@@ -324,13 +339,14 @@ file instead of rediscovering the architecture every session.
 | [flameInMp4.ts](../../packages/app/src/utils/flameInMp4.ts) | _(no header comment)_ |
 | [flameInPng.ts](../../packages/app/src/utils/flameInPng.ts) | What a saved PNG carries besides its pixels, in zTXt chunks: the flame (`FlameJson`), the recorded session that made it (`FlameSteps`), a... |
 | [jsonQueryParam.ts](../../packages/app/src/utils/jsonQueryParam.ts) | _(no header comment)_ |
+| [liveCanvasRecorder.ts](../../packages/app/src/utils/liveCanvasRecorder.ts) | Own a short, real-time canvas recording without readbacks or a screen-share prompt. |
 | [mathToWgsl.ts](../../packages/app/src/utils/mathToWgsl.ts) | Translate a math-notation expression (LaTeX-like) into a WGSL function body. |
 | [recentFlames.ts](../../packages/app/src/utils/recentFlames.ts) | _(no header comment)_ |
 | [serializeLogArgs.ts](../../packages/app/src/utils/serializeLogArgs.ts) | Caps applied to every serialized console entry. |
 | [sonification.ts](../../packages/app/src/utils/sonification.ts) | _(no header comment)_ |
 | [timeline.ts](../../packages/app/src/utils/timeline.ts) | _(no header comment)_ |
 | [useAudioReactive.ts](../../packages/app/src/utils/useAudioReactive.ts) | _(no header comment)_ |
-| [videoEncoder.ts](../../packages/app/src/utils/videoEncoder.ts) | _(no header comment)_ |
+| [videoEncoder.ts](../../packages/app/src/utils/videoEncoder.ts) | Bounded browser video encoding with fixed timestamps and MP4 muxing. |
 <!-- prettier-ignore-end -->
 
 #### Library (`packages/app/src/lib/`, 200+ LOC)
@@ -413,8 +429,8 @@ instead. `wc -l` gives the current size.
 | `pnpm flam3:compat` | `pnpm --filter chaos-master flam3:compat` |
 | `pnpm fmt` | `prettier packages --check` |
 | `pnpm fmt:fix` | `prettier packages --write --log-level warn` |
-| `pnpm lint` | `NODE_OPTIONS="--max-old-space-size=4096" eslint` |
-| `pnpm lint:fix` | `NODE_OPTIONS="--max-old-space-size=4096" eslint --fix` |
+| `pnpm lint` | `NODE_OPTIONS="--max-old-space-size=8192" eslint` |
+| `pnpm lint:fix` | `NODE_OPTIONS="--max-old-space-size=8192" eslint --fix` |
 | `pnpm typecheck` | `pnpm --filter @chaos-master/core typecheck && pnpm --filter @chaos-master/mobile-runtime typecheck && NODE_OPTIONS="--max-old-space-size=8192" tsc --noEmit --project packages/app/tsconfig.json && tsc --noEmit --project tests/tsconfig.json && tsc --noEmit --project packages/app/e2e/tsconfig.json && pnpm --filter @chaos-master/landing check` |
 | `pnpm validate-wgsl` | `npx --yes tsx scripts/validate-wgsl-props.ts` |
 | `pnpm check` | `pnpm typecheck && pnpm lint:fix && pnpm fmt:fix && pnpm validate-wgsl` |

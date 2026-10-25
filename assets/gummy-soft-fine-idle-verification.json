@@ -1,0 +1,1790 @@
+{
+  "base": "https://localhost:5199",
+  "tearResponse": "soft",
+  "geometry": "fine",
+  "idleProbe": true,
+  "capturePrefix": "gummy-soft-fine-idle",
+  "samples": [],
+  "timings": [
+    {
+      "steps": 6,
+      "simulationSeconds": 0.05,
+      "wallSeconds": 0.07791609599999992,
+      "capture": false
+    },
+    {
+      "steps": 6,
+      "simulationSeconds": 0.05,
+      "wallSeconds": 0.07918430499999976,
+      "capture": false
+    },
+    {
+      "steps": 18,
+      "simulationSeconds": 0.15,
+      "wallSeconds": 0.23726998800000001,
+      "capture": false
+    },
+    {
+      "steps": 30,
+      "simulationSeconds": 0.25,
+      "wallSeconds": 0.38431614699999955,
+      "capture": false
+    },
+    {
+      "steps": 60,
+      "simulationSeconds": 0.5,
+      "wallSeconds": 0.7585941240000011,
+      "capture": false
+    },
+    {
+      "steps": 180,
+      "simulationSeconds": 1.5,
+      "wallSeconds": 2.266710368000002,
+      "capture": false
+    },
+    {
+      "steps": 300,
+      "simulationSeconds": 2.5,
+      "wallSeconds": 3.8233593179999987,
+      "capture": false
+    },
+    {
+      "steps": 600,
+      "simulationSeconds": 5,
+      "wallSeconds": 7.5705994110000026,
+      "capture": false
+    },
+    {
+      "steps": 1200,
+      "simulationSeconds": 10,
+      "wallSeconds": 17.217264580000002,
+      "capture": false
+    },
+    {
+      "steps": 4800,
+      "simulationSeconds": 40,
+      "wallSeconds": 60.95994038199999,
+      "capture": false
+    }
+  ],
+  "errors": [],
+  "warnings": [],
+  "failures": [],
+  "placement": {
+    "before": {
+      "window": "0x55834ebe0150",
+      "workspace": 2,
+      "monitors": [
+        {
+          "id": 0,
+          "special": ""
+        }
+      ]
+    },
+    "after": {
+      "window": "0x55834ebe0150",
+      "workspace": 2,
+      "monitors": [
+        {
+          "id": 0,
+          "special": ""
+        }
+      ]
+    },
+    "clients": [
+      {
+        "class": "agent-browser",
+        "workspace": "special:agents"
+      }
+    ]
+  },
+  "adapter": {
+    "vendor": "amd",
+    "architecture": "rdna-4",
+    "fallback": false
+  },
+  "manualSamples": [
+    {
+      "name": "rest",
+      "finite": true,
+      "vertexCount": 4844,
+      "tetCount": 16913,
+      "initialVertexCount": 4844,
+      "revision": 0,
+      "failedFaces": 0,
+      "restVolume": 1.2194560308432056,
+      "freeMass": 1572.6886877788834,
+      "signedVolume": 1.2194560308432056,
+      "volumeRatio": 1,
+      "invertedVolumeFraction": 0,
+      "edgeStrainRms": 0,
+      "freeDisplacementRms": 0,
+      "pinnedMovement": 0,
+      "floorPenetration": 0,
+      "min": [-0.7329815626144409, 0, -0.34878578782081604],
+      "max": [0.7329314351081848, 2.55968976020813, 0.5080329179763794],
+      "span": [1.4659129977226257, 2.55968976020813, 0.8568187057971954],
+      "mechanicalComponents": [
+        {
+          "tetCount": 16913,
+          "firstTet": 0,
+          "restVolume": 1.2194560308432056,
+          "vertexCount": 4844,
+          "pinned": 1437,
+          "freeMass": 1572.6886877788834,
+          "centre": [
+            -0.002328533671814895, 1.212206091577811, 0.04683390942745301
+          ],
+          "meanVelocity": [0, 0, 0]
+        }
+      ],
+      "detachedRestVolumeFraction": 0,
+      "faceComponents": 1,
+      "missingBoundaryFaces": 0,
+      "extraSurfaceFaces": 0,
+      "orientationErrors": 0,
+      "capPairs": 0,
+      "invalidCapPairs": 0,
+      "dyeMismatch": 0,
+      "originalMaterialMismatch": 0,
+      "materialCornerMismatches": 0,
+      "openSurfaceEdges": 0,
+      "nonManifoldEdges": 0,
+      "windingErrors": 0,
+      "info": {
+        "time": 0,
+        "steps": 0,
+        "vertices": 4844,
+        "interfaces": 0,
+        "tetrahedra": 16913,
+        "regions": 1,
+        "restVolume": 1.2194560197764812,
+        "experiment": "jelly",
+        "geometry": "fine",
+        "materialModel": "neo-hookean",
+        "solverIterations": 24,
+        "solverSubsteps": 2,
+        "protocol": "tear",
+        "phase": "idle",
+        "tick": 0,
+        "pose": "upright",
+        "meshOptions": {
+          "fracture": "none",
+          "pinnedFeet": true,
+          "spacing": 0.1,
+          "pinHeight": 0.48
+        },
+        "restBounds": {
+          "min": [-0.7329815626144409, 0, -0.34878578782081604],
+          "max": [0.7329314351081848, 2.55968976020813, 0.5080329179763794]
+        },
+        "bodyFixture": {
+          "halfWidth": 0.3,
+          "minY": 0.85,
+          "maxY": 1.2,
+          "heldNodes": 353
+        },
+        "settings": {
+          "softness": 0.55,
+          "fragility": 0.88,
+          "tearResponse": "soft",
+          "tearing": true,
+          "palette": "marble",
+          "fixedDt": 0.008333333333333333
+        },
+        "grip": false,
+        "demo": false,
+        "mutationPending": false,
+        "topologyRevision": 0,
+        "fractureSamplingTicks": 6,
+        "fracture": {
+          "topologyVersion": 0,
+          "originalVertexCount": 4844,
+          "vertexCount": 4844,
+          "tetCount": 16913,
+          "candidateFaceCount": 30224,
+          "brokenFaceCount": 0,
+          "exposedFaceCount": 0,
+          "addedVertices": 0,
+          "maxOpening": 1,
+          "totalMass": 2323.2576229018136,
+          "freeMass": 1572.6886877788834,
+          "pinnedMass": 750.5689351229303,
+          "restVolume": 1.2194560308432056,
+          "components": [
+            {
+              "tetCount": 16913,
+              "nodeCount": 4844,
+              "restVolume": 1.2194560308432056,
+              "mass": 2323.257622901771,
+              "pinnedNodes": 1437
+            }
+          ]
+        },
+        "fracturePerformance": {
+          "checks": 0,
+          "splits": 0,
+          "snapshotMs": 0,
+          "checkpointMs": 0,
+          "assessMs": 0,
+          "allocateMs": 0,
+          "commitMs": 0,
+          "totalMs": 0,
+          "maxCheckMs": 0,
+          "draws": 78,
+          "drawsDuringMutation": 0
+        }
+      },
+      "plasticity": {
+        "yieldedTets": 0,
+        "maxStrain": 0,
+        "meanStrain": 0
+      }
+    },
+    {
+      "name": "idle-6",
+      "finite": true,
+      "vertexCount": 4844,
+      "tetCount": 16913,
+      "initialVertexCount": 4844,
+      "revision": 0,
+      "failedFaces": 0,
+      "restVolume": 1.2194560308432056,
+      "freeMass": 1572.6886877788834,
+      "signedVolume": 1.2194377692862963,
+      "volumeRatio": 0.9999850248336575,
+      "invertedVolumeFraction": 0.0000010642038974320143,
+      "edgeStrainRms": 0.007617979750955922,
+      "freeDisplacementRms": 0.00906709532031899,
+      "pinnedMovement": 0,
+      "floorPenetration": 0,
+      "min": [-0.735897958278656, 0, -0.34977197647094727],
+      "max": [0.7330042123794556, 2.5461695194244385, 0.5080329179763794],
+      "span": [1.4689021706581116, 2.5461695194244385, 0.8578048944473267],
+      "mechanicalComponents": [
+        {
+          "tetCount": 16913,
+          "firstTet": 0,
+          "restVolume": 1.2194560308432056,
+          "vertexCount": 4844,
+          "pinned": 1437,
+          "freeMass": 1572.6886877788834,
+          "centre": [
+            -0.002488821700001383, 1.2068684823058828, 0.04689474510391163
+          ],
+          "meanVelocity": [
+            -0.011868444697676717, -0.2009303932813638, 0.0021678568397182772
+          ]
+        }
+      ],
+      "detachedRestVolumeFraction": 0,
+      "faceComponents": 1,
+      "missingBoundaryFaces": 0,
+      "extraSurfaceFaces": 0,
+      "orientationErrors": 0,
+      "capPairs": 0,
+      "invalidCapPairs": 0,
+      "dyeMismatch": 0,
+      "originalMaterialMismatch": 0,
+      "materialCornerMismatches": 0,
+      "openSurfaceEdges": 0,
+      "nonManifoldEdges": 0,
+      "windingErrors": 0,
+      "info": {
+        "time": 0.049999999999999996,
+        "steps": 6,
+        "vertices": 4844,
+        "interfaces": 0,
+        "tetrahedra": 16913,
+        "regions": 1,
+        "restVolume": 1.2194560197764812,
+        "experiment": "jelly",
+        "geometry": "fine",
+        "materialModel": "neo-hookean",
+        "solverIterations": 24,
+        "solverSubsteps": 2,
+        "protocol": "tear",
+        "phase": "idle",
+        "tick": 6,
+        "pose": "upright",
+        "meshOptions": {
+          "fracture": "none",
+          "pinnedFeet": true,
+          "spacing": 0.1,
+          "pinHeight": 0.48
+        },
+        "restBounds": {
+          "min": [-0.7329815626144409, 0, -0.34878578782081604],
+          "max": [0.7329314351081848, 2.55968976020813, 0.5080329179763794]
+        },
+        "bodyFixture": {
+          "halfWidth": 0.3,
+          "minY": 0.85,
+          "maxY": 1.2,
+          "heldNodes": 353
+        },
+        "settings": {
+          "softness": 0.55,
+          "fragility": 0.88,
+          "tearResponse": "soft",
+          "tearing": true,
+          "palette": "marble",
+          "fixedDt": 0.008333333333333333
+        },
+        "grip": false,
+        "demo": false,
+        "mutationPending": false,
+        "topologyRevision": 0,
+        "fractureSamplingTicks": 6,
+        "fracture": {
+          "topologyVersion": 0,
+          "originalVertexCount": 4844,
+          "vertexCount": 4844,
+          "tetCount": 16913,
+          "candidateFaceCount": 30224,
+          "brokenFaceCount": 0,
+          "exposedFaceCount": 0,
+          "addedVertices": 0,
+          "maxOpening": 1.115218538286454,
+          "totalMass": 2323.2576229018136,
+          "freeMass": 1572.6886877788834,
+          "pinnedMass": 750.5689351229303,
+          "restVolume": 1.2194560308432056,
+          "components": [
+            {
+              "tetCount": 16913,
+              "nodeCount": 4844,
+              "restVolume": 1.2194560308432056,
+              "mass": 2323.257622901771,
+              "pinnedNodes": 1437
+            }
+          ]
+        },
+        "fracturePerformance": {
+          "checks": 1,
+          "splits": 0,
+          "snapshotMs": 36,
+          "checkpointMs": 0.10000000149011612,
+          "assessMs": 27,
+          "allocateMs": 0,
+          "commitMs": 0,
+          "totalMs": 63.100000001490116,
+          "maxCheckMs": 63.100000001490116,
+          "draws": 229,
+          "drawsDuringMutation": 1
+        }
+      },
+      "plasticity": {
+        "yieldedTets": 0,
+        "maxStrain": 0,
+        "meanStrain": 0
+      }
+    },
+    {
+      "name": "idle-12",
+      "finite": true,
+      "vertexCount": 4844,
+      "tetCount": 16913,
+      "initialVertexCount": 4844,
+      "revision": 0,
+      "failedFaces": 0,
+      "restVolume": 1.2194560308432056,
+      "freeMass": 1572.6886877788834,
+      "signedVolume": 1.2194155889822869,
+      "volumeRatio": 0.999966836146695,
+      "invertedVolumeFraction": 6.863356806314006e-7,
+      "edgeStrainRms": 0.011663628391923891,
+      "freeDisplacementRms": 0.019530395584396308,
+      "pinnedMovement": 0,
+      "floorPenetration": 0,
+      "min": [-0.7394757866859436, 0, -0.3519108295440674],
+      "max": [0.7332168221473694, 2.526486396789551, 0.5080329179763794],
+      "span": [1.472692608833313, 2.526486396789551, 0.8599437475204468],
+      "mechanicalComponents": [
+        {
+          "tetCount": 16913,
+          "firstTet": 0,
+          "restVolume": 1.2194560308432056,
+          "vertexCount": 4844,
+          "pinned": 1437,
+          "freeMass": 1572.6886877788834,
+          "centre": [
+            -0.003127860699694257, 1.201310955193946, 0.04699036103680641
+          ],
+          "meanVelocity": [
+            -0.02843432483335384, -0.06974935039966837, 0.0007083769493274894
+          ]
+        }
+      ],
+      "detachedRestVolumeFraction": 0,
+      "faceComponents": 1,
+      "missingBoundaryFaces": 0,
+      "extraSurfaceFaces": 0,
+      "orientationErrors": 0,
+      "capPairs": 0,
+      "invalidCapPairs": 0,
+      "dyeMismatch": 0,
+      "originalMaterialMismatch": 0,
+      "materialCornerMismatches": 0,
+      "openSurfaceEdges": 0,
+      "nonManifoldEdges": 0,
+      "windingErrors": 0,
+      "info": {
+        "time": 0.09999999999999999,
+        "steps": 12,
+        "vertices": 4844,
+        "interfaces": 0,
+        "tetrahedra": 16913,
+        "regions": 1,
+        "restVolume": 1.2194560197764812,
+        "experiment": "jelly",
+        "geometry": "fine",
+        "materialModel": "neo-hookean",
+        "solverIterations": 24,
+        "solverSubsteps": 2,
+        "protocol": "tear",
+        "phase": "idle",
+        "tick": 12,
+        "pose": "upright",
+        "meshOptions": {
+          "fracture": "none",
+          "pinnedFeet": true,
+          "spacing": 0.1,
+          "pinHeight": 0.48
+        },
+        "restBounds": {
+          "min": [-0.7329815626144409, 0, -0.34878578782081604],
+          "max": [0.7329314351081848, 2.55968976020813, 0.5080329179763794]
+        },
+        "bodyFixture": {
+          "halfWidth": 0.3,
+          "minY": 0.85,
+          "maxY": 1.2,
+          "heldNodes": 353
+        },
+        "settings": {
+          "softness": 0.55,
+          "fragility": 0.88,
+          "tearResponse": "soft",
+          "tearing": true,
+          "palette": "marble",
+          "fixedDt": 0.008333333333333333
+        },
+        "grip": false,
+        "demo": false,
+        "mutationPending": false,
+        "topologyRevision": 0,
+        "fractureSamplingTicks": 6,
+        "fracture": {
+          "topologyVersion": 0,
+          "originalVertexCount": 4844,
+          "vertexCount": 4844,
+          "tetCount": 16913,
+          "candidateFaceCount": 30224,
+          "brokenFaceCount": 0,
+          "exposedFaceCount": 0,
+          "addedVertices": 0,
+          "maxOpening": 1.1190650979288956,
+          "totalMass": 2323.2576229018136,
+          "freeMass": 1572.6886877788834,
+          "pinnedMass": 750.5689351229303,
+          "restVolume": 1.2194560308432056,
+          "components": [
+            {
+              "tetCount": 16913,
+              "nodeCount": 4844,
+              "restVolume": 1.2194560308432056,
+              "mass": 2323.257622901771,
+              "pinnedNodes": 1437
+            }
+          ]
+        },
+        "fracturePerformance": {
+          "checks": 2,
+          "splits": 0,
+          "snapshotMs": 67.70000000298023,
+          "checkpointMs": 0.3999999985098839,
+          "assessMs": 53.600000001490116,
+          "allocateMs": 0,
+          "commitMs": 0,
+          "totalMs": 121.70000000298023,
+          "maxCheckMs": 63.100000001490116,
+          "draws": 307,
+          "drawsDuringMutation": 2
+        }
+      },
+      "plasticity": {
+        "yieldedTets": 0,
+        "maxStrain": 0,
+        "meanStrain": 0
+      }
+    },
+    {
+      "name": "idle-30",
+      "finite": true,
+      "vertexCount": 4844,
+      "tetCount": 16913,
+      "initialVertexCount": 4844,
+      "revision": 0,
+      "failedFaces": 0,
+      "restVolume": 1.2194560308432056,
+      "freeMass": 1572.6886877788834,
+      "signedVolume": 1.219435125177054,
+      "volumeRatio": 0.9999828565642198,
+      "invertedVolumeFraction": 2.103931760591297e-7,
+      "edgeStrainRms": 0.006356466852110061,
+      "freeDisplacementRms": 0.010337527532933204,
+      "pinnedMovement": 0,
+      "floorPenetration": 0,
+      "min": [-0.7349802851676941, 0, -0.35206010937690735],
+      "max": [0.7323468923568726, 2.5566086769104004, 0.5080329179763794],
+      "span": [1.4673271775245667, 2.5566086769104004, 0.8600930273532867],
+      "mechanicalComponents": [
+        {
+          "tetCount": 16913,
+          "firstTet": 0,
+          "restVolume": 1.2194560308432056,
+          "vertexCount": 4844,
+          "pinned": 1437,
+          "freeMass": 1572.6886877788834,
+          "centre": [
+            -0.006293203876253607, 1.2089312029224129, 0.04581399267635208
+          ],
+          "meanVelocity": [
+            -0.013146666159593404, -0.0323832756628945, -0.004039976920069842
+          ]
+        }
+      ],
+      "detachedRestVolumeFraction": 0,
+      "faceComponents": 1,
+      "missingBoundaryFaces": 0,
+      "extraSurfaceFaces": 0,
+      "orientationErrors": 0,
+      "capPairs": 0,
+      "invalidCapPairs": 0,
+      "dyeMismatch": 0,
+      "originalMaterialMismatch": 0,
+      "materialCornerMismatches": 0,
+      "openSurfaceEdges": 0,
+      "nonManifoldEdges": 0,
+      "windingErrors": 0,
+      "info": {
+        "time": 0.24999999999999997,
+        "steps": 30,
+        "vertices": 4844,
+        "interfaces": 0,
+        "tetrahedra": 16913,
+        "regions": 1,
+        "restVolume": 1.2194560197764812,
+        "experiment": "jelly",
+        "geometry": "fine",
+        "materialModel": "neo-hookean",
+        "solverIterations": 24,
+        "solverSubsteps": 2,
+        "protocol": "tear",
+        "phase": "idle",
+        "tick": 30,
+        "pose": "upright",
+        "meshOptions": {
+          "fracture": "none",
+          "pinnedFeet": true,
+          "spacing": 0.1,
+          "pinHeight": 0.48
+        },
+        "restBounds": {
+          "min": [-0.7329815626144409, 0, -0.34878578782081604],
+          "max": [0.7329314351081848, 2.55968976020813, 0.5080329179763794]
+        },
+        "bodyFixture": {
+          "halfWidth": 0.3,
+          "minY": 0.85,
+          "maxY": 1.2,
+          "heldNodes": 353
+        },
+        "settings": {
+          "softness": 0.55,
+          "fragility": 0.88,
+          "tearResponse": "soft",
+          "tearing": true,
+          "palette": "marble",
+          "fixedDt": 0.008333333333333333
+        },
+        "grip": false,
+        "demo": false,
+        "mutationPending": false,
+        "topologyRevision": 0,
+        "fractureSamplingTicks": 6,
+        "fracture": {
+          "topologyVersion": 0,
+          "originalVertexCount": 4844,
+          "vertexCount": 4844,
+          "tetCount": 16913,
+          "candidateFaceCount": 30224,
+          "brokenFaceCount": 0,
+          "exposedFaceCount": 0,
+          "addedVertices": 0,
+          "maxOpening": 1.1190650979288956,
+          "totalMass": 2323.2576229018136,
+          "freeMass": 1572.6886877788834,
+          "pinnedMass": 750.5689351229303,
+          "restVolume": 1.2194560308432056,
+          "components": [
+            {
+              "tetCount": 16913,
+              "nodeCount": 4844,
+              "restVolume": 1.2194560308432056,
+              "mass": 2323.257622901771,
+              "pinnedNodes": 1437
+            }
+          ]
+        },
+        "fracturePerformance": {
+          "checks": 5,
+          "splits": 0,
+          "snapshotMs": 168.1000000089407,
+          "checkpointMs": 0.9999999850988388,
+          "assessMs": 139.00000000745058,
+          "allocateMs": 0,
+          "commitMs": 0,
+          "totalMs": 308.1000000014901,
+          "maxCheckMs": 63.599999994039536,
+          "draws": 377,
+          "drawsDuringMutation": 3
+        }
+      },
+      "plasticity": {
+        "yieldedTets": 0,
+        "maxStrain": 0,
+        "meanStrain": 0
+      }
+    },
+    {
+      "name": "idle-60",
+      "finite": true,
+      "vertexCount": 4844,
+      "tetCount": 16913,
+      "initialVertexCount": 4844,
+      "revision": 0,
+      "failedFaces": 0,
+      "restVolume": 1.2194560308432056,
+      "freeMass": 1572.6886877788834,
+      "signedVolume": 1.21943118660145,
+      "volumeRatio": 0.9999796267834778,
+      "invertedVolumeFraction": 0.0000023284186364301054,
+      "edgeStrainRms": 0.007335204002364732,
+      "freeDisplacementRms": 0.011414783695561424,
+      "pinnedMovement": 0,
+      "floorPenetration": 0,
+      "min": [-0.7368783354759216, 0, -0.3509272336959839],
+      "max": [0.7328175902366638, 2.5500404834747314, 0.5080329179763794],
+      "span": [1.4696959257125854, 2.5500404834747314, 0.8589601516723633],
+      "mechanicalComponents": [
+        {
+          "tetCount": 16913,
+          "firstTet": 0,
+          "restVolume": 1.2194560308432056,
+          "vertexCount": 4844,
+          "pinned": 1437,
+          "freeMass": 1572.6886877788834,
+          "centre": [
+            -0.0058676812500353375, 1.2072373206281861, 0.046459881296095705
+          ],
+          "meanVelocity": [
+            0.03285323933228151, -0.04603650502783753, 0.00610115829206583
+          ]
+        }
+      ],
+      "detachedRestVolumeFraction": 0,
+      "faceComponents": 1,
+      "missingBoundaryFaces": 0,
+      "extraSurfaceFaces": 0,
+      "orientationErrors": 0,
+      "capPairs": 0,
+      "invalidCapPairs": 0,
+      "dyeMismatch": 0,
+      "originalMaterialMismatch": 0,
+      "materialCornerMismatches": 0,
+      "openSurfaceEdges": 0,
+      "nonManifoldEdges": 0,
+      "windingErrors": 0,
+      "info": {
+        "time": 0.5000000000000007,
+        "steps": 60,
+        "vertices": 4844,
+        "interfaces": 0,
+        "tetrahedra": 16913,
+        "regions": 1,
+        "restVolume": 1.2194560197764812,
+        "experiment": "jelly",
+        "geometry": "fine",
+        "materialModel": "neo-hookean",
+        "solverIterations": 24,
+        "solverSubsteps": 2,
+        "protocol": "tear",
+        "phase": "idle",
+        "tick": 60,
+        "pose": "upright",
+        "meshOptions": {
+          "fracture": "none",
+          "pinnedFeet": true,
+          "spacing": 0.1,
+          "pinHeight": 0.48
+        },
+        "restBounds": {
+          "min": [-0.7329815626144409, 0, -0.34878578782081604],
+          "max": [0.7329314351081848, 2.55968976020813, 0.5080329179763794]
+        },
+        "bodyFixture": {
+          "halfWidth": 0.3,
+          "minY": 0.85,
+          "maxY": 1.2,
+          "heldNodes": 353
+        },
+        "settings": {
+          "softness": 0.55,
+          "fragility": 0.88,
+          "tearResponse": "soft",
+          "tearing": true,
+          "palette": "marble",
+          "fixedDt": 0.008333333333333333
+        },
+        "grip": false,
+        "demo": false,
+        "mutationPending": false,
+        "topologyRevision": 0,
+        "fractureSamplingTicks": 6,
+        "fracture": {
+          "topologyVersion": 0,
+          "originalVertexCount": 4844,
+          "vertexCount": 4844,
+          "tetCount": 16913,
+          "candidateFaceCount": 30224,
+          "brokenFaceCount": 0,
+          "exposedFaceCount": 0,
+          "addedVertices": 0,
+          "maxOpening": 1.1190650979288956,
+          "totalMass": 2323.2576229018136,
+          "freeMass": 1572.6886877788834,
+          "pinnedMass": 750.5689351229303,
+          "restVolume": 1.2194560308432056,
+          "components": [
+            {
+              "tetCount": 16913,
+              "nodeCount": 4844,
+              "restVolume": 1.2194560308432056,
+              "mass": 2323.257622901771,
+              "pinnedNodes": 1437
+            }
+          ]
+        },
+        "fracturePerformance": {
+          "checks": 10,
+          "splits": 0,
+          "snapshotMs": 341.7000000104308,
+          "checkpointMs": 1.2999999821186066,
+          "assessMs": 270.90000000596046,
+          "allocateMs": 0,
+          "commitMs": 0,
+          "totalMs": 613.8999999985099,
+          "maxCheckMs": 64.19999999552965,
+          "draws": 447,
+          "drawsDuringMutation": 4
+        }
+      },
+      "plasticity": {
+        "yieldedTets": 0,
+        "maxStrain": 0,
+        "meanStrain": 0
+      }
+    },
+    {
+      "name": "idle-120",
+      "finite": true,
+      "vertexCount": 4844,
+      "tetCount": 16913,
+      "initialVertexCount": 4844,
+      "revision": 0,
+      "failedFaces": 0,
+      "restVolume": 1.2194560308432056,
+      "freeMass": 1572.6886877788834,
+      "signedVolume": 1.2194176434578154,
+      "volumeRatio": 0.999968520894219,
+      "invertedVolumeFraction": 3.2828451194552e-7,
+      "edgeStrainRms": 0.008179851283208264,
+      "freeDisplacementRms": 0.013787370467015544,
+      "pinnedMovement": 0,
+      "floorPenetration": 0,
+      "min": [-0.7371212840080261, 0, -0.3534792363643646],
+      "max": [0.7327665090560913, 2.5441172122955322, 0.5080329179763794],
+      "span": [1.4698877930641174, 2.5441172122955322, 0.861512154340744],
+      "mechanicalComponents": [
+        {
+          "tetCount": 16913,
+          "firstTet": 0,
+          "restVolume": 1.2194560308432056,
+          "vertexCount": 4844,
+          "pinned": 1437,
+          "freeMass": 1572.6886877788834,
+          "centre": [
+            -0.005876811188827524, 1.2056963577477346, 0.045824140994257356
+          ],
+          "meanVelocity": [
+            -0.0024133886681932306, -0.02502508750454096, -0.0037742669549207207
+          ]
+        }
+      ],
+      "detachedRestVolumeFraction": 0,
+      "faceComponents": 1,
+      "missingBoundaryFaces": 0,
+      "extraSurfaceFaces": 0,
+      "orientationErrors": 0,
+      "capPairs": 0,
+      "invalidCapPairs": 0,
+      "dyeMismatch": 0,
+      "originalMaterialMismatch": 0,
+      "materialCornerMismatches": 0,
+      "openSurfaceEdges": 0,
+      "nonManifoldEdges": 0,
+      "windingErrors": 0,
+      "info": {
+        "time": 0.9999999999999989,
+        "steps": 120,
+        "vertices": 4844,
+        "interfaces": 0,
+        "tetrahedra": 16913,
+        "regions": 1,
+        "restVolume": 1.2194560197764812,
+        "experiment": "jelly",
+        "geometry": "fine",
+        "materialModel": "neo-hookean",
+        "solverIterations": 24,
+        "solverSubsteps": 2,
+        "protocol": "tear",
+        "phase": "idle",
+        "tick": 120,
+        "pose": "upright",
+        "meshOptions": {
+          "fracture": "none",
+          "pinnedFeet": true,
+          "spacing": 0.1,
+          "pinHeight": 0.48
+        },
+        "restBounds": {
+          "min": [-0.7329815626144409, 0, -0.34878578782081604],
+          "max": [0.7329314351081848, 2.55968976020813, 0.5080329179763794]
+        },
+        "bodyFixture": {
+          "halfWidth": 0.3,
+          "minY": 0.85,
+          "maxY": 1.2,
+          "heldNodes": 353
+        },
+        "settings": {
+          "softness": 0.55,
+          "fragility": 0.88,
+          "tearResponse": "soft",
+          "tearing": true,
+          "palette": "marble",
+          "fixedDt": 0.008333333333333333
+        },
+        "grip": false,
+        "demo": false,
+        "mutationPending": false,
+        "topologyRevision": 0,
+        "fractureSamplingTicks": 6,
+        "fracture": {
+          "topologyVersion": 0,
+          "originalVertexCount": 4844,
+          "vertexCount": 4844,
+          "tetCount": 16913,
+          "candidateFaceCount": 30224,
+          "brokenFaceCount": 0,
+          "exposedFaceCount": 0,
+          "addedVertices": 0,
+          "maxOpening": 1.1423556652996945,
+          "totalMass": 2323.2576229018136,
+          "freeMass": 1572.6886877788834,
+          "pinnedMass": 750.5689351229303,
+          "restVolume": 1.2194560308432056,
+          "components": [
+            {
+              "tetCount": 16913,
+              "nodeCount": 4844,
+              "restVolume": 1.2194560308432056,
+              "mass": 2323.257622901771,
+              "pinnedNodes": 1437
+            }
+          ]
+        },
+        "fracturePerformance": {
+          "checks": 20,
+          "splits": 0,
+          "snapshotMs": 691.700000025332,
+          "checkpointMs": 2.1999999806284904,
+          "assessMs": 524.099999986589,
+          "allocateMs": 0,
+          "commitMs": 0,
+          "totalMs": 1217.9999999925494,
+          "maxCheckMs": 64.19999999552965,
+          "draws": 516,
+          "drawsDuringMutation": 5
+        }
+      },
+      "plasticity": {
+        "yieldedTets": 0,
+        "maxStrain": 0,
+        "meanStrain": 0
+      }
+    },
+    {
+      "name": "idle-300",
+      "finite": true,
+      "vertexCount": 4844,
+      "tetCount": 16913,
+      "initialVertexCount": 4844,
+      "revision": 0,
+      "failedFaces": 0,
+      "restVolume": 1.2194560308432056,
+      "freeMass": 1572.6886877788834,
+      "signedVolume": 1.2194198715473246,
+      "volumeRatio": 0.9999703480117639,
+      "invertedVolumeFraction": 9.982797498809735e-7,
+      "edgeStrainRms": 0.008772548081468561,
+      "freeDisplacementRms": 0.013520062960990958,
+      "pinnedMovement": 0,
+      "floorPenetration": 0,
+      "min": [-0.739008903503418, 0, -0.35274919867515564],
+      "max": [0.7334629893302917, 2.5425631999969482, 0.5080329179763794],
+      "span": [1.4724718928337097, 2.5425631999969482, 0.860782116651535],
+      "mechanicalComponents": [
+        {
+          "tetCount": 16913,
+          "firstTet": 0,
+          "restVolume": 1.2194560308432056,
+          "vertexCount": 4844,
+          "pinned": 1437,
+          "freeMass": 1572.6886877788834,
+          "centre": [
+            -0.0054917576748939045, 1.2054390558659092, 0.0461117880970259
+          ],
+          "meanVelocity": [
+            0.000044280585009527484, -0.002438210012899814,
+            0.0011743280779421478
+          ]
+        }
+      ],
+      "detachedRestVolumeFraction": 0,
+      "faceComponents": 1,
+      "missingBoundaryFaces": 0,
+      "extraSurfaceFaces": 0,
+      "orientationErrors": 0,
+      "capPairs": 0,
+      "invalidCapPairs": 0,
+      "dyeMismatch": 0,
+      "originalMaterialMismatch": 0,
+      "materialCornerMismatches": 0,
+      "openSurfaceEdges": 0,
+      "nonManifoldEdges": 0,
+      "windingErrors": 0,
+      "info": {
+        "time": 2.499999999999994,
+        "steps": 300,
+        "vertices": 4844,
+        "interfaces": 0,
+        "tetrahedra": 16913,
+        "regions": 1,
+        "restVolume": 1.2194560197764812,
+        "experiment": "jelly",
+        "geometry": "fine",
+        "materialModel": "neo-hookean",
+        "solverIterations": 24,
+        "solverSubsteps": 2,
+        "protocol": "tear",
+        "phase": "idle",
+        "tick": 300,
+        "pose": "upright",
+        "meshOptions": {
+          "fracture": "none",
+          "pinnedFeet": true,
+          "spacing": 0.1,
+          "pinHeight": 0.48
+        },
+        "restBounds": {
+          "min": [-0.7329815626144409, 0, -0.34878578782081604],
+          "max": [0.7329314351081848, 2.55968976020813, 0.5080329179763794]
+        },
+        "bodyFixture": {
+          "halfWidth": 0.3,
+          "minY": 0.85,
+          "maxY": 1.2,
+          "heldNodes": 353
+        },
+        "settings": {
+          "softness": 0.55,
+          "fragility": 0.88,
+          "tearResponse": "soft",
+          "tearing": true,
+          "palette": "marble",
+          "fixedDt": 0.008333333333333333
+        },
+        "grip": false,
+        "demo": false,
+        "mutationPending": false,
+        "topologyRevision": 0,
+        "fractureSamplingTicks": 6,
+        "fracture": {
+          "topologyVersion": 0,
+          "originalVertexCount": 4844,
+          "vertexCount": 4844,
+          "tetCount": 16913,
+          "candidateFaceCount": 30224,
+          "brokenFaceCount": 0,
+          "exposedFaceCount": 0,
+          "addedVertices": 0,
+          "maxOpening": 1.1520089206413542,
+          "totalMass": 2323.2576229018136,
+          "freeMass": 1572.6886877788834,
+          "pinnedMass": 750.5689351229303,
+          "restVolume": 1.2194560308432056,
+          "components": [
+            {
+              "tetCount": 16913,
+              "nodeCount": 4844,
+              "restVolume": 1.2194560308432056,
+              "mass": 2323.257622901771,
+              "pinnedNodes": 1437
+            }
+          ]
+        },
+        "fracturePerformance": {
+          "checks": 50,
+          "splits": 0,
+          "snapshotMs": 1772.800000011921,
+          "checkpointMs": 4.599999986588955,
+          "assessMs": 1293.699999988079,
+          "allocateMs": 0,
+          "commitMs": 0,
+          "totalMs": 3071.099999986589,
+          "maxCheckMs": 64.90000000596046,
+          "draws": 591,
+          "drawsDuringMutation": 8
+        }
+      },
+      "plasticity": {
+        "yieldedTets": 0,
+        "maxStrain": 0,
+        "meanStrain": 0
+      }
+    },
+    {
+      "name": "idle-600",
+      "finite": true,
+      "vertexCount": 4844,
+      "tetCount": 16913,
+      "initialVertexCount": 4844,
+      "revision": 0,
+      "failedFaces": 0,
+      "restVolume": 1.2194560308432056,
+      "freeMass": 1572.6886877788834,
+      "signedVolume": 1.2194314754750761,
+      "volumeRatio": 0.9999798636707611,
+      "invertedVolumeFraction": 0.000001008121255002966,
+      "edgeStrainRms": 0.00825590972609197,
+      "freeDisplacementRms": 0.01284443807268393,
+      "pinnedMovement": 0,
+      "floorPenetration": 0,
+      "min": [-0.7368496060371399, 0, -0.3520331084728241],
+      "max": [0.7328705191612244, 2.5418426990509033, 0.5080329179763794],
+      "span": [1.4697201251983643, 2.5418426990509033, 0.8600660264492035],
+      "mechanicalComponents": [
+        {
+          "tetCount": 16913,
+          "firstTet": 0,
+          "restVolume": 1.2194560308432056,
+          "vertexCount": 4844,
+          "pinned": 1437,
+          "freeMass": 1572.6886877788834,
+          "centre": [
+            -0.004931791396720186, 1.2055001766023232, 0.04645630426623741
+          ],
+          "meanVelocity": [
+            -0.0006946436658372961, -0.0008387938909557351,
+            0.0006910388095637793
+          ]
+        }
+      ],
+      "detachedRestVolumeFraction": 0,
+      "faceComponents": 1,
+      "missingBoundaryFaces": 0,
+      "extraSurfaceFaces": 0,
+      "orientationErrors": 0,
+      "capPairs": 0,
+      "invalidCapPairs": 0,
+      "dyeMismatch": 0,
+      "originalMaterialMismatch": 0,
+      "materialCornerMismatches": 0,
+      "openSurfaceEdges": 0,
+      "nonManifoldEdges": 0,
+      "windingErrors": 0,
+      "info": {
+        "time": 5.000000000000038,
+        "steps": 600,
+        "vertices": 4844,
+        "interfaces": 0,
+        "tetrahedra": 16913,
+        "regions": 1,
+        "restVolume": 1.2194560197764812,
+        "experiment": "jelly",
+        "geometry": "fine",
+        "materialModel": "neo-hookean",
+        "solverIterations": 24,
+        "solverSubsteps": 2,
+        "protocol": "tear",
+        "phase": "idle",
+        "tick": 600,
+        "pose": "upright",
+        "meshOptions": {
+          "fracture": "none",
+          "pinnedFeet": true,
+          "spacing": 0.1,
+          "pinHeight": 0.48
+        },
+        "restBounds": {
+          "min": [-0.7329815626144409, 0, -0.34878578782081604],
+          "max": [0.7329314351081848, 2.55968976020813, 0.5080329179763794]
+        },
+        "bodyFixture": {
+          "halfWidth": 0.3,
+          "minY": 0.85,
+          "maxY": 1.2,
+          "heldNodes": 353
+        },
+        "settings": {
+          "softness": 0.55,
+          "fragility": 0.88,
+          "tearResponse": "soft",
+          "tearing": true,
+          "palette": "marble",
+          "fixedDt": 0.008333333333333333
+        },
+        "grip": false,
+        "demo": false,
+        "mutationPending": false,
+        "topologyRevision": 0,
+        "fractureSamplingTicks": 6,
+        "fracture": {
+          "topologyVersion": 0,
+          "originalVertexCount": 4844,
+          "vertexCount": 4844,
+          "tetCount": 16913,
+          "candidateFaceCount": 30224,
+          "brokenFaceCount": 0,
+          "exposedFaceCount": 0,
+          "addedVertices": 0,
+          "maxOpening": 1.1520089206413542,
+          "totalMass": 2323.2576229018136,
+          "freeMass": 1572.6886877788834,
+          "pinnedMass": 750.5689351229303,
+          "restVolume": 1.2194560308432056,
+          "components": [
+            {
+              "tetCount": 16913,
+              "nodeCount": 4844,
+              "restVolume": 1.2194560308432056,
+              "mass": 2323.257622901771,
+              "pinnedNodes": 1437
+            }
+          ]
+        },
+        "fracturePerformance": {
+          "checks": 100,
+          "splits": 0,
+          "snapshotMs": 3605.3999999910593,
+          "checkpointMs": 9.69999996572733,
+          "assessMs": 2613.200000010431,
+          "allocateMs": 0,
+          "commitMs": 0,
+          "totalMs": 6228.399999968708,
+          "maxCheckMs": 67.69999999552965,
+          "draws": 675,
+          "drawsDuringMutation": 13
+        }
+      },
+      "plasticity": {
+        "yieldedTets": 0,
+        "maxStrain": 0,
+        "meanStrain": 0
+      }
+    },
+    {
+      "name": "idle-1200",
+      "finite": true,
+      "vertexCount": 4844,
+      "tetCount": 16913,
+      "initialVertexCount": 4844,
+      "revision": 0,
+      "failedFaces": 0,
+      "restVolume": 1.2194560308432056,
+      "freeMass": 1572.6886877788834,
+      "signedVolume": 1.21943067544141,
+      "volumeRatio": 0.9999792076129402,
+      "invertedVolumeFraction": 0.0000020483109412946228,
+      "edgeStrainRms": 0.008462711616812068,
+      "freeDisplacementRms": 0.012875379489819452,
+      "pinnedMovement": 0,
+      "floorPenetration": 0,
+      "min": [-0.7357126474380493, 0, -0.3521158695220947],
+      "max": [0.7329765558242798, 2.5426580905914307, 0.5080329179763794],
+      "span": [1.468689203262329, 2.5426580905914307, 0.8601487874984741],
+      "mechanicalComponents": [
+        {
+          "tetCount": 16913,
+          "firstTet": 0,
+          "restVolume": 1.2194560308432056,
+          "vertexCount": 4844,
+          "pinned": 1437,
+          "freeMass": 1572.6886877788834,
+          "centre": [
+            -0.005072864657943217, 1.2055485077003834, 0.04652451909985984
+          ],
+          "meanVelocity": [
+            0.0005040093682876395, 0.0001964625947329813,
+            -0.00017739846072472367
+          ]
+        }
+      ],
+      "detachedRestVolumeFraction": 0,
+      "faceComponents": 1,
+      "missingBoundaryFaces": 0,
+      "extraSurfaceFaces": 0,
+      "orientationErrors": 0,
+      "capPairs": 0,
+      "invalidCapPairs": 0,
+      "dyeMismatch": 0,
+      "originalMaterialMismatch": 0,
+      "materialCornerMismatches": 0,
+      "openSurfaceEdges": 0,
+      "nonManifoldEdges": 0,
+      "windingErrors": 0,
+      "info": {
+        "time": 10.000000000000073,
+        "steps": 1200,
+        "vertices": 4844,
+        "interfaces": 0,
+        "tetrahedra": 16913,
+        "regions": 1,
+        "restVolume": 1.2194560197764812,
+        "experiment": "jelly",
+        "geometry": "fine",
+        "materialModel": "neo-hookean",
+        "solverIterations": 24,
+        "solverSubsteps": 2,
+        "protocol": "tear",
+        "phase": "idle",
+        "tick": 1200,
+        "pose": "upright",
+        "meshOptions": {
+          "fracture": "none",
+          "pinnedFeet": true,
+          "spacing": 0.1,
+          "pinHeight": 0.48
+        },
+        "restBounds": {
+          "min": [-0.7329815626144409, 0, -0.34878578782081604],
+          "max": [0.7329314351081848, 2.55968976020813, 0.5080329179763794]
+        },
+        "bodyFixture": {
+          "halfWidth": 0.3,
+          "minY": 0.85,
+          "maxY": 1.2,
+          "heldNodes": 353
+        },
+        "settings": {
+          "softness": 0.55,
+          "fragility": 0.88,
+          "tearResponse": "soft",
+          "tearing": true,
+          "palette": "marble",
+          "fixedDt": 0.008333333333333333
+        },
+        "grip": false,
+        "demo": false,
+        "mutationPending": false,
+        "topologyRevision": 0,
+        "fractureSamplingTicks": 6,
+        "fracture": {
+          "topologyVersion": 0,
+          "originalVertexCount": 4844,
+          "vertexCount": 4844,
+          "tetCount": 16913,
+          "candidateFaceCount": 30224,
+          "brokenFaceCount": 0,
+          "exposedFaceCount": 0,
+          "addedVertices": 0,
+          "maxOpening": 1.1590533057699264,
+          "totalMass": 2323.2576229018136,
+          "freeMass": 1572.6886877788834,
+          "pinnedMass": 750.5689351229303,
+          "restVolume": 1.2194560308432056,
+          "components": [
+            {
+              "tetCount": 16913,
+              "nodeCount": 4844,
+              "restVolume": 1.2194560308432056,
+              "mass": 2323.257622901771,
+              "pinnedNodes": 1437
+            }
+          ]
+        },
+        "fracturePerformance": {
+          "checks": 200,
+          "splits": 0,
+          "snapshotMs": 7252.200000010431,
+          "checkpointMs": 17.599999949336052,
+          "assessMs": 5191.30000000447,
+          "allocateMs": 0,
+          "commitMs": 0,
+          "totalMs": 12461.499999970198,
+          "maxCheckMs": 67.69999999552965,
+          "draws": 769,
+          "drawsDuringMutation": 23
+        }
+      },
+      "plasticity": {
+        "yieldedTets": 0,
+        "maxStrain": 0,
+        "meanStrain": 0
+      }
+    },
+    {
+      "name": "idle-2400",
+      "finite": true,
+      "vertexCount": 4844,
+      "tetCount": 16913,
+      "initialVertexCount": 4844,
+      "revision": 0,
+      "failedFaces": 0,
+      "restVolume": 1.2194560308432056,
+      "freeMass": 1572.6886877788834,
+      "signedVolume": 1.2194359155305838,
+      "volumeRatio": 0.9999835046839631,
+      "invertedVolumeFraction": 2.2386914584114538e-7,
+      "edgeStrainRms": 0.008381624970572654,
+      "freeDisplacementRms": 0.012974113149957419,
+      "pinnedMovement": 0,
+      "floorPenetration": 0,
+      "min": [-0.7366266846656799, 0, -0.35215798020362854],
+      "max": [0.7330995202064514, 2.5425503253936768, 0.5080329179763794],
+      "span": [1.4697262048721313, 2.5425503253936768, 0.8601908981800079],
+      "mechanicalComponents": [
+        {
+          "tetCount": 16913,
+          "firstTet": 0,
+          "restVolume": 1.2194560308432056,
+          "vertexCount": 4844,
+          "pinned": 1437,
+          "freeMass": 1572.6886877788834,
+          "centre": [
+            -0.005128458726042488, 1.2055390757513877, 0.04647654396906741
+          ],
+          "meanVelocity": [
+            -0.0003730558312038843, -0.0013564512980059414,
+            0.0006781445165040843
+          ]
+        }
+      ],
+      "detachedRestVolumeFraction": 0,
+      "faceComponents": 1,
+      "missingBoundaryFaces": 0,
+      "extraSurfaceFaces": 0,
+      "orientationErrors": 0,
+      "capPairs": 0,
+      "invalidCapPairs": 0,
+      "dyeMismatch": 0,
+      "originalMaterialMismatch": 0,
+      "materialCornerMismatches": 0,
+      "openSurfaceEdges": 0,
+      "nonManifoldEdges": 0,
+      "windingErrors": 0,
+      "info": {
+        "time": 19.999999999999506,
+        "steps": 2400,
+        "vertices": 4844,
+        "interfaces": 0,
+        "tetrahedra": 16913,
+        "regions": 1,
+        "restVolume": 1.2194560197764812,
+        "experiment": "jelly",
+        "geometry": "fine",
+        "materialModel": "neo-hookean",
+        "solverIterations": 24,
+        "solverSubsteps": 2,
+        "protocol": "tear",
+        "phase": "idle",
+        "tick": 2400,
+        "pose": "upright",
+        "meshOptions": {
+          "fracture": "none",
+          "pinnedFeet": true,
+          "spacing": 0.1,
+          "pinHeight": 0.48
+        },
+        "restBounds": {
+          "min": [-0.7329815626144409, 0, -0.34878578782081604],
+          "max": [0.7329314351081848, 2.55968976020813, 0.5080329179763794]
+        },
+        "bodyFixture": {
+          "halfWidth": 0.3,
+          "minY": 0.85,
+          "maxY": 1.2,
+          "heldNodes": 353
+        },
+        "settings": {
+          "softness": 0.55,
+          "fragility": 0.88,
+          "tearResponse": "soft",
+          "tearing": true,
+          "palette": "marble",
+          "fixedDt": 0.008333333333333333
+        },
+        "grip": false,
+        "demo": false,
+        "mutationPending": false,
+        "topologyRevision": 0,
+        "fractureSamplingTicks": 6,
+        "fracture": {
+          "topologyVersion": 0,
+          "originalVertexCount": 4844,
+          "vertexCount": 4844,
+          "tetCount": 16913,
+          "candidateFaceCount": 30224,
+          "brokenFaceCount": 0,
+          "exposedFaceCount": 0,
+          "addedVertices": 0,
+          "maxOpening": 1.1725570244236785,
+          "totalMass": 2323.2576229018136,
+          "freeMass": 1572.6886877788834,
+          "pinnedMass": 750.5689351229303,
+          "restVolume": 1.2194560308432056,
+          "components": [
+            {
+              "tetCount": 16913,
+              "nodeCount": 4844,
+              "restVolume": 1.2194560308432056,
+              "mass": 2323.257622901771,
+              "pinnedNodes": 1437
+            }
+          ]
+        },
+        "fracturePerformance": {
+          "checks": 400,
+          "splits": 0,
+          "snapshotMs": 14270.70000012964,
+          "checkpointMs": 48.39999985694885,
+          "assessMs": 11590.000000059605,
+          "allocateMs": 0,
+          "commitMs": 0,
+          "totalMs": 25910.600000053644,
+          "maxCheckMs": 182.20000000298023,
+          "draws": 892,
+          "drawsDuringMutation": 43
+        }
+      },
+      "plasticity": {
+        "yieldedTets": 0,
+        "maxStrain": 0,
+        "meanStrain": 0
+      }
+    },
+    {
+      "name": "idle-7200",
+      "finite": true,
+      "vertexCount": 4844,
+      "tetCount": 16913,
+      "initialVertexCount": 4844,
+      "revision": 0,
+      "failedFaces": 0,
+      "restVolume": 1.2194560308432056,
+      "freeMass": 1572.6886877788834,
+      "signedVolume": 1.2194273447890163,
+      "volumeRatio": 0.99997647635219,
+      "invertedVolumeFraction": 0.000004018932928130491,
+      "edgeStrainRms": 0.009062471868638683,
+      "freeDisplacementRms": 0.012939752701125469,
+      "pinnedMovement": 0,
+      "floorPenetration": 0,
+      "min": [-0.7362450361251831, 0, -0.3519737720489502],
+      "max": [0.7331908345222473, 2.542274236679077, 0.5080329179763794],
+      "span": [1.4694358706474304, 2.542274236679077, 0.8600066900253296],
+      "mechanicalComponents": [
+        {
+          "tetCount": 16913,
+          "firstTet": 0,
+          "restVolume": 1.2194560308432056,
+          "vertexCount": 4844,
+          "pinned": 1437,
+          "freeMass": 1572.6886877788834,
+          "centre": [
+            -0.005021993680145127, 1.2054947168894588, 0.04648804106363814
+          ],
+          "meanVelocity": [
+            0.0014155685475413138, 0.00045487754295508347, 0.0006380807505603435
+          ]
+        }
+      ],
+      "detachedRestVolumeFraction": 0,
+      "faceComponents": 1,
+      "missingBoundaryFaces": 0,
+      "extraSurfaceFaces": 0,
+      "orientationErrors": 0,
+      "capPairs": 0,
+      "invalidCapPairs": 0,
+      "dyeMismatch": 0,
+      "originalMaterialMismatch": 0,
+      "materialCornerMismatches": 0,
+      "openSurfaceEdges": 0,
+      "nonManifoldEdges": 0,
+      "windingErrors": 0,
+      "info": {
+        "time": 59.999999999997236,
+        "steps": 7200,
+        "vertices": 4844,
+        "interfaces": 0,
+        "tetrahedra": 16913,
+        "regions": 1,
+        "restVolume": 1.2194560197764812,
+        "experiment": "jelly",
+        "geometry": "fine",
+        "materialModel": "neo-hookean",
+        "solverIterations": 24,
+        "solverSubsteps": 2,
+        "protocol": "tear",
+        "phase": "idle",
+        "tick": 7200,
+        "pose": "upright",
+        "meshOptions": {
+          "fracture": "none",
+          "pinnedFeet": true,
+          "spacing": 0.1,
+          "pinHeight": 0.48
+        },
+        "restBounds": {
+          "min": [-0.7329815626144409, 0, -0.34878578782081604],
+          "max": [0.7329314351081848, 2.55968976020813, 0.5080329179763794]
+        },
+        "bodyFixture": {
+          "halfWidth": 0.3,
+          "minY": 0.85,
+          "maxY": 1.2,
+          "heldNodes": 353
+        },
+        "settings": {
+          "softness": 0.55,
+          "fragility": 0.88,
+          "tearResponse": "soft",
+          "tearing": true,
+          "palette": "marble",
+          "fixedDt": 0.008333333333333333
+        },
+        "grip": false,
+        "demo": false,
+        "mutationPending": false,
+        "topologyRevision": 0,
+        "fractureSamplingTicks": 6,
+        "fracture": {
+          "topologyVersion": 0,
+          "originalVertexCount": 4844,
+          "vertexCount": 4844,
+          "tetCount": 16913,
+          "candidateFaceCount": 30224,
+          "brokenFaceCount": 0,
+          "exposedFaceCount": 0,
+          "addedVertices": 0,
+          "maxOpening": 1.1725570244236785,
+          "totalMass": 2323.2576229018136,
+          "freeMass": 1572.6886877788834,
+          "pinnedMass": 750.5689351229303,
+          "restVolume": 1.2194560308432056,
+          "components": [
+            {
+              "tetCount": 16913,
+              "nodeCount": 4844,
+              "restVolume": 1.2194560308432056,
+              "mass": 2323.257622901771,
+              "pinnedNodes": 1437
+            }
+          ]
+        },
+        "fracturePerformance": {
+          "checks": 1200,
+          "splits": 0,
+          "snapshotMs": 43614.300000056624,
+          "checkpointMs": 242.5999999344349,
+          "assessMs": 32360.399999931455,
+          "allocateMs": 0,
+          "commitMs": 0,
+          "totalMs": 76220.79999990016,
+          "maxCheckMs": 182.20000000298023,
+          "draws": 1162,
+          "drawsDuringMutation": 123
+        }
+      },
+      "plasticity": {
+        "yieldedTets": 0,
+        "maxStrain": 0,
+        "meanStrain": 0
+      }
+    }
+  ],
+  "shortDrags": [],
+  "geometrySwitching": [
+    {
+      "preset": "standard",
+      "tetrahedra": 7299,
+      "vertices": 2244,
+      "solverSubsteps": 1
+    },
+    {
+      "preset": "fine",
+      "tetrahedra": 16913,
+      "vertices": 4844,
+      "solverSubsteps": 2
+    },
+    {
+      "preset": "fine",
+      "tetrahedra": 16913,
+      "vertices": 4844,
+      "solverSubsteps": 2
+    }
+  ],
+  "tablet": {
+    "viewport": 1024,
+    "document": 1024,
+    "canvasCount": 1,
+    "choices": [
+      {
+        "label": "Standard",
+        "height": 44
+      },
+      {
+        "label": "Fine",
+        "height": 44
+      },
+      {
+        "label": "Soft tear",
+        "height": 44
+      },
+      {
+        "label": "Crumble",
+        "height": 44
+      },
+      {
+        "label": "Continuous jelly",
+        "height": 44
+      },
+      {
+        "label": "Particle jelly",
+        "height": 44
+      },
+      {
+        "label": "Fine crush",
+        "height": 44
+      },
+      {
+        "label": "Limb pull",
+        "height": 44
+      },
+      {
+        "label": "Squeeze & release",
+        "height": 54
+      },
+      {
+        "label": "Stretch & release",
+        "height": 54
+      },
+      {
+        "label": "Pull to tear",
+        "height": 44
+      }
+    ],
+    "materialControls": [
+      {
+        "label": "Softness55%",
+        "height": 44
+      },
+      {
+        "label": "Fragility88%",
+        "height": 44
+      },
+      {
+        "label": "Allow tearing",
+        "height": 44
+      }
+    ]
+  },
+  "phone": {
+    "viewport": 390,
+    "document": 390,
+    "canvasCount": 1,
+    "choices": [
+      {
+        "label": "Standard",
+        "height": 44
+      },
+      {
+        "label": "Fine",
+        "height": 44
+      },
+      {
+        "label": "Soft tear",
+        "height": 44
+      },
+      {
+        "label": "Crumble",
+        "height": 44
+      },
+      {
+        "label": "Continuous jelly",
+        "height": 44
+      },
+      {
+        "label": "Particle jelly",
+        "height": 44
+      },
+      {
+        "label": "Fine crush",
+        "height": 44
+      },
+      {
+        "label": "Limb pull",
+        "height": 44
+      },
+      {
+        "label": "Squeeze & release",
+        "height": 44
+      },
+      {
+        "label": "Stretch & release",
+        "height": 44
+      },
+      {
+        "label": "Pull to tear",
+        "height": 44
+      }
+    ],
+    "materialControls": [
+      {
+        "label": "Softness55%",
+        "height": 44
+      },
+      {
+        "label": "Fragility88%",
+        "height": 44
+      },
+      {
+        "label": "Allow tearing",
+        "height": 44
+      }
+    ]
+  }
+}

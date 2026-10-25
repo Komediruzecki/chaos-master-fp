@@ -1,0 +1,36 @@
+{
+  "method": "Node CPU-only repeated Fine mesh material checks: 60 timed updates after 20 warmup updates, with no topology commits. Ordinary browser playback is measured separately.",
+  "tetrahedra": 16913,
+  "before": [
+    {
+      "stretch": 1.01,
+      "plasticMs": 7.70525665,
+      "assessMs": 9.42594035
+    },
+    {
+      "stretch": 1.55,
+      "plasticMs": 9.16908552,
+      "assessMs": 11.11502087
+    }
+  ],
+  "after": [
+    {
+      "stretch": 1.01,
+      "plasticMs": 3.82397475,
+      "assessMs": 7.89132107
+    },
+    {
+      "stretch": 1.55,
+      "plasticMs": 5.61362647,
+      "assessMs": 9.59924442
+    }
+  ],
+  "equivalence": {
+    "deformationHistories": 512,
+    "stepsPerHistory": 10,
+    "plasticStates": "exactly equal",
+    "tensileTensors": 1024,
+    "maximumTensorDifference": 0
+  },
+  "scope": "Explicit small-matrix products and scalar arguments preserve material law, iteration counts and geometry."
+}

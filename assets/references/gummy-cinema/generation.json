@@ -1,0 +1,14 @@
+{
+  "tool": "Built-in ChatGPT image_gen",
+  "purpose": "Concept art targets, not screenshots of the renderer",
+  "images": [
+    {
+      "file": "glass-board-concept.png",
+      "prompt": "Use case: stylized-concept. Create a premium 3D art direction reference for a real-time gummy chess film, landscape 16:9. A physically correct 8x8 chess board modeled as a substantial beveled smoked quartz slab, alternating pale frosted sea-glass and deep charcoal teal glass squares, polished dark edge, resting on a near-black studio surface. A few classic chess pieces made of translucent chewy candy: sculpted horse knight in sapphire/teal, pawn with small bear ears in cherry/amber, elegant bishop, queen. Rich candy color absorption, tiny bubbles, soft molded edges, believable glossy highlights. Cinematic low three-quarter close camera, 65mm product photography, a candy pawn suspended just above a knight as it squashes into a juicy soft puddle, delicate colored caustic pools visible across light squares. Large softbox rim and warm low sidelight, subtle depth of field but the chess move must be legible. Board material clearly distinct from candy, tasteful restrained luxury, no fire, no extra objects, no text, no logos, no watermark. This is a visual target for a WebGPU procedural board, keep the board practical flat tiled top and straight beveled slab, not elaborate ornament."
+    },
+    {
+      "file": "lava-board-concept.png",
+      "prompt": "Use case: stylized-concept. Landscape 16:9 cinematic art direction reference for a gummy chess WebGPU film. Show a real 8x8 chessboard modeled as a thick beveled obsidian slab with alternating dark plum-black polished squares and warm copper-amber translucent squares, restrained thin orange molten veins inside stone, no external flames or sparks, flat playable surface. A classic translucent teal sapphire gummy queen with softly molded crown and base is making a crushing capture of a cherry-red gummy rook; the rook is squashy candy, soft tears and lobes pooling onto its square, not glass shards. A few distant classic candy pieces for depth. Tight low three-quarter product-shot camera, sophisticated studio darkness, large soft stripbox reflections tracing candy contours, warm edge glow from board veins, turquoise and cherry caustics visible on the copper squares, subtle haze-free depth of field. Material contrast is key: flowing luminous soft candy vs rigid polished deep dark board. Realistic product photography reference, elegant restrained color, beautiful and readable capture action, no text, logos or watermark. Practical board with straight bevels, no carved ornament; do not replace chess tile pattern with arbitrary geometry."
+    }
+  ]
+}

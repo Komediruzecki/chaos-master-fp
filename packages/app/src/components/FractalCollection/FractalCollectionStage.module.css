@@ -1,0 +1,15 @@
+/* Projected comparison annotations follow the specimens without taking pointer input. */
+.specimenLabel {
+  position: absolute;
+  transform: translate(-50%, calc(-100% - 8px));
+  padding: 5px 8px;
+  border: 1px solid rgb(219 237 238 / 24%);
+  border-radius: 4px;
+  background: rgb(12 23 26 / 88%);
+  color: #eef5f3;
+  font: var(--la-t-caption);
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+}

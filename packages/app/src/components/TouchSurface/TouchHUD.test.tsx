@@ -16,16 +16,30 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createMockCommandContext } from '@/webmcp/testUtils'
 import { TouchHUD } from './TouchHUD'
 
-function mount() {
+function mount(onInspectChess?: () => void) {
   const ctx = createMockCommandContext()
   render(() => (
-    <TouchHUD ctx={ctx} flame={ctx.flameDescriptor} onOpenSettings={vi.fn()} />
+    <TouchHUD
+      ctx={ctx}
+      flame={ctx.flameDescriptor}
+      onOpenSettings={vi.fn()}
+      onInspectChess={onInspectChess}
+    />
   ))
   return ctx
 }
 
 describe('TouchHUD popovers and the pill', () => {
   afterEach(cleanup)
+
+  it('opens chess inspection from the phone menu and closes the menu', () => {
+    const inspect = vi.fn()
+    mount(inspect)
+    screen.getByRole('button', { name: 'More' }).click()
+    screen.getByRole('menuitem', { name: 'Inspect for chess' }).click()
+    expect(inspect).toHaveBeenCalledOnce()
+    expect(screen.queryByRole('menu')).toBeNull()
+  })
 
   it('opens the More list beside the pill, not inside it', () => {
     mount()

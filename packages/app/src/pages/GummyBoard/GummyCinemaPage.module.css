@@ -1,0 +1,322 @@
+/* Film controls keep a separate scroll owner from the full-height canvas. */
+.page {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  background: #151b1e;
+  color: #334852;
+  font: 14px/1.5 var(--font-sans, sans-serif);
+}
+.stage {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.stage canvas {
+  object-fit: contain;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.portrait {
+  width: min(100%, calc(100dvh * 9 / 16));
+  justify-self: center;
+}
+.sidebar {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  background: #f7f5ed;
+  padding: 24px 18px max(24px, env(safe-area-inset-bottom));
+}
+.back {
+  color: #496575;
+  text-decoration: underline;
+  font-size: 12px;
+}
+.sidebar h1 {
+  margin: 18px 0 4px;
+  font:
+    500 30px/1.1 Georgia,
+    serif;
+  color: #273b45;
+  letter-spacing: -0.7px;
+}
+.intro {
+  margin: 10px 0 20px;
+  color: #647780;
+}
+.shots {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 0;
+}
+.button,
+.fields select,
+.fields input:not([type='range']),
+.fields textarea,
+.recipeText,
+.restore {
+  appearance: auto;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid #bfcbc8;
+  border-radius: 7px;
+  color: #304b59;
+  background: #fffdf8;
+  font: 14px/1.4 var(--font-sans, sans-serif);
+}
+.button,
+.restore {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.button:hover:not(:disabled) {
+  background: #e6ece6;
+}
+.button[aria-pressed='true'],
+.button.apply {
+  background: #345e62;
+  color: #fff;
+  border-color: #345e62;
+}
+.button:disabled,
+.fields:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.button:focus-visible,
+.fields :is(input, select, textarea):focus-visible,
+.section > summary:focus-visible,
+.recipeText:focus-visible {
+  outline: 2px solid #288b9c;
+  outline-offset: 2px;
+}
+.playback {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin: 12px 0;
+}
+.label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-top: 12px;
+}
+.sidebar input[type='range'] {
+  width: 100%;
+  height: 44px;
+  accent-color: #345e62;
+  margin: 0;
+}
+.help {
+  color: #647680;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.fields {
+  margin: 24px 0 20px;
+  padding: 0;
+  min-width: 0;
+  border: 0;
+}
+.fields legend {
+  padding: 0 0 10px;
+  color: #334852;
+  font-size: 12px;
+  font-weight: 650;
+}
+.fields label {
+  display: block;
+  margin: 12px 0 5px;
+  font-size: 12px;
+}
+.fields textarea,
+.recipeText {
+  resize: vertical;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+/* Disclosure chrome belongs here; nested preset and recorder controls own their styling. */
+.section {
+  border-top: 1px solid #d4dcd6;
+  min-width: 0;
+}
+.section > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  padding: 12px 0;
+  cursor: pointer;
+  list-style: none;
+  color: #334852;
+  font-size: 13px;
+  font-weight: 650;
+  touch-action: manipulation;
+}
+.section > summary::-webkit-details-marker {
+  display: none;
+}
+.section > summary:hover {
+  color: #1d5158;
+}
+.section > summary svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+.section[open] > summary svg {
+  transform: rotate(180deg);
+}
+.sectionBody {
+  padding: 0 0 18px;
+  min-width: 0;
+}
+.sectionBody > :first-child {
+  margin-top: 0;
+}
+.compact {
+  border-top: 0;
+}
+.compact > summary {
+  font-size: 12px;
+  font-weight: 500;
+}
+.compact .sectionBody {
+  padding-bottom: 0;
+}
+.squares {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.fields .apply {
+  margin-top: 16px;
+}
+.recipeHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 14px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.button.copyButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: auto;
+  min-width: 88px;
+  padding: 8px 10px;
+}
+.copyButton svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+}
+.recipeText {
+  display: block;
+  margin: 8px 0;
+  font-family: var(--font-mono, monospace);
+}
+.copyStatus {
+  color: #355c50;
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.button.apply:hover:not(:disabled),
+.button[aria-pressed='true']:hover:not(:disabled) {
+  color: #fff;
+  background: #254c52;
+  border-color: #254c52;
+}
+.button.apply:active:not(:disabled),
+.button[aria-pressed='true']:active:not(:disabled) {
+  color: #fff;
+  background: #1d3e44;
+}
+.button:active:not(:disabled) {
+  background: #d7e2d9;
+}
+.status,
+.error {
+  padding: 10px;
+  border-radius: 6px;
+  background: #e1e9e4;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.error {
+  background: #f5e1d8;
+  color: #713f30;
+}
+.caption {
+  pointer-events: none;
+  position: absolute;
+  left: 28px;
+  top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: #eef2ec;
+  text-shadow: 0 1px 8px #000;
+}
+.caption span {
+  font-size: 11px;
+  letter-spacing: 1.5px;
+}
+.caption strong {
+  font:
+    500 26px Georgia,
+    serif;
+}
+.clean {
+  grid-template-columns: 1fr;
+}
+.restore {
+  position: fixed;
+  left: 14px;
+  bottom: 14px;
+  width: auto;
+  opacity: 0.92;
+}
+.restore:hover,
+.restore:focus-visible {
+  opacity: 1;
+}
+@media (max-width: 760px) {
+  .page:not(.clean) {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(240px, 55dvh) minmax(0, 1fr);
+  }
+  .sidebar {
+    padding: 18px 16px max(24px, env(safe-area-inset-bottom));
+  }
+  .portrait {
+    width: min(100%, calc(55dvh * 9 / 16));
+  }
+  .clean .portrait {
+    width: min(100%, calc(100dvh * 9 / 16));
+  }
+  .caption {
+    left: 16px;
+    top: 16px;
+  }
+}
+
+@media (pointer: coarse), (max-width: 760px) {
+  .sidebar :is(input:not([type='range']), select, textarea) {
+    font-size: 16px;
+  }
+}

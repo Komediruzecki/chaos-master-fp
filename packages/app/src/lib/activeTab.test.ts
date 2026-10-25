@@ -10,6 +10,7 @@ describe('tab routing by fragment', () => {
     expect(tabFromHash('#arcadex')).toBe('workspace')
   })
   it('extracts only valid arcade modes', () => {
+    expect(arcadeModeFromHash('#arcade=chess')).toBe('chess')
     expect(arcadeModeFromHash('#arcade=cinema')).toBe('cinema')
     expect(arcadeModeFromHash('#arcade=bogus')).toBeUndefined()
     expect(arcadeModeFromHash('#arcade')).toBeUndefined()

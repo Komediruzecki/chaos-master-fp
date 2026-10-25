@@ -4,6 +4,7 @@ import { buildMoreMenu } from './moreMenuItems'
 
 const LABELS = [
   'Save for later',
+  'Inspect for chess',
   'Export options',
   'Share link',
   'Advanced tools',
@@ -36,6 +37,7 @@ describe('buildMoreMenu', () => {
   it('lists every item the host can do, in one order', () => {
     const handlers = {
       onSaveForLater: vi.fn(),
+      onInspectChess: vi.fn(),
       onOpenExportModal: vi.fn(),
       onShare: vi.fn(),
       onOpenDrawer: vi.fn(),

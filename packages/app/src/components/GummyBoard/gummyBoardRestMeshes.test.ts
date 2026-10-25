@@ -1,0 +1,299 @@
+/** Bake lifecycle checks: exact-size cache, bounded temporary ownership and failure cleanup. */
+import { d } from 'typegpu'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createGummyBoardRestMeshes } from './gummyBoardRestMeshes'
+import type { TgpuRoot } from 'typegpu'
+
+const mocks = vi.hoisted(() => ({ surface: vi.fn() }))
+vi.mock('../GummyBear/marchingGummySurface', () => ({
+  createMarchingGummySurface: mocks.surface,
+}))
+
+function harness() {
+  const buffers: {
+    bytes: number
+    destroy: ReturnType<typeof vi.fn>
+    read: ReturnType<typeof vi.fn>
+    write: ReturnType<typeof vi.fn>
+  }[] = []
+  const copies: ReturnType<typeof vi.fn>[] = []
+  const device = {
+    createCommandEncoder: vi.fn(() => {
+      const copyBufferToBuffer = vi.fn()
+      copies.push(copyBufferToBuffer)
+      return { copyBufferToBuffer, finish: vi.fn(() => ({})) }
+    }),
+    queue: {
+      submit: vi.fn(),
+      onSubmittedWorkDone: vi.fn(() => Promise.resolve()),
+    },
+  }
+  const root = {
+    device,
+    createBuffer: vi.fn((schema: Parameters<typeof d.sizeOf>[0]) => {
+      const result = {
+        bytes: d.sizeOf(schema),
+        destroy: vi.fn(),
+        read: vi.fn(() =>
+          Promise.resolve(
+            Array.from({ length: d.sizeOf(schema) / 48 }, () => ({
+              position: d.vec4f(0.395, 1.995, 0, 1),
+              normal: d.vec4f(1, 0, 0, 0),
+              rest: d.vec4f(0.395, 1.995, 0, 1),
+            })),
+          ),
+        ),
+        write: vi.fn(),
+        $usage: () => result,
+      }
+      buffers.push(result)
+      return result
+    }),
+    unwrap: (value: unknown) => value,
+  }
+  return {
+    root: root as unknown as TgpuRoot,
+    device: device as unknown as GPUDevice,
+    buffers,
+    copies,
+    fence: device.queue.onSubmittedWorkDone,
+  }
+}
+const surface = (vertexCount = 18, overflow = false) => ({
+  vertices: {},
+  encode: vi.fn(),
+  destroy: vi.fn(),
+  readStats: vi.fn(() => Promise.resolve({ vertexCount, overflow })),
+})
+
+beforeEach(() => mocks.surface.mockReset())
+describe('gummy board rest mesh ownership', () => {
+  it('bakes only requested unique moulds for isolated inspection', async () => {
+    const test = harness(),
+      pawn = surface(24)
+    mocks.surface.mockReturnValue(pawn)
+    const result = await createGummyBoardRestMeshes(
+      test.root,
+      test.device,
+      0.08,
+      'classic',
+      undefined,
+      undefined,
+      ['pawn', 'pawn'],
+    )
+    expect([...result.meshes.keys()]).toEqual(['pawn'])
+    expect(mocks.surface).toHaveBeenCalledOnce()
+    expect(test.buffers).toHaveLength(2)
+    expect(pawn.destroy).toHaveBeenCalledOnce()
+    result.destroy()
+    for (const buffer of test.buffers)
+      expect(buffer.destroy).toHaveBeenCalledOnce()
+  })
+  it('uses the candidate sample spacing and bounds without reshaping it to the regular sculpted mould', async () => {
+    const test = harness()
+    mocks.surface.mockImplementation(() => surface(18))
+    const source = {
+      restPositions: new Float32Array([0, 0.3, 0, 1]),
+      bounds: { min: [-0.1, 0.2, -0.1], max: [0.1, 0.4, 0.1] },
+      spacing: 0.04,
+    }
+    const result = await createGummyBoardRestMeshes(
+      test.root,
+      test.device,
+      0.08,
+      'sculpted',
+      undefined,
+      undefined,
+      ['rook', 'pawn'],
+      { rook: source },
+    )
+    expect(mocks.surface.mock.calls[0]![2]).toMatchObject({
+      restPositions: source.restPositions,
+      gridBounds: source.bounds,
+      spacing: 0.04,
+      particleCount: 1,
+    })
+    expect(mocks.surface.mock.calls[1]![2].spacing).toBe(0.08)
+    expect(test.buffers[1]!.read).not.toHaveBeenCalled()
+    expect(test.buffers[1]!.write).not.toHaveBeenCalled()
+    expect(test.buffers[3]!.read).toHaveBeenCalledOnce()
+    result.destroy()
+    for (const buffer of test.buffers)
+      expect(buffer.destroy).toHaveBeenCalledOnce()
+  })
+  it('rejects invalid candidate samples before allocating a GPU buffer', async () => {
+    const test = harness()
+    await expect(
+      createGummyBoardRestMeshes(
+        test.root,
+        test.device,
+        0.08,
+        'classic',
+        undefined,
+        undefined,
+        ['rook'],
+        {
+          rook: {
+            restPositions: new Float32Array([NaN, 0, 0, 1]),
+            bounds: { min: [-1, 0, -1], max: [1, 1, 1] },
+            spacing: 0.04,
+          },
+        },
+      ),
+    ).rejects.toThrow(/finite packed/)
+    expect(test.buffers).toHaveLength(0)
+    expect(mocks.surface).not.toHaveBeenCalled()
+  })
+  it('stops baking after a skipped capture and releases the in-flight mesh before starting another', async () => {
+    const test = harness(),
+      abort = new AbortController(),
+      pawn = surface()
+    mocks.surface.mockReturnValue(pawn)
+    test.fence.mockImplementationOnce(() => {
+      abort.abort()
+      return Promise.resolve()
+    })
+    await expect(
+      createGummyBoardRestMeshes(
+        test.root,
+        test.device,
+        0.08,
+        'classic',
+        abort.signal,
+      ),
+    ).rejects.toThrow()
+    expect(mocks.surface).toHaveBeenCalledOnce()
+    expect(pawn.destroy).toHaveBeenCalledOnce()
+    for (const buffer of test.buffers)
+      expect(buffer.destroy).toHaveBeenCalledOnce()
+  })
+  it('finishes and releases each bake before allocating the next, retaining exact-size meshes', async () => {
+    const test = harness()
+    const pawn = surface(18),
+      rook = surface(27)
+    mocks.surface
+      .mockImplementationOnce(() => pawn)
+      .mockImplementationOnce(() => {
+        expect(pawn.destroy).toHaveBeenCalledOnce()
+        expect(test.buffers[0]!.destroy).toHaveBeenCalledOnce()
+        return rook
+      })
+      .mockImplementation(() => surface(9))
+    const result = await createGummyBoardRestMeshes(
+      test.root,
+      test.device,
+      0.08,
+    )
+    expect(result.meshes.get('pawn')!.vertexCount).toBe(18)
+    expect(result.meshes.get('rook')!.vertexCount).toBe(27)
+    expect(
+      test.buffers
+        .map((buffer) => buffer.bytes)
+        .filter((_, index) => index % 2 === 1),
+    ).toEqual([18 * 48, 27 * 48, 9 * 48, 9 * 48, 9 * 48, 9 * 48])
+    expect(test.copies[1]).toHaveBeenCalledWith(
+      pawn.vertices,
+      0,
+      result.meshes.get('pawn')!.vertices,
+      0,
+      18 * 48,
+    )
+    expect(test.copies[3]).toHaveBeenCalledWith(
+      rook.vertices,
+      0,
+      result.meshes.get('rook')!.vertices,
+      0,
+      27 * 48,
+    )
+    expect(rook.destroy).toHaveBeenCalledOnce()
+    expect(result.meshes.size).toBe(6)
+    expect(mocks.surface).toHaveBeenCalledTimes(6)
+    expect(test.buffers[1]!.destroy).not.toHaveBeenCalled()
+    for (const buffer of test.buffers) {
+      expect(buffer.read).not.toHaveBeenCalled()
+      expect(buffer.write).not.toHaveBeenCalled()
+    }
+    result.destroy()
+    result.destroy()
+    for (const buffer of test.buffers)
+      expect(buffer.destroy).toHaveBeenCalledOnce()
+  })
+  it('refines only compact sculpted caches once and releases a failed refinement readback', async () => {
+    const test = harness()
+    mocks.surface.mockImplementation(() => surface(18))
+    const result = await createGummyBoardRestMeshes(
+      test.root,
+      test.device,
+      0.08,
+      'sculpted',
+    )
+    for (const [index, buffer] of test.buffers.entries()) {
+      if (index % 2 === 0) {
+        expect(buffer.read).not.toHaveBeenCalled()
+        expect(buffer.write).not.toHaveBeenCalled()
+      } else {
+        expect(buffer.read).toHaveBeenCalledOnce()
+        expect(buffer.write).toHaveBeenCalledOnce()
+      }
+    }
+    expect(
+      new Float32Array(
+        test.buffers[1]!.write.mock.calls[0]![0] as ArrayBuffer,
+      )[0],
+    ).toBeCloseTo(0.37)
+    result.destroy()
+    for (const buffer of test.buffers)
+      expect(buffer.destroy).toHaveBeenCalledOnce()
+
+    const failed = harness()
+    failed.fence.mockImplementationOnce(() => {
+      failed.buffers[1]!.read.mockRejectedValueOnce(
+        new Error('Readback failed'),
+      )
+      return Promise.resolve()
+    })
+    await expect(
+      createGummyBoardRestMeshes(failed.root, failed.device, 0.08, 'sculpted'),
+    ).rejects.toThrow('Readback failed')
+    for (const buffer of failed.buffers)
+      expect(buffer.destroy).toHaveBeenCalledOnce()
+  })
+  it('rejects a truncated bake rather than caching an incomplete visible mould', async () => {
+    const test = harness(),
+      failed = surface(300000, true)
+    mocks.surface.mockReturnValueOnce(failed)
+    await expect(
+      createGummyBoardRestMeshes(test.root, test.device, 0.08),
+    ).rejects.toThrow(/completely/)
+    expect(mocks.surface).toHaveBeenCalledOnce()
+    expect(failed.destroy).toHaveBeenCalledOnce()
+    expect(test.buffers[0]!.destroy).toHaveBeenCalledOnce()
+    expect(test.buffers).toHaveLength(1)
+  })
+  it('releases a completed pawn cache when the rook readback fails', async () => {
+    const test = harness(),
+      pawn = surface(),
+      rook = surface()
+    rook.readStats.mockRejectedValueOnce(new Error('Device lost'))
+    mocks.surface.mockReturnValueOnce(pawn).mockReturnValueOnce(rook)
+    await expect(
+      createGummyBoardRestMeshes(test.root, test.device, 0.08),
+    ).rejects.toThrow('Device lost')
+    for (const buffer of test.buffers)
+      expect(buffer.destroy).toHaveBeenCalledOnce()
+    expect(pawn.destroy).toHaveBeenCalledOnce()
+    expect(rook.destroy).toHaveBeenCalledOnce()
+  })
+  it('releases the compact destination if the submitted copy fails', async () => {
+    const test = harness(),
+      failed = surface()
+    mocks.surface.mockReturnValueOnce(failed)
+    test.fence.mockRejectedValueOnce(new Error('Copy failed'))
+    await expect(
+      createGummyBoardRestMeshes(test.root, test.device, 0.08),
+    ).rejects.toThrow('Copy failed')
+    for (const buffer of test.buffers)
+      expect(buffer.destroy).toHaveBeenCalledOnce()
+    expect(failed.destroy).toHaveBeenCalledOnce()
+  })
+})

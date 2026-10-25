@@ -1,0 +1,268 @@
+/** Capture effects survive replay and session recovery without altering the legal game or future branch. */
+import { cleanup, renderHook } from '@solidjs/testing-library'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { GUMMY_BOARD_EARLY_SHEAR_MOTION } from '@/components/GummyBoard/gummyBoardShots'
+import { createGummyAuthoredPawn } from '@/simulation/gummy/gummyAuthoredPawn'
+import { createGummyMatchCinemaRecipe, GUMMY_MATCH_SESSION_KEY, loadGummyMatchSession, } from './gummyMatchSession'
+import { useGummyMatch } from './useGummyMatch'
+
+beforeEach(() => {
+  const entries = new Map<string, string>()
+  vi.stubGlobal('sessionStorage', {
+    getItem: (key: string) => entries.get(key) ?? null,
+    setItem: (key: string, value: string) => entries.set(key, value),
+    removeItem: (key: string) => entries.delete(key),
+  })
+})
+afterEach(() => {
+  cleanup()
+  vi.unstubAllGlobals()
+})
+const line = '1. e4 d5 2. exd5 Qxd5 3. Nc3 *'
+
+function matchAtCapture() {
+  const { result: match } = renderHook(useGummyMatch)
+  expect(match.importPgn(line)).toBe(true)
+  match.seek(3)
+  return match
+}
+
+describe('saved capture presentation', () => {
+  it('applies a preview handoff to the saved match, then persists pure/glass comparison without rewriting the capture', () => {
+    const originalUrl = window.location.href
+    try {
+      const prior = matchAtCapture()
+      const beforeFen = prior.position().fen
+      const beforeCapture = structuredClone(prior.currentPresentation())
+      window.history.replaceState(
+        null,
+        '',
+        '/gummy?view=match&collection=wild-canopy&enclosure=glass',
+      )
+      const { result: match } = renderHook(useGummyMatch)
+      expect(match.position().fen).toBe(beforeFen)
+      expect(match.appearance().nativeCollection).toEqual({
+        version: 1,
+        id: 'wild-canopy',
+        enclosure: 'glass',
+      })
+      match.updateAppearance({
+        nativeCollection: { version: 1, id: 'wild-canopy', enclosure: 'pure' },
+      })
+      match.replay()
+      expect(match.activePresentation()).toEqual(beforeCapture)
+      expect(match.appearance().nativeCollection?.enclosure).toBe('pure')
+      match.finishAnimation()
+      const { result: restored } = renderHook(useGummyMatch)
+      expect(restored.position().fen).toBe(beforeFen)
+      expect(restored.appearance().nativeCollection?.enclosure).toBe('pure')
+      expect(restored.currentPresentation()).toEqual(beforeCapture)
+    } finally {
+      window.history.replaceState(null, '', originalUrl)
+    }
+  })
+  it('pins the authored pawn at capture time through editing, reload and Cinema', () => {
+    const { result: match } = renderHook(useGummyMatch)
+    const source = createGummyAuthoredPawn({ openness: 0.4 }, 'First lattice')
+    match.updateAppearance({ authoredPawn: source })
+    expect(match.importPgn(line)).toBe(true)
+    match.seek(3)
+    const stored = structuredClone(match.currentPresentation()!)
+    expect(stored.appearance.authoredPawn).toEqual(source)
+    expect(match.currentPresentation()!.appearance.authoredPawn).not.toBe(
+      source,
+    )
+    expect(
+      match.currentPresentation()!.appearance.authoredPawn!.recipe,
+    ).not.toBe(source.recipe)
+    source.recipe.openness = 0.7
+    match.updateAppearance({
+      authoredPawn: createGummyAuthoredPawn({ openness: 0.8 }, 'Next lattice'),
+    })
+    match.replay()
+    expect(match.activePresentation()).toEqual(stored)
+    match.finishAnimation()
+    const { result: restored } = renderHook(useGummyMatch)
+    expect(restored.appearance().authoredPawn!.recipe.openness).toBe(0.8)
+    expect(restored.currentPresentation()).toEqual(stored)
+    const recipe = createGummyMatchCinemaRecipe(
+      restored.currentMove()!,
+      restored.appearance(),
+      restored.currentPresentation(),
+    )
+    expect(recipe.authoredPawn).toEqual(stored.appearance.authoredPawn)
+    recipe.authoredPawn!.recipe.openness = 0.6
+    expect(restored.currentPresentation()).toEqual(stored)
+    restored.updateAppearance({ authoredPawn: undefined })
+    expect(
+      loadGummyMatchSession().session!.appearance!.authoredPawn,
+    ).toBeUndefined()
+    expect(loadGummyMatchSession().session!.captures![0]).toEqual(stored)
+  })
+
+  it('does not add a new authored pawn to an older gummy capture', () => {
+    const match = matchAtCapture()
+    match.updateAppearance({ authoredPawn: createGummyAuthoredPawn() })
+    const recipe = createGummyMatchCinemaRecipe(
+      match.currentMove()!,
+      match.appearance(),
+      match.currentPresentation(),
+    )
+    expect(recipe.authoredPawn).toBeUndefined()
+  })
+
+  it('keeps the original straight press in the rotation across imported captures, reload and new moves', () => {
+    const { result: initial } = renderHook(useGummyMatch)
+    expect(initial.importPgn('1. e4 d5 2. exd5 Qxd5 *')).toBe(true)
+    initial.seek(4)
+    const firstTwo = structuredClone(loadGummyMatchSession().session!.captures!)
+    const { result: match } = renderHook(useGummyMatch)
+    for (const [from, to] of [
+      ['b1', 'c3'],
+      ['d5', 'e5'],
+      ['f1', 'e2'],
+      ['c8', 'g4'],
+      ['g1', 'f3'],
+      ['g4', 'f3'],
+      ['g2', 'f3'],
+    ] as const) {
+      match.commit({ from, to })
+      expect(match.error()).toBe('')
+      match.finishAnimation()
+    }
+    const saved = loadGummyMatchSession().session!
+    expect(saved.captures).toHaveLength(4)
+    expect(saved.captures!.slice(0, 2)).toEqual(firstTwo)
+    const ids = saved.captures!.map((capture) => capture.mechanic!.id)
+    expect(new Set(ids.slice(0, 3)).size).toBe(3)
+    expect(ids.slice(0, 3)).toContain('press-settle')
+    expect(ids[3]).not.toBe(ids[2])
+    const press = saved.captures!.find(
+      (capture) => capture.mechanic!.id === 'press-settle',
+    )!
+    expect(press.motion.shearOnset).toBe(1)
+    expect(press.motion.contactHold).toBe(0)
+    expect(press.motion.twistAngle).toBeUndefined()
+    const { result: replay } = renderHook(useGummyMatch)
+    replay.seek(press.ply)
+    replay.replay()
+    expect(replay.activePresentation()).toEqual(press)
+  })
+
+  it('keeps the chosen motion and material through skip, replay, reload and Cinema handoff', () => {
+    const match = matchAtCapture()
+    const original = structuredClone(match.currentPresentation()!)
+    expect(original.mechanic?.version).toBe(1)
+    const capture = match.currentMove()!
+    const fen = match.position().fen
+    match.updateAppearance({
+      theme: 'lava',
+      scale: 0.95,
+      settings: {
+        ...match.appearance().settings,
+        softness: 0.2,
+        palette: 'lagoon',
+      },
+    })
+    match.replay()
+    expect(match.activePresentation()).toEqual(original)
+    match.finishAnimation()
+    expect(match.position().fen).toBe(fen)
+    match.replay()
+    expect(match.activePresentation()).toEqual(original)
+    match.finishAnimation()
+    const { result: restored } = renderHook(useGummyMatch)
+    expect(restored.appearance().theme).toBe('lava')
+    expect(restored.currentPresentation()).toEqual(original)
+    const recipe = createGummyMatchCinemaRecipe(
+      capture,
+      restored.appearance(),
+      restored.currentPresentation(),
+    )
+    expect(recipe.shot.motion).toEqual(original.motion)
+    expect(recipe.shot.mechanic).toEqual(original.mechanic)
+    expect(recipe.material).toEqual(original.appearance.settings)
+    expect(recipe.scale).toBe(original.appearance.scale)
+    expect(recipe.shot.boardTheme).toBe(original.appearance.theme)
+  })
+
+  it('does not repeat a mechanic on consecutive captures and keeps import choices deterministic', () => {
+    const match = matchAtCapture()
+    const first = match.currentPresentation()!
+    match.seek(4)
+    const second = match.currentPresentation()!
+    expect(second.mechanic?.id).not.toBe(first.mechanic?.id)
+    match.newGame()
+    match.importPgn(line)
+    match.seek(3)
+    expect(match.currentPresentation()).toEqual(first)
+    match.seek(4)
+    expect(match.currentPresentation()).toEqual(second)
+  })
+
+  it('drops future effects on a new branch, and removes the effect when its move is undone', () => {
+    const match = matchAtCapture()
+    match.seek(2)
+    match.commit({ from: 'e4', to: 'd5' })
+    const saved = loadGummyMatchSession().session!
+    expect(saved.captures).toHaveLength(1)
+    expect(saved.captures![0]!.lan).toBe('e4d5')
+    expect(match.activePresentation()).toEqual(saved.captures![0])
+    match.finishAnimation()
+    match.undo()
+    expect(match.currentPresentation()).toBeUndefined()
+    expect(loadGummyMatchSession().session!.captures).toEqual([])
+    expect(match.game().history.map((move) => move.san)).toEqual(['e4', 'd5'])
+  })
+
+  it('saves a draw claimed while reviewing before later captures', () => {
+    const { result: match } = renderHook(useGummyMatch)
+    expect(
+      match.importPgn(
+        '1. Nf3 Nf6 2. Ng1 Ng8 3. Nf3 Nf6 4. Ng1 Ng8 5. e4 d5 6. exd5 *',
+      ),
+    ).toBe(true)
+    match.seek(8)
+    match.claim('threefold-repetition')
+    const restored = loadGummyMatchSession()
+    expect(restored.error).toBeUndefined()
+    expect(restored.session?.game.position.drawReason).toBe(
+      'threefold-repetition',
+    )
+    expect(restored.session?.game.history).toHaveLength(8)
+    expect(restored.session?.captures).toEqual([])
+    expect(match.notice()).toBe('')
+  })
+
+  it('restores version-one matches with their original early-shear motion', () => {
+    sessionStorage.setItem(
+      GUMMY_MATCH_SESSION_KEY,
+      JSON.stringify({ version: 1, pgn: line, cursor: 3 }),
+    )
+    const { result: match } = renderHook(useGummyMatch)
+    expect(match.currentPresentation()?.motion).toEqual(
+      GUMMY_BOARD_EARLY_SHEAR_MOTION,
+    )
+    expect(match.currentPresentation()?.mechanic).toBeUndefined()
+    match.persist()
+    expect(
+      JSON.parse(sessionStorage.getItem(GUMMY_MATCH_SESSION_KEY)!).version,
+    ).toBe(2)
+    expect(loadGummyMatchSession().session?.captures![0]?.motion).toEqual(
+      GUMMY_BOARD_EARLY_SHEAR_MOTION,
+    )
+  })
+
+  it('preserves the game and reports corrupted presentation data instead of applying it to another move', () => {
+    const match = matchAtCapture()
+    const saved = JSON.parse(sessionStorage.getItem(GUMMY_MATCH_SESSION_KEY)!)
+    saved.captures[0].beforeFen = 'wrong position'
+    sessionStorage.setItem(GUMMY_MATCH_SESSION_KEY, JSON.stringify(saved))
+    const restored = loadGummyMatchSession()
+    expect(restored.session?.game.position.fen).toBe(match.game().position.fen)
+    expect(restored.error).toContain('saved capture effects were invalid')
+    expect(restored.session?.captures![0]?.motion).toEqual(
+      GUMMY_BOARD_EARLY_SHEAR_MOTION,
+    )
+  })
+})

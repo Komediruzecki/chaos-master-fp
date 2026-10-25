@@ -1,0 +1,32 @@
+{
+  "description": "Same saved runtime mesh and position buffers; only rendering changes. First four samples are thin arm skin, last is foot transmission previously overwritten by another component.",
+  "before": "before.png",
+  "after": "normal.png",
+  "samples": [
+    {
+      "pixel": [540, 420],
+      "before": [215, 175, 170],
+      "after": [204, 23, 42]
+    },
+    {
+      "pixel": [546, 425],
+      "before": [216, 186, 181],
+      "after": [205, 27, 48]
+    },
+    {
+      "pixel": [550, 433],
+      "before": [215, 176, 171],
+      "after": [203, 23, 42]
+    },
+    {
+      "pixel": [590, 456],
+      "before": [220, 213, 206],
+      "after": [212, 54, 75]
+    },
+    {
+      "pixel": [540, 565],
+      "before": [202, 192, 173],
+      "after": [203, 119, 28]
+    }
+  ]
+}

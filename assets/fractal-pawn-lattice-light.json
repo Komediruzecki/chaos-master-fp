@@ -1,0 +1,5553 @@
+{
+  "format": "lumen-fractal-pawn-design",
+  "version": 1,
+  "generator": {
+    "id": "structural-pawn",
+    "version": 1
+  },
+  "recipe": {
+    "branchCount": 6,
+    "openness": 0.55,
+    "twist": 0.18,
+    "side": "light"
+  },
+  "flame": {
+    "version": "1.0",
+    "metadata": {
+      "author": "Lumen Apeiron",
+      "name": "Frost crystal lattice pawn",
+      "description": "A structural 3D IFS: Sierpinski icosahedral facets, Menger foot, Cantor collar and recursively branching shaft."
+    },
+    "renderSettings": {
+      "exposure": 0.25,
+      "skipIters": 32,
+      "plotsPerChain": 16,
+      "autoExposure3D": false,
+      "autoExposure3DStrength": 1,
+      "autoExposure3DRefRadius": 5,
+      "autoExposure3DBase": 0,
+      "dimensions": 3,
+      "drawMode": "light",
+      "colorInitMode": "colorInitZero",
+      "pointInitMode": "pointInitUnitBall",
+      "vibrancy": 0.75,
+      "contrast": 1.1,
+      "gamma": 2.2,
+      "depthColorPower": 0.12,
+      "lightDirection": [-0.5, 0.5, -1],
+      "lightPower": 0.3,
+      "highlightPower": 0.65,
+      "densityEstimationQuality": 0.8,
+      "estimatorCurve": 0.5,
+      "paletteMode": 0,
+      "palettePhase": 0,
+      "paletteSpeed": 0.5,
+      "backgroundColor": [0.008, 0.012, 0.025],
+      "camera": {
+        "zoom": 1,
+        "position": [0, 0],
+        "rotation": 0
+      },
+      "camera3D": {
+        "theta": 0.45,
+        "phi": 1.25,
+        "radius": 3.6,
+        "target": [0, 0.9, 0],
+        "fov": 45,
+        "roll": 0
+      }
+    },
+    "transforms": {
+      "crystal_head_00_0": {
+        "probability": 0.005,
+        "walkGroup": "head_00",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.7581049999999999,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_00_1": {
+        "probability": 0.005,
+        "walkGroup": "head_00",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": -1.844820465085888e-18,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.58156,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": -1.0138073527015354e-17
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_00_2": {
+        "probability": 0.005,
+        "walkGroup": "head_00",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": -0.06844477031920251,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.6791516757824599,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0.14230187291793323
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_00_3": {
+        "probability": 0.005,
+        "walkGroup": "head_00",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": -0.15648772072432882,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.6791516757824599,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": -0.02112114775537723
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_01_0": {
+        "probability": 0.005,
+        "walkGroup": "head_01",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.7581049999999999,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_01_1": {
+        "probability": 0.005,
+        "walkGroup": "head_01",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": -1.844820465085888e-18,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.58156,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": -1.0138073527015354e-17
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_01_2": {
+        "probability": 0.005,
+        "walkGroup": "head_01",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": -0.06844477031920251,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.6791516757824599,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0.14230187291793323
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_01_3": {
+        "probability": 0.005,
+        "walkGroup": "head_01",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0.11418652631488165,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.6791516757824599,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0.10906854188142813
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_02_0": {
+        "probability": 0.005,
+        "walkGroup": "head_02",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.7581049999999999,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_02_1": {
+        "probability": 0.005,
+        "walkGroup": "head_02",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": -1.844820465085888e-18,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.58156,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": -1.0138073527015354e-17
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_02_2": {
+        "probability": 0.005,
+        "walkGroup": "head_02",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": -0.15648772072432882,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.6791516757824599,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": -0.02112114775537723
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_02_3": {
+        "probability": 0.005,
+        "walkGroup": "head_02",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": -0.028269959910433982,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.6791516757824599,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": -0.1553554601121649
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_03_0": {
+        "probability": 0.005,
+        "walkGroup": "head_03",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.7581049999999999,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_03_1": {
+        "probability": 0.005,
+        "walkGroup": "head_03",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": -1.844820465085888e-18,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.58156,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": -1.0138073527015354e-17
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_03_2": {
+        "probability": 0.005,
+        "walkGroup": "head_03",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": -0.028269959910433982,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.6791516757824599,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": -0.1553554601121649
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_03_3": {
+        "probability": 0.005,
+        "walkGroup": "head_03",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0.13901592463908366,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.6791516757824599,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": -0.07489380693181923
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_04_0": {
+        "probability": 0.005,
+        "walkGroup": "head_04",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.7581049999999999,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_04_1": {
+        "probability": 0.005,
+        "walkGroup": "head_04",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": -1.844820465085888e-18,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.58156,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": -1.0138073527015354e-17
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_04_2": {
+        "probability": 0.005,
+        "walkGroup": "head_04",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0.11418652631488165,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.6791516757824599,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0.10906854188142813
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_04_3": {
+        "probability": 0.005,
+        "walkGroup": "head_04",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0.13901592463908366,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.6791516757824599,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": -0.07489380693181923
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_05_0": {
+        "probability": 0.005,
+        "walkGroup": "head_05",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.7581049999999999,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_05_1": {
+        "probability": 0.005,
+        "walkGroup": "head_05",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": -0.06844477031920251,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.6791516757824599,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0.14230187291793323
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_05_2": {
+        "probability": 0.005,
+        "walkGroup": "head_05",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": -0.15648772072432882,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.6791516757824599,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": -0.02112114775537723
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_05_3": {
+        "probability": 0.005,
+        "walkGroup": "head_05",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": -0.13901592463908366,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.83705832421754,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0.07489380693181923
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_06_0": {
+        "probability": 0.005,
+        "walkGroup": "head_06",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.7581049999999999,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_06_1": {
+        "probability": 0.005,
+        "walkGroup": "head_06",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": -0.06844477031920251,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.6791516757824599,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0.14230187291793323
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_06_2": {
+        "probability": 0.005,
+        "walkGroup": "head_06",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0.028269959910433982,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.83705832421754,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0.1553554601121649
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_06_3": {
+        "probability": 0.005,
+        "walkGroup": "head_06",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": -0.13901592463908366,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.83705832421754,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0.07489380693181923
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_07_0": {
+        "probability": 0.005,
+        "walkGroup": "head_07",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.7581049999999999,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_07_1": {
+        "probability": 0.005,
+        "walkGroup": "head_07",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": -0.06844477031920251,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.6791516757824599,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0.14230187291793323
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_07_2": {
+        "probability": 0.005,
+        "walkGroup": "head_07",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0.028269959910433982,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.83705832421754,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0.1553554601121649
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_07_3": {
+        "probability": 0.005,
+        "walkGroup": "head_07",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0.11418652631488165,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.6791516757824599,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0.10906854188142813
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_08_0": {
+        "probability": 0.005,
+        "walkGroup": "head_08",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.7581049999999999,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_08_1": {
+        "probability": 0.005,
+        "walkGroup": "head_08",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": -0.15648772072432882,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.6791516757824599,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": -0.02112114775537723
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_08_2": {
+        "probability": 0.005,
+        "walkGroup": "head_08",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": -0.11418652631488165,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.83705832421754,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": -0.10906854188142813
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_08_3": {
+        "probability": 0.005,
+        "walkGroup": "head_08",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": -0.13901592463908366,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.83705832421754,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0.07489380693181923
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_09_0": {
+        "probability": 0.005,
+        "walkGroup": "head_09",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.7581049999999999,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_09_1": {
+        "probability": 0.005,
+        "walkGroup": "head_09",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": -0.15648772072432882,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.6791516757824599,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": -0.02112114775537723
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_09_2": {
+        "probability": 0.005,
+        "walkGroup": "head_09",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": -0.11418652631488165,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.83705832421754,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": -0.10906854188142813
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_09_3": {
+        "probability": 0.005,
+        "walkGroup": "head_09",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": -0.028269959910433982,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.6791516757824599,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": -0.1553554601121649
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_10_0": {
+        "probability": 0.005,
+        "walkGroup": "head_10",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.7581049999999999,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_10_1": {
+        "probability": 0.005,
+        "walkGroup": "head_10",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0.028269959910433982,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.83705832421754,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0.1553554601121649
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_10_2": {
+        "probability": 0.005,
+        "walkGroup": "head_10",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": -0.13901592463908366,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.83705832421754,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0.07489380693181923
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_10_3": {
+        "probability": 0.005,
+        "walkGroup": "head_10",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 1.844820465085888e-18,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.93465,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 1.0138073527015354e-17
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_11_0": {
+        "probability": 0.005,
+        "walkGroup": "head_11",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.7581049999999999,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_11_1": {
+        "probability": 0.005,
+        "walkGroup": "head_11",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0.028269959910433982,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.83705832421754,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0.1553554601121649
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_11_2": {
+        "probability": 0.005,
+        "walkGroup": "head_11",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0.11418652631488165,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.6791516757824599,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0.10906854188142813
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_11_3": {
+        "probability": 0.005,
+        "walkGroup": "head_11",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0.15648772072432882,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.83705832421754,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0.02112114775537723
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_12_0": {
+        "probability": 0.005,
+        "walkGroup": "head_12",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.7581049999999999,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_12_1": {
+        "probability": 0.005,
+        "walkGroup": "head_12",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0.028269959910433982,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.83705832421754,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0.1553554601121649
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_12_2": {
+        "probability": 0.005,
+        "walkGroup": "head_12",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 1.844820465085888e-18,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.93465,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 1.0138073527015354e-17
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_12_3": {
+        "probability": 0.005,
+        "walkGroup": "head_12",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0.15648772072432882,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.83705832421754,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0.02112114775537723
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_13_0": {
+        "probability": 0.005,
+        "walkGroup": "head_13",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.7581049999999999,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_13_1": {
+        "probability": 0.005,
+        "walkGroup": "head_13",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": -0.11418652631488165,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.83705832421754,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": -0.10906854188142813
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_13_2": {
+        "probability": 0.005,
+        "walkGroup": "head_13",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": -0.13901592463908366,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.83705832421754,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0.07489380693181923
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_13_3": {
+        "probability": 0.005,
+        "walkGroup": "head_13",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 1.844820465085888e-18,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.93465,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 1.0138073527015354e-17
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_14_0": {
+        "probability": 0.005,
+        "walkGroup": "head_14",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.7581049999999999,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_14_1": {
+        "probability": 0.005,
+        "walkGroup": "head_14",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": -0.11418652631488165,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.83705832421754,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": -0.10906854188142813
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_14_2": {
+        "probability": 0.005,
+        "walkGroup": "head_14",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": -0.028269959910433982,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.6791516757824599,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": -0.1553554601121649
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_14_3": {
+        "probability": 0.005,
+        "walkGroup": "head_14",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0.06844477031920251,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.83705832421754,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": -0.14230187291793323
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_15_0": {
+        "probability": 0.005,
+        "walkGroup": "head_15",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.7581049999999999,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_15_1": {
+        "probability": 0.005,
+        "walkGroup": "head_15",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": -0.11418652631488165,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.83705832421754,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": -0.10906854188142813
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_15_2": {
+        "probability": 0.005,
+        "walkGroup": "head_15",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 1.844820465085888e-18,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.93465,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 1.0138073527015354e-17
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_15_3": {
+        "probability": 0.005,
+        "walkGroup": "head_15",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0.06844477031920251,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.83705832421754,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": -0.14230187291793323
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_16_0": {
+        "probability": 0.005,
+        "walkGroup": "head_16",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.7581049999999999,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_16_1": {
+        "probability": 0.005,
+        "walkGroup": "head_16",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": -0.028269959910433982,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.6791516757824599,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": -0.1553554601121649
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_16_2": {
+        "probability": 0.005,
+        "walkGroup": "head_16",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0.13901592463908366,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.6791516757824599,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": -0.07489380693181923
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_16_3": {
+        "probability": 0.005,
+        "walkGroup": "head_16",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0.06844477031920251,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.83705832421754,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": -0.14230187291793323
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_17_0": {
+        "probability": 0.005,
+        "walkGroup": "head_17",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.7581049999999999,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_17_1": {
+        "probability": 0.005,
+        "walkGroup": "head_17",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0.11418652631488165,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.6791516757824599,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0.10906854188142813
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_17_2": {
+        "probability": 0.005,
+        "walkGroup": "head_17",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0.13901592463908366,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.6791516757824599,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": -0.07489380693181923
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_17_3": {
+        "probability": 0.005,
+        "walkGroup": "head_17",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0.15648772072432882,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.83705832421754,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0.02112114775537723
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_18_0": {
+        "probability": 0.005,
+        "walkGroup": "head_18",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.7581049999999999,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_18_1": {
+        "probability": 0.005,
+        "walkGroup": "head_18",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0.13901592463908366,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.6791516757824599,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": -0.07489380693181923
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_18_2": {
+        "probability": 0.005,
+        "walkGroup": "head_18",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0.06844477031920251,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.83705832421754,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": -0.14230187291793323
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_18_3": {
+        "probability": 0.005,
+        "walkGroup": "head_18",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0.15648772072432882,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.83705832421754,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0.02112114775537723
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_19_0": {
+        "probability": 0.005,
+        "walkGroup": "head_19",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.7581049999999999,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_19_1": {
+        "probability": 0.005,
+        "walkGroup": "head_19",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 1.844820465085888e-18,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.93465,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 1.0138073527015354e-17
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_19_2": {
+        "probability": 0.005,
+        "walkGroup": "head_19",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0.06844477031920251,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.83705832421754,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": -0.14230187291793323
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_head_19_3": {
+        "probability": 0.005,
+        "walkGroup": "head_19",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.48075,
+          "b": 0,
+          "c": 0,
+          "d": 0.15648772072432882,
+          "e": 0,
+          "f": 0.48075,
+          "g": 0,
+          "h": 0.83705832421754,
+          "i": 0,
+          "j": 0,
+          "k": 0.48075,
+          "l": 0.02112114775537723
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_foot_0": {
+        "probability": 0.012,
+        "walkGroup": "foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3223333333333333,
+          "b": 0,
+          "c": 0,
+          "d": -0.3066769250458135,
+          "e": 0,
+          "f": 0.3223333333333333,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 0.3223333333333333,
+          "l": -0.3066769250458135
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_foot_1": {
+        "probability": 0.012,
+        "walkGroup": "foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3223333333333333,
+          "b": 0,
+          "c": 0,
+          "d": -0.3066769250458135,
+          "e": 0,
+          "f": 0.3223333333333333,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 0.3223333333333333,
+          "l": 0
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_foot_2": {
+        "probability": 0.012,
+        "walkGroup": "foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3223333333333333,
+          "b": 0,
+          "c": 0,
+          "d": -0.3066769250458135,
+          "e": 0,
+          "f": 0.3223333333333333,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 0.3223333333333333,
+          "l": 0.3066769250458135
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_foot_3": {
+        "probability": 0.012,
+        "walkGroup": "foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3223333333333333,
+          "b": 0,
+          "c": 0,
+          "d": -0.3066769250458135,
+          "e": 0,
+          "f": 0.3223333333333333,
+          "g": 0,
+          "h": 0.07454333333333334,
+          "i": 0,
+          "j": 0,
+          "k": 0.3223333333333333,
+          "l": -0.3066769250458135
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_foot_4": {
+        "probability": 0.012,
+        "walkGroup": "foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3223333333333333,
+          "b": 0,
+          "c": 0,
+          "d": -0.3066769250458135,
+          "e": 0,
+          "f": 0.3223333333333333,
+          "g": 0,
+          "h": 0.07454333333333334,
+          "i": 0,
+          "j": 0,
+          "k": 0.3223333333333333,
+          "l": 0.3066769250458135
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_foot_5": {
+        "probability": 0.012,
+        "walkGroup": "foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3223333333333333,
+          "b": 0,
+          "c": 0,
+          "d": -0.3066769250458135,
+          "e": 0,
+          "f": 0.3223333333333333,
+          "g": 0,
+          "h": 0.14908666666666667,
+          "i": 0,
+          "j": 0,
+          "k": 0.3223333333333333,
+          "l": -0.3066769250458135
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_foot_6": {
+        "probability": 0.012,
+        "walkGroup": "foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3223333333333333,
+          "b": 0,
+          "c": 0,
+          "d": -0.3066769250458135,
+          "e": 0,
+          "f": 0.3223333333333333,
+          "g": 0,
+          "h": 0.14908666666666667,
+          "i": 0,
+          "j": 0,
+          "k": 0.3223333333333333,
+          "l": 0
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_foot_7": {
+        "probability": 0.012,
+        "walkGroup": "foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3223333333333333,
+          "b": 0,
+          "c": 0,
+          "d": -0.3066769250458135,
+          "e": 0,
+          "f": 0.3223333333333333,
+          "g": 0,
+          "h": 0.14908666666666667,
+          "i": 0,
+          "j": 0,
+          "k": 0.3223333333333333,
+          "l": 0.3066769250458135
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_foot_8": {
+        "probability": 0.012,
+        "walkGroup": "foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3223333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 0.3223333333333333,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 0.3223333333333333,
+          "l": -0.3066769250458135
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_foot_9": {
+        "probability": 0.012,
+        "walkGroup": "foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3223333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 0.3223333333333333,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 0.3223333333333333,
+          "l": 0.3066769250458135
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_foot_10": {
+        "probability": 0.012,
+        "walkGroup": "foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3223333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 0.3223333333333333,
+          "g": 0,
+          "h": 0.14908666666666667,
+          "i": 0,
+          "j": 0,
+          "k": 0.3223333333333333,
+          "l": -0.3066769250458135
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_foot_11": {
+        "probability": 0.012,
+        "walkGroup": "foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3223333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 0.3223333333333333,
+          "g": 0,
+          "h": 0.14908666666666667,
+          "i": 0,
+          "j": 0,
+          "k": 0.3223333333333333,
+          "l": 0.3066769250458135
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_foot_12": {
+        "probability": 0.012,
+        "walkGroup": "foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3223333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0.3066769250458135,
+          "e": 0,
+          "f": 0.3223333333333333,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 0.3223333333333333,
+          "l": -0.3066769250458135
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_foot_13": {
+        "probability": 0.012,
+        "walkGroup": "foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3223333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0.3066769250458135,
+          "e": 0,
+          "f": 0.3223333333333333,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 0.3223333333333333,
+          "l": 0
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_foot_14": {
+        "probability": 0.012,
+        "walkGroup": "foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3223333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0.3066769250458135,
+          "e": 0,
+          "f": 0.3223333333333333,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 0.3223333333333333,
+          "l": 0.3066769250458135
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_foot_15": {
+        "probability": 0.012,
+        "walkGroup": "foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3223333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0.3066769250458135,
+          "e": 0,
+          "f": 0.3223333333333333,
+          "g": 0,
+          "h": 0.07454333333333334,
+          "i": 0,
+          "j": 0,
+          "k": 0.3223333333333333,
+          "l": -0.3066769250458135
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_foot_16": {
+        "probability": 0.012,
+        "walkGroup": "foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3223333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0.3066769250458135,
+          "e": 0,
+          "f": 0.3223333333333333,
+          "g": 0,
+          "h": 0.07454333333333334,
+          "i": 0,
+          "j": 0,
+          "k": 0.3223333333333333,
+          "l": 0.3066769250458135
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_foot_17": {
+        "probability": 0.012,
+        "walkGroup": "foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3223333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0.3066769250458135,
+          "e": 0,
+          "f": 0.3223333333333333,
+          "g": 0,
+          "h": 0.14908666666666667,
+          "i": 0,
+          "j": 0,
+          "k": 0.3223333333333333,
+          "l": -0.3066769250458135
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_foot_18": {
+        "probability": 0.012,
+        "walkGroup": "foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3223333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0.3066769250458135,
+          "e": 0,
+          "f": 0.3223333333333333,
+          "g": 0,
+          "h": 0.14908666666666667,
+          "i": 0,
+          "j": 0,
+          "k": 0.3223333333333333,
+          "l": 0
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_foot_19": {
+        "probability": 0.012,
+        "walkGroup": "foot",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.3223333333333333,
+          "b": 0,
+          "c": 0,
+          "d": 0.3066769250458135,
+          "e": 0,
+          "f": 0.3223333333333333,
+          "g": 0,
+          "h": 0.14908666666666667,
+          "i": 0,
+          "j": 0,
+          "k": 0.3223333333333333,
+          "l": 0.3066769250458135
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_collar_0": {
+        "probability": 0.0075,
+        "walkGroup": "collar",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.428,
+          "b": 0,
+          "c": 0,
+          "d": -0.0930269681329022,
+          "e": 0,
+          "f": 0.428,
+          "g": 0,
+          "h": 0.6006000000000001,
+          "i": 0,
+          "j": 0,
+          "k": 0.428,
+          "l": -0.0930269681329022
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_collar_1": {
+        "probability": 0.0075,
+        "walkGroup": "collar",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.428,
+          "b": 0,
+          "c": 0,
+          "d": -0.0930269681329022,
+          "e": 0,
+          "f": 0.428,
+          "g": 0,
+          "h": 0.6006000000000001,
+          "i": 0,
+          "j": 0,
+          "k": 0.428,
+          "l": 0.0930269681329022
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_collar_2": {
+        "probability": 0.0075,
+        "walkGroup": "collar",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.428,
+          "b": 0,
+          "c": 0,
+          "d": -0.0930269681329022,
+          "e": 0,
+          "f": 0.428,
+          "g": 0,
+          "h": 0.66352,
+          "i": 0,
+          "j": 0,
+          "k": 0.428,
+          "l": -0.0930269681329022
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_collar_3": {
+        "probability": 0.0075,
+        "walkGroup": "collar",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.428,
+          "b": 0,
+          "c": 0,
+          "d": -0.0930269681329022,
+          "e": 0,
+          "f": 0.428,
+          "g": 0,
+          "h": 0.66352,
+          "i": 0,
+          "j": 0,
+          "k": 0.428,
+          "l": 0.0930269681329022
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_collar_4": {
+        "probability": 0.0075,
+        "walkGroup": "collar",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.428,
+          "b": 0,
+          "c": 0,
+          "d": 0.0930269681329022,
+          "e": 0,
+          "f": 0.428,
+          "g": 0,
+          "h": 0.6006000000000001,
+          "i": 0,
+          "j": 0,
+          "k": 0.428,
+          "l": -0.0930269681329022
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_collar_5": {
+        "probability": 0.0075,
+        "walkGroup": "collar",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.428,
+          "b": 0,
+          "c": 0,
+          "d": 0.0930269681329022,
+          "e": 0,
+          "f": 0.428,
+          "g": 0,
+          "h": 0.6006000000000001,
+          "i": 0,
+          "j": 0,
+          "k": 0.428,
+          "l": 0.0930269681329022
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_collar_6": {
+        "probability": 0.0075,
+        "walkGroup": "collar",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.428,
+          "b": 0,
+          "c": 0,
+          "d": 0.0930269681329022,
+          "e": 0,
+          "f": 0.428,
+          "g": 0,
+          "h": 0.66352,
+          "i": 0,
+          "j": 0,
+          "k": 0.428,
+          "l": -0.0930269681329022
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_collar_7": {
+        "probability": 0.0075,
+        "walkGroup": "collar",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.428,
+          "b": 0,
+          "c": 0,
+          "d": 0.0930269681329022,
+          "e": 0,
+          "f": 0.428,
+          "g": 0,
+          "h": 0.66352,
+          "i": 0,
+          "j": 0,
+          "k": 0.428,
+          "l": 0.0930269681329022
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_shaft_trunk": {
+        "probability": 0.126,
+        "walkGroup": "shaft",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.5883385282872966,
+          "b": 0,
+          "c": 0.10705968490864286,
+          "d": 0,
+          "e": 0,
+          "f": 0.68,
+          "g": 0,
+          "h": 0.37759999999999994,
+          "i": -0.10705968490864286,
+          "j": 0,
+          "k": 0.5883385282872966,
+          "l": 0
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_shaft_heel": {
+        "probability": 0.03,
+        "walkGroup": "shaft",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.5381624999551023,
+          "b": 0,
+          "c": -0.09792917666392581,
+          "d": 0,
+          "e": 0,
+          "f": 0.12,
+          "g": 0,
+          "h": 0.1936,
+          "i": 0.09792917666392581,
+          "j": 0,
+          "k": 0.5381624999551023,
+          "l": 0
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_shaft_branch_0": {
+        "probability": 0.015,
+        "walkGroup": "shaft",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.2966288733756186,
+          "b": -0.09653966235483441,
+          "c": 0.05397741638788599,
+          "d": 0.11391680157870461,
+          "e": 0,
+          "f": 0.55,
+          "g": 0,
+          "h": 0.195,
+          "i": -0.05397741638788599,
+          "j": 0.017567276892408997,
+          "k": 0.2966288733756186,
+          "l": -0.02072938673304262
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_shaft_twig_0": {
+        "probability": 0.009,
+        "walkGroup": "shaft",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.2565719439105912,
+          "b": -0.06296605045512216,
+          "c": 0.09179916991966998,
+          "d": 0.07429993953704414,
+          "e": 0,
+          "f": 0.65,
+          "g": 0,
+          "h": 0.22099999999999997,
+          "i": -0.09179916991966998,
+          "j": 0.022528695370194245,
+          "k": 0.2565719439105912,
+          "l": -0.02658386053682921
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_shaft_branch_1": {
+        "probability": 0.015,
+        "walkGroup": "shaft",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.1015686228652496,
+          "b": -0.03305612311327568,
+          "c": 0.2838768480331862,
+          "d": 0.039006225273665304,
+          "e": 0,
+          "f": 0.55,
+          "g": 0,
+          "h": 0.195,
+          "i": -0.2838768480331862,
+          "j": 0.09238943851826334,
+          "k": 0.1015686228652496,
+          "l": -0.10901953745155074
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_shaft_twig_1": {
+        "probability": 0.009,
+        "walkGroup": "shaft",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.04878555875853708,
+          "b": -0.011972602722851992,
+          "c": 0.2680974062847631,
+          "d": 0.014127671212965352,
+          "e": 0,
+          "f": 0.65,
+          "g": 0,
+          "h": 0.22099999999999997,
+          "i": -0.2680974062847631,
+          "j": 0.06579454695520563,
+          "k": 0.04878555875853708,
+          "l": -0.07763756540714264
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_shaft_branch_2": {
+        "probability": 0.015,
+        "walkGroup": "shaft",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": -0.19506025051036902,
+          "b": 0.06348353924155874,
+          "c": 0.22989943164530022,
+          "d": -0.07491057630503932,
+          "e": 0,
+          "f": 0.55,
+          "g": 0,
+          "h": 0.195,
+          "i": -0.22989943164530022,
+          "j": 0.07482216162585434,
+          "k": -0.19506025051036902,
+          "l": -0.08829015071850813
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_shaft_twig_2": {
+        "probability": 0.009,
+        "walkGroup": "shaft",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": -0.207786385152054,
+          "b": 0.050993447732270145,
+          "c": 0.17629823636509317,
+          "d": -0.06017226832407877,
+          "e": 0,
+          "f": 0.65,
+          "g": 0,
+          "h": 0.22099999999999997,
+          "i": -0.17629823636509317,
+          "j": 0.0432658515850114,
+          "k": -0.207786385152054,
+          "l": -0.05105370487031346
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_shaft_branch_3": {
+        "probability": 0.015,
+        "walkGroup": "shaft",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": -0.2966288733756186,
+          "b": 0.09653966235483441,
+          "c": -0.053977416387885994,
+          "d": -0.11391680157870461,
+          "e": 0,
+          "f": 0.55,
+          "g": 0,
+          "h": 0.195,
+          "i": 0.053977416387885994,
+          "j": -0.017567276892408997,
+          "k": -0.2966288733756186,
+          "l": 0.020729386733042622
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_shaft_twig_3": {
+        "probability": 0.009,
+        "walkGroup": "shaft",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": -0.2565719439105912,
+          "b": 0.06296605045512216,
+          "c": -0.09179916991966988,
+          "d": -0.07429993953704415,
+          "e": 0,
+          "f": 0.65,
+          "g": 0,
+          "h": 0.22099999999999997,
+          "i": 0.09179916991966988,
+          "j": -0.022528695370194217,
+          "k": -0.2565719439105912,
+          "l": 0.02658386053682918
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_shaft_branch_4": {
+        "probability": 0.015,
+        "walkGroup": "shaft",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": -0.10156862286524977,
+          "b": 0.03305612311327573,
+          "c": -0.28387684803318614,
+          "d": -0.03900622527366537,
+          "e": 0,
+          "f": 0.55,
+          "g": 0,
+          "h": 0.195,
+          "i": 0.28387684803318614,
+          "j": -0.09238943851826331,
+          "k": -0.10156862286524977,
+          "l": 0.10901953745155071
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_shaft_twig_4": {
+        "probability": 0.009,
+        "walkGroup": "shaft",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": -0.04878555875853705,
+          "b": 0.011972602722851985,
+          "c": -0.2680974062847631,
+          "d": -0.014127671212965343,
+          "e": 0,
+          "f": 0.65,
+          "g": 0,
+          "h": 0.22099999999999997,
+          "i": 0.2680974062847631,
+          "j": -0.06579454695520563,
+          "k": -0.04878555875853705,
+          "l": 0.07763756540714264
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_shaft_branch_5": {
+        "probability": 0.015,
+        "walkGroup": "shaft",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.195060250510369,
+          "b": -0.06348353924155872,
+          "c": -0.22989943164530027,
+          "d": 0.0749105763050393,
+          "e": 0,
+          "f": 0.55,
+          "g": 0,
+          "h": 0.195,
+          "i": 0.22989943164530027,
+          "j": -0.07482216162585435,
+          "k": 0.195060250510369,
+          "l": 0.08829015071850814
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      },
+      "crystal_shaft_twig_5": {
+        "probability": 0.009,
+        "walkGroup": "shaft",
+        "preAffine": {
+          "a": 1,
+          "b": 0,
+          "c": 0,
+          "d": 0,
+          "e": 0,
+          "f": 1,
+          "g": 0,
+          "h": 0,
+          "i": 0,
+          "j": 0,
+          "k": 1,
+          "l": 0
+        },
+        "postAffine": {
+          "a": 0.2077863851520542,
+          "b": -0.05099344773227019,
+          "c": -0.17629823636509293,
+          "d": 0.060172268324078834,
+          "e": 0,
+          "f": 0.65,
+          "g": 0,
+          "h": 0.22099999999999997,
+          "i": 0.17629823636509293,
+          "j": -0.043265851585011346,
+          "k": 0.2077863851520542,
+          "l": 0.05105370487031339
+        },
+        "color": {
+          "x": -0.025,
+          "y": -0.065
+        },
+        "colorSpeed": 0.4,
+        "visible": true,
+        "variations": {
+          "linear": {
+            "type": "linear3D",
+            "weight": 1,
+            "visible": true
+          }
+        }
+      }
+    }
+  }
+}

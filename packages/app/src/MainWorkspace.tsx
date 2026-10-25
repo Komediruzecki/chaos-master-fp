@@ -34,9 +34,10 @@ import { WorkspaceBottomBar } from './components/WorkspaceBottomBar'
 import { createLazyDiscordShareModal, createLazyImportVariationsModal, createLazyLogoFaviconGenerator, createLazyMigrationModal, createLazyShareLinkModal, createLazyShareVariationLinkModal, createLazyShareVariationLoadModal, createLazyShowBenchmark, createLazyShowCustomVariationEditor, createLazyShowDocumentation, createLazyShowHelp, WorkspaceModalsHost, } from './components/WorkspaceModalsHost'
 import { SIDEBAR_DRAWER_QUERY, WorkspaceSidebar, } from './components/WorkspaceSidebar'
 import { useWorkspaceAnimationGen, useWorkspaceArena, useWorkspaceArtDirector, useWorkspaceAutosave, useWorkspaceBlendPick, useWorkspaceCamera, useWorkspaceCommands, useWorkspaceGlassBusy, useWorkspacePalette, useWorkspaceReplay, useWorkspaceShortcuts, useWorkspaceTimelineBinding, } from './hooks'
+import { useWorkspaceChessInspection } from './hooks/useWorkspaceChessInspection'
+import { createWorkspaceMoreHandlers } from './hooks/workspaceMoreHandlers'
 import { createWorkspaceExportStore, createWorkspaceLayoutStore, createWorkspaceSelectionStore, isWideLayout, } from './stores'
 import { deckFits, isTouchDevice } from './stores/workspaceLayoutStore'
-import type { MoreMenuHandlers } from './components/Shell/moreMenuItems'
 
 const AncestryTreeModal = lazy(() =>
   import('./components/AncestryTreeModal/AncestryTreeModal').then((m) => ({
@@ -101,7 +102,6 @@ import { captureTransformColors, runPaletteRestoreTransition, } from './recorder
 import { snapshotOrigin, snapshotOriginLabel } from './recorder/snapshotOrigin'
 import { applySonificationSnapshot, closeAuthoredSonificationPanel, shouldStopHiddenSonification, SONIFICATION_SNAPSHOT_VERSION, } from './recorder/sonificationState'
 import { createRecorderAwareTimeline, runTimelineSnapshotMutation, } from './recorder/timelineActions'
-import { openBenchmarkLab, openExplorer } from './routing/pageLinks'
 import { createAnimationExport } from './utils/animationExport'
 import { applyAudioTargetValues, createAudioAnalyzer, decodeAudioBytes, } from './utils/audioAnalysis'
 import { downloadBlob } from './utils/blob'
@@ -164,6 +164,7 @@ export type AppProps = {
   flameFromQuery?: SharePayload & {
     importedCustomVariations?: CustomVariationDef[]
     alreadyOwnedCustomVariations?: CustomVariationDef[]
+    editorReturnTimeline?: TimelineSnapshot
   }
   /**
    * A single custom variation shared via a `?cv=` link, already re-validated and
@@ -2959,7 +2960,10 @@ export function MainWorkspace(props: AppProps) {
       if (IS_DEV) console.info('[share] applying flame from shared URL')
       history.replace(deepClone(validated))
 
-      if (data.animation && data.animation.tracks.length > 0) {
+      if (data.editorReturnTimeline) {
+        timeline.pause()
+        cmdContext.timeline.edit?.load(data.editorReturnTimeline)
+      } else if (data.animation && data.animation.tracks.length > 0) {
         if (IS_DEV) {
           console.info(
             '[anim] loading shared animation:',
@@ -3713,43 +3717,24 @@ export function MainWorkspace(props: AppProps) {
     executeCommand(id, cmdContext, ...args)
   }
 
-  /**
-   * One More list for the editor's two shells (components/Shell/moreMenuItems.ts):
-   * the phone's top bar carries it, and now so does the tablet's navigation
-   * rail, which had no More at all - so Library on a landscape tablet reached
-   * neither the Arcade nor Share link, Export options, Advanced tools,
-   * Documentation nor the benchmark until you went back to Create. Settings
-   * keeps its own item on the rail as well; a tablet reaches for it there.
-   */
-  const moreHandlers: MoreMenuHandlers = {
-    onSaveForLater: () => {
-      void saveFlameForLater()
-    },
-    onOpenExportModal: () => {
-      executeCommand('export.png', cmdContext)
-    },
-    onShare: () => {
-      void showShareLinkModal()
-    },
-    onOpenDrawer: () => {
-      setTouchDrawerOpen(true)
-    },
-    onOpenSettings: () => {
-      void showHelp()
-    },
-    onOpenDocs: () => {
-      void showDocumentation()
-    },
-    onOpenBenchmark: () => {
-      void showBenchmark()
-    },
-    onOpenBenchmarkLab: openBenchmarkLab,
-    onOpenExplorer: openExplorer,
-    onDesktopLayout: () => {
-      setTouchLayoutPreference('desktop')
-      showToast('Switched to the desktop layout', 3500)
-    },
-  }
+  const inspectChess = useWorkspaceChessInspection({
+    savedFlame: blendPick.withoutPreview,
+    timelineSnapshot: captureTimelineSnapshot,
+    prepareDocumentReplacement,
+    showToast,
+  })
+  const moreHandlers = createWorkspaceMoreHandlers({
+    cmdContext,
+    saveFlameForLater,
+    inspectChess,
+    showShareLinkModal,
+    setTouchDrawerOpen,
+    showHelp,
+    showDocumentation,
+    showBenchmark,
+    setTouchLayoutPreference,
+    showToast,
+  })
 
   return (
     <ChangeHistoryContextProvider value={history}>
@@ -4365,6 +4350,7 @@ export function MainWorkspace(props: AppProps) {
                 void showLoadFlameModal()
               }}
               onSaveForLater={saveFlameForLater}
+              onInspectChess={inspectChess}
               onRender={() => {
                 if (timeline.isPlaying()) timeline.pause()
                 executeCommand('export.png', cmdContext)

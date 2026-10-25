@@ -1,0 +1,75 @@
+{
+  "loader": "Blender glTF importer",
+  "version": [5, 2, 2],
+  "checksPassed": true,
+  "assets": [
+    {
+      "file": "fractal-pawn-blue-branch-frost.glb",
+      "sha256": "77f2bb931d709eaff377c8dcd339c96722d568b82eec21a9ede75339cadb9001",
+      "triangles": 6144,
+      "nativePoints": 100000,
+      "bounds": {
+        "min": [-0.6700000166893005, 0.0, -0.6700000166893005],
+        "max": [0.6700000166893005, 1.8899999856948853, 0.6700000166893005]
+      },
+      "importedColorStorage": ["BYTE_COLOR"],
+      "maxNormalDifference": 0.002192202955484329,
+      "colorTransferMaxError": 0.0,
+      "sourceLinearColorMaxError": 0.004485368728637695,
+      "sourceSrgbColorMaxErrorInByteSteps": 0.5141395710754537,
+      "materials": [
+        {
+          "name": "Clear thin-wall glass",
+          "ior": 1.5,
+          "transmission": 1.0,
+          "roughnessFactor": 0.054999999701976776,
+          "roughnessTextureLinked": true,
+          "embeddedImageNodes": 3
+        },
+        {
+          "name": "Native structural point colours",
+          "ior": null,
+          "transmission": null,
+          "roughnessFactor": null,
+          "roughnessTextureLinked": null,
+          "embeddedImageNodes": 0
+        }
+      ]
+    },
+    {
+      "file": "fractal-pawn-blue-branch-ember.glb",
+      "sha256": "20fe18cc4298f44f4661cd492a05dc07e5af13dbdf4a90a11495716071911d78",
+      "triangles": 6144,
+      "nativePoints": 100000,
+      "bounds": {
+        "min": [-0.6700000166893005, 0.0, -0.6700000166893005],
+        "max": [0.6700000166893005, 1.8899999856948853, 0.6700000166893005]
+      },
+      "importedColorStorage": ["BYTE_COLOR"],
+      "maxNormalDifference": 0.002192202955484329,
+      "colorTransferMaxError": 0.0,
+      "sourceLinearColorMaxError": 0.00380551815032959,
+      "sourceSrgbColorMaxErrorInByteSteps": 0.5095000752703829,
+      "materials": [
+        {
+          "name": "Clear thin-wall glass.001",
+          "ior": 1.5,
+          "transmission": 1.0,
+          "roughnessFactor": 0.054999999701976776,
+          "roughnessTextureLinked": true,
+          "embeddedImageNodes": 3
+        },
+        {
+          "name": "Native structural point colours.001",
+          "ior": null,
+          "transmission": null,
+          "roughnessFactor": null,
+          "roughnessTextureLinked": null,
+          "embeddedImageNodes": 0
+        }
+      ]
+    }
+  ],
+  "pointPolicy": "Native colored POINTS are loose vertices; a point renderer is required. No solid branch surface is claimed.",
+  "colorPolicy": "Every imported position and color checked against GLB bytes. BYTE_COLOR uses an independent installed-Blender transfer reference with 1e-5 matching tolerance; source loss is separately bounded to one sRGB byte step and reported."
+}

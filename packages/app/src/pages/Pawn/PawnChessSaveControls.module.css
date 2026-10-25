@@ -1,0 +1,133 @@
+/* Compact local-library controls alongside the existing full-size Forge preview. */
+.panel {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 18px;
+  margin-top: 28px;
+  border: 1px solid var(--la-hairline-strong);
+  border-radius: var(--la-r-md);
+  background: var(--la-surface);
+}
+.panel h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+}
+.panel p {
+  margin: 0;
+  color: var(--la-ink-2);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.panel fieldset {
+  display: grid;
+  gap: 10px;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.panel label {
+  font-size: 12px;
+}
+.panel input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  accent-color: var(--la-accent);
+}
+.panel input[type='text'] {
+  border: 1px solid var(--la-hairline-strong);
+  border-radius: var(--la-r-sm);
+  padding: 10px;
+  color: var(--la-ink);
+  background: var(--la-surface-2);
+  font: inherit;
+}
+.sliderLabel {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.sliderLabel output {
+  font-variant-numeric: tabular-nums;
+}
+.panel button,
+.play {
+  min-height: 44px;
+  border: 1px solid var(--la-hairline-strong);
+  border-radius: var(--la-r-sm);
+  padding: 8px 12px;
+  background: var(--la-surface-2);
+  color: var(--la-ink);
+  font: inherit;
+  font-size: 13px;
+  text-align: center;
+  cursor: pointer;
+}
+.panel button:hover {
+  background: var(--la-surface);
+  border-color: var(--la-ink-3);
+}
+.panel .primary {
+  background: var(--la-accent);
+  color: var(--la-accent-ink);
+  border-color: var(--la-accent);
+  font-weight: 600;
+}
+.panel .primary:hover {
+  background: var(--la-accent-press);
+}
+.panel fieldset:disabled {
+  opacity: 0.5;
+}
+.panel fieldset:disabled button {
+  cursor: not-allowed;
+}
+.play {
+  display: grid;
+  place-content: center;
+  text-decoration: none;
+}
+.panel summary {
+  cursor: pointer;
+  padding: 10px 0;
+  min-height: 44px;
+  box-sizing: border-box;
+  font-size: 13px;
+}
+.panel ul {
+  padding: 0;
+  margin: 0 0 12px;
+  list-style: none;
+}
+.panel li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 8px;
+  align-items: center;
+  border-bottom: 1px solid var(--la-hairline);
+  font-size: 13px;
+}
+.panel li span {
+  overflow-wrap: anywhere;
+}
+.panel li a {
+  display: grid;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 6px;
+  color: var(--la-ink);
+  text-underline-offset: 4px;
+}
+.panel li small {
+  grid-column: 1/-1;
+  color: var(--la-ink-3);
+  margin-bottom: 8px;
+}
+.panel :is(button, a, input, summary):focus-visible {
+  outline: 2px solid var(--la-accent);
+  outline-offset: 3px;
+}

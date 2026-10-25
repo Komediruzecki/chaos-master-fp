@@ -465,3 +465,82 @@
   font-size: 12px;
   color: #ff9d7a;
 }
+
+/* A playable world gets a view of the actual board, before the agent modes. */
+.chessCard {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto 26px;
+  overflow: hidden;
+  border: 1px solid #8eaba85c;
+  border-radius: 20px;
+  background: #10222a;
+  color: #f2f4f8;
+  text-align: left;
+  cursor: pointer;
+}
+.chessCard img {
+  display: block;
+  width: 100%;
+  height: 280px;
+  object-fit: cover;
+}
+.chessCopy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 18px;
+  padding: clamp(20px, 4vw, 48px);
+  font-size: 15px;
+  line-height: 1.6;
+}
+.chessTitle {
+  font-size: clamp(36px, 4vw, 52px);
+  line-height: 1;
+  letter-spacing: -0.045em;
+}
+.chessAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: #bfefe4;
+  font-weight: 600;
+}
+.chessAction svg {
+  width: 18px;
+  height: 18px;
+}
+.chessCard:hover {
+  border-color: #aee7db;
+}
+.chessCard:focus-visible {
+  outline: 2px solid #bfefe4;
+  outline-offset: 4px;
+}
+.chessWorld {
+  position: fixed;
+  inset: 0;
+  z-index: 10005;
+  overflow: auto;
+  background: #111923;
+}
+.chessLoading {
+  margin: 15vh 24px;
+  color: #f2f4f8;
+  text-align: center;
+}
+@media (max-width: 640px) {
+  .chessCard {
+    grid-template-columns: 1fr;
+  }
+  .chessCard img {
+    height: 220px;
+  }
+  .chessCopy {
+    gap: 12px;
+    padding: 24px;
+  }
+}

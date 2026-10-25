@@ -1,5 +1,5 @@
 import { createEffect, createSignal, Show } from 'solid-js'
-import { Bookmark, CameraIcon, Discord, Eye, FolderOpen, Home, Pause, Plus, Share, Shuffle, Zap, } from '@/icons'
+import { Bookmark, CameraIcon, Discord, Eye, FolderOpen, GridIcon, Home, Pause, Plus, Share, Shuffle, Zap, } from '@/icons'
 import { setActiveTab } from '@/lib/activeTab'
 import { isSessionRecording } from '@/recorder/recorder'
 import { defaultPills, QualityPresets } from '../Quality/QualityPresets'
@@ -12,6 +12,7 @@ type Props = {
   onNewFlame: () => void
   onLoadFlame: () => void
   onSaveForLater: () => void
+  onInspectChess?: () => void
   onRender: () => void
   onQuickExport: () => void
   onShareLink: () => void
@@ -271,6 +272,17 @@ export function FloatingActions(props: Props) {
               <Bookmark />
             </button>
             <div class={ui.separator} />
+            <Show when={props.onInspectChess}>
+              <button
+                type="button"
+                class={ui.button}
+                onClick={() => props.onInspectChess?.()}
+                aria-label="Inspect for chess"
+                title="Inspect this flame as a chess piece"
+              >
+                <GridIcon />
+              </button>
+            </Show>
             <button
               class={ui.button}
               onClick={props.onRender}

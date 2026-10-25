@@ -1,0 +1,564 @@
+{
+  "base": "https://localhost:5198",
+  "samples": [
+    {
+      "name": "intact",
+      "time": 0.06666666666666667,
+      "steps": 8,
+      "vertices": 2410,
+      "interfaces": 212,
+      "grip": false,
+      "demo": false,
+      "finite": true,
+      "min": [-0.730496346950531, 0, -0.3490394651889801],
+      "max": [0.7331252694129944, 2.5131547451019287, 0.5083975791931152],
+      "maxMovement": 0.019967830521299766,
+      "pinnedMovement": 0,
+      "volumeRatio": 0.9961406667308891,
+      "inverted": 34,
+      "invertedVolumeFraction": 0.0000886147397843198,
+      "broken": 0,
+      "maxDamage": 0,
+      "connectedParts": 1,
+      "fractureByRegion": {
+        "1": {
+          "total": 58,
+          "broken": 0
+        },
+        "2": {
+          "total": 48,
+          "broken": 0
+        },
+        "3": {
+          "total": 48,
+          "broken": 0
+        },
+        "4": {
+          "total": 58,
+          "broken": 0
+        }
+      }
+    },
+    {
+      "name": "stretch",
+      "time": 1.9999999999999953,
+      "steps": 240,
+      "vertices": 2410,
+      "interfaces": 212,
+      "grip": true,
+      "demo": true,
+      "finite": true,
+      "min": [-0.645587682723999, 0, -0.345649778842926],
+      "max": [0.8418266773223877, 2.53901743888855, 0.5111305117607117],
+      "maxMovement": 0.1762436311903757,
+      "pinnedMovement": 0,
+      "volumeRatio": 1.0021118732546337,
+      "inverted": 40,
+      "invertedVolumeFraction": 0.00012753909254176085,
+      "broken": 0,
+      "maxDamage": 0.12913407385349274,
+      "connectedParts": 1,
+      "fractureByRegion": {
+        "1": {
+          "total": 58,
+          "broken": 0
+        },
+        "2": {
+          "total": 48,
+          "broken": 0
+        },
+        "3": {
+          "total": 48,
+          "broken": 0
+        },
+        "4": {
+          "total": 58,
+          "broken": 0
+        }
+      }
+    },
+    {
+      "name": "tear",
+      "time": 5.000000000000038,
+      "steps": 600,
+      "vertices": 2410,
+      "interfaces": 212,
+      "grip": true,
+      "demo": true,
+      "finite": true,
+      "min": [-0.6198258399963379, 0, -0.310863733291626],
+      "max": [1.6967865228652954, 2.5489859580993652, 0.5750112533569336],
+      "maxMovement": 0.9957256767565098,
+      "pinnedMovement": 0,
+      "volumeRatio": 0.9962766243553732,
+      "inverted": 38,
+      "invertedVolumeFraction": 0.00028843373259828254,
+      "broken": 58,
+      "maxDamage": 1,
+      "connectedParts": 2,
+      "fractureByRegion": {
+        "1": {
+          "total": 58,
+          "broken": 58
+        },
+        "2": {
+          "total": 48,
+          "broken": 0
+        },
+        "3": {
+          "total": 48,
+          "broken": 0
+        },
+        "4": {
+          "total": 58,
+          "broken": 0
+        }
+      }
+    },
+    {
+      "name": "candy-tear",
+      "time": 5.000000000000038,
+      "steps": 600,
+      "vertices": 2410,
+      "interfaces": 212,
+      "grip": true,
+      "demo": true,
+      "finite": true,
+      "min": [-0.6198258399963379, 0, -0.310863733291626],
+      "max": [1.6967865228652954, 2.5489859580993652, 0.5750112533569336],
+      "maxMovement": 0.9957256767565098,
+      "pinnedMovement": 0,
+      "volumeRatio": 0.9962766243553732,
+      "inverted": 38,
+      "invertedVolumeFraction": 0.00028843373259828254,
+      "broken": 58,
+      "maxDamage": 1,
+      "connectedParts": 2,
+      "fractureByRegion": {
+        "1": {
+          "total": 58,
+          "broken": 58
+        },
+        "2": {
+          "total": 48,
+          "broken": 0
+        },
+        "3": {
+          "total": 48,
+          "broken": 0
+        },
+        "4": {
+          "total": 58,
+          "broken": 0
+        }
+      }
+    },
+    {
+      "name": "marble-tear",
+      "time": 5.000000000000038,
+      "steps": 600,
+      "vertices": 2410,
+      "interfaces": 212,
+      "grip": true,
+      "demo": true,
+      "finite": true,
+      "min": [-0.6198258399963379, 0, -0.310863733291626],
+      "max": [1.6967865228652954, 2.5489859580993652, 0.5750112533569336],
+      "maxMovement": 0.9957256767565098,
+      "pinnedMovement": 0,
+      "volumeRatio": 0.9962766243553732,
+      "inverted": 38,
+      "invertedVolumeFraction": 0.00028843373259828254,
+      "broken": 58,
+      "maxDamage": 1,
+      "connectedParts": 2,
+      "fractureByRegion": {
+        "1": {
+          "total": 58,
+          "broken": 58
+        },
+        "2": {
+          "total": 48,
+          "broken": 0
+        },
+        "3": {
+          "total": 48,
+          "broken": 0
+        },
+        "4": {
+          "total": 58,
+          "broken": 0
+        }
+      }
+    },
+    {
+      "name": "settled",
+      "time": 7.5000000000001625,
+      "steps": 900,
+      "vertices": 2410,
+      "interfaces": 212,
+      "grip": false,
+      "demo": false,
+      "finite": true,
+      "min": [-0.7290301322937012, 0, -0.3693816065788269],
+      "max": [1.9060741662979126, 2.5170838832855225, 0.5082737803459167],
+      "maxMovement": 1.9508972387503045,
+      "pinnedMovement": 0,
+      "volumeRatio": 0.9962103877996846,
+      "inverted": 60,
+      "invertedVolumeFraction": 0.00005920173148009918,
+      "broken": 58,
+      "maxDamage": 1,
+      "connectedParts": 2,
+      "fractureByRegion": {
+        "1": {
+          "total": 58,
+          "broken": 58
+        },
+        "2": {
+          "total": 48,
+          "broken": 0
+        },
+        "3": {
+          "total": 48,
+          "broken": 0
+        },
+        "4": {
+          "total": 58,
+          "broken": 0
+        }
+      }
+    },
+    {
+      "name": "tearing-disabled",
+      "time": 5.066666666666708,
+      "steps": 608,
+      "vertices": 2410,
+      "interfaces": 212,
+      "grip": true,
+      "demo": true,
+      "finite": true,
+      "min": [-0.49684590101242065, 0, -0.28883495926856995],
+      "max": [1.156750202178955, 2.5503766536712646, 0.6288519501686096],
+      "maxMovement": 0.7256517899842212,
+      "pinnedMovement": 0,
+      "volumeRatio": 1.0144754435615975,
+      "inverted": 90,
+      "invertedVolumeFraction": 0.0007442774926334459,
+      "broken": 0,
+      "maxDamage": 0,
+      "connectedParts": 1,
+      "fractureByRegion": {
+        "1": {
+          "total": 58,
+          "broken": 0
+        },
+        "2": {
+          "total": 48,
+          "broken": 0
+        },
+        "3": {
+          "total": 48,
+          "broken": 0
+        },
+        "4": {
+          "total": 58,
+          "broken": 0
+        }
+      }
+    },
+    {
+      "name": "amber",
+      "time": 0.06666666666666667,
+      "steps": 8,
+      "vertices": 2410,
+      "interfaces": 212,
+      "grip": false,
+      "demo": false,
+      "finite": true,
+      "min": [-0.730496346950531, 0, -0.3490394651889801],
+      "max": [0.7331252694129944, 2.5131547451019287, 0.5083975791931152],
+      "maxMovement": 0.019967830521299766,
+      "pinnedMovement": 0,
+      "volumeRatio": 0.9961406667308891,
+      "inverted": 34,
+      "invertedVolumeFraction": 0.0000886147397843198,
+      "broken": 0,
+      "maxDamage": 0,
+      "connectedParts": 1,
+      "fractureByRegion": {
+        "1": {
+          "total": 58,
+          "broken": 0
+        },
+        "2": {
+          "total": 48,
+          "broken": 0
+        },
+        "3": {
+          "total": 48,
+          "broken": 0
+        },
+        "4": {
+          "total": 58,
+          "broken": 0
+        }
+      }
+    },
+    {
+      "name": "berry",
+      "time": 0.06666666666666667,
+      "steps": 8,
+      "vertices": 2410,
+      "interfaces": 212,
+      "grip": false,
+      "demo": false,
+      "finite": true,
+      "min": [-0.730496346950531, 0, -0.3490394651889801],
+      "max": [0.7331252694129944, 2.5131547451019287, 0.5083975791931152],
+      "maxMovement": 0.019967830521299766,
+      "pinnedMovement": 0,
+      "volumeRatio": 0.9961406667308891,
+      "inverted": 34,
+      "invertedVolumeFraction": 0.0000886147397843198,
+      "broken": 0,
+      "maxDamage": 0,
+      "connectedParts": 1,
+      "fractureByRegion": {
+        "1": {
+          "total": 58,
+          "broken": 0
+        },
+        "2": {
+          "total": 48,
+          "broken": 0
+        },
+        "3": {
+          "total": 48,
+          "broken": 0
+        },
+        "4": {
+          "total": 58,
+          "broken": 0
+        }
+      }
+    },
+    {
+      "name": "candy",
+      "time": 0.06666666666666667,
+      "steps": 8,
+      "vertices": 2410,
+      "interfaces": 212,
+      "grip": false,
+      "demo": false,
+      "finite": true,
+      "min": [-0.730496346950531, 0, -0.3490394651889801],
+      "max": [0.7331252694129944, 2.5131547451019287, 0.5083975791931152],
+      "maxMovement": 0.019967830521299766,
+      "pinnedMovement": 0,
+      "volumeRatio": 0.9961406667308891,
+      "inverted": 34,
+      "invertedVolumeFraction": 0.0000886147397843198,
+      "broken": 0,
+      "maxDamage": 0,
+      "connectedParts": 1,
+      "fractureByRegion": {
+        "1": {
+          "total": 58,
+          "broken": 0
+        },
+        "2": {
+          "total": 48,
+          "broken": 0
+        },
+        "3": {
+          "total": 48,
+          "broken": 0
+        },
+        "4": {
+          "total": 58,
+          "broken": 0
+        }
+      }
+    },
+    {
+      "name": "lagoon",
+      "time": 0.06666666666666667,
+      "steps": 8,
+      "vertices": 2410,
+      "interfaces": 212,
+      "grip": false,
+      "demo": false,
+      "finite": true,
+      "min": [-0.730496346950531, 0, -0.3490394651889801],
+      "max": [0.7331252694129944, 2.5131547451019287, 0.5083975791931152],
+      "maxMovement": 0.019967830521299766,
+      "pinnedMovement": 0,
+      "volumeRatio": 0.9961406667308891,
+      "inverted": 34,
+      "invertedVolumeFraction": 0.0000886147397843198,
+      "broken": 0,
+      "maxDamage": 0,
+      "connectedParts": 1,
+      "fractureByRegion": {
+        "1": {
+          "total": 58,
+          "broken": 0
+        },
+        "2": {
+          "total": 48,
+          "broken": 0
+        },
+        "3": {
+          "total": 48,
+          "broken": 0
+        },
+        "4": {
+          "total": 58,
+          "broken": 0
+        }
+      }
+    },
+    {
+      "name": "marble",
+      "time": 0.06666666666666667,
+      "steps": 8,
+      "vertices": 2410,
+      "interfaces": 212,
+      "grip": false,
+      "demo": false,
+      "finite": true,
+      "min": [-0.730496346950531, 0, -0.3490394651889801],
+      "max": [0.7331252694129944, 2.5131547451019287, 0.5083975791931152],
+      "maxMovement": 0.019967830521299766,
+      "pinnedMovement": 0,
+      "volumeRatio": 0.9961406667308891,
+      "inverted": 34,
+      "invertedVolumeFraction": 0.0000886147397843198,
+      "broken": 0,
+      "maxDamage": 0,
+      "connectedParts": 1,
+      "fractureByRegion": {
+        "1": {
+          "total": 58,
+          "broken": 0
+        },
+        "2": {
+          "total": 48,
+          "broken": 0
+        },
+        "3": {
+          "total": 48,
+          "broken": 0
+        },
+        "4": {
+          "total": 58,
+          "broken": 0
+        }
+      }
+    }
+  ],
+  "errors": [],
+  "placement": {
+    "foregroundUnchanged": true,
+    "clients": [
+      {
+        "class": "agent-browser",
+        "workspace": "special:agents"
+      }
+    ],
+    "hidden": true
+  },
+  "adapter": {
+    "vendor": "amd",
+    "architecture": "rdna-4",
+    "device": "",
+    "description": ""
+  },
+  "simulationMillisecondsPerStep": 1.179444444442375,
+  "phone": {
+    "viewport": 390,
+    "document": 390,
+    "canvas": {
+      "x": 15,
+      "y": 123,
+      "width": 360,
+      "height": 489.515625,
+      "top": 123,
+      "right": 375,
+      "bottom": 612.515625,
+      "left": 15
+    }
+  },
+  "inputs": {
+    "mouseDisplacement": 0.5910999476909637,
+    "keyboard": true,
+    "touchDisplacement": 0.3204232081770897,
+    "touchEvents": [
+      {
+        "type": "pointerdown",
+        "pointerType": "touch",
+        "trusted": true
+      },
+      {
+        "type": "pointermove",
+        "pointerType": "touch",
+        "trusted": true
+      },
+      {
+        "type": "pointermove",
+        "pointerType": "touch",
+        "trusted": true
+      },
+      {
+        "type": "pointermove",
+        "pointerType": "touch",
+        "trusted": true
+      },
+      {
+        "type": "pointermove",
+        "pointerType": "touch",
+        "trusted": true
+      },
+      {
+        "type": "pointermove",
+        "pointerType": "touch",
+        "trusted": true
+      },
+      {
+        "type": "pointermove",
+        "pointerType": "touch",
+        "trusted": true
+      },
+      {
+        "type": "pointermove",
+        "pointerType": "touch",
+        "trusted": true
+      },
+      {
+        "type": "pointermove",
+        "pointerType": "touch",
+        "trusted": true
+      },
+      {
+        "type": "pointerup",
+        "pointerType": "touch",
+        "trusted": true
+      },
+      {
+        "type": "pointerdown",
+        "pointerType": "touch",
+        "trusted": true
+      },
+      {
+        "type": "pointercancel",
+        "pointerType": "touch",
+        "trusted": true
+      }
+    ],
+    "tablet": {
+      "viewport": 1024,
+      "content": 1024
+    }
+  }
+}
