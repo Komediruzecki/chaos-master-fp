@@ -2,6 +2,7 @@
 import { For } from 'solid-js'
 import { FRACTAL_CHESS_COLLECTIONS } from '@/flame/chess/fractalChessCollections'
 import styles from './GummyCinemaPage.module.css'
+import { resolveNativeCinemaReceipt } from './nativeCinemaRecipe'
 import type { NativeCinemaRecipe } from './nativeCinemaRecipe'
 
 export function NativeCinemaStagingControls(props: {
@@ -22,6 +23,7 @@ export function NativeCinemaStagingControls(props: {
         value={props.draft.nativeCollection.id}
         onChange={(e) => {
           patch({
+            fracture: 'points',
             nativeCollection: {
               ...props.draft.nativeCollection,
               id: e.currentTarget
@@ -55,6 +57,29 @@ export function NativeCinemaStagingControls(props: {
       <p class={styles.help}>
         Glass fits the fern knight, split-current bishop or window rook in its
         own collection.
+      </p>
+      <label for="native-fracture">Breakup</label>
+      <select
+        id="native-fracture"
+        value={props.draft.fracture ?? 'points'}
+        onChange={(e) => {
+          patch({ fracture: e.currentTarget.value as 'points' | 'connected' })
+        }}
+      >
+        <option value="points">Coloured points</option>
+        <option
+          value="connected"
+          disabled={
+            props.draft.nativeCollection.id !== 'lattice-court' ||
+            resolveNativeCinemaReceipt(props.draft).captured?.role !== 'rook'
+          }
+        >
+          Connected rook study
+        </option>
+      </select>
+      <p class={styles.help}>
+        Choose Window rook above to compare solid chunks with coloured
+        interiors.
       </p>
       <label for="native-camera">Camera movement</label>
       <select

@@ -1,6 +1,6 @@
 /** Native studio handoffs, staged edits and recording retain one legal capture through asynchronous work. */
 import { cleanup, fireEvent, render, screen, waitFor, } from '@solidjs/testing-library'
-import { onCleanup } from 'solid-js'
+import { createEffect, on, onCleanup } from 'solid-js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { NativeChessCinemaPage } from './NativeChessCinemaPage'
 import { parseNativeCinemaRecipe } from './nativeCinemaRecipe'
@@ -15,6 +15,7 @@ const fixtures = vi.hoisted(() => ({
   holdReady: false,
   order: [] as string[],
   resetPending: undefined as Promise<void> | undefined,
+  seekPending: undefined as Promise<void> | undefined,
   startRecording: vi.fn(),
   stopRecording: vi.fn(),
   disposeRecording: vi.fn(),
@@ -45,7 +46,7 @@ vi.mock('@/components/FractalCollection/NativeFractalCinemaScene', () => ({
       },
       seekFrame(frame, fps = 60) {
         props.onProgress(frame / fps, false)
-        return Promise.resolve()
+        return fixtures.seekPending ?? Promise.resolve()
       },
       setCaptureSize: () => Promise.resolve(),
       captureFrame: () =>
@@ -56,7 +57,14 @@ vi.mock('@/components/FractalCollection/NativeFractalCinemaScene', () => ({
       },
     }
     props.onController(controller)
-    if (!fixtures.holdReady) props.onReady(true)
+    createEffect(
+      on(
+        () => props.recipe,
+        () => {
+          if (!fixtures.holdReady) props.onReady(true)
+        },
+      ),
+    )
     onCleanup(() => {
       props.onController(undefined)
     })
@@ -93,6 +101,7 @@ beforeEach(() => {
   fixtures.order.length = 0
   fixtures.holdReady = false
   fixtures.resetPending = undefined
+  fixtures.seekPending = undefined
   fixtures.recording = undefined
   vi.clearAllMocks()
   fixtures.startRecording.mockImplementation(
@@ -207,7 +216,7 @@ describe('NativeChessCinemaPage', () => {
       }).value,
     ).toBe('hero')
     fireEvent.click(button('Apply shot settings'))
-    expect(fixtures.scenes).toHaveLength(2)
+    expect(fixtures.scenes).toHaveLength(1)
     expect(current().recipe).toMatchObject({
       nativeCollection: { id: 'tidal-relics', enclosure: 'pure' },
       quality: 'fine',
@@ -218,6 +227,35 @@ describe('NativeChessCinemaPage', () => {
       to: before.recipe.to,
     })
     expect(fixtures.exports).toHaveLength(1)
+  })
+
+  it('offers the connected prototype only for a Window rook and preserves it in the copied recipe', () => {
+    render(() => <NativeChessCinemaPage />)
+    const option = () =>
+      screen.getByRole<HTMLOptionElement>('option', {
+        name: 'Connected rook study',
+      })
+    expect(option().disabled).toBe(true)
+    fireEvent.click(button('Window rook'))
+    expect(option().disabled).toBe(false)
+    change('Breakup', 'connected')
+    expect(current().recipe.fracture).toBeUndefined()
+    fireEvent.click(button('Apply shot settings'))
+    expect(window.__nativeChessCinema!.recipe().fracture).toBe('connected')
+    expect(
+      JSON.parse(sessionStorage.getItem(NATIVE_CINEMA_KEY)!).fracture,
+    ).toBe('connected')
+    change('Enclosure', 'pure')
+    fireEvent.click(button('Apply shot settings'))
+    expect(current().recipe).toMatchObject({
+      fracture: 'connected',
+      nativeCollection: { enclosure: 'pure' },
+    })
+    change('Collection', 'wild-canopy')
+    fireEvent.click(button('Apply shot settings'))
+    expect(current().recipe.fracture).toBe('points')
+    expect(option().disabled).toBe(true)
+    expect(fixtures.scenes).toHaveLength(1)
   })
 
   it('keeps a valid take playable after a malformed replacement and reports GPU errors separately', async () => {
@@ -239,6 +277,38 @@ describe('NativeChessCinemaPage', () => {
     expect(screen.getByRole('alert').textContent).toBe(
       'Device lost while preparing this shot.',
     )
+  })
+
+  it('ignores an old seek failure after Apply but still reports failures from the current shot', async () => {
+    let rejectSeek!: (cause: Error) => void
+    fixtures.seekPending = new Promise<void>((_resolve, reject) => {
+      rejectSeek = reject
+    })
+    render(() => <NativeChessCinemaPage />)
+    fireEvent.change(screen.getByRole('slider', { name: /Shot time/ }), {
+      target: { value: '2' },
+    })
+    change('Camera movement', 'hero')
+    fireEvent.click(button('Apply shot settings'))
+    expect(current().recipe.camera).toBe('hero')
+    rejectSeek(new Error('The old canvas changed size.'))
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(button('Play shot').disabled).toBe(false)
+
+    fixtures.seekPending = new Promise<void>((_resolve, reject) => {
+      rejectSeek = reject
+    })
+    fireEvent.change(screen.getByRole('slider', { name: /Shot time/ }), {
+      target: { value: '3' },
+    })
+    rejectSeek(new Error('The current canvas changed size.'))
+    await waitFor(() => {
+      expect(screen.getByRole('alert').textContent).toBe(
+        'The current canvas changed size.',
+      )
+    })
   })
 
   it('keeps the new shot usable and its recipe available when saving is blocked', () => {

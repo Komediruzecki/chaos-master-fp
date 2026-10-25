@@ -2,12 +2,16 @@
 import { sampleFlameFigurineCloud } from '@/flame/chess/flameFigurineCloud'
 import { buildFractalChessFlame, getFractalChessCollection, } from '@/flame/chess/fractalChessCollections'
 import { buildFractalStudyGlass, getFractalStudyGlassRole, } from '@/flame/chess/fractalStudyGlass'
+import { assembledWindowRookPoints, buildWindowRookFracture, } from '@/flame/chess/windowRookFracture'
 import type { FractalStudyGlass } from '@/flame/chess/fractalStudyGlass'
 import type { PawnSide } from '@/flame/chess/pawnFlame'
+import type { WindowRookFracture } from '@/flame/chess/windowRookFracture'
 
 export type CollectionCloudRequest = {
   count: number
   collectionId: string
+  /** Cinema-only opt-in; ordinary collection/match loading keeps its existing cost. */
+  includeSolids?: boolean
 }
 export type CollectionCloud = {
   key: string
@@ -20,7 +24,13 @@ export type CollectionCloud = {
   }
 }
 export type CollectionCloudReply =
-  | { clouds: CollectionCloud[]; shell?: FractalStudyGlass }
+  | {
+      clouds: CollectionCloud[]
+      shell?: FractalStudyGlass
+      solids?: WindowRookFracture[]
+      solidShell?: FractalStudyGlass
+      solidError?: string
+    }
   | { error: string }
 
 globalThis.self.onmessage = (event: MessageEvent<CollectionCloudRequest>) => {
@@ -65,8 +75,40 @@ globalThis.self.onmessage = (event: MessageEvent<CollectionCloudRequest>) => {
       }
       shell = buildFractalStudyGlass(event.data.collectionId, points)
     }
+    let solids: WindowRookFracture[] | undefined,
+      solidShell: FractalStudyGlass | undefined,
+      solidError: string | undefined
+    if (
+      event.data.includeSolids &&
+      event.data.collectionId === 'lattice-court'
+    ) {
+      try {
+        solids = shellClouds.map((cloud) =>
+          buildWindowRookFracture(cloud.key, cloud.points, cloud.colors),
+        )
+        solidShell = buildFractalStudyGlass(
+          event.data.collectionId,
+          assembledWindowRookPoints(solids),
+        )
+      } catch (error) {
+        // The ordinary point/glass comparison remains usable if this stricter
+        // finite-volume prototype refuses a future disconnected source.
+        solids = undefined
+        solidShell = undefined
+        solidError =
+          error instanceof Error
+            ? error.message
+            : 'Could not prepare the connected-solid study.'
+      }
+    }
     globalThis.self.postMessage(
-      { clouds, shell } satisfies CollectionCloudReply,
+      {
+        clouds,
+        shell,
+        solids,
+        solidShell,
+        solidError,
+      } satisfies CollectionCloudReply,
       {
         transfer: [
           ...clouds.flatMap((cloud) => [
@@ -74,6 +116,8 @@ globalThis.self.onmessage = (event: MessageEvent<CollectionCloudRequest>) => {
             cloud.colors.buffer,
           ]),
           ...(shell ? [shell.vertices.buffer] : []),
+          ...(solids ?? []).map((solid) => solid.vertices.buffer),
+          ...(solidShell ? [solidShell.vertices.buffer] : []),
         ],
       },
     )

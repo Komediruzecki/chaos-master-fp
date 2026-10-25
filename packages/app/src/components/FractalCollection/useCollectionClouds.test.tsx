@@ -40,12 +40,16 @@ describe('useCollectionClouds', () => {
     vi.unstubAllGlobals()
   })
 
-  function mount() {
+  function mount(cacheBudget?: {
+    maxEntries: number
+    maxBytes: number
+    includeSolids?: boolean
+  }) {
     const [id, setId] = createSignal('reef')
     const [quality, setQuality] = createSignal<CollectionQuality>('normal')
     let state!: ReturnType<typeof useCollectionClouds>
     const view = render(() => {
-      state = useCollectionClouds(id, quality)
+      state = useCollectionClouds(id, quality, cacheBudget)
       return null
     })
     return { state, setId, setQuality, dispose: view.unmount }
@@ -113,6 +117,57 @@ describe('useCollectionClouds', () => {
     })
   })
 
+  it('revisits a cached collection without a worker and keeps only the configured recent results', () => {
+    const { state, setId, setQuality, dispose } = mount({
+      maxEntries: 2,
+      maxBytes: 4096,
+    })
+    const first = [cloud('reef')]
+    TestWorker.all[0]!.reply({ clouds: first })
+    expect(state.resultKey()).toBe('reef:normal')
+    setId('tide')
+    expect(state.resultKey()).toBe('')
+    TestWorker.all[1]!.reply({ clouds: [cloud('tide')] })
+    setId('reef')
+    expect(state.clouds()).toBe(first)
+    expect(state.busy()).toBe(false)
+    expect(TestWorker.all).toHaveLength(2)
+    setQuality('high')
+    TestWorker.all[2]!.reply({ clouds: [cloud('reef-fine')] })
+    setId('tide')
+    setQuality('normal')
+    expect(TestWorker.all).toHaveLength(5)
+    dispose()
+    TestWorker.all[4]!.reply({ clouds: [cloud('late')] })
+    expect(state.clouds()).toEqual([])
+  })
+
+  it('opts Cinema into solid construction and preserves a nonfatal solid error with cached points', () => {
+    const { state, setId } = mount({
+      maxEntries: 2,
+      maxBytes: 4096,
+      includeSolids: true,
+    })
+    expect(TestWorker.all[0]!.postMessage).toHaveBeenCalledWith({
+      collectionId: 'reef',
+      count: 24_000,
+      includeSolids: true,
+    })
+    TestWorker.all[0]!.reply({
+      clouds: [cloud('reef')],
+      solidError: 'No connected volume.',
+    })
+    expect(state.resultKey()).toBe('reef:normal:solids')
+    expect(state.error()).toBe('')
+    expect(state.solidError()).toBe('No connected volume.')
+    setId('tide')
+    TestWorker.all[1]!.reply({ clouds: [cloud('tide')] })
+    setId('reef')
+    expect(TestWorker.all).toHaveLength(2)
+    expect(state.solidError()).toBe('No connected volume.')
+    expect(state.clouds()[0]!.key).toBe('reef')
+  })
+
   it('runs source construction in the worker and drops stale replies after switching', () => {
     const { state, setId, dispose } = mount()
     const old = TestWorker.all[0]!
@@ -154,7 +209,13 @@ describe('useCollectionClouds', () => {
     expect(state.clouds()).toEqual([])
     observed.mockClear()
     const sampled = [cloud('bishop:light')]
-    TestWorker.all[1]!.reply({ clouds: sampled, shell: glass })
+    const solidGlass = { vertices: new Float32Array([3, 2, 1]), radius: 0.8 }
+    TestWorker.all[1]!.reply({
+      clouds: sampled,
+      shell: glass,
+      solidShell: solidGlass,
+    })
+    expect(state.solidShell()).toBe(solidGlass)
     expect(observed).toHaveBeenCalledExactlyOnceWith(sampled, glass)
     expect(state.shell()).toBe(glass)
     setId('tidal-relics')
@@ -163,6 +224,7 @@ describe('useCollectionClouds', () => {
     setQuality('high')
     expect(state.clouds()).toEqual([])
     expect(state.shell()).toBeUndefined()
+    expect(state.solidShell()).toBeUndefined()
     TestWorker.all[2]!.reply({ error: 'Could not fit glass' })
     expect(state.busy()).toBe(false)
     expect(state.error()).toBe('Could not fit glass')

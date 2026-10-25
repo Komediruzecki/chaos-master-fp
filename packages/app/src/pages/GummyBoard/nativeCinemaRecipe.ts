@@ -15,6 +15,8 @@ export type NativeCinemaRecipe = {
   scale: number
   quality: 'normal' | 'fine'
   camera: 'arc' | 'diagonal' | 'hero'
+  /** Optional finite-volume rook study; old recipes retain point breakup. */
+  fracture?: 'points' | 'connected'
 }
 
 export function nativeCinemaReason(receipt?: ChessMoveReceipt) {
@@ -103,7 +105,20 @@ export function parseNativeCinemaRecipe(value: unknown): NativeCinemaRecipe {
     ...parseMove(data),
     ...parseLook(data),
   }
-  resolveNativeCinemaReceipt(recipe)
+  if (data.fracture !== undefined) {
+    if (data.fracture !== 'points' && data.fracture !== 'connected')
+      throw new Error('Choose point breakup or the connected rook study.')
+    recipe.fracture = data.fracture
+  }
+  const receipt = resolveNativeCinemaReceipt(recipe)
+  if (
+    recipe.fracture === 'connected' &&
+    (recipe.nativeCollection.id !== 'lattice-court' ||
+      receipt.captured?.role !== 'rook')
+  )
+    throw new Error(
+      'The connected-solid study needs a captured Window rook from Lattice Court.',
+    )
   return recipe
 }
 

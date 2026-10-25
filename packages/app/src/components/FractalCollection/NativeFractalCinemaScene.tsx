@@ -8,11 +8,13 @@ import { bindGummyGpuErrors } from '../GummyBear/gummyGpuErrors'
 import { createPawnBoardRenderer } from '../PawnBoard/pawnBoardRenderer'
 import { NATIVE_CINEMA_DURATION, nativeCinemaCamera, nativeCinemaTime, } from './nativeCinemaCamera'
 import { createNativeCinemaCapture } from './nativeCinemaCapture'
+import { createNativeCinemaResources } from './nativeCinemaResources'
 import { nativeMatchFrame } from './nativeFractalMatchFrame'
 import { useCollectionClouds } from './useCollectionClouds'
 import type { CinemaPlaybackController } from '../GummyBoard/cinemaPlaybackController'
 import type { CollectionCloud } from './collectionCloudWorker'
 import type { FractalStudyGlass } from '@/flame/chess/fractalStudyGlass'
+import type { WindowRookFracture } from '@/flame/chess/windowRookFracture'
 import type { NativeCinemaRecipe } from '@/pages/GummyBoard/nativeCinemaRecipe'
 
 export type NativeFractalCinemaController = CinemaPlaybackController & {
@@ -34,7 +36,7 @@ type Props = {
   onError(message: string): void
 }
 
-/** Apply a new recipe by remounting this scene, retaining one cloud upload for the entire take. */
+/** Retain the renderer across shot edits and cache two bounded sampling results for comparisons. */
 export function NativeFractalCinemaScene(props: Props) {
   const quality = createMemo(() =>
     props.recipe.quality === 'fine' ? 'high' : 'normal',
@@ -42,6 +44,7 @@ export function NativeFractalCinemaScene(props: Props) {
   const source = useCollectionClouds(
     () => props.recipe.nativeCollection.id,
     quality,
+    { maxEntries: 2, maxBytes: 32 * 1024 * 1024, includeSolids: true },
   )
   const [captureSize, setCaptureSize] = createSignal<CaptureSize>()
   const [visible, setVisible] = createSignal(true)
@@ -63,7 +66,11 @@ export function NativeFractalCinemaScene(props: Props) {
       <NativeCinemaCanvas
         {...props}
         clouds={source.clouds()}
+        sourceKey={source.resultKey()}
         shell={source.shell()}
+        solidShell={source.solidShell()}
+        solids={source.solids()}
+        solidError={source.solidError()}
         visible={visible()}
         setCaptureSize={setCaptureSize}
       />
@@ -74,16 +81,20 @@ export function NativeFractalCinemaScene(props: Props) {
 function NativeCinemaCanvas(
   props: Props & {
     clouds: CollectionCloud[]
+    sourceKey: string
     shell?: FractalStudyGlass
+    solidShell?: FractalStudyGlass
+    solids?: WindowRookFracture[]
+    solidError: string
     visible: boolean
     setCaptureSize(size: CaptureSize | undefined): void
   },
 ) {
   const { root, device } = useLiveRootContext()
   const { canvas, context, canvasFormat, canvasSize } = useCanvas()
-  const recipe = untrack(() => props.recipe)
-  const receipt = resolveNativeCinemaReceipt(recipe)
-  const look = {
+  let recipe = untrack(() => props.recipe)
+  let receipt = resolveNativeCinemaReceipt(recipe)
+  let look = {
     collectionId: recipe.nativeCollection.id,
     enclosure: recipe.nativeCollection.enclosure,
     scale: recipe.scale,
@@ -100,6 +111,8 @@ function NativeCinemaCanvas(
     raf = 0,
     pendingActions = 0
   let queue = Promise.resolve()
+  let revision = 0
+  let upload: ReturnType<typeof createNativeCinemaResources> | undefined
 
   function stopFrame() {
     cancelAnimationFrame(raf)
@@ -122,6 +135,7 @@ function NativeCinemaCanvas(
   const releaseErrors = bindGummyGpuErrors(device, fail)
   try {
     renderer = createPawnBoardRenderer(root, device, context, canvasFormat)
+    upload = createNativeCinemaResources(renderer)
   } catch (cause) {
     fail(cause)
   }
@@ -171,9 +185,23 @@ function NativeCinemaCanvas(
     return enqueue(action)
   }
 
+  const pieces = () =>
+    nativeMatchFrame(receipt, nativeCinemaTime(displayTime), look).map(
+      (piece) =>
+        recipe.fracture === 'connected' &&
+        look.collectionId === 'lattice-court' &&
+        piece.role === 'rook'
+          ? {
+              ...piece,
+              solidKey: piece.cloudKey,
+              glassKey: piece.glassKey ? `${piece.glassKey}:solid` : undefined,
+            }
+          : piece,
+    )
+
   async function draw(output?: GPUTextureView) {
     assertLive()
-    if (!renderer || !loaded) return false
+    if (!renderer || !loaded || props.recipe !== recipe) return false
     const size = canvasSize()
     if (size.width < 1 || size.height < 1) return false
     const camera = nativeCinemaCamera(
@@ -183,17 +211,13 @@ function NativeCinemaCanvas(
       displayTime,
       size.width / size.height,
     )
-    const pieces = nativeMatchFrame(
-      receipt,
-      nativeCinemaTime(displayTime),
-      look,
-    )
+    const framePieces = pieces()
     renderer.render(
       {
         ...size,
         viewProjection: camera.viewProjection,
         eye: camera.eye,
-        pieces,
+        pieces: framePieces,
         legal: [],
         showGlass: look.enclosure === 'glass',
         mutedBoard: true,
@@ -204,15 +228,27 @@ function NativeCinemaCanvas(
     canvas.dataset.time = displayTime.toFixed(4)
     canvas.dataset.collection = look.collectionId
     canvas.dataset.enclosure = look.enclosure
-    canvas.dataset.pieces = String(pieces.length)
+    canvas.dataset.pieces = String(framePieces.length)
     await device.queue.onSubmittedWorkDone()
     assertLive()
     const current = canvasSize()
-    return current.width === size.width && current.height === size.height
+    return (
+      props.recipe === recipe &&
+      current.width === size.width &&
+      current.height === size.height
+    )
   }
 
-  function markReady(rendered: boolean) {
-    if (!rendered || disposed || failure || ready || pendingActions) return
+  function markReady(rendered: boolean, expected = revision) {
+    if (
+      !rendered ||
+      expected !== revision ||
+      disposed ||
+      failure ||
+      ready ||
+      pendingActions
+    )
+      return
     ready = true
     untrack(() => {
       props.onReady(true)
@@ -220,7 +256,8 @@ function NativeCinemaCanvas(
   }
 
   async function refresh() {
-    markReady(await enqueue(draw))
+    const expected = revision
+    markReady(await enqueue(draw), expected)
   }
 
   async function seek(
@@ -332,11 +369,10 @@ function NativeCinemaCanvas(
       effectTime: nativeCinemaTime(displayTime),
       beforeFen: receipt.before.fen,
       afterFen: receipt.after.fen,
-      pieces: nativeMatchFrame(receipt, nativeCinemaTime(displayTime), look),
+      pieces: pieces(),
     }),
   }
   untrack(() => {
-    props.onReady(false)
     props.onController(controller)
   })
 
@@ -354,7 +390,7 @@ function NativeCinemaCanvas(
       await enqueue(async () => {
         if (!playing) return
         displayTime = Math.min(NATIVE_CINEMA_DURATION, displayTime + delta)
-        await draw()
+        if (!(await draw())) return
         if (displayTime >= NATIVE_CINEMA_DURATION) playing = false
         untrack(() => {
           props.onProgress(displayTime, playing)
@@ -367,30 +403,52 @@ function NativeCinemaCanvas(
 
   createEffect(
     on(
-      () => props.clouds,
-      (clouds) => {
-        if (!renderer || failure || clouds.length !== 12) return
+      () => [props.recipe, props.clouds, props.sourceKey] as const,
+      ([next, clouds]) => {
+        const expected = ++revision
+        playing = false
+        ready = false
+        stopFrame()
+        props.onReady(false)
+        const samplingKey = `${next.nativeCollection.id}:${next.quality === 'fine' ? 'high' : 'normal'}:solids`
+        if (
+          !renderer ||
+          failure ||
+          clouds.length !== 12 ||
+          props.sourceKey !== samplingKey
+        )
+          return
         const shell = props.shell
+        const solids = props.solids
+        const solidShell = props.solidShell
+        if (
+          next.fracture === 'connected' &&
+          (!solids?.length ||
+            (next.nativeCollection.enclosure === 'glass' && !solidShell))
+        ) {
+          props.onError(
+            props.solidError ||
+              'The connected solid could not be prepared for this collection.',
+          )
+          return
+        }
         void enqueue(async () => {
-          renderer.clearVariantClouds()
-          renderer.clearVariantGlass()
-          for (const cloud of clouds)
-            renderer.setVariantCloud(
-              cloud.key,
-              cloud.side,
-              cloud.points,
-              cloud.colors,
-            )
-          if (shell)
-            renderer.setVariantGlass(
-              look.collectionId,
-              shell.vertices,
-              shell.radius,
-            )
+          if (expected !== revision) return false
+          recipe = next
+          receipt = resolveNativeCinemaReceipt(recipe)
+          look = {
+            collectionId: recipe.nativeCollection.id,
+            enclosure: recipe.nativeCollection.enclosure,
+            scale: recipe.scale,
+          }
+          displayTime = 0
+          upload?.(recipe, clouds, shell, solids, solidShell)
           loaded = true
           return await draw()
         })
-          .then(markReady)
+          .then((rendered) => {
+            markReady(rendered, expected)
+          })
           .catch(fail)
       },
     ),

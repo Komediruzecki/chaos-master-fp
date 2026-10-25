@@ -9,6 +9,8 @@ export type BoardPawnInstance = {
   age: number
   /** An uploaded study cloud; omitted keeps the original side-based pawn. */
   cloudKey?: string
+  /** Optional finite-volume study mesh, replacing the role cloud for this piece. */
+  solidKey?: string
   /** An explicitly uploaded hollow envelope, independent of the native cloud. */
   glassKey?: string
   /** Seconds since envelope fracture; omitted or negative keeps the shell intact. */

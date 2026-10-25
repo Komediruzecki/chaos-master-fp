@@ -1,6 +1,7 @@
 /** Native TypeGPU mesh, glass and point-cloud shaders sharing camera/depth space. */
 import { d, std, tgpu } from 'typegpu'
 import { boardSpecular, dielectricFresnel, displayColour, GLASS_IOR, GLASS_WALL_THICKNESS, glassAttenuation, studioEnvironment, } from './pawnGlassMaterial'
+import { glassShardColour } from './pawnGlassShardMaterial'
 
 export const BoardCameraUniform = d.struct({
   viewProjection: d.mat4x4f,
@@ -97,6 +98,7 @@ export const boardFragment = tgpu.fragmentFn({
     local: d.vec3f,
     colour: d.vec4f,
     highlight: d.f32,
+    objectId: d.f32,
   },
   out: d.vec4f,
 })((input) => {
@@ -120,6 +122,9 @@ export const boardFragment = tgpu.fragmentFn({
   } else if (cameraLayout.$.camera.scene.y > 0.5) {
     // A quiet checker surface lets the native recurrence carry the contrast.
     baseColour = std.mul(baseColour, 0.18)
+    // The slab uses id -1. Keep its edge legible when the camera pulls back;
+    // dimming the already-dark substrate again made it merge into the backdrop.
+    if (input.objectId < 0) baseColour = d.vec3f(0.045, 0.064, 0.078)
     roughness = 0.82
     specularWeight = 0.08
     reflectionWeight = 0.04
@@ -301,7 +306,7 @@ export const displayFragment = tgpu.fragmentFn({
   return d.vec4f(displayColour(hdr, cameraLayout.$.camera.resolution.w), 1)
 })
 
-/** Cut faces scatter more light than the intact polished envelope. */
+/** Tiny cut faces use subdued reflections and preserve the colour behind them. */
 export const shardFragment = tgpu.fragmentFn({
   in: {
     world: d.vec3f,
@@ -317,24 +322,10 @@ export const shardFragment = tgpu.fragmentFn({
   const view = std.normalize(
     std.sub(cameraLayout.$.camera.eye.xyz, input.world),
   )
-  const light = std.normalize(d.vec3f(-0.45, 0.9, 0.4))
-  const diffuse = std.abs(std.dot(normal, light))
-  const fresnel = std.pow(1 - std.abs(std.dot(normal, view)), 3)
-  const glint = std.pow(
-    std.abs(std.dot(normal, std.normalize(std.add(light, view)))),
-    24,
-  )
-  const impact = std.exp(-input.highlight * 6)
-  const body = std.mul(input.colour.xyz, 0.55 + 0.45 * diffuse + 0.7 * impact)
-  const cuts = std.mul(
-    d.vec3f(0.75, 0.88, 1),
-    0.08 + 0.32 * fresnel + 1.5 * glint + 0.6 * impact,
-  )
-  const alpha = std.clamp((0.45 + 0.35 * fresnel) * input.colour.w, 0, 0.88)
-  return d.vec4f(std.add(body, cuts), alpha)
+  return glassShardColour(normal, view, input.colour.xyz, input.colour.w)
 })
 
-const rotate = tgpu.fn(
+export const rotateFragment = tgpu.fn(
   [d.vec3f, d.vec3f],
   d.vec3f,
 )((p, angle) => {
@@ -380,7 +371,10 @@ const createFragmentVertex = (preserveRestPose: boolean) =>
       floor,
     )
     const world = std.add(
-      std.mul(std.add(rotate(input.vertex, angles), centre), input.offset.w),
+      std.mul(
+        std.add(rotateFragment(input.vertex, angles), centre),
+        input.offset.w,
+      ),
       input.offset.xyz,
     )
     const fade = 1 - std.smoothstep(1.2, GLASS_FRAGMENT_DURATION, age)
@@ -390,9 +384,9 @@ const createFragmentVertex = (preserveRestPose: boolean) =>
         d.vec4f(world, 1),
       ),
       world,
-      surfaceNormal: rotate(input.normal, angles),
+      surfaceNormal: rotateFragment(input.normal, angles),
       local: input.vertex,
-      colour: d.vec4f(input.tint.xyz, input.tint.w * fade * 1.55),
+      colour: d.vec4f(input.tint.xyz, input.tint.w * fade),
       highlight: age,
       objectId: 0,
     }

@@ -723,20 +723,73 @@ focused tests cover padding, channel order, allocation failure and stale reads.
 Local preparation passes with the existing 78 lint warnings, no errors, no size
 ratchet regression, no dependency violations and 1,789 valid doc citations.
 
+### Shot reuse and connected rook study (2026-10-25)
+
+Applied native Cinema settings now keep the scene, controller and GPU renderer.
+Camera, scale, enclosure and legal move edits reuse the current uploaded geometry.
+A scene-owned sampling cache retains at most two collection/detail results and
+32 MiB of typed arrays. Changing collection replaces the active GPU uploads; it
+does not retain a second renderer. Revision checks prevent a superseded worker
+or queued frame from declaring the next recipe ready. Closing Cinema releases
+the cache and owned GPU resources.
+
+Glass fragments no longer add an impact flash or amplified opacity. Rougher,
+bounded reflections and lower coverage keep the coloured core visible through
+overlapping chips. Intact glass keeps its existing optical pass. The native
+board's slab now has a separate colour floor in the muted material: previously
+its already-dark colour was multiplied by the checker dimming factor, making
+the edge almost black against the backdrop. Hardware frame inspection did not
+reproduce a post-capture board disappearance; physical-device confirmation of
+the reported symptom remains open.
+
+**Window rook → Breakup → Connected rook study** selects a finite-volume
+prototype in native Cinema. Both pure and glass enclosures remain available;
+**Coloured points** keeps the original effect. An optional `fracture` field in
+the version-one recipe preserves this choice, and the parser rejects unsupported
+roles or collections instead of silently substituting a shape.
+
+The worker thickens the sampled Lattice Court rook on a bounded 32-cell-axis
+grid, checks face connectivity, and partitions the entire volume into eighteen
+connected regions using graph distances. Exterior and internal interfaces carry
+local colour. Every region has a closed oriented surface; no disconnected
+material is silently discarded and the central window remains open. Only native
+Cinema requests this extra bake. Failure leaves point mode usable, while solid
+GPU buffers and their pipeline allocate only on the first solid comparison.
+The thicker finite mesh has its own fitted glass envelope; the original point
+study retains its existing glass fit.
+
+The 24k-sample desktop study contains 7,929 cells and 54,840 vertices (4.17 MB per
+side); the 60k study contains 8,036 cells and 56,172 vertices (4.27 MB per side).
+The bake measured approximately 234 ms cold and 148 ms warm in the sampled Node
+runs, not on the tablet. The rendered chunks use deterministic prescribed rigid
+motion, gravity and conservative spherical floor support. This is a geometry
+and fracture-ownership prototype, not a stress solver, deformable solid or exact
+chunk collision simulation. The floor approximation can leave irregular chunks
+slightly above the surface. No claim of continuum tearing is made.
+
+Verification on desktop AMD Chromium passed 46 browser checks, including all
+three pure/glass captures, connected/pure/glass toggles, deterministic exported
+pixels, idle submission stops, cached collection return, legal completion,
+match handoff/reload/return, phone/tablet rails and touch controls. Warm look
+edits measured 10–78 ms without new workers or GPU buffers. A six-second
+1280×720/30 fps MP4 contained all 180 frames and restored the preview time.
+No browser or WebGPU validation errors were reported. These resource counts
+cover application-owned buffers, not driver memory or physical tablet timing.
+
 Next phases, in order:
 
-1. Physical tablet/iOS review of all three collections in pure/glass play and
-   Cinema. Select the strongest silhouettes and inspect bright glass fragments
-   in close views. Keep the PR open for this acceptance.
-2. Reuse the bounded collection result across studio appearance/camera edits,
-   then profile complete collection sampling on the target tablet. Preserve
-   cancellation and avoid retaining multiple inactive GPU scenes.
-3. Build a connected finite-solid representation for one approved role. Validate
-   occupancy, thin features, collision and fracture before claiming material
-   tearing for the native clouds. Keep the current visual breakup selectable.
-4. Continue the private friend-session architecture below, then place the
-   approved material sets within the Arcade world. Room authority and hosting
-   still need an implementation/deployment decision.
+1. Owner review on tablet/iOS: compare pure/glass captures and the solid rook,
+   choose silhouettes and check the board edge after playback. Keep PR #160 open.
+2. Profile collection sampling and solid baking on those devices. Tune grid
+   thickness and chunk size against visible windows and measured cost.
+3. Replace prescribed solid separation with contact-driven bond failure and
+   better floor/chunk contact. Keep point breakup and the rigid study selectable
+   while validating energy, connected regions and coloured interiors.
+4. Promote an accepted solid role into playable captures with saved provenance,
+   then consider other roles. Cinema-only experimental geometry must not silently
+   change a recorded match's material response.
+5. Continue private friend sessions and later world placement below. Room
+   authority, hosting and deployment still need their own implementation gate.
 
 ## Private friend session architecture
 

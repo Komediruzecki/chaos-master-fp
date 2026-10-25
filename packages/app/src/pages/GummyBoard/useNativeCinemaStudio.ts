@@ -109,9 +109,10 @@ export function useNativeCinemaStudio(initial: {
   }
 
   function guarded(action: () => unknown) {
+    const actionRecipe = recipe()
     try {
       void Promise.resolve(action()).catch((cause: unknown) => {
-        if (!disposed)
+        if (!disposed && recipe() === actionRecipe)
           setError(cause instanceof Error ? cause.message : String(cause))
       })
     } catch (cause) {

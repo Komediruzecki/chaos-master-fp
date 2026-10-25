@@ -56,7 +56,7 @@ export function fillPieceInstances(
         'Board piece colour multiplier must be finite nonnegative RGB',
       )
     // Study clouds have their own shape; the legacy enclosure is a pawn.
-    if (piece.cloudKey !== undefined) continue
+    if (piece.cloudKey !== undefined || piece.solidKey !== undefined) continue
     if (piece.age < 0 && piece.glassKey === undefined) {
       writeInstance(shellData, shellCount, piece)
       shellData[shellCount * 12 + 10] = shellCount + 1

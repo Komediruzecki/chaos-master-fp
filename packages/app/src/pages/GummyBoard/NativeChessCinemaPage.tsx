@@ -77,10 +77,10 @@ export function NativeChessCinemaPage() {
         classList={{ [styles.portrait!]: portrait() }}
         ref={canvasSlot}
       >
-        <Show when={studio.recipe()} keyed>
+        <Show when={studio.recipe()}>
           {(recipe) => (
             <NativeFractalCinemaScene
-              recipe={recipe}
+              recipe={recipe()}
               onController={studio.receiveController}
               onReady={studio.receiveReady}
               onError={studio.receiveError}
@@ -262,11 +262,11 @@ export function NativeChessCinemaPage() {
         </GummyCinemaSection>
         <p class={styles.help}>
           The capture disperses the piece’s coloured points and breaks its glass
-          shell. Solid material tearing is a later study.
+          shell. Choose the connected rook study to compare finite solid chunks.
         </p>
         <Show when={!studio.ready() && studio.recipe() && !studio.error()}>
           <p class={styles.status} role="status">
-            Sampling the collection…
+            Preparing this shot…
           </p>
         </Show>
         <Show when={studio.error()}>

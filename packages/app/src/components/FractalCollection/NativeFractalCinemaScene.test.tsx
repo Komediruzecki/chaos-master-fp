@@ -9,6 +9,8 @@ import type { ParentProps } from 'solid-js'
 import type { BoardFrame } from '../PawnBoard/pawnBoardRenderer'
 import type { CollectionCloud } from './collectionCloudWorker'
 import type { NativeFractalCinemaController } from './NativeFractalCinemaScene'
+import type { FractalStudyGlass } from '@/flame/chess/fractalStudyGlass'
+import type { WindowRookFracture } from '@/flame/chess/windowRookFracture'
 import type { NativeCinemaRecipe } from '@/pages/GummyBoard/nativeCinemaRecipe'
 
 type Size = { width: number; height: number }
@@ -29,7 +31,12 @@ const fixture = vi.hoisted(() => ({
   setGlass: vi.fn(),
   clearClouds: vi.fn(),
   clearGlass: vi.fn(),
+  setSolid: vi.fn(),
+  clearSolids: vi.fn(),
   clouds: [] as CollectionCloud[],
+  solids: undefined as WindowRookFracture[] | undefined,
+  solidError: '',
+  solidShell: undefined as FractalStudyGlass | undefined,
 }))
 vi.mock('@/lib/AutoCanvas', () => ({
   AutoCanvas(props: ParentProps<{ fixedResolution?: Size }>) {
@@ -67,6 +74,8 @@ vi.mock('../PawnBoard/pawnBoardRenderer', () => ({
     setVariantGlass: fixture.setGlass,
     clearVariantClouds: fixture.clearClouds,
     clearVariantGlass: fixture.clearGlass,
+    setVariantSolid: fixture.setSolid,
+    clearVariantSolids: fixture.clearSolids,
   }),
 }))
 vi.mock('./nativeCinemaCapture', () => ({
@@ -87,9 +96,13 @@ vi.mock('./nativeCinemaCapture', () => ({
   },
 }))
 vi.mock('./useCollectionClouds', () => ({
-  useCollectionClouds: () => ({
+  useCollectionClouds: (id: () => string, quality: () => string) => ({
+    resultKey: () => `${id()}:${quality()}:solids`,
     clouds: () => fixture.clouds,
     shell: () => ({ vertices: new Float32Array(18), radius: 1 }),
+    solids: () => fixture.solids,
+    solidError: () => fixture.solidError,
+    solidShell: () => fixture.solidShell,
     busy: () => false,
     error: () => '',
   }),
@@ -119,6 +132,7 @@ const settle = async () => {
 
 function mount(initial: Size = { width: 800, height: 600 }) {
   const [size, setSize] = createSignal(initial)
+  const [currentRecipe, setRecipe] = createSignal(recipe)
   fixture.size = size
   let controller: NativeFractalCinemaController | undefined
   const ready = vi.fn(),
@@ -126,7 +140,7 @@ function mount(initial: Size = { width: 800, height: 600 }) {
     progress = vi.fn()
   const app = render(() => (
     <NativeFractalCinemaScene
-      recipe={recipe}
+      recipe={currentRecipe()}
       onController={(value) => {
         controller = value
       }}
@@ -135,13 +149,24 @@ function mount(initial: Size = { width: 800, height: 600 }) {
       onProgress={progress}
     />
   ))
-  return { app, ready, error, progress, setSize, controller: () => controller! }
+  return {
+    app,
+    ready,
+    error,
+    progress,
+    setSize,
+    setRecipe,
+    controller: () => controller!,
+  }
 }
 beforeEach(() => {
   vi.clearAllMocks()
   fixture.canvas = document.createElement('canvas')
   fixture.device = new EventTarget()
   fixture.captureSize = undefined
+  fixture.solids = undefined
+  fixture.solidShell = undefined
+  fixture.solidError = ''
   fixture.fence.mockResolvedValue()
   fixture.clouds = [
     'pawn',
@@ -226,6 +251,148 @@ describe('native cinema frame ownership', () => {
     await expect(controller.seekFrame(1, Number.NaN)).rejects.toThrow(
       'Frame and frame rate',
     )
+  })
+
+  it('applies camera, enclosure, scale and moves without recreating the renderer or uploading its clouds', async () => {
+    const app = mount()
+    await settle()
+    const controller = app.controller()
+    await controller.seekFrame(150, 60)
+    const next: NativeCinemaRecipe = {
+      ...recipe,
+      camera: 'hero',
+      scale: 0.95,
+      nativeCollection: { ...recipe.nativeCollection, enclosure: 'pure' },
+      fen: '7k/8/8/4n3/3P4/8/8/K7 w - - 0 1',
+      from: 'd4',
+      to: 'e5',
+    }
+    app.setRecipe(next)
+    expect(controller.info().ready).toBe(false)
+    await settle()
+    expect(app.controller()).toBe(controller)
+    expect(controller.info().ready).toBe(true)
+    expect(controller.readState()).toMatchObject({
+      displayTime: 0,
+      beforeFen: next.fen,
+    })
+    expect(fixture.render.mock.lastCall![0].showGlass).toBe(false)
+    expect(fixture.setCloud).toHaveBeenCalledTimes(12)
+    expect(fixture.setGlass).toHaveBeenCalledOnce()
+    expect(fixture.destroy).not.toHaveBeenCalled()
+    expect(fixture.unconfigure).not.toHaveBeenCalled()
+    await controller.seekFrame(360, 60)
+    expect(controller.readState().pieces).toEqual(
+      nativeMatchPieces(resolveNativeCinemaReceipt(next).after, {
+        collectionId: next.nativeCollection.id,
+        enclosure: 'pure',
+        scale: 0.95,
+      }),
+    )
+  })
+
+  it('does not publish a superseded shot as ready after its GPU fence finishes', async () => {
+    const app = mount()
+    await settle()
+    let finish!: () => void
+    fixture.fence.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve
+        }),
+    )
+    app.ready.mockClear()
+    app.setRecipe({ ...recipe, camera: 'hero' })
+    await settle()
+    app.setRecipe({ ...recipe, camera: 'diagonal', scale: 0.85 })
+    expect(app.controller().info().ready).toBe(false)
+    finish()
+    await settle()
+    expect(app.ready.mock.calls.filter(([value]) => value)).toEqual([[true]])
+    expect(fixture.setCloud).toHaveBeenCalledTimes(12)
+    expect(
+      app
+        .controller()
+        .readState()
+        .pieces.every((piece) => piece.scale === 0.85),
+    ).toBe(true)
+    expect(app.error).not.toHaveBeenCalled()
+  })
+
+  it('uses the separately fitted solid envelope without changing the pure comparison', async () => {
+    const app = mount()
+    await settle()
+    fixture.solids = [
+      {
+        key: 'rook:dark',
+        vertices: new Float32Array(19),
+        fragmentCount: 1,
+        chunks: [],
+        diagnostics: {
+          cellSize: 1,
+          occupiedCells: 1,
+          connectedComponents: 1,
+          retainedFraction: 1,
+          volume: 1,
+          interfaceFaces: 0,
+          exteriorFaces: 6,
+        },
+      },
+    ]
+    fixture.solidShell = { vertices: new Float32Array(24), radius: 1.1 }
+    const lattice: NativeCinemaRecipe = {
+      ...recipe,
+      fracture: 'connected',
+      fen: '7k/8/8/3r4/4P3/8/8/K7 w - - 0 1',
+      nativeCollection: { version: 1, id: 'lattice-court', enclosure: 'glass' },
+    }
+    app.setRecipe(lattice)
+    await settle()
+    expect(
+      app
+        .controller()
+        .readState()
+        .pieces.find((piece) => piece.role === 'rook'),
+    ).toMatchObject({ solidKey: 'rook:dark', glassKey: 'lattice-court:solid' })
+    app.setRecipe({
+      ...lattice,
+      nativeCollection: { ...lattice.nativeCollection, enclosure: 'pure' },
+    })
+    await settle()
+    expect(
+      app
+        .controller()
+        .readState()
+        .pieces.find((piece) => piece.role === 'rook')?.glassKey,
+    ).toBeUndefined()
+    expect(fixture.setSolid).toHaveBeenCalledOnce()
+    expect(fixture.setGlass).toHaveBeenLastCalledWith(
+      'lattice-court:solid',
+      fixture.solidShell.vertices,
+      1.1,
+    )
+  })
+
+  it('keeps point mode usable after a connected solid preparation failure', async () => {
+    const app = mount()
+    await settle()
+    fixture.solidError = 'The rook has no connected volume.'
+    const lattice: NativeCinemaRecipe = {
+      ...recipe,
+      fen: '7k/8/8/3r4/4P3/8/8/K7 w - - 0 1',
+      nativeCollection: { version: 1, id: 'lattice-court', enclosure: 'glass' },
+    }
+    app.setRecipe({ ...lattice, fracture: 'connected' })
+    await settle()
+    expect(app.error).toHaveBeenCalledWith(fixture.solidError)
+    expect(app.controller().info().ready).toBe(false)
+    expect(app.controller().info().error).toBeUndefined()
+    app.setRecipe({ ...lattice, fracture: 'points' })
+    await settle()
+    expect(app.controller().info().ready).toBe(true)
+    await app.controller().seekFrame(120, 60)
+    expect(app.controller().readState().displayTime).toBe(2)
+    expect(fixture.destroy).not.toHaveBeenCalled()
   })
 
   it('keeps a capture snapshot inside the queue before allowing a later seek or resize', async () => {

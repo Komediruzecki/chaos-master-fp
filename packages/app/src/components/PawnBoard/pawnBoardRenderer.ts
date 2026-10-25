@@ -7,6 +7,7 @@ import { CAPACITY, fillPieceInstances, fillTiles, writeInstance, } from './pawnB
 import { BOARD_TILE_SIZE } from './pawnBoardMath'
 import { cube } from './pawnBoardMesh'
 import { backgroundFragment, BoardCameraUniform, boardFragment, cameraLayout, cloudFragment, cloudVertex, displayFragment, fragmentLayout, fragmentVertex, glassExitFragment, glassFragment, instanceLayout, meshLayout, meshVertex, shardFragment, variantGlassFragmentVertex, } from './pawnBoardShaders'
+import { createPawnBoardSolidVariants } from './pawnBoardSolidVariants'
 import { createPawnBoardVariants } from './pawnBoardVariants'
 import { createPawnGlassTargets } from './pawnGlassTargets'
 import type { TgpuRenderPass, TgpuRenderPipeline, TgpuRoot } from 'typegpu'
@@ -52,7 +53,7 @@ export function createPawnBoardRenderer(
       root.createBuffer(instanceLayout.schemaForCount(1)).$usage('vertex'),
     )
     const baseData = new Float32Array([
-      0, -0.265, 0, 1, 0.018, 0.031, 0.044, 1, -1, 0, 0, 0,
+      0, -0.265, 0, 1, 0.018, 0.031, 0.044, 1, -1, 0, -1, 0,
     ])
     boardBase.write(baseData.buffer)
     const tileGeometry = cube(
@@ -243,6 +244,11 @@ export function createPawnBoardRenderer(
       writeInstance,
     )
     const glassVariants = createPawnBoardGlassVariants(root, writeInstance)
+    const solidVariants = createPawnBoardSolidVariants(
+      root,
+      cameraGroup,
+      writeInstance,
+    )
     const sampler = device.createSampler({
       minFilter: 'linear',
       magFilter: 'linear',
@@ -310,9 +316,16 @@ export function createPawnBoardRenderer(
       clearVariantGlass: () => {
         glassVariants.clear()
       },
+      setVariantSolid(key: string, vertices: Float32Array) {
+        if (!disposed) solidVariants.set(key, vertices)
+      },
+      clearVariantSolids: () => {
+        solidVariants.clear()
+      },
       render(frame: BoardFrame, output?: GPUTextureView) {
         if (disposed || frame.width < 1 || frame.height < 1) return
         variants.prepare(frame.pieces)
+        solidVariants.prepare(frame.pieces)
         const key = `${frame.width}:${frame.height}`
         if (key !== sizeKey) {
           const next = createPawnGlassTargets(
@@ -352,6 +365,7 @@ export function createPawnBoardRenderer(
         ember.write(emberData.buffer)
         variants.write()
         glassVariants.write()
+        solidVariants.write()
         if (frame.shards) {
           writeInstance(shardData, 0, frame.shards)
           shards.write(shardData.buffer)
@@ -392,6 +406,7 @@ export function createPawnBoardRenderer(
             .with(meshLayout, tileMesh)
             .with(instanceLayout, tiles)
             .draw(36, 64)
+        solidVariants.draw(pass)
         const lightCloud = clouds.get('light'),
           darkCloud = clouds.get('dark')
         if (lightCloud && frostCount)
@@ -464,6 +479,7 @@ export function createPawnBoardRenderer(
         clouds.clear()
         variants.clear()
         glassVariants.clear()
+        solidVariants.clear()
         targets?.destroy()
         for (const resource of owned) resource.destroy()
       },

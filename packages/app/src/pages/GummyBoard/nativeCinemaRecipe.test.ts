@@ -105,6 +105,8 @@ describe('native Cinema recipes', () => {
     { nativeCollection: { ...look.nativeCollection, enclosure: 'opaque' } },
     { quality: 'unbounded' },
     { camera: 'unknown' },
+    { fracture: 'unknown' },
+    { fracture: 'connected' },
     { scale: Number.NaN },
     { scale: 0.849 },
     { scale: 1.001 },
@@ -115,6 +117,34 @@ describe('native Cinema recipes', () => {
         ...patch,
       }),
     ).toThrow()
+  })
+
+  it('round-trips the optional connected rook study while preserving old recipes', () => {
+    const base = createNativeCinemaRecipe(capture(), look)
+    expect(parseNativeCinemaRecipe(base).fracture).toBeUndefined()
+    const recipe = parseNativeCinemaRecipe({
+      ...base,
+      fen: '7k/8/8/3r4/4P3/8/8/K7 w - - 0 1',
+      nativeCollection: { ...look.nativeCollection, id: 'lattice-court' },
+      fracture: 'connected',
+    })
+    expect(parseNativeCinemaRecipe(JSON.stringify(recipe))).toEqual(recipe)
+    expect(resolveNativeCinemaReceipt(recipe).captured?.role).toBe('rook')
+    expect(() =>
+      parseNativeCinemaRecipe({
+        ...recipe,
+        fen: '7k/8/8/3n4/4P3/8/8/K7 w - - 0 1',
+      }),
+    ).toThrow('Window rook')
+    expect(() =>
+      parseNativeCinemaRecipe({
+        ...recipe,
+        nativeCollection: look.nativeCollection,
+      }),
+    ).toThrow('Window rook')
+    expect(
+      parseNativeCinemaRecipe({ ...base, fracture: 'points' }).fracture,
+    ).toBe('points')
   })
 
   it('requires a capture and bounds JSON before parsing', () => {

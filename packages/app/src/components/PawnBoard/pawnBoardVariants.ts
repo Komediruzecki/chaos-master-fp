@@ -67,7 +67,8 @@ export function createPawnBoardVariants(
     prepare(pieces: readonly BoardPawnInstance[]) {
       for (const cloud of variants.values()) cloud.instanceCount = 0
       for (const piece of pieces) {
-        if (piece.cloudKey === undefined) continue
+        if (piece.cloudKey === undefined || piece.solidKey !== undefined)
+          continue
         const cloud = variants.get(piece.cloudKey)
         if (!cloud)
           throw new Error(`Missing board variant cloud: ${piece.cloudKey}`)
