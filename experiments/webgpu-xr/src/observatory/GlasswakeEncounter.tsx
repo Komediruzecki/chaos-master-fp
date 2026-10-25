@@ -3,9 +3,12 @@ import './glasswake.css'
 import { createEffect, createMemo, createSignal, For, on, onCleanup, onMount, Show, } from 'solid-js'
 import { JourneySaveStatus } from '../journey/JourneyPanels'
 import { Icon } from '../theme/Icon'
-import { advanceGlassHold, beginGlassHold, cancelGlassHold, createGlasswakeEncounter, GLASS_NOTES, releaseGlassHold, updateGlassPitch, } from './glasswakeEncounter'
+import { advanceGlassHold, beginGlassHold, cancelGlassHold, createGlasswakeEncounter, releaseGlassHold, updateGlassPitch, } from './glasswakeEncounter'
+import { FIRST_GLASS_PHRASE, GLASS_PHRASES } from './glasswakePhrases'
+import { PracticePhrases } from './PracticePhrases'
 import type { MotifAudio, MotifAudioSnapshot } from '../almanac/motifAudio'
 import type { JourneyPersistence } from '../journey/progress'
+import type { GlassPhrase } from './glasswakePhrases'
 import type { ObservatoryRuntime } from './runtime'
 
 interface Props {
@@ -16,6 +19,7 @@ interface Props {
   blocked: boolean
   motion: boolean
   initialAccepted: number
+  earned: boolean
   onProgress(accepted: number): void
   onMotion(): void
   onLeave(): void
@@ -28,8 +32,9 @@ export function GlasswakeEncounter(props: Props) {
   let pointer: number | null = null
   let frame = 0
   let previous = 0
+  const [phrase, setPhrase] = createSignal(FIRST_GLASS_PHRASE)
   const [state, setState] = createSignal(
-    createGlasswakeEncounter(props.initialAccepted),
+    createGlasswakeEncounter(props.initialAccepted, phrase()),
   )
   const [clock, setClock] = createSignal(0)
   const [bursts, setBursts] = createSignal<number[]>(
@@ -37,15 +42,31 @@ export function GlasswakeEncounter(props: Props) {
   )
   const [muted, setMuted] = createSignal(false)
   const [coolUntil, setCoolUntil] = createSignal(0)
-  const complete = createMemo(() => state().accepted === GLASS_NOTES.length)
+  const complete = createMemo(() => state().accepted === phrase().notes.length)
   const target = createMemo(
-    () => GLASS_NOTES[Math.min(state().accepted, GLASS_NOTES.length - 1)],
+    () => phrase().notes[Math.min(state().accepted, phrase().notes.length - 1)],
+  )
+  const listening = createMemo(
+    () =>
+      props.sound?.motifId === phrase().motif.id &&
+      (props.sound.playing || props.sound.loading),
   )
   const cooling = createMemo(() => clock() < coolUntil())
+  const busy = createMemo(() => props.blocked || cooling())
+  const instrumentDisabled = createMemo(
+    () => busy() || complete() || listening(),
+  )
   const targetHeight = createMemo(() => 8 + ((72 - target().midi) / 12) * 84)
   const pitchHeight = createMemo(() => 8 + ((72 - state().pitch) / 12) * 84)
   const hint = createMemo(() => {
-    if (complete()) return 'Three seals opened. Your Glasswake page is earned.'
+    if (listening())
+      return `Listen: ${phrase()
+        .notes.map((note) => note.name)
+        .join(', ')}. Then answer one seal at a time.`
+    if (complete())
+      return phrase().id === FIRST_GLASS_PHRASE.id
+        ? 'Three seals opened. Your Glasswake page is earned.'
+        : `${phrase().title} answered. Your Almanac keeps First light.`
     if (cooling()) return 'Let the glass fall. The next seal is waiting.'
     if (state().armed) return 'Ready. Release to shatter the seal.'
     if (state().holding)
@@ -77,7 +98,7 @@ export function GlasswakeEncounter(props: Props) {
 
   function cancel() {
     releasePointer()
-    setState(cancelGlassHold(state()))
+    setState(cancelGlassHold(state(), phrase()))
     props.audio.stopInstrument()
     previous = 0
     present()
@@ -88,12 +109,13 @@ export function GlasswakeEncounter(props: Props) {
       props.blocked ||
       document.hidden ||
       complete() ||
+      listening() ||
       cooling() ||
       state().holding
     )
       return false
     props.audio.stopInstrument()
-    setState(beginGlassHold(state(), midi))
+    setState(beginGlassHold(state(), midi, phrase()))
     previous = 0
     if (!muted()) void props.audio.startTrace(state().pitch)
     present()
@@ -101,7 +123,7 @@ export function GlasswakeEncounter(props: Props) {
   }
 
   function tune(midi: number) {
-    setState(updateGlassPitch(state(), midi))
+    setState(updateGlassPitch(state(), midi, phrase()))
     if (state().holding && !muted()) props.audio.updateTrace(state().pitch)
     present()
   }
@@ -110,7 +132,7 @@ export function GlasswakeEncounter(props: Props) {
     const before = state().accepted
     const note = target().midi
     releasePointer()
-    setState(releaseGlassHold(state()))
+    setState(releaseGlassHold(state(), phrase()))
     props.audio.stopInstrument()
     if (state().accepted > before) {
       setBursts((times) => {
@@ -118,10 +140,11 @@ export function GlasswakeEncounter(props: Props) {
         next[before] = props.motion ? clock() : clock() - 10
         return next
       })
-      props.onProgress(state().accepted)
+      if (phrase().id === FIRST_GLASS_PHRASE.id)
+        props.onProgress(state().accepted)
       setCoolUntil(clock() + 1.5)
       if (!muted()) void props.audio.shatter(note)
-      if (complete()) props.onCollected()
+      if (complete() && !props.earned) props.onCollected()
     }
     present()
   }
@@ -149,7 +172,14 @@ export function GlasswakeEncounter(props: Props) {
       return
     event.preventDefault()
     event.stopPropagation()
-    if (props.blocked || document.hidden || cooling() || complete()) return
+    if (
+      props.blocked ||
+      document.hidden ||
+      cooling() ||
+      complete() ||
+      listening()
+    )
+      return
     if (event.key === 'Enter') {
       if (!event.repeat) {
         if (state().holding) release()
@@ -174,7 +204,7 @@ export function GlasswakeEncounter(props: Props) {
 
   function hearNote() {
     cancel()
-    if (props.blocked || complete()) return
+    if (props.blocked || document.hidden || complete()) return
     void props.audio.play({
       id: `glasswake-reference-${target().midi}`,
       tonic: 'C',
@@ -185,9 +215,26 @@ export function GlasswakeEncounter(props: Props) {
     })
   }
 
+  function hearPattern() {
+    cancel()
+    if (props.blocked || document.hidden || cooling()) return
+    void props.audio.play(phrase().motif)
+  }
+
+  function choosePhrase(next: GlassPhrase) {
+    if (!props.earned || props.blocked || document.hidden) return
+    cancel()
+    setPhrase(next)
+    setState(createGlasswakeEncounter(0, next))
+    props.onProgress(0)
+    setBursts([])
+    setCoolUntil(0)
+    present()
+  }
+
   function rebuild() {
     cancel()
-    setState(createGlasswakeEncounter())
+    setState(createGlasswakeEncounter(0, phrase()))
     props.onProgress(0)
     setBursts([])
     setCoolUntil(0)
@@ -222,7 +269,8 @@ export function GlasswakeEncounter(props: Props) {
         const delta = Math.min(0.05, elapsed)
         previous = now
         setClock((value) => value + delta)
-        if (state().holding) setState(advanceGlassHold(state(), elapsed))
+        if (state().holding)
+          setState(advanceGlassHold(state(), elapsed, phrase()))
         present()
       } else previous = 0
       frame = requestAnimationFrame(tick)
@@ -248,6 +296,12 @@ export function GlasswakeEncounter(props: Props) {
         get cooling() {
           return cooling()
         },
+        get phrase() {
+          return phrase()
+        },
+        get listening() {
+          return listening()
+        },
       }
     onCleanup(() => {
       cancelAnimationFrame(frame)
@@ -268,7 +322,7 @@ export function GlasswakeEncounter(props: Props) {
         </span>
         <p>
           {complete()
-            ? 'The chord is yours to keep.'
+            ? 'Three notes released into the caldera.'
             : 'Find the note. Hold until it answers, then release.'}
         </p>
       </div>
@@ -290,7 +344,7 @@ export function GlasswakeEncounter(props: Props) {
         aria-valuenow={state().pitch}
         aria-valuetext={`MIDI ${state().pitch.toFixed(2)}. Target ${target().name}.`}
         aria-describedby="glasswake-help"
-        aria-disabled={props.blocked || cooling() || complete()}
+        aria-disabled={instrumentDisabled()}
         onKeyDown={keyDown}
         onBlur={() => {
           if (state().holding) cancel()
@@ -343,12 +397,14 @@ export function GlasswakeEncounter(props: Props) {
         <div class="glasswake-resonance" aria-hidden="true">
           <span>
             {complete()
-              ? 'First light'
-              : state().armed
-                ? 'Release'
-                : state().holding
-                  ? `${Math.round(state().charge * 100)}%`
-                  : 'Touch the glass'}
+              ? phrase().title
+              : listening()
+                ? 'Listen to the pattern'
+                : state().armed
+                  ? 'Release'
+                  : state().holding
+                    ? `${Math.round(state().charge * 100)}%`
+                    : 'Touch the glass'}
           </span>
           <span class="glasswake-charge">
             <i style={{ transform: `scaleX(${state().charge})` }} />
@@ -360,9 +416,9 @@ export function GlasswakeEncounter(props: Props) {
           class="observatory-world-copy"
           aria-labelledby="glasswake-title"
         >
-          <p class="observatory-place">Glasswake · C Ionian</p>
+          <p class="observatory-place">Glasswake · {phrase().title}</p>
           <h1 id="glasswake-title">
-            {complete() ? 'First light, released' : 'Wake the glass'}
+            {complete() ? `${phrase().title}, released` : 'Wake the glass'}
           </h1>
           <p role="status" aria-live="polite">
             {hint()}
@@ -377,11 +433,21 @@ export function GlasswakeEncounter(props: Props) {
           class="observatory-exercise-actions"
           aria-label="Glasswake controls"
         >
+          <Show when={props.earned}>
+            <PracticePhrases
+              phrases={GLASS_PHRASES}
+              selected={phrase().id}
+              label="Glasswake practice phrases"
+              disabled={props.blocked}
+              onSelect={choosePhrase}
+            />
+            <p class="observatory-phrase-description">{phrase().description}</p>
+          </Show>
           <div
             class="glasswake-seals"
             aria-label={`${state().accepted} of 3 seals opened`}
           >
-            <For each={GLASS_NOTES}>
+            <For each={phrase().notes}>
               {(note, index) => (
                 <span
                   classList={{
@@ -408,6 +474,16 @@ export function GlasswakeEncounter(props: Props) {
             </For>
           </div>
           <div>
+            <button
+              type="button"
+              disabled={busy()}
+              onClick={() => {
+                if (listening()) cancel()
+                else hearPattern()
+              }}
+            >
+              {listening() ? 'Stop pattern' : 'Hear pattern'}
+            </button>
             <Show when={complete()}>
               <button
                 type="button"
@@ -424,13 +500,13 @@ export function GlasswakeEncounter(props: Props) {
                 class="observatory-action lx-secondary"
                 type="button"
                 onClick={hearNote}
-                disabled={props.blocked || cooling()}
+                disabled={busy()}
               >
                 Hear note
               </button>
               <button
                 type="button"
-                disabled={props.blocked || cooling()}
+                disabled={instrumentDisabled()}
                 onClick={() => {
                   cancel()
                   pad.focus({ preventScroll: true })
@@ -511,6 +587,8 @@ declare global {
       readonly time: number
       readonly burstTimes: readonly number[]
       readonly cooling: boolean
+      readonly phrase: GlassPhrase
+      readonly listening: boolean
     }
   }
 }

@@ -1,4 +1,7 @@
 /* A pitch rail keeps the crystal exposed; three engraved chips record the released notes. */
+.glasswake-bottom {
+  --phrase-accent: var(--lx-gilt);
+}
 .glasswake-topline {
   position: absolute;
   inset: calc(var(--lx-header) + 16px) var(--lx-gutter) auto;
@@ -24,7 +27,7 @@
   top: 19%;
   left: 25%;
   width: 50%;
-  height: 38%;
+  height: 29%;
   touch-action: none;
   user-select: none;
   cursor: ns-resize;
@@ -147,6 +150,16 @@
   border-color: var(--lx-gilt);
   background: #e0c48914;
 }
+@media (min-width: 1024px) {
+  /* Practice adds a row; reserve the glass and its release cue above this panel. */
+  .observatory .glasswake-bottom {
+    max-height: 42svh;
+    padding-top: 28px;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+    pointer-events: auto;
+  }
+}
 @media (max-width: 1023px) {
   .glasswake-instrument {
     left: 20%;
@@ -180,7 +193,7 @@
     left: 19%;
     width: 70%;
     top: 23%;
-    height: 22%;
+    height: 20%;
   }
   .glasswake-resonance {
     top: calc(100% + 22px);
@@ -194,6 +207,11 @@
   }
 }
 @media (max-height: 560px) and (min-width: 600px) {
+  .observatory .glasswake-bottom {
+    --exercise-panel-height: 42svh;
+    max-height: 42svh;
+    padding-top: 12px;
+  }
   .glasswake-topline {
     inset-block-start: 64px;
   }
@@ -207,8 +225,8 @@
     height: 22%;
   }
   .glasswake-resonance {
-    top: calc(100% + 12px);
-    font-size: 17px;
+    top: calc(100% + 4px);
+    font-size: 15px;
   }
   .glasswake-charge {
     margin-top: 4px;

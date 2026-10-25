@@ -1,29 +1,15 @@
 // A held desktop instrument charges one seal; only an explicit release can break it.
-import type { AlmanacMotif } from '../almanac/catalog'
+import { FIRST_GLASS_PHRASE } from './glasswakePhrases'
+import type { GlassPhrase } from './glasswakePhrases'
 
-export const GLASS_NOTES = [
-  { midi: 60, name: 'C4' },
-  { midi: 64, name: 'E4' },
-  { midi: 67, name: 'G4' },
-] as const
+export const GLASS_NOTES = FIRST_GLASS_PHRASE.notes
 export const GLASS_PITCH_RANGE = [60, 72] as const
 export const GLASS_HOLD_SECONDS = 0.9
 export const GLASS_PITCH_TOLERANCE = 0.4
 const MAX_STEP_SECONDS = 0.05
 const DECAY_SECONDS = 0.6
 
-export const GLASS_MOTIF: AlmanacMotif = {
-  id: 'glasswake-three-seals',
-  tonic: 'C',
-  mode: 'Ionian',
-  tempo: 82,
-  timbre: 'glass',
-  notes: GLASS_NOTES.map((note, beat) => ({
-    midi: note.midi,
-    beat,
-    duration: beat === GLASS_NOTES.length - 1 ? 1.1 : 0.7,
-  })),
-}
+export const GLASS_MOTIF = FIRST_GLASS_PHRASE.motif
 
 export type GlasswakeFeedback =
   | 'ready'
@@ -45,20 +31,21 @@ export interface GlasswakeEncounterState {
 
 export function createGlasswakeEncounter(
   initialAccepted = 0,
+  phrase: GlassPhrase = FIRST_GLASS_PHRASE,
 ): GlasswakeEncounterState {
   const accepted =
     Number.isInteger(initialAccepted) &&
     initialAccepted >= 0 &&
-    initialAccepted <= GLASS_NOTES.length
+    initialAccepted <= phrase.notes.length
       ? initialAccepted
       : 0
   return {
     accepted,
     holding: false,
-    pitch: GLASS_NOTES[Math.min(accepted, GLASS_NOTES.length - 1)].midi,
+    pitch: phrase.notes[Math.min(accepted, phrase.notes.length - 1)].midi,
     charge: 0,
     armed: false,
-    feedback: accepted === GLASS_NOTES.length ? 'complete' : 'ready',
+    feedback: accepted === phrase.notes.length ? 'complete' : 'ready',
   }
 }
 
@@ -70,19 +57,19 @@ function validPitch(pitch: number) {
   )
 }
 
-function inTune(state: GlasswakeEncounterState) {
-  const target = GLASS_NOTES[state.accepted]
+function inTune(state: GlasswakeEncounterState, phrase: GlassPhrase) {
+  const target = phrase.notes[state.accepted]
   return (
-    state.accepted < GLASS_NOTES.length &&
+    state.accepted < phrase.notes.length &&
     Math.abs(state.pitch - target.midi) <= GLASS_PITCH_TOLERANCE + 1e-9
   )
 }
 
-function validState(state: GlasswakeEncounterState) {
+function validState(state: GlasswakeEncounterState, phrase: GlassPhrase) {
   return (
     Number.isInteger(state.accepted) &&
     state.accepted >= 0 &&
-    state.accepted <= GLASS_NOTES.length &&
+    state.accepted <= phrase.notes.length &&
     validPitch(state.pitch) &&
     Number.isFinite(state.charge) &&
     state.charge >= 0 &&
@@ -93,57 +80,67 @@ function validState(state: GlasswakeEncounterState) {
 
 export function cancelGlassHold(
   state: GlasswakeEncounterState,
+  phrase: GlassPhrase = FIRST_GLASS_PHRASE,
 ): GlasswakeEncounterState {
   const accepted = Number.isFinite(state.accepted)
-    ? Math.max(0, Math.min(GLASS_NOTES.length, Math.trunc(state.accepted)))
+    ? Math.max(0, Math.min(phrase.notes.length, Math.trunc(state.accepted)))
     : 0
   return {
     ...state,
     accepted,
     pitch: validPitch(state.pitch)
       ? state.pitch
-      : GLASS_NOTES[Math.min(accepted, GLASS_NOTES.length - 1)].midi,
+      : phrase.notes[Math.min(accepted, phrase.notes.length - 1)].midi,
     holding: false,
     charge: 0,
     armed: false,
-    feedback: accepted === GLASS_NOTES.length ? 'complete' : 'cancelled',
+    feedback: accepted === phrase.notes.length ? 'complete' : 'cancelled',
   }
 }
 
 export function updateGlassPitch(
   state: GlasswakeEncounterState,
   pitch: number,
+  phrase: GlassPhrase = FIRST_GLASS_PHRASE,
 ): GlasswakeEncounterState {
-  if (!validState(state) || !validPitch(pitch)) return cancelGlassHold(state)
+  if (!validState(state, phrase) || !validPitch(pitch))
+    return cancelGlassHold(state, phrase)
   const next = { ...state, pitch }
-  if (state.accepted === GLASS_NOTES.length || state.armed) return next
+  if (state.accepted === phrase.notes.length || state.armed) return next
   return {
     ...next,
-    feedback: state.holding ? (inTune(next) ? 'charging' : 'tune') : 'ready',
+    feedback: state.holding
+      ? inTune(next, phrase)
+        ? 'charging'
+        : 'tune'
+      : 'ready',
   }
 }
 
 export function beginGlassHold(
   state: GlasswakeEncounterState,
   pitch: number,
+  phrase: GlassPhrase = FIRST_GLASS_PHRASE,
 ): GlasswakeEncounterState {
-  if (!validState(state)) return cancelGlassHold(state)
-  if (state.accepted === GLASS_NOTES.length) return state
-  if (!validPitch(pitch)) return cancelGlassHold(state)
+  if (!validState(state, phrase)) return cancelGlassHold(state, phrase)
+  if (state.accepted === phrase.notes.length) return state
+  if (!validPitch(pitch)) return cancelGlassHold(state, phrase)
   // Repeated press events cannot erase an already earned release opportunity.
-  if (state.holding) return updateGlassPitch(state, pitch)
+  if (state.holding) return updateGlassPitch(state, pitch, phrase)
   return updateGlassPitch(
     { ...state, holding: true, charge: 0, armed: false },
     pitch,
+    phrase,
   )
 }
 
 export function advanceGlassHold(
   state: GlasswakeEncounterState,
   elapsedSeconds: number,
+  phrase: GlassPhrase = FIRST_GLASS_PHRASE,
 ): GlasswakeEncounterState {
-  if (!validState(state)) return cancelGlassHold(state)
-  if (!state.holding || state.armed || state.accepted === GLASS_NOTES.length)
+  if (!validState(state, phrase)) return cancelGlassHold(state, phrase)
+  if (!state.holding || state.armed || state.accepted === phrase.notes.length)
     return state
   // A gap is not evidence of a continuously held note. Ignore stalled/hidden
   // frames rather than converting elapsed wall time into a completed seal.
@@ -154,7 +151,7 @@ export function advanceGlassHold(
   )
     return state
   const dt = Math.min(MAX_STEP_SECONDS, elapsedSeconds)
-  const tuned = inTune(state)
+  const tuned = inTune(state, phrase)
   const charge = Math.max(
     0,
     Math.min(
@@ -173,9 +170,10 @@ export function advanceGlassHold(
 
 export function releaseGlassHold(
   state: GlasswakeEncounterState,
+  phrase: GlassPhrase = FIRST_GLASS_PHRASE,
 ): GlasswakeEncounterState {
-  if (!validState(state)) return cancelGlassHold(state)
-  if (!state.holding || state.accepted === GLASS_NOTES.length) return state
+  if (!validState(state, phrase)) return cancelGlassHold(state, phrase)
+  if (!state.holding || state.accepted === phrase.notes.length) return state
   const accepted = state.accepted + Number(state.armed)
   return {
     ...state,
@@ -184,7 +182,7 @@ export function releaseGlassHold(
     charge: 0,
     armed: false,
     feedback:
-      accepted === GLASS_NOTES.length
+      accepted === phrase.notes.length
         ? 'complete'
         : state.armed
           ? 'ready'

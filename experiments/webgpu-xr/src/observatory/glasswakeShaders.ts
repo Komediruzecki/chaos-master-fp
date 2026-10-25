@@ -19,6 +19,21 @@ export const glasswakeLayout = tgpu.bindGroupLayout({
   instances: { storage: d.arrayOf(GlasswakeInstance) },
 })
 
+/** Fissures grow from the petal centre; a steady release cue appears only at full charge. */
+export const glasswakeFissureState = tgpu.fn(
+  [d.f32, d.f32],
+  d.vec2f,
+)((charge, shardId) => {
+  'use gpu'
+  const cell = std.floor(std.mod(shardId, 16) / 2)
+  const distance = std.abs(cell - 3.5) / 3.5
+  const onset = 0.12 + distance * 0.42
+  return d.vec2f(
+    std.smoothstep(onset, onset + 0.2, charge),
+    std.step(1, charge),
+  )
+})
+
 export const glasswakeVertex = tgpu.vertexFn({
   in: { vertex: d.builtin.vertexIndex, instance: d.builtin.instanceIndex },
   out: {
@@ -70,13 +85,20 @@ export const glasswakeFragment = tgpu.fragmentFn({
   const toEye = std.normalize(glasswakeLayout.$.camera.eye.xyz.sub(input.world))
   const facing = std.clamp(std.dot(normal, toEye), 0, 1)
   const fresnel = std.pow(1 - facing, 3)
+  const fissure = glasswakeFissureState(input.effect.y, input.effect.w)
   const derivatives = std.max(std.fwidth(input.barycentric), d.vec3f(0.0001))
   const interior = std.smoothstep(
     derivatives.mul(0.35),
-    derivatives.mul(1.25 + input.effect.y),
+    derivatives.mul(1.25 + fissure.x * 0.3 + fissure.y * 0.2),
     input.barycentric,
   )
   const edge = 1 - std.min(interior.x, std.min(interior.y, interior.z))
+  // One leading seam carries the stress, with only a faint branch along the
+  // other edges. Lighting every triangle equally reads as a wireframe.
+  const leading =
+    1 - std.select(interior.x, interior.y, std.mod(input.effect.w, 2) > 0.5)
+  const fracture =
+    (leading * 0.85 + edge * 0.15) * fissure.x * (1 - input.cut * 0.75)
   const warmHalf = std.normalize(
     toEye.add(std.normalize(d.vec3f(-0.55, 0.8, 0.8))),
   )
@@ -85,19 +107,25 @@ export const glasswakeFragment = tgpu.fragmentFn({
   )
   const warm = std.pow(std.max(d.f32(0), std.dot(normal, warmHalf)), 86)
   const cool = std.pow(std.max(d.f32(0), std.dot(normal, coolHalf)), 48)
-  const crack = edge * (0.1 + input.effect.y * 1.8)
+  const crack = edge * 0.1 + fracture * (0.24 + input.effect.y * 0.62)
   let color = input.tint.rgb
     .mul(0.11 + fresnel * 0.7 + input.cut * 0.09)
     .add(d.vec3f(1, 0.93, 0.76).mul(warm * 2.8))
     .add(d.vec3f(0.65, 0.88, 1).mul(cool * 1.2))
     .add(input.tint.rgb.mul(crack))
+    .add(
+      d
+        .vec3f(1, 0.91, 0.67)
+        .mul(leading * fissure.y * 0.72 * (1 - input.cut * 0.75)),
+    )
   let opacity =
     std.clamp(
       0.13 +
         fresnel * 0.48 +
         input.cut * 0.07 +
         edge * 0.08 +
-        input.effect.y * 0.06,
+        fracture * 0.08 +
+        leading * fissure.y * 0.035,
       0,
       0.78,
     ) * input.effect.x

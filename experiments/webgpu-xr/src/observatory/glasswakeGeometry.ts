@@ -199,12 +199,16 @@ export function writeGlasswakeInstance(
       : GLASSWAKE_BURST_SECONDS
     : -1
   if (age >= GLASSWAKE_BURST_SECONDS) return false
-  const charge = shard.group === accepted ? clamp01(frame.charge) : 0
+  const charge =
+    frame.holding && shard.group === accepted ? clamp01(frame.charge) : 0
   const fade = broken ? 1 - clamp01((age - 0.86) / 0.54) : 1
   const travel = broken ? 1 - Math.exp(-3.2 * age) : 0
   const vibration =
     !broken && frame.motion && frame.holding
-      ? Math.sin(time * 24 + shard.group) * charge * 0.004
+      ? Math.sin(time * 24 + shard.group) *
+        charge *
+        (1 - clamp01((charge - 0.8) / 0.2)) *
+        0.004
       : 0
   const angleX = broken ? age * shard.spin[0] : 0
   const angleY = broken ? age * shard.spin[1] : 0

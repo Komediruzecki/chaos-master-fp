@@ -194,8 +194,9 @@ mesh sharing depth with the live orbs. Headset interaction remains future work. 
 Continue at `/observatory` for the authored terrace, two live world studies,
 orbital motion, Tideweave's guided four-note trace and Glasswake's crystal seals.
 Trace a melody to grow the bridge, or hold and release C/E/G to shatter the glass
-around Aureole. Pointer and keyboard use the same forgiving judges. Released
-seals survive returning to the worlds until Rebuild seals or a page reload.
+around Aureole. Pointer and keyboard use the same forgiving judges. Partial
+first-visit seals survive returning to the worlds until Rebuild seals or a page
+reload. Reopening an earned encounter starts a fresh canonical attempt.
 The [observatory guide](OBSERVATORY.md) records controls, asset sources,
 verification and the remaining headset boundary.
 
@@ -212,3 +213,10 @@ current attempt and waits for Replay phrase. It does not start sound or change
 the earned page's original motif. Re-entering the crossing starts with First
 crossing. See [the living score](docs/tideweave-reprises.md) for the contract
 and desktop verification.
+
+Glasswake also offers three patterns after its first page: First light
+(C4–E4–G4), High glint (C4–G4–C5), and Falling light (G4–E4–C4). Hear pattern
+demonstrates the sequence before the player answers each seal. Fissures spread
+as resonance builds; a steady seam marks a fully charged release. The earned
+page retains First light. See [Glasswake patterns](docs/glasswake-reprises.md)
+for the input, sound and rendering contracts.

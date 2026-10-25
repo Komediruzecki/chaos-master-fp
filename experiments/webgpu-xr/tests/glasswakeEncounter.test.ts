@@ -2,19 +2,29 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { advanceGlassHold, beginGlassHold, cancelGlassHold, createGlasswakeEncounter, GLASS_HOLD_SECONDS, GLASS_MOTIF, GLASS_NOTES, releaseGlassHold, updateGlassPitch, } from '../src/observatory/glasswakeEncounter'
+import { FIRST_GLASS_PHRASE, GLASS_PHRASES, } from '../src/observatory/glasswakePhrases'
 import type { GlasswakeEncounterState } from '../src/observatory/glasswakeEncounter'
+import type { GlassPhrase } from '../src/observatory/glasswakePhrases'
 
-function hold(state: GlasswakeEncounterState, seconds: number) {
+function hold(
+  state: GlasswakeEncounterState,
+  seconds: number,
+  phrase: GlassPhrase = FIRST_GLASS_PHRASE,
+) {
   let next = state
   for (let elapsed = 0; elapsed < seconds - 1e-9; elapsed += 0.01)
-    next = advanceGlassHold(next, Math.min(0.01, seconds - elapsed))
+    next = advanceGlassHold(next, Math.min(0.01, seconds - elapsed), phrase)
   return next
 }
 
-function arm(state = createGlasswakeEncounter()) {
+function arm(
+  state = createGlasswakeEncounter(),
+  phrase: GlassPhrase = FIRST_GLASS_PHRASE,
+) {
   return hold(
-    beginGlassHold(state, GLASS_NOTES[state.accepted].midi),
+    beginGlassHold(state, phrase.notes[state.accepted].midi, phrase),
     GLASS_HOLD_SECONDS,
+    phrase,
   )
 }
 
@@ -192,4 +202,75 @@ await test('invalid restored counts start fresh and cannot manufacture completed
       createGlasswakeEncounter(count),
       createGlasswakeEncounter(),
     )
+})
+
+for (const phrase of GLASS_PHRASES) {
+  await test(`${phrase.id} requires three deliberate releases in its authored note order`, () => {
+    let state = createGlasswakeEncounter(0, phrase)
+    assert.equal(state.pitch, phrase.notes[0].midi)
+    for (let index = 0; index < phrase.notes.length; index++) {
+      const armed = arm(state, phrase)
+      assert.equal(armed.accepted, index)
+      assert.equal(armed.armed, true)
+      assert.equal(hold(armed, 2, phrase).accepted, index)
+      const cancelled = cancelGlassHold(armed, phrase)
+      assert.equal(releaseGlassHold(cancelled, phrase).accepted, index)
+      assert.equal(cancelled.charge, 0)
+      state = releaseGlassHold(arm(cancelled, phrase), phrase)
+      assert.equal(state.accepted, index + 1)
+    }
+    assert.equal(state.feedback, 'complete')
+    assert.equal(beginGlassHold(state, 60, phrase), state)
+    assert.equal(releaseGlassHold(state, phrase), state)
+  })
+
+  await test(`${phrase.id} restores the next authored note and fails closed on invalid input`, () => {
+    for (let accepted = 0; accepted <= phrase.notes.length; accepted++) {
+      const state = createGlasswakeEncounter(accepted, phrase)
+      assert.equal(state.pitch, phrase.notes[Math.min(accepted, 2)].midi)
+      assert.equal(state.holding, false)
+      assert.equal(state.armed, false)
+      assert.equal(releaseGlassHold(state, phrase).accepted, accepted)
+    }
+    for (const count of [NaN, Infinity, -1, 1.5, 4])
+      assert.deepEqual(
+        createGlasswakeEncounter(count, phrase),
+        createGlasswakeEncounter(0, phrase),
+      )
+    const armed = arm(createGlasswakeEncounter(0, phrase), phrase)
+    for (const pitch of [NaN, Infinity, 59.99, 72.01]) {
+      const cancelled = updateGlassPitch(armed, pitch, phrase)
+      assert.equal(cancelled.holding, false)
+      assert.equal(cancelled.armed, false)
+      assert.equal(releaseGlassHold(cancelled, phrase).accepted, 0)
+    }
+    const invalidState = { ...armed, pitch: NaN }
+    const repaired = cancelGlassHold(invalidState, phrase)
+    assert.equal(repaired.pitch, phrase.notes[0].midi)
+    assert.equal(releaseGlassHold(invalidState, phrase).accepted, 0)
+  })
+}
+
+await test('practice targets reject the original phrase note when its pitch differs', () => {
+  for (const phrase of GLASS_PHRASES.slice(1)) {
+    for (let accepted = 0; accepted < phrase.notes.length; accepted++) {
+      if (phrase.notes[accepted].midi === GLASS_NOTES[accepted].midi) continue
+      const state = createGlasswakeEncounter(accepted, phrase)
+      const wrong = hold(
+        beginGlassHold(state, GLASS_NOTES[accepted].midi, phrase),
+        GLASS_HOLD_SECONDS * 2,
+        phrase,
+      )
+      assert.equal(wrong.charge, 0)
+      assert.equal(wrong.armed, false)
+      assert.equal(wrong.feedback, 'tune')
+      assert.equal(releaseGlassHold(wrong, phrase).accepted, accepted)
+      const recovered = hold(
+        updateGlassPitch(wrong, phrase.notes[accepted].midi, phrase),
+        GLASS_HOLD_SECONDS,
+        phrase,
+      )
+      assert.equal(releaseGlassHold(recovered, phrase).accepted, accepted + 1)
+    }
+  }
 })

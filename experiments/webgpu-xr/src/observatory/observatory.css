@@ -552,9 +552,9 @@ body:has(.observatory) {
   cursor: pointer;
 }
 .observatory-phrases > button[aria-pressed='true'] {
-  border-color: var(--lx-verdigris);
+  border-color: var(--phrase-accent, var(--lx-verdigris));
   color: var(--lx-bone);
-  box-shadow: inset 0 -2px var(--lx-verdigris);
+  box-shadow: inset 0 -2px var(--phrase-accent, var(--lx-verdigris));
 }
 .observatory-phrases > button:hover:not(:disabled) {
   color: var(--lx-bone);
@@ -667,7 +667,7 @@ body:has(.observatory) {
     justify-content: flex-start;
   }
   .observatory.is-exercise .observatory-bottom {
-    max-height: 49svh;
+    max-height: var(--exercise-panel-height, 49svh);
   }
 }
 @media (max-width: 599px) {

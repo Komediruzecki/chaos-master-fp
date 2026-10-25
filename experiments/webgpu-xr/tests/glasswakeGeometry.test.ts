@@ -1,7 +1,8 @@
 // Crystal seams, solid cut faces and bounded break motion must survive renderer changes.
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { createGlasswakeGeometry, GLASSWAKE_BURST_SECONDS, GLASSWAKE_INSTANCE_FLOATS, GLASSWAKE_VERTEX_FLOATS, GLASSWAKE_VERTICES_PER_SHARD, writeGlasswakeInstance, } from '../src/observatory/glasswakeGeometry'
+import { createGlasswakeGeometry, GLASSWAKE_BURST_SECONDS, GLASSWAKE_INSTANCE_FLOATS, GLASSWAKE_SHARD_COUNT, GLASSWAKE_VERTEX_FLOATS, GLASSWAKE_VERTICES_PER_SHARD, writeGlasswakeInstance, } from '../src/observatory/glasswakeGeometry'
+import { glasswakeFissureState } from '../src/observatory/glasswakeShaders'
 import { EMPTY_TRACE, GLASSWAKE_CENTER, projectPoint, QUIET_MUSIC, sceneCamera, } from '../src/observatory/scene'
 import type { GlassPoint, GlasswakeFrame, GlasswakeGeometry, } from '../src/observatory/glasswakeGeometry'
 
@@ -419,4 +420,72 @@ await test('tumbling keeps finite orthogonal transforms and bounded debris, and 
     )
   const invalid = sample({ ...baseFrame, charge: Number.NaN, time: Number.NaN })
   assert.ok([...invalid.records].every(Number.isFinite))
+})
+
+await test('fissures grow from each petal centre toward its tips and reserve the release cue for full charge', () => {
+  for (let index = 0; index < GLASSWAKE_SHARD_COUNT; index++) {
+    const idle = glasswakeFissureState(0, index)
+    const armed = glasswakeFissureState(1, index)
+    assert.deepEqual([idle.x, idle.y], [0, 0])
+    assert.deepEqual([armed.x, armed.y], [1, 1])
+    let previous = 0
+    for (let step = 0; step < 100; step++) {
+      const fissure = glasswakeFissureState(step / 100, index)
+      assert.ok(fissure.x >= previous && fissure.x <= 1)
+      assert.equal(fissure.y, 0, 'a charging seal must not invite release')
+      previous = fissure.x
+    }
+  }
+  for (let group = 0; group < 3; group++) {
+    const start = group * 16
+    assert.equal(glasswakeFissureState(0.5, start).x, 0)
+    assert.equal(glasswakeFissureState(0.5, start + 15).x, 0)
+    assert.equal(glasswakeFissureState(0.5, start + 7).x, 1)
+    assert.equal(glasswakeFissureState(0.5, start + 8).x, 1)
+    for (let local = 0; local < 8; local++)
+      assert.equal(
+        glasswakeFissureState(0.5, start + local).x,
+        glasswakeFissureState(0.5, start + 15 - local).x,
+      )
+  }
+})
+
+await test('the armed shell settles without advancing time, and cancellation removes stale fissures', () => {
+  const intact = sample(baseFrame)
+  const before = sample({ ...baseFrame, holding: true, charge: 0.5 })
+  const later = sample({
+    ...baseFrame,
+    holding: true,
+    charge: 0.5,
+    time: 3.1,
+  })
+  assert.notDeepEqual(
+    before.records,
+    later.records,
+    'pre-release tension can move',
+  )
+  const armed = sample({ ...baseFrame, holding: true, charge: 1 })
+  assert.deepEqual(
+    armed.records,
+    sample({ ...baseFrame, holding: true, charge: 1, time: 200 }).records,
+    'the armed cue stays still and does not use a separate pulse clock',
+  )
+  assert.deepEqual(
+    sample({ ...baseFrame, holding: false, charge: 1 }).records,
+    intact.records,
+    'stale charge without an active hold cannot light a fissure',
+  )
+  for (let index = 0; index < GLASSWAKE_SHARD_COUNT; index++) {
+    const offset = index * GLASSWAKE_INSTANCE_FLOATS
+    assert.equal(
+      armed.records[offset + 21],
+      index < 16 ? 1 : 0,
+      'only the current seal carries resonance into the shader',
+    )
+    assert.deepEqual(
+      armed.records.slice(offset, offset + 16),
+      intact.records.slice(offset, offset + 16),
+      'fully armed glass retains the intact shape before release',
+    )
+  }
 })

@@ -16,6 +16,7 @@ import { bridgeResolutionFor } from './bridgeScore'
 import { beginTrace, createEncounter, endTrace, moveTrace, traceHint, } from './encounter'
 import { GlasswakeEncounter } from './GlasswakeEncounter'
 import { PassageThreshold } from './PassageThreshold'
+import { PracticePhrases } from './PracticePhrases'
 import { ObservatoryRuntime } from './runtime'
 import { pitchForTraceHeight } from './traceAudio'
 import type { BridgePhrase } from './bridgePhrases'
@@ -861,6 +862,7 @@ export function Observatory() {
       <Show when={glasswake() && runtime && audio}>
         <GlasswakeEncounter
           initialAccepted={glassProgress()}
+          earned={glassCollected()}
           onProgress={setGlassProgress}
           runtime={runtime!}
           audio={audio!}
@@ -977,26 +979,13 @@ export function Observatory() {
                 aria-label="Melody crossing controls"
               >
                 <Show when={collected()}>
-                  <div
-                    class="observatory-phrases"
-                    role="group"
-                    aria-label="Practice phrases"
-                  >
-                    <For each={BRIDGE_PHRASES}>
-                      {(entry) => (
-                        <button
-                          type="button"
-                          aria-pressed={phrase().id === entry.id}
-                          disabled={!ready()}
-                          onClick={() => {
-                            choosePhrase(entry)
-                          }}
-                        >
-                          {entry.title}
-                        </button>
-                      )}
-                    </For>
-                  </div>
+                  <PracticePhrases
+                    phrases={BRIDGE_PHRASES}
+                    selected={phrase().id}
+                    label="Practice phrases"
+                    disabled={!ready()}
+                    onSelect={choosePhrase}
+                  />
                   <p class="observatory-phrase-description">
                     {phrase().description}
                   </p>
