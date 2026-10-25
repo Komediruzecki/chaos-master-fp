@@ -45,16 +45,26 @@ export function createGummyMatchCapturePresentation(
   legacy = false,
 ): GummyMatchCapturePresentation | undefined {
   const shot = gummyMatchCaptureShot(receipt, appearance.theme)
-  if (!shot) return undefined
-  const choice = legacy
-    ? undefined
-    : chooseGummyCaptureMechanic(
-        captureSeed(receipt),
-        previous.flatMap((capture) =>
-          capture.mechanic ? [capture.mechanic.id] : [],
-        ),
-        gummyCaptureMechanicContext(shot, appearance.scale),
-      )
+  if (!shot && !(appearance.nativeCollection && receipt.captured))
+    return undefined
+  const choice =
+    legacy || !shot
+      ? undefined
+      : chooseGummyCaptureMechanic(
+          captureSeed(receipt),
+          previous.flatMap((capture) =>
+            capture.mechanic ? [capture.mechanic.id] : [],
+          ),
+          gummyCaptureMechanicContext(shot, appearance.scale),
+        )
+  const snapshot = validateGummyMatchAppearance(appearance)
+  if (legacy) delete snapshot.nativeFracture
+  else if (
+    snapshot.nativeFracture &&
+    (snapshot.nativeCollection?.id !== 'lattice-court' ||
+      receipt.captured?.role !== 'rook')
+  )
+    snapshot.nativeFracture = 'points'
   return {
     version: 1,
     ply: receipt.ply,
@@ -62,7 +72,7 @@ export function createGummyMatchCapturePresentation(
     lan: receipt.lan,
     ...(choice ? { mechanic: choice.mechanic } : {}),
     motion: choice?.motion ?? { ...GUMMY_BOARD_EARLY_SHEAR_MOTION },
-    appearance: validateGummyMatchAppearance(appearance),
+    appearance: snapshot,
   }
 }
 
@@ -111,7 +121,10 @@ export function parseGummyMatchCaptures(value: unknown, game: ChessGame) {
       )
         throw new Error('Saved capture does not match the game.')
       const appearance = validateGummyMatchAppearance(data.appearance)
-      if (!gummyMatchCaptureShot(receipt, appearance.theme))
+      if (
+        !gummyMatchCaptureShot(receipt, appearance.theme) &&
+        !(appearance.nativeCollection && receipt.captured)
+      )
         throw new Error('Saved capture has no cinematic move.')
       seen.add(data.ply)
       return {

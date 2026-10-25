@@ -8,6 +8,7 @@ import styles from './GummyMatchPage.module.css'
 import { createGummyMatchCinemaRecipe, gummyMatchCinemaReason, saveGummyMatchCinemaRecipe, } from './gummyMatchSession'
 import { createNativeCinemaRecipe, nativeCinemaReason, } from './nativeCinemaRecipe'
 import { saveNativeCinemaRecipe } from './nativeCinemaSession'
+import { nativeMatchCaptureFracture, nativeMatchFractureNotice, } from './nativeMatchFracture'
 import type { useGummyMatch } from './useGummyMatch'
 
 export function GummyMatchSidebar(props: {
@@ -28,6 +29,12 @@ export function GummyMatchSidebar(props: {
   let disposed = false
   const nativeCollection = createMemo(
     () => props.match.appearance().nativeCollection,
+  )
+  const fractureNotice = createMemo(() =>
+    nativeMatchFractureNotice(
+      props.match.currentPresentation(),
+      nativeCollection()?.id ?? '',
+    ),
   )
   const cinemaReason = createMemo(() => {
     if (nativeCollection()) return nativeCinemaReason(props.match.currentMove())
@@ -113,6 +120,11 @@ export function GummyMatchSidebar(props: {
         ? createNativeCinemaRecipe(props.match.currentMove()!, {
             nativeCollection: selection,
             scale: props.match.appearance().scale,
+            fracture: nativeMatchCaptureFracture(
+              props.match.currentMove(),
+              props.match.currentPresentation(),
+              selection.id,
+            ),
           })
         : createGummyMatchCinemaRecipe(
             props.match.currentMove()!,
@@ -328,6 +340,9 @@ export function GummyMatchSidebar(props: {
               {cinemaReason() ??
                 `${props.match.currentMove()!.san} is ready for the shot studio. Open the capture in Cinema to tune its look and motion.`}
             </p>
+            <Show when={nativeCollection() && fractureNotice()}>
+              <p class={styles.help}>{fractureNotice()}</p>
+            </Show>
             <a
               class={styles.primary}
               href={cinemaHref()}

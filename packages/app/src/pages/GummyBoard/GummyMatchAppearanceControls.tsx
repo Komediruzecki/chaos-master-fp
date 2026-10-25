@@ -9,6 +9,7 @@ import type { GummyPresetSettings } from '../GummyBear/gummyPresets'
 import type { useGummyMatch } from './useGummyMatch'
 import type { GummyBoardQuality } from '@/components/GummyBoard/gummyBoardQuality'
 import type { GummyBoardTheme } from '@/components/GummyBoard/gummyBoardThemes'
+import type { NativeFractureMode } from '@/flame/chess/nativeFractureTypes'
 
 export function GummyMatchAppearanceControls(props: {
   match: ReturnType<typeof useGummyMatch>
@@ -61,6 +62,30 @@ export function GummyMatchAppearanceControls(props: {
           {nativeCollection() ? 'Render settings' : 'Board and material'}
         </summary>
         <fieldset class={styles.fields} disabled={props.busy}>
+          <Show when={nativeCollection()?.id === 'lattice-court'}>
+            <label class={styles.label} for="match-fracture">
+              Window rook breakup
+            </label>
+            <select
+              id="match-fracture"
+              class={styles.select}
+              value={props.match.appearance().nativeFracture ?? 'points'}
+              onChange={(event) => {
+                props.match.updateAppearance({
+                  nativeFracture: event.currentTarget
+                    .value as NativeFractureMode,
+                })
+              }}
+            >
+              <option value="points">Point breakup</option>
+              <option value="connected">Rigid chunks</option>
+              <option value="contact">Contact fracture</option>
+            </select>
+            <p class={styles.help}>
+              Applies to new captures of Window rooks. Replays keep the recorded
+              breakup; Cinema lets you compare another.
+            </p>
+          </Show>
           <Show when={!nativeCollection()}>
             <label class={styles.label} for="match-theme">
               Board

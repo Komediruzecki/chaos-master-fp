@@ -461,10 +461,10 @@ existing fine debris can look bead-like, and portrait framing crops some outer
 debris after impact. This review does not certify X upload or recompression.
 The posting files have not been uploaded to X.
 
-## Native connected rook comparison
+## Native rook breakup comparison
 
 Open `/gummy?view=cinema&renderer=native`, choose **Window rook**, then select
-**Connected rook study** under **Breakup** and apply the shot settings. Compare
+**Connected rook: rigid study** under **Breakup** and apply the shot settings. Compare
 **Pure fractals** and **Glass study** without resampling the collection. Return to
 **Coloured points** for the original dispersal. The copied native recipe includes
 the comparison choice; the existing gummy material recipes remain separate.
@@ -474,3 +474,19 @@ chunks and interior surfaces. Its rigid motion is prescribed for repeatable
 comparison, rather than driven by a material stress solver. Only the Lattice
 Court rook supports it. The scene reuses resources for camera, enclosure and size
 edits, and retains a bounded cache for recent collections.
+
+**Connected rook: contact fracture** adds an opt-in experimental alternative. A bounded worker
+task prepares the captured Window rook's contact and breakup trajectory from the
+applied legal move; GPU playback reads those sampled chunk poses. The intact
+before-position remains visible while preparation runs. The earlier connected
+study and original point dispersal remain separate choices, so older recipes do
+not silently acquire the new effect. Contact fracture is limited to shots that
+capture a Lattice Court rook and does not change the gummy material solver.
+Its physical accuracy and device performance remain subjects for review.
+
+A match handoff carries the capture's recorded breakup while preserving the
+current pure/glass and size comparison. **Apply shot settings** changes this
+Cinema take without modifying the saved move. Native recipes retain the chosen
+mode for replay and export; recipes with no breakup field keep point dispersal.
+Selecting a different collection for a match comparison uses points and leaves
+the recorded rook effect intact for a return to Lattice Court.

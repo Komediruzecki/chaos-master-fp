@@ -791,6 +791,72 @@ Next phases, in order:
 5. Continue private friend sessions and later world placement below. Room
    authority, hosting and deployment still need their own implementation gate.
 
+### Contact-driven rook and playable comparison (2026-10-25)
+
+The connected Window rook is now an opt-in material in playable Lattice Court
+matches and native Cinema. **Coloured points**, **Connected rook: rigid study**
+and **Connected rook: contact fracture** remain separate choices. Pure and glass
+enclosures are available for each. Current selection applies to new captures;
+saved rook captures keep their recorded breakup. Missing fields in old sessions
+resolve to points. The legal move receipt remains authoritative, including
+promotion captures, and the attacker finishes on its destination square.
+
+Contact fracture preserves the eighteen regions and derives bonds from their
+shared cell faces. Each region has mass, support points and an exact disjoint
+box union of its occupied cells. This avoids the overlapping bounding boxes that
+would incorrectly push interlocking pieces apart at rest. The bounded worker
+simulation applies contact impulses, friction, gravity and interface damage;
+remaining bonded regions move together. The visible attacker path is sampled
+at the same 120 Hz used by the bake. Its collider is a conservative upright
+prism, including the finite volume when the attacker is itself a solid rook.
+Glass starts its existing breakup when the first solid bond breaks.
+
+This is a rigid-fragment prototype with heuristic interface damage and diagonal
+inertia, not a continuum stress or gummy material solver. The victim's material
+boxes are exact for the finite voxel volume; the attacker's shape and contact
+manifolds remain approximations. Finite steps can leave residual interpenetration.
+The impulse/friction treatment follows the usual rigid contact structure; see
+[Müller et al., Detailed Rigid Body Simulation](https://matthias-research.github.io/pages/publications/PBDBodies.pdf),
+sections 3.5–3.6, for the distinction between positional contact correction and
+velocity/friction response. This implementation is not a full XPBD solver.
+
+The bake runs once in a CPU worker, with at most 1,500 collision boxes and 361
+pose samples. GPU playback interpolates translation and quaternion samples;
+there is no live CPU physics solve, GPU readback, or per-frame buffer allocation.
+Each scene owns its cancellable worker, two cached trajectories and bounded GPU
+motion slots. Changing camera or enclosure reuses the same bake. Disposal clears
+owned resources. Preparation keeps the before-position visible and pauses the
+capture clock; cancellation cannot publish a stale take or complete a newer move.
+A bake failure leaves the existing comparison modes available.
+
+Desktop verification passed 265 focused tests and 20 hardware Chromium checks
+on AMD RDNA 4. Those checks cover normal/fine geometry, all three effects,
+pure/glass, repeat exported pixels after backward seeking, a real playable
+capture, Cinema handoff/reload/return, phone-width controls and paused rendering.
+The normal pawn-takes-rook contact take prepared in 1.36 seconds; camera/enclosure
+changes created no additional workers or GPU buffers. Application-owned buffers
+stayed at 46 / 20.3 MB during that comparison; this does not measure driver memory.
+
+The same native trajectory breaks 33 of 38 bonds into 14 final compounds. A
+325-frame CPU audit measured final fragment overlap of 0.000281 local units,
+attacker overlap of 0.000063, and floor error of about 0.0000101. Peak transient
+fragment/attacker overlaps were 0.09323 / 0.10197 during impact. These figures
+make the remaining discrete-contact limitation explicit; they are not evidence
+of exact nonpenetration or physical-device performance. Three upload-failure
+regressions also verify that resize and cached-take retry recover correctly.
+
+Next acceptance sequence:
+
+1. Owner review on tablet/iOS: compare all three breakup modes, pure/glass, and
+   preparation latency. Keep PR #160 open until this review.
+2. Tune contact manifolds, bond strength and chunk size against those captures.
+   Improve attacker shape fitting and measure residual penetration before
+   expanding to more solid roles.
+3. Select the next accepted connected role (split-current bishop or fern knight),
+   validate its volume and retain its previous point effect for comparison.
+4. Continue private friend sessions and world placement below. Room authority,
+   hosting and deployment remain a separate implementation milestone.
+
 ## Private friend session architecture
 
 The current Worker serves static assets and bounded APIs for sharing and gallery

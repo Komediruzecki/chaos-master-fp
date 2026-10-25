@@ -63,7 +63,9 @@ export function NativeCinemaStagingControls(props: {
         id="native-fracture"
         value={props.draft.fracture ?? 'points'}
         onChange={(e) => {
-          patch({ fracture: e.currentTarget.value as 'points' | 'connected' })
+          patch({
+            fracture: e.currentTarget.value as NativeCinemaRecipe['fracture'],
+          })
         }}
       >
         <option value="points">Coloured points</option>
@@ -74,12 +76,21 @@ export function NativeCinemaStagingControls(props: {
             resolveNativeCinemaReceipt(props.draft).captured?.role !== 'rook'
           }
         >
-          Connected rook study
+          Connected rook: rigid study
+        </option>
+        <option
+          value="contact"
+          disabled={
+            props.draft.nativeCollection.id !== 'lattice-court' ||
+            resolveNativeCinemaReceipt(props.draft).captured?.role !== 'rook'
+          }
+        >
+          Connected rook: contact fracture
         </option>
       </select>
       <p class={styles.help}>
-        Choose Window rook above to compare solid chunks with coloured
-        interiors.
+        Contact fracture breaks the Window rook on impact. The rigid study keeps
+        the earlier motion for comparison. Both have coloured interiors.
       </p>
       <label for="native-camera">Camera movement</label>
       <select

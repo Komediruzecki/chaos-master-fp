@@ -1,6 +1,8 @@
 /** Experimental connected finite-volume fracture of the sampled Lattice Court window rook. */
+import { buildRookContactGeometry } from './rookContactGeometry'
 import { meshWindowRook, ROOK_SOLID_VERTEX_FLOATS, } from './windowRookFractureMesh'
 import { partitionWindowRook, windowRookVolume } from './windowRookVolume'
+import type { RookContactPhysics } from './rookContactTypes'
 import type { RookChunk } from './windowRookFractureMesh'
 
 export type WindowRookFracture = {
@@ -9,6 +11,7 @@ export type WindowRookFracture = {
   vertices: Float32Array
   fragmentCount: number
   chunks: readonly RookChunk[]
+  physics: RookContactPhysics
   diagnostics: {
     cellSize: number
     occupiedCells: number
@@ -67,6 +70,7 @@ export function buildWindowRookFracture(
     vertices: mesh.vertices,
     fragmentCount: partition.count,
     chunks: mesh.chunks,
+    physics: buildRookContactGeometry(volume, partition.labels, mesh.chunks),
     diagnostics: {
       cellSize: volume.cellSize,
       occupiedCells: volume.cells.length,

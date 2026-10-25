@@ -33,6 +33,7 @@ const solids: WindowRookFracture[] = [
     vertices: new Float32Array(19),
     fragmentCount: 1,
     chunks: [],
+    physics: { chunks: [], bonds: [], cellSize: 1 },
     diagnostics: {
       cellSize: 1,
       occupiedCells: 1,
@@ -61,16 +62,16 @@ describe('native Cinema upload ownership', () => {
   it('keeps all geometry through camera and enclosure edits and defers solids until selected', () => {
     const { renderer, upload } = setup()
     upload(recipe, clouds, shell, solids)
-    upload({ ...recipe, camera: 'hero', scale: 0.85 }, clouds, shell, solids)
-    upload(
-      {
-        ...recipe,
-        nativeCollection: { ...recipe.nativeCollection, enclosure: 'pure' },
+    const changedLook = { ...recipe, camera: 'hero' as const, scale: 0.85 }
+    upload(changedLook, clouds, shell, solids)
+    const pureLook = {
+      ...recipe,
+      nativeCollection: {
+        ...recipe.nativeCollection,
+        enclosure: 'pure' as const,
       },
-      clouds,
-      shell,
-      solids,
-    )
+    }
+    upload(pureLook, clouds, shell, solids)
     expect(renderer.setVariantCloud).toHaveBeenCalledOnce()
     expect(renderer.setVariantGlass).toHaveBeenCalledOnce()
     expect(renderer.setVariantSolid).not.toHaveBeenCalled()
@@ -81,6 +82,7 @@ describe('native Cinema upload ownership', () => {
     expect(renderer.setVariantSolid).toHaveBeenCalledExactlyOnceWith(
       solids[0]!.key,
       solids[0]!.vertices,
+      solids[0]!.chunks,
     )
     expect(renderer.clearVariantSolids).toHaveBeenCalledOnce()
     expect(renderer.setVariantGlass).toHaveBeenCalledTimes(2)
@@ -114,5 +116,20 @@ describe('native Cinema upload ownership', () => {
     expect(renderer.clearVariantSolids).toHaveBeenCalledTimes(2)
     upload({ ...recipe, fracture: 'connected' }, clouds, shell, solids)
     expect(renderer.setVariantSolid).toHaveBeenCalledTimes(2)
+  })
+
+  it('rebuilds a cached source after a replacement upload failed partway through', () => {
+    const { renderer, upload } = setup()
+    upload(recipe, clouds, shell, solids)
+    renderer.setVariantCloud.mockImplementationOnce(() => {
+      throw new Error('Allocation failed')
+    })
+    expect(() => {
+      upload(recipe, [...clouds], shell, solids)
+    }).toThrow('Allocation failed')
+    upload(recipe, clouds, shell, solids)
+    expect(renderer.setVariantCloud).toHaveBeenCalledTimes(3)
+    expect(renderer.clearVariantClouds).toHaveBeenCalledTimes(3)
+    expect(renderer.setVariantGlass).toHaveBeenCalledTimes(2)
   })
 })

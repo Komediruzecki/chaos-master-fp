@@ -229,34 +229,40 @@ describe('NativeChessCinemaPage', () => {
     expect(fixtures.exports).toHaveLength(1)
   })
 
-  it('offers the connected prototype only for a Window rook and preserves it in the copied recipe', () => {
-    render(() => <NativeChessCinemaPage />)
-    const option = () =>
-      screen.getByRole<HTMLOptionElement>('option', {
-        name: 'Connected rook study',
+  it.each(['connected', 'contact'] as const)(
+    'offers the %s prototype only for a Window rook and preserves it in the copied recipe',
+    (mode) => {
+      render(() => <NativeChessCinemaPage />)
+      const option = () =>
+        screen.getByRole<HTMLOptionElement>('option', {
+          name:
+            mode === 'contact'
+              ? 'Connected rook: contact fracture'
+              : 'Connected rook: rigid study',
+        })
+      expect(option().disabled).toBe(true)
+      fireEvent.click(button('Window rook'))
+      expect(option().disabled).toBe(false)
+      change('Breakup', mode)
+      expect(current().recipe.fracture).toBeUndefined()
+      fireEvent.click(button('Apply shot settings'))
+      expect(window.__nativeChessCinema!.recipe().fracture).toBe(mode)
+      expect(
+        JSON.parse(sessionStorage.getItem(NATIVE_CINEMA_KEY)!).fracture,
+      ).toBe(mode)
+      change('Enclosure', 'pure')
+      fireEvent.click(button('Apply shot settings'))
+      expect(current().recipe).toMatchObject({
+        fracture: mode,
+        nativeCollection: { enclosure: 'pure' },
       })
-    expect(option().disabled).toBe(true)
-    fireEvent.click(button('Window rook'))
-    expect(option().disabled).toBe(false)
-    change('Breakup', 'connected')
-    expect(current().recipe.fracture).toBeUndefined()
-    fireEvent.click(button('Apply shot settings'))
-    expect(window.__nativeChessCinema!.recipe().fracture).toBe('connected')
-    expect(
-      JSON.parse(sessionStorage.getItem(NATIVE_CINEMA_KEY)!).fracture,
-    ).toBe('connected')
-    change('Enclosure', 'pure')
-    fireEvent.click(button('Apply shot settings'))
-    expect(current().recipe).toMatchObject({
-      fracture: 'connected',
-      nativeCollection: { enclosure: 'pure' },
-    })
-    change('Collection', 'wild-canopy')
-    fireEvent.click(button('Apply shot settings'))
-    expect(current().recipe.fracture).toBe('points')
-    expect(option().disabled).toBe(true)
-    expect(fixtures.scenes).toHaveLength(1)
-  })
+      change('Collection', 'wild-canopy')
+      fireEvent.click(button('Apply shot settings'))
+      expect(current().recipe.fracture).toBe('points')
+      expect(option().disabled).toBe(true)
+      expect(fixtures.scenes).toHaveLength(1)
+    },
+  )
 
   it('keeps a valid take playable after a malformed replacement and reports GPU errors separately', async () => {
     render(() => <NativeChessCinemaPage />)

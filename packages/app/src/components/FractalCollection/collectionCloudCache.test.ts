@@ -47,6 +47,7 @@ describe('collection cloud cache', () => {
       vertices: new Float32Array(19),
       fragmentCount: 1,
       chunks: [],
+      physics: { chunks: [], bonds: [], cellSize: 1 },
       diagnostics: {
         cellSize: 1,
         occupiedCells: 1,

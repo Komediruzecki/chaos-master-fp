@@ -26,7 +26,14 @@ export function createCollectionCloudCache(budget?: CollectionCacheBudget) {
         (result.shell?.vertices.byteLength ?? 0) +
         (result.solidShell?.vertices.byteLength ?? 0) +
         (result.solids?.reduce(
-          (sum, solid) => sum + solid.vertices.byteLength,
+          (sum, solid) =>
+            sum +
+            solid.vertices.byteLength +
+            (solid.physics?.chunks.reduce(
+              (bytes, chunk) =>
+                bytes + chunk.boxes.byteLength + chunk.supportPoints.byteLength,
+              0,
+            ) ?? 0),
           0,
         ) ?? 0)
       if (bytes > budget.maxBytes) return

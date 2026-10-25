@@ -3,12 +3,14 @@ import { getFractalStudyGlassRole } from '@/flame/chess/fractalStudyGlass'
 import { BOARD_TOP, squareWorld } from '../PawnBoard/pawnBoardMath'
 import type { ChessMoveReceipt, ChessPosition, } from '@chaos-master/core/chess/chessGame'
 import type { CollectionInstance } from './collectionStageLayout'
+import type { NativeFractureMode } from '@/flame/chess/nativeFractureTypes'
 import type { Square } from '@/flame/chess/pawnGame'
 
 export type NativeFractalMatchLook = {
   collectionId: string
   enclosure: 'pure' | 'glass'
   scale: number
+  fracture?: NativeFractureMode
 }
 export type NativeFractalMatchPiece = CollectionInstance & {
   id: number

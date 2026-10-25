@@ -8,6 +8,7 @@ import { nativeMatchPieces } from './nativeFractalMatchFrame'
 import type { ParentProps } from 'solid-js'
 import type { BoardFrame } from '../PawnBoard/pawnBoardRenderer'
 import type { CollectionCloud } from './collectionCloudWorker'
+import type { PreparedNativeContact } from './nativeContactPreparation'
 import type { NativeFractalCinemaController } from './NativeFractalCinemaScene'
 import type { FractalStudyGlass } from '@/flame/chess/fractalStudyGlass'
 import type { WindowRookFracture } from '@/flame/chess/windowRookFracture'
@@ -33,6 +34,10 @@ const fixture = vi.hoisted(() => ({
   clearGlass: vi.fn(),
   setSolid: vi.fn(),
   clearSolids: vi.fn(),
+  setMotion: vi.fn(),
+  clearMotions: vi.fn(),
+  prepare: vi.fn(),
+  disposePreparation: vi.fn(),
   clouds: [] as CollectionCloud[],
   solids: undefined as WindowRookFracture[] | undefined,
   solidError: '',
@@ -76,6 +81,15 @@ vi.mock('../PawnBoard/pawnBoardRenderer', () => ({
     clearVariantGlass: fixture.clearGlass,
     setVariantSolid: fixture.setSolid,
     clearVariantSolids: fixture.clearSolids,
+    setSolidMotion: fixture.setMotion,
+    clearSolidMotions: fixture.clearMotions,
+  }),
+}))
+vi.mock('./nativeContactPreparation', () => ({
+  createNativeContactPreparation: () => ({
+    prepare: fixture.prepare,
+    cancel: vi.fn(),
+    dispose: fixture.disposePreparation,
   }),
 }))
 vi.mock('./nativeCinemaCapture', () => ({
@@ -161,6 +175,9 @@ function mount(initial: Size = { width: 800, height: 600 }) {
 }
 beforeEach(() => {
   vi.clearAllMocks()
+  fixture.render.mockReset()
+  fixture.setSolid.mockReset()
+  fixture.setMotion.mockReset()
   fixture.canvas = document.createElement('canvas')
   fixture.device = new EventTarget()
   fixture.captureSize = undefined
@@ -168,6 +185,7 @@ beforeEach(() => {
   fixture.solidShell = undefined
   fixture.solidError = ''
   fixture.fence.mockResolvedValue()
+  fixture.prepare.mockResolvedValue(undefined)
   fixture.clouds = [
     'pawn',
     'rook',
@@ -198,6 +216,85 @@ afterEach(() => {
 })
 
 describe('native cinema frame ownership', () => {
+  it.each(['geometry', 'motion'] as const)(
+    'does not draw or become ready after a failed %s upload when resized',
+    async (stage) => {
+      const app = mount()
+      await settle()
+      fixture.solids = [
+        {
+          key: 'rook:dark',
+          vertices: new Float32Array(19),
+          fragmentCount: 1,
+          chunks: [],
+          physics: { chunks: [], bonds: [], cellSize: 1 },
+          diagnostics: {
+            cellSize: 1,
+            occupiedCells: 1,
+            connectedComponents: 1,
+            retainedFraction: 1,
+            volume: 1,
+            interfaceFaces: 0,
+            exteriorFaces: 6,
+          },
+        },
+      ]
+      const next: NativeCinemaRecipe = {
+        ...recipe,
+        fracture: 'contact',
+        fen: '7k/8/8/3r4/4P3/8/8/K7 w - - 0 1',
+        nativeCollection: {
+          version: 1,
+          id: 'lattice-court',
+          enclosure: 'pure',
+        },
+      }
+      const prepared: PreparedNativeContact = {
+        key: 'take',
+        victimId: resolveNativeCinemaReceipt(next).captured!.id,
+        motion: {
+          poses: new Float32Array(16),
+          sampleRate: 60,
+          frameCount: 2,
+          chunkCount: 1,
+          brokenAt: new Float32Array([0.6]),
+          stats: {
+            boxCount: 1,
+            steps: 1,
+            contacts: 1,
+            brokenBonds: 1,
+            firstContact: 0.5,
+            maxPenetration: 0,
+          },
+        },
+      }
+      fixture.prepare.mockResolvedValueOnce(prepared)
+      const upload = stage === 'geometry' ? fixture.setSolid : fixture.setMotion
+      upload.mockImplementationOnce(() => {
+        throw new Error('Upload allocation failed')
+      })
+      app.ready.mockClear()
+      app.setRecipe(next)
+      await settle()
+      expect(app.error).toHaveBeenCalledExactlyOnceWith(
+        'Upload allocation failed',
+      )
+      expect(app.controller().info().ready).toBe(false)
+      const rendered = fixture.render.mock.calls.length
+      app.setSize({ width: 900, height: 600 })
+      await settle()
+      await app.controller().render()
+      await app.controller().setCaptureSize(undefined)
+      expect(fixture.render).toHaveBeenCalledTimes(rendered)
+      expect(app.ready.mock.calls.filter(([value]) => value)).toEqual([])
+      expect(app.controller().info().error).toBeUndefined()
+      app.setRecipe({ ...next, fracture: 'points' })
+      await settle()
+      expect(app.controller().info().ready).toBe(true)
+      expect(fixture.destroy).not.toHaveBeenCalled()
+    },
+  )
+
   it('waits for a sized GPU frame and sleeps while paused', async () => {
     const app = mount({ width: 0, height: 0 })
     await settle()
@@ -328,6 +425,7 @@ describe('native cinema frame ownership', () => {
         vertices: new Float32Array(19),
         fragmentCount: 1,
         chunks: [],
+        physics: { chunks: [], bonds: [], cellSize: 1 },
         diagnostics: {
           cellSize: 1,
           occupiedCells: 1,

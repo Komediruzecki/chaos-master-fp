@@ -80,6 +80,65 @@ function importPgn(text: string) {
 }
 
 describe('GummyMatchPage', () => {
+  it('records the selected Window rook breakup and keeps it through comparison and Cinema', () => {
+    render(() => <GummyMatchPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'Fractals' }))
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Lattice Court collection' }),
+    )
+    const details = screen.getByText('Render settings').closest('details')!
+    details.open = true
+    fireEvent.change(screen.getByLabelText('Window rook breakup'), {
+      target: { value: 'contact' },
+    })
+    expect(stubs.nativeScene!.fracture).toBe('contact')
+    importPgn('[SetUp "1"]\n[FEN "r6k/8/8/8/8/8/8/R6K w - - 0 1"]\n\n*')
+    for (const [from, to] of [
+      ['h1', 'g1'],
+      ['h8', 'g8'],
+    ]) {
+      stubs.nativeScene!.onSquare(from!)
+      stubs.nativeScene!.onSquare(to!)
+      expect(stubs.nativeScene!.fracture).toBe('contact')
+      skip()
+    }
+    stubs.nativeScene!.onSquare('a1')
+    stubs.nativeScene!.onSquare('a8')
+    expect(stubs.nativeScene!.fracture).toBe('contact')
+    skip()
+    fireEvent.click(screen.getByRole('tab', { name: 'Pieces & board' }))
+    fireEvent.change(screen.getByLabelText('Window rook breakup'), {
+      target: { value: 'points' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Glass study' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Replay move' }))
+    expect(stubs.nativeScene!.fracture).toBe('contact')
+    expect(stubs.nativeScene!.enclosure).toBe('glass')
+    skip()
+    fireEvent.click(screen.getByRole('tab', { name: 'Game & moves' }))
+    fireEvent.click(screen.getByRole('link', { name: 'Open in Cinema' }))
+    expect(readNativeCinemaRecipe().recipe).toMatchObject({
+      fracture: 'contact',
+      nativeCollection: { id: 'lattice-court', enclosure: 'glass' },
+    })
+    fireEvent.click(screen.getByRole('tab', { name: 'Pieces & board' }))
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Wild Canopy collection' }),
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Replay move' }))
+    expect(stubs.nativeScene!.fracture).toBe('points')
+    skip()
+    fireEvent.click(screen.getByRole('tab', { name: 'Game & moves' }))
+    expect(
+      screen.getByText(
+        /This capture keeps its recorded breakup in Lattice Court/,
+      ),
+    ).toBeTruthy()
+    expect(
+      loadGummyMatchSession().session!.captures![0]!.appearance.nativeFracture,
+    ).toBe('contact')
+  })
+
   it('opens the current native comparison in Cinema without rewriting the original capture look', () => {
     render(() => <GummyMatchPage />)
     fireEvent.click(screen.getByRole('button', { name: 'Fractals' }))

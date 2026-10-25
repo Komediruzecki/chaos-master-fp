@@ -92,6 +92,42 @@ The white side uses the preset palette; the black side uses blue, or marbled
 candy when white uses blue. Individual-piece palette editing remains in the crash study.
 Settings cannot change during a move presentation.
 
+## Compare native fractal captures
+
+Choose **Fractals**, then a collection card. **Pure fractals** and **Glass study**
+remain available on the playable board and in Cinema. With **Lattice Court**
+selected, open **Render settings → Window rook breakup**:
+
+- **Point breakup** keeps the original coloured-particle dispersal.
+- **Rigid chunks** keeps the earlier connected-solid study and its prescribed
+  fragment motion.
+- **Contact fracture** is an opt-in experiment that prepares the Window rook's
+  breaking and collision motion in a bounded worker task, then plays the sampled
+  chunk poses on the GPU.
+
+The two solid options apply to captured Window rooks. Other roles keep their
+existing effects. The connected volume has coloured interior faces; it is a
+finite approximation of the fractal, not an infinitely detailed solid or a gummy
+MPM material. Contact fracture remains an experimental visual model; its physical
+accuracy and performance on tablets have not been established.
+
+Each new capture records the breakup it used. Changing the selector affects
+future captures; **Replay move**, reload and **Open in Cinema** retain that
+capture's recorded mode. Existing sessions and older capture snapshots without
+a mode keep point breakup. Enclosure and size can still be compared. Selecting
+another collection uses its point effect and shows an explanation; returning to
+Lattice Court restores the recorded rook breakup. PGN imports assign the current
+settings because PGN does not carry appearance history.
+
+The intact before-position stays visible while a contact take is prepared, and
+playback time starts after preparation finishes. Skip remains available and
+finishes on the committed legal position. A preparation failure leaves the game
+intact: skip the presentation, choose another breakup, or reload the board.
+In Cinema, change **Breakup** and apply the shot settings to compare another
+effect without rewriting the match's history. Native Cinema also accepts legal
+promotion and en-passant captures; the gummy studio's special-move limits below
+remain unchanged.
+
 ## Save, import and review a game
 
 The match saves its validated PGN, history cursor, current material/board settings

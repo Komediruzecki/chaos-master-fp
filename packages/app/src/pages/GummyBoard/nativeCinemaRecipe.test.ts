@@ -119,33 +119,36 @@ describe('native Cinema recipes', () => {
     ).toThrow()
   })
 
-  it('round-trips the optional connected rook study while preserving old recipes', () => {
-    const base = createNativeCinemaRecipe(capture(), look)
-    expect(parseNativeCinemaRecipe(base).fracture).toBeUndefined()
-    const recipe = parseNativeCinemaRecipe({
-      ...base,
-      fen: '7k/8/8/3r4/4P3/8/8/K7 w - - 0 1',
-      nativeCollection: { ...look.nativeCollection, id: 'lattice-court' },
-      fracture: 'connected',
-    })
-    expect(parseNativeCinemaRecipe(JSON.stringify(recipe))).toEqual(recipe)
-    expect(resolveNativeCinemaReceipt(recipe).captured?.role).toBe('rook')
-    expect(() =>
-      parseNativeCinemaRecipe({
-        ...recipe,
-        fen: '7k/8/8/3n4/4P3/8/8/K7 w - - 0 1',
-      }),
-    ).toThrow('Window rook')
-    expect(() =>
-      parseNativeCinemaRecipe({
-        ...recipe,
-        nativeCollection: look.nativeCollection,
-      }),
-    ).toThrow('Window rook')
-    expect(
-      parseNativeCinemaRecipe({ ...base, fracture: 'points' }).fracture,
-    ).toBe('points')
-  })
+  it.each(['connected', 'contact'] as const)(
+    'round-trips the optional %s rook study while preserving old recipes',
+    (fracture) => {
+      const base = createNativeCinemaRecipe(capture(), look)
+      expect(parseNativeCinemaRecipe(base).fracture).toBeUndefined()
+      const recipe = parseNativeCinemaRecipe({
+        ...base,
+        fen: '7k/8/8/3r4/4P3/8/8/K7 w - - 0 1',
+        nativeCollection: { ...look.nativeCollection, id: 'lattice-court' },
+        fracture,
+      })
+      expect(parseNativeCinemaRecipe(JSON.stringify(recipe))).toEqual(recipe)
+      expect(resolveNativeCinemaReceipt(recipe).captured?.role).toBe('rook')
+      expect(() =>
+        parseNativeCinemaRecipe({
+          ...recipe,
+          fen: '7k/8/8/3n4/4P3/8/8/K7 w - - 0 1',
+        }),
+      ).toThrow('Window rook')
+      expect(() =>
+        parseNativeCinemaRecipe({
+          ...recipe,
+          nativeCollection: look.nativeCollection,
+        }),
+      ).toThrow('Window rook')
+      expect(
+        parseNativeCinemaRecipe({ ...base, fracture: 'points' }).fracture,
+      ).toBe('points')
+    },
+  )
 
   it('requires a capture and bounds JSON before parsing', () => {
     expect(nativeCinemaReason()).toContain('Choose a capture')

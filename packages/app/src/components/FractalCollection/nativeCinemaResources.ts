@@ -2,8 +2,8 @@
 import type { createPawnBoardRenderer } from '../PawnBoard/pawnBoardRenderer'
 import type { CollectionCloud } from './collectionCloudWorker'
 import type { FractalStudyGlass } from '@/flame/chess/fractalStudyGlass'
+import type { NativeFractureMode } from '@/flame/chess/nativeFractureTypes'
 import type { WindowRookFracture } from '@/flame/chess/windowRookFracture'
-import type { NativeCinemaRecipe } from '@/pages/GummyBoard/nativeCinemaRecipe'
 
 type Renderer = Pick<
   ReturnType<typeof createPawnBoardRenderer>,
@@ -20,13 +20,16 @@ export function createNativeCinemaResources(renderer: Renderer) {
   let uploadedSolids: WindowRookFracture[] | undefined
   let uploadedSolidShell: FractalStudyGlass | undefined
   return (
-    recipe: NativeCinemaRecipe,
+    recipe: { nativeCollection: { id: string }; fracture?: NativeFractureMode },
     clouds: CollectionCloud[],
     shell?: FractalStudyGlass,
     solids?: WindowRookFracture[],
     solidShell?: FractalStudyGlass,
   ) => {
     if (uploaded !== clouds) {
+      uploaded = undefined
+      uploadedSolids = undefined
+      uploadedSolidShell = undefined
       renderer.clearVariantClouds()
       renderer.clearVariantGlass()
       renderer.clearVariantSolids()
@@ -44,27 +47,20 @@ export function createNativeCinemaResources(renderer: Renderer) {
           shell.radius,
         )
       uploaded = clouds
-      uploadedSolids = undefined
-      uploadedSolidShell = undefined
     }
-    if (recipe.fracture === 'connected' && !solids?.length)
+    const solidMode =
+      recipe.fracture === 'connected' || recipe.fracture === 'contact'
+    if (solidMode && !solids?.length)
       throw new Error(
         'The connected solid could not be prepared for this collection.',
       )
-    if (
-      recipe.fracture === 'connected' &&
-      solids &&
-      uploadedSolids !== solids
-    ) {
+    if (solidMode && solids && uploadedSolids !== solids) {
+      uploadedSolids = undefined
       for (const solid of solids)
-        renderer.setVariantSolid(solid.key, solid.vertices)
+        renderer.setVariantSolid(solid.key, solid.vertices, solid.chunks)
       uploadedSolids = solids
     }
-    if (
-      recipe.fracture === 'connected' &&
-      solidShell &&
-      uploadedSolidShell !== solidShell
-    ) {
+    if (solidMode && solidShell && uploadedSolidShell !== solidShell) {
       renderer.setVariantGlass(
         `${recipe.nativeCollection.id}:solid`,
         solidShell.vertices,

@@ -4,19 +4,24 @@ import { mat4 } from 'wgpu-matrix'
 import { AutoCanvas } from '@/lib/AutoCanvas'
 import { useCanvas } from '@/lib/CanvasContext'
 import { useLiveRootContext } from '@/lib/RootContext'
-import { bindGummyTouchSurface, createGummyCameraInput, } from '../GummyBear/gummyCameraInput'
 import { bindGummyGpuErrors } from '../GummyBear/gummyGpuErrors'
 import styles from '../GummyBoard/GummyMatchScene.module.css'
 import { DEFAULT_BOARD_CAMERA, pickBoardSquare, } from '../PawnBoard/pawnBoardMath'
 import { createPawnBoardRenderer } from '../PawnBoard/pawnBoardRenderer'
 import { collectionCameraMatrices, pickCollectionInstance, } from './collectionStageCamera'
+import { createNativeCinemaResources } from './nativeCinemaResources'
+import { createNativeContactPreparation } from './nativeContactPreparation'
 import { nativeMatchDuration, nativeMatchFrame, nativeMatchMarker, nativeMatchPieces, nativeMatchSquare, } from './nativeFractalMatchFrame'
+import { applyNativeFracture } from './nativeFractureFrame'
+import { bindNativeMatchInput } from './nativeMatchInput'
 import { useCollectionClouds } from './useCollectionClouds'
 import type { ChessMoveReceipt, ChessPosition, } from '@chaos-master/core/chess/chessGame'
 import type { GummyOrbit } from '../GummyBear/gummyStudyMath'
 import type { CollectionCloud } from './collectionCloudWorker'
+import type { PreparedNativeContact } from './nativeContactPreparation'
 import type { NativeFractalMatchLook } from './nativeFractalMatchFrame'
 import type { FractalStudyGlass } from '@/flame/chess/fractalStudyGlass'
+import type { WindowRookFracture } from '@/flame/chess/windowRookFracture'
 
 export type NativeFractalMatchSceneProps = NativeFractalMatchLook & {
   position: ChessPosition
@@ -34,6 +39,7 @@ export function NativeFractalMatchScene(props: NativeFractalMatchSceneProps) {
   const source = useCollectionClouds(
     () => props.collectionId,
     () => 'normal',
+    { maxEntries: 2, maxBytes: 32 * 1024 * 1024, includeSolids: true },
   )
   const [markers, setMarkers] = createSignal<Marker[]>([])
   const [visible, setVisible] = createSignal(true)
@@ -56,6 +62,9 @@ export function NativeFractalMatchScene(props: NativeFractalMatchSceneProps) {
           {...props}
           clouds={source.clouds()}
           shell={source.shell()}
+          solids={source.solids()}
+          solidShell={source.solidShell()}
+          resultKey={source.resultKey()}
           visible={visible()}
           onMarkers={setMarkers}
         />
@@ -86,6 +95,9 @@ function NativeMatchCanvas(
   props: NativeFractalMatchSceneProps & {
     clouds: CollectionCloud[]
     shell?: FractalStudyGlass
+    solids?: WindowRookFracture[]
+    solidShell?: FractalStudyGlass
+    resultKey: string
     visible: boolean
     onMarkers(markers: Marker[]): void
   },
@@ -111,7 +123,13 @@ function NativeMatchCanvas(
     frames = 0,
     animationGeneration = 0
   let completedReceipt: ChessMoveReceipt | undefined
-  let tap: { id: number; x: number; y: number } | undefined
+  let prepared: PreparedNativeContact | undefined
+  let preparing = false,
+    preparationBlocked = false,
+    preparationGeneration = 0
+  let motionKey: string | undefined
+  let uploadedClouds: CollectionCloud[] | undefined
+  const contact = createNativeContactPreparation()
   const state = createMemo(() => ({
     position: props.position,
     receipt: props.receipt,
@@ -121,6 +139,7 @@ function NativeMatchCanvas(
       collectionId: props.collectionId,
       enclosure: props.enclosure,
       scale: props.scale,
+      fracture: props.fracture,
     },
   }))
 
@@ -139,6 +158,19 @@ function NativeMatchCanvas(
     renderer = createPawnBoardRenderer(root, device, context, canvasFormat)
   } catch (cause) {
     fail(cause)
+  }
+  const upload = renderer ? createNativeCinemaResources(renderer) : undefined
+
+  function preparationError(cause: unknown) {
+    if (disposed || failed) return
+    preparing = false
+    preparationBlocked = true
+    ready = false
+    previousTime = 0
+    untrack(() => {
+      props.onError(cause instanceof Error ? cause.message : String(cause))
+    })
+    invalidate()
   }
 
   function camera() {
@@ -173,30 +205,41 @@ function NativeMatchCanvas(
       raf = requestAnimationFrame(frame)
   }
 
+  function canRender() {
+    return (
+      !disposed &&
+      !failed &&
+      loaded &&
+      props.visible &&
+      document.visibilityState !== 'hidden'
+    )
+  }
+
+  function capturePaused() {
+    return preparing || preparationBlocked
+  }
+
   function frame(now: number) {
     raf = 0
-    if (
-      disposed ||
-      failed ||
-      !renderer ||
-      !loaded ||
-      !props.visible ||
-      document.visibilityState === 'hidden'
-    ) {
+    if (!renderer || !canRender()) {
       previousTime = 0
       return
     }
     const s = state()
     const generation = animationGeneration
-    if (s.receipt && previousTime)
+    if (s.receipt && previousTime && !capturePaused())
       elapsed += Math.min(0.05, Math.max(0, (now - previousTime) / 1000))
     previousTime = now
     const size = camera()
     if (!size.width || !size.height) return
-    const pieces = s.receipt
+    const basePieces = s.receipt
       ? nativeMatchFrame(s.receipt, elapsed, s.look)
       : nativeMatchPieces(s.position, s.look, s.selected)
-    const completed = !!s.receipt && elapsed >= nativeMatchDuration(s.receipt)
+    const pieces = applyNativeFracture(basePieces, s.look, prepared, elapsed)
+    const completed =
+      !capturePaused() &&
+      !!s.receipt &&
+      elapsed >= nativeMatchDuration(s.receipt)
     dirty = false
     try {
       renderer.render({
@@ -230,7 +273,9 @@ function NativeMatchCanvas(
       canvas.dataset.pieces = String(pieces.length)
       canvas.dataset.frames = String(++frames)
       canvas.dataset.animating = String(Boolean(s.receipt))
-      if (!ready) {
+      canvas.dataset.fracture = s.look.fracture ?? 'points'
+      canvas.dataset.preparing = String(preparing)
+      if (!ready && !capturePaused()) {
         ready = true
         untrack(() => props.onReady?.(true))
       }
@@ -250,7 +295,12 @@ function NativeMatchCanvas(
             completedReceipt = s.receipt
             props.onComplete(s.receipt)
           }
-          if (dirty || (props.receipt && props.receipt !== completedReceipt))
+          if (
+            dirty ||
+            (!capturePaused() &&
+              props.receipt &&
+              props.receipt !== completedReceipt)
+          )
             invalidate()
         })
         .catch(fail)
@@ -269,7 +319,7 @@ function NativeMatchCanvas(
         completedReceipt = undefined
         elapsed = 0
         previousTime = 0
-        tap = undefined
+        input.cancelTap()
         invalidate()
       },
     ),
@@ -277,35 +327,87 @@ function NativeMatchCanvas(
 
   createEffect(
     on(
-      () => props.clouds,
-      (clouds) => {
-        if (!renderer || failed) return
+      () =>
+        [
+          props.clouds,
+          props.shell,
+          props.solids,
+          props.solidShell,
+          props.resultKey,
+          props.collectionId,
+          props.enclosure,
+          props.scale,
+          props.fracture,
+          props.receipt,
+        ] as const,
+      () => {
+        const generation = ++preparationGeneration
+        animationGeneration++
+        contact.cancel()
+        prepared = undefined
+        preparing = false
+        preparationBlocked = false
+        if (!renderer || !upload || failed) return
         loaded = false
         ready = false
+        elapsed = 0
         previousTime = 0
         untrack(() => props.onReady?.(false))
-        renderer.clearVariantClouds()
-        renderer.clearVariantGlass()
+        if (
+          props.clouds.length !== 12 ||
+          props.resultKey !== `${props.collectionId}:normal:solids`
+        )
+          return
         try {
-          for (const cloud of clouds)
-            renderer.setVariantCloud(
-              cloud.key,
-              cloud.side,
-              cloud.points,
-              cloud.colors,
-            )
-          const shell = props.shell
-          if (shell) {
-            renderer.setVariantGlass(
-              props.collectionId,
-              shell.vertices,
-              shell.radius,
-            )
+          const look = state().look
+          if (uploadedClouds !== props.clouds) {
+            motionKey = undefined
+            renderer.clearSolidMotions()
+            uploadedClouds = props.clouds
           }
-          loaded = clouds.length === 12
+          upload(
+            {
+              nativeCollection: { id: look.collectionId },
+              fracture: look.fracture,
+            },
+            props.clouds,
+            props.shell,
+            props.solids,
+            props.solidShell,
+          )
+          loaded = true
+          const receipt = props.receipt
+          if (receipt && look.fracture === 'contact') {
+            preparing = true
+            void contact
+              .prepare({
+                receipt,
+                look,
+                clouds: props.clouds,
+                solids: props.solids,
+              })
+              .then((result) => {
+                if (disposed || failed || generation !== preparationGeneration)
+                  return
+                if (result && result.key !== motionKey) {
+                  motionKey = undefined
+                  renderer.clearSolidMotions()
+                  renderer.setSolidMotion(result.key, result.motion)
+                  motionKey = result.key
+                }
+                prepared = result
+                preparing = false
+                previousTime = 0
+                invalidate()
+              })
+              .catch((cause: unknown) => {
+                if (generation === preparationGeneration)
+                  preparationError(cause)
+              })
+          }
           invalidate()
         } catch (cause) {
-          fail(cause)
+          preparationError(cause)
         }
       },
     ),
@@ -315,24 +417,6 @@ function NativeMatchCanvas(
     canvasSize()
     if (props.visible) invalidate()
     else previousTime = 0
-  })
-
-  const input = createGummyCameraInput({
-    canvas,
-    orbit: () => orbit,
-    mode: () => 'orbit',
-    ready: () => ready && !failed,
-    cameraRadius: () => {
-      camera()
-      return Math.hypot(
-        eye[0]! - (orbit.pan?.[0] ?? 0),
-        eye[1]! - 0.7 - (orbit.pan?.[1] ?? 0),
-        eye[2]! - (orbit.pan?.[2] ?? 0),
-      )
-    },
-    cancelGrip() {},
-    pick() {},
-    moveGrip() {},
   })
 
   function selectAt(x: number, y: number) {
@@ -353,92 +437,35 @@ function NativeMatchCanvas(
     if (square) props.onSquare(`${'abcdefgh'[square.file]}${square.rank + 1}`)
   }
 
-  function down(event: PointerEvent) {
-    if (tap) tap = undefined
-    else if (event.isPrimary && event.button === 0)
-      tap = { id: event.pointerId, x: event.clientX, y: event.clientY }
-    input.pointerDown(event)
-  }
-
-  function move(event: PointerEvent) {
-    if (
-      tap?.id === event.pointerId &&
-      Math.hypot(event.clientX - tap.x, event.clientY - tap.y) > 6
-    )
-      tap = undefined
-    const { theta, phi, zoom, pan } = orbit
-    input.pointerMove(event)
-    if (
-      orbit.theta !== theta ||
-      orbit.phi !== phi ||
-      orbit.zoom !== zoom ||
-      orbit.pan !== pan
-    )
+  const input = bindNativeMatchInput({
+    canvas,
+    orbit,
+    invalidate,
+    selectAt,
+    ready: () => ready && !failed,
+    cameraRadius: () => {
+      camera()
+      return Math.hypot(
+        eye[0]! - (orbit.pan?.[0] ?? 0),
+        eye[1]! - 0.7 - (orbit.pan?.[1] ?? 0),
+        eye[2]! - (orbit.pan?.[2] ?? 0),
+      )
+    },
+    visibility() {
+      previousTime = 0
       invalidate()
-  }
-
-  function end(event: PointerEvent) {
-    const picked =
-      event.type === 'pointerup' && tap?.id === event.pointerId
-        ? tap
-        : undefined
-    tap = undefined
-    input.pointerEnd(event)
-    if (picked) selectAt(picked.x, picked.y)
-    invalidate()
-  }
-
-  function wheel(event: WheelEvent) {
-    input.wheel(event)
-    invalidate()
-  }
-
-  function key(event: KeyboardEvent) {
-    if (input.cameraKey(event)) event.preventDefault()
-    else if (event.key === 'Home') {
-      Object.assign(orbit, DEFAULT_BOARD_CAMERA, { pan: undefined })
-      event.preventDefault()
-    } else return
-    invalidate()
-  }
-
-  function visibility() {
-    previousTime = 0
-    invalidate()
-  }
-  canvas.tabIndex = 0
-  canvas.style.cursor = 'grab'
-  const releaseTouch = bindGummyTouchSurface(canvas)
-  canvas.addEventListener('pointerdown', down)
-  canvas.addEventListener('pointermove', move)
-  canvas.addEventListener('pointerup', end)
-  canvas.addEventListener('pointercancel', end)
-  canvas.addEventListener('lostpointercapture', end)
-  canvas.addEventListener('pointerleave', input.pointerLeave)
-  canvas.addEventListener('wheel', wheel, { passive: false })
-  canvas.addEventListener('keydown', key)
-  canvas.addEventListener('contextmenu', input.contextMenu)
-  document.addEventListener('visibilitychange', visibility)
+    },
+  })
   onCleanup(() => {
     disposed = true
     cancelAnimationFrame(raf)
-    input.cancel()
-    releaseTouch()
+    input.dispose()
+    contact.dispose()
     releaseErrors()
     renderer?.destroy()
     context.unconfigure()
     props.onMarkers([])
     props.onReady?.(false)
-    canvas.removeEventListener('pointerdown', down)
-    canvas.removeEventListener('pointermove', move)
-    canvas.removeEventListener('pointerup', end)
-    canvas.removeEventListener('pointercancel', end)
-    canvas.removeEventListener('lostpointercapture', end)
-    canvas.removeEventListener('pointerleave', input.pointerLeave)
-    canvas.removeEventListener('wheel', wheel)
-    canvas.removeEventListener('keydown', key)
-    canvas.removeEventListener('contextmenu', input.contextMenu)
-    document.removeEventListener('visibilitychange', visibility)
   })
   return null
 }

@@ -173,6 +173,7 @@ export function GummyMatchPage(props: { onBackToArcade?: () => void } = {}) {
               {(_key) => (
                 <ChessMatchScene
                   nativeCollection={match.appearance().nativeCollection}
+                  nativeFracture={match.appearance().nativeFracture}
                   position={match.position()}
                   receipt={match.receipt()}
                   presentation={match.activePresentation()}

@@ -10,7 +10,7 @@ import type { WindowRookFracture } from '@/flame/chess/windowRookFracture'
 export type CollectionCloudRequest = {
   count: number
   collectionId: string
-  /** Cinema-only opt-in; ordinary collection/match loading keeps its existing cost. */
+  /** Opt-in for native matches and Cinema; collection galleries keep their existing cost. */
   includeSolids?: boolean
 }
 export type CollectionCloud = {
@@ -116,7 +116,13 @@ globalThis.self.onmessage = (event: MessageEvent<CollectionCloudRequest>) => {
             cloud.colors.buffer,
           ]),
           ...(shell ? [shell.vertices.buffer] : []),
-          ...(solids ?? []).map((solid) => solid.vertices.buffer),
+          ...(solids ?? []).flatMap((solid) => [
+            solid.vertices.buffer,
+            ...solid.physics.chunks.flatMap((chunk) => [
+              chunk.boxes.buffer,
+              chunk.supportPoints.buffer,
+            ]),
+          ]),
           ...(solidShell ? [solidShell.vertices.buffer] : []),
         ],
       },

@@ -9,7 +9,10 @@ import type { ChessMoveReceipt, ChessPosition, } from '@chaos-master/core/chess/
 import type { ParentProps } from 'solid-js'
 import type { BoardFrame } from '../PawnBoard/pawnBoardRenderer'
 import type { CollectionCloud } from './collectionCloudWorker'
+import type { PreparedNativeContact } from './nativeContactPreparation'
 import type { FractalStudyGlass } from '@/flame/chess/fractalStudyGlass'
+import type { NativeFractureMode } from '@/flame/chess/nativeFractureTypes'
+import type { WindowRookFracture } from '@/flame/chess/windowRookFracture'
 
 const fixture = vi.hoisted(() => ({
   canvas: undefined as HTMLCanvasElement | undefined,
@@ -22,6 +25,14 @@ const fixture = vi.hoisted(() => ({
   setGlass: vi.fn(),
   clearClouds: vi.fn(),
   clearGlass: vi.fn(),
+  setSolid: vi.fn(),
+  clearSolids: vi.fn(),
+  setMotion: vi.fn(),
+  clearMotions: vi.fn(),
+  prepare: vi.fn<() => Promise<PreparedNativeContact | undefined>>(),
+  cancelPreparation: vi.fn(),
+  disposePreparation: vi.fn(),
+  solids: [] as WindowRookFracture[],
   clouds: [] as CollectionCloud[],
   shell: undefined as FractalStudyGlass | undefined,
   source: undefined as
@@ -73,14 +84,28 @@ vi.mock('../PawnBoard/pawnBoardRenderer', () => ({
     clearVariantClouds: fixture.clearClouds,
     setVariantGlass: fixture.setGlass,
     clearVariantGlass: fixture.clearGlass,
+    setVariantSolid: fixture.setSolid,
+    clearVariantSolids: fixture.clearSolids,
+    setSolidMotion: fixture.setMotion,
+    clearSolidMotions: fixture.clearMotions,
   }),
 }))
 vi.mock('./useCollectionClouds', () => ({
-  useCollectionClouds: () => ({
+  useCollectionClouds: (id: () => string) => ({
     clouds: () => (fixture.source ? fixture.source().clouds : fixture.clouds),
     shell: () => (fixture.source ? fixture.source().shell : fixture.shell),
+    solids: () => fixture.solids,
+    solidShell: () => fixture.shell,
+    resultKey: () => `${id()}:normal:solids`,
     busy: () => false,
     error: () => '',
+  }),
+}))
+vi.mock('./nativeContactPreparation', () => ({
+  createNativeContactPreparation: () => ({
+    prepare: fixture.prepare,
+    cancel: fixture.cancelPreparation,
+    dispose: fixture.disposePreparation,
   }),
 }))
 
@@ -97,19 +122,25 @@ async function frame() {
   await Promise.resolve()
 }
 
-function mount(receipt?: ChessMoveReceipt) {
+function mount(
+  receipt?: ChessMoveReceipt,
+  collectionId = 'wild-canopy',
+  initialFracture?: NativeFractureMode,
+) {
   const [current, setReceipt] = createSignal(receipt)
   const [position, setPosition] = createSignal<ChessPosition>(
     receipt?.after ?? createChessGame().position,
   )
   const [enclosure, setEnclosure] = createSignal<'pure' | 'glass'>('pure')
+  const [fracture, setFracture] = createSignal(initialFracture)
   const complete = vi.fn(),
     ready = vi.fn(),
     error = vi.fn(),
     select = vi.fn()
   const app = render(() => (
     <NativeFractalMatchScene
-      collectionId="wild-canopy"
+      collectionId={collectionId}
+      fracture={fracture()}
       enclosure={enclosure()}
       scale={0.9}
       position={position()}
@@ -126,6 +157,7 @@ function mount(receipt?: ChessMoveReceipt) {
     setReceipt,
     setPosition,
     setEnclosure,
+    setFracture,
     complete,
     ready,
     error,
@@ -135,10 +167,14 @@ function mount(receipt?: ChessMoveReceipt) {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  fixture.setMotion.mockReset()
+  fixture.clearMotions.mockReset()
   fixture.device = new EventTarget()
   fixture.fence = undefined
   fixture.shell = { vertices: new Float32Array(18).fill(0.25), radius: 0.73 }
   fixture.source = undefined
+  fixture.prepare.mockResolvedValue(undefined)
+  fixture.solids = []
   fixture.clouds = [
     'pawn',
     'rook',
@@ -170,6 +206,245 @@ afterEach(() => {
 })
 
 describe('native match scene lifecycle', () => {
+  it('reuploads an older cached take after a later motion upload failed', async () => {
+    const { receipt } = applyChessMove(
+      createChessGame('r6k/8/8/8/8/8/8/R6K w - - 0 1'),
+      { from: 'a1', to: 'a8' },
+    )
+    fixture.solids = [
+      {
+        key: 'rook:dark',
+        vertices: new Float32Array(),
+        fragmentCount: 0,
+        chunks: [],
+        physics: { chunks: [], bonds: [], cellSize: 0.1 },
+        diagnostics: {
+          cellSize: 0.1,
+          occupiedCells: 0,
+          connectedComponents: 1,
+          retainedFraction: 1,
+          volume: 0,
+          interfaceFaces: 0,
+          exteriorFaces: 0,
+        },
+      },
+    ]
+    const first: PreparedNativeContact = {
+      key: 'first-take',
+      victimId: receipt.captured!.id,
+      motion: {
+        poses: new Float32Array(16),
+        sampleRate: 60,
+        frameCount: 2,
+        chunkCount: 1,
+        brokenAt: new Float32Array([0.6]),
+        stats: {
+          boxCount: 1,
+          steps: 1,
+          contacts: 1,
+          brokenBonds: 1,
+          firstContact: 0.5,
+          maxPenetration: 0,
+        },
+      },
+    }
+    fixture.prepare
+      .mockResolvedValueOnce(first)
+      .mockResolvedValueOnce({ ...first, key: 'failed-take' })
+      .mockResolvedValueOnce(first)
+    const uploads = new Set<string>()
+    fixture.clearMotions.mockImplementation(() => {
+      uploads.clear()
+    })
+    fixture.setMotion.mockImplementation((key: string) => {
+      if (key === 'failed-take') throw new Error('Motion allocation failed')
+      uploads.add(key)
+    })
+    const app = mount(receipt, 'lattice-court', 'contact')
+    await frame()
+    await frame()
+    expect(uploads.has(first.key)).toBe(true)
+    app.setReceipt(undefined)
+    app.setReceipt({ ...receipt })
+    await frame()
+    await frame()
+    expect(app.error).toHaveBeenCalledExactlyOnceWith(
+      'Motion allocation failed',
+    )
+    expect(uploads.size).toBe(0)
+    app.setReceipt(undefined)
+    app.setReceipt({ ...receipt })
+    await frame()
+    await frame()
+    expect(fixture.setMotion.mock.calls.map(([key]) => key)).toEqual([
+      'first-take',
+      'failed-take',
+      'first-take',
+    ])
+    expect(uploads.has(first.key)).toBe(true)
+    expect(app.ready).toHaveBeenLastCalledWith(true)
+    expect(fixture.destroy).not.toHaveBeenCalled()
+  })
+
+  it('holds the intact pre-capture board until contact preparation finishes, then resumes once', async () => {
+    const { receipt } = applyChessMove(
+      createChessGame('r6k/8/8/8/8/8/8/R6K w - - 0 1'),
+      { from: 'a1', to: 'a8' },
+    )
+    fixture.solids = [
+      {
+        key: 'rook:dark',
+        vertices: new Float32Array(),
+        fragmentCount: 0,
+        chunks: [],
+        physics: { chunks: [], bonds: [], cellSize: 0.1 },
+        diagnostics: {
+          cellSize: 0.1,
+          occupiedCells: 0,
+          connectedComponents: 1,
+          retainedFraction: 1,
+          volume: 0,
+          interfaceFaces: 0,
+          exteriorFaces: 0,
+        },
+      },
+    ]
+    let resolve!: (result: PreparedNativeContact) => void
+    fixture.prepare.mockReturnValueOnce(
+      new Promise((done) => {
+        resolve = done
+      }),
+    )
+    const app = mount(receipt, 'lattice-court', 'contact')
+    await frame()
+    const before = fixture.render.mock.lastCall![0].pieces
+    expect(before.map((piece) => piece.position)).toEqual(
+      nativeMatchPieces(receipt.before, {
+        collectionId: 'lattice-court',
+        enclosure: 'pure',
+        scale: 0.9,
+      }).map((piece) => piece.position),
+    )
+    expect(fixture.canvas!.dataset.preparing).toBe('true')
+    expect(app.ready).toHaveBeenLastCalledWith(false)
+    for (let i = 0; i < 60; i++) await frame()
+    expect(fixture.render).toHaveBeenCalledOnce()
+    expect(app.complete).not.toHaveBeenCalled()
+    const prepared: PreparedNativeContact = {
+      key: 'take-1',
+      victimId: receipt.captured!.id,
+      motion: {
+        poses: new Float32Array(16),
+        sampleRate: 60,
+        frameCount: 2,
+        chunkCount: 1,
+        brokenAt: new Float32Array([0.6]),
+        stats: {
+          boxCount: 1,
+          steps: 1,
+          contacts: 1,
+          brokenBonds: 1,
+          firstContact: 0.5,
+          maxPenetration: 0,
+        },
+      },
+    }
+    resolve(prepared)
+    await Promise.resolve()
+    await frame()
+    expect(fixture.setMotion).toHaveBeenCalledExactlyOnceWith(
+      'take-1',
+      prepared.motion,
+    )
+    expect(fixture.canvas!.dataset.preparing).toBe('false')
+    expect(app.ready).toHaveBeenLastCalledWith(true)
+    const victim = fixture.render.mock.lastCall![0].pieces.find(
+      (piece) => piece.solidMotionKey === 'take-1',
+    )
+    expect(victim?.solidMotionTime).toBe(0)
+    for (let i = 0; i < 60; i++) await frame()
+    expect(app.complete).toHaveBeenCalledExactlyOnceWith(receipt)
+    app.app.unmount()
+    expect(fixture.disposePreparation).toHaveBeenCalledOnce()
+  })
+
+  it('ignores a superseded contact rejection after the move is skipped', async () => {
+    const { receipt } = applyChessMove(
+      createChessGame('r6k/8/8/8/8/8/8/R6K w - - 0 1'),
+      { from: 'a1', to: 'a8' },
+    )
+    fixture.solids = [
+      {
+        key: 'rook:dark',
+        vertices: new Float32Array(),
+        fragmentCount: 0,
+        chunks: [],
+        physics: { chunks: [], bonds: [], cellSize: 0.1 },
+        diagnostics: {
+          cellSize: 0.1,
+          occupiedCells: 0,
+          connectedComponents: 1,
+          retainedFraction: 1,
+          volume: 0,
+          interfaceFaces: 0,
+          exteriorFaces: 0,
+        },
+      },
+    ]
+    let reject!: (error: Error) => void
+    fixture.prepare.mockReturnValueOnce(
+      new Promise((_done, fail) => {
+        reject = fail
+      }),
+    )
+    const app = mount(receipt, 'lattice-court', 'contact')
+    await frame()
+    app.setReceipt(undefined)
+    reject(new Error('Replaced capture'))
+    await frame()
+    expect(app.error).not.toHaveBeenCalled()
+    expect(app.ready).toHaveBeenLastCalledWith(true)
+    expect(fixture.setMotion).not.toHaveBeenCalled()
+  })
+
+  it('keeps current contact errors visible and recovers when point breakup is selected', async () => {
+    const { receipt } = applyChessMove(
+      createChessGame('r6k/8/8/8/8/8/8/R6K w - - 0 1'),
+      { from: 'a1', to: 'a8' },
+    )
+    fixture.solids = [
+      {
+        key: 'rook:dark',
+        vertices: new Float32Array(),
+        fragmentCount: 0,
+        chunks: [],
+        physics: { chunks: [], bonds: [], cellSize: 0.1 },
+        diagnostics: {
+          cellSize: 0.1,
+          occupiedCells: 0,
+          connectedComponents: 1,
+          retainedFraction: 1,
+          volume: 0,
+          interfaceFaces: 0,
+          exteriorFaces: 0,
+        },
+      },
+    ]
+    fixture.prepare.mockRejectedValueOnce(new Error('Contact solver stopped'))
+    const app = mount(receipt, 'lattice-court', 'contact')
+    await frame()
+    await frame()
+    expect(app.error).toHaveBeenCalledExactlyOnceWith('Contact solver stopped')
+    expect(app.ready).toHaveBeenLastCalledWith(false)
+    expect(app.complete).not.toHaveBeenCalled()
+    app.setFracture('points')
+    await frame()
+    expect(app.ready).toHaveBeenLastCalledWith(true)
+    for (let i = 0; i < 60; i++) await frame()
+    expect(app.complete).toHaveBeenCalledExactlyOnceWith(receipt)
+    expect(fixture.destroy).not.toHaveBeenCalled()
+  })
+
   it('does not render for hover but renders an active orbit and returns to idle after release', async () => {
     mount()
     await frame()
@@ -235,7 +510,7 @@ describe('native match scene lifecycle', () => {
     expect(app.select).toHaveBeenCalledExactlyOnceWith('e4')
   })
 
-  it('uploads one matching worker batch unchanged and clears old glass before a source reload', async () => {
+  it('uploads one matching worker batch unchanged and preserves the last frame during a source reload', async () => {
     const [source, setSource] = createSignal<{
       clouds: CollectionCloud[]
       shell?: FractalStudyGlass
@@ -269,7 +544,7 @@ describe('native match scene lifecycle', () => {
     const clearCount = fixture.clearGlass.mock.calls.length
     setSource({ clouds: [] })
     await frame()
-    expect(fixture.clearGlass).toHaveBeenCalledTimes(clearCount + 1)
+    expect(fixture.clearGlass).toHaveBeenCalledTimes(clearCount)
     expect(fixture.render).toHaveBeenCalledOnce()
     expect(app.ready).toHaveBeenLastCalledWith(false)
     expect(app.error).not.toHaveBeenCalled()
@@ -385,5 +660,37 @@ describe('native match scene lifecycle', () => {
     for (let i = 0; i < 20; i++) await frame()
     expect(app.complete).toHaveBeenCalledExactlyOnceWith(receipt)
     expect(frames.size).toBe(0)
+  })
+
+  it('does not accept the old completion fence when resource preparation restarts the same receipt', async () => {
+    const { receipt } = applyChessMove(createChessGame(), {
+      from: 'e2',
+      to: 'e4',
+    })
+    const app = mount(receipt)
+    for (let i = 0; i < 13; i++) await frame()
+    let resolve!: () => void
+    fixture.fence = new Promise<void>((done) => {
+      resolve = done
+    })
+    await frame()
+    app.setEnclosure('glass')
+    resolve()
+    await Promise.resolve()
+    await Promise.resolve()
+    fixture.fence = undefined
+    await frame()
+    expect(app.complete).not.toHaveBeenCalled()
+    expect(
+      fixture.render.mock.lastCall![0].pieces.map((piece) => piece.position),
+    ).toEqual(
+      nativeMatchPieces(receipt.before, {
+        collectionId: 'wild-canopy',
+        enclosure: 'glass',
+        scale: 0.9,
+      }).map((piece) => piece.position),
+    )
+    for (let i = 0; i < 20; i++) await frame()
+    expect(app.complete).toHaveBeenCalledExactlyOnceWith(receipt)
   })
 })

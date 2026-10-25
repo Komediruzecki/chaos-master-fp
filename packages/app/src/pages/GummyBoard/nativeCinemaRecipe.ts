@@ -1,8 +1,10 @@
 /** Portable native capture recipes reconstruct a legal move instead of trusting serialized receipts. */
 import { applyChessMove, createChessGame, } from '@chaos-master/core/chess/chessGame'
+import { parseNativeFractureMode } from '@/flame/chess/nativeFractureTypes'
 import { validateNativeChessCollectionSelection } from './gummyMatchAppearance'
 import type { ChessMoveReceipt, ChessPromotion, ChessSquare, } from '@chaos-master/core/chess/chessGame'
 import type { NativeChessCollectionSelection } from './gummyMatchAppearance'
+import type { NativeFractureMode } from '@/flame/chess/nativeFractureTypes'
 
 export type NativeCinemaRecipe = {
   format: 'native-chess-cinema-shot'
@@ -16,7 +18,7 @@ export type NativeCinemaRecipe = {
   quality: 'normal' | 'fine'
   camera: 'arc' | 'diagonal' | 'hero'
   /** Optional finite-volume rook study; old recipes retain point breakup. */
-  fracture?: 'points' | 'connected'
+  fracture?: NativeFractureMode
 }
 
 export function nativeCinemaReason(receipt?: ChessMoveReceipt) {
@@ -106,13 +108,17 @@ export function parseNativeCinemaRecipe(value: unknown): NativeCinemaRecipe {
     ...parseLook(data),
   }
   if (data.fracture !== undefined) {
-    if (data.fracture !== 'points' && data.fracture !== 'connected')
-      throw new Error('Choose point breakup or the connected rook study.')
-    recipe.fracture = data.fracture
+    const fracture = parseNativeFractureMode(data.fracture)
+    if (!fracture)
+      throw new Error(
+        'Choose coloured points, the rigid study or contact fracture.',
+      )
+    recipe.fracture = fracture
   }
   const receipt = resolveNativeCinemaReceipt(recipe)
   if (
-    recipe.fracture === 'connected' &&
+    recipe.fracture !== undefined &&
+    recipe.fracture !== 'points' &&
     (recipe.nativeCollection.id !== 'lattice-court' ||
       receipt.captured?.role !== 'rook')
   )
@@ -124,7 +130,11 @@ export function parseNativeCinemaRecipe(value: unknown): NativeCinemaRecipe {
 
 export function createNativeCinemaRecipe(
   receipt: ChessMoveReceipt,
-  look: { nativeCollection: NativeChessCollectionSelection; scale: number },
+  look: {
+    nativeCollection: NativeChessCollectionSelection
+    scale: number
+    fracture?: NativeFractureMode
+  },
 ): NativeCinemaRecipe {
   const reason = nativeCinemaReason(receipt)
   if (reason) throw new Error(reason)
@@ -139,5 +149,6 @@ export function createNativeCinemaRecipe(
     scale: look.scale,
     quality: 'normal',
     camera: 'arc',
+    ...(look.fracture ? { fracture: look.fracture } : {}),
   })
 }

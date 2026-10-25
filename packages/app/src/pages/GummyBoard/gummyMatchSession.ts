@@ -28,6 +28,17 @@ export type GummyMatchSession = {
   captures?: GummyMatchCapturePresentation[]
 }
 
+function fillMissingCaptures(
+  captures: GummyMatchCapturePresentation[],
+  game: ChessGame,
+  appearance: GummyMatchAppearance,
+) {
+  const combined = new Map(captures.map((entry) => [entry.ply, entry]))
+  for (const fallback of createGummyMatchCaptures(game, appearance, true))
+    if (!combined.has(fallback.ply)) combined.set(fallback.ply, fallback)
+  return [...combined.values()].sort((a, b) => a.ply - b.ply)
+}
+
 export function loadGummyMatchSession(storage?: SessionStorage): {
   session?: GummyMatchSession
   error?: string
@@ -69,13 +80,10 @@ export function loadGummyMatchSession(storage?: SessionStorage): {
       try {
         const captures = parseGummyMatchCaptures(data.captures, imported.game)
         // Missing entries use the previous motion, rather than choosing a new effect on reload.
-        session.captures = createGummyMatchCaptures(
+        session.captures = fillMissingCaptures(
+          captures,
           imported.game,
           appearance,
-          true,
-        ).map(
-          (fallback) =>
-            captures.find((entry) => entry.ply === fallback.ply) ?? fallback,
         )
       } catch {
         session.captures = createGummyMatchCaptures(

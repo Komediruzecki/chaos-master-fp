@@ -13,6 +13,7 @@ import { createPawnGlassTargets } from './pawnGlassTargets'
 import type { TgpuRenderPass, TgpuRenderPipeline, TgpuRoot } from 'typegpu'
 import type { BoardFrame } from './pawnBoardTypes'
 import type { PawnSide } from '@/flame/chess/pawnFlame'
+import type { RookContactMotion } from '@/flame/chess/rookContactTypes'
 
 export type { BoardFrame, BoardPawnInstance } from './pawnBoardTypes'
 
@@ -316,9 +317,13 @@ export function createPawnBoardRenderer(
       clearVariantGlass: () => {
         glassVariants.clear()
       },
-      setVariantSolid(key: string, vertices: Float32Array) {
-        if (!disposed) solidVariants.set(key, vertices)
+      setVariantSolid(...args: Parameters<typeof solidVariants.set>) {
+        if (!disposed) solidVariants.set(...args)
       },
+      setSolidMotion(key: string, motion: RookContactMotion) {
+        if (!disposed) solidVariants.setMotion(key, motion)
+      },
+      clearSolidMotions: solidVariants.clearMotions,
       clearVariantSolids: () => {
         solidVariants.clear()
       },

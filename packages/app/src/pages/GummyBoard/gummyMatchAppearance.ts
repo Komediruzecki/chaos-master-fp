@@ -1,5 +1,6 @@
 /** Shared, validated look and material snapshots for the live board and recorded captures. */
 import { FRACTAL_CHESS_COLLECTIONS } from '@/flame/chess/fractalChessCollections'
+import { parseNativeFractureMode } from '@/flame/chess/nativeFractureTypes'
 import { validateGummyAuthoredPawn } from '@/simulation/gummy/gummyAuthoredPawn'
 import { GUMMY_BUILTIN_PRESETS } from '../GummyBear/gummyBuiltinPresets'
 import { createGummyPreset } from '../GummyBear/gummyPresets'
@@ -7,6 +8,7 @@ import type { GummyPresetSettings } from '../GummyBear/gummyPresets'
 import type { GummyBoardQuality } from '@/components/GummyBoard/gummyBoardQuality'
 import type { GummyBoardTheme } from '@/components/GummyBoard/gummyBoardThemes'
 import type { FractalChessCollectionId } from '@/flame/chess/fractalChessCollections'
+import type { NativeFractureMode } from '@/flame/chess/nativeFractureTypes'
 import type { GummyAuthoredPawn } from '@/simulation/gummy/gummyAuthoredPawn'
 
 export type NativeChessCollectionSelection = {
@@ -48,6 +50,7 @@ export type GummyMatchAppearance = {
   theme: GummyBoardTheme
   authoredPawn?: GummyAuthoredPawn
   nativeCollection?: NativeChessCollectionSelection
+  nativeFracture?: NativeFractureMode
 }
 export function defaultGummyMatchAppearance(): GummyMatchAppearance {
   const preset = GUMMY_BUILTIN_PRESETS.find((item) => item.id === 'rockgummy')!
@@ -70,6 +73,7 @@ export function validateGummyMatchAppearance(
   const nativeCollection = validateNativeChessCollectionSelection(
     appearance.nativeCollection,
   )
+  const nativeFracture = parseNativeFractureMode(appearance.nativeFracture)
   if (appearance.authoredPawn !== undefined && !authoredPawn)
     throw new Error('Invalid authored pawn snapshot.')
   if (
@@ -91,5 +95,6 @@ export function validateGummyMatchAppearance(
     theme: appearance.theme as GummyBoardTheme,
     ...(authoredPawn ? { authoredPawn } : {}),
     ...(nativeCollection ? { nativeCollection } : {}),
+    ...(nativeFracture ? { nativeFracture } : {}),
   }
 }

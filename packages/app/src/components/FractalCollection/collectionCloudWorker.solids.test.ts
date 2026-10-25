@@ -66,11 +66,16 @@ describe('native collection worker finite-solid opt-in', () => {
     expect(options.transfer).toHaveLength(9)
   })
 
-  it('returns both solid sides and transfers their owned buffers only when Cinema requests them', async () => {
+  it('returns both solid sides and transfers their owned buffers only when the scene requests them', async () => {
     mocks.solid.mockImplementation((key: string) => ({
       key,
       vertices: new Float32Array(19 * 3),
       fragmentCount: 1,
+      physics: {
+        chunks: [
+          { boxes: new Float32Array(6), supportPoints: new Float32Array(24) },
+        ],
+      },
     }))
     const [reply, options] = await run({
       collectionId: 'lattice-court',
@@ -82,10 +87,17 @@ describe('native collection worker finite-solid opt-in', () => {
       'rook:light',
       'rook:dark',
     ])
-    expect(options.transfer).toHaveLength(12)
-    expect(options.transfer.slice(-3, -1)).toEqual(
-      reply.solids!.map((solid) => solid.vertices.buffer),
+    expect(options.transfer).toHaveLength(16)
+    expect(options.transfer.slice(9, -1)).toEqual(
+      reply.solids!.flatMap((solid) => [
+        solid.vertices.buffer,
+        ...solid.physics.chunks.flatMap((chunk) => [
+          chunk.boxes.buffer,
+          chunk.supportPoints.buffer,
+        ]),
+      ]),
     )
+    expect(new Set(options.transfer).size).toBe(options.transfer.length)
     expect(options.transfer.at(-1)).toBe(reply.solidShell!.vertices.buffer)
     expect(reply.solidShell).not.toBe(reply.shell)
     expect(reply.solidError).toBeUndefined()
